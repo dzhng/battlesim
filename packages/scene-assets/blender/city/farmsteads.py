@@ -20,8 +20,8 @@ farms of its own.
 The physical box is the authority. Every outer wall stands on a face of a part,
 and a part's top is its roof's ridge. Doors and windows sit in the bays of their
 edge's 3 m lattice, on the floor datums, where a garrison's soldiers stand; a
-barn has few of them, and a bay without one is a blank wall. What stands in a
-yard (a woodpile, a trough, a rain barrel, straw) hugs a wall, inside the set's
+barn keeps its small windows wherever a declared fighting bay has no door
+or open front. What stands in a yard (a woodpile, a trough, a rain barrel, straw) hugs a wall, inside the set's
 side fit; the cart shed keeps its cart inside its own box.
 
 A farm's walls and roofs are one module, its shell, in the template's frame.
@@ -41,7 +41,7 @@ from masonry import *  # noqa: E402,F403
 
 FAMILY = "china"
 WALL_M = 2.85  # from a house's top floor datum up to its eaves
-BYRE_SILL_M, LOFT_SILL_M = 1.3, 0.6  # a barn's small windows: high over the stalls, low under the loft's eaves
+BYRE_SILL_M, LOFT_SILL_M = 1.3, 1.3  # small barn windows span the physical eye and muzzle heights
 ROW_TIERS, FOLDED_TIER, FOLDED = TIERS_0_TO_1, 2, (2, 3)  # fittings are rows near; the shell keeps them at the two far tiers
 
 kit = Kit("farmsteads", "farmsteads.py", fit_side_m=0.6, fit_top_m=0.9, fit_ruin_top_m=0.6)
@@ -147,6 +147,7 @@ window_module("window_byre", 0.8, 0.6, lights=1, frame=timber_m, sill=timber_m, 
 window_module("window_shed", 0.8, 0.6, lights=1, frame=timber_m, sill=timber_m, cut=False)
 
 m = kit.module("door_panel", ground=True, **FITTING)
+m.opening = (0.95, 2.05, 0.0)
 panel_door(m.n("door"), 0.95, 2.05, joinery_m, frame_m, m.root)
 
 m = kit.module("step", ground=True, **FITTING)
@@ -164,10 +165,13 @@ cyl(m.n("pipe"), 0.045, 1.0, (0, 0, 0.5), "Z", metal_m, m.root, seg=6, caps=Fals
 # A barn's doors: the wagon doors, a split stable door, and the loft's doors under their hoist.
 BARN_DOOR_M, STABLE_DOOR_M, LOFT_DOOR_M = (2.7, 3.2), (1.15, 2.1), (1.3, 1.35)
 m = kit.module("barn_door", ground=True, **FITTING)
+m.opening = (BARN_DOOR_M[0], BARN_DOOR_M[1], 0.0)
 barn_doors(m.n("doors"), *BARN_DOOR_M, joinery_m, timber_m, m.root)
 m = kit.module("stable_door", ground=True, **FITTING)
+m.opening = (STABLE_DOOR_M[0], STABLE_DOOR_M[1], 0.0)
 stable_door(m.n("door"), *STABLE_DOOR_M, joinery_m, timber_m, m.root)
 m = kit.module("loft_door", **FITTING)
+m.opening = (LOFT_DOOR_M[0], LOFT_DOOR_M[1], 0.0)
 barn_doors(m.n("doors"), *LOFT_DOOR_M, joinery_m, timber_m, m.root, hoist=0.55)
 
 wreckage(kit, rubble_m, char_m)
@@ -277,6 +281,9 @@ class Farm:
         """Fold the far panels into the shell and stand it on the template; then its ruin: one
         module holding every building's stumps and heap in its own materials, with the set's
         wreckage lying on it. `open_sides` names sides that never had a wall (part -> sides)."""
+        self.t.open_sides = open_sides or {}
+        for edge, offset, floor in self.t.uncovered_bays():
+            self.mount("window_byre", edge, offset, z=floor + BYRE_SILL_M, tiers=TIERS_0_TO_2)
         fold_far(self.m, self.far, FAR_PANELS, FAR_BOXES, far_paint, FOLDED)
         self.t.place(self.m.name)
         open_walls(self.m, self.t.rows["intact"], kit.openings)  # near, a window is an opening, a house's with its room behind
@@ -315,7 +322,7 @@ farm = Farm("china-farmstead-yard", "farm_yard",
             dict(Layout="yard", Floors=2, House="14x9 plaster, clay gable", Barn="12x22 timber frame, brown gable",
                  Shed="9x6 open-fronted, boarded, slate lean-to"))
 house = farm.building("house", (-10, -8), (14, 9), 3.0 + WALL_M, 2.5, "x", (0.0, 0.0), "cream plaster", "clay")
-barn = farm.building("barn", (11, 0), (12, 22), 4.6, 3.8, "y", (0.0, 0.0), "straw plaster", "brown", plinth=(brick_plinth_m, 0.6))
+barn = farm.building("barn", (11, 0), (12, 22), 5.2, 3.2, "y", (0.0, 0.0), "straw plaster", "brown", plinth=(brick_plinth_m, 0.6))
 
 # The cart shed: boarded walls behind and at the ends, three open bays between posts in
 # front, under one slope that falls to the back. Its box stays under the farm's upper
@@ -416,7 +423,7 @@ farm.done()
 farm = Farm("china-farmstead-small", "farm_small",
             dict(Layout="small", Floors=2, House="11x8 brick, brown hip", Barn="10x14 boarded, clay half-hip"))
 house = farm.building("house", (-7.75, -3), (11, 8), 3.0 + WALL_M, 2.3, "x", (1.0, 1.0), "brick", "brown")
-barn = farm.building("barn", (8.25, 0), (10, 14), 4.5, 3.3, "y", (0.4, 0.4), "tarred boards", "clay", plinth=(brick_plinth_m, 0.7))
+barn = farm.building("barn", (8.25, 0), (10, 14), 5.2, 2.6, "y", (0.4, 0.4), "tarred boards", "clay", plinth=(brick_plinth_m, 0.7))
 farm.floors(0.0, 3.0)
 
 farm.bays_of("house", south=0.0, north=0.0, east=1.5, west=1.5)

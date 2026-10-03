@@ -57,6 +57,7 @@ sys.path.insert(0, os.path.dirname(HERE))
 from parts import *  # noqa: E402,F401,F403
 from masonry import fill_height, ragged_wall, rubble, rubble_fill, scorched, wall_panels  # noqa: E402
 import collapse  # noqa: E402
+from facade import missing_openings, overlapping_openings  # noqa: E402
 
 REPO = os.path.abspath(os.path.join(HERE, "../../../.."))
 BAY_PITCH_M = 3.0
@@ -88,6 +89,7 @@ class Module:
         self.root = empty(name)
         self.triangles = None  # per tier, after the bake
         self.points = None  # every vertex of every tier, in the module's frame
+        self.opening = None  # visible (width, height, foot) on its wall plane
 
     def n(self, part):
         """A part's object name: Blender's names are one namespace, so a part carries its module's."""
@@ -104,6 +106,7 @@ class Template:
         self.parts, self.floor_heights, self.entrances = [], [], []
         self.lattices, self.rows = {}, {"intact": []}
         self._edges = None
+        self.open_sides = {}
         for p in (row or {}).get("parts", ()):
             if p["yaw"]:
                 _fail(f"{id_}: part {p['id']} is turned; this helper's parts are axis-aligned")
@@ -250,12 +253,58 @@ class Template:
                    for id_, e in edges.items()],
             joins=self._joins)
 
+    def opening_spans(self):
+        """Visible source openings projected onto this template's physical edges."""
+        spans = []
+        for edge, e in self.edges().items():
+            if not e["exposed"]:
+                continue
+            if e["side"] in self.open_sides.get(e["part"], ()):
+                part = next(p for p in self.parts if p["id"] == e["part"])
+                spans.append((edge, *e["span"], part["base"], part["top"]))
+            _, normal, along = SIDES[e["side"]]
+            for module, x, y, z, yaw, sx, sy, sz, tiers, *_ in self.rows["intact"]:
+                bounds = self.kit.modules[module].opening
+                if bounds is None or not tiers & TIER_0:
+                    continue
+                dx, dy = x - e["origin"][0], y - e["origin"][1]
+                if abs(dx * normal[0] + dy * normal[1]) > 1e-5:
+                    continue
+                if abs(math.sin(yaw) - normal[0]) > 1e-5 or abs(-math.cos(yaw) - normal[1]) > 1e-5:
+                    continue
+                w, h, foot = bounds
+                offset = dx * along[0] + dy * along[1]
+                spans.append((edge, offset - w * sx / 2, offset + w * sx / 2, z + foot * sz, z + (foot + h) * sz))
+        return spans
+
+    def cover_bays(self, module, sill):
+        """Dress missing positions; align an overlapping pane instead of stacking a second one."""
+        h, foot = self.kit.modules[module].opening[1:]
+        for edge, offset, floor in self.uncovered_bays():
+            x, y, z, yaw = self.at(edge, offset, floor + sill)
+            for i, row in enumerate(self.rows["intact"]):
+                name, rx, ry, rz, turn = row[:5]
+                sz = row[7]
+                if (name == module and abs(rx - x) < 1e-5 and abs(ry - y) < 1e-5
+                        and abs(math.sin(turn - yaw)) < 1e-5 and math.cos(turn - yaw) > 0
+                        and max(rz + foot * sz, z + foot) < min(rz + (foot + h) * sz, z + foot + h)):
+                    self.rows["intact"][i] = (*row[:3], z, *row[4:])
+                    break
+            else:
+                self.mount(module, edge, offset, z=floor + sill)
+
+    def uncovered_bays(self):
+        return missing_openings(self.descriptor(), self.opening_spans(), self.kit.firing_heights)
+
 
 class Kit:
     def __init__(self, set_id, script, fit_side_m, fit_top_m, fit_ruin_top_m=None, damage_budget=True):
         """`fit_ruin_top_m` is how far a ruin's broken walls may stand above its remains; a set with no ruin has none.
         `damage_budget` false lets a damage state draw more than its building: only for art older than the rule."""
         self.damage_budget = damage_budget
+        with open(os.path.join(REPO, "fixtures", "game.json")) as f:
+            physics = json.load(f)["physics"]
+        self.firing_heights = (physics["infantry_muzzle_m"], physics["infantry_eye_m"])
         reset()
         self.set, self.script, self.fit = set_id, script, dict(side_m=fit_side_m, top_m=fit_top_m)
         if fit_ruin_top_m is not None:
@@ -341,6 +390,13 @@ class Kit:
     def write(self, out_dir=None):
         """Bake every module, hold every template to its boxes, and write `kit.glb` and `templates.json`."""
         out_dir = out_dir or os.path.join(REPO, "assets", "source", "city", self.set)
+        for t in self.templates:
+            overlaps = overlapping_openings(t.opening_spans())
+            if overlaps:
+                _fail(f"{t.id}: overlapping visible facade openings: {overlaps}")
+            gaps = t.uncovered_bays()
+            if gaps:
+                _fail(f"{t.id}: declared facade bays without visible openings: {gaps}")
         self._bake()
         names = sorted(self.modules)
         index = {name: i for i, name in enumerate(names)}
@@ -516,6 +572,7 @@ def opening(kit, module, w, h, foot=0.0, behind=None, back=REVEAL_M):
     `open_walls` cuts it, and `furnish` puts a room of sheet `behind` ("rooms", "shops") `back`
     metres inside the wall's face. With `behind` None the module closes its own opening."""
     kit.openings[module] = dict(w=w, h=h, foot=foot, behind=behind, back=back)
+    kit.modules[module].opening = (w, h, foot)
     if behind and f"room_{behind}" not in kit.modules:
         m = kit.module(f"room_{behind}", **FITTING)  # a metre each way: a row's scale is the room's size
         room_box(m.n("box"), 1.0, 1.0, 1.0, room(f"room_{behind}", behind), m.root)
@@ -563,6 +620,7 @@ def casement(kit, name, w, h, frame, glass, pane, sill, shutter=None, lights=2, 
     second tier it is one dark pane on the wall. `cut` false is a window in a wall too thin to
     open (boards on a frame, seen from both sides): the dark pane on the wall at every tier."""
     m = kit.module(name, **FITTING)
+    m.opening = (w, h, 0.0)
     box(m.n("head"), (w + 0.2, 0.12, 0.12), (0, -0.06, h + 0.06), frame, m.root, lods=OPEN_TIERS)
     box(m.n("sill"), (w + 0.24, 0.16, 0.07), (0, -0.08, -0.035), sill, m.root, lods=OPEN_TIERS)
     for s in (-1, 1):

@@ -89,9 +89,11 @@ window_module("window_wide", 1.6, 1.3, lights=3)
 window_module("window_tall", 0.9, 1.5, lights=1)
 
 m = kit.module("door_panel", ground=True, **FITTING)
+m.opening = (0.95, 2.05, 0.0)
 panel_door(m.n("door"), 0.95, 2.05, joinery_m, frame_m, m.root)
 
 m = kit.module("door_canopy", ground=True, **FITTING)
+m.opening = (0.95, 2.05, 0.0)
 panel_door(m.n("door"), 0.95, 2.05, joinery_m, frame_m, m.root, pane_m, light=0.32)
 box(m.n("canopy"), (1.8, 0.45, 0.09), (0, -0.225, 2.66), stone_m, m.root, lods=(0, 1, 2))
 for s in (-1, 1):

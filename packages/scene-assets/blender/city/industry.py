@@ -290,6 +290,7 @@ def skirt(m, tag, x0, x1, y0, y1, z0, z1, mat, out=0.0, lods=(0, 1, 2)):
 def glazed(name, w, h, jambs=True, stone=False):
     """A window of factory glazing, its sill's centre on the wall plane at the origin."""
     m = kit.module(name, **FITTING)
+    m.opening = (w, h, 0.0)
     surface(m, "glass", [(front(-w / 2, w / 2, 0, h, -0.03), SOUTH)], glazing_m, uv=((-w / 2, 0, 0), (1, 0, 0), (0, 0, 1)))
     if stone:  # a brick wall's opening: a concrete lintel and sill
         box(m.n("lintel"), (w + 0.5, 0.12, 0.3), (0, -0.06, h + 0.15), concrete_m, m.root, lods=(0, 1))
@@ -315,6 +316,11 @@ casement(kit, "office_window", 1.6, 1.4, frame_m, glass_m, pane_m, concrete_m, l
 m = kit.module("clad_panel", **FITTING)
 surface(m, "sheet", [(front(-1.5, 1.5, 0, 3.0, -0.03), SOUTH)], panel_m)
 
+m = kit.module("clad_panel_window", **FITTING)
+pw, ph, _ = kit.modules["strip_window"].opening
+surface(m, "sheet", [(front(a, b, c, d, -0.03), SOUTH) for a, b, c, d in (
+    (-1.5, -pw / 2, 0, ph), (pw / 2, 1.5, 0, ph), (-1.5, 1.5, ph, 3.0))], panel_m)
+
 m = kit.module("paint_band", **FITTING)
 surface(m, "band", [(front(-1.5, 1.5, 0, 1.0, -0.015), SOUTH)], band_m, uv=((-3.0, 0, -0.35), (1, 0, 0), (0, 0, 1)))
 
@@ -327,6 +333,7 @@ box(m.n("capping"), (3.0, 0.17, 0.06), (0, -0.085, DADO_M + 0.03), concrete_m, m
 # A roller shutter two bays wide, its threshold's centre at the origin: a vehicle door.
 ROLLER_W, ROLLER_H = 5.0, 4.2
 m = kit.module("roller_door", ground=True, **FITTING)
+m.opening = (ROLLER_W, ROLLER_H, 0.0)
 surface(m, "curtain", [(front(-ROLLER_W / 2, ROLLER_W / 2, 0, ROLLER_H, -0.04), SOUTH)], slats_m)
 box(m.n("hood"), (ROLLER_W + 0.5, 0.36, 0.45), (0, -0.18, ROLLER_H + 0.225), trim_m, m.root, lods=(0, 1, 2))
 box(m.n("sill"), (ROLLER_W, 0.09, 0.12), (0, -0.085, 0.06), hazard_m, m.root, lods=(0, 1))
@@ -339,6 +346,7 @@ for s in (-1, 1):
 # over the dock's concrete face, a leveller's lip and two bumpers.
 DOCK_SILL, DOCK_W, DOCK_H = 1.1, 2.7, 3.0
 m = kit.module("dock_door", ground=True, **FITTING)
+m.opening = (DOCK_W, DOCK_H, DOCK_SILL)
 surface(m, "door", [(front(-DOCK_W / 2, DOCK_W / 2, DOCK_SILL, DOCK_SILL + DOCK_H, -0.04), SOUTH)], slats_m, lods=(0, 1))
 surface(m, "door_far", [(front(-DOCK_W / 2 + 0.35, DOCK_W / 2 - 0.35, DOCK_SILL + 0.3, DOCK_SILL + DOCK_H - 0.35, -0.05), SOUTH)], slats_m,
         lods=(2, 3))
@@ -353,11 +361,13 @@ for s in (-1, 1):
     box(m.n(f"bumper_{'ab'[s > 0]}"), (0.25, 0.14, 0.5), (s * 1.2, -0.23, DOCK_SILL - 0.3), rubber_m, m.root, lods=(0, 1))
 
 m = kit.module("personnel_door", ground=True, **FITTING)
+m.opening = (0.95, 2.1, 0.0)
 panel_door(m.n("door"), 0.95, 2.1, door_m, frame_m, m.root)
 box(m.n("canopy"), (1.5, 0.6, 0.06), (0, -0.3, 2.42), trim_m, m.root, lods=(0, 1))
 box(m.n("step"), (1.4, 0.5, 0.1), (0, -0.25, 0.05), plinth_m, m.root, lods=(0, 1))
 
 m = kit.module("office_door", ground=True, **FITTING)
+m.opening = (1.5, 2.1, 0.0)
 panel_door(m.n("door"), 1.5, 2.1, door_m, frame_m, m.root, pane_m, light=0.4)
 box(m.n("canopy"), (2.8, 1.0, 0.12), (0, -0.5, 2.9), concrete_m, m.root, lods=(0, 1, 2))
 box(m.n("step"), (2.4, 0.8, 0.14), (0, -0.4, 0.07), plinth_m, m.root, lods=(0, 1))
@@ -628,6 +638,7 @@ def fold(t, shell):
     other row's module at those tiers is copied into the shell, in the row's place and
     tint, and the row then draws at the two fine tiers only. Flat panels that meet (a
     band of colour, a run of glazing) become one face."""
+    t.cover_bays("strip_window", FOOT_M)
     home = next(Matrix.Translation(r[1:4]) @ Matrix.Rotation(r[4], 4, "Z") for r in t.rows["intact"] if r[0] == shell.name).inverted()
     for tier in (2, 3):
         groups = {}
@@ -798,7 +809,7 @@ for side in ("east", "west"):
     for o in t.bays(edge)[1:-1]:
         t.mount("strip_window", edge, o, z=2.0)
     drain(t, edge, edge_z, (-D / 2 + 0.4, D / 2 - 0.4))
-t.mount("clad_panel", "body-east", 10.5, z=DADO_M + 0.1, tiers=TIERS_0_TO_2, tint=PRIMER)  # a bay re-sheeted, never painted to match
+t.mount("clad_panel_window", "body-east", 10.5, z=DADO_M + 0.1, tiers=TIERS_0_TO_2, tint=PRIMER)  # a bay re-sheeted, never painted to match
 for y in (-5.0, 5.0):
     t.place("turbine_vent", 0.0, y, TOP - 0.1)
 t.place("flue_stack", 3.4, 8.0, TOP - 3.4 * tan - 0.2, tiers=TIERS_0_TO_2)
