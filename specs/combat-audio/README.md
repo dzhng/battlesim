@@ -90,8 +90,8 @@ contract is now tested and ready for consumers. Root owns the source library and
 parallel agents own playback and workbench in isolated checkouts. Preserve every
 synthetic baseline, one voice per cause, hidden cues and existing sound scene gates.
 
-- [ ] Durable clean source library and explicit exclusions.
-- [ ] ATGM, cannon, ricochet, small/heavy impacts and explosions assigned.
+- [x] Durable clean source library and explicit exclusions; reproducible asset check passed.
+- [x] ATGM, cannon, ricochet, small/heavy impacts and explosions assigned in catalog.
 - [ ] Async live/offline preparation and exact unit/mount firing overrides.
 - [ ] Complete catalogue audition, editable recipes and all concrete unit rows.
 - [ ] Preview/save/reload with shared publication and stale/outside-edit protection.

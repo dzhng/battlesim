@@ -1,6 +1,1664 @@
 {
-  "sources": {},
-  "clips": {},
+  "sources": {
+    "qubodup-gunfire": {
+      "label": "Gun fire collection",
+      "author": "Iwan \u201cqubodup\u201d Gabovitch",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/qubodup/sounds/205588/",
+      "path": "assets/third-party/audio/205588__qubodup__gunfire.flac",
+      "sha256": "1eaebcb54159a0b229fc9d5ebde0b60665f38e19c30b3b15f24d419e4df0d989",
+      "notes": "User-supplied lossless master. Original government footage: YouTube kg09gqeomaA and z7DhyXt8g1E. Descriptive families; firearm models unverified. Bell in take-10 and muddled background of take-20 excluded."
+    },
+    "m1-live-fire": {
+      "label": "M1 tank firing \u00b7 DVIDS",
+      "author": "Tech. Sgt. Sara Bishop / AFN Iraq",
+      "license": "Public-Domain-US-Gov",
+      "url": "https://www.dvidshub.net/video/44170/m-1-tank-firing",
+      "path": "assets/third-party/audio/tank-live-fire.flac",
+      "sha256": "ac80e0f021383cc557d3adad8cded4b2dd4a7b3276eb346f3b8fc0a512d204ec",
+      "notes": "First 90 seconds of official B-roll audio, decoded to mono 48 kHz FLAC. DVIDS marks public domain. Distant recording, not close microphone."
+    },
+    "missile-live-fire": {
+      "label": "AT4, Javelin and TOW live fire",
+      "author": "Sgt. Mary Lopez / 1st BCT, 1st Armored Division",
+      "license": "Public-Domain-US-Gov",
+      "url": "https://www.youtube.com/watch?v=jmIwOVSrSU8",
+      "path": "assets/third-party/audio/atgm-live-fire.flac",
+      "sha256": "0b52b467cb4a05c5004803eb3d617aa1673ea9f70d92f1d27c08a948048f3ddc",
+      "notes": "Government field footage credited to Sgt. Mary Lopez, rehosted by AiirSourceMilitary. YouTube audio decoded to 48 kHz stereo FLAC. No music. Visual launch segment used for identity; flight loop is a designed reuse of the recorded exhaust."
+    },
+    "ricochet-design": {
+      "label": "Four designed bullet ricochets",
+      "author": "aust_paul",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/aust_paul/sounds/30932/",
+      "path": "assets/third-party/audio/ricochet-preview.mp3",
+      "sha256": "368d9ef0bd30d31d3b23e59e022a59cf0bf358a0e448b4f5adbf0fa81f9ac488",
+      "notes": "Public low-quality Freesound MP3 preview of the CC0 sound; lossless master requires login. Retained as downloaded; replace independently when a master is available. Foley/design category is not claimed as a live ammunition recording."
+    },
+    "dirt-foley": {
+      "label": "Fall in dirt \u00b7 impact Foley",
+      "author": "FocusBay",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/FocusBay/sounds/210867/",
+      "path": "assets/third-party/audio/dirt-preview.mp3",
+      "sha256": "fca20c847f014bfd3186345869b05ad7e14fc62053485664331c1be84b0ee883",
+      "notes": "Public low-quality Freesound MP3 preview of the CC0 sound; lossless master requires login. Retained as downloaded; replace independently when a master is available. Foley/design category is not claimed as a live ammunition recording."
+    },
+    "eod-blast": {
+      "label": "EOD ground explosion",
+      "author": "Iwan \u201cqubodup\u201d Gabovitch",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/qubodup/sounds/855798/",
+      "path": "assets/third-party/audio/explosion-preview.mp3",
+      "sha256": "162c3f2b1a9fd91f353b7493e51b2f39efcde89ef3601cf0e8b1b806a59b0d6b",
+      "notes": "Public low-quality Freesound MP3 preview of the CC0 sound; lossless master requires login. Retained as downloaded; replace independently when a master is available. Foley/design category is not claimed as a live ammunition recording."
+    },
+    "metal-foley": {
+      "label": "Small metal hit \u00b7 door Foley",
+      "author": "newagesoup (from EpicWizard)",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/newagesoup/sounds/337872/",
+      "path": "assets/third-party/audio/metal-preview.mp3",
+      "sha256": "677cf9d650bd1874ea6070de229f3f5e280717f12922946b06d503a0695114fb",
+      "notes": "Public low-quality Freesound MP3 preview of the CC0 sound; lossless master requires login. Retained as downloaded; replace independently when a master is available. Foley/design category is not claimed as a live ammunition recording. Original CC0 source: https://freesound.org/people/EpicWizard/sounds/264889/."
+    },
+    "fire-blast": {
+      "label": "EOD fire explosion",
+      "author": "Iwan \u201cqubodup\u201d Gabovitch",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/qubodup/sounds/855898/",
+      "path": "assets/third-party/audio/fire-explosion-preview.mp3",
+      "sha256": "8cc8b2ee337972ce88e9138b00da1e57142b1117c641a0fbe52570d3337706bf",
+      "notes": "Public low-quality Freesound MP3 preview of the CC0 sound; lossless master requires login. Retained as downloaded; replace independently when a master is available. Foley/design category is not claimed as a live ammunition recording."
+    }
+  },
+  "clips": {
+    "auto-01-1": {
+      "label": "Auto 01 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        42404,
+        53568
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-01-1.wav",
+      "sha256": "94b900343e93e9f071b668bd7753fd2735108a80322eb9bb49c40dc643e6f4fb",
+      "sample_rate": 48000,
+      "frames": 11164,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-01-2": {
+      "label": "Auto 01 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        192768,
+        203520
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-01-2.wav",
+      "sha256": "0b2308d62fb8fbf19702153b6d66f1525b7ab7f632ea17a9a83dcba7315a3b9d",
+      "sample_rate": 48000,
+      "frames": 10752,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "rifle-02-1": {
+      "label": "Rifle 02 \u00b7 report 1",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        207938,
+        211584
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-02-1.wav",
+      "sha256": "a8ec73cdfb038954de9ae51f61bf937545070e28878cf6f10c9737f5df7628da",
+      "sample_rate": 48000,
+      "frames": 3646,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "rifle-02-2": {
+      "label": "Rifle 02 \u00b7 report 2",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        212429,
+        216096
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-02-2.wav",
+      "sha256": "b3297c0b9c778ba0b49d5109d1fad1c20587b8e9b5eed8f069e4663ab04e01d1",
+      "sample_rate": 48000,
+      "frames": 3667,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "heavy-02-1": {
+      "label": "Heavy 02 \u00b7 report 1",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        222304,
+        225552
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-02-1.wav",
+      "sha256": "003421ae34e54d45a47be5d540d29daa84b8bb1b8001c1e7a52a5bc89fc5030f",
+      "sample_rate": 48000,
+      "frames": 3248,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "heavy-02-2": {
+      "label": "Heavy 02 \u00b7 report 2",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        265296,
+        268608
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-02-2.wav",
+      "sha256": "72c34b4dd520c0eebc16b50b5e4d41d63ead1d44101c9b7aa97ed3141c7c80cb",
+      "sample_rate": 48000,
+      "frames": 3312,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "rifle-03-1": {
+      "label": "Rifle 03 \u00b7 report 1",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        299013,
+        301536
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-03-1.wav",
+      "sha256": "765c484af796a45f8a7ebb056829f574532456707ca54fe490352d02b3be68a4",
+      "sample_rate": 48000,
+      "frames": 2523,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "rifle-03-2": {
+      "label": "Rifle 03 \u00b7 report 2",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        303489,
+        306048
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-03-2.wav",
+      "sha256": "c8d41e36caa8b7ff8e7cde13347db3b0aa6a346e7d37198887105e9f88d13f42",
+      "sample_rate": 48000,
+      "frames": 2559,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-04-1": {
+      "label": "Auto 04 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        391291,
+        399552
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-04-1.wav",
+      "sha256": "ee9067c21400712ccc4df6e5416d54dc68e85656cdd12a633db66c04c3a038c8",
+      "sample_rate": 48000,
+      "frames": 8261,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-04-2": {
+      "label": "Auto 04 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        469161,
+        477360
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-04-2.wav",
+      "sha256": "98008b77265380da241bbc403744adf760c750722f2966472ae6c0c774af8ca1",
+      "sample_rate": 48000,
+      "frames": 8199,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-05-1": {
+      "label": "Auto 05 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        505025,
+        507552
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-05-1.wav",
+      "sha256": "5a5f43446daea7cf72f9bb77cc4b92a064610e974bf4ba62ecb9779aa3a8b290",
+      "sample_rate": 48000,
+      "frames": 2527,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-05-2": {
+      "label": "Auto 05 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        537648,
+        540240
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-05-2.wav",
+      "sha256": "46bc23c8456e21735e0a8a1b4f98518e809cd683ae8951215630a34286396a2d",
+      "sample_rate": 48000,
+      "frames": 2592,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "hard-05-1": {
+      "label": "Hard 05 \u00b7 report 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        591556,
+        594960
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/hard-05-1.wav",
+      "sha256": "8a0a88c0cb6e36f3c9b1f4596de2b480b8fbdda52a264563065e7cea1842b108",
+      "sample_rate": 48000,
+      "frames": 3404,
+      "loop": false,
+      "notes": "Take-05 muffled rifle-like report; user selected as a hard-object impact candidate."
+    },
+    "hard-05-2": {
+      "label": "Hard 05 \u00b7 report 2",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        644073,
+        647472
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/hard-05-2.wav",
+      "sha256": "008645d3155124a7aab3593636dd645f7409837409b97f81c9d79e9b085bc399",
+      "sample_rate": 48000,
+      "frames": 3399,
+      "loop": false,
+      "notes": "Take-05 muffled rifle-like report; user selected as a hard-object impact candidate."
+    },
+    "auto-06-1": {
+      "label": "Auto 06 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        670975,
+        675120
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-06-1.wav",
+      "sha256": "d4151eac9f5ec6b405b46e93faeb55467a1ea0c7c3264dc36905dbed78c5c942",
+      "sample_rate": 48000,
+      "frames": 4145,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-06-2": {
+      "label": "Auto 06 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        718512,
+        722544
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-06-2.wav",
+      "sha256": "bad0f66dbef4883f560f6c0c0e47127896b73e0b03a3667695ca41e529f6df52",
+      "sample_rate": 48000,
+      "frames": 4032,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-07-1": {
+      "label": "Auto 07 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        739706,
+        742176
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-07-1.wav",
+      "sha256": "44465433845a82dc1f6f54071f45846d94a72f18b8b0c66d7a984da3aeaf03e5",
+      "sample_rate": 48000,
+      "frames": 2470,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-07-2": {
+      "label": "Auto 07 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        786762,
+        789600
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-07-2.wav",
+      "sha256": "c08e03a8ca2fcce91bb53f3d55d7d96ea432df899b8ce04af77fef9f12258fc4",
+      "sample_rate": 48000,
+      "frames": 2838,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-08-1": {
+      "label": "Auto 08 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        816704,
+        819360
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-08-1.wav",
+      "sha256": "a1432a1a28aece40b835e748dd72e175884e89551c54dc3bb55b36d57c9002d0",
+      "sample_rate": 48000,
+      "frames": 2656,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-08-2": {
+      "label": "Auto 08 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        865300,
+        867792
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-08-2.wav",
+      "sha256": "17bfef062ecfa7d9e5597388e5cc0d9fd2b664dc034044a55881859adc299cb6",
+      "sample_rate": 48000,
+      "frames": 2492,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "rifle-09-1": {
+      "label": "Rifle 09 \u00b7 report 1",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        897364,
+        900048
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-09-1.wav",
+      "sha256": "de59d311cd8e9c96db96bd58aaf3c4be0689fb44f5c23abb121e6a3a25b049f2",
+      "sample_rate": 48000,
+      "frames": 2684,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "rifle-09-2": {
+      "label": "Rifle 09 \u00b7 report 2",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        902032,
+        904512
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-09-2.wav",
+      "sha256": "21ddc0ba2a61450432380b5f52d1c94eafb1da1c09e13e438a4942cf6cf81a81",
+      "sample_rate": 48000,
+      "frames": 2480,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "bass-11-1": {
+      "label": "Bass 11 \u00b7 report 1",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1031930,
+        1036176
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/bass-11-1.wav",
+      "sha256": "7e3de578a691af9ab4c1c9f5443b7f801d1936712f13b0d227631a882a359dc9",
+      "sample_rate": 48000,
+      "frames": 4246,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "bass-11-2": {
+      "label": "Bass 11 \u00b7 report 2",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1077493,
+        1081776
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/bass-11-2.wav",
+      "sha256": "e6f9e109b750437c5f467b20c340eb7b1a09d3129817874746aa284ac7939c86",
+      "sample_rate": 48000,
+      "frames": 4283,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "rifle-11-1": {
+      "label": "Rifle 11 \u00b7 report 1",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1110384,
+        1117776
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-11-1.wav",
+      "sha256": "5e6a853fe6b122fa1aec44c6f3a1e5b63d4ef2215585452ab61704fdbd61a0d7",
+      "sample_rate": 48000,
+      "frames": 7392,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "rifle-11-2": {
+      "label": "Rifle 11 \u00b7 report 2",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1138298,
+        1145712
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-11-2.wav",
+      "sha256": "2759dc79950a55b17aa3b6c5b82d98e7423f1e993d00344b0d2135df53c9d53e",
+      "sample_rate": 48000,
+      "frames": 7414,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "bass-12-1": {
+      "label": "Bass 12 \u00b7 report 1",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1236737,
+        1239792
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/bass-12-1.wav",
+      "sha256": "0e3a4e555ab0d00980164318f20c131c57daadf31ffdb8347573387b6384f8dd",
+      "sample_rate": 48000,
+      "frames": 3055,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "bass-12-2": {
+      "label": "Bass 12 \u00b7 report 2",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1291229,
+        1293936
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/bass-12-2.wav",
+      "sha256": "b1b3095a6ec5b5dad41ede87164a16a847b3bceb7868a1e5ebedeed2e5b2e890",
+      "sample_rate": 48000,
+      "frames": 2707,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "heavy-15-1": {
+      "label": "Heavy 15 \u00b7 report 1",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1476107,
+        1484016
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-15-1.wav",
+      "sha256": "9a689b62c340cb490a2117e56148f2e358ff81df097f002406fea39ab067aff8",
+      "sample_rate": 48000,
+      "frames": 7909,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "heavy-15-2": {
+      "label": "Heavy 15 \u00b7 report 2",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1495975,
+        1503888
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-15-2.wav",
+      "sha256": "083818e27c20e70f9dbf779027120bb9c67a94702b2f16dbfddc4a158a9750be",
+      "sample_rate": 48000,
+      "frames": 7913,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-18-1": {
+      "label": "Report 18 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1859585,
+        1867440
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-18-1.wav",
+      "sha256": "4ca952fb9551c9dd8418b28f363af4fddcc55114496f572880cad7a4d630ac57",
+      "sample_rate": 48000,
+      "frames": 7855,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-18-2": {
+      "label": "Report 18 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1898650,
+        1906608
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-18-2.wav",
+      "sha256": "2f23876f2326f0448c3fb19ae9b46c98d3d1127bfeb9466beb49954539044737",
+      "sample_rate": 48000,
+      "frames": 7958,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-19-1": {
+      "label": "Report 19 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1936968,
+        1944816
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-19-1.wav",
+      "sha256": "aaf7db5aa986552d77f89f1c062476d1ac08cc1efed695ac1348637809555a1b",
+      "sample_rate": 48000,
+      "frames": 7848,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-19-2": {
+      "label": "Report 19 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1986975,
+        1994832
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-19-2.wav",
+      "sha256": "bf520606983e1e0c340489565076ad3ac7b868460d5c7c337325c18f4435eca3",
+      "sample_rate": 48000,
+      "frames": 7857,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "heavy-20-1": {
+      "label": "Heavy 20 \u00b7 report 1",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2048076,
+        2052528
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-20-1.wav",
+      "sha256": "8fa9706c151d227ef0d8d309fa483d73d3f6e3a432d0685a7da7d0a544fb2a14",
+      "sample_rate": 48000,
+      "frames": 4452,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "heavy-20-2": {
+      "label": "Heavy 20 \u00b7 report 2",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2088600,
+        2092992
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-20-2.wav",
+      "sha256": "61e0f9ef2afa0ab9995d58156e8c803dc5d9d406177a9a94388b9eb06c5c8b93",
+      "sample_rate": 48000,
+      "frames": 4392,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "light-20-1": {
+      "label": "Light 20 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2230504,
+        2235120
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/light-20-1.wav",
+      "sha256": "fa4f315b66ce6a48860fe41e1f7f499111359e5385f90b14f948da6de2a75288",
+      "sample_rate": 48000,
+      "frames": 4616,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "light-20-2": {
+      "label": "Light 20 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2278323,
+        2282976
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/light-20-2.wav",
+      "sha256": "ff81c74d3aa18b51623a316e2ad54698bbaf4043a33c89493c733f9cc0845fb0",
+      "sample_rate": 48000,
+      "frames": 4653,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-21-1": {
+      "label": "Report 21 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2325192,
+        2329584
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-21-1.wav",
+      "sha256": "84748ce9ef899f14a2882fd4092404f94c73a66e460d8afe04007c41bb67c0b5",
+      "sample_rate": 48000,
+      "frames": 4392,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-21-2": {
+      "label": "Report 21 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2380504,
+        2384880
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-21-2.wav",
+      "sha256": "1b7286baea212ba01d70db81c9f2181073c2801df34be446ea41e1450fd4d38b",
+      "sample_rate": 48000,
+      "frames": 4376,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-22-1": {
+      "label": "Report 22 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2425968,
+        2430768
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-22-1.wav",
+      "sha256": "16d7cbefd48c05412599f516bd7e7e5da96a94065e6262015dd6efcbb4fde957",
+      "sample_rate": 48000,
+      "frames": 4800,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-22-2": {
+      "label": "Report 22 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2460990,
+        2465808
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-22-2.wav",
+      "sha256": "fa8d15461c2e594936c214f20a6f77841529ce16ce7c494d8ec1726b3d215813",
+      "sample_rate": 48000,
+      "frames": 4818,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-23-1": {
+      "label": "Report 23 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2493703,
+        2498112
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-23-1.wav",
+      "sha256": "ee43e43921f04fc16215afdb61f950f07dbf697f5cbbb2127ba2e69621e19397",
+      "sample_rate": 48000,
+      "frames": 4409,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-23-2": {
+      "label": "Report 23 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2573015,
+        2577408
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-23-2.wav",
+      "sha256": "03639f65490119d105afa029d68e40c639ea8a6f8389f7e2571898a5b31c93b7",
+      "sample_rate": 48000,
+      "frames": 4393,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-24-1": {
+      "label": "Report 24 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2653736,
+        2658336
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-24-1.wav",
+      "sha256": "d05c41bca438ab8e5e4f91155eac8204465c1b8a53e0372d4a87f6906cd7e5a0",
+      "sample_rate": 48000,
+      "frames": 4600,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-24-2": {
+      "label": "Report 24 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2689100,
+        2693808
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-24-2.wav",
+      "sha256": "ccaf58e944d25636fc54788c5007beb1f828b73e3a348fbbe3a5cc9be31fc687",
+      "sample_rate": 48000,
+      "frames": 4708,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-25-a-1": {
+      "label": "Report 25 A \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2716710,
+        2720736
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-25-a-1.wav",
+      "sha256": "54c214c89b703f558410977550c8cd75a658aa37d551468704136dd440373d07",
+      "sample_rate": 48000,
+      "frames": 4026,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-25-a-2": {
+      "label": "Report 25 A \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2764071,
+        2768208
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-25-a-2.wav",
+      "sha256": "f09994e6aebf0cf9e6a93cab998394fceeacd4bd60b7e0d79cab3fbdbe286428",
+      "sample_rate": 48000,
+      "frames": 4137,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-25-b-1": {
+      "label": "Report 25 B \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2780322,
+        2784720
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-25-b-1.wav",
+      "sha256": "f1add1f64328c0dc95cd3cc9aa574cbec79188be02025f9cd0252a71f1ce8f98",
+      "sample_rate": 48000,
+      "frames": 4398,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-25-b-2": {
+      "label": "Report 25 B \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2813632,
+        2818032
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-25-b-2.wav",
+      "sha256": "f1069c55671f8755e62fd0633cc09b70c0d64cc08615ab7e439ca153a73e8e6d",
+      "sample_rate": 48000,
+      "frames": 4400,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-26-a-1": {
+      "label": "Report 26 A \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2861191,
+        2865552
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-26-a-1.wav",
+      "sha256": "0aa36abae130f293a2bee4ac256047fb34ac555e6ce474ee51d753e3cbc31ebd",
+      "sample_rate": 48000,
+      "frames": 4361,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-26-a-2": {
+      "label": "Report 26 A \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2907678,
+        2912112
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-26-a-2.wav",
+      "sha256": "e0f1ed328650beae0bd14e3a028ee93b308bd23ad7f11e534148ee006d73251b",
+      "sample_rate": 48000,
+      "frames": 4434,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-26-b-1": {
+      "label": "Report 26 B \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2927383,
+        2930784
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-26-b-1.wav",
+      "sha256": "243f71d0b8fbcf01f0758d97b13941444acc8ab5f0c17459604dc74c39bfc27f",
+      "sample_rate": 48000,
+      "frames": 3401,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "report-26-b-2": {
+      "label": "Report 26 B \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2974563,
+        2977728
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/report-26-b-2.wav",
+      "sha256": "a0926a48c9a8f78f1f2548ee370998fedba911a987bf7f359049956c34128e26",
+      "sample_rate": 48000,
+      "frames": 3165,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-27-1": {
+      "label": "Auto 27 \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2998487,
+        3001776
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-27-1.wav",
+      "sha256": "60dbbaeb95520beeca2aab61735f813490cfda91ea62866428329a11e2ac1780",
+      "sample_rate": 48000,
+      "frames": 3289,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-27-2": {
+      "label": "Auto 27 \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3036434,
+        3040032
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-27-2.wav",
+      "sha256": "59a447da89d0fd0af3c244f52ae962ac8d7d4378f713806b1f23e9fe40357b93",
+      "sample_rate": 48000,
+      "frames": 3598,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-28-a-1": {
+      "label": "Auto 28 A \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3143603,
+        3146832
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-28-a-1.wav",
+      "sha256": "b5399cfa8e68e8ca67b1b4d7dc9e6cec094b27bd9d7750699ad355e40d70e8bb",
+      "sample_rate": 48000,
+      "frames": 3229,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-28-a-2": {
+      "label": "Auto 28 A \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3166689,
+        3169872
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-28-a-2.wav",
+      "sha256": "7f02e734feac5430d6d92ae6f404b963c6ceea8bd25a5b4c322b506f755491d2",
+      "sample_rate": 48000,
+      "frames": 3183,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-28-b-1": {
+      "label": "Auto 28 B \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3190892,
+        3193824
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-28-b-1.wav",
+      "sha256": "76c6c21abfb089649b2b0672e58305fc99a832e629e87536f7f58de2991e66ac",
+      "sample_rate": 48000,
+      "frames": 2932,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-28-b-2": {
+      "label": "Auto 28 B \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3222370,
+        3225408
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-28-b-2.wav",
+      "sha256": "da77b629cb3ad9c50f41321a643a7ce01ea1897d9c75d9d6d1cef62dc83ef48f",
+      "sample_rate": 48000,
+      "frames": 3038,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-28-c-1": {
+      "label": "Auto 28 C \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3254168,
+        3257088
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-28-c-1.wav",
+      "sha256": "1568058730193c0bb722262f6aad0b834cf69a1d0941ceff2e13073abee9d0f1",
+      "sample_rate": 48000,
+      "frames": 2920,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-28-c-2": {
+      "label": "Auto 28 C \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3275490,
+        3278880
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-28-c-2.wav",
+      "sha256": "67c49faf5f7f7bc811bdbf00b1dae212803f8cb0b8aab5c5657715f0bcf019a9",
+      "sample_rate": 48000,
+      "frames": 3390,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-29-a-1": {
+      "label": "Auto 29 A \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3302386,
+        3305376
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-29-a-1.wav",
+      "sha256": "47fb608ed47e0892b189053bee7974a8f73a7222a889d1a5322771969bdbb788",
+      "sample_rate": 48000,
+      "frames": 2990,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-29-a-2": {
+      "label": "Auto 29 A \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3337656,
+        3340656
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-29-a-2.wav",
+      "sha256": "2d7ab03abbb8cd4c517f04a2513be69c2cd49dc720d14749b44647b55388d7a0",
+      "sample_rate": 48000,
+      "frames": 3000,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-29-b-1": {
+      "label": "Auto 29 B \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3360175,
+        3363168
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-29-b-1.wav",
+      "sha256": "6a648b825b28ac4a88ca0298b559909d2fc7f3583f27d978bd97e456cb98d57c",
+      "sample_rate": 48000,
+      "frames": 2993,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-29-b-2": {
+      "label": "Auto 29 B \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3391821,
+        3394896
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-29-b-2.wav",
+      "sha256": "3f3f19a33aea9b5b397b8b1d99183440da6d4de433050a569501867c79c9ede2",
+      "sample_rate": 48000,
+      "frames": 3075,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-29-c-1": {
+      "label": "Auto 29 C \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3420201,
+        3423120
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-29-c-1.wav",
+      "sha256": "63890e3683b4225262d94545891b6989585e5f50d7acc413181fe738ba23a229",
+      "sample_rate": 48000,
+      "frames": 2919,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-29-c-2": {
+      "label": "Auto 29 C \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3477782,
+        3480816
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-29-c-2.wav",
+      "sha256": "690be3a41c22571e4c439f67f84570292d763bef0cd8f85eefeac8b8b4cab364",
+      "sample_rate": 48000,
+      "frames": 3034,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-29-d-1": {
+      "label": "Auto 29 D \u00b7 report 1",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3495107,
+        3498528
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-29-d-1.wav",
+      "sha256": "ac6c528e47075570891e521ef862c76cd9ee32c1158d44b90c0a1f8f6819d8d3",
+      "sample_rate": 48000,
+      "frames": 3421,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "auto-29-d-2": {
+      "label": "Auto 29 D \u00b7 report 2",
+      "category": "machine-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        3525767,
+        3529296
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/auto-29-d-2.wav",
+      "sha256": "8284a30ce79b650a7cd49de19037ef2a0a70660ea6192cacacb51b59a684d71c",
+      "sample_rate": 48000,
+      "frames": 3529,
+      "loop": false,
+      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+    },
+    "reload-13": {
+      "label": "Short reload \u00b7 take 13",
+      "category": "reload",
+      "role": "reload",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1326480,
+        1368960
+      ],
+      "processing": "handling",
+      "url": "/audio/clips/reload-13.wav",
+      "sha256": "92944e0d028bbc161034917ed0f29bb4d646bcead009ec38f3843d5b6bb90861",
+      "sample_rate": 48000,
+      "frames": 42480,
+      "loop": false,
+      "notes": "User-identified handling sound; available for future events."
+    },
+    "clack-14": {
+      "label": "Mechanical clack \u00b7 take 14",
+      "category": "mechanical",
+      "role": "mechanical",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1396800,
+        1403040
+      ],
+      "processing": "handling",
+      "url": "/audio/clips/clack-14.wav",
+      "sha256": "eb1aaeb2240677fdda3d9db8bfed98fca9590955ff437b6e156e95394f161d37",
+      "sample_rate": 48000,
+      "frames": 6240,
+      "loop": false,
+      "notes": "User-identified handling sound; available for future events."
+    },
+    "reload-15": {
+      "label": "Long heavy-gun reload \u00b7 take 15",
+      "category": "reload",
+      "role": "reload",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1535040,
+        1730880
+      ],
+      "processing": "handling",
+      "url": "/audio/clips/reload-15.wav",
+      "sha256": "2548fc5d4bab132181f5beaa9543f501379a4f97ca74c4ab40651872c16be3d3",
+      "sample_rate": 48000,
+      "frames": 195840,
+      "loop": false,
+      "notes": "User-identified handling sound; available for future events."
+    },
+    "reload-16": {
+      "label": "Crisp handle pull \u00b7 take 16",
+      "category": "reload",
+      "role": "reload",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1748640,
+        1789440
+      ],
+      "processing": "handling",
+      "url": "/audio/clips/reload-16.wav",
+      "sha256": "da900e71df2ea0c33b1b1ba8b9c08cad4d34a3bddf4f871876967f6864abac2c",
+      "sample_rate": 48000,
+      "frames": 40800,
+      "loop": false,
+      "notes": "User-identified handling sound; available for future events."
+    },
+    "clack-17": {
+      "label": "Small mechanical action \u00b7 take 17",
+      "category": "mechanical",
+      "role": "mechanical",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1800384,
+        1815504
+      ],
+      "processing": "handling",
+      "url": "/audio/clips/clack-17.wav",
+      "sha256": "c43fa035f857f4c73406b8cb9225f931333e82a64301aa2ab7ab609f42e75b62",
+      "sample_rate": 48000,
+      "frames": 15120,
+      "loop": false,
+      "notes": "User-identified handling sound; available for future events."
+    },
+    "cannon-m1": {
+      "label": "M1 distant cannon report",
+      "category": "cannon",
+      "role": "shot",
+      "source": "m1-live-fire",
+      "source_rate": 48000,
+      "source_frames": [
+        1686000,
+        1737600
+      ],
+      "processing": "heavy-report",
+      "url": "/audio/clips/cannon-m1.wav",
+      "sha256": "f6ba830a6c51641effcf588e30410c1bd16f83b388853236b7109e08a7758cd4",
+      "sample_rate": 48000,
+      "frames": 51600,
+      "loop": false,
+      "notes": "Official tank B-roll; isolated distant report."
+    },
+    "javelin-launch": {
+      "label": "Javelin launch report",
+      "category": "missile",
+      "role": "launch",
+      "source": "missile-live-fire",
+      "source_rate": 48000,
+      "source_frames": [
+        593520,
+        618720
+      ],
+      "processing": "launch",
+      "url": "/audio/clips/javelin-launch.wav",
+      "sha256": "4e438d654b989577857cf700bebaedf4f6b156247b92f8944a42fc2675a754c4",
+      "sample_rate": 48000,
+      "frames": 25200,
+      "loop": false,
+      "notes": "Crop from Javelin launch visible around 12 seconds."
+    },
+    "at4-launch": {
+      "label": "AT4 launch report",
+      "category": "rocket",
+      "role": "launch",
+      "source": "missile-live-fire",
+      "source_rate": 48000,
+      "source_frames": [
+        352800,
+        380640
+      ],
+      "processing": "launch",
+      "url": "/audio/clips/at4-launch.wav",
+      "sha256": "3f7a1f2b46f0ab7b4a1f87a70f4e690e5b4f692f710d01d61577c9a89c3043d3",
+      "sample_rate": 48000,
+      "frames": 27840,
+      "loop": false,
+      "notes": "AT4 segment, stored as an unused rocket-launch option."
+    },
+    "missile-exhaust": {
+      "label": "Missile exhaust \u00b7 seamless designed loop",
+      "category": "missile",
+      "role": "loop",
+      "source": "missile-live-fire",
+      "source_rate": 48000,
+      "source_frames": [
+        628800,
+        698400
+      ],
+      "processing": "motor-loop",
+      "url": "/audio/clips/missile-exhaust.wav",
+      "sha256": "e0e7c2b4eae7b14e1956593f9c9153068572f632427533e5a2aa6f0a02712f63",
+      "sample_rate": 48000,
+      "frames": 64800,
+      "loop": true,
+      "notes": "Exhaust sustained segment crossfaded into loop; no exact flight microphone claim."
+    },
+    "ricochet-1": {
+      "label": "Designed ricochet 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "ricochet-design",
+      "source_rate": 44100,
+      "source_frames": [
+        838,
+        21609
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-1.wav",
+      "sha256": "fdde2b0f3c2e47dac0b2b9b2438b00f0c2a9c37e497ba543a80d30db91b46f30",
+      "sample_rate": 48000,
+      "frames": 22608,
+      "loop": false,
+      "notes": "Four separate variants from CC0 simulated ricochet recording."
+    },
+    "ricochet-2": {
+      "label": "Designed ricochet 2",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "ricochet-design",
+      "source_rate": 44100,
+      "source_frames": [
+        23814,
+        37485
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-2.wav",
+      "sha256": "d6ba3c7d9fd59bd9948504fe7d778cf2b3adcc9c2dc1285940af42ddb25956aa",
+      "sample_rate": 48000,
+      "frames": 14880,
+      "loop": false,
+      "notes": "Four separate variants from CC0 simulated ricochet recording."
+    },
+    "ricochet-3": {
+      "label": "Designed ricochet 3",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "ricochet-design",
+      "source_rate": 44100,
+      "source_frames": [
+        43438,
+        69678
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-3.wav",
+      "sha256": "9468836676afa126d0778adebcc66b17364e6a10e9e8d9b10a5b9d4fd776fefe",
+      "sample_rate": 48000,
+      "frames": 28561,
+      "loop": false,
+      "notes": "Four separate variants from CC0 simulated ricochet recording."
+    },
+    "ricochet-4": {
+      "label": "Designed ricochet 4",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "ricochet-design",
+      "source_rate": 44100,
+      "source_frames": [
+        71662,
+        100548
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-4.wav",
+      "sha256": "4c97064d2a1b8e874eb5b47e0f8a4622ecd8abb34f660664a948d3c14e408e79",
+      "sample_rate": 48000,
+      "frames": 31441,
+      "loop": false,
+      "notes": "Four separate variants from CC0 simulated ricochet recording."
+    },
+    "dirt-tick": {
+      "label": "Dirt contact \u00b7 light debris",
+      "category": "ground-impact",
+      "role": "impact",
+      "source": "dirt-foley",
+      "source_rate": 24000,
+      "source_frames": [
+        3960,
+        6960
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/dirt-tick.wav",
+      "sha256": "34a5f34f6174433cd025b3a9be646a61a015d53933a3827a0a369252a1d30676",
+      "sample_rate": 48000,
+      "frames": 6000,
+      "loop": false,
+      "notes": "Short isolated dirt Foley, designed as a light bullet-ground strike."
+    },
+    "dirt-thud": {
+      "label": "Dirt thud \u00b7 heavy debris",
+      "category": "ground-impact",
+      "role": "impact",
+      "source": "dirt-foley",
+      "source_rate": 24000,
+      "source_frames": [
+        17448,
+        24600
+      ],
+      "processing": "heavy-impact",
+      "url": "/audio/clips/dirt-thud.wav",
+      "sha256": "f91a7006dd6ae5deb5638953625ae58e9465c67573036ff3358cd732ffe5991b",
+      "sample_rate": 48000,
+      "frames": 14304,
+      "loop": false,
+      "notes": "Fall impact Foley crop, designed as a heavy shell-ground impact."
+    },
+    "metal-strike": {
+      "label": "Metal strike \u00b7 hard surface",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "metal-foley",
+      "source_rate": 24000,
+      "source_frames": [
+        1440,
+        14160
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/metal-strike.wav",
+      "sha256": "4bcf2c44c3fb211cc874cc61128aa49e66799ea04c9b3872dcd7e5ffebf4dcff",
+      "sample_rate": 48000,
+      "frames": 25440,
+      "loop": false,
+      "notes": "Shed-door metal impact Foley; independent alternative to take-05."
+    },
+    "eod-explosion": {
+      "label": "EOD ground explosion",
+      "category": "explosion",
+      "role": "explosion",
+      "source": "eod-blast",
+      "source_rate": 48000,
+      "source_frames": [
+        0,
+        73920
+      ],
+      "processing": "blast",
+      "url": "/audio/clips/eod-explosion.wav",
+      "sha256": "a49614d1b277cb647a49e7b9c5a1f6fa0d7771128a18a46b2c08fddffcb2bcfc",
+      "sample_rate": 48000,
+      "frames": 73920,
+      "loop": false,
+      "notes": "CC0 excerpt of government EOD detonation."
+    },
+    "fire-explosion": {
+      "label": "EOD fire explosion",
+      "category": "explosion",
+      "role": "explosion",
+      "source": "fire-blast",
+      "source_rate": 24000,
+      "source_frames": [
+        0,
+        28560
+      ],
+      "processing": "blast",
+      "url": "/audio/clips/fire-explosion.wav",
+      "sha256": "931c8d56b88f6764b4ef37b95f5c29d0b39ed577ccd15a0eb7538a4f0886e5b4",
+      "sample_rate": 48000,
+      "frames": 57120,
+      "loop": false,
+      "notes": "CC0 excerpt of government EOD detonation."
+    }
+  },
   "sounds": {
     "rifle": {
       "label": "Synth \u00b7 rifle",
@@ -233,10 +1891,694 @@
       "synth_gain": 1,
       "gain": 1,
       "loop": false
+    },
+    "recorded-auto-01": {
+      "label": "Auto 01 \u00b7 recording",
+      "clips": [
+        "auto-01-1",
+        "auto-01-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-rifle-02": {
+      "label": "Rifle 02 \u00b7 recording",
+      "clips": [
+        "rifle-02-1",
+        "rifle-02-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-heavy-02": {
+      "label": "Heavy 02 \u00b7 recording",
+      "clips": [
+        "heavy-02-1",
+        "heavy-02-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-rifle-03": {
+      "label": "Rifle 03 \u00b7 recording",
+      "clips": [
+        "rifle-03-1",
+        "rifle-03-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-04": {
+      "label": "Auto 04 \u00b7 recording",
+      "clips": [
+        "auto-04-1",
+        "auto-04-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-05": {
+      "label": "Auto 05 \u00b7 recording",
+      "clips": [
+        "auto-05-1",
+        "auto-05-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-hard-05": {
+      "label": "Hard 05 \u00b7 recording",
+      "clips": [
+        "hard-05-1",
+        "hard-05-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-06": {
+      "label": "Auto 06 \u00b7 recording",
+      "clips": [
+        "auto-06-1",
+        "auto-06-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-07": {
+      "label": "Auto 07 \u00b7 recording",
+      "clips": [
+        "auto-07-1",
+        "auto-07-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-08": {
+      "label": "Auto 08 \u00b7 recording",
+      "clips": [
+        "auto-08-1",
+        "auto-08-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-rifle-09": {
+      "label": "Rifle 09 \u00b7 recording",
+      "clips": [
+        "rifle-09-1",
+        "rifle-09-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-bass-11": {
+      "label": "Bass 11 \u00b7 recording",
+      "clips": [
+        "bass-11-1",
+        "bass-11-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-rifle-11": {
+      "label": "Rifle 11 \u00b7 recording",
+      "clips": [
+        "rifle-11-1",
+        "rifle-11-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-bass-12": {
+      "label": "Bass 12 \u00b7 recording",
+      "clips": [
+        "bass-12-1",
+        "bass-12-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-heavy-15": {
+      "label": "Heavy 15 \u00b7 recording",
+      "clips": [
+        "heavy-15-1",
+        "heavy-15-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-report-18": {
+      "label": "Report 18 \u00b7 recording",
+      "clips": [
+        "report-18-1",
+        "report-18-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-report-19": {
+      "label": "Report 19 \u00b7 recording",
+      "clips": [
+        "report-19-1",
+        "report-19-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-heavy-20": {
+      "label": "Heavy 20 \u00b7 recording",
+      "clips": [
+        "heavy-20-1",
+        "heavy-20-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-light-20": {
+      "label": "Light 20 \u00b7 recording",
+      "clips": [
+        "light-20-1",
+        "light-20-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-report-21": {
+      "label": "Report 21 \u00b7 recording",
+      "clips": [
+        "report-21-1",
+        "report-21-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-report-22": {
+      "label": "Report 22 \u00b7 recording",
+      "clips": [
+        "report-22-1",
+        "report-22-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-report-23": {
+      "label": "Report 23 \u00b7 recording",
+      "clips": [
+        "report-23-1",
+        "report-23-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-report-24": {
+      "label": "Report 24 \u00b7 recording",
+      "clips": [
+        "report-24-1",
+        "report-24-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-report-25-a": {
+      "label": "Report 25 A \u00b7 recording",
+      "clips": [
+        "report-25-a-1",
+        "report-25-a-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-report-25-b": {
+      "label": "Report 25 B \u00b7 recording",
+      "clips": [
+        "report-25-b-1",
+        "report-25-b-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-report-26-a": {
+      "label": "Report 26 A \u00b7 recording",
+      "clips": [
+        "report-26-a-1",
+        "report-26-a-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-report-26-b": {
+      "label": "Report 26 B \u00b7 recording",
+      "clips": [
+        "report-26-b-1",
+        "report-26-b-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-27": {
+      "label": "Auto 27 \u00b7 recording",
+      "clips": [
+        "auto-27-1",
+        "auto-27-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-28-a": {
+      "label": "Auto 28 A \u00b7 recording",
+      "clips": [
+        "auto-28-a-1",
+        "auto-28-a-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-28-b": {
+      "label": "Auto 28 B \u00b7 recording",
+      "clips": [
+        "auto-28-b-1",
+        "auto-28-b-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-28-c": {
+      "label": "Auto 28 C \u00b7 recording",
+      "clips": [
+        "auto-28-c-1",
+        "auto-28-c-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-29-a": {
+      "label": "Auto 29 A \u00b7 recording",
+      "clips": [
+        "auto-29-a-1",
+        "auto-29-a-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-29-b": {
+      "label": "Auto 29 B \u00b7 recording",
+      "clips": [
+        "auto-29-b-1",
+        "auto-29-b-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-29-c": {
+      "label": "Auto 29 C \u00b7 recording",
+      "clips": [
+        "auto-29-c-1",
+        "auto-29-c-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-auto-29-d": {
+      "label": "Auto 29 D \u00b7 recording",
+      "clips": [
+        "auto-29-d-1",
+        "auto-29-d-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-reload-13": {
+      "label": "Short reload \u00b7 take 13",
+      "clips": [
+        "reload-13"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-clack-14": {
+      "label": "Mechanical clack \u00b7 take 14",
+      "clips": [
+        "clack-14"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-reload-15": {
+      "label": "Long heavy-gun reload \u00b7 take 15",
+      "clips": [
+        "reload-15"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-reload-16": {
+      "label": "Crisp handle pull \u00b7 take 16",
+      "clips": [
+        "reload-16"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-clack-17": {
+      "label": "Small mechanical action \u00b7 take 17",
+      "clips": [
+        "clack-17"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-cannon": {
+      "label": "Tank cannon \u00b7 recorded core",
+      "clips": [
+        "cannon-m1"
+      ],
+      "synth": "cannon",
+      "synth_gain": 0.1,
+      "gain": 0.9,
+      "loop": false
+    },
+    "recorded-launch": {
+      "label": "ATGM launch \u00b7 recorded core",
+      "clips": [
+        "javelin-launch"
+      ],
+      "synth": "launch",
+      "synth_gain": 0.08,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-at4": {
+      "label": "AT4 launch \u00b7 recording",
+      "clips": [
+        "at4-launch"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-motor": {
+      "label": "ATGM flight \u00b7 recorded exhaust",
+      "clips": [
+        "missile-exhaust"
+      ],
+      "synth": "motor",
+      "synth_gain": 0.12,
+      "gain": 0.55,
+      "loop": true
+    },
+    "recorded-ricochet": {
+      "label": "Ricochet \u00b7 four variations",
+      "clips": [
+        "ricochet-1",
+        "ricochet-2",
+        "ricochet-3",
+        "ricochet-4"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.65,
+      "loop": false
+    },
+    "recorded-ground-small": {
+      "label": "Bullet ground hit \u00b7 dirt Foley",
+      "clips": [
+        "dirt-tick"
+      ],
+      "synth": "impact_ground",
+      "synth_gain": 0.08,
+      "gain": 0.55,
+      "loop": false
+    },
+    "recorded-ground-heavy": {
+      "label": "Shell ground hit \u00b7 dirt thud",
+      "clips": [
+        "dirt-thud"
+      ],
+      "synth": "impact_ground",
+      "synth_gain": 0.18,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal": {
+      "label": "Bullet metal hit \u00b7 Foley",
+      "clips": [
+        "metal-strike"
+      ],
+      "synth": "impact_hull",
+      "synth_gain": 0.08,
+      "gain": 0.55,
+      "loop": false
+    },
+    "recorded-explosion": {
+      "label": "Ground explosion \u00b7 recorded core",
+      "clips": [
+        "eod-explosion",
+        "fire-explosion"
+      ],
+      "synth": "explosion",
+      "synth_gain": 0.08,
+      "gain": 0.95,
+      "loop": false
+    },
+    "rifle-combat": {
+      "label": "Rifle \u00b7 crisp recorded core",
+      "clips": [
+        "rifle-11-1",
+        "rifle-11-2"
+      ],
+      "synth": "rifle",
+      "synth_gain": 0.07,
+      "gain": 0.85,
+      "loop": false
+    },
+    "hmg-combat": {
+      "label": "HMG \u00b7 heavy recorded core",
+      "clips": [
+        "heavy-02-1",
+        "heavy-02-2"
+      ],
+      "synth": "hmg",
+      "synth_gain": 0.1,
+      "gain": 0.9,
+      "loop": false
+    },
+    "hmg-bass": {
+      "label": "HMG \u00b7 bassier recorded core",
+      "clips": [
+        "heavy-20-1",
+        "heavy-20-2"
+      ],
+      "synth": "hmg",
+      "synth_gain": 0.12,
+      "gain": 0.9,
+      "loop": false
+    },
+    "grenade-combat": {
+      "label": "Grenade launcher \u00b7 bass report",
+      "clips": [
+        "bass-11-1",
+        "bass-11-2"
+      ],
+      "synth": "thump",
+      "synth_gain": 0.1,
+      "gain": 0.85,
+      "loop": false
     }
   },
-  "defaults": {},
-  "units": {},
-  "impacts": {},
-  "effects": {}
+  "defaults": {
+    "default": {
+      "near": "rifle-combat",
+      "far": "rifle-combat",
+      "gain": 1
+    },
+    "rifle": {
+      "near": "rifle-combat",
+      "far": "rifle-combat",
+      "gain": 1
+    },
+    "hmg": {
+      "near": "hmg-combat",
+      "far": "hmg-combat",
+      "gain": 1
+    },
+    "tank_ap": {
+      "near": "recorded-cannon",
+      "far": "recorded-cannon",
+      "gain": 1
+    },
+    "tank_he": {
+      "near": "recorded-cannon",
+      "far": "recorded-cannon",
+      "gain": 1
+    },
+    "atgm": {
+      "near": "recorded-launch",
+      "far": "recorded-launch",
+      "gain": 1
+    },
+    "grenade": {
+      "near": "grenade-combat",
+      "far": "grenade-combat",
+      "gain": 1
+    }
+  },
+  "units": {
+    "at": {
+      "rifles": {
+        "near": "rifle-combat",
+        "far": "rifle-combat",
+        "gain": 1
+      },
+      "ATGM launcher": {
+        "near": "recorded-launch",
+        "far": "recorded-launch",
+        "gain": 1
+      }
+    },
+    "jeep": {
+      "HMG": {
+        "near": "hmg-combat",
+        "far": "hmg-combat",
+        "gain": 1
+      }
+    },
+    "recon": {
+      "rifles": {
+        "near": "recorded-rifle-03",
+        "far": "recorded-rifle-03",
+        "gain": 1
+      }
+    },
+    "rifle": {
+      "rifles": {
+        "near": "rifle-combat",
+        "far": "rifle-combat",
+        "gain": 1
+      },
+      "grenade launcher": {
+        "near": "grenade-combat",
+        "far": "grenade-combat",
+        "gain": 1
+      }
+    },
+    "tank": {
+      "cannon": {
+        "near": "recorded-cannon",
+        "far": "recorded-cannon",
+        "gain": 1
+      },
+      "HMG": {
+        "near": "hmg-bass",
+        "far": "hmg-bass",
+        "gain": 1
+      }
+    }
+  },
+  "impacts": {
+    "ground": {
+      "default": "recorded-ground-small",
+      "rifle": "recorded-ground-small",
+      "hmg": "recorded-ground-small",
+      "grenade": "recorded-ground-small",
+      "tank_ap": "recorded-ground-heavy",
+      "tank_he": "recorded-ground-heavy",
+      "atgm": "recorded-ground-heavy"
+    },
+    "prop": {
+      "default": "recorded-hard-05",
+      "rifle": "recorded-hard-05",
+      "hmg": "recorded-hard-05"
+    },
+    "hull": {
+      "rifle": "recorded-metal",
+      "hmg": "recorded-metal"
+    }
+  },
+  "effects": {
+    "ricochet": "recorded-ricochet",
+    "explosion": "recorded-explosion",
+    "explosion_far": "recorded-explosion",
+    "motor": "recorded-motor"
+  }
 }

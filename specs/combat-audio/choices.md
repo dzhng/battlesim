@@ -2,6 +2,12 @@
 
 ## Sound — high confidence
 
+**Short PCM WAVs are the runtime assets.** When the browser prepares a rifle
+recipe it decodes a small mono WAV, not the entire source film. The request did
+not specify compression or transport. The extracted library is small enough to
+keep ordinary browser decoding and reproducible PCM rather than add a custom
+decoder or streaming mechanism. Sources and prepared media follow repository LFS.
+
 **An audio document owns editable selections.** When someone changes a tank's
 sound, only `fixtures/sounds.json` changes. The existing game document still owns
 mixing, distance and anonymous hearing cues. The request did not specify the file
