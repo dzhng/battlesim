@@ -5424,13 +5424,15 @@ The open-country pass (M24, M25): `crates/mapgen/src/open_country/`, its rows in
 
 **Verdict:** sound. **Confidence:** high.
 
-### "Most of the circle stays open" is held against the bare map, not against 80%
+### Keep visibility distribution diagnostic while finishing playable maps
 
-**Choice:** The test holds the median place to 80% open, or to within 7 points of the bare map's median where woods and towns had already taken more, and the share of open ground under half open to a rise of 6 points.
+**Choice:** Use the user's 50% floor for median sampled openness and keep the fraction of views with fewer than half their directions reaching full range as a reported diagnostic. Remove the inherited six-point enclosure-rise tuning gate rather than starting another placement optimization. Global interrupted sight, physical legality and clear main approaches remain mandatory.
 
-**Gap:** The owner's aim is a median around 80 to 90%. Before the pass, medians run from 69% to 98% over 36 maps (the nine cells, seeds 1 to 4), 84% on average: big woods and towns already close a fifth of the typical circle on many maps.
+**Gap:** The user selected the median floor and asked to stop overoptimizing before play, without prescribing every diagnostic's admission role. The former enclosure-rise threshold was an implementation choice rather than a user requirement.
 
-**Verdict:** provisional. After the pass medians run from 66% to 87%, 79% on average: two to eleven points under the bare map, the largest drops where the bare map was most open (Metro Small seed 1: 98% to 87%). Open ground under half open goes from 5.0% to 6.1% on average. A guarantee that every place sees something costs a few points wherever nothing was in view; on those 36 maps it takes the places that see an unbroken circle from 5,245 of 30,122 samples to none of 29,818, and the columns with a unit that starts with one from 10 of 72 to none. **Confidence:** medium.
+**Reach:** A map can have more locally enclosed positions while its typical open-ground view still meets the floor. The report exposes that distribution for actual play review; it must not hide it behind the median or claim every position has half its directions open.
+
+**Verdict:** sound as a bounded playability-first interpretation; final pictures and play still judge whether the fields remain useful. **Confidence:** medium.
 
 ### Bare ground is filled; densities are small
 
