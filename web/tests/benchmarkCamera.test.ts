@@ -3,9 +3,18 @@ import { expect, test } from "vitest";
 import {
   BENCHMARK_PHASES,
   BENCHMARK_TOUR,
+  cityContactTour,
   sampleTour,
   type BenchmarkTour,
 } from "../src/battle/benchmark/camera";
+
+test("the city overview includes visual surroundings while its fight stays at the playable centre", () => {
+  const bare = cityContactTour([6000, 8000]);
+  const framed = cityContactTour([6000, 8000], [-500, -500, 6500, 8500]);
+  const overview = (tour: BenchmarkTour) => tour.keyframes.find((k) => k[0] === 0.42)!;
+  expect(overview(framed).slice(1, 3)).toEqual([3000, 4000]);
+  expect(overview(framed)[3] / overview(bare)[3]).toBe(9000 / 8000);
+});
 
 // A small tour of fixed numbers, so behaviour tests don't move when the
 // real anchors are rescouted.

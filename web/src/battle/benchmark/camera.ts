@@ -75,11 +75,17 @@ export const BENCHMARK_TOUR: BenchmarkTour = {
 
 /** The contact arena stays 3 × 2 km; its full-world overview uses the map
  * preparation actually returned, rather than an old documented extent. */
-export const CITY_CONTACT_TOUR = "city-arena-1-tour-v1";
+export const CITY_CONTACT_TOUR = "city-arena-1-tour-v2";
 
-export function cityContactTour(size: readonly [number, number]): BenchmarkTour {
+export function cityContactTour(
+  size: readonly [number, number],
+  rendered?: readonly [number, number, number, number],
+): BenchmarkTour {
   const [x, y] = [size[0] / 2, size[1] / 2];
-  const overview = Math.max(...size) * generated.camera.overview_span;
+  const span = rendered
+    ? Math.max(rendered[2] - rendered[0], rendered[3] - rendered[1])
+    : Math.max(...size);
+  const overview = span * generated.camera.overview_span;
   return {
     version: CITY_CONTACT_TOUR,
     phases: BENCHMARK_TOUR.phases,

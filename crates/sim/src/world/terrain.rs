@@ -45,8 +45,7 @@ impl HeightField {
     /// `ground` holds the map's rivers.
     pub fn build(map: &MapDefinition, ground: &SurfaceIndex) -> Self {
         let spacing = map.height_grid_m;
-        let nx = (map.size[0] / spacing).round() as usize + 1;
-        let ny = (map.size[1] / spacing).round() as usize + 1;
+        let [nx, ny] = map.height_grid_size();
         let relief = relief_bounds(map);
         let carve = Carve::new(map, ground, &relief);
         let mut variation_regions: Vec<_> = relief.iter().map(|(rect, _)| *rect).collect();

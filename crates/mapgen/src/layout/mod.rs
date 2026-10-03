@@ -145,6 +145,7 @@ pub fn generate_layout(
         .collect();
     let mut plan = MapPlan {
         size: [context.extent; 2],
+        render_margin_m: presets.terrain.render_margin_m,
         fog_cell_m: presets.terrain.fog_cell_m,
         height_grid_m: presets.terrain.height_grid_m,
         slope_cutoff_deg: presets.terrain.slope_cutoff_deg,

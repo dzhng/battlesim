@@ -46,6 +46,8 @@ export interface PlotTree {
 export interface PlotSite extends SurfaceGeometry {
   /** Map box `[minX, minY, maxX, maxY]`. */
   map: readonly [number, number, number, number];
+  /** Explicit map-owned surroundings; absent in the existing display environment. */
+  rendered?: readonly [number, number, number, number];
   /** Building centres. */
   buildings: readonly Vec2[];
   /** The forests: a strip's long stretches are cut along (`forestStripRuns`). */
@@ -200,12 +202,14 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
   const state = mulberry32.create(biome.seed);
   const rng: RandomGenerator = () => mulberry32.sample(state);
   const [mx0, my0, mx1, my1] = site.map;
-  const region = [
-    mx0 - rules.extent_m,
-    my0 - rules.extent_m,
-    mx1 + rules.extent_m,
-    my1 + rules.extent_m,
-  ] as const;
+  const region =
+    site.rendered ??
+    ([
+      mx0 - rules.extent_m,
+      my0 - rules.extent_m,
+      mx1 + rules.extent_m,
+      my1 + rules.extent_m,
+    ] as const);
   const nodes: number[] = [];
   const plots: Plot[] = [];
   const totalWeight = biome.plots.reduce((s, p) => s + p.weight, 0);
