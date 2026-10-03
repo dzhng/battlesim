@@ -36,8 +36,11 @@ export const FOOTPRINT_FLOATS = 5;
 
 /** Where the ground's features are, in world metres. */
 export interface TerrainSite extends SurfaceGeometry {
-  /** Map box `[minX, minY, maxX, maxY]`. */
+  /** Physical terrain footprint for field/scenery placement, `[minX, minY, maxX, maxY]`.
+   *  Common map extents publish the height grid's rounded boundary. */
   map: readonly [number, number, number, number];
+  /** Map-owned landscape extent; authored arenas retain their environment backdrop. */
+  rendered?: readonly [number, number, number, number];
   /** The height samples' spacing in metres: the ground's triangles are this
    *  wide. */
   gridM: number;
@@ -140,12 +143,8 @@ export function buildTerrainSurface(
     c = vec3.create(),
     normal = vec3.create();
   const corners = [a, b, c];
-  let maxX = 0,
-    maxY = 0;
-  for (let i = 0; i < positions.length; i += 3) {
-    maxX = Math.max(maxX, positions[i]);
-    maxY = Math.max(maxY, positions[i + 1]);
-  }
+  const hasMargin = exports.extents.rendered[0] < 0;
+  const map = exports.extents.physical;
   for (let t = 0; t < indices.length; t += 3) {
     const tint =
       overlay === "traversal"
@@ -180,7 +179,8 @@ export function buildTerrainSurface(
   return terrainSurface(
     mesh,
     {
-      map: [0, 0, maxX, maxY],
+      map,
+      ...(hasMargin && { rendered: exports.extents.rendered }),
       gridM: exports.terrain.spacing,
       surfaceStrokes: exports.surfaceStrokes,
       surfaceStrokeStride: layout.surfaceStrokeStride,

@@ -226,6 +226,33 @@ test("scenery past the map stays clear of it and within reach, as hedgerows and 
   );
 });
 
+test("map-owned surrounding scenery keeps each complete crown inside the rendered extent", () => {
+  const surrounded = new WorldView(
+    JSON.stringify({ ...villageMap, render_margin_m: 200 }),
+    JSON.stringify(GAME_RULES),
+  );
+  try {
+    const exported = readWorldExports(surrounded);
+    const surface = buildTerrainSurface(exported, layout, biome);
+    const placed = placeScenery(scenerySite(exported, layout, surface), biome, PLACED);
+    expect(placed.backdrop.length).toBeGreaterThan(0);
+    const b = exported.extents.rendered;
+    for (let o = 0; o < placed.backdrop.length; o += TREE_FLOATS) {
+      const t = placed.backdrop;
+      const kind = placed.kinds[t[o + TREE_FIELD.kind]];
+      const radius = SIZES.get(kind)!.radius * t[o + TREE_FIELD.scaleXY];
+      const [x, y] = [t[o + TREE_FIELD.x], t[o + TREE_FIELD.y]];
+      // Float32 placement packing narrows coordinates at the export seam.
+      expect(x - radius).toBeGreaterThanOrEqual(b[0] - 1e-3);
+      expect(y - radius).toBeGreaterThanOrEqual(b[1] - 1e-3);
+      expect(x + radius).toBeLessThanOrEqual(b[2] + 1e-3);
+      expect(y + radius).toBeLessThanOrEqual(b[3] + 1e-3);
+    }
+  } finally {
+    surrounded.free();
+  }
+});
+
 /** The appearance of each placed tree, with its place. */
 function named(placed: SceneryPlacement, data: Float32Array) {
   const out: { x: number; y: number; appearance: string }[] = [];

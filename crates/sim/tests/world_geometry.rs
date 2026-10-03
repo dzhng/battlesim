@@ -25,6 +25,27 @@ fn close(a: f64, b: f64, tol: f64) -> bool {
 }
 
 #[test]
+fn map_extents_report_the_existing_rounded_physical_query_domain() {
+    for (depth, physical_depth) in [(10.0, 12.0), (9.0, 8.0)] {
+        let mut map = lab_map();
+        map.size = [12.0, depth];
+        map.height_grid_m = 4.0;
+        map.render_margin_m = 3.0;
+        let w = WorldGeometry::new(&map, &crate::common::rules());
+        let bounds = map.extents();
+        assert_eq!(bounds.playable, [0.0, 0.0, 12.0, depth]);
+        assert_eq!(bounds.physical, [0.0, 0.0, w.width(), w.depth()]);
+        assert_eq!(w.depth(), physical_depth);
+        assert_eq!(w.height_at(0.0, physical_depth), Some(0.0));
+        assert_eq!(w.height_at(0.0, physical_depth + 0.01), None);
+        assert_eq!(
+            bounds.rendered,
+            [-3.0, -3.0, 15.0, depth.max(physical_depth) + 3.0]
+        );
+    }
+}
+
+#[test]
 fn a_removed_road_field_is_refused_instead_of_silently_erasing_the_road() {
     let result = serde_json::from_str::<MapDefinition>(
         r#"{"size":[200,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,

@@ -34,6 +34,7 @@ export interface PreparationModule extends MapGenerator {
 /** The simulation's world of one map, built once: the planner places the
  *  encounter on it and the battle then takes it. */
 export interface PreparedWorld {
+  extents(): string;
   plan_encounter(sites: string, recipe: string, encounterSeed: string): string;
   into_battle(scenario: string, seed: number): SimBattle;
   into_replay(scenario: string, replay: string): SimBattle;
@@ -254,6 +255,7 @@ export async function prepare(
         request: checked,
         identity: map.identity,
         size: map.definition.size,
+        extents: JSON.parse(world.extents()),
         counts: {
           buildings: buildings.length,
           parts: buildings.reduce((n, b) => n + b.parts.length, 0),

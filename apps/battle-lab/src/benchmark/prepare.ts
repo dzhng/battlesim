@@ -57,6 +57,9 @@ export async function prepareBenchmark(
   return {
     scenario: prepared.scenario,
     prepared,
-    workload: { ...workload, tour: cityContactTour(prepared.report.size) },
+    workload: {
+      ...workload,
+      tour: cityContactTour(prepared.report.size, prepared.report.extents.rendered),
+    },
   };
 }

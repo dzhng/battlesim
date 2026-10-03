@@ -83,6 +83,7 @@ heights[1] = 2.5;
 heights[16] = 0.5;
 heights[17] = 3.75;
 const exports = {
+  extents: { playable: [0, 0, 4, 4], physical: [0, 0, 4, 4], rendered: [0, 0, 4, 4] } as const,
   terrain: {
     nx: 2,
     ny: 2,

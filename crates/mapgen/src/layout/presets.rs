@@ -44,6 +44,9 @@ pub struct PresetDefinitions {
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Terrain {
+    /// The map's visual-only surrounding landscape; it never expands the physical height grid.
+    #[serde(default, deserialize_with = "contract::map::render_margin")]
+    pub render_margin_m: f64,
     pub fog_cell_m: f64,
     pub height_grid_m: f64,
     pub slope_cutoff_deg: f64,

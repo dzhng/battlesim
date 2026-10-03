@@ -34,8 +34,14 @@ export const gameCamera = {
   /** The rig for a map `size` metres across: the game's, with the wheel
    *  reaching far enough out, and tilting far enough down, to take the whole
    *  map in. */
-  forMap(size: readonly [number, number]): CameraPresentation {
-    const far = Math.max(config.zoom_max, Math.max(...size) * generated.camera.overview_span);
+  forMap(
+    size: readonly [number, number],
+    rendered?: readonly [number, number, number, number],
+  ): CameraPresentation {
+    const span = rendered
+      ? Math.max(rendered[2] - rendered[0], rendered[3] - rendered[1])
+      : Math.max(...size);
+    const far = Math.max(config.zoom_max, span * generated.camera.overview_span);
     if (far === config.zoom_max) return config;
     return {
       ...config,

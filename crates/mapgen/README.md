@@ -12,6 +12,24 @@ catalogue. The production library imports no simulation or appearance library.
 Verification tools and tests load compiled maps into the simulation to check what
 a battle needs.
 
+## Physical and visual bounds
+
+The selected map size is playable ground. Generated sizes align with the physical
+height grid; authored sizes can round at its last cell. The map contract derives
+that existing physical boundary from the same sample dimensions the simulation
+uses. Its `render_margin_m` describes only the surrounding landscape, and `extents`
+derives the rendered rectangle around both playable and physical ground.
+The compiler preserves this field, including in compact saved maps. Preparation
+and the page's world export publish the same derived bounds; neither creates a
+second world or enlarges navigation, foliage, deployment or picking.
+
+The renderer reuses its backdrop terrain, field plots and scenery placement for
+the visual margin. An authored arena without a margin retains its existing display
+environment: background land and distant scenery are presentation, outside the
+map-owned rectangles. Resource measurements include that environment too. A visual
+margin changes map/replay input identity, even though it adds no combat cover or
+movement obstacle.
+
 ## Layout generation (`layout`)
 
 `generate_layout(&GenerationRequest, &PresetDefinitions)` writes where settlements,

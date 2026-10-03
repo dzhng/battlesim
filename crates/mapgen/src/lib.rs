@@ -29,6 +29,12 @@ pub struct BuildingPlacement {
 pub struct MapPlan {
     #[serde(deserialize_with = "contract::numbers::array")]
     pub size: [f64; 2],
+    #[serde(
+        default,
+        deserialize_with = "contract::map::render_margin",
+        skip_serializing_if = "contract::map::no_render_margin"
+    )]
+    pub render_margin_m: f64,
     #[serde(deserialize_with = "contract::numbers::scalar")]
     pub fog_cell_m: f64,
     #[serde(deserialize_with = "contract::numbers::scalar")]
@@ -637,6 +643,7 @@ pub fn lower(
     }
     let mut map = MapDefinition {
         size: request.plan.size,
+        render_margin_m: request.plan.render_margin_m,
         fog_cell_m: request.plan.fog_cell_m,
         height_grid_m: request.plan.height_grid_m,
         slope_cutoff_deg: request.plan.slope_cutoff_deg,

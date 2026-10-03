@@ -143,7 +143,9 @@ function BenchmarkSession({
       seed={workload.seed}
       scripted={run.scripted}
       camera={gameCamera.opening()}
-      cameraConfig={prepared && gameCamera.forMap(prepared.report.size)}
+      cameraConfig={
+        prepared && gameCamera.forMap(prepared.report.size, prepared.report.extents.rendered)
+      }
       status={(session) => (
         <Progress
           run={run}

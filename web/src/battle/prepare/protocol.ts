@@ -7,6 +7,7 @@
 import type { SimRequest } from "../sim/protocol";
 import type { MapIdentity } from "../../maps/resolve.ts";
 import type { MapDiagnostic, MapSource } from "../../maps/source.ts";
+import type { MapExtents } from "@packages/battle-renderer/src/worldMesh";
 
 /** Mirrors `contract::preparation::PrepareBattleRequest`, which checks it.
  *  Everything that decides the battle: a saved replay stores this. */
@@ -111,6 +112,8 @@ export interface PreparationReport {
   identity: MapIdentity;
   /** The playable area, metres. */
   size: [number, number];
+  /** Map-owned bounds, excluding the existing display environment beyond them. */
+  extents: MapExtents;
   /** `props` are the map's own bodies that are no building's part: street
    *  furniture on a generated map. */
   counts: { buildings: number; parts: number; props: number; surfaces: number; forests: number };
