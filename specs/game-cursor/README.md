@@ -4,16 +4,17 @@ The cursor describes the action a right-click can carry out using the ordering s
 
 ## Next Agent Prompt
 
-Status: implementing; updated 2026-10-03. Native building authority is complete and integrated, including queue compatibility, shortest-entry certainty, hidden-state independence and per-tick replay. Finish played pointer integration and its reviewed commit, then run whole-feature review and final gates. Cursor presentation and actual WASM/authority/client preview purity are complete. The browser follow-up proves mixed selections, partial refusal, pending acknowledgement, reset/captured-target behavior and unchanged canvas-only edge panning. Its final GPU checks are queued behind another worktree's verification; keep using the shared lock. Use implement-spec through close-spec; this checkpoint is not a stopping point.
+Status: final closeout, 2026-10-03. All slices and cleared-ground identity are integrated. The last native audit found that an expiring contact attack could expose a later departure: full-queue compatibility is now corrected, with two public RED/GREEN regressions and all 52 garrison tests passing. Its WASM rebuild, Clippy, 14 real authority tests and cursor-orders/garrison browser reruns pass. Archive with close-spec. The whole-feature reviews, visual critique and final rationale audits are complete; no user decision remains.
 
-- [x] Authoritative combined building order, preview and native proof.
-- [x] Approved cursor presentation and isolated browser proof.
-- [ ] Shared hover/held/release intent, wire integration and played browser proof.
-- [ ] Whole-feature review, one full check/verify closeout, consolidated choices and close-spec.
+- [x] Authoritative combined building order and native proof.
+- [x] Approved arrow/action presentation and production visual proof.
+- [x] Shared hover/held/release intent and real authority integration.
+- [x] Clearing count/epoch invalidate previews and suppress stale replies.
+- [x] Full repository checks and all 37 browser scenes exercised; closeout failures repaired with focused reruns.
+- [x] Final native correction and all affected checks.
+- [ ] Archive rationale and consolidated choices with close-spec.
 
-The graph is `01 || 02 → 03 → closeout`; the first two branches are complete. The remaining risk is played pointer lifetime across camera/input changes, delayed acknowledgements and reset. Scratch evidence belongs in ignored `throwaway/`; the approved concept below is a lasting requirement.
-
-Evidence: native garrison (50), buildings (31), move-admission (19) and formation (8) tests plus all-target contract/sim/WASM lint pass, with independent final source review. Browser authority/client tests pass (19), including mixed preview-to-admission digest and replay equality, query-local failure recovery, and no command/publication side effects. Actual ungarrisonable aggregate nomination, native preparation eligibility and world-mesh neighbors pass; the dead browser capability export is removed. Input/gesture tests and isolated cursor/component/fixture proofs passed earlier with fresh visual critique. The CLI second-opinion tool cannot run with its configured model/account; independent collaborator reviews supply the code opinion without overriding user model settings. Use the scene runner's regular Chromium channel for GPU captures, not Playwright's default headless-shell variant.
+Evidence is in ignored `throwaway/cursor-review/`. Full Rust found one stale sight oracle (647 passed), corrected against public living seats with all 13 sight checks green. Full web passed 976 and found two mock/catalog issues; their 10 affected checks pass. Format, types, lint and workspace doc tests pass. Full browser passed 35 scenes; missing local LFS city templates caused two input failures. After restoring those exact assets, both city scenes and cursor/garrison/movement reruns pass. Ground identity's 49 focused tests pass. Reuse unaffected full-run results. The configured CLI second opinion cannot run with its model/account; independent collaborator reviews supply the opinion. Existing narrow command-bar clipping is outside cursor/callout acceptance; its layout/styles are unchanged.
 
 ## Known knowns — grounded territory
 
@@ -97,3 +98,5 @@ Every visual slice compares actual cursor crops to the approved reference and a 
 Use narrow tests and the affected garrison/movement scenes during passes. Run the complete check and all browser scenes once at finished implementation; share the machine's GPU lock. A generic balance report cannot exercise a new player command absent from its scripts: native played command fixtures are the relevant rule sample; existing battle digest parity demonstrates no change to prior scripts. No weapons or unit tuning belongs in this feature.
 
 Copyable kickoff: “Implement specs/game-cursor with implement-spec, preserving the approved Arrow + action cursor and the complete building-order contract. Complete every slice, review, verify and close the spec.” Implementation is already authorized by the user's latest message.
+
+Closeout evidence is summarized in the current handoff above. All required gates are complete, including the final native compatibility correction. Only rationale/choices archiving remains; do not repeat the expensive full suite.

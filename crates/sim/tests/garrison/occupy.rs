@@ -52,6 +52,108 @@ fn occupy(units: &[u32], gesture: u64) -> Order {
 }
 
 #[test]
+fn replacing_a_hold_cancels_departure_behind_an_expiring_contact_attack() {
+    let mut setup = common::scenario_with(
+        &map(json!([
+            {"kind":"wall", "center":[425,300], "yaw":0, "half_extents":[1,60,10]}
+        ])),
+        json!([
+            {"side":"blue", "kind":"recon", "position":[350,300], "engagement":"return_fire_only"},
+            {"side":"red", "kind":"rifle", "position":[450,300], "engagement":"return_fire_only"}
+        ]),
+        json!([{"tick":1000, "fire":{"unit":1}}]),
+        json!([]),
+    );
+    setup.rules.sensors.contact_lifetime_s = 1.0;
+    let mut b = Battle::new(&setup, 1);
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 900, "selected holder inside", |b| inside(b, 0));
+    until(&mut b, 1000, "hidden shooter reported", |b| {
+        !b.observe(Side::Blue).contacts.is_empty()
+    });
+    assert!(b.observe(Side::Blue).identified.is_empty());
+    let contact = b.observe(Side::Blue).contacts[0].clone();
+    c.ok(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Contact { id: contact.id },
+        },
+    );
+    assert_eq!(c.send(&mut b, Side::Blue, exit(&[0]), true), None);
+    b.step();
+    assert!(matches!(
+        b.unit(UnitId(0)).unwrap().orders.back(),
+        Some(sim::units::UnitOrder::Exit)
+    ));
+    c.ok(&mut b, Side::Blue, occupy(&[0], 1));
+    b.step();
+    until(&mut b, 100, "contact expires", |b| {
+        b.observe(Side::Blue).contacts.is_empty()
+    });
+    run(&mut b, ticks(5.0));
+    assert!(
+        inside(&b, 0),
+        "expired attack cannot release the old departure"
+    );
+}
+
+#[test]
+fn queued_reentry_after_an_entering_squads_attack_and_exit_remains_unproven() {
+    let mut setup = common::scenario_with(
+        &map(json!([
+            {"kind":"wall", "center":[425,300], "yaw":0, "half_extents":[1,60,10]}
+        ])),
+        json!([
+            {"side":"blue", "kind":"recon", "position":[350,300], "engagement":"return_fire_only"},
+            {"side":"blue", "kind":"tank", "position":[300,280], "engagement":"return_fire_only"},
+            {"side":"red", "kind":"rifle", "position":[450,300], "engagement":"return_fire_only"}
+        ]),
+        json!([{"tick":5, "fire":{"unit":2}}]),
+        json!([]),
+    );
+    setup.rules.sensors.contact_lifetime_s = 20.0;
+    let mut b = Battle::new(&setup, 1);
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 500, "selected squad entering", |b| {
+        phase(b, Side::Blue, 0) == Some(GarrisonPhase::Entering)
+    });
+    let contact = b.observe(Side::Blue).contacts[0].clone();
+    for order in [
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Contact { id: contact.id },
+        },
+        exit(&[0]),
+    ] {
+        assert_eq!(c.send(&mut b, Side::Blue, order, true), None);
+    }
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 4,
+        order: occupy(&[0, 1], 1),
+        queued: true,
+    });
+    assert_eq!(ack.error, None, "useful companion gathering still succeeds");
+    let plan = ack.building.unwrap();
+    assert!(
+        plan.entrant.is_none() && plan.unproven,
+        "queued attack can expire and expose the departure: {plan:?}"
+    );
+    b.step();
+    assert!(matches!(
+        b.unit(UnitId(0)).unwrap().orders.back(),
+        Some(sim::units::UnitOrder::Exit)
+    ));
+    until(&mut b, 1200, "original queue leaves the building", |b| {
+        b.observe(Side::Blue).contacts.is_empty() && b.unit(UnitId(0)).unwrap().garrison.is_none()
+    });
+}
+
+#[test]
 fn a_building_group_ranks_reachable_route_distance_instead_of_distance_to_the_wall() {
     let mut b = battle_with(
         json!([{ "kind": "wall", "center": [375, 300], "yaw": 0, "half_extents": [1, 20, 2] }]),

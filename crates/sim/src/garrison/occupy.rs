@@ -114,11 +114,10 @@ fn member(ctx: &MovementContext, u: &Unit) -> Member {
     }
 }
 
-/// Whether the finite work before an indefinite attack keeps this building.
-fn entry_holds_after_prefix(unit: &Unit, owner: u32) -> bool {
+/// Every queued action must preserve the hold, even if an earlier attack expires.
+fn entry_work_keeps_building(unit: &Unit, owner: u32) -> bool {
     for order in &unit.orders {
         match order {
-            UnitOrder::Attack { .. } => return true,
             UnitOrder::Exit => return false,
             UnitOrder::Garrison { building, .. } if *building != owner => return false,
             order if order.movement().is_some() => return false,
@@ -253,7 +252,7 @@ pub(crate) fn occupy(
         let held = matches!(g.phase, super::Phase::Inside);
         let entering = matches!(g.phase, super::Phase::Entering(_));
         if request.queued {
-            if !eligible[i] && !entry_holds_after_prefix(actual, owner) {
+            if !eligible[i] && !entry_work_keeps_building(actual, owner) {
                 return None;
             }
             super::current_entry(u, owner).map(|at| {
@@ -266,7 +265,7 @@ pub(crate) fn occupy(
             })
         } else if held || entering {
             let action = if super::current_entry(actual, owner).is_some()
-                && entry_holds_after_prefix(actual, owner)
+                && entry_work_keeps_building(actual, owner)
             {
                 EntryAction::Keep
             } else {
