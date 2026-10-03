@@ -102,6 +102,64 @@ fn hills_and_buildings_block_sight() {
     assert!(identifies(&building, [1100.0, 160.0]), "clear of it");
 }
 
+/// Ground behind a solid obstruction cannot make that rejected sight ray expensive.
+#[cfg(target_os = "macos")]
+#[test]
+fn foliage_behind_a_wall_does_not_amplify_blocked_sight_work() {
+    if !common::isolated_cost_test(
+        "sensing::foliage_behind_a_wall_does_not_amplify_blocked_sight_work",
+    ) {
+        return;
+    }
+    let rules = common::rules();
+    let eye = sim::math::v3(20.0, 50.0, 1.0);
+    let target = sim::math::v3(950.0, 50.0, 1.0);
+    let sight = sim::sight::Sight {
+        forward: 0.0,
+        range: 1000.0,
+        shape: contract::scenario::SightShape {
+            front: 1.0,
+            side: 1.0,
+            rear: 1.0,
+        },
+    };
+    let cost = |forest: bool| {
+        let map = serde_json::from_value(json!({
+            "size": [1000, 100], "fog_cell_m": 8, "height_grid_m": 4,
+            "slope_cutoff_deg": 35,
+            "props": [{ "kind": "wall", "center": [100, 50], "yaw": 0,
+                "half_extents": [1, 20, 3] }],
+            "forests": if forest {
+                json!([{ "shape": { "kind": "polygon",
+                    "ring": [[200,20],[900,20],[900,80],[200,80]] } }])
+            } else { json!([]) }
+        }))
+        .unwrap();
+        let world = sim::world::WorldGeometry::new(&map, &rules);
+        assert!(!world.sight_clear(eye, target));
+        assert_eq!(world.foliage_depth(eye, target) > 0.0, forest);
+        let before = common::counters::instructions().expect("native instruction counter");
+        for _ in 0..1000 {
+            assert!(!sim::sensing::sees_point(
+                std::hint::black_box(&world),
+                eye,
+                target,
+                &sight,
+                1.0,
+                &rules.sensors,
+            ));
+        }
+        common::counters::instructions().unwrap() - before
+    };
+    let bare = cost(false);
+    let forest = cost(true);
+    eprintln!("blocked sight instructions: bare {bare}, forest {forest}");
+    assert!(
+        forest <= bare * 2,
+        "irrelevant foliage amplified blocked sight: bare {bare}, forest {forest}"
+    );
+}
+
 #[test]
 fn shared_identification_extends_a_tank_but_not_its_own_sensor() {
     let b = battle(json!([
