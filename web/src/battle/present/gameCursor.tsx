@@ -14,8 +14,13 @@ const ACTION_ICONS = {
 } as const;
 
 export type CursorAction = "default" | keyof typeof ACTION_ICONS;
+const CURSOR_SCALE = 0.7;
+const CURSOR_ART_SIZE = { width: 41, height: 38 } as const;
 /** Complete arrow and badge bounds, also used to keep callouts clear. */
-export const GAME_CURSOR_SIZE = { width: 41, height: 38 } as const;
+export const GAME_CURSOR_SIZE = {
+  width: CURSOR_ART_SIZE.width * CURSOR_SCALE,
+  height: CURSOR_ART_SIZE.height * CURSOR_SCALE,
+} as const;
 
 export interface GameCursorHandle {
   /** Viewport client coordinates; null hides the complete cursor. */
@@ -33,7 +38,7 @@ export function GameCursor({ handle }: { handle: Ref<GameCursorHandle> }) {
       if (!root) return;
       root.hidden = position === null;
       if (!position) return;
-      root.style.transform = `translate(${position.x}px, ${position.y}px)`;
+      root.style.transform = `translate(${position.x}px, ${position.y}px) scale(${CURSOR_SCALE})`;
       if (action !== shown.current) {
         shown.current = action;
         root.dataset.action = action;
@@ -49,7 +54,7 @@ export function GameCursor({ handle }: { handle: Ref<GameCursorHandle> }) {
       className="game-cursor"
       data-testid="game-cursor"
       data-action="default"
-      style={GAME_CURSOR_SIZE}
+      style={CURSOR_ART_SIZE}
       hidden
       aria-hidden="true"
     >

@@ -32,7 +32,7 @@ Hover, right-press, held preview and release share [pointerIntent](../../../web/
 
 Initial pending state and wholly unsuccessful unproven results use the plain arrow; proved successful parts take priority over uncertainty. A successful entry earns the garrison badge even when some companions fail; fallback movement stays plain. Known zero-success building results and known capability refusals earn the rejection badge. The older movement-array query lacks a certainty diagnostic, so an all-unplaced hover result stays conservative rather than claiming a proved restriction; an actual admission refusal can still show blocked confirmation.
 
-Held building previews show companions' gathering destinations, while the entry result drives the garrison badge. Attack intents show no held movement marks. [GameCursor](../../../web/src/battle/present/gameCursor.tsx) supplies the screen-space arrow and existing generated action glyphs; [LabViewport](../../../apps/battle-lab/src/LabViewport.tsx) confines native-pointer hiding to active interaction surfaces; ordinary hover exit, camera drag, cancellation and disposal suppress the game cursor. A held press remains captured when the pointer leaves that surface. Menus, replay and scripted input retain their normal pointer behavior.
+Held building previews show companions' gathering destinations, while the entry result drives the garrison badge. Attack intents show no held movement marks. [GameCursor](../../../web/src/battle/present/gameCursor.tsx) supplies the screen-space arrow and existing generated action glyphs; [LabViewport](../../../apps/battle-lab/src/LabViewport.tsx) decides when the game cursor is active. Its [presentation CSS](../../../web/src/battle/present/gameCursor.css) hides native pointers on the canvas and readout cards whenever the game cursor is visible, so crossing sibling cards cannot flash a hand between pointer frames; ordinary hover exit, camera drag, cancellation and disposal suppress the game cursor. A held press remains captured when the pointer leaves that surface. Menus, replay and scripted input retain their normal pointer behavior.
 
 ## Rejected approaches
 
@@ -43,6 +43,8 @@ Returning a longer completed entry after a shorter proof exhausts its work would
 ## Visual provenance
 
 [The approved concept](assets/arrow-action-approved.png) is the user's selected illustrative mockup. It drives the stable tip, bright thin arrow, dark edge and small lower-right action badge. Its schematic terrain and illustrative icon family are not gameplay requirements; production uses the game's generated icons and HUD colors.
+
+The current size requirement is 70% of the original complete cursor, retaining its tip and action layout. The captures below preserve the original presentation scale; current browser scenes verify the reduced arrow, badge and callout clearance.
 
 The frozen [before](assets/before-garrison.png) and [after](assets/after-garrison.png) images use the real playable garrison route at matched tick, camera, selection and battle digest. The before image is a historical baseline; the approved concept is the design target. [The action matrix](assets/native-matrix.png) and [narrow matrix](assets/narrow-matrix.png) preserve native-scale contrast comparisons, while [partial refusal](assets/partial-callout.png) and [narrow refusal](assets/narrow-callout.png) preserve the cursor/text separation requirement.
 

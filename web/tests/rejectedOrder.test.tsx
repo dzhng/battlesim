@@ -56,7 +56,7 @@ test("a refusal starts beyond the complete approved cursor composite", () => {
   );
   const callout = screen.getByRole("status");
   const x = Number(callout.style.transform.match(/translate\(([^p]+)px/)![1]);
-  // The approved arrow+badge occupies 41 screen pixels to the right of its tip.
-  expect(x).toBeGreaterThan(120 + 41);
+  // The approved arrow+badge occupies 28.7 screen pixels to the right of its tip.
+  expect(x).toBeGreaterThan(120 + 28.7);
   expect(callout.textContent).toContain("MOVE NOT AVAILABLE");
 });

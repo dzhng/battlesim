@@ -523,18 +523,12 @@ export function LabViewport({
     const { signal } = lifetime;
     let device: GPUDevice | null = null;
     let raf = 0;
-    let cursorSurface: HTMLElement | null = null;
     const showCursor = (
       position: { x: number; y: number } | null,
       action: CursorAction | null,
       surface: HTMLElement | null,
     ) => {
-      const active = position && action && surface ? surface : null;
-      if (active !== cursorSurface) {
-        if (cursorSurface) cursorSurface.style.cursor = "";
-        cursorSurface = active;
-        if (active) active.style.cursor = "none";
-      }
+      const active = position && action && surface;
       cursor.current?.place(active ? position : null, action ?? "default");
     };
     const interactionSurface = (target: EventTarget | null) =>

@@ -77,6 +77,64 @@ async function onBuilding(page, center, height) {
   return p;
 }
 
+async function infoCardCursor(ctx, page) {
+  await page.evaluate(() => {
+    const samples = [];
+    const record = (event) => {
+      if (!(event.target instanceof Element) || !event.target.closest(".ro-layer .ro-unit")) return;
+      samples.push({
+        event: event.type,
+        native: getComputedStyle(event.target).cursor,
+        visible: !document.querySelector('[data-testid="game-cursor"]').hidden,
+      });
+    };
+    window.__cardCursorProbe = { samples, record };
+    window.addEventListener("pointerover", record, true);
+    window.addEventListener("pointermove", record, true);
+  });
+  try {
+    for (const id of [0, 2]) {
+      await page.locator(`.ro-unit[data-unit="${id}"] .ro-name-word`).hover();
+      await page.evaluate(async () => {
+        for (let i = 0; i < 12; i++) {
+          await new Promise(requestAnimationFrame);
+          const cursor = document.querySelector('[data-testid="game-cursor"]');
+          const matrix = new DOMMatrix(getComputedStyle(cursor).transform);
+          const hit = document.elementFromPoint(matrix.e, matrix.f);
+          window.__cardCursorProbe.samples.push({
+            event: "frame",
+            native: hit && getComputedStyle(hit).cursor,
+            visible: !cursor.hidden,
+          });
+        }
+      });
+    }
+    const samples = await page.evaluate(() => window.__cardCursorProbe.samples);
+    ctx.check(
+      "info-card handoffs and resting hover keep only the game cursor visible",
+      samples.length >= 24 && samples.every((s) => s.visible && s.native === "none"),
+      JSON.stringify(samples),
+    );
+    await page.screenshot({ path: ctx.evidencePath("cursor-info-card-hover.png") });
+    await ctx.writeEvidence("cursor-info-card-hover.json", samples);
+    await page.getByRole("button", { name: "Reset", exact: true }).hover();
+    await page.waitForFunction(() => document.querySelector('[data-testid="game-cursor"]').hidden);
+    ctx.check(
+      "HUD buttons regain their native hand when the game cursor is hidden",
+      (await page
+        .getByRole("button", { name: "Reset", exact: true })
+        .evaluate((button) => getComputedStyle(button).cursor)) === "pointer",
+    );
+  } finally {
+    await page.evaluate(() => {
+      const { record } = window.__cardCursorProbe;
+      window.removeEventListener("pointerover", record, true);
+      window.removeEventListener("pointermove", record, true);
+      delete window.__cardCursorProbe;
+    });
+  }
+}
+
 export async function garrisonCursor(ctx) {
   const page = await openBattle(
     {
@@ -120,6 +178,8 @@ export async function garrisonCursor(ctx) {
     })),
   );
   await capture(ctx, page, "garrison-hover", p);
+  await infoCardCursor(ctx, page);
+  await onBuilding(page, [360, 250], 8);
 
   // Recompute without a pointer event, while paused.
   await select(page, []);

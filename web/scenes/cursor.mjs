@@ -35,7 +35,9 @@ export async function run(ctx) {
   ctx.check(
     "every action keeps the arrow tip at the same pointer anchor",
     desktop.length === 24 &&
-      desktop.every((s) => s.tipError < 0.01 && s.arrowSize.every((v) => v === 32)),
+      desktop.every(
+        (s) => s.tipError < 0.01 && s.arrowSize.every((v) => Math.abs(v - 22.4) < 0.01),
+      ),
     JSON.stringify(desktop),
   );
   ctx.check(
@@ -43,7 +45,8 @@ export async function run(ctx) {
     desktop.every((s) =>
       s.action === "default"
         ? s.badge === null && !s.icons.length
-        : JSON.stringify(s.badge) === "[22,19,19,19]" && s.icons.join() === s.action,
+        : s.badge.every((v, i) => Math.abs(v - [15.4, 13.3, 13.3, 13.3][i]) < 0.01) &&
+          s.icons.join() === s.action,
     ),
   );
   const matrix = decode(
@@ -98,7 +101,7 @@ export async function run(ctx) {
   const narrow = await geometry(page);
   ctx.check(
     "narrow layout preserves native scale and has no horizontal overflow",
-    narrow.every((s) => s.tipError < 0.01 && s.arrowSize.every((v) => v === 32)) &&
+    narrow.every((s) => s.tipError < 0.01 && s.arrowSize.every((v) => Math.abs(v - 22.4) < 0.01)) &&
       (await page.evaluate(() => document.querySelector(".cursor-lab").scrollWidth <= innerWidth)),
   );
   await page.screenshot({ path: ctx.evidencePath("matrix-native-430x1000.png") });
