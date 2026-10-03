@@ -793,7 +793,7 @@ impl Battle {
         self.accepted.push((applied_tick, command.clone()));
         let prepared = self.prepare(command, applied_tick.saturating_sub(1))?;
         let placement = prepared.placement.clone();
-        let building = prepared.building.clone();
+        let building = prepared.building.as_ref().map(|p| p.placement.clone());
         self.pending.push(prepared);
         Ok((placement, building))
     }
@@ -833,7 +833,7 @@ impl Battle {
                 let claimed = self.pending.iter().any(|c| {
                     c.command.side == command.side
                         && (matches!(c.command.order, Order::Garrison { building: b, .. } if self.world.remembered_structure_owner(b) == self.world.remembered_structure_owner(*building))
-                            || c.building.as_ref().is_some_and(|b| b.entrant.is_some() && b.building == self.world.remembered_structure_owner(*building)))
+                            || c.building.as_ref().is_some_and(|b| b.placement.entrant.is_some() && b.placement.building == self.world.remembered_structure_owner(*building)))
                 });
                 return garrison::validate(
                     &self.world,
@@ -1997,14 +1997,10 @@ impl Battle {
             }),
             _ => None,
         };
-        let entry_action = building
-            .as_ref()
-            .map_or(garrison::EntryAction::Route, |p| p.entry_action);
         Ok(PreparedCommand {
             command,
             placement,
-            building: building.map(|p| p.placement),
-            entry_action,
+            building,
         })
     }
 
@@ -2023,11 +2019,14 @@ impl Battle {
             Order::OccupyBuilding {
                 gesture, facing, ..
             } => {
-                let plan = prepared.building.unwrap();
+                let garrison::BuildingPlan {
+                    placement: plan,
+                    entry_action,
+                } = prepared.building.unwrap();
                 if let Some(entry) = plan.entrant {
                     let unit = &mut movers[entry.unit.0 as usize];
                     let approach = v2(entry.approach[0], entry.approach[1]);
-                    if matches!(prepared.entry_action, garrison::EntryAction::Reassert) {
+                    if matches!(entry_action, garrison::EntryAction::Reassert) {
                         unit.enqueue(
                             UnitOrder::Garrison {
                                 building: plan.building,
@@ -2035,7 +2034,7 @@ impl Battle {
                             },
                             false,
                         );
-                    } else if matches!(prepared.entry_action, garrison::EntryAction::Route) {
+                    } else if matches!(entry_action, garrison::EntryAction::Route) {
                         push(
                             unit,
                             UnitOrder::Move(MoveOrder {
@@ -2825,8 +2824,7 @@ impl Battle {
 struct PreparedCommand {
     command: CommandEnvelope,
     placement: Option<MovePlacement>,
-    building: Option<BuildingPlacement>,
-    entry_action: garrison::EntryAction,
+    building: Option<garrison::BuildingPlan>,
 }
 
 #[cfg(test)]

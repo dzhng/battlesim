@@ -24,6 +24,7 @@ pub(crate) enum EntryAction {
     Route,
 }
 
+#[derive(Clone)]
 pub(crate) struct BuildingPlan {
     pub placement: BuildingPlacement,
     pub entry_action: EntryAction,
