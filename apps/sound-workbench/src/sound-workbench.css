@@ -263,6 +263,23 @@
 .sw-review > button {
   margin-right: 8px;
 }
+.sw-changes {
+  margin: 16px 0;
+}
+.sw-change {
+  border-bottom: 1px solid var(--sw-line);
+  padding: 10px 0;
+  overflow-wrap: anywhere;
+}
+.sw-change code {
+  display: block;
+  color: var(--sw-muted);
+  margin-bottom: 4px;
+}
+.sw-change strong {
+  color: var(--sw-active);
+  font-weight: 500;
+}
 .sw-diff {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -271,7 +288,10 @@
 .sw-diff pre {
   overflow: auto;
   max-height: 440px;
-  font-size: 11px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   background: #0b1416;
   padding: 12px;
 }

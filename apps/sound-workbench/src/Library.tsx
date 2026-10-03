@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SOUNDS } from "../../../packages/battle-audio/src/synth";
 import { RecipeEditor } from "./RecipeEditor";
 import type { EditorProps } from "./editorProps";
@@ -20,6 +20,8 @@ export function Library({
   clone(id: string): void;
 }) {
   const [filter, setFilter] = useState("all");
+  const activeRow = useRef<HTMLButtonElement>(null);
+  useEffect(() => activeRow.current?.scrollIntoView({ block: "nearest" }), [selected, filter]);
   const matches = (text: string) => text.toLowerCase().includes(search.toLowerCase());
   const firing = [
     ...Object.values(draft.defaults),
@@ -76,6 +78,7 @@ export function Library({
               aria-label={clip.label}
               aria-pressed={selected?.kind === "clip" && selected.id === id}
               key={`clip/${id}`}
+              ref={selected?.kind === "clip" && selected.id === id ? activeRow : undefined}
               onClick={() => select({ kind: "clip", id })}
             >
               <span>{clip.label}</span>
@@ -97,12 +100,15 @@ export function Library({
               aria-label={sound.label}
               aria-pressed={selected?.kind === "sound" && selected.id === id}
               key={`sound/${id}`}
+              ref={selected?.kind === "sound" && selected.id === id ? activeRow : undefined}
               onClick={() => select({ kind: "sound", id })}
             >
               <span>{sound.label}</span>
               <small>
                 {Object.hasOwn(SOUNDS, id) ? "baseline" : "recipe"} ·{" "}
-                {sound.loop ? "loop" : `${Math.max(1, sound.clips.length)} variations`}
+                {sound.loop
+                  ? "loop"
+                  : `${Math.max(1, sound.clips.length)} variation${sound.clips.length > 1 ? "s" : ""}`}
               </small>
             </button>
           ))}
@@ -161,7 +167,10 @@ export function Library({
                 c.sounds[selected.id] = recipe;
               })
             }
-            clone={() => clone(selected.id)}
+            clone={() => {
+              setFilter("sounds");
+              clone(selected.id);
+            }}
             play={(variation) => void play("sound", selected.id, variation)}
           />
         ) : (

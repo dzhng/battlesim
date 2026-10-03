@@ -35,6 +35,7 @@ test("the main menu at / offers a new battle, the village, the saved battlefield
     Village: "/battle/village",
     "Mechanics editor": "/mechanics",
     "Map workbench": "/map-workbench",
+    "Sound workbench": "/sound-workbench",
     Benchmark: "/benchmark",
     Labs: "/labs",
   };
@@ -70,6 +71,7 @@ test("the production menu does not offer source editing", async () => {
   fireEvent.click(menu.getByRole("button", { name: "Developer" }));
   expect(menu.queryByRole("link", { name: "Mechanics editor" })).toBeNull();
   expect(menu.queryByRole("link", { name: "Map workbench" })).toBeNull();
+  expect(menu.queryByRole("link", { name: "Sound workbench" })).toBeNull();
   expect(menu.getByRole("link", { name: "Benchmark" }).getAttribute("href")).toBe("/benchmark");
   menu.unmount();
 });

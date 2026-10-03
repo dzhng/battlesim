@@ -7,6 +7,8 @@ import type { WorkbenchAPI, Snapshot } from "../../apps/sound-workbench/src/prot
 import type { Auditioner } from "../../apps/sound-workbench/src/audition";
 
 afterEach(cleanup);
+// jsdom has no layout; scrolling is checked on the real browser route.
+HTMLElement.prototype.scrollIntoView = () => {};
 function fixture() {
   const catalog: Snapshot["catalog"] = {
     sources: {},
@@ -136,6 +138,31 @@ test("the global editor displays the effective shared fallback for an unassigned
   fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
   expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("hmg");
   expect((screen.getByLabelText("rifle gain") as HTMLInputElement).value).toBe("0.8");
+});
+
+test("preview shows the changed sound setting without searching full source JSON", async () => {
+  const f = fixture();
+  render(<SoundWorkbench api={f.api} audition={f.audition} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Unit assignments" }));
+  fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
+  fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+  await screen.findByRole("button", { name: "Save reviewed JSON" });
+  const changes = screen.getByRole("region", { name: "Changed sound settings" });
+  expect(changes.textContent).toContain("units.alpha.rifle.near");
+  expect(changes.textContent).toContain("hmg");
+});
+
+test("cloning a filtered baseline shows the new selected recipe in the library", async () => {
+  const f = fixture();
+  render(<SoundWorkbench api={f.api} audition={f.audition} />);
+  await screen.findByRole("button", { name: "Synth · rifle" });
+  fireEvent.change(screen.getByLabelText("Library filter"), { target: { value: "baselines" } });
+  fireEvent.click(screen.getByRole("button", { name: "Synth · rifle" }));
+  fireEvent.click(screen.getByRole("button", { name: "Clone recipe" }));
+  expect(
+    screen.getByRole("button", { name: "Synth · rifle · custom" }).getAttribute("aria-pressed"),
+  ).toBe("true");
 });
 
 test("exact type assignments can be edited independently, restored, reviewed and saved", async () => {

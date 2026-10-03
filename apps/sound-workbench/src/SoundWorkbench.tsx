@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   validateSoundCatalog,
   type SoundCatalog,
@@ -8,6 +8,26 @@ import { workbenchAPI, type Review, type Snapshot, type WorkbenchAPI } from "./p
 import { Library, type Selection } from "./Library";
 import { UnitAssignments, GlobalAssignments } from "./Assignments";
 import "./sound-workbench.css";
+
+function changedSettings(
+  before: unknown,
+  after: unknown,
+  path = "",
+): { path: string; before: string; after: string }[] {
+  if (JSON.stringify(before) === JSON.stringify(after)) return [];
+  const object = (value: unknown) =>
+    value !== null && typeof value === "object" && !Array.isArray(value);
+  if ((object(before) || before === undefined) && (object(after) || after === undefined)) {
+    const a = (before ?? {}) as Record<string, unknown>;
+    const b = (after ?? {}) as Record<string, unknown>;
+    return [...new Set([...Object.keys(a), ...Object.keys(b)])].flatMap((key) =>
+      changedSettings(a[key], b[key], path ? `${path}.${key}` : key),
+    );
+  }
+  const display = (value: unknown) =>
+    typeof value === "string" ? value : (JSON.stringify(value) ?? "not set");
+  return [{ path, before: display(before), after: display(after) }];
+}
 
 export function SoundWorkbench({
   api = workbenchAPI,
@@ -26,33 +46,36 @@ export function SoundWorkbench({
   const [playing, setPlaying] = useState("");
   const [loadingAudio, setLoadingAudio] = useState(false);
   const auditionGeneration = useRef(0);
-  const stopAudio = () => {
+  const stopAudio = useCallback(() => {
     auditionGeneration.current++;
     audition.stop();
     setPlaying("");
     setLoadingAudio(false);
-  };
-  const accept = (value: Snapshot) => {
-    stopAudio();
-    setSnapshot(value);
-    setDraft(structuredClone(value.catalog));
-    setReview(null);
-    setSelected((selection) => {
-      if (
-        selection &&
-        (selection.kind === "clip"
-          ? value.catalog.clips[selection.id]
-          : value.catalog.sounds[selection.id])
-      )
-        return selection;
-      const clip = Object.keys(value.catalog.clips)[0];
-      const sound = Object.keys(value.catalog.sounds)[0];
-      return clip ? { kind: "clip", id: clip } : sound ? { kind: "sound", id: sound } : null;
-    });
-    setUnitId((id) =>
-      value.units.some((unit) => unit.id === id) ? id : (value.units[0]?.id ?? ""),
-    );
-  };
+  }, [audition]);
+  const accept = useCallback(
+    (value: Snapshot) => {
+      stopAudio();
+      setSnapshot(value);
+      setDraft(structuredClone(value.catalog));
+      setReview(null);
+      setSelected((selection) => {
+        if (
+          selection &&
+          (selection.kind === "clip"
+            ? value.catalog.clips[selection.id]
+            : value.catalog.sounds[selection.id])
+        )
+          return selection;
+        const clip = Object.keys(value.catalog.clips)[0];
+        const sound = Object.keys(value.catalog.sounds)[0];
+        return clip ? { kind: "clip", id: clip } : sound ? { kind: "sound", id: sound } : null;
+      });
+      setUnitId((id) =>
+        value.units.some((unit) => unit.id === id) ? id : (value.units[0]?.id ?? ""),
+      );
+    },
+    [stopAudio],
+  );
 
   useEffect(() => {
     let active = true;
@@ -66,10 +89,9 @@ export function SoundWorkbench({
       });
     return () => {
       active = false;
-      auditionGeneration.current++;
-      audition.stop();
+      stopAudio();
     };
-  }, [api, audition]);
+  }, [api, accept, stopAudio]);
 
   const edit = (change: (catalog: SoundCatalog) => void) => {
     if (!draft) return;
@@ -240,19 +262,36 @@ export function SoundWorkbench({
                   : "No source changes. Saving preserves the original bytes."}
               </p>
               {review.files.map((file) => (
-                <details key={file.path}>
-                  <summary>{file.path} · exact before / after</summary>
-                  <div className="sw-diff">
-                    <div>
-                      <h3>Before</h3>
-                      <pre>{file.before}</pre>
+                <div key={file.path}>
+                  <section aria-label="Changed sound settings" className="sw-changes">
+                    <h3>Changed settings</h3>
+                    {changedSettings(JSON.parse(file.before), JSON.parse(file.after)).map(
+                      (change) => (
+                        <div key={change.path} className="sw-change">
+                          <code>{change.path}</code>
+                          <div>
+                            <span>{change.before}</span>
+                            <b aria-label="changes to"> → </b>
+                            <strong>{change.after}</strong>
+                          </div>
+                        </div>
+                      ),
+                    )}
+                  </section>
+                  <details>
+                    <summary>{file.path} · exact before / after</summary>
+                    <div className="sw-diff">
+                      <div>
+                        <h3>Before</h3>
+                        <pre>{file.before}</pre>
+                      </div>
+                      <div>
+                        <h3>After</h3>
+                        <pre>{file.after}</pre>
+                      </div>
                     </div>
-                    <div>
-                      <h3>After</h3>
-                      <pre>{file.after}</pre>
-                    </div>
-                  </div>
-                </details>
+                  </details>
+                </div>
               ))}
               <button
                 disabled={busy}
