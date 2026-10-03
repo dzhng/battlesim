@@ -199,6 +199,7 @@ function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
     return {
       id: 100 + i,
       slot: i % slots,
+      activeMount: 0,
       position: [along, lane, 0] as [number, number, number],
     };
   });
@@ -210,11 +211,18 @@ function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
     position: members[0].position,
     yaw: 0,
     soldiers: members,
-    // Every mount fires together: the squad's rifles and whatever it carries.
-    mounts: UNITS.type(kind).mounts.map(() => ({
+    // Synthetic replay soldiers use their default hand weapon.
+    mounts: UNITS.type(kind).mounts.map((_, mount) => ({
       bearing: 0.2,
       elevation: 0.02,
-      shots: firing ? Math.floor((t - 9.2) / 0.6) * soldiers : t >= 12.5 ? 6 * soldiers : 0,
+      shots:
+        mount === 0
+          ? firing
+            ? Math.floor((t - 9.2) / 0.6) * soldiers
+            : t >= 12.5
+              ? 6 * soldiers
+              : 0
+          : 0,
     })),
     deployment: null,
     // Pinned for a while, then recovering.

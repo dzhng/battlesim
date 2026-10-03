@@ -102,6 +102,234 @@ fn weapon(name: &str) -> Value {
     rules()["weapons"][name].clone()
 }
 
+#[test]
+fn a_launcher_operator_uses_one_gun_while_his_guards_keep_firing() {
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "at", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [550, 300], "engagement": "return_fire_only" }
+        ]),
+        json!([]),
+        json!([]),
+    );
+    for weapon in setup.rules.weapons.values_mut() {
+        weapon.damage = 0.0;
+    }
+    let mut b = Battle::new(&setup, 5);
+    let operator = b.unit(UnitId(0)).unwrap().mounts[1].operator.unwrap();
+    let mut seen = BTreeSet::new();
+    let (mut launcher, mut guards) = (false, false);
+    for _ in 0..180 {
+        b.step();
+        for (p, r) in b.rounds() {
+            if r.unit != UnitId(0) || !seen.insert(p.id) {
+                continue;
+            }
+            let shooter = p.shooter.unwrap().body.0;
+            if weapon_name(&b, r.weapon) == "rifle" {
+                assert_ne!(
+                    shooter, operator,
+                    "the launcher operator cannot also work his rifle"
+                );
+                guards = true;
+            } else {
+                assert_eq!(shooter, operator);
+                launcher = true;
+            }
+        }
+    }
+    assert!(launcher && guards, "the launcher and its guards both fight");
+}
+
+#[test]
+fn switching_to_a_rifle_pauses_reload_and_resuming_a_useful_launcher_finishes_it() {
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "at", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [450, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "recon", "position": [250, 400], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "tank", "position": [650, 200], "engagement": "return_fire_only" }
+        ]),
+        json!([]),
+        json!([]),
+    );
+    for weapon in setup.rules.weapons.values_mut() {
+        weapon.damage = 0.0;
+        weapon.near_miss_suppression = 0.0;
+    }
+    let launcher = setup.rules.weapons.get_mut("atgm").unwrap();
+    launcher.aim_s = 0.2;
+    launcher.reload_s = 10.0;
+    launcher.damage = 1.0e6;
+    launcher.ballistics.range_m = 500.0;
+    let mut b = Battle::new(&setup, 5);
+    let mut switched = false;
+    for _ in 0..300 {
+        b.step();
+        let u = b.unit(UnitId(0)).unwrap();
+        if !b.unit(UnitId(1)).unwrap().alive() && u.members[0].active_mount == Some(0) {
+            switched = true;
+            break;
+        }
+    }
+    assert!(
+        switched,
+        "after killing the reachable tank the gunner uses his rifle"
+    );
+    let reload = mount(&b, Side::Blue, 0, 1).reload;
+    assert!(
+        reload > 0.0 && reload < 1.0,
+        "the launcher has unfinished reload work"
+    );
+    let operator = b.unit(UnitId(0)).unwrap().members[0].id;
+    let guard = b.unit(UnitId(0)).unwrap().members[1].id;
+    let mut riflemen = BTreeSet::new();
+    for _ in 0..60 {
+        b.step();
+        assert_eq!(
+            mount(&b, Side::Blue, 0, 1).reload,
+            reload,
+            "the carried launcher's reload pauses"
+        );
+        riflemen.extend(
+            b.rounds()
+                .filter(|(_, r)| r.unit == UnitId(0) && weapon_name(&b, r.weapon) == "rifle")
+                .map(|(p, _)| p.shooter.unwrap().body.0),
+        );
+    }
+    assert!(
+        riflemen.contains(&operator),
+        "the gunner's inherited rifle remains usable"
+    );
+    assert!(
+        riflemen.contains(&guard),
+        "the guards keep fighting across his switch"
+    );
+    Commander::new().ok(
+        &mut b,
+        Side::Red,
+        Order::Move {
+            units: vec![UnitId(3)],
+            gesture: 8100,
+            goal: [450.0, 200.0],
+            facing: None,
+            route: contract::command::RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+        },
+    );
+    let mut resumed = false;
+    for _ in 0..600 {
+        b.step();
+        if b.unit(UnitId(0)).unwrap().members[0].active_mount == Some(1) {
+            resumed = true;
+            break;
+        }
+    }
+    assert!(resumed, "a useful launcher resumes despite being unloaded");
+    assert!(
+        mount(&b, Side::Blue, 0, 1).reload > reload,
+        "reload resumes its retained progress"
+    );
+    for _ in 0..60 {
+        b.step();
+        assert!(
+            !b.rounds().any(|(p, r)| {
+                p.age_s == 0.0
+                    && r.unit == UnitId(0)
+                    && weapon_name(&b, r.weapon) == "rifle"
+                    && p.shooter.unwrap().body.0 == operator
+            }),
+            "the reloading gunner cannot also fire his rifle"
+        );
+    }
+    assert!(
+        run(&mut b, 360).iter().any(|s| s.1 == 0 && s.2 == "atgm"),
+        "the resumed reload is not starved"
+    );
+}
+
+#[test]
+fn a_depleted_single_gun_returns_to_the_rifle_without_resetting_its_guards_aim() {
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "red", "kind": "recon", "position": [220, 300], "engagement": "return_fire_only" }
+        ]),
+        json!([]),
+        json!([]),
+    );
+    for weapon in setup.rules.weapons.values_mut() {
+        weapon.damage = 0.0;
+        weapon.near_miss_suppression = 0.0;
+    }
+    let rifle = setup.rules.weapons.get_mut("rifle").unwrap();
+    rifle.aim_s = 2.0;
+    rifle.magazine = None;
+    let grenade = setup.rules.weapons.get_mut("grenade").unwrap();
+    grenade.aim_s = 0.2;
+    grenade.ammo = contract::weapons::AmmoCapacity::Rounds(1);
+    let mut b = Battle::new(&setup, 5);
+    let operator = b.unit(UnitId(0)).unwrap().members[0].id;
+    let guard = b.unit(UnitId(0)).unwrap().members[1].id;
+    let mut launch = None;
+    for _ in 0..30 {
+        b.step();
+        if b.unit(UnitId(0)).unwrap().mounts[1].shots > 0 {
+            launch = Some(b.tick());
+            break;
+        }
+    }
+    let launch = launch.expect("the grenadier launches his one round");
+    let u = b.unit(UnitId(0)).unwrap();
+    assert_eq!(u.members[0].active_mount, Some(1));
+    assert_eq!(
+        u.mounts[0].cycles[0].aim, 0.0,
+        "his carried rifle earns no aim"
+    );
+    let guard_aim = u.mounts[0].cycles[1].aim;
+    assert!(guard_aim > 0.0, "the guard has already begun aiming");
+    b.step();
+    let u = b.unit(UnitId(0)).unwrap();
+    assert_eq!(
+        u.members[0].active_mount,
+        Some(0),
+        "a depleted gun frees its soldier"
+    );
+    assert!(
+        u.mounts[0].cycles[1].aim > guard_aim,
+        "switching one soldier preserves the guard's aim"
+    );
+    let (mut gunner_first, mut guard_first) = (None, None);
+    for _ in 0..90 {
+        b.step();
+        for (p, r) in b.rounds() {
+            if r.unit != UnitId(0) || weapon_name(&b, r.weapon) != "rifle" {
+                continue;
+            }
+            match p.shooter.unwrap().body.0 {
+                id if id == operator => {
+                    gunner_first.get_or_insert(b.tick());
+                }
+                id if id == guard => {
+                    guard_first.get_or_insert(b.tick());
+                }
+                _ => {}
+            }
+        }
+    }
+    assert!(
+        guard_first.expect("the guard fires") <= ticks(2.0) + 2,
+        "the guard's original acquisition continues"
+    );
+    assert!(
+        gunner_first.expect("the gunner fires his inherited rifle") >= launch + ticks(2.0),
+        "the returning rifle needs its normal aim"
+    );
+}
+
 /// A single launcher with a level aim point: only engagement distance varies.
 fn minimum_range_setup(
     id: &str,

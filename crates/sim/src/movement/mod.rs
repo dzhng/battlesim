@@ -33,7 +33,7 @@ mod take_cover;
 
 pub(crate) use certify::certify;
 pub use drive::{final_facing, Manoeuvre};
-pub use final_leg::{final_leg, FINE_CELL_M};
+pub use final_leg::{final_leg, FinalLeg, FINE_CELL_M};
 pub use push::Shove;
 pub use soldier::{clear_of, soldier_steer, Around, Corridor, Steer, Threat};
 

@@ -84,6 +84,15 @@ pub struct Burst {
     pub aim_max_s: f64,
 }
 
+/// Whole-body equipment variants worn by the gun's carrier. Variant identity
+/// stays the same when switching between active and carried equipment.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OperatorAppearance {
+    pub active: Vec<String>,
+    pub carried: Vec<String>,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MountDefinition {
@@ -99,10 +108,10 @@ pub struct MountDefinition {
     /// guns remain spares. Any other soldier's weapon is lost with him.
     #[serde(default)]
     pub special: bool,
-    /// Appearance set worn by the current operator of a single infantry gun.
-    /// Absent, the operator keeps his soldier kind's ordinary appearance.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub operator_appearance: Vec<String>,
+    /// Equipment worn by the current carrier of a single infantry gun.
+    /// Absent, the carrier keeps his soldier kind's ordinary appearance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operator_appearance: Option<OperatorAppearance>,
     /// Traverses at the turret rate; fires only within the bearing tolerance.
     #[serde(default)]
     pub turret: bool,

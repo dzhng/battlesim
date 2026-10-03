@@ -6,7 +6,7 @@
 import game from "@fixtures/game.json";
 import { expect, test } from "vitest";
 import { ObservationFeed, gamePose } from "@apps/battle-lab/src/poseFeed";
-import { effectPublication } from "@apps/battle-lab/src/effectFeed";
+import { drawnMuzzleSource, effectPublication } from "@apps/battle-lab/src/effectFeed";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { shippedMounts } from "./shippedMounts";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
@@ -14,6 +14,11 @@ import { PoseDriver, type PoseFrame } from "@packages/battle-renderer/src/models
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { poseFrameInstances } from "@packages/battle-renderer/src/models/modelInstances";
+import { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
+import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake";
+import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader";
+import { AUTHORITY, testCatalog, testSources } from "./sceneAssets/synthetic";
+import { sideKey } from "@packages/battle-renderer/src/sideKey";
 import { TickInterpolator } from "../src/battle/present/interpolate";
 import type {
   CorpseView,
@@ -63,6 +68,7 @@ const squad = (
   members: soldiers.map((s) => s.at),
   memberIds: soldiers.map((s) => s.id),
   memberSlots: soldiers.map(() => 0),
+  memberActiveMounts: soldiers.map(() => 0),
   memberOrders: [],
   memberLeans: soldiers.map((s) => (s.lean ? { side: "left", at: s.lean } : null)),
   area: null,
@@ -92,6 +98,7 @@ const enemy = (id: number, soldiers: Soldier[], shots = 0): IdentifiedView => ({
   members: soldiers.map((s) => s.at),
   memberIds: soldiers.map((s) => s.id),
   memberSlots: soldiers.map(() => 0),
+  memberActiveMounts: soldiers.map(() => 0),
   memberLeans: soldiers.map((s) => (s.lean ? { side: "right", at: s.lean } : null)),
   weaponPoses: [{ mount: 0, operator: null, bearing: Math.PI, elevation: 0, shots }],
   reversing: false,
@@ -170,10 +177,23 @@ function battle() {
 test("the launcher appearance follows the published operator across a handoff", () => {
   // Only the asset-loading seam is synthetic; feed, posing, and model selection are real.
   const appearances = new Map(
-    ["rifle", "rifle_b", "rifle_c", "at", "at_b", "at_c"].map((name) => [
+    [
+      "rifle",
+      "rifle_b",
+      "rifle_c",
+      "at",
+      "at_b",
+      "at_c",
+      "at_carried",
+      "at_carried_b",
+      "at_carried_c",
+    ].map((name) => [
       name,
       {
-        bundle: { kind: "skinned", skeleton: name.startsWith("at") ? "launcher" : "rifle" },
+        bundle: {
+          kind: "skinned",
+          skeleton: name.startsWith("at") && !name.startsWith("at_carried") ? "launcher" : "rifle",
+        },
       },
     ]),
   );
@@ -190,27 +210,35 @@ test("the launcher appearance follows the published operator across a handoff", 
     ]),
     kind: "at",
     memberSlots: [0, 1, 2],
+    memberActiveMounts: [1, 0, 0],
     weaponPoses: [{ mount: 1, operator: 10, bearing: 0, elevation: 0, shots: 0 }],
   };
   const models = (frame: PoseFrame) =>
-    poseFrameInstances([], frame, (kind, side, id, slot, mount) =>
-      catalog.resolve(kind, side, id, slot, mount),
+    poseFrameInstances([], frame, (kind, side, id, slot, mount, active) =>
+      catalog.resolve(kind, side, id, slot, mount, active),
     );
   b.publish(observation(1, [team]), 0);
   expect(models(b.draw(0)).map((m) => m.appearance)).toEqual(["at_b", "rifle_c", "rifle"]);
+  b.publish(observation(2, [{ ...team, memberActiveMounts: [0, 0, 0] }]), TICK_MS);
+  expect(models(b.draw(TICK_MS)).map((m) => m.appearance)).toEqual([
+    "at_carried_b",
+    "rifle_c",
+    "rifle",
+  ]);
   b.publish(
-    observation(2, [
+    observation(3, [
       {
         ...team,
         members: team.members.slice(1),
         memberIds: [11, 12],
         memberSlots: [1, 2],
+        memberActiveMounts: [1, 0],
         weaponPoses: [{ ...team.weaponPoses[0], operator: 11 }],
       },
     ]),
     TICK_MS,
   );
-  const survivorModels = models(b.draw(TICK_MS + 150));
+  const survivorModels = models(b.draw(2 * TICK_MS + 150));
   expect(survivorModels.map((m) => m.appearance)).toEqual(["at_c", "rifle"]);
 });
 
@@ -325,6 +353,89 @@ test("a single rifle shot poses exactly the soldier whose flash and sound fire",
   // Aiming, a still soldier turns (at his turn rate, from wherever he was
   // looking) to the weapon's bearing, not the squad's heading.
   expect(posed.soldiers.map((s) => s.facing)).toEqual([1, 1].map(() => expect.closeTo(1, 1)));
+});
+
+test("a delayed rifle launch cannot fire the launcher selected on the following tick", () => {
+  const b = battle();
+  const at = (tick: number) => {
+    const team: OwnUnitView = {
+      ...squad(7, [{ id: 1, at: [0, 0, 0] }]),
+      kind: "at",
+      memberActiveMounts: [tick >= 7 ? 1 : 0],
+      weaponPoses: [
+        { mount: 0, operator: null, bearing: 0, elevation: 0, shots: tick >= 6 ? 5 : 4 },
+        { mount: 1, operator: 1, bearing: 1, elevation: 0, shots: 0 },
+      ],
+    };
+    return observation(tick, [team], {
+      projectiles: tick === 7 ? [round(1)] : [],
+    });
+  };
+  const launches = new LaunchTracker();
+  const fired = [5, 6, 7].flatMap((tick) =>
+    launches.note(effectPublication(at(tick), "blue", UNITS), false),
+  );
+  expect(fired.map((l) => [l.soldier, l.mount])).toEqual([[1, 0]]);
+  play(b, 5, 6, at);
+  const pose = play(b, 7, 7, at).soldiers[0];
+  expect(pose.activeMount).toBe(1);
+  expect(pose.clip).toBe("idle");
+});
+
+test("a rifle shot still poses its shooter when he receives a carried launcher", () => {
+  const b = battle();
+  const at = (tick: number) => {
+    const team: OwnUnitView = {
+      ...squad(7, [{ id: 1, at: [0, 0, 0] }]),
+      kind: "at",
+      memberSlots: [1],
+      memberActiveMounts: [0],
+      weaponPoses: [
+        { mount: 0, operator: null, bearing: 0, elevation: 0, shots: tick >= 6 ? 5 : 4 },
+        { mount: 1, operator: tick >= 7 ? 1 : null, bearing: 1, elevation: 0, shots: 0 },
+      ],
+    };
+    return observation(tick, [team], {
+      projectiles: tick === 7 ? [round(1)] : [],
+    });
+  };
+  play(b, 5, 6, at);
+  const pose = play(b, 7, 7, at).soldiers[0];
+  expect(pose.operatorMount).toBe(1);
+  expect(pose.activeMount).toBe(0);
+  expect(pose.clip).toBe("kneel_fire");
+});
+
+test("a previous weapon's flash cannot attach to the soldier's currently drawn muzzle", async () => {
+  const sources = testSources();
+  const baked = await bakeCatalog(testCatalog(), async (path) => sources[path], {
+    authority: AUTHORITY,
+  });
+  expect(baked.ok).toBe(true);
+  const files = new Map([
+    ["catalog.json", new TextEncoder().encode(runtimeCatalogText(baked.runtime))],
+    ...baked.files,
+  ]);
+  const installed = await new AppearanceLibrary(memoryFetch(files, "/assets/")).load("/assets/");
+  const drawn = new DrawnMuzzles(
+    installed,
+    () => ({ appearance: "rifleman", tint: [1, 1, 1] }),
+    UNITS,
+  );
+  const b = battle();
+  const team: OwnUnitView = {
+    ...squad(7, [{ id: 1, at: [0, 0, 0] }]),
+    kind: "at",
+    memberActiveMounts: [1],
+    weaponPoses: [{ mount: 1, operator: 1, bearing: 0, elevation: 0, shots: 0 }],
+  };
+  b.publish(observation(5, [team]), 0);
+  drawn.update(b.draw(0));
+  const source = drawnMuzzleSource(drawn, "blue");
+  const at: Point3 = [0, 0, 0];
+  const shooter = sideKey(7, "blue", "blue");
+  expect(source.muzzle(shooter, 1, 1, at)).toBe(true);
+  expect(source.muzzle(shooter, 0, 1, at)).toBe(false);
 });
 
 test("an own tank and an identified enemy with the same id keep their own mounts", () => {

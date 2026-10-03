@@ -338,8 +338,8 @@ export function useBattleSession({
   const posing = useMemo(() => {
     if (!appearances) return null;
     const catalog = new AppearanceCatalog(appearances, UNITS);
-    const resolve: ResolveAppearance = (kind, s, id, slot, operatorMount) =>
-      catalog.resolve(kind, s, id, slot, operatorMount);
+    const resolve: ResolveAppearance = (kind, s, id, slot, operatorMount, activeMount) =>
+      catalog.resolve(kind, s, id, slot, operatorMount, activeMount);
     const muzzles = new DrawnMuzzles(appearances, resolve, UNITS);
     return {
       driver: createPoseDriver(rules, UNITS, appearances),

@@ -311,7 +311,7 @@ fn a_structurally_broken_type_fails_at_load_naming_it() {
     // Hull weapons have no infantry operator to wear equipment.
     let mut t = base_tank();
     t.as_object_mut().unwrap().remove("abstract");
-    t["mounts"][0]["operator_appearance"] = json!(["launcher"]);
+    t["mounts"][0]["operator_appearance"] = json!({"active":["launcher"],"carried":["carried"]});
     assert_eq!(
         error(json!({ "t": t })),
         rule("mount \"cannon\" on a hull cannot name operator_appearance")
@@ -455,4 +455,52 @@ fn hull_armor_and_ricochet_are_admitted_in_their_physical_ranges() {
         };
         assert!(error.contains("tank") && error.contains("armor"), "{error}");
     }
+}
+
+#[test]
+fn a_single_operator_has_paired_active_and_carried_appearances() {
+    let mut docs = units(json!({}));
+    docs.push(json!({"soldiers":{"s":{
+        "name":"S", "description":"", "hp":100, "appearance":["rifle"],
+        "mounts":[{"name":"launcher", "weapons":["atgm"],
+            "operator_appearance":{"active":["launcher","launcher_b"],
+                "carried":["carried","carried_b"]}}]
+    }}}));
+    let catalog = resolve(&docs).expect("paired equipment appearances must load");
+    let view = serde_json::to_value(catalog.soldier("s")).unwrap();
+    assert_eq!(
+        view["mounts"][0]["operator_appearance"],
+        json!({"active":["launcher","launcher_b"],"carried":["carried","carried_b"]})
+    );
+}
+
+#[test]
+fn operator_equipment_refuses_unpaired_variants_and_shared_operators() {
+    let load = |appearance: Value, squad: bool| {
+        let mut docs = units(json!({}));
+        docs.push(json!({"soldiers":{"s":{
+            "name":"S", "description":"", "hp":100, "appearance":["rifle"],
+            "mounts":[{"name":"launcher", "weapons":["atgm"], "squad":squad,
+                "operator_appearance":appearance}]
+        }}}));
+        resolve(&docs)
+    };
+    for appearance in [
+        json!({"active":[],"carried":["carried"]}),
+        json!({"active":["launcher"],"carried":[]}),
+        json!({"active":["launcher","launcher_b"],"carried":["carried"]}),
+    ] {
+        assert_eq!(load(appearance, false).unwrap_err(), CatalogError::Invalid {
+            section:"soldiers", id:"s".into(),
+            error:"mount \"launcher\": operator_appearance needs nonempty active and carried sets with equal variant counts".into()
+        });
+    }
+    assert_eq!(
+        load(json!({"active":["launcher"],"carried":["carried"]}), true).unwrap_err(),
+        CatalogError::Invalid {
+            section: "soldiers",
+            id: "s".into(),
+            error: "mount \"launcher\": operator_appearance needs a single operator".into()
+        }
+    );
 }

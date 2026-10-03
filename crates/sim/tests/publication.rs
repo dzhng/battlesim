@@ -107,6 +107,8 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
     let big = (1u32 << 24) + 1;
     assert_ne!(big as f32 as u32, big, "one float would round it");
     frame.own[0].member_ids[3] = big;
+    frame.own[0].member_active_mounts[0] = None;
+    frame.own[0].member_active_mounts[3] = Some(1);
     frame.own[0].weapon_poses[0].shots = u32::MAX;
     frame.identified[0].weapon_poses[1].shots = big + 2;
     frame.projectiles = vec![contract::observation::VisibleSegment {
@@ -165,6 +167,12 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         .map(|p| integer(bits, p, "id"))
         .collect();
     assert_eq!(ids, frame.own[0].member_ids);
+    let selected: Vec<Option<u8>> = own.sections["memberIds"]
+        .iter()
+        .map(|p| (p["activeMount"] >= 0.0).then_some(p["activeMount"] as u8))
+        .collect();
+    assert_eq!(selected, frame.own[0].member_active_mounts);
+
     let poses = &own.sections["weaponPoses"];
     assert_eq!(integer(bits, &poses[0], "shots"), u32::MAX);
     let enemy = &groups["identified"][0].sections["weaponPoses"][1];
@@ -1011,5 +1019,25 @@ fn cold_own_delivery_compacts_sparse_values_without_losing_the_logical_words() {
             .iter()
             .map(|v| v.to_bits())
             .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn visible_members_publish_the_weapon_they_are_using() {
+    let setup = common::scenario_with(
+        &json!({"size":[300,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[]}).to_string(),
+        json!([
+            {"side":"blue","kind":"at","position":[40,100]},
+            {"side":"red","kind":"tank","position":[180,100],"yaw":std::f64::consts::PI,"engagement":"return_fire_only"}
+        ]), json!([]), json!([]));
+    let mut battle = Battle::new(&setup, 1);
+    battle.step();
+    let unit = serde_json::to_value(&battle.observe(Side::Blue).own[0]).unwrap();
+    assert_eq!(unit["member_active_mounts"], json!([1, 0, 0]));
+    let seen = &battle.observe(Side::Red).identified[0];
+    assert_eq!(
+        seen.member_active_mounts,
+        [Some(1), Some(0), Some(0)],
+        "an enemy sees the same selected weapons for visible soldiers"
     );
 }

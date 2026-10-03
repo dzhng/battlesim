@@ -5,7 +5,7 @@
 export const REASON_TEXT: Record<string, string> = {
   firing: "firing",
   no_compatible_target: "no target it can hurt",
-  holding_fire: "holding fire (return fire only)",
+  holding_fire: "holding fire",
   out_of_range: "out of range",
   blocked_trajectory: "no clear shot",
   friendly_in_line: "friendly vehicle in the way",

@@ -100,6 +100,7 @@ test("an operated weapon selects its carrier's appearance without changing other
     appearances: {
       ...base.appearances,
       launcher: { ...base.appearances.rifleman },
+      carried: { ...base.appearances.rifleman },
     },
   });
   const view = syntheticUnits().view;
@@ -109,17 +110,24 @@ test("an operated weapon selects its carrier's appearance without changing other
       t.id === "rifle"
         ? {
             ...t,
-            mounts: [{ ...tankMounts()[0], turret: false, operator_appearance: ["launcher"] }],
+            mounts: [
+              {
+                ...tankMounts()[0],
+                turret: false,
+                operator_appearance: { active: ["launcher"], carried: ["carried"] },
+              },
+            ],
           }
         : t,
     ),
   });
   const catalog = new AppearanceCatalog(installed, armed);
-  expect(catalog.resolve("rifle", "blue", 7, 0, 0)?.appearance).toBe("launcher");
+  expect(catalog.resolve("rifle", "blue", 7, 0, 0, 0)?.appearance).toBe("launcher");
+  expect(catalog.resolve("rifle", "blue", 7, 0, 0, null)?.appearance).toBe("carried");
   expect(catalog.resolve("rifle", "blue", 8, 0, null)?.appearance).toBe("rifleman");
   // After handoff, the model follows the new operator, not his original slot.
   expect(catalog.resolve("rifle", "blue", 7, 0, null)?.appearance).toBe("rifleman");
-  expect(catalog.resolve("rifle", "blue", 8, 0, 0)?.appearance).toBe("launcher");
+  expect(catalog.resolve("rifle", "blue", 8, 0, 0, 0)?.appearance).toBe("launcher");
 });
 
 test("variants share a hold family but a squad can mix rifle and launcher holds", async () => {
@@ -165,7 +173,9 @@ test("mixed soldier holds advance using their own installed clip duration", asyn
       side: "blue" as const,
       position: [0, 0, 0] as [number, number, number],
       yaw: 0,
-      soldiers: [{ id: 0, slot, position: [0, 0, 0] as [number, number, number] }],
+      soldiers: [
+        { id: 0, slot, activeMount: null, position: [0, 0, 0] as [number, number, number] },
+      ],
       mounts: [],
       deployment: null,
       pinned: false,

@@ -1134,7 +1134,7 @@ fn check(
         if m.muzzle_m.is_none() {
             return rule(&format!("mount {:?} on a hull needs muzzle_m", m.name));
         }
-        if !m.operator_appearance.is_empty() {
+        if m.operator_appearance.is_some() {
             return rule(&format!(
                 "mount {:?} on a hull cannot name operator_appearance",
                 m.name
@@ -1265,11 +1265,22 @@ fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
         return invalid("hp must be positive".into());
     }
     for m in &s.mounts {
-        if m.squad && !m.operator_appearance.is_empty() {
+        if m.squad && m.operator_appearance.is_some() {
             return invalid(format!(
                 "mount {:?}: operator_appearance needs a single operator",
                 m.name
             ));
+        }
+        if let Some(appearance) = &m.operator_appearance {
+            if appearance.active.is_empty()
+                || appearance.carried.is_empty()
+                || appearance.active.len() != appearance.carried.len()
+            {
+                return invalid(format!(
+                    "mount {:?}: operator_appearance needs nonempty active and carried sets with equal variant counts",
+                    m.name
+                ));
+            }
         }
         if m.squad && m.special {
             return invalid(format!(

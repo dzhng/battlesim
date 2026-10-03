@@ -1004,6 +1004,24 @@ fn a_survivor_keeps_guiding_when_the_original_gunner_falls() {
                     break;
                 };
                 assert!(m.supported, "seed {seed}: a survivor keeps guiding");
+                let team = b.unit(UnitId(0)).unwrap();
+                let launcher = team.mounts.iter().find(|m| m.support.is_some()).unwrap();
+                let operator = launcher.operator.unwrap();
+                let survivor = team.members.iter().find(|s| s.id == operator).unwrap();
+                assert_eq!(
+                    survivor.active_mount,
+                    Some(launcher.spec),
+                    "guidance reserves the survivor on the handoff tick"
+                );
+                assert!(
+                    !b.rounds().any(|(p, r)| {
+                        p.age_s == 0.0
+                            && r.unit == UnitId(0)
+                            && b.arsenal().weapons[r.weapon].id == "rifle"
+                            && p.shooter.unwrap().body.0 == operator
+                    }),
+                    "the surviving guide cannot fire his rifle on that tick"
+                );
                 assert_eq!(m.id, before.id, "the same missile survives the handoff");
                 assert!(
                     m.point[0] > 600.0 && m.point[2] > 0.0,
@@ -1214,5 +1232,22 @@ fn a_seen_team_does_not_publish_its_unseen_launcher_operator() {
     assert_eq!(
         seen.weapon_poses[1].operator, None,
         "an unseen carrier's identity never crosses the fog boundary"
+    );
+    let team = screened.unit(UnitId(1)).unwrap();
+    let visible_activity: Vec<_> = seen
+        .member_ids
+        .iter()
+        .map(|id| {
+            team.members
+                .iter()
+                .find(|s| s.id == *id)
+                .unwrap()
+                .active_mount
+                .map(|m| m as u8)
+        })
+        .collect();
+    assert_eq!(
+        seen.member_active_mounts, visible_activity,
+        "activity is aligned only with the visible member identities"
     );
 }

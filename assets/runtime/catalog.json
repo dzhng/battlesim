@@ -18,6 +18,24 @@
       "skeleton": "quaternius-ubc-launcher",
       "unit": "soldier"
     },
+    "at_carried": {
+      "bundle": "9bcaf8f3a6de44e96e2099308601c7ec0c0d420a04e4193e6ddf10f2deb5c18c",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "at_carried_b": {
+      "bundle": "5f5f5426354aebeab85629164e1a6976ecaed558dfda24bc4bf9c1a0b2707e48",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "at_carried_c": {
+      "bundle": "3b2e2a7d0748613a9ca40de8bb332a23dd719ebf12816833be10fbcd96a70867",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
     "bench": {
       "bundle": "7fbd9b9baff0f045bf8c4312134469b5e6ca4b39cb3391901e3d7b4c15e1b374",
       "footprint_half_m": [

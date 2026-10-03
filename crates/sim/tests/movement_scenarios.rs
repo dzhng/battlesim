@@ -1908,7 +1908,9 @@ fn authored() -> Vec<Scenario> {
                 {"xy":[1500,6000],"width_m":20,"depth_m":1.5}],"surface_z":-0.5 }],
                 "bridges": [{"deck":"bridge_deck","center":[1500,200],"half_extents":[16,6],"yaw":0,"deck_z":0.1,"thickness_m":0.8}],
                 "surfaces": [{"kind":"road","shape":{"kind":"stroke","points":[[100,5800],[100,200],[2900,200],[2900,5800]],"width_m":8}}] })),
-            units: json!([vehicle("blue","jeep",[100.0,5600.0],0.0)]),
+            // Start along the road; an initial cross-road turn spends the
+            // narrow road's speed advantage before this long crossing.
+            units: json!([vehicle("blue","jeep",[100.0,5600.0],-std::f64::consts::FRAC_PI_2)]),
             events: none.clone(), scripts: json!([go(0,[2900.0,5600.0])]),
             rules: json!({}), seconds: 600.0, seed: 1,
             checks: vec![check(Arrive { unit:0,at:[2900.0,5600.0],within_m:1.5 }),check(NeverInWater),check(WithinRadius {unit:0}),check(HullsOverWater {max_m:0.5})],
