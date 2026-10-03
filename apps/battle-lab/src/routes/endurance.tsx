@@ -100,7 +100,7 @@ export default function Endurance() {
           battle_seed: o.seed,
         },
         documents: { presets, templates, recipes, rules: JSON.stringify(GAME_RULES) },
-        stress: { kind: "city-arena-1", late: o.late },
+        stress: { kind: "city-arena-2", late: o.late },
       },
       () => {},
     );

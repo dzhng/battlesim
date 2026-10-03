@@ -54,11 +54,11 @@ test("city-contact prepares the pinned full generated world and the existing cen
       encounter_seed: "1",
       battle_seed: 4,
     });
-    expect(asked!.stress).toEqual({ kind: "city-arena-1", late: false });
+    expect(asked!.stress).toEqual({ kind: "city-arena-2", late: false });
     expect(report.request).toEqual(asked!.request);
     expect(report.identity.kind).toBe("generated");
     expect(report.stress).toEqual({
-      kind: "city-arena-1",
+      kind: "city-arena-2",
       late: false,
       livingUnits: { blue: 100, red: 100 },
     });
@@ -69,6 +69,8 @@ test("city-contact prepares the pinned full generated world and the existing cen
         VILLAGE_CONTACT.variant,
       ),
     );
+    expect(city.units[4].position[0]).toBeLessThan(report.size[0] / 2 - 1000);
+    expect(city.units[104].position[0]).toBeGreaterThan(report.size[0] / 2 + 1000);
     expect(city.map.size).toEqual(report.size);
     expect(city.map.size[0]).toBeGreaterThan(village.map.size[0]);
     expect(city.map.buildings.length).toBeGreaterThan(village.map.buildings.length);
@@ -85,7 +87,7 @@ test("city-contact prepares the pinned full generated world and the existing cen
     expect(run.scripted.script).toBeUndefined();
     expect(run.scripted.warmTo).toBe(150);
     run.cancel();
-    expect(reports[0].scenario.fingerprint).toBe("69532ae3");
+    expect(reports[0].scenario.fingerprint).toBe("fe532f0e");
     expect(reports[0].tour).toEqual(built.workload.tour);
     expect(reports[0].preparation).toEqual(report);
   } finally {

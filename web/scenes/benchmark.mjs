@@ -205,14 +205,14 @@ export async function run(ctx, preset = "village-contact") {
     ctx.check(
       "the city result identifies the complete generated world and existing central contact script",
       report.scenario.id === preset &&
-        report.scenario.variant === "city-arena-1" &&
+        report.scenario.variant === "city-arena-2" &&
         report.scenario.blue === "scenario-orders" &&
         report.scenario.red === "scenario-orders" &&
         p?.identity.kind === "generated" &&
         r?.type === "metro" &&
         r.size === "large" &&
         r.seed === "4" &&
-        p.stress?.kind === "city-arena-1" &&
+        p.stress?.kind === "city-arena-2" &&
         !p.stress.late &&
         p.stress.livingUnits.blue === 100 &&
         p.stress.livingUnits.red === 100,

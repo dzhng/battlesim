@@ -49,7 +49,7 @@ export interface PrepareMessage {
 }
 
 export interface StressPreparation {
-  kind: "city-arena-1";
+  kind: "city-arena-2";
   late: boolean;
 }
 

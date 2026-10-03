@@ -30,7 +30,7 @@ export function benchmarkPreparation(
       battle_seed: scenario.seed,
     },
     documents: { presets, templates, recipes, rules: JSON.stringify(GAME_RULES) },
-    stress: { kind: "city-arena-1", late: false },
+    stress: { kind: "city-arena-2", late: false },
   };
 }
 

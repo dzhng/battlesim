@@ -131,7 +131,7 @@ export async function prepare(
   if (
     stress !== undefined &&
     (!stress ||
-      stress.kind !== "city-arena-1" ||
+      stress.kind !== "city-arena-2" ||
       typeof stress.late !== "boolean" ||
       source.kind !== "generated")
   )
@@ -140,7 +140,7 @@ export async function prepare(
         code: "invalid_request",
         feature: null,
         location: "$.stress",
-        message: "city-arena-1 stress requires a generated map and a boolean late state",
+        message: "city-arena-2 stress requires a generated map and a boolean late state",
       },
     ]);
   const started = now();
