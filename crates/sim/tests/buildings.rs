@@ -71,6 +71,35 @@ fn compound_with_descriptor(
 }
 
 #[test]
+fn a_building_group_has_the_same_plan_when_either_aggregate_part_is_nominated() {
+    let mut setup = compound_setup(json!([]));
+    setup.units = serde_json::from_value(json!([
+        {"side":"blue","kind":"recon","position":[350,300]},
+        {"side":"blue","kind":"tank","position":[320,330]}
+    ]))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let request = contract::command::BuildingPreviewRequest {
+        units: vec![contract::ids::UnitId(0), contract::ids::UnitId(1)],
+        building: 0,
+        ..Default::default()
+    };
+    let owner = b.preview_building(Side::Blue, &request).unwrap();
+    let part = b
+        .preview_building(
+            Side::Blue,
+            &contract::command::BuildingPreviewRequest {
+                building: 1,
+                ..request
+            },
+        )
+        .unwrap();
+    assert_eq!(owner, part);
+    assert!(owner.entrant.is_some(), "{owner:?}");
+    assert!(owner.destinations[0].placed);
+}
+
+#[test]
 fn one_blast_wears_the_owner_once_by_its_nearest_part() {
     let setup = compound_setup(json!([{"tick":1,"burst":{"point":[409,301],"weapon":"tank_he"}}]));
     let mut b = Battle::new(&setup, 11);

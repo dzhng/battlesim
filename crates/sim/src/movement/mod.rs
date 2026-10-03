@@ -31,7 +31,7 @@ mod push;
 mod soldier;
 mod take_cover;
 
-pub(crate) use certify::certify;
+pub(crate) use certify::{certify, certify_orders, ProofRequest};
 pub use drive::{final_facing, Manoeuvre};
 pub use final_leg::{final_leg, FinalLeg, FINE_CELL_M};
 pub use push::Shove;
