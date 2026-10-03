@@ -16,7 +16,7 @@ sits in its bay on its floor's datum, where a garrison's soldiers stand.
 
 A tower is drawn by instancing. Near (tier 0), every bay of every floor is a row
 placing one shared panel module (a window, a balcony door, a loggia, a stair
-light, a blank), with balconies, curtains, washing and air conditioners as rows
+light), with balconies, curtains, washing and air conditioners as rows
 of their own, so a row's tint colours one thing. A flat's glass is glass: its
 panel carries the room behind it as a room box, so every bay of every floor
 shows its own room, and curtains hang between the two. Where two walls' rooms
@@ -66,7 +66,7 @@ FACADE_M = 6.0  # a facade recipe's tile: two bays by two floors
 # The panel modules and the facade recipes are both cut to these.
 OPENING = {"w": (-0.75, 0.75, 0.9, 2.4), "d": (-1.1, 1.1, 0.1, 2.3), "l": (-1.3, 1.3, 0.12, 2.7), "s": (-0.4, 0.4, 0.5, 2.6),
            "r": (-1.35, 1.35, 0.9, 2.4), "x": (-1.38, 1.38, 0.16, 2.84)}
-KINDS = {"w": "window", "d": "door", "l": "loggia", "s": "stair", "b": "blank", "B": "balconies", "r": "ribbon", "x": "blown"}
+KINDS = {"w": "window", "d": "door", "l": "loggia", "s": "stair", "B": "balconies", "r": "ribbon", "x": "blown"}
 # Glass as a facade recipe paints it, for each of its four bays (bay + 2 * floor): the tone a room behind glass has
 # from the first tier's boundary (measured there in the line-up), no two bays quite alike, as no two rooms are.
 FAR_GLASS = np.array((0.06, 0.058, 0.052))[None, :] * np.array((1.0, 0.75, 1.25, 0.9))[:, None]
@@ -398,6 +398,7 @@ def glazing(m, x0, x1, z0, z1, y, uprights=(), rails=(), glass=None, bar=0.05, f
     `fit` is the room behind the glass, which is then clear: (its reach left and right of the
     bay's middle, its depth), with the frame's depth lining the way back to it; or False, a
     blind drawn across where a room has no space. With no `fit` the glass is a dark pane."""
+    m.opening = (x1 - x0, z1 - z0, z0)
     sheet(m.n("glass"), glass or (pane_m if fit is None else glass_m), m.root, [flat(x0, x1, z0, z1, y)], lods=(0,))
     at = y - 0.03
     quads = [flat(x0, x0 + bar, z0, z1, at), flat(x1 - bar, x1, z0, z1, at), flat(x0 + bar, x1 - bar, z0, z0 + bar, at),
@@ -429,16 +430,13 @@ _PANELS = {}
 
 def panel(finish, kind, fit=STANDARD):
     """The id of `finish`'s panel module of `kind` with room `fit` behind its glass (`glazing`), made
-    the first time it is asked for. A stair's light and a blank have no room."""
+    the first time it is asked for. A stair's light has no room."""
     fit = None if kind == "s" else fit
-    name = f"{finish}_{KINDS[kind]}" + ("" if kind in "sb" else fit_tag(fit))
+    name = f"{finish}_{KINDS[kind]}" + ("" if kind == "s" else fit_tag(fit))
     if name in _PANELS:
         return name
     wall, tile = WALLS[finish], textures.tile_of(FINISHES[finish])
     m = _PANELS[name] = kit.module(name, **(PANEL | (dict(ao_distance=1.4, ao_strength=0.7) if kind == "l" else {})))
-    if kind == "b":
-        card(m, wall, tile, lods=TIERS)
-        return name
     x0, x1, z0, z1 = OPENING[kind]
     if kind == "l":
         d = LOGGIA_M  # the recess, and its back wall round the glazed door
@@ -500,9 +498,6 @@ def ground_window(fit=STANDARD):
         card(m, strip_mat("facade_window", tone=BASE_TONE), FACADE_M)
     return name
 
-
-m = kit.module("ground_blank", ground=True, **PANEL)
-card(m, base_m, textures.tile_of("concrete"), lods=TIERS)
 
 # The way in: glazed double doors up a step, under a canopy on two posts. Past tier 0 the
 # shell's wall is behind it, so only the doors' glass, the canopy and the step are drawn.
@@ -725,7 +720,7 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, 
     def storeys(lods, kind, edge, k0, k1, left):
         """The wall of bays `k0` to `k1` from the first floor up: `kind`'s recipe, the crown's colour on the top floor."""
         o0, o1 = left + BAY_M * k0, left + BAY_M * k1
-        name, size = (recipe, tile) if kind == "b" else (f"facade_{KINDS[kind]}{after}", FACADE_M)
+        name, size = f"facade_{KINDS[kind]}{after}", FACADE_M
         wall(lods, strip(name, accents.get(kind)), edge, o0, o1, FLOOR_M, band, left, size)
         if crown:
             wall(lods, strip(name, crown), edge, o0, o1, band, ceiling, left, size)
@@ -745,7 +740,7 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, 
         wall(TIERS, head, edge, a, b, ceiling, top, left, tile)  # the parapet
         core = CORE_M if burnt else DEEP_CORE_M
         wall((0,), void_m if burnt else body, edge, a + core, b - core, 0.0, ceiling + ROOF_M, left, tile, inset=core)
-        ground = ["e" if side == "south" and k in doors else "b" if kind == "b" else "g" for k, kind in enumerate(cols)]
+        ground = ["e" if side == "south" and k in doors else "g" for k, kind in enumerate(cols)]
         for k0, k1, key in runs(ground):
             if key == "g":
                 wall(WALLED, strip("facade_window" + after, tone=BASE_TONE), edge, left + BAY_M * k0, left + BAY_M * k1, 0.0, FLOOR_M, left,
@@ -762,8 +757,8 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, 
                 if k > at:
                     storeys(WALLED, kind, edge, at, k, left)
                 o0, o1 = left + BAY_M * k, left + BAY_M * (k + n)
-                mat = strip(recipe if kind == "b" else f"facade_{KINDS[kind]}{after}", accents.get(kind))
-                size = tile if kind == "b" else FACADE_M
+                mat = strip(f"facade_{KINDS[kind]}{after}", accents.get(kind))
+                size = FACADE_M
                 if f > 1:
                     wall(WALLED, mat, edge, o0, o1, FLOOR_M, f * FLOOR_M, left, size)
                 wall(WALLED, strip("facade_blown_burnt"), edge, o0, o1, f * FLOOR_M, (f + h) * FLOOR_M, left, FACADE_M)
@@ -846,7 +841,9 @@ def flats(t, columns, doors, floor):
         edge = f"body-{side}"
         for k, (o, kind) in enumerate(zip(t.bays(edge), cols)):
             if floor == 0:
-                kind = "b" if kind == "b" or (side == "south" and k in doors) else "w"
+                if side == "south" and k in doors:
+                    continue
+                kind = "w"
             if kind not in "wdrl":
                 continue
             x, y, z, yaw = t.at(edge, o, floor * FLOOR_M)
@@ -872,13 +869,15 @@ def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents
 
     `columns` gives each side's bays as letters, read from its left as you face it:
     w a window, r a ribbon of glazing the bay's width, d a balcony door (with its
-    balcony), l a loggia, s a stair light, b blank. A column is one kind from the
+    balcony), l a loggia, s a stair light. A column is one kind from the
     first floor up. `doors` are the street (south) side's bays with a way in.
     `rooftop` is what stands on the roof: (module, x, y, yaw), and for an aerial the
     hut it stands on. `accents` tints a kind's columns another colour; `fronts` are the
     balcony fronts' colours, one a column in turn; `crown` the top floor's. `blown` are
     the stretches of wall its fire blew out: (side, first bay, bays, first floor, floors)."""
     accents = accents or {}
+    if any(kind not in OPENING for cols in columns.values() for kind in cols):
+        raise SystemExit(f"{id_}: every declared facade bay needs an opening")
     hx, hy = w / 2, d / 2
     t = kit.template(id_, "highrise", FAMILY, dict(Width=w, Depth=d, Floors=floors, Finish=finish, **(recipe or {}),
                                                    **{side.capitalize(): cols for side, cols in sorted(columns.items())}))
@@ -912,8 +911,8 @@ def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents
                 t.mount("entrance", edge, o, tiers=TIERS_0_TO_1)
                 t.mount("gutted_entrance", edge, o, tiers=TIERS_0_TO_1, state="gutted")
             else:
-                t.mount("ground_blank" if kind == "b" else ground_window(ground[(side, k)]), edge, o, tiers=TIER_0)
-                t.mount("ground_blank" if kind == "b" else gutted_panel("w", k % 2, ground=True), edge, o, tiers=TIER_0,
+                t.mount(ground_window(ground[(side, k)]), edge, o, tiers=TIER_0)
+                t.mount(gutted_panel("w", k % 2, ground=True), edge, o, tiers=TIER_0,
                         tint=dimmed(WHITE, FLOOR_M / 2), state="gutted")
             for f in range(1, floors):
                 z, key = f * FLOOR_M, (id_, side, k, f)
@@ -941,7 +940,7 @@ def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents
                 if (side, k, f) in gone:
                     t.mount(gutted_panel("x", k % 2 + 2 * (f % 2)), edge, o, z=z, tiers=TIER_0, state="gutted")
                     continue
-                t.mount(panel(finish, kind) if kind == "b" else gutted_panel(kind, k % 2 + 2 * (f % 2)), edge, o, z=z, tiers=TIER_0,
+                t.mount(gutted_panel(kind, k % 2 + 2 * (f % 2)), edge, o, z=z, tiers=TIER_0,
                         tint=dimmed(tint, z + FLOOR_M / 2), state="gutted")
                 if kind == "d":
                     fate = roll(key, "burnt")
@@ -953,9 +952,9 @@ def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents
 
 # ---------------------------------------------------------------- the four
 # A ten-floor slab of bare grey precast, three stairs to the street: balconies paired
-# where two sections meet, each section's fronts their own faded paint, blank gable ends.
+# where two sections meet, each section's fronts their own faded paint, windows along the gable ends.
 tower("china-tower-slab-10f", "slab_10f", 56, 14, 10, "precast", GREY,
-      dict(south="dwwswd" * 3, north="wdwwdw" * 3, east="bwwb", west="bwwb"), doors=(3, 9, 15),
+      dict(south="dwwswd" * 3, north="wdwwdw" * 3, east="wwww", west="wwww"), doors=(3, 9, 15),
       rooftop=[row for x in (-16.5, 1.5, 19.5) for row in (
           ("stairhead", x, -3.6, 0.0), ("roof_aerial", x + 1.0, -3.0, 0.0, "stairhead"), ("roof_vent", x - 6.0, 2.5, 0.0),
           ("roof_vent", x + 4.5, 3.0, 0.0), ("roof_vent", x - 3.0, -3.5, 0.0))]
@@ -987,10 +986,10 @@ tower("china-tower-16f", "tower_16f", 23, 32, 16, "tile", WHITE,
       blown=[("east", 1, 2, 10, 2), ("south", 1, 2, 5, 2), ("west", 4, 2, 12, 2)])
 
 # Twenty floors of pale precast, the town's landmark: loggias two bays deep at every
-# corner, the stair light and a blank column each side picked out in slate blue.
+# corner, the stair-light column on each side picked out in slate blue.
 tower("china-tower-20f", "tower_20f", 29, 29, 20, "precast", PALE,
-      dict(south="llwwswwll", north="llwwbwwll", east="llwwbwwll", west="llwwbwwll"), doors=(4,),
-      accents={"s": SLATE, "b": SLATE}, glazed=0.3,
+      dict(south="llwwswwll", north="llwwswwll", east="llwwswwll", west="llwwswwll"), doors=(4,),
+      accents={"s": SLATE}, glazed=0.3,
       rooftop=[("bulkhead", 0.0, -5.0, 0.0), ("roof_aerial", 0.0, -5.0, 0.0, "bulkhead"), ("roof_aerial", 2.2, -5.8, 0.0, "bulkhead"),
                ("roof_tank", -7.5, 6.5, 0.0), ("roof_tank", 7.5, 6.5, 0.0), ("roof_vent", -8.0, -6.0, 0.0), ("roof_vent", 8.0, -6.0, 0.0),
                ("roof_vent", 0.0, 7.0, 0.0), ("roof_vent", -3.0, 1.0, 0.0), ("roof_plant", 9.0, 0.5, math.pi / 2),

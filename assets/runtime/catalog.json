@@ -113,7 +113,7 @@
       "unit": "kit"
     },
     "city_kit_farmsteads": {
-      "bundle": "251f9460f653750ed75dcc1b41ba76d36393da96b40ae940c933a31e12e790fc",
+      "bundle": "85f3fc565a07e9566ea1cf83c4aaf4db8f68f28696c2a8da6a24bd0a175dbff3",
       "kind": "static",
       "unit": "kit"
     },
@@ -123,7 +123,7 @@
       "unit": "kit"
     },
     "city_kit_industry": {
-      "bundle": "d853fcb81ce816902fbca98f71da5da02c72df52e5a844514e68bcebbd922545",
+      "bundle": "49393adf13b31a5f8cd2cee90d44af97e623481c991560b4e85a087764782aa0",
       "kind": "static",
       "unit": "kit"
     },
@@ -133,7 +133,7 @@
       "unit": "kit"
     },
     "city_kit_towers": {
-      "bundle": "215855440fa6c0faed49812550cafb6c53fe8d789dca55cb8807b2cb51e8480d",
+      "bundle": "f1c2ece2e7e00f3ebfd467e377d26490c0e23e889f2e9b59d569a915b48d022a",
       "kind": "static",
       "unit": "kit"
     },
@@ -615,30 +615,20 @@
     }
   },
   "gzip": {
-    "154515b8038164483011a7097fa9569e76a89232393408fc191c3a77f72eb1c8": {
-      "bytes": 81552,
-      "hash": "9093d8c6ebbc7fe456926db90fce1a09892d8abd3d1423daf5016cb997149774",
-      "raw_bytes": 556080
-    },
     "1838156f126960320b5ff42b5f9a743f078821085896e15d1b41d606c32924ce": {
       "bytes": 1630151,
       "hash": "5c9313a41f8cb9a6e6f604bad98d5ce0573f50fecaab441816beea6c9039ac0b",
       "raw_bytes": 7188344
     },
-    "215855440fa6c0faed49812550cafb6c53fe8d789dca55cb8807b2cb51e8480d": {
-      "bytes": 4733588,
-      "hash": "ad328ecf68c3aad3de5d2c76e3b4854ba24e57fce63a5f420e56ef1dd485848e",
-      "raw_bytes": 24666492
-    },
-    "251f9460f653750ed75dcc1b41ba76d36393da96b40ae940c933a31e12e790fc": {
-      "bytes": 5111895,
-      "hash": "bdf50aecb6e54e9f120e9618573af3c9473f5c16b74de9cb8f8f069f69690263",
-      "raw_bytes": 16125144
-    },
     "40e0d20a895e9d3a9e65f2bdfffc6ef5b5f4daac50d1e17a31231c07a3e6c586": {
       "bytes": 8885117,
       "hash": "f73c49105a064a635dc66f14fc155d12f3a072f9240092ff7f5163327f6c2ac3",
       "raw_bytes": 43480648
+    },
+    "49393adf13b31a5f8cd2cee90d44af97e623481c991560b4e85a087764782aa0": {
+      "bytes": 5728230,
+      "hash": "382aaf906aa9a645dc2007932b00f92d5b5f6fb5566f311ea97bb0cf68c66827",
+      "raw_bytes": 20087152
     },
     "5808e059aa247e1ec61af5e4093e2777786f2cee272e9650bb192165b5d2f20b": {
       "bytes": 661,
@@ -650,10 +640,20 @@
       "hash": "89c2596a532ddbaa6dea1cf16684fe2843413931ba7877fe478e9ed4835a75ab",
       "raw_bytes": 15412904
     },
-    "d853fcb81ce816902fbca98f71da5da02c72df52e5a844514e68bcebbd922545": {
-      "bytes": 5610595,
-      "hash": "67bb76b1d00c8228a86460e4a531e5e7139eeeed62a881173d11c2649f6d1a41",
-      "raw_bytes": 19447976
+    "8183b416af2f769309172e80130a5ed9f342664ccfbae0d03316187b39ce30ff": {
+      "bytes": 82109,
+      "hash": "da50ed0e6cfdca72fad33cd69c59ee0a99b618ba3f99afd306b1f2399f63889c",
+      "raw_bytes": 563132
+    },
+    "85f3fc565a07e9566ea1cf83c4aaf4db8f68f28696c2a8da6a24bd0a175dbff3": {
+      "bytes": 5127005,
+      "hash": "31705818aab093d7e3838a8027434e1b2935c9016c29e8fd16b774ac7f890955",
+      "raw_bytes": 16193892
+    },
+    "f1c2ece2e7e00f3ebfd467e377d26490c0e23e889f2e9b59d569a915b48d022a": {
+      "bytes": 4729869,
+      "hash": "8becb3658c120b54a28885db6fdc99fa339b9493746f09e88f4094f7c87f6c3a",
+      "raw_bytes": 24653080
     },
     "ffd54afcbd5a4ff3dd4f7eaceda098698d9870c52b4786c1bc6b147459b3f78c": {
       "bytes": 7972148,
@@ -678,11 +678,11 @@
     "quaternius-ubc-rifle": "19706856fef2f15bd61aae8ef6d4e614c58a028296738bdeab45195880187611"
   },
   "templates": {
-    "art_hash": "f4a239799e5559adb75406bcdc5e263afb397e3a50aea973353bee8f4a15abd3",
+    "art_hash": "d7455e30f597bb0ec33c3fa573e38b40c68fafa207516bd37ab3379dbd9cc963",
     "covers": [
       "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13",
       "6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316"
     ],
-    "library": "154515b8038164483011a7097fa9569e76a89232393408fc191c3a77f72eb1c8"
+    "library": "8183b416af2f769309172e80130a5ed9f342664ccfbae0d03316187b39ce30ff"
   }
 }
