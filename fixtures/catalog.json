@@ -1223,7 +1223,7 @@
           },
           "capabilities": {},
           "cost": 80,
-          "description": "Four scouts who see twice as far as a rifle squad.",
+          "description": "Four scouts with the longest vision and twice the spotting range against concealed enemies.",
           "faction": "generic",
           "family": "infantry",
           "mobility": {
@@ -1237,7 +1237,8 @@
             "recon"
           ],
           "sensors": {
-            "ground_m": 1000.0,
+            "concealed_range_multiplier": 2.0,
+            "ground_m": 650.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -2743,7 +2744,7 @@
       },
       "capabilities": {},
       "cost": 80,
-      "description": "Four scouts who see twice as far as a rifle squad.",
+      "description": "Four scouts with the longest vision and twice the spotting range against concealed enemies.",
       "faction": "generic",
       "family": "infantry",
       "id": "recon",
@@ -2782,7 +2783,8 @@
         "recon"
       ],
       "sensors": {
-        "ground_m": 1000.0,
+        "concealed_range_multiplier": 2.0,
+        "ground_m": 650.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,

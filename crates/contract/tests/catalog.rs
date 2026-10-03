@@ -55,6 +55,21 @@ fn units(entries: Value) -> Vec<Value> {
 }
 
 #[test]
+fn concealed_detection_bonus_cannot_reduce_ordinary_sight() {
+    for multiplier in [0.5, 0.0, -1.0] {
+        let mut base = base_tank();
+        base["sensors"]["concealed_range_multiplier"] = json!(multiplier);
+        let error = resolve(&units(json!({ "base": base, "t": { "extends": "base" } })))
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains("sensors.concealed_range_multiplier"),
+            "{error}"
+        );
+    }
+}
+
+#[test]
 fn a_variant_gives_only_what_differs_and_inherits_the_rest() {
     let catalog = resolve(&units(json!({
         "base": base_tank(),

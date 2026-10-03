@@ -23,11 +23,11 @@
     "recon": {
       "extends": "squad",
       "name": "Recon team",
-      "description": "Four scouts who see twice as far as a rifle squad.",
+      "description": "Four scouts with the longest vision and twice the spotting range against concealed enemies.",
       "roles": ["recon"],
       "cost": 80,
       "body": { "squad": { "slots": ["scout", "scout", "scout", "scout"] } },
-      "sensors": { "ground_m": 1000 }
+      "sensors": { "ground_m": 650, "concealed_range_multiplier": 2 }
     },
     "at": {
       "extends": "squad",
