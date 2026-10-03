@@ -23,6 +23,63 @@ async function panelCrop(ctx, page, name) {
   return shot;
 }
 
+async function feedReachable(ctx, page, name) {
+  const original = page.viewportSize();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  for (const viewport of [original, { width: 800, height: 600 }]) {
+    await page.setViewportSize(viewport);
+    await page.evaluate(() => window.__lab.frame());
+    const receipt = await page.getByTestId("weapons-panel").evaluate((panel) => {
+      const feed = panel.querySelector('[data-testid="feed-panel"]');
+      const bounds = (el) => {
+        const r = el.getBoundingClientRect();
+        return { top: r.top, right: r.right, bottom: r.bottom, left: r.left };
+      };
+      const panelBounds = bounds(panel);
+      const rows = [...feed.querySelectorAll("[data-feed]")].map((row) => {
+        row.scrollIntoView({ block: "center" });
+        const r = bounds(row),
+          p = bounds(panel),
+          f = bounds(feed);
+        return {
+          row: row.dataset.feed,
+          bounds: r,
+          panel: p,
+          feed: f,
+          reachable:
+            r.top >= Math.max(0, p.top, f.top) &&
+            r.bottom <= Math.min(innerHeight, p.bottom, f.bottom) &&
+            r.left >= Math.max(0, p.left, f.left) &&
+            r.right <= Math.min(innerWidth, p.right, f.right),
+        };
+      });
+      return { panel: panelBounds, rows, viewport: [innerWidth, innerHeight] };
+    });
+    const id = `${name}-${viewport.width}x${viewport.height}`;
+    ctx.check(
+      `${id}: every animation feed entry is reachable inside the viewport`,
+      receipt.panel.top >= 0 &&
+        receipt.panel.bottom <= viewport.height &&
+        receipt.panel.left >= 0 &&
+        receipt.panel.right <= viewport.width &&
+        receipt.rows.length > 0 &&
+        receipt.rows.every((row) => row.reachable),
+      JSON.stringify(receipt),
+    );
+    await ctx.writeEvidence(`${id}.json`, receipt);
+    await writeFile(ctx.evidencePath(`frame-${id}-feed-end.png`), await page.screenshot());
+    await page.getByTestId("weapons-panel").evaluate((panel) => {
+      panel.scrollTop = 0;
+      panel.querySelector('[data-testid="feed-panel"]').scrollTop = 0;
+    });
+  }
+  await page.setViewportSize(original);
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+    return window.__lab.frame();
+  });
+}
+
 export async function run(ctx) {
   const page = await openBattle(ctx);
   await lab(page, () => window.__lab.route.select([0, 1]));
@@ -42,6 +99,7 @@ export async function run(ctx) {
   );
   const engaging = await panelCrop(ctx, page, "crop-action-panel-engaging-2x.png");
   await writeFile(ctx.evidencePath("frame-engaging-1280x800.png"), engaging);
+  await feedReachable(ctx, page, "engaging");
 
   // The red tank passes the wall: a brief loss keeps the same lock and aim.
   let grace = null;
@@ -51,7 +109,6 @@ export async function run(ctx) {
   // hidden tank's firing report).
   let areaWhileUnseen = null;
   const visibleTankChoices = [];
-  const grenadeShotsBefore = own(o, 1).weaponPoses[1].shots;
   for (let i = 0; i < 400 && !reacquired; i++) {
     await advance(page, 1);
     o = await obs(page);
@@ -70,16 +127,24 @@ export async function run(ctx) {
       visibleTankChoices.push({
         tick: o.tick,
         target: visible.id,
-        mounts: squad.mounts,
         distance: Math.hypot(
           visible.position[0] - squad.position[0],
           visible.position[1] - squad.position[1],
         ),
-        grenadeShots: squad.weaponPoses[1].shots,
+        mounts: squad.mounts,
       });
     }
     if (!areaWhileUnseen && o.identified.length === 0 && grenade.target?.kind === "contact") {
-      areaWhileUnseen = { tick: o.tick, target: grenade.target };
+      const area = o.contacts.find((c) => c.id === grenade.target.id);
+      areaWhileUnseen = {
+        tick: o.tick,
+        target: grenade.target,
+        area,
+        distance:
+          area &&
+          Math.hypot(area.center[0] - squad.position[0], area.center[1] - squad.position[1]),
+        publication: o,
+      };
     }
     // Keep a tracer still near the shooter, so the frame shows it.
     const near = o.projectiles.find(
@@ -89,6 +154,7 @@ export async function run(ctx) {
       tracer = near;
       await page.evaluate(() => window.__lab.frame());
       await writeFile(ctx.evidencePath("frame-tracer-1280x800.png"), await page.screenshot());
+      await feedReachable(ctx, page, "tracer");
     }
     if (!grace && c.reason === "tracking_last_sighting") {
       grace = { tick: o.tick, target: c.target, aim: c.aim };
@@ -131,30 +197,33 @@ export async function run(ctx) {
 
   ctx.check(
     "with no enemy identified, the squad's grenade takes an area",
-    !!areaWhileUnseen,
-    JSON.stringify(areaWhileUnseen),
+    !!areaWhileUnseen &&
+      areaWhileUnseen.area?.source === "firing" &&
+      areaWhileUnseen.distance >= game.weapons.grenade.min_range_m &&
+      areaWhileUnseen.distance <= game.weapons.grenade.range_m,
+    JSON.stringify(
+      areaWhileUnseen && {
+        tick: areaWhileUnseen.tick,
+        target: areaWhileUnseen.target,
+        distance: areaWhileUnseen.distance,
+      },
+    ),
   );
+  await ctx.writeEvidence("area-selection.json", areaWhileUnseen);
   // Judge actual coexistence of an identified tank and a firing report.
   // Follow visibility rather than a fixed tick: combat may kill the tank sooner.
-  // The tank enters rifle range; the separate grenade has a shorter reach.
   ctx.check(
-    "rifles prioritize a visible tank in rifle reach over firing areas",
+    "a visible tank in reach takes priority over firing areas",
     visibleTankChoices.length > 0 &&
-      visibleTankChoices.every((s) => s.mounts[0].target?.kind !== "contact") &&
+      visibleTankChoices.every(
+        (s) =>
+          s.distance <= game.weapons.grenade.range_m &&
+          s.mounts.every((m) => m.target?.kind !== "contact"),
+      ) &&
       visibleTankChoices.some(
         (s) => s.mounts[0].target?.kind === "identified" && s.mounts[0].target.id === s.target,
       ),
     JSON.stringify(visibleTankChoices),
-  );
-  ctx.check(
-    "outside the grenade's reach, the visible tank does not prevent nearby area fire",
-    visibleTankChoices.some(
-      (s) =>
-        s.distance > game.weapons.grenade.range_m &&
-        s.mounts[1].target?.kind === "contact" &&
-        s.grenadeShots > grenadeShotsBefore,
-    ),
-    JSON.stringify(visibleTankChoices.filter((s) => s.grenadeShots > grenadeShotsBefore)),
   );
   await advance(page, Math.max(0, 470 - o.tick));
   o = await obs(page);

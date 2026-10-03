@@ -59,6 +59,33 @@ fn admitted(
 }
 
 #[test]
+fn saved_visual_surroundings_keep_their_extent_without_changing_physical_geometry() {
+    let original = geometry();
+    let mut json = serde_json::to_value(&original).unwrap();
+    json["render_margin_m"] = json!(500);
+    let map: MapDefinition = serde_json::from_value(json).unwrap();
+    let restored = admitted(&map, &sources(&map)).unwrap().definition;
+    let stored = serde_json::to_value(restored.saved()).unwrap();
+    assert_eq!(stored["render_margin_m"].as_f64(), Some(500.0));
+    assert_eq!(restored.size, original.size);
+    assert_eq!(restored.buildings, original.buildings);
+    assert_eq!(
+        serde_json::to_value(restored.props).unwrap(),
+        serde_json::to_value(original.props).unwrap()
+    );
+}
+
+#[test]
+fn visual_surroundings_refuse_negative_or_unbounded_margins() {
+    for margin in [-1.0, 5001.0, 1e300] {
+        let mut map = serde_json::to_value(geometry()).unwrap();
+        map["render_margin_m"] = json!(margin);
+        let error = serde_json::from_value::<MapDefinition>(map).unwrap_err();
+        assert!(error.to_string().contains("render margin"));
+    }
+}
+
+#[test]
 fn a_saved_building_resolves_to_its_template_materialized_at_its_frame() {
     let saved: serde_json::Value = serde_json::from_str(GEOMETRY).unwrap();
     let stored = &saved["buildings"][0];

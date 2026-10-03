@@ -1,3 +1,4 @@
+import { ReadoutLayer } from "@web/battle/present/readouts";
 import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
@@ -16,12 +17,11 @@ import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // Blue's tank and rifle squad face a red tank shuttling past a short wall and
-// a red squad firing from behind a building every three seconds (a firing
-// area, never identified). The building is low (4 m): it hides the squad
+// a red squad firing from behind a wall every three seconds (a firing
+// area, never identified). The wall is low (2 m): it hides the squad
 // and stops the rifles, and the grenade launcher lobs over it at the
-// report within the shipped grenade's reach. Blue's original sensor positions
-// preserve the brief shared loss of the touring tank behind the wall:
-// the acquisition grace.
+// report, within grenade reach. Both blue units look past the short wall
+// along one line, so the red tank drops out of sight briefly: acquisition grace.
 // The hidden squad reports fire while the tank is still alive, so target
 // priority is checked independently of the tank's eventual death.
 const SEED = 8;
@@ -75,14 +75,14 @@ function WeaponsLab({ battle }: { battle: SavedBattle }) {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const contacts = contactLayer(observation, surfaceZ);
+    const contacts = contactLayer(session.contacts, surfaceZ);
     // This tick's visible flight: own rounds whole, enemy rounds only over seen ground.
     const tracers = tracerLayer(observation, { sideColors: false });
     return {
       opaque: concatMeshes([contacts.opaque, tracers.opaque]),
       translucent: concatMeshes([contacts.translucent, tracers.translucent]),
     };
-  }, [world, observation, surfaceZ]);
+  }, [world, observation, surfaceZ, session.contacts]);
   const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(
@@ -118,10 +118,19 @@ function WeaponsLab({ battle }: { battle: SavedBattle }) {
         initialCamera={WEAPONS_CAMERA}
         onPick={session.onPick}
         onBox={session.onBox}
+        onFrame={session.placePanels}
         onReady={session.onReady}
         diagnostics={diagnostics}
       />
-      <aside className="hud-panel lab-panel" data-testid="weapons-panel">
+      <ReadoutLayer
+        own={[]}
+        contacts={session.contacts}
+        tick={observation?.tick}
+        rules={session.rules}
+        selected={[]}
+        handle={session.readouts}
+      />
+      <aside className="hud-panel lab-panel" data-testid="weapons-panel" data-occludes-readouts>
         <strong>Weapons</strong>
         <div className="lab-hint">
           Click: select · Right‑click: move · S: stop · buttons act on the selection

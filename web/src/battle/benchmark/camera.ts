@@ -8,6 +8,7 @@
 import { clamp } from "math";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import { smoothstep } from "@packages/renderer-core/src/math";
+import generated from "@fixtures/generated-battle.json";
 
 export const BENCHMARK_PHASES = ["strategic", "pan", "zoom", "ground", "combined", "return"];
 export type BenchmarkPhase = (typeof BENCHMARK_PHASES)[number];
@@ -71,6 +72,41 @@ export const BENCHMARK_TOUR: BenchmarkTour = {
     [1, ...BATTLE, 1300, OPENING_YAW - TURN, 0.85],
   ],
 };
+
+/** The contact arena stays 3 × 2 km; its full-world overview uses the map
+ * preparation actually returned, rather than an old documented extent. */
+export const CITY_CONTACT_TOUR = "city-arena-1-tour-v2";
+
+export function cityContactTour(
+  size: readonly [number, number],
+  rendered?: readonly [number, number, number, number],
+): BenchmarkTour {
+  const [x, y] = [size[0] / 2, size[1] / 2];
+  const span = rendered
+    ? Math.max(rendered[2] - rendered[0], rendered[3] - rendered[1])
+    : Math.max(...size);
+  const overview = span * generated.camera.overview_span;
+  return {
+    version: CITY_CONTACT_TOUR,
+    phases: BENCHMARK_TOUR.phases,
+    keyframes: [
+      [0, x, y, 1400, OPENING_YAW, 0.85],
+      [0.1, x - 250, y - 600, 260, OPENING_YAW, 0.85],
+      [0.2, x, y, 260, OPENING_YAW - 0.2, 0.85],
+      [0.3, x + 250, y + 600, 260, OPENING_YAW - 0.4, 0.85],
+      [0.35, x + 250, y, 40, OPENING_YAW - 0.6, 0.55],
+      [0.42, x, y, overview, OPENING_YAW - 0.9, generated.camera.overview_pitch],
+      [0.5, x - 250, y, 250, OPENING_YAW - 1.3, 0.85],
+      [0.55, x - 250, y, 40, -Math.PI, 0.25],
+      [0.65, x + 250, y, 45, -5.9, 0.25],
+      [0.7, x + 250, y, 60, -6.3, 0.3],
+      [0.78, x - 250, y + 400, 70, -7, 0.5],
+      [0.82, x, y, overview, -6.8, generated.camera.overview_pitch],
+      [0.9, x, y, 400, -7.6, 0.85],
+      [1, x, y, 1400, OPENING_YAW - TURN, 0.85],
+    ],
+  };
+}
 
 export interface TourSample {
   phase: BenchmarkPhase;

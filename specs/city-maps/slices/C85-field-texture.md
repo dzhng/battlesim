@@ -87,3 +87,21 @@ The second, on the result:
 - **Wheelings from 250 m** are hair-thin and ruler-straight. `tram.contrast` at 0 removes them per kind.
 - **The warm orange of dry grass** is the grass pass's (`patches.dry`, `dry_lift`), halved here and still read as rust.
 - The village scene and the full `ground` scene were not run; `GRASS_ONLY` was not rerun after the last round.
+
+## Current grass continuity feedback
+
+The user asks whether grass-like ground texture can blend the 3D tufts into a continuous surface. The [reported close-up](../assets/reference/ground/reported-grass-2026-10-02.png) is an unapproved defect baseline. Independent investigation confirms the existing ground already has procedural grain and the blades sample its colour. Paired captures isolate much of the dark directional scratch pattern to blade-facing shading; reducing that term preserves more tuft structure than aggressive early softening. Smooth gaps remain. At 250/1100 m no blades draw, so the ground material must carry grass identity. A fresh image-only critic agrees on these limits.
+
+The next bounded prototype belongs jointly to this texture owner and [C81's blade shading](C81-wild-grass.md): replace or refine grass-only fine grain with nondirectional tuft/leaf structure, retaining coarse variation, mean colour and footprint filtering; compare the existing facing contribution separately. Keep density, height, softening curve, palette, crop rows, roads, forest membership and gameplay rules fixed. Reuse `fieldTexture`/`groundColour`, with no second ground layer or downloaded texture. Implementation may select a simple procedural structure and scale inside existing validated tuning; further schemas/resources require a named new contract.
+
+Use the lane's two-station/three-variant/two-round GPU bound. Compare exact paired close/default captures with the reported framing as closely as known, then inspect the final far views and boundaries once. Retain C84 mean-colour, grass exclusion and field/fog checks; measure one short paired cost. Run compare-screenshots, an unprimed complete-set critique and a non-blocking Preview checkpoint before accepting any candidate. Directional hatching, tiled carpet, dissolved tuft depth and motion shimmer are rejection cases. Hills remain deferred.
+
+**Preserve the yellow patches.** The user likes the warm dry-grass variation and its character. Ground and blade colours already share the ground material, with additional world-anchored clump dryness. Further continuity work must retain this variation and the approved blade-facing change.
+
+### Rejected finest-grain prototype
+
+Two bounded rounds replaced only the finest grass-plot grain contribution with tapered leaf marks. The final matched close/default pair changes pixels but does not convincingly blend the ground and tufts: both root and an unprimed critic still see smooth olive gaps close up and weak grass identity at gameplay zoom. The additional shader machinery is rejected and production source is restored. This rejects that hypothesis; grass-ground continuity remains open.
+
+Complete native frames, crops, source snapshots, metrics and the fresh review are preserved in main's ignored `throwaway/grass-surface-prototype/`. The final control/candidate match tick 12 and log no shader warnings. The first round reached tick 13, so its wind-confounded comparison remains diagnostic only. Far/boundary/motion/cost gates were not spent on the rejected candidate and are not claimed. The non-blocking Preview comparison includes the reported defect baseline. A next hypothesis must improve visible ground structure at gameplay zoom while preserving yellow variation, rather than adding finer marks that filter away.
+
+Earlier research remains in root's ignored `throwaway/grass-surface-research/`. Its warning-bearing captures are diagnostic; [C81's integrated checkpoint](C81-wild-grass.md#outcome) owns the approved blade-facing change and warning-free verification.

@@ -55,6 +55,26 @@ const prepared = (r = request(), d = documents, onStage?: (stage: string) => voi
     world.free();
     return battle;
   });
+
+test("preparation publishes the compiled map's derived bounds without widening encounter space", async () => {
+  const presets = JSON.parse(documents.presets);
+  presets.terrain.render_margin_m = 500;
+  const result = await prepared(request(), { ...documents, presets: JSON.stringify(presets) });
+  const map = JSON.parse(result.scenario).map;
+  const view = new wasm.WorldView(JSON.stringify(map), rules);
+  try {
+    expect(result.report.size).toEqual([6000, 6000]);
+    expect(result.report.extents).toEqual({
+      playable: [0, 0, 6000, 6000],
+      physical: [0, 0, 6000, 6000],
+      rendered: [-500, -500, 6500, 6500],
+    });
+    expect(JSON.parse(view.extents())).toEqual(result.report.extents);
+    expect(map.render_margin_m).toBe(500);
+  } finally {
+    view.free();
+  }
+});
 /** The refusal `preparing` ends in. */
 async function refusal(preparing: Promise<unknown>): Promise<PreparationRefused> {
   const error = await preparing.then(

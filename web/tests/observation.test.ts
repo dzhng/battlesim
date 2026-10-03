@@ -157,7 +157,6 @@ test("a packed side frame decodes group by group through the published layout", 
   expect(frame.contacts).toHaveLength(1);
   const c = frame.contacts[0];
   expect(c.source).toBe("firing");
-  expect(c.primaryLabel).toBe(true);
   // The lab emitter's shot is of no weapon, and a report names no type.
   expect([c.kind, c.heard]).toEqual([null, []]);
   // 3 × a rifle squad's footprint: half its 12 m spread plus a soldier's 0.3 m.

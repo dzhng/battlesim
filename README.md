@@ -68,7 +68,7 @@ bun run setup   # install web dependencies
 bun run dev     # build the WebAssembly, start the lab app
 ```
 
-`/` is the main menu: start a battle on a generated map (its type and its size), play a saved battlefield of the catalogue, or watch a replay; behind its developer link, play the test village, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`) is its share identity: the same address prepares the same battle on the same build. The benchmark (`/benchmark`) is the one frame-cost measure.
+`/` is the main menu: start a battle on a generated map (its type and its size), play a saved battlefield of the catalogue, or watch a replay; behind its developer link, play the test village, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`) is its share identity: the same address prepares the same battle on the same build. The [benchmark](web/src/battle/benchmark/README.md) is the one frame-cost measure: `/benchmark` retains the village control; `/benchmark?preset=city-contact` selects explicitly synthetic local contact on a complete generated world.
 
 During development, the [mechanics editor](apps/mechanics-editor/README.md) opens
 from the developer menu at `/mechanics`, or run `bun run dev:mechanics` to start
@@ -76,7 +76,7 @@ the server and open the editor directly. See its README for the editing workflow
 It previews and saves validated fixture edits; new and explicitly restarted
 battles capture the latest saved rules.
 
-Contact circles and panels share a visual fade through [contact presentation](web/src/battle/present/contactPresentation.ts). A fading retired report is remembered evidence only; commands and picking still use the current observation.
+Each hidden enemy has at most one live uncertain report, refreshed only by new evidence. Every report has the same outlined area and a truthful info label; a type is named only if previously identified. Removed circles and labels share a three-second visual fade through [contact presentation](web/src/battle/present/contactPresentation.ts), and renewed evidence replaces the same visual slot. A retiring report is remembered evidence only; commands and picking use the live observation.
 
 Floating unit panels show name and health. Own-unit panels show a crossed-out eye beside the name, plus HIDDEN in expanded detail, when forest or garrison concealment covers enough of the living unit and there is no known engagement or currently visible enemy observer spotting it. The [sensing rules](crates/sim/src/sensing.rs) own squad thresholds; concealment uses forest ground, independently of tree crowns. In the normal layout, Space prioritizes the closest 30% of visible units from the camera's actual position; farther cards expand where room remains. Hovering a unit or its card always reveals its detail. Far views keep compact panels and allow overlap in camera-depth order, softly fading and blurring obscured cards; hovering brings a card forward at full clarity, and Space expands cards without separating them. Normal placement tries expansion in place, then the fewest card shifts, favoring shorter shifts when the counts tie.
 

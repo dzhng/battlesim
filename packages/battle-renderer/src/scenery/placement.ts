@@ -102,6 +102,7 @@ export interface ScenerySite {
   ground: TerrainGrid;
   /** Map box `[minX, minY, maxX, maxY]`. */
   map: readonly [number, number, number, number];
+  rendered?: readonly [number, number, number, number];
   forests: readonly ForestShape[];
   /** The simulation's trunk props: `x, y` pairs. */
   trunks: Float32Array;
@@ -157,6 +158,7 @@ export function scenerySite(
   return {
     ground,
     map: terrain.site.map,
+    rendered: terrain.site.rendered,
     forests,
     trunks: Float32Array.from(trunks),
     trunkIds: Uint32Array.from(trunkIds),
@@ -579,7 +581,12 @@ function placeBackdrop(
   const z = site.backdropZ - SINK_M;
   const fits = (x: number, y: number, radius: number) => {
     const d = outsideBox(site.map, x, y);
-    return d - radius >= clear_m && d <= reach_m;
+    const b = site.rendered;
+    return (
+      d - radius >= clear_m &&
+      d <= reach_m &&
+      (!b || (x - radius >= b[0] && y - radius >= b[1] && x + radius <= b[2] && y + radius <= b[3]))
+    );
   };
   const tree = (rng: RandomGenerator, x: number, y: number) => {
     const s = pick(rng, x, y, OPEN);

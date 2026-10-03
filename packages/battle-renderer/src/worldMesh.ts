@@ -95,7 +95,16 @@ export interface PublicBuildings {
   }[];
 }
 
+/** Derived by the map contract. The display environment is separate from
+ *  these map-owned bounds; physical queries never include visual surroundings. */
+export interface MapExtents {
+  playable: readonly [number, number, number, number];
+  physical: readonly [number, number, number, number];
+  rendered: readonly [number, number, number, number];
+}
+
 export interface WorldExports {
+  extents: MapExtents;
   terrain: TerrainGrid;
   positions: Float32Array;
   indices: Uint32Array;
@@ -128,6 +137,7 @@ export interface WorldExports {
 /** The static-world exports a `WorldView` publishes, read in one place so a
  *  new export is wired once. */
 export interface WorldExportSource {
+  extents(): string;
   terrain_grid(): string;
   terrain_page_ids(): Uint32Array;
   terrain_heights(): Float32Array;
@@ -154,6 +164,7 @@ export interface WorldExportSource {
 
 export function readWorldExports(view: WorldExportSource): WorldExports {
   return {
+    extents: JSON.parse(view.extents()),
     terrain: {
       ...JSON.parse(view.terrain_grid()),
       pageIds: view.terrain_page_ids(),

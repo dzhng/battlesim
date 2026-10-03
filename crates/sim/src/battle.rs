@@ -882,6 +882,25 @@ impl Battle {
     /// bracket. Repeated phases (movement and each side's fog) add together.
     pub fn step_profiled(&mut self, mut completed: impl FnMut(TickPhase)) -> Tick {
         self.tick += 1;
+        for side in Side::ALL {
+            for contact in self.knowledge[side.index()].expire_contacts(self.tick) {
+                for unit in self.units.iter_mut().filter(|u| u.side == side) {
+                    unit.orders.retain(|order| {
+                        !matches!(order, UnitOrder::Attack { target, .. } if *target == Target::Contact(contact))
+                    });
+                    for mount in &mut unit.mounts {
+                        if mount
+                            .lock
+                            .as_ref()
+                            .is_some_and(|l| l.target == Target::Contact(contact))
+                        {
+                            mount.lock = None;
+                        }
+                    }
+                }
+            }
+        }
+        self.prune_attackers();
         if let Some(recorded) = self.replaying.as_mut() {
             let mut due = Vec::new();
             while recorded.front().is_some_and(|(t, _)| *t == self.tick) {
@@ -1601,8 +1620,7 @@ impl Battle {
         for unit in &mut self.units {
             let knowledge = &self.knowledge[unit.side.index()];
             unit.attackers.retain(|&a| {
-                knowledge.track(a).is_some()
-                    || knowledge.all_contacts().iter().any(|c| c.emitter == a)
+                knowledge.track(a).is_some() || knowledge.all_contacts().any(|c| c.emitter == a)
             });
         }
     }

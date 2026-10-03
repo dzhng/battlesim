@@ -55,6 +55,8 @@ export interface MapRiver {
  *  a map has none. */
 export interface MapDefinition {
   size: [number, number];
+  /** Map-owned visual landscape only; absent at zero. It never changes the physical height grid. */
+  render_margin_m?: number;
   fog_cell_m: number;
   height_grid_m: number;
   slope_cutoff_deg: number;

@@ -162,6 +162,7 @@ pub fn world_layout(rules_json: &str) -> Result<String, JsError> {
 #[wasm_bindgen]
 pub struct WorldView {
     world: WorldGeometry,
+    extents: contract::map::MapExtents,
 }
 
 #[wasm_bindgen]
@@ -173,8 +174,14 @@ impl WorldView {
         let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
         let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
         Ok(WorldView {
+            extents: map.extents(),
             world: WorldGeometry::new(&map, &rules),
         })
+    }
+
+    /// Map-owned landscape bounds; the display environment is separate.
+    pub fn extents(&self) -> String {
+        serde_json::to_string(&self.extents).expect("finite map extents")
     }
 
     /// Sampled surface descriptor; absent vertex pages have height zero.
@@ -866,6 +873,10 @@ impl PreparedWorld {
     pub fn from_scenario(scenario_json: &str) -> Result<PreparedWorld, JsError> {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
         Self::build(setup.map, setup.rules)
+    }
+
+    pub fn extents(&self) -> String {
+        serde_json::to_string(&self.map.extents()).expect("finite map extents")
     }
 
     pub fn plan_encounter(

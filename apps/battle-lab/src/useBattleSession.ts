@@ -6,6 +6,8 @@
 // pick and box-select adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
+import { ContactPresentation } from "@web/battle/present/contactPresentation";
+import { gameContactStyle } from "./gameFog";
 import type { PreparedSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
@@ -151,6 +153,14 @@ export function useBattleSession({
   );
   const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted, prepared });
   const { observation } = sim;
+  const contactPresentation = useMemo(
+    () => (sim.client ? new ContactPresentation(rules.tick_hz, gameContactStyle.fade_s) : null),
+    [sim.client, rules.tick_hz],
+  );
+  const contacts = useMemo(
+    () => contactPresentation?.update(observation?.contacts ?? [], observation?.tick ?? 0) ?? [],
+    [contactPresentation, observation],
+  );
   // The last drawn frame's presentation clock: the callouts' nudges ease on
   // it, and an order's flash starts at it.
   const drawnClock = useRef<number | null>(null);
@@ -657,6 +667,7 @@ export function useBattleSession({
     fog,
     fogFeed,
     rules,
+    contacts,
     sim,
     control,
     /** Which own units' order marks show, at what opacity (`OrderReveal`):

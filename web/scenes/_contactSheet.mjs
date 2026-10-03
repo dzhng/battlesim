@@ -1,6 +1,6 @@
 // Contact callouts anchor to the reported ground center, independent of uncertainty radius.
 import { writeFile } from "node:fs/promises";
-import { openBattle, obs, aim, snapshot, groundCss, until, lab, advance } from "./_lab.mjs";
+import { openBattle, obs, aim, snapshot, groundCss, until, lab } from "./_lab.mjs";
 import { decode, writeCrop } from "./_png.mjs";
 import { curvePitch, game } from "./_units.mjs";
 
@@ -11,54 +11,71 @@ export async function contactTour(ctx) {
     tick: 30,
     grass: true,
   });
-  // An admitted approach brings the observers within hearing range.
-  const before = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
+  // Approach from the open ground west of the town. The town's centre can
+  // refuse the whole formation, leaving every observer at its starting point.
   await lab(page, () =>
     window.__lab.route.command({
       kind: "attack_move",
-      units: window.__lab.route
-        .observation()
-        .own.filter((u) => u.kind !== "supply")
-        .map((u) => u.id),
+      units: window.__lab.route.observation().own.map((u) => u.id),
       gesture: 1,
-      goal: [680, 840],
+      goal: [700, 800],
     }),
   );
-  await page.waitForFunction((n) => (window.__lab.route.acks()[0]?.seq ?? 0) > n, before);
-  const command = await lab(page, () => window.__lab.route.acks()[0]);
-  const admitted =
-    command.ack.error === null &&
-    command.order.units.every((id) =>
-      command.ack.placement?.destinations.some((d) => d.unit === id && d.placed),
-    );
-  ctx.check("contact approach: every destination is admitted", admitted, JSON.stringify(command));
-  if (!admitted) throw new Error("contact approach was refused");
-  await advance(page, Math.max(0, command.ack.applied_tick - (await obs(page)).tick));
-  const mixedReports = (o) =>
-    o.contacts.some((c) => !c.primaryLabel) && o.contacts.some((c) => c.primaryLabel);
-  // Prefer a moment with both kinds of report, so the panel check below has an
-  // unlabelled one to leave out; a battle that never mixes them is captured as
-  // it stands at the end of the wait.
-  let observation = await obs(page);
-  if (!mixedReports(observation)) {
-    observation = (await until(page, mixedReports, 6000, 30)) ?? (await obs(page));
-  }
-  const contact =
-    observation.contacts.find((c) => c.primaryLabel && c.source === "last_seen") ??
-    observation.contacts.find((c) => c.primaryLabel);
-  if (!contact) throw new Error("contact capture needs a labelled contact");
-  const drawnIds = await page.locator("[data-contact]").evaluateAll((nodes) =>
-    nodes
-      .filter((n) => !n.closest(".ro-callout")?.dataset.retiring)
-      .map((n) => Number(n.dataset.contact))
-      .sort((a, b) => a - b),
+  await lab(page, () => window.__lab.route.advance(1));
+  await page.waitForFunction(
+    () =>
+      window.__lab.route
+        .acks()
+        .some(
+          (record) =>
+            record.order.kind === "attack_move" &&
+            record.order.gesture === 1 &&
+            record.order.goal[0] === 700 &&
+            record.order.goal[1] === 800,
+        ),
+    undefined,
+    { timeout: 5000 },
   );
-  const expectedIds = observation.contacts
-    .filter((c) => c.primaryLabel)
-    .map((c) => c.id)
-    .sort((a, b) => a - b);
+  const approach = await lab(
+    page,
+    () =>
+      window.__lab.route
+        .acks()
+        .find(
+          (record) =>
+            record.order.kind === "attack_move" &&
+            record.order.gesture === 1 &&
+            record.order.goal[0] === 700 &&
+            record.order.goal[1] === 800,
+        )?.ack,
+  );
+  const admitted =
+    approach && !approach.error && approach.placement?.destinations.some((d) => d.placed);
+  await ctx.writeEvidence("contact-approach.json", approach);
   ctx.check(
-    "only preferred contact reports get panels",
+    "the contact approach admits observers before capture",
+    !!admitted,
+    JSON.stringify(approach),
+  );
+  if (!admitted) return page.close();
+  const refreshed = (o) => o.contacts.some((c) => c.source === "firing" && c.kind === "tank");
+  // Follow the one tank's visual memory until fresh hidden firing updates it.
+  // No report is a failed fixture, never a passing empty panel comparison.
+  let observation = await obs(page);
+  if (!refreshed(observation)) observation = await until(page, refreshed, 6000, 30);
+  const contact = observation?.contacts.find((c) => c.source === "firing" && c.kind === "tank");
+  if (!contact) throw new Error("contact capture needs the hidden tank's refreshed evidence");
+  ctx.check(
+    "one hidden tank has one updated area rather than old and new patches",
+    observation.contacts.length === 1,
+    JSON.stringify(observation.contacts),
+  );
+  const drawnIds = await page
+    .locator("[data-contact]")
+    .evaluateAll((nodes) => nodes.map((n) => Number(n.dataset.contact)).sort((a, b) => a - b));
+  const expectedIds = observation.contacts.map((c) => c.id).sort((a, b) => a - b);
+  ctx.check(
+    "every contact report has its info panel",
     JSON.stringify(drawnIds) === JSON.stringify(expectedIds),
     JSON.stringify({ drawnIds, expectedIds }),
   );
@@ -97,7 +114,7 @@ export async function contactTour(ctx) {
   }
   await writeFile(
     ctx.evidencePath(`contact-${label}.json`),
-    JSON.stringify({ contact, measurements }, null, 2),
+    JSON.stringify({ tick: observation.tick, approach, contact, measurements }, null, 2),
   );
   await page.close();
 }

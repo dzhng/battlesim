@@ -13,9 +13,10 @@ import {
   type BenchmarkOutcome,
   type BenchmarkReport,
 } from "@web/battle/benchmark/report";
-import type { BenchmarkLength, BenchmarkScenario } from "@web/battle/benchmark/scenario";
+import type { BenchmarkLength, BenchmarkScenario } from "@web/battle/benchmark/presets";
 import type { ViewportPilot } from "../LabViewport";
 import type { ScriptedSim } from "../useSimSession";
+import type { PreparationReport } from "@web/battle/prepare/protocol";
 
 export type RunStage = "preparing" | "running" | "finishing";
 
@@ -41,6 +42,7 @@ export function createBenchmarkRun(
   length: BenchmarkLength,
   tickHz: number,
   onDone: (report: BenchmarkReport) => void,
+  preparation?: PreparationReport,
 ) {
   const durationMs = scenario.durationMs[length];
   const recording = new BenchmarkRecording(durationMs);
@@ -79,6 +81,7 @@ export function createBenchmarkRun(
         tickHz,
         startTick: scenario.startTick,
         endTick: lastTick,
+        preparation,
       }),
     );
   };
@@ -123,7 +126,7 @@ export function createBenchmarkRun(
   };
 
   const scripted: ScriptedSim & { pilot: ViewportPilot } = {
-    script: scenario.blue,
+    script: scenario.blue === "scenario-orders" ? undefined : scenario.blue,
     warmTo: scenario.startTick,
     onWarm: () => (warm = true),
     onTick(t) {

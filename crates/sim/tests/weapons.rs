@@ -1553,6 +1553,288 @@ fn an_attack_on_a_contact_that_expires_unidentified_ends() {
 }
 
 #[test]
+fn fresh_firing_after_expiry_cannot_revive_the_previous_contact_attack() {
+    let lifetime = ticks(
+        common::game()["sensors"]["contact_lifetime_s"]
+            .as_f64()
+            .unwrap(),
+    );
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "red", "kind": "rifle", "position": [715, 300], "engagement": "return_fire_only" },
+        ]),
+        json!([
+            { "tick": 5, "fire": { "unit": 1 } },
+            { "tick": 6 + lifetime, "fire": { "unit": 1 } },
+        ]),
+        json!([]),
+    );
+    run(&mut b, 6);
+    let id = b.observe(Side::Blue).contacts[0].id;
+    Commander::new().ok(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Contact { id },
+        },
+    );
+    run(&mut b, lifetime);
+    let frame = b.observe(Side::Blue);
+    assert!(frame.identified.is_empty(), "the cause stays hidden");
+    assert_eq!(
+        frame.contacts.len(),
+        1,
+        "the fresh shot supplies new evidence"
+    );
+    assert_eq!(frame.contacts[0].id, id, "reuse the one visual slot");
+    assert_eq!(frame.contacts[0].evidence_tick, b.tick());
+    assert_eq!(
+        attack_target(&b),
+        None,
+        "the expired episode's intent ends despite ID reuse"
+    );
+}
+
+#[test]
+fn fresh_firing_after_expiry_does_not_restore_old_return_fire_permission() {
+    // The supply truck cannot see the rifleman, but he sees and actually fires
+    // at it. No responding weapon can keep the evidence alive accidentally.
+    let start = |events| {
+        let mut b = battle(
+            json!([]),
+            json!([
+                { "side": "blue", "kind": "supply", "position": [100, 300], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "rifle", "position": [600, 300], "engagement": "return_fire_only" },
+            ]),
+            events,
+            json!([]),
+        );
+        run(&mut b, 3);
+        let target = b.observe(Side::Red).identified[0].id;
+        let mut commander = Commander::new();
+        commander.ok(
+            &mut b,
+            Side::Red,
+            Order::Attack {
+                units: vec![UnitId(1)],
+                target: TargetRef::Identified { id: target },
+            },
+        );
+        for _ in 0..180 {
+            b.step();
+            if b.unit(UnitId(0)).unwrap().attackers.contains(&UnitId(1)) {
+                commander.ok(
+                    &mut b,
+                    Side::Red,
+                    Order::SetEngagement {
+                        units: vec![UnitId(1)],
+                        policy: Engagement::ReturnFireOnly,
+                    },
+                );
+                commander.ok(
+                    &mut b,
+                    Side::Red,
+                    Order::Stop {
+                        units: vec![UnitId(1)],
+                    },
+                );
+                b.step();
+                assert!(
+                    b.observe(Side::Blue).identified.is_empty(),
+                    "the rifleman stays unseen"
+                );
+                assert_eq!(b.observe(Side::Blue).contacts.len(), 1);
+                return b;
+            }
+        }
+        panic!("the rifleman never fired at the truck");
+    };
+    // Discover the exact episode endpoint from its publication; the second
+    // battle differs only by an authored non-attacking shot on that boundary.
+    let control = start(json!([]));
+    let first = control.observe(Side::Blue).contacts[0].clone();
+    let fresh_tick = first.expires_tick + 1;
+    let mut b = start(json!([{ "tick": fresh_tick, "fire": { "unit": 1 } }]));
+    assert_eq!(b.observe(Side::Blue).contacts[0], first);
+    let remaining = fresh_tick - b.tick();
+    run(&mut b, remaining);
+    let frame = b.observe(Side::Blue);
+    assert_eq!(frame.contacts.len(), 1);
+    assert_eq!(frame.contacts[0].id, first.id);
+    assert_eq!(frame.contacts[0].evidence_tick, fresh_tick);
+    assert!(
+        !b.unit(UnitId(0)).unwrap().attackers.contains(&UnitId(1)),
+        "hearing a new shot does not restore permission earned in the expired episode"
+    );
+}
+
+#[test]
+fn a_short_contact_lifetime_preserves_return_fire_during_identification_grace() {
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "supply", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [250, 300], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    setup.rules.sensors.contact_lifetime_s = 0.1;
+    let mut b = Battle::new(&setup, 5);
+    run(&mut b, 3);
+    let target = b.observe(Side::Red).identified[0].id;
+    let mut commander = Commander::new();
+    commander.ok(
+        &mut b,
+        Side::Red,
+        Order::Attack {
+            units: vec![UnitId(1)],
+            target: TargetRef::Identified { id: target },
+        },
+    );
+    for _ in 0..180 {
+        b.step();
+        if b.unit(UnitId(0)).unwrap().attackers.contains(&UnitId(1)) {
+            break;
+        }
+    }
+    assert!(
+        b.unit(UnitId(0)).unwrap().attackers.contains(&UnitId(1)),
+        "an actual shot grants permission"
+    );
+    commander.ok(
+        &mut b,
+        Side::Red,
+        Order::SetEngagement {
+            units: vec![UnitId(1)],
+            policy: Engagement::ReturnFireOnly,
+        },
+    );
+    commander.ok(
+        &mut b,
+        Side::Red,
+        Order::Move {
+            units: vec![UnitId(1)],
+            gesture: 1,
+            goal: [500.0, 300.0],
+            route: contract::command::RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+            facing: None,
+        },
+    );
+    let mut lost = None;
+    for _ in 0..3000 {
+        b.step();
+        let frame = b.observe(Side::Blue);
+        if let Some(report) = frame.contacts.first() {
+            lost.get_or_insert(report.expires_tick);
+        }
+        if lost.is_some_and(|expiry| b.tick() == expiry + 1) {
+            assert!(frame.contacts.is_empty(), "the short area has expired");
+            assert!(
+                b.unit(UnitId(0)).unwrap().attackers.contains(&UnitId(1)),
+                "the independently retained identification grace still owns permission"
+            );
+            run(&mut b, ticks(2.0));
+            assert!(
+                !b.unit(UnitId(0)).unwrap().attackers.contains(&UnitId(1)),
+                "permission ends once neither identification nor contact remains"
+            );
+            return;
+        }
+    }
+    panic!("the rifleman never left sight and expired its short report");
+}
+
+#[test]
+fn renewed_contact_starts_a_new_acquisition_after_positive_aim() {
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "red", "kind": "rifle", "position": [600, 300], "engagement": "return_fire_only" },
+        ]),
+        json!([
+            { "tick": 5, "fire": { "unit": 1 } },
+            { "tick": 9, "fire": { "unit": 1 } },
+        ]),
+        json!([]),
+    );
+    setup.rules.sensors.contact_lifetime_s = 0.1;
+    let mut b = Battle::new(&setup, 5);
+    run(&mut b, 8);
+    let contact = b.observe(Side::Blue).contacts[0].id;
+    let old = mount(&b, Side::Blue, 0, 0);
+    assert_eq!(old.target, Some(TargetRef::Contact { id: contact }));
+    assert!(
+        old.aim > 0.0,
+        "the previous episode really earned aim: {old:?}"
+    );
+    b.step();
+    let fresh = &b.observe(Side::Blue).contacts[0];
+    assert_eq!(fresh.id, contact);
+    assert_eq!(fresh.evidence_tick, b.tick());
+    let new = mount(&b, Side::Blue, 0, 0);
+    assert_eq!(new.target, Some(TargetRef::Contact { id: contact }));
+    assert!(
+        new.aim < old.aim,
+        "renewal earns aim anew: old {old:?}, fresh {new:?}"
+    );
+}
+
+#[test]
+fn a_remembered_tank_type_does_not_authorize_ap_against_its_firing_area() {
+    // The tank drives beyond sight on flat ground: terrain cannot withhold
+    // the ordered shot and conceal the ammunition choice this test owns.
+    let mut b = battle(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "tank", "position": [400, 300], "engagement": "return_fire_only" },
+        ]),
+        json!([{ "tick": 600, "fire": { "unit": 1 } }]),
+        json!([
+            { "tick": 1, "side": "red", "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [600, 300], "route": "shortest" } },
+        ]),
+    );
+    run(&mut b, 600);
+    let frame = b.observe(Side::Blue);
+    assert!(frame.identified.is_empty(), "the tank moved beyond sight");
+    assert_eq!(frame.contacts.len(), 1);
+    let report = &frame.contacts[0];
+    assert_eq!(report.source, contract::observation::ContactSource::Firing);
+    assert_eq!(
+        report.kind,
+        Some(common::unit_kind("tank")),
+        "the label remembers the identified type"
+    );
+    let id = report.id;
+    Commander::new().ok(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Contact { id },
+        },
+    );
+    for _ in 0..360 {
+        for (_, unit, weapon) in run(&mut b, 1) {
+            if unit == 0 && weapon.starts_with("tank_") {
+                assert_eq!(
+                    weapon, "tank_he",
+                    "an uncertain area admits HE, never precision AP from remembered type"
+                );
+                return;
+            }
+        }
+    }
+    panic!("the cannon never fired into its ordered area");
+}
+
+#[test]
 fn area_fire_at_a_contact_comes_down_within_its_area() {
     // A blue tank 500 m from a red squad it cannot see (its sight is 350 m).
     // The squad fires once, leaving blue a firing report; the tank is ordered

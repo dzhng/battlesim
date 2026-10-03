@@ -4,7 +4,21 @@
 long-term extent and proposed performance-driven behavior changes. It supersedes
 older requirements to preserve every original route winner or immediate planning
 tick when evaluating a named behavior alternative. Historical proof results and
-their frozen oracles remain unchanged.
+their frozen oracles remain unchanged. The 2026-10-02 closeout direction below
+defers the 20 km architecture work and prioritizes playable release maps.
+
+## Current closeout direction
+
+**User amendment, 2026-10-02:** finish a playable city-maps release before further
+optimization. The 20 × 20 km architecture requirement is deferred, outside this
+spec's current implementation and completion gates. Ship the selected 6/8/10 km
+maps with correct coverage, readable scenery, usable movement and actual combat.
+Retain checks that detect failed loading, crashes, stalled gameplay or an unusable
+frame rate; broader architecture and optimization experiments wait until later.
+
+Fairness work is a cheap sanity check: fix low-hanging or obviously wrong layouts,
+without building a larger balancing system or making it the critical path.
+This does not waive global coverage or the main settlement's clear approaches.
 
 ## Release presets and transit target
 
@@ -13,15 +27,16 @@ This user-authorized size revision supersedes older fixed-extent instructions in
 slices and spike verdicts. Preserve the original sizes/hashes of measured evidence;
 update generator presets, bounds-dependent consumers and new admission arms to M04
 through a named preset/map identity change. This changes playable battlefield extent, not
-building/street scale or weapon ranges. The architecture envelope below is a
-separate capability requirement from selectable release presets.
+building/street scale or weapon ranges. The deferred architecture envelope below
+is separate from selectable release presets.
 
 ## Playable area and rendered surroundings
 
 The selected size is the **playable area**, not the outer edge of the rendered
 world. Render surrounding terrain/scenery beyond the playable perimeter so the
-battlefield sits inside a larger landscape. The margin's exact extent and detail
-are measured design choices; no numerical margin has been selected.
+battlefield sits inside a larger landscape. The initial player margin is 1,500 m through the common map extent contract;
+its preset rollout and final identity checks are owned by C54. This is a reasonable
+starting value for the later map workbench, not a parameter optimization target.
 
 Keep playable bounds and outer rendered/world bounds explicit in the common map
 preparation contract; implementation chooses the schema once with the compiler,
@@ -63,7 +78,7 @@ scale simulation time or multiply all units' combat movement by the same factor.
 
 ## Startup and loading
 
-First battle-map startup must take **less than one minute**. A loading screen is
+The current release criterion is **under 30 seconds from Deploy to a playable battle**, as selected in [M31](procedural-maps.md#closed-decisions). This supersedes the earlier one-minute allowance. A loading screen is
 allowed. Measure the complete interval from starting map preparation to a usable,
 interactive battle view, including generation/acquisition, encounter preparation,
 Battle construction and required renderer resources. Record cold and warm starts,
@@ -79,7 +94,11 @@ startup proof and player flow; the existing game-ui/visual gates still apply.
 
 ## Architecture envelope: 20 × 20 km
 
-The architecture must support a playable area up to **20 × 20 km**, plus its
+**Deferred by the 2026-10-02 user amendment.** The future requirement and safety
+notes below are retained for later work; no 20 km implementation, measurement or
+admission proof is required to finish this spec.
+
+The future architecture must support a playable area up to **20 × 20 km**, plus its
 bounded rendered surroundings. This replaces the earlier 100 km aspiration;
 larger playable extents are outside the required design envelope. Inventory the
 complete world/render margin rather than treating the playable size as its limit.

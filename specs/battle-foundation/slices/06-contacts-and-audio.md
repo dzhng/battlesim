@@ -1,10 +1,14 @@
 # 06 — Player observations and uncertain evidence
 
-**Status:** complete 2026-09-25 (tracer clipping moved to 08). **Dependencies:** 03, 05. **Milestone:** Village checkpoint.
+**Status:** original checkpoint complete 2026-09-25; one-report authority and player presentation are integrated (2026-10-02), with shared presentation for every actual diagnostic report caller integrated. Tracer clipping moved to 08. **Dependencies:** 03, 05. **Milestone:** Village checkpoint.
 
 ## Contract and question
 
 Can the player react to uncertain evidence without learning hidden truth?
+
+**Current user amendment (2026-10-02):** each side holds at most one approximate contact per enemy unit. Re-identification removes it from live knowledge immediately; every removed marker and label fades together over three seconds, during which it cannot be picked or targeted. Live reports remain fully visible, with one removal fade instead of a competing pre-expiry fade. Last-seen and subsequent firing evidence refresh one side-local record, using only permitted evidence. Renewed evidence updates the same visual owner instead of adding an overlapping fading patch. Hidden motion without new evidence never moves it. Every contact area has a white outline and an information label, including firing-only reports; unknown types remain truthfully unknown. This supersedes historical multiple episodes/reports, source-specific borders and pre-expiry fading.
+
+Implement at the existing knowledge/publication and contact presentation/glyph/readout boundaries. Remove redundant preferred-report ranking/flags once uniqueness is authoritative; do not add a renderer deduplication table or public emitter identity. Preserve repeated-shot uncertainty, independent hearing, side knowledge and general-purpose-only contact fire. Tests must cover firing after a last sighting, a shot outside the old area, separate hidden units, seeing/loss/reseeing, expiry, full/half/ended removal fades, same-owner renewal and pending/ordered contact targeting. Removed intent must not revive solely because its opaque report slot later returns. Verify complete Native/Wasm state and actual publications; name intentional digest changes rather than repinning old semantics. Paired captures include the user's close framing and both source types, with all labels/rims checked through the current report set. Existing visual gates below apply before acceptance.
 
 User requirements owned or exercised: V02, V08, V09, V10, V11, V13. Read their canonical entries in [requirements](../requirements.md), then the applicable [implementation contracts](../contracts.md). Do not infer rules from a fixture label.
 
@@ -67,3 +71,17 @@ Visual gate (identified, contact or unknown). The unprimed critique found the fi
 - **Left as is.** Friendly units are specks at this overview zoom, and unit labels belong to slice 14. The radius is shown because it is a property of the area, not hidden information.
 
 Moved to slice 08: clipping tracers and muzzle effects to each side's observable flight segments. There are no in-battle projectiles until weapons fire.
+
+## One-report authority and player presentation checkpoint — 2026-10-02
+
+The simulation keeps one private slot for each side's uncertain cause, with an opaque handle and live state. Fresh evidence overwrites that slot; re-identification, seen destruction and expiry remove its live report. The private emitter link never crosses the observation boundary. The primary-label field/ranking is deleted, reducing contact wire records from ten fields to nine. Previously identified type is retained through later heard firing; never-identified types remain unknown, and remembered type does not authorize precision ammunition against an uncertain area.
+
+The player's existing presentation owns the single removal clock. Live reports have full opacity; removal fades the area, border, leader and label together over three seconds, with no picking or targeting. Renewal replaces its retiring owner. The contacts lab consumes the same BattleView, replacing its separate overlay, legend, list and session. The base pass removes 57 nonblank production logic lines and eight CSS lines, excluding comments, tests, scenes, docs and data.
+
+Expiry cleanup precedes new evidence and commands on that tick. It ends queued area attacks and accumulated aim before a reused visual handle can return. The existing attacker-pruning rule retains legitimate identification grace independently. Actual hostile-fire, positive prior aim, short edited lifetimes, pending attacks and seeing/loss/reseeing regressions cover those consumers. Native/Wasm complete state and publications agree over the both-side lifecycle stream; same-build replay also passes. Focused evidence includes 10 contact, 47 weapon, 19 native publication, 25 publication/decoder and 42 presentation/control checks, plus typecheck, formatting and lint. The restored source, native identity, Wasm identity and saved visual captures agree on `d21abe125d…`; restart recovery restored an interrupted armour falsification before acceptance.
+
+Matched village captures at the reported close framing remove the second offset patch and hatch spill. The complete known/unknown, full/half/end removal and renewal set passes fresh image review, as do the supplementary report-anchor frames. The lab's new thin world line is its normal playable-border paint: a paused paint-off pair changes only that boundary's two pixel rows. Contact shots were shown in Preview. Complete evidence and scoped reviews are retained in ignored `throwaway/contact-canonicalization/`.
+
+The six quick comparison trials show a real neighbour shift: flank captures change from one of three to zero, aggregate blue cost lost from 1692.5 to 1842, and tank losses from two to three; ambush trials retain zero loss. All digests change with the report state. No coefficients were retuned. This small comparison is not final balance acceptance.
+
+**Actual diagnostic consumers integrated:** weapons and fog-look now consume the session-owned presentation and existing info-label component; the raw observation fallback is deleted. The same live/removed/half/ended reports are exercised through both actual worker routes. White outline opacity follows the shared report life independently of hatch ink, and labels use the existing black text halo. Nineteen focused consumer/glyph/fade/readout checks pass on the integrated tree. Eight actual-route frame checks and all complete images/native crops pass fresh review; both ended frames match the report-free baseline exactly. Static fog-look material specimens remain geometry probes with no report lifecycle. This closes contact consolidation, without claiming city-maps completion.

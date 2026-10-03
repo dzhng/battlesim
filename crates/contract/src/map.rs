@@ -6,6 +6,31 @@ use serde::{Deserialize, Serialize};
 
 pub type Rect = [f64; 4];
 
+/// Map-owned landscape bounds `[min_x, min_y, max_x, max_y]`. The display
+/// environment beyond them is separate; these never enlarge physical queries.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MapExtents {
+    pub playable: Rect,
+    pub physical: Rect,
+    pub rendered: Rect,
+}
+
+pub fn no_render_margin(value: &f64) -> bool {
+    *value == 0.0
+}
+
+/// A bounded visual margin; it creates no physical ground or bodies.
+pub fn render_margin<'de, D: serde::Deserializer<'de>>(de: D) -> Result<f64, D::Error> {
+    use serde::de::Error;
+    let margin = crate::numbers::scalar(de)?;
+    if !(0.0..=5000.0).contains(&margin) {
+        return Err(D::Error::custom(
+            "render margin must be between 0 and 5000 metres",
+        ));
+    }
+    Ok(margin)
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HeaderError {
     pub field: &'static str,
@@ -52,9 +77,17 @@ pub fn validate_header(
     bound(serialize = "B: Serialize", deserialize = "B: Deserialize<'de>")
 )]
 pub struct MapDefinition<B = BuildingDefinition> {
-    /// Closed ground bounds `[width, height]`.
+    /// Playable bounds `[width, height]`; the physical height grid can round at its last cell.
     #[serde(deserialize_with = "crate::numbers::array")]
     pub size: [f64; 2],
+    /// Visual-only terrain/scenery past the playable perimeter. Zero leaves
+    /// authored arenas' existing display environment unchanged.
+    #[serde(
+        default,
+        deserialize_with = "render_margin",
+        skip_serializing_if = "no_render_margin"
+    )]
+    pub render_margin_m: f64,
     /// Visibility and foliage cell spacing in metres.
     #[serde(deserialize_with = "crate::numbers::scalar")]
     pub fog_cell_m: f64,
@@ -89,10 +122,39 @@ pub struct MapDefinition<B = BuildingDefinition> {
 pub type SavedMap = MapDefinition<SavedBuilding>;
 
 impl<B> MapDefinition<B> {
+    /// Samples per axis, preserving the physical height field's cell rounding.
+    pub fn height_grid_size(&self) -> [usize; 2] {
+        self.size
+            .map(|s| (s / self.height_grid_m).round() as usize + 1)
+    }
+
+    pub fn extents(&self) -> MapExtents {
+        let playable = [0.0, 0.0, self.size[0], self.size[1]];
+        let [nx, ny] = self.height_grid_size();
+        let physical = [
+            0.0,
+            0.0,
+            (nx - 1) as f64 * self.height_grid_m,
+            (ny - 1) as f64 * self.height_grid_m,
+        ];
+        let m = self.render_margin_m;
+        MapExtents {
+            playable,
+            physical,
+            rendered: [
+                if m == 0.0 { 0.0 } else { -m },
+                if m == 0.0 { 0.0 } else { -m },
+                playable[2].max(physical[2]) + m,
+                playable[3].max(physical[3]) + m,
+            ],
+        }
+    }
+
     /// This map with `buildings` in place of its own, which are handed back.
     pub fn with_buildings<C>(self, buildings: Vec<C>) -> (MapDefinition<C>, Vec<B>) {
         let map = MapDefinition {
             size: self.size,
+            render_margin_m: self.render_margin_m,
             fog_cell_m: self.fog_cell_m,
             height_grid_m: self.height_grid_m,
             slope_cutoff_deg: self.slope_cutoff_deg,

@@ -5,7 +5,8 @@
 // Ported by technique from ~/dev/game/web/src/battle/benchmark/
 // benchmarkReport.ts.
 import type { BenchmarkRecording } from "./recording";
-import { benchmarkFingerprint, type BenchmarkLength, type BenchmarkScenario } from "./scenario";
+import { benchmarkFingerprint, type BenchmarkLength, type BenchmarkScenario } from "./presets";
+import type { PreparationReport } from "../prepare/protocol";
 
 export interface BenchmarkIdentity {
   userAgent: string;
@@ -32,6 +33,7 @@ export function createBenchmarkReport(run: {
   /** The tick timing started on, and the last published. */
   startTick: number;
   endTick: number;
+  preparation?: PreparationReport;
 }) {
   const { scenario, recording } = run;
   const measured = recording.report(scenario.tour.phases.map((p) => p.name));
@@ -46,7 +48,7 @@ export function createBenchmarkReport(run: {
       variant: scenario.variant,
       seed: scenario.seed,
       blue: scenario.blue,
-      red: "defender",
+      red: scenario.blue === "scenario-orders" ? "scenario-orders" : "defender",
       startTick: scenario.startTick,
       cameraScript: scenario.tour.version,
     },
@@ -57,6 +59,7 @@ export function createBenchmarkReport(run: {
     recordedMs: recording.frames.at(-1)?.elapsedMs ?? 0,
     outcome: run.outcome,
     identity: run.identity,
+    ...(run.preparation && { preparation: run.preparation }),
     measurement:
       "Frame interval: requestAnimationFrame cadence, redrawn every frame. CPU: the viewport's frame callback. GPU: the battle frame's own timestamp-query frame total, read every 2 s over its last 240 frames; passes overlap on tile GPUs, so there is no per-pass split.",
     simulation: {

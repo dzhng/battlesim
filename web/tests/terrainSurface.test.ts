@@ -73,6 +73,53 @@ function world(map: unknown): { view: WorldView; exports: WorldExports } {
   };
 }
 
+test("visual surroundings extend rendered fields without enlarging physical terrain or picking", () => {
+  const original = world(geometry);
+  const surrounded = world({ ...geometry, render_margin_m: 500 });
+  const surface = buildTerrainSurface(surrounded.exports, layout, biome);
+  expect(surface.plots.region).toEqual([
+    -500,
+    -500,
+    geometry.size[0] + 500,
+    geometry.size[1] + 500,
+  ]);
+  expect(surrounded.exports.extents).toEqual({
+    playable: [0, 0, ...geometry.size],
+    physical: [0, 0, ...geometry.size],
+    rendered: surface.plots.region,
+  });
+  expect(surrounded.exports.positions).toEqual(original.exports.positions);
+  expect(surrounded.exports.indices).toEqual(original.exports.indices);
+  expect(surrounded.exports.terrain).toEqual(original.exports.terrain);
+  expect(surrounded.exports.props).toEqual(original.exports.props);
+  expect(surrounded.view.height_at(-1, 100)).toEqual(original.view.height_at(-1, 100));
+  expect(surrounded.view.raycast(-1, 100, 100, 0, 0, -1, 200)).toEqual(
+    original.view.raycast(-1, 100, 100, 0, 0, -1, 200),
+  );
+});
+
+test("an authored arena retains its physical footprint when its last height cell is rounded", () => {
+  const { view, exports } = world({
+    size: [12, 10],
+    height_grid_m: 4,
+    fog_cell_m: 4,
+    slope_cutoff_deg: 35,
+  });
+  const surface = buildTerrainSurface(exports, layout, {
+    ...biome,
+    field_rules: { ...biome.field_rules, extent_m: 8 },
+  });
+  expect(exports.extents).toEqual({
+    playable: [0, 0, 12, 10],
+    physical: [0, 0, 12, 12],
+    rendered: [0, 0, 12, 12],
+  });
+  expect(view.height_at(0, 12)).toBe(0);
+  expect(view.height_at(0, 12.01)).toBeUndefined();
+  expect(surface.site.map).toEqual([0, 0, 12, 12]);
+  expect(surface.plots.region).toEqual([-8, -8, 20, 20]);
+});
+
 /** Every drawn triangle containing (x, y), with its height there and its normal. */
 function drawnAt(surface: TerrainSurface, x: number, y: number) {
   const m = surface.mesh;

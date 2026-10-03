@@ -11,7 +11,12 @@ import {
   type ObservationView,
 } from "../src/battle/sim/observation";
 
-import { labScenario, type LabScript, type LabUnit } from "@apps/battle-lab/src/scenarios";
+import {
+  labScenario,
+  type LabEvent,
+  type LabScript,
+  type LabUnit,
+} from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
 import type { MapDefinition } from "@web/maps/resolve";
 
@@ -22,6 +27,7 @@ type PublicationStreamRecord = {
   initial_digest: string;
   seed: number;
   units: LabUnit[];
+  events: LabEvent[];
   scripts: LabScript[];
   rows: {
     side: "blue" | "red";
@@ -49,9 +55,15 @@ const coverFacingStream: PublicationStreamRecord = JSON.parse(
     "utf8",
   ),
 );
+const contactLifecycleStream: PublicationStreamRecord = JSON.parse(
+  readFileSync(
+    new URL("../../fixtures/parity/publication/contact-lifecycle.json", import.meta.url),
+    "utf8",
+  ),
+);
 function publicationScenario(stream: PublicationStreamRecord) {
   const map = typeof stream.map === "string" ? loadMap(stream.map).definition : stream.map;
-  return labScenario(map, stream.units, [], stream.scripts);
+  return labScenario(map, stream.units, stream.events, stream.scripts);
 }
 const SCENARIO = publicationScenario(stream);
 const sha256 = (words: Float32Array | Uint32Array) =>
@@ -79,6 +91,18 @@ test("wasm large-coordinate arrangement matches native authoritative state befor
 
 test("wasm cover facing matches native authoritative state through its scheduled resolve", () => {
   publicationStream(coverFacingStream, false);
+});
+
+test("wasm contact refresh, retirement and slot renewal match native full state on both sides", () => {
+  const frames = publicationStream(contactLifecycleStream, false);
+  const first = frames[4].contacts[0];
+  expect(first.kind).toBeNull();
+  expect(frames[600].contacts[0].id).toBe(first.id);
+  expect(frames[600].contacts[0].center).not.toEqual(first.center);
+  expect(frames[1520].contacts).toEqual([]);
+  expect(frames[1601].contacts[0].id).toBe(first.id);
+  expect(frames[1601].contacts[0].evidenceTick).toBe(1602);
+  expect(frames.every((frame) => frame.contacts.length <= 1)).toBe(true);
 });
 
 function publicationStream(stream: PublicationStreamRecord, combat: boolean) {
@@ -112,6 +136,7 @@ function publicationStream(stream: PublicationStreamRecord, combat: boolean) {
     retained.forEach((frame, i) =>
       expect(sha256(frame.fog.bits), `retained tick ${i + 1}`).toBe(stream.rows[i].fog_sha256),
     );
+    return retained;
   } finally {
     battle.free();
   }

@@ -172,7 +172,7 @@ const HEADER: [&str; 27] = [
     "groundRunCount",
 ];
 const GROUND_FIELDS: [&str; 4] = ["tile", "span", "craterScorch", "tracksTrampledCleared"];
-const CONTACT_FIELDS: [&str; 10] = [
+const CONTACT_FIELDS: [&str; 9] = [
     "id",
     "source",
     "x",
@@ -182,7 +182,6 @@ const CONTACT_FIELDS: [&str; 10] = [
     "expiresTick",
     "kind",
     "heard",
-    "primaryLabel",
 ];
 const AUDIBLE_FIELDS: [&str; 5] = ["listener", "category", "sector", "band", "moving"];
 const PROJECTILE_FIELDS: [&str; 10] = [
@@ -962,7 +961,6 @@ fn pack_record(
             c.expires_tick as f32,
             c.kind.map_or(-1.0, |k| k.0 as f32),
             c.heard as f32,
-            u8::from(c.primary_label) as f32,
         ]);
     }
     if let Some(ends) = ends.as_mut() {

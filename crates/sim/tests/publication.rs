@@ -387,6 +387,15 @@ fn cover_facing_matches_its_paired_state_record() {
     publication_stream(record, "publication/cover-facing.json", false);
 }
 
+#[test]
+fn contact_lifecycle_matches_its_paired_state_record() {
+    let record: Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/publication/contact-lifecycle.json"
+    ))
+    .unwrap();
+    publication_stream(record, "publication/contact-lifecycle.json", false);
+}
+
 fn publication_stream(record: Value, path: &str, combat: bool) {
     let map = match record["map"].as_str() {
         Some(id) => sim::maps::load(id).unwrap().definition,
@@ -395,7 +404,7 @@ fn publication_stream(record: Value, path: &str, combat: bool) {
     let setup = common::scenario_with(
         &serde_json::to_string(&map).unwrap(),
         record["units"].clone(),
-        json!([]),
+        record["events"].clone(),
         record["scripts"].clone(),
     );
     let mut battle = Battle::new(&setup, record["seed"].as_u64().unwrap());

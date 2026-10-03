@@ -41,10 +41,9 @@ import { gameCamera } from "../gameCamera";
 
 const SEED = 20260925;
 const TICK_HZ = game.tick_hz;
-// Normalise each resolved weapon to ordinary gravity by scaling its speed
-// with the same factor. This preserves its arc while the flight bench's
-// scripted bodies follow the resulting flight time. Acquisition range is
-// judged by the battle's weapon rules, not this physical flight bench.
+// Resolved weapon rows, with speed divided by sqrt(gravity_scale) and gravity
+// normalized to one: the same stationary arc at a diagnostic flight speed.
+// Scripted bodies isolate swept collision from gameplay's flight timing.
 const W: Record<string, WeaponRow> = Object.fromEntries(
   Object.entries(WEAPONS).map(([name, row]) => {
     const g = typeof row.gravity_scale === "number" ? row.gravity_scale : 1;
@@ -135,7 +134,7 @@ const MOVERS: Mover[] = [
     unit: 4,
     shape: "capsule",
     dims: SOLDIER,
-    start: [355, 132.2],
+    start: [360, 140],
     yaw: NORTH,
     velocity: [0, 3],
   },
@@ -144,7 +143,7 @@ const MOVERS: Mover[] = [
     unit: 5,
     shape: "box",
     dims: TANK,
-    start: [376, 116],
+    start: [380, 140],
     yaw: NORTH,
     velocity: [0, 8],
     armored: true,
@@ -164,14 +163,16 @@ const MOVERS: Mover[] = [
 ];
 
 const SHOTS: Shot[] = [
-  ...[60, 120, 180].map((range, i): Shot => ({
-    label: `grenade arc ${range} m`,
-    weapon: W.grenade,
-    kind: "grenade",
-    from: [20, 14 + 6 * i],
-    muzzle: P.infantry_muzzle_m,
-    aim: { ground: [20 + range, 14 + 6 * i] },
-  })),
+  ...[60, 120, 180].map(
+    (range, i): Shot => ({
+      label: `grenade arc ${range} m`,
+      weapon: W.grenade,
+      kind: "grenade",
+      from: [20, 14 + 6 * i],
+      muzzle: P.infantry_muzzle_m,
+      aim: { ground: [20 + range, 14 + 6 * i] },
+    }),
+  ),
   {
     label: "hmg at sliding board",
     weapon: W.hmg,
@@ -197,10 +198,10 @@ const SHOTS: Shot[] = [
     aim: { body: 3, height: 0.85 },
   },
   {
-    label: "direct hmg over crest",
-    weapon: W.hmg,
-    kind: "hmg",
-    from: [100, 118],
+    label: "direct grenade over crest",
+    weapon: W.grenade,
+    kind: "grenade",
+    from: [100, 150],
     muzzle: P.infantry_muzzle_m,
     aim: { ground: [100, 292] },
   },
@@ -223,23 +224,27 @@ const SHOTS: Shot[] = [
   // Oblique AP: spent AP onto the tank's front 25° off its normal, and HMG
   // onto its side about 37° off its normal from the south-east, each round
   // rolling its face's chance.
-  ...[0, 1, 2, 3].map((k): Shot => ({
-    label: `oblique AP ${k + 1}`,
-    weapon: LAB_SPENT_AP,
-    kind: "tank_ap",
-    from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
-    muzzle: 2,
-    // Spread up the plate so each round's mark stands apart.
-    aim: { body: 6, height: 0.5 + 0.45 * k },
-  })),
-  ...[0, 1, 2, 3].map((k): Shot => ({
-    label: `hmg at tank side ${k + 1}`,
-    weapon: W.hmg,
-    kind: "hmg",
-    from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
-    muzzle: 2,
-    aim: { body: 6, height: 0.5 + 0.45 * k },
-  })),
+  ...[0, 1, 2, 3].map(
+    (k): Shot => ({
+      label: `oblique AP ${k + 1}`,
+      weapon: LAB_SPENT_AP,
+      kind: "tank_ap",
+      from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
+      muzzle: 2,
+      // Spread up the plate so each round's mark stands apart.
+      aim: { body: 6, height: 0.5 + 0.45 * k },
+    }),
+  ),
+  ...[0, 1, 2, 3].map(
+    (k): Shot => ({
+      label: `hmg at tank side ${k + 1}`,
+      weapon: W.hmg,
+      kind: "hmg",
+      from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
+      muzzle: 2,
+      aim: { body: 6, height: 0.5 + 0.45 * k },
+    }),
+  ),
 ];
 
 const BALLISTICS_CAMERA: Camera3DParams = {
@@ -291,6 +296,7 @@ interface Run {
   shots: ShotResult[];
   events: LabEvent[];
   paths: Map<number, Xyz[]>;
+  movers: Mover[];
 }
 
 function poseAt(view: WorldView, m: Mover, tick: number) {
@@ -304,9 +310,9 @@ function poseAt(view: WorldView, m: Mover, tick: number) {
 }
 
 /** Bodies over tick `k` (from its start to its end), packed for the lab. */
-function packBodies(view: WorldView, k: number): Float64Array {
+function packBodies(view: WorldView, movers: Mover[], k: number): Float64Array {
   const out: number[] = [];
-  for (const m of MOVERS) {
+  for (const m of movers) {
     const [a, b] = [poseAt(view, m, k - 1), poseAt(view, m, k)];
     const dims = [...m.dims, 0, 0, 0].slice(0, 3);
     out.push(
@@ -363,7 +369,25 @@ function startRun(wasm: Wasm, map: MapDefinition, view: WorldView, spread: boole
     if (result.fired) paths.set(result.projectile, [origin]);
     return { label: shot.label, ...result };
   });
-  return { lab, tick: 0, shots, events: [], paths };
+  const crossingShot = SHOTS.find((s) => s.label === "grenade across crossing bodies")!;
+  const crossing = shots.find((s) => s.label === crossingShot.label)!;
+  if (!crossing.fired || crossing.time_of_flight === undefined)
+    throw new Error("the crossing demonstration needs a solved launch");
+  if (!("ground" in crossingShot.aim)) throw new Error("the crossing aim must be ground");
+  const [aimX, aimY] = crossingShot.aim.ground;
+  const arrival = crossing.time_of_flight;
+  const reach = aimX - crossingShot.from[0];
+  // The tank reaches the aim on arrival. The soldier crosses the descending
+  // segment one body diameter early, outside collision but inside near-miss reach.
+  // Nominal flight time keeps the body script fixed when spread is toggled.
+  const movers = MOVERS.map((m) => {
+    if (m.id !== 4 && m.id !== 5) return m;
+    const x = m.id === 5 ? aimX : m.start[0];
+    const time = arrival * ((x - crossingShot.from[0]) / reach);
+    const passed = m.id === 4 ? 2 * P.soldier_radius_m : 0;
+    return { ...m, start: [x, aimY - m.velocity[1] * time + passed] as [number, number] };
+  });
+  return { lab, tick: 0, shots, events: [], paths, movers };
 }
 
 /** What a struck label hit, as the battle publishes it. */
@@ -397,7 +421,7 @@ function launchPublication(): EffectPublication {
 /** Step the run one tick; what it drew, as a publication for the effects. */
 function stepRun(run: Run, view: WorldView): EffectPublication {
   const k = run.tick + 1;
-  run.lab.set_bodies(packBodies(view, k));
+  run.lab.set_bodies(packBodies(view, run.movers, k));
   const out = JSON.parse(run.lab.step()) as {
     events: Omit<LabEvent, "tick">[];
     rounds: [number, number, number, number][];
@@ -516,7 +540,7 @@ function overlayOf(run: Run, view: WorldView, half: number) {
   const struck = new Set(
     run.events.filter((e) => e.struck?.startsWith("body")).map((e) => Number(e.struck!.slice(5))),
   );
-  const bodies: FlightBody[] = MOVERS.map((m) => {
+  const bodies: FlightBody[] = run.movers.map((m) => {
     const p = poseAt(view, m, run.tick);
     return { shape: m.shape, base: p.base, yaw: p.yaw, dims: m.dims, struck: struck.has(m.id) };
   });
@@ -625,7 +649,7 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
       setLineHalfWidth: setHalf,
       state: () => {
         const run = runRef.current;
-        return run && { tick: run.tick, shots: run.shots, events: run.events };
+        return run && { tick: run.tick, shots: run.shots, events: run.events, movers: run.movers };
       },
       subsegments: () => runRef.current?.lab.subsegments_per_tick(),
       effects: () => effects.stats(),

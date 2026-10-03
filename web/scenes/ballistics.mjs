@@ -73,6 +73,20 @@ export async function run(ctx) {
     (await page.evaluate(() => window.__lab.route.subsegments())) === 1,
   );
 
+  const crossingWindow = await page.evaluate((endTick) => {
+    const route = window.__lab.route;
+    route.runTo(endTick);
+    const state = route.state();
+    const shot = state.shots.find((s) => s.label === "grenade across crossing bodies");
+    const events = state.events.filter((e) => e.projectile === shot.projectile);
+    const impact = events.find((e) => e.kind === "impact");
+    const firstPass = events.find((e) => e.kind === "near_miss" && e.unit === 4);
+    if (!impact || !firstPass) throw new Error("crossing capture needs an impact and near miss");
+    route.reset(false);
+    return { before: firstPass.tick - 1, impact: impact.tick };
+  }, END_TICK);
+  await ctx.writeEvidence("crossing-window.json", crossingWindow);
+
   // Timing sequence: overview and the two between-tick collisions.
   await show(page, "overview");
   await runTo(page, 4);
@@ -88,10 +102,10 @@ export async function run(ctx) {
   await runTo(page, 20);
   await capture(ctx, page, "seq-overview-t020.png");
   await show(page, "crossing");
-  await runTo(page, 40);
-  await capture(ctx, page, "seq-crossing-t040.png");
-  await runTo(page, 93);
-  const crossing = await capture(ctx, page, "seq-crossing-t093.png");
+  await runTo(page, crossingWindow.before);
+  await capture(ctx, page, `seq-crossing-t${crossingWindow.before}.png`);
+  await runTo(page, crossingWindow.impact);
+  const crossing = await capture(ctx, page, `seq-crossing-t${crossingWindow.impact}.png`);
   await show(page, "overview");
   await runTo(page, 120);
   await capture(ctx, page, "seq-overview-t120.png");
@@ -136,7 +150,7 @@ export async function run(ctx) {
     walker?.struck === "body:2" && dodger?.struck === "terrain",
     JSON.stringify({ walker, dodger }),
   );
-  const direct = shot("direct hmg over crest");
+  const direct = shot("direct grenade over crest");
   const mortar = shot("indirect lab mortar over crest");
   const landed = end("indirect lab mortar over crest");
   ctx.check(
@@ -220,7 +234,7 @@ export async function run(ctx) {
   );
   await writeCrop(
     decode(crossing),
-    ctx.evidencePath("crop-crossing-t093-3x.png"),
+    ctx.evidencePath(`crop-crossing-t${crossingWindow.impact}-3x.png`),
     tankPx[0] - 60,
     tankPx[1],
     150,
@@ -287,8 +301,7 @@ export async function run(ctx) {
   );
   const midPx = await project(page, [110, 20, 3]);
   await writeCrop(side, ctx.evidencePath("crop-arcs-strip-2x.png"), midPx[0], midPx[1], 320, 60, 2);
-  // Resolve the actual launched arc's apex, so grenade tuning cannot leave
-  // this camera check pointing at a height the round never occupied.
+  // Measure the launched arc rather than projecting a fixed expected height.
   const longArc = shot("grenade arc 180 m");
   const gravity = game.physics.gravity_mps2;
   const apexTime = longArc.velocity[2] / gravity;

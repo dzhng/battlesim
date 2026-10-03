@@ -7,49 +7,71 @@
 import { writeFile } from "node:fs/promises";
 
 const PREPARE_TIMEOUT_MS = 600_000;
-const RUN = process.env.BENCHMARK_LENGTH === "full" ? /Full run/ : /Short run/;
+const FULL = process.env.BENCHMARK_LENGTH === "full";
+const RUN = FULL ? /Full run/ : /Short run/;
 /** Placement is exact: the tour's keyframes sit inside the rig's limits. */
 const CAMERA_TOLERANCE = 1e-6;
 
 const shot = async (ctx, page, name) =>
   writeFile(ctx.evidencePath(name), await page.screenshot({ fullPage: false }));
 
-export async function run(ctx) {
+export async function run(ctx, preset = "village-contact") {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   const origin = new URL(ctx.url).origin;
-  await page.goto(`${origin}/`);
-  const main = page.getByRole("navigation", { name: "Main menu" });
-  const played = await main.locator(".menu-card-label").allTextContents();
-  // The test village, the benchmark and the labs are behind the developer link.
-  const hidden = await page.getByRole("navigation", { name: "Developer" }).count();
-  await page.getByRole("button", { name: "Developer" }).click();
-  const nav = page.getByRole("navigation", { name: "Developer" });
-  const labels = await nav.locator(".menu-card-label").allTextContents();
-  ctx.check(
-    "the main menu offers play and replay, and the village, benchmark and labs behind the developer link",
-    played.join() === "Play Market Town,Watch replay" &&
-      hidden === 0 &&
-      labels.join() === "Village,Benchmark,Labs",
-    JSON.stringify({ played, hidden, labels }),
-  );
-  const card = nav.getByRole("link", { name: "Benchmark", exact: true });
-  ctx.check(
-    "each menu entry is one link, named by its title and described by its note",
-    (await nav.getByRole("link").count()) === labels.length &&
-      (await card.getAttribute("aria-describedby")) !== null,
-    `${await nav.getByRole("link").count()} links for ${labels.length} entries`,
-  );
-  await card.hover();
-  await shot(ctx, page, "menu.png");
-  // The whole card navigates: click its description, not its title.
-  await card.locator(".menu-card-note").click();
-  await page.waitForURL("**/benchmark", { timeout: 10_000 });
-  ctx.check(
-    "clicking a menu card's description navigates",
-    page.url().endsWith("/benchmark"),
-    page.url(),
-  );
+  if (preset === "city-contact") {
+    await page.goto(`${origin}/benchmark?preset=city-contact`);
+    await page.waitForFunction(() => window.__benchmark?.preset === "city-contact");
+    const selected = await page.evaluate(() => window.__benchmark?.preset);
+    ctx.check(
+      "the named city-contact address selects its distinct workload",
+      selected === preset,
+      page.url(),
+    );
+  } else {
+    await page.goto(`${origin}/`);
+    const main = page.getByRole("navigation", { name: "Main menu" });
+    const played = await main.locator(".menu-card-label").allTextContents();
+    // The test village, the benchmark and the labs are behind the developer link.
+    const hidden = await page.getByRole("navigation", { name: "Developer" }).count();
+    await page.getByRole("button", { name: "Developer" }).click();
+    const nav = page.getByRole("navigation", { name: "Developer" });
+    const labels = await nav.locator(".menu-card-label").allTextContents();
+    ctx.check(
+      "the main menu offers play and replay, and the village, benchmark and labs behind the developer link",
+      played.join() === "Play Market Town,Watch replay" &&
+        hidden === 0 &&
+        labels.join() === "Village,Benchmark,Labs",
+      JSON.stringify({ played, hidden, labels }),
+    );
+    const card = nav.getByRole("link", { name: "Benchmark", exact: true });
+    ctx.check(
+      "each menu entry is one link, named by its title and described by its note",
+      (await nav.getByRole("link").count()) === labels.length &&
+        (await card.getAttribute("aria-describedby")) !== null,
+      `${await nav.getByRole("link").count()} links for ${labels.length} entries`,
+    );
+    await card.hover();
+    await shot(ctx, page, "menu.png");
+    // The whole card navigates: click its description, not its title.
+    await card.locator(".menu-card-note").click();
+    await page.waitForURL("**/benchmark", { timeout: 10_000 });
+    ctx.check(
+      "clicking a menu card's description navigates",
+      page.url().endsWith("/benchmark"),
+      page.url(),
+    );
+  }
   await page.getByRole("button", { name: RUN }).waitFor();
+  const footer = await page.getByRole("link", { name: "Main menu", exact: true }).evaluate((a) => ({
+    color: getComputedStyle(a).color,
+    textColor: getComputedStyle(a.parentElement).color,
+    rows: a.getClientRects().length,
+  }));
+  ctx.check(
+    "the footer's menu link stays readable with its name together",
+    footer.color === footer.textColor && footer.rows === 1,
+    JSON.stringify(footer),
+  );
   await shot(ctx, page, "start.png");
 
   const clicked = Date.now();
@@ -79,13 +101,42 @@ export async function run(ctx) {
   let firstRunning = null;
   let firstSound = null;
   let firstStats = null;
+  const checkContact = FULL && preset === "city-contact";
+  // Compare actual shot counters within each window: shots from before the
+  // window, or an opening burst with no later fire, cannot establish contact.
+  const contact = [
+    { name: "opening minute", fromS: 0, toS: 60, units: new Set() },
+    { name: "final minute", fromS: 240, toS: 300, units: new Set() },
+  ];
+  const contactSamples = [];
+  let previousShots = new Map();
+  let previousElapsedS = -1;
   while (!(await page.evaluate(() => window.__benchmark?.stage === "results"))) {
-    const now = await page.evaluate(() => ({
-      text: document.querySelector("[data-testid=benchmark-progress] span")?.textContent ?? "",
-      rounds: window.__lab?.route?.observation()?.projectiles?.length ?? 0,
-      audio: window.__lab?.route?.audio?.() ?? null,
-    }));
+    const now = await page.evaluate((checkContact) => {
+      const observation = window.__lab?.route?.observation();
+      return {
+        text: document.querySelector("[data-testid=benchmark-progress] span")?.textContent ?? "",
+        rounds: observation?.projectiles?.length ?? 0,
+        audio: window.__lab?.route?.audio?.() ?? null,
+        shots: checkContact
+          ? observation.own.map((u) => [
+              u.id,
+              u.weaponPoses.reduce((shots, p) => shots + p.shots, 0),
+            ])
+          : [],
+      };
+    }, checkContact);
     rounds = Math.max(rounds, now.rounds);
+    if (checkContact) {
+      const elapsedS = Number(/^(\d+) \/ 300 s/.exec(now.text)?.[1] ?? NaN);
+      const firing = now.shots.filter(([id, count]) => count > previousShots.get(id));
+      for (const window of contact)
+        if (previousElapsedS >= window.fromS && elapsedS < window.toS)
+          for (const [id] of firing) window.units.add(id);
+      contactSamples.push({ elapsedS, firingUnits: firing.length });
+      previousShots = new Map(now.shots);
+      previousElapsedS = elapsedS;
+    }
     const since = (Date.now() - runStart) / 1000;
     firstStats ??= now.audio;
     if (firstRunning === null && now.audio?.running) firstRunning = since;
@@ -120,6 +171,54 @@ export async function run(ctx) {
     report.outcome.status === "complete",
     report.outcome.reason,
   );
+  if (FULL)
+    ctx.check(
+      "the full run records all 300 seconds at 30 FPS or more",
+      report.outcome.status === "complete" &&
+        report.length === "full" &&
+        report.durationMs === 300000 &&
+        report.recordedMs >= report.durationMs &&
+        Number.isFinite(report.averageFps) &&
+        report.averageFps >= 30,
+      `${report.recordedMs.toFixed(0)} ms recorded, ${report.averageFps.toFixed(1)} FPS`,
+    );
+  if (checkContact) {
+    await ctx.writeEvidence("contact.json", {
+      windows: contact.map(({ name, fromS, toS, units }) => ({
+        name,
+        fromS,
+        toS,
+        firingUnits: [...units],
+      })),
+      samples: contactSamples,
+    });
+    for (const window of contact)
+      ctx.check(
+        `city contact involves multiple own units firing during the ${window.name}`,
+        window.units.size >= 10,
+        `${window.units.size} units with advancing shot counters from ${window.fromS} to ${window.toS} s`,
+      );
+  }
+  if (preset === "city-contact") {
+    const p = report.preparation;
+    const r = p?.request.map_source.request;
+    ctx.check(
+      "the city result identifies the complete generated world and existing central contact script",
+      report.scenario.id === preset &&
+        report.scenario.variant === "city-arena-1" &&
+        report.scenario.blue === "scenario-orders" &&
+        report.scenario.red === "scenario-orders" &&
+        p?.identity.kind === "generated" &&
+        r?.type === "metro" &&
+        r.size === "large" &&
+        r.seed === "4" &&
+        p.stress?.kind === "city-arena-1" &&
+        !p.stress.late &&
+        p.stress.livingUnits.blue === 100 &&
+        p.stress.livingUnits.red === 100,
+      JSON.stringify(p),
+    );
+  }
   const phases = report.tour.phases.map((p) => p.name);
   const empty = report.phases.filter((p) => !p.frameMs?.count).map((p) => p.name);
   ctx.check(

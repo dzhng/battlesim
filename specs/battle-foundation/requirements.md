@@ -142,7 +142,7 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 
 ## V08
 
-**Decision:** Approximate contacts disclose an uncertain area without exact identity or location, including concealed targets outside ground fog and firing sources behind obstacles.
+**Decision:** Approximate contacts disclose an uncertain area without exact identity or location, including concealed targets outside ground fog and firing sources behind obstacles. At most one report per enemy unit; every marker has a white border and an information label (2026-10-02 user amendment).
 
 **Why:** Support uncertain return fire without omniscient targeting.
 
@@ -150,7 +150,7 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 
 ## V09
 
-**Decision:** Losing identification creates a fading approximate contact around the last observed location, using the spotted-contact visual language. It never follows unseen movement.
+**Decision:** Losing identification creates an approximate contact around the last observed location. It never follows unseen movement. Re-identification removes live contact authority, and any removal retains the existing three-second marker/label fade with no picking or targeting during retirement. Consolidate report, style, label and fade paths into a simpler system (2026-10-02 user amendment).
 
 **Why:** Preserve useful memory without tracking hidden enemies.
 

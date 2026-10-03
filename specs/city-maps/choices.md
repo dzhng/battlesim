@@ -5424,13 +5424,15 @@ The open-country pass (M24, M25): `crates/mapgen/src/open_country/`, its rows in
 
 **Verdict:** sound. **Confidence:** high.
 
-### "Most of the circle stays open" is held against the bare map, not against 80%
+### Keep visibility distribution diagnostic while finishing playable maps
 
-**Choice:** The test holds the median place to 80% open, or to within 7 points of the bare map's median where woods and towns had already taken more, and the share of open ground under half open to a rise of 6 points.
+**Choice:** Use the user's 50% floor for median sampled openness and keep the fraction of views with fewer than half their directions reaching full range as a reported diagnostic. Remove the inherited six-point enclosure-rise tuning gate rather than starting another placement optimization. Global interrupted sight, physical legality and clear main approaches remain mandatory.
 
-**Gap:** The owner's aim is a median around 80 to 90%. Before the pass, medians run from 69% to 98% over 36 maps (the nine cells, seeds 1 to 4), 84% on average: big woods and towns already close a fifth of the typical circle on many maps.
+**Gap:** The user selected the median floor and asked to stop overoptimizing before play, without prescribing every diagnostic's admission role. The former enclosure-rise threshold was an implementation choice rather than a user requirement.
 
-**Verdict:** provisional. After the pass medians run from 66% to 87%, 79% on average: two to eleven points under the bare map, the largest drops where the bare map was most open (Metro Small seed 1: 98% to 87%). Open ground under half open goes from 5.0% to 6.1% on average. A guarantee that every place sees something costs a few points wherever nothing was in view; on those 36 maps it takes the places that see an unbroken circle from 5,245 of 30,122 samples to none of 29,818, and the columns with a unit that starts with one from 10 of 72 to none. **Confidence:** medium.
+**Reach:** A map can have more locally enclosed positions while its typical open-ground view still meets the floor. The report exposes that distribution for actual play review; it must not hide it behind the median or claim every position has half its directions open.
+
+**Verdict:** sound as a bounded playability-first interpretation; final pictures and play still judge whether the fields remain useful. **Confidence:** medium.
 
 ### Bare ground is filled; densities are small
 
@@ -6080,3 +6082,73 @@ The second pass's unprimed review found nearly all its street faults along the s
 ### Judge neutral boundary paint by colour and actual contrast
 
 **When:** boundary integration triage, 2026-10-02. **Choice:** Check the stored paint's neutral colour at each boundary sample, then require that it changes the finished frame there. Grey over a yellow field can lower red and raise blue; checking only positive red/blue rises incorrectly rejected a visible dim white line. The paired-frame helper retains both finished images for signed contrast. **Gap:** The scene specified a visible neutral border but assumed neutral paint brightened every channel. **Reach:** This corrects verification without changing border style, width, geometry or rendering; absent paint and unchanged finished frames still fail. **Verdict:** sound; stored colour and composited contrast establish the two required properties independently. **Confidence:** high.
+
+### Stage diagnostic flight against current physical rules
+
+**When:** lab integration triage, 2026-10-02. **Choice:** A low grenade arc now starts nearer the existing ridge, and moving-body starts use the owner's nominal solved flight time while retaining their speeds and shapes. Spread changes the projectile without moving the diagnostic actors. Otherwise, the old coordinates would test a crest the round clears and a tank that has already left its path. **Gap:** Fixture coordinates encoded obsolete flight timing. **Reach:** Diagnostic staging changes; weapon coefficients and gameplay flight do not. **Verdict:** sound; the fixtures again demonstrate the original blocked-arc and swept-collision contracts. **Confidence:** high.
+
+### Give the hidden weapons diagnostic a reachable physical screen
+
+**When:** lab integration triage, 2026-10-02. **Choice:** A nearby firing emitter sits behind a low wall, and the blue observer stands where the identified tank is within both weapon mounts' reach. A distant hidden report cannot demonstrate a 150 m grenade's area fire, and rifle reach alone cannot establish the identified control's eligibility for every mount. **Gap:** The fixture needed nearby hidden evidence after weapon tuning. **Reach:** The authored diagnostic map and encounter identity change; no targeting or concealment rules change. **Verdict:** sound; range and source controls prevent an ineligible target from making the experiment pass. **Confidence:** medium; the wall is a chosen diagnostic arrangement rather than a product requirement.
+
+### Keep diagnostic feeds reachable inside the viewport
+
+**When:** lab-panel integration, 2026-10-02. **Choice:** The existing lab panel uses its own bounded scrolling; its feed retains one pixel below the last row so fractional scroll endpoints cannot clip it. The scene scrolls every actual feed row into view at desktop and smaller viewports, requiring full containment. Otherwise, a valid simulation event can remain unreadable below the panel. **Gap:** The lab layout did not specify overflow behavior. **Reach:** All consumers of the existing lab-panel style inherit its viewport bound; no new panel or navigation model is introduced. **Verdict:** sound; the existing surface remains readable with strict checks and no tolerance relaxation. **Confidence:** high.
+
+### Capture crossing interaction from authoritative event times
+
+**When:** lab-panel integration, 2026-10-02. **Choice:** The scene runs the diagnostic once to obtain the actual near-miss and impact ticks, resets it, then captures those moments. Otherwise, fixed historical ticks show bodies before the current slower projectile reaches them. **Gap:** Capture timing was tied to old tuning. **Reach:** The scene consumes the flight owner's events rather than adding a second trajectory estimate; all original collision assertions remain. **Verdict:** sound; screenshots show the interaction the test judges. **Confidence:** high.
+
+### Admit a contact-capture approach before waiting for evidence
+
+**When:** village-watch integration, 2026-10-02. **Choice:** The controlled tour approaches from open ground west of town and checks that the acknowledgement admits some observers before waiting for reports. The former centre destination refused every actor, leaving them at their starts; waiting longer could not repair that rejected command. Five of nine actors are admitted by the new approach, which is enough for this report/anchor fixture; it is not an all-actor arrival claim. **Gap:** The tour assumed a destination in town was admitted. **Reach:** Verification staging changes only, with the existing report preference, knowledge and anchoring contracts retained. **Verdict:** sound; it observes actual contacts rather than hiding refusal or inventing reports. **Confidence:** high.
+
+### Measure central city contact on the complete generated world
+
+**When:** C05 browser benchmark, 2026-10-02. **Choice:** The named city workload uses Metro Large seed 4 and the existing early city arena with 100 units per side. It starts recording after the first seeded movement wave at tick 150. The village keeps its own comparison commander; city uses the scenario's two-sided orders. Otherwise, a village script would be applied to the wrong encounter or player infantry transit would delay the contact measurement. **Gap:** The advertised city address had no distinct browser preset. **Reach:** The workload measures explicitly synthetic local combat on a full map; player transit and late corpse/wreck load remain separate controls. **Verdict:** sound; the existing workload authority is reused without changing player behavior. **Confidence:** high.
+
+### Resolve a benchmark camera policy from the prepared map
+
+**When:** C05 browser benchmark, 2026-10-02. **Choice:** A generated preset names its tour policy; after preparation, the actual returned extent supplies the city centre and overview. Reports carry that resolved tour and the checked request/map identity. Otherwise, hardcoded coordinates could silently measure an obsolete extent, or village coordinates could show the wrong battlefield. **Gap:** Generated and saved benchmarks did not have distinct preparation and camera contracts. **Reach:** The existing recorder owns all reports, and source/tour combinations are constrained together; there is no second generator or recording loop. **Verdict:** sound; extent has one authority. **Confidence:** medium; the fixed tour is a chosen representative composition whose full visual gate remains binding.
+
+### Reuse and cancel the preparation worker at the existing session boundary
+
+**When:** C05 browser benchmark and generated endurance, 2026-10-02. **Choice:** Prepared generated workloads pass their existing connection into BattleView, and leaving preparation cancels the same worker. Otherwise, endurance starts a second worker and abandons the first, or a late preparation answer can start an obsolete run. Ordinary saved workloads keep their existing new-worker path. **Gap:** A generated route omitted the prepared connection, while the new city route needed the same lifetime ownership. **Reach:** One worker owns each authoritative generated battle; no new worker manager or lifecycle state is added. **Verdict:** sound; real route/session and cancellation regressions demonstrate ownership. **Confidence:** high.
+
+### Preserve the existing secondary benchmark-link convention
+
+**When:** C05 menu review, 2026-10-02. **Choice:** The footer link inherits the footer colour and keeps its name on one line. Its small secondary target remains, measured at about 62 × 15 CSS pixels; the menu has no stated minimum and its developer navigation uses similarly small text. Otherwise, an unrelated target-size policy would widen this functional benchmark pass. **Gap:** Fresh review found an unreadable browser-default link and a minor tap-area concern. **Reach:** Readability is corrected at the existing menu owner; touch ergonomics remain a disclosed limitation. **Verdict:** sound for this bounded pass. **Confidence:** medium; the retained small target is a product convention rather than an accessibility acceptance claim.
+
+### Keep one opaque report owner across visual retirement
+
+**When:** current contact amendment, 2026-10-02. **Choice:** Each side lazily gives an observed firing/sighting cause one opaque report slot. Its existing collection distinguishes live evidence from an inactive handle; the same cause's fresh evidence updates that slot. Presentation can therefore reuse its existing three-second fade and overwrite a returning owner instead of drawing an old fading area beside a new area. A separate cause-to-ID map or authority copy of the presentation timer is unnecessary. **Gap:** The user requires one report per unit, consistent labels/borders and the existing fade, without selecting identity storage. **Reach:** A fresh report can remain correlated with the same uncertain cause even after old evidence expires; no actual enemy ID, unseen type or hidden position is published. Removal ends old targeting/return-fire intent, so a reused handle cannot resurrect it. **Verdict:** sound; actual lifecycle, pending intent, positive aim and independent identification-grace regressions pass, complete Native/Wasm state agrees, and deletion review retains one owner. **Confidence:** medium; enduring opaque cause continuity is a consequence of choosing one owner without a second retirement timer.
+
+### Resolve the shader warning without changing the grass algorithm
+
+**When:** approved grass shading checkpoint, 2026-10-02. **Choice:** Rephrase six raw WGSL comments containing an ordinary English token that TypeGPU mistakes for a named builtin external. The same route goes from six warnings to zero without changing shader math. Otherwise, accepting the pictures would leave an unexplained shader warning, while a parser or renderer replacement would widen a one-setting pass. **Gap:** The research captures exposed a dependency scanner defect. **Reach:** This narrowly removes false warnings in the affected current shaders; no new workaround layer or resources are introduced. **Verdict:** sound; actual warning red/green and unchanged shader logic support the smallest correction. **Confidence:** high.
+
+### Verify village play through the current presentation and command contracts
+
+**When:** focused village play triage, 2026-10-02. **Choice:** At far zoom, the tour requires visible compact cards clear of the HUD, allowing their documented depth-ordered overlap. For the sound approach it waits for that command's acknowledgement and requires an admitted destination before advancing toward heard cues. Restart waits through the route's temporary absence while it rebuilds. Otherwise, the tour rejects intentional card behavior, mistakes an earlier move's acknowledgement for the new approach, or fails during a valid remount. **Gap:** The historical tour assumed different card behavior and synchronous command/restart settlement. **Reach:** These are verification corrections; player behavior, planning budgets and the original sound/replay/pause checks are preserved. **Verdict:** sound; the existing contract and actual settled commands justify the corrections, with falsifying guard controls retained. **Confidence:** high.
+
+### Reject ground detail that adds code without visible continuity
+
+**When:** C85 bounded ground research, 2026-10-02. **Choice:** Keep the approved grass lighting and restore the ground shader after two finest-grain leaf-mark trials. The final matched candidate changes pixels, but enlarged gaps remain smooth and gameplay grass still reads as a mottled surface; a fresh critic sees no convincing improvement. Otherwise, the renderer would inherit extra profile/filter logic without solving the requested blending. **Gap:** The user requested independent investigation, without selecting a ground-texture technique. **Reach:** The source and complete evidence remain available for research, while production acquires no new texture owner, resource or shader machinery. The next hypothesis must address visible ground structure, retaining the liked yellow variation. **Verdict:** sound; the bounded comparison rejects an ineffective mechanism without declaring the larger visual problem solved. **Confidence:** high.
+
+### End expired contact intent before accepting new evidence
+
+**When:** contact consolidation, 2026-10-02. **Choice:** Expiry ends queued area attacks and acquired aim at tick start, then the existing attacker-pruning rule checks whether another valid track still grants return-fire permission. If a fresh shot renews the same opaque report later that tick, it can earn new aim but cannot revive the old order. Otherwise, stable picture identity would also preserve old combat intent. **Gap:** The required one-report/shared-fade contract did not select the tick phase for retirement. **Reach:** Report identity remains presentation continuity; commands and engagement permission still follow current knowledge, including independent identification grace. **Verdict:** sound; real expired-tick firing, positive old aim and short-lifetime/grace tests distinguish the retained consumers from redundant cleanup. **Confidence:** high.
+
+### Reuse the player's contact presentation in its lab
+
+**When:** contact consolidation, 2026-10-02. **Choice:** The contacts lab runs its original saved scenario, seed and camera through BattleView, using the player's labels and removal fade. Its separate legend, report list and view/session path are deleted. Otherwise, the lab would need a second implementation of the same visual contract. **Gap:** The lab's raw diagnostic rendering did not show the required labels or fade. **Reach:** The lab also gains the normal playable-border paint; its paused suppression pair confirms that visible difference. Actual raw report callers in other diagnostics remain an explicit next pass. **Verdict:** sound; existing components provide the contract with less code, and the original lab behavior checks remain green. **Confidence:** high.
+
+
+### Describe wider landscape through one map-owned margin
+
+**When:** bounded surroundings integration, 2026-10-02. **Choice:** One optional visual margin derives common playable, physical and rendered rectangles. Physical bounds describe the existing rounded height grid; they do not silently change to nominal bounds. Existing plot and backdrop-tree placement consume the rendered rectangle, while the generic horizon backdrop retains its actual mesh cutout. **Gap:** The user requires wider rendered surroundings without choosing metadata shape or a physical outer ring. **Reach:** A margin adds display scenery only, and zero preserves authored arenas. The initial 1,500 m player preset is a reasonable default for later tuning. Changing the plot region also changes decorative fields inside the map, requiring a new map identity. No additional geometry grid, renderer pass or tree generator is owned. **Verdict:** sound; matched production views and authored-arena pixel/geometry differentials support the seam. Far overview still reveals a finite detailed-field rectangle, so this is contract acceptance rather than an ideal landscape claim. **Confidence:** medium for the initial visual margin; high for common extent authority.
+
+
+### Make actual report callers consume one presented contact collection
+
+**When:** contact consumer closeout, 2026-10-02. **Choice:** The battle session owns the existing contact presentation, and the player view plus weapons/fog-look diagnostics receive its presented collection directly. Their shared glyph and existing info labels use the same report life; a rim’s opacity is independent of decorative hatch ink, and the visible title inherits the existing black text halo. **Gap:** The required common label/border/fade did not choose the owner shared by the actual diagnostic callers. **Reach:** No fallback from raw observations, diagnostic fade timer or new label component remains. Static material specimens still inspect geometry, not evidence lifecycle. **Verdict:** sound; actual route component regressions and complete real-worker before/after lifecycle frames prove the consumer boundary and clear endpoints. **Confidence:** high.

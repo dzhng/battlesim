@@ -1,5 +1,4 @@
 import type { ContactView } from "../sim/observation";
-import { contactOpacity } from "@packages/battle-renderer/src/contactGlyph";
 
 /** Visual memory only. Retired reports cannot be selected or commanded. */
 export interface PresentedContact extends ContactView {
@@ -9,7 +8,7 @@ export interface PresentedContact extends ContactView {
 
 /** One fade shared by the ground glyph and its label, on battle time. */
 export class ContactPresentation {
-  private held = new Map<number, { contact: PresentedContact; removedAt: number | null }>();
+  private held = new Map<number, { contact: ContactView; removedAt: number | null }>();
   private tick = -1;
   constructor(
     private readonly tickHz: number,
@@ -20,27 +19,15 @@ export class ContactPresentation {
     if (tick < this.tick) this.held.clear();
     this.tick = tick;
     const live = new Set(contacts.map((c) => c.id));
-    for (const contact of contacts)
-      this.held.set(contact.id, {
-        contact: {
-          ...contact,
-          opacity: contactOpacity(contact, tick, this.fadeSeconds * this.tickHz),
-          retiring: false,
-        },
-        removedAt: null,
-      });
+    for (const contact of contacts) this.held.set(contact.id, { contact, removedAt: null });
     const out: PresentedContact[] = [];
     for (const [id, held] of this.held) {
-      if (!live.has(id)) {
-        held.removedAt ??= tick;
-        const fade = Math.max(0, 1 - (tick - held.removedAt) / (this.fadeSeconds * this.tickHz));
-        const opacity = Math.min(
-          contactOpacity(held.contact, tick, this.fadeSeconds * this.tickHz),
-          held.contact.opacity * fade,
-        );
-        if (opacity > 0) out.push({ ...held.contact, opacity, retiring: true });
-        else this.held.delete(id);
-      } else if (held.contact.opacity > 0) out.push(held.contact);
+      if (!live.has(id)) held.removedAt ??= tick;
+      const opacity =
+        held.removedAt === null
+          ? 1
+          : Math.max(0, 1 - (tick - held.removedAt) / (this.fadeSeconds * this.tickHz));
+      if (opacity > 0) out.push({ ...held.contact, opacity, retiring: held.removedAt !== null });
       else this.held.delete(id);
     }
     return out;

@@ -22,8 +22,9 @@ export interface SimSessionOptions {
 /** A battle blue does not play by hand: a comparison script commands it, and
  *  the real simulation is stepped to `warmTo` before real time starts. */
 export interface ScriptedSim {
-  /** Blue's comparison script (`village_report`'s name). */
-  script: string;
+  /** Blue's comparison script (`village_report`'s name); absent when the
+   * scenario already carries its two sides' scripted orders. */
+  script?: string;
   warmTo: number;
   /** Real time starts: the battle stands at `warmTo`. */
   onWarm: () => void;

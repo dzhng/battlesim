@@ -50,7 +50,7 @@
   {
     "id": "weapons",
     "route": "/lab/weapons",
-    "describe": "Independent weapons: a rifle squad (rifles + grenade launcher) and a tank (cannon with AP/HE + HMG) against a red tank that ducks behind a wall and a hidden squad firing from behind a building; per-mount aim/reload bars and action reasons; attack identified/contact/ground, attack-move, engagement policy switch.",
+    "describe": "Independent weapons: a rifle squad (rifles + grenade launcher) and a tank (cannon with AP/HE + HMG) against a red tank that ducks behind a wall and a hidden squad firing from behind a low wall; per-mount aim/reload bars and action reasons; attack identified/contact/ground, attack-move, engagement policy switch.",
     "map": "weapons"
   },
   {
@@ -149,6 +149,13 @@
     "describe": "The scripted benchmark (the one frame-cost measure): the village warm-started to heavy contact with blue on the supported script, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",
     "build": "production",
     "map": "village"
+  },
+  {
+    "id": "city-contact",
+    "route": "/benchmark?preset=city-contact",
+    "describe": "Full-world Metro Large seed 4 benchmark with the simulation's named central city-arena-1 contact stress, 100 units a side and seeded scenario orders; a city-centred ground, tactical and whole-map tour. This is local-contact stress, separate from player transit. The scene records the same short/full timed window as the village control.",
+    "build": "production",
+    "map": null
   },
   {
     "id": "village-replay",

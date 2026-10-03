@@ -39,6 +39,10 @@ Grass silhouette that appears taller than accepted cover changes species/placeme
 
 ## Outcome
 
+**Current user-approved direction (2026-10-02):** the reduced blade-facing research captures are preferred because they remove the very dark streaks. The isolated shading checkpoint below uses `blade_facing = 0` without density, palette or softening changes. The independent complete-set critic confirms lower dark hatching with readable blade edges, but smooth gaps persist. [C85's separate continuity prototype](C85-field-texture.md#current-grass-continuity-feedback) addresses the ground gaps; its untried structure is not part of this approval.
+
+**Integrated checkpoint:** the existing fixture now uses the approved facing value. The candidate's eight original grass-growth browser checks and 19 grass/prop tests pass; paired populations and 4,480,000-byte clump storage are unchanged. Zero-warning same-route captures and a fresh complete-set critic confirm reduced dark hatching at close/default zoom, with blade tips and overlap retained. Brushed alignment and smooth ground gaps remain. The short paired cost shows no measurable change ([cost row](../frame-cost.md#approved-grass-blade-facing-setting)). Main's `throwaway/grass-facing-approved/` preserves complete evidence. The production change is one number plus six comment rephrases resolving a TypeGPU scanner warning, without shader math changes. User approval covers this isolated shading pass; the separate texture prototype remains open.
+
 **Changed since.** [C84](C84-field-palette.md) and [C31](C31-city-biome.md) added an eleventh plot kind, the settlement's `yard`, with a growth row of its own.
 
 **Built.** Four wild kinds from the generator (`grass_meadow` short meadow, `grass_rough` tall rough, `grass_prairie` dry prairie, `grass_verge` weedy verge) and two new plot kinds, `rough` and `prairie`, beside meadow and pasture. The biome's growth rows point meadow, rough, prairie and the verge at them (as mixes since C82). Nine growth rows and ten kinds: inside the caps of 16.

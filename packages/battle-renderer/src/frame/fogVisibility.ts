@@ -455,7 +455,7 @@ const wholeFn = tgpu
   let reach = length(b.half);
   for (var s = li; s < total; s += ${WHOLE_WORKGROUP}u) {
     if (atomicLoad(&wholeFound) != 0u) { break; }
-    // Along a side: t in [0, 1] over n samples, kept off the corners by the inset.
+    // Along a side: t ranges [0, 1] over n samples, kept off the corners by the inset.
     var local = vec2f(0.0);
     var z = b.top;
     var n = vec3f(0.0, 0.0, 1.0);

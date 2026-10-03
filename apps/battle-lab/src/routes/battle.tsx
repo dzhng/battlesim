@@ -249,7 +249,7 @@ function PreparedBattleView({
             number,
           ],
         },
-        cameraConfig: gameCamera.forMap(prepared.report.size),
+        cameraConfig: gameCamera.forMap(prepared.report.size, prepared.report.extents.rendered),
       },
     [prepared],
   );

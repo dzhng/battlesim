@@ -11,9 +11,8 @@
 // missile's flare and smoke trail, and a garrisoned squad's circle says where
 // it holds. Labs compose the layers their fixture exercises, the rest among
 // them as diagnostics.
-import game from "@fixtures/game.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
-import { buildContactGlyphs, contactOpacity } from "@packages/battle-renderer/src/contactGlyph";
+import { buildContactGlyphs } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
 import { buildGarrisonOverlay } from "@packages/battle-renderer/src/garrisonOverlay";
@@ -86,26 +85,9 @@ export class BattleMemory {
   }
 }
 
-/** Each approximate contact's glyph, from its area, source and age only,
- *  fading toward expiry. */
-export function contactLayer(
-  o: ObservationView,
-  z: SurfaceHeight,
-  contacts: readonly PresentedContact[] | null = null,
-): WorldMeshes {
-  return buildContactGlyphs(
-    (contacts ?? o.contacts).map((c) => ({
-      center: c.center,
-      radius: c.radius,
-      source: c.source,
-      opacity:
-        "opacity" in c
-          ? (c.opacity as number)
-          : contactOpacity(c, o.tick, gameContactStyle.fade_s * game.tick_hz),
-    })),
-    z,
-    gameContactStyle,
-  );
+/** Glyphs consume the same presented reports as their labels. */
+export function contactLayer(contacts: readonly PresentedContact[], z: SurfaceHeight): WorldMeshes {
+  return buildContactGlyphs(contacts, z, gameContactStyle);
 }
 
 /** This tick's visible flight, own and enemy rounds tinted apart (or all in
@@ -228,11 +210,11 @@ export function buildBattleOverlay(
     showOrders,
     reveal,
     contacts,
-  }: { showOrders: boolean; reveal: RevealedOrders; contacts?: readonly PresentedContact[] },
+  }: { showOrders: boolean; reveal: RevealedOrders; contacts: readonly PresentedContact[] },
   border: Mesh | null = null,
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
-  const contactMarks = contactLayer(o, z, contacts);
+  const contactMarks = contactLayer(contacts, z);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
   const orders = orderLayer(o, selected, reveal, z, metresPerPx);
   // The hold zone, a line of the orders' weight: dashed while blue is not
