@@ -38,7 +38,7 @@ Generate seeded player battlefields with urban areas and usable surrounding plai
 | Physical countryside coverage | The shared forest owner supplies actual trunks/foliage to the continuous certificate. Twenty focused country behavior checks and canonical Native/Wasm generation/encounter cases pass; rejected maps retain their diagnostics. [The generator README](../../crates/mapgen/README.md) owns construction and refusal. |
 | Focused integration and appearance | [Current triage](buildings-lane.md#current-integration-triage) owns passing functional checks and historical failures. Bare frontage, terrain cutouts, weak labels and diagram-like composition remain open. |
 
-**Current tuning policy:** finish generation business rules with the current reasonable parameters and collect playable evidence. The user will tune them personally in a later map workbench; that editor is outside city-maps. The [generation report](generation-report.md) documents the logic, parameters and checks.
+**Current tuning policy:** finish generation business rules with the current reasonable parameters and collect playable evidence. Do not tune every threshold or eliminate legitimate bounded refusals. The user will tune every business-rule number personally in a later map workbench with live results, like the unit editor; that editor is outside city-maps. The [generation report](generation-report.md) documents the logic, parameters and checks.
 
 **Next order:**
 1. Finish current-layout playability and visual proof. The frozen saved map’s 5.5 km individual/group arrival test passes; largest named Metro Large seed 4 starts in about 20.2 s cold / 17.3 s warm. Complete the active full city-contact benchmark, current opening/tactical/overview review and generated encounter evidence. Keep honest generation refusals and partial group placement distinct from successful access.
@@ -72,12 +72,12 @@ A slice marked "physical" has its systems half done; its look is in the visual p
 - [x] [Scale lane](../done/city-maps-scale/README.md): exact cost, delivery and resource contracts admitted on the identified full reference; [decisions and measured scope](../done/city-maps-scale/evidence.md)
 - [x] Lab: [C57 camera clearance](slices/C57-camera-clearance.md) · the generated-map lab route
 
-**In flight:** global countryside coverage; C85 ground continuity after a rejected finest-grain prototype (C81 reduced blade facing is integrated, yellow dry patches are liked); [one-report contact clarity](../battle-foundation/slices/06-contacts-and-audio.md); C54 evidence and remaining integration gates.
+**In flight:** C54 evidence and remaining integration gates. Global countryside coverage and [one-report contact clarity](../battle-foundation/slices/06-contacts-and-audio.md) are integrated. C81 reduced blade facing and yellow dry patches are retained; the rejected finest-grain C85 prototype does not authorize further aesthetic tuning before play.
 
 **Next, systems**
 - [x] Kerbside parking: lane margin restored to 0.9 m after physical traversal, access and combined arrival proofs ([C46](slices/C46-street-placement.md#outcome--kerbside-placement-2026-10-02)); rendered-art/frame-cost acceptance remains C54's
 - [x] Long-move admission and refreshed-map combined arrival: vehicle, squad and mixed moves physically arrive, individual stalled members recover, and intermediate shoves are rehearsed ([move validity](../done/move-validity/README.md)). The reversible isolated rehearsal carries long empty stretches between physical departure, interaction and arrival checkpoints; planner and physical interactions still cost work
-- [x] Global countryside construction: continuous actual-observer coverage and bounded refusal are integrated; final actual opening-fog and landscape verdict remain in C54
+- [x] Global countryside construction: continuous actual-observer coverage and bounded refusal are integrated; the frozen opening-fog and landscape review is accepted within its captured scope in C54
 - [ ] Town look, what is left: stair-step outlines, hard seams between building kinds, streets meeting a main road 20 to 45 m apart on either side, dead ends where a street was refused; do it if towns still read as diagrams in play
 - [ ] Scale at full extent: browser startup and memory, rendered surroundings, C20 fog at scale (C06/C07 are admitted on the [scale reference](../done/city-maps-scale/evidence.md); current-layout rendering integration and C22/C23 remain parent/buildings work)
 - [ ] [C54 integrated seed gate](slices/C54-generation-gate.md), after the lanes
