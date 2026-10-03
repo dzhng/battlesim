@@ -1,5 +1,11 @@
 [
   {
+    "id": "cursor",
+    "route": "/lab/cursor",
+    "describe": "Arrow and action cursor at native screen size over grass, road and fog; every badge and a moving pointer through the real presentation component.",
+    "map": null
+  },
+  {
     "id": "foundation",
     "route": "/lab/foundation",
     "describe": "Primitive 3D reproduction: asymmetric tank, facing-marked infantry, raised ground patch and box prop; pan/orbit/zoom, pick and reset.",

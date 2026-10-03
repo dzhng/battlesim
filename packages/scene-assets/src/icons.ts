@@ -13,7 +13,8 @@
 //   - `hud/<mark>.svg`: a command tile's, a menu control's and a weapon's
 //     can't-fire mark (`HUD_ICONS`).
 // Weapon, state, glyph and HUD icons are centred on their ink (`inkBounds`), not
-// on the grid they were drawn on, so each sits exactly in the middle of the
+// on the grid they were drawn on, except the cursor arrow whose tip is its
+// fixed hotspot. Centred marks sit exactly in the middle of the
 // slot or ring the UI gives it.
 // `asset icons` writes them; `asset check` and a vitest fail when one is
 // missing or stale, so a weapon row, role or type without its icon is caught.
@@ -95,6 +96,8 @@ export const glyphIcon = (glyph: keyof typeof GLYPHS) => `glyphs/${glyph}.svg`;
  *  font glyph or emoji as an icon; every one is here or among the state
  *  marks. Each differs from its neighbours by form. */
 const HUD_ICONS = {
+  // Tip at (2, 2) is a cursor hotspot, so this icon keeps its authored grid.
+  cursor_arrow: '<path d="M2 2L25 11L14 15L11 26Z"/>',
   move: '<path d="M4 12h15"/><path d="M13 6l6 6-6 6"/>',
   attack_move:
     '<path d="M3 12h8"/><path d="M8 8l4 4-4 4"/><circle cx="17" cy="12" r="4"/><path d="M17 5v3M17 16v3M22 12h-1"/>',
@@ -180,7 +183,10 @@ export function iconFiles(
   for (const [glyph, body] of Object.entries(GLYPHS))
     files.set(glyphIcon(glyph as keyof typeof GLYPHS), centred(16, 8, body, 1.6));
   for (const [icon, body] of Object.entries(HUD_ICONS))
-    files.set(hudIcon(icon as HudIcon), centred(24, 24, body, 2));
+    files.set(
+      hudIcon(icon as HudIcon),
+      icon === "cursor_arrow" ? svg(32, 32, body, 1.8) : centred(24, 24, body, 2),
+    );
   for (const t of units.view.units) {
     const model = solids(t.id);
     if (!model?.length)
