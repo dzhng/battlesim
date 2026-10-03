@@ -1,0 +1,13 @@
+# One pointer intent
+
+Depends on building authority and cursor presentation. Unlock the [pointer and cursor contract](../README.md#pointer-and-cursor-contract) through shared input resolution, picking, held preview, worker transport and actual battle view.
+
+Extract existing command precedence from useUnitControl into one pure intent resolver, consumed by hover and dispatch. Keep capability filtering and double-click gesture ownership. Extend the viewport snapshot with modifier/press semantics. One semantic picking adapter, including readout override, supplies all consumers; static building hits nominate an ID while the simulation resolves known geometry.
+
+Mirror the Rust/WASM building-preview contract through protocol/client/authority. Extend the existing pointer-paint async owner to resolve movement or building intent, coalesce requests and guard complete semantic identity. Replace the move-only pending bridge with accepted action confirmation. Display the effective action from authoritative results, including plain fallback movement and blocked only when nothing works. Do not claim an attack is unavailable merely because it is currently out of firing range: existing attack pursuit remains valid.
+
+Use write-tests red/green for the first shared-intent parity tracer, then existing mode/modifier precedence, real building dispatch including vehicles, held/accepted preview, stationarity under camera/selection changes, changed-intent delayed replies, reset/cancel and queued behavior. Browser integration tests exercise outer control/client seams; native rules remain owned by slice 01. Extend real garrison and movement scenes for mixed selections, automatic reverse and state changes under a resting pointer.
+
+Capture production-route before/after at the same tick/camera, all action cursor states and the combined building order before/after release. Compare against the approved reference at native size and complete crops with compare-screenshots. Run unprimed screenshot-critique as the LAST acceptance check and resolve material feedback; show shots with preview-shots. An untouched system pointer is not evidence of a custom cursor: the actual production overlay must appear in captures.
+
+Review/refactor-clean, audit choices and commit the integrated pass. Then whole-spec review, complete check and verify once, consolidate choices, reconcile EVERY README decision to shipped code, close-spec with unbiased rationale audit, and remove merged delegate worktrees. Internal resolver naming and minimal test fixture extensions are delegated; user-visible precedence or cursor geometry changes are not.
