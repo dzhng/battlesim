@@ -21,7 +21,6 @@ import { useBattleSession, type BattleSession } from "./useBattleSession";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
 import { useFeed } from "./feed";
-import { PointerPaint, rulerAt, movePreviewAt } from "./pointerPaint";
 import {
   RangeRulerLabels,
   type RangeRulerLabelsHandle,
@@ -114,8 +113,7 @@ export function BattleView({
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
   const { contacts } = session;
-  // Cursor paint updates independently of observations, including while paused.
-  const [pointerPaint] = useState(() => new PointerPaint());
+  const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const { clear: clearCues } = cues;
   const pause = usePauseMenu(sim.client);
@@ -200,7 +198,13 @@ export function BattleView({
           initialCamera={camera}
           cameraConfig={cameraConfig}
           groundAt={surfaceZ}
-          onPick={scripted ? undefined : session.onPick}
+          onPick={input ? session.onPick : undefined}
+          onRightPress={session.onRightPress}
+          onCursor={(pointer, view, project) => {
+            const action = session.onCursor(pointer, view);
+            rulerLabels.current?.place(project, pointerPaint.shown);
+            return action;
+          }}
           onBox={scripted ? undefined : session.onBox}
           onReady={(gpu) => {
             session.onReady(gpu);
@@ -209,51 +213,6 @@ export function BattleView({
           pilot={scripted?.pilot}
           onFrame={(project, view, pointer) => {
             session.hear(view);
-            const ruler =
-              input && control.showOrders && world
-                ? rulerAt(
-                    pointer.ray,
-                    world,
-                    control.selectedUnits,
-                    session.drawnAt.current,
-                    session.rules,
-                    surfaceZ,
-                  )
-                : null;
-            const heldMove =
-              input && control.mode === "move" && world
-                ? movePreviewAt(
-                    pointer.rightPress,
-                    pointer.rightDragging ? pointer.ray : null,
-                    world,
-                    control.selectedUnits,
-                    pointer.rightPressQueued,
-                  )
-                : null;
-            const pending = session.pendingMove.current;
-            const accepted =
-              pending &&
-              control.acks.find(
-                ({ order }) => order.kind === "move" && order.gesture === pending.gesture,
-              )?.ack;
-            const awaiting = pending && !accepted;
-            const move = heldMove ?? (awaiting ? pending : null);
-            let preview = pointerPaint.resolveMove(
-              move,
-              control.selectedUnits,
-              session.sim.client,
-              observation?.tick ?? 0,
-            );
-            if (!heldMove && accepted?.placement) {
-              const applied = (observation?.tick ?? 0) >= accepted.applied_tick;
-              preview = pointerPaint.markers(
-                applied ? [] : accepted.placement.destinations,
-                observation?.own ?? [],
-                session.revealed,
-              );
-            }
-            pointerPaint.update(ruler, preview, surfaceZ, metresPerPx);
-            rulerLabels.current?.place(project, ruler?.ruler ?? null);
             const step = zoomStep(view.distance);
             if (step !== zoomRef.current) {
               zoomRef.current = step;
@@ -264,9 +223,6 @@ export function BattleView({
           diagnostics={{
             ...session.probes,
             audio: () => session.audio?.stats() ?? null,
-            /** The range ruler shown last frame (Space held with a selection). */
-            ruler: () => pointerPaint.shown,
-            movePreview: () => pointerPaint.preview,
             ...diagnostics?.(session),
           }}
         />

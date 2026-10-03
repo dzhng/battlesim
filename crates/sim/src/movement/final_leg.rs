@@ -111,7 +111,7 @@ fn direct_leg(
     let apart = 2.0 * radius;
     if soldiers
         .iter()
-        .filter(|q| (**q - from).length() >= apart && (**q - to).length() >= apart)
+        .filter(|q| (**q - from).at_least_radius(apart) && (**q - to).at_least_radius(apart))
         .any(|q| rectangle.distance(*q) < apart)
     {
         return None;
@@ -158,7 +158,7 @@ fn search(
     let apart = 2.0 * radius;
     let soldiers: Vec<V2> = soldiers
         .iter()
-        .filter(|q| (**q - from).length() >= apart && (**q - to).length() >= apart)
+        .filter(|q| (**q - from).at_least_radius(apart) && (**q - to).at_least_radius(apart))
         .copied()
         .collect();
     // 0 unknown, 1 open, 2 closed; the ends are open whatever their centre.
@@ -170,7 +170,7 @@ fn search(
             let c = center(k);
             let free = walkable(c)
                 && !solids.iter().any(|b| b.contains(c, radius))
-                && soldiers.iter().all(|q| (*q - c).length() >= apart);
+                && soldiers.iter().all(|q| (*q - c).at_least_radius(apart));
             state[k] = if free { 1 } else { 2 };
         }
         state[k] == 1
@@ -285,8 +285,10 @@ fn clear_segment(a: V2, b: V2, solids: &[Obb2], soldiers: &[V2], radius: f64, sl
         && soldiers.iter().all(|&q| {
             let ab = b - a;
             let t = ((q - a).dot(ab) / ab.dot(ab).max(1e-12)).clamp(0.0, 1.0);
-            let (near, start) = ((a + ab * t - q).length(), (q - a).length());
-            near >= apart || start < apart || near > start - slide
+            let near = a + ab * t - q;
+            near.at_least_radius(apart)
+                || (q - a).inside_radius(apart)
+                || near.outside_radius((q - a).length() - slide)
         })
 }
 

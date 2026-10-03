@@ -75,7 +75,7 @@ export function buildingUnderRay(world: StaticWorld, ray: WorldRay): number | nu
   const building = world.exports.buildings.buildings.find((b) =>
     b.parts.some((p) => p.prop === hit[7]),
   );
-  return building && world.layout.garrisonPropKinds.includes(building.kind) ? building.owner : null;
+  return building?.owner ?? null;
 }
 
 /** The static map's props, and its buildings as references to their

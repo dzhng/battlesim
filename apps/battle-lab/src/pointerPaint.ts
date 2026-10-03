@@ -19,11 +19,19 @@ import {
   type RangeRuler,
   type RulerRules,
 } from "@web/battle/present/rangeRuler";
-import { inReverseZone } from "@web/battle/input/reverseZone";
-import { dragFacing } from "@web/battle/input/useUnitControl";
+import type { PointerIntent } from "@web/battle/input/pointerIntent";
+import type { CursorAction } from "@web/battle/present/gameCursor";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { SimClient } from "@web/battle/sim/client";
-import type { MovePreviewRequest, MoveDestination } from "@web/battle/sim/protocol";
+import type {
+  MovePreviewRequest,
+  MoveDestination,
+  BuildingPreviewRequest,
+  BuildingPlacement,
+  Order,
+  CommandAck,
+  SideName,
+} from "@web/battle/sim/protocol";
 import type { Vec3 } from "math";
 import { orderView } from "./battleOverlay";
 import { Feed } from "./feed";
@@ -35,6 +43,29 @@ import { gameOrderStyle, gameRulerStyle, gameStroke } from "./gameOverlay";
 interface ShownRuler {
   ruler: RangeRuler;
   circle: UnitCircle | null;
+}
+
+export type PointerPreview =
+  | { kind: "move"; request: MovePreviewRequest }
+  | { kind: "building"; request: BuildingPreviewRequest };
+
+/** Publications refresh a certificate; changed knowledge or eligibility revokes it. */
+export function previewContextIdentity(
+  side: SideName,
+  knownKey: string,
+  eligibilityIdentity: string,
+  pendingClaims: string,
+  clearedCount: number,
+  clearingEpoch: number,
+): string {
+  return JSON.stringify([
+    side,
+    knownKey,
+    eligibilityIdentity,
+    pendingClaims,
+    clearedCount,
+    clearingEpoch,
+  ]);
 }
 
 /** The ruler from the selected unit nearest the ground under `ray`, or null
@@ -91,45 +122,66 @@ export class PointerPaint {
   shown: RangeRuler | null = null;
 
   preview: readonly (DestinationMarker & { unit: number })[] = [];
-  private previewClient: Pick<SimClient, "previewMove"> | null = null;
+  private previewClient: Pick<SimClient, "previewMove" | "previewBuilding"> | null = null;
   private resolved = "";
   private gesture = "";
   private generation = 0;
   private busy = false;
   private destinations: MoveDestination[] = [];
+  building: BuildingPlacement | null = null;
+  state: "idle" | "pending" | "ready" | "blocked" = "idle";
 
   /** At most one placement query is in flight; intermediate pointer updates
    *  are coalesced, and a reply cannot restore a cancelled gesture. */
-  resolveMove(
-    move: MovePreviewRequest | null,
+  resolvePreview(
+    intent: PointerPreview | null,
     selected: readonly OwnUnitView[],
-    client: Pick<SimClient, "previewMove"> | null,
-    tick: number,
+    client: Pick<SimClient, "previewMove" | "previewBuilding"> | null,
+    revision: number | string,
+    identity = "",
   ) {
-    const gesture = move && client ? JSON.stringify(move) : "";
+    const gesture = intent && client ? JSON.stringify([intent, identity]) : "";
     if (gesture !== this.gesture || client !== this.previewClient) {
       this.generation += 1;
       this.gesture = gesture;
       this.previewClient = client;
       this.destinations = [];
+      this.building = null;
+      this.state = intent && client ? "pending" : "idle";
       this.resolved = "";
     }
-    const key = gesture && JSON.stringify([move, tick]);
+    const key = gesture && JSON.stringify([intent, revision]);
     const generation = this.generation;
-    if (move && client && key && !this.busy && key !== this.resolved) {
+    if (intent && client && key && !this.busy && key !== this.resolved) {
       this.busy = true;
-      void client
-        .previewMove(move)
+      const query =
+        intent.kind === "move"
+          ? client
+              .previewMove(intent.request)
+              .then((destinations) => ({ destinations, building: null }))
+          : client
+              .previewBuilding(intent.request)
+              .then((building) => ({ destinations: building.destinations, building }));
+      void query
         .then(
-          (marks) => {
+          (result) => {
             if (this.generation === generation && this.previewClient === client) {
-              this.destinations = marks;
+              this.destinations = result.destinations;
+              this.building = result.building;
+              this.state =
+                result.building?.entrant || result.destinations.some((mark) => mark.placed)
+                  ? "ready"
+                  : !result.building || result.building.unproven
+                    ? "pending"
+                    : "blocked";
               this.resolved = key;
             }
           },
           () => {
             if (this.generation === generation && this.previewClient === client) {
               this.destinations = [];
+              this.building = null;
+              this.state = "pending"; // A failed query cannot prove an action unavailable.
               this.resolved = key;
             }
           },
@@ -220,25 +272,114 @@ export class PointerPaint {
   }
 }
 
-/** The gesture's shared goal and facing; the authority resolves each unit. */
-export function movePreviewAt(
-  start: WorldRay | null,
-  cursor: WorldRay | null,
-  world: StaticWorld,
-  selected: readonly OwnUnitView[],
-  queued: boolean,
-): MovePreviewRequest | null {
-  if (!start || selected.length === 0) return null;
-  const at = groundUnderRay(world.view, start);
-  if (!at) return null;
-  const to = cursor && groundUnderRay(world.view, cursor);
-  const facing = dragFacing({ ground: [at[0], at[1]], facingTo: to && [to[0], to[1]] });
-  return {
-    units: selected.map((u) => u.id),
-    queued,
-    route: "shortest",
-    goal: [at[0], at[1]],
-    ...(facing === undefined ? {} : { facing }),
-    direction: inReverseZone(selected, [at[0], at[1]]) ? "reverse" : "forward",
-  };
+/** Movement and building queries carry the same intent that dispatch commits. */
+export function previewForIntent(intent: PointerIntent): PointerPreview | null {
+  switch (intent.kind) {
+    case "move": {
+      return {
+        kind: "move",
+        request: {
+          units: intent.units,
+          goal: intent.goal,
+          route: intent.route,
+          direction: intent.direction,
+          facing: intent.facing,
+          queued: intent.queued,
+        },
+      };
+    }
+    case "attack_move":
+      return {
+        kind: "move",
+        request: { units: intent.units, goal: intent.goal, queued: intent.queued },
+      };
+    case "occupy_building": {
+      return {
+        kind: "building",
+        request: {
+          units: intent.units,
+          building: intent.building,
+          facing: intent.facing,
+          queued: intent.queued,
+        },
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+/** Pending availability stays plain; an attack may validly pursue its target. */
+export function cursorForIntent(
+  intent: PointerIntent,
+  paint: Pick<PointerPaint, "state" | "building">,
+): CursorAction {
+  if (intent.kind === "none") return "default";
+  if (intent.kind === "blocked") return "blocked";
+  if (intent.kind === "attack") return intent.target.kind === "ground" ? "attack_ground" : "attack";
+  if (paint.state === "blocked") return "blocked";
+  if (paint.state !== "ready") return "default";
+  if (intent.kind === "occupy_building") return paint.building?.entrant ? "garrison" : "default";
+  if (intent.kind === "attack_move") return "attack_move";
+  return intent.route === "fastest"
+    ? "fast_move"
+    : intent.direction === "reverse"
+      ? "reverse_move"
+      : "default";
+}
+
+/** Release acknowledgement corrects only the same pointer action. */
+export function intentForOrder(order: Order, queued: boolean): PointerIntent | null {
+  switch (order.kind) {
+    case "attack":
+      return { ...order, queued };
+    case "move":
+    case "attack_move":
+    case "occupy_building": {
+      const { gesture: _, ...intent } = order;
+      return { ...intent, queued };
+    }
+    default:
+      return null;
+  }
+}
+
+export function samePointerIntent(a: PointerIntent, b: PointerIntent): boolean {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === "attack" && b.kind === "attack")
+    return (
+      JSON.stringify([a.units, a.target, a.queued]) ===
+      JSON.stringify([b.units, b.target, b.queued])
+    );
+  const request = previewForIntent(a);
+  return request !== null && JSON.stringify(request) === JSON.stringify(previewForIntent(b));
+}
+
+/** Admission owns release feedback until its publication arrives. */
+export function cursorForAcknowledgement(intent: PointerIntent, ack: CommandAck): CursorAction {
+  const building = ack.building ?? null;
+  if (ack.error) return building?.unproven ? "default" : "blocked";
+  const destinations = ack.placement?.destinations ?? building?.destinations ?? [];
+  const state =
+    building?.entrant || destinations.some((d) => d.placed)
+      ? "ready"
+      : building && !building.unproven
+        ? "blocked"
+        : "pending";
+  return cursorForIntent(intent, { state, building });
+}
+
+/** A released drag retains its facing; a fresh hover has no facing gesture. */
+export function cursorForRelease(
+  hover: PointerIntent,
+  released: PointerIntent,
+  ack: CommandAck,
+): CursorAction | null {
+  const target =
+    (hover.kind === "move" || hover.kind === "occupy_building") &&
+    hover.kind === released.kind &&
+    hover.facing === undefined
+      ? { ...released, facing: undefined }
+      : released;
+  return samePointerIntent(hover, target) ? cursorForAcknowledgement(hover, ack) : null;
 }

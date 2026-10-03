@@ -8,6 +8,8 @@ const MapWorkbench = lazy(() => import("../../map-workbench/src/MapWorkbench"));
 
 /** The pages: the benchmark page also owns its named workload URLs. */
 const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
+  "cursor-orders": lazy(() => import("./routes/cursorOrders")),
+  cursor: lazy(() => import("./routes/cursor")),
   foundation: lazy(() => import("./routes/foundation")),
   geometry: lazy(() => import("./routes/geometry")),
   authority: lazy(() => import("./routes/authority")),

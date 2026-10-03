@@ -80,7 +80,7 @@ fn carry(
                 0.0
             };
             let p = w[0] + ab * t;
-            ((p - c).length() < near).then(|| left[k + 1] + (w[1] - p).length())
+            ((p - c).inside_radius(near)).then(|| left[k + 1] + (w[1] - p).length())
         });
         if let Some(met) = met {
             stop = stop.max(met + reach);
@@ -168,7 +168,9 @@ fn carry(
         for _ in unit.members.iter().filter(|s| s.alive()) {
             places.extend(tries.find_map(|e| {
                 let (p, _, next) = at(e)?;
-                let free = soldiers.iter().all(|q| (*q - p.xy()).length() >= apart)
+                let free = soldiers
+                    .iter()
+                    .all(|q| (*q - p.xy()).at_least_radius(apart))
                     && hulls
                         .iter()
                         .all(|h| !h.contains(p.xy(), ctx.soldier_radius_m));
@@ -214,6 +216,68 @@ pub(crate) fn certify(
     request: Option<&MovePreviewRequest>,
 ) -> Vec<Option<f64>> {
     let queued = request.is_none_or(|r| r.queued);
+    let orders = request.map(|request| {
+        slots
+            .iter()
+            .map(|slot| {
+                vec![UnitOrder::Move(MoveOrder {
+                    destination: slot
+                        .point
+                        .unwrap_or(source[slot.id.0 as usize].position.xy()),
+                    policy: request.route,
+                    gesture: 0,
+                    direction: request.direction,
+                    facing: request.facing,
+                })]
+            })
+            .collect::<Vec<_>>()
+    });
+    let mut allowance = ctx.rules.navigation.move_validation_work as u64;
+    certify_orders(
+        ctx,
+        source,
+        known,
+        ProofRequest {
+            slots,
+            orders: orders.as_deref(),
+            queued,
+            reserve_repair: false,
+        },
+        &mut allowance,
+    )
+    .facings
+}
+
+pub(crate) struct Certification {
+    pub facings: Vec<Option<f64>>,
+    /// The actual reached pose, including garrison exits, for queued origins.
+    pub arrivals: Vec<Option<Unit>>,
+    /// Failures have been held and all retained arrivals proved again.
+    pub stable: bool,
+    pub unproven: bool,
+}
+
+pub(crate) struct ProofRequest<'a> {
+    pub slots: &'a [Slot],
+    pub orders: Option<&'a [Vec<UnitOrder>]>,
+    pub queued: bool,
+    pub reserve_repair: bool,
+}
+
+/// The same physical rehearsal for prepared per-unit orders or finite queue prefixes.
+pub(crate) fn certify_orders(
+    ctx: &MovementContext,
+    source: &[Unit],
+    known: &SideGeometry,
+    request: ProofRequest<'_>,
+    allowance: &mut u64,
+) -> Certification {
+    let ProofRequest {
+        slots,
+        orders,
+        queued,
+        reserve_repair,
+    } = request;
     let finite = |u: &Unit| {
         u.orders
             .iter()
@@ -223,10 +287,20 @@ pub(crate) fn certify(
         .iter()
         .map(|s| s.point.is_some() && (!queued || finite(&source[s.id.0 as usize])))
         .collect();
-    let mut remaining = ctx.rules.navigation.move_validation_work as u64;
+    let mut remaining = *allowance;
     let mut result = vec![None; slots.len()];
+    let mut arrivals = vec![None; slots.len()];
+    let mut stable = true;
+    let mut unproven = slots
+        .iter()
+        .any(|s| s.point.is_some() && queued && !finite(&source[s.id.0 as usize]));
     if !active.iter().any(|a| *a) {
-        return result;
+        return Certification {
+            facings: result,
+            arrivals,
+            stable,
+            unproven,
+        };
     }
     let initial_world = ctx.world.planning_snapshot(
         |p| known.belief(p, ctx.authored),
@@ -240,6 +314,13 @@ pub(crate) fn certify(
     let mut knowledge = [&opposing; 2];
     knowledge[own.index()] = ctx.knowledge[own.index()];
     while active.iter().any(|v| *v) && remaining > 0 {
+        // New combined plans need work left to restore failures and reprove
+        // survivors. Each pass removes at least one failure or finishes.
+        let floor = if reserve_repair {
+            remaining - remaining.div_ceil(active.iter().filter(|a| **a).count() as u64)
+        } else {
+            0
+        };
         let mut world = initial_world.clone();
         let mut units = source.to_vec();
         let mut sides = [known.planning_snapshot(), known.planning_snapshot()];
@@ -257,17 +338,10 @@ pub(crate) fn certify(
                     }
                 }
             }
-            if let Some(request) = request {
-                unit.enqueue(
-                    UnitOrder::Move(MoveOrder {
-                        destination: slot.point.unwrap(),
-                        policy: request.route,
-                        gesture: 0,
-                        direction: request.direction,
-                        facing: request.facing,
-                    }),
-                    queued,
-                );
+            if let Some(orders) = orders {
+                for (k, order) in orders[i].iter().enumerate() {
+                    unit.enqueue(order.clone(), queued || k > 0);
+                }
             }
         }
         for unit in &mut units {
@@ -296,7 +370,7 @@ pub(crate) fn certify(
         // Keep one share for the movement rehearsal itself. A mover may use
         // at most one other share on repeated route searches in this pass.
         let moving = units.iter().filter(|u| !u.orders.is_empty()).count();
-        let mut replan_left = vec![remaining / (moving as u64 + 1); units.len()];
+        let mut replan_left = vec![(remaining - floor) / (moving as u64 + 1); units.len()];
         let mut offset = 0;
         // Opposing bodies are known obstacles; their private setup timers
         // cannot keep this side's admission running or spend its retry budget.
@@ -309,7 +383,8 @@ pub(crate) fn certify(
             )
         };
         loop {
-            if remaining < step_cost {
+            if remaining < step_cost || remaining <= floor {
+                unproven = true;
                 break;
             }
             remaining -= step_cost;
@@ -323,7 +398,8 @@ pub(crate) fn certify(
                     legs[i] = unit.movement_goal().map(|(goal, _)| {
                         (
                             orders,
-                            (goal - unit.position.xy()).length() > ctx.rules.navigation.road_leg_m,
+                            (goal - unit.position.xy())
+                                .outside_radius(ctx.rules.navigation.road_leg_m),
                             unit.position.xy(),
                         )
                     });
@@ -352,7 +428,7 @@ pub(crate) fn certify(
             // spend the other members' arrival rehearsal.
             for index in 0..planner.charges().len() {
                 let charge = planner.charges()[index];
-                if charge.new_goal {
+                if charge.new_goal && !reserve_repair {
                     if charge.distance_m <= ctx.rules.navigation.road_leg_m {
                         remaining = remaining.saturating_sub(charge.work);
                     }
@@ -362,8 +438,10 @@ pub(crate) fn certify(
                 let index = id.0 as usize;
                 let charged = charge.work.min(replan_left[index]);
                 replan_left[index] -= charged;
-                remaining = remaining.saturating_sub(charged);
+                remaining =
+                    remaining.saturating_sub(if reserve_repair { charge.work } else { charged });
                 if replan_left[index] == 0 {
+                    unproven |= reserve_repair;
                     planner.cancel(id);
                     stand(&mut units[index]);
                     if let Some(i) = slots.iter().position(|s| s.id == id) {
@@ -422,6 +500,7 @@ pub(crate) fn certify(
                 });
                 if fits {
                     result[i] = Some(approaches[i].unwrap_or(unit.yaw));
+                    arrivals[i] = Some(unit.clone());
                 }
             }
             if active
@@ -450,7 +529,7 @@ pub(crate) fn certify(
                     continue;
                 }
                 if *long
-                    && (unit.position.xy() - *from).length() >= reach
+                    && (unit.position.xy() - *from).at_least_radius(reach)
                     && left > reach
                     && carry(ctx, &world, &mut units, index, tick)
                 {
@@ -481,7 +560,7 @@ pub(crate) fn certify(
                 if moved[index] {
                     still[i] = 0;
                 } else if (0..units.len())
-                    .all(|k| !busy[k] || (units[k].position.xy() - here).length() > KNOT_M)
+                    .all(|k| !busy[k] || (units[k].position.xy() - here).outside_radius(KNOT_M))
                 {
                     still[i] += 1;
                 }
@@ -491,6 +570,7 @@ pub(crate) fn certify(
                 }
             }
             if remaining == 0 {
+                unproven = true;
                 break;
             }
             if touched.is_empty()
@@ -508,19 +588,27 @@ pub(crate) fn certify(
             .iter()
             .enumerate()
             .any(|(i, a)| *a && result[i].is_none());
-        if !failed || request.is_none() {
+        if !failed || orders.is_none() {
             break;
         }
         // Out of allowance: what arrived was demonstrated, and stands. A
         // second pass could not run, and clearing it would refuse a whole
         // group because one member's journey outlasted the allowance.
         if remaining < step_cost {
+            stable = false;
             break;
         }
         for (i, a) in active.iter_mut().enumerate() {
             *a &= result[i].is_some();
         }
         result.fill(None);
+        arrivals.fill(None);
     }
-    result
+    *allowance = remaining;
+    Certification {
+        facings: result,
+        arrivals,
+        stable,
+        unproven,
+    }
 }

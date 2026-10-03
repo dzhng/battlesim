@@ -84,6 +84,32 @@ function workerSeam() {
   };
 }
 
+test("building preview returns the entrant and companion placements without issuing a command", async () => {
+  const { requests, deliver } = workerSeam();
+  const client = createSimClient({ scenario: "{}", seed: 1, side: "blue", transport: "worker" });
+  try {
+    const preview = client.previewBuilding({ units: [1, 2], building: 9, queued: true });
+    const request = requests.find((request) => request.type === "building_preview");
+    expect(request).toEqual({
+      type: "building_preview",
+      id: 1,
+      side: "blue",
+      building: { units: [1, 2], building: 9, queued: true },
+    });
+    const placement = {
+      building: 9,
+      entrant: { unit: 1, approach: [40, 50] as [number, number] },
+      destinations: [{ unit: 2, goal: [30, 50] as [number, number], placed: true, facing: 0 }],
+    };
+    deliver({ type: "building_preview", id: 1, placement });
+    expect(await preview).toEqual(placement);
+    expect(requests.some((request) => request.type === "command")).toBe(false);
+  } finally {
+    client.dispose();
+    vi.unstubAllGlobals();
+  }
+});
+
 test("an authority failure returns held records once and rejects requests after ready", async () => {
   const memory = initSync({
     module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
@@ -126,6 +152,25 @@ test("an authority failure returns held records once and rejects requests after 
   } finally {
     client.dispose();
     battle.free();
+    vi.unstubAllGlobals();
+  }
+});
+
+test("an invalid building preview rejects only that query and commands still work", async () => {
+  const { requests, deliver } = workerSeam();
+  const client = createSimClient({ scenario: "{}", seed: 1, side: "blue", transport: "worker" });
+  try {
+    const preview = client.previewBuilding({ units: [1], building: 9 });
+    const rejected = expect(preview).rejects.toThrow("not own unit");
+    deliver({ type: "building_preview", id: 1, placement: null, error: "not own unit" });
+    await rejected;
+    const command = client.command({ kind: "stop", units: [2] });
+    const sent = requests.find((request) => request.type === "command");
+    expect(sent?.command.order).toEqual({ kind: "stop", units: [2] });
+    deliver({ type: "ack", ack: { seq: 1, applied_tick: 2, error: null } });
+    expect(await command).toMatchObject({ seq: 1, error: null });
+  } finally {
+    client.dispose();
     vi.unstubAllGlobals();
   }
 });

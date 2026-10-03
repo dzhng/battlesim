@@ -71,6 +71,89 @@ fn compound_with_descriptor(
 }
 
 #[test]
+fn a_building_group_has_the_same_plan_when_either_aggregate_part_is_nominated() {
+    let mut setup = compound_setup(json!([]));
+    setup.units = serde_json::from_value(json!([
+        {"side":"blue","kind":"recon","position":[350,300]},
+        {"side":"blue","kind":"tank","position":[320,330]}
+    ]))
+    .unwrap();
+    let b = Battle::new(&setup, 1);
+    let request = contract::command::BuildingPreviewRequest {
+        units: vec![contract::ids::UnitId(0), contract::ids::UnitId(1)],
+        building: 0,
+        ..Default::default()
+    };
+    let owner = b.preview_building(Side::Blue, &request).unwrap();
+    let part = b
+        .preview_building(
+            Side::Blue,
+            &contract::command::BuildingPreviewRequest {
+                building: 1,
+                ..request
+            },
+        )
+        .unwrap();
+    assert_eq!(owner, part);
+    assert!(owner.entrant.is_some(), "{owner:?}");
+    assert!(owner.destinations[0].placed);
+}
+
+#[test]
+fn an_unseen_multipart_collapse_cannot_change_the_building_group_plan() {
+    let mut setup = compound_setup(json!((1..=11)
+        .map(|tick| json!({"tick":tick,"burst":{"point":[409,301],"weapon":"tank_he"}}))
+        .collect::<Vec<_>>()));
+    setup.units = serde_json::from_value(json!([
+        {"side":"blue","kind":"recon","position":[350,250],"engagement":"return_fire_only"},
+        {"side":"blue","kind":"tank","position":[320,250],"engagement":"return_fire_only"}
+    ]))
+    .unwrap();
+    let mut rules = serde_json::to_value(&setup.rules).unwrap();
+    for kind in ["recon", "tank"] {
+        sim::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            kind,
+            json!({"sensors":{"ground_m":28}}),
+        );
+    }
+    setup.rules = serde_json::from_value(rules).unwrap();
+    let mut calm_setup = setup.clone();
+    calm_setup.events.clear();
+    let (mut collapsed, mut calm) = (Battle::new(&setup, 11), Battle::new(&calm_setup, 11));
+    for _ in 0..30 {
+        collapsed.step();
+        calm.step();
+    }
+    assert!(collapsed.world().prop(0).is_none() && collapsed.world().prop(1).is_none());
+    assert!(calm.world().prop(0).is_some());
+    assert_eq!(
+        collapsed.observe(Side::Blue).known_props,
+        calm.observe(Side::Blue).known_props
+    );
+    assert!(collapsed.observe(Side::Blue).known_props.is_empty());
+    assert_eq!(
+        collapsed.observe(Side::Blue).own,
+        calm.observe(Side::Blue).own
+    );
+    let request = contract::command::BuildingPreviewRequest {
+        units: vec![contract::ids::UnitId(0), contract::ids::UnitId(1)],
+        building: 0,
+        ..Default::default()
+    };
+    let before = (collapsed.digest(), calm.digest());
+    let expected = calm.preview_building(Side::Blue, &request).unwrap();
+    assert!(expected.entrant.is_some(), "{expected:?}");
+    assert!(expected.destinations[0].placed);
+    assert_eq!(
+        collapsed.preview_building(Side::Blue, &request).unwrap(),
+        expected
+    );
+    assert_eq!((collapsed.digest(), calm.digest()), before);
+}
+
+#[test]
 fn one_blast_wears_the_owner_once_by_its_nearest_part() {
     let setup = compound_setup(json!([{"tick":1,"burst":{"point":[409,301],"weapon":"tank_he"}}]));
     let mut b = Battle::new(&setup, 11);

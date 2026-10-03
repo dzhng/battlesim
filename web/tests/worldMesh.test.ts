@@ -35,7 +35,6 @@ const layout: WorldLayout = {
   flags: { forest: 1, blocked: 2 },
   propStride: 10,
   limbBits: 16,
-  garrisonPropKinds: ["building"],
   areaStride: 5,
   propFields: ["idLo", "idHi", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
   areaFields: ["x", "y", "w", "h", "z"],

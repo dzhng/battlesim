@@ -117,6 +117,9 @@ function WeaponsLab({ battle }: { battle: SavedBattle }) {
         appearances={session.appearances}
         initialCamera={WEAPONS_CAMERA}
         onPick={session.onPick}
+        onRightPress={session.onRightPress}
+        onCursor={session.onCursor}
+        pointerMarks={session.pointerPaint.feed}
         onBox={session.onBox}
         onFrame={session.placePanels}
         onReady={session.onReady}

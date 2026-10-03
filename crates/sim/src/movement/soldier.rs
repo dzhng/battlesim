@@ -106,7 +106,7 @@ impl Corridor<'_> {
         let samples = (self.remaining(leg, t) / step).ceil() as usize + 1;
         (1..=samples)
             .map(|k| self.ahead(leg, t, step * k as f64))
-            .take_while(|p| (*p - here).length() <= reach)
+            .take_while(|p| (*p - here).within_radius(reach))
             .find(|p| stands(*p))
     }
 
@@ -333,7 +333,7 @@ impl Crowd {
                         continue;
                     }
                     if let Some(q) = self.at[k] {
-                        if (q - p).length() < radius {
+                        if (q - p).inside_radius(radius) {
                             each(q);
                         }
                     }
@@ -360,7 +360,12 @@ pub struct Around {
 }
 
 impl Around {
-    fn gather(ctx: &MovementContext, side: &SideGeometry, unit: &Unit, hulls: &[Obb2]) -> Around {
+    fn gather(
+        ctx: &MovementContext,
+        side: &SideGeometry,
+        unit: &Unit,
+        hulls: &[(Obb2, f64)],
+    ) -> Around {
         let r = &ctx.infantry;
         let centre = unit.position.xy();
         let reach = unit.footprint_radius(ctx.soldier_radius_m)
@@ -369,11 +374,11 @@ impl Around {
             + ENCOUNTER_RANGE_M;
         let mut bodies: Vec<Body> = hulls
             .iter()
-            .filter(|h| (h.center - centre).length() <= h.half.length() + reach)
-            .map(|h| Body {
+            .filter(|(h, radius)| (h.center - centre).within_radius(*radius + reach))
+            .map(|(h, radius)| Body {
                 id: None,
                 rect: *h,
-                reach: h.half.length(),
+                reach: *radius,
                 known: true,
             })
             .collect();
@@ -394,7 +399,7 @@ impl Around {
     fn known_near(&self, c: V2, reach: f64) -> Vec<Obb2> {
         self.bodies
             .iter()
-            .filter(|x| x.known && (x.rect.center - c).length() <= x.reach + reach)
+            .filter(|x| x.known && (x.rect.center - c).within_radius(x.reach + reach))
             .map(|x| x.rect)
             .collect()
     }
@@ -402,10 +407,9 @@ impl Around {
     /// Whether a soldier's disc of `radius` stands clear at `p` of every body
     /// his side plans with.
     fn stands(&self, p: V2, radius: f64) -> bool {
-        self.bodies
-            .iter()
-            .filter(|x| x.known)
-            .all(|x| (x.rect.center - p).length() > x.reach + radius || !x.rect.contains(p, radius))
+        self.bodies.iter().filter(|x| x.known).all(|x| {
+            (x.rect.center - p).outside_radius(x.reach + radius) || !x.rect.contains(p, radius)
+        })
     }
 
     /// Whether a soldier's disc may pass straight from `a` to `b` among the
@@ -415,7 +419,7 @@ impl Around {
         let mid = (a + b) * 0.5;
         let half = (b - a).length() / 2.0;
         self.bodies.iter().filter(|x| x.known).all(|x| {
-            (x.rect.center - mid).length() > x.reach + half + r
+            (x.rect.center - mid).outside_radius(x.reach + half + r)
                 || !x.rect.meets_segment(a, b, r)
                 || x.rect.contains(a, r)
         })
@@ -485,7 +489,7 @@ pub fn soldier_steer(
         return Some(follow(s, here, stride(ctx, s)));
     };
     let spot = s.spot?;
-    if ctx.tick < s.start || (spot - here).length() < 1e-9 {
+    if ctx.tick < s.start || (spot - here).inside_radius(1e-9) {
         return None;
     }
     let dt = 1.0 / ctx.tick_hz as f64;
@@ -496,7 +500,6 @@ pub fn soldier_steer(
         s.leg += 1;
     }
     let t = corridor.along(s.leg, here).clamp(0.0, 1.0);
-    let remaining = corridor.remaining(s.leg, t);
     let own_route = |s: &mut Soldier, side: &mut SideGeometry, to: V2| {
         plan_own(ctx, side, around, s, to, &[]);
     };
@@ -505,8 +508,10 @@ pub fn soldier_steer(
     }
     // His own route reaches only as far as its window.
     let reach = rules.window_m / 2.0 - 2.0;
-    let near = (spot - here).length() <= reach;
-    if near && (remaining <= rules.final_leg_m || (spot - here).length() <= rules.final_leg_m / 2.0)
+    let near = (spot - here).within_radius(reach);
+    if near
+        && (corridor.remaining(s.leg, t) <= rules.final_leg_m
+            || (spot - here).within_radius(rules.final_leg_m / 2.0))
     {
         // The final stretch: his own route to his spot.
         s.leg = last;
@@ -515,7 +520,7 @@ pub fn soldier_steer(
         }
         return Some(follow(s, here, pace));
     }
-    if s.path.len() == 1 && (s.path[0] - here).length() < PATH_REACHED_M {
+    if s.path.len() == 1 && (s.path[0] - here).inside_radius(PATH_REACHED_M) {
         s.path.clear(); // back on the corridor
     }
     if !s.path.is_empty() {
@@ -537,7 +542,7 @@ pub fn soldier_steer(
     // of a gap, he heads for its mouth.
     for share in [1.0, 2.0 / 3.0, 1.0 / 3.0, 0.0] {
         let p = corridor.ahead(s.leg, t, rules.steer_ahead_m * share);
-        if (p - here).length() > ON_SPOT_M && clear(here, p) {
+        if (p - here).outside_radius(ON_SPOT_M) && clear(here, p) {
             return Some(Steer { target: p, pace });
         }
     }
@@ -563,7 +568,7 @@ pub fn soldier_steer(
 
 fn holding_post(s: &Soldier) -> Option<V2> {
     s.post
-        .filter(|p| (*p - s.position.xy()).length() >= ON_SPOT_M)
+        .filter(|p| (*p - s.position.xy()).at_least_radius(ON_SPOT_M))
 }
 
 /// Plan a soldier's own route from where he stands to `to` on the exact
@@ -629,9 +634,13 @@ fn lane_offset(
     clear: &dyn Fn(V2, V2) -> bool,
 ) -> f64 {
     let open = |offset: f64| {
-        let mut at = here;
-        std::iter::once(corridor.lane_point(leg, t, rules.steer_ahead_m, offset))
-            .chain(corridor.lane(leg, t, rules.lane_lookahead_m, offset))
+        let mut at = corridor.lane_point(leg, t, rules.steer_ahead_m, offset);
+        if !clear(here, at) {
+            return false;
+        }
+        corridor
+            .lane(leg, t, rules.lane_lookahead_m, offset)
+            .into_iter()
             .all(|lane| {
                 let ok = clear(at, lane);
                 at = lane;
@@ -648,7 +657,7 @@ fn lane_offset(
 
 /// Head for the next point of his own route, dropping those he has reached.
 fn follow(s: &mut Soldier, here: V2, pace: f64) -> Steer {
-    while s.path.len() > 1 && (s.path[0] - here).length() < PATH_REACHED_M {
+    while s.path.len() > 1 && (s.path[0] - here).inside_radius(PATH_REACHED_M) {
         s.path.remove(0);
     }
     Steer {
@@ -667,7 +676,7 @@ pub(super) fn step_squad(
     unit: &mut Unit,
     index: usize,
     side: &mut SideGeometry,
-    hulls: &[Obb2],
+    hulls: &[(Obb2, f64)],
     threats: &[Threat],
     crowd: &mut Crowd,
     advancing: bool,
@@ -727,7 +736,7 @@ pub(super) fn step_squad(
         let here = s.position;
         let steer = soldier_steer(ctx, side, &around, s, unit_id, corridor, threats);
         let Some(Steer { target, pace }) = steer else {
-            arrived &= s.spot.is_none_or(|p| (p - here.xy()).length() < 1e-9);
+            arrived &= s.spot.is_none_or(|p| (p - here.xy()).inside_radius(1e-9));
             continue;
         };
         let speed = ctx.world.surface_at(here.x, here.y).map_or(0.0, |g| {
@@ -759,7 +768,7 @@ pub(super) fn step_squad(
             }
         });
         velocity = velocity + push * (PERSONAL_PUSH * speed);
-        if velocity.length() > speed {
+        if velocity.outside_radius(speed) {
             velocity = velocity * (speed / velocity.length());
         }
         let wanted = here.xy() + velocity * dt;
@@ -781,13 +790,13 @@ pub(super) fn step_squad(
         crowd.set(id, next.xy());
         if corridor.is_none() {
             if let Some(post) = s.post {
-                let to_post = (post - next.xy()).length();
-                let stuck = (next.xy() - here.xy()).length() < 1e-3;
-                if to_post < ON_SPOT_M {
+                let to_post = post - next.xy();
+                let stuck = (next.xy() - here.xy()).inside_radius(1e-3);
+                if to_post.inside_radius(ON_SPOT_M) {
                     s.position = post.with_z(next.z);
                     crowd.set(id, post);
                 }
-                if to_post < ON_SPOT_M || (to_post < SETTLE_M && stuck) {
+                if to_post.inside_radius(ON_SPOT_M) || (to_post.inside_radius(SETTLE_M) && stuck) {
                     s.post = None;
                     s.path.clear();
                 } else if stuck && ctx.tick >= s.planned_at + every {
@@ -804,13 +813,13 @@ pub(super) fn step_squad(
         let Some(spot) = s.spot else {
             continue;
         };
-        let to_spot = (spot - next.xy()).length();
+        let to_spot = spot - next.xy();
         let homing = s.leg == corridor.map_or(0, |c| c.last()) && s.path.last() == Some(&spot);
-        let stuck = (next.xy() - here.xy()).length() < 1e-3;
-        if homing && to_spot < ON_SPOT_M {
+        let stuck = (next.xy() - here.xy()).inside_radius(1e-3);
+        if homing && to_spot.inside_radius(ON_SPOT_M) {
             s.position = spot.with_z(next.z);
             crowd.set(id, spot);
-        } else if homing && to_spot < SETTLE_M && stuck {
+        } else if homing && to_spot.inside_radius(SETTLE_M) && stuck {
             // He can get no closer (someone stands there): here will do.
             s.spot = Some(next.xy());
         } else if stuck && ctx.tick >= s.planned_at + every {
@@ -838,7 +847,7 @@ pub(super) fn step_squad(
                             around.stands(p, ctx.soldier_radius_m)
                                 && standing
                                     .iter()
-                                    .all(|q| (*q - p).length() >= 2.0 * ctx.soldier_radius_m)
+                                    .all(|q| (*q - p).at_least_radius(2.0 * ctx.soldier_radius_m))
                         },
                     )
                 })
@@ -849,7 +858,7 @@ pub(super) fn step_squad(
         }
         let on = s
             .spot
-            .is_some_and(|p| (p - s.position.xy()).length() < 1e-9);
+            .is_some_and(|p| (p - s.position.xy()).inside_radius(1e-9));
         arrived &= on;
     }
     let Some(mut route) = route else {
@@ -886,7 +895,7 @@ pub(super) fn step_squad(
     unit.settle();
     // The squad faces its next waypoint while it is still some way off.
     let ahead = route[0] - unit.position.xy();
-    if ahead.length() > 1.0 {
+    if ahead.outside_radius(1.0) {
         unit.yaw = libm::atan2(ahead.y, ahead.x);
     }
     if arrived {
@@ -916,14 +925,14 @@ fn walk(
     wanted: V2,
 ) -> Option<V3> {
     let from = here.xy();
-    if (wanted - from).length() < 1e-9 {
+    if (wanted - from).inside_radius(1e-9) {
         return None;
     }
     let r = ctx.soldier_radius_m;
     let reach = (wanted - from).length() + r + ENCOUNTER_RANGE_M;
     let mut solids: Vec<Obb2> = Vec::new();
     for b in &around.bodies {
-        if (b.rect.center - from).length() > b.reach + reach {
+        if (b.rect.center - from).outside_radius(b.reach + reach) {
             continue;
         }
         if let Some(prop) = b.id.and_then(|id| ctx.world.prop(id)) {
@@ -950,7 +959,7 @@ fn walk(
             break;
         }
     }
-    if solids.iter().any(|b| b.contains(next, r)) || (next - from).length() < 1e-9 {
+    if solids.iter().any(|b| b.contains(next, r)) || (next - from).inside_radius(1e-9) {
         return None;
     }
     ctx.world
@@ -991,7 +1000,7 @@ fn keep_apart(
             break;
         }
     }
-    if (p - next.xy()).length() < 1e-12 {
+    if (p - next.xy()).inside_radius(1e-12) {
         return next;
     }
     let inside = around
@@ -1020,7 +1029,7 @@ pub(super) fn shove(ctx: &MovementContext, units: &mut [Unit], vehicle: usize, c
     for k in 0..crowd.standing.len() {
         let j = crowd.standing[k];
         let unit = &mut units[j];
-        if (unit.position.xy() - hull.center).length() > reach + crowd.radii[j] {
+        if (unit.position.xy() - hull.center).outside_radius(reach + crowd.radii[j]) {
             continue;
         }
         let mut moved = false;
@@ -1049,7 +1058,7 @@ pub fn clear_of(world: &WorldGeometry, units: &mut [Unit], body: &Obb2, r: f64) 
         if unit.is_vehicle() || unit.garrisoned() {
             continue;
         }
-        if (unit.position.xy() - body.center).length() > reach + unit.footprint_radius(r) {
+        if (unit.position.xy() - body.center).outside_radius(reach + unit.footprint_radius(r)) {
             continue;
         }
         let mut moved = false;
@@ -1108,9 +1117,10 @@ mod tests {
 
     #[test]
     fn a_blocked_nearby_corridor_end_exhausts_the_rejoin_search() {
+        let route = [v2(65.0, 50.0)];
         let corridor = Corridor {
             from: v2(50.0, 50.0),
-            route: &[v2(65.0, 50.0)],
+            route: &route,
         };
         let mut attempts = 0;
         let point = corridor.rejoin(0, 0.0, 3.0, corridor.from, 18.0, |_| {
@@ -1124,9 +1134,10 @@ mod tests {
     #[test]
     fn rejoin_still_accepts_the_first_open_point_including_the_end() {
         let end = v2(65.0, 50.0);
+        let route = [end];
         let corridor = Corridor {
             from: v2(50.0, 50.0),
-            route: &[end],
+            route: &route,
         };
         for t in [0.0, 0.2, 0.8, 1.0] {
             assert_eq!(

@@ -703,7 +703,7 @@ fn a_real_tree_line_hides_a_recon_squad_from_the_far_field() {
             map["forests"] =
                 json!([{"shape":{"kind":"stroke","points":[[600,20],[600,280]],"width_m":24}}]);
         }
-        let setup = common::scenario(
+        let mut setup = common::scenario(
             &map.to_string(),
             json!([
                 {"side":"blue","kind":"recon","position":[observer_x,150],"engagement":"return_fire_only"},
@@ -711,6 +711,17 @@ fn a_real_tree_line_hides_a_recon_squad_from_the_far_field() {
             ]),
             json!([]),
         );
+        // Keep the open control in optical range independently of recon balance.
+        let mut rules = common::game();
+        sim::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "recon",
+            json!({"sensors":{"ground_m":1000}}),
+        );
+        setup.rules.catalog = serde_json::from_value::<contract::scenario::Rules>(rules)
+            .unwrap()
+            .catalog;
         let mut b = Battle::new(&setup, 1);
         b.step();
         b

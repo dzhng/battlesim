@@ -31,6 +31,9 @@ use crate::units::{Soldier, Unit, UnitOrder};
 use crate::world::{Prop, PropId, Slot, WorldGeometry};
 use contract::random::Rng;
 
+mod occupy;
+pub(crate) use occupy::{occupy, BuildingPlan, EntryAction};
+
 /// Escaping soldiers keep at least this far apart.
 const ESCAPE_SPACING_M: f64 = 1.0;
 /// Exit places are sampled this far apart around the building.
@@ -324,6 +327,37 @@ pub fn validate(
         return Err(OrderError::CapacityFull);
     }
     Ok(())
+}
+
+/// An actual hold or entry phase this intent can retain. Future queued
+/// reservations are considered only after their physical prefix is proven.
+pub(crate) fn current_entry(unit: &Unit, building: PropId) -> Option<V2> {
+    if let Some(entry) = held_entry(unit, building) {
+        return Some(entry);
+    }
+    if let Some(g) = unit.garrison.as_ref().filter(|g| g.building == building) {
+        if matches!(g.phase, Phase::Entering(_))
+            && matches!(want(unit), Want::Enter(b) if b == building)
+        {
+            return Some(g.entry);
+        }
+    }
+    None
+}
+
+pub(crate) fn held_entry(unit: &Unit, building: PropId) -> Option<V2> {
+    unit.garrison
+        .as_ref()
+        .filter(|g| {
+            g.building == building
+                && matches!(g.phase, Phase::Inside)
+                && match want(unit) {
+                    Want::Stay => true,
+                    Want::Enter(b) => b == building,
+                    Want::Leave => false,
+                }
+        })
+        .map(|g| g.entry)
 }
 
 /// What stops a soldier on foot: every prop that blocks infantry.

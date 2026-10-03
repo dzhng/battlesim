@@ -11,7 +11,7 @@ import { gameContactStyle } from "./gameFog";
 import type { PreparedSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
-import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
 import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
@@ -61,6 +61,23 @@ import {
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
+import {
+  dragFacing,
+  reconcilePointerIntent,
+  type PointerIntent,
+  type PointerPick,
+} from "@web/battle/input/pointerIntent";
+import type { CursorAction } from "@web/battle/present/gameCursor";
+import {
+  PointerPaint,
+  rulerAt,
+  previewForIntent,
+  cursorForIntent,
+  cursorForRelease,
+  intentForOrder,
+  samePointerIntent,
+  previewContextIdentity,
+} from "./pointerPaint";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import type { RulerRules } from "@web/battle/present/rangeRuler";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
@@ -171,12 +188,21 @@ export function useBattleSession({
   // each frame and kept as state only when it changes.
   const orderReveal = useMemo(() => new OrderReveal(gameOrderFlash), []);
   /** Bridge the released preview until the publication contains its order. */
-  const pendingMove = useRef<(Extract<Order, { kind: "move" }> & { queued: boolean }) | null>(null);
+  const [pointerPaint] = useState(() => new PointerPaint());
+  const pendingAction = useRef<{ order: Order; queued: boolean; generation: number } | null>(null);
+  const pressGeneration = useRef(0);
+  const captured = useRef<{
+    pick: PointerPick;
+    intent: PointerIntent;
+    generation: number;
+    client: typeof sim.client;
+  } | null>(null);
+  const shownIntent = useRef<PointerIntent>({ kind: "none" });
   const [revealed, setRevealed] = useState<RevealedOrders>(NOTHING_REVEALED);
   const revealedRef = useRef(revealed);
   const noteOrder = useCallback(
     (order: Order, queued: boolean) => {
-      pendingMove.current = order.kind === "move" ? { ...order, queued } : null;
+      pendingAction.current = { order, queued, generation: captured.current?.generation ?? 0 };
       if (drawnClock.current !== null) orderReveal.noteOrder(order, drawnClock.current);
     },
     [orderReveal],
@@ -185,8 +211,10 @@ export function useBattleSession({
   // A new battle carries no flash over.
   useEffect(() => {
     orderReveal.clear();
-    pendingMove.current = null;
-  }, [sim.client, orderReveal]);
+    pendingAction.current = null;
+    captured.current = null;
+    pointerPaint.resolvePreview(null, [], null, 0);
+  }, [sim.client, orderReveal, pointerPaint]);
 
   // Every building is drawn from its template's rows, as instances of kit
   // modules, standing or fallen: no fitted model stands for one or for its
@@ -443,9 +471,9 @@ export function useBattleSession({
     [audio],
   );
 
-  const onPick = useCallback(
-    (pick: LabPick) => {
-      if (!world) return;
+  const semanticPick = useCallback(
+    (pick: LabPick): PointerPick | null => {
+      if (!world) return null;
       const pointer = pickToPointer(world, drawn.current, pick, observation?.contacts);
       const panel = readouts.current?.pick(pick.x, pick.y);
       if (!panel && pick.button === "left" && pointer.unit === null && pointer.enemy === null) {
@@ -467,10 +495,176 @@ export function useBattleSession({
           }
         }
       }
-      control.onPointer(panel ? { ...pointer, ...panel } : pointer);
+      return panel ? { ...pointer, ...panel } : pointer;
     },
-    [world, control, observation],
+    [world, observation],
   );
+  const onRightPress = useCallback(
+    (pick: LabPick | null) => {
+      const pointer = pick && semanticPick(pick);
+      captured.current = pointer
+        ? {
+            pick: pointer,
+            intent: control.intentAt(pointer),
+            generation: ++pressGeneration.current,
+            client: sim.client,
+          }
+        : null;
+    },
+    [semanticPick, control, sim.client],
+  );
+  const facedIntent = (
+    intent: PointerIntent,
+    pick: PointerPick,
+    release?: [number, number] | null,
+  ): PointerIntent => {
+    if (intent.kind !== "move" && intent.kind !== "occupy_building") return intent;
+    const facing = dragFacing({ ground: pick.ground, facingTo: release });
+    return { ...intent, facing };
+  };
+  const onPick = useCallback(
+    (pick: LabPick) => {
+      const held = captured.current;
+      if (pick.button === "right") {
+        // A reset cancels the old press; its release cannot command the new battle.
+        if (!held || held.client !== sim.client) return;
+        const release = pick.release && world && groundUnderRay(world.view, pick.release);
+        control.onPointer(
+          held.pick,
+          facedIntent(held.intent, held.pick, release && [release[0], release[1]]),
+        );
+        captured.current = null;
+      } else {
+        const pointer = semanticPick(pick);
+        if (pointer) control.onPointer(pointer);
+      }
+    },
+    [semanticPick, control, world, sim.client],
+  );
+  const eligibilityIdentity = JSON.stringify(
+    (observation?.own ?? []).map((u) => [
+      u.id,
+      u.kind,
+      u.members.length,
+      u.garrison?.building,
+      u.garrison?.phase,
+      u.queue,
+    ]),
+  );
+  const pendingClaims = JSON.stringify(
+    control.acks
+      .filter(({ ack }) => !ack.error && ack.applied_tick > (observation?.tick ?? 0))
+      .map(({ seq, order }) => [seq, order]),
+  );
+  const semanticIdentity = useMemo(
+    () =>
+      previewContextIdentity(
+        side,
+        knownKey,
+        eligibilityIdentity,
+        pendingClaims,
+        clearedCount,
+        clearingEpoch,
+      ),
+    [side, knownKey, eligibilityIdentity, pendingClaims, clearedCount, clearingEpoch],
+  );
+  const semanticRevision = useRef({ identity: "", version: 0 });
+  if (semanticRevision.current.identity !== semanticIdentity) {
+    semanticRevision.current = {
+      identity: semanticIdentity,
+      version: semanticRevision.current.version + 1,
+    };
+  }
+  const onCursor = (pointer: ViewportPointer, camera: Camera3DParams): CursorAction | null => {
+    const active =
+      pointer.position &&
+      pointer.ray &&
+      !pointer.cameraDragging &&
+      !replay &&
+      !scripted &&
+      (!pointer.rightPress || captured.current?.client === sim.client) &&
+      sim.client &&
+      world;
+    const pick = active
+      ? semanticPick({
+          ...pointer.position!,
+          ray: pointer.ray!,
+          instance: pickBox(pointer.ray!, drawn.current.picks),
+          button: "right",
+          ctrl: pointer.ctrl,
+          shift: pointer.shift,
+          time: 0,
+        })
+      : null;
+    const held =
+      pointer.rightPress && captured.current?.client === sim.client ? captured.current : null;
+    const release =
+      held &&
+      pointer.rightDragging &&
+      pointer.ray &&
+      world &&
+      groundUnderRay(world.view, pointer.ray);
+    const intent =
+      active && held
+        ? facedIntent(
+            reconcilePointerIntent(held.intent, observation),
+            held.pick,
+            release ? [release[0], release[1]] : null,
+          )
+        : pick
+          ? control.intentAt(pick)
+          : ({ kind: "none" } as PointerIntent);
+    shownIntent.current = intent;
+    const pending = pendingAction.current;
+    const accepted = pending && control.acks.find(({ order }) => order === pending.order)?.ack;
+    const released = pending && intentForOrder(pending.order, pending.queued);
+    // Until admission answers, the released request retains its resolved marks,
+    // including facing. It uses the same coalesced resolver as held/hover intent.
+    const waiting = !held && pending && !accepted && released;
+    const queryIntent = waiting ? reconcilePointerIntent(released, observation) : intent;
+    const marks = pointerPaint.resolvePreview(
+      active ? previewForIntent(queryIntent) : null,
+      observation?.own ?? [],
+      active ? sim.client : null,
+      `${observation?.tick ?? 0}:${control.acks[0]?.seq ?? 0}`,
+      `${semanticRevision.current.version}:${held?.generation ?? (waiting ? pending.generation : 0)}`,
+    );
+    const showDestinations = queryIntent.kind === "move" || queryIntent.kind === "occupy_building";
+    let preview = (held || waiting) && showDestinations ? marks : [];
+    if (!held && accepted) {
+      if ((observation?.tick ?? 0) >= accepted.applied_tick) pendingAction.current = null;
+      else if (
+        !accepted.error &&
+        released &&
+        (released.kind === "move" || released.kind === "occupy_building")
+      )
+        preview = pointerPaint.markers(
+          accepted.placement?.destinations ?? accepted.building?.destinations ?? [],
+          observation?.own ?? [],
+          revealedRef.current,
+        );
+    }
+    const ruler =
+      active && control.showOrders
+        ? rulerAt(pointer.ray, world!, control.selectedUnits, drawnAt.current, rules, surfaceZ)
+        : null;
+    pointerPaint.update(
+      ruler,
+      active ? preview : [],
+      surfaceZ,
+      metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
+    );
+    if (!active) return null;
+    if (!held && pick?.unit != null) return "default";
+    if (!held && accepted && released && (observation?.tick ?? 0) < accepted.applied_tick) {
+      const action = cursorForRelease(intent, released, accepted);
+      if (action !== null) return action;
+    }
+    return cursorForIntent(
+      intent,
+      samePointerIntent(intent, queryIntent) ? pointerPaint : { state: "pending", building: null },
+    );
+  };
   /** Drag-select own units whose drawn position falls in the rectangle. */
   const onBox = useCallback(
     (box: LabBox) =>
@@ -518,6 +712,10 @@ export function useBattleSession({
     status: () => sim.status,
     selected: () => control.selected,
     select: (ids: number[]) => control.setSelected(ids),
+    pointerIntent: () => shownIntent.current,
+    pointerResolution: () => ({ state: pointerPaint.state, building: pointerPaint.building }),
+    movePreview: () => pointerPaint.preview,
+    ruler: () => pointerPaint.shown,
     /** Space held: the order overlay shows every own unit (D2+). */
     showOrders: () => control.showOrders,
     acks: () => control.acks,
@@ -687,7 +885,7 @@ export function useBattleSession({
     /** Which own units' order marks show, at what opacity (`OrderReveal`):
      *  every unit's with Space held, an order's units' as it flashes. */
     revealed,
-    pendingMove,
+    pointerPaint,
     surfaceZ,
     /** The appearances the viewport's models layer installs. */
     appearances: modelAppearances,
@@ -720,6 +918,8 @@ export function useBattleSession({
           : null,
       ),
     onPick,
+    onRightPress,
+    onCursor,
     onBox,
     onReady,
     gpuAllocations,

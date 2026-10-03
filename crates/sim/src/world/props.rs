@@ -242,15 +242,47 @@ impl PropIndex {
         out.dedup();
     }
 
-    /// Append bucket candidates without ordering or uniqueness. A caller
-    /// collecting several views canonicalizes their union once before reading it.
-    pub fn append_near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
+    /// Append one view's bucket entries before `near` canonicalizes its IDs.
+    fn append_near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
         let (i0, i1, j0, j1) = self.range(center, radius);
         for j in j0..=j1 {
             for i in i0..=i1 {
                 out.extend(self.cells[j * self.nx + i].iter().map(|e| e.id));
             }
         }
+    }
+
+    /// Ascending unique candidates for a union of views. Merge the views'
+    /// bucket intervals before reading props: overlapping eyes read each
+    /// bucket once, rather than multiplying its entries before the ID sort.
+    pub fn near_many(&self, views: &[(V2, f64)], out: &mut Vec<PropId>) {
+        let mut rows = Vec::new();
+        for &(center, radius) in views {
+            let (i0, i1, j0, j1) = self.range(center, radius);
+            rows.extend((j0..=j1).map(|j| (j, i0, i1)));
+        }
+        rows.sort_unstable();
+        let mut run: Option<(usize, usize, usize)> = None;
+        let mut read = |(j, i0, i1): (usize, usize, usize)| {
+            for entries in &self.cells[j * self.nx + i0..=j * self.nx + i1] {
+                out.extend(entries.iter().map(|e| e.id));
+            }
+        };
+        for (j, i0, i1) in rows {
+            if let Some((row, _, end)) = &mut run {
+                if *row == j && i0 <= *end + 1 {
+                    *end = (*end).max(i1);
+                    continue;
+                }
+                read(run.take().unwrap());
+            }
+            run = Some((j, i0, i1));
+        }
+        if let Some(run) = run {
+            read(run);
+        }
+        out.sort_unstable();
+        out.dedup();
     }
 
     /// Whether `hit` holds for some prop whose footprint circle the XY
@@ -267,7 +299,7 @@ impl PropIndex {
             } else {
                 0.0
             };
-            (a + ab * t - e.center).length() <= e.radius + 1e-3
+            (a + ab * t - e.center).within_radius(e.radius + 1e-3)
         };
         self.buckets_crossed(a, b, |entries| {
             entries.iter().any(|e| meets(e) && hit(e.id))
@@ -371,4 +403,54 @@ pub(crate) fn ray_box(o: V3, d: V3, half: V3, max_t: f64) -> Option<(f64, V3)> {
     let mut n = [0.0; 3];
     n[axis0] = sign0;
     Some((t, v3(n[0], n[1], n[2])))
+}
+
+#[cfg(test)]
+mod query_tests {
+    use super::*;
+    use crate::world::WorldGeometry;
+
+    #[test]
+    fn overlapping_queries_keep_exact_candidates_through_index_edits() {
+        let rules = serde_json::from_value(crate::fixtures::game()).unwrap();
+        let map = serde_json::from_value(serde_json::json!({
+            "size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+            "props":[
+                {"kind":"crate","center":[16,16],"yaw":0,"half_extents":[1,1,1]},
+                {"kind":"crate","center":[40,16],"yaw":0,"half_extents":[1,1,1]},
+                {"kind":"crate","center":[96,96],"yaw":0,"half_extents":[1,1,1]}
+            ]
+        }))
+        .unwrap();
+        let world = WorldGeometry::new(&map, &rules);
+        let mut index = PropIndex::new(128.0, 128.0, 16.0);
+        for prop in world.props() {
+            index.insert(prop);
+        }
+        let views = [
+            (v2(16.0, 16.0), 2.0),
+            (v2(16.0, 16.0), 2.0),
+            (v2(40.0, 16.0), 2.0),
+            (v2(-3.0, -3.0), 1.0),
+        ];
+        let mut out = Vec::new();
+        index.near_many(&views, &mut out);
+        assert_eq!(out, vec![0, 1]);
+        out.clear();
+        index.near_many(&[], &mut out);
+        assert!(out.is_empty());
+        let mut prop = world.prop(0).unwrap().clone();
+        index.remove(&prop);
+        prop.center = v2(96.0, 16.0);
+        index.insert(&prop);
+        index.near_many(&views, &mut out);
+        assert_eq!(out, vec![1]);
+        out.clear();
+        index.near_many(&[(v2(96.0, 16.0), 2.0), (v2(96.0, 96.0), 2.0)], &mut out);
+        assert_eq!(out, vec![0, 2]);
+        index.remove(&prop);
+        out.clear();
+        index.near_many(&[(v2(96.0, 16.0), 2.0)], &mut out);
+        assert!(out.is_empty());
+    }
 }

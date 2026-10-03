@@ -201,3 +201,56 @@ test("the public picker and delivered replacements share one physical building o
     battle.free();
   }
 });
+
+test("building nomination resolves aggregate owners even without garrison capability", () => {
+  const descriptor = JSON.parse(
+    readFileSync(
+      new URL("../../fixtures/parity/templates/asymmetric.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  const geometry = JSON.parse(
+    materialize_template(
+      JSON.stringify(descriptor),
+      JSON.stringify({ translation: [400, 300, 0], yaw: 0 }),
+    ),
+  );
+  const rules = structuredClone(GAME_RULES);
+  const props = (
+    rules.catalog as { props?: Record<string, { body: Record<string, unknown> }> }[]
+  ).find((d) => d.props?.building)!.props!;
+  delete props.building.body.garrison;
+  const map = {
+    size: [800, 600],
+    fog_cell_m: 8,
+    height_grid_m: 4,
+    slope_cutoff_deg: 35,
+    template_catalog_hash: JSON.parse(template_catalogue_json(JSON.stringify([descriptor]))).hash,
+    buildings: [
+      {
+        owner: 0,
+        kind: "building",
+        category: descriptor.category,
+        regional_family: descriptor.regional_family,
+        parts: [
+          { part: "main", prop: 0 },
+          { part: "wing", prop: 1 },
+        ],
+        geometry,
+      },
+    ],
+    props: [{ id: 2, kind: "tooth", center: [700, 550], yaw: 0, half_extents: [0.6, 0.6, 0.6] }],
+  };
+  const view = new WorldView(JSON.stringify(map), JSON.stringify(rules));
+  try {
+    const world = {
+      view,
+      layout: JSON.parse(world_layout(JSON.stringify(rules))) as WorldLayout,
+      exports: readWorldExports(view),
+    };
+    expect(buildingUnderRay(world, { origin: [420, 301, 2], dir: [-1, 0, 0] })).toBe(0);
+    expect(buildingUnderRay(world, { origin: [700, 550, 10], dir: [0, 0, -1] })).toBeNull();
+  } finally {
+    view.free();
+  }
+});

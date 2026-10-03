@@ -1,5 +1,6 @@
 // Slice 11: buildings as abstract fighting positions, through real orders.
 // The building is prop 0: centre (360, 250), 24 × 24 m, 8 m tall.
+import { garrisonCursor, queuedBuildingCursor } from "./_cursorOrders.mjs";
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop, mostChanged } from "./_png.mjs";
 import { lab, obs, advance, until, openBattle } from "./_lab.mjs";
@@ -162,6 +163,8 @@ async function coverLight(ctx) {
 
 export async function run(ctx) {
   if (process.env.COVER_LIGHT === "1") return coverLight(ctx);
+  await garrisonCursor(ctx);
+  await queuedBuildingCursor(ctx);
   const page = await openBattle(ctx);
   await advance(page, 5);
   await look(page, 95);

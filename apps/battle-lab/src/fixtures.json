@@ -1,5 +1,17 @@
 [
   {
+    "id": "cursor-orders",
+    "route": "/lab/cursor-orders",
+    "describe": "The production pointer over a reachable squad and a vehicle enclosed by known walls: combined entry, partial gathering refusal and readable callouts.",
+    "map": "garrison"
+  },
+  {
+    "id": "cursor",
+    "route": "/lab/cursor",
+    "describe": "Arrow and action cursor at native screen size over grass, road and fog; every badge and a moving pointer through the real presentation component.",
+    "map": null
+  },
+  {
     "id": "foundation",
     "route": "/lab/foundation",
     "describe": "Primitive 3D reproduction: asymmetric tank, facing-marked infantry, raised ground patch and box prop; pan/orbit/zoom, pick and reset.",
@@ -74,7 +86,7 @@
   {
     "id": "garrison",
     "route": "/lab/garrison",
-    "describe": "Buildings as fighting positions: two blue squads share a building by soldier capacity (a third is refused), enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned.",
+    "describe": "Buildings as fighting positions: the closest eligible blue squad enters a building while selected companions gather outside; direct entry admits one squad whole, enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned.",
     "map": "garrison"
   },
   {

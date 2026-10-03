@@ -803,6 +803,18 @@ impl BattleHandle {
         serde_json::to_string(&marks).map_err(js_error)
     }
 
+    /// Resolve a combined building action without accepting an order or advancing time.
+    pub fn preview_building(&self, side: &str, request_json: &str) -> Result<String, JsError> {
+        let side = parse_side(side)?;
+        let request: contract::command::BuildingPreviewRequest =
+            serde_json::from_str(request_json).map_err(js_error)?;
+        let placement = self
+            .battle
+            .preview_building(side, &request)
+            .map_err(|e| js_error(format!("{e:?}")))?;
+        serde_json::to_string(&placement).map_err(js_error)
+    }
+
     pub fn step(&mut self) -> f64 {
         if let Some(blue) = self.blue.as_mut() {
             blue.command(&mut self.battle);

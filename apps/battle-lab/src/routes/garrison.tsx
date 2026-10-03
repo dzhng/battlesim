@@ -1,3 +1,4 @@
+import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
@@ -148,6 +149,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
   const garrisoned = control.selectedUnits.some((u) => u.garrison !== null);
   return (
     <>
+      <RejectedOrder acks={control.acks} />
       <LabViewport
         fixture="garrison"
         world={worldFeed}
@@ -160,6 +162,9 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
         appearances={session.appearances}
         initialCamera={GARRISON_CAMERA}
         onPick={session.onPick}
+        onRightPress={session.onRightPress}
+        onCursor={session.onCursor}
+        pointerMarks={session.pointerPaint.feed}
         onBox={session.onBox}
         onReady={session.onReady}
         onFrame={session.placePanels}

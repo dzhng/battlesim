@@ -155,6 +155,8 @@ fn full_building(seed: u64) -> (Battle, Commander) {
     (b, c)
 }
 
+mod occupy;
+
 #[test]
 fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
     let mut b = battle(west_squads(&["rifle", "recon"]), 1);

@@ -31,7 +31,7 @@ mod push;
 mod soldier;
 mod take_cover;
 
-pub(crate) use certify::certify;
+pub(crate) use certify::{certify, certify_orders, ProofRequest};
 pub use drive::{final_facing, Manoeuvre};
 pub use final_leg::{final_leg, FinalLeg, FINE_CELL_M};
 pub use push::Shove;
@@ -170,7 +170,7 @@ impl SideGeometry {
             None if prop.id < authored => return, // it stands where the map put it
             None => {}
             Some(was) if *was == now => return,
-            Some(was) if !resting && (was.center - now.center).length() <= relearn_m => return,
+            Some(was) if !resting && (was.center - now.center).within_radius(relearn_m) => return,
             Some(_) => {}
         }
         let was = self.seen.insert(prop.id, now).map(|w| w.center);
@@ -204,7 +204,7 @@ impl SideGeometry {
             .iter()
             .rev()
             .take_while(|c| c.revision > since)
-            .any(|c| (c.at - at).length() <= reach + c.radius)
+            .any(|c| (c.at - at).within_radius(reach + c.radius))
     }
 
     /// Whether any change after revision `since` came within `reach` of
@@ -231,7 +231,7 @@ impl SideGeometry {
                     } else {
                         0.0
                     };
-                    let near = (a + ab * t - c.at).length() <= reach + c.radius;
+                    let near = (a + ab * t - c.at).within_radius(reach + c.radius);
                     a = b;
                     near
                 })
@@ -266,10 +266,9 @@ impl SideGeometry {
         &self.standing
     }
 
-    /// Append unordered, possibly repeated remembered candidates for the
-    /// caller to canonicalize after collecting all eyes.
-    pub(crate) fn append_standing_near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
-        self.standing_index.append_near(center, radius, out);
+    /// Ascending unique remembered candidates across all visibility views.
+    pub(crate) fn standing_ids_near_many(&self, views: &[(V2, f64)], out: &mut Vec<PropId>) {
+        self.standing_index.near_many(views, out);
     }
 
     /// The side sees that a body it kept standing is gone.
@@ -420,7 +419,12 @@ pub(crate) fn advance(
     }
     plan_routes(ctx, units, sides, &field, planner);
     completed(crate::battle::TickPhase::Navigation);
-    let hulls: Vec<Obb2> = footprints.iter().flatten().copied().collect();
+    // The infantry snapshot shares each hull's unchanged circle bound this tick.
+    let hulls: Vec<(Obb2, f64)> = footprints
+        .iter()
+        .flatten()
+        .map(|&hull| (hull, hull.half.length()))
+        .collect();
     // Every live vehicle on the move, either side, as soldiers see it coming.
     let threats: Vec<Threat> = units
         .iter()
@@ -480,7 +484,7 @@ fn request_route(
     // A pursuit point that has moved on needs a new route.
     let goal_moved = unit
         .planned_goal
-        .is_none_or(|g| (g - goal).length() > GOAL_REPLAN_M);
+        .is_none_or(|g| (g - goal).outside_radius(GOAL_REPLAN_M));
     if planner.pending(unit.id).is_some() && !goal_moved {
         return;
     }
@@ -496,7 +500,7 @@ fn request_route(
             .enumerate()
             .filter(|(k, _)| *k != unit.id.0 as usize)
             .filter_map(|(_, hull)| *hull)
-            .filter(|hull| (hull.center - here).length() <= KNOT_M)
+            .filter(|hull| (hull.center - here).within_radius(KNOT_M))
             .map(|hull| Obb2 {
                 half: hull.half + v2(TRAFFIC_MARGIN_M, TRAFFIC_MARGIN_M),
                 ..hull
@@ -571,7 +575,7 @@ fn prefer_roads(ctx: &MovementContext, unit: &mut Unit) {
     }
     let from = route_start(unit, |_| true);
     if let Some(leg) = unit.orders.front_mut().and_then(|o| o.movement_mut()) {
-        if (leg.destination - from).length() > ctx.rules.navigation.road_leg_m {
+        if (leg.destination - from).outside_radius(ctx.rules.navigation.road_leg_m) {
             leg.policy = contract::command::RoutePolicy::Fastest;
         }
     }
@@ -1046,7 +1050,7 @@ fn keep_spots(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: 
             .collect();
         let spacing = ctx.infantry.spacing_m / 2.0;
         let spot = arrangement::nearest_free(wanted, reach, |p| {
-            taken.iter().all(|t| (*t - p).length() >= spacing)
+            taken.iter().all(|t| (*t - p).at_least_radius(spacing))
                 && arrangement::standing_room(ctx.world, p, r, &solid)
                 && arrangement::reachable(ctx.world, end, p, r, &solid)
         })
@@ -1098,18 +1102,18 @@ mod remembered_sight_tests {
         let at = v2(20.0, 20.0);
         side.keep_standing(prop.clone());
         let mut nearby = Vec::new();
-        side.append_standing_near(at, 2.0, &mut nearby);
+        side.standing_ids_near_many(&[(at, 2.0)], &mut nearby);
         assert_eq!(nearby, vec![0]);
         prop.center = v2(200.0, 200.0);
         side.keep_standing(prop);
         nearby.clear();
-        side.append_standing_near(at, 2.0, &mut nearby);
+        side.standing_ids_near_many(&[(at, 2.0)], &mut nearby);
         assert!(nearby.is_empty(), "replaced memory has no old footprint");
-        side.append_standing_near(v2(200.0, 200.0), 2.0, &mut nearby);
+        side.standing_ids_near_many(&[(v2(200.0, 200.0), 2.0)], &mut nearby);
         assert_eq!(nearby, vec![0]);
         side.saw_fallen(0);
         nearby.clear();
-        side.append_standing_near(v2(200.0, 200.0), 2.0, &mut nearby);
+        side.standing_ids_near_many(&[(v2(200.0, 200.0), 2.0)], &mut nearby);
         assert!(
             nearby.is_empty(),
             "observed removals leave no remembered body"

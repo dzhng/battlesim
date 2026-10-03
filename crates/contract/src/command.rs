@@ -73,6 +73,33 @@ pub struct MovePreviewRequest {
     pub queued: bool,
 }
 
+/// One side's combined entry and gathering intent, without accepting an order.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct BuildingPreviewRequest {
+    pub units: Vec<UnitId>,
+    pub building: u32,
+    pub facing: Option<f64>,
+    #[serde(default)]
+    pub queued: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BuildingEntry {
+    pub unit: UnitId,
+    pub approach: [f64; 2],
+}
+
+/// The exact entry and certified companion destinations prepared by admission.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BuildingPlacement {
+    pub building: u32,
+    pub entrant: Option<BuildingEntry>,
+    pub destinations: Vec<MoveDestination>,
+    /// Work ended before every possibility was proved; this is not impossibility.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub unproven: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Order {
@@ -119,11 +146,19 @@ pub enum Order {
         units: Vec<UnitId>,
         deployed: bool,
     },
-    /// Enter a building as whole squads, after walking to it and a
-    /// stationary timer (L08). Every squad must fit, or the order is refused.
+    /// Walk one squad to a building, then enter after a stationary timer.
+    /// The complete squad must fit, or the order is refused.
     Garrison {
         units: Vec<UnitId>,
         building: u32,
+    },
+    /// One eligible squad enters; selected companions gather on the approach side.
+    OccupyBuilding {
+        units: Vec<UnitId>,
+        building: u32,
+        gesture: u64,
+        #[serde(default)]
+        facing: Option<f64>,
     },
     /// Leave the building after a stationary timer, to free ground outside.
     ExitBuilding {
@@ -196,4 +231,6 @@ pub struct CommandAck {
     pub error: Option<OrderError>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub placement: Option<MovePlacement>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub building: Option<BuildingPlacement>,
 }

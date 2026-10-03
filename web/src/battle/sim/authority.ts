@@ -23,6 +23,7 @@ export interface SimBattle {
   observation_layout(): string;
   accept(commandJson: string): string;
   preview_move(side: string, moveJson: string): string;
+  preview_building(side: string, buildingJson: string): string;
   step(): number;
   tick(): number;
   digest(): string;
@@ -205,6 +206,26 @@ export function createAuthority(host: AuthorityHost): Authority {
             ),
           });
           return;
+        case "building_preview": {
+          // A changing selection can invalidate a preview without failing the battle.
+          try {
+            host.post({
+              type: "building_preview",
+              id: request.id,
+              placement: JSON.parse(
+                battle!.preview_building(request.side, JSON.stringify(request.building)),
+              ),
+            });
+          } catch (error) {
+            host.post({
+              type: "building_preview",
+              id: request.id,
+              placement: null,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+          return;
+        }
         case "credit":
           credits.push(request.buffer);
           break;

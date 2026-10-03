@@ -1,0 +1,103 @@
+.cursor-lab {
+  height: 100%;
+  overflow: auto;
+  padding: 20px;
+  box-sizing: border-box;
+  background: rgb(var(--hud-glass));
+  color: rgb(var(--hud-text));
+  font: 12px/1.4 var(--hud-font);
+}
+.cursor-lab header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.cursor-lab a {
+  color: rgb(var(--hud-accent));
+}
+.cursor-lab h2 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.cursor-surface {
+  padding: 10px 12px 4px;
+}
+.cursor-grass {
+  background: repeating-linear-gradient(25deg, #46583f, #46583f 3px, #405139 3px, #405139 6px);
+}
+.cursor-road {
+  background: repeating-linear-gradient(145deg, #b5b19a, #b5b19a 3px, #aca78f 3px, #aca78f 6px);
+}
+.cursor-road h2 {
+  color: rgb(var(--hud-glass));
+}
+.cursor-fog {
+  background: linear-gradient(110deg, #182831, #29383c);
+}
+.cursor-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+.cursor-grid figure {
+  position: relative;
+  margin: 0;
+  height: 82px;
+}
+.cursor-grid figcaption {
+  position: absolute;
+  top: 58px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 11px;
+  text-shadow: var(--hud-text-halo);
+}
+.cursor-demo {
+  margin-top: 18px;
+}
+.cursor-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+.cursor-choices button {
+  font: inherit;
+  color: rgb(var(--hud-text));
+  background: transparent;
+  border: 1px solid rgb(var(--hud-accent) / 0.35);
+  padding: 5px 8px;
+}
+.cursor-choices button:hover,
+.cursor-choices button:focus-visible {
+  border-color: rgb(var(--hud-accent));
+}
+.cursor-playfield {
+  position: relative;
+  height: 200px;
+  cursor: none;
+  background:
+    linear-gradient(104deg, transparent 40%, #a4a08b 40%, #a4a08b 60%, transparent 60%),
+    linear-gradient(180deg, #405139 65%, #182831 65%);
+}
+.cursor-playfield > span {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  pointer-events: none;
+  text-shadow: var(--hud-text-halo);
+}
+@media (max-width: 760px) {
+  .cursor-lab {
+    padding: 12px;
+  }
+  .cursor-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .cursor-grid figcaption {
+    font-size: 10px;
+  }
+}

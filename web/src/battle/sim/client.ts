@@ -11,6 +11,8 @@ import type {
   Order,
   MovePreviewRequest,
   MoveDestination,
+  BuildingPreviewRequest,
+  BuildingPlacement,
   SideName,
   SimReply,
   SimRequest,
@@ -52,6 +54,7 @@ export interface SimClient {
   start(): void;
   command(order: Order, queued?: boolean): Promise<CommandAck>;
   previewMove(move: MovePreviewRequest): Promise<MoveDestination[]>;
+  previewBuilding(building: BuildingPreviewRequest): Promise<BuildingPlacement>;
   onPublication(consumer: (publication: Publication) => void): void;
   onStatus(listener: (status: AuthorityStatus, slow: boolean) => void): void;
   pause(): void;
@@ -136,7 +139,11 @@ export function createSimClient(options: SimClientOptions): SimClient {
   type Pending<T> = { resolve: (value: T) => void; reject: (error: Error) => void };
   const pendingAcks = new Map<number, Pending<CommandAck>>();
   const advances = new Map<number, Pending<number>>();
-  const previews = new Map<number, Pending<MoveDestination[]>>();
+  const previews = new Map<
+    number,
+    | (Pending<MoveDestination[]> & { kind: "move" })
+    | (Pending<BuildingPlacement> & { kind: "building" })
+  >();
   const advanceTargets = new Map<number, number>();
   const statusListeners: ((status: AuthorityStatus, slow: boolean) => void)[] = [];
   let consumer: ((publication: Publication) => void) | null = null;
@@ -211,10 +218,21 @@ export function createSimClient(options: SimClientOptions): SimClient {
           pendingAcks.get(reply.ack.seq)?.resolve(reply.ack);
           pendingAcks.delete(reply.ack.seq);
           break;
-        case "move_preview":
-          previews.get(reply.id)?.resolve(reply.destinations);
+        case "move_preview": {
+          const preview = previews.get(reply.id);
+          if (preview?.kind === "move") preview.resolve(reply.destinations);
           previews.delete(reply.id);
           break;
+        }
+        case "building_preview": {
+          const preview = previews.get(reply.id);
+          if (preview?.kind === "building") {
+            if (reply.placement) preview.resolve(reply.placement);
+            else preview.reject(new Error(reply.error ?? "Building action is unavailable"));
+          }
+          previews.delete(reply.id);
+          break;
+        }
         case "publication": {
           const buffer = reply.buffer;
           if (!decoder || !ground)
@@ -306,8 +324,17 @@ export function createSimClient(options: SimClientOptions): SimClient {
         return Promise.reject(failure ?? new Error("simulation client disposed"));
       const id = nextPreview++;
       return new Promise<MoveDestination[]>((resolve, reject) => {
-        previews.set(id, { resolve, reject });
+        previews.set(id, { kind: "move", resolve, reject });
         channel.send({ type: "move_preview", id, side: options.side, move });
+      });
+    },
+    previewBuilding(building) {
+      if (failure || disposed)
+        return Promise.reject(failure ?? new Error("simulation client disposed"));
+      const id = nextPreview++;
+      return new Promise<BuildingPlacement>((resolve, reject) => {
+        previews.set(id, { kind: "building", resolve, reject });
+        channel.send({ type: "building_preview", id, side: options.side, building });
       });
     },
     onPublication(next) {

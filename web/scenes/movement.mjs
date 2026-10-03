@@ -1,4 +1,5 @@
 // Slice 04: predictable routes, group intent, gestures, traffic and blockage.
+import { movementCursor } from "./_cursorOrders.mjs";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot, groundCss, presented } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
@@ -29,6 +30,7 @@ const until = async (page, predicate, arg, timeout = 20000) =>
   page.waitForFunction(predicate, arg, { timeout, polling: 100 });
 
 export async function run(ctx) {
+  await movementCursor(ctx);
   const page = await ctx.newPage();
   await ctx.openLab(page);
   await until(page, () => window.__lab.route?.tick() > 3);
