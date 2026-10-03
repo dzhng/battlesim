@@ -21,61 +21,10 @@ use super::space::Rect;
 /// How far a street runs past the middle of the one it meets, so the two
 /// centrelines cross whatever a centimetre of rounding did to either.
 const JOIN_OVERSHOOT_M: f64 = 0.5;
-/// A street runs to an end that faces it when that end is no more than
-/// this far past the first carriageway it would cross.
-const FACING_PAST_M: f64 = 10.0;
-/// Two carriageways within this of parallel run the same way.
-const PARALLEL_COS: f64 = 0.866;
-/// Two streets that stop end to end run opposite ways within this (60
-/// degrees).
-const FACING_COS: f64 = 0.5;
-/// A street comes to a carriageway on its own line no farther off square
-/// than this (the sine of 20 degrees).
-const SLANT_SIN: f64 = 0.342;
-/// One that would come to it farther off square, up to this (the sine of
-/// 28 degrees), turns at its last crossing to meet it square: a bend, where
-/// a sharper turn would be a hook. At more of a slant it does not meet it.
-const TURN_SIN: f64 = 0.47;
-/// A street that turns to meet a carriageway square runs at least this many
-/// of its widths from the turn to the carriageway.
-const TURN_WIDTHS: f64 = 3.0;
-/// Two streets that meet a road from its two sides make a crossroads when
-/// they run opposite ways within this (25 degrees).
-const IN_LINE_COS: f64 = 0.906;
-/// A street that stops in the open looks this far to either side of its
-/// line for the carriageway it stops short of (20 degrees).
-const AHEAD_SPREAD: f64 = 0.36;
-/// How much an edge of a district counts for when the district picks the
-/// line of its streets: twice its length where a road runs along it, a
-/// quarter where no carriageway does.
-const ROAD_EDGE: f64 = 2.0;
-const OPEN_EDGE: f64 = 0.25;
 /// A joint this near a carriageway's paving lies on it.
 const ON_WAY_M: f64 = 1.0;
-/// A bowed street's wave is this many times its district's length, or the
-/// preset's wavelength where that is longer: one bend or less from end to
-/// end, never a ripple.
-const BOW_LENGTHS: [f64; 2] = [1.2, 2.4];
-/// And it swings no farther off its line than this share of that length, so
-/// a short street bends as gently as a long one.
-const BOW_REACH: f64 = 0.04;
-/// A street that is one run from a crossing to the road ahead is at least
-/// this many widths long: shorter, it is a connector between two streets
-/// that already lie side by side.
-const ALONE_WIDTHS: f64 = 4.0;
-/// Two streets of one grid come to a carriageway no nearer each other than
-/// this many of their widths.
-const CROWD_WIDTHS: f64 = 3.0;
-/// A link runs to a node of its own grid that lies no farther off its line
-/// than this share of the way there.
-const OWN_TAN: f64 = 0.2;
-/// A street stopped in the open turns to another's end that lies no farther
-/// off its line than this share of the way to it (25 degrees).
-const CORNER_TAN: f64 = 0.47;
 /// A district's edge carries a carriageway whose own edge is this near it.
 const CARRIED_M: f64 = 1.0;
-/// A street that ends in the open stops this far inside its district.
-const END_MARGIN_M: f64 = 1.0;
 
 /// One carriageway's rounded centreline.
 pub struct Way {
@@ -90,6 +39,7 @@ pub struct Way {
 /// Every carriageway on the map so far: the layout's roads, then each street
 /// as it is laid.
 pub struct Network<'a> {
+    policy: &'a crate::layout::StreetGeometry,
     pub ways: Vec<Way>,
     /// Sample segments with their way's half width and its place in `ways`.
     segments: Vec<(Point, Point, f64, u32)>,
@@ -151,8 +101,13 @@ struct Met {
 }
 
 impl<'a> Network<'a> {
-    pub fn new(plan: &'a MapPlan, clearance: f64) -> Self {
+    pub fn new(
+        plan: &'a MapPlan,
+        clearance: f64,
+        policy: &'a crate::layout::StreetGeometry,
+    ) -> Self {
         let mut network = Self {
+            policy,
             ways: Vec::new(),
             segments: Vec::new(),
             grid: Grid::new(plan.size, 64.0),
@@ -323,11 +278,11 @@ impl<'a> Network<'a> {
         let [a, b] = met.stretch;
         let run = scale(sub(b, a), 1.0 / distance(a, b));
         let slant = dot(run, toward).abs();
-        if slant > TURN_SIN {
+        if slant > self.policy.turn_sin {
             return Landing::Refused;
         }
-        let crowd = CROWD_WIDTHS * 2.0 * half;
-        if slant > SLANT_SIN {
+        let crowd = self.policy.crowd_widths * 2.0 * half;
+        if slant > self.policy.slant_sin {
             // Square to the carriageway, at its nearest point.
             let Some((away, foot, stretch)) = self.ways[met.way]
                 .samples
@@ -365,8 +320,8 @@ impl<'a> Network<'a> {
                 point[0] + reach,
                 point[1] + reach,
             ];
-            return if away < TURN_WIDTHS * 2.0 * half
-                || dot(run, toward).abs() > SLANT_SIN
+            return if away < self.policy.turn_widths * 2.0 * half
+                || dot(run, toward).abs() > self.policy.slant_sin
                 || !self.dry(from, point)
                 || self
                     .joint_grid
@@ -400,7 +355,7 @@ impl<'a> Network<'a> {
             .iter()
             .filter(|joint| {
                 away(joint) <= within
-                    && dot(joint.arriving, toward) <= -IN_LINE_COS
+                    && dot(joint.arriving, toward) <= -self.policy.in_line_cos
                     && near
                         .iter()
                         .filter(|other| distance(other.at, joint.at) <= crowd)
@@ -492,7 +447,7 @@ impl<'a> Network<'a> {
                     let (c, d, half_width, way) = self.segments[item as usize];
                     (!road || self.ways[way as usize].road)
                         && segment_distance(c, d, p) <= half_width + CARRIED_M
-                        && (dot(edge, sub(d, c)) / distance(c, d)).abs() >= PARALLEL_COS
+                        && (dot(edge, sub(d, c)) / distance(c, d)).abs() >= self.policy.parallel_cos
                 })
             })
             .count();
@@ -605,7 +560,7 @@ impl<'a> Network<'a> {
                 if ahead > 1.0
                     && ahead <= reach
                     && aside <= way.half_width
-                    && facing <= -PARALLEL_COS
+                    && facing <= -self.policy.parallel_cos
                     && best.is_none_or(|(known, _)| ahead < known)
                     && self.dry(from, at)
                 {
@@ -628,7 +583,7 @@ impl<'a> Network<'a> {
         self.grid.any(segment_bounds(p, q, clearance), |item| {
             let (a, b, ..) = self.segments[item as usize];
             let cos = dot(along, sub(b, a)) / distance(a, b);
-            if cos.abs() < PARALLEL_COS {
+            if cos.abs() < self.policy.parallel_cos {
                 crosses |= segment_crossing(p, q, a, b).is_some();
             } else if seen.insert(item) {
                 // The part of the stretch the carriageway lies beside.
@@ -668,11 +623,13 @@ impl<'a> Network<'a> {
     /// ahead of it, on its line or a little to either side.
     fn short_of(&self, from: Point, toward: Point, reach: f64) -> bool {
         let across = [-toward[1], toward[0]];
-        [-AHEAD_SPREAD, 0.0, AHEAD_SPREAD].into_iter().any(|aside| {
-            let heading = add(toward, scale(across, aside));
-            let heading = scale(heading, 1.0 / libm::hypot(heading[0], heading[1]));
-            self.crossing(from, heading, reach).is_some()
-        })
+        [-self.policy.ahead_spread, 0.0, self.policy.ahead_spread]
+            .into_iter()
+            .any(|aside| {
+                let heading = add(toward, scale(across, aside));
+                let heading = scale(heading, 1.0 / libm::hypot(heading[0], heading[1]));
+                self.crossing(from, heading, reach).is_some()
+            })
     }
 
     /// The nearest end of a carriageway that stops in the open ahead of a
@@ -760,7 +717,7 @@ impl<'a> Network<'a> {
                     && ahead <= reach
                     && aside <= within
                     && run > 2.0 * half
-                    && dot(along, toward).abs() < PARALLEL_COS
+                    && dot(along, toward).abs() < self.policy.parallel_cos
                     && best.as_ref().is_none_or(|(known, _)| ahead < *known)
                     && !self.joined(index, at)
                 {
@@ -787,7 +744,7 @@ impl<'a> Network<'a> {
     }
 
     /// The end a street already laid turns to: no farther off its line
-    /// than `CORNER_TAN` of the way there. The two make a corner at it.
+    /// than `self.policy.corner_tan` of the way there. The two make a corner at it.
     fn corner_end(&self, own: usize, from: Point, toward: Point, reach: f64) -> Option<Point> {
         // Not one that runs the street's own way: that is a street beside it.
         let half = self.ways[own].half_width;
@@ -796,8 +753,8 @@ impl<'a> Network<'a> {
             [from, toward],
             reach,
             half,
-            FACING_COS,
-            |ahead, half_width| CORNER_TAN * ahead + half_width,
+            self.policy.facing_cos,
+            |ahead, half_width| self.policy.corner_tan * ahead + half_width,
         )
     }
 
@@ -809,8 +766,8 @@ impl<'a> Network<'a> {
             [from, toward],
             reach,
             half,
-            -FACING_COS,
-            |ahead, _| OWN_TAN * ahead,
+            -self.policy.facing_cos,
+            |ahead, _| self.policy.own_tan * ahead,
         )
     }
 
@@ -824,9 +781,14 @@ impl<'a> Network<'a> {
         within: f64,
         half: f64,
     ) -> Option<Point> {
-        self.end_ahead(None, [from, toward], reach, half, -FACING_COS, |_, _| {
-            within
-        })
+        self.end_ahead(
+            None,
+            [from, toward],
+            reach,
+            half,
+            -self.policy.facing_cos,
+            |_, _| within,
+        )
     }
 }
 
@@ -887,11 +849,11 @@ pub fn lay(
         let edges: Vec<(Point, Point, f64)> = contract::ground::edges(&district.ring)
             .map(|(a, b)| {
                 let weight = if network.runs_along(*a, *b, true) {
-                    ROAD_EDGE
+                    pass.presets.parcels.geometry.road_edge
                 } else if network.runs_along(*a, *b, false) {
                     1.0
                 } else {
-                    OPEN_EDGE
+                    pass.presets.parcels.geometry.open_edge
                 };
                 (*a, *b, weight * distance(*a, *b))
             })
@@ -901,7 +863,12 @@ pub fn lay(
                 .iter()
                 .filter(|(a, b, _)| {
                     let off = libm::sin(2.0 * (bearing(*a, *b) - axis)).abs();
-                    off <= 2.0 * SLANT_SIN * libm::sqrt(1.0 - SLANT_SIN * SLANT_SIN)
+                    off <= 2.0
+                        * pass.presets.parcels.geometry.slant_sin
+                        * libm::sqrt(
+                            1.0 - pass.presets.parcels.geometry.slant_sin
+                                * pass.presets.parcels.geometry.slant_sin,
+                        )
                 })
                 .map(|(.., weight)| weight)
                 .sum()
@@ -980,7 +947,10 @@ pub fn run_on(
                     .point()
             });
             let facing = network.facing_end(at, toward, reach).filter(|facing| {
-                met.is_none_or(|met| distance(at, *facing) <= distance(at, met) + FACING_PAST_M)
+                met.is_none_or(|met| {
+                    distance(at, *facing)
+                        <= distance(at, met) + pass.presets.parcels.geometry.facing_past_m
+                })
             });
             let half = network.ways[own].half_width;
             let within = pass.presets.towns.align_m;
@@ -1067,7 +1037,11 @@ pub fn trim_tails(pass: &Pass, surfaces: &mut [SurfaceArea], laid: usize, size: 
             let toward = scale(sub(at, before), 1.0 / distance(at, before));
             let across = [-toward[1], toward[0]];
             let mut gap: Option<f64> = None;
-            for aside in [-AHEAD_SPREAD, 0.0, AHEAD_SPREAD] {
+            for aside in [
+                -pass.presets.parcels.geometry.ahead_spread,
+                0.0,
+                pass.presets.parcels.geometry.ahead_spread,
+            ] {
                 let heading = add(toward, scale(across, aside));
                 let heading = scale(heading, 1.0 / libm::hypot(heading[0], heading[1]));
                 let (start, end) = (add(at, scale(heading, 0.1)), add(at, scale(heading, reach)));
@@ -1372,8 +1346,10 @@ impl Lattice {
         if let Some(bend) = pattern.bend {
             frame.bows = [0, 1].map(|family| {
                 let extent = high[family] - low[family];
-                let length = rng.range(BOW_LENGTHS) * extent;
-                let most = bend.amplitude_m.min(BOW_REACH * extent);
+                let length = rng.range(pass.presets.parcels.geometry.bow_lengths) * extent;
+                let most = bend
+                    .amplitude_m
+                    .min(pass.presets.parcels.geometry.bow_reach * extent);
                 Bow {
                     reach: [0, 1].map(|_| (2.0 * rng.unit() - 1.0) * most),
                     span: [low[1 - family], high[1 - family]],
@@ -1540,10 +1516,15 @@ impl Lattice {
                 }
                 (None, _) if open_end().is_some() => Stop::Met(open_end().unwrap_or(p), true),
                 (None, _) if short_end().is_some() => Stop::Met(short_end().unwrap_or(p), true),
-                (None, Some((heading, exit))) if exit - width / 2.0 - END_MARGIN_M >= step => {
+                (None, Some((heading, exit)))
+                    if exit - width / 2.0 - pass.presets.parcels.geometry.end_margin_m >= step =>
+                {
                     Stop::Open(round_cm(add(
                         p,
-                        scale(heading, exit - width / 2.0 - END_MARGIN_M),
+                        scale(
+                            heading,
+                            exit - width / 2.0 - pass.presets.parcels.geometry.end_margin_m,
+                        ),
                     )))
                 }
                 _ => Stop::Node,
@@ -1603,10 +1584,10 @@ impl Lattice {
                     // a few widths of each other: the second stops at its
                     // last crossing.
                     if let Stop::Met(at, _) | Stop::Turned(at) = stops[end] {
-                        if landings
-                            .iter()
-                            .any(|known| distance(*known, at) < CROWD_WIDTHS * width)
-                        {
+                        if landings.iter().any(|known| {
+                            distance(*known, at)
+                                < pass.presets.parcels.geometry.crowd_widths * width
+                        }) {
                             stops[end] = Stop::Refused;
                         } else {
                             landings.push(at);
@@ -1775,8 +1756,8 @@ impl Lattice {
                     .any(|(_, other)| other == long);
                 if lattice.links[last_node].is_empty()
                     || (!*long && skipped.contains(&(*line, band.min(blocks_v - 1))))
-                    || distance(from, to) < END_MARGIN_M
-                    || (alone && distance(from, to) < ALONE_WIDTHS * width)
+                    || distance(from, to) < pass.presets.parcels.geometry.end_margin_m
+                    || (alone && distance(from, to) < pass.presets.parcels.geometry.alone_widths * width)
                     // A run to a carriageway is no repeat of it; a run to
                     // the district's edge beside one is.
                     || (!met && network.meets(from, to, clearance).0)
@@ -1834,9 +1815,9 @@ impl Lattice {
                     refused.push((number, first));
                 }
                 let crowded = |to: &Point| {
-                    landings
-                        .iter()
-                        .any(|known| distance(*known, *to) < CROWD_WIDTHS * width)
+                    landings.iter().any(|known| {
+                        distance(*known, *to) < pass.presets.parcels.geometry.crowd_widths * width
+                    })
                 };
                 if let Some(to) = onward.filter(|to| !crowded(to)) {
                     landings.push(to);
@@ -2064,7 +2045,7 @@ impl Lattice {
                         .filter(|(_, offset)| {
                             let ahead = dot(*offset, heading);
                             let aside = (offset[0] * heading[1] - offset[1] * heading[0]).abs();
-                            ahead > 1.0 && ahead < reach && aside <= OWN_TAN * ahead
+                            ahead > 1.0 && ahead < reach && aside <= network.policy.own_tan * ahead
                         })
                         .min_by(|a, b| dot(a.1, heading).total_cmp(&dot(b.1, heading)));
                     let (gap, to, node) = match (own, met) {

@@ -9,11 +9,11 @@
 //! of. Nothing here says what blocks sight.
 //!
 //! Shared by `examples/sight_report.rs` and `tests/open_country.rs`.
+use crate::math::{v2, v3, V2};
+use crate::sight::Sight;
+use crate::world::WorldGeometry;
 use contract::encounter::EncounterSites;
 use contract::scenario::Rules;
-use sim::math::{v2, v3, V2};
-use sim::sight::Sight;
-use sim::world::WorldGeometry;
 
 /// The unit type whose sight is the standard infantry sight.
 pub const INFANTRY: &str = "rifle";
@@ -111,4 +111,27 @@ pub fn quantile(sorted: &[f64], q: f64) -> f64 {
         return f64::NAN;
     }
     sorted[((sorted.len() - 1) as f64 * q).round() as usize]
+}
+
+/// Sampled analysis policy. It assesses a report; it never admits a generated map.
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AnalysisPolicy {
+    pub step_m: f64,
+    pub min_median_open: f64,
+}
+impl AnalysisPolicy {
+    pub fn errors(&self) -> Vec<(&'static str, &'static str)> {
+        let mut errors = Vec::new();
+        if !self.step_m.is_finite() || self.step_m <= 0.0 {
+            errors.push(("step_m", "Sample spacing must be finite and positive"));
+        }
+        if !self.min_median_open.is_finite() || !(0.0..=1.0).contains(&self.min_median_open) {
+            errors.push((
+                "min_median_open",
+                "Minimum median openness must be between zero and one",
+            ));
+        }
+        errors
+    }
 }

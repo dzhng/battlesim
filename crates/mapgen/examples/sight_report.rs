@@ -17,8 +17,7 @@ use sim::encounter::{plan_encounter, PreparedMap};
 use sim::math::v2;
 use std::io::Write;
 
-#[path = "common/sight.rs"]
-mod sight;
+use sim::map_analysis as sight;
 
 const USAGE: &str = "usage: sight_report [--seeds <n>] [--seed <u64>] [--only <type>:<size>] \
 [--step <metres>] [--arm bare|furnished] [--presets <map-presets.json>] [--out <report.jsonl>]";

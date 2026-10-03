@@ -23,10 +23,6 @@ const ON_GROUND_M: f64 = 0.5;
 const SAME_PLACE_M: f64 = 1.0;
 /// A stretch of road whose points lie this near one line is straight.
 const STRAIGHT_M: f64 = 0.25;
-/// Two roads meet no nearer alongside than this (the sine of 45 degrees).
-const FORK_SIN: f64 = 0.707;
-/// How many places are tried for each secondary road a settlement has.
-const SIDE_ROAD_TRIES: usize = 4;
 
 /// The straight line one edge's main road follows: from its exit to the hub
 /// (the main junction, by the map's centre), or to a junction on an earlier
@@ -717,7 +713,7 @@ impl<'a> Network<'a> {
         let mut failed: Vec<u32> = vec![0; legs.len()];
         let wanted = rng.count(rule.count) as usize;
         let mut done = 0;
-        for _ in 0..wanted * SIDE_ROAD_TRIES {
+        for _ in 0..wanted * self.context.presets.roads.side_road_tries {
             if done == wanted {
                 break;
             }
@@ -794,7 +790,8 @@ impl<'a> Network<'a> {
                     let met = segment_crossing(start, gate, run[0], run[1])
                         .is_some_and(|(share, _)| share > 0.0);
                     let other = sub(run[1], run[0]);
-                    met && cross(toward, other).abs() < FORK_SIN * length(other)
+                    met && cross(toward, other).abs()
+                        < self.context.presets.roads.fork_sin * length(other)
                 })
             });
             if slants {

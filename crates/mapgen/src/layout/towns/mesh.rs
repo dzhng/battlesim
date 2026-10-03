@@ -1,5 +1,5 @@
 //! How the pieces of a settlement's ground lie against each other.
-use super::ground::{Leaf, CORNER_M, SHARED_M};
+use super::ground::{Leaf, CORNER_M};
 use crate::layout::geometry::{area, distance, segment_distance, Point};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -19,7 +19,7 @@ pub(super) struct Mesh {
 }
 
 impl Mesh {
-    pub(super) fn new(leaves: &[Leaf]) -> Self {
+    pub(super) fn new(leaves: &[Leaf], policy: &crate::layout::TownGeometry) -> Self {
         // Corners by the two-corner-wide square each lies in: one nearer
         // than a corner's width is in that square or one beside it.
         let mut squares: BTreeMap<[i64; 2], Vec<usize>> = BTreeMap::new();
@@ -84,7 +84,7 @@ impl Mesh {
                 }
                 shared
                     .into_iter()
-                    .filter(|(_, metres)| *metres >= SHARED_M)
+                    .filter(|(_, metres)| *metres >= policy.shared_m)
                     .map(|(other, _)| other)
                     .collect()
             })

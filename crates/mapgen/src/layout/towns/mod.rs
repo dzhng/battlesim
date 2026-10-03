@@ -21,7 +21,7 @@ mod ground;
 mod mesh;
 mod streets;
 
-use ground::{pieces, Bound, Ground, Leaf, MEET_M};
+use ground::{pieces, Bound, Ground, Leaf};
 use mesh::Mesh;
 use streets::{avenues, touch};
 
@@ -153,9 +153,11 @@ impl Growth<'_> {
         let (led, asked) = self.led[leaf];
         if !led {
             let edges = self.edges(leaf);
-            let found = self.live[asked..]
-                .iter()
-                .any(|other| edges.iter().any(|edge| touch(*edge, *other)));
+            let found = self.live[asked..].iter().any(|other| {
+                edges
+                    .iter()
+                    .any(|edge| touch(&self.ground.policy, *edge, *other))
+            });
             self.led[leaf] = (found, self.live.len());
         }
         self.led[leaf].0
@@ -164,10 +166,11 @@ impl Growth<'_> {
     fn build(&mut self, leaf: usize) {
         // Its edges become streets, each once a carriageway reaches it.
         let mut edges = self.edges(leaf);
-        while let Some(at) = edges
-            .iter()
-            .position(|edge| self.live.iter().any(|other| touch(*edge, *other)))
-        {
+        while let Some(at) = edges.iter().position(|edge| {
+            self.live
+                .iter()
+                .any(|other| touch(&self.ground.policy, *edge, *other))
+        }) {
             self.live.push(edges.swap_remove(at));
         }
         self.taken.insert(leaf);
@@ -215,9 +218,10 @@ fn plot<'a>(
         for (other, (_, line)) in roads.iter().enumerate().filter(|(other, _)| *other != own) {
             for end in [points[0], points[points.len() - 1]] {
                 if near(&end)
-                    && line
-                        .windows(2)
-                        .any(|run| segment_distance(run[0], run[1], end) <= MEET_M)
+                    && line.windows(2).any(|run| {
+                        segment_distance(run[0], run[1], end)
+                            <= context.presets.towns.geometry.meet_m
+                    })
                 {
                     junctions.push(end);
                 }
@@ -237,8 +241,9 @@ fn plot<'a>(
             }
         }
     }
-    let roads = pieces(limit, roads);
+    let roads = pieces(&rules.geometry, limit, roads);
     let mut ground = Ground {
+        policy: rules.geometry,
         cuts: Vec::new(),
         leaves: vec![Leaf {
             ring: limit.clone(),
@@ -252,7 +257,7 @@ fn plot<'a>(
         ground.junction(junction);
     }
     ground.subdivide(&class.block, rules, clear, &mut rng);
-    let mesh = Mesh::new(&ground.leaves);
+    let mesh = Mesh::new(&ground.leaves, &ground.policy);
 
     // Where its roads come nearest the middle of its ground.
     let middle = site.outline.center;
@@ -591,8 +596,9 @@ fn finish(
                 .map(|(c, d, _)| [*c, *d])
                 .chain(streets.iter().copied())
                 .filter(|ends| {
-                    ends.iter()
-                        .all(|p| cross(toward, sub(*p, a)).abs() <= MEET_M)
+                    ends.iter().all(|p| {
+                        cross(toward, sub(*p, a)).abs() <= context.presets.towns.geometry.meet_m
+                    })
                 })
                 .map(|ends| {
                     let at = ends.map(|p| {

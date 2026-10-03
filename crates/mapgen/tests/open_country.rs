@@ -19,8 +19,7 @@ use sim::math::v2;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
-#[path = "../examples/common/sight.rs"]
-mod sight;
+use sim::map_analysis as sight;
 
 const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");

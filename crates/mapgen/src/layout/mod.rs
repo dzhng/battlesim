@@ -135,7 +135,12 @@ pub fn generate_layout(
         .iter()
         .flat_map(|town| town.blocks.iter().map(|block| &block.ring[..]))
         .collect();
-    let surfaces = crate::joints::close(surfaces, [context.extent; 2], &blocks);
+    let surfaces = crate::joints::close(
+        &context.presets.joints,
+        surfaces,
+        [context.extent; 2],
+        &blocks,
+    );
     let settlements = placed
         .sites
         .iter()

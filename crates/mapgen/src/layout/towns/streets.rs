@@ -1,6 +1,6 @@
 //! A settlement's avenues: the streets along its blocks' edges where no
 //! road runs.
-use super::ground::{Bound, CORNER_M, MEET_M, SHARED_M};
+use super::ground::{Bound, CORNER_M};
 use super::Plot;
 use crate::layout::geometry::{
     add, cross, distance, dot, round_cm, scale, segment_crossing, segment_distance, sub, Point,
@@ -11,19 +11,16 @@ use std::collections::{BTreeMap, BTreeSet};
 
 /// How far an avenue runs past the middle of the road it meets.
 const JOIN_OVERSHOOT_M: f64 = 0.5;
-/// An avenue meets a road no farther off square than this (the sine of 22
-/// degrees): at more of a slant it stops at its last corner before it.
-const SLANT_SIN: f64 = 0.375;
 /// A street within this of a road's line (a sine) runs along it.
 const ALONG_SIN: f64 = 0.02;
 
 /// Whether two stretches of carriageway meet.
-pub(super) fn touch(a: [Point; 2], b: [Point; 2]) -> bool {
+pub(super) fn touch(policy: &crate::layout::TownGeometry, a: [Point; 2], b: [Point; 2]) -> bool {
     segment_crossing(a[0], a[1], b[0], b[1]).is_some()
-        || segment_distance(a[0], a[1], b[0]) <= MEET_M
-        || segment_distance(a[0], a[1], b[1]) <= MEET_M
-        || segment_distance(b[0], b[1], a[0]) <= MEET_M
-        || segment_distance(b[0], b[1], a[1]) <= MEET_M
+        || segment_distance(a[0], a[1], b[0]) <= policy.meet_m
+        || segment_distance(a[0], a[1], b[1]) <= policy.meet_m
+        || segment_distance(b[0], b[1], a[0]) <= policy.meet_m
+        || segment_distance(b[0], b[1], a[1]) <= policy.meet_m
 }
 
 /// One stretch of a cut that may carry a street.
@@ -122,8 +119,11 @@ pub(super) fn avenues(
                 let step = sub(*b, *a);
                 let slant = dot(cut.along, step).abs() / distance(*a, *b);
                 // On the line's two sides, or with an end on it.
-                let meets = from.min(to) <= MEET_M && from.max(to) >= -MEET_M;
-                (meets && slant > SLANT_SIN && (from - to).abs() > MEET_M)
+                let meets = from.min(to) <= plot.ground.policy.meet_m
+                    && from.max(to) >= -plot.ground.policy.meet_m;
+                (meets
+                    && slant > plot.ground.policy.avenue_slant_sin
+                    && (from - to).abs() > plot.ground.policy.meet_m)
                     .then(|| cut.at(add(*a, scale(step, from / (from - to)))))
             })
             .collect();
@@ -150,7 +150,8 @@ pub(super) fn avenues(
             match joined.last_mut() {
                 Some((run, run_ends, known, beside))
                     if span[0] <= run[1] + CORNER_M
-                        && (span[1] - span[0]).min(run[1] - run[0]) < SHARED_M =>
+                        && (span[1] - span[0]).min(run[1] - run[0])
+                            < plot.ground.policy.shared_m =>
                 {
                     if span[1] - span[0] > run[1] - run[0] {
                         *known = edge_of;
@@ -169,10 +170,10 @@ pub(super) fn avenues(
         let mut straight: Vec<Piece> = Vec::new();
         for (span, ends, edge_of, blocks) in joined {
             let mut kept = vec![span];
-            for at in slanted
-                .iter()
-                .filter(|at| **at >= span[0] - MEET_M && **at <= span[1] + MEET_M)
-            {
+            for at in slanted.iter().filter(|at| {
+                **at >= span[0] - plot.ground.policy.meet_m
+                    && **at <= span[1] + plot.ground.policy.meet_m
+            }) {
                 let before = corners
                     .iter()
                     .copied()
@@ -186,7 +187,7 @@ pub(super) fn avenues(
                             [from.max(after.unwrap_or(f64::INFINITY)), to],
                         ]
                     })
-                    .filter(|[from, to]| to - from >= SHARED_M)
+                    .filter(|[from, to]| to - from >= plot.ground.policy.shared_m)
                     .collect();
             }
             for [from, to] in kept {
@@ -213,7 +214,7 @@ pub(super) fn avenues(
                 if road[1] <= run[0] + CORNER_M || road[0] >= run[1] - CORNER_M {
                     continue;
                 }
-                if road[0] > run[0] + SHARED_M {
+                if road[0] > run[0] + plot.ground.policy.shared_m {
                     stretches.push(Stretch {
                         ends: [ends[0], road_ends[0]],
                         edge_of,
@@ -223,7 +224,7 @@ pub(super) fn avenues(
                 run[0] = road[1];
                 ends[0] = road_ends[1];
             }
-            if run[1] - run[0] >= SHARED_M {
+            if run[1] - run[0] >= plot.ground.policy.shared_m {
                 stretches.push(Stretch {
                     ends,
                     edge_of,
@@ -238,7 +239,9 @@ pub(super) fn avenues(
     let meets: Vec<Vec<usize>> = (0..count)
         .map(|a| {
             (0..count)
-                .filter(|b| a != *b && touch(stretches[a].ends, stretches[*b].ends))
+                .filter(|b| {
+                    a != *b && touch(&plot.ground.policy, stretches[a].ends, stretches[*b].ends)
+                })
                 .collect()
         })
         .collect();
@@ -247,7 +250,7 @@ pub(super) fn avenues(
         .map(|stretch| {
             plot.roads
                 .iter()
-                .any(|(a, b, _)| touch(stretch.ends, [*a, *b]))
+                .any(|(a, b, _)| touch(&plot.ground.policy, stretch.ends, [*a, *b]))
         })
         .collect();
     // The stretches of `kept` a road leads to, directly or by others.
@@ -314,9 +317,14 @@ pub(super) fn avenues(
         let open_end = |at: usize| {
             stretches[at].ends.iter().any(|end| {
                 let point = [*end, *end];
-                !plot.roads.iter().any(|(a, b, _)| touch(point, [*a, *b]))
+                !plot
+                    .roads
+                    .iter()
+                    .any(|(a, b, _)| touch(&plot.ground.policy, point, [*a, *b]))
                     && !(0..count).any(|other| {
-                        other != at && reached[other] && touch(point, stretches[other].ends)
+                        other != at
+                            && reached[other]
+                            && touch(&plot.ground.policy, point, stretches[other].ends)
                     })
             })
         };
@@ -353,7 +361,7 @@ pub(super) fn avenues(
                 .iter()
                 .flatten()
                 .copied()
-                .filter(|end| distance(*end, p) <= MEET_M)
+                .filter(|end| distance(*end, p) <= plot.ground.policy.meet_m)
         };
         (ends().count() > 1)
             .then(|| ends().min_by(|a, b| a[0].total_cmp(&b[0]).then(a[1].total_cmp(&b[1]))))
@@ -361,7 +369,8 @@ pub(super) fn avenues(
     };
     let limit = &site.outline.ring;
     let on_limit = |p: Point| {
-        contract::ground::edges(limit).any(|(a, b)| segment_distance(*a, *b, p) <= MEET_M)
+        contract::ground::edges(limit)
+            .any(|(a, b)| segment_distance(*a, *b, p) <= plot.ground.policy.meet_m)
     };
     // The end of a stretch of road that lies at `p`, to the half metre.
     let road_end = |p: Point| {
@@ -370,7 +379,7 @@ pub(super) fn avenues(
             .iter()
             .flat_map(|cut| cut.paved.iter().flat_map(|(_, ends)| ends))
             .copied()
-            .find(|end| distance(*end, p) <= MEET_M)
+            .find(|end| distance(*end, p) <= plot.ground.policy.meet_m)
     };
     // A street that starts on a road's end and runs on along its line is
     // that road carried on to the next junction: a road keeps its kind and
@@ -384,7 +393,7 @@ pub(super) fn avenues(
                 cut.paved
                     .iter()
                     .flat_map(|(_, ends)| ends)
-                    .any(|end| distance(*end, p) <= MEET_M)
+                    .any(|end| distance(*end, p) <= plot.ground.policy.meet_m)
             })
             .and_then(|cut| cut.road)
     };
@@ -393,7 +402,11 @@ pub(super) fn avenues(
         .map(|[a, b]| {
             let (a, b) = (*a, *b);
             let toward = scale(sub(b, a), 1.0 / distance(a, b));
-            let on_road = |p: Point| plot.roads.iter().any(|(a, b, _)| touch([p, p], [*a, *b]));
+            let on_road = |p: Point| {
+                plot.roads
+                    .iter()
+                    .any(|(a, b, _)| touch(&plot.ground.policy, [p, p], [*a, *b]))
+            };
             let end = |p: Point, way: f64| match road_end(p).or(shared(p)) {
                 Some(end) => end,
                 None if on_limit(p) && !on_road(p) => p,

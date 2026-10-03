@@ -53,47 +53,12 @@ use contract::ground::GroundShape;
 use contract::map::{SurfaceArea, SurfaceKind};
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Ends this near each other are one place.
-const MEET_M: f64 = 0.5;
 /// An end stops this far past the middle of the road it joins, so the two
 /// centrelines cross whatever a centimetre of rounding did to either.
 const OVERSHOOT_M: f64 = 0.25;
-/// An end joins a carriageway whose edge is this near it.
-const NEAR_M: f64 = 2.5;
 /// Two ends that turn back on each other this exactly (about 5°) are not
 /// welded: the shared centreline has no bend to give them.
 const REVERSE_COS: f64 = -0.996;
-/// At a junction a wider road also ends on, two narrower ends within this
-/// of straight (30°) are one road through it; otherwise the wider road
-/// carries on down one of them ([`carry`]).
-const THROUGH_COS: f64 = 0.866;
-/// An end's last run is at least this much longer than the widest road's
-/// half width: the cut of a square end reaches half a width back, and a
-/// corner behind it is to stay round. A turn nearer an end than that is
-/// dropped, and no way's width changes that near the corner it was carried
-/// round.
-const TAIL_SPARE_M: f64 = 1.0;
-/// A corner of unlike ways is mended over at most this many rounds: a way
-/// changes once a round.
-const CARRY_ROUNDS: usize = 3;
-/// Two alike streets laid side by side whose ends run past each other by
-/// no more than this many widths are one street.
-const BESIDE_WIDTHS: f64 = 10.0;
-/// Two ways that each cross a third within this of where they crossed each
-/// other are still joined there.
-const JUNCTION_M: f64 = 25.0;
-/// An end whose last run is no longer than this many of its widths may be
-/// swung to meet a road square, when it has no room to turn before it.
-const SWING_WIDTHS: f64 = 4.0;
-/// A branch within this of square to the road it joins (30°) is left as it
-/// comes; one that comes in at more of a slant is bent to meet it square.
-const SLANT_COS: f64 = 0.5;
-/// A branch bent to meet a road square runs square for this many of its own
-/// widths before the road's edge.
-const SQUARE_WIDTHS: f64 = 1.5;
-/// A road that stops within this many of its own widths past a road it
-/// crossed is cut back to that road: a stub, not a road of its own.
-const STUB_WIDTHS: f64 = 2.0;
 /// A face along another carriageway's edge is covered by it.
 const FLUSH_M: f64 = 0.02;
 /// An end is moved no less than this.
@@ -102,21 +67,9 @@ const REACHED_M: f64 = 0.005;
 const ON_MIDDLE_M: f64 = 0.1;
 /// How far a centimetre's rounding may move a point.
 const ROUNDING_M: f64 = 0.005;
-/// A road nearly alongside is not one an end runs into (20°).
-const ALONGSIDE_COS: f64 = 0.94;
-/// A road leaves the map square to its edge over twice its width.
-const GATE_WIDTHS: f64 = 2.0;
 /// Lines this near parallel (about 1°) have no corner between them.
 const SQUARE_SIN: f64 = 0.02;
-/// A road cut back to a settlement stops this far past the last ground it
-/// runs along, and is walked back to it in steps this long.
-const TRIM_MARGIN_M: f64 = 1.0;
 const TRIM_STEP_M: f64 = 2.0;
-/// How many times the ways of a lost joint are pinned and the rest closed
-/// again, before the plan's roads are left as they were laid.
-const PIN_ROUNDS: usize = 4;
-/// No end is cut back, and no gate laid, to leave a run shorter than this.
-const SHORTEST_RUN_M: f64 = 1.0;
 
 /// One carriageway's authored line.
 #[derive(Clone)]
@@ -199,7 +152,12 @@ impl Way {
 /// junction; where a change would break that (a street that touched a bend
 /// at a tangent, say), the ways concerned are left exactly as they were
 /// laid and the rest are closed round them.
-pub fn close(surfaces: Vec<SurfaceArea>, size: [f64; 2], grounds: &[&[Point]]) -> Vec<SurfaceArea> {
+pub fn close(
+    policy: &crate::layout::JointPolicy,
+    surfaces: Vec<SurfaceArea>,
+    size: [f64; 2],
+    grounds: &[&[Point]],
+) -> Vec<SurfaceArea> {
     let mut laid: Vec<Way> = Vec::new();
     let mut kept: Vec<Option<SurfaceArea>> = Vec::with_capacity(surfaces.len());
     for (slot, area) in surfaces.into_iter().enumerate() {
@@ -227,20 +185,20 @@ pub fn close(surfaces: Vec<SurfaceArea>, size: [f64; 2], grounds: &[&[Point]]) -
         }
     }
     let slots = kept.len();
-    let joined_before = joined(&laid, size);
-    let mut ways = closed(&laid, size, grounds);
+    let joined_before = joined(policy, &laid, size);
+    let mut ways = closed(policy, &laid, size, grounds);
     // A few rounds settle it: each pins the ways of the joints the last lost.
-    for _ in 0..PIN_ROUNDS {
-        let broken = lost(&joined_before, &ways, size, slots);
+    for _ in 0..policy.pin_rounds {
+        let broken = lost(policy, &joined_before, &ways, size, slots);
         if broken.is_empty() {
             break;
         }
         for way in &mut laid {
             way.pinned |= broken.contains(&way.slot);
         }
-        ways = closed(&laid, size, grounds);
+        ways = closed(policy, &laid, size, grounds);
     }
-    if !lost(&joined_before, &ways, size, slots).is_empty() {
+    if !lost(policy, &joined_before, &ways, size, slots).is_empty() {
         ways = laid;
     }
     for way in ways {
@@ -254,21 +212,26 @@ pub fn close(surfaces: Vec<SurfaceArea>, size: [f64; 2], grounds: &[&[Point]]) -
 
 /// Every step, on a copy of the ways as they were laid. A pinned way is
 /// left out of each.
-fn closed(laid: &[Way], size: [f64; 2], grounds: &[&[Point]]) -> Vec<Way> {
+fn closed(
+    policy: &crate::layout::JointPolicy,
+    laid: &[Way],
+    size: [f64; 2],
+    grounds: &[&[Point]],
+) -> Vec<Way> {
     let mut ways = laid.to_vec();
-    trim(&mut ways, size, grounds);
-    undouble(&mut ways, size);
+    trim(policy, &mut ways, size, grounds);
+    undouble(policy, &mut ways, size);
     // Welded first, so a corner's two ends are not taken for ends that
     // join the pieces they are made of; and again once ends have met.
-    let mut ways = weld(ways);
-    tidy(&mut ways);
-    meet(&mut ways, size);
-    tidy(&mut ways);
+    let mut ways = weld(policy, ways);
+    tidy(policy, &mut ways);
+    meet(policy, &mut ways, size);
+    tidy(policy, &mut ways);
     // Unlike ways at a corner are carried to where their width may change,
     // and what that leaves alike and end to end is one way.
-    let mut ways = weld(carry(weld(ways), size));
-    gate(&mut ways, size);
-    snap(&mut ways, size);
+    let mut ways = weld(policy, carry(policy, weld(policy, ways), size));
+    gate(policy, &mut ways, size);
+    snap(policy, &mut ways, size);
     ways
 }
 
@@ -276,8 +239,12 @@ fn closed(laid: &[Way], size: [f64; 2], grounds: &[&[Point]]) -> Vec<Way> {
 /// first, with where: what the plan's road graph joins (`layout::measure`),
 /// by the same crossing test. Pieces of one welded way are joined by being
 /// one way.
-fn joined(ways: &[Way], size: [f64; 2]) -> BTreeMap<(usize, usize), Vec<Point>> {
-    let paving = Paving::new(ways, size);
+fn joined(
+    policy: &crate::layout::JointPolicy,
+    ways: &[Way],
+    size: [f64; 2],
+) -> BTreeMap<(usize, usize), Vec<Point>> {
+    let paving = Paving::new(policy, ways, size);
     let mut pairs: BTreeMap<(usize, usize), Vec<Point>> = BTreeMap::new();
     for (index, (way, a, b)) in paving.stretches.iter().enumerate() {
         paving.grid.any(segment_bounds(*a, *b, 0.0), |item| {
@@ -305,11 +272,12 @@ fn joined(ways: &[Way], size: [f64; 2]) -> BTreeMap<(usize, usize), Vec<Point>> 
 /// The slots of every laid way that is part of a joint `before` has and
 /// `closed` has lost, with the slots of the ways welded to them. A joint is
 /// kept if its two ways still cross, are one way, or both cross one third
-/// way within `JUNCTION_M` of where they crossed each other: three roads
+/// way within `policy.junction_m` of where they crossed each other: three roads
 /// that shared a point are still one junction when two of them end on the
 /// third. A laid way whose line two closed ways now share ([`carry`]) keeps
 /// a joint that either of them keeps.
 fn lost(
+    policy: &crate::layout::JointPolicy,
     before: &BTreeMap<(usize, usize), Vec<Point>>,
     closed: &[Way],
     size: [f64; 2],
@@ -322,7 +290,7 @@ fn lost(
             owners[*piece].push(way.slot);
         }
     }
-    let after = joined(closed, size);
+    let after = joined(policy, closed, size);
     // What each closed way crosses, and where.
     let mut crossings: BTreeMap<usize, Vec<(usize, Point)>> = BTreeMap::new();
     for (&(low, high), places) in &after {
@@ -336,7 +304,7 @@ fn lost(
             .get(&way)
             .into_iter()
             .flatten()
-            .filter(|(_, place)| distance(*place, at) <= JUNCTION_M)
+            .filter(|(_, place)| distance(*place, at) <= policy.junction_m)
             .map(|(other, _)| *other)
             .collect()
     };
@@ -363,10 +331,16 @@ fn lost(
 }
 
 /// Every end of every way, grouped where they meet.
-fn nodes(ways: &[Way]) -> Vec<Vec<End>> {
-    // Ends in whole-metre cells; an end meets those in its own and the
-    // neighbouring cells that lie within `MEET_M`.
-    let cell = |p: Point| [libm::floor(p[0]) as i64, libm::floor(p[1]) as i64];
+fn nodes(policy: &crate::layout::JointPolicy, ways: &[Way]) -> Vec<Vec<End>> {
+    // Cells cover the edited meeting tolerance, so neighbouring cells contain every eligible end.
+    // The initial one-metre grid preserves default grouping and ordering.
+    let cell_m = policy.meet_m.max(1.0);
+    let cell = |p: Point| {
+        [
+            libm::floor(p[0] / cell_m) as i64,
+            libm::floor(p[1] / cell_m) as i64,
+        ]
+    };
     let mut cells: BTreeMap<[i64; 2], Vec<End>> = BTreeMap::new();
     let ends: Vec<End> = (0..ways.len())
         .flat_map(|way| [(way, false), (way, true)])
@@ -383,7 +357,7 @@ fn nodes(ways: &[Way]) -> Vec<Vec<End>> {
         if grouped[end.0][usize::from(end.1)] {
             continue;
         }
-        // Everything reachable from this end by hops of `MEET_M`.
+        // Everything reachable from this end by hops of `policy.meet_m`.
         let mut members = vec![end];
         grouped[end.0][usize::from(end.1)] = true;
         let mut next = 0;
@@ -395,7 +369,7 @@ fn nodes(ways: &[Way]) -> Vec<Vec<End>> {
                 for dx in -1..=1 {
                     for &other in cells.get(&[cx + dx, cy + dy]).into_iter().flatten() {
                         if !grouped[other.0][usize::from(other.1)]
-                            && distance(ways[other.0].end(other.1).0, at) <= MEET_M
+                            && distance(ways[other.0].end(other.1).0, at) <= policy.meet_m
                         {
                             grouped[other.0][usize::from(other.1)] = true;
                             members.push(other);
@@ -411,6 +385,7 @@ fn nodes(ways: &[Way]) -> Vec<Vec<End>> {
 
 /// The ways' rounded stretches, bucketed by the ground their width covers.
 struct Paving<'a> {
+    policy: &'a crate::layout::JointPolicy,
     shapes: Vec<&'a GroundShape>,
     /// Each way's half width.
     halves: Vec<f64>,
@@ -421,20 +396,21 @@ struct Paving<'a> {
 }
 
 impl<'a> Paving<'a> {
-    fn new(ways: &'a [Way], size: [f64; 2]) -> Self {
+    fn new(policy: &'a crate::layout::JointPolicy, ways: &'a [Way], size: [f64; 2]) -> Self {
         let shapes: Vec<&GroundShape> = ways.iter().map(|way| &way.shape).collect();
         let mut stretches = Vec::new();
         let mut grid = Grid::new(size, 64.0);
         for (way, line) in ways.iter().enumerate() {
             for pair in line.samples().windows(2) {
                 grid.insert(
-                    segment_bounds(pair[0], pair[1], ways[way].half() + NEAR_M),
+                    segment_bounds(pair[0], pair[1], ways[way].half() + policy.near_m),
                     stretches.len() as u32,
                 );
                 stretches.push((way, pair[0], pair[1]));
             }
         }
         Self {
+            policy,
             shapes,
             halves: ways.iter().map(Way::half).collect(),
             stretches,
@@ -444,23 +420,23 @@ impl<'a> Paving<'a> {
     }
 
     /// Whether a way other than `own` and `mate`, at least `half` wide
-    /// either side, has its edge within `NEAR_M` of `p`.
+    /// either side, has its edge within `self.policy.near_m` of `p`.
     fn touched(&self, p: Point, own: usize, mate: usize, half: f64) -> bool {
         self.grid.any([p[0], p[1], p[0], p[1]], |item| {
             let way = self.stretches[item as usize].0;
             way != own
                 && way != mate
                 && self.halves[way] >= half
-                && self.shapes[way].contains(p, NEAR_M)
+                && self.shapes[way].contains(p, self.policy.near_m)
         })
     }
 
-    /// Whether a way that is none of `ends`' has its edge within `NEAR_M`
+    /// Whether a way that is none of `ends`' has its edge within `self.policy.near_m`
     /// of `p`.
     fn passed(&self, p: Point, ends: &[End]) -> bool {
         self.grid.any([p[0], p[1], p[0], p[1]], |item| {
             let way = self.stretches[item as usize].0;
-            ends.iter().all(|end| end.0 != way) && self.shapes[way].contains(p, NEAR_M)
+            ends.iter().all(|end| end.0 != way) && self.shapes[way].contains(p, self.policy.near_m)
         })
     }
 
@@ -503,7 +479,7 @@ impl<'a> Paving<'a> {
         } else {
             -OVERSHOOT_M
         };
-        let least = self.widest + TAIL_SPARE_M;
+        let least = self.widest + self.policy.tail_spare_m;
         let mut length = 0.0;
         for pair in samples.windows(2) {
             let (a, b) = (pair[0], pair[1]);
@@ -573,11 +549,11 @@ impl<'a> Paving<'a> {
         // A turn a step from the new ends is dropped, as `tidy` drops one.
         while onward
             .last()
-            .is_some_and(|turn| distance(*turn, end) < SHORTEST_RUN_M)
+            .is_some_and(|turn| distance(*turn, end) < self.policy.shortest_run_m)
         {
             onward.pop();
         }
-        while rest.len() > 1 && distance(rest[0], end) < SHORTEST_RUN_M {
+        while rest.len() > 1 && distance(rest[0], end) < self.policy.shortest_run_m {
             rest.remove(0);
         }
         // The wider part's last run, into the cut.
@@ -586,7 +562,9 @@ impl<'a> Paving<'a> {
         } else {
             rest[0]
         };
-        if distance(rest[0], end) < SHORTEST_RUN_M || distance(before, end) < SHORTEST_RUN_M {
+        if distance(rest[0], end) < self.policy.shortest_run_m
+            || distance(before, end) < self.policy.shortest_run_m
+        {
             return None;
         }
         let out_of = scale(sub(end, before), 1.0 / distance(before, end));
@@ -626,7 +604,7 @@ impl<'a> Paving<'a> {
         let ((_, foot), (first, end)) = (best?, ends?);
         Some((
             foot,
-            distance(foot, first) > MEET_M && distance(foot, end) > MEET_M,
+            distance(foot, first) > self.policy.meet_m && distance(foot, end) > self.policy.meet_m,
         ))
     }
 
@@ -638,8 +616,8 @@ impl<'a> Paving<'a> {
             way != own
                 && way != mate
                 && (segment_crossing(a, b, c, d).is_some()
-                    || segment_distance(a, b, c) <= MEET_M
-                    || segment_distance(a, b, d) <= MEET_M)
+                    || segment_distance(a, b, c) <= self.policy.meet_m
+                    || segment_distance(a, b, d) <= self.policy.meet_m)
         })
     }
 }
@@ -650,11 +628,16 @@ impl<'a> Paving<'a> {
 /// that joins it if that comes first: a main street is laid to the end of
 /// the ground a settlement may build on, and the settlement may not have
 /// grown that far.
-fn trim(ways: &mut [Way], size: [f64; 2], grounds: &[&[Point]]) {
+fn trim(
+    policy: &crate::layout::JointPolicy,
+    ways: &mut [Way],
+    size: [f64; 2],
+    grounds: &[&[Point]],
+) {
     if ways.is_empty() || grounds.is_empty() {
         return;
     }
-    let paving = Paving::new(ways, size);
+    let paving = Paving::new(policy, ways, size);
     let on_map = |p: Point| (0..2).all(|k| p[k] > 0.0 && p[k] < size[k]);
     let limits: Vec<[f64; 4]> = grounds
         .iter()
@@ -673,7 +656,7 @@ fn trim(ways: &mut [Way], size: [f64; 2], grounds: &[&[Point]]) {
     };
     let mut cuts: Vec<(End, usize, Point)> = Vec::new();
     for (way, line) in ways.iter().enumerate().filter(|(_, line)| !line.pinned) {
-        let reach = line.half() + TRIM_MARGIN_M;
+        let reach = line.half() + policy.trim_margin_m;
         for last in [false, true] {
             let at = line.end(last).0;
             if !on_map(at) || serves(at, reach) || paving.touched(at, way, way, 0.0) {
@@ -719,14 +702,14 @@ fn trim(ways: &mut [Way], size: [f64; 2], grounds: &[&[Point]]) {
 /// running the same way, is the same road drawn twice for as long as the
 /// two overlap, and its end is a step in that road's edge. It is cut back
 /// to the last carriageway that crosses it or ends on it, if one does
-/// within `BESIDE_WIDTHS` of its end: there the two meet across that road.
-fn undouble(ways: &mut [Way], size: [f64; 2]) {
+/// within `policy.beside_widths` of its end: there the two meet across that road.
+fn undouble(policy: &crate::layout::JointPolicy, ways: &mut [Way], size: [f64; 2]) {
     // (the end, how many of its points go, where it then ends)
     let mut cuts: Vec<(End, usize, Option<Point>)> = Vec::new();
     {
-        let paving = Paving::new(ways, size);
+        let paving = Paving::new(policy, ways, size);
         let on_map = |p: Point| (0..2).all(|k| p[k] > 0.0 && p[k] < size[k]);
-        let lone = nodes(ways)
+        let lone = nodes(policy, ways)
             .into_iter()
             .filter(|node| node.len() == 1)
             .flatten();
@@ -745,7 +728,7 @@ fn undouble(ways: &mut [Way], size: [f64; 2]) {
                 let run = scale(sub(d, c), 1.0 / distance(c, d));
                 let along = dot(sub(at, c), run);
                 let off = cross(sub(at, c), run).abs();
-                if dot(out_of, run).abs() >= ALONGSIDE_COS
+                if dot(out_of, run).abs() >= policy.alongside_cos
                     && (0.0..=distance(c, d)).contains(&along)
                     && off < paving.halves[way] + paving.halves[other]
                 {
@@ -756,7 +739,7 @@ fn undouble(ways: &mut [Way], size: [f64; 2]) {
             let Some(beside) = beside else { continue };
             // Back along its own line, run by run, to the first carriageway
             // that crosses it or ends on it.
-            let limit = BESIDE_WIDTHS * ways[way].width;
+            let limit = policy.beside_widths * ways[way].width;
             let points: Vec<Point> = if last {
                 ways[way].points.iter().rev().copied().collect()
             } else {
@@ -775,7 +758,7 @@ fn undouble(ways: &mut [Way], size: [f64; 2]) {
                         return false;
                     }
                     let run = scale(sub(d, c), 1.0 / distance(c, d));
-                    if dot(heading, run).abs() > ALONGSIDE_COS {
+                    if dot(heading, run).abs() > policy.alongside_cos {
                         return false;
                     }
                     let mut note = |along: f64| {
@@ -787,20 +770,20 @@ fn undouble(ways: &mut [Way], size: [f64; 2]) {
                         note(share * length);
                     }
                     for end in [c, d] {
-                        if segment_distance(from, to, end) <= MEET_M {
+                        if segment_distance(from, to, end) <= policy.meet_m {
                             note(dot(sub(end, from), heading).clamp(0.0, length));
                         }
                     }
                     false
                 });
                 if let Some(along) = first {
-                    if walked + along > limit || (step == 0 && along < SHORTEST_RUN_M) {
+                    if walked + along > limit || (step == 0 && along < policy.shortest_run_m) {
                         break 'runs;
                     }
                     // On the next point of its own line, it ends there;
                     // otherwise just short of the crossing road's middle,
                     // from this side.
-                    if length - along <= MEET_M {
+                    if length - along <= policy.meet_m {
                         cuts.push(((way, last), step + 1, None));
                     } else {
                         let stop = add(from, scale(heading, along - OVERSHOOT_M));
@@ -838,7 +821,7 @@ fn undouble(ways: &mut [Way], size: [f64; 2]) {
 /// the end's last run is then long enough to be moved, met or turned along.
 /// (A street's link to the road it joins is a metre or two long.) A turn
 /// another way ends on is kept.
-fn tidy(ways: &mut [Way]) {
+fn tidy(policy: &crate::layout::JointPolicy, ways: &mut [Way]) {
     // Long enough for the widest road there is to turn along.
     let widest = ways.iter().map(Way::half).fold(0.0, f64::max);
     let cell = |p: Point| [libm::floor(p[0]) as i64, libm::floor(p[1]) as i64];
@@ -854,14 +837,14 @@ fn tidy(ways: &mut [Way]) {
         (-1..=1).any(|dy| {
             (-1..=1).any(|dx| {
                 ends.get(&[cx + dx, cy + dy])
-                    .is_some_and(|ends| ends.iter().any(|end| distance(*end, p) <= MEET_M))
+                    .is_some_and(|ends| ends.iter().any(|end| distance(*end, p) <= policy.meet_m))
             })
         })
     };
     for way in ways.iter_mut() {
         for last in [false, true] {
             let (at, before) = (way.end(last).0, way.before(last));
-            let short = distance(at, before) < widest + TAIL_SPARE_M;
+            let short = distance(at, before) < widest + policy.tail_spare_m;
             if way.pinned || way.points.len() < 3 || !short || joined(before) {
                 continue;
             }
@@ -882,13 +865,13 @@ fn tidy(ways: &mut [Way]) {
 /// Two alike ways laid side by side, less than a width apart, whose ends
 /// run past each other or face each other, are one road drawn twice: both
 /// ends are moved to the point half way between them.
-fn meet(ways: &mut [Way], size: [f64; 2]) {
+fn meet(policy: &crate::layout::JointPolicy, ways: &mut [Way], size: [f64; 2]) {
     if ways.is_empty() {
         return;
     }
-    let paving = Paving::new(ways, size);
+    let paving = Paving::new(policy, ways, size);
     let on_map = |p: Point| (0..2).all(|k| p[k] > 0.0 && p[k] < size[k]);
-    let lone: Vec<End> = nodes(ways)
+    let lone: Vec<End> = nodes(policy, ways)
         .into_iter()
         .filter(|node| node.len() == 1)
         .flatten()
@@ -896,7 +879,7 @@ fn meet(ways: &mut [Way], size: [f64; 2]) {
         .collect();
     let mut cells: BTreeMap<[i64; 2], Vec<End>> = BTreeMap::new();
     // Two ends that may be a corner are no farther apart than one cell.
-    let span = (2.0 + 4.0 * STUB_WIDTHS).max(2.0 * BESIDE_WIDTHS) * paving.widest;
+    let span = (2.0 + 4.0 * policy.stub_widths).max(2.0 * policy.beside_widths) * paving.widest;
     let cell = |p: Point| [0, 1].map(|k| libm::floor(p[k] / span) as i64);
     for &(way, last) in &lone {
         cells
@@ -915,13 +898,13 @@ fn meet(ways: &mut [Way], size: [f64; 2]) {
         }
         let at = add(p, scale(along, cross(sub(q, p), other) / sin));
         let fits = |way: &Way, last: bool, out_of: Point| {
-            dot(sub(at, way.before(last)), out_of) >= SHORTEST_RUN_M
+            dot(sub(at, way.before(last)), out_of) >= policy.shortest_run_m
         };
         // An end may have fallen short by the two half widths, or run past
         // by a stub's length more.
         let near = |way: &Way, end: Point, out_of: Point| {
             let past = dot(sub(end, at), out_of);
-            (-reach..=reach + STUB_WIDTHS * way.width).contains(&past)
+            (-reach..=reach + policy.stub_widths * way.width).contains(&past)
         };
         // Nothing a third carriageway joins is cut off or moved away.
         (near(a, p, along)
@@ -940,7 +923,7 @@ fn meet(ways: &mut [Way], size: [f64; 2]) {
         let (a, b) = (&ways[from.0], &ways[to.0]);
         let ((p, along), (q, other)) = (a.end(from.1), b.end(to.1));
         let alike = a.kind == b.kind && a.width == b.width;
-        if from.0 == to.0 || !alike || dot(along, other) > -ALONGSIDE_COS {
+        if from.0 == to.0 || !alike || dot(along, other) > -policy.alongside_cos {
             return None;
         }
         let aside = cross(sub(q, p), along).abs();
@@ -948,10 +931,10 @@ fn meet(ways: &mut [Way], size: [f64; 2]) {
         let at = scale(add(p, q), 0.5);
         // Each keeps a last run long enough that the step aside is slight.
         let fits = |way: &Way, last: bool, out_of: Point| {
-            dot(sub(at, way.before(last)), out_of) >= (2.0 * aside).max(SHORTEST_RUN_M)
+            dot(sub(at, way.before(last)), out_of) >= (2.0 * aside).max(policy.shortest_run_m)
         };
         (aside <= a.width
-            && (-a.width..=BESIDE_WIDTHS * a.width).contains(&past)
+            && (-a.width..=policy.beside_widths * a.width).contains(&past)
             && fits(a, from.1, along)
             && fits(b, to.1, other)
             && !paving.touched(p, from.0, to.0, 0.0)
@@ -997,10 +980,10 @@ fn meet(ways: &mut [Way], size: [f64; 2]) {
 /// through the junction. The others then end on that road, and [`snap`]
 /// brings them to it square. Where a wider road ends at the junction too,
 /// narrower ends are joined only if they carry nearly straight on.
-fn weld(ways: Vec<Way>) -> Vec<Way> {
+fn weld(policy: &crate::layout::JointPolicy, ways: Vec<Way>) -> Vec<Way> {
     // The end each end is joined to.
     let mut link: BTreeMap<End, End> = BTreeMap::new();
-    for node in nodes(&ways) {
+    for node in nodes(policy, &ways) {
         let widest = node
             .iter()
             .filter(|end| !ways[end.0].pinned)
@@ -1020,7 +1003,7 @@ fn weld(ways: Vec<Way>) -> Vec<Way> {
                     // Straight on is out of one end and into the other.
                     let straight = -dot(a.end(free[i].1).1, b.end(free[j].1).1);
                     let sharpest = if a.width < widest {
-                        THROUGH_COS
+                        policy.through_cos
                     } else {
                         REVERSE_COS
                     };
@@ -1154,11 +1137,11 @@ struct Carry {
 ///
 /// A place a carriageway passes through is left, and so is a wider end
 /// that something other than the ways it meets already covers.
-fn carry(mut ways: Vec<Way>, size: [f64; 2]) -> Vec<Way> {
-    for _ in 0..CARRY_ROUNDS {
+fn carry(policy: &crate::layout::JointPolicy, mut ways: Vec<Way>, size: [f64; 2]) -> Vec<Way> {
+    for _ in 0..policy.carry_rounds {
         // The places unlike ends meet, one of them the widest: that end,
         // and all of them.
-        let unlike: Vec<(End, Vec<End>)> = nodes(&ways)
+        let unlike: Vec<(End, Vec<End>)> = nodes(policy, &ways)
             .into_iter()
             .filter(|node| node.len() >= 2 && !node.iter().any(|end| ways[end.0].pinned))
             .filter_map(|node| {
@@ -1176,7 +1159,7 @@ fn carry(mut ways: Vec<Way>, size: [f64; 2]) -> Vec<Way> {
         // Each corner's ways of mending it, the shorter first.
         let mut corners: Vec<Vec<Carry>> = Vec::new();
         {
-            let paving = Paving::new(&ways, size);
+            let paving = Paving::new(policy, &ways, size);
             for (wide, node) in &unlike {
                 let (wide, widest) = (*wide, ways[wide.0].width);
                 let (at, out_of) = ways[wide.0].end(wide.1);
@@ -1272,7 +1255,7 @@ fn carry(mut ways: Vec<Way>, size: [f64; 2]) -> Vec<Way> {
 
 /// A way that ends on the map's edge at a slant turns square to the edge
 /// before it, so its flat end lies along the edge and none of it shows.
-fn gate(ways: &mut [Way], size: [f64; 2]) {
+fn gate(policy: &crate::layout::JointPolicy, ways: &mut [Way], size: [f64; 2]) {
     for way in ways.iter_mut().filter(|way| !way.pinned) {
         for last in [false, true] {
             let (at, out_of) = way.end(last);
@@ -1292,8 +1275,8 @@ fn gate(ways: &mut [Way], size: [f64; 2]) {
             }
             // How far in from the edge the point before the end stands.
             let room = dot(sub(at, way.before(last)), normal);
-            let depth = (GATE_WIDTHS * way.width).min(room / 2.0);
-            if depth < SHORTEST_RUN_M {
+            let depth = (policy.gate_widths * way.width).min(room / 2.0);
+            if depth < policy.shortest_run_m {
                 continue;
             }
             let turn = round_cm(sub(at, scale(normal, depth)));
@@ -1324,14 +1307,14 @@ enum Join {
 ///   road would not cover as it comes, leaves its line a little before the
 ///   road and meets
 ///   it square, or swings its whole last run square if that run is short:
-///   no fork is left sharper than `SLANT_COS` allows, and no corner of its
+///   no fork is left sharper than `policy.slant_cos` allows, and no corner of its
 ///   end shows past the road's edge;
 /// - one that crossed the road and stops a width or two past it is cut back
 ///   to it: a stub, which serves nothing and shows its end.
 ///
 /// Ends that share their point with other ends only are left.
-fn snap(ways: &mut [Way], size: [f64; 2]) {
-    let paving = Paving::new(ways, size);
+fn snap(policy: &crate::layout::JointPolicy, ways: &mut [Way], size: [f64; 2]) {
+    let paving = Paving::new(policy, ways, size);
     let on_map = |p: Point| (0..2).all(|k| p[k] > 0.0 && p[k] < size[k]);
     // The points ways turn at, by whole-metre cell.
     let cell = |p: Point| [libm::floor(p[0]) as i64, libm::floor(p[1]) as i64];
@@ -1345,15 +1328,15 @@ fn snap(ways: &mut [Way], size: [f64; 2]) {
         let [cx, cy] = cell(p);
         (-1..=1).any(|dy| {
             (-1..=1).any(|dx| {
-                turns
-                    .get(&[cx + dx, cy + dy])
-                    .is_some_and(|turns| turns.iter().any(|turn| distance(*turn, p) <= MEET_M))
+                turns.get(&[cx + dx, cy + dy]).is_some_and(|turns| {
+                    turns.iter().any(|turn| distance(*turn, p) <= policy.meet_m)
+                })
             })
         })
     };
     // An end alone, or one of several at a point a way runs through: each
     // of those joins that way.
-    let lone: Vec<End> = nodes(ways)
+    let lone: Vec<End> = nodes(policy, ways)
         .into_iter()
         .filter(|node| node.len() == 1 || on_a_way(ways[node[0].0].end(node[0].1).0))
         .flatten()
@@ -1369,7 +1352,7 @@ fn snap(ways: &mut [Way], size: [f64; 2]) {
         // touches, or crossed within a stub's length: how far along from the
         // end (signed), that carriageway, and its heading there.
         let mut nearest: Option<(f64, usize, Point)> = None;
-        let reach = paving.widest + STUB_WIDTHS * width + NEAR_M;
+        let reach = paving.widest + policy.stub_widths * width + policy.near_m;
         let (from, to) = (sub(at, scale(out_of, reach)), add(at, scale(out_of, reach)));
         paving.grid.any(segment_bounds(from, to, 0.0), |item| {
             let (other, c, d) = paving.stretches[item as usize];
@@ -1389,9 +1372,9 @@ fn snap(ways: &mut [Way], size: [f64; 2]) {
             let meets = if apart <= half {
                 sin >= SQUARE_SIN
             } else if along > 0.0 {
-                apart <= half + NEAR_M && cos <= ALONGSIDE_COS
+                apart <= half + policy.near_m && cos <= policy.alongside_cos
             } else {
-                -along <= half + STUB_WIDTHS * width && cos <= ALONGSIDE_COS
+                -along <= half + policy.stub_widths * width && cos <= policy.alongside_cos
             };
             if meets && nearest.is_none_or(|(known, ..)| along.abs() < known.abs()) {
                 nearest = Some((along, other, run));
@@ -1409,21 +1392,21 @@ fn snap(ways: &mut [Way], size: [f64; 2]) {
         // it, not a branch: squaring it would move the join far down the
         // road and take the lane away from what stands along it.
         let cos = dot(out_of, run).abs();
-        let slant = cos > SLANT_COS && cos <= ALONGSIDE_COS;
-        if slant || (cos <= SLANT_COS && !paving.hides(stands, out_of, way)) {
+        let slant = cos > policy.slant_cos && cos <= policy.alongside_cos;
+        if slant || (cos <= policy.slant_cos && !paving.hides(stands, out_of, way)) {
             // It leaves its line where the road's middle is still a good
             // way off to the side, and goes straight to the nearest point
             // of that middle.
             let sin = cross(out_of, run).abs();
-            let squared = [SQUARE_WIDTHS, SQUARE_WIDTHS / 2.0]
+            let squared = [policy.square_widths, policy.square_widths / 2.0]
                 .into_iter()
                 .find_map(|widths| {
                     let depth = paving.halves[other] + widths * width;
                     let back = depth / sin;
                     // The turn is taken in two halves, each this far from where
                     // the two lines meet: a curve, not a corner.
-                    let ease = widths * width / SQUARE_WIDTHS;
-                    if distance(before, meeting) < back + ease + SHORTEST_RUN_M {
+                    let ease = widths * width / policy.square_widths;
+                    if distance(before, meeting) < back + ease + policy.shortest_run_m {
                         return None;
                     }
                     let turn = sub(meeting, scale(out_of, back));
@@ -1447,8 +1430,11 @@ fn snap(ways: &mut [Way], size: [f64; 2]) {
             let swung = || {
                 let (foot, inner) = paving.nearest_on(other, before)?;
                 let gap = distance(before, foot);
-                let short = distance(before, at) <= SWING_WIDTHS * width;
-                if !inner || !short || gap < paving.halves[other] + width / 2.0 + SHORTEST_RUN_M {
+                let short = distance(before, at) <= policy.swing_widths * width;
+                if !inner
+                    || !short
+                    || gap < paving.halves[other] + width / 2.0 + policy.shortest_run_m
+                {
                     return None;
                 }
                 let landing = round_cm(add(foot, scale(sub(foot, before), OVERSHOOT_M / gap)));
@@ -1503,6 +1489,13 @@ fn apply(ways: &mut [Way], moves: Vec<(End, Point)>) {
 
 #[cfg(test)]
 mod tests {
+    fn policy() -> crate::layout::JointPolicy {
+        crate::layout::PresetDefinitions::from_json(include_str!(
+            "../../../fixtures/map-presets.json"
+        ))
+        .unwrap()
+        .joints
+    }
     use super::*;
 
     const SIZE: [f64; 2] = [1000.0, 1000.0];
@@ -1540,6 +1533,7 @@ mod tests {
     #[test]
     fn two_streets_that_meet_end_to_end_become_one_street_round_the_corner() {
         let closed = close(
+            &policy(),
             vec![
                 way(SurfaceKind::Road, 7.0, &[[100.0, 100.0], [200.0, 100.0]]),
                 way(SurfaceKind::Road, 7.0, &[[200.0, 100.0], [200.0, 220.0]]),
@@ -1560,6 +1554,7 @@ mod tests {
         // Each stops a little past the other's middle, as two streets laid
         // to meet at a corner do: neither covers the other's end.
         let closed = close(
+            &policy(),
             vec![
                 way(SurfaceKind::Road, 7.0, &[[100.0, 100.0], [200.5, 100.0]]),
                 way(SurfaceKind::Road, 7.0, &[[200.0, 99.5], [200.0, 220.0]]),
@@ -1577,6 +1572,7 @@ mod tests {
     fn a_side_road_that_stops_short_runs_on_to_just_past_the_middle() {
         // It stops at the through road's near edge.
         let closed = close(
+            &policy(),
             vec![
                 way(
                     SurfaceKind::CountryRoad,
@@ -1614,7 +1610,7 @@ mod tests {
                 &[[300.0, 100.0], [300.0, 301.5]],
             ),
         ];
-        let closed = close(surfaces.clone(), SIZE, &[]);
+        let closed = close(&policy(), surfaces.clone(), SIZE, &[]);
         assert_eq!(lines(&closed), lines(&surfaces));
     }
 
@@ -1632,6 +1628,7 @@ mod tests {
             let leaving = [turn.to_radians().cos(), turn.to_radians().sin()];
             let far = round_cm(add([400.0, 400.0], scale(leaving, 150.0)));
             let closed = close(
+                &policy(),
                 vec![
                     way(
                         SurfaceKind::CountryRoad,
@@ -1684,6 +1681,7 @@ mod tests {
         // that street from the west 50 m on, and a street crosses it 100 m
         // on: only the crossing one covers the avenue's end either side.
         let closed = close(
+            &policy(),
             vec![
                 way(SurfaceKind::Road, 10.0, &[[200.0, 400.0], [400.0, 400.0]]),
                 way(SurfaceKind::Road, 7.0, &[[400.0, 400.0], [400.0, 700.0]]),
@@ -1712,7 +1710,10 @@ mod tests {
         // its own past the crossing.
         assert!(closed[0].shape.contains([404.9, 470.0], 0.0));
         // The parcel pass closes the layout's roads again: nothing moves.
-        assert_eq!(lines(&close(closed.clone(), SIZE, &[])), lines(&closed));
+        assert_eq!(
+            lines(&close(&policy(), closed.clone(), SIZE, &[])),
+            lines(&closed)
+        );
         assert!(!closed
             .iter()
             .any(|area| area.shape.contains([404.0, 520.0], 0.0)));
@@ -1723,6 +1724,7 @@ mod tests {
         // A street crosses the avenue 50 m before the corner; nothing
         // crosses the street that leaves it for 300 m.
         let closed = close(
+            &policy(),
             vec![
                 way(SurfaceKind::Road, 10.0, &[[200.0, 400.0], [400.0, 400.0]]),
                 way(SurfaceKind::Road, 7.0, &[[400.0, 400.0], [400.0, 700.0]]),
@@ -1747,6 +1749,7 @@ mod tests {
     fn two_tracks_that_meet_alone_are_one_track_round_the_bend_however_sharp() {
         // Both leave (400, 400), 30° apart: a switchback.
         let closed = close(
+            &policy(),
             vec![
                 way(
                     SurfaceKind::DirtTrack,
@@ -1781,6 +1784,7 @@ mod tests {
     fn a_branch_that_comes_in_at_a_slant_bends_to_meet_the_road_square() {
         // A track meets a road 34° off its line.
         let closed = close(
+            &policy(),
             vec![
                 way(
                     SurfaceKind::CountryRoad,
@@ -1825,7 +1829,7 @@ mod tests {
                 &[[300.0, 300.0], [500.0, 289.5]],
             ),
         ];
-        let closed = close(laid, SIZE, &[]);
+        let closed = close(&policy(), laid, SIZE, &[]);
         let lane = &lines(&closed)[1];
         assert_eq!(lane.len(), 2, "{lane:?}");
         assert!(distance(lane[0], [300.0, 300.0]) < 0.5, "{lane:?}");
@@ -1836,6 +1840,7 @@ mod tests {
     fn a_stub_just_past_a_crossing_is_cut_back_to_it() {
         // The track crosses the road and stops 2 m past its far edge.
         let closed = close(
+            &policy(),
             vec![
                 way(
                     SurfaceKind::CountryRoad,
@@ -1868,12 +1873,16 @@ mod tests {
                 &[[300.0, 100.0], [300.0, 340.0]],
             ),
         ];
-        assert_eq!(lines(&close(long.clone(), SIZE, &[])), lines(&long));
+        assert_eq!(
+            lines(&close(&policy(), long.clone(), SIZE, &[])),
+            lines(&long)
+        );
     }
 
     #[test]
     fn a_road_that_leaves_the_map_at_a_slant_turns_square_to_the_edge() {
         let closed = close(
+            &policy(),
             vec![way(
                 SurfaceKind::CountryRoad,
                 8.0,
@@ -1896,7 +1905,10 @@ mod tests {
             8.0,
             &[[0.0, 300.0], [400.0, 300.0]],
         )];
-        assert_eq!(lines(&close(square.clone(), SIZE, &[])), lines(&square));
+        assert_eq!(
+            lines(&close(&policy(), square.clone(), SIZE, &[])),
+            lines(&square)
+        );
     }
 
     #[test]
@@ -1908,6 +1920,7 @@ mod tests {
             [300.0, 500.0],
         ];
         let closed = close(
+            &policy(),
             vec![way(
                 SurfaceKind::CountryRoad,
                 8.0,
@@ -1919,7 +1932,7 @@ mod tests {
         let road = &lines(&closed)[0];
         let end = road[road.len() - 1];
         assert!(
-            end[0] >= 500.0 && end[0] <= 500.0 + 4.0 + TRIM_MARGIN_M + TRIM_STEP_M,
+            end[0] >= 500.0 && end[0] <= 500.0 + 4.0 + policy().trim_margin_m + TRIM_STEP_M,
             "{road:?}"
         );
         // One that stops on the settlement's ground, or by another road, stays.
@@ -1929,7 +1942,7 @@ mod tests {
             &[[350.0, 350.0], [450.0, 450.0]],
         )];
         assert_eq!(
-            lines(&close(inside.clone(), SIZE, &[&ground])),
+            lines(&close(&policy(), inside.clone(), SIZE, &[&ground])),
             lines(&inside)
         );
     }
@@ -1941,6 +1954,7 @@ mod tests {
         // track touching its bend at a tangent: no crossing for the plan's
         // road graph to join them by.
         let closed = close(
+            &policy(),
             vec![
                 way(
                     SurfaceKind::CountryRoad,
@@ -1982,6 +1996,7 @@ mod tests {
     #[test]
     fn a_road_that_ends_on_two_tracks_carries_on_down_the_straighter_one() {
         let closed = close(
+            &policy(),
             vec![
                 way(
                     SurfaceKind::CountryRoad,
@@ -2023,6 +2038,7 @@ mod tests {
         // 40 m short of that cross street, 4 m to one side: a step in the
         // road's edge where it starts.
         let closed = close(
+            &policy(),
             vec![
                 way(SurfaceKind::Road, 7.0, &[[300.0, 100.0], [300.0, 500.0]]),
                 way(SurfaceKind::Road, 7.0, &[[100.0, 300.0], [300.25, 300.0]]),
@@ -2038,6 +2054,7 @@ mod tests {
     #[test]
     fn two_streets_drawn_side_by_side_with_nothing_between_become_one() {
         let closed = close(
+            &policy(),
             vec![
                 way(SurfaceKind::Road, 7.0, &[[100.0, 300.0], [400.0, 300.0]]),
                 way(SurfaceKind::Road, 7.0, &[[380.0, 303.0], [700.0, 303.0]]),
@@ -2055,6 +2072,7 @@ mod tests {
     fn a_turn_a_few_metres_from_an_end_is_dropped_so_the_corner_can_be_made() {
         // The street's first 3 m are a link to the avenue's end.
         let closed = close(
+            &policy(),
             vec![
                 way(SurfaceKind::Road, 10.0, &[[200.0, 400.0], [400.0, 400.0]]),
                 way(
@@ -2093,8 +2111,8 @@ mod tests {
                 &[[500.0, 500.0], [700.0, 1000.0]],
             ),
         ];
-        let once = close(surfaces, SIZE, &[]);
-        let twice = close(once.clone(), SIZE, &[]);
+        let once = close(&policy(), surfaces, SIZE, &[]);
+        let twice = close(&policy(), once.clone(), SIZE, &[]);
         assert_eq!(lines(&twice), lines(&once));
     }
 }

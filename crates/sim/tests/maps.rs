@@ -58,16 +58,20 @@ fn every_saved_encounter_makes_a_battle_on_its_map() {
     assert!(encounters > 0, "the catalogue has saved encounters");
 }
 
-/// The catalogue and generator agree on their physical-part and bay limits.
+/// Production generation fits the released catalogue envelope; tuning a lower work allowance never lowers saved-map admission.
 #[test]
-fn catalogue_geometry_limits_match_the_generator_allowance() {
+fn generated_geometry_allowances_fit_the_released_catalogue_envelope() {
     let game: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(sim::fixtures::dir().join("generated-battle.json")).unwrap(),
     )
     .unwrap();
     let admission = serde_json::to_value(contract::maps::MapAdmission::CATALOGUE).unwrap();
     for limit in ["max_authored_parts", "max_bay_positions"] {
-        assert_eq!(admission[limit], game["limits"][limit], "{limit}");
+        assert!(game["limits"][limit].as_u64().unwrap() > 0);
+        assert!(
+            game["limits"][limit].as_u64().unwrap() <= admission[limit].as_u64().unwrap(),
+            "{limit}"
+        );
     }
 }
 

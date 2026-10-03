@@ -1,4 +1,22 @@
 {
+  "joints": {
+    "meet_m": 0.5,
+    "near_m": 2.5,
+    "through_cos": 0.866,
+    "tail_spare_m": 1.0,
+    "carry_rounds": 3,
+    "beside_widths": 10.0,
+    "junction_m": 25.0,
+    "swing_widths": 4.0,
+    "slant_cos": 0.5,
+    "square_widths": 1.5,
+    "stub_widths": 2.0,
+    "alongside_cos": 0.94,
+    "gate_widths": 2.0,
+    "trim_margin_m": 1.0,
+    "pin_rounds": 4,
+    "shortest_run_m": 1.0
+  },
   "revision": "layout-presets-12",
   "terrain": { "render_margin_m": 1500, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
@@ -15,6 +33,8 @@
   },
   "transit": { "road_kmh": 110, "allowance_s": 15, "max_s": 215, "exit_window": 0.3, "centre_reach_m": 500 },
   "roads": {
+    "fork_sin": 0.707,
+    "side_road_tries": 4,
     "country_road_width_m": 8,
     "dirt_track_width_m": 4,
     "dirt_track_speed_factor": 0.75,
@@ -38,6 +58,14 @@
   },
   "sites": { "edge_margin_m": 80, "cluster_reach_m": 1200 },
   "towns": {
+    "geometry": {
+      "sliver_m": 1.0,
+      "shared_m": 8.0,
+      "meet_m": 0.5,
+      "places": 6,
+      "in_line_sin": 0.423,
+      "avenue_slant_sin": 0.375
+    },
     "avenue_width_m": 10,
     "growth_noise": 0.6,
     "growth_patch_blocks": 3,
@@ -94,6 +122,28 @@
   },
   "retries": { "centre": 60, "site": 200, "forest": 60, "river": 150, "repair_settlements": 4, "repair_woods": 5, "repair_blocks": 4, "infill": 6, "fit": 3 },
   "parcels": {
+    "geometry": {
+      "facing_past_m": 10.0,
+      "parallel_cos": 0.866,
+      "facing_cos": 0.5,
+      "slant_sin": 0.342,
+      "turn_sin": 0.47,
+      "turn_widths": 3.0,
+      "in_line_cos": 0.906,
+      "ahead_spread": 0.36,
+      "road_edge": 2.0,
+      "open_edge": 0.25,
+      "bow_lengths": [
+        1.2,
+        2.4
+      ],
+      "bow_reach": 0.04,
+      "alone_widths": 4.0,
+      "crowd_widths": 3.0,
+      "own_tan": 0.2,
+      "corner_tan": 0.47,
+      "end_margin_m": 1.0
+    },
     "regional_families": ["china"],
     "prop_kind": "building",
     "street_width_m": 7,
@@ -105,6 +155,11 @@
     "junction_clear_m": 60
   },
   "street_props": {
+    "edge_m": 1.0,
+    "door_reach_m": 12.0,
+    "door_look_m": 40.0,
+    "owner_step_m": 2.0,
+    "site_room_m": 1.5,
     "lane_margin_m": 0.9,
     "kerb_gap_m": 0.3,
     "wall_gap_m": 0.9,
@@ -443,6 +498,9 @@
     }
   },
   "open_country": {
+    "line_step_m": 20.0,
+    "walk_m": 50.0,
+    "placed_max": 4096,
     "sight": { "cell_m": 100, "fill": ["copse", "tree_line"] },
     "clear": { "edge_m": 12, "settlement_m": 60, "forest_m": 40, "road_m": 3, "water_m": 12, "yard_m": 6, "approach_m": 25 },
     "fairness": { "rel": 0.25, "homes": 3, "tree_line_m": 250, "copses": 2, "trees": 3, "cover": 6 },

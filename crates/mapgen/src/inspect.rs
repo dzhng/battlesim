@@ -113,6 +113,14 @@ fn view(plan: &MapPlan, crop: Option<&str>) -> Result<[f64; 4], String> {
     Ok([(x0 + x1 - side) / 2.0, (y0 + y1 - side) / 2.0, side, side])
 }
 
+fn xml(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
 pub fn svg(
     plan: &MapPlan,
     catalogue: &TemplateGeometryCatalog,
@@ -164,8 +172,10 @@ pub fn svg(
     for settlement in &plan.settlements {
         let _ = write!(
             out,
-            r##"<path d="{}" fill="{FIELD}"/>"##,
-            path(&settlement.outline, true)
+            r##"<path data-layer="districts" data-rule-group="classes.{class}" data-feature-id="{id}" d="{}" fill="{FIELD}"/>"##,
+            path(&settlement.outline, true),
+            class = xml(&settlement.class),
+            id = xml(&settlement.id)
         );
     }
     // The widest open approach in each half to the first settlement (the
@@ -202,7 +212,7 @@ pub fn svg(
         ];
         let _ = write!(
             out,
-            r##"<path d="{}" fill="{APPROACH}" fill-opacity="0.05" stroke="{APPROACH}" stroke-opacity="0.45" stroke-width="{}" stroke-dasharray="{dash} {dash}"/>"##,
+            r##"<path data-layer="approaches" data-rule-group="approach" data-feature-id="approach" d="{}" fill="{APPROACH}" fill-opacity="0.05" stroke="{APPROACH}" stroke-opacity="0.45" stroke-width="{}" stroke-dasharray="{dash} {dash}"/>"##,
             path(&corridor, true),
             unit * 0.08,
             dash = unit * 0.5
@@ -215,7 +225,7 @@ pub fn svg(
             GroundShape::Polygon { ring } => {
                 let _ = write!(
                     out,
-                    r##"<path d="{}" fill="{FOREST}" stroke="{FOREST}" stroke-width="{}"/>"##,
+                    r##"<path data-layer="forests" data-rule-group="forests" data-feature-id="forests" d="{}" fill="{FOREST}" stroke="{FOREST}" stroke-width="{}"/>"##,
                     path(ring, true),
                     unit * 0.1
                 );
@@ -226,7 +236,7 @@ pub fn svg(
             } => {
                 let _ = write!(
                     out,
-                    r##"<path d="{}" fill="none" stroke="{FOREST}" stroke-width="{}"/>"##,
+                    r##"<path data-layer="forests" data-rule-group="forests" data-feature-id="forests" d="{}" fill="none" stroke="{FOREST}" stroke-width="{}"/>"##,
                     path(centerline.samples(), false),
                     width_m.max(unit * 0.25)
                 );
@@ -237,7 +247,7 @@ pub fn svg(
         // A hairline of its own colour closes the seams between its rings.
         let _ = write!(
             out,
-            r##"<path d="{}" fill="{WATER}" stroke="{WATER}" stroke-width="{}"/>"##,
+            r##"<path data-layer="water" data-rule-group="rivers" data-feature-id="rivers" d="{}" fill="{WATER}" stroke="{WATER}" stroke-width="{}"/>"##,
             path(&ring, true),
             unit * 0.02
         );
@@ -254,25 +264,29 @@ pub fn svg(
         for district in &settlement.districts {
             let _ = write!(
                 out,
-                r##"<path d="{}" fill="{}" fill-opacity="{tint}" stroke="#3a2f2a" stroke-width="{}"/>"##,
+                r##"<path data-layer="districts" data-rule-group="districts.{kind}" data-feature-id="{id}" d="{}" fill="{}" fill-opacity="{tint}" stroke="#3a2f2a" stroke-width="{}"/>"##,
                 path(&district.ring, true),
                 colour(&district.kind),
-                unit * 0.06
+                unit * 0.06,
+                kind = xml(&district.kind),
+                id = xml(&district.id)
             );
         }
         let _ = write!(
             out,
-            r##"<path d="{}" fill="none" stroke="#6b5d3a" stroke-width="{}" stroke-dasharray="{dash} {dash}"/>"##,
+            r##"<path data-layer="districts" data-rule-group="classes.{class}" data-feature-id="{id}" d="{}" fill="none" stroke="#6b5d3a" stroke-width="{}" stroke-dasharray="{dash} {dash}"/>"##,
             path(&settlement.outline, true),
             unit * 0.05,
-            dash = unit * 0.3
+            dash = unit * 0.3,
+            class = xml(&settlement.class),
+            id = xml(&settlement.id)
         );
     }
     if detail {
         for lot in plan.lots.iter().filter(|lot| shown(lot.ring[0], 200.0)) {
             let _ = write!(
                 out,
-                r##"<path d="{}" fill="#ffffff" fill-opacity="0.35" stroke="#5c5346" stroke-width="{}"/>"##,
+                r##"<path data-layer="parcels" data-rule-group="parcels" data-feature-id="parcels" d="{}" fill="#ffffff" fill-opacity="0.35" stroke="#5c5346" stroke-width="{}"/>"##,
                 path(&lot.ring, true),
                 unit * 0.04
             );
@@ -283,21 +297,25 @@ pub fn svg(
     for lot in crate::open_country::country_lots(plan) {
         let _ = write!(
             out,
-            r##"<path d="{}" fill="{YARD}" fill-opacity="0.45" stroke="{YARD}" stroke-width="{}"/>"##,
+            r##"<path data-layer="parcels" data-rule-group="open_country" data-feature-id="open_country" d="{}" fill="{YARD}" fill-opacity="0.45" stroke="{YARD}" stroke-width="{}"/>"##,
             path(&lot.ring, true),
             unit * 0.12
         );
     }
     for area in &plan.surfaces {
         if let GroundShape::Polygon { ring } = &area.shape {
-            let _ = write!(out, r##"<path d="{}" fill="{APRON}"/>"##, path(ring, true));
+            let _ = write!(
+                out,
+                r##"<path data-layer="roads" data-rule-group="parcels" data-feature-id="parcels" d="{}" fill="{APRON}"/>"##,
+                path(ring, true)
+            );
         }
     }
     // Loose bodies: low cover in the fields, a car in a yard.
     for prop in &plan.props {
         let _ = write!(
             out,
-            r##"<circle cx="{}" cy="{}" r="{}" fill="{BODY}"/>"##,
+            r##"<circle data-layer="furniture" data-rule-group="open_country" data-feature-id="open_country" cx="{}" cy="{}" r="{}" fill="{BODY}"/>"##,
             prop.center[0] - left,
             top - prop.center[1],
             prop.half_extents[0].max(unit * 0.12)
@@ -326,7 +344,7 @@ pub fn svg(
             {
                 let _ = write!(
                     out,
-                    r##"<path d="{}" fill="none" stroke="{stroke}" stroke-width="{}" stroke-linejoin="round"{dash}/>"##,
+                    r##"<path data-layer="roads" data-rule-group="roads" data-feature-id="roads" d="{}" fill="none" stroke="{stroke}" stroke-width="{}" stroke-linejoin="round"{dash}/>"##,
                     path(centerline.samples(), false),
                     width_m.max(unit * weight)
                 );
@@ -334,18 +352,18 @@ pub fn svg(
         }
     }
     // A deck over its road; on a view too wide to show one, a ring round it.
-    for bridge in &plan.bridges {
+    for (bridge_index, bridge) in plan.bridges.iter().enumerate() {
         let ends = bridge.ends();
         let _ = write!(
             out,
-            r##"<path d="{}" fill="{DECK}" stroke="#111111" stroke-width="{}"/>"##,
+            r##"<path data-layer="water" data-rule-group="crossings" data-feature-id="bridge-{bridge_index}" d="{}" fill="{DECK}" stroke="#111111" stroke-width="{}"/>"##,
             path(&[ends[0][0], ends[0][1], ends[1][1], ends[1][0]], true),
             unit * 0.05
         );
         if !detail {
             let _ = write!(
                 out,
-                r##"<circle cx="{}" cy="{}" r="{}" fill="none" stroke="{DECK}" stroke-width="{}"/>"##,
+                r##"<circle data-layer="water" data-rule-group="crossings" data-feature-id="bridge-{bridge_index}" cx="{}" cy="{}" r="{}" fill="none" stroke="{DECK}" stroke-width="{}"/>"##,
                 bridge.center[0] - left,
                 top - bridge.center[1],
                 unit * 0.9,
@@ -384,7 +402,7 @@ pub fn svg(
             });
             let _ = write!(
                 out,
-                r##"<path d="{}" fill="{fill}"/>"##,
+                r##"<path data-layer="buildings" data-rule-group="parcels" data-feature-id="parcels" d="{}" fill="{fill}"/>"##,
                 path(&corners, true)
             );
         }
@@ -394,7 +412,7 @@ pub fn svg(
                 let door = [entrance.position[0], entrance.position[1]];
                 let _ = write!(
                     out,
-                    r##"<path d="{}" stroke="{ENTRANCE}" stroke-width="{}"/>"##,
+                    r##"<path data-layer="buildings" data-rule-group="parcels" data-feature-id="parcels" d="{}" stroke="{ENTRANCE}" stroke-width="{}"/>"##,
                     path(&[door, add(door, scale(entrance.normal, 3.0))], false),
                     unit * 0.12
                 );
@@ -421,7 +439,7 @@ pub fn svg(
         });
         let _ = write!(
             out,
-            r##"<path d="{}" fill="{}" stroke="#111111" stroke-width="0.06"/>"##,
+            r##"<path data-layer="furniture" data-rule-group="street_props" data-feature-id="street_props" d="{}" fill="{}" stroke="#111111" stroke-width="0.06"/>"##,
             path(&corners, true),
             FURNITURE[furniture(&prop.kind)].1
         );

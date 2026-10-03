@@ -9,6 +9,12 @@ use std::collections::BTreeMap;
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Rules {
+    /// A tree line follows its road by points this far apart.
+    pub line_step_m: f64,
+    /// Road is measured, and a settlement's edge sampled, this often.
+    pub walk_m: f64,
+    /// The most things of one kind a map is given, whatever its rows ask.
+    pub placed_max: u32,
     pub sight: SightRule,
     pub clear: Clearances,
     pub fairness: Evenness,
@@ -194,6 +200,25 @@ impl Rules {
     /// What the rows cannot describe, as (field, message).
     pub fn errors(&self, wood_floor_m2: f64) -> Vec<(String, &'static str)> {
         let mut errors = Vec::new();
+        if !self.line_step_m.is_finite() || self.line_step_m <= 0.0 {
+            errors.push((
+                "line_step_m".into(),
+                "Tree-line spacing must be finite and positive",
+            ));
+        }
+        if !self.walk_m.is_finite() || self.walk_m <= 0.0 {
+            errors.push((
+                "walk_m".into(),
+                "Country search spacing must be finite and positive",
+            ));
+        }
+        if self.placed_max == 0 || self.placed_max > 4096 {
+            errors.push((
+                "placed_max".into(),
+                "Country placement allowance must be positive and no larger than 4096",
+            ));
+        }
+
         let mut check = |ok: bool, field: &str, message: &'static str| {
             if !ok {
                 errors.push((field.to_string(), message));

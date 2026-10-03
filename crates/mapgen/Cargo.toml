@@ -16,3 +16,7 @@ sim = { path = "../sim" }
 [[example]]
 name = "battle_sweep"
 test = true
+
+[[example]]
+name = "map_workbench_report"
+test = true

@@ -82,3 +82,61 @@ Topology-adjacent morphology policies remain subject to final physical/topology 
 | `crates/contract/src/river.rs` | `MIN_WIDTH_CELLS` | `3.0` | I | A river is at least this many height samples wide, or the grid cannot carve its bed: a narrower channel falls between samples. |
 | `crates/contract/src/river.rs` | `GRID_GRADE_MARGIN` | `0.9` | I | A surface whose grade is `g` everywhere is drawn by grid triangles no steeper than `g √2` (a triangle's rise along each axis is one sample's). Banks keep this share of the grade that would reach the slope cutoff. |
 | `crates/contract/src/forest.rs` | `FOLIAGE_SAMPLE_M` | `1.0` | I | Maximum physical foliage-depth integration step, shared by proofs. |
+
+## Extraction ownership
+
+Initial values are copied exactly; stored trigonometric values are never recomputed from nominal degrees. Distinct town and road meet tolerances remain distinct because their callers make different topology decisions.
+
+| Source symbol | Data destination |
+| --- | --- |
+| `crates/mapgen/src/joints.rs:MEET_M` | `presets.joints.meet_m` |
+| `crates/mapgen/src/joints.rs:NEAR_M` | `presets.joints.near_m` |
+| `crates/mapgen/src/joints.rs:THROUGH_COS` | `presets.joints.through_cos` |
+| `crates/mapgen/src/joints.rs:TAIL_SPARE_M` | `presets.joints.tail_spare_m` |
+| `crates/mapgen/src/joints.rs:CARRY_ROUNDS` | `presets.joints.carry_rounds` |
+| `crates/mapgen/src/joints.rs:BESIDE_WIDTHS` | `presets.joints.beside_widths` |
+| `crates/mapgen/src/joints.rs:JUNCTION_M` | `presets.joints.junction_m` |
+| `crates/mapgen/src/joints.rs:SWING_WIDTHS` | `presets.joints.swing_widths` |
+| `crates/mapgen/src/joints.rs:SLANT_COS` | `presets.joints.slant_cos` |
+| `crates/mapgen/src/joints.rs:SQUARE_WIDTHS` | `presets.joints.square_widths` |
+| `crates/mapgen/src/joints.rs:STUB_WIDTHS` | `presets.joints.stub_widths` |
+| `crates/mapgen/src/joints.rs:ALONGSIDE_COS` | `presets.joints.alongside_cos` |
+| `crates/mapgen/src/joints.rs:GATE_WIDTHS` | `presets.joints.gate_widths` |
+| `crates/mapgen/src/joints.rs:TRIM_MARGIN_M` | `presets.joints.trim_margin_m` |
+| `crates/mapgen/src/joints.rs:PIN_ROUNDS` | `presets.joints.pin_rounds` |
+| `crates/mapgen/src/joints.rs:SHORTEST_RUN_M` | `presets.joints.shortest_run_m` |
+| `crates/mapgen/src/layout/roads.rs:FORK_SIN` | `presets.roads.fork_sin` |
+| `crates/mapgen/src/layout/roads.rs:SIDE_ROAD_TRIES` | `presets.roads.side_road_tries` |
+| `crates/mapgen/src/layout/towns/ground.rs:SLIVER_M` | `presets.towns.geometry.sliver_m` |
+| `crates/mapgen/src/layout/towns/ground.rs:SHARED_M` | `presets.towns.geometry.shared_m` |
+| `crates/mapgen/src/layout/towns/ground.rs:MEET_M` | `presets.towns.geometry.meet_m` |
+| `crates/mapgen/src/layout/towns/ground.rs:PLACES` | `presets.towns.geometry.places` |
+| `crates/mapgen/src/layout/towns/ground.rs:IN_LINE_SIN` | `presets.towns.geometry.in_line_sin` |
+| `crates/mapgen/src/layout/towns/streets.rs:SLANT_SIN` | `presets.towns.geometry.avenue_slant_sin` |
+| `crates/mapgen/src/open_country/mod.rs:LINE_STEP_M` | `presets.open_country.line_step_m` |
+| `crates/mapgen/src/open_country/mod.rs:WALK_M` | `presets.open_country.walk_m` |
+| `crates/mapgen/src/open_country/mod.rs:PLACED_MAX` | `presets.open_country.placed_max` |
+| `crates/mapgen/src/parcels/streets.rs:FACING_PAST_M` | `presets.parcels.geometry.facing_past_m` |
+| `crates/mapgen/src/parcels/streets.rs:PARALLEL_COS` | `presets.parcels.geometry.parallel_cos` |
+| `crates/mapgen/src/parcels/streets.rs:FACING_COS` | `presets.parcels.geometry.facing_cos` |
+| `crates/mapgen/src/parcels/streets.rs:SLANT_SIN` | `presets.parcels.geometry.slant_sin` |
+| `crates/mapgen/src/parcels/streets.rs:TURN_SIN` | `presets.parcels.geometry.turn_sin` |
+| `crates/mapgen/src/parcels/streets.rs:TURN_WIDTHS` | `presets.parcels.geometry.turn_widths` |
+| `crates/mapgen/src/parcels/streets.rs:IN_LINE_COS` | `presets.parcels.geometry.in_line_cos` |
+| `crates/mapgen/src/parcels/streets.rs:AHEAD_SPREAD` | `presets.parcels.geometry.ahead_spread` |
+| `crates/mapgen/src/parcels/streets.rs:ROAD_EDGE` | `presets.parcels.geometry.road_edge` |
+| `crates/mapgen/src/parcels/streets.rs:OPEN_EDGE` | `presets.parcels.geometry.open_edge` |
+| `crates/mapgen/src/parcels/streets.rs:BOW_LENGTHS` | `presets.parcels.geometry.bow_lengths` |
+| `crates/mapgen/src/parcels/streets.rs:BOW_REACH` | `presets.parcels.geometry.bow_reach` |
+| `crates/mapgen/src/parcels/streets.rs:ALONE_WIDTHS` | `presets.parcels.geometry.alone_widths` |
+| `crates/mapgen/src/parcels/streets.rs:CROWD_WIDTHS` | `presets.parcels.geometry.crowd_widths` |
+| `crates/mapgen/src/parcels/streets.rs:OWN_TAN` | `presets.parcels.geometry.own_tan` |
+| `crates/mapgen/src/parcels/streets.rs:CORNER_TAN` | `presets.parcels.geometry.corner_tan` |
+| `crates/mapgen/src/parcels/streets.rs:END_MARGIN_M` | `presets.parcels.geometry.end_margin_m` |
+| `crates/mapgen/src/street_props.rs:EDGE_M` | `presets.street_props.edge_m` |
+| `crates/mapgen/src/street_props.rs:DOOR_REACH_M` | `presets.street_props.door_reach_m` |
+| `crates/mapgen/src/street_props.rs:DOOR_LOOK_M` | `presets.street_props.door_look_m` |
+| `crates/mapgen/src/street_props.rs:OWNER_STEP_M` | `presets.street_props.owner_step_m` |
+| `crates/mapgen/src/street_props.rs:SITE_ROOM_M` | `presets.street_props.site_room_m` |
+
+Finite advanced iteration/placement counts are bounded at 4096 (the existing maximum country placement count), and sampling steps remain finite positive. These are native-job work safeguards; physical coverage retains its independent proof envelope. Released compile part/bay envelopes remain fixed; editable ground-point allowances are positive u64 work limits.

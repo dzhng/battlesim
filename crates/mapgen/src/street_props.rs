@@ -30,19 +30,9 @@ use contract::map::{AuthoredPropDefinition, PropDefinition, SurfaceKind};
 use contract::templates::TemplateGeometryCatalog;
 use std::collections::{BTreeMap, BTreeSet};
 
-/// A body keeps this far inside the map's edge.
-const EDGE_M: f64 = 1.0;
 /// A body is set this far past the line it must keep to, so rounding its
 /// centre to a centimetre cannot put it over.
 const SLACK_M: f64 = 0.05;
-/// A door's way to the street is this long where no carriageway lies ahead.
-const DOOR_REACH_M: f64 = 12.0;
-/// How far ahead of a door a carriageway is looked for.
-const DOOR_LOOK_M: f64 = 40.0;
-/// A side of a carriageway is asked whose district it is this often.
-const OWNER_STEP_M: f64 = 2.0;
-/// A fence panel, a cabin and loose stock keep this far inside the fence.
-const SITE_ROOM_M: f64 = 1.5;
 
 /// A line of points with the distance along it to each.
 struct Line {
@@ -182,10 +172,10 @@ impl Field<'_> {
     fn legal(&self, c: &Candidate) -> bool {
         let rect = &c.rect;
         let bounds = rect.bounds();
-        if bounds[0] < EDGE_M
-            || bounds[1] < EDGE_M
-            || bounds[2] > self.size[0] - EDGE_M
-            || bounds[3] > self.size[1] - EDGE_M
+        if bounds[0] < self.rule.edge_m
+            || bounds[1] < self.rule.edge_m
+            || bounds[2] > self.size[0] - self.rule.edge_m
+            || bounds[3] > self.size[1] - self.rule.edge_m
         {
             return false;
         }
@@ -538,19 +528,19 @@ impl<'a> Pass<'a> {
                 let from = [entrance.position[0], entrance.position[1]];
                 let out = entrance.normal;
                 // To the middle of the first carriageway the door faces.
-                let far = add(from, scale(out, DOOR_LOOK_M));
+                let far = add(from, scale(out, self.rule.door_look_m));
                 let mut reach: Option<f64> = None;
                 self.field
                     .piece_grid
                     .any(segment_bounds(from, far, 0.0), |item| {
                         let piece = &self.field.pieces[item as usize];
                         if let Some((t, _)) = segment_crossing(from, far, piece.a, piece.b) {
-                            let met = t * DOOR_LOOK_M;
+                            let met = t * self.rule.door_look_m;
                             reach = Some(reach.map_or(met, |known| known.min(met)));
                         }
                         false
                     });
-                let reach = reach.unwrap_or(DOOR_REACH_M);
+                let reach = reach.unwrap_or(self.rule.door_reach_m);
                 let way = Rect {
                     center: add(from, scale(out, reach / 2.0)),
                     axis: out,
@@ -642,7 +632,7 @@ impl<'a> Pass<'a> {
         let at = |x: f64, y: f64| add(origin, add(scale(along, x), scale(inward, y)));
         let group = self.field.group();
         let inset = rule.fence_inset_m;
-        let room = inset + SITE_ROOM_M;
+        let room = inset + self.rule.site_room_m;
 
         let cabin = self.body(&rule.cabin);
         let corner = if rng.chance(0.5) { 1.0 } else { -1.0 };
@@ -695,9 +685,9 @@ impl<'a> Pass<'a> {
 
         // The gate's way to the street is kept open, like a door's.
         let way = Rect {
-            center: at(0.0, (inset - DOOR_REACH_M) / 2.0),
+            center: at(0.0, (inset - self.rule.door_reach_m) / 2.0),
             axis: inward,
-            half: [(inset + DOOR_REACH_M) / 2.0, rule.gate_m / 2.0],
+            half: [(inset + self.rule.door_reach_m) / 2.0, rule.gate_m / 2.0],
         };
         self.field
             .door_grid
@@ -802,7 +792,7 @@ impl<'a> Pass<'a> {
     /// `(from, to, district)` along the way.
     fn owners(&self, way: &Way, side: f64) -> Vec<(f64, f64, usize)> {
         let length = way.line.length();
-        let steps = (libm::ceil(length / OWNER_STEP_M) as usize).max(1);
+        let steps = (libm::ceil(length / self.rule.owner_step_m) as usize).max(1);
         let step = length / steps as f64;
         let off = self.kerb_line(way) + 1.0;
         // Runs of steps, each `(first step, one past its last, district)`.

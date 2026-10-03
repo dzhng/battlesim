@@ -16,22 +16,8 @@ pub(super) const CORNER_M: f64 = 5e-3;
 /// is on a centimetre grid, and a corner and a cut a millimetre apart would
 /// be two corners to one leaf and one to its neighbour.
 pub(super) const SNAP_M: f64 = 0.01;
-/// A line must enter a piece of ground this far to cut it: nearer its edge
-/// it runs along that edge.
-pub(super) const SLIVER_M: f64 = 1.0;
-/// A road must run this far through a piece of ground to cut it, and two
-/// pieces must share this much edge to be neighbours.
-pub(super) const SHARED_M: f64 = 8.0;
 /// A piece of ground smaller than this is no piece at all.
 const SLIVER_M2: f64 = 1.0;
-/// Two carriageways within this of each other meet.
-pub(super) const MEET_M: f64 = 0.5;
-/// How many places either side of the one drawn a cut is tried at, to end
-/// clear of the junctions on the cuts it ends on.
-const PLACES: usize = 6;
-/// Two cuts that end on a third from its two sides make a crossroads when
-/// they run within this of one line (the sine of 25 degrees).
-const IN_LINE_SIN: f64 = 0.423;
 
 /// Where a cut ends on another.
 #[derive(Clone, Copy)]
@@ -205,6 +191,7 @@ impl Leaf {
 
 /// One settlement's ground as it is cut.
 pub(super) struct Ground {
+    pub(super) policy: crate::layout::TownGeometry,
     pub(super) cuts: Vec<Cut>,
     pub(super) leaves: Vec<Leaf>,
 }
@@ -216,7 +203,8 @@ impl Ground {
     /// the line of a cut already made is part of that cut, and paves it.
     pub(super) fn cut(&mut self, a: Point, b: Point, kind: SurfaceKind) {
         let known = self.cuts.iter().position(|cut| {
-            cut.aside(a).abs() <= SLIVER_M / 2.0 && cut.aside(b).abs() <= SLIVER_M / 2.0
+            cut.aside(a).abs() <= self.policy.sliver_m / 2.0
+                && cut.aside(b).abs() <= self.policy.sliver_m / 2.0
         });
         let id = known.unwrap_or(self.cuts.len());
         if known.is_none() {
@@ -231,7 +219,7 @@ impl Ground {
         // A road that ends on another cut's line makes a junction there.
         for (end, far) in [(a, b), (b, a)] {
             for (other, cut) in self.cuts.iter_mut().enumerate() {
-                if other != id && cut.aside(end).abs() <= SLIVER_M / 2.0 {
+                if other != id && cut.aside(end).abs() <= self.policy.sliver_m / 2.0 {
                     let tee = Tee {
                         at: cut.at(end),
                         from_left: cut.aside(far) > 0.0,
@@ -264,7 +252,9 @@ impl Ground {
                 })
             }));
             let shared = inside[1].min(span[1]) - inside[0].max(span[0]);
-            let halves = (low < -SLIVER_M && high > SLIVER_M && shared >= SHARED_M)
+            let halves = (low < -self.policy.sliver_m
+                && high > self.policy.sliver_m
+                && shared >= self.policy.shared_m)
                 .then(|| {
                     Some([
                         leaf.clipped(origin, along, true, Bound::Cut(id))?,
@@ -285,7 +275,7 @@ impl Ground {
     /// the road that makes it crosses the settlement's ground.
     pub(super) fn junction(&mut self, at: Point) {
         for cut in &mut self.cuts {
-            if cut.aside(at).abs() <= SLIVER_M / 2.0 {
+            if cut.aside(at).abs() <= self.policy.sliver_m / 2.0 {
                 let tee = Tee {
                     at: cut.at(at),
                     from_left: true,
@@ -323,9 +313,9 @@ impl Ground {
                 let at = cut.at(end);
                 let side = cut.aside(middle) > 0.0;
                 let taken = |tee: f64| {
-                    cut.tees
-                        .iter()
-                        .any(|other| other.from_left == side && (other.at - tee).abs() <= SHARED_M)
+                    cut.tees.iter().any(|other| {
+                        other.from_left == side && (other.at - tee).abs() <= self.policy.shared_m
+                    })
                 };
                 // Or the end of a road that stops along the cut, where the
                 // line would pass just beyond it: the two then share that
@@ -348,7 +338,7 @@ impl Ground {
                         !tee.road
                             && tee.from_left != side
                             && (tee.at - at).abs() <= reach
-                            && cross(tee.along, along).abs() <= IN_LINE_SIN
+                            && cross(tee.along, along).abs() <= self.policy.in_line_sin
                     })
                     .map(|tee| tee.at)
                     .filter(|tee| !taken(*tee))
@@ -359,7 +349,7 @@ impl Ground {
             .collect();
         match junctions[..] {
             [(end, junction)] => Some((add(origin, sub(junction, end)), along)),
-            [(_, first), (_, second)] if distance(first, second) > SLIVER_M => {
+            [(_, first), (_, second)] if distance(first, second) > self.policy.sliver_m => {
                 let through = scale(sub(second, first), 1.0 / distance(first, second));
                 // The same way round as it was drawn, so each side stays its side.
                 Some((
@@ -395,7 +385,7 @@ impl Ground {
             let at = cut.at(end);
             cut.tees.iter().all(|tee| {
                 let away = (tee.at - at).abs();
-                away <= MEET_M || away >= if tee.road { clear } else { reach }
+                away <= self.policy.meet_m || away >= if tee.road { clear } else { reach }
             })
         })
     }
@@ -556,8 +546,8 @@ impl Ground {
                 [0.0; 2]
             };
             let halves = cut.and_then(|((skew, drawn, [low, high]), row)| {
-                let step = (high - low) / PLACES as f64;
-                let places = (0..=PLACES)
+                let step = (high - low) / self.policy.places as f64;
+                let places = (0..=self.policy.places)
                     .flat_map(|k| [drawn + k as f64 * step, drawn - k as f64 * step])
                     .filter(|at| *at >= low && *at <= high);
                 let moved = |at: f64| {
@@ -608,7 +598,11 @@ impl Ground {
 }
 
 /// The straight pieces of `roads` on the convex ground `ring`.
-pub(super) fn pieces(ring: &[Point], roads: &[Road]) -> Vec<(Point, Point, SurfaceKind)> {
+pub(super) fn pieces(
+    policy: &crate::layout::TownGeometry,
+    ring: &[Point],
+    roads: &[Road],
+) -> Vec<(Point, Point, SurfaceKind)> {
     let mut found = Vec::new();
     for (kind, points) in roads {
         for run in points.windows(2) {
@@ -629,7 +623,7 @@ pub(super) fn pieces(ring: &[Point], roads: &[Road]) -> Vec<(Point, Point, Surfa
                     to = to.min(-start / slope);
                 }
             }
-            if (to - from) * length(step) >= SHARED_M {
+            if (to - from) * length(step) >= policy.shared_m {
                 found.push((add(a, scale(step, from)), add(a, scale(step, to)), *kind));
             }
         }

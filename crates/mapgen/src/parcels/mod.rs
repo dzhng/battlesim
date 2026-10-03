@@ -120,7 +120,7 @@ fn fill(
     // A street's whole width stays off a river's bank.
     let clearance = presets.rivers.bank_m() + presets.parcels.street_width_m / 2.0;
     let laid = {
-        let mut network = streets::Network::new(&plan, clearance);
+        let mut network = streets::Network::new(&plan, clearance, &presets.parcels.geometry);
         let mut laid = Vec::new();
         for settlement in &plan.settlements {
             streets::lay(&pass, &mut network, settlement, &mut laid)?;
@@ -143,9 +143,14 @@ fn fill(
                 .map(|district| &district.ring[..])
         })
         .collect();
-    plan.surfaces = crate::joints::close(core::mem::take(&mut plan.surfaces), plan.size, &blocks);
+    plan.surfaces = crate::joints::close(
+        &presets.joints,
+        core::mem::take(&mut plan.surfaces),
+        plan.size,
+        &blocks,
+    );
     let (lots, buildings, aprons) = {
-        let network = streets::Network::new(&plan, clearance);
+        let network = streets::Network::new(&plan, clearance, &presets.parcels.geometry);
         let mut ground = Ground::new(&plan, &network);
         for district in plan.settlements.iter().flat_map(|s| &s.districts) {
             if ground.fill(&pass, district)? == 0 {

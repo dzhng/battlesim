@@ -53,12 +53,6 @@ use std::collections::BTreeMap;
 /// A lane runs this far past the middle of the road it leaves, so the two
 /// centrelines cross whatever a centimetre of rounding did to either.
 const JOIN_OVERSHOOT_M: f64 = 0.5;
-/// A tree line follows its road by points this far apart.
-const LINE_STEP_M: f64 = 20.0;
-/// Road is measured, and a settlement's edge sampled, this often.
-const WALK_M: f64 = 50.0;
-/// The most things of one kind a map is given, whatever its rows ask.
-const PLACED_MAX: u32 = 4096;
 
 mod coverage;
 mod rules;
@@ -442,7 +436,7 @@ impl<'a> Country<'a> {
     ) {
         // Bounded: each thing is tried `attempts` times, and the pass stops
         // at the first that finds no room in the half that needs it.
-        for _ in 0..PLACED_MAX {
+        for _ in 0..self.rules.placed_max {
             let [top, bottom] = held(self);
             let uneven = !even(self.rules.fairness.rel, least, top, bottom);
             if top + bottom >= total && !uneven {
@@ -876,7 +870,7 @@ impl<'a> Country<'a> {
         // Past the gap by a hand's width, so rounding cannot put a tree's
         // ground inside it.
         let offset = half_width + t.road_gap_m + t.width_m / 2.0 + 0.1;
-        let steps = libm::ceil(length / LINE_STEP_M).max(1.0) as usize;
+        let steps = libm::ceil(length / self.rules.line_step_m).max(1.0) as usize;
         let mut points: Vec<Point> = Vec::new();
         for step in 0..=steps {
             let at = s + length * step as f64 / steps as f64;
@@ -1360,7 +1354,7 @@ impl<'a> Country<'a> {
                 continue;
             };
             let whole = Run::new(centerline.samples().to_vec());
-            let steps = libm::ceil(whole.length() / WALK_M).max(1.0) as usize;
+            let steps = libm::ceil(whole.length() / presets.open_country.walk_m).max(1.0) as usize;
             let mut stretch: Vec<Point> = Vec::new();
             for step in 0..=steps {
                 let p = whole.at(whole.length() * step as f64 / steps as f64);
@@ -1388,7 +1382,7 @@ impl<'a> Country<'a> {
             presets,
             rules,
             size,
-            network: Network::new(plan, clearance),
+            network: Network::new(plan, clearance, &presets.parcels.geometry),
             towns,
             woods,
             water,
@@ -1585,7 +1579,7 @@ pub(crate) fn cover(
                 FillKind::Copse => "coverage_balance/copses",
                 FillKind::TreeLine => "coverage_balance/tree_lines",
             });
-            for _ in 0..PLACED_MAX {
+            for _ in 0..presets.open_country.placed_max {
                 let held = match kind {
                     FillKind::Copse => country.tally.copses,
                     FillKind::TreeLine => country.tally.tree_line_m,

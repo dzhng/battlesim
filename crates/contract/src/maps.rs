@@ -121,10 +121,9 @@ pub struct MapAdmission {
 
 impl MapAdmission {
     /// What the saved catalogue's adapters admit (`fixtures/maps/<id>/`):
-    /// any map the game's generator may make, so a generated map can be
-    /// saved. These are the generation limits of
-    /// `fixtures/generated-battle.json`, and a test holds the two together.
-    /// A larger saved map is refused.
+    /// any map within the released resource envelope. Editable generation
+    /// allowances must fit this envelope, and lowering them never lowers
+    /// admission of a released saved map. A larger saved map is refused.
     pub const CATALOGUE: Self = Self {
         max_authored_parts: 60_000,
         max_bay_positions: 600_000,

@@ -370,7 +370,25 @@ pub fn generate_map(
     descriptors_json: &str,
     rules_json: &str,
 ) -> CompileOutcome {
-    let result = generate(request_json, presets_json, descriptors_json, rules_json).and_then(
+    let result = generate_with_plan(request_json, presets_json, descriptors_json, rules_json)
+        .map(|(_, compiled)| compiled);
+    match result {
+        Ok(result) => CompileOutcome::Ok {
+            result: Box::new(result),
+        },
+        Err(diagnostics) => CompileOutcome::Error { diagnostics },
+    }
+}
+
+/// Developer inspection and normal generation share one generation/lowering pipeline.
+/// Returns the exact retained plan beside its compiled outcome, without generating twice.
+pub fn generate_with_plan(
+    request_json: &str,
+    presets_json: &str,
+    descriptors_json: &str,
+    rules_json: &str,
+) -> Result<(MapPlan, GeneratedMap), Vec<Diagnostic>> {
+    generate(request_json, presets_json, descriptors_json, rules_json).and_then(
         |(request, plan, catalogue, physical_inputs_hash)| {
             let request = CompileRequest::generated(&request, plan);
             let mut compiled = lower(&request, &catalogue)?;
@@ -393,15 +411,9 @@ pub fn generate_map(
                         message: error.to_string(),
                     }]
                 })?;
-            Ok(compiled)
+            Ok((request.plan, compiled))
         },
-    );
-    match result {
-        Ok(result) => CompileOutcome::Ok {
-            result: Box::new(result),
-        },
-        Err(diagnostics) => CompileOutcome::Error { diagnostics },
-    }
+    )
 }
 
 pub fn generate_plan_json(
