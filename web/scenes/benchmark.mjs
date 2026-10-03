@@ -7,7 +7,8 @@
 import { writeFile } from "node:fs/promises";
 
 const PREPARE_TIMEOUT_MS = 600_000;
-const RUN = process.env.BENCHMARK_LENGTH === "full" ? /Full run/ : /Short run/;
+const FULL = process.env.BENCHMARK_LENGTH === "full";
+const RUN = FULL ? /Full run/ : /Short run/;
 /** Placement is exact: the tour's keyframes sit inside the rig's limits. */
 const CAMERA_TOLERANCE = 1e-6;
 
@@ -100,13 +101,42 @@ export async function run(ctx, preset = "village-contact") {
   let firstRunning = null;
   let firstSound = null;
   let firstStats = null;
+  const checkContact = FULL && preset === "city-contact";
+  // Compare actual shot counters within each window: shots from before the
+  // window, or an opening burst with no later fire, cannot establish contact.
+  const contact = [
+    { name: "opening minute", fromS: 0, toS: 60, units: new Set() },
+    { name: "final minute", fromS: 240, toS: 300, units: new Set() },
+  ];
+  const contactSamples = [];
+  let previousShots = new Map();
+  let previousElapsedS = -1;
   while (!(await page.evaluate(() => window.__benchmark?.stage === "results"))) {
-    const now = await page.evaluate(() => ({
-      text: document.querySelector("[data-testid=benchmark-progress] span")?.textContent ?? "",
-      rounds: window.__lab?.route?.observation()?.projectiles?.length ?? 0,
-      audio: window.__lab?.route?.audio?.() ?? null,
-    }));
+    const now = await page.evaluate((checkContact) => {
+      const observation = window.__lab?.route?.observation();
+      return {
+        text: document.querySelector("[data-testid=benchmark-progress] span")?.textContent ?? "",
+        rounds: observation?.projectiles?.length ?? 0,
+        audio: window.__lab?.route?.audio?.() ?? null,
+        shots: checkContact
+          ? observation.own.map((u) => [
+              u.id,
+              u.weaponPoses.reduce((shots, p) => shots + p.shots, 0),
+            ])
+          : [],
+      };
+    }, checkContact);
     rounds = Math.max(rounds, now.rounds);
+    if (checkContact) {
+      const elapsedS = Number(/^(\d+) \/ 300 s/.exec(now.text)?.[1] ?? NaN);
+      const firing = now.shots.filter(([id, count]) => count > previousShots.get(id));
+      for (const window of contact)
+        if (previousElapsedS >= window.fromS && elapsedS < window.toS)
+          for (const [id] of firing) window.units.add(id);
+      contactSamples.push({ elapsedS, firingUnits: firing.length });
+      previousShots = new Map(now.shots);
+      previousElapsedS = elapsedS;
+    }
     const since = (Date.now() - runStart) / 1000;
     firstStats ??= now.audio;
     if (firstRunning === null && now.audio?.running) firstRunning = since;
@@ -141,6 +171,34 @@ export async function run(ctx, preset = "village-contact") {
     report.outcome.status === "complete",
     report.outcome.reason,
   );
+  if (FULL)
+    ctx.check(
+      "the full run records all 300 seconds at 30 FPS or more",
+      report.outcome.status === "complete" &&
+        report.length === "full" &&
+        report.durationMs === 300000 &&
+        report.recordedMs >= report.durationMs &&
+        Number.isFinite(report.averageFps) &&
+        report.averageFps >= 30,
+      `${report.recordedMs.toFixed(0)} ms recorded, ${report.averageFps.toFixed(1)} FPS`,
+    );
+  if (checkContact) {
+    await ctx.writeEvidence("contact.json", {
+      windows: contact.map(({ name, fromS, toS, units }) => ({
+        name,
+        fromS,
+        toS,
+        firingUnits: [...units],
+      })),
+      samples: contactSamples,
+    });
+    for (const window of contact)
+      ctx.check(
+        `city contact involves multiple own units firing during the ${window.name}`,
+        window.units.size >= 10,
+        `${window.units.size} units with advancing shot counters from ${window.fromS} to ${window.toS} s`,
+      );
+  }
   if (preset === "city-contact") {
     const p = report.preparation;
     const r = p?.request.map_source.request;

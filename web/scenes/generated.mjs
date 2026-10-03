@@ -136,8 +136,8 @@ async function startupOf(ctx, spec) {
         })}`,
       );
       ctx.check(
-        `${type} ${size} ${cache} startup is playable within one minute`,
-        startup.playable < 60000,
+        `${type} ${size} ${cache} startup is playable in under 30 seconds`,
+        startup.playable < 30000,
         `${startup.playable.toFixed(0)} ms`,
       );
       await ctx.writeEvidence(`startup-${type}-${size}-${seed}-${cache}.json`, {
