@@ -35,6 +35,23 @@ export async function run(ctx) {
     await page.getByText(/wherever this preset is used/).isVisible(),
   );
   const saved = await control.inputValue();
+  await page.getByRole("button", { name: "Saved baseline · same seed" }).click();
+  await page.waitForFunction(() =>
+    document
+      .querySelector('.mw-inspection button[aria-pressed="true"]')
+      ?.textContent.includes("Saved baseline"),
+  );
+  await page.getByRole("button", { name: "Inspect selection" }).click();
+  await page.waitForFunction(() => {
+    const box = document
+      .querySelector(".mw-plan svg")
+      ?.getAttribute("viewBox")
+      ?.split(" ")
+      .map(Number);
+    return box && box[2] < 6000;
+  });
+  const baselinePlan = await page.locator(".mw-plan").innerHTML();
+  await shot("baseline-before-edit");
   await control.fill(String(Number(saved) + 10));
   await page.getByLabel("Search rules").fill(field.label);
   ctx.check(
@@ -49,6 +66,12 @@ export async function run(ctx) {
     undefined,
     { timeout: 120000 },
   );
+  await shot("baseline-after-edit");
+  ctx.check(
+    "saved comparison retains its exact plan while the draft changes",
+    (await page.locator(".mw-plan").innerHTML()) === baselinePlan,
+  );
+  await page.getByRole("button", { name: "Draft plan", exact: true }).click();
   await shot("selected-edited");
   await control.fill("-");
   ctx.check(
@@ -133,6 +156,25 @@ export async function run(ctx) {
   await page.locator(".mw-analysis").evaluate((node) => node.scrollIntoView({ block: "end" }));
   await shot("geometry-expanded-bottom");
   await ctx.writeEvidence("openness-small.txt", await page.locator(".mw-sight").textContent());
+  // A comparison is cached until its map choice changes. Return to the same seed for this probe.
+  await page.getByLabel("Map seed").fill("2");
+  await page.waitForFunction(
+    () =>
+      document.querySelector('.mw-inspection button[aria-pressed="true"]')?.textContent ===
+      "Draft plan",
+  );
+  await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/__map-workbench/generate") &&
+        response.request().postDataJSON().choice.seed === "1" &&
+        response.ok(),
+    ),
+    page.getByLabel("Map seed").fill("1"),
+  ]);
+  await page.waitForFunction(
+    () => document.querySelector('[role="status"]')?.textContent === "Current draft admitted",
+  );
   // Control only the baseline response; the displayed draft and regeneration stay native.
   await page.route("**/__map-workbench/generate", async (route) => {
     const request = route.request().postDataJSON();
@@ -241,6 +283,23 @@ export async function run(ctx) {
   await page.locator(".mw-review summary").first().click();
   await page.locator(".mw-review").evaluate((node) => node.scrollIntoView({ block: "start" }));
   await shot("narrow-review");
+  const readableField = await page
+    .locator(".mw-review-changes code")
+    .filter({ hasText: "block_depth_m" })
+    .evaluate((code) => {
+      const leaf = code.textContent.split(".").at(-1);
+      const walker = document.createTreeWalker(code, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const start = node.textContent.indexOf(leaf);
+        if (start < 0) continue;
+        const range = document.createRange();
+        range.setStart(node, start);
+        range.setEnd(node, start + leaf.length);
+        return range.getClientRects().length === 1;
+      }
+      return false;
+    });
+  ctx.check("narrow save review keeps the field name on one line", readableField);
   await page
     .getByRole("button", { name: "Save reviewed defaults" })
     .evaluate((node) => node.scrollIntoView({ block: "end" }));

@@ -64,6 +64,18 @@ fn native_cli_replays_the_frozen_generation_records() {
     let bless = std::env::var_os("BLESS_PARITY").is_some();
     let directory = scratch("layout-replay");
     let request = directory.join("request.json");
+    let rules = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../fixtures/parity/map-layout/physical-rules.json"
+    );
+    let recorded: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(rules).unwrap()).unwrap();
+    let catalog = directory.join("catalog.json");
+    std::fs::write(
+        &catalog,
+        serde_json::json!({"documents": recorded["catalog"]}).to_string(),
+    )
+    .unwrap();
     for record in &mut corpus.cases {
         std::fs::write(&request, &record.request_json).unwrap();
         let process = mapgen(&[
@@ -71,8 +83,8 @@ fn native_cli_replays_the_frozen_generation_records() {
             request.as_os_str(),
             PRESETS.as_ref(),
             CATALOGUE.as_ref(),
-            RULES.as_ref(),
-            CATALOG.as_ref(),
+            rules.as_ref(),
+            catalog.as_os_str(),
         ]);
         let stdout = String::from_utf8(process.stdout).unwrap();
         let outcome = stdout.strip_suffix('\n').unwrap();

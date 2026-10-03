@@ -20,10 +20,11 @@ beforeAll(() => {
 
 type Record = { name: string; command: string; request_json: string; native_sha256: string };
 const cases: Record[] = JSON.parse(fixture("parity/map-layout/paired-records.json")).cases;
+const recordedRules = fixture("parity/map-layout/physical-rules.json");
 
 test.each(cases)("$name: native CLI and WASM agree on bytes or refusal", (record) => {
   const generate = record.command === "generate-map" ? generate_map : generate_map_plan;
-  const outcome = generate(record.request_json, presets, templates, rules);
+  const outcome = generate(record.request_json, presets, templates, recordedRules);
   expect(createHash("sha256").update(outcome).digest("hex")).toBe(record.native_sha256);
 });
 

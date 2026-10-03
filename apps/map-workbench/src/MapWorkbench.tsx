@@ -134,9 +134,12 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
   currentInput.current = { draft, choice, latest, valid: unfinished.size === 0 };
 
   useEffect(() => {
-    setReview(null);
     setBaseline(null);
-    setInspection(null);
+    setView("draft");
+  }, [snapshot, choice]);
+
+  useEffect(() => {
+    setReview(null);
     manual.current?.abort();
     if (!draft || !choice || unfinished.size) {
       runner.invalidate();
@@ -158,6 +161,13 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
   const selectedId = selected?.artifactId === shown?.artifactId ? selected?.id : null;
   const picture = shown && inspection?.artifactId === shown.artifactId ? inspection : shown;
   const svg = picture?.svg;
+  const planHTML =
+    svg ||
+    (shown?.status === "refused"
+      ? '<div class="mw-empty">Saved baseline refused. Choose Draft plan to inspect the last admitted map.</div>'
+      : '<div class="mw-empty">The plan will appear after generation. Draft edits do not save automatically.</div>');
+  // React compares the prop object; stable markup preserves selection and layer attributes.
+  const planMarkup = useMemo(() => ({ __html: planHTML }), [planHTML]);
   const selectedCrop = shown?.features?.find((feature) => feature.id === selectedId)?.crop;
   const layers = useMemo(() => {
     if (!svg) return [];
@@ -718,13 +728,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
                   setSelected(id ? { artifactId: shown.artifactId, id } : null);
                 }
               }}
-              dangerouslySetInnerHTML={{
-                __html:
-                  svg ||
-                  (shown?.status === "refused"
-                    ? '<div class="mw-empty">Saved baseline refused. Choose Draft plan to inspect the last admitted map.</div>'
-                    : '<div class="mw-empty">The plan will appear after generation. Draft edits do not save automatically.</div>'),
-              }}
+              dangerouslySetInnerHTML={planMarkup}
             />
           </div>
           {picture?.legend && (

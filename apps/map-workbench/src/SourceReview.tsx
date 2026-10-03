@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { changedPaths, valueAtPath } from "../../fixture-publication/changes";
 import type { Replacement } from "./protocol";
 
@@ -20,7 +21,18 @@ export function SourceReview({ file }: { file: Replacement }) {
           {changes.map((path) => (
             <tr key={path.join(".")}>
               <td>
-                <code>{path.join(".")}</code>
+                <code>
+                  {path.map((part, index) => (
+                    <Fragment key={index}>
+                      {index > 0 && (
+                        <>
+                          .<wbr />
+                        </>
+                      )}
+                      {part}
+                    </Fragment>
+                  ))}
+                </code>
               </td>
               <td>{JSON.stringify(valueAtPath(before, path)) ?? "absent"}</td>
               <td>{JSON.stringify(valueAtPath(after, path)) ?? "removed"}</td>

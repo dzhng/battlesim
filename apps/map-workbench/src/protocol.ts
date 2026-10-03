@@ -1,5 +1,8 @@
 import type { MapChoice, MapDiagnostic } from "../../../web/src/maps/source";
 import type { MapIdentity } from "../../../web/src/maps/resolve";
+import type { Replacement } from "../../fixture-publication/publication";
+
+export type { Replacement } from "../../fixture-publication/publication";
 
 export type Json = null | boolean | number | string | Json[] | JsonObject;
 export interface JsonObject {
@@ -63,11 +66,6 @@ export interface SightReport {
   bearings: number;
   elapsed_ms: number;
   reason?: string;
-}
-export interface Replacement {
-  path: string;
-  before: string;
-  after: string;
 }
 export interface SaveReview {
   candidateId: string;

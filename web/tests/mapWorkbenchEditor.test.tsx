@@ -2,9 +2,44 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { MapWorkbench } from "../../apps/map-workbench/src/MapWorkbench";
+import { Measurements } from "../../apps/map-workbench/src/Measurements";
 import type { Report, Snapshot, WorkbenchAPI } from "../../apps/map-workbench/src/protocol";
 
 afterEach(cleanup);
+
+test("measurement summaries stay readable while exposing exact native values", () => {
+  render(
+    <Measurements
+      report={{
+        fingerprint: "measured",
+        choice: { type: "mixed", size: "small", seed: "1" },
+        status: "ok",
+        diagnostics: [],
+        counts: { buildings: 3050 },
+        metrics: { tree_line_m: 591.3250791863752, tiny_fraction: 0.00000123456789 },
+      }}
+    />,
+  );
+  expect(screen.getByText("3050")).toBeTruthy();
+  expect(screen.getByText("591.325").getAttribute("title")).toBe("591.3250791863752");
+  expect(screen.getByText("0.00000123457").getAttribute("title")).toBe("0.00000123456789");
+});
+
+test("encounter positions identify their axes and units", () => {
+  render(
+    <Measurements
+      report={{
+        fingerprint: "placed",
+        choice: { type: "mixed", size: "small", seed: "1" },
+        status: "ok",
+        diagnostics: [],
+        encounter: { placement: { head: [3734.07, 384.17] } },
+      }}
+    />,
+  );
+  expect(screen.getByText("Map positions are [x, y] in metres.")).toBeTruthy();
+  expect(screen.getByText("[3734.07, 384.17]")).toBeTruthy();
+});
 
 function fixture() {
   const snapshot: Snapshot = {
@@ -49,7 +84,12 @@ function fixture() {
         artifactId: "artifact",
         svg: '<svg viewBox="0 0 100 100"><path data-rule-group="districts.apartments" data-feature-id="district-1" d="M10 10H90V90H10Z"/></svg>',
         features: [
-          { id: "district-1", group: "districts.apartments", label: "Apartment district" },
+          {
+            id: "district-1",
+            group: "districts.apartments",
+            label: "Apartment district",
+            crop: "district-1",
+          },
         ],
         counts: { buildings: 42 },
       }) satisfies Report,
@@ -158,6 +198,48 @@ test("an unchanged saved comparison reuses the admitted preview", async () => {
   );
   expect(generate).toHaveBeenCalledTimes(1);
   fireEvent.click(screen.getByRole("button", { name: "Draft plan" }));
+  expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull();
+});
+
+test("saved comparison stays visible across draft edits and resets when the seed changes", async () => {
+  const { api, generate } = fixture();
+  api.inspect = async () => ({
+    svg: '<svg viewBox="10 10 80 80"><path data-rule-group="districts.apartments" data-feature-id="district-1" d="M10 10H90V90H10Z"/></svg>',
+    features: [],
+  });
+  render(<MapWorkbench api={api} />);
+  await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
+  fireEvent.click(screen.getByRole("button", { name: "Saved baseline · same seed" }));
+  await waitFor(() =>
+    expect(
+      screen
+        .getByRole("button", { name: "Saved baseline · same seed" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true"),
+  );
+  fireEvent.click(screen.getByTestId("map-plan").querySelector("path")!);
+  fireEvent.click(screen.getByRole("button", { name: "Inspect selection" }));
+  await waitFor(() =>
+    expect(screen.getByTestId("map-plan").querySelector("svg")?.getAttribute("viewBox")).toBe(
+      "10 10 80 80",
+    ),
+  );
+  const baseline = screen.getByTestId("map-plan").innerHTML;
+  const report = await generate.mock.results[0].value;
+  generate.mockResolvedValue({ ...report, artifactId: "edited", fingerprint: "edited" });
+  fireEvent.change(screen.getByLabelText("Block depth"), { target: { value: "140" } });
+  await waitFor(() =>
+    expect(screen.getByRole("status").textContent).toBe("Current draft admitted"),
+  );
+  expect(screen.getByTestId("map-plan").innerHTML).toBe(baseline);
+  expect(
+    screen.getByRole("button", { name: "Saved baseline · same seed" }).getAttribute("aria-pressed"),
+  ).toBe("true");
+  expect(screen.getByText("· input tested")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Map seed"), { target: { value: "2" } });
+  expect(screen.getByRole("button", { name: "Draft plan" }).getAttribute("aria-pressed")).toBe(
+    "true",
+  );
   expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull();
 });
 

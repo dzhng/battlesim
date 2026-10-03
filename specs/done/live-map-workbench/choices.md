@@ -107,3 +107,9 @@ Gap: the local request and domain-result boundaries needed consistent failure se
 When: player admission pass. A random seed collision advances within the unsigned 64-bit domain instead of redrawing indefinitely; sample sequences wrap in the same domain. Before admission, Cancel returns only type/size preferences. After admission, labels, links and replay name the actual winner. A placeholder seed never becomes a promised battlefield.
 
 Gap: random collisions and cancellation needed finite identity behavior. Reach: seed text stays exact above JavaScript’s integer range, and exact links remain separate from Play intent. Verdict: sound; every attempted and admitted seed is recorded. Confidence: high.
+
+### Frozen generation records retain their captured physical rules
+
+When: integration review. Main changed recon vision, which also changes the physical sight certificate and forest placement. Main's named recon update recorded new parity outcomes; the frozen native/Wasm cases capture the physical rules behind those outcomes. Future balance edits cannot silently change the inputs behind these hashes. Current-rule generation, preparation and Play recovery still run separately.
+
+Gap: the frozen outcomes named requests but read a mutable physical catalogue, so a balance edit silently changed the experiment. Reach: physical-input changes and generator regressions remain distinguishable; recording new outcomes requires a named change and its captured inputs. Verdict: sound; both targets consume the same exact physical inputs. Confidence: high.

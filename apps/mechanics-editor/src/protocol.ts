@@ -1,3 +1,5 @@
+import type { Replacement } from "../../fixture-publication/publication";
+
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type JsonObject = { [key: string]: Json };
 export type Section = "units" | "weapons" | "soldiers";
@@ -36,7 +38,7 @@ export interface MechanicsPreview {
   /** Scoped soldier target keys map to their accepted identity after rebinding or cleanup. */
   soldierIds: Record<string, string>;
   catalog: JsonObject;
-  files: { path: string; before: string; after: string }[];
+  files: Replacement[];
   affectedUnits: string[];
   warnings: string[];
 }

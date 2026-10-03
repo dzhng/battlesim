@@ -7,8 +7,6 @@
 //! (`foliage_depth`), which shortens sight however little of it there is.
 //! Those are what `sim::sensing::sees_point` and the fog's sweep are made
 //! of. Nothing here says what blocks sight.
-//!
-//! Shared by `examples/sight_report.rs` and `tests/open_country.rs`.
 use crate::math::{v2, v3, V2};
 use crate::sight::Sight;
 use crate::world::WorldGeometry;

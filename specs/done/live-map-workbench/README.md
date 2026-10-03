@@ -8,6 +8,8 @@ A developer can learn from a refused seed. A player pressing Play needs a battle
 
 The preview emphasizes causal geometry rather than production rendering. Clicking an apartment district identifies the rule for that district kind everywhere the preset is used; it does not create a hidden local override. Search opens the same fields. Detail inspection reuses the retained plan instead of generating another map with potentially different inputs. Feature selection belongs to that artifact: a new plan cannot silently reuse a district index as the old selection.
 
+The saved comparison belongs to its saved sources and map choice. Editing the draft does not invalidate that comparison; changing the seed or adopting new saved sources does. Its label and input receipt continue to identify the saved geometry while the draft regenerates.
+
 The browser presents Rust answers. A native developer executable gives the local tool access to plan inspection and sampled sight without adding a retained developer world or report API to production Wasm. The standalone and browser inspector share drawing, palette, caption formatting and crop capability; readable HTML notes are presentation of native text.
 
 ## What tuning may change
