@@ -8,6 +8,7 @@ import { ContactPresentation } from "@web/battle/present/contactPresentation";
 import type { ContactView } from "@web/battle/sim/observation";
 import Weapons from "@apps/battle-lab/src/routes/weapons";
 import FogLook from "@apps/battle-lab/src/routes/fogLook";
+import { PointerPaint } from "@apps/battle-lab/src/pointerPaint";
 
 let session: ReturnType<typeof makeSession>;
 vi.mock("@apps/battle-lab/src/useBattleSession", () => ({ useBattleSession: () => session }));
@@ -38,6 +39,7 @@ function makeSession() {
   return {
     world: {},
     meshes: {},
+    pointerPaint: new PointerPaint(),
     fog: null,
     surfaceZ: () => 0,
     rules: game as unknown as PanelRules,

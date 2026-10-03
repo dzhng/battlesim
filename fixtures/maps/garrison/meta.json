@@ -8,6 +8,6 @@
   "tags": ["prop", "building"],
   "source": "authored",
   "seed": null,
-  "encounters": ["garrison", "cursor-orders"],
+  "encounters": ["cursor-orders", "garrison"],
   "benchmarks": []
 }

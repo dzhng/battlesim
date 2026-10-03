@@ -274,11 +274,14 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
         4,
         "the squad holds all four directions"
     );
+    // Published bodies tuck inside the shell; sight uses the exposed combat seats.
+    let seated = &b.unit(UnitId(0)).unwrap().members;
     for eye_point in &squad.sight.eyes {
         assert!(
-            squad.members.iter().any(|m| eye_point[0] == m[0]
-                && eye_point[1] == m[1]
-                && eye_point[2] == m[2] + eye("infantry_eye_m")),
+            seated.iter().any(|m| m.alive()
+                && eye_point[0] == m.position.x
+                && eye_point[1] == m.position.y
+                && eye_point[2] == m.position.z + eye("infantry_eye_m")),
             "each eye is at a living occupied seat"
         );
     }
