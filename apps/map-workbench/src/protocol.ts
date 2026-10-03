@@ -35,6 +35,7 @@ export interface Feature {
 }
 export interface RunRequest {
   purpose: "preview" | "sample";
+  retainedArtifactIds: string[];
   draft: Draft;
   choice: MapChoice;
   crop?: string;
