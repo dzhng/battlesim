@@ -925,7 +925,24 @@ impl Battle {
         }
         // Fixture scripts are authored setup, identical live and in replay.
         while self.scripts.front().is_some_and(|o| o.tick <= self.tick) {
-            let script = self.scripts.pop_front().unwrap();
+            let mut script = self.scripts.pop_front().unwrap();
+            // A fixed script addresses a formation's survivors. Keep invalid
+            // ids for ordinary validation; only its own fallen actors leave.
+            match &mut script.order {
+                Order::Move { units, .. }
+                | Order::Stop { units }
+                | Order::Attack { units, .. }
+                | Order::AttackMove { units, .. }
+                | Order::SetEngagement { units, .. }
+                | Order::SetDeployment { units, .. }
+                | Order::Garrison { units, .. }
+                | Order::ExitBuilding { units } => units.retain(|id| {
+                    self.units
+                        .get(id.0 as usize)
+                        .is_none_or(|u| u.side != script.side || u.alive())
+                }),
+                Order::UpgradeMove { .. } => {}
+            }
             let command = CommandEnvelope {
                 side: script.side,
                 seq: 0,

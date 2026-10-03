@@ -305,3 +305,117 @@ fn replay_requires_build_identity_and_checks_it_before_scenario() {
         "missing build identity is not a legacy replay mode"
     );
 }
+
+fn scripted_group(actors: &[u32]) -> ScenarioDefinition {
+    common::scenario_with(
+        r#"{"size":[400,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
+        serde_json::json!([
+            {"side":"blue","kind":"rifle","position":[40,50],
+                "condition":{"casualties":common::rules().catalog.by_id("rifle").squad_size()}},
+            {"side":"blue","kind":"jeep","position":[40,100]},
+            {"side":"red","kind":"rifle","position":[300,50],
+                "condition":{"casualties":common::rules().catalog.by_id("rifle").squad_size()}}
+        ]),
+        serde_json::json!([]),
+        serde_json::json!([{"tick":1,"side":"blue","order":{
+            "kind":"move","units":actors,"gesture":1,"goal":[120,100],
+            "route":"shortest"
+        }}]),
+    )
+}
+
+#[test]
+fn a_scripted_group_keeps_moving_after_one_actor_has_fallen() {
+    let setup = scripted_group(&[0, 1]);
+    let mut live = Battle::new(&setup, 7);
+    assert!(!live.unit(UnitId(0)).unwrap().alive());
+    live.step();
+    assert_eq!(
+        live.observe(Side::Blue)
+            .own
+            .iter()
+            .find(|u| u.id == UnitId(1))
+            .unwrap()
+            .goal,
+        Some([120.0, 100.0]),
+        "the living actor must receive the script's order"
+    );
+    let mut digests = vec![live.digest()];
+    for _ in 0..600 {
+        live.step();
+        digests.push(live.digest());
+    }
+    let unit = live.unit(UnitId(1)).unwrap();
+    assert!(
+        (unit.position.xy() - sim::math::v2(120.0, 100.0)).length() < 2.0,
+        "the survivor must physically arrive"
+    );
+    let mut replay = Battle::from_replay(&setup, &live.replay()).unwrap();
+    for expected in digests {
+        replay.step();
+        assert_eq!(replay.digest(), expected);
+    }
+}
+
+#[test]
+fn script_survivors_do_not_hide_unknown_or_foreign_actors() {
+    for actors in [&[0, 1, 99][..], &[0, 1, 2][..]] {
+        let mut battle = Battle::new(&scripted_group(actors), 7);
+        battle.step();
+        assert_eq!(
+            battle
+                .observe(Side::Blue)
+                .own
+                .iter()
+                .find(|u| u.id == UnitId(1))
+                .unwrap()
+                .goal,
+            None,
+            "invalid actors must still refuse the entire script"
+        );
+    }
+    let mut battle = Battle::new(&scripted_group(&[]), 7);
+    let mut command = mv(Side::Blue, 1, 1, [120.0, 100.0], false);
+    if let Order::Move { units, .. } = &mut command.order {
+        units.insert(0, UnitId(0));
+    }
+    assert_eq!(
+        battle.accept(command).error,
+        Some(OrderError::Destroyed { unit: UnitId(0) }),
+        "public commands still validate the exact submitted selection"
+    );
+}
+
+#[test]
+fn an_all_fallen_script_group_does_not_stop_the_next_order() {
+    let mut setup = scripted_group(&[0]);
+    let mut next = setup.scripts[0].clone();
+    next.tick = 2;
+    if let Order::Move { units, .. } = &mut next.order {
+        *units = vec![UnitId(1)];
+    }
+    setup.scripts.push(next);
+    let mut battle = Battle::new(&setup, 7);
+    battle.step();
+    assert_eq!(
+        battle
+            .observe(Side::Blue)
+            .own
+            .iter()
+            .find(|u| u.id == UnitId(1))
+            .unwrap()
+            .goal,
+        None
+    );
+    battle.step();
+    assert_eq!(
+        battle
+            .observe(Side::Blue)
+            .own
+            .iter()
+            .find(|u| u.id == UnitId(1))
+            .unwrap()
+            .goal,
+        Some([120.0, 100.0])
+    );
+}

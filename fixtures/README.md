@@ -12,6 +12,8 @@ A saved map is one folder, `maps/<id>/`, and nothing reads a map any other way. 
 
 - **`encounters/<name>.json`** is an encounter laid on the map (`contract::scenario::EncounterDefinition`): units, events and scripted orders, and optionally an opponent and a completion rule. A scenario is the resolved map, the rules and one encounter. The village's variants and the endurance battle are not files: the simulation builds them from the rules and the resolved map (`sim::village`, `sim::endurance`).
 
+Scripted group orders address the formation's surviving own units when their tick arrives. Fallen own actors are removed before ordinary command validation, so one casualty cannot cancel a reserve wave; an all-fallen group has no effect. Unknown or foreign actors still refuse the script, and player commands validate their exact submitted selection. Script execution follows the same rule during live play and replay in [the battle authority](../crates/sim/src/battle.rs).
+
 - **`sites.json`**, on a generated map only, is what the encounter planner reads beside the map (`contract::encounter::EncounterSites`), as the `mapgen` CLI wrote it. Nothing loads it at run time: it is there so the saved encounter can be planned again.
 
 Routes and saved maps have different identities. The [fixture registry](../apps/battle-lab/src/fixtures.json) declares each route's fixed saved-map reference; tools and generated or synthetic worlds have no fixed catalogue source. The developer index offers every active catalogue map through the shared geometry inspector, so saving a new map needs no bespoke route or scene. Player battles only list released playable maps with the configured encounter.
