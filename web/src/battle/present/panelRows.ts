@@ -9,8 +9,8 @@
  *    unit's supply in a set-up truck's reach.
  *  - An identified enemy's panel (`enemyPanel`): its type's name and weapon
  *    types, never a count, health or anything else the side can't know.
- *  - A contact's panel (`contactPanel`): a last sighting's name and weapons
- *    as identified, or UNKNOWN and what was heard, and how long ago. */
+ *  - A contact's panel (`contactPanel`): its remembered type's name and weapons,
+ *    or UNKNOWN and what was heard, and how long ago. */
 import { stateIcon, weaponIcon, type StateIcon } from "@packages/scene-assets/src/icons";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { MountRow } from "@packages/scene-assets/src/units";
@@ -403,17 +403,18 @@ export function heardWeapons(heard: readonly string[], rules: PanelRules): Weapo
 const since = (now: number, tick: number, rules: PanelRules) =>
   Math.max(0, Math.floor((now - tick) / rules.tick_hz));
 
-/** A contact's panel at the published tick `now`: a last sighting's name and
- *  weapons as identified and LAST SEEN n s AGO; a firing report's UNKNOWN,
- *  what was heard, and HEARD n s AGO. */
+/** Remembered type or heard weapons, with the latest evidence's age. */
 export function contactPanel(
   c: Pick<ContactView, "source" | "kind" | "heard" | "evidenceTick">,
   now: number,
   rules: PanelRules,
 ): Panel {
   const ago = since(now, c.evidenceTick, rules);
-  if (c.source === "last_seen" && c.kind)
-    return { ...enemyPanel(c.kind, rules), states: [row("last_seen", { n: ago })] };
+  if (c.kind)
+    return {
+      ...enemyPanel(c.kind, rules),
+      states: [row(c.source === "last_seen" ? "last_seen" : "heard", { n: ago })],
+    };
   return {
     name: "UNKNOWN",
     strength: null,

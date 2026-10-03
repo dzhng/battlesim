@@ -3193,16 +3193,15 @@ async function panelTour(ctx) {
   };
   // A last sighting and a firing report: what was known, and how long ago.
   const contactPanelCheck = (source, word, file) => async (o) => {
-    const c = o.contacts.find((x) => x.source === source && x.primaryLabel);
+    const c = o.contacts.find((x) => x.source === source);
     if (!c) return false;
     await look([c.center[0], c.center[1], 0]);
     const p = await panelOf(page, "contact", c.id);
     const ago = Number(p?.states.at(-1)?.word.match(word)?.[1]);
     const expected = Math.floor((o.tick - c.evidenceTick) / game.tick_hz);
-    const named =
-      source === "last_seen"
-        ? !!c.kind && p?.name === unitType(c.kind).name.toUpperCase()
-        : p?.name === "UNKNOWN" && p.weapons.length === new Set(p.weapons).size;
+    const named = c.kind
+      ? p?.name === unitType(c.kind).name.toUpperCase()
+      : p?.name === "UNKNOWN" && p.weapons.length === new Set(p.weapons).size;
     ctx.check(
       `a ${source} contact's panel is red, names what was known, and says how long ago`,
       !!p?.shown && named && ago === expected && p.colour === ENEMY_RGB,

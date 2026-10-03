@@ -10,32 +10,38 @@ const contact: ContactView = {
   radius: 20,
   evidenceTick: 0,
   expiresTick: 300,
-  primaryLabel: true,
   kind: "tank",
   heard: [],
 };
 
-test("removed contacts fade at their remembered position and stop accepting input", () => {
-  const shown = new ContactPresentation(30, 3);
-  const before = shown.update([contact], 30)[0];
-  const removed = shown.update([], 31)[0];
-  expect(removed.opacity).toBeCloseTo(before.opacity);
-  expect(removed.retiring).toBe(true);
-  expect(removed.center).toEqual(contact.center);
-  const halfway = shown.update([], 76)[0];
-  expect(halfway.opacity).toBeGreaterThan(0);
-  expect(halfway.opacity).toBeCloseTo(removed.opacity / 2);
-  expect(shown.update([], 121)).toEqual([]);
+test("every removed report and label fades for three seconds, even at expiry", () => {
+  for (const removedAt of [31, 299, 301]) {
+    const shown = new ContactPresentation(30, 3);
+    expect(shown.update([contact], removedAt - 1)[0].opacity).toBe(1);
+    const removed = shown.update([], removedAt)[0];
+    expect(removed.opacity).toBe(1);
+    expect(removed.retiring).toBe(true);
+    expect(removed.center).toEqual(contact.center);
+    expect(shown.update([], removedAt + 45)[0].opacity).toBeCloseTo(0.5);
+    expect(shown.update([], removedAt + 89)[0].opacity).toBeGreaterThan(0);
+    expect(shown.update([], removedAt + 90)).toEqual([]);
+  }
 });
 
-test("expiry fades to zero and refreshed evidence restores the report", () => {
+test("renewed evidence cancels retirement and replaces the one visual slot", () => {
   const shown = new ContactPresentation(30, 3);
-  const fresh = shown.update([contact], 0)[0];
-  const old = shown.update([contact], 299)[0];
-  expect(old.opacity).toBeLessThan(fresh.opacity / 80);
-  const refreshed = shown.update([{ ...contact, evidenceTick: 299, expiresTick: 599 }], 299)[0];
-  expect(refreshed.opacity).toBe(1);
-  expect(shown.update([], 599)).toEqual([]);
+  shown.update([contact], 0);
+  expect(shown.update([], 10)[0].retiring).toBe(true);
+  expect(shown.update([], 55)[0].opacity).toBeCloseTo(0.5);
+  const refreshed = {
+    ...contact,
+    source: "firing",
+    center: [500, 600] as [number, number],
+    evidenceTick: 55,
+    expiresTick: 955,
+  };
+  expect(shown.update([refreshed], 55)).toEqual([{ ...refreshed, opacity: 1, retiring: false }]);
+  expect(shown.update([refreshed], 55)).toHaveLength(1);
 });
 
 test("rewinding clears visual memories instead of leaking the later battle", () => {
@@ -45,11 +51,8 @@ test("rewinding clears visual memories instead of leaking the later battle", () 
   expect(shown.update([], 0)).toEqual([]);
 });
 
-test("contacts stay fully visible until their final three seconds", () => {
+test("live evidence remains fully visible until authority removes it", () => {
   const shown = new ContactPresentation(30, 3);
-  expect(shown.update([contact], 0)[0].opacity).toBe(1);
-  expect(shown.update([contact], 150)[0].opacity).toBe(1);
-  expect(shown.update([contact], 210)[0].opacity).toBe(1);
-  expect(shown.update([contact], 255)[0].opacity).toBeCloseTo(0.5);
-  expect(shown.update([contact], 300)).toEqual([]);
+  for (const tick of [0, 150, 255, 299, 300])
+    expect(shown.update([contact], tick)[0].opacity).toBe(1);
 });

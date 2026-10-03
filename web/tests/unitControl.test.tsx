@@ -39,7 +39,6 @@ const own = (id: number, kind: string) =>
 const contact = (id: number, center: [number, number], radius: number): ContactView => ({
   id,
   source: "firing",
-  primaryLabel: true,
   center,
   radius,
   evidenceTick: 0,

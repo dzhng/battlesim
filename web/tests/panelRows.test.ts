@@ -366,3 +366,14 @@ test("concealment bonuses earn a HIDDEN row without replacing the building state
     ["HIDDEN", null],
   ]);
 });
+
+test("fresh firing keeps a previously identified name and labels its evidence honestly", () => {
+  const p = contactPanel(
+    { source: "firing", kind: "tank", heard: ["tank_he"], evidenceTick: 90 },
+    240,
+    RULES,
+  );
+  expect(p.name).toBe("TANK");
+  expect(p.states.map((s) => s.word)).toEqual(["HEARD 5 s AGO"]);
+  expect(p.weapons.every((w) => w.live === null && w.fill === null)).toBe(true);
+});

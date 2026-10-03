@@ -40,11 +40,13 @@ pub struct Contact {
     pub radius: f64,
     pub evidence_tick: Tick,
     pub expires_tick: Tick,
-    /// A last sighting's type, as identified; `None` for a firing report.
+    /// The previously identified type; absent for a never-identified cause.
     pub kind: Option<TypeIndex>,
     /// A firing report's weapons as heard (`ApproximateContact::heard`).
     pub heard: u32,
     pub(crate) emitter: UnitId,
+    /// Retired slots preserve their handle, but are never published or targeted.
+    live: bool,
 }
 
 pub struct SideKnowledge {
@@ -54,7 +56,6 @@ pub struct SideKnowledge {
     /// Own unit → enemies its own sensors identify this tick.
     own_sensors: BTreeMap<UnitId, Vec<UnitId>>,
     contacts: Vec<Contact>,
-    next_contact: u32,
     /// Enemy shots heard of this tick: (shooter, where it stood, the rows
     /// its report sounds like).
     pending_fire: Vec<(UnitId, V2, u32)>,
@@ -76,7 +77,6 @@ impl SideKnowledge {
             next_id: 0,
             own_sensors: BTreeMap::new(),
             contacts: Vec::new(),
-            next_contact: 0,
             pending_fire: Vec::new(),
             rng: Rng::new(seed),
             destroyed: BTreeSet::new(),
@@ -102,7 +102,9 @@ impl SideKnowledge {
     /// The side saw this enemy die: its track ends without a last-seen area.
     pub fn saw_destroyed(&mut self, unit: UnitId) {
         self.tracks.remove(&unit);
-        self.contacts.retain(|c| c.emitter != unit);
+        for c in self.contacts.iter_mut().filter(|c| c.emitter == unit) {
+            c.live = false;
+        }
         self.destroyed.insert(unit);
     }
 
@@ -130,13 +132,22 @@ impl SideKnowledge {
         self.pending_fire.push((shooter, at, heard));
     }
 
-    /// Hold `c` under the next contact id.
-    fn new_contact(&mut self, c: Contact) {
-        self.next_contact += 1;
-        self.contacts.push(Contact {
-            id: ContactId(self.next_contact),
-            ..c
-        });
+    /// Renew the cause's one opaque slot, or allocate it on first evidence.
+    fn new_contact(&mut self, mut c: Contact) {
+        if let Some(slot) = self
+            .contacts
+            .iter_mut()
+            .find(|slot| slot.emitter == c.emitter)
+        {
+            c.id = slot.id;
+            c.kind = c.kind.or(slot.kind);
+            *slot = c;
+        } else {
+            c.id = ContactId(
+                u32::try_from(self.contacts.len() + 1).expect("side report slots exceed u32"),
+            );
+            self.contacts.push(c);
+        }
     }
 
     /// Turn this tick's firing evidence and lost identifications into areas.
@@ -160,8 +171,9 @@ impl SideKnowledge {
             kind,
             heard,
             emitter,
+            live: true,
         };
-        // Losing identification leaves a fading area around the last
+        // Losing identification leaves a fixed area around the last
         // sighting, which remembers the type the side identified there.
         let lost: Vec<(UnitId, V2)> = self
             .tracks
@@ -182,22 +194,31 @@ impl SideKnowledge {
             .collect();
         let identified = self
             .contacts
-            .iter()
-            .filter(|c| seen.contains(&c.emitter))
-            .map(|c| (c.id, c.emitter))
+            .iter_mut()
+            .filter(|c| c.live && seen.contains(&c.emitter))
+            .map(|c| {
+                c.live = false;
+                (c.id, c.emitter)
+            })
             .collect();
-        self.contacts.retain(|c| !seen.contains(&c.emitter));
         for (shooter, at, heard) in std::mem::take(&mut self.pending_fire) {
             if seen.contains(&shooter) || self.destroyed.contains(&shooter) {
                 continue;
             }
-            // One report per firing episode: refresh while the shooter stays
-            // inside the area it produced; a shot from outside starts a new one.
-            if let Some(c) = self.contacts.iter_mut().find(|c| {
-                c.source == ContactSource::Firing
-                    && c.emitter == shooter
-                    && (c.center - at).length() <= c.radius
-            }) {
+            // Fresh firing replaces the cause's evidence, never adds another
+            // area. Hidden movement alone cannot change its reported place.
+            if let Some(c) = self
+                .contacts
+                .iter_mut()
+                .find(|c| c.live && c.emitter == shooter)
+            {
+                if (c.center - at).length() > c.radius {
+                    let r = radius(shooter) * self.rng.unit().sqrt();
+                    let a = std::f64::consts::TAU * self.rng.unit();
+                    c.center = at + v2(libm::cos(a), libm::sin(a)) * r;
+                    c.radius = radius(shooter);
+                }
+                c.source = ContactSource::Firing;
                 c.evidence_tick = tick;
                 c.expires_tick = tick + lifetime;
                 c.heard |= heard;
@@ -208,22 +229,12 @@ impl SideKnowledge {
             let center = at + v2(libm::cos(a), libm::sin(a)) * r;
             self.new_contact(area(ContactSource::Firing, center, shooter, None, heard));
         }
-        self.contacts.retain(|c| c.expires_tick >= tick);
         identified
     }
 
     pub fn contacts(&self) -> impl Iterator<Item = ApproximateContact> + '_ {
-        let rank = |c: &Contact| (c.source == ContactSource::LastSeen, c.evidence_tick, c.id.0);
-        let mut labels: BTreeMap<UnitId, &Contact> = BTreeMap::new();
-        for c in &self.contacts {
-            let best = labels.entry(c.emitter).or_insert(c);
-            if rank(c) > rank(best) {
-                *best = c;
-            }
-        }
-        self.contacts.iter().map(move |c| ApproximateContact {
+        self.all_contacts().map(|c| ApproximateContact {
             id: c.id,
-            primary_label: labels[&c.emitter].id == c.id,
             source: c.source,
             center: [c.center.x, c.center.y],
             radius: c.radius,
@@ -232,6 +243,18 @@ impl SideKnowledge {
             kind: c.kind,
             heard: c.heard,
         })
+    }
+
+    /// End expired episodes before this tick can grant new evidence or intent.
+    pub fn expire_contacts(&mut self, tick: Tick) -> Vec<ContactId> {
+        self.contacts
+            .iter_mut()
+            .filter(|c| c.live && c.expires_tick < tick)
+            .map(|c| {
+                c.live = false;
+                c.id
+            })
+            .collect()
     }
 
     /// The side's track of an enemy unit, while identified or within grace.
@@ -256,11 +279,11 @@ impl SideKnowledge {
     }
 
     pub fn contact(&self, id: ContactId) -> Option<&Contact> {
-        self.contacts.iter().find(|c| c.id == id)
+        self.all_contacts().find(|c| c.id == id)
     }
 
-    pub fn all_contacts(&self) -> &[Contact] {
-        &self.contacts
+    pub fn all_contacts(&self) -> impl Iterator<Item = &Contact> {
+        self.contacts.iter().filter(|c| c.live)
     }
 
     /// Whether this side identifies `unit` this tick.
@@ -403,12 +426,11 @@ impl SideKnowledge {
 
     /// Fold knowledge state into a digest.
     pub fn digest(&self, d: &mut crate::digest::Digest) {
-        d.u64(self.next_id as u64)
-            .u64(self.next_contact as u64)
-            .u64(self.rng.state());
+        d.u64(self.next_id as u64).u64(self.rng.state());
         d.u64(self.contacts.len() as u64);
         for c in &self.contacts {
-            d.u64(c.id.0 as u64)
+            d.u64(u64::from(c.live))
+                .u64(c.id.0 as u64)
                 .u64(c.source as u64)
                 .f64(c.center.x)
                 .f64(c.center.y)

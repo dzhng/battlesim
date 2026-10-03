@@ -16,6 +16,13 @@ export async function run(ctx) {
     !!firing && !o.identified.some((e) => e.kind === "rifle"),
     JSON.stringify({ contacts: o.contacts, identified: o.identified.map((e) => e.kind) }),
   );
+  if (!firing) throw new Error("contact fixture did not publish firing evidence");
+  const labels = await page.locator(`[data-contact="${firing.id}"]`).allTextContents();
+  ctx.check(
+    "unidentified firing has a truthful info label",
+    labels.length === 1 && /UNKNOWN/.test(labels[0]),
+    JSON.stringify(labels),
+  );
   const shot = await snapshot(ctx, page, "frame-firing-1280x800.png");
   const captions = await page.getByTestId("captions").locator("li").allTextContents();
   const at = await lab(page, (c) => window.__lab.projectToCss(c[0], c[1], 0), firing.center);

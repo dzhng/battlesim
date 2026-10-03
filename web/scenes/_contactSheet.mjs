@@ -22,7 +22,33 @@ export async function contactTour(ctx) {
     }),
   );
   await lab(page, () => window.__lab.route.advance(1));
-  const approach = await lab(page, () => window.__lab.route.acks().at(-1)?.ack);
+  await page.waitForFunction(
+    () =>
+      window.__lab.route
+        .acks()
+        .some(
+          (record) =>
+            record.order.kind === "attack_move" &&
+            record.order.gesture === 1 &&
+            record.order.goal[0] === 700 &&
+            record.order.goal[1] === 800,
+        ),
+    undefined,
+    { timeout: 5000 },
+  );
+  const approach = await lab(
+    page,
+    () =>
+      window.__lab.route
+        .acks()
+        .find(
+          (record) =>
+            record.order.kind === "attack_move" &&
+            record.order.gesture === 1 &&
+            record.order.goal[0] === 700 &&
+            record.order.goal[1] === 800,
+        )?.ack,
+  );
   const admitted =
     approach && !approach.error && approach.placement?.destinations.some((d) => d.placed);
   await ctx.writeEvidence("contact-approach.json", approach);
@@ -32,28 +58,24 @@ export async function contactTour(ctx) {
     JSON.stringify(approach),
   );
   if (!admitted) return page.close();
-  const mixedReports = (o) =>
-    o.contacts.some((c) => !c.primaryLabel) && o.contacts.some((c) => c.primaryLabel);
-  // Prefer a moment with both kinds of report, so the panel check below has an
-  // unlabelled one to leave out; a battle that never mixes them is captured as
-  // it stands at the end of the wait.
+  const refreshed = (o) => o.contacts.some((c) => c.source === "firing" && c.kind === "tank");
+  // Follow the one tank's visual memory until fresh hidden firing updates it.
+  // No report is a failed fixture, never a passing empty panel comparison.
   let observation = await obs(page);
-  if (!mixedReports(observation)) {
-    observation = (await until(page, mixedReports, 6000, 30)) ?? (await obs(page));
-  }
-  const contact =
-    observation.contacts.find((c) => c.primaryLabel && c.source === "last_seen") ??
-    observation.contacts.find((c) => c.primaryLabel);
-  if (!contact) throw new Error("contact capture needs a labelled contact");
+  if (!refreshed(observation)) observation = await until(page, refreshed, 6000, 30);
+  const contact = observation?.contacts.find((c) => c.source === "firing" && c.kind === "tank");
+  if (!contact) throw new Error("contact capture needs the hidden tank's refreshed evidence");
+  ctx.check(
+    "one hidden tank has one updated area rather than old and new patches",
+    observation.contacts.length === 1,
+    JSON.stringify(observation.contacts),
+  );
   const drawnIds = await page
     .locator("[data-contact]")
     .evaluateAll((nodes) => nodes.map((n) => Number(n.dataset.contact)).sort((a, b) => a - b));
-  const expectedIds = observation.contacts
-    .filter((c) => c.primaryLabel)
-    .map((c) => c.id)
-    .sort((a, b) => a - b);
+  const expectedIds = observation.contacts.map((c) => c.id).sort((a, b) => a - b);
   ctx.check(
-    "only preferred contact reports get panels",
+    "every contact report has its info panel",
     JSON.stringify(drawnIds) === JSON.stringify(expectedIds),
     JSON.stringify({ drawnIds, expectedIds }),
   );
@@ -92,7 +114,7 @@ export async function contactTour(ctx) {
   }
   await writeFile(
     ctx.evidencePath(`contact-${label}.json`),
-    JSON.stringify({ contact, measurements }, null, 2),
+    JSON.stringify({ tick: observation.tick, approach, contact, measurements }, null, 2),
   );
   await page.close();
 }

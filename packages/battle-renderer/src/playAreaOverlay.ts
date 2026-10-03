@@ -1,7 +1,6 @@
 // The playable area's border: a line along the map rectangle's edge, draped
-// on the walkable surface just inside it, drawn as an overlay (never fogged:
-// drawn sight runs on past the edge, so this line is what marks it). Its
-// width is given in pixels at the camera's target and turned into metres
+// on the walkable surface just inside it, lit and fogged with other ground
+// paint. Its width is given in pixels at the camera's target and turned into metres
 // by the one stroke rule at the caller's zoom step (`strokeWidth.ts`), so it
 // reads at the strategic height without becoming a road-wide band close in.
 import { groundRing, groundStrip, isRgba, MeshBuilder, type Mesh, type Rgba } from "./mesh";

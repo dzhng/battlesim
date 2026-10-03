@@ -1,13 +1,8 @@
 // @vitest-environment node
-// Contact glyphs: red through the middle, hatched, with a red glow, per
-// approximate contact, a pale outline round a last sighting, fading to
-// nothing at expiry, and built from the contact's own fields only.
+// One outlined, filled and hatched glyph for every source, using only the
+// report's area and shared presented opacity.
 import { expect, test } from "vitest";
-import {
-  buildContactGlyphs,
-  contactOpacity,
-  type ContactShape,
-} from "@packages/battle-renderer/src/contactGlyph";
+import { buildContactGlyphs, type ContactShape } from "@packages/battle-renderer/src/contactGlyph";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { contactLayer } from "@apps/battle-lab/src/battleOverlay";
@@ -27,44 +22,33 @@ const shape = (over: Partial<ContactShape> = {}): ContactShape => ({
   center: [400, 300],
   radius: 100,
   opacity: 1,
-  source: "last_seen",
   ...over,
 });
 
 const maxAlpha = (c: ContactShape) =>
   Math.max(...vertices(buildContactGlyphs([c], flat, style).translucent).map((v) => v.rgba[3]));
 
-test("a glyph holds its opacity until the final fade and is gone at expiry", () => {
-  const contact = { evidenceTick: 100, expiresTick: 340 };
-  const ticks = [100, 160, 250, 295, 339];
-  for (const source of ["last_seen", "firing"]) {
-    const alphas = ticks.map((t) =>
-      maxAlpha(shape({ source, opacity: contactOpacity(contact, t, 90) })),
-    );
-    expect(alphas[1]).toBe(alphas[0]);
-    expect(alphas[2]).toBe(alphas[0]);
-    expect(alphas[3]).toBeCloseTo(alphas[0] / 2);
-    expect(alphas.at(-1)).toBeGreaterThan(0);
-    expect(alphas.at(-1)).toBeLessThan(alphas[0] / 80);
-    const expired = buildContactGlyphs(
-      [shape({ source, opacity: contactOpacity(contact, 340, 90) })],
-      flat,
-      style,
-    );
-    expect(expired.translucent.length).toBe(0);
-    expect(expired.opaque.length).toBe(0);
-  }
+test("a glyph uses the shared presented opacity and disappears at zero", () => {
+  const full = maxAlpha(shape());
+  expect(maxAlpha(shape({ opacity: 0.5 }))).toBeCloseTo(full / 2);
+  expect(maxAlpha(shape({ opacity: 0.01 }))).toBeCloseTo(full / 100);
+  const gone = buildContactGlyphs([shape({ opacity: 0 })], flat, style);
+  expect(gone.translucent.length).toBe(0);
+  expect(gone.opaque.length).toBe(0);
 });
 
-test("every glyph is red through its middle and hatched; a last sighting keeps a pale outline", () => {
+test("every glyph is red through its middle and hatched; every report keeps a pale outline", () => {
   const isRed = (c: number[]) => c[0] > c[1] + 0.3 && c[0] > c[2] + 0.3 && c[3] > 0;
   const isPale = (c: number[]) => Math.min(c[0], c[1], c[2]) > 0.8 && c[3] > 0;
   const from = (v: { x: number; y: number }) => Math.hypot(v.x - 400, v.y - 300);
-  const ghost = vertices(buildContactGlyphs([shape()], flat, style).translucent);
-  const firing = vertices(
-    buildContactGlyphs([shape({ source: "firing" })], flat, style).translucent,
-  );
-  for (const glyph of [ghost, firing]) {
+  const glyphFor = (source: string) => {
+    const o = observation({});
+    o.contacts[0].source = source;
+    return vertices(contactLayer(o, flat).translucent);
+  };
+  const lastSeen = glyphFor("last_seen"),
+    firing = glyphFor("firing");
+  for (const glyph of [lastSeen, firing]) {
     // Red across the disc, its centre too: a fill, not only a rim.
     expect(glyph.some((v) => isRed(v.rgba) && from(v) < 1)).toBe(true);
     // Nothing pale inside: the hatch is red too.
@@ -72,13 +56,13 @@ test("every glyph is red through its middle and hatched; a last sighting keeps a
       false,
     );
   }
-  // A last sighting's crisp outline is pale; a firing report has none.
-  expect(ghost.some((v) => isPale(v.rgba) && from(v) > 99)).toBe(true);
-  expect(firing.some((v) => isPale(v.rgba))).toBe(false);
+  // Every source uses the same pale outline.
+  expect(lastSeen.some((v) => isPale(v.rgba) && from(v) > 99)).toBe(true);
+  expect(firing.some((v) => isPale(v.rgba) && from(v) > 99)).toBe(true);
   // The hatch: many parallel strips across the disc, not only rings.
   const across = (v: { x: number; y: number }) => (v.y - v.x) / Math.SQRT2;
   // The hatch shares the glow's colour; it is told by its own alpha.
-  const hatched = ghost.filter(
+  const hatched = lastSeen.filter(
     (v) =>
       v.rgba.slice(0, 3).every((c, k) => Math.abs(c - style.color[k]) < 1e-6) &&
       Math.abs(v.rgba[3] - style.hatch_alpha) < 1e-6 &&
@@ -90,14 +74,10 @@ test("every glyph is red through its middle and hatched; a last sighting keeps a
 
 test("a glyph stays inside its area, whatever the contact's radius", () => {
   for (const radius of [20, 100]) {
-    for (const source of ["last_seen", "firing"]) {
-      const verts = vertices(
-        buildContactGlyphs([shape({ radius, source })], flat, style).translucent,
-      );
-      const reach = Math.max(...verts.map((v) => Math.hypot(v.x - 400, v.y - 300)));
-      expect(reach).toBeLessThanOrEqual(radius * 1.1);
-      expect(reach).toBeGreaterThan(radius * 0.95);
-    }
+    const verts = vertices(buildContactGlyphs([shape({ radius })], flat, style).translucent);
+    const reach = Math.max(...verts.map((v) => Math.hypot(v.x - 400, v.y - 300)));
+    expect(reach).toBeLessThanOrEqual(radius * 1.1);
+    expect(reach).toBeGreaterThan(radius * 0.95);
   }
 });
 

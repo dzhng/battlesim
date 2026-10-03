@@ -91,7 +91,6 @@
   vertical-align: -1px;
 }
 /* A ring: the mark's outline in its colour. */
-.lab-swatch-last-seen,
 .lab-swatch-occupant,
 .lab-swatch-impact,
 .lab-swatch-launcher,
@@ -102,13 +101,6 @@
   width: 6px;
   height: 6px;
   border: 2px solid;
-}
-.lab-swatch-firing {
-  background: rgba(255, 46, 30, 0.75);
-}
-.lab-swatch-last-seen {
-  background: rgba(255, 46, 30, 0.35);
-  border-color: rgb(230, 240, 255);
 }
 .lab-actions {
   display: grid;

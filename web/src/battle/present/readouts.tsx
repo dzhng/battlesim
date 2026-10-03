@@ -175,20 +175,18 @@ export function ReadoutLayer({
         content: <InfoPanel panel={enemyPanel(e.kind, rules)} />,
       }),
     ),
-    ...contacts
-      .filter((c) => c.primaryLabel)
-      .map(
-        (c): Callout => ({
-          key: `contact-${c.id}`,
-          opacity: "opacity" in c ? c.opacity : undefined,
-          retiring: "retiring" in c ? c.retiring : false,
-          owner: "contact",
-          id: c.id,
-          at: [c.center[0], c.center[1], 0],
-          selected: false,
-          content: <InfoPanel panel={contactPanel(c, tick, rules)} />,
-        }),
-      ),
+    ...contacts.map(
+      (c): Callout => ({
+        key: `contact-${c.id}`,
+        opacity: "opacity" in c ? c.opacity : undefined,
+        retiring: "retiring" in c ? c.retiring : false,
+        owner: "contact",
+        id: c.id,
+        at: [c.center[0], c.center[1], 0],
+        selected: false,
+        content: <InfoPanel panel={contactPanel(c, tick, rules)} />,
+      }),
+    ),
   ];
   const calloutsRef = useRef(callouts);
   calloutsRef.current = callouts;
