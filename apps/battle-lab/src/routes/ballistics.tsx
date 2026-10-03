@@ -41,12 +41,10 @@ import { gameCamera } from "../gameCamera";
 
 const SEED = 20260925;
 const TICK_HZ = game.tick_hz;
-// The weapon rows as the simulation resolved them (`extends` applied), at
-// the real rounds' speeds. The game flies a gun round at a fraction of its
-// real speed under that fraction squared of gravity (`gravity_scale`): the
-// same arc, flown slower. This bench's timing (a board struck mid-chord, a
-// walker reversing after launch, bodies crossing a line between ticks) is
-// choreographed for real speeds, and every arc it checks is the game's.
+// Normalise each resolved weapon to ordinary gravity by scaling its speed
+// with the same factor. This preserves its arc while the flight bench's
+// scripted bodies follow the resulting flight time. Acquisition range is
+// judged by the battle's weapon rules, not this physical flight bench.
 const W: Record<string, WeaponRow> = Object.fromEntries(
   Object.entries(WEAPONS).map(([name, row]) => {
     const g = typeof row.gravity_scale === "number" ? row.gravity_scale : 1;
@@ -137,7 +135,7 @@ const MOVERS: Mover[] = [
     unit: 4,
     shape: "capsule",
     dims: SOLDIER,
-    start: [300, 138.8],
+    start: [355, 132.2],
     yaw: NORTH,
     velocity: [0, 3],
   },
@@ -146,7 +144,7 @@ const MOVERS: Mover[] = [
     unit: 5,
     shape: "box",
     dims: TANK,
-    start: [372, 127.8],
+    start: [376, 116],
     yaw: NORTH,
     velocity: [0, 8],
     armored: true,
@@ -166,16 +164,14 @@ const MOVERS: Mover[] = [
 ];
 
 const SHOTS: Shot[] = [
-  ...[60, 120, 180].map(
-    (range, i): Shot => ({
-      label: `grenade arc ${range} m`,
-      weapon: W.grenade,
-      kind: "grenade",
-      from: [20, 14 + 6 * i],
-      muzzle: P.infantry_muzzle_m,
-      aim: { ground: [20 + range, 14 + 6 * i] },
-    }),
-  ),
+  ...[60, 120, 180].map((range, i): Shot => ({
+    label: `grenade arc ${range} m`,
+    weapon: W.grenade,
+    kind: "grenade",
+    from: [20, 14 + 6 * i],
+    muzzle: P.infantry_muzzle_m,
+    aim: { ground: [20 + range, 14 + 6 * i] },
+  })),
   {
     label: "hmg at sliding board",
     weapon: W.hmg,
@@ -201,9 +197,9 @@ const SHOTS: Shot[] = [
     aim: { body: 3, height: 0.85 },
   },
   {
-    label: "direct grenade over crest",
-    weapon: W.grenade,
-    kind: "grenade",
+    label: "direct hmg over crest",
+    weapon: W.hmg,
+    kind: "hmg",
     from: [100, 118],
     muzzle: P.infantry_muzzle_m,
     aim: { ground: [100, 292] },
@@ -227,27 +223,23 @@ const SHOTS: Shot[] = [
   // Oblique AP: spent AP onto the tank's front 25° off its normal, and HMG
   // onto its side about 37° off its normal from the south-east, each round
   // rolling its face's chance.
-  ...[0, 1, 2, 3].map(
-    (k): Shot => ({
-      label: `oblique AP ${k + 1}`,
-      weapon: LAB_SPENT_AP,
-      kind: "tank_ap",
-      from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
-      muzzle: 2,
-      // Spread up the plate so each round's mark stands apart.
-      aim: { body: 6, height: 0.5 + 0.45 * k },
-    }),
-  ),
-  ...[0, 1, 2, 3].map(
-    (k): Shot => ({
-      label: `hmg at tank side ${k + 1}`,
-      weapon: W.hmg,
-      kind: "hmg",
-      from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
-      muzzle: 2,
-      aim: { body: 6, height: 0.5 + 0.45 * k },
-    }),
-  ),
+  ...[0, 1, 2, 3].map((k): Shot => ({
+    label: `oblique AP ${k + 1}`,
+    weapon: LAB_SPENT_AP,
+    kind: "tank_ap",
+    from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
+    muzzle: 2,
+    // Spread up the plate so each round's mark stands apart.
+    aim: { body: 6, height: 0.5 + 0.45 * k },
+  })),
+  ...[0, 1, 2, 3].map((k): Shot => ({
+    label: `hmg at tank side ${k + 1}`,
+    weapon: W.hmg,
+    kind: "hmg",
+    from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
+    muzzle: 2,
+    aim: { body: 6, height: 0.5 + 0.45 * k },
+  })),
 ];
 
 const BALLISTICS_CAMERA: Camera3DParams = {

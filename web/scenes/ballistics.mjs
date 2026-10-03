@@ -90,8 +90,8 @@ export async function run(ctx) {
   await show(page, "crossing");
   await runTo(page, 40);
   await capture(ctx, page, "seq-crossing-t040.png");
-  await runTo(page, 46);
-  const crossing = await capture(ctx, page, "seq-crossing-t046.png");
+  await runTo(page, 93);
+  const crossing = await capture(ctx, page, "seq-crossing-t093.png");
   await show(page, "overview");
   await runTo(page, 120);
   await capture(ctx, page, "seq-overview-t120.png");
@@ -136,7 +136,7 @@ export async function run(ctx) {
     walker?.struck === "body:2" && dodger?.struck === "terrain",
     JSON.stringify({ walker, dodger }),
   );
-  const direct = shot("direct grenade over crest");
+  const direct = shot("direct hmg over crest");
   const mortar = shot("indirect lab mortar over crest");
   const landed = end("indirect lab mortar over crest");
   ctx.check(
@@ -220,7 +220,7 @@ export async function run(ctx) {
   );
   await writeCrop(
     decode(crossing),
-    ctx.evidencePath("crop-crossing-t046-3x.png"),
+    ctx.evidencePath("crop-crossing-t093-3x.png"),
     tankPx[0] - 60,
     tankPx[1],
     150,
@@ -287,9 +287,18 @@ export async function run(ctx) {
   );
   const midPx = await project(page, [110, 20, 3]);
   await writeCrop(side, ctx.evidencePath("crop-arcs-strip-2x.png"), midPx[0], midPx[1], 320, 60, 2);
-  // The 180 m arc's apex (≈ 6 m up at mid-range) is visibly off the ground.
-  const apexPx = await project(page, [110, 26, 7.4]);
-  const groundPx = await project(page, [110, 26, 0]);
+  // Resolve the actual launched arc's apex, so grenade tuning cannot leave
+  // this camera check pointing at a height the round never occupied.
+  const longArc = shot("grenade arc 180 m");
+  const gravity = game.physics.gravity_mps2;
+  const apexTime = longArc.velocity[2] / gravity;
+  const apex = [
+    20 + longArc.velocity[0] * apexTime,
+    26 + longArc.velocity[1] * apexTime,
+    game.physics.infantry_muzzle_m + longArc.velocity[2] * apexTime - (gravity * apexTime ** 2) / 2,
+  ];
+  const apexPx = await project(page, apex);
+  const groundPx = await project(page, [apex[0], apex[1], 0]);
   ctx.check("the side view resolves the 180 m arc's height", groundPx[1] - apexPx[1] > 20);
 
   await show(page, "overview");

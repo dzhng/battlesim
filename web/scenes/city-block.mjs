@@ -258,7 +258,9 @@ export async function run(ctx) {
   );
 
   // A building is where the map puts it: from straight above, not ground at
-  // the middle of each part's roof, ground beside the building.
+  // the middle of each part's roof, ground beside the building. Compare the
+  // same roof pixels with buildings hidden: an adjacent road can share the
+  // roof's colour even though the building is visibly present.
   const placed = await lab(page, () => {
     const buildings = window.__lab.route.buildings();
     const boxes = buildings.flatMap((b) => b.parts);
@@ -299,6 +301,24 @@ export async function run(ctx) {
           part.baseZ + 2 * part.half[2],
         ]),
       );
+    const region = await lab(
+      page,
+      (parts) =>
+        parts.flatMap((part) =>
+          [-0.6, 0, 0.6].flatMap((u) =>
+            [-0.6, 0, 0.6].map((v) => {
+              const c = Math.cos(part.yaw),
+                s = Math.sin(part.yaw);
+              return window.__lab.projectToCss(
+                part.center[0] + c * u * part.half[0] - s * v * part.half[1],
+                part.center[1] + s * u * part.half[0] + c * v * part.half[1],
+                part.baseZ + 2 * part.half[2],
+              );
+            }),
+          ),
+        ),
+      building.parts,
+    );
     const groundPx = await lab(
       page,
       (p) => window.__lab.projectToCss(p[0], p[1], window.__lab.route.surfaceZ(p[0], p[1])),
@@ -307,16 +327,41 @@ export async function run(ctx) {
     const name = building.category;
     const mask = await groundMask(ctx, page, `placed-${name}-ground-classes.png`);
     const frame = await shot(ctx, page, `placed-${name}-1920x1080.png`);
+    let without, withoutMask;
+    await lab(page, () => window.__lab.suppressBuildings(true));
+    try {
+      withoutMask = await groundMask(ctx, page, `placed-${name}-without-ground-classes.png`);
+      without = await shot(ctx, page, `placed-${name}-without-1920x1080.png`);
+    } finally {
+      await lab(page, () => window.__lab.suppressBuildings(false));
+    }
+    const changes = region.map((px) => delta(pixel(frame, ...px), pixel(without, ...px)));
     where.push({
       template: building.template,
+      roofPixels: roofs.map((px) => ({ px, rgb: pixel(frame, ...px) })),
+      groundPixels: { px: groundPx, rgb: pixel(frame, ...groundPx) },
+      region: region.map((px, i) => ({
+        px,
+        on: pixel(frame, ...px),
+        off: pixel(without, ...px),
+        onBody: isBody(pixel(mask, ...px)),
+        offBody: isBody(pixel(withoutMask, ...px)),
+        delta: changes[i],
+      })),
+      medianChanged: median(changes),
       roofs: roofs.map((px) => pixel(mask, ...px)),
       ground: pixel(mask, ...groundPx),
-      contrast: delta(pixel(frame, ...roofs[0]), pixel(frame, ...groundPx)),
     });
   }
   ctx.check(
-    "an apartment building and a house are drawn where the map puts them: not ground at each part's roof, ground beside the building",
-    where.every((w) => w.roofs.every(isBody) && isGround(w.ground) && w.contrast > 30),
+    "an apartment building and a house are drawn where the map puts them: not ground at each part's roof, ground beside it, and roof regions change visibly when buildings are hidden",
+    where.every(
+      (w) =>
+        w.roofs.every(isBody) &&
+        isGround(w.ground) &&
+        w.medianChanged > 30 &&
+        w.region.every((p) => p.onBody && !p.offBody),
+    ),
     JSON.stringify(where),
   );
 

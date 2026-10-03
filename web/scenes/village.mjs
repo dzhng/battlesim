@@ -52,7 +52,7 @@ import {
 
 const CAMERA = game.presentation.camera;
 const roadStrokes = villageMap.surfaces
-  .filter((s) => s.kind === "road" && s.shape.kind === "stroke")
+  .filter((s) => game.surfaces[s.kind]?.speed_factor > 0 && s.shape.kind === "stroke")
   .map((s) => s.shape);
 /** Every mark, paint or overlay, lies on the ground itself (the ground and
  *  its blades read the paint at their own point): checks read the marks at
@@ -1245,11 +1245,11 @@ async function orderFlashTour(ctx) {
   await lab(page, () => window.__lab.frame());
   const quiet = yellowInk(await overlay("order-flash-quiet"));
   const next = await groundCss(page, [goal[0], goal[1] + 15]);
-  const acks = (await lab(page, () => window.__lab.route.acks())).length;
+  const acks = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
   await page.keyboard.down("Shift");
   await page.mouse.click(next[0], next[1], { button: "right" });
   await page.keyboard.up("Shift");
-  await page.waitForFunction((n) => window.__lab.route.acks().length > n, acks);
+  await page.waitForFunction((n) => (window.__lab.route.acks()[0]?.seq ?? 0) > n, acks);
   await advance(page, 2);
   const queued = yellowInk(await overlay("order-flash-queued"));
   ctx.check(
@@ -1276,7 +1276,7 @@ async function groupPreviewTour(ctx, rotate = true) {
   await aim(page, goal, { distance: 220, pitch: 0.85, yaw: CAMERA.default.yaw });
   await lab(page, () => window.__lab.frame());
   const press = await groundCss(page, goal);
-  const n = await lab(page, () => window.__lab.route.acks().length);
+  const n = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
   const to = await groundCss(page, [goal[0], goal[1] + 20]);
   await page.mouse.move(...press);
   await page.mouse.down({ button: "right" });
@@ -1289,7 +1289,7 @@ async function groupPreviewTour(ctx, rotate = true) {
   const label = rotate ? "group-preview" : "group-preview-plain";
   ctx.check(
     "pressing and orienting a move never issues an order",
-    (await lab(page, () => window.__lab.route.acks().length)) === n,
+    (await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0)) === n,
   );
   await shot(ctx, page, `${label}-held`);
   const raw = await lab(page, () => window.__lab.route.movePreview());
@@ -1307,7 +1307,7 @@ async function groupPreviewTour(ctx, rotate = true) {
     return;
   }
   await page.mouse.up({ button: "right" });
-  await page.waitForFunction((n) => window.__lab.route.acks().length > n, n);
+  await page.waitForFunction((n) => (window.__lab.route.acks()[0]?.seq ?? 0) > n, n);
   await page.waitForFunction(() => window.__lab.route.movePreview().length > 0);
   ctx.check(
     "released markers remain until the committed publication takes over",
@@ -2405,16 +2405,20 @@ const TRACER_M = 1;
 /** Every flash sits on the muzzle as the model draws
  *  it, not where the simulation starts the round: a tank's cannon (recoiling)
  *  and its cupola HMG, driving and standing, the jeep's HMG and a rifleman's
- *  rifle. One tank drives down the road while the rest attack-move; at each
+ *  rifle. One tank drives down the road while the other holds; a jeep and
+ *  rifle squad approach the village on separately admitted moves. At each
  *  kind's first shot the default camera frames the shooter, and the flash's
  *  core and the drawn muzzle socket (posed from the model instance, apart
  *  from the flashes' own muzzles) must project within `MUZZLE_PX`, with the
  *  flash's light on screen there. */
 async function muzzleTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
-  await lab(page, () => {
+  const before = await lab(page, () => {
     const o = window.__lab.route.observation();
+    const before = window.__lab.route.acks()[0]?.seq ?? 0;
     const driver = o.own.find((u) => u.kind === "tank");
+    const jeep = o.own.find((u) => u.kind === "jeep");
+    const rifle = o.own.find((u) => u.kind === "rifle");
     window.__lab.route.command({
       kind: "move",
       units: [driver.id],
@@ -2422,13 +2426,43 @@ async function muzzleTour(ctx) {
       goal: [driver.position[0] + 400, driver.position[1]],
       route: "shortest",
     });
-    window.__lab.route.command({
-      kind: "attack_move",
-      units: o.own.filter((u) => u.id !== driver.id).map((u) => u.id),
-      gesture: 2,
-      goal: [1000, 800],
-    });
+    for (const [unit, goal, gesture] of [
+      [jeep, [690, 910], 2],
+      [rifle, [760, 850], 3],
+    ]) {
+      window.__lab.route.command({
+        kind: "attack_move",
+        units: [unit.id],
+        gesture,
+        goal,
+      });
+    }
+    return before;
   });
+  await page.waitForFunction(
+    (seq) => window.__lab.route.acks().filter((a) => a.seq > seq).length === 3,
+    before,
+  );
+  const staging = await lab(
+    page,
+    (seq) => window.__lab.route.acks().filter((a) => a.seq > seq),
+    before,
+  );
+  ctx.check(
+    "the muzzle tour's driving tank, jeep and rifle squad each have an admitted destination",
+    staging.length === 3 &&
+      staging.every(
+        ({ ack, order }) =>
+          ack.error === null &&
+          ack.placement?.destinations.length === 1 &&
+          ack.placement.destinations.every((d) => d.placed && d.unit === order.units[0]),
+      ),
+    JSON.stringify(staging),
+  );
+  await advance(
+    page,
+    Math.max(1, Math.max(...staging.map(({ ack }) => ack.applied_tick)) - (await obs(page)).tick),
+  );
   const wanted = new Set([
     "tank cannon, driving",
     "tank cannon, standing",
@@ -2690,9 +2724,9 @@ async function selectionTour(ctx) {
   await page.locator("footer.hud-bottom").screenshot({
     path: ctx.evidencePath("selection-group-mixed.png"),
   });
-  const before = (await lab(page, () => window.__lab.route.acks())).length;
+  const before = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
   await toggle.click();
-  await page.waitForFunction((n) => window.__lab.route.acks().length > n, before);
+  await page.waitForFunction((n) => (window.__lab.route.acks()[0]?.seq ?? 0) > n, before);
   const [ack] = await lab(page, () => window.__lab.route.acks());
   await advance(page, 3);
   const after = await obs(page);
@@ -2927,10 +2961,10 @@ async function rulerTour(ctx) {
     await page.waitForFunction(() => window.__lab.route.selected().length === 1);
     await aim(page, contact.center, { distance: 120, pitch: 0.85, yaw: CAMERA.default.yaw });
     await frames();
-    const before = (await lab(page, () => window.__lab.route.acks())).length;
+    const before = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
     css = await groundCss(page, contact.center);
     await page.mouse.click(css[0], css[1], { button: "right" });
-    await page.waitForFunction((n) => window.__lab.route.acks().length > n, before);
+    await page.waitForFunction((n) => (window.__lab.route.acks()[0]?.seq ?? 0) > n, before);
     const [ack] = await lab(page, () => window.__lab.route.acks());
     ctx.check(
       "right-clicking a contact's area attacks it",
@@ -3162,16 +3196,31 @@ async function panelTour(ctx) {
   await look(squad.position);
   await panelShot(ctx, page, "unit", squad.id, "panel-squad");
 
-  // Into the fight: blue attack-moves on the village.
-  await lab(page, () => {
-    const o = window.__lab.route.observation();
-    window.__lab.route.command({
+  const stage = async (order, name) => {
+    const before = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
+    await lab(page, (o) => window.__lab.route.command(o), order);
+    await page.waitForFunction((n) => (window.__lab.route.acks()[0]?.seq ?? 0) > n, before);
+    const command = await lab(page, () => window.__lab.route.acks()[0]);
+    const admitted =
+      command.ack.error === null &&
+      command.order.units.every((id) =>
+        command.ack.placement?.destinations.some((d) => d.unit === id && d.placed),
+      );
+    ctx.check(`${name}: every destination is admitted`, admitted, JSON.stringify(command));
+    if (!admitted) throw new Error(`${name}: refused staging command`);
+    await advance(page, Math.max(0, command.ack.applied_tick - (await obs(page)).tick));
+  };
+  // Close to the forest edge on an admitted approach. The village itself
+  // needs further orders; it is not a legal destination for this whole group.
+  await stage(
+    {
       kind: "attack_move",
-      units: o.own.filter((u) => u.kind !== "supply").map((u) => u.id),
+      units: (await obs(page)).own.filter((u) => u.kind !== "supply").map((u) => u.id),
       gesture: 1,
-      goal: [1000, 800],
-    });
-  });
+      goal: [680, 840],
+    },
+    "panel firefight approach",
+  );
   // Each subject is checked and shot on the first published tick it appears
   // (the tour's start tick varies with load, so the fight's does too).
   const enemyPanelCheck = async (o) => {
@@ -3237,10 +3286,26 @@ async function panelTour(ctx) {
     ["a firing report", contactPanelCheck("firing", /^HEARD (\d+) s AGO$/, "panel-heard")],
     ["a suppressed squad", suppressedPanelCheck],
   ]);
+  let withdrawing = false;
   for (let t = 0; t < 30 * 240 && pending.size; t += 15) {
     await advance(page, 15);
     o = await obs(page);
     for (const [name, check] of pending) if (await check(o)) pending.delete(name);
+    // Visual memory requires losing a known enemy. Withdraw after the
+    // observed fight has supplied the enemy, hearing and suppression rows.
+    if (!withdrawing && pending.size === 1 && pending.has("a last sighting")) {
+      await stage(
+        {
+          kind: "move",
+          units: o.own.filter((u) => u.kind !== "supply").map((u) => u.id),
+          gesture: 2,
+          goal: [400, 800],
+          route: "shortest",
+        },
+        "panel visual-memory withdrawal",
+      );
+      withdrawing = true;
+    }
   }
   ctx.check(
     "the fight brings an enemy, a last sighting, a report and a suppressed squad",
@@ -3248,7 +3313,7 @@ async function panelTour(ctx) {
     JSON.stringify([...pending.keys()]),
   );
 
-  // Far and busy: only the selection's panels stay.
+  // Far and busy: visible units keep compact panels, selected or not.
   await page.keyboard.up("Space");
   await page.waitForFunction(() => !window.__lab.route.showOrders());
   const pick = o.own
@@ -3270,15 +3335,46 @@ async function panelTour(ctx) {
       ]),
   );
   ctx.check(
-    "zoomed far out, only the selected units' panels show, each in one row",
-    far.length > 0 &&
-      far.every(
-        ([owner, id, name, compact]) => owner === "own" && pick.includes(id) && !!name && compact,
-      ),
+    "zoomed far out, selected and unselected units keep compact panels",
+    pick.every((id) => far.some(([owner, seen]) => owner === "own" && seen === id)) &&
+      far.some(([owner, id]) => owner === "own" && !pick.includes(id)) &&
+      far.every(([, , name, compact]) => !!name && compact),
     JSON.stringify({ far, pick }),
   );
-  // Stacked panels keep the fixture's gap: a panel above another never
-  // touches it.
+  const farBoxes = await lab(page, () =>
+    [...document.querySelectorAll("[data-testid=readouts] .ro-unit[data-owner=own]")]
+      .filter((n) => n.style.display !== "none")
+      .map((n) => {
+        const r = n.getBoundingClientRect();
+        const group = n.parentElement;
+        return {
+          id: Number(n.dataset.unit),
+          x0: r.left,
+          x1: r.right,
+          y0: r.top,
+          y1: r.bottom,
+          order: Number(group.style.zIndex),
+          opacity: Number(group.style.opacity),
+          filter: group.style.filter,
+        };
+      }),
+  );
+  const overlapping = farBoxes.flatMap((a, i) =>
+    farBoxes
+      .slice(i + 1)
+      .filter((b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1)
+      .map((b) => (a.order < b.order ? a : b)),
+  );
+  ctx.check(
+    "far overlapping panels soften the card behind",
+    overlapping.length > 0 &&
+      overlapping.every((b) => b.opacity > 0 && b.opacity < 1 && b.filter.startsWith("blur(")),
+    JSON.stringify({ overlapping, farBoxes }),
+  );
+  await snapshot(ctx, page, "panels-far-1920x1080.png");
+  // Normal zoom separates cards by the fixture's gap; far zoom allows
+  // overlap and softens the farther card instead.
+  await look(o.own.find((u) => u.id === pick[0]).position, 900);
   const stacked = await lab(page, () =>
     [...document.querySelectorAll("[data-testid=readouts] .ro-unit")]
       .filter((n) => n.style.display !== "none")
@@ -3299,7 +3395,7 @@ async function panelTour(ctx) {
     gaps.length > 0 && gaps.every((g) => g >= wantGap - 0.5),
     JSON.stringify({ gaps, stacked }),
   );
-  await snapshot(ctx, page, "panels-far-1920x1080.png");
+  await snapshot(ctx, page, "panels-normal-spacing-1920x1080.png");
   await page.close();
 }
 

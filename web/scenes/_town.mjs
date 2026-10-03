@@ -106,7 +106,15 @@ export async function townGround(ctx) {
   // The country road where it leaves the town: its surface either side of
   // the join, each pixel put on the stretch the renderer's own strokes say
   // it is, and the grass beside each.
-  const join = await stationFrame(page, "generated", "road-join-65");
+  // Compare the two materials under the same light: buildings cast shadow
+  // over the gravel stretch, which would otherwise measure shade as albedo.
+  let join;
+  await lab(page, () => window.__lab.suppressBuildings(true));
+  try {
+    join = await stationFrame(page, "generated", "road-join-65");
+  } finally {
+    await lab(page, () => window.__lab.suppressBuildings(false));
+  }
   const { edges } = stationReport(page);
   const clear = ({ xy }) => Math.hypot(xy[0] - edges.join[0], xy[1] - edges.join[1]) > JOIN_CLEAR_M;
   const cores = sample(join.mask, 7, (c) => c.roadSd < CORE_M);

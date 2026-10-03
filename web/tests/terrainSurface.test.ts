@@ -610,13 +610,14 @@ function generatedTown() {
   const { settlements } = outcome.result.sites;
   const inside = (rings: Ring[]) => {
     const flat = rings.map((ring) => ring.flat());
-    return (x: number, y: number) =>
-      Math.max(
-        ...flat.map((ring) => {
-          const off = Math.abs(polygon2.signedDistance(ring, ring.length / 2, [x, y]));
-          return polygon2.containsPoint(ring, ring.length / 2, [x, y]) ? off : -off;
-        }),
-      );
+    return (x: number, y: number) => {
+      const point: [number, number] = [x, y];
+      let deepest = -Infinity;
+      for (const ring of flat) {
+        deepest = Math.max(deepest, -polygon2.signedDistance(ring, ring.length / 2, point));
+      }
+      return deepest;
+    };
   };
   return {
     surface: buildTerrainSurface(exports, layout, biome),

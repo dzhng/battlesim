@@ -19,8 +19,9 @@ import { TickStatus } from "../TickStatus";
 // a red squad firing from behind a building every three seconds (a firing
 // area, never identified). The building is low (4 m): it hides the squad
 // and stops the rifles, and the grenade launcher lobs over it at the
-// report, which lies within the squad's own few metres. Both blue units look through the wall along one
-// line, so the red tank drops out of sight briefly: the acquisition grace.
+// report within the shipped grenade's reach. Blue's original sensor positions
+// preserve the brief shared loss of the touring tank behind the wall:
+// the acquisition grace.
 // The hidden squad reports fire while the tank is still alive, so target
 // priority is checked independently of the tank's eventual death.
 const SEED = 8;

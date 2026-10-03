@@ -51,6 +51,7 @@ export async function run(ctx) {
   // hidden tank's firing report).
   let areaWhileUnseen = null;
   const visibleTankChoices = [];
+  const grenadeShotsBefore = own(o, 1).weaponPoses[1].shots;
   for (let i = 0; i < 400 && !reacquired; i++) {
     await advance(page, 1);
     o = await obs(page);
@@ -66,7 +67,16 @@ export async function run(ctx) {
         visible.position[1] - squad.position[1],
       ) <= game.weapons.rifle.range_m
     ) {
-      visibleTankChoices.push({ tick: o.tick, target: visible.id, mounts: squad.mounts });
+      visibleTankChoices.push({
+        tick: o.tick,
+        target: visible.id,
+        mounts: squad.mounts,
+        distance: Math.hypot(
+          visible.position[0] - squad.position[0],
+          visible.position[1] - squad.position[1],
+        ),
+        grenadeShots: squad.weaponPoses[1].shots,
+      });
     }
     if (!areaWhileUnseen && o.identified.length === 0 && grenade.target?.kind === "contact") {
       areaWhileUnseen = { tick: o.tick, target: grenade.target };
@@ -126,14 +136,25 @@ export async function run(ctx) {
   );
   // Judge actual coexistence of an identified tank and a firing report.
   // Follow visibility rather than a fixed tick: combat may kill the tank sooner.
+  // The tank enters rifle range; the separate grenade has a shorter reach.
   ctx.check(
-    "a visible tank in reach takes priority over firing areas",
+    "rifles prioritize a visible tank in rifle reach over firing areas",
     visibleTankChoices.length > 0 &&
-      visibleTankChoices.every((s) => s.mounts.every((m) => m.target?.kind !== "contact")) &&
+      visibleTankChoices.every((s) => s.mounts[0].target?.kind !== "contact") &&
       visibleTankChoices.some(
         (s) => s.mounts[0].target?.kind === "identified" && s.mounts[0].target.id === s.target,
       ),
     JSON.stringify(visibleTankChoices),
+  );
+  ctx.check(
+    "outside the grenade's reach, the visible tank does not prevent nearby area fire",
+    visibleTankChoices.some(
+      (s) =>
+        s.distance > game.weapons.grenade.range_m &&
+        s.mounts[1].target?.kind === "contact" &&
+        s.grenadeShots > grenadeShotsBefore,
+    ),
+    JSON.stringify(visibleTankChoices.filter((s) => s.grenadeShots > grenadeShotsBefore)),
   );
   await advance(page, Math.max(0, 470 - o.tick));
   o = await obs(page);
