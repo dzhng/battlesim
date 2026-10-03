@@ -5,6 +5,7 @@ import typegpu from "unplugin-typegpu/vite";
 import react from "@vitejs/plugin-react";
 import { mechanicsPlugin } from "../apps/mechanics-editor/server";
 import { mapWorkbenchPlugin } from "../apps/map-workbench/server";
+import { soundWorkbenchPlugin } from "../apps/sound-workbench/server";
 
 // packages/* and apps/* are source-only directories outside this vite root.
 // Their bare imports resolve to web/node_modules through explicit aliases, so
@@ -82,6 +83,7 @@ export default defineConfig({
     assetWatch(),
     mechanicsPlugin(fileURLToPath(new URL("..", import.meta.url))),
     mapWorkbenchPlugin(fileURLToPath(new URL("..", import.meta.url))),
+    soundWorkbenchPlugin(fileURLToPath(new URL("..", import.meta.url))),
   ],
   // Appearance bundles and their runtime catalog, served same-origin at the
   // site root and copied into production builds (packages/scene-assets).

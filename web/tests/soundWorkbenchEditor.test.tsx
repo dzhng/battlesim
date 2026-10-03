@@ -1,0 +1,190 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
+import { SOUNDS } from "@packages/battle-audio/src/synth";
+import { SoundWorkbench } from "../../apps/sound-workbench/src/SoundWorkbench";
+import type { WorkbenchAPI, Snapshot } from "../../apps/sound-workbench/src/protocol";
+import type { Auditioner } from "../../apps/sound-workbench/src/audition";
+
+afterEach(cleanup);
+function fixture() {
+  const catalog: Snapshot["catalog"] = {
+    sources: {},
+    clips: {},
+    sounds: Object.fromEntries(
+      Object.entries(SOUNDS).map(([id, sound]) => [
+        id,
+        {
+          label: `Synth · ${id.replaceAll("_", " ")}`,
+          clips: [],
+          synth: id,
+          synth_gain: 1,
+          gain: 1,
+          loop: sound.loop,
+        },
+      ]),
+    ),
+    defaults: {},
+    units: {},
+    impacts: {},
+    effects: {},
+  };
+  catalog.sources.test = {
+    label: "Test master",
+    author: "Test",
+    license: "CC0-1.0",
+    url: "https://example.com/master",
+    path: "assets/third-party/audio/test.wav",
+    sha256: "a".repeat(64),
+    notes: "",
+  };
+  catalog.clips.reload = {
+    label: "Unused reload",
+    category: "mechanical",
+    role: "reload",
+    source: "test",
+    source_rate: 48000,
+    source_frames: [1, 24001],
+    processing: "clean",
+    url: "/audio/clips/reload.wav",
+    sha256: "b".repeat(64),
+    sample_rate: 48000,
+    frames: 24000,
+    loop: false,
+    notes: "Kept for future events",
+  };
+  const snapshot: Snapshot = {
+    revision: "saved",
+    catalog,
+    units: [
+      { id: "alpha", name: "Alpha", mounts: [{ name: "rifle", weapons: ["rifle"], count: 2 }] },
+      { id: "bravo", name: "Bravo", mounts: [{ name: "rifle", weapons: ["rifle"], count: 1 }] },
+    ],
+    firing: { rifle: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 } },
+    materials: ["ground", "hull"],
+    rounds: ["rifle"],
+  };
+  let saved = snapshot;
+  const api: WorkbenchAPI = {
+    snapshot: async () => saved,
+    preview: vi.fn(async (draft) => ({
+      candidateId: "reviewed",
+      revision: draft.revision,
+      files: [
+        {
+          path: "fixtures/sounds.json",
+          before: JSON.stringify(saved.catalog),
+          after: JSON.stringify(draft.catalog),
+        },
+      ],
+    })),
+    save: vi.fn(async () => saved),
+  };
+  const audition: Auditioner = { play: vi.fn(async () => {}), stop: vi.fn() };
+  return {
+    snapshot,
+    api,
+    audition,
+    publish(catalog: Snapshot["catalog"]) {
+      saved = { ...snapshot, revision: "new", catalog };
+    },
+  };
+}
+
+test("the complete library auditions an unused reload and clones synthesis without changing its baseline", async () => {
+  const { api, audition } = fixture();
+  render(<SoundWorkbench api={api} audition={audition} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Unused reload" }));
+  fireEvent.click(screen.getByRole("button", { name: "Play clip" }));
+  await waitFor(() =>
+    expect(vi.mocked(audition.play).mock.calls[0]?.slice(1, 3)).toEqual(["clip", "reload"]),
+  );
+  expect(screen.getByText("Kept for future events")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Synth · rifle" }));
+  expect(screen.queryByLabelText("Recipe label")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Clone recipe" }));
+  fireEvent.change(screen.getByLabelText("Recipe label"), { target: { value: "Custom rifle" } });
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+  await screen.findByRole("button", { name: "Save reviewed JSON" });
+  const draft = vi.mocked(api.preview).mock.calls[0][0];
+  expect(draft.catalog.sounds.rifle.label).toBe("Synth · rifle");
+  expect(
+    Object.values(draft.catalog.sounds).some((recipe) => recipe.label === "Custom rifle"),
+  ).toBe(true);
+});
+
+test("exact type assignments can be edited independently, restored, reviewed and saved", async () => {
+  const f = fixture();
+  render(<SoundWorkbench api={f.api} audition={f.audition} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Unit assignments" }));
+  fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
+  expect(screen.getByText("2 physical mounts share this choice")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
+  fireEvent.click(screen.getByRole("button", { name: "Bravo" }));
+  expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("rifle");
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+  await screen.findByRole("button", { name: "Save reviewed JSON" });
+  const draft = vi.mocked(f.api.preview).mock.calls[0][0];
+  expect(draft.catalog.units.alpha.rifle.near).toBe("hmg");
+  expect(draft.catalog.units.bravo).toBeUndefined();
+  f.publish(draft.catalog);
+  fireEvent.click(screen.getByRole("button", { name: "Save reviewed JSON" }));
+  await screen.findByText("Saved. Reload or open a battle page to use this generation.");
+  expect(f.api.save).toHaveBeenCalledWith({ candidateId: "reviewed", revision: "saved" });
+  fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
+  fireEvent.click(screen.getByRole("button", { name: "Restore rifle fallback" }));
+  expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("rifle");
+});
+
+test("an edit after preview invalidates review, and a stale-save error retains the draft", async () => {
+  const { api, audition } = fixture();
+  api.save = vi.fn(async () => {
+    throw new Error("Outside edit; reload sources");
+  });
+  render(<SoundWorkbench api={api} audition={audition} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Unit assignments" }));
+  fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
+  fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Save reviewed JSON" }));
+  await screen.findByText("Outside edit; reload sources");
+  expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("hmg");
+  fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "cannon" } });
+  expect(screen.queryByRole("button", { name: "Save reviewed JSON" })).toBeNull();
+});
+
+test("stopping or changing selection during preparation never revives the older audition", async () => {
+  const { api, audition } = fixture();
+  let complete!: () => void;
+  audition.play = vi.fn(
+    () =>
+      new Promise<void>((resolve) => {
+        complete = resolve;
+      }),
+  );
+  render(<SoundWorkbench api={api} audition={audition} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Synth · rifle" }));
+  fireEvent.click(screen.getByRole("button", { name: "Play recipe" }));
+  await screen.findByText("Preparing audition…");
+  fireEvent.click(screen.getByRole("button", { name: "Stop audition" }));
+  complete();
+  await waitFor(() => expect(screen.queryByText("Preparing audition…")).toBeNull());
+  expect(screen.queryByText("Audition · Synth · rifle")).toBeNull();
+});
+
+test("global firing, material impacts and matching loop slots publish the chosen recipes", async () => {
+  const { api, audition } = fixture();
+  render(<SoundWorkbench api={api} audition={audition} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
+  fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
+  fireEvent.change(screen.getByLabelText("ground rifle impact"), {
+    target: { value: "impact_hull" },
+  });
+  fireEvent.change(screen.getByLabelText("motor effect"), { target: { value: "engine_diesel" } });
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+  await screen.findByRole("button", { name: "Save reviewed JSON" });
+  const catalog = vi.mocked(api.preview).mock.calls[0][0].catalog;
+  expect(catalog.defaults.rifle.near).toBe("hmg");
+  expect(catalog.impacts.ground.rifle).toBe("impact_hull");
+  expect(catalog.effects.motor).toBe("engine_diesel");
+});

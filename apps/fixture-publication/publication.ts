@@ -12,10 +12,11 @@ interface Journal {
   pid: number;
   files: Replacement[];
 }
-type Editor = "maps" | "mechanics";
+type Editor = "maps" | "mechanics" | "sounds";
 const journals: Record<Editor, string> = {
   maps: "map-workbench-transaction.json",
   mechanics: "mechanics-editor-transaction.json",
+  sounds: "sound-workbench-transaction.json",
 };
 const queues = new Map<string, Promise<unknown>>();
 
@@ -87,7 +88,9 @@ export class FixturePublication {
     const allowed = new Set(
       editor === "maps"
         ? ["fixtures/map-presets.json", "fixtures/generated-battle.json"]
-        : [...(await mechanicsSourcePaths(this.root)), "fixtures/catalog.json"],
+        : editor === "sounds"
+          ? ["fixtures/sounds.json"]
+          : [...(await mechanicsSourcePaths(this.root)), "fixtures/catalog.json"],
     );
     if (
       !Array.isArray(files) ||

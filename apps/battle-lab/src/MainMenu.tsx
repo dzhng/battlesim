@@ -30,6 +30,11 @@ const DEVELOPER: Entry[] = [
           href: "/map-workbench",
           note: "Tune generation and validation rules on a live plan.",
         },
+        {
+          label: "Sound workbench",
+          href: "/sound-workbench",
+          note: "Audition recordings and choose sounds for each unit type.",
+        },
       ]
     : []),
   {

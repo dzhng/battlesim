@@ -5,6 +5,7 @@ import { MainMenu } from "./MainMenu";
 
 const MechanicsEditor = lazy(() => import("../../mechanics-editor/src/MechanicsEditor"));
 const MapWorkbench = lazy(() => import("../../map-workbench/src/MapWorkbench"));
+const SoundWorkbench = lazy(() => import("../../sound-workbench/src/SoundWorkbench"));
 
 /** The pages: the benchmark page also owns its named workload URLs. */
 const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
@@ -48,6 +49,12 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
 
 /** `/` is the main menu, `/labs` the index of every fixture route. */
 export function LabRouter({ path }: { path: string }) {
+  if (path === "/sound-workbench" && import.meta.env.DEV)
+    return (
+      <Suspense fallback={null}>
+        <SoundWorkbench />
+      </Suspense>
+    );
   if (path === "/map-workbench" && import.meta.env.DEV)
     return (
       <Suspense fallback={null}>

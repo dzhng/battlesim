@@ -1,0 +1,323 @@
+.sound-workbench {
+  --sw-line: #344247;
+  --sw-text: #d9e2df;
+  --sw-muted: #91a4a4;
+  --sw-active: #a4d5c5;
+  height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+  background: #101a1d;
+  color: var(--sw-text);
+  padding: 24px 32px 60px;
+  font:
+    14px/1.45 ui-sans-serif,
+    system-ui,
+    sans-serif;
+}
+.sound-workbench * {
+  box-sizing: border-box;
+}
+.sw-editable {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.sound-workbench a {
+  color: var(--sw-active);
+}
+.sound-workbench h1 {
+  font-size: 27px;
+  font-weight: 550;
+  margin: 9px 0 5px;
+  letter-spacing: 0.02em;
+}
+.sound-workbench h2 {
+  font-size: 21px;
+  font-weight: 550;
+  margin: 8px 0;
+}
+.sound-workbench h3 {
+  font-size: 15px;
+  margin: 8px 0;
+}
+.sound-workbench p {
+  color: var(--sw-muted);
+  margin: 8px 0 16px;
+}
+.sound-workbench button,
+.sound-workbench input,
+.sound-workbench select {
+  font: inherit;
+  color: var(--sw-text);
+  border: 1px solid var(--sw-line);
+  background: #18252a;
+  border-radius: 2px;
+}
+.sound-workbench button {
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.sound-workbench button:hover {
+  border-color: var(--sw-active);
+}
+.sound-workbench button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.sound-workbench button[aria-pressed="true"] {
+  color: var(--sw-active);
+  border-color: var(--sw-active);
+  background: #203334;
+}
+.sound-workbench input,
+.sound-workbench select {
+  padding: 7px 8px;
+  min-width: 0;
+  width: 100%;
+}
+.sound-workbench input[type="checkbox"] {
+  width: 16px;
+  margin: 4px 8px 0 0;
+  accent-color: var(--sw-active);
+}
+.sound-workbench label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--sw-muted);
+  font-size: 12px;
+}
+.sound-workbench label input,
+.sound-workbench label select {
+  color: var(--sw-text);
+  font-size: 14px;
+}
+.sw-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--sw-line);
+  padding-bottom: 16px;
+}
+.sw-publication {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.sw-publication span,
+.sw-eyebrow,
+.sw-count {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.sw-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 17px 0;
+  flex-wrap: wrap;
+}
+.sw-stop {
+  margin-left: auto;
+}
+.sw-layout {
+  display: grid;
+  grid-template-columns: 310px minmax(0, 1fr);
+  gap: 30px;
+  align-items: start;
+}
+.sw-browser {
+  border-right: 1px solid var(--sw-line);
+  padding-right: 22px;
+  max-height: calc(100vh - 240px);
+  overflow: auto;
+}
+.sw-browser > label {
+  margin-bottom: 12px;
+}
+.sw-library-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  width: 100%;
+  margin: 0 0 6px;
+  padding: 9px 10px !important;
+}
+.sw-library-row small,
+.sw-alternatives small {
+  font-size: 11px;
+  color: var(--sw-muted);
+  display: block;
+  margin-top: 2px;
+}
+.sw-inspector {
+  min-width: 0;
+}
+.sw-detail {
+  max-width: 1060px;
+}
+.sw-detail > label {
+  max-width: 600px;
+  margin: 17px 0;
+}
+.sw-id {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.sw-actions,
+.sw-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0;
+}
+.sw-controls > label {
+  flex: 1;
+  min-width: 145px;
+}
+.sw-actions > label {
+  flex: 1;
+  min-width: 200px;
+  max-width: 420px;
+}
+.sw-detail dl {
+  display: grid;
+  grid-template-columns: 95px minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 24px;
+}
+.sw-detail dt {
+  color: var(--sw-muted);
+}
+.sw-detail dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.sw-alternatives {
+  max-height: 390px;
+  overflow: auto;
+  border-top: 1px solid var(--sw-line);
+}
+.sw-alternatives label {
+  display: flex;
+  flex-direction: row;
+  align-items: start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sw-line);
+  color: var(--sw-text);
+}
+.sw-assignment {
+  border-top: 1px solid var(--sw-line);
+  padding: 14px 0 24px;
+}
+.sw-choices {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr) auto 95px;
+  gap: 9px;
+  align-items: end;
+  margin: 12px 0;
+}
+.sw-global {
+  margin: 0 auto;
+}
+.sw-global > h2:not(:first-child) {
+  border-top: 1px solid var(--sw-line);
+  margin-top: 30px;
+  padding-top: 20px;
+}
+.sw-effect-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sw-line);
+}
+.sound-workbench details {
+  margin: 14px 0;
+}
+.sound-workbench summary {
+  cursor: pointer;
+  color: var(--sw-active);
+  padding: 8px 0;
+}
+.sw-message {
+  padding: 12px 14px;
+  border-left: 2px solid var(--sw-active);
+  background: #1d2b2d;
+  color: var(--sw-text) !important;
+}
+.sw-playing {
+  color: var(--sw-active) !important;
+}
+.sw-review {
+  border-top: 1px solid var(--sw-active);
+  margin: 24px 0 0;
+  padding-top: 16px;
+}
+.sw-review > button {
+  margin-right: 8px;
+}
+.sw-diff {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+.sw-diff pre {
+  overflow: auto;
+  max-height: 440px;
+  font-size: 11px;
+  background: #0b1416;
+  padding: 12px;
+}
+.sw-empty {
+  padding-top: 35px;
+}
+@media (max-width: 900px) {
+  .sound-workbench {
+    padding: 18px;
+  }
+  .sw-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sw-publication {
+    justify-content: flex-start;
+  }
+  .sw-layout {
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 18px;
+  }
+  .sw-choices {
+    grid-template-columns: minmax(130px, 1fr) auto;
+  }
+  .sw-choices > label:last-child {
+    max-width: 110px;
+  }
+}
+@media (max-width: 620px) {
+  .sw-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sw-browser {
+    border-right: 0;
+    padding-right: 0;
+    max-height: 390px;
+    overflow: auto;
+    border-bottom: 1px solid var(--sw-line);
+  }
+  .sw-stop {
+    margin-left: 0;
+  }
+  .sw-diff {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sw-publication button {
+    flex: 1;
+  }
+}
