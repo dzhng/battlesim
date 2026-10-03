@@ -235,7 +235,7 @@ Generation produces geography; the [assault recipe](../../fixtures/encounters.js
 
 Blue currently deploys a jeep, recon, two tanks, three rifle squads, AT and supply in a column. Red deploys three garrison rifle squads, return-fire-only AT overwatch, a jeep and a tank. Edge inset is **150 m**, column spacing **30 m**, search step **50 m**, maximum advance **1,500 m**, with jeep pace and **15 s** route-difference allowance. Garrison reach/apart/door standoff are **150/60/4 m**; overwatch standoff/apart/sight are **5/25/1,000 m**. Full recipe numbers are in the appendix.
 
-A prepared encounter proves legal placement and planned reach. It does not prove attacking infantry has walked kilometres to the fight, the widest tank has actually traversed the street, or a battle can sustain an actual **1,800 m** engagement. Those are executed movement/combat checks in C50/C51/C54. Geometry changes invalidate the relevant saved-map access and arrival evidence.
+A prepared encounter proves legal placement and planned reach. It does not prove attacking infantry has walked kilometres to the fight, the widest tank has actually traversed the street, or a battle can sustain actual combat at its current weapon ranges. The clear **1,800 × 400 m** approach is a generation requirement; production weapons currently top out at **900 m** and are not retuned to match the approach length. Those are executed movement/combat checks in C50/C51/C54. Geometry changes invalidate the relevant saved-map access and arrival evidence.
 
 ## Rendered surroundings: common extent contract
 
