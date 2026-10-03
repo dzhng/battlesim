@@ -4,16 +4,16 @@ The cursor describes the action a right-click can carry out using the ordering s
 
 ## Next Agent Prompt
 
-Status: implementing; updated 2026-10-03. Building authority is in focused native verification and independent review. Cursor presentation is complete and ready to integrate. The shared input resolver and worker building-preview transport are implemented with focused proof; next complete [pointer integration](slices/03-pointer-integration.md) across viewport/session, held/accepted preview and gameplay scenes. Use implement-spec: committed passes, review and choices audit, then continue until every decision and gate below is fulfilled. Update this prompt before ending each pass.
+Status: implementing; updated 2026-10-03. Building authority's reviewed checkpoint is integrated; follow-up native privacy, finite-queue and replay proofs remain. Cursor presentation is complete. Real WASM/authority/client preview purity and error recovery pass, and typecheck is green. Next complete [pointer integration](slices/03-pointer-integration.md) across viewport/session, held/accepted preview and gameplay scenes while the native follow-up runs. Use implement-spec: committed passes, review and choices audit, then continue until every decision and gate below is fulfilled. Update this prompt before ending each pass.
 
 - [ ] Authoritative combined building order, preview and native proof.
-- [ ] Approved cursor presentation and isolated browser proof.
+- [x] Approved cursor presentation and isolated browser proof.
 - [ ] Shared hover/held/release intent, wire integration and played browser proof.
 - [ ] Whole-feature review, one full check/verify closeout, consolidated choices and close-spec.
 
 The graph is `01 || 02 → 03 → closeout`. The simulation's bounded route search and joint certification are the first risk to resolve. Scratch evidence belongs in ignored `throwaway/`; the approved concept below is a lasting requirement.
 
-Evidence: browser input/preview/transport and preserved gesture tests pass (30 focused tests). Independent input review's stale comment, authority mock and armed-mode-reset findings are resolved. The CLI second-opinion tool cannot run with its configured model/account; independent collaborator reviews supply the code opinion, without overriding user model settings. Full typecheck awaits the native WASM contract merge; remaining errors name only that missing generated declaration. Cursor component, registry and browser fixture gates passed with fresh visual critique. Use the scene runner's regular Chromium channel for GPU captures, not Playwright's default headless-shell variant.
+Evidence: 37 native garrison tests and focused contract/sim/WASM lint passed at the checkpoint; multipart nomination is invariant, bounded search is fair, failed-held reproof is stable, and forest clearing no longer invalidates scratch navigation. Browser authority/client tests pass (19), including mixed preview-to-admission digest and replay equality, query-local failure recovery, and no command/publication side effects. Input/gesture tests (30) and isolated cursor/component/fixture proofs passed earlier with fresh visual critique. The CLI second-opinion tool cannot run with its configured model/account; independent collaborator reviews supply the code opinion without overriding user model settings. Use the scene runner's regular Chromium channel for GPU captures, not Playwright's default headless-shell variant.
 
 ## Known knowns — grounded territory
 
@@ -41,7 +41,7 @@ Agent answers already disclosed: Shift queues both entry and gathering; a vehicl
 
 ### Building intent contract
 
-Add `Order::OccupyBuilding { units, building, gesture, facing }` and a read-only `BuildingPreviewRequest { units, building, facing, queued }`. Queueing for committed intent remains in the existing command envelope. `BuildingPlacement { building, entrant: Option<BuildingEntry>, destinations }` reports the chosen unit and exact entry approach, plus every gatherer's `MoveDestination` including failed placement. `BuildingEntry { unit, approach }` is the prepared entry. The acknowledgement retains its ordinary `placement` for gathering confirmation and adds the building result. WASM exposes `preview_building`; the browser's client/authority transport mirrors this typed contract.
+Add `Order::OccupyBuilding { units, building, gesture, facing }` and a read-only `BuildingPreviewRequest { units, building, facing, queued }`. Queueing for committed intent remains in the existing command envelope. `BuildingPlacement { building, entrant: Option<BuildingEntry>, destinations, unproven }` reports the chosen unit and exact entry approach, plus every gatherer's `MoveDestination` including failed placement. The optional `unproven` flag distinguishes unfinished bounded proof from a known restriction when no part succeeds. `BuildingEntry { unit, approach }` is the prepared entry. The acknowledgement retains its ordinary `placement` for gathering confirmation and adds the building result. WASM exposes `preview_building`; the browser's client/authority transport mirrors this typed contract.
 
 Admission resolves the complete intent once, retains its outcome until application and records intent for replay. The browser must never send a winner computed during hover as authoritative. Direct one-squad `Garrison` remains a real simulation operation; both use the same geometry and validation owner. The group plan lowers to existing per-unit garrison/move queues, with no new persistent battle state or browser command fan-out.
 

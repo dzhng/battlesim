@@ -76,6 +76,8 @@ export interface BuildingPlacement {
   building: number;
   entrant: BuildingEntry | null;
   destinations: MoveDestination[];
+  /** The bounded search could not finish proving availability. */
+  unproven?: boolean;
 }
 
 /** The same per-unit destinations used when the move is committed. */

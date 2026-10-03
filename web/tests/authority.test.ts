@@ -72,8 +72,8 @@ function harness(load: () => Promise<SimModule> = async () => sim) {
         }
       }
     },
-    async init(replay?: string) {
-      authority.handle({ type: "init", scenario, seed: 9, side: "blue", replay });
+    async init(replay?: string, setup = scenario) {
+      authority.handle({ type: "init", scenario: setup, seed: 9, side: "blue", replay });
       await new Promise((r) => setTimeout(r, 0));
     },
   };
@@ -132,6 +132,67 @@ test("a paused formation preview returns only own destinations without issuing a
       },
     },
   ]);
+});
+
+test("building previews preserve battle outcomes and an invalid query leaves the authority usable", async () => {
+  const setup = labScenario(loadMap("garrison").definition, [
+    { side: "blue", kind: "recon", position: [325, 250] },
+    { side: "blue", kind: "tank", position: [290, 250] },
+  ]);
+  const queried = harness();
+  const untouched = harness();
+  await queried.init(undefined, setup);
+  await untouched.init(undefined, setup);
+  for (const h of [queried, untouched]) {
+    h.authority.handle({ type: "start" });
+    h.authority.handle({ type: "pause" });
+  }
+  const publications = queried.publications().length;
+  queried.authority.handle({
+    type: "building_preview",
+    id: 1,
+    side: "blue",
+    building: { units: [0, 1], building: 0 },
+  });
+  expect(queried.replies.find((r) => r.type === "building_preview" && r.id === 1)).toMatchObject({
+    placement: {
+      building: 0,
+      entrant: { unit: 0 },
+      destinations: [{ unit: 1, placed: true }],
+    },
+  });
+  queried.authority.handle({
+    type: "building_preview",
+    id: 2,
+    side: "red",
+    building: { units: [0], building: 0 },
+  });
+  expect(queried.replies.find((r) => r.type === "building_preview" && r.id === 2)).toMatchObject({
+    placement: null,
+    error: expect.any(String),
+  });
+  expect(queried.publications()).toHaveLength(publications);
+  expect(queried.closed()).toBe(false);
+  const command: CommandEnvelope = {
+    side: "blue",
+    seq: 1,
+    queued: false,
+    order: { kind: "occupy_building", units: [0, 1], building: 0, gesture: 1 },
+  };
+  for (const h of [queried, untouched]) {
+    h.authority.handle({ type: "command", command });
+    for (let i = 0; i < 20; i++) stepOnce(h, i);
+    h.authority.handle({ type: "replay" });
+  }
+  expect(queried.replies.filter((r) => r.type === "ack")).toEqual(
+    untouched.replies.filter((r) => r.type === "ack"),
+  );
+  expect(queried.publications().map((p) => p.digest)).toEqual(
+    untouched.publications().map((p) => p.digest),
+  );
+  expect(queried.replies.find((r) => r.type === "replay")).toEqual(
+    untouched.replies.find((r) => r.type === "replay"),
+  );
 });
 
 test("nothing ticks before start, then ticks follow the clock", async () => {

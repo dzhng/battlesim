@@ -4,6 +4,14 @@ Planning delegation: the user authorized applying useful intent, actual reachabi
 
 ## Sound — medium confidence
 
+### A finite path into the selected house keeps its place
+
+If a selected squad is already walking through a finite queue that ends in entry to this house, another click keeps that path while companions gather. A reservation behind an indefinite attack does not qualify: a replacement click must make a fresh plan. The plan specified already-held and entering squads but left the boundary of “entering” open. This choice preserves an existing achievable entry and its later queued work. Future orders inherit one shared definition of a held or ordered entry. Sound: the finite path is physically certified before it counts; medium confidence because preserving its earlier path can take longer than replacing it.
+
+### Entry search and fallback each receive work
+
+When one squad's far route is difficult, it cannot consume all the work before a nearby squad or useful gathering move is considered. Route jobs take shared turns, and the planner reserves portions of the existing budget for queued predecessors, routing, physical proof and fallback. The plan required bounded fair work but left its allocation open. Future map complexity can affect which actions finish proving within that budget; unfinished availability stays plain. Sound: the controlled low-budget regression catches starvation while preserving the normal budget; medium confidence because allocation trades completeness between stages.
+
 ### Context badges reuse the player's existing symbols
 
 Hovering an enemy adds the existing aiming mark, and a blocked action adds the existing rejection cross. The approved concept used illustrative Lucide symbols; introducing another icon family would teach two shapes for the same action. The visual prompt allowed production symbols and fixed their position/scale. Future actions extend the generated icon owner rather than a cursor-specific glyph set. Sound: the player already meets these shapes in the command bar and readouts, and actual-size captures passed independent review.
@@ -17,6 +25,18 @@ When two squads and a tank click a house, the worker chooses the entrant and gat
 Moving over a house places the arrow tip exactly at the input pointer and adds the building symbol below/right. A native CSS image cursor would also work, but ordinary headless screenshots omit the system pointer. The overlay uses the current viewport pointer, renders once and changes its position directly; no GPU pass or dependency is introduced. The prompt fixed appearance, not rendering mechanism. Sound: the existing viewport already reports pointer position every frame, and actual gameplay captures can prove this same component. Medium confidence: pointer responsiveness must be judged in the real route. Native CSS hotspot/fallback alternative is documented by [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/cursor).
 
 ## Sound — high confidence
+
+### A new entrant walks to the proved approach before entering
+
+If the reachable doorway is round a corner, the chosen squad first moves to that exact approach and then enters. The existing direct garrison operation can begin entry near any wall, which could skip the path the new planner proved. The plan promised a selected approach but did not specify how existing unit queues enforce it. Two existing per-unit orders carry the result, with no new persistent unit state. Sound: admission, rehearsal and execution now describe the same route; authored direct garrison orders retain their behavior.
+
+### Failed movers must hold before a group plan earns its promise
+
+If a tank fails to reach its gathering spot, entry and surviving moves are checked again with that tank held in place. Another failure can require another check; the proof stops only when that failure set stabilizes or its work runs out. The plan required joint certification but did not specify how to handle exhaustion during that repair. New building plans refuse unproved portions and report uncertainty; ordinary movement keeps its existing admission behavior. Sound: an entrant cannot rely on a failed tank driving out of its way, and existing battle outcomes remain unchanged.
+
+### An unfinished search carries uncertainty to the cursor
+
+When a crowded approach uses the planner's finite work budget before it can prove an entry or gathering move, the arrow stays plain. A blocked badge would make an unfinished search look like a known obstacle. The plan required that distinction but its first result shape did not carry it; the building result now has an optional `unproven` flag. Successful parts still determine the action badge. Future preview consumers can distinguish a proof that stopped early from a known refusal. Sound: it preserves the user's useful-action contract without making the search unbounded.
 
 ### Hover resolves intent without consuming the command
 

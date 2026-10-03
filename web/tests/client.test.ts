@@ -155,3 +155,22 @@ test("an authority failure returns held records once and rejects requests after 
     vi.unstubAllGlobals();
   }
 });
+
+test("an invalid building preview rejects only that query and commands still work", async () => {
+  const { requests, deliver } = workerSeam();
+  const client = createSimClient({ scenario: "{}", seed: 1, side: "blue", transport: "worker" });
+  try {
+    const preview = client.previewBuilding({ units: [1], building: 9 });
+    const rejected = expect(preview).rejects.toThrow("not own unit");
+    deliver({ type: "building_preview", id: 1, placement: null, error: "not own unit" });
+    await rejected;
+    const command = client.command({ kind: "stop", units: [2] });
+    const sent = requests.find((request) => request.type === "command");
+    expect(sent?.command.order).toEqual({ kind: "stop", units: [2] });
+    deliver({ type: "ack", ack: { seq: 1, applied_tick: 2, error: null } });
+    expect(await command).toMatchObject({ seq: 1, error: null });
+  } finally {
+    client.dispose();
+    vi.unstubAllGlobals();
+  }
+});
