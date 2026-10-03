@@ -146,8 +146,8 @@ pub enum Order {
         units: Vec<UnitId>,
         deployed: bool,
     },
-    /// Enter a building as whole squads, after walking to it and a
-    /// stationary timer (L08). Every squad must fit, or the order is refused.
+    /// Walk one squad to a building, then enter after a stationary timer.
+    /// The complete squad must fit, or the order is refused.
     Garrison {
         units: Vec<UnitId>,
         building: u32,
