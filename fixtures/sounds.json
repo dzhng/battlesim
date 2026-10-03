@@ -2464,42 +2464,117 @@
       "synth_gain": 0.1,
       "gain": 0.85,
       "loop": false
+    },
+    "rifle-combat-distant": {
+      "label": "Rifle \u00b7 crisp recorded core \u00b7 distant",
+      "clips": [
+        "rifle-11-1",
+        "rifle-11-2"
+      ],
+      "synth": "rifle",
+      "synth_gain": 0.07,
+      "gain": 1.3175,
+      "loop": false
+    },
+    "recorded-rifle-03-distant": {
+      "label": "Rifle 03 \u00b7 recording \u00b7 distant",
+      "clips": [
+        "rifle-03-1",
+        "rifle-03-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1.3175,
+      "loop": false
+    },
+    "hmg-combat-distant": {
+      "label": "HMG \u00b7 heavy recorded core \u00b7 distant",
+      "clips": [
+        "heavy-02-1",
+        "heavy-02-2"
+      ],
+      "synth": "hmg",
+      "synth_gain": 0.1,
+      "gain": 1.395,
+      "loop": false
+    },
+    "hmg-bass-distant": {
+      "label": "HMG \u00b7 bassier recorded core \u00b7 distant",
+      "clips": [
+        "heavy-20-1",
+        "heavy-20-2"
+      ],
+      "synth": "hmg",
+      "synth_gain": 0.12,
+      "gain": 1.395,
+      "loop": false
+    },
+    "recorded-cannon-distant": {
+      "label": "Tank cannon \u00b7 recorded core \u00b7 distant",
+      "clips": [
+        "cannon-m1"
+      ],
+      "synth": "cannon",
+      "synth_gain": 0.1,
+      "gain": 1.395,
+      "loop": false
+    },
+    "recorded-launch-distant": {
+      "label": "ATGM launch \u00b7 recorded core \u00b7 distant",
+      "clips": [
+        "javelin-launch"
+      ],
+      "synth": "launch",
+      "synth_gain": 0.08,
+      "gain": 1.3175,
+      "loop": false
+    },
+    "grenade-combat-distant": {
+      "label": "Grenade launcher \u00b7 bass report \u00b7 distant",
+      "clips": [
+        "bass-11-1",
+        "bass-11-2"
+      ],
+      "synth": "thump",
+      "synth_gain": 0.1,
+      "gain": 1.3175,
+      "loop": false
     }
   },
   "defaults": {
     "default": {
       "near": "rifle-combat",
-      "far": "rifle-combat",
+      "far": "rifle-combat-distant",
       "gain": 1
     },
     "rifle": {
       "near": "rifle-combat",
-      "far": "rifle-combat",
+      "far": "rifle-combat-distant",
       "gain": 1
     },
     "hmg": {
       "near": "hmg-combat",
-      "far": "hmg-combat",
+      "far": "hmg-combat-distant",
       "gain": 1
     },
     "tank_ap": {
       "near": "recorded-cannon",
-      "far": "recorded-cannon",
+      "far": "recorded-cannon-distant",
       "gain": 1
     },
     "tank_he": {
       "near": "recorded-cannon",
-      "far": "recorded-cannon",
+      "far": "recorded-cannon-distant",
       "gain": 1
     },
     "atgm": {
       "near": "recorded-launch",
-      "far": "recorded-launch",
+      "far": "recorded-launch-distant",
       "gain": 1
     },
     "grenade": {
       "near": "grenade-combat",
-      "far": "grenade-combat",
+      "far": "grenade-combat-distant",
       "gain": 1
     }
   },
@@ -2507,50 +2582,50 @@
     "at": {
       "rifles": {
         "near": "rifle-combat",
-        "far": "rifle-combat",
+        "far": "rifle-combat-distant",
         "gain": 1
       },
       "ATGM launcher": {
         "near": "recorded-launch",
-        "far": "recorded-launch",
+        "far": "recorded-launch-distant",
         "gain": 1
       }
     },
     "jeep": {
       "HMG": {
         "near": "hmg-combat",
-        "far": "hmg-combat",
+        "far": "hmg-combat-distant",
         "gain": 1
       }
     },
     "recon": {
       "rifles": {
         "near": "recorded-rifle-03",
-        "far": "recorded-rifle-03",
+        "far": "recorded-rifle-03-distant",
         "gain": 1
       }
     },
     "rifle": {
       "rifles": {
         "near": "rifle-combat",
-        "far": "rifle-combat",
+        "far": "rifle-combat-distant",
         "gain": 1
       },
       "grenade launcher": {
         "near": "grenade-combat",
-        "far": "grenade-combat",
+        "far": "grenade-combat-distant",
         "gain": 1
       }
     },
     "tank": {
       "cannon": {
         "near": "recorded-cannon",
-        "far": "recorded-cannon",
+        "far": "recorded-cannon-distant",
         "gain": 1
       },
       "HMG": {
         "near": "hmg-bass",
-        "far": "hmg-bass",
+        "far": "hmg-bass-distant",
         "gain": 1
       }
     }
