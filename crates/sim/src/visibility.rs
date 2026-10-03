@@ -2,8 +2,10 @@
 //! right now, by radial line-of-sight sweeps from each own unit's eye over the
 //! true terrain, solid props and foliage. Identification is decided per target
 //! by `sensing`; this field is what the player sees as clear versus fogged.
+use contract::ids::UnitId;
 use contract::observation::VisibilityField;
 use contract::scenario::SensorRules;
+use std::collections::BTreeMap;
 
 use crate::math::{v2, V3};
 use crate::sight::Sight;
@@ -18,6 +20,16 @@ pub struct OcclusionGrid {
     top: Vec<f64>,
     /// Four-by-four fog cells per tile; entries are rebuilt only on demand.
     tile_revisions: Vec<TileRevision>,
+    /// One complete field per observer, bounded by the battle's unit roster.
+    observers: BTreeMap<UnitId, ObserverField>,
+}
+
+struct ObserverField {
+    eyes: Vec<V3>,
+    sight: Sight,
+    sensors: [f64; 2],
+    geometry: (u64, u32),
+    field: VisibilityField,
 }
 
 #[derive(Clone, Copy)]
@@ -27,6 +39,48 @@ struct TileRevision {
 }
 
 impl OcclusionGrid {
+    /// Union an observer's complete field, reusing it only while every sweep
+    /// input is unchanged. Terrain and grid belong to this grid's world for
+    /// its lifetime; body edits and forest clearing invalidate independently.
+    /// Complete fields keep reuse valid when another observer dies or moves.
+    pub fn sweep_observer(
+        &mut self,
+        world: &WorldGeometry,
+        sensors: &SensorRules,
+        observer: UnitId,
+        eyes: &[V3],
+        sight: &Sight,
+        field: &mut VisibilityField,
+    ) {
+        let geometry = (world.obstacle_revision(), world.cleared_cells());
+        let sensor_key = [sensors.fog_target_height_m, sensors.foliage_full_block];
+        let reusable = self.observers.get(&observer).is_some_and(|old| {
+            old.geometry == geometry
+                && old.eyes == eyes
+                && old.sight == *sight
+                && old.sensors == sensor_key
+        });
+        if !reusable {
+            let mut own = self.field();
+            for &eye in eyes {
+                sweep(world, self, sensors, eye, sight, &mut own);
+            }
+            self.observers.insert(
+                observer,
+                ObserverField {
+                    eyes: eyes.to_vec(),
+                    sight: *sight,
+                    sensors: sensor_key,
+                    geometry,
+                    field: own,
+                },
+            );
+        }
+        let own = &self.observers[&observer].field;
+        for (union, &seen) in field.bits.iter_mut().zip(&own.bits) {
+            *union |= seen;
+        }
+    }
     pub fn new(world: &WorldGeometry, cell: f64) -> Self {
         let nx = (world.width() / cell).ceil() as usize;
         let ny = (world.depth() / cell).ceil() as usize;
@@ -42,6 +96,7 @@ impl OcclusionGrid {
                 };
                 nx.div_ceil(4) * ny.div_ceil(4)
             ],
+            observers: BTreeMap::new(),
         }
     }
 
@@ -180,6 +235,197 @@ pub fn sweep(
             if horizon > steepest_later {
                 break;
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod cache_tests {
+    use super::*;
+    use crate::math::v3;
+    use contract::ids::UnitId;
+
+    fn world() -> (WorldGeometry, SensorRules) {
+        let rules: contract::scenario::Rules =
+            serde_json::from_value(crate::fixtures::game()).unwrap();
+        let map = serde_json::from_value(serde_json::json!({
+            "size":[600,500],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+            "props":[{"kind":"wall","center":[240,200],"yaw":0,"half_extents":[10,20,8]}]
+        }))
+        .unwrap();
+        (WorldGeometry::new(&map, &rules), rules.sensors)
+    }
+
+    fn sight() -> Sight {
+        Sight {
+            forward: 0.0,
+            range: 90.0,
+            shape: contract::scenario::SightShape {
+                front: 1.0,
+                side: 1.0,
+                rear: 1.0,
+            },
+        }
+    }
+
+    #[test]
+    fn reused_observer_fields_match_fresh_sweeps_through_input_changes() {
+        let (mut world, mut sensors) = world();
+        let mut grid = OcclusionGrid::new(&world, 8.0);
+        let mut sight = sight();
+        let mut eyes = vec![v3(200.0, 200.0, 2.0)];
+        for change in 0..9 {
+            match change {
+                2 => world.move_prop(0, v2(170.0, 200.0), 0.5, 1),
+                3 => {
+                    world.remove_prop(0);
+                }
+                4 => eyes[0].x += 25.0,
+                5 => sight.range += 20.0,
+                6 => {
+                    world.add_prop(
+                        &serde_json::from_value(serde_json::json!({
+                            "kind":"wall","center":[250,200],"yaw":0,"half_extents":[10,20,4]
+                        }))
+                        .unwrap(),
+                    );
+                }
+                7 => {
+                    sensors.fog_target_height_m += 8.0;
+                }
+                8 => {
+                    eyes.push(v3(280.0, 210.0, 2.0));
+                }
+                _ => {}
+            }
+            let mut actual = grid.field();
+            grid.sweep_observer(&world, &sensors, UnitId(0), &eyes, &sight, &mut actual);
+            let mut fresh_grid = OcclusionGrid::new(&world, 8.0);
+            let mut fresh = fresh_grid.field();
+            for &eye in &eyes {
+                sweep(&world, &mut fresh_grid, &sensors, eye, &sight, &mut fresh);
+            }
+            assert_eq!(actual.bits, fresh.bits, "input change {change}");
+        }
+    }
+
+    #[test]
+    fn ground_clearing_invalidates_visibility_without_a_body_revision() {
+        let mut rules: contract::scenario::Rules =
+            serde_json::from_value(crate::fixtures::game()).unwrap();
+        rules.forests.rule.trunk_spacing_m = 8.0;
+        rules.forests.rule.trunk_jitter = 0.0;
+        rules.forests.rule.attenuation_per_m = 0.02;
+        let map = serde_json::from_value(serde_json::json!({
+            "size":[600,500],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+            "forests":[{"shape":{"kind":"polygon","ring":[[216,176],[264,176],[264,224],[216,224]]}}]
+        })).unwrap();
+        let mut world = WorldGeometry::new(&map, &rules);
+        let mut grid = OcclusionGrid::new(&world, 8.0);
+        let eyes = [v3(200.0, 200.0, 2.0)];
+        let mut sight = sight();
+        sight.range = 120.0;
+        let mut before = grid.field();
+        grid.sweep_observer(
+            &world,
+            &rules.sensors,
+            UnitId(0),
+            &eyes,
+            &sight,
+            &mut before,
+        );
+        let mut stricter = rules.sensors.clone();
+        stricter.foliage_full_block = 0.05;
+        let mut actual = grid.field();
+        grid.sweep_observer(&world, &stricter, UnitId(0), &eyes, &sight, &mut actual);
+        let mut fresh_grid = OcclusionGrid::new(&world, 8.0);
+        let mut fresh = fresh_grid.field();
+        sweep(
+            &world,
+            &mut fresh_grid,
+            &stricter,
+            eyes[0],
+            &sight,
+            &mut fresh,
+        );
+        assert_ne!(
+            before.bits, fresh.bits,
+            "foliage rule must change visibility"
+        );
+        assert_eq!(actual.bits, fresh.bits);
+        // Restore the original rule before changing only cleared ground.
+        before.bits.fill(0);
+        grid.sweep_observer(
+            &world,
+            &rules.sensors,
+            UnitId(0),
+            &eyes,
+            &sight,
+            &mut before,
+        );
+        let revision = world.obstacle_revision();
+        let cleared = world.clear(
+            &crate::math::Obb2 {
+                center: v2(240.0, 200.0),
+                yaw: 0.0,
+                half: v2(26.0, 26.0),
+            },
+            &crate::math::Obb2 {
+                center: v2(0.0, 0.0),
+                yaw: 0.0,
+                half: v2(1.0, 1.0),
+            },
+        );
+        assert!(!cleared.is_empty());
+        assert_eq!(world.obstacle_revision(), revision);
+        let mut actual = grid.field();
+        grid.sweep_observer(
+            &world,
+            &rules.sensors,
+            UnitId(0),
+            &eyes,
+            &sight,
+            &mut actual,
+        );
+        let mut fresh_grid = OcclusionGrid::new(&world, 8.0);
+        let mut fresh = fresh_grid.field();
+        sweep(
+            &world,
+            &mut fresh_grid,
+            &rules.sensors,
+            eyes[0],
+            &sight,
+            &mut fresh,
+        );
+        assert_ne!(
+            before.bits, fresh.bits,
+            "clearing must change visible ground"
+        );
+        assert_eq!(actual.bits, fresh.bits);
+    }
+
+    #[test]
+    fn observer_unions_match_fresh_fields_after_an_eye_moves_or_disappears() {
+        let (world, sensors) = world();
+        let sight = sight();
+        let mut grid = OcclusionGrid::new(&world, 8.0);
+        let east = v3(400.0, 200.0, 2.0);
+        for west in [
+            Some(v3(100.0, 200.0, 2.0)),
+            Some(v3(110.0, 220.0, 2.0)),
+            None,
+        ] {
+            let mut actual = grid.field();
+            if let Some(eye) = west {
+                grid.sweep_observer(&world, &sensors, UnitId(0), &[eye], &sight, &mut actual);
+            }
+            grid.sweep_observer(&world, &sensors, UnitId(1), &[east], &sight, &mut actual);
+            let mut fresh_grid = OcclusionGrid::new(&world, 8.0);
+            let mut fresh = fresh_grid.field();
+            for eye in west.into_iter().chain([east]) {
+                sweep(&world, &mut fresh_grid, &sensors, eye, &sight, &mut fresh);
+            }
+            assert_eq!(actual.bits, fresh.bits, "west eye {west:?}");
         }
     }
 }

@@ -31,7 +31,7 @@ use crate::garrison;
 use crate::ground::{self, GroundLayer, KnownGround, Wear};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
-use crate::math::{v2, v3, Obb2, V2, V3};
+use crate::math::{v2, v3, Obb2, Rotation, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
 use crate::navigation::RoadNet;
 use crate::route_planner::RoutePlanner;
@@ -41,7 +41,7 @@ use crate::structures::Structures;
 use crate::supply;
 use crate::units::{self, MoveOrder, Soldier, Unit, UnitOrder};
 use crate::village::{Defender, Referee};
-use crate::visibility::{self, OcclusionGrid};
+use crate::visibility::OcclusionGrid;
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 use contract::random::Rng;
@@ -330,6 +330,7 @@ fn clip_to_seen(fog: &VisibilityField, round: &Flown) -> Vec<VisibleSegment> {
 /// (a ruin) are learned when any of them is in view, not only their middle.
 fn footprint_seen(field: &VisibilityField, prop: &crate::world::Prop) -> bool {
     let step = field.cell_m / 2.0;
+    let rotation = Rotation::new(prop.yaw);
     let (nx, ny) = (
         (2.0 * prop.half.x / step).ceil().max(1.0) as usize,
         (2.0 * prop.half.y / step).ceil().max(1.0) as usize,
@@ -340,7 +341,7 @@ fn footprint_seen(field: &VisibilityField, prop: &crate::world::Prop) -> bool {
                 -prop.half.x + 2.0 * prop.half.x * i as f64 / nx as f64,
                 -prop.half.y + 2.0 * prop.half.y * j as f64 / ny as f64,
             );
-            let p = prop.center + local.rotated(prop.yaw);
+            let p = prop.center + rotation.apply(local);
             field.visible(p.x, p.y)
         })
     })
@@ -1819,36 +1820,27 @@ impl Battle {
         let mut field = self.occlusion.field();
         let mut candidates = Vec::new();
         let mut remembered = Vec::new();
+        let mut views = Vec::new();
         for unit in self.units.iter().filter(|u| u.side == side && u.alive()) {
             let sight = sight::of(unit, &self.rules);
-            for eye in sensing::eyes(unit, &self.rules) {
+            let eyes = sensing::eyes(unit, &self.rules);
+            for eye in &eyes {
                 // A ray can step one cell past its reach, and the marked cell
                 // can contain a footprint sample a diagonal farther away.
-                self.world.append_prop_ids_near(
-                    eye.xy(),
-                    sight.max_range() + 3.0 * field.cell_m,
-                    &mut candidates,
-                );
-                self.sides[side.index()].append_standing_near(
-                    eye.xy(),
-                    sight.max_range() + 3.0 * field.cell_m,
-                    &mut remembered,
-                );
-                visibility::sweep(
-                    &self.world,
-                    &mut self.occlusion,
-                    &self.rules.sensors,
-                    eye,
-                    &sight,
-                    &mut field,
-                );
+                views.push((eye.xy(), sight.max_range() + 3.0 * field.cell_m));
             }
+            self.occlusion.sweep_observer(
+                &self.world,
+                &self.rules.sensors,
+                unit.id,
+                &eyes,
+                &sight,
+                &mut field,
+            );
         }
+        self.world.prop_ids_near_many(&views, &mut candidates);
+        self.sides[side.index()].standing_ids_near_many(&views, &mut remembered);
         completed(TickPhase::Fog);
-        candidates.sort_unstable();
-        candidates.dedup();
-        remembered.sort_unstable();
-        remembered.dedup();
         // Enemy fallen in view are remembered, and the ground in view learned.
         let knowledge = &mut self.knowledge[side.index()];
         knowledge.learn_ground(&self.ground, &field);
