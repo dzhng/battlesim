@@ -163,4 +163,5 @@ KINDS = {
     "rifle": {"build": rifle, "hold": RIFLE_HOLD},
     "recon": {"build": dmr, "hold": RIFLE_HOLD},
     "at": {"build": launcher, "hold": LAUNCHER_HOLD},
+    "at_carried": {"build": rifle, "hold": RIFLE_HOLD},
 }

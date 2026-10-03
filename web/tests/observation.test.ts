@@ -475,6 +475,7 @@ test("every frozen animation field and ground value decodes, integers exact past
   expect(ground.isCleared(0, 0)).toBe(true);
   expect(o.own[0].memberIds).toEqual([3, big + 2]);
   expect(o.own[0].memberSlots).toEqual([0, 7]);
+  expect(o.own[0].memberActiveMounts).toEqual([null, 1]);
   expect(o.own[0].memberOrders).toEqual([
     { spot: [7, 8], coverNow: null, coverThere: "heavy" },
     { spot: [9, 10], coverNow: "light", coverThere: "medium" },
@@ -489,6 +490,7 @@ test("every frozen animation field and ground value decodes, integers exact past
   ]);
   expect(o.own[0].mounts.map((m) => m.mount)).toEqual([0, 1]);
   expect(o.identified[0].memberIds).toEqual([]);
+  expect(o.identified[0].memberActiveMounts).toEqual([]);
   expect(o.identified[0].weaponPoses.map((p) => p.shots)).toEqual([9, big + 6]);
   expect(o.identified[0].reversing).toBe(true);
   expect(o.projectiles).toEqual([

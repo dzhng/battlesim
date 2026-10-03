@@ -301,9 +301,17 @@ export async function run(ctx) {
   );
   const midPx = await project(page, [110, 20, 3]);
   await writeCrop(side, ctx.evidencePath("crop-arcs-strip-2x.png"), midPx[0], midPx[1], 320, 60, 2);
-  // The 180 m arc's apex (≈ 6 m up at mid-range) is visibly off the ground.
-  const apexPx = await project(page, [110, 26, 7.4]);
-  const groundPx = await project(page, [110, 26, 0]);
+  // Measure the launched arc rather than projecting a fixed expected height.
+  const longArc = shot("grenade arc 180 m");
+  const gravity = game.physics.gravity_mps2;
+  const apexTime = longArc.velocity[2] / gravity;
+  const apex = [
+    20 + longArc.velocity[0] * apexTime,
+    26 + longArc.velocity[1] * apexTime,
+    game.physics.infantry_muzzle_m + longArc.velocity[2] * apexTime - (gravity * apexTime ** 2) / 2,
+  ];
+  const apexPx = await project(page, apex);
+  const groundPx = await project(page, [apex[0], apex[1], 0]);
   ctx.check("the side view resolves the 180 m arc's height", groundPx[1] - apexPx[1] > 20);
 
   await show(page, "overview");

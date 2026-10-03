@@ -3,13 +3,15 @@ use super::{MountSpec, Weapon};
 use crate::digest::Digest;
 use contract::weapons::AmmoCapacity;
 
-/// Magazine and timing of one physical weapon, independent of its target lock.
+/// Magazine, aim and timing of one physical weapon; the mount selects its target.
 #[derive(Clone, Debug)]
 pub struct Cycle {
     pub owner: Option<u32>,
     /// Retained magazine, including one being topped up during a lull.
     pub loaded: Option<usize>,
     pub reload: Option<(usize, f64)>,
+    /// Aim earned by this physical gun on its mount's current target.
+    pub aim: f64,
     pub(super) rounds: u32,
     pub(super) cooldown: f64,
     pub(super) started: bool,
@@ -29,6 +31,7 @@ impl Cycle {
             owner,
             loaded,
             reload: None,
+            aim: 0.0,
             rounds: loaded.map_or(0, |k| {
                 weapons[spec.kinds[k]].def.magazine.map_or(1, |m| m.rounds)
             }),
@@ -41,12 +44,29 @@ impl Cycle {
         d.u64(self.owner.map_or(u64::MAX, u64::from))
             .u64(self.loaded.map_or(u64::MAX, |k| k as u64))
             .u64(self.rounds as u64)
+            .f64(self.aim)
             .f64(self.cooldown)
             .u64(self.started as u64)
             .u64(self.reload.is_some() as u64);
         if let Some((k, p)) = self.reload {
             d.u64(k as u64).f64(p);
         }
+    }
+    /// Putting a gun away preserves its magazine and reload work.
+    pub fn pause(&mut self, dt: f64) {
+        self.cooldown = (self.cooldown - dt).max(0.0);
+        self.aim = 0.0;
+        self.started = false;
+    }
+
+    pub fn needs_reload(&self, weapons: &[Weapon], ammo: &[Option<u32>], spec: &MountSpec) -> bool {
+        self.reload.is_some()
+            || match self.loaded {
+                None => ammo.iter().any(|a| a.is_none_or(|n| n > 0)),
+                Some(k) => weapons[spec.kinds[k]].def.magazine.is_some_and(|m| {
+                    self.rounds < m.rounds && ammo[k].is_none_or(|n| n > self.rounds)
+                }),
+            }
     }
     /// Idle guns top up partial magazines without discarding their rounds;
     /// engagement cancels that top-up, keeping the retained rounds ready.

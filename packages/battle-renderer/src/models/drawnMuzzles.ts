@@ -77,10 +77,13 @@ export class DrawnMuzzles {
 
   /** The drawn muzzle of `side`'s soldier `soldier`'s weapon, into `at`;
    *  false when he isn't drawn or his body has no `muzzle` socket. */
-  soldier(side: Side, soldier: number, at: Vec3): boolean {
-    return this.answer(`s${keyOf(side, soldier)}`, at, () => {
+  soldier(side: Side, soldier: number, mount: number, at: Vec3): boolean {
+    return this.answer(`s${keyOf(side, soldier)}:${mount}`, at, () => {
       const s = this.soldiers.get(keyOf(side, soldier));
-      const bundle = s ? this.bundle(s.kind, s.side, s.soldier, s.slot, s.operatorMount) : null;
+      const bundle =
+        s?.activeMount === mount
+          ? this.bundle(s.kind, s.side, s.soldier, s.slot, s.operatorMount, s.activeMount)
+          : null;
       if (!s || bundle?.kind !== "skinned") return null;
       const socket = bundle.sockets.find((k) => k.name === "muzzle");
       if (!socket) return null;
@@ -99,8 +102,15 @@ export class DrawnMuzzles {
     return true;
   }
 
-  private bundle(kind: string, side: Side, id: number, slot: number, operatorMount: number | null) {
-    const resolved = this.resolve(kind, side, id, slot, operatorMount);
+  private bundle(
+    kind: string,
+    side: Side,
+    id: number,
+    slot: number,
+    operatorMount: number | null,
+    activeMount: number | null,
+  ) {
+    const resolved = this.resolve(kind, side, id, slot, operatorMount, activeMount);
     return (resolved && this.installed.appearances.get(resolved.appearance)?.bundle) ?? null;
   }
 

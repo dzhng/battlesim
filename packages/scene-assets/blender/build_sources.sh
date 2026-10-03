@@ -8,6 +8,7 @@ v="$root/assets/source/vehicles"
 b="$root/assets/source/village"
 mkdir -p "$v" "$b"
 blender() { script=$1; shift; (cd "$root/web" && node asset.mjs blender "$here/$script" "$@") | grep -E '^(TANK|TRUCK|JEEP|HOUSE|PROP|wrote) ' ; }
+for variant in a b c; do blender infantry_kit.py at_carried "$variant"; done
 blender tank.py "$v/tank.glb"
 blender tank.py "$v/tank_wreck.glb" --wreck
 blender supply_truck.py "$v/supply_truck.glb"

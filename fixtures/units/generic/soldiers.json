@@ -29,7 +29,7 @@
       "extends": "at_rifleman",
       "name": "ATGM gunner",
       "description": "Carries the team's guided anti-tank missile launcher.",
-      "mounts": [{ "name": "ATGM launcher", "weapons": ["atgm"], "special": true, "operator_appearance": ["at", "at_b", "at_c"] }]
+      "mounts": [{ "name": "ATGM launcher", "weapons": ["atgm"], "special": true, "operator_appearance": { "active": ["at", "at_b", "at_c"], "carried": ["at_carried", "at_carried_b", "at_carried_c"] } }]
     }
   }
 }

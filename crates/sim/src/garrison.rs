@@ -604,18 +604,16 @@ fn claim(g: &Garrison, mounts: &crate::weapons::MountAims, k: usize, facing: f64
     };
     mounts
         .iter()
-        .filter(|(participants, point)| {
-            participants.contains(&k) && seat.slot.faces(point.xy(), facing)
-        })
-        .map(|(participants, _)| need(participants))
+        .filter(|aim| aim.members.contains(&k) && seat.slot.faces(aim.point.xy(), facing))
+        .map(|aim| need(aim.single_operator))
         .max()
         .unwrap_or(0)
 }
 
 /// How much a mount's shooters need a facing window: its lone operator (an
 /// ATGM gunner, a grenadier) more than one of many carriers (the rifles).
-fn need(participants: &[usize]) -> u8 {
-    if participants.len() == 1 {
+fn need(single_operator: bool) -> u8 {
+    if single_operator {
         2
     } else {
         1
@@ -623,9 +621,9 @@ fn need(participants: &[usize]) -> u8 {
 }
 
 /// Each garrisoned squad's soldiers change windows to face what their
-/// weapons face: `aims` holds, per squad (unit index), each mount's shooters
-/// (every carrier of a squad weapon, else its operator) and the point it
-/// faces, its lock or the threat it watches ([`crate::weapons::garrison_aims`]).
+/// weapons face. Each soldier requests one weapon's window; its authored
+/// ownership determines priority even when only one rifleman survives.
+/// [`crate::weapons::garrison_aims`] supplies the selected threats.
 /// A soldier already facing stays. Otherwise he takes the
 /// closest facing window that is free, or, failing one, trades places with
 /// the squadmate at the closest facing window who needs it less ([`claim`]):
@@ -648,9 +646,10 @@ pub fn allocate_slots(
             continue;
         };
         let settled = |g: &Garrison, s: usize| g.slots[s].changed.is_none_or(|t| tick >= t + hold);
-        for (participants, point) in mounts {
-            let need = need(participants);
-            for &k in participants {
+        for aim in mounts {
+            let point = aim.point;
+            let need = need(aim.single_operator);
+            for &k in &aim.members {
                 let Some(current) = g.seats[k] else { continue };
                 if g.slots[current].slot.faces(point.xy(), facing) || !settled(g, current) {
                     continue;

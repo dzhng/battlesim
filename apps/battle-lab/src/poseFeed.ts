@@ -57,6 +57,7 @@ export function createPoseDriver(
         soldier?.soldier ?? 0,
         soldier?.slot ?? 0,
         soldier?.operatorMount ?? null,
+        soldier?.activeMount ?? null,
       );
       const bundle = resolved && installed.appearances.get(resolved.appearance)?.bundle;
       if (bundle?.kind !== "skinned") return null;
@@ -72,7 +73,7 @@ export function createPoseDriver(
  *  or a seen enemy's. */
 type Published = Pick<
   ObservationView["own"][number],
-  "memberIds" | "memberSlots" | "memberLeans" | "weaponPoses"
+  "memberIds" | "memberSlots" | "memberActiveMounts" | "memberLeans" | "weaponPoses"
 >;
 
 /** Mount records in the rules' mount order, from a unit's weapon poses. */
@@ -101,7 +102,7 @@ export class ObservationFeed {
   private fallen: FeedFallen[] = [];
   private corpses: ObservationView["corpses"] | null = null;
   /** Each soldier's launches so far, by soldier id. */
-  private readonly shots = new Map<number, number>();
+  private readonly shots = new Map<number, number[]>();
   private readonly launches = new LaunchTracker();
   private lastTick = -1;
   /** Each unit's mount records, by `sideKey`: an identified enemy's handle
@@ -143,8 +144,12 @@ export class ObservationFeed {
         const gap = this.lastTick >= 0 && observation.tick !== this.lastTick + 1;
         this.lastTick = observation.tick;
         const pub = effectPublication(observation, this.side, this.units);
-        for (const l of this.launches.note(pub, gap))
-          if (l.soldier !== null) this.shots.set(l.soldier, (this.shots.get(l.soldier) ?? 0) + 1);
+        for (const l of this.launches.note(pub, gap)) {
+          if (l.soldier === null) continue;
+          let counts = this.shots.get(l.soldier);
+          if (!counts) this.shots.set(l.soldier, (counts = []));
+          counts[l.mount] = (counts[l.mount] ?? 0) + 1;
+        }
       }
     }
     const units: FeedUnit[] = [];
@@ -172,26 +177,26 @@ export class ObservationFeed {
     const key = sideKey(pose.id, side, "blue");
     let mounts = this.mounts.get(key);
     if (!mounts) this.mounts.set(key, (mounts = []));
-    // Leans are discrete (out or in): read from the observation by soldier
-    // id, never interpolated; the driver eases the slide.
-    const lean = (id: number) => {
-      const k = published.memberIds.indexOf(id);
-      return k < 0 ? null : (published.memberLeans[k]?.at ?? null);
-    };
-    const slot = (id: number) => published.memberSlots[published.memberIds.indexOf(id)] ?? 0;
     return {
       id: pose.id,
       kind,
       side,
       position: pose.position,
       yaw: pose.yaw,
-      soldiers: pose.members.map((position, k) => ({
-        id: pose.memberIds[k],
-        slot: slot(pose.memberIds[k]),
-        position,
-        shots: this.shots.get(pose.memberIds[k]) ?? 0,
-        lean: lean(pose.memberIds[k]),
-      })),
+      soldiers: pose.members.map((position, k) => {
+        const id = pose.memberIds[k];
+        const publishedIndex = published.memberIds.indexOf(id);
+        const activeMount = published.memberActiveMounts[publishedIndex] ?? null;
+        return {
+          id,
+          slot: published.memberSlots[publishedIndex] ?? 0,
+          activeMount,
+          position,
+          shots: activeMount === null ? 0 : (this.shots.get(id)?.[activeMount] ?? 0),
+          // Leans are discrete: the driver eases the slide from this visible fact.
+          lean: published.memberLeans[publishedIndex]?.at ?? null,
+        };
+      }),
       mounts: mountsOf(published.weaponPoses, mounts),
       deployment: pose.deployment,
       pinned,
