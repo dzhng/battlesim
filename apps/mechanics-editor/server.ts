@@ -1,7 +1,8 @@
 import * as fs from "node:fs/promises";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
-import { dirname, join, relative, resolve as resolvePath } from "node:path";
+import { join, relative, resolve as resolvePath } from "node:path";
+import { FixturePublication } from "../fixture-publication/publication";
 import type { Plugin } from "vite";
 import { gameplayField, validateGameplayValue, valueAt } from "./src/fields";
 import {
@@ -22,7 +23,6 @@ type Validator = (
   changes?: MechanicsChange[],
 ) => Promise<string>;
 type FileState = { path: string; text: string; value: JsonObject };
-type Journal = { pid: number; files: MechanicsPreview["files"] };
 
 function matchesIntent(actual: Json | undefined, expected: Json): boolean {
   if (expected === null) return actual === null || actual === undefined;
@@ -193,63 +193,23 @@ export function nativeValidator(root: string): Validator {
 
 export class MechanicsStore {
   private queue: Promise<unknown> = Promise.resolve();
-  private journal: string;
+  private publication: FixturePublication;
   constructor(
     private root: string,
     private validate: Validator,
   ) {
-    this.journal = join(root, "throwaway/mechanics-editor-transaction.json");
+    this.publication = new FixturePublication(
+      root,
+      "mechanics-editor-transaction.json",
+      async () => new Set([...(await paths(root)), "fixtures/catalog.json"]),
+      (message, status) => new MechanicsError(message, status),
+    );
   }
 
   private serial<T>(run: () => Promise<T>): Promise<T> {
     const job = this.queue.then(run);
     this.queue = job.catch(() => {});
     return job;
-  }
-
-  private async replace(path: string, text: string, exclusive = false): Promise<void> {
-    const staged = join(this.root, "throwaway", `mechanics-${randomUUID()}.json`);
-    try {
-      await fs.writeFile(staged, text);
-      // Linking a complete journal acquires the lock without exposing a partial
-      // JSON write if the process exits before publication starts.
-      if (exclusive) await fs.link(staged, join(this.root, path));
-      else await fs.rename(staged, join(this.root, path));
-    } finally {
-      await fs.rm(staged, { force: true });
-    }
-  }
-
-  private async recover(): Promise<void> {
-    let journal: Journal;
-    try {
-      journal = JSON.parse(await fs.readFile(this.journal, "utf8"));
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-      throw error;
-    }
-    try {
-      process.kill(journal.pid, 0);
-      throw new MechanicsError(
-        "Another mechanics save is in progress. Try again when it finishes.",
-        409,
-      );
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
-    }
-    const allowed = new Set([...(await paths(this.root)), "fixtures/catalog.json"]);
-    for (const file of journal.files) {
-      if (!allowed.has(file.path))
-        throw new MechanicsError("Interrupted save has an unknown destination");
-      const current = await fs.readFile(join(this.root, file.path), "utf8");
-      if (current !== file.before && current !== file.after)
-        throw new MechanicsError(
-          `Outside edits to ${file.path} conflict with interrupted-save recovery`,
-          409,
-        );
-    }
-    for (const file of journal.files) await this.replace(file.path, file.before);
-    await fs.rm(this.journal);
   }
 
   private async read(): Promise<{ files: FileState[]; generated: string; revision: string }> {
@@ -268,8 +228,7 @@ export class MechanicsStore {
   }
 
   private async loaded() {
-    await fs.mkdir(dirname(this.journal), { recursive: true });
-    await this.recover();
+    await this.publication.recover();
     const state = await this.read();
     const game = state.files.find((file) => file.path === "fixtures/game.json")!;
     const documents = state.files.filter((file) => file !== game);
@@ -524,43 +483,15 @@ export class MechanicsStore {
           text: replacements.get("fixtures/catalog.json") ?? state.generated,
         },
       ]);
-      if (proposal.files.length) {
-        const journal: Journal = { pid: process.pid, files: proposal.files };
-        try {
-          await this.replace(relative(this.root, this.journal), JSON.stringify(journal), true);
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code === "EEXIST")
-            throw new MechanicsError("Another mechanics save is in progress", 409);
-          throw error;
-        }
-        try {
-          if ((await this.read()).revision !== draft.revision)
-            throw new MechanicsError("Fixtures changed before publication", 409);
-          for (const file of proposal.files) {
-            if ((await fs.readFile(join(this.root, file.path), "utf8")) !== file.before)
-              throw new MechanicsError(
-                `Outside edits to ${file.path} interrupted publication`,
-                409,
-              );
-            await this.replace(file.path, file.after);
-          }
-          const published = await this.read();
-          if (published.revision !== expectedRevision)
-            throw new MechanicsError(
-              "Fixtures changed during publication. Your outside edits were preserved.",
-              409,
-            );
-          state = published;
-        } catch (error) {
-          for (const file of proposal.files) {
-            const current = await fs.readFile(join(this.root, file.path), "utf8");
-            if (current === file.after) await this.replace(file.path, file.before);
-          }
-          await fs.rm(this.journal);
-          throw error;
-        }
-        await fs.rm(this.journal);
-      }
+      await this.publication.publish(proposal.files, async (phase) => {
+        const expected = phase === "before" ? draft.revision : expectedRevision;
+        if ((await this.read()).revision !== expected)
+          throw new MechanicsError(
+            "Fixtures changed during publication. Your outside edits were preserved.",
+            409,
+          );
+      });
+      state = await this.read();
       return {
         revision: state.revision,
         documents: state.files.map(({ path, value }) => ({ path, value })),
