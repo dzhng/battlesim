@@ -579,14 +579,13 @@ fn plan_own(
 ) {
     let rules = ctx.infantry;
     let here = s.position.xy();
-    side.searches += 1;
     s.planned_at = ctx.tick;
     s.path_revision = side.revision;
     let solids = around.known_near(
         (here + to) * 0.5,
         rules.window_m * std::f64::consts::FRAC_1_SQRT_2,
     );
-    s.path = final_leg(
+    let planned = final_leg(
         here,
         to,
         &solids,
@@ -594,8 +593,9 @@ fn plan_own(
         ctx.soldier_radius_m,
         rules.window_m,
         |p| ctx.world.traversable_at(p.x, p.y),
-    )
-    .unwrap_or_else(|| vec![to]);
+    );
+    side.searches += u64::from(planned.searched);
+    s.path = planned.path.unwrap_or_else(|| vec![to]);
 }
 
 /// Whether a route of his own is one his side has since learned is blocked

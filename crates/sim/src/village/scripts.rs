@@ -334,7 +334,7 @@ impl Script {
                 Some(&since) if u.service == ServiceStatus::Full && tick > since + s(10) => {
                     self.resting.remove(&u.id.0);
                     self.rejoined += 1;
-                    out.extend(self.attack_move(vec![u.id], village));
+                    out.extend(self.attack_move(vec![u.id], near(village, u.id.0)));
                 }
                 _ => {}
             }
@@ -381,7 +381,7 @@ fn hurt(u: &OwnUnit, rules: &Rules) -> bool {
     }
 }
 
-/// A resting spot within the supply's reach, spread by unit.
+/// Spread per-unit destinations around a shared point.
 fn near(p: [f64; 2], id: u32) -> [f64; 2] {
     let a = id as f64 * 1.3;
     [p[0] + 25.0 * libm::cos(a), p[1] + 25.0 * libm::sin(a)]

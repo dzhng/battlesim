@@ -16,13 +16,20 @@ pub const FINE_CELL_M: f64 = 0.5;
 /// when no way stays a full disc clear.
 const SLIDE_M: f64 = 0.05;
 
-/// A soldier's own route from `from` to `to`: A* on a `FINE_CELL_M` grid over
+/// A fine route and whether constructing it required an A* query.
+pub struct FinalLeg {
+    pub path: Option<Vec<V2>>,
+    pub searched: bool,
+}
+
+/// A soldier's own route from `from` to `to`: a proven clear connector, or
+/// A* on a `FINE_CELL_M` grid over
 /// a square window of side `window` centred between them, where a cell is
 /// open if his disc of `radius` at its centre meets none of `solids`, nor
 /// the disc of a soldier standing at any of `soldiers` (his size), and
 /// `walkable` allows its ground. A solid or a soldier he already overlaps is
 /// ignored, as walking ignores it. The route is string-pulled on the exact
-/// shapes and ends at `to`; the points follow `from`. `None` when `to` lies
+/// shapes and ends at `to`; the points follow `from`. The path is `None` when `to` lies
 /// outside the window or no way inside it reaches `to`.
 ///
 /// A soldier wedged between a wall and a man he touches has no step on the
@@ -37,9 +44,89 @@ pub fn final_leg(
     radius: f64,
     window: f64,
     walkable: impl Fn(V2) -> bool,
+) -> FinalLeg {
+    let n = (window / FINE_CELL_M).ceil().max(2.0) as usize;
+    let origin = (from + to) * 0.5 - v2(n as f64, n as f64) * (FINE_CELL_M / 2.0);
+    let grid = (n, origin);
+    if let Some(path) = direct_leg(from, to, solids, soldiers, radius, grid, &walkable) {
+        return FinalLeg {
+            path: Some(path),
+            searched: false,
+        };
+    }
+    let search = |slide| search(from, to, solids, soldiers, radius, grid, &walkable, slide);
+    FinalLeg {
+        path: search(0.0).or_else(|| (!soldiers.is_empty()).then(|| search(SLIDE_M)).flatten()),
+        searched: true,
+    }
+}
+
+/// A straight connector proven on the same exact bodies and fine ground
+/// cells as the search. An uncertain ground cell keeps the A* fallback.
+fn direct_leg(
+    from: V2,
+    to: V2,
+    solids: &[Obb2],
+    soldiers: &[V2],
+    radius: f64,
+    grid: (usize, V2),
+    walkable: impl Fn(V2) -> bool,
 ) -> Option<Vec<V2>> {
-    let search = |slide| search(from, to, solids, soldiers, radius, window, &walkable, slide);
-    search(0.0).or_else(|| (!soldiers.is_empty()).then(|| search(SLIDE_M)).flatten())
+    let (n, origin) = grid;
+    let cell = |p: V2| {
+        let d = (p - origin) * (1.0 / FINE_CELL_M);
+        (d.x.floor(), d.y.floor())
+    };
+    let (fx, fy) = cell(from);
+    let (tx, ty) = cell(to);
+    // Raw A* returns no waypoints within one cell; preserve that result.
+    if fx == tx && fy == ty {
+        return None;
+    }
+    if fx.min(tx) < 0.0 || fy.min(ty) < 0.0 || fx.max(tx) >= n as f64 || fy.max(ty) >= n as f64 {
+        return None;
+    }
+    let low = origin + v2(fx.min(tx) + 0.5, fy.min(ty) + 0.5) * FINE_CELL_M;
+    let high = origin + v2(fx.max(tx) + 0.5, fy.max(ty) + 0.5) * FINE_CELL_M;
+    let low = v2(low.x.min(from.x).min(to.x), low.y.min(from.y).min(to.y));
+    let high = v2(high.x.max(from.x).max(to.x), high.y.max(from.y).max(to.y));
+    let rectangle = Obb2 {
+        center: (low + high) * 0.5,
+        half: (high - low) * 0.5,
+        yaw: 0.0,
+    };
+    if solids
+        .iter()
+        .filter(|b| !b.contains(from, radius))
+        .any(|b| {
+            let grown = Obb2 {
+                half: b.half + v2(radius, radius),
+                ..*b
+            };
+            grown.overlaps(&rectangle)
+        })
+    {
+        return None;
+    }
+    let apart = 2.0 * radius;
+    if soldiers
+        .iter()
+        .filter(|q| (**q - from).length() >= apart && (**q - to).length() >= apart)
+        .any(|q| rectangle.distance(*q) < apart)
+    {
+        return None;
+    }
+    // A conservative rectangle includes every grid step and both orthogonal
+    // cells at each diagonal corner; a blocked cell falls back to searching.
+    for y in fy.min(ty) as usize..=fy.max(ty) as usize {
+        for x in fx.min(tx) as usize..=fx.max(tx) as usize {
+            let center = origin + v2(x as f64 + 0.5, y as f64 + 0.5) * FINE_CELL_M;
+            if !walkable(center) {
+                return None;
+            }
+        }
+    }
+    Some(vec![to])
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -49,12 +136,11 @@ fn search(
     solids: &[Obb2],
     soldiers: &[V2],
     radius: f64,
-    window: f64,
+    grid: (usize, V2),
     walkable: &impl Fn(V2) -> bool,
     slide: f64,
 ) -> Option<Vec<V2>> {
-    let n = (window / FINE_CELL_M).ceil().max(2.0) as usize;
-    let origin = (from + to) * 0.5 - v2(n as f64, n as f64) * (FINE_CELL_M / 2.0);
+    let (n, origin) = grid;
     let cell_of = |p: V2| -> Option<usize> {
         let d = (p - origin) * (1.0 / FINE_CELL_M);
         let (i, j) = (d.x.floor(), d.y.floor());
@@ -270,7 +356,9 @@ mod tests {
         // 0.3 m disc on the 0.5 m grid wherever it falls, off his straight line.
         let solids = [wall(0.0, -20.0, 9.4), wall(0.0, 10.6, 20.0)];
         let (from, to) = (v2(-8.0, 0.0), v2(8.0, 0.0));
-        let route = final_leg(from, to, &solids, &[], 0.3, 40.0, |_| true).expect("a way through");
+        let route = final_leg(from, to, &solids, &[], 0.3, 40.0, |_| true)
+            .path
+            .expect("a way through");
         assert_eq!(route.last(), Some(&to));
         assert!(clear(from, &route, &solids, 0.3));
         assert!(
@@ -291,7 +379,9 @@ mod tests {
         };
         let man = v2(0.0, -0.5);
         let (from, to) = (v2(-0.5, 0.3), v2(2.0, -0.5));
-        let route = final_leg(from, to, &[face], &[man], 0.3, 12.0, |_| true).expect("a way");
+        let route = final_leg(from, to, &[face], &[man], 0.3, 12.0, |_| true)
+            .path
+            .expect("a way");
         let mut a = from;
         for &b in &route {
             let ab = b - a;
@@ -315,6 +405,7 @@ mod tests {
         let to = v2(947.9, 740.0);
         let man = v2(947.9, 744.0);
         let route = final_leg(from, to, &[wall], &[man], 0.3, 40.0, |_| true)
+            .path
             .expect("a way round the standing man");
         assert_eq!(route.last(), Some(&to));
         assert!(clear(from, &route, &[wall], 0.3), "{route:?}");
@@ -342,6 +433,7 @@ mod tests {
         let from = man + v2(0.36, 0.48) * ((0.6 + 1e-6) / 0.6);
         let to = v2(58.51, 30.64);
         let route = final_leg(from, to, &[wall], &[man], 0.3, 40.0, |_| true)
+            .path
             .expect("a way round the man in place");
         assert_eq!(route.last(), Some(&to));
         assert!(clear(from, &route, &[wall], 0.3), "{route:?}");
@@ -362,7 +454,8 @@ mod tests {
         assert_eq!(
             final_leg(v2(-8.0, 0.0), v2(8.0, 0.0), &solids, &[], 0.3, 40.0, |_| {
                 true
-            }),
+            })
+            .path,
             None
         );
     }
