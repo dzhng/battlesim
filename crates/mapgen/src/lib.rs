@@ -371,13 +371,27 @@ pub fn generate_map(
     rules_json: &str,
 ) -> CompileOutcome {
     let result = generate_with_plan(request_json, presets_json, descriptors_json, rules_json)
-        .map(|(_, compiled)| compiled);
+        .map(|(_, compiled)| compiled)
+        .map_err(|failure| failure.diagnostics);
     match result {
         Ok(result) => CompileOutcome::Ok {
             result: Box::new(result),
         },
         Err(diagnostics) => CompileOutcome::Error { diagnostics },
     }
+}
+
+/// Where the shared generation pipeline refused the requested seed.
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GenerationStage {
+    Generation,
+    Compile,
+}
+#[derive(Debug)]
+pub struct GenerationFailure {
+    pub stage: GenerationStage,
+    pub diagnostics: Vec<Diagnostic>,
 }
 
 /// Developer inspection and normal generation share one generation/lowering pipeline.
@@ -387,33 +401,54 @@ pub fn generate_with_plan(
     presets_json: &str,
     descriptors_json: &str,
     rules_json: &str,
-) -> Result<(MapPlan, GeneratedMap), Vec<Diagnostic>> {
-    generate(request_json, presets_json, descriptors_json, rules_json).and_then(
-        |(request, plan, catalogue, physical_inputs_hash)| {
-            let request = CompileRequest::generated(&request, plan);
-            let mut compiled = lower(&request, &catalogue)?;
-            // Borrow the large plan rather than materializing a second JSON tree.
-            #[derive(Serialize)]
-            struct GeneratedConfiguration<'a> {
-                physical_inputs_hash: &'a str,
-                plan: &'a MapPlan,
-            }
-            compiled.identity.config_hash =
-                contract::identity::json_hash(&GeneratedConfiguration {
-                    physical_inputs_hash: &physical_inputs_hash,
-                    plan: &request.plan,
-                })
-                .map_err(|error| {
-                    vec![Diagnostic {
-                        code: DiagnosticCode::InvalidPhysicalRules,
-                        feature: None,
-                        location: "$.rules".into(),
-                        message: error.to_string(),
-                    }]
-                })?;
-            Ok((request.plan, compiled))
-        },
-    )
+) -> Result<(MapPlan, GeneratedMap), GenerationFailure> {
+    let (request, plan, catalogue, physical_inputs_hash) =
+        generate(request_json, presets_json, descriptors_json, rules_json).map_err(
+            |diagnostics| {
+                // Physical certification lowers the preliminary map too. Its part/bay allowances
+                // have the compiler's named locations even when that lower precedes final generation.
+                let compiled = diagnostics.iter().any(|d| {
+                    d.code == DiagnosticCode::ComplexityLimit
+                        && matches!(
+                            d.location.as_str(),
+                            "$.limits.max_authored_parts" | "$.limits.max_bay_positions"
+                        )
+                });
+                GenerationFailure {
+                    stage: if compiled {
+                        GenerationStage::Compile
+                    } else {
+                        GenerationStage::Generation
+                    },
+                    diagnostics,
+                }
+            },
+        )?;
+    let request = CompileRequest::generated(&request, plan);
+    let mut compiled = lower(&request, &catalogue).map_err(|diagnostics| GenerationFailure {
+        stage: GenerationStage::Compile,
+        diagnostics,
+    })?;
+    // Borrow the large plan rather than materializing a second JSON tree.
+    #[derive(Serialize)]
+    struct GeneratedConfiguration<'a> {
+        physical_inputs_hash: &'a str,
+        plan: &'a MapPlan,
+    }
+    compiled.identity.config_hash = contract::identity::json_hash(&GeneratedConfiguration {
+        physical_inputs_hash: &physical_inputs_hash,
+        plan: &request.plan,
+    })
+    .map_err(|error| GenerationFailure {
+        stage: GenerationStage::Compile,
+        diagnostics: vec![Diagnostic {
+            code: DiagnosticCode::InvalidPhysicalRules,
+            feature: None,
+            location: "$.rules".into(),
+            message: error.to_string(),
+        }],
+    })?;
+    Ok((request.plan, compiled))
 }
 
 pub fn generate_plan_json(

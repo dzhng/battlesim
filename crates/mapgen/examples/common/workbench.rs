@@ -8,6 +8,8 @@ use mapgen::layout::PresetDefinitions;
 use mapgen::{Diagnostic, DiagnosticCode, MapPlan};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+#[path = "workbench_fields.rs"]
+mod fields;
 use sim::map_analysis::{self as sight, AnalysisPolicy};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -160,125 +162,6 @@ fn checked(inputs: &Inputs) -> Result<Checked, Vec<Diagnostic>> {
         analysis,
     })
 }
-fn fields(inputs: &Inputs) -> Vec<Value> {
-    fn visit(value: &Value, path: &mut Vec<String>, document: &str, out: &mut Vec<Value>) {
-        match value {
-            Value::Object(rows) => {
-                for (key, value) in rows {
-                    path.push(key.clone());
-                    visit(value, path, document, out);
-                    path.pop();
-                }
-            }
-            Value::Array(rows) => {
-                for (index, value) in rows.iter().enumerate() {
-                    path.push(index.to_string());
-                    visit(value, path, document, out);
-                    path.pop();
-                }
-            }
-            Value::Null => {}
-            _ => {
-                let head = path.first().map(String::as_str).unwrap_or("");
-                let key = path.last().map(String::as_str).unwrap_or("");
-                let numeric = value.is_number() || value.is_boolean();
-                let role = if document == "defaults" {
-                    match head {
-                        "limits" => "work",
-                        "analysis" => "analysis",
-                        _ => "identity",
-                    }
-                } else if head == "revision" {
-                    "identity"
-                } else if head == "terrain" {
-                    "physical"
-                } else if head == "fairness"
-                    || head == "transit"
-                    || head == "approach"
-                    || key == "urban_share_max"
-                    || key == "share_tolerance"
-                    || (head == "open_country" && path.get(1).is_some_and(|p| p == "fairness"))
-                {
-                    "validation"
-                } else if head == "retries"
-                    || key.contains("attempt")
-                    || key.contains("candidates")
-                    || key.ends_with("tries")
-                    || key.ends_with("rounds")
-                    || key == "placed_max"
-                    || key == "walk_m"
-                    || key == "owner_step_m"
-                {
-                    "work"
-                } else {
-                    "construction"
-                };
-                let editable = numeric
-                    && if document == "defaults" {
-                        head == "limits" || head == "analysis"
-                    } else {
-                        head != "revision" && head != "terrain"
-                    };
-                let group = if document == "presets"
-                    && (matches!(head, "districts" | "classes" | "types")
-                        || (head == "open_country" && path.len() > 2))
-                {
-                    path.iter().take(2).cloned().collect::<Vec<_>>().join(".")
-                } else {
-                    head.to_string()
-                };
-                let id = format!("{document}.{}", path.join("."));
-                let weights = path
-                    .iter()
-                    .any(|part| part == "mix" || part == "weight" || part == "weights");
-                let percent = key.contains("chance")
-                    || key.contains("share")
-                    || key == "min_median_open"
-                    || (path.iter().any(|p| p == "fairness") && matches!(key, "rel" | "abs"));
-                let semantic_key = if key.parse::<usize>().is_ok() {
-                    path.iter().rev().nth(1).map(String::as_str).unwrap_or(key)
-                } else {
-                    key
-                };
-                let unit = if weights {
-                    "weight"
-                } else if percent {
-                    "%"
-                } else if semantic_key.ends_with("_m2") {
-                    "m²"
-                } else if semantic_key.ends_with("_m") {
-                    "m"
-                } else if semantic_key.ends_with("_s") {
-                    "s"
-                } else if semantic_key.ends_with("_kmh") {
-                    "km/h"
-                } else if semantic_key.ends_with("_deg") {
-                    "degrees"
-                } else {
-                    "stored value"
-                };
-                let label = if key == "0" || key == "1" {
-                    format!(
-                        "{} {}",
-                        semantic_key.replace('_', " "),
-                        if key == "0" { "minimum" } else { "maximum" }
-                    )
-                } else {
-                    key.replace('_', " ")
-                };
-
-                out.push(json!({"id":id,"document":document,"path":path,"group":group,"label":label,"description":format!("{role} policy for {group}; changes every generated use of this rule."),"unit":unit,"role":role,"editable":editable}));
-            }
-        }
-    }
-    let mut out = Vec::new();
-    for (document, text) in [("presets", &inputs.presets), ("defaults", &inputs.defaults)] {
-        if let Ok(value) = serde_json::from_str::<Value>(text) {
-            visit(&value, &mut Vec::new(), document, &mut out);
-        }
-    }
-    out
-}
 #[derive(Serialize, Deserialize)]
 struct Artifact {
     inputs: Inputs,
@@ -357,9 +240,9 @@ fn generated(inputs: Inputs, choice: Choice, directory: PathBuf) -> Result<Value
         &c.resolved_rules,
     ) {
         Ok(value) => value,
-        Err(diagnostics) => {
+        Err(failure) => {
             return finish(
-                json!({"status":"refused","choice":choice,"stage":"generation","diagnostics":diagnostics}),
+                json!({"status":"refused","choice":choice,"stage":failure.stage,"diagnostics":failure.diagnostics}),
             )
         }
     };
@@ -441,7 +324,7 @@ pub fn run(request: Request) -> Result<Value, String> {
         Request::Validate { inputs } => {
             let diagnostics = checked(&inputs).err().unwrap_or_default();
             Ok(
-                json!({"status":if diagnostics.is_empty(){"valid"}else{"invalid"},"diagnostics":diagnostics,"fields":fields(&inputs)}),
+                json!({"status":if diagnostics.is_empty(){"valid"}else{"invalid"},"diagnostics":diagnostics,"fields":fields::describe(&inputs.presets,&inputs.defaults)}),
             )
         }
         Request::Generate {
