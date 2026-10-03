@@ -4,7 +4,7 @@ import type { SimReply } from "../sim/protocol";
 import type {
   PrepareDiagnostic,
   PreparedBattle,
-  PrepareMessage,
+  PreparationMessage,
   PrepareReply,
   PrepareStage,
   RefusalStage,
@@ -35,7 +35,7 @@ export interface Preparation {
 }
 
 export function prepareBattle(
-  message: PrepareMessage,
+  message: PreparationMessage,
   onStage: (stage: PrepareStage) => void,
 ): Preparation {
   const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });

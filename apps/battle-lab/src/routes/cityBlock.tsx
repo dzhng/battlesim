@@ -197,7 +197,7 @@ export default function CityBlock() {
 }
 
 function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedTown }) {
-  const world = useStaticWorld(generated.map);
+  const world = useStaticWorld(generated.map, GAME_RULES);
   // The map's buildings: every one a template reference.
   const drawn = useMapBuildings(world);
   // The catalog, and the kits this town's buildings draw from.

@@ -46,6 +46,12 @@ export interface PreparationResult {
   world: PreparedWorld;
 }
 
+/** Restore the captured world. The battle's replay constructor still checks
+ *  the engine, scenario and rules identities before accepting commands. */
+export function prepareReplay(wasm: PreparationModule, battle: PreparedBattle): PreparationResult {
+  return { ...battle, world: wasm.PreparedWorld.from_scenario(battle.scenario) };
+}
+
 /** The saved catalogue, as an adapter reaches it (`browser.ts`, `node.ts`). */
 export interface SavedMaps {
   loadMap(id: string): ResolvedMap | Promise<ResolvedMap>;

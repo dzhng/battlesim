@@ -15,7 +15,7 @@ import {
   type MapType,
 } from "@web/maps/source";
 import { askedChoice, battleHref, savedBattleHref } from "./battleLinks";
-import { readSavedReplay, replayRoute } from "./replayFile";
+import { useSavedReplay, replayRoute } from "./replayFile";
 import { SoundControls } from "./SoundControls";
 
 interface Entry {
@@ -167,10 +167,11 @@ function NewBattle() {
 
 export function MainMenu() {
   const [developer, setDeveloper] = useState(false);
-  const [entries] = useState<Entry[]>(() => [
+  const [savedReplay] = useSavedReplay();
+  const entries: Entry[] = [
     ...savedBattles(),
-    { label: "Watch replay", href: replayRoute(readSavedReplay()), note: "Load a saved battle." },
-  ]);
+    { label: "Watch replay", href: replayRoute(savedReplay.file), note: "Load a saved battle." },
+  ];
   return (
     <main className="menu">
       <div className="hud-panel menu-body">

@@ -7,29 +7,32 @@ import init, * as wasm from "@wasm/game_wasm.js";
 import { loadEncounter, loadMap } from "../../maps/browser";
 import { workerAuthority, type WorkerScope } from "../sim/workerAuthority";
 import type { Authority } from "../sim/authority";
-import { PreparationRefused, prepare } from "./prepare";
+import { PreparationRefused, prepare, prepareReplay } from "./prepare";
 import type { PrepareWorkerRequest } from "./protocol";
 
 const scope = self as unknown as WorkerScope;
 let authority: Authority | null = null;
 self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => {
-  if (event.data.type !== "prepare") {
+  if (event.data.type !== "prepare" && event.data.type !== "prepare-replay") {
     authority?.handle(event.data);
     return;
   }
-  const { request, documents, stress } = event.data;
+  const message = event.data;
   void init()
     .then(async ({ memory }) => {
-      const { world, scenario, report } = await prepare(
-        wasm,
-        memory,
-        request,
-        documents,
-        { loadMap, loadEncounter },
-        (stage) => self.postMessage({ type: "stage", stage }),
-        undefined,
-        stress,
-      );
+      const { world, scenario, report } =
+        message.type === "prepare-replay"
+          ? prepareReplay(wasm, message.battle)
+          : await prepare(
+              wasm,
+              memory,
+              message.request,
+              message.documents,
+              { loadMap, loadEncounter },
+              (stage) => self.postMessage({ type: "stage", stage }),
+              undefined,
+              message.stress,
+            );
       authority = workerAuthority(scope, async () => ({
         memory,
         createBattle: (scenario, seed) => world.into_battle(scenario, seed),

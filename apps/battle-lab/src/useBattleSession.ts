@@ -131,7 +131,7 @@ export function useBattleSession({
     () => JSON.parse(scenario) as { map: unknown; rules: ScenarioRules },
     [scenario],
   );
-  const world = useStaticWorld(map);
+  const world = useStaticWorld(map, rules);
   // Combat effects: every decoded publication noted (the frame dedupes),
   // drawn at each animation frame's presentation clock.
   const effects = useMemo(() => createEffectFrame(rules.tick_hz), [rules.tick_hz]);
