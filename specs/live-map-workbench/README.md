@@ -4,9 +4,9 @@ A local developer tool for tuning generation and numerical map-validation policy
 
 ## Next Agent Prompt
 
-Status: implementing, 2026-10-03. The typed report contract and analysis/admission defaults are committed. Ordinary Play recovery is integrated; its focused preparation/menu tests pass, while real worker fallback, exact-path parity and startup headroom remain unverified. Native policy/report and local publication passes are concurrent in isolated checkouts. The editor is drafted and its coalescing/cancel/selection/unfinished-input tests pass.
+Status: final integration, 2026-10-03. Native generation/validation policy, report, publication and ordinary Play are integrated. Existing paired native/Wasm and exact preparation gates pass without re-blessing records. Real ordinary refusal→fallback is playable in about 6.2 seconds; exhausting the eight-second allowance→real fallback is playable in about 12.8 seconds. The optimized real workbench journey and isolated real-native save/publication proof pass.
 
-Next pickup: integrate native report and local store, then connect and verify the real `/map-workbench` journey. Prioritize source-policy default parity, retained-artifact lifetime during refusal/sample, exact publication/export, and real player fallback. Follow with screenshots and measured sight cost. Automatic sight stays off until additional browser-visible cost is proven below 500 ms. Full check and verify run once after all slices finish. Exact seeded links and captured replay remain live contracts. Keep this handoff compact; evidence belongs in slice files and ignored `throwaway`.
+Next pickup: finish the independent reviews' artifact-retention, crop-capability and readable native-caption fixes, recapture every desktop/narrow state, then run complete check/verify once and close. Displayed accepted/baseline IDs must be explicit retained inputs to generation; a superseded successful job must not evict a displayed plan. Samples are separate temporary artifacts and missing receipts are explicit. Sight remains on demand: actual publication cost was about 310/475/865 ms on representative Small/Medium/Large, and 1.74 seconds for denser Large sampling. Use a fresh visual review after fixes. Exact seeded links and captured replay remain live contracts. Evidence and logs remain in ignored `throwaway`.
 
 - [ ] [01: inputs, source-policy ownership and capacity](slices/01-policy.md)
 - [ ] [02: native report and source publication](slices/02-report.md)
@@ -33,7 +33,7 @@ The added player requirement is ordinary Play → admitted battle. Keep exact pr
 - `sim::map_analysis` owns the sampled sight calculation extracted from the shared example. Reports/tests/tool call it; no JavaScript ray casts.
 - The local Vite API owns source snapshots, native process/artifact lifetime and publication. Browser requests never name file paths. Reuse/extract fixture-publication primitives from mechanics without inheriting its unit store.
 - Source revision, tested-input fingerprint, preset revision and map/config hashes are distinct. Preserve exact tested documents with exported reports. Manage revision labels in the tool; the user does not edit them.
-- Native generation returns/retains plan and compiled map from one invocation. Inspecting a crop, selecting a feature or panning never regenerates unchanged settings. Retain at most the admitted saved baseline, admitted edited draft, current job and latest refusal receipt; clean artifacts when their session ends. Samples export each tested receipt before replacing its geometry, then regenerate the selected draft to restore inspection.
+- Native generation returns/retains plan and compiled map from one invocation. Inspecting a supported crop, selecting a feature or panning never regenerates unchanged settings. The caller names at most its displayed accepted plan and saved baseline as retained artifacts; the store keeps those plus one current job and a small latest refusal receipt. Samples own a separate temporary artifact and export each tested receipt before replacing it; they never evict displayed geometry. Clean artifacts when their session ends.
 - One active generation and one replaceable latest pending draft. Background sample work yields to an edit through cancellation, keeping completed outcomes and marking unfinished requests. Leaving terminates owned processes/workers, not merely their callbacks.
 
 ## Review and verification
@@ -42,7 +42,7 @@ Each slice owns its fastest behavioral gate and a runnable route/probe. Initial 
 
 For each visual slice, compare-screenshots judges before/after and the native inspector reference; screenshot-critique is the last visual acceptance check using a fresh unprimed agent; preview-shots shows the user a compact set. Human review is non-blocking for reversible presentation. Use normal developer tool surfaces for the workbench; apply game-ui to player loading/menu/recovery. Evidence and probes stay in ignored throwaway. Source references and decision artifacts belong here; runtime captures do not.
 
-A final full check and verify happen once at slice 06. Workbench/report/preparation policy requires no played balance report because no battle rule changes. Do not count a compiled route or passing DOM test as visual verification. Full gates retain inherited failures rather than weakening requirements.
+A final full check and verify happen once at slice 06. Workbench/report/preparation policy requires no played balance report because no battle rule changes. Do not count a compiled route or passing DOM test as visual verification. Full gates retain inherited failures rather than weakening requirements. The required CLI review was attempted but its configured model was unsupported by the account; record that limitation and use fresh independent app agents for the substantive and visual review, without claiming a successful CLI verdict.
 
 ## Slice graph and delegated decisions
 
