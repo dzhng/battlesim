@@ -42,6 +42,12 @@ Independent source review found that a witness near an edge could cast its isola
 
 The computer restart preserved source and ignored evidence in the existing worktree; old processes did not survive. The generator's README owns the proof's current assumptions and limits. No candidate geometry is integrated or accepted yet.
 
+### Current openness direction
+
+After reviewing a current Open Small seed-1 layout overview, the user selects a 50% floor for the typical view and asks to stop fine tuning before the game is playable. [M25](../../procedural-maps.md#closed-decisions) owns that floor; it supersedes the earlier bare-dependent median target. This is the median across sampled open-ground positions, not a minimum at every position, an average visible-area fraction or the combined published fog of a starting column. The simulation-backed sight report owns the calculation. Report enclosure as diagnostic information; preserve the main clear firing lanes as a strict geometry check.
+
+The Preview overview is a frozen row-order placement trial in the coverage worktree's ignored `throwaway/c54-current-preview/`, with its request, plan and source receipt. It shows layout geometry rather than rendered art or fog. The sorting trial was removed; the current near-first candidate retains the independently verified exact-corner coverage correction. The requested 50% floor admits its measured typical openness without further placement tuning. Current main integration and final geometry/access/visual identities still require new evidence.
+
 ## What remains to judge
 
 The historical report supports only its sampled map and standardized starts. The actual openings establish visible forest cuts for two candidate seeds. Neither admits M24/M25 globally or proves final visual variety. After the coverage fix, C54 must judge the new physical geometry and actual published fog against both references, including closer rural landmarks. The ground lane already records rare hedgerows and fields that can read as a flat outlined carpet. Do not increase density by assumption or treat low cover as a tall sight blocker.
