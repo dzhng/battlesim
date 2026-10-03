@@ -34,6 +34,7 @@ export interface Feature {
   label: string;
 }
 export interface RunRequest {
+  purpose: "preview" | "sample";
   draft: Draft;
   choice: MapChoice;
   crop?: string;
