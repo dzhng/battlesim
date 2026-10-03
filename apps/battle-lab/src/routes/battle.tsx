@@ -1,16 +1,13 @@
 // /battle: a prepared battle, in the same battle view the village plays in.
-// The address says which (`battleLinks.ts`): a generated map by type, size
-// and seed (what the main menu starts), a saved map and its encounter, or
-// the saved replay of either. A preparation worker resolves the map through
-// the one map owner and lays the encounter on it; a loading screen covers
-// the wait, and a refusal says which stage refused and never plays anything
-// else in its place.
+// Exact addresses retain one requested battle. Ordinary Play selects an admitted
+// preparation before publishing its exact address and starting its worker.
 import { useEffect, useMemo, useRef, useState } from "react";
 import config from "@fixtures/generated-battle.json";
 import recipes from "@fixtures/encounters.json?raw";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
 import { prepareBattle, PreparationFailed, type PreparedSession } from "@web/battle/prepare/client";
+import { admitBattle, type Admission } from "@web/battle/prepare/admission";
 import type {
   PrepareBattleRequest,
   PrepareStage,
@@ -18,7 +15,7 @@ import type {
 } from "@web/battle/prepare/protocol";
 import { listMaps } from "@web/maps/catalogue";
 import { generationRequest, type MapChoice } from "@web/maps/source";
-import { askedBattle, menuHref, type AskedBattle } from "../battleLinks";
+import { askedBattle, menuHref, preparedBattleHref, type AskedBattle } from "../battleLinks";
 import { BattleClock, objectiveStatus } from "../battleStatus";
 import { BattleView, type BattleLoadStage } from "../BattleView";
 import { LoadingScreen, type LoadingFailure, type LoadingStage } from "../LoadingScreen";
@@ -94,7 +91,7 @@ function failureOf(request: PrepareBattleRequest, error: unknown, replay: boolea
     message,
     advice:
       choice && (stage === "map" || stage === "encounter")
-        ? "Deploy again from the menu for another map."
+        ? "This exact seed remains in the link. Start a new battle from the main menu."
         : undefined,
     details,
   };
@@ -141,7 +138,12 @@ function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "repla
       : {
           map_source: {
             kind: "generated",
-            request: generationRequest(wasm, a.map, GENERATOR, config.limits),
+            request: generationRequest(
+              wasm,
+              { ...a.map, seed: a.kind === "play" ? "0" : a.map.seed },
+              GENERATOR,
+              config.limits,
+            ),
           },
           ...rest,
         };
@@ -154,7 +156,7 @@ function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "repla
         failure={{ message: "The battle could not be prepared.", details: [request.error] }}
       />
     );
-  return <PreparedBattleView request={request} />;
+  return <PreparedBattleView request={request} play={asked.kind === "play"} />;
 }
 
 /** /battle?replay=saved: watch the saved battle; input is off. */
@@ -187,55 +189,101 @@ function SavedReplay() {
 function PreparedBattleView({
   request,
   replay,
+  play = false,
   onLoadReplay,
 }: {
   request: PrepareBattleRequest;
+  play?: boolean;
   /** A saved battle on this request, to watch. */
   replay?: PreparedReplayFile;
   onLoadReplay?: (file: PreparedReplayFile) => void;
 }) {
   const [stage, setStage] = useState<Stage>("map");
   const [prepared, setPrepared] = useState<PreparedSession | null>(null);
+  const [loadingRequest, setLoadingRequest] = useState(request);
   const [failure, setFailure] = useState<LoadingFailure | null>(null);
   const marks = useRef<StartupMarks>({});
+  const admission = useRef<Admission | null>(null);
 
-  // One request, one worker. Leaving (or another request) closes it, and a
-  // closed request's answer is never delivered.
+  // Preparation owns the candidate workers and, after admission, the winner.
   useEffect(() => {
     setPrepared(null);
+    setLoadingRequest(request);
     setFailure(null);
     setStage("map");
     marks.current = {};
-    const preparation = prepareBattle(
-      replay
-        ? { type: "prepare-replay", battle: replay.battle }
-        : {
-            type: "prepare",
-            request,
-            documents: { rules: JSON.stringify(GAME_RULES), presets, templates, recipes },
+    const documents = { rules: JSON.stringify(GAME_RULES), presets, templates, recipes };
+    const selection = play
+      ? admitBattle(
+          {
+            candidate: (seed) => {
+              if (request.map_source.kind !== "generated")
+                throw new Error("Play requires generated preferences");
+              return {
+                ...request,
+                map_source: { kind: "generated", request: { ...request.map_source.request, seed } },
+              };
+            },
+            documents,
+            fallback: {
+              ...request,
+              map_source: { kind: "catalogue", id: config.admission.fallback.map },
+              recipe_id: config.admission.fallback.recipe,
+            },
+            policy: config.admission,
+            onRequest: setLoadingRequest,
           },
-      setStage,
-    );
+          setStage,
+        )
+      : null;
+    const preparation =
+      selection ??
+      prepareBattle(
+        replay
+          ? { type: "prepare-replay", battle: replay.battle }
+          : { type: "prepare", request, documents },
+        setStage,
+      );
+    admission.current = selection;
     preparation.battle.then(
       (battle) => {
+        if (play) window.history.replaceState(null, "", preparedBattleHref(battle.report.request));
         marks.current.prepared = performance.now();
         setStage("world");
         setPrepared(battle);
       },
-      (error: unknown) => setFailure(failureOf(request, error, !!replay)),
+      (error: unknown) =>
+        setFailure(
+          play
+            ? {
+                message: "The battle could not be prepared.",
+                advice: "Return to the menu and try again.",
+                details: admission.current?.attempts.flatMap((a) =>
+                  a.failure?.diagnostics.length
+                    ? a.failure.diagnostics.map((d) => `${d.code} at ${d.location}: ${d.message}`)
+                    : [a.failure?.message ?? a.outcome],
+                ) ?? [String(error)],
+              }
+            : failureOf(request, error, !!replay),
+        ),
     );
     return () => preparation.cancel();
-  }, [request, replay]);
+  }, [request, replay, play]);
 
-  const subject = subjectOf(request);
+  const activeRequest = prepared?.report.request ?? loadingRequest;
+  const subject = subjectOf(activeRequest);
   const cover = (
     <LoadingScreen
       title={replay ? "Loading replay" : "Deploying"}
       subject={subject}
-      stages={stagesOf(request)}
+      stages={stagesOf(activeRequest)}
       current={stage}
       failure={failure}
-      back={menuHref(generatedChoice(request))}
+      back={menuHref(
+        play && !prepared && request.map_source.kind === "generated"
+          ? { type: request.map_source.request.type, size: request.map_source.request.size }
+          : generatedChoice(activeRequest),
+      )}
     />
   );
   const view = useMemo(
@@ -271,7 +319,7 @@ function PreparedBattleView({
       fixture="generated"
       prepared={prepared}
       scenario={prepared.scenario}
-      seed={request.battle_seed}
+      seed={activeRequest.battle_seed}
       replay={replay?.replay}
       camera={view.camera}
       cameraConfig={view.cameraConfig}
@@ -314,6 +362,7 @@ function PreparedBattleView({
         /** What the preparation worker made: the request, the map's identity
          *  and counts, the planned encounter and what each stage cost. */
         prepared: () => prepared.report,
+        admission: () => admission.current?.attempts ?? [],
         /** When each loading stage finished, ms since navigation started. */
         startup: () => ({ ...marks.current }),
         exportReplay: () => exportReplay(session),

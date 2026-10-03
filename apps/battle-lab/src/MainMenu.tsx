@@ -6,15 +6,8 @@
 import { useState } from "react";
 import config from "@fixtures/generated-battle.json";
 import { listMaps } from "@web/maps/catalogue";
-import {
-  canonicalSeed,
-  MAP_SIZES,
-  MAP_TYPES,
-  newSeed,
-  type MapSize,
-  type MapType,
-} from "@web/maps/source";
-import { askedChoice, battleHref, savedBattleHref } from "./battleLinks";
+import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/source";
+import { askedChoice, battleHref, playHref, savedBattleHref } from "./battleLinks";
 import { useSavedReplay, replayRoute } from "./replayFile";
 import { SoundControls } from "./SoundControls";
 
@@ -135,15 +128,12 @@ function Choice<T extends string>({
   );
 }
 
-/** A new battle: the map's type and size, and the order to deploy. Every
- *  visit to the menu is a new map: the seed is drawn here and never shown.
- *  It rides in the battle's address, which is how a battle is shared or
- *  returned to, and an address that already names one is kept. */
+/** Ordinary Play selects a battlefield after deployment. An explicit seed
+ * carried by a menu address still asks for that exact battle. */
 function NewBattle() {
   const [asked] = useState(() => askedChoice(window.location.search));
   const [type, setType] = useState<MapType>(asked.type ?? "mixed");
   const [size, setSize] = useState<MapSize>(asked.size ?? "small");
-  const [seed] = useState(() => canonicalSeed(asked.seed ?? "") ?? newSeed());
   return (
     <section className="menu-battle" aria-label="New battle">
       <h2>Skirmish</h2>
@@ -157,7 +147,7 @@ function NewBattle() {
       <a
         className="menu-card menu-deploy"
         data-testid="menu-deploy"
-        href={battleHref({ type, size, seed })}
+        href={asked.seed ? battleHref({ type, size, seed: asked.seed }) : playHref({ type, size })}
       >
         <span className="menu-card-label">Deploy</span>
         <span className="menu-card-note">Attack the defended town as blue.</span>

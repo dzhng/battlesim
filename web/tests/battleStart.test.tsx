@@ -5,9 +5,10 @@
 import { createElement } from "react";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { askedBattle, battleHref } from "@apps/battle-lab/src/battleLinks";
+import { askedBattle, battleHref, preparedBattleHref } from "@apps/battle-lab/src/battleLinks";
 import { MainMenu, savedBattles } from "@apps/battle-lab/src/MainMenu";
 import { listMaps } from "../src/maps/catalogue";
+import { admitBattle } from "../src/battle/prepare/admission";
 import { PreparationFailed, prepareBattle } from "../src/battle/prepare/client";
 import type {
   PrepareBattleRequest,
@@ -67,19 +68,20 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
   }
 });
 
-test("the menu deploys the chosen type and size on a seed it draws and never shows", () => {
+test("ordinary menu Play asks for the chosen type and size without pinning a seed", () => {
   const menu = render(createElement(MainMenu));
   const deploy = () => menu.getByTestId("menu-deploy").getAttribute("href")!;
-  // It opens on a fresh seed, already a battle.
-  const seed = new URLSearchParams(deploy().split("?")[1]).get("seed")!;
-  expect(canonicalSeed(seed)).toBe(seed);
-  expect(deploy()).toBe(`/battle?type=mixed&size=small&seed=${seed}`);
+  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small");
+  expect(askedBattle(new URL(deploy(), "http://game").search)).toMatchObject({
+    kind: "play",
+    map: { type: "mixed", size: "small" },
+  });
   expect(menu.container.textContent).not.toMatch(/seed/i);
 
-  // Choosing a type and size keeps the visit's seed.
+  // The preference changes before admission chooses a concrete battle.
   fireEvent.click(menu.getByRole("radio", { name: "metro" }));
   fireEvent.click(menu.getByRole("radio", { name: "large" }));
-  expect(deploy()).toBe(`/battle?type=metro&size=large&seed=${seed}`);
+  expect(deploy()).toBe("/battle?play=1&type=metro&size=large");
   expect(menu.getByRole("radio", { name: "metro" }).getAttribute("aria-checked")).toBe("true");
   expect(menu.getByRole("radio", { name: "mixed" }).getAttribute("aria-checked")).toBe("false");
 });
@@ -192,4 +194,72 @@ test("a refusal carries the stage that refused and its diagnostics, and no battl
   expect(failure).toBeInstanceOf(PreparationFailed);
   expect(failure.stage).toBe("encounter");
   expect(failure.diagnostics).toEqual(diagnostics);
+});
+
+test("ordinary admission closes refused workers, and exact winner identity keeps its authority for play", async () => {
+  FakeWorker.all = [];
+  vi.stubGlobal("Worker", FakeWorker);
+  const request = (seed: string): PrepareBattleRequest => ({
+    map_source: {
+      kind: "generated",
+      request: {
+        type: "metro",
+        size: "large",
+        seed,
+        generator_version: "test",
+        preset_revision: "test",
+        template_catalog_hash: "test",
+        limits: { max_authored_parts: 1, max_bay_positions: 1, max_ground_points: 1 },
+      },
+    },
+    recipe_id: "assault",
+    encounter_seed: ABOVE_NUMBER,
+    battle_seed: 7,
+  });
+  const seeds = ["11", ABOVE_NUMBER];
+  const admission = admitBattle(
+    {
+      candidate: request,
+      documents: message(1).documents,
+      fallback: { ...request("1"), map_source: { kind: "catalogue", id: "market-town" } },
+      policy: { max_generated_attempts: 2, generated_deadline_ms: 8000 },
+    },
+    () => {},
+    { seed: () => seeds.shift()! },
+  );
+  const first = FakeWorker.all[0];
+  first.answer({
+    type: "refused",
+    stage: "map",
+    diagnostics: [{ code: "generation_failed", feature: null, location: "$", message: "no map" }],
+  });
+  await Promise.resolve();
+  await Promise.resolve();
+  const winner = FakeWorker.all[1];
+  const wire = {
+    scenario: "admitted",
+    report: { request: request(ABOVE_NUMBER) },
+  } as PreparedBattle;
+  winner.answer({ type: "prepared", battle: wire });
+  const admitted = await admission.battle;
+  const address = preparedBattleHref(admitted.report.request);
+  expect(askedBattle(new URL(address, "http://game").search)).toEqual({
+    kind: "generated",
+    map: { type: "metro", size: "large", seed: ABOVE_NUMBER },
+    recipe: "assault",
+    encounterSeed: ABOVE_NUMBER,
+    battleSeed: 7,
+  });
+  expect(first.terminated).toBe(true);
+  expect(winner.terminated).toBe(false);
+  const observed: unknown[] = [];
+  const channel = admitted.connect(
+    (reply) => observed.push(reply),
+    () => {},
+  );
+  channel.send({ type: "pause" });
+  winner.answer({ type: "status", status: "paused", slow: false } as unknown as PrepareReply);
+  expect(observed).toEqual([{ type: "status", status: "paused", slow: false }]);
+  admission.cancel();
+  expect(winner.terminated).toBe(true);
 });
