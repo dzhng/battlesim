@@ -44,3 +44,9 @@ The current hp coefficient and ruin ratio remain candidates without tuning. Loca
 The shop has no exposed candidate in the probe's 100–250 m search. A courtyard frame origin can lie in its empty court; aiming there held fire correctly and is retained as a rejected probe, separately from the owner-part result. These checks establish local behavior, not the generated encounter's balance. Exact inputs, raw reports, probe source and hashes are retained in ignored `throwaway/c50-durability-pickup/` in the main checkout.
 
 C50 remains open. Run the full village report once after the final mechanics candidate and the relevant scripted generated encounter on the final physical map. These local cases do not justify a coefficient or terminal-art change, and do not replace those gates.
+
+### Current generated combat evidence
+
+The final layout-13 Mixed Small seed 1 uses map `9b8ed835…`, configuration `397018f3…` and the integrated infantry weapon rules. The existing battle sweep runs 2,700 simulated seconds and launches 2,838 rounds, ending at digest `774aa7ac980edade`. Its initial group command places eight of nine attacking units; the second tank's destination is refused with no whole-command error. All eight placed attackers physically depart. The three rifle squads walk approximately 3.05, 3.24 and 3.16 km before being killed, ending 181, 119 and 271 m from their assigned goals. This establishes executed kilometre-scale infantry movement and real combat, not a capture or successful arrival by every attacker. The report retains its `command_refused` status and exit failure; the refusal is not hidden or replaced with another seed. No coefficient is changed to make this battle win.
+
+Exact inputs, per-unit movement, acknowledgements and tick-cost data are in the main checkout's ignored `throwaway/city-maps-final-integrated/generated-assault-current-mechanics.jsonl` and matching log. The final full village comparison remains pending.
