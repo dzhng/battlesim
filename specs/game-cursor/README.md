@@ -11,7 +11,7 @@ Status: implementing; updated 2026-10-03. Native building authority is complete 
 - [ ] Shared hover/held/release intent, wire integration and played browser proof.
 - [ ] Whole-feature review, one full check/verify closeout, consolidated choices and close-spec.
 
-The graph is `01 || 02 → 03 → closeout`. The simulation's bounded route search and joint certification are the first risk to resolve. Scratch evidence belongs in ignored `throwaway/`; the approved concept below is a lasting requirement.
+The graph is `01 || 02 → 03 → closeout`; the first two branches are complete. The remaining risk is played pointer lifetime across camera/input changes, delayed acknowledgements and reset. Scratch evidence belongs in ignored `throwaway/`; the approved concept below is a lasting requirement.
 
 Evidence: native garrison (50), buildings (31), move-admission (19) and formation (8) tests plus all-target contract/sim/WASM lint pass, with independent final source review. Browser authority/client tests pass (19), including mixed preview-to-admission digest and replay equality, query-local failure recovery, and no command/publication side effects. Actual ungarrisonable aggregate nomination, native preparation eligibility and world-mesh neighbors pass; the dead browser capability export is removed. Input/gesture tests and isolated cursor/component/fixture proofs passed earlier with fresh visual critique. The CLI second-opinion tool cannot run with its configured model/account; independent collaborator reviews supply the code opinion without overriding user model settings. Use the scene runner's regular Chromium channel for GPU captures, not Playwright's default headless-shell variant.
 
@@ -57,7 +57,7 @@ If a selected squad already holds or is entering that building, keep its entry/h
 
 One pure resolver owns the existing precedence: Ctrl attack-move; identified enemy; armed contact attack; contextual building; armed ground command; automatic single-vehicle reverse; normal movement. Hover does not mint gesture tokens, reset armed mode or issue orders. Capability filtering stays in commandReach and double-click recognition stays in MoveGestures. Explicit garrison mode uses the same combined building intent as a contextual click.
 
-One merged semantic pick feeds hover, captured right-press, held preview and release. Press captures target and modifiers; dragging changes only facing about that target. Ctrl, Shift, mode or selection changes before a new press update hover immediately. Building-facing drag rotates gathering, without changing the target building. Ctrl over a building stays attack-move; hostile body/contact precedence stays unchanged. No move preview may appear for an attack or entry intent.
+One merged semantic pick feeds hover, captured right-press, held preview and release. Press captures target and modifiers; dragging changes only facing about that target. Ctrl, Shift, mode or selection changes before a new press update hover immediately. Building-facing drag rotates gathering, without changing the target building. Ctrl over a building stays attack-move; hostile body/contact precedence stays unchanged. Attack intents show no held movement marks. Building intents show gathering destinations for companions; the entrant uses the existing garrison presentation.
 
 The cursor actions are plain/default, attack, attack-move, attack-ground, garrison, fast-move, reverse-move and blocked. No selection and selectable own-unit hover use the plain arrow. Unarmed enemy-target intent that cannot issue an attack is blocked; an unarmed contact falls back to movement as today. Blocked applies only when no part of the resolved action can execute. Partial success shows the successful action; existing refusal text reports failed portions. A pending or unproven query uses the plain arrow, not a fabricated validity badge.
 
@@ -86,7 +86,7 @@ This is the user's approved illustrative concept, not a gameplay screenshot. Its
 | Hidden enemy occupants and unseen collapse | Availability can accidentally reveal the opposing side | Sharp edge: existing knowledge/discovery contracts must remain intact |
 | Tick-only async refresh | Dropping every old-tick result can starve continuously advancing play | Decided: invalidate semantic changes; refresh same-intent certificates |
 
-The sweep covered the command contract, garrison geometry/validation/application, navigation search, formation/certification, WASM, worker/client protocol, input/capability/gesture owners, shared picking, viewport, battle view, pointer paint, publication and icon presentation. Next-slice implementation must confirm bounded candidate search and queued-origin behavior with red/green tests before depending on them. No user-only question remains open.
+The sweep covered the command contract, garrison geometry/validation/application, navigation search, formation/certification, WASM, worker/client protocol, input/capability/gesture owners, shared picking, viewport, battle view, pointer paint, publication and icon presentation. Native regressions now prove bounded candidate search, queued origins and shortest-entry uncertainty. No user-only question remains open.
 
 ## Proof and closeout
 
