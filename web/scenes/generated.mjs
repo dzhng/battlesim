@@ -300,7 +300,7 @@ export async function run(ctx) {
   // The player's way in: the main menu's type and size, then Deploy.
   const { menu, loading } = await deployFromMenu(ctx, page, MAP, true);
   ctx.check(
-    "the menu shows no seed, draws one for each visit, and deploys the chosen type and size",
+    "the menu hides the seed, exposes a numeric seeded battle address, and deploys the chosen type and size",
     /[?&]seed=\d+$/.test(menu.drawn) &&
       !menu.seedShown &&
       menu.href === `/battle?type=${MAP.type}&size=${MAP.size}&seed=${MAP.seed}` &&

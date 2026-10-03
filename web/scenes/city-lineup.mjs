@@ -276,7 +276,7 @@ export async function run(ctx) {
     JSON.stringify(stood),
   );
   ctx.check(
-    "a forced tier draws every building at that tier and no other",
+    "a forced tier has rows at the requested tier, no refused chunks, and no other fine tier",
     honoured.every((h) => h.ok),
     JSON.stringify(honoured),
   );

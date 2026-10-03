@@ -255,12 +255,18 @@ export async function run(ctx, preset = "village-contact") {
     );
   }
   let keyMiss = 0;
+  const checkedKeys = [];
+  const skippedKeys = [];
   for (const [t, x, y, distance, yaw, pitch] of report.tour.keyframes) {
     const at = t * report.durationMs;
     const near = frames.reduce((best, f) =>
       Math.abs(f.elapsedMs - at) < Math.abs(best.elapsedMs - at) ? f : best,
     );
-    if (Math.abs(near.elapsedMs - at) > 100) continue; // the run's edge
+    if (Math.abs(near.elapsedMs - at) > 100) {
+      skippedKeys.push({ at, nearestMs: near.elapsedMs });
+      continue;
+    }
+    checkedKeys.push({ at, nearestMs: near.elapsedMs });
     const c = near.camera;
     keyMiss = Math.max(
       keyMiss,
@@ -271,10 +277,11 @@ export async function run(ctx, preset = "village-contact") {
     );
   }
   ctx.check(
-    "the camera flew the tour: drawn = intended, and through every keyframe",
+    "the camera drew the intended tour and matched keyframes sampled within 100 ms",
     drift < CAMERA_TOLERANCE && keyMiss < 0.05,
-    `max drift ${drift.toExponential(1)}, worst keyframe miss ${keyMiss.toFixed(3)}`,
+    `max drift ${drift.toExponential(1)}, worst sampled keyframe miss ${keyMiss.toFixed(3)}; ${checkedKeys.length} checked, ${skippedKeys.length} skipped`,
   );
+  await ctx.writeEvidence("camera-keyframes.json", { checked: checkedKeys, skipped: skippedKeys });
   // The frame-cost assertion, carried over from the deleted probe: the
   // battle frame reports its GPU time and texture bytes, here in every phase.
   const timestampQuery = await page.evaluate(

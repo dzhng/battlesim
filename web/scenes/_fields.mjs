@@ -167,6 +167,17 @@ export async function fieldCost(ctx) {
   }
   result.adapter = await page.evaluate(() => window.__lab.adapter);
   await ctx.writeEvidence("field-cost.json", result);
-  ctx.check("the field texture's frame cost was measured", true, JSON.stringify(result.stations));
+  ctx.check(
+    "the field texture's frame cost was measured",
+    Object.keys(result.stations).length > 0 &&
+      Object.values(result.stations).every(
+        (station) =>
+          Number.isFinite(station.plainMs) &&
+          Number.isFinite(station.textureMs) &&
+          station.differences.length > 0 &&
+          station.differences.every(Number.isFinite),
+      ),
+    JSON.stringify(result.stations),
+  );
   await page.close();
 }

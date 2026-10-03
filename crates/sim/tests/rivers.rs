@@ -127,7 +127,7 @@ fn the_bed_and_bank_are_one_v_through_the_waterline() {
         }
     }
     // The surface the water lies at meets the ground exactly on the edge.
-    assert!(w.height_at(212.0, 150.0).unwrap().abs() - 0.5 < 1e-12);
+    assert!((w.height_at(212.0, 150.0).unwrap() + 0.5).abs() < 1e-12);
 }
 
 #[test]

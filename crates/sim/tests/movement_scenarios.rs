@@ -189,13 +189,6 @@ fn check(kind: CheckKind) -> Check {
     }
 }
 
-fn pending(reason: &'static str, kind: CheckKind) -> Check {
-    Check {
-        kind,
-        pending: Some(reason),
-    }
-}
-
 /// A check's result after a run.
 #[derive(Debug)]
 pub struct Outcome {
@@ -383,8 +376,7 @@ fn order(order: Value) -> Value {
 pub fn scenarios() -> Vec<Scenario> {
     let mut all = authored();
     for s in &mut all {
-        // A scenario that names the check itself carries it as written
-        // (pending on the slice that owes the behaviour).
+        // A scenario that names the check itself carries it as written.
         if !s
             .checks
             .iter()
@@ -1960,8 +1952,7 @@ fn authored() -> Vec<Scenario> {
         },
         // The same river from 70 m east of the bridge: the straight line to
         // each goal lies across the water, so both go round by the bridge
-        // and come back along the far bank. Their routes hug the deck's
-        // near edge, which the checks pending on SA2 measure.
+        // and come back along the far bank. The checks judge the deck's near edge.
         Scenario {
             name: "c69-river-around",
             caption: "a squad and a tank ordered straight across the river go round by the bridge",

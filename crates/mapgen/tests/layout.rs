@@ -1,3 +1,5 @@
+mod common;
+
 use contract::ground::GroundShape;
 use contract::map::SurfaceKind;
 use mapgen::layout::{
@@ -467,11 +469,14 @@ fn districts_are_single_use_addressable_pieces_of_their_settlement() {
                 ));
                 for other in &settlement.districts[index + 1..] {
                     assert!(
-                        !contract::ground::polygon_contains(&other.ring, anchor)
-                            || other.ring.contains(&anchor),
-                        "{} overlaps {}",
+                        // The plan is rounded to centimetres, like parcels.
+                        common::overlap_depth(&district.ring, &other.ring) < 0.02,
+                        "{map_type:?} {size:?} seed {seed}: {} overlaps {} by {} m; {:?} vs {:?}",
                         district.id,
-                        other.id
+                        other.id,
+                        common::overlap_depth(&district.ring, &other.ring),
+                        district.ring,
+                        other.ring
                     );
                 }
                 let total: f64 = district.categories.iter().map(|c| c.weight).sum();

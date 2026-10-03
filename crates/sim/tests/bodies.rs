@@ -5,7 +5,7 @@ use crate::common;
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
 use contract::observation::MoveState;
-use contract::scenario::{Rules, ScenarioDefinition};
+use contract::scenario::{PushClass, Rules, ScenarioDefinition, WeightClass};
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::ground::GroundLayer;
@@ -106,9 +106,16 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
                 let prop = b.world().prop(BODY).unwrap().footprint();
                 entered |= hull.separation(&prop).is_some_and(|v| v.length() > 0.05);
             }
-            let shoves = common::hull(mover)
-                .push_class
-                .pushes(r.catalog.props().by_id(body).body.weight_class);
+            let weight = r.catalog.props().by_id(body).body.weight_class;
+            let shoves = match common::hull(mover).push_class {
+                PushClass::None | PushClass::Light => false,
+                PushClass::Medium => matches!(weight, WeightClass::Light),
+                PushClass::Heavy => matches!(weight, WeightClass::Light | WeightClass::Medium),
+                PushClass::SuperHeavy => matches!(
+                    weight,
+                    WeightClass::Light | WeightClass::Medium | WeightClass::Heavy
+                ),
+            };
             let moved = (b.world().prop(BODY).unwrap().center - v2(at[0], at[1])).length();
             let passed = b.unit(UnitId(0)).unwrap().position.x > at[0] + 5.0;
             let case = format!("{mover} against {body}");

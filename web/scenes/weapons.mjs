@@ -182,7 +182,7 @@ export async function run(ctx) {
   const feed = await page.getByTestId("feed-panel").innerText();
   const cannonPose = own(await obs(page), 0).weaponPoses[0];
   ctx.check(
-    "the feed inspector shows each mount's pose and shot counter",
+    "the feed inspector shows the cannon's pose and shot counter",
     cannonPose.shots > 0 && /own tank #0:\s*m0 \S+ ↑\S+ · [1-9]\d* shots/.test(feed),
     JSON.stringify({ cannonPose, feed }),
   );
