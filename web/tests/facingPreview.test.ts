@@ -2,6 +2,8 @@ import { expect, test } from "vitest";
 import { buildDestinationPreview } from "@packages/battle-renderer/src/orderOverlay";
 import { gameOrderStyle, gameStroke } from "@apps/battle-lab/src/gameOverlay";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
+import { GroundView } from "../src/battle/sim/ground";
+import { cellPatchRuns } from "./groundRuns";
 
 test("the held destination marker keeps its anchor while its arrow follows facing", () => {
   const mark = { c: [100, 200] as const, r: 8, facing: 0, placed: true, opacity: 1 };
@@ -245,6 +247,84 @@ test("a building cursor keeps a current certificate during tick refresh, clears 
   expect(paint.state).toBe("ready");
   expect(paint.building!.building).toBe(9);
 });
+
+test.each(["clearing", "epoch replacement"] as const)(
+  "ground %s revokes a ready cursor and cannot accept its in-flight refresh",
+  async (change) => {
+    const { PointerPaint, cursorForIntent, previewForIntent, previewContextIdentity } =
+      await import("@apps/battle-lab/src/pointerPaint");
+    const paint = new PointerPaint();
+    const own = [
+      { id: 1, kind: "rifle", position: [0, 0, 0], members: [], area: null, garrison: null },
+    ] as unknown as import("../src/battle/sim/observation").OwnUnitView[];
+    const ground = new GroundView({ cellM: 1, cols: 4, rows: 4 });
+    const publish = (epoch: number, revision: number, cell: number, full: boolean) =>
+      ground.applyRuns(
+        cellPatchRuns(ground.cols, {
+          epoch,
+          side: "blue",
+          baseRevision: full ? 0 : ground.revision,
+          revision,
+          full,
+          cells: Uint32Array.of(cell),
+          marks: new Uint8Array(4),
+          cleared: Uint8Array.of(1),
+        }),
+      );
+    publish(1, 1, 0, true);
+    const replies: ((p: import("../src/battle/sim/protocol").BuildingPlacement) => void)[] = [];
+    const client = {
+      previewMove: async () => [],
+      previewBuilding: () =>
+        new Promise<import("../src/battle/sim/protocol").BuildingPlacement>((finish) =>
+          replies.push(finish),
+        ),
+    };
+    const intent = { kind: "occupy_building" as const, units: [1], building: 7, queued: false };
+    const placement = {
+      building: 7,
+      entrant: { unit: 1, approach: [10, 20] as [number, number] },
+      destinations: [],
+    };
+    const update = (tick: number) => {
+      paint.resolvePreview(
+        previewForIntent(intent),
+        own,
+        client,
+        tick,
+        previewContextIdentity(
+          "blue",
+          "[]",
+          "same own eligibility",
+          "[]",
+          ground.clearedCount,
+          ground.epoch,
+        ),
+      );
+      return cursorForIntent(intent, paint);
+    };
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+    expect(update(0)).toBe("default");
+    replies[0](placement);
+    await settle();
+    expect(update(1)).toBe("garrison");
+    // Pose and tick refreshes keep the known certificate while its replacement is in flight.
+    own[0] = { ...own[0], position: [1, 0, 0] };
+    expect(update(2)).toBe("garrison");
+    expect(paint.state).toBe("ready");
+    publish(change === "clearing" ? 1 : 2, 2, 1, change === "epoch replacement");
+    expect(update(2)).toBe("default");
+    expect(paint.state).toBe("pending");
+    expect(paint.building).toBeNull();
+    replies[1](placement);
+    await settle();
+    expect(update(2)).toBe("default");
+    expect(paint.building).toBeNull();
+    replies[2](placement);
+    await settle();
+    expect(update(2)).toBe("garrison");
+  },
+);
 
 test("unproven movement and building searches keep the cursor plain, while a known complete refusal is blocked", async () => {
   const { PointerPaint, cursorForIntent, previewForIntent } =

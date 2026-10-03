@@ -76,6 +76,7 @@ import {
   cursorForRelease,
   intentForOrder,
   samePointerIntent,
+  previewContextIdentity,
 } from "./pointerPaint";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import type { RulerRules } from "@web/battle/present/rangeRuler";
@@ -556,8 +557,16 @@ export function useBattleSession({
       .map(({ seq, order }) => [seq, order]),
   );
   const semanticIdentity = useMemo(
-    () => JSON.stringify([side, knownKey, eligibilityIdentity, pendingClaims]),
-    [side, knownKey, eligibilityIdentity, pendingClaims],
+    () =>
+      previewContextIdentity(
+        side,
+        knownKey,
+        eligibilityIdentity,
+        pendingClaims,
+        clearedCount,
+        clearingEpoch,
+      ),
+    [side, knownKey, eligibilityIdentity, pendingClaims, clearedCount, clearingEpoch],
   );
   const semanticRevision = useRef({ identity: "", version: 0 });
   if (semanticRevision.current.identity !== semanticIdentity) {

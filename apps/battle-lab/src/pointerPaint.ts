@@ -30,6 +30,7 @@ import type {
   BuildingPlacement,
   Order,
   CommandAck,
+  SideName,
 } from "@web/battle/sim/protocol";
 import type { Vec3 } from "math";
 import { orderView } from "./battleOverlay";
@@ -47,6 +48,25 @@ interface ShownRuler {
 export type PointerPreview =
   | { kind: "move"; request: MovePreviewRequest }
   | { kind: "building"; request: BuildingPreviewRequest };
+
+/** Publications refresh a certificate; changed knowledge or eligibility revokes it. */
+export function previewContextIdentity(
+  side: SideName,
+  knownKey: string,
+  eligibilityIdentity: string,
+  pendingClaims: string,
+  clearedCount: number,
+  clearingEpoch: number,
+): string {
+  return JSON.stringify([
+    side,
+    knownKey,
+    eligibilityIdentity,
+    pendingClaims,
+    clearedCount,
+    clearingEpoch,
+  ]);
+}
 
 /** The ruler from the selected unit nearest the ground under `ray`, or null
  *  with no selection or no ground there. The cursor's point is the walkable
