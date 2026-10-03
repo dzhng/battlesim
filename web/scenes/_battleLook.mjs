@@ -374,23 +374,30 @@ export async function cleanupTour(ctx) {
   // A click on open ground: the gesture that starts the battle's sound.
   await page.mouse.click(1300, 900);
   const fight = async () => {
-    await lab(page, () => {
-      const o = window.__lab.route.observation();
-      window.__lab.route.command({
-        kind: "attack_move",
-        units: o.own.map((u) => u.id),
-        gesture: 1,
-        goal: [1000, 800],
-      });
-    });
-    // Fight until the first soldier falls (the same tick every cycle: the
-    // battle is deterministic), and at least as long as before.
-    await advance(page, 2400);
-    for (let i = 0; i < 20; i++) {
-      const corpses = await lab(page, () => window.__lab.route.observation()?.corpses.length ?? 0);
-      if (corpses > 0) break;
-      await advance(page, 600);
-    }
+    const squad = await lab(page, () =>
+      window.__lab.route.observation().own.find((u) => u.kind === "rifle"),
+    );
+    const ack = await lab(
+      page,
+      (point) => {
+        const tank = window.__lab.route.observation().own.find((u) => u.kind === "tank");
+        return window.__lab.route.command({
+          kind: "attack",
+          units: [tank.id],
+          target: { kind: "ground", point },
+        });
+      },
+      squad.position,
+    );
+    ctx.check("cleanup stages a real ground attack", ack.error === null, JSON.stringify(ack));
+    const fallen = await until(
+      page,
+      (o) => o.corpses.some((c) => c.own && squad.memberIds.includes(c.soldier)),
+      600,
+      1,
+    );
+    if (!fallen)
+      throw new Error("cleanup's ground attack produced no own casualty within 600 ticks");
     // Fast-forward releases a publication before React draws it. Draw this
     // view first so every reset warms the same scenery tiers before the jump.
     await presented(page);
@@ -404,7 +411,8 @@ export async function cleanupTour(ctx) {
     await restart(page);
     await page.waitForFunction(
       () =>
-        window.__lab.route.acks().length === 0 &&
+        window.__lab?.ready &&
+        window.__lab.route?.acks().length === 0 &&
         window.__lab.route.tick() < 60 &&
         window.__lab.route.observation() !== null,
       undefined,

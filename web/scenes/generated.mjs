@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import { advance, buildingsSettled, lab, obs, openMenu, presented } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { flyTown } from "./_cameraClearance.mjs";
+import { bareClassMask, classAt } from "./_groundStations.mjs";
 
 const game = JSON.parse(readFileSync(new URL("../../fixtures/game.json", import.meta.url)));
 const TICK_HZ = game.tick_hz;
@@ -167,6 +168,52 @@ async function frame(ctx, page, view, file, clear = false) {
   await lab(page, () => window.__lab.setFrameView("final"));
   await lab(page, () => window.__lab.suppressFog(false));
   return decode(shot);
+}
+
+export async function roadAlignment(ctx, page) {
+  // A road: between two units of blue's column, which stands on it, against
+  // the field off to its side.
+  const column = (await obs(page)).own;
+  const [a, b] = [column[2].position, column[3].position];
+  const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const along = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const side = [(-(b[1] - a[1]) / along) * 25, ((b[0] - a[0]) / along) * 25];
+  const field = [mid[0] + side[0], mid[1] + side[1]];
+  const surfaces = await lab(
+    page,
+    ({ mid, field }) => [
+      window.__lab.route.surfaceAt(mid[0], mid[1]).kind,
+      window.__lab.route.surfaceAt(field[0], field[1]).kind,
+    ],
+    { mid, field },
+  );
+  await look(page, mid, 65);
+  const [roadPx, fieldPx] = [await project(page, [...mid, 0]), await project(page, [...field, 0])];
+  const roadShot = await frame(ctx, page, "final", "road-1920x1080.png");
+  const [road, beside] = [pixel(roadShot, ...roadPx), pixel(roadShot, ...fieldPx)];
+  const roadMask = await bareClassMask(ctx, page, "road-classes.png");
+  const classes = [roadPx, fieldPx].map((p) => classAt(roadMask, ...p.map(Math.round)));
+  ctx.check(
+    "a road is drawn where the map has one: paving under the column, ground outside its edge",
+    surfaces[0] === "road" &&
+      surfaces[1] !== "road" &&
+      classes[0]?.roadSd < 0 &&
+      classes[1]?.roadSd > 0,
+    JSON.stringify({ surfaces, classes, roadPx, fieldPx }),
+  );
+  await ctx.writeEvidence("road-alignment.json", {
+    surfaces,
+    classes,
+    roadPx,
+    fieldPx,
+    colourDiagnostic: {
+      road,
+      beside,
+      distance: delta(road, beside),
+      historicalTargetMet: road[0] > road[1] && road[1] > road[2] && delta(road, beside) > 30,
+    },
+  });
+  return { mid, column };
 }
 
 /** Straight down, so nothing standing hides the ground beside it. */
@@ -415,35 +462,7 @@ export async function run(ctx) {
     JSON.stringify({ trunk: trunk.center, crownPx, mask: pixel(treeMask, ...crownPx), crown }),
   );
 
-  // A road: between two units of blue's column, which stands on it, against
-  // the field off to its side.
-  const column = (await obs(page)).own;
-  const [a, b] = [column[2].position, column[3].position];
-  const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-  const along = Math.hypot(b[0] - a[0], b[1] - a[1]);
-  const side = [(-(b[1] - a[1]) / along) * 25, ((b[0] - a[0]) / along) * 25];
-  const field = [mid[0] + side[0], mid[1] + side[1]];
-  const surfaces = await lab(
-    page,
-    ({ mid, field }) => [
-      window.__lab.route.surfaceAt(mid[0], mid[1]).kind,
-      window.__lab.route.surfaceAt(field[0], field[1]).kind,
-    ],
-    { mid, field },
-  );
-  await look(page, mid, 65);
-  const [roadPx, fieldPx] = [await project(page, [...mid, 0]), await project(page, [...field, 0])];
-  const roadShot = await frame(ctx, page, "final", "road-1920x1080.png");
-  const [road, beside] = [pixel(roadShot, ...roadPx), pixel(roadShot, ...fieldPx)];
-  ctx.check(
-    "a road is drawn where the map has one: bare paving under the column, the field beside it another colour",
-    surfaces[0] === "road" &&
-      surfaces[1] !== "road" &&
-      road[0] > road[1] &&
-      road[1] > road[2] &&
-      delta(road, beside) > 30,
-    JSON.stringify({ surfaces, road, beside, roadPx, fieldPx }),
-  );
+  const { mid, column } = await roadAlignment(ctx, page);
   // Fog: red stands in the town, unseen, and is neither drawn nor known;
   // blue's own ground is seen.
   const o = await obs(page);

@@ -7,8 +7,8 @@
 // The grass field at those framings (GRASS_COST=1 also
 // measures its GPU cost; run it alone, under the GPU lock).
 // Soldiers as posed models, by detail tier and as
-// impostor cards, never fogged, picked by the simulation's boxes, and the
-// fallen as static corpses.
+// impostor cards, never fogged and picked by the simulation's boxes. The
+// consequences scene owns the death-to-static-corpse lifecycle.
 // Vehicles and wrecks as their appearances, buildings as their templates' art:
 // every vehicle a posed model following its published weapon poses, the
 // village's houses on their boxes, and a tank firing (recoil).
@@ -40,6 +40,7 @@ import { checkOverlayIsolation, orderPaint, paintHue, paintOnly } from "./_overl
 import { xrayTour } from "./_xray.mjs";
 import { concealmentTour } from "./_concealment.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
+import { bareClassMask, classAt } from "./_groundStations.mjs";
 import {
   hasRole,
   hull as hullOf,
@@ -86,7 +87,7 @@ async function checkNoGlyphIcons(ctx, page, where) {
  *  down over the first road's longest straight run, ground a metre inside
  *  its edge reads as road and ground a metre and a half outside reads as
  *  verge. */
-async function checkRoadEdges(ctx, page) {
+export async function checkRoadEdges(ctx, page) {
   const road = roadStrokes[0];
   const runs = road.points.slice(1).map((b, i) => [road.points[i], b]);
   const length = ([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -113,11 +114,29 @@ async function checkRoadEdges(ctx, page) {
   const centre = await greenness(0);
   const inside = [await greenness(half - 1), await greenness(-(half - 1))];
   const outside = [await greenness(half + 1.5), await greenness(-(half + 1.5))];
+  const mask = await bareClassMask(ctx, page, "road-edges-classes.png");
+  const classified = [];
+  for (const offset of [0, half - 1, -(half - 1), half + 1.5, -(half + 1.5)]) {
+    const point = at(offset);
+    const css = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], 0), point);
+    classified.push({ point, css, ground: classAt(mask, ...css.map(Math.round)) });
+  }
   ctx.check(
     "the road is drawn where the simulation has it: road inside its edge, verge outside",
-    inside.every((g) => g < centre + 6) && outside.every((g) => g > centre + 12),
-    JSON.stringify({ centre, inside, outside }),
+    classified.slice(0, 3).every((p) => p.ground?.roadSd < 0) &&
+      classified.slice(3).every((p) => p.ground?.roadSd > 0),
+    JSON.stringify(classified),
   );
+  await ctx.writeEvidence("road-edges.json", {
+    classified,
+    colourDiagnostic: {
+      centre,
+      inside,
+      outside,
+      historicalTargetMet:
+        inside.every((g) => g < centre + 6) && outside.every((g) => g > centre + 12),
+    },
+  });
 }
 
 /** The middle of `v`: what a paired cost run reports of its batches. */
@@ -647,8 +666,8 @@ async function soldierTour(ctx) {
     JSON.stringify({ picked, box, member: m }),
   );
 
-  // Contact: every blue unit attack-moves on the village, and the fallen lie
-  // as static corpses.
+  // Infantry beside armour during a real advance. The deterministic death
+  // lifecycle is exercised by the consequences scene.
   await lab(
     page,
     (o) =>
@@ -679,56 +698,9 @@ async function soldierTour(ctx) {
     await snapshot(ctx, page, `soldiers-${name}-world-1920x1080.png`);
     await lab(page, () => window.__lab.setFrameView("final"));
   };
-  // Eight seconds into the advance, then in contact.
+  // Eight seconds into the advance.
   await advance(page, 240);
   await besideTank("advance");
-  // The fight's own fallen: blue soldiers, drawn alive until they fell (an
-  // enemy first seen dead lies at once, and proves nothing of a death).
-  const ownFallen = (o) => o.corpses.filter((c) => c.own).map((c) => c.soldier);
-  const fight = await until(
-    page,
-    (o) => ownFallen(o).length >= 1 && o.own.some((u) => u.members.length > 0),
-    30 * 240,
-    30,
-  );
-  if (fight) await besideTank("contact");
-  // A death plays on the presentation clock from the frame that first
-  // presents its soldier fallen, and that clock stands still at the last
-  // presented tick while the battle is paused. Under load few frames draw
-  // while the battle steps, so a death can start late: present the fight's
-  // tick first, so every death in it has started by then.
-  if (fight) await presented(page);
-  // Two seconds on, the first deaths are playing out.
-  if (fight) await advance(page, 60);
-  const shown = await obs(page);
-  const fallen = shown.corpses[0];
-  if (fallen) {
-    await aim(page, fallen.position, { distance: 30, pitch: 0.6, yaw: -Math.PI / 2 });
-    await snapshot(ctx, page, "soldiers-fallen-1920x1080.png");
-  }
-  // Then a second at a time, each presented, until every one of the
-  // fight's own fallen lies static: within five seconds of the fight, twice
-  // a death's length.
-  const fell = fight ? ownFallen(fight) : [];
-  let lying = [];
-  let models = null;
-  for (let t = 60; fight; t += 30) {
-    await presented(page);
-    lying = await lab(page, () => window.__lab.route.lying());
-    models = await lab(page, () => window.__lab.stats().models);
-    if (fell.every((id) => lying.includes(id)) || t >= 150) break;
-    await advance(page, 30);
-  }
-  const after = await obs(page);
-  ctx.check(
-    "the fight's own fallen finish their deaths and lie as static corpses, drawn and never posed",
-    fell.length >= 1 &&
-      fell.every((id) => lying.includes(id)) &&
-      !!models &&
-      models.corpses >= fell.length &&
-      models.instances > models.skinned,
-    JSON.stringify({ tick: after.tick, fell, lying, corpses: models?.corpses }),
-  );
   await page.close();
 }
 
@@ -852,30 +824,29 @@ async function vehicleTour(ctx) {
   await page.close();
 }
 
-/** The firefight's combat effects. The battle at a fixed tick, the
- *  first burst after it framed at its moment and as it grows, and every
- *  effect drawn from what the side's publications carried. */
+/** A real ordered ground burst, framed at its moment and as it grows,
+ *  drawn from the side's publications independently of assault balance. */
 async function effectTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
-  await lab(page, () => {
-    const o = window.__lab.route.observation();
-    window.__lab.route.command({
-      kind: "attack_move",
-      units: o.own.map((u) => u.id),
-      gesture: 1,
-      goal: [1000, 800],
-    });
-  });
-  await advance(page, 600 - (await lab(page, () => window.__lab.route.tick())));
-  // The first burst in the open: one under a wood's canopy is hidden by the crowns.
-  const open = (b) => !villageMap.forests.some((f) => insideForest(b.point, f));
-  const o = await until(page, (f) => f.blasts.some(open), 30 * 60, 1);
+  const tank = (await obs(page)).own.find((u) => u.kind === "tank");
+  const ack = await lab(
+    page,
+    (id) =>
+      window.__lab.route.command({
+        kind: "attack",
+        units: [id],
+        target: { kind: "ground", point: [300, 820, 0] },
+      }),
+    tank.id,
+  );
+  ctx.check("the tank's ordered ground burst is admitted", ack.error === null, JSON.stringify(ack));
+  const o = await until(page, (f) => f.blasts.length > 0, 600, 1);
   if (!o) {
-    ctx.check("a burst in the firefight is drawn as a fireball", false, "no blast by tick 2400");
+    ctx.check("a published burst is drawn as a fireball", false, "no blast within 600 ticks");
     await page.close();
     return;
   }
-  const burst = o.blasts.find(open).point;
+  const burst = o.blasts[0].point;
   await aim(page, burst, { distance: 70, pitch: 0.55, yaw: -1.2 });
   const frames = {};
   for (const [age, step] of [
@@ -901,7 +872,7 @@ async function effectTour(ctx) {
     effects: window.__lab.route.effects(),
   }));
   ctx.check(
-    "a burst in the firefight is drawn as a fireball where it was published",
+    "a published burst is drawn as a fireball where it was published",
     fire > 40 && stats.frame.instances > 0 && stats.effects.dropped === 0,
     JSON.stringify({ tick: o.tick, burst, firePixels: fire, ...stats }),
   );

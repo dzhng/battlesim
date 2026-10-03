@@ -16,5 +16,17 @@
         "ignoreRestSiblings": true
       }
     ]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["**/scenes/**/*.mjs"],
+      "env": {
+        "browser": true,
+        "node": true
+      },
+      "rules": {
+        "no-undef": "error"
+      }
+    }
+  ]
 }

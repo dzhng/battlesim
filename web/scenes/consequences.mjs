@@ -1,7 +1,7 @@
 // Slice 09: impacts, suppression and lasting remains, through real orders.
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, obs, advance, until, snapshot, openBattle } from "./_lab.mjs";
+import { lab, obs, advance, until, snapshot, openBattle, aim, presented } from "./_lab.mjs";
 
 const demo = (page, name) => lab(page, (n) => window.__lab.route.demo(n), name);
 
@@ -129,4 +129,79 @@ export async function run(ctx) {
   png = await frame(ctx, page, "pair");
   await crop(ctx, page, png, "crop-open-squad-after-4x.png", [358, 150], [40, 32], 4);
   await crop(ctx, page, png, "crop-forest-squad-4x.png", [375, 275], [40, 32], 4);
+  await page.close();
+  await ownDeath(ctx);
+}
+
+/** A retained living soldier must play death before entering the static layer.
+ *  A real ground attack supplies the event independently of assault balance. */
+export async function ownDeath(ctx) {
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
+  const squad = (await obs(page)).own.find((u) => u.kind === "rifle");
+  await aim(page, squad.position, { distance: 35, pitch: 0.6 });
+  await presented(page);
+  await snapshot(ctx, page, "own-death-alive.png");
+  const aliveModels = await lab(page, () => window.__lab.stats().models);
+  ctx.check(
+    "the own squad is rendered alive before damage",
+    squad.memberIds.length > 0 && aliveModels.skinned > 0,
+    JSON.stringify({ ids: squad.memberIds, skinned: aliveModels.skinned }),
+  );
+  const ack = await lab(page, () =>
+    window.__lab.route.command({
+      kind: "attack",
+      units: [0],
+      target: { kind: "ground", point: [356, 166, 0] },
+    }),
+  );
+  const own = (o) => o.corpses.find((c) => c.own && squad.memberIds.includes(c.soldier));
+  const fallen = await until(page, (o) => !!own(o), 600, 1);
+  ctx.check(
+    "the ground attack produces a real casualty from the rendered own squad",
+    ack.error === null && !!fallen,
+    JSON.stringify({ ack, ids: squad.memberIds, tick: fallen?.tick }),
+  );
+  if (!fallen) {
+    await page.close();
+    return;
+  }
+  const soldier = own(fallen);
+  await presented(page);
+  const immediate = await lab(page, () => window.__lab.route.lying());
+  await snapshot(ctx, page, "own-death-playing.png");
+  ctx.check(
+    "a soldier just seen falling plays death before becoming static",
+    !immediate.includes(soldier.soldier),
+    JSON.stringify({ soldier, immediate }),
+  );
+  await lab(page, () => window.__lab.route.command({ kind: "stop", units: [0] }));
+  let lying, models;
+  for (let t = 0; t < 150; t += 30) {
+    await advance(page, 30);
+    await presented(page);
+    lying = await lab(page, () => window.__lab.route.lying());
+    models = await lab(page, () => window.__lab.stats().models);
+    if (lying.includes(soldier.soldier)) break;
+  }
+  await snapshot(ctx, page, "own-death-static.png");
+  ctx.check(
+    "the same fallen soldier finishes death and is drawn as a static corpse",
+    lying.includes(soldier.soldier) && models.corpses > 0,
+    JSON.stringify({ soldier: soldier.soldier, lying, models }),
+  );
+  await advance(page, 30);
+  await presented(page);
+  ctx.check(
+    "the finished corpse remains static",
+    (await lab(page, () => window.__lab.route.lying())).includes(soldier.soldier),
+  );
+  await ctx.writeEvidence("own-death.json", {
+    ids: squad.memberIds,
+    ack,
+    soldier,
+    immediate,
+    lying,
+    models,
+  });
+  await page.close();
 }

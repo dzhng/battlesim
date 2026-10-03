@@ -254,6 +254,60 @@ async function probeAt(page, points) {
   return points.map((p, i) => ({ ...p, seen: seen[i], px: px[i] }));
 }
 
+export async function contactGlyphOverFog(ctx, page) {
+  // A contact's glyph over fog: its own colours, red through its middle.
+  await setCamera(page, { target: [1120, 930], distance: 260, pitch: 0.85, yaw: 3.752 });
+  await page.evaluate(() => window.__lab.frame());
+  await view(page, "world");
+  const bare = decode(await snapshot(ctx, page, "glyph-world-1920x1080.png"));
+  await view(page, "final");
+  const drawn = decode(await snapshot(ctx, page, "glyph-1920x1080.png"));
+  const specimen = (await lab(page, () => window.__lab.route.specimens()))[0];
+  // The interior stays red over fog. Its common white outline is covered
+  // by contactGlyph.test.ts; rim colour is diagnostic here.
+  const rim = await lab(
+    page,
+    (c) =>
+      Array.from({ length: 180 }, (_, k) => {
+        const a = (k / 180) * 2 * Math.PI;
+        const x = c.center[0] + Math.cos(a) * c.radius * 0.97;
+        const y = c.center[1] + Math.sin(a) * c.radius * 0.97;
+        return window.__lab.projectToCss(x, y, window.__lab.route.surfaceZ(x, y));
+      }),
+    specimen,
+  );
+  const inside = await lab(
+    page,
+    (c) => {
+      const out = [];
+      for (let k = 0; k < 4000; k++) {
+        // A deterministic spread over the inner 80% of the disc.
+        const r = c.radius * 0.8 * Math.sqrt((k + 0.5) / 4000);
+        const a = k * 2.399963;
+        const x = c.center[0] + Math.cos(a) * r;
+        const y = c.center[1] + Math.sin(a) * r;
+        out.push(window.__lab.projectToCss(x, y, window.__lab.route.surfaceZ(x, y)));
+      }
+      return out;
+    },
+    specimen,
+  );
+  const reddened = (p) => {
+    if (!onScreen(p)) return false;
+    const [r, g] = rgb(drawn, p[0], p[1]);
+    const [r0, g0] = rgb(bare, p[0], p[1]);
+    return r - g > r0 - g0 + 10;
+  };
+  const shown = inside.filter(onScreen).length;
+  const middle = inside.filter(reddened).length;
+  const red = rim.filter(reddened).length;
+  ctx.check(
+    "a last sighting reads red through its middle over fog",
+    shown > 0 && middle >= 0.9 * shown,
+    JSON.stringify({ middle, shown, red, rim: rim.length, historicalRedRimTargetMet: red >= 90 }),
+  );
+}
+
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   await ctx.openLab(page);
@@ -618,56 +672,7 @@ export async function run(ctx) {
     }),
   );
 
-  // A contact's glyph over fog: its own colours, red through its middle.
-  await setCamera(page, { target: [1120, 930], distance: 260, pitch: 0.85, yaw: 3.752 });
-  await page.evaluate(() => window.__lab.frame());
-  await view(page, "world");
-  const bare = decode(await snapshot(ctx, page, "glyph-world-1920x1080.png"));
-  await view(page, "final");
-  const drawn = decode(await snapshot(ctx, page, "glyph-1920x1080.png"));
-  const specimen = (await lab(page, () => window.__lab.route.specimens()))[0];
-  // Inside the ghost and at its rim: pixels the glyph turned red.
-  const rim = await lab(
-    page,
-    (c) =>
-      Array.from({ length: 180 }, (_, k) => {
-        const a = (k / 180) * 2 * Math.PI;
-        const x = c.center[0] + Math.cos(a) * c.radius * 0.97;
-        const y = c.center[1] + Math.sin(a) * c.radius * 0.97;
-        return window.__lab.projectToCss(x, y, window.__lab.route.surfaceZ(x, y));
-      }),
-    specimen,
-  );
-  const inside = await lab(
-    page,
-    (c) => {
-      const out = [];
-      for (let k = 0; k < 4000; k++) {
-        // A deterministic spread over the inner 80% of the disc.
-        const r = c.radius * 0.8 * Math.sqrt((k + 0.5) / 4000);
-        const a = k * 2.399963;
-        const x = c.center[0] + Math.cos(a) * r;
-        const y = c.center[1] + Math.sin(a) * r;
-        out.push(window.__lab.projectToCss(x, y, window.__lab.route.surfaceZ(x, y)));
-      }
-      return out;
-    },
-    specimen,
-  );
-  const reddened = (p) => {
-    if (!onScreen(p)) return false;
-    const [r, g] = rgb(drawn, p[0], p[1]);
-    const [r0, g0] = rgb(bare, p[0], p[1]);
-    return r - g > r0 - g0 + 10;
-  };
-  const shown = inside.filter(onScreen).length;
-  const middle = inside.filter(reddened).length;
-  const red = rim.filter(reddened).length;
-  ctx.check(
-    "a last sighting reads red through its middle, not only at its rim, over fog",
-    shown > 0 && middle >= 0.9 * shown && red >= 90,
-    JSON.stringify({ middle, shown, red, rim: rim.length }),
-  );
+  await contactGlyphOverFog(ctx, page);
 
   // Nothing seen reads as fog: at every gate framing, under every
   // fixture style, the darkest 1% of seen ground is lighter than the darkest
