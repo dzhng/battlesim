@@ -176,7 +176,7 @@ export function resolveShot(
   mount: string,
   kind: string,
 ): NearFar {
-  const choice = catalog.units[unit]?.[mount] ?? catalog.defaults[kind];
+  const choice = catalog.units[unit]?.[mount] ?? catalog.defaults[kind] ?? catalog.defaults.default;
   return choice
     ? { ...base, near: choice.near, far: choice.far, gain: base.gain * choice.gain }
     : base;

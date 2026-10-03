@@ -1359,14 +1359,14 @@
       "source": "qubodup-gunfire",
       "source_rate": 48000,
       "source_frames": [
-        1396800,
+        1397712,
         1403040
       ],
       "processing": "handling",
       "url": "/audio/clips/clack-14.wav",
-      "sha256": "eb1aaeb2240677fdda3d9db8bfed98fca9590955ff437b6e156e95394f161d37",
+      "sha256": "39829cc8eb6b9fc9fd4da190e22a939db7e4b615fd1468f4888ef7caa144e0b6",
       "sample_rate": 48000,
-      "frames": 6240,
+      "frames": 5328,
       "loop": false,
       "notes": "User-identified handling sound; available for future events."
     },
@@ -1377,14 +1377,14 @@
       "source": "qubodup-gunfire",
       "source_rate": 48000,
       "source_frames": [
-        1535040,
+        1552080,
         1730880
       ],
       "processing": "handling",
       "url": "/audio/clips/reload-15.wav",
-      "sha256": "2548fc5d4bab132181f5beaa9543f501379a4f97ca74c4ab40651872c16be3d3",
+      "sha256": "fa94a35b993957a138abef6235e5a054e327e8e37e8d1c637926c3965f5ae112",
       "sample_rate": 48000,
-      "frames": 195840,
+      "frames": 178800,
       "loop": false,
       "notes": "User-identified handling sound; available for future events."
     },
@@ -1395,14 +1395,14 @@
       "source": "qubodup-gunfire",
       "source_rate": 48000,
       "source_frames": [
-        1748640,
+        1752432,
         1789440
       ],
       "processing": "handling",
       "url": "/audio/clips/reload-16.wav",
-      "sha256": "da900e71df2ea0c33b1b1ba8b9c08cad4d34a3bddf4f871876967f6864abac2c",
+      "sha256": "0466baca06cf48700288e9e18cff023f111d7778fdace97f2e542127de0d8ee5",
       "sample_rate": 48000,
-      "frames": 40800,
+      "frames": 37008,
       "loop": false,
       "notes": "User-identified handling sound; available for future events."
     },
@@ -1413,14 +1413,14 @@
       "source": "qubodup-gunfire",
       "source_rate": 48000,
       "source_frames": [
-        1800384,
+        1801296,
         1815504
       ],
       "processing": "handling",
       "url": "/audio/clips/clack-17.wav",
-      "sha256": "c43fa035f857f4c73406b8cb9225f931333e82a64301aa2ab7ab609f42e75b62",
+      "sha256": "7b7557b7e739d26ad8b1fa72d4a747e495ebc20edcacee2a13a6069c14df9125",
       "sample_rate": 48000,
-      "frames": 15120,
+      "frames": 14208,
       "loop": false,
       "notes": "User-identified handling sound; available for future events."
     },
@@ -1431,14 +1431,14 @@
       "source": "m1-live-fire",
       "source_rate": 48000,
       "source_frames": [
-        1686000,
+        1687968,
         1737600
       ],
       "processing": "heavy-report",
       "url": "/audio/clips/cannon-m1.wav",
-      "sha256": "f6ba830a6c51641effcf588e30410c1bd16f83b388853236b7109e08a7758cd4",
+      "sha256": "f16726c3c2952e0f2eafc9865d277e3c3b84ef89e3d7c5b2baf6b7a1facacaf2",
       "sample_rate": 48000,
-      "frames": 51600,
+      "frames": 49632,
       "loop": false,
       "notes": "Official tank B-roll; isolated distant report."
     },

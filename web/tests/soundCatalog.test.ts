@@ -39,6 +39,19 @@ test("two unit types sharing one weapon can select different firing sounds", () 
   expect(validateSoundCatalog(c)).toBe(c);
 });
 
+test("an unassigned weapon follows the editable global default before the synth baseline", () => {
+  const c = catalog();
+  const base = { near: "hmg", far: "hmg", gain: 0.5, far_m: 350 };
+  expect(resolveShot(c, base, "new-unit", "new-mount", "new-kind")).toBe(base);
+  c.defaults.default = { near: "rifle", far: "rifle", gain: 0.6 };
+  expect(resolveShot(c, base, "new-unit", "new-mount", "new-kind")).toEqual({
+    near: "rifle",
+    far: "rifle",
+    gain: 0.3,
+    far_m: 350,
+  });
+});
+
 test("a firing assignment cannot use a stored reload or a looping sound", () => {
   const c = catalog();
   c.sources.test = {
