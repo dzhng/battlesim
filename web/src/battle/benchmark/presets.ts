@@ -58,7 +58,7 @@ export const VILLAGE_CONTACT = {
 
 export const CITY_CONTACT = {
   id: "city-contact",
-  version: 2,
+  version: 3,
   variant: "city-arena-1",
   generated: { type: "metro", size: "large", seed: "4" },
   seed: 4,
