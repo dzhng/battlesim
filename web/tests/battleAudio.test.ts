@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, test, vi } from "vitest";
 import game from "@fixtures/game.json";
-import sounds from "@fixtures/sounds.json";
+import { SOUNDS } from "@packages/battle-audio/src/synth";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { BattleAudio } from "@packages/battle-audio/src/battleAudio";
@@ -65,15 +65,62 @@ function setupDecode(decode: () => Promise<AudioBuffer>) {
   vi.stubGlobal("AudioContext", Context);
   vi.stubGlobal("fetch", async () => new Response(Uint8Array.of(1)));
   soundSettings.set({ muted: false, volume: 1 });
-  const catalog = structuredClone(sounds) as SoundCatalog;
-  catalog.clips.pending = { url: "/pending.wav", loop: false } as SoundCatalog["clips"][string];
-  catalog.sounds.pending = {
-    label: "Pending",
-    clips: ["pending"],
-    synth: null,
-    synth_gain: 0,
-    gain: 1,
-    loop: false,
+  const catalog: SoundCatalog = {
+    sources: {
+      controlled: {
+        label: "Controlled recording",
+        author: "Test",
+        license: "CC0-1.0",
+        url: "https://example.invalid/controlled.wav",
+        path: "assets/third-party/audio/controlled.wav",
+        sha256: "0".repeat(64),
+        notes: "Fetch and decoding are controlled by this test.",
+      },
+    },
+    clips: {
+      pending: {
+        label: "Pending recording",
+        category: "report",
+        role: "shot",
+        source: "controlled",
+        source_rate: 8000,
+        source_frames: [0, 2],
+        processing: "none",
+        url: "/audio/clips/pending.wav",
+        sha256: "0".repeat(64),
+        sample_rate: 8000,
+        frames: 2,
+        loop: false,
+        notes: "",
+      },
+    },
+    sounds: {
+      ...Object.fromEntries(
+        Object.entries(SOUNDS).map(([name, sound]) => [
+          name,
+          {
+            label: name,
+            clips: [],
+            synth: name,
+            synth_gain: 1,
+            gain: 1,
+            loop: sound.loop,
+          },
+        ]),
+      ),
+      pending: {
+        label: "Pending",
+        clips: ["pending"],
+        synth: null,
+        synth_gain: 0,
+        gain: 1,
+        loop: false,
+      },
+    },
+    defaults: {},
+    units: {},
+    impacts: {},
+    effects: {},
   };
   const audio = new BattleAudio({
     tickHz: 30,
