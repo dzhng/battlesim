@@ -12,9 +12,11 @@ edit cannot silently change what an earlier report means. Source receipts are
 separate from the generator's physical map and configuration hashes.
 
 Plan inspection and sight analysis use retained native artifacts. Changing a crop
-never regenerates the map. The store keeps the admitted saved baseline and admitted
-draft, plus the latest refusal's input receipt; a refusal leaves the older admitted
-plan inspectable. Sample runs own a separate temporary artifact and never replace either preview.
+never regenerates the map. Each preview names the admitted maps the browser still
+displays: its accepted draft and saved baseline. The store keeps those maps plus the current result,
+and retires undisplayed work on the next preview. A refusal leaves the listed
+older plans inspectable and retains its own exact input receipt. Sample runs own
+a separate temporary artifact and never replace either preview.
 Export releases sample geometry while preserving its input receipt; the next sample
 expires that receipt. Cancelling a sample leaves the displayed preview inspectable.
 Leaving or disconnecting cancels owned native work; server disposal removes its

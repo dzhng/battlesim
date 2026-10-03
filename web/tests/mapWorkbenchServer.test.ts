@@ -147,6 +147,7 @@ test("retained refused reports export the exact inputs and remain saveable when 
   draft.documents.presets.density = 0.7;
   const run = await store.generate({
     purpose: "preview",
+    retainedArtifactIds: [],
     draft,
     choice: { type: "mixed", size: "small", seed: "4" },
   });
@@ -275,19 +276,30 @@ test("retained artifact receipts describe tested draft bytes, and superseded dra
   const initial = await store.snapshot();
   const baseline = await store.generate({
     purpose: "preview",
+    retainedArtifactIds: [],
     draft: initial,
     choice: { type: "mixed", size: "small", seed: "4" },
   });
   const draft = structuredClone(initial);
   draft.documents.presets.density = 0.6;
-  const first = await store.generate({ purpose: "preview", draft, choice: baseline.choice });
+  const first = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds: [baseline.artifactId!],
+    draft,
+    choice: baseline.choice,
+  });
   const exported = await store.export(first.artifactId!);
   const input = (exported.inputs as Record<string, string>).presets;
   expect((exported.receipts as Record<string, string>).presets).toBe(
     createHash("sha256").update(input).digest("hex"),
   );
   draft.documents.presets.density = 0.7;
-  const latest = await store.generate({ purpose: "preview", draft, choice: baseline.choice });
+  const latest = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds: [baseline.artifactId!],
+    draft,
+    choice: baseline.choice,
+  });
   await expect(store.export(first.artifactId!)).rejects.toMatchObject({ status: 410 });
   expect((await store.export(baseline.artifactId!)).report).toEqual(baseline);
   expect((await store.export(latest.artifactId!)).report).toEqual(latest);
@@ -338,11 +350,17 @@ test("a refused latest draft keeps the last admitted plan available for inspecti
   draft.documents.presets.density = 0.6;
   const accepted = await store.generate({
     purpose: "preview",
+    retainedArtifactIds: [],
     draft,
     choice: { type: "mixed", size: "small", seed: "4" },
   });
   draft.documents.presets.density = 0.9;
-  const refused = await store.generate({ purpose: "preview", draft, choice: accepted.choice });
+  const refused = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds: [accepted.artifactId!],
+    draft,
+    choice: accepted.choice,
+  });
   expect(refused.status).toBe("refused");
   expect(await store.inspect(accepted.artifactId!)).toMatchObject({
     svg: "<svg>older admitted</svg>",
@@ -397,6 +415,7 @@ test("disconnecting an HTTP generation terminates the process and removes its un
     headers: { "Content-Type": "application/json", Origin: origin },
     body: JSON.stringify({
       purpose: "preview",
+      retainedArtifactIds: [],
       draft,
       choice: { type: "mixed", size: "small", seed: "4" },
     }),
@@ -493,14 +512,21 @@ test("sample export and cancellation preserve pinned preview geometry for crop a
   const initial = await store.snapshot();
   const baseline = await store.generate({
     purpose: "preview",
+    retainedArtifactIds: [],
     draft: initial,
     choice: { type: "mixed", size: "small", seed: "4" },
   });
   const draft = structuredClone(initial);
   draft.documents.presets.density = 0.6;
-  const preview = await store.generate({ purpose: "preview", draft, choice: baseline.choice });
+  const preview = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds: [baseline.artifactId!],
+    draft,
+    choice: baseline.choice,
+  });
   const sample = await store.generate({
     purpose: "sample",
+    retainedArtifactIds: [],
     draft,
     choice: { ...baseline.choice, seed: "5" },
   });
@@ -510,7 +536,12 @@ test("sample export and cancellation preserve pinned preview geometry for crop a
   );
   const controller = new AbortController();
   const cancelled = store.generate(
-    { purpose: "sample", draft, choice: { ...baseline.choice, seed: "99" } },
+    {
+      purpose: "sample",
+      retainedArtifactIds: [],
+      draft,
+      choice: { ...baseline.choice, seed: "99" },
+    },
     controller.signal,
   );
   await expect
@@ -585,6 +616,7 @@ test("native inspection refusal becomes an HTTP error with its structured diagno
     });
   const generated = await post("generate", {
     purpose: "preview",
+    retainedArtifactIds: [],
     draft,
     choice: { type: "mixed", size: "small", seed: "4" },
   }).then((response) => response.json());
@@ -618,7 +650,12 @@ test("an invalid numeric draft generates an exportable typed input refusal witho
   const draft = structuredClone(await store.snapshot());
   draft.documents.presets.density = 0.8;
   const choice = { type: "mixed" as const, size: "small" as const, seed: "4" };
-  const report = await store.generate({ purpose: "preview", draft, choice });
+  const report = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds: [],
+    draft,
+    choice,
+  });
   expect(report).toMatchObject({ status: "refused", stage: "input", diagnostics, choice });
   expect(await readdir(join(root, "throwaway/map-workbench"))).toEqual([]);
   const exported = await store.export(report.artifactId!);
@@ -629,4 +666,206 @@ test("an invalid numeric draft generates an exportable typed input refusal witho
   const review = await store.preview(draft);
   expect(review.diagnostics).toEqual(diagnostics);
   await expect(store.save(review)).rejects.toMatchObject({ status: 400, diagnostics });
+});
+
+test("displayed maps survive an undisplayed success followed by a refused latest draft", async () => {
+  const run: NativeReporter = async (request) => {
+    if (request.operation === "validate") return validation;
+    if (request.operation === "generate") {
+      if (request.choice.seed === "9")
+        return { status: "refused", choice: request.choice, diagnostics: [] };
+      await writeFile(join(request.artifactDir, "seed"), request.choice.seed);
+      return {
+        status: "ok",
+        choice: request.choice,
+        diagnostics: [],
+        svg: `<svg>${request.choice.seed}</svg>`,
+      };
+    }
+    const seed = await readFile(join(request.artifactDir, "seed"), "utf8");
+    if (request.operation === "inspect") return { svg: `<svg>${seed}</svg>`, features: [] };
+    return {
+      status: "measured",
+      samples: Number(seed),
+      target: 0.5,
+      step_m: 300,
+      bearings: 64,
+      elapsed_ms: 1,
+    };
+  };
+  const { root, store } = await fixture(run);
+  const draft = await store.snapshot();
+  const choice = { type: "mixed" as const, size: "small" as const, seed: "1" };
+  const baseline = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds: [],
+    draft,
+    choice,
+  });
+  const displayed = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds: [baseline.artifactId!],
+    draft,
+    choice: { ...choice, seed: "4" },
+  });
+  const retainedArtifactIds = [displayed.artifactId!, baseline.artifactId!];
+  const undisplayed = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds,
+    draft,
+    choice: { ...choice, seed: "5" },
+  });
+  expect((await readdir(join(root, "throwaway/map-workbench"))).sort()).toEqual(
+    [...retainedArtifactIds, undisplayed.artifactId!].sort(),
+  );
+  const refused = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds,
+    draft,
+    choice: { ...choice, seed: "9" },
+  });
+  expect(refused.status).toBe("refused");
+  expect(await store.inspect(displayed.artifactId!)).toMatchObject({ svg: "<svg>4</svg>" });
+  expect(await store.sight(displayed.artifactId!)).toMatchObject({
+    status: "measured",
+    samples: 4,
+  });
+  expect(await store.inspect(baseline.artifactId!)).toMatchObject({ svg: "<svg>1</svg>" });
+  await expect(store.export(undisplayed.artifactId!)).rejects.toMatchObject({ status: 410 });
+  expect((await readdir(join(root, "throwaway/map-workbench"))).sort()).toEqual(
+    retainedArtifactIds.sort(),
+  );
+});
+
+test("retention accepts only at most two distinct admitted preview IDs", async () => {
+  const run: NativeReporter = async (request) =>
+    request.operation === "validate"
+      ? validation
+      : request.operation === "generate"
+        ? {
+            status: request.choice.seed === "9" ? "refused" : "ok",
+            choice: request.choice,
+            diagnostics: [],
+          }
+        : { svg: "<svg/>", features: [] };
+  const { store } = await fixture(run);
+  const draft = await store.snapshot();
+  const choice = { type: "mixed" as const, size: "small" as const, seed: "4" };
+  const admitted = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds: [],
+    draft,
+    choice,
+  });
+  const sample = await store.generate({
+    purpose: "sample",
+    retainedArtifactIds: [],
+    draft,
+    choice,
+  });
+  const refused = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds: [admitted.artifactId!],
+    draft,
+    choice: { ...choice, seed: "9" },
+  });
+  for (const retainedArtifactIds of [
+    [admitted.artifactId!, admitted.artifactId!],
+    ["unknown"],
+    [sample.artifactId!],
+    [refused.artifactId!],
+    [admitted.artifactId!, sample.artifactId!, refused.artifactId!],
+  ]) {
+    await expect(
+      store.generate({ purpose: "preview", retainedArtifactIds, draft, choice }),
+    ).rejects.toMatchObject({ status: 400 });
+  }
+  expect(await store.inspect(admitted.artifactId!)).toMatchObject({ svg: "<svg/>" });
+});
+
+test("late success from a cancelled preview cannot release a retained displayed map", async () => {
+  let finish: (() => void) | undefined;
+  const run: NativeReporter = async (request) => {
+    if (request.operation === "validate") return validation;
+    if (request.operation === "generate") {
+      const result = {
+        status: "ok" as const,
+        choice: request.choice,
+        diagnostics: [],
+        svg: "<svg/>",
+      };
+      if (request.choice.seed === "99")
+        return new Promise<typeof result>((complete) => {
+          finish = () => complete(result);
+        });
+      return result;
+    }
+    if (request.operation === "inspect") return { svg: "<svg>displayed</svg>", features: [] };
+    return {
+      status: "measured",
+      samples: 4,
+      target: 0.5,
+      step_m: 300,
+      bearings: 64,
+      elapsed_ms: 1,
+    };
+  };
+  const { root, store } = await fixture(run);
+  const draft = await store.snapshot();
+  const choice = { type: "mixed" as const, size: "small" as const, seed: "4" };
+  const displayed = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds: [],
+    draft,
+    choice,
+  });
+  const controller = new AbortController();
+  const cancelled = store.generate(
+    {
+      purpose: "preview",
+      retainedArtifactIds: [displayed.artifactId!],
+      draft,
+      choice: { ...choice, seed: "99" },
+    },
+    controller.signal,
+  );
+  await expect.poll(() => typeof finish).toBe("function");
+  controller.abort();
+  finish!();
+  await expect(cancelled).rejects.toThrow();
+  expect(await store.inspect(displayed.artifactId!)).toMatchObject({ svg: "<svg>displayed</svg>" });
+  expect(await store.sight(displayed.artifactId!)).toMatchObject({
+    status: "measured",
+    samples: 4,
+  });
+  expect(await readdir(join(root, "throwaway/map-workbench"))).toEqual([displayed.artifactId]);
+});
+
+test("the latest refusal receipt survives a subsequent undisplayed success", async () => {
+  const run: NativeReporter = async (request) =>
+    request.operation === "validate"
+      ? validation
+      : request.operation === "generate"
+        ? {
+            status: request.choice.seed === "9" ? "refused" : "ok",
+            choice: request.choice,
+            diagnostics: [],
+          }
+        : { svg: "<svg/>", features: [] };
+  const { store } = await fixture(run);
+  const draft = await store.snapshot();
+  const choice = { type: "mixed" as const, size: "small" as const, seed: "9" };
+  const refused = await store.generate({
+    purpose: "preview",
+    retainedArtifactIds: [],
+    draft,
+    choice,
+  });
+  await store.generate({
+    purpose: "preview",
+    retainedArtifactIds: [],
+    draft,
+    choice: { ...choice, seed: "4" },
+  });
+  expect((await store.export(refused.artifactId!)).report).toEqual(refused);
 });

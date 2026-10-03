@@ -84,7 +84,6 @@ interface Artifact {
   inputs: NativeInputs;
   report: Report;
   receipts: Record<string, string>;
-  baseline: boolean;
   purpose: RunRequest["purpose"];
 }
 
@@ -285,10 +284,23 @@ export class WorkbenchStore {
         canonicalSeed(choice.seed) !== choice.seed
       )
         throw new WorkbenchError("Expected a map type, size and canonical u64 seed");
+      const retained = this.retainedPreviews(request.retainedArtifactIds);
       const state = await this.state();
       const current = this.requireValid(await this.validate(state.inputs, owned));
       const inputs = this.inputsFor(request.draft, state, current.fields);
       // Native generation reports invalid draft policy with its exact tested inputs.
+      if (request.purpose === "preview") {
+        for (const [id, artifact] of this.artifacts) {
+          if (
+            artifact.purpose === "preview" &&
+            artifact.report.status === "ok" &&
+            !retained.has(id)
+          ) {
+            await this.release(artifact);
+            this.artifacts.delete(id);
+          }
+        }
+      }
       if (request.purpose === "sample") {
         for (const [id, artifact] of this.artifacts) {
           if (artifact.purpose === "sample") {
@@ -321,14 +333,12 @@ export class WorkbenchStore {
             ),
           );
         owned.throwIfAborted();
-        const baseline =
-          inputs.presets === state.inputs.presets && inputs.defaults === state.inputs.defaults;
         for (const [id, old] of this.artifacts) {
           if (
             request.purpose === "preview" &&
+            result.status === "refused" &&
             old.purpose === "preview" &&
-            (old.report.status === "refused" ||
-              (result.status === "ok" && old.baseline === baseline))
+            old.report.status === "refused"
           ) {
             await this.release(old);
             this.artifacts.delete(id);
@@ -343,7 +353,6 @@ export class WorkbenchStore {
           inputs,
           report: result,
           receipts,
-          baseline,
           purpose: request.purpose,
         });
         return structuredClone(result);
@@ -358,6 +367,22 @@ export class WorkbenchStore {
     const result = this.artifacts.get(id);
     if (!result) throw new WorkbenchError("This result expired. Generate it again.", 410);
     return result;
+  }
+  private retainedPreviews(ids: string[]): Set<string> {
+    if (!Array.isArray(ids) || ids.length > 2 || new Set(ids).size !== ids.length)
+      throw new WorkbenchError("Retain at most two distinct displayed preview results");
+    for (const id of ids) {
+      const artifact = this.artifacts.get(id);
+      if (
+        typeof id !== "string" ||
+        !artifact ||
+        artifact.purpose !== "preview" ||
+        artifact.report.status !== "ok" ||
+        artifact.dir === null
+      )
+        throw new WorkbenchError("Retained IDs must name admitted preview results");
+    }
+    return new Set(ids);
   }
   private async release(artifact: Artifact) {
     if (artifact.dir !== null) {
