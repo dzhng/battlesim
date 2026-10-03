@@ -24,8 +24,7 @@ use crate::math::{v2, Obb2, V2, V3};
 use contract::map::Forest;
 use contract::scenario::ForestRule;
 
-/// Sight lines are sampled this often through foliage.
-const SAMPLE_M: f64 = 1.0;
+use contract::forest::FOLIAGE_SAMPLE_M;
 /// Forest ground is looked up in buckets this wide.
 const GROUND_BUCKET_M: f64 = 64.0;
 
@@ -437,7 +436,7 @@ impl WorldGeometry {
             }
             done = t1;
             let span = (t1 - t0) * len;
-            let n = (span / SAMPLE_M).ceil().max(1.0) as usize;
+            let n = (span / FOLIAGE_SAMPLE_M).ceil().max(1.0) as usize;
             let piece = span / n as f64;
             for k in 0..n {
                 let p = a + d * (t0 + (t1 - t0) * ((k as f64 + 0.5) / n as f64));
@@ -685,9 +684,16 @@ impl contract::forest::TrunkQueries for WorldGeometry {
     }
     fn body_near(&self, p: [f64; 2], margin: f64) -> bool {
         let p = v2(p[0], p[1]);
-        self.props_near(p, margin)
-            .iter()
-            .any(|prop| !prop.forest_tree && prop.footprint().contains(p, margin))
+        self.props_near(p, margin).iter().any(|prop| {
+            !prop.forest_tree
+                && contract::forest::body_contains(
+                    [prop.center.x, prop.center.y],
+                    [prop.half.x, prop.half.y],
+                    prop.yaw,
+                    [p.x, p.y],
+                    margin,
+                )
+        })
     }
     fn contains_ground(&self, p: [f64; 2]) -> bool {
         self.field.contains(p[0], p[1])

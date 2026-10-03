@@ -25,6 +25,9 @@ const USAGE: &str = "usage: sight_report [--seeds <n>] [--seed <u64>] [--only <t
 
 struct Inputs {
     presets: PresetDefinitions,
+    presets_json: String,
+    templates_json: String,
+    rules_json: String,
     catalogue: TemplateGeometryCatalog,
     rules: Rules,
     recipe: EncounterRecipe,
@@ -40,16 +43,21 @@ fn load(presets: Option<&str>) -> Result<Inputs, Box<dyn std::error::Error>> {
         Some(path) => std::fs::read_to_string(path)?,
         None => read("map-presets.json")?,
     };
-    let presets = PresetDefinitions::from_json(&presets).map_err(|errors| format!("{errors:?}"))?;
-    let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&read(
-        "prototype-building-templates.json",
-    )?)?)?;
+    let presets_json = presets;
+    let presets =
+        PresetDefinitions::from_json(&presets_json).map_err(|errors| format!("{errors:?}"))?;
+    let templates_json = read("prototype-building-templates.json")?;
+    let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&templates_json)?)?;
+    let rules_json = sim::fixtures::game().to_string();
     let config: Value = serde_json::from_str(&read("generated-battle.json")?)?;
     let recipes = EncounterRecipes::from_json(&read("encounters.json")?)?;
     Ok(Inputs {
         presets,
         catalogue,
-        rules: serde_json::from_value(sim::fixtures::game())?,
+        rules: serde_json::from_str(&rules_json)?,
+        presets_json,
+        templates_json,
+        rules_json,
         recipe: recipes
             .recipes
             .get("assault")
@@ -62,15 +70,21 @@ fn load(presets: Option<&str>) -> Result<Inputs, Box<dyn std::error::Error>> {
 
 /// One map's sight circles, in one arm.
 fn run(inputs: &Inputs, request: &GenerationRequest, furnished: bool, step: f64) -> Value {
-    let plan = mapgen::layout::generate_layout(request, &inputs.presets).and_then(|layout| {
-        let plan =
-            mapgen::parcels::fill_districts(layout, request, &inputs.catalogue, &inputs.presets)?;
-        if furnished {
-            mapgen::open_country::furnish(plan, request, &inputs.catalogue, &inputs.presets)
-        } else {
-            Ok(plan)
+    let plan = if furnished {
+        match mapgen::generate_plan(
+            &serde_json::to_string(request).unwrap(),
+            &inputs.presets_json,
+            &inputs.templates_json,
+            &inputs.rules_json,
+        ) {
+            mapgen::GenerateOutcome::Ok { plan } => Ok(*plan),
+            mapgen::GenerateOutcome::Error { diagnostics } => Err(diagnostics),
         }
-    });
+    } else {
+        mapgen::layout::generate_layout(request, &inputs.presets).and_then(|layout| {
+            mapgen::parcels::fill_districts(layout, request, &inputs.catalogue, &inputs.presets)
+        })
+    };
     let compiled = plan.and_then(|plan| {
         let country = mapgen::open_country::measure(&plan, &inputs.presets);
         let layout = mapgen::layout::measure(&plan, &inputs.presets);

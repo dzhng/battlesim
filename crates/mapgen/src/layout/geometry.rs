@@ -367,16 +367,45 @@ impl Grid {
     }
 
     pub fn insert(&mut self, bounds: [f64; 4], item: u32) {
-        for bucket in self.span(bounds) {
-            self.buckets[bucket].push(item);
-        }
+        self.insert_charged(bounds, item, || true);
     }
 
-    /// Whether `test` holds for any item whose box may reach `bounds`. An
-    /// item in several buckets is tested once per bucket.
-    pub fn any(&self, bounds: [f64; 4], mut test: impl FnMut(u32) -> bool) -> bool {
-        self.span(bounds)
-            .any(|bucket| self.buckets[bucket].iter().any(|item| test(*item)))
+    /// Charge each bucket before adding its reference. Failure leaves a
+    /// partial index, which the bounded construction caller must discard.
+    pub fn insert_charged(
+        &mut self,
+        bounds: [f64; 4],
+        item: u32,
+        mut charge: impl FnMut() -> bool,
+    ) -> bool {
+        for bucket in self.span(bounds) {
+            if !charge() {
+                return false;
+            }
+            self.buckets[bucket].push(item);
+        }
+        true
+    }
+
+    /// An item in several buckets is tested once per bucket.
+    pub fn any(&self, bounds: [f64; 4], test: impl FnMut(u32) -> bool) -> bool {
+        self.any_charged(bounds, test, || true)
+    }
+
+    /// Charge both empty buckets and actual predicate reads. Exhaustion
+    /// conservatively reports a hit; the caller must reject exhausted work.
+    pub fn any_charged(
+        &self,
+        bounds: [f64; 4],
+        mut test: impl FnMut(u32) -> bool,
+        mut charge: impl FnMut() -> bool,
+    ) -> bool {
+        self.span(bounds).any(|bucket| {
+            !charge()
+                || self.buckets[bucket]
+                    .iter()
+                    .any(|item| !charge() || test(*item))
+        })
     }
 
     /// Whether `test` holds for any item whose box may come within `margin`
