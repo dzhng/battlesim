@@ -9,7 +9,12 @@ Sound inputs and prepared clips belong to [`battle-audio`](../packages/battle-au
 - `review/`: accepted model sheets (`asset sheet --accept`), one folder per appearance.
 - `runtime/`: the bake's output. Binary files are LFS and their directories identify the bytes actually served. `catalog.json` keeps art identities separate from the gzip transport of kits and the template library ([transport contract](../packages/scene-assets/README.md#transport-and-budgets)). It is Vite's `publicDir`, served at the site root and copied into production builds.
 
-The `asset` CLI (`bun run --cwd web asset -- <command>`, source `web/asset.mjs`) owns every step on this folder; run it bare for its commands. The ones a model change always touches: `pull [name]` fetches exactly the LFS files an entry needs, `blender <script>` runs a script on the pinned Blender, `sheet <appearance|glb>` renders the workbench's review sheets headless into `throwaway/sheets/<name>/` (`--accept` copies them to `review/`), and `bake` then `check`.
+[The asset CLI](../web/asset.mjs), invoked with `bun run --cwd web asset`, owns
+appearance file operations; its bare usage lists commands. [Scene-assets](../packages/scene-assets/README.md)
+owns validation and baking, [Blender authoring](../packages/scene-assets/README.md#authored-sources-blender)
+owns explicit source generation, and [audio preparation](../packages/battle-audio/README.md#recording-preparation)
+owns source crops and sound rebuilds. Review output remains scratch until explicitly
+accepted; accepted art sheets belong under `review/`.
 
 The model workbench is `/workbench` in the lab app: drop a GLB, or open `/workbench?bundle=<name>`. While the dev server runs, a change under `source/` or to `catalog.json` re-bakes and reloads it.
 

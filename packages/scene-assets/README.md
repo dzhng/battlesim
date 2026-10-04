@@ -2,7 +2,7 @@
 
 The one owner of appearance bundles: schema, validation, baking and loading. The workbench and the battle load through the same `AppearanceLibrary` (`src/loader.ts`). The CLI (`web/asset.mjs`) is only file IO around this package.
 
-The contract is ported from `~/dev/game`'s soldier-assets (`ART_INPUT_CONTRACT.md`); the encoding is ours (`specs/done/battle-look/decisions.md`, "Bundle encoding").
+The [appearance rationale](../../specs/done/battle-look/README.md) records the imported techniques and their provenance. [Schema](src/schema.ts), [validation](src/validate.ts) and [encoding](src/codec.ts) own the current contract.
 
 ## Principles
 
@@ -15,16 +15,36 @@ The contract is ported from `~/dev/game`'s soldier-assets (`ART_INPUT_CONTRACT.m
 
 ## Source conventions (what the validator expects of a GLB)
 
-- Four tiers in one GLB, named by a `_LOD0`..`_LOD3` suffix on mesh objects, finest first. An unsuffixed mesh is in every tier.
-- **Skinned** (infantry): one skin, at most four weights. Unweighted `_leaf` joints are dropped unless the skeleton has them. Kit parented to a bone is skinned rigidly to it at bake. Sockets are empties under a joint; infantry needs `eye` and `muzzle`. The skeleton needs the six clip roles (`INFANTRY_CLIPS`), each with an explicit loop flag, plus a standing-aim reference pose where the muzzle is measured. The battle draws the fallen at the bundle's `corpse_pose`: the body skinned there once into a static mesh (`posedMesh`, `src/pose.ts`), never posed per frame.
-- **Articulated** (vehicles): one root empty. Every empty is a moving node; mesh objects fold into their nearest empty. Node frames are engine-aligned, so a turret yaws about its local +Z. The required names per unit are in `validate.ts`. Tracks carry `track_length_m` and `link_pitch_m` custom properties. Each mount must turn about its catalog row's pivot, carried by the mount it sits on, as the simulation's muzzle model does; `fit.muzzle_arc` checks it as an arc.
-- **Which rig draws which mount is data:** a vehicle's catalog entry names, per unit-type mount, the rig that draws it (`"mounts": { "cannon": "gun", "HMG": "hmg" }`; the rigs and their nodes are `MOUNT_NODES` in `units.ts`). Nothing is inferred from a mount's name. The validator requires every mount with a muzzle to be declared once, by a real rig, and the rig's nodes to exist (`fit.mount_draw`, `nodes.missing`); the bake carries the declaration to the runtime catalog, and the pose driver and drawn muzzles read it through `mountRoles`.
-- **Unit silhouettes** (`silhouette.ts`) are rendered on the CPU from each type's baked model, side-on, and traced into one filled SVG path; `asset icons` writes `assets/icons/units/<type>.svg`, and `asset check` and `icons.test.ts` fail when one is missing, stale or orphaned. Weapon, state and glyph icons are centred on their ink (`inkBounds.ts`), so each sits in the middle of the slot the panel gives it.
-- **How vehicles move** is `articulation.ts`: the pose inputs (`Articulation`: turret and gun, HMG, each side's travel, deploy progress) mapped onto named nodes. Wheels roll about their local +Y; guns pitch about their local +Y. Deploying parts carry their own motion as custom properties (`deploy_start`, `deploy_end`, `deploy_move_{x,y,z}`, `deploy_turn_{x,y,z}`), and a supply truck's pads must reach the ground at deploy 1. An articulated bundle's `bounds` cover every pose this reaches; fit is still measured at rest.
-- **Static** (scenery): one GLB per state. A building is not an appearance: see "City buildings".
-- **Fit to a prop's box.** A scenery kind whose footprint is a simulation prop declares `footprint_half_m`: the box its art is authored to, bottom on the ground. It must be a box the simulation places (a vehicle's hull for a wreck, a building's plan at the building row's ruin height (`props.building.destroyed.into.height_m`) for a loose ruin; `web/tests/sceneAssets/catalogFootprints.test.ts` holds the catalog to that). The validator measures every state against it (`fit.footprint`), the runtime catalog carries it, and the battle fits each placed box from it. Vehicles' hit boxes judge the sides with `hull_extent_m` and the top with `hull_top_m`, so an antenna never loosens the sides.
-- **Scenery** (`unit: "scenery"`): every prop, tree, hedgerow and grass kind, named by the entry's `scenery`. A scenery kind is one row of `SCENERY_KINDS` (`src/scenery.ts`), the art side's table: the states its art must carry, and its footprint, meaning what the simulation knows of it for the workbench's overlay. The footprint says it stands for prop types (box and blocking class; which ones is each prop type's `appearance.drawn_by`, never this table), a forest tree (trunk and canopy) or nothing. The validator, the bake, the loader and the workbench read it from there. A kind instanced by the hundred also carries its triangle budget per tier there (`tier_triangles`, finding `budget.tier_triangles`): a tree's is what a paired frame-cost run measured to fit, so a new species fits the budget rather than raising it. A tree also carries the one size every species is built to (`size`: its top and its bole's girth at breast height, finding `fit.tree_size`), so species differ in shape and never in size. A kind with no body that is scattered among things that have one (`dressing`: a forest floor's ferns, bushes, saplings, small rocks and fallen branches) carries the height none of its art may pass (`top_m`, finding `fit.dressing`): what is drawn must not look like it hides more than the simulation says. Which scenery kind draws a prop is the prop type's data, not this table's: a new prop type starts in the prop catalog ([`fixtures/README.md`](../../fixtures/README.md)), whose `appearance.drawn_by` names a scenery kind, and needs a new row here only when it needs new art.
-- **Grass kinds** are the `grass` row: a clump of blade strips the battle's grass field instances and bends in the wind, so every tier must be the same blades in one layout (`grass.ts`, finding `structure.grass`). They are generated, not modelled: a catalog entry's `grass` spec is the generator's input, `asset grass` writes its GLB, and the bake takes the GLB like any other. A clump's mean colour stands for the ground it grows on; the field tints each clump by its own ground, so a spec's colours say how its roots, tips and heads differ from that ground, never the field's colour. Its vertex alpha is how far the kind answers the field's wind. No blade stands taller than its spec's `height_m`, and no field may draw any kind taller than `GRASS_MAX_HEIGHT_M` once the biome's scales are composed; the workbench shows each kind against a ruler at that height.
+[Validation](src/validate.ts) owns structural, fit and budget findings; [schema](src/schema.ts)
+owns bundle roles and limits. Source exporters carry explicit detail tiers, so a
+coarser representation changes geometry rather than merely hiding a large mesh.
+
+Skinned bodies share one skeleton's clip library. Bone-attached kit is baked into
+that skin, and sockets locate observed effects on the drawn weapon. The fallen
+body uses a fixed corpse pose instead of retaining a live animation workload.
+[Pose construction](src/pose.ts) owns those transformations.
+
+Articulated vehicles preserve moving-node frames and mount ownership. A mount's
+catalog binding selects its drawn rig; its name cannot infer a pivot or muzzle.
+[Unit bindings](src/units.ts) and [articulation](src/articulation.ts) own that mapping.
+Bounds cover all reachable poses, while physical fit remains measured at rest.
+
+[Scenery kinds](src/scenery.ts) define art roles, states and per-tier budgets.
+Prop bindings belong to the resolved simulation catalog; the renderer does not
+maintain a second prop roster. Art fits boxes the simulation actually places,
+including a wreck's hull or a building's physical remains. Nonphysical dressing
+must not look tall enough to grant cover or concealment the simulation lacks.
+Trees share a physical size reference so species variation cannot change gameplay fit.
+
+[Grass generation](src/grass.ts) builds source clumps from authored specifications.
+Tiers retain one blade layout, and biome scaling must stay within the presentation
+height bound. Clump colors describe variation relative to their ground; the field
+owns the final terrain tint and wind response.
+
+[Silhouette generation](src/silhouette.ts) and [icon construction](src/icons.ts)
+derive unit icons from admitted models. Missing or stale icons fail the asset gate;
+icons are not an independently authored unit catalog. Shared ink bounds keep glyph
+placement tied to what the player sees rather than empty image margins.
 
 ## City buildings
 
@@ -54,25 +74,37 @@ Gzip is an explicit file transport, not an assumed hosting optimization. The bro
 
 ## Sides
 
-Blue and red draw the same meshes. A material's `tint` (glTF material extras, 0..1) is the side-tint mask: how much of the side's colour it takes. The catalog's `sides` holds each side's linear RGB tint, baked into the runtime catalog. `AppearanceCatalog` (`src/appearanceCatalog.ts`) answers which appearance a unit kind draws and its side's tint. The observation supplies carrier assignment and each soldier's active weapon separately. A mount's `operator_appearance` replaces its carrier's ordinary kit with an active or carried hold; the same variant index preserves his identity across those sets. Each hold supplies its own clips and muzzle socket. This follows the weapon when a survivor takes it up, and fallen soldiers return to their ordinary appearance so the recovered weapon is not duplicated.
+Both sides draw the same meshes. [Appearance resolution](src/appearanceCatalog.ts)
+combines the catalog's side tint and unit bindings with observed carrier and active
+weapon assignments. A soldier's variant identity persists when an equipment hold
+changes; the current hold supplies its own skeleton clips and muzzle socket.
+Recovered equipment follows its living operator, while the fallen return to their
+ordinary appearance so the weapon is not duplicated.
 
-- A vehicle kind has exactly one appearance; a second is refused.
-- An infantry kind may have several **variants** (catalog entries with the same `unit`: another head, kit, pack and colouring). A soldier wears variant `id mod n` in name order. Variants within one ordinary or operator appearance set share a skeleton; different equipment sets may use different holds, and each soldier samples the clips of the model he wears.
-
-The renderer multiplies tint-masked albedo by the `ModelInstance`'s tint.
+Variant sets must satisfy the [shared rig contract](src/validate.ts). Side tint
+changes masked albedo, not geometry or the authoritative unit type.
 
 ## Authored sources (`blender/`)
 
-The infantry sources under `assets/source/infantry/` are exported by the Blender scripts in `blender/`, run with `bun run --cwd web asset -- blender ../packages/scene-assets/blender/<script> <arg>`:
+[Blender sources](blender/) hold subject exporters and shared geometry/material
+helpers. Run them through [the asset CLI](../../web/asset.mjs), which owns the pinned
+Blender invocation; each script's usage text owns its arguments. Source generation
+is explicit and committed. Neither the bake nor game startup launches Blender.
 
-- `clips_infantry.py <family>` bakes one clip set (a hold family) into `clips_<family>.glb`;
-- `infantry_kit.py <kind> [a|b|c]` builds one kind's body, kit and weapon into `<kind>.glb` (variant `a`) or `<kind>_<variant>.glb`. The variants' looks are the script's `LOOKS` table: headgear, eyewear, vest colour, pack, pouches, skin and hair. The kind's own cue (the recon ruck, the launcher) stays in every variant.
+[The batch rebuild](blender/build_sources.sh) owns its supported exporter sequence.
+It is not a complete catalog rebuild: clip families and [city sets](blender/city/README.md)
+have their own source steps. Follow the catalog and source script for the subject
+being changed rather than maintaining another exporter list here.
 
-They read the third-party packs from a local cache, never from the repo; `blender/packs.py fetch` downloads them, and every read is checked against the hash pinned in `blender/packs.json`, so a re-uploaded pack stops the build instead of changing the art. Their sources and licences are listed in [`assets/README.md`](../../assets/README.md). Exports are hash-stable: the same scripts and packs write the same bytes, so a changed hash means changed art.
+[Pack acquisition](blender/packs.py) reads the local cache and verifies the
+[pack manifest](blender/packs.json) before use. [Source credits](../../assets/README.md#third-party-sources)
+own licenses. Fixed seeds and canonical export ordering make the same inputs
+write the same bytes; a changed source hash should mean changed art.
 
-The vehicles, wrecks and props under `assets/source/vehicles/` and `assets/source/village/` are ours from scratch, one script per subject, and so are the street's bodies under `assets/source/street/` (`street.py`, and `street_car.py` for the parked car and its wreck; generic, with no brand, sign or plate) and the trees and hedgerows under `assets/source/trees/` (`trees.py`: a branch skeleton carrying solid leaf clumps, the same clumps coarser on each nearer tier and a lobed volume built inside them as the far tier, because a tree's shadow is cast by the tier under the one drawn), and what lies on a forest's floor under `assets/source/forest/` (`forest_floor.py`: the log and boulder bodies and the dressing kinds, from the trees' own bark and clumps and one rock generator): `blender/build_sources.sh` rebuilds all of them. They follow the Muster technique: scripted parts with bevels, one mesh per `_LOD<n>` tier, and the look baked into vertex colour (paint, edge wear, grime, ambient occlusion). `parts.py` owns the primitives and the bake; `masonry.py` the village's paints and walls.
-
-Wrecks are the live vehicle's own parts, worked over by `wreckage.py` before the bake: warped and dented plates, folded and torn panels, hulls hollowed and holed so openings show a burnt interior, and debris thrown round. Its booleans end in a canonical vertex and face order. The paint round each fire vent (`SCORCH`) blisters to rust and chars black; away from them the original paint survives, sooted. A bridge's piers, abutments and wing walls stand below its box, down to a channel's bed: the catalog widens that appearance's `ground_m` for them.
+Shared helpers own mesh construction, wear, texture recipes and damage. A wreck
+reuses its live vehicle's parts and original paint; damage changes the same object,
+not its model identity. City source conventions, interiors and damage states have
+one home in [the city authoring guide](blender/city/README.md).
 
 ## Textures
 
@@ -86,7 +118,7 @@ A source embeds them as a standard glTF material's PNG textures, with a `TANGENT
 
 The validator's `texture.*` findings (`validate.ts`) hold every texture square, a power of two and fully mipped, and every vertex a normal-mapped material draws to carrying a tangent.
 
-A textured material's vertex colour means something different. It is relative to the albedo texture's mean and stored at a third (`Material.colour_scale` 3), so dust, ash and rust can lighten or tint a surface as well as darken it. Its alpha says how worn the surface is. Where that rises past the albedo's wear threshold, the material's `wear` colour shows, as crisp chips on edges and spatter low down.
+A textured material's vertex colour means something different. It is relative to the albedo texture's mean and scaled by the [material contract](src/material.ts), so dust, ash and rust can lighten or tint a surface as well as darken it. Its alpha says how worn the surface is. Where that rises past the albedo's wear threshold, the material's `wear` colour shows, as crisp chips on edges and spatter low down.
 
 The textures are procedural recipes in `blender/textures.py`: camouflage prints, weaves, rubber, steel, burnt metal, wood, stone, concrete and markings. Each is evaluated on a periodic lattice, so it tiles seamlessly, and baked with fixed seeds. The scripts give a textured part UVs in metres by box projection (`box_uv`), so every part and every tier samples the recipe at its own scale. `attach` then writes the images into the exported GLB. Painted markings (tactical numbers, crate stencils, launcher nomenclature) are modelled as thin lettering (`parts.stencil`).
 
@@ -112,4 +144,4 @@ The validator's `material.*` findings (`material.ts`) refuse what would be drawn
 
 ## Where things are
 
-`schema.ts` holds the types and constants, `validate.ts` the rules and finding codes, and `codec.ts` the binary layout. `loose.ts` judges one GLB on its own, for `asset validate` and the model workbench's drop zone. Every validation also returns a `preview`, the bundle as built even when it has errors; the workbench installs previews through the same loader (`previewRuntime` plus `memoryFetch`), and the bake never writes them.
+[Schema](src/schema.ts) holds types and constants, [validation](src/validate.ts) the rules and finding codes, and [codec](src/codec.ts) the binary layout. `loose.ts` judges one GLB on its own, for `asset validate` and the model workbench's drop zone. Every validation also returns a `preview`, the bundle as built even when it has errors; the workbench installs previews through the same loader (`previewRuntime` plus `memoryFetch`), and the bake never writes them.

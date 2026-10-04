@@ -1,10 +1,29 @@
 # Fixtures
 
-`game.json` is the one owner of the game's rules and look numbers. Labs and scenes reuse it. It holds no map: every saved map is a folder of [`maps/`](#saved-maps), read by id. `map-presets.json` holds the map generator's presets (layout, each district kind's streets and parcels, and the street furniture placed among them) and `prototype-building-templates.json` the physical templates it builds towns from (the file keeps the name it started under; its rows are the released buildings); [`crates/mapgen`](../crates/mapgen/README.md) reads and validates both. The asset check holds each of the two template catalogues and the city art sets that dress it to each other, and a set's new templates reach the generator's through the asset CLI, not by hand ([scene-assets](../packages/scene-assets/README.md), "City buildings"). `encounters.json` holds the encounter recipes the simulation's planner places on a compiled map ([`sim::encounter`](../crates/sim/src/encounter/mod.rs)): who attacks from which edge, each side's roster and where its rows start, the objective, and the planner's distances and attempt limits. A recipe holds no coordinates, and `contract::encounter` validates it at load. `generated-battle.json` holds what the game adds to a player's choice of generated map: the compiler's limits, which recipe and encounter seed it plans by default, and the overview camera. `building-templates.json` is the physical library the authored maps pin, and stays apart from the prototypes because its hash is their identity: it is written by hand, and its art set copies its rows. A saved map's `SOURCES.json` names which of the two its buildings come from. `units/` and `props/` are the catalog: every unit type, soldier kind, role and upgrade part, and every prop type. `biomes/` holds the terrain palettes. A number that changes how the battle plays or looks belongs here, validated by the module that reads it, never as a constant in code.
+Authored settings belong here, validated by their reader. [Game rules](game.json)
+own battle and presentation numbers. [Units](units/), [props](props/) and [biomes](biomes/)
+own component catalogs and terrain palettes; [catalog resolution](../crates/contract/src/catalog.rs)
+produces the browser's resolved [catalog](catalog.json).
+
+[Map presets](map-presets.json) and the generator's [physical template library](prototype-building-templates.json)
+feed [mapgen](../crates/mapgen/README.md). Their templates are derived from accepted
+[city sets](../packages/scene-assets/README.md#city-buildings). The [authored template library](building-templates.json)
+stays separate because existing authored maps pin its hash and it must not be
+silently regenerated from art.
+
+[Encounter recipes](encounters.json) describe rosters, objectives and placement
+policy without coordinates; [the simulation planner](../crates/sim/src/encounter/)
+places them on admitted geometry. [Generated-battle settings](generated-battle.json)
+own preparation policy and default encounter selection. [Camera lab settings](camera-lab.json)
+belong to the isolated camera experiment, not a second gameplay camera policy.
+
+[Sound authoring](#sound-catalog) owns audio provenance and choices independently
+of gameplay weapon cycles. Saved maps, component inheritance and paired evidence
+have the contracts below.
 
 ## Saved maps
 
-A saved map is one folder, `maps/<id>/`, and nothing reads a map any other way. The id is the folder's name: lowercase letters, digits, hyphens and underscores. It names where the map is stored and nothing else: a route's id and a map's content hash are separate things, and several routes may play one map.
+A saved map is one folder, `maps/<id>/`, under [the saved-map catalog](maps/), and nothing reads a map any other way. The id is the folder's name: lowercase letters, digits, hyphens and underscores. It names where the map is stored and nothing else: a route's id and a map's content hash are separate things, and several routes may play one map.
 
 - **`map.json`** is the physical map in its saved form (`contract::map::SavedMap`): ground, relief, water, surfaces, forests, props and buildings. A building is stored as what is its own: `owner`, `kind`, `template_id`, `frame` (translation and yaw) and `parts` (each named part's prop id). Its geometry, category and regional family are the template's and are not stored. Only the resolver reads this file.
 - **`SOURCES.json`** pins what the map is and where it came from (`contract::maps::MapSources`): its content identity (an authored map's hash, or a generated map's whole generation identity), its physical catalogue (`catalogue.library`, the file name of a template library in this folder, and `catalogue.template_ids`, the templates of it the map uses, `null` for the whole library), and a receipt for each input it was made from. A receipt is `repository` (path, revision, sha256) or `supplied` (label, sha256).
@@ -26,13 +45,13 @@ Routes and saved maps have different identities. The [fixture registry](../apps/
 
 **Adding a map:** make the folder, write `map.json` and `meta.json`, and write `SOURCES.json` with the map's library and content hash. The resolver's refusal states the hash it computed, so an authored map's first load tells you the value. A map the compiler makes is saved in this form, with its `SOURCES.json`, by the `mapgen` CLI.
 
-**A saved generated map** is a reviewed, fixed battlefield: `market-town` is Mixed Small, seed 1, with the planned `assault` saved on it, and the main menu lists every released playable map that has that encounter. It pins the generator's template catalogue by hash, so it stops resolving when one of those templates changes shape, and the catalogue tests say so. Saving it again is three commands, and a new generator or preset revision makes a different map, to be looked at again before it is committed:
-
-```bash
-cargo run -p mapgen --release -- request mixed small 1 fixtures/map-presets.json fixtures/prototype-building-templates.json fixtures/generated-battle.json > throwaway/request.json
-cargo run -p mapgen --release -- generate-map throwaway/request.json fixtures/map-presets.json fixtures/prototype-building-templates.json fixtures/game.json fixtures/catalog.json fixtures/maps/market-town
-cargo run -p sim --release --example encounter_report -- --save fixtures/maps/market-town
-``` There is no index to regenerate: the browser lists the folders with a Vite glob, and the tests read the directory. The catalogue tests (`cargo test -p sim --test sim maps::`, `bun run --cwd web test -- tests/mapCatalogue.test.ts`) hold every folder to all of the above.
+A released saved generated map is a reviewed, fixed battlefield. Its template
+hash must continue to resolve; changing physical templates may require generating
+and reviewing that map again. [The mapgen CLI](../crates/mapgen/src/main.rs) owns
+saving generated maps, and [encounter reporting](../crates/sim/examples/encounter_report.rs)
+owns saving a planned encounter. The [catalog tests](../crates/sim/tests/maps.rs)
+and [browser tests](../web/tests/mapCatalogue.test.ts) hold each folder to admission
+and listing policy. Directory discovery requires no parallel index.
 
 ## The unit catalog
 
@@ -40,14 +59,11 @@ Deployment preserves one reversible progress value. Setup and packing may have d
 
 A unit type is **one catalog entry**, addressed by its string id (`"tank"`, later `"m1a2_sepv3"`). No code lists unit types. Scenarios, spawn rows and commands name types by id; the publication sends the id list (`unitKinds`) and each unit's index into it.
 
-- **Files:** `units/<faction>/<family>.json`, one family per file, plus `units/roles.json` (the role registry) and, when parts exist, a parts file. Each file is an object with any of five sections: `roles`, `parts`, `soldiers`, `units` and `props` (the prop types, under `props/`). An id is defined once across all files.
-- **A type is its components.** Behaviour comes from them, never from the id:
-  - `body`: `{ "squad": { "slots": [soldier kinds] } }` or `{ "hull": { half_extents_m, eye_m, hp, armor, weight_class, push_class, wreck } }`, where `wreck` names a prop type;
-  - `mobility`: `foot`, `tracked` or `wheeled`, each with its own speeds and turning;
-  - `sensors`: the one sight (`ground_m`, `sight_shape`, and `on`, the turret mount the optics turn with). A sensor's concealed-target spotting bonus offsets forest and garrison concealment, capped at its ordinary directional reach; it never bypasses physical occlusion or foliage attenuation;
-  - `mounts`: a hull's weapons, each row with its carrier (`on`), `pivot_m` and `muzzle_m`. A squad's come from its soldiers;
-  - `capabilities`: optional abilities such as `deploy` and `supply`;
-  - `roles` (what scripts and the AI select by), `cost`, `sound`, `name`, `description`, `faction`, `family`, and a hull's `appearance`.
+[The catalog parser](../crates/contract/src/catalog.rs) owns component schemas,
+validation and inheritance. Families contain unit, soldier, role and upgrade
+records; ids are defined once across authored files. Behavior comes from body,
+mobility, sensors, mounts and capabilities rather than the type's name.
+
 - **Soldier kinds** are a catalog of their own: `hp`, the `appearance` set a soldier of the kind wears (one picked per soldier), and the `mounts` he carries. A `special` mount passes to the next living soldier when its carrier falls; any other is lost with him. A single-operator mount may name `operator_appearance` with paired active and carried appearance sets: the equipment worn by its current living carrier while using that weapon or his rifle, including after a handoff. Variant identity stays the same across both sets. The observation publishes the carrier and each soldier’s active weapon only when visible. A squad's slots name soldier kinds, so hundreds of squads reuse a few kinds.
 - **A variant is `extends` plus overrides.** `"m1a1": { "extends": "m1", "body": { "hull": { "armor": { "front": 180 } } } }` inherits everything else. An `abstract` entry only exists to be extended. Weapon rows in `game.json` extend the same way. The merge:
   - objects merge key by key, and a list of named objects (mounts) merges by name, a new name appended;
@@ -56,12 +72,13 @@ A unit type is **one catalog entry**, addressed by its string id (`"tank"`, late
   - anything else is replaced, a list of strings (`roles`, `slots`) whole.
   - What a variant can't do: drop a key or a named mount it inherits. A type that loses a mount extends a common parent instead.
 - **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance, by the same rules. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
-- **Resolution happens once, in the simulation** (`contract::catalog`), and a broken catalog fails at load with an error naming the entry:
-  - a key written twice inside one file;
-  - cycles, unknown parents, roles, soldiers or parts, and incomplete types;
-  - structure: a hull mount on anything but the hull or an earlier turret mount, or without its `muzzle_m`; a soldier's mount with `turret`, `on`, `pivot_m` or `muzzle_m`, or both `squad` and `special`; a mount naming a weapon row `game.json` lacks; a wreck whose cover tier isn't its vehicle's;
-  - numbers out of range: speeds, turning, sight, hit points.
-- **The browser reads the resolved view,** `catalog.json`, which also carries `game.json`'s weapon rows resolved (`weapons`); presentation reads rows there, never the raw ones. After editing the catalog, regenerate it: `BLESS_CATALOG=1 cargo test -p sim --test sim catalog::` (the test fails while it is stale). Then regenerate the icons (each type's silhouette is rendered from its baked model): `bun run --cwd web asset -- icons`.
+
+Resolution happens once through the contract owner. Invalid inheritance,
+references, physical mounts or numbers fail at load with an entry-specific error.
+[Catalog tests](../crates/sim/tests/catalog.rs) own the explicit regeneration gate
+for `catalog.json`; browser presentation reads that resolved view, including
+resolved weapons, rather than reinterpreting authored families. After a catalog
+change, the [asset CLI](../web/asset.mjs) regenerates and checks model-derived icons.
 
 ## Weapon cycles
 
@@ -81,10 +98,9 @@ A replacement soldier brings a fresh default gun; a transferable special weapon 
 
 ## Adding a unit type (a tank variant, a vehicle, an infantry type)
 
-Add one entry. A variant is an `extends` and what differs. Code learns nothing about the type, and changes only where a genuinely new behaviour appears, as a new component or capability. Adding types has gone wrong before in the ways below. Each rule has a guard; if you add a type that the guard doesn't cover, extend the guard.
+Add one entry. A variant is an `extends` and what differs. Code learns nothing about the type, and changes only where a genuinely new behaviour appears, as a new component or capability. Each rule has a guard; if you add a type that the guard doesn't cover, extend the guard.
 
 - **Never branch on a type's id or role for a rule.** If a function asks "is this a tank?" to pick an offset, a size or a speed, that value belongs in the type's components. Scripts and the AI may select units by role; rules never do.
-  - **Seen before:** the weapon muzzle came from a per-kind match that returned the cannon's point for every tank mount. The roof HMG then fired from the cannon's tip, and when aimed sideways, from mid-air.
 - **Every mount is its own weapon.** It has its own lock, bearing, pivot and muzzle. A mount on a turret pivots with the turret; a mount on its own ring (a roof HMG) turns on its own bearing about its pivot. Two mounts never share a muzzle point. A vehicle model declares which of its rigs draws each mount in its `assets/catalog.json` entry (`"mounts": { "cannon": "gun", "HMG": "hmg" }`); a mount's name decides nothing.
 - **The simulation's numbers are the authority, and art is fitted to them.** Hull extents, eye heights, mount pivots and muzzles, the canopy and the footprint are set in data. Each type's own model is fit-checked against its own resolved numbers (the `fit.*` checks in `packages/scene-assets/src/validate.ts`). A variant with a new model inherits its parent's mount geometry, so the new model must put its turret and gun where the inherited mounts say, or the variant overrides those numbers. When you add a number with a drawn counterpart, add its `fit.*` check in the same change.
 - **Presentation anchors to what is drawn, not to the simulation's points.**
@@ -101,10 +117,12 @@ Add one entry. A variant is an `extends` and what differs. Code learns nothing a
 
 A prop type (a house, a wall, a tree, a wreck, rubble) is **one entry** of a `props` section, in `props/<faction>/<family>.json`, addressed by its string id. No code lists prop types, and no rule asks which one a prop is. A map's props, a forest's trees (`forests.tree` in `game.json`), a bridge's deck (`deck` on each map bridge) and a vehicle's wreck all name types by id; the world layout and the publication send the id list (`propKinds`) and each prop's index into it.
 
-- **A type is its body row, its destroyed state and its appearance binding:**
-  - `body`: `blocks` (per mover class), `stops_rounds`, `occludes`, `weight_class`, `cover_tier`, `lifetime_s` (a transient body, like smoke), `conceals` (foliage), `hp` and `armor` (integrity), `topples` (falls rather than slides: a tree) and `garrison` (a squad can hold it from inside). Each column has its own readers; a rule reads columns, never the id.
-  - `destroyed`, with `hp` and only with it: `"removed"`, `"cleared"` (open ground, for a toppling body) or `{ "into": { "prop": <id>, "height_m": h } }`, remains on the same plan. Chains end: heavier remains degrade to lighter categories before disappearing. Wreck category names describe their body and protection, not the vehicle model used to draw them.
-  - `appearance`: what draws it. `drawn_by` names the asset catalog's scenery kind whose appearances are fitted to its box, or one of two drawers that are no scenery kind: `building`, a part its building draws from its template's art (standing, or fallen once a side has seen it fall), and `forest`, a tree the scenery draws on the body (a forest's trunk by the forest's rule, a tree outside every forest at its own height). `modular` repeats a module along the box instead of stretching it; `map_only` marks a type a battle never leaves or places, so only the appearances a map uses load.
+[The prop schema](../crates/contract/src/catalog.rs) separates body properties,
+destroyed-state transitions and appearance bindings. Each physical rule reads its
+own column; a type id supplies identity rather than a mechanic. Destruction chains
+must terminate. Appearance bindings distinguish ordinary scenery, building parts
+and forest trees because their geometry has different owners.
+
 - **A building's end is its row's `destroyed.into`:** `prop` is what each part of a collapsed building becomes, and `building.gutted_prop` what each part of a taller one becomes where it stands (`building.collapse_max_floors` decides which). A side that has seen a building destroyed is published those props in its parts' places, and draws the building's template in the matching state, a ruin or a gutted shell: the published prop's type decides, never its height.
 - **Systems-only physical rows** carry `appearance.status: "systems_only"` until their actual scenery is fitted and accepted. They name the intended scenery, never borrow a released asset to pass validation. Removing that status restores the ordinary appearance gate; the systems marker is not an art acceptance.
 - **A variant is `extends` plus overrides,** as for units: `wrecks.json` shares one abstract `wreck` frame.
@@ -121,7 +139,7 @@ Add one entry. A mechanic comes from the body's columns, so a new obstacle needs
 
 ## Surface speeds
 
-Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (at most 130, and never below the off-road speed). `game.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, `sidewalk`). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
+Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (validated against its off-road speed and the catalog's limits). `game.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, `sidewalk`). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
 
 A paved area's authored kind also selects its appearance. A map names a rural road `country_road` and a town street `road`; the renderer does not infer a different kind from the other surfaces present. The biome owns a country road's local appearance through built ground.
 
@@ -145,15 +163,15 @@ A map's water is its `rivers`: each a line of points with the water's `width_m` 
 
 - **Water is one distance:** a point is water when it lies within half the width of the rounded line. The simulation classifies by it, the terrain is carved by it and the water is drawn to it (`contract::river`).
 - **The cross-section is a V.** The bed falls from the waterline to `depth_m` at the middle, and the bank climbs away at the same grade (depth over half the width) until it has made up the height the land stands above the water at the edge. So `surface_z` below the land sets how far the bank runs: 0.5 m of freeboard at a grade of 1 in 4 is a 2 m bank.
-- **A map is refused at load** when a point is narrower than three height samples (12 m on the 4 m grid), when a point is so deep for its width that its bank would pass the map's slope cutoff on the grid, when the surface stands above the land at the water's edge, or when a bridge's deck ends over the water or too near it for a bank at the steepest climbable grade to reach the land by its end.
+- **A map is refused at load** when its width cannot be represented by the height grid, when a point is so deep for its width that its bank would pass the map's slope cutoff on the grid, when the surface stands above the land at the water's edge, or when a bridge's deck ends over the water or too near it for a bank at the steepest climbable grade to reach the land by its end.
 - **Water is crossed at `bridges`.** Along a bridge's approach the bank is steepened into a ramp, so the deck is stepped onto from the land's own height. Author the deck to end a few metres past the water on each side.
 - Water is neither road nor forest whatever is authored over it, and no trunk stands in it or within the forest rule's clearance of it.
 
-The `river` map (`maps/river/`) is the worked example: a meander from the 12 m minimum to a 30 m stretch, a bridge, a road, a track and a wood over one bank.
+[The river map](maps/river/) is the worked example. [The shared river contract](../crates/contract/src/river.rs) owns numeric admission and bridge constraints.
 
 ## Paired records
 
-`parity/` holds paired records: an input, and what the native build made of it, which a Rust test and a web test both read. The simulation, the map generator and the encounter planner run natively and as WebAssembly, and the same request must give the same bytes in both, or a shared seed, a saved map or a replay means different things in different places; the TypeScript decoder must also read exactly what the Rust encoder wrote. The shared record is how the two test suites agree without one invoking the other. The simulation pairs include firing and physical impacts: a movement-only match cannot catch drift in weapon cycles, flight or damage. State digests remain exact even when the packed Float32 observations agree; the authority uses the same pinned math implementation for combat angles, random spread, sampled aim and seeded soldier placement in native and WebAssembly builds. The publication pairs check construction before the first tick; float32 delivery can hide a different initial authoritative state. `templates/` also holds the labelled descriptors those tests are given, including the ones that must keep failing.
+[Paired records](parity/) hold an input and what the native build made of it, which a Rust test and a web test both read. The simulation, the map generator and the encounter planner run natively and as WebAssembly, and the same request must give the same bytes in both, or a shared seed, a saved map or a replay means different things in different places; the TypeScript decoder must also read exactly what the Rust encoder wrote. The shared record is how the two test suites agree without one invoking the other. The simulation pairs include firing and physical impacts: a movement-only match cannot catch drift in weapon cycles, flight or damage. State digests remain exact even when the packed Float32 observations agree; the authority uses the same pinned math implementation for combat angles, random spread, sampled aim and seeded soldier placement in native and WebAssembly builds. The publication pairs check construction before the first tick; float32 delivery can hide a different initial authoritative state. [Template fixtures](parity/templates/) also hold the labelled descriptors those tests are given, including the ones that must keep failing.
 
 `BLESS_PARITY=1` on the Rust test that reads a record re-records its native half, for a named behaviour change; the web test then holds Wasm to it.
 
@@ -171,3 +189,12 @@ floor density cannot shift any trunk or its published source range. Candidates
 that conflict with trees, roads, water, bodies or the forest boundary are omitted;
 per-hectare densities are placement ceilings, not guaranteed counts. The floor
 adds no concealment. Uncleared forest ground owns the binary concealment bonus; trunk crowns own sight-line attenuation.
+
+## Sound catalog
+
+[The sound catalog](sounds.json) owns source receipts, exact clip crops, reusable
+recipes and exact unit/mount assignments. A stored recording may remain unused;
+a reload clip does not create a reload event. [Battle audio](../packages/battle-audio/README.md)
+owns preparation and source loudness, while [the sound workbench](../apps/sound-workbench/README.md)
+owns audition and reviewed edits. Gameplay ranges, cadence and hearing remain with
+their simulation owners.

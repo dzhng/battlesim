@@ -1,6 +1,8 @@
 # Sound workbench
 
-Open `/sound-workbench` from the developer menu while the development server runs.
+Run `bun run dev` from the repository root, then open `/sound-workbench` at the
+localhost address printed by Vite, or use the developer menu. The root
+[startup instructions](../../README.md#running-it) own prerequisites and setup.
 The library includes clean recordings, unused mechanical actions and the original
 synthesis baselines. Audition is explicit; opening or testing the tool stays silent.
 
@@ -9,8 +11,8 @@ The [production sound bank](../../packages/battle-audio/src/soundBank.ts) owns
 decoding and mixing for audition and battle playback. A baseline retains its original
 meaning; clone it to create an editable recipe. Source provenance and cleaned media
 belong to the audio asset workflow, and cannot be rewritten through this editor.
-Clip and recipe auditions use the bank's shared source loudness calibration.
-Recorded file levels do not decide weapon balance; recipe and assignment gains do.
+Clip and recipe auditions use the bank's [shared source calibration](../../packages/battle-audio/README.md).
+Recipe and assignment gains remain the authoring controls for intentional level differences.
 Audition centers mono material in stereo and uses a memoryless safety ceiling;
 safe brief attacks are not attenuated by a newly created compressor's startup.
 
@@ -27,12 +29,11 @@ mechanical actions remain useful auditions without inventing battle events.
 
 A draft changes only the workbench. Preview captures and validates the exact source
 generation and displays complete before/after JSON. Save publishes that reviewed
-server-held candidate through the shared [fixture publication owner](../fixture-publication/publication.ts).
-No-op saves preserve source bytes. Changes made elsewhere reject stale publication
-and survive rollback; an error keeps the draft available. Discard and reload is explicit.
+server-held candidate through [shared fixture publication](../fixture-publication/README.md),
+which owns stale-save rejection, byte-preserving no-ops and outside-edit preservation.
+An error keeps the draft available; discard and reload is explicit.
 
-Saving changes the repository sound document. Running battles retain their captured
-generation; reloading or opening a battle page captures the latest one. Sound
-catalog hot reload is suppressed for the same reason. The development-only HTTP
-boundary accepts local same-origin writes, logical documents and reviewed candidate
+Saving changes the repository sound document under the shared accepted-generation
+contract. Sound catalog hot reload is suppressed so it cannot replace a running
+battle's choices; reload or open a page to capture the latest saved generation. The development-only HTTP boundary accepts local same-origin writes, logical documents and reviewed candidate
 identities; the browser cannot choose publication paths.

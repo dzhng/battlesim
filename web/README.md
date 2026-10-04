@@ -1,0 +1,74 @@
+# Browser application
+
+The browser consumes the simulation's per-side observation. Presentation may
+interpolate known evidence, but it cannot query hidden battle state. The
+[application entry](src/main.tsx) mounts the [battle lab](../apps/battle-lab/README.md),
+which owns routes and composes the battle view.
+
+## Authority and preparation
+
+[Preparation](src/battle/prepare/) admits a saved-map source or a generation request,
+places an encounter through the simulation's planner and hands the prepared world
+to its battle authority. Expensive preparation stays off the page thread. The page
+builds a plain geometry world from the same map for drawing, picking and camera
+clearance; it does not run a second battle.
+
+[The simulation adapter](src/battle/sim/) owns ordered commands, worker lifetime,
+bounded publications and packed observation decoding. [Input](src/battle/input/)
+produces commands, and [presentation](src/battle/present/) reads admitted observations.
+[Map adapters](src/maps/) fetch saved documents or resolve a generation request
+through Rust's one admission path. Their listing policy and saved-map identity are
+explained in [fixtures](../fixtures/README.md#saved-maps).
+
+The [benchmark](src/battle/benchmark/README.md) measures the actual simulation and
+renderer with a declared workload and camera tour. A route selection or successful
+startup alone does not prove its performance budget.
+
+## Build and serving
+
+[The web manifest](package.json) owns browser dependencies, WebAssembly compilation,
+build and test commands; [the root manifest](../package.json) composes prerequisites.
+Use the root [startup instructions](../README.md#running-it) for a first checkout.
+Generated WebAssembly lives under `src/wasm/`; change its Rust owner and rebuild it.
+
+[Vite configuration](vite.config.ts) resolves source-only packages and apps against
+this application's dependencies, keeps caches local to the checkout and serves
+prepared [runtime assets](../assets/README.md). Development plugins provide the
+editors' local APIs and asset rebaking. Those APIs and editor routes are development
+facilities; the production build does not provide fixture editing.
+
+[Vercel configuration](../vercel.json) owns deployed builds, SPA rewrites, isolation
+headers and immutable caching for content-addressed assets. Keep serving isolation
+consistent with Vite so local, preview and deployed pages follow the same
+cross-origin isolation policy. Runtime assets must be materialized from Git LFS before a build can
+serve them; committed pointer files are not media.
+
+## Checks and evidence
+
+[Vitest configuration](vitest.config.ts) and [tests](tests/) own fast browser-side
+checks, including Node and DOM tests. Build WebAssembly before checks that consume
+it; native editor executables are built by the root task runner when needed.
+A focused invocation is `bun run --cwd web test -- tests/observation.test.ts`.
+
+[The scene runner](scene.mjs) owns browser verification. Its usage comment and
+`bun run --cwd web scene -- --list` expose the current scenes; the
+[fixture registry](../apps/battle-lab/src/fixtures.json) is their one inventory.
+A fixture and its [scene](scenes/) have matching identities. Files prefixed with
+an underscore are shared harness helpers, not separately registered scenes.
+Run a selected fixture with `bun run --cwd web scene -- <fixture-id>`.
+
+The runner starts its own server unless configured otherwise; production timing
+fixtures require its production build. A development URL cannot silently stand in
+for that performance gate. Each scene owns the observations that prove its contract;
+a screenshot proves appearance only after visual review. Evidence goes into ignored
+`throwaway/evidence/`, rather than becoming a second set of fixtures.
+
+Every rendering job shares the machine's GPU. Concurrent sessions serialize through
+one lock in the main checkout, for example
+`lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- <fixture-id>`.
+This avoids contention corrupting frame measurements.
+
+[The asset CLI](asset.mjs) is file IO around [scene-assets](../packages/scene-assets/README.md).
+Its bare invocation prints available commands. Audio preparation has a separate
+[audio tool](../packages/battle-audio/README.md#recording-preparation), because audio
+provenance and crops belong to the sound catalog rather than the appearance catalog.

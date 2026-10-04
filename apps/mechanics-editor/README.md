@@ -43,18 +43,11 @@ discards its edits scoped to that unit.
 Raw and battlefield values are both editable. Landing spread describes one-axis
 standard deviation at maximum range, so changing range preserves that spread.
 
-Preview shows exact JSON replacements. Save rejects stale drafts and publishes
-authored sources with their matching generated catalog. Interrupted publication
-is recovered before the next reader, while detected outside edits are preserved. File
-replacement is atomic individually; the journal provides recovery across files.
-The editor formats authored JSON; Rust supplies the generated catalog's exact
-canonical bytes. Changes made elsewhere during publication abort the save and
-preserve detected edits while the editor rolls back its own replacements.
-
-Each battle page captures one accepted generation. Saving leaves running battles
-alone; starting or explicitly restarting a battle loads the latest saved values.
-The development-only API accepts local, same-origin writes and never takes file
-paths from the browser.
+Preview shows exact JSON replacements; Rust supplies the generated catalog's
+canonical bytes. [Shared fixture publication](../fixture-publication/README.md)
+owns stale-save rejection, interrupted-write recovery and outside-edit preservation.
+The editor formats authored JSON. The local development API accepts logical edits
+rather than browser-selected paths.
 
 The [server](server.ts) owns file publication and the
 [field descriptions](src/fields.ts) own labels, units and reversible conversions.

@@ -4,34 +4,33 @@ A browser real-time tactics game, built around reconnaissance, physical fire and
 
 ## How it fits together
 
-The simulation is the one authority; everything else observes it.
+The simulation is the one authority; everything else observes it. Start with the
+owner of the thing you want to change:
 
-- **`crates/`** — the Rust side.
-  - `contract` holds the shared data shapes: scenario, commands, and the per-side observation.
-  - `sim` owns every rule: movement, sight, sensing, knowledge, weapons, flight, damage, garrisons, supply and deployment. It also places an encounter recipe on a compiled map (`sim::encounter`), by asking those same rules where units may stand.
-  - `game-wasm` is the thin WebAssembly boundary.
+| Owner | Responsibility and entry point |
+|---|---|
+| [Contracts](crates/contract/src/) | Shared commands, observations, map admission, physical templates and content identities. The [crate boundary](crates/contract/src/lib.rs) names its vocabulary; [examples](crates/contract/examples/) inspect supplied contract data. |
+| [Simulation](crates/sim/README.md) | Deterministic battle rules, replay digests, encounter placement and native reports. |
+| [Map generation](crates/mapgen/README.md) | Seeded layout, physical compilation, admission and generation reports; shared by native tools and WebAssembly. |
+| [WebAssembly boundary](crates/game-wasm/src/lib.rs) | Exposes the Rust authority to browser and Node readers, including packed publications and map preparation. |
+| [Browser application](web/README.md) | Workers, map adapters, player input/readouts, build configuration and browser verification. |
+| [Battle lab](apps/battle-lab/README.md) | Player pages and focused developer fixtures, composed from the same battle view. |
+| [Renderer primitives](packages/renderer-core/src/) | Device, camera, projection and GPU resource accounting. |
+| [Battle renderer](packages/battle-renderer/src/) | Scene resources, terrain, models, light, fog, effects and overlays. [Scene construction](packages/battle-renderer/src/scene.ts) and [frame orchestration](packages/battle-renderer/src/frame/battleFrame.ts) own their composition. |
+| [Scene assets](packages/scene-assets/README.md) | Appearance contracts, validation, baking and loading; includes [Blender authoring](packages/scene-assets/README.md#authored-sources-blender). |
+| [Battle audio](packages/battle-audio/README.md) | Recorded and synthetic sound preparation, source calibration and playback from observed causes. |
+| [Fixtures](fixtures/README.md) | Authored rules, unit/prop catalogs, generator presets, saved maps and sound assignments. |
+| [Assets](assets/README.md) | Source media, prepared runtime files, review sheets and third-party provenance. |
 
-  New battle state must enter `Battle::digest`, so replays and parity checks catch drift.
+Development tools edit those existing owners: the [mechanics editor](apps/mechanics-editor/README.md),
+[map workbench](apps/map-workbench/README.md) and [sound workbench](apps/sound-workbench/README.md).
+They share [fixture publication](apps/fixture-publication/README.md), which keeps
+reviewed saves consistent and recovers interrupted writes.
 
-- **`web/src/battle/`** — the browser side of that boundary:
-  - the worker that runs the simulation (one authority, ordered commands, bounded publications);
-  - the worker that prepares a battle (`prepare/`): one request names where the map comes from (a saved map, or a generation request), which encounter is laid on it and the seeds; the worker resolves the map, has the simulation's planner place the encounter, and answers with the scenario a battle runs, off the page's thread. It keeps the world it built for the planner and then runs that battle on it. The page builds its own plain world from the same map, with the simulation's own code, for drawing and for map queries (picking, ground height, camera clearance);
-  - decoding of the packed observation;
-  - player input;
-  - player readouts.
-
-  Presentation reads only the observation, never simulation state.
-
-- **`web/src/maps/`** — maps as JavaScript reaches them: the catalogue's listing, the browser and Node adapters that fetch a saved map's documents by id and hand them to the simulation's one resolver, and the one way to a map from its source (`source.ts`: a saved map's id, or a request the simulation's generator makes a map from).
-
-- **`packages/`** — the TypeGPU renderer and its assets.
-  - `renderer-core` holds device, camera and projection primitives.
-  - `battle-renderer` holds scene resources, meshes and overlays.
-  - `scene-assets` owns appearance bundles: schema, validation, baking and the one loader. The art itself lives in [`assets/`](assets/README.md).
-  - `battle-audio` owns the battle's sound: what is heard and when, from the same feed the effects and poses read, using recorded clips and synthesis heard from the camera ([audio principles](packages/battle-audio/README.md)).
-- **`apps/battle-lab/`** — the lab app. Each lab route is a focused, deterministic fixture for one mechanic, and the village routes remain developer test arenas. `src/fixtures.json` is the registry of lab routes.
-- **`fixtures/`** — authored maps, units and rule numbers. `game.json` is the one owner of the game's rules; labs reuse it. `fixtures/maps/<id>/` is the saved-map catalogue: every map is one folder (its physical map, its provenance, its listing metadata and its encounters), resolved by id and never imported into a script. `fixtures/units/` and `fixtures/props/` are the catalog: every unit type and every prop type is one entry, a variant an `extends` of another, and behaviour comes from a type's components, never its id. Adding a unit or prop type starts there ([`fixtures/README.md`](fixtures/README.md)).
-- **`web/scenes/`** — one headless browser scene per registered fixture. These scenes are the visual and behavioural checks, run by `web/scene.mjs`.
+[The root task runner](package.json) composes Rust and web commands; [the Rust
+workspace](Cargo.toml) and [web manifest](web/package.json) own members,
+dependencies and exact command definitions. Packages and apps are source directories;
+the web application owns their JavaScript dependencies.
 
 ## Rules from first principles
 
@@ -72,56 +71,28 @@ bun run dev     # build the WebAssembly, start the lab app
 
 Ordinary Play chooses an admitted battlefield from the selected type and size, with bounded fresh candidates and a released saved fallback. Once admitted, its address names the actual battlefield. Explicit seed addresses and saved replays remain exact.
 
-The [map-generation rationale](specs/done/city-maps/README.md) explains physical countryside coverage, road/settlement ownership and accepted scope. Its [generation report](specs/done/city-maps/generation-report.md) and [parameter inventory](specs/done/city-maps/generation-parameters.md) retain the detailed logic and numbers for play feedback. The local [map workbench](apps/map-workbench/README.md) tunes generation and numerical validation policy on a live top-down plan, with explicit reviewed saves.
+The local [map workbench](apps/map-workbench/README.md) tunes generation on a live
+top-down plan. The [mechanics editor](apps/mechanics-editor/README.md) edits resolved
+rules and unit families. The [sound workbench](apps/sound-workbench/README.md)
+auditions the whole library and edits recipes and assignments. All are available
+from the developer menu during `bun run dev`; each README explains its workflow.
 
-The [simulation performance rationale](specs/done/city-stress-performance/README.md) explains outcome-preserving reuse and links to the measured CPU, FPS and memory results.
-
-During development, the [mechanics editor](apps/mechanics-editor/README.md) opens
-from the developer menu at `/mechanics`, or run `bun run dev:mechanics` to start
-the server and open the editor directly. See its README for the editing workflow.
-It previews and saves validated fixture edits; new and explicitly restarted
-battles capture the latest saved rules.
-
-Each hidden enemy has at most one live uncertain report, refreshed only by new evidence. Every report has the same outlined area and a truthful info label; a type is named only if previously identified. Removed circles and labels share a three-second visual fade through [contact presentation](web/src/battle/present/contactPresentation.ts), and renewed evidence replaces the same visual slot. A retiring report is remembered evidence only; commands and picking use the live observation.
-
-Floating unit panels show name and health. Own-unit panels show a crossed-out eye beside the name, plus HIDDEN in expanded detail, when forest or garrison concealment covers enough of the living unit and there is no known engagement or currently visible enemy observer spotting it. The [sensing rules](crates/sim/src/sensing.rs) own squad thresholds; concealment uses forest ground, independently of tree crowns. In the normal layout, Space prioritizes the closest 30% of visible units from the camera's actual position; farther cards expand where room remains. Hovering a unit or its card always reveals its detail. Far views keep compact panels and allow overlap in camera-depth order, softly fading and blurring obscured cards; hovering brings a card forward at full clarity, and Space expands cards without separating them. Normal placement tries expansion in place, then the fewest card shifts, favoring shorter shifts when the counts tie.
-
-A held movement order previews the selected units’ destinations and facing with the same markers shown after release. Dragging rotates about the clicked front center. The [group move placement rationale](specs/done/group-move-preview/README.md) explains its authority, spacing and partial-placement contracts. The [move-validity rationale](specs/done/move-validity/README.md) explains why a destination marker also requires demonstrated physical travel. The [contextual cursor rationale](specs/done/game-cursor/README.md) explains why hover and release share one intent, and why a building click admits one entrant and every selected companion together.
-
-The [projectile review lab](apps/battle-lab/src/projectileReview.ts) keeps the fog-lit street fight running alongside firing lanes and midpoint recon teams. It uses the shared battle view’s unit panels and player controls, with gameplay flight and weapon cycles, private unlimited reserves and nonlethal rounds. Repeated visual review does not change gameplay rules. The [guided-fire contract](specs/battle-foundation/contracts.md#guided-flight) separates shared spotting from the launcher’s physical line of sight.
-
-The [fire cadence rationale](specs/done/fire-cadence/README.md) explains per-soldier bursts, magazine readiness and interruptible idle reloads.
-
-The [infantry weapon-use rationale](specs/done/infantry-weapon-use/README.md) explains one active weapon per soldier, carrier handoffs, and rifle-held/back-carried launcher presentation.
+[Battle lab documentation](apps/battle-lab/README.md) explains developer routes,
+player presentation and their links to shipped design rationales. [Browser
+configuration](web/README.md#build-and-serving) owns local serving and deployment
+requirements; [native reports](crates/sim/README.md#reports-and-cost) own simulation
+and balance measurements.
 
 ## Checks
 
-`package.json` names the gates:
+[The task runner](package.json) defines `check` (format, lint, types and Rust/web
+tests) and `verify` (browser scenes). Both run once at a spec's closeout; iteration
+uses the narrowest check the change can move, as [AGENTS.md](AGENTS.md) requires.
 
-- `check` covers format, lint, typecheck and every Rust and web test.
-- `verify` builds the WebAssembly and runs every browser scene.
-
-Both are slow and run once, when a spec's implementation is finished ([`AGENTS.md`](AGENTS.md)). Everything else is checked with the narrowest thing that covers the change:
-
-```bash
-cargo test -p sim --test sim village::a_replay_matches  # one test
-cargo test -p sim --test sim village::                  # one file (the sim tests are one binary)
-cargo test -p sim                                       # one crate
-bun run --cwd web test -- tests/observation.test.ts     # one web test file
-bun run --cwd web scene -- village                      # one browser scene
-bun run --cwd web scene -- --list                       # scene ids
-```
-
-Web tests and scenes need the WebAssembly built once first (`bun run build:wasm`).
-
-Every scene, and anything else that renders, shares the machine's one GPU. When more than one session is working, run each through the shared lock so they take turns; two at once slow each other and distort every timing:
-
-```bash
-lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- village
-```
- Scenes write their evidence into gitignored `throwaway/evidence/<fixture-id>/`.
-
-The simulation's reports are examples of the `sim` crate (`crates/sim/examples/`); each prints its own flags when given one it doesn't know. `village_report` plays blue's comparison scripts against the red defender and ends every row in the battle's digest. Its `--quick` mode is the feedback loop for a rule change, and `--compare main` sets a run beside main's. `endurance_report` prints instructions retired over a long battle.
+[Simulation checks](crates/sim/README.md#checks) explain deterministic outcomes and
+native tests. [Browser checks](web/README.md#checks-and-evidence) explain test and
+scene selection, prerequisites, GPU serialization and evidence. Documentation and
+data that no code reads need no battle run.
 
 ## Worktrees
 
@@ -137,12 +108,8 @@ In a worktree, symlink `web/node_modules` to the main checkout's, and give it it
 
 ## Plans and decisions
 
-Work is planned as specs in [`specs/<feature>/`](specs/). Each spec has:
-
-- a README whose "Next Agent Prompt" is the live handoff;
-- a slice ladder;
-- `choices.md`, the ledger of decisions made where the spec was silent.
-
-A finished spec moves to [`specs/done/`](specs/done/), rewritten from a build plan into the record of why it works as it does.
-
-[`design/`](design/) keeps the earliest planning map.
+[Specs](specs/README.md) hold active plans and finished rationale. A plan's own
+README is its live handoff; its choices ledger records decisions made where the
+plan was silent. [Design references](design/) retain the earliest planning map.
+Repository working principles and skill entry points live in [AGENTS.md](AGENTS.md);
+[CLAUDE.md](CLAUDE.md) supplies the corresponding agent entry point.

@@ -22,12 +22,10 @@ expires that receipt. Cancelling a sample leaves the displayed preview inspectab
 Leaving or disconnecting cancels owned native work; server disposal removes its
 retained artifacts.
 
-Preview makes no source changes. Save publishes the server-held, reviewed candidate
-after checking all source receipts and Rust validity again. Preset revision is
-managed from changed preset contents; analysis-only changes preserve it. No-op and
-repeated saves preserve source bytes. Outside edits reject stale publication and
-survive rollback. The shared [fixture publication owner](../fixture-publication/publication.ts)
-recovers interrupted multi-file saves before either editor exposes a snapshot.
+Preview makes no source changes. Save checks Rust validity again and publishes
+the server-held reviewed candidate through [shared fixture publication](../fixture-publication/README.md),
+which owns stale receipts, byte-preserving no-ops and interrupted-write recovery.
+Preset revision follows changed preset contents; analysis-only edits preserve it.
 
 The [native executor](native.ts) owns process, output and job bounds; the
 [HTTP boundary](httpServer.ts) owns local-origin and request-size bounds. Browser

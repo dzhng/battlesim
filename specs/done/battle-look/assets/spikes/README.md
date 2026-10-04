@@ -1,11 +1,11 @@
 # Frozen spike references
 
-The three spikes' winners, frozen so the slices that port them can prove parity instead of re-deriving behaviour. `MANIFEST.sha256` pins every file here. The verdicts, with their numbers, are in [`../../spikes/`](../../spikes/).
+The spike winners are comparison references, not production authoring tools. `MANIFEST.sha256` records frozen artifact identities; archived prototype inputs are recoverable from the Git tag named below. The verdicts, with their numbers, are in [`../../spikes/`](../../spikes/).
 
 | Spike | Frozen reference | Identity |
 |---|---|---|
 | 01 renderer port | Git tag `spike-01-renderer-port-proto` (pushed), the `/lab/spike-foundation` prototype | commit `089efc2`, ported from `~/dev/game` `d4394dfc` |
-| 02 sight fog | [`02/`](02/): the prototype (`web/`, `jobs/`, `driver.mjs`, metric scripts, `dump/` Rust exporter). The world dumps it read (`data/*.json`) and its perf logs are at the tag `data-files-before-prune-2026-10-01` | `MANIFEST.sha256` |
+| 02 sight fog | The prototype, world dumps and performance logs retained at Git tag `data-files-before-prune-2026-10-01`, under this directory's archived `02/` | `MANIFEST.sha256` |
 | 03 rig and vehicles | [`03/scripts/`](03/scripts/): the Blender scripts. [`03/out/`](03/out/): the models they built (`rifleman.blend/.glb`, `tank.glb`, `truck.glb`, in LFS) and the review sheets | `MANIFEST.sha256`; source packs by URL and sha256 in [`spikes/03.md`](../../spikes/03.md) (not redistributed here) |
 
 ## Proven behaviour → evidence → owner → parity gate

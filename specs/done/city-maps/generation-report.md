@@ -164,7 +164,7 @@ This certificate proves a physical interruption under its supported generated he
 
 ## What the visibility percentage means
 
-The [shared sight-report calculation](../../../crates/mapgen/examples/common/sight.rs) measures a standard infantry observer on a **300 m square grid**, beginning halfway into the first cell. Eligible samples are traversable open ground outside settlements, off forest ground and without a nearby body. Woods, towns and water are not counted as ordinary open-field positions.
+The [shared sight-report calculation](../../../crates/sim/src/map_analysis.rs) measures a standard infantry observer on a **300 m square grid**, beginning halfway into the first cell. Eligible samples are traversable open ground outside settlements, off forest ground and without a nearby body. Woods, towns and water are not counted as ordinary open-field positions.
 
 At a sample, an eye at ground plus **1.6 m** tests a target at ground plus **1 m**, to the infantry's **600 m** range. Directions are evenly spaced; ray count is `max(64, ceil(2π × maximum_range / fog_cell_m))`, giving **472** for 600 m and 8 m. At a map edge, the endpoint stops just inside the edge. A direction is open only when the simulation’s `sight_clear` passes and `foliage_depth` is exactly zero.
 
