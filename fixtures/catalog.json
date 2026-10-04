@@ -625,8 +625,7 @@
         "kiosk": {
           "appearance": {
             "drawn_by": "kiosk",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -841,8 +840,7 @@
         "petanque_pitch": {
           "appearance": {
             "drawn_by": "petanque_pitch",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -2534,8 +2532,7 @@
     "kiosk": {
       "appearance": {
         "drawn_by": "kiosk",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2750,8 +2747,7 @@
     "petanque_pitch": {
       "appearance": {
         "drawn_by": "petanque_pitch",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,

@@ -29,6 +29,11 @@ New York:
   dumpster      a front-load dumpster; [1.0, 0.6, 0.65]
   bench_new_york  the parks' slatted bench on cast-iron ends; the bench's box
   bins_new_york the parks' wire litter basket and rubbish bags; the bins' box
+Paris:
+  kiosk         a green newspaper kiosk under an ogee roof; [1.5, 1.0, 1.5]
+  petanque_pitch  a stabilised-gravel boulodrome in timber edging; [7.5, 2.0, 0.02]
+  bench_paris   the city's park bench, slats and iron all green; the bench's box
+  bins_paris    two of the city's green litter hoops with their bags; the bins' box
 
 A piece is capped at 1 MiB raw (specs/courtyards/README.md), so its recipes are
 embedded at `TEXTURE_PX`. The battle fits each placed box from the authored one.
@@ -946,6 +951,160 @@ def bins_new_york():
             lump(bm, lod, (x + 0.03, y, z + rz * 0.95), (0.05, 0.05, 0.07), 0.2, 21.0 + k)
 
     mesh_part("bags", bags, bag, root, smooth=True)
+    return [hx, hy, hz]
+
+
+# ------------------------------------------------------------------ Paris
+def _chamfered(hx, hy, c):
+    """A rectangle's outline `2 hx` by `2 hy` with its corners cut back by `c`."""
+    return [(hx, -hy + c), (hx, hy - c), (hx - c, hy), (-hx + c, hy), (-hx, hy - c), (-hx, -hy + c), (-hx + c, -hy),
+            (hx - c, -hy)]
+
+
+@kind
+def kiosk():
+    """A newspaper kiosk in the Paris manner: a cabin of dark green panels on a stone-grey
+    plinth, its counter open at -y under a raised shutter, racks of magazines on its ends,
+    and an ogee roof in green-painted zinc rising from a moulded cornice to a finial."""
+    hx, hy, hz = 1.5, 1.0, 1.5
+    green = textured("kiosk_green", "enamel", colour=(0.04, 0.13, 0.08), chip=0.5, dirt=0.5, rise=0.5, streak=0.2)
+    roof_m = textured("kiosk_roof", "enamel", colour=(0.045, 0.14, 0.09), chip=0.3, dirt=0.0, rise=0.1, streak=0.1)
+    frieze = flat_paint("kiosk_frieze", (0.5, 0.47, 0.38), rough=0.6, grime=0.0)
+    plinth = flat_paint("kiosk_plinth", (0.3, 0.29, 0.27), rough=0.8, grime=0.8)
+    glass = flat_paint("kiosk_glass", (0.04, 0.05, 0.05), rough=0.1, grime=0.2)
+    inside = flat_paint("kiosk_inside", (0.06, 0.05, 0.04), rough=0.8, grime=0.0)
+    cx, cy, wall = 1.25, 0.75, 2.1  # the cabin's half extents, and its wall's height
+    box("plinth", (2 * cx + 0.08, 2 * cy + 0.08, 0.12), (0, 0, 0.06), plinth, root, bevel=0.01)
+    box("cabin", (2 * cx, 2 * cy, wall - 0.12), (0, 0, 0.12 + (wall - 0.12) / 2), green, root)
+    # the panels' mouldings: pilasters at the corners and down each face
+    for k, (x, y) in enumerate(((-cx, -cy), (cx, -cy), (cx, cy), (-cx, cy))):
+        box(f"pilaster_{k}", (0.1, 0.1, wall - 0.12), (x, y, 0.12 + (wall - 0.12) / 2), green, root, bevel=0.01,
+            lods=(0, 1, 2))
+    for k, x in enumerate((-0.42, 0.42)):
+        box(f"rib_{k}", (0.05, 0.04, wall - 0.12), (x, cy + 0.01, 0.12 + (wall - 0.12) / 2), green, root, lods=(0, 1))
+    box("dado", (2 * cx + 0.04, 2 * cy + 0.04, 0.06), (0, 0, 0.9), green, root, lods=(0, 1, 2))
+    # the counter at -y: a dark opening over a sill, the shutter raised as a canopy above it
+    ow, oz0, oz1 = 1.7, 1.0, 1.95
+    box("opening", (ow, 0.02, oz1 - oz0), (0, -cy - 0.004, (oz0 + oz1) / 2), inside, root)
+    box("sill", (ow + 0.1, 0.25, 0.05), (0, -cy - 0.1, oz0 - 0.02), green, root, lods=(0, 1, 2))
+    box("shutter", (ow + 0.1, 0.36, 0.03), (0, -cy - 0.15, oz1 + 0.08), green, root, rot=(math.radians(-25), 0, 0))
+    # magazine racks on the two ends: glazed cases of covers
+    covers = ((0.5, 0.12, 0.08), (0.08, 0.18, 0.42), (0.55, 0.5, 0.42), (0.6, 0.35, 0.05), (0.12, 0.35, 0.18),
+              (0.5, 0.48, 0.45), (0.35, 0.05, 0.25), (0.06, 0.06, 0.07))
+    for j, s in enumerate((-1, 1)):
+        box(f"case_{j}", (0.06, 2 * cy - 0.3, 1.0), (s * (cx + 0.03), 0, 1.45), glass, root, lods=(0, 1, 2))
+        for k in range(8):
+            row, col = divmod(k, 4)
+            colour = covers[(k + 3 * j) % 8]
+            m = flat_paint(f"cover_{j}_{k}", colour, rough=0.4, grime=0.0)
+            box(f"cover_{j}_{k}", (0.012, 0.24, 0.32), (s * (cx + 0.065), -0.45 + col * 0.3, 1.2 + row * 0.45), m, root,
+                lods=(0, 1))
+    for k in range(5):  # covers pinned up in the counter's opening, papers on its sill
+        box(f"counter_cover_{k}", (0.24, 0.012, 0.32), (-0.64 + k * 0.32, -cy - 0.012, oz1 - 0.25), material(f"cover_0_{k}"),
+            root, lods=(0, 1))
+        box(f"paper_{k}", (0.28, 0.2, 0.03), (-0.64 + k * 0.32, -cy - 0.1, oz0 + 0.02), material(f"cover_1_{(k + 2) % 8}"),
+            root, lods=(0, 1))
+    # the roof: a cornice out to the box, then an ogee of rings up to a finial
+    box("cornice", (2 * hx - 0.02, 2 * hy - 0.02, 0.12), (0, 0, wall + 0.06), roof_m, root, bevel=0.02)
+    # a pale frieze band under the cornice, where the trade's name would be
+    box("frieze", (2 * cx + 0.06, 2 * cy + 0.06, 0.16), (0, 0, wall - 0.1), frieze, root, lods=(0, 1, 2))
+    # a dome that swells out of the cornice before it narrows to the finial
+    rings = [(wall + 0.12, _chamfered(hx - 0.1, hy - 0.1, 0.2)), (wall + 0.24, _chamfered(1.2, 0.76, 0.2)),
+             (wall + 0.42, _chamfered(1.1, 0.68, 0.2)), (wall + 0.6, _chamfered(0.82, 0.5, 0.16)),
+             (wall + 0.74, _chamfered(0.45, 0.28, 0.1)), (wall + 0.82, _chamfered(0.12, 0.09, 0.03))]
+    loft("roof", rings, roof_m, root)
+    cyl("finial", 0.045, 2 * hz - wall - 0.82, (0, 0, (2 * hz + wall + 0.82) / 2), "Z", roof_m, root, seg=8, r2=0.01,
+        lods=(0, 1, 2))
+    return [hx, hy, hz]
+
+
+@kind
+def petanque_pitch():
+    """A boulodrome: a 15 m by 4 m bed of pale stabilised gravel inside timber edging
+    boards, with a game left lying at one end, six boules round the jack."""
+    hx, hy, hz = 7.5, 2.0, 0.02
+    gravel = textured("pitch_gravel", "soil", colour=(0.3, 0.26, 0.19), chip=0.0, dirt=0.0, rise=0.1, streak=0.0,
+                      mottle=0.15, grain=0.0)
+    board = timber("pitch_board", (0.08, 0.05, 0.03), chip=0.4, dirt=0.6, rise=0.2, mottle=0.4)
+    steel = flat_paint("boule", (0.3, 0.3, 0.3), rough=0.3, metal=0.9, grime=0.0)
+    jack = flat_paint("jack", (0.5, 0.3, 0.05), rough=0.5, grime=0.0)
+    # the boards stand a hand above the bed, as a boulodrome's do: too low to hide behind
+    edge, top, rim = 0.08, 2 * hz, 0.12  # the boards' thickness; the bed's top; the boards' top
+    box("bed", (2 * hx - 2 * edge, 2 * hy - 2 * edge, top - 0.012), (0, 0, (top - 0.012) / 2), gravel, root)
+    for k, s in enumerate((-1, 1)):
+        box(f"board_side_{k}", (2 * hx, edge, rim), (0, s * (hy - edge / 2), rim / 2), board, root)
+        box(f"board_end_{k}", (edge, 2 * hy - 2 * edge, rim), (s * (hx - edge / 2), 0, rim / 2), board, root)
+
+    def balls(bm, lod, at):
+        for k, (x, y, r) in enumerate(at):
+            lump(bm, 0, (x, y, top - 0.012 + r), (r, r, r), 0.0, k)
+
+    play = [(5.6, 0.2), (5.9, -0.35), (5.3, 0.55), (6.1, 0.15), (5.45, -0.1), (5.75, 0.62)]
+    mesh_part("boules", lambda bm, lod: balls(bm, lod, [(x, y, 0.037) for x, y in play]), steel, root, lods=(0,))
+    mesh_part("jack", lambda bm, lod: balls(bm, lod, [(5.7, 0.12, 0.015)]), jack, root, lods=(0,))
+    return [hx, hy, hz]
+
+
+@kind
+def bench_paris():
+    """Paris's look of the shared bench: the city's park bench, slats and cast-iron ends
+    all painted the same dark green, the seat and back one sweep of slats, scrolled arms."""
+    hx, hy, hz = 0.9, 0.3, 0.42
+    slat = textured("paris_slat", "painted_wood", colour=(0.02, 0.075, 0.045), chip=0.4, dirt=0.4, rise=0.4)
+    iron = textured("paris_iron", "enamel", colour=(0.018, 0.06, 0.035), chip=0.6, dirt=0.6, rise=0.5)
+    curve = [(-0.26, 0.43, -0.2), (-0.17, 0.44, 0.0), (-0.08, 0.44, 0.0), (0.01, 0.44, 0.1), (0.1, 0.48, 1.0),
+             (0.16, 0.58, 1.3), (0.2, 0.69, 1.38), (0.24, 0.8, 1.42)]
+    for k, (y, z, tilt) in enumerate(curve):
+        box(f"slat_{k}", (2 * hx - 0.04, 0.07, 0.028), (0, y, z), slat, root, bevel=0.005, rot=(tilt, 0, 0), lods=(0, 1))
+    box("seat_far", (2 * hx - 0.04, 0.42, 0.04), (0, -0.07, 0.43), slat, root, lods=(2, 3))
+    box("back_far", (2 * hx - 0.04, 0.04, 0.38), (0, 0.19, 0.66), slat, root, rot=(math.radians(-15), 0, 0), lods=(2, 3))
+    for k, s in enumerate((-1, 1)):
+        x = s * (hx - 0.05)
+        # a cast end: a front leg curving forward to a scroll, a back leg running up into the back
+        tube(f"front_leg_{k}", (x, -0.27, 0.0), (x, -0.22, 0.25), 0.03, iron, lods=(0, 1, 2))
+        tube(f"front_knee_{k}", (x, -0.22, 0.25), (x, -0.25, 0.42), 0.03, iron, lods=(0, 1, 2))
+        tube(f"back_leg_{k}", (x, 0.27, 0.0), (x, 0.12, 0.44), 0.03, iron, lods=(0, 1, 2))
+        tube(f"back_rise_{k}", (x, 0.12, 0.44), (x, hy - 0.04, 0.83), 0.025, iron, lods=(0, 1, 2))
+        tube(f"seat_bar_{k}", (x, -0.27, 0.41), (x, 0.12, 0.43), 0.022, iron, lods=(0, 1, 2))
+        tube(f"arm_{k}", (x, -0.27, 0.64), (x, 0.17, 0.62), 0.024, iron, lods=(0, 1, 2))
+        tube(f"arm_post_{k}", (x, -0.25, 0.42), (x, -0.27, 0.64), 0.022, iron, lods=(0, 1))
+        cyl(f"scroll_{k}", 0.04, 0.05, (x, -0.28, 0.62), "X", iron, root, seg=10, lods=(0, 1))
+    return [hx, hy, hz]
+
+
+@kind
+def bins_paris():
+    """Paris's look of the shared bins: two of the city's litter hoops, each a green ring
+    on a green post holding up a pale see-through bag, its lid ring hinged on the post."""
+    hx, hy, hz = 0.65, 0.38, 0.55
+    green = textured("hoop_green", "enamel", colour=(0.02, 0.08, 0.045), chip=0.6, dirt=0.6, rise=0.5)
+    bag = flat_paint("paris_bag", (0.16, 0.22, 0.18), rough=0.3, grime=0.2)  # clear green-tinted plastic
+    flat = lambda x, y, z: (x, z, y)  # a ring in the part's XZ plane, laid flat
+    r, hoop, py = 0.28, 0.88, hy - 0.08
+    for k, s in enumerate((-1, 1)):
+        x, cy = s * (hx - r - 0.01), -0.04
+        tube(f"post_{k}", (x, py, 0.0), (x, py, 2 * hz - 0.02), 0.035, green, seg=10)
+        cyl(f"post_cap_{k}", 0.04, 0.03, (x, py, 2 * hz - 0.015), "Z", green, root, seg=10, lods=(0, 1, 2))
+        tube(f"arm_{k}", (x, py, hoop), (x, cy + r, hoop), 0.025, green, lods=(0, 1, 2))
+        ring(f"hoop_{k}", flat, (x, hoop, cy), r, 0.02, green, lods=(0, 1, 2))
+        ring(f"lid_{k}", flat, (x, hoop + 0.06, cy), r - 0.01, 0.015, green, lods=(0, 1))
+
+        def sack(bm, lod, x=x, cy=cy):
+            n = (16, 10, 8, 6)[lod]
+            prof = [(hoop - 0.01, r - 0.02), (hoop - 0.25, r - 0.03), (0.45, r - 0.05), (0.32, r - 0.1), (0.27, 0.08)]
+            rings_ = []
+            for z, rr in prof:
+                rings_.append([bm.verts.new((x + rr * math.cos(2 * math.pi * i / n), cy + rr * math.sin(2 * math.pi * i / n), z))
+                               for i in range(n)])
+            for a, b in zip(rings_, rings_[1:]):
+                for i in range(n):
+                    j = (i + 1) % n
+                    bm.faces.new((a[i], a[j], b[j], b[i]))
+            bm.faces.new(rings_[-1][::-1])
+            bm.faces.new(rings_[0])
+            bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+
+        mesh_part(f"bag_{k}", sack, bag, root, smooth=True)
     return [hx, hy, hz]
 
 

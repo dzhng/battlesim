@@ -62,11 +62,11 @@
     "kiosk": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "medium", "hp": 80, "cover_tier": "light"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "kiosk", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "kiosk", "map_only": true}
     },
     "petanque_pitch": {
       "body": {"blocks": {"infantry": false, "vehicle": false}, "stops_rounds": false, "occludes": false, "weight_class": "immovable"},
-      "appearance": {"drawn_by": "petanque_pitch", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "petanque_pitch", "map_only": true}
     }
   }
 }

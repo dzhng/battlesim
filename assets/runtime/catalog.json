@@ -93,6 +93,18 @@
       "scenery": "bench",
       "unit": "scenery"
     },
+    "bench_paris": {
+      "bundle": "8e14529d9be8bc6cd015bbaae9969e7ac86aaf764c1998591bb5ba8aca0d4b3d",
+      "footprint_half_m": [
+        0.9,
+        0.3,
+        0.42
+      ],
+      "kind": "static",
+      "regional_family": "paris",
+      "scenery": "bench",
+      "unit": "scenery"
+    },
     "bike_rack": {
       "bundle": "344177efde0cd44727a4dbe24a675b3abee230b1cf484b195e6d37b1ff1733e2",
       "footprint_half_m": [
@@ -147,6 +159,18 @@
       ],
       "kind": "static",
       "regional_family": "new_york",
+      "scenery": "bins",
+      "unit": "scenery"
+    },
+    "bins_paris": {
+      "bundle": "a8d5885195ee7e6d6e2e9735f3946690e0d13b566a3786a8896c89b426c0f42c",
+      "footprint_half_m": [
+        0.65,
+        0.38,
+        0.55
+      ],
+      "kind": "static",
+      "regional_family": "paris",
       "scenery": "bins",
       "unit": "scenery"
     },
@@ -575,6 +599,17 @@
       "scenery": "jersey_barrier",
       "unit": "scenery"
     },
+    "kiosk": {
+      "bundle": "5405ff051c5a07f3fd6e948be7251fdd7e3486389fbcf8ddd2fb75dd3509e87d",
+      "footprint_half_m": [
+        1.5,
+        1,
+        1.5
+      ],
+      "kind": "static",
+      "scenery": "kiosk",
+      "unit": "scenery"
+    },
     "lamp": {
       "bundle": "16c726c886b09a600f5ef3750d021d7cf0852297b6f3a303896361e718ffc14f",
       "footprint_half_m": [
@@ -628,6 +663,17 @@
       ],
       "kind": "static",
       "scenery": "parked_car",
+      "unit": "scenery"
+    },
+    "petanque_pitch": {
+      "bundle": "9eabb424201e96d8bcfaa39e00581cd2f17e937708c1129de17547ba869f967b",
+      "footprint_half_m": [
+        7.5,
+        2,
+        0.02
+      ],
+      "kind": "static",
+      "scenery": "petanque_pitch",
       "unit": "scenery"
     },
     "pingpong_table": {
@@ -980,6 +1026,11 @@
       "hash": "31705818aab093d7e3838a8027434e1b2935c9016c29e8fd16b774ac7f890955",
       "raw_bytes": 16193892
     },
+    "8e14529d9be8bc6cd015bbaae9969e7ac86aaf764c1998591bb5ba8aca0d4b3d": {
+      "bytes": 185698,
+      "hash": "1859b0c1f3ed3c4788a4196022a2e31a67b5cf427a31e526682a8c73dda965e4",
+      "raw_bytes": 733384
+    },
     "981953d3b6319d374ddcd2300f4ad216b163d20bff3e1b5aedaadd11403ccfc4": {
       "bytes": 4342860,
       "hash": "4762e8f7087077850eb05af927ace34556cea3692e8cdbc5f58c8d4c3fb4c002",
@@ -994,6 +1045,11 @@
       "bytes": 7346962,
       "hash": "88b57b7646983ccf97a0995c84b7d15f0dcb00bd0766468b721b189673ac2a47",
       "raw_bytes": 46809156
+    },
+    "a8d5885195ee7e6d6e2e9735f3946690e0d13b566a3786a8896c89b426c0f42c": {
+      "bytes": 111500,
+      "hash": "2d21f42b9642ebd6c4a5c0992139009e7c9c7200db9be36f948d8d5f540fffc4",
+      "raw_bytes": 384836
     },
     "f1c2ece2e7e00f3ebfd467e377d26490c0e23e889f2e9b59d569a915b48d022a": {
       "bytes": 4729869,

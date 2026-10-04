@@ -1131,6 +1131,60 @@
       ],
       "regional_family": "new_york"
     },
+    "kiosk": {
+      "unit": "scenery",
+      "scenery": "kiosk",
+      "states": {
+        "default": "assets/source/courts/kiosk.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.5,
+        1.0,
+        1.5
+      ]
+    },
+    "petanque_pitch": {
+      "unit": "scenery",
+      "scenery": "petanque_pitch",
+      "states": {
+        "default": "assets/source/courts/petanque_pitch.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.5,
+        2.0,
+        0.02
+      ]
+    },
+    "bench_paris": {
+      "unit": "scenery",
+      "scenery": "bench",
+      "states": {
+        "default": "assets/source/courts/bench_paris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.9,
+        0.3,
+        0.42
+      ],
+      "regional_family": "paris"
+    },
+    "bins_paris": {
+      "unit": "scenery",
+      "scenery": "bins",
+      "states": {
+        "default": "assets/source/courts/bins_paris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.65,
+        0.38,
+        0.55
+      ],
+      "regional_family": "paris"
+    },
     "grass_meadow": {
       "unit": "scenery",
       "scenery": "grass",
