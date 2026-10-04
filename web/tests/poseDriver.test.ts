@@ -9,6 +9,7 @@ import {
   loopStart,
   PoseDriver,
   restManner,
+  stanceManner,
   validatePoseFeel,
   type FeedFrame,
   type FeedUnit,
@@ -21,6 +22,10 @@ import { UnitCatalog } from "@packages/scene-assets/src/units";
 import { shippedMounts } from "./shippedMounts";
 
 const REST = FEEL.rest;
+const STANCE = FEEL.stance;
+/** The clip a still soldier holds in a posture. */
+const held = (posture: "stand" | "kneel" | "prone") =>
+  posture === "prone" ? "prone_pinned" : posture === "kneel" ? "kneel_fire" : "stand_aim";
 
 const CLIPS: Record<string, { duration: number; loop: boolean; stride_m: number | null }> = {
   idle: { duration: 2, loop: true, stride_m: null },
@@ -162,7 +167,10 @@ test("a shot kneels a still soldier, suppression pins him, and a soldier's own p
       ),
     ]),
   );
-  expect(fired.soldiers.map((s) => s.clip)).toEqual(["kneel_fire", "prone_pinned"]);
+  expect(fired.soldiers.map((s) => s.clip)).toEqual([
+    held(stanceManner(1, STANCE).firing),
+    "prone_pinned",
+  ]);
   const pinned = d.update(
     frame(3, [
       squad(
@@ -177,7 +185,30 @@ test("a shot kneels a still soldier, suppression pins him, and a soldier's own p
       ),
     ]),
   );
-  expect(pinned.soldiers.map((s) => s.clip)).toEqual(["prone_pinned", "kneel_fire"]);
+  expect(pinned.soldiers.map((s) => s.clip)).toEqual([
+    held(stanceManner(1, STANCE).pinned),
+    "kneel_fire",
+  ]);
+});
+
+test("a squad under fire is never a row of copies: firing and pinned, each man keeps his own stance", () => {
+  const d = driver();
+  const men = [1, 2, 3, 4, 5, 6, 7, 8].map((id) => ({ id, x: id * 2, y: 0 }));
+  const at = (time: number, extra: Partial<FeedUnit>) =>
+    d.update(frame(time, [squad(men, extra)])).soldiers.map((s) => s.clip);
+  at(0, {});
+  // Every man fires (a feed that names no shooter: the squad's count rises).
+  const firing = at(0.5, { mounts: [{ bearing: 1, elevation: 0, shots: 3 }] });
+  expect(firing).toEqual(men.map((m) => held(stanceManner(m.id, STANCE).firing)));
+  expect(new Set(firing)).toEqual(new Set(["stand_aim", "kneel_fire", "prone_pinned"]));
+  const pinned = at(3, { mounts: [{ bearing: 1, elevation: 0, shots: 3 }], pinned: true });
+  expect(pinned).toEqual(men.map((m) => held(stanceManner(m.id, STANCE).pinned)));
+  // Some hug the ground, some crouch; nobody stands up under it.
+  expect(new Set(pinned)).toEqual(new Set(["prone_pinned", "kneel_fire"]));
+  // A man who fires lying down stays down when pinned.
+  for (const m of men)
+    if (stanceManner(m.id, STANCE).firing === "prone")
+      expect(stanceManner(m.id, STANCE).pinned).toBe("prone");
 });
 
 test("a fallen soldier plays his death once, facing as he fell, then lies static", () => {
@@ -269,17 +300,18 @@ test("a soldier slides out to his lean point while he fires, then eases back in,
   expect(x(1.6 + FEEL.lean.back_s, null)).toBeCloseTo(0, 5);
 });
 
-test("a pinned soldier lies behind his cover, and kneels to fire out on his lean", () => {
+test("a pinned soldier holds his own stance behind cover, and kneels to fire out on his lean", () => {
   const d = driver();
   const pinned = (lean: [number, number] | null) =>
     squad([{ id: 1, x: 0, y: 0 }], {
       soldiers: [{ id: 1, slot: 0, activeMount: 0, position: [0, 0, 0], lean }],
       pinned: true,
     });
+  const down = held(stanceManner(1, STANCE).pinned);
   d.update(frame(0, [pinned(null)]));
-  expect(d.update(frame(1, [pinned(null)])).soldiers[0].clip).toBe("prone_pinned");
+  expect(d.update(frame(1, [pinned(null)])).soldiers[0].clip).toBe(down);
   expect(d.update(frame(1.5, [pinned([0.8, 0])])).soldiers[0].clip).toBe("kneel_fire");
-  expect(d.update(frame(4, [pinned(null)])).soldiers[0].clip).toBe("prone_pinned");
+  expect(d.update(frame(4, [pinned(null)])).soldiers[0].clip).toBe(down);
 });
 
 const tank = (x: number, yaw: number, bearing: number, hmg: number, elevation = 0): FeedUnit => ({
@@ -330,6 +362,9 @@ test("presentation.pose is checked: a run no faster than a walk, or a gauge past
     validatePoseFeel({ ...FEEL, gait: { ...FEEL.gait, run_mps: FEEL.gait.walk_mps } }),
   ).toThrow(/gait\.run_mps/);
   expect(() => validatePoseFeel({ ...FEEL, gauge: { tank: 1.2 } })).toThrow(/gauge\.tank/);
+  expect(() =>
+    validatePoseFeel({ ...FEEL, stance: { fire_prone: 0.6, fire_stand: 0.5, pinned_kneel: 0 } }),
+  ).toThrow(/stance/);
 });
 
 test("an own tank and an identified enemy with the same id are posed apart", () => {

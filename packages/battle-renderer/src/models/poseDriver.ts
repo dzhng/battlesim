@@ -204,6 +204,10 @@ export interface PoseFeel {
      *  and over which it strays fully. */
     settle_s: [number, number];
   };
+  /** How a squad under fire holds itself (`stanceManner`): the shares of
+   *  men who fire lying down and standing (the rest kneel), and of men who
+   *  crouch rather than lie flat when pinned. */
+  stance: { fire_prone: number; fire_stand: number; pinned_kneel: number };
   /** How a soldier slides out to his lean point and back: seconds out,
    *  a quick step, and seconds back in, slower. */
   lean: { out_s: number; back_s: number };
@@ -236,7 +240,7 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
   const positive = (path: string, v: number) => {
     if (!(v > 0)) fail(path, "must be positive");
   };
-  const { gait, rest, lean, mount, gauge, corpses } = p;
+  const { gait, rest, stance, lean, mount, gauge, corpses } = p;
   positive("gait.walk_mps", gait.walk_mps);
   if (!(gait.run_mps > gait.walk_mps)) fail("gait.run_mps", "must exceed walk_mps");
   positive("gait.fade_s", gait.fade_s);
@@ -250,6 +254,14 @@ export function validatePoseFeel(p: PoseFeel): PoseFeel {
     fail("rest.watch_every", "must be an integer ≥ 3");
   if (!(rest.settle_s[0] >= 0 && rest.settle_s[1] > 0))
     fail("rest.settle_s", "must be [delay ≥ 0, over > 0]");
+  const share = (v: number) => v >= 0 && v <= 1;
+  if (
+    !share(stance.fire_prone) ||
+    !share(stance.fire_stand) ||
+    !(stance.fire_prone + stance.fire_stand <= 1) ||
+    !share(stance.pinned_kneel)
+  )
+    fail("stance", "shares must lie in [0, 1], fire_prone + fire_stand ≤ 1");
   positive("lean.out_s", lean.out_s);
   positive("lean.back_s", lean.back_s);
   positive("mount.gun_elevation_rad_s", mount.gun_elevation_rad_s);
@@ -311,6 +323,26 @@ export function restManner(
   return { turn, tempo, watch };
 }
 
+/** A soldier's posture while he fires, and while his squad is pinned. */
+export interface Stance {
+  firing: Posture;
+  pinned: Posture;
+}
+
+/** How a soldier holds himself under fire, his own for life (from his id):
+ *  standing, kneeling or lying down while he fires, and crouching or lying
+ *  flat while pinned. One place along a low-discrepancy sequence decides
+ *  both, so neighbouring ids spread across the stances (a squad is never a
+ *  row of copies) and the men who fire lying down are the ones who stay flat
+ *  when pinned, while the standers are the first to crouch. */
+export function stanceManner(soldier: number, stance: PoseFeel["stance"]): Stance {
+  const u = (soldier * 0.41421356237309515) % 1;
+  const firing: Posture =
+    u < stance.fire_prone ? "prone" : u >= 1 - stance.fire_stand ? "stand" : "kneel";
+  const pinned: Posture = u >= 1 - stance.pinned_kneel ? "kneel" : "prone";
+  return { firing, pinned };
+}
+
 interface SoldierState {
   pose: SoldierPose;
   /** Where the simulation last put him (tucked in): his gait reads this,
@@ -320,10 +352,11 @@ interface SoldierState {
    *  lean point he slides to (kept while he eases back from it). */
   leanT: number;
   leanAt: Vec3;
-  /** His `restManner`, and when his squad last fired. */
+  /** His `restManner` and `stanceManner`, and when his squad last fired. */
   turn: number;
   tempo: number;
   watch: boolean;
+  stance: Stance;
   alertAt: number;
   /** The blend `pose.blend` points at while a fade runs. */
   fading: ClipBlend;
@@ -489,10 +522,17 @@ export class PoseDriver {
       pose.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
 
       // Out on his lean he kneels to fire, pinned or not: the film's man
-      // pops out from behind the tree and drops back.
+      // pops out from behind the tree and drops back. Otherwise, under fire
+      // or firing, each man takes his own stance.
       const posture =
         soldier.posture ??
-        (soldier.lean ? "kneel" : unit.pinned ? "prone" : firing ? "kneel" : "stand");
+        (soldier.lean
+          ? "kneel"
+          : unit.pinned
+            ? state.stance.pinned
+            : firing
+              ? state.stance.firing
+              : "stand");
 
       const clip =
         posture === "prone"
@@ -503,7 +543,7 @@ export class PoseDriver {
               ? "run"
               : speed >= gait.walk_mps
                 ? "walk"
-                : state.watch
+                : state.watch || firing
                   ? "stand_aim"
                   : "idle";
       if (equipmentChanged) {
@@ -553,6 +593,7 @@ export class PoseDriver {
       turn,
       tempo,
       watch,
+      stance: stanceManner(soldier.id, this.options.feel.stance),
       alertAt: -Infinity,
       fading: { clip: "idle", phase: 0, weight: 0 },
       fadeLeft: 0,

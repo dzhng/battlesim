@@ -506,7 +506,7 @@ pub enum SuppressionTier {
     None,
     /// Slowed: the suppressed tier's movement and reload penalties.
     Suppressed,
-    /// Pinned down: the bigger penalties, and soldiers go prone.
+    /// Pinned down: the bigger penalties, and soldiers hug the ground.
     Pinned,
 }
 

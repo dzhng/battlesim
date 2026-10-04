@@ -238,9 +238,9 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 
 ## W07
 
-**Decision:** An automatic target remains locked through aiming and the shot while valid. Reconsider priorities during reload. Explicit orders override immediately.
+**Decision:** An automatic target remains locked while the weapon can still shoot it: it changes only once the target is out of range, obstructed, out of sight past the identification grace, or dead. The one exception is the default gun working on a target it cannot hurt, which takes one it can. Explicit orders override immediately.
 
-**Why:** Prevent target churn from indefinitely delaying fire.
+**Why:** Prevent target churn from indefinitely delaying fire, and from flickering between targets as their ranking shifts (user, 2026-10-04).
 
 **Owner:** slices 08. **Authority:** user brief/interview.
 

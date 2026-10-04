@@ -842,6 +842,7 @@
     "pose": {
       "gait": { "walk_mps": 0.25, "run_mps": 2.2, "fade_s": 0.25, "facing_mps": 0.3, "turn_rad_s": 6 },
       "rest": { "turn_rad": 1.0, "tempo": [0.8, 1.25], "watch_every": 4, "settle_s": [4, 6] },
+      "stance": { "fire_prone": 0.3, "fire_stand": 0.2, "pinned_kneel": 0.25 },
       "lean": { "out_s": 0.25, "back_s": 0.4 },
       "mount": {
         "gun_elevation_rad_s": 0.6,

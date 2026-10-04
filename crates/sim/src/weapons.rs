@@ -396,6 +396,18 @@ pub fn can_damage(def: &WeaponDefinition, armor: Option<&Armor>) -> bool {
     }
 }
 
+/// Whether the mount's kind `k` can hurt `target`; an area or a ground point
+/// is always worth its rounds.
+fn hurts(ctx: &FireContext, spec: &MountSpec, k: usize, target: Target, units: &[Unit]) -> bool {
+    match target {
+        Target::Unit(u) => can_damage(
+            &ctx.arsenal.weapons[spec.kinds[k]].def,
+            units[u.0 as usize].armor(ctx.rules),
+        ),
+        _ => true,
+    }
+}
+
 /// The unit's always-available gun with rounds to spare (a squad's rifles, a
 /// roof HMG): it fires at an identified enemy it cannot hurt, to keep heads
 /// down (W09). A weapon with a finite supply keeps it for what it can hurt.
@@ -899,13 +911,6 @@ fn select(
     };
     areas.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
 
-    let damages = |k: usize, t: Target| match t {
-        Target::Unit(u) => can_damage(
-            &weapons[spec.kinds[k]].def,
-            units[u.0 as usize].armor(ctx.rules),
-        ),
-        _ => true,
-    };
     let stages = by_cost
         .iter()
         .map(|&(.., u)| (Target::Unit(u), true))
@@ -921,8 +926,8 @@ fn select(
             Ok(k) => {
                 // The middle stage is only the unlimited default gun against
                 // what it cannot hurt.
-                let hurts = damages(k, target);
-                if hurts == must_damage && (hurts || fires_regardless(&weapons[spec.kinds[k]].def))
+                let harms = hurts(ctx, spec, k, target, units);
+                if harms == must_damage && (harms || fires_regardless(&weapons[spec.kinds[k]].def))
                 {
                     return (Some(target), ActionReason::Aiming);
                 }
@@ -1001,14 +1006,13 @@ fn choose_lock(
         None => true,
         // Identification lapsing within the grace never makes it replaceable.
         Some((_, r)) if !r.current => false,
+        // A target the mount can still shoot is kept until it no longer can
+        // (out of range, obstructed, dead): a crew does not swap targets as
+        // the ranking shifts. The one exception is the default gun working on
+        // what it cannot hurt, which takes anything it can.
         Some((t, r)) => match assessed.target(ctx, unit, units, mount, spec, *t, r) {
-            // An invalid target can be replaced early.
             Err(_) => true,
-            // Independent rifles need not all be empty to reconsider a target.
-            Ok(_) => mount
-                .cycles
-                .iter()
-                .any(|c| c.cooldown > 0.0 || c.reload.is_some()),
+            Ok(k) => !hurts(ctx, spec, k, *t, units),
         },
     };
     if !reconsider {

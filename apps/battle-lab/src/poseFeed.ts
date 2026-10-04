@@ -7,8 +7,8 @@
 //
 // The unit catalog gives the driver its facts (which units are vehicles,
 // their mount roles and track gauge), the installed appearances each type's
-// clips, and `presentation.pose` its feel. Whether a squad is pinned (it goes
-// prone) is the published suppression tier.
+// clips, and `presentation.pose` its feel. Whether a squad is pinned (its men
+// lie flat or crouch) is the published suppression tier.
 import game from "@fixtures/game.json";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";

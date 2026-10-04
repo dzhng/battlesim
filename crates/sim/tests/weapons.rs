@@ -1395,6 +1395,48 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
     );
 }
 
+#[test]
+fn a_weapon_keeps_its_target_while_it_can_still_shoot_it() {
+    // Blue's rifles take the nearer of two red squads; it then walks back past
+    // the other but stays in range and in sight. The rifles stay on it: a
+    // squad that swaps targets every time the ranking shifts flickers on
+    // screen and wastes its aim (W07).
+    let scripts = json!([{ "tick": 1, "side": "red", "order":
+        { "kind": "move", "units": [2], "gesture": 1, "goal": [550, 300], "route": "shortest" } }]);
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "recon", "position": [100, 340] },
+            { "side": "red", "kind": "rifle", "position": [300, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [340, 380], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        scripts,
+    );
+    // Nobody dies or is pinned: this is about which target the rifles hold.
+    let rifle = setup.rules.weapons.get_mut("rifle").unwrap();
+    rifle.damage = 0.0;
+    rifle.near_miss_suppression = 0.0;
+    let mut b = Battle::new(&setup, 5);
+    run(&mut b, 5);
+    let first = mount(&b, Side::Blue, 0, 0).target;
+    assert!(first.is_some(), "the rifles take a target");
+    let mut swaps = 0;
+    for _ in 0..ticks(40.0) {
+        b.step();
+        if mount(&b, Side::Blue, 0, 0).target != first {
+            swaps += 1;
+        }
+    }
+    let at = |id: u32| b.unit(UnitId(id)).unwrap().position.xy();
+    assert!(
+        (at(2) - at(0)).length() > 300.0,
+        "the first target walked back past the other"
+    );
+    assert_eq!(swaps, 0, "the rifles never left their first target");
+}
+
 /// Blue's tank watches red's tank cross behind a wall 300 m away; the wall's
 /// shadow at red's track is four times `wall_half_y` wide.
 fn crossing(wall_half_y: f64) -> Battle {

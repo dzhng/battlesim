@@ -10,7 +10,11 @@ import { drawnMuzzleSource, effectPublication } from "@apps/battle-lab/src/effec
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { shippedMounts } from "./shippedMounts";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
-import { PoseDriver, type PoseFrame } from "@packages/battle-renderer/src/models/poseDriver";
+import {
+  PoseDriver,
+  stanceManner,
+  type PoseFrame,
+} from "@packages/battle-renderer/src/models/poseDriver";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { poseFrameInstances } from "@packages/battle-renderer/src/models/modelInstances";
@@ -325,18 +329,18 @@ test("a single rifle shot poses exactly the soldier whose flash and sound fire",
   const b = battle();
   const men = [
     { id: 1, at: [0, 0, 0] as Point3 },
-    { id: 2, at: [3, 0, 0] as Point3 },
+    { id: 3, at: [3, 0, 0] as Point3 },
   ];
   // Soldier 1's earlier round is still flying (it began at tick 5) when the
-  // squad's counter rises at tick 6; the round that rise names, soldier 2's,
+  // squad's counter rises at tick 6; the round that rise names, soldier 3's,
   // first flies at tick 7. Soldier 1's round is in the rising publication,
-  // soldier 2's is not.
+  // soldier 3's is not.
   const at = (tick: number) =>
     observation(tick, [squad(7, men, { shots: tick >= 6 ? 5 : 4, bearing: 1 })], {
       projectiles: [
         ...(tick === 5 ? [round(1, [0, 0, 1])] : []),
         ...(tick === 6 ? [round(1, [5, 0, 1])] : []),
-        ...(tick >= 7 ? [round(2, [3 + 5 * (tick - 7), 0, 1])] : []),
+        ...(tick >= 7 ? [round(3, [3 + 5 * (tick - 7), 0, 1])] : []),
       ],
     });
   // Who the flashes and the sounds say fired: the launches of the same publications.
@@ -345,11 +349,15 @@ test("a single rifle shot poses exactly the soldier whose flash and sound fire",
   for (let tick = 0; tick <= 10; tick++)
     for (const l of launches.note(effectPublication(at(tick), "blue", UNITS), false))
       fired.add(l.soldier);
-  expect([...fired]).toEqual([2]);
+  expect([...fired]).toEqual([3]);
 
   play(b, 0, 5, at);
   const posed = play(b, 6, 10, at);
-  expect(clips(posed)).toEqual({ 1: "idle", 2: "kneel_fire" });
+  // The shooter takes his own firing stance; the other man stays at ease.
+  const stance = stanceManner(3, gamePose.stance).firing;
+  const firingClip =
+    stance === "prone" ? "prone_pinned" : stance === "kneel" ? "kneel_fire" : "stand_aim";
+  expect(clips(posed)).toEqual({ 1: "idle", 3: firingClip });
   // Aiming, a still soldier turns (at his turn rate, from wherever he was
   // looking) to the weapon's bearing, not the squad's heading.
   expect(posed.soldiers.map((s) => s.facing)).toEqual([1, 1].map(() => expect.closeTo(1, 1)));
