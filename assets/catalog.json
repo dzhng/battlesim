@@ -118,6 +118,26 @@
       "kit": "city_kit_industry",
       "catalogue": "generated"
     },
+    "towers_new_york": {
+      "templates": "assets/source/city/towers_new_york/templates.json",
+      "kit": "city_kit_towers_new_york",
+      "catalogue": "generated"
+    },
+    "towers_paris": {
+      "templates": "assets/source/city/towers_paris/templates.json",
+      "kit": "city_kit_towers_paris",
+      "catalogue": "generated"
+    },
+    "industry_new_york": {
+      "templates": "assets/source/city/industry_new_york/templates.json",
+      "kit": "city_kit_industry_new_york",
+      "catalogue": "generated"
+    },
+    "industry_paris": {
+      "templates": "assets/source/city/industry_paris/templates.json",
+      "kit": "city_kit_industry_paris",
+      "catalogue": "generated"
+    },
     "village": {
       "templates": "assets/source/city/village/templates.json",
       "kit": "city_kit_village",
@@ -1434,6 +1454,26 @@
     "city_kit_industry": {
       "unit": "kit",
       "source": "assets/source/city/industry/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_towers_new_york": {
+      "unit": "kit",
+      "source": "assets/source/city/towers_new_york/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_towers_paris": {
+      "unit": "kit",
+      "source": "assets/source/city/towers_paris/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_industry_new_york": {
+      "unit": "kit",
+      "source": "assets/source/city/industry_new_york/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_industry_paris": {
+      "unit": "kit",
+      "source": "assets/source/city/industry_paris/kit.glb",
       "basis_yaw_deg": 0
     },
     "floor_fern": {

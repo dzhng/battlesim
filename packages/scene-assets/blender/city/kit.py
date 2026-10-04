@@ -84,8 +84,8 @@ def _fail(message):
 
 
 class Module:
-    def __init__(self, name, ground, bake):
-        self.name, self.ground, self.bake = name, ground, bake
+    def __init__(self, name, ground, bake, optional=False):
+        self.name, self.ground, self.bake, self.optional = name, ground, bake, optional
         self.root = empty(name)
         self.triangles = None  # per tier, after the bake
         self.points = None  # every vertex of every tier, in the module's frame
@@ -312,11 +312,13 @@ class Kit:
         self.modules, self.templates, self.heaps = {}, [], {}
         self.openings = {}  # module -> the opening it stands in (`opening`)
 
-    def module(self, name, ground=False, **bake):
-        """A new module. `bake` overrides what `parts.finish` is given (occlusion reach, paint edge)."""
+    def module(self, name, ground=False, optional=False, **bake):
+        """A new module. `bake` overrides what `parts.finish` is given (occlusion reach, paint edge).
+        `optional` is a fitting a script offers every set it writes: a set none of whose templates
+        place it leaves it out, where any other module no template places is an error."""
         if not re.fullmatch(r"[a-z0-9_]+", name) or name in self.modules:
             _fail(f"module names are unique and [a-z0-9_]+: {name}")
-        self.modules[name] = Module(name, ground, dict(ao_distance=2.5, ao_strength=0.5, ao_rays=10, paint_scale=3.0) | bake)
+        self.modules[name] = Module(name, ground, dict(ao_distance=2.5, ao_strength=0.5, ao_rays=10, paint_scale=3.0) | bake, optional)
         return self.modules[name]
 
     def template(self, id_, category, family, recipe=None, status="release"):
@@ -397,6 +399,12 @@ class Kit:
             gaps = t.uncovered_bays()
             if gaps:
                 _fail(f"{t.id}: declared facade bays without visible openings: {gaps}")
+        placed = {row[0] for t in self.templates for rows in t.rows.values() for row in rows}
+        for name in sorted(set(self.modules) - placed):
+            if self.modules[name].optional:
+                m = self.modules.pop(name)
+                for o in [*m.root.children_recursive, m.root]:
+                    bpy.data.objects.remove(o, do_unlink=True)
         self._bake()
         names = sorted(self.modules)
         index = {name: i for i, name in enumerate(names)}
