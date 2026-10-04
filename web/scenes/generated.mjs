@@ -86,7 +86,15 @@ async function deployFromMenu(ctx, page, map, shots = false, beforeDeploy = asyn
       .innerText()
       .then((t) => /seed/i.test(t)),
     href: await page.getByTestId("menu-deploy").getAttribute("href"),
-    checked: await page.locator('.menu [role="radio"][aria-checked="true"]').allTextContents(),
+    checked: await page
+      .locator(
+        '[data-testid^="menu-map-"][aria-checked="true"], [data-testid^="menu-size-"][aria-checked="true"]',
+      )
+      .allTextContents(),
+    region: await page
+      .getByRole("radiogroup", { name: "region", exact: true })
+      .getByRole("radio", { checked: true })
+      .textContent(),
   };
   if (shots)
     await writeFile(ctx.evidencePath("menu-chosen-1920x1080.png"), await page.screenshot());
@@ -308,7 +316,8 @@ export async function run(ctx) {
     menu.drawn === "/battle?play=1&type=mixed&size=small" &&
       !menu.seedShown &&
       menu.href === `/battle?type=${MAP.type}&size=${MAP.size}&seed=${MAP.seed}` &&
-      menu.checked.join() === `${MAP.type},${MAP.size}`,
+      menu.checked.join() === `${MAP.type},${MAP.size}` &&
+      menu.region === "random",
     JSON.stringify(menu),
   );
   ctx.check(
