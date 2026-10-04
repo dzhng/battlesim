@@ -14,7 +14,7 @@ which builder each lot is and how it is dressed.
 - `china` (set `industry`): a steel workshop shed on a block dado, a precast dock
   warehouse under a flat roof, a twin-span steel distribution warehouse, a brick works
   under a sawtooth with a rendered office, and a blockwork depot with a roof monitor.
-- `new_york`: a galvanised shed, a three-storey brick loft with its water tank, a
+- `new_york`: a galvanised shed, a two-storey brick loft with its water tank, a
   brick warehouse and a car barn whose gables hide behind stepped brick fronts, and a
   brick works with a limestone-trimmed office.
 - `paris`: a steel shed under fibre cement, a rendered atelier under a sawtooth, a
@@ -1037,12 +1037,12 @@ def stepped(m, tag, axis, plane, out, base, segments, mat, thick=0.3):
 
 
 # ---------------------------------------------------------------- New York's brick loft
-# Three storeys of tinted brick round a flat roof: a steel loft window in every bay of every
+# Two storeys of tinted brick round a flat roof: a steel loft window in every bay of every
 # floor under a stone lintel, a stone band over the ground floor and a cornice under the
 # parapet, stepped parapets over the two ends, a row of loading docks under a canopy, and the
 # water tank on its stand on the roof.
 def loft(id_, tint, door, wall):
-    W, D, STOREY, FLOORS = 48.0, 24.0, 4.2, 3
+    W, D, STOREY, FLOORS = 48.0, 24.0, 4.2, 2
     TOP = STOREY * FLOORS + 1.0
     m = kit.module("loft_shell", ground=True, paint_scale=4.0)
     deck = flat_shell(m, "box", -W / 2, W / 2, -D / 2, D / 2, TOP, wall, felt_m,
@@ -1271,7 +1271,7 @@ def vaulted_shell(m, length, depth, eave, crown, wall, roof, facets=12, lights=(
 # along the street side under canopies, a band of high windows round the walls, and each end
 # an arch of glass.
 def vault_depot(id_, tint, door, wall, roof):
-    W, D, EAVE, TOP = 90.0, 39.0, DEPOT_WALL_M, DEPOT_WALL_M + 4.6
+    W, D, EAVE, TOP = 90.0, 39.0, DEPOT_WALL_M, DEPOT_WALL_M + 4.1  # one storey: the crown stays within 12 m
     m = kit.module("vault_shell", ground=True, paint_scale=5.0)
     edge_z = vaulted_shell(m, W, D, EAVE, TOP, wall, roof, lights=(4, 7), plinth=0.4)
     t = kit.template(id_, "industry", FAMILY, dict(Width=W, Depth=D, Floors=1, Structure="concrete frame, rendered infill",
