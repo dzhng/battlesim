@@ -241,6 +241,21 @@ fn teeth_at(x: f64, y0: f64, y1: f64) -> Vec<Value> {
         .collect()
 }
 
+/// A court's car bays: six cars parked nose-in, 2.6 m apart (a 0.8 m gap
+/// between doors), their backs 3 m off a building's wall to the north.
+fn parked_cars() -> Vec<Value> {
+    let mut props = vec![wall([60.0, 60.0], 0.0, [20.0, 0.5, 3.0])];
+    props.extend((0..6).map(|k| {
+        prop(
+            "parked_car",
+            [53.5 + 2.6 * k as f64, 54.4],
+            std::f64::consts::FRAC_PI_2,
+            [2.1, 0.9, 0.75],
+        )
+    }));
+    props
+}
+
 fn rifle(side: &str, at: [f64; 2]) -> Value {
     json!({ "side": side, "kind": "rifle", "position": at, "engagement": "return_fire_only" })
 }
@@ -543,6 +558,32 @@ fn authored() -> Vec<Scenario> {
                     min: 2,
                 }),
                 check(Spacing { min_m: 2.0 }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
+            name: "t1-cover-by-parked-cars",
+            caption: "move beside nose-in cars against a wall, enemy east: no post in a gap no man walks into",
+            map: flat([120.0, 90.0], json!({ "props": parked_cars() })),
+            units: json!([rifle("blue", [30.0, 20.0]), rifle("red", [100.0, 52.0])]),
+            events: none.clone(),
+            scripts: json!([go(0, [56.0, 49.0])]),
+            rules: json!({}),
+            seconds: 40.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [56.0, 49.0],
+                    within_m: 1.5,
+                }),
+                // The end car's open face holds two; the 0.8 m slots
+                // between cars hold none.
+                check(InCover {
+                    unit: 0,
+                    threat: Some(1),
+                    min: 2,
+                }),
                 check(SoldiersClearOfProps),
             ],
         },
@@ -2961,6 +3002,10 @@ fn every_movement_scenario() {
     for scenario in scenarios() {
         assert_scenario(&scenario);
     }
+}
+#[test]
+fn a_squad_takes_cover_by_parked_cars_only_where_a_man_can_stand() {
+    assert_scenario(&scenario("t1-cover-by-parked-cars"));
 }
 #[test]
 fn a_jeep_passes_a_wreck_across_the_road() {
