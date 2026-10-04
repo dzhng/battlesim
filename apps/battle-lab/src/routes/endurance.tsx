@@ -4,7 +4,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import game from "@fixtures/game.json";
-import { restartBattle } from "@web/mechanicsLifecycle";
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
@@ -71,14 +70,14 @@ export default function Endurance() {
         : 1
       : Math.max(0, Math.trunc(Number(requested))) || 0;
   });
-  const choose = (nextSeed: number, nextLate: boolean) =>
-    restartBattle(
-      () => {
-        setSeed(nextSeed);
-        setLate(nextLate);
-      },
-      { seed: String(nextSeed), late: nextLate ? "1" : "0" },
-    );
+  const choose = (nextSeed: number, nextLate: boolean) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("seed", String(nextSeed));
+    url.searchParams.set("late", nextLate ? "1" : "0");
+    window.history.replaceState(null, "", url);
+    setSeed(nextSeed);
+    setLate(nextLate);
+  };
   const built = useBuiltScenario({ late, seed, generated }, async (wasm, o, signal) => {
     if (!o.generated)
       return { scenario: await enduranceScenario(wasm, "endurance", o.seed, o.late), report: null };

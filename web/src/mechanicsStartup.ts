@@ -36,15 +36,3 @@ export async function startWithMechanics(
   freeze(catalog);
   await start();
 }
-
-/** User restarts capture a fresh generation in development. Diagnostics may
- * reset the captured scenario directly to replay an identical experiment. */
-export function restartBattle(reset: () => void, parameters: Record<string, string> = {}): void {
-  if (Object.keys(parameters).length) {
-    const url = new URL(window.location.href);
-    for (const [key, value] of Object.entries(parameters)) url.searchParams.set(key, value);
-    window.history.replaceState(null, "", url);
-  }
-  if (import.meta.env.DEV) window.location.reload();
-  else reset();
-}

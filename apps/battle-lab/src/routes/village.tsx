@@ -1,6 +1,5 @@
 import { useState } from "react";
 import game from "@fixtures/game.json";
-import { restartBattle } from "@web/mechanicsLifecycle";
 import { durableSoldiers, GAME_RULES } from "../scenarios";
 import { SavedEncounter, villageScenario } from "../savedMaps";
 import { BattleView } from "../BattleView";
@@ -142,7 +141,11 @@ function VillageEncounter({ fixture, script }: { fixture: string; script: string
     return isVariant(requested) ? requested : "ordinary";
   });
   const chooseVariant = (next: Variant) => {
-    if (next !== variant) restartBattle(() => setVariant(next), { variant: next });
+    if (next === variant) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("variant", next);
+    window.history.replaceState(null, "", url);
+    setVariant(next);
   };
   const [seed] = useState(urlSeed);
   const scenario = useVillageScenario(fixture, variant);
@@ -162,8 +165,7 @@ function VillageEncounter({ fixture, script }: { fixture: string; script: string
 
 /** /replay/village: watch a saved battle; input is off, the defender is off. */
 export function VillageReplay() {
-  const [loaded, loadFile] = useSavedReplay();
-  const setFile = (file: ReplayFile) => restartBattle(() => loadFile(file));
+  const [loaded, setFile] = useSavedReplay();
   if (loaded.file === undefined) return <ReplayLoading />;
   const file = loaded.file && isVillageReplay(loaded.file) ? loaded.file : null;
   if (!file)

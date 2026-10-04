@@ -41,10 +41,9 @@ Arbitrary filesystem readers have no operating-system snapshot guarantee.
 An outside writer can also race between a byte comparison and replacement;
 ordinary file replacement provides no compare-and-swap against external writers.
 
-A running battle is an experiment with one captured rules and catalog
-generation. Save must not reload it or modify its worker. In development, newly loaded battle pages and
-explicit restarts capture current accepted sources together. Diagnostic resets
-retain the captured generation so comparisons remain reproducible.
+A game page captures one rules and catalog generation. Save must not reload it
+or modify its worker. Battle starts, restarts and diagnostic resets retain that
+generation; a manual page reload captures current accepted sources together.
 
 ## Ownership
 
@@ -57,11 +56,11 @@ retain the captured generation so comparisons remain reproducible.
   owns the restored draft projection; the form must display that projection.
 - [mechanics_validate.rs](../../../crates/sim/examples/mechanics_validate.rs)
   admits supplied sources through `sim::fixtures::admit` and `weapons::check_rules`.
-- [startWithMechanics](../../../web/src/mechanicsLifecycle.ts) captures accepted
-  data before gameplay modules load; session restart owns the refresh boundary.
+- [Page startup](../../../web/src/mechanicsStartup.ts) captures accepted
+  data before gameplay modules load.
 - [The editor tests](../../../web/tests/mechanicsEditor.test.tsx),
   [publication tests](../../../web/tests/mechanicsServer.test.ts) and
-  [lifecycle tests](../../../web/tests/mechanicsLifecycle.test.ts) pin the
+  [startup tests](../../../web/tests/mechanicsStartup.test.ts) pin the
   editing, filesystem and generation contracts at their consumer boundaries.
 
 ## Alternatives ruled out
@@ -76,7 +75,8 @@ UI, while the original native text is for publication.
 
 Live fixture hot reload would mix new presentation with an old worker. Development
 instead suppresses fixture reloads and captures sources before loading gameplay
-consumers. Explicit restart reloads the page with its route parameters intact.
+consumers. Applying saved edits is a manual page reload, independent of battle
+restart.
 
 ## Visual standard
 

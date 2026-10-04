@@ -5,7 +5,6 @@ import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView } from "@web/battle/sim/observation";
 import { REASON_TEXT } from "../reasonText";
 import type { Order } from "@web/battle/sim/protocol";
-import { restartBattle } from "@web/mechanicsLifecycle";
 import { AckLog } from "../AckLog";
 import { BattleMemory, guidanceLayer, remainsLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
@@ -75,7 +74,11 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
     return VARIANT_NAMES.find((name) => name === requested) ?? "prompt";
   });
   const chooseVariant = (next: Variant) => {
-    if (next !== variant) restartBattle(() => setVariant(next), { variant: next });
+    if (next === variant) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("variant", next);
+    window.history.replaceState(null, "", url);
+    setVariant(next);
   };
   // Own strikes (kept 3 s) and each missile's path, for replaying it to its last point.
   const memory = useRef(new BattleMemory({ impactTicks: 90, ownImpactsOnly: true }));

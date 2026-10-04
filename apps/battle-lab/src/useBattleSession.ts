@@ -723,7 +723,7 @@ export function useBattleSession({
     pause: () => sim.client?.pause(),
     resume: () => sim.client?.resume(),
     advance: (n: number) => sim.client!.advance(n),
-    reset: () => sim.reset(),
+    reset: () => sim.restart(),
     surfaceZ,
     /** The static ground under a point: its kind and whether units cross it;
      *  null off the map. */

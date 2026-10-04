@@ -742,7 +742,7 @@ export default function MechanicsEditor() {
           <span className={dirty ? "me-unsaved" : ""}>
             {dirty ? `${draft?.changes.length ?? 0} pending changes` : "Authored fixtures"}
           </span>
-          <span>Applies to new or restarted battles</span>
+          <span>Reload the game page to apply saved rules</span>
         </div>
       </header>
       <div className="me-toolbar">
@@ -821,8 +821,7 @@ export default function MechanicsEditor() {
       )}
       {saved && (
         <div className="me-success" role="status">
-          Saved authored JSON and synchronized the catalog. Running battles continue; new or
-          restarted battles use these rules.
+          Saved authored JSON and synchronized the catalog. Reload the game page to use these rules.
         </div>
       )}
       {!editor ? (

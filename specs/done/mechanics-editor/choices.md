@@ -73,14 +73,13 @@ catalog. **Verdict:** sound; the generator owns both values and representation.
 
 ### Capture rules before loading gameplay consumers
 
-**When:** lifecycle integration (`a837bd40`). **Gap:** the plan required new
-battles to see saves without changing active battles, but left refresh mechanics
-open. Development fetches accepted game and catalog data before loading modules
-that derive presentation values. Explicit restart reloads the battle page with
-its route parameters intact. A diagnostic reset keeps its captured generation,
-so repeated measurements compare the same experiment. Production retains normal
-worker resets. **Reach:** development restart reloads the page; Save never does.
-**Verdict:** sound; workers and their presentation observe the same generation.
+**When:** lifecycle integration (`a837bd40`), revised by the user's HUD scope
+decision on 2026-10-04. Development fetches accepted game and catalog data before
+loading modules that derive presentation values. Battle starts, restarts and
+diagnostic resets keep that page's captured generation. Saved edits take effect
+after a manual page reload; neither Save nor Restart refreshes the page.
+**Why:** explicit developer refresh avoids settings-lifetime machinery while
+workers and their presentation observe the same generation.
 
 ### Isolate Vite's cache by checkout
 

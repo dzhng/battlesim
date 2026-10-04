@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { startWithMechanics } from "./mechanicsLifecycle";
+import { startWithMechanics } from "./mechanicsStartup";
 import "./lab.css";
 import "./menu.css";
 import "./hud.css";

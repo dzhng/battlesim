@@ -23,8 +23,8 @@ Prerequisites are in the root [Running it](../../README.md#running-it) section.
 3. Click **Preview changes**. Fix any errors, then review before-and-after values,
    affected units and the exact JSON replacements.
 4. Click **Save authored JSON**. This replaces fixture files in this checkout and
-   updates their generated catalog; Git shows the changes. Start or explicitly
-   restart a battle to use the saved values. A running battle keeps its settings.
+   updates their generated catalog; Git shows the changes. Reload the game page
+   to use the saved values. Battle starts and restarts keep the page's settings.
 
 The editor uses the simulation's Rust resolver as the authority for inheritance
 and valid gameplay values. If files change elsewhere, your draft is retained;
