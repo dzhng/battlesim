@@ -108,6 +108,26 @@
       "kit": "city_kit_farmsteads",
       "catalogue": "generated"
     },
+    "homes_new_york": {
+      "templates": "assets/source/city/homes_new_york/templates.json",
+      "kit": "city_kit_homes_new_york",
+      "catalogue": "generated"
+    },
+    "homes_paris": {
+      "templates": "assets/source/city/homes_paris/templates.json",
+      "kit": "city_kit_homes_paris",
+      "catalogue": "generated"
+    },
+    "farmsteads_new_york": {
+      "templates": "assets/source/city/farmsteads_new_york/templates.json",
+      "kit": "city_kit_farmsteads_new_york",
+      "catalogue": "generated"
+    },
+    "farmsteads_paris": {
+      "templates": "assets/source/city/farmsteads_paris/templates.json",
+      "kit": "city_kit_farmsteads_paris",
+      "catalogue": "generated"
+    },
     "towers": {
       "templates": "assets/source/city/towers/templates.json",
       "kit": "city_kit_towers",
@@ -1424,6 +1444,26 @@
     "city_kit_farmsteads": {
       "unit": "kit",
       "source": "assets/source/city/farmsteads/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_homes_new_york": {
+      "unit": "kit",
+      "source": "assets/source/city/homes_new_york/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_homes_paris": {
+      "unit": "kit",
+      "source": "assets/source/city/homes_paris/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_farmsteads_new_york": {
+      "unit": "kit",
+      "source": "assets/source/city/farmsteads_new_york/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_farmsteads_paris": {
+      "unit": "kit",
+      "source": "assets/source/city/farmsteads_paris/kit.glb",
       "basis_yaw_deg": 0
     },
     "city_kit_towers": {
