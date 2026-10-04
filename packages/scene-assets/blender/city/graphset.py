@@ -500,6 +500,46 @@ class GraphSet:
         """A run's wall at one of the two fine tiers (its shell's own faces, openings cut)."""
         return run.wall
 
+    def holed(self, start, along, out, length, floors, openings, meshes):
+        """A run's wall as flat faces round its openings, each opening's reveal lined in the
+        wall's own material back to what fills it: a wall of a few faces a bay, for tier 1
+        where the graph's own wall is more than its budget."""
+        _, roof_m, _, _ = self.heights(floors)
+        at = lambda s, deep, z: (*(start + along * s - out * deep), z)
+        bands = [0.0] + [self.GROUND_M + self.STOREY_M * k for k in range(floors) if self.GROUND_M + self.STOREY_M * k < roof_m - 1e-3] + [roof_m]
+        faces = []
+        for z0, z1 in zip(bands, bands[1:]):
+            holes = []
+            for n, m in openings:
+                if not z0 - 0.01 < m[2, 3] < z1 - 0.01:
+                    continue
+                lo, hi = self.bounds_of(meshes, n)
+                s = float((m[:2, 3] - start) @ along)
+                holes.append((s + lo[0], s + hi[0], max(z0, m[2, 3] + lo[2]), min(z1, m[2, 3] + hi[2]), lo[1] if lo[1] > 0.05 else self.WALL_M / 2))
+            s0 = 0.0
+            for a, b, h0, h1, deep in sorted(holes):
+                faces.append(((s0, z0), (a, z1)))
+                if h0 > z0 + 1e-3:
+                    faces.append(((a, z0), (b, h0)))
+                if h1 < z1 - 1e-3:
+                    faces.append(((a, h1), (b, z1)))
+                s0 = b
+                for c0, c1, c2, c3 in (((a, 0, h0), (a, deep, h0), (a, deep, h1), (a, 0, h1)),  # the jambs, the sill, the head
+                                       ((b, deep, h0), (b, 0, h0), (b, 0, h1), (b, deep, h1)),
+                                       ((a, 0, h0), (b, 0, h0), (b, deep, h0), (a, deep, h0)),
+                                       ((a, deep, h1), (b, deep, h1), (b, 0, h1), (a, 0, h1))):
+                    faces.append((at(*c0), at(*c1), at(*c2), at(*c3)))
+            faces.append(((s0, z0), (length, z1)))
+        soups = []
+        for face in faces:
+            if len(face) == 2:
+                (a, z0), (b, z1) = face
+                if b - a < 1e-3 or z1 - z0 < 1e-3:
+                    continue
+                face = (at(a, 0, z0), at(b, 0, z0), at(b, 0, z1), at(a, 0, z1))
+            soups.append(quad(face, self.WALL + MASK))
+        return Soup.join(soups)
+
     def standing(self, run):
         """What of a run's wall a ruin cuts down to stumps."""
         return Soup.join([run.wall.coloured(0.72), run.inner.coloured(0.35)])
