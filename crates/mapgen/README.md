@@ -153,15 +153,25 @@ of entrances and bridge approaches, apart from existing bodies and outside measu
 open approaches. Dimensions and mix belong to presets; the resolved catalog owns
 physical properties and the widest supported hull used to reserve a lane.
 
+Dense districts dress their courts with amenity groups (a playground, a row of
+garages, a fenced basketball court), presets data placed whole or not at all.
+A court draws from groups every region shares and from those of the map's own
+regional family only, so a signature piece never appears in another region. A
+group keeps open ground round it as wide as the widest hull and a margin for the
+simulation's navigation grid, clear of walls, doors, carriageways and every other
+body: set apart like that, it cannot close a way a soldier or a vehicle had, and
+a fenced group keeps a gate.
+
 Garden suburbs and villages dress the gardens behind their houses: pieces in a
 lot's rear setback and a boundary along its rear and sides, never in the front
-garden. Gardens are the least of a town's dressing: they are placed after the
-open country's cover has certified the map's sight, keep a trunk's clearance off
-every forest so they fell no tree the certificate counted, and stop at the
-request's authored-part limit. On the largest maps that limit, not the presets'
-density, decides how many lots are dressed.
+garden. Courts and gardens are the last of a town's dressing: they are placed
+after the open country's cover has certified the map's sight (placed before it,
+they took the ground its copses needed and some maps were refused), keep a
+trunk's clearance off every forest so they fell no tree the certificate counted,
+and stop at the request's authored-part limit, courts first. On the largest maps
+that limit, not the presets' density, decides how many lots are dressed.
 
-Kerbside parking, yard stock and gardens must leave actual squad access and vehicle travel.
+Kerbside parking, yard stock, courts and gardens must leave actual squad access and vehicle travel.
 A planned route or successful placement alone is insufficient; [furniture tests](tests/street_props.rs)
 ask the simulation's navigation, while traversal and traffic remain separate
 movement proofs. Bounded local retries may omit optional furniture when it cannot

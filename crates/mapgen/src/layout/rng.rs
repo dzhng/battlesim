@@ -3,6 +3,7 @@
 //! Integer state only: the same request draws the same numbers on every target.
 
 use contract::random::{mix, Rng};
+use std::collections::BTreeMap;
 
 pub struct Stream(Rng);
 
@@ -38,5 +39,18 @@ impl Stream {
 
     pub fn chance(&mut self, probability: f64) -> bool {
         self.unit() < probability
+    }
+
+    /// A key of `table` drawn by its weight; `None` for an empty table.
+    pub fn pick<'k, K>(&mut self, table: &'k BTreeMap<K, f64>) -> Option<&'k K> {
+        let mut pick = self.unit() * table.values().sum::<f64>();
+        table
+            .iter()
+            .find(|(_, weight)| {
+                pick -= **weight;
+                pick < 0.0
+            })
+            .or(table.iter().last())
+            .map(|(key, _)| key)
     }
 }

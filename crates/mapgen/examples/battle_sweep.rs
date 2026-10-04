@@ -2,7 +2,8 @@
 //! per exact request. Refusals remain rows; no failed seed is replaced.
 //!
 //! cargo run -p mapgen --release --example battle_sweep --
-//!     [--seeds 10] [--seconds 30] [--only metro:small] [--out report.jsonl]
+//!     [--seeds 10] [--seconds 30] [--only metro:small] [--region paris]
+//!     [--out report.jsonl]
 use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
 use contract::encounter::{EncounterRecipe, EncounterRecipes};
 use contract::generation::{GenerationRequest, MapSize, MapType};
@@ -353,13 +354,14 @@ fn sweep(inputs: &Inputs, options: &Options, out: &mut dyn Write) -> std::io::Re
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let usage =
-        "battle_sweep [--seeds 10] [--seconds 30] [--only metro:small] [--out report.jsonl]";
+        "battle_sweep [--seeds 10] [--seconds 30] [--only metro:small] [--region paris] [--out report.jsonl]";
     let mut options = Options {
         seeds: 10,
         seconds: 30,
         only: None,
     };
     let mut output = None;
+    let mut region = None;
     let mut args = std::env::args().skip(1);
     while let Some(flag) = args.next() {
         if flag == "--help" {
@@ -373,6 +375,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "--seeds" => options.seeds = value.parse()?,
             "--seconds" => options.seconds = value.parse()?,
             "--out" => output = Some(value),
+            "--region" => region = Some(value),
             "--only" => {
                 options.only = MapType::ALL
                     .into_iter()
@@ -388,7 +391,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if options.seeds == 0 || options.seconds == 0 {
         return Err("seeds and seconds must be positive".into());
     }
-    let inputs = Inputs::load()?;
+    let mut inputs = Inputs::load()?;
+    inputs.request.region = region;
     let mut out: Box<dyn Write> = match output {
         Some(path) => Box::new(std::io::BufWriter::new(std::fs::File::create(path)?)),
         None => Box::new(std::io::BufWriter::new(std::io::stdout().lock())),
