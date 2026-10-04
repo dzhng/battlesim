@@ -194,7 +194,7 @@ one source's proof. Readers descend the source directory to find the pictures.
 
 **When:** complete-scene closeout, `f8ff6a1a`.
 
-**Choice:** A ruin-only visit omits towers that have no ruin state while still
+**Choice:** Ruin-state checks omit towers that have no ruin state while still
 checking the selected catalogue's ruins. A requested state absent from the entire
 selected catalogue fails. Requiring every source to contain every state would
 reject valid sources when the combined visit is split.

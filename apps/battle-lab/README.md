@@ -63,6 +63,9 @@ retiring visuals are remembered evidence, never live targets. Panels prioritize
 legibility and camera depth while preserving hover access to detail. Sensing rules
 own concealment; the UI cannot infer a hidden observer from private state.
 
+[The army HUD and app-lifetime rationale](../../specs/done/hud-chrome/README.md)
+records the player layout, menu audio and retained-resource contracts.
+
 The shipped rationales explain the non-obvious decisions behind [readout backgrounds](../../specs/done/readout-backgrounds/README.md),
 [group movement previews](../../specs/done/group-move-preview/README.md),
 [physical move validity](../../specs/done/move-validity/README.md) and
