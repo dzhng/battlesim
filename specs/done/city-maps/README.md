@@ -6,7 +6,7 @@ The purpose is a place to fight through: open stretches with landmarks, connecte
 
 ## Scope and release decision
 
-Playable areas are 6, 8 and 10 km square. Size adds settlements rather than enlarging houses or streets. Open favors small settlements and forbids buildings above six floors; Mixed has a dominant town; Metro has a dominant central city and smaller surrounding settlements. The release building family is China, with project-made sources filling its missing categories. New York and Paris remain later families through the same source/export contract.
+Playable areas are 6, 8 and 10 km square. Size adds settlements rather than enlarging houses or streets. Open favors small settlements and forbids buildings above six floors; Mixed has a dominant town; Metro has a dominant central city and smaller surrounding settlements. The release building family is China, with project-made sources filling its missing categories. New York and Paris remained later families through the same source/export contract; they have since shipped as [building families](../building-families/README.md).
 
 The main settlement retains an open approach at least 1,800 m deep across a 400 m front in each map half. Weapon ranges keep their own metre-scale rules; an approach's length does not authorize longer-ranged weapons. Top and bottom have broadly comparable town/forest coverage without mirrored geography. Fairness is a cheap geometry sanity policy, not tactical balancing.
 
