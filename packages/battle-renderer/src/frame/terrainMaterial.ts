@@ -1295,8 +1295,10 @@ const JOIN_DRIFT_M = 2.5;
 const SLAB_JOINT_M = 0.03;
 const AREA_JOINT_M = 0.1;
 /** An area's slab grid is whole while a slab spans more than 1 / the first
- *  of these pixels, gone by 1 / the second. */
-const AREA_SLAB_PIXELS = [1 / 16, 1 / 6] as const;
+ *  of these pixels, gone by 1 / the second: a long fade, since its joints
+ *  already thin with distance (`areaJoint`), and at a grazing view the
+ *  footprint grows fast. */
+const AREA_SLAB_PIXELS = [1 / 24, 1 / 2.5] as const;
 /** The widest plain border between a walk's edge and an area's slab grid. */
 const AREA_BORDER_M = 2;
 const SLAB_JOINT_PIXELS = [0.7, 2.5] as const;
