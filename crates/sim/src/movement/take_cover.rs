@@ -15,7 +15,8 @@
 //! out of it, they tuck back in), or when a vehicle a soldier hides behind
 //! drives off; at most once per `reresolve_s` ([`hold`]). A soldier who already holds the best he could
 //! claim stays put, so a re-resolve never shuffles a squad that is well
-//! placed. Each soldier then walks to his post on his own route.
+//! placed. Each soldier then walks to his post on his own route, so no post
+//! lies in a slot between two bodies too narrow for that route ([`unwedged`]).
 //!
 //! Against an enemy his side has seen, a soldier can engage from a place
 //! when a round of his reaches one of the enemy's soldiers within his
@@ -36,6 +37,8 @@ use crate::world::{Prop, PropId};
 
 /// A soldier this close to his claimed place is already there.
 const IN_PLACE_M: f64 = 0.3;
+/// Rounding allowed in a post's clearance from a body flush with its cover.
+const FLUSH_M: f64 = 1e-6;
 
 /// What cover is sought among this tick: each side's live vehicles (Q24),
 /// every live hull as rounds meet it, and where tracked squads' soldiers are
@@ -321,10 +324,11 @@ impl Area {
     }
 }
 
-/// The cover spots inside the area against `threat`, each with how a
-/// soldier there fights.
+/// The cover spots inside the area against `threat` that a soldier is not
+/// wedged into ([`unwedged`]), each with how a soldier there fights.
 fn offers(
     ctx: &MovementContext,
+    side: &SideGeometry,
     known: &Known,
     stands: &impl Fn(V2) -> bool,
     threat: &Threat,
@@ -334,12 +338,35 @@ fn offers(
     let (c, r) = (&ctx.rules.cover, ctx.soldier_radius_m);
     cover::spots(known, threat.at, c, r, ctx.infantry.spacing_m, stands)
         .into_iter()
-        .filter(|s| area.holds(s.at))
+        .filter(|s| area.holds(s.at) && unwedged(ctx, side, known, s))
         .map(|s| match fight {
             Some(f) => f.place(s.at, Some(s.tier), s.body.map(|i| &known.bodies[i]), stands),
             None => Place::quiet(s.at, Some(s.tier)),
         })
         .collect()
+}
+
+/// Whether a soldier at `spot` stands the cover's standoff clear of every
+/// body but the one he hides behind, as he does of that one. A slot
+/// between two bodies narrower than that (the gap between nose-in parked
+/// cars) holds no post: his route cannot thread it, and one man in its
+/// mouth shuts out the next. A body flush with his cover's face (the next
+/// length of a wall) stands as far off as the cover, up to rounding.
+fn unwedged(ctx: &MovementContext, side: &SideGeometry, known: &Known, spot: &cover::Spot) -> bool {
+    let clear = ctx.soldier_radius_m + ctx.rules.cover.standoff_m - FLUSH_M;
+    let behind = spot.body.map(|i| &known.bodies[i]);
+    let props = ctx.world.props_near(spot.at, clear);
+    let mut solids = props
+        .iter()
+        .filter(|q| q.blocks(MoverClass::Infantry) && side.knows(q, ctx.authored))
+        .filter(|q| behind.is_none_or(|b| b.prop != Some(q.id)))
+        .map(|q| q.footprint());
+    let mut hulls = known
+        .bodies
+        .iter()
+        .filter(|b| b.vehicle.is_some() && behind.is_none_or(|own| own.vehicle != b.vehicle))
+        .map(|b| b.rect);
+    !(solids.any(|f| f.distance(spot.at) < clear) || hulls.any(|h| h.distance(spot.at) < clear))
 }
 
 /// How a soldier at `p` fights, from the cover he has there.
@@ -438,7 +465,7 @@ pub(super) fn at_order(
     let offered = if entering {
         Vec::new()
     } else {
-        offers(ctx, &known, &stands, &threat, fight.as_ref(), area)
+        offers(ctx, side, &known, &stands, &threat, fight.as_ref(), area)
     };
     let claims = cover::claim(
         spots,
@@ -591,7 +618,7 @@ fn resolve(
     let reach = area.radius + ctx.rules.cover.search_slack_m;
     let (known, stands) = known(ctx, unit, side, field, area.centre, reach);
     let fight = Fight::new(ctx, unit, field, threat, area);
-    let offered = offers(ctx, &known, &stands, threat, fight.as_ref(), area);
+    let offered = offers(ctx, side, &known, &stands, threat, fight.as_ref(), area);
     // Where he stands, if inside the area, is a place he may keep.
     let stay: Vec<Option<Place>> = from
         .iter()
