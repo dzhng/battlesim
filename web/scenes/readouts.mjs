@@ -531,18 +531,21 @@ export async function run(ctx) {
   await selectOnly([truck.id]);
   ack = await rightClickAt(truck.position[0] + 20, truck.position[1], null);
   await advance(page, 2);
-  const truckGoal = (await obs(page)).own.find((u) => u.id === truck.id).goal;
   await selectOnly([0, truck.id]);
   const truckName = `supply #${truck.id}`;
   const attackMove = await rightClickAt(330, 300, "x");
+  await advance(page, 2);
+  const truckGoal = (await obs(page)).own.find((u) => u.id === truck.id).goal;
   const attackGround = await rightClickAt(300, 300, "g");
   await advance(page, 2);
   const truckAfter = (await obs(page)).own.find((u) => u.id === truck.id);
   ctx.check(
-    "attack-move and attack-ground on a tank and a truck reach only the tank, and the truck keeps its move",
-    [attackMove, attackGround].every(
-      (a) => a.ack.error === null && a.label.includes("tank #0") && !a.label.includes(truckName),
-    ) &&
+    "attack-move reaches the tank and truck; attack-ground reaches only the tank and preserves the truck move",
+    attackMove.ack.error === null &&
+      attackMove.order.units.join() === `0,${truck.id}` &&
+      attackGround.ack.error === null &&
+      attackGround.order.units.join() === "0" &&
+      !attackGround.label.includes(truckName) &&
       !!truckGoal &&
       JSON.stringify(truckAfter.goal) === JSON.stringify(truckGoal),
     JSON.stringify({ attackMove, attackGround, truckGoal, after: truckAfter.goal }),
@@ -551,14 +554,15 @@ export async function run(ctx) {
   // T deploys the supply truck, or packs it once it is deployed or deploying.
   await lab(page, (id) => window.__lab.route.select([id]), truck.id);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-  // The bar shows only what the selection can do: the unarmed truck has no
-  // attack or garrison tile, and one Deploy/Pack toggle; nothing selected,
-  // no bar.
+  // Standard moves stay available; attack-ground is disabled for an unarmed truck.
   const tiles = async () =>
     (await page.getByRole("toolbar", { name: "Commands" }).count())
-      ? await page
-          .getByRole("toolbar", { name: "Commands" })
-          .evaluate((t) => [...t.querySelectorAll("button")].map((b) => b.ariaLabel.split(" (")[0]))
+      ? await page.getByRole("toolbar", { name: "Commands" }).evaluate((t) =>
+          [...t.querySelectorAll("button")].map((b) => ({
+            label: b.ariaLabel.split(" (")[0],
+            disabled: b.disabled,
+          })),
+        )
       : [];
   const truckTiles = await tiles();
   await lab(page, () => window.__lab.route.select([]));
@@ -567,10 +571,12 @@ export async function run(ctx) {
   await lab(page, (id) => window.__lab.route.select([id]), truck.id);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   ctx.check(
-    "the command bar shows only the selection's commands, one deploy toggle, and nothing with nothing selected",
-    !truckTiles.some((t) => /Attack|Garrison|Leave/.test(t)) &&
-      truckTiles.filter((t) => /^(Deploy|Pack)$/.test(t)).length === 1 &&
-      truckTiles.includes("Stop") &&
+    "the unarmed truck has attack-move, disabled attack-ground, one deploy toggle, and no toolbar without selection",
+    truckTiles.some((t) => t.label === "Attack-move" && !t.disabled) &&
+      truckTiles.some((t) => t.label === "Attack ground" && t.disabled) &&
+      truckTiles.filter((t) => /^(Deploy|Pack)$/.test(t.label) && !t.disabled).length === 1 &&
+      !truckTiles.some((t) => /^(Move|Garrison|Leave)$/.test(t.label)) &&
+      truckTiles.some((t) => t.label === "Stop" && !t.disabled) &&
       none.length === 0,
     JSON.stringify({ truckTiles, none }),
   );

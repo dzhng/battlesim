@@ -278,7 +278,7 @@ export function useUnitControl(
       if (command === "stop") stop();
       else if (command === "toggle_fire_policy") togglePolicy();
       else if (command === "toggle_deployment") toggleDeployment();
-      else if (command === "attack_move" && armed) setMode("attack_move");
+      else if (command === "attack_move" && any) setMode("attack_move");
       else if (command === "reverse_move" && any) setMode("reverse_move");
       else if (command === "attack_ground" && armed) setMode("attack_ground");
       else if (command === "disarm") setMode("move");

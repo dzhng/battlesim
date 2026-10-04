@@ -8,7 +8,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
-import { ReadoutLayer, SelectionCard, SelectionDeck } from "@web/battle/present/readouts";
+import { ReadoutLayer } from "@web/battle/present/readouts";
+import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
 import { buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
 import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
@@ -253,16 +254,11 @@ export function BattleView({
           )}
         </header>
         <MenuButton onOpen={() => pause.show(true)} />
-        <SelectionDeck
-          selection={
-            control.selectedUnits.length > 0 ? (
-              <SelectionCard
-                units={control.selectedUnits}
-                own={observation?.own ?? []}
-                rules={session.rules}
-              />
-            ) : null
-          }
+        <ArmyDeck
+          own={observation?.own ?? []}
+          selected={control.selected}
+          onSelect={control.setSelected}
+          rules={session.rules}
           control={input ? control : undefined}
           captions={<CaptionList captions={cues} />}
         />

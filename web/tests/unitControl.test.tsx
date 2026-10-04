@@ -128,7 +128,7 @@ test("hover and dispatch share modifier precedence without hover consuming an ar
   };
   expect(hook.result.current.intentAt(pick)).toEqual({
     kind: "attack_move",
-    units: [1],
+    units: [1, 2],
     goal: [50, 50],
     queued: true,
   });
@@ -136,7 +136,7 @@ test("hover and dispatch share modifier precedence without hover consuming an ar
   expect(sent).toEqual([]);
   await click(pick);
   expect(sent).toEqual([
-    { order: { kind: "attack_move", units: [1], goal: [50, 50], gesture: 1 }, queued: true },
+    { order: { kind: "attack_move", units: [1, 2], goal: [50, 50], gesture: 1 }, queued: true },
   ]);
 });
 
@@ -395,4 +395,20 @@ test("blocked battle input preserves selection and armed mode without issuing sh
   expect(sent.map(({ order }) => order)).toEqual([{ kind: "stop", units: [1] }]);
   hook.unmount();
   button.remove();
+});
+
+test("attack-move sends the entire selection, including unarmed units, by click and keyboard", async () => {
+  const { hook, sent, click } = await control();
+  await click({ ctrl: true });
+  act(() => hook.result.current.setMode("attack_move"));
+  await click({ shift: true });
+  act(() => hook.result.current.setSelected([2]));
+  act(() => fireEvent.keyDown(window, { code: "KeyX" }));
+  expect(hook.result.current.mode).toBe("attack_move");
+  await click({});
+  expect(sent).toEqual([
+    { order: { kind: "attack_move", units: [1, 2], goal: [50, 50], gesture: 1 }, queued: false },
+    { order: { kind: "attack_move", units: [1, 2], goal: [50, 50], gesture: 2 }, queued: true },
+    { order: { kind: "attack_move", units: [2], goal: [50, 50], gesture: 3 }, queued: false },
+  ]);
 });

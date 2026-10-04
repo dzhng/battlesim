@@ -3,7 +3,7 @@
  *    name, a row per weapon, then its states (`panelRows.ts`); an own
  *    unit's in cyan, with rounds left and running timers; an enemy's or a
  *    contact's in the enemy red, only what the side knows of it;
- *  - the unit card: the selection's panels, the same component, at any zoom;
+ *  - developer selection cards: the same facts component at any zoom;
  *  - the command bar: the selection's commands and its fire policy. */
 import {
   useCallback,
@@ -595,37 +595,11 @@ export function SelectionCard({
   );
 }
 
-/** One layout owns the deck and the space its captions and hints need. */
-export function SelectionDeck({
-  selection,
-  control,
-  captions,
-}: {
-  selection: ReactNode;
-  control?: Parameters<typeof CommandBar>[0]["control"];
-  captions: ReactNode;
-}) {
-  const [hintHost, setHintHost] = useState<HTMLDivElement | null>(null);
-  return (
-    <div className="hud-lower">
-      {captions}
-      <div className="hud-command-hint" ref={setHintHost} />
-      {selection && (
-        <footer className="hud-panel hud-bar hud-bottom" data-occludes-readouts>
-          {selection}
-          {control && <CommandBar control={control} hintHost={hintHost} />}
-        </footer>
-      )}
-    </div>
-  );
-}
-
 interface CommandProps {
   icon: string;
   label: string;
   pressed?: boolean;
-  /** How many selected units can carry out a capability-limited command. */
-  reach?: number;
+  disabled?: boolean;
   onClick: () => void;
 }
 
@@ -633,13 +607,10 @@ function CommandButton({
   icon,
   label,
   pressed,
-  reach: reaches,
-  of,
+  disabled,
   onClick,
   hintHost,
-}: CommandProps & { of: number; hintHost?: HTMLElement | null }) {
-  const partial = reaches !== undefined && reaches < of;
-  const tip = partial ? `${label}: ${reaches} of ${of} selected` : label;
+}: CommandProps & { hintHost?: HTMLElement | null }) {
   const id = useId();
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -660,7 +631,7 @@ function CommandButton({
       id={id}
       style={hintHost ? { left: hintCenter } : undefined}
     >
-      {tip}
+      {label}
     </span>
   ) : null;
   return (
@@ -670,7 +641,7 @@ function CommandButton({
       aria-label={label}
       aria-describedby={shown ? id : undefined}
       aria-pressed={pressed}
-      data-reach={partial ? `${reaches}/${of}` : undefined}
+      disabled={disabled}
       onClick={onClick}
       onMouseEnter={(event) => {
         alignHint(event.currentTarget);
@@ -689,18 +660,13 @@ function CommandButton({
       }}
     >
       <Icon path={icon} className="ro-cmd-icon" />
-      {partial && (
-        <span className="ro-cmd-reach" aria-hidden="true">
-          {reaches}/{of}
-        </span>
-      )}
       {hintHost ? createPortal(tooltip, hintHost) : tooltip}
     </button>
   );
 }
 
-/** The selection's commands, only those it can carry out, and the fire
- *  policy; keys are optional shortcuts, named from the one binding table.
+/** The selection's commands and fire policy, with unavailable actions disabled.
+ *  Keys are optional shortcuts, named from the one binding table.
  *  Nothing selected, no bar. */
 export function CommandBar({
   control,
@@ -721,34 +687,32 @@ export function CommandBar({
   const selected = control.selectedUnits;
   const n = selected.length;
   if (n === 0) return null;
-  const command = (c: CommandProps) => <CommandButton {...c} of={n} hintHost={hintHost} />;
+  const command = (c: CommandProps) => <CommandButton {...c} hintHost={hintHost} />;
   const key = (command: keyof typeof CommandBindings) => `(${CommandBindings[command].label})`;
-  // The union of the selection's capabilities: shown when any unit can.
+  // Capability actions apply to eligible units; movement applies to everyone.
   const [armed, deployers, inside] = (["attack", "deploy", "exit_building"] as ReachCommand[]).map(
     (c) => reach(c, selected, UNITS),
   );
   const hold = selected.every((u) => u.engagement === "return_fire_only");
   const packing = deployers.every((u) => u.deployment?.target === "deployed");
-  /** A mode's tile, when the selection can carry it out (`reaches` > 0). */
-  const mode = (m: CommandMode, icon: string, label: string, reaches?: readonly unknown[]) =>
-    reaches?.length === 0
-      ? null
-      : command({
-          icon,
-          label,
-          pressed: control.mode === m,
-          reach: reaches?.length,
-          onClick: () => control.setMode(m),
-        });
+  /** Movement stays available; an unsupported targeted attack is disabled. */
+  const mode = (m: CommandMode, icon: string, label: string, available = true) =>
+    command({
+      icon,
+      label,
+      pressed: control.mode === m,
+      disabled: !available,
+      onClick: () => control.setMode(m),
+    });
   return (
     <div className="ro-commands" role="toolbar" aria-label="Commands">
-      {mode("attack_move", hudIcon("attack_move"), `Attack-move ${key("attack_move")}`, armed)}
+      {mode("attack_move", hudIcon("attack_move"), `Attack-move ${key("attack_move")}`)}
       {mode("reverse_move", hudIcon("reverse"), `Reverse ${key("reverse_move")}`)}
       {mode(
         "attack_ground",
         hudIcon("attack_ground"),
         `Attack ground ${key("attack_ground")}`,
-        armed,
+        armed.length > 0,
       )}
       {mode("fast_move", hudIcon("fast_move"), "Fast move (double right-click)")}
       {command({
@@ -762,18 +726,16 @@ export function CommandBar({
         pressed: hold,
         onClick: control.togglePolicy,
       })}
-      {deployers.length > 0 &&
-        command({
-          icon: stateIcon(packing ? "pack" : "deploy"),
-          label: `${packing ? "Pack" : "Deploy"} ${key("toggle_deployment")}`,
-          reach: deployers.length,
-          onClick: control.toggleDeployment,
-        })}
+      {command({
+        icon: stateIcon(deployers.length > 0 && packing ? "pack" : "deploy"),
+        label: `${deployers.length > 0 && packing ? "Pack" : "Deploy"} ${key("toggle_deployment")}`,
+        disabled: deployers.length === 0,
+        onClick: control.toggleDeployment,
+      })}
       {inside.length > 0 &&
         command({
           icon: hudIcon("leave_building"),
           label: "Leave building",
-          reach: inside.length,
           onClick: control.exitBuilding,
         })}
     </div>

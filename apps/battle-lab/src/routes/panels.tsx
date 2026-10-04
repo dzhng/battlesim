@@ -10,7 +10,8 @@ import type { PanelRules } from "@web/battle/present/panelRows";
 import { useEffect, useState } from "react";
 import { panelSpecimens, specimenUnit, type Specimen } from "../panelSpecimens";
 
-import { CommandBar, SelectionCard, SelectionDeck } from "@web/battle/present/readouts";
+import { CommandBar } from "@web/battle/present/readouts";
+import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { CaptionList } from "@web/battle/present/captions";
 
 const RULES = game as unknown as PanelRules;
@@ -90,7 +91,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     name: string;
     units: ReturnType<typeof specimenUnit>[];
     replay?: boolean;
-    panel?: Specimen["panel"];
+    selected?: number[];
   }[] = [
     { name: "Rifle squad", units: [specimenUnit("rifle")] },
     { name: "Tank ammunition", units: [specimenUnit("tank")] },
@@ -123,20 +124,22 @@ function DeckReview({ onBack }: { onBack: () => void }) {
       ),
     },
     {
-      name: "Twin launchers",
-      units: [specimenUnit("at")],
-      panel: panelSpecimens(RULES).find(
-        (s) => s.id === "key cases/two launchers, separate reloads",
-      )!.panel,
-    },
-    {
-      name: "Long equipment name",
-      units: [specimenUnit("at")],
-      panel: {
-        ...panelSpecimens(RULES).find((s) => s.id === "key cases/two launchers, separate reloads")!
-          .panel,
-        name: "MECHANIZED ANTI-TANK SUPPORT SECTION",
-      },
+      name: "Army roster",
+      units: [
+        "tank",
+        "rifle",
+        "at",
+        "supply",
+        "recon",
+        "jeep",
+        "rifle",
+        "at",
+        "tank",
+        "rifle",
+        "recon",
+        "supply",
+      ].map((kind, id) => specimenUnit(kind, { id: id + 1 })),
+      selected: [1, 2, 3, 4, 5, 6],
     },
     {
       name: "Entire force",
@@ -144,15 +147,20 @@ function DeckReview({ onBack }: { onBack: () => void }) {
         specimenUnit("rifle", { id, suppression: "suppressed", service: "serving" }),
       ),
     },
-    { name: "No selection", units: [] },
+    {
+      name: "No selection",
+      units: [specimenUnit("rifle"), specimenUnit("tank", { id: 2 })],
+      selected: [],
+    },
     { name: "Replay", units: [specimenUnit("tank")], replay: true },
   ];
   const [chosen, setChosen] = useState(0);
   const [mode, setMode] = useState<Parameters<typeof CommandBar>[0]["control"]["mode"]>("move");
   const [action, setAction] = useState("");
   const selection = cases[chosen];
+  const [selected, setSelected] = useState<number[]>([1]);
   const control = {
-    selectedUnits: selection.units,
+    selectedUnits: selection.units.filter((unit) => selected.includes(unit.id)),
     mode,
     setMode,
     stop: () => setAction("Stop"),
@@ -181,6 +189,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
             aria-pressed={index === chosen}
             onClick={() => {
               setChosen(index);
+              setSelected(c.selected ?? c.units.map((unit) => unit.id));
               setMode("move");
             }}
           >
@@ -190,16 +199,11 @@ function DeckReview({ onBack }: { onBack: () => void }) {
       </nav>
       <output style={{ position: "absolute", top: 90, left: 16 }}>{action}</output>
       <div className="hud">
-        <SelectionDeck
-          selection={
-            selection.units.length === 0 ? null : selection.panel ? (
-              <div className="hud-card">
-                <InfoPanel panel={selection.panel} />
-              </div>
-            ) : (
-              <SelectionCard units={selection.units} own={selection.units} rules={RULES} />
-            )
-          }
+        <ArmyDeck
+          own={selection.units}
+          selected={selected}
+          onSelect={setSelected}
+          rules={RULES}
           control={selection.replay ? undefined : control}
           captions={
             <CaptionList

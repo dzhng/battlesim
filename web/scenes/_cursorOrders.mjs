@@ -515,13 +515,13 @@ export async function battleCursor(ctx) {
     "automatic reverse hover matches the vehicle's rear zone",
     (await action(page)) === "reverse_move",
   );
-  // Unarmed selection plus Ctrl is a known capability refusal.
+  // Unarmed units still advance on attack-move.
   const supply = o.own.find((u) => u.kind === "supply");
   await select(page, [supply.id]);
   await page.mouse.move(...p);
   await page.keyboard.down("Control");
-  await expects(page, "blocked");
-  await capture(ctx, page, "blocked", p);
+  await expects(page, "attack_move");
+  await capture(ctx, page, "unarmed-attack-move", p);
   await page.keyboard.up("Control");
   await select(page, [squad.id]);
   // Panels retain their own cursor even when a captured drag crosses them.

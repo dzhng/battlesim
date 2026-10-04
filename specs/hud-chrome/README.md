@@ -2,26 +2,31 @@
 
 ## Next Agent Prompt
 
-Status: active goal in `/Users/server/dev/battlesim-hud`, branch `hud-chrome`.
-Navigation and retained audio lifetime are integrated. The user supplied `menu.mp3`;
-its full recording replaces both rejected synthetic cues through the existing bank.
-Root resource/shell/input changes pass focused and actual GPU visit-cycle checks,
-and are ready for the resource checkpoint. Deck final evidence is undergoing fresh visual critique.
+Implementation is complete in `/Users/server/dev/battlesim-hud`, branch `hud-chrome`.
+The selected army roster, centered controls and whole-selection attack-move are
+verified. Full native suites and 157 web files / 1,143 tests pass. Final format,
+lint and types pass; lint reports three nonfatal warnings. All browser scene
+failures have been corrected with their affected gates green; city visits cover
+all 15 source sets, 83 templates and 664 authored state/tier tuples within the
+unchanged budget. The unrestricted all-set developer city lab remains refused.
 
-Pickup: integrate the reviewed deck after the resource checkpoint. Then finish current screen composition
-and integrated journey, followed by the one full check/verify and closeout. Preserve
-`BrowserRouter unstable_useTransitions={false}` and the [exploration decisions](unknowns-map.html).
-Do not repeat the interview. External skill edits are unrelated: never stage/revert them.
+Final fresh critique inspected all 54 captures and native/2x crops. Actual-Tab
+recaptures resolve pressed/focus ambiguity; no concrete visual defect remains.
+Health value updates are tested, but this visual matrix has only full health bars.
+Independent code reviews resolved tooltip ownership and icon hit-target findings.
+
+Next: archive the spec using the audited rationale/choices drafts, preserve the
+chosen B/bottom references, correct historical map links, audit archived claims,
+commit closeout and remove integrated auxiliary worktrees. Keep the HUD worktree;
+do not merge to main implicitly. Never stage unrelated skills or LFS materialization.
 
 Global TODO:
-- [x] [01 navigation and visit lifetime](slices/01-navigation.md)
-- [x] [02 shared GPU, warm-up and required-resource failure](slices/02-resources.md)
-- [x] [03 shared audio and menu atmosphere](slices/03-audio.md)
-- [ ] [04 joined compact deck and icon commands](slices/04-deck.md)
-- [ ] [05 current screen composition and input ownership](slices/05-screens.md)
-- [ ] [06 integration and closeout](slices/06-closeout.md)
-
-No external blocker. Menu/music taste checkpoints are reversible and non-blocking. Scratch output goes in ignored `throwaway/`; only the frozen concept reference belongs in spec assets. Dependencies share main's installed tree; every checkout has its own generated/build output. All GPU work uses `/Users/server/dev/battlesim/throwaway/gpu.lock`.
+- [x] Navigation and visit lifetime
+- [x] Shared GPU, warm-up and required-resource failure
+- [x] Shared audio and full supplied menu recording
+- [x] Army cards above compact centered bottom controls
+- [x] Screen composition and input ownership
+- [ ] Archive rationale, audit final docs and commit closeout
 
 ## Contracts and scope
 
@@ -31,7 +36,16 @@ The app retains its admitted GPU, page WASM/appearances and one audio context/ba
 
 Audio attempts unmuted playback as early as permitted and resumes on the first qualifying menu gesture under normal browser policy. Keep the restrained musical bed and subtle outdoor ambience through loading, fading when combat audio is ready. Persisted mute/master volume remain authoritative. Use the user-supplied Battlefield 2 menu recording through the existing catalog/bank pipeline, starting at its introduction; audition actual music and transition, preserving provenance.
 
-The deck joins the existing selection panel and commands at bottom center. Use the frozen [concept](assets/compact-deck-reference.png) for composition, not as a fixed 612 × 80 cap. Keep one InfoPanel vocabulary and readable facts; allow rich states and multi-selection to grow/wrap. Icon commands have name/shortcut tooltips on hover and keyboard focus. Remove only visible Move/Garrison; right-click keeps both. Retain contextual Deploy/Pack/Leave building, partial reach, shortcuts and replay read-only behavior. Captions follow the actual deck through layout; readout occlusion hooks stay intact.
+The army deck shows ALL observed own units as vertical role/silhouette cards
+with health and selection state. Full existing InfoPanel facts open above their
+card on hover and keyboard focus. A small icon-only command row sits below the
+cards, centered; no visible selection-count text. Empty selection preserves
+the roster and hides commands; replay preserves roster/facts without commands.
+Plain card click selects, Shift-click toggles. Long armies overflow horizontally,
+never wrap. No visible Move/Garrison; right-click retains both. Contextual
+Deploy/Pack/Leave building,  shortcuts, hearing captions
+and readout occlusion remain. The earlier compact selected-facts concept is a
+historical baseline, not the current design target.
 
 ## Graph and owners
 
@@ -53,7 +67,7 @@ Every visual acceptance uses a matched production-route before/after pixel compa
 | Navigation | Integrated navigation commit `63bdd72a`. Red/green history/publication/cancellation/replay proofs, real worker exit/Back/Forward and replay digest gates pass. Independent review found rapid-return retention; synchronous route navigation and permanently retired continuations resolve it. Follow-up found no remaining navigation defect. Existing benchmark-loading polling can time out under concurrent test compilation; no threshold changed. |
 | Resources | Device/appearance/viewport checks red→green, including canvas release, lost-device refusal, demanded kits and manual recovery. Independent review caught hot-reload cleanup destroying page GPU; fixed and regression-tested. Actual foundation GPU visits pass: one admission, zero device destroys, scene allocation baseline after exits and no menu battle worker. Cache-removal mutation reproduces the failure. |
 | Audio | One context/bank and bounded per-battle graphs integrated; 44 focused tests and normal-autoplay Chromium probe pass. Interrupted resume review finding fixed. Both synthetic cues rejected; user-supplied recording integrated with red/green source-offset and tonal-preservation proofs. Actual fetch/decode, offline menu/transition/wrap rendering, no clipping/errors and terminal departure pass; independent review clean. |
-| Input | Focused pause shortcut and camera-cover regressions reproduced. Low-level guards green; controlled pause/session/viewport wiring passes combined owner/input tests; real composed journey pending deck integration. |
-| Deck | Complete final capture set is undergoing unprimed critique; integration remains pending. |
+| Input | Focused pause shortcut and camera-cover regressions reproduced. Low-level guards green; controlled pause/session/viewport wiring passes combined owner/input tests; real composed journey passes with covered inputs, restart, Back/Forward and replay. |
+| Deck | Integrated `ae5e87aa`; 48 owner tests, complete28-state clean fresh review, matched production/world/terrain comparisons and reachability gates pass. Preview automation could not verify its review window. |
 
 Research: [declarative router](https://reactrouter.com/start/declarative/installation), [history implementation](https://github.com/remix-run/react-router/blob/main/packages/react-router/lib/router/history.ts), [Chrome autoplay](https://developer.chrome.com/blog/autoplay), [MDN autoplay](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Autoplay). Earlier map findings remain attributed; speculative implementation facts require proofs.

@@ -9,3 +9,19 @@ Review whole feature scope, resolve findings, consolidate choices ledger against
 Verification: write-tests red/green at the consumer seam, narrow types/lint/format, review and independent code review before commit, then audit choices. Preserve exact battle identities, deterministic replay outcomes, side-visible authority and manual mechanics reload. Scratch evidence remains ignored.
 
 Visual gate: use matched production-route before/after screenshots; compare-screenshots with the specified crop and target. Inspect full shots and native/enlarged crops. Run an unprimed screenshot-critique as the LAST visual acceptance step. Show a minimal Preview set, give a non-blocking reaction window while continuing independent work, record reversible calls and close Preview if proceeding unattended.
+
+
+## Composed journey proof
+
+The village `appflow` tour starts through the actual menu and retained owners.
+Pause controls cannot issue commands, change the camera or advance its tick.
+Restart releases the old worker; Main menu closes all workers and releases scene
+allocations. Back/Forward creates fresh exact battles. The saved replay, with a
+selected unit and no command buttons, matches the captured digest. Throughout,
+one GPU and one running audio context/bank survive, and menu recording buffers
+retain their identity while each returned music voice starts at the introduction.
+
+This gate passed in the real browser. Removing the explicit music source offset
+made the final ownership check fail at 181.59 seconds; restored code passes.
+Both browser samples and this journey use muted output and isolated settings.
+Full system check/verify and final documentation audit remain at closeout.

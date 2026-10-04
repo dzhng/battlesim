@@ -1,155 +1,208 @@
-# Implementation choices
+# Final implementation choices
 
-Settled user/delegated planning decisions remain in the exploration map. This ledger records implementation decisions where that plan left a gap.
+Review these first: synchronous router transitions and history metadata, the full
+recording through the existing mono pipeline, and the maximum width of a very
+large army row. These carry the most maintenance or taste uncertainty.
 
-## 03 audio audit · 2026-10-04
+The rationale records the final user choices; the
+[historical exploration map](unknowns-map.html) attributes earlier compact-deck
+preferences. This ledger records the
+remaining decisions made where the plan left a gap, checked against the final
+implementation. No unsound or unresolved user-only choice remains.
 
-No additional non-delegated architecture choices. The slice delegated graph
-ownership and initial synthesis/mix: the implementation retains the page context
-and bank while disposing each battle's entire mixer. This cuts off its reverb
-tails as well as its voices, without aborting shared preparation. The required
-React provider, route policy and terminal document departure follow the
-coordinator's accepted integration seam.
+## Sound · medium confidence
 
-## Navigation pass · 2026-10-04
+### Commit departures synchronously and reject retired continuations
 
-### Commit departures without concurrent route transitions
+**When:** navigation pass, `63bdd72a`.
 
-When: slice 01.
+**Choice:** A player leaves for the menu and immediately presses Back. The
+router commits both changes synchronously, so the first battle is discarded
+before the returned address starts a fresh one. A queued map result also checks
+the current browser history entry: if Cancel already changed that entry, the
+result cannot replace the menu's address even while React is finishing cleanup.
+Once its component is gone, that old callback stays retired. In decision terms:
+`depart → discard; later return → new visit; old result → ignore`.
 
-Choice: the router disables concurrent navigation transitions, so leaving and
-immediately returning cannot be merged into one retained battle page. The
-independent review found that the default transition could skip the intermediate
-page; the regression retained battle progress after a rapid menu/Back round trip.
-The platform's `unstable_useTransitions={false}` option resolved that failure
-without a second history manager. Each continuation also becomes permanently
-inactive when its component unmounts; a stale publisher must not reactivate just
-because history returns to the same entry.
+**Gap:** The plan required fresh visits and isolated late work but did not choose
+the boundary during concurrent rendering. The alternative of waiting only for
+unmount allowed an observable wrong address after Cancel; concurrent transitions
+could skip the intermediate departure.
 
-A page additionally checks the current browser history entry before admitting an
-asynchronous result. For example, a map can finish just as the player clicks
-Cancel. React may still have the battle page mounted while it schedules the
-menu. Waiting for component cleanup lets the queued map result replace the
-menu URL with a battle URL. The visit check stops that result as soon as the
-history entry changes. The alternative of checking only a mounted flag failed
-the actual battle route test with the menu visible at a battle address.
+**Reach:** The entry and isolated route tests share the router's
+`unstable_useTransitions={false}` policy. `navigation.tsx` reads the pinned
+router's history `key` and `usr` (its saved user-state field). Router upgrades
+must preserve the departure/publication proofs and those metadata meanings.
 
-Gap: the plan required stale continuations to stop but did not prescribe the
-boundary during concurrent rendering.
+**Verdict:** sound; it enforces the requested visit boundary without another
+history manager. **Confidence:** medium because the behavior is proved but the
+unstable router option and metadata layout remain an upgrade obligation.
 
-Reach: entry and isolated browser harnesses must share the synchronous router
-policy. The navigation owner reads the pinned router history metadata (`key`
-and `usr`, its user-state field) and its own retained-visit marker. Those reads
-stay together in `navigation.tsx`; a router upgrade must preserve the focused
-Cancel/publication/history proofs. No second history manager is added.
+### Prepare the full recording through the existing mono sound bank
 
-Verdict: sound. The test demonstrates an observable wrong URL that a
-cleanup-only guard does not prevent.
+**When:** recording pass, `e669feca`.
 
-Confidence: medium; the behavior is established, while the unstable router
-option and pinned history layout are maintenance tradeoffs.
+**Choice:** Opening the menu prepares the entire supplied recording using the
+same mono WAV pipeline and decoded buffer bank as other sounds. A new menu
+voice begins at the introduction; a short crossfade softens the repeat. Music
+is raised above quiet countryside ambience, following the requested increase.
+The alternative is a separate compressed/stereo music player with another
+loading and playback lifetime.
 
-### A newer replay selection supersedes an older pending selection
+**Gap:** The user chose the source and stronger music, but did not prescribe
+duration, runtime encoding, repeat preparation or the final relative level.
 
-When: slice 01.
+**Reach:** Reusing the bank keeps one playback owner and preserves tone without
+the effects filter used by other recordings. It costs a larger runtime transfer
+and decoded buffer than a compressed streaming player. Tone/source are settled;
+the mix level remains a reversible listening preference in `MENU_BED`.
 
-Choice: selecting another file makes the earlier file's continuation inactive.
-If the first file is still being read and the player chooses a second, the
-first cannot later replace the viewer or show its error. The same small
-request counter also makes callbacks inactive after component cleanup; it
-does not cancel an IndexedDB write that has already begun. Without it, an old
-file could take over the newly chosen viewer when its slower read finishes.
+**Verdict:** sound; one preparation path is simpler and its ownership already
+serves menu-to-battle continuity. **Confidence:** medium because full-buffer cost
+and the raised mix are tradeoffs the user may later tune.
 
-Gap: the plan specified stale work after page departure but not two file
-selections within one visit.
+### Keep very large armies in one horizontal scrolling row
 
-Reach: the replay importer treats the latest selection as the current user
-intent. Already-started storage transactions may complete, but their
-continuations cannot navigate after departure or a newer selection.
+**When:** army deck replacement.
 
-Verdict: sound. This extends the same current-intent rule without a queue or
-new storage mechanism.
+**Choice:** Every owned unit gets a card. When the army exceeds the available
+width, the same row scrolls sideways; keyboard focus scrolls the whole focused
+card into view. The alternative of wrapping cards would grow the HUD upward
+and cover units on the battlefield.
 
-Confidence: high.
+**Gap:** The user chose one Total War-style row without specifying overflow.
 
-The exact React Router 7.13.2 pin, retained-visit marker and internal names were
-explicitly delegated by the slice; they are implementation discretion rather
-than new product decisions.
+**Reach:** Later roster controls should preserve horizontal reachability and keep
+commands below the row. There is no pagination or hidden-unit cap.
 
-## Recorded menu music
+**Verdict:** sound; native scrolling preserves the chosen layout and every unit.
+**Confidence:** medium because its maximum width is reversible layout discretion.
 
-The user chose and supplied the recording. Keeping the full track, with the
-existing mono preparation and a short repeat crossfade, avoids a separate music
-pipeline and preserves the requested tone. Playback begins at the introduction;
-ambient loops retain staggered starts. Verdict: sound; confidence high.
+### A newer replay selection supersedes an older pending read
 
-The menu music gain is twice the rejected sample's last level; ambience remains
-quiet. This is a reversible taste choice that makes the requested increase audible.
-Verdict: sound; confidence medium, subject to the user's listening preference.
-Settled user/delegated planning decisions remain in the exploration map.
+**When:** navigation pass, `63bdd72a`.
 
-## Slice 04 · Deck layout choices
+**Choice:** A player selects one replay and then another before the first file
+finishes reading. Only the newer choice may open a viewer or show an error. A
+small request counter retires the older callback and callbacks after departure.
+An already-started storage write may finish, but cannot later take over the
+page. Letting reads race to navigate would make the slower old selection win.
 
-### Bound very large selections with scrolling
+**Gap:** Departure isolation was specified; multiple file choices within one
+visit were not.
 
-- **When:** slice 04, before commit.
-- **The choice:** Selecting a whole force can produce more facts than the screen can hold. The facts grow until the deck occupies about thirty percent of the viewport, then scroll within their own region. Commands remain visible and centered below them. Captions and command hints stay above the footer. The unbuilt alternative was a permanently short selection list with less battle coverage, or shortened facts; those change the requested rich-selection layout.
-- **The gap:** The plan required growth/wrapping but did not say what happens once content exceeds the viewport.
-- **The reach:** Later HUD styling inherits a scrollable selection region and must keep its keyboard/pointer content reachable. A 48-unit case verifies the final facts and actions at both reviewed widths.
-- **Verdict:** sound; one viewport-relative bound handles arbitrary selection height without dropping information or covering most of the battlefield.
-- **Confidence:** medium; the exact amount of battlefield a huge selection may cover is reversible layout discretion.
+**Reach:** Replay import follows the latest user intent without a queue or a
+second storage mechanism.
 
-### Let one layout own captions and command hints
+**Verdict:** sound; the same current-intent rule covers both cases.
+**Confidence:** medium; the continuation guards were inspected, while existing
+regressions directly exercise departure rather than competing file reads.
 
-- **When:** slice 04, before commit.
-- **The choice:** When a busy selection becomes taller, captions move above it automatically. A focused or hovered command puts its hint in the same stack, below captions and above the footer. The hint is rendered into that shared location through a React portal, which means the button still owns its accessible description while the layout chooses its physical position. Existing hover/focus events measure the owning button once and align the hint horizontally above it; no observer or timer runs. Positioning each hint above its button instead would let it cross captions when the deck changes height.
-- **The gap:** The plan required captions above the actual deck but left the shared component boundary unspecified; exact tooltip implementation was delegated.
-- **The reach:** Production battle and controlled panel fixtures compose the same `SelectionDeck`. Future lower-HUD content should use that shared layout rather than reconstruct fixed offsets.
-- **Verdict:** sound; layout determines spacing from real content, and the button retains its interaction semantics.
-- **Confidence:** high.
+## Sound · high confidence
 
-### Reuse the panel workbench for deck states
+### One layout owns captions and command hints
 
-- **When:** slice 04, before commit.
-- **The choice:** Opening the existing panel lab can now switch to the real battle deck over controlled observations. The existing unit specimen builder also supplies these cases, including mixed capabilities and very large selections. Creating a separate lab route and a second fixture builder would duplicate the same observation and panel setup.
-- **The gap:** The plan named component fixtures as a review surface without choosing their route or data owner.
-- **The reach:** Deck visual checks remain part of the existing panels scene and registry identity; no extra route, dependency or production fixture schema was introduced.
-- **Verdict:** sound; fixtures exercise the production components through the existing review owner.
-- **Confidence:** high.
+**When:** deck pass, `ae5e87aa`.
 
-### Keep exact soldier count beside health
+**Choice:** Hovering an army card reveals its full facts. Captions move above the
+real footer and detail through normal layout, and a command's hint sits between captions
+and footer. A React portal places that hint in the shared stack while its
+button retains the accessible description. Hover/focus measures the owning
+button once to align the hint; no timer or observer runs. Independent floating
+offsets would let hints and captions cross when the footer grows.
 
-- **When:** slice 04, before commit, after fresh visual critique.
-- **The choice:** A wounded squad can have all its soldiers alive while its health pips fall, and a squad can lose soldiers while retaining similar pips. The shared panel now names the living soldiers next to those pips, counting each published member whose health remains positive. Enemy panels show no count because the side has no personnel observation for them. The alternative was to use five health pips as a rough proxy for headcount; that cannot preserve the reference's exact personnel fact.
-- **The gap:** The concept showed exact soldiers but the existing shared vocabulary only exposed combined health. The coordinating agent authorized extending that owner after critique.
-- **The reach:** Own floating readouts and selection facts use the same optional `Panel.personnel` field and InfoPanel output; no new simulation property or second panel renderer exists. Future consumers must preserve the difference between health and living personnel.
-- **Verdict:** sound; exact own personnel comes from admitted observations, and enemy knowledge stays unchanged.
-- **Confidence:** high.
+**Gap:** The plan required content-aware caption placement but left the component
+boundary open.
 
-Full multi-selection detail, omission of visible Move/Garrison, optional replay commands and binding-table labels follow explicit contracts. Reversible spacing, typography, icon size, background opacity and focus/hover implementation use delegated design discretion. Escape dismissal preserves the existing battle event owner and adds no new global input rule. No unsound or needs-user architectural choice remains in this pass; final visual acceptance is still pending.
+**Reach:** Production battles and panel fixtures share `ArmyDeck`; later
+bottom-HUD content should join that owner rather than reconstruct its offsets.
 
-## Screen chrome
+**Verdict:** sound; actual layout owns spacing and the command owns interaction.
+**Confidence:** high.
 
-When: slice 05 screen composition.
+### Living soldiers and health remain separate facts
 
-Choice: expanded Developer uses the existing scrollable menu. Opening the tools
-can make the plate taller than the desktop viewport; moving keyboard focus to
-Labs scrolls the menu so its complete card is visible. Keeping those links at
-their current readable size avoids shrinking every player control whenever a
-technical user opens the tools. The unbuilt alternative would force the entire
-expanded plate into one viewport by reducing text or creating another surface.
+**When:** deck pass, `ae5e87aa`.
 
-Gap: compact screen composition did not specify whether expanded developer
-content must fit one viewport.
+**Choice:** An eight-person squad can be wounded without losing a soldier, while
+another squad with similar total health can have fewer people alive. Own panels
+therefore name living personnel beside health pips, using observed members with
+positive health. Enemy personnel stays unknown. Treating pips as headcount would
+erase that distinction.
 
-Reach: developer disclosure may grow vertically, while ordinary play keeps the
-compact default plate. Keyboard/scroll reachability must remain intact.
+**Gap:** The concept showed exact personnel; the shared panel vocabulary lacked
+that fact. Extending the shared owner was authorized after visual critique.
 
-Verdict: sound. Actual production focus/End probes reveal the full Labs entry at
-both desktop and narrow widths; disclosure preserves every existing link.
+**Reach:** Selection facts and floating readouts use the same optional
+`Panel.personnel` field; no simulation property or second panel renderer exists.
 
-Confidence: high.
+**Verdict:** sound; admitted own observations provide the count without adding
+enemy knowledge. **Confidence:** high.
 
-The spacing, typography and glow values are reversible cosmetic discretion
-explicitly delegated by slice 05. Reusing menu classes for the existing village
-replay import was likewise delegated and introduces no new behavior owner.
+### Reuse the panel workbench for rich deck states
+
+**When:** deck pass, `ae5e87aa`.
+
+**Choice:** The existing panel lab can display the real deck over controlled
+observations, including mixed capabilities and large selections. Its existing
+specimen builder supplies those states. A new route and fixture builder would
+duplicate the same observation setup.
+
+**Gap:** Component review was requested without choosing a route or fixture
+owner.
+
+**Reach:** Deck evidence remains under the panels scene and registry identity,
+with no extra production route or fixture schema.
+
+**Verdict:** sound; it exercises the shipped components through the established
+review owner. **Confidence:** high.
+
+### Expanded Developer content uses normal menu scrolling
+
+**When:** screen pass, `336cdb13`.
+
+**Choice:** Opening Developer can make the menu taller than the window. Its
+existing scroll region exposes the remaining links; keyboard focus scrolls Labs
+fully into view. Forcing every tool into one screen would shrink the readable
+player controls or add another surface.
+
+**Gap:** Compact screen composition did not require expanded developer content
+to fit one viewport.
+
+**Reach:** The disclosure may grow vertically while ordinary play keeps the
+compact default plate. Scroll and keyboard access remain required.
+
+**Verdict:** sound; technical content stays readable and reachable.
+**Confidence:** high.
+
+
+### Preserve each city source set's visual evidence
+
+**When:** complete-scene closeout, `f8ff6a1a`.
+
+**Choice:** Each source set writes its pictures beneath its own evidence directory.
+Two sources can contain the same building category; flat filenames would overwrite
+one source's proof. Readers descend the source directory to find the pictures.
+
+**Gap:** Complete separate visits were required, but evidence organization was unspecified.
+
+**Reach:** This changes ignored verification output only, without a runtime owner.
+
+**Verdict:** sound; every source's evidence survives. **Confidence:** high.
+
+### Judge narrowed damage-state availability across the selected catalogue
+
+**When:** complete-scene closeout, `f8ff6a1a`.
+
+**Choice:** A ruin-only visit omits towers that have no ruin state while still
+checking the selected catalogue's ruins. A requested state absent from the entire
+selected catalogue fails. Requiring every source to contain every state would
+reject valid sources when the combined visit is split.
+
+**Gap:** The plan required the existing narrowing contract without prescribing
+how source-set visits preserve it.
+
+**Reach:** The verification scene retains the combined catalogue's meaning;
+runtime states, budgets and rules stay unchanged.
+
+**Verdict:** sound; the selected catalogue remains the authority. **Confidence:** high.
