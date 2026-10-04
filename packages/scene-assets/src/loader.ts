@@ -1,8 +1,9 @@
 // The one appearance loader, for the workbench and the battle alike. It reads
 // the runtime catalog and fetches, by content hash, every appearance that is
-// not a kit, and the template art library. A kit (a building set's modules:
-// tens of megabytes) is fetched when something that draws it asks. Every
-// file's hash is verified, and a load or a request for kits installs one whole
+// not fetched on request, and the template art library. A kit (a building
+// set's modules: tens of megabytes) and a regional look are fetched on
+// request (`fetchedOnRequest`): when something that draws them asks. Every
+// file's hash is verified, and a load or a request installs one whole
 // generation: a failure anywhere leaves the installed generation in place.
 
 import type { Vec3 } from "math";
@@ -25,10 +26,12 @@ import {
   type TemplateArtLibrary,
 } from "./templateLibrary.ts";
 import type { MountDraws } from "./units.ts";
-import { gzipTransport, kitDownloadBytes, unpackGzip } from "./gzip.ts";
+import { gzipTransport, downloadBytes, onRequestLabel, unpackGzip } from "./gzip.ts";
 import {
+  fetchedOnRequest,
   KIT_BUNDLE_MAX_BYTES,
-  SHARED_KIT_DOWNLOAD_MAX_BYTES,
+  MAP_DOWNLOAD_MAX_BYTES,
+  onRequestOf,
   type GzipTransport,
 } from "./schema.ts";
 
@@ -42,6 +45,9 @@ export interface InstalledAppearance {
   footprint: Vec3 | null;
   /** A vehicle's rig per mount name (catalog `mounts`); null when it declares none. */
   mounts: MountDraws | null;
+  /** The regional family it is a look of (catalog `regional_family`); null
+   *  for one of every region. */
+  regionalFamily: string | null;
   bundle: Exclude<Bundle, SkeletonClips>;
 }
 
@@ -49,12 +55,13 @@ export interface InstalledAppearances {
   generation: number;
   sides: SideTints;
   skeletons: Map<string, SkeletonClips>;
-  /** Every appearance of the catalog that is not a kit, and the kits asked
-   *  for so far (`AppearanceLibrary.withKits`). */
+  /** Every appearance of the catalog not fetched on request, and those asked
+   *  for so far (`AppearanceLibrary.withAppearances`). */
   appearances: Map<string, InstalledAppearance>;
-  /** Every kit the catalog names. One is among `appearances` only once
-   *  something asked for it; until then nothing can draw it. */
-  kits: ReadonlySet<string>;
+  /** Every appearance the catalog fetches on request, by name: the regional
+   *  family it is a look of, or null for a kit. One is among `appearances`
+   *  only once something asked for it; until then nothing can draw it. */
+  onRequest: ReadonlyMap<string, string | null>;
   /** The template art library, when the catalog has one: city buildings are
    *  drawn by resolving their template against it (`templateLibrary.ts`). */
   templates?: InstalledTemplateArt;
@@ -97,17 +104,16 @@ export class AppearanceLibrary {
     return this.current;
   }
 
-  /** Load the catalog under `baseUrl` (ending in "/"): every appearance but
-   *  the kits, and the template art library. Installs only if all succeed. */
+  /** Load the catalog under `baseUrl` (ending in "/"): every appearance not
+   *  fetched on request, and the template art library. Installs only if all
+   *  succeed. */
   async load(baseUrl: string): Promise<InstalledAppearances> {
     const response = await this.fetcher(`${baseUrl}catalog.json`);
     if (!response.ok) throw new Error(`appearance catalog: HTTP ${response.status}`);
     const catalog = (await response.json()) as RuntimeCatalog;
-    const bytes = kitDownloadBytes(catalog, []);
-    if (bytes > SHARED_KIT_DOWNLOAD_MAX_BYTES)
-      throw new Error(
-        `shared kit download ${bytes} bytes is over ${SHARED_KIT_DOWNLOAD_MAX_BYTES}`,
-      );
+    const bytes = downloadBytes(catalog, []);
+    if (bytes > MAP_DOWNLOAD_MAX_BYTES)
+      throw new Error(`map download ${bytes} bytes is over ${MAP_DOWNLOAD_MAX_BYTES}`);
     const source = { baseUrl, catalog };
     const skeletons = new Map<string, SkeletonClips>();
     await Promise.all(
@@ -120,7 +126,7 @@ export class AppearanceLibrary {
     );
     const appearances = await Promise.all(
       Object.entries(catalog.appearances ?? {})
-        .filter(([, entry]) => entry.unit !== "kit")
+        .filter(([, entry]) => !fetchedOnRequest(entry))
         .map(async ([name]) => [name, await this.appearance(source, name, skeletons)] as const),
     );
     if (!catalog.sides) throw new Error("appearance catalog has no side tints; re-bake");
@@ -129,40 +135,43 @@ export class AppearanceLibrary {
   }
 
   /**
-   * The installed generation with the kits `names` too. Those it lacks are
-   * fetched and installed together as the next generation; when it has them
-   * all it is returned as it is, so a kit is fetched once however many maps
-   * draw from it. A kit that cannot be had is refused by name, and the
-   * installed generation stays.
+   * The installed generation with the appearances fetched on request `names`
+   * too (kits, regional looks). Those it lacks are fetched and installed
+   * together as the next generation; when it has them all it is returned as
+   * it is, so one is fetched once however many maps draw from it. What they
+   * download together is held to `MAP_DOWNLOAD_MAX_BYTES` before any is
+   * fetched. One that cannot be had is refused by name, and the installed
+   * generation stays.
    */
-  async withKits(names: Iterable<string>): Promise<InstalledAppearances> {
+  async withAppearances(names: Iterable<string>): Promise<InstalledAppearances> {
     const source = this.source;
     if (!source || !this.current)
-      throw new Error("kits were asked for before a catalog was loaded");
+      throw new Error("appearances were asked for before a catalog was loaded");
     const requested = [...new Set(names)];
-    const bytes = kitDownloadBytes(
+    const bytes = downloadBytes(
       source.catalog,
-      requested.filter((name) => source.catalog.appearances[name]?.unit === "kit"),
+      requested.filter((name) => {
+        const entry = source.catalog.appearances[name];
+        return entry && fetchedOnRequest(entry);
+      }),
     );
-    if (bytes > SHARED_KIT_DOWNLOAD_MAX_BYTES)
-      throw new Error(
-        `shared kit download ${bytes} bytes is over ${SHARED_KIT_DOWNLOAD_MAX_BYTES}`,
-      );
+    if (bytes > MAP_DOWNLOAD_MAX_BYTES)
+      throw new Error(`map download ${bytes} bytes is over ${MAP_DOWNLOAD_MAX_BYTES}`);
     const held = this.current.appearances;
     const absent = requested.filter((name) => !held.has(name));
     if (absent.length === 0) return this.current;
-    const kits = await Promise.all(
-      absent.map(async (name) => [name, await this.kit(source, name)] as const),
+    const arrived = await Promise.all(
+      absent.map(async (name) => [name, await this.onRequest(source, name)] as const),
     );
-    // The catalog was loaded again meanwhile: these kits are the new one's to answer for.
-    if (this.source !== source) return this.withKits(requested);
+    // The catalog was loaded again meanwhile: these are the new one's to answer for.
+    if (this.source !== source) return this.withAppearances(requested);
     // Onto whatever is installed by now: another request may have landed first.
     const { sides, skeletons, appearances, templates } = this.current;
     return this.install(
       source,
       sides,
       skeletons,
-      new Map([...appearances, ...kits]),
+      new Map([...appearances, ...arrived]),
       templates?.library,
     );
   }
@@ -183,14 +192,13 @@ export class AppearanceLibrary {
         const bundle = appearances.get(name)?.bundle;
         return bundle?.kind === "static" ? bundle : undefined;
       });
-    const catalog = Object.entries(source.catalog.appearances ?? {});
     this.source = source;
     this.current = {
       generation: (this.current?.generation ?? 0) + 1,
       sides,
       skeletons,
       appearances,
-      kits: new Set(catalog.filter(([, entry]) => entry.unit === "kit").map(([name]) => name)),
+      onRequest: onRequestOf(source.catalog),
       ...(library && modules ? { templates: { library, modules } } : {}),
     };
     return this.current;
@@ -217,8 +225,8 @@ export class AppearanceLibrary {
     return bytes;
   }
 
-  private async bundle(source: Source, hash: string, kit = false): Promise<Bundle> {
-    const gzip = kit ? gzipTransport(source.catalog, hash, KIT_BUNDLE_MAX_BYTES) : undefined;
+  private async bundle(source: Source, hash: string, onRequest = false): Promise<Bundle> {
+    const gzip = onRequest ? gzipTransport(source.catalog, hash, KIT_BUNDLE_MAX_BYTES) : undefined;
     return decodeBundle(
       await this.verified(source, "bundle", hash, bundlePath(gzip?.hash ?? hash), gzip),
     );
@@ -231,7 +239,7 @@ export class AppearanceLibrary {
     skeletons: ReadonlyMap<string, SkeletonClips>,
   ): Promise<InstalledAppearance> {
     const entry = source.catalog.appearances[name];
-    const bundle = await this.bundle(source, entry.bundle, entry.unit === "kit");
+    const bundle = await this.bundle(source, entry.bundle, fetchedOnRequest(entry));
     if (bundle.kind === "clips" || bundle.kind !== entry.kind)
       throw new Error(`appearance ${name}: bundle is ${bundle.kind}, catalog says ${entry.kind}`);
     if (bundle.kind === "skinned") {
@@ -251,21 +259,23 @@ export class AppearanceLibrary {
       scenery: entry.scenery ?? null,
       footprint: entry.footprint_half_m ?? null,
       mounts: entry.mounts ?? null,
+      regionalFamily: entry.regional_family ?? null,
       bundle,
     };
   }
 
-  /** The catalog's kit `name`, fetched once however many ask while it is on
-   *  its way. Whatever stops it names the kit. */
-  private kit(source: Source, name: string): Promise<InstalledAppearance> {
+  /** The catalog's appearance `name` that is fetched on request, fetched once
+   *  however many ask while it is on its way. Whatever stops it names it. */
+  private onRequest(source: Source, name: string): Promise<InstalledAppearance> {
     const entry = source.catalog.appearances[name];
-    if (entry?.unit !== "kit")
-      return Promise.reject(new Error(`kit "${name}" is not in the appearance catalog`));
+    const what = `${onRequestLabel(entry)} "${name}"`;
+    if (!entry || !fetchedOnRequest(entry))
+      return Promise.reject(new Error(`${what} is not in the appearance catalog`));
     let arriving = this.arriving.get(entry.bundle);
     if (!arriving) {
       arriving = this.appearance(source, name, this.current!.skeletons).catch((error: unknown) => {
         const why = error instanceof Error ? error.message : String(error);
-        throw new Error(`kit "${name}": ${why}`, { cause: error });
+        throw new Error(`${what}: ${why}`, { cause: error });
       });
       const settled = () => this.arriving.delete(entry.bundle);
       this.arriving.set(entry.bundle, arriving);

@@ -189,7 +189,7 @@ async function served(set?: unknown) {
 test("the loader installs the library, and each module is bound to its kit's state once the kit is asked for", async () => {
   const { loader, result } = await served();
   await loader.load("/assets/");
-  const installed = await loader.withKits([KIT]);
+  const installed = await loader.withAppearances([KIT]);
   const art = installed.templates!;
   expect(art.library.art_hash).toBe(result.runtime.templates!.art_hash);
   const kit = installed.appearances.get(KIT)!.bundle as StaticBundle;

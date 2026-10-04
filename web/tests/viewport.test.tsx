@@ -115,7 +115,7 @@ test("appearance updates reach the installing frame and unmount releases it imme
     generation,
     sides: { blue: [1, 1, 1], red: [1, 1, 1] },
     appearances: new Map(),
-    kits: new Set(),
+    onRequest: new Map(),
     skeletons: new Map(),
   });
   const first = appearance(1),

@@ -85,7 +85,7 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
   const [overlay, setOverlay] = useState<WorldOverlay>("surface");
   const [showTrees, setShowTrees] = useState(true);
   const buildings = useStandingBuildings(world);
-  const appearances = useMapAppearances(buildings?.placed ?? null);
+  const appearances = useMapAppearances(buildings?.placed ?? null, null);
   const [probed, setProbed] = useState<Probe | null>(null);
 
   const meshes = useMemo(() => {
