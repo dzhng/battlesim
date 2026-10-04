@@ -102,6 +102,16 @@
       "scenery": "car_wreck",
       "unit": "scenery"
     },
+    "city_kit_apartments_new_york": {
+      "bundle": "b10bf1506fdf4af66d240ac0c3e5cd9b396382f625e2d610c9cb9e1eadccd9fc",
+      "kind": "static",
+      "unit": "kit"
+    },
+    "city_kit_apartments_paris": {
+      "bundle": "a9955e998bb826e117634a1c6cc1b8ff7eaf4a37cef5c7be41b2043d7e7527a8",
+      "kind": "static",
+      "unit": "kit"
+    },
     "city_kit_china_apartments": {
       "bundle": "40e0d20a895e9d3a9e65f2bdfffc6ef5b5f4daac50d1e17a31231c07a3e6c586",
       "kind": "static",
@@ -117,13 +127,43 @@
       "kind": "static",
       "unit": "kit"
     },
+    "city_kit_farmsteads_new_york": {
+      "bundle": "7d1390df7ffc1500d267c217dcc36d6ca3b91d4a3b016148233f4aeafaaae50a",
+      "kind": "static",
+      "unit": "kit"
+    },
+    "city_kit_farmsteads_paris": {
+      "bundle": "433ac7bfbbb7fa6ebc15c5429005a85e3450921c012095df24978a87337ec6a8",
+      "kind": "static",
+      "unit": "kit"
+    },
     "city_kit_homes": {
       "bundle": "5cdbe12e0b47c9526655a5f498aa89636e375c7ed452276b6d5c8e05c1424737",
       "kind": "static",
       "unit": "kit"
     },
+    "city_kit_homes_new_york": {
+      "bundle": "e36487889c6b6acc2d67430b3b4c0859aaec4be874bcbcf282ca2b4050fbd17c",
+      "kind": "static",
+      "unit": "kit"
+    },
+    "city_kit_homes_paris": {
+      "bundle": "ddf03195d3af3b87b0ab1238e619ffaa3e3fdc5c9403b66d83cdc32437b49da4",
+      "kind": "static",
+      "unit": "kit"
+    },
     "city_kit_industry": {
       "bundle": "49393adf13b31a5f8cd2cee90d44af97e623481c991560b4e85a087764782aa0",
+      "kind": "static",
+      "unit": "kit"
+    },
+    "city_kit_industry_new_york": {
+      "bundle": "cf28e1148078d4744029457ff1e4988d37f9946987bf76451076f2165fb7f7ae",
+      "kind": "static",
+      "unit": "kit"
+    },
+    "city_kit_industry_paris": {
+      "bundle": "f507a2eb4971ad9e177a17d791793de210274075cf0a8a21d79e70d25f2e9af5",
       "kind": "static",
       "unit": "kit"
     },
@@ -134,6 +174,16 @@
     },
     "city_kit_towers": {
       "bundle": "f1c2ece2e7e00f3ebfd467e377d26490c0e23e889f2e9b59d569a915b48d022a",
+      "kind": "static",
+      "unit": "kit"
+    },
+    "city_kit_towers_new_york": {
+      "bundle": "19a4182a2d378553a85d0304a069b04c2fd1d2a083df9035595b9e49c62fcd3e",
+      "kind": "static",
+      "unit": "kit"
+    },
+    "city_kit_towers_paris": {
+      "bundle": "2e7f071f4615d5e87da215923b7c00d2cfc962fa64cedd0eb733abdbb78dfb95",
       "kind": "static",
       "unit": "kit"
     },
@@ -620,10 +670,25 @@
       "hash": "5c9313a41f8cb9a6e6f604bad98d5ce0573f50fecaab441816beea6c9039ac0b",
       "raw_bytes": 7188344
     },
+    "19a4182a2d378553a85d0304a069b04c2fd1d2a083df9035595b9e49c62fcd3e": {
+      "bytes": 3101760,
+      "hash": "324f5a7c19523dafec6315f5a67f030328c6fbfa5a48470eaa743fc4de9adaa0",
+      "raw_bytes": 13701220
+    },
+    "2e7f071f4615d5e87da215923b7c00d2cfc962fa64cedd0eb733abdbb78dfb95": {
+      "bytes": 5255007,
+      "hash": "dd17e1c6ef31e1c48a226f8a99528dc733e4c451ec0d49fdab3a48f2fc948510",
+      "raw_bytes": 25630740
+    },
     "40e0d20a895e9d3a9e65f2bdfffc6ef5b5f4daac50d1e17a31231c07a3e6c586": {
       "bytes": 8885117,
       "hash": "f73c49105a064a635dc66f14fc155d12f3a072f9240092ff7f5163327f6c2ac3",
       "raw_bytes": 43480648
+    },
+    "433ac7bfbbb7fa6ebc15c5429005a85e3450921c012095df24978a87337ec6a8": {
+      "bytes": 4924185,
+      "hash": "97e9174647dd67c623c67a54dbb50a2ef24b34f1aa8f502a950df2fa0ab98ea5",
+      "raw_bytes": 16130732
     },
     "49393adf13b31a5f8cd2cee90d44af97e623481c991560b4e85a087764782aa0": {
       "bytes": 5728230,
@@ -640,20 +705,55 @@
       "hash": "89c2596a532ddbaa6dea1cf16684fe2843413931ba7877fe478e9ed4835a75ab",
       "raw_bytes": 15412904
     },
-    "8183b416af2f769309172e80130a5ed9f342664ccfbae0d03316187b39ce30ff": {
-      "bytes": 82109,
-      "hash": "da50ed0e6cfdca72fad33cd69c59ee0a99b618ba3f99afd306b1f2399f63889c",
-      "raw_bytes": 563132
+    "7a5df4f58fb3437e04c6001b439d52ff0a30f142891dabacc9697a2d4c656cd2": {
+      "bytes": 215277,
+      "hash": "334f8a8cd1a92476270a0d3edccf5c89720b2d49d295fd56becf4d68ac21e952",
+      "raw_bytes": 1626832
+    },
+    "7d1390df7ffc1500d267c217dcc36d6ca3b91d4a3b016148233f4aeafaaae50a": {
+      "bytes": 3700688,
+      "hash": "2bba81c7ba8c36846e0d42bbd6ef0180de134eca9dc3494f114386e18ec69ccc",
+      "raw_bytes": 12576656
     },
     "85f3fc565a07e9566ea1cf83c4aaf4db8f68f28696c2a8da6a24bd0a175dbff3": {
       "bytes": 5127005,
       "hash": "31705818aab093d7e3838a8027434e1b2935c9016c29e8fd16b774ac7f890955",
       "raw_bytes": 16193892
     },
+    "a9955e998bb826e117634a1c6cc1b8ff7eaf4a37cef5c7be41b2043d7e7527a8": {
+      "bytes": 7320476,
+      "hash": "46b1c59a6c064f4e251455af2697e25e41630b3b7e054ec29cb63c22f46c091d",
+      "raw_bytes": 46662692
+    },
+    "b10bf1506fdf4af66d240ac0c3e5cd9b396382f625e2d610c9cb9e1eadccd9fc": {
+      "bytes": 8428249,
+      "hash": "1c20830a34aa281272669f4a83b45e83bbca93a5037f760709d85661e34817aa",
+      "raw_bytes": 48017824
+    },
+    "cf28e1148078d4744029457ff1e4988d37f9946987bf76451076f2165fb7f7ae": {
+      "bytes": 5459175,
+      "hash": "3447960bd288991c2f0e3b9895d263f472590a2075dba6af0483de2fc6496d71",
+      "raw_bytes": 19943140
+    },
+    "ddf03195d3af3b87b0ab1238e619ffaa3e3fdc5c9403b66d83cdc32437b49da4": {
+      "bytes": 5361553,
+      "hash": "9a7dfdfa10b7f83854025245df337fc3d70d566d65d4423b1f8124d553f9f982",
+      "raw_bytes": 18685432
+    },
+    "e36487889c6b6acc2d67430b3b4c0859aaec4be874bcbcf282ca2b4050fbd17c": {
+      "bytes": 4342882,
+      "hash": "9f9108df0b691533e3787e8c9b7529113d55c13d63f922d1f22c80f282211015",
+      "raw_bytes": 15455912
+    },
     "f1c2ece2e7e00f3ebfd467e377d26490c0e23e889f2e9b59d569a915b48d022a": {
       "bytes": 4729869,
       "hash": "8becb3658c120b54a28885db6fdc99fa339b9493746f09e88f4094f7c87f6c3a",
       "raw_bytes": 24653080
+    },
+    "f507a2eb4971ad9e177a17d791793de210274075cf0a8a21d79e70d25f2e9af5": {
+      "bytes": 5454699,
+      "hash": "e1719fa71901dfa5dfec1e26368e9565f98aa2965dfd32847de4298601f3e8bd",
+      "raw_bytes": 19165276
     },
     "ffd54afcbd5a4ff3dd4f7eaceda098698d9870c52b4786c1bc6b147459b3f78c": {
       "bytes": 7972148,
@@ -678,11 +778,11 @@
     "quaternius-ubc-rifle": "19706856fef2f15bd61aae8ef6d4e614c58a028296738bdeab45195880187611"
   },
   "templates": {
-    "art_hash": "d7455e30f597bb0ec33c3fa573e38b40c68fafa207516bd37ab3379dbd9cc963",
+    "art_hash": "3ad1a772d183f859412bacaa1a4a01aa4e7fa2a813de3c8081392373c0895374",
     "covers": [
       "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13",
-      "6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316"
+      "9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7"
     ],
-    "library": "8183b416af2f769309172e80130a5ed9f342664ccfbae0d03316187b39ce30ff"
+    "library": "7a5df4f58fb3437e04c6001b439d52ff0a30f142891dabacc9697a2d4c656cd2"
   }
 }

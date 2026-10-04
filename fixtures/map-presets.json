@@ -17,7 +17,7 @@
     "pin_rounds": 4,
     "shortest_run_m": 1.0
   },
-  "revision": "layout-presets-12",
+  "revision": "layout-presets-13",
   "terrain": { "render_margin_m": 1500, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": 1800,
@@ -144,7 +144,7 @@
       "corner_tan": 0.47,
       "end_margin_m": 1.0
     },
-    "regional_families": ["china"],
+    "regional_families": ["china", "new_york", "paris"],
     "prop_kind": "building",
     "street_width_m": 7,
     "verge_m": 2,

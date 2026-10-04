@@ -80,16 +80,19 @@ test("the native reader refuses an oversized library before opening its payload 
   }
 });
 
-test("every generated template's full art and the library fit the shared download gate with exact raw integrity", async () => {
+// A map is built in one regional family (M08), so each family's full art is
+// what one map can fetch at most.
+test("every regional family's full art and the library fit the shared download gate with exact raw integrity", async () => {
   const catalog = json("assets/runtime/catalog.json") as RuntimeCatalog;
   const libraryHash = catalog.templates!.library;
   const wire = gzipTransport(catalog, libraryHash);
   const library = decodeTemplateLibrary(
     await unpackGzip(read(`assets/runtime/${templateLibraryPath(wire.hash)}`), wire, libraryHash),
   );
-  const ids = json("fixtures/prototype-building-templates.json").map(
-    (template: { id: string }) => template.id,
+  const templates: { id: string; regional_family: string }[] = json(
+    "fixtures/prototype-building-templates.json",
   );
+  const ids = templates.map((template) => template.id);
   for (const name of templateKits(library, ids)) {
     const hash = catalog.appearances[name].bundle;
     const gzip = gzipTransport(catalog, hash, KIT_BUNDLE_MAX_BYTES);
@@ -98,7 +101,11 @@ test("every generated template's full art and the library fit the shared downloa
     );
     expect(bundle.kind, name).toBe("static");
   }
-  expect(kitDownloadBytes(catalog, templateKits(library, ids))).toBeLessThanOrEqual(
-    SHARED_KIT_DOWNLOAD_MAX_BYTES,
-  );
+  const families = new Set(templates.map((template) => template.regional_family));
+  for (const family of families) {
+    const ofFamily = templates.filter((t) => t.regional_family === family).map((t) => t.id);
+    expect(kitDownloadBytes(catalog, templateKits(library, ofFamily)), family).toBeLessThanOrEqual(
+      SHARED_KIT_DOWNLOAD_MAX_BYTES,
+    );
+  }
 });
