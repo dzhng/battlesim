@@ -1302,7 +1302,8 @@ const AREA_BORDER_M = 2;
 const SLAB_JOINT_PIXELS = [0.7, 2.5] as const;
 
 /** How much of a joint `width` wide lies `along` metres along a line, 0 to
- *  1, where one crosses every `1 / perMetre` metres. */
+ *  1, where one crosses every `1 / perMetre` metres: drawn sharp, and gone
+ *  once it is under a pixel or so (`SLAB_JOINT_PIXELS`). */
 const strokeJoint = tgpu.fn(
   [d.f32, d.f32, d.f32, d.f32],
   d.f32,
@@ -1311,6 +1312,19 @@ const strokeJoint = tgpu.fn(
  if(perMetre<=0.0||shown<=0.0){return 0.0;}
  let to=abs(fract(along*perMetre+0.5)-0.5)/perMetre;
  return (1.0-smoothstep(width*0.5,width*0.5+footprint,to))*shown;
+}`);
+
+/** As `strokeJoint`, for an area's slabs, which are read from much farther
+ *  off: a joint narrower than a pixel is spread over the pixel at its own
+ *  share of it, so it thins to the surface's colour with distance instead
+ *  of breaking into dashes. */
+const areaJoint = tgpu.fn(
+  [d.f32, d.f32, d.f32, d.f32],
+  d.f32,
+)(/* wgsl */ `(along:f32,perMetre:f32,footprint:f32,width:f32)->f32 {
+ let drawn=max(width,footprint);
+ let to=abs(fract(along*perMetre+0.5)-0.5)/perMetre;
+ return (1.0-smoothstep(drawn*0.5-footprint*0.5,drawn*0.5+footprint*0.5,to))*(width/drawn);
 }`);
 
 /** How far the joint between two of a walk's slabs darkens a point: the
@@ -1540,8 +1554,9 @@ const groundRoads = tgpu
      // The grid fades out before a slab is a few pixels across, so far
      // paving reads as its colour rather than a shimmering mesh.
      let near=(1.0-smoothstep(${AREA_SLAB_PIXELS[0]},${AREA_SLAB_PIXELS[1]},footprint*look.stones.z))*(1.0-border);
-     let joint=near*max(strokeJoint(dot(xy,along),look.stones.z,footprint,w),strokeJoint(dot(xy,vec2f(-along.y,along.x)),look.stones.z,footprint,w));
-     let edge=(1.0-smoothstep(w,w+footprint,out))*(1.0-smoothstep(${SLAB_JOINT_PIXELS[0]},${SLAB_JOINT_PIXELS[1]},footprint/w));
+     let joint=near*max(areaJoint(dot(xy,along),look.stones.z,footprint,w),areaJoint(dot(xy,vec2f(-along.y,along.x)),look.stones.z,footprint,w));
+     let drawn=max(w,footprint);
+     let edge=(1.0-smoothstep(drawn-footprint*0.5,drawn+footprint*0.5,out))*(w/drawn);
      core*=1.0-max(joint,edge*1.5)*look.stones.w;
     }
    }
@@ -1578,6 +1593,7 @@ const groundRoads = tgpu
     groundMarks,
     walkJoint,
     strokeJoint,
+    areaJoint,
     roadLane,
     GroundPaved,
   });
