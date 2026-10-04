@@ -2274,7 +2274,10 @@ impl Battle {
             facing,
             &self.rules.formation,
             libm::hypot(self.world.width(), self.world.depth()),
-            |id, p| grid.placement_point(p, &self.units[id.0 as usize].mobility),
+            |id, p| {
+                let u = &self.units[id.0 as usize];
+                grid.destination_point(p, &u.mobility, u.hull.map(|h| h.xy().length()))
+            },
         );
         let source = self.move_source(side);
         let certified = self.certify_move(&source, &known, &plan.slots, Some(request));
