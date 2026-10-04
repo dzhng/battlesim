@@ -299,7 +299,8 @@ pub enum GenerateOutcome {
 
 /// A request's whole plan: the layout, then its districts' streets, parcels
 /// and buildings, then what stands in the open country between them, then
-/// the street furniture that stands among the buildings.
+/// the street furniture that stands among the buildings, the cover that
+/// certifies the open country's sight, and last the gardens.
 /// `rules_json` is the explicit battle rules record. The contract extracts
 /// only its catalog, forest rules and ground eye/target heights.
 fn generate(
@@ -337,7 +338,18 @@ fn generate(
     let props =
         street_props::place_street_props(&plan, &request, &catalogue, &physics.catalog, &presets)?;
     plan.props.extend(props);
-    let plan = open_country::cover(plan, &request, &catalogue, &presets, &physics)?;
+    let mut plan = open_country::cover(plan, &request, &catalogue, &presets, &physics)?;
+    // Gardens last: the cover's sight certificate needs open ground in the
+    // suburbs to stand copses on, and gardens give way to it.
+    let gardens = street_props::place_gardens(
+        &plan,
+        &request,
+        &catalogue,
+        &physics.catalog,
+        &presets,
+        physics.forests.rule.trunk_clearance_m,
+    )?;
+    plan.props.extend(gardens);
     let hash = physics.hash().map_err(|error| {
         vec![Diagnostic {
             code: DiagnosticCode::InvalidPhysicalRules,

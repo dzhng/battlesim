@@ -11,7 +11,7 @@ use mapgen::layout::{
     approach_corridors, generate_layout, GenerationRequest, MapSize, MapType, PresetDefinitions,
 };
 use mapgen::parcels::fill_districts;
-use mapgen::street_props::place_street_props;
+use mapgen::street_props::{place_gardens, place_street_props};
 use mapgen::{CompileLimits, MapPlan};
 use serde_json::{json, Value};
 use sim::encounter::legality::stands;
@@ -30,6 +30,8 @@ const SWEEP_SEEDS: [u64; 2] = [1, 2];
 /// map's own order.
 const DOORS_WALKED: usize = 40;
 const STREETS_DRIVEN: usize = 40;
+/// How many dressed gardens of a map a squad walks to the back of.
+const GARDENS_WALKED: usize = 40;
 /// A drive down a dressed street is at most this much longer than down the
 /// bare one.
 const DETOUR_M: f64 = 30.0;
@@ -184,6 +186,32 @@ fn place(
     .into_iter()
     .map(|prop| prop.geometry)
     .collect()
+}
+
+/// The street furniture of `plan` under `request`, then its gardens, as the
+/// generator places them after the open country's cover: the bodies of both.
+fn dressed(
+    plan: &MapPlan,
+    request: &GenerationRequest,
+    presets: &PresetDefinitions,
+    rules: &Rules,
+) -> Vec<AuthoredPropDefinition> {
+    let mut props =
+        place_street_props(plan, request, &catalogue(), &rules.catalog, presets).unwrap();
+    let mut furnished = plan.clone();
+    furnished.props.extend(props.iter().cloned());
+    props.extend(
+        place_gardens(
+            &furnished,
+            request,
+            &catalogue(),
+            &rules.catalog,
+            presets,
+            rules.forests.rule.trunk_clearance_m,
+        )
+        .unwrap(),
+    );
+    props
 }
 
 fn cars(props: &[PropDefinition]) -> Vec<&PropDefinition> {
@@ -539,12 +567,284 @@ fn nothing_stands_on_a_bridge_or_in_an_open_approach() {
     );
 }
 
+/// The garden rows these tests state for the suburb and the village,
+/// whatever the shipped presets are tuned to: every lot dressed, a boundary
+/// round most of them, as many pieces as a rear garden holds.
+const GARDEN_PIECES: [&str; 3] = ["garden_shed", "washing_line", "garden_table"];
+const GARDEN_BOUNDARY: [&str; 2] = ["hedge", "garden_fence"];
+const GARDEN_MOST: usize = 12;
+
+fn gardens(source: &mut Value) {
+    for kind in ["garden_suburb", "village"] {
+        source["districts"][kind]["props"]["gardens"] = json!({
+            "depth_m": 8,
+            "room_m": 2,
+            "boundary_chance": 0.9,
+            "boundary": { "hedge": 1, "garden_fence": 1 },
+            "pieces": GARDEN_PIECES.map(|kind| json!({ "kind": kind, "count": [0, 1] })),
+            "max_per_lot": GARDEN_MOST,
+        });
+    }
+}
+
+/// A lot's own frame: `(along its front from the first corner, in from its
+/// front)`, with its width and depth.
+struct LotFrame {
+    origin: Point,
+    along: Point,
+    inward: Point,
+    width: f64,
+    depth: f64,
+}
+
+impl LotFrame {
+    fn new(ring: &[Point]) -> Self {
+        let unit = |a: Point, b: Point| {
+            let length = span(a, b);
+            ([(b[0] - a[0]) / length, (b[1] - a[1]) / length], length)
+        };
+        let (along, width) = unit(ring[0], ring[1]);
+        let (inward, depth) = unit(ring[0], ring[3]);
+        Self {
+            origin: ring[0],
+            along,
+            inward,
+            width,
+            depth,
+        }
+    }
+
+    fn local(&self, p: Point) -> Point {
+        let d = [p[0] - self.origin[0], p[1] - self.origin[1]];
+        [
+            d[0] * self.along[0] + d[1] * self.along[1],
+            d[0] * self.inward[0] + d[1] * self.inward[1],
+        ]
+    }
+
+    fn at(&self, x: f64, y: f64) -> Point {
+        [
+            self.origin[0] + self.along[0] * x + self.inward[0] * y,
+            self.origin[1] + self.along[1] * x + self.inward[1] * y,
+        ]
+    }
+}
+
+/// The district kind each district id of `plan` is.
+fn district_kinds(plan: &MapPlan) -> BTreeMap<&str, &str> {
+    plan.settlements
+        .iter()
+        .flat_map(|settlement| &settlement.districts)
+        .map(|district| (district.id.as_str(), district.kind.as_str()))
+        .collect()
+}
+
+/// Gardens are dressed behind the houses of suburbs and villages, and
+/// nowhere else. On a generated town every shed, washing line and garden
+/// table stands wholly inside a built lot of a suburb or a village, in its
+/// rear setback; every hedge and garden fence runs along that lot's rear or
+/// side edge, inside it, and none reaches into the front garden; and no lot
+/// holds more than its cap.
+#[test]
+fn gardens_keep_to_the_back_of_their_own_lots() {
+    let presets = presets_with(gardens);
+    let rules = rules();
+    let request = request(MapType::Mixed, MapSize::Small, 1);
+    let plan = fill_districts(
+        generate_layout(&request, &presets).unwrap(),
+        &request,
+        &catalogue(),
+        &presets,
+    )
+    .unwrap();
+    let props: Vec<PropDefinition> = dressed(&plan, &request, &presets, &rules)
+        .into_iter()
+        .map(|prop| prop.geometry)
+        .collect();
+    let kinds = district_kinds(&plan);
+    let built: std::collections::BTreeSet<&str> =
+        plan.buildings.iter().map(|b| b.id.as_str()).collect();
+    let mut per_lot: BTreeMap<&str, usize> = BTreeMap::new();
+    let mut per_kind: BTreeMap<&str, usize> = BTreeMap::new();
+    for prop in &props {
+        let kind = prop.kind.as_str();
+        let boundary = GARDEN_BOUNDARY.contains(&kind);
+        if !boundary && !GARDEN_PIECES.contains(&kind) {
+            continue;
+        }
+        let at = format!("a {kind} at {:?}", prop.center);
+        let lot = plan
+            .lots
+            .iter()
+            .find(|lot| {
+                corners(prop)
+                    .iter()
+                    .all(|corner| polygon_contains(&lot.ring, *corner))
+            })
+            .unwrap_or_else(|| panic!("{at} stands on no one lot"));
+        let (district, _) = lot.id.rsplit_once("/lot-").unwrap();
+        let district = kinds[district];
+        assert!(
+            built.contains(lot.id.as_str()) && ["garden_suburb", "village"].contains(&district),
+            "{at} stands on {}, a {} lot{}",
+            lot.id,
+            district,
+            if built.contains(lot.id.as_str()) {
+                ""
+            } else {
+                " left open"
+            }
+        );
+        let setbacks = &presets.districts[district].lots;
+        let frame = LotFrame::new(&lot.ring);
+        let local = corners(prop).map(|corner| frame.local(corner));
+        assert!(
+            local.iter().all(|p| p[1] >= setbacks.front_m - 0.011),
+            "{at} stands in the front garden of {}",
+            lot.id
+        );
+        if boundary {
+            // Along the rear edge or a side edge, close inside it.
+            let centre = frame.local(prop.center);
+            let reach = prop.half_extents[1] + 0.2;
+            let on_rear = frame.depth - centre[1] <= reach;
+            let on_side = centre[0] <= reach || frame.width - centre[0] <= reach;
+            assert!(
+                on_rear || on_side,
+                "{at} runs along no rear or side edge of {}",
+                lot.id
+            );
+        } else {
+            assert!(
+                local
+                    .iter()
+                    .all(|p| p[1] >= frame.depth - setbacks.rear_m - 0.011),
+                "{at} stands outside the rear setback of {}",
+                lot.id
+            );
+        }
+        *per_lot.entry(lot.id.as_str()).or_insert(0) += 1;
+        *per_kind.entry(kind).or_insert(0) += 1;
+    }
+    let most = per_lot.values().max().copied().unwrap_or(0);
+    assert!(most <= GARDEN_MOST, "a lot holds {most} garden bodies");
+    for kind in GARDEN_PIECES.iter().chain(&GARDEN_BOUNDARY) {
+        let count = per_kind.get(kind).copied().unwrap_or(0);
+        assert!(
+            count >= 20,
+            "{count} {kind}s on a town of suburbs and villages"
+        );
+    }
+    assert!(per_lot.len() >= 200, "{} lots have a garden", per_lot.len());
+}
+
+/// A garden row names a body of `street_props`, and the presets refuse one
+/// that does not, as they refuse a verge row's.
+#[test]
+fn a_garden_row_naming_an_unknown_body_is_refused() {
+    for (field, row) in [
+        ("pieces", json!([{ "kind": "gazebo", "count": [0, 1] }])),
+        ("boundary", json!({ "gazebo": 1 })),
+    ] {
+        let mut source: Value = serde_json::from_str(PRESETS).unwrap();
+        gardens(&mut source);
+        source["districts"]["village"]["props"]["gardens"][field] = row;
+        let refused = PresetDefinitions::from_json(&source.to_string())
+            .err()
+            .unwrap_or_else(|| panic!("a {field} row naming a gazebo was admitted"));
+        assert!(
+            refused
+                .iter()
+                .any(|d| d.location.contains("districts.village.props")),
+            "{refused:?}"
+        );
+    }
+}
+
+/// The suburbs of the most suburban map the sweep builds are dressed, and
+/// the map, gardens and all, stays within the authored-part limit a
+/// generated battle is admitted under.
+#[test]
+fn a_suburban_city_with_its_gardens_stays_within_the_part_limit() {
+    let defaults: Value =
+        serde_json::from_str(include_str!("../../../fixtures/generated-battle.json")).unwrap();
+    let limit = defaults["limits"]["max_authored_parts"].as_u64().unwrap();
+    let mut request = request(MapType::Metro, MapSize::Large, 2);
+    request.limits = serde_json::from_value(defaults["limits"].clone()).unwrap();
+    let result = match mapgen::generate_map(
+        &serde_json::to_string(&request).unwrap(),
+        PRESETS,
+        include_str!("../../../fixtures/prototype-building-templates.json"),
+        &sim::fixtures::game().to_string(),
+    ) {
+        mapgen::CompileOutcome::Ok { result } => result,
+        mapgen::CompileOutcome::Error { diagnostics } => panic!("{diagnostics:?}"),
+    };
+    let gardens = result
+        .map
+        .props
+        .iter()
+        .filter(|prop| {
+            GARDEN_PIECES.contains(&prop.geometry.kind.as_str())
+                || GARDEN_BOUNDARY.contains(&prop.geometry.kind.as_str())
+        })
+        .count();
+    assert!(
+        u64::from(result.report.authored_parts) <= limit,
+        "{} authored parts",
+        result.report.authored_parts
+    );
+    assert!(
+        gardens >= 2_000,
+        "{gardens} garden bodies on a city of suburbs"
+    );
+}
+
+/// Gardens give way to the open country's sight certificate, which stands
+/// copses on the open ground of the suburbs: a suburban map builds with its
+/// gardens dressed, and no garden body of the finished plan stands within a
+/// trunk's clearance of any forest, so none fells a tree the certificate
+/// counted.
+#[test]
+fn gardens_keep_off_the_woods_that_certify_sight() {
+    let rules = rules();
+    let clear = rules.forests.rule.trunk_clearance_m;
+    let mut request = request(MapType::Metro, MapSize::Small, 1);
+    request.region = Some("china".into());
+    let (plan, _) = mapgen::generate_with_plan(
+        &serde_json::to_string(&request).unwrap(),
+        PRESETS,
+        TEMPLATES,
+        &sim::fixtures::game().to_string(),
+    )
+    .unwrap_or_else(|failure| panic!("{:?}", failure.diagnostics));
+    let mut gardens = 0;
+    for prop in plan.props.iter().map(|prop| &prop.geometry) {
+        let kind = prop.kind.as_str();
+        if !GARDEN_PIECES.contains(&kind) && !GARDEN_BOUNDARY.contains(&kind) {
+            continue;
+        }
+        gardens += 1;
+        for p in corners(prop).into_iter().chain([prop.center]) {
+            assert!(
+                !plan
+                    .forests
+                    .iter()
+                    .any(|forest| forest.shape.contains(p, clear)),
+                "a {kind} at {:?} stands within a trunk's clearance of a forest",
+                prop.center
+            );
+        }
+    }
+    assert!(gardens >= 1_000, "{gardens} garden bodies");
+}
+
 /// The same request places the same bodies, byte for byte; another seed
 /// places others.
 #[test]
 fn placement_is_deterministic() {
     let presets = presets();
-    let catalog = rules().catalog;
+    let rules = rules();
     let request = request(MapType::Mixed, MapSize::Small, 1);
     let plan = fill_districts(
         generate_layout(&request, &presets).unwrap(),
@@ -558,12 +858,15 @@ fn placement_is_deterministic() {
             seed: seed.into(),
             ..request.clone()
         };
-        let props = place_street_props(&plan, &request, &catalogue(), &catalog, &presets).unwrap();
+        let props = dressed(&plan, &request, &presets, &rules);
         assert!(props.iter().all(|prop| prop.id.is_none()));
         serde_json::to_string(&props).unwrap()
     };
     let first = bytes(1);
     assert!(first.len() > 10_000, "a town with next to no furniture");
+    for kind in GARDEN_PIECES.iter().chain(&GARDEN_BOUNDARY) {
+        assert!(first.contains(&format!("\"{kind}\"")), "no {kind} placed");
+    }
     assert_eq!(first, bytes(1));
     assert_ne!(first, bytes(2));
 }
@@ -740,6 +1043,8 @@ macro_rules! claim {
 ///   before;
 /// - a squad still stands outside every door it stood outside before, and
 ///   still walks there from its settlement's centre;
+/// - a squad still walks from there to the back garden of every dressed lot
+///   it could walk to before;
 /// - every hull of the catalog still drives down every street it drove down
 ///   before, by a way no longer than a detour round one parked run, and the
 ///   widest of them without shoving a body.
@@ -764,7 +1069,7 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
         .max_by_key(|unit| unit.squad_size())
         .unwrap();
     let on_foot = sim::units::mobility(squad, &rules);
-    let mut totals = [0usize; 5];
+    let mut totals = [0usize; 6];
     let mut broken: Vec<String> = Vec::new();
     for map_type in MapType::ALL {
         for size in MapSize::ALL {
@@ -778,12 +1083,10 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                     &presets,
                 )
                 .unwrap_or_else(|errors| panic!("{name}: {errors:?}"));
-                let props: Vec<PropDefinition> =
-                    place_street_props(&bare, &request, &catalogue(), &rules.catalog, &presets)
-                        .unwrap()
-                        .into_iter()
-                        .map(|prop| prop.geometry)
-                        .collect();
+                let props: Vec<PropDefinition> = dressed(&bare, &request, &presets, &rules)
+                    .into_iter()
+                    .map(|prop| prop.geometry)
+                    .collect();
                 let maps = [
                     compiled(&bare, &[], &request),
                     compiled(&bare, &props, &request),
@@ -929,6 +1232,64 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                     }
                 }
 
+                // Gardens: the back of a dressed lot, as far behind its house
+                // as half its rear setback, on open ground.
+                let kinds = district_kinds(&bare);
+                let built: std::collections::BTreeSet<&str> =
+                    bare.buildings.iter().map(|b| b.id.as_str()).collect();
+                let gardens: Vec<Point> = bare
+                    .lots
+                    .iter()
+                    .filter(|lot| built.contains(lot.id.as_str()))
+                    .filter_map(|lot| {
+                        let (district, _) = lot.id.rsplit_once("/lot-")?;
+                        let preset = &presets.districts[kinds[district]];
+                        preset.props.gardens.as_ref()?;
+                        let frame = LotFrame::new(&lot.ring);
+                        let y = frame.depth - preset.lots.rear_m / 2.0;
+                        [0.5, 0.3, 0.7, 0.15, 0.85]
+                            .map(|share| frame.at(share * frame.width, y))
+                            .into_iter()
+                            .find(|p| {
+                                !props.iter().any(|prop| {
+                                    let (sin, cos) = prop.yaw.sin_cos();
+                                    let d = [p[0] - prop.center[0], p[1] - prop.center[1]];
+                                    (d[0] * cos + d[1] * sin).abs() < prop.half_extents[0] + 1.0
+                                        && (d[1] * cos - d[0] * sin).abs()
+                                            < prop.half_extents[1] + 1.0
+                                })
+                            })
+                    })
+                    .collect();
+                let every = (gardens.len() / GARDENS_WALKED).max(1);
+                for goal in gardens.iter().step_by(every) {
+                    let Some(centre) = sites
+                        .settlements
+                        .iter()
+                        .find(|s| polygon_contains(&s.outline, *goal))
+                        .map(|s| s.center)
+                    else {
+                        continue;
+                    };
+                    let arrives = |prepared: &PreparedMap| {
+                        route(prepared, &rules, &on_foot, centre, *goal).is_some_and(
+                            |(points, _)| {
+                                points
+                                    .last()
+                                    .is_some_and(|end| (*end - v2(goal[0], goal[1])).length() < 3.0)
+                            },
+                        )
+                    };
+                    if arrives(&before) {
+                        totals[5] += 1;
+                        claim!(
+                            broken,
+                            arrives(&after),
+                            "{name}: no way on foot from {centre:?} to the garden at {goal:?}"
+                        );
+                    }
+                }
+
                 // Streets.
                 let streets: Vec<Vec<Point>> = bare
                     .surfaces
@@ -1032,7 +1393,8 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
             && totals[1] >= 5_000
             && totals[2] >= 200
             && totals[3] >= 500
-            && totals[4] >= 150,
+            && totals[4] >= 150
+            && totals[5] >= 200,
         "{totals:?}"
     );
 }

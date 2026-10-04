@@ -141,13 +141,21 @@ explains that evidence and the certificate's accepted assumptions.
 
 ## Street furniture (`street_props`)
 
-[Street furniture](src/street_props.rs) adds ordinary catalog props after buildings
+[Street furniture](src/street_props/) adds ordinary catalog props after buildings
 and roads exist. One legality rule keeps bodies off carriageways and water, clear
 of entrances and bridge approaches, apart from existing bodies and outside measured
 open approaches. Dimensions and mix belong to presets; the resolved catalog owns
 physical properties and the widest supported hull used to reserve a lane.
 
-Kerbside parking and yard stock must leave actual squad access and vehicle travel.
+Garden suburbs and villages dress the gardens behind their houses: pieces in a
+lot's rear setback and a boundary along its rear and sides, never in the front
+garden. Gardens are the least of a town's dressing: they are placed after the
+open country's cover has certified the map's sight, keep a trunk's clearance off
+every forest so they fell no tree the certificate counted, and stop at the
+request's authored-part limit. On the largest maps that limit, not the presets'
+density, decides how many lots are dressed.
+
+Kerbside parking, yard stock and gardens must leave actual squad access and vehicle travel.
 A planned route or successful placement alone is insufficient; [furniture tests](tests/street_props.rs)
 ask the simulation's navigation, while traversal and traffic remain separate
 movement proofs. Bounded local retries may omit optional furniture when it cannot
