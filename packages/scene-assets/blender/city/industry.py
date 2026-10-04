@@ -45,21 +45,21 @@ import zlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kit import *  # noqa: E402,F403
 from masonry import panel_door, ragged_wall, scorched  # noqa: E402
-from water_tank import HEIGHT_M as TANK_M, water_tank  # noqa: E402
+from water_tank import fit_over, water_tank  # noqa: E402
 
-# A family's set and the top fit its roofs need (New York's water tanks stand high).
-FAMILIES = {"china": dict(set="industry", fit_top_m=1.2), "new_york": dict(set="industry_new_york", fit_top_m=4.4),
-            "paris": dict(set="industry_paris", fit_top_m=1.2)}
-FAMILY = next(iter(script_args()), "china")
-if FAMILY not in FAMILIES:
-    raise SystemExit(f"industry.py: the family is one of {sorted(FAMILIES)}, not {FAMILY}")
+PARAPET_M, PARAPET_W = 0.6, 0.25  # a flat roof's parapet: how far its coping stands over the deck, and its thickness
+# Each family: the top fit its roofs need (New York's water tanks stand on flat roofs, a parapet under
+# the part's top), and its design, the function that builds its five lots.
+FAMILIES = {"china": dict(fit_top_m=1.2, design=lambda: china()), "new_york": dict(fit_top_m=fit_over(PARAPET_M), design=lambda: new_york()),
+            "paris": dict(fit_top_m=1.2, design=lambda: paris())}
+FAMILY, SET, RECEIPT, OUT = family_set("industry", "industry.py")
+DESIGN = design(FAMILIES, FAMILY, "industry.py")
 UP, SOUTH = Vector((0, 0, 1)), (0, -1, 0)
 OVER, VERGE = 0.25, 0.12  # how far a sheet roof's eaves and verges overhang
 DROP = 0.02  # a wall stops this far under its roof
 
-kit = Kit(FAMILIES[FAMILY]["set"], "industry.py" + ("" if FAMILY == "china" else f" {FAMILY}"), fit_side_m=1.2,
-          fit_top_m=FAMILIES[FAMILY]["fit_top_m"], fit_ruin_top_m=0.6)
-OFFER = FITTING | dict(optional=True)  # a fitting every family is offered: a set whose buildings place none leaves it out
+kit = Kit(SET, RECEIPT, fit_side_m=1.2, fit_top_m=DESIGN["fit_top_m"], fit_ruin_top_m=0.6)
+# Every fitting is offered (`kit.offer`): made the first time a row places it, so a set holds only what its buildings carry.
 
 
 # ---------------------------------------------------------------- materials
@@ -309,7 +309,7 @@ def skirt(m, tag, x0, x1, y0, y1, z0, z1, mat, out=0.0, lods=(0, 1, 2)):
 
 def glazed(name, w, h, jambs=True, stone=False):
     """A window of factory glazing, its sill's centre on the wall plane at the origin."""
-    m = kit.module(name, **OFFER)
+    m = kit.module(name, **FITTING)
     m.opening = (w, h, 0.0)
     surface(m, "glass", [(front(-w / 2, w / 2, 0, h, -0.03), SOUTH)], glazing_m, uv=((-w / 2, 0, 0), (1, 0, 0), (0, 0, 1)))
     if stone:  # a brick wall's opening: a concrete lintel and sill
@@ -323,145 +323,219 @@ def glazed(name, w, h, jambs=True, stone=False):
 
 
 # ---------------------------------------------------------------- wall modules, a bay each
-glazed("strip_window", 2.5, 1.5)
-glazed("clerestory", 3.0, 0.75, jambs=False)  # these two fill their bay: side by side they are one band of glass
-glazed("window_band", 3.0, 1.5, jambs=False)
-glazed("factory_window", 2.0, 4.5, stone=True)
+kit.offer("strip_window", lambda: glazed("strip_window", 2.5, 1.5))
+kit.offer("clerestory", lambda: glazed("clerestory", 3.0, 0.75, jambs=False))  # these two fill their bay: side by side they are one band of glass
+kit.offer("window_band", lambda: glazed("window_band", 3.0, 1.5, jambs=False))
+kit.offer("factory_window", lambda: glazed("factory_window", 2.0, 4.5, stone=True))
 
 # An office's window: plain glass in a painted frame, three lights, with the office behind it (`furnish`).
 # The sheds' own glazing above is wired and dirty, and stays what it was: nobody looks through it.
 casement(kit, "office_window", 1.6, 1.4, frame_m, glass_m, pane_m, concrete_m, lights=3)
 
 # A sheet of cladding over the wall's own: a band of colour, or a bay re-sheeted in another paint.
-m = kit.module("clad_panel", **OFFER)
-surface(m, "sheet", [(front(-1.5, 1.5, 0, 3.0, -0.03), SOUTH)], panel_m)
+@kit.offer("clad_panel")
+def _():
+    m = kit.module("clad_panel", **FITTING)
+    surface(m, "sheet", [(front(-1.5, 1.5, 0, 3.0, -0.03), SOUTH)], panel_m)
 
-m = kit.module("clad_panel_window", **OFFER)
-pw, ph, _ = kit.modules["strip_window"].opening
-surface(m, "sheet", [(front(a, b, c, d, -0.03), SOUTH) for a, b, c, d in (
-    (-1.5, -pw / 2, 0, ph), (pw / 2, 1.5, 0, ph), (-1.5, 1.5, ph, 3.0))], panel_m)
 
-m = kit.module("paint_band", **OFFER)
-surface(m, "band", [(front(-1.5, 1.5, 0, 1.0, -0.015), SOUTH)], band_m, uv=((-3.0, 0, -0.35), (1, 0, 0), (0, 0, 1)))
+@kit.offer("clad_panel_window")
+def _():
+    m = kit.module("clad_panel_window", **FITTING)
+    pw, ph, _ = kit.need("strip_window").opening
+    surface(m, "sheet", [(front(a, b, c, d, -0.03), SOUTH) for a, b, c, d in (
+        (-1.5, -pw / 2, 0, ph), (pw / 2, 1.5, 0, ph), (-1.5, 1.5, ph, 3.0))], panel_m)
+
+
+@kit.offer("paint_band")
+def _():
+    m = kit.module("paint_band", **FITTING)
+    surface(m, "band", [(front(-1.5, 1.5, 0, 1.0, -0.015), SOUTH)], band_m, uv=((-3.0, 0, -0.35), (1, 0, 0), (0, 0, 1)))
+
 
 DADO_M = 1.2
-m = kit.module("dado_bay", ground=True, **OFFER)
-box(m.n("blocks"), (3.0, 0.12, DADO_M), (0, -0.06, DADO_M / 2), dado_m, m.root, lods=(0, 1))
-surface(m, "face", [(front(-1.5, 1.5, 0, DADO_M, -0.12), SOUTH)], dado_m, lods=(2, 3))
-box(m.n("capping"), (3.0, 0.17, 0.06), (0, -0.085, DADO_M + 0.03), concrete_m, m.root, lods=(0, 1))
+
+
+@kit.offer("dado_bay")
+def _():
+    m = kit.module("dado_bay", ground=True, **FITTING)
+    box(m.n("blocks"), (3.0, 0.12, DADO_M), (0, -0.06, DADO_M / 2), dado_m, m.root, lods=(0, 1))
+    surface(m, "face", [(front(-1.5, 1.5, 0, DADO_M, -0.12), SOUTH)], dado_m, lods=(2, 3))
+    box(m.n("capping"), (3.0, 0.17, 0.06), (0, -0.085, DADO_M + 0.03), concrete_m, m.root, lods=(0, 1))
+
 
 # A roller shutter two bays wide, its threshold's centre at the origin: a vehicle door.
 ROLLER_W, ROLLER_H = 5.0, 4.2
-m = kit.module("roller_door", ground=True, **OFFER)
-m.opening = (ROLLER_W, ROLLER_H, 0.0)
-surface(m, "curtain", [(front(-ROLLER_W / 2, ROLLER_W / 2, 0, ROLLER_H, -0.04), SOUTH)], slats_m)
-box(m.n("hood"), (ROLLER_W + 0.5, 0.36, 0.45), (0, -0.18, ROLLER_H + 0.225), trim_m, m.root, lods=(0, 1, 2))
-box(m.n("sill"), (ROLLER_W, 0.09, 0.12), (0, -0.085, 0.06), hazard_m, m.root, lods=(0, 1))
-box(m.n("apron"), (ROLLER_W + 0.6, 1.0, 0.05), (0, -0.5, 0.025), plinth_m, m.root, lods=(0, 1))
-for s in (-1, 1):
-    box(m.n(f"guide_{'ab'[s > 0]}"), (0.16, 0.14, ROLLER_H), (s * (ROLLER_W / 2 + 0.08), -0.07, ROLLER_H / 2), trim_m, m.root, lods=(0, 1))
-    cyl(m.n(f"bollard_{'ab'[s > 0]}"), 0.09, 1.0, (s * (ROLLER_W / 2 + 0.45), -0.8, 0.5), "Z", hazard_m, m.root, seg=10, lods=(0, 1))
+
+
+@kit.offer("roller_door")
+def _():
+    m = kit.module("roller_door", ground=True, **FITTING)
+    m.opening = (ROLLER_W, ROLLER_H, 0.0)
+    surface(m, "curtain", [(front(-ROLLER_W / 2, ROLLER_W / 2, 0, ROLLER_H, -0.04), SOUTH)], slats_m)
+    box(m.n("hood"), (ROLLER_W + 0.5, 0.36, 0.45), (0, -0.18, ROLLER_H + 0.225), trim_m, m.root, lods=(0, 1, 2))
+    box(m.n("sill"), (ROLLER_W, 0.09, 0.12), (0, -0.085, 0.06), hazard_m, m.root, lods=(0, 1))
+    box(m.n("apron"), (ROLLER_W + 0.6, 1.0, 0.05), (0, -0.5, 0.025), plinth_m, m.root, lods=(0, 1))
+    for s in (-1, 1):
+        box(m.n(f"guide_{'ab'[s > 0]}"), (0.16, 0.14, ROLLER_H), (s * (ROLLER_W / 2 + 0.08), -0.07, ROLLER_H / 2), trim_m, m.root, lods=(0, 1))
+        cyl(m.n(f"bollard_{'ab'[s > 0]}"), 0.09, 1.0, (s * (ROLLER_W / 2 + 0.45), -0.8, 0.5), "Z", hazard_m, m.root, seg=10, lods=(0, 1))
+
 
 # A loading dock, a bay wide: a sectional door at lorry-bed height in a rubber seal,
 # over the dock's concrete face, a leveller's lip and two bumpers.
 DOCK_SILL, DOCK_W, DOCK_H = 1.1, 2.7, 3.0
-m = kit.module("dock_door", ground=True, **OFFER)
-m.opening = (DOCK_W, DOCK_H, DOCK_SILL)
-surface(m, "door", [(front(-DOCK_W / 2, DOCK_W / 2, DOCK_SILL, DOCK_SILL + DOCK_H, -0.04), SOUTH)], slats_m, lods=(0, 1))
-surface(m, "door_far", [(front(-DOCK_W / 2 + 0.35, DOCK_W / 2 - 0.35, DOCK_SILL + 0.3, DOCK_SILL + DOCK_H - 0.35, -0.05), SOUTH)], slats_m,
-        lods=(2, 3))
-box(m.n("face"), (3.0, 0.16, DOCK_SILL), (0, -0.08, DOCK_SILL / 2), plinth_m, m.root, lods=(0, 1))
-box(m.n("seal_head"), (DOCK_W + 0.5, 0.3, 0.35), (0, -0.15, DOCK_SILL + DOCK_H + 0.175), rubber_m, m.root, lods=(0, 1))
-surface(m, "seal", [(front(-DOCK_W / 2 - 0.25, DOCK_W / 2 + 0.25, DOCK_SILL - 0.4, DOCK_SILL + DOCK_H + 0.35, -0.03), SOUTH)], rubber_m,
-        lods=(2, 3))
-box(m.n("lip"), (2.1, 0.45, 0.05), (0, -0.38, DOCK_SILL - 0.03), galv_m, m.root, lods=(0, 1))
-for s in (-1, 1):
-    box(m.n(f"seal_{'ab'[s > 0]}"), (0.3, 0.3, DOCK_H), (s * (DOCK_W / 2 + 0.1), -0.15, DOCK_SILL + DOCK_H / 2), rubber_m, m.root,
-        lods=(0, 1))
-    box(m.n(f"bumper_{'ab'[s > 0]}"), (0.25, 0.14, 0.5), (s * 1.2, -0.23, DOCK_SILL - 0.3), rubber_m, m.root, lods=(0, 1))
 
-m = kit.module("personnel_door", ground=True, **OFFER)
-m.opening = (0.95, 2.1, 0.0)
-panel_door(m.n("door"), 0.95, 2.1, door_m, frame_m, m.root)
-box(m.n("canopy"), (1.5, 0.6, 0.06), (0, -0.3, 2.42), trim_m, m.root, lods=(0, 1))
-box(m.n("step"), (1.4, 0.5, 0.1), (0, -0.25, 0.05), plinth_m, m.root, lods=(0, 1))
 
-m = kit.module("office_door", ground=True, **OFFER)
-m.opening = (1.5, 2.1, 0.0)
-panel_door(m.n("door"), 1.5, 2.1, door_m, frame_m, m.root, pane_m, light=0.4)
-box(m.n("canopy"), (2.8, 1.0, 0.12), (0, -0.5, 2.9), concrete_m, m.root, lods=(0, 1, 2))
-box(m.n("step"), (2.4, 0.8, 0.14), (0, -0.4, 0.07), plinth_m, m.root, lods=(0, 1))
+@kit.offer("dock_door")
+def _():
+    m = kit.module("dock_door", ground=True, **FITTING)
+    m.opening = (DOCK_W, DOCK_H, DOCK_SILL)
+    surface(m, "door", [(front(-DOCK_W / 2, DOCK_W / 2, DOCK_SILL, DOCK_SILL + DOCK_H, -0.04), SOUTH)], slats_m, lods=(0, 1))
+    surface(m, "door_far", [(front(-DOCK_W / 2 + 0.35, DOCK_W / 2 - 0.35, DOCK_SILL + 0.3, DOCK_SILL + DOCK_H - 0.35, -0.05), SOUTH)], slats_m,
+            lods=(2, 3))
+    box(m.n("face"), (3.0, 0.16, DOCK_SILL), (0, -0.08, DOCK_SILL / 2), plinth_m, m.root, lods=(0, 1))
+    box(m.n("seal_head"), (DOCK_W + 0.5, 0.3, 0.35), (0, -0.15, DOCK_SILL + DOCK_H + 0.175), rubber_m, m.root, lods=(0, 1))
+    surface(m, "seal", [(front(-DOCK_W / 2 - 0.25, DOCK_W / 2 + 0.25, DOCK_SILL - 0.4, DOCK_SILL + DOCK_H + 0.35, -0.03), SOUTH)], rubber_m,
+            lods=(2, 3))
+    box(m.n("lip"), (2.1, 0.45, 0.05), (0, -0.38, DOCK_SILL - 0.03), galv_m, m.root, lods=(0, 1))
+    for s in (-1, 1):
+        box(m.n(f"seal_{'ab'[s > 0]}"), (0.3, 0.3, DOCK_H), (s * (DOCK_W / 2 + 0.1), -0.15, DOCK_SILL + DOCK_H / 2), rubber_m, m.root,
+            lods=(0, 1))
+        box(m.n(f"bumper_{'ab'[s > 0]}"), (0.25, 0.14, 0.5), (s * 1.2, -0.23, DOCK_SILL - 0.3), rubber_m, m.root, lods=(0, 1))
+
+
+@kit.offer("personnel_door")
+def _():
+    m = kit.module("personnel_door", ground=True, **FITTING)
+    m.opening = (0.95, 2.1, 0.0)
+    panel_door(m.n("door"), 0.95, 2.1, door_m, frame_m, m.root)
+    box(m.n("canopy"), (1.5, 0.6, 0.06), (0, -0.3, 2.42), trim_m, m.root, lods=(0, 1))
+    box(m.n("step"), (1.4, 0.5, 0.1), (0, -0.25, 0.05), plinth_m, m.root, lods=(0, 1))
+
+
+@kit.offer("office_door")
+def _():
+    m = kit.module("office_door", ground=True, **FITTING)
+    m.opening = (1.5, 2.1, 0.0)
+    panel_door(m.n("door"), 1.5, 2.1, door_m, frame_m, m.root, pane_m, light=0.4)
+    box(m.n("canopy"), (2.8, 1.0, 0.12), (0, -0.5, 2.9), concrete_m, m.root, lods=(0, 1, 2))
+    box(m.n("step"), (2.4, 0.8, 0.14), (0, -0.4, 0.07), plinth_m, m.root, lods=(0, 1))
+
 
 # A canopy's bay: sheet falling away from the wall, hung on a tie rod from above.
 CANOPY_M = 1.15
-m = kit.module("canopy_bay", **OFFER)
-top = [(-1.5, 0, 0.28), (1.5, 0, 0.28), (1.5, -CANOPY_M, 0.08), (-1.5, -CANOPY_M, 0.08)]
-surface(m, "sheet", [(top, UP)], canopy_m, uv="slope")
-surface(m, "soffit", [([(x, y, z - 0.05) for x, y, z in top], -UP)], trim_m, lods=(0, 1))
-box(m.n("fascia"), (3.0, 0.05, 0.2), (0, -CANOPY_M, 0.02), trim_m, m.root, lods=(0, 1))
-bar(m.n("rod"), (0, -CANOPY_M + 0.1, 0.1), (0, 0, 0.75), 0.04, 0.04, trim_m, m.root, lods=(0, 1))
 
-m = kit.module("louvre", **OFFER)
-surface(m, "blades", [(front(-0.75, 0.75, 0, 0.8, -0.04), SOUTH)], louvre_m)
-box(m.n("head"), (1.66, 0.1, 0.08), (0, -0.05, 0.84), frame_m, m.root, lods=(0, 1))
-box(m.n("sill"), (1.66, 0.1, 0.08), (0, -0.05, -0.04), frame_m, m.root, lods=(0, 1))
-for s in (-1, 1):
-    box(m.n(f"jamb_{'ab'[s > 0]}"), (0.08, 0.1, 0.8), (s * 0.79, -0.05, 0.4), frame_m, m.root, lods=(0, 1))
+
+@kit.offer("canopy_bay")
+def _():
+    m = kit.module("canopy_bay", **FITTING)
+    top = [(-1.5, 0, 0.28), (1.5, 0, 0.28), (1.5, -CANOPY_M, 0.08), (-1.5, -CANOPY_M, 0.08)]
+    surface(m, "sheet", [(top, UP)], canopy_m, uv="slope")
+    surface(m, "soffit", [([(x, y, z - 0.05) for x, y, z in top], -UP)], trim_m, lods=(0, 1))
+    box(m.n("fascia"), (3.0, 0.05, 0.2), (0, -CANOPY_M, 0.02), trim_m, m.root, lods=(0, 1))
+    bar(m.n("rod"), (0, -CANOPY_M + 0.1, 0.1), (0, 0, 0.75), 0.04, 0.04, trim_m, m.root, lods=(0, 1))
+
+
+@kit.offer("louvre")
+def _():
+    m = kit.module("louvre", **FITTING)
+    surface(m, "blades", [(front(-0.75, 0.75, 0, 0.8, -0.04), SOUTH)], louvre_m)
+    box(m.n("head"), (1.66, 0.1, 0.08), (0, -0.05, 0.84), frame_m, m.root, lods=(0, 1))
+    box(m.n("sill"), (1.66, 0.1, 0.08), (0, -0.05, -0.04), frame_m, m.root, lods=(0, 1))
+    for s in (-1, 1):
+        box(m.n(f"jamb_{'ab'[s > 0]}"), (0.08, 0.1, 0.8), (s * 0.79, -0.05, 0.4), frame_m, m.root, lods=(0, 1))
+
 
 # Piers, each the height of its own building's wall.
 WORKS_WALL_M, DEPOT_WALL_M = 6.2, 7.9
-m = kit.module("works_pier", ground=True, **OFFER)
-box(m.n("brick"), (0.6, 0.22, WORKS_WALL_M), (0, -0.11, WORKS_WALL_M / 2), brick_m, m.root)
-box(m.n("cap"), (0.72, 0.28, 0.14), (0, -0.14, WORKS_WALL_M - 0.07), concrete_m, m.root, lods=(0, 1))
-m = kit.module("depot_pier", ground=True, **OFFER)
-box(m.n("column"), (0.5, 0.2, DEPOT_WALL_M), (0, -0.1, DEPOT_WALL_M / 2), pier_m, m.root)
+
+
+@kit.offer("works_pier")
+def _():
+    m = kit.module("works_pier", ground=True, **FITTING)
+    box(m.n("brick"), (0.6, 0.22, WORKS_WALL_M), (0, -0.11, WORKS_WALL_M / 2), brick_m, m.root)
+    box(m.n("cap"), (0.72, 0.28, 0.14), (0, -0.14, WORKS_WALL_M - 0.07), concrete_m, m.root, lods=(0, 1))
+
+
+@kit.offer("depot_pier")
+def _():
+    m = kit.module("depot_pier", ground=True, **FITTING)
+    box(m.n("column"), (0.5, 0.2, DEPOT_WALL_M), (0, -0.1, DEPOT_WALL_M / 2), pier_m, m.root)
+
 
 # Rainwater: a bay of gutter, and a metre of downpipe a row stretches to the eaves.
-m = kit.module("gutter_bay", **OFFER)
-box(m.n("trough"), (3.0, 0.16, 0.12), (0, -0.08, -0.06), trim_m, m.root)
-m = kit.module("downpipe", **OFFER)
-cyl(m.n("pipe"), 0.06, 1.0, (0, -0.08, 0.5), "Z", trim_m, m.root, seg=6, caps=False)
+@kit.offer("gutter_bay")
+def _():
+    m = kit.module("gutter_bay", **FITTING)
+    box(m.n("trough"), (3.0, 0.16, 0.12), (0, -0.08, -0.06), trim_m, m.root)
 
-m = kit.module("ladder", **OFFER)  # 3 m of cat ladder
-for s in (-1, 1):
-    box(m.n(f"rail_{'ab'[s > 0]}"), (0.05, 0.05, 3.0), (s * 0.25, -0.2, 1.5), galv_m, m.root)
-    for k in range(2):
-        box(m.n(f"stay_{'ab'[s > 0]}_{k}"), (0.04, 0.2, 0.04), (s * 0.25, -0.1, 0.4 + 2.2 * k), galv_m, m.root, lods=(0,))
-for k in range(10):
-    box(m.n(f"rung_{k}"), (0.5, 0.03, 0.03), (0, -0.2, 0.15 + 0.3 * k), galv_m, m.root, lods=(0,))
+
+@kit.offer("downpipe")
+def _():
+    m = kit.module("downpipe", **FITTING)
+    cyl(m.n("pipe"), 0.06, 1.0, (0, -0.08, 0.5), "Z", trim_m, m.root, seg=6, caps=False)
+
+
+@kit.offer("ladder")
+def _():
+    m = kit.module("ladder", **FITTING)  # 3 m of cat ladder
+    for s in (-1, 1):
+        box(m.n(f"rail_{'ab'[s > 0]}"), (0.05, 0.05, 3.0), (s * 0.25, -0.2, 1.5), galv_m, m.root)
+        for k in range(2):
+            box(m.n(f"stay_{'ab'[s > 0]}_{k}"), (0.04, 0.2, 0.04), (s * 0.25, -0.1, 0.4 + 2.2 * k), galv_m, m.root, lods=(0,))
+    for k in range(10):
+        box(m.n(f"rung_{k}"), (0.5, 0.03, 0.03), (0, -0.2, 0.15 + 0.3 * k), galv_m, m.root, lods=(0,))
+
 
 # ---------------------------------------------------------------- roof furniture
-m = kit.module("turbine_vent", **OFFER)
-cyl(m.n("neck"), 0.2, 0.4, (0, 0, 0.2), "Z", galv_m, m.root, seg=10, lods=(0, 1))
-cyl(m.n("head"), 0.32, 0.3, (0, 0, 0.55), "Z", galv_m, m.root, seg=12, r2=0.27)
-cyl(m.n("cap"), 0.27, 0.1, (0, 0, 0.75), "Z", galv_m, m.root, seg=12, r2=0.05, lods=(0, 1))
+@kit.offer("turbine_vent")
+def _():
+    m = kit.module("turbine_vent", **FITTING)
+    cyl(m.n("neck"), 0.2, 0.4, (0, 0, 0.2), "Z", galv_m, m.root, seg=10, lods=(0, 1))
+    cyl(m.n("head"), 0.32, 0.3, (0, 0, 0.55), "Z", galv_m, m.root, seg=12, r2=0.27)
+    cyl(m.n("cap"), 0.27, 0.1, (0, 0, 0.75), "Z", galv_m, m.root, seg=12, r2=0.05, lods=(0, 1))
 
-m = kit.module("ridge_vent", **OFFER)  # 3 m of ventilator astride a ridge, along +X
-prism(m.n("cowl"), [(-0.35, -0.15), (0.35, -0.15), (0.35, 0.3), (0.0, 0.46), (-0.35, 0.3)], 3.0, (0, 0, 0), galv_m, m.root,
-      rot=(0, 0, math.pi / 2))
-box(m.n("throat"), (2.9, 0.74, 0.14), (0, 0, 0.12), trim_m, m.root, lods=(0, 1))
 
-m = kit.module("skylight_dome", **OFFER)
-box(m.n("curb"), (1.3, 1.3, 0.25), (0, 0, 0.125), trim_m, m.root, lods=(0, 1))
-box(m.n("dome"), (1.2, 1.2, 0.3), (0, 0, 0.4), dome_m, m.root, taper=(0.55, 0.55))
+@kit.offer("ridge_vent")
+def _():
+    m = kit.module("ridge_vent", **FITTING)  # 3 m of ventilator astride a ridge, along +X
+    prism(m.n("cowl"), [(-0.35, -0.15), (0.35, -0.15), (0.35, 0.3), (0.0, 0.46), (-0.35, 0.3)], 3.0, (0, 0, 0), galv_m, m.root,
+          rot=(0, 0, math.pi / 2))
+    box(m.n("throat"), (2.9, 0.74, 0.14), (0, 0, 0.12), trim_m, m.root, lods=(0, 1))
 
-m = kit.module("roof_unit", **OFFER)  # a packaged air handler on skids
-box(m.n("case"), (2.2, 1.3, 0.9), (0, 0, 0.65), galv_m, m.root)
-cyl(m.n("fan"), 0.4, 0.08, (-0.45, 0, 1.14), "Z", trim_m, m.root, seg=14, lods=(0, 1, 2))
-box(m.n("grille"), (1.6, 0.03, 0.5), (0, -0.66, 0.65), trim_m, m.root, lods=(0, 1))
-for s in (-1, 1):
-    box(m.n(f"skid_{'ab'[s > 0]}"), (0.12, 1.3, 0.2), (s * 0.8, 0, 0.1), trim_m, m.root, lods=(0, 1))
 
-m = kit.module("duct_run", **OFFER)  # 3 m of duct on feet, along +X
-box(m.n("duct"), (3.0, 0.5, 0.4), (0, 0, 0.5), galv_m, m.root)
-for s in (-1, 1):
-    box(m.n(f"foot_{'ab'[s > 0]}"), (0.08, 0.6, 0.3), (s * 1.0, 0, 0.15), trim_m, m.root, lods=(0, 1))
-    box(m.n(f"flange_{'ab'[s > 0]}"), (0.05, 0.56, 0.46), (s * 1.475, 0, 0.5), galv_m, m.root, lods=(0, 1))
+@kit.offer("skylight_dome")
+def _():
+    m = kit.module("skylight_dome", **FITTING)
+    box(m.n("curb"), (1.3, 1.3, 0.25), (0, 0, 0.125), trim_m, m.root, lods=(0, 1))
+    box(m.n("dome"), (1.2, 1.2, 0.3), (0, 0, 0.4), dome_m, m.root, taper=(0.55, 0.55))
 
-m = kit.module("flue_stack", **OFFER)
-cyl(m.n("flue"), 0.18, 1.5, (0, 0, 0.75), "Z", galv_m, m.root, seg=10)
-cyl(m.n("collar"), 0.27, 0.12, (0, 0, 0.06), "Z", trim_m, m.root, seg=10, lods=(0, 1))
-cyl(m.n("cowl"), 0.28, 0.15, (0, 0, 1.63), "Z", trim_m, m.root, seg=10, r2=0.08, lods=(0, 1))
+
+@kit.offer("roof_unit")
+def _():
+    m = kit.module("roof_unit", **FITTING)  # a packaged air handler on skids
+    box(m.n("case"), (2.2, 1.3, 0.9), (0, 0, 0.65), galv_m, m.root)
+    cyl(m.n("fan"), 0.4, 0.08, (-0.45, 0, 1.14), "Z", trim_m, m.root, seg=14, lods=(0, 1, 2))
+    box(m.n("grille"), (1.6, 0.03, 0.5), (0, -0.66, 0.65), trim_m, m.root, lods=(0, 1))
+    for s in (-1, 1):
+        box(m.n(f"skid_{'ab'[s > 0]}"), (0.12, 1.3, 0.2), (s * 0.8, 0, 0.1), trim_m, m.root, lods=(0, 1))
+
+
+@kit.offer("duct_run")
+def _():
+    m = kit.module("duct_run", **FITTING)  # 3 m of duct on feet, along +X
+    box(m.n("duct"), (3.0, 0.5, 0.4), (0, 0, 0.5), galv_m, m.root)
+    for s in (-1, 1):
+        box(m.n(f"foot_{'ab'[s > 0]}"), (0.08, 0.6, 0.3), (s * 1.0, 0, 0.15), trim_m, m.root, lods=(0, 1))
+        box(m.n(f"flange_{'ab'[s > 0]}"), (0.05, 0.56, 0.46), (s * 1.475, 0, 0.5), galv_m, m.root, lods=(0, 1))
+
+
+@kit.offer("flue_stack")
+def _():
+    m = kit.module("flue_stack", **FITTING)
+    cyl(m.n("flue"), 0.18, 1.5, (0, 0, 0.75), "Z", galv_m, m.root, seg=10)
+    cyl(m.n("collar"), 0.27, 0.12, (0, 0, 0.06), "Z", trim_m, m.root, seg=10, lods=(0, 1))
+    cyl(m.n("cowl"), 0.28, 0.15, (0, 0, 1.63), "Z", trim_m, m.root, seg=10, r2=0.08, lods=(0, 1))
 
 
 # ---------------------------------------------------------------- shells
@@ -552,7 +626,6 @@ def gabled_shell(m, length, depth, eave, ridge, wall, roof, spans=1, lights=None
     return tan, edge_z
 
 
-PARAPET_M, PARAPET_W = 0.6, 0.25
 
 
 def flat_shell(m, tag, x0, x1, y0, y1, top, wall, deck, mends=()):
@@ -757,7 +830,8 @@ def buckled_sheets(m, tag, ruin, crest, mat, seed, pitch=(9.0, 6.5), stiff=False
     mesh_part(m.n(f"{tag}_roof"), build, mat, m.root, lods=(0, 1, 2))
 
 
-STIFF = [felt_m]  # the roofs that fall as slabs of their deck, not as buckled sheet
+STIFF = [felt_m]  # the roofs that fall as slabs of their deck, not as buckled sheet (a design may add its own:
+# one family runs a process, so its additions here and to ROOFS are its alone)
 
 
 def wrecked(t, tag, tint, blocks):
@@ -1324,9 +1398,7 @@ FIRE_RED, DARK_GREEN, BLACK_GREEN = (150, 40, 32), (44, 74, 56), (34, 44, 40)
 def new_york():
     for name in ("loft_window", "barn_window"):  # steel windows of many small panes under a stone lintel
         glazed(name, 2.0, 2.6 if name == "loft_window" else 3.0, stone=True)
-    tank_wood = flat_paint("tank_wood", (0.13, 0.1, 0.075), rough=0.9, grime=0.4)
-    tank_cone = flat_paint("tank_cone", (0.06, 0.055, 0.05), rough=0.8, grime=0.3)
-    water_tank(kit.module("water_tank", **OFFER), "tank", 0.0, 0.0, 0.0, tank_wood, tank_cone, trim_m)
+    water_tank(kit.module("water_tank", **FITTING), "tank", 0.0, 0.0, 0.0)
     brick = textured("wall_brick_tinted", "facing_brick_pale", tint=1.0, dirt=0.5, chip=0.12, streak=0.45, rise=0.8)
     shed("nyc-shed-15x24", GALVANISED, FIRE_RED, "tarred", "pale", PRIMER,
          mends=[(0, -1, 4.5, 3.0, (0.0, 0.7), "new"), (0, 1, -6.0, 2.25, (0.2, 0.8), "tarred")])
@@ -1361,6 +1433,6 @@ def paris():
     vault_depot("paris-depot-90x39", PARIS_GREY, VERMILION, render_m, vault)
 
 
-{"china": china, "new_york": new_york, "paris": paris}[FAMILY]()
+DESIGN["design"]()
 
-kit.write(next(iter(script_args()[1:]), None))  # a second argument writes the two files somewhere else
+kit.write(OUT)

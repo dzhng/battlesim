@@ -83,9 +83,31 @@ def _fail(message):
     raise SystemExit(f"kit: {message}")
 
 
+def family_set(kind, script):
+    """A set script's family from its arguments, `[family] [out]`: (family, set, receipt, out dir).
+    No argument builds China's set, `kind`, with `script` as its receipt, as it always has; another
+    family's set is `<kind>_<family>`, its receipt `<script> <family>`. The family comes first
+    whenever an out dir is given: `<script> china <out>`. Whether the family is one the script
+    designs is `design`'s to say."""
+    args = script_args()
+    if len(args) > 2:
+        raise SystemExit(f"usage: {script} [family] [out]")
+    family = args[0] if args else "china"
+    china = family == "china"
+    return family, (kind if china else f"{kind}_{family}"), (script if china else f"{script} {family}"), (args[1] if len(args) > 1 else None)
+
+
+def design(designs, family, script):
+    """The script's design for `family` from its family table, refusing one it has none for (a mistyped
+    family, or an out dir given without the family before it) before anything is written."""
+    if family not in designs:
+        raise SystemExit(f"{script}: no family {family!r}; usage: {script} [family] [out], family one of {', '.join(designs)}")
+    return designs[family]
+
+
 class Module:
-    def __init__(self, name, ground, bake, optional=False):
-        self.name, self.ground, self.bake, self.optional = name, ground, bake, optional
+    def __init__(self, name, ground, bake):
+        self.name, self.ground, self.bake = name, ground, bake
         self.root = empty(name)
         self.triangles = None  # per tier, after the bake
         self.points = None  # every vertex of every tier, in the module's frame
@@ -215,8 +237,7 @@ class Template:
     def place(self, module, x=0.0, y=0.0, z=0.0, yaw=0.0, scale=(1.0, 1.0, 1.0), tiers=EVERY_TIER, tint=WHITE,
               state="intact"):
         """One row: `module` scaled, turned about +Z, then moved, in the template's frame."""
-        if module not in self.kit.modules:
-            _fail(f"{self.id}: no module {module}")
+        self.kit.need(module)
         if min(scale) <= 0 or not 1 <= tiers <= 15 or any(c != int(c) or not 0 <= c <= 255 for c in tint):
             _fail(f"{self.id}: {module}: a row's scales are positive, its tiers 1 to 15 and its tint whole numbers to 255")
         self.rows.setdefault(state, []).append((module, x, y, z, yaw % (2 * math.pi), *scale, tiers, *tint))
@@ -279,7 +300,7 @@ class Template:
 
     def cover_bays(self, module, sill):
         """Dress missing positions; align an overlapping pane instead of stacking a second one."""
-        h, foot = self.kit.modules[module].opening[1:]
+        h, foot = self.kit.need(module).opening[1:]
         for edge, offset, floor in self.uncovered_bays():
             x, y, z, yaw = self.at(edge, offset, floor + sill)
             for i, row in enumerate(self.rows["intact"]):
@@ -310,15 +331,32 @@ class Kit:
         if fit_ruin_top_m is not None:
             self.fit["ruin_top_m"] = fit_ruin_top_m
         self.modules, self.templates, self.heaps = {}, [], {}
+        self.offered = {}  # module -> what makes it, the first time a row places it (`offer`)
         self.openings = {}  # module -> the opening it stands in (`opening`)
 
-    def module(self, name, ground=False, optional=False, **bake):
-        """A new module. `bake` overrides what `parts.finish` is given (occlusion reach, paint edge).
-        `optional` is a fitting a script offers every set it writes: a set none of whose templates
-        place it leaves it out, where any other module no template places is an error."""
+    def module(self, name, ground=False, **bake):
+        """A new module. `bake` overrides what `parts.finish` is given (occlusion reach, paint edge)."""
         if not re.fullmatch(r"[a-z0-9_]+", name) or name in self.modules:
             _fail(f"module names are unique and [a-z0-9_]+: {name}")
-        self.modules[name] = Module(name, ground, dict(ao_distance=2.5, ao_strength=0.5, ao_rays=10, paint_scale=3.0) | bake, optional)
+        self.modules[name] = Module(name, ground, dict(ao_distance=2.5, ao_strength=0.5, ao_rays=10, paint_scale=3.0) | bake)
+        return self.modules[name]
+
+    def offer(self, name, build=None):
+        """Offer module `name`, which `build()` makes, to the templates of whichever family a script
+        writes: it is made the first time a row places it, so a set holds what its templates place
+        and nothing else. With no `build`, a decorator."""
+        if build is None:
+            return lambda fn: self.offer(name, fn) or fn
+        self.offered[name] = build
+
+    def need(self, name):
+        """Module `name`, made now if it was offered and not yet made."""
+        if name not in self.modules:
+            if name not in self.offered:
+                _fail(f"no module {name}")
+            self.offered.pop(name)()
+            if name not in self.modules:
+                _fail(f"what was offered as {name} made no module of that name")
         return self.modules[name]
 
     def template(self, id_, category, family, recipe=None, status="release"):
@@ -399,12 +437,6 @@ class Kit:
             gaps = t.uncovered_bays()
             if gaps:
                 _fail(f"{t.id}: declared facade bays without visible openings: {gaps}")
-        placed = {row[0] for t in self.templates for rows in t.rows.values() for row in rows}
-        for name in sorted(set(self.modules) - placed):
-            if self.modules[name].optional:
-                m = self.modules.pop(name)
-                for o in [*m.root.children_recursive, m.root]:
-                    bpy.data.objects.remove(o, do_unlink=True)
         self._bake()
         names = sorted(self.modules)
         index = {name: i for i, name in enumerate(names)}

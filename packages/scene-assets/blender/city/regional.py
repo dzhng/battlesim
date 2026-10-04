@@ -13,28 +13,6 @@ from kit import *  # noqa: F401,F403
 from masonry import _ring, bpy_dark, chimney, house_walls, panel_door, pitched_roof, RoofShape, WALL_BANDS_M  # noqa: F401
 
 
-# ---------------------------------------------------------------- a family's set
-def family_set(kind, script):
-    """A hand-scripted set's family from its arguments, `[family] [out]`: (family, kit, out dir).
-    No argument builds China's set, `kind`, as it always has; another family's set is
-    `<kind>_<family>`. The family comes first whenever an out dir is given: `<script> china
-    <out>`. Whether the family is one the script designs is `design`'s to say."""
-    args = script_args()
-    if len(args) > 2:
-        raise SystemExit(f"usage: {script} [family] [out]")
-    family = args[0] if args else "china"
-    china = family == "china"
-    return family, (kind if china else f"{kind}_{family}"), (script if china else f"{script} {family}"), (args[1] if len(args) > 1 else None)
-
-
-def design(designs, family, script):
-    """The script's design for `family`, refusing one it has none for (a mistyped family, or an out dir
-    given without the family before it) before anything is written."""
-    if family not in designs:
-        raise SystemExit(f"{script}: no family {family!r}; usage: {script} [family] [out], family one of {', '.join(designs)}")
-    return designs[family]
-
-
 # ---------------------------------------------------------------- small shared fittings
 def build_step(kit, mat):
     m = kit.module("step", ground=True, **FITTING)
