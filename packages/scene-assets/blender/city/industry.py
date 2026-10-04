@@ -1328,10 +1328,10 @@ def new_york():
     tank_cone = flat_paint("tank_cone", (0.06, 0.055, 0.05), rough=0.8, grime=0.3)
     water_tank(kit.module("water_tank", **OFFER), "tank", 0.0, 0.0, 0.0, tank_wood, tank_cone, trim_m)
     brick = textured("wall_brick_tinted", "facing_brick_pale", tint=1.0, dirt=0.5, chip=0.12, streak=0.45, rise=0.8)
-    shed("nyc-shed-15x24", GALVANISED, FIRE_RED, "new", "pale", PRIMER,
+    shed("nyc-shed-15x24", GALVANISED, FIRE_RED, "tarred", "pale", PRIMER,
          mends=[(0, -1, 4.5, 3.0, (0.0, 0.7), "new"), (0, 1, -6.0, 2.25, (0.2, 0.8), "tarred")])
     loft("nyc-loft-48x24", NYC_RED, DARK_GREEN, brick)
-    barn("nyc-warehouse-72x33", "warehouse", 72.0, 33.0, 4, 6.0, 8.4, NYC_BROWN, BLACK_GREEN, brick, "new", "dull", dict(Doors=4),
+    barn("nyc-warehouse-72x33", "warehouse", 72.0, 33.0, 4, 6.0, 8.4, NYC_BROWN, BLACK_GREEN, brick, "rusty", "dull", dict(Doors=4),
          mends=[(1, -1, 4.0, 3.0, (0.0, 0.6), "new"), (3, 1, -9.0, 4.5, (0.3, 1.0), "new")])
     office = textured("office_brick", "brick", colour=(0.3, 0.2, 0.13), dirt=0.5, chip=0.12, streak=0.45, rise=0.8, mottle=0.08)
     works("nyc-works-54x36", brick_m, brick_high_m, office, WHITE, "tarred", DARK_GREEN, dict(Structure="brick hall, brick office"),
@@ -1348,13 +1348,13 @@ VERMILION, PARIS_GREEN, WINDOW_BLUE = (184, 70, 42), (44, 104, 84), (62, 96, 136
 def paris():
     glazed("atelier_window", 2.0, 3.4, stone=True)
     ROOFS["fibre"] = sheet("roof_fibre", (0.25, 0.25, 0.235), rust=0.0, soil=0.9, seed=9.0)  # corrugated fibre cement, lichened
-    vault = felt("vault_concrete", 7.0, recipe="concrete", colour=(0.22, 0.218, 0.21))
+    vault = felt("vault_concrete", 7.0, recipe="concrete", colour=(0.15, 0.148, 0.142))
     STIFF.append(vault)
     plinth = textured("plinth_brick", "brick", colour=(0.17, 0.08, 0.06), dirt=0.8, chip=0.12, rise=0.7, mottle=0.08)
     shed("paris-shed-15x24", STEEL_BLUE, VERMILION, "fibre", "pale", PARIS_GREY,
          mends=[(0, -1, -4.5, 3.0, (0.0, 0.6), "new"), (0, 1, 6.0, 2.25, (0.3, 1.0), "tarred")])
     atelier("paris-atelier-48x24", PARIS_CREAM, WINDOW_BLUE, render_m, plinth, "fibre", brick_high_m)
-    span_warehouse("paris-warehouse-72x33", PARIS_WHITE, PARIS_GREEN, "new", "dull",
+    span_warehouse("paris-warehouse-72x33", PARIS_WHITE, PARIS_GREEN, "fibre", "dull",
                    mends=[(0, 1, -12.0, 4.5, (0.0, 0.7), "new"), (1, -1, 20.0, 3.0, (0.3, 1.0), "tarred")])
     works("paris-works-54x36", render_m, brick_high_m, brick_m, PARIS_OCHRE, "fibre", WINDOW_BLUE, dict(Structure="rendered hall, brick office"),
           ("render", "brick"))
