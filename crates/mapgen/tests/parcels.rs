@@ -665,9 +665,11 @@ fn a_districts_built_ground_follows_its_category_shares() {
 /// M08: one map, one regional family, whichever the seed draws.
 #[test]
 fn every_building_of_a_map_is_of_one_regional_family() {
-    // A second family beside the catalogue's own: the same shapes under other ids.
+    // Two families of the same shapes, one a relabelled copy of the other,
+    // so only the draw can tell them apart.
     let mut templates: Vec<BuildingTemplateDescriptor> = serde_json::from_str(TEMPLATES).unwrap();
     let family = templates[0].regional_family.clone();
+    templates.retain(|template| template.regional_family == family);
     let other = templates.clone().into_iter().map(|mut template| {
         template.id = format!("other-{}", template.id);
         template.regional_family = "other".into();
@@ -698,6 +700,36 @@ fn every_building_of_a_map_is_of_one_regional_family() {
         drawn.extend(families.into_iter().map(str::to_string));
     }
     assert_eq!(drawn.len(), 2, "eight seeds drew only {drawn:?}");
+}
+
+/// M08: whichever family a seed draws must build the whole map, so each
+/// listed family alone fills every map type's districts and countryside.
+/// Size adds settlements, not district kinds; the sweep covers the sizes.
+#[test]
+fn each_regional_family_alone_builds_every_map_type() {
+    let rules = sim::fixtures::game().to_string();
+    for family in presets().parcels.regional_families {
+        let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
+        source["parcels"]["regional_families"] = serde_json::json!([family]);
+        for map_type in TYPES {
+            let request = request(map_type, MapSize::Small, 1);
+            let map = match mapgen::generate_map(
+                &serde_json::to_string(&request).unwrap(),
+                &source.to_string(),
+                TEMPLATES,
+                &rules,
+            ) {
+                mapgen::CompileOutcome::Ok { result } => result.map,
+                mapgen::CompileOutcome::Error { diagnostics } => {
+                    panic!("{family} {map_type:?}: {diagnostics:?}")
+                }
+            };
+            assert!(!map.buildings.is_empty(), "{family} {map_type:?}");
+            for building in &map.buildings {
+                assert_eq!(building.regional_family, family, "{map_type:?}");
+            }
+        }
+    }
 }
 
 /// M05: a bigger map has more town, not bigger town. Streets and avenues
