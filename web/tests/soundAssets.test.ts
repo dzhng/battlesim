@@ -126,3 +126,69 @@ test.skipIf(!hasFfmpeg)("a burst clip re-lays its source shots at the gun's inte
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test.skipIf(!hasFfmpeg)(
+  "a layered clip mixes crops of several sources at their offsets, gains and pitch",
+  () => {
+    const root = mkdtempSync(join(tmpdir(), "battle-audio-layers-"));
+    try {
+      const crack = (rate: number, length: number) => {
+        const x = new Float32Array(length);
+        for (let i = 0; i < 1200; i++) x[200 + i] = 0.8 * Math.exp(-i / 200) * (i % 2 ? 1 : -1);
+        return wav(x, rate);
+      };
+      // Two sources at different rates; the layered clip owns no single source.
+      const strike = crack(48000, 4000);
+      const whine = crack(44100, 4000);
+      mkdirSync(join(root, "fixtures"));
+      mkdirSync(join(root, "assets/third-party/audio"), { recursive: true });
+      writeFileSync(join(root, "assets/third-party/audio/strike.wav"), strike);
+      writeFileSync(join(root, "assets/third-party/audio/whine.wav"), whine);
+      const sha = (b: Buffer) => createHash("sha256").update(b).digest("hex");
+      const layer = (source: string, rate: number, at_s: number, semitones: number) => ({
+        source,
+        source_rate: rate,
+        source_frames: [200, 1600],
+        at_s,
+        gain: 1,
+        semitones,
+        lowpass_hz: null,
+      });
+      writeFileSync(
+        join(root, "fixtures/sounds.json"),
+        JSON.stringify({
+          sources: {
+            strike: { path: "assets/third-party/audio/strike.wav", sha256: sha(strike) },
+            whine: { path: "assets/third-party/audio/whine.wav", sha256: sha(whine) },
+          },
+          clips: {
+            layered: {
+              processing: "impact",
+              url: "/audio/clips/layered.wav",
+              loop: false,
+              layers: [layer("strike", 48000, 0, 0), layer("whine", 44100, 0.05, -12)],
+            },
+          },
+        }),
+      );
+      const run = spawnSync(
+        "python3",
+        [resolve("../packages/battle-audio/tools/assets.py"), "build", "--root", root],
+        { encoding: "utf8" },
+      );
+      expect(run.stderr).toBe("");
+      expect(run.status).toBe(0);
+      const out = readFileSync(join(root, "assets/runtime/audio/clips/layered.wav"));
+      const pcm = new Int16Array(out.buffer, out.byteOffset + 44, (out.length - 44) / 2);
+      const attacks: number[] = [];
+      for (let i = 1; i < pcm.length; i++)
+        if (Math.abs(pcm[i]) > 6000 && (!attacks.length || i - attacks.at(-1)! > 1200))
+          attacks.push(i);
+      expect(attacks.map((i) => Math.round(i / 48))).toEqual([0, 50]);
+      // An octave down plays the 1400-frame crop twice as long, after its offset.
+      expect(pcm.length).toBe(Math.round(0.05 * 48000 + (2 * 1400 * 48000) / 44100));
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  },
+);

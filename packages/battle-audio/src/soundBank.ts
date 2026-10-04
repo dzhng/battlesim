@@ -1,4 +1,4 @@
-import type { SoundCatalog, SoundRecipe } from "./catalog";
+import { clipCadence, type SoundCatalog, type SoundRecipe } from "./catalog";
 import { gameSounds } from "./shippedSounds";
 import { seamless, synthesize } from "./synth";
 import { sourceNormalization } from "./loudness";
@@ -120,11 +120,13 @@ export class SoundBank {
     const choices = core.length ? core : [null];
     const started = performance.now();
     const buffers = choices.map((clip, i) => {
-      const burst = clip && this.catalog.clips[recipe.clips[i]].burst;
-      const shots = burst
-        ? burst.shots.map((_, k) => Math.round(k * burst.interval_s * this.context.sampleRate))
-        : [0];
-      return this.mix(recipe, clip, support, shots);
+      const { shots, interval_s } = clipCadence(
+        clip ? this.catalog.clips[recipe.clips[i]] : undefined,
+      );
+      const offsets = Array.from({ length: shots }, (_, k) =>
+        Math.round(k * interval_s * this.context.sampleRate),
+      );
+      return this.mix(recipe, clip, support, offsets);
     });
     const authoredGain = recipe.gain * (core.length ? 1 : recipe.synth_gain);
     for (const buffer of buffers)

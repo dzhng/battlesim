@@ -131,7 +131,8 @@ export class SoundWorkbenchStore {
       catalog: input.catalog,
       units,
       firing: input.audio.shots,
-      materials: Object.keys(input.audio.impacts),
+      // A glance is a contact too: each round may choose its ricochet.
+      materials: [...Object.keys(input.audio.impacts), "ricochet"],
       rounds: input.rounds,
     };
   }

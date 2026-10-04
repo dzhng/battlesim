@@ -33,7 +33,7 @@ import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
 import { gameEffects } from "./effectFeed";
 import { gameAudio } from "./soundFeed";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
-import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
+import { battleSounds, type SoundCatalog } from "@packages/battle-audio/src/catalog";
 
 export const FIREFIGHT_S = 8;
 const HZ = game.tick_hz;
@@ -365,7 +365,7 @@ async function offlineSound(seconds: number, solo?: Bus, catalog: SoundCatalog =
       }
     : gameAudio;
   const sink = new OfflineSink(ctx, presentation, catalog);
-  await sink.bank.prepare();
+  await sink.bank.prepare(battleSounds(catalog));
   const frame = new SoundFrame(
     { tickHz: HZ, presentation, catalog, smokeTimes: gameEffects.smoke },
     sink,

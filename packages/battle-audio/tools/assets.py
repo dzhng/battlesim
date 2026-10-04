@@ -16,6 +16,7 @@ FILTERS = {
     "heavy-report": "highpass=f=35,equalizer=f=100:t=o:w=1.2:g=4,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
     "impact": "highpass=f=60",
     "heavy-impact": "highpass=f=35,lowpass=f=4500,equalizer=f=120:t=o:w=1:g=3",
+    "armour-impact": "highpass=f=30",
     "handling": "highpass=f=60",
     "launch": "highpass=f=40,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
     "motor-loop": "highpass=f=80,lowpass=f=6000",
@@ -64,6 +65,23 @@ def sources(root, catalog):
     return decoded
 
 
+def overlay(parts):
+    """Sum (offset, samples) parts into one buffer."""
+    out = array.array("f", bytes(4 * max(at + len(x) for at, x in parts)))
+    for at, x in parts:
+        for i, value in enumerate(x):
+            out[at + i] += value
+    return out
+
+
+def cut(decoded, name, rate, frames):
+    source_rate, source = decoded[name]
+    start, end = frames
+    if rate != source_rate or not (0 <= start < end <= len(source)):
+        raise ValueError("invalid source frame range/rate")
+    return source[start:end]
+
+
 def relay(source, burst, rate, start, end):
     """Overlap-add each source shot `interval_s` after the last, at the gun's cadence.
 
@@ -73,27 +91,53 @@ def relay(source, burst, rate, start, end):
     shots = burst["shots"]
     if len(shots) < 2 or step <= 0 or any(not (start <= a < b <= end) for a, b in shots):
         raise ValueError("invalid burst shots or interval")
-    out = array.array("f", bytes(4 * max(k * step + b - a for k, (a, b) in enumerate(shots))))
+    parts = []
     for k, (a, b) in enumerate(shots):
         shot = source[a:b]
         fade = min(480, len(shot) // 4)
         for i in range(fade):
             shot[-1 - i] *= i / fade
-        for i, value in enumerate(shot):
-            out[k * step + i] += value
-    return out
+        parts.append((k * step, shot))
+    return overlay(parts)
+
+
+def layer(decoded, spec):
+    """One layer at 48 kHz: its crop pitched by resampling (lower is also slower,
+    as a bigger, slower body would sound), optionally low-passed, at its gain,
+    fading out over its last quarter, at most 150 ms."""
+    crop = cut(decoded, spec["source"], spec["source_rate"], spec["source_frames"])
+    if sys.byteorder != "little":
+        crop.byteswap()
+    shifted = round(spec["source_rate"] * 2 ** (spec["semitones"] / 12))
+    filters = [f"asetrate={shifted}", "aresample=48000"]
+    if spec["lowpass_hz"]:
+        filters += [f"lowpass=f={spec['lowpass_hz']}"] * 2
+    x = floats(ffmpeg(["-f", "f32le", "-ar", str(spec["source_rate"]), "-ac", "1", "-i", "-",
+                       "-af", ",".join(filters), "-f", "f32le", "-"], crop.tobytes()))
+    # A crop may end mid-rumble; fade it out rather than cut it off.
+    fade = min(len(x) // 4, 7200)
+    for i in range(fade):
+        x[-1 - i] *= i / fade
+    return array.array("f", (v * spec["gain"] for v in x))
 
 
 def render(clip, decoded):
-    rate, source = decoded[clip["source"]]
-    start, end = clip["source_frames"]
-    if rate != clip["source_rate"] or not (0 <= start < end <= len(source)):
-        raise ValueError("invalid source frame range/rate")
     profile = clip["processing"]
     if profile not in FILTERS:
         raise ValueError(f"unknown processing profile {profile}")
-    burst = clip.get("burst")
-    crop = relay(source, burst, rate, start, end) if burst else source[start:end]
+    if "layers" in clip:
+        if not clip["layers"] or any(spec["at_s"] < 0 for spec in clip["layers"]):
+            raise ValueError("invalid layers")
+        rate = 48000
+        crop = overlay([(round(spec["at_s"] * rate), layer(decoded, spec)) for spec in clip["layers"]])
+    else:
+        rate = clip["source_rate"]
+        start, end = clip["source_frames"]
+        source = decoded[clip["source"]][1]
+        crop = cut(decoded, clip["source"], rate, clip["source_frames"])
+        burst = clip.get("burst")
+        if burst:
+            crop = relay(source, burst, rate, start, end)
     if sys.byteorder != "little":
         crop.byteswap()
     x = floats(ffmpeg(["-f", "f32le", "-ar", str(rate), "-ac", "1", "-i", "-",

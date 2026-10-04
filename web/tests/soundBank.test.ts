@@ -280,7 +280,7 @@ test("synthesized support sounds under every shot of a recorded burst", async ()
     },
   } as unknown as BaseAudioContext;
   const catalog = recordingCatalog();
-  catalog.clips.first.burst = {
+  (catalog.clips.first as { burst: unknown }).burst = {
     shots: [
       [0, 1],
       [1, 2],

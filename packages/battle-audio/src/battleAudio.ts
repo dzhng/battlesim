@@ -15,7 +15,9 @@ import {
   type SoundPublication,
   type SoundStats,
 } from "./soundFrame";
+import { battleSounds } from "./catalog";
 import { soundSettings } from "./settings";
+import { gameSounds } from "./shippedSounds";
 import { WebAudioSink } from "./webAudioSink";
 
 /** Where the listener stands for a camera: `share` of the way from the
@@ -84,7 +86,7 @@ export class BattleAudio {
       this.frame = new SoundFrame(this.options, this.sink);
       const sink = this.sink;
       void sink.bank
-        .prepare()
+        .prepare(battleSounds(this.options.catalog ?? gameSounds))
         .then(() => {
           if (this.sink !== sink) return;
           this.ready = true;

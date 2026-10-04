@@ -556,3 +556,54 @@ test("separate named mounts preserve explicit recipes while implicit impacts fol
       .sort(),
   ).toEqual(["cannon", "dirt_hit", "hard_hit", "roof_report"]);
 });
+
+test("a glancing round's ricochet follows its kind, heavier rounds louder", () => {
+  const catalog = {
+    sources: {},
+    clips: {},
+    sounds: {},
+    defaults: {},
+    units: {},
+    impacts: { ricochet: { tank_ap: "shell_glance" } },
+    effects: { ricochet: "bullet_glance" },
+  } as unknown as SoundCatalog;
+  const glance = (kind: string) => {
+    const sink = new FakeSink();
+    const frame = new SoundFrame(
+      { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, catalog },
+      sink,
+    );
+    run(frame, sink, 1, 3, (tick) => ({
+      tick,
+      shooters: [],
+      segments:
+        tick === 2
+          ? [
+              {
+                path: [
+                  [0, -20, 1],
+                  [0, -15, 1],
+                  [5, -10, 4],
+                ],
+                ricochets: [{ point: 1, normal: [0, 1, 0] }],
+                kind,
+                shooter: null,
+                hit: "none",
+                normal: null,
+              },
+            ]
+          : [],
+      blasts: [],
+      smokes: [],
+    }));
+    return sink.started.filter((v) => !v.loop).map((v) => ({ sound: v.sound, gain: v.gain }));
+  };
+  const shell = glance("tank_ap");
+  const bullet = glance("rifle");
+  expect(shell.map((v) => v.sound)).toEqual(["shell_glance"]);
+  expect(bullet.map((v) => v.sound)).toEqual(["bullet_glance"]);
+  // Both glance at the same place: only the round's weight sets the level.
+  expect(shell[0].gain / bullet[0].gain).toBeCloseTo(
+    AUDIO.impact_scale.tank_ap / (AUDIO.impact_scale.rifle ?? AUDIO.impact_scale.default),
+  );
+});

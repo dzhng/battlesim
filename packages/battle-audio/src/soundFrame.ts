@@ -374,11 +374,11 @@ export class SoundFrame {
           const pt = s.path[r.point];
           this.queue(
             at,
-            this.effect(p.ricochet.sound),
+            this.contact("ricochet", s.kind, p.ricochet.sound),
             null,
             0,
             "effects",
-            p.ricochet.gain,
+            p.ricochet.gain * pick(p.impact_scale, s.kind),
             pt,
             endKey(pt),
           );
@@ -390,9 +390,7 @@ export class SoundFrame {
         const scale = pick(p.impact_scale, s.kind);
         this.queue(
           t1,
-          this.catalog.impacts[s.hit]?.[s.kind] ??
-            this.catalog.impacts[s.hit]?.default ??
-            this.effect(hit.sound),
+          this.contact(s.hit, s.kind, hit.sound),
           null,
           0,
           "effects",
@@ -469,6 +467,13 @@ export class SoundFrame {
     }
     if (this.pending.length > PENDING_CAP)
       this.pending.splice(0, this.pending.length - PENDING_CAP);
+  }
+
+  /** A round's sound on a contact (a hit material, or a glance): the round's
+   *  choice, the contact's default, or the baseline slot's replacement. */
+  private contact(contact: string, kind: string, baseline: string): string {
+    const row = this.catalog.impacts[contact];
+    return row?.[kind] ?? row?.default ?? this.effect(baseline);
   }
 
   private effect(sound: string): string {

@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 import units from "@fixtures/catalog.json";
 import shipped from "@fixtures/sounds.json";
 import {
+  battleSounds,
   firingCadence,
   resolveShot,
   validateSoundCatalog,
@@ -157,7 +158,7 @@ test("a firing sound's alternatives and near/far pair cover the same rounds", ()
   c.sounds.burst.clips = ["three", "one"];
   expect(() => validateSoundCatalog(c)).toThrow(/different bursts/);
   c.sounds.burst.clips = ["three"];
-  c.clips.three.burst!.shots[2] = [900, 1100];
+  (c.clips.three as { burst: { shots: number[][] } }).burst.shots[2] = [900, 1100];
   expect(() => validateSoundCatalog(c)).toThrow(/invalid burst/);
 });
 
@@ -190,4 +191,63 @@ test("every shipped burst recording fires at its gun's cadence and divides its b
     }
   }
   expect(bursts).toBeGreaterThan(0);
+});
+
+test("a designed clip layers crops of attributed sources; each layer names a real source", () => {
+  const c = catalog();
+  const source = (license: string) => ({
+    label: "Source",
+    author: "Author",
+    license,
+    url: "https://example.com/source",
+    path: "assets/third-party/audio/source.mp3",
+    sha256: "a".repeat(64),
+    notes: "",
+  });
+  c.sources = { strike: source("CC0-1.0"), whine: source("CC-BY-4.0") };
+  const layer = (source: string, at_s: number) => ({
+    source,
+    source_rate: 44100,
+    source_frames: [100, 2000] as [number, number],
+    at_s,
+    gain: 0.8,
+    semitones: -12,
+    lowpass_hz: null,
+  });
+  c.clips.heavy = {
+    label: "Heavy ricochet",
+    category: "ricochet",
+    role: "impact",
+    layers: [layer("strike", 0), layer("whine", 0.01)],
+    processing: "impact",
+    url: "/audio/clips/heavy.wav",
+    sha256: "b".repeat(64),
+    sample_rate: 48000,
+    frames: 4000,
+    loop: false,
+    notes: "",
+  };
+  expect(validateSoundCatalog(c)).toBe(c);
+  c.sources.whine.license = "All rights reserved";
+  expect(() => validateSoundCatalog(c)).toThrow(/whine: invalid provenance/);
+  c.sources.whine.license = "CC-BY-NC-3.0";
+  expect(validateSoundCatalog(c)).toBe(c);
+  (c.clips.heavy as { layers: { source: string }[] }).layers[1].source = "missing";
+  expect(() => validateSoundCatalog(c)).toThrow(/clip heavy/);
+});
+
+test("a battle prepares the baselines and what is assigned, not the audition-only library", () => {
+  const c = catalog();
+  const recipe = { label: "r", clips: [], synth: "rifle", synth_gain: 0.5, gain: 1, loop: false };
+  for (const name of ["near", "far", "fallback", "hit", "glance", "replacement", "unused"])
+    c.sounds[name] = { ...recipe };
+  c.units.scout = { rifle: { near: "near", far: "far", gain: 1 } };
+  c.defaults.default = { near: "fallback", far: "fallback", gain: 1 };
+  c.impacts = { hull: { rifle: "hit" }, ricochet: { tank_ap: "glance" } };
+  c.effects = { ricochet: "replacement" };
+  const prepared = battleSounds(c);
+  expect(prepared).toEqual(expect.arrayContaining(["rifle", "hmg", "near", "far", "fallback"]));
+  expect(prepared).toEqual(expect.arrayContaining(["hit", "glance", "replacement"]));
+  expect(prepared).not.toContain("unused");
+  expect(new Set(prepared).size).toBe(prepared.length);
 });

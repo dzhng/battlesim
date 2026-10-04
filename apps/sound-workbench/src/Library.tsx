@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { SOUNDS } from "../../../packages/battle-audio/src/synth";
 import { RecipeEditor } from "./RecipeEditor";
 import type { EditorProps } from "./editorProps";
@@ -119,7 +119,8 @@ export function Library({
         {selected?.kind === "clip" && draft.clips[selected.id] ? (
           (() => {
             const clip = draft.clips[selected.id];
-            const source = draft.sources[clip.source];
+            // A recording's crop, or each layer of a designed clip.
+            const crops = "layers" in clip ? clip.layers : [clip];
             return (
               <section className="sw-detail">
                 <p className="sw-eyebrow">CLEAN RECORDING · {clip.role.toUpperCase()}</p>
@@ -134,22 +135,34 @@ export function Library({
                   <dd>
                     {(clip.frames / clip.sample_rate).toFixed(3)} s · {clip.sample_rate} Hz
                   </dd>
-                  <dt>Source</dt>
-                  <dd>
-                    <a href={source.url} target="_blank" rel="noreferrer">
-                      {source.label}
-                    </a>{" "}
-                    · {source.author} · {source.license}
-                  </dd>
-                  <dt>Source crop</dt>
-                  <dd>
-                    {(clip.source_frames[0] / clip.source_rate).toFixed(3)}–
-                    {(clip.source_frames[1] / clip.source_rate).toFixed(3)} s
-                  </dd>
+                  {crops.map((crop, i) => {
+                    const source = draft.sources[crop.source];
+                    return (
+                      <Fragment key={i}>
+                        <dt>{crops.length > 1 ? `Layer ${i + 1}` : "Source"}</dt>
+                        <dd>
+                          <a href={source.url} target="_blank" rel="noreferrer">
+                            {source.label}
+                          </a>{" "}
+                          · {source.author} · {source.license}
+                          <br />
+                          {(crop.source_frames[0] / crop.source_rate).toFixed(3)}–
+                          {(crop.source_frames[1] / crop.source_rate).toFixed(3)} s
+                          {"at_s" in crop &&
+                            ` · at ${crop.at_s.toFixed(3)} s · gain ${crop.gain} · ${crop.semitones} st` +
+                              (crop.lowpass_hz ? ` · low-pass ${crop.lowpass_hz} Hz` : "")}
+                        </dd>
+                      </Fragment>
+                    );
+                  })}
                   <dt>Processing</dt>
                   <dd>{clip.processing}</dd>
                 </dl>
-                {source.notes && <p>{source.notes}</p>}
+                {[...new Set(crops.map((crop) => draft.sources[crop.source].notes))]
+                  .filter(Boolean)
+                  .map((notes) => (
+                    <p key={notes}>{notes}</p>
+                  ))}
                 {["reload", "mechanical"].includes(clip.role) && (
                   <p>
                     Stored for audition. The current battle feed has no reload or mechanical-action

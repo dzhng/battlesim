@@ -71,6 +71,357 @@
       "path": "assets/third-party/audio/fire-explosion-preview.mp3",
       "sha256": "8cc8b2ee337972ce88e9138b00da1e57142b1117c641a0fbe52570d3337706bf",
       "notes": "Public low-quality Freesound MP3 preview of the CC0 sound; lossless master requires login. Retained as downloaded; replace independently when a master is available. Foley/design category is not claimed as a live ammunition recording."
+    },
+    "freesound-675951": {
+      "label": "S31-15 Shooting gallery; hitting metal targets.wav",
+      "author": "craigsmith",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/craigsmith/sounds/675951/",
+      "path": "assets/third-party/audio/freesound-675951-s31-15-shooting-gallery-hitting-metal-ta.mp3",
+      "sha256": "ec54654abe849ca4ce3cc8c6177f5251b934c76d7a5168e33ef1c4f8532ccd14",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-108264": {
+      "label": "BangingOilTank.wav",
+      "author": "klakmart",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/klakmart/sounds/108264/",
+      "path": "assets/third-party/audio/freesound-108264-bangingoiltank-wav.mp3",
+      "sha256": "71edf6ac12e09d72672729383af35915f6328a09a640801324eaaf8f9ecb2e90",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-434336": {
+      "label": "Hollow tank hit",
+      "author": "draftcraft",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/draftcraft/sounds/434336/",
+      "path": "assets/third-party/audio/freesound-434336-hollow-tank-hit.mp3",
+      "sha256": "a28eedc79426b4b2dabb3f4430f1fc4788e97fa0e54d835e21bcb66d68c60e9a",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-640204": {
+      "label": "Heavy Metal Thud on Ground",
+      "author": "7of9Designs",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/7of9Designs/sounds/640204/",
+      "path": "assets/third-party/audio/freesound-640204-heavy-metal-thud-on-ground.mp3",
+      "sha256": "fa19f1983c27e5f66906eebfa3911bd3322e85d271cd50559d6ead5d5881fac4",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-703247": {
+      "label": "Big falling debris (crash)",
+      "author": "xkeril",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/xkeril/sounds/703247/",
+      "path": "assets/third-party/audio/freesound-703247-big-falling-debris-crash.mp3",
+      "sha256": "6d812be91eec9ceea5d4ad50ab8d0c290977be7f1a24f5ae25327dec0a94b944",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-151624": {
+      "label": "Clank Car Crash Collision",
+      "author": "qubodup",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/qubodup/sounds/151624/",
+      "path": "assets/third-party/audio/freesound-151624-clank-car-crash-collision.mp3",
+      "sha256": "bdd232131b376d6b674e9a4c008eef9e94b1e65d797296b3bd06448b8b3a5944",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-332056": {
+      "label": "Fast Collision",
+      "author": "qubodup",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/qubodup/sounds/332056/",
+      "path": "assets/third-party/audio/freesound-332056-fast-collision.mp3",
+      "sha256": "a37fdbadf85c9e47fdcbde82ccccb525f016ac9f20ac4218bbc262c295a26219",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-438522": {
+      "label": "G33-16-Explosion with Metallic Debris.wav",
+      "author": "craigsmith",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/craigsmith/sounds/438522/",
+      "path": "assets/third-party/audio/freesound-438522-g33-16-explosion-with-metallic-debris-wa.mp3",
+      "sha256": "ca5135b5aaa657b294b9262d8e3b47e07041f595b9965134c8f9007f2772c317",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-569555": {
+      "label": "Foley_Impact_Metal_Long_Mono.wav",
+      "author": "Nox_Sound",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/Nox_Sound/sounds/569555/",
+      "path": "assets/third-party/audio/freesound-569555-foley-impact-metal-long-mono-wav.mp3",
+      "sha256": "cea7f8ce521a0c2b7d78f2f52775ecf64132a92aba7ffa0a339331aa9ce11cb9",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-445775": {
+      "label": "Metal thud.WAV",
+      "author": "DDT197",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/DDT197/sounds/445775/",
+      "path": "assets/third-party/audio/freesound-445775-metal-thud-wav.mp3",
+      "sha256": "1d80a994cab1c83839cd9f448669d870ec578e21cbbc4ae649393a10a07a00ae",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-390794": {
+      "label": "impact_destruction.wav",
+      "author": "mhad",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/mhad/sounds/390794/",
+      "path": "assets/third-party/audio/freesound-390794-impact-destruction-wav.mp3",
+      "sha256": "a464d3b1056bf1c315d3e54db2a3ae45e08e3a5f959a6d4bf3467b5a9d87182e",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-144444": {
+      "label": "bullet impacts",
+      "author": "pushkin",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/pushkin/sounds/144444/",
+      "path": "assets/third-party/audio/freesound-144444-bullet-impacts.mp3",
+      "sha256": "62cbd2ccede59ff8d6032229b5e740786bb01dd8b195b0bc69a2f47bfcd357fb",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-222881": {
+      "label": "Deep Metal Impact (37) 2",
+      "author": "Speedenza",
+      "license": "CC-BY-NC-3.0",
+      "url": "https://freesound.org/people/Speedenza/sounds/222881/",
+      "path": "assets/third-party/audio/freesound-222881-deep-metal-impact-37-2.mp3",
+      "sha256": "05501f6ea241bbf2036429a6e81f05d43d004e9de73f8ad83cb8cf4e8884c075",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-NC-3.0: credit Speedenza. Non-commercial licence: remove before any commercial release."
+    },
+    "freesound-193601": {
+      "label": "Crunchy Metal Impact",
+      "author": "Speedenza",
+      "license": "CC-BY-NC-3.0",
+      "url": "https://freesound.org/people/Speedenza/sounds/193601/",
+      "path": "assets/third-party/audio/freesound-193601-crunchy-metal-impact.mp3",
+      "sha256": "313979c4869a79e6e6d31b2de65dd159f5a47ed7189e49792e38f3f9f0d61b0f",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-NC-3.0: credit Speedenza. Non-commercial licence: remove before any commercial release."
+    },
+    "freesound-167841": {
+      "label": "Deep Metal Impact (37) 1.wav",
+      "author": "Speedenza",
+      "license": "CC-BY-NC-3.0",
+      "url": "https://freesound.org/people/Speedenza/sounds/167841/",
+      "path": "assets/third-party/audio/freesound-167841-deep-metal-impact-37-1-wav.mp3",
+      "sha256": "075d9c0fb8c5440f5a7a9f92bd8f2daa5220b8302bf8de0364da838d45f4ef18",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-NC-3.0: credit Speedenza. Non-commercial licence: remove before any commercial release."
+    },
+    "freesound-167840": {
+      "label": "Deep Metal Impact (79) 1s.wav",
+      "author": "Speedenza",
+      "license": "CC-BY-NC-3.0",
+      "url": "https://freesound.org/people/Speedenza/sounds/167840/",
+      "path": "assets/third-party/audio/freesound-167840-deep-metal-impact-79-1s-wav.mp3",
+      "sha256": "7e40f4d2d9eb4bdef9f4fb6a3f6f0bd20f82bc11baea2087756fb3cf58a9922d",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-NC-3.0: credit Speedenza. Non-commercial licence: remove before any commercial release."
+    },
+    "freesound-167839": {
+      "label": "Deep Metal Impact (82) 1.wav",
+      "author": "Speedenza",
+      "license": "CC-BY-NC-3.0",
+      "url": "https://freesound.org/people/Speedenza/sounds/167839/",
+      "path": "assets/third-party/audio/freesound-167839-deep-metal-impact-82-1-wav.mp3",
+      "sha256": "45792076d933c8a490039776030642e3cc8263ad2a6baa00eb528eb2a74c5941",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-NC-3.0: credit Speedenza. Non-commercial licence: remove before any commercial release."
+    },
+    "freesound-653294": {
+      "label": "Big Structure Collision Heard from Inside",
+      "author": "Osvoldon",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/Osvoldon/sounds/653294/",
+      "path": "assets/third-party/audio/freesound-653294-big-structure-collision-heard-from-insid.mp3",
+      "sha256": "912cfde3544778d8386f09bf153f58f2c364e178e609d26fcd7d5ac191fea5b0",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-244394": {
+      "label": "Bang/Explosion Metallic",
+      "author": "Werra",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/Werra/sounds/244394/",
+      "path": "assets/third-party/audio/freesound-244394-bang-explosion-metallic.mp3",
+      "sha256": "5f98dc74636b0b69153e32f29214bdc74a1b41e96f2fcb7c2d55cfb61eb4748f",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-209772": {
+      "label": "Metal Boom",
+      "author": "Johnnyfarmer",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/Johnnyfarmer/sounds/209772/",
+      "path": "assets/third-party/audio/freesound-209772-metal-boom.mp3",
+      "sha256": "3e1684c2aefd70c429fd8ba0e761380eaeb23f810a3a485a2375fe44274a445e",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-406493": {
+      "label": "hit - metallic - deep hollow thunk.wav",
+      "author": "Anthousai",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/Anthousai/sounds/406493/",
+      "path": "assets/third-party/audio/freesound-406493-hit-metallic-deep-hollow-thunk-wav.mp3",
+      "sha256": "56fba774d6817db55cbed5891e8a4628cd2d7da452e11e94187eb71c106cc78a",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-407349": {
+      "label": "FX_Metallic_hit.wav",
+      "author": "ForTheHorde68",
+      "license": "CC-BY-NC-3.0",
+      "url": "https://freesound.org/people/ForTheHorde68/sounds/407349/",
+      "path": "assets/third-party/audio/freesound-407349-fx-metallic-hit-wav.mp3",
+      "sha256": "da979e54439a2af280d614e2c54d03c8ed040456d975bb7aed8ca6ac11fa5943",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-NC-3.0: credit ForTheHorde68. Non-commercial licence: remove before any commercial release."
+    },
+    "freesound-423107": {
+      "label": "Guns & Explosions Album - Bullet Impact 14.wav",
+      "author": "OGsoundFX",
+      "license": "CC-BY-4.0",
+      "url": "https://freesound.org/people/OGsoundFX/sounds/423107/",
+      "path": "assets/third-party/audio/freesound-423107-guns-explosions-album-bullet-impact-14-w.mp3",
+      "sha256": "7e8ad23ee5fdafb50d27faf8afd444dde9c788acee5d3865cf1395e75cdd7ba5",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-4.0: credit OGsoundFX."
+    },
+    "freesound-319590": {
+      "label": "Shield Bash Impact",
+      "author": "Hybrid_V",
+      "license": "CC-BY-3.0",
+      "url": "https://freesound.org/people/Hybrid_V/sounds/319590/",
+      "path": "assets/third-party/audio/freesound-319590-shield-bash-impact.mp3",
+      "sha256": "2e2200b04c71c9fb4437bbed7a951502c1352bd93700f1bd1f77e64aaa0ac748",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-3.0: credit Hybrid_V."
+    },
+    "freesound-222517": {
+      "label": "Dramatic Hit",
+      "author": "qubodup",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/qubodup/sounds/222517/",
+      "path": "assets/third-party/audio/freesound-222517-dramatic-hit.mp3",
+      "sha256": "ea287ed10de1c97e913c134e4ffaa2bf3ae3f8822ae673b46d35ed77dde0d699",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-148840": {
+      "label": "ricochet.mp3",
+      "author": "cedarstudios",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/cedarstudios/sounds/148840/",
+      "path": "assets/third-party/audio/freesound-148840-ricochet-mp3.mp3",
+      "sha256": "d96d9ed22ca8c125795746d13344fc6b8592b779fff269805345330bceb37018",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-148827": {
+      "label": ".22 ricochet.mp3",
+      "author": "cedarstudios",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/cedarstudios/sounds/148827/",
+      "path": "assets/third-party/audio/freesound-148827-22-ricochet-mp3.mp3",
+      "sha256": "6ee540b772ff5db30660a0ccaa06d9c50368a92951f60bb2b4f35f9933a231a9",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-392975": {
+      "label": "Ricochet 2.wav",
+      "author": "morganpurkis",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/morganpurkis/sounds/392975/",
+      "path": "assets/third-party/audio/freesound-392975-ricochet-2-wav.mp3",
+      "sha256": "7dd25ce4a5d58ce3c747256a141cb01f04d646f4980bafe658bcec5489d9b8d6",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-523403": {
+      "label": "22 caliber with ricochet.wav",
+      "author": "C-V",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/C-V/sounds/523403/",
+      "path": "assets/third-party/audio/freesound-523403-22-caliber-with-ricochet-wav.mp3",
+      "sha256": "1c20919e6714948af24d46463bd940b4e1442f117f19357bd332f5f12cced25f",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-213925": {
+      "label": "pistol_riccochet.ogg",
+      "author": "Diboz",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/Diboz/sounds/213925/",
+      "path": "assets/third-party/audio/freesound-213925-pistol-riccochet-ogg.mp3",
+      "sha256": "e8fbc3a0758ccb35c9367fa5184f6924fd40ab5d6eafad2b96bdbc28e2abbe3d",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-407361": {
+      "label": "FX_Ricochet.wav",
+      "author": "ForTheHorde68",
+      "license": "CC-BY-NC-3.0",
+      "url": "https://freesound.org/people/ForTheHorde68/sounds/407361/",
+      "path": "assets/third-party/audio/freesound-407361-fx-ricochet-wav.mp3",
+      "sha256": "6050731d2e3446f7d9d1782f751ec841eb5162a9ae82c984dede48c9d17ef0b6",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-NC-3.0: credit ForTheHorde68. Non-commercial licence: remove before any commercial release."
+    },
+    "freesound-854335": {
+      "label": "Metal Bullet Ricochets",
+      "author": "mikiko850",
+      "license": "CC-BY-4.0",
+      "url": "https://freesound.org/people/mikiko850/sounds/854335/",
+      "path": "assets/third-party/audio/freesound-854335-metal-bullet-ricochets.mp3",
+      "sha256": "b028df69588bb3d051742ee54721d6eae2d6c29cc6b448e851d8fd81d2ae9e12",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-4.0: credit mikiko850."
+    },
+    "freesound-123222": {
+      "label": "Bullet_whiz.wav",
+      "author": "CGEffex",
+      "license": "CC-BY-4.0",
+      "url": "https://freesound.org/people/CGEffex/sounds/123222/",
+      "path": "assets/third-party/audio/freesound-123222-bullet-whiz-wav.mp3",
+      "sha256": "50ed8f0280f07e0884c89ff0a529501d8872592bed141c1330b66d6b71b103ed",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-4.0: credit CGEffex."
+    },
+    "freesound-96633": {
+      "label": "Ricochet metal5.wav",
+      "author": "CGEffex",
+      "license": "CC-BY-4.0",
+      "url": "https://freesound.org/people/CGEffex/sounds/96633/",
+      "path": "assets/third-party/audio/freesound-96633-ricochet-metal5-wav.mp3",
+      "sha256": "4c3860acda16e59db516d3767ba14205a8fc436c14e8485d6811917a49ab280b",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-4.0: credit CGEffex."
+    },
+    "freesound-96632": {
+      "label": "Ricochet metal4.wav",
+      "author": "CGEffex",
+      "license": "CC-BY-4.0",
+      "url": "https://freesound.org/people/CGEffex/sounds/96632/",
+      "path": "assets/third-party/audio/freesound-96632-ricochet-metal4-wav.mp3",
+      "sha256": "bb611a7d09caf48f2bd9ef2387a6493196d2d406b626dc34d3ddcfcd443debca",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-4.0: credit CGEffex."
+    },
+    "freesound-96631": {
+      "label": "Ricochet metal3.wav",
+      "author": "CGEffex",
+      "license": "CC-BY-4.0",
+      "url": "https://freesound.org/people/CGEffex/sounds/96631/",
+      "path": "assets/third-party/audio/freesound-96631-ricochet-metal3-wav.mp3",
+      "sha256": "13d17ce067950024b0a2e07c3d42fd05ecace8f7f06b62aadde1befbb3bce4eb",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-4.0: credit CGEffex."
+    },
+    "freesound-96630": {
+      "label": "Ricochet metal2.wav",
+      "author": "CGEffex",
+      "license": "CC-BY-4.0",
+      "url": "https://freesound.org/people/CGEffex/sounds/96630/",
+      "path": "assets/third-party/audio/freesound-96630-ricochet-metal2-wav.mp3",
+      "sha256": "d3389be6fd70324fe610e51d28037ebecacd83c387658998f409ba4b62ff8b51",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-4.0: credit CGEffex."
+    },
+    "freesound-96629": {
+      "label": "Ricochet metal.wav",
+      "author": "CGEffex",
+      "license": "CC-BY-4.0",
+      "url": "https://freesound.org/people/CGEffex/sounds/96629/",
+      "path": "assets/third-party/audio/freesound-96629-ricochet-metal-wav.mp3",
+      "sha256": "eaf7a04bc66e44206145cf5eb7d759530bba12ddba858a88e7efb41795ab7cc2",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-4.0: credit CGEffex."
+    },
+    "freesound-96634": {
+      "label": "Ricochet wood.wav",
+      "author": "CGEffex",
+      "license": "CC-BY-4.0",
+      "url": "https://freesound.org/people/CGEffex/sounds/96634/",
+      "path": "assets/third-party/audio/freesound-96634-ricochet-wood-wav.mp3",
+      "sha256": "54f081f778e2f7d2416690ed5d72466bc81d2b8c681936a028597ce9bb758bba",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login. CC-BY-4.0: credit CGEffex."
     }
   },
   "clips": {
@@ -2182,6 +2533,1954 @@
         ],
         "interval_s": 0.1
       }
+    },
+    "metal-hit-craigsmith-675951-1": {
+      "label": "S31-15 Shooting gallery; hitting metal targets.wav \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-675951",
+      "source_rate": 48000,
+      "source_frames": [
+        55200,
+        77520
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-craigsmith-675951-1.wav",
+      "sha256": "22d888d5e17f4abd262b1da4768167490b82c2ac22a95a58a71cd288fa5492f3",
+      "sample_rate": 48000,
+      "frames": 22320,
+      "loop": false,
+      "notes": "Event 1 of craigsmith's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-craigsmith-675951-2": {
+      "label": "S31-15 Shooting gallery; hitting metal targets.wav \u00b7 2",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-675951",
+      "source_rate": 48000,
+      "source_frames": [
+        77520,
+        136080
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-craigsmith-675951-2.wav",
+      "sha256": "7391c2c460ccfb436c2548c47c71f40434d5cc31aab6c21af56e5f46336d03c5",
+      "sample_rate": 48000,
+      "frames": 58560,
+      "loop": false,
+      "notes": "Event 2 of craigsmith's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-craigsmith-675951-3": {
+      "label": "S31-15 Shooting gallery; hitting metal targets.wav \u00b7 3",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-675951",
+      "source_rate": 48000,
+      "source_frames": [
+        136080,
+        213120
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-craigsmith-675951-3.wav",
+      "sha256": "e5e76a45c8f9b7f7d8cad1ec270a046ad7b2cdffaf464df12eab0a97da5f53eb",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 3 of craigsmith's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-craigsmith-675951-4": {
+      "label": "S31-15 Shooting gallery; hitting metal targets.wav \u00b7 4",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-675951",
+      "source_rate": 48000,
+      "source_frames": [
+        256320,
+        333360
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-craigsmith-675951-4.wav",
+      "sha256": "a34f0ec65466e2c8bd7414d15392de4b882faea07ebd3a48f1df7486920e1ab5",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 4 of craigsmith's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-craigsmith-675951-5": {
+      "label": "S31-15 Shooting gallery; hitting metal targets.wav \u00b7 5",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-675951",
+      "source_rate": 48000,
+      "source_frames": [
+        405120,
+        443520
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-craigsmith-675951-5.wav",
+      "sha256": "c55a650d7f5d9a5647bc3b5c32ae7c67aa0e7c98aeb351d2c8758c224c19cec4",
+      "sample_rate": 48000,
+      "frames": 38400,
+      "loop": false,
+      "notes": "Event 5 of craigsmith's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-craigsmith-675951-6": {
+      "label": "S31-15 Shooting gallery; hitting metal targets.wav \u00b7 6",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-675951",
+      "source_rate": 48000,
+      "source_frames": [
+        530880,
+        570240
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-craigsmith-675951-6.wav",
+      "sha256": "a08c2188f3dec800959488078af3137a09fd200b61aad46c543cfb280202349d",
+      "sample_rate": 48000,
+      "frames": 39360,
+      "loop": false,
+      "notes": "Event 6 of craigsmith's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-craigsmith-675951-7": {
+      "label": "S31-15 Shooting gallery; hitting metal targets.wav \u00b7 7",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-675951",
+      "source_rate": 48000,
+      "source_frames": [
+        618000,
+        695040
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-craigsmith-675951-7.wav",
+      "sha256": "b0f56ccae36083672bc135030d5c3efcccdfd798bbd8dbef5ce273ea8c44fa61",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 7 of craigsmith's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-craigsmith-675951-8": {
+      "label": "S31-15 Shooting gallery; hitting metal targets.wav \u00b7 8",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-675951",
+      "source_rate": 48000,
+      "source_frames": [
+        725760,
+        763920
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-craigsmith-675951-8.wav",
+      "sha256": "c7d12af217892c7d47492de8805a4c7f128f92b29d6f690d00d14a71a503325b",
+      "sample_rate": 48000,
+      "frames": 38160,
+      "loop": false,
+      "notes": "Event 8 of craigsmith's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-klakmart-108264-1": {
+      "label": "BangingOilTank.wav \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-108264",
+      "source_rate": 48000,
+      "source_frames": [
+        63840,
+        140880
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-klakmart-108264-1.wav",
+      "sha256": "d09894afff7d2f4b5a2613d0273034f11450391f7748e458e62b0a3abeeecc06",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 1 of klakmart's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-klakmart-108264-2": {
+      "label": "BangingOilTank.wav \u00b7 2",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-108264",
+      "source_rate": 48000,
+      "source_frames": [
+        159360,
+        188400
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-klakmart-108264-2.wav",
+      "sha256": "537436ab0e0d164976d3b39795fe26cb71ff2193d32899ba2c097bddd75c44e5",
+      "sample_rate": 48000,
+      "frames": 29040,
+      "loop": false,
+      "notes": "Event 2 of klakmart's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-klakmart-108264-3": {
+      "label": "BangingOilTank.wav \u00b7 3",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-108264",
+      "source_rate": 48000,
+      "source_frames": [
+        188400,
+        265440
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-klakmart-108264-3.wav",
+      "sha256": "4398fcb078122b689d68b357e69805ad8a72233f852149ea941af92aa4689156",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 3 of klakmart's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-klakmart-108264-4": {
+      "label": "BangingOilTank.wav \u00b7 4",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-108264",
+      "source_rate": 48000,
+      "source_frames": [
+        356160,
+        433200
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-klakmart-108264-4.wav",
+      "sha256": "4ef146fc664551cf8e575c06d64589bcf026147418be28e8db43e64d83e35e34",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 4 of klakmart's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-klakmart-108264-5": {
+      "label": "BangingOilTank.wav \u00b7 5",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-108264",
+      "source_rate": 48000,
+      "source_frames": [
+        639840,
+        716880
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-klakmart-108264-5.wav",
+      "sha256": "bb8062c2bd904d2decdeb350c7139dd55070b17fdbdcae576e7b10aaa42118e6",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 5 of klakmart's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-klakmart-108264-6": {
+      "label": "BangingOilTank.wav \u00b7 6",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-108264",
+      "source_rate": 48000,
+      "source_frames": [
+        865680,
+        942720
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-klakmart-108264-6.wav",
+      "sha256": "deda7b3b4459d1452ef23d435be8d74765527ccc701b773f82ce7c404574f980",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 6 of klakmart's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-klakmart-108264-7": {
+      "label": "BangingOilTank.wav \u00b7 7",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-108264",
+      "source_rate": 48000,
+      "source_frames": [
+        1142400,
+        1219440
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-klakmart-108264-7.wav",
+      "sha256": "e06e8900b2dba23e75e6f991a3e87281836e77d064c3f8d99b97f1d66b6273e3",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 7 of klakmart's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-klakmart-108264-8": {
+      "label": "BangingOilTank.wav \u00b7 8",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-108264",
+      "source_rate": 48000,
+      "source_frames": [
+        1298160,
+        1375200
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-klakmart-108264-8.wav",
+      "sha256": "4b05b2f51e6a5e141d57e770fb5646c1e2d410e7174b310178acae81790da9a8",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 8 of klakmart's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-draftcraft-434336-1": {
+      "label": "Hollow tank hit \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-434336",
+      "source_rate": 48000,
+      "source_frames": [
+        19440,
+        96480
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-draftcraft-434336-1.wav",
+      "sha256": "4230e3edbe15d6f76ea9c21cf0070a526f9020a52193c5676389f00342f2ee30",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 1 of draftcraft's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-7of9designs-640204-1": {
+      "label": "Heavy Metal Thud on Ground \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-640204",
+      "source_rate": 44100,
+      "source_frames": [
+        7920,
+        26180
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-7of9designs-640204-1.wav",
+      "sha256": "a9517c99af8e008b917b4d0694b80be7ac024857447e6d620c7240f84703cc59",
+      "sample_rate": 48000,
+      "frames": 19875,
+      "loop": false,
+      "notes": "Event 1 of 7of9Designs's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-xkeril-703247-1": {
+      "label": "Big falling debris (crash) \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-703247",
+      "source_rate": 48000,
+      "source_frames": [
+        6000,
+        83040
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-xkeril-703247-1.wav",
+      "sha256": "c451aae1306f7413887f22d2985826f81730cf7ded655a53023eb10ebcfa526c",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 1 of xkeril's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-qubodup-151624-1": {
+      "label": "Clank Car Crash Collision \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-151624",
+      "source_rate": 44100,
+      "source_frames": [
+        0,
+        23760
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-qubodup-151624-1.wav",
+      "sha256": "de32ed4758c5b511996e6a6120edc124bab165cb2daf3adef62822e73a07c88e",
+      "sample_rate": 48000,
+      "frames": 25862,
+      "loop": false,
+      "notes": "Event 1 of qubodup's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-qubodup-332056-1": {
+      "label": "Fast Collision \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-332056",
+      "source_rate": 48000,
+      "source_frames": [
+        1440,
+        14640
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-qubodup-332056-1.wav",
+      "sha256": "a1143b01ab577b91f6d6c32436f3f6797b68bbd5b6b73d643bfebf66527b08d4",
+      "sample_rate": 48000,
+      "frames": 13200,
+      "loop": false,
+      "notes": "Event 1 of qubodup's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-craigsmith-438522-1": {
+      "label": "G33-16-Explosion with Metallic Debris.wav \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-438522",
+      "source_rate": 48000,
+      "source_frames": [
+        12720,
+        89760
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-craigsmith-438522-1.wav",
+      "sha256": "444505b727d049d76968949dae2bc5f29427b449e0b9dd8ed6b0d9b715003562",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 1 of craigsmith's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-craigsmith-438522-2": {
+      "label": "G33-16-Explosion with Metallic Debris.wav \u00b7 2",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-438522",
+      "source_rate": 48000,
+      "source_frames": [
+        147600,
+        224640
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-craigsmith-438522-2.wav",
+      "sha256": "587a54000d393c70e5417fdf21ca4c6f76a46d19ba81ee3073e0a0cdb55088a5",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 2 of craigsmith's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-nox-sound-569555-1": {
+      "label": "Foley_Impact_Metal_Long_Mono.wav \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-569555",
+      "source_rate": 48000,
+      "source_frames": [
+        151200,
+        219120
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-nox-sound-569555-1.wav",
+      "sha256": "48a7835d6e0787721f9140815e1269647dd49cc62359632b1d63527489a60135",
+      "sample_rate": 48000,
+      "frames": 67920,
+      "loop": false,
+      "notes": "Event 1 of Nox_Sound's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-nox-sound-569555-2": {
+      "label": "Foley_Impact_Metal_Long_Mono.wav \u00b7 2",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-569555",
+      "source_rate": 48000,
+      "source_frames": [
+        292560,
+        355200
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-nox-sound-569555-2.wav",
+      "sha256": "fbe65d6aa2a02fb3bed7ffa5b4cec83a0e8f6793be8a630512b7d8aea1eb0f49",
+      "sample_rate": 48000,
+      "frames": 62640,
+      "loop": false,
+      "notes": "Event 2 of Nox_Sound's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-nox-sound-569555-3": {
+      "label": "Foley_Impact_Metal_Long_Mono.wav \u00b7 3",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-569555",
+      "source_rate": 48000,
+      "source_frames": [
+        412320,
+        477600
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-nox-sound-569555-3.wav",
+      "sha256": "481287d54a94ff717c241469bd99c544da1cfa3073dca3f04a69d629eccd96a6",
+      "sample_rate": 48000,
+      "frames": 65280,
+      "loop": false,
+      "notes": "Event 3 of Nox_Sound's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-nox-sound-569555-4": {
+      "label": "Foley_Impact_Metal_Long_Mono.wav \u00b7 4",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-569555",
+      "source_rate": 48000,
+      "source_frames": [
+        530640,
+        601200
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-nox-sound-569555-4.wav",
+      "sha256": "5f2275f11c413e5d51edf9489c36918f022a0b0fe5bc369dc24bd632aab9f362",
+      "sample_rate": 48000,
+      "frames": 70560,
+      "loop": false,
+      "notes": "Event 4 of Nox_Sound's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-nox-sound-569555-5": {
+      "label": "Foley_Impact_Metal_Long_Mono.wav \u00b7 5",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-569555",
+      "source_rate": 48000,
+      "source_frames": [
+        663600,
+        724320
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-nox-sound-569555-5.wav",
+      "sha256": "b7e5f5330336dc0da98d0df7049fc4b6c143885cd0c7e93ef28337c7fc6a53bb",
+      "sample_rate": 48000,
+      "frames": 60720,
+      "loop": false,
+      "notes": "Event 5 of Nox_Sound's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-nox-sound-569555-6": {
+      "label": "Foley_Impact_Metal_Long_Mono.wav \u00b7 6",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-569555",
+      "source_rate": 48000,
+      "source_frames": [
+        778800,
+        822000
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-nox-sound-569555-6.wav",
+      "sha256": "d2f45881916b4b8b6147ee3b4475c750bc8e28652192034291cc67f1e47ea4d9",
+      "sample_rate": 48000,
+      "frames": 43200,
+      "loop": false,
+      "notes": "Event 6 of Nox_Sound's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-nox-sound-569555-7": {
+      "label": "Foley_Impact_Metal_Long_Mono.wav \u00b7 7",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-569555",
+      "source_rate": 48000,
+      "source_frames": [
+        848160,
+        900960
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-nox-sound-569555-7.wav",
+      "sha256": "899b2197c1a3114ab54da90c7b675f5a1fe56b9e94a89e479a6a204e8fbd2649",
+      "sample_rate": 48000,
+      "frames": 52800,
+      "loop": false,
+      "notes": "Event 7 of Nox_Sound's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-nox-sound-569555-8": {
+      "label": "Foley_Impact_Metal_Long_Mono.wav \u00b7 8",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-569555",
+      "source_rate": 48000,
+      "source_frames": [
+        990000,
+        1067040
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-nox-sound-569555-8.wav",
+      "sha256": "079b12d92e88b3fc8ae8ea7bab215ac5b718a653ea2fd28c6c7494678ed4fae0",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 8 of Nox_Sound's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-ddt197-445775-1": {
+      "label": "Metal thud.WAV \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-445775",
+      "source_rate": 44100,
+      "source_frames": [
+        30360,
+        60720
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-ddt197-445775-1.wav",
+      "sha256": "aa319c55b64af90f162bfafc950c1563a29c3954781efa1b5ae53374305b22a1",
+      "sample_rate": 48000,
+      "frames": 33045,
+      "loop": false,
+      "notes": "Event 1 of DDT197's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-ddt197-445775-2": {
+      "label": "Metal thud.WAV \u00b7 2",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-445775",
+      "source_rate": 44100,
+      "source_frames": [
+        116600,
+        145640
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-ddt197-445775-2.wav",
+      "sha256": "036b04e0f76bddf1182a8556b7acd193f9baa0bd6cd54be534da5b2f45c69ae4",
+      "sample_rate": 48000,
+      "frames": 31609,
+      "loop": false,
+      "notes": "Event 2 of DDT197's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-ddt197-445775-3": {
+      "label": "Metal thud.WAV \u00b7 3",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-445775",
+      "source_rate": 44100,
+      "source_frames": [
+        200420,
+        225500
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-ddt197-445775-3.wav",
+      "sha256": "93d90688a6573ce9edf2cbcffad2d897174cf09706c11676aa6274249b62f066",
+      "sample_rate": 48000,
+      "frames": 27298,
+      "loop": false,
+      "notes": "Event 3 of DDT197's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-mhad-390794-1": {
+      "label": "impact_destruction.wav \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-390794",
+      "source_rate": 44100,
+      "source_frames": [
+        37180,
+        63140
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-mhad-390794-1.wav",
+      "sha256": "2fa939b6828008eb30905736bbcaed9ac2d719ec6182ff2ecc0c9d7982a16080",
+      "sample_rate": 48000,
+      "frames": 28256,
+      "loop": false,
+      "notes": "Event 1 of mhad's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-pushkin-144444-1": {
+      "label": "bullet impacts \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-144444",
+      "source_rate": 48000,
+      "source_frames": [
+        960,
+        17760
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-pushkin-144444-1.wav",
+      "sha256": "2daa6d8a6dcb50bc770555a0a93f506db1a6b30be8bf8cbf5c77d63774cd297b",
+      "sample_rate": 48000,
+      "frames": 16800,
+      "loop": false,
+      "notes": "Event 1 of pushkin's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-pushkin-144444-2": {
+      "label": "bullet impacts \u00b7 2",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-144444",
+      "source_rate": 48000,
+      "source_frames": [
+        17760,
+        33600
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-pushkin-144444-2.wav",
+      "sha256": "0153a3dc3776d455defbd380a8d7eb2d69416e8021de4cd9d7eef2ed5d90b9db",
+      "sample_rate": 48000,
+      "frames": 15840,
+      "loop": false,
+      "notes": "Event 2 of pushkin's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-pushkin-144444-3": {
+      "label": "bullet impacts \u00b7 3",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-144444",
+      "source_rate": 48000,
+      "source_frames": [
+        33600,
+        50880
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-pushkin-144444-3.wav",
+      "sha256": "f1e362a958d7e2572d43230a900267a41a879cbe3040a22c531f244a648452f7",
+      "sample_rate": 48000,
+      "frames": 17280,
+      "loop": false,
+      "notes": "Event 3 of pushkin's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-pushkin-144444-4": {
+      "label": "bullet impacts \u00b7 4",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-144444",
+      "source_rate": 48000,
+      "source_frames": [
+        50880,
+        67440
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-pushkin-144444-4.wav",
+      "sha256": "6b10fcbb3cc632b05bbf0e4c6f840331f6828f9345810cb0b0eb28c426a38921",
+      "sample_rate": 48000,
+      "frames": 16560,
+      "loop": false,
+      "notes": "Event 4 of pushkin's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-pushkin-144444-5": {
+      "label": "bullet impacts \u00b7 5",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-144444",
+      "source_rate": 48000,
+      "source_frames": [
+        67440,
+        86880
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-pushkin-144444-5.wav",
+      "sha256": "353d1a64a8f6a59a04badac5d4b8e53fab4face2e33370f8d8ae7cf2ea2eb065",
+      "sample_rate": 48000,
+      "frames": 19440,
+      "loop": false,
+      "notes": "Event 5 of pushkin's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-pushkin-144444-6": {
+      "label": "bullet impacts \u00b7 6",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-144444",
+      "source_rate": 48000,
+      "source_frames": [
+        86880,
+        103200
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-pushkin-144444-6.wav",
+      "sha256": "49284dd671e4fd10fe12061a2a2bbf3ee3c2bf536a485984d44e71f7af810bc9",
+      "sample_rate": 48000,
+      "frames": 16320,
+      "loop": false,
+      "notes": "Event 6 of pushkin's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-pushkin-144444-7": {
+      "label": "bullet impacts \u00b7 7",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-144444",
+      "source_rate": 48000,
+      "source_frames": [
+        103200,
+        122400
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-pushkin-144444-7.wav",
+      "sha256": "d6683f97fdf8539e8517e9899b11dc98ef8931cbe0df4ecc7c8ebe2d4e0bd2af",
+      "sample_rate": 48000,
+      "frames": 19200,
+      "loop": false,
+      "notes": "Event 7 of pushkin's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-pushkin-144444-8": {
+      "label": "bullet impacts \u00b7 8",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-144444",
+      "source_rate": 48000,
+      "source_frames": [
+        122400,
+        144960
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-pushkin-144444-8.wav",
+      "sha256": "c0487777d5240bd64faed5bef152737e749bfa064c96f41f9b4a6b9d40a1794f",
+      "sample_rate": 48000,
+      "frames": 22560,
+      "loop": false,
+      "notes": "Event 8 of pushkin's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-speedenza-222881-1": {
+      "label": "Deep Metal Impact (37) 2 \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-222881",
+      "source_rate": 44100,
+      "source_frames": [
+        16060,
+        86680
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-speedenza-222881-1.wav",
+      "sha256": "4e8ebe6159f391dbe6f20e69a94b7a7af654ea29031a890e7a7eebb5429c44ae",
+      "sample_rate": 48000,
+      "frames": 76866,
+      "loop": false,
+      "notes": "Event 1 of Speedenza's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-speedenza-193601-1": {
+      "label": "Crunchy Metal Impact \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-193601",
+      "source_rate": 44100,
+      "source_frames": [
+        34100,
+        104720
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-speedenza-193601-1.wav",
+      "sha256": "4093eb0c4df32789a669d7c50dab8ee3f87a2f1e2fa25b482a70d83a200fd970",
+      "sample_rate": 48000,
+      "frames": 76866,
+      "loop": false,
+      "notes": "Event 1 of Speedenza's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-speedenza-167841-1": {
+      "label": "Deep Metal Impact (37) 1.wav \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-167841",
+      "source_rate": 44100,
+      "source_frames": [
+        5720,
+        76340
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-speedenza-167841-1.wav",
+      "sha256": "34d514ce2731d8c6b3795488e7386aa2e3e1378305a4ba7df9f9caf404808abe",
+      "sample_rate": 48000,
+      "frames": 76866,
+      "loop": false,
+      "notes": "Event 1 of Speedenza's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-speedenza-167840-1": {
+      "label": "Deep Metal Impact (79) 1s.wav \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-167840",
+      "source_rate": 44100,
+      "source_frames": [
+        9460,
+        65560
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-speedenza-167840-1.wav",
+      "sha256": "9cdf7a8fa5b2a07e550a98e9132deb5155839c1dfb4b7e26580a9c80f60c8c4c",
+      "sample_rate": 48000,
+      "frames": 61062,
+      "loop": false,
+      "notes": "Event 1 of Speedenza's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-speedenza-167839-1": {
+      "label": "Deep Metal Impact (82) 1.wav \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-167839",
+      "source_rate": 44100,
+      "source_frames": [
+        8140,
+        76120
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-speedenza-167839-1.wav",
+      "sha256": "a13cc41771018aed8a8af07bb9ddb7b014e4df3662758c622dbb682fc522a393",
+      "sample_rate": 48000,
+      "frames": 73992,
+      "loop": false,
+      "notes": "Event 1 of Speedenza's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-osvoldon-653294-1": {
+      "label": "Big Structure Collision Heard from Inside \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-653294",
+      "source_rate": 48000,
+      "source_frames": [
+        33600,
+        110640
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-osvoldon-653294-1.wav",
+      "sha256": "ef5d17828af941299aecf7461dbdb46760f9a1cb84caadd447797e61665d9887",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 1 of Osvoldon's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-osvoldon-653294-2": {
+      "label": "Big Structure Collision Heard from Inside \u00b7 2",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-653294",
+      "source_rate": 48000,
+      "source_frames": [
+        99600,
+        176640
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-osvoldon-653294-2.wav",
+      "sha256": "38b8bc93a546be3c8723485644dcb70975a56a7890a5945f4a531369200bbc08",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 2 of Osvoldon's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-werra-244394-1": {
+      "label": "Bang/Explosion Metallic \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-244394",
+      "source_rate": 44100,
+      "source_frames": [
+        1320,
+        71940
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-werra-244394-1.wav",
+      "sha256": "95e02fc0ab780aff4252f577da0f395a435b5624a1f022a3dd3ab43b19e9c0d0",
+      "sample_rate": 48000,
+      "frames": 76866,
+      "loop": false,
+      "notes": "Event 1 of Werra's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-werra-244394-2": {
+      "label": "Bang/Explosion Metallic \u00b7 2",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-244394",
+      "source_rate": 44100,
+      "source_frames": [
+        38060,
+        108680
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-werra-244394-2.wav",
+      "sha256": "3fcb05c479505b488982cb0171407b06a443392df0fb334e6354ed8957d2ee3f",
+      "sample_rate": 48000,
+      "frames": 76866,
+      "loop": false,
+      "notes": "Event 2 of Werra's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-johnnyfarmer-209772-1": {
+      "label": "Metal Boom \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-209772",
+      "source_rate": 48000,
+      "source_frames": [
+        12240,
+        70080
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-johnnyfarmer-209772-1.wav",
+      "sha256": "faeef34292a6b90f6ae92658bb7a0dd0333e023f6cd919775c05c2af6ce1a8f6",
+      "sample_rate": 48000,
+      "frames": 57840,
+      "loop": false,
+      "notes": "Event 1 of Johnnyfarmer's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-anthousai-406493-1": {
+      "label": "hit - metallic - deep hollow thunk.wav \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-406493",
+      "source_rate": 48000,
+      "source_frames": [
+        480,
+        75360
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-anthousai-406493-1.wav",
+      "sha256": "4e4df24532696310d9059d63e185c5e5671134832314e18abf64ba3d05bb95c9",
+      "sample_rate": 48000,
+      "frames": 74880,
+      "loop": false,
+      "notes": "Event 1 of Anthousai's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-forthehorde68-407349-1": {
+      "label": "FX_Metallic_hit.wav \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-407349",
+      "source_rate": 48000,
+      "source_frames": [
+        20400,
+        71040
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-forthehorde68-407349-1.wav",
+      "sha256": "983a95f2ddd04a668e43f4f68e73172b874bfeed0af528eaccfd385113db22b2",
+      "sample_rate": 48000,
+      "frames": 50640,
+      "loop": false,
+      "notes": "Event 1 of ForTheHorde68's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-forthehorde68-407349-2": {
+      "label": "FX_Metallic_hit.wav \u00b7 2",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-407349",
+      "source_rate": 48000,
+      "source_frames": [
+        238080,
+        289680
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-forthehorde68-407349-2.wav",
+      "sha256": "b0385e3704a3fb39de749b41ca0c082639cb49ef98097b3d52e5d031a6c43a0b",
+      "sample_rate": 48000,
+      "frames": 51600,
+      "loop": false,
+      "notes": "Event 2 of ForTheHorde68's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-forthehorde68-407349-3": {
+      "label": "FX_Metallic_hit.wav \u00b7 3",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-407349",
+      "source_rate": 48000,
+      "source_frames": [
+        430080,
+        490080
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-forthehorde68-407349-3.wav",
+      "sha256": "eb7aa2a2581eab28ef71af25e6a6790c1b027f391f6f147c918b626496a1c018",
+      "sample_rate": 48000,
+      "frames": 60000,
+      "loop": false,
+      "notes": "Event 3 of ForTheHorde68's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-forthehorde68-407349-4": {
+      "label": "FX_Metallic_hit.wav \u00b7 4",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-407349",
+      "source_rate": 48000,
+      "source_frames": [
+        644880,
+        663120
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-forthehorde68-407349-4.wav",
+      "sha256": "380b271951ffd7dc18e50d58ca0728e6831fd23f28de9bd5e64512e50a2faba6",
+      "sample_rate": 48000,
+      "frames": 18240,
+      "loop": false,
+      "notes": "Event 4 of ForTheHorde68's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-forthehorde68-407349-5": {
+      "label": "FX_Metallic_hit.wav \u00b7 5",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-407349",
+      "source_rate": 48000,
+      "source_frames": [
+        663120,
+        715440
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-forthehorde68-407349-5.wav",
+      "sha256": "94c20ea15a84e68c9246d03f6e73329a512e1e8e79c2bfae14e80465683c75a1",
+      "sample_rate": 48000,
+      "frames": 52320,
+      "loop": false,
+      "notes": "Event 5 of ForTheHorde68's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-ogsoundfx-423107-1": {
+      "label": "Guns & Explosions Album - Bullet Impact 14.wav \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-423107",
+      "source_rate": 48000,
+      "source_frames": [
+        240,
+        24720
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-ogsoundfx-423107-1.wav",
+      "sha256": "5391d46021c382f884c48c844d6525cfb5632780be6a78502048eeda4bcaf263",
+      "sample_rate": 48000,
+      "frames": 24480,
+      "loop": false,
+      "notes": "Event 1 of OGsoundFX's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-hybrid-v-319590-1": {
+      "label": "Shield Bash Impact \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-319590",
+      "source_rate": 44100,
+      "source_frames": [
+        5500,
+        36300
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-hybrid-v-319590-1.wav",
+      "sha256": "3bbefa9f5beb656550387eea78bc9de1c2903204e0ebf838b7229af0cbda08fb",
+      "sample_rate": 48000,
+      "frames": 33524,
+      "loop": false,
+      "notes": "Event 1 of Hybrid_V's recording, cut before the next event or once it decays."
+    },
+    "metal-hit-qubodup-222517-1": {
+      "label": "Dramatic Hit \u00b7 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "source": "freesound-222517",
+      "source_rate": 48000,
+      "source_frames": [
+        13920,
+        90960
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/metal-hit-qubodup-222517-1.wav",
+      "sha256": "e13d544548ab796ad175864eafaea16d5f0928f37d8873b46cae87506ae417a0",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "Event 1 of qubodup's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cedarstudios-148840-1": {
+      "label": "ricochet.mp3 \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-148840",
+      "source_rate": 44100,
+      "source_frames": [
+        1100,
+        18920
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cedarstudios-148840-1.wav",
+      "sha256": "780f9c7d7d9ccf5d596632f7bc5e181a3ac607574110fe397bab6c0372e65480",
+      "sample_rate": 48000,
+      "frames": 19396,
+      "loop": false,
+      "notes": "Event 1 of cedarstudios's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cedarstudios-148840-2": {
+      "label": "ricochet.mp3 \u00b7 2",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-148840",
+      "source_rate": 44100,
+      "source_frames": [
+        18920,
+        37180
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cedarstudios-148840-2.wav",
+      "sha256": "8369761b8bddd1205a789d913f76825552af2b8da9ebdcecb9a415fe0e41adee",
+      "sample_rate": 48000,
+      "frames": 19875,
+      "loop": false,
+      "notes": "Event 2 of cedarstudios's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cedarstudios-148840-3": {
+      "label": "ricochet.mp3 \u00b7 3",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-148840",
+      "source_rate": 44100,
+      "source_frames": [
+        37180,
+        59840
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cedarstudios-148840-3.wav",
+      "sha256": "1d13626d85f6340ae64dc0e82f0ed54e90a34d241141e29834997f4ae8d776da",
+      "sample_rate": 48000,
+      "frames": 24664,
+      "loop": false,
+      "notes": "Event 3 of cedarstudios's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cedarstudios-148840-4": {
+      "label": "ricochet.mp3 \u00b7 4",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-148840",
+      "source_rate": 44100,
+      "source_frames": [
+        59840,
+        77660
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cedarstudios-148840-4.wav",
+      "sha256": "ffacbb9aea7a9b4f2fb8f22bbcf92f6b14b1694bb4d6244ddb8b009a4e4650c2",
+      "sample_rate": 48000,
+      "frames": 19396,
+      "loop": false,
+      "notes": "Event 4 of cedarstudios's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cedarstudios-148827-1": {
+      "label": ".22 ricochet.mp3 \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-148827",
+      "source_rate": 44100,
+      "source_frames": [
+        14080,
+        81400
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cedarstudios-148827-1.wav",
+      "sha256": "2e437ce986d5cba02aad8a260cefa3f9176a28ca84c15b2faf7543e722354809",
+      "sample_rate": 48000,
+      "frames": 73274,
+      "loop": false,
+      "notes": "Event 1 of cedarstudios's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cedarstudios-148827-2": {
+      "label": ".22 ricochet.mp3 \u00b7 2",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-148827",
+      "source_rate": 44100,
+      "source_frames": [
+        81400,
+        128920
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cedarstudios-148827-2.wav",
+      "sha256": "788305f9d0329e83e6d80474e42bfa3a9fb50db3f8461e218e4cb521f1425664",
+      "sample_rate": 48000,
+      "frames": 51723,
+      "loop": false,
+      "notes": "Event 2 of cedarstudios's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cedarstudios-148827-3": {
+      "label": ".22 ricochet.mp3 \u00b7 3",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-148827",
+      "source_rate": 44100,
+      "source_frames": [
+        128920,
+        173580
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cedarstudios-148827-3.wav",
+      "sha256": "b158b29fffde693ef1a0281f4e9fdec1d45149f37f2cff50f010ab0c28753ed6",
+      "sample_rate": 48000,
+      "frames": 48610,
+      "loop": false,
+      "notes": "Event 3 of cedarstudios's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cedarstudios-148827-4": {
+      "label": ".22 ricochet.mp3 \u00b7 4",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-148827",
+      "source_rate": 44100,
+      "source_frames": [
+        173580,
+        229020
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cedarstudios-148827-4.wav",
+      "sha256": "baadd54b0edf80c95cf0334cbd2f9ade8275a1ef913200e8edae2e109f848b16",
+      "sample_rate": 48000,
+      "frames": 60343,
+      "loop": false,
+      "notes": "Event 4 of cedarstudios's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cedarstudios-148827-5": {
+      "label": ".22 ricochet.mp3 \u00b7 5",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-148827",
+      "source_rate": 44100,
+      "source_frames": [
+        229020,
+        252780
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cedarstudios-148827-5.wav",
+      "sha256": "6cf900d87e412f63c3d06b1c32e486d25f3a8fa121e1db0256083e575f040259",
+      "sample_rate": 48000,
+      "frames": 25862,
+      "loop": false,
+      "notes": "Event 5 of cedarstudios's recording, cut before the next event or once it decays."
+    },
+    "ricochet-morganpurkis-392975-1": {
+      "label": "Ricochet 2.wav \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-392975",
+      "source_rate": 48000,
+      "source_frames": [
+        0,
+        22080
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-morganpurkis-392975-1.wav",
+      "sha256": "fef79416101bfdfd06113bee7100337b7300ff5cf0a73c24aaaf0ca192f32a5b",
+      "sample_rate": 48000,
+      "frames": 22080,
+      "loop": false,
+      "notes": "Event 1 of morganpurkis's recording, cut before the next event or once it decays."
+    },
+    "ricochet-c-v-523403-1": {
+      "label": "22 caliber with ricochet.wav \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-523403",
+      "source_rate": 48000,
+      "source_frames": [
+        7680,
+        38160
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-c-v-523403-1.wav",
+      "sha256": "3b8ae713c33d65a3f1f98c064d487e84d9b9b3582ff79bd00b9f7af3c2e07d87",
+      "sample_rate": 48000,
+      "frames": 30480,
+      "loop": false,
+      "notes": "Event 1 of C-V's recording, cut before the next event or once it decays."
+    },
+    "ricochet-diboz-213925-1": {
+      "label": "pistol_riccochet.ogg \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-213925",
+      "source_rate": 44100,
+      "source_frames": [
+        2200,
+        72820
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-diboz-213925-1.wav",
+      "sha256": "9653763278ff3123b789c6b64da0d27cc47bae04078bb4cc1152e936df011d1d",
+      "sample_rate": 48000,
+      "frames": 76866,
+      "loop": false,
+      "notes": "Event 1 of Diboz's recording, cut before the next event or once it decays."
+    },
+    "ricochet-forthehorde68-407361-1": {
+      "label": "FX_Ricochet.wav \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-407361",
+      "source_rate": 48000,
+      "source_frames": [
+        37920,
+        85440
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-forthehorde68-407361-1.wav",
+      "sha256": "aa3a6538b40bc7e82da2ab0e5f0e7dae2d9443c58a8358614873e05eb57af238",
+      "sample_rate": 48000,
+      "frames": 47520,
+      "loop": false,
+      "notes": "Event 1 of ForTheHorde68's recording, cut before the next event or once it decays."
+    },
+    "ricochet-forthehorde68-407361-2": {
+      "label": "FX_Ricochet.wav \u00b7 2",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-407361",
+      "source_rate": 48000,
+      "source_frames": [
+        199200,
+        258480
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-forthehorde68-407361-2.wav",
+      "sha256": "55f5527877bbecfb65ccd1b5c05f632e9bfcd89ea94241af00740d1cecd6904f",
+      "sample_rate": 48000,
+      "frames": 59280,
+      "loop": false,
+      "notes": "Event 2 of ForTheHorde68's recording, cut before the next event or once it decays."
+    },
+    "ricochet-forthehorde68-407361-3": {
+      "label": "FX_Ricochet.wav \u00b7 3",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-407361",
+      "source_rate": 48000,
+      "source_frames": [
+        406080,
+        442320
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-forthehorde68-407361-3.wav",
+      "sha256": "02078cc7130c24d481af5b9f16f84ffc7b3326cda8f47e25743b33d5398ba070",
+      "sample_rate": 48000,
+      "frames": 36240,
+      "loop": false,
+      "notes": "Event 3 of ForTheHorde68's recording, cut before the next event or once it decays."
+    },
+    "ricochet-mikiko850-854335-1": {
+      "label": "Metal Bullet Ricochets \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-854335",
+      "source_rate": 44100,
+      "source_frames": [
+        13860,
+        39820
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-mikiko850-854335-1.wav",
+      "sha256": "ceda1f5f38fe021e4219c89b983fe71048cd3e55550af3fe43337e0cd3421dda",
+      "sample_rate": 48000,
+      "frames": 28256,
+      "loop": false,
+      "notes": "Event 1 of mikiko850's recording, cut before the next event or once it decays."
+    },
+    "ricochet-mikiko850-854335-2": {
+      "label": "Metal Bullet Ricochets \u00b7 2",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-854335",
+      "source_rate": 44100,
+      "source_frames": [
+        30140,
+        52140
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-mikiko850-854335-2.wav",
+      "sha256": "a731265fc5bd88b77957068bfcfc65edccf9e55e15812015cd3c876f82e5e8c6",
+      "sample_rate": 48000,
+      "frames": 23946,
+      "loop": false,
+      "notes": "Event 2 of mikiko850's recording, cut before the next event or once it decays."
+    },
+    "ricochet-mikiko850-854335-3": {
+      "label": "Metal Bullet Ricochets \u00b7 3",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-854335",
+      "source_rate": 44100,
+      "source_frames": [
+        58520,
+        85800
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-mikiko850-854335-3.wav",
+      "sha256": "fec9f1e087adff4cb3f81c10453a9715df2d9fab9b189fe7c91f3282652b1109",
+      "sample_rate": 48000,
+      "frames": 29693,
+      "loop": false,
+      "notes": "Event 3 of mikiko850's recording, cut before the next event or once it decays."
+    },
+    "ricochet-mikiko850-854335-4": {
+      "label": "Metal Bullet Ricochets \u00b7 4",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-854335",
+      "source_rate": 44100,
+      "source_frames": [
+        118360,
+        143220
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-mikiko850-854335-4.wav",
+      "sha256": "1f3cb8d3f2b06c309a0a6315aac9ee5c4fd8c28b7aa88c69406e0f601f21f4ee",
+      "sample_rate": 48000,
+      "frames": 27059,
+      "loop": false,
+      "notes": "Event 4 of mikiko850's recording, cut before the next event or once it decays."
+    },
+    "ricochet-mikiko850-854335-5": {
+      "label": "Metal Bullet Ricochets \u00b7 5",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-854335",
+      "source_rate": 44100,
+      "source_frames": [
+        134640,
+        156640
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-mikiko850-854335-5.wav",
+      "sha256": "a1d2e95a53f1019bde085bd6c733bde8b5569d68b4830e5f885707328f5d6206",
+      "sample_rate": 48000,
+      "frames": 23946,
+      "loop": false,
+      "notes": "Event 5 of mikiko850's recording, cut before the next event or once it decays."
+    },
+    "ricochet-mikiko850-854335-6": {
+      "label": "Metal Bullet Ricochets \u00b7 6",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-854335",
+      "source_rate": 44100,
+      "source_frames": [
+        156640,
+        185020
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-mikiko850-854335-6.wav",
+      "sha256": "7605d8a2eb2b19dfca59e6eaa6db2fddc3f829ec0834794dd36a67c28aeb979d",
+      "sample_rate": 48000,
+      "frames": 30890,
+      "loop": false,
+      "notes": "Event 6 of mikiko850's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cgeffex-123222-1": {
+      "label": "Bullet_whiz.wav \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-123222",
+      "source_rate": 44100,
+      "source_frames": [
+        16500,
+        46420
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cgeffex-123222-1.wav",
+      "sha256": "9c0d444eb4386ab960fc921094a61cd131d1533087135851befd541d5c69b200",
+      "sample_rate": 48000,
+      "frames": 32566,
+      "loop": false,
+      "notes": "Event 1 of CGEffex's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cgeffex-96633-1": {
+      "label": "Ricochet metal5.wav \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-96633",
+      "source_rate": 44100,
+      "source_frames": [
+        0,
+        38940
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cgeffex-96633-1.wav",
+      "sha256": "2bbb36da8ea5041739a6b489436f9e0ecc594523b2e14ef2f00f5d101872faf7",
+      "sample_rate": 48000,
+      "frames": 42384,
+      "loop": false,
+      "notes": "Event 1 of CGEffex's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cgeffex-96632-1": {
+      "label": "Ricochet metal4.wav \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-96632",
+      "source_rate": 44100,
+      "source_frames": [
+        0,
+        38720
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cgeffex-96632-1.wav",
+      "sha256": "6e3a9265f93955c177f30619bf96d498b61a54789b58205055369bf06a750c98",
+      "sample_rate": 48000,
+      "frames": 42145,
+      "loop": false,
+      "notes": "Event 1 of CGEffex's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cgeffex-96631-1": {
+      "label": "Ricochet metal3.wav \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-96631",
+      "source_rate": 44100,
+      "source_frames": [
+        0,
+        38940
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cgeffex-96631-1.wav",
+      "sha256": "6022a2d1a61f20c4c93f31855e0eb08bf0f6252bc0188dbe9848f6cbf992e961",
+      "sample_rate": 48000,
+      "frames": 42384,
+      "loop": false,
+      "notes": "Event 1 of CGEffex's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cgeffex-96630-1": {
+      "label": "Ricochet metal2.wav \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-96630",
+      "source_rate": 44100,
+      "source_frames": [
+        0,
+        47080
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cgeffex-96630-1.wav",
+      "sha256": "b6086461fda40d5f6cfb5a9cb80c80c8ded9565841a47b4e604d4523bd2729a1",
+      "sample_rate": 48000,
+      "frames": 51244,
+      "loop": false,
+      "notes": "Event 1 of CGEffex's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cgeffex-96629-1": {
+      "label": "Ricochet metal.wav \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-96629",
+      "source_rate": 44100,
+      "source_frames": [
+        1100,
+        38940
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cgeffex-96629-1.wav",
+      "sha256": "4578ab342cb7d75d1f6d4faa70305f5b9448004b7ce4458b9a936e555c21d72a",
+      "sample_rate": 48000,
+      "frames": 41187,
+      "loop": false,
+      "notes": "Event 1 of CGEffex's recording, cut before the next event or once it decays."
+    },
+    "ricochet-cgeffex-96634-1": {
+      "label": "Ricochet wood.wav \u00b7 1",
+      "category": "ricochet",
+      "role": "impact",
+      "source": "freesound-96634",
+      "source_rate": 44100,
+      "source_frames": [
+        0,
+        40920
+      ],
+      "processing": "impact",
+      "url": "/audio/clips/ricochet-cgeffex-96634-1.wav",
+      "sha256": "6bf5b3263570e1849e39c87c05bc7e1b515445257238cbc235af2206a7474f0f",
+      "sample_rate": 48000,
+      "frames": 44539,
+      "loop": false,
+      "notes": "Event 1 of CGEffex's recording, cut before the next event or once it decays."
+    },
+    "shell-hit-bash-boom-debris": {
+      "label": "Shell strike \u00b7 bash, inside boom, debris",
+      "category": "hard-impact",
+      "role": "impact",
+      "layers": [
+        {
+          "source": "freesound-319590",
+          "source_rate": 44100,
+          "source_frames": [
+            5500,
+            36300
+          ],
+          "at_s": 0,
+          "gain": 1.0079,
+          "semitones": 0,
+          "lowpass_hz": null
+        },
+        {
+          "source": "freesound-653294",
+          "source_rate": 48000,
+          "source_frames": [
+            33600,
+            110640
+          ],
+          "at_s": 0.004,
+          "gain": 1.9949,
+          "semitones": 0,
+          "lowpass_hz": 900
+        },
+        {
+          "source": "freesound-703247",
+          "source_rate": 48000,
+          "source_frames": [
+            6000,
+            83040
+          ],
+          "at_s": 0.03,
+          "gain": 0.5505,
+          "semitones": 0,
+          "lowpass_hz": null
+        }
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/shell-hit-bash-boom-debris.wav",
+      "sha256": "865a1453d1cae060e198561f201dde15bc3f6787ade34fde40e6337abab0185c",
+      "sample_rate": 48000,
+      "frames": 78480,
+      "loop": false,
+      "notes": "A metal bash over a structure's low boom heard from inside, then falling debris."
+    },
+    "shell-hit-clank-bang": {
+      "label": "Shell strike \u00b7 crash clank, metal bang",
+      "category": "hard-impact",
+      "role": "impact",
+      "layers": [
+        {
+          "source": "freesound-151624",
+          "source_rate": 44100,
+          "source_frames": [
+            0,
+            23760
+          ],
+          "at_s": 0,
+          "gain": 1.0927,
+          "semitones": 0,
+          "lowpass_hz": null
+        },
+        {
+          "source": "freesound-244394",
+          "source_rate": 44100,
+          "source_frames": [
+            1320,
+            71940
+          ],
+          "at_s": 0.002,
+          "gain": 0.8186,
+          "semitones": 0,
+          "lowpass_hz": 1200
+        }
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/shell-hit-clank-bang.wav",
+      "sha256": "65d596d447223e07ca081a47176e3310a7bd0c758dade65038fdf4ebb98d1df3",
+      "sample_rate": 48000,
+      "frames": 76962,
+      "loop": false,
+      "notes": "A crunching collision clank over a metallic explosion's low end."
+    },
+    "bullet-hit-steel-thud-1": {
+      "label": "Bullet on armour \u00b7 steel target and thud 1",
+      "category": "hard-impact",
+      "role": "impact",
+      "layers": [
+        {
+          "source": "freesound-675951",
+          "source_rate": 48000,
+          "source_frames": [
+            136080,
+            213120
+          ],
+          "at_s": 0,
+          "gain": 1.9424,
+          "semitones": 0,
+          "lowpass_hz": null
+        },
+        {
+          "source": "freesound-640204",
+          "source_rate": 44100,
+          "source_frames": [
+            7920,
+            26180
+          ],
+          "at_s": 0.002,
+          "gain": 0.4824,
+          "semitones": 0,
+          "lowpass_hz": 700
+        }
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/bullet-hit-steel-thud-1.wav",
+      "sha256": "a89a84a0a325a9d0c1464d8cab8f9480a903fed0dd2910a1fde157b4a8c1ff69",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "A real round striking a steel target over a short heavy thud."
+    },
+    "bullet-hit-steel-thud-2": {
+      "label": "Bullet on armour \u00b7 steel target and thud 2",
+      "category": "hard-impact",
+      "role": "impact",
+      "layers": [
+        {
+          "source": "freesound-675951",
+          "source_rate": 48000,
+          "source_frames": [
+            405120,
+            443520
+          ],
+          "at_s": 0,
+          "gain": 1.6962,
+          "semitones": 0,
+          "lowpass_hz": null
+        },
+        {
+          "source": "freesound-640204",
+          "source_rate": 44100,
+          "source_frames": [
+            7920,
+            26180
+          ],
+          "at_s": 0.002,
+          "gain": 0.4824,
+          "semitones": 0,
+          "lowpass_hz": 700
+        }
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/bullet-hit-steel-thud-2.wav",
+      "sha256": "8e8bf28631b998ee284805e177cb47f05a2cd0610ccb1205b31b3e9c8946adc7",
+      "sample_rate": 48000,
+      "frames": 38400,
+      "loop": false,
+      "notes": "A real round striking a steel target over a short heavy thud."
+    },
+    "bullet-hit-steel-thud-3": {
+      "label": "Bullet on armour \u00b7 steel target and thud 3",
+      "category": "hard-impact",
+      "role": "impact",
+      "layers": [
+        {
+          "source": "freesound-675951",
+          "source_rate": 48000,
+          "source_frames": [
+            530880,
+            570240
+          ],
+          "at_s": 0,
+          "gain": 2.2531,
+          "semitones": 0,
+          "lowpass_hz": null
+        },
+        {
+          "source": "freesound-640204",
+          "source_rate": 44100,
+          "source_frames": [
+            7920,
+            26180
+          ],
+          "at_s": 0.002,
+          "gain": 0.4824,
+          "semitones": 0,
+          "lowpass_hz": 700
+        }
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/bullet-hit-steel-thud-3.wav",
+      "sha256": "cc1fc3b9ab1ff00304bff7225c5abc9ecfefa350260068c0819b0ccaa891ca07",
+      "sample_rate": 48000,
+      "frames": 39360,
+      "loop": false,
+      "notes": "A real round striking a steel target over a short heavy thud."
+    },
+    "ricochet-shell-bash-whine": {
+      "label": "Shell ricochet \u00b7 bash, low whine",
+      "category": "ricochet",
+      "role": "impact",
+      "layers": [
+        {
+          "source": "freesound-319590",
+          "source_rate": 44100,
+          "source_frames": [
+            5500,
+            36300
+          ],
+          "at_s": 0,
+          "gain": 1.0079,
+          "semitones": 0,
+          "lowpass_hz": null
+        },
+        {
+          "source": "freesound-96633",
+          "source_rate": 44100,
+          "source_frames": [
+            0,
+            38940
+          ],
+          "at_s": 0.01,
+          "gain": 0.9073,
+          "semitones": -12,
+          "lowpass_hz": null
+        }
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/ricochet-shell-bash-whine.wav",
+      "sha256": "2db8ec07d32047c1cb219af2bc108e55a3664ed7dac67a83d619fbb79eb2a657",
+      "sample_rate": 48000,
+      "frames": 85248,
+      "loop": false,
+      "notes": "A metal bash, then a ricochet whine an octave down: a heavy round deflecting."
+    },
+    "ricochet-shell-bang-whine": {
+      "label": "Shell ricochet \u00b7 metal bang, real whine",
+      "category": "ricochet",
+      "role": "impact",
+      "layers": [
+        {
+          "source": "freesound-244394",
+          "source_rate": 44100,
+          "source_frames": [
+            1320,
+            71940
+          ],
+          "at_s": 0,
+          "gain": 0.8186,
+          "semitones": 0,
+          "lowpass_hz": 1200
+        },
+        {
+          "source": "freesound-854335",
+          "source_rate": 44100,
+          "source_frames": [
+            13860,
+            39820
+          ],
+          "at_s": 0.005,
+          "gain": 1.9835,
+          "semitones": -7,
+          "lowpass_hz": null
+        }
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/ricochet-shell-bang-whine.wav",
+      "sha256": "8d48ed550c7db8c082bc40adf18f0eebd3bcfb2f14519e5875b881032ddef322",
+      "sample_rate": 48000,
+      "frames": 76866,
+      "loop": false,
+      "notes": "A metallic bang's low end under a real ricochet seven semitones down."
+    },
+    "ricochet-shell-boom-crack-whine": {
+      "label": "Shell ricochet \u00b7 inside boom, crack, low whine",
+      "category": "ricochet",
+      "role": "impact",
+      "layers": [
+        {
+          "source": "freesound-653294",
+          "source_rate": 48000,
+          "source_frames": [
+            33600,
+            110640
+          ],
+          "at_s": 0,
+          "gain": 1.5516,
+          "semitones": 0,
+          "lowpass_hz": 900
+        },
+        {
+          "source": "freesound-675951",
+          "source_rate": 48000,
+          "source_frames": [
+            405120,
+            443520
+          ],
+          "at_s": 0,
+          "gain": 1.0177,
+          "semitones": 0,
+          "lowpass_hz": null
+        },
+        {
+          "source": "freesound-96631",
+          "source_rate": 44100,
+          "source_frames": [
+            0,
+            38940
+          ],
+          "at_s": 0.012,
+          "gain": 0.9835,
+          "semitones": -9,
+          "lowpass_hz": null
+        }
+      ],
+      "processing": "armour-impact",
+      "url": "/audio/clips/ricochet-shell-boom-crack-whine.wav",
+      "sha256": "738df731a5b4f4cff12cf011b9c61805d2f9d2f0207b25e7575270e7ad05d90a",
+      "sample_rate": 48000,
+      "frames": 77040,
+      "loop": false,
+      "notes": "A low boom and a steel crack, then a ricochet whine nine semitones down."
     }
   },
   "sounds": {
@@ -3089,6 +5388,511 @@
       "synth_gain": 0,
       "gain": 1.3175,
       "loop": false
+    },
+    "recorded-metal-hit-craigsmith-675951": {
+      "label": "S31-15 Shooting gallery; hitting metal targets.wav \u00b7 craigsmith",
+      "clips": [
+        "metal-hit-craigsmith-675951-1",
+        "metal-hit-craigsmith-675951-2",
+        "metal-hit-craigsmith-675951-3",
+        "metal-hit-craigsmith-675951-4",
+        "metal-hit-craigsmith-675951-5",
+        "metal-hit-craigsmith-675951-6",
+        "metal-hit-craigsmith-675951-7",
+        "metal-hit-craigsmith-675951-8"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-klakmart-108264": {
+      "label": "BangingOilTank.wav \u00b7 klakmart",
+      "clips": [
+        "metal-hit-klakmart-108264-1",
+        "metal-hit-klakmart-108264-2",
+        "metal-hit-klakmart-108264-3",
+        "metal-hit-klakmart-108264-4",
+        "metal-hit-klakmart-108264-5",
+        "metal-hit-klakmart-108264-6",
+        "metal-hit-klakmart-108264-7",
+        "metal-hit-klakmart-108264-8"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-draftcraft-434336": {
+      "label": "Hollow tank hit \u00b7 draftcraft",
+      "clips": [
+        "metal-hit-draftcraft-434336-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-7of9designs-640204": {
+      "label": "Heavy Metal Thud on Ground \u00b7 7of9Designs",
+      "clips": [
+        "metal-hit-7of9designs-640204-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-xkeril-703247": {
+      "label": "Big falling debris (crash) \u00b7 xkeril",
+      "clips": [
+        "metal-hit-xkeril-703247-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-qubodup-151624": {
+      "label": "Clank Car Crash Collision \u00b7 qubodup",
+      "clips": [
+        "metal-hit-qubodup-151624-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-qubodup-332056": {
+      "label": "Fast Collision \u00b7 qubodup",
+      "clips": [
+        "metal-hit-qubodup-332056-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-craigsmith-438522": {
+      "label": "G33-16-Explosion with Metallic Debris.wav \u00b7 craigsmith",
+      "clips": [
+        "metal-hit-craigsmith-438522-1",
+        "metal-hit-craigsmith-438522-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-nox-sound-569555": {
+      "label": "Foley_Impact_Metal_Long_Mono.wav \u00b7 Nox_Sound",
+      "clips": [
+        "metal-hit-nox-sound-569555-1",
+        "metal-hit-nox-sound-569555-2",
+        "metal-hit-nox-sound-569555-3",
+        "metal-hit-nox-sound-569555-4",
+        "metal-hit-nox-sound-569555-5",
+        "metal-hit-nox-sound-569555-6",
+        "metal-hit-nox-sound-569555-7",
+        "metal-hit-nox-sound-569555-8"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-ddt197-445775": {
+      "label": "Metal thud.WAV \u00b7 DDT197",
+      "clips": [
+        "metal-hit-ddt197-445775-1",
+        "metal-hit-ddt197-445775-2",
+        "metal-hit-ddt197-445775-3"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-mhad-390794": {
+      "label": "impact_destruction.wav \u00b7 mhad",
+      "clips": [
+        "metal-hit-mhad-390794-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-pushkin-144444": {
+      "label": "bullet impacts \u00b7 pushkin",
+      "clips": [
+        "metal-hit-pushkin-144444-1",
+        "metal-hit-pushkin-144444-2",
+        "metal-hit-pushkin-144444-3",
+        "metal-hit-pushkin-144444-4",
+        "metal-hit-pushkin-144444-5",
+        "metal-hit-pushkin-144444-6",
+        "metal-hit-pushkin-144444-7",
+        "metal-hit-pushkin-144444-8"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-speedenza-222881": {
+      "label": "Deep Metal Impact (37) 2 \u00b7 Speedenza",
+      "clips": [
+        "metal-hit-speedenza-222881-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-speedenza-193601": {
+      "label": "Crunchy Metal Impact \u00b7 Speedenza",
+      "clips": [
+        "metal-hit-speedenza-193601-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-speedenza-167841": {
+      "label": "Deep Metal Impact (37) 1.wav \u00b7 Speedenza",
+      "clips": [
+        "metal-hit-speedenza-167841-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-speedenza-167840": {
+      "label": "Deep Metal Impact (79) 1s.wav \u00b7 Speedenza",
+      "clips": [
+        "metal-hit-speedenza-167840-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-speedenza-167839": {
+      "label": "Deep Metal Impact (82) 1.wav \u00b7 Speedenza",
+      "clips": [
+        "metal-hit-speedenza-167839-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-osvoldon-653294": {
+      "label": "Big Structure Collision Heard from Inside \u00b7 Osvoldon",
+      "clips": [
+        "metal-hit-osvoldon-653294-1",
+        "metal-hit-osvoldon-653294-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-werra-244394": {
+      "label": "Bang/Explosion Metallic \u00b7 Werra",
+      "clips": [
+        "metal-hit-werra-244394-1",
+        "metal-hit-werra-244394-2"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-johnnyfarmer-209772": {
+      "label": "Metal Boom \u00b7 Johnnyfarmer",
+      "clips": [
+        "metal-hit-johnnyfarmer-209772-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-anthousai-406493": {
+      "label": "hit - metallic - deep hollow thunk.wav \u00b7 Anthousai",
+      "clips": [
+        "metal-hit-anthousai-406493-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-forthehorde68-407349": {
+      "label": "FX_Metallic_hit.wav \u00b7 ForTheHorde68",
+      "clips": [
+        "metal-hit-forthehorde68-407349-1",
+        "metal-hit-forthehorde68-407349-2",
+        "metal-hit-forthehorde68-407349-3",
+        "metal-hit-forthehorde68-407349-4",
+        "metal-hit-forthehorde68-407349-5"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-ogsoundfx-423107": {
+      "label": "Guns & Explosions Album - Bullet Impact 14.wav \u00b7 OGsoundFX",
+      "clips": [
+        "metal-hit-ogsoundfx-423107-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-hybrid-v-319590": {
+      "label": "Shield Bash Impact \u00b7 Hybrid_V",
+      "clips": [
+        "metal-hit-hybrid-v-319590-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-metal-hit-qubodup-222517": {
+      "label": "Dramatic Hit \u00b7 qubodup",
+      "clips": [
+        "metal-hit-qubodup-222517-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-cedarstudios-148840": {
+      "label": "ricochet.mp3 \u00b7 cedarstudios",
+      "clips": [
+        "ricochet-cedarstudios-148840-1",
+        "ricochet-cedarstudios-148840-2",
+        "ricochet-cedarstudios-148840-3",
+        "ricochet-cedarstudios-148840-4"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-cedarstudios-148827": {
+      "label": ".22 ricochet.mp3 \u00b7 cedarstudios",
+      "clips": [
+        "ricochet-cedarstudios-148827-1",
+        "ricochet-cedarstudios-148827-2",
+        "ricochet-cedarstudios-148827-3",
+        "ricochet-cedarstudios-148827-4",
+        "ricochet-cedarstudios-148827-5"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-morganpurkis-392975": {
+      "label": "Ricochet 2.wav \u00b7 morganpurkis",
+      "clips": [
+        "ricochet-morganpurkis-392975-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-c-v-523403": {
+      "label": "22 caliber with ricochet.wav \u00b7 C-V",
+      "clips": [
+        "ricochet-c-v-523403-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-diboz-213925": {
+      "label": "pistol_riccochet.ogg \u00b7 Diboz",
+      "clips": [
+        "ricochet-diboz-213925-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-forthehorde68-407361": {
+      "label": "FX_Ricochet.wav \u00b7 ForTheHorde68",
+      "clips": [
+        "ricochet-forthehorde68-407361-1",
+        "ricochet-forthehorde68-407361-2",
+        "ricochet-forthehorde68-407361-3"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-mikiko850-854335": {
+      "label": "Metal Bullet Ricochets \u00b7 mikiko850",
+      "clips": [
+        "ricochet-mikiko850-854335-1",
+        "ricochet-mikiko850-854335-2",
+        "ricochet-mikiko850-854335-3",
+        "ricochet-mikiko850-854335-4",
+        "ricochet-mikiko850-854335-5",
+        "ricochet-mikiko850-854335-6"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-cgeffex-123222": {
+      "label": "Bullet_whiz.wav \u00b7 CGEffex",
+      "clips": [
+        "ricochet-cgeffex-123222-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-cgeffex-96633": {
+      "label": "Ricochet metal5.wav \u00b7 CGEffex",
+      "clips": [
+        "ricochet-cgeffex-96633-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-cgeffex-96632": {
+      "label": "Ricochet metal4.wav \u00b7 CGEffex",
+      "clips": [
+        "ricochet-cgeffex-96632-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-cgeffex-96631": {
+      "label": "Ricochet metal3.wav \u00b7 CGEffex",
+      "clips": [
+        "ricochet-cgeffex-96631-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-cgeffex-96630": {
+      "label": "Ricochet metal2.wav \u00b7 CGEffex",
+      "clips": [
+        "ricochet-cgeffex-96630-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-cgeffex-96629": {
+      "label": "Ricochet metal.wav \u00b7 CGEffex",
+      "clips": [
+        "ricochet-cgeffex-96629-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recorded-ricochet-cgeffex-96634": {
+      "label": "Ricochet wood.wav \u00b7 CGEffex",
+      "clips": [
+        "ricochet-cgeffex-96634-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "armour-shell-hit": {
+      "label": "Armour \u00b7 shell strike",
+      "clips": [
+        "shell-hit-bash-boom-debris",
+        "shell-hit-clank-bang"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.95,
+      "loop": false
+    },
+    "armour-bullet-hit": {
+      "label": "Armour \u00b7 heavy bullet strike",
+      "clips": [
+        "bullet-hit-steel-thud-1",
+        "bullet-hit-steel-thud-2",
+        "bullet-hit-steel-thud-3"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "armour-rifle-hit": {
+      "label": "Armour \u00b7 rifle round on steel",
+      "clips": [
+        "metal-hit-craigsmith-675951-3",
+        "metal-hit-craigsmith-675951-5",
+        "metal-hit-craigsmith-675951-6"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "ricochet-shell": {
+      "label": "Ricochet \u00b7 heavy round",
+      "clips": [
+        "ricochet-shell-bash-whine",
+        "ricochet-shell-bang-whine",
+        "ricochet-shell-boom-crack-whine"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.95,
+      "loop": false
+    },
+    "ricochet-bullet": {
+      "label": "Ricochet \u00b7 small arms",
+      "clips": [
+        "ricochet-mikiko850-854335-1",
+        "ricochet-mikiko850-854335-4",
+        "ricochet-cedarstudios-148840-1",
+        "ricochet-cedarstudios-148840-3",
+        "ricochet-cedarstudios-148827-1",
+        "ricochet-cgeffex-96633-1",
+        "ricochet-cgeffex-96630-1",
+        "ricochet-cgeffex-96631-1"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
     }
   },
   "defaults": {
@@ -3196,12 +6000,19 @@
       "hmg": "recorded-hard-05"
     },
     "hull": {
-      "rifle": "recorded-metal",
-      "hmg": "recorded-metal"
+      "rifle": "armour-rifle-hit",
+      "hmg": "armour-bullet-hit",
+      "tank_ap": "armour-shell-hit",
+      "tank_he": "armour-shell-hit",
+      "atgm": "armour-shell-hit"
+    },
+    "ricochet": {
+      "tank_ap": "ricochet-shell",
+      "tank_he": "ricochet-shell"
     }
   },
   "effects": {
-    "ricochet": "recorded-ricochet",
+    "ricochet": "ricochet-bullet",
     "explosion": "recorded-explosion",
     "explosion_far": "recorded-explosion",
     "motor": "recorded-motor"

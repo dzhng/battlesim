@@ -26,7 +26,8 @@ recordings or recipes sharing the same core; the battle applies distance attenua
 filtering, attack and reverb during playback. Workbench auditions play the recipe
 without battlefield distance processing. Cannon launch choices follow the mount across its ammunition types;
 the existing observed launch contract does not identify the selected cannon round.
-Impact choices may distinguish the published round and material. Stored reloads and
+Impact choices may distinguish the published round and material; the ricochet row
+chooses each round's glance the same way. Stored reloads and
 mechanical actions remain useful auditions without inventing battle events.
 
 A draft changes only the workbench. Preview captures and validates the exact source

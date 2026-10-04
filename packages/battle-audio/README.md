@@ -18,7 +18,17 @@ off that cadence, or past its last shot, starts the next recording. Rounds stay
 aligned with their muzzle flashes and the same report never machine-guns. A
 recipe's alternatives, and a firing choice's near and far sounds, cover the
 same rounds; a burst never covers more than the gun's own burst. Cannons,
-grenades and launchers keep single reports. Baseline synthesized recipes remain
+grenades and launchers keep single reports.
+
+A round's contact sound follows the round as well as the surface: a hit by
+its material, a glance by its ricochet, so a shell strikes and deflects off
+armour with weight a rifle round lacks. Unassigned rounds fall back to the
+contact's default, then the shared slot. Heavier rounds sound louder by their
+impact scale.
+
+A battle prepares only what it can play: the synthesized baselines and every
+assigned or replacing recipe. The rest of the library is stored for audition
+and downloads only when auditioned, so growing it costs a battle nothing. Baseline synthesized recipes remain
 selectable under their original IDs. A recorded recipe has a distinct ID.
 The bank measures each prepared clip or recipe once and keeps a separate source
 calibration gain. Audition and battle playback apply that gain before their authored
@@ -52,6 +62,16 @@ and ffprobe, with no additional Python packages.
 The frozen [gunfire source review](tools/gunfire-regions.json) retains the original
 numbered take boundaries and user-directed splits and exclusions. Listening estimates
 such as “halfway” do not replace the catalog's exact retained crop frames.
+
+A clip is a crop of one recording, a burst of its shots, or a design that
+layers crops of several recordings, each placed at an offset with its own gain,
+pitch and optional low-pass. Pitch shifts by resampling, so a lower layer is
+also slower, as a bigger body would sound; each layer fades out rather than
+stopping mid-rumble. Designs keep every source's provenance, as crops do.
+
+Sources are public domain, CC0 or Creative Commons with attribution, which the
+source row's author and URL supply. Non-commercial recordings are marked in
+their notes and must not ship in a commercial release.
 
 The tool averages stereo channels, keeps the source crop in its original frame
 coordinates, applies the selected tonal profile and fades, and normalizes peak
