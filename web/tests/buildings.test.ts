@@ -44,6 +44,7 @@ test("the public picker and delivered replacements share one physical building o
     height_grid_m: 4,
     slope_cutoff_deg: 35,
     template_catalog_hash: hash,
+    regional_family: "api_fixture",
     buildings: [
       {
         owner: 0,
@@ -90,6 +91,7 @@ test("the public picker and delivered replacements share one physical building o
     const exports: WorldExports = readWorldExports(view);
     expect(exports.buildings).toEqual({
       catalogueHash: hash,
+      regionalFamily: "api_fixture",
       buildings: [
         {
           owner: 0,
@@ -226,6 +228,7 @@ test("building nomination resolves aggregate owners even without garrison capabi
     height_grid_m: 4,
     slope_cutoff_deg: 35,
     template_catalog_hash: JSON.parse(template_catalogue_json(JSON.stringify([descriptor]))).hash,
+    regional_family: "api_fixture",
     buildings: [
       {
         owner: 0,

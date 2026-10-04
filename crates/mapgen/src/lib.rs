@@ -68,6 +68,10 @@ pub struct MapPlan {
     /// The parcels the parcel pass cut, in the order it cut them. Plan-only.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lots: Vec<LotPlan>,
+    /// The regional family its buildings are of, which the map names
+    /// (`MapDefinition.regional_family`): set by the parcel pass.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub regional_family: Option<String>,
     /// The paved block interiors of the districts that pave theirs, each
     /// also laid as a `Paving` surface. Plan-only: where court amenities
     /// stand.
@@ -735,6 +739,7 @@ pub fn lower(
         props: request.plan.props.clone(),
         buildings: Vec::new(),
         template_catalog_hash: Some(catalogue.hash().into()),
+        regional_family: request.plan.regional_family.clone(),
     };
     let unsound = |location: String| {
         move |message| {

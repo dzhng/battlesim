@@ -453,10 +453,10 @@ fn saved_local_spans_cannot_contradict_the_emitted_world_geometry() {
         .unwrap();
     let mut record = serde_json::to_value(&placed).unwrap();
     assert_eq!(record["edges"][0]["span_m"], json!([-3.0, -1.0]));
-    let admitted:contract::map::MapDefinition=serde_json::from_value(json!({"size":[18000,18000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"template_catalog_hash":"0".repeat(64),"buildings":[{"owner":0,"kind":"building","category":"attached_home","regional_family":"api_fixture","parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":record}]})).unwrap();
+    let admitted:contract::map::MapDefinition=serde_json::from_value(json!({"size":[18000,18000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"template_catalog_hash":"0".repeat(64),"regional_family":"api_fixture","buildings":[{"owner":0,"kind":"building","category":"attached_home","regional_family":"api_fixture","parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":record}]})).unwrap();
     admitted.authored_props().unwrap();
     record["edges"][0]["span_m"] = json!([-2.0, -1.0]);
-    let map:contract::map::MapDefinition=serde_json::from_value(json!({"size":[18000,18000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"template_catalog_hash":"0".repeat(64),"buildings":[{"owner":0,"kind":"building","category":"farmstead","regional_family":"api_fixture","parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":record}]})).unwrap();
+    let map:contract::map::MapDefinition=serde_json::from_value(json!({"size":[18000,18000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"template_catalog_hash":"0".repeat(64),"regional_family":"api_fixture","buildings":[{"owner":0,"kind":"building","category":"farmstead","regional_family":"api_fixture","parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":record}]})).unwrap();
     assert!(map.authored_props().is_err());
 }
 

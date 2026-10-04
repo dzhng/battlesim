@@ -9,6 +9,7 @@
     "fog_cell_m": 40.000000000168804,
     "height_grid_m": 40.000000000168804,
     "slope_cutoff_deg": 40.000000000168804,
+    "regional_family": "api_fixture",
     "props": [{ "id": 2, "kind": "tooth", "center": [40.000000000168804, 100], "yaw": 0, "half_extents": [0.6, 0.6, 0.6] }],
     "buildings": [{ "id": "compound", "template_id": "asymmetric-api-compound", "kind": "building", "owner": 0,
       "parts": [{ "part": "main", "prop": 0 }, { "part": "wing", "prop": 1 }],

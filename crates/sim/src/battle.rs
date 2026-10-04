@@ -2999,7 +2999,7 @@ mod tests {
         );
         let setup = serde_json::from_value(serde_json::json!({
             "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
-                "template_catalog_hash":catalogue.hash(),
+                "template_catalog_hash":catalogue.hash(),"regional_family":descriptor.regional_family,
                 "buildings":[{"owner":0,"kind":"building","category":descriptor.category,"regional_family":descriptor.regional_family,"parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":geometry}]},
             "rules":rules,"units":[{"side":"blue","kind":"rifle","position":[250,100],"engagement":"return_fire_only"}],"events":[],"scripts":[]
         })).unwrap();
@@ -3053,7 +3053,7 @@ mod tests {
             rules["garrison"]["survival_probability_on_collapse"] = serde_json::json!(0);
             let setup = serde_json::from_value(serde_json::json!({
                 "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
-                    "template_catalog_hash":catalogue.hash(),
+                    "template_catalog_hash":catalogue.hash(),"regional_family":descriptor.regional_family,
                     "buildings":[{"owner":0,"kind":"building","category":descriptor.category,"regional_family":descriptor.regional_family,
                         "parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":geometry}]},
                 "rules":rules,"units":[

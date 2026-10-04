@@ -114,6 +114,11 @@ pub struct MapDefinition<B = BuildingDefinition> {
     pub buildings: Vec<B>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub template_catalog_hash: Option<String>,
+    /// The one regional family (a presets `parcels.regional_families` entry)
+    /// every building of the map is of, and whose looks it draws its ground
+    /// and scenery in. Absent only on a map without buildings.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub regional_family: Option<String>,
 }
 
 /// A map as its folder stores it (`fixtures/maps/<id>/map.json`): everything
@@ -166,6 +171,7 @@ impl<B> MapDefinition<B> {
             props: self.props,
             buildings,
             template_catalog_hash: self.template_catalog_hash,
+            regional_family: self.regional_family,
         };
         (map, self.buildings)
     }
@@ -535,6 +541,12 @@ impl MapDefinition {
                 return Err(
                     "building part references must uniquely cover physical geometry".into(),
                 );
+            }
+            if self.regional_family.as_ref() != Some(&building.regional_family) {
+                return Err(format!(
+                    "building of owner {} is of region {:?}, its map of region {:?}",
+                    building.owner, building.regional_family, self.regional_family
+                ));
             }
             for part in &building.parts {
                 reserve(part.prop)?;

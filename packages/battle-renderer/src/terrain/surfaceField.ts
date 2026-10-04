@@ -43,7 +43,8 @@ import { RECT_FLOATS, type TerrainSite } from "./terrainSurface";
 
 /** Floats per record: a stroke's stretch `a, b, half width`, its kind or
  *  forest, and its cut ends (`strokes.ts`), then for a paved stretch how far
- *  along its stroke it starts; a triangle `a, b, c`; an exposed
+ *  along its stroke it starts; a triangle `a, b, c`, its kind, and for a
+ *  paved one the bearing its area's slabs are laid square to; an exposed
  *  boundary edge `a, b`; a rect `min, max`. A river's stretch is two
  *  records: `a, b`, the half width at `a` and at `b`, the bank's grade at
  *  each; then the bank's height at each, which no cell lists. */
@@ -52,6 +53,9 @@ export const SURFACE_FLOATS = 8;
  *  end `a`: what runs along a road (its markings, a walk's slabs) is laid out
  *  by it, unbroken from stretch to stretch round a bend. */
 export const SURFACE_STROKE_ALONG = 7;
+/** Where a paved triangle's record holds its area's slab bearing
+ *  (`areaBearings`). */
+export const SURFACE_AREA_BEARING = 7;
 
 /** An index entry: the record's kind in the top two bits, then whether it
  *  opens a new forest shape in its cell's list, then the record. */
@@ -240,9 +244,12 @@ export function buildSurfaceField(
   }
   // Triangles only say which side of the exposed boundary a point is on:
   // with no boundary there is nothing for them to sign.
-  for (let o = 0; o < site.surfaceTriangles.length; o += site.surfaceTriangleStride)
-    listed[put(site.surfaceTriangles, o, FOREST_TRIANGLE_FLOATS, SURFACE_TRIANGLE, PAVED, 3)] =
-      boundaryCount > 0 ? 1 : 0;
+  const bearings = areaBearings(site.surfaceTriangles, site.surfaceTriangleStride);
+  for (let o = 0, t = 0; o < site.surfaceTriangles.length; o += site.surfaceTriangleStride, t++) {
+    const at = put(site.surfaceTriangles, o, FOREST_TRIANGLE_FLOATS, SURFACE_TRIANGLE, PAVED, 3);
+    listed[at] = boundaryCount > 0 ? 1 : 0;
+    records[at * SURFACE_FLOATS + SURFACE_AREA_BEARING] = bearings[t];
+  }
   for (let o = 0; o < site.surfaceBoundaries.length; o += site.surfaceBoundaryStride)
     put(site.surfaceBoundaries, o, FOREST_BOUNDARY_FLOATS, SURFACE_EDGE, PAVED, 2);
   let shapeId = 0;
@@ -567,4 +574,51 @@ export function waterDistance(
       stretchInside(records, (index[e] & SURFACE_RECORD_MASK) * SURFACE_FLOATS, x, y),
     );
   return bed;
+}
+
+/** Each paved triangle's area's slab bearing, in radians within a quarter
+ *  turn: the bearing of the longest outer edge of the triangles joined to it
+ *  by shared corners (one polygon, as the simulation triangulates it), so
+ *  every triangle of an area lays its slabs on one grid, square to its
+ *  longest side. */
+export function areaBearings(triangles: Float32Array, stride: number): Float32Array {
+  const count = triangles.length / stride;
+  const parent = Int32Array.from({ length: count }, (_, i) => i);
+  const root = (i: number): number => (parent[i] === i ? i : (parent[i] = root(parent[i])));
+  const corner = (t: number, k: number) =>
+    `${triangles[t * stride + 2 * k]},${triangles[t * stride + 2 * k + 1]}`;
+  const owner = new Map<string, number>();
+  for (let t = 0; t < count; t++)
+    for (let k = 0; k < 3; k++) {
+      const key = corner(t, k);
+      const seen = owner.get(key);
+      if (seen === undefined) owner.set(key, t);
+      else parent[root(t)] = root(seen);
+    }
+  // An edge two triangles of an area share is inside it.
+  const edges = new Map<string, number>();
+  const edgeKey = (t: number, k: number) => {
+    const [a, b] = [corner(t, k), corner(t, (k + 1) % 3)];
+    return a < b ? `${a}|${b}` : `${b}|${a}`;
+  };
+  for (let t = 0; t < count; t++)
+    for (let k = 0; k < 3; k++) edges.set(edgeKey(t, k), (edges.get(edgeKey(t, k)) ?? 0) + 1);
+  const longest = new Float64Array(count).fill(-1);
+  const bearing = new Float32Array(count);
+  for (let t = 0; t < count; t++)
+    for (let k = 0; k < 3; k++) {
+      if (edges.get(edgeKey(t, k)) !== 1) continue;
+      const o = t * stride;
+      const dx = triangles[o + ((2 * k + 2) % 6)] - triangles[o + 2 * k];
+      const dy = triangles[o + ((2 * k + 3) % 6)] - triangles[o + 2 * k + 1];
+      const length = Math.hypot(dx, dy);
+      const r = root(t);
+      if (length > longest[r]) {
+        longest[r] = length;
+        const turn = Math.atan2(dy, dx);
+        bearing[r] = turn - Math.floor(turn / (Math.PI / 2)) * (Math.PI / 2);
+      }
+    }
+  for (let t = 0; t < count; t++) bearing[t] = bearing[root(t)];
+  return bearing;
 }

@@ -206,6 +206,7 @@ fn fill(
     plan.surfaces.extend(aprons);
     plan.surfaces.extend(paving);
     plan.courts = courts;
+    plan.regional_family = Some(pass.family.to_string());
     plan.lots = lots;
     plan.buildings = buildings;
 

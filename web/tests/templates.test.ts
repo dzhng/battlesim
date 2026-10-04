@@ -57,6 +57,7 @@ test("materialization and the public loader admit the same representable part po
       height_grid_m: 4,
       slope_cutoff_deg: 35,
       template_catalog_hash: hash,
+      regional_family: "api_fixture",
       buildings: [
         {
           owner: 0,
