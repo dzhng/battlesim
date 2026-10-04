@@ -4,7 +4,7 @@ A generated town's streets carry furniture, but the ground between its buildings
 
 ## Next Agent Prompt
 
-*Status (2026-10-04): on branch `courtyards`: 00–07 and 05b merged, 08a's garden pieces merged. In flight: court art 08a–d (worktree `courtyards-art2`) and a placement lane (worktree `courtyards-place`) diagnosing group moves whose destinations go unplaced in towns (41/81 probe maps after 05, 57/81 after 05b; pre-courtyards baseline being measured). Next: merge both, judge court density again with real art (05b's metric is weak, choices.md), then 09. Known findings outside this spec: cars, some trees and lamps on the drawn walk; shaded fences read dark.*
+*Status (2026-10-04): on branch `courtyards`: 00–08 and 05b merged, plus a vehicle-placement fix (choices.md). In flight: 05c structured courts (worktree `courtyards-structure`) and a take-cover fix (worktree `courtyards-cover`: cover posts only where a soldier can stand; rifle squads refused on 14 probe units vs 3 before courtyards). Then 05c's boundary art, then 09. Known findings outside this spec: cars, some trees and lamps on the drawn walk; shaded fences read dark.*
 
 You are implementing this spec with [implement-spec](../../.agents/skills/implement-spec/SKILL.md). Start at [slice 00](slices/00-budget-and-stand-ins.md); it only measures and decides two numbers, and every later slice inherits them. Work the ladder in order unless the graph below says a slice can run beside another. Record every decision the slices leave open in [choices.md](choices.md) as you make it. Before ending a pass, update this section: status, the next pickup point, and the checklist.
 
