@@ -409,6 +409,9 @@ pub struct DistrictProps {
     /// Bodies beside each building, on its own parcel.
     #[serde(default)]
     pub yard: Vec<CountRow>,
+    /// The garden behind each building; absent is a bare lawn.
+    #[serde(default)]
+    pub gardens: Option<Gardens>,
     /// The chance a parcel the parcel pass left open is a construction site.
     #[serde(default)]
     pub site_chance: f64,
@@ -438,6 +441,26 @@ pub enum VergeSides {
     Both,
     /// That many to the length, each at a drawn place on a drawn side.
     Scatter,
+}
+
+/// What a built lot's garden holds: pieces in its rear setback, and a
+/// boundary along its rear and side edges, never in the front garden.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Gardens {
+    /// The strip in from the lot's rear edge that pieces stand in.
+    pub depth_m: f64,
+    /// Pieces keep this far inside the lot's edges: room for its boundary
+    /// and the ground that boundary keeps.
+    pub room_m: f64,
+    /// The chance a lot's garden has a boundary.
+    pub boundary_chance: f64,
+    /// The bodies a boundary is made of, by weight: one kind to a lot.
+    pub boundary: BTreeMap<String, f64>,
+    /// Pieces, each row's count drawn in order.
+    pub pieces: Vec<CountRow>,
+    /// The most bodies one garden holds, its boundary's included.
+    pub max_per_lot: u32,
 }
 
 /// A body kind and how many of it: an inclusive range a seed draws from.
@@ -1304,9 +1327,23 @@ impl PresetDefinitions {
                     && props
                         .yard
                         .iter()
-                        .all(|row| known(&row.kind) && row.count[0] <= row.count[1]),
+                        .all(|row| known(&row.kind) && row.count[0] <= row.count[1])
+                    && props.gardens.as_ref().is_none_or(|gardens| {
+                        positive(gardens.depth_m)
+                            && gardens.depth_m <= lots.rear_m
+                            && length(gardens.room_m)
+                            && (0.0..=1.0).contains(&gardens.boundary_chance)
+                            && gardens
+                                .boundary
+                                .iter()
+                                .all(|(kind, weight)| known(kind) && positive(*weight))
+                            && gardens
+                                .pieces
+                                .iter()
+                                .all(|row| known(&row.kind) && row.count[0] <= row.count[1])
+                    }),
                 format!("districts.{id}.props"),
-                "street furniture names bodies of street_props, by a parking share below 1, positive spacings, ordered counts and a site chance",
+                "street furniture names bodies of street_props, by a parking share below 1, positive spacings and weights, ordered counts, a site chance and a garden no deeper than the rear setback",
             );
         }
         let s = &self.street_props;

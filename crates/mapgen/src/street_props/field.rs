@@ -4,7 +4,8 @@ use crate::layout::geometry::{direction, round_cm, Grid, Point};
 use crate::layout::water::Water;
 use crate::layout::{Corridor, PropBox, StreetProps};
 use crate::parcels::space::Rect;
-use contract::map::{AuthoredPropDefinition, PropDefinition};
+use contract::ground::{polygon_contains, GroundShape};
+use contract::map::{AuthoredPropDefinition, Forest, PropDefinition};
 
 /// One straight piece of a carriageway.
 pub(super) struct Piece {
@@ -66,6 +67,11 @@ pub(super) struct Field<'a> {
     /// Bridge decks with the straight run onto each.
     pub(super) decks: Vec<Rect>,
     pub(super) corridors: Vec<Corridor>,
+    /// Forests no body may come within `wood_clear` of: a tree is not
+    /// stood within its clearance of a body.
+    pub(super) woods: Vec<&'a GroundShape>,
+    pub(super) wood_grid: Grid,
+    pub(super) wood_clear: f64,
     pub(super) groups: u32,
     pub(super) placed: Vec<AuthoredPropDefinition>,
 }
@@ -88,7 +94,7 @@ pub(super) fn grow(bounds: [f64; 4], by: f64) -> [f64; 4] {
     ]
 }
 
-impl Field<'_> {
+impl<'a> Field<'a> {
     /// The one legality check: whether `c` may stand where it asks.
     pub(super) fn legal(&self, c: &Candidate) -> bool {
         let rect = &c.rect;
@@ -160,7 +166,57 @@ impl Field<'_> {
                 return false;
             }
         }
-        !self.decks.iter().any(|deck| rect.overlaps(deck, 0.0))
+        if self.decks.iter().any(|deck| rect.overlaps(deck, 0.0)) {
+            return false;
+        }
+        let clear = self.wood_clear;
+        !self.wood_grid.any(grow(bounds, clear), |item| {
+            match self.woods[item as usize] {
+                GroundShape::Polygon { ring } => {
+                    polygon_contains(ring, rect.center)
+                        || contract::ground::edges(ring)
+                            .any(|(a, b)| rect.segment_gap(*a, *b) < clear)
+                }
+                GroundShape::Stroke {
+                    centerline,
+                    width_m,
+                } => centerline
+                    .samples()
+                    .windows(2)
+                    .any(|pair| rect.segment_gap(pair[0], pair[1]) < width_m / 2.0 + clear),
+            }
+        })
+    }
+
+    /// Every body `props` already stands on the map, kept clear of as a
+    /// placed body is: by the room its row keeps, or none for a kind street
+    /// furniture does not place.
+    pub(super) fn stand_plan_bodies(&mut self, props: &[AuthoredPropDefinition]) {
+        for prop in props {
+            let p = &prop.geometry;
+            let rect = Rect {
+                center: p.center,
+                axis: direction(p.yaw),
+                half: [p.half_extents[0], p.half_extents[1]],
+            };
+            self.body_grid
+                .insert(rect.bounds(), self.bodies.len() as u32);
+            self.bodies.push(Body {
+                rect,
+                clear: self.rule.bodies.get(&p.kind).map_or(0.0, |b| b.clear_m),
+                group: 0,
+            });
+        }
+    }
+
+    /// Keep every body `clear` off each of `forests`.
+    pub(super) fn keep_off_woods(&mut self, forests: &'a [Forest], clear: f64) {
+        self.wood_clear = clear + super::SLACK_M;
+        for forest in forests {
+            self.wood_grid
+                .insert(forest.shape.limits(), self.woods.len() as u32);
+            self.woods.push(&forest.shape);
+        }
     }
 
     pub(super) fn group(&mut self) -> u32 {
