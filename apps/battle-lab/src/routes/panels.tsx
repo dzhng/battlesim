@@ -7,8 +7,11 @@ import { useLabLoading } from "../LabLoading";
 import game from "@fixtures/game.json";
 import { InfoPanel, PanelCallout } from "@web/battle/present/infoPanel";
 import type { PanelRules } from "@web/battle/present/panelRows";
-import { useEffect } from "react";
-import { panelSpecimens, type Specimen } from "../panelSpecimens";
+import { useEffect, useState } from "react";
+import { panelSpecimens, specimenUnit, type Specimen } from "../panelSpecimens";
+
+import { CommandBar, SelectionCard, SelectionDeck } from "@web/battle/present/readouts";
+import { CaptionList } from "@web/battle/present/captions";
 
 const RULES = game as unknown as PanelRules;
 
@@ -37,6 +40,7 @@ function Card({ s }: { s: Specimen }) {
 }
 
 export default function Panels() {
+  const [deck, setDeck] = useState(false);
   useLabLoading("renderer", true);
   const params = new URLSearchParams(location.search);
   const scale = Number(params.get("scale") ?? 1) || 1;
@@ -46,11 +50,13 @@ export default function Panels() {
     window.__lab = { ready: true, fixture: "panels", error: null, frame: async () => {} };
     return () => void delete window.__lab;
   }, []);
+  if (deck) return <DeckReview onBack={() => setDeck(false)} />;
   return (
     <main className="pw" style={{ zoom: scale }}>
       <style>{CSS}</style>
       <header>
-        <strong>Info panels</strong> · {specimens.length} panels
+        <strong>Info panels</strong> · {specimens.length} panels{" "}
+        <button onClick={() => setDeck(true)}>Review battle deck</button>
       </header>
       {groups.map((g) => (
         <section key={g}>
@@ -74,6 +80,145 @@ export default function Panels() {
             ))}
         </div>
       </section>
+    </main>
+  );
+}
+
+/** The real selection and command components over controlled presentation data. */
+function DeckReview({ onBack }: { onBack: () => void }) {
+  const cases: {
+    name: string;
+    units: ReturnType<typeof specimenUnit>[];
+    replay?: boolean;
+    panel?: Specimen["panel"];
+  }[] = [
+    { name: "Rifle squad", units: [specimenUnit("rifle")] },
+    { name: "Tank ammunition", units: [specimenUnit("tank")] },
+    {
+      name: "Suppressed and resupplying",
+      units: [specimenUnit("rifle", { suppression: "suppressed", service: "serving" })],
+    },
+    {
+      name: "Deploying supply truck",
+      units: [
+        specimenUnit("supply", { deployment: { progress: 0.4, target: "deployed" }, stock: 250 }),
+      ],
+    },
+    {
+      name: "Mixed capabilities",
+      units: [specimenUnit("tank", { id: 1 }), specimenUnit("supply", { id: 2 })],
+    },
+    {
+      name: "Garrison exit",
+      units: [
+        specimenUnit("rifle", {
+          garrison: { building: 3, phase: "inside", progress: 1, center: [0, 0], half: [10, 10] },
+        }),
+      ],
+    },
+    {
+      name: "Large selection",
+      units: ["tank", "rifle", "at", "supply", "recon", "jeep"].map((kind, id) =>
+        specimenUnit(kind, { id }),
+      ),
+    },
+    {
+      name: "Twin launchers",
+      units: [specimenUnit("at")],
+      panel: panelSpecimens(RULES).find(
+        (s) => s.id === "key cases/two launchers, separate reloads",
+      )!.panel,
+    },
+    {
+      name: "Long equipment name",
+      units: [specimenUnit("at")],
+      panel: {
+        ...panelSpecimens(RULES).find((s) => s.id === "key cases/two launchers, separate reloads")!
+          .panel,
+        name: "MECHANIZED ANTI-TANK SUPPORT SECTION",
+      },
+    },
+    {
+      name: "Entire force",
+      units: Array.from({ length: 48 }, (_, id) =>
+        specimenUnit("rifle", { id, suppression: "suppressed", service: "serving" }),
+      ),
+    },
+    { name: "No selection", units: [] },
+    { name: "Replay", units: [specimenUnit("tank")], replay: true },
+  ];
+  const [chosen, setChosen] = useState(0);
+  const [mode, setMode] = useState<Parameters<typeof CommandBar>[0]["control"]["mode"]>("move");
+  const [action, setAction] = useState("");
+  const selection = cases[chosen];
+  const control = {
+    selectedUnits: selection.units,
+    mode,
+    setMode,
+    stop: () => setAction("Stop"),
+    togglePolicy: () => setAction("Fire policy"),
+    toggleDeployment: () => setAction("Deployment"),
+    exitBuilding: () => setAction("Leave building"),
+  };
+  return (
+    <main
+      style={{ height: "100%", background: "linear-gradient(#324227, #526441 65%, #62625d 65%)" }}
+    >
+      <nav
+        style={{
+          position: "absolute",
+          top: 16,
+          left: 16,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+        }}
+      >
+        <button onClick={onBack}>Info panels</button>
+        {cases.map((c, index) => (
+          <button
+            key={c.name}
+            aria-pressed={index === chosen}
+            onClick={() => {
+              setChosen(index);
+              setMode("move");
+            }}
+          >
+            {c.name}
+          </button>
+        ))}
+      </nav>
+      <output style={{ position: "absolute", top: 90, left: 16 }}>{action}</output>
+      <div className="hud">
+        <SelectionDeck
+          selection={
+            selection.units.length === 0 ? null : selection.panel ? (
+              <div className="hud-card">
+                <InfoPanel panel={selection.panel} />
+              </div>
+            ) : (
+              <SelectionCard units={selection.units} own={selection.units} rules={RULES} />
+            )
+          }
+          control={selection.replay ? undefined : control}
+          captions={
+            <CaptionList
+              captions={{
+                captions: [
+                  {
+                    key: "heard",
+                    text: "Heard gunfire, nearby, east of Rifle squad",
+                    count: 2,
+                    tick: 0,
+                  },
+                ],
+                note: () => {},
+                clear: () => {},
+              }}
+            />
+          }
+        />
+      </div>
     </main>
   );
 }

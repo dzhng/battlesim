@@ -110,6 +110,9 @@ function WeaponCounts({ w }: { w: Pick<WeaponRow, "kinds"> }) {
     return null;
   return (
     <span className="ro-kinds">
+      <span className="ro-count-separator" aria-hidden="true">
+        :
+      </span>
       {w.kinds.map((k, i) => (
         <span key={i} className="ro-kind" data-loaded={k.loaded ? "" : undefined}>
           {i > 0 && <span className="ro-sep">·</span>}
@@ -182,6 +185,11 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
         <span className="ro-name-word">{panel.name}</span>
         {panel.states.some((row) => row.state === "hidden") && (
           <Icon path={stateIcon("hidden")} className="ro-hidden-icon" title="Hidden" />
+        )}
+        {panel.personnel !== undefined && (
+          <span className="ro-personnel">
+            {panel.personnel} {panel.personnel === 1 ? "soldier" : "soldiers"}
+          </span>
         )}
         <Pips fill={panel.strength} />
       </span>

@@ -1,5 +1,5 @@
 /* The HUD's holo-tactical look: the panel as dark
-   glass with thin glowing edges, game-style command tiles with key chips, and
+   glass with thin glowing edges, icon command tiles with focus/hover tooltips, and
    the weapon callouts floating off their units on leader lines over soft dark
    scrims. Every colour is a `--hud-*` property from `presentation.hud`
    (`hudTheme.ts`); this sheet holds none of its own. */
@@ -142,61 +142,80 @@
   outline-offset: 1px;
 }
 
-/* The command tiles: an icon, the command's name, the key on a chip. */
+/* Names and complete bindings stay available without taking battlefield room. */
 .ro-commands {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
 }
 .hud-panel button.ro-cmd {
   position: relative;
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 1px;
-  justify-self: stretch;
-  min-height: 42px;
-  padding: 6px 2px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-color: rgb(var(--hud-accent) / 0.18);
+}
+.hud-panel button.ro-cmd:focus-visible {
+  outline: 2px solid rgb(var(--hud-accent));
+  outline-offset: 2px;
+  border-color: rgb(var(--hud-accent));
+  background: rgb(var(--hud-accent) / 0.2);
 }
 .ro-cmd-icon {
   margin: 0;
   color: rgb(var(--hud-accent));
-  filter: drop-shadow(0 0 3px rgb(var(--hud-accent) / 0.7));
+  filter: drop-shadow(0 0 2px rgb(var(--hud-accent) / 0.4));
 }
-.ro-cmd-icon svg {
-  width: 16px;
-  height: 16px;
+.ro-cmd[data-reach] .ro-cmd-icon {
+  transform: translateY(-4px);
 }
-.ro-cmd-name {
-  font-size: 8.5px;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
+.ro-cmd .ro-cmd-icon svg {
+  width: 28px;
+  height: 28px;
 }
-.ro-cmd kbd {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  font: inherit;
-  font-size: 8px;
-  line-height: 1;
-  letter-spacing: 0;
-  padding: 1px 2px;
-  color: rgb(var(--hud-dim));
-  border: 1px solid rgb(var(--hud-dim) / 0.45);
-}
-/* A command only part of the selection can carry out: how many it reaches. */
 .ro-cmd-reach {
   position: absolute;
-  top: 2px;
-  left: 3px;
-  font-size: 8px;
+  bottom: 1px;
+  right: 3px;
+  font-size: 10px;
   line-height: 1;
-  color: rgb(var(--hud-dim));
+  color: rgb(var(--hud-text));
   font-variant-numeric: tabular-nums;
 }
-.ro-cmd[aria-pressed="true"] kbd {
-  color: rgb(var(--hud-accent));
-  border-color: rgb(var(--hud-accent) / 0.8);
+.ro-cmd-tooltip {
+  display: block;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 32px));
+  padding: 8px 10px;
+  color: rgb(var(--hud-text));
+  background: rgb(var(--hud-glass) / 0.98);
+  border: 1px solid rgb(var(--hud-accent) / 0.5);
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hud-command-hint {
+  width: 100%;
+}
+.hud-command-hint:empty {
+  display: none;
+}
+.hud-command-hint .ro-cmd-tooltip {
+  position: relative;
+  bottom: auto;
+  right: auto;
+  transform: translateX(-50%);
 }
 
 /* ---- Fields: no browser controls ------------------------------------- */
@@ -449,6 +468,13 @@
     0 0 2px rgb(0 0 0 / 0.95),
     0 0 6px rgb(var(--tone) / calc(0.7 * var(--hud-callout-glow)));
 }
+.ro-personnel {
+  margin-left: 8px;
+  font-size: 10px;
+  letter-spacing: 0;
+  font-weight: normal;
+  color: rgb(var(--ink));
+}
 .ro-name-icon svg {
   width: 10px;
   height: 10px;
@@ -568,6 +594,10 @@
   align-items: center;
   gap: 4px;
 }
+.ro-count-separator {
+  font-weight: normal;
+  color: rgb(var(--ink) / 0.7);
+}
 .ro-kind {
   display: flex;
   align-items: center;
@@ -645,7 +675,9 @@
   gap: 6px;
   margin-top: 0;
 }
-[data-zoom="far"] .ro-section:not([data-repeat-icons]) :is(.ro-word, .ro-sep, .ro-pips-none),
+[data-zoom="far"]
+  .ro-section:not([data-repeat-icons])
+  :is(.ro-word, .ro-sep, .ro-count-separator, .ro-pips-none),
 [data-zoom="far"] .ro-name > .ro-pips-none {
   display: none;
 }
@@ -791,90 +823,121 @@
   display: grid;
   gap: 6px;
 }
-.hud-panel.hud-bar {
+.hud-lower {
   position: fixed;
-  left: 0;
-  right: 0;
-  border-left: 0;
-  border-right: 0;
+  inset-inline: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.hud-panel.hud-bar {
+  position: relative;
   box-sizing: border-box;
 }
-.hud-panel.hud-bar::before,
-.hud-panel.hud-bar::after {
-  display: none;
-}
 .hud-bottom {
-  bottom: 0;
-  display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr);
-  align-items: stretch;
-  gap: 16px;
-  padding: 10px 16px;
-  height: 150px;
-  border-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: max-content;
+  max-width: min(922px, 100%);
+  min-height: 80px;
+  background: rgb(var(--hud-glass) / 0.94);
+  padding: 8px 10px;
+  pointer-events: auto;
 }
-.hud-bottom > * {
-  min-width: 0;
-  overflow: auto;
+.hud-bottom:has(.hud-group) {
+  flex-direction: column;
 }
-/* The unit card: the selection's info panels (infoPanel.tsx), in the own
-   tone; one unit's beside its portrait (role symbol over silhouette), a
-   group's in their far form. */
+/* Keep the shared panel vocabulary; only spacing and text size change here. */
 .hud-card {
   --tone: var(--hud-accent);
   --ink: var(--hud-text);
-  grid-column: 1;
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding-right: 12px;
-  border-right: 1px solid rgb(var(--hud-accent) / 0.2);
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
 }
 .hud-group {
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: start;
+  width: min(900px, calc(100dvw - 54px));
+  box-sizing: border-box;
+  padding-right: 12px;
+  gap: 10px 18px;
+  max-width: min(900px, 100%);
+  max-height: calc(30dvh - 80px);
   align-content: flex-start;
-  gap: 4px 18px;
+  overflow-y: auto;
+}
+.hud-group::-webkit-scrollbar {
+  width: 6px;
+  background: rgb(var(--hud-accent) / 0.1);
+}
+.hud-group::-webkit-scrollbar-thumb {
+  background: rgb(var(--hud-accent) / 0.75);
+}
+.hud-card .ro-personnel {
+  font-size: 11.5px;
+}
+.hud-card .ro-body {
+  min-width: 230px;
+}
+.hud-card .ro-name {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+.hud-card :is(.ro-word, .ro-kind-label, .ro-sep, .ro-ammo) {
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+}
+.hud-card .ro-row {
+  height: 22px;
+}
+.hud-card .ro-weapons {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0 12px;
+}
+.hud-card .ro-kinds {
+  padding-left: 4px;
 }
 .hud-portrait {
   display: grid;
-  justify-items: start;
-  gap: 6px;
+  justify-items: center;
+  gap: 5px;
   flex: none;
   color: rgb(var(--hud-accent));
-  filter: drop-shadow(0 0 2px rgb(var(--hud-accent) / 0.45));
 }
 .hud-portrait .ro-icon {
   margin: 0;
 }
-.hud-role svg {
-  height: 22px;
+.hud-portrait .hud-role svg {
+  height: 20px;
 }
-.hud-silhouette svg {
-  height: 28px;
-  max-width: 96px;
+.hud-portrait .hud-silhouette svg {
+  height: 24px;
+  max-width: 60px;
 }
 .hud-bottom .ro-commands {
-  grid-template-columns: repeat(6, 1fr);
+  max-width: 384px;
   align-content: center;
-  overflow: visible;
 }
-/* Sound captions: what the side hears, over
-   the bottom bar, in the HUD's type with no box. */
+/* Normal flow keeps hearing captions above a deck of any actual height. */
 .hud-subtitles {
-  position: fixed;
-  left: 16px;
-  bottom: 16px;
   margin: 0;
   padding: 0;
   list-style: none;
   pointer-events: none;
-  font: 11px/1.5 var(--hud-font);
-  letter-spacing: 0.04em;
+  font: 12px/1.5 var(--hud-font);
+  letter-spacing: 0.02em;
   color: rgb(var(--hud-text));
   text-shadow: var(--hud-text-halo);
-}
-.hud-bottom ~ .hud-subtitles {
-  bottom: 164px;
 }
 /* A rejected order's reason beside the cursor: the one "can't" colour,
    marked by its cross, no box. */

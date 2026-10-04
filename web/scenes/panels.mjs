@@ -296,5 +296,198 @@ export async function run(ctx) {
     document.querySelectorAll(".pw > section:not(:first-of-type)").forEach((e) => e.remove()),
   );
   await sheet(ctx, page, "key-cases.png");
+  await ctx.openLab(page, ctx.url);
+  await page.getByRole("button", { name: "Review battle deck" }).click();
+  for (const width of [1600, 1024]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const name of [
+      "Rifle squad",
+      "Tank ammunition",
+      "Suppressed and resupplying",
+      "Deploying supply truck",
+      "Mixed capabilities",
+      "Garrison exit",
+      "Large selection",
+      "Twin launchers",
+      "Long equipment name",
+      "Entire force",
+      "No selection",
+      "Replay",
+    ]) {
+      await page.getByRole("button", { name, exact: true }).click();
+      const layout = await page.evaluate(() => {
+        const deck = document.querySelector(".hud-bottom");
+        const captions = document.querySelector('[data-testid="captions"]');
+        const words = [...document.querySelectorAll(".hud-card .ro-word")];
+        const rect = deck?.getBoundingClientRect();
+        return {
+          deck: rect && {
+            left: rect.left,
+            right: rect.right,
+            top: rect.top,
+            bottom: rect.bottom,
+            width: rect.width,
+            height: rect.height,
+          },
+          captionBottom: captions.getBoundingClientRect().bottom,
+          complete: words.every(
+            (w) => getComputedStyle(w).display !== "none" && w.getBoundingClientRect().width > 0,
+          ),
+          commands: document.querySelector('[role="toolbar"]')?.textContent ?? null,
+          clipped: [
+            ...document.querySelectorAll(".hud-card .ro-name-word, .hud-card .ro-row"),
+          ].some((w) => {
+            const r = w.getBoundingClientRect();
+            return r.left < 0 || r.right > innerWidth;
+          }),
+        };
+      });
+      ctx.check(
+        `${width}px ${name}: complete facts stay visible and captions clear the actual deck`,
+        layout.complete &&
+          !layout.clipped &&
+          (!layout.deck ||
+            (layout.deck.top >= 80 &&
+              layout.deck.bottom <= 900 &&
+              layout.deck.left >= 0 &&
+              layout.deck.right <= width &&
+              layout.captionBottom < layout.deck.top)),
+        JSON.stringify(layout),
+      );
+      ctx.check(
+        `${width}px ${name}: empty selection/replay preserve command availability`,
+        name === "No selection"
+          ? !layout.deck
+          : name === "Replay"
+            ? layout.commands === null
+            : layout.commands !== null,
+        JSON.stringify(layout),
+      );
+      if (name === "Mixed capabilities" || name === "Large selection") {
+        const clearances = await page
+          .locator(".ro-cmd[data-reach]")
+          .evaluateAll((es) =>
+            es.map(
+              (e) =>
+                e.querySelector(".ro-cmd-reach").getBoundingClientRect().top -
+                e.querySelector("svg").getBoundingClientRect().bottom,
+            ),
+          );
+        ctx.check(
+          `${width}px ${name}: capability fractions clear their icon strokes`,
+          clearances.every((gap) => gap >= 2),
+          JSON.stringify(clearances),
+        );
+      }
+      if (name === "Large selection") {
+        const starts = await page
+          .locator(".hud-group > div")
+          .evaluateAll((es) => es.map((e) => e.getBoundingClientRect().left));
+        ctx.check(
+          `${width}px: selection columns start consistently across rows`,
+          starts.slice(0, 3).every((x, i) => Math.abs(x - starts[i + 3]) <= 1),
+          JSON.stringify(starts),
+        );
+      }
+      if (name === "Entire force") {
+        ctx.check(
+          `${width}px: whole-force deck stays compact and bottom-centered`,
+          layout.deck.height <= 900 * 0.3 && layout.deck.width <= 1024,
+          JSON.stringify(layout.deck),
+        );
+        const group = page.locator(".hud-group");
+        const gutter = await group.evaluate((e) => {
+          const pipEdge = Math.max(
+            ...[...e.querySelectorAll(".ro-name > .ro-pips")].map(
+              (p) => p.getBoundingClientRect().right,
+            ),
+          );
+          return e.getBoundingClientRect().left + e.clientWidth - pipEdge;
+        });
+        ctx.check(
+          `${width}px: scrollbar stays separated from health ticks`,
+          gutter >= 10,
+          String(gutter),
+        );
+        const scrollWidth = await group.evaluate((e) => e.offsetWidth - e.clientWidth);
+        ctx.check(
+          `${width}px: overflowed selections expose a visible scrollbar`,
+          scrollWidth >= 6,
+          String(scrollWidth),
+        );
+        await page.screenshot({ path: ctx.evidencePath(`deck-${width}-entire-force-start.png`) });
+        await group.hover();
+        await page.mouse.wheel(0, 5000);
+        await page.waitForFunction(() => {
+          const group = document.querySelector(".hud-group");
+          return group.scrollTop > 0;
+        });
+        const reach = await page.locator(".hud-bottom").evaluate((e) => {
+          const last = e.querySelector(".hud-group > :last-child").getBoundingClientRect();
+          const commands = e.querySelector('[role="toolbar"]').getBoundingClientRect();
+          const viewport = e.getBoundingClientRect();
+          const selection = e.querySelector(".hud-group").getBoundingClientRect();
+          return (
+            last.top >= selection.top &&
+            last.bottom <= selection.bottom &&
+            commands.top >= viewport.top &&
+            commands.bottom <= viewport.bottom
+          );
+        });
+        ctx.check(`${width}px: scrolling exposes the final unit and commands`, reach);
+      }
+      if (name === "Mixed capabilities") {
+        const deploy = page.getByRole("button", { name: /^Deploy / });
+        await deploy.focus();
+        ctx.check(
+          "focus reveals complete deployment binding and partial reach",
+          (await page.getByRole("tooltip").textContent()) === "Deploy (T): 1 of 2 selected",
+        );
+        await page.getByRole("button", { name: "Info panels", exact: true }).focus();
+      }
+      await page.mouse.move(0, 500);
+      await page.screenshot({
+        path: ctx.evidencePath(`deck-${width}-${name.toLowerCase().replaceAll(" ", "-")}.png`),
+      });
+    }
+    const attack = page.getByRole("button", { name: "Rifle squad", exact: true });
+    await attack.click();
+    await page.getByRole("button", { name: /^Attack-move / }).focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    const focused = await page.getByRole("button", { name: /^Attack ground / }).evaluate((e) => ({
+      active: document.activeElement === e,
+      outline: parseFloat(getComputedStyle(e).outlineWidth),
+    }));
+    ctx.check(
+      `${width}px: keyboard focus clearly highlights the command owning its hint`,
+      focused.active && focused.outline >= 2,
+      JSON.stringify(focused),
+    );
+    const commandIcons = await page
+      .locator(".ro-cmd svg")
+      .evaluateAll((es) => es.map((e) => e.getBoundingClientRect().height));
+    ctx.check(
+      `${width}px: command icons retain their legible size`,
+      commandIcons.every((h) => h >= 24),
+      JSON.stringify(commandIcons),
+    );
+    const tip = await page.getByRole("tooltip").boundingBox();
+    const owner = await page.getByRole("button", { name: /^Attack ground / }).boundingBox();
+    ctx.check(
+      `${width}px: tooltip centers directly above its owning command`,
+      Math.abs(tip.x + tip.width / 2 - owner.x - owner.width / 2) <= 1,
+    );
+    const heard = await page.getByTestId("captions").boundingBox();
+    ctx.check(
+      `${width}px: hearing captions and command tooltips never overlap`,
+      heard.y + heard.height < tip.y,
+    );
+    ctx.check(
+      `${width}px: command tooltip stays inside the viewport`,
+      tip.x >= 0 && tip.x + tip.width <= width,
+    );
+    await page.screenshot({ path: ctx.evidencePath(`deck-${width}-focus-tooltip.png`) });
+  }
   await page.close();
 }

@@ -136,6 +136,7 @@ export async function run(fixtures) {
   const browser = await chromium.launch({
     channel: "chromium",
     args: [...WEBGPU_FLAGS, "--mute-audio"],
+    ignoreDefaultArgs: ["--hide-scrollbars"],
   });
   const failures = [];
   const pageErrors = [];
