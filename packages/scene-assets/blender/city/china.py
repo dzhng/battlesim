@@ -40,8 +40,8 @@ import ambientcg  # noqa: E402
 import graph  # noqa: E402
 import textures  # noqa: E402
 from graph import Soup  # noqa: E402
-from graphset import (GraphSet, bars, frame, grime, linear_of, outline, right_of, scorched,  # noqa: E402
-                      toned)
+from filters import bars, grime, scorched, toned  # noqa: E402
+from graphset import GraphSet, frame, linear_of, outline, right_of  # noqa: E402
 
 STUCCO = "M_CN_WallStucco"
 # The graph's four facades, each as the corner it starts at and the corner it ends at
@@ -136,7 +136,7 @@ class China(GraphSet):
          {"Plant Probability": 0.15, "AC Unit Probability": 0.4, "Laundry Probability": 0.28}),
     )
 
-    FAMILIES = (
+    KIT_GROUPS = (
         ("CNK_Win_", 0b1111), ("CNK_Shop_", 0b1111), ("CNK_Ent_", 0b1111), ("CNK_Balc_", 0b1111),
         ("CNK_RoofBulk_", 0b1111),
         ("CNK_AC_", 0b0111), ("CNK_Awn_", 0b0111), ("CNK_RoofProp_", 0b0111), ("CNK_Laundry", 0b0111),
@@ -163,8 +163,9 @@ class China(GraphSet):
     # Sign text is the kit's own generic shop words (tea, pharmacy, fast food). This one names a real city.
     SIGN_SWAPS = {"CNK_Text_01": "CNK_Text_09"}
     KIT_PREFIX, DECAL, ENTRANCE = "CNK_", "CNK_Decal_", "CNK_Ent_"
-    # The set's bays are owned by the graph's window lattice (`descriptor`); a few back ground-floor bays
-    # have no opening over the eye and muzzle heights, and are printed, not refused.
+    # China's exception to the fighting-bay rule: its bays are owned by the graph's window lattice
+    # (`descriptor`), and on some back walls the graph leaves the ground-floor bay without an opening over
+    # the eye and muzzle heights. Those bays are printed, not refused, so the released set stands as built.
     BAYS_REFUSED = False
 
     # The graph's 42 materials read 26 ambientCG sets at 1K and 2K. Ours share nine

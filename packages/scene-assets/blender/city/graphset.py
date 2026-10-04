@@ -2,7 +2,8 @@
 
 A source script (`china.py`, `nyc.py`, `paris.py`) is a subclass of `GraphSet`
 holding its graph's tables (inputs, kit families and their tiers, materials,
-templates) and the few hooks that read its graph (`open_graph`, `assemble`).
+templates) and the few hooks that read its graph and texture it (`open_graph`, `assemble`,
+`recipes`).
 Everything after the graph is read is here and is the same for every source:
 
 - **A template is its parts**, boxes that abut. Only the outline of their union
@@ -24,7 +25,7 @@ Everything after the graph is read is here and is the same for every source:
   atlas, fitted to the plan so that no two rooms share space (`fit_rooms`). Thin
   bars are cutout sheets in the bars' own colour (`sheeted`).
 - **Tiers.** A tier keeps features larger than its `FEATURE_M` (`detail.py`),
-  and each kit family draws down to the tier its `FAMILIES` row names. At the
+  and each kit group draws down to the tier its `KIT_GROUPS` row names. At the
   two fine tiers a kit mesh is a row; at the two coarse ones it is folded into
   the shell, so a far building is one row.
 - **Damage states.** The graphs have no damage inputs, so a destroyed building is
@@ -42,7 +43,6 @@ import math
 import os
 import random
 import sys
-from types import SimpleNamespace
 
 import bpy
 import numpy as np
@@ -58,6 +58,7 @@ import detail  # noqa: E402
 import graph  # noqa: E402
 import parts  # noqa: E402
 import textures  # noqa: E402
+from tangents import steady_tangents  # noqa: E402
 from facade import missing_openings, overlapping_openings  # noqa: E402
 from graph import Soup  # noqa: E402
 
@@ -73,11 +74,6 @@ FACES = (  # name, facade, outward normal, the way its offsets run (templates.rs
 )
 
 
-def script_args():
-    """What follows the script on its command line (`asset blender` passes it after `--`)."""
-    return [a for a in sys.argv[sys.argv.index("--") + 1:]] if "--" in sys.argv else []
-
-
 def base_of(name):
     """The source material a surface name stands for, without its marks."""
     return name.split("|")[0]
@@ -87,9 +83,6 @@ def frame(angle, x, y):
     c, s = math.cos(angle), math.sin(angle)
     return np.array([[c, -s, 0.0, x], [s, c, 0.0, y], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]])
 
-
-def quad(corners, material, colour=1.0):
-    return damage.quad(corners, material, colour)
 
 
 def decompose(matrix):
@@ -121,76 +114,6 @@ def srgb_bytes(linear):
 def linear_of(srgb):
     """An sRGB byte triple as linear floats."""
     return tuple(((c / 255 + 0.055) / 1.055) ** 2.4 if c / 255 > 0.04045 else c / 255 / 12.92 for c in srgb)
-
-
-# ---------------------------------------------------------------- texture recipes every source may use
-def grime(streak, blotch, colour=(0.2, 0.18, 0.15)):
-    """Dirt burnt into a wall texture: damp blotches, and rain streaks down it."""
-
-    def burn(albedo, roughness):
-        blotches = textures.smoothstep(0.45, 0.85, textures.fbm(3, 911, 4))
-        runs = textures.smoothstep(0.55, 0.9, textures.fbm((40, 2), 913, 3)) * (0.5 + 0.5 * textures.fbm(5, 915, 3))
-        dirt = np.clip(blotch * blotches + streak * runs, 0.0, 0.9)
-        return textures.mix(albedo, np.asarray(colour) * albedo.mean((0, 1)) / max(albedo.mean(), 1e-6), dirt), \
-            np.clip(roughness + 0.25 * dirt, 0.0, 1.0)
-
-    return burn
-
-
-def toned(mean, keep, level_cycles=0):
-    """A set brought to a colour of our own: its hue kept by `keep` (0 is grey) and its
-    mean albedo set to `mean` (linear). `level_cycles` levels its brightness over
-    anything longer than that many cycles to the tile: a set lighter at one corner
-    than another, repeated, is a chequer from the air. Nothing is added that would
-    repeat: a surface this recipe covers by the hundred square metres gets its dirt
-    from its mesh."""
-
-    def burn(albedo, roughness):
-        grey = (albedo @ np.array([0.2126, 0.7152, 0.0722]))[..., None]
-        if level_cycles:
-            spectrum = np.fft.fft2(grey[..., 0])
-            fy, fx = np.meshgrid(np.fft.fftfreq(grey.shape[0]) * grey.shape[0], np.fft.fftfreq(grey.shape[1]) * grey.shape[1], indexing="ij")
-            slow = np.hypot(fx, fy) <= level_cycles
-            slow[0, 0] = False
-            level = np.fft.ifft2(np.where(slow, spectrum, 0)).real[..., None]
-            albedo = albedo * np.clip((grey - level) / np.maximum(grey, 1e-6), 0.0, 4.0)
-            grey = (albedo @ np.array([0.2126, 0.7152, 0.0722]))[..., None]
-        out = grey + (albedo - grey) * keep
-        return np.clip(out * (np.asarray(mean) / out.mean((0, 1))), 0.0, 1.0), roughness
-
-    return burn
-
-
-def scorched(albedo, roughness):
-    """A wall after a fire: smoked grey all over, a little uneven, with a few patches
-    where the face has spalled to the render under it. The marks that say fire are the
-    fans above the openings, which are geometry: clouds of soot in a texture repeat as
-    camouflage, and runs down a brown wall are the grain of a plank. Only the colour
-    changes, so the burnt wall shares the intact wall's normal and roughness images."""
-    soot = textures.smoothstep(0.25, 0.8, textures.fbm(1, 931, 3))
-    spall = textures.smoothstep(0.86, 0.9, textures.fbm(5, 941, 4))
-    out = textures.mix(albedo, (0.03, 0.028, 0.026), np.clip(0.52 + 0.18 * soot, 0.0, 0.94))
-    render = np.array((0.085, 0.08, 0.075)) * (0.7 + 0.5 * textures.fbm(40, 943, 2))[..., None]
-    return textures.mix(out, render, spall * 0.8), roughness
-
-
-def bars():
-    """A cage's or a railing's bars: round bars 12.5 cm apart between flat rails half a
-    metre apart, as the shared `grille` recipe has them, but in no colour of its own
-    (white: each shows its own paint or metal) and over half a metre, so a bar is twelve
-    texels across. At the shared recipe's one metre a bar seen from 30 m had a saw's edge."""
-    size = textures.SIZE
-    yy, xx = np.mgrid[0:size, 0:size].astype(float) / size
-    px = 1.0 / size
-    bar_r, rail_r = 0.012 / 0.5, 0.02 / 0.5  # half widths, in tiles
-    bx = np.abs((xx * 4) % 1.0 - 0.5) / 4  # to the nearest bar's axis
-    ry = np.abs(yy % 1.0 - 0.5)  # to the rail's
-    bar = textures.smoothstep(bar_r + px / 2, bar_r - px / 2, bx)
-    rail = textures.smoothstep(rail_r + px / 2, rail_r - px / 2, ry)
-    height = np.maximum(np.sqrt(np.clip(1.0 - (bx / bar_r) ** 2, 0, 1)) * 3.0, rail * 2.0)
-    ones = np.ones((size, size))
-    return textures.Baked(np.ones((size, size, 3)), 1.0, textures.normals_from_height(textures.blur(height), 1.0), 1.0, ones, ones,
-                          coverage=np.maximum(bar, rail))
 
 
 # ---------------------------------------------------------------- the outline
@@ -251,7 +174,7 @@ def ring(loop, z0, z1, out_m, in_m, material, inner=False, outer=True):
             faces.append([(*a, z1), (*b, z1), (*c, z1), (*d, z1)])
         if inner:
             faces.append([(*c, z0), (*d, z0), (*d, z1), (*c, z1)])
-    return Soup.join([quad(face, material) for face in faces])
+    return Soup.join([damage.quad(face, material) for face in faces])
 
 
 def lining(bounds, m, depth_m, material, grow=0.05):
@@ -262,7 +185,7 @@ def lining(bounds, m, depth_m, material, grow=0.05):
                         (hi[0] + grow, depth_m, hi[2] + grow), (lo[0] - grow, depth_m, hi[2] + grow)])
     corners = corners @ m[:3, :3].T + m[:3, 3]
     corners[:, 2] = np.maximum(corners[:, 2], 0.0)
-    return quad(corners, material)
+    return damage.quad(corners, material)
 
 
 def room_mesh(material):
@@ -275,7 +198,7 @@ def room_mesh(material):
              [(x0, 1, 1), (x1, 1, 1), (x1, 0, 1), (x0, 0, 1)],  # ceiling
              [(x0, 0, 0), (x0, 1, 0), (x0, 1, 1), (x0, 0, 1)],  # left
              [(x1, 1, 0), (x1, 0, 0), (x1, 0, 1), (x1, 1, 1)]]  # right
-    return Soup.join([quad(face, material) for face in faces])
+    return Soup.join([damage.quad(face, material) for face in faces])
 
 
 def unmasked(soup, tint):
@@ -297,68 +220,6 @@ def front_material(soup):
     normals, area = soup.normals()
     facing = area * np.clip(-normals[:, 1], 0.0, 1.0)
     return int(np.argmax(np.bincount(soup.m, weights=facing, minlength=len(soup.mats))))
-
-
-def steady_tangents(path):
-    """Write every vertex's tangent again, from the first triangle that uses it: along
-    that triangle's u, square to the vertex's normal. The exporter averages a smooth
-    vertex's tangent over its faces in whatever order its threads finish, and rounds the
-    sum, so one run in three wrote a rubble heap's tangent a ten-thousandth apart from the
-    last. A flat face's tangent comes out as the exporter's own."""
-    import struct
-
-    data = bytearray(open(path, "rb").read())
-    length = struct.unpack_from("<I", data, 12)[0]
-    doc = json.loads(bytes(data[20:20 + length]))
-    start = 20 + length + 8
-    kind = {5121: "u1", 5123: "<u2", 5125: "<u4", 5126: "<f4"}
-    width = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4}
-
-    def where(index):
-        accessor = doc["accessors"][index]
-        view = doc["bufferViews"][accessor["bufferView"]]
-        if "byteStride" in view:
-            raise SystemExit("steady_tangents: an interleaved buffer view")
-        return start + view.get("byteOffset", 0) + accessor.get("byteOffset", 0), accessor["count"], width[accessor["type"]], \
-            kind[accessor["componentType"]]
-
-    def read(index):
-        at, count, n, dtype = where(index)
-        return np.frombuffer(bytes(data[at:at + count * n * np.dtype(dtype).itemsize]), dtype).reshape(count, n)
-
-    for mesh in doc["meshes"]:
-        for prim in mesh["primitives"]:
-            attributes = prim["attributes"]
-            if "TANGENT" not in attributes:
-                continue
-            p, n, uv = (read(attributes[k]).astype(np.float64) for k in ("POSITION", "NORMAL", "TEXCOORD_0"))
-            t = read(prim["indices"]).astype(np.int64).reshape(-1, 3)
-            e1, e2 = p[t[:, 1]] - p[t[:, 0]], p[t[:, 2]] - p[t[:, 0]]
-            d1, d2 = uv[t[:, 1]] - uv[t[:, 0]], uv[t[:, 2]] - uv[t[:, 0]]
-            det = d1[:, 0] * d2[:, 1] - d2[:, 0] * d1[:, 1]
-            flat = np.abs(det) <= 1e-12
-            safe = np.where(flat, 1.0, det)[:, None]
-            along_u = (e1 * d2[:, 1:2] - e2 * d1[:, 1:2]) / safe
-            along_v = (e2 * d1[:, 0:1] - e1 * d2[:, 0:1]) / safe
-            first = np.full(len(p), len(t), dtype=np.int64)
-            for corner in range(3):
-                np.minimum.at(first, t[:, corner], np.arange(len(t)))
-            first = np.minimum(first, len(t) - 1)
-            tangent = along_u[first] - n * (n * along_u[first]).sum(1, keepdims=True)
-            size = np.linalg.norm(tangent, axis=1, keepdims=True)
-            lost = flat[first] | (size[:, 0] < 1e-9)
-            # no u to follow (a triangle with no area in the texture): any direction square to the normal
-            axis = np.eye(3)[np.abs(n).argmin(1)]
-            spare = axis - n * (n * axis).sum(1, keepdims=True)
-            tangent = np.where(lost[:, None], spare, tangent)
-            tangent /= np.linalg.norm(tangent, axis=1, keepdims=True)
-            # glTF's v runs down the image: the exporter's sign is the opposite of this one
-            sign = np.where(lost, 1.0, -np.sign((np.cross(n, tangent) * along_v[first]).sum(1)))
-            sign = np.where(sign == 0.0, 1.0, sign)
-            out = np.concatenate([tangent, sign[:, None]], 1).astype("<f4")
-            at, count, _, _ = where(attributes["TANGENT"])
-            data[at:at + count * 16] = out.tobytes()
-    open(path, "wb").write(bytes(data))
 
 
 class Graph:
@@ -392,17 +253,17 @@ class GraphSet:
     # A building's levels: its ground floor's height, the floors over it, its walls' thickness, the parapet
     GROUND_M = STOREY_M = WALL_M = PARAPET_M = None
     SHAPED = False  # whether `graph.tap` names a generated primitive by its shape (`graph.tap`)
-    # Whether a fighting bay with no opening over the eye and muzzle heights refuses the set (`check_bays`),
-    # or is only printed: a set older than that check keeps its graph-to-bay lattice as its owner.
+    # A declared fighting bay with no visible opening over the eye and muzzle heights refuses the set
+    # (`check_bays`). A source whose bays its graph's window lattice owns may name an exception.
     BAYS_REFUSED = True
 
     # The smallest feature each tier keeps, in metres, and the thinnest a bar is drawn at it. The
     # tactical camera draws tier 0 at about 20 pixels a metre: a bar under 5 cm is under a pixel.
     FEATURE_M = (0.05, 0.25, 0.6, 1.5)
     BAR_M = (0.05, 0.125, 0.3, 0.75)
-    # Kit family (a prefix of the source object's name) -> the tiers it draws at, as
-    # the row's bits. A family not named here is not part of a building.
-    FAMILIES = ()
+    # Kit group (a prefix of the source object's name) -> the tiers it draws at, as
+    # the row's bits. A kit mesh in no group is not part of a building.
+    KIT_GROUPS = ()
     # Families whose finest mesh keeps a larger feature than the tier's.
     TIER0_FEATURE_M = ()
     ROW_TIERS = 0b0011  # drawn as rows; the coarser tiers are folded into the shell
@@ -412,8 +273,7 @@ class GraphSet:
     # banded by height, then only its front.
     HULLS = ()
     HULL_BAND_M = (1.0, 1.3)
-    # Room boxes: the graph's room mesh -> ours, ours -> its material, and material -> atlas sheet.
-    ROOMS = {}
+    # Room boxes: ours -> its material, and material -> atlas sheet.
     ROOM_MESHES = {}
     ROOM_SHEETS = {}
     ROOM_CLEAR_M = 0.35  # a room stops this far short of the middle of the building and of a corner's other room
@@ -426,6 +286,7 @@ class GraphSet:
     GLAZED = None
     SHEETED = ()  # whose thin bars are drawn as a cutout sheet (`sheeted`)
     SHEET_BAR_M = 0.022  # a bar thinner than this, one of a row of them, is the sheet's
+    SHEET_RAILS = True  # whether the rails a sheet's bars hang between are its recipe's too, or stay geometry
     KIT_PREFIX = ""  # what a kit object's name starts with, left off its module id
     DECAL = None  # the family of stains stood just off the wall
     ENTRANCE = None  # the family of the doors on the street
@@ -544,7 +405,7 @@ class GraphSet:
                 if b - a < 1e-3 or z1 - z0 < 1e-3:
                     continue
                 face = (at(a, 0, z0), at(b, 0, z0), at(b, 0, z1), at(a, 0, z1))
-            soups.append(quad(face, self.WALL + MASK))
+            soups.append(damage.quad(face, self.WALL + MASK))
         return Soup.join(soups)
 
     def far_panes(self, b, meshes, tier):
@@ -574,8 +435,8 @@ class GraphSet:
         """The tiers a module is drawn at as rows; at the others it draws it is folded into the shell."""
         return self.ROW_TIERS
 
-    def family_tiers(self, name):
-        return next((tiers for prefix, tiers in self.FAMILIES if name.startswith(prefix)), 0)
+    def group_tiers(self, name):
+        return next((tiers for prefix, tiers in self.KIT_GROUPS if name.startswith(prefix)), 0)
 
     def masked(self, soup, tinted):
         """A kit mesh's surfaces as ours: what has no path left out, and the surfaces that
@@ -628,9 +489,9 @@ class GraphSet:
             corners[:, long_axis] = (lo[long_axis], hi[long_axis], hi[long_axis], lo[long_axis])
             corners[:, spread] = (lo[spread], lo[spread], hi[spread], hi[spread])
             colour = np.mean([thin[label][5] for label in members], 0)
-            sheets.append((mat, across, at, lo, hi, quad(corners, soup.mats[mat] + CUT, colour)))
+            sheets.append((mat, across, at, lo, hi, damage.quad(corners, soup.mats[mat] + CUT, colour)))
         for label, (mat, long_axis, mid, lo, hi, _) in thin.items():  # the rails
-            if label not in taken and any(m == mat and abs(mid[across] - at) < 0.02 and np.all(lo >= slo - 0.02) and np.all(hi <= shi + 0.02)
+            if self.SHEET_RAILS and label not in taken and any(m == mat and abs(mid[across] - at) < 0.02 and np.all(lo >= slo - 0.02) and np.all(hi <= shi + 0.02)
                                           for m, across, at, slo, shi, _ in sheets):
                 taken.add(label)
         if not sheets:
@@ -758,7 +619,7 @@ class GraphSet:
         """What shows through a hole in a burnt roof: the top storey's floor, black with what fell on it, and the
         inside of its walls."""
         z = roof_m - self.BURNT_STOREY_M
-        floors = [quad([(cx - hx, cy - hy, z), (cx + hx, cy - hy, z), (cx + hx, cy + hy, z), (cx - hx, cy + hy, z)], "X_Rubble", 0.07)
+        floors = [damage.quad([(cx - hx, cy - hy, z), (cx + hx, cy - hy, z), (cx + hx, cy + hy, z), (cx - hx, cy + hy, z)], "X_Rubble", 0.07)
                   for cx, cy, hx, hy in rects]
         return Soup.join([*floors, *(ring(loop, z, roof_m, 0.0, 0.32, material, inner=True, outer=False).coloured(0.2) for loop in loops)])
 
@@ -792,7 +653,7 @@ class GraphSet:
     def flat_walls(self, loops, floors, wall, shade=1.0, trim=1.0):
         """The walls of the two coarse tiers: one quad of plinth and one of wall to a run."""
         ground_m, roof_m, _, _ = self.heights(floors)
-        return Soup.join([quad([(ax, ay, z0), (bx, by, z0), (bx, by, z1), (ax, ay, z1)], material, colour)
+        return Soup.join([damage.quad([(ax, ay, z0), (bx, by, z0), (bx, by, z1), (ax, ay, z1)], material, colour)
                           for loop in loops for (ax, ay), (bx, by) in loop
                           for z0, z1, material, colour in ((0.0, ground_m, self.STONE, trim), (ground_m, roof_m, wall, shade))])
 
@@ -880,13 +741,13 @@ class GraphSet:
             for k, f in sorted(blown):
                 s0, z0 = margin + bay_m * k, ground_m + storey_m * (f - 1)
                 s1, z1, deep = s0 + bay_m, z0 + storey_m, 3.2
-                edge = quad([point(s0, -0.05, z0 - 0.22), point(s1, -0.05, z0 - 0.22), point(s1, -0.05, z0), point(s0, -0.05, z0)], concrete, 0.22)
+                edge = damage.quad([point(s0, -0.05, z0 - 0.22), point(s1, -0.05, z0 - 0.22), point(s1, -0.05, z0), point(s0, -0.05, z0)], concrete, 0.22)
                 holes += [edge,
-                          quad([point(s0, 0, z0), point(s1, 0, z0), point(s1, deep, z0), point(s0, deep, z0)], concrete, 0.13),
-                          quad([point(s0, deep, z0), point(s1, deep, z0), point(s1, deep, z1), point(s0, deep, z1)], char),
-                          quad([point(s0, 0, z0), point(s0, deep, z0), point(s0, deep, z1), point(s0, 0, z1)], char),
-                          quad([point(s1, deep, z0), point(s1, 0, z0), point(s1, 0, z1), point(s1, deep, z1)], char)]
-                far_holes += [edge, quad([point(s0, -0.03, z0), point(s1, -0.03, z0), point(s1, -0.03, z1), point(s0, -0.03, z1)], char)]
+                          damage.quad([point(s0, 0, z0), point(s1, 0, z0), point(s1, deep, z0), point(s0, deep, z0)], concrete, 0.13),
+                          damage.quad([point(s0, deep, z0), point(s1, deep, z0), point(s1, deep, z1), point(s0, deep, z1)], char),
+                          damage.quad([point(s0, 0, z0), point(s0, deep, z0), point(s0, deep, z1), point(s0, 0, z1)], char),
+                          damage.quad([point(s1, deep, z0), point(s1, 0, z0), point(s1, 0, z1), point(s1, deep, z1)], char)]
+                far_holes += [edge, damage.quad([point(s0, -0.03, z0), point(s1, -0.03, z0), point(s1, -0.03, z1), point(s0, -0.03, z1)], char)]
             # where each opening is on the run (along it, and up): soot rises to the next one above and no further
             spans = []
             for name, m in run.openings:
@@ -984,8 +845,8 @@ class GraphSet:
                     s0, s1 = k * wide, min((k + 1) * wide, run.length)
                     at = lambda s, z, deep=0.0: (*(run.start + run.along * s - run.out * deep), z)
                     bands = [(0.0, min(top, ground_m), self.STONE, 0.72)] + ([(ground_m, top, burnt, 0.72)] if top > ground_m else [])
-                    coarse[tier] += [quad([at(s0, z0), at(s1, z0), at(s1, z1), at(s0, z1)], material, shade) for z0, z1, material, shade in bands]
-                    coarse[tier].append(quad([at(s1, 0.0, wall_m), at(s0, 0.0, wall_m), at(s0, top, wall_m), at(s1, top, wall_m)], burnt, 0.6))
+                    coarse[tier] += [damage.quad([at(s0, z0), at(s1, z0), at(s1, z1), at(s0, z1)], material, shade) for z0, z1, material, shade in bands]
+                    coarse[tier].append(damage.quad([at(s1, 0.0, wall_m), at(s0, 0.0, wall_m), at(s0, top, wall_m), at(s1, top, wall_m)], burnt, 0.6))
                 coarse[tier].append(damage.broken_edge(run.start, run.along, -run.out, wall_m, run.length, wide, flat_tops, concrete, 0.6, sides=tier == 2))
 
         names = [concrete, burnt, tile]
@@ -1261,7 +1122,7 @@ class GraphSet:
             s = float((m[:2, 3] - run.start) @ run.along)
             if m[2, 3] < self.ROOM_STEP_M + 0.01:  # the threshold a ground-floor room stands on
                 at = lambda along_m, z: (*(run.start + run.along * along_m - run.out * (wall_m - 0.01)), z)
-                run.steps.append(quad([at(s - wide / 2, 0.0), at(s + wide / 2, 0.0), at(s + wide / 2, self.ROOM_STEP_M + 0.01),
+                run.steps.append(damage.quad([at(s - wide / 2, 0.0), at(s + wide / 2, 0.0), at(s + wide / 2, self.ROOM_STEP_M + 0.01),
                                        at(s - wide / 2, self.ROOM_STEP_M + 0.01)], "X_Void"))
             steps = np.arange(0.25, 12.0, 0.25)
             behind = run.start[None] + run.along[None] * s - run.out[None] * steps[:, None]
@@ -1291,7 +1152,7 @@ class GraphSet:
         return meshes
 
     def main(self):
-        args = script_args()
+        args = parts.script_args()
         dry = "--dry" in args
         out_dir = next((a for a in args if not a.startswith("--")), None) or os.path.join(ROOT, "assets/source/city", self.SET)
         graph_ = Graph(self)
@@ -1324,11 +1185,11 @@ class GraphSet:
 
         used = sorted({name for state in states for rows, _ in state.values() for name, _, _ in rows})
         for name in used:
-            if not self.family_tiers(name):
-                raise SystemExit(f"{name} is in no family of FAMILIES")
+            if not self.group_tiers(name):
+                raise SystemExit(f"{name} is in no group of KIT_GROUPS")
         modules = {name: self.module_tiers(name, source(name)) for name in used}
         # a module is drawn at the tiers its family names, where it has anything left to draw
-        tiers_of = {name: sum(1 << t for t in range(4) if self.family_tiers(name) >> t & 1 and modules[name][t] is not None)
+        tiers_of = {name: sum(1 << t for t in range(4) if self.group_tiers(name) >> t & 1 and modules[name][t] is not None)
                     for name in modules}
         # every module has four meshes: a tier it is not drawn at repeats the last one it is.
         # A fitting the fire leaves nothing of (a rack of cloth) is no module, and its rows are not drawn.

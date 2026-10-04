@@ -38,15 +38,15 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ambientcg  # noqa: E402
+import damage  # noqa: E402
 import graph  # noqa: E402
 import textures  # noqa: E402
 from graph import Soup  # noqa: E402
-from graphset import MASK, GraphSet, bars, decompose, frame, lining, grime, linear_of, outline, quad, ring, scorched, toned  # noqa: E402
+from filters import bars, grime, scorched, toned  # noqa: E402
+from graphset import MASK, GraphSet, decompose, frame, lining, outline, ring  # noqa: E402
 
-BRICK, STONE, ROOF, GLASS, CORNICE = "NYC_Brick", "NYC_Stone", "NYC_Roof", "NYC_Glass", "NYC_Cornice"
-UNIT = "~ba89b02d"  # the graph's stretched unit cube, named by its shape (`graph.tap`)
+BRICK, STONE, ROOF, GLASS, CORNICE, TANK_LID = "NYC_Brick", "NYC_Stone", "NYC_Roof", "NYC_Glass", "NYC_Cornice", "NYC_TankLid"
 ROOM_FRONT_M = 0.26  # a room's open face, just behind the sashes' and shop glass's plane
-SHOP_M = 9.0  # a shop front's pitch: three bays
 BACK_DEPTH_M = 80.0  # the far facade of a building evaluated for a back run: long enough that the run has no shop
 # What the graph builds that a building of ours does not draw: a shop's furnishings, lit panels, posters.
 INSIDE = ("SHOP_Shelf", "SHOP_Counter", "SHOP_Crate", "P_", "INT_", "SHOP_Box")
@@ -58,6 +58,19 @@ ROOF_KINDS = {"NYC_Iron+NYC_Roof+NYC_Wood": "NYC_WaterTank", "NYC_Brick+NYC_Chro
               "NYC_AC+NYC_Concrete+NYC_Iron+NYC_Metal": "NYC_HVAC", "NYC_Brick+NYC_Iron+NYC_Stone": "NYC_Chimney",
               "NYC_Iron": "NYC_RoofPole", "NYC_Concrete+NYC_Iron+NYC_Metal": "NYC_RoofHatch",
               "NYC_Iron+NYC_Metal": "NYC_Vent", "NYC_Metal": "NYC_Vent", "NYC_Glass+NYC_Iron+NYC_Metal": "NYC_RoofHatch"}
+
+
+def is_cube(soup):
+    """Whether a generated primitive is the graph's unit cube, which it stretches into walls and trim."""
+    lo, hi = soup.bounds()
+    return len(soup) == 12 and np.allclose(lo, -0.5, atol=1e-4) and np.allclose(hi, 0.5, atol=1e-4)
+
+
+def roof_kind(name, soup):
+    """Our name for a realized piece of the graph's roof furniture, by its materials, or None (a unit cube
+    of the same material is a wall's or a fire escape's)."""
+    kind = ROOF_KINDS.get(name.split(":")[1].split("~")[0]) if name.startswith("primitive:") and not is_cube(soup) else None
+    return f"{kind}~{name.split('~')[1]}" if kind else None
 
 
 def brick(albedo, roughness):
@@ -108,7 +121,7 @@ class NYC(GraphSet):
     )
     # a blade sign hangs 1.8 m out over the street, and a water tank stands on its tower 8.7 m over the roof
     FIT = {"side_m": 1.9, "top_m": 8.0}
-    FAMILIES = (
+    KIT_GROUPS = (
         ("SASH_", 0b0011), ("NYC_Pane", 0b0011), ("SHOP_Door", 0b0011), ("NYC_WaterTank", 0b1111), ("NYC_Bulkhead", 0b1111),
         ("AC_", 0b0011), ("BAL_", 0b0011), ("SHOP_Awning", 0b1111), ("NYC_HVAC", 0b0111), ("NYC_Chimney", 0b0111),
         ("L_", 0b0011), ("SILL", 0b0011), ("PANEL_", 0b0011), ("BAND_", 0b0011), ("CRN_Bracket", 0b0011), ("R_", 0b0011),
@@ -128,6 +141,7 @@ class NYC(GraphSet):
         BRICK: ("nyc_brick", "nyc_brick", (1.0, 1.0, 1.0), 1.0, 0.0),
         STONE: ("nyc_stone", "nyc_stone", (1.0, 1.0, 1.0), 1.0, 0.0),
         ROOF: ("nyc_tar", "nyc_tar", (1.0, 1.0, 1.0), 1.0, 0.0),
+        TANK_LID: ("nyc_tank_lid", None, (0.07, 0.065, 0.06), 0.9, 0.0),
         CORNICE: ("nyc_cornice", "nyc_stone", (0.5, 0.48, 0.45), 0.8, 0.1),
         "NYC_Granite": ("nyc_granite", "nyc_stone", (0.3, 0.3, 0.32), 0.8, 0.0),
         "NYC_Concrete": ("nyc_concrete", "nyc_concrete", (0.85, 0.85, 0.85), 1.0, 0.0),
@@ -170,7 +184,7 @@ class NYC(GraphSet):
     SMOKED_ROOF = (0.6, 0.58, 0.56)  # smoke on tar, not on clay
     # a walk-up has twice a China block's windows to a wall: its far soot is lighter on triangles
     FLAT_SOOT, FLAT_SOOT_SIDES, FAR_SOOT_SHARE = False, False, 0.0
-    BLOWN = 0.025  # its bays are narrow: fewer of them blown out, as many metres of wall  # a far block's intact roof is a few faces: so is its burnt one
+    BLOWN = 0.025  # its bays are narrow: fewer of them blown out, as many metres of wall
     WRECKS = ("AC_0_Window", "AC_1_Split", "AC_2_Box", "R_0_Vertical", "SASH_1_Split")
 
     def recipes(self):
@@ -212,9 +226,7 @@ class NYC(GraphSet):
     def drawn(self, tap):
         out = []
         for name, m, tint in tap.rows:
-            if name.startswith("primitive:") and not name.endswith(UNIT):
-                kind = ROOF_KINDS.get(name.split(":")[1].split("~")[0])
-                name = f"{kind}~{name.split('~')[1]}" if kind else name
+            name = roof_kind(name, tap.meshes[name]) or name
             name = self.SIGN_SWAPS.get(name, name)
             if np.linalg.det(m[:3, :3]) < 0:  # a left curtain is a right one mirrored: a row cannot mirror, a module can
                 self.mirrored.add(name)
@@ -233,13 +245,13 @@ class NYC(GraphSet):
     def kit_meshes(self, graph_):
         meshes = super().kit_meshes(graph_)
         for tap, _ in graph_.taps.values():
-            for name, soup in tap.meshes.items():
-                if name.startswith("primitive:") and not name.endswith(UNIT):
-                    kind = ROOF_KINDS.get(name.split(":")[1].split("~")[0])
-                    if kind:
-                        meshes[f"{kind}~{name.split('~')[1]}"] = soup
+            meshes.update({roof_kind(name, soup): soup for name, soup in tap.meshes.items() if roof_kind(name, soup)})
         # glass is one face (README, "Surfaces that are not opaque"): a shop window's pane, a unit square
-        meshes["NYC_Pane"] = quad([(-0.5, 0.0, -0.5), (0.5, 0.0, -0.5), (0.5, 0.0, 0.5), (-0.5, 0.0, 0.5)], GLASS)
+        meshes["NYC_Pane"] = damage.quad([(-0.5, 0.0, -0.5), (0.5, 0.0, -0.5), (0.5, 0.0, 0.5), (-0.5, 0.0, 0.5)], GLASS)
+        # a water tank's lid: tar's texture box-projected on a cone was streaks; flat roofing felt instead
+        for n in [n for n in meshes if n.startswith("NYC_WaterTank")]:
+            m = meshes[n]
+            meshes[n] = Soup(m.v, m.c, m.t, m.m, m.s, [TANK_LID if k == ROOF else k for k in m.mats])
         # the cornice's brackets and dentils are its sheet metal too
         meshes.update({n: Soup(m.v, m.c, m.t, m.m, m.s, [CORNICE if k == STONE else k for k in m.mats]) for n, m in meshes.items() if n.startswith("CRN_")})
         meshes.update(self.opening_meshes)
@@ -299,7 +311,7 @@ class NYC(GraphSet):
             if n.startswith(INSIDE) or not on_run(p[0]):
                 continue
             if n.startswith("primitive:"):
-                if not n.endswith(UNIT) or p[2] > head + 0.15 or p[1] > 0.8:
+                if not is_cube(tap.meshes[n]) or p[2] > head + 0.15 or p[1] > 0.8:
                     continue
                 material = tap.meshes[n].mats[-1]
                 if material in INSIDE_CUBES:
@@ -348,6 +360,7 @@ class NYC(GraphSet):
             pane = frame(turn, m[0, 3], m[1, 3]) @ np.diag([max(size[0], size[1]), 1.0, size[2], 1.0])
             pane[2, 3] = m[2, 3]
             panes.append(("NYC_Pane", pane))
+        placed = self.tidied(placed, tap.meshes, length)
         placed += panes
         placed += rooms
 
@@ -361,7 +374,7 @@ class NYC(GraphSet):
             inside = lambda part: (part.v[part.t][..., 2].min(1) > gh - 0.01) & (part.v[part.t][..., 2].max(1) < gh + fh + 0.01)
             wall_parts += [part.keep(inside(part)).transformed(down) for part in list(wall_parts) if len(part) and inside(part).any()]
             cubes += [part.keep(inside(part)).transformed(down) for part in list(cubes[1:]) if len(part) and inside(part).any()]
-            fill = quad([(0.0, 0.0, fh), (length, 0.0, fh), (length, 0.0, gh), (0.0, 0.0, gh)], BRICK + MASK)
+            fill = damage.quad([(0.0, 0.0, fh), (length, 0.0, fh), (length, 0.0, gh), (0.0, 0.0, gh)], BRICK + MASK)
             wall_parts.append(fill)
 
         moved = [(n, place @ m, None) for n, m in placed]
@@ -385,7 +398,7 @@ class NYC(GraphSet):
     def flat_walls(self, loops, floors, wall, shade=1.0, trim=1.0):
         """The coarse tiers' walls: brick to the ground, as the piers between the shops are."""
         _, roof_m, _, _ = self.heights(floors)
-        return Soup.join([quad([(ax, ay, 0.0), (bx, by, 0.0), (bx, by, roof_m), (ax, ay, roof_m)], wall, shade)
+        return Soup.join([damage.quad([(ax, ay, 0.0), (bx, by, 0.0), (bx, by, roof_m), (ax, ay, roof_m)], wall, shade)
                           for loop in loops for (ax, ay), (bx, by) in loop])
 
     def far_tier(self, name, far, soup, tier, g):
@@ -397,6 +410,32 @@ class NYC(GraphSet):
         """The graph's brick and stone at tier 0; at tier 1 the same wall flat, its openings cut and lined."""
         return run.wall if tier == 0 else run.flat
 
+    def tidied(self, placed, meshes, length):
+        """The graph's facade fittings, where they would read wrong: no window air conditioner in a blade
+        sign's column (the sign would hang from the box), lintels and sills no wider than their window's
+        surround, and no awning past the end of its run (it would turn the building's corner)."""
+        world = lambda n, m: (lambda lo, hi: (m[0, 3] + lo[0] * m[0, 0], m[0, 3] + hi[0] * m[0, 0]))(*meshes[n].bounds())
+        signs = [m[0, 3] for n, m in placed if n.startswith(("SIGN_", "TH_", "TV_"))]
+        widest = self.saved_or("Window Width") + 0.3
+        out = []
+        for n, m in placed:
+            if n.startswith("AC_") and any(abs(m[0, 3] - x) < 1.5 for x in signs):
+                continue
+            if n.startswith(("L_", "SILL")):
+                a, b = world(n, m)
+                if b - a > widest:
+                    m = m.copy()
+                    m[:3, 0] *= widest / (b - a)
+            if n.startswith("SHOP_Awning"):
+                a, b = sorted(world(n, m))
+                if a < 0.3 or b > length - 0.3:
+                    lo, hi = max(a, 0.3), min(b, length - 0.3)
+                    m = m.copy()
+                    m[:3, 0] *= (hi - lo) / (b - a)
+                    m[0, 3] += (lo + hi) / 2 - (a + b) / 2
+            out.append((n, m))
+        return out
+
     def saved_or(self, key):
         return self.INPUTS.get(key) if self.INPUTS.get(key) is not None else self.saved[key]
 
@@ -405,7 +444,7 @@ class NYC(GraphSet):
         key = f"{kind}_{round(x1 - x0, 2)}x{round(z1 - z0, 2)}"
         if key not in self.opening_meshes:
             w, h = x1 - x0, z1 - z0
-            self.opening_meshes[key] = quad([(-w / 2, 0.0, 0.0), (w / 2, 0.0, 0.0), (w / 2, 0.0, h), (-w / 2, 0.0, h)], "X_Void")
+            self.opening_meshes[key] = damage.quad([(-w / 2, 0.0, 0.0), (w / 2, 0.0, 0.0), (w / 2, 0.0, h), (-w / 2, 0.0, h)], "X_Void")
         m = np.eye(4)
         m[:3, 3] = ((x0 + x1) / 2, 0.0, z0)
         return key, m

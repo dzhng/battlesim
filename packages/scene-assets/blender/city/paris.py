@@ -23,24 +23,25 @@ dressed, so a template here is a single part, and its floors count the mansard
 storey (its dormers are windows, the attic is lived in). A block's run is
 3n + 2 m, every bay on the 3 m lattice.
 """
-import math
 import os
 import sys
 from types import SimpleNamespace
 
-import bpy
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ambientcg  # noqa: E402
 import collapse  # noqa: E402
+import damage  # noqa: E402
 import detail  # noqa: E402
 import graph  # noqa: E402
 import textures  # noqa: E402
 from graph import Soup  # noqa: E402
-from graphset import MASK, GraphSet, bars, base_of, grime, outline, quad, right_of, scorched, toned  # noqa: E402
+from filters import grime, scorched, toned  # noqa: E402
+from graphset import MASK, GraphSet, base_of, outline, right_of  # noqa: E402
 
 STONE, TRIM, ZINC, IRON, FRAME, GLASS, DOOR = "FR_Stone", "FR_StoneTrim", "FR_Zinc", "FR_Iron", "FR_WindowFrame", "FR_Glass", "FR_DoorWood"
+POT = "FR_Pot"  # ours: a chimney pot's clay
 WALLS = frozenset((STONE, TRIM))  # what a module's own stretch of wall is made of
 FILLS = frozenset((FRAME, GLASS, DOOR))  # what fills its opening
 # Modules with a window or a door in them, and which of those have a room behind them.
@@ -51,6 +52,20 @@ TRIM_KEPT = ("T0_", "T1_", "R0_", "R1_", "T2_")
 ROOM_DEPTH_M = 4.0
 # The mansard's slope, as its dormer modules lay it: from the cornice's top, out past the wall, up and in.
 MANSARD_FOOT_M, MANSARD_SLOPE_M, MANSARD_OUT_M, MANSARD_IN_M = 0.55, 3.0, 0.24, 1.0
+CHIMNEY_M = 1.1  # a stack's height over its foot in the slope's top, pots on it
+
+
+def uprights():
+    """A railing's uprights 12.5 cm apart, and nothing across them: its rails are geometry."""
+    size = textures.SIZE
+    xx = np.mgrid[0:size, 0:size][1].astype(float) / size
+    px, bar_r = 1.0 / size, 0.012 / 0.5
+    bx = np.abs((xx * 4) % 1.0 - 0.5) / 4
+    bar = textures.smoothstep(bar_r + px / 2, bar_r - px / 2, bx)
+    height = np.sqrt(np.clip(1.0 - (bx / bar_r) ** 2, 0, 1)) * 3.0
+    ones = np.ones((size, size))
+    return textures.Baked(np.ones((size, size, 3)), 1.0, textures.normals_from_height(textures.blur(height), 1.0), 1.0, ones, ones,
+                          coverage=bar)
 
 
 def ashlar(albedo, roughness):
@@ -117,7 +132,7 @@ class Paris(GraphSet):
     )
     FIT = {"side_m": 1.5, "top_m": 0.5}
 
-    FAMILIES = (
+    KIT_GROUPS = (
         ("G0_", 0b1111), ("G1_", 0b1111), ("U0_", 0b1111), ("U1_", 0b1111), ("U2_", 0b1111), ("C0_", 0b1111),
         ("C1_", 0b1111), ("C2_", 0b1111), ("R0_", 0b1111), ("R1_", 0b1111), ("T0_", 0b1111), ("T1_", 0b1111),
         ("T2_", 0b1111), ("D0_", 0b0001), ("D1_", 0b0001), ("D2_", 0b0001), ("FR_Room_", 0b0011), ("FR_Railing", 0b1111),
@@ -125,6 +140,8 @@ class Paris(GraphSet):
     ROOM_MESHES = {"FR_Room_Home": "X_Room", "FR_Room_Shop": "X_ShopRoom"}
     ROOM_SHEETS = {"X_Room": "rooms", "X_ShopRoom": "shops"}
     SHEETED = ("U1_", "U2_", "C2_", "G0_", "G1_")
+    # a railing's rails stay its own bars: the recipe's rails crossed its uprights at heights of their own
+    SHEET_RAILS = False
     SHEET_BAR_M = 0.03
     ENTRANCE = "G1_"
 
@@ -132,10 +149,12 @@ class Paris(GraphSet):
     SURFACES = {
         STONE: ("fr_stone", "fr_ashlar", (1.0, 1.0, 1.0), 1.0, 0.0),
         TRIM: ("fr_trim", "fr_trim", (1.0, 1.0, 1.0), 1.0, 0.0),
-        ZINC: ("fr_zinc", "fr_zinc", (1.0, 1.0, 1.0), 0.55, 0.6),
+        # weathered zinc is dull: as a metal it mirrored the sky, and a slope facing the sun read as white
+        ZINC: ("fr_zinc", "fr_zinc", (1.0, 1.0, 1.0), 0.75, 0.15),
         IRON: ("fr_iron", "fr_metal", (0.035, 0.037, 0.04), 0.7, 0.5),
         FRAME: ("fr_frame", "fr_paint", (0.62, 0.6, 0.55), 0.6, 0.0),
         DOOR: ("fr_door", "fr_wood", (0.14, 0.28, 0.2), 0.6, 0.0),
+        POT: ("fr_pot", None, (0.36, 0.13, 0.07), 0.9, 0.0),
         GLASS: ("fr_glass", None, (0.05, 0.075, 0.09), 0.08, 0.0),
         "X_Pane": ("fr_pane", None, (0.06, 0.066, 0.068), 0.25, 0.0),
         "X_Void": ("fr_void", None, (0.005, 0.005, 0.006), 1.0, 0.0),
@@ -157,7 +176,7 @@ class Paris(GraphSet):
     BURNT_ROOF = "X_Rubble"  # the top floor's slab: the zinc went with the mansard
     SMOKED_ROOF = (0.55, 0.53, 0.5)  # smoke on a grey slab, not on clay
     BURNT_ROOF_CELL_M = (1.0, 1.0, 2.0, 5.0)
-    BURNT_WALL = 0.42  # pale limestone smoked: it must fall further than a painted wall to read as burnt  # a far block's intact roof is a few faces: so is its burnt one
+    BURNT_WALL = 0.42  # pale limestone smoked: it must fall further than a painted wall to read as burnt
     WRECKS = ("FR_Railing",)
 
     def recipes(self):
@@ -171,7 +190,7 @@ class Paris(GraphSet):
         ambientcg.bake("fr_paint", "Plastic010", 1.0, rough=(0.8, 0.12), normal=0.3)
         ambientcg.bake("fr_wood", "WoodFloor041", 1.5, rough=(1.0, 0.05), normal=0.6)
         ambientcg.bake("fr_concrete", "Concrete034", 2.0, rough=(1.0, 0.05), normal=0.6, grime=grime(0.35, 0.3))
-        textures.recipe(self.BARS, tile=0.5)(bars)
+        textures.recipe(self.BARS, tile=0.5)(uprights)
 
     # ------------------------------------------------------------ the graph
     def open_graph(self):
@@ -195,9 +214,18 @@ class Paris(GraphSet):
         what stands in and on the wall, its frames, glass, iron and carved trim."""
         meshes = super().kit_meshes(graph_)
         # what a ruin's heap holds: a balcony's railing, torn off
+        if "U2_Upper_ExtBalcony" not in meshes:
+            raise SystemExit("no template has a continuous balcony, whose railing a ruin's heap holds (WRECKS)")
         railing = meshes["U2_Upper_ExtBalcony"]
         meshes["FR_Railing"] = railing.keep(np.array(railing.mats)[railing.m] == IRON)
-        return {name: soup.without({STONE}) for name, soup in meshes.items()}
+        meshes = {name: soup.without({STONE}) for name, soup in meshes.items()}
+        # a dormer is clad in zinc but for its stone front: cream cheeks and roof stood on the cornice like battlements from above
+        dormer = meshes["R0_Mansard_Dormer"]
+        normals, _ = dormer.normals()
+        clad = (np.array(dormer.mats)[dormer.m] == TRIM) & (normals[:, 1] > -0.5)
+        meshes["R0_Mansard_Dormer"] = Soup(dormer.v, dormer.c, dormer.t,
+                                           np.where(clad, len(dormer.mats), dormer.m), dormer.s, [*dormer.mats, ZINC])
+        return meshes
 
     # ------------------------------------------------------------ levels
     def heights(self, floors):
@@ -223,7 +251,7 @@ class Paris(GraphSet):
         normals = [right_of(a, c) for a, c in loop]
         at = lambda k, d, z: (loop[k][0][0] + d * (normals[k - 1][0] + normals[k][0]),
                               loop[k][0][1] + d * (normals[k - 1][1] + normals[k][1]), z)
-        slopes = [quad([at(k, MANSARD_OUT_M, z0), at((k + 1) % len(loop), MANSARD_OUT_M, z0),
+        slopes = [damage.quad([at(k, MANSARD_OUT_M, z0), at((k + 1) % len(loop), MANSARD_OUT_M, z0),
                         at((k + 1) % len(loop), -MANSARD_IN_M, z1), at(k, -MANSARD_IN_M, z1)], ZINC) for k in range(len(loop))]
         return Soup.join([b.top, *slopes])
 
@@ -272,6 +300,20 @@ class Paris(GraphSet):
     def standing(self, run):
         return run.flat.coloured(0.72)
 
+    def chimneys(self, width, depth, floors):
+        """The stacks a Paris roof is read by: rendered stone, a row of clay pots on each, along the top
+        of both long slopes where the party walls and flues come up, one every two bays. The graph has none."""
+        _, roof_m, _, _ = self.heights(floors)
+        foot = roof_m + MANSARD_FOOT_M + MANSARD_SLOPE_M - 0.3  # in the slope's top, under the cap's edge
+        out = []
+        for side in (-1, 1):
+            y = side * (depth / 2 - MANSARD_IN_M - 0.45)
+            for x in np.arange(-width / 2 + 4.0, width / 2 - 3.0, 6.0):
+                out.append(damage.box((x - 0.8, y - 0.35, foot), (x + 0.8, y + 0.35, foot + CHIMNEY_M), TRIM, 0.82))
+                out += [damage.box((px - 0.11, y - 0.11, foot + CHIMNEY_M), (px + 0.11, y + 0.11, foot + CHIMNEY_M + 0.35), POT, 1.0)
+                        for px in (x - 0.45, x, x + 0.45)]
+        return Soup.join(out)
+
     # ------------------------------------------------------------ a block
     def assemble(self, graph_, template):
         name, floors, bays_x, bays_y, detail_seed, pattern, style = template
@@ -284,19 +326,20 @@ class Paris(GraphSet):
         rows = [(n, shift @ m, None) for n, m, _ in rows]
         rect = (0.0, 0.0, width / 2, depth / 2)
         loops = outline([rect])
-        runs = []
+        runs, owners = [], np.zeros(len(rows), int)  # how many runs took each of the graph's rows
         for run in loops[0]:
             start, end = np.array(run[0], dtype=np.float64), np.array(run[1], dtype=np.float64)
             length = float(np.linalg.norm(end - start))
             along = (end - start) / length
             out = np.array([along[1], -along[0]])
             mine = []
-            for n, m, t in rows:
+            for k, (n, m, t) in enumerate(rows):  # a corner piece is its run's that starts there
                 facing = m[:2, :2] @ np.array([0.0, -1.0])
                 at = m[:2, 3] - start
                 corner = n.startswith(("C", "T1_", "T2_"))
                 if corner and np.linalg.norm(at) < 1e-3 or not corner and facing @ out > 0.99 and abs(at @ out) < 1e-3:
                     mine.append((n, m, t))
+                    owners[k] += 1
             openings = [(n, m) for n, m, _ in mine if n.startswith(WINDOWED)]
             rooms = []
             for n, m in openings:
@@ -327,9 +370,10 @@ class Paris(GraphSet):
                 rows=mine + rooms, openings=[(n, m) for n, m in openings if not n.startswith("R")],
                 bare=[(n, m) for n, m in openings if not n.startswith(tuple(ROOMED))]),
                 [rect]))
-        if sum(len(run.rows) for run in runs) < len(rows):
-            raise SystemExit(f"{name}: a module stands on no run")
-        top = tap.own.transformed(shift)
+        if (owners != 1).any():
+            k = int(np.argmax(owners != 1))
+            raise SystemExit(f"{name}: {rows[k][0]} at {rows[k][1][:3, 3].round(2)} stands on {owners[k]} runs, not one")
+        top = Soup.join([tap.own.transformed(shift), self.chimneys(width, depth, floors)])
         return SimpleNamespace(
             name=name, floors=floors, parts={"body": rect}, rects=[rect], loops=loops, runs=runs, seed=detail_seed,
             wall=(255, 255, 255), roof_rows=[], rows=[row for run in runs for row in run.rows], top=top,
