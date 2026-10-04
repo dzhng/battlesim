@@ -4,7 +4,7 @@ A generated town's streets carry furniture, but the ground between its buildings
 
 ## Next Agent Prompt
 
-*Status (2026-10-04): on branch `courtyards`: 00–04, 06, 07 and 08a's garden pieces merged (02, 03, 06, 07 also pushed to `main`). In flight: ground lane follow-up (diagonal seams where paving areas overlap, joint aliasing; worktree `courtyards-ground`) and slice 05 court amenities (worktree `courtyards-courts`). Next: merge both, then 08a's court pieces and 08b–d regional art, then 09. Known findings outside this spec: parked cars and some street trees and lamps stand on the renderer's walk strip (pre-existing: the verge pass keeps bodies off the carriageway, not off the drawn walk); shaded fences read dark (scene lighting); bodies per town tripled with gardens (choices.md).*
+*Status (2026-10-04): on branch `courtyards`: 00–07 and 05b merged, 08a's garden pieces merged. In flight: court art 08a–d (worktree `courtyards-art2`) and a placement lane (worktree `courtyards-place`) diagnosing group moves whose destinations go unplaced in towns (41/81 probe maps after 05, 57/81 after 05b; pre-courtyards baseline being measured). Next: merge both, judge court density again with real art (05b's metric is weak, choices.md), then 09. Known findings outside this spec: cars, some trees and lamps on the drawn walk; shaded fences read dark.*
 
 You are implementing this spec with [implement-spec](../../.agents/skills/implement-spec/SKILL.md). Start at [slice 00](slices/00-budget-and-stand-ins.md); it only measures and decides two numbers, and every later slice inherits them. Work the ladder in order unless the graph below says a slice can run beside another. Record every decision the slices leave open in [choices.md](choices.md) as you make it. Before ending a pass, update this section: status, the next pickup point, and the checklist.
 
@@ -14,7 +14,7 @@ You are implementing this spec with [implement-spec](../../.agents/skills/implem
 - [x] 03 Dense blocks paved ([slice](slices/03-courts.md))
 - [x] 04 The map names its region; paving takes the region's finish ([slice](slices/04-map-region.md))
 - [x] 05 Court amenities as bodies, with stand-in art ([slice](slices/05-court-amenities.md))
-- [ ] 05b Courts read as lived in, not as empty plazas ([slice](slices/05b-court-fill.md))
+- [x] 05b Courts read as lived in, not as empty plazas ([slice](slices/05b-court-fill.md))
 - [x] 06 Garden dressing in suburbs and villages ([slice](slices/06-gardens.md))
 - [x] 07 Regional appearances, loaded for the map's region only ([slice](slices/07-regional-appearances.md))
 - [ ] 08 Art: shared core, then China, New York, Paris ([slice](slices/08-art.md))
