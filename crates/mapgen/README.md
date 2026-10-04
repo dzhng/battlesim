@@ -87,6 +87,12 @@ identity derives from its district so tuning one kind does not rename unrelated
 buildings. A district with no valid first parcel is a named refusal rather than an
 unexplained empty town.
 
+A dense district paves its block interior as one [court](src/parcels/courts.rs):
+its convex ring, laid as paving, so the ground between every one of its buildings
+is hard standing and its streets draw over it. Along an edge no carriageway runs
+on, the court ends at its nearest parcel's rear rather than running out into the
+fields. Paving is ground, not road: it changes no speed, sight or cover.
+
 [The generated template library](../../fixtures/prototype-building-templates.json)
 is derived from accepted [city sets](../../packages/scene-assets/README.md#city-buildings),
 not edited independently. Art dresses physical descriptors; a new regional family
@@ -141,13 +147,21 @@ explains that evidence and the certificate's accepted assumptions.
 
 ## Street furniture (`street_props`)
 
-[Street furniture](src/street_props.rs) adds ordinary catalog props after buildings
+[Street furniture](src/street_props/) adds ordinary catalog props after buildings
 and roads exist. One legality rule keeps bodies off carriageways and water, clear
 of entrances and bridge approaches, apart from existing bodies and outside measured
 open approaches. Dimensions and mix belong to presets; the resolved catalog owns
 physical properties and the widest supported hull used to reserve a lane.
 
-Kerbside parking and yard stock must leave actual squad access and vehicle travel.
+Garden suburbs and villages dress the gardens behind their houses: pieces in a
+lot's rear setback and a boundary along its rear and sides, never in the front
+garden. Gardens are the least of a town's dressing: they are placed after the
+open country's cover has certified the map's sight, keep a trunk's clearance off
+every forest so they fell no tree the certificate counted, and stop at the
+request's authored-part limit. On the largest maps that limit, not the presets'
+density, decides how many lots are dressed.
+
+Kerbside parking, yard stock and gardens must leave actual squad access and vehicle travel.
 A planned route or successful placement alone is insufficient; [furniture tests](tests/street_props.rs)
 ask the simulation's navigation, while traversal and traffic remain separate
 movement proofs. Bounded local retries may omit optional furniture when it cannot

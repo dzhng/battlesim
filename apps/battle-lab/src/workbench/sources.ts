@@ -98,20 +98,20 @@ export async function loadCatalog(fresh = false): Promise<InstalledAppearances> 
   return fresh ? reloadGameAppearances() : gameAppearances();
 }
 
-/** Every appearance the catalog names: those installed, and the kits. */
+/** Every appearance the catalog names: those installed, and those fetched on request. */
 export const catalogNames = (installed: InstalledAppearances): string[] =>
-  [...new Set([...installed.appearances.keys(), ...installed.kits])].sort();
+  [...new Set([...installed.appearances.keys(), ...installed.onRequest.keys()])].sort();
 
 /** The clip roles that loop, for a dropped GLB's clips: every one but the fall. */
 export const INFANTRY_LOOPS: string[] = INFANTRY_CLIPS.filter((clip) => clip !== "death");
 
 /** The catalog's appearance `name` as a bench model, or null when it names
- *  none. A kit is fetched to be shown. */
+ *  none. One fetched on request (a kit, a regional look) is fetched to be shown. */
 export async function catalogModel(
   catalog: InstalledAppearances,
   name: string,
 ): Promise<LoadedModel | null> {
-  const installed = catalog.kits.has(name) ? await gameAppearances([name]) : catalog;
+  const installed = catalog.onRequest.has(name) ? await gameAppearances([name]) : catalog;
   const entry = installed.appearances.get(name);
   if (!entry) return null;
   const type = typeDrawing(name);
@@ -176,7 +176,7 @@ export async function loadDropped(
   );
   await library.load(MEMORY);
   // A dropped kit is asked for, like any kit that is to be drawn.
-  const installed = await library.withKits(drawn.map((entry) => entry.name));
+  const installed = await library.withAppearances(drawn.map((entry) => entry.name));
   const type = options.type ?? (result.entryName ? typeDrawing(result.entryName) : null);
   return {
     name: file,

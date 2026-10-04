@@ -261,8 +261,7 @@
       "ruts": { "offsets_m": [], "width_m": 0, "tilt_deg": 0, "tint": 0 },
       "centre_strip": { "half_width_m": 0, "max_road_width_m": 0 },
       "layer": 2.5,
-      "area": "sidewalk",
-      "walk": { "kind": "sidewalk", "width_m": 2, "slab_m": 2, "joint": 0.25 },
+      "walk": { "kind": "paving", "width_m": 2, "slab_m": 2, "joint": 0.25 },
       "curb": { "palette": "curb", "width_m": 0.3, "stone_m": 1, "joint": 0.3, "face_m": 0.15, "tilt_deg": 15 },
       "markings": {
         "palette": "road_paint",
@@ -273,7 +272,7 @@
         "crossing": { "bar_m": 0.5, "length_m": 2, "gap_m": 0.5, "inset_m": 0.45 }
       }
     },
-    "sidewalk": {
+    "paving": {
       "palette": "paving",
       "feather_m": 0.12,
       "mottle": 0.25,

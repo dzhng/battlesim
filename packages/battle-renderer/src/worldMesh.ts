@@ -266,7 +266,7 @@ export function buildWorldLayers(
       ? structureModels(
           mapProps(exports, layout),
           [],
-          new PropAppearances(appearances, layout),
+          new PropAppearances(appearances, layout, null),
           (prop) => !drawnBy(layout, prop.kind, "forest") && !apart.includes(prop.kind),
         )
       : [];

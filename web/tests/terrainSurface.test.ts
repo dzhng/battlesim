@@ -846,7 +846,7 @@ test("every paved kind is drawn by its own road row, or the default's", () => {
     looks[SURFACE_AREA_KINDS.indexOf(kind)];
   expect(look("dirt_track").core.w).toBe(0.5);
   expect(look("dirt_track").core.x).toBeCloseTo(0.5 ** 2.2, 6);
-  for (const kind of ["road", "country_road", "sidewalk"] as const) {
+  for (const kind of ["road", "country_road", "paving"] as const) {
     expect(look(kind).core, kind).toEqual(look("road").core);
     expect(look(kind).shoulder, kind).toEqual(look("road").shoulder);
   }
@@ -910,32 +910,30 @@ test("wheelings are furrows laid bare: none without rows, none wider than a row"
   refused({ tram: { ...kind.tram, rows: 2 } }, "rows");
 });
 
-test("a street's row says what draws its yards and its walk", () => {
-  const plain = { ...biome.roads.default, area: undefined, walk: undefined };
+test("a street's row says what draws its walk", () => {
+  const plain = { ...biome.roads.default, walk: undefined };
   const street = {
     ...plain,
-    area: "sidewalk",
-    walk: { kind: "sidewalk", width_m: 2, slab_m: 2.5, joint: 0.2 },
+    walk: { kind: "paving", width_m: 2, slab_m: 2.5, joint: 0.2 },
   };
   const looks = roadLooks(validateBiome({ ...biome, roads: { default: plain, road: street } }));
   const tag = (kind: (typeof SURFACE_AREA_KINDS)[number]) => SURFACE_AREA_KINDS.indexOf(kind);
-  // The street: its areas and its walk go to the sidewalk's row.
+  // The street: its walk goes to paving's row.
   const road = looks[tag("road")];
-  expect([road.join.y, road.join.z, road.join.w]).toEqual([tag("sidewalk"), 2, tag("sidewalk")]);
+  expect([road.join.z, road.join.w]).toEqual([2, tag("paving")]);
   expect(road.slabs.x).toBeCloseTo(1 / 2.5, 6);
-  // Every other kind draws its own areas and has no walk.
-  for (const kind of ["country_road", "dirt_track", "sidewalk"] as const)
-    expect([looks[tag(kind)].join.y, looks[tag(kind)].join.z], kind).toEqual([tag(kind), 0]);
+  // Every other kind has no walk.
+  for (const kind of ["country_road", "dirt_track", "paving"] as const)
+    expect(looks[tag(kind)].join.z, kind).toBe(0);
   // Only a carriageway is carried onto the road it joins.
   expect(looks.map((look) => look.track.w)).toEqual([1, 1, 1, 0]);
 
-  for (const [row, path] of [
-    [{ ...street, area: "lawn" }, "area"],
-    [{ ...street, walk: { ...street.walk, kind: "lawn" } }, "walk\\.kind"],
-  ] as const)
-    expect(() => validateBiome({ ...biome, roads: { default: plain, road: row } })).toThrow(
-      new RegExp(`roads\\.road\\.${path}: names no paved kind "lawn"`),
-    );
+  expect(() =>
+    validateBiome({
+      ...biome,
+      roads: { default: plain, road: { ...street, walk: { ...street.walk, kind: "lawn" } } },
+    }),
+  ).toThrow(/roads\.road\.walk\.kind: names no paved kind "lawn"/);
 });
 
 test("a curb is its row's kerbstones and a face shading never tilts past 40 degrees", () => {
@@ -1004,10 +1002,10 @@ test("paving is painted in the simulation's order unless a row names its layer",
     validateBiome({ ...biome, roads: { default: plain, road: { ...plain, ...road } } } as Biome);
   const names = (order: number[]) => order.map((tag) => SURFACE_AREA_KINDS[tag]);
   // Lowest first: the earlier kind is on top.
-  expect(names(roadOrder(rows({})))).toEqual(["sidewalk", "dirt_track", "country_road", "road"]);
+  expect(names(roadOrder(rows({})))).toEqual(["paving", "dirt_track", "country_road", "road"]);
   // A street under the country road it meets, still over a track.
   expect(names(roadOrder(rows({ layer: 2.5 })))).toEqual([
-    "sidewalk",
+    "paving",
     "dirt_track",
     "road",
     "country_road",

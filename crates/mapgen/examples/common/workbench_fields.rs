@@ -146,6 +146,8 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
                 "LotRule"
             } else if parts.contains(&"verge") {
                 "VergeRow"
+            } else if parts.contains(&"gardens") {
+                "Gardens"
             } else if parts.contains(&"props") {
                 "DistrictProps"
             } else {

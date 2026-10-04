@@ -90,8 +90,8 @@ const RoadLook = d.struct({
   /** Edge feather metres, 1 / patch size, grain strength, 1 / grain size. */
   shape: d.vec4f,
   /** How far this kind's road is carried onto a road drawn over it, metres;
-   *  the row that draws this kind's areas (its polygons); its walk's
-   *  width in metres (0 for none) and the row that draws the walk. */
+   *  then unused; its walk's width in metres (0 for none) and the row that
+   *  draws the walk. */
   join: d.vec4f,
   /** The worn ground beside it: linear rgb, and its width in metres. */
   shoulder: d.vec4f,
@@ -105,7 +105,7 @@ const RoadLook = d.struct({
   ruts: d.vec4f,
   /** How far a rut darkens the surface at its middle; a centre strip's half
    *  width, and the widest stroke (as a half width) that has one; then 1
-   *  where the kind is a carriageway (a sidewalk is not). */
+   *  where the kind is a carriageway (paving is not). */
   track: d.vec4f,
   /** Its walk's slabs: 1 / a slab's length along the road (0 for none), how
    *  far a joint darkens the surface; then its curb's face: its width, and
@@ -766,9 +766,9 @@ export const GroundPaved = d
   .struct({
     /** How far inside each row's paving it lies, by the tag of the kind
      *  whose row draws it: negative outside, far outside a row the cell
-     *  lists nothing of. A stroke is drawn by its own kind's row, an area by
-     *  its kind's `area` row, and a walk (a look, not the simulation's
-     *  paving) by its road's `walk.kind` row. */
+     *  lists nothing of. A stroke or an area is drawn by its own kind's row,
+     *  and a walk (a look, not the simulation's paving) by its road's
+     *  `walk.kind` row. */
     drawn: d.vec4f,
     /** The stroke it lies deepest in, as a lane to drive along: the unit
      *  vector away from the stroke's centreline, the distance from it, and
@@ -830,12 +830,10 @@ export const groundPaved = tgpu
  }
  var rule=deepest;
  if(member<${ROAD_KINDS}u){
-  let row=u32(terrainLayout.$.params.roads[member].join.y);
-  paved[row]=max(paved[row],nearest);rule=max(rule,nearest);
+  paved[member]=max(paved[member],nearest);rule=max(rule,nearest);
  }
  else if(nearest<1e9){
-  let row=u32(terrainLayout.$.params.roads[edge].join.y);
-  paved[row]=max(paved[row],-nearest);rule=max(rule,-nearest);
+  paved[edge]=max(paved[edge],-nearest);rule=max(rule,-nearest);
  }
  return GroundPaved(paved,lane,run,rule,cell.xy);
 }`)
@@ -2343,7 +2341,7 @@ function roadLook(road: Road, tag: number, palettes: Biome["palettes"]) {
     core: d.vec4f(...core, road.roughness),
     worn: d.vec4f(worn[0] * level, worn[1] * level, worn[2] * level, road.mottle),
     shape: d.vec4f(road.feather_m, 1 / road.patch_m, road.grain, 1 / road.grain_m),
-    join: d.vec4f(road.join_m, row(road.area), road.walk?.width_m ?? 0, row(road.walk?.kind)),
+    join: d.vec4f(road.join_m, 0, road.walk?.width_m ?? 0, row(road.walk?.kind)),
     shoulder: d.vec4f(...linearRgb(palettes[road.shoulder.palette][0]), road.shoulder.width_m),
     edge: d.vec4f(
       road.shoulder.jitter,

@@ -31,7 +31,7 @@ pub enum SurfaceKind {
     Road,
     Water,
     Bridge,
-    Sidewalk,
+    Paving,
 }
 
 impl SurfaceKind {
@@ -41,7 +41,7 @@ impl SurfaceKind {
         if kind.is_road() {
             SurfaceKind::Road
         } else {
-            SurfaceKind::Sidewalk
+            SurfaceKind::Paving
         }
     }
 }

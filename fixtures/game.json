@@ -407,7 +407,7 @@
     "road": { "speed_factor": 1 },
     "country_road": { "speed_factor": 1 },
     "dirt_track": { "speed_factor": 0.75 },
-    "sidewalk": { "speed_factor": 0 }
+    "paving": { "speed_factor": 0 }
   },
   "forests": {
     "tree": "trunk",
@@ -836,6 +836,11 @@
         "pallet_stack": [0.72, 0.6, 0.4],
         "site_cabin": [0.84, 0.84, 0.8],
         "heras_fence": [0.62, 0.64, 0.66],
+        "garden_shed": [0.5, 0.38, 0.26],
+        "hedge": [0.2, 0.36, 0.16],
+        "garden_fence": [0.6, 0.48, 0.34],
+        "washing_line": [0.9, 0.9, 0.86],
+        "garden_table": [0.8, 0.78, 0.72],
         "default": [0.62, 0.62, 0.62]
       }
     },

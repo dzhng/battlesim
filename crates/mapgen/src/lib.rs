@@ -45,7 +45,7 @@ pub struct MapPlan {
     pub props: Vec<AuthoredPropDefinition>,
     #[serde(default)]
     pub buildings: Vec<BuildingPlacement>,
-    /// Roads, tracks and sidewalks, in the contract's shared ground shapes.
+    /// Roads, tracks and paving, in the contract's shared ground shapes.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub surfaces: Vec<SurfaceArea>,
     /// Forest shapes; the one `forests.rule` stands their trees at load.
@@ -68,6 +68,11 @@ pub struct MapPlan {
     /// The parcels the parcel pass cut, in the order it cut them. Plan-only.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lots: Vec<LotPlan>,
+    /// The paved block interiors of the districts that pave theirs, each
+    /// also laid as a `Paving` surface. Plan-only: where court amenities
+    /// stand.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub courts: Vec<CourtPlan>,
     /// A requested feature without a shared physical owner cannot be discarded.
     #[serde(flatten)]
     pub unsupported_fields: BTreeMap<String, serde_json::Value>,
@@ -122,6 +127,19 @@ pub struct LotPlan {
     /// on it has the same id; a parcel without one is open ground.
     pub id: String,
     /// Its corners, counter-clockwise from the street side.
+    #[serde(deserialize_with = "contract::numbers::points")]
+    pub ring: Vec<[f64; 2]>,
+}
+
+/// A district's court: its block interior, paved between its buildings.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CourtPlan {
+    /// `settlement-3/district-2/court`, stable for a request.
+    pub id: String,
+    /// The district it is the interior of.
+    pub district: String,
+    /// A convex ring inside the district's, counter-clockwise.
     #[serde(deserialize_with = "contract::numbers::points")]
     pub ring: Vec<[f64; 2]>,
 }
@@ -299,7 +317,8 @@ pub enum GenerateOutcome {
 
 /// A request's whole plan: the layout, then its districts' streets, parcels
 /// and buildings, then what stands in the open country between them, then
-/// the street furniture that stands among the buildings.
+/// the street furniture that stands among the buildings, the cover that
+/// certifies the open country's sight, and last the gardens.
 /// `rules_json` is the explicit battle rules record. The contract extracts
 /// only its catalog, forest rules and ground eye/target heights.
 fn generate(
@@ -337,7 +356,18 @@ fn generate(
     let props =
         street_props::place_street_props(&plan, &request, &catalogue, &physics.catalog, &presets)?;
     plan.props.extend(props);
-    let plan = open_country::cover(plan, &request, &catalogue, &presets, &physics)?;
+    let mut plan = open_country::cover(plan, &request, &catalogue, &presets, &physics)?;
+    // Gardens last: the cover's sight certificate needs open ground in the
+    // suburbs to stand copses on, and gardens give way to it.
+    let gardens = street_props::place_gardens(
+        &plan,
+        &request,
+        &catalogue,
+        &physics.catalog,
+        &presets,
+        physics.forests.rule.trunk_clearance_m,
+    )?;
+    plan.props.extend(gardens);
     let hash = physics.hash().map_err(|error| {
         vec![Diagnostic {
             code: DiagnosticCode::InvalidPhysicalRules,
