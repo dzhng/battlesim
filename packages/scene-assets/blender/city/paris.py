@@ -258,7 +258,12 @@ class Paris(GraphSet):
         the shell's slope there (`intact_roof`)."""
         if not len(far):
             return far
-        return far.without({ZINC}) if name.startswith(TRIM_KEPT) else far.without({TRIM})
+        if name.startswith(TRIM_KEPT):
+            return far.without({ZINC})
+        # a balcony's deck is carved stone, out past the wall at its floor: without it a far balcony is a railing in the air
+        centre = far.v[far.t].mean(1)
+        trim = np.array([base_of(n) == TRIM for n in far.mats])[far.m]
+        return far.keep(~trim | ((centre[:, 1] < -0.25) & (centre[:, 2] < 0.15)))
 
     def near_walls(self, run, tier):
         """The graph's own ashlar at tier 0; at tier 1 the same wall flat, its openings cut and lined."""
