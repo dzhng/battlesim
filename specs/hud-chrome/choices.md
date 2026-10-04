@@ -1,6 +1,6 @@
 # Implementation choices
 
-No implementation choices banked yet. Settled user/delegated planning decisions remain in the exploration map.
+Settled user/delegated planning decisions remain in the exploration map. This ledger records implementation decisions where that plan left a gap.
 
 ## 03 audio audit · 2026-10-04
 
@@ -10,13 +10,6 @@ and bank while disposing each battle's entire mixer. This cuts off its reverb
 tails as well as its voices, without aborting shared preparation. The required
 React provider, route policy and terminal document departure follow the
 coordinator's accepted integration seam.
-
-Music remains provisional: after listening, the user requested a louder mix and
-a different musical tone, and asked about extracting Battlefield 2 menu music.
-The current authored fallback is raised about 3 dB; no synthesis redesign or
-external asset is admitted while the source path is pending. The listening
-checkpoint is open. The lifecycle implementation is independent of that asset.
-Settled user/delegated planning decisions remain in the exploration map.
 
 ## Navigation pass · 2026-10-04
 
@@ -82,8 +75,14 @@ Confidence: high.
 The exact React Router 7.13.2 pin, retained-visit marker and internal names were
 explicitly delegated by the slice; they are implementation discretion rather
 than new product decisions.
-a different musical tone. The coordinating pass directed an original military
-score mood: brass-like harmony, restrained field drums and stronger pulse,
-without imported recordings or borrowed melodies. The cue and mix were revised
-inside the existing synth/catalog pipeline; the listening checkpoint remains
-open. This delegated taste choice does not change audio lifetime or navigation.
+
+## Recorded menu music
+
+The user chose and supplied the recording. Keeping the full track, with the
+existing mono preparation and a short repeat crossfade, avoids a separate music
+pipeline and preserves the requested tone. Playback begins at the introduction;
+ambient loops retain staggered starts. Verdict: sound; confidence high.
+
+The menu music gain is twice the rejected sample's last level; ambience remains
+quiet. This is a reversible taste choice that makes the requested increase audible.
+Verdict: sound; confidence medium, subject to the user's listening preference.

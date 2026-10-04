@@ -2,7 +2,7 @@
 
 Contract: one page audio context/bank survives menu → loading → battle. Each battle has fresh SoundFrame evidence/voices; exit removes battle voices/nodes without closing page audio. Music plus subtle outdoor ambience prepares/attempts early when unmuted; first permitted menu gesture resumes blocked context without another in-game click. Keep music through loading, fade when battle audio is ready, restore it on menu return. Existing mute/master volume and source calibration stay authoritative.
 
-Seam: battle-audio owns app audio lifetime and per-battle SoundFrame; existing bank/catalog/synth/settings remain owners. Reuse or explicitly dispose mixer graphs, no retained orphan limiters/reverbs/panners. No visit cancellation attached to shared bank work. Own audio package, fixtures/sounds.json, soundFeed and an app-audio React integration surface; root router wiring is coordinated. A small authored synthesis loop in existing synth/catalog pipeline is the reversible source choice; no third-party provenance burden or new playback service.
+Seam: battle-audio owns app audio lifetime and per-battle SoundFrame; existing bank/catalog/synth/settings remain owners. Reuse or explicitly dispose mixer graphs, no retained orphan limiters/reverbs/panners. No visit cancellation attached to shared bank work. Own audio package, fixtures/sounds.json, soundFeed and an app-audio React integration surface; root router wiring is coordinated. The user-supplied menu recording uses the existing catalog/preparation/bank path; no new playback service.
 
 First proof: exiting/recreating battle observers on one page retains prepared buffers/context while old voices/evidence disappear. Then blocked resume, first gesture, mute/unmute, disposal during prepare, real pagehide/BFCache and transition. Use existing battleAudio/soundBank/soundFrame/catalog/asset checks; do not loosen contracts. Generate an offline listening WAV plus transition sample, report loudness/seam/clipping and offer non-blocking audition. Browser proof uses fresh isolated profile and normal autoplay policy, silently capturing output.
 
@@ -32,17 +32,20 @@ autoplay policy and muted output prove preparation before permission and
 activation from the first menu click, with no browser errors. No full check,
 full verify or live playback in the user's browser was run.
 
-Music tone/mix is **not accepted**: the user requested louder music and a different
-tone after the first listening sample. The coordinating pass directed a wholly
-original military-score mood: low brass harmony, a small horn phrase, restrained
-field percussion and a stronger pulse. The revised cue uses the existing
-synth/catalog recipe and outdoor ambience. It introduces no imported material,
-music scheduler or new playback owner. Offline 30-second menu and 20-second
-transition WAVs are ready in `throwaway/audio-review/`; the original drone mix
-is retained there for comparison. Continue integration and offer the new sample
-for the non-blocking listening checkpoint.
+The user supplied `menu.mp3` after rejecting both synthesized candidates.
+The entire recording now owns the `menu_music` recipe. The pinned source and
+prepared mono loop preserve attribution, full duration and tonal balance through
+the existing preparation path; a 100 ms crossfade softens the repeat. The rejected
+cue and its helpers are deleted. Music starts at its introduction; repeated
+ambience/engine loops retain their staggered phases. The music mix is raised,
+while outdoor ambience stays quiet. No additional music player or scheduler exists.
 
-The original-score revision's independent review found nonzero percussion tails
-being truncated. Drum/snare buffers now fade their final portion to zero before
-loop mixing. The output is finite and deterministic, and preparation remains a
-bounded, once-per-bank synthesis task.
+Recording proof: catalog admission, music tonal preservation and source-offset
+tracers reproduced red then green. Focused asset/bank/app/battle checks pass.
+Actual browser fetch/decode and offline menu/transition/wrap rendering pass.
+Samples have no clipped frames or browser errors; the full-track raw repeat seam
+is 0.000122. This Chromium profile permitted immediate audio despite its normal
+activation policy; first input preserved the running context. The blocked-permission
+unit proof remains green. Pagehide/BFCache stays terminal. Independent review found
+no actionable defect and reproduced the exact prepared bytes and hashes.
+Production integration and full-spec closeout remain with the coordinating pass.

@@ -192,3 +192,65 @@ test.skipIf(!hasFfmpeg)(
     }
   },
 );
+
+test.skipIf(!hasFfmpeg)(
+  "music preparation preserves the recording's tonal balance inside a seamless loop",
+  () => {
+    const root = mkdtempSync(join(tmpdir(), "battle-audio-music-"));
+    try {
+      const rate = 48000;
+      const source = Float32Array.from(
+        { length: rate },
+        (_, i) =>
+          0.4 * Math.sin((2 * Math.PI * 80 * i) / rate) +
+          0.1 * Math.sin((2 * Math.PI * 2400 * i) / rate),
+      );
+      const bytes = wav(source, rate);
+      mkdirSync(join(root, "fixtures"));
+      mkdirSync(join(root, "assets/third-party/audio"), { recursive: true });
+      writeFileSync(join(root, "assets/third-party/audio/music.wav"), bytes);
+      writeFileSync(
+        join(root, "fixtures/sounds.json"),
+        JSON.stringify({
+          sources: {
+            music: {
+              path: "assets/third-party/audio/music.wav",
+              sha256: createHash("sha256").update(bytes).digest("hex"),
+            },
+          },
+          clips: {
+            music: {
+              source: "music",
+              source_rate: rate,
+              source_frames: [0, rate],
+              processing: "music",
+              url: "/audio/clips/music.wav",
+              loop: true,
+            },
+          },
+        }),
+      );
+      const run = spawnSync(
+        "python3",
+        [resolve("../packages/battle-audio/tools/assets.py"), "build", "--root", root],
+        { encoding: "utf8" },
+      );
+      expect(run.stderr).toBe("");
+      expect(run.status).toBe(0);
+      const out = readFileSync(join(root, "assets/runtime/audio/clips/music.wav"));
+      const pcm = new Int16Array(out.buffer, out.byteOffset + 44, (out.length - 44) / 2);
+      const input = new Int16Array(bytes.buffer, bytes.byteOffset + 44, rate);
+      const peak = Math.max(...input.map(Math.abs));
+      const scale = (0.72 * 32767) / peak;
+      for (let i = 5000; i < 15000; i++)
+        expect(pcm[i]).toBeCloseTo(Math.round(input[i + 4800] * scale), 0);
+      expect(pcm.length).toBe(rate - 4800);
+      // This source has whole cycles at both frequencies: the prepared seam
+      // should move no faster than its ordinary adjacent samples.
+      const largestStep = Math.max(...Array.from(pcm.slice(1), (v, i) => Math.abs(v - pcm[i])));
+      expect(Math.abs(pcm[0] - pcm.at(-1)!)).toBeLessThanOrEqual(largestStep + 1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  },
+);

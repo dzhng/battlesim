@@ -69,9 +69,11 @@ pitch and optional low-pass. Pitch shifts by resampling, so a lower layer is
 also slower, as a bigger body would sound; each layer fades out rather than
 stopping mid-rumble. Designs keep every source's provenance, as crops do.
 
-Sources are public domain, CC0 or Creative Commons with attribution, which the
-source row's author and URL supply. Non-commercial recordings are marked in
-their notes and must not ship in a commercial release.
+Each source row records attribution and rights alongside its pinned bytes.
+User-supplied recordings retain an explicit receipt, including reserved-rights
+material chosen for a personal project. The menu recording uses the same bank
+and preparation path as the rest of the library; music preparation keeps its
+tonal balance and starts playback at the introduction.
 
 The tool averages stereo channels, keeps the source crop in its original frame
 coordinates, applies the selected tonal profile and fades, and normalizes peak

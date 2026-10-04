@@ -9,8 +9,8 @@ import { WebAudioSink } from "./webAudioSink";
 
 /** Reversible menu mix, also used by offline listening review. */
 export const MENU_BED = [
-  { sound: "menu_music", gain: 1.1 },
-  { sound: "countryside", gain: 0.08 },
+  { sound: "menu_music", gain: 2.2, offset: 0 },
+  { sound: "countryside", gain: 0.08, offset: undefined },
 ] as const;
 export const MENU_FADE_S = 1.2;
 
@@ -156,12 +156,13 @@ export class AppAudio {
     }
     // A quick return during the battle fade replaces it rather than stacking beds.
     this.menu.clear();
-    for (const [i, { sound, gain }] of MENU_BED.entries())
+    for (const [i, { sound, gain, offset }] of MENU_BED.entries())
       this.menu.start(i + 1, {
         sound,
         variant: 0,
         bus: "ambience",
         at,
+        offset,
         gain,
         rate: 1,
         lowpass: 20000,

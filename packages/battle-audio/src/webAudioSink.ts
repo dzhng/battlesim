@@ -128,9 +128,9 @@ export class WebAudioSink implements VoiceSink {
     out.connect(this.buses[v.bus]);
     const send = new GainNode(ctx, { gain: v.wet });
     out.connect(send).connect(this.reverbs[v.bus]);
-    // A loop starts part-way in, so two of the same sound never phase.
-    const offset = v.loop ? (id * 0.6180339887) % 1 : 0;
-    source.start(v.at, offset * source.buffer!.duration);
+    // Stagger repeated ambience/engine loops; authored music starts at its intro.
+    const offset = v.offset ?? (v.loop ? ((id * 0.6180339887) % 1) * buffer.duration : 0);
+    source.start(v.at, offset);
     const voice: LiveVoice = {
       source,
       gain,

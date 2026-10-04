@@ -228,12 +228,26 @@ test("a designed clip layers crops of attributed sources; each layer names a rea
     notes: "",
   };
   expect(validateSoundCatalog(c)).toBe(c);
-  c.sources.whine.license = "All rights reserved";
+  c.sources.whine.license = "Unknown";
   expect(() => validateSoundCatalog(c)).toThrow(/whine: invalid provenance/);
   c.sources.whine.license = "CC-BY-NC-3.0";
   expect(validateSoundCatalog(c)).toBe(c);
   (c.clips.heavy as { layers: { source: string }[] }).layers[1].source = "missing";
   expect(() => validateSoundCatalog(c)).toThrow(/clip heavy/);
+});
+
+test("a user-supplied recording retains an explicit reserved-rights receipt", () => {
+  const c = catalog();
+  c.sources.menu = {
+    label: "Battlefield 2 menu",
+    author: "EA / DICE",
+    license: "All-Rights-Reserved",
+    url: "https://www.youtube.com/watch?v=X9ChkYgrBtQ",
+    path: "assets/third-party/audio/menu.mp3",
+    sha256: "a".repeat(64),
+    notes: "User-supplied recording for personal project.",
+  };
+  expect(validateSoundCatalog(c).sources.menu).toEqual(c.sources.menu);
 });
 
 test("a battle prepares the baselines and what is assigned, not the audition-only library", () => {

@@ -54,7 +54,9 @@ class Source extends Node {
   declare buffer: AudioBuffer;
   onended: (() => void) | null = null;
   stopped = false;
-  start() {
+  offset = -1;
+  start(_at: number, offset: number) {
+    this.offset = offset;
     sources.push(this);
   }
   stop() {
@@ -147,10 +149,20 @@ function setup() {
     impacts: {},
     effects: {},
   };
+  // A short fixture bed keeps lifecycle checks independent of musical content.
+  catalog.sounds.menu_music = { ...catalog.sounds.countryside };
   const app = new AppAudio({ presentation, catalog });
   active.push(app);
   return app;
 }
+
+test("menu music starts at its introduction while ambience keeps a staggered loop phase", async () => {
+  const app = setup();
+  app.setScreen("menu");
+  await vi.waitFor(() => expect(app.stats().menuReady).toBe(true));
+  expect(sources[0].offset).toBe(0);
+  expect(sources[1].offset).toBeGreaterThan(0);
+});
 
 test("battle exit keeps the page context and prepared buffers but disconnects its graph and forgets its evidence", async () => {
   const app = setup();

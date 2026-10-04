@@ -102,6 +102,8 @@ export interface VoiceSpec {
   bus: Bus;
   /** Sink time to start at, seconds. */
   at: number;
+  /** Explicit source offset in seconds; omitted loops stagger their phases. */
+  offset?: number;
   gain: number;
   rate: number;
   /** Low-pass cutoff, Hz. */
