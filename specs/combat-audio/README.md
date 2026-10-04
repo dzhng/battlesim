@@ -81,7 +81,9 @@ never file paths, and preserve outside edits. No compatibility or migration laye
 
 Claude Opus independently reviewed the plan. Its CLI also cannot hear audio here;
 user listening annotations and source/video evidence are the auditory grounding.
-Measurements verify onset, extra attacks, clipping and bandwidth, not timbre.
+Measurements verify onset, clipping and bandwidth, not timbre. Envelope peaks
+flag possible extra attacks or reflections for crop review; they do not identify
+individual discharges on their own.
 
 ## Next Agent Prompt
 
@@ -101,15 +103,19 @@ has no audio page error, including canceled clip requests. The final focused run
 passed 78 tests in ten files; typecheck, scoped formatting/lint and production
 build pass. Do not rerun the entire expensive suite unchanged.
 
-The remaining known global failures are existing village staging: no initially
-identified enemy for the scout retreat, no moving tank HMG launch in its staged
-battle, and no previously identified hidden tank firing report for village-watch.
-Baseline and candidate WASM probes produce identical full reports and digests
-with their own fixture bytes; all simulation, fixture and decoder sources are
-unchanged. The comparison is in ignored `throwaway/audio-build/village-triage`;
-it is not an independently rebuilt baseline browser run. Repair those staging
-prerequisites without changing rules or weakening assertions before claiming the
-global gate green and archiving this spec.
+The remaining village staging failures are resolved by admitted movement commands,
+actual identification before withdrawal, and a separately staged moving HMG fight.
+The village and village-watch browser scenes pass with their original assertions.
+No simulation, game-rule fixture or decoder source changed. A real workbench browser
+journey changed a tank mount's near/far/gain, reviewed and saved it, reloaded it,
+then restored the original through the same flow, using a temporary repository root.
+All original full-run failures now have passing focused replacements. Do not claim
+that the original full commands themselves exited green.
+
+The source-review map now retains the original take boundaries and user annotations;
+two unused gunfire crops lost surrounding low-level audio. Rebuild/check passes for
+all 88 clips and eight pinned sources. Finish the independent closeout review and
+archive this plan as a rationale; no implementation slice remains open.
 
 - [x] Durable clean source library and explicit exclusions; reproducible asset check passed.
 - [x] ATGM, cannon, ricochet, small/heavy impacts and explosions assigned in catalog.
@@ -119,4 +125,5 @@ global gate green and archiving this spec.
 - [x] Focused tests, browser sound proof, desktop/narrow visual review.
 - [x] Whole-feature review, consolidated decision audit and durable package docs.
 - [x] Finish affected-scene retries and verify browser departure cancellation.
-- [ ] Resolve existing global staging failures and archive rationale.
+- [x] Resolve existing global staging failures without changing rules or assertions.
+- [ ] Archive rationale after the independent final review.

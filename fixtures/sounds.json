@@ -100,15 +100,15 @@
       "source_rate": 48000,
       "source_frames": [
         192768,
-        203520
+        201511
       ],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-01-2.wav",
-      "sha256": "0b2308d62fb8fbf19702153b6d66f1525b7ab7f632ea17a9a83dcba7315a3b9d",
+      "sha256": "40a67ab275365d480e00a1291b02e57259088a83b76b84858a34da7b731206da",
       "sample_rate": 48000,
-      "frames": 10752,
+      "frames": 8743,
       "loop": false,
-      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+      "notes": "Isolated report; quiet tail ends at the original take-01 boundary. Family label is descriptive, not an identified firearm model."
     },
     "rifle-02-1": {
       "label": "Rifle 02 \u00b7 report 1",
@@ -549,16 +549,16 @@
       "source": "qubodup-gunfire",
       "source_rate": 48000,
       "source_frames": [
-        1236737,
+        1238177,
         1239792
       ],
       "processing": "weighted-shot",
       "url": "/audio/clips/bass-12-1.wav",
-      "sha256": "0e3a4e555ab0d00980164318f20c131c57daadf31ffdb8347573387b6384f8dd",
+      "sha256": "f718c64cf7845faf2ad63fc27a0e398ee600d08faddd4d557d3c40d1314e55ec",
       "sample_rate": 48000,
-      "frames": 3055,
+      "frames": 1615,
       "loop": false,
-      "notes": "Isolated report from user-reviewed source region. Family label is descriptive, not an identified firearm model."
+      "notes": "Isolated bass report; 30 ms of low-level precursor removed so the main attack starts promptly. Family label is descriptive, not an identified firearm model."
     },
     "bass-12-2": {
       "label": "Bass 12 \u00b7 report 2",

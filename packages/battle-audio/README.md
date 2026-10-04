@@ -30,6 +30,9 @@ The source hash, frame range and processing profile in the catalog are the rebui
 recipe. [The audio asset tool](tools/assets.py) owns processing and checks prepared
 bytes against that recipe. Run its help for commands; it needs Python 3, ffmpeg
 and ffprobe, with no additional Python packages.
+The frozen [gunfire source review](tools/gunfire-regions.json) retains the original
+numbered take boundaries and user-directed splits and exclusions. Listening estimates
+such as “halfway” do not replace the catalog's exact retained crop frames.
 
 The tool averages stereo channels, keeps the source crop in its original frame
 coordinates, applies the selected tonal profile and fades, and normalizes peak

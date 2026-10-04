@@ -1,0 +1,182 @@
+{
+  "source": "qubodup-gunfire",
+  "sha256": "1eaebcb54159a0b229fc9d5ebde0b60665f38e19c30b3b15f24d419e4df0d989",
+  "sample_rate": 48000,
+  "meaning": "Frozen source-review provenance: original numbered take boundaries and user-directed selection. Percentage/halfway descriptions are listening estimates, not exact transition frames. fixtures/sounds.json clip source_frames remain the authoritative bake inputs; family names describe acoustic character, not verified weapon models.",
+  "takes": [
+    {
+      "take": "take-01",
+      "source_frames": [0, 201511],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["auto-01"]
+    },
+    {
+      "take": "take-02",
+      "source_frames": [201511, 286998],
+      "review": "User: a short rifle burst in the first approximately 20%, followed by the heavier machine gun.",
+      "initial_retained_families": ["heavy-02", "rifle-02"]
+    },
+    {
+      "take": "take-03",
+      "source_frames": [286998, 330265],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["rifle-03"]
+    },
+    {
+      "take": "take-04",
+      "source_frames": [330265, 498456],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["auto-04"]
+    },
+    {
+      "take": "take-05",
+      "source_frames": [498456, 660084],
+      "review": "User: automatic fire first; individual muffled rifle-like reports in the second half. The latter are also hard-object impact candidates and remain optional firing timbres.",
+      "initial_retained_families": ["auto-05", "hard-05"]
+    },
+    {
+      "take": "take-06",
+      "source_frames": [660084, 731970],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["auto-06"]
+    },
+    {
+      "take": "take-07",
+      "source_frames": [731970, 806139],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["auto-07"]
+    },
+    {
+      "take": "take-08",
+      "source_frames": [806139, 880112],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["auto-08"]
+    },
+    {
+      "take": "take-09",
+      "source_frames": [880112, 923669],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["rifle-09"]
+    },
+    {
+      "take": "take-10",
+      "source_frames": [923669, 978500],
+      "review": "User: bell only; excluded from combat extraction.",
+      "initial_retained_families": []
+    },
+    {
+      "take": "take-11",
+      "source_frames": [978500, 1176399],
+      "review": "User: deep bassy reports in the first half, rifle reports in the second. Individual first-half reports can support a grenade launcher.",
+      "initial_retained_families": ["bass-11", "rifle-11"]
+    },
+    {
+      "take": "take-12",
+      "source_frames": [1176399, 1316246],
+      "review": "User: same character as the first half of take-11.",
+      "initial_retained_families": ["bass-12"]
+    },
+    {
+      "take": "take-13",
+      "source_frames": [1316246, 1377585],
+      "review": "User: reload candidate.",
+      "initial_retained_families": ["reload-13"]
+    },
+    {
+      "take": "take-14",
+      "source_frames": [1377585, 1452742],
+      "review": "User: mechanical clack candidate.",
+      "initial_retained_families": ["clack-14"]
+    },
+    {
+      "take": "take-15",
+      "source_frames": [1452742, 1735013],
+      "review": "User: initial approximately 20% still heavy machine-gun fire, followed by a long reload sequence.",
+      "initial_retained_families": ["heavy-15", "reload-15"]
+    },
+    {
+      "take": "take-16",
+      "source_frames": [1735013, 1795721],
+      "review": "User: crisp short reload/handle pull, also a future shotgun handling candidate.",
+      "initial_retained_families": ["reload-16"]
+    },
+    {
+      "take": "take-17",
+      "source_frames": [1795721, 1832459],
+      "review": "User: small mechanical clack.",
+      "initial_retained_families": ["clack-17"]
+    },
+    {
+      "take": "take-18",
+      "source_frames": [1832459, 1925330],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["report-18"]
+    },
+    {
+      "take": "take-19",
+      "source_frames": [1925330, 2018582],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["report-19"]
+    },
+    {
+      "take": "take-20",
+      "source_frames": [2018582, 2300468],
+      "review": "User: heavier machine gun first, background firing in the middle, smaller-calibre machine gun last. The muddled middle is not retained.",
+      "initial_retained_families": ["heavy-20", "light-20"]
+    },
+    {
+      "take": "take-21",
+      "source_frames": [2300468, 2399281],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["report-21"]
+    },
+    {
+      "take": "take-22",
+      "source_frames": [2399281, 2472815],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["report-22"]
+    },
+    {
+      "take": "take-23",
+      "source_frames": [2472815, 2610271],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["report-23"]
+    },
+    {
+      "take": "take-24",
+      "source_frames": [2610271, 2700928],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["report-24"]
+    },
+    {
+      "take": "take-25",
+      "source_frames": [2700928, 2834762],
+      "review": "User: two guns, split around the middle; retained as separate A/B families.",
+      "initial_retained_families": ["report-25-a", "report-25-b"]
+    },
+    {
+      "take": "take-26",
+      "source_frames": [2834762, 2980840],
+      "review": "User: two guns, split around the middle; retained as separate A/B families.",
+      "initial_retained_families": ["report-26-a", "report-26-b"]
+    },
+    {
+      "take": "take-27",
+      "source_frames": [2980840, 3053528],
+      "review": "User: unflagged take is a relatively clean single-weapon passage; trim surrounding silence as needed.",
+      "initial_retained_families": ["auto-27"]
+    },
+    {
+      "take": "take-28",
+      "source_frames": [3053528, 3283123],
+      "review": "User: three slightly different guns in three bursts; retained as separate A/B/C families.",
+      "initial_retained_families": ["auto-28-a", "auto-28-b", "auto-28-c"]
+    },
+    {
+      "take": "take-29",
+      "source_frames": [3283123, 3537085],
+      "review": "User: five weapons, a short first approximately 5% passage and four later passages. This pass retains the four later A/B/C/D families; the brief initial passage remains in the master for future extraction.",
+      "initial_retained_families": ["auto-29-a", "auto-29-b", "auto-29-c", "auto-29-d"]
+    }
+  ]
+}
