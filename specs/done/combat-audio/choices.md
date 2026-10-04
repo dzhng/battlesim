@@ -76,6 +76,21 @@ page's pending bank. **Confidence:** medium. **Landed:** final review pass.
 
 ## Sound — high confidence
 
+### Stage browser evidence through real orders and observations
+
+The contact scene first moves a scout into sight of the tank, then withdraws it
+and waits for a newer hidden firing report about that same tank. The muzzle scene
+uses separate fights for road fire and moving tank machine-gun fire. Changing
+simulation rules to force these pictures would change the game to suit the test;
+waiting longer without establishing the prerequisite would leave the failure
+dependent on an unrelated battle unfolding by chance.
+
+**Gap:** the existing scenes expected evidence their starting state no longer
+established. **Reach:** these checks own deliberate staging through accepted
+commands, while retaining their original visibility, range and pixel requirements.
+**Verdict:** sound; the test proves the same player-visible contract with a causal
+setup. **Confidence:** high. **Landed:** staging repairs, `2f4bf6d8` and `f812814e`.
+
 ### Use short PCM WAVs as runtime assets
 
 A rifle recipe downloads a small cleaned WAV rather than the entire source film.

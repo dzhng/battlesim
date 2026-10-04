@@ -3,6 +3,8 @@
 Sound observes the same side-visible causes as effects. It never changes firing
 cadence, physical impacts or simulation hearing. Anonymous hearing cues stay anonymous;
 an exact unit assignment applies only to an observed launch.
+The [combat audio rationale](../../specs/done/combat-audio/README.md) records the
+constraints behind the library and workbench.
 
 The [sound catalog](../../fixtures/sounds.json) separates provenance, clean clips,
 reusable recipes and assignments. Each recording in a recipe is an alternative,
