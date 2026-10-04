@@ -97,6 +97,16 @@ pub(super) fn grow(bounds: [f64; 4], by: f64) -> [f64; 4] {
 impl<'a> Field<'a> {
     /// The one legality check: whether `c` may stand where it asks.
     pub(super) fn legal(&self, c: &Candidate) -> bool {
+        self.open(c)
+            && !self.door_grid.any(c.rect.bounds(), |item| {
+                c.rect.overlaps(&self.doors[item as usize], 0.0)
+            })
+    }
+
+    /// Whether `c` may be kept as open ground: everywhere a body may stand,
+    /// and on ground already kept clear (a door's way, the ground round a
+    /// court group), which it leaves as open as it was.
+    pub(super) fn open(&self, c: &Candidate) -> bool {
         let rect = &c.rect;
         let bounds = rect.bounds();
         if bounds[0] < self.rule.edge_m
@@ -135,11 +145,6 @@ impl<'a> Field<'a> {
         let wall = self.rule.wall_gap_m;
         if self.wall_grid.any(grow(bounds, wall), |item| {
             !apart(rect, &self.walls[item as usize], wall)
-        }) {
-            return false;
-        }
-        if self.door_grid.any(bounds, |item| {
-            rect.overlaps(&self.doors[item as usize], 0.0)
         }) {
             return false;
         }

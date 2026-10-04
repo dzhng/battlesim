@@ -162,8 +162,10 @@
     "site_room_m": 1.5,
     "lane_margin_m": 0.9,
     "group_margin_m": 4,
+    "court_share": 0.75,
     "kerb_gap_m": 0.3,
     "wall_gap_m": 0.9,
+    "wall_walk_m": 3,
     "door_clear_m": 3,
     "corner_clear_m": 8,
     "slide_m": 6,
@@ -206,6 +208,67 @@
       "petanque_pitch": { "half_extents_m": [7.5, 2, 0.02], "clear_m": 0 }
     },
     "groups": {
+      "car_bays_2": {
+        "wall": true,
+        "size_m": [5.2, 4.4],
+        "pieces": [
+          { "kind": "parked_car", "at": [-1.3, 0], "yaw_deg": 90 },
+          { "kind": "parked_car", "at": [1.3, 0], "yaw_deg": 90 }
+        ]
+      },
+      "car_bays_4": {
+        "wall": true,
+        "size_m": [10.4, 4.4],
+        "pieces": [
+          { "kind": "parked_car", "at": [-3.9, 0], "yaw_deg": 90 },
+          { "kind": "parked_car", "at": [-1.3, 0], "yaw_deg": 90 },
+          { "kind": "parked_car", "at": [1.3, 0], "yaw_deg": 90 },
+          { "kind": "parked_car", "at": [3.9, 0], "yaw_deg": 90 }
+        ]
+      },
+      "car_bays_6": {
+        "wall": true,
+        "size_m": [15.6, 4.4],
+        "pieces": [
+          { "kind": "parked_car", "at": [-6.5, 0], "yaw_deg": 90 },
+          { "kind": "parked_car", "at": [-3.9, 0], "yaw_deg": 90 },
+          { "kind": "parked_car", "at": [-1.3, 0], "yaw_deg": 90 },
+          { "kind": "parked_car", "at": [1.3, 0], "yaw_deg": 90 },
+          { "kind": "parked_car", "at": [3.9, 0], "yaw_deg": 90 },
+          { "kind": "parked_car", "at": [6.5, 0], "yaw_deg": 90 }
+        ]
+      },
+      "tree_bench": {
+        "wall": true,
+        "size_m": [8.4, 4],
+        "pieces": [
+          { "kind": "street_tree", "at": [-3, -0.8], "yaw_deg": 0 },
+          { "kind": "planter", "at": [-2.6, -1.6], "yaw_deg": 0 },
+          { "kind": "planter", "at": [-2.2, -0.4], "yaw_deg": 90 },
+          { "kind": "planter", "at": [-3.4, 0], "yaw_deg": 0 },
+          { "kind": "planter", "at": [-3.8, -1.2], "yaw_deg": 90 },
+          { "kind": "street_tree", "at": [3, -0.8], "yaw_deg": 0 },
+          { "kind": "planter", "at": [3.4, -1.6], "yaw_deg": 0 },
+          { "kind": "planter", "at": [3.8, -0.4], "yaw_deg": 90 },
+          { "kind": "planter", "at": [2.6, 0], "yaw_deg": 0 },
+          { "kind": "planter", "at": [2.2, -1.2], "yaw_deg": 90 },
+          { "kind": "bench", "at": [0, 1.4], "yaw_deg": 0 }
+        ]
+      },
+      "court_tree": {
+        "size_m": [0.8, 0.8],
+        "pieces": [{ "kind": "street_tree", "at": [0, 0], "yaw_deg": 0 }]
+      },
+      "planted_tree": {
+        "size_m": [2.5, 2.5],
+        "pieces": [
+          { "kind": "street_tree", "at": [0, 0], "yaw_deg": 0 },
+          { "kind": "planter", "at": [0.4, -0.8], "yaw_deg": 0 },
+          { "kind": "planter", "at": [0.8, 0.4], "yaw_deg": 90 },
+          { "kind": "planter", "at": [-0.4, 0.8], "yaw_deg": 0 },
+          { "kind": "planter", "at": [-0.8, -0.4], "yaw_deg": 90 }
+        ]
+      },
       "playground": {
         "size_m": [11, 7],
         "pieces": [
@@ -216,14 +279,17 @@
         ]
       },
       "bike_parking": {
+        "wall": true,
         "size_m": [6.2, 2],
         "pieces": [{ "kind": "bike_rack", "at": [-1.55, 0], "yaw_deg": 0 }, { "kind": "bike_rack", "at": [1.55, 0], "yaw_deg": 0 }]
       },
       "sitting": {
+        "wall": true,
         "size_m": [5, 1.2],
         "pieces": [{ "kind": "bench", "at": [-1.2, 0], "yaw_deg": 0 }, { "kind": "bins", "at": [1.4, 0], "yaw_deg": 0 }]
       },
       "china_bike_shed": {
+        "wall": true,
         "size_m": [10.2, 2.7],
         "pieces": [{ "kind": "bike_shed", "at": [0, 0], "yaw_deg": 0 }]
       },
@@ -250,9 +316,9 @@
         "gate_m": 3,
         "pieces": [
           { "kind": "basketball_court", "at": [-7, 0], "yaw_deg": 0 },
-          { "kind": "basketball_court", "at": [7, 0], "yaw_deg": 0 },
+          { "kind": "basketball_court", "at": [7, 0], "yaw_deg": 180 },
           { "kind": "basketball_hoop", "at": [-14.6, 0], "yaw_deg": 90 },
-          { "kind": "basketball_hoop", "at": [14.6, 0], "yaw_deg": 90 }
+          { "kind": "basketball_hoop", "at": [14.6, 0], "yaw_deg": 270 }
         ]
       },
       "ny_half_court": {
@@ -265,10 +331,12 @@
         ]
       },
       "ny_garages": {
+        "wall": true,
         "size_m": [18.2, 6.2],
         "pieces": [{ "kind": "garage_row", "at": [-4.55, 0], "yaw_deg": 0 }, { "kind": "garage_row", "at": [4.55, 0], "yaw_deg": 0 }]
       },
       "ny_dumpsters": {
+        "wall": true,
         "size_m": [7, 1.4],
         "pieces": [
           { "kind": "dumpster", "at": [-2.3, 0], "yaw_deg": 0 },
@@ -384,12 +452,13 @@
         "parking": 0.35,
         "courts": {
           "paved": true,
-          "spacing_m": 45,
-          "groups": { "sitting": 3, "bike_parking": 2, "playground": 1 },
+          "spacing_m": 22,
+          "wall_spacing_m": 10,
+          "groups": { "car_bays_6": 3, "car_bays_4": 3, "car_bays_2": 1, "tree_bench": 2, "sitting": 2, "bike_parking": 1, "playground": 3, "planted_tree": 2, "court_tree": 3 },
           "families": {
             "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_laundry": 2 },
-            "new_york": { "ny_dumpsters": 3, "ny_garages": 1, "ny_half_court": 1 },
-            "paris": { "paris_kiosk": 1, "paris_petanque": 2, "paris_square": 1 }
+            "new_york": { "ny_dumpsters": 2, "ny_garages": 2, "ny_half_court": 1 },
+            "paris": { "paris_kiosk": 1, "paris_petanque": 3, "paris_square": 1 }
           }
         },
         "verge": [
@@ -413,12 +482,13 @@
         "parking": 0.38,
         "courts": {
           "paved": true,
-          "spacing_m": 35,
-          "groups": { "sitting": 3, "bike_parking": 2 },
+          "spacing_m": 18,
+          "wall_spacing_m": 10,
+          "groups": { "car_bays_6": 3, "car_bays_4": 3, "car_bays_2": 1, "tree_bench": 2, "sitting": 2, "bike_parking": 2, "playground": 1, "planted_tree": 2, "court_tree": 3 },
           "families": {
-            "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_gym": 1 },
-            "new_york": { "ny_dumpsters": 3, "ny_half_court": 1, "ny_garages": 1 },
-            "paris": { "paris_kiosk": 2, "paris_petanque": 1, "paris_square": 2 }
+            "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_gym": 2 },
+            "new_york": { "ny_dumpsters": 2, "ny_half_court": 1, "ny_garages": 2 },
+            "paris": { "paris_kiosk": 1, "paris_petanque": 3, "paris_square": 1 }
           }
         },
         "verge": [
@@ -445,12 +515,13 @@
         "parking": 0.33,
         "courts": {
           "paved": true,
-          "spacing_m": 30,
-          "groups": { "playground": 3, "sitting": 2, "bike_parking": 1 },
+          "spacing_m": 18,
+          "wall_spacing_m": 10,
+          "groups": { "car_bays_6": 3, "car_bays_4": 2, "car_bays_2": 1, "tree_bench": 2, "sitting": 1, "bike_parking": 1, "playground": 3, "planted_tree": 2, "court_tree": 3 },
           "families": {
-            "china": { "china_bike_shed": 2, "china_pingpong": 2, "china_gym": 2, "china_laundry": 2 },
-            "new_york": { "ny_basketball": 2, "ny_half_court": 2, "ny_garages": 2, "ny_dumpsters": 2 },
-            "paris": { "paris_petanque": 2, "paris_square": 1, "paris_kiosk": 1 }
+            "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_gym": 2, "china_laundry": 2 },
+            "new_york": { "ny_basketball": 1, "ny_half_court": 1, "ny_garages": 2, "ny_dumpsters": 2 },
+            "paris": { "paris_petanque": 3, "paris_square": 1, "paris_kiosk": 1 }
           }
         },
         "verge": [
@@ -475,12 +546,13 @@
         "parking": 0.38,
         "courts": {
           "paved": true,
-          "spacing_m": 35,
-          "groups": { "sitting": 3, "bike_parking": 2 },
+          "spacing_m": 18,
+          "wall_spacing_m": 10,
+          "groups": { "car_bays_6": 3, "car_bays_4": 3, "car_bays_2": 1, "tree_bench": 2, "sitting": 2, "bike_parking": 2, "playground": 1, "planted_tree": 2, "court_tree": 3 },
           "families": {
-            "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_gym": 1 },
-            "new_york": { "ny_dumpsters": 3, "ny_half_court": 1, "ny_garages": 1 },
-            "paris": { "paris_kiosk": 2, "paris_petanque": 1, "paris_square": 2 }
+            "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_gym": 2 },
+            "new_york": { "ny_dumpsters": 2, "ny_half_court": 1, "ny_garages": 2 },
+            "paris": { "paris_kiosk": 1, "paris_petanque": 3, "paris_square": 1 }
           }
         },
         "verge": [

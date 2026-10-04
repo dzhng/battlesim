@@ -430,9 +430,13 @@ pub struct Courts {
     /// last parcels' rears where none runs.
     #[serde(default)]
     pub paved: bool,
-    /// Groups are tried one to each square of a grid this far apart.
+    /// Open groups are tried one to each square of a grid this far apart.
     #[serde(default)]
     pub spacing_m: f64,
+    /// Wall groups are tried one to each stretch this long of a building
+    /// wall that faces into the court.
+    #[serde(default)]
+    pub wall_spacing_m: f64,
     /// Groups of `street_props.groups` any map's court may hold, by weight.
     #[serde(default)]
     pub groups: BTreeMap<String, f64>,
@@ -526,6 +530,10 @@ pub struct StreetProps {
     pub kerb_gap_m: f64,
     /// Open ground between a body and a building's wall: a soldier passes.
     pub wall_gap_m: f64,
+    /// Open ground a court's wall group keeps between itself and its wall,
+    /// at least the wall gap: a squad walks behind it on the simulation's
+    /// navigation grid (its clearance either side and a cell).
+    pub wall_walk_m: f64,
     /// Kept clear either side of a door's line to the street.
     pub door_clear_m: f64,
     /// No body beside a carriageway stands within this of another
@@ -547,6 +555,9 @@ pub struct StreetProps {
     /// grid and can lose a cell of it at each side, so the hull still passes
     /// between the group and anything else.
     pub group_margin_m: f64,
+    /// Courts take at most this share of the authored parts a map has left
+    /// after its streets; its gardens take what the courts leave.
+    pub court_share: f64,
     pub parking: Parking,
     pub site: ConstructionSite,
 }
@@ -576,6 +587,10 @@ pub struct Group {
     /// The opening left at the middle of the fence's first side (`y` least).
     #[serde(default)]
     pub gate_m: Option<f64>,
+    /// It stands with its back (`y` most) to a building's wall, as a row of
+    /// parking bays or a bench does, rather than out in the open.
+    #[serde(default)]
+    pub wall: bool,
 }
 
 /// The most a fenced group's side may leave open at its two corners
@@ -1423,9 +1438,17 @@ impl PresetDefinitions {
                 "street furniture names bodies of street_props, by a parking share below 1, positive spacings and weights, ordered counts, a site chance and a garden no deeper than the rear setback",
             );
             let courts = &props.courts;
+            // A group is tried along the walls or over the open court, each
+            // at its own spacing.
             let table = |groups: &BTreeMap<String, f64>| {
                 groups.iter().all(|(group, weight)| {
-                    self.street_props.groups.contains_key(group) && positive(*weight)
+                    self.street_props.groups.get(group).is_some_and(|group| {
+                        positive(if group.wall {
+                            courts.wall_spacing_m
+                        } else {
+                            courts.spacing_m
+                        })
+                    }) && positive(*weight)
                 })
             };
             let dressed = !courts.groups.is_empty() || !courts.families.is_empty();
@@ -1434,9 +1457,11 @@ impl PresetDefinitions {
                     && courts.families.iter().all(|(family, groups)| {
                         self.parcels.regional_families.contains(family) && table(groups)
                     })
-                    && (!dressed || (courts.paved && positive(courts.spacing_m))),
+                    && (!dressed || courts.paved)
+                    && length(courts.spacing_m)
+                    && length(courts.wall_spacing_m),
                 format!("districts.{id}.props.courts"),
-                "a court's tables name groups of street_props by positive weight, its family tables name regional families, and a dressed court is paved with a positive spacing",
+                "a court's tables name groups of street_props by positive weight, each tried at a positive spacing for where it stands, its family tables name regional families, and a dressed court is paved",
             );
         }
         let s = &self.street_props;
@@ -1449,9 +1474,12 @@ impl PresetDefinitions {
                 && length(s.corner_clear_m)
                 && length(s.slide_m)
                 && positive(s.slide_step_m)
-                && s.attempts > 0,
+                && s.attempts > 0
+                && s.wall_walk_m >= s.wall_gap_m
+                && positive(s.court_share)
+                && s.court_share <= 1.0,
             "street_props".into(),
-            "street furniture needs nonnegative margins, a positive slide step and at least one attempt",
+            "street furniture needs nonnegative margins, a positive slide step, at least one attempt, a wall walk no narrower than the wall gap and a court share in (0, 1]",
         );
         for (kind, body) in &s.bodies {
             check(

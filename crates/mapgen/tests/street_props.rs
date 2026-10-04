@@ -1217,6 +1217,208 @@ fn courts_and_gardens_keep_off_the_woods_that_certify_sight() {
     );
 }
 
+/// The regions a map is generated in.
+const REGIONS: [&str; 3] = ["china", "new_york", "paris"];
+/// The fill sweep runs every type, size and region on these seeds.
+const FILL_SEEDS: [u64; 3] = [1, 2, 3];
+/// Court ground is empty farther than this from every body, building and
+/// carriageway: a dressed court leaves no open plaza wider than a street
+/// block's depth.
+const EMPTY_M: f64 = 12.0;
+/// The court ground is sampled at points this far apart.
+const FILL_STEP_M: f64 = 2.0;
+/// At most this share of the court ground of each region is empty, over
+/// every map.
+const MOST_EMPTY: f64 = 0.05;
+/// At most this share of the court ground of each district kind of each
+/// region is empty, over the maps whose authored parts stop short of the
+/// request's limit: where the courts are not short of parts.
+const MOST_EMPTY_DRESSED: f64 = 0.01;
+
+/// Points of a map marked within `EMPTY_M` of something, on the fill grid.
+struct Near {
+    columns: usize,
+    marked: Vec<bool>,
+}
+
+impl Near {
+    fn new(size: [f64; 2]) -> Self {
+        let columns = (size[0] / FILL_STEP_M) as usize + 1;
+        let rows = (size[1] / FILL_STEP_M) as usize + 1;
+        Near {
+            columns,
+            marked: vec![false; columns * rows],
+        }
+    }
+
+    fn cell(&self, column: i64, row: i64) -> Option<usize> {
+        let rows = (self.marked.len() / self.columns) as i64;
+        (column >= 0 && row >= 0 && (column as usize) < self.columns && row < rows)
+            .then(|| row as usize * self.columns + column as usize)
+    }
+
+    /// Mark every point within `EMPTY_M` of the box (centre, yaw, half
+    /// extents).
+    fn mark_box(&mut self, center: Point, yaw: f64, half: [f64; 2]) {
+        let reach = half[0].hypot(half[1]) + EMPTY_M;
+        let (sin, cos) = yaw.sin_cos();
+        let span = |v: f64| {
+            (((v - reach) / FILL_STEP_M).ceil() as i64)
+                ..=(((v + reach) / FILL_STEP_M).floor() as i64)
+        };
+        for row in span(center[1]) {
+            for column in span(center[0]) {
+                let Some(cell) = self.cell(column, row) else {
+                    continue;
+                };
+                let d = [
+                    column as f64 * FILL_STEP_M - center[0],
+                    row as f64 * FILL_STEP_M - center[1],
+                ];
+                let local = [d[0] * cos + d[1] * sin, d[1] * cos - d[0] * sin];
+                let out = [0, 1].map(|axis| (local[axis].abs() - half[axis]).max(0.0));
+                if out[0].hypot(out[1]) <= EMPTY_M {
+                    self.marked[cell] = true;
+                }
+            }
+        }
+    }
+
+    /// Mark every point within `EMPTY_M` of a carriageway's edge.
+    fn mark_stroke(&mut self, a: Point, b: Point, half_width: f64) {
+        let reach = half_width + EMPTY_M;
+        let span = |u: f64, v: f64| {
+            (((u.min(v) - reach) / FILL_STEP_M).ceil() as i64)
+                ..=(((u.max(v) + reach) / FILL_STEP_M).floor() as i64)
+        };
+        for row in span(a[1], b[1]) {
+            for column in span(a[0], b[0]) {
+                let Some(cell) = self.cell(column, row) else {
+                    continue;
+                };
+                let p = [column as f64 * FILL_STEP_M, row as f64 * FILL_STEP_M];
+                if segment_distance(a, b, p) <= reach {
+                    self.marked[cell] = true;
+                }
+            }
+        }
+    }
+}
+
+/// Courts read as lived in, not as empty plazas. On every type and size of
+/// map in every region, at three seeds each, the court ground of the dense
+/// districts is sampled on a 2 m grid, and a point is empty when it lies
+/// farther than `EMPTY_M` from every body, building wall and carriageway.
+/// Each region's share of empty court ground stays under `MOST_EMPTY`, and
+/// on the maps the part limit does not bind, each district kind's under
+/// `MOST_EMPTY_DRESSED`.
+#[test]
+fn courts_are_dressed_rather_than_left_as_empty_plazas() {
+    // (region, district kind, whether the part limit binds) → (empty
+    // points, points).
+    let mut tally: BTreeMap<(&str, String, bool), [usize; 2]> = BTreeMap::new();
+    for region in REGIONS {
+        for map_type in MapType::ALL {
+            for size in MapSize::ALL {
+                for seed in FILL_SEEDS {
+                    let mut request = request(map_type, size, seed);
+                    request.region = Some(region.into());
+                    let (plan, result) = mapgen::generate_with_plan(
+                        &serde_json::to_string(&request).unwrap(),
+                        PRESETS,
+                        TEMPLATES,
+                        &sim::fixtures::game().to_string(),
+                    )
+                    .unwrap_or_else(|failure| panic!("{:?}", failure.diagnostics));
+                    let mut near = Near::new(plan.size);
+                    for prop in &plan.props {
+                        let p = &prop.geometry;
+                        near.mark_box(p.center, p.yaw, [p.half_extents[0], p.half_extents[1]]);
+                    }
+                    for part in result.map.buildings.iter().flat_map(|b| &b.geometry.parts) {
+                        near.mark_box(
+                            part.center,
+                            part.yaw,
+                            [part.half_extents[0], part.half_extents[1]],
+                        );
+                    }
+                    for area in plan.surfaces.iter().filter(|area| area.kind.is_road()) {
+                        if let GroundShape::Stroke {
+                            centerline,
+                            width_m,
+                        } = &area.shape
+                        {
+                            for pair in centerline.samples().windows(2) {
+                                near.mark_stroke(pair[0], pair[1], width_m / 2.0);
+                            }
+                        }
+                    }
+                    let bound = result.report.authored_parts >= request.limits.max_authored_parts;
+                    let kinds = district_kinds(&plan);
+                    for court in &plan.courts {
+                        let kind = kinds[court.district.as_str()].to_string();
+                        let entry = tally.entry((region, kind, bound)).or_insert([0, 0]);
+                        let [x0, y0, x1, y1] = contract::ground::limits(&court.ring, 0.0);
+                        for row in
+                            (y0 / FILL_STEP_M).ceil() as i64..=(y1 / FILL_STEP_M).floor() as i64
+                        {
+                            for column in
+                                (x0 / FILL_STEP_M).ceil() as i64..=(x1 / FILL_STEP_M).floor() as i64
+                            {
+                                let p = [column as f64 * FILL_STEP_M, row as f64 * FILL_STEP_M];
+                                if !polygon_contains(&court.ring, p) {
+                                    continue;
+                                }
+                                entry[1] += 1;
+                                if near
+                                    .cell(column, row)
+                                    .is_some_and(|cell| !near.marked[cell])
+                                {
+                                    entry[0] += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let mut regions: BTreeMap<&str, [usize; 2]> = BTreeMap::new();
+    let mut broken = Vec::new();
+    for ((region, kind, bound), [empty, all]) in &tally {
+        let share = *empty as f64 / *all as f64;
+        let limited = if *bound {
+            "at the part limit"
+        } else {
+            "short of it"
+        };
+        println!(
+            "{region} {kind}, {limited}: {:.1} % of {all} court points empty",
+            100.0 * share
+        );
+        if !bound && (*all < 10_000 || share >= MOST_EMPTY_DRESSED) {
+            broken.push(format!(
+                "{region} {kind}: {:.1} % of {all} points",
+                100.0 * share
+            ));
+        }
+        let total = regions.entry(region).or_insert([0, 0]);
+        total[0] += empty;
+        total[1] += all;
+    }
+    for (region, [empty, all]) in &regions {
+        let share = *empty as f64 / *all as f64;
+        println!(
+            "{region}: {:.1} % of {all} court points empty",
+            100.0 * share
+        );
+        if share >= MOST_EMPTY {
+            broken.push(format!("{region}: {:.1} % of {all} points", 100.0 * share));
+        }
+    }
+    assert!(broken.is_empty(), "too much empty court ground: {broken:?}");
+}
+
 /// The same request places the same bodies, courts and gardens included,
 /// byte for byte; another seed places others.
 #[test]
