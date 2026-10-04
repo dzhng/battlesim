@@ -459,6 +459,9 @@ class GraphSet:
     BURNS = frozenset()
     # How much of each family a fire leaves on the building, and as which variant. What is not named is gone.
     SURVIVES = ()
+    FLAT_SOOT = True  # whether tier 2 has a soot fan over every opening, or the farthest tier's few
+    FLAT_SOOT_SIDES = True  # whether tier 2's soot fans fade out to either side, or are the one quad over the head
+    FAR_SOOT_SHARE = 0.25  # the share of the fans the farthest tier keeps
     BLOWN = 0.035  # the share of a facade's bays above the shops blown out to the floor slabs
     STUMP_STEP_M = 1.5  # a wall breaks off in columns this wide
     SPILL_M = 1.1  # how far the rubble runs out past the walls
@@ -539,6 +542,10 @@ class GraphSet:
                 face = (at(a, 0, z0), at(b, 0, z0), at(b, 0, z1), at(a, 0, z1))
             soups.append(quad(face, self.WALL + MASK))
         return Soup.join(soups)
+
+    def far_panes(self, b, meshes):
+        """What the coarse tiers' flat walls show of the openings, where the rows' own panes do not."""
+        return []
 
     def standing(self, run):
         """What of a run's wall a ruin cuts down to stumps."""
@@ -811,7 +818,7 @@ class GraphSet:
         far_rows = [row for row in b.rows if not (row[0].startswith(self.ON_BALCONY) and behind(row[1]))]
         out = []
         for tier, g in enumerate(self.FEATURE_M):
-            body = [*walls[tier], *linings] if tier < 2 else [self.flat_walls(b.loops, b.floors, self.WALL + MASK)]
+            body = [*walls[tier], *linings] if tier < 2 else [self.flat_walls(b.loops, b.floors, self.WALL + MASK), *self.far_panes(b, meshes)]
             out.append(Soup.join([*body, self.crown(b.loops, b.floors, tier, self.WALL + MASK),
                                   self.intact_roof(b, roof_m, tier),
                                   cubes if tier == 0 else detail.simplify(cubes, g), *self.folded(far_rows, modules, tiers_of, tier)]))
@@ -906,8 +913,8 @@ class GraphSet:
                     # opening, and a column of windows is one black streak, not a shadow under each sill
                     held = lambda wall: dark + (wall - dark) * 0.45 if reach < tall else None
                     soot.append(damage.soot_fan(*fan, clear, top=held(clear)))
-                    flat_soot.append(damage.soot_fan(*fan, self.BURNT_WALL, top=held(self.BURNT_WALL)))
-                    if rng.random() < 0.25:
+                    flat_soot.append(damage.soot_fan(*fan, self.BURNT_WALL, sides=self.FLAT_SOOT_SIDES, top=held(self.BURNT_WALL)))
+                    if rng.random() < self.FAR_SOOT_SHARE:
                         far_soot.append(damage.soot_fan(*fan, self.BURNT_WALL, sides=False, top=held(self.BURNT_WALL)))
             if len(run.cubes):
                 sooted = damage.charred(run.cubes, frozenset(), b.seed + 3, light=(0.03, 0.1))
@@ -929,7 +936,8 @@ class GraphSet:
             out, sooted = [], Soup.join(cubes)
             for tier, g in enumerate(self.FEATURE_M):
                 body = [*walls[tier], *holes, *soot] if tier < 2 else \
-                    [self.flat_walls(b.loops, b.floors, burnt, self.BURNT_WALL, self.BURNT_TRIM), *far_holes, *(flat_soot if tier == 2 else far_soot)]
+                    [self.flat_walls(b.loops, b.floors, burnt, self.BURNT_WALL, self.BURNT_TRIM), *far_holes,
+                     *(flat_soot if tier == 2 and self.FLAT_SOOT else far_soot)]
                 out.append(Soup.join([*body, self.crown(b.loops, b.floors, tier, burnt, self.BURNT_WALL, self.BURNT_TRIM),
                                       self.roof(b.rects, roof_m + 0.04, self.BURNT_ROOF_CELL_M[tier], b.seed, burnt=0.85, slab=tier < 3),
                                       self.burnt_storey(b.rects, b.loops, roof_m, burnt),

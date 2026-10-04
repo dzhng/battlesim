@@ -45,7 +45,7 @@ WALLS = frozenset((STONE, TRIM))  # what a module's own stretch of wall is made 
 FILLS = frozenset((FRAME, GLASS, DOOR))  # what fills its opening
 # Modules with a window or a door in them, and which of those have a room behind them.
 WINDOWED = ("G0_", "G1_", "U0_", "U1_", "U2_", "R0_")
-ROOMED = {"G0_": "FR_Room_Shop", "U0_": "FR_Room_Home", "U1_": "FR_Room_Home", "U2_": "FR_Room_Home"}
+ROOMED = {"G0_": "FR_Room_Shop", "G1_": "FR_Room_Shop", "U0_": "FR_Room_Home", "U1_": "FR_Room_Home", "U2_": "FR_Room_Home"}
 # Modules whose trim is the read of the block from far off: the cornice, a dormer's surround.
 TRIM_KEPT = ("T0_", "T1_", "R0_", "R1_", "T2_")
 ROOM_DEPTH_M = 4.0
@@ -155,6 +155,7 @@ class Paris(GraphSet):
         ("D0_", 1.0, ("burnt",)), ("D1_", 1.0, ("burnt",)),
     )
     BURNT_ROOF = "X_Rubble"  # the top floor's slab: the zinc went with the mansard
+    SMOKED_ROOF = (0.55, 0.53, 0.5)  # smoke on a grey slab, not on clay
     BURNT_ROOF_CELL_M = (1.0, 1.0, 2.0, 8.0)  # a far block's intact roof is a few faces: so is its burnt one
     WRECKS = ("FR_Railing",)
 
@@ -313,7 +314,9 @@ class Paris(GraphSet):
             mine = [row for row in mine if not WALLS.issuperset(tap.meshes[row[0]].mats)]
             runs.append(self.fit_rooms(SimpleNamespace(
                 start=start, along=along, out=out, length=length, wall=wall, flat=flat, inner=Soup.empty(), cubes=Soup.empty(),
-                rows=mine + rooms, openings=openings, bare=[(n, m) for n, m in openings if not n.startswith(tuple(ROOMED))]),
+                # a dormer is lined while it stands; it is no opening of the walls, and goes with the mansard in a fire
+                rows=mine + rooms, openings=[(n, m) for n, m in openings if not n.startswith("R")],
+                bare=[(n, m) for n, m in openings if not n.startswith(tuple(ROOMED))]),
                 [rect]))
         if sum(len(run.rows) for run in runs) < len(rows):
             raise SystemExit(f"{name}: a module stands on no run")

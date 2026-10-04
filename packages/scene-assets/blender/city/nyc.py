@@ -41,7 +41,7 @@ import ambientcg  # noqa: E402
 import graph  # noqa: E402
 import textures  # noqa: E402
 from graph import Soup  # noqa: E402
-from graphset import MASK, GraphSet, bars, decompose, frame, grime, linear_of, outline, quad, ring, scorched, toned  # noqa: E402
+from graphset import MASK, GraphSet, bars, decompose, frame, lining, grime, linear_of, outline, quad, ring, scorched, toned  # noqa: E402
 
 BRICK, STONE, ROOF, GLASS, CORNICE = "NYC_Brick", "NYC_Stone", "NYC_Roof", "NYC_Glass", "NYC_Cornice"
 UNIT = "~ba89b02d"  # the graph's stretched unit cube, named by its shape (`graph.tap`)
@@ -108,8 +108,8 @@ class NYC(GraphSet):
     # a blade sign hangs 1.8 m out over the street, and a water tank stands on its tower 8.7 m over the roof
     FIT = {"side_m": 1.9, "top_m": 8.0}
     FAMILIES = (
-        ("SASH_", 0b1111), ("NYC_Pane", 0b1111), ("SHOP_Door", 0b1111), ("NYC_WaterTank", 0b1111), ("NYC_Bulkhead", 0b1111),
-        ("AC_", 0b0111), ("BAL_", 0b0111), ("SHOP_Awning", 0b0111), ("NYC_HVAC", 0b0111), ("NYC_Chimney", 0b0111),
+        ("SASH_", 0b0011), ("NYC_Pane", 0b0011), ("SHOP_Door", 0b0011), ("NYC_WaterTank", 0b1111), ("NYC_Bulkhead", 0b1111),
+        ("AC_", 0b0011), ("BAL_", 0b0111), ("SHOP_Awning", 0b1111), ("NYC_HVAC", 0b0111), ("NYC_Chimney", 0b0111),
         ("L_", 0b0011), ("SILL", 0b0011), ("PANEL_", 0b0011), ("BAND_", 0b0011), ("CRN_Bracket", 0b0011), ("R_", 0b0011),
         ("SH_", 0b0011), ("NYC_Room_", 0b0011), ("NYC_Roof", 0b0011), ("NYC_Vent", 0b0011),
         ("CRN_Dentil", 0b0001), ("CV_", 0b0001), ("SIGN_", 0b0001), ("TS_", 0b0001), ("TH_", 0b0001), ("TV_", 0b0001),
@@ -150,7 +150,7 @@ class NYC(GraphSet):
         "X_Pane": ("nyc_pane", None, (0.06, 0.066, 0.068), 0.25, 0.0),
         "X_Void": ("nyc_void", None, (0.005, 0.005, 0.006), 1.0, 0.0),
         "X_Burnt": ("nyc_brick_burnt", "nyc_burnt", (1.0, 1.0, 1.0), 1.0, 0.0),
-        "X_Rubble": ("nyc_rubble", "nyc_concrete", (0.5, 0.42, 0.36), 1.0, 0.0),
+        "X_Rubble": ("nyc_rubble", "nyc_concrete", (0.46, 0.3, 0.24), 1.0, 0.0),  # broken brick
         "X_Soot": ("nyc_soot", "nyc_concrete", (0.5, 0.48, 0.46), 1.0, 0.0),
         "X_Room": ("nyc_room", None, (0.03, 0.03, 0.03), 1.0, 0.0),
         "X_ShopRoom": ("nyc_shop_room", None, (0.03, 0.03, 0.03), 1.0, 0.0),
@@ -163,10 +163,12 @@ class NYC(GraphSet):
     SURVIVES = (
         ("SASH_", 0.2, ("burnt",)), ("AC_", 0.45, ("burnt", "hanging")), ("BAL_", 1.0, ("burnt",)), ("R_", 0.8, ("burnt",)),
         ("L_", 1.0, ("burnt",)), ("SILL", 1.0, ("burnt",)), ("CRN_Bracket", 0.7, ("burnt",)), ("SHOP_Door", 0.5, ("burnt",)),
-        ("NYC_WaterTank", 1.0, ("burnt",)), ("NYC_Bulkhead", 1.0, ("burnt",)), ("NYC_HVAC", 0.6, ("burnt",)),
-        ("NYC_Chimney", 1.0, ("burnt",)),
+        ("NYC_WaterTank", 1.0, ("burnt",)), ("NYC_Bulkhead", 1.0, ("burnt",)), ("NYC_Chimney", 1.0, ("burnt",)),
     )
-    BURNT_ROOF_CELL_M = (1.0, 1.0, 8.0, 10.0)  # a far block's intact roof is a few faces: so is its burnt one
+    BURNT_ROOF_CELL_M = (1.0, 1.0, 12.0, 12.0)
+    # a walk-up has twice a China block's windows to a wall: its far soot is lighter on triangles
+    FLAT_SOOT, FLAT_SOOT_SIDES, FAR_SOOT_SHARE = False, False, 0.0
+    BLOWN = 0.025  # its bays are narrow: fewer of them blown out, as many metres of wall  # a far block's intact roof is a few faces: so is its burnt one
     WRECKS = ("AC_0_Window", "AC_1_Split", "AC_2_Box", "R_0_Vertical", "SASH_1_Split")
 
     def recipes(self):
@@ -359,11 +361,19 @@ class NYC(GraphSet):
 
         moved = [(n, place @ m, None) for n, m in placed]
         openings = [(n, place @ m) for n, m in openings]
+        wall = Soup.join(wall_parts).transformed(place)
+        stone = wall.keep(np.array(wall.mats)[wall.m] == STONE) if len(wall) else wall
         return SimpleNamespace(
             start=start, along=along, out=out_n, length=length,
-            wall=Soup.join(wall_parts).transformed(place), inner=Soup.empty(), cubes=Soup.join(cubes).transformed(place),
-            flat=self.holed(start, along, out_n, length, floors, openings, {**tap.meshes, **self.opening_meshes}),
+            wall=wall, inner=Soup.empty(), cubes=Soup.join(cubes).transformed(place),
+            # tier 1's wall is flat, but for its quoins and stone bands, which stand proud of it
+            flat=Soup.join([self.holed(start, along, out_n, length, floors, openings, {**tap.meshes, **self.opening_meshes}), stone]),
             rows=moved, openings=openings, bare=[])
+
+    def far_panes(self, b, meshes):
+        """A window and a shop front at the coarse tiers: a dark pane on the flat wall. The sashes and
+        shop glass stand back in their reveals, where a flat wall would hide them."""
+        return [lining(self.bounds_of(meshes, n), m, -0.03, "X_Pane", grow=0.0) for run in b.runs for n, m in run.openings]
 
     def near_walls(self, run, tier):
         """The graph's brick and stone at tier 0; at tier 1 the same wall flat, its openings cut and lined."""
