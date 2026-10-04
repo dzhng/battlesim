@@ -607,3 +607,43 @@ test("a glancing round's ricochet follows its kind, heavier rounds louder", () =
     AUDIO.impact_scale.tank_ap / (AUDIO.impact_scale.rifle ?? AUDIO.impact_scale.default),
   );
 });
+
+test("a missile striking armour sounds the strike and its explosion; tank rounds hit harder", () => {
+  /** Shipped sounds heard for one round of `kind` hitting a hull, with or without its blast. */
+  const strike = (kind: string, blast: boolean) => {
+    const sink = new FakeSink();
+    const frame = new SoundFrame({ tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE }, sink);
+    const point = [0, 0, 1.5];
+    run(frame, sink, 1, 3, (tick) => ({
+      tick,
+      shooters: [],
+      segments:
+        tick === 2
+          ? [
+              {
+                path: [[0, -10, 1.5], point],
+                ricochets: [],
+                kind,
+                shooter: null,
+                hit: "hull",
+                normal: [0, -1, 0],
+              },
+            ]
+          : [],
+      blasts: tick === 2 && blast ? [{ point, radius: 4, kind }] : [],
+      smokes: [],
+    }));
+    return sink.started.filter((v) => !v.loop);
+  };
+  const missile = strike("atgm", true);
+  expect(missile.map((v) => v.sound).sort()).toEqual(["armour-shell-hit", "recorded-explosion"]);
+  expect(new Set(missile.map((v) => v.at)).size).toBe(1);
+  // The same armour, struck at the same place: a shell lands 2.5 times harder than a rifle round.
+  const [shell] = strike("tank_ap", false);
+  const [bullet] = strike("rifle", false);
+  expect(shell.sound).toBe("armour-shell-hit");
+  expect(bullet.sound).toBe("armour-rifle-hit");
+  expect(shell.gain / bullet.gain).toBeCloseTo(
+    AUDIO.impact_scale.tank_ap / AUDIO.impact_scale.default,
+  );
+});
