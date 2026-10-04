@@ -252,6 +252,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     template_catalog_hash: inputs.catalogue.hash().into(),
                     map_type,
                     size,
+                    region: None,
                     limits: inputs.limits,
                 };
                 for furnished in &arms {

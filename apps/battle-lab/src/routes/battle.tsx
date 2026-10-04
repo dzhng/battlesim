@@ -15,7 +15,13 @@ import type {
 } from "@web/battle/prepare/protocol";
 import { listMaps } from "@web/maps/catalogue";
 import { generationRequest, type MapChoice } from "@web/maps/source";
-import { askedBattle, menuHref, preparedBattleHref, type AskedBattle } from "../battleLinks";
+import {
+  askedBattle,
+  menuHref,
+  preparedBattleHref,
+  spoken,
+  type AskedBattle,
+} from "../battleLinks";
 import { BattleClock, objectiveStatus } from "../battleStatus";
 import { BattleView, type BattleLoadStage } from "../BattleView";
 import { LoadingScreen, type LoadingFailure, type LoadingStage } from "../LoadingScreen";
@@ -43,8 +49,10 @@ const generatedChoice = (request: PrepareBattleRequest): MapChoice | null =>
  *  generated map's choice, or a saved map's listed name and its encounter. */
 function subjectOf(request: PrepareBattleRequest): string {
   const source = request.map_source;
-  if (source.kind === "generated")
-    return `${source.request.type} · ${source.request.size}`.toUpperCase();
+  if (source.kind === "generated") {
+    const { type, size, region } = source.request;
+    return [type, size, region && spoken(region)].filter(Boolean).join(" · ").toUpperCase();
+  }
   const listed = listMaps().find((map) => map.id === source.id);
   return `${listed?.label ?? source.id} · ${request.recipe_id}`.toUpperCase();
 }
@@ -281,7 +289,7 @@ function PreparedBattleView({
       failure={failure}
       back={menuHref(
         play && !prepared && request.map_source.kind === "generated"
-          ? { type: request.map_source.request.type, size: request.map_source.request.size }
+          ? (({ type, size, region }) => ({ type, size, region }))(request.map_source.request)
           : generatedChoice(activeRequest),
       )}
     />

@@ -1,10 +1,10 @@
 // /lab/city-block: a block of a generated town, drawn from the template art
 // library, with no battle on it. The map is the generator's for a fixed
-// request (?type=, ?size=, ?seed= choose another), the block is the apartment
-// building nearest the main town's centre that has a house beside it, and the
-// camera stands at fixed stations round it: on the street, at the default
-// tactical camera, 250 m out, low over the town from 2 km, and at the
-// strategic overview. A switch makes the side see the block's apartment
+// request (?type=, ?size=, ?seed=, ?region= choose another), the block is
+// the apartment building nearest the main town's centre that has a house
+// beside it, and the camera stands at fixed stations round it: on the
+// street, at the default tactical camera, 250 m out, low over the town from
+// 2 km, and at the strategic overview. A switch makes the side see the block's apartment
 // building destroyed, as the simulation would end it (collapsed, or gutted if
 // it is tall); a probe replaces the map's buildings with every other one,
 // as a new map would; `?tier=0..3` draws every building at one detail tier.
@@ -72,7 +72,13 @@ function askedMap(search: string): MapChoice {
   const type = MAP_TYPES.find((t) => t === query.get("type"));
   const size = MAP_SIZES.find((s) => s === query.get("size"));
   const seed = canonicalSeed(query.get("seed") ?? "");
-  return { type: type ?? DEFAULT.type, size: size ?? DEFAULT.size, seed: seed ?? DEFAULT.seed };
+  const region = query.get("region");
+  return {
+    type: type ?? DEFAULT.type,
+    size: size ?? DEFAULT.size,
+    seed: seed ?? DEFAULT.seed,
+    ...(region !== null && { region }),
+  };
 }
 
 interface GeneratedTown {
@@ -395,8 +401,9 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
       <aside className="hud-panel lab-panel" data-testid="city-block-panel">
         <strong>City block</strong>
         <div className="lab-hint">
-          {choice.type} · {choice.size} · seed {choice.seed}. WASD/arrows pan · Q/E turn ·
-          middle‑drag orbit · wheel zoom
+          {choice.type} · {choice.size} · seed {choice.seed}
+          {choice.region && ` · ${choice.region}`}. WASD/arrows pan · Q/E turn · middle‑drag orbit ·
+          wheel zoom
         </div>
         <div className="lab-row">
           {(Object.keys(stations) as Station[]).map((id) => (

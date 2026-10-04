@@ -12,12 +12,15 @@ export type MapSize = "small" | "medium" | "large";
 export const MAP_TYPES: readonly MapType[] = ["open", "mixed", "metro"];
 export const MAP_SIZES: readonly MapSize[] = ["small", "medium", "large"];
 
-/** What a player chooses: the two composition controls and the seed. */
+/** What a player chooses: the two composition controls, the seed, and
+ *  optionally the region its buildings are of. */
 export interface MapChoice {
   type: MapType;
   size: MapSize;
   /** Canonical u64 decimal text: a JS number cannot hold every seed. */
   seed: string;
+  /** One of the presets' `parcels.regional_families`; absent, the seed draws one. */
+  region?: string;
 }
 
 /** Mirrors `contract::generation::CompileLimits`: the compiler's admission. */
@@ -127,6 +130,7 @@ export function generationRequest(
     template_catalog_hash: hash,
     type: choice.type,
     size: choice.size,
+    ...(choice.region !== undefined && { region: choice.region }),
     limits,
   };
 }

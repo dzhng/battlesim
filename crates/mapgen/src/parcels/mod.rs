@@ -67,12 +67,43 @@ impl Pass<'_> {
     }
 }
 
-/// The one regional family the request's map is built in (M08): a draw of
-/// its own stream, so every pass that stands buildings agrees on it.
+/// The one regional family the request's map is built in (M08): the region
+/// it asks for, or else a draw of its own stream, so every pass that stands
+/// buildings agrees on it. `admit_region` has refused an unlisted region.
 pub(crate) fn family<'a>(request: &GenerationRequest, presets: &'a PresetDefinitions) -> &'a str {
     let families = &presets.parcels.regional_families;
-    let pick = crate::layout::stream(request, "family").below(families.len() as u64) as usize;
-    &families[pick]
+    match &request.region {
+        Some(region) => families
+            .iter()
+            .find(|family| *family == region)
+            .expect("generate admits only a listed region"),
+        None => {
+            &families
+                [crate::layout::stream(request, "family").below(families.len() as u64) as usize]
+        }
+    }
+}
+
+/// A request that asks for a region the presets do not list is refused:
+/// nothing else is drawn in its place.
+pub(crate) fn admit_region(
+    request: &GenerationRequest,
+    presets: &PresetDefinitions,
+) -> Result<(), Vec<Diagnostic>> {
+    match &request.region {
+        Some(region) if !presets.parcels.regional_families.contains(region) => {
+            Err(vec![Diagnostic {
+                code: DiagnosticCode::InvalidRequest,
+                feature: None,
+                location: "$.region".into(),
+                message: format!(
+                    "region {region:?} is not one of the presets' regional families {:?}",
+                    presets.parcels.regional_families
+                ),
+            }])
+        }
+        _ => Ok(()),
+    }
 }
 
 /// Cut every district of `plan` into streets and parcels and stand templates

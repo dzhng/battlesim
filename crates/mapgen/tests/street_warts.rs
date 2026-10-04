@@ -66,6 +66,7 @@ fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
         template_catalog_hash: catalogue.hash().into(),
         map_type,
         size,
+        region: None,
         limits: CompileLimits {
             max_authored_parts: 60_000,
             max_bay_positions: 600_000,

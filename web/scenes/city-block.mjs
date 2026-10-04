@@ -5,7 +5,7 @@
 // its remains; and replacing the buildings returns what the old ones held.
 //
 // Two modes measure and picture instead, on whatever map the lab's address
-// names (`CITY_MAP=metro:large:1`):
+// names (`CITY_MAP=metro:large:1`, or `metro:large:1:paris` for a region):
 // - `BUILDING_COST=1`: the frame's GPU time with and without the buildings at
 //   the stations (paired, interleaved);
 // - `CITY_SEQUENCE=1`: the town from a fixed run of distances, from the
@@ -164,7 +164,9 @@ export async function run(ctx) {
   const warnings = gpuWarnings(page);
   const asked = process.env.CITY_MAP?.split(":");
   await page.goto(
-    asked ? `${ctx.url}?type=${asked[0]}&size=${asked[1]}&seed=${asked[2]}` : ctx.url,
+    asked
+      ? `${ctx.url}?type=${asked[0]}&size=${asked[1]}&seed=${asked[2]}${asked[3] ? `&region=${asked[3]}` : ""}`
+      : ctx.url,
   );
   await page.waitForFunction(
     () =>

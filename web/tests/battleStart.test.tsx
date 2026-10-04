@@ -46,6 +46,30 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
   const map = { type: "metro", size: "large", seed: ABOVE_NUMBER } as const;
   const asked = askedBattle(new URL(battleHref(map), "http://game").search);
   expect(asked).toMatchObject({ kind: "generated", map, recipe: "assault" });
+  // A chosen region rides along; without one the address names none.
+  const paris = { ...map, region: "paris" };
+  expect(askedBattle(new URL(battleHref(paris), "http://game").search)).toMatchObject({
+    map: paris,
+  });
+  expect("map" in asked && asked.map).not.toHaveProperty("region");
+  // The address Play publishes after admission names the region it asked
+  // for, so the link makes the same map again.
+  const admitted = preparedBattleHref({
+    map_source: {
+      kind: "generated",
+      request: {
+        ...paris,
+        generator_version: "test",
+        preset_revision: "test",
+        template_catalog_hash: "test",
+        limits: { max_authored_parts: 1, max_bay_positions: 1, max_ground_points: 1 },
+      },
+    },
+    recipe_id: "assault",
+    encounter_seed: "1",
+    battle_seed: 1,
+  });
+  expect(askedBattle(new URL(admitted, "http://game").search)).toMatchObject({ map: paris });
   expect(askedBattle("?map=village&recipe=lean")).toMatchObject({
     kind: "catalogue",
     id: "village",
@@ -62,6 +86,8 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
     ["?seed=1&battle=-1", /^battle /],
     ["?map=../village&recipe=lean", /^map /],
     ["?map=village", /^recipe /],
+    ["?seed=1&region=atlantis", /^region /],
+    ["?play=1&region=", /^region /],
   ] as const) {
     const refused = askedBattle(search);
     expect("error" in refused && refused.error, search).toMatch(names);
@@ -86,11 +112,34 @@ test("ordinary menu Play asks for the chosen type and size without pinning a see
   expect(menu.getByRole("radio", { name: "mixed" }).getAttribute("aria-checked")).toBe("false");
 });
 
+test("the menu leaves the region to the seed unless the player picks one of the presets' regions", () => {
+  const menu = render(createElement(MainMenu));
+  const deploy = () => menu.getByTestId("menu-deploy").getAttribute("href")!;
+  expect(menu.getByRole("radio", { name: "random" }).getAttribute("aria-checked")).toBe("true");
+  for (const region of ["china", "new york", "paris"])
+    expect(menu.getByRole("radio", { name: region })).toBeTruthy();
+
+  fireEvent.click(menu.getByRole("radio", { name: "new york" }));
+  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&region=new_york");
+  expect(askedBattle(new URL(deploy(), "http://game").search)).toMatchObject({
+    kind: "play",
+    map: { type: "mixed", size: "small", region: "new_york" },
+  });
+  fireEvent.click(menu.getByRole("radio", { name: "random" }));
+  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small");
+});
+
 test("the menu opens on the battle a cancelled or refused request asked for", () => {
   window.history.replaceState(null, "", `/?type=open&size=medium&seed=${ABOVE_NUMBER}`);
   const menu = render(createElement(MainMenu));
   expect(menu.getByTestId("menu-deploy").getAttribute("href")).toBe(
     `/battle?type=open&size=medium&seed=${ABOVE_NUMBER}`,
+  );
+  cleanup();
+  window.history.replaceState(null, "", `/?type=open&size=medium&region=paris`);
+  const again = render(createElement(MainMenu));
+  expect(again.getByTestId("menu-deploy").getAttribute("href")).toBe(
+    `/battle?play=1&type=open&size=medium&region=paris`,
   );
 });
 

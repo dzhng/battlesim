@@ -327,6 +327,7 @@ fn generate(
                 message,
             }]
         })?;
+    parcels::admit_region(&request, &presets)?;
     open_country::admit_coverage(&request, &presets, &physics)?;
     let layout = layout::generate_layout(&request, &presets)?;
     let plan = parcels::fill_districts(layout, &request, &catalogue, &presets)?;

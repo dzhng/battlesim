@@ -8,9 +8,12 @@
 //       [&recipe=<name>] [&encounter=<u64>] [&battle=<n>]
 //   /battle?map=<id>&recipe=<name>             a saved map and its encounter
 //   /battle?replay=saved                       the saved replay of either
+// A generated map's address may add `&region=<family>`; without it the seed
+// draws the region.
 import type { PrepareBattleRequest } from "@web/battle/prepare/protocol";
 import game from "@fixtures/game.json";
 import config from "@fixtures/generated-battle.json";
+import presets from "@fixtures/map-presets.json";
 import {
   canonicalSeed,
   MAP_SIZES,
@@ -40,36 +43,46 @@ export type AskedBattle =
     }
   | { kind: "replay" };
 
+/** The regions a player may ask for: the presets' regional families. */
+export const REGIONS: readonly string[] = presets.parcels.regional_families;
+/** A data name as the player reads it: `new_york` is "new york". */
+export const spoken = (name: string) => name.replaceAll("_", " ");
+
 const one = <T extends string>(value: string | null, of: readonly T[]): value is T =>
   value !== null && (of as readonly string[]).includes(value);
 
-/** The map a menu address names (`/?type=&size=&seed=`), field by field:
- *  what the menu opens on after a battle is cancelled or refused. */
+/** The map a menu address names (`/?type=&size=&seed=&region=`), field by
+ *  field: what the menu opens on after a battle is cancelled or refused. */
 export function askedChoice(search: string): Partial<MapChoice> {
   const params = new URLSearchParams(search);
-  const [type, size] = [params.get("type"), params.get("size")];
+  const [type, size, region] = [params.get("type"), params.get("size"), params.get("region")];
   return {
     ...(one(type, MAP_TYPES) && { type }),
     ...(one(size, MAP_SIZES) && { size }),
     seed: canonicalSeed(params.get("seed") ?? "") ?? undefined,
+    ...(one(region, REGIONS) && { region }),
   };
 }
 
-const query = (choice: MapChoice) =>
-  `type=${choice.type}&size=${choice.size}&seed=${choice.seed}` as const;
+/** A generated map's fields as address text, the region only when chosen. */
+const query = (choice: Partial<MapChoice> & Pick<MapChoice, "type" | "size">) =>
+  [
+    `type=${choice.type}&size=${choice.size}`,
+    choice.seed !== undefined && `seed=${choice.seed}`,
+    choice.region !== undefined && `region=${choice.region}`,
+  ]
+    .filter(Boolean)
+    .join("&");
 /** The battle on the generated map `choice`. */
 export const battleHref = (choice: MapChoice) => `/battle?${query(choice)}`;
 /** Ordinary Play chooses an admitted battle after navigation. */
-export const playHref = (choice: Omit<MapChoice, "seed">) =>
-  `/battle?play=1&type=${choice.type}&size=${choice.size}`;
+export const playHref = (choice: Omit<MapChoice, "seed">) => `/battle?play=1&${query(choice)}`;
 
 /** The exact address of the battle preparation actually admitted. */
 export function preparedBattleHref(request: PrepareBattleRequest): string {
   const source = request.map_source;
   const params = new URLSearchParams(
-    source.kind === "generated"
-      ? { type: source.request.type, size: source.request.size, seed: source.request.seed }
-      : { map: source.id },
+    source.kind === "generated" ? query(source.request) : { map: source.id },
   );
   params.set("recipe", request.recipe_id);
   params.set("encounter", request.encounter_seed);
@@ -82,11 +95,7 @@ export const savedBattleHref = (id: string, recipe: string) =>
   `/battle?map=${id}&recipe=${recipe}` as const;
 /** The main menu, opened on `choice`. */
 export const menuHref = (choice: MapChoice | Omit<MapChoice, "seed"> | null) =>
-  choice
-    ? "seed" in choice
-      ? `/?${query(choice)}`
-      : `/?type=${choice.type}&size=${choice.size}`
-    : "/";
+  choice ? `/?${query(choice)}` : "/";
 
 /** The battle `search` asks for, or which parameter it gets wrong. Nothing
  *  is guessed for a parameter that is present and wrong. */
@@ -114,10 +123,14 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   const mapSeed = seed("seed", "1");
   if (!one(type, MAP_TYPES)) return { error: `type must be one of ${MAP_TYPES.join(", ")}` };
   if (!one(size, MAP_SIZES)) return { error: `size must be one of ${MAP_SIZES.join(", ")}` };
+  const region = params.get("region");
+  if (region !== null && !one(region, REGIONS))
+    return { error: `region must be one of ${REGIONS.join(", ")}` };
+  const chosen = region === null ? {} : { region };
   if (params.has("play"))
     return {
       kind: "play",
-      map: { type, size },
+      map: { type, size, ...chosen },
       recipe: recipe ?? config.encounter.recipe,
       encounterSeed,
       battleSeed,
@@ -126,7 +139,7 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
     return { error: "seed must be a whole number from 0 to 18446744073709551615" };
   return {
     kind: "generated",
-    map: { type, size, seed: mapSeed },
+    map: { type, size, seed: mapSeed, ...chosen },
     recipe: recipe ?? config.encounter.recipe,
     encounterSeed,
     battleSeed,

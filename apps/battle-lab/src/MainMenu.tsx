@@ -1,13 +1,13 @@
 // The game's front door at `/`, in the HUD's look: start a battle on a
-// generated map (its type and its size), play a saved battlefield of the
-// catalogue, or watch a saved battle, and the sound settings. The test
-// village, the benchmark and the labs are
+// generated map (its type, its size and, if the player cares, its region),
+// play a saved battlefield of the catalogue, or watch a saved battle, and
+// the sound settings. The test village, the benchmark and the labs are
 // developer tools, behind the developer link.
 import { useState } from "react";
 import config from "@fixtures/generated-battle.json";
 import { listMaps } from "@web/maps/catalogue";
 import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/source";
-import { askedChoice, battleHref, playHref, savedBattleHref } from "./battleLinks";
+import { askedChoice, battleHref, playHref, REGIONS, savedBattleHref, spoken } from "./battleLinks";
 import { useSavedReplay, replayRoute } from "./replayFile";
 import { SoundControls } from "./SoundControls";
 
@@ -56,6 +56,8 @@ const TYPE_NOTE: Record<MapType, string> = {
   mixed: "A town among fields and woods.",
   metro: "A city and the country round it.",
 };
+
+const RANDOM = "random";
 
 /** The catalogue's battlefields a player can start: every released playable
  *  map that has the game's encounter saved on it. Each is the same map and
@@ -130,7 +132,7 @@ function Choice<T extends string>({
             data-testid={`menu-${label}-${option}`}
             onClick={() => onChange(option)}
           >
-            {option}
+            {spoken(option)}
           </button>
         ))}
       </div>
@@ -144,12 +146,16 @@ function NewBattle() {
   const [asked] = useState(() => askedChoice(window.location.search));
   const [type, setType] = useState<MapType>(asked.type ?? "mixed");
   const [size, setSize] = useState<MapSize>(asked.size ?? "small");
+  // Random leaves the region to the seed.
+  const [region, setRegion] = useState(asked.region ?? RANDOM);
+  const choice = { type, size, ...(region !== RANDOM && { region }) };
   return (
     <section className="menu-battle" aria-label="New battle">
       <h2>Skirmish</h2>
       <div className="menu-fields">
         <Choice label="map" options={MAP_TYPES} value={type} onChange={setType} />
         <Choice label="size" options={MAP_SIZES} value={size} onChange={setSize} />
+        <Choice label="region" options={[RANDOM, ...REGIONS]} value={region} onChange={setRegion} />
       </div>
       <p className="menu-battle-note" data-testid="menu-note">
         {TYPE_NOTE[type]}
@@ -157,7 +163,7 @@ function NewBattle() {
       <a
         className="menu-card menu-deploy"
         data-testid="menu-deploy"
-        href={asked.seed ? battleHref({ type, size, seed: asked.seed }) : playHref({ type, size })}
+        href={asked.seed ? battleHref({ ...choice, seed: asked.seed }) : playHref(choice)}
       >
         <span className="menu-card-label">Deploy</span>
         <span className="menu-card-note">Attack the defended town as blue.</span>

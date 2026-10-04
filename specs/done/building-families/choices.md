@@ -1,6 +1,6 @@
 # Choices ledger: New York and Paris building families
 
-Decisions made where the plan was silent, audited against the shipped code. Grouped by verdict, least confident first. **Review these first:** the shared industrial massing, the New York towers without setbacks, and the family drawn by seed with no menu choice.
+Decisions made where the plan was silent, audited against the shipped code. Grouped by verdict, least confident first. **Review these first:** the shared industrial massing and the New York towers without setbacks. The family drawn by seed with no menu choice was reviewed and reversed: the player may now pick a region.
 
 ## Needs the user (each has a reversible provisional call in force)
 
@@ -11,10 +11,6 @@ Decisions made where the plan was silent, audited against the shipped code. Grou
 #### New York towers carry their character in cornice, crown and water tanks, not setbacks
 
 **When:** the towers and industry. **Choice:** A Manhattan tower usually steps back as it rises (a "setback"). The physical template contract gives a tower one box part, and two stacked parts would need a join rule it doesn't have. So New York towers are straight shafts with a heavy cornice, a limestone crown and rooftop water tanks. The plan's coverage table had promised setbacks. The unbuilt alternative is setbacks drawn as art inside one tall box, but that would draw air where the physics has wall: a soldier behind the visible setback would be blocked by a body the camera shows as empty. **Gap:** The plan promised setbacks without checking that the physical contract could hold them. **Reach:** Real setbacks need a stacked-part join in the template contract (`crates/contract/src/templates.rs`). That is a physics decision, not art. **Verdict:** needs-user. Provisional call: straight shafts. To reverse it, add vertical part stacking to the contract, then give the towers stepped parts. **Confidence:** low.
-
-#### A map's family is a seeded draw, not a menu choice
-
-**When:** planning. **Choice:** When a player presses Play, the map's seed already decides its family through its own named random stream (`parcels::family`), one in three each for China, New York and Paris. The menu still offers only type and size, and the share address `/battle?type=&size=&seed=` still names exactly one battlefield. The unbuilt alternative is a "region" control on the menu, which would add a third address parameter and a new request field. **Gap:** City-maps called for "preset selection" without saying whether the player picks. **Reach:** Adding a menu choice later needs a request field and therefore a new map identity, so every saved address would change meaning. **Verdict:** needs-user. Provisional call: seeded draw. To reverse it, add an optional family field to the generation request and the menu. **Confidence:** medium.
 
 ## Sound
 
@@ -102,10 +98,16 @@ The old China-only form `homes.py <out>` now needs `china` first. Before review,
 
 #### Generation gate: each family alone, every type, as a test; every size by sweep
 
-**When:** integrating the three art passes. **Choice:** `each_regional_family_alone_builds_every_map_type` restricts the presets to one family and generates Open, Mixed and Metro Small through the full pipeline (towns and countryside). Size adds settlements but no new district kinds, so sizes are covered by the release sweep: 3 families × 9 cells × 4 seeds, all 108 maps generated. The catalogue test separately holds each family to three or more variants of every category, at its scale. **Gap:** The plan named the gate but not its cost split. **Reach:** A family missing a category fails in about 4 s. **Verdict:** sound. **Confidence:** high.
+**When:** integrating the three art passes. **Choice:** `each_regional_family_asked_for_builds_every_map_type` asks for each family in turn and generates Open, Mixed and Metro Small through the full pipeline (towns and countryside). Size adds settlements but no new district kinds, so sizes are covered by the release sweep: 3 families × 9 cells × 4 seeds, all 108 maps generated. The catalogue test separately holds each family to three or more variants of every category, at its scale. **Gap:** The plan named the gate but not its cost split. **Reach:** A family missing a category fails in about 4 s. **Verdict:** sound. **Confidence:** high.
 
 #### Sign text stays generic trade words
 
 **When:** the graph apartments. **Choice:** The NYC graph's sign "TASTE VIETNAM" names a country, so it is swapped for "BAKERY". "HOTEL", "PIZZA", "BOOKS" and "COFFEE SHOP" stay, because the city readme allows generic trades. **Gap:** The graph's word list was unchecked. **Reach:** Another graph's sign list needs the same check. **Verdict:** sound. **Confidence:** high.
 
 Trivial discretion: template ids (`nyc-…`, `paris-…`), set names (`<kind>_<family>`; China keeps its committed names), texture seed blocks (51xx–53xx for clapboard, ashlar and meulière; 61xx and 63xx for the pale facing brick and washed-gravel panels), and colour choices per template.
+
+## Settled by the user
+
+#### A map's family is a seeded draw unless the player picks one
+
+**When:** planning. **Choice:** When a player presses Play, the map's seed already decides its family through its own named random stream (`parcels::family`), one in three each for China, New York and Paris. The menu still offers only type and size, and the share address `/battle?type=&size=&seed=` still names exactly one battlefield. The unbuilt alternative is a "region" control on the menu, which would add a third address parameter and a new request field. **Gap:** City-maps called for "preset selection" without saying whether the player picks. **Reach:** A menu choice needs a request field. Left out of the request when unset, it changes no earlier address or request hash; only a chosen region makes a new identity. **Verdict:** reversed by the user after closeout: the menu offers each region and random, and an unlisted region is refused at `$.region`, never redrawn. **Confidence:** high.

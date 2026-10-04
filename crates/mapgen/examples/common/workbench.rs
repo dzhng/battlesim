@@ -233,6 +233,7 @@ fn generated(inputs: Inputs, choice: Choice, directory: PathBuf) -> Result<Value
         template_catalog_hash: c.catalogue.hash().into(),
         map_type: choice.map_type,
         size: choice.size,
+        region: None,
         limits: c.limits,
     };
     let (plan, result) = match mapgen::generate_with_plan(

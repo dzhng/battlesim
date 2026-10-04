@@ -40,6 +40,7 @@ fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
         template_catalog_hash: catalogue().hash().into(),
         map_type,
         size,
+        region: None,
         limits: CompileLimits {
             max_authored_parts: 60_000,
             max_bay_positions: 600_000,
@@ -702,20 +703,20 @@ fn every_building_of_a_map_is_of_one_regional_family() {
     assert_eq!(drawn.len(), 2, "eight seeds drew only {drawn:?}");
 }
 
-/// M08: whichever family a seed draws must build the whole map, so each
-/// listed family alone fills every map type's districts and countryside.
-/// Size adds settlements, not district kinds; the sweep covers the sizes.
+/// M08: a player may ask for a region, and whichever family a seed draws or
+/// a player asks for must build the whole map, so each listed family fills
+/// every map type's districts and countryside. Size adds settlements, not
+/// district kinds; the sweep covers the sizes.
 #[test]
-fn each_regional_family_alone_builds_every_map_type() {
+fn each_regional_family_asked_for_builds_every_map_type() {
     let rules = sim::fixtures::game().to_string();
     for family in presets().parcels.regional_families {
-        let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
-        source["parcels"]["regional_families"] = serde_json::json!([family]);
         for map_type in TYPES {
-            let request = request(map_type, MapSize::Small, 1);
+            let mut request = request(map_type, MapSize::Small, 1);
+            request.region = Some(family.clone());
             let map = match mapgen::generate_map(
                 &serde_json::to_string(&request).unwrap(),
-                &source.to_string(),
+                PRESETS,
                 TEMPLATES,
                 &rules,
             ) {
@@ -728,6 +729,26 @@ fn each_regional_family_alone_builds_every_map_type() {
             for building in &map.buildings {
                 assert_eq!(building.regional_family, family, "{map_type:?}");
             }
+        }
+    }
+}
+
+/// A region the presets do not list is refused, never swapped for a draw.
+#[test]
+fn a_region_the_presets_do_not_list_is_refused() {
+    let mut request = request(MapType::Mixed, MapSize::Small, 1);
+    request.region = Some("atlantis".into());
+    match mapgen::generate_map(
+        &serde_json::to_string(&request).unwrap(),
+        PRESETS,
+        TEMPLATES,
+        &sim::fixtures::game().to_string(),
+    ) {
+        mapgen::CompileOutcome::Ok { .. } => panic!("an unlisted region built a map"),
+        mapgen::CompileOutcome::Error { diagnostics } => {
+            assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+            assert_eq!(diagnostics[0].code, mapgen::DiagnosticCode::InvalidRequest);
+            assert_eq!(diagnostics[0].location, "$.region");
         }
     }
 }

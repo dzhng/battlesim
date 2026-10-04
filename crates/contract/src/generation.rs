@@ -77,6 +77,11 @@ pub struct GenerationRequest {
     #[serde(rename = "type")]
     pub map_type: MapType,
     pub size: MapSize,
+    /// The regional family every building of the map is built in, one of
+    /// the presets' `parcels.regional_families`. Absent, the seed draws one;
+    /// a request without it serializes as it did before the field existed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub region: Option<String>,
     /// The compiler's admission for the plan this request yields.
     pub limits: CompileLimits,
 }

@@ -4,7 +4,7 @@ Generated maps are built in one of three regional families: China, New York or P
 
 ## What shipped
 
-A map's family is a draw of its own seeded stream ([`parcels::family`](../../../crates/mapgen/src/parcels/mod.rs)) over the presets' `parcels.regional_families` ([map-presets.json](../../../fixtures/map-presets.json)). Every building of a map, town and countryside alike, is of that family. The share address `/battle?type=&size=&seed=` therefore still names one battlefield, and the menu offers no region choice.
+A map's family is the region its request asks for, or else a draw of its own seeded stream ([`parcels::family`](../../../crates/mapgen/src/parcels/mod.rs)) over the presets' `parcels.regional_families` ([map-presets.json](../../../fixtures/map-presets.json)). Every building of a map, town and countryside alike, is of that family. The menu offers a region, or random; a chosen one rides in the address as `&region=` and in the request's optional `region` field, which a request without it leaves out, so every earlier address and request still names the battlefield it did.
 
 Each family has its own art in all six categories (detached home, attached home, urban apartment, farmstead, highrise, industry). Footprints and floor counts sit at China's range, so the same lots fill:
 
@@ -43,7 +43,7 @@ Nothing new crosses a runtime boundary. Families travel through contracts that a
 ## Invariants and where they are held
 
 - **Every listed family covers every category, at the accepted scale.** Each family needs at least three variants per category, apartments on both sides of six floors, industry at one or two floors, and storeys of 12 m or less. This is held by `every_family_has_several_variants_of_every_category_at_its_accepted_scale` in [`prototype_catalogue.rs`](../../../crates/mapgen/tests/prototype_catalogue.rs).
-- **Each family alone builds every map type, towns and countryside.** This is held by `each_regional_family_alone_builds_every_map_type` in [`parcels.rs`](../../../crates/mapgen/tests/parcels.rs). One map, one family, is `every_building_of_a_map_is_of_one_regional_family`.
+- **Each family builds every map type, towns and countryside.** This is held by `each_regional_family_asked_for_builds_every_map_type` in [`parcels.rs`](../../../crates/mapgen/tests/parcels.rs). One map, one family, is `every_building_of_a_map_is_of_one_regional_family`.
 - **One map fetches one family's art within 50 MiB.** This is held by `downloadBudget.test.ts` in [`web/tests/sceneAssets`](../../../web/tests/sceneAssets).
 - **Every declared fighting bay has a visible opening**, refused at export for every generated set. China's graph set is the one named, printed exception ([city readme](../../../packages/scene-assets/blender/city/README.md), "Rules a set keeps").
 - **Released saved maps keep their battlefield.** Market Town and the camera lab select their China template ids from the growing library, so their pinned catalogue hash still resolves ([saved maps](../../../fixtures/README.md#saved-maps)).

@@ -18,6 +18,7 @@ fn physical_rules_are_explicit_generation_inputs_and_identity() {
         template_catalog_hash: catalogue.hash().into(),
         map_type: MapType::Open,
         size: MapSize::Small,
+        region: None,
         limits: CompileLimits {
             max_authored_parts: 60000,
             max_bay_positions: 600000,
