@@ -7,6 +7,8 @@ rows place near), or `far`: the two coarse tiers only, for a shell that folds it
 furniture into itself. `HEIGHT_M` is how high it stands over what it stands on: a set
 that places one on a roof sets its top fit from it (`fit_over`).
 """
+import math
+
 import bpy
 
 from parts import TIERS, box, cyl, flat_paint
@@ -16,8 +18,9 @@ HEIGHT_M = LEGS_M + BARREL_M + CONE_M
 
 
 def fit_over(roof_below_top_m):
-    """The top fit a set needs for tanks standing on a roof `roof_below_top_m` under its part's top."""
-    return round(HEIGHT_M - roof_below_top_m, 2)
+    """The top fit a set needs for tanks standing on a roof `roof_below_top_m` under its part's top:
+    with at least 5 cm to spare (the fit check has none for rounding), to the next 10 cm."""
+    return math.ceil((HEIGHT_M - roof_below_top_m) * 10 + 0.5) / 10
 
 
 def _materials():

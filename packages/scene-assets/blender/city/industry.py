@@ -45,21 +45,21 @@ import zlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kit import *  # noqa: E402,F403
 from masonry import panel_door, ragged_wall, scorched  # noqa: E402
-from water_tank import HEIGHT_M as TANK_M, water_tank  # noqa: E402
+from water_tank import fit_over, water_tank  # noqa: E402
 
-# A family's set and the top fit its roofs need (New York's water tanks stand high).
-FAMILIES = {"china": dict(set="industry", fit_top_m=1.2), "new_york": dict(set="industry_new_york", fit_top_m=4.4),
-            "paris": dict(set="industry_paris", fit_top_m=1.2)}
-FAMILY = next(iter(script_args()), "china")
-if FAMILY not in FAMILIES:
-    raise SystemExit(f"industry.py: the family is one of {sorted(FAMILIES)}, not {FAMILY}")
+PARAPET_M, PARAPET_W = 0.6, 0.25  # a flat roof's parapet: how far its coping stands over the deck, and its thickness
+# Each family: the top fit its roofs need (New York's water tanks stand on flat roofs, a parapet under
+# the part's top), and its design, the function that builds its five lots.
+FAMILIES = {"china": dict(fit_top_m=1.2, design=lambda: china()), "new_york": dict(fit_top_m=fit_over(PARAPET_M), design=lambda: new_york()),
+            "paris": dict(fit_top_m=1.2, design=lambda: paris())}
+FAMILY, SET, RECEIPT, OUT = family_set("industry", "industry.py")
+DESIGN = design(FAMILIES, FAMILY, "industry.py")
 UP, SOUTH = Vector((0, 0, 1)), (0, -1, 0)
 OVER, VERGE = 0.25, 0.12  # how far a sheet roof's eaves and verges overhang
 DROP = 0.02  # a wall stops this far under its roof
 
-kit = Kit(FAMILIES[FAMILY]["set"], "industry.py" + ("" if FAMILY == "china" else f" {FAMILY}"), fit_side_m=1.2,
-          fit_top_m=FAMILIES[FAMILY]["fit_top_m"], fit_ruin_top_m=0.6)
-OFFER = FITTING | dict(optional=True)  # a fitting every family is offered: a set whose buildings place none leaves it out
+kit = Kit(SET, RECEIPT, fit_side_m=1.2, fit_top_m=DESIGN["fit_top_m"], fit_ruin_top_m=0.6)
+# Every fitting is offered (`kit.offer`): made the first time a row places it, so a set holds only what its buildings carry.
 
 
 # ---------------------------------------------------------------- materials
@@ -626,7 +626,6 @@ def gabled_shell(m, length, depth, eave, ridge, wall, roof, spans=1, lights=None
     return tan, edge_z
 
 
-PARAPET_M, PARAPET_W = 0.6, 0.25
 
 
 def flat_shell(m, tag, x0, x1, y0, y1, top, wall, deck, mends=()):
@@ -831,7 +830,8 @@ def buckled_sheets(m, tag, ruin, crest, mat, seed, pitch=(9.0, 6.5), stiff=False
     mesh_part(m.n(f"{tag}_roof"), build, mat, m.root, lods=(0, 1, 2))
 
 
-STIFF = [felt_m]  # the roofs that fall as slabs of their deck, not as buckled sheet
+STIFF = [felt_m]  # the roofs that fall as slabs of their deck, not as buckled sheet (a design may add its own:
+# one family runs a process, so its additions here and to ROOFS are its alone)
 
 
 def wrecked(t, tag, tint, blocks):
@@ -1398,9 +1398,7 @@ FIRE_RED, DARK_GREEN, BLACK_GREEN = (150, 40, 32), (44, 74, 56), (34, 44, 40)
 def new_york():
     for name in ("loft_window", "barn_window"):  # steel windows of many small panes under a stone lintel
         glazed(name, 2.0, 2.6 if name == "loft_window" else 3.0, stone=True)
-    tank_wood = flat_paint("tank_wood", (0.13, 0.1, 0.075), rough=0.9, grime=0.4)
-    tank_cone = flat_paint("tank_cone", (0.06, 0.055, 0.05), rough=0.8, grime=0.3)
-    water_tank(kit.module("water_tank", **OFFER), "tank", 0.0, 0.0, 0.0, tank_wood, tank_cone, trim_m)
+    water_tank(kit.module("water_tank", **FITTING), "tank", 0.0, 0.0, 0.0)
     brick = textured("wall_brick_tinted", "facing_brick_pale", tint=1.0, dirt=0.5, chip=0.12, streak=0.45, rise=0.8)
     shed("nyc-shed-15x24", GALVANISED, FIRE_RED, "tarred", "pale", PRIMER,
          mends=[(0, -1, 4.5, 3.0, (0.0, 0.7), "new"), (0, 1, -6.0, 2.25, (0.2, 0.8), "tarred")])
@@ -1435,6 +1433,6 @@ def paris():
     vault_depot("paris-depot-90x39", PARIS_GREY, VERMILION, render_m, vault)
 
 
-{"china": china, "new_york": new_york, "paris": paris}[FAMILY]()
+DESIGN["design"]()
 
-kit.write(next(iter(script_args()[1:]), None))  # a second argument writes the two files somewhere else
+kit.write(OUT)

@@ -95,8 +95,8 @@ STYLES = {
                   frame=(0.62, 0.62, 0.6), rail=(0.58, 0.58, 0.56), base=("concrete", (0.2, 0.2, 0.19)), facade=(0.7, 0.68, 0.64),
                   canopy="slab", fit_top_m=4.0, band=(-0.18, 0.1, 0.07), band_tiers=(0, 1), tint_share=1.0, blown_tiers=(1,)),
 }
-FAMILY, SET, RECEIPT, OUT = family_set("towers.py", "towers", STYLES)
-STYLE = STYLES[FAMILY]
+FAMILY, SET, RECEIPT, OUT = family_set("towers", "towers.py")
+STYLE = design(STYLES, FAMILY, "towers.py")
 R = STYLE["recipes"]  # a facade recipe's name in this family; China's are unprefixed, the names its committed kit was baked with
 BAY_M, FLOOR_M = BAY_PITCH_M, 3.0
 PIER_M = 1.0  # the blank corner at each end of a wall

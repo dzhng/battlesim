@@ -83,21 +83,26 @@ def _fail(message):
     raise SystemExit(f"kit: {message}")
 
 
-def family_set(script, china_set, families):
-    """Which regional family a set script writes, from its arguments: `<script>` alone writes
-    China's set (`china_set`, its receipt `script`); `<script> <family> [out_dir]` writes that
-    family's (`<china_set>_<family>`, its receipt `<script> <family>`), into `out_dir` when one is
-    given. `families` is the script's family table (its keys are the families); any other first
-    argument is refused, never taken for a directory. Returns (family, set id, receipt, out_dir)."""
+def family_set(kind, script):
+    """A set script's family from its arguments, `[family] [out]`: (family, set, receipt, out dir).
+    No argument builds China's set, `kind`, with `script` as its receipt, as it always has; another
+    family's set is `<kind>_<family>`, its receipt `<script> <family>`. The family comes first
+    whenever an out dir is given: `<script> china <out>`. Whether the family is one the script
+    designs is `design`'s to say."""
     args = script_args()
-    if not args:
-        return "china", china_set, script, None
-    family, rest = args[0], args[1:]
-    if family not in families or len(rest) > 1:
-        _fail(f"usage: {script} [family [out_dir]], the family one of {', '.join(families)}; not {' '.join(args)}")
-    if family == "china":
-        return family, china_set, script, next(iter(rest), None)
-    return family, f"{china_set}_{family}", f"{script} {family}", next(iter(rest), None)
+    if len(args) > 2:
+        raise SystemExit(f"usage: {script} [family] [out]")
+    family = args[0] if args else "china"
+    china = family == "china"
+    return family, (kind if china else f"{kind}_{family}"), (script if china else f"{script} {family}"), (args[1] if len(args) > 1 else None)
+
+
+def design(designs, family, script):
+    """The script's design for `family` from its family table, refusing one it has none for (a mistyped
+    family, or an out dir given without the family before it) before anything is written."""
+    if family not in designs:
+        raise SystemExit(f"{script}: no family {family!r}; usage: {script} [family] [out], family one of {', '.join(designs)}")
+    return designs[family]
 
 
 class Module:
