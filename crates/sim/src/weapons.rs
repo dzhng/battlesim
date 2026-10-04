@@ -254,7 +254,7 @@ impl Target {
 #[derive(Clone, Debug)]
 pub struct Lock {
     pub target: Target,
-    /// From an explicit attack order: kept against automatic reconsideration.
+    /// The attack order's own target, taken whenever the mount can shoot it.
     pub explicit: bool,
     /// This tick's assessment cleared the target and the mount is working the
     /// shot: aiming, loading, traversing, guiding or firing (not held off by
@@ -512,6 +512,26 @@ fn facade(ctx: &FireContext, unit: &Unit, mount: &Mount, spec: &MountSpec, point
         }
         _ => point,
     }
+}
+
+/// Where this mount aims at `target`: a ground point inside a building moves
+/// to the facade it fires at (`facade`).
+fn resolve_for(
+    ctx: &FireContext,
+    unit: &Unit,
+    mount: &Mount,
+    spec: &MountSpec,
+    target: Target,
+    units: &[Unit],
+) -> Option<Resolved> {
+    let r = resolve(ctx, unit.side, target, units)?;
+    Some(match target {
+        Target::Ground(p) => Resolved {
+            point: facade(ctx, unit, mount, spec, p),
+            ..r
+        },
+        _ => r,
+    })
 }
 
 fn bearing_from(unit: &Unit, point: V3) -> f64 {
@@ -956,8 +976,19 @@ fn compatible(
         .any(|k| mount.has_rounds(k) && effective(&ctx.arsenal.weapons[spec.kinds[k]].def, armor))
 }
 
-/// Keep, replace or choose the mount's lock (W07, W08, V12). Returns the
-/// reason to show if it ends with no lock.
+/// What `choose_lock` concluded: the reason to show if the mount ends with
+/// no lock, and whether it could shoot the ordered target now (None with no
+/// order, or while the order's target is not seen this tick).
+struct LockChoice {
+    idle_reason: ActionReason,
+    ordered: Option<Result<usize, ActionReason>>,
+}
+
+/// Keep, replace or choose the mount's lock (W07, W08, V12). An order names
+/// a priority, never a silent weapon: whenever the mount can shoot the
+/// ordered target it does, at once; while it cannot, it fights whatever it
+/// can, and only with nothing to shoot does it turn to the ordered target and
+/// wait for its shot.
 fn choose_lock(
     ctx: &FireContext,
     unit: &Unit,
@@ -966,29 +997,76 @@ fn choose_lock(
     spec: &MountSpec,
     explicit: Option<Target>,
     assessed: &mut Assessed,
-) -> ActionReason {
-    if let Some(t) = explicit {
-        match mount.lock.as_mut() {
-            Some(lock) if lock.target == t => lock.explicit = true,
-            // A player order replaces immediately.
-            _ => {
-                mount.lock = Some(Lock {
-                    target: t,
-                    explicit: true,
-                    engaging: false,
-                })
-            }
-        }
-        return ActionReason::NoCompatibleTarget;
-    }
-    // The order ended: its lock becomes an ordinary one; a ground point never
-    // outlives the order that named it.
-    if let Some(lock) = mount.lock.as_mut() {
+) -> LockChoice {
+    // A lock that is not this order's target is an ordinary one; a ground
+    // point never outlives the order that named it.
+    if let Some(lock) = mount.lock.as_mut().filter(|l| Some(l.target) != explicit) {
         lock.explicit = false;
         if matches!(lock.target, Target::Ground(_)) {
             mount.lock = None;
         }
     }
+    let Some(t) = explicit else {
+        return LockChoice {
+            idle_reason: automatic_lock(ctx, unit, units, mount, spec, assessed),
+            ordered: None,
+        };
+    };
+    let take = |mount: &mut Mount| match mount.lock.as_mut() {
+        Some(lock) if lock.target == t => lock.explicit = true,
+        _ => {
+            mount.lock = Some(Lock {
+                target: t,
+                explicit: true,
+                engaging: false,
+            })
+        }
+    };
+    let resolved = resolve_for(ctx, unit, mount, spec, t, units);
+    let ordered = resolved
+        .filter(|r| r.current)
+        .map(|r| assessed.target(ctx, unit, units, mount, spec, t, &r));
+    // Shootable now; or just out of sight, within the grace, where the order
+    // keeps its aim on the last sighting rather than turning away a moment.
+    let holding =
+        resolved.is_some_and(|r| !r.current) && mount.lock.as_ref().is_some_and(|l| l.target == t);
+    if matches!(ordered, Some(Ok(_))) || holding {
+        take(mount);
+        return LockChoice {
+            idle_reason: ActionReason::NoCompatibleTarget,
+            ordered,
+        };
+    }
+    let idle_reason = automatic_lock(ctx, unit, units, mount, spec, assessed);
+    let shootable = mount.lock.as_ref().is_some_and(|l| {
+        resolve_for(ctx, unit, mount, spec, l.target, units)
+            .filter(|r| r.current)
+            .is_some_and(|r| {
+                assessed
+                    .target(ctx, unit, units, mount, spec, l.target, &r)
+                    .is_ok()
+            })
+    });
+    if !shootable && resolved.is_some() {
+        take(mount);
+    }
+    LockChoice {
+        idle_reason,
+        ordered,
+    }
+}
+
+/// Automatic choice for a mount without an order it can follow now: keep a
+/// target it can still shoot, else choose afresh (`select`). Returns the
+/// reason to show if it ends with no lock.
+fn automatic_lock(
+    ctx: &FireContext,
+    unit: &Unit,
+    units: &[Unit],
+    mount: &mut Mount,
+    spec: &MountSpec,
+    assessed: &mut Assessed,
+) -> ActionReason {
     // An area is never kept on its own once an identified enemy is in reach.
     if mount
         .lock
@@ -1001,7 +1079,7 @@ fn choose_lock(
     let current = mount
         .lock
         .as_ref()
-        .and_then(|l| resolve(ctx, unit.side, l.target, units).map(|r| (l.target, r)));
+        .and_then(|l| resolve_for(ctx, unit, mount, spec, l.target, units).map(|r| (l.target, r)));
     let reconsider = match &current {
         None => true,
         // Identification lapsing within the grace never makes it replaceable.
@@ -1223,42 +1301,33 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             let explicit = ordered.filter(|&t| compatible(ctx, &mount, spec, t, units));
             let previous = mount.lock.as_ref().map(|l| l.target);
             let mut assessed = Assessed::default();
-            let idle_reason =
-                choose_lock(ctx, unit, units, &mut mount, spec, explicit, &mut assessed);
+            let LockChoice {
+                idle_reason,
+                ordered: ordered_shot,
+            } = choose_lock(ctx, unit, units, &mut mount, spec, explicit, &mut assessed);
+            ordered_ok |= matches!(ordered_shot, Some(Ok(_)));
+            ordered_far |= matches!(
+                ordered_shot,
+                Some(Err(
+                    ActionReason::OutOfRange | ActionReason::BlockedTrajectory
+                ))
+            );
             let resolved = mount
                 .lock
                 .as_ref()
-                .and_then(|l| resolve(ctx, unit.side, l.target, units))
-                .map(|r| match mount.lock.as_ref().map(|l| l.target) {
-                    Some(Target::Ground(p)) => Resolved {
-                        point: facade(ctx, unit, &mount, spec, p),
-                        ..r
-                    },
-                    _ => r,
-                });
+                .and_then(|l| resolve_for(ctx, unit, &mount, spec, l.target, units));
             if resolved.is_none() {
                 mount.lock = None;
             }
             // Could shoot now, from here, and to effect?
             let assessment = mount.lock.as_ref().zip(resolved.as_ref()).map(|(l, r)| {
-                // A ground point's resolved point was moved to its facade
-                // since the lock was chosen: assessed afresh.
-                let a = if r.current && !matches!(l.target, Target::Ground(_)) {
+                let a = if r.current {
                     assessed.target(ctx, unit, units, &mount, spec, l.target, r)
-                } else if r.current {
-                    assess(ctx, unit, units, &mount, spec, l.target, r)
                 } else {
                     Err(ActionReason::TrackingLastSighting)
                 };
                 if let Ok(k) = a {
                     can_engage |= effective(&ctx.arsenal.weapons[spec.kinds[k]].def, r.armor);
-                }
-                if explicit.is_some() {
-                    ordered_ok |= a.is_ok();
-                    ordered_far |= matches!(
-                        a,
-                        Err(ActionReason::OutOfRange | ActionReason::BlockedTrajectory)
-                    );
                 }
                 a
             });
@@ -1988,12 +2057,13 @@ pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, MountAims
                         .attack_target()
                         .filter(|&t| compatible(ctx, m, spec, t, units));
                     let idle_reason =
-                        choose_lock(ctx, u, units, &mut candidate, spec, explicit, &mut assessed);
+                        choose_lock(ctx, u, units, &mut candidate, spec, explicit, &mut assessed)
+                            .idle_reason;
                     let target = m
                         .support
                         .map(|s| s.target)
                         .or_else(|| candidate.lock.as_ref().map(|l| l.target))?;
-                    let r = resolve(ctx, u.side, target, units)?;
+                    let r = resolve_for(ctx, u, m, spec, target, units)?;
                     let assessment = assessed.target(ctx, u, units, m, spec, target, &r);
                     Some(MountPlan {
                         stationary: false,

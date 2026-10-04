@@ -246,9 +246,9 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 
 ## W08
 
-**Decision:** Explicit target orders focus weapons that can damage that target; other weapons may engage suitable alternatives.
+**Decision:** An explicit target order sets a priority, not a lock. Each weapon that can damage the target shoots it whenever it can; while it cannot (out of range, blocked, unseen), the weapon fights whatever else it can shoot and returns to the ordered target the moment it has a shot. Only with nothing else to shoot does it turn to the ordered target and wait. Weapons that cannot damage the target engage suitable alternatives.
 
-**Why:** Permit deliberate focus without wasting incompatible weapons.
+**Why:** Permit deliberate focus without ever holding a weapon silent that could be firing (user, 2026-10-04).
 
 **Owner:** slices 08. **Authority:** user brief/interview.
 
@@ -318,7 +318,7 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 
 ## W17
 
-**Decision:** Only direct attack orders authorize pursuit. Pursue identified targets to regain a firing position; after identification loss use the last reported location, never hidden movement.
+**Decision:** Only direct attack orders authorize pursuit. Pursue identified targets to regain a firing position; after identification loss use the last reported location, never hidden movement, and approach it as an attack-move: halt to fight what can be engaged, resume when none remains.
 
 **Why:** Separate intentional pursuit from automatic targeting.
 

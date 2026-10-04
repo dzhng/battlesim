@@ -1106,6 +1106,140 @@ fn automatic_targets_never_move_a_unit_but_explicit_attacks_pursue() {
     );
 }
 
+/// The identified enemy nearest `at`, as blue sees it.
+fn seen_near(b: &Battle, at: [f64; 2]) -> TargetRef {
+    let o = b.observe(Side::Blue);
+    let e = o
+        .identified
+        .iter()
+        .min_by(|a, b| {
+            let d = |e: &&contract::observation::IdentifiedUnit| {
+                (e.position[0] - at[0]).hypot(e.position[1] - at[1])
+            };
+            d(a).total_cmp(&d(b))
+        })
+        .expect("an identified enemy");
+    TargetRef::Identified { id: e.id }
+}
+
+#[test]
+fn an_attack_order_prioritises_its_target_and_fights_others_until_it_can_shoot_it() {
+    // Blue's rifles are ordered onto a squad 850 m off (the scout sees it;
+    // rifles reach 600 m) while another red squad stands in range. Walking up,
+    // they fire at the near squad, and switch to the ordered one once it is in
+    // reach: an order names a priority, never a weapon held silent.
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "recon", "position": [100, 300] },
+            { "side": "blue", "kind": "rifle", "position": [100, 250] },
+            { "side": "red", "kind": "rifle", "position": [950, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [400, 420], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let mut optics = common::game();
+    sim::fixtures::patch_catalog(
+        &mut optics,
+        "units",
+        "recon",
+        json!({"sensors":{"ground_m":1000}}),
+    );
+    setup.rules.catalog = serde_json::from_value::<contract::scenario::Rules>(optics)
+        .unwrap()
+        .catalog;
+    let rifle = setup.rules.weapons.get_mut("rifle").unwrap();
+    rifle.damage = 0.0;
+    rifle.near_miss_suppression = 0.0;
+    let mut b = Battle::new(&setup, 5);
+    run(&mut b, 30);
+    let (far, near) = (seen_near(&b, [950.0, 300.0]), seen_near(&b, [400.0, 420.0]));
+    let mut c = Commander::new();
+    c.ok(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(1)],
+            target: far,
+        },
+    );
+    let shots = run(&mut b, ticks(3.0));
+    assert_eq!(mount(&b, Side::Blue, 1, 0).target, Some(near));
+    assert!(
+        !shots_by(&shots, 1, "rifle").is_empty(),
+        "the rifles fire while out of the ordered target's reach"
+    );
+    assert!(own(&b, Side::Blue, 1).position[0] > 104.0, "still closing");
+    for _ in 0..ticks(120.0) {
+        b.step();
+        if mount(&b, Side::Blue, 1, 0).target == Some(far) {
+            let gap = 950.0 - own(&b, Side::Blue, 1).position[0];
+            assert!(gap <= 620.0, "switched only once in reach: {gap} m");
+            return;
+        }
+    }
+    panic!("never switched to the ordered target");
+}
+
+#[test]
+fn an_attack_that_loses_its_target_fights_on_the_way_to_the_last_report() {
+    // Red's ordered squad steps behind a wall out of rifle range; another red
+    // squad stands in range. Searching, blue halts to fight it, as an
+    // attack-move would, instead of walking past it.
+    let wall =
+        json!([{ "kind": "wall", "center": [700, 400], "yaw": 0, "half_extents": [1, 70, 5] }]);
+    let scripts = json!([{ "tick": 20, "side": "red", "order":
+        { "kind": "move", "units": [2], "gesture": 1, "goal": [730, 380], "route": "shortest" } }]);
+    let mut setup = scenario_with(
+        &map(wall),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "recon", "position": [100, 340] },
+            { "side": "red", "kind": "rifle", "position": [720, 322], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [350, 120], "engagement": "return_fire_only" },
+        ]),
+        json!([]),
+        scripts,
+    );
+    let rifle = setup.rules.weapons.get_mut("rifle").unwrap();
+    rifle.damage = 0.0;
+    rifle.near_miss_suppression = 0.0;
+    let mut b = Battle::new(&setup, 5);
+    run(&mut b, 5);
+    let (ordered, other) = (seen_near(&b, [720.0, 322.0]), seen_near(&b, [350.0, 120.0]));
+    let mut c = Commander::new();
+    c.ok(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: ordered,
+        },
+    );
+    let mut unseen_for = 0;
+    for _ in 0..900 {
+        b.step();
+        let o = b.observe(Side::Blue);
+        if o.identified
+            .iter()
+            .any(|e| TargetRef::Identified { id: e.id } == ordered)
+        {
+            unseen_for = 0;
+            continue;
+        }
+        unseen_for += 1;
+        if unseen_for == 90 {
+            let blue = own(&b, Side::Blue, 0);
+            assert!(blue.goal.is_some(), "still searching");
+            assert_eq!(blue.state, MoveState::Halted, "halted to fight");
+            assert_eq!(mount(&b, Side::Blue, 0, 0).target, Some(other));
+            return;
+        }
+    }
+    panic!("the ordered squad was never lost");
+}
+
 #[test]
 fn attack_move_halts_to_engage_and_resumes() {
     // Red shows itself past the end of a short wall, then steps behind it;

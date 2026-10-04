@@ -39,7 +39,7 @@ use crate::sensing::{self, Sighting};
 use crate::sight;
 use crate::structures::Structures;
 use crate::supply;
-use crate::units::{self, MoveOrder, Soldier, Unit, UnitOrder};
+use crate::units::{self, MoveOrder, Pursuit, Soldier, Unit, UnitOrder};
 use crate::village::{Defender, Referee};
 use crate::visibility::OcclusionGrid;
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
@@ -1618,13 +1618,19 @@ impl Battle {
                     Some(track) => {
                         *last_known = Some(track.position.xy());
                         if out_of_reach {
-                            unit.pursuit = Some(track.position.xy());
+                            unit.pursuit = Some(Pursuit {
+                                to: track.position.xy(),
+                                searching: false,
+                            });
                         }
                         false
                     }
                     None => match *last_known {
                         Some(p) if (unit.position.xy() - p).length() > PURSUIT_ARRIVAL_M => {
-                            unit.pursuit = Some(p);
+                            unit.pursuit = Some(Pursuit {
+                                to: p,
+                                searching: true,
+                            });
                             false
                         }
                         _ => true,

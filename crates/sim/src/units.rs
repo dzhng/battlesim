@@ -152,6 +152,15 @@ pub struct MoveOrder {
     pub facing: Option<f64>,
 }
 
+/// Where an attack order is heading this tick: the target's live position
+/// while it is out of reach, or, once the side has lost it, its last report
+/// (`searching`), approached like an attack-move.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Pursuit {
+    pub to: V2,
+    pub searching: bool,
+}
+
 #[derive(Clone, Debug)]
 pub enum UnitOrder {
     Move(MoveOrder),
@@ -202,7 +211,7 @@ pub struct Unit {
     pub members: Vec<Soldier>,
     pub orders: VecDeque<UnitOrder>,
     /// Where an attack order is currently pursuing to, set each tick.
-    pub pursuit: Option<V2>,
+    pub pursuit: Option<Pursuit>,
     /// The goal the current route was planned to.
     pub planned_goal: Option<V2>,
     /// Remaining waypoints of the current order, once planned.
@@ -471,7 +480,11 @@ impl Unit {
                 }
             }
         }
-        d.opt_v2(self.pursuit).opt_v2(self.planned_goal);
+        d.opt_v2(self.pursuit.map(|p| p.to));
+        if let Some(p) = self.pursuit {
+            d.u64(p.searching as u64);
+        }
+        d.opt_v2(self.planned_goal);
         d.u64(self.route.is_some() as u64);
         for p in self.route.iter().flatten() {
             d.f64(p.x).f64(p.y);
@@ -610,7 +623,7 @@ impl Unit {
         }
         match self.orders.front()? {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some((o.destination, o.policy)),
-            UnitOrder::Attack { .. } => self.pursuit.map(|p| (p, RoutePolicy::Shortest)),
+            UnitOrder::Attack { .. } => self.pursuit.map(|p| (p.to, RoutePolicy::Shortest)),
             UnitOrder::Garrison { approach, .. } => Some((*approach, RoutePolicy::Shortest)),
             UnitOrder::Exit => None,
         }
@@ -631,9 +644,15 @@ impl Unit {
             .is_none_or(crate::deployment::Deployment::packed)
     }
 
-    /// Attack-move pauses its advance while it can engage something.
+    /// Attack-move pauses its advance while it can engage something, and so
+    /// does an attack searching for a target it has lost.
     pub fn halted(&self) -> bool {
-        matches!(self.orders.front(), Some(UnitOrder::AttackMove(_))) && self.reach.can_engage
+        self.reach.can_engage
+            && match self.orders.front() {
+                Some(UnitOrder::AttackMove(_)) => true,
+                Some(UnitOrder::Attack { .. }) => self.pursuit.is_some_and(|p| p.searching),
+                _ => false,
+            }
     }
 
     pub fn attack_target(&self) -> Option<Target> {
