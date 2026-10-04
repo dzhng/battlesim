@@ -6,8 +6,7 @@
         "basketball_court": {
           "appearance": {
             "drawn_by": "basketball_court",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -29,8 +28,7 @@
         "basketball_hoop": {
           "appearance": {
             "drawn_by": "basketball_hoop",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -76,8 +74,7 @@
         "bike_rack": {
           "appearance": {
             "drawn_by": "bike_rack",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -100,8 +97,7 @@
         "bike_shed": {
           "appearance": {
             "drawn_by": "bike_shed",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -295,8 +291,7 @@
           "appearance": {
             "drawn_by": "chainlink_fence",
             "map_only": true,
-            "modular": true,
-            "status": "systems_only"
+            "modular": true
           },
           "body": {
             "armor": 1.0,
@@ -341,8 +336,7 @@
         "dumpster": {
           "appearance": {
             "drawn_by": "dumpster",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -388,8 +382,7 @@
         "garage_row": {
           "appearance": {
             "drawn_by": "garage_row",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -632,8 +625,7 @@
         "kiosk": {
           "appearance": {
             "drawn_by": "kiosk",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -679,8 +671,7 @@
         "laundry_poles": {
           "appearance": {
             "drawn_by": "laundry_poles",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -775,8 +766,7 @@
         "outdoor_gym": {
           "appearance": {
             "drawn_by": "outdoor_gym",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -850,8 +840,7 @@
         "petanque_pitch": {
           "appearance": {
             "drawn_by": "petanque_pitch",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -873,8 +862,7 @@
         "pingpong_table": {
           "appearance": {
             "drawn_by": "pingpong_table",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -920,8 +908,7 @@
         "playground_frame": {
           "appearance": {
             "drawn_by": "playground_frame",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -1153,8 +1140,7 @@
         "swing": {
           "appearance": {
             "drawn_by": "swing",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -1927,8 +1913,7 @@
     "basketball_court": {
       "appearance": {
         "drawn_by": "basketball_court",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -1950,8 +1935,7 @@
     "basketball_hoop": {
       "appearance": {
         "drawn_by": "basketball_hoop",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -1997,8 +1981,7 @@
     "bike_rack": {
       "appearance": {
         "drawn_by": "bike_rack",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2021,8 +2004,7 @@
     "bike_shed": {
       "appearance": {
         "drawn_by": "bike_shed",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2216,8 +2198,7 @@
       "appearance": {
         "drawn_by": "chainlink_fence",
         "map_only": true,
-        "modular": true,
-        "status": "systems_only"
+        "modular": true
       },
       "body": {
         "armor": 1.0,
@@ -2262,8 +2243,7 @@
     "dumpster": {
       "appearance": {
         "drawn_by": "dumpster",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2309,8 +2289,7 @@
     "garage_row": {
       "appearance": {
         "drawn_by": "garage_row",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2553,8 +2532,7 @@
     "kiosk": {
       "appearance": {
         "drawn_by": "kiosk",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2600,8 +2578,7 @@
     "laundry_poles": {
       "appearance": {
         "drawn_by": "laundry_poles",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2696,8 +2673,7 @@
     "outdoor_gym": {
       "appearance": {
         "drawn_by": "outdoor_gym",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2771,8 +2747,7 @@
     "petanque_pitch": {
       "appearance": {
         "drawn_by": "petanque_pitch",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2794,8 +2769,7 @@
     "pingpong_table": {
       "appearance": {
         "drawn_by": "pingpong_table",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2841,8 +2815,7 @@
     "playground_frame": {
       "appearance": {
         "drawn_by": "playground_frame",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -3074,8 +3047,7 @@
     "swing": {
       "appearance": {
         "drawn_by": "swing",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,

@@ -1211,6 +1211,25 @@ def feather_edge():
     return Baked(col, 0.3 + 0.7 * fbm(6, 6209, 4), normals_from_height(blur(h), 1.0), 1.0 - 0.35 * lap, 0.92)
 
 
+@recipe("chain_link", tile=0.6, wear=(0.09, 0.055, 0.035, 0.9))
+def chain_link():
+    """Chain-link fabric: galvanised wire woven into 5 cm diamonds, twelve to the tile each
+    way, each wire round and catching the light along its crown, the zinc dulled in drifts.
+    Its coverage is the wire and nothing between: a cutout's recipe, which a far fence
+    dithers to an even veil. The wear is rust."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    px, n, r = 1.0 / SIZE, 12, 0.008  # a texel; diamonds across the tile; the wire's half width, in tiles
+    a = np.abs((xx + yy) * n % 1.0 - 0.5) / n  # to the nearest wire of each diagonal
+    b = np.abs((xx - yy) * n % 1.0 - 0.5) / n
+    d = np.minimum(a, b)
+    cover = smoothstep(r + px, r - px, d)
+    crown = np.sqrt(np.clip(1.0 - (d / r) ** 2, 0, 1))
+    dull = fbm(4, 6301, 4)
+    col = np.broadcast_to(np.array((0.36, 0.37, 0.38)), (SIZE, SIZE, 3)) * (0.75 + 0.35 * dull)[..., None]
+    return Baked(col, 0.35 + 0.65 * fbm(10, 6303, 4), normals_from_height(blur(crown * 2.0), 1.0), 1.0,
+                 0.45 + 0.3 * dull, 0.35, 0.0, coverage=cover)
+
+
 @recipe("privet", tile=0.8, wear=(0.075, 0.06, 0.03, 1.0))
 def privet():
     """A clipped privet hedge's face: small leaves, about 4 cm across, packed in two layers,

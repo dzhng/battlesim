@@ -919,6 +919,272 @@
         0.4
       ]
     },
+    "bike_rack": {
+      "unit": "scenery",
+      "scenery": "bike_rack",
+      "states": {
+        "default": "assets/source/courts/bike_rack.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.5,
+        0.9,
+        0.5
+      ]
+    },
+    "playground_frame": {
+      "unit": "scenery",
+      "scenery": "playground_frame",
+      "states": {
+        "default": "assets/source/courts/playground_frame.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.0,
+        1.5,
+        1.25
+      ]
+    },
+    "swing": {
+      "unit": "scenery",
+      "scenery": "swing",
+      "states": {
+        "default": "assets/source/courts/swing.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.7,
+        0.9,
+        1.1
+      ]
+    },
+    "bike_shed": {
+      "unit": "scenery",
+      "scenery": "bike_shed",
+      "states": {
+        "default": "assets/source/courts/bike_shed.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        5.0,
+        1.25,
+        1.2
+      ]
+    },
+    "pingpong_table": {
+      "unit": "scenery",
+      "scenery": "pingpong_table",
+      "states": {
+        "default": "assets/source/courts/pingpong_table.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.37,
+        0.76,
+        0.45
+      ]
+    },
+    "outdoor_gym": {
+      "unit": "scenery",
+      "scenery": "outdoor_gym",
+      "states": {
+        "default": "assets/source/courts/outdoor_gym.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.8,
+        0.5,
+        0.9
+      ]
+    },
+    "laundry_poles": {
+      "unit": "scenery",
+      "scenery": "laundry_poles",
+      "states": {
+        "default": "assets/source/courts/laundry_poles.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.0,
+        0.15,
+        1.0
+      ]
+    },
+    "bench_china": {
+      "unit": "scenery",
+      "scenery": "bench",
+      "states": {
+        "default": "assets/source/courts/bench_china.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.9,
+        0.3,
+        0.42
+      ],
+      "regional_family": "china"
+    },
+    "bins_china": {
+      "unit": "scenery",
+      "scenery": "bins",
+      "states": {
+        "default": "assets/source/courts/bins_china.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.65,
+        0.38,
+        0.55
+      ],
+      "regional_family": "china"
+    },
+    "chainlink_fence": {
+      "unit": "scenery",
+      "scenery": "chainlink_fence",
+      "states": {
+        "default": "assets/source/courts/chainlink_fence.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.5,
+        0.05,
+        1.8
+      ]
+    },
+    "basketball_hoop": {
+      "unit": "scenery",
+      "scenery": "basketball_hoop",
+      "states": {
+        "default": "assets/source/courts/basketball_hoop.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.9,
+        0.6,
+        1.95
+      ]
+    },
+    "basketball_court": {
+      "unit": "scenery",
+      "scenery": "basketball_court",
+      "states": {
+        "default": "assets/source/courts/basketball_court.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.0,
+        7.5,
+        0.02
+      ]
+    },
+    "garage_row": {
+      "unit": "scenery",
+      "scenery": "garage_row",
+      "states": {
+        "default": "assets/source/courts/garage_row.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        4.5,
+        3.0,
+        1.3
+      ]
+    },
+    "dumpster": {
+      "unit": "scenery",
+      "scenery": "dumpster",
+      "states": {
+        "default": "assets/source/courts/dumpster.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.0,
+        0.6,
+        0.65
+      ]
+    },
+    "bench_new_york": {
+      "unit": "scenery",
+      "scenery": "bench",
+      "states": {
+        "default": "assets/source/courts/bench_new_york.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.9,
+        0.3,
+        0.42
+      ],
+      "regional_family": "new_york"
+    },
+    "bins_new_york": {
+      "unit": "scenery",
+      "scenery": "bins",
+      "states": {
+        "default": "assets/source/courts/bins_new_york.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.65,
+        0.38,
+        0.55
+      ],
+      "regional_family": "new_york"
+    },
+    "kiosk": {
+      "unit": "scenery",
+      "scenery": "kiosk",
+      "states": {
+        "default": "assets/source/courts/kiosk.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.5,
+        1.0,
+        1.5
+      ]
+    },
+    "petanque_pitch": {
+      "unit": "scenery",
+      "scenery": "petanque_pitch",
+      "states": {
+        "default": "assets/source/courts/petanque_pitch.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.5,
+        2.0,
+        0.02
+      ]
+    },
+    "bench_paris": {
+      "unit": "scenery",
+      "scenery": "bench",
+      "states": {
+        "default": "assets/source/courts/bench_paris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.9,
+        0.3,
+        0.42
+      ],
+      "regional_family": "paris"
+    },
+    "bins_paris": {
+      "unit": "scenery",
+      "scenery": "bins",
+      "states": {
+        "default": "assets/source/courts/bins_paris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.65,
+        0.38,
+        0.55
+      ],
+      "regional_family": "paris"
+    },
     "grass_meadow": {
       "unit": "scenery",
       "scenery": "grass",
