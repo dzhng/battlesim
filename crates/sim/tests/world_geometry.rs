@@ -582,7 +582,7 @@ fn polygon_export_covers_the_concave_shape_and_marks_only_its_outer_edges() {
     assert_eq!(triangles.len(), 4 * 7);
     for x in (0..=200).step_by(4) {
         for y in (0..=200).step_by(4) {
-            let inside = triangles.chunks_exact(7).any(|t| {
+            let inside = triangles.as_chunks::<7>().0.iter().any(|t| {
                 let cross = |a: usize, b: usize| {
                     (t[b] - t[a]) * (y as f32 - t[a + 1])
                         - (t[b + 1] - t[a + 1]) * (x as f32 - t[a])
@@ -599,7 +599,7 @@ fn polygon_export_covers_the_concave_shape_and_marks_only_its_outer_edges() {
     }
     let mut boundary = Vec::new();
     let mut area = 0.0f64;
-    for row in triangles.chunks_exact(7) {
+    for row in triangles.as_chunks::<7>().0 {
         let points = [[row[0], row[1]], [row[2], row[3]], [row[4], row[5]]];
         area += (((points[1][0] - points[0][0]) * (points[2][1] - points[0][1])
             - (points[1][1] - points[0][1]) * (points[2][0] - points[0][0]))
@@ -607,7 +607,7 @@ fn polygon_export_covers_the_concave_shape_and_marks_only_its_outer_edges() {
         assert_eq!(row[6], road_tag());
     }
     assert_eq!(area, 7168.0);
-    for edge in world.export_surface_boundaries().chunks_exact(5) {
+    for edge in world.export_surface_boundaries().as_chunks::<5>().0 {
         assert_eq!(edge[4], road_tag());
         boundary.push(([edge[0], edge[1]], [edge[2], edge[3]]));
     }
@@ -663,7 +663,7 @@ fn joined_polygon_boundaries_exclude_the_shared_pavement_edge() {
     let boundaries = world.export_surface_boundaries();
     let mut nearest = f64::INFINITY;
     let mut perimeter = 0.0;
-    for edge in boundaries.chunks_exact(5) {
+    for edge in boundaries.as_chunks::<5>().0 {
         let a = v2(edge[0] as f64, edge[1] as f64);
         let b = v2(edge[2] as f64, edge[3] as f64);
         let ab = b - a;
@@ -686,7 +686,7 @@ fn overlapping_polygon_boundaries_clip_covered_edges_and_keep_one_exterior() {
     );
     let mut nearest = f64::INFINITY;
     let mut perimeter = 0.0;
-    for edge in world.export_surface_boundaries().chunks_exact(5) {
+    for edge in world.export_surface_boundaries().as_chunks::<5>().0 {
         let a = v2(edge[0] as f64, edge[1] as f64);
         let ab = v2(edge[2] as f64, edge[3] as f64) - a;
         let p = v2(9.5, 7.0);

@@ -3,7 +3,9 @@ import { useLabLoading } from "./LabLoading";
 // exact scenario bytes (compiled map, encounter and resolved rules), so
 // fixture edits cannot change playback. The simulation checks the engine,
 // scenario and rules digests; replay retention across builds is unsupported.
-import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
+import { usePageVisitActive } from "./navigation";
+import { useEffect, useRef, useState } from "react";
 import type { PreparedBattle } from "@web/battle/prepare/protocol";
 import { LoadingScreen } from "./LoadingScreen";
 
@@ -136,6 +138,15 @@ export function ReplayImport<File extends ReplayFile>({
   onLoad: (file: File) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const visitActive = usePageVisitActive();
+  const generation = useRef(0);
+  useEffect(
+    () => () => {
+      generation.current++;
+    },
+    [],
+  );
   useLabLoading("renderer", true);
   return (
     <label className="hud-menu-file">
@@ -147,20 +158,25 @@ export function ReplayImport<File extends ReplayFile>({
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (!f) return;
-          void f.text().then(async (text) => {
+          const request = ++generation.current;
+          const active = () => request === generation.current && visitActive();
+          void (async () => {
             try {
+              const text = await f.text();
+              if (!active()) return;
               const file = parseReplayFile(text);
               await rememberReplay(text);
+              if (!active()) return;
               setError(null);
               if (plays(file)) return onLoad(file);
               const viewer = replayRoute(file);
               if (viewer === window.location.pathname + window.location.search)
                 throw new Error("not a saved battle this viewer can play");
-              window.location.assign(viewer);
+              void navigate(viewer);
             } catch (err) {
-              setError((err as Error).message);
+              if (active()) setError(err instanceof Error ? err.message : String(err));
             }
-          });
+          })();
         }}
       />
       {error && <span className="hud-error"> {error}</span>}

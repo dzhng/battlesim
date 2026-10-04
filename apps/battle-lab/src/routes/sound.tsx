@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 // The sound lab: a scripted eight-second firefight rendered offline through
 // the battle's audio graph, to listen to here and to measure in the scene
 // (levels per bus, clipping, onsets against the visual events). The scene
@@ -101,7 +102,7 @@ export default function Sound() {
   return (
     <main style={{ padding: 24 }}>
       <p>
-        <a href="/labs">Labs</a>
+        <Link to="/labs">Labs</Link>
       </p>
       <h1>Sound</h1>
       <p>

@@ -16,11 +16,13 @@
 // templates that end in it: a template is destroyed into one state, a ruin if
 // it is low and gutted if it is tall, and is left out of the other's sheets.
 //
+// Each source set gets its own visit and evidence directory, so complete
+// catalogue coverage keeps the shared kit download budget of a real map.
 // Narrow a run with `CITY_SET=homes` or `CITY_CATEGORY=highrise` (what
 // stands), `CITY_TIERS=2,3` (which tiers), `CITY_STATE=ruin` (one state; by
 // default every state the library has rows for), and `CITY_PAIRS=` (a comma
 // list of `station:tier:tier`, or `none`).
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import {
   buildingsSettled,
   buildingStats as stats,
@@ -58,11 +60,10 @@ async function frame(page) {
   return page.screenshot();
 }
 
-export async function run(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+async function runSet(ctx, page, set, fit) {
   const warnings = gpuWarnings(page);
   const query = new URLSearchParams();
-  if (process.env.CITY_SET) query.set("set", process.env.CITY_SET);
+  query.set("set", set);
   if (process.env.CITY_CATEGORY) query.set("category", process.env.CITY_CATEGORY);
   await ctx.openLab(page, `${ctx.url}?${query}`, 120000);
   await page.waitForFunction(
@@ -77,7 +78,6 @@ export async function run(ctx) {
 
   const lineup = await route(page, "lineup");
   const costs = Object.fromEntries((await route(page, "costs")).map((c) => [c.id, c]));
-  const { fit } = await setFits();
   const boundaries = await route(page, "boundaries");
   const built = await stats(page);
   const categories = lineup.rows.map((row) => row.category);
@@ -123,11 +123,9 @@ export async function run(ctx) {
   await writeFile(ctx.evidencePath("all-1920x1080.png"), await frame(page));
 
   const tiers = (process.env.CITY_TIERS ?? "0,1,2,3").split(",").map(Number);
-  const states = process.env.CITY_STATE
-    ? [process.env.CITY_STATE]
-    : ["intact", "ruin", "gutted"].filter((state) =>
-        lineup.entries.some((e) => costs[e.id].states[state]),
-      );
+  const states = (
+    process.env.CITY_STATE ? [process.env.CITY_STATE] : ["intact", "ruin", "gutted"]
+  ).filter((state) => lineup.entries.some((e) => costs[e.id].states[state]));
   const pairs = (process.env.CITY_PAIRS ?? DEFAULT_PAIRS)
     .split(",")
     .filter((spec) => spec && spec !== "none")
@@ -322,4 +320,60 @@ export async function run(ctx) {
     pairs,
     verdicts: verdicts.map(brief),
   });
+  return { ids: lineup.entries.map((entry) => entry.id), states };
+}
+
+export async function run(ctx) {
+  const repo = new URL("../../", import.meta.url);
+  const catalog = JSON.parse(await readFile(new URL("assets/catalog.json", repo), "utf8"));
+  const templates = JSON.parse(
+    await readFile(new URL("fixtures/prototype-building-templates.json", repo), "utf8"),
+  );
+  const { fit, setOf } = await setFits();
+  const expected = templates.filter(
+    (template) => !process.env.CITY_CATEGORY || template.category === process.env.CITY_CATEGORY,
+  );
+  const sets = process.env.CITY_SET
+    ? [process.env.CITY_SET]
+    : Object.entries(catalog.city_sets)
+        .filter(
+          ([set, source]) =>
+            source.catalogue === "generated" &&
+            expected.some((template) => setOf[template.id] === set),
+        )
+        .map(([set]) => set);
+  const visited = [];
+  const drawnStates = new Set();
+  for (const set of sets) {
+    await mkdir(ctx.evidencePath(set), { recursive: true });
+    const scoped = {
+      ...ctx,
+      evidencePath: (path) => ctx.evidencePath(`${set}/${path}`),
+      writeEvidence: (path, value) => ctx.writeEvidence(`${set}/${path}`, value),
+      check: (name, ok, detail) => ctx.check(`${set}: ${name}`, ok, detail),
+    };
+    const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+    try {
+      const result = await runSet(scoped, page, set, fit);
+      visited.push(...result.ids);
+      for (const state of result.states) drawnStates.add(state);
+    } finally {
+      await page.context().close();
+    }
+  }
+  if (!process.env.CITY_SET) {
+    const ids = expected.map((template) => template.id).sort();
+    ctx.check(
+      "separate source-set visits cover the exact generated catalogue once",
+      ids.length > 0 && JSON.stringify(visited.sort()) === JSON.stringify(ids),
+      JSON.stringify({ sets, visited, expected: ids }),
+    );
+  }
+  if (process.env.CITY_STATE)
+    ctx.check(
+      "the requested state has templates in the selected catalogue",
+      drawnStates.has(process.env.CITY_STATE),
+      JSON.stringify({ requested: process.env.CITY_STATE, drawn: [...drawnStates] }),
+    );
+  await ctx.writeEvidence("coverage.json", { sets, templates: visited, states: [...drawnStates] });
 }

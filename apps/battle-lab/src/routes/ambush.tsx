@@ -77,7 +77,7 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
     if (next === variant) return;
     const url = new URL(window.location.href);
     url.searchParams.set("variant", next);
-    window.history.replaceState(null, "", url);
+    window.history.replaceState(window.history.state, "", url);
     setVariant(next);
   };
   // Own strikes (kept 3 s) and each missile's path, for replaying it to its last point.

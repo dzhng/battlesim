@@ -26,6 +26,7 @@ const stores: WorkbenchStore[] = [];
 const servers: ViteDevServer[] = [];
 afterEach(async () => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   vi.mocked(filesystem.rename).mockImplementation(
     (await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises")).rename,
   );
@@ -244,6 +245,7 @@ test("the HTTP plugin serves only local same-origin operations and rejects brows
 });
 
 test("aborting native work terminates its actual process before resolving cancellation", async () => {
+  vi.stubEnv("CARGO_TARGET_DIR", "throwaway/target");
   const { root } = await fixture();
   const binary = join(root, "throwaway/target/release/examples/map_workbench_report");
   await mkdir(join(root, "throwaway/target/release/examples"), { recursive: true });
@@ -507,6 +509,7 @@ test("a workbench snapshot waits for the complete mechanics source and catalog p
 });
 
 test("disconnecting an HTTP generation terminates the process and removes its unpublished artifact", async () => {
+  vi.stubEnv("CARGO_TARGET_DIR", "throwaway/target");
   const { root, store } = await fixture();
   const draft = await store.snapshot();
   const binary = join(root, "throwaway/target/release/examples/map_workbench_report");
@@ -699,6 +702,7 @@ test("invalid policy previews retain native diagnostic locations without writes 
 });
 
 test("native inspection refusal becomes an HTTP error with its structured diagnostic location", async () => {
+  vi.stubEnv("CARGO_TARGET_DIR", "throwaway/target");
   const { root, store } = await fixture();
   const draft = await store.snapshot();
   const diagnostics = [
@@ -732,12 +736,14 @@ test("native inspection refusal becomes an HTTP error with its structured diagno
       headers: { "Content-Type": "application/json", Origin: origin },
       body: JSON.stringify(body),
     });
-  const generated = await post("generate", {
+  const generation = await post("generate", {
     purpose: "preview",
     retainedArtifactIds: [],
     draft,
     choice: { type: "mixed", size: "small", seed: "4" },
-  }).then((response) => response.json());
+  });
+  expect(generation.status).toBe(200);
+  const generated = await generation.json();
   const response = await post("inspect", {
     artifactId: generated.artifactId,
     crop: "nonexistent-district",

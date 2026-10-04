@@ -10,13 +10,14 @@ export interface SoundSource {
   sha256: string;
   notes: string;
 }
-/** Licences a pinned recording may carry; attribution comes from its source row. */
+/** Source receipts stay explicit, including user-supplied reserved-rights media. */
 const LICENSES = [
   "CC0-1.0",
   "Public-Domain-US-Gov",
   "CC-BY-3.0",
   "CC-BY-4.0",
   "CC-BY-NC-3.0",
+  "All-Rights-Reserved",
 ] as const;
 /** A span of one pinned recording, in its own frames. */
 export interface SourceCrop {

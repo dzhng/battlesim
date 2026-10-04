@@ -97,6 +97,7 @@ export default defineConfig({
       { find: /^math\/noise$/, replacement: nodeModule("math/dist/noise/index.js") },
       { find: /^math\/color$/, replacement: nodeModule("math/dist/color/index.js") },
       { find: /^math\/time$/, replacement: nodeModule("math/dist/time/index.js") },
+      { find: /^react-router$/, replacement: nodeModule("react-router") },
       { find: /^react$/, replacement: nodeModule("react/index.js") },
       { find: /^react\/jsx-runtime$/, replacement: nodeModule("react/jsx-runtime.js") },
       { find: /^react\/jsx-dev-runtime$/, replacement: nodeModule("react/jsx-dev-runtime.js") },

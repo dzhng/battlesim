@@ -8,7 +8,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
-import { CommandBar, ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
+import { ReadoutLayer } from "@web/battle/present/readouts";
+import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
 import { buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
 import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
@@ -98,6 +99,8 @@ export function BattleView({
   const metresPerPx = metresPerPxAt(ZOOM_BASE ** zoom, camera.fovY, window.innerHeight);
   const cues = useCaptions();
   const { note: noteCues } = cues;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [viewportReady, setViewportReady] = useState(false);
   const session = useBattleSession({
     scenario,
     seed,
@@ -107,6 +110,7 @@ export function BattleView({
     scripted,
     destroyable: "apart",
     sound: true,
+    inputEnabled: !menuOpen && viewportReady,
   });
   const input = !replay && !scripted;
   const { world, meshes, sim, control, surfaceZ } = session;
@@ -116,7 +120,7 @@ export function BattleView({
   const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const { clear: clearCues } = cues;
-  const pause = usePauseMenu(sim.client);
+  const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
   const { audio } = session;
   useEffect(() => {
     clearCues();
@@ -165,7 +169,6 @@ export function BattleView({
 
   // Loading: the static world's meshes, then the viewport's first frame, then
   // the battle's first observation, which is when the player can act.
-  const [viewportReady, setViewportReady] = useState(false);
   const loadStage: BattleLoadStage | null = !meshes
     ? null
     : !viewportReady
@@ -186,6 +189,7 @@ export function BattleView({
       {meshes && !sim.error && (
         <LabViewport
           fixture={fixture}
+          inputEnabled={!pause.open && loadStage === "playable"}
           world={worldFeed}
           structures={session.structures}
           buildings={session.buildingsFeed}
@@ -240,7 +244,7 @@ export function BattleView({
       {/* The HUD: the route's readout at the top, the menu button, and,
           while something is selected, a strategy game's command bar along
           the bottom: the selection's unit card and its commands. */}
-      <div className="hud" data-testid="battle-panel">
+      <div className="hud" data-testid="battle-panel" inert={pause.open}>
         <header className="hud-panel hud-top" data-occludes-readouts>
           {!sim.error && status(session)}
           {sim.error && (
@@ -250,17 +254,14 @@ export function BattleView({
           )}
         </header>
         <MenuButton onOpen={() => pause.show(true)} />
-        {control.selectedUnits.length > 0 && (
-          <footer className="hud-panel hud-bar hud-bottom" data-occludes-readouts>
-            <SelectionCard
-              units={control.selectedUnits}
-              own={observation?.own ?? []}
-              rules={session.rules}
-            />
-            {input && <CommandBar control={control} />}
-          </footer>
-        )}
-        <CaptionList captions={cues} />
+        <ArmyDeck
+          own={observation?.own ?? []}
+          selected={control.selected}
+          onSelect={control.setSelected}
+          rules={session.rules}
+          control={input ? control : undefined}
+          captions={<CaptionList captions={cues} />}
+        />
       </div>
       {input && <RejectedOrder acks={control.acks} />}
       {!sim.error && loadStage !== "playable" && cover}

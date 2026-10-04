@@ -1477,7 +1477,7 @@ pub(crate) fn cover(
     )?
     .map;
     let cell = presets.open_country.sight.cell_m;
-    let mut coverage = coverage::Coverage::new(&map, physics, cell).map_err(&fail)?;
+    let mut coverage = coverage::Coverage::new(&map, physics, cell).map_err(fail)?;
     let (added, kept) = {
         let mut country = Country::new(&plan, request, presets);
         country.proof_fill = true;
@@ -1509,7 +1509,7 @@ pub(crate) fn cover(
                 ];
                 let at = scale(add(low, high), 0.5);
                 let covered = coverage.covered(low, high);
-                coverage.check().map_err(&fail)?;
+                coverage.check().map_err(fail)?;
                 if covered {
                     continue;
                 }
@@ -1524,7 +1524,7 @@ pub(crate) fn cover(
                         // the witness. This is a conservative proposal filter;
                         // actual patches must still earn the full certificate.
                         if !coverage.admits(p, low, high) {
-                            coverage.check().map_err(&fail)?;
+                            coverage.check().map_err(fail)?;
                             continue;
                         }
                         for kind in &presets.open_country.sight.fill {
@@ -1550,7 +1550,7 @@ pub(crate) fn cover(
                         if found {
                             break;
                         }
-                        coverage.check().map_err(&fail)?;
+                        coverage.check().map_err(fail)?;
                     }
                     if found {
                         break;
@@ -1593,7 +1593,7 @@ pub(crate) fn cover(
                     let p = country.anywhere(half, &mut rng);
                     if country
                         .try_feature(*kind, p, &mut rng, &mut coverage, map.forests.len(), None)
-                        .map_err(&fail)?
+                        .map_err(fail)?
                     {
                         stood = true;
                         break;
@@ -1606,7 +1606,7 @@ pub(crate) fn cover(
                 }
             }
         }
-        coverage.check().map_err(&fail)?;
+        coverage.check().map_err(fail)?;
         (country.forests, country.kept)
     };
     plan.forests.extend(added);

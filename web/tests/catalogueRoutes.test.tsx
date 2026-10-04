@@ -1,6 +1,6 @@
+import { renderInRouter as render } from "./support/router";
 import { LAB_FIXTURES } from "@apps/battle-lab/src/fixtures";
 import { createElement } from "react";
-import { render } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { LabRouter } from "@apps/battle-lab/src/router";
 import { MainMenu } from "@apps/battle-lab/src/MainMenu";
@@ -34,7 +34,8 @@ test("a catalogue draft is inspectable in labs by name and absent from player ba
   vi.spyOn(catalogue, "listMaps").mockImplementation((filter) =>
     catalogue.filterMaps(entries, filter),
   );
-  const labs = render(createElement(LabRouter, { path: "/labs" }));
+  window.history.replaceState(null, "", "/labs");
+  const labs = render(createElement(LabRouter));
   expect(labs.getByRole("link", { name: "Battlefield draft-field" }).getAttribute("href")).toBe(
     "/lab/geometry?map=draft-field",
   );
@@ -44,6 +45,7 @@ test("a catalogue draft is inspectable in labs by name and absent from player ba
   expect(labs.queryByRole("link", { name: "Battlefield retired-field" })).toBeNull();
   expect(labs.getByRole("link", { name: "workbench" }).getAttribute("href")).toBe("/workbench");
   labs.unmount();
+  window.history.replaceState(null, "", "/");
   const menu = render(createElement(MainMenu));
   expect(
     menu.getByRole("link", { name: "Play Battlefield released-field" }).getAttribute("href"),
@@ -64,7 +66,8 @@ test("every saved route names an existing catalogue map and every active map has
   for (const map of maps)
     for (const benchmark of map.benchmarks)
       expect(LAB_FIXTURES.find((fixture) => fixture.id === benchmark)?.map).toBe(map.id);
-  const labs = render(createElement(LabRouter, { path: "/labs" }));
+  window.history.replaceState(null, "", "/labs");
+  const labs = render(createElement(LabRouter));
   for (const map of maps.filter((map) => map.status !== "retired"))
     expect(labs.getByRole("link", { name: map.label }).getAttribute("href")).toBe(
       `/lab/geometry?map=${map.id}`,

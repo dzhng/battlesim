@@ -1,10 +1,3 @@
-// A battle's sound in the browser: the `SoundFrame` over a live
-// `AudioContext`, heard from the camera. Audio starts on the first user
-// gesture (the browser's rule), or at once when the page has already had
-// one (the click that opened the battle, such as the benchmark's Short
-// run), unless muted, once the bank is prepared; muting suspends the context
-// and the frame, and unmuting starts afresh (loops restart, nothing stale
-// plays). The mute and volume are `soundSettings`', shared with the menu.
 import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { vec3 } from "math";
 import {
@@ -16,7 +9,8 @@ import {
   type SoundStats,
 } from "./soundFrame";
 import { battleSounds } from "./catalog";
-import { soundSettings } from "./settings";
+import type { AppAudio } from "./appAudio";
+import type { SoundBank } from "./soundBank";
 import { gameSounds } from "./shippedSounds";
 import { WebAudioSink } from "./webAudioSink";
 
@@ -47,131 +41,92 @@ export interface BattleAudioStats extends SoundStats {
   error: string | null;
 }
 
+/** One battle's observed causes. The page owns context and prepared buffers;
+ * this observer owns its evidence and disposable mixer, including reverb tails. */
 export class BattleAudio {
-  private context: AudioContext | null = null;
   private sink: WebAudioSink | null = null;
   private frame: SoundFrame | null = null;
-  /** Recorded and synthetic buffers are prepared: the frame may run. */
   private ready = false;
   private error: string | null = null;
-  private readonly unsubscribe: () => void;
-  private readonly onGesture = () => this.start();
-  private resumeAfterPageHide = false;
-  private readonly onPageHide = () => {
-    this.resumeAfterPageHide = this.context !== null;
-    this.close();
-  };
-  private readonly onPageShow = () => {
-    if (this.resumeAfterPageHide) this.start();
-    this.resumeAfterPageHide = false;
-  };
+  private disposed = false;
 
-  constructor(private readonly options: SoundFrameOptions) {
-    this.unsubscribe = soundSettings.subscribe(() => this.applySettings());
-    for (const type of ["pointerdown", "keydown"] as const)
-      window.addEventListener(type, this.onGesture, { capture: true });
-    window.addEventListener("pagehide", this.onPageHide);
-    window.addEventListener("pageshow", this.onPageShow);
-    // The gesture may have come before this battle existed (the button that
-    // mounted it): the page's sticky activation lets the context run now.
-    if (navigator.userActivation?.hasBeenActive) this.start();
+  constructor(
+    private readonly options: SoundFrameOptions,
+    private readonly app: AppAudio,
+  ) {}
+
+  /** The app connects a fresh graph once its context exists. */
+  connect(context: AudioContext, bank: SoundBank) {
+    if (this.disposed || this.sink) return;
+    const sink = (this.sink = new WebAudioSink(
+      context,
+      this.options.presentation,
+      this.options.catalog,
+      bank,
+    ));
+    this.frame = new SoundFrame(this.options, sink);
+    void bank
+      .prepare(battleSounds(this.options.catalog ?? gameSounds))
+      .then(() => {
+        if (this.sink !== sink) return;
+        this.ready = true;
+        this.frame?.reset();
+      })
+      .catch((error: unknown) => {
+        if (this.sink !== sink) return;
+        this.error = error instanceof Error ? error.message : String(error);
+        console.error("Battle sound could not be prepared:", this.error);
+      });
   }
 
-  /** Start (or resume) sound: call from a user gesture. Muted, it stays off. */
   start() {
-    if (soundSettings.get().muted) return;
-    if (!this.context) {
-      this.context = new AudioContext({ latencyHint: "interactive" });
-      this.sink = new WebAudioSink(this.context, this.options.presentation, this.options.catalog);
-      this.frame = new SoundFrame(this.options, this.sink);
-      const sink = this.sink;
-      void sink.bank
-        .prepare(battleSounds(this.options.catalog ?? gameSounds))
-        .then(() => {
-          if (this.sink !== sink) return;
-          this.ready = true;
-          this.frame?.reset();
-        })
-        .catch((error: unknown) => {
-          if (this.sink !== sink) return;
-          this.error = error instanceof Error ? error.message : String(error);
-          console.error("Battle sound could not be prepared:", this.error);
-        });
-      this.applySettings();
-    }
-    if (this.context.state !== "running") {
-      this.frame?.reset();
-      void this.context.resume();
-    }
+    if (!this.disposed) this.app.start();
   }
-
-  private applySettings() {
-    const { muted, volume } = soundSettings.get();
-    if (!this.context || !this.sink) {
-      if (!muted) this.start();
-      return;
-    }
-    this.sink.master.gain.setTargetAtTime(
-      this.options.presentation.buses.master * volume,
-      this.context.currentTime,
-      0.02,
-    );
-    if (muted && this.context.state === "running") void this.context.suspend();
-    if (!muted && this.context.state !== "running") this.start();
-  }
-
   private get live() {
-    return this.ready && this.context?.state === "running" ? this.frame : null;
+    return this.ready && this.app.stats().running ? this.frame : null;
   }
-
   note(pub: SoundPublication) {
     this.live?.note(pub);
   }
-
-  /** Each animation frame: the presentation clock, what is drawn moving,
-   *  and the camera the listener follows. */
   update(clock: number, motion: SoundMotion, camera: Camera3DParams) {
-    this.live?.update(
+    if (!this.live) return;
+    this.live.update(
       clock,
       performance.now() / 1000,
       motion,
       cameraListener(camera, this.options.presentation.listener_eye_share),
     );
+    this.app.battleStarted(this);
   }
-
   reset() {
     this.frame?.reset();
   }
-
+  setVolume(volume: number) {
+    if (!this.sink) return;
+    this.sink.master.gain.setTargetAtTime(
+      this.options.presentation.buses.master * volume,
+      this.sink.now(),
+      0.02,
+    );
+  }
   stats(): BattleAudioStats | null {
     if (!this.frame) return null;
     return {
       ...this.frame.stats(),
-      running: this.context?.state === "running",
+      running: this.app.stats().running,
       graph: this.sink?.live ?? 0,
       bankMs: this.sink?.bank.ms ?? 0,
       loading: !this.ready && this.error === null,
       error: this.error,
     };
   }
-
   dispose() {
-    this.unsubscribe();
-    for (const type of ["pointerdown", "keydown"] as const)
-      window.removeEventListener(type, this.onGesture, { capture: true });
-    window.removeEventListener("pagehide", this.onPageHide);
-    window.removeEventListener("pageshow", this.onPageShow);
-    this.resumeAfterPageHide = false;
-    this.close();
-  }
-
-  private close() {
-    this.sink?.bank.dispose();
-    this.ready = false;
-    this.error = null;
-    void this.context?.close();
-    this.context = null;
-    this.frame = null;
+    if (this.disposed) return;
+    this.disposed = true;
+    this.frame?.reset();
+    this.sink?.dispose();
     this.sink = null;
+    this.frame = null;
+    this.app.releaseBattle(this);
   }
 }

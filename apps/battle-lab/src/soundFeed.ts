@@ -8,7 +8,8 @@ import {
   validateAudio,
   type AudioPresentation,
 } from "@packages/battle-audio/src/audioPresentation";
-import { BattleAudio } from "@packages/battle-audio/src/battleAudio";
+import type { AppAudio } from "@packages/battle-audio/src/appAudio";
+import type { BattleAudio } from "@packages/battle-audio/src/battleAudio";
 import type { SoundMotion, SoundVehicle } from "@packages/battle-audio/src/soundFrame";
 import type { PoseFrame } from "@packages/battle-renderer/src/models/poseDriver";
 import { gameEffects } from "./effectFeed";
@@ -20,8 +21,8 @@ export const gameAudio: AudioPresentation = validateAudio(
 );
 
 /** A battle's sound, heard as `presentation.audio` says. */
-export function createBattleAudio(tickHz: number): BattleAudio {
-  return new BattleAudio({
+export function createBattleAudio(tickHz: number, audio: AppAudio): BattleAudio {
+  return audio.createBattle({
     tickHz,
     presentation: gameAudio,
     smokeTimes: gameEffects.smoke,

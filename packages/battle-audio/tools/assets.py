@@ -12,6 +12,7 @@ import sys
 import wave
 
 FILTERS = {
+    "music": "anull",
     "weighted-shot": "highpass=f=45,equalizer=f=140:t=o:w=1.2:g=4,equalizer=f=3000:t=o:w=1:g=1.5,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
     "heavy-report": "highpass=f=35,equalizer=f=100:t=o:w=1.2:g=4,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
     "impact": "highpass=f=60",

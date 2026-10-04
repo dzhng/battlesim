@@ -1,7 +1,7 @@
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, expect, test, vi } from "vitest";
-import { LabViewport } from "@apps/battle-lab/src/LabViewport";
+import type { LabViewport } from "@apps/battle-lab/src/LabViewport";
 import { gameCamera } from "@apps/battle-lab/src/gameCamera";
 import type { BattleFrame, WorldLayers } from "@packages/battle-renderer/src/scene";
 
@@ -28,11 +28,14 @@ vi.mock("@packages/battle-renderer/src/frame/battleFrame", () => ({
       gpu.resolve = resolve;
     }),
 }));
-function mount(overrides: Partial<ComponentProps<typeof LabViewport>> = {}) {
+async function mount(overrides: Partial<ComponentProps<typeof LabViewport>> = {}) {
+  const { LabViewport } = await import("@apps/battle-lab/src/LabViewport");
   gpu.resolve = null;
   gpu.destroyed = false;
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
     configure() {},
+    getCurrentTexture: () => ({ createView: () => ({}) }),
+    unconfigure: vi.fn(),
   } as unknown as GPUCanvasContext);
   const frames: FrameRequestCallback[] = [];
   vi.stubGlobal("requestAnimationFrame", (frame: FrameRequestCallback) => frames.push(frame));
@@ -43,19 +46,20 @@ function mount(overrides: Partial<ComponentProps<typeof LabViewport>> = {}) {
     initialCamera: gameCamera.opening(),
     ...overrides,
   };
-  return { view: render(<LabViewport {...props} />), props, frames };
+  return { view: render(<LabViewport {...props} />), props, frames, Viewport: LabViewport };
 }
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.resetModules();
 });
 
 test("a viewport disposed during its build releases the late frame and never becomes ready", async () => {
   const listeners = vi.spyOn(window, "addEventListener");
   let ready = false;
-  const { view, frames } = mount({
+  const { view, frames } = await mount({
     onReady: () => {
       ready = true;
     },
@@ -63,7 +67,7 @@ test("a viewport disposed during its build releases the late frame and never bec
   await act(async () => {});
   expect(gpu.resolve).not.toBeNull();
   view.unmount();
-  expect(gpu.destroyed).toBe(true);
+  expect(gpu.destroyed).toBe(false);
   listeners.mockClear();
   let disposed = false;
   await act(async () =>
@@ -86,7 +90,7 @@ test("a viewport disposed during its build releases the late frame and never bec
 });
 
 test("failed frame initialization releases the frame before showing its error", async () => {
-  const { view, props } = mount();
+  const { view, props, Viewport } = await mount();
   await act(async () => {});
   let disposed = false;
   await act(async () =>
@@ -104,7 +108,7 @@ test("failed frame initialization releases the frame before showing its error", 
   );
   expect(view.getByRole("alert").textContent).toContain("frame setup failed");
   expect(disposed).toBe(true);
-  view.rerender(<LabViewport {...props} models={[]} />);
+  view.rerender(<Viewport {...props} models={[]} />);
   view.unmount();
 });
 
@@ -120,7 +124,7 @@ test("appearance updates reach the installing frame and unmount releases it imme
   });
   const first = appearance(1),
     latest = appearance(2);
-  const { view, props } = mount({ appearances: first });
+  const { view, props, Viewport } = await mount({ appearances: first });
   await act(async () => {});
   let release!: () => void;
   const installing = new Promise<void>((resolve) => {
@@ -145,11 +149,57 @@ test("appearance updates reach the installing frame and unmount releases it imme
   await act(async () => {
     gpu.resolve!(frame);
   });
-  view.rerender(<LabViewport {...props} appearances={latest} />);
+  view.rerender(<Viewport {...props} appearances={latest} />);
   expect(requested).toBe(latest);
   view.unmount();
   expect(disposed).toBe(true);
   await act(async () => {
     release();
   });
+});
+
+test("a later viewport borrows the same device and releases its canvas without destroying admission", async () => {
+  const first = await mount();
+  await act(async () => {});
+  const native = HTMLCanvasElement.prototype.getContext as ReturnType<typeof vi.fn>;
+  const context = native.mock.results.at(-1)!.value as GPUCanvasContext;
+  first.view.unmount();
+  expect(context.unconfigure).toHaveBeenCalledTimes(1);
+  expect(gpu.destroyed).toBe(false);
+  const second = await mount();
+  await act(async () => {});
+  expect(gpu.resolve).not.toBeNull();
+  second.view.unmount();
+  expect(gpu.destroyed).toBe(false);
+});
+
+test("a covered viewport ignores camera keys and resumes steering when uncovered", async () => {
+  const { view, frames, props, Viewport } = await mount({ inputEnabled: false });
+  await act(async () => {});
+  await act(async () =>
+    gpu.resolve!({
+      setFog() {},
+      setClock() {},
+      setCorpses() {},
+      setGround: () => false,
+      render() {},
+      dispose() {},
+    } as unknown as BattleFrame),
+  );
+  const advance = (now: number) => {
+    const scheduled = frames.splice(0);
+    for (const frame of scheduled) frame(now);
+  };
+  act(() => advance(performance.now() + 100));
+  const before = [...window.__lab!.camera!().target];
+  fireEvent.keyDown(window, { code: "KeyW" });
+  act(() => advance(performance.now() + 200));
+  expect(window.__lab!.camera!().target).toEqual(before);
+  fireEvent.keyUp(window, { code: "KeyW" });
+  view.rerender(<Viewport {...props} inputEnabled />);
+  fireEvent.keyDown(window, { code: "KeyW" });
+  act(() => advance(performance.now() + 300));
+  expect(window.__lab!.camera!().target).not.toEqual(before);
+  fireEvent.keyUp(window, { code: "KeyW" });
+  view.unmount();
 });

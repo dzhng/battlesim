@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   validateSoundCatalog,
@@ -152,7 +153,7 @@ export function SoundWorkbench({
     <main className="sound-workbench" data-sound-workbench>
       <header className="sw-header">
         <div>
-          <a href="/">Developer menu</a>
+          <Link to="/">Developer menu</Link>
           <h1>Sound workbench</h1>
           <p>Audition the library. Choose the sound of each unit and weapon mount.</p>
         </div>

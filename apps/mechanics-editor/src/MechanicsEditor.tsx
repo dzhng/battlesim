@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import {
   createContext,
   useContext,
@@ -729,9 +730,9 @@ export default function MechanicsEditor() {
     >
       <header className="me-header">
         <div>
-          <a className="me-back" href="/">
+          <Link className="me-back" to="/">
             ← Developer menu
-          </a>
+          </Link>
           <div className="me-title">
             <h1>Mechanics</h1>
             <span>LOCAL AUTHORING</span>

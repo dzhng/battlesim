@@ -3,8 +3,18 @@ import { cleanup, render } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { InfoPanel } from "../src/battle/present/infoPanel";
 import { stateIcon } from "@packages/scene-assets/src/icons";
-import { weaponRows, type Panel, type PanelRules } from "../src/battle/present/panelRows";
+import {
+  enemyPanel,
+  ownPanel,
+  weaponRows,
+  type Panel,
+  type PanelRules,
+} from "../src/battle/present/panelRows";
 
+import game from "@fixtures/game.json";
+import { panelSpecimens, specimenUnit } from "@apps/battle-lab/src/panelSpecimens";
+
+const fixtureRules = game as unknown as PanelRules;
 afterEach(cleanup);
 
 test("concealment remains beside the name in every detail mode and clears with the bonus", () => {
@@ -95,4 +105,26 @@ test("one progress ring shows aiming first, then reload, then disappears", () =>
 
   view.rerender(<InfoPanel panel={panel(1, 0, 0)} />);
   expect(view.container.querySelector(".ro-ring")).toBeNull();
+});
+
+test("own squad names count living soldiers including wounded members, without exposing enemy personnel", () => {
+  const squad = specimenUnit("rifle", { memberHp: [10, 0, 3] });
+  const own = render(<InfoPanel panel={ownPanel(squad, [squad], fixtureRules)} />);
+  expect(own.getByText("2 soldiers")).toBeTruthy();
+  own.unmount();
+  const enemy = render(<InfoPanel panel={enemyPanel("rifle", fixtureRules)} />);
+  expect(enemy.queryByText(/soldiers/)).toBeNull();
+  enemy.unmount();
+  const tank = specimenUnit("tank");
+  const vehicle = render(<InfoPanel panel={ownPanel(tank, [tank], fixtureRules)} />);
+  expect(vehicle.queryByText(/soldiers/)).toBeNull();
+});
+
+test("numbered launchers separate their equipment index from rounds remaining", () => {
+  const panel = panelSpecimens(fixtureRules).find(
+    (s) => s.id === "key cases/two launchers, separate reloads",
+  )!.panel;
+  const view = render(<InfoPanel panel={panel} />);
+  expect(view.getByText("ATGM 1").closest(".ro-row")!.textContent).toContain("ATGM 1:2");
+  expect(view.getByText("ATGM 2").closest(".ro-row")!.textContent).toContain("ATGM 2:3");
 });

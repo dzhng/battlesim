@@ -22,6 +22,8 @@ interface LiveVoice {
   gain: GainNode;
   filter: BiquadFilterNode;
   panner: PannerNode | null;
+  stereo: StereoPannerNode | null;
+  release(): void;
   send: GainNode;
 }
 
@@ -32,13 +34,18 @@ export class WebAudioSink implements VoiceSink {
   /** Each bus's distance-reverb input: voices send here by their wet. */
   private readonly reverbs: Record<Bus, GainNode>;
   private readonly voices = new Map<number, LiveVoice>();
+  private readonly sounding = new Set<LiveVoice>();
+  private readonly graph: AudioNode[] = [];
+  private readonly ownsBank: boolean;
 
   constructor(
     readonly context: BaseAudioContext,
     presentation: AudioPresentation,
     catalog?: SoundCatalog,
+    bank?: SoundBank,
   ) {
-    this.bank = new SoundBank(context, catalog);
+    this.ownsBank = !bank;
+    this.bank = bank ?? new SoundBank(context, catalog);
     const limiter = new DynamicsCompressorNode(context, {
       threshold: -6,
       knee: 3,
@@ -46,12 +53,15 @@ export class WebAudioSink implements VoiceSink {
       attack: 0.002,
       release: 0.2,
     });
+    this.graph.push(limiter);
     limiter.connect(context.destination);
     this.master = new GainNode(context, { gain: presentation.buses.master });
+    this.graph.push(this.master);
     this.master.connect(limiter);
     this.buses = Object.fromEntries(
       BUSES.map((b) => {
         const g = new GainNode(context, { gain: presentation.buses[b] });
+        this.graph.push(g);
         g.connect(this.master);
         return [b, g];
       }),
@@ -62,9 +72,12 @@ export class WebAudioSink implements VoiceSink {
     this.reverbs = Object.fromEntries(
       BUSES.map((b) => {
         const input = new GainNode(context, { gain: 1 });
-        input
-          .connect(new ConvolverNode(context, { buffer: impulse, disableNormalization: true }))
-          .connect(this.buses[b]);
+        const convolver = new ConvolverNode(context, {
+          buffer: impulse,
+          disableNormalization: true,
+        });
+        this.graph.push(input, convolver);
+        input.connect(convolver).connect(this.buses[b]);
         return [b, input];
       }),
     ) as Record<Bus, GainNode>;
@@ -97,6 +110,7 @@ export class WebAudioSink implements VoiceSink {
     const filter = new BiquadFilterNode(ctx, { type: "lowpass", frequency: v.lowpass, Q: 0.5 });
     source.connect(gain).connect(filter);
     let panner: PannerNode | null = null;
+    let stereo: StereoPannerNode | null = null;
     let out: AudioNode = filter;
     if (v.position) {
       panner = new PannerNode(ctx, {
@@ -107,22 +121,34 @@ export class WebAudioSink implements VoiceSink {
         positionZ: v.position[2],
       });
       out = filter.connect(panner);
-    } else if (v.pan !== null) out = filter.connect(new StereoPannerNode(ctx, { pan: v.pan }));
+    } else if (v.pan !== null) {
+      stereo = new StereoPannerNode(ctx, { pan: v.pan });
+      out = filter.connect(stereo);
+    }
     out.connect(this.buses[v.bus]);
     const send = new GainNode(ctx, { gain: v.wet });
     out.connect(send).connect(this.reverbs[v.bus]);
-    // A loop starts part-way in, so two of the same sound never phase.
-    const offset = v.loop ? (id * 0.6180339887) % 1 : 0;
-    source.start(v.at, offset * source.buffer!.duration);
-    const voice = { source, gain, filter, panner, send, normalization };
-    this.voices.set(id, voice);
-    source.onended = () => {
-      if (this.voices.get(id) === voice) this.voices.delete(id);
-      source.disconnect();
-      filter.disconnect();
-      panner?.disconnect();
-      send.disconnect();
+    // Stagger repeated ambience/engine loops; authored music starts at its intro.
+    const offset = v.offset ?? (v.loop ? ((id * 0.6180339887) % 1) * buffer.duration : 0);
+    source.start(v.at, offset);
+    const voice: LiveVoice = {
+      source,
+      gain,
+      filter,
+      panner,
+      stereo,
+      send,
+      normalization,
+      release: () => {
+        if (this.voices.get(id) === voice) this.voices.delete(id);
+        this.sounding.delete(voice);
+        source.onended = null;
+        for (const node of [source, gain, filter, panner, stereo, send]) node?.disconnect();
+      },
     };
+    this.voices.set(id, voice);
+    this.sounding.add(voice);
+    source.onended = voice.release;
   }
 
   set(id: number, p: VoiceParams, at: number) {
@@ -144,12 +170,14 @@ export class WebAudioSink implements VoiceSink {
     if (!v) return;
     this.voices.delete(id);
     v.gain.gain.cancelScheduledValues(at);
-    v.gain.gain.setTargetAtTime(0, at, fade / 3);
+    if (fade > 0) v.gain.gain.setTargetAtTime(0, at, fade / 3);
+    else v.gain.gain.setValueAtTime(0, at);
     try {
       v.source.stop(at + fade);
     } catch {
       // Already stopped.
     }
+    if (fade === 0) v.release();
   }
 
   listen(l: Listener, at: number) {
@@ -165,8 +193,29 @@ export class WebAudioSink implements VoiceSink {
     L.upZ.setValueAtTime(1, at);
   }
 
+  /** Remove every voice, including sources still fading after a stop. */
+  clear() {
+    for (const voice of this.sounding) {
+      try {
+        voice.source.stop();
+      } catch {
+        /* Already stopped. */
+      }
+      voice.release();
+    }
+  }
+
+  /** Cut the mixer output too, so reverb tails cannot outlive a battle.
+   * A borrowed bank belongs to the page and outlives this mixer. */
+  dispose() {
+    this.clear();
+    for (const node of this.graph) node.disconnect();
+    this.graph.length = 0;
+    if (this.ownsBank) this.bank.dispose();
+  }
+
   /** Voices the graph holds now. */
   get live() {
-    return this.voices.size;
+    return this.sounding.size;
   }
 }

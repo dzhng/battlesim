@@ -141,8 +141,13 @@ test("a preparation worker becomes the battle authority and replays its commands
             document.body.replaceChildren();
             document.body.append(host);
             const uiRoot = createRoot(host);
+            const { BrowserVisit } = await importModule(
+              `${root}/../tests/support/browserVisit.tsx`,
+            );
+            const renderScreen = (screen: unknown) =>
+              uiRoot.render(createElement(BrowserVisit, null, screen));
             let imported: unknown = null;
-            uiRoot.render(
+            renderScreen(
               createElement(ReplayImport, {
                 plays: (file: { variant?: string }) => file.variant === "ordinary",
                 onLoad: (file: unknown) => {
@@ -174,7 +179,7 @@ test("a preparation worker becomes the battle authority and replays its commands
                 };
               };
               keep();
-              uiRoot.render(createElement(MainMenu));
+              renderScreen(createElement(MainMenu));
               const shot = async (name: string) => {
                 await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
                 await (window as unknown as { replayShot(name: string): Promise<void> }).replayShot(
@@ -190,7 +195,7 @@ test("a preparation worker becomes the battle authority and replays its commands
                 if (watch.hasAttribute("href"))
                   throw new Error("pending storage guessed a replay viewer");
                 window.history.replaceState(null, "", "/battle?replay=saved");
-                uiRoot.render(createElement(Battle));
+                renderScreen(createElement(Battle));
                 while (!host.querySelector('[data-testid="loading"]')) await wait();
                 if (host.querySelector('input[type="file"]'))
                   throw new Error("pending replay looked absent");
@@ -201,7 +206,7 @@ test("a preparation worker becomes the battle authority and replays its commands
                 await shot("prepared-pulse-high");
                 pulse.currentTime = Number(pulse.effect!.getComputedTiming().duration) / 2;
                 await shot("prepared-pulse-low");
-                uiRoot.render(createElement(VillageReplay));
+                renderScreen(createElement(VillageReplay));
                 await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
                 if (
                   !host.querySelector('[data-testid="loading"]') ||
@@ -209,7 +214,7 @@ test("a preparation worker becomes the battle authority and replays its commands
                 )
                   throw new Error("pending village replay looked absent or started a scenario");
                 await shot("village-pending");
-                uiRoot.render(createElement(MainMenu));
+                renderScreen(createElement(MainMenu));
                 while (!host.textContent?.includes("Watch replay")) await wait();
               } finally {
                 held = false;
@@ -217,7 +222,7 @@ test("a preparation worker becomes the battle authority and replays its commands
               while (!host.querySelector('a[href="/battle?replay=saved"]')) await wait();
               await shot("menu-ready");
               db.close();
-              uiRoot.render(
+              renderScreen(
                 createElement(ReplayImport, {
                   plays: (file: { variant?: string }) => file.variant === "ordinary",
                   onLoad: (file: unknown) => {

@@ -16,7 +16,8 @@
   "dependencies": {
     "math": "0.1.0",
     "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "react-dom": "19.2.7",
+    "react-router": "7.13.2"
   },
   "devDependencies": {
     "@testing-library/react": "16.3.2",

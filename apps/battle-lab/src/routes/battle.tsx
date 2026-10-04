@@ -1,3 +1,5 @@
+import { Link } from "react-router";
+import { usePageVisitActive, usePublishBattleAddress } from "../navigation";
 // /battle: a prepared battle, in the same battle view the village plays in.
 // Exact addresses retain one requested battle. Ordinary Play selects an admitted
 // preparation before publishing its exact address and starting its worker.
@@ -178,9 +180,9 @@ function SavedReplay() {
         <div className="hud-panel menu-body">
           <h1>Replay</h1>
           <ReplayImport plays={isPreparedReplay} onLoad={setFile} />
-          <a className="hud-menu-item" href="/">
+          <Link className="hud-menu-item" to="/">
             Main menu
-          </a>
+          </Link>
         </div>
       </main>
     );
@@ -206,6 +208,8 @@ function PreparedBattleView({
   replay?: PreparedReplayFile;
   onLoadReplay?: (file: PreparedReplayFile) => void;
 }) {
+  const publishAddress = usePublishBattleAddress();
+  const visitActive = usePageVisitActive();
   const [stage, setStage] = useState<Stage>("map");
   const [prepared, setPrepared] = useState<PreparedSession | null>(null);
   const [loadingRequest, setLoadingRequest] = useState(request);
@@ -215,6 +219,7 @@ function PreparedBattleView({
 
   // Preparation owns the candidate workers and, after admission, the winner.
   useEffect(() => {
+    let live = true;
     setPrepared(null);
     setLoadingRequest(request);
     setFailure(null);
@@ -255,12 +260,14 @@ function PreparedBattleView({
     admission.current = selection;
     preparation.battle.then(
       (battle) => {
-        if (play) window.history.replaceState(null, "", preparedBattleHref(battle.report.request));
+        if (!live || !visitActive()) return;
+        if (play) publishAddress(preparedBattleHref(battle.report.request));
         marks.current.prepared = performance.now();
         setStage("world");
         setPrepared(battle);
       },
-      (error: unknown) =>
+      (error: unknown) => {
+        if (!live || !visitActive()) return;
         setFailure(
           play
             ? {
@@ -273,10 +280,14 @@ function PreparedBattleView({
                 ) ?? [String(error)],
               }
             : failureOf(request, error, !!replay),
-        ),
+        );
+      },
     );
-    return () => preparation.cancel();
-  }, [request, replay, play]);
+    return () => {
+      live = false;
+      preparation.cancel();
+    };
+  }, [request, replay, play, publishAddress, visitActive]);
 
   const activeRequest = prepared?.report.request ?? loadingRequest;
   const subject = subjectOf(activeRequest);
@@ -357,9 +368,9 @@ function PreparedBattleView({
             </button>
           )}
           {!replay && (
-            <a className="hud-menu-item" href={PREPARED_REPLAY_ROUTE}>
+            <Link className="hud-menu-item" to={PREPARED_REPLAY_ROUTE}>
               Watch saved replay
-            </a>
+            </Link>
           )}
           {replay && onLoadReplay && (
             <ReplayImport plays={isPreparedReplay} onLoad={onLoadReplay} />

@@ -1,6 +1,6 @@
 // The player's right-click at the input seam: `useUnitControl.onPointer`
 // with a pick, and the orders it sends to a recording client.
-import { act, renderHook } from "@testing-library/react";
+import { act, fireEvent, renderHook } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { contactUnder } from "../src/battle/input/contactPick";
 import { useUnitControl } from "../src/battle/input/useUnitControl";
@@ -128,7 +128,7 @@ test("hover and dispatch share modifier precedence without hover consuming an ar
   };
   expect(hook.result.current.intentAt(pick)).toEqual({
     kind: "attack_move",
-    units: [1],
+    units: [1, 2],
     goal: [50, 50],
     queued: true,
   });
@@ -136,7 +136,7 @@ test("hover and dispatch share modifier precedence without hover consuming an ar
   expect(sent).toEqual([]);
   await click(pick);
   expect(sent).toEqual([
-    { order: { kind: "attack_move", units: [1], goal: [50, 50], gesture: 1 }, queued: true },
+    { order: { kind: "attack_move", units: [1, 2], goal: [50, 50], gesture: 1 }, queued: true },
   ]);
 });
 
@@ -364,4 +364,51 @@ test("an old client's delayed acknowledgement cannot repopulate a reset log", as
   });
   expect(hook.result.current.acks.map((entry) => entry.order.kind)).toEqual(["set_engagement"]);
   hook.unmount();
+});
+
+test("blocked battle input preserves selection and armed mode without issuing shortcuts", async () => {
+  const { client, sent } = recordingClient();
+  const observation = { own: [own(1, "rifle")], contacts: [] } as unknown as ObservationView;
+  const hook = renderHook(
+    ({ enabled }) => useUnitControl(client, observation, undefined, enabled),
+    {
+      initialProps: { enabled: true },
+    },
+  );
+  act(() => {
+    hook.result.current.setSelected([1]);
+    hook.result.current.setMode("attack_ground");
+  });
+  hook.rerender({ enabled: false });
+  const button = document.body.appendChild(document.createElement("button"));
+  await act(async () => {
+    fireEvent.keyDown(button, { code: "Backspace" });
+    fireEvent.keyDown(button, { code: "Escape" });
+    fireEvent.keyDown(button, { code: "Space" });
+  });
+  expect(sent).toEqual([]);
+  expect(hook.result.current.selected).toEqual([1]);
+  expect(hook.result.current.mode).toBe("attack_ground");
+  expect(hook.result.current.showOrders).toBe(false);
+  hook.rerender({ enabled: true });
+  await act(async () => fireEvent.keyDown(window, { code: "Backspace" }));
+  expect(sent.map(({ order }) => order)).toEqual([{ kind: "stop", units: [1] }]);
+  hook.unmount();
+  button.remove();
+});
+
+test("attack-move sends the entire selection, including unarmed units, by click and keyboard", async () => {
+  const { hook, sent, click } = await control();
+  await click({ ctrl: true });
+  act(() => hook.result.current.setMode("attack_move"));
+  await click({ shift: true });
+  act(() => hook.result.current.setSelected([2]));
+  act(() => fireEvent.keyDown(window, { code: "KeyX" }));
+  expect(hook.result.current.mode).toBe("attack_move");
+  await click({});
+  expect(sent).toEqual([
+    { order: { kind: "attack_move", units: [1, 2], goal: [50, 50], gesture: 1 }, queued: false },
+    { order: { kind: "attack_move", units: [1, 2], goal: [50, 50], gesture: 2 }, queued: true },
+    { order: { kind: "attack_move", units: [2], goal: [50, 50], gesture: 3 }, queued: false },
+  ]);
 });

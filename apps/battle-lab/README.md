@@ -12,6 +12,13 @@ identities; [route modules](src/routes/) implement them. The browser [scene runn
 holds the registry and scene files to each other, so adding a lab needs its matching
 check. The registry is the route inventory; docs do not maintain a parallel list.
 
+[Visit ownership](src/navigation.tsx) keeps client navigation separate from
+battle identity publication. Leaving a page discards its battle; history
+returning to its address prepares a fresh visit. Publishing the admitted exact
+address updates the current entry without restarting that visit. Queued async
+continuations stop when history leaves their visit, before React necessarily
+finishes unmounting the previous page.
+
 The main menu starts generated or released saved battles and opens replays. A
 seeded address names exact preparation inputs on the same build. Ordinary Play
 may try bounded fresh candidates and a released saved fallback, then publishes the
@@ -36,7 +43,14 @@ ordinary prop update can retain enormous diagnostic payloads. Keep live geometry
 fog and effects behind the existing feed boundary rather than copying them into
 component state.
 
-[The viewport](src/LabViewport.tsx) subscribes and updates [the renderer](../../packages/battle-renderer/README.md)
+[Page resources](src/appResources.ts) retain the admitted GPU across screen changes;
+[the viewport](src/LabViewport.tsx) owns the canvas configuration and scene
+allocations. A required resource failure ends play until manual Reload, while the
+menu remains available. Document departure releases the page GPU; component
+refresh cleanup only detaches listeners so development refresh cannot destroy a
+still-live page's resources.
+
+The viewport subscribes and updates [the renderer](../../packages/battle-renderer/README.md)
 through that boundary. Published cause and identity remain intact; feed interpolation
 cannot grant visibility or invent firing. [The scene runner](../../web/scene.mjs)
 checks oversized development performance details as well as ordinary page errors.
@@ -49,6 +63,9 @@ retiring visuals are remembered evidence, never live targets. Panels prioritize
 legibility and camera depth while preserving hover access to detail. Sensing rules
 own concealment; the UI cannot infer a hidden observer from private state.
 
+[The army HUD and app-lifetime rationale](../../specs/done/hud-chrome/README.md)
+records the player layout, menu audio and retained-resource contracts.
+
 The shipped rationales explain the non-obvious decisions behind [readout backgrounds](../../specs/done/readout-backgrounds/README.md),
 [group movement previews](../../specs/done/group-move-preview/README.md),
 [physical move validity](../../specs/done/move-validity/README.md) and
@@ -60,3 +77,10 @@ visible readiness follow [fire cadence](../../specs/done/fire-cadence/README.md)
 with explicitly private nonlethal review settings. [Guided fire](../../specs/battle-foundation/contracts.md#guided-flight)
 separates shared spotting from the launcher's physical sight. [Benchmarking](../../web/src/battle/benchmark/README.md)
 retains exact workload identity so a convenient lab cannot replace a performance control.
+
+The [template line-up scene](../../web/scenes/city-lineup.mjs) visits every generated source set separately and holds
+its combined template identities to the complete generated catalogue. Each visit
+retains the state, tier and transition-picture checks while keeping the shared
+kit download within the same map budget. Use the line-up route's `?set=` selector
+for development: its unrestricted all-set view currently exceeds that budget and
+is refused; the scene's complete coverage does not imply that view is admitted.

@@ -19,6 +19,7 @@
 // moment and after, from the effects' own frame and the pass inspector's
 // world view.
 import { battleCursor } from "./_cursorOrders.mjs";
+import { appJourney, armyJourney } from "./_appJourney.mjs";
 import {
   lab,
   obs,
@@ -2656,23 +2657,25 @@ async function selectionTour(ctx) {
   // its info panel, the callouts' own.
   await lab(page, (id) => window.__lab.route.select([id]), tanks[0]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-  const card = page.getByTestId("selection-card");
+  const card = page.locator(`.hud-army-card[data-unit="${tanks[0]}"]`);
+  await card.hover();
+  const detail = page.getByRole("tooltip");
   const icons = await card.evaluate((c) =>
-    [...c.querySelectorAll(".hud-portrait svg")].map((s) => {
+    [...c.querySelectorAll("svg")].map((s) => {
       const r = s.getBoundingClientRect();
       return { w: r.width, h: r.height, paths: s.querySelectorAll("path").length };
     }),
   );
-  const cardPanel = await card.evaluate((c) => ({
+  const cardPanel = await detail.evaluate((c) => ({
     name: c.querySelector(".ro-body .ro-name-word")?.textContent,
     weapons: c.querySelectorAll(".ro-body .ro-weapon").length,
     strength: c.querySelector(".ro-name > .ro-pips")?.dataset.lit,
   }));
   ctx.check(
-    "the unit card shows the role symbol and the model's silhouette, each at least 20 px tall, beside the tank's info panel with its strength",
+    "the unit card shows the role symbol and the model's silhouette, each at least 20 px tall, with the tank's hover info panel with its strength",
     icons.length === 2 &&
       icons.every((i) => i.h >= 20) &&
-      cardPanel.name === "TANK" &&
+      cardPanel.name === `Tank #${tanks[0]}` &&
       cardPanel.weapons === 2 &&
       cardPanel.strength === "5",
     JSON.stringify({ icons, cardPanel }),
@@ -2698,8 +2701,8 @@ async function selectionTour(ctx) {
   const setUp = (await obs(page)).own.find((u) => u.id === trucks[0]).deployment?.target;
   const verb = setUp === "deployed" ? "Pack" : "Deploy";
   ctx.check(
-    "with a tank and a supply truck selected, one Deploy/Pack toggle names what it will do and reaches 1 of 2",
-    bar.name === verb && bar.reach === "1/2",
+    "with a tank and a supply truck selected, one Deploy/Pack toggle names what it will do without a fraction",
+    bar.name === verb && bar.reach === undefined,
     JSON.stringify({ bar, setUp }),
   );
   await page.locator("footer.hud-bottom").screenshot({
@@ -3629,6 +3632,8 @@ async function panelLayoutTour(ctx) {
 }
 
 const TOURS = {
+  appflow: appJourney,
+  army: armyJourney,
   cursor: battleCursor,
   menu: menuTour,
   captions: captionsTour,
@@ -3744,8 +3749,11 @@ async function playTour(ctx) {
       unit: Number(n.closest(".ro-unit").dataset.unit),
       text: n.textContent.trim(),
     })),
-    panel: [...document.querySelectorAll("[data-testid=selection-card] .ro-name-word")].map((n) =>
-      n.textContent.trim(),
+    panel: [...document.querySelectorAll('.hud-army-card[aria-pressed="true"]')].map((n) =>
+      n
+        .getAttribute("aria-label")
+        .replace(/ #\d+$/, "")
+        .toUpperCase(),
     ),
     extraText: (() => {
       const layer = document.querySelector("[data-testid=readouts]").cloneNode(true);

@@ -5,7 +5,8 @@ import {
   type CursorAction,
 } from "@web/battle/present/gameCursor";
 import { useEffect, useRef, useState } from "react";
-import { requestGpuDevice, gpuFailureMessage } from "@packages/renderer-core/src/device";
+import { gpuFailureMessage } from "@packages/renderer-core/src/device";
+import { appResources } from "./appResources";
 import {
   trackGpuAllocations,
   type GpuAllocationCounts,
@@ -79,6 +80,8 @@ const NO_INSTANCES: readonly SceneInstance[] = [];
 
 interface LabViewportProps {
   fixture: string;
+  /** A loading cover or menu owns player input while false. */
+  inputEnabled?: boolean;
   /** The static world, fed like the overlay (`useFeed`); drawn once it is set. */
   world: FeedSource<WorldLayers | null>;
   /** Knowledge-drawn props as fitted appearances (standing walls and field
@@ -349,6 +352,7 @@ declare global {
 
 export function LabViewport({
   fixture,
+  inputEnabled = true,
   world,
   structures,
   buildings,
@@ -376,6 +380,12 @@ export function LabViewport({
   picks: fixedPicks,
   cameraConfig,
 }: LabViewportProps) {
+  const inputEnabledRef = useRef(inputEnabled);
+  inputEnabledRef.current = inputEnabled;
+  const cancelInputRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (!inputEnabled) cancelInputRef.current?.();
+  }, [inputEnabled]);
   const pilotRef = useRef(pilot);
   const cameraConfigRef = useRef(cameraConfig);
   const appearancesRef = useRef(appearances);
@@ -527,6 +537,7 @@ export function LabViewport({
     const lifetime = new AbortController();
     const { signal } = lifetime;
     let device: GPUDevice | null = null;
+    let canvasContext: GPUCanvasContext | null = null;
     let raf = 0;
     const showCursor = (
       position: { x: number; y: number } | null,
@@ -579,7 +590,9 @@ export function LabViewport({
     };
     const keys = trackHeldKeys(
       window,
-      (code) => code in CAMERA_KEYS || code === "ShiftLeft" || code === "ShiftRight",
+      (code) =>
+        inputEnabledRef.current &&
+        (code in CAMERA_KEYS || code === "ShiftLeft" || code === "ShiftRight"),
     );
     const pilot = pilotRef.current;
     /** The pilot gave the last frame its framing. */
@@ -587,7 +600,7 @@ export function LabViewport({
     /** Apply one intent to the pose asked for; the frame loop draws it. A
      *  piloted camera takes no input. */
     const steer = (intent: CameraIntent, dt: number) => {
-      if (piloted) return;
+      if (piloted || !inputEnabledRef.current) return;
       const next = controller.step(asked, intent, dt);
       if (next !== asked) place(next);
     };
@@ -601,15 +614,13 @@ export function LabViewport({
 
     (async () => {
       try {
-        const info = await requestGpuDevice();
+        const info = await appResources.gpu();
         device = info.device;
-        if (signal.aborted) {
-          device.destroy();
-          return;
-        }
+        if (signal.aborted) return;
         const allocations = trackGpuAllocations(device);
         const context = canvas.getContext("webgpu");
         if (!context) throw new Error("Canvas refused a WebGPU context.");
+        canvasContext = context;
         context.configure({ device, format: info.format, alphaMode: "opaque" });
         const syncSize = () => {
           const dpr = window.devicePixelRatio || 1;
@@ -990,6 +1001,7 @@ export function LabViewport({
           };
         };
         const onDown = (e: PointerEvent) => {
+          if (!inputEnabledRef.current) return;
           if (!interactionSurface(e.target)) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
           if (e.button === 0) {
@@ -1008,6 +1020,7 @@ export function LabViewport({
           }
         };
         const onMove = (e: PointerEvent) => {
+          if (!inputEnabledRef.current) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
           const target = e.target;
           const over =
@@ -1027,6 +1040,7 @@ export function LabViewport({
           see(0);
         };
         const onUp = (e: PointerEvent) => {
+          if (!inputEnabledRef.current) return;
           orbit = null;
           if (e.button === 2 && rightPress) {
             const start = rightPress.event;
@@ -1072,7 +1086,9 @@ export function LabViewport({
           onRightPressRef.current?.(null);
           showCursor(null, null, null);
         };
+        cancelInputRef.current = cancelGesture;
         const onWheel = (e: WheelEvent) => {
+          if (!inputEnabledRef.current) return;
           const target = e.target;
           if (
             target !== canvas &&
@@ -1131,6 +1147,8 @@ export function LabViewport({
           });
         });
       } catch (err) {
+        if (signal.aborted) return;
+        appResources.refuse(err);
         const message = gpuFailureMessage(err);
         handle.error = message;
         setError(message);
@@ -1139,13 +1157,14 @@ export function LabViewport({
 
     return () => {
       lifetime.abort();
+      cancelInputRef.current = null;
       cancelAnimationFrame(raf);
       keys.detach();
       showCursor(null, null, null);
       onRightPressRef.current?.(null);
       sceneRef.current?.dispose();
       sceneRef.current = null;
-      device?.destroy();
+      canvasContext?.unconfigure();
       if (window.__lab === handle) delete window.__lab;
     };
     // The viewport is rebuilt only when the fixture identity changes.

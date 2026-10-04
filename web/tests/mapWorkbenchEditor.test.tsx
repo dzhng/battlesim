@@ -1,3 +1,4 @@
+import { MemoryRouter } from "react-router";
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
@@ -120,7 +121,7 @@ function fixture() {
 
 test("map selection and search edit the same district rule and regenerate the edited snapshot", async () => {
   const { api, generate } = fixture();
-  render(<MapWorkbench api={api} />);
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
   await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
   fireEvent.click(screen.getByTestId("map-plan").querySelector("path")!);
   expect(screen.queryByLabelText("Maximum transit")).toBeNull();
@@ -145,7 +146,7 @@ test("map selection and search edit the same district rule and regenerate the ed
 
 test("Cancel work during a sample closes it without restarting generation", async () => {
   const { api, generate } = fixture();
-  render(<MapWorkbench api={api} />);
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
   await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
   generate.mockImplementation(
     (_request, signal) =>
@@ -166,7 +167,7 @@ test("Cancel work during a sample closes it without restarting generation", asyn
 test("reapplying an unchanged formatted value displays the outside source change", async () => {
   const { api } = fixture();
   const saved = await api.snapshot();
-  render(<MapWorkbench api={api} />);
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
   await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
   fireEvent.change(screen.getByLabelText("Block depth"), { target: { value: "130.0" } });
   const outside = structuredClone(saved);
@@ -186,7 +187,7 @@ test("reapplying an unchanged formatted value displays the outside source change
 
 test("an unchanged saved comparison reuses the admitted preview", async () => {
   const { api, generate } = fixture();
-  render(<MapWorkbench api={api} />);
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
   await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
   fireEvent.click(screen.getByRole("button", { name: "Saved baseline · same seed" }));
   await waitFor(() =>
@@ -207,7 +208,7 @@ test("saved comparison stays visible across draft edits and resets when the seed
     svg: '<svg viewBox="10 10 80 80"><path data-rule-group="districts.apartments" data-feature-id="district-1" d="M10 10H90V90H10Z"/></svg>',
     features: [],
   });
-  render(<MapWorkbench api={api} />);
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
   await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
   fireEvent.click(screen.getByRole("button", { name: "Saved baseline · same seed" }));
   await waitFor(() =>
@@ -245,7 +246,7 @@ test("saved comparison stays visible across draft edits and resets when the seed
 
 test("superseded successes keep the displayed admitted artifact pinned when the latest draft refuses", async () => {
   const { api, generate } = fixture();
-  render(<MapWorkbench api={api} />);
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
   await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
   let finish!: (report: Report) => void;
   generate.mockImplementation((request) => {
@@ -287,7 +288,7 @@ test("superseded successes keep the displayed admitted artifact pinned when the 
 test("reapply preserves a visible way to undo unfinished input whose source field disappeared", async () => {
   const { api, generate } = fixture();
   const saved = await api.snapshot();
-  render(<MapWorkbench api={api} />);
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
   await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
   fireEvent.change(screen.getByLabelText("Block depth"), { target: { value: "-" } });
   const outside = structuredClone(saved);
@@ -311,7 +312,7 @@ test("reapply preserves a visible way to undo unfinished input whose source fiel
 
 test("regenerating after a refused saved comparison retains only admitted geometry", async () => {
   const { api, generate } = fixture();
-  render(<MapWorkbench api={api} />);
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
   await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
   fireEvent.change(screen.getByLabelText("Block depth"), { target: { value: "140" } });
   await waitFor(() => expect(generate).toHaveBeenCalledTimes(2));
@@ -362,7 +363,7 @@ test("feature selection belongs to its artifact when generation reuses district 
         },
       ],
     });
-  render(<MapWorkbench api={api} />);
+  render(<MapWorkbench api={api} />, { wrapper: MemoryRouter });
   await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
   fireEvent.click(screen.getByTestId("map-plan").querySelector("path")!);
   expect(screen.getByRole("button", { name: "Inspect selection" }).hasAttribute("disabled")).toBe(

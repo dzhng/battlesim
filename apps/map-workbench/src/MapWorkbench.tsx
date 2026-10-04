@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   canonicalSeed,
@@ -444,7 +445,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
   return (
     <main className="map-workbench">
       <header className="mw-header">
-        <a href="/">Menu</a>
+        <Link to="/">Menu</Link>
         <h1>Map workbench</h1>
         <span>Generation & validation</span>
         <button onClick={() => void reload(false)}>Reload sources</button>

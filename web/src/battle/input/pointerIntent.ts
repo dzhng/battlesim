@@ -70,10 +70,10 @@ export function pointerIntent(
 ): PointerIntent {
   if (selected.length === 0) return { kind: "none" };
   const queued = pick.shift;
+  const units = selected.map((u) => u.id);
   const armed = () => reach("attack", selected, catalog).map((u) => u.id);
   if (isAttackMoveClick(pick)) {
-    const units = armed();
-    return pick.ground && units.length
+    return pick.ground
       ? { kind: "attack_move", units, goal: pick.ground, queued }
       : { kind: "blocked", disarm: !!pick.ground };
   }
@@ -88,7 +88,6 @@ export function pointerIntent(
     if (units.length)
       return { kind: "attack", units, target: { kind: "contact", id: pick.contact }, queued };
   }
-  const units = selected.map((u) => u.id);
   const facing = dragFacing(pick);
   if (pick.building != null && (mode === "move" || mode === "garrison")) {
     return {
@@ -100,13 +99,14 @@ export function pointerIntent(
     };
   }
   if (!pick.ground || mode === "garrison") return { kind: "blocked", disarm: false };
-  if (mode === "attack_move" || mode === "attack_ground") {
+  if (mode === "attack_move") return { kind: "attack_move", units, goal: pick.ground, queued };
+  if (mode === "attack_ground") {
     const units = armed();
-    if (!units.length) return { kind: "blocked", disarm: true };
-    return mode === "attack_move"
-      ? { kind: "attack_move", units, goal: pick.ground, queued }
-      : { kind: "attack", units, target: { kind: "ground", point: [...pick.ground, 0] }, queued };
+    return units.length
+      ? { kind: "attack", units, target: { kind: "ground", point: [...pick.ground, 0] }, queued }
+      : { kind: "blocked", disarm: true };
   }
+
   return {
     kind: "move",
     units,

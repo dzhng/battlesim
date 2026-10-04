@@ -3,6 +3,7 @@
 // play a saved battlefield of the catalogue, or watch a saved battle, and
 // the sound settings. The test village, the benchmark and the labs are
 // developer tools, behind the developer link.
+import { Link } from "react-router";
 import { useState } from "react";
 import config from "@fixtures/generated-battle.json";
 import { listMaps } from "@web/maps/catalogue";
@@ -81,24 +82,36 @@ function Entries({ label, entries }: { label: string; entries: Entry[] }) {
   return (
     <nav aria-label={label}>
       <ul>
-        {entries.map((e) => (
-          <li key={e.href ?? e.label}>
-            <a
-              className="menu-card"
-              href={e.href ?? undefined}
-              aria-disabled={e.href === null || undefined}
-              aria-labelledby={`${id(e.href ?? e.label)}-label`}
-              aria-describedby={`${id(e.href ?? e.label)}-note`}
-            >
+        {entries.map((e) => {
+          const props = {
+            className: "menu-card",
+            "aria-labelledby": `${id(e.href ?? e.label)}-label`,
+            "aria-describedby": `${id(e.href ?? e.label)}-note`,
+          };
+          const content = (
+            <>
               <span className="menu-card-label" id={`${id(e.href ?? e.label)}-label`}>
                 {e.label}
               </span>
               <span className="menu-card-note" id={`${id(e.href ?? e.label)}-note`}>
                 {e.note}
               </span>
-            </a>
-          </li>
-        ))}
+            </>
+          );
+          return (
+            <li key={e.href ?? e.label}>
+              {e.href === null ? (
+                <a {...props} aria-disabled>
+                  {content}
+                </a>
+              ) : (
+                <Link {...props} to={e.href}>
+                  {content}
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );
@@ -160,14 +173,14 @@ function NewBattle() {
       <p className="menu-battle-note" data-testid="menu-note">
         {TYPE_NOTE[type]}
       </p>
-      <a
+      <Link
         className="menu-card menu-deploy"
         data-testid="menu-deploy"
-        href={asked.seed ? battleHref({ ...choice, seed: asked.seed }) : playHref(choice)}
+        to={asked.seed ? battleHref({ ...choice, seed: asked.seed }) : playHref(choice)}
       >
         <span className="menu-card-label">Deploy</span>
         <span className="menu-card-note">Attack the defended town as blue.</span>
-      </a>
+      </Link>
     </section>
   );
 }

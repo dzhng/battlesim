@@ -4,7 +4,7 @@ import game from "@fixtures/game.json";
 import { SOUNDS } from "@packages/battle-audio/src/synth";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
-import { BattleAudio } from "@packages/battle-audio/src/battleAudio";
+import { AppAudio } from "@packages/battle-audio/src/appAudio";
 import { soundSettings } from "@packages/battle-audio/src/settings";
 
 const param = () => ({
@@ -35,7 +35,7 @@ const empty = (tick: number) => ({
   effects: { tick, shooters: [], segments: [], blasts: [], smokes: [] },
   audible: [],
 });
-const active: BattleAudio[] = [];
+const active: AppAudio[] = [];
 afterEach(() => {
   for (const audio of active.splice(0)) audio.dispose();
   vi.unstubAllGlobals();
@@ -123,13 +123,16 @@ function setupDecode(decode: () => Promise<AudioBuffer>) {
     impacts: {},
     effects: {},
   };
-  const audio = new BattleAudio({
+  const app = new AppAudio({
+    presentation: game.presentation.audio as unknown as AudioPresentation,
+    catalog,
+  });
+  const audio = app.createBattle({
     tickHz: 30,
     presentation: game.presentation.audio as unknown as AudioPresentation,
     smokeTimes: {},
-    catalog,
   });
-  active.push(audio);
+  active.push(app);
   audio.start();
   return audio;
 }
@@ -163,7 +166,7 @@ test("failed audio preparation is reported and does not admit publications", asy
   expect(audio.stats()?.tick).toBe(-1);
 });
 
-test("leaving a page cancels pending preparation and returning prepares fresh audio", async () => {
+test("document departure cancels pending preparation and BFCache return requires manual recovery", async () => {
   let finish: ((value: AudioBuffer) => void) | undefined;
   const errors = vi.spyOn(console, "error").mockImplementation(() => {});
   const audio = setupDecode(
@@ -180,12 +183,33 @@ test("leaving a page cancels pending preparation and returning prepares fresh au
   expect(audio.stats()).toBeNull();
   expect(errors.mock.calls).toEqual([]);
 
-  finish = undefined;
   window.dispatchEvent(new Event("pageshow"));
-  expect(audio.stats()).toMatchObject({ loading: true, tick: -1 });
+  audio.start();
+  expect(audio.stats()).toBeNull();
+});
+
+test("a departed battle cannot admit late decoding and its replacement shares the pending bank", async () => {
+  let finish!: (value: AudioBuffer) => void;
+  let decodes = 0;
+  const first = setupDecode(() => {
+    decodes++;
+    return new Promise((resolve) => {
+      finish = resolve;
+    });
+  });
   await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
-  finish!(buffer(1, 2, 8000));
-  await vi.waitFor(() => expect(audio.stats()?.loading).toBe(false));
-  audio.note(empty(9));
-  expect(audio.stats()).toMatchObject({ tick: 9, pending: 0, error: null });
+  first.dispose();
+  const next = active.at(-1)!.createBattle({
+    tickHz: 30,
+    presentation: game.presentation.audio as unknown as AudioPresentation,
+    smokeTimes: {},
+  });
+  next.note(empty(5));
+  finish(buffer(1, 2, 8000));
+  await vi.waitFor(() => expect(next.stats()?.loading).toBe(false));
+  expect(decodes).toBe(1);
+  expect(first.stats()).toBeNull();
+  expect(next.stats()).toMatchObject({ tick: -1, pending: 0 });
+  next.note(empty(6));
+  expect(next.stats()?.tick).toBe(6);
 });

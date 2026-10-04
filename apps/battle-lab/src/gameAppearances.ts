@@ -14,6 +14,7 @@ import { STAND_IN_KIT } from "@packages/scene-assets/src/standInKit";
 import { TemplateArtError, templateKits } from "@packages/scene-assets/src/templateLibrary";
 import type { PlacedBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { MapProp, PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
+import { appResources } from "./appResources";
 
 const library = new AppearanceLibrary();
 let loading: Promise<InstalledAppearances> | null = null;
@@ -36,8 +37,7 @@ const NOTHING: ReadonlySet<string> = new Set();
 
 /** The installed appearances with `asked` among them, or null until they
  *  have loaded, and while `asked` is null (the page does not know yet what it
- *  draws). A failed load is an error on the console (scenes fail on it), and
- *  the world never draws. */
+ *  draws). Required failures refuse the active view through the app boundary. */
 export function useGameAppearances(
   asked: ReadonlySet<string> | null = NOTHING,
 ): InstalledAppearances | null {
@@ -47,7 +47,9 @@ export function useGameAppearances(
     let live = true;
     gameAppearances(asked).then(
       (next) => live && setInstalled(next),
-      (error: unknown) => console.error("Appearances failed to load", error),
+      (error: unknown) => {
+        if (live) appResources.refuse(error);
+      },
     );
     return () => {
       live = false;

@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { useLabLoading } from "../LabLoading";
 // The real cursor at native screen size, isolated from picking and simulation.
 import { useLayoutEffect, useRef } from "react";
@@ -58,7 +59,7 @@ export default function CursorLab() {
     <main ref={sheet} className="cursor-lab">
       <header>
         <strong>Arrow + action</strong>
-        <a href="/labs">Battle lab</a>
+        <Link to="/labs">Battle lab</Link>
       </header>
       {surfaces.map((surface) => (
         <section key={surface} className={`cursor-surface cursor-${surface}`}>

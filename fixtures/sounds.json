@@ -1,5 +1,14 @@
 {
   "sources": {
+    "battlefield2-menu": {
+      "label": "Battlefield 2 menu · user-supplied recording",
+      "author": "EA / DICE · uploaded by Leopard",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=X9ChkYgrBtQ",
+      "path": "assets/third-party/audio/battlefield2-menu.mp3",
+      "sha256": "e776a311668495a4a22dfe1c0f5e62b3a48eb49541d7ff44ea94fd7a1ecd4af3",
+      "notes": "User-supplied menu.mp3 for personal project. Retained as supplied; source corresponds to the requested Battlefield 2 Menu video."
+    },
     "qubodup-gunfire": {
       "label": "Gun fire collection",
       "author": "Iwan \u201cqubodup\u201d Gabovitch",
@@ -425,16 +434,31 @@
     }
   },
   "clips": {
+    "battlefield2-menu": {
+      "label": "Battlefield 2 menu music",
+      "category": "music",
+      "role": "loop",
+      "source": "battlefield2-menu",
+      "source_rate": 44100,
+      "source_frames": [
+        0,
+        12961792
+      ],
+      "processing": "music",
+      "url": "/audio/clips/battlefield2-menu.wav",
+      "sha256": "b7d3be758425f9e4b5a95134006d41e17f5ad6f08700fe0559eac240c906c92c",
+      "sample_rate": 48000,
+      "frames": 14103273,
+      "loop": true,
+      "notes": "Full supplied track, downmixed through the existing mono preparation pipeline; no tonal filter. Standard 100 ms loop crossfade and peak headroom."
+    },
     "auto-01-1": {
       "label": "Auto 01 \u00b7 report 1",
       "category": "machine-gun",
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        42404,
-        53568
-      ],
+      "source_frames": [42404, 53568],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-01-1.wav",
       "sha256": "94b900343e93e9f071b668bd7753fd2735108a80322eb9bb49c40dc643e6f4fb",
@@ -449,10 +473,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        192768,
-        201511
-      ],
+      "source_frames": [192768, 201511],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-01-2.wav",
       "sha256": "40a67ab275365d480e00a1291b02e57259088a83b76b84858a34da7b731206da",
@@ -467,10 +488,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        207938,
-        211584
-      ],
+      "source_frames": [207938, 211584],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-02-1.wav",
       "sha256": "a8ec73cdfb038954de9ae51f61bf937545070e28878cf6f10c9737f5df7628da",
@@ -485,10 +503,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        212429,
-        216096
-      ],
+      "source_frames": [212429, 216096],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-02-2.wav",
       "sha256": "b3297c0b9c778ba0b49d5109d1fad1c20587b8e9b5eed8f069e4663ab04e01d1",
@@ -503,10 +518,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        222304,
-        225552
-      ],
+      "source_frames": [222304, 225552],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-02-1.wav",
       "sha256": "003421ae34e54d45a47be5d540d29daa84b8bb1b8001c1e7a52a5bc89fc5030f",
@@ -521,10 +533,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        265296,
-        268608
-      ],
+      "source_frames": [265296, 268608],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-02-2.wav",
       "sha256": "72c34b4dd520c0eebc16b50b5e4d41d63ead1d44101c9b7aa97ed3141c7c80cb",
@@ -539,10 +548,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        299013,
-        301536
-      ],
+      "source_frames": [299013, 301536],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-03-1.wav",
       "sha256": "765c484af796a45f8a7ebb056829f574532456707ca54fe490352d02b3be68a4",
@@ -557,10 +563,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        303489,
-        306048
-      ],
+      "source_frames": [303489, 306048],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-03-2.wav",
       "sha256": "c8d41e36caa8b7ff8e7cde13347db3b0aa6a346e7d37198887105e9f88d13f42",
@@ -575,10 +578,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        391291,
-        399552
-      ],
+      "source_frames": [391291, 399552],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-04-1.wav",
       "sha256": "ee9067c21400712ccc4df6e5416d54dc68e85656cdd12a633db66c04c3a038c8",
@@ -593,10 +593,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        469161,
-        477360
-      ],
+      "source_frames": [469161, 477360],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-04-2.wav",
       "sha256": "98008b77265380da241bbc403744adf760c750722f2966472ae6c0c774af8ca1",
@@ -611,10 +608,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        505025,
-        507552
-      ],
+      "source_frames": [505025, 507552],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-05-1.wav",
       "sha256": "5a5f43446daea7cf72f9bb77cc4b92a064610e974bf4ba62ecb9779aa3a8b290",
@@ -629,10 +623,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        537648,
-        540240
-      ],
+      "source_frames": [537648, 540240],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-05-2.wav",
       "sha256": "46bc23c8456e21735e0a8a1b4f98518e809cd683ae8951215630a34286396a2d",
@@ -647,10 +638,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        591556,
-        594960
-      ],
+      "source_frames": [591556, 594960],
       "processing": "impact",
       "url": "/audio/clips/hard-05-1.wav",
       "sha256": "8a0a88c0cb6e36f3c9b1f4596de2b480b8fbdda52a264563065e7cea1842b108",
@@ -665,10 +653,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        644073,
-        647472
-      ],
+      "source_frames": [644073, 647472],
       "processing": "impact",
       "url": "/audio/clips/hard-05-2.wav",
       "sha256": "008645d3155124a7aab3593636dd645f7409837409b97f81c9d79e9b085bc399",
@@ -683,10 +668,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        670975,
-        675120
-      ],
+      "source_frames": [670975, 675120],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-06-1.wav",
       "sha256": "d4151eac9f5ec6b405b46e93faeb55467a1ea0c7c3264dc36905dbed78c5c942",
@@ -701,10 +683,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        718512,
-        722544
-      ],
+      "source_frames": [718512, 722544],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-06-2.wav",
       "sha256": "bad0f66dbef4883f560f6c0c0e47127896b73e0b03a3667695ca41e529f6df52",
@@ -719,10 +698,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        739706,
-        742176
-      ],
+      "source_frames": [739706, 742176],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-07-1.wav",
       "sha256": "44465433845a82dc1f6f54071f45846d94a72f18b8b0c66d7a984da3aeaf03e5",
@@ -737,10 +713,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        786762,
-        789600
-      ],
+      "source_frames": [786762, 789600],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-07-2.wav",
       "sha256": "c08e03a8ca2fcce91bb53f3d55d7d96ea432df899b8ce04af77fef9f12258fc4",
@@ -755,10 +728,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        816704,
-        819360
-      ],
+      "source_frames": [816704, 819360],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-08-1.wav",
       "sha256": "a1432a1a28aece40b835e748dd72e175884e89551c54dc3bb55b36d57c9002d0",
@@ -773,10 +743,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        865300,
-        867792
-      ],
+      "source_frames": [865300, 867792],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-08-2.wav",
       "sha256": "17bfef062ecfa7d9e5597388e5cc0d9fd2b664dc034044a55881859adc299cb6",
@@ -791,10 +758,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        897364,
-        900048
-      ],
+      "source_frames": [897364, 900048],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-09-1.wav",
       "sha256": "de59d311cd8e9c96db96bd58aaf3c4be0689fb44f5c23abb121e6a3a25b049f2",
@@ -809,10 +773,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        902032,
-        904512
-      ],
+      "source_frames": [902032, 904512],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-09-2.wav",
       "sha256": "21ddc0ba2a61450432380b5f52d1c94eafb1da1c09e13e438a4942cf6cf81a81",
@@ -827,10 +788,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1031930,
-        1036176
-      ],
+      "source_frames": [1031930, 1036176],
       "processing": "weighted-shot",
       "url": "/audio/clips/bass-11-1.wav",
       "sha256": "7e3de578a691af9ab4c1c9f5443b7f801d1936712f13b0d227631a882a359dc9",
@@ -845,10 +803,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1077493,
-        1081776
-      ],
+      "source_frames": [1077493, 1081776],
       "processing": "weighted-shot",
       "url": "/audio/clips/bass-11-2.wav",
       "sha256": "e6f9e109b750437c5f467b20c340eb7b1a09d3129817874746aa284ac7939c86",
@@ -863,10 +818,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1110384,
-        1117776
-      ],
+      "source_frames": [1110384, 1117776],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-11-1.wav",
       "sha256": "5e6a853fe6b122fa1aec44c6f3a1e5b63d4ef2215585452ab61704fdbd61a0d7",
@@ -881,10 +833,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1138298,
-        1145712
-      ],
+      "source_frames": [1138298, 1145712],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-11-2.wav",
       "sha256": "2759dc79950a55b17aa3b6c5b82d98e7423f1e993d00344b0d2135df53c9d53e",
@@ -899,10 +848,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1238177,
-        1239792
-      ],
+      "source_frames": [1238177, 1239792],
       "processing": "weighted-shot",
       "url": "/audio/clips/bass-12-1.wav",
       "sha256": "f718c64cf7845faf2ad63fc27a0e398ee600d08faddd4d557d3c40d1314e55ec",
@@ -917,10 +863,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1291229,
-        1293936
-      ],
+      "source_frames": [1291229, 1293936],
       "processing": "weighted-shot",
       "url": "/audio/clips/bass-12-2.wav",
       "sha256": "b1b3095a6ec5b5dad41ede87164a16a847b3bceb7868a1e5ebedeed2e5b2e890",
@@ -935,10 +878,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1476107,
-        1484016
-      ],
+      "source_frames": [1476107, 1484016],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-15-1.wav",
       "sha256": "9a689b62c340cb490a2117e56148f2e358ff81df097f002406fea39ab067aff8",
@@ -953,10 +893,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1495975,
-        1503888
-      ],
+      "source_frames": [1495975, 1503888],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-15-2.wav",
       "sha256": "083818e27c20e70f9dbf779027120bb9c67a94702b2f16dbfddc4a158a9750be",
@@ -971,10 +908,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1859585,
-        1867440
-      ],
+      "source_frames": [1859585, 1867440],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-18-1.wav",
       "sha256": "4ca952fb9551c9dd8418b28f363af4fddcc55114496f572880cad7a4d630ac57",
@@ -989,10 +923,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1898650,
-        1906608
-      ],
+      "source_frames": [1898650, 1906608],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-18-2.wav",
       "sha256": "2f23876f2326f0448c3fb19ae9b46c98d3d1127bfeb9466beb49954539044737",
@@ -1007,10 +938,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1936968,
-        1944816
-      ],
+      "source_frames": [1936968, 1944816],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-19-1.wav",
       "sha256": "aaf7db5aa986552d77f89f1c062476d1ac08cc1efed695ac1348637809555a1b",
@@ -1025,10 +953,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1986975,
-        1994832
-      ],
+      "source_frames": [1986975, 1994832],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-19-2.wav",
       "sha256": "bf520606983e1e0c340489565076ad3ac7b868460d5c7c337325c18f4435eca3",
@@ -1043,10 +968,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2048076,
-        2052528
-      ],
+      "source_frames": [2048076, 2052528],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-20-1.wav",
       "sha256": "8fa9706c151d227ef0d8d309fa483d73d3f6e3a432d0685a7da7d0a544fb2a14",
@@ -1061,10 +983,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2088600,
-        2092992
-      ],
+      "source_frames": [2088600, 2092992],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-20-2.wav",
       "sha256": "61e0f9ef2afa0ab9995d58156e8c803dc5d9d406177a9a94388b9eb06c5c8b93",
@@ -1079,10 +998,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2230504,
-        2235120
-      ],
+      "source_frames": [2230504, 2235120],
       "processing": "weighted-shot",
       "url": "/audio/clips/light-20-1.wav",
       "sha256": "fa4f315b66ce6a48860fe41e1f7f499111359e5385f90b14f948da6de2a75288",
@@ -1097,10 +1013,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2278323,
-        2282976
-      ],
+      "source_frames": [2278323, 2282976],
       "processing": "weighted-shot",
       "url": "/audio/clips/light-20-2.wav",
       "sha256": "ff81c74d3aa18b51623a316e2ad54698bbaf4043a33c89493c733f9cc0845fb0",
@@ -1115,10 +1028,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2325192,
-        2329584
-      ],
+      "source_frames": [2325192, 2329584],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-21-1.wav",
       "sha256": "84748ce9ef899f14a2882fd4092404f94c73a66e460d8afe04007c41bb67c0b5",
@@ -1133,10 +1043,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2380504,
-        2384880
-      ],
+      "source_frames": [2380504, 2384880],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-21-2.wav",
       "sha256": "1b7286baea212ba01d70db81c9f2181073c2801df34be446ea41e1450fd4d38b",
@@ -1151,10 +1058,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2425968,
-        2430768
-      ],
+      "source_frames": [2425968, 2430768],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-22-1.wav",
       "sha256": "16d7cbefd48c05412599f516bd7e7e5da96a94065e6262015dd6efcbb4fde957",
@@ -1169,10 +1073,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2460990,
-        2465808
-      ],
+      "source_frames": [2460990, 2465808],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-22-2.wav",
       "sha256": "fa8d15461c2e594936c214f20a6f77841529ce16ce7c494d8ec1726b3d215813",
@@ -1187,10 +1088,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2493703,
-        2498112
-      ],
+      "source_frames": [2493703, 2498112],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-23-1.wav",
       "sha256": "ee43e43921f04fc16215afdb61f950f07dbf697f5cbbb2127ba2e69621e19397",
@@ -1205,10 +1103,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2573015,
-        2577408
-      ],
+      "source_frames": [2573015, 2577408],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-23-2.wav",
       "sha256": "03639f65490119d105afa029d68e40c639ea8a6f8389f7e2571898a5b31c93b7",
@@ -1223,10 +1118,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2653736,
-        2658336
-      ],
+      "source_frames": [2653736, 2658336],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-24-1.wav",
       "sha256": "d05c41bca438ab8e5e4f91155eac8204465c1b8a53e0372d4a87f6906cd7e5a0",
@@ -1241,10 +1133,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2689100,
-        2693808
-      ],
+      "source_frames": [2689100, 2693808],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-24-2.wav",
       "sha256": "ccaf58e944d25636fc54788c5007beb1f828b73e3a348fbbe3a5cc9be31fc687",
@@ -1259,10 +1148,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2716710,
-        2720736
-      ],
+      "source_frames": [2716710, 2720736],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-25-a-1.wav",
       "sha256": "54c214c89b703f558410977550c8cd75a658aa37d551468704136dd440373d07",
@@ -1277,10 +1163,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2764071,
-        2768208
-      ],
+      "source_frames": [2764071, 2768208],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-25-a-2.wav",
       "sha256": "f09994e6aebf0cf9e6a93cab998394fceeacd4bd60b7e0d79cab3fbdbe286428",
@@ -1295,10 +1178,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2780322,
-        2784720
-      ],
+      "source_frames": [2780322, 2784720],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-25-b-1.wav",
       "sha256": "f1add1f64328c0dc95cd3cc9aa574cbec79188be02025f9cd0252a71f1ce8f98",
@@ -1313,10 +1193,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2813632,
-        2818032
-      ],
+      "source_frames": [2813632, 2818032],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-25-b-2.wav",
       "sha256": "f1069c55671f8755e62fd0633cc09b70c0d64cc08615ab7e439ca153a73e8e6d",
@@ -1331,10 +1208,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2861191,
-        2865552
-      ],
+      "source_frames": [2861191, 2865552],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-26-a-1.wav",
       "sha256": "0aa36abae130f293a2bee4ac256047fb34ac555e6ce474ee51d753e3cbc31ebd",
@@ -1349,10 +1223,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2907678,
-        2912112
-      ],
+      "source_frames": [2907678, 2912112],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-26-a-2.wav",
       "sha256": "e0f1ed328650beae0bd14e3a028ee93b308bd23ad7f11e534148ee006d73251b",
@@ -1367,10 +1238,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2927383,
-        2930784
-      ],
+      "source_frames": [2927383, 2930784],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-26-b-1.wav",
       "sha256": "243f71d0b8fbcf01f0758d97b13941444acc8ab5f0c17459604dc74c39bfc27f",
@@ -1385,10 +1253,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2974563,
-        2977728
-      ],
+      "source_frames": [2974563, 2977728],
       "processing": "weighted-shot",
       "url": "/audio/clips/report-26-b-2.wav",
       "sha256": "a0926a48c9a8f78f1f2548ee370998fedba911a987bf7f359049956c34128e26",
@@ -1403,10 +1268,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2998487,
-        3001776
-      ],
+      "source_frames": [2998487, 3001776],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-27-1.wav",
       "sha256": "60dbbaeb95520beeca2aab61735f813490cfda91ea62866428329a11e2ac1780",
@@ -1421,10 +1283,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3036434,
-        3040032
-      ],
+      "source_frames": [3036434, 3040032],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-27-2.wav",
       "sha256": "59a447da89d0fd0af3c244f52ae962ac8d7d4378f713806b1f23e9fe40357b93",
@@ -1439,10 +1298,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3143603,
-        3146832
-      ],
+      "source_frames": [3143603, 3146832],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-28-a-1.wav",
       "sha256": "b5399cfa8e68e8ca67b1b4d7dc9e6cec094b27bd9d7750699ad355e40d70e8bb",
@@ -1457,10 +1313,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3166689,
-        3169872
-      ],
+      "source_frames": [3166689, 3169872],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-28-a-2.wav",
       "sha256": "7f02e734feac5430d6d92ae6f404b963c6ceea8bd25a5b4c322b506f755491d2",
@@ -1475,10 +1328,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3190892,
-        3193824
-      ],
+      "source_frames": [3190892, 3193824],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-28-b-1.wav",
       "sha256": "76c6c21abfb089649b2b0672e58305fc99a832e629e87536f7f58de2991e66ac",
@@ -1493,10 +1343,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3222370,
-        3225408
-      ],
+      "source_frames": [3222370, 3225408],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-28-b-2.wav",
       "sha256": "da77b629cb3ad9c50f41321a643a7ce01ea1897d9c75d9d6d1cef62dc83ef48f",
@@ -1511,10 +1358,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3254168,
-        3257088
-      ],
+      "source_frames": [3254168, 3257088],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-28-c-1.wav",
       "sha256": "1568058730193c0bb722262f6aad0b834cf69a1d0941ceff2e13073abee9d0f1",
@@ -1529,10 +1373,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3275490,
-        3278880
-      ],
+      "source_frames": [3275490, 3278880],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-28-c-2.wav",
       "sha256": "67c49faf5f7f7bc811bdbf00b1dae212803f8cb0b8aab5c5657715f0bcf019a9",
@@ -1547,10 +1388,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3302386,
-        3305376
-      ],
+      "source_frames": [3302386, 3305376],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-29-a-1.wav",
       "sha256": "47fb608ed47e0892b189053bee7974a8f73a7222a889d1a5322771969bdbb788",
@@ -1565,10 +1403,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3337656,
-        3340656
-      ],
+      "source_frames": [3337656, 3340656],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-29-a-2.wav",
       "sha256": "2d7ab03abbb8cd4c517f04a2513be69c2cd49dc720d14749b44647b55388d7a0",
@@ -1583,10 +1418,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3360175,
-        3363168
-      ],
+      "source_frames": [3360175, 3363168],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-29-b-1.wav",
       "sha256": "6a648b825b28ac4a88ca0298b559909d2fc7f3583f27d978bd97e456cb98d57c",
@@ -1601,10 +1433,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3391821,
-        3394896
-      ],
+      "source_frames": [3391821, 3394896],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-29-b-2.wav",
       "sha256": "3f3f19a33aea9b5b397b8b1d99183440da6d4de433050a569501867c79c9ede2",
@@ -1619,10 +1448,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3420201,
-        3423120
-      ],
+      "source_frames": [3420201, 3423120],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-29-c-1.wav",
       "sha256": "63890e3683b4225262d94545891b6989585e5f50d7acc413181fe738ba23a229",
@@ -1637,10 +1463,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3477782,
-        3480816
-      ],
+      "source_frames": [3477782, 3480816],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-29-c-2.wav",
       "sha256": "690be3a41c22571e4c439f67f84570292d763bef0cd8f85eefeac8b8b4cab364",
@@ -1655,10 +1478,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3495107,
-        3498528
-      ],
+      "source_frames": [3495107, 3498528],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-29-d-1.wav",
       "sha256": "ac6c528e47075570891e521ef862c76cd9ee32c1158d44b90c0a1f8f6819d8d3",
@@ -1673,10 +1493,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        3525767,
-        3529296
-      ],
+      "source_frames": [3525767, 3529296],
       "processing": "weighted-shot",
       "url": "/audio/clips/auto-29-d-2.wav",
       "sha256": "8284a30ce79b650a7cd49de19037ef2a0a70660ea6192cacacb51b59a684d71c",
@@ -1691,10 +1508,7 @@
       "role": "reload",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1326480,
-        1368960
-      ],
+      "source_frames": [1326480, 1368960],
       "processing": "handling",
       "url": "/audio/clips/reload-13.wav",
       "sha256": "92944e0d028bbc161034917ed0f29bb4d646bcead009ec38f3843d5b6bb90861",
@@ -1709,10 +1523,7 @@
       "role": "mechanical",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1397712,
-        1403040
-      ],
+      "source_frames": [1397712, 1403040],
       "processing": "handling",
       "url": "/audio/clips/clack-14.wav",
       "sha256": "39829cc8eb6b9fc9fd4da190e22a939db7e4b615fd1468f4888ef7caa144e0b6",
@@ -1727,10 +1538,7 @@
       "role": "reload",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1552080,
-        1730880
-      ],
+      "source_frames": [1552080, 1730880],
       "processing": "handling",
       "url": "/audio/clips/reload-15.wav",
       "sha256": "fa94a35b993957a138abef6235e5a054e327e8e37e8d1c637926c3965f5ae112",
@@ -1745,10 +1553,7 @@
       "role": "reload",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1752432,
-        1789440
-      ],
+      "source_frames": [1752432, 1789440],
       "processing": "handling",
       "url": "/audio/clips/reload-16.wav",
       "sha256": "0466baca06cf48700288e9e18cff023f111d7778fdace97f2e542127de0d8ee5",
@@ -1763,10 +1568,7 @@
       "role": "mechanical",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1801296,
-        1815504
-      ],
+      "source_frames": [1801296, 1815504],
       "processing": "handling",
       "url": "/audio/clips/clack-17.wav",
       "sha256": "7b7557b7e739d26ad8b1fa72d4a747e495ebc20edcacee2a13a6069c14df9125",
@@ -1781,10 +1583,7 @@
       "role": "shot",
       "source": "m1-live-fire",
       "source_rate": 48000,
-      "source_frames": [
-        1687968,
-        1737600
-      ],
+      "source_frames": [1687968, 1737600],
       "processing": "heavy-report",
       "url": "/audio/clips/cannon-m1.wav",
       "sha256": "f16726c3c2952e0f2eafc9865d277e3c3b84ef89e3d7c5b2baf6b7a1facacaf2",
@@ -1799,10 +1598,7 @@
       "role": "launch",
       "source": "missile-live-fire",
       "source_rate": 48000,
-      "source_frames": [
-        593520,
-        618720
-      ],
+      "source_frames": [593520, 618720],
       "processing": "launch",
       "url": "/audio/clips/javelin-launch.wav",
       "sha256": "4e438d654b989577857cf700bebaedf4f6b156247b92f8944a42fc2675a754c4",
@@ -1817,10 +1613,7 @@
       "role": "launch",
       "source": "missile-live-fire",
       "source_rate": 48000,
-      "source_frames": [
-        352800,
-        380640
-      ],
+      "source_frames": [352800, 380640],
       "processing": "launch",
       "url": "/audio/clips/at4-launch.wav",
       "sha256": "3f7a1f2b46f0ab7b4a1f87a70f4e690e5b4f692f710d01d61577c9a89c3043d3",
@@ -1835,10 +1628,7 @@
       "role": "loop",
       "source": "missile-live-fire",
       "source_rate": 48000,
-      "source_frames": [
-        628800,
-        698400
-      ],
+      "source_frames": [628800, 698400],
       "processing": "motor-loop",
       "url": "/audio/clips/missile-exhaust.wav",
       "sha256": "e0e7c2b4eae7b14e1956593f9c9153068572f632427533e5a2aa6f0a02712f63",
@@ -1853,10 +1643,7 @@
       "role": "impact",
       "source": "ricochet-design",
       "source_rate": 44100,
-      "source_frames": [
-        838,
-        21609
-      ],
+      "source_frames": [838, 21609],
       "processing": "impact",
       "url": "/audio/clips/ricochet-1.wav",
       "sha256": "fdde2b0f3c2e47dac0b2b9b2438b00f0c2a9c37e497ba543a80d30db91b46f30",
@@ -1871,10 +1658,7 @@
       "role": "impact",
       "source": "ricochet-design",
       "source_rate": 44100,
-      "source_frames": [
-        23814,
-        37485
-      ],
+      "source_frames": [23814, 37485],
       "processing": "impact",
       "url": "/audio/clips/ricochet-2.wav",
       "sha256": "d6ba3c7d9fd59bd9948504fe7d778cf2b3adcc9c2dc1285940af42ddb25956aa",
@@ -1889,10 +1673,7 @@
       "role": "impact",
       "source": "ricochet-design",
       "source_rate": 44100,
-      "source_frames": [
-        43438,
-        69678
-      ],
+      "source_frames": [43438, 69678],
       "processing": "impact",
       "url": "/audio/clips/ricochet-3.wav",
       "sha256": "9468836676afa126d0778adebcc66b17364e6a10e9e8d9b10a5b9d4fd776fefe",
@@ -1907,10 +1688,7 @@
       "role": "impact",
       "source": "ricochet-design",
       "source_rate": 44100,
-      "source_frames": [
-        71662,
-        100548
-      ],
+      "source_frames": [71662, 100548],
       "processing": "impact",
       "url": "/audio/clips/ricochet-4.wav",
       "sha256": "4c97064d2a1b8e874eb5b47e0f8a4622ecd8abb34f660664a948d3c14e408e79",
@@ -1925,10 +1703,7 @@
       "role": "impact",
       "source": "dirt-foley",
       "source_rate": 24000,
-      "source_frames": [
-        3960,
-        6960
-      ],
+      "source_frames": [3960, 6960],
       "processing": "impact",
       "url": "/audio/clips/dirt-tick.wav",
       "sha256": "34a5f34f6174433cd025b3a9be646a61a015d53933a3827a0a369252a1d30676",
@@ -1943,10 +1718,7 @@
       "role": "impact",
       "source": "dirt-foley",
       "source_rate": 24000,
-      "source_frames": [
-        17448,
-        24600
-      ],
+      "source_frames": [17448, 24600],
       "processing": "heavy-impact",
       "url": "/audio/clips/dirt-thud.wav",
       "sha256": "f91a7006dd6ae5deb5638953625ae58e9465c67573036ff3358cd732ffe5991b",
@@ -1961,10 +1733,7 @@
       "role": "impact",
       "source": "metal-foley",
       "source_rate": 24000,
-      "source_frames": [
-        1440,
-        14160
-      ],
+      "source_frames": [1440, 14160],
       "processing": "impact",
       "url": "/audio/clips/metal-strike.wav",
       "sha256": "4bcf2c44c3fb211cc874cc61128aa49e66799ea04c9b3872dcd7e5ffebf4dcff",
@@ -1979,10 +1748,7 @@
       "role": "explosion",
       "source": "eod-blast",
       "source_rate": 48000,
-      "source_frames": [
-        0,
-        73920
-      ],
+      "source_frames": [0, 73920],
       "processing": "blast",
       "url": "/audio/clips/eod-explosion.wav",
       "sha256": "a49614d1b277cb647a49e7b9c5a1f6fa0d7771128a18a46b2c08fddffcb2bcfc",
@@ -1997,10 +1763,7 @@
       "role": "explosion",
       "source": "fire-blast",
       "source_rate": 24000,
-      "source_frames": [
-        0,
-        28560
-      ],
+      "source_frames": [0, 28560],
       "processing": "blast",
       "url": "/audio/clips/fire-explosion.wav",
       "sha256": "931c8d56b88f6764b4ef37b95f5c29d0b39ed577ccd15a0eb7538a4f0886e5b4",
@@ -2015,10 +1778,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1110384,
-        1138320
-      ],
+      "source_frames": [1110384, 1138320],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-11-burst-a.wav",
       "sha256": "b03dbd01d2a8429e4206678fe052b60eb700600ec3dca651213783b346c94f1d",
@@ -2028,18 +1788,9 @@
       "notes": "Shots 2, 3, 4 of take 11's second half: semi-automatic reports about 0.19 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            1110384,
-            1119600
-          ],
-          [
-            1119600,
-            1129200
-          ],
-          [
-            1129200,
-            1138320
-          ]
+          [1110384, 1119600],
+          [1119600, 1129200],
+          [1129200, 1138320]
         ],
         "interval_s": 0.1
       }
@@ -2050,10 +1801,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1119600,
-        1146768
-      ],
+      "source_frames": [1119600, 1146768],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-11-burst-b.wav",
       "sha256": "4d2e732cd2071de37937ddc0dd301b4842cf11143ec00d899f008374574bb8aa",
@@ -2063,18 +1811,9 @@
       "notes": "Shots 3, 4, 5 of take 11's second half: semi-automatic reports about 0.19 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            1119600,
-            1129200
-          ],
-          [
-            1129200,
-            1138320
-          ],
-          [
-            1138320,
-            1146768
-          ]
+          [1119600, 1129200],
+          [1129200, 1138320],
+          [1138320, 1146768]
         ],
         "interval_s": 0.1
       }
@@ -2085,10 +1824,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1110384,
-        1146768
-      ],
+      "source_frames": [1110384, 1146768],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-11-burst-c.wav",
       "sha256": "2060b7e7e3e1478f4505af93760916c9cbccd436896cde334b2a5bb95987d546",
@@ -2098,18 +1834,9 @@
       "notes": "Shots 4, 5, 2 of take 11's second half: semi-automatic reports about 0.19 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            1129200,
-            1138320
-          ],
-          [
-            1138320,
-            1146768
-          ],
-          [
-            1110384,
-            1119600
-          ]
+          [1129200, 1138320],
+          [1138320, 1146768],
+          [1110384, 1119600]
         ],
         "interval_s": 0.1
       }
@@ -2120,10 +1847,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        1110384,
-        1146768
-      ],
+      "source_frames": [1110384, 1146768],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-11-burst-d.wav",
       "sha256": "066764112ec1b8a61f7665478d44edc18484d9f22efc64727aa2a960e7e42c00",
@@ -2133,18 +1857,9 @@
       "notes": "Shots 5, 2, 3 of take 11's second half: semi-automatic reports about 0.19 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            1138320,
-            1146768
-          ],
-          [
-            1110384,
-            1119600
-          ],
-          [
-            1119600,
-            1129200
-          ]
+          [1138320, 1146768],
+          [1110384, 1119600],
+          [1119600, 1129200]
         ],
         "interval_s": 0.1
       }
@@ -2155,10 +1870,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        298944,
-        308688
-      ],
+      "source_frames": [298944, 308688],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-03-burst-a.wav",
       "sha256": "4ebb61333fc650764827981b22f9f3810170434792b78792984b90843d0cf0d0",
@@ -2168,18 +1880,9 @@
       "notes": "Shots 1, 1, 2 of take 03's two crisp reports, 93 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            298944,
-            303408
-          ],
-          [
-            298944,
-            303408
-          ],
-          [
-            303408,
-            308688
-          ]
+          [298944, 303408],
+          [298944, 303408],
+          [303408, 308688]
         ],
         "interval_s": 0.1
       }
@@ -2190,10 +1893,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        298944,
-        308688
-      ],
+      "source_frames": [298944, 308688],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-03-burst-b.wav",
       "sha256": "327ac60fbeeb33d9b937acddf6d820095ea4a0cdccf1a787987df8d55d3ab7a1",
@@ -2203,18 +1903,9 @@
       "notes": "Shots 2, 1, 2 of take 03's two crisp reports, 93 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            303408,
-            308688
-          ],
-          [
-            298944,
-            303408
-          ],
-          [
-            303408,
-            308688
-          ]
+          [303408, 308688],
+          [298944, 303408],
+          [303408, 308688]
         ],
         "interval_s": 0.1
       }
@@ -2225,10 +1916,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        298944,
-        308688
-      ],
+      "source_frames": [298944, 308688],
       "processing": "weighted-shot",
       "url": "/audio/clips/rifle-03-burst-c.wav",
       "sha256": "d34d217c3adc10d7d80079ae913b538c96ce8809e341fbeb5674e359fb5769e7",
@@ -2238,18 +1926,9 @@
       "notes": "Shots 1, 2, 2 of take 03's two crisp reports, 93 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            298944,
-            303408
-          ],
-          [
-            303408,
-            308688
-          ],
-          [
-            303408,
-            308688
-          ]
+          [298944, 303408],
+          [303408, 308688],
+          [303408, 308688]
         ],
         "interval_s": 0.1
       }
@@ -2260,10 +1939,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        225552,
-        235776
-      ],
+      "source_frames": [225552, 235776],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-02-burst-a.wav",
       "sha256": "a7c9826dee0c4649950eb51c75c5c9e7e8d3065510cfec19c18927a8992ffe61",
@@ -2273,18 +1949,9 @@
       "notes": "Shots 2, 3, 4 of take 02's heavier machine gun: thirteen rounds about 70 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            225552,
-            228960
-          ],
-          [
-            228960,
-            232272
-          ],
-          [
-            232272,
-            235776
-          ]
+          [225552, 228960],
+          [228960, 232272],
+          [232272, 235776]
         ],
         "interval_s": 0.1
       }
@@ -2295,10 +1962,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        235776,
-        245760
-      ],
+      "source_frames": [235776, 245760],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-02-burst-b.wav",
       "sha256": "d35b2a754463c94c4282c4b8e6dd273fc14a06c4b93c81f8f2d7603af7949e4d",
@@ -2308,18 +1972,9 @@
       "notes": "Shots 5, 6, 7 of take 02's heavier machine gun: thirteen rounds about 70 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            235776,
-            239040
-          ],
-          [
-            239040,
-            242400
-          ],
-          [
-            242400,
-            245760
-          ]
+          [235776, 239040],
+          [239040, 242400],
+          [242400, 245760]
         ],
         "interval_s": 0.1
       }
@@ -2330,10 +1985,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        245760,
-        255696
-      ],
+      "source_frames": [245760, 255696],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-02-burst-c.wav",
       "sha256": "26331dba411db9013b7558da82845e81cfbea5499dd8ceb178af9e16f9caba03",
@@ -2343,18 +1995,9 @@
       "notes": "Shots 8, 9, 10 of take 02's heavier machine gun: thirteen rounds about 70 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            245760,
-            248976
-          ],
-          [
-            248976,
-            252480
-          ],
-          [
-            252480,
-            255696
-          ]
+          [245760, 248976],
+          [248976, 252480],
+          [252480, 255696]
         ],
         "interval_s": 0.1
       }
@@ -2365,10 +2008,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        255696,
-        266640
-      ],
+      "source_frames": [255696, 266640],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-02-burst-d.wav",
       "sha256": "58b1b2132dff6aaed65fdc236ed85ef21bd4fe5c454e502bfc660549c83efa42",
@@ -2378,18 +2018,9 @@
       "notes": "Shots 11, 12, 13 of take 02's heavier machine gun: thirteen rounds about 70 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            255696,
-            259152
-          ],
-          [
-            259152,
-            262512
-          ],
-          [
-            262512,
-            266640
-          ]
+          [255696, 259152],
+          [259152, 262512],
+          [262512, 266640]
         ],
         "interval_s": 0.1
       }
@@ -2400,10 +2031,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2048112,
-        2065344
-      ],
+      "source_frames": [2048112, 2065344],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-20-burst-a.wav",
       "sha256": "715e4270c2ca64470329c2a244e2212015a3e95cd972701b1ab69cd4ebe89331",
@@ -2413,18 +2041,9 @@
       "notes": "Shots 2, 3, 4 of take 20's heavier machine gun: nine rounds about 0.12 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            2048112,
-            2053680
-          ],
-          [
-            2053680,
-            2059584
-          ],
-          [
-            2059584,
-            2065344
-          ]
+          [2048112, 2053680],
+          [2053680, 2059584],
+          [2059584, 2065344]
         ],
         "interval_s": 0.1
       }
@@ -2435,10 +2054,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2059584,
-        2076768
-      ],
+      "source_frames": [2059584, 2076768],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-20-burst-b.wav",
       "sha256": "b5cb39659c4bcbec21c9914fd7b93271115b10f104ee3215030e43dae79dfbe9",
@@ -2448,18 +2064,9 @@
       "notes": "Shots 4, 5, 6 of take 20's heavier machine gun: nine rounds about 0.12 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            2059584,
-            2065344
-          ],
-          [
-            2065344,
-            2070864
-          ],
-          [
-            2070864,
-            2076768
-          ]
+          [2059584, 2065344],
+          [2065344, 2070864],
+          [2070864, 2076768]
         ],
         "interval_s": 0.1
       }
@@ -2470,10 +2077,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2070864,
-        2088528
-      ],
+      "source_frames": [2070864, 2088528],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-20-burst-c.wav",
       "sha256": "f060c1788e5c894ebd088aaf45cfcfb86af392139712ab1dafc1bb03ecfabbba",
@@ -2483,18 +2087,9 @@
       "notes": "Shots 6, 7, 8 of take 20's heavier machine gun: nine rounds about 0.12 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            2070864,
-            2076768
-          ],
-          [
-            2076768,
-            2082480
-          ],
-          [
-            2082480,
-            2088528
-          ]
+          [2070864, 2076768],
+          [2076768, 2082480],
+          [2082480, 2088528]
         ],
         "interval_s": 0.1
       }
@@ -2505,10 +2100,7 @@
       "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
-      "source_frames": [
-        2076768,
-        2091600
-      ],
+      "source_frames": [2076768, 2091600],
       "processing": "weighted-shot",
       "url": "/audio/clips/heavy-20-burst-d.wav",
       "sha256": "acd9d6b48d20cc684266f705be24477ce3fc1a42d863b92c952529842bccf995",
@@ -2518,18 +2110,9 @@
       "notes": "Shots 7, 8, 9 of take 20's heavier machine gun: nine rounds about 0.12 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
       "burst": {
         "shots": [
-          [
-            2076768,
-            2082480
-          ],
-          [
-            2082480,
-            2088528
-          ],
-          [
-            2088528,
-            2091600
-          ]
+          [2076768, 2082480],
+          [2082480, 2088528],
+          [2088528, 2091600]
         ],
         "interval_s": 0.1
       }
@@ -2540,10 +2123,7 @@
       "role": "impact",
       "source": "freesound-675951",
       "source_rate": 48000,
-      "source_frames": [
-        55200,
-        77520
-      ],
+      "source_frames": [55200, 77520],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-craigsmith-675951-1.wav",
       "sha256": "22d888d5e17f4abd262b1da4768167490b82c2ac22a95a58a71cd288fa5492f3",
@@ -2558,10 +2138,7 @@
       "role": "impact",
       "source": "freesound-675951",
       "source_rate": 48000,
-      "source_frames": [
-        77520,
-        136080
-      ],
+      "source_frames": [77520, 136080],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-craigsmith-675951-2.wav",
       "sha256": "7391c2c460ccfb436c2548c47c71f40434d5cc31aab6c21af56e5f46336d03c5",
@@ -2576,10 +2153,7 @@
       "role": "impact",
       "source": "freesound-675951",
       "source_rate": 48000,
-      "source_frames": [
-        136080,
-        213120
-      ],
+      "source_frames": [136080, 213120],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-craigsmith-675951-3.wav",
       "sha256": "e5e76a45c8f9b7f7d8cad1ec270a046ad7b2cdffaf464df12eab0a97da5f53eb",
@@ -2594,10 +2168,7 @@
       "role": "impact",
       "source": "freesound-675951",
       "source_rate": 48000,
-      "source_frames": [
-        256320,
-        333360
-      ],
+      "source_frames": [256320, 333360],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-craigsmith-675951-4.wav",
       "sha256": "a34f0ec65466e2c8bd7414d15392de4b882faea07ebd3a48f1df7486920e1ab5",
@@ -2612,10 +2183,7 @@
       "role": "impact",
       "source": "freesound-675951",
       "source_rate": 48000,
-      "source_frames": [
-        405120,
-        443520
-      ],
+      "source_frames": [405120, 443520],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-craigsmith-675951-5.wav",
       "sha256": "c55a650d7f5d9a5647bc3b5c32ae7c67aa0e7c98aeb351d2c8758c224c19cec4",
@@ -2630,10 +2198,7 @@
       "role": "impact",
       "source": "freesound-675951",
       "source_rate": 48000,
-      "source_frames": [
-        530880,
-        570240
-      ],
+      "source_frames": [530880, 570240],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-craigsmith-675951-6.wav",
       "sha256": "a08c2188f3dec800959488078af3137a09fd200b61aad46c543cfb280202349d",
@@ -2648,10 +2213,7 @@
       "role": "impact",
       "source": "freesound-675951",
       "source_rate": 48000,
-      "source_frames": [
-        618000,
-        695040
-      ],
+      "source_frames": [618000, 695040],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-craigsmith-675951-7.wav",
       "sha256": "b0f56ccae36083672bc135030d5c3efcccdfd798bbd8dbef5ce273ea8c44fa61",
@@ -2666,10 +2228,7 @@
       "role": "impact",
       "source": "freesound-675951",
       "source_rate": 48000,
-      "source_frames": [
-        725760,
-        763920
-      ],
+      "source_frames": [725760, 763920],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-craigsmith-675951-8.wav",
       "sha256": "c7d12af217892c7d47492de8805a4c7f128f92b29d6f690d00d14a71a503325b",
@@ -2684,10 +2243,7 @@
       "role": "impact",
       "source": "freesound-108264",
       "source_rate": 48000,
-      "source_frames": [
-        63840,
-        140880
-      ],
+      "source_frames": [63840, 140880],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-klakmart-108264-1.wav",
       "sha256": "d09894afff7d2f4b5a2613d0273034f11450391f7748e458e62b0a3abeeecc06",
@@ -2702,10 +2258,7 @@
       "role": "impact",
       "source": "freesound-108264",
       "source_rate": 48000,
-      "source_frames": [
-        159360,
-        188400
-      ],
+      "source_frames": [159360, 188400],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-klakmart-108264-2.wav",
       "sha256": "537436ab0e0d164976d3b39795fe26cb71ff2193d32899ba2c097bddd75c44e5",
@@ -2720,10 +2273,7 @@
       "role": "impact",
       "source": "freesound-108264",
       "source_rate": 48000,
-      "source_frames": [
-        188400,
-        265440
-      ],
+      "source_frames": [188400, 265440],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-klakmart-108264-3.wav",
       "sha256": "4398fcb078122b689d68b357e69805ad8a72233f852149ea941af92aa4689156",
@@ -2738,10 +2288,7 @@
       "role": "impact",
       "source": "freesound-108264",
       "source_rate": 48000,
-      "source_frames": [
-        356160,
-        433200
-      ],
+      "source_frames": [356160, 433200],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-klakmart-108264-4.wav",
       "sha256": "4ef146fc664551cf8e575c06d64589bcf026147418be28e8db43e64d83e35e34",
@@ -2756,10 +2303,7 @@
       "role": "impact",
       "source": "freesound-108264",
       "source_rate": 48000,
-      "source_frames": [
-        639840,
-        716880
-      ],
+      "source_frames": [639840, 716880],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-klakmart-108264-5.wav",
       "sha256": "bb8062c2bd904d2decdeb350c7139dd55070b17fdbdcae576e7b10aaa42118e6",
@@ -2774,10 +2318,7 @@
       "role": "impact",
       "source": "freesound-108264",
       "source_rate": 48000,
-      "source_frames": [
-        865680,
-        942720
-      ],
+      "source_frames": [865680, 942720],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-klakmart-108264-6.wav",
       "sha256": "deda7b3b4459d1452ef23d435be8d74765527ccc701b773f82ce7c404574f980",
@@ -2792,10 +2333,7 @@
       "role": "impact",
       "source": "freesound-108264",
       "source_rate": 48000,
-      "source_frames": [
-        1142400,
-        1219440
-      ],
+      "source_frames": [1142400, 1219440],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-klakmart-108264-7.wav",
       "sha256": "e06e8900b2dba23e75e6f991a3e87281836e77d064c3f8d99b97f1d66b6273e3",
@@ -2810,10 +2348,7 @@
       "role": "impact",
       "source": "freesound-108264",
       "source_rate": 48000,
-      "source_frames": [
-        1298160,
-        1375200
-      ],
+      "source_frames": [1298160, 1375200],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-klakmart-108264-8.wav",
       "sha256": "4b05b2f51e6a5e141d57e770fb5646c1e2d410e7174b310178acae81790da9a8",
@@ -2828,10 +2363,7 @@
       "role": "impact",
       "source": "freesound-434336",
       "source_rate": 48000,
-      "source_frames": [
-        19440,
-        96480
-      ],
+      "source_frames": [19440, 96480],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-draftcraft-434336-1.wav",
       "sha256": "4230e3edbe15d6f76ea9c21cf0070a526f9020a52193c5676389f00342f2ee30",
@@ -2846,10 +2378,7 @@
       "role": "impact",
       "source": "freesound-640204",
       "source_rate": 44100,
-      "source_frames": [
-        7920,
-        26180
-      ],
+      "source_frames": [7920, 26180],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-7of9designs-640204-1.wav",
       "sha256": "a9517c99af8e008b917b4d0694b80be7ac024857447e6d620c7240f84703cc59",
@@ -2864,10 +2393,7 @@
       "role": "impact",
       "source": "freesound-703247",
       "source_rate": 48000,
-      "source_frames": [
-        6000,
-        83040
-      ],
+      "source_frames": [6000, 83040],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-xkeril-703247-1.wav",
       "sha256": "c451aae1306f7413887f22d2985826f81730cf7ded655a53023eb10ebcfa526c",
@@ -2882,10 +2408,7 @@
       "role": "impact",
       "source": "freesound-151624",
       "source_rate": 44100,
-      "source_frames": [
-        0,
-        23760
-      ],
+      "source_frames": [0, 23760],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-qubodup-151624-1.wav",
       "sha256": "de32ed4758c5b511996e6a6120edc124bab165cb2daf3adef62822e73a07c88e",
@@ -2900,10 +2423,7 @@
       "role": "impact",
       "source": "freesound-332056",
       "source_rate": 48000,
-      "source_frames": [
-        1440,
-        14640
-      ],
+      "source_frames": [1440, 14640],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-qubodup-332056-1.wav",
       "sha256": "a1143b01ab577b91f6d6c32436f3f6797b68bbd5b6b73d643bfebf66527b08d4",
@@ -2918,10 +2438,7 @@
       "role": "impact",
       "source": "freesound-438522",
       "source_rate": 48000,
-      "source_frames": [
-        12720,
-        89760
-      ],
+      "source_frames": [12720, 89760],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-craigsmith-438522-1.wav",
       "sha256": "444505b727d049d76968949dae2bc5f29427b449e0b9dd8ed6b0d9b715003562",
@@ -2936,10 +2453,7 @@
       "role": "impact",
       "source": "freesound-438522",
       "source_rate": 48000,
-      "source_frames": [
-        147600,
-        224640
-      ],
+      "source_frames": [147600, 224640],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-craigsmith-438522-2.wav",
       "sha256": "587a54000d393c70e5417fdf21ca4c6f76a46d19ba81ee3073e0a0cdb55088a5",
@@ -2954,10 +2468,7 @@
       "role": "impact",
       "source": "freesound-569555",
       "source_rate": 48000,
-      "source_frames": [
-        151200,
-        219120
-      ],
+      "source_frames": [151200, 219120],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-nox-sound-569555-1.wav",
       "sha256": "48a7835d6e0787721f9140815e1269647dd49cc62359632b1d63527489a60135",
@@ -2972,10 +2483,7 @@
       "role": "impact",
       "source": "freesound-569555",
       "source_rate": 48000,
-      "source_frames": [
-        292560,
-        355200
-      ],
+      "source_frames": [292560, 355200],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-nox-sound-569555-2.wav",
       "sha256": "fbe65d6aa2a02fb3bed7ffa5b4cec83a0e8f6793be8a630512b7d8aea1eb0f49",
@@ -2990,10 +2498,7 @@
       "role": "impact",
       "source": "freesound-569555",
       "source_rate": 48000,
-      "source_frames": [
-        412320,
-        477600
-      ],
+      "source_frames": [412320, 477600],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-nox-sound-569555-3.wav",
       "sha256": "481287d54a94ff717c241469bd99c544da1cfa3073dca3f04a69d629eccd96a6",
@@ -3008,10 +2513,7 @@
       "role": "impact",
       "source": "freesound-569555",
       "source_rate": 48000,
-      "source_frames": [
-        530640,
-        601200
-      ],
+      "source_frames": [530640, 601200],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-nox-sound-569555-4.wav",
       "sha256": "5f2275f11c413e5d51edf9489c36918f022a0b0fe5bc369dc24bd632aab9f362",
@@ -3026,10 +2528,7 @@
       "role": "impact",
       "source": "freesound-569555",
       "source_rate": 48000,
-      "source_frames": [
-        663600,
-        724320
-      ],
+      "source_frames": [663600, 724320],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-nox-sound-569555-5.wav",
       "sha256": "b7e5f5330336dc0da98d0df7049fc4b6c143885cd0c7e93ef28337c7fc6a53bb",
@@ -3044,10 +2543,7 @@
       "role": "impact",
       "source": "freesound-569555",
       "source_rate": 48000,
-      "source_frames": [
-        778800,
-        822000
-      ],
+      "source_frames": [778800, 822000],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-nox-sound-569555-6.wav",
       "sha256": "d2f45881916b4b8b6147ee3b4475c750bc8e28652192034291cc67f1e47ea4d9",
@@ -3062,10 +2558,7 @@
       "role": "impact",
       "source": "freesound-569555",
       "source_rate": 48000,
-      "source_frames": [
-        848160,
-        900960
-      ],
+      "source_frames": [848160, 900960],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-nox-sound-569555-7.wav",
       "sha256": "899b2197c1a3114ab54da90c7b675f5a1fe56b9e94a89e479a6a204e8fbd2649",
@@ -3080,10 +2573,7 @@
       "role": "impact",
       "source": "freesound-569555",
       "source_rate": 48000,
-      "source_frames": [
-        990000,
-        1067040
-      ],
+      "source_frames": [990000, 1067040],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-nox-sound-569555-8.wav",
       "sha256": "079b12d92e88b3fc8ae8ea7bab215ac5b718a653ea2fd28c6c7494678ed4fae0",
@@ -3098,10 +2588,7 @@
       "role": "impact",
       "source": "freesound-445775",
       "source_rate": 44100,
-      "source_frames": [
-        30360,
-        60720
-      ],
+      "source_frames": [30360, 60720],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-ddt197-445775-1.wav",
       "sha256": "aa319c55b64af90f162bfafc950c1563a29c3954781efa1b5ae53374305b22a1",
@@ -3116,10 +2603,7 @@
       "role": "impact",
       "source": "freesound-445775",
       "source_rate": 44100,
-      "source_frames": [
-        116600,
-        145640
-      ],
+      "source_frames": [116600, 145640],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-ddt197-445775-2.wav",
       "sha256": "036b04e0f76bddf1182a8556b7acd193f9baa0bd6cd54be534da5b2f45c69ae4",
@@ -3134,10 +2618,7 @@
       "role": "impact",
       "source": "freesound-445775",
       "source_rate": 44100,
-      "source_frames": [
-        200420,
-        225500
-      ],
+      "source_frames": [200420, 225500],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-ddt197-445775-3.wav",
       "sha256": "93d90688a6573ce9edf2cbcffad2d897174cf09706c11676aa6274249b62f066",
@@ -3152,10 +2633,7 @@
       "role": "impact",
       "source": "freesound-390794",
       "source_rate": 44100,
-      "source_frames": [
-        37180,
-        63140
-      ],
+      "source_frames": [37180, 63140],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-mhad-390794-1.wav",
       "sha256": "2fa939b6828008eb30905736bbcaed9ac2d719ec6182ff2ecc0c9d7982a16080",
@@ -3170,10 +2648,7 @@
       "role": "impact",
       "source": "freesound-144444",
       "source_rate": 48000,
-      "source_frames": [
-        960,
-        17760
-      ],
+      "source_frames": [960, 17760],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-pushkin-144444-1.wav",
       "sha256": "2daa6d8a6dcb50bc770555a0a93f506db1a6b30be8bf8cbf5c77d63774cd297b",
@@ -3188,10 +2663,7 @@
       "role": "impact",
       "source": "freesound-144444",
       "source_rate": 48000,
-      "source_frames": [
-        17760,
-        33600
-      ],
+      "source_frames": [17760, 33600],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-pushkin-144444-2.wav",
       "sha256": "0153a3dc3776d455defbd380a8d7eb2d69416e8021de4cd9d7eef2ed5d90b9db",
@@ -3206,10 +2678,7 @@
       "role": "impact",
       "source": "freesound-144444",
       "source_rate": 48000,
-      "source_frames": [
-        33600,
-        50880
-      ],
+      "source_frames": [33600, 50880],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-pushkin-144444-3.wav",
       "sha256": "f1e362a958d7e2572d43230a900267a41a879cbe3040a22c531f244a648452f7",
@@ -3224,10 +2693,7 @@
       "role": "impact",
       "source": "freesound-144444",
       "source_rate": 48000,
-      "source_frames": [
-        50880,
-        67440
-      ],
+      "source_frames": [50880, 67440],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-pushkin-144444-4.wav",
       "sha256": "6b10fcbb3cc632b05bbf0e4c6f840331f6828f9345810cb0b0eb28c426a38921",
@@ -3242,10 +2708,7 @@
       "role": "impact",
       "source": "freesound-144444",
       "source_rate": 48000,
-      "source_frames": [
-        67440,
-        86880
-      ],
+      "source_frames": [67440, 86880],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-pushkin-144444-5.wav",
       "sha256": "353d1a64a8f6a59a04badac5d4b8e53fab4face2e33370f8d8ae7cf2ea2eb065",
@@ -3260,10 +2723,7 @@
       "role": "impact",
       "source": "freesound-144444",
       "source_rate": 48000,
-      "source_frames": [
-        86880,
-        103200
-      ],
+      "source_frames": [86880, 103200],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-pushkin-144444-6.wav",
       "sha256": "49284dd671e4fd10fe12061a2a2bbf3ee3c2bf536a485984d44e71f7af810bc9",
@@ -3278,10 +2738,7 @@
       "role": "impact",
       "source": "freesound-144444",
       "source_rate": 48000,
-      "source_frames": [
-        103200,
-        122400
-      ],
+      "source_frames": [103200, 122400],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-pushkin-144444-7.wav",
       "sha256": "d6683f97fdf8539e8517e9899b11dc98ef8931cbe0df4ecc7c8ebe2d4e0bd2af",
@@ -3296,10 +2753,7 @@
       "role": "impact",
       "source": "freesound-144444",
       "source_rate": 48000,
-      "source_frames": [
-        122400,
-        144960
-      ],
+      "source_frames": [122400, 144960],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-pushkin-144444-8.wav",
       "sha256": "c0487777d5240bd64faed5bef152737e749bfa064c96f41f9b4a6b9d40a1794f",
@@ -3314,10 +2768,7 @@
       "role": "impact",
       "source": "freesound-222881",
       "source_rate": 44100,
-      "source_frames": [
-        16060,
-        86680
-      ],
+      "source_frames": [16060, 86680],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-speedenza-222881-1.wav",
       "sha256": "4e8ebe6159f391dbe6f20e69a94b7a7af654ea29031a890e7a7eebb5429c44ae",
@@ -3332,10 +2783,7 @@
       "role": "impact",
       "source": "freesound-193601",
       "source_rate": 44100,
-      "source_frames": [
-        34100,
-        104720
-      ],
+      "source_frames": [34100, 104720],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-speedenza-193601-1.wav",
       "sha256": "4093eb0c4df32789a669d7c50dab8ee3f87a2f1e2fa25b482a70d83a200fd970",
@@ -3350,10 +2798,7 @@
       "role": "impact",
       "source": "freesound-167841",
       "source_rate": 44100,
-      "source_frames": [
-        5720,
-        76340
-      ],
+      "source_frames": [5720, 76340],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-speedenza-167841-1.wav",
       "sha256": "34d514ce2731d8c6b3795488e7386aa2e3e1378305a4ba7df9f9caf404808abe",
@@ -3368,10 +2813,7 @@
       "role": "impact",
       "source": "freesound-167840",
       "source_rate": 44100,
-      "source_frames": [
-        9460,
-        65560
-      ],
+      "source_frames": [9460, 65560],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-speedenza-167840-1.wav",
       "sha256": "9cdf7a8fa5b2a07e550a98e9132deb5155839c1dfb4b7e26580a9c80f60c8c4c",
@@ -3386,10 +2828,7 @@
       "role": "impact",
       "source": "freesound-167839",
       "source_rate": 44100,
-      "source_frames": [
-        8140,
-        76120
-      ],
+      "source_frames": [8140, 76120],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-speedenza-167839-1.wav",
       "sha256": "a13cc41771018aed8a8af07bb9ddb7b014e4df3662758c622dbb682fc522a393",
@@ -3404,10 +2843,7 @@
       "role": "impact",
       "source": "freesound-653294",
       "source_rate": 48000,
-      "source_frames": [
-        33600,
-        110640
-      ],
+      "source_frames": [33600, 110640],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-osvoldon-653294-1.wav",
       "sha256": "ef5d17828af941299aecf7461dbdb46760f9a1cb84caadd447797e61665d9887",
@@ -3422,10 +2858,7 @@
       "role": "impact",
       "source": "freesound-653294",
       "source_rate": 48000,
-      "source_frames": [
-        99600,
-        176640
-      ],
+      "source_frames": [99600, 176640],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-osvoldon-653294-2.wav",
       "sha256": "38b8bc93a546be3c8723485644dcb70975a56a7890a5945f4a531369200bbc08",
@@ -3440,10 +2873,7 @@
       "role": "impact",
       "source": "freesound-244394",
       "source_rate": 44100,
-      "source_frames": [
-        1320,
-        71940
-      ],
+      "source_frames": [1320, 71940],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-werra-244394-1.wav",
       "sha256": "95e02fc0ab780aff4252f577da0f395a435b5624a1f022a3dd3ab43b19e9c0d0",
@@ -3458,10 +2888,7 @@
       "role": "impact",
       "source": "freesound-244394",
       "source_rate": 44100,
-      "source_frames": [
-        38060,
-        108680
-      ],
+      "source_frames": [38060, 108680],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-werra-244394-2.wav",
       "sha256": "3fcb05c479505b488982cb0171407b06a443392df0fb334e6354ed8957d2ee3f",
@@ -3476,10 +2903,7 @@
       "role": "impact",
       "source": "freesound-209772",
       "source_rate": 48000,
-      "source_frames": [
-        12240,
-        70080
-      ],
+      "source_frames": [12240, 70080],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-johnnyfarmer-209772-1.wav",
       "sha256": "faeef34292a6b90f6ae92658bb7a0dd0333e023f6cd919775c05c2af6ce1a8f6",
@@ -3494,10 +2918,7 @@
       "role": "impact",
       "source": "freesound-406493",
       "source_rate": 48000,
-      "source_frames": [
-        480,
-        75360
-      ],
+      "source_frames": [480, 75360],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-anthousai-406493-1.wav",
       "sha256": "4e4df24532696310d9059d63e185c5e5671134832314e18abf64ba3d05bb95c9",
@@ -3512,10 +2933,7 @@
       "role": "impact",
       "source": "freesound-407349",
       "source_rate": 48000,
-      "source_frames": [
-        20400,
-        71040
-      ],
+      "source_frames": [20400, 71040],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-forthehorde68-407349-1.wav",
       "sha256": "983a95f2ddd04a668e43f4f68e73172b874bfeed0af528eaccfd385113db22b2",
@@ -3530,10 +2948,7 @@
       "role": "impact",
       "source": "freesound-407349",
       "source_rate": 48000,
-      "source_frames": [
-        238080,
-        289680
-      ],
+      "source_frames": [238080, 289680],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-forthehorde68-407349-2.wav",
       "sha256": "b0385e3704a3fb39de749b41ca0c082639cb49ef98097b3d52e5d031a6c43a0b",
@@ -3548,10 +2963,7 @@
       "role": "impact",
       "source": "freesound-407349",
       "source_rate": 48000,
-      "source_frames": [
-        430080,
-        490080
-      ],
+      "source_frames": [430080, 490080],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-forthehorde68-407349-3.wav",
       "sha256": "eb7aa2a2581eab28ef71af25e6a6790c1b027f391f6f147c918b626496a1c018",
@@ -3566,10 +2978,7 @@
       "role": "impact",
       "source": "freesound-407349",
       "source_rate": 48000,
-      "source_frames": [
-        644880,
-        663120
-      ],
+      "source_frames": [644880, 663120],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-forthehorde68-407349-4.wav",
       "sha256": "380b271951ffd7dc18e50d58ca0728e6831fd23f28de9bd5e64512e50a2faba6",
@@ -3584,10 +2993,7 @@
       "role": "impact",
       "source": "freesound-407349",
       "source_rate": 48000,
-      "source_frames": [
-        663120,
-        715440
-      ],
+      "source_frames": [663120, 715440],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-forthehorde68-407349-5.wav",
       "sha256": "94c20ea15a84e68c9246d03f6e73329a512e1e8e79c2bfae14e80465683c75a1",
@@ -3602,10 +3008,7 @@
       "role": "impact",
       "source": "freesound-423107",
       "source_rate": 48000,
-      "source_frames": [
-        240,
-        24720
-      ],
+      "source_frames": [240, 24720],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-ogsoundfx-423107-1.wav",
       "sha256": "5391d46021c382f884c48c844d6525cfb5632780be6a78502048eeda4bcaf263",
@@ -3620,10 +3023,7 @@
       "role": "impact",
       "source": "freesound-319590",
       "source_rate": 44100,
-      "source_frames": [
-        5500,
-        36300
-      ],
+      "source_frames": [5500, 36300],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-hybrid-v-319590-1.wav",
       "sha256": "3bbefa9f5beb656550387eea78bc9de1c2903204e0ebf838b7229af0cbda08fb",
@@ -3638,10 +3038,7 @@
       "role": "impact",
       "source": "freesound-222517",
       "source_rate": 48000,
-      "source_frames": [
-        13920,
-        90960
-      ],
+      "source_frames": [13920, 90960],
       "processing": "armour-impact",
       "url": "/audio/clips/metal-hit-qubodup-222517-1.wav",
       "sha256": "e13d544548ab796ad175864eafaea16d5f0928f37d8873b46cae87506ae417a0",
@@ -3656,10 +3053,7 @@
       "role": "impact",
       "source": "freesound-148840",
       "source_rate": 44100,
-      "source_frames": [
-        1100,
-        18920
-      ],
+      "source_frames": [1100, 18920],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cedarstudios-148840-1.wav",
       "sha256": "780f9c7d7d9ccf5d596632f7bc5e181a3ac607574110fe397bab6c0372e65480",
@@ -3674,10 +3068,7 @@
       "role": "impact",
       "source": "freesound-148840",
       "source_rate": 44100,
-      "source_frames": [
-        18920,
-        37180
-      ],
+      "source_frames": [18920, 37180],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cedarstudios-148840-2.wav",
       "sha256": "8369761b8bddd1205a789d913f76825552af2b8da9ebdcecb9a415fe0e41adee",
@@ -3692,10 +3083,7 @@
       "role": "impact",
       "source": "freesound-148840",
       "source_rate": 44100,
-      "source_frames": [
-        37180,
-        59840
-      ],
+      "source_frames": [37180, 59840],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cedarstudios-148840-3.wav",
       "sha256": "1d13626d85f6340ae64dc0e82f0ed54e90a34d241141e29834997f4ae8d776da",
@@ -3710,10 +3098,7 @@
       "role": "impact",
       "source": "freesound-148840",
       "source_rate": 44100,
-      "source_frames": [
-        59840,
-        77660
-      ],
+      "source_frames": [59840, 77660],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cedarstudios-148840-4.wav",
       "sha256": "ffacbb9aea7a9b4f2fb8f22bbcf92f6b14b1694bb4d6244ddb8b009a4e4650c2",
@@ -3728,10 +3113,7 @@
       "role": "impact",
       "source": "freesound-148827",
       "source_rate": 44100,
-      "source_frames": [
-        14080,
-        81400
-      ],
+      "source_frames": [14080, 81400],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cedarstudios-148827-1.wav",
       "sha256": "2e437ce986d5cba02aad8a260cefa3f9176a28ca84c15b2faf7543e722354809",
@@ -3746,10 +3128,7 @@
       "role": "impact",
       "source": "freesound-148827",
       "source_rate": 44100,
-      "source_frames": [
-        81400,
-        128920
-      ],
+      "source_frames": [81400, 128920],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cedarstudios-148827-2.wav",
       "sha256": "788305f9d0329e83e6d80474e42bfa3a9fb50db3f8461e218e4cb521f1425664",
@@ -3764,10 +3143,7 @@
       "role": "impact",
       "source": "freesound-148827",
       "source_rate": 44100,
-      "source_frames": [
-        128920,
-        173580
-      ],
+      "source_frames": [128920, 173580],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cedarstudios-148827-3.wav",
       "sha256": "b158b29fffde693ef1a0281f4e9fdec1d45149f37f2cff50f010ab0c28753ed6",
@@ -3782,10 +3158,7 @@
       "role": "impact",
       "source": "freesound-148827",
       "source_rate": 44100,
-      "source_frames": [
-        173580,
-        229020
-      ],
+      "source_frames": [173580, 229020],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cedarstudios-148827-4.wav",
       "sha256": "baadd54b0edf80c95cf0334cbd2f9ade8275a1ef913200e8edae2e109f848b16",
@@ -3800,10 +3173,7 @@
       "role": "impact",
       "source": "freesound-148827",
       "source_rate": 44100,
-      "source_frames": [
-        229020,
-        252780
-      ],
+      "source_frames": [229020, 252780],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cedarstudios-148827-5.wav",
       "sha256": "6cf900d87e412f63c3d06b1c32e486d25f3a8fa121e1db0256083e575f040259",
@@ -3818,10 +3188,7 @@
       "role": "impact",
       "source": "freesound-392975",
       "source_rate": 48000,
-      "source_frames": [
-        0,
-        22080
-      ],
+      "source_frames": [0, 22080],
       "processing": "impact",
       "url": "/audio/clips/ricochet-morganpurkis-392975-1.wav",
       "sha256": "fef79416101bfdfd06113bee7100337b7300ff5cf0a73c24aaaf0ca192f32a5b",
@@ -3836,10 +3203,7 @@
       "role": "impact",
       "source": "freesound-523403",
       "source_rate": 48000,
-      "source_frames": [
-        7680,
-        38160
-      ],
+      "source_frames": [7680, 38160],
       "processing": "impact",
       "url": "/audio/clips/ricochet-c-v-523403-1.wav",
       "sha256": "3b8ae713c33d65a3f1f98c064d487e84d9b9b3582ff79bd00b9f7af3c2e07d87",
@@ -3854,10 +3218,7 @@
       "role": "impact",
       "source": "freesound-213925",
       "source_rate": 44100,
-      "source_frames": [
-        2200,
-        72820
-      ],
+      "source_frames": [2200, 72820],
       "processing": "impact",
       "url": "/audio/clips/ricochet-diboz-213925-1.wav",
       "sha256": "9653763278ff3123b789c6b64da0d27cc47bae04078bb4cc1152e936df011d1d",
@@ -3872,10 +3233,7 @@
       "role": "impact",
       "source": "freesound-407361",
       "source_rate": 48000,
-      "source_frames": [
-        37920,
-        85440
-      ],
+      "source_frames": [37920, 85440],
       "processing": "impact",
       "url": "/audio/clips/ricochet-forthehorde68-407361-1.wav",
       "sha256": "aa3a6538b40bc7e82da2ab0e5f0e7dae2d9443c58a8358614873e05eb57af238",
@@ -3890,10 +3248,7 @@
       "role": "impact",
       "source": "freesound-407361",
       "source_rate": 48000,
-      "source_frames": [
-        199200,
-        258480
-      ],
+      "source_frames": [199200, 258480],
       "processing": "impact",
       "url": "/audio/clips/ricochet-forthehorde68-407361-2.wav",
       "sha256": "55f5527877bbecfb65ccd1b5c05f632e9bfcd89ea94241af00740d1cecd6904f",
@@ -3908,10 +3263,7 @@
       "role": "impact",
       "source": "freesound-407361",
       "source_rate": 48000,
-      "source_frames": [
-        406080,
-        442320
-      ],
+      "source_frames": [406080, 442320],
       "processing": "impact",
       "url": "/audio/clips/ricochet-forthehorde68-407361-3.wav",
       "sha256": "02078cc7130c24d481af5b9f16f84ffc7b3326cda8f47e25743b33d5398ba070",
@@ -3926,10 +3278,7 @@
       "role": "impact",
       "source": "freesound-854335",
       "source_rate": 44100,
-      "source_frames": [
-        13860,
-        39820
-      ],
+      "source_frames": [13860, 39820],
       "processing": "impact",
       "url": "/audio/clips/ricochet-mikiko850-854335-1.wav",
       "sha256": "ceda1f5f38fe021e4219c89b983fe71048cd3e55550af3fe43337e0cd3421dda",
@@ -3944,10 +3293,7 @@
       "role": "impact",
       "source": "freesound-854335",
       "source_rate": 44100,
-      "source_frames": [
-        30140,
-        52140
-      ],
+      "source_frames": [30140, 52140],
       "processing": "impact",
       "url": "/audio/clips/ricochet-mikiko850-854335-2.wav",
       "sha256": "a731265fc5bd88b77957068bfcfc65edccf9e55e15812015cd3c876f82e5e8c6",
@@ -3962,10 +3308,7 @@
       "role": "impact",
       "source": "freesound-854335",
       "source_rate": 44100,
-      "source_frames": [
-        58520,
-        85800
-      ],
+      "source_frames": [58520, 85800],
       "processing": "impact",
       "url": "/audio/clips/ricochet-mikiko850-854335-3.wav",
       "sha256": "fec9f1e087adff4cb3f81c10453a9715df2d9fab9b189fe7c91f3282652b1109",
@@ -3980,10 +3323,7 @@
       "role": "impact",
       "source": "freesound-854335",
       "source_rate": 44100,
-      "source_frames": [
-        118360,
-        143220
-      ],
+      "source_frames": [118360, 143220],
       "processing": "impact",
       "url": "/audio/clips/ricochet-mikiko850-854335-4.wav",
       "sha256": "1f3cb8d3f2b06c309a0a6315aac9ee5c4fd8c28b7aa88c69406e0f601f21f4ee",
@@ -3998,10 +3338,7 @@
       "role": "impact",
       "source": "freesound-854335",
       "source_rate": 44100,
-      "source_frames": [
-        134640,
-        156640
-      ],
+      "source_frames": [134640, 156640],
       "processing": "impact",
       "url": "/audio/clips/ricochet-mikiko850-854335-5.wav",
       "sha256": "a1d2e95a53f1019bde085bd6c733bde8b5569d68b4830e5f885707328f5d6206",
@@ -4016,10 +3353,7 @@
       "role": "impact",
       "source": "freesound-854335",
       "source_rate": 44100,
-      "source_frames": [
-        156640,
-        185020
-      ],
+      "source_frames": [156640, 185020],
       "processing": "impact",
       "url": "/audio/clips/ricochet-mikiko850-854335-6.wav",
       "sha256": "7605d8a2eb2b19dfca59e6eaa6db2fddc3f829ec0834794dd36a67c28aeb979d",
@@ -4034,10 +3368,7 @@
       "role": "impact",
       "source": "freesound-123222",
       "source_rate": 44100,
-      "source_frames": [
-        16500,
-        46420
-      ],
+      "source_frames": [16500, 46420],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cgeffex-123222-1.wav",
       "sha256": "9c0d444eb4386ab960fc921094a61cd131d1533087135851befd541d5c69b200",
@@ -4052,10 +3383,7 @@
       "role": "impact",
       "source": "freesound-96633",
       "source_rate": 44100,
-      "source_frames": [
-        0,
-        38940
-      ],
+      "source_frames": [0, 38940],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cgeffex-96633-1.wav",
       "sha256": "2bbb36da8ea5041739a6b489436f9e0ecc594523b2e14ef2f00f5d101872faf7",
@@ -4070,10 +3398,7 @@
       "role": "impact",
       "source": "freesound-96632",
       "source_rate": 44100,
-      "source_frames": [
-        0,
-        38720
-      ],
+      "source_frames": [0, 38720],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cgeffex-96632-1.wav",
       "sha256": "6e3a9265f93955c177f30619bf96d498b61a54789b58205055369bf06a750c98",
@@ -4088,10 +3413,7 @@
       "role": "impact",
       "source": "freesound-96631",
       "source_rate": 44100,
-      "source_frames": [
-        0,
-        38940
-      ],
+      "source_frames": [0, 38940],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cgeffex-96631-1.wav",
       "sha256": "6022a2d1a61f20c4c93f31855e0eb08bf0f6252bc0188dbe9848f6cbf992e961",
@@ -4106,10 +3428,7 @@
       "role": "impact",
       "source": "freesound-96630",
       "source_rate": 44100,
-      "source_frames": [
-        0,
-        47080
-      ],
+      "source_frames": [0, 47080],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cgeffex-96630-1.wav",
       "sha256": "b6086461fda40d5f6cfb5a9cb80c80c8ded9565841a47b4e604d4523bd2729a1",
@@ -4124,10 +3443,7 @@
       "role": "impact",
       "source": "freesound-96629",
       "source_rate": 44100,
-      "source_frames": [
-        1100,
-        38940
-      ],
+      "source_frames": [1100, 38940],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cgeffex-96629-1.wav",
       "sha256": "4578ab342cb7d75d1f6d4faa70305f5b9448004b7ce4458b9a936e555c21d72a",
@@ -4142,10 +3458,7 @@
       "role": "impact",
       "source": "freesound-96634",
       "source_rate": 44100,
-      "source_frames": [
-        0,
-        40920
-      ],
+      "source_frames": [0, 40920],
       "processing": "impact",
       "url": "/audio/clips/ricochet-cgeffex-96634-1.wav",
       "sha256": "6bf5b3263570e1849e39c87c05bc7e1b515445257238cbc235af2206a7474f0f",
@@ -4162,10 +3475,7 @@
         {
           "source": "freesound-319590",
           "source_rate": 44100,
-          "source_frames": [
-            5500,
-            36300
-          ],
+          "source_frames": [5500, 36300],
           "at_s": 0,
           "gain": 1.0079,
           "semitones": 0,
@@ -4174,10 +3484,7 @@
         {
           "source": "freesound-653294",
           "source_rate": 48000,
-          "source_frames": [
-            33600,
-            110640
-          ],
+          "source_frames": [33600, 110640],
           "at_s": 0.004,
           "gain": 1.9949,
           "semitones": 0,
@@ -4186,10 +3493,7 @@
         {
           "source": "freesound-703247",
           "source_rate": 48000,
-          "source_frames": [
-            6000,
-            83040
-          ],
+          "source_frames": [6000, 83040],
           "at_s": 0.03,
           "gain": 0.5505,
           "semitones": 0,
@@ -4212,10 +3516,7 @@
         {
           "source": "freesound-151624",
           "source_rate": 44100,
-          "source_frames": [
-            0,
-            23760
-          ],
+          "source_frames": [0, 23760],
           "at_s": 0,
           "gain": 1.0927,
           "semitones": 0,
@@ -4224,10 +3525,7 @@
         {
           "source": "freesound-244394",
           "source_rate": 44100,
-          "source_frames": [
-            1320,
-            71940
-          ],
+          "source_frames": [1320, 71940],
           "at_s": 0.002,
           "gain": 0.8186,
           "semitones": 0,
@@ -4250,10 +3548,7 @@
         {
           "source": "freesound-675951",
           "source_rate": 48000,
-          "source_frames": [
-            136080,
-            213120
-          ],
+          "source_frames": [136080, 213120],
           "at_s": 0,
           "gain": 1.9424,
           "semitones": 0,
@@ -4262,10 +3557,7 @@
         {
           "source": "freesound-640204",
           "source_rate": 44100,
-          "source_frames": [
-            7920,
-            26180
-          ],
+          "source_frames": [7920, 26180],
           "at_s": 0.002,
           "gain": 0.4824,
           "semitones": 0,
@@ -4288,10 +3580,7 @@
         {
           "source": "freesound-675951",
           "source_rate": 48000,
-          "source_frames": [
-            405120,
-            443520
-          ],
+          "source_frames": [405120, 443520],
           "at_s": 0,
           "gain": 1.6962,
           "semitones": 0,
@@ -4300,10 +3589,7 @@
         {
           "source": "freesound-640204",
           "source_rate": 44100,
-          "source_frames": [
-            7920,
-            26180
-          ],
+          "source_frames": [7920, 26180],
           "at_s": 0.002,
           "gain": 0.4824,
           "semitones": 0,
@@ -4326,10 +3612,7 @@
         {
           "source": "freesound-675951",
           "source_rate": 48000,
-          "source_frames": [
-            530880,
-            570240
-          ],
+          "source_frames": [530880, 570240],
           "at_s": 0,
           "gain": 2.2531,
           "semitones": 0,
@@ -4338,10 +3621,7 @@
         {
           "source": "freesound-640204",
           "source_rate": 44100,
-          "source_frames": [
-            7920,
-            26180
-          ],
+          "source_frames": [7920, 26180],
           "at_s": 0.002,
           "gain": 0.4824,
           "semitones": 0,
@@ -4364,10 +3644,7 @@
         {
           "source": "freesound-319590",
           "source_rate": 44100,
-          "source_frames": [
-            5500,
-            36300
-          ],
+          "source_frames": [5500, 36300],
           "at_s": 0,
           "gain": 1.0079,
           "semitones": 0,
@@ -4376,10 +3653,7 @@
         {
           "source": "freesound-96633",
           "source_rate": 44100,
-          "source_frames": [
-            0,
-            38940
-          ],
+          "source_frames": [0, 38940],
           "at_s": 0.01,
           "gain": 0.9073,
           "semitones": -12,
@@ -4402,10 +3676,7 @@
         {
           "source": "freesound-244394",
           "source_rate": 44100,
-          "source_frames": [
-            1320,
-            71940
-          ],
+          "source_frames": [1320, 71940],
           "at_s": 0,
           "gain": 0.8186,
           "semitones": 0,
@@ -4414,10 +3685,7 @@
         {
           "source": "freesound-854335",
           "source_rate": 44100,
-          "source_frames": [
-            13860,
-            39820
-          ],
+          "source_frames": [13860, 39820],
           "at_s": 0.005,
           "gain": 1.9835,
           "semitones": -7,
@@ -4440,10 +3708,7 @@
         {
           "source": "freesound-653294",
           "source_rate": 48000,
-          "source_frames": [
-            33600,
-            110640
-          ],
+          "source_frames": [33600, 110640],
           "at_s": 0,
           "gain": 1.5516,
           "semitones": 0,
@@ -4452,10 +3717,7 @@
         {
           "source": "freesound-675951",
           "source_rate": 48000,
-          "source_frames": [
-            405120,
-            443520
-          ],
+          "source_frames": [405120, 443520],
           "at_s": 0,
           "gain": 1.0177,
           "semitones": 0,
@@ -4464,10 +3726,7 @@
         {
           "source": "freesound-96631",
           "source_rate": 44100,
-          "source_frames": [
-            0,
-            38940
-          ],
+          "source_frames": [0, 38940],
           "at_s": 0.012,
           "gain": 0.9835,
           "semitones": -9,
@@ -4484,6 +3743,16 @@
     }
   },
   "sounds": {
+    "menu_music": {
+      "label": "Menu · Battlefield 2",
+      "clips": [
+        "battlefield2-menu"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
+    },
     "rifle": {
       "label": "Synth \u00b7 rifle",
       "clips": [],
@@ -4718,10 +3987,7 @@
     },
     "recorded-auto-01": {
       "label": "Auto 01 \u00b7 recording",
-      "clips": [
-        "auto-01-1",
-        "auto-01-2"
-      ],
+      "clips": ["auto-01-1", "auto-01-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4729,10 +3995,7 @@
     },
     "recorded-rifle-02": {
       "label": "Rifle 02 \u00b7 recording",
-      "clips": [
-        "rifle-02-1",
-        "rifle-02-2"
-      ],
+      "clips": ["rifle-02-1", "rifle-02-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4740,10 +4003,7 @@
     },
     "recorded-heavy-02": {
       "label": "Heavy 02 \u00b7 recording",
-      "clips": [
-        "heavy-02-1",
-        "heavy-02-2"
-      ],
+      "clips": ["heavy-02-1", "heavy-02-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4751,10 +4011,7 @@
     },
     "recorded-rifle-03": {
       "label": "Rifle 03 \u00b7 recording",
-      "clips": [
-        "rifle-03-1",
-        "rifle-03-2"
-      ],
+      "clips": ["rifle-03-1", "rifle-03-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4762,10 +4019,7 @@
     },
     "recorded-auto-04": {
       "label": "Auto 04 \u00b7 recording",
-      "clips": [
-        "auto-04-1",
-        "auto-04-2"
-      ],
+      "clips": ["auto-04-1", "auto-04-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4773,10 +4027,7 @@
     },
     "recorded-auto-05": {
       "label": "Auto 05 \u00b7 recording",
-      "clips": [
-        "auto-05-1",
-        "auto-05-2"
-      ],
+      "clips": ["auto-05-1", "auto-05-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4784,10 +4035,7 @@
     },
     "recorded-hard-05": {
       "label": "Hard 05 \u00b7 recording",
-      "clips": [
-        "hard-05-1",
-        "hard-05-2"
-      ],
+      "clips": ["hard-05-1", "hard-05-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4795,10 +4043,7 @@
     },
     "recorded-auto-06": {
       "label": "Auto 06 \u00b7 recording",
-      "clips": [
-        "auto-06-1",
-        "auto-06-2"
-      ],
+      "clips": ["auto-06-1", "auto-06-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4806,10 +4051,7 @@
     },
     "recorded-auto-07": {
       "label": "Auto 07 \u00b7 recording",
-      "clips": [
-        "auto-07-1",
-        "auto-07-2"
-      ],
+      "clips": ["auto-07-1", "auto-07-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4817,10 +4059,7 @@
     },
     "recorded-auto-08": {
       "label": "Auto 08 \u00b7 recording",
-      "clips": [
-        "auto-08-1",
-        "auto-08-2"
-      ],
+      "clips": ["auto-08-1", "auto-08-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4828,10 +4067,7 @@
     },
     "recorded-rifle-09": {
       "label": "Rifle 09 \u00b7 recording",
-      "clips": [
-        "rifle-09-1",
-        "rifle-09-2"
-      ],
+      "clips": ["rifle-09-1", "rifle-09-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4839,10 +4075,7 @@
     },
     "recorded-bass-11": {
       "label": "Bass 11 \u00b7 recording",
-      "clips": [
-        "bass-11-1",
-        "bass-11-2"
-      ],
+      "clips": ["bass-11-1", "bass-11-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4850,10 +4083,7 @@
     },
     "recorded-rifle-11": {
       "label": "Rifle 11 \u00b7 recording",
-      "clips": [
-        "rifle-11-1",
-        "rifle-11-2"
-      ],
+      "clips": ["rifle-11-1", "rifle-11-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4861,10 +4091,7 @@
     },
     "recorded-bass-12": {
       "label": "Bass 12 \u00b7 recording",
-      "clips": [
-        "bass-12-1",
-        "bass-12-2"
-      ],
+      "clips": ["bass-12-1", "bass-12-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4872,10 +4099,7 @@
     },
     "recorded-heavy-15": {
       "label": "Heavy 15 \u00b7 recording",
-      "clips": [
-        "heavy-15-1",
-        "heavy-15-2"
-      ],
+      "clips": ["heavy-15-1", "heavy-15-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4883,10 +4107,7 @@
     },
     "recorded-report-18": {
       "label": "Report 18 \u00b7 recording",
-      "clips": [
-        "report-18-1",
-        "report-18-2"
-      ],
+      "clips": ["report-18-1", "report-18-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4894,10 +4115,7 @@
     },
     "recorded-report-19": {
       "label": "Report 19 \u00b7 recording",
-      "clips": [
-        "report-19-1",
-        "report-19-2"
-      ],
+      "clips": ["report-19-1", "report-19-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4905,10 +4123,7 @@
     },
     "recorded-heavy-20": {
       "label": "Heavy 20 \u00b7 recording",
-      "clips": [
-        "heavy-20-1",
-        "heavy-20-2"
-      ],
+      "clips": ["heavy-20-1", "heavy-20-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4916,10 +4131,7 @@
     },
     "recorded-light-20": {
       "label": "Light 20 \u00b7 recording",
-      "clips": [
-        "light-20-1",
-        "light-20-2"
-      ],
+      "clips": ["light-20-1", "light-20-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4927,10 +4139,7 @@
     },
     "recorded-report-21": {
       "label": "Report 21 \u00b7 recording",
-      "clips": [
-        "report-21-1",
-        "report-21-2"
-      ],
+      "clips": ["report-21-1", "report-21-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4938,10 +4147,7 @@
     },
     "recorded-report-22": {
       "label": "Report 22 \u00b7 recording",
-      "clips": [
-        "report-22-1",
-        "report-22-2"
-      ],
+      "clips": ["report-22-1", "report-22-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4949,10 +4155,7 @@
     },
     "recorded-report-23": {
       "label": "Report 23 \u00b7 recording",
-      "clips": [
-        "report-23-1",
-        "report-23-2"
-      ],
+      "clips": ["report-23-1", "report-23-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4960,10 +4163,7 @@
     },
     "recorded-report-24": {
       "label": "Report 24 \u00b7 recording",
-      "clips": [
-        "report-24-1",
-        "report-24-2"
-      ],
+      "clips": ["report-24-1", "report-24-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4971,10 +4171,7 @@
     },
     "recorded-report-25-a": {
       "label": "Report 25 A \u00b7 recording",
-      "clips": [
-        "report-25-a-1",
-        "report-25-a-2"
-      ],
+      "clips": ["report-25-a-1", "report-25-a-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4982,10 +4179,7 @@
     },
     "recorded-report-25-b": {
       "label": "Report 25 B \u00b7 recording",
-      "clips": [
-        "report-25-b-1",
-        "report-25-b-2"
-      ],
+      "clips": ["report-25-b-1", "report-25-b-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -4993,10 +4187,7 @@
     },
     "recorded-report-26-a": {
       "label": "Report 26 A \u00b7 recording",
-      "clips": [
-        "report-26-a-1",
-        "report-26-a-2"
-      ],
+      "clips": ["report-26-a-1", "report-26-a-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5004,10 +4195,7 @@
     },
     "recorded-report-26-b": {
       "label": "Report 26 B \u00b7 recording",
-      "clips": [
-        "report-26-b-1",
-        "report-26-b-2"
-      ],
+      "clips": ["report-26-b-1", "report-26-b-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5015,10 +4203,7 @@
     },
     "recorded-auto-27": {
       "label": "Auto 27 \u00b7 recording",
-      "clips": [
-        "auto-27-1",
-        "auto-27-2"
-      ],
+      "clips": ["auto-27-1", "auto-27-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5026,10 +4211,7 @@
     },
     "recorded-auto-28-a": {
       "label": "Auto 28 A \u00b7 recording",
-      "clips": [
-        "auto-28-a-1",
-        "auto-28-a-2"
-      ],
+      "clips": ["auto-28-a-1", "auto-28-a-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5037,10 +4219,7 @@
     },
     "recorded-auto-28-b": {
       "label": "Auto 28 B \u00b7 recording",
-      "clips": [
-        "auto-28-b-1",
-        "auto-28-b-2"
-      ],
+      "clips": ["auto-28-b-1", "auto-28-b-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5048,10 +4227,7 @@
     },
     "recorded-auto-28-c": {
       "label": "Auto 28 C \u00b7 recording",
-      "clips": [
-        "auto-28-c-1",
-        "auto-28-c-2"
-      ],
+      "clips": ["auto-28-c-1", "auto-28-c-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5059,10 +4235,7 @@
     },
     "recorded-auto-29-a": {
       "label": "Auto 29 A \u00b7 recording",
-      "clips": [
-        "auto-29-a-1",
-        "auto-29-a-2"
-      ],
+      "clips": ["auto-29-a-1", "auto-29-a-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5070,10 +4243,7 @@
     },
     "recorded-auto-29-b": {
       "label": "Auto 29 B \u00b7 recording",
-      "clips": [
-        "auto-29-b-1",
-        "auto-29-b-2"
-      ],
+      "clips": ["auto-29-b-1", "auto-29-b-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5081,10 +4251,7 @@
     },
     "recorded-auto-29-c": {
       "label": "Auto 29 C \u00b7 recording",
-      "clips": [
-        "auto-29-c-1",
-        "auto-29-c-2"
-      ],
+      "clips": ["auto-29-c-1", "auto-29-c-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5092,10 +4259,7 @@
     },
     "recorded-auto-29-d": {
       "label": "Auto 29 D \u00b7 recording",
-      "clips": [
-        "auto-29-d-1",
-        "auto-29-d-2"
-      ],
+      "clips": ["auto-29-d-1", "auto-29-d-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5103,9 +4267,7 @@
     },
     "recorded-reload-13": {
       "label": "Short reload \u00b7 take 13",
-      "clips": [
-        "reload-13"
-      ],
+      "clips": ["reload-13"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5113,9 +4275,7 @@
     },
     "recorded-clack-14": {
       "label": "Mechanical clack \u00b7 take 14",
-      "clips": [
-        "clack-14"
-      ],
+      "clips": ["clack-14"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5123,9 +4283,7 @@
     },
     "recorded-reload-15": {
       "label": "Long heavy-gun reload \u00b7 take 15",
-      "clips": [
-        "reload-15"
-      ],
+      "clips": ["reload-15"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5133,9 +4291,7 @@
     },
     "recorded-reload-16": {
       "label": "Crisp handle pull \u00b7 take 16",
-      "clips": [
-        "reload-16"
-      ],
+      "clips": ["reload-16"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5143,9 +4299,7 @@
     },
     "recorded-clack-17": {
       "label": "Small mechanical action \u00b7 take 17",
-      "clips": [
-        "clack-17"
-      ],
+      "clips": ["clack-17"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5153,9 +4307,7 @@
     },
     "recorded-cannon": {
       "label": "Tank cannon \u00b7 recorded core",
-      "clips": [
-        "cannon-m1"
-      ],
+      "clips": ["cannon-m1"],
       "synth": "cannon",
       "synth_gain": 0.1,
       "gain": 0.9,
@@ -5163,9 +4315,7 @@
     },
     "recorded-launch": {
       "label": "ATGM launch \u00b7 recorded core",
-      "clips": [
-        "javelin-launch"
-      ],
+      "clips": ["javelin-launch"],
       "synth": "launch",
       "synth_gain": 0.08,
       "gain": 0.85,
@@ -5173,9 +4323,7 @@
     },
     "recorded-at4": {
       "label": "AT4 launch \u00b7 recording",
-      "clips": [
-        "at4-launch"
-      ],
+      "clips": ["at4-launch"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5183,9 +4331,7 @@
     },
     "recorded-motor": {
       "label": "ATGM flight \u00b7 recorded exhaust",
-      "clips": [
-        "missile-exhaust"
-      ],
+      "clips": ["missile-exhaust"],
       "synth": "motor",
       "synth_gain": 0.12,
       "gain": 0.55,
@@ -5193,12 +4339,7 @@
     },
     "recorded-ricochet": {
       "label": "Ricochet \u00b7 four variations",
-      "clips": [
-        "ricochet-1",
-        "ricochet-2",
-        "ricochet-3",
-        "ricochet-4"
-      ],
+      "clips": ["ricochet-1", "ricochet-2", "ricochet-3", "ricochet-4"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.65,
@@ -5206,9 +4347,7 @@
     },
     "recorded-ground-small": {
       "label": "Bullet ground hit \u00b7 dirt Foley",
-      "clips": [
-        "dirt-tick"
-      ],
+      "clips": ["dirt-tick"],
       "synth": "impact_ground",
       "synth_gain": 0.08,
       "gain": 0.55,
@@ -5216,9 +4355,7 @@
     },
     "recorded-ground-heavy": {
       "label": "Shell ground hit \u00b7 dirt thud",
-      "clips": [
-        "dirt-thud"
-      ],
+      "clips": ["dirt-thud"],
       "synth": "impact_ground",
       "synth_gain": 0.18,
       "gain": 0.85,
@@ -5226,9 +4363,7 @@
     },
     "recorded-metal": {
       "label": "Bullet metal hit \u00b7 Foley",
-      "clips": [
-        "metal-strike"
-      ],
+      "clips": ["metal-strike"],
       "synth": "impact_hull",
       "synth_gain": 0.08,
       "gain": 0.55,
@@ -5236,10 +4371,7 @@
     },
     "recorded-explosion": {
       "label": "Ground explosion \u00b7 recorded core",
-      "clips": [
-        "eod-explosion",
-        "fire-explosion"
-      ],
+      "clips": ["eod-explosion", "fire-explosion"],
       "synth": "explosion",
       "synth_gain": 0.08,
       "gain": 0.95,
@@ -5247,12 +4379,7 @@
     },
     "rifle-combat": {
       "label": "Rifle \u00b7 crisp recorded bursts",
-      "clips": [
-        "rifle-11-burst-a",
-        "rifle-11-burst-b",
-        "rifle-11-burst-c",
-        "rifle-11-burst-d"
-      ],
+      "clips": ["rifle-11-burst-a", "rifle-11-burst-b", "rifle-11-burst-c", "rifle-11-burst-d"],
       "synth": "rifle",
       "synth_gain": 0.07,
       "gain": 0.85,
@@ -5260,12 +4387,7 @@
     },
     "hmg-combat": {
       "label": "HMG \u00b7 heavy recorded bursts",
-      "clips": [
-        "heavy-02-burst-a",
-        "heavy-02-burst-b",
-        "heavy-02-burst-c",
-        "heavy-02-burst-d"
-      ],
+      "clips": ["heavy-02-burst-a", "heavy-02-burst-b", "heavy-02-burst-c", "heavy-02-burst-d"],
       "synth": "hmg",
       "synth_gain": 0.1,
       "gain": 0.9,
@@ -5273,12 +4395,7 @@
     },
     "hmg-bass": {
       "label": "HMG \u00b7 bassier recorded bursts",
-      "clips": [
-        "heavy-20-burst-a",
-        "heavy-20-burst-b",
-        "heavy-20-burst-c",
-        "heavy-20-burst-d"
-      ],
+      "clips": ["heavy-20-burst-a", "heavy-20-burst-b", "heavy-20-burst-c", "heavy-20-burst-d"],
       "synth": "hmg",
       "synth_gain": 0.12,
       "gain": 0.9,
@@ -5286,10 +4403,7 @@
     },
     "grenade-combat": {
       "label": "Grenade launcher \u00b7 bass report",
-      "clips": [
-        "bass-11-1",
-        "bass-11-2"
-      ],
+      "clips": ["bass-11-1", "bass-11-2"],
       "synth": "thump",
       "synth_gain": 0.1,
       "gain": 0.85,
@@ -5297,12 +4411,7 @@
     },
     "rifle-combat-distant": {
       "label": "Rifle \u00b7 crisp recorded bursts \u00b7 distant",
-      "clips": [
-        "rifle-11-burst-a",
-        "rifle-11-burst-b",
-        "rifle-11-burst-c",
-        "rifle-11-burst-d"
-      ],
+      "clips": ["rifle-11-burst-a", "rifle-11-burst-b", "rifle-11-burst-c", "rifle-11-burst-d"],
       "synth": "rifle",
       "synth_gain": 0.07,
       "gain": 1.3175,
@@ -5310,12 +4419,7 @@
     },
     "hmg-combat-distant": {
       "label": "HMG \u00b7 heavy recorded bursts \u00b7 distant",
-      "clips": [
-        "heavy-02-burst-a",
-        "heavy-02-burst-b",
-        "heavy-02-burst-c",
-        "heavy-02-burst-d"
-      ],
+      "clips": ["heavy-02-burst-a", "heavy-02-burst-b", "heavy-02-burst-c", "heavy-02-burst-d"],
       "synth": "hmg",
       "synth_gain": 0.1,
       "gain": 1.395,
@@ -5323,12 +4427,7 @@
     },
     "hmg-bass-distant": {
       "label": "HMG \u00b7 bassier recorded bursts \u00b7 distant",
-      "clips": [
-        "heavy-20-burst-a",
-        "heavy-20-burst-b",
-        "heavy-20-burst-c",
-        "heavy-20-burst-d"
-      ],
+      "clips": ["heavy-20-burst-a", "heavy-20-burst-b", "heavy-20-burst-c", "heavy-20-burst-d"],
       "synth": "hmg",
       "synth_gain": 0.12,
       "gain": 1.395,
@@ -5336,9 +4435,7 @@
     },
     "recorded-cannon-distant": {
       "label": "Tank cannon \u00b7 recorded core \u00b7 distant",
-      "clips": [
-        "cannon-m1"
-      ],
+      "clips": ["cannon-m1"],
       "synth": "cannon",
       "synth_gain": 0.1,
       "gain": 1.395,
@@ -5346,9 +4443,7 @@
     },
     "recorded-launch-distant": {
       "label": "ATGM launch \u00b7 recorded core \u00b7 distant",
-      "clips": [
-        "javelin-launch"
-      ],
+      "clips": ["javelin-launch"],
       "synth": "launch",
       "synth_gain": 0.08,
       "gain": 1.3175,
@@ -5356,10 +4451,7 @@
     },
     "grenade-combat-distant": {
       "label": "Grenade launcher \u00b7 bass report \u00b7 distant",
-      "clips": [
-        "bass-11-1",
-        "bass-11-2"
-      ],
+      "clips": ["bass-11-1", "bass-11-2"],
       "synth": "thump",
       "synth_gain": 0.1,
       "gain": 1.3175,
@@ -5367,11 +4459,7 @@
     },
     "recon-rifle": {
       "label": "Recon rifle \u00b7 recorded bursts",
-      "clips": [
-        "rifle-03-burst-a",
-        "rifle-03-burst-b",
-        "rifle-03-burst-c"
-      ],
+      "clips": ["rifle-03-burst-a", "rifle-03-burst-b", "rifle-03-burst-c"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5379,11 +4467,7 @@
     },
     "recon-rifle-distant": {
       "label": "Recon rifle \u00b7 recorded bursts \u00b7 distant",
-      "clips": [
-        "rifle-03-burst-a",
-        "rifle-03-burst-b",
-        "rifle-03-burst-c"
-      ],
+      "clips": ["rifle-03-burst-a", "rifle-03-burst-b", "rifle-03-burst-c"],
       "synth": null,
       "synth_gain": 0,
       "gain": 1.3175,
@@ -5425,9 +4509,7 @@
     },
     "recorded-metal-hit-draftcraft-434336": {
       "label": "Hollow tank hit \u00b7 draftcraft",
-      "clips": [
-        "metal-hit-draftcraft-434336-1"
-      ],
+      "clips": ["metal-hit-draftcraft-434336-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5435,9 +4517,7 @@
     },
     "recorded-metal-hit-7of9designs-640204": {
       "label": "Heavy Metal Thud on Ground \u00b7 7of9Designs",
-      "clips": [
-        "metal-hit-7of9designs-640204-1"
-      ],
+      "clips": ["metal-hit-7of9designs-640204-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5445,9 +4525,7 @@
     },
     "recorded-metal-hit-xkeril-703247": {
       "label": "Big falling debris (crash) \u00b7 xkeril",
-      "clips": [
-        "metal-hit-xkeril-703247-1"
-      ],
+      "clips": ["metal-hit-xkeril-703247-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5455,9 +4533,7 @@
     },
     "recorded-metal-hit-qubodup-151624": {
       "label": "Clank Car Crash Collision \u00b7 qubodup",
-      "clips": [
-        "metal-hit-qubodup-151624-1"
-      ],
+      "clips": ["metal-hit-qubodup-151624-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5465,9 +4541,7 @@
     },
     "recorded-metal-hit-qubodup-332056": {
       "label": "Fast Collision \u00b7 qubodup",
-      "clips": [
-        "metal-hit-qubodup-332056-1"
-      ],
+      "clips": ["metal-hit-qubodup-332056-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5475,10 +4549,7 @@
     },
     "recorded-metal-hit-craigsmith-438522": {
       "label": "G33-16-Explosion with Metallic Debris.wav \u00b7 craigsmith",
-      "clips": [
-        "metal-hit-craigsmith-438522-1",
-        "metal-hit-craigsmith-438522-2"
-      ],
+      "clips": ["metal-hit-craigsmith-438522-1", "metal-hit-craigsmith-438522-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5515,9 +4586,7 @@
     },
     "recorded-metal-hit-mhad-390794": {
       "label": "impact_destruction.wav \u00b7 mhad",
-      "clips": [
-        "metal-hit-mhad-390794-1"
-      ],
+      "clips": ["metal-hit-mhad-390794-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5542,9 +4611,7 @@
     },
     "recorded-metal-hit-speedenza-222881": {
       "label": "Deep Metal Impact (37) 2 \u00b7 Speedenza",
-      "clips": [
-        "metal-hit-speedenza-222881-1"
-      ],
+      "clips": ["metal-hit-speedenza-222881-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5552,9 +4619,7 @@
     },
     "recorded-metal-hit-speedenza-193601": {
       "label": "Crunchy Metal Impact \u00b7 Speedenza",
-      "clips": [
-        "metal-hit-speedenza-193601-1"
-      ],
+      "clips": ["metal-hit-speedenza-193601-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5562,9 +4627,7 @@
     },
     "recorded-metal-hit-speedenza-167841": {
       "label": "Deep Metal Impact (37) 1.wav \u00b7 Speedenza",
-      "clips": [
-        "metal-hit-speedenza-167841-1"
-      ],
+      "clips": ["metal-hit-speedenza-167841-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5572,9 +4635,7 @@
     },
     "recorded-metal-hit-speedenza-167840": {
       "label": "Deep Metal Impact (79) 1s.wav \u00b7 Speedenza",
-      "clips": [
-        "metal-hit-speedenza-167840-1"
-      ],
+      "clips": ["metal-hit-speedenza-167840-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5582,9 +4643,7 @@
     },
     "recorded-metal-hit-speedenza-167839": {
       "label": "Deep Metal Impact (82) 1.wav \u00b7 Speedenza",
-      "clips": [
-        "metal-hit-speedenza-167839-1"
-      ],
+      "clips": ["metal-hit-speedenza-167839-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5592,10 +4651,7 @@
     },
     "recorded-metal-hit-osvoldon-653294": {
       "label": "Big Structure Collision Heard from Inside \u00b7 Osvoldon",
-      "clips": [
-        "metal-hit-osvoldon-653294-1",
-        "metal-hit-osvoldon-653294-2"
-      ],
+      "clips": ["metal-hit-osvoldon-653294-1", "metal-hit-osvoldon-653294-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5603,10 +4659,7 @@
     },
     "recorded-metal-hit-werra-244394": {
       "label": "Bang/Explosion Metallic \u00b7 Werra",
-      "clips": [
-        "metal-hit-werra-244394-1",
-        "metal-hit-werra-244394-2"
-      ],
+      "clips": ["metal-hit-werra-244394-1", "metal-hit-werra-244394-2"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5614,9 +4667,7 @@
     },
     "recorded-metal-hit-johnnyfarmer-209772": {
       "label": "Metal Boom \u00b7 Johnnyfarmer",
-      "clips": [
-        "metal-hit-johnnyfarmer-209772-1"
-      ],
+      "clips": ["metal-hit-johnnyfarmer-209772-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5624,9 +4675,7 @@
     },
     "recorded-metal-hit-anthousai-406493": {
       "label": "hit - metallic - deep hollow thunk.wav \u00b7 Anthousai",
-      "clips": [
-        "metal-hit-anthousai-406493-1"
-      ],
+      "clips": ["metal-hit-anthousai-406493-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5648,9 +4697,7 @@
     },
     "recorded-metal-hit-ogsoundfx-423107": {
       "label": "Guns & Explosions Album - Bullet Impact 14.wav \u00b7 OGsoundFX",
-      "clips": [
-        "metal-hit-ogsoundfx-423107-1"
-      ],
+      "clips": ["metal-hit-ogsoundfx-423107-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5658,9 +4705,7 @@
     },
     "recorded-metal-hit-hybrid-v-319590": {
       "label": "Shield Bash Impact \u00b7 Hybrid_V",
-      "clips": [
-        "metal-hit-hybrid-v-319590-1"
-      ],
+      "clips": ["metal-hit-hybrid-v-319590-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5668,9 +4713,7 @@
     },
     "recorded-metal-hit-qubodup-222517": {
       "label": "Dramatic Hit \u00b7 qubodup",
-      "clips": [
-        "metal-hit-qubodup-222517-1"
-      ],
+      "clips": ["metal-hit-qubodup-222517-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5705,9 +4748,7 @@
     },
     "recorded-ricochet-morganpurkis-392975": {
       "label": "Ricochet 2.wav \u00b7 morganpurkis",
-      "clips": [
-        "ricochet-morganpurkis-392975-1"
-      ],
+      "clips": ["ricochet-morganpurkis-392975-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5715,9 +4756,7 @@
     },
     "recorded-ricochet-c-v-523403": {
       "label": "22 caliber with ricochet.wav \u00b7 C-V",
-      "clips": [
-        "ricochet-c-v-523403-1"
-      ],
+      "clips": ["ricochet-c-v-523403-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5725,9 +4764,7 @@
     },
     "recorded-ricochet-diboz-213925": {
       "label": "pistol_riccochet.ogg \u00b7 Diboz",
-      "clips": [
-        "ricochet-diboz-213925-1"
-      ],
+      "clips": ["ricochet-diboz-213925-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5762,9 +4799,7 @@
     },
     "recorded-ricochet-cgeffex-123222": {
       "label": "Bullet_whiz.wav \u00b7 CGEffex",
-      "clips": [
-        "ricochet-cgeffex-123222-1"
-      ],
+      "clips": ["ricochet-cgeffex-123222-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5772,9 +4807,7 @@
     },
     "recorded-ricochet-cgeffex-96633": {
       "label": "Ricochet metal5.wav \u00b7 CGEffex",
-      "clips": [
-        "ricochet-cgeffex-96633-1"
-      ],
+      "clips": ["ricochet-cgeffex-96633-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5782,9 +4815,7 @@
     },
     "recorded-ricochet-cgeffex-96632": {
       "label": "Ricochet metal4.wav \u00b7 CGEffex",
-      "clips": [
-        "ricochet-cgeffex-96632-1"
-      ],
+      "clips": ["ricochet-cgeffex-96632-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5792,9 +4823,7 @@
     },
     "recorded-ricochet-cgeffex-96631": {
       "label": "Ricochet metal3.wav \u00b7 CGEffex",
-      "clips": [
-        "ricochet-cgeffex-96631-1"
-      ],
+      "clips": ["ricochet-cgeffex-96631-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5802,9 +4831,7 @@
     },
     "recorded-ricochet-cgeffex-96630": {
       "label": "Ricochet metal2.wav \u00b7 CGEffex",
-      "clips": [
-        "ricochet-cgeffex-96630-1"
-      ],
+      "clips": ["ricochet-cgeffex-96630-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5812,9 +4839,7 @@
     },
     "recorded-ricochet-cgeffex-96629": {
       "label": "Ricochet metal.wav \u00b7 CGEffex",
-      "clips": [
-        "ricochet-cgeffex-96629-1"
-      ],
+      "clips": ["ricochet-cgeffex-96629-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5822,9 +4847,7 @@
     },
     "recorded-ricochet-cgeffex-96634": {
       "label": "Ricochet wood.wav \u00b7 CGEffex",
-      "clips": [
-        "ricochet-cgeffex-96634-1"
-      ],
+      "clips": ["ricochet-cgeffex-96634-1"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,
@@ -5832,10 +4855,7 @@
     },
     "armour-shell-hit": {
       "label": "Armour \u00b7 shell strike",
-      "clips": [
-        "shell-hit-bash-boom-debris",
-        "shell-hit-clank-bang"
-      ],
+      "clips": ["shell-hit-bash-boom-debris", "shell-hit-clank-bang"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.95,
@@ -5843,11 +4863,7 @@
     },
     "armour-bullet-hit": {
       "label": "Armour \u00b7 heavy bullet strike",
-      "clips": [
-        "bullet-hit-steel-thud-1",
-        "bullet-hit-steel-thud-2",
-        "bullet-hit-steel-thud-3"
-      ],
+      "clips": ["bullet-hit-steel-thud-1", "bullet-hit-steel-thud-2", "bullet-hit-steel-thud-3"],
       "synth": null,
       "synth_gain": 0,
       "gain": 0.85,

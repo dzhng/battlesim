@@ -1,4 +1,6 @@
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from "react";
+import { Link, useLocation } from "react-router";
+import { PageVisit } from "./navigation";
 import { LAB_FIXTURES } from "./fixtures";
 import { listMaps } from "@web/maps/catalogue";
 import { LabLoading } from "./LabLoading";
@@ -49,36 +51,56 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
 };
 
 /** `/` is the main menu, `/labs` the index of every fixture route. */
-export function LabRouter({ path }: { path: string }) {
-  if (path === "/sound-workbench" && import.meta.env.DEV)
-    return (
-      <Suspense fallback={null}>
-        <SoundWorkbench />
-      </Suspense>
-    );
-  if (path === "/map-workbench" && import.meta.env.DEV)
-    return (
-      <Suspense fallback={null}>
-        <MapWorkbench />
-      </Suspense>
-    );
-  if (path === "/mechanics" && import.meta.env.DEV)
-    return (
-      <Suspense fallback={null}>
-        <MechanicsEditor />
-      </Suspense>
-    );
-  const fixture = LAB_FIXTURES.find((f) => f.route === path);
+export function LabRouter() {
+  const location = useLocation();
+  const path = location.pathname;
+  return (
+    <PageVisit>
+      <LabPage path={path} />
+    </PageVisit>
+  );
+}
+
+const EDITORS: Record<string, LazyExoticComponent<ComponentType>> = {
+  "/sound-workbench": SoundWorkbench,
+  "/map-workbench": MapWorkbench,
+  "/mechanics": MechanicsEditor,
+};
+
+function resolvePage(path: string) {
+  const normalized = path.replace(/\/$/, "") || "/";
+  const editor = import.meta.env.DEV ? EDITORS[normalized] : undefined;
+  const fixture = LAB_FIXTURES.find((f) => f.route === normalized);
   const Route = fixture && ROUTES[fixture.id];
+  return { path: normalized, editor, fixture, Route };
+}
+
+/** Policy for menu warm-up and the menu bed, derived from the rendered page.
+ * Player battle/replay routes keep the bed while their loading cover is visible. */
+export function screenForPath(path: string): "menu" | "loading" | "other" {
+  const page = resolvePage(path);
+  if (page.editor || page.path === "/labs") return "other";
+  if (!page.Route) return "menu";
+  return /^\/(battle|replay)(\/|$)/.test(page.path) ? "loading" : "other";
+}
+
+function LabPage({ path: requestedPath }: { path: string }) {
+  const { path, editor: Editor, fixture, Route } = resolvePage(requestedPath);
+  if (Editor)
+    return (
+      <Suspense fallback={null}>
+        <Editor />
+      </Suspense>
+    );
   if (!Route && path !== "/labs") return <MainMenu />;
-  if (!Route) {
+  if (!fixture || !Route) {
     return (
       <main
         className="lab-index"
         style={{ padding: 24, height: "100%", overflow: "auto", boxSizing: "border-box" }}
       >
         <p>
-          <a href="/">Main menu</a>
+          <Link to="/">Main menu</Link>
         </p>
         <h1>Battle lab</h1>
         <h2>Saved maps</h2>
@@ -87,7 +109,7 @@ export function LabRouter({ path }: { path: string }) {
             .filter((map) => map.status !== "retired")
             .map((map) => (
               <li key={map.id}>
-                <a href={`/lab/geometry?map=${map.id}`}>{map.label}</a>
+                <Link to={`/lab/geometry?map=${map.id}`}>{map.label}</Link>
                 {map.status === "draft" && " — draft"}
               </li>
             ))}
@@ -96,7 +118,7 @@ export function LabRouter({ path }: { path: string }) {
         <ul>
           {LAB_FIXTURES.map((f) => (
             <li key={f.id}>
-              <a href={f.route}>{f.id}</a> — {f.describe}
+              <Link to={f.route}>{f.id}</Link> — {f.describe}
             </li>
           ))}
         </ul>

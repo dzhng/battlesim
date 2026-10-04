@@ -352,6 +352,8 @@ export interface Panel {
   /** Its strength against full, in [0, 1], drawn as pips on the name line;
    *  null where the side can't know it (an enemy's). */
   strength: number | null;
+  /** Living members, including wounded soldiers; absent without known personnel. */
+  personnel?: number;
   /** A mark before the name (under `assets/icons/`): an unidentified
    *  report's; null for a known type. */
   mark: string | null;
@@ -365,6 +367,7 @@ export function ownPanel(u: OwnUnitView, own: readonly OwnUnitView[], rules: Pan
   return {
     name: UNITS.type(u.kind).name.toUpperCase(),
     strength: unitStrength(u),
+    personnel: u.memberHp.length ? u.memberHp.filter((hp) => hp > 0).length : undefined,
     mark: null,
     weapons: weaponRows(UNITS.type(u.kind).mounts, rules, u.mounts),
     states: ownStateRows(u, own, rules),

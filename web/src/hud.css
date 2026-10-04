@@ -1,5 +1,5 @@
 /* The HUD's holo-tactical look: the panel as dark
-   glass with thin glowing edges, game-style command tiles with key chips, and
+   glass with thin glowing edges, icon command tiles with focus/hover tooltips, and
    the weapon callouts floating off their units on leader lines over soft dark
    scrims. Every colour is a `--hud-*` property from `presentation.hud`
    (`hudTheme.ts`); this sheet holds none of its own. */
@@ -142,61 +142,68 @@
   outline-offset: 1px;
 }
 
-/* The command tiles: an icon, the command's name, the key on a chip. */
+/* Names and complete bindings stay available without taking battlefield room. */
 .ro-commands {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
 }
 .hud-panel button.ro-cmd {
   position: relative;
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 1px;
-  justify-self: stretch;
-  min-height: 42px;
-  padding: 6px 2px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-color: rgb(var(--hud-accent) / 0.18);
+}
+.hud-panel button.ro-cmd:focus-visible {
+  outline: 2px solid rgb(var(--hud-accent));
+  outline-offset: 2px;
+  border-color: rgb(var(--hud-accent));
+  background: rgb(var(--hud-accent) / 0.2);
 }
 .ro-cmd-icon {
   margin: 0;
   color: rgb(var(--hud-accent));
-  filter: drop-shadow(0 0 3px rgb(var(--hud-accent) / 0.7));
+  filter: drop-shadow(0 0 2px rgb(var(--hud-accent) / 0.4));
 }
-.ro-cmd-icon svg {
-  width: 16px;
-  height: 16px;
+.ro-cmd .ro-cmd-icon svg {
+  width: 28px;
+  height: 28px;
 }
-.ro-cmd-name {
-  font-size: 8.5px;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-}
-.ro-cmd kbd {
+.ro-cmd-tooltip {
+  display: block;
   position: absolute;
-  top: 2px;
-  right: 2px;
-  font: inherit;
-  font-size: 8px;
-  line-height: 1;
+  bottom: calc(100% + 10px);
+  right: 0;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 32px));
+  padding: 8px 10px;
+  color: rgb(var(--hud-text));
+  background: rgb(var(--hud-glass) / 0.98);
+  border: 1px solid rgb(var(--hud-accent) / 0.5);
+  font-size: 12px;
+  line-height: 1.4;
   letter-spacing: 0;
-  padding: 1px 2px;
-  color: rgb(var(--hud-dim));
-  border: 1px solid rgb(var(--hud-dim) / 0.45);
+  text-transform: none;
+  text-align: left;
+  pointer-events: none;
+  z-index: 1;
 }
-/* A command only part of the selection can carry out: how many it reaches. */
-.ro-cmd-reach {
-  position: absolute;
-  top: 2px;
-  left: 3px;
-  font-size: 8px;
-  line-height: 1;
-  color: rgb(var(--hud-dim));
-  font-variant-numeric: tabular-nums;
+
+.hud-command-hint {
+  width: 100%;
 }
-.ro-cmd[aria-pressed="true"] kbd {
-  color: rgb(var(--hud-accent));
-  border-color: rgb(var(--hud-accent) / 0.8);
+.hud-command-hint:empty {
+  display: none;
+}
+.hud-command-hint .ro-cmd-tooltip {
+  position: relative;
+  bottom: auto;
+  right: auto;
+  transform: translateX(-50%);
 }
 
 /* ---- Fields: no browser controls ------------------------------------- */
@@ -306,6 +313,10 @@
   display: inline-flex;
   vertical-align: middle;
   margin-right: 4px;
+}
+/* Decorative button icons keep the button hit target stable across SVG updates. */
+.hud-panel button .ro-icon {
+  pointer-events: none;
 }
 .ro-icon svg {
   height: 1.4em;
@@ -449,6 +460,13 @@
     0 0 2px rgb(0 0 0 / 0.95),
     0 0 6px rgb(var(--tone) / calc(0.7 * var(--hud-callout-glow)));
 }
+.ro-personnel {
+  margin-left: 8px;
+  font-size: 10px;
+  letter-spacing: 0;
+  font-weight: normal;
+  color: rgb(var(--ink));
+}
 .ro-name-icon svg {
   width: 10px;
   height: 10px;
@@ -568,6 +586,10 @@
   align-items: center;
   gap: 4px;
 }
+.ro-count-separator {
+  font-weight: normal;
+  color: rgb(var(--ink) / 0.7);
+}
 .ro-kind {
   display: flex;
   align-items: center;
@@ -645,7 +667,9 @@
   gap: 6px;
   margin-top: 0;
 }
-[data-zoom="far"] .ro-section:not([data-repeat-icons]) :is(.ro-word, .ro-sep, .ro-pips-none),
+[data-zoom="far"]
+  .ro-section:not([data-repeat-icons])
+  :is(.ro-word, .ro-sep, .ro-count-separator, .ro-pips-none),
 [data-zoom="far"] .ro-name > .ro-pips-none {
   display: none;
 }
@@ -712,18 +736,23 @@
   z-index: 20;
   display: grid;
   place-items: center;
-  background: rgb(var(--hud-glass) / 0.45);
+  padding: 24px;
+  overflow: auto;
+  background: rgb(var(--hud-glass) / 0.55);
 }
 .hud-panel.hud-menu {
   position: relative;
   display: grid;
   gap: 8px;
-  width: 300px;
-  padding: 14px 18px 16px;
+  width: min(320px, 100%);
+  box-sizing: border-box;
+  padding: 18px 20px;
+  box-shadow: 0 0 8px rgb(var(--hud-accent) / 0.12);
   background: rgb(var(--hud-glass) / 0.92);
 }
 /* The panel's title (`.hud-panel > strong:first-child`), larger and centred. */
 .hud-menu > strong.hud-menu-title {
+  text-shadow: var(--hud-text-halo);
   font-size: 13px;
   letter-spacing: 0.24em;
   text-align: center;
@@ -782,99 +811,280 @@
   background: rgb(var(--hud-accent));
   box-shadow: 0 0 5px rgb(var(--hud-accent));
 }
-.hud-menu-file {
+.hud-panel .hud-menu-file {
   display: grid;
-  gap: 4px;
+  gap: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: rgb(var(--hud-dim));
+}
+.hud-menu-file input[type="file"] {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  color: rgb(var(--hud-dim));
+}
+.hud-menu-file input::file-selector-button {
+  margin-right: 8px;
+  padding: 6px 10px;
+  border: 1px solid rgb(var(--hud-accent) / 0.32);
+  border-radius: 0;
+  font: inherit;
+  color: rgb(var(--hud-text));
+  background: rgb(var(--hud-accent) / 0.05);
+  cursor: pointer;
+}
+.hud-menu-file input::file-selector-button:hover {
+  border-color: rgb(var(--hud-accent));
+}
+.hud-menu :is(a, button, input):focus-visible {
+  outline: 1px solid rgb(var(--hud-accent));
+  outline-offset: 3px;
 }
 .hud-menu .sound-controls {
   display: grid;
   gap: 6px;
 }
-.hud-panel.hud-bar {
+.hud-lower {
   position: fixed;
-  left: 0;
-  right: 0;
-  border-left: 0;
-  border-right: 0;
+  inset-inline: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.hud-panel.hud-bar {
+  position: relative;
   box-sizing: border-box;
 }
-.hud-panel.hud-bar::before,
-.hud-panel.hud-bar::after {
-  display: none;
-}
 .hud-bottom {
-  bottom: 0;
-  display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr);
-  align-items: stretch;
-  gap: 16px;
-  padding: 10px 16px;
-  height: 150px;
-  border-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: max-content;
+  max-width: min(922px, 100%);
+  min-height: 80px;
+  background: rgb(var(--hud-glass) / 0.94);
+  padding: 8px 10px;
+  pointer-events: auto;
 }
-.hud-bottom > * {
-  min-width: 0;
-  overflow: auto;
+.hud-bottom:has(.hud-group) {
+  flex-direction: column;
 }
-/* The unit card: the selection's info panels (infoPanel.tsx), in the own
-   tone; one unit's beside its portrait (role symbol over silhouette), a
-   group's in their far form. */
+/* Keep the shared panel vocabulary; only spacing and text size change here. */
 .hud-card {
   --tone: var(--hud-accent);
   --ink: var(--hud-text);
-  grid-column: 1;
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding-right: 12px;
-  border-right: 1px solid rgb(var(--hud-accent) / 0.2);
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
 }
 .hud-group {
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: start;
+  width: min(900px, calc(100dvw - 54px));
+  box-sizing: border-box;
+  padding-right: 12px;
+  gap: 10px 18px;
+  max-width: min(900px, 100%);
+  max-height: calc(30dvh - 80px);
   align-content: flex-start;
-  gap: 4px 18px;
+  overflow-y: auto;
+}
+.hud-group::-webkit-scrollbar {
+  width: 6px;
+  background: rgb(var(--hud-accent) / 0.1);
+}
+.hud-group::-webkit-scrollbar-thumb {
+  background: rgb(var(--hud-accent) / 0.75);
+}
+.hud-card .ro-personnel {
+  font-size: 11.5px;
+}
+.hud-card .ro-body {
+  min-width: 230px;
+}
+.hud-card .ro-name {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+.hud-card :is(.ro-word, .ro-kind-label, .ro-sep, .ro-ammo) {
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+}
+.hud-card .ro-row {
+  height: 22px;
+}
+.hud-card .ro-weapons {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0 12px;
+}
+.hud-card .ro-kinds {
+  padding-left: 4px;
 }
 .hud-portrait {
   display: grid;
-  justify-items: start;
-  gap: 6px;
+  justify-items: center;
+  gap: 5px;
   flex: none;
   color: rgb(var(--hud-accent));
-  filter: drop-shadow(0 0 2px rgb(var(--hud-accent) / 0.45));
 }
 .hud-portrait .ro-icon {
   margin: 0;
 }
-.hud-role svg {
-  height: 22px;
+.hud-portrait .hud-role svg {
+  height: 20px;
 }
-.hud-silhouette svg {
-  height: 28px;
-  max-width: 96px;
+.hud-portrait .hud-silhouette svg {
+  height: 24px;
+  max-width: 60px;
 }
 .hud-bottom .ro-commands {
-  grid-template-columns: repeat(6, 1fr);
+  max-width: 384px;
   align-content: center;
-  overflow: visible;
 }
-/* Sound captions: what the side hears, over
-   the bottom bar, in the HUD's type with no box. */
+/* All owned units above one compact command row. Large armies scroll, never wrap. */
+.hud-bottom.hud-army-deck {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: max-content;
+  max-width: min(1220px, 100%);
+  min-height: 0;
+  padding: 5px 5px 0;
+}
+.hud-army {
+  display: flex;
+  justify-content: safe center;
+  gap: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 5px;
+  scrollbar-color: rgb(var(--hud-accent) / 0.7) rgb(var(--hud-accent) / 0.1);
+  scrollbar-width: thin;
+}
+.hud-army::-webkit-scrollbar {
+  height: 6px;
+}
+.hud-army::-webkit-scrollbar-track {
+  background: rgb(var(--hud-accent) / 0.1);
+}
+.hud-army::-webkit-scrollbar-thumb {
+  background: rgb(var(--hud-accent) / 0.7);
+}
+.hud-panel button.hud-army-card {
+  position: relative;
+  display: flex;
+  flex: 0 0 64px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 88px;
+  padding: 14px 5px 10px;
+  border-color: rgb(var(--hud-accent) / 0.25);
+  color: rgb(var(--hud-accent) / 0.75);
+}
+.hud-panel button.hud-army-card[aria-pressed="true"] {
+  color: rgb(var(--hud-accent));
+  border-width: 2px;
+  padding: 13px 4px 9px;
+}
+.hud-panel button.hud-army-card:is([aria-pressed="true"], :hover) {
+  box-shadow: inset 0 0 8px rgb(var(--hud-accent) / 0.16);
+  text-shadow: none;
+}
+.hud-army-id {
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  font: 12px/1.2 var(--hud-font);
+  color: rgb(var(--hud-text));
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.hud-army-card .ro-icon {
+  margin: 0;
+}
+.hud-army-role svg {
+  width: 25px;
+  height: 25px;
+}
+.hud-army-silhouette svg {
+  width: 48px;
+  height: 23px;
+}
+.hud-army-health {
+  position: absolute;
+  bottom: 4px;
+  inset-inline: 5px;
+  height: 3px;
+  background: rgb(var(--hud-accent) / 0.15);
+}
+.hud-army-health > span {
+  display: block;
+  height: 100%;
+  background: rgb(var(--hud-accent));
+}
+.hud-army-deck .ro-commands {
+  align-self: center;
+  flex-wrap: nowrap;
+  max-width: none;
+  padding-block: 3px;
+  border-top: 1px solid rgb(var(--hud-accent) / 0.22);
+}
+.hud-army-deck button.ro-cmd {
+  width: 34px;
+  height: 34px;
+}
+.hud-army-deck .ro-cmd-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.hud-army-detail-host {
+  position: relative;
+  width: 100%;
+}
+.hud-army-detail {
+  position: relative;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(360px, 100%);
+  padding: 10px 12px;
+  background: rgb(var(--hud-glass) / 0.98);
+  box-sizing: border-box;
+}
+.hud-army-detail .ro-weapons {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+.hud-army-detail .ro-body {
+  min-width: 0;
+}
+.hud-army-detail .ro-name {
+  white-space: normal;
+}
+.hud-army-detail .ro-kinds:has([data-loaded]) .ro-kind:not([data-loaded]) {
+  opacity: 0.75;
+}
+/* Normal flow keeps hearing captions above a deck of any actual height. */
 .hud-subtitles {
-  position: fixed;
-  left: 16px;
-  bottom: 16px;
   margin: 0;
   padding: 0;
   list-style: none;
   pointer-events: none;
-  font: 11px/1.5 var(--hud-font);
-  letter-spacing: 0.04em;
+  font: 12px/1.5 var(--hud-font);
+  letter-spacing: 0.02em;
   color: rgb(var(--hud-text));
   text-shadow: var(--hud-text-halo);
-}
-.hud-bottom ~ .hud-subtitles {
-  bottom: 164px;
 }
 /* A rejected order's reason beside the cursor: the one "can't" colour,
    marked by its cross, no box. */

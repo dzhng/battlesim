@@ -1,3 +1,4 @@
+import { MemoryRouter } from "react-router";
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
@@ -95,7 +96,7 @@ function fixture() {
 
 test("the complete library auditions an unused reload and clones synthesis without changing its baseline", async () => {
   const { api, audition } = fixture();
-  render(<SoundWorkbench api={api} audition={audition} />);
+  render(<SoundWorkbench api={api} audition={audition} />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Unused reload" }));
   fireEvent.click(screen.getByRole("button", { name: "Play clip" }));
   await waitFor(() =>
@@ -121,7 +122,7 @@ test("library selection, filtering and view changes stay usable when scrolling c
     .mockImplementation(async () => {});
   try {
     const { api, audition } = fixture();
-    render(<SoundWorkbench api={api} audition={audition} />);
+    render(<SoundWorkbench api={api} audition={audition} />, { wrapper: MemoryRouter });
     await screen.findByRole("button", { name: "Unused reload" });
     fireEvent.click(screen.getByRole("button", { name: "Synth · rifle" }));
     expect(screen.getByRole("heading", { name: "Synth · rifle" })).toBeTruthy();
@@ -147,7 +148,7 @@ test("unused clips include stored recipes that no battle assignment selects", as
     gain: 1,
     loop: false,
   };
-  render(<SoundWorkbench api={f.api} audition={f.audition} />);
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
   await screen.findByRole("button", { name: "Unused reload" });
   fireEvent.change(screen.getByLabelText("Library filter"), { target: { value: "unused" } });
   expect(screen.getByRole("button", { name: "Unused reload" })).toBeTruthy();
@@ -156,7 +157,7 @@ test("unused clips include stored recipes that no battle assignment selects", as
 test("the global editor displays the effective shared fallback for an unassigned firing kind", async () => {
   const f = fixture();
   f.snapshot.catalog.defaults.default = { near: "hmg", far: "hmg", gain: 0.8 };
-  render(<SoundWorkbench api={f.api} audition={f.audition} />);
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
   expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("hmg");
   expect((screen.getByLabelText("rifle gain") as HTMLInputElement).value).toBe("0.8");
@@ -166,7 +167,7 @@ test("implicit firing fallbacks display effect replacements and retain them when
   const f = fixture();
   f.snapshot.catalog.effects.rifle = "hmg";
   f.snapshot.catalog.effects.rifle_far = "hmg_far";
-  render(<SoundWorkbench api={f.api} audition={f.audition} />);
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
   expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("hmg");
   expect((screen.getByLabelText("rifle far") as HTMLSelectElement).value).toBe("hmg_far");
@@ -185,7 +186,7 @@ test("implicit firing fallbacks display effect replacements and retain them when
 
 test("preview shows the changed sound setting without searching full source JSON", async () => {
   const f = fixture();
-  render(<SoundWorkbench api={f.api} audition={f.audition} />);
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Unit assignments" }));
   fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
   fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
@@ -198,7 +199,7 @@ test("preview shows the changed sound setting without searching full source JSON
 
 test("cloning a filtered baseline shows the new selected recipe in the library", async () => {
   const f = fixture();
-  render(<SoundWorkbench api={f.api} audition={f.audition} />);
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
   await screen.findByRole("button", { name: "Synth · rifle" });
   fireEvent.change(screen.getByLabelText("Library filter"), { target: { value: "baselines" } });
   fireEvent.click(screen.getByRole("button", { name: "Synth · rifle" }));
@@ -210,7 +211,7 @@ test("cloning a filtered baseline shows the new selected recipe in the library",
 
 test("exact type assignments can be edited independently, restored, reviewed and saved", async () => {
   const f = fixture();
-  render(<SoundWorkbench api={f.api} audition={f.audition} />);
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Unit assignments" }));
   fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
   expect(screen.getByText("2 physical mounts share this choice")).toBeTruthy();
@@ -236,7 +237,7 @@ test("an edit after preview invalidates review, and a stale-save error retains t
   api.save = vi.fn(async () => {
     throw new Error("Outside edit; reload sources");
   });
-  render(<SoundWorkbench api={api} audition={audition} />);
+  render(<SoundWorkbench api={api} audition={audition} />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Unit assignments" }));
   fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
   fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
@@ -259,7 +260,9 @@ test.each(["Stop", "selection", "unmount"])(
           complete = resolve;
         }),
     );
-    const view = render(<SoundWorkbench api={api} audition={audition} />);
+    const view = render(<SoundWorkbench api={api} audition={audition} />, {
+      wrapper: MemoryRouter,
+    });
     fireEvent.click(await screen.findByRole("button", { name: "Synth · rifle" }));
     fireEvent.click(screen.getByRole("button", { name: "Play recipe" }));
     await screen.findByText("Preparing audition…");
@@ -277,7 +280,7 @@ test.each(["Stop", "selection", "unmount"])(
 
 test("global firing, material impacts and matching loop slots publish the chosen recipes", async () => {
   const { api, audition } = fixture();
-  render(<SoundWorkbench api={api} audition={audition} />);
+  render(<SoundWorkbench api={api} audition={audition} />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
   fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
   fireEvent.change(screen.getByLabelText("ground rifle impact"), {

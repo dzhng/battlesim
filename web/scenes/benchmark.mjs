@@ -30,6 +30,7 @@ export async function run(ctx, preset = "village-contact") {
   } else {
     await page.goto(`${origin}/`);
     const main = page.getByRole("navigation", { name: "Main menu" });
+    await main.waitFor();
     const played = await main.locator(".menu-card-label").allTextContents();
     // The test village, the benchmark and the labs are behind the developer link.
     const hidden = await page.getByRole("navigation", { name: "Developer" }).count();

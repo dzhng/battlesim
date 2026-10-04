@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 // The benchmark's results screen: the headline frame numbers, the frame chart,
 // percentiles per camera phase, then the simulation, memory and machine the
 // numbers came from. Everything shown is read from the JSON report.
@@ -176,7 +177,7 @@ export function BenchmarkResults({
         <button type="button" onClick={() => exportReport(report)}>
           Export JSON
         </button>
-        <a href="/">Main menu</a>
+        <Link to="/">Main menu</Link>
       </nav>
     </main>
   );
