@@ -91,9 +91,20 @@ The [sound frame](src/soundFrame.ts) owns timing, distance and voice allocation.
 Only implicit presentation slots follow shared effect replacements; an explicit
 recipe selection keeps its identity. The [bank](src/soundBank.ts) prepares live
 and offline buffers through the same asynchronous path. Disposal aborts loading
-and prevents late admission. The [browser lifecycle](src/battleAudio.ts) drops
-publications received while loading, reports failures, and starts from fresh
-observed evidence once ready.
-Leaving a page releases its audio engine and cancels preparation. Returning to a
-document preserved in the browser's back-button cache prepares a fresh engine
-from that page's accepted catalog, rather than retaining loading work across departure.
+and prevents late admission.
+
+The [page audio owner](src/appAudio.ts) retains one context and bank across
+client navigation. Its menu bed attempts playback early; when browser permission
+blocks that attempt, a qualifying input resumes the same context. The bed stays
+through loading and fades only when prepared battle audio updates. Source
+calibration and the persisted sound settings govern both mixes.
+
+Each [battle observer](src/battleAudio.ts) owns fresh side-visible evidence and
+a disposable mixer. Leaving a battle disconnects every voice and the whole
+mixer output, including reverb tails; it does not cancel shared bank preparation.
+Publications arriving before readiness or while muted are dropped so preparation
+and unmuting cannot replay old combat.
+
+Real document departure closes the page engine and cancels bank preparation.
+A document restored from the browser's back-button cache remains closed and
+requires the app's manual Reload recovery; destroyed handles are never revived.

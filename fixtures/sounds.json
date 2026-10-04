@@ -3716,6 +3716,14 @@
     }
   },
   "sounds": {
+    "menu_music": {
+      "label": "Menu · low sustained tension",
+      "clips": [],
+      "synth": "menu_music",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
     "rifle": {
       "label": "Synth \u00b7 rifle",
       "clips": [],

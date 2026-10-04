@@ -260,6 +260,25 @@ const looped = (f: (sr: number, rng: Rng) => Float32Array): Maker =>
 
 /** Every sound the bank makes, by name. */
 export const SOUNDS: Record<string, Maker> = {
+  // Authored here: sustained low E/B tension with sparse, soft pulses. Whole
+  // cycles and periodic envelopes close the loop without an attack at the seam.
+  menu_music: looped((sr) => {
+    const n = Math.round(24 * sr);
+    const out = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const t = i / sr;
+      const swell = 0.7 + 0.3 * Math.cos((TAU * i) / n);
+      const pulsePhase = (t + 1.5) % 6;
+      const pulse = pulsePhase < 1.5 ? Math.sin((Math.PI * pulsePhase) / 1.5) ** 2 : 0;
+      out[i] =
+        swell *
+          (0.6 * Math.sin(TAU * 41.25 * t) +
+            0.28 * Math.sin(TAU * 61.875 * t) +
+            0.16 * Math.sin(TAU * 82.5 * t)) +
+        pulse * 0.12 * Math.sin(TAU * 165 * t);
+    }
+    return toPeak(out);
+  }),
   rifle: once((sr, rng) =>
     report(sr, rng, {
       len: 0.7,
