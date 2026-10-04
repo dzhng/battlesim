@@ -51,8 +51,8 @@ export interface MapRiver {
 }
 
 /** A resolved physical map (`contract::map::MapDefinition`), in metres. The
- *  resolver leaves out `rivers`, `buildings` and `template_catalog_hash` when
- *  a map has none. */
+ *  resolver leaves out `rivers`, `buildings`, `template_catalog_hash` and
+ *  `regional_family` when a map has none. */
 export interface MapDefinition {
   size: [number, number];
   /** Map-owned visual landscape only; absent at zero. It never changes the physical height grid. */
@@ -68,6 +68,8 @@ export interface MapDefinition {
   props: MapProp[];
   buildings?: MapBuilding[];
   template_catalog_hash?: string;
+  /** The one region every building is of (a presets regional family). */
+  regional_family?: string;
 }
 
 /** What a map is, apart from where it is stored (`contract::maps::MapIdentity`). */

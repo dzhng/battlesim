@@ -558,7 +558,10 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
   const world = useStaticWorld(map, GAME_RULES);
   const buildings = useStandingBuildings(world);
   const buildingsFeed = useFeed(buildings);
-  const appearances = useMapAppearances(buildings?.placed ?? null, null);
+  const appearances = useMapAppearances(
+    buildings?.placed ?? null,
+    world?.exports.buildings.regionalFamily ?? null,
+  );
   const meshes = useMemo(
     () =>
       world &&

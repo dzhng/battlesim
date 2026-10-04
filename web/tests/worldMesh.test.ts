@@ -98,7 +98,7 @@ const exports = {
   triangleSurfaces: Uint8Array.of(0, 0, 2, 2),
   // One crate, standing on a ledge above the ground.
   props: Float32Array.of(7, 0, 2, 2, 2, 0, 0.5, 0.5, 0.5, 5),
-  buildings: { catalogueHash: null, buildings: [] },
+  buildings: { catalogueHash: null, regionalFamily: null, buildings: [] },
   rivers: new Float32Array(0),
   riverRuns: new Float32Array(0),
   forests: new Float32Array(0),

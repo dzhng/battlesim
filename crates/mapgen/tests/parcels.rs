@@ -721,6 +721,8 @@ fn every_building_of_a_map_is_of_one_regional_family() {
             .map(|building| building.regional_family.as_str())
             .collect();
         assert_eq!(families.len(), 1, "seed {seed}: {families:?}");
+        // The map names the family its seed drew.
+        assert!(families.contains(map.regional_family.as_deref().unwrap()));
         drawn.extend(families.into_iter().map(str::to_string));
     }
     assert_eq!(drawn.len(), 2, "eight seeds drew only {drawn:?}");
@@ -749,6 +751,8 @@ fn each_regional_family_asked_for_builds_every_map_type() {
                 }
             };
             assert!(!map.buildings.is_empty(), "{family} {map_type:?}");
+            // The map names the region it was asked for.
+            assert_eq!(map.regional_family.as_ref(), Some(&family), "{map_type:?}");
             for building in &map.buildings {
                 assert_eq!(building.regional_family, family, "{map_type:?}");
             }

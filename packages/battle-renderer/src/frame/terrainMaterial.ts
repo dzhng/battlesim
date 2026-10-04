@@ -125,7 +125,8 @@ const RoadLook = d.struct({
    *  own road's edge. */
   crossing: d.vec4f,
   /** Its kerbstones: 1 / a stone's length along the road, and how far the
-   *  joint between two darkens them; then unused. */
+   *  joint between two darkens them; then its slabs where it is laid as an
+   *  area: 1 / a slab's side (0 for none), how far a joint darkens it. */
   stones: d.vec4f,
 });
 
@@ -784,6 +785,9 @@ export const GroundPaved = d
     /** The cell's paved list (where it starts and ends in `surfaceIndex`),
      *  for what reads the strokes round the point again (`groundMarks`). */
     list: d.vec2u,
+    /** The slab bearing of the area the point stands in
+     *  (`SURFACE_AREA_BEARING`); negative outside every area. */
+    bearing: d.f32,
   })
   .$name("GroundPaved");
 
@@ -802,7 +806,7 @@ export const groundPaved = tgpu
     GroundPaved,
   )(/* wgsl */ `(xy:vec2f,cell:vec4u)->GroundPaved {
  var paved=vec4f(-1e9);var member=${ROAD_KINDS}u;var nearest=1e9;var edge=0u;
- var lane=vec4f(0.0);var run=vec4f(0.0,0.0,0.0,-1.0);var deepest=-1e9;
+ var lane=vec4f(0.0);var run=vec4f(0.0,0.0,0.0,-1.0);var deepest=-1e9;var bearing=-1.0;
  for(var i=cell.x;i<cell.y;i++){
   let entry=terrainLayout.$.surfaceIndex[i];
   let seg=terrainLayout.$.surfaces[entry&${SURFACE_RECORD_MASK}u];
@@ -821,7 +825,9 @@ export const groundPaved = tgpu
    }
   }
   else if(kind==${SURFACE_TRIANGLE}u){
-   if(polygonTriangleInside(xy,seg.ends.xy,seg.ends.zw,seg.detail.xy)){member=min(member,u32(seg.detail.z));}
+   if(polygonTriangleInside(xy,seg.ends.xy,seg.ends.zw,seg.detail.xy)&&u32(seg.detail.z)<=member){
+    member=u32(seg.detail.z);bearing=seg.detail.w;
+   }
   }
   else{
    let off=polygonEdgeDistance(xy,seg.ends.xy,seg.ends.zw);
@@ -835,7 +841,7 @@ export const groundPaved = tgpu
  else if(nearest<1e9){
   paved[edge]=max(paved[edge],-nearest);rule=max(rule,-nearest);
  }
- return GroundPaved(paved,lane,run,rule,cell.xy);
+ return GroundPaved(paved,lane,run,rule,cell.xy,bearing);
 }`)
   .$uses({
     terrainLayout,
@@ -1284,20 +1290,22 @@ const PATCH_CUT = [0.52, 0.66] as const;
 const JOIN_DRIFT_M = 2.5;
 /** The joint between two of a walk's slabs, or two kerbstones, is this
  *  wide, and shows while a pixel is under the first of these shares of it,
- *  gone by the second. */
+ *  gone by the second. An area's slabs are larger, their joints wider: they
+ *  read from farther off. */
 const SLAB_JOINT_M = 0.03;
+const AREA_JOINT_M = 0.1;
 const SLAB_JOINT_PIXELS = [0.7, 2.5] as const;
 
-/** How much of a joint lies `along` metres along a stroke, 0 to 1, where
- *  one crosses every `1 / perMetre` metres. */
+/** How much of a joint `width` wide lies `along` metres along a line, 0 to
+ *  1, where one crosses every `1 / perMetre` metres. */
 const strokeJoint = tgpu.fn(
-  [d.f32, d.f32, d.f32],
+  [d.f32, d.f32, d.f32, d.f32],
   d.f32,
-)(/* wgsl */ `(along:f32,perMetre:f32,footprint:f32)->f32 {
- let shown=1.0-smoothstep(${SLAB_JOINT_PIXELS[0]},${SLAB_JOINT_PIXELS[1]},footprint/${SLAB_JOINT_M});
+)(/* wgsl */ `(along:f32,perMetre:f32,footprint:f32,width:f32)->f32 {
+ let shown=1.0-smoothstep(${SLAB_JOINT_PIXELS[0]},${SLAB_JOINT_PIXELS[1]},footprint/width);
  if(perMetre<=0.0||shown<=0.0){return 0.0;}
  let to=abs(fract(along*perMetre+0.5)-0.5)/perMetre;
- return (1.0-smoothstep(${SLAB_JOINT_M / 2},${SLAB_JOINT_M / 2}+footprint,to))*shown;
+ return (1.0-smoothstep(width*0.5,width*0.5+footprint,to))*shown;
 }`);
 
 /** How far the joint between two of a walk's slabs darkens a point: the
@@ -1312,7 +1320,7 @@ const walkJoint = tgpu
  let road=terrainLayout.$.params.roads[u32(paved.run.w)];
  let beyond=paved.lane.z-paved.lane.w;
  if(beyond<=0.0||beyond>=road.join.z){return 0.0;}
- return strokeJoint(paved.run.z,road.slabs.x,footprint)*road.slabs.y;
+ return strokeJoint(paved.run.z,road.slabs.x,footprint,${SLAB_JOINT_M})*road.slabs.y;
 }`)
   .$uses({ terrainLayout, strokeJoint, GroundPaved });
 
@@ -1459,7 +1467,8 @@ const groundMarks = tgpu
  *  is its colour, in patches a second hue at the same brightness, under its
  *  grain; along a stroke's lanes it is shaded by its ruts (`groundRuts`), and
  *  a narrow track's middle goes to the verge's grass (`groundStrip`); a walk
- *  is crossed by its slabs' joints (`walkJoint`). Last a street's painted
+ *  is crossed by its slabs' joints (`walkJoint`), an area by its own slabs'
+ *  square to its nearest street. Last a street's painted
  *  lines (`groundMarks`), worn in patches, and its kerbstones along its edge
  *  (`groundCurb`). `paved` is the point's `groundPaved`. */
 const groundRoads = tgpu
@@ -1505,8 +1514,24 @@ const groundRoads = tgpu
     let strip=groundStrip(xy,footprint,paved)*${STRIP_COVER};
     core=mix(core,terrainLayout.$.params.verge.xyz*(1.0+look.shape.z*grain*${SHOULDER_GRAIN}),strip);
    }
-   else if(lane<0&&paved.run.w>=0.0&&u32(terrainLayout.$.params.roads[u32(paved.run.w)].join.w)==k){
-    core*=1.0-walkJoint(footprint,paved);
+   else if(lane<0){
+    // Beside a street, its walk and the walk's slabs; past the walk, an
+    // area's own slabs, on its own grid (SURFACE_AREA_BEARING), with a
+    // deeper joint along the walk's outer edge (the carriageway's, where it
+    // has none), so the walk or the road reads as its own strip.
+    var out=1e9;
+    if(paved.run.w>=0.0){
+     let street=terrainLayout.$.params.roads[u32(paved.run.w)];
+     out=paved.lane.z-paved.lane.w-street.join.z;
+     if(out<0.0&&u32(street.join.w)==k){core*=1.0-walkJoint(footprint,paved);}
+    }
+    if(out>=0.0&&look.stones.z>0.0&&paved.bearing>=0.0&&!plain){
+     let w=${AREA_JOINT_M};
+     let along=vec2f(cos(paved.bearing),sin(paved.bearing));
+     let joint=max(strokeJoint(dot(xy,along),look.stones.z,footprint,w),strokeJoint(dot(xy,vec2f(-along.y,along.x)),look.stones.z,footprint,w));
+     let edge=(1.0-smoothstep(w,w+footprint,out))*(1.0-smoothstep(${SLAB_JOINT_PIXELS[0]},${SLAB_JOINT_PIXELS[1]},footprint/w));
+     core*=1.0-max(joint,edge*1.5)*look.stones.w;
+    }
    }
   }
   let on=smoothstep(-feather,feather,inside);
@@ -1525,7 +1550,7 @@ const groundRoads = tgpu
  if(stones>0.0){
   let look=terrainLayout.$.params.roads[u32(paved.run.w)];
   let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w);
-  let joint=strokeJoint(paved.run.z,look.stones.x,footprint)*look.stones.y;
+  let joint=strokeJoint(paved.run.z,look.stones.x,footprint,${SLAB_JOINT_M})*look.stones.y;
   surface=mix(surface,vec4f(look.curb.xyz*(1.0+look.shape.z*grain)*(1.0-joint),look.core.w),stones);
  }
  return surface;
@@ -2370,7 +2395,12 @@ function roadLook(road: Road, tag: number, palettes: Biome["palettes"]) {
     curb: road.curb
       ? d.vec4f(...linearRgb(palettes[road.curb.palette][0]), road.curb.width_m)
       : d.vec4f(0),
-    stones: road.curb ? d.vec4f(1 / road.curb.stone_m, road.curb.joint, 0, 0) : d.vec4f(0),
+    stones: d.vec4f(
+      road.curb ? 1 / road.curb.stone_m : 0,
+      road.curb?.joint ?? 0,
+      road.slabs ? 1 / road.slabs.slab_m : 0,
+      road.slabs?.joint ?? 0,
+    ),
     paint: marks ? d.vec4f(...linearRgb(palettes[marks.palette][0]), marks.cover) : d.vec4f(0),
     marks: marks
       ? d.vec4f(marks.line_m / 2, marks.dash_m[0], marks.dash_m[0] + marks.dash_m[1], marks.wear)

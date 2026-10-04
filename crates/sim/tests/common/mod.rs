@@ -144,6 +144,7 @@ pub fn physical_map(mut map: MapDefinition, rules: &contract::scenario::Rules) -
         }
     }
     map.props = ordinary;
+    map.regional_family = Some("api_fixture".into());
     map.template_catalog_hash = Some(
         TemplateGeometryCatalog::new(templates.into_values().collect())
             .unwrap()

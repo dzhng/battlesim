@@ -81,6 +81,9 @@ import type { TerrainGrid } from "./terrain/terrainGrid";
 /** Immutable public references, not a second physical geometry table. */
 export interface PublicBuildings {
   catalogueHash: string | null;
+  /** The map's region (`MapDefinition.regional_family`): what its ground
+   *  and scenery are dressed in. Null on a map without buildings. */
+  regionalFamily: string | null;
   buildings: {
     owner: number;
     kind: string;
@@ -266,7 +269,7 @@ export function buildWorldLayers(
       ? structureModels(
           mapProps(exports, layout),
           [],
-          new PropAppearances(appearances, layout, null),
+          new PropAppearances(appearances, layout, exports.buildings.regionalFamily),
           (prop) => !drawnBy(layout, prop.kind, "forest") && !apart.includes(prop.kind),
         )
       : [];

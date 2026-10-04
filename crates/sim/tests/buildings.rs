@@ -64,6 +64,7 @@ fn compound_with_descriptor(
     serde_json::from_value(json!({
         "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
             "template_catalog_hash":catalogue.hash(),
+            "regional_family":descriptor.regional_family,
             "buildings":[{"owner":0,"kind":"building","category":descriptor.category,"regional_family":descriptor.regional_family,"parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":geometry}],
             "props":[{"id":2,"kind":"tooth","center":[700,550],"yaw":0,"half_extents":[0.6,0.6,0.6]}]},
         "rules":rules,"units":[],"events":events,"scripts":[]
@@ -487,7 +488,7 @@ fn public_geometry_ids_use_one_exact_limb_pair_and_keep_physical_columns() {
     let metadata: Value = serde_json::from_str(&b.world().export_buildings()).unwrap();
     assert_eq!(
         metadata,
-        json!({"catalogueHash":setup.map.template_catalog_hash,"buildings":[{"owner":0,"kind":"building","templateId":setup.map.buildings[0].geometry.template_id,"category":"attached_home","regionalFamily":"api_fixture","frame":{"translation":[400.0,300.0,0.0],"yaw":0.0},"parts":[{"part":"main","prop":0},{"part":"wing","prop":1}]}]})
+        json!({"catalogueHash":setup.map.template_catalog_hash,"regionalFamily":"api_fixture","buildings":[{"owner":0,"kind":"building","templateId":setup.map.buildings[0].geometry.template_id,"category":"attached_home","regionalFamily":"api_fixture","frame":{"translation":[400.0,300.0,0.0],"yaw":0.0},"parts":[{"part":"main","prop":0},{"part":"wing","prop":1}]}]})
     );
 }
 

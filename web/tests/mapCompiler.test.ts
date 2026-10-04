@@ -64,6 +64,7 @@ test("the compiled artifact reaches the existing public world without a plan int
     expect(Array.from(world.props())).toEqual(expected.map(Math.fround));
     expect(JSON.parse(world.buildings())).toEqual({
       catalogueHash: compiled.identity.template_catalog_hash,
+      regionalFamily: "api_fixture",
       buildings: [
         {
           owner: 0,

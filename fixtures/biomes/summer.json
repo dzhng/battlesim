@@ -29,6 +29,9 @@
     "trampled": [[0.4, 0.4, 0.25]],
     "road_asphalt": [[0.35, 0.357, 0.375], [0.38, 0.38, 0.385]],
     "paving": [[0.55, 0.555, 0.56], [0.57, 0.565, 0.55]],
+    "paving_china": [[0.42, 0.43, 0.435], [0.4, 0.41, 0.405]],
+    "paving_new_york": [[0.52, 0.525, 0.53], [0.545, 0.535, 0.515]],
+    "paving_paris": [[0.6, 0.59, 0.56], [0.585, 0.58, 0.565]],
     "curb": [[0.64, 0.64, 0.635]],
     "road_paint": [[0.88, 0.88, 0.86]]
   },
@@ -283,7 +286,12 @@
       "roughness": 0.85,
       "shoulder": { "palette": "shoulder_gravel", "cover": 0, "width_m": 0, "jitter": 0, "jitter_m": 1, "grass": 0 },
       "ruts": { "offsets_m": [], "width_m": 0, "tilt_deg": 0, "tint": 0 },
-      "centre_strip": { "half_width_m": 0, "max_road_width_m": 0 }
+      "centre_strip": { "half_width_m": 0, "max_road_width_m": 0 },
+      "families": {
+        "china": { "palette": "paving_china", "mottle": 0.35, "patch_m": 5, "grain": 0.25, "slabs": { "slab_m": 4, "joint": 0.22 } },
+        "new_york": { "palette": "paving_new_york", "mottle": 0.25, "patch_m": 3, "slabs": { "slab_m": 1.5, "joint": 0.2 } },
+        "paris": { "palette": "paving_paris", "mottle": 0.3, "grain": 0.3, "grain_m": 0.25, "slabs": { "slab_m": 1.2, "joint": 0.18 } }
+      }
     }
   },
   "shore": { "palette": "shore", "wet_m": 0.6, "mud_m": 5, "wander": 0.5, "wander_scale_m": 9, "lift": 1.27, "relief": 0.5 },

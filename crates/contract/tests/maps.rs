@@ -125,6 +125,35 @@ fn a_saved_building_resolves_to_its_template_materialized_at_its_frame() {
     );
 }
 
+/// A map names the one region its buildings are of; saving and resolving
+/// it keeps that name.
+#[test]
+fn a_map_names_its_buildings_region_and_keeps_it_when_saved() {
+    let definition = geometry();
+    assert_eq!(definition.regional_family.as_deref(), Some("api_fixture"));
+    let again = admitted(&definition, &sources(&definition)).unwrap();
+    assert_eq!(again.definition.regional_family, definition.regional_family);
+}
+
+/// A building of another region than its map's, or on a map that names
+/// none, is refused: the map's region is the one every reader trusts.
+#[test]
+fn a_building_of_another_region_than_its_maps_is_refused() {
+    for family in [Some("paris"), None] {
+        let mut definition = geometry();
+        definition.regional_family = family.map(String::from);
+        let error = admitted(&definition, &sources(&definition))
+            .expect_err("the map and its building disagree");
+        assert!(error.message.contains("region"), "{family:?}: {error}");
+    }
+    // A map without buildings may name none.
+    let bare: MapDefinition = serde_json::from_value(
+        json!({"size":[64,64],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}),
+    )
+    .unwrap();
+    assert!(bare.regional_family.is_none() && bare.authored_props().is_ok());
+}
+
 #[test]
 fn a_building_naming_a_template_its_catalogue_lacks_is_refused_by_name() {
     let definition = geometry();
