@@ -40,10 +40,11 @@ for kind in jersey_barrier bollard lamp bench bins hydrant utility_box planter b
   heras_fence skip_bin pallet_stack site_cabin traffic_cone road_barrier scaffold scooter; do
   blender street.py "$kind" "$s/$kind.glb"
 done
-# the gardens' and courts' bodies (fixtures/props/city/gardens.json), one GLB per kind
+# the gardens' and courts' bodies (fixtures/props/city/gardens.json, courts.json), one GLB
+# per kind, and each region's look of a shared piece (`<kind>_<family>`)
 c="$root/assets/source/courts"
 mkdir -p "$c"
-for kind in garden_shed hedge garden_fence washing_line garden_table; do
+for kind in garden_shed hedge garden_fence washing_line garden_table bike_rack playground_frame swing; do
   blender courts.py "$kind" "$c/$kind.glb"
 done
 # the trees and hedgerows, one GLB per kind into assets/source/trees/

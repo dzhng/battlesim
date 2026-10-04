@@ -919,6 +919,45 @@
         0.4
       ]
     },
+    "bike_rack": {
+      "unit": "scenery",
+      "scenery": "bike_rack",
+      "states": {
+        "default": "assets/source/courts/bike_rack.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.5,
+        0.9,
+        0.5
+      ]
+    },
+    "playground_frame": {
+      "unit": "scenery",
+      "scenery": "playground_frame",
+      "states": {
+        "default": "assets/source/courts/playground_frame.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.0,
+        1.5,
+        1.25
+      ]
+    },
+    "swing": {
+      "unit": "scenery",
+      "scenery": "swing",
+      "states": {
+        "default": "assets/source/courts/swing.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.7,
+        0.9,
+        1.1
+      ]
+    },
     "grass_meadow": {
       "unit": "scenery",
       "scenery": "grass",

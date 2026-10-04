@@ -3,17 +3,17 @@
     "bike_rack": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 20, "cover_tier": "light"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "bike_rack", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "bike_rack", "map_only": true}
     },
     "playground_frame": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "medium", "hp": 80},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "playground_frame", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "playground_frame", "map_only": true}
     },
     "swing": {
       "body": {"blocks": {"infantry": false, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 30},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "swing", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "swing", "map_only": true}
     },
     "bike_shed": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "medium", "hp": 80, "cover_tier": "light"},

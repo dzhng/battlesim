@@ -47,6 +47,17 @@
       "scenery": "bench",
       "unit": "scenery"
     },
+    "bike_rack": {
+      "bundle": "344177efde0cd44727a4dbe24a675b3abee230b1cf484b195e6d37b1ff1733e2",
+      "footprint_half_m": [
+        1.5,
+        0.9,
+        0.5
+      ],
+      "kind": "static",
+      "scenery": "bike_rack",
+      "unit": "scenery"
+    },
     "bins": {
       "bundle": "6168e87a4a1e63ef0680361a3d22318f2acabbdb8e84321c72d9701b2d7c5a58",
       "footprint_half_m": [
@@ -494,6 +505,17 @@
       "scenery": "planter",
       "unit": "scenery"
     },
+    "playground_frame": {
+      "bundle": "20f2327de1591d5c231bd13c5d22e9e85096378073e1fd0ea0c83e6d91699d75",
+      "footprint_half_m": [
+        2,
+        1.5,
+        1.25
+      ],
+      "kind": "static",
+      "scenery": "playground_frame",
+      "unit": "scenery"
+    },
     "recon": {
       "bundle": "247ccde9afb81daa8ed4748ad2e93f223dd78c81c2c0809e5016b907d20781df",
       "kind": "skinned",
@@ -610,6 +632,17 @@
       ],
       "kind": "static",
       "scenery": "wreck",
+      "unit": "scenery"
+    },
+    "swing": {
+      "bundle": "ccd7b9a0563c6ae534e24c9d6bb07370117727112c150a9aeecb2e1223eff82e",
+      "footprint_half_m": [
+        1.7,
+        0.9,
+        1.1
+      ],
+      "kind": "static",
+      "scenery": "swing",
       "unit": "scenery"
     },
     "tank": {

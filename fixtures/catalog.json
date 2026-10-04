@@ -76,8 +76,7 @@
         "bike_rack": {
           "appearance": {
             "drawn_by": "bike_rack",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -920,8 +919,7 @@
         "playground_frame": {
           "appearance": {
             "drawn_by": "playground_frame",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -1153,8 +1151,7 @@
         "swing": {
           "appearance": {
             "drawn_by": "swing",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -1997,8 +1994,7 @@
     "bike_rack": {
       "appearance": {
         "drawn_by": "bike_rack",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2841,8 +2837,7 @@
     "playground_frame": {
       "appearance": {
         "drawn_by": "playground_frame",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -3074,8 +3069,7 @@
     "swing": {
       "appearance": {
         "drawn_by": "swing",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
