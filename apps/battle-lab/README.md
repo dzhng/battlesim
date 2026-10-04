@@ -24,6 +24,20 @@ cleanup tied to that page. Art uses [scene-assets](../../packages/scene-assets/R
 and sound uses [battle-audio](../../packages/battle-audio/README.md). [Model review](src/workbench/)
 installs previews through the same appearance loader used by battles.
 
+## Observation feeds
+
+[Stable feeds](src/feed.ts) carry large, changing presentation data to the
+viewport without making it a new React prop tree on every publication. React's
+development instrumentation traverses changed typed-array props, so an apparently
+ordinary prop update can retain enormous diagnostic payloads. Keep live geometry,
+fog and effects behind the existing feed boundary rather than copying them into
+component state.
+
+[The viewport](src/LabViewport.tsx) subscribes and updates [the renderer](../../packages/battle-renderer/README.md)
+through that boundary. Published cause and identity remain intact; feed interpolation
+cannot grant visibility or invent firing. [The scene runner](../../web/scene.mjs)
+checks oversized development performance details as well as ordinary page errors.
+
 ## Presentation contracts
 
 [Browser presentation](../../web/src/battle/present/) turns observed evidence into

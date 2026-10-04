@@ -1,3 +1,9 @@
+//! Stage-local navigation allocation and route-search probe on synthetic geometry.
+//! Run: cargo run -p sim --release --example navigation_resources -- <side-m> [arm]
+//! Arms: empty (default), sparse (bodies), bridge, disconnected (river banks).
+//! Prints JSON lines for world/grid/road construction and both sides' route queries.
+//! Allocation accounting has a process ceiling and exits 70 if it is exceeded;
+//! these counters are not whole-process RSS or rendered battle memory.
 use contract::map::MapDefinition;
 use contract::scenario::Rules;
 use sim::world::WorldGeometry;

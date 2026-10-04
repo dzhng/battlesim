@@ -1,3 +1,9 @@
+//! The map editor's native JSON request/reply executable, not a textual report.
+//! Reads one request from stdin and writes one outcome to stdout. The request
+//! enum in common/workbench.rs owns operations and retained artifact inputs.
+//! Invalid requests return a diagnostic status in JSON; exit success alone does
+//! not establish that settings or a generated map were admitted. The local
+//! workbench server owns invocation, process cancellation and artifact lifetime.
 use serde_json::{json, Value};
 use std::io::Read;
 

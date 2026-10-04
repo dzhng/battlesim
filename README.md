@@ -9,14 +9,14 @@ owner of the thing you want to change:
 
 | Owner | Responsibility and entry point |
 |---|---|
-| [Contracts](crates/contract/src/) | Shared commands, observations, map admission, physical templates and content identities. The [crate boundary](crates/contract/src/lib.rs) names its vocabulary; [examples](crates/contract/examples/) inspect supplied contract data. |
+| [Contracts](crates/contract/README.md) | Shared commands, observations, map admission, physical templates and exact content identities. |
 | [Simulation](crates/sim/README.md) | Deterministic battle rules, replay digests, encounter placement and native reports. |
 | [Map generation](crates/mapgen/README.md) | Seeded layout, physical compilation, admission and generation reports; shared by native tools and WebAssembly. |
-| [WebAssembly boundary](crates/game-wasm/src/lib.rs) | Exposes the Rust authority to browser and Node readers, including packed publications and map preparation. |
+| [WebAssembly boundary](crates/game-wasm/README.md) | Native/browser parity, geometry queries, packed publication memory and binding lifetime. |
 | [Browser application](web/README.md) | Workers, map adapters, player input/readouts, build configuration and browser verification. |
 | [Battle lab](apps/battle-lab/README.md) | Player pages and focused developer fixtures, composed from the same battle view. |
-| [Renderer primitives](packages/renderer-core/src/) | Device, camera, projection and GPU resource accounting. |
-| [Battle renderer](packages/battle-renderer/src/) | Scene resources, terrain, models, light, fog, effects and overlays. [Scene construction](packages/battle-renderer/src/scene.ts) and [frame orchestration](packages/battle-renderer/src/frame/battleFrame.ts) own their composition. |
+| [Renderer primitives](packages/renderer-core/README.md) | Shared camera/depth contracts, device admission and GPU allocation accounting. |
+| [Battle renderer](packages/battle-renderer/README.md) | Observed feeds, terrain, models, light, fog, effects, overlays and GPU lifetime. |
 | [Scene assets](packages/scene-assets/README.md) | Appearance contracts, validation, baking and loading; includes [Blender authoring](packages/scene-assets/README.md#authored-sources-blender). |
 | [Battle audio](packages/battle-audio/README.md) | Recorded and synthetic sound preparation, source calibration and playback from observed causes. |
 | [Fixtures](fixtures/README.md) | Authored rules, unit/prop catalogs, generator presets, saved maps and sound assignments. |
@@ -104,6 +104,9 @@ git lfs pull                                 # in the main checkout only
 git lfs pull --include="<path>/**"           # in a worktree: only what the task needs
 ```
 
+[LFS attributes](.gitattributes) define which inputs are large-file objects, and
+[ignore rules](.gitignore) separate generated output and scratch from source.
+
 In a worktree, symlink `web/node_modules` to the main checkout's, and give it its own Rust build directory with `CARGO_TARGET_DIR`. Cargo leaves a workspace crate's path out of its build hash, so two worktrees sharing one `target/` overwrite each other's builds. Delete that directory with the worktree.
 
 ## Plans and decisions
@@ -112,4 +115,7 @@ In a worktree, symlink `web/node_modules` to the main checkout's, and give it it
 README is its live handoff; its choices ledger records decisions made where the
 plan was silent. [Design references](design/) retain the earliest planning map.
 Repository working principles and skill entry points live in [AGENTS.md](AGENTS.md);
-[CLAUDE.md](CLAUDE.md) supplies the corresponding agent entry point.
+[CLAUDE.md](CLAUDE.md) supplies the corresponding agent entry point. [Repository
+skills](.agents/skills/) own procedure-specific tools; `.claude/skills/` links to
+those same owners, and [the skill lock](skills-lock.json) records acquired skill
+provenance. Those are agent workflows rather than game runtime scripts.

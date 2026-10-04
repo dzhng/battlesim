@@ -31,6 +31,11 @@ and valid gameplay values. If files change elsewhere, your draft is retained;
 **Reload sources**, then **Discard draft and reload**, explicitly replaces it
 with current files.
 
+[Model-fit validation](modelFit.ts) also checks edited hull and mount dimensions
+against the currently baked articulated appearances. Valid physical numbers may
+still be refused if their art does not fit. Changing source geometry requires its
+[asset rebuild](../../packages/scene-assets/README.md), not looser gameplay validation.
+
 The development command builds the native validator once. After changing Rust
 validation code, rebuild it with `bun run build:mechanics`; fixture edits are
 validated by passing current JSON to that executable, without recompilation.

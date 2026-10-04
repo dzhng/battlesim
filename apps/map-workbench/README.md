@@ -37,3 +37,10 @@ The [protocol](src/protocol.ts) defines the browser and native boundaries. The
 repository task runner owns native build and development startup. Sampled sight
 remains on demand until its complete additional browser-visible cost is proven
 below the budget recorded in the [feature spec](../../specs/done/live-map-workbench/README.md).
+
+The native [report executable](../../crates/mapgen/examples/map_workbench_report.rs)
+is a stdin/stdout JSON boundary, not a human command-line report. Its Rust request
+owner and the browser [protocol](src/protocol.ts) define admitted operations.
+Process completion alone does not establish generation success: callers read the
+returned status and diagnostics. Inspecting retained geometry avoids repeating
+generation; the server owns artifact lifetime and cancellation.

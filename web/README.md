@@ -13,7 +13,7 @@ to its battle authority. Expensive preparation stays off the page thread. The pa
 builds a plain geometry world from the same map for drawing, picking and camera
 clearance; it does not run a second battle.
 
-[The simulation adapter](src/battle/sim/) owns ordered commands, worker lifetime,
+[The simulation adapter](src/battle/sim/README.md) owns ordered commands, worker lifetime,
 bounded publications and packed observation decoding. [Input](src/battle/input/)
 produces commands, and [presentation](src/battle/present/) reads admitted observations.
 [Map adapters](src/maps/) fetch saved documents or resolve a generation request
@@ -29,7 +29,8 @@ startup alone does not prove its performance budget.
 [The web manifest](package.json) owns browser dependencies, WebAssembly compilation,
 build and test commands; [the root manifest](../package.json) composes prerequisites.
 Use the root [startup instructions](../README.md#running-it) for a first checkout.
-Generated WebAssembly lives under `src/wasm/`; change its Rust owner and rebuild it.
+[WebAssembly build and memory ownership](../crates/game-wasm/README.md) explains
+generated bindings and how publications cross the boundary.
 
 [Vite configuration](vite.config.ts) resolves source-only packages and apps against
 this application's dependencies, keeps caches local to the checkout and serves

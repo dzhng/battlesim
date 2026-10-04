@@ -86,25 +86,10 @@ changes masked albedo, not geometry or the authoritative unit type.
 
 ## Authored sources (`blender/`)
 
-[Blender sources](blender/) hold subject exporters and shared geometry/material
-helpers. Run them through [the asset CLI](../../web/asset.mjs), which owns the pinned
-Blender invocation; each script's usage text owns its arguments. Source generation
-is explicit and committed. Neither the bake nor game startup launches Blender.
-
-[The batch rebuild](blender/build_sources.sh) owns its supported exporter sequence.
-It is not a complete catalog rebuild: clip families and [city sets](blender/city/README.md)
-have their own source steps. Follow the catalog and source script for the subject
-being changed rather than maintaining another exporter list here.
-
-[Pack acquisition](blender/packs.py) reads the local cache and verifies the
-[pack manifest](blender/packs.json) before use. [Source credits](../../assets/README.md#third-party-sources)
-own licenses. Fixed seeds and canonical export ordering make the same inputs
-write the same bytes; a changed source hash should mean changed art.
-
-Shared helpers own mesh construction, wear, texture recipes and damage. A wreck
-reuses its live vehicle's parts and original paint; damage changes the same object,
-not its model identity. City source conventions, interiors and damage states have
-one home in [the city authoring guide](blender/city/README.md).
+[The source authoring guide](blender/README.md) owns Blender invocation, exporter
+families, pinned input acquisition and the batch rebuild's scope. Exported GLBs
+are committed source; rebaking them does not rerun their source generators. The
+[city guide](blender/city/README.md) owns kit, interior and template authoring.
 
 ## Textures
 

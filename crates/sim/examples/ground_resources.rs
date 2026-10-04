@@ -1,4 +1,10 @@
 //! Full learned-ground resource proof through the production public seams.
+//! Run: cargo run -p sim --release --example ground_resources -- <extent-m>
+//! The supported extents are admitted in main; start with its smallest workload.
+//! JSON lines bracket truth, two learned owners, production packing and retained
+//! credit copies. No Battle, JavaScript decoder or GPU is included. Allocation
+//! accounting has a process ceiling and exits 70 on exhaustion. GROUND_WORK_GATE
+//! selects the fixed instruction-tracer workload admitted by main.
 use contract::ids::Side;
 use contract::observation::{ObservationFrame, VisibilityField};
 use contract::scenario::Rules;

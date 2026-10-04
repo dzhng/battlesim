@@ -3,8 +3,8 @@
 The simulation owns battle outcomes and what each side can know. Other components
 issue commands or consume observations. [The crate boundary](src/lib.rs) names its
 rule owners; [the battle authority](src/battle.rs) composes them. Shared data shapes
-and units belong to [contract](../contract/src/lib.rs), with WebAssembly exposed by
-[game-wasm](../game-wasm/src/lib.rs).
+and units belong to [contract](../contract/README.md), with WebAssembly exposed by
+[game-wasm](../game-wasm/README.md).
 
 ## Determinism and evidence
 
@@ -25,6 +25,20 @@ placement rules where its roster can stand; it does not invent a second movement
 [Map analysis](src/map_analysis.rs) shares sampled sight calculations with generation
 tools, without making the production generator depend on the simulation.
 
+## Replay compatibility and build identity
+
+[The build script](build.rs) computes the engine fingerprint used by replay
+admission. It includes simulation, contract and binding sources, compiler identity,
+Cargo inputs and semantic configuration. Presentation rebuilds and portable
+native/WebAssembly target differences do not create another simulation identity.
+The script owns the exact input set; [build-identity tests](tests/build_identity.rs)
+pin those inclusions and exclusions.
+
+A replay separately checks engine build, scenario and rules before running its
+accepted commands. Those admission identities are not the current battle-state
+digest: a matching executable does not make a different scenario compatible.
+A mismatch is an explicit refusal, not a best-effort replay under new rules.
+
 ## Checks
 
 [Tests](tests/) are composed by the integration-test entry point, so filtering
@@ -35,18 +49,10 @@ to run them are defined by the root [checking policy](../../README.md#checks).
 
 ## Reports and cost
 
-[Examples](examples/) own native battle reports, fixture validation and focused
-movement, flight, navigation and resource probes. Each executable's usage text or
-module comment defines its inputs; the directory is the current tool inventory.
-Run one through `cargo run -p sim --release --example <name> -- <arguments>`.
-These are explicit developer experiments, not another runtime authority.
-
-The village report provides quick comparison feedback and final battle digests.
-The endurance report measures an accelerated soak; it is not a real-time rendered
-FPS result. Shared [instruction measurement](examples/common/instructions.rs)
-provides load-independent process cost on supported hosts; absence of that counter
-is not zero cost. Preserve workload identity when comparing runs, and keep scratch
-reports under `throwaway/`.
+[The native experiment guide](examples/README.md) distinguishes tactical
+comparison, movement pictures, flight traces, route quality, resource probes and
+machine-readable editor tools. It explains which claim each family can prove and
+where its inputs and outputs are defined.
 
 [The performance rationale](../../specs/done/city-stress-performance/README.md)
 records accepted outcome-preserving reuse and its measured limits. Real rendered
