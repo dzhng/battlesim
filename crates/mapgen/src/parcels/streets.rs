@@ -435,7 +435,7 @@ impl<'a> Network<'a> {
     /// middle within its own half width of the edge, going the edge's way,
     /// for most of the edge's length. With `road`, only a road of the
     /// layout's network.
-    fn runs_along(&self, a: Point, b: Point, road: bool) -> bool {
+    pub fn runs_along(&self, a: Point, b: Point, road: bool) -> bool {
         let edge = scale(sub(b, a), 1.0 / distance(a, b));
         let carried = [0.25, 0.5, 0.75]
             .into_iter()

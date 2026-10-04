@@ -251,7 +251,7 @@ impl SurfaceIndex {
     }
 
     /// Where kinds overlap the earliest `SurfaceKind` wins (a road over a
-    /// track, any carriageway over a sidewalk); water and bridges are
+    /// track, any carriageway over paving); water and bridges are
     /// resolved by the world.
     pub fn at(&self, p: V2) -> Option<SurfaceKind> {
         let key = (

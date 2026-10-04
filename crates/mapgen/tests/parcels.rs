@@ -359,7 +359,9 @@ fn buildings_keep_clear_of_each_other_roads_forests_and_district_edges() {
                 assert!(!wooded, "{name}: {id} stands in a forest");
             }
         }
-        // Roads, by the samples their surfaces are made of.
+        // Roads, by the samples their surfaces are made of, and aprons. A
+        // court is the ground the buildings stand on.
+        let courts: Vec<&Vec<Point>> = town.plan.courts.iter().map(|c| &c.ring).collect();
         for area in &map.surfaces {
             let [x0, y0, x1, y1] = area.shape.limits();
             let near: Vec<_> = parts
@@ -384,14 +386,36 @@ fn buildings_keep_clear_of_each_other_roads_forests_and_district_edges() {
                             );
                         }
                     }
-                    GroundShape::Polygon { ring: apron } => {
+                    GroundShape::Polygon { ring: apron } if !courts.contains(&apron) => {
                         let depth = overlap_depth(ring, apron);
                         assert!(depth < 0.02, "{name}: {id} stands {depth} m into an apron");
                     }
+                    GroundShape::Polygon { .. } => {}
                 }
             }
         }
     });
+}
+
+/// A building's apron is paving, hard ground that is no way through: only a
+/// stroke is a carriageway, and no carriageway is laid as an area.
+#[test]
+fn aprons_are_paving_and_every_carriageway_is_a_stroke() {
+    let mut aprons = 0;
+    every_cell(|name, _, town| {
+        for area in &town.map.surfaces {
+            match area.shape {
+                GroundShape::Polygon { .. } => {
+                    assert_eq!(area.kind, SurfaceKind::Paving, "{name}: an area");
+                    aprons += 1;
+                }
+                GroundShape::Stroke { .. } => {
+                    assert!(area.kind.is_road(), "{name}: a {:?} stroke", area.kind);
+                }
+            }
+        }
+    });
+    assert!(aprons > 0, "no map has an apron");
 }
 
 /// Every door opens toward paved ground a short walk away, with no building
@@ -413,7 +437,6 @@ fn every_entrance_faces_a_street_or_apron_within_a_short_walk() {
         let paved: Vec<(&GroundShape, [f64; 4])> = map
             .surfaces
             .iter()
-            .filter(|area| area.kind.is_road())
             .map(|area| (&area.shape, area.shape.limits()))
             .collect();
         for (index, building) in map.buildings.iter().enumerate() {
@@ -1033,4 +1056,197 @@ fn a_districts_parcels_square_to_its_streets_not_to_the_towns_centre() {
         squared * 2 < all,
         "{squared} of {all} districts have parcels squared to the town's centre"
     );
+}
+
+/// The district's court and its parcels, when it has one.
+fn court_of<'a>(
+    town: &'a Town,
+    district: &DistrictPlan,
+) -> Option<(&'a mapgen::CourtPlan, Vec<Point>)> {
+    let court = town
+        .plan
+        .courts
+        .iter()
+        .find(|c| c.district == district.id)?;
+    let prefix = format!("{}/", district.id);
+    let corners = town
+        .plan
+        .lots
+        .iter()
+        .filter(|lot| lot.id.starts_with(&prefix))
+        .flat_map(|lot| lot.ring.iter().copied())
+        .collect();
+    Some((court, corners))
+}
+
+/// How far `p` lies inside `ring` (counter-clockwise, convex) from the line
+/// through `a` and `b`, an edge of it.
+fn inward(a: Point, b: Point, p: Point) -> f64 {
+    let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
+    (dx * (p[1] - a[1]) - dy * (p[0] - a[0])) / dx.hypot(dy)
+}
+
+/// A dense district paves its block between its buildings, and the map lays
+/// that court as paving; a district whose presets keep grass has none.
+#[test]
+fn dense_blocks_are_paved_as_courts_and_no_other_district_is() {
+    let presets = presets();
+    let mut courts = 0;
+    every_cell(|name, _, town| {
+        for district in town.plan.settlements.iter().flat_map(|s| &s.districts) {
+            let paved = presets.districts[&district.kind].props.courts.paved;
+            let found: Vec<_> = town
+                .plan
+                .courts
+                .iter()
+                .filter(|c| c.district == district.id)
+                .collect();
+            assert_eq!(found.len(), usize::from(paved), "{name}: {}", district.id);
+            for court in found {
+                assert_eq!(court.id, format!("{}/court", district.id));
+                let laid = town.map.surfaces.iter().any(|area| {
+                    area.kind == SurfaceKind::Paving
+                        && matches!(&area.shape, GroundShape::Polygon { ring } if *ring == court.ring)
+                });
+                assert!(laid, "{name}: {} is not laid as paving", court.id);
+                courts += 1;
+            }
+        }
+        assert_eq!(
+            town.plan.courts.len(),
+            town.plan
+                .courts
+                .iter()
+                .map(|c| &c.id)
+                .collect::<BTreeSet<_>>()
+                .len(),
+            "{name}: court ids repeat"
+        );
+    });
+    assert!(courts >= 50, "{courts} courts");
+}
+
+/// Garden suburbs, villages and farms keep their grass (decided with the
+/// user); the town's dense districts pave.
+#[test]
+fn only_the_dense_districts_pave_their_courts() {
+    let presets = presets();
+    let paved: BTreeSet<&str> = presets
+        .districts
+        .iter()
+        .filter(|(_, d)| d.props.courts.paved)
+        .map(|(kind, _)| kind.as_str())
+        .collect();
+    assert_eq!(
+        paved,
+        BTreeSet::from(["apartments", "centre", "core", "small_centre"])
+    );
+}
+
+/// A court is a simple convex ring inside its district, and every parcel of
+/// the district stands on it: the paving runs between all the buildings.
+#[test]
+fn a_court_is_a_convex_ring_inside_its_district_under_every_parcel() {
+    const CM: f64 = 0.02;
+    every_cell(|name, _, town| {
+        for district in town.plan.settlements.iter().flat_map(|s| &s.districts) {
+            let Some((court, corners)) = court_of(town, district) else {
+                continue;
+            };
+            let ring = &court.ring;
+            assert!(ring.len() >= 3, "{name}: {}", court.id);
+            let edges = || (0..ring.len()).map(|i| (ring[i], ring[(i + 1) % ring.len()]));
+            for (a, b) in edges() {
+                assert!(a != b, "{name}: {} repeats a corner", court.id);
+                for p in ring {
+                    assert!(
+                        inward(a, b, *p) >= -CM,
+                        "{name}: {} is not convex",
+                        court.id
+                    );
+                }
+                for p in &corners {
+                    assert!(
+                        inward(a, b, *p) >= -CM,
+                        "{name}: a parcel of {} is off its court at {p:?}",
+                        district.id
+                    );
+                }
+            }
+            for p in ring {
+                assert!(
+                    polygon_contains(&district.ring, *p)
+                        || ring_segment_gap(&district.ring, *p, *p) <= CM,
+                    "{name}: {} leaves its district at {p:?}",
+                    court.id
+                );
+            }
+        }
+    });
+}
+
+/// Paving never runs out into the fields: an edge of a court either lies
+/// along a carriageway or comes to the rear of one of its district's parcels.
+#[test]
+fn a_court_stops_at_its_parcels_where_no_carriageway_runs() {
+    every_cell(|name, _, town| {
+        let ways: Vec<(&[Point], f64)> = town
+            .map
+            .surfaces
+            .iter()
+            .filter_map(|area| match &area.shape {
+                GroundShape::Stroke {
+                    centerline,
+                    width_m,
+                } if area.kind.is_road() => Some((centerline.samples(), width_m / 2.0)),
+                _ => None,
+            })
+            .collect();
+        for district in town.plan.settlements.iter().flat_map(|s| &s.districts) {
+            let Some((court, corners)) = court_of(town, district) else {
+                continue;
+            };
+            let ring = &court.ring;
+            for i in 0..ring.len() {
+                let (a, b) = (ring[i], ring[(i + 1) % ring.len()]);
+                let middle = [(a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0];
+                let along = ways.iter().any(|(line, half)| {
+                    line.windows(2)
+                        .any(|s| segment_gap(s[0], s[1], middle) <= half + 1.5)
+                });
+                let rear = corners.iter().any(|p| inward(a, b, *p).abs() <= 0.05);
+                assert!(
+                    along || rear,
+                    "{name}: {} runs out past its parcels from {a:?} to {b:?}",
+                    court.id
+                );
+            }
+        }
+    });
+}
+
+/// The streets laid inside a court are road to the simulation, not paving:
+/// a carriageway wins where it crosses one.
+#[test]
+fn streets_draw_over_courts() {
+    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let mut checked = 0;
+    for map_type in TYPES {
+        let town = town(map_type, MapSize::Small, SEEDS[0]);
+        let world = sim::world::WorldGeometry::new(&town.map, &rules);
+        let courts: Vec<&[Point]> = town.plan.courts.iter().map(|c| &c.ring[..]).collect();
+        for area in town.map.surfaces.iter().filter(|a| a.kind.is_road()) {
+            let GroundShape::Stroke { centerline, .. } = &area.shape else {
+                continue;
+            };
+            for p in centerline.samples() {
+                if courts.iter().any(|ring| polygon_contains(ring, *p)) {
+                    let kind = world.surface_at(p[0], p[1]).unwrap().kind;
+                    assert_eq!(kind, sim::world::SurfaceKind::Road, "{map_type:?} at {p:?}");
+                    checked += 1;
+                }
+            }
+        }
+    }
+    assert!(checked >= 20, "{checked} street points in courts");
 }

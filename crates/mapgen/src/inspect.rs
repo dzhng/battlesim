@@ -41,7 +41,7 @@ const DECK: &str = "#f59e0b";
 const ROAD: &str = "#1c1c1c";
 const TRACK: &str = "#7a5a2e";
 const STREET: &str = "#4a4a4a";
-const APRON: &str = "#a9a9a9";
+const PAVING: &str = "#a9a9a9";
 const YARD: &str = "#c2410c";
 const BODY: &str = "#57534e";
 const ENTRANCE: &str = "#ffd43b";
@@ -338,11 +338,16 @@ fn render(
             unit * 0.12
         );
     }
-    for area in &plan.surfaces {
+    // Paving: aprons and courts, hard ground that is no way through.
+    for area in plan
+        .surfaces
+        .iter()
+        .filter(|a| a.kind == SurfaceKind::Paving)
+    {
         if let GroundShape::Polygon { ring } = &area.shape {
             let _ = write!(
                 out,
-                r##"<path data-layer="roads" data-rule-group="parcels" data-feature-id="parcels" d="{}" fill="{APRON}"/>"##,
+                r##"<path data-layer="roads" data-rule-group="parcels" data-feature-id="parcels" d="{}" fill="{PAVING}"/>"##,
                 path(ring, true)
             );
         }
@@ -563,7 +568,7 @@ fn render(
     let water = [(WATER, 1.0, "river"), (DECK, 1.0, "bridge")];
     for (fill, opacity, text) in [(FOREST, 1.0, "forest"), (APPROACH, 0.22, "open approach")]
         .into_iter()
-        .chain(Some((APRON, 1.0, "apron")).filter(|_| detail))
+        .chain(Some((PAVING, 1.0, "paving")).filter(|_| detail))
         .chain(water.into_iter().filter(|_| !plan.rivers.is_empty()))
     {
         block(&mut out, x, 0.0, fill, opacity);

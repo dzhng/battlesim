@@ -233,7 +233,8 @@ impl<'a> Ground<'a> {
         self.buildings
             .push(placement(id, lot, fit, rule, kind, &mut self.next_prop));
         // The apron is as wide as the building, so each stands on its own
-        // yard with the side setbacks left open between them.
+        // yard with the side setbacks left open between them. It is paving:
+        // hard ground, no way through.
         let depth = rule.apron_m.min(rule.front_m);
         if depth > 0.0 {
             let half = (fit.max[0] - fit.min[0]) / 2.0;
@@ -246,7 +247,7 @@ impl<'a> Ground<'a> {
             .map(|[x, y]| round_cm(lot.point(x, y)));
             if let Ok(shape) = GroundShape::polygon(ring.to_vec()) {
                 self.aprons.push(SurfaceArea {
-                    kind: SurfaceKind::Road,
+                    kind: SurfaceKind::Paving,
                     shape,
                 });
             }

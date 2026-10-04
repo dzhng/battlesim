@@ -66,7 +66,7 @@ function paving(named: SurfaceAreaKind): PlotSite {
   return {
     ...empty,
     surfaceStrokes: Float32Array.of(0, 50, 100, 50, 2, kind, 3),
-    surfaceRuns: named === "sidewalk" ? new Float32Array(0) : Float32Array.of(0, 50, 100, 50),
+    surfaceRuns: named === "paving" ? new Float32Array(0) : Float32Array.of(0, 50, 100, 50),
     surfaceTriangles: Float32Array.of(0, 40, 100, 40, 100, 60, kind, 0, 40, 100, 60, 0, 60, kind),
     surfaceBoundaries: Float32Array.of(
       0,
@@ -93,9 +93,9 @@ function paving(named: SurfaceAreaKind): PlotSite {
   };
 }
 
-test("sidewalk paving leaves fields unchanged while every road kind guides their boundaries", () => {
+test("paving leaves fields unchanged while every road kind guides their boundaries", () => {
   const untouched = generatePlots(empty, biome);
-  expect(generatePlots(paving("sidewalk"), biome)).toEqual(untouched);
+  expect(generatePlots(paving("paving"), biome)).toEqual(untouched);
   for (const kind of ["road", "country_road", "dirt_track"] as const) {
     const road = generatePlots(paving(kind), biome);
     expect(plotAt(road, 50, 30)!.plot, kind).not.toBe(plotAt(road, 50, 70)!.plot);

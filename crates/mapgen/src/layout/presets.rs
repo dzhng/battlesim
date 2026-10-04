@@ -415,6 +415,19 @@ pub struct DistrictProps {
     /// The chance a parcel the parcel pass left open is a construction site.
     #[serde(default)]
     pub site_chance: f64,
+    /// Its block interior; absent is grass.
+    #[serde(default)]
+    pub courts: Courts,
+}
+
+/// A district's block interior (`parcels::courts`).
+#[derive(Clone, Copy, Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Courts {
+    /// Paved between its buildings, out to its carriageways and in to its
+    /// last parcels' rears where none runs.
+    #[serde(default)]
+    pub paved: bool,
 }
 
 /// One kind of body along a district's verges.
