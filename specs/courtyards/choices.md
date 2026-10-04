@@ -22,3 +22,18 @@ Decisions made where the plan was silent. Add each as it is made.
 
 #### One boundary kind per lot, the same mix in every region
 **When:** slice 06. **Choice:** A lot's boundary is all hedge or all fence (village 3:1 hedge, suburb 1:1), inset half its thickness; a neighbour's parallel run is refused by clearance, so shared edges are not doubled where the lots line up. Regional mixes wait for regional art. **Gap:** The plan left the mix open. **Reach:** Presets `props.gardens`. **Verdict:** sound. **Confidence:** medium (back-to-back lots of different depths still show doubled rear fences).
+
+#### Paving moves vehicles at open-ground speed
+**When:** slice 02, with tweak-mechanics. **Choice:** `paving` has `speed_factor` 0: a vehicle crosses a court at open-ground speed, not road speed. Aprons, which were roads, slow to the same. At road speed whole block interiors would become shortcuts and columns would cut diagonally through courts. **Gap:** The plan left paving's speed to tweak-mechanics. **Reach:** Every vehicle route through a town. **Verdict:** sound. **Confidence:** medium (a hard yard is physically as fast as a road).
+
+#### Trees may stand on paving; only carriageways keep trunks off
+**When:** slice 02. **Choice:** Forest trunks keep clear of carriageways only, so a grove may stand on a court or apron. Keeping them off all paving refused 17 of 54 sweep maps on ground-sight coverage. **Gap:** Silent. **Reach:** The sight certificate. **Verdict:** sound. **Confidence:** medium.
+
+#### A court is the district ring drawn in exactly to its nearest parcel's rear
+**When:** slice 03. **Choice:** Along an edge with no carriageway the court stops at the nearest parcel's rear corner, with no margin; a district whose lots are all open is still paved. Market Town's 235 saved aprons were re-tagged as paving with its hash updated, rather than left drawn as asphalt. **Gap:** The inset distance was delegated. **Reach:** `parcels/courts.rs`; the saved maps. **Verdict:** sound. **Confidence:** high.
+
+#### Regional paving is a finish and a slab scale, laid on each area's own grid
+**When:** slice 04. **Choice:** China grey cast concrete in 4 m bays, New York pale 1.5 m flags, Paris pale limestone 1.2 m flags (not setts or gravel, which are too fine to read at game distance). Each area's slabs lie square to its longest side with a joint along its edge; the street's frame left courts bare more than 5 m from a street. **Gap:** Palettes and slab sizes were delegated. **Reach:** The biome's paving row (`families`, `slabs`). **Verdict:** sound, pending the seam fix. **Confidence:** medium.
+
+#### Garden art bakes textures at 128 px to fit the 1 MiB cap
+**When:** slice 08a. **Choice:** At the street set's 256 px one texture alone is about 1 MiB raw, so garden pieces bake at 128 px and the GPU magnifies them up close; a new `privet` leaf and `feather_edge` board texture were added, everything else reuses the street set's. Fence boards are texture on a solid panel at every tier, and washing-line cords draw only on the nearest tier, because board and cord geometry shimmered at distance. **Gap:** The cap left texture size to the art. **Reach:** `textures.attach` gained a downsample (`export(texture_px=…)`); existing art is byte-identical. **Verdict:** sound. **Confidence:** medium (128 px may read soft at 12 m).
