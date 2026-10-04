@@ -57,6 +57,68 @@ test("recording fetch keeps the browser function's invocation context", async ()
   expect(bank.get("report").length).toBe(2);
 });
 
+test("source calibration equalizes quiet and loud reports while preserving recipe volume and stored samples", async () => {
+  const sampleRate = 48000;
+  const decoded = [0.02, 0.3].map((amplitude) => {
+    const result = buffer(1, 2400, sampleRate);
+    result
+      .getChannelData(0)
+      .set(
+        Float32Array.from(
+          { length: 2400 },
+          (_, i) => amplitude * Math.sin((2 * Math.PI * 1000 * i) / sampleRate),
+        ),
+      );
+    return result;
+  });
+  const context = {
+    sampleRate,
+    createBuffer: buffer,
+    async decodeAudioData(bytes: ArrayBuffer) {
+      return decoded[new Uint8Array(bytes)[0]];
+    },
+  } as unknown as BaseAudioContext;
+  const catalog = recordingCatalog();
+  const bank = new SoundBank(
+    context,
+    catalog,
+    async (input) => new Response(Uint8Array.of(String(input).includes("first") ? 0 : 1)),
+  );
+  await bank.prepare(["report"]);
+  const level = (audio: AudioBuffer) => {
+    const gain = bank.normalizationGain(audio);
+    const samples = audio.getChannelData(0);
+    return Math.sqrt(
+      samples.reduce((sum, sample) => sum + (sample * gain) ** 2, 0) / samples.length,
+    );
+  };
+  const quiet = await bank.clip("first");
+  const loud = await bank.clip("second");
+  expect(level(quiet)).toBeCloseTo(level(loud), 6);
+  expect(level(quiet)).toBeGreaterThan(0.05);
+  expect(level(bank.get("report", 0))).toBeCloseTo(level(quiet) * 0.5, 6);
+  expect(level(bank.get("report", 1))).toBeCloseTo(level(loud) * 0.5, 6);
+  expect(quiet).toBe(decoded[0]);
+  expect(loud).toBe(decoded[1]);
+  expect(Math.max(...quiet.getChannelData(0))).toBeCloseTo(0.02);
+});
+
+test("calibration preserves the authored level of a synthesis-only custom recipe", async () => {
+  const context = { sampleRate: 48000, createBuffer: buffer } as unknown as BaseAudioContext;
+  const catalog = recordingCatalog();
+  catalog.sounds = {
+    baseline: { label: "Baseline", clips: [], synth: "rifle", synth_gain: 1, gain: 1, loop: false },
+    quiet: { label: "Quiet", clips: [], synth: "rifle", synth_gain: 0.2, gain: 0.25, loop: false },
+  };
+  const bank = new SoundBank(context, catalog);
+  await bank.prepare();
+  const peak = (name: string) => {
+    const audio = bank.get(name);
+    return Math.max(...audio.getChannelData(0).map(Math.abs)) * bank.normalizationGain(audio);
+  };
+  expect(peak("quiet") / peak("baseline")).toBeCloseTo(0.2 * 0.25, 6);
+});
+
 test("recorded variations prepare once and preserve the raw unused clip for audition", async () => {
   const decoded = new Map<string, AudioBuffer>();
   const context = {

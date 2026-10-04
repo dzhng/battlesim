@@ -1,6 +1,7 @@
 import type { SoundCatalog, SoundRecipe } from "./catalog";
 import { gameSounds } from "./shippedSounds";
 import { seamless, synthesize } from "./synth";
+import { sourceNormalization } from "./loudness";
 
 /** Prepared recipe variations and raw recordings for one Web Audio context. */
 export class SoundBank {
@@ -8,6 +9,7 @@ export class SoundBank {
   private readonly preparing = new Map<string, Promise<void>>();
   private readonly clips = new Map<string, Promise<AudioBuffer>>();
   private readonly synths = new Map<string, AudioBuffer>();
+  private readonly normalization = new WeakMap<AudioBuffer, number>();
   private readonly controller = new AbortController();
   /** Main-thread milliseconds spent synthesizing and composing buffers. */
   ms = 0;
@@ -43,6 +45,13 @@ export class SoundBank {
     return choices[(variant >>> 0) % choices.length];
   }
 
+  /** Fixed source calibration; playback applies this separately from gameplay gain. */
+  normalizationGain(buffer: AudioBuffer): number {
+    const gain = this.normalization.get(buffer);
+    if (gain === undefined) throw new Error("Sound buffer is not prepared");
+    return gain;
+  }
+
   /** Raw clean clips remain available even when no recipe or assignment uses them. */
   async clip(id: string, signal?: AbortSignal): Promise<AudioBuffer> {
     const admitted = this.signal(signal);
@@ -57,6 +66,9 @@ export class SoundBank {
         if (!response.ok) throw new Error(`Sound clip ${id}: HTTP ${response.status}`);
         const decoded = await this.context.decodeAudioData(await response.arrayBuffer());
         admitted.throwIfAborted();
+        const started = performance.now();
+        this.normalization.set(decoded, sourceNormalization(decoded));
+        this.ms += performance.now() - started;
         return decoded;
       })().catch((error) => {
         this.clips.delete(id);
@@ -108,6 +120,9 @@ export class SoundBank {
     const choices = core.length ? core : [null];
     const started = performance.now();
     const buffers = choices.map((clip) => this.mix(recipe, clip, support));
+    const authoredGain = recipe.gain * (core.length ? 1 : recipe.synth_gain);
+    for (const buffer of buffers)
+      this.normalization.set(buffer, sourceNormalization(buffer, authoredGain));
     this.ms += performance.now() - started;
     signal.throwIfAborted();
     this.buffers.set(name, buffers);

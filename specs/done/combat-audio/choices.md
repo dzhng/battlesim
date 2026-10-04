@@ -7,6 +7,22 @@ delegated by the user and are not separate approval items.
 
 ## Sound — medium confidence
 
+### Calibrate prepared source levels using the strongest short loudness window
+
+When a clip or recipe is prepared, its strongest 100 ms K-weighted window supplies
+a fixed playback correction toward the library reference of -23 dB. K-weighting
+accounts for frequency when estimating loudness. A quieter rifle can then be
+compared with a dense HMG without file levels deciding which one wins the mix.
+Recipe gains and game controls still decide the intended difference. Measuring
+the entire file would let a long quiet decay make a sharp shot appear too quiet.
+
+**Gap:** the user requested a common loudness reference without choosing its meter,
+target or preparation stage. **Reach:** the same prepared-bank calibration serves
+audition and battle playback, while recorded bytes and original synthetic samples
+remain intact. **Verdict:** sound for short effects; final artistic balance remains
+editable rather than encoded by source recording levels. **Confidence:** medium.
+**Landed:** source calibration follow-up.
+
 ### Prepare the complete recipe library for each audio context
 
 When a battle first enables sound, its audio context prepares every catalog recipe
@@ -75,6 +91,21 @@ the browser lifecycle has explicit resource ownership and never revives a depart
 page's pending bank. **Confidence:** medium. **Landed:** final review pass.
 
 ## Sound — high confidence
+
+### Keep safe audition attacks clear of compressor startup attenuation
+
+Clicking Play creates a fresh audio graph. A newly created compressor can reduce
+the entire attack of a brief rifle report even when its peak is already safe.
+Audition uses a memoryless safety ceiling instead: ordinary samples pass unchanged,
+and excessive peaks are capped. Centering mono material in stereo also makes its
+reference comparable with stereo sources. The battle's shared mix keeps its own
+compressor because it combines concurrent voices rather than isolated auditions.
+
+**Gap:** the original audition safety graph did not account for compressor startup.
+**Reach:** audition level no longer depends on how long the selected recording lasts.
+**Verdict:** sound; a single audition has a known prepared level and needs peak safety,
+while battle dynamics remain owned by the mix. **Confidence:** high. **Landed:**
+source calibration follow-up.
 
 ### Stage browser evidence through real orders and observations
 

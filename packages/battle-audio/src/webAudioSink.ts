@@ -17,6 +17,7 @@ import type { SoundCatalog } from "./catalog";
 const GLIDE_S = 0.06;
 
 interface LiveVoice {
+  normalization: number;
   source: AudioBufferSourceNode;
   gain: GainNode;
   filter: BiquadFilterNode;
@@ -79,16 +80,19 @@ export class WebAudioSink implements VoiceSink {
 
   start(id: number, v: VoiceSpec) {
     const ctx = this.context;
+    const buffer = this.bank.get(v.sound, v.variant);
+    const normalization = this.bank.normalizationGain(buffer);
+    const level = v.gain * normalization;
     const source = new AudioBufferSourceNode(ctx, {
-      buffer: this.bank.get(v.sound, v.variant),
+      buffer,
       loop: v.loop,
       playbackRate: v.rate,
     });
-    const gain = new GainNode(ctx, { gain: v.gain });
+    const gain = new GainNode(ctx, { gain: level });
     if (v.attack > 0) {
       // A far sound's onset arrives softened: ramp in rather than snap.
       gain.gain.setValueAtTime(0, v.at);
-      gain.gain.linearRampToValueAtTime(v.gain, v.at + v.attack);
+      gain.gain.linearRampToValueAtTime(level, v.at + v.attack);
     }
     const filter = new BiquadFilterNode(ctx, { type: "lowpass", frequency: v.lowpass, Q: 0.5 });
     source.connect(gain).connect(filter);
@@ -110,7 +114,7 @@ export class WebAudioSink implements VoiceSink {
     // A loop starts part-way in, so two of the same sound never phase.
     const offset = v.loop ? (id * 0.6180339887) % 1 : 0;
     source.start(v.at, offset * source.buffer!.duration);
-    const voice = { source, gain, filter, panner, send };
+    const voice = { source, gain, filter, panner, send, normalization };
     this.voices.set(id, voice);
     source.onended = () => {
       if (this.voices.get(id) === voice) this.voices.delete(id);
@@ -124,7 +128,7 @@ export class WebAudioSink implements VoiceSink {
   set(id: number, p: VoiceParams, at: number) {
     const v = this.voices.get(id);
     if (!v) return;
-    v.gain.gain.setTargetAtTime(p.gain, at, GLIDE_S);
+    v.gain.gain.setTargetAtTime(p.gain * v.normalization, at, GLIDE_S);
     v.source.playbackRate.setTargetAtTime(p.rate, at, GLIDE_S);
     v.filter.frequency.setTargetAtTime(p.lowpass, at, GLIDE_S);
     v.send.gain.setTargetAtTime(p.wet, at, GLIDE_S);

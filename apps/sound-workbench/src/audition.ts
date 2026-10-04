@@ -1,6 +1,12 @@
 import { SoundBank } from "../../../packages/battle-audio/src/soundBank";
 import type { SoundCatalog } from "../../../packages/battle-audio/src/catalog";
 
+// A memoryless ceiling preserves safe short attacks; compressor startup can
+// attenuate a brief report before its gain has settled.
+const AUDITION_LIMIT_CURVE = Float32Array.from({ length: 2049 }, (_, index) =>
+  Math.max(-0.98, Math.min(0.98, index / 1024 - 1)),
+);
+
 export interface Auditioner {
   play(
     catalog: SoundCatalog,
@@ -46,15 +52,13 @@ export class SoundAuditioner implements Auditioner {
         buffer,
         loop: kind === "clip" ? catalog.clips[id].loop : catalog.sounds[id].loop,
       }));
-      const volume = new GainNode(context, { gain: 0.4 * gain });
-      const limiter = new DynamicsCompressorNode(context, {
-        threshold: -6,
-        knee: 3,
-        ratio: 20,
-        attack: 0.002,
-        release: 0.2,
-      });
-      source.connect(volume).connect(limiter).connect(context.destination);
+      const volume = new GainNode(context, { gain: 0.4 * gain * bank.normalizationGain(buffer) });
+      const limiter = new WaveShaperNode(context, { curve: AUDITION_LIMIT_CURVE });
+      source
+        .connect(volume)
+        .connect(limiter)
+        .connect(new StereoPannerNode(context, { pan: 0 }))
+        .connect(context.destination);
       source.onended = () => {
         if (this.source === source) this.stop();
       };

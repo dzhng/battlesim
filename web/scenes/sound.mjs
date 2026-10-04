@@ -8,6 +8,7 @@
 // the main-thread cost of sound at 100 a side.
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
+import { fileURLToPath } from "node:url";
 
 const db = (v) => 20 * Math.log10(Math.max(v, 1e-9));
 
@@ -271,5 +272,81 @@ export async function run(ctx) {
     "sound at 100 a side costs the main thread little",
     cost.p95 < 2,
     `per frame p50 ${cost.p50.toFixed(3)} ms, p95 ${cost.p95.toFixed(3)} ms; offline render of 8 s ${mix.renderMs.toFixed(0)} ms`,
+  );
+  await auditionTour(ctx, page);
+}
+
+/** Exercise the production auditioner with native offline contexts: fresh
+ *  one-shot graphs must not change reference loudness according to duration. */
+async function auditionTour(ctx, page) {
+  const modules = [
+    "../../apps/sound-workbench/src/audition.ts",
+    "../../packages/battle-audio/src/shippedSounds.ts",
+    "../../packages/battle-audio/src/loudness.ts",
+    "../../packages/battle-audio/src/synth.ts",
+  ].map((path) => `/@fs${fileURLToPath(new URL(path, import.meta.url))}`);
+  const report = await page.evaluate(async (urls) => {
+    const [{ SoundAuditioner }, { gameSounds }, { maxMomentaryLoudness }, { SOUNDS, synthesize }] =
+      await Promise.all(urls.map((url) => import(/* @vite-ignore */ url)));
+    const Original = window.AudioContext;
+    let context;
+    let frames;
+    // Only the device edge changes. Source decoding, normalization, audition
+    // gain, safety ceiling and channel mapping all remain production code.
+    window.AudioContext = class extends OfflineAudioContext {
+      constructor() {
+        super(2, frames, 48000);
+        context = this;
+      }
+      async resume() {}
+      async close() {}
+    };
+    const sources = [
+      ...Object.entries(gameSounds.clips).map(([id, clip]) => ({
+        id,
+        kind: "clip",
+        duration: clip.frames / clip.sample_rate,
+      })),
+      ...Object.keys(SOUNDS).map((id) => ({
+        id,
+        kind: "sound",
+        duration: synthesize(id, 48000).channels[0].length / 48000,
+      })),
+    ];
+    const clips = [];
+    try {
+      for (const { id, kind, duration } of sources) {
+        frames = Math.ceil((duration + 0.2) * 48000);
+        const audition = new SoundAuditioner();
+        try {
+          await audition.play(gameSounds, kind, id);
+          const rendered = await context.startRendering();
+          const channels = [rendered.getChannelData(0), rendered.getChannelData(1)];
+          let peak = 0;
+          for (const channel of channels)
+            for (const sample of channel) peak = Math.max(peak, Math.abs(sample));
+          clips.push({ id, kind, loudness: maxMomentaryLoudness(channels, 48000), peak });
+        } finally {
+          audition.stop();
+        }
+      }
+      // Relative matching survives a legitimate change to the audition master gain.
+      const levels = clips.map((clip) => clip.loudness).sort((a, b) => a - b);
+      return { reference: levels[Math.floor(levels.length / 2)], clips };
+    } finally {
+      window.AudioContext = Original;
+    }
+  }, modules);
+  await ctx.writeEvidence("audition-levels.json", report);
+  const mismatches = report.clips.filter(
+    (clip) =>
+      !Number.isFinite(clip.loudness) ||
+      Math.abs(clip.loudness - report.reference) > 0.75 ||
+      clip.peak >= 0.999,
+  );
+  ctx.check(
+    "every stored clip and original synthesis auditions at the shared reference without clipping",
+    mismatches.length === 0,
+    JSON.stringify({ checked: report.clips.length, reference: report.reference, mismatches }),
   );
 }

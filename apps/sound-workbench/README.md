@@ -9,6 +9,10 @@ The [production sound bank](../../packages/battle-audio/src/soundBank.ts) owns
 decoding and mixing for audition and battle playback. A baseline retains its original
 meaning; clone it to create an editable recipe. Source provenance and cleaned media
 belong to the audio asset workflow, and cannot be rewritten through this editor.
+Clip and recipe auditions use the bank's shared source loudness calibration.
+Recorded file levels do not decide weapon balance; recipe and assignment gains do.
+Audition centers mono material in stereo and uses a memoryless safety ceiling;
+safe brief attacks are not attenuated by a newly created compressor's startup.
 
 Assignments name an exact unit type and authored mount. Types are derived from the
 resolved unit catalog, and repeated physical mounts with the same authored name

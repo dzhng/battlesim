@@ -11,6 +11,14 @@ reusable recipes and assignments. Each recording in a recipe is an alternative,
 not another shot. Optional synthesis supplies restrained body inside that same
 buffer, so one cause still costs one voice. Baseline synthesized recipes remain
 selectable under their original IDs. A recorded recipe has a distinct ID.
+The bank measures each prepared clip or recipe once and keeps a separate source
+calibration gain. Audition and battle playback apply that gain before their authored
+volume controls. The [loudness owner](src/loudness.ts) uses K-weighted maximum short
+windows, so short reports and long quiet tails share a useful reference. This is a
+library calibration, not a measurement of the final battle mix. Source samples,
+synthetic waveforms, decay and stereo balance remain intact; only playback gain
+changes. Recipe gain and a synthesis-only recipe's support level remain intentional
+volume adjustments. Silence stays silent.
 Mixed loops repeat each layer at its own period and crossfade the resulting seam;
 a shorter layer never creates a silent gap in the longer loop.
 
