@@ -254,10 +254,10 @@ def ring(loop, z0, z1, out_m, in_m, material, inner=False, outer=True):
     return Soup.join([quad(face, material) for face in faces])
 
 
-def lining(meshes, name, m, depth_m, material, grow=0.05):
-    """The pane that stands in an opening: the bounds of what fills it, across the wall,
-    `depth_m` inside the wall's face (negative: in front of it)."""
-    lo, hi = meshes[name].bounds()
+def lining(bounds, m, depth_m, material, grow=0.05):
+    """The pane that stands in an opening: the bounds of what fills it (in its module's
+    frame), across the wall, `depth_m` inside the wall's face (negative: in front of it)."""
+    lo, hi = bounds
     corners = np.array([(lo[0] - grow, depth_m, lo[2] - grow), (hi[0] + grow, depth_m, lo[2] - grow),
                         (hi[0] + grow, depth_m, hi[2] + grow), (lo[0] - grow, depth_m, hi[2] + grow)])
     corners = corners @ m[:3, :3].T + m[:3, 3]
@@ -442,6 +442,7 @@ class GraphSet:
     STONE = None  # the ground floor's plinth
     BAND = None  # the bands round the outline
     ROOF = None  # the roof's surface
+    BURNT_ROOF = None  # what a burnt block's roof is, where it is not gone (the roof's own surface if None)
     GLASS = None  # the glass over a room; from tier 2 it is the dark pane `X_Pane`
 
     # ------------------------------------------------------------ damage (per source where it differs)
@@ -487,6 +488,22 @@ class GraphSet:
         """Register the texture recipes the materials name."""
         raise NotImplementedError
 
+    def bounds_of(self, meshes, name):
+        """An opening's rectangle in its module's frame: what fills it."""
+        return meshes[name].bounds()
+
+    def storeys(self, floors):
+        """How many of a building's floors stand in its walls (a mansard's does not)."""
+        return floors
+
+    def near_walls(self, run, tier):
+        """A run's wall at one of the two fine tiers (its shell's own faces, openings cut)."""
+        return run.wall
+
+    def standing(self, run):
+        """What of a run's wall a ruin cuts down to stumps."""
+        return Soup.join([run.wall.coloured(0.72), run.inner.coloured(0.35)])
+
     def doors(self, b):
         """Where the entrances are, in the template's frame."""
         return [(m[0, 3], m[1, 3]) for n, m, _ in b.rows if n.startswith(self.ENTRANCE)]
@@ -501,6 +518,10 @@ class GraphSet:
 
     def material_name(self, source):
         return self.SURFACES[base_of(source)][0] + ("_cut" if CUT in source else "") + ("_tint" if source.endswith(MASK) else "")
+
+    def row_tiers(self, name):
+        """The tiers a module is drawn at as rows; at the others it draws it is folded into the shell."""
+        return self.ROW_TIERS
 
     def family_tiers(self, name):
         return next((tiers for prefix, tiers in self.FAMILIES if name.startswith(prefix)), 0)
@@ -586,17 +607,8 @@ class GraphSet:
                 g = next((own for prefix, own in self.TIER0_FEATURE_M if name.startswith(prefix)), g)
             if name.endswith("+wreck"):  # thrown down, it is neither an opening nor a balcony: a heap of bars and panels
                 lod = Soup.join([detail.simplify(solid, g, self.BAR_M[tier]), *([sheer] if tier < 2 else [])])
-            elif tier >= 2 and name.startswith(self.OPENINGS):
-                front = front_material(far)  # the pane, not its frame: a far window is no bigger than a near one
-                lod = detail.front_quad(far.keep(far.m == front), front, 0.03, far.mats)
-            elif tier >= 2 and name.startswith(self.HULLS):
-                lod = detail.hull(far, self.HULL_BAND_M[tier - 2], caps=tier == 2, sides=tier == 2)
-                if tier == 3 and len(lod):  # its front alone, laid on the wall: standing off it, it floats when seen from the side
-                    flat = lod.v.copy()
-                    flat[:, 1] = soup.bounds()[1][1] - 0.2
-                    lod = Soup(flat, lod.c, lod.t, lod.m, lod.s, lod.mats)
             elif tier >= 2:
-                lod = detail.simplify(far, g, self.BAR_M[tier])
+                lod = self.far_tier(name, far, soup, tier, g)
             else:
                 lod = Soup.join([detail.simplify(solid, g, self.BAR_M[tier]), sheer])
             finer = next((l for l in reversed(out) if l is not None), None)
@@ -604,6 +616,20 @@ class GraphSet:
                 lod = finer
             out.append(lod if len(lod) else None)
         return out
+
+    def far_tier(self, name, far, soup, tier, g):
+        """A module at a coarse tier, from `far` (its solid surfaces and its glass as a pane)."""
+        if name.startswith(self.OPENINGS):
+            front = front_material(far)  # the pane, not its frame: a far window is no bigger than a near one
+            return detail.front_quad(far.keep(far.m == front), front, 0.03, far.mats)
+        if name.startswith(self.HULLS):
+            lod = detail.hull(far, self.HULL_BAND_M[tier - 2], caps=tier == 2, sides=tier == 2)
+            if tier == 3 and len(lod):  # its front alone, laid on the wall: standing off it, it floats when seen from the side
+                flat = lod.v.copy()
+                flat[:, 1] = soup.bounds()[1][1] - 0.2
+                lod = Soup(flat, lod.c, lod.t, lod.m, lod.s, lod.mats)
+            return lod
+        return detail.simplify(far, g, self.BAR_M[tier])
 
     def coarse(self, name, far):
         """What a module's two coarse tiers are made from (the shell draws the wall there)."""
@@ -670,8 +696,12 @@ class GraphSet:
             ash = (0.16 + 0.22 * damage.noise(x, y, 1.1, seed + 13))[:, None] * np.ones(3)
             corner = np.where((surface == 0)[:, None, None], (colour * np.asarray(self.SMOKED_ROOF) * burnt)[tris], ash[tris])
             out.append(Soup(v[tris].reshape(-1, 3), corner.reshape(-1, 3), np.arange(3 * len(tris)).reshape(-1, 3),
-                            np.minimum(surface, 1), np.zeros(len(tris), bool), [self.ROOF, "X_Rubble"]).keep(surface != 2))
+                            np.minimum(surface, 1), np.zeros(len(tris), bool), [self.BURNT_ROOF or self.ROOF, "X_Rubble"]).keep(surface != 2))
         return Soup.join(out)
+
+    def intact_roof(self, b, roof_m, tier):
+        """The roof the intact building's shell draws at a tier."""
+        return self.roof(b.rects, roof_m + 0.04, self.ROOF_CELL_M[tier], b.seed)
 
     def burnt_storey(self, rects, loops, roof_m, material):
         """What shows through a hole in a burnt roof: the top storey's floor, black with what fell on it, and the
@@ -718,12 +748,12 @@ class GraphSet:
     def folded(self, rows, modules, tiers_of, tier, skip=()):
         """What is left of the rows' modules at a coarse tier, as meshes in the template's frame."""
         return [unmasked(modules[name][tier], None if tint is None else tint[:3]).transformed(m) for name, m, tint in rows
-                if tiers_of[name] & ~self.ROW_TIERS & (1 << tier) and not name.startswith(skip)]
+                if tiers_of[name] & ~self.row_tiers(name) & (1 << tier) and not name.startswith(skip)]
 
     def monotone(self, name, tiers):
         for tier in range(1, 4):
             if len(self.clean(tiers[tier])) > len(self.clean(tiers[tier - 1])):
-                raise SystemExit(f"{name}: tier {tier} is heavier than tier {tier - 1}")
+                raise SystemExit(f"{name}: tier {tier} is heavier than tier {tier - 1}: {[len(self.clean(t)) for t in tiers]}")
         return tiers
 
     def intact_shell(self, b, modules, tiers_of, meshes):
@@ -731,8 +761,8 @@ class GraphSet:
         lined, the bands, parapet and coping round the outline, a roof over every part, the
         cubes, and at the two coarse tiers flat walls with what is left of the kit folded in."""
         _, roof_m, _, _ = self.heights(b.floors)
-        walls = [run.wall for run in b.runs]
-        linings = [lining(meshes, name, m, self.LINING_M, "X_Void") for run in b.runs for name, m in run.bare]
+        walls = [[self.near_walls(run, tier) for run in b.runs] for tier in (0, 1)]
+        linings = [lining(self.bounds_of(meshes, name), m, self.LINING_M, "X_Void") for run in b.runs for name, m in run.bare]
         linings += [step for run in b.runs for step in run.steps]
         cubes = Soup.join([run.cubes for run in b.runs])
         # from far off a glazed-in balcony is its dark glass: what stands behind it is not folded in
@@ -741,9 +771,9 @@ class GraphSet:
         far_rows = [row for row in b.rows if not (row[0].startswith(self.ON_BALCONY) and behind(row[1]))]
         out = []
         for tier, g in enumerate(self.FEATURE_M):
-            body = [*walls, *linings] if tier < 2 else [self.flat_walls(b.loops, b.floors, self.WALL + MASK)]
+            body = [*walls[tier], *linings] if tier < 2 else [self.flat_walls(b.loops, b.floors, self.WALL + MASK)]
             out.append(Soup.join([*body, self.crown(b.loops, b.floors, tier, self.WALL + MASK),
-                                  self.roof(b.rects, roof_m + 0.04, self.ROOF_CELL_M[tier], b.seed),
+                                  self.intact_roof(b, roof_m, tier),
                                   cubes if tier == 0 else detail.simplify(cubes, g), *self.folded(far_rows, modules, tiers_of, tier)]))
         return self.monotone(b.name, out)
 
@@ -767,7 +797,7 @@ class GraphSet:
         ground_m, roof_m, _, _ = self.heights(b.floors)
         storey_m, bay_m = self.STOREY_M, self.BAY_M
         burnt, char, concrete = "X_Burnt" + MASK, "X_Void", "X_Rubble"
-        rows, walls, cubes = [], [], []
+        rows, walls, cubes = [], ([], []), []
         holes, far_holes, soot, flat_soot, far_soot = [], [], [], [], []  # for walls with openings, for flat walls, and the few fans the farthest tier keeps
         for run in b.runs:
             point = lambda s, deep, z, run=run: (*(run.start + run.along * s - run.out * deep), z)
@@ -775,19 +805,27 @@ class GraphSet:
             bays = math.floor((run.length - 2.0) / bay_m + 1e-9)
             margin = (run.length - bay_m * bays) / 2
             blown = set()
-            for _ in range(int(bays * (b.floors - 1) * self.BLOWN + rng.random())):
-                k, f = rng.randrange(bays), rng.randrange(1, b.floors)
+            storeys = self.storeys(b.floors)
+            for _ in range(int(bays * (storeys - 1) * self.BLOWN + rng.random())):
+                k, f = rng.randrange(bays), rng.randrange(1, storeys)
                 blown |= {(k + dk, f + df) for dk in range(rng.choice((1, 1, 2))) for df in range(rng.choice((1, 1, 2)))
-                          if k + dk < bays and f + df < b.floors}
+                          if k + dk < bays and f + df < storeys}
             gone = lambda s, z: (math.floor((s - margin) / bay_m), 0 if z < ground_m else 1 + math.floor((z - ground_m) / storey_m)) in blown
 
-            centre = run.wall.v[run.wall.t].mean(1)
-            wall = run.wall.keep(np.array([not gone(s_of(c), float(c[2])) for c in centre], dtype=bool))
-            trim = np.zeros(len(wall.v), bool)
-            trim[np.unique(wall.t[np.array(wall.mats)[wall.m] != self.WALL + MASK])] = True
-            clear = np.median(wall.c[~trim], axis=0) * self.BURNT_WALL  # the burnt wall's own colour, which a fan fades to
-            walls.append(Soup(wall.v, wall.c * np.where(trim, self.BURNT_TRIM, self.BURNT_WALL)[:, None], wall.t, wall.m, wall.s,
-                              [burnt if name == self.WALL + MASK else name for name in wall.mats]))
+            def scorch(wall, gone=gone, s_of=s_of):
+                """The wall cut where its bays are blown out, smoked, and its own colour after the fire."""
+                centre = wall.v[wall.t].mean(1)
+                wall = wall.keep(np.array([not gone(s_of(c), float(c[2])) for c in centre], dtype=bool))
+                trim = np.zeros(len(wall.v), bool)
+                trim[np.unique(wall.t[np.array(wall.mats)[wall.m] != self.WALL + MASK])] = True
+                clear = np.median(wall.c[~trim], axis=0) * self.BURNT_WALL
+                return Soup(wall.v, wall.c * np.where(trim, self.BURNT_TRIM, self.BURNT_WALL)[:, None], wall.t, wall.m, wall.s,
+                            [burnt if name == self.WALL + MASK else name for name in wall.mats]), clear
+
+            near, near1 = self.near_walls(run, 0), self.near_walls(run, 1)
+            wall, clear = scorch(near)  # the burnt wall's own colour, which a fan fades to
+            walls[0].append(wall)
+            walls[1].append(wall if near1 is near else scorch(near1)[0])
             for k, f in sorted(blown):
                 s0, z0 = margin + bay_m * k, ground_m + storey_m * (f - 1)
                 s1, z1, deep = s0 + bay_m, z0 + storey_m, 3.2
@@ -801,7 +839,7 @@ class GraphSet:
             # where each opening is on the run (along it, and up): soot rises to the next one above and no further
             spans = []
             for name, m in run.openings:
-                lo, hi = meshes[name].bounds()
+                lo, hi = self.bounds_of(meshes, name)
                 wide = math.hypot(m[0, 0], m[1, 0])
                 s = s_of(m[:2, 3])
                 spans.append((s + lo[0] * wide, s + hi[0] * wide, m[2, 3] + lo[2] * m[2, 2], m[2, 3] + hi[2] * m[2, 2]))
@@ -809,11 +847,11 @@ class GraphSet:
             for name, m in run.openings:
                 if gone(s_of(m[:2, 3]), m[2, 3] + 0.3):
                     continue
-                holes.append(lining(meshes, name, m, self.LINING_M, char))
+                holes.append(lining(self.bounds_of(meshes, name), m, self.LINING_M, char))
                 if not name.startswith(self.ON_BALCONY):  # from far off a balcony covers the door onto it
-                    far_holes.append(lining(meshes, name, m, -0.03, char, grow=0.0))
+                    far_holes.append(lining(self.bounds_of(meshes, name), m, -0.03, char, grow=0.0))
                 if rng.random() < 0.85:
-                    lo, hi = meshes[name].bounds()
+                    lo, hi = self.bounds_of(meshes, name)
                     wide = math.hypot(m[0, 0], m[1, 0])
                     s, half = s_of(m[:2, 3]) + (lo[0] + hi[0]) / 2 * wide, (hi[0] - lo[0]) / 2 * wide
                     z = m[2, 3] + hi[2] * m[2, 2] + 0.14
@@ -850,7 +888,7 @@ class GraphSet:
         def shell(modules, tiers_of):
             out, sooted = [], Soup.join(cubes)
             for tier, g in enumerate(self.FEATURE_M):
-                body = [*walls, *holes, *soot] if tier < 2 else \
+                body = [*walls[tier], *holes, *soot] if tier < 2 else \
                     [self.flat_walls(b.loops, b.floors, burnt, self.BURNT_WALL, self.BURNT_TRIM), *far_holes, *(flat_soot if tier == 2 else far_soot)]
                 out.append(Soup.join([*body, self.crown(b.loops, b.floors, tier, burnt, self.BURNT_WALL, self.BURNT_TRIM),
                                       self.roof(b.rects, roof_m + 0.04, self.BURNT_ROOF_CELL_M[tier], b.seed, burnt=0.85, slab=tier < 3),
@@ -877,7 +915,7 @@ class GraphSet:
         stumps, cubes, coarse = [], [], {2: [], 3: []}
         for run in b.runs:
             tops = damage.profile(rng, run.length, step_m, 0.5, ruin_m)
-            standing = Soup.join([run.wall.coloured(0.72), run.inner.coloured(0.35)])
+            standing = self.standing(run)
             standing = Soup(standing.v, standing.c, standing.t, standing.m, standing.s,
                             [burnt if name == self.WALL + MASK else name for name in standing.mats])
             stumps += [damage.break_off(standing, run.start, run.along, step_m, tops),
@@ -911,7 +949,7 @@ class GraphSet:
 
         rows = []
         wrecks = [name for name in self.WRECKS if name in meshes]
-        for _ in range(round(area / self.WRECK_M2)):
+        for _ in range(round(area / self.WRECK_M2) if wrecks else 0):
             name = wrecks[rng.randrange(len(wrecks))] + "+wreck"
             cx, cy, hx, hy = b.rects[rng.randrange(len(b.rects))]
             x, y = cx + rng.uniform(-hx + 0.8, hx - 0.8), cy + rng.uniform(-hy + 0.8, hy - 0.8)
@@ -1019,7 +1057,7 @@ class GraphSet:
         out = []
         for run in b.runs:
             for name, m in run.openings:
-                lo, hi = meshes[name].bounds()
+                lo, hi = self.bounds_of(meshes, name)
                 corners = np.array([(lo[0], 0.0, lo[2]), (hi[0], 0.0, hi[2])]) @ m[:3, :3].T + m[:3, 3]
                 for edge in desc["edges"]:
                     part = next(p for p in desc["parts"] if p["id"] == edge["part"])
@@ -1260,8 +1298,8 @@ class GraphSet:
                     row = decompose(m)
                     if row is None or min(row[4:]) <= 0:
                         raise SystemExit(f"{n}: a row that tilts or mirrors needs a module variant")
-                    if tiers_of[n] & self.ROW_TIERS:
-                        placed[which].append((self.module_id(n), row, tiers_of[n] & self.ROW_TIERS, WHITE if tint is None else srgb_bytes(tint[:3])))
+                    if tiers_of[n] & self.row_tiers(n):
+                        placed[which].append((self.module_id(n), row, tiers_of[n] & self.row_tiers(n), WHITE if tint is None else srgb_bytes(tint[:3])))
             openings = [(m[0, 3], m[1, 3]) for run in b.runs for _, m in run.openings]
             desc = self.descriptor(b.name, b.floors, b.parts, openings, self.doors(b))
             self.check_bays(desc, b, meshes)
