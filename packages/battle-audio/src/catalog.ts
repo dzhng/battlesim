@@ -24,6 +24,14 @@ export interface SoundClip {
   frames: number;
   loop: boolean;
   notes: string;
+  /** A recorded burst: these source shots, re-laid `interval_s` apart. */
+  burst?: Burst;
+}
+/** Shots one recording plays, at the gun's cadence; single reports have none. */
+export interface Burst {
+  /** Each shot's source frames: its attack to the end of its retained tail. */
+  shots: [number, number][];
+  interval_s: number;
 }
 export interface SoundRecipe {
   label: string;
@@ -105,6 +113,23 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
       typeof clip.processing !== "string"
     )
       throw new Error(`clip ${name}: invalid media or source range`);
+    if (
+      clip.burst !== undefined &&
+      (!(clip.role === "shot" && !clip.loop) ||
+        !Array.isArray(clip.burst.shots) ||
+        clip.burst.shots.length < 2 ||
+        !clip.burst.shots.every(
+          (shot) =>
+            Array.isArray(shot) &&
+            shot.length === 2 &&
+            shot.every(Number.isSafeInteger) &&
+            clip.source_frames[0] <= shot[0] &&
+            shot[0] < shot[1] &&
+            shot[1] <= clip.source_frames[1],
+        ) ||
+        !finite(clip.burst.interval_s, 0.02, 1))
+    )
+      throw new Error(`clip ${name}: invalid burst`);
   }
   for (const [name, sound] of Object.entries(catalog.sounds)) {
     record(sound, `sound ${name}`);
@@ -121,6 +146,9 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
       typeof sound.loop !== "boolean"
     )
       throw new Error(`sound ${name}: invalid recipe or unknown clip`);
+    const first = cadenceOf(catalog.clips[sound.clips[0]]);
+    if (sound.clips.some((c) => !same(cadenceOf(catalog.clips[c]), first)))
+      throw new Error(`sound ${name}: alternatives play different bursts`);
     if (
       sound.clips.some((c) => catalog.clips[c].loop !== sound.loop) ||
       (sound.synth !== null && SOUNDS[sound.synth].loop !== sound.loop)
@@ -141,6 +169,9 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
           `${where}: firing cannot use ${catalog.clips[invalid].role} clip ${invalid}`,
         );
     }
+    // Near or far is chosen per voice; which rounds a voice covers is not.
+    if (!same(firingCadence(catalog, choice.near), firingCadence(catalog, choice.far)))
+      throw new Error(`${where}: near and far play different bursts`);
   };
   for (const [kind, choice] of Object.entries(catalog.defaults)) firing(choice, `default ${kind}`);
   for (const [unit, mounts] of Object.entries(catalog.units)) {
@@ -163,6 +194,23 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
       throw new Error(`effect ${slot}: unknown sound or loop mismatch`);
   }
   return catalog;
+}
+
+/** The rounds one firing voice covers, `interval_s` apart. */
+export interface Cadence {
+  shots: number;
+  interval_s: number;
+}
+const cadenceOf = (clip: SoundClip | undefined): Cadence =>
+  clip?.burst
+    ? { shots: clip.burst.shots.length, interval_s: clip.burst.interval_s }
+    : { shots: 1, interval_s: 0 };
+const same = (a: Cadence, b: Cadence) => a.shots === b.shots && a.interval_s === b.interval_s;
+
+/** A firing sound's cadence: its recordings' burst, or one round for single
+ *  reports and synthesis. A recipe's alternatives agree. */
+export function firingCadence(catalog: SoundCatalog, sound: string): Cadence {
+  return cadenceOf(catalog.clips[catalog.sounds[sound]?.clips[0]]);
 }
 
 /** Only implicit baseline slots follow shared replacements; explicit choices keep their recipe. */

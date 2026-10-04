@@ -2,7 +2,8 @@
 // It reads exactly the feed the visuals read, and nothing else:
 //
 // - the effects' `EffectPublication`: gunfire at each launch (`launches.ts`,
-//   the muzzle flashes' own derivation), near or far by distance; a
+//   the muzzle flashes' own derivation), near or far by distance, a recorded
+//   burst sounding the gun's next rounds on its cadence; a
 //   ricochet whine at each glance; an impact by hit kind; a blast; a motor
 //   on a flying guided round; fire crackle and roar on every smoke source
 //   the side knows (a wreck), burning then smouldering;
@@ -38,7 +39,7 @@ import { hashString } from "@packages/renderer-core/src/math";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { pick } from "@packages/renderer-core/src/kindTable";
 import { validateAudio, type AudioPresentation, type Bus } from "./audioPresentation";
-import { resolveEffect, resolveShot, type SoundCatalog } from "./catalog";
+import { firingCadence, resolveEffect, resolveShot, type SoundCatalog } from "./catalog";
 import { gameSounds } from "./shippedSounds";
 
 type P3 = readonly [number, number, number] | readonly number[];
@@ -214,6 +215,15 @@ interface Fire {
   start: number;
 }
 
+/** A gun's sounding burst recording: when it started, and the rounds it covers. */
+interface BurstVoice {
+  start: number;
+  /** Its shots `interval` apart; `heard` of them already matched to rounds. */
+  shots: number;
+  interval: number;
+  heard: number;
+}
+
 interface Motor {
   kind: string;
   from: P3;
@@ -253,6 +263,7 @@ export class SoundFrame {
   private readonly strides = new Map<number, { x: number; y: number; carry: number }>();
   private readonly fires = new Map<string, Fire>();
   private motors = new Map<string, Motor>();
+  private readonly bursts = new Map<string, BurstVoice>();
   private readonly cueHeard = new Map<string, number>();
   private nextId = 1;
   private lastTick = -1;
@@ -286,6 +297,7 @@ export class SoundFrame {
     this.strides.clear();
     this.fires.clear();
     this.motors.clear();
+    this.bursts.clear();
     this.cueHeard.clear();
     this.lastTick = -1;
     this.clock = null;
@@ -306,9 +318,32 @@ export class SoundFrame {
     const t1 = fx.tick * this.dt;
     const p = this.p;
 
+    for (const [gun, b] of this.bursts)
+      if (t0 > b.start + b.shots * b.interval) this.bursts.delete(gun);
     for (const l of this.launches.note(fx, gap)) {
       const base = pick(p.shots, l.kind);
       const s = resolveShot(this.catalog, base, l.unitKind, l.mountName, l.kind);
+      // A burst recording sounds the gun's next rounds too, while they land
+      // on its shots; a round off its cadence, or past its last, starts another.
+      const gun = `${l.shooter}:${l.mount}:${l.soldier}`;
+      const b = this.bursts.get(gun);
+      if (
+        b &&
+        b.heard < b.shots &&
+        Math.abs(t0 - b.start - b.heard * b.interval) <= b.interval / 2
+      ) {
+        b.heard++;
+        continue;
+      }
+      const burst = firingCadence(this.catalog, s.near);
+      if (burst.shots > 1)
+        this.bursts.set(gun, {
+          start: t0,
+          shots: burst.shots,
+          interval: burst.interval_s,
+          heard: 1,
+        });
+      else this.bursts.delete(gun);
       this.queue(
         t0,
         s.near,

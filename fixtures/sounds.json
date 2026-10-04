@@ -1657,6 +1657,531 @@
       "frames": 57120,
       "loop": false,
       "notes": "CC0 excerpt of government EOD detonation."
+    },
+    "rifle-11-burst-a": {
+      "label": "Rifle 11 \u00b7 3-round burst A",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1110384,
+        1138320
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-11-burst-a.wav",
+      "sha256": "b03dbd01d2a8429e4206678fe052b60eb700600ec3dca651213783b346c94f1d",
+      "sample_rate": 48000,
+      "frames": 18720,
+      "loop": false,
+      "notes": "Shots 2, 3, 4 of take 11's second half: semi-automatic reports about 0.19 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            1110384,
+            1119600
+          ],
+          [
+            1119600,
+            1129200
+          ],
+          [
+            1129200,
+            1138320
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "rifle-11-burst-b": {
+      "label": "Rifle 11 \u00b7 3-round burst B",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1119600,
+        1146768
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-11-burst-b.wav",
+      "sha256": "4d2e732cd2071de37937ddc0dd301b4842cf11143ec00d899f008374574bb8aa",
+      "sample_rate": 48000,
+      "frames": 18048,
+      "loop": false,
+      "notes": "Shots 3, 4, 5 of take 11's second half: semi-automatic reports about 0.19 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            1119600,
+            1129200
+          ],
+          [
+            1129200,
+            1138320
+          ],
+          [
+            1138320,
+            1146768
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "rifle-11-burst-c": {
+      "label": "Rifle 11 \u00b7 3-round burst C",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1110384,
+        1146768
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-11-burst-c.wav",
+      "sha256": "2060b7e7e3e1478f4505af93760916c9cbccd436896cde334b2a5bb95987d546",
+      "sample_rate": 48000,
+      "frames": 18816,
+      "loop": false,
+      "notes": "Shots 4, 5, 2 of take 11's second half: semi-automatic reports about 0.19 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            1129200,
+            1138320
+          ],
+          [
+            1138320,
+            1146768
+          ],
+          [
+            1110384,
+            1119600
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "rifle-11-burst-d": {
+      "label": "Rifle 11 \u00b7 3-round burst D",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        1110384,
+        1146768
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-11-burst-d.wav",
+      "sha256": "066764112ec1b8a61f7665478d44edc18484d9f22efc64727aa2a960e7e42c00",
+      "sample_rate": 48000,
+      "frames": 19200,
+      "loop": false,
+      "notes": "Shots 5, 2, 3 of take 11's second half: semi-automatic reports about 0.19 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            1138320,
+            1146768
+          ],
+          [
+            1110384,
+            1119600
+          ],
+          [
+            1119600,
+            1129200
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "rifle-03-burst-a": {
+      "label": "Rifle 03 \u00b7 3-round burst A",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        298944,
+        308688
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-03-burst-a.wav",
+      "sha256": "4ebb61333fc650764827981b22f9f3810170434792b78792984b90843d0cf0d0",
+      "sample_rate": 48000,
+      "frames": 14880,
+      "loop": false,
+      "notes": "Shots 1, 1, 2 of take 03's two crisp reports, 93 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            298944,
+            303408
+          ],
+          [
+            298944,
+            303408
+          ],
+          [
+            303408,
+            308688
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "rifle-03-burst-b": {
+      "label": "Rifle 03 \u00b7 3-round burst B",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        298944,
+        308688
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-03-burst-b.wav",
+      "sha256": "327ac60fbeeb33d9b937acddf6d820095ea4a0cdccf1a787987df8d55d3ab7a1",
+      "sample_rate": 48000,
+      "frames": 14880,
+      "loop": false,
+      "notes": "Shots 2, 1, 2 of take 03's two crisp reports, 93 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            303408,
+            308688
+          ],
+          [
+            298944,
+            303408
+          ],
+          [
+            303408,
+            308688
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "rifle-03-burst-c": {
+      "label": "Rifle 03 \u00b7 3-round burst C",
+      "category": "rifle",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        298944,
+        308688
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/rifle-03-burst-c.wav",
+      "sha256": "d34d217c3adc10d7d80079ae913b538c96ce8809e341fbeb5674e359fb5769e7",
+      "sample_rate": 48000,
+      "frames": 14880,
+      "loop": false,
+      "notes": "Shots 1, 2, 2 of take 03's two crisp reports, 93 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            298944,
+            303408
+          ],
+          [
+            303408,
+            308688
+          ],
+          [
+            303408,
+            308688
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "heavy-02-burst-a": {
+      "label": "Heavy 02 \u00b7 3-round burst A",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        225552,
+        235776
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-02-burst-a.wav",
+      "sha256": "a7c9826dee0c4649950eb51c75c5c9e7e8d3065510cfec19c18927a8992ffe61",
+      "sample_rate": 48000,
+      "frames": 13104,
+      "loop": false,
+      "notes": "Shots 2, 3, 4 of take 02's heavier machine gun: thirteen rounds about 70 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            225552,
+            228960
+          ],
+          [
+            228960,
+            232272
+          ],
+          [
+            232272,
+            235776
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "heavy-02-burst-b": {
+      "label": "Heavy 02 \u00b7 3-round burst B",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        235776,
+        245760
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-02-burst-b.wav",
+      "sha256": "d35b2a754463c94c4282c4b8e6dd273fc14a06c4b93c81f8f2d7603af7949e4d",
+      "sample_rate": 48000,
+      "frames": 12960,
+      "loop": false,
+      "notes": "Shots 5, 6, 7 of take 02's heavier machine gun: thirteen rounds about 70 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            235776,
+            239040
+          ],
+          [
+            239040,
+            242400
+          ],
+          [
+            242400,
+            245760
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "heavy-02-burst-c": {
+      "label": "Heavy 02 \u00b7 3-round burst C",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        245760,
+        255696
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-02-burst-c.wav",
+      "sha256": "26331dba411db9013b7558da82845e81cfbea5499dd8ceb178af9e16f9caba03",
+      "sample_rate": 48000,
+      "frames": 12816,
+      "loop": false,
+      "notes": "Shots 8, 9, 10 of take 02's heavier machine gun: thirteen rounds about 70 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            245760,
+            248976
+          ],
+          [
+            248976,
+            252480
+          ],
+          [
+            252480,
+            255696
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "heavy-02-burst-d": {
+      "label": "Heavy 02 \u00b7 3-round burst D",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        255696,
+        266640
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-02-burst-d.wav",
+      "sha256": "58b1b2132dff6aaed65fdc236ed85ef21bd4fe5c454e502bfc660549c83efa42",
+      "sample_rate": 48000,
+      "frames": 13728,
+      "loop": false,
+      "notes": "Shots 11, 12, 13 of take 02's heavier machine gun: thirteen rounds about 70 ms apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            255696,
+            259152
+          ],
+          [
+            259152,
+            262512
+          ],
+          [
+            262512,
+            266640
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "heavy-20-burst-a": {
+      "label": "Heavy 20 \u00b7 3-round burst A",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2048112,
+        2065344
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-20-burst-a.wav",
+      "sha256": "715e4270c2ca64470329c2a244e2212015a3e95cd972701b1ab69cd4ebe89331",
+      "sample_rate": 48000,
+      "frames": 15360,
+      "loop": false,
+      "notes": "Shots 2, 3, 4 of take 20's heavier machine gun: nine rounds about 0.12 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            2048112,
+            2053680
+          ],
+          [
+            2053680,
+            2059584
+          ],
+          [
+            2059584,
+            2065344
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "heavy-20-burst-b": {
+      "label": "Heavy 20 \u00b7 3-round burst B",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2059584,
+        2076768
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-20-burst-b.wav",
+      "sha256": "b5cb39659c4bcbec21c9914fd7b93271115b10f104ee3215030e43dae79dfbe9",
+      "sample_rate": 48000,
+      "frames": 15504,
+      "loop": false,
+      "notes": "Shots 4, 5, 6 of take 20's heavier machine gun: nine rounds about 0.12 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            2059584,
+            2065344
+          ],
+          [
+            2065344,
+            2070864
+          ],
+          [
+            2070864,
+            2076768
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "heavy-20-burst-c": {
+      "label": "Heavy 20 \u00b7 3-round burst C",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2070864,
+        2088528
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-20-burst-c.wav",
+      "sha256": "f060c1788e5c894ebd088aaf45cfcfb86af392139712ab1dafc1bb03ecfabbba",
+      "sample_rate": 48000,
+      "frames": 15648,
+      "loop": false,
+      "notes": "Shots 6, 7, 8 of take 20's heavier machine gun: nine rounds about 0.12 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            2070864,
+            2076768
+          ],
+          [
+            2076768,
+            2082480
+          ],
+          [
+            2082480,
+            2088528
+          ]
+        ],
+        "interval_s": 0.1
+      }
+    },
+    "heavy-20-burst-d": {
+      "label": "Heavy 20 \u00b7 3-round burst D",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [
+        2076768,
+        2091600
+      ],
+      "processing": "weighted-shot",
+      "url": "/audio/clips/heavy-20-burst-d.wav",
+      "sha256": "acd9d6b48d20cc684266f705be24477ce3fc1a42d863b92c952529842bccf995",
+      "sample_rate": 48000,
+      "frames": 12672,
+      "loop": false,
+      "notes": "Shots 7, 8, 9 of take 20's heavier machine gun: nine rounds about 0.12 s apart, re-laid 0.1 s apart at the gun's cadence. Family label is descriptive, not an identified firearm model.",
+      "burst": {
+        "shots": [
+          [
+            2076768,
+            2082480
+          ],
+          [
+            2082480,
+            2088528
+          ],
+          [
+            2088528,
+            2091600
+          ]
+        ],
+        "interval_s": 0.1
+      }
     }
   },
   "sounds": {
@@ -2422,10 +2947,12 @@
       "loop": false
     },
     "rifle-combat": {
-      "label": "Rifle \u00b7 crisp recorded core",
+      "label": "Rifle \u00b7 crisp recorded bursts",
       "clips": [
-        "rifle-11-1",
-        "rifle-11-2"
+        "rifle-11-burst-a",
+        "rifle-11-burst-b",
+        "rifle-11-burst-c",
+        "rifle-11-burst-d"
       ],
       "synth": "rifle",
       "synth_gain": 0.07,
@@ -2433,10 +2960,12 @@
       "loop": false
     },
     "hmg-combat": {
-      "label": "HMG \u00b7 heavy recorded core",
+      "label": "HMG \u00b7 heavy recorded bursts",
       "clips": [
-        "heavy-02-1",
-        "heavy-02-2"
+        "heavy-02-burst-a",
+        "heavy-02-burst-b",
+        "heavy-02-burst-c",
+        "heavy-02-burst-d"
       ],
       "synth": "hmg",
       "synth_gain": 0.1,
@@ -2444,10 +2973,12 @@
       "loop": false
     },
     "hmg-bass": {
-      "label": "HMG \u00b7 bassier recorded core",
+      "label": "HMG \u00b7 bassier recorded bursts",
       "clips": [
-        "heavy-20-1",
-        "heavy-20-2"
+        "heavy-20-burst-a",
+        "heavy-20-burst-b",
+        "heavy-20-burst-c",
+        "heavy-20-burst-d"
       ],
       "synth": "hmg",
       "synth_gain": 0.12,
@@ -2466,32 +2997,25 @@
       "loop": false
     },
     "rifle-combat-distant": {
-      "label": "Rifle \u00b7 crisp recorded core \u00b7 distant",
+      "label": "Rifle \u00b7 crisp recorded bursts \u00b7 distant",
       "clips": [
-        "rifle-11-1",
-        "rifle-11-2"
+        "rifle-11-burst-a",
+        "rifle-11-burst-b",
+        "rifle-11-burst-c",
+        "rifle-11-burst-d"
       ],
       "synth": "rifle",
       "synth_gain": 0.07,
       "gain": 1.3175,
       "loop": false
     },
-    "recorded-rifle-03-distant": {
-      "label": "Rifle 03 \u00b7 recording \u00b7 distant",
-      "clips": [
-        "rifle-03-1",
-        "rifle-03-2"
-      ],
-      "synth": null,
-      "synth_gain": 0,
-      "gain": 1.3175,
-      "loop": false
-    },
     "hmg-combat-distant": {
-      "label": "HMG \u00b7 heavy recorded core \u00b7 distant",
+      "label": "HMG \u00b7 heavy recorded bursts \u00b7 distant",
       "clips": [
-        "heavy-02-1",
-        "heavy-02-2"
+        "heavy-02-burst-a",
+        "heavy-02-burst-b",
+        "heavy-02-burst-c",
+        "heavy-02-burst-d"
       ],
       "synth": "hmg",
       "synth_gain": 0.1,
@@ -2499,10 +3023,12 @@
       "loop": false
     },
     "hmg-bass-distant": {
-      "label": "HMG \u00b7 bassier recorded core \u00b7 distant",
+      "label": "HMG \u00b7 bassier recorded bursts \u00b7 distant",
       "clips": [
-        "heavy-20-1",
-        "heavy-20-2"
+        "heavy-20-burst-a",
+        "heavy-20-burst-b",
+        "heavy-20-burst-c",
+        "heavy-20-burst-d"
       ],
       "synth": "hmg",
       "synth_gain": 0.12,
@@ -2537,6 +3063,30 @@
       ],
       "synth": "thump",
       "synth_gain": 0.1,
+      "gain": 1.3175,
+      "loop": false
+    },
+    "recon-rifle": {
+      "label": "Recon rifle \u00b7 recorded bursts",
+      "clips": [
+        "rifle-03-burst-a",
+        "rifle-03-burst-b",
+        "rifle-03-burst-c"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 0.85,
+      "loop": false
+    },
+    "recon-rifle-distant": {
+      "label": "Recon rifle \u00b7 recorded bursts \u00b7 distant",
+      "clips": [
+        "rifle-03-burst-a",
+        "rifle-03-burst-b",
+        "rifle-03-burst-c"
+      ],
+      "synth": null,
+      "synth_gain": 0,
       "gain": 1.3175,
       "loop": false
     }
@@ -2600,8 +3150,8 @@
     },
     "recon": {
       "rifles": {
-        "near": "recorded-rifle-03",
-        "far": "recorded-rifle-03-distant",
+        "near": "recon-rifle",
+        "far": "recon-rifle-distant",
         "gain": 1
       }
     },

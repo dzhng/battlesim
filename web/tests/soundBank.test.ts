@@ -267,6 +267,46 @@ test("a recorded core and synthesized support retain the tail without corrupting
   expect(bank.get("supported").length).toBe(baseline.length);
 });
 
+test("synthesized support sounds under every shot of a recorded burst", async () => {
+  const { synthesize } = await import("@packages/battle-audio/src/synth");
+  const sampleRate = 8000;
+  // A three-shot recording at 0.1 s, silent but for its length.
+  const core = buffer(1, 4000, sampleRate);
+  const context = {
+    sampleRate,
+    createBuffer: buffer,
+    async decodeAudioData() {
+      return core;
+    },
+  } as unknown as BaseAudioContext;
+  const catalog = recordingCatalog();
+  catalog.clips.first.burst = {
+    shots: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+    ],
+    interval_s: 0.1,
+  };
+  catalog.sounds.supported = {
+    label: "Supported",
+    clips: ["first"],
+    synth: "rifle",
+    synth_gain: 0.5,
+    gain: 1,
+    loop: false,
+  };
+  const bank = new SoundBank(context, catalog, async () => new Response(Uint8Array.of(1)));
+  await bank.prepare(["supported"]);
+  const report = synthesize("rifle", sampleRate).channels[0];
+  const mixed = bank.get("supported").getChannelData(0);
+  const step = 0.1 * sampleRate;
+  const expected = new Float32Array(Math.max(4000, 2 * step + report.length));
+  for (let k = 0; k < 3; k++) report.forEach((v, i) => (expected[k * step + i] += 0.5 * v));
+  expect(mixed.length).toBe(expected.length);
+  for (let i = 0; i < expected.length; i++) expect(mixed[i]).toBeCloseTo(expected[i], 6);
+});
+
 test("every synthesized baseline retains its exact samples, including stereo ambience", async () => {
   const { SOUNDS, synthesize } = await import("@packages/battle-audio/src/synth");
   const sampleRate = 8000;

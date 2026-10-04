@@ -63,6 +63,25 @@ const LOUD_S = [1.5, 3, 3.4, 4.5, 6, 7.2];
 /** Seconds → tick. */
 const tickAt = (s: number) => Math.round(s * HZ);
 
+/** Whether a gun firing bursts from `starts` (ticks) fires a round at `tick`:
+ *  its weapon's burst of rounds, its shot interval apart. */
+function inBurst(kind: "rifle" | "hmg", starts: (start: number) => boolean, tick: number) {
+  const { shot_interval_s, burst } = game.weapons[kind].magazine;
+  const step = tickAt(shot_interval_s);
+  for (let round = 0; round < burst.rounds; round++) if (starts(tick - round * step)) return true;
+  return false;
+}
+
+/** Rifleman `k` starts a burst every 1.2 s, staggered, holding fire around
+ *  the loud events so each is heard (and measured) alone. */
+const rifleStarts = (k: number) => (tick: number) =>
+  tick > 0 &&
+  (tick + k * 5) % tickAt(1.2) === 0 &&
+  tick * DT <= 7 &&
+  !LOUD_S.some((t) => t - 0.4 < tick * DT && tick * DT < t + 0.15);
+/** Red's roof HMG: two bursts. */
+const hmgStarts = (tick: number) => tick === tickAt(4.9) || tick === tickAt(5.4);
+
 interface Script {
   pubs: EffectPublication[];
   audible: SoundCue[][];
@@ -83,13 +102,12 @@ export function firefightScript(): Script {
     const segments: EffectSegment[] = [];
     const blasts: EffectBlast[] = [];
     const cues: SoundCue[] = [];
-    // The squad: each rifleman fires about every 0.6 s, staggered, holding
-    // fire around the loud events so each is heard (and measured) alone.
+    // The squad: each rifleman fires bursts across the field.
     const squadAt = soldierPositions(s);
-    const quiet = LOUD_S.some((t) => Math.abs(t - s) < 0.15);
     BLUE_SQUAD.members.forEach((id, k) => {
-      if ((tick + k * 3) % tickAt(0.6) !== 0 || s > 7.2 || quiet) return;
-      rifleShots[0]++;
+      if (inBurst("rifle", rifleStarts(k), tick)) rifleShots[0]++;
+      // A squad's round leaves its muzzle on the tick after the one that fired it.
+      if (!inBurst("rifle", rifleStarts(k), tick - 1)) return;
       const from = squadAt[k];
       const to = [RED_TANK.at[0] + (rng(tick + k) - 0.5) * 20, RED_TANK.at[1] - 8, 0.2];
       segments.push(seg([from, to], "rifle", id, "ground"));
@@ -127,7 +145,7 @@ export function firefightScript(): Script {
       );
       blasts.push({ point: [5, 12, 0], radius: 6, kind: "tank_he" });
     }
-    if (s >= 4.9 && s <= 5.6 && tick % 3 === 0) {
+    if (inBurst("hmg", hmgStarts, tick)) {
       tankShots = [tankShots[0], tankShots[1] + 1];
       segments.push(
         seg(

@@ -10,6 +10,7 @@ import { expect, test } from "vitest";
 import game from "@fixtures/game.json";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
+import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import {
   distanceGain,
   SoundFrame,
@@ -412,6 +413,66 @@ test("unit and named mount choices change reports without changing observed cade
   expect(sink.started.find((v) => !v.loop && v.position === null)?.sound).toBe(
     AUDIO.cues.sounds.shot,
   );
+});
+
+/** One rifleman of `kind` at the origin, firing a round on each of `ticks`. */
+function rifleman(kind: string, ticks: readonly number[]) {
+  return (tick: number): EffectPublication => {
+    const pub = firefight(tick, [{ key: 2, at: [0, 0, 1] }]);
+    return {
+      ...pub,
+      shooters: pub.shooters.map((s) => ({
+        ...s,
+        kind,
+        mounts: s.mounts.map((m) => ({ ...m, shots: ticks.filter((t) => t <= tick).length })),
+      })),
+      // A squad's round leaves its muzzle on the tick after the one that fired it.
+      segments: ticks.includes(tick - 1) ? pub.segments : [],
+    };
+  };
+}
+
+test("a burst recording sounds once per burst, its shots on the gun's launches", () => {
+  const clip = (shots: number) => ({
+    burst: {
+      shots: Array.from({ length: shots }, (_, k) => [k * 10, k * 10 + 10]),
+      interval_s: 0.1,
+    },
+  });
+  const recipe = (clip: string) => ({ clips: [clip], synth: null });
+  const catalog = {
+    sources: {},
+    clips: { three: clip(3) },
+    sounds: { burst: recipe("three"), burst_far: recipe("three") },
+    defaults: {},
+    impacts: {},
+    effects: {},
+    units: {
+      gunner: { rifle: { near: "burst", far: "burst_far", gain: 1 } },
+      marksman: { rifle: { near: "single", far: "single_far", gain: 1 } },
+    },
+  } as unknown as SoundCatalog;
+  const heard = (kind: string, ticks: number[]) => {
+    const sink = new FakeSink();
+    const frame = new SoundFrame(
+      { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, catalog },
+      sink,
+    );
+    run(frame, sink, 1, 70, rifleman(kind, ticks));
+    return sink.started
+      .filter((v) => v.sound.startsWith(kind === "gunner" ? "burst" : "single"))
+      .map((v) => Math.round(v.at / DT));
+  };
+  // Shots every 0.1 s (3 ticks); each round is heard as its launch is published.
+  const bursts = [10, 13, 16, 40, 43, 46];
+  // One-shot reports sound once a round...
+  expect(heard("marksman", bursts)).toEqual([11, 14, 17, 41, 44, 47]);
+  // ...where a 3-shot recording covers each 3-round burst from its first round.
+  expect(heard("gunner", bursts)).toEqual([11, 41]);
+  // Sustained fire chains recordings: the fourth round starts the next one.
+  expect(heard("gunner", [10, 13, 16, 19, 22, 25])).toEqual([11, 20]);
+  // A round off the recording's cadence is not hidden inside it.
+  expect(heard("gunner", [10, 13, 18])).toEqual([11, 19]);
 });
 
 test("separate named mounts preserve explicit recipes while implicit impacts follow shared replacements", () => {

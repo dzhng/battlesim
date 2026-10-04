@@ -9,7 +9,16 @@ constraints behind the library and workbench.
 The [sound catalog](../../fixtures/sounds.json) separates provenance, clean clips,
 reusable recipes and assignments. Each recording in a recipe is an alternative,
 not another shot. Optional synthesis supplies restrained body inside that same
-buffer, so one cause still costs one voice. Baseline synthesized recipes remain
+buffer, under each of its shots, so one cause still costs one voice.
+
+Automatic fire is heard as recorded bursts, not one report repeated per round.
+A burst clip re-lays several source shots at its gun's shot interval, so one
+voice sounds the gun's next rounds too while they land on its shots; a round
+off that cadence, or past its last shot, starts the next recording. Rounds stay
+aligned with their muzzle flashes and the same report never machine-guns. A
+recipe's alternatives, and a firing choice's near and far sounds, cover the
+same rounds; a burst never covers more than the gun's own burst. Cannons,
+grenades and launchers keep single reports. Baseline synthesized recipes remain
 selectable under their original IDs. A recorded recipe has a distinct ID.
 The bank measures each prepared clip or recipe once and keeps a separate source
 calibration gain. Audition and battle playback apply that gain before their authored
@@ -46,7 +55,10 @@ such as “halfway” do not replace the catalog's exact retained crop frames.
 
 The tool averages stereo channels, keeps the source crop in its original frame
 coordinates, applies the selected tonal profile and fades, and normalizes peak
-level with headroom. Loop clips use a crossfade. It admits all pinned sources and
+level with headroom. Loop clips use a crossfade. A burst clip names each shot's
+source frames and overlap-adds them at its interval: a shot's retained tail ends
+before its next source attack, so a recording faster than the gun leaves a short
+gap between shots rather than a doubled attack. It admits all pinned sources and
 all crop ranges before replacing any outputs. Browser Web Audio handles decoding
 and sample-rate conversion; audio loading never happens per projectile.
 

@@ -119,7 +119,13 @@ export class SoundBank {
     const support = recipe.synth === null ? null : this.synth(recipe.synth);
     const choices = core.length ? core : [null];
     const started = performance.now();
-    const buffers = choices.map((clip) => this.mix(recipe, clip, support));
+    const buffers = choices.map((clip, i) => {
+      const burst = clip && this.catalog.clips[recipe.clips[i]].burst;
+      const shots = burst
+        ? burst.shots.map((_, k) => Math.round(k * burst.interval_s * this.context.sampleRate))
+        : [0];
+      return this.mix(recipe, clip, support, shots);
+    });
     const authoredGain = recipe.gain * (core.length ? 1 : recipe.synth_gain);
     for (const buffer of buffers)
       this.normalization.set(buffer, sourceNormalization(buffer, authoredGain));
@@ -132,11 +138,12 @@ export class SoundBank {
     recipe: SoundRecipe,
     core: AudioBuffer | null,
     support: AudioBuffer | null,
+    shots: readonly number[],
   ): AudioBuffer {
     // Baseline synthesis keeps its original bytes, including signed zero.
     if (!core && support && recipe.gain === 1 && recipe.synth_gain === 1) return support;
     const channels = Math.max(core?.numberOfChannels ?? 0, support?.numberOfChannels ?? 0);
-    const frames = Math.max(core?.length ?? 0, support?.length ?? 0);
+    const frames = Math.max(core?.length ?? 0, shots.at(-1)! + (support?.length ?? 0));
     const mixed = this.context.createBuffer(channels, frames, this.context.sampleRate);
     for (let channel = 0; channel < channels; channel++) {
       const out = mixed.getChannelData(channel);
@@ -156,9 +163,13 @@ export class SoundBank {
           ),
         );
       } else {
-        for (let frame = 0; frame < frames; frame++)
-          out[frame] =
-            recipe.gain * ((recorded?.[frame] ?? 0) + recipe.synth_gain * (synth?.[frame] ?? 0));
+        // Support sounds under each shot: once for a single report.
+        if (recorded) out.set(recorded);
+        if (synth)
+          for (const at of shots)
+            for (let frame = 0; frame < synth.length; frame++)
+              out[at + frame] += recipe.synth_gain * synth[frame];
+        for (let frame = 0; frame < frames; frame++) out[frame] *= recipe.gain;
       }
     }
     return mixed;

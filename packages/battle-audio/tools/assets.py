@@ -64,6 +64,26 @@ def sources(root, catalog):
     return decoded
 
 
+def relay(source, burst, rate, start, end):
+    """Overlap-add each source shot `interval_s` after the last, at the gun's cadence.
+
+    A shot is cut where its retained tail ends, so a faster recording cannot
+    carry its next attack into this one; the cut fades over 10 ms."""
+    step = round(burst["interval_s"] * rate)
+    shots = burst["shots"]
+    if len(shots) < 2 or step <= 0 or any(not (start <= a < b <= end) for a, b in shots):
+        raise ValueError("invalid burst shots or interval")
+    out = array.array("f", bytes(4 * max(k * step + b - a for k, (a, b) in enumerate(shots))))
+    for k, (a, b) in enumerate(shots):
+        shot = source[a:b]
+        fade = min(480, len(shot) // 4)
+        for i in range(fade):
+            shot[-1 - i] *= i / fade
+        for i, value in enumerate(shot):
+            out[k * step + i] += value
+    return out
+
+
 def render(clip, decoded):
     rate, source = decoded[clip["source"]]
     start, end = clip["source_frames"]
@@ -72,7 +92,8 @@ def render(clip, decoded):
     profile = clip["processing"]
     if profile not in FILTERS:
         raise ValueError(f"unknown processing profile {profile}")
-    crop = source[start:end]
+    burst = clip.get("burst")
+    crop = relay(source, burst, rate, start, end) if burst else source[start:end]
     if sys.byteorder != "little":
         crop.byteswap()
     x = floats(ffmpeg(["-f", "f32le", "-ar", str(rate), "-ac", "1", "-i", "-",

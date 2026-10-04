@@ -15,9 +15,12 @@ The original synthesized recipes retain their identities so an explicit baseline
 selection remains meaningful after other assignments change.
 
 Recorded alternatives and restrained synthesis form one voice for one observed
-cause. Playing an extracted automatic burst for each projectile would multiply
-the weapon's cadence. Clean individual reports preserve the simulation's timing;
-the bank, rather than the event loop, owns preparation and variation.
+cause. One clean report per round kept the simulation's timing but made sustained
+fire a single sample repeated at machine regularity. Automatic weapons therefore
+play recorded bursts: source shots re-laid at the gun's own shot interval, one
+voice covering the rounds that land on its shots. An unedited recorded burst would
+have its own cadence and multiply the weapon's. The bank, rather than the event
+loop, owns preparation and variation.
 
 Short PCM clips keep decoding ordinary and rebuilding reproducible. The current
 library is small enough to prepare its recipes before accepting observed events.
