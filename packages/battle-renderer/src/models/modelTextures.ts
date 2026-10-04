@@ -4,8 +4,9 @@
 // materials or bundles sample it: layers are keyed by the texture's content
 // address. Arrays have one edge length, the largest installed; a smaller
 // texture keeps its own levels at the matching array levels and fills the
-// finer ones by nearest-neighbour upsampling (every texture we author is one
-// size, so nothing is upsampled in practice).
+// finer ones by nearest-neighbour upsampling (the garden pieces embed their
+// recipes at half size to stay under their byte cap: only their finest level is
+// upsampled, and only a close camera samples it).
 
 import type { Texture, TextureFormat } from "@packages/scene-assets/src/schema";
 

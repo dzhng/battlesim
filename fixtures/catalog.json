@@ -245,8 +245,7 @@
           "appearance": {
             "drawn_by": "garden_fence",
             "map_only": true,
-            "modular": true,
-            "status": "systems_only"
+            "modular": true
           },
           "body": {
             "armor": 1.0,
@@ -269,8 +268,7 @@
         "garden_shed": {
           "appearance": {
             "drawn_by": "garden_shed",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -293,8 +291,7 @@
         "garden_table": {
           "appearance": {
             "drawn_by": "garden_table",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -368,8 +365,7 @@
           "appearance": {
             "drawn_by": "hedge",
             "map_only": true,
-            "modular": true,
-            "status": "systems_only"
+            "modular": true
           },
           "body": {
             "armor": 1.0,
@@ -958,8 +954,7 @@
         "washing_line": {
           "appearance": {
             "drawn_by": "washing_line",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -1831,8 +1826,7 @@
       "appearance": {
         "drawn_by": "garden_fence",
         "map_only": true,
-        "modular": true,
-        "status": "systems_only"
+        "modular": true
       },
       "body": {
         "armor": 1.0,
@@ -1855,8 +1849,7 @@
     "garden_shed": {
       "appearance": {
         "drawn_by": "garden_shed",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -1879,8 +1872,7 @@
     "garden_table": {
       "appearance": {
         "drawn_by": "garden_table",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -1954,8 +1946,7 @@
       "appearance": {
         "drawn_by": "hedge",
         "map_only": true,
-        "modular": true,
-        "status": "systems_only"
+        "modular": true
       },
       "body": {
         "armor": 1.0,
@@ -2544,8 +2535,7 @@
     "washing_line": {
       "appearance": {
         "drawn_by": "washing_line",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,

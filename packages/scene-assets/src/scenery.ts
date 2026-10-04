@@ -76,6 +76,12 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   road_barrier: prop,
   scaffold: prop,
   scooter: prop,
+  // The gardens' bodies (fixtures/props/city/gardens.json), shared by every region.
+  garden_shed: prop,
+  hedge: prop,
+  garden_fence: prop,
+  washing_line: prop,
+  garden_table: prop,
   /** The cover a forest floor holds: a fallen trunk, and a boulder. */
   log: prop,
   boulder: prop,

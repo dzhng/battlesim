@@ -854,6 +854,71 @@
         0.55
       ]
     },
+    "garden_shed": {
+      "unit": "scenery",
+      "scenery": "garden_shed",
+      "states": {
+        "default": "assets/source/courts/garden_shed.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.2,
+        0.9,
+        1.1
+      ]
+    },
+    "hedge": {
+      "unit": "scenery",
+      "scenery": "hedge",
+      "states": {
+        "default": "assets/source/courts/hedge.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.0,
+        0.4,
+        0.9
+      ]
+    },
+    "garden_fence": {
+      "unit": "scenery",
+      "scenery": "garden_fence",
+      "states": {
+        "default": "assets/source/courts/garden_fence.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.75,
+        0.05,
+        0.9
+      ]
+    },
+    "washing_line": {
+      "unit": "scenery",
+      "scenery": "washing_line",
+      "states": {
+        "default": "assets/source/courts/washing_line.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.0,
+        0.1,
+        0.9
+      ]
+    },
+    "garden_table": {
+      "unit": "scenery",
+      "scenery": "garden_table",
+      "states": {
+        "default": "assets/source/courts/garden_table.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.0,
+        0.7,
+        0.4
+      ]
+    },
     "grass_meadow": {
       "unit": "scenery",
       "scenery": "grass",
