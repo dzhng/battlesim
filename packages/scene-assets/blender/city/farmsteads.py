@@ -45,15 +45,12 @@ from kit import *  # noqa: E402,F403
 from masonry import *  # noqa: E402,F403
 from regional import *  # noqa: E402,F403
 
-FAMILIES = ("china", "new_york", "paris")
-ARGS = script_args()
-FAMILY = ARGS.pop(0) if ARGS and ARGS[0] in FAMILIES else "china"
+FAMILY, SET, SOURCE, OUT = family_set("farmsteads", "farmsteads.py")
 WALL_M = 2.85  # from a house's top floor datum up to its eaves
 BYRE_SILL_M, LOFT_SILL_M = 1.3, 1.3  # small barn windows span the physical eye and muzzle heights
 ROW_TIERS, FOLDED_TIER, FOLDED = TIERS_0_TO_1, 2, (2, 3)  # fittings are rows near; the shell keeps them at the two far tiers
 
-kit = Kit("farmsteads" if FAMILY == "china" else f"farmsteads_{FAMILY}", "farmsteads.py" if FAMILY == "china" else f"farmsteads.py {FAMILY}",
-          fit_side_m=0.6, fit_top_m=0.9, fit_ruin_top_m=0.6)
+kit = Kit(SET, SOURCE, fit_side_m=0.6, fit_top_m=0.9, fit_ruin_top_m=0.6)
 
 
 def linear(c):
@@ -133,6 +130,7 @@ RUBBLE = {"cream plaster": PLASTER_RUBBLE, "straw plaster": PLASTER_RUBBLE, "whi
 # The shared heaps' tints (sRGB), and which walls are timber: they burn to the foot and leave less standing.
 DUST = {"cream plaster": (214, 200, 176), "straw plaster": (208, 190, 150), "whitewash": (224, 222, 214), "brick": (176, 104, 82),
         "stone": (190, 178, 156), "tarred boards": (70, 66, 62), "weathered boards": (70, 66, 62)}
+# A design extends these tables (and FAR_PANELS, FAR_BOXES, STACKS) with its own family's entries; a run builds one family, so none leaks into another.
 TIMBER = {"tarred boards", "weathered boards"}
 # The chimneys a fallen building keeps the stumps of: module -> its plan and material.
 STACKS = {"chimney_brick": ((1.05, 0.6), stack_m)}
@@ -152,24 +150,6 @@ def window_module(name, w, h, shutters=False, lights=2, frame=frame_m, sill=sill
 
 # A house's windows have its rooms behind them. A barn's is one pane in a dark timber frame, over the dark of
 # the barn: nobody lives behind it. The cart shed's stands in boards seen from both sides, and stays a dark pane.
-def step_module():
-    m = kit.module("step", ground=True, **FITTING)
-    box(m.n("slab"), (1.5, 0.4, 0.16), (0, -0.2, 0.08), plinth_m, m.root)
-
-
-def chimney_module(name="chimney_brick", plan=(1.05, 0.6), mat=stack_m, pots=2):
-    m = kit.module(name, **FITTING)
-    chimney(m.n("c"), plan, CHIMNEY_M, mat, coping_m, m.root, pots=pots, pot_mat=pot_m)
-
-
-def rainwater_modules():
-    # A metre of gutter along +X and a metre of downpipe up +Z: rows stretch them to length.
-    m = kit.module("gutter", **FITTING)
-    cyl(m.n("run"), 0.06, 1.0, (0, 0, 0), "X", metal_m, m.root, seg=6, caps=False)
-    m = kit.module("downpipe", **FITTING)
-    cyl(m.n("pipe"), 0.045, 1.0, (0, 0, 0.5), "Z", metal_m, m.root, seg=6, caps=False)
-
-
 # A barn's doors: the wagon doors, a split stable door, and the loft's doors under their hoist.
 BARN_DOOR_M, STABLE_DOOR_M, LOFT_DOOR_M = (2.7, 3.2), (1.15, 2.1), (1.3, 1.35)
 
@@ -362,9 +342,9 @@ def china():
     window_module("window_byre", 0.8, 0.6, lights=1, frame=timber_m, sill=timber_m, behind=None, dark=bpy_dark())
     window_module("window_shed", 0.8, 0.6, lights=1, frame=timber_m, sill=timber_m, cut=False)
     door_module(kit, "door_panel", 0.95, 2.05, joinery_m, frame_m)
-    step_module()
-    chimney_module()
-    rainwater_modules()
+    build_step(kit, plinth_m)
+    build_chimney(kit, "chimney_brick", (1.05, 0.6), stack_m, coping_m, pot_m, 2)
+    build_rainwater(kit, metal_m)
     barn_door_modules()
     wreckage(kit, rubble_m, char_m)
     for name in ("cart", "bales", "woodpile", "trough", "water_butt"):
@@ -538,11 +518,11 @@ def new_york():
     sash(kit, "window_sash_porch", 0.9, 1.6, white_m, glass_m, pane_m, white_m, casing=white_m, behind=None, dark=bpy_dark())
     window_module("window_byre", 0.8, 0.6, lights=1, frame=white_m, sill=white_m, behind=None, dark=bpy_dark())
     door_module(kit, "door_transom", 0.95, 2.05, joinery_m, white_m, pane_m, light=0.4)
-    step_module()
+    build_step(kit, plinth_m)
     porch_rail(kit, "porch_rail", PORCH_RAIL_M, white_m)
     porch_steps(kit, "porch_steps", 1.6, deck_m)
-    chimney_module()
-    rainwater_modules()
+    build_chimney(kit, "chimney_brick", (1.05, 0.6), stack_m, coping_m, pot_m, 2)
+    build_rainwater(kit, metal_m)
     x_barn_doors(kit, "barn_door", *BARN_DOOR_M, joinery_m, white_m, white_m)
     stable_door_module(joinery_m, white_m)
     x_barn_doors(kit, "loft_door", *LOFT_DOOR_M, joinery_m, white_m, white_m, hoist=0.55, ground=False)
@@ -714,9 +694,9 @@ def paris():
     french_window(kit, "window_persienne", 1.0, 1.5, white_m, glass_m, pane_m, sill_m, shutter_m)
     window_module("window_byre", 0.8, 0.6, lights=1, frame=timber_m, sill=timber_m, behind=None, dark=bpy_dark())
     door_module(kit, "door_tall", 1.15, 2.25, joinery_m, sill_m, pane_m, light=0.3)
-    step_module()
-    chimney_module("chimney_render", (0.7, 0.7), render_stack_m, pots=1)
-    rainwater_modules()
+    build_step(kit, plinth_m)
+    build_chimney(kit, "chimney_render", (0.7, 0.7), render_stack_m, coping_m, pot_m, 1)
+    build_rainwater(kit, metal_m)
     barn_door_modules()
     build_dormer(kit, "dormer_slate", WALLS["limestone rubble"], ROOFS["slate"], glass_m, pane_m, frame_m, pitched=True)
     wreckage(kit, rubble_m, char_m)
@@ -836,5 +816,5 @@ def paris():
 
 
 DESIGNS = {"china": china, "new_york": new_york, "paris": paris}
-DESIGNS[FAMILY]()
-kit.write(next(iter(ARGS), None))  # an argument after the family writes the two files somewhere else
+design(DESIGNS, FAMILY, "farmsteads.py")()
+kit.write(OUT)

@@ -39,13 +39,10 @@ from kit import *  # noqa: E402,F403
 from masonry import *  # noqa: E402,F403
 from regional import *  # noqa: E402,F403
 
-FAMILIES = ("china", "new_york", "paris")
-ARGS = script_args()
-FAMILY = ARGS.pop(0) if ARGS and ARGS[0] in FAMILIES else "china"
+FAMILY, SET, SOURCE, OUT = family_set("homes", "homes.py")
 WALL_M = 2.85  # from the top floor's datum up to the eaves
 
-kit = Kit("homes" if FAMILY == "china" else f"homes_{FAMILY}", "homes.py" if FAMILY == "china" else f"homes.py {FAMILY}",
-          fit_side_m=0.5, fit_top_m=0.9, fit_ruin_top_m=0.6)
+kit = Kit(SET, SOURCE, fit_side_m=0.5, fit_top_m=0.9, fit_ruin_top_m=0.6)
 
 # ---------------------------------------------------------------- materials
 # Walls and joinery are pale and tint-masked: a row's tint is the house's colour.
@@ -81,6 +78,7 @@ char_m = charred("charred_timber", ember=0.04)
 RUBBLE = {"plaster": rubble_m, "roughcast": rubble_m, "brick": brick_rubble_m}
 BRICK_DUST = (176, 104, 82)  # the shared heaps' tint about a brick house
 DUST = {"brick": BRICK_DUST}  # the shared heaps' tint about a house of each wall; the house's own tint otherwise
+# A design extends these tables (and FAR_PANELS, FAR_BOXES, STACKS) with its own family's entries; a run builds one family, so none leaks into another.
 RUIN_STYLE = {}  # how a house of each wall falls (`ruin_block`'s options), when not as masonry does
 # What breaks a wall on the ground floor, for a ruin's stumps: fitting -> its opening's width.
 OPENINGS = {"window_a": 1.1, "window_a_shutters": 1.1, "window_wide": 1.7, "window_tall": 1.0, "door_panel": 1.15, "door_canopy": 1.15,
@@ -108,24 +106,6 @@ def door_modules():
     box(m.n("canopy"), (1.8, 0.45, 0.09), (0, -0.225, 2.66), stone_m, m.root, lods=(0, 1, 2))
     for s in (-1, 1):
         box(m.n(f"bracket_{'ab'[s > 0]}"), (0.07, 0.34, 0.07), (s * 0.75, -0.16, 2.48), stone_m, m.root, rot=(0.6, 0, 0), lods=(0,))
-
-
-def step_module():
-    m = kit.module("step", ground=True, **FITTING)
-    box(m.n("slab"), (1.5, 0.4, 0.16), (0, -0.2, 0.08), plinth_m, m.root)
-
-
-def chimney_module(name, plan=(1.05, 0.6), mat=stack_m, pots=2):
-    m = kit.module(name, **FITTING)
-    chimney(m.n("c"), plan, 1.8, mat, coping_m, m.root, pots=pots, pot_mat=pot_m)
-
-
-def rainwater_modules():
-    # A metre of gutter along +X and a metre of downpipe up +Z: rows stretch them to length.
-    m = kit.module("gutter", **FITTING)
-    cyl(m.n("run"), 0.06, 1.0, (0, 0, 0), "X", metal_m, m.root, seg=6, caps=False)
-    m = kit.module("downpipe", **FITTING)
-    cyl(m.n("pipe"), 0.045, 1.0, (0, 0, 0.5), "Z", metal_m, m.root, seg=6, caps=False)
 
 
 # A shopfront, a bay each: a display window, a glazed door between sidelights, and a
@@ -484,10 +464,10 @@ def china():
     window_module("window_wide", 1.6, 1.3, lights=3)
     window_module("window_tall", 0.9, 1.5, lights=1)
     door_modules()
-    step_module()
-    chimney_module("chimney_brick")
-    chimney_module("chimney_render", (0.7, 0.7), render_stack_m, 1)
-    rainwater_modules()
+    build_step(kit, plinth_m)
+    build_chimney(kit, "chimney_brick", (1.05, 0.6), stack_m, coping_m, pot_m, 2)
+    build_chimney(kit, "chimney_render", (0.7, 0.7), render_stack_m, coping_m, pot_m, 1)
+    build_rainwater(kit, metal_m)
     shop_modules()
     for tiles_ in ("brown", "clay", "slate"):
         dormer_module(tiles_)
@@ -617,13 +597,13 @@ def new_york():
             prism(m.n("pediment"), [(-0.85, 2.62), (0.85, 2.62), (0.0, 3.0)], 0.4, (0, -0.2, 0), white_m, m.root, lods=(0, 1, 2))
             for s in (-1, 1):
                 box(m.n(f"pilaster_{'ab'[s > 0]}"), (0.16, 0.1, 2.62), (s * 0.7, -0.05, 1.31), white_m, m.root, lods=(0, 1))
-    step_module()
+    build_step(kit, plinth_m)
     stoop(kit, "stoop", stone_m, railing_rail())
     stoop(kit, "stoop_brown", lintel_m, railing_rail(), top=0.95, steps=5)
     porch_rail(kit, "porch_rail", PORCH_RAIL_M, white_m)
     porch_steps(kit, "porch_steps", 1.6, deck_m)
-    chimney_module("chimney_brick")
-    rainwater_modules()
+    build_chimney(kit, "chimney_brick", (1.05, 0.6), stack_m, coping_m, pot_m, 2)
+    build_rainwater(kit, metal_m)
     shop_modules()
     dormer_module("shingle", cheeks=clap_m, pitched=True)
     dormer_module("shingle_brown", cheeks=clap_m, pitched=True)
@@ -775,13 +755,13 @@ def paris():
     box(m.n("marquise_edge"), (1.74, 0.04, 0.05), (0, -0.46, 2.82), railing_rail(), m.root, lods=(0, 1, 2))
     for s in (-1, 1):
         box(m.n(f"marquise_arm_{'ab'[s > 0]}"), (0.04, 0.46, 0.04), (s * 0.84, -0.23, 2.86), railing_rail(), m.root, lods=(0, 1))
-    step_module()
-    chimney_module("chimney_render", (0.7, 0.7), render_stack_m, 1)
-    chimney_module("chimney_souche", (1.5, 0.55), render_stack_m, 4)  # a party wall's stack, a pot to each flue
+    build_step(kit, plinth_m)
+    build_chimney(kit, "chimney_render", (0.7, 0.7), render_stack_m, coping_m, pot_m, 1)
+    build_chimney(kit, "chimney_souche", (1.5, 0.55), render_stack_m, coping_m, pot_m, 4)  # a party wall's stack, a pot to each flue
     STACKS["chimney_souche"] = ((1.5, 0.55), render_stack_m)
     FAR_BOXES["chimney_souche"] = [((1.5, 0.55, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), render_stack_m)]
     FAR_BOXES["chimney_render"] = [((0.7, 0.7, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), render_stack_m)]
-    rainwater_modules()
+    build_rainwater(kit, metal_m)
     shop_modules()
     for tiles_ in ("brown", "slate"):  # a lucarne's front and cheeks are dressed stone, not the house's render
         dormer_module(tiles_, cheeks=stone_m, pitched=True)
@@ -896,5 +876,5 @@ def paris():
 
 
 DESIGNS = {"china": china, "new_york": new_york, "paris": paris}
-DESIGNS[FAMILY]()
-kit.write(next(iter(ARGS), None))  # an argument after the family writes the two files somewhere else
+design(DESIGNS, FAMILY, "homes.py")()
+kit.write(OUT)

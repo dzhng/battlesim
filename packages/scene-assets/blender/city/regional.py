@@ -10,7 +10,49 @@ a module's coarse tiers are the same picture with less geometry.
 import math
 
 from kit import *  # noqa: F401,F403
-from masonry import bpy_dark, house_walls, panel_door, pitched_roof, RoofShape, WALL_BANDS_M  # noqa: F401
+from masonry import _ring, bpy_dark, chimney, house_walls, panel_door, pitched_roof, RoofShape, WALL_BANDS_M  # noqa: F401
+
+
+# ---------------------------------------------------------------- a family's set
+def family_set(kind, script):
+    """A hand-scripted set's family from its arguments, `[family] [out]`: (family, kit, out dir).
+    No argument builds China's set, `kind`, as it always has; another family's set is
+    `<kind>_<family>`. The family comes first whenever an out dir is given: `<script> china
+    <out>`. Whether the family is one the script designs is `design`'s to say."""
+    args = script_args()
+    if len(args) > 2:
+        raise SystemExit(f"usage: {script} [family] [out]")
+    family = args[0] if args else "china"
+    china = family == "china"
+    return family, (kind if china else f"{kind}_{family}"), (script if china else f"{script} {family}"), (args[1] if len(args) > 1 else None)
+
+
+def design(designs, family, script):
+    """The script's design for `family`, refusing one it has none for (a mistyped family, or an out dir
+    given without the family before it) before anything is written."""
+    if family not in designs:
+        raise SystemExit(f"{script}: no family {family!r}; usage: {script} [family] [out], family one of {', '.join(designs)}")
+    return designs[family]
+
+
+# ---------------------------------------------------------------- small shared fittings
+def build_step(kit, mat):
+    m = kit.module("step", ground=True, **FITTING)
+    box(m.n("slab"), (1.5, 0.4, 0.16), (0, -0.2, 0.08), mat, m.root)
+
+
+def build_chimney(kit, name, plan, mat, cap, pot, pots):
+    """A chimney module `CHIMNEY_M` tall (`stack` stands it on a ridge)."""
+    m = kit.module(name, **FITTING)
+    chimney(m.n("c"), plan, CHIMNEY_M, mat, cap, m.root, pots=pots, pot_mat=pot)
+
+
+def build_rainwater(kit, metal):
+    # A metre of gutter along +X and a metre of downpipe up +Z: rows stretch them to length.
+    m = kit.module("gutter", **FITTING)
+    cyl(m.n("run"), 0.06, 1.0, (0, 0, 0), "X", metal, m.root, seg=6, caps=False)
+    m = kit.module("downpipe", **FITTING)
+    cyl(m.n("pipe"), 0.045, 1.0, (0, 0, 0.5), "Z", metal, m.root, seg=6, caps=False)
 
 
 # ---------------------------------------------------------------- roofs
@@ -91,16 +133,6 @@ class BrokenRoof:
             return [(self.b1, top), (self.b0, top)]
         return [(self.b1, top), (self.b1 - self.run, self.knee_z - drop), (self.bc, self.ridge - drop),
                 (self.b0 + self.run, self.knee_z - drop), (self.b0, top)]
-
-
-def _ring(points):
-    out = []
-    for p in points:
-        if not out or math.dist(p, out[-1]) > 1e-6:
-            out.append(p)
-    if len(out) > 1 and math.dist(out[0], out[-1]) < 1e-6:
-        out.pop()
-    return out
 
 
 class FlatShape:
