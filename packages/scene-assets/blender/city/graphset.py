@@ -511,6 +511,10 @@ class GraphSet:
         at = lambda s, deep, z: (*(start + along * s - out * deep), z)
         bands = [0.0] + [self.GROUND_M + self.STOREY_M * k for k in range(floors) if self.GROUND_M + self.STOREY_M * k < roof_m - 1e-3] + [roof_m]
         faces = []
+        # the faces between openings break on the bay lattice, so a bay blown out of a burnt block takes its own wall only
+        bays = math.floor((length - 2.0) / self.BAY_M + 1e-9)
+        cuts = [(length - self.BAY_M * bays) / 2 + self.BAY_M * k for k in range(bays + 1)]
+        between = lambda a, b, z0, z1: [((p, z0), (q, z1)) for p, q in zip(*(lambda e: (e[:-1], e[1:]))(sorted({a, b, *(c for c in cuts if a < c < b)})))]
         for z0, z1 in zip(bands, bands[1:]):
             holes = []
             for n, m in openings:
@@ -521,7 +525,7 @@ class GraphSet:
                 holes.append((s + lo[0], s + hi[0], max(z0, m[2, 3] + lo[2]), min(z1, m[2, 3] + hi[2]), lo[1] if lo[1] > 0.05 else self.WALL_M / 2))
             s0 = 0.0
             for a, b, h0, h1, deep in sorted(holes):
-                faces.append(((s0, z0), (a, z1)))
+                faces += between(s0, a, z0, z1)
                 if h0 > z0 + 1e-3:
                     faces.append(((a, z0), (b, h0)))
                 if h1 < z1 - 1e-3:
@@ -532,7 +536,7 @@ class GraphSet:
                                        ((a, 0, h0), (b, 0, h0), (b, deep, h0), (a, deep, h0)),
                                        ((a, deep, h1), (b, deep, h1), (b, 0, h1), (a, 0, h1))):
                     faces.append((at(*c0), at(*c1), at(*c2), at(*c3)))
-            faces.append(((s0, z0), (length, z1)))
+            faces += between(s0, length, z0, z1)
         soups = []
         for face in faces:
             if len(face) == 2:
@@ -543,7 +547,7 @@ class GraphSet:
             soups.append(quad(face, self.WALL + MASK))
         return Soup.join(soups)
 
-    def far_panes(self, b, meshes):
+    def far_panes(self, b, meshes, tier):
         """What the coarse tiers' flat walls show of the openings, where the rows' own panes do not."""
         return []
 
@@ -818,7 +822,7 @@ class GraphSet:
         far_rows = [row for row in b.rows if not (row[0].startswith(self.ON_BALCONY) and behind(row[1]))]
         out = []
         for tier, g in enumerate(self.FEATURE_M):
-            body = [*walls[tier], *linings] if tier < 2 else [self.flat_walls(b.loops, b.floors, self.WALL + MASK), *self.far_panes(b, meshes)]
+            body = [*walls[tier], *linings] if tier < 2 else [self.flat_walls(b.loops, b.floors, self.WALL + MASK), *self.far_panes(b, meshes, tier)]
             out.append(Soup.join([*body, self.crown(b.loops, b.floors, tier, self.WALL + MASK),
                                   self.intact_roof(b, roof_m, tier),
                                   cubes if tier == 0 else detail.simplify(cubes, g), *self.folded(far_rows, modules, tiers_of, tier)]))

@@ -38,7 +38,7 @@ import detail  # noqa: E402
 import graph  # noqa: E402
 import textures  # noqa: E402
 from graph import Soup  # noqa: E402
-from graphset import MASK, GraphSet, bars, grime, outline, quad, right_of, scorched, toned  # noqa: E402
+from graphset import MASK, GraphSet, bars, base_of, grime, outline, quad, right_of, scorched, toned  # noqa: E402
 
 STONE, TRIM, ZINC, IRON, FRAME, GLASS, DOOR = "FR_Stone", "FR_StoneTrim", "FR_Zinc", "FR_Iron", "FR_WindowFrame", "FR_Glass", "FR_DoorWood"
 WALLS = frozenset((STONE, TRIM))  # what a module's own stretch of wall is made of
@@ -135,7 +135,7 @@ class Paris(GraphSet):
         ZINC: ("fr_zinc", "fr_zinc", (1.0, 1.0, 1.0), 0.55, 0.6),
         IRON: ("fr_iron", "fr_metal", (0.035, 0.037, 0.04), 0.7, 0.5),
         FRAME: ("fr_frame", "fr_paint", (0.62, 0.6, 0.55), 0.6, 0.0),
-        DOOR: ("fr_door", "fr_wood", (0.07, 0.16, 0.11), 0.6, 0.0),
+        DOOR: ("fr_door", "fr_wood", (0.14, 0.28, 0.2), 0.6, 0.0),
         GLASS: ("fr_glass", None, (0.05, 0.075, 0.09), 0.08, 0.0),
         "X_Pane": ("fr_pane", None, (0.06, 0.066, 0.068), 0.25, 0.0),
         "X_Void": ("fr_void", None, (0.005, 0.005, 0.006), 1.0, 0.0),
@@ -156,7 +156,8 @@ class Paris(GraphSet):
     )
     BURNT_ROOF = "X_Rubble"  # the top floor's slab: the zinc went with the mansard
     SMOKED_ROOF = (0.55, 0.53, 0.5)  # smoke on a grey slab, not on clay
-    BURNT_ROOF_CELL_M = (1.0, 1.0, 2.0, 8.0)  # a far block's intact roof is a few faces: so is its burnt one
+    BURNT_ROOF_CELL_M = (1.0, 1.0, 2.0, 5.0)
+    BURNT_WALL = 0.42  # pale limestone smoked: it must fall further than a painted wall to read as burnt  # a far block's intact roof is a few faces: so is its burnt one
     WRECKS = ("FR_Railing",)
 
     def recipes(self):
@@ -231,7 +232,8 @@ class Paris(GraphSet):
         Its glass is a pane over the opening's bounds, its iron a hull, the rest simplified."""
         mats = np.array(far.mats)[far.m] if len(far) else np.array([])
         pane = far.keep(np.isin(mats, ["X_Pane", FRAME, DOOR]))
-        iron = far.keep(mats == IRON)
+        # a balcony's iron, its railing sheets among it: its bars are cutouts the far tiers' `far` leaves out
+        iron = soup.keep(np.array([base_of(n) == IRON for n in soup.mats])[soup.m]) if len(soup) else soup
         rest = far.keep(~np.isin(mats, ["X_Pane", FRAME, DOOR, IRON]))
         out = []
         if len(pane):
@@ -239,6 +241,8 @@ class Paris(GraphSet):
             out.append(detail.front_quad(pane, front, 0.03, pane.mats))
         if len(iron):
             out.append(detail.hull(iron, 1.0, caps=tier == 2, sides=tier == 2))
+        if name.startswith("R") and tier == 3:  # a far dormer is its window on the slope: its surround would stand up as a tooth
+            rest = Soup.empty()
         if len(rest):  # at the farthest tier carved stone is a band of its colour on the wall
             out.append(detail.simplify(rest, g, self.BAR_M[tier]) if tier == 2 else detail.hull(rest, 1.5, caps=False, sides=False))
         return Soup.join(out)
