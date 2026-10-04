@@ -111,7 +111,7 @@ export async function run(ctx) {
   // hidden tank's firing report).
   let areaWhileUnseen = null;
   const visibleTankChoices = [];
-  for (let i = 0; i < 400 && !reacquired; i++) {
+  for (let i = 0; i < 400 && (!reacquired || !areaWhileUnseen); i++) {
     await advance(page, 1);
     o = await obs(page);
     const c = own(o, 0).mounts[0];
@@ -136,8 +136,10 @@ export async function run(ctx) {
         mounts: squad.mounts,
       });
     }
-    if (!areaWhileUnseen && o.identified.length === 0 && grenade.target?.kind === "contact") {
-      const area = o.contacts.find((c) => c.id === grenade.target.id);
+    const area =
+      grenade.target?.kind === "contact" &&
+      o.contacts.find((c) => c.id === grenade.target.id && c.source === "firing");
+    if (!areaWhileUnseen && o.identified.length === 0 && area) {
       areaWhileUnseen = {
         tick: o.tick,
         target: grenade.target,
@@ -162,7 +164,12 @@ export async function run(ctx) {
       grace = { tick: o.tick, target: c.target, aim: c.aim };
       const shot = await panelCrop(ctx, page, "crop-action-panel-grace-2x.png");
       await writeFile(ctx.evidencePath("frame-grace-1280x800.png"), shot);
-    } else if (grace && c.target?.kind === "identified" && c.reason !== "tracking_last_sighting") {
+    } else if (
+      grace &&
+      !reacquired &&
+      c.target?.kind === "identified" &&
+      c.reason !== "tracking_last_sighting"
+    ) {
       reacquired = { tick: o.tick, target: c.target };
     }
   }

@@ -218,8 +218,9 @@ export async function run(ctx) {
   await wb(page, () => window.__workbench.setFeed(14));
   const pinned = await wb(page, () => window.__workbench.models().map((m) => m.pose.clip));
   ctx.check(
-    "suppression pins the squad prone",
-    pinned.length > 0 && pinned.every((c) => c === "prone_pinned"),
+    "suppression lowers every soldier into his own prone or kneeling stance",
+    pinned.length === walking.length &&
+      pinned.every((c) => c === "prone_pinned" || c === "kneel_fire"),
     pinned.join(","),
   );
   await wb(page, () => window.__workbench.setFeed(16.5));
