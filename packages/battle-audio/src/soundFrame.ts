@@ -308,13 +308,7 @@ export class SoundFrame {
 
     for (const l of this.launches.note(fx, gap)) {
       const base = pick(p.shots, l.kind);
-      const s = resolveShot(
-        this.catalog,
-        { ...base, near: this.effect(base.near), far: this.effect(base.far) },
-        l.unitKind,
-        l.mountName,
-        l.kind,
-      );
+      const s = resolveShot(this.catalog, base, l.unitKind, l.mountName, l.kind);
       this.queue(
         t0,
         s.near,

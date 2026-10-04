@@ -140,6 +140,27 @@ test("the global editor displays the effective shared fallback for an unassigned
   expect((screen.getByLabelText("rifle gain") as HTMLInputElement).value).toBe("0.8");
 });
 
+test("implicit firing fallbacks display effect replacements and retain them when editing gain", async () => {
+  const f = fixture();
+  f.snapshot.catalog.effects.rifle = "hmg";
+  f.snapshot.catalog.effects.rifle_far = "hmg_far";
+  render(<SoundWorkbench api={f.api} audition={f.audition} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
+  expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("hmg");
+  expect((screen.getByLabelText("rifle far") as HTMLSelectElement).value).toBe("hmg_far");
+  fireEvent.click(screen.getByRole("button", { name: "Unit assignments" }));
+  fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
+  expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("hmg");
+  fireEvent.change(screen.getByLabelText("rifle gain"), { target: { value: "0.8" } });
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+  await screen.findByRole("button", { name: "Save reviewed JSON" });
+  expect(vi.mocked(f.api.preview).mock.calls[0][0].catalog.units.alpha.rifle).toEqual({
+    near: "hmg",
+    far: "hmg_far",
+    gain: 0.8,
+  });
+});
+
 test("preview shows the changed sound setting without searching full source JSON", async () => {
   const f = fixture();
   render(<SoundWorkbench api={f.api} audition={f.audition} />);

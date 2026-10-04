@@ -161,3 +161,30 @@ test("failed audio preparation is reported and does not admit publications", asy
   audio.note(empty(8));
   expect(audio.stats()?.tick).toBe(-1);
 });
+
+test("leaving a page cancels pending preparation and returning prepares fresh audio", async () => {
+  let finish: ((value: AudioBuffer) => void) | undefined;
+  const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+  const audio = setupDecode(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+  window.dispatchEvent(new Event("pagehide"));
+  expect(audio.stats()).toBeNull();
+  finish!(buffer(1, 2, 8000));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(audio.stats()).toBeNull();
+  expect(errors.mock.calls).toEqual([]);
+
+  finish = undefined;
+  window.dispatchEvent(new Event("pageshow"));
+  expect(audio.stats()).toMatchObject({ loading: true, tick: -1 });
+  await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+  finish!(buffer(1, 2, 8000));
+  await vi.waitFor(() => expect(audio.stats()?.loading).toBe(false));
+  audio.note(empty(9));
+  expect(audio.stats()).toMatchObject({ tick: 9, pending: 0, error: null });
+});

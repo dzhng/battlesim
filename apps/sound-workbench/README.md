@@ -5,15 +5,18 @@ The library includes clean recordings, unused mechanical actions and the origina
 synthesis baselines. Audition is explicit; opening or testing the tool stays silent.
 
 Recipes select alternative clips and blend optional synthesis into each alternative.
-The [production sound bank](../../packages/battle-audio/src/webAudioSink.ts) owns
+The [production sound bank](../../packages/battle-audio/src/soundBank.ts) owns
 decoding and mixing for audition and battle playback. A baseline retains its original
 meaning; clone it to create an editable recipe. Source provenance and cleaned media
 belong to the audio asset workflow, and cannot be rewritten through this editor.
 
 Assignments name an exact unit type and authored mount. Types are derived from the
 resolved unit catalog, and repeated physical mounts with the same authored name
-share a choice. Restoring an override exposes the global firing default or original
-fallback. Cannon launch choices follow the mount across its ammunition types;
+share a choice. Restoring an override exposes the global firing default or implicit
+fallback, including its effect replacement. Near and far may select different
+recordings or recipes sharing the same core; the battle applies distance attenuation,
+filtering, attack and reverb during playback. Workbench auditions play the recipe
+without battlefield distance processing. Cannon launch choices follow the mount across its ammunition types;
 the existing observed launch contract does not identify the selected cannon round.
 Impact choices may distinguish the published round and material. Stored reloads and
 mechanical actions remain useful auditions without inventing battle events.

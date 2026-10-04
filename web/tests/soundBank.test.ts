@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
-import { SoundBank } from "@packages/battle-audio/src/webAudioSink";
+import { SoundBank } from "@packages/battle-audio/src/soundBank";
 
 function buffer(channels: number, length: number, sampleRate: number): AudioBuffer {
   const data = Array.from({ length: channels }, () => new Float32Array(length));
@@ -257,4 +257,32 @@ test("every synthesized baseline retains its exact samples, including stereo amb
       ).toBe(true);
     }
   }
+});
+
+test("a shorter recorded loop keeps its body throughout a longer synthesized layer", async () => {
+  const sampleRate = 8000;
+  const core = buffer(1, 800, sampleRate);
+  core.getChannelData(0).fill(0.4);
+  const context = {
+    sampleRate,
+    createBuffer: buffer,
+    async decodeAudioData() {
+      return core;
+    },
+  } as unknown as BaseAudioContext;
+  const catalog = recordingCatalog();
+  catalog.sounds.motor = {
+    label: "Motor",
+    clips: ["first"],
+    synth: "motor",
+    synth_gain: 0.01,
+    gain: 1,
+    loop: true,
+  };
+  const bank = new SoundBank(context, catalog, async () => new Response(Uint8Array.of(1)));
+  await bank.prepare(["motor"]);
+  const samples = bank.get("motor").getChannelData(0);
+  expect(samples.length).toBeGreaterThan(core.length);
+  expect(Math.min(...samples)).toBeGreaterThan(0.39);
+  expect(Math.max(...samples)).toBeLessThan(0.41);
 });

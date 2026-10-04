@@ -1,6 +1,19 @@
 import { SOUNDS } from "../../../packages/battle-audio/src/synth";
+import { resolveShot } from "../../../packages/battle-audio/src/catalog";
 import { Choices } from "./controls";
 import type { EditorProps } from "./editorProps";
+import type { NearFar } from "../../../packages/battle-audio/src/audioPresentation";
+
+function firingChoice(
+  draft: EditorProps["draft"],
+  base: NearFar,
+  kind: string,
+  unit = "",
+  mount = "",
+) {
+  const { near, far, gain } = resolveShot(draft, { ...base, gain: 1 }, unit, mount, kind);
+  return { near, far, gain };
+}
 export function UnitAssignments({
   snapshot,
   draft,
@@ -73,7 +86,7 @@ export function UnitAssignments({
                 const override = draft.units[unit.id]?.[mount.name];
                 const global = draft.defaults[kind] ?? draft.defaults.default;
                 const base = snapshot.firing[kind] ?? snapshot.firing.default;
-                const choice = override ?? global ?? { near: base.near, far: base.far, gain: 1 };
+                const choice = firingChoice(draft, base, kind, unit.id, mount.name);
                 return (
                   <div className="sw-assignment" key={mount.name}>
                     <h3>{mount.name}</h3>
@@ -83,7 +96,7 @@ export function UnitAssignments({
                         ? "unit override"
                         : global
                           ? "global firing default"
-                          : "original firing fallback"}
+                          : "implicit firing fallback"}
                     </p>
                     {mount.count > 1 && <p>{mount.count} physical mounts share this choice</p>}
                     <Choices
@@ -136,10 +149,7 @@ export function GlobalAssignments({ snapshot, draft, edit, play }: EditorProps) 
           <h3>{kind}</h3>
           <Choices
             name={kind}
-            choice={
-              draft.defaults[kind] ??
-              draft.defaults.default ?? { near: base.near, far: base.far, gain: 1 }
-            }
+            choice={firingChoice(draft, base, kind)}
             catalog={draft}
             onChange={(value) =>
               edit((c) => {

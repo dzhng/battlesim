@@ -54,11 +54,22 @@ export class BattleAudio {
   private error: string | null = null;
   private readonly unsubscribe: () => void;
   private readonly onGesture = () => this.start();
+  private resumeAfterPageHide = false;
+  private readonly onPageHide = () => {
+    this.resumeAfterPageHide = this.context !== null;
+    this.close();
+  };
+  private readonly onPageShow = () => {
+    if (this.resumeAfterPageHide) this.start();
+    this.resumeAfterPageHide = false;
+  };
 
   constructor(private readonly options: SoundFrameOptions) {
     this.unsubscribe = soundSettings.subscribe(() => this.applySettings());
     for (const type of ["pointerdown", "keydown"] as const)
       window.addEventListener(type, this.onGesture, { capture: true });
+    window.addEventListener("pagehide", this.onPageHide);
+    window.addEventListener("pageshow", this.onPageShow);
     // The gesture may have come before this battle existed (the button that
     // mounted it): the page's sticky activation lets the context run now.
     if (navigator.userActivation?.hasBeenActive) this.start();
@@ -146,8 +157,16 @@ export class BattleAudio {
     this.unsubscribe();
     for (const type of ["pointerdown", "keydown"] as const)
       window.removeEventListener(type, this.onGesture, { capture: true });
+    window.removeEventListener("pagehide", this.onPageHide);
+    window.removeEventListener("pageshow", this.onPageShow);
+    this.resumeAfterPageHide = false;
+    this.close();
+  }
+
+  private close() {
     this.sink?.bank.dispose();
     this.ready = false;
+    this.error = null;
     void this.context?.close();
     this.context = null;
     this.frame = null;

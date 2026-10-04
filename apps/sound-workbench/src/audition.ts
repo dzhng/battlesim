@@ -1,4 +1,4 @@
-import { SoundBank } from "../../../packages/battle-audio/src/webAudioSink";
+import { SoundBank } from "../../../packages/battle-audio/src/soundBank";
 import type { SoundCatalog } from "../../../packages/battle-audio/src/catalog";
 
 export interface Auditioner {

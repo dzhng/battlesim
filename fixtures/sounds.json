@@ -293,7 +293,7 @@
     "hard-05-1": {
       "label": "Hard 05 \u00b7 report 1",
       "category": "hard-impact",
-      "role": "impact",
+      "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
       "source_frames": [
@@ -306,12 +306,12 @@
       "sample_rate": 48000,
       "frames": 3404,
       "loop": false,
-      "notes": "Take-05 muffled rifle-like report; user selected as a hard-object impact candidate."
+      "notes": "Take-05 muffled rifle-like report; retained as an optional firing timbre and selected by the user as a hard-object impact candidate."
     },
     "hard-05-2": {
       "label": "Hard 05 \u00b7 report 2",
       "category": "hard-impact",
-      "role": "impact",
+      "role": "shot",
       "source": "qubodup-gunfire",
       "source_rate": 48000,
       "source_frames": [
@@ -324,7 +324,7 @@
       "sample_rate": 48000,
       "frames": 3399,
       "loop": false,
-      "notes": "Take-05 muffled rifle-like report; user selected as a hard-object impact candidate."
+      "notes": "Take-05 muffled rifle-like report; retained as an optional firing timbre and selected by the user as a hard-object impact candidate."
     },
     "auto-06-1": {
       "label": "Auto 06 \u00b7 report 1",

@@ -73,7 +73,7 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
       typeof source.label !== "string" ||
       typeof source.author !== "string" ||
       !["CC0-1.0", "Public-Domain-US-Gov"].includes(source.license) ||
-      !/^https:\/\//.test(source.url) ||
+      !source.url.startsWith("https://") ||
       !/^assets\/third-party\/audio\/[a-zA-Z0-9_.-]+$/.test(source.path) ||
       !hash.test(source.sha256)
     )
@@ -177,7 +177,8 @@ export function resolveShot(
   kind: string,
 ): NearFar {
   const choice = catalog.units[unit]?.[mount] ?? catalog.defaults[kind] ?? catalog.defaults.default;
-  return choice
-    ? { ...base, near: choice.near, far: choice.far, gain: base.gain * choice.gain }
-    : base;
+  if (choice) return { ...base, near: choice.near, far: choice.far, gain: base.gain * choice.gain };
+  const near = resolveEffect(catalog, base.near);
+  const far = resolveEffect(catalog, base.far);
+  return near === base.near && far === base.far ? base : { ...base, near, far };
 }

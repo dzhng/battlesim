@@ -1,6 +1,6 @@
 import type { SoundCatalog, SoundRecipe } from "./catalog";
 import { gameSounds } from "./shippedSounds";
-import { synthesize } from "./synth";
+import { seamless, synthesize } from "./synth";
 
 /** Prepared recipe variations and raw recordings for one Web Audio context. */
 export class SoundBank {
@@ -127,9 +127,24 @@ export class SoundBank {
       const out = mixed.getChannelData(channel);
       const recorded = core?.getChannelData(channel % core.numberOfChannels);
       const synth = support?.getChannelData(channel % support.numberOfChannels);
-      for (let frame = 0; frame < frames; frame++)
-        out[frame] =
-          recipe.gain * ((recorded?.[frame] ?? 0) + recipe.synth_gain * (synth?.[frame] ?? 0));
+      if (recipe.loop && recorded && synth && recorded.length !== synth.length) {
+        // Repeat each layer at its own period, then soften the composed loop's seam.
+        out.set(
+          seamless(frames, Math.min(frames, Math.round(0.05 * this.context.sampleRate)), (n) =>
+            Float32Array.from(
+              { length: n },
+              (_, frame) =>
+                recipe.gain *
+                (recorded[frame % recorded.length] +
+                  recipe.synth_gain * synth[frame % synth.length]),
+            ),
+          ),
+        );
+      } else {
+        for (let frame = 0; frame < frames; frame++)
+          out[frame] =
+            recipe.gain * ((recorded?.[frame] ?? 0) + recipe.synth_gain * (synth?.[frame] ?? 0));
+      }
     }
     return mixed;
   }

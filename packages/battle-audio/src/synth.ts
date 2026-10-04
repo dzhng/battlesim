@@ -1,7 +1,6 @@
-// The battle's sound bank, synthesised in code: every sound is a
-// deterministic function of its name and the sample rate (seeded noise,
-// filters, envelopes), so there are no audio files, no licences, and the
-// offline render is reproducible. Transients are shaped noise and sines;
+// The synthesized baseline: every sound is a deterministic function of its
+// name and sample rate (seeded noise, filters, envelopes), so the offline
+// render is reproducible. Transients are shaped noise and sines;
 // loops are built to wrap seamlessly (whole cycles, or a crossfaded seam).
 // Each sound peaks at `PEAK`; the mix's levels are `presentation.audio`'s.
 import { mulberry32 } from "math/random";
@@ -118,7 +117,7 @@ function toPeak(x: Float32Array, peak = PEAK): Float32Array {
 
 /** A loop of `n` samples from `make(n + fade)`: the tail is crossfaded over
  *  the head, so it wraps without a click. */
-function seamless(n: number, fade: number, make: (n: number) => Float32Array): Float32Array {
+export function seamless(n: number, fade: number, make: (n: number) => Float32Array): Float32Array {
   const long = make(n + fade);
   const out = long.slice(0, n);
   for (let i = 0; i < fade; i++) {

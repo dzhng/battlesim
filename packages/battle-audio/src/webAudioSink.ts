@@ -12,7 +12,6 @@ import type { Listener, VoiceParams, VoiceSink, VoiceSpec } from "./soundFrame";
 import { reverbImpulse } from "./synth";
 import { SoundBank } from "./soundBank";
 import type { SoundCatalog } from "./catalog";
-export { SoundBank } from "./soundBank";
 
 /** Seconds a live loop's parameters glide to a new value over (time constant). */
 const GLIDE_S = 0.06;

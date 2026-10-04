@@ -9,6 +9,8 @@ reusable recipes and assignments. Each recording in a recipe is an alternative,
 not another shot. Optional synthesis supplies restrained body inside that same
 buffer, so one cause still costs one voice. Baseline synthesized recipes remain
 selectable under their original IDs. A recorded recipe has a distinct ID.
+Mixed loops repeat each layer at its own period and crossfade the resulting seam;
+a shorter layer never creates a silent gap in the longer loop.
 
 Assignments identify an exact unit type and an authored mount name. Equivalent
 physical mounts share their named equipment choice. The unit catalog owns the
@@ -47,3 +49,6 @@ and offline buffers through the same asynchronous path. Disposal aborts loading
 and prevents late admission. The [browser lifecycle](src/battleAudio.ts) drops
 publications received while loading, reports failures, and starts from fresh
 observed evidence once ready.
+Leaving a page releases its audio engine and cancels preparation. Returning to a
+document preserved in the browser's back-button cache prepares a fresh engine
+from that page's accepted catalog, rather than retaining loading work across departure.

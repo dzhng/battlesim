@@ -85,17 +85,38 @@ Measurements verify onset, extra attacks, clipping and bandwidth, not timbre.
 
 ## Next Agent Prompt
 
-All three slices are integrated. Finish the browser workbench review, silent
-save/reload proof, whole-feature review and full end gates. The recorded sound
-scene passes without weakening the baseline checks. A fetch-binding defect and
-an unused-library filter defect were corrected with failing regressions first.
-Keep current media and synthesis parity; do not revisit delegated sound choices
-as an approval blocker.
+All three slices are integrated and the whole-feature review is clean. Desktop
+and narrow screenshots passed an unprimed review; the tool is live on port 8794.
+The recorded sound scene and all 29 baseline sample-parity checks pass. Final
+review corrected unequal loop padding, aligned editor fallbacks with playback,
+and canceled preparation on browser page departure, with failing regressions
+first. Keep current media and delegated sound choices.
+
+The full check ran: Rust, formatting, lint and typecheck passed. Its lone web
+failure was the developer-menu expectation; the corrected router test and affected
+editor/audio tests pass. The full browser run reached every scene. Missing LFS
+effect PNGs and city templates have been restored; affected-scene retries passed
+apart from the known staging failures below. A final sensors/ambush/village run
+has no audio page error, including canceled clip requests. The final focused run
+passed 78 tests in ten files; typecheck, scoped formatting/lint and production
+build pass. Do not rerun the entire expensive suite unchanged.
+
+The remaining known global failures are existing village staging: no initially
+identified enemy for the scout retreat, no moving tank HMG launch in its staged
+battle, and no previously identified hidden tank firing report for village-watch.
+Baseline and candidate WASM probes produce identical full reports and digests
+with their own fixture bytes; all simulation, fixture and decoder sources are
+unchanged. The comparison is in ignored `throwaway/audio-build/village-triage`;
+it is not an independently rebuilt baseline browser run. Repair those staging
+prerequisites without changing rules or weakening assertions before claiming the
+global gate green and archiving this spec.
 
 - [x] Durable clean source library and explicit exclusions; reproducible asset check passed.
 - [x] ATGM, cannon, ricochet, small/heavy impacts and explosions assigned in catalog.
 - [x] Async live/offline preparation and exact unit/mount firing overrides.
 - [x] Complete catalogue audition, editable recipes and all concrete unit rows.
 - [x] Preview/save/reload with shared publication and stale/outside-edit protection.
-- [ ] Focused tests, browser sound proof, desktop/narrow visual review.
-- [ ] Full closeout checks, decision audit, docs and archived rationale.
+- [x] Focused tests, browser sound proof, desktop/narrow visual review.
+- [x] Whole-feature review, consolidated decision audit and durable package docs.
+- [x] Finish affected-scene retries and verify browser departure cancellation.
+- [ ] Resolve existing global staging failures and archive rationale.
