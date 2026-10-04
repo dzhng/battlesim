@@ -1294,6 +1294,11 @@ const JOIN_DRIFT_M = 2.5;
  *  read from farther off. */
 const SLAB_JOINT_M = 0.03;
 const AREA_JOINT_M = 0.1;
+/** An area's slab grid is whole while a slab spans more than 1 / the first
+ *  of these pixels, gone by 1 / the second. */
+const AREA_SLAB_PIXELS = [1 / 16, 1 / 6] as const;
+/** The widest plain border between a walk's edge and an area's slab grid. */
+const AREA_BORDER_M = 2;
 const SLAB_JOINT_PIXELS = [0.7, 2.5] as const;
 
 /** How much of a joint `width` wide lies `along` metres along a line, 0 to
@@ -1526,9 +1531,16 @@ const groundRoads = tgpu
      if(out<0.0&&u32(street.join.w)==k){core*=1.0-walkJoint(footprint,paved);}
     }
     if(out>=0.0&&look.stones.z>0.0&&paved.bearing>=0.0&&!plain){
+     // A plain border a slab wide (at most AREA_BORDER_M) runs along the
+     // edge line before the grid starts: where the grid is not square to
+     // the street, it meets the border, not the kerb.
+     let border=1.0-smoothstep(0.0,footprint,out-min(1.0/look.stones.z,${AREA_BORDER_M}));
      let w=${AREA_JOINT_M};
      let along=vec2f(cos(paved.bearing),sin(paved.bearing));
-     let joint=max(strokeJoint(dot(xy,along),look.stones.z,footprint,w),strokeJoint(dot(xy,vec2f(-along.y,along.x)),look.stones.z,footprint,w));
+     // The grid fades out before a slab is a few pixels across, so far
+     // paving reads as its colour rather than a shimmering mesh.
+     let near=(1.0-smoothstep(${AREA_SLAB_PIXELS[0]},${AREA_SLAB_PIXELS[1]},footprint*look.stones.z))*(1.0-border);
+     let joint=near*max(strokeJoint(dot(xy,along),look.stones.z,footprint,w),strokeJoint(dot(xy,vec2f(-along.y,along.x)),look.stones.z,footprint,w));
      let edge=(1.0-smoothstep(w,w+footprint,out))*(1.0-smoothstep(${SLAB_JOINT_PIXELS[0]},${SLAB_JOINT_PIXELS[1]},footprint/w));
      core*=1.0-max(joint,edge*1.5)*look.stones.w;
     }
