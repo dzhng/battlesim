@@ -201,7 +201,7 @@ pub(super) fn sub_of(p: V2) -> usize {
 
 /// Whether a cell's free sub-cells are one gap, connected edge to edge.
 pub(super) fn one_gap(free: u16) -> bool {
-    let mut gap = free & free.wrapping_neg();
+    let mut gap = free.isolate_lowest_one();
     loop {
         let grown = (gap
             | ((gap << 1) & !WEST_COLUMN)

@@ -556,7 +556,7 @@ pub fn soldier_steer(
             .rejoin(s.leg, t, rules.steer_ahead_m, here, reach, |p| {
                 around.stands(p, r)
             })
-            .or(Some(spot).filter(|_| near));
+            .or(near.then_some(spot));
         if let Some(to) = rejoin {
             own_route(s, side, to);
             return Some(follow(s, here, pace));

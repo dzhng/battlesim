@@ -347,7 +347,9 @@ fn foliage_from_known_cleared_ground_matches_the_battle_world() {
     let (nx, cell) = (known[0] as usize, known[2] as f64);
     let mut opened = 0;
     let records: std::collections::BTreeMap<usize, [f32; 2]> = known[3..]
-        .chunks_exact(4)
+        .as_chunks::<4>()
+        .0
+        .iter()
         .map(|r| (r[1] as usize * nx + r[0] as usize, [r[2], r[3]]))
         .collect();
     for k in 0..nx * known[1] as usize {
@@ -760,7 +762,7 @@ fn tree_line_foliage_follows_trunk_crowns_beyond_the_authored_strip_edge() {
     let grid = w.export_foliage();
     assert!(grid.len() > 3);
     let mut over_edge = false;
-    for record in grid[3..].chunks_exact(4) {
+    for record in grid[3..].as_chunks::<4>().0 {
         let center = v2(
             (record[0] as f64 + 0.5) * grid[2] as f64,
             (record[1] as f64 + 0.5) * grid[2] as f64,

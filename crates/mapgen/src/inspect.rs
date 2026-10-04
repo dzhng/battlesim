@@ -563,7 +563,7 @@ fn render(
     let water = [(WATER, 1.0, "river"), (DECK, 1.0, "bridge")];
     for (fill, opacity, text) in [(FOREST, 1.0, "forest"), (APPROACH, 0.22, "open approach")]
         .into_iter()
-        .chain(Some((APRON, 1.0, "apron")).filter(|_| detail))
+        .chain(detail.then_some((APRON, 1.0, "apron")))
         .chain(water.into_iter().filter(|_| !plan.rivers.is_empty()))
     {
         block(&mut out, x, 0.0, fill, opacity);

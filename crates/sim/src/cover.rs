@@ -583,10 +583,7 @@ pub fn claim(
             .then(a.3.total_cmp(&b.3))
             .then(a.4.cmp(&b.4))
             .then(a.5.cmp(&b.5))
-            .then(
-                a.6.map_or(usize::MAX, |j| j)
-                    .cmp(&b.6.map_or(usize::MAX, |j| j)),
-            )
+            .then(a.6.unwrap_or(usize::MAX).cmp(&b.6.unwrap_or(usize::MAX)))
     });
     let near = |a: V2, points: &[V2], d: f64| points.iter().any(|q| (*q - a).length() < d);
     let apart = lean_apart;

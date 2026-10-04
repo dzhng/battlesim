@@ -439,7 +439,7 @@ fn publication_stream(record: Value, path: &str, combat: bool) {
                 .collect();
         } else {
             deltas += 1;
-            for change in words[at..at + count].chunks_exact(3) {
+            for change in words[at..at + count].as_chunks::<3>().0 {
                 bits[change[0] as usize] = change[1] as u32 | (change[2] as u32) << 16;
             }
         }

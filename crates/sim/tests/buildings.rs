@@ -469,7 +469,9 @@ fn public_geometry_ids_use_one_exact_limb_pair_and_keep_physical_columns() {
     assert_eq!(
         b.world()
             .export_props()
-            .chunks_exact(10)
+            .as_chunks::<10>()
+            .0
+            .iter()
             .map(|p| p.to_vec())
             .collect::<Vec<_>>(),
         vec![
