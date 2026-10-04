@@ -407,7 +407,7 @@
     "road": { "speed_factor": 1 },
     "country_road": { "speed_factor": 1 },
     "dirt_track": { "speed_factor": 0.75 },
-    "sidewalk": { "speed_factor": 0 }
+    "paving": { "speed_factor": 0 }
   },
   "forests": {
     "tree": "trunk",

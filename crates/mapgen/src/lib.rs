@@ -45,7 +45,7 @@ pub struct MapPlan {
     pub props: Vec<AuthoredPropDefinition>,
     #[serde(default)]
     pub buildings: Vec<BuildingPlacement>,
-    /// Roads, tracks and sidewalks, in the contract's shared ground shapes.
+    /// Roads, tracks and paving, in the contract's shared ground shapes.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub surfaces: Vec<SurfaceArea>,
     /// Forest shapes; the one `forests.rule` stands their trees at load.

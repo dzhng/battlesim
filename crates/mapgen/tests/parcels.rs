@@ -394,6 +394,27 @@ fn buildings_keep_clear_of_each_other_roads_forests_and_district_edges() {
     });
 }
 
+/// A building's apron is paving, hard ground that is no way through: only a
+/// stroke is a carriageway, and no carriageway is laid as an area.
+#[test]
+fn aprons_are_paving_and_every_carriageway_is_a_stroke() {
+    let mut aprons = 0;
+    every_cell(|name, _, town| {
+        for area in &town.map.surfaces {
+            match area.shape {
+                GroundShape::Polygon { .. } => {
+                    assert_eq!(area.kind, SurfaceKind::Paving, "{name}: an area");
+                    aprons += 1;
+                }
+                GroundShape::Stroke { .. } => {
+                    assert!(area.kind.is_road(), "{name}: a {:?} stroke", area.kind);
+                }
+            }
+        }
+    });
+    assert!(aprons > 0, "no map has an apron");
+}
+
 /// Every door opens toward paved ground a short walk away, with no building
 /// in between.
 #[test]
@@ -413,7 +434,6 @@ fn every_entrance_faces_a_street_or_apron_within_a_short_walk() {
         let paved: Vec<(&GroundShape, [f64; 4])> = map
             .surfaces
             .iter()
-            .filter(|area| area.kind.is_road())
             .map(|area| (&area.shape, area.shape.limits()))
             .collect();
         for (index, building) in map.buildings.iter().enumerate() {

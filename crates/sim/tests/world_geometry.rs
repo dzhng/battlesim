@@ -347,6 +347,25 @@ fn forests_plant_trunks_clear_of_roads_and_props() {
     }
 }
 
+/// A grove may stand in a paved yard, as trees stand in a town square:
+/// trunks keep clear of a road, not of paving.
+#[test]
+fn forests_keep_their_trunks_on_paving_but_off_roads() {
+    let w = flat(
+        r#", "surfaces":[
+      {"kind":"paving","shape":{"kind":"polygon","ring":[[40,40],[120,40],[120,120],[40,120]]}},
+      {"kind":"road","shape":{"kind":"stroke","points":[[0,160],[200,160]],"width_m":8}}
+    ],"forests":[{"shape":{"kind":"polygon","ring":[[10,10],[190,10],[190,190],[10,190]]}}]"#,
+    );
+    let kinds: Vec<_> = w
+        .props()
+        .filter(|p| p.kind == crate::common::kind("trunk"))
+        .map(|t| w.surface_at(t.center.x, t.center.y).unwrap().kind)
+        .collect();
+    assert!(kinds.iter().filter(|k| **k == SurfaceKind::Paving).count() > 20);
+    assert!(!kinds.contains(&SurfaceKind::Road));
+}
+
 #[test]
 fn a_vertical_ray_on_a_grid_vertex_and_diagonal_still_hits() {
     let w = lab();
@@ -452,7 +471,7 @@ fn road_tag() -> f32 {
 
 /// Every exported stretch, triangle and boundary edge says which kind its
 /// area is, in the map's own words: a dirt track is drawn as a dirt track,
-/// and a sidewalk is told from the street beside it.
+/// and paving is told from the street beside it.
 #[test]
 fn surface_exports_name_each_areas_own_kind() {
     use sim::world::export;
@@ -461,7 +480,7 @@ fn surface_exports_name_each_areas_own_kind() {
       {"kind":"country_road","shape":{"kind":"stroke","points":[[0,20],[180,20]],"width_m":8}},
       {"kind":"dirt_track","shape":{"kind":"stroke","points":[[0,60],[180,60]],"width_m":4}},
       {"kind":"road","shape":{"kind":"polygon","ring":[[20,100],[60,100],[60,140],[20,140]]}},
-      {"kind":"sidewalk","shape":{"kind":"polygon","ring":[[100,100],[140,100],[140,140],[100,140]]}}
+      {"kind":"paving","shape":{"kind":"polygon","ring":[[100,100],[140,100],[140,140],[100,140]]}}
     ]"#,
     );
     let layout: serde_json::Value =
@@ -495,14 +514,14 @@ fn surface_exports_name_each_areas_own_kind() {
     let triangles = w.export_surface_triangles();
     assert_eq!(triangles.len(), 4 * export::SURFACE_TRIANGLE_STRIDE);
     for t in triangles.chunks(export::SURFACE_TRIANGLE_STRIDE) {
-        let expected = if t[0] < 80.0 { "road" } else { "sidewalk" };
+        let expected = if t[0] < 80.0 { "road" } else { "paving" };
         assert_eq!(named(t[kind]), expected);
     }
     let kind = field("surfaceBoundaryFields", "kind");
     let boundaries = w.export_surface_boundaries();
     assert_eq!(boundaries.len(), 8 * export::SURFACE_BOUNDARY_STRIDE);
     for e in boundaries.chunks(export::SURFACE_BOUNDARY_STRIDE) {
-        let expected = if e[0] < 80.0 { "road" } else { "sidewalk" };
+        let expected = if e[0] < 80.0 { "road" } else { "paving" };
         assert_eq!(named(e[kind]), expected);
     }
     // Which of those kinds are carriageways: what fields are cut along.
@@ -602,16 +621,16 @@ fn polygon_export_covers_the_concave_shape_and_marks_only_its_outer_edges() {
 }
 
 #[test]
-fn sidewalk_edges_are_closed_and_road_water_and_bridge_take_precedence() {
+fn paving_edges_are_closed_and_road_water_and_bridge_take_precedence() {
     let w = flat(
         r#", "surfaces":[
-      {"kind":"sidewalk","shape":{"kind":"polygon","ring":[[32,32],[160,32],[160,160],[32,160]]}},
+      {"kind":"paving","shape":{"kind":"polygon","ring":[[32,32],[160,32],[160,160],[32,160]]}},
       {"kind":"road","shape":{"kind":"stroke","points":[[0,64],[180,64]],"width_m":8}}
     ],"rivers":[{"points":[{"xy":[104,0],"width_m":12,"depth_m":1.5},{"xy":[104,180],"width_m":12,"depth_m":1.5}],"surface_z":-0.5}],
     "bridges":[{"deck":"bridge_deck","center":[104,64],"half_extents":[12,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
     );
     for (p, kind) in [
-        ([32.0, 40.0], SurfaceKind::Sidewalk),
+        ([32.0, 40.0], SurfaceKind::Paving),
         ([31.999999999, 40.0], SurfaceKind::Ground),
         ([32.0, 60.0], SurfaceKind::Road),
         ([104.0, 100.0], SurfaceKind::Water),

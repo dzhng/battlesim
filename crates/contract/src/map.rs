@@ -228,14 +228,16 @@ pub struct SurfaceArea {
 }
 
 /// What a paved or worn surface is. Its speed is a row of the rules'
-/// `surfaces` table; where kinds overlap, the earlier one here wins.
+/// `surfaces` table; where kinds overlap, the earlier one here wins. The
+/// carriageways come first; `Paving` is hard ground that is no way through
+/// (a yard, a court, a building's apron).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SurfaceKind {
     Road,
     CountryRoad,
     DirtTrack,
-    Sidewalk,
+    Paving,
 }
 
 impl SurfaceKind {
@@ -243,12 +245,17 @@ impl SurfaceKind {
         SurfaceKind::Road,
         SurfaceKind::CountryRoad,
         SurfaceKind::DirtTrack,
-        SurfaceKind::Sidewalk,
+        SurfaceKind::Paving,
     ];
 
-    /// A carriageway: trunks keep clear of it and it draws as a road.
+    /// A carriageway: a way through that vehicles drive along, streets join
+    /// and trunks keep clear of. Paving is none: a grove may stand in a
+    /// paved yard.
     pub fn is_road(self) -> bool {
-        self != SurfaceKind::Sidewalk
+        matches!(
+            self,
+            SurfaceKind::Road | SurfaceKind::CountryRoad | SurfaceKind::DirtTrack
+        )
     }
 }
 

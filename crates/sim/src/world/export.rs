@@ -10,7 +10,7 @@ pub const SURFACE_KINDS: [SurfaceKind; 5] = [
     SurfaceKind::Road,
     SurfaceKind::Water,
     SurfaceKind::Bridge,
-    SurfaceKind::Sidewalk,
+    SurfaceKind::Paving,
 ];
 /// Per-vertex surface flags alongside the kind tag.
 pub const FLAG_FOREST: u8 = 1;

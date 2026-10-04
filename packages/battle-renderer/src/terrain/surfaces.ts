@@ -20,9 +20,9 @@ export interface SurfaceGeometry {
 /** The kinds a paved record's tag names, in the native layout's order: a
  *  stretch, triangle or boundary edge carries its area's kind as an index
  *  into these. The biome's `roads` rows are keyed by them. */
-export const SURFACE_AREA_KINDS = ["road", "country_road", "dirt_track", "sidewalk"] as const;
+export const SURFACE_AREA_KINDS = ["road", "country_road", "dirt_track", "paving"] as const;
 export type SurfaceAreaKind = (typeof SURFACE_AREA_KINDS)[number];
-/** Which of them are carriageways: all but the sidewalk. */
+/** Which of them are carriageways: all but paving. */
 const ROAD_AREA_KINDS: readonly string[] = ["road", "country_road", "dirt_track"];
 
 /** The native layout's own words for the paved kinds. */
@@ -209,7 +209,7 @@ export const isRoad = (tag: number) => ROAD_AREA_KINDS.includes(SURFACE_AREA_KIN
 
 /** Agricultural guides read the road strokes' authored runs and the rivers'
  * long runs (so a field meets a rounded bend edge-on, not its short samples) and
- * the native exposed road boundary. Sidewalks and triangulation diagonals
+ * the native exposed road boundary. Paving and triangulation diagonals
  * never become field boundaries. */
 export function plotGuideEdges(site: SurfaceGeometry): Float32Array {
   const boundaries = site.surfaceBoundaries;

@@ -213,7 +213,7 @@ fn cruise(kind: &str, surface: Option<&str>) -> f64 {
 
 /// Q-G4: each road kind carries its own data-driven speed. A country road is
 /// today's road, a dirt track is slower but still beats the field beside it,
-/// and a sidewalk is no road at all.
+/// and paving (a yard, a court) is no road at all: hard ground, no way through.
 #[test]
 fn each_road_kind_carries_its_own_speed() {
     let rules: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
@@ -239,10 +239,10 @@ fn each_road_kind_carries_its_own_speed() {
             dirt > open && dirt < road,
             "{kind}: dirt {dirt} between {open} and {road}"
         );
-        let sidewalk = cruise(kind, Some("sidewalk"));
+        let paving = cruise(kind, Some("paving"));
         assert!(
-            (sidewalk - open).abs() < 1e-9,
-            "{kind}: sidewalk {sidewalk} vs {open}"
+            (paving - open).abs() < 1e-9,
+            "{kind}: paving {paving} vs {open}"
         );
     }
 }

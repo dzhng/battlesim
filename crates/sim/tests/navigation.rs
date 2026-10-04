@@ -758,7 +758,7 @@ fn a_nonfinite_cost_keeps_the_original_grid_winner() {
 }
 
 #[test]
-fn polygon_road_costs_are_shared_by_navigation_while_sidewalks_cost_ground() {
+fn polygon_road_costs_are_shared_by_navigation_while_paving_costs_ground() {
     let make = |kind: &str| {
         world(&format!(
             r#", "surfaces":[{{"kind":"{kind}","shape":{{"kind":"polygon","ring":[[8,8],[392,8],[392,48],[8,48]]}}}}]"#
@@ -767,7 +767,7 @@ fn polygon_road_costs_are_shared_by_navigation_while_sidewalks_cost_ground() {
     let from = v2(20.0, 20.0);
     let to = v2(380.0, 20.0);
     let road = grid(&make("road"));
-    let sidewalk = grid(&make("sidewalk"));
+    let paving = grid(&make("paving"));
     let ground = grid(&world(""));
     let stroke = grid(&world(
         r#", "surfaces":[{"kind":"road","shape":{"kind":"stroke","points":[[8,28],[392,28]],"width_m":40}}]"#,
@@ -781,7 +781,7 @@ fn polygon_road_costs_are_shared_by_navigation_while_sidewalks_cost_ground() {
         ground.route_time(from, &[to], &TANK)
     );
     assert_eq!(
-        sidewalk.route_time(from, &[to], &TANK),
+        paving.route_time(from, &[to], &TANK),
         ground.route_time(from, &[to], &TANK)
     );
 }

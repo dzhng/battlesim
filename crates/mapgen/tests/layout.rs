@@ -820,7 +820,7 @@ fn presets_that_break_a_map_rule_are_refused_at_load() {
         ("/districts/farm/ground_m", serde_json::json!([60, 0])),
         (
             "/districts/farm/streets/surface",
-            serde_json::json!("sidewalk"),
+            serde_json::json!("paving"),
         ),
         ("/roads/cross_road_chance", serde_json::json!(1.5)),
         // A main junction drawn farther out than the centre reaches.

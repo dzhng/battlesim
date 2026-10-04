@@ -130,7 +130,7 @@ export interface Water {
 
 /** One kind of paving's surface, drawn exactly where the simulation's rule
  *  holds: a country road's gravel, a dirt track's packed earth, a town
- *  street's asphalt, a sidewalk's slabs. */
+ *  street's asphalt, a yard's paving. */
 export interface Road {
   /** A palette of two colours: the surface, and what patches of it wear
    *  toward. A patch changes the surface's hue, never its brightness. */
@@ -155,11 +155,8 @@ export interface Road {
   centre_strip: CentreStrip;
   /** Where two kinds' paving overlaps, the higher layer is drawn on top.
    *  Left out, the simulation's own order: 4 for a road, 3 for a country
-   *  road, 2 for a dirt track, 1 for a sidewalk. */
+   *  road, 2 for a dirt track, 1 for paving. */
   layer?: number;
-  /** The paved kind whose row draws this kind where it is laid as an area (a
-   *  polygon: a yard, a square) and not along a stroke. Left out, its own. */
-  area?: string;
   /** A road through a town: where a settlement's own ground
    *  (`field_rules.settlement_kind`) lies within `beside_m` of a stroke's
    *  edge on both sides, the stroke is drawn by `kind`'s row, and on across
@@ -224,7 +221,7 @@ export interface Curb {
 
 /** The paved walk along both sides of a kind's strokes, where a country
  *  road has its shoulder. It is a look, as the shoulder is: units find
- *  ground there, as they do on a sidewalk the map names. */
+ *  ground there, as they do on paving the map names. */
 export interface Walk {
   /** The paved kind whose row draws it. */
   kind: string;
@@ -826,7 +823,6 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
         bad(path, `names no paved kind "${row}"`);
     };
     if (road.layer !== undefined) within(`${at}.layer`, road.layer, 0, 100);
-    if (road.area !== undefined) paved(`${at}.area`, road.area);
     if (road.town) {
       paved(`${at}.town.kind`, road.town.kind);
       within(`${at}.town.beside_m`, road.town.beside_m, 0, 100);

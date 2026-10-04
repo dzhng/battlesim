@@ -361,7 +361,7 @@ fn svg(
                 format!(r#"stroke-dasharray="{:.2} {:.2}""#, 9.0 * hair, 5.0 * hair),
                 1.6 * hair,
             ),
-            SurfaceKind::Sidewalk => continue,
+            SurfaceKind::Paving => continue,
         };
         match &surface.shape {
             GroundShape::Polygon { ring } => {
