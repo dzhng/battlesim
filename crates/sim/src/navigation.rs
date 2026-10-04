@@ -672,20 +672,45 @@ impl NavGrid {
 
     /// Resolve cell-edge conservatism locally before the formation searches farther.
     pub fn placement_point(&self, p: V2, m: &Mobility) -> Option<V2> {
-        if self.placement_fits(p, m) {
+        self.nearest_standing(p, 1, |q| self.placement_fits(q, m))
+    }
+
+    /// Where a unit may end a move near `p`. A hull parks where all of it
+    /// stands clear whichever way it comes to face: the circle of
+    /// `hull_radius_m` round it meets no known body, not even one it could
+    /// shove in passing, and no bank or map edge. A shove is made on the
+    /// way; a car pinned against a wall is not standing room. Where the hull
+    /// does not fit, it parks on the nearest ground it does within a hull's
+    /// length. A squad (no hull) stands as it fits.
+    pub fn destination_point(&self, p: V2, m: &Mobility, hull_radius_m: Option<f64>) -> Option<V2> {
+        let Some(radius) = hull_radius_m else {
+            return self.placement_point(p, m);
+        };
+        let reach = (2.0 * radius / NAV_CELL_M).ceil() as isize;
+        self.nearest_standing(p, reach, |q| {
+            self.placement_fits(q, m)
+                && self.ground_clear(q, radius, false)
+                && self.bodies_clear(q, radius, PushClass::None)
+        })
+    }
+
+    /// `p` if it `fits`, else the nearest cell centre within `reach` cells
+    /// either way that does.
+    fn nearest_standing(&self, p: V2, reach: isize, fits: impl Fn(V2) -> bool) -> Option<V2> {
+        if fits(p) {
             return Some(p);
         }
         let (i, j) = cell_of(p);
-        let mut nearby: Vec<_> = (-1..=1)
+        let mut nearby: Vec<_> = (-reach..=reach)
             .flat_map(|dx| {
-                (-1..=1).filter_map(move |dy| {
+                (-reach..=reach).filter_map(move |dy| {
                     self.index(i + dx, j + dy)
                         .map(|k| cell_center(k % self.nx, k / self.nx))
                 })
             })
             .collect();
         nearby.sort_by(|a, b| (*a - p).length().total_cmp(&(*b - p).length()));
-        nearby.into_iter().find(|&q| self.placement_fits(q, m))
+        nearby.into_iter().find(|&q| fits(q))
     }
 
     /// Body refinement keeps the vehicle's whole width on traversable
