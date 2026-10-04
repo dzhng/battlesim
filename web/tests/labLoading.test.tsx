@@ -88,11 +88,14 @@ test("the router covers a lab while its route prepares", async () => {
   expect(screen.getByTestId("loading")).toBeDefined();
 });
 
-test.each(["/lab/cursor", "/lab/panels", "/benchmark"])(
-  "non-battle view %s becomes usable",
-  async (path) => {
-    window.history.replaceState(null, "", path);
-    render(<LabRouter />);
-    await waitFor(() => expect(screen.queryByTestId("loading")).toBeNull());
-  },
-);
+test.each([
+  { path: "/lab/cursor", label: "Arrow + action" },
+  { path: "/lab/panels", label: "Info panels" },
+  { path: "/benchmark", label: "Benchmark" },
+])("non-battle view $path becomes usable", async ({ path, label }) => {
+  window.history.replaceState(null, "", path);
+  render(<LabRouter />);
+  // Cold lazy imports share the runner's hang guard, not a one-second UI deadline.
+  await waitFor(() => expect(screen.queryByTestId("loading")).toBeNull(), { timeout: 30_000 });
+  expect(screen.getByText(label)).toBeDefined();
+});

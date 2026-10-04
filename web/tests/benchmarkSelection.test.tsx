@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, screen } from "@testing-library/react";
+import { renderInRouter as render } from "./support/router";
 import { afterEach, expect, test } from "vitest";
 import BenchmarkPage from "@apps/battle-lab/src/routes/benchmark";
 
