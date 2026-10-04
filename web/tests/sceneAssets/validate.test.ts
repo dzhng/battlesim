@@ -16,6 +16,7 @@ import {
   type SkeletonEntry,
 } from "@packages/scene-assets/src/schema.ts";
 import {
+  regionalFindings,
   typeAppearanceFindings,
   validateAppearance,
   validateSkeleton,
@@ -193,6 +194,8 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "structure.scenery_kind": async () =>
     (await scenery("gazebo", { default: blockGlb(3) })).findings,
   "structure.grass": async () => (await scenery("grass", { default: blockGlb(3) })).findings,
+  "structure.regional_family": async () =>
+    regionalFindings("crate_mars", { unit: "scenery", regional_family: "mars" }, ["paris"]),
   "structure.texture": () =>
     tank(
       {},

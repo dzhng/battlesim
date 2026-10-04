@@ -5,7 +5,10 @@
 //
 // - a prop kind is drawn by the appearances its catalog `appearance` binds
 //   (the world layout's `propAppearance`), never by a list here;
-// - an appearance is chosen per prop kind by the footprint nearest the box
+// - a kind's appearances are those of no region and those of the map's own
+//   region (an appearance's `regional_family`), never another region's; where
+//   the map's region has looks of its own for the kind, only those;
+// - an appearance is chosen among them by the footprint nearest the box
 //   (a tank's wreck against a truck's);
 // - it is scaled per axis from its footprint to the box, except a module
 //   (a wall, a fence, a sandbag line) that is repeated along the
@@ -106,7 +109,11 @@ interface Candidate {
  *  is made) takes the stand-in, where `standIns` gives one: the stand-in
  *  kit's unit box, stretched to the prop's own box and tinted by its kind,
  *  through the same model instances. A body the simulation holds is then never invisible. A
- *  forest's trees are the scenery's, never a stand-in. */
+ *  forest's trees are the scenery's, never a stand-in.
+ *
+ *  `family` is the map's regional family, null for a map of none: a kind
+ *  draws its region's own looks where it has any, else the looks of no
+ *  region. */
 export class PropAppearances {
   private readonly byKind = new Map<string, Candidate[]>();
   private readonly bindings: WorldLayout["propAppearance"];
@@ -118,6 +125,7 @@ export class PropAppearances {
   constructor(
     installed: InstalledAppearances,
     layout: Pick<WorldLayout, "propAppearance" | "blockingPropKinds">,
+    family: string | null,
     standIns?: StandInStyle,
   ) {
     const kit = installed.appearances.get(STAND_IN_KIT)?.bundle;
@@ -134,18 +142,22 @@ export class PropAppearances {
     this.bindings = layout.propAppearance;
     const blocking = new Set(Object.values(layout.blockingPropKinds).flat());
     this.walkedOn = new Set(Object.keys(this.bindings).filter((k) => !blocking.has(k)));
+    const own = new Map<string, Candidate[]>();
     for (const [name, entry] of installed.appearances) {
       if (entry.bundle.kind !== "static" || !entry.footprint) continue;
+      if (entry.regionalFamily !== null && entry.regionalFamily !== family) continue;
+      const lists = entry.regionalFamily === null ? this.byKind : own;
       const kinds = Object.keys(this.bindings).filter(
         (k) => this.bindings[k].drawn_by === entry.scenery,
       );
       for (const kind of kinds) {
-        const list = this.byKind.get(kind) ?? [];
+        const list = lists.get(kind) ?? [];
         list.push({ name, footprint: entry.footprint, bundle: entry.bundle });
         list.sort((a, b) => (a.name < b.name ? -1 : 1));
-        this.byKind.set(kind, list);
+        lists.set(kind, list);
       }
     }
+    for (const [kind, list] of own) this.byKind.set(kind, list);
   }
 
   /** The appearance whose footprint is nearest `box` (least total log scale), or null. */

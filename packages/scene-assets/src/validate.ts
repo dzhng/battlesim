@@ -1144,6 +1144,35 @@ function footprintFindings(
   );
 }
 
+/** A regional look is scenery, of one of the presets' `families`: a body
+ *  (a soldier, a vehicle) is the same in every region, and a kit is a region's
+ *  by the templates that place it. */
+export function regionalFindings(
+  name: string,
+  entry: Pick<AppearanceEntry, "unit" | "regional_family">,
+  families: readonly string[],
+): Finding[] {
+  const family = entry.regional_family;
+  if (family === undefined) return [];
+  if (entry.unit !== "scenery")
+    return [
+      finding(
+        "structure.regional_family",
+        `${name}: a ${entry.unit} appearance names regional family "${family}"; only scenery is a region's look`,
+        "remove regional_family from the catalog entry",
+      ),
+    ];
+  if (!families.includes(family))
+    return [
+      finding(
+        "structure.regional_family",
+        `${name}: regional family "${family}" is not one of the presets' (${families.join(", ") || "none"})`,
+        "name a family of parcels.regional_families in fixtures/map-presets.json",
+      ),
+    ];
+  return [];
+}
+
 /** Every unit type draws appearances the catalog has, of the right kind: a
  *  hull its vehicle appearance, each soldier kind of a squad every soldier
  *  appearance of its set. */

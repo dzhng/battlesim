@@ -49,6 +49,7 @@ const entry = (
   scenery,
   footprint,
   mounts: null,
+  regionalFamily: null,
   bundle: bundle(...states),
 });
 
@@ -56,7 +57,7 @@ const installed: InstalledAppearances = {
   generation: 1,
   sides: { blue: [1, 1, 1], red: [1, 1, 1] },
   skeletons: new Map(),
-  kits: new Set(),
+  onRequest: new Map(),
   appearances: new Map([
     ["tank_wreck", entry("scenery", "wreck", [3.5, 1.8, 1.2], "default")],
     ["truck_wreck", entry("scenery", "wreck", [3, 1.4, 1.8], "default")],
@@ -77,7 +78,7 @@ const layout = {
     ]),
   ),
 };
-const appearances = new PropAppearances(installed, layout);
+const appearances = new PropAppearances(installed, layout, null);
 
 /** A one-module stretch of wall, 4 m long. */
 const wallAt = (id: number, x: number): MapProp => ({
@@ -169,6 +170,51 @@ test("a placed prop takes the appearance nearest its box, scaled to fit it", () 
   );
   expect(loose.appearance).toBe("village_ruin");
   expect(loose.scale).toEqual([0.5, 0.5, 1]);
+});
+
+test("a map draws a kind in its own region's look, else the shared one, never another region's", () => {
+  // One wall kind: a shared look, two of Paris (a short and a long module)
+  // and one of New York, which fits this box best of all.
+  const regional: InstalledAppearances = {
+    ...installed,
+    appearances: new Map([
+      ...installed.appearances,
+      [
+        "paris_wall",
+        { ...entry("scenery", "wall", [1, 0.3, 0.8], "default"), regionalFamily: "paris" },
+      ],
+      [
+        "paris_long_wall",
+        { ...entry("scenery", "wall", [4, 0.4, 1], "default"), regionalFamily: "paris" },
+      ],
+      [
+        "ny_wall",
+        { ...entry("scenery", "wall", [2, 0.3, 0.8], "default"), regionalFamily: "new_york" },
+      ],
+    ]),
+  };
+  const wall: MapProp = {
+    id: 1,
+    kind: "wall",
+    center: [0, 0],
+    yaw: 0,
+    half: [2, 0.3, 0.8],
+    baseZ: 0,
+  };
+  const drawn = (family: string | null) => {
+    const fit = new PropAppearances(regional, layout, family);
+    const walls = [...new Set(structureModels([wall], [], fit).map((m) => m.appearance))];
+    return { walls, installs: [...fit.drawnFor([wall])].filter((n) => n.endsWith("wall")).sort() };
+  };
+  // Paris prefers its own over the better-fitting shared and New York
+  // looks; between its own, the nearer footprint.
+  expect(drawn("paris")).toEqual({
+    walls: ["paris_wall"],
+    installs: ["paris_long_wall", "paris_wall"],
+  });
+  // A region with no look of its own, and a map of no region: the shared one.
+  expect(drawn("china")).toEqual({ walls: ["field_wall"], installs: ["field_wall"] });
+  expect(drawn(null)).toEqual({ walls: ["field_wall"], installs: ["field_wall"] });
 });
 
 test("a building's part is no prop appearance: its building draws it", () => {
@@ -273,7 +319,7 @@ const withKit: InstalledAppearances = {
 const standIns = validateStandIns({
   tints: { parked_car: [1, 0.5, 0], default: [0.5, 0.5, 0.5] },
 });
-const artless = new PropAppearances(withKit, layout, standIns);
+const artless = new PropAppearances(withKit, layout, null, standIns);
 const car: MapProp = {
   id: 40,
   kind: "parked_car",
@@ -332,6 +378,8 @@ test("a tree is never a stand-in, in a forest or beside a street, and nothing is
   expect(structureModels([tree("trunk")], [], artless)).toEqual([]);
   expect(structureModels([tree("street_tree")], [], artless)).toEqual([]);
   // The stand-in kit not installed, or no stand-in style: nothing.
-  expect(structureModels([car], [], new PropAppearances(installed, layout, standIns))).toEqual([]);
+  expect(
+    structureModels([car], [], new PropAppearances(installed, layout, null, standIns)),
+  ).toEqual([]);
   expect(structureModels([car], [], appearances)).toEqual([]);
 });

@@ -207,7 +207,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
   // The map's buildings: every one a template reference.
   const drawn = useMapBuildings(world);
   // The catalog, and the kits this town's buildings draw from.
-  const appearances = useMapAppearances(drawn?.index.placed ?? null);
+  const appearances = useMapAppearances(drawn?.index.placed ?? null, null);
   const surfaceZ = useCallback(
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
     [world],
@@ -233,7 +233,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
         ? mapAppearances(
             appearances,
             drawn.props,
-            new PropAppearances(appearances, world.layout),
+            new PropAppearances(appearances, world.layout, null),
             drawn.index.placed,
             false,
           )

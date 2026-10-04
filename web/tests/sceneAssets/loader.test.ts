@@ -96,7 +96,10 @@ test("gzip kit and library transport installs the exact original art through imm
     return fetch(url);
   });
   await library.load("/assets/");
-  const [installed, also] = await Promise.all([library.withKits([KIT]), library.withKits([KIT])]);
+  const [installed, also] = await Promise.all([
+    library.withAppearances([KIT]),
+    library.withAppearances([KIT]),
+  ]);
   expect(encodeBundle(installed.appearances.get(KIT)!.bundle)).toEqual(
     new Uint8Array(gunzipSync(files.get(kitPath)!)),
   );
@@ -141,7 +144,7 @@ test("gzip inflation beyond the declared kit length is refused without consuming
   files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime)));
   const library = new AppearanceLibrary(memoryFetch(files, "/assets/"));
   const installed = await library.load("/assets/");
-  await expect(library.withKits([KIT])).rejects.toThrow(/exceeds decoded length/);
+  await expect(library.withAppearances([KIT])).rejects.toThrow(/exceeds decoded length/);
   expect(library.installed).toBe(installed);
   expect(library.installed!.appearances.has(KIT)).toBe(false);
 });
@@ -189,7 +192,7 @@ test.each([
     files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime)));
     const library = new AppearanceLibrary(memoryFetch(files, "/assets/"));
     const installed = await library.load("/assets/");
-    await expect(library.withKits([KIT])).rejects.toThrow(message);
+    await expect(library.withAppearances([KIT])).rejects.toThrow(message);
     expect(library.installed).toBe(installed);
     expect(library.installed!.appearances.has(KIT)).toBe(false);
   },
@@ -208,7 +211,7 @@ test("a map's complete selected kit download is refused before any kit request w
   });
   const installed = await loader.load("/assets/");
   requested.length = 0;
-  await expect(loader.withKits([KIT])).rejects.toThrow(/shared kit download .* over/);
+  await expect(loader.withAppearances([KIT])).rejects.toThrow(/map download .* over/);
   expect(requested).toEqual([]);
   expect(loader.installed).toBe(installed);
 });
@@ -225,7 +228,7 @@ test("an oversized library download is refused before fetching it and preserves 
   result.runtime.gzip![result.runtime.templates!.library].bytes = 50 * 1024 * 1024 + 1;
   files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime)));
   requests.length = 0;
-  await expect(loader.load("/assets/")).rejects.toThrow(/shared kit download .* over/);
+  await expect(loader.load("/assets/")).rejects.toThrow(/map download .* over/);
   expect(requests).toEqual(["/assets/catalog.json"]);
   expect(loader.installed).toBe(installed);
 });

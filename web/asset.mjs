@@ -20,7 +20,7 @@
 //   stand-in               write the stand-in kit's GLB: the unit box a prop with no art of its own
 //                          is drawn as (then bake)
 //   catalogue              rewrite the map generator's template catalogue from its city sets' descriptors
-//   download <map.json>    verify the selected kits/library and their aggregate wire-byte budget
+//   download <map.json>    verify the selected kits, regional looks and library, and their aggregate wire-byte budget
 //
 // bake and check pack the city sets into the template art library, which is
 // judged by the simulation's own contract: build the WebAssembly first.
@@ -58,9 +58,16 @@ registerHooks({
 const { bakeCatalog, runtimeCatalogText } = await import("../packages/scene-assets/src/bake.ts");
 const { contentSha256, lfsPointerOid, lfsPullCommand } =
   await import("../packages/scene-assets/src/glb.ts");
-const { bundlePath, templateLibraryPath, SHARED_KIT_DOWNLOAD_MAX_BYTES, KIT_BUNDLE_MAX_BYTES } =
-  await import("../packages/scene-assets/src/schema.ts");
-const { gzipTransport, kitDownloadBytes, unpackGzip } =
+const {
+  bundlePath,
+  familyLooks,
+  fetchedOnRequest,
+  onRequestOf,
+  templateLibraryPath,
+  MAP_DOWNLOAD_MAX_BYTES,
+  KIT_BUNDLE_MAX_BYTES,
+} = await import("../packages/scene-assets/src/schema.ts");
+const { gzipTransport, downloadBytes, unpackGzip } =
   await import("../packages/scene-assets/src/gzip.ts");
 const { decodeBundle } = await import("../packages/scene-assets/src/codec.ts");
 const { decodeTemplateLibrary, templateKits } =
@@ -83,6 +90,7 @@ const RUNTIME = join(ROOT, "assets/runtime");
 const FIXTURE = join(ROOT, "fixtures/game.json");
 const ICONS = join(ROOT, "assets/icons");
 const UNIT_CATALOG = join(ROOT, "fixtures/catalog.json");
+const PRESETS = join(ROOT, "fixtures/map-presets.json");
 /** The physical template catalogues the city sets dress, by the name a set
  *  gives its own (`city_sets.<set>.catalogue`): where each is, how its file
  *  holds its rows, and whether every row is a complete building. */
@@ -231,7 +239,11 @@ async function bakeAll() {
         physical: await physicalTemplates(),
       }
     : undefined;
-  return bakeCatalog(cat, readSource, { authority: authority(), templates });
+  return bakeCatalog(cat, readSource, {
+    authority: authority(),
+    templates,
+    regionalFamilies: readJson(PRESETS).parcels.regional_families,
+  });
 }
 
 function report(result) {
@@ -357,11 +369,9 @@ async function download(args) {
   const runtime = readJson(join(RUNTIME, "catalog.json"));
   const hash = runtime.templates?.library;
   if (!hash) throw new Error("runtime catalog has no template library");
-  const libraryBytes = kitDownloadBytes(runtime, []);
-  if (libraryBytes > SHARED_KIT_DOWNLOAD_MAX_BYTES)
-    throw new Error(
-      `shared kit download ${libraryBytes} bytes is over ${SHARED_KIT_DOWNLOAD_MAX_BYTES}`,
-    );
+  const libraryBytes = downloadBytes(runtime, []);
+  if (libraryBytes > MAP_DOWNLOAD_MAX_BYTES)
+    throw new Error(`map download ${libraryBytes} bytes is over ${MAP_DOWNLOAD_MAX_BYTES}`);
   const raw = async (hash, path, maxRaw = Infinity) => {
     const gzip = gzipTransport(runtime, hash, maxRaw);
     return unpackGzip(new Uint8Array(readFileSync(join(RUNTIME, path(gzip.hash)))), gzip, hash);
@@ -370,19 +380,22 @@ async function download(args) {
   const map = readJson(resolve(args[0]));
   const ids = map.buildings.map((building) => building.template_id);
   const kits = templateKits(library, ids);
-  const bytes = kitDownloadBytes(runtime, kits);
-  if (bytes <= SHARED_KIT_DOWNLOAD_MAX_BYTES)
-    for (const kit of kits)
-      decodeBundle(await raw(runtime.appearances[kit].bundle, bundlePath, KIT_BUNDLE_MAX_BYTES));
+  // A map of no regional family fetches no regional look.
+  const looks = familyLooks(onRequestOf(runtime), map.regional_family ?? null);
+  const bytes = downloadBytes(runtime, [...kits, ...looks]);
+  if (bytes <= MAP_DOWNLOAD_MAX_BYTES)
+    for (const name of [...kits, ...looks])
+      decodeBundle(await raw(runtime.appearances[name].bundle, bundlePath, KIT_BUNDLE_MAX_BYTES));
   console.log(
     JSON.stringify({
       kits: [...kits].sort(),
+      looks: looks.sort(),
       bytes,
-      max_bytes: SHARED_KIT_DOWNLOAD_MAX_BYTES,
-      ok: bytes <= SHARED_KIT_DOWNLOAD_MAX_BYTES,
+      max_bytes: MAP_DOWNLOAD_MAX_BYTES,
+      ok: bytes <= MAP_DOWNLOAD_MAX_BYTES,
     }),
   );
-  return bytes <= SHARED_KIT_DOWNLOAD_MAX_BYTES ? 0 : 1;
+  return bytes <= MAP_DOWNLOAD_MAX_BYTES ? 0 : 1;
 }
 
 function pull(args) {
@@ -423,7 +436,7 @@ function pull(args) {
       skeleton && runtime.skeletons[skeleton],
     ].filter(Boolean);
     for (const hash of hashes) {
-      const wireHash = entry?.unit === "kit" ? gzipTransport(runtime, hash).hash : hash;
+      const wireHash = entry && fetchedOnRequest(entry) ? gzipTransport(runtime, hash).hash : hash;
       include.add(`assets/runtime/${bundlePath(wireHash)}`);
     }
     if (values.sources) {

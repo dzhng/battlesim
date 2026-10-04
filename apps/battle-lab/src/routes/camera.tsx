@@ -110,7 +110,7 @@ function Arena({ map }: { map: MapDefinition }) {
   // The lab's buildings are the generator's catalogue's, drawn as a
   // generated town's are.
   const drawn = useMapBuildings(world);
-  const appearances = useMapAppearances(drawn?.index.placed ?? null);
+  const appearances = useMapAppearances(drawn?.index.placed ?? null, null);
   const [trajectory, setTrajectory] = useState(TRAJECTORIES[0]);
   const [riding, setRiding] = useState(false);
   const [fallen, setFallen] = useState(false);
