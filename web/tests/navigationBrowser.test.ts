@@ -4,8 +4,8 @@ import { chromium, type Browser } from "playwright";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
 
-// The shipped entry, links, loading cover and preparation worker, with drawing
-// disabled: history/lifetime proof needs no GPU or played battle.
+// The shipped entry, links, loading cover and preparation worker. Menu warm-up
+// admits the page GPU, but this history proof cancels before drawing a battle.
 test("client exit and history keep the document while discarding preparation visits", async () => {
   const server = await createServer({
     configFile: fileURLToPath(new URL("../vite.config.ts", import.meta.url)),
@@ -17,7 +17,7 @@ test("client exit and history keep the document while discarding preparation vis
     await server.listen();
     browser = await chromium.launch({
       channel: "chromium",
-      args: ["--disable-gpu", "--disable-software-rasterizer"],
+      args: ["--enable-unsafe-webgpu", "--enable-features=WebGPU", "--mute-audio"],
     });
     const page = await browser.newPage();
     await page.goto(server.resolvedUrls!.local[0]);

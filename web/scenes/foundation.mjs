@@ -177,13 +177,84 @@ export async function run(ctx) {
     `${size.width}×${size.height}`,
   );
 
+  // Menu warm-up and repeated visits share one device; each viewport releases
+  // its buffers/textures without destroying that page's admission.
+  const visits = await ctx.newPage();
+  await visits.addInitScript(() => {
+    const probe = { devices: [], destroyed: 0, allocations: null };
+    window.__pageGpuProbe = probe;
+    const gpu = navigator.gpu;
+    const requestAdapter = gpu.requestAdapter.bind(gpu);
+    gpu.requestAdapter = async (...args) => {
+      const adapter = await requestAdapter(...args);
+      if (!adapter) return adapter;
+      const requestDevice = adapter.requestDevice.bind(adapter);
+      adapter.requestDevice = async (...args) => {
+        const device = await requestDevice(...args);
+        probe.devices.push(device);
+        const destroy = device.destroy.bind(device);
+        device.destroy = () => {
+          probe.destroyed++;
+          destroy();
+        };
+        return device;
+      };
+      return adapter;
+    };
+  });
+  await visits.goto(new URL(ctx.url).origin);
+  await visits.getByTestId("menu-deploy").waitFor();
+  await visits.waitForFunction(() => window.__pageGpuProbe.devices.length === 1);
+  ctx.check("menu warm-up starts no battle worker", visits.workers().length === 0);
+  const origin = await visits.evaluate(() => performance.timeOrigin);
+  const visitCounts = [];
+  for (let i = 0; i < 2; i++) {
+    await visits.getByRole("button", { name: "Developer", exact: true }).click();
+    await visits.getByRole("link", { name: "Labs", exact: true }).click();
+    await visits.getByRole("link", { name: "foundation", exact: true }).click();
+    await visits.waitForFunction(() => window.__lab?.ready);
+    await visits.evaluate(() => {
+      window.__pageGpuProbe.allocations = window.__lab.allocations;
+    });
+    await visits.goBack();
+    await visits.getByRole("link", { name: "Main menu", exact: true }).click();
+    await visits.getByTestId("menu-deploy").waitFor();
+    await visits.waitForFunction(() => {
+      const n = window.__pageGpuProbe.allocations();
+      return n.buffers === 0 && n.textures === 0;
+    });
+    visitCounts.push(
+      await visits.evaluate(() => ({
+        devices: window.__pageGpuProbe.devices.length,
+        destroyed: window.__pageGpuProbe.destroyed,
+        allocations: window.__pageGpuProbe.allocations(),
+        sameDocument: performance.timeOrigin,
+      })),
+    );
+  }
+  ctx.check(
+    "client visit disposal returns allocations to zero and retains one live page GPU",
+    visitCounts.every(
+      (n) =>
+        n.devices === 1 &&
+        n.destroyed === 0 &&
+        n.allocations.buffers === 0 &&
+        n.allocations.textures === 0 &&
+        n.sameDocument === origin,
+    ),
+    JSON.stringify(visitCounts),
+  );
+  await ctx.writeEvidence("app-resource-visits.json", visitCounts);
+
   // Unsupported GPU is reported, not an endless loading state.
   const bare = await ctx.newPage({ allowErrors: true });
   await bare.addInitScript(() =>
     Object.defineProperty(Navigator.prototype, "gpu", { get: () => undefined }),
   );
   await bare.goto(ctx.url);
-  await bare.waitForFunction(() => window.__lab?.error, undefined, { timeout: 15000 });
-  const alert = await bare.getByRole("alert").textContent();
+  const refusal = bare.getByRole("alert");
+  await refusal.waitFor({ timeout: 15000 });
+  await bare.getByRole("button", { name: "Details", exact: true }).click();
+  const alert = await bare.getByTestId("error-details").textContent();
   ctx.check("missing WebGPU shows an actionable message", /WebGPU/.test(alert), alert);
 }

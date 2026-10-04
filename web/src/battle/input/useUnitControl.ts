@@ -41,7 +41,10 @@ export function useUnitControl(
   observation: ObservationView | null,
   /** Hears every order as it is sent, queued or not (the order flash). */
   onIssue?: (order: Order, queued: boolean) => void,
+  enabled = true,
 ) {
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
   const onIssueRef = useRef(onIssue);
   onIssueRef.current = onIssue;
   const [selected, setSelection] = useState<number[]>([]);
@@ -73,7 +76,7 @@ export function useUnitControl(
   const clientRef = useRef(client);
   clientRef.current = client;
   /** Space held (D2+): the order overlay shows every own unit. */
-  const showOrders = useHeldKey(ShowOrdersBinding.code);
+  const showOrders = useHeldKey(ShowOrdersBinding.code, enabled ? window : null);
 
   // A new client (reset) starts with no selection and an empty log.
   useEffect(() => {
@@ -137,7 +140,7 @@ export function useUnitControl(
 
   const issue = useCallback(
     async (order: Order, queued = false) => {
-      if (!client) return null;
+      if (!client || !enabledRef.current) return null;
       onIssueRef.current?.(order, queued);
       const label = describe(order, queued);
       const ack = await client.command(order, queued);
@@ -150,6 +153,7 @@ export function useUnitControl(
 
   const onPointer = useCallback(
     (pick: PointerPick, captured?: PointerIntent) => {
+      if (!enabledRef.current) return;
       if (pick.button === "left") {
         const unit = pick.unit;
         const own = observationRef.current?.own ?? [];
@@ -263,6 +267,7 @@ export function useUnitControl(
   // Command keys, from the one binding table.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (!enabledRef.current) return;
       const command = commandForKey(e);
       // Esc is the unit control's only while a command is armed; otherwise
       // it goes on to the page (the battle's pause menu).

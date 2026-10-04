@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 // The cover over a battle that is still being prepared: what is being made,
 // how far along it is, and, if it cannot be made, why. In the HUD's look.
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 export interface LoadingStage {
   id: string;
@@ -23,6 +23,7 @@ export function LoadingScreen({
   stages,
   current,
   failure,
+  recovery,
   back = "/",
 }: {
   title: string;
@@ -32,6 +33,7 @@ export function LoadingScreen({
   /** The stage in progress (an id of `stages`). */
   current: string;
   failure?: LoadingFailure | null;
+  recovery?: ReactNode;
   /** Where cancelling, or leaving a failure, goes: the menu. */
   back?: string;
 }) {
@@ -51,6 +53,7 @@ export function LoadingScreen({
             <Link className="hud-menu-item" to={back}>
               Back to the menu
             </Link>
+            {recovery}
             {failure.details.length > 0 && (
               <button
                 type="button"

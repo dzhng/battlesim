@@ -4,7 +4,7 @@ import { Link } from "react-router";
 // pauses the battle, and closing it resumes a battle it paused. It holds
 // what the player sets between moments of play: the route's own items (the
 // scenario, replays), restart, and the sound.
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
 import type { SimClient } from "@web/battle/sim/client";
@@ -12,8 +12,11 @@ import { SoundControls } from "./SoundControls";
 
 /** The menu's open state over `client`: opening pauses an unpaused battle and
  *  closing resumes only a pause it owns. */
-export function usePauseMenu(client: SimClient | null) {
-  const [open, setOpen] = useState(false);
+export function usePauseMenu(
+  client: SimClient | null,
+  open: boolean,
+  setOpen: (open: boolean) => void,
+) {
   const resume = useRef(false);
   const show = useCallback(
     (next: boolean) => {
@@ -26,7 +29,7 @@ export function usePauseMenu(client: SimClient | null) {
       }
       setOpen(next);
     },
-    [client],
+    [client, setOpen],
   );
   const state = useRef({ open, show });
   state.current = { open, show };
@@ -70,7 +73,7 @@ export function PauseMenu({
 }) {
   return (
     <div className="hud-veil" data-occludes-readouts>
-      <div className="hud-panel hud-menu" role="dialog" aria-label="Paused">
+      <div className="hud-panel hud-menu" role="dialog" aria-modal="true" aria-label="Paused">
         <strong className="hud-menu-title">Paused</strong>
         <button type="button" className="hud-menu-item" onClick={onClose} autoFocus>
           Resume

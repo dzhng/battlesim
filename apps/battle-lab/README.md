@@ -43,7 +43,14 @@ ordinary prop update can retain enormous diagnostic payloads. Keep live geometry
 fog and effects behind the existing feed boundary rather than copying them into
 component state.
 
-[The viewport](src/LabViewport.tsx) subscribes and updates [the renderer](../../packages/battle-renderer/README.md)
+[Page resources](src/appResources.ts) retain the admitted GPU across screen changes;
+[the viewport](src/LabViewport.tsx) owns the canvas configuration and scene
+allocations. A required resource failure ends play until manual Reload, while the
+menu remains available. Document departure releases the page GPU; component
+refresh cleanup only detaches listeners so development refresh cannot destroy a
+still-live page's resources.
+
+The viewport subscribes and updates [the renderer](../../packages/battle-renderer/README.md)
 through that boundary. Published cause and identity remain intact; feed interpolation
 cannot grant visibility or invent firing. [The scene runner](../../web/scene.mjs)
 checks oversized development performance details as well as ordinary page errors.

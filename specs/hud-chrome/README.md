@@ -6,18 +6,17 @@ Status: active goal in `/Users/server/dev/battlesim-hud`, branch `hud-chrome`.
 Navigation and retained audio lifetime are integrated. The user supplied `menu.mp3`;
 its full recording replaces both rejected synthetic cues through the existing bank.
 Root resource/shell/input changes pass focused and actual GPU visit-cycle checks,
-but remain uncommitted. Deck final evidence is undergoing fresh visual critique.
+and are ready for the resource checkpoint. Deck final evidence is undergoing fresh visual critique.
 
-Pickup: finish and commit the recording pass; integrate the reviewed deck; commit
-root resource/input/editor-navigation work. Then finish current screen composition
+Pickup: integrate the reviewed deck after the resource checkpoint. Then finish current screen composition
 and integrated journey, followed by the one full check/verify and closeout. Preserve
 `BrowserRouter unstable_useTransitions={false}` and the [exploration decisions](unknowns-map.html).
 Do not repeat the interview. External skill edits are unrelated: never stage/revert them.
 
 Global TODO:
 - [x] [01 navigation and visit lifetime](slices/01-navigation.md)
-- [ ] [02 shared GPU, warm-up and required-resource failure](slices/02-resources.md)
-- [ ] [03 shared audio and menu atmosphere](slices/03-audio.md)
+- [x] [02 shared GPU, warm-up and required-resource failure](slices/02-resources.md)
+- [x] [03 shared audio and menu atmosphere](slices/03-audio.md)
 - [ ] [04 joined compact deck and icon commands](slices/04-deck.md)
 - [ ] [05 current screen composition and input ownership](slices/05-screens.md)
 - [ ] [06 integration and closeout](slices/06-closeout.md)

@@ -95,6 +95,7 @@ import {
 import { offeredCastLights } from "@packages/battle-renderer/src/light/castLights";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio, soundMotion } from "./soundFeed";
+import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
 import { posedSockets } from "./workbench/benchWorld";
 import type { Vec3 } from "math";
@@ -121,6 +122,8 @@ export interface BattleSessionOptions {
   destroyable?: "apart";
   /** Play the battle's sound (heard from the camera `hear` is given). */
   sound?: boolean;
+  /** Menus and loading covers suspend command input without losing selection. */
+  inputEnabled?: boolean;
 }
 
 /** The rule values the scenario runs under (only what views read). Its
@@ -142,8 +145,10 @@ export function useBattleSession({
   side = "blue",
   destroyable,
   sound = false,
+  inputEnabled = true,
   prepared,
 }: BattleSessionOptions) {
+  const appAudio = useAppAudio();
   const { map, rules } = useMemo(
     () => JSON.parse(scenario) as { map: unknown; rules: ScenarioRules },
     [scenario],
@@ -155,8 +160,8 @@ export function useBattleSession({
   const effectBatch = useMemo(() => createEffectBatch(gameEffects.capacity), []);
   // Sound reads the same publication, plus the side's hearing cues.
   const audio = useMemo(
-    () => (sound ? createBattleAudio(rules.tick_hz) : null),
-    [sound, rules.tick_hz],
+    () => (sound ? createBattleAudio(rules.tick_hz, appAudio) : null),
+    [sound, rules.tick_hz, appAudio],
   );
   useEffect(() => () => audio?.dispose(), [audio]);
   const noteDecoded = useCallback(
@@ -207,7 +212,12 @@ export function useBattleSession({
     },
     [orderReveal],
   );
-  const control = useUnitControl(replay || scripted ? null : sim.client, observation, noteOrder);
+  const control = useUnitControl(
+    replay || scripted ? null : sim.client,
+    observation,
+    noteOrder,
+    inputEnabled,
+  );
   // A new battle carries no flash over.
   useEffect(() => {
     orderReveal.clear();

@@ -133,7 +133,10 @@ export async function run(fixtures) {
     if (!servers.has(production)) servers.set(production, await startServer(production));
     return servers.get(production);
   };
-  const browser = await chromium.launch({ channel: "chromium", args: WEBGPU_FLAGS });
+  const browser = await chromium.launch({
+    channel: "chromium",
+    args: [...WEBGPU_FLAGS, "--mute-audio"],
+  });
   const failures = [];
   const pageErrors = [];
   const seconds = [];
@@ -176,10 +179,23 @@ export async function run(fixtures) {
         },
         async openLab(page, url = ctx.url, timeout = 30000) {
           await page.goto(url);
-          await page.waitForFunction(() => window.__lab?.ready || window.__lab?.error, undefined, {
-            timeout,
-          });
-          const error = await page.evaluate(() => window.__lab.error);
+          await page.waitForFunction(
+            () =>
+              window.__lab?.ready ||
+              window.__lab?.error ||
+              document.querySelector("[data-testid=error]"),
+            undefined,
+            {
+              timeout,
+            },
+          );
+          let error = await page.evaluate(() => window.__lab?.error);
+          if (!error && (await page.getByTestId("error").isVisible())) {
+            const details = page.getByRole("button", { name: "Details", exact: true });
+            if (await details.isVisible()) await details.click();
+            error = await page.getByTestId("error").textContent();
+            await page.screenshot({ path: ctx.evidencePath("startup-refusal.png") });
+          }
           if (error) throw new Error(`lab failed: ${error}`);
           await page.evaluate(() => window.__lab.frame());
         },

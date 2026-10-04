@@ -6,14 +6,14 @@ import "./menu.css";
 import "./hud.css";
 
 void startWithMechanics(import.meta.env.DEV, async () => {
-  const [{ LabRouter }, { applyHudTheme }] = await Promise.all([
-    import("@apps/battle-lab/src/router"),
+  const [{ AppShell }, { applyHudTheme }] = await Promise.all([
+    import("@apps/battle-lab/src/AppShell"),
     import("./battle/present/hudTheme"),
   ]);
   applyHudTheme();
   createRoot(document.getElementById("root")!).render(
     <BrowserRouter unstable_useTransitions={false}>
-      <LabRouter />
+      <AppShell />
     </BrowserRouter>,
   );
 }).catch((error: Error) => {

@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter, Routes, Route } from "react-router";
 import MechanicsEditor from "../../apps/mechanics-editor/src/MechanicsEditor";
 import catalog from "../../fixtures/catalog.json";
 import infantry from "../../fixtures/units/generic/infantry.json";
@@ -49,7 +50,7 @@ it("shows exact units by default and preserves an inline edit while filtering", 
     "fetch",
     vi.fn(async () => respond(snapshot)),
   );
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   await screen.findByRole("heading", { name: "Mechanics" });
   expect(await screen.findByRole("button", { name: "Expand Rifle squad" })).toBeTruthy();
   fireEvent.change(screen.getByLabelText("Rifle squad deployment cost"), {
@@ -75,7 +76,7 @@ it("links editable landing spread and angular scatter and keeps range edits in b
     "fetch",
     vi.fn(async () => respond(fixture)),
   );
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
   fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
   const spread = screen.getByLabelText(
@@ -101,7 +102,7 @@ it("links editable landing spread and angular scatter and keeps range edits in b
 it("retains invalid text through filtering and refuses preview until it is corrected", async () => {
   const fetcher = vi.fn(async () => respond(snapshot));
   vi.stubGlobal("fetch", fetcher);
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   const cost = await screen.findByLabelText("Rifle squad deployment cost");
   fireEvent.change(cost, { target: { value: "120" } });
   fireEvent.change(cost, { target: { value: "12e" } });
@@ -144,7 +145,7 @@ it("requires a preview of the current draft before saving and resets only after 
     return respond(snapshot);
   });
   vi.stubGlobal("fetch", fetcher);
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.change(await screen.findByLabelText("Rifle squad deployment cost"), {
     target: { value: "125" },
   });
@@ -183,7 +184,7 @@ it("keeps a conflicted draft until explicit discard and reload", async () => {
         : respond(snapshot),
     ),
   );
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.change(await screen.findByLabelText("Rifle squad deployment cost"), {
     target: { value: "125" },
   });
@@ -216,7 +217,7 @@ it("undoing a range edit preserves landing spread and clears the coupled draft",
     "fetch",
     vi.fn(async () => respond(fixture)),
   );
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
   fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
   const range = screen.getByLabelText("grenade Maximum engagement range");
@@ -258,7 +259,7 @@ it("restoring inherited range keeps the currently edited landing spread", async 
     "fetch",
     vi.fn(async () => respond(fixture)),
   );
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
   fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
   fireEvent.change(screen.getByLabelText("grenade Landing spread at maximum range"), {
@@ -282,7 +283,7 @@ it("restoring inherited range keeps the currently edited landing spread", async 
 it("discarding an optional parent clears its unfinished child text without clearing other edits", async () => {
   const fetcher = vi.fn(async () => respond(structuralSnapshot()));
   vi.stubGlobal("fetch", fetcher);
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
   fireEvent.click(screen.getByText("Rifle", { selector: "summary" }));
   fireEvent.change(screen.getByLabelText("rifle Cyclic firing rate"), { target: { value: "-" } });
@@ -325,7 +326,7 @@ it("removing the last slot of a soldier kind discards only that unit's removed s
       : respond(structuralSnapshot()),
   );
   vi.stubGlobal("fetch", fetcher);
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
   fireEvent.change(screen.getByLabelText("grenadier Soldier health"), { target: { value: "125" } });
   fireEvent.change(screen.getByLabelText("grenadier Soldier health"), { target: { value: "-" } });
@@ -356,7 +357,7 @@ it("undoing a mount-list replacement clears unfinished edits on its discarded mo
     "fetch",
     vi.fn(async () => respond(structuralSnapshot())),
   );
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Tank" }));
   const list = screen.getByLabelText("tank Weapon mounts") as HTMLTextAreaElement;
   const initial = JSON.parse(list.value);
@@ -394,7 +395,7 @@ it("restoring an inherited optional object clears unfinished child text", async 
     "fetch",
     vi.fn(async () => respond(fixture)),
   );
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
   fireEvent.change(screen.getByLabelText("rifle Cyclic firing rate"), { target: { value: "-" } });
   const magazine = screen.getByLabelText("rifle Magazine / belt");
@@ -441,7 +442,7 @@ it("previews old and new battlefield values with their raw units across coupled 
         : respond(fixture),
     ),
   );
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
   fireEvent.change(screen.getByLabelText("grenade Landing spread at maximum range"), {
     target: { value: "6" },
@@ -481,7 +482,7 @@ it("returns to the last connected gameplay edit after native rejection without g
     value: vi.fn(),
   });
   try {
-    render(<MechanicsEditor />);
+    render(<MechanicsEditor />, { wrapper: MemoryRouter });
     fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
     const spread = screen.getByLabelText("grenade Landing spread at maximum range");
     fireEvent.change(spread, { target: { value: "1" } });
@@ -532,7 +533,7 @@ it("restores a saved soldier override to the native default omitted by its paren
     "fetch",
     vi.fn(async () => respond(fixture)),
   );
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
   const special = screen.getByLabelText("rifle__rifleman Transferable special weapon");
   fireEvent.click(
@@ -580,7 +581,7 @@ it("summarizes the admitted soldier clone instead of the unfinished projection",
         : respond(fixture),
     ),
   );
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
   fireEvent.change(screen.getByLabelText("rifleman Weapon mounts"), {
     target: { value: JSON.stringify([{ name: "rifles", weapons: ["rifle"] }]) },
@@ -634,7 +635,7 @@ it("summarizes a whole-mount restore after the accepted catalog removes its sold
         : respond(fixture),
     ),
   );
-  render(<MechanicsEditor />);
+  render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
   const mounts = screen.getByLabelText("rifle__grenadier Weapon mounts");
   fireEvent.click(
@@ -651,4 +652,19 @@ it("summarizes a whole-mount restore after the accepted catalog removes its sold
     { name: "rifles", weapons: ["rifle"] },
     { name: "grenade launcher", weapons: ["grenade"] },
   ]);
+});
+
+it("returning from authoring uses the app menu without replacing the document", async () => {
+  vi.stubGlobal("fetch", async () => respond(snapshot));
+  render(
+    <MemoryRouter initialEntries={["/mechanics"]}>
+      <Routes>
+        <Route path="/mechanics" element={<MechanicsEditor />} />
+        <Route path="/" element={<div>Retained app menu</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+  fireEvent.click(await screen.findByRole("link", { name: "← Developer menu" }));
+  expect(screen.getByText("Retained app menu")).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Mechanics" })).toBeNull();
 });
