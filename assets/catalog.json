@@ -1038,6 +1038,99 @@
       ],
       "regional_family": "china"
     },
+    "chainlink_fence": {
+      "unit": "scenery",
+      "scenery": "chainlink_fence",
+      "states": {
+        "default": "assets/source/courts/chainlink_fence.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.5,
+        0.05,
+        1.8
+      ]
+    },
+    "basketball_hoop": {
+      "unit": "scenery",
+      "scenery": "basketball_hoop",
+      "states": {
+        "default": "assets/source/courts/basketball_hoop.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.9,
+        0.6,
+        1.95
+      ]
+    },
+    "basketball_court": {
+      "unit": "scenery",
+      "scenery": "basketball_court",
+      "states": {
+        "default": "assets/source/courts/basketball_court.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.0,
+        7.5,
+        0.02
+      ]
+    },
+    "garage_row": {
+      "unit": "scenery",
+      "scenery": "garage_row",
+      "states": {
+        "default": "assets/source/courts/garage_row.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        4.5,
+        3.0,
+        1.3
+      ]
+    },
+    "dumpster": {
+      "unit": "scenery",
+      "scenery": "dumpster",
+      "states": {
+        "default": "assets/source/courts/dumpster.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.0,
+        0.6,
+        0.65
+      ]
+    },
+    "bench_new_york": {
+      "unit": "scenery",
+      "scenery": "bench",
+      "states": {
+        "default": "assets/source/courts/bench_new_york.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.9,
+        0.3,
+        0.42
+      ],
+      "regional_family": "new_york"
+    },
+    "bins_new_york": {
+      "unit": "scenery",
+      "scenery": "bins",
+      "states": {
+        "default": "assets/source/courts/bins_new_york.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.65,
+        0.38,
+        0.55
+      ],
+      "regional_family": "new_york"
+    },
     "grass_meadow": {
       "unit": "scenery",
       "scenery": "grass",

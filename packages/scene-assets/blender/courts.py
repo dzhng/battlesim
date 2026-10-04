@@ -21,6 +21,14 @@ China:
   laundry_poles quilts airing and shirts on hangers between two posts; [3.0, 0.15, 1.0]
   bench_china   lacquered slats on granite ends; the bench's box
   bins_china    four lidded bins in the sorting colours; the bins' box
+New York:
+  chainlink_fence  tall chain-link between posts, a 3 m module; [1.5, 0.05, 1.8]
+  basketball_hoop  a pole, perforated backboard, rim and chain net facing -y; [0.9, 0.6, 1.95]
+  basketball_court half a court, its baseline at -x; [7.0, 7.5, 0.02]
+  garage_row    three lock-up garages in block, shutters at -y; [4.5, 3.0, 1.3]
+  dumpster      a front-load dumpster; [1.0, 0.6, 0.65]
+  bench_new_york  the parks' slatted bench on cast-iron ends; the bench's box
+  bins_new_york the parks' wire litter basket and rubbish bags; the bins' box
 
 A piece is capped at 1 MiB raw (specs/courtyards/README.md), so its recipes are
 embedded at `TEXTURE_PX`. The battle fits each placed box from the authored one.
@@ -707,6 +715,237 @@ def bins_china():
                 rot=(sy * math.radians(-3.5), 0, 0))
             cyl(f"bin_{k}_wheel_{j}", 0.05, 0.04, (x + sy * 0.09, d / 2 - 0.08, 0.05), "X", wheel, root, seg=10,
                 lods=(0, 1))
+    return [hx, hy, hz]
+
+
+# ------------------------------------------------------------------ New York
+@kind
+def chainlink_fence():
+    """A ball court's tall chain-link fence: galvanised fabric between line posts 3 m
+    apart, a top rail and a mid rail, a tension wire at the foot. The end posts
+    straddle the module's ends, so repeated modules share them."""
+    hx, hy, hz = 1.5, 0.05, 1.8
+    zinc = textured("fence_tube", "galvanised", chip=0.4, dirt=0.6, rise=0.5)
+    fabric = textured("fence_fabric", "chain_link", chip=0.3, dirt=0.5, rise=0.4, coverage=("cutout", 0.5))
+    top = 2 * hz
+    for k, s in enumerate((-1, 1)):
+        cyl(f"post_{k}", 0.045, top, (s * hx, 0, top / 2), "Z", zinc, root, seg=10)
+        cyl(f"post_cap_{k}", 0.055, 0.06, (s * hx, 0, top - 0.03), "Z", zinc, root, seg=10, lods=(0, 1, 2))
+    for k, z in enumerate((top - 0.05, top / 2)):
+        tube(f"rail_{k}", (-hx, 0.03, z), (hx, 0.03, z), 0.021, zinc, lods=(0, 1, 2))
+    tube("tension_wire", (-hx, 0.01, 0.06), (hx, 0.01, 0.06), 0.006, zinc, lods=(0,), seg=4)
+    sheet("fabric", 2 * hx - 0.09, top - 0.1, (0, 0.0, 0.03), fabric, root)
+    return [hx, hy, hz]
+
+
+@kind
+def basketball_hoop():
+    """A park hoop facing -y: a steel pole at the box's back, a short gooseneck out to a
+    perforated steel backboard with a painted target square, an orange rim and a chain net."""
+    hx, hy, hz = 0.9, 0.6, 1.95
+    pole_m = textured("hoop_pole", "enamel", colour=(0.03, 0.06, 0.04), chip=0.7, dirt=0.6, rise=0.6, streak=0.3)
+    board_m = textured("hoop_board", "perforated", colour=(0.06, 0.07, 0.06), chip=0.4, dirt=0.0, rise=0.0,
+                       coverage=("cutout", 0.5))
+    paint = flat_paint("hoop_paint", (0.55, 0.55, 0.52), rough=0.6, wear=0.6, grime=0.0)
+    rim_m = flat_paint("hoop_rim", (0.5, 0.12, 0.02), rough=0.5, metal=0.3, wear=0.4, grime=0.0)
+    chain = flat_paint("hoop_chain", (0.3, 0.3, 0.3), rough=0.4, metal=0.8, grime=0.0)
+    py, by, top = hy - 0.08, 0.05, 2 * hz  # the pole's line, the board's
+    cyl("pole", 0.075, 3.2, (0, py, 1.6), "Z", pole_m, root, seg=14)
+    cyl("pole_base", 0.12, 0.08, (0, py, 0.04), "Z", pole_m, root, seg=12, lods=(0, 1, 2))
+    tube("gooseneck", (0, py, 3.15), (0, by + 0.08, 3.3), 0.06, pole_m)
+    for k, s in enumerate((-1, 1)):
+        tube(f"strut_{k}", (0, py, 2.7), (s * 0.4, by + 0.04, 2.95), 0.03, pole_m, lods=(0, 1, 2))
+    bw, b0, b1 = 2 * hx - 0.02, 2.75, top - 0.02
+    sheet("board", bw, b1 - b0, (0, by, b0), board_m, root)
+    for k, (w, h, loc) in enumerate((((bw, 0.04, (0, by - 0.01, b1 - 0.02))), ((bw, 0.04, (0, by - 0.01, b0 + 0.02))),
+                                     ((0.04, b1 - b0, (-bw / 2 + 0.02, by - 0.01, (b0 + b1) / 2))),
+                                     ((0.04, b1 - b0, (bw / 2 - 0.02, by - 0.01, (b0 + b1) / 2))))):
+        box(f"frame_{k}", (w, 0.025, h), loc, pole_m, root, lods=(0, 1, 2))
+    rz = 3.05  # the rim's height
+    for k, (w, h, x, z) in enumerate(((0.59, 0.05, 0, rz + 0.43), (0.59, 0.05, 0, rz + 0.02), (0.05, 0.45, -0.27, rz + 0.22),
+                                      (0.05, 0.45, 0.27, rz + 0.22))):
+        box(f"square_{k}", (w, 0.012, h), (x, by - 0.012, z), paint, root, lods=(0, 1))
+    rc, rr = by - 0.15 - 0.23, 0.23
+    flat = lambda x, y, z: (x, z, y)  # a ring in the part's XZ plane, laid flat
+    ring("rim", flat, (0, rz, rc), rr, 0.012, rim_m, lods=(0, 1, 2))
+    box("rim_plate", (0.2, 0.15, 0.1), (0, by - 0.075, rz - 0.03), rim_m, root, lods=(0, 1, 2))
+    for k in range(10):  # the net: chains hanging in a tapering cone
+        a = 2 * math.pi * (k + 0.5) / 10
+        tube(f"net_{k}", (rr * math.cos(a), rc + rr * math.sin(a), rz),
+             (0.6 * rr * math.cos(a + 0.4), rc + 0.6 * rr * math.sin(a + 0.4), rz - 0.42), 0.006, chain, lods=(0,), seg=4)
+    return [hx, hy, hz]
+
+
+def _ribbon(bm, pts, width, z):
+    """A flat painted line `width` wide along the polyline `pts` (x, y) at height `z`."""
+    left, right = [], []
+    for i, (x, y) in enumerate(pts):
+        a, b = pts[max(0, i - 1)], pts[min(len(pts) - 1, i + 1)]
+        tx, ty = b[0] - a[0], b[1] - a[1]
+        n = math.hypot(tx, ty) or 1.0
+        nx, ny = -ty / n * width / 2, tx / n * width / 2
+        left.append(bm.verts.new((x + nx, y + ny, z)))
+        right.append(bm.verts.new((x - nx, y - ny, z)))
+    for i in range(len(pts) - 1):
+        f = bm.faces.new((right[i], right[i + 1], left[i + 1], left[i]))
+        if f.normal.z < 0:
+            f.normal_flip()
+
+
+def _arc(cx, cy, r, a0, a1, step=0.25):
+    n = max(2, math.ceil(abs(a1 - a0) * r / step))
+    return [(cx + r * math.cos(a0 + (a1 - a0) * i / n), cy + r * math.sin(a0 + (a1 - a0) * i / n)) for i in range(n + 1)]
+
+
+@kind
+def basketball_court():
+    """Half a basketball court, 14 m from its baseline at -x to the centre line at +x and
+    15 m across: a green acrylic pad on the paving, a red key, and white lines (the key,
+    the free-throw circle, the three-point line, half the centre circle). Its hoop stands
+    behind the baseline (`basketball_hoop`), so the painted rim point sits just inside it;
+    two halves meet at their centre lines as one court."""
+    hx, hy, hz = 7.0, 7.5, 0.02
+    # smooth acrylic paint, not grained asphalt, which reads as turf
+    pad = textured("court_pad", "marking_paint", colour=(0.045, 0.12, 0.07), chip=0.0, dirt=0.15, rise=0.1,
+                   streak=0.0, mottle=0.08, grain=0.0)
+    key = textured("court_key", "marking_paint", colour=(0.2, 0.045, 0.035), chip=0.0, dirt=0.1, rise=0.1,
+                   streak=0.0, grain=0.0)
+    white = flat_paint("court_line", (0.62, 0.62, 0.6), rough=0.6, grime=0.0)
+    top = 2 * hz - 0.008
+    box("pad", (2 * hx, 2 * hy, top), (0, 0, top / 2), pad, root)
+    rx = -hx + 0.3  # the rim point, as near the hoop behind the baseline as the court allows
+    kw, kl, w = 4.9, 5.8, 0.05  # the key's width and length; a line's width
+    box("key", (kl, kw, 0.003), (-hx + kl / 2, 0, top + 0.0015), key, root)
+    lz = top + 0.005
+    three = 6.75
+    corner = math.asin((hy - 0.9) / three)  # where the arc meets the straight corner lines
+
+    def lines(bm, lod):
+        if lod == 3:
+            return False
+        lw = w if lod < 2 else 0.08
+        step = (0.2, 0.4, 0.8)[lod]
+        _ribbon(bm, [(-hx + lw / 2, -hy), (-hx + lw / 2, hy)], lw, lz)  # baseline
+        _ribbon(bm, [(hx - lw / 2, -hy), (hx - lw / 2, hy)], lw, lz)  # centre line
+        for s in (-1, 1):
+            _ribbon(bm, [(-hx, s * (hy - lw / 2)), (hx, s * (hy - lw / 2))], lw, lz)  # sidelines
+            _ribbon(bm, [(-hx, s * kw / 2), (-hx + kl, s * kw / 2)], lw, lz)  # the key's sides
+            _ribbon(bm, [(-hx, s * (hy - 0.9)), (rx + three * math.cos(corner), s * (hy - 0.9))], lw, lz)
+        _ribbon(bm, [(-hx + kl, -kw / 2), (-hx + kl, kw / 2)], lw, lz)  # free-throw line
+        _ribbon(bm, _arc(-hx + kl, 0, 1.8, -math.pi / 2, math.pi / 2, step), lw, lz)
+        _ribbon(bm, _arc(rx, 0, three, -corner, corner, step), lw, lz)
+        _ribbon(bm, _arc(rx, 0, 1.25, -math.pi / 2, math.pi / 2, step), lw, lz)  # restricted area
+        _ribbon(bm, _arc(hx, 0, 1.8, math.pi / 2, 3 * math.pi / 2, step), lw, lz)  # half the centre circle
+
+    mesh_part("lines", lines, white, root)
+    return [hx, hy, hz]
+
+
+@kind
+def garage_row():
+    """A row of three lock-up garages in painted concrete block, 9 m by 6 m: a flat roof
+    falling to the back under a coping, piers between the bays, and a steel roller
+    shutter in each, facing -y; a lamp over each door."""
+    hx, hy, hz = 4.5, 3.0, 1.3
+    block = textured("garage_block", "concrete_block", colour=(0.42, 0.4, 0.36), chip=0.4, dirt=0.25, rise=0.5, streak=0.5,
+                     mottle=0.1)
+    roof = flat_paint("garage_roof", (0.07, 0.07, 0.068), rough=0.95, grime=0.0)  # felt: a third recipe would near the cap
+    lamp = flat_paint("garage_lamp", (0.04, 0.04, 0.04), rough=0.5, grime=0.0)
+    front, back = 2 * hz - 0.06, 2 * hz - 0.24
+    prism("shell", [(-hy, 0.0), (hy, 0.0), (hy, back), (-hy, front)], 2 * hx, (0, 0, 0), block, root,
+          rot=(0, 0, math.pi / 2))
+    prism("roof", [(-hy, front), (hy, back), (hy, back + 0.05), (-hy, front + 0.05)], 2 * hx, (0, 0, 0), roof, root,
+          rot=(0, 0, math.pi / 2))
+    box("coping", (2 * hx, 0.2, 0.06), (0, -hy + 0.1, front + 0.03), block, root, lods=(0, 1, 2))
+    bay, door_w, door_h = 2 * hx / 3, 2.4, 2.1
+    shades = ((0.22, 0.22, 0.21), (0.11, 0.14, 0.17), (0.17, 0.12, 0.08))
+    for k in range(3):
+        x = -hx + bay * (k + 0.5)
+        door = textured(f"shutter_{k}", "roller_slats", colour=shades[k], chip=0.7, dirt=0.6, rise=0.6, streak=0.5)
+        box(f"shutter_{k}", (door_w, 0.04, door_h), (x, -hy - 0.005, door_h / 2), door, root)
+        box(f"box_{k}", (door_w + 0.1, 0.12, 0.22), (x, -hy - 0.04, door_h + 0.11), door, root, lods=(0, 1, 2))
+        box(f"lamp_{k}", (0.16, 0.1, 0.12), (x, -hy - 0.05, door_h + 0.33), lamp, root, lods=(0, 1))
+    for k in range(4):  # the piers' faces between and beside the doors
+        box(f"pier_{k}", (0.12, 0.06, front - 0.02), (-hx + bay * k + (0.06 if k == 0 else -0.06 if k == 3 else 0), -hy - 0.01,
+            (front - 0.02) / 2), block, root, lods=(0, 1, 2))
+    return [hx, hy, hz]
+
+
+@kind
+def dumpster():
+    """A front-load dumpster: a steel box in dark green with a sloped front, two black
+    plastic lids (one not quite shut), fork pockets on its sides and lifting lugs."""
+    hx, hy, hz = 1.0, 0.6, 0.65
+    steel_m = textured("dumpster_paint", "enamel", colour=(0.03, 0.08, 0.05), chip=0.5, dirt=0.5, rise=0.7, streak=0.5)
+    lid_m = textured("dumpster_lid", "hard_plastic", colour=(0.02, 0.02, 0.02), chip=0.1, dirt=0.4, rise=0.2, streak=0.2)
+    rim = 2 * hz - 0.1
+    prism("body", [(-hy + 0.25, 0.08), (hy, 0.08), (hy, rim), (-hy, rim)], 2 * hx - 0.14, (0, 0, 0), steel_m, root, bevel=0.02,
+          rot=(0, 0, math.pi / 2))
+    for k, s in enumerate((-1, 1)):
+        box(f"skid_{k}", (2 * hx - 0.3, 0.1, 0.08), (0, s * 0.3, 0.04), steel_m, root, lods=(0, 1, 2))
+        box(f"pocket_{k}", (0.07, 0.9, 0.16), (s * (hx - 0.035), 0.05, 0.9), steel_m, root, bevel=0.01)
+        box(f"lug_{k}", (0.06, 0.12, 0.12), (s * (hx - 0.1), -hy + 0.04, rim - 0.12), steel_m, root, lods=(0, 1))
+        # the lids: one shut, one sprung a little open
+        lift = 0.0 if s < 0 else math.radians(4)
+        box(f"lid_{k}", (hx - 0.12, 2 * hy - 0.02, 0.06), (s * (hx / 2 - 0.05), 0.0, rim + 0.04 + 0.03 * (s > 0)), lid_m,
+            root, bevel=0.012, rot=(-lift, 0, 0))
+    box("rim_band", (2 * hx - 0.12, 2 * hy, 0.06), (0, 0, rim - 0.03), steel_m, root, lods=(0, 1, 2))
+    return [hx, hy, hz]
+
+
+@kind
+def bench_new_york():
+    """New York's look of the shared bench: the parks' slatted bench, its seat and back
+    one curve of oak slats on black cast-iron ends."""
+    hx, hy, hz = 0.9, 0.3, 0.42
+    wood = timber("ny_slat", (0.2, 0.13, 0.07), chip=0.3, dirt=0.5, rise=0.5, mottle=0.3)
+    iron = textured("ny_iron", "enamel", colour=(0.015, 0.017, 0.016), chip=0.6, dirt=0.6, rise=0.5)
+    # the slats' line in profile, front lip to the top of the back: (y, z, tilt)
+    curve = [(-0.27, 0.42, -0.3), (-0.18, 0.44, 0.0), (-0.08, 0.44, 0.0), (0.02, 0.43, 0.15), (0.11, 0.46, 1.0),
+             (0.17, 0.56, 1.35), (0.21, 0.67, 1.4), (0.25, 0.78, 1.45)]
+    for k, (y, z, tilt) in enumerate(curve):
+        box(f"slat_{k}", (2 * hx, 0.075, 0.03), (0, y, z), wood, root, bevel=0.005, rot=(tilt, 0, 0), lods=(0, 1))
+    box("seat_far", (2 * hx, 0.42, 0.04), (0, -0.07, 0.43), wood, root, lods=(2, 3))
+    box("back_far", (2 * hx, 0.04, 0.38), (0, 0.2, 0.66), wood, root, rot=(math.radians(-15), 0, 0), lods=(2, 3))
+    for k, x in enumerate((-hx + 0.12, 0.0, hx - 0.12)):
+        tube(f"front_leg_{k}", (x, -0.24, 0.0), (x, -0.2, 0.41), 0.025, iron, lods=(0, 1, 2))
+        tube(f"back_leg_{k}", (x, 0.18, 0.0), (x, 0.1, 0.42), 0.025, iron, lods=(0, 1, 2))
+        tube(f"seat_rail_{k}", (x, -0.26, 0.4), (x, 0.1, 0.42), 0.02, iron, lods=(0, 1, 2))
+        tube(f"back_rail_{k}", (x, 0.1, 0.42), (x, 0.25, 0.78), 0.02, iron, lods=(0, 1, 2))
+        if k != 1:
+            tube(f"arm_{k}", (x, -0.24, 0.62), (x, 0.17, 0.6), 0.022, iron, lods=(0, 1, 2))
+            tube(f"arm_post_{k}", (x, -0.22, 0.41), (x, -0.24, 0.62), 0.02, iron, lods=(0, 1))
+    return [hx, hy, hz]
+
+
+@kind
+def bins_new_york():
+    """New York's look of the shared bins: the parks' green wire litter basket, filled to
+    the brim, and black rubbish bags heaped beside it."""
+    hx, hy, hz = 0.65, 0.38, 0.55
+    mesh = textured("basket_mesh", "chain_link", colour=(0.03, 0.12, 0.05), chip=0.6, dirt=0.4, rise=0.4,
+                    coverage=("cutout", 0.5))
+    band = textured("basket_band", "enamel", colour=(0.03, 0.12, 0.05), chip=0.7, dirt=0.5, rise=0.4)
+    bag = flat_paint("bin_bag", (0.014, 0.014, 0.016), rough=0.5, grime=0.3)
+    litter = flat_paint("litter", (0.16, 0.14, 0.11), rough=0.8, grime=0.0)
+    bx, r, h = -hx + 0.31, 0.3, 0.92
+    cyl("basket", r, h - 0.04, (bx, 0, 0.02 + (h - 0.04) / 2), "Z", mesh, root, seg=20, caps=False)
+    for k, z in enumerate((0.04, h * 0.55, h - 0.02)):
+        cyl(f"band_{k}", r + 0.01, 0.04, (bx, 0, z), "Z", band, root, seg=20, lods=(0, 1, 2) if k else TIERS, caps=False)
+
+    def rubbish(bm, lod):
+        lump(bm, lod, (bx, 0, h - 0.1), (0.27, 0.27, 0.2), 0.3, 2.0)
+
+    mesh_part("rubbish", rubbish, litter, root, lods=(0, 1, 2))
+
+    def bags(bm, lod):
+        # slumped sacks: wider than tall, lumpy with what is in them, a tied neck on top
+        for k, (x, y, z, rx, ry, rz) in enumerate(((0.26, -0.13, 0.2, 0.24, 0.24, 0.2), (0.45, 0.14, 0.19, 0.19, 0.23, 0.19),
+                                                    (0.33, 0.02, 0.5, 0.2, 0.21, 0.18), (0.14, 0.2, 0.18, 0.15, 0.17, 0.18))):
+            lump(bm, lod, (x, y, z), (rx, ry, rz), 0.32, 11.0 + k)
+            lump(bm, lod, (x + 0.03, y, z + rz * 0.95), (0.05, 0.05, 0.07), 0.2, 21.0 + k)
+
+    mesh_part("bags", bags, bag, root, smooth=True)
     return [hx, hy, hz]
 
 

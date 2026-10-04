@@ -36,6 +36,28 @@
       "skeleton": "quaternius-ubc-rifle",
       "unit": "soldier"
     },
+    "basketball_court": {
+      "bundle": "c5ae3401333292c909697575eabc85caf847495a9bdf2b5a13f32f968b502f43",
+      "footprint_half_m": [
+        7,
+        7.5,
+        0.02
+      ],
+      "kind": "static",
+      "scenery": "basketball_court",
+      "unit": "scenery"
+    },
+    "basketball_hoop": {
+      "bundle": "9b34b82b72656392ca8f852fe710259807fb022160837dd99cc22bb7ac74facb",
+      "footprint_half_m": [
+        0.9,
+        0.6,
+        1.95
+      ],
+      "kind": "static",
+      "scenery": "basketball_hoop",
+      "unit": "scenery"
+    },
     "bench": {
       "bundle": "7fbd9b9baff0f045bf8c4312134469b5e6ca4b39cb3391901e3d7b4c15e1b374",
       "footprint_half_m": [
@@ -56,6 +78,18 @@
       ],
       "kind": "static",
       "regional_family": "china",
+      "scenery": "bench",
+      "unit": "scenery"
+    },
+    "bench_new_york": {
+      "bundle": "170ffcbfc1a3d0d567cdedd2d806e221c96595b5204aa19021ac8af0ea46b338",
+      "footprint_half_m": [
+        0.9,
+        0.3,
+        0.42
+      ],
+      "kind": "static",
+      "regional_family": "new_york",
       "scenery": "bench",
       "unit": "scenery"
     },
@@ -104,6 +138,18 @@
       "scenery": "bins",
       "unit": "scenery"
     },
+    "bins_new_york": {
+      "bundle": "a2b8fd4985144d9aa9ad054de9c7c09aff89aca3a920213f16c6905a7010ef51",
+      "footprint_half_m": [
+        0.65,
+        0.38,
+        0.55
+      ],
+      "kind": "static",
+      "regional_family": "new_york",
+      "scenery": "bins",
+      "unit": "scenery"
+    },
     "bollard": {
       "bundle": "378e2aacf52d93847fcf110fbab8546bc08894634866f620d302294eb0d8c0ec",
       "footprint_half_m": [
@@ -146,6 +192,17 @@
       ],
       "kind": "static",
       "scenery": "car_wreck",
+      "unit": "scenery"
+    },
+    "chainlink_fence": {
+      "bundle": "0e7e3c423f509d78a592a1ec4fe7b633c9812acd10975f870bc7be6d1e58b2da",
+      "footprint_half_m": [
+        1.5,
+        0.05,
+        1.8
+      ],
+      "kind": "static",
+      "scenery": "chainlink_fence",
       "unit": "scenery"
     },
     "city_kit_apartments_new_york": {
@@ -260,6 +317,17 @@
       "scenery": "tooth",
       "unit": "scenery"
     },
+    "dumpster": {
+      "bundle": "096ce24c9d5907760fd2184254cb85e4bd3f7e12a3d7d1730adbbd15391f0f2f",
+      "footprint_half_m": [
+        1,
+        0.6,
+        0.65
+      ],
+      "kind": "static",
+      "scenery": "dumpster",
+      "unit": "scenery"
+    },
     "fence": {
       "bundle": "54bb6277a2b555a382822105ea46546eb7608fe484edbdcac902a08475c3aae0",
       "footprint_half_m": [
@@ -332,6 +400,17 @@
       ],
       "kind": "static",
       "scenery": "log",
+      "unit": "scenery"
+    },
+    "garage_row": {
+      "bundle": "e4efb28e52e2c7643577a73314a4def8634ce733545c179201598506db831a4c",
+      "footprint_half_m": [
+        4.5,
+        3,
+        1.3
+      ],
+      "kind": "static",
+      "scenery": "garage_row",
       "unit": "scenery"
     },
     "garden_fence": {
@@ -836,6 +915,11 @@
       "hash": "06143ba8383a9cd3f7e8d5778711b94736aeb7afec321fd4c416d5e340272d81",
       "raw_bytes": 16130732
     },
+    "170ffcbfc1a3d0d567cdedd2d806e221c96595b5204aa19021ac8af0ea46b338": {
+      "bytes": 208750,
+      "hash": "161c37132cf75594de5916d25e0bd076c47e7646aa82795c820b19083aa6ee73",
+      "raw_bytes": 735280
+    },
     "1838156f126960320b5ff42b5f9a743f078821085896e15d1b41d606c32924ce": {
       "bytes": 1630151,
       "hash": "5c9313a41f8cb9a6e6f604bad98d5ce0573f50fecaab441816beea6c9039ac0b",
@@ -900,6 +984,11 @@
       "bytes": 4342860,
       "hash": "4762e8f7087077850eb05af927ace34556cea3692e8cdbc5f58c8d4c3fb4c002",
       "raw_bytes": 15455912
+    },
+    "a2b8fd4985144d9aa9ad054de9c7c09aff89aca3a920213f16c6905a7010ef51": {
+      "bytes": 153291,
+      "hash": "51a5fee1902b78b89e7c1f6931eb63ff0039714de8797f70fff0bab5f4ec51fb",
+      "raw_bytes": 597296
     },
     "a34be2367f72160a5ca441c8d005dce3cbcf8e87c053db7af4fae8f1a3623bb2": {
       "bytes": 7346962,

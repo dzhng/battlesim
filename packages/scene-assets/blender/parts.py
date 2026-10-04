@@ -390,6 +390,15 @@ def mesh_part(name, build, mat=None, parent=None, lods=TIERS, loc=(0, 0, 0), rot
     return _each(name, lods, make)
 
 
+def lump(bm, lod, centre, radii, rough, seed):
+    """Into `bm`: a rounded mass (a shrub's clump, a heap of spoil): a sphere pushed in and out by noise."""
+    made = bmesh.ops.create_icosphere(bm, subdivisions=max(1, 2 - lod), radius=1.0)
+    off = Vector((seed * 1.7, seed * 0.9, seed * 2.3))
+    for v in made["verts"]:
+        k = 1.0 + rough * noise.noise(v.co * 1.6 + off)
+        v.co = Vector(centre) + Vector((v.co.x * radii[0], v.co.y * radii[1], v.co.z * radii[2])) * k
+
+
 def stencil(name, text, height, loc, rot, mat, parent=None, lods=(0, 1), depth=0.003):
     """Painted markings: `text` (Blender's built-in font, `\\n` for lines) as a thin
     raised mesh of letters `height` tall, lying in its local XY plane facing +Z,

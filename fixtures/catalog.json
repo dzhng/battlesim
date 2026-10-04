@@ -6,8 +6,7 @@
         "basketball_court": {
           "appearance": {
             "drawn_by": "basketball_court",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -29,8 +28,7 @@
         "basketball_hoop": {
           "appearance": {
             "drawn_by": "basketball_hoop",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -293,8 +291,7 @@
           "appearance": {
             "drawn_by": "chainlink_fence",
             "map_only": true,
-            "modular": true,
-            "status": "systems_only"
+            "modular": true
           },
           "body": {
             "armor": 1.0,
@@ -339,8 +336,7 @@
         "dumpster": {
           "appearance": {
             "drawn_by": "dumpster",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -386,8 +382,7 @@
         "garage_row": {
           "appearance": {
             "drawn_by": "garage_row",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -1920,8 +1915,7 @@
     "basketball_court": {
       "appearance": {
         "drawn_by": "basketball_court",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -1943,8 +1937,7 @@
     "basketball_hoop": {
       "appearance": {
         "drawn_by": "basketball_hoop",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2207,8 +2200,7 @@
       "appearance": {
         "drawn_by": "chainlink_fence",
         "map_only": true,
-        "modular": true,
-        "status": "systems_only"
+        "modular": true
       },
       "body": {
         "armor": 1.0,
@@ -2253,8 +2245,7 @@
     "dumpster": {
       "appearance": {
         "drawn_by": "dumpster",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2300,8 +2291,7 @@
     "garage_row": {
       "appearance": {
         "drawn_by": "garage_row",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
