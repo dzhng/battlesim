@@ -29,7 +29,8 @@ Subject exporters build vehicles, wrecks, props, trees and forest-floor material
 Shared part, masonry, texture and damage helpers keep frame conventions and seeded
 source identity consistent across those subjects. [The batch script](build_sources.sh)
 defines its supported rebuild sequence, not every catalog source. It can leave
-partial output when interrupted; a successful source export is still followed by
+partial output on failure or interruption and stops at the first failed exporter.
+A successful source export is still followed by
 [appearance baking and checking](../README.md).
 
 [City authoring](city/README.md) owns kits, template descriptors, interiors and

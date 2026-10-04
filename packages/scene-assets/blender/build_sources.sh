@@ -1,5 +1,5 @@
 #!/bin/sh
-# Rebuild every Blender-scripted appearance source into assets/source/.
+# Rebuild the standard Blender-scripted appearance batch into assets/source/.
 # Run from anywhere; then `asset bake`.
 set -e
 here=$(cd "$(dirname "$0")" && pwd)
@@ -7,7 +7,17 @@ root=$(cd "$here/../../.." && pwd)
 v="$root/assets/source/vehicles"
 b="$root/assets/source/village"
 mkdir -p "$v" "$b"
-blender() { script=$1; shift; (cd "$root/web" && node asset.mjs blender "$here/$script" "$@") | grep -E '^(TANK|TRUCK|JEEP|HOUSE|PROP|wrote) ' ; }
+blender() {
+  script=$1; shift
+  if output=$(cd "$root/web" && node asset.mjs blender "$here/$script" "$@"); then
+    # A successful exporter need not print a summary line.
+    printf '%s\n' "$output" | grep -E '^(TANK|TRUCK|JEEP|HOUSE|PROP|wrote) ' || [ "$?" -eq 1 ]
+  else
+    status=$?
+    printf '%s\n' "$output"
+    return "$status"
+  fi
+}
 for variant in a b c; do blender infantry_kit.py at_carried "$variant"; done
 blender tank.py "$v/tank.glb"
 blender tank.py "$v/tank_wreck.glb" --wreck
