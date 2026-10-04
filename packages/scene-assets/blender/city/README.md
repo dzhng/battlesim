@@ -25,7 +25,7 @@ A set is one source's work: the China graph's apartment blocks, our own houses, 
 
 [The source reader](../../src/templateSource.ts) owns the set schema and finding
 codes. [The kit authoring helper](kit.py) writes it; [a hand-scripted set](homes.py)
-and [a graph-derived set](china.py) are worked examples rather than a second schema.
+and [the graph-set exporter](graphset.py) are worked examples rather than a second schema.
 A source receipt describes how the set was made; the bake does not trust that
 receipt as proof of physical legality.
 
@@ -60,7 +60,7 @@ The source-only opening coverage checks run without Blender: `python3 -m unittes
 
 - **The same inputs write the same bytes.** Seeds are fixed, iteration is in a sorted order, and nothing reads the clock.
 - **Sizes are whole bays and whole floors.** A facade's windows sit on the descriptor's bay lattice (3 m pitch) and its floors on `floor_heights_m`. A graph-made facade run is 3n + 2 or 3n metres long, with its corresponding corner piers ([source lattice](china.py)).
-- **Every declared fighting bay has a visible opening.** Windows, doors and open fronts cover the physical eye and muzzle heights on each of the first three floor bands below that part's top. The scripted set reads those heights from the simulation fixture and refuses a blank bay before exporting. Opening rectangles on one wall do not overlap: a displaced existing pane is aligned to the fighting band, and any cladding patch is cut around the actual pane. Opening bounds come from the source geometry; they are authoring checks, never extra descriptor fields or a second garrison policy. Legacy authored boxes without resolved bays make no such declaration.
+- **Every declared fighting bay has a visible opening.** Windows, doors and open fronts cover the physical eye and muzzle heights on each of the first three floor bands below that part's top. Every generated set reads those heights from the simulation fixture and refuses a blank bay before exporting. The one named exception is China's graph set: on some back walls its graph leaves a ground-floor bay without an opening over those heights, and those bays are printed rather than refused so the released set stands as built. Opening rectangles on one wall do not overlap: a displaced existing pane is aligned to the fighting band, and any cladding patch is cut around the actual pane. Opening bounds come from the source geometry; they are authoring checks, never extra descriptor fields or a second garrison policy. Legacy authored boxes without resolved bays make no such declaration.
 - **An exposed edge has a facade; an edge that is not exposed has none.** No windows on a party wall or an interior join.
 - **Detail is budgeted per template**, in triangles drawn at each tier (`TEMPLATE_TIER_TRIANGLES`, `src/templateSource.ts`; the bake reports each template against it). The script prints what each template draws. A far building is one row: at the coarse tiers a script folds what is left of its modules into the template's own shell.
 - **A destroyed building is the same building.** Its damage state is made on the same plan, in the same materials and tints, in the same frame, and by the same tier rule: shared wreckage (heaps of rubble, beams, burnt panels) is rows at the fine tiers, and the state's own shell is the whole of it at the coarse ones. It draws no more triangles than `intact` at any tier. Soot and breakage that must read from across the map are in the shell's own texture or vertex colour, never only in a fine tier's modules.
@@ -78,8 +78,9 @@ roofs, flat roofs and cornices, inset porches, stoops, sash and French windows),
 hand-scripted set takes its family as an argument, so each family is a design over one builder;
 [graph extraction](graph.py) reads geometry-node instances before realization, and
 [the graph-set exporter](graphset.py) is what every graph-derived set shares (outline,
-rooms, tiers, damage, the descriptor, the files): [China](china.py), [New York](nyc.py)
-and [Paris](paris.py) hold only their graph's tables and how to read it.
+rooms, tiers, damage, the descriptor, the files), with its [texture filters](filters.py) and
+[tangent rewrite](tangents.py): [China](china.py), [New York](nyc.py) and [Paris](paris.py)
+hold only their graph's tables and how to read it.
 Both paths must write the same admitted set contract. [Damage construction](damage.py)
 and [collapse policy](collapse.py) keep destroyed art tied to the original plan
 and physical remains. Material acquisition uses the shared [pinned pack reader](../packs.py).
