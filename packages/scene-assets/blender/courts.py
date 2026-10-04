@@ -14,6 +14,13 @@ kind (box half extents, metres):
   bike_rack     four Sheffield stands, three bikes parked; [1.5, 0.9, 0.5]
   playground_frame  a timber play tower: slide, ladder, net, monkey bars; [2.0, 1.5, 1.25]
   swing         a two-seat A-frame swing; [1.7, 0.9, 1.1]
+China:
+  bike_shed     a blue steel-roofed shed, scooters and bikes under it; [5.0, 1.25, 1.2]
+  pingpong_table  a cast-concrete table-tennis table; [1.37, 0.76, 0.45]
+  outdoor_gym   a double air walker in blue and yellow; [0.8, 0.5, 0.9]
+  laundry_poles quilts airing and shirts on hangers between two posts; [3.0, 0.15, 1.0]
+  bench_china   lacquered slats on granite ends; the bench's box
+  bins_china    four lidded bins in the sorting colours; the bins' box
 
 A piece is capped at 1 MiB raw (specs/courtyards/README.md), so its recipes are
 embedded at `TEXTURE_PX`. The battle fits each placed box from the authored one.
@@ -332,11 +339,15 @@ def garden_table():
 
 
 # ------------------------------------------------------------------ the courts, every region
-def ring(name, at, centre, radius, r, mat, lods=(0, 1)):
+RING = ((20, 6), (14, 4), (10, 3), (8, 3))  # segments round a hoop and round its bar, per tier
+COARSE_RING = ((12, 4), (8, 3), (8, 3), (6, 3))  # for a wheel among many
+
+
+def ring(name, at, centre, radius, r, mat, lods=(0, 1), segs=RING):
     """A hoop of round bar (a wheel's tyre) in the part's own XZ plane round `centre`."""
 
     def build(bm, lod):
-        n, m = ((20, 6), (14, 4), (10, 3), (8, 3))[lod]
+        n, m = segs[lod]
         rings = []
         for i in range(n):
             a = 2 * math.pi * i / n
@@ -356,7 +367,7 @@ def ring(name, at, centre, radius, r, mat, lods=(0, 1)):
     mesh_part(name, build, mat, root, lods=lods, smooth=True)
 
 
-def bicycle(name, origin, yaw, frame, lean=0.0, lods=(0, 1)):
+def bicycle(name, origin, yaw, frame, lean=0.0, lods=(0, 1), segs=RING):
     """A town bike parked upright, 1.75 m long along its own x (front wheel at +x) and its
     bars 0.56 m across: two wheels, a diamond frame in `frame`, a black saddle and bars.
     Far off it is its two wheels and its frame as a plate."""
@@ -366,7 +377,7 @@ def bicycle(name, origin, yaw, frame, lean=0.0, lods=(0, 1)):
     dark = flat_paint(f"{name}_dark", (0.025, 0.025, 0.025), rough=0.5, grime=0.0)
     wr, wb = 0.33, 0.54  # wheel radius, half the wheelbase
     for k, x in enumerate((-wb, wb)):
-        ring(f"{name}_wheel_{k}", at, (x, 0, wr), wr - 0.025, 0.025, tyre, lods=lods)
+        ring(f"{name}_wheel_{k}", at, (x, 0, wr), wr - 0.025, 0.025, tyre, lods=lods, segs=segs)
         tube(f"{name}_hub_{k}", at(x, -0.04, wr), at(x, 0.04, wr), 0.03, dark, lods=lods[:1], seg=6)
     crank, seat, head = (-0.05, 0, 0.3), (-0.2, 0, 0.82), (0.36, 0, 0.84)
     for k, (a, b) in enumerate(((crank, seat), (crank, head), ((-0.17, 0, 0.74), (0.37, 0, 0.76)),
@@ -447,10 +458,10 @@ def playground_frame():
         box(f"runout_leg_{k}", (0.05, 0.05, 0.25), (sx1 - 0.08, s * (w / 2 - 0.05), 0.125), steel, root, lods=(0, 1))
     # the ladder up the -x end
     for k, s in enumerate((-1, 1)):
-        tube(f"ladder_rail_{k}", (-hx + 0.02, s * 0.25, 0.0), (x0 - 0.05, s * 0.25, deck + 0.5), 0.025, steel)
+        tube(f"ladder_rail_{k}", (-hx + 0.02, s * 0.25, 0.0), (x0 - 0.02, s * 0.25, deck + 0.3), 0.025, steel)
     for k in range(1, 5):
         t = k / 5
-        x, z = -hx + 0.02 + (x0 - 0.05 + hx - 0.02) * t, (deck + 0.5) * t
+        x, z = -hx + 0.02 + (x0 - 0.02 + hx - 0.02) * t, (deck + 0.3) * t
         tube(f"rung_{k}", (x, -0.25, z), (x, 0.25, z), 0.022, steel, lods=(0, 1, 2))
     # the net: ropes from the deck's -y edge to a ground beam at the box's edge
     box("net_beam", (x1 - x0, 0.1, 0.08), (cx, -hy + 0.05, 0.04), wood, root)
@@ -499,6 +510,203 @@ def swing():
             for j, s in enumerate((-1, 1)):
                 box(f"cradle_back_{k}_{j}", (0.42, 0.04, 0.24), (x, s * 0.13, low + 0.12), cradle, root, bevel=0.01,
                     lods=(0, 1, 2))
+    return [hx, hy, hz]
+
+
+# ------------------------------------------------------------------ China
+def ebike(name, origin, yaw, colour, lods=(0, 1)):
+    """A step-through electric scooter parked upright, 1.6 m long along its own x (front at
+    +x): small wheels, a floorboard, a leg shield, a seat over the battery, bars and a basket."""
+    at = placed(origin, yaw)
+    body = flat_paint(f"{name}_body", colour, rough=0.35, wear=0.2, grime=0.5)
+    dark = flat_paint(f"{name}_dark", (0.02, 0.02, 0.02), rough=0.7, grime=0.4)
+    wr = 0.24
+    for k, x in enumerate((-0.56, 0.58)):
+        ring(f"{name}_wheel_{k}", at, (x, 0, wr), wr - 0.05, 0.05, dark, lods=lods, segs=COARSE_RING)
+    rot = (0, 0, yaw)
+    box(f"{name}_floor", (0.55, 0.3, 0.08), at(0.0, 0, 0.32), dark, root, rot=rot, lods=lods)
+    box(f"{name}_tail", (0.62, 0.32, 0.36), at(-0.42, 0, 0.55), body, root, rot=rot, bevel=0.04, lods=lods)
+    box(f"{name}_seat", (0.58, 0.28, 0.09), at(-0.38, 0, 0.78), dark, root, rot=rot, lods=lods)
+    box(f"{name}_shield", (0.12, 0.42, 0.6), at(0.38, 0, 0.66), body, root, rot=(0, math.radians(-14), yaw), bevel=0.03,
+        lods=lods)
+    box(f"{name}_fender", (0.42, 0.14, 0.08), at(0.58, 0, 0.5), body, root, rot=rot, lods=lods[:1])
+    box(f"{name}_head", (0.16, 0.32, 0.16), at(0.47, 0, 1.0), body, root, rot=rot, lods=lods)
+    tube(f"{name}_bars", at(0.44, -0.33, 1.02), at(0.44, 0.33, 1.02), 0.014, dark, lods=lods, seg=6)
+    box(f"{name}_basket", (0.26, 0.32, 0.2), at(0.64, 0, 0.9), dark, root, rot=rot, lods=lods[:1])
+
+
+@kind
+def bike_shed():
+    """A residential estate's bicycle shed, 10 m by 2.5 m: a mono-pitch roof of blue
+    profiled steel on grey steel posts, falling to the open front at -y; a mesh rail
+    along the back; parked under it, a row of electric scooters and bicycles, and a
+    charging box on the back posts."""
+    hx, hy, hz = 5.0, 1.25, 1.2
+    roof = textured("shed_roof", "roof_sheet", colour=(0.06, 0.16, 0.42), chip=0.3, dirt=0.2, rise=0.1, streak=0.2)
+    post = flat_paint("shed_post", (0.28, 0.29, 0.3), rough=0.45, metal=0.5, wear=0.3, grime=0.6)
+    meter = flat_paint("shed_meter", (0.5, 0.5, 0.48), rough=0.4, grime=0.3)
+    back, front = hy - 0.12, -hy + 0.45  # the post lines
+    top_back, top_front = 2 * hz - 0.06, 2.05
+    fall = (top_back - top_front) / (back - front)
+    roof_z = lambda y: top_front + (y - front) * fall
+    for k in range(5):
+        x = -hx + 0.15 + k * (2 * hx - 0.3) / 4
+        for j, y in enumerate((front, back)):
+            box(f"post_{k}_{j}", (0.08, 0.08, roof_z(y)), (x, y, roof_z(y) / 2), post, root)
+        box(f"rafter_{k}", (0.06, 2 * hy - 0.04, 0.12), (x, 0, roof_z(0) - 0.08), post, root,
+            rot=(math.atan(fall), 0, 0), lods=(0, 1, 2))
+    for j, y in enumerate((front, back)):
+        box(f"purlin_{j}", (2 * hx - 0.2, 0.06, 0.1), (0, y, roof_z(y) - 0.02), post, root, lods=(0, 1, 2))
+    # the roof sheet overhangs to the box at both long sides; it falls toward -y
+    run = 2 * hy / math.cos(math.atan(fall))
+    box("roof", (2 * hx, run, 0.03), (0, 0, roof_z(0) + 0.05), roof, root, rot=(math.atan(fall), 0, 0))
+    for k, z in enumerate((0.45, 1.1)):
+        box(f"back_rail_{k}", (2 * hx - 0.3, 0.04, 0.05), (0, back, z), post, root, lods=(0, 1, 2))
+    for k, x in enumerate((-hx + 0.15 + (2 * hx - 0.3) / 4, hx - 0.15 - (2 * hx - 0.3) / 4)):  # on the back posts
+        box(f"meter_box_{k}", (0.4, 0.16, 0.55), (x, back - 0.12, 1.5), meter, root, bevel=0.02, lods=(0, 1, 2))
+    colours = ((0.5, 0.5, 0.48), (0.25, 0.02, 0.02), (0.03, 0.08, 0.2), (0.4, 0.4, 0.38), (0.02, 0.02, 0.02),
+               (0.12, 0.25, 0.3))
+    slots = [-hx + 0.6 + k * 1.05 for k in range(9)]
+    for k, x in enumerate(slots):
+        if k in (2, 6):
+            frame = flat_paint(f"bike_{k}_frame", colours[k % 6], rough=0.4, grime=0.4)
+            bicycle(f"bike_{k}", (x, 0.15, 0), -math.pi / 2 + rng.uniform(-0.08, 0.08), frame, segs=COARSE_RING)
+        elif k != 4:
+            ebike(f"ebike_{k}", (x, 0.1, 0), -math.pi / 2 + rng.uniform(-0.1, 0.1), colours[k % 6])
+    return [hx, hy, hz]
+
+
+@kind
+def pingpong_table():
+    """The estate's table-tennis table, cast in concrete: a 2.74 m by 1.52 m top on two
+    solid piers, its face painted and lined, and a steel plate for a net."""
+    hx, hy, hz = 1.37, 0.76, 0.45
+    conc = textured("table_concrete", "concrete", chip=0.7, dirt=0.5, rise=0.3, streak=0.3, mottle=0.2)
+    face = textured("table_face", "concrete", colour=(0.04, 0.12, 0.1), chip=0.15, dirt=0.0, rise=0.1, streak=0.0, grain=0.0)
+    line = flat_paint("table_line", (0.6, 0.6, 0.57), rough=0.6, wear=0.5, grime=0.0)
+    steel = flat_paint("table_net", (0.03, 0.033, 0.035), rough=0.5, wear=0.3, grime=0.0)
+    top, slab = 0.76, 0.08
+    box("slab", (2 * hx, 2 * hy, slab - 0.004), (0, 0, top - slab / 2 - 0.002), conc, root, bevel=0.012)
+    box("face", (2 * hx - 0.02, 2 * hy - 0.02, 0.004), (0, 0, top - 0.002), face, root)
+    for k, s in enumerate((-1, 1)):
+        box(f"pier_{k}", (0.16, 1.1, top - slab), (s * 0.85, 0, (top - slab) / 2), conc, root, bevel=0.01)
+        box(f"line_end_{k}", (0.02, 2 * hy - 0.04, 0.003), (s * (hx - 0.02), 0, top + 0.0015), line, root, lods=(0, 1))
+        box(f"line_side_{k}", (2 * hx - 0.04, 0.02, 0.003), (0, s * (hy - 0.02), top + 0.0015), line, root, lods=(0, 1))
+    box("line_mid", (2 * hx - 0.04, 0.006, 0.003), (0, 0, top + 0.0015), line, root, lods=(0,))
+    box("net", (0.006, 2 * hy - 0.04, 0.13), (0, 0, top + 0.08), steel, root)
+    for k, s in enumerate((-1, 1)):
+        box(f"net_post_{k}", (0.04, 0.03, 0.15), (0, s * (hy - 0.015), top + 0.075), steel, root, lods=(0, 1, 2))
+    return [hx, hy, hz]
+
+
+@kind
+def outdoor_gym():
+    """A double air walker from the estate's fitness path: a blue steel frame, a yellow
+    top beam, and two yellow pendulum walkers hanging from it on their own axles, one
+    stride forward, one back."""
+    hx, hy, hz = 0.8, 0.5, 0.9
+    blue = textured("gym_blue", "enamel", colour=(0.02, 0.09, 0.32), chip=0.5, dirt=0.5, rise=0.4)
+    yellow = textured("gym_yellow", "enamel", colour=(0.55, 0.36, 0.02), chip=0.6, dirt=0.4, rise=0.4)
+    plate = flat_paint("gym_plate", (0.2, 0.2, 0.2), rough=0.6, metal=0.5, wear=0.5, grime=0.6)
+    top = 2 * hz - 0.05
+    for k, s in enumerate((-1, 1)):
+        x = s * (hx - 0.1)
+        tube(f"post_{k}", (x, 0, 0.0), (x, 0, top), 0.065, blue, seg=12)
+        cyl(f"flange_{k}", 0.1, 0.02, (x, 0, 0.01), "Z", plate, root, seg=10, lods=(0, 1))
+        cyl(f"cap_{k}", 0.065, 0.06, (x, 0, top + 0.02), "Z", yellow, root, seg=12, lods=(0, 1, 2))
+    tube("beam", (-hx + 0.1, 0, top - 0.05), (hx - 0.1, 0, top - 0.05), 0.045, yellow, seg=12)
+    tube("mid_post", (0, 0, 0.0), (0, 0, top - 0.05), 0.05, blue, seg=12)
+    axle = 1.4
+    tube("axle", (-hx + 0.1, 0, axle), (hx - 0.1, 0, axle), 0.035, blue, lods=(0, 1, 2))
+    for k, s in enumerate((-1, 1)):
+        x = s * 0.4
+        for j, (swing, dx) in enumerate(((0.32, -0.12), (-0.28, 0.12))):
+            foot = (x + dx, swing, 0.28)
+            tube(f"walker_{k}_{j}", (x + dx, 0, axle), foot, 0.04, yellow, lods=(0, 1, 2))
+            box(f"pedal_{k}_{j}", (0.26, 0.36, 0.05), (foot[0], foot[1], foot[2] - 0.03), yellow, root, bevel=0.01,
+                lods=(0, 1, 2))
+        tube(f"handle_stem_{k}", (x, 0, top - 0.05), (x, -0.18, 1.2), 0.035, yellow, lods=(0, 1, 2))
+        tube(f"handle_{k}", (x - 0.22, -0.18, 1.2), (x + 0.22, -0.18, 1.2), 0.03, yellow, lods=(0, 1, 2))
+    return [hx, hy, hz]
+
+
+@kind
+def laundry_poles():
+    """A drying rack in the court: two steel posts with T-heads, two bars between them,
+    quilts thrown over one bar to air and shirts on hangers along the other."""
+    hx, hy, hz = 3.0, 0.15, 1.0
+    post = flat_paint("pole_paint", (0.07, 0.11, 0.08), rough=0.5, metal=0.4, wear=0.5, grime=0.6)
+    hanger = flat_paint("hanger", (0.4, 0.38, 0.35), rough=0.5, grime=0.0)
+    top, bar = 2 * hz - 0.03, hy - 0.04
+    for k, s in enumerate((-1, 1)):
+        x = s * (hx - 0.04)
+        tube(f"post_{k}", (x, 0, 0.0), (x, 0, top), 0.03, post)
+        tube(f"head_{k}", (x, -bar, top - 0.02), (x, bar, top - 0.02), 0.02, post, lods=(0, 1, 2))
+    for j, y in enumerate((-bar, bar)):
+        tube(f"bar_{j}", (-hx, y, top - 0.04), (hx, y, top - 0.04), 0.015, post, lods=(0, 1, 2))
+    at_bar = lambda x: top - 0.04
+    # quilts thrown over the -y bar: one cloth down each side of it
+    for name, x0, x1, colour, seed in (("quilt_a", -2.8, -1.05, (0.5, 0.08, 0.1), 0.4),
+                                       ("quilt_b", 0.35, 1.9, (0.3, 0.42, 0.55), 1.7)):
+        hang(f"{name}_front", -bar - 0.025, at_bar, x0, x1, 1.05, colour, seed, pegs=False)
+        hang(f"{name}_back", -bar + 0.025, at_bar, x0, x1, 0.9, tuple(0.9 * c for c in colour), seed + 0.5, pegs=False)
+    # shirts on hangers along the +y bar
+    for k, (x, colour) in enumerate(((-0.8, (0.62, 0.62, 0.6)), (-0.25, (0.12, 0.2, 0.42)), (2.2, (0.55, 0.42, 0.12)),
+                                     (2.65, (0.62, 0.6, 0.58)), (-1.55, (0.08, 0.08, 0.09)))):
+        drop = top - 0.18
+        hang(f"shirt_{k}", bar, lambda _x: drop, x - 0.2, x + 0.2, 0.62, colour, 0.9 * k, pegs=False)
+        tube(f"hanger_{k}_a", (x - 0.2, bar, drop - 0.01), (x, bar, drop + 0.08), 0.005, hanger, lods=(0,), seg=4)
+        tube(f"hanger_{k}_b", (x + 0.2, bar, drop - 0.01), (x, bar, drop + 0.08), 0.005, hanger, lods=(0,), seg=4)
+        tube(f"hanger_{k}_c", (x, bar, drop + 0.08), (x, bar, top - 0.04), 0.005, hanger, lods=(0,), seg=4)
+    return [hx, hy, hz]
+
+
+@kind
+def bench_china():
+    """China's look of the shared bench: red-brown lacquered slats, seat and back, on two
+    pale granite ends."""
+    hx, hy, hz = 0.9, 0.3, 0.42
+    stone = textured("granite", "concrete", colour=(0.42, 0.4, 0.38), chip=0.4, dirt=0.4, rise=0.3, streak=0.1, mottle=0.2)
+    wood = timber("lacquer", (0.16, 0.035, 0.02), chip=0.5, dirt=0.4, rise=0.4, mottle=0.2, streak=0.2)
+    for k, s in enumerate((-1, 1)):
+        x = s * (hx - 0.07)
+        box(f"end_{k}", (0.14, 0.5, 0.4), (x, -0.04, 0.2), stone, root, bevel=0.015)
+        box(f"back_post_{k}", (0.12, 0.1, 0.84), (x, hy - 0.06, 0.42), stone, root, bevel=0.012,
+            rot=(math.radians(-5), 0, 0))
+    for k in range(4):
+        box(f"seat_slat_{k}", (2 * hx - 0.3, 0.11, 0.04), (0, -0.25 + 0.13 * k, 0.42), wood, root, bevel=0.006,
+            lods=(0, 1))
+    box("seat_far", (2 * hx - 0.3, 0.5, 0.04), (0, -0.055, 0.42), wood, root, lods=(2, 3))
+    for k in range(3):
+        box(f"back_slat_{k}", (2 * hx - 0.26, 0.035, 0.09), (0, hy - 0.08 + 0.012 * k, 0.55 + 0.11 * k), wood, root,
+            rot=(math.radians(-8), 0, 0), bevel=0.006, lods=(0, 1))
+    box("back_far", (2 * hx - 0.26, 0.035, 0.32), (0, hy - 0.07, 0.66), wood, root, rot=(math.radians(-8), 0, 0),
+        lods=(2, 3))
+    return [hx, hy, hz]
+
+
+@kind
+def bins_china():
+    """China's look of the shared bins: a sorting point, four lidded bins in a row in the
+    sorting colours (red, blue, green, grey), each with a pale label panel on both faces."""
+    hx, hy, hz = 0.65, 0.38, 0.55
+    label = flat_paint("bin_label", (0.6, 0.6, 0.57), rough=0.5, grime=0.2)
+    wheel = flat_paint("bin_wheel", (0.02, 0.02, 0.02), rough=0.8, grime=0.4)
+    w, d, h = 0.3, 0.56, 0.98
+    colours = ((0.38, 0.03, 0.025), (0.03, 0.12, 0.38), (0.03, 0.22, 0.07), (0.15, 0.155, 0.155))
+    for k, colour in enumerate(colours):
+        x = -hx + 0.01 + w / 2 + k * (w + 0.0233)
+        body = textured(f"bin_{k}", "hard_plastic", colour=colour, chip=0.15, dirt=0.5, rise=0.4, streak=0.2)
+        box(f"bin_{k}_body", (w - 0.04, d - 0.08, h - 0.06), (x, 0.0, 0.04 + (h - 0.06) / 2), body, root, bevel=0.02,
+            taper=(1.12, 1.12))
+        box(f"bin_{k}_lid", (w + 0.01, d + 0.04, 0.05), (x, 0.0, h + 0.01), body, root, bevel=0.012,
+            rot=(math.radians(-2 if k % 2 else 2), 0, 0))
+        box(f"bin_{k}_handle", (w - 0.08, 0.03, 0.03), (x, d / 2 + 0.01, h + 0.05), body, root, lods=(0, 1))
+        for j, sy in enumerate((-1, 1)):
+            box(f"bin_{k}_label_{j}", (w - 0.1, 0.01, 0.22), (x, sy * (d / 2 - 0.015), 0.62), label, root, lods=(0, 1, 2),
+                rot=(sy * math.radians(-3.5), 0, 0))
+            cyl(f"bin_{k}_wheel_{j}", 0.05, 0.04, (x + sy * 0.09, d / 2 - 0.08, 0.05), "X", wheel, root, seg=10,
+                lods=(0, 1))
     return [hx, hy, hz]
 
 

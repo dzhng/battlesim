@@ -18,22 +18,22 @@
     "bike_shed": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": true, "weight_class": "medium", "hp": 80, "cover_tier": "light"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "bike_shed", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "bike_shed", "map_only": true}
     },
     "pingpong_table": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "hp": 250, "cover_tier": "medium"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "pingpong_table", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "pingpong_table", "map_only": true}
     },
     "outdoor_gym": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "medium", "hp": 60},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "outdoor_gym", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "outdoor_gym", "map_only": true}
     },
     "laundry_poles": {
       "body": {"blocks": {"infantry": false, "vehicle": false}, "stops_rounds": false, "occludes": true, "weight_class": "light", "hp": 10},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "laundry_poles", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "laundry_poles", "map_only": true}
     },
     "chainlink_fence": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 25},

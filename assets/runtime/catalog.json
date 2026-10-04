@@ -47,6 +47,18 @@
       "scenery": "bench",
       "unit": "scenery"
     },
+    "bench_china": {
+      "bundle": "6dc269883ca1b30b9d5f81f2597cdadec6859440eb098e0f0c3363f6cd84666d",
+      "footprint_half_m": [
+        0.9,
+        0.3,
+        0.42
+      ],
+      "kind": "static",
+      "regional_family": "china",
+      "scenery": "bench",
+      "unit": "scenery"
+    },
     "bike_rack": {
       "bundle": "344177efde0cd44727a4dbe24a675b3abee230b1cf484b195e6d37b1ff1733e2",
       "footprint_half_m": [
@@ -58,6 +70,17 @@
       "scenery": "bike_rack",
       "unit": "scenery"
     },
+    "bike_shed": {
+      "bundle": "6d874bb0019b7e5a398b7d6e9f207ed22a805aa8e2c5ed68f8ab44c9d911b913",
+      "footprint_half_m": [
+        5,
+        1.25,
+        1.2
+      ],
+      "kind": "static",
+      "scenery": "bike_shed",
+      "unit": "scenery"
+    },
     "bins": {
       "bundle": "6168e87a4a1e63ef0680361a3d22318f2acabbdb8e84321c72d9701b2d7c5a58",
       "footprint_half_m": [
@@ -66,6 +89,18 @@
         0.55
       ],
       "kind": "static",
+      "scenery": "bins",
+      "unit": "scenery"
+    },
+    "bins_china": {
+      "bundle": "f5318328b04431b381aceb4f88a24441c4a75475b82d1267635a765b71fd92b5",
+      "footprint_half_m": [
+        0.65,
+        0.38,
+        0.55
+      ],
+      "kind": "static",
+      "regional_family": "china",
       "scenery": "bins",
       "unit": "scenery"
     },
@@ -472,6 +507,28 @@
       "scenery": "lamp",
       "unit": "scenery"
     },
+    "laundry_poles": {
+      "bundle": "fa0ac01b4bcf92d978f098f564ab606856ad2def3af6bc512aff752fdf0279fe",
+      "footprint_half_m": [
+        3,
+        0.15,
+        1
+      ],
+      "kind": "static",
+      "scenery": "laundry_poles",
+      "unit": "scenery"
+    },
+    "outdoor_gym": {
+      "bundle": "f20d8b332eefc98c1d391cf0a68e74dbd3d1e8ee43fc1e7bd9da426e3be46576",
+      "footprint_half_m": [
+        0.8,
+        0.5,
+        0.9
+      ],
+      "kind": "static",
+      "scenery": "outdoor_gym",
+      "unit": "scenery"
+    },
     "pallet_stack": {
       "bundle": "eecdecbdf6d41b46ad10bd77398d868286de76f7b652dc14e99823264a0b9fb5",
       "footprint_half_m": [
@@ -494,6 +551,17 @@
       "scenery": "parked_car",
       "unit": "scenery"
     },
+    "pingpong_table": {
+      "bundle": "fad50c681b58f1faf3fac11f310dba45e95cc28a8b8d31e83d166a1aa9d00238",
+      "footprint_half_m": [
+        1.37,
+        0.76,
+        0.45
+      ],
+      "kind": "static",
+      "scenery": "pingpong_table",
+      "unit": "scenery"
+    },
     "planter": {
       "bundle": "42d368777333dd804306d08a4a7329689b875fdad8538e313ca4175234d773b8",
       "footprint_half_m": [
@@ -506,7 +574,7 @@
       "unit": "scenery"
     },
     "playground_frame": {
-      "bundle": "20f2327de1591d5c231bd13c5d22e9e85096378073e1fd0ea0c83e6d91699d75",
+      "bundle": "1189f6d09f6ac28b5232a232c7a2faa0cd6d96cfb1e98facbec09fa67de6ce8b",
       "footprint_half_m": [
         2,
         1.5,
@@ -813,6 +881,11 @@
       "hash": "b24f36892a2f73239b5a95deff4236952d64d0eecb0ff59dbfebf324e0ae8dd6",
       "raw_bytes": 13701512
     },
+    "6dc269883ca1b30b9d5f81f2597cdadec6859440eb098e0f0c3363f6cd84666d": {
+      "bytes": 205908,
+      "hash": "1ce91aa7c0742e93b1ed494c5a9a42e9f260c3e0b2612c594fb9206607a3e902",
+      "raw_bytes": 719056
+    },
     "7d1390df7ffc1500d267c217dcc36d6ca3b91d4a3b016148233f4aeafaaae50a": {
       "bytes": 3700688,
       "hash": "2bba81c7ba8c36846e0d42bbd6ef0180de134eca9dc3494f114386e18ec69ccc",
@@ -842,6 +915,11 @@
       "bytes": 5454699,
       "hash": "e1719fa71901dfa5dfec1e26368e9565f98aa2965dfd32847de4298601f3e8bd",
       "raw_bytes": 19165276
+    },
+    "f5318328b04431b381aceb4f88a24441c4a75475b82d1267635a765b71fd92b5": {
+      "bytes": 118037,
+      "hash": "043f4896ea8eb831c2953a66ee7e75518e24073b4fcc1a48f655c6891bbfda75",
+      "raw_bytes": 452276
     },
     "ffd54afcbd5a4ff3dd4f7eaceda098698d9870c52b4786c1bc6b147459b3f78c": {
       "bytes": 7972148,

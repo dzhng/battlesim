@@ -88,6 +88,10 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   bike_rack: prop,
   playground_frame: prop,
   swing: prop,
+  bike_shed: prop,
+  pingpong_table: prop,
+  outdoor_gym: prop,
+  laundry_poles: prop,
   /** The cover a forest floor holds: a fallen trunk, and a boulder. */
   log: prop,
   boulder: prop,

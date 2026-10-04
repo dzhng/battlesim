@@ -99,8 +99,7 @@
         "bike_shed": {
           "appearance": {
             "drawn_by": "bike_shed",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -678,8 +677,7 @@
         "laundry_poles": {
           "appearance": {
             "drawn_by": "laundry_poles",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -774,8 +772,7 @@
         "outdoor_gym": {
           "appearance": {
             "drawn_by": "outdoor_gym",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -872,8 +869,7 @@
         "pingpong_table": {
           "appearance": {
             "drawn_by": "pingpong_table",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -2017,8 +2013,7 @@
     "bike_shed": {
       "appearance": {
         "drawn_by": "bike_shed",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2596,8 +2591,7 @@
     "laundry_poles": {
       "appearance": {
         "drawn_by": "laundry_poles",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2692,8 +2686,7 @@
     "outdoor_gym": {
       "appearance": {
         "drawn_by": "outdoor_gym",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2790,8 +2783,7 @@
     "pingpong_table": {
       "appearance": {
         "drawn_by": "pingpong_table",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,

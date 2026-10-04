@@ -44,7 +44,8 @@ done
 # per kind, and each region's look of a shared piece (`<kind>_<family>`)
 c="$root/assets/source/courts"
 mkdir -p "$c"
-for kind in garden_shed hedge garden_fence washing_line garden_table bike_rack playground_frame swing; do
+for kind in garden_shed hedge garden_fence washing_line garden_table bike_rack playground_frame swing \
+  bike_shed pingpong_table outdoor_gym laundry_poles bench_china bins_china; do
   blender courts.py "$kind" "$c/$kind.glb"
 done
 # the trees and hedgerows, one GLB per kind into assets/source/trees/
