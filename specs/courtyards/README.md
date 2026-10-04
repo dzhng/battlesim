@@ -4,14 +4,14 @@ A generated town's streets carry furniture, but the ground between its buildings
 
 ## Next Agent Prompt
 
-*Status (2026-10-04): on branch `courtyards`: 00, 01, 06 (stand-in art) and 07 (pending the map's region from 04) merged. The ground lane (02 → 03 → 04, worktree `courtyards-ground`) is in flight and also wires slice 07's null call sites to `MapDefinition.regional_family`. Parity records are red only from moved plan bytes and the frozen `physical-rules.json` lacking the garden kinds; the integrator re-blesses once after the ground lane merges, with the presets revision bump. Next: 05 (needs 03), then 08. Watch: bodies per town tripled with gardens (choices.md); the closeout benchmark judges it.*
+*Status (2026-10-04): on branch `courtyards` and merged to `main`: 00, 01, 02, 03, 06 (stand-in art) and 07 (its call sites still pass a null region until 04). Presets are `layout-presets-14`; parity re-blessed once after merging the lanes (the frozen `physical-rules.json` gained the five garden prop rows). In progress, uncommitted, in worktree `courtyards-ground`: 04 (the map's region and the regional paving finish, plus wiring slice 07's call sites). Not started on its branch: 08a garden art (worktree `courtyards-art`). Next: finish 04, then 05, then 08. Watch: bodies per town tripled with gardens (choices.md); the closeout benchmark judges it.*
 
 You are implementing this spec with [implement-spec](../../.agents/skills/implement-spec/SKILL.md). Start at [slice 00](slices/00-budget-and-stand-ins.md); it only measures and decides two numbers, and every later slice inherits them. Work the ladder in order unless the graph below says a slice can run beside another. Record every decision the slices leave open in [choices.md](choices.md) as you make it. Before ending a pass, update this section: status, the next pickup point, and the checklist.
 
 - [x] 00 Measure the scenery download and prove stand-in bodies ([slice](slices/00-budget-and-stand-ins.md))
 - [x] 01 The legality check gets its own module, no behaviour change ([slice](slices/01-field-module.md))
-- [ ] 02 One paved kind for hard ground that is no way through ([slice](slices/02-paving-kind.md))
-- [ ] 03 Dense blocks paved ([slice](slices/03-courts.md))
+- [x] 02 One paved kind for hard ground that is no way through ([slice](slices/02-paving-kind.md))
+- [x] 03 Dense blocks paved ([slice](slices/03-courts.md))
 - [ ] 04 The map names its region; paving takes the region's finish ([slice](slices/04-map-region.md))
 - [ ] 05 Court amenities as bodies, with stand-in art ([slice](slices/05-court-amenities.md))
 - [x] 06 Garden dressing in suburbs and villages ([slice](slices/06-gardens.md))
