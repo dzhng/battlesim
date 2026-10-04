@@ -1,0 +1,218 @@
+//! The one legality check every body of street furniture, court and garden
+//! goes through ([`Field::legal`]), and the bodies placed so far.
+use crate::layout::geometry::{direction, round_cm, Grid, Point};
+use crate::layout::water::Water;
+use crate::layout::{Corridor, PropBox, StreetProps};
+use crate::parcels::space::Rect;
+use contract::map::{AuthoredPropDefinition, PropDefinition};
+
+/// One straight piece of a carriageway.
+pub(super) struct Piece {
+    pub(super) a: Point,
+    pub(super) b: Point,
+    pub(super) half_width: f64,
+    pub(super) way: u32,
+    /// Where it starts and ends along its way.
+    pub(super) along: [f64; 2],
+}
+
+/// A body on the map so far.
+pub(super) struct Body {
+    pub(super) rect: Rect,
+    pub(super) clear: f64,
+    /// Bodies of one group (a run of cars, a construction site) stand as
+    /// close to each other as they like; 0 is no group.
+    pub(super) group: u32,
+}
+
+/// A body asking for ground.
+#[derive(Clone, Copy)]
+pub(super) struct Candidate {
+    /// The box as the map will hold it: its centre in whole centimetres
+    /// and its heading in microradians.
+    pub(super) rect: Rect,
+    pub(super) yaw: f64,
+    pub(super) clear: f64,
+    pub(super) group: u32,
+    /// The carriageway it stands beside and how far along: the one it
+    /// keeps only the lane's distance from, whatever `corner` asks of the
+    /// others.
+    pub(super) beside: Option<(u32, f64)>,
+    /// Kept between it and any other carriageway's edge.
+    pub(super) corner: f64,
+}
+
+/// Everything a body must keep clear of, and the bodies placed so far.
+pub(super) struct Field<'a> {
+    pub(super) size: [f64; 2],
+    pub(super) rule: &'a StreetProps,
+    /// No body stands nearer a carriageway's middle than this: the lane a
+    /// vehicle drives beside the middle, and the room its route is checked
+    /// with.
+    pub(super) lane: f64,
+    pub(super) pieces: Vec<Piece>,
+    pub(super) piece_grid: Grid,
+    pub(super) widest: f64,
+    pub(super) walls: Vec<Rect>,
+    pub(super) wall_grid: Grid,
+    /// Each door's way to the street.
+    pub(super) doors: Vec<Rect>,
+    pub(super) door_grid: Grid,
+    pub(super) bodies: Vec<Body>,
+    pub(super) body_grid: Grid,
+    pub(super) most_clear: f64,
+    pub(super) water: Water<'a>,
+    pub(super) bank: f64,
+    /// Bridge decks with the straight run onto each.
+    pub(super) decks: Vec<Rect>,
+    pub(super) corridors: Vec<Corridor>,
+    pub(super) groups: u32,
+    pub(super) placed: Vec<AuthoredPropDefinition>,
+}
+
+/// Whether `a` and `b` stand at least `gap` apart.
+pub(super) fn apart(a: &Rect, b: &Rect, gap: f64) -> bool {
+    let grown = Rect {
+        half: [a.half[0] + gap, a.half[1] + gap],
+        ..*a
+    };
+    !grown.overlaps(b, 0.0)
+}
+
+pub(super) fn grow(bounds: [f64; 4], by: f64) -> [f64; 4] {
+    [
+        bounds[0] - by,
+        bounds[1] - by,
+        bounds[2] + by,
+        bounds[3] + by,
+    ]
+}
+
+impl Field<'_> {
+    /// The one legality check: whether `c` may stand where it asks.
+    pub(super) fn legal(&self, c: &Candidate) -> bool {
+        let rect = &c.rect;
+        let bounds = rect.bounds();
+        if bounds[0] < self.rule.edge_m
+            || bounds[1] < self.rule.edge_m
+            || bounds[2] > self.size[0] - self.rule.edge_m
+            || bounds[3] > self.size[1] - self.rule.edge_m
+        {
+            return false;
+        }
+        // Off every carriageway and the lane driven beside its middle; and,
+        // where the row asks, back from the corners other carriageways make.
+        let reach = self
+            .lane
+            .max(self.widest + self.rule.kerb_gap_m.max(c.corner));
+        // The stretch of its own carriageway a body stands beside: as far
+        // along as a piece of it, running straight on, could still lie
+        // within the corner's distance. Past that the way has come round
+        // again, and is another road to the body.
+        let window = reach + rect.half[0] + rect.half[1] + self.widest;
+        let on_road = self.piece_grid.any(grow(bounds, reach), |item| {
+            let piece = &self.pieces[item as usize];
+            let lane = self.lane.max(piece.half_width + self.rule.kerb_gap_m);
+            let beside = c.beside.is_some_and(|(way, s)| {
+                way == piece.way && piece.along[1] >= s - window && piece.along[0] <= s + window
+            });
+            let need = if beside {
+                lane
+            } else {
+                lane.max(piece.half_width + c.corner)
+            };
+            rect.segment_gap(piece.a, piece.b) < need
+        });
+        if on_road {
+            return false;
+        }
+        let wall = self.rule.wall_gap_m;
+        if self.wall_grid.any(grow(bounds, wall), |item| {
+            !apart(rect, &self.walls[item as usize], wall)
+        }) {
+            return false;
+        }
+        if self.door_grid.any(bounds, |item| {
+            rect.overlaps(&self.doors[item as usize], 0.0)
+        }) {
+            return false;
+        }
+        let crowded = self
+            .body_grid
+            .any(grow(bounds, self.most_clear.max(c.clear)), |item| {
+                let body = &self.bodies[item as usize];
+                if c.group != 0 && body.group == c.group {
+                    // Neighbours of one group may touch; a centimetre is rounding.
+                    rect.overlaps(&body.rect, 0.02)
+                } else {
+                    !apart(rect, &body.rect, body.clear.max(c.clear))
+                }
+            });
+        if crowded {
+            return false;
+        }
+        let points = rect.corners().into_iter().chain([rect.center]);
+        for p in points {
+            if !self.water.is_empty() && self.water.gap(p, self.bank) < self.bank {
+                return false;
+            }
+            if self.corridors.iter().any(|corridor| corridor.contains(p)) {
+                return false;
+            }
+        }
+        !self.decks.iter().any(|deck| rect.overlaps(deck, 0.0))
+    }
+
+    pub(super) fn group(&mut self) -> u32 {
+        self.groups += 1;
+        self.groups
+    }
+
+    /// Keep `way` open, as a door's way to the street is: no body may
+    /// stand on it.
+    pub(super) fn keep_clear(&mut self, way: Rect) {
+        self.door_grid.insert(way.bounds(), self.doors.len() as u32);
+        self.doors.push(way);
+    }
+
+    /// Stand `c` on the map as a body of `kind`.
+    pub(super) fn place(&mut self, kind: &str, body: &PropBox, c: &Candidate) {
+        self.body_grid
+            .insert(c.rect.bounds(), self.bodies.len() as u32);
+        self.bodies.push(Body {
+            rect: c.rect,
+            clear: c.clear,
+            group: c.group,
+        });
+        self.placed.push(AuthoredPropDefinition {
+            id: None,
+            geometry: PropDefinition {
+                kind: kind.into(),
+                center: c.rect.center,
+                yaw: c.yaw,
+                half_extents: body.half_extents_m,
+                base_z: None,
+            },
+        });
+    }
+}
+
+impl Candidate {
+    /// A body of `body`'s box centred on `center`, lying along `along`, in
+    /// no group and beside no carriageway.
+    pub(super) fn new(body: &PropBox, center: Point, along: Point) -> Self {
+        let yaw = libm::round(libm::atan2(along[1], along[0]) * 1e6) / 1e6;
+        Self {
+            rect: Rect {
+                center: round_cm(center),
+                axis: direction(yaw),
+                half: [body.half_extents_m[0], body.half_extents_m[1]],
+            },
+            yaw,
+            clear: body.clear_m,
+            group: 0,
+            beside: None,
+            corner: 0.0,
+        }
+    }
+}
