@@ -703,6 +703,20 @@ fn every_building_of_a_map_is_of_one_regional_family() {
     let catalogue = TemplateGeometryCatalog::new(templates).unwrap();
     let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
     source["parcels"]["regional_families"] = serde_json::json!([family, "other"]);
+    // A court's regional tables name only listed families: "other" dresses
+    // its courts as `family` does.
+    for district in source["districts"].as_object_mut().unwrap().values_mut() {
+        let families = district
+            .get_mut("props")
+            .and_then(|props| props.get_mut("courts"))
+            .and_then(|courts| courts.get_mut("families"))
+            .and_then(|families| families.as_object_mut());
+        if let Some(families) = families {
+            let own = families[&family].clone();
+            *families =
+                serde_json::Map::from_iter([(family.clone(), own.clone()), ("other".into(), own)]);
+        }
+    }
     let presets = PresetDefinitions::from_json(&source.to_string()).unwrap();
     let mut drawn = BTreeSet::new();
     for seed in 1..=8 {

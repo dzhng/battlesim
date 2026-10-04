@@ -9,6 +9,7 @@
     "max_ground_points": 4096
   },
   "plan": {
+    "regional_family": "china",
     "size": [
       640,
       480

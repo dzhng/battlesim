@@ -132,6 +132,10 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
                 "ConstructionSite"
             } else if parts.contains(&"bodies") {
                 "PropBox"
+            } else if parts.contains(&"pieces") {
+                "GroupPiece"
+            } else if parts.contains(&"groups") {
+                "Group"
             } else {
                 "StreetProps"
             },
@@ -148,6 +152,8 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
                 "VergeRow"
             } else if parts.contains(&"gardens") {
                 "Gardens"
+            } else if parts.contains(&"courts") {
+                "Courts"
             } else if parts.contains(&"props") {
                 "DistrictProps"
             } else {

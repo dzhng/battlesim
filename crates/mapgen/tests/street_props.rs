@@ -11,7 +11,7 @@ use mapgen::layout::{
     approach_corridors, generate_layout, GenerationRequest, MapSize, MapType, PresetDefinitions,
 };
 use mapgen::parcels::fill_districts;
-use mapgen::street_props::{place_gardens, place_street_props};
+use mapgen::street_props::{place_courts_and_gardens, place_street_props};
 use mapgen::{CompileLimits, MapPlan};
 use serde_json::{json, Value};
 use sim::encounter::legality::stands;
@@ -32,6 +32,12 @@ const DOORS_WALKED: usize = 40;
 const STREETS_DRIVEN: usize = 40;
 /// How many dressed gardens of a map a squad walks to the back of.
 const GARDENS_WALKED: usize = 40;
+/// How many places among a map's court amenities a squad walks to and the
+/// widest hull drives to: points of a grid this fine over its courts, within
+/// this of an amenity.
+const COURTS_WALKED: usize = 40;
+const COURT_STEP_M: f64 = 6.0;
+const COURT_NEAR_M: f64 = 12.0;
 /// A drive down a dressed street is at most this much longer than down the
 /// bare one.
 const DETOUR_M: f64 = 30.0;
@@ -188,8 +194,9 @@ fn place(
     .collect()
 }
 
-/// The street furniture of `plan` under `request`, then its gardens, as the
-/// generator places them after the open country's cover: the bodies of both.
+/// The street furniture of `plan` under `request`, then its courts and
+/// gardens, as the generator places them after the open country's cover: the
+/// bodies of all.
 fn dressed(
     plan: &MapPlan,
     request: &GenerationRequest,
@@ -201,7 +208,7 @@ fn dressed(
     let mut furnished = plan.clone();
     furnished.props.extend(props.iter().cloned());
     props.extend(
-        place_gardens(
+        place_courts_and_gardens(
             &furnished,
             request,
             &catalogue(),
@@ -738,6 +745,365 @@ fn gardens_keep_to_the_back_of_their_own_lots() {
     assert!(per_lot.len() >= 200, "{} lots have a garden", per_lot.len());
 }
 
+/// The court groups these tests state, whatever the shipped presets are
+/// tuned to: one shared group and one for each family, each made of kinds no
+/// other group or dressing uses, so a placed body names its group. The New
+/// York group is fenced, with a gate.
+fn court_groups(source: &mut Value) {
+    source["street_props"]["groups"] = json!({
+        "play": {
+            "size_m": [11, 4],
+            "pieces": [
+                { "kind": "playground_frame", "at": [-2.8, 0], "yaw_deg": 0 },
+                { "kind": "swing", "at": [2.5, 0], "yaw_deg": 0 },
+            ],
+        },
+        "ping": {
+            "size_m": [10.5, 2.5],
+            "pieces": [
+                { "kind": "pingpong_table", "at": [-3, 0], "yaw_deg": 0 },
+                { "kind": "pingpong_table", "at": [3, 0], "yaw_deg": 0 },
+            ],
+        },
+        "hoops": {
+            "size_m": [18.45, 18.45],
+            "fence": "chainlink_fence",
+            "gate_m": 3,
+            "pieces": [
+                { "kind": "basketball_court", "at": [0.6, 0], "yaw_deg": 0 },
+                { "kind": "basketball_hoop", "at": [-7, 0], "yaw_deg": 90 },
+            ],
+        },
+        "boules": {
+            "size_m": [15.2, 7],
+            "pieces": [
+                { "kind": "petanque_pitch", "at": [0, 0.5], "yaw_deg": 0 },
+                { "kind": "kiosk", "at": [0, -2.5], "yaw_deg": 0 },
+            ],
+        },
+    });
+    for kind in COURT_DISTRICTS {
+        source["districts"][kind]["props"]["courts"] = json!({
+            "paved": true,
+            "spacing_m": 40,
+            "groups": { "play": 1 },
+            "families": {
+                "china": { "ping": 1 },
+                "new_york": { "hoops": 1 },
+                "paris": { "boules": 1 },
+            },
+        });
+    }
+}
+
+/// The district kinds that pave a court.
+const COURT_DISTRICTS: [&str; 4] = ["small_centre", "centre", "apartments", "core"];
+/// The kinds only one family's court group above places.
+const SIGNATURES: [(&str, &[&str]); 3] = [
+    ("china", &["pingpong_table"]),
+    (
+        "new_york",
+        &["basketball_court", "basketball_hoop", "chainlink_fence"],
+    ),
+    ("paris", &["petanque_pitch", "kiosk"]),
+];
+
+/// Every kind a court group of `presets` places, its fences' included.
+fn court_kinds(presets: &PresetDefinitions) -> std::collections::BTreeSet<&str> {
+    presets
+        .street_props
+        .groups
+        .values()
+        .flat_map(|group| {
+            group
+                .pieces
+                .iter()
+                .map(|piece| piece.kind.as_str())
+                .chain(group.fence.as_deref())
+        })
+        .collect()
+}
+
+/// The kinds only court groups of `presets` place: no street, yard, site or
+/// garden row names them.
+fn court_only_kinds(presets: &PresetDefinitions) -> std::collections::BTreeSet<&str> {
+    let rule = &presets.street_props;
+    let mut elsewhere: std::collections::BTreeSet<&str> = [
+        rule.parking.kind.as_str(),
+        rule.site.cabin.as_str(),
+        rule.site.fence.as_str(),
+    ]
+    .into_iter()
+    .chain(rule.site.stock.iter().map(|row| row.kind.as_str()))
+    .collect();
+    for district in presets.districts.values() {
+        let props = &district.props;
+        elsewhere.extend(props.verge.iter().map(|row| row.kind.as_str()));
+        elsewhere.extend(props.yard.iter().map(|row| row.kind.as_str()));
+        if let Some(gardens) = &props.gardens {
+            elsewhere.extend(gardens.pieces.iter().map(|row| row.kind.as_str()));
+            elsewhere.extend(gardens.boundary.keys().map(String::as_str));
+        }
+    }
+    court_kinds(presets)
+        .into_iter()
+        .filter(|kind| !elsewhere.contains(kind))
+        .collect()
+}
+
+/// A town of `region`, its parcels built and every dressing placed, by the
+/// court groups above.
+fn court_town(
+    region: &str,
+    seed: u64,
+) -> (
+    PresetDefinitions,
+    GenerationRequest,
+    MapPlan,
+    Vec<PropDefinition>,
+) {
+    let presets = presets_with(court_groups);
+    let mut request = request(MapType::Mixed, MapSize::Small, seed);
+    request.region = Some(region.into());
+    let plan = fill_districts(
+        generate_layout(&request, &presets).unwrap(),
+        &request,
+        &catalogue(),
+        &presets,
+    )
+    .unwrap();
+    let props = dressed(&plan, &request, &presets, &rules())
+        .into_iter()
+        .map(|prop| prop.geometry)
+        .collect();
+    (presets, request, plan, props)
+}
+
+/// Where a group's piece stands when its group stands at `centre` turned to
+/// `yaw`: its centre and its own yaw.
+fn piece_at(centre: Point, yaw: f64, at: [f64; 2], yaw_deg: f64) -> (Point, f64) {
+    let (sin, cos) = yaw.sin_cos();
+    (
+        [
+            centre[0] + cos * at[0] - sin * at[1],
+            centre[1] + sin * at[0] + cos * at[1],
+        ],
+        yaw + yaw_deg.to_radians(),
+    )
+}
+
+/// Whether two yaws lie the same way, to a box's symmetry.
+fn same_heading(a: f64, b: f64) -> bool {
+    let turn = (a - b).rem_euclid(std::f64::consts::PI);
+    turn < 1e-3 || std::f64::consts::PI - turn < 1e-3
+}
+
+/// Court amenities stand whole, inside their courts, and only a map's own
+/// family's signature pieces stand on it. On a town of each region every
+/// piece of a court group lies wholly inside the court of a district that
+/// paves one, off every building's walls; every piece belongs to a group
+/// whose every piece stands where the group puts it (a fenced group with its
+/// fence round it and its gate open); both the shared group and the map's
+/// own family's group are placed; and no kind of another family's group is.
+#[test]
+fn court_groups_stand_whole_in_their_courts_and_keep_to_their_family() {
+    for (family, own) in SIGNATURES {
+        let (presets, request, plan, props) = court_town(family, 1);
+        let groups = &presets.street_props.groups;
+        let map = compiled(&plan, &[], &request);
+        let wall_gap = presets.street_props.wall_gap_m;
+        let courts: Vec<&[Point]> = plan.courts.iter().map(|c| c.ring.as_slice()).collect();
+        let court_kinds = court_kinds(&presets);
+        // Every court piece, and whether a whole group claims it.
+        let pieces: Vec<&PropDefinition> = props
+            .iter()
+            .filter(|prop| court_kinds.contains(prop.kind.as_str()))
+            .collect();
+        for prop in &pieces {
+            let at = format!("{family}: a {} at {:?}", prop.kind, prop.center);
+            assert!(
+                courts
+                    .iter()
+                    .any(|ring| corners(prop).iter().all(|p| polygon_contains(ring, *p))),
+                "{at} stands in no court"
+            );
+            for (others, signature) in SIGNATURES {
+                assert!(
+                    others == family || !signature.contains(&prop.kind.as_str()),
+                    "{at} is a {others} piece"
+                );
+            }
+            let nearest = map
+                .buildings
+                .iter()
+                .flat_map(|building| &building.geometry.parts)
+                .map(|part| {
+                    corners(prop)
+                        .into_iter()
+                        .chain([prop.center])
+                        .map(|p| {
+                            let (sin, cos) = part.yaw.sin_cos();
+                            let d = [p[0] - part.center[0], p[1] - part.center[1]];
+                            let local = [d[0] * cos + d[1] * sin, d[1] * cos - d[0] * sin];
+                            let out = [0, 1]
+                                .map(|axis| (local[axis].abs() - part.half_extents[axis]).max(0.0));
+                            out[0].hypot(out[1])
+                        })
+                        .fold(f64::INFINITY, f64::min)
+                })
+                .fold(f64::INFINITY, f64::min);
+            // A body's corners against a wall's box: within a corner's
+            // reach of the true gap, which the rule keeps at the wall gap.
+            assert!(
+                nearest >= wall_gap - 0.011,
+                "{at} stands {nearest:.2} m from a building"
+            );
+        }
+        let mut claimed = vec![false; pieces.len()];
+        let mut placed: BTreeMap<&str, usize> = BTreeMap::new();
+        for (name, group) in groups {
+            let first = &group.pieces[0];
+            for anchor in pieces.iter().filter(|prop| prop.kind == first.kind) {
+                // The group as its first piece puts it.
+                let yaw = anchor.yaw - first.yaw_deg.to_radians();
+                let (offset, _) = piece_at([0.0, 0.0], yaw, first.at, 0.0);
+                let centre = [anchor.center[0] - offset[0], anchor.center[1] - offset[1]];
+                let find = |kind: &str, (at, heading): (Point, f64)| {
+                    pieces.iter().position(|prop| {
+                        prop.kind == kind
+                            && span(prop.center, at) < 0.03
+                            && same_heading(prop.yaw, heading)
+                    })
+                };
+                let found: Option<Vec<usize>> = group
+                    .pieces
+                    .iter()
+                    .map(|piece| find(&piece.kind, piece_at(centre, yaw, piece.at, piece.yaw_deg)))
+                    .collect();
+                let Some(mut found) = found else {
+                    continue;
+                };
+                if let Some(fence) = &group.fence {
+                    // Panels along the group's edge, the gate's middle open.
+                    let half = [group.size_m[0] / 2.0, group.size_m[1] / 2.0];
+                    let local = |p: Point| {
+                        let (sin, cos) = yaw.sin_cos();
+                        let d = [p[0] - centre[0], p[1] - centre[1]];
+                        [d[0] * cos + d[1] * sin, d[1] * cos - d[0] * sin]
+                    };
+                    let panels: Vec<usize> = (0..pieces.len())
+                        .filter(|index| {
+                            let p = local(pieces[*index].center);
+                            pieces[*index].kind == *fence
+                                && p[0].abs() <= half[0] + 0.01
+                                && p[1].abs() <= half[1] + 0.01
+                                && (half[0] - p[0].abs() < 0.2 || half[1] - p[1].abs() < 0.2)
+                        })
+                        .collect();
+                    let gate = group.gate_m.unwrap();
+                    let gate_open = panels.iter().all(|index| {
+                        let p = local(pieces[*index].center);
+                        let reach = pieces[*index].half_extents[0];
+                        !(p[1] < -half[1] + 0.2 && p[0].abs() - reach < gate / 2.0 - 0.011)
+                    });
+                    let sides = [
+                        |p: Point, h: [f64; 2]| p[1] < -h[1] + 0.2,
+                        |p: Point, h: [f64; 2]| p[0] > h[0] - 0.2,
+                        |p: Point, h: [f64; 2]| p[1] > h[1] - 0.2,
+                        |p: Point, h: [f64; 2]| p[0] < -h[0] + 0.2,
+                    ];
+                    // Each side fenced from end to end bar its gate: its panels
+                    // run its length to within one panel.
+                    let panel = panel_length(&presets, fence);
+                    let closed = sides.iter().enumerate().all(|(side, on)| {
+                        let length = 2.0 * half[side % 2];
+                        let count = panels
+                            .iter()
+                            .filter(|index| on(local(pieces[**index].center), half))
+                            .count() as f64;
+                        let open = if side == 0 { gate + panel } else { 0.0 };
+                        count * panel >= length - open - panel
+                    });
+                    assert!(
+                        gate_open && closed,
+                        "{family}: the fence of the {name} at {centre:?} is not whole: {} panels",
+                        panels.len()
+                    );
+                    found.extend(panels);
+                }
+                *placed.entry(name.as_str()).or_insert(0) += 1;
+                for index in found {
+                    claimed[index] = true;
+                }
+            }
+        }
+        for (index, prop) in pieces.iter().enumerate() {
+            assert!(
+                claimed[index],
+                "{family}: a {} at {:?} belongs to no whole group",
+                prop.kind, prop.center
+            );
+        }
+        let own_group = match family {
+            "china" => "ping",
+            "new_york" => "hoops",
+            _ => "boules",
+        };
+        assert!(
+            placed.get("play").copied().unwrap_or(0) >= 10
+                && placed.get(own_group).copied().unwrap_or(0) >= 3,
+            "{family}: groups placed {placed:?}"
+        );
+        for kind in own {
+            assert!(
+                pieces.iter().any(|prop| prop.kind == *kind),
+                "{family}: no {kind} placed"
+            );
+        }
+    }
+}
+
+/// The presets refuse a court group that names a body `street_props` lacks,
+/// a family table for a family the map regions do not list, a court table
+/// naming a group that does not exist, and a fenced group whose panels leave
+/// its corners open.
+#[test]
+fn a_court_group_naming_an_unknown_body_family_or_group_is_refused() {
+    let edits: [(&str, fn(&mut Value)); 4] = [
+        ("street_props.groups.play", |source| {
+            source["street_props"]["groups"]["play"]["pieces"][0]["kind"] = "gazebo".into();
+        }),
+        ("districts.core.props.courts", |source| {
+            source["districts"]["core"]["props"]["courts"]["families"]["atlantis"] =
+                json!({ "play": 1 });
+        }),
+        ("districts.core.props.courts", |source| {
+            source["districts"]["core"]["props"]["courts"]["groups"] = json!({ "maze": 1 });
+        }),
+        ("street_props.groups.hoops", |source| {
+            source["street_props"]["groups"]["hoops"]["size_m"] = json!([20, 18.45]);
+        }),
+    ];
+    for (location, edit) in edits {
+        let mut source: Value = serde_json::from_str(PRESETS).unwrap();
+        court_groups(&mut source);
+        assert!(PresetDefinitions::from_json(&source.to_string()).is_ok());
+        edit(&mut source);
+        let refused = PresetDefinitions::from_json(&source.to_string())
+            .err()
+            .unwrap_or_else(|| panic!("an edit at {location} was admitted"));
+        assert!(
+            refused.iter().any(|d| d.location.contains(location)),
+            "{refused:?}"
+        );
+    }
+}
+
+/// A panel's length of the fence body `kind`.
+fn panel_length(presets: &PresetDefinitions, kind: &str) -> f64 {
+    2.0 * presets.street_props.bodies[kind].half_extents_m[0]
+}
+
 /// A garden row names a body of `street_props`, and the presets refuse one
 /// that does not, as they refuse a verge row's.
 #[test]
@@ -761,14 +1127,17 @@ fn a_garden_row_naming_an_unknown_body_is_refused() {
     }
 }
 
-/// The suburbs of the most suburban map the sweep builds are dressed, and
-/// the map, gardens and all, stays within the authored-part limit a
-/// generated battle is admitted under.
+/// The largest map the sweep builds, its courts and gardens dressed, stays
+/// within the authored-part limit a generated battle is admitted under:
+/// courts take the parts the rest of the map leaves first, gardens what the
+/// courts leave, and on this map both are dressed.
 #[test]
-fn a_suburban_city_with_its_gardens_stays_within_the_part_limit() {
+fn a_city_with_its_courts_and_gardens_stays_within_the_part_limit() {
     let defaults: Value =
         serde_json::from_str(include_str!("../../../fixtures/generated-battle.json")).unwrap();
     let limit = defaults["limits"]["max_authored_parts"].as_u64().unwrap();
+    let presets = presets();
+    let courts = court_only_kinds(&presets);
     let mut request = request(MapType::Metro, MapSize::Large, 2);
     request.limits = serde_json::from_value(defaults["limits"].clone()).unwrap();
     let result = match mapgen::generate_map(
@@ -780,34 +1149,37 @@ fn a_suburban_city_with_its_gardens_stays_within_the_part_limit() {
         mapgen::CompileOutcome::Ok { result } => result,
         mapgen::CompileOutcome::Error { diagnostics } => panic!("{diagnostics:?}"),
     };
-    let gardens = result
-        .map
-        .props
-        .iter()
-        .filter(|prop| {
-            GARDEN_PIECES.contains(&prop.geometry.kind.as_str())
-                || GARDEN_BOUNDARY.contains(&prop.geometry.kind.as_str())
-        })
-        .count();
+    let count = |kinds: &dyn Fn(&str) -> bool| {
+        result
+            .map
+            .props
+            .iter()
+            .filter(|prop| kinds(prop.geometry.kind.as_str()))
+            .count()
+    };
+    let gardens = count(&|kind| GARDEN_PIECES.contains(&kind) || GARDEN_BOUNDARY.contains(&kind));
+    let court = count(&|kind| courts.contains(kind));
     assert!(
         u64::from(result.report.authored_parts) <= limit,
         "{} authored parts",
         result.report.authored_parts
     );
     assert!(
-        gardens >= 2_000,
-        "{gardens} garden bodies on a city of suburbs"
+        gardens >= 2_000 && court >= 500,
+        "{gardens} garden bodies and {court} court amenities on a city"
     );
 }
 
-/// Gardens give way to the open country's sight certificate, which stands
-/// copses on the open ground of the suburbs: a suburban map builds with its
-/// gardens dressed, and no garden body of the finished plan stands within a
-/// trunk's clearance of any forest, so none fells a tree the certificate
-/// counted.
+/// Courts and gardens give way to the open country's sight certificate,
+/// which stands copses on a town's open ground: a map builds with its courts
+/// and gardens dressed, and no body of either in the finished plan stands
+/// within a trunk's clearance of any forest, so none fells a tree the
+/// certificate counted.
 #[test]
-fn gardens_keep_off_the_woods_that_certify_sight() {
+fn courts_and_gardens_keep_off_the_woods_that_certify_sight() {
     let rules = rules();
+    let presets = presets();
+    let courts = court_only_kinds(&presets);
     let clear = rules.forests.rule.trunk_clearance_m;
     let mut request = request(MapType::Metro, MapSize::Small, 1);
     request.region = Some("china".into());
@@ -818,13 +1190,16 @@ fn gardens_keep_off_the_woods_that_certify_sight() {
         &sim::fixtures::game().to_string(),
     )
     .unwrap_or_else(|failure| panic!("{:?}", failure.diagnostics));
-    let mut gardens = 0;
+    let (mut gardens, mut court) = (0, 0);
     for prop in plan.props.iter().map(|prop| &prop.geometry) {
         let kind = prop.kind.as_str();
-        if !GARDEN_PIECES.contains(&kind) && !GARDEN_BOUNDARY.contains(&kind) {
+        if courts.contains(kind) {
+            court += 1;
+        } else if GARDEN_PIECES.contains(&kind) || GARDEN_BOUNDARY.contains(&kind) {
+            gardens += 1;
+        } else {
             continue;
         }
-        gardens += 1;
         for p in corners(prop).into_iter().chain([prop.center]) {
             assert!(
                 !plan
@@ -836,11 +1211,14 @@ fn gardens_keep_off_the_woods_that_certify_sight() {
             );
         }
     }
-    assert!(gardens >= 1_000, "{gardens} garden bodies");
+    assert!(
+        gardens >= 1_000 && court >= 100,
+        "{gardens} garden bodies and {court} court bodies"
+    );
 }
 
-/// The same request places the same bodies, byte for byte; another seed
-/// places others.
+/// The same request places the same bodies, courts and gardens included,
+/// byte for byte; another seed places others.
 #[test]
 fn placement_is_deterministic() {
     let presets = presets();
@@ -867,6 +1245,12 @@ fn placement_is_deterministic() {
     for kind in GARDEN_PIECES.iter().chain(&GARDEN_BOUNDARY) {
         assert!(first.contains(&format!("\"{kind}\"")), "no {kind} placed");
     }
+    assert!(
+        court_only_kinds(&presets)
+            .iter()
+            .any(|kind| first.contains(&format!("\"{kind}\""))),
+        "no court amenity placed"
+    );
     assert_eq!(first, bytes(1));
     assert_ne!(first, bytes(2));
 }
@@ -1045,6 +1429,8 @@ macro_rules! claim {
 ///   still walks there from its settlement's centre;
 /// - a squad still walks from there to the back garden of every dressed lot
 ///   it could walk to before;
+/// - a squad still walks, and the widest hull still drives, from there into
+///   every court among its amenities wherever it could before;
 /// - every hull of the catalog still drives down every street it drove down
 ///   before, by a way no longer than a detour round one parked run, and the
 ///   widest of them without shoving a body.
@@ -1069,7 +1455,8 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
         .max_by_key(|unit| unit.squad_size())
         .unwrap();
     let on_foot = sim::units::mobility(squad, &rules);
-    let mut totals = [0usize; 6];
+    let court_kinds = court_kinds(&presets);
+    let mut totals = [0usize; 7];
     let mut broken: Vec<String> = Vec::new();
     for map_type in MapType::ALL {
         for size in MapSize::ALL {
@@ -1290,6 +1677,73 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                     }
                 }
 
+                // Courts: open ground among each court's amenities, walked
+                // to from the settlement's centre and driven to by the widest
+                // hull, each as far as it went on the bare court.
+                let near: Vec<Point> = props
+                    .iter()
+                    .filter(|prop| court_kinds.contains(prop.kind.as_str()))
+                    .map(|prop| prop.center)
+                    .collect();
+                let mut grounds: Vec<Point> = Vec::new();
+                for court in &bare.courts {
+                    let [x0, y0, x1, y1] = contract::ground::limits(&court.ring, 0.0);
+                    let mut y = (y0 / COURT_STEP_M).ceil() * COURT_STEP_M;
+                    while y <= y1 {
+                        let mut x = (x0 / COURT_STEP_M).ceil() * COURT_STEP_M;
+                        while x <= x1 {
+                            let p = [x, y];
+                            if polygon_contains(&court.ring, p)
+                                && near.iter().any(|q| span(*q, p) < COURT_NEAR_M)
+                            {
+                                grounds.push(p);
+                            }
+                            x += COURT_STEP_M;
+                        }
+                        y += COURT_STEP_M;
+                    }
+                }
+                let every = (grounds.len() / COURTS_WALKED).max(1);
+                for goal in grounds.iter().step_by(every) {
+                    let open = !props.iter().any(|prop| {
+                        let (sin, cos) = prop.yaw.sin_cos();
+                        let d = [goal[0] - prop.center[0], goal[1] - prop.center[1]];
+                        (d[0] * cos + d[1] * sin).abs() < prop.half_extents[0] + 1.0
+                            && (d[1] * cos - d[0] * sin).abs() < prop.half_extents[1] + 1.0
+                    });
+                    let Some(centre) = sites
+                        .settlements
+                        .iter()
+                        .find(|s| polygon_contains(&s.outline, *goal))
+                        .map(|s| s.center)
+                    else {
+                        continue;
+                    };
+                    if !open {
+                        continue;
+                    }
+                    for (mover, m, near_m) in [
+                        ("squad", &on_foot, 3.0),
+                        (vehicles[0].0.as_str(), &vehicles[0].1, 6.0),
+                    ] {
+                        let arrives = |prepared: &PreparedMap| {
+                            route(prepared, &rules, m, centre, *goal).is_some_and(|(points, _)| {
+                                points.last().is_some_and(|end| {
+                                    (*end - v2(goal[0], goal[1])).length() < near_m
+                                })
+                            })
+                        };
+                        if arrives(&before) {
+                            totals[6] += 1;
+                            claim!(
+                                broken,
+                                arrives(&after),
+                                "{name}: no way for a {mover} from {centre:?} into the court at {goal:?}"
+                            );
+                        }
+                    }
+                }
+
                 // Streets.
                 let streets: Vec<Vec<Point>> = bare
                     .surfaces
@@ -1394,7 +1848,8 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
             && totals[2] >= 200
             && totals[3] >= 500
             && totals[4] >= 150
-            && totals[5] >= 200,
+            && totals[5] >= 200
+            && totals[6] >= 200,
         "{totals:?}"
     );
 }

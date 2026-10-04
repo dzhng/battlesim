@@ -240,7 +240,15 @@ export function useBattleSession({
     () =>
       world &&
       appearances &&
-      buildWorldLayers(world.exports, world.layout, gameBiome, "surface", apart, appearances),
+      buildWorldLayers(
+        world.exports,
+        world.layout,
+        gameBiome,
+        "surface",
+        apart,
+        appearances,
+        gameStandIns,
+      ),
     [world, apart, appearances],
   );
   // What the side knows stands, rebuilt only when knowledge changes: the
