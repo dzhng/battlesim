@@ -643,10 +643,11 @@ def triangles_by_tier():
     return out
 
 
-def export(path, worn=True):
+def export(path, worn=True, texture_px=textures.SIZE):
     """Export the GLB: textured parts take box-projected UVs (unless they carry
     their own, as a track's links do) and tangents, then the recipes' images are
-    written into it. `worn` false is for surfaces that never wear (`textures.attach`)."""
+    written into it, at `texture_px` (a piece under a byte cap embeds them smaller).
+    `worn` false is for surfaces that never wear (`textures.attach`)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     for o in list(bpy.data.objects):
         if o.type in ("CAMERA", "LIGHT"):
@@ -671,5 +672,5 @@ def export(path, worn=True):
         export_materials="EXPORT",
         export_image_format="NONE",
     )
-    textures.attach(path, TEXTURED, worn)
+    textures.attach(path, TEXTURED, worn, texture_px)
     print("GLB", path, os.path.getsize(path))

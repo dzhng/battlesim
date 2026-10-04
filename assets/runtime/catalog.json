@@ -288,6 +288,39 @@
       "scenery": "log",
       "unit": "scenery"
     },
+    "garden_fence": {
+      "bundle": "bb38c57919f52d9796458ee6a9a8ebbc289326b3c7d9fb52127157cd9fcacbab",
+      "footprint_half_m": [
+        2.75,
+        0.05,
+        0.9
+      ],
+      "kind": "static",
+      "scenery": "garden_fence",
+      "unit": "scenery"
+    },
+    "garden_shed": {
+      "bundle": "c390ae3de2848b0ff76892b7cec54e772af06da6c2d72c3f66fe32b8cc39d1c8",
+      "footprint_half_m": [
+        1.2,
+        0.9,
+        1.1
+      ],
+      "kind": "static",
+      "scenery": "garden_shed",
+      "unit": "scenery"
+    },
+    "garden_table": {
+      "bundle": "2307ba3773e794a8553446e2c88596a6005bb3324fe60ab25ccb586a9ef9aaf0",
+      "footprint_half_m": [
+        1,
+        0.7,
+        0.4
+      ],
+      "kind": "static",
+      "scenery": "garden_table",
+      "unit": "scenery"
+    },
     "grass_barley": {
       "bundle": "feb46742caa5b3a1ba235bf7789e3b0db59fc1f5f59a73f4bb5158bab6806ac5",
       "kind": "static",
@@ -346,6 +379,17 @@
       "bundle": "2c521b4bbfcda3f36e65d73d53b1f78bce1ba1b60a625a3856746898c43d3121",
       "kind": "static",
       "scenery": "grass",
+      "unit": "scenery"
+    },
+    "hedge": {
+      "bundle": "c00cf2c1926d635c1333dcd4a610cfb63631e1e81f62961166661b4e17a0bf66",
+      "footprint_half_m": [
+        3,
+        0.4,
+        0.9
+      ],
+      "kind": "static",
+      "scenery": "hedge",
       "unit": "scenery"
     },
     "hedge_shrub": {
@@ -661,6 +705,17 @@
       ],
       "kind": "static",
       "scenery": "ruin",
+      "unit": "scenery"
+    },
+    "washing_line": {
+      "bundle": "2fb311471870cb314be2653c3326494ec1ed46cef97bebb7bd8d1112762a8400",
+      "footprint_half_m": [
+        2,
+        0.1,
+        0.9
+      ],
+      "kind": "static",
+      "scenery": "washing_line",
       "unit": "scenery"
     }
   },

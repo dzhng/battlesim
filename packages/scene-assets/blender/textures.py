@@ -190,10 +190,24 @@ class Baked:
         """The linear mean albedo: what the vertex colour's multiplier is relative to."""
         return tuple(float(x) for x in self.albedo.reshape(-1, 3).mean(0))
 
-    def images(self):
-        albedo = np.concatenate([_u8(_srgb(self.albedo)), _u8(self.wear)[..., None]], -1)
-        normal = np.concatenate([_u8(self.normal * 0.5 + 0.5), _u8(self.coverage)[..., None]], -1)
-        orm = np.stack([_u8(x) for x in self.orm], -1)
+    def images(self, size=SIZE):
+        """The three PNGs at `size` px, a power of two up to `SIZE`: a smaller size is the
+        recipe box-filtered down (linear albedo, renormalised normals), so it keeps its
+        tile and its mean and still tiles; a bundle with a byte cap embeds it smaller."""
+        k = SIZE // size
+        if k * size != SIZE or size & (size - 1):
+            raise ValueError(f"texture size {size}: a power of two dividing {SIZE}")
+
+        def shrink(x):
+            x = np.asarray(x, dtype=float)
+            return x if k == 1 else x.reshape(size, k, size, k, *x.shape[2:]).mean((1, 3))
+
+        normal = shrink(self.normal)
+        if k > 1:
+            normal = normal / np.linalg.norm(normal, axis=-1, keepdims=True)
+        albedo = np.concatenate([_u8(_srgb(shrink(self.albedo))), _u8(shrink(self.wear))[..., None]], -1)
+        normal = np.concatenate([_u8(normal * 0.5 + 0.5), _u8(shrink(self.coverage))[..., None]], -1)
+        orm = np.stack([_u8(shrink(x)) for x in self.orm], -1)
         return {"albedo": png(albedo), "normal": png(normal), "orm": png(orm)}
 
 
@@ -1176,6 +1190,50 @@ def perforated():
                  coverage=cover)
 
 
+@recipe("feather_edge", tile=1.0, wear=(0.2, 0.17, 0.12, 1.0))
+def feather_edge():
+    """Close-board fencing: sawn pine boards standing on end, ten to the tile (10 cm
+    each), each lapping the next so its thick edge throws a thin shadow, the grain
+    running up the board and each board its own tone. Drawn as texture, not as boards,
+    because a run of boards as geometry crawls in moiré at any distance. The wear is
+    weathered grey wood."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    boards = 10
+    g = (xx * boards) % 1.0  # 0 at a board's thin edge, 1 at its thick one
+    board = np.floor(xx * boards).astype(int)
+    tone = np.random.default_rng(6201).random(boards)[board]
+    grain = warp(fbm((48, 2), 6203, 4), 3, 6205)
+    lap = smoothstep(0.84, 1.0, g)  # the shadow under the next board's edge, wide enough to survive the mips
+    col = np.broadcast_to(np.array((0.2, 0.16, 0.11)), (SIZE, SIZE, 3)) * \
+        ((0.8 + 0.3 * grain + 0.18 * (tone - 0.5)) * (1 - 0.7 * lap))[..., None]
+    col = mix(col, (0.16, 0.155, 0.14), smoothstep(0.55, 0.9, fbm(6, 6207, 4)) * 0.35)
+    h = g * 0.8 + grain * 0.3
+    return Baked(col, 0.3 + 0.7 * fbm(6, 6209, 4), normals_from_height(blur(h), 1.0), 1.0 - 0.35 * lap, 0.92)
+
+
+@recipe("privet", tile=0.8, wear=(0.075, 0.06, 0.03, 1.0))
+def privet():
+    """A clipped privet hedge's face: small leaves, about 4 cm across, packed in two layers,
+    each leaf its own shade of a deep glossy green and lit across its dome, with dark hollows
+    where the twigs show between them. The wear is dry brown leaf."""
+    top_f1, _, top_id = worley(20, 6101)
+    under_f1, _, under_id = worley(13, 6103)
+    rt = np.random.default_rng(6105).random(20 * 20)[top_id]
+    hue = np.random.default_rng(6107).random(20 * 20)[top_id]
+    ru = np.random.default_rng(6109).random(13 * 13)[under_id]
+    on_top = smoothstep(0.56, 0.4, top_f1)  # the near layer: a leaf's middle to its edge
+    on_under = smoothstep(0.66, 0.42, under_f1)
+    leaf = mix((0.045, 0.09, 0.022), (0.08, 0.11, 0.028), hue * 0.6) * (0.7 + 0.55 * rt)[..., None]
+    leaf = leaf * (0.8 + 0.35 * (1 - top_f1))[..., None]
+    deep = np.array((0.026, 0.052, 0.014)) * (0.75 + 0.5 * ru)[..., None]
+    col = mix(np.broadcast_to(np.array((0.006, 0.009, 0.004)), (SIZE, SIZE, 3)), deep, on_under)
+    col = mix(col, leaf, on_top)
+    h = 0.5 * on_under * (1 - under_f1) + on_top * (1.0 + 0.8 * (1 - top_f1))
+    occlusion = 0.5 + 0.5 * np.maximum(on_top, 0.6 * on_under)
+    return Baked(col, 0.55 + 0.45 * fbm(8, 6111, 4), normals_from_height(blur(h), 2.2), occlusion,
+                 0.5 + 0.35 * (1 - on_top))
+
+
 # ---------------------------------------------------------------- UVs and the GLB
 def box_uv(obj, tile):
     """UVs in metres over `tile` (one number, or one per material slot): each
@@ -1248,9 +1306,9 @@ def surface(material, coverage=None, interior=None):
     return material
 
 
-def attach(path, materials, worn=True):
-    """Embed each recipe's images in the GLB at `path` and point the named
-    materials' texture slots at them: {material name: recipe name}. The
+def attach(path, materials, worn=True, size=SIZE):
+    """Embed each recipe's images, at `size` px (`Baked.images`), in the GLB at `path` and
+    point the named materials' texture slots at them: {material name: recipe name}. The
     material's factors become 1 (the images carry the values); its wear colour
     goes in extras. With `worn` false the surface never wears: the material
     keeps its own factors, so several materials can share one recipe at their
@@ -1296,7 +1354,7 @@ def attach(path, materials, worn=True):
         if not name:
             continue
         used.add(m["name"])
-        blobs = baked(name).images()
+        blobs = baked(name).images(size)
         pbr = m.setdefault("pbrMetallicRoughness", {})
         pbr["baseColorTexture"] = texture(name, "albedo", blobs["albedo"])
         pbr["metallicRoughnessTexture"] = texture(name, "orm", blobs["orm"])
