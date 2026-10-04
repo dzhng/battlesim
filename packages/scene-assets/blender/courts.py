@@ -190,12 +190,14 @@ def hedge():
 @kind
 def garden_fence():
     """Close-board fencing: three 1.83 m bays between square posts, each a gravel board,
-    feather-edge boards overlapping on two back rails, and a capping rail. Everything
-    stands inside the 10 cm the body is thick. The end posts straddle the module's ends,
-    so repeated modules share them."""
+    a panel of feather-edge boards on two back rails, and a capping rail. The boards are
+    the panel's texture (`feather_edge`) on every tier: as geometry they crawl in moiré.
+    Everything stands inside the 10 cm the body is thick. The end posts straddle the
+    module's ends, so repeated modules share them."""
     hx, hy, hz = 2.75, 0.05, 0.9
-    board_m = timber("fence_board", (0.21, 0.135, 0.08), dirt=0.3, rise=0.3, mottle=0.3)
-    post_m = timber("fence_post", (0.14, 0.095, 0.06), dirt=0.3, rise=0.3)
+    board_m = textured("fence_board", "feather_edge", colour=(0.3, 0.2, 0.125), chip=0.3, dirt=0.3, rise=0.3,
+                       streak=0.3, mottle=0.2)
+    post_m = timber("fence_post", (0.2, 0.135, 0.085), dirt=0.3, rise=0.3)
     bays, top = 3, 2 * hz
     bay = 2 * hx / bays
     gravel, cap = 0.15, 0.04  # the gravel board's height; the capping rail's
@@ -210,14 +212,12 @@ def garden_fence():
             box(f"rail_{k}_{j}", (span, 0.035, 0.08), (cx, -0.027, z), post_m, root, lods=(0, 1, 2))
         box(f"capping_{k}", (span, 0.07, cap), (cx, 0.0, top - cap / 2 - 0.02), post_m, root, lods=(0, 1, 2))
         h = top - gravel - cap - 0.02
-        x0, j = cx - span / 2, 0
-        while x0 < cx + span / 2 - 0.02:  # feather-edge boards, each lapping the last
-            w = min(0.1 + rng.uniform(-0.006, 0.006), cx + span / 2 - x0)
-            box(f"board_{k}_{j}", (w, 0.016, h), (x0 + w / 2, 0.008 + 0.005 * (j % 2), gravel + h / 2), board_m, root,
-                rot=(0, rng.uniform(-0.006, 0.006), 0), lods=(0, 1))
-            x0 += w - 0.015
-            j += 1
-        box(f"boards_{k}", (span, 0.02, h), (cx, 0.012, gravel + h / 2), board_m, root, lods=(2,))
+        # near, the panel in strips: its occlusion then shades along the boards, not in a
+        # streak across one long triangle's diagonal
+        for j in range(6):
+            box(f"boards_{k}_{j}", (span / 6, 0.022, h), (cx - span / 2 + (j + 0.5) * span / 6, 0.011, gravel + h / 2),
+                board_m, root, lods=(0, 1))
+        box(f"boards_{k}", (span, 0.022, h), (cx, 0.011, gravel + h / 2), board_m, root, lods=(2,))
     box("boards_far", (2 * hx, 0.02, top - 0.04), (0, 0.0, top / 2 - 0.02), board_m, root, lods=(3,))
     return [hx, hy, hz]
 
@@ -235,12 +235,12 @@ def washing_line():
     line_z = lambda x: top - 0.06 - sag * (1 - (x / px) ** 2)  # the cord's height along it
     for k, s in enumerate((-1, 1)):
         tube(f"post_{k}", (s * px, 0, 0.0), (s * px, 0, top - 0.02), 0.025, zinc)
-        tube(f"arm_{k}", (s * px, -arm, top - 0.04), (s * px, arm, top - 0.04), 0.016, zinc, lods=(0, 1, 2))
+        tube(f"arm_{k}", (s * px, -arm, top - 0.04), (s * px, arm, top - 0.04), 0.016, zinc, lods=(0, 1))
         cyl(f"cap_{k}", 0.03, 0.03, (s * px, 0, top - 0.015), "Z", zinc, root, seg=8, lods=(0, 1))
     for j, y in enumerate((-arm + 0.01, arm - 0.01)):
-        for i in range(8):  # the sagging cord, in eight straight runs
+        for i in range(8):  # the sagging cord, in eight straight runs; near only, as a far one sparkles
             xa, xb = -px + 2 * px * i / 8, -px + 2 * px * (i + 1) / 8
-            tube(f"cord_{j}_{i}", (xa, y, line_z(xa)), (xb, y, line_z(xb)), 0.006, cord, lods=(0, 1), seg=4)
+            tube(f"cord_{j}_{i}", (xa, y, line_z(xa)), (xb, y, line_z(xb)), 0.006, cord, lods=(0,), seg=4)
 
     def hang(name, line, x0, x1, drop, colour, seed):
         """A cloth pegged along the line from x0 to x1 and hanging `drop`: a thin solid

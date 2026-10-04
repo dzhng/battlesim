@@ -289,7 +289,7 @@
       "unit": "scenery"
     },
     "garden_fence": {
-      "bundle": "02ab710639b6882ae7caddd872d9dd3d0884d07e9ff8f5c68565d378bcc0b5cd",
+      "bundle": "bb38c57919f52d9796458ee6a9a8ebbc289326b3c7d9fb52127157cd9fcacbab",
       "footprint_half_m": [
         2.75,
         0.05,
@@ -708,7 +708,7 @@
       "unit": "scenery"
     },
     "washing_line": {
-      "bundle": "830c66cdb0d2ddf474c6878bad2a94de03a188177cbe09222922add9bed07bea",
+      "bundle": "2fb311471870cb314be2653c3326494ec1ed46cef97bebb7bd8d1112762a8400",
       "footprint_half_m": [
         2,
         0.1,

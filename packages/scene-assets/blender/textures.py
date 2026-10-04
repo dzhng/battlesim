@@ -1190,6 +1190,27 @@ def perforated():
                  coverage=cover)
 
 
+@recipe("feather_edge", tile=1.0, wear=(0.2, 0.17, 0.12, 1.0))
+def feather_edge():
+    """Close-board fencing: sawn pine boards standing on end, ten to the tile (10 cm
+    each), each lapping the next so its thick edge throws a thin shadow, the grain
+    running up the board and each board its own tone. Drawn as texture, not as boards,
+    because a run of boards as geometry crawls in moiré at any distance. The wear is
+    weathered grey wood."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    boards = 10
+    g = (xx * boards) % 1.0  # 0 at a board's thin edge, 1 at its thick one
+    board = np.floor(xx * boards).astype(int)
+    tone = np.random.default_rng(6201).random(boards)[board]
+    grain = warp(fbm((48, 2), 6203, 4), 3, 6205)
+    lap = smoothstep(0.84, 1.0, g)  # the shadow under the next board's edge, wide enough to survive the mips
+    col = np.broadcast_to(np.array((0.2, 0.16, 0.11)), (SIZE, SIZE, 3)) * \
+        ((0.8 + 0.3 * grain + 0.18 * (tone - 0.5)) * (1 - 0.7 * lap))[..., None]
+    col = mix(col, (0.16, 0.155, 0.14), smoothstep(0.55, 0.9, fbm(6, 6207, 4)) * 0.35)
+    h = g * 0.8 + grain * 0.3
+    return Baked(col, 0.3 + 0.7 * fbm(6, 6209, 4), normals_from_height(blur(h), 1.0), 1.0 - 0.35 * lap, 0.92)
+
+
 @recipe("privet", tile=0.8, wear=(0.075, 0.06, 0.03, 1.0))
 def privet():
     """A clipped privet hedge's face: small leaves, about 4 cm across, packed in two layers,
