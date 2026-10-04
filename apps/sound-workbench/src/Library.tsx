@@ -21,7 +21,9 @@ export function Library({
 }) {
   const [filter, setFilter] = useState("all");
   const activeRow = useRef<HTMLButtonElement>(null);
-  useEffect(() => activeRow.current?.scrollIntoView({ block: "nearest" }), [selected, filter]);
+  useEffect(() => {
+    activeRow.current?.scrollIntoView({ block: "nearest" });
+  }, [selected, filter]);
   const matches = (text: string) => text.toLowerCase().includes(search.toLowerCase());
   const firing = [
     ...Object.values(draft.defaults),

@@ -115,6 +115,28 @@ test("the complete library auditions an unused reload and clones synthesis witho
   ).toBe(true);
 });
 
+test("library selection, filtering and view changes stay usable when scrolling completes asynchronously", async () => {
+  const scrolling = vi
+    .spyOn(HTMLElement.prototype, "scrollIntoView")
+    .mockImplementation(async () => {});
+  try {
+    const { api, audition } = fixture();
+    render(<SoundWorkbench api={api} audition={audition} />);
+    await screen.findByRole("button", { name: "Unused reload" });
+    fireEvent.click(screen.getByRole("button", { name: "Synth · rifle" }));
+    expect(screen.getByRole("heading", { name: "Synth · rifle" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Library filter"), { target: { value: "baselines" } });
+    fireEvent.click(screen.getByRole("button", { name: "Synth · hmg" }));
+    expect(screen.getByRole("heading", { name: "Synth · hmg" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Unit assignments" }));
+    expect(screen.getByRole("button", { name: "Alpha" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Library & recipes" }));
+    expect(screen.getByRole("heading", { name: "Synth · hmg" })).toBeTruthy();
+  } finally {
+    scrolling.mockRestore();
+  }
+});
+
 test("unused clips include stored recipes that no battle assignment selects", async () => {
   const f = fixture();
   f.snapshot.catalog.sounds.handling = {
