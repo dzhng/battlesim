@@ -6,7 +6,37 @@
   },
   "catalogue": {
     "library": "prototype-building-templates.json",
-    "template_ids": null
+    "template_ids": [
+      "china-apartment-block-court-6f",
+      "china-apartment-block-u-5f",
+      "china-apartment-point-20x20-7f",
+      "china-apartment-slab-35x11-4f",
+      "china-apartment-slab-47x11-5f",
+      "china-apartment-slab-53x14-8f",
+      "china-apartment-slab-59x14-6f",
+      "china-corner-shop-3f",
+      "china-depot-90x39",
+      "china-farmstead-long",
+      "china-farmstead-small",
+      "china-farmstead-yard",
+      "china-home-10x8-1f",
+      "china-home-12x9-2f",
+      "china-home-8x11-1f",
+      "china-home-9x9-2f",
+      "china-home-ell-2f",
+      "china-shed-15x24",
+      "china-shops-4x3f",
+      "china-terrace-3x2f",
+      "china-terrace-5x3f",
+      "china-tower-12f",
+      "china-tower-16f",
+      "china-tower-20f",
+      "china-tower-slab-10f",
+      "china-townhouse-2f",
+      "china-warehouse-48x24",
+      "china-warehouse-72x33",
+      "china-works-54x36"
+    ]
   },
   "inputs": [
     {
