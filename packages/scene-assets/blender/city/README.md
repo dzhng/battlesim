@@ -73,6 +73,9 @@ The source-only opening coverage checks run without Blender: `python3 -m unittes
 
 [This directory](./) holds source exporters and their shared geometry helpers.
 [Kit authoring](kit.py) owns scripted module placement and far-shell folding;
+[regional parts](regional.py) own what the families' houses and farms add to it (broken
+roofs, flat roofs and cornices, inset porches, stoops, sash and French windows), and a
+hand-scripted set takes its family as an argument, so each family is a design over one builder;
 [graph extraction](graph.py) reads geometry-node instances before realization.
 Both paths must write the same admitted set contract. [Damage construction](damage.py)
 and [collapse policy](collapse.py) keep destroyed art tied to the original plan
