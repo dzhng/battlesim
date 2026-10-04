@@ -11,6 +11,8 @@ vertices that are never shared between two materials (the renderer tags
 material per vertex), a colour multiplier per vertex, and the source material's
 name per triangle. Positions are metres, Z up.
 """
+import hashlib
+
 import bpy
 import numpy as np
 
@@ -161,7 +163,9 @@ class Tap:
         self.own, self.rows, self.meshes = own, rows, meshes
 
 
-def tap(ob, tinted=frozenset(), tint_attribute="_tint"):
+def tap(ob, tinted=frozenset(), tint_attribute="_tint", shaped=False):
+    """`shaped` names a generated primitive by its shape too (`primitive:<material>~<hash>`),
+    for a graph that stretches several different primitives in one material."""
     ob.update_tag()
     bpy.context.view_layer.update()
     dg = bpy.context.evaluated_depsgraph_get()
@@ -169,11 +173,11 @@ def tap(ob, tinted=frozenset(), tint_attribute="_tint"):
     gs = ob.evaluated_get(dg).evaluated_geometry()
     own = read_mesh(gs.mesh, tinted=tinted) if gs.mesh is not None else Soup.empty()
     rows, meshes = [], {}
-    _instances(gs, np.eye(4), None, tinted, tint_attribute, rows, meshes)
+    _instances(gs, np.eye(4), None, tinted, tint_attribute, shaped, rows, meshes)
     return Tap(own, rows, meshes)
 
 
-def _instances(gs, parent, parent_tint, tinted, tint_attribute, rows, meshes):
+def _instances(gs, parent, parent_tint, tinted, tint_attribute, shaped, rows, meshes):
     """Every leaf instance under `gs`, through instances of instances (a collection
     is instanced as one reference holding its objects)."""
     pc = gs.instances_pointcloud()
@@ -194,14 +198,19 @@ def _instances(gs, parent, parent_tint, tinted, tint_attribute, rows, meshes):
     names = []
     refs = gs.instance_references()
     for r in refs:
-        if not hasattr(r, "instances_pointcloud"):
-            raise SystemExit(f"instance reference {r!r} is not a geometry set")
-        me = r.mesh
+        if isinstance(r, bpy.types.Object) and r.type == "MESH":
+            me = r.data  # a kit object instanced whole (Object Info as an instance): no instances under it
+        elif hasattr(r, "instances_pointcloud"):
+            me = r.mesh
+        else:
+            raise SystemExit(f"instance reference {r!r} is neither a geometry set nor a mesh object")
         if me is None or not len(me.vertices):
             names.append(None)  # nested instances only, or the empty geometry of a switch that is off
             continue
         name = r.name or "primitive:" + "+".join(sorted(m.name for m in me.materials if m))
         soup = read_mesh(me, tinted=tinted)
+        if shaped and not r.name:
+            name += "~" + hashlib.sha1(np.round(soup.v, 4).tobytes() + soup.t.tobytes()).hexdigest()[:8]
         known = meshes.get(name)
         if known is not None and (len(known.v) != len(soup.v) or not np.allclose(known.v, soup.v, atol=1e-5)):
             raise SystemExit(f"two different meshes are instanced under the name {name}")
@@ -212,4 +221,5 @@ def _instances(gs, parent, parent_tint, tinted, tint_attribute, rows, meshes):
         t = tint[i] if tint is not None and tint[i, 3] > 0.5 else parent_tint
         if names[index[i]] is not None:
             rows.append((names[index[i]], world, t))
-        _instances(refs[index[i]], world, t, tinted, tint_attribute, rows, meshes)
+        if hasattr(refs[index[i]], "instances_pointcloud"):
+            _instances(refs[index[i]], world, t, tinted, tint_attribute, shaped, rows, meshes)

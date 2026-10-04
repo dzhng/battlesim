@@ -76,7 +76,10 @@ The source-only opening coverage checks run without Blender: `python3 -m unittes
 [regional parts](regional.py) own what the families' houses and farms add to it (broken
 roofs, flat roofs and cornices, inset porches, stoops, sash and French windows), and a
 hand-scripted set takes its family as an argument, so each family is a design over one builder;
-[graph extraction](graph.py) reads geometry-node instances before realization.
+[graph extraction](graph.py) reads geometry-node instances before realization, and
+[the graph-set exporter](graphset.py) is what every graph-derived set shares (outline,
+rooms, tiers, damage, the descriptor, the files): [China](china.py), [New York](nyc.py)
+and [Paris](paris.py) hold only their graph's tables and how to read it.
 Both paths must write the same admitted set contract. [Damage construction](damage.py)
 and [collapse policy](collapse.py) keep destroyed art tied to the original plan
 and physical remains. Material acquisition uses the shared [pinned pack reader](../packs.py).

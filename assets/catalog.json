@@ -103,6 +103,16 @@
       "kit": "city_kit_china_apartments",
       "catalogue": "generated"
     },
+    "apartments_paris": {
+      "templates": "assets/source/city/apartments_paris/templates.json",
+      "kit": "city_kit_apartments_paris",
+      "catalogue": "generated"
+    },
+    "apartments_new_york": {
+      "templates": "assets/source/city/apartments_new_york/templates.json",
+      "kit": "city_kit_apartments_new_york",
+      "catalogue": "generated"
+    },
     "farmsteads": {
       "templates": "assets/source/city/farmsteads/templates.json",
       "kit": "city_kit_farmsteads",
@@ -1459,6 +1469,16 @@
     "city_kit_china_apartments": {
       "unit": "kit",
       "source": "assets/source/city/china_apartments/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_apartments_paris": {
+      "unit": "kit",
+      "source": "assets/source/city/apartments_paris/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_apartments_new_york": {
+      "unit": "kit",
+      "source": "assets/source/city/apartments_new_york/kit.glb",
       "basis_yaw_deg": 0
     },
     "city_kit_farmsteads": {
