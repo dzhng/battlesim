@@ -5,6 +5,7 @@
 import { bundleHash, encodeBundle } from "./codec.ts";
 import { packGzip } from "./gzip.ts";
 import {
+  fetchedOnRequest,
   KIT_BUNDLE_MAX_BYTES,
   UNIT_BUNDLE_KIND,
   bundlePath,
@@ -29,6 +30,7 @@ import {
 } from "./templateSource.ts";
 import {
   hasErrors,
+  regionalFindings,
   typeAppearanceFindings,
   validateAppearance,
   validateSkeleton,
@@ -61,6 +63,9 @@ export interface BakeResult {
 /** What the bake judges art against: the simulation's bodies and, for a
  *  catalog with city sets, the physical template catalogues they dress. */
 export interface BakeContext extends Omit<ValidationContext, "tolerances"> {
+  /** The presets' regional families (`parcels.regional_families`): what an
+   *  appearance's `regional_family` may name. Absent: none. */
+  regionalFamilies?: readonly string[];
   templates?: {
     catalogues: readonly TemplateCatalogue[];
     physical: PhysicalTemplates;
@@ -195,9 +200,10 @@ export async function bakeCatalog(
     );
     if (result.bundle && result.bundle.kind !== "clips")
       result.findings.push(...(await bindInteriors(name, result.bundle, sheets)));
+    result.findings.push(...regionalFindings(name, entry, context.regionalFamilies ?? []));
     const out =
       result.bundle && !hasErrors(result.findings)
-        ? await emit(result.bundle, entry.unit === "kit")
+        ? await emit(result.bundle, fetchedOnRequest(entry))
         : null;
     if (entry.unit === "kit" && out) result.findings.push(...kitBytesFindings(name, out.bytes));
     if (entry.unit === "kit" && result.bundle?.kind === "static" && out)
@@ -211,6 +217,7 @@ export async function bakeCatalog(
         ...(entry.scenery ? { scenery: entry.scenery } : {}),
         ...(entry.footprint_half_m ? { footprint_half_m: entry.footprint_half_m } : {}),
         ...(entry.mounts ? { mounts: entry.mounts } : {}),
+        ...(entry.regional_family ? { regional_family: entry.regional_family } : {}),
       };
     reports.push({
       name,

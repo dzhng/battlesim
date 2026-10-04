@@ -188,6 +188,7 @@ export default function CityLineup() {
   // The kits the templates standing here draw from, and no other set's.
   const appearances = useMapAppearances(
     useMemo(() => standing && lineupBuildings(standing.lineup.entries), [standing]),
+    null,
   );
   if (!appearances || !standing) return null;
   if (!standing.lineup.entries.length)

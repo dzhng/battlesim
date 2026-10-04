@@ -1,7 +1,12 @@
 // Lossless transport around the existing codecs. Encoded files and decoded
 // art have separate content addresses; only decoded art names modules/rows.
 import { sha256Hex } from "./glb.ts";
-import { KIT_BUNDLE_MAX_BYTES, type GzipTransport, type RuntimeCatalog } from "./schema.ts";
+import {
+  fetchedOnRequest,
+  KIT_BUNDLE_MAX_BYTES,
+  type GzipTransport,
+  type RuntimeCatalog,
+} from "./schema.ts";
 
 export async function packGzip(raw: Uint8Array): Promise<{
   bytes: Uint8Array;
@@ -37,26 +42,33 @@ export function gzipTransport(
   return record;
 }
 
-/** The library plus each selected kit object once, including its full damage
- * art. Map selection, loader admission and the native CLI share this count. */
-export function kitDownloadBytes(catalog: RuntimeCatalog, names: Iterable<string>): number {
+/** The library plus each selected appearance fetched on request (a kit with
+ * its full damage art, a regional look) once, as its gzip object. Map
+ * selection, loader admission and the native CLI share this count. */
+export function downloadBytes(catalog: RuntimeCatalog, names: Iterable<string>): number {
   let bytes = catalog.templates ? gzipTransport(catalog, catalog.templates.library).bytes : 0;
   const hashes = new Set<string>();
   for (const name of names) {
     const entry = catalog.appearances[name];
-    if (entry?.unit !== "kit") throw new Error(`kit "${name}" is not in the appearance catalog`);
+    const what = `${onRequestLabel(entry)} "${name}"`;
+    if (!entry || !fetchedOnRequest(entry))
+      throw new Error(`${what} is not in the appearance catalog`);
     if (hashes.has(entry.bundle)) continue;
     try {
       bytes += gzipTransport(catalog, entry.bundle, KIT_BUNDLE_MAX_BYTES).bytes;
     } catch (error) {
-      throw new Error(`kit "${name}": ${error instanceof Error ? error.message : String(error)}`, {
-        cause: error,
-      });
+      const why = error instanceof Error ? error.message : String(error);
+      throw new Error(`${what}: ${why}`, { cause: error });
     }
     hashes.add(entry.bundle);
   }
   return bytes;
 }
+
+/** What an appearance fetched on request is called in an error: a kit, or a
+ *  regional look. One the catalog lacks was asked for as a kit. */
+export const onRequestLabel = (entry: RuntimeCatalog["appearances"][string] | undefined) =>
+  entry?.regional_family !== undefined ? "regional look" : "kit";
 
 /** Verify the transport, cancel inflation as soon as it exceeds the declared
  * length, then verify exactly the original content before any codec reads it. */

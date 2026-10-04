@@ -91,7 +91,10 @@ test("the catalog loads with its template library and no kit, each kit named as 
   const installed = await loader.load(BASE);
   expect(fetched.sort()).toEqual(["catalog.json", libraryFile].sort());
   expect([...installed.appearances.keys()]).toEqual([]);
-  expect([...installed.kits].sort()).toEqual([KIT, YARD_KIT]);
+  expect([...installed.onRequest].sort()).toEqual([
+    [KIT, null],
+    [YARD_KIT, null],
+  ]);
   // The library is whole: every row is there, bound to no kit yet.
   expect(installed.templates!.library.templates.map((t) => t.id)).toEqual([HOUSE.id, YARD.id]);
   expect(installed.templates!.modules.map((m) => [m.kit, m.state])).toEqual([
@@ -105,7 +108,7 @@ test("a map fetches the kit its buildings' templates draw from, and no other", a
   const { loader, fetched, kitFile } = await served();
   const catalog = await loader.load(BASE);
   fetched.length = 0;
-  const installed = await loader.withKits(mapKits(catalog, placedOf(HOUSE.id)));
+  const installed = await loader.withAppearances(mapKits(catalog, placedOf(HOUSE.id)));
   expect(fetched).toEqual([kitFile[KIT]]);
   expect(installed.generation).toBe(catalog.generation + 1);
   expect(loader.installed).toBe(installed);
@@ -119,7 +122,7 @@ test("a map fetches the kit its buildings' templates draw from, and no other", a
   const drawn = mapAppearances(
     installed,
     [],
-    new PropAppearances(installed, LAYOUT),
+    new PropAppearances(installed, LAYOUT, null),
     placedOf(HOUSE.id),
     false,
   );
@@ -130,20 +133,20 @@ test("a map with no buildings fetches no kit and installs nothing new", async ()
   const { loader, fetched } = await served();
   const catalog = await loader.load(BASE);
   fetched.length = 0;
-  expect(await loader.withKits(mapKits(catalog, placedOf()))).toBe(catalog);
+  expect(await loader.withAppearances(mapKits(catalog, placedOf()))).toBe(catalog);
   expect(fetched).toEqual([]);
 });
 
 test("a kit fetched for one map is not fetched again for the next", async () => {
   const { loader, fetched, kitFile } = await served();
   const catalog = await loader.load(BASE);
-  const first = await loader.withKits(mapKits(catalog, placedOf(HOUSE.id)));
+  const first = await loader.withAppearances(mapKits(catalog, placedOf(HOUSE.id)));
   fetched.length = 0;
   // The same map again: the generation it already has.
-  expect(await loader.withKits(mapKits(catalog, placedOf(HOUSE.id)))).toBe(first);
+  expect(await loader.withAppearances(mapKits(catalog, placedOf(HOUSE.id)))).toBe(first);
   // The next map has a yard too: only the yard's kit is new.
   const both = placedOf(HOUSE.id, YARD.id);
-  const second = await loader.withKits(mapKits(first, both));
+  const second = await loader.withAppearances(mapKits(first, both));
   expect(fetched).toEqual([kitFile[YARD_KIT]]);
   expect([...second.appearances.keys()].sort()).toEqual([KIT, YARD_KIT]);
   // The first map's kit is the bundle it was, not another copy.
@@ -154,7 +157,10 @@ test("two askers for one kit share one fetch", async () => {
   const { loader, fetched, kitFile } = await served();
   await loader.load(BASE);
   fetched.length = 0;
-  const [a, b] = await Promise.all([loader.withKits([KIT]), loader.withKits([KIT, YARD_KIT])]);
+  const [a, b] = await Promise.all([
+    loader.withAppearances([KIT]),
+    loader.withAppearances([KIT, YARD_KIT]),
+  ]);
   expect(fetched.sort()).toEqual([kitFile[KIT], kitFile[YARD_KIT]].sort());
   expect(a.appearances.has(KIT)).toBe(true);
   expect([...b.appearances.keys()].sort()).toEqual([KIT, YARD_KIT]);
@@ -164,42 +170,42 @@ test("two askers for one kit share one fetch", async () => {
 test("a kit that fails to arrive is named, and the installed generation stays", async () => {
   const { loader, files, kitFile } = await served();
   const catalog = await loader.load(BASE);
-  const first = await loader.withKits([KIT]);
+  const first = await loader.withAppearances([KIT]);
   const yard = files.get(kitFile[YARD_KIT])!;
   files.delete(kitFile[YARD_KIT]);
-  await expect(loader.withKits(mapKits(catalog, placedOf(HOUSE.id, YARD.id)))).rejects.toThrow(
-    /kit "city_kit_yard": bundle [0-9a-f]{64}: HTTP 404/,
-  );
+  await expect(
+    loader.withAppearances(mapKits(catalog, placedOf(HOUSE.id, YARD.id))),
+  ).rejects.toThrow(/kit "city_kit_yard": bundle [0-9a-f]{64}: HTTP 404/);
   expect(loader.installed).toBe(first);
   const corrupt = yard.slice();
   corrupt[corrupt.length - 1] ^= 0xff;
   files.set(kitFile[YARD_KIT], corrupt);
-  await expect(loader.withKits([YARD_KIT])).rejects.toThrow(
+  await expect(loader.withAppearances([YARD_KIT])).rejects.toThrow(
     /kit "city_kit_yard": .*gzip content hash/,
   );
   expect(loader.installed).toBe(first);
   // Served whole again, the same request succeeds.
   files.set(kitFile[YARD_KIT], yard);
-  expect((await loader.withKits([YARD_KIT])).appearances.has(YARD_KIT)).toBe(true);
+  expect((await loader.withAppearances([YARD_KIT])).appearances.has(YARD_KIT)).toBe(true);
 });
 
 test("a kit the catalog does not name is refused by name", async () => {
   const { loader } = await served();
   const catalog = await loader.load(BASE);
-  await expect(loader.withKits(["city_kit_nowhere"])).rejects.toThrow(
+  await expect(loader.withAppearances(["city_kit_nowhere"])).rejects.toThrow(
     'kit "city_kit_nowhere" is not in the appearance catalog',
   );
   expect(loader.installed).toBe(catalog);
-  await expect(new AppearanceLibrary(memoryFetch(new Map(), BASE)).withKits([KIT])).rejects.toThrow(
-    /before a catalog was loaded/,
-  );
+  await expect(
+    new AppearanceLibrary(memoryFetch(new Map(), BASE)).withAppearances([KIT]),
+  ).rejects.toThrow(/before a catalog was loaded/);
 });
 
 test("a map whose kit is not installed is refused by name, never drawn without it", async () => {
   const { loader } = await served();
   const catalog = await loader.load(BASE);
-  const house = await loader.withKits([KIT]);
-  const fit = new PropAppearances(house, LAYOUT);
+  const house = await loader.withAppearances([KIT]);
+  const fit = new PropAppearances(house, LAYOUT, null);
   // The house's kit is there; the yard's was never asked for.
   expect(() => mapAppearances(house, [], fit, placedOf(HOUSE.id, YARD.id), false)).toThrow(
     'kit.missing: kit "city_kit_yard" is not installed',
@@ -231,9 +237,9 @@ test("a catalog reload during arrival retries the complete map selection, includ
     return fetch(url);
   });
   await loader.load(BASE);
-  const first = await loader.withKits([KIT]);
+  const first = await loader.withAppearances([KIT]);
   delay = true;
-  const requested = loader.withKits([KIT, YARD_KIT]);
+  const requested = loader.withAppearances([KIT, YARD_KIT]);
   await arrived;
   await loader.load(BASE);
   delay = false;

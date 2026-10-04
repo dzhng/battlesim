@@ -35,6 +35,7 @@ export const FINDING_CODES = [
   "structure.clips",
   "structure.states",
   "structure.scenery_kind",
+  "structure.regional_family",
   "structure.texture",
   "structure.grass",
   // textures
@@ -103,6 +104,31 @@ export type BundleKind = "skinned" | "articulated" | "static";
  *  the template art library's rows place on buildings (`templateLibrary.ts`).
  *  A building is never an appearance: it is its template's rows. */
 export type AppearanceUnit = "soldier" | "vehicle" | "scenery" | "kit";
+
+/** Whether an appearance is fetched only when something that draws it asks:
+ *  a kit, by a map whose buildings place it or a lab that shows it; a
+ *  regional look, by a map of its family. Such an appearance travels as gzip,
+ *  and what a map asks for of them is its download, held to
+ *  `MAP_DOWNLOAD_MAX_BYTES`. Every other appearance loads with the catalog. */
+export const fetchedOnRequest = (entry: { unit: AppearanceUnit; regional_family?: string }) =>
+  entry.unit === "kit" || entry.regional_family !== undefined;
+
+/** Every appearance of `catalog` fetched on request, by name: the regional
+ *  family it is a look of, or null for a kit. */
+export const onRequestOf = (catalog: Pick<RuntimeCatalog, "appearances">) =>
+  new Map(
+    Object.entries(catalog.appearances ?? {})
+      .filter(([, entry]) => fetchedOnRequest(entry))
+      .map(([name, entry]) => [name, entry.regional_family ?? null]),
+  );
+
+/** The regional looks a map of `family` fetches, of those fetched on request
+ *  (`onRequestOf`): its own family's, no other's; none for a map of no family. */
+export const familyLooks = (
+  onRequest: ReadonlyMap<string, string | null>,
+  family: string | null,
+): string[] =>
+  family === null ? [] : [...onRequest].filter(([, of]) => of === family).map(([name]) => name);
 
 export const UNIT_BUNDLE_KIND: Record<AppearanceUnit, BundleKind> = {
   soldier: "skinned",
@@ -426,6 +452,11 @@ export interface AppearanceEntry {
    * placement, a wreck's hull); the battle fits each placed box from it.
    */
   footprint_half_m?: Vec3;
+  /** A scenery look of one region: one of the presets' families
+   *  (`parcels.regional_families` in `fixtures/map-presets.json`). It is
+   *  fetched only for a map of that family, which draws it in place of the
+   *  looks of no region for its scenery kind. Absent: every map's. */
+  regional_family?: string;
   /** A generated grass kind's spec: `asset grass` writes its one state's
    *  GLB from it (`grass.ts`). The bake reads the GLB, never the spec. */
   grass?: GrassSpec;
@@ -523,6 +554,7 @@ export interface RuntimeCatalog {
       scenery?: string;
       footprint_half_m?: Vec3;
       mounts?: MountDraws;
+      regional_family?: string;
     }
   >;
   /** The template art library (`templateLibrary.ts`), when the catalog has
@@ -546,6 +578,8 @@ export const templateLibraryPath = (hash: string) => `${hash}/${TEMPLATE_LIBRARY
 
 /** A kit bundle's byte budget: every module's four tiers and its textures. */
 export const KIT_BUNDLE_MAX_BYTES = 50 * 1024 * 1024;
-/** Aggregate wire bytes for the kits a map selects plus its template library;
- * separate from decoded per-kit and resident/GPU-memory budgets. */
-export const SHARED_KIT_DOWNLOAD_MAX_BYTES = 50 * 1024 * 1024;
+/** Aggregate wire bytes of what a map fetches on request (`fetchedOnRequest`):
+ * the kits its buildings place and its family's regional looks, plus the
+ * template library. Separate from decoded per-kit and resident/GPU-memory
+ * budgets; the looks of no region load with the catalog and are not counted. */
+export const MAP_DOWNLOAD_MAX_BYTES = 50 * 1024 * 1024;

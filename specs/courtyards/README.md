@@ -4,7 +4,7 @@ A generated town's streets carry furniture, but the ground between its buildings
 
 ## Next Agent Prompt
 
-*Status (2026-10-04): planned, nothing implemented. Worktree `.claude/worktrees/courtyards`, branch `courtyards` off `main` 2c9dee78.*
+*Status (2026-10-04): slices 00 and 01 done on branch `courtyards`. In flight as parallel lanes, each in its own worktree: ground (02 → 03 → 04, `courtyards-ground`) and gardens (06, `courtyards-gardens`). Lanes do not bump the presets revision or re-bless parity; the integrator does both once after merging them. Next after merge: 05 (needs 03), then 07, 08.*
 
 You are implementing this spec with [implement-spec](../../.agents/skills/implement-spec/SKILL.md). Start at [slice 00](slices/00-budget-and-stand-ins.md); it only measures and decides two numbers, and every later slice inherits them. Work the ladder in order unless the graph below says a slice can run beside another. Record every decision the slices leave open in [choices.md](choices.md) as you make it. Before ending a pass, update this section: status, the next pickup point, and the checklist.
 
@@ -15,7 +15,7 @@ You are implementing this spec with [implement-spec](../../.agents/skills/implem
 - [ ] 04 The map names its region; paving takes the region's finish ([slice](slices/04-map-region.md))
 - [ ] 05 Court amenities as bodies, with stand-in art ([slice](slices/05-court-amenities.md))
 - [ ] 06 Garden dressing in suburbs and villages ([slice](slices/06-gardens.md))
-- [ ] 07 Regional appearances, loaded for the map's region only ([slice](slices/07-regional-appearances.md))
+- [~] 07 Regional appearances, loaded for the map's region only ([slice](slices/07-regional-appearances.md))
 - [ ] 08 Art: shared core, then China, New York, Paris ([slice](slices/08-art.md))
 - [ ] 09 Closeout: parity, full run, balance, close-spec ([slice](slices/09-closeout.md))
 

@@ -1,7 +1,8 @@
 // @vitest-environment node
 // Shipping assets, through the native reader and the same browser codec:
-// actual map selection and the complete generated catalogue retain the
-// aggregate DOWNLOAD gate, separately from decoded/resident budgets.
+// actual map selection and the complete generated catalogue, with each
+// family's regional looks, retain the aggregate DOWNLOAD gate, separately
+// from decoded/resident budgets.
 import {
   copyFileSync,
   mkdirSync,
@@ -16,13 +17,16 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { expect, test } from "vitest";
-import { gzipTransport, kitDownloadBytes, unpackGzip } from "@packages/scene-assets/src/gzip.ts";
+import { gzipTransport, downloadBytes, unpackGzip } from "@packages/scene-assets/src/gzip.ts";
 import { decodeBundle } from "@packages/scene-assets/src/codec.ts";
 import { decodeTemplateLibrary, templateKits } from "@packages/scene-assets/src/templateLibrary.ts";
+import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
 import {
   bundlePath,
+  familyLooks,
+  onRequestOf,
   templateLibraryPath,
-  SHARED_KIT_DOWNLOAD_MAX_BYTES,
+  MAP_DOWNLOAD_MAX_BYTES,
   KIT_BUNDLE_MAX_BYTES,
   type RuntimeCatalog,
 } from "@packages/scene-assets/src/schema.ts";
@@ -41,7 +45,7 @@ test("the native asset reader admits the real Market Town shared-art download wi
   const report = JSON.parse(run.stdout);
   expect(report.ok).toBe(true);
   expect(report.bytes).toBeGreaterThan(0);
-  expect(report.bytes).toBeLessThanOrEqual(SHARED_KIT_DOWNLOAD_MAX_BYTES);
+  expect(report.bytes).toBeLessThanOrEqual(MAP_DOWNLOAD_MAX_BYTES);
 });
 
 test("the native reader refuses an oversized library before opening its payload or map", () => {
@@ -64,7 +68,7 @@ test("the native reader refuses an oversized library before opening its payload 
         appearances: {},
         templates: { library: hash },
         gzip: {
-          [hash]: { hash: "b".repeat(64), bytes: SHARED_KIT_DOWNLOAD_MAX_BYTES + 1, raw_bytes: 1 },
+          [hash]: { hash: "b".repeat(64), bytes: MAP_DOWNLOAD_MAX_BYTES + 1, raw_bytes: 1 },
         },
       }),
     );
@@ -73,7 +77,7 @@ test("the native reader refuses an oversized library before opening its payload 
       encoding: "utf8",
     });
     expect(run.status).not.toBe(0);
-    expect(run.stderr).toContain("shared kit download");
+    expect(run.stderr).toContain("map download");
     expect(run.stderr).not.toContain("ENOENT");
   } finally {
     rmSync(scratch, { recursive: true, force: true });
@@ -81,9 +85,10 @@ test("the native reader refuses an oversized library before opening its payload 
 });
 
 // A map is built in one regional family (M08), so each family's full art is
-// what one map can fetch at most.
-test("every regional family's full art and the library fit the shared download gate with exact raw integrity", async () => {
-  const catalog = json("assets/runtime/catalog.json") as RuntimeCatalog;
+// what one map can fetch at most: the kits of all its templates and all its
+// regional looks, with the library. The looks of no region load with the
+// catalog for every map and are not this gate's.
+async function familyDownloads(catalog: RuntimeCatalog) {
   const libraryHash = catalog.templates!.library;
   const wire = gzipTransport(catalog, libraryHash);
   const library = decodeTemplateLibrary(
@@ -92,8 +97,24 @@ test("every regional family's full art and the library fit the shared download g
   const templates: { id: string; regional_family: string }[] = json(
     "fixtures/prototype-building-templates.json",
   );
-  const ids = templates.map((template) => template.id);
-  for (const name of templateKits(library, ids)) {
+  const families: string[] = json("fixtures/map-presets.json").parcels.regional_families;
+  const download = (family: string) => [
+    ...templateKits(
+      library,
+      templates.filter((t) => t.regional_family === family).map((t) => t.id),
+    ),
+    ...familyLooks(onRequestOf(catalog), family),
+  ];
+  return { library, templates, families, download };
+}
+
+test("every regional family's full art and the library fit the shared download gate with exact raw integrity", async () => {
+  const catalog = json("assets/runtime/catalog.json") as RuntimeCatalog;
+  const { library, templates, families, download } = await familyDownloads(catalog);
+  for (const name of templateKits(
+    library,
+    templates.map((template) => template.id),
+  )) {
     const hash = catalog.appearances[name].bundle;
     const gzip = gzipTransport(catalog, hash, KIT_BUNDLE_MAX_BYTES);
     const bundle = decodeBundle(
@@ -101,11 +122,67 @@ test("every regional family's full art and the library fit the shared download g
     );
     expect(bundle.kind, name).toBe("static");
   }
-  const families = new Set(templates.map((template) => template.regional_family));
-  for (const family of families) {
-    const ofFamily = templates.filter((t) => t.regional_family === family).map((t) => t.id);
-    expect(kitDownloadBytes(catalog, templateKits(library, ofFamily)), family).toBeLessThanOrEqual(
-      SHARED_KIT_DOWNLOAD_MAX_BYTES,
+  for (const family of families)
+    expect(downloadBytes(catalog, download(family)), family).toBeLessThanOrEqual(
+      MAP_DOWNLOAD_MAX_BYTES,
+    );
+});
+
+/** The shipped catalog with one more regional look of `family`, `bytes` on the wire. */
+function withLook(catalog: RuntimeCatalog, family: string, bytes: number): RuntimeCatalog {
+  const raw = "c".repeat(64);
+  return {
+    ...catalog,
+    appearances: {
+      ...catalog.appearances,
+      bench_heavy: {
+        unit: "scenery",
+        kind: "static",
+        bundle: raw,
+        scenery: "bench",
+        footprint_half_m: [0.9, 0.3, 0.42],
+        regional_family: family,
+      },
+    },
+    gzip: { ...catalog.gzip, [raw]: { hash: "d".repeat(64), bytes, raw_bytes: 1 } },
+  };
+}
+
+test("a family's regional looks count against its gate, and no other family's", async () => {
+  const shipped = json("assets/runtime/catalog.json") as RuntimeCatalog;
+  const { families } = await familyDownloads(shipped);
+  const [heavy, ...others] = families;
+  const catalog = withLook(shipped, heavy, MAP_DOWNLOAD_MAX_BYTES);
+  const { download } = await familyDownloads(catalog);
+  expect(download(heavy)).toContain("bench_heavy");
+  expect(downloadBytes(catalog, download(heavy))).toBeGreaterThan(MAP_DOWNLOAD_MAX_BYTES);
+  for (const family of others) {
+    expect(download(family)).not.toContain("bench_heavy");
+    expect(downloadBytes(catalog, download(family)), family).toBeLessThanOrEqual(
+      MAP_DOWNLOAD_MAX_BYTES,
     );
   }
+});
+
+test("the loader refuses a family's oversized looks before fetching any", async () => {
+  const look = withLook(
+    { sides: { blue: [1, 1, 1], red: [1, 1, 1] }, skeletons: {}, appearances: {} },
+    "paris",
+    MAP_DOWNLOAD_MAX_BYTES + 1,
+  );
+  const fetched: string[] = [];
+  const inner = memoryFetch(
+    new Map([["catalog.json", new TextEncoder().encode(JSON.stringify(look))]]),
+    "/",
+  );
+  const loader = new AppearanceLibrary((url) => {
+    fetched.push(url);
+    return inner(url);
+  });
+  const catalog = await loader.load("/");
+  await expect(loader.withAppearances(familyLooks(catalog.onRequest, "paris"))).rejects.toThrow(
+    /map download .* over/,
+  );
+  expect(fetched).toEqual(["/catalog.json"]);
+  expect(loader.installed).toBe(catalog);
 });

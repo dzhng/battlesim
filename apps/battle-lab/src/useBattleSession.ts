@@ -223,8 +223,9 @@ export function useBattleSession({
   const placedProps = mapBuildings?.props ?? null;
   const drawnBuildings = mapBuildings?.index ?? null;
   // The catalog, and the kits this map's buildings and stand-in boxes draw
-  // from, fetched once the map is known: the loading cover stays up for them.
-  const appearances = useMapAppearances(drawnBuildings?.placed ?? null, true);
+  // from and its region's looks, fetched once the map is known: the loading
+  // cover stays up for them.
+  const appearances = useMapAppearances(drawnBuildings?.placed ?? null, null, true);
   // Props that can move (shoved) or be destroyed ("apart") are drawn from
   // what the side knows, apart from the world.
   const apart = useMemo(
@@ -249,7 +250,10 @@ export function useBattleSession({
   const props = useMemo(
     () =>
       world && placedProps && appearances
-        ? { map: placedProps, fit: new PropAppearances(appearances, world.layout, gameStandIns) }
+        ? {
+            map: placedProps,
+            fit: new PropAppearances(appearances, world.layout, null, gameStandIns),
+          }
         : null,
     [world, placedProps, appearances],
   );

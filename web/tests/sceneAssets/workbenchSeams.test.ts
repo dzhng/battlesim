@@ -159,6 +159,6 @@ test("a dropped kit preview uses the same gzip transport and installs its actual
   );
   const loader = new AppearanceLibrary(memoryFetch(files, "mem:/"));
   await loader.load("mem:/");
-  const installed = await loader.withKits(["kit.glb"]);
+  const installed = await loader.withAppearances(["kit.glb"]);
   expect(encodeBundle(installed.appearances.get("kit.glb")!.bundle)).toEqual(encodeBundle(preview));
 });

@@ -1,13 +1,15 @@
 // The page's appearances, through the one loader (`AppearanceLibrary`), from
 // what the bake wrote under `assets/runtime/` (Vite's publicDir, served at
-// the site root). The catalog loads once per page: every appearance but the
-// kits. A kit is fetched the first time the page asks for it, and a page asks
-// for what it will draw: a map for the kits its buildings' templates place
+// the site root). The catalog loads once per page: every appearance but those
+// fetched on request (kits and regional looks). One of those is fetched the
+// first time the page asks for it, and a page asks for what it will draw: a
+// map for the kits its buildings' templates place and its region's looks
 // (`useMapAppearances`), a lab for the kit it shows. Every route that draws
 // the world waits for its appearances, so its trees and buildings are there
 // from the first frame. The workbench reloads the catalog after a re-bake.
 import { useEffect, useMemo, useState } from "react";
 import { AppearanceLibrary, type InstalledAppearances } from "@packages/scene-assets/src/loader";
+import { familyLooks } from "@packages/scene-assets/src/schema";
 import { STAND_IN_KIT } from "@packages/scene-assets/src/standInKit";
 import { TemplateArtError, templateKits } from "@packages/scene-assets/src/templateLibrary";
 import type { PlacedBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
@@ -16,11 +18,11 @@ import type { MapProp, PropAppearances } from "@packages/battle-renderer/src/mod
 const library = new AppearanceLibrary();
 let loading: Promise<InstalledAppearances> | null = null;
 
-/** The page's appearances with the kits `kits` among them: the catalog's one
- *  load, then whichever of those kits the page has not fetched yet. */
-export function gameAppearances(kits: Iterable<string> = []): Promise<InstalledAppearances> {
+/** The page's appearances with `asked` among them: the catalog's one load,
+ *  then whichever of those the page has not fetched yet. */
+export function gameAppearances(asked: Iterable<string> = []): Promise<InstalledAppearances> {
   loading ??= library.load("/");
-  return loading.then(() => library.withKits(kits));
+  return loading.then(() => library.withAppearances(asked));
 }
 
 /** Load the catalog afresh (it was re-baked): the page's appearances from now
@@ -30,29 +32,29 @@ export function reloadGameAppearances(): Promise<InstalledAppearances> {
   return gameAppearances();
 }
 
-const NO_KITS: ReadonlySet<string> = new Set();
+const NOTHING: ReadonlySet<string> = new Set();
 
-/** The installed appearances with `kits` among them, or null until they have
- *  loaded, and while `kits` is null (the page does not know yet what it
+/** The installed appearances with `asked` among them, or null until they
+ *  have loaded, and while `asked` is null (the page does not know yet what it
  *  draws). A failed load is an error on the console (scenes fail on it), and
  *  the world never draws. */
 export function useGameAppearances(
-  kits: ReadonlySet<string> | null = NO_KITS,
+  asked: ReadonlySet<string> | null = NOTHING,
 ): InstalledAppearances | null {
   const [installed, setInstalled] = useState<InstalledAppearances | null>(null);
   useEffect(() => {
-    if (!kits) return;
+    if (!asked) return;
     let live = true;
-    gameAppearances(kits).then(
+    gameAppearances(asked).then(
       (next) => live && setInstalled(next),
       (error: unknown) => console.error("Appearances failed to load", error),
     );
     return () => {
       live = false;
     };
-  }, [kits]);
-  // What an earlier request installed answers this one only if it has its kits.
-  const held = installed && kits && [...kits].every((kit) => installed.appearances.has(kit));
+  }, [asked]);
+  // What an earlier request installed answers this one only if it has what it asked.
+  const held = installed && asked && [...asked].every((name) => installed.appearances.has(name));
   return held ? installed : null;
 }
 
@@ -74,19 +76,34 @@ export function mapKits(
   return kits;
 }
 
-/** The installed appearances with the kits of a map of `placed` buildings
- *  (`mapKits`), or null until they have loaded, and while `placed` is null
- *  (the map is not known yet). */
+/** What a map of `placed` buildings in regional family `family` (null for a
+ *  map of none) fetches on request: its kits (`mapKits`) and its family's
+ *  regional looks, no other family's. */
+export function mapDownloads(
+  catalog: InstalledAppearances,
+  placed: PlacedBuildings,
+  family: string | null,
+  standIns = false,
+): Set<string> {
+  const asked = mapKits(catalog, placed, standIns);
+  for (const name of familyLooks(catalog.onRequest, family)) asked.add(name);
+  return asked;
+}
+
+/** The installed appearances with what a map of `placed` buildings in
+ *  `family` fetches (`mapDownloads`), or null until they have loaded, and
+ *  while `placed` is null (the map is not known yet). */
 export function useMapAppearances(
   placed: PlacedBuildings | null,
+  family: string | null,
   standIns = false,
 ): InstalledAppearances | null {
   const catalog = useGameAppearances();
-  const kits = useMemo(
-    () => catalog && placed && mapKits(catalog, placed, standIns),
-    [catalog, placed, standIns],
+  const asked = useMemo(
+    () => catalog && placed && mapDownloads(catalog, placed, family, standIns),
+    [catalog, placed, family, standIns],
   );
-  return useGameAppearances(kits);
+  return useGameAppearances(asked);
 }
 
 /**
