@@ -1,6 +1,7 @@
 //! The parcel pass: each district of a generated layout gets its streets,
 //! then parcels along them, then one template on each parcel. A template is
 //! placed whole, by translation and rotation; a parcel is cut to it.
+pub(crate) mod courts;
 pub(crate) mod lots;
 pub(crate) mod space;
 pub(crate) mod streets;
@@ -107,9 +108,10 @@ pub(crate) fn admit_region(
 }
 
 /// Cut every district of `plan` into streets and parcels and stand templates
-/// of `catalogue` on them. The result is the same plan with its streets and
-/// aprons added to `surfaces`, its parcels in `lots` and one `buildings` row
-/// per placed template, numbered into the plan's dense prop ids.
+/// of `catalogue` on them. The result is the same plan with its streets,
+/// aprons and courts added to `surfaces`, its parcels in `lots`, its courts
+/// in `courts` and one `buildings` row per placed template, numbered into
+/// the plan's dense prop ids.
 pub fn fill_districts(
     plan: MapPlan,
     request: &GenerationRequest,
@@ -180,7 +182,7 @@ fn fill(
         plan.size,
         &blocks,
     );
-    let (lots, buildings, aprons) = {
+    let (lots, buildings, aprons, courts, paving) = {
         let network = streets::Network::new(&plan, clearance, &presets.parcels.geometry);
         let mut ground = Ground::new(&plan, &network);
         for district in plan.settlements.iter().flat_map(|s| &s.districts) {
@@ -192,9 +194,18 @@ fn fill(
                 ));
             }
         }
-        (ground.plan_lots, ground.buildings, ground.aprons)
+        let (courts, paving) = courts::lay(&pass, &network, &plan, &ground.plan_lots)?;
+        (
+            ground.plan_lots,
+            ground.buildings,
+            ground.aprons,
+            courts,
+            paving,
+        )
     };
     plan.surfaces.extend(aprons);
+    plan.surfaces.extend(paving);
+    plan.courts = courts;
     plan.lots = lots;
     plan.buildings = buildings;
 

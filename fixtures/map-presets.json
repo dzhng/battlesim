@@ -237,6 +237,7 @@
       "lots": { "front_m": 2, "side_m": 1.5, "rear_m": 6, "coverage": 0.95, "apron_m": 0 },
       "props": {
         "parking": 0.35,
+        "courts": { "paved": true },
         "verge": [
           { "kind": "lamp", "spacing_m": 70, "sides": "alternate" },
           { "kind": "bins", "spacing_m": 200, "sides": "scatter" },
@@ -256,6 +257,7 @@
       "lots": { "front_m": 2, "side_m": 1.5, "rear_m": 6, "coverage": 0.95, "apron_m": 0 },
       "props": {
         "parking": 0.38,
+        "courts": { "paved": true },
         "verge": [
           { "kind": "lamp", "spacing_m": 60, "sides": "alternate" },
           { "kind": "street_tree", "spacing_m": 24, "sides": "both", "avenue": true },
@@ -278,6 +280,7 @@
       "lots": { "front_m": 16, "side_m": 10, "rear_m": 14, "coverage": 0.9, "apron_m": 12 },
       "props": {
         "parking": 0.33,
+        "courts": { "paved": true },
         "verge": [
           { "kind": "lamp", "spacing_m": 70, "sides": "alternate" },
           { "kind": "street_tree", "spacing_m": 26, "sides": "both", "avenue": true },
@@ -298,6 +301,7 @@
       "lots": { "front_m": 10, "side_m": 9, "rear_m": 10, "coverage": 0.9, "apron_m": 0 },
       "props": {
         "parking": 0.38,
+        "courts": { "paved": true },
         "verge": [
           { "kind": "lamp", "spacing_m": 60, "sides": "alternate" },
           { "kind": "street_tree", "spacing_m": 24, "sides": "both", "avenue": true },

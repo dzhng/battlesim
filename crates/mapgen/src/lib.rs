@@ -68,6 +68,11 @@ pub struct MapPlan {
     /// The parcels the parcel pass cut, in the order it cut them. Plan-only.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lots: Vec<LotPlan>,
+    /// The paved block interiors of the districts that pave theirs, each
+    /// also laid as a `Paving` surface. Plan-only: where court amenities
+    /// stand.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub courts: Vec<CourtPlan>,
     /// A requested feature without a shared physical owner cannot be discarded.
     #[serde(flatten)]
     pub unsupported_fields: BTreeMap<String, serde_json::Value>,
@@ -122,6 +127,19 @@ pub struct LotPlan {
     /// on it has the same id; a parcel without one is open ground.
     pub id: String,
     /// Its corners, counter-clockwise from the street side.
+    #[serde(deserialize_with = "contract::numbers::points")]
+    pub ring: Vec<[f64; 2]>,
+}
+
+/// A district's court: its block interior, paved between its buildings.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CourtPlan {
+    /// `settlement-3/district-2/court`, stable for a request.
+    pub id: String,
+    /// The district it is the interior of.
+    pub district: String,
+    /// A convex ring inside the district's, counter-clockwise.
     #[serde(deserialize_with = "contract::numbers::points")]
     pub ring: Vec<[f64; 2]>,
 }

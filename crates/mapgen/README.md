@@ -87,6 +87,12 @@ identity derives from its district so tuning one kind does not rename unrelated
 buildings. A district with no valid first parcel is a named refusal rather than an
 unexplained empty town.
 
+A dense district paves its block interior as one [court](src/parcels/courts.rs):
+its convex ring, laid as paving, so the ground between every one of its buildings
+is hard standing and its streets draw over it. Along an edge no carriageway runs
+on, the court ends at its nearest parcel's rear rather than running out into the
+fields. Paving is ground, not road: it changes no speed, sight or cover.
+
 [The generated template library](../../fixtures/prototype-building-templates.json)
 is derived from accepted [city sets](../../packages/scene-assets/README.md#city-buildings),
 not edited independently. Art dresses physical descriptors; a new regional family

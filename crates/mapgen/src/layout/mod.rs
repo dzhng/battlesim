@@ -163,6 +163,7 @@ pub fn generate_layout(
         settlements,
         approaches: Vec::new(),
         lots: Vec::new(),
+        courts: Vec::new(),
         unsupported_fields: BTreeMap::new(),
     };
     plan.approaches = measure::approaches(&plan, presets);
