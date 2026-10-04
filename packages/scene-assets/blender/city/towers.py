@@ -56,7 +56,7 @@ import zlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kit import *  # noqa: E402,F403
-from water_tank import water_tank  # noqa: E402
+from water_tank import fit_over, water_tank  # noqa: E402
 
 # An opening in its panel (x0, x1, z0, z1): x about the bay's centre, z above the floor's datum.
 # The panel modules and the facade recipes are both cut to these.
@@ -65,43 +65,41 @@ PANEL_OPENINGS = {"w": (-0.75, 0.75, 0.9, 2.4), "d": (-1.1, 1.1, 0.1, 2.3), "l":
 # A family's design. `wall` is what its facade recipes draw between the openings (`WALLS_FAR`) and
 # `finishes` its near walls' recipes; `trim` the colour of what its far walls paint untinted (the stone
 # round a window, a slab band) and `tint_share` how much of the rest a tint colours (a brick wall's
-# mortar is not); `lintels` gives its near windows the stone the far wall paints; `bars` a kind's glazing bars (uprights, rails above the sill) where it differs from
-# one upright; `dress` which of a recipe's four bays (bay + 2 * floor) hang a curtain module or have a
+# mortar is not); `lintels` gives its near windows the stone the far wall paints; `bars` a kind's
+# glazing bars (uprights, rails above the sill) where it differs from one upright; `dress` which of a recipe's four bays (bay + 2 * floor) hang a curtain module or have a
 # shutter lowered (the fraction of the opening), near and far alike; `base` the ground floor's recipe and
 # colour; `canopy` the way in's; `cast` the recipe of its sills, bands and coping; `band` a band's
 # foot and head about its floor's datum and how far it stands out, and `band_tiers` the tiers it is
 # geometry at (past them the far wall's paint carries it); `blown_tiers` the tiers a gutted tower's
 # shell shows its blown-out bays at (past them the wall is whole in its burnt paint: the blown bays'
-# extra faces would draw more than the intact tower, which has no balcony stacks to pay for them); `ac` the air conditioner a window
-# may carry and how often; `hut` the recipe of the huts on its roof; `fit_top_m` what stands highest
-# on the roof.
+# extra faces would draw more than the intact tower, which has no balcony stacks to pay for them);
+# `ac` the air conditioner a window may carry and how often; `hut` the recipe of the huts on its roof;
+# `fit_top_m` how far its roof's furniture may stand over the parapet; and `design` its towers.
+PARAPET_M = 1.0  # the part's top above the top floor's ceiling
+ROOF_M = 0.35  # the roof's surface above that ceiling, inside the parapet
 STYLES = {
-    "china": dict(set="towers", recipes="", wall="panel", finishes={"precast": "precast", "render": "plaster", "tile": "mosaic"},
+    "china": dict(design=lambda: china(), recipes="", wall="panel", finishes={"precast": "precast", "render": "plaster", "tile": "mosaic"},
                   opening=PANEL_OPENINGS, trim=None, bars={}, dress={1: "curtain_pair", 3: "curtain_blind"},
                   frame=(0.46, 0.45, 0.42), rail=(0.5, 0.5, 0.48), base=("concrete", (0.2, 0.2, 0.19)), facade=(0.72, 0.71, 0.68),
                   canopy="slab", fit_top_m=4.0),
-    "new_york": dict(set="towers_new_york", recipes="nyc_", wall="brick", finishes={"brick": "facing_brick_pale"},
+    "new_york": dict(design=lambda: new_york(), recipes="nyc_", wall="brick", finishes={"brick": "facing_brick_pale"},
                      opening=PANEL_OPENINGS | {"w": (-0.6, 0.6, 0.8, 2.45), "s": (-0.45, 0.45, 0.8, 2.45)},
                      trim=(0.5, 0.465, 0.39), bars={"w": ((), (1.625,)), "s": ((), (1.625,))},
                      dress={1: "curtain_pair", 3: "curtain_blind"},
-                     frame=(0.06, 0.07, 0.065), rail=(0.5, 0.465, 0.39), base=("limestone_ashlar", (0.46, 0.43, 0.37)),
-                     facade=(0.62, 0.6, 0.56), canopy="awning", fit_top_m=4.6, cast="limestone_ashlar", band=(-0.2, 0.3, 0.12),
+                     frame=(0.06, 0.07, 0.065), rail=(0.5, 0.465, 0.39), base=("ashlar", (0.46, 0.43, 0.37)),
+                     facade=(0.62, 0.6, 0.56), canopy="awning", fit_top_m=max(4.0, fit_over(PARAPET_M - ROOF_M)), cast="ashlar", band=(-0.2, 0.3, 0.12),
                      ac=("window_ac", 0.18), hut="facing_brick_pale", lintels=True, tint_share=0.8, blown_tiers=(1, 2)),
-    "paris": dict(set="towers_paris", recipes="paris_", wall="gravel", finishes={"gravel": "gravel_precast", "render": "plaster"},
+    "paris": dict(design=lambda: paris(), recipes="paris_", wall="gravel", finishes={"gravel": "gravel_precast", "render": "plaster"},
                   opening=PANEL_OPENINGS, trim=(0.58, 0.58, 0.56), bars={},
                   dress={0: 0.3, 1: "curtain_pair", 2: 0.55, 3: "curtain_blind"},
                   frame=(0.62, 0.62, 0.6), rail=(0.58, 0.58, 0.56), base=("concrete", (0.2, 0.2, 0.19)), facade=(0.7, 0.68, 0.64),
                   canopy="slab", fit_top_m=4.0, band=(-0.18, 0.1, 0.07), band_tiers=(0, 1), tint_share=1.0, blown_tiers=(1,)),
 }
-FAMILY = next(iter(script_args()), "china")
-if FAMILY not in STYLES:
-    raise SystemExit(f"towers.py: the family is one of {sorted(STYLES)}, not {FAMILY}")
+FAMILY, SET, RECEIPT, OUT = family_set("towers.py", "towers", STYLES)
 STYLE = STYLES[FAMILY]
-R = STYLE["recipes"]  # a facade recipe's name in this family: China's are the unprefixed originals
+R = STYLE["recipes"]  # a facade recipe's name in this family; China's are unprefixed, the names its committed kit was baked with
 BAY_M, FLOOR_M = BAY_PITCH_M, 3.0
 PIER_M = 1.0  # the blank corner at each end of a wall
-PARAPET_M = 1.0  # the part's top above the top floor's ceiling
-ROOF_M = 0.35  # the roof's surface above that ceiling, inside the parapet
 COPING_M = 0.3  # the parapet's thickness
 REVEAL_M = 0.14  # how far glass sits behind the wall's face
 ROOM_AT_M = 0.06  # how far behind its glass a flat's room begins: the frame's depth, where curtains hang
@@ -130,7 +128,7 @@ TRIM = STYLE["trim"]
 CLOTHS = ((0.3, 0.28, 0.22), (0.2, 0.24, 0.29), (0.31, 0.31, 0.3), (0.27, 0.17, 0.15))  # curtains seen through glass
 SHUTTER = (0.42, 0.41, 0.38)  # a roller shutter's grey slats
 
-kit = Kit(STYLE["set"], "towers.py" + ("" if FAMILY == "china" else f" {FAMILY}"), fit_side_m=1.5, fit_top_m=STYLE["fit_top_m"])
+kit = Kit(SET, RECEIPT, fit_side_m=1.5, fit_top_m=STYLE["fit_top_m"])
 
 
 def uprights(kind):
@@ -535,8 +533,7 @@ def card(m, mat, tile, lods=(1, 2, 3), which=0):
 
 # ---------------------------------------------------------------- panels: one bay wide, one floor high
 # A panel faces -Y with its bay's centre on the wall's face at the floor's datum.
-# Every fitting is offered to every family; a set whose towers place none of one leaves it out.
-PANEL = dict(ao_distance=0.5, paint_scale=10.0, optional=True)  # no face needs splitting for paint
+PANEL = dict(ao_distance=0.5, paint_scale=10.0)  # no face needs splitting for paint
 _PANELS = {}
 
 
@@ -660,6 +657,8 @@ entrance("entrance", canopy_m, metal_m if STYLE["canopy"] == "awning" else rail_
 entrance("gutted_entrance", CANOPY_BURNT, metal_m if STYLE["canopy"] == "awning" else CAST_BURNT, void_m, burnt=True)  # burnt out: the canopy stands over an empty doorway
 
 # ---------------------------------------------------------------- what hangs on a panel
+# Each is offered (`kit.offer`): made the first time a row places it, so a family's set holds only
+# the fittings its towers carry.
 # A balcony before a door panel: a slab at the floor's datum and a solid front a row tints.
 def balcony(name, glazed):
     m = kit.module(name, **PANEL)
@@ -685,57 +684,89 @@ def balcony(name, glazed):
     box(m.n("lid"), (w, reach, 0.08), (0, -reach / 2, top + 0.04), rail_m, m.root, lods=(0, 1, 2))
 
 
-balcony("balcony", False)
-balcony("balcony_glazed", True)
+kit.offer("balcony", lambda: balcony("balcony", False))
+kit.offer("balcony_glazed", lambda: balcony("balcony_glazed", True))
+w_, reach_, h_ = BALCONY
+
 
 # The same balcony after the fire: scorched, or its front half gone, or hanging by its inner edge.
-w_, reach_, h_ = BALCONY
-m = kit.module("balcony_burnt", **PANEL)
-box(m.n("slab"), (w_, reach_, 0.14), (0, -reach_ / 2, -0.07), CAST_BURNT, m.root, lods=(0, 1, 2))
-box(m.n("front"), (w_, 0.08, h_), (0, -reach_ + 0.04, h_ / 2), FRONT_BURNT, m.root)
-for s_ in (-1, 1):
-    box(m.n(f"cheek_{'ab'[s_ > 0]}"), (0.08, reach_ - 0.08, h_), (s_ * (w_ / 2 - 0.04), -(reach_ - 0.08) / 2, h_ / 2), FRONT_BURNT, m.root,
-        lods=(0, 1))
-m = kit.module("balcony_broken", **PANEL)
-box(m.n("slab"), (w_, reach_, 0.14), (0, -reach_ / 2, -0.07), CAST_BURNT, m.root)
-box(m.n("front"), (w_ * 0.45, 0.08, h_), (-w_ * 0.275, -reach_ + 0.04, h_ / 2), FRONT_BURNT, m.root, lods=(0, 1, 2))
-box(m.n("cheek"), (0.08, reach_ - 0.08, h_), (-(w_ / 2 - 0.04), -(reach_ - 0.08) / 2, h_ / 2), FRONT_BURNT, m.root, lods=(0, 1))
-box(m.n("fallen"), (w_ * 0.4, 0.08, h_ * 0.8), (w_ * 0.25, -reach_ * 0.6, 0.12), FRONT_BURNT, m.root, rot=(1.35, 0, 0.2), lods=(0,))
-m = kit.module("balcony_hanging", **PANEL)
-box(m.n("slab"), (w_, reach_, 0.14), (0, -0.5 * reach_ * math.cos(0.9), -0.07 - 0.5 * reach_ * math.sin(0.9)), CAST_BURNT, m.root,
-    rot=(-0.9, 0, 0))
+@kit.offer("balcony_burnt")
+def _():
+    m = kit.module("balcony_burnt", **PANEL)
+    box(m.n("slab"), (w_, reach_, 0.14), (0, -reach_ / 2, -0.07), CAST_BURNT, m.root, lods=(0, 1, 2))
+    box(m.n("front"), (w_, 0.08, h_), (0, -reach_ + 0.04, h_ / 2), FRONT_BURNT, m.root)
+    for s_ in (-1, 1):
+        box(m.n(f"cheek_{'ab'[s_ > 0]}"), (0.08, reach_ - 0.08, h_), (s_ * (w_ / 2 - 0.04), -(reach_ - 0.08) / 2, h_ / 2), FRONT_BURNT, m.root,
+            lods=(0, 1))
+
+
+@kit.offer("balcony_broken")
+def _():
+    m = kit.module("balcony_broken", **PANEL)
+    box(m.n("slab"), (w_, reach_, 0.14), (0, -reach_ / 2, -0.07), CAST_BURNT, m.root)
+    box(m.n("front"), (w_ * 0.45, 0.08, h_), (-w_ * 0.275, -reach_ + 0.04, h_ / 2), FRONT_BURNT, m.root, lods=(0, 1, 2))
+    box(m.n("cheek"), (0.08, reach_ - 0.08, h_), (-(w_ / 2 - 0.04), -(reach_ - 0.08) / 2, h_ / 2), FRONT_BURNT, m.root, lods=(0, 1))
+    box(m.n("fallen"), (w_ * 0.4, 0.08, h_ * 0.8), (w_ * 0.25, -reach_ * 0.6, 0.12), FRONT_BURNT, m.root, rot=(1.35, 0, 0.2), lods=(0,))
+
+
+@kit.offer("balcony_hanging")
+def _():
+    m = kit.module("balcony_hanging", **PANEL)
+    box(m.n("slab"), (w_, reach_, 0.14), (0, -0.5 * reach_ * math.cos(0.9), -0.07 - 0.5 * reach_ * math.sin(0.9)), CAST_BURNT, m.root,
+        rot=(-0.9, 0, 0))
+
 
 # A loggia glazed in: sashes on the wall's face over the balustrade.
-m = kit.module("loggia_sash", **PANEL)
-x0, x1, z0, z1 = OPENING["l"]
-sheet(m.n("glass"), glass_m, m.root, [flat(x0, x1, z0 + 1.04, z1, 0.03)], lods=(0,))
-sheet(m.n("pane"), pane_m, m.root, [flat(x0, x1, z0 + 1.04, z1, 0.03)], lods=(1, 2, 3))
-sheet(m.n("bars"), frame_m, m.root, [flat(x - 0.03, x + 0.03, z0 + 1.04, z1, 0.01) for x in (x0 + 0.03, -0.43, 0.43, x1 - 0.03)]
-      + [flat(x0, x1, z1 - 0.06, z1, 0.01)], lods=(0,))
+@kit.offer("loggia_sash")
+def _():
+    m = kit.module("loggia_sash", **PANEL)
+    x0, x1, z0, z1 = OPENING["l"]
+    sheet(m.n("glass"), glass_m, m.root, [flat(x0, x1, z0 + 1.04, z1, 0.03)], lods=(0,))
+    sheet(m.n("pane"), pane_m, m.root, [flat(x0, x1, z0 + 1.04, z1, 0.03)], lods=(1, 2, 3))
+    sheet(m.n("bars"), frame_m, m.root, [flat(x - 0.03, x + 0.03, z0 + 1.04, z1, 0.01) for x in (x0 + 0.03, -0.43, 0.43, x1 - 0.03)]
+          + [flat(x0, x1, z1 - 0.06, z1, 0.01)], lods=(0,))
+
 
 # Curtains behind a window's glass, between it and the room, in the window panel's frame: a row's tint is their colour.
-x0, x1, z0, z1 = OPENING["w"]
 CURTAIN_AT_M = REVEAL_M + ROOM_AT_M / 2
-m = kit.module("curtain_pair", **PANEL)
-sheet(m.n("drapes"), drape_m, m.root, [flat(x0, x0 + 0.42, z0, z1, CURTAIN_AT_M), flat(x1 - 0.42, x1, z0, z1, CURTAIN_AT_M)])
-m = kit.module("curtain_blind", **PANEL)
-sheet(m.n("blind"), drape_m, m.root, [flat(x0, x1, z0 + 0.7, z1, CURTAIN_AT_M)])
+
+
+@kit.offer("curtain_pair")
+def _():
+    x0, x1, z0, z1 = OPENING["w"]
+    m = kit.module("curtain_pair", **PANEL)
+    sheet(m.n("drapes"), drape_m, m.root, [flat(x0, x0 + 0.42, z0, z1, CURTAIN_AT_M), flat(x1 - 0.42, x1, z0, z1, CURTAIN_AT_M)])
+
+
+@kit.offer("curtain_blind")
+def _():
+    x0, x1, z0, z1 = OPENING["w"]
+    m = kit.module("curtain_blind", **PANEL)
+    sheet(m.n("blind"), drape_m, m.root, [flat(x0, x1, z0 + 0.7, z1, CURTAIN_AT_M)])
+
 
 # An air conditioner's outdoor unit on brackets beside a window.
-m = kit.module("ac_unit", **PANEL)
-box(m.n("case"), (0.62, 0.28, 0.5), (1.12, -0.17, 1.2), unit_m, m.root)
-sheet(m.n("grille"), metal_m, m.root, [flat(0.87, 1.25, 1.02, 1.38, -0.315)], lods=(0,))
-box(m.n("bracket"), (0.66, 0.3, 0.04), (1.12, -0.16, 0.93), metal_m, m.root, lods=(0,))
+@kit.offer("ac_unit")
+def _():
+    m = kit.module("ac_unit", **PANEL)
+    box(m.n("case"), (0.62, 0.28, 0.5), (1.12, -0.17, 1.2), unit_m, m.root)
+    sheet(m.n("grille"), metal_m, m.root, [flat(0.87, 1.25, 1.02, 1.38, -0.315)], lods=(0,))
+    box(m.n("bracket"), (0.66, 0.3, 0.04), (1.12, -0.16, 0.93), metal_m, m.root, lods=(0,))
+
 
 # Washing on a line across a balcony, 0.6 m before the wall: two things take the row's tint.
-m = kit.module("washing", **PANEL)
-box(m.n("line"), (2.5, 0.015, 0.015), (0, -0.6, 2.05), metal_m, m.root, lods=(0,))
-for k, (x, w, drop, mat) in enumerate(((-0.85, 0.5, 0.75, cloth_m), (-0.2, 0.42, 0.55, linen_m), (0.35, 0.36, 0.8, cloth_m),
-                                       (0.9, 0.5, 0.6, linen_m))):
-    box(m.n(f"cloth_{k}"), (w, 0.02, drop), (x, -0.6, 2.04 - drop / 2), mat, m.root, lods=TIERS if k == 0 else (0,))
+@kit.offer("washing")
+def _():
+    m = kit.module("washing", **PANEL)
+    box(m.n("line"), (2.5, 0.015, 0.015), (0, -0.6, 2.05), metal_m, m.root, lods=(0,))
+    for k, (x, w, drop, mat) in enumerate(((-0.85, 0.5, 0.75, cloth_m), (-0.2, 0.42, 0.55, linen_m), (0.35, 0.36, 0.8, cloth_m),
+                                           (0.9, 0.5, 0.6, linen_m))):
+        box(m.n(f"cloth_{k}"), (w, 0.02, drop), (x, -0.6, 2.04 - drop / 2), mat, m.root, lods=TIERS if k == 0 else (0,))
+
 
 # A window air conditioner, New York's: the case sits on the sill, half outside, the lower sash down on it.
-if FAMILY == "new_york":
+@kit.offer("window_ac")
+def _():
     x0, x1, z0, z1 = OPENING["w"]
     m = kit.module("window_ac", **PANEL)
     box(m.n("case"), (0.66, 0.5, 0.42), (0, -0.1, z0 + 0.21), unit_m, m.root)
@@ -744,16 +775,21 @@ if FAMILY == "new_york":
     sheet(m.n("filler"), frame_m, m.root, [flat(x0, -0.33, z0, z0 + 0.42, REVEAL_M - 0.02), flat(0.33, x1, z0, z0 + 0.42, REVEAL_M - 0.02)],
           lods=(0,))
 
+
 # A roller shutter let down from a window's head, in its reveal before the glass, as far as `SHUTTERED` says.
-for down in sorted(set(SHUTTERED.values())):
+def shutter(down):
     x0, x1, z0, z1 = OPENING["w"]
     m = kit.module(f"shutter_{round(100 * down)}", **PANEL)
     foot = z1 - down * (z1 - z0)
     sheet(m.n("slats"), shutter_m, m.root, [flat(x0, x1, foot, z1, REVEAL_M - 0.05)])
     sheet(m.n("bar"), metal_m, m.root, [flat(x0, x1, foot, foot + 0.05, REVEAL_M - 0.06)], lods=(0,))
 
+
+for down_ in SHUTTERED.values():
+    kit.offer(f"shutter_{round(100 * down_)}", lambda down=down_: shutter(down))
+
 # ---------------------------------------------------------------- the roof's furniture
-ROOFTOP = dict(ao_distance=0.8, paint_scale=10.0, optional=True)
+ROOFTOP = dict(ao_distance=0.8, paint_scale=10.0)
 
 
 def hut(name, w, d, h, burnt=False):
@@ -764,45 +800,59 @@ def hut(name, w, d, h, burnt=False):
     box(m.n("lid"), (w + 0.3, d + 0.3, 0.14), (0, 0, h + 0.07), CAST_BURNT if burnt else rail_m, m.root, lods=(0, 1, 2))
     box(m.n("door"), (0.9, 0.05, 2.0), (-w / 2 + 1.0, -d / 2 - 0.02, 1.0), void_m if burnt else metal_m, m.root, lods=(0, 1))
     box(m.n("louvre"), (0.05, 1.2, 0.6), (w / 2 + 0.02, 0, h - 0.7), void_m if burnt else metal_m, m.root, lods=(0, 1))
-    return h + 0.14
 
 
-HUTS = {"bulkhead": hut("bulkhead", 6.0, 4.5, 2.7), "stairhead": hut("stairhead", 3.2, 4.2, 2.3)}  # each one's height
-hut("bulkhead_burnt", 6.0, 4.5, 2.7, burnt=True)
-hut("stairhead_burnt", 3.2, 4.2, 2.3, burnt=True)
+HUT_SIZES = {"bulkhead": (6.0, 4.5, 2.7), "stairhead": (3.2, 4.2, 2.3)}
+HUTS = {name: h + 0.14 for name, (w, d, h) in HUT_SIZES.items()}  # each one's height, to its lid's top
+for name_, size_ in HUT_SIZES.items():
+    kit.offer(name_, lambda name=name_, size=size_: hut(name, *size))
+    kit.offer(name_ + "_burnt", lambda name=name_, size=size_: hut(name + "_burnt", *size, burnt=True))
 
 PLANT = (2.4, 1.4, 1.2)
 UNIT_BURNT = scorched(unit_m, 1e6, 9.0, floor=0.8)
-for name_, case_ in (("roof_plant", unit_m), ("roof_plant_burnt", UNIT_BURNT)):  # a packaged chiller on skids, its fan on top
-    m = kit.module(name_, **ROOFTOP)
-    box(m.n("case"), (PLANT[0], PLANT[1], PLANT[2] - 0.2), (0, 0, 0.2 + (PLANT[2] - 0.2) / 2), case_, m.root)
+
+
+def plant(name, case):
+    """A packaged chiller on skids, its fan on top."""
+    m = kit.module(name, **ROOFTOP)
+    box(m.n("case"), (PLANT[0], PLANT[1], PLANT[2] - 0.2), (0, 0, 0.2 + (PLANT[2] - 0.2) / 2), case, m.root)
     cyl(m.n("fan"), 0.45, 0.06, (-0.5, 0, PLANT[2] + 0.03), "Z", metal_m, m.root, seg=12, lods=(0, 1))
     box(m.n("grille"), (1.7, 0.03, 0.55), (0, -PLANT[1] / 2 - 0.015, 0.75), metal_m, m.root, lods=(0, 1))
     for s in (-1, 1):
         box(m.n(f"skid_{'ab'[s > 0]}"), (0.12, PLANT[1], 0.2), (s * 0.9, 0, 0.1), metal_m, m.root, lods=(0, 1))
 
-for name_, cast_ in (("roof_vent", rail_m), ("roof_vent_burnt", CAST_BURNT)):
-    m = kit.module(name_, **ROOFTOP)
-    box(m.n("stack"), (0.7, 0.7, 0.75), (0, 0, 0.375), cast_, m.root)
-    box(m.n("cowl"), (0.95, 0.95, 0.08), (0, 0, 0.9), cast_, m.root, lods=(0, 1))
 
-m = kit.module("roof_tank", **ROOFTOP)
-cyl(m.n("drum"), 1.1, 1.8, (0, 0, 1.45), "Z", tank_m, m.root, seg=20)
-box(m.n("deck"), (2.4, 2.4, 0.1), (0, 0, 0.5), rail_m, m.root, lods=(0, 1, 2))
-for k, (sx, sy) in enumerate(((-1, -1), (1, -1), (1, 1), (-1, 1))):
-    box(m.n(f"leg_{k}"), (0.14, 0.14, 0.45), (sx * 1.0, sy * 1.0, 0.225), rail_m, m.root, lods=(0, 1))
+def vent(name, cast):
+    m = kit.module(name, **ROOFTOP)
+    box(m.n("stack"), (0.7, 0.7, 0.75), (0, 0, 0.375), cast, m.root)
+    box(m.n("cowl"), (0.95, 0.95, 0.08), (0, 0, 0.9), cast, m.root, lods=(0, 1))
 
-# New York's water tank (`water_tank.py`), its staves and its cone.
-if FAMILY == "new_york":
-    tank_wood_m = flat_paint("tower_tank_wood", (0.13, 0.1, 0.075), rough=0.9, grime=0.4)
-    cone_m = flat_paint("tower_tank_cone", (0.06, 0.055, 0.05), rough=0.8, grime=0.3)
-    water_tank(kit.module("water_tank", **ROOFTOP), "tank", 0.0, 0.0, 0.0, tank_wood_m, cone_m, metal_m)
 
+kit.offer("roof_plant", lambda: plant("roof_plant", unit_m))
+kit.offer("roof_plant_burnt", lambda: plant("roof_plant_burnt", UNIT_BURNT))
+kit.offer("roof_vent", lambda: vent("roof_vent", rail_m))
+kit.offer("roof_vent_burnt", lambda: vent("roof_vent_burnt", CAST_BURNT))
+
+
+@kit.offer("roof_tank")
+def _():
+    m = kit.module("roof_tank", **ROOFTOP)
+    cyl(m.n("drum"), 1.1, 1.8, (0, 0, 1.45), "Z", tank_m, m.root, seg=20)
+    box(m.n("deck"), (2.4, 2.4, 0.1), (0, 0, 0.5), rail_m, m.root, lods=(0, 1, 2))
+    for k, (sx, sy) in enumerate(((-1, -1), (1, -1), (1, 1), (-1, 1))):
+        box(m.n(f"leg_{k}"), (0.14, 0.14, 0.45), (sx * 1.0, sy * 1.0, 0.225), rail_m, m.root, lods=(0, 1))
+
+
+kit.offer("water_tank", lambda: water_tank(kit.module("water_tank", **ROOFTOP), "tank", 0.0, 0.0, 0.0))  # New York's (`water_tank.py`)
 AERIAL_M = 1.6
-m = kit.module("roof_aerial", **ROOFTOP)
-cyl(m.n("mast"), 0.03, AERIAL_M, (0, 0, AERIAL_M / 2), "Z", metal_m, m.root, seg=6, caps=False)
-for k, (z, w) in enumerate(((1.5, 0.9), (1.3, 0.7), (1.1, 1.0))):
-    box(m.n(f"bar_{k}"), (w, 0.02, 0.02), (0, 0, z), metal_m, m.root, lods=(0, 1))
+
+
+@kit.offer("roof_aerial")
+def _():
+    m = kit.module("roof_aerial", **ROOFTOP)
+    cyl(m.n("mast"), 0.03, AERIAL_M, (0, 0, AERIAL_M / 2), "Z", metal_m, m.root, seg=6, caps=False)
+    for k, (z, w) in enumerate(((1.5, 0.9), (1.3, 0.7), (1.1, 1.0))):
+        box(m.n(f"bar_{k}"), (w, 0.02, 0.02), (0, 0, z), metal_m, m.root, lods=(0, 1))
 
 
 # ---------------------------------------------------------------- a tower
@@ -984,7 +1034,7 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, 
             mat = cast if module != "roof_plant" else UNIT_BURNT if burnt else unit_m
             box(m.n(f"hut_{k}"), size, (x, y, deck + size[2] / 2), mat, m.root, rot=(0, 0, yaw), lods=lods)
         elif module == "water_tank":
-            water_tank(m, f"tank_{k}", x, y, deck, tank_wood_m, cone_m, metal_m, far=True, stand=not burnt)
+            water_tank(m, f"tank_{k}", x, y, deck, far=True, stand=not burnt)
         else:
             cyl(m.n(f"tank_{k}"), 1.1, 1.8, (x, y, deck + 1.45), "Z", tank_m, m.root, seg=20, lods=lods[:1] if burnt else lods)
     # The roof inside the parapet: a field that carries its stains on a grid of vertices down to the
@@ -1301,6 +1351,6 @@ def paris():
           blown=[("south", 1, 2, 13, 2), ("east", 5, 2, 7, 2), ("south", 5, 2, 4, 2), ("north", 1, 2, 16, 2)])
 
 
-{"china": china, "new_york": new_york, "paris": paris}[FAMILY]()
+STYLE["design"]()
 
-kit.write(next(iter(script_args()[1:]), None))  # a second argument writes the two files somewhere else
+kit.write(OUT)

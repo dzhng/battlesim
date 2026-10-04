@@ -738,35 +738,14 @@ def facing_brick_pale():
     u = xx * per + 0.5 * (row % 2)
     fx, fy = u - np.floor(u), yy * courses - row
     mortar = np.maximum(smoothstep(0.13, 0.05, np.minimum(fy, 1 - fy)), smoothstep(0.04, 0.015, np.minimum(fx, 1 - fx)))
-    fired = np.random.default_rng(5101).random((courses, per))[row, np.floor(u).astype(int) % per]
-    grain = fbm(64, 5103, 3)
-    tone = (0.86 + 0.16 * fired) * (0.92 + 0.16 * grain) * (0.88 + 0.24 * fbm(3, 5105, 4))
+    fired = np.random.default_rng(6101).random((courses, per))[row, np.floor(u).astype(int) % per]
+    grain = fbm(64, 6103, 3)
+    tone = (0.86 + 0.16 * fired) * (0.92 + 0.16 * grain) * (0.88 + 0.24 * fbm(3, 6105, 4))
     col = np.broadcast_to(np.array((0.7, 0.69, 0.67)), (SIZE, SIZE, 3)) * tone[..., None]
     col = mix(col, (0.3, 0.29, 0.27), mortar)
     h = (1 - mortar) * 1.0 + grain * 0.2
-    return Baked(col, 0.3 + 0.7 * fbm(8, 5107, 4), normals_from_height(blur(h), 1.2), 1.0 - 0.35 * mortar, 0.88 + 0.08 * mortar,
+    return Baked(col, 0.3 + 0.7 * fbm(8, 6107, 4), normals_from_height(blur(h), 1.2), 1.0 - 0.35 * mortar, 0.88 + 0.08 * mortar,
                  tint=1.0 - mortar)
-
-
-@recipe("limestone_ashlar", tile=3.0, wear=(0.2, 0.19, 0.17, 1.0))
-def limestone_ashlar():
-    """Limestone in coursed blocks, five courses of 0.6 m and two blocks a course to the
-    tile, the joints rusticated (sunk): pale buff, each block a shade of its own, rain
-    darkening it in streaks; the wear is grime."""
-    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
-    courses, per = 5, 2
-    row = np.floor(yy * courses).astype(int)
-    u = xx * per + 0.5 * (row % 2)
-    fx, fy = u - np.floor(u), yy * courses - row
-    joint = np.maximum(smoothstep(0.05, 0.015, np.minimum(fy, 1 - fy)), smoothstep(0.025, 0.008, np.minimum(fx, 1 - fx)))
-    block = np.random.default_rng(5201).random((courses, per))[row, np.floor(u).astype(int) % per]
-    grain = fbm(48, 5203, 3)
-    streak = smoothstep(0.45, 0.8, fbm((24, 2), 5205, 3))
-    tone = (0.92 + 0.08 * block) * (0.94 + 0.12 * grain) * (0.86 + 0.24 * fbm(3, 5207, 4)) - 0.12 * streak
-    col = np.broadcast_to(np.array((0.62, 0.58, 0.5)), (SIZE, SIZE, 3)) * tone[..., None]
-    col = mix(col, (0.24, 0.22, 0.19), joint * 0.7)
-    h = grain * 0.3 - joint * 2.0
-    return Baked(col, 0.25 + 0.75 * fbm(6, 5209, 5), normals_from_height(blur(h), 1.2), 1.0 - 0.4 * joint, 0.9)
 
 
 @recipe("gravel_precast", tile=3.0, wear=(0.12, 0.11, 0.09, 1.0))
@@ -776,20 +755,20 @@ def gravel_precast():
     their cement, a warm pale neutral the building's tint colours, a smooth cast margin
     round the panel and the joint at its edge; the wear is grime."""
     yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
-    f1, _, ident = worley(64, 5301)
+    f1, _, ident = worley(64, 6301)
     stone = smoothstep(0.55, 0.2, f1)
-    rnd = np.random.default_rng(5303).random(64 * 64)[ident]
+    rnd = np.random.default_rng(6303).random(64 * 64)[ident]
     edge = np.minimum(np.minimum(xx, 1 - xx), np.minimum(yy, 1 - yy)) * 3.0
     joint = smoothstep(0.03, 0.012, edge)
     margin = smoothstep(0.1, 0.08, edge) * (1 - joint)
-    stain = fbm(3, 5305, 5)
-    run = smoothstep(0.3, 0.0, yy) * smoothstep(0.45, 0.8, fbm((24, 2), 5307, 3))
+    stain = fbm(3, 6305, 5)
+    run = smoothstep(0.3, 0.0, yy) * smoothstep(0.45, 0.8, fbm((24, 2), 6307, 3))
     pebbles = (1 - margin) * stone
     tone = 0.86 + 0.18 * stain - 0.12 * run + pebbles * (0.22 * (rnd - 0.5)) - 0.12 * (1 - stone) * (1 - margin)
     col = np.broadcast_to(np.array((0.74, 0.71, 0.66)), (SIZE, SIZE, 3)) * tone[..., None]
     col = mix(col, (0.12, 0.12, 0.11), joint * 0.8)
     h = pebbles * 0.9 - joint * 3.0
-    return Baked(col, 0.25 + 0.75 * fbm(6, 5309, 5), normals_from_height(blur(h), 1.4), 1.0 - 0.4 * joint - 0.15 * (1 - stone) * (1 - margin),
+    return Baked(col, 0.25 + 0.75 * fbm(6, 6309, 5), normals_from_height(blur(h), 1.4), 1.0 - 0.4 * joint - 0.15 * (1 - stone) * (1 - margin),
                  0.93)
 
 
