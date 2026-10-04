@@ -69,7 +69,6 @@ const _project_clip = vec4.create();
 const _ray_eye = vec3.create();
 const _ray_inverse = createGpuMat4();
 const _ray_near = vec4.create();
-const _unproject_ray = createWorldRay();
 
 /** Eye position derived from the orbit params. Pitch is clamped just shy of
  *  vertical so the view's up vector never degenerates at exact top-down. */
@@ -218,23 +217,4 @@ export function screenRay(out: WorldRay, p: Camera3DParams, ndcX: number, ndcY: 
   eyePosition(_ray_eye, p);
   invViewProj(_ray_inverse, p);
   return screenRayFrom(out, _ray_inverse, _ray_eye, ndcX, ndcY);
-}
-
-/** Intersect the pixel ray with the horizontal plane z = planeZ — the picking
- *  primitive (pick against the ground, or a unit's mean elevation). False when
- *  the ray is parallel to the plane or the hit is behind the eye; `out` is
- *  then untouched. */
-export function unprojectToPlaneZ(
-  out: Vec3,
-  p: Camera3DParams,
-  ndcX: number,
-  ndcY: number,
-  planeZ: number,
-): boolean {
-  const { origin, dir } = screenRay(_unproject_ray, p, ndcX, ndcY);
-  if (Math.abs(dir[2]) < 1e-9) return false;
-  const t = (planeZ - origin[2]) / dir[2];
-  if (t < 0) return false;
-  vec3.scaleAndAdd(out, origin, dir, t);
-  return true;
 }

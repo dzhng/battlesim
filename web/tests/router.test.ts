@@ -3,7 +3,6 @@ import { LAB_FIXTURES } from "@apps/battle-lab/src/fixtures";
 import { createElement } from "react";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import fixtures from "@apps/battle-lab/src/fixtures.json";
 import { LabRouter } from "@apps/battle-lab/src/router";
 
 afterEach(() => {
@@ -54,13 +53,6 @@ test("the main menu at / offers a new battle, the village, the saved battlefield
   const hrefs = index.getAllByRole("link").map((a) => a.getAttribute("href"));
   for (const f of LAB_FIXTURES) expect(hrefs).toContain(f.route);
   index.unmount();
-});
-
-test("fixture ids and routes are unique and builds are known", () => {
-  expect(new Set(LAB_FIXTURES.map((f) => f.id)).size).toBe(LAB_FIXTURES.length);
-  expect(new Set(LAB_FIXTURES.map((f) => f.route)).size).toBe(LAB_FIXTURES.length);
-  for (const f of fixtures as { build?: string }[])
-    expect([undefined, "production"]).toContain(f.build);
 });
 
 test("the production menu does not offer source editing", async () => {

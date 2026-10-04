@@ -12,7 +12,6 @@ import {
   projMatrix,
   screenRay,
   screenRayFrom,
-  unprojectToPlaneZ,
   viewMatrix,
   viewProjMatrix,
   type Camera3DParams,
@@ -50,7 +49,11 @@ test("camera3d: screen↔world round-trips on the ground plane", () => {
       const { ndc, clipW } = project(CAM, world);
       if (clipW <= 0) continue; // behind the eye — not a pickable pixel
       const back = vec3.create();
-      assert.ok(unprojectToPlaneZ(back, CAM, ndc[0], ndc[1], 0), `unproject missed ${gx},${gy}`);
+      const { origin, dir } = screenRay(createWorldRay(), CAM, ndc[0], ndc[1]);
+      assert.ok(Math.abs(dir[2]) > 1e-9, `parallel ray at ${gx},${gy}`);
+      const t = -origin[2] / dir[2];
+      assert.ok(Number.isFinite(t) && t >= 0, `ground behind eye at ${gx},${gy}`);
+      vec3.scaleAndAdd(back, origin, dir, t);
       // Camera matrices are float32 (they match the GPU uniform exactly), so the
       // round trip carries single-precision error dominated by the perspective
       // divide (~a few ×10⁻³ world units across the field) — far below soldier

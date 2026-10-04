@@ -16,7 +16,7 @@ import {
 import { SoundControls } from "../SoundControls";
 
 /** 16-bit PCM WAV bytes for interleaved stereo. */
-export function encodeWav(samples: Float32Array, sampleRate: number): Uint8Array {
+function encodeWav(samples: Float32Array, sampleRate: number): Uint8Array {
   const bytes = new Uint8Array(44 + samples.length * 2);
   const view = new DataView(bytes.buffer);
   const text = (at: number, s: string) =>

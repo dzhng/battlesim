@@ -12,6 +12,8 @@ test("every registered fixture has exactly one scene", async () => {
   const fixtures = await loadRegistry();
   expect(fixtures.length).toBeGreaterThan(0);
   expect(new Set(fixtures.map((fixture) => fixture.id)).size).toBe(fixtures.length);
+  expect(new Set(fixtures.map((fixture) => fixture.route)).size).toBe(fixtures.length);
+  for (const fixture of fixtures) expect([undefined, "production"]).toContain(fixture.build);
   expect(selectFixtures(fixtures, []).length).toBe(fixtures.length);
   expect(() => selectFixtures(fixtures, ["nope"])).toThrow("unknown fixture");
 });

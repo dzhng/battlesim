@@ -5,22 +5,21 @@ import {
   trackGpuAllocations,
 } from "@packages/renderer-core/src/gpuAllocations.ts";
 
-/** A device whose factories hand back destroyable stand-ins. */
-function fakeDevice() {
-  const resource = (d: { size: unknown }) => ({ size: d.size, destroy() {} });
-  return { createBuffer: resource, createTexture: resource } as unknown as GPUDevice;
-}
+import { fakeGpuDevice } from "./support/gpuDevice";
 
 test("counts live buffers, their bytes and textures through create and destroy", () => {
-  const device = fakeDevice();
+  const native = fakeGpuDevice();
+  const { device } = native;
   const live = trackGpuAllocations(device);
   const a = device.createBuffer({ size: 4, usage: 0 });
-  device.createBuffer({ size: 16, usage: 0 });
+  const b = device.createBuffer({ size: 16, usage: 0 });
   const t = device.createTexture({ size: [2, 2], format: "r8unorm", usage: 0 });
   expect(live()).toMatchObject({ buffers: 2, textures: 1, bufferBytes: 20, textureBytes: 4 });
   a.destroy();
   t.destroy();
   expect(live()).toEqual({ buffers: 1, textures: 0, bufferBytes: 16, textureBytes: 0 });
+  expect([...native.resources]).toEqual([b]);
+  expect(native.destroyCalls).toBe(2);
 });
 
 test("texture bytes count every sample, layer and mip level", () => {
@@ -65,10 +64,15 @@ test("a format the table does not size is an error, not a silent zero", () => {
 });
 
 test("tracking a device twice shares one tracker, so resources are not double-wrapped", () => {
-  const device = fakeDevice();
+  const native = fakeGpuDevice();
+  const { device } = native;
   const first = trackGpuAllocations(device);
   const second = trackGpuAllocations(device);
-  device.createTexture({ size: [1, 1], format: "rgba8unorm", usage: 0 });
+  const texture = device.createTexture({ size: [1, 1], format: "rgba8unorm", usage: 0 });
   expect(first()).toEqual(second());
   expect(first().textures).toBe(1);
+  texture.destroy();
+  expect(native.resources.size).toBe(0);
+  expect(native.destroyCalls).toBe(1);
+  expect(first().textures).toBe(0);
 });

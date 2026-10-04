@@ -15,7 +15,6 @@ export const SCAR_NORMALIZATION_WORDS = 4096;
 // A returned f32 texel position retains every Q8 quantum up to 2^24 / 256.
 // Wider grids need an integer cell/fraction result, not this sampling source.
 const MAX_Q8_AXIS = 2 ** 24 / 256;
-export const SCAR_TILE = 16;
 export const SCAR_REGION_CELLS = 1024;
 export type ScarRegion = readonly [number, number, number, number];
 type GroundChanges = { all: true } | { all: false; cells: Uint32Array };

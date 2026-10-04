@@ -156,7 +156,7 @@ test("no-op preview/save preserves source bytes and stale reviewed saves preserv
   expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(outside);
 });
 
-test("HTTP refuses invalid identity, provenance changes, changed baselines and client paths", async () => {
+test("HTTP refuses invalid identity, malformed clips, changed baselines and client paths", async () => {
   const { root, text, request } = await fixture();
   const snapshot = (await request("snapshot")).body;
   for (const mutate of [
@@ -243,8 +243,7 @@ test("outside changes during publication survive its rollback", async () => {
   expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(outside);
 });
 
-test("unused clean media is admitted, firing rejects reloads, and changed clip bytes refuse publication", async () => {
-  const { root, request } = await fixture();
+async function installRecording(root: string) {
   const document = JSON.parse(
     await readFile(join(root, "fixtures/sounds.json"), "utf8"),
   ) as SoundCatalog;
@@ -285,6 +284,12 @@ test("unused clean media is admitted, firing rejects reloads, and changed clip b
   await writeFile(join(root, "assets/runtime/audio/clips/reload.wav"), bytes);
   const source = JSON.stringify(document);
   await writeFile(join(root, "fixtures/sounds.json"), source);
+  return source;
+}
+
+test("unused clean media is admitted, firing rejects reloads, and changed clip bytes refuse publication", async () => {
+  const { root, request } = await fixture();
+  const source = await installRecording(root);
   const initial = (await request("snapshot")).body;
   expect(initial.catalog.clips.reload.label).toBe("Unused reload");
   const invalid = structuredClone(initial.catalog);
@@ -307,3 +312,21 @@ test("unused clean media is admitted, firing rejects reloads, and changed clip b
   expect(refused.body.error).toContain("Clip reload");
   expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(source);
 });
+
+test.each(["source", "clip"])(
+  "HTTP refuses a schema-valid %s provenance edit without changing bytes",
+  async (kind) => {
+    const { root, request } = await fixture();
+    const source = await installRecording(root);
+    const initial = (await request("snapshot")).body;
+    const catalog: SoundCatalog = structuredClone(initial.catalog);
+    if (kind === "source") catalog.sources.master.label = "Edited master";
+    else catalog.clips.reload.label = "Edited reload";
+    // The request must reach the immutable-provenance guard, not generic schema validation.
+    expect(() => validateSoundCatalog(catalog)).not.toThrow();
+    const result = await request("preview", { revision: initial.revision, catalog });
+    expect(result.status).toBe(400);
+    expect(result.body.error).toBe("Source and clip metadata are immutable in this editor");
+    expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(source);
+  },
+);

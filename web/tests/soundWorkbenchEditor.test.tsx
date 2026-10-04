@@ -248,24 +248,32 @@ test("an edit after preview invalidates review, and a stale-save error retains t
   expect(screen.queryByRole("button", { name: "Save reviewed JSON" })).toBeNull();
 });
 
-test("stopping or changing selection during preparation never revives the older audition", async () => {
-  const { api, audition } = fixture();
-  let complete!: () => void;
-  audition.play = vi.fn(
-    () =>
-      new Promise<void>((resolve) => {
-        complete = resolve;
-      }),
-  );
-  render(<SoundWorkbench api={api} audition={audition} />);
-  fireEvent.click(await screen.findByRole("button", { name: "Synth · rifle" }));
-  fireEvent.click(screen.getByRole("button", { name: "Play recipe" }));
-  await screen.findByText("Preparing audition…");
-  fireEvent.click(screen.getByRole("button", { name: "Stop audition" }));
-  complete();
-  await waitFor(() => expect(screen.queryByText("Preparing audition…")).toBeNull());
-  expect(screen.queryByText("Audition · Synth · rifle")).toBeNull();
-});
+test.each(["Stop", "selection", "unmount"])(
+  "%s cancels preparation and never revives the older audition",
+  async (action) => {
+    const { api, audition } = fixture();
+    let complete!: () => void;
+    audition.play = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          complete = resolve;
+        }),
+    );
+    const view = render(<SoundWorkbench api={api} audition={audition} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Synth · rifle" }));
+    fireEvent.click(screen.getByRole("button", { name: "Play recipe" }));
+    await screen.findByText("Preparing audition…");
+    vi.mocked(audition.stop).mockClear();
+    if (action === "Stop") fireEvent.click(screen.getByRole("button", { name: "Stop audition" }));
+    else if (action === "selection")
+      fireEvent.click(screen.getByRole("button", { name: "Synth · hmg" }));
+    else view.unmount();
+    expect(audition.stop).toHaveBeenCalledOnce();
+    complete();
+    await waitFor(() => expect(screen.queryByText("Preparing audition…")).toBeNull());
+    expect(screen.queryByText("Audition · Synth · rifle")).toBeNull();
+  },
+);
 
 test("global firing, material impacts and matching loop slots publish the chosen recipes", async () => {
   const { api, audition } = fixture();

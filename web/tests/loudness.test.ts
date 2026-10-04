@@ -22,5 +22,16 @@ test("a short report keeps its reference when surrounded by silence or followed 
   const padded = new Float32Array(rate * 2);
   padded.set(report, rate / 4);
   expect(maxMomentaryLoudness([padded], rate)).toBeCloseTo(maxMomentaryLoudness([report], rate), 6);
+  const tailed = new Float32Array(rate * 2);
+  tailed.set(report);
+  for (let frame = report.length; frame < tailed.length; frame++) {
+    const seconds = (frame - report.length) / rate;
+    tailed[frame] =
+      0.001 * Math.exp(-seconds / 0.5) * Math.sin((2 * Math.PI * 1000 * frame) / rate);
+  }
+  // A tail 40 dB below the attack must not dilute its source calibration.
+  expect(
+    Math.abs(maxMomentaryLoudness([tailed], rate) - maxMomentaryLoudness([report], rate)),
+  ).toBeLessThan(0.01);
   expect(maxMomentaryLoudness([new Float32Array(rate)], rate)).toBe(-Infinity);
 });

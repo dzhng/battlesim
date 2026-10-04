@@ -155,36 +155,50 @@ test("recorded variations prepare once and preserve the raw unused clip for audi
   expect(decoded.get("1")?.getChannelData(0)[0]).toBeCloseTo(0.8);
 });
 
-test("an undecoded recording never becomes a ready recipe after cancellation", async () => {
-  let finish!: (value: AudioBuffer) => void;
-  let decoding!: () => void;
-  const begun = new Promise<void>((resolve) => {
-    decoding = resolve;
-  });
-  const context = {
-    sampleRate: 48000,
-    createBuffer: buffer,
-    decodeAudioData() {
-      decoding();
-      return new Promise<AudioBuffer>((resolve) => {
-        finish = resolve;
-      });
-    },
-  } as unknown as BaseAudioContext;
-  const catalog = recordingCatalog();
-  catalog.sounds.report.clips = ["first"];
-  const bank = new SoundBank(context, catalog, async () => new Response(Uint8Array.of(1)));
-  const controller = new AbortController();
-  const preparing = bank.prepare(["report"], controller.signal);
-  // Attach rejection handling before cancellation settles asynchronous decoding.
-  const rejected = expect(preparing).rejects.toMatchObject({ name: "AbortError" });
-  await begun;
-  expect(() => bank.get("report")).toThrow("not prepared");
-  controller.abort();
-  finish(buffer(1, 2, 48000));
-  await rejected;
-  expect(() => bank.get("report")).toThrow("not prepared");
-});
+test.each(["caller abort", "bank disposal"])(
+  "late decoding cannot admit a recipe after %s",
+  async (cancel) => {
+    let finish!: (value: AudioBuffer) => void;
+    let decoding!: () => void;
+    let fetchSignal: AbortSignal | undefined;
+    const begun = new Promise<void>((resolve) => {
+      decoding = resolve;
+    });
+    const context = {
+      sampleRate: 48000,
+      createBuffer: buffer,
+      decodeAudioData() {
+        decoding();
+        return new Promise<AudioBuffer>((resolve) => {
+          finish = resolve;
+        });
+      },
+    } as unknown as BaseAudioContext;
+    const catalog = recordingCatalog();
+    catalog.sounds.report.clips = ["first"];
+    const bank = new SoundBank(context, catalog, async (_input, init) => {
+      fetchSignal = init?.signal ?? undefined;
+      return new Response(Uint8Array.of(1));
+    });
+    const controller = new AbortController();
+    const preparing = bank.prepare(
+      ["report"],
+      cancel === "caller abort" ? controller.signal : undefined,
+    );
+    // Attach rejection handling before cancellation settles asynchronous decoding.
+    const rejected = expect(preparing).rejects.toMatchObject({ name: "AbortError" });
+    await begun;
+    expect(() => bank.get("report")).toThrow("not prepared");
+    if (cancel === "caller abort") controller.abort();
+    else {
+      bank.dispose();
+      expect(fetchSignal?.aborted).toBe(true);
+    }
+    finish(buffer(1, 2, 48000));
+    await rejected;
+    expect(() => bank.get("report")).toThrow("not prepared");
+  },
+);
 
 test("failed decoding is explicit and a later retry can prepare the recipe", async () => {
   let broken = true;
@@ -210,40 +224,7 @@ test("failed decoding is explicit and a later retry can prepare the recipe", asy
   expect(bank.get("report").getChannelData(0)[0]).toBeCloseTo(0.4);
 });
 
-test("disposal aborts fetching and cannot admit a late decoded buffer", async () => {
-  let finish!: (value: AudioBuffer) => void;
-  let decoding!: () => void;
-  let fetchSignal: AbortSignal | undefined;
-  const begun = new Promise<void>((resolve) => {
-    decoding = resolve;
-  });
-  const context = {
-    sampleRate: 48000,
-    createBuffer: buffer,
-    decodeAudioData() {
-      decoding();
-      return new Promise<AudioBuffer>((resolve) => {
-        finish = resolve;
-      });
-    },
-  } as unknown as BaseAudioContext;
-  const catalog = recordingCatalog();
-  catalog.sounds.report.clips = ["first"];
-  const bank = new SoundBank(context, catalog, async (_input, init) => {
-    fetchSignal = init?.signal ?? undefined;
-    return new Response(Uint8Array.of(1));
-  });
-  const preparing = bank.prepare(["report"]);
-  const rejected = expect(preparing).rejects.toMatchObject({ name: "AbortError" });
-  await begun;
-  bank.dispose();
-  expect(fetchSignal?.aborted).toBe(true);
-  finish(buffer(1, 2, 48000));
-  await rejected;
-  expect(() => bank.get("report")).toThrow("not prepared");
-});
-
-test("a recorded core and quiet synthesized support share one prepared buffer and retain the longer tail", async () => {
+test("a recorded core and synthesized support retain the tail without corrupting the same bank’s baseline", async () => {
   const { synthesize } = await import("@packages/battle-audio/src/synth");
   const sampleRate = 8000;
   const core = buffer(1, 2, sampleRate);
@@ -276,6 +257,7 @@ test("a recorded core and quiet synthesized support share one prepared buffer an
   const bank = new SoundBank(context, catalog, async () => new Response(Uint8Array.of(1)));
   await bank.prepare(["supported", "rifle"]);
   const baseline = synthesize("rifle", sampleRate).channels[0];
+  // Preparing a mixed recipe must not mutate the bank’s cached synthesis.
   expect(Array.from(bank.get("rifle").getChannelData(0))).toEqual(Array.from(baseline));
   const expected = Float32Array.from(
     baseline,

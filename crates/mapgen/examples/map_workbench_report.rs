@@ -27,7 +27,7 @@ mod tests {
         json!({"presets":include_str!("../../../fixtures/map-presets.json"),"defaults":include_str!("../../../fixtures/generated-battle.json"),"templates":include_str!("../../../fixtures/prototype-building-templates.json"),"rules":include_str!("../../../fixtures/game.json"),"catalog":include_str!("../../../fixtures/catalog.json"),"recipes":include_str!("../../../fixtures/encounters.json")})
     }
     #[test]
-    fn workbench_plan_geometry_matches_standalone_and_notes_follow_the_crop() {
+    fn retained_plan_geometry_matches_standalone_and_notes_follow_the_crop() {
         let directory =
             std::env::temp_dir().join(format!("map-workbench-picture-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&directory);
@@ -40,10 +40,10 @@ mod tests {
             !report["svg"].as_str().unwrap().contains("<text"),
             "Workbench notes belong to responsive HTML"
         );
-        let artifact: Value =
+        let mut artifact: Value =
             serde_json::from_slice(&std::fs::read(directory.join("artifact.json")).unwrap())
                 .unwrap();
-        let plan: mapgen::MapPlan = serde_json::from_value(artifact["plan"].clone()).unwrap();
+        let mut plan: mapgen::MapPlan = serde_json::from_value(artifact["plan"].clone()).unwrap();
         let presets =
             mapgen::layout::PresetDefinitions::from_json(captured["presets"].as_str().unwrap())
                 .unwrap();
@@ -73,6 +73,29 @@ mod tests {
         );
         assert!(standalone.contains("<text"));
         assert_eq!(report["summary"][0], "open small seed 1");
+        // Keep the captured generation request fixed, but alter retained geometry.
+        // Inspect must read this plan rather than regenerate the same seed.
+        plan.buildings[0].frame.translation[0] += 3.0;
+        artifact["plan"] = serde_json::to_value(&plan).unwrap();
+        std::fs::write(directory.join("artifact.json"), artifact.to_string()).unwrap();
+        let inspection = run(json!({"operation":"inspect","artifactDir":directory}));
+        assert!(
+            inspection["svg"].is_string(),
+            "inspection must return its retained plan picture"
+        );
+        let retained = mapgen::inspect::svg(
+            &plan,
+            &catalogue,
+            "open small seed 1",
+            &mapgen::layout::measure(&plan, &presets),
+            None,
+        )
+        .unwrap();
+        assert_ne!(geometry(&retained), geometry(&standalone));
+        assert_eq!(
+            geometry(inspection["svg"].as_str().unwrap()),
+            geometry(&retained)
+        );
         let district = &plan.settlements[0].districts[0].id;
         let features = report["features"].as_array().unwrap();
         assert_eq!(
@@ -216,18 +239,6 @@ mod tests {
         let unavailable = run(json!({"operation":"sight","artifactDir":directory}));
         assert_eq!(unavailable["status"], "unavailable");
         assert_eq!(unavailable["samples"], 0);
-        let _ = std::fs::remove_dir_all(directory);
-    }
-    #[test]
-    fn report_retains_the_exact_plan_and_inspects_without_regenerating() {
-        let directory =
-            std::env::temp_dir().join(format!("map-workbench-report-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&directory);
-        let request = json!({"operation":"generate","inputs":inputs(),"choice":{"type":"open","size":"small","seed":"1"},"artifactDir":directory});
-        let result = run(request);
-        assert_eq!(result["status"], "ok", "{}", result["diagnostics"]);
-        let inspection = run(json!({"operation":"inspect","artifactDir":directory}));
-        assert_eq!(inspection["svg"], result["svg"]);
         let _ = std::fs::remove_dir_all(directory);
     }
     #[test]

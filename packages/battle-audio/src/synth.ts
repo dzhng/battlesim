@@ -7,7 +7,7 @@ import { mulberry32 } from "math/random";
 import { hashString } from "@packages/renderer-core/src/math";
 
 /** Every sound's peak before the mix. */
-export const PEAK = 0.9;
+const PEAK = 0.9;
 
 export interface SynthSound {
   /** One array per channel (the ambience bed is stereo, the rest mono). */

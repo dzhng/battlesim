@@ -42,7 +42,7 @@ test("two unit types sharing one weapon can select different firing sounds", () 
 test("an unassigned weapon follows the editable global default before the synth baseline", () => {
   const c = catalog();
   const base = { near: "hmg", far: "hmg", gain: 0.5, far_m: 350 };
-  expect(resolveShot(c, base, "new-unit", "new-mount", "new-kind")).toBe(base);
+  expect(resolveShot(c, base, "new-unit", "new-mount", "new-kind")).toEqual(base);
   c.defaults.default = { near: "rifle", far: "rifle", gain: 0.6 };
   expect(resolveShot(c, base, "new-unit", "new-mount", "new-kind")).toEqual({
     near: "rifle",

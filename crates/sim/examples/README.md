@@ -22,7 +22,8 @@ flown trajectories and actual hull outcomes rather than a damage-only probabilit
 Resource probes distinguish full-world construction, retained side knowledge,
 publication and route search. [Navigation resources](navigation_resources.rs) and
 [ground resources](ground_resources.rs) report stage-local allocation and work,
-with explicit synthetic workloads and a process allocation ceiling. Their scope
+with explicit synthetic workloads and a shared [allocation accounting policy](common/allocations.rs).
+Each executable owns its counters and process ceiling. Their scope
 is not whole-process RSS or rendered GPU memory. Use a small declared workload
 first; a refused or terminated probe is not a zero-cost result.
 
