@@ -210,7 +210,8 @@ def _instances(gs, parent, parent_tint, tinted, tint_attribute, shaped, rows, me
         name = r.name or "primitive:" + "+".join(sorted(m.name for m in me.materials if m))
         soup = read_mesh(me, tinted=tinted)
         if shaped and not r.name:
-            name += "~" + hashlib.sha1(np.round(soup.v, 4).tobytes() + soup.t.tobytes()).hexdigest()[:8]
+            # + 0.0: a coordinate that rounds to -0.0 hashes as 0.0
+            name += "~" + hashlib.sha1((np.round(soup.v, 4) + 0.0).tobytes() + soup.t.tobytes()).hexdigest()[:8]
         known = meshes.get(name)
         if known is not None and (len(known.v) != len(soup.v) or not np.allclose(known.v, soup.v, atol=1e-5)):
             raise SystemExit(f"two different meshes are instanced under the name {name}")
