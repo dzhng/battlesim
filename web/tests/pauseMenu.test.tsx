@@ -1,4 +1,5 @@
-import { act, render, renderHook } from "@testing-library/react";
+import { renderInRouter as render } from "./support/router";
+import { act, renderHook } from "@testing-library/react";
 import { expect, test } from "vitest";
 import { PauseMenu, usePauseMenu } from "@apps/battle-lab/src/PauseMenu";
 import type { SimClient } from "../src/battle/sim/client";

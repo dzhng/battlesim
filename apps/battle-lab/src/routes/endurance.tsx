@@ -74,7 +74,7 @@ export default function Endurance() {
     const url = new URL(window.location.href);
     url.searchParams.set("seed", String(nextSeed));
     url.searchParams.set("late", nextLate ? "1" : "0");
-    window.history.replaceState(null, "", url);
+    window.history.replaceState(window.history.state, "", url);
     setSeed(nextSeed);
     setLate(nextLate);
   };

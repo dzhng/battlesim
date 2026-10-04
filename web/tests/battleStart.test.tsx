@@ -1,9 +1,10 @@
+import { renderInRouter as render } from "./support/router";
 // @vitest-environment jsdom
 // Starting a battle from the menu: the seed stays exact text from the address
 // to the address and back, the address says what it gets wrong, and a
 // preparation that is cancelled or replaced never delivers its battle.
 import { createElement } from "react";
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { askedBattle, battleHref, preparedBattleHref } from "@apps/battle-lab/src/battleLinks";
 import { MainMenu, savedBattles } from "@apps/battle-lab/src/MainMenu";

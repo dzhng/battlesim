@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 // The battle's pause menu, in the HUD's look: Esc (one the unit control
 // hasn't taken to disarm a command) or the HUD's menu button opens it and
 // pauses the battle, and closing it resumes a battle it paused. It holds
@@ -80,9 +81,9 @@ export function PauseMenu({
           </button>
         )}
         {children}
-        <a className="hud-menu-item" href="/">
+        <Link className="hud-menu-item" to="/">
           Main menu
-        </a>
+        </Link>
         <section className="hud-menu-section" aria-label="Sound">
           <SoundControls />
         </section>

@@ -2,10 +2,10 @@
 
 ## Next Agent Prompt
 
-Status: implementation started 2026-10-04 in `/Users/server/dev/battlesim-hud`, branch `hud-chrome`, based on `86c8c863`. The mechanics refresh cleanup is already on main. Read this handoff and the owning slice before editing; preserve the [exploration decisions](unknowns-map.html). Start [01 navigation](slices/01-navigation.md), [03 audio](slices/03-audio.md), and [04 deck](slices/04-deck.md) independently. The coordinating agent owns [02 resources](slices/02-resources.md) and integration. Do not repeat the interview. Update this pickup and the evidence table before each checkpoint ends.
+Status: implementation started 2026-10-04 in `/Users/server/dev/battlesim-hud`, branch `hud-chrome`, based on `86c8c863`. The mechanics refresh cleanup is already on main. Read this handoff and the owning slice before editing; preserve the [exploration decisions](unknowns-map.html). Integrate the implemented [01 navigation](slices/01-navigation.md) pass from `hud-navigation`; preserve `BrowserRouter unstable_useTransitions={false}` above app providers and `LabRouter`. Continue [03 audio](slices/03-audio.md), and [04 deck](slices/04-deck.md) independently. The coordinating agent owns [02 resources](slices/02-resources.md) and integration. Do not repeat the interview. Update this pickup and the evidence table before each checkpoint ends.
 
 Global TODO:
-- [ ] [01 navigation and visit lifetime](slices/01-navigation.md)
+- [x] [01 navigation and visit lifetime](slices/01-navigation.md)
 - [ ] [02 shared GPU, warm-up and required-resource failure](slices/02-resources.md)
 - [ ] [03 shared audio and menu atmosphere](slices/03-audio.md)
 - [ ] [04 joined compact deck and icon commands](slices/04-deck.md)
@@ -41,6 +41,6 @@ Every visual acceptance uses a matched production-route before/after pixel compa
 | Pass | Evidence / current state |
 | --- | --- |
 | Plan | Three independent drafts reconciled: minimal cuts, risk-first proofs, seam ownership. Read real route, GPU/audio and panel owners. React Router declarative docs/source confirm replacements generate keys; visit identity therefore cannot blindly follow replacement keys. |
-| Implementation | Not started. |
+| Navigation | Implemented in dedicated `hud-navigation` worktree; integration pending. Red/green history/publication/cancellation/replay proofs, real worker exit/Back/Forward and replay digest gates pass. Independent review found rapid-return retention; synchronous route navigation and permanently retired continuations resolve it. Follow-up found no remaining navigation defect. Existing benchmark-loading polling can time out under concurrent test compilation; no threshold changed. |
 
 Research: [declarative router](https://reactrouter.com/start/declarative/installation), [history implementation](https://github.com/remix-run/react-router/blob/main/packages/react-router/lib/router/history.ts), [Chrome autoplay](https://developer.chrome.com/blog/autoplay), [MDN autoplay](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Autoplay). Earlier map findings remain attributed; speculative implementation facts require proofs.

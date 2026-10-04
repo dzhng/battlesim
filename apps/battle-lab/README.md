@@ -12,6 +12,13 @@ identities; [route modules](src/routes/) implement them. The browser [scene runn
 holds the registry and scene files to each other, so adding a lab needs its matching
 check. The registry is the route inventory; docs do not maintain a parallel list.
 
+[Visit ownership](src/navigation.tsx) keeps client navigation separate from
+battle identity publication. Leaving a page discards its battle; history
+returning to its address prepares a fresh visit. Publishing the admitted exact
+address updates the current entry without restarting that visit. Queued async
+continuations stop when history leaves their visit, before React necessarily
+finishes unmounting the previous page.
+
 The main menu starts generated or released saved battles and opens replays. A
 seeded address names exact preparation inputs on the same build. Ordinary Play
 may try bounded fresh candidates and a released saved fallback, then publishes the

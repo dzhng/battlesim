@@ -1,10 +1,9 @@
+import { BrowserRouter } from "react-router";
 import { createRoot } from "react-dom/client";
 import { startWithMechanics } from "./mechanicsStartup";
 import "./lab.css";
 import "./menu.css";
 import "./hud.css";
-
-const path = window.location.pathname.replace(/\/$/, "") || "/";
 
 void startWithMechanics(import.meta.env.DEV, async () => {
   const [{ LabRouter }, { applyHudTheme }] = await Promise.all([
@@ -12,7 +11,11 @@ void startWithMechanics(import.meta.env.DEV, async () => {
     import("./battle/present/hudTheme"),
   ]);
   applyHudTheme();
-  createRoot(document.getElementById("root")!).render(<LabRouter path={path} />);
+  createRoot(document.getElementById("root")!).render(
+    <BrowserRouter unstable_useTransitions={false}>
+      <LabRouter />
+    </BrowserRouter>,
+  );
 }).catch((error: Error) => {
   document.getElementById("root")!.textContent = error.message;
 });

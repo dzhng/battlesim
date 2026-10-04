@@ -25,6 +25,7 @@
       "math/noise": ["./node_modules/math/dist/src/noise/index.d.ts"],
       "math/color": ["./node_modules/math/dist/src/color/index.d.ts"],
       "math/time": ["./node_modules/math/dist/src/time/index.d.ts"],
+      "react-router": ["./node_modules/react-router"],
       "react": ["./node_modules/@types/react/index.d.ts"],
       "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
       "react-dom/client": ["./node_modules/@types/react-dom/client.d.ts"]

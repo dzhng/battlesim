@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { useState } from "react";
 import game from "@fixtures/game.json";
 import { durableSoldiers, GAME_RULES } from "../scenarios";
@@ -144,7 +145,7 @@ function VillageEncounter({ fixture, script }: { fixture: string; script: string
     if (next === variant) return;
     const url = new URL(window.location.href);
     url.searchParams.set("variant", next);
-    window.history.replaceState(null, "", url);
+    window.history.replaceState(window.history.state, "", url);
     setVariant(next);
   };
   const [seed] = useState(urlSeed);
@@ -250,9 +251,9 @@ function VillageView({
         </button>
       )}
       {!replay && (
-        <a className="hud-menu-item" href="/replay/village">
+        <Link className="hud-menu-item" to="/replay/village">
           Watch saved replay
-        </a>
+        </Link>
       )}
       {replay && onLoadReplay && <ReplayImport plays={isVillageReplay} onLoad={onLoadReplay} />}
     </>

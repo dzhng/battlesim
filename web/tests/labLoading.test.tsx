@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { renderInRouter as render } from "./support/router";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { LabRouter } from "@apps/battle-lab/src/router";
 import { lazy } from "react";
@@ -80,7 +81,8 @@ test("startup failures replace loading with the shared refusal and diagnostics",
 });
 
 test("the router covers a lab while its route prepares", async () => {
-  render(<LabRouter path="/lab/contacts" />);
+  window.history.replaceState(null, "", "/lab/contacts");
+  render(<LabRouter />);
   expect(screen.getByTestId("loading-subject").textContent).toBe("CONTACTS");
   await screen.findByText("Contact battle preparation");
   expect(screen.getByTestId("loading")).toBeDefined();
@@ -89,7 +91,8 @@ test("the router covers a lab while its route prepares", async () => {
 test.each(["/lab/cursor", "/lab/panels", "/benchmark"])(
   "non-battle view %s becomes usable",
   async (path) => {
-    render(<LabRouter path={path} />);
+    window.history.replaceState(null, "", path);
+    render(<LabRouter />);
     await waitFor(() => expect(screen.queryByTestId("loading")).toBeNull());
   },
 );

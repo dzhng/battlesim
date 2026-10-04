@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { useLabLoading } from "../LabLoading";
 // /benchmark: choose a run length, run the scripted battle while the camera
 // flies its tour, then read the results. The page publishes its state on
@@ -100,7 +101,7 @@ export default function BenchmarkPage() {
         <p className="menu-foot">
           {scenario.id} v{scenario.version} · seed {scenario.seed} · tour{" "}
           {typeof scenario.tour === "string" ? scenario.tour : scenario.tour.version} ·{" "}
-          <a href="/">Main menu</a>
+          <Link to="/">Main menu</Link>
         </p>
       </div>
     </main>

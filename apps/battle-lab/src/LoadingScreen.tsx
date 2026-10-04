@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 // The cover over a battle that is still being prepared: what is being made,
 // how far along it is, and, if it cannot be made, why. In the HUD's look.
 import { useState } from "react";
@@ -47,9 +48,9 @@ export function LoadingScreen({
           <div className="loading-failure" role="alert" data-testid="error">
             <p className="hud-error">{failure.message}</p>
             {failure.advice && <p className="loading-advice">{failure.advice}</p>}
-            <a className="hud-menu-item" href={back}>
+            <Link className="hud-menu-item" to={back}>
               Back to the menu
-            </a>
+            </Link>
             {failure.details.length > 0 && (
               <button
                 type="button"
@@ -82,9 +83,9 @@ export function LoadingScreen({
             <div className="loading-stage" role="status" data-testid="loading-stage">
               {stages[at]?.label}
             </div>
-            <a className="hud-menu-item loading-cancel" href={back} data-testid="loading-cancel">
+            <Link className="hud-menu-item loading-cancel" to={back} data-testid="loading-cancel">
               Cancel
-            </a>
+            </Link>
           </>
         )}
       </div>
