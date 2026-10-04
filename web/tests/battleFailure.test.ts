@@ -54,12 +54,16 @@ test("a rejected replay shows its refusal and draws no battlefield", async () =>
       });
       throw error;
     }
-    expect(await page.getByTestId("error").innerText()).toBe("replay does not match this scenario");
+    expect(await page.getByRole("heading", { name: "Aborted" }).isVisible()).toBe(true);
+    await page.getByRole("button", { name: "Details", exact: true }).click();
+    expect(await page.getByTestId("error-details").innerText()).toBe(
+      "replay does not match this scenario",
+    );
     expect(await page.locator("canvas").count()).toBe(0);
-    expect(await page.getByTestId("battle-panel").innerText()).not.toContain("0:00");
-    await page.getByRole("button", { name: "Menu", exact: true }).click();
-    expect(await page.getByRole("link", { name: "Main menu", exact: true }).isVisible()).toBe(true);
-    await page.getByRole("button", { name: "Resume", exact: true }).click();
+    expect(await page.getByTestId("battle-panel").count()).toBe(0);
+    expect(
+      await page.getByRole("link", { name: "Back to the menu", exact: true }).getAttribute("href"),
+    ).toBe("/labs");
     await page.screenshot({
       path: fileURLToPath(new URL("../../throwaway/battle-failure.png", import.meta.url)),
     });

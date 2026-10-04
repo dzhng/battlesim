@@ -1,3 +1,4 @@
+import { useLabLoading } from "./LabLoading";
 import {
   GameCursor,
   type GameCursorHandle,
@@ -395,7 +396,9 @@ export function LabViewport({
   onCursorRef.current = onCursor;
   const onRightPressRef = useRef(onRightPress);
   onRightPressRef.current = onRightPress;
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useLabLoading("renderer", ready, error);
   const [box, setBox] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const onBoxRef = useRef(onBox);
   onBoxRef.current = onBox;
@@ -510,6 +513,8 @@ export function LabViewport({
   }, [models]);
 
   useEffect(() => {
+    setReady(false);
+    setError(null);
     const canvas = canvasRef.current!;
     const handle: LabHandle = {
       ready: false,
@@ -1115,16 +1120,16 @@ export function LabViewport({
         if (new URLSearchParams(window.location.search).has("inspect")) {
           setInspecting(scene);
         }
-        requestAnimationFrame(
-          () =>
-            !signal.aborted &&
-            onReadyRef.current?.({
-              allocations,
-              device: info.device,
-              format: info.format,
-              frame: () => scene,
-            }),
-        );
+        requestAnimationFrame(() => {
+          if (signal.aborted) return;
+          setReady(true);
+          onReadyRef.current?.({
+            allocations,
+            device: info.device,
+            format: info.format,
+            frame: () => scene,
+          });
+        });
       } catch (err) {
         const message = gpuFailureMessage(err);
         handle.error = message;

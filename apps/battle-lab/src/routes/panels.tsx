@@ -1,3 +1,4 @@
+import { useLabLoading } from "../LabLoading";
 // The panel workbench: every info panel the battle can draw (the specimens
 // in `panelSpecimens.ts`), through the battle's own `InfoPanel`, on a plain
 // ground and one row over grass; `?scale=` zooms the page. No 3D scene: the
@@ -36,6 +37,7 @@ function Card({ s }: { s: Specimen }) {
 }
 
 export default function Panels() {
+  useLabLoading("renderer", true);
   const params = new URLSearchParams(location.search);
   const scale = Number(params.get("scale") ?? 1) || 1;
   const specimens = panelSpecimens(RULES);

@@ -1,3 +1,4 @@
+import { useLabLoading } from "../LabLoading";
 // /benchmark: choose a run length, run the scripted battle while the camera
 // flies its tour, then read the results. The page publishes its state on
 // `window.__benchmark` for the scene harness.
@@ -36,6 +37,11 @@ declare global {
 export default function BenchmarkPage() {
   const scenario = benchmarkPreset(new URLSearchParams(window.location.search).get("preset"));
   const [stage, setStage] = useState<Stage>({ kind: "choose" });
+  useLabLoading(
+    "renderer",
+    stage.kind === "run" ? null : true,
+    scenario ? null : "Unknown benchmark preset.",
+  );
   const [runs, setRuns] = useState(0);
   const start = (length: BenchmarkLength) => {
     setRuns((n) => n + 1);

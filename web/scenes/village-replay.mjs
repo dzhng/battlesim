@@ -81,7 +81,8 @@ export async function run(ctx) {
     buffer: Buffer.from(wrong),
   });
   await page.waitForSelector("[data-testid=error]", { timeout: 30000 });
-  const error = await page.getByTestId("error").innerText();
+  await page.getByRole("button", { name: "Details", exact: true }).click();
+  const error = await page.getByTestId("error-details").innerText();
   ctx.check(
     "a replay for another scenario is refused",
     /does not match this scenario/.test(error),

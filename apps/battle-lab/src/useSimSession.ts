@@ -1,3 +1,4 @@
+import { useLabLoading } from "./LabLoading";
 import type { PreparedSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createSimClient, type Publication, type SimClient } from "@web/battle/sim/client";
@@ -53,6 +54,7 @@ export function useSimSession({
     status: "loading",
     slow: false,
   });
+  useLabLoading("world", !!observation, error);
   const interpolator = useRef<TickInterpolator | null>(null);
   // The newest decoded frame, updated synchronously (React state lags a render).
   const latest = useRef<ObservationView | null>(null);

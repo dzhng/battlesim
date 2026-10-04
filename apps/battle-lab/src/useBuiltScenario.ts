@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLabLoading } from "./LabLoading";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
 
 /** What the simulation builds from `options` (a scenario JSON, or a route's
@@ -35,6 +36,11 @@ export function useBuiltScenario<Options, Built = string>(
       controller.abort();
     };
   }, [key]);
+  useLabLoading(
+    "preparation",
+    !!built && !("error" in built) && built.key === key,
+    built && "error" in built ? built.error : null,
+  );
   if (built && "error" in built) return built;
   return built?.key === key ? built.value : null;
 }

@@ -20,7 +20,10 @@ battle. [Saved-map policy](../../fixtures/README.md#saved-maps) owns what the me
 
 [The shared battle view](src/BattleView.tsx) composes page resources and observation
 feeds. [Session ownership](src/useBattleSession.ts) keeps worker preparation and
-cleanup tied to that page. Art uses [scene-assets](../../packages/scene-assets/README.md),
+cleanup tied to that page. [Lab loading](src/LabLoading.tsx) uses the player
+loading screen across preparation, the first observation and the first drawn
+frame; routes keep preparing beneath the cover so it never delays readiness.
+Art uses [scene-assets](../../packages/scene-assets/README.md),
 and sound uses [battle-audio](../../packages/battle-audio/README.md). [Model review](src/workbench/)
 installs previews through the same appearance loader used by battles.
 

@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from "react";
 import { LAB_FIXTURES } from "./fixtures";
 import { listMaps } from "@web/maps/catalogue";
+import { LabLoading } from "./LabLoading";
 import { MainMenu } from "./MainMenu";
 
 const MechanicsEditor = lazy(() => import("../../mechanics-editor/src/MechanicsEditor"));
@@ -102,9 +103,13 @@ export function LabRouter({ path }: { path: string }) {
       </main>
     );
   }
-  return (
+  return fixture.id === "generated" || fixture.id === "sound" ? (
     <Suspense fallback={null}>
       <Route />
     </Suspense>
+  ) : (
+    <LabLoading key={path} subject={fixture.id.toUpperCase()}>
+      <Route />
+    </LabLoading>
   );
 }

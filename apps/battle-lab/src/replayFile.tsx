@@ -1,3 +1,4 @@
+import { useLabLoading } from "./LabLoading";
 // A saved battle and every accepted command. Prepared battles retain the
 // exact scenario bytes (compiled map, encounter and resolved rules), so
 // fixture edits cannot change playback. The simulation checks the engine,
@@ -135,6 +136,7 @@ export function ReplayImport<File extends ReplayFile>({
   onLoad: (file: File) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
+  useLabLoading("renderer", true);
   return (
     <label className="hud-menu-file">
       Load a saved battle{" "}

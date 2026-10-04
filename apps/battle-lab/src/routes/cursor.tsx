@@ -1,3 +1,4 @@
+import { useLabLoading } from "../LabLoading";
 // The real cursor at native screen size, isolated from picking and simulation.
 import { useLayoutEffect, useRef } from "react";
 import {
@@ -21,6 +22,7 @@ const actions = Object.keys(LABELS) as CursorAction[];
 const surfaces = ["grass", "road", "fog"] as const;
 
 export default function CursorLab() {
+  useLabLoading("renderer", true);
   const sheet = useRef<HTMLElement>(null);
   const handles = useRef(new Map<string, GameCursorHandle>());
   const moving = useRef<GameCursorHandle>(null);
