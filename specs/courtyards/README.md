@@ -15,7 +15,7 @@ You are implementing this spec with [implement-spec](../../.agents/skills/implem
 - [ ] 04 The map names its region; paving takes the region's finish ([slice](slices/04-map-region.md))
 - [ ] 05 Court amenities as bodies, with stand-in art ([slice](slices/05-court-amenities.md))
 - [ ] 06 Garden dressing in suburbs and villages ([slice](slices/06-gardens.md))
-- [ ] 07 Regional appearances, loaded for the map's region only ([slice](slices/07-regional-appearances.md))
+- [~] 07 Regional appearances, loaded for the map's region only ([slice](slices/07-regional-appearances.md))
 - [ ] 08 Art: shared core, then China, New York, Paris ([slice](slices/08-art.md))
 - [ ] 09 Closeout: parity, full run, balance, close-spec ([slice](slices/09-closeout.md))
 
