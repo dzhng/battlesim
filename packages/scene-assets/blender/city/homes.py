@@ -271,7 +271,7 @@ def house(id_, tag, category, w, d, floors, rise, along, hips, wall, roof, tint,
     if flat:
         shape = FlatShape(-hx, hx, -hy, hy, eave + rise)
     elif broken:
-        shape = BrokenRoof(-hx, hx, -hy, hy, eave, broken[0], eave + rise, broken[1], along, broken[2])
+        shape = BrokenRoof(-hx, hx, -hy, hy, eave, broken[0], eave + rise, broken[1], along, broken[2], MANSARD_OVER_M if broken[2] else OVER_M)
     else:
         shape = RoofShape(-hx, hx, -hy, hy, eave, eave + rise, along, hips, OVER_M, (VERGE_M, VERGE_M))
     m = kit.module(f"{tag}_shell", ground=True)
@@ -299,10 +299,10 @@ def house(id_, tag, category, w, d, floors, rise, along, hips, wall, roof, tint,
     eaves = {"x": ("south", "north"), "y": ("west", "east")}[along]
     ends = {"x": ("west", "east"), "y": ("south", "north")}[along]
     for side in eaves:
-        rainwater(t, f"body-{side}", shape, shape.ends[1] - shape.ends[0])
+        rainwater(t, f"body-{side}", shape, shape.ends[1] - shape.ends[0], over=getattr(shape, "over", OVER_M))
     for k, side in enumerate(ends):
         if shape.hips[k] >= 1:
-            rainwater(t, f"body-{side}", shape, 2 * shape.reach, pipes=())
+            rainwater(t, f"body-{side}", shape, 2 * shape.reach, pipes=(), over=getattr(shape, "over", OVER_M))
     return t, shape
 
 
@@ -370,7 +370,7 @@ def terrace(id_, tag, units, unit_w, d, floors, rise, wall, roof, tints, window,
     if flat:
         unit = FlatShape(*rect, ridge)
     elif form:
-        unit = BrokenRoof(*rect, eave, form[0], ridge, form[1], "x", False, OVER_M, (0.0, 0.0))
+        unit = BrokenRoof(*rect, eave, form[0], ridge, form[1], "x", False, MANSARD_OVER_M, (0.0, 0.0))
     else:
         unit = RoofShape(-unit_w / 2, unit_w / 2, -hy, hy, eave, ridge, "x", (0.0, 0.0), OVER_M, (0.0, 0.0))
     um = kit.module(f"{tag}_unit", ground=True)
@@ -380,7 +380,7 @@ def terrace(id_, tag, units, unit_w, d, floors, rise, wall, roof, tints, window,
         flat_top(um, "unit", rect, ridge, ROOFS[roof], coping_m, walled=("south", "north"))
         cornice(um, "unit", rect, "south", ridge, cornice_mat)
     em = kit.module(f"{tag}_end", ground=True)
-    end = (FlatShape(0, 0, -hy, hy, ridge) if flat else BrokenRoof(0, 0, -hy, hy, eave, form[0], ridge, form[1], "x", False, OVER_M, (0.0, verge))
+    end = (FlatShape(0, 0, -hy, hy, ridge) if flat else BrokenRoof(0, 0, -hy, hy, eave, form[0], ridge, form[1], "x", False, MANSARD_OVER_M, (0.0, verge))
            if form else RoofShape(0, 0, -hy, hy, eave, ridge, "x", (0.0, 0.0), OVER_M, (0.0, verge)))
     shell(em, "end", end, WALLS[wall], None if flat else ROOFS[roof], sides=("a1",), fascia_ends=(False, True))
     if flat:
@@ -426,8 +426,8 @@ def terrace(id_, tag, units, unit_w, d, floors, rise, wall, roof, tints, window,
             glaze(t, south, floors, window, ground=ground, skip=(-1.5,), tint=pane_tint)
         glaze(t, north, floors, window, ground=ground, tint=pane_tint)
         if not flat:
-            rainwater(t, south, unit, unit_w, pipes=(1,) if k < units - 1 else ())
-            rainwater(t, north, unit, unit_w, pipes=(-1,) if k < units - 1 else ())
+            rainwater(t, south, unit, unit_w, pipes=(1,) if k < units - 1 else (), over=getattr(unit, "over", OVER_M))
+            rainwater(t, north, unit, unit_w, pipes=(-1,) if k < units - 1 else (), over=getattr(unit, "over", OVER_M))
         if k:
             stack(t, stack_module, cx - unit_w / 2, 0.0, ridge, yaw=math.pi / 2)
         if dormers:  # a family's own pitched dormers, rows at every tier
@@ -763,8 +763,8 @@ def paris():
     for name in ("dormer_brown", "dormer_clay", "dormer_slate"):  # this family's dormers are pitched rows at every tier, never folded
         FAR_BOXES.pop(name)
     # Paris slate is the blue-black of Angers, darker than the grey slate China's houses carry
-    ROOFS["slate"] = weathered_roof(textured("roof_slate_blue", "roof_slate", colour=(0.05, 0.056, 0.068), seed=6.0, **ROOFING), seed=6.0,
-                                    moss=0.08)
+    ROOFS["slate"] = weathered_roof(textured("roof_slate_blue", "roof_slate_matte", colour=(0.078, 0.082, 0.09), seed=6.0, **ROOFING),
+                                    seed=6.0, moss=0.08)
 
     french_window(kit, "window_persienne", 1.0, 1.5, white_m, glass_m, pane_m, stone_m, shutter_m)
     french_window(kit, "window_persienne_brick", 1.0, 1.5, white_m, glass_m, pane_m, brick_trim_m, shutter_m)
@@ -783,8 +783,8 @@ def paris():
     FAR_BOXES["chimney_render"] = [((0.7, 0.7, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), render_stack_m)]
     rainwater_modules()
     shop_modules()
-    for tiles_ in ("brown", "slate"):
-        dormer_module(tiles_, pitched=True)
+    for tiles_ in ("brown", "slate"):  # a lucarne's front and cheeks are dressed stone, not the house's render
+        dormer_module(tiles_, cheeks=stone_m, pitched=True)
     shop_sign_module()
     wreckage(kit, rubble_m, char_m)
 
@@ -830,8 +830,8 @@ def paris():
     front_door(t, "body-south", 0.0, "door_tall", bleu_nuit)
     for side in ("south", "north", "east", "west"):
         glaze(t, f"body-{side}", (0.0, 3.0), "window_balcon", ground="window_persienne", skip=(0.0,) if side == "south" else (), tint=gris)
-    for side, along in (("south", -3.0), ("south", 3.0), ("north", 0.0)):
-        dormer(t, shape, "slate", side, along, 0.25, stone, EVERY_TIER)
+    for along in (-3.0, 3.0):
+        dormer(t, shape, "slate", "south", along, 0.25, stone, EVERY_TIER)
     stack(t, "chimney_render", -4.0, 0.0, shape.ridge)
     stack(t, "chimney_render", 4.0, 0.0, shape.ridge)
     fallen(t, "home_12x9_2f", "limestone", "slate", stone)

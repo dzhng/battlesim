@@ -14,6 +14,9 @@ from masonry import bpy_dark, house_walls, panel_door, pitched_roof, RoofShape, 
 
 
 # ---------------------------------------------------------------- roofs
+MANSARD_OVER_M = 0.12  # a mansard's steep slope overhangs its cornice barely: further, it hung over the top floor's windows
+
+
 class BrokenRoof:
     """A roof whose pitch breaks: steep from the eave to a knuckle `run` metres in from the
     wall and `knee` above the eave, then shallow up to the ridge. Its ends are gabled (a
@@ -283,8 +286,9 @@ def build_dormer(kit, name, cheeks, roof, glass, pane, frame, pitched=False):
         prism(m.n("roof"), [(-0.85, 0.98), (0.85, 0.98), (0.0, 1.45)], 2.5, (0, 1.1, 0), roof, m.root)
         return m
     # a prism's box-projected courses ran down one slope and across the other: a checkerboard from the camera
-    pitched_roof(m.n("roof"), RoofShape(-x, x, 0.0, d, top, 1.45, "y", (0.0, 0.0), 0.2, (0.15, 0.0)), roof, frame, m.root)
-    flat_faces(m.n("gable"), [([(-x, 0, top), (x, 0, top), (0, 0, 1.45)], (0, -1, 0))], cheeks, m.root)
+    # low-pitched: from the steep camera a tall one's shaded half read as a dark triangle on the roof
+    pitched_roof(m.n("roof"), RoofShape(-x, x, 0.0, d, top, 1.3, "y", (0.0, 0.0), 0.2, (0.15, 0.0)), roof, frame, m.root)
+    flat_faces(m.n("gable"), [([(-x, 0, top), (x, 0, top), (0, 0, 1.3)], (0, -1, 0))], cheeks, m.root)
     return m
 
 

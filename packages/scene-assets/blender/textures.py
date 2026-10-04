@@ -775,6 +775,14 @@ def roof_slate():
                  tint=0.0)
 
 
+@recipe("roof_slate_matte", tile=3.0, wear=(0.1, 0.11, 0.06, 1.0))
+def roof_slate_matte():
+    """`roof_slate` weathered matte: the same slates, rougher. A near-black slate lit by the sun
+    took the sky's sheen as a flat pale grey beside its own blue-black in shade."""
+    b = roof_slate()
+    return Baked(b.albedo, b.wear, b.normal, b.orm[0], np.clip(b.orm[1] + 0.18, 0.0, 1.0), b.orm[2], b.orm[3], b.coverage)
+
+
 @recipe("rubble", tile=4.0, wear=(0.2, 0.19, 0.17, 1.0))
 def rubble_heap():
     """A heap of broken masonry after a fire: fragments a hand across in grey-brown

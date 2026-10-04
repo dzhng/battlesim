@@ -703,8 +703,8 @@ def paris():
                               streak=0.3, rise=0.9, seed=3.0),
     })
     RUBBLE.update({"limestone rubble": rubble_of("limestone", (0.17, 0.165, 0.15), 7.0), "colombage": PLASTER_RUBBLE})
-    ROOFS["slate"] = weathered_roof(textured("roof_slate_blue", "roof_slate", colour=(0.05, 0.056, 0.068), seed=6.0, **ROOFING), seed=6.0,
-                                    moss=0.15)
+    ROOFS["slate"] = weathered_roof(textured("roof_slate_blue", "roof_slate_matte", colour=(0.078, 0.082, 0.09), seed=6.0, **ROOFING),
+                                    seed=6.0, moss=0.15)
     DUST.update({"limestone rubble": (210, 204, 188), "colombage": (214, 206, 186)})
     white_m = flat_paint("window_white", (0.58, 0.57, 0.54), rough=0.6, grime=0.0)
     shutter_m = textured("shutter_slats", "roller_slats", tint=1.0, dirt=0.0, chip=0.4, streak=0.0)
