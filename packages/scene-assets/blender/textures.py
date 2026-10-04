@@ -901,6 +901,77 @@ def rubble_stone():
     return Baked(col, 0.3 + 0.7 * fbm(8, 2609, 4), normals_from_height(blur(h), 1.8), 1.0 - 0.4 * joint, 0.94)
 
 
+# The regional families' walls. Image rows run down a wall (a wall's UVs rise with it, and the
+# export turns them over), so a lap's shadow lies at the top of each board, under the one above.
+@recipe("clapboard", tile=1.8, wear=(0.17, 0.13, 0.09, 0.95))
+def clapboard():
+    """An American frame house's siding: painted boards lapped one over the next, twelve to the
+    tile (a 15 cm reveal), a pale neutral paint the house's tint colours. Each board lies a
+    little proud at its foot, and the board above shades its head; the shade is soft, as a
+    course is two pixels at the tactical camera. Butt joints stagger along the courses. The
+    wear is the grey of weathered wood under flaked paint."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    boards = 12
+    g = (yy * boards) % 1.0  # 0 at a board's head, under the lap of the one above; 1 at its foot
+    row = np.floor(yy * boards).astype(int)
+    butt = (xx * 0.6 + np.random.default_rng(5101).random(boards)[row]) % 1.0
+    joint = smoothstep(0.012, 0.004, np.minimum(butt, 1 - butt))
+    shade = smoothstep(0.3, 0.0, g)
+    grain = warp(fbm((3, 40), 5103, 3), 2, 5105)
+    tone = (0.9 + 0.1 * g) * (1 - 0.25 * shade) * (0.95 + 0.08 * grain) * (0.92 + 0.12 * fbm(4, 5107, 4))
+    col = np.broadcast_to(np.array((0.74, 0.74, 0.72)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.25, 0.25, 0.24), joint * 0.6)
+    h = g * 1.5 + grain * 0.15 - joint
+    return Baked(col, chips(5109, 11, bias=0.12), normals_from_height(blur(h), 1.4), 1.0 - 0.35 * shade, 0.75)
+
+
+@recipe("ashlar", tile=3.0, wear=(0.16, 0.15, 0.13, 1.0))
+def ashlar():
+    """Dressed stone in level courses, eight to the tile, blocks two to three courses long
+    with fine joints: a pale neutral sandstone or limestone face the building's tint makes
+    brownstone or Paris stone. Each block is barely its own tone, the face is lightly
+    tooled and rain-washed in long marks. The wear is the darker stone where it spalls."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    courses = 8
+    row = np.floor(yy * courses).astype(int)
+    per = 4
+    u = xx * per + np.random.default_rng(5201).random(courses)[row]
+    fx, fy = u - np.floor(u), yy * courses - row
+    joint = np.maximum(smoothstep(0.06, 0.02, np.minimum(fy, 1 - fy)), smoothstep(0.022, 0.008, np.minimum(fx, 1 - fx)))
+    block = np.random.default_rng(5203).random((courses, per + 1))[row, np.floor(u).astype(int) % (per + 1)]
+    tool = fbm(96, 5205, 2)
+    wash = fbm((48, 3), 5207, 3)
+    tone = 0.9 + 0.06 * (block - 0.5) + 0.05 * (tool - 0.5) + 0.12 * (fbm(3, 5209, 4) - 0.5) + 0.08 * (wash - 0.5)
+    col = np.broadcast_to(np.array((0.72, 0.71, 0.68)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.36, 0.35, 0.33), joint * 0.55)
+    h = (1 - joint) * 0.8 + tool * 0.15
+    return Baked(col, chips(5211, 8, bias=0.25), normals_from_height(blur(h), 1.0), 1.0 - 0.25 * joint, 0.9)
+
+
+@recipe("meuliere", tile=2.0, wear=(0.075, 0.08, 0.05, 1.0))
+def meuliere():
+    """Meulière, the Paris suburbs' millstone grit: rough, pitted stones from honey to rust
+    to grey-brown, laid in a thick pale mortar ruled with dark joints between the stones.
+    Its colour is the stone's own: nothing here takes a tint. The wear is moss."""
+    cells = 11
+    f1, f2, ident = worley(cells, 5301)
+    joint = smoothstep(0.15, 0.06, f2 - f1)
+    ruled = smoothstep(0.065, 0.035, f2 - f1) * smoothstep(0.02, 0.05, f2 - f1)
+    stone = np.random.default_rng(5303).random(cells * cells)[ident]
+    hue = np.random.default_rng(5305).random(cells * cells)[ident]
+    pits = smoothstep(0.08, 0.0, worley(40, 5307)[0]) * smoothstep(0.35, 0.65, fbm(12, 5309, 3))
+    grain = fbm(64, 5311, 3)
+    # close in hue, so a wall is one warm brown at a distance and its stones show only near
+    honey, rust, grey = np.array((0.34, 0.22, 0.12)), np.array((0.32, 0.18, 0.1)), np.array((0.28, 0.22, 0.16))
+    col = np.where((hue < 0.45)[..., None], honey, np.where((hue < 0.75)[..., None], rust, grey))
+    col = col * (0.85 + 0.2 * stone)[..., None] * (0.88 + 0.24 * grain)[..., None]
+    col = mix(col, (0.1, 0.06, 0.035), pits * 0.7)
+    col = mix(col, (0.42, 0.38, 0.32), joint * 0.8)
+    col = mix(col, (0.16, 0.13, 0.11), ruled * 0.6)
+    h = (1 - joint) * (0.8 + 0.4 * stone) + grain * 0.4 - pits * 0.8 - ruled * 0.3
+    return Baked(col, 0.3 + 0.7 * fbm(8, 5313, 4), normals_from_height(blur(h), 2.0), 1.0 - 0.35 * joint - 0.3 * pits, 0.95, tint=0.0)
+
+
 # Industrial sheet, block and glass. Image rows run down a wall (and down a roof's slope, by
 # its own UVs), so whatever a fixing or a joint sheds trails toward the higher rows.
 RUST_STAIN = (0.2, 0.085, 0.035)
