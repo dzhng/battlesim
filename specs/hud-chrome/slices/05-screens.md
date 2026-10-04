@@ -11,3 +11,44 @@ Delegated: minimal typography/spacing and tactical composition preserving comple
 Verification: write-tests red/green at the consumer seam, narrow types/lint/format, review and independent code review before commit, then audit choices. Preserve exact battle identities, deterministic replay outcomes, side-visible authority and manual mechanics reload. Scratch evidence remains ignored.
 
 Visual gate: use matched production-route before/after screenshots; compare-screenshots with the specified crop and target. Inspect full shots and native/enlarged crops. Run an unprimed screenshot-critique as the LAST visual acceptance step. Show a minimal Preview set, give a non-blocking reaction window while continuing independent work, record reversible calls and close Preview if proceeding unattended.
+
+## Screen composition evidence
+
+Screen styling uses the existing menu plate and pause vocabulary; replay import
+shares that plate rather than carrying a separate bare-page appearance. Controls
+still answer the same questions: map choices prepare the requested skirmish,
+Deploy begins it, saved/replay entries open exact recorded inputs, sound controls
+set retained audio, Developer reveals tools. Loading names preparation and offers
+Cancel; refusal preserves the actual reason, advice and manual recovery. Pause
+keeps Resume, scenario/replay controls and Main menu.
+
+Production-route evidence is in ignored
+`throwaway/hud-screens/{before,after,crops,comparison}` in the screen checkout.
+`contact-sheet.png` covers menu/loading/refusal/pause/both replay import surfaces;
+`before-after.png` shows matched 1280×800 DPR1 captures. Narrow disclosure/error
+captures use 560×800. Screen changes are real: menu grayscale diffRatio32 0.03736,
+loading 0.01204, refusal 0.01302, replay-import 0.00864. Pause compares only its
+panel/veil composition because live background units can move between captures.
+The menu plate is 480×553 versus the prior 540×598; New York stays on one row,
+all retained labels/advice remain readable, and title/selection glow is restrained.
+
+Twenty focused pause/replay/loading/navigation/catalogue tests, typecheck,
+owned-file lint/format and diff-check pass. The actual production keyboard probe
+visits all sixteen focusable menu controls and verifies visible outlines; pause
+initially focuses Resume. No new behavior or test-only hook was added. Independent
+Codex source review reports no actionable regression. Shape/diff/docs review kept
+shared owners and introduced no resource/audio/navigation or deck architecture.
+
+Fresh unprimed critique inspected all fifteen final captures and thirty native/2×
+crops. It found one concern: expanded Developer continues below the 800px viewport.
+A real focus/End probe verifies normal scrolling reveals the entire Labs entry at
+both widths; supplemental captures and geometry are in `developer-scroll-*` and
+`developer-scroll.json`. No controls or disclosure contents are clipped after
+scrolling. Supplemental fresh critique resolves the concern before acceptance.
+
+Preview was invoked once with contact sheet, before/after and focused menu. The
+pre-open AppleScript close command hung and was terminated; the single open
+completed, but a visible review window could not be independently established.
+No user response was received during independent checks. Compact spacing/glow
+remains a reversible taste choice. Root owns the integrated deck journey and
+whole-feature checks; this screen evidence does not claim those closeout gates.

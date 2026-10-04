@@ -25,18 +25,18 @@
 .hud-panel.menu-body {
   position: relative;
   display: grid;
-  gap: 18px;
-  width: min(540px, 100%);
-  padding: 28px 30px 22px;
+  gap: 14px;
+  width: min(480px, 100%);
+  padding: 22px 24px 18px;
   box-sizing: border-box;
 }
 .menu h1 {
   margin: 0;
-  font: 700 30px var(--hud-font);
-  letter-spacing: 0.4em;
+  font: 700 24px var(--hud-font);
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   color: rgb(var(--hud-accent));
-  text-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.6);
+  text-shadow: var(--hud-text-halo);
 }
 .menu ul {
   list-style: none;
@@ -100,7 +100,7 @@
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: center;
-  gap: 8px 16px;
+  gap: 8px 12px;
 }
 .menu-field {
   font-size: 10px;
@@ -117,8 +117,8 @@
 }
 .hud-panel .menu-options button.hud-menu-choice {
   padding: 7px 8px 7px 20px;
-  font-size: 11.5px;
-  letter-spacing: 0.14em;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
   color: rgb(var(--hud-dim));
   border-color: rgb(var(--hud-accent) / 0.2);
 }
@@ -126,9 +126,9 @@
 .hud-panel .menu-options button.hud-menu-choice[aria-checked="true"] {
   font-weight: 700;
   color: #fff;
-  text-shadow: 0 0 4px rgb(var(--hud-accent));
+  text-shadow: var(--hud-text-halo);
   border-color: rgb(var(--hud-accent) / 0.85);
-  box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.35);
+  box-shadow: inset 0 0 8px rgb(var(--hud-accent) / 0.12);
 }
 .menu-battle-note {
   margin: 0;
@@ -137,19 +137,19 @@
   color: rgb(var(--hud-dim));
 }
 .hud-panel a.menu-card.menu-deploy {
-  padding: 14px 16px;
+  padding: 12px 16px;
   text-align: center;
   background: rgb(var(--hud-accent) / 0.16);
   border: 1px solid rgb(var(--hud-accent) / 0.85);
   box-shadow:
-    0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.4),
-    inset 0 0 12px rgb(var(--hud-accent) / 0.2);
+    0 0 8px rgb(var(--hud-accent) / 0.16),
+    inset 0 0 12px rgb(var(--hud-accent) / 0.1);
 }
 .menu-deploy .menu-card-label {
-  font-size: 17px;
-  letter-spacing: 0.4em;
+  font-size: 15px;
+  letter-spacing: 0.28em;
   color: #fff;
-  text-shadow: 0 0 6px rgb(var(--hud-accent));
+  text-shadow: var(--hud-text-halo);
 }
 .hud-panel a.menu-card.menu-deploy:hover,
 .hud-panel a.menu-card.menu-deploy:focus-visible {
@@ -179,6 +179,10 @@
   box-shadow: none;
   color: rgb(var(--hud-accent));
 }
+.hud-panel.menu-body :is(a, button, input):focus-visible {
+  outline: 1px solid rgb(var(--hud-accent));
+  outline-offset: 3px;
+}
 /* The loading screen: the menu's plate over the battle until it is playable. */
 .loading {
   position: fixed;
@@ -186,6 +190,7 @@
   z-index: 10;
 }
 .loading-subject {
+  overflow-wrap: anywhere;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -237,10 +242,11 @@
 }
 .loading-failure p {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 .loading:has(.loading-failure) h1 {
   color: rgb(var(--hud-bad));
-  text-shadow: 0 0 var(--hud-glow) rgb(var(--hud-bad) / 0.6);
+  text-shadow: var(--hud-text-halo);
 }
 .hud-panel .loading-failure button.menu-dev {
   justify-self: start;
@@ -253,6 +259,7 @@
   color: rgb(var(--hud-text));
 }
 .loading .loading-details {
+  overflow-wrap: anywhere;
   color: rgb(var(--hud-dim));
   font-size: 10.5px;
 }

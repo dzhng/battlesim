@@ -744,18 +744,23 @@
   z-index: 20;
   display: grid;
   place-items: center;
-  background: rgb(var(--hud-glass) / 0.45);
+  padding: 24px;
+  overflow: auto;
+  background: rgb(var(--hud-glass) / 0.55);
 }
 .hud-panel.hud-menu {
   position: relative;
   display: grid;
   gap: 8px;
-  width: 300px;
-  padding: 14px 18px 16px;
+  width: min(320px, 100%);
+  box-sizing: border-box;
+  padding: 18px 20px;
+  box-shadow: 0 0 8px rgb(var(--hud-accent) / 0.12);
   background: rgb(var(--hud-glass) / 0.92);
 }
 /* The panel's title (`.hud-panel > strong:first-child`), larger and centred. */
 .hud-menu > strong.hud-menu-title {
+  text-shadow: var(--hud-text-halo);
   font-size: 13px;
   letter-spacing: 0.24em;
   text-align: center;
@@ -814,10 +819,35 @@
   background: rgb(var(--hud-accent));
   box-shadow: 0 0 5px rgb(var(--hud-accent));
 }
-.hud-menu-file {
+.hud-panel .hud-menu-file {
   display: grid;
-  gap: 4px;
+  gap: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: rgb(var(--hud-dim));
+}
+.hud-menu-file input[type="file"] {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  color: rgb(var(--hud-dim));
+}
+.hud-menu-file input::file-selector-button {
+  margin-right: 8px;
+  padding: 6px 10px;
+  border: 1px solid rgb(var(--hud-accent) / 0.32);
+  border-radius: 0;
+  font: inherit;
+  color: rgb(var(--hud-text));
+  background: rgb(var(--hud-accent) / 0.05);
+  cursor: pointer;
+}
+.hud-menu-file input::file-selector-button:hover {
+  border-color: rgb(var(--hud-accent));
+}
+.hud-menu :is(a, button, input):focus-visible {
+  outline: 1px solid rgb(var(--hud-accent));
+  outline-offset: 3px;
 }
 .hud-menu .sound-controls {
   display: grid;

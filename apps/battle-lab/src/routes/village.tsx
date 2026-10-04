@@ -171,9 +171,11 @@ export function VillageReplay() {
   const file = loaded.file && isVillageReplay(loaded.file) ? loaded.file : null;
   if (!file)
     return (
-      <main style={{ padding: 24 }}>
-        <h1>Village replay</h1>
-        <ReplayImport plays={isVillageReplay} onLoad={setFile} />
+      <main className="menu">
+        <div className="hud-panel menu-body">
+          <h1>Village replay</h1>
+          <ReplayImport plays={isVillageReplay} onLoad={setFile} />
+        </div>
       </main>
     );
   return <LoadedVillageReplay key={loaded.n} file={file} onLoad={setFile} />;

@@ -127,3 +127,29 @@ Settled user/delegated planning decisions remain in the exploration map.
 - **Confidence:** high.
 
 Full multi-selection detail, omission of visible Move/Garrison, optional replay commands and binding-table labels follow explicit contracts. Reversible spacing, typography, icon size, background opacity and focus/hover implementation use delegated design discretion. Escape dismissal preserves the existing battle event owner and adds no new global input rule. No unsound or needs-user architectural choice remains in this pass; final visual acceptance is still pending.
+
+## Screen chrome
+
+When: slice 05 screen composition.
+
+Choice: expanded Developer uses the existing scrollable menu. Opening the tools
+can make the plate taller than the desktop viewport; moving keyboard focus to
+Labs scrolls the menu so its complete card is visible. Keeping those links at
+their current readable size avoids shrinking every player control whenever a
+technical user opens the tools. The unbuilt alternative would force the entire
+expanded plate into one viewport by reducing text or creating another surface.
+
+Gap: compact screen composition did not specify whether expanded developer
+content must fit one viewport.
+
+Reach: developer disclosure may grow vertically, while ordinary play keeps the
+compact default plate. Keyboard/scroll reachability must remain intact.
+
+Verdict: sound. Actual production focus/End probes reveal the full Labs entry at
+both desktop and narrow widths; disclosure preserves every existing link.
+
+Confidence: high.
+
+The spacing, typography and glow values are reversible cosmetic discretion
+explicitly delegated by slice 05. Reusing menu classes for the existing village
+replay import was likewise delegated and introduces no new behavior owner.
