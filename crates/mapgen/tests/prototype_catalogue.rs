@@ -3,11 +3,21 @@
 use contract::templates::{
     BuildingCategory, BuildingTemplateDescriptor, PlacementFrame, TemplateGeometryCatalog,
 };
+use mapgen::layout::PresetDefinitions;
 
 const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");
+const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 
 fn catalogue() -> TemplateGeometryCatalog {
     TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap()).unwrap()
+}
+
+/// The regional families a map may be built in (M08).
+fn families() -> Vec<String> {
+    PresetDefinitions::from_json(PRESETS)
+        .unwrap()
+        .parcels
+        .regional_families
 }
 
 /// Width and depth of a template's footprint in its own frame.
@@ -25,12 +35,17 @@ fn footprint(template: &BuildingTemplateDescriptor) -> [f64; 2] {
 }
 
 #[test]
-fn every_template_is_complete_and_of_the_one_shipping_family() {
+fn every_template_is_complete_and_of_a_shipping_family() {
     let catalogue = catalogue();
-    let family = &catalogue.templates()[0].regional_family;
+    let families = families();
     for template in catalogue.templates() {
         template.require_complete().unwrap();
-        assert_eq!(&template.regional_family, family, "{}", template.id);
+        assert!(
+            families.contains(&template.regional_family),
+            "{}: {} is not among {families:?}",
+            template.id,
+            template.regional_family
+        );
     }
     // Its identity is its geometry: the list's order and spacing do not move it.
     let mut reordered: Vec<BuildingTemplateDescriptor> = serde_json::from_str(TEMPLATES).unwrap();
@@ -41,8 +56,16 @@ fn every_template_is_complete_and_of_the_one_shipping_family() {
     );
 }
 
+/// A map draws one family, so each family on its own must offer every
+/// category at the scale its districts and countryside cut lots for.
 #[test]
-fn every_category_has_several_variants_at_its_accepted_scale() {
+fn every_family_has_several_variants_of_every_category_at_its_accepted_scale() {
+    for family in families() {
+        category_scales(&family);
+    }
+}
+
+fn category_scales(family: &str) {
     use BuildingCategory::*;
     let catalogue = catalogue();
     // (category, floors, longest footprint side in metres)
@@ -58,9 +81,9 @@ fn every_category_has_several_variants_at_its_accepted_scale() {
         let variants: Vec<_> = catalogue
             .templates()
             .iter()
-            .filter(|template| template.category == category)
+            .filter(|template| template.category == category && template.regional_family == family)
             .collect();
-        assert!(variants.len() >= 3, "{category:?}: {}", variants.len());
+        assert!(variants.len() >= 3, "{family} {category:?}: {}", variants.len());
         for template in variants {
             let count = template.floor_heights_m.as_ref().unwrap().len();
             assert!(floors.contains(&count), "{}: {count} floors", template.id);
@@ -79,10 +102,11 @@ fn every_category_has_several_variants_at_its_accepted_scale() {
     let apartment_floors = |low: usize, high: usize| {
         catalogue.templates().iter().any(|template| {
             template.category == UrbanApartment
+                && template.regional_family == family
                 && (low..=high).contains(&template.floor_heights_m.as_ref().unwrap().len())
         })
     };
-    assert!(apartment_floors(4, 6) && apartment_floors(7, 8));
+    assert!(apartment_floors(4, 6) && apartment_floors(7, 8), "{family}");
 }
 
 /// The parcel pass turns a template's first entrance toward the street, so
