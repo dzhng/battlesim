@@ -11,7 +11,7 @@ export interface SoundSource {
   notes: string;
 }
 /** Licences a pinned recording may carry; attribution comes from its source row. */
-export const LICENSES = [
+const LICENSES = [
   "CC0-1.0",
   "Public-Domain-US-Gov",
   "CC-BY-3.0",

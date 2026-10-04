@@ -5,6 +5,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin } from "vite";
 import { FixturePublication } from "../fixture-publication/publication";
 import type { SoundCatalog } from "../../packages/battle-audio/src/catalog";
+import { GLANCE } from "../../packages/battle-audio/src/contacts";
 import { UnitCatalog, type CatalogView } from "../../packages/scene-assets/src/units";
 import type { AudioPresentation } from "../../packages/battle-audio/src/audioPresentation";
 import type { Draft, Review, Save, Snapshot, SoundUnit } from "./src/protocol";
@@ -132,7 +133,7 @@ export class SoundWorkbenchStore {
       units,
       firing: input.audio.shots,
       // A glance is a contact too: each round may choose its ricochet.
-      materials: [...Object.keys(input.audio.impacts), "ricochet"],
+      materials: [...Object.keys(input.audio.impacts), GLANCE],
       rounds: input.rounds,
     };
   }

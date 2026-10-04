@@ -40,6 +40,7 @@ import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { pick } from "@packages/renderer-core/src/kindTable";
 import { validateAudio, type AudioPresentation, type Bus } from "./audioPresentation";
 import { firingCadence, resolveEffect, resolveShot, type SoundCatalog } from "./catalog";
+import { GLANCE } from "./contacts";
 import { gameSounds } from "./shippedSounds";
 
 type P3 = readonly [number, number, number] | readonly number[];
@@ -374,7 +375,7 @@ export class SoundFrame {
           const pt = s.path[r.point];
           this.queue(
             at,
-            this.contact("ricochet", s.kind, p.ricochet.sound),
+            this.contact(GLANCE, s.kind, p.ricochet.sound),
             null,
             0,
             "effects",
