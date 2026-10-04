@@ -83,7 +83,11 @@ fn category_scales(family: &str) {
             .iter()
             .filter(|template| template.category == category && template.regional_family == family)
             .collect();
-        assert!(variants.len() >= 3, "{family} {category:?}: {}", variants.len());
+        assert!(
+            variants.len() >= 3,
+            "{family} {category:?}: {}",
+            variants.len()
+        );
         for template in variants {
             let count = template.floor_heights_m.as_ref().unwrap().len();
             assert!(floors.contains(&count), "{}: {count} floors", template.id);
