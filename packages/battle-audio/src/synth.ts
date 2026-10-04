@@ -240,6 +240,89 @@ function engine(sr: number, rng: Rng, hz: number, len: number, bright: number) {
   return toPeak(out);
 }
 
+/** Original eight-bar menu cue: muted brass harmony, a small horn phrase and
+ * field-drum pulse. Events wrap their tails into the loop head; their envelopes
+ * reach zero before ending, so neither notes nor percussion click at the seam. */
+function menuMusic(sr: number, rng: Rng): Float32Array {
+  const beat = 0.75;
+  const n = Math.round(32 * beat * sr);
+  const out = new Float32Array(n);
+  const chords = [
+    [40, 43, 47],
+    [36, 40, 43],
+    [38, 42, 45],
+    [35, 39, 42],
+    [40, 43, 47],
+    [43, 47, 50],
+    [36, 40, 43],
+    [35, 39, 42],
+  ];
+  for (const [bar, chord] of chords.entries())
+    for (const [voice, note] of chord.entries())
+      mixOnLoop(
+        out,
+        brassNote(sr, note, 3.6),
+        Math.round((bar * 4 * beat + voice * 0.035) * sr),
+        voice === 0 ? 0.2 : 0.1,
+      );
+
+  // A deliberately short original phrase; space between calls leaves room for
+  // the sustained lower voices rather than turning the menu into a fanfare.
+  for (const [at, note, duration] of [
+    [4.5, 55, 1.2],
+    [6, 57, 0.75],
+    [6.9, 59, 1.5],
+    [9, 57, 1.2],
+    [15, 55, 1.2],
+    [16.5, 52, 0.75],
+    [17.4, 54, 1.5],
+    [21, 47, 2],
+  ])
+    mixOnLoop(out, brassNote(sr, note, duration), Math.round(at * sr), 0.16);
+
+  const drum = tone(
+    Math.round(0.4 * sr),
+    sr,
+    (t) => 52 + 35 * Math.exp(-t / 0.012),
+    decay(0.095, 0.004),
+  );
+  const snare = biquad(noise(Math.round(0.2 * sr), rng), sr, "bandpass", 1800, 0.7);
+  for (let i = 0; i < snare.length; i++) snare[i] *= decay(0.035, 0.003)(i / sr);
+  toPeak(snare);
+  // Exponential decay retains a small tail. Close it over 20 ms so every hit
+  // reaches zero before its finite buffer ends, not just at the loop boundary.
+  for (const hit of [drum, snare])
+    for (let i = 0; i < hit.length; i++) hit[i] *= Math.min(1, (hit.length - 1 - i) / (0.02 * sr));
+  for (let pulse = 0; pulse < 32; pulse++) {
+    const accent = pulse % 4 === 0 ? 0.24 : pulse % 2 === 0 ? 0.15 : 0.08;
+    mixOnLoop(out, drum, Math.round(pulse * beat * sr), accent);
+    if (pulse % 4 === 2) mixOnLoop(out, snare, Math.round(pulse * beat * sr), 0.045);
+  }
+  return toPeak(out);
+}
+
+function brassNote(sr: number, note: number, duration: number): Float32Array {
+  const n = Math.round(duration * sr);
+  const hz = 440 * 2 ** ((note - 69) / 12);
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const t = i / sr;
+    const phase = TAU * hz * t + 0.025 * Math.sin(TAU * 4.8 * t);
+    const envelope = Math.min(1, t / 0.18) * Math.min(1, (duration - t) / 0.5);
+    const breath = 0.65 + 0.35 * Math.sin((Math.PI * t) / duration) ** 2;
+    out[i] =
+      envelope *
+      (Math.sin(phase) +
+        breath *
+          (0.42 * Math.sin(phase * 2) + 0.22 * Math.sin(phase * 3) + 0.1 * Math.sin(phase * 4)));
+  }
+  return out;
+}
+
+function mixOnLoop(out: Float32Array, source: Float32Array, at: number, gain: number) {
+  for (let i = 0; i < source.length; i++) out[(at + i) % out.length] += gain * source[i];
+}
+
 type Maker = ((sr: number, rng: Rng) => SynthSound) & { loop: boolean };
 const once = (f: (sr: number, rng: Rng) => Float32Array): Maker =>
   Object.assign(
@@ -260,25 +343,7 @@ const looped = (f: (sr: number, rng: Rng) => Float32Array): Maker =>
 
 /** Every sound the bank makes, by name. */
 export const SOUNDS: Record<string, Maker> = {
-  // Authored here: sustained low E/B tension with sparse, soft pulses. Whole
-  // cycles and periodic envelopes close the loop without an attack at the seam.
-  menu_music: looped((sr) => {
-    const n = Math.round(24 * sr);
-    const out = new Float32Array(n);
-    for (let i = 0; i < n; i++) {
-      const t = i / sr;
-      const swell = 0.7 + 0.3 * Math.cos((TAU * i) / n);
-      const pulsePhase = (t + 1.5) % 6;
-      const pulse = pulsePhase < 1.5 ? Math.sin((Math.PI * pulsePhase) / 1.5) ** 2 : 0;
-      out[i] =
-        swell *
-          (0.6 * Math.sin(TAU * 41.25 * t) +
-            0.28 * Math.sin(TAU * 61.875 * t) +
-            0.16 * Math.sin(TAU * 82.5 * t)) +
-        pulse * 0.12 * Math.sin(TAU * 165 * t);
-    }
-    return toPeak(out);
-  }),
+  menu_music: looped(menuMusic),
   rifle: once((sr, rng) =>
     report(sr, rng, {
       len: 0.7,

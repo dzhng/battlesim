@@ -82,3 +82,8 @@ Confidence: high.
 The exact React Router 7.13.2 pin, retained-visit marker and internal names were
 explicitly delegated by the slice; they are implementation discretion rather
 than new product decisions.
+a different musical tone. The coordinating pass directed an original military
+score mood: brass-like harmony, restrained field drums and stronger pulse,
+without imported recordings or borrowed melodies. The cue and mix were revised
+inside the existing synth/catalog pipeline; the listening checkpoint remains
+open. This delegated taste choice does not change audio lifetime or navigation.

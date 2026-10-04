@@ -32,7 +32,17 @@ autoplay policy and muted output prove preparation before permission and
 activation from the first menu click, with no browser errors. No full check,
 full verify or live playback in the user's browser was run.
 
-Music tone/mix is **not accepted**: the user listened, requested louder music
-and a different tone, and asked about Battlefield 2 extraction. Retain the
-raised authored fallback while the coordinating pass obtains a source path.
-Do not block lifecycle integration or redesign the synthesizer meanwhile.
+Music tone/mix is **not accepted**: the user requested louder music and a different
+tone after the first listening sample. The coordinating pass directed a wholly
+original military-score mood: low brass harmony, a small horn phrase, restrained
+field percussion and a stronger pulse. The revised cue uses the existing
+synth/catalog recipe and outdoor ambience. It introduces no imported material,
+music scheduler or new playback owner. Offline 30-second menu and 20-second
+transition WAVs are ready in `throwaway/audio-review/`; the original drone mix
+is retained there for comparison. Continue integration and offer the new sample
+for the non-blocking listening checkpoint.
+
+The original-score revision's independent review found nonzero percussion tails
+being truncated. Drum/snare buffers now fade their final portion to zero before
+loop mixing. The output is finite and deterministic, and preparation remains a
+bounded, once-per-bank synthesis task.

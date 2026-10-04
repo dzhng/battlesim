@@ -3717,7 +3717,7 @@
   },
   "sounds": {
     "menu_music": {
-      "label": "Menu · low sustained tension",
+      "label": "Menu · brass and field drum",
       "clips": [],
       "synth": "menu_music",
       "synth_gain": 1,

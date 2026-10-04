@@ -9,7 +9,7 @@ import { WebAudioSink } from "./webAudioSink";
 
 /** Reversible menu mix, also used by offline listening review. */
 export const MENU_BED = [
-  { sound: "menu_music", gain: 0.45 },
+  { sound: "menu_music", gain: 1.1 },
   { sound: "countryside", gain: 0.08 },
 ] as const;
 export const MENU_FADE_S = 1.2;
