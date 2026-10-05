@@ -1,8 +1,9 @@
 //! Move admission runs the real movement owner on isolated, side-known state.
-//! It drives the two ends of each leg, vehicle bends and the approach to
-//! stationary hulls and props; straight stretches between checkpoints are taken
-//! on the planned route ([`carry`]). Rehearsal cost follows physical interactions
-//! rather than travel distance. Planning still pays for the route it must find.
+//! It drives the two ends of each leg, vehicle bends, the approach to
+//! stationary hulls and props, and meetings with movers coming the other way;
+//! straight stretches between checkpoints are taken on the planned route
+//! ([`carry`]). Rehearsal cost follows physical interactions rather than
+//! travel distance. Planning still pays for the route it must find.
 use contract::command::MovePreviewRequest;
 use contract::map::MoverClass;
 use contract::observation::MoveState;
@@ -33,6 +34,31 @@ fn remaining_route(unit: &Unit) -> Option<Vec<V2>> {
     Some(here.chain(route.iter().copied()).collect())
 }
 
+/// The least distance between segments `a0 a1` and `b0 b1`.
+fn segment_gap(a0: V2, a1: V2, b0: V2, b1: V2) -> f64 {
+    let to_segment = |p: V2, s0: V2, s1: V2| {
+        let ab = s1 - s0;
+        let l2 = ab.dot(ab);
+        let t = if l2 > 0.0 {
+            ((p - s0).dot(ab) / l2).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        (s0 + ab * t - p).length()
+    };
+    let (da, db) = (a1 - a0, b1 - b0);
+    let side = |d: V2, o: V2, p: V2| d.cross(p - o);
+    let crosses =
+        side(da, a0, b0) * side(da, a0, b1) < 0.0 && side(db, b0, a0) * side(db, b0, a1) < 0.0;
+    if crosses {
+        return 0.0;
+    }
+    to_segment(a0, b0, b1)
+        .min(to_segment(a1, b0, b1))
+        .min(to_segment(b0, a0, a1))
+        .min(to_segment(b1, a0, a1))
+}
+
 /// Metres of the way left from each of its points.
 fn distances_to_end(way: &[V2]) -> Vec<f64> {
     let mut left = vec![0.0; way.len()];
@@ -43,8 +69,9 @@ fn distances_to_end(way: &[V2]) -> Vec<f64> {
 }
 
 /// Carry `units[index]` along its planned route between physical checkpoints:
-/// to `move_rehearsal_m` short of the route's end, or of
-/// the next vehicle bend, stationary vehicle or prop its hull meets.
+/// to `move_rehearsal_m` short of the route's end, or of the next vehicle
+/// bend, stationary vehicle or prop its hull meets, or of where it would meet
+/// a body coming the other way along its route, which the two must pass.
 /// Navigation may admit pushable props, but only movement can demonstrate their shoves.
 /// A hull is set down on the route heading the way it was
 /// travelling, a squad in file along it, and where other bodies stand there
@@ -80,6 +107,31 @@ fn carry(
             };
             let p = w[0] + ab * t;
             ((p - c).inside_radius(near)).then(|| left[k + 1] + (w[1] - p).length())
+        });
+        if let Some(met) = met {
+            stop = stop.max(met + reach);
+        }
+    }
+    // Where the way first runs against another mover's way, within reach of
+    // it: their meeting there is driven, not jumped (where each stands at
+    // that moment is only known by driving).
+    for other in others().filter(|o| !o.orders.is_empty()) {
+        let theirs = remaining_route(other).or_else(|| {
+            other
+                .movement_goal()
+                .map(|(goal, _)| vec![other.position.xy(), goal])
+        });
+        let Some(theirs) = theirs else {
+            continue;
+        };
+        let near = radius + other.footprint_radius(ctx.soldier_radius_m) + TRAFFIC_MARGIN_M;
+        let met = way.windows(2).enumerate().find_map(|(k, w)| {
+            let ours = w[1] - w[0];
+            theirs.windows(2).find_map(|v| {
+                let against = ours.dot(v[1] - v[0]) < 0.0;
+                (against && segment_gap(w[0], w[1], v[0], v[1]) < near)
+                    .then(|| left[k + 1] + ours.length())
+            })
         });
         if let Some(met) = met {
             stop = stop.max(met + reach);
