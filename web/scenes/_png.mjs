@@ -24,15 +24,24 @@ export async function writeCrop(png, path, cx, cy, halfW, halfH, scale = 3) {
   await writeFile(path, PNG.sync.write(out));
 }
 
+/** The whole pixels of a `width` by `height` image that the `w` by `h` box
+ *  from (x0, y0) covers, clamped to the image: `{ x, y, width, height }`. */
+export function cropBox(width, height, x0, y0, w, h) {
+  const x = Math.min(width - 1, Math.max(0, Math.round(x0)));
+  const y = Math.min(height - 1, Math.max(0, Math.round(y0)));
+  return {
+    x,
+    y,
+    width: Math.max(1, Math.min(width - x, Math.round(w))),
+    height: Math.max(1, Math.min(height - y, Math.round(h))),
+  };
+}
+
 /** The PNG of the `w` by `h` pixels of `png` from (x0, y0), clamped to the image. */
 export function crop(png, x0, y0, w, h) {
-  const left = Math.min(png.width - 1, Math.max(0, Math.round(x0)));
-  const top = Math.min(png.height - 1, Math.max(0, Math.round(y0)));
-  const out = new PNG({
-    width: Math.max(1, Math.min(png.width - left, Math.round(w))),
-    height: Math.max(1, Math.min(png.height - top, Math.round(h))),
-  });
-  PNG.bitblt(png, out, left, top, out.width, out.height, 0, 0);
+  const box = cropBox(png.width, png.height, x0, y0, w, h);
+  const out = new PNG({ width: box.width, height: box.height });
+  PNG.bitblt(png, out, box.x, box.y, box.width, box.height, 0, 0);
   return PNG.sync.write(out);
 }
 

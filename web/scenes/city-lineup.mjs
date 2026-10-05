@@ -31,7 +31,7 @@ import {
   lab,
   route,
 } from "./_lab.mjs";
-import { crop, decode } from "./_png.mjs";
+import { cropBox, decode } from "./_png.mjs";
 import { writeSheet } from "./_sheet.mjs";
 import { bounds, judge, projected, setFits } from "./_templateFit.mjs";
 
@@ -58,6 +58,15 @@ async function show(page, method, key, value) {
 async function frame(page) {
   await lab(page, () => window.__lab.frame());
   return page.screenshot();
+}
+
+/** The frame's pixels in the box `at` alone. A pair's half needs only its
+ *  template's crop, and encoding the whole 1920 by 1080 frame for each one
+ *  was most of the scene's time. */
+async function frameCrop(page, at) {
+  await lab(page, () => window.__lab.frame());
+  const { width, height } = page.viewportSize();
+  return page.screenshot({ clip: cropBox(width, height, at.x, at.y, at.w, at.h) });
 }
 
 async function runSet(ctx, page, set, fit) {
@@ -222,11 +231,9 @@ async function runSet(ctx, page, set, fit) {
         for (const entry of standing) {
           await route(page, "stand", pair.station, entry.id);
           await settle(page);
-          const picture = decode(await frame(page));
           const { box } = await projected(page, entry, fit[entry.set]);
-          const at = bounds(box, CROP_PX);
           const halves = crops[p].get(entry.id) ?? {};
-          halves[tier] = crop(picture, at.x, at.y, at.w, at.h);
+          halves[tier] = await frameCrop(page, bounds(box, CROP_PX));
           crops[p].set(entry.id, halves);
           // The crop alone too, a folder a tier: what a comparison measures.
           const folder = `crops/${pair.station}${tag}-tier${tier}`;
