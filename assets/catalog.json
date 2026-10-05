@@ -1038,6 +1038,32 @@
       ],
       "regional_family": "china"
     },
+    "courtyard_wall": {
+      "unit": "scenery",
+      "scenery": "courtyard_wall",
+      "states": {
+        "default": "assets/source/courts/courtyard_wall.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.25,
+        0.125,
+        1.0
+      ]
+    },
+    "iron_railing": {
+      "unit": "scenery",
+      "scenery": "iron_railing",
+      "states": {
+        "default": "assets/source/courts/iron_railing.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.75,
+        0.05,
+        0.75
+      ]
+    },
     "chainlink_fence": {
       "unit": "scenery",
       "scenery": "chainlink_fence",
@@ -1184,6 +1210,19 @@
         0.55
       ],
       "regional_family": "paris"
+    },
+    "plinth_railing": {
+      "unit": "scenery",
+      "scenery": "plinth_railing",
+      "states": {
+        "default": "assets/source/courts/plinth_railing.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.75,
+        0.2,
+        0.9
+      ]
     },
     "grass_meadow": {
       "unit": "scenery",
