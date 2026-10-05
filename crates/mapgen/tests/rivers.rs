@@ -9,7 +9,7 @@ use mapgen::{CompileLimits, Diagnostic, MapPlan};
 
 const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TYPES: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
-const SIZES: [MapSize; 3] = [MapSize::Small, MapSize::Medium, MapSize::Large];
+const SIZES: [MapSize; 3] = [MapSize::Medium, MapSize::Large, MapSize::Xl];
 
 type Point = [f64; 2];
 
@@ -138,7 +138,7 @@ fn a_river_runs_from_the_north_edge_to_the_south_and_the_terrain_carries_it() {
         );
         let compiled = mapgen::lower(
             &mapgen::CompileRequest::generated(
-                &request(MapType::Open, MapSize::Small, 1),
+                &request(MapType::Open, MapSize::Medium, 1),
                 plan.clone(),
             ),
             &empty_catalogue(),
@@ -409,7 +409,7 @@ fn every_road_crosses_the_water_on_a_bridge_and_every_bridge_carries_a_road() {
         bridges += plan.bridges.len();
         mapgen::lower(
             &mapgen::CompileRequest::generated(
-                &request(MapType::Open, MapSize::Small, 1),
+                &request(MapType::Open, MapSize::Medium, 1),
                 plan.clone(),
             ),
             &empty_catalogue(),
@@ -564,10 +564,15 @@ fn a_town_beside_a_river_is_built_dry_and_its_streets_keep_to_their_bank() {
     let presets = presets(1.0);
     let cells = TYPES
         .into_iter()
-        .flat_map(|map_type| [(map_type, MapSize::Small, 1), (map_type, MapSize::Small, 2)])
+        .flat_map(|map_type| {
+            [
+                (map_type, MapSize::Medium, 1),
+                (map_type, MapSize::Medium, 2),
+            ]
+        })
         .chain([
-            (MapType::Metro, MapSize::Medium, 11),
             (MapType::Metro, MapSize::Large, 11),
+            (MapType::Metro, MapSize::Xl, 11),
         ]);
     let mut beside = 0;
     for (map_type, size, seed) in cells {
@@ -667,7 +672,7 @@ fn a_river_the_map_cannot_hold_is_refused_by_name() {
         source["types"]["open"]["river_chance"] = 1.into();
         source["rivers"]["side_margin_m"] = 2_990.into();
     });
-    let errors = generate(&hemmed, MapType::Open, MapSize::Small, 5).unwrap_err();
+    let errors = generate(&hemmed, MapType::Open, MapSize::Medium, 5).unwrap_err();
     assert_eq!(errors[0].code, mapgen::DiagnosticCode::GenerationFailed);
     assert_eq!(errors[0].feature.as_deref(), Some("river"));
     assert_eq!(errors[0].location, "$.presets.types.open.sizes.small");

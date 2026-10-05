@@ -122,7 +122,7 @@ fn request(directory: &std::path::Path) -> PathBuf {
         "seed": "11",
         "template_catalog_hash": catalogue().hash(),
         "type": "mixed",
-        "size": "small",
+        "size": "medium",
         "limits": {"max_authored_parts": 20_000, "max_bay_positions": 200_000, "max_ground_points": 200_000},
     });
     std::fs::write(&path, request.to_string()).unwrap();

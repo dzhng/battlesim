@@ -20,7 +20,7 @@ import { bareClassMask, classAt } from "./_groundStations.mjs";
 
 const game = JSON.parse(readFileSync(new URL("../../fixtures/game.json", import.meta.url)));
 const TICK_HZ = game.tick_hz;
-const MAP = { type: "mixed", size: "small", seed: "1" };
+const MAP = { type: "mixed", size: "medium", seed: "1" };
 const HIDE_HUD = "[data-testid=battle-panel], .ro-layer { display: none !important; }";
 /** The ground mask's two values: a pixel that is mostly ground, and one that is not. */
 const isGround = ([r]) => r > 200;
@@ -51,7 +51,11 @@ export async function playable(page, timeout = 120000, minimumTick = 4) {
   const error = await page.evaluate(
     () => document.querySelector("[data-testid=error]")?.textContent ?? window.__lab?.error,
   );
-  if (error) throw new Error(`lab failed: ${error}`);
+  if (error) {
+    const details = page.getByRole("button", { name: "Details", exact: true });
+    if (await details.count()) await details.click();
+    throw new Error(`lab failed: ${await page.locator("body").innerText()}`);
+  }
 }
 
 /** What the preparation worker made, as the scene reads it: the report, with
@@ -118,7 +122,7 @@ async function startupOf(ctx, spec) {
   for (const cache of ["cold", "warm"]) {
     let measuring, resources;
     try {
-      await deployFromMenu(ctx, page, { type, size, seed }, false, async () => {
+      await deployFromMenu(ctx, page, { type, size, seed }, true, async () => {
         measuring = await startupResources(page);
       });
       await playable(page, 180000, 0);
@@ -322,7 +326,7 @@ export async function run(ctx) {
   );
   ctx.check(
     "a loading screen names the map and the stage while it is prepared, and can be cancelled back to the menu's choice",
-    loading.subject === "MIXED · SMALL" &&
+    loading.subject === "MIXED · MEDIUM" &&
       !!loading.stage &&
       loading.cancel === `/?type=${MAP.type}&size=${MAP.size}&seed=${MAP.seed}`,
     JSON.stringify(loading),
@@ -688,7 +692,7 @@ export async function run(ctx) {
   ctx.check(
     "a request for no such map is refused, with the parameter at fault in its details and no battle",
     /This link does not name a battle/.test(message) &&
-      /size must be one of small, medium, large/.test(details) &&
+      /size must be one of small, medium, large, xl/.test(details) &&
       !(await refused.evaluate(() => window.__lab?.ready ?? false)),
     `${message} | ${details}`,
   );

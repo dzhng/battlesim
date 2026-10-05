@@ -56,10 +56,10 @@ pub struct Terrain {
 
 /// The one open-approach rule (M19): the main settlement has, in each half,
 /// a corridor of open ground `front_m` wide for `depth_m` beyond its edge.
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Approach {
-    pub depth_m: f64,
+    pub depth_m: BTreeMap<MapSize, f64>,
     pub front_m: f64,
     /// What the generator keeps clear so the measured corridor meets the
     /// rule: a wider front, and a margin past the depth.
@@ -67,6 +67,18 @@ pub struct Approach {
     pub reserve_margin_m: f64,
     /// Bearings tried in each half for the reserved corridor.
     pub bearing_candidates: u32,
+}
+
+impl Approach {
+    /// Use the shortest side to select the approach depth for retained plans.
+    pub fn depth_m(&self, extent_m: f64) -> f64 {
+        let size = MapSize::ALL
+            .into_iter()
+            .rev()
+            .find(|size| extent_m >= size.extent_m())
+            .unwrap_or(MapSize::Small);
+        self.depth_m[&size]
+    }
 }
 
 /// `|top − bottom| ≤ max(rel × (top + bottom), abs × whole)`, where `whole`
@@ -935,7 +947,6 @@ pub struct TypePreset {
     pub categories: Vec<BuildingCategory>,
     /// Tallest building this type admits; absent means no limit.
     pub max_floors: Option<u32>,
-    pub centre: Centre,
     pub siting: Siting,
     /// Least open ground between two settlements.
     pub gap_m: f64,
@@ -966,6 +977,7 @@ pub struct Siting {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SizePreset {
+    pub centre: Centre,
     /// Ceiling on settlement area over playable area.
     pub urban_share_max: f64,
     /// Class id to the inclusive count range a seed draws from.
@@ -1262,7 +1274,9 @@ impl PresetDefinitions {
         );
         let a = &self.approach;
         check(
-            positive(a.depth_m)
+            MapSize::ALL
+                .into_iter()
+                .all(|size| a.depth_m.get(&size).is_some_and(|depth| positive(*depth)))
                 && positive(a.front_m)
                 && a.reserve_front_m >= a.front_m
                 && a.reserve_margin_m >= 0.0
@@ -1850,11 +1864,6 @@ impl PresetDefinitions {
             };
             let at = |field: &str| format!("types.{name}.{field}");
             check(
-                self.classes.contains_key(&preset.centre.class),
-                at("centre"),
-                "the centre names a known class",
-            );
-            check(
                 preset.siting.on_road >= 0.0
                     && preset.siting.near_main >= 0.0
                     && preset.siting.beside_river >= 0.0
@@ -1880,7 +1889,7 @@ impl PresetDefinitions {
                 at("forest_share"),
                 "forest share is an ordered range of shares",
             );
-            let mut classes: Vec<&String> = vec![&preset.centre.class];
+            let mut classes: Vec<&String> = Vec::new();
             for size in MapSize::ALL {
                 let Some(cell) = preset.sizes.get(&size) else {
                     check(
@@ -1890,6 +1899,12 @@ impl PresetDefinitions {
                     );
                     continue;
                 };
+                check(
+                    self.classes.contains_key(&cell.centre.class),
+                    at(&format!("sizes.{}.centre", size.name())),
+                    "the centre names a known class",
+                );
+                classes.push(&cell.centre.class);
                 check(
                     share(cell.urban_share_max),
                     at(&format!("sizes.{}.urban_share_max", size.name())),

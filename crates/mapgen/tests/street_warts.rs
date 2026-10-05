@@ -16,7 +16,7 @@ use std::sync::OnceLock;
 const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");
 const TYPES: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
-const SIZES: [MapSize; 3] = [MapSize::Small, MapSize::Medium, MapSize::Large];
+const SIZES: [MapSize; 3] = [MapSize::Medium, MapSize::Large, MapSize::Xl];
 /// Every cell runs these seeds: a claim about streets is a claim about the
 /// generator, not one map.
 const SEEDS: [u64; 4] = [1, 2, 3, u64::MAX];

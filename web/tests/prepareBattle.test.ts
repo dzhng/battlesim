@@ -37,7 +37,7 @@ test("the game plans a recipe the recipes file holds", () => {
   expect(config.encounter.seed).toMatch(/^(0|[1-9]\d{0,19})$/);
 });
 
-const OPEN: MapChoice = { type: "open", size: "small", seed: "1" };
+const OPEN: MapChoice = { type: "open", size: "medium", seed: "1" };
 /** A battle on the generated map `choice`, under the game's limits unless
  *  told. */
 const request = (
@@ -159,7 +159,7 @@ test("a prepared battle is the requested map with the planned encounter on it, a
         seed: "1",
         template_catalog_hash: identity.template_catalog_hash,
         type: "open",
-        size: "small",
+        size: "medium",
         limits: config.limits,
       }),
       fixture("map-presets.json"),

@@ -50,7 +50,7 @@ import { useMapBuildings, useStaticWorld, type StaticWorld } from "../useStaticW
 // The same explicit rule record a battle carries, including forest geometry.
 const GENERATOR = { presets, templates, rules: JSON.stringify(GAME_RULES) };
 /** The map the lab opens on: a town with houses and apartment blocks. */
-const DEFAULT: MapChoice = { type: "mixed", size: "small", seed: "1" };
+const DEFAULT: MapChoice = { type: "mixed", size: "medium", seed: "1" };
 /** A house this near an apartment building makes the two a block, metres. */
 const BLOCK_REACH_M = 90;
 /** The third station's distance, metres. */

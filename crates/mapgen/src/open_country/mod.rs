@@ -1218,8 +1218,10 @@ fn retain_approaches(plan: &mut MapPlan, presets: &PresetDefinitions, kept: Vec<
         .collect();
     let mut approaches = Vec::new();
     for (settlement, middle) in kept {
-        let step =
-            crate::layout::bearing_step(&plan.settlements[settlement], presets.approach.depth_m);
+        let step = crate::layout::bearing_step(
+            &plan.settlements[settlement],
+            presets.approach.depth_m(plan.size[0].min(plan.size[1])),
+        );
         let holds = |approach: &crate::ApproachPlan| {
             let to = if approach.to_rad < approach.from_rad {
                 approach.to_rad + TAU

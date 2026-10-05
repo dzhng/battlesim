@@ -921,7 +921,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
             checked={allCells}
             onChange={(event) => setAllCells(event.target.checked)}
           />
-          All nine type/size cells
+          All {MAP_TYPES.length * MAP_SIZES.length} type/size cells
         </label>
         <button
           disabled={!draft || !choice || !!unfinished.size || sampleRunning}

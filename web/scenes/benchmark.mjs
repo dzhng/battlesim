@@ -211,7 +211,7 @@ export async function run(ctx, preset = "village-contact") {
         report.scenario.red === "scenario-orders" &&
         p?.identity.kind === "generated" &&
         r?.type === "metro" &&
-        r.size === "large" &&
+        r.size === "xl" &&
         r.seed === "4" &&
         p.stress?.kind === "city-arena-2" &&
         !p.stress.late &&

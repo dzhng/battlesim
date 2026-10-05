@@ -17,10 +17,10 @@
     "pin_rounds": 4,
     "shortest_run_m": 1.0
   },
-  "revision": "layout-presets-14",
+  "revision": "layout-presets-15",
   "terrain": { "render_margin_m": 1500, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
-    "depth_m": 1800,
+    "depth_m": { "small": 1000, "medium": 1800, "large": 1800, "xl": 1800 },
     "front_m": 400,
     "reserve_front_m": 650,
     "reserve_margin_m": 120,
@@ -755,42 +755,42 @@
     "open": {
       "categories": ["farmstead", "detached_home", "attached_home", "urban_apartment", "industry"],
       "max_floors": 6,
-      "centre": { "class": "small_town" },
       "siting": { "on_road": 0.4, "near_main": 0.1, "beside_river": 0.2 },
       "gap_m": 500,
       "forest_share": [0.04, 0.22],
       "river_chance": 0.5,
       "sizes": {
-        "small": { "urban_share_max": 0.07, "settlements": { "village": [2, 3], "hamlet": [5, 6] } },
-        "medium": { "urban_share_max": 0.07, "settlements": { "village": [5, 7], "hamlet": [9, 11] } },
-        "large": { "urban_share_max": 0.07, "settlements": { "village": [9, 11], "hamlet": [15, 17] } }
+        "small": { "centre": { "class": "village" }, "urban_share_max": 0.07, "settlements": { "village": [0, 1], "hamlet": [2, 3] } },
+        "medium": { "centre": { "class": "small_town" }, "urban_share_max": 0.07, "settlements": { "village": [2, 3], "hamlet": [5, 6] } },
+        "large": { "centre": { "class": "small_town" }, "urban_share_max": 0.07, "settlements": { "village": [5, 7], "hamlet": [9, 11] } },
+        "xl": { "centre": { "class": "small_town" }, "urban_share_max": 0.07, "settlements": { "village": [9, 11], "hamlet": [15, 17] } }
       }
     },
     "mixed": {
       "categories": ["farmstead", "detached_home", "attached_home", "urban_apartment", "industry"],
       "max_floors": 8,
-      "centre": { "class": "large_town" },
       "siting": { "on_road": 0.55, "near_main": 0.25, "beside_river": 0.1 },
       "gap_m": 350,
       "forest_share": [0.04, 0.17],
       "river_chance": 0.5,
       "sizes": {
-        "small": { "urban_share_max": 0.26, "settlements": { "town": [1, 2], "village": [2, 3], "hamlet": [3, 4] } },
-        "medium": { "urban_share_max": 0.2, "settlements": { "town": [2, 3], "village": [4, 6], "hamlet": [6, 7] } },
-        "large": { "urban_share_max": 0.16, "settlements": { "town": [3, 4], "village": [8, 10], "hamlet": [10, 12] } }
+        "small": { "centre": { "class": "town" }, "urban_share_max": 0.26, "settlements": { "town": [0, 0], "village": [1, 1], "hamlet": [1, 2] } },
+        "medium": { "centre": { "class": "large_town" }, "urban_share_max": 0.26, "settlements": { "town": [1, 2], "village": [2, 3], "hamlet": [3, 4] } },
+        "large": { "centre": { "class": "large_town" }, "urban_share_max": 0.2, "settlements": { "town": [2, 3], "village": [4, 6], "hamlet": [6, 7] } },
+        "xl": { "centre": { "class": "large_town" }, "urban_share_max": 0.16, "settlements": { "town": [3, 4], "village": [8, 10], "hamlet": [10, 12] } }
       }
     },
     "metro": {
       "categories": ["farmstead", "detached_home", "attached_home", "urban_apartment", "highrise", "industry"],
-      "centre": { "class": "city" },
       "siting": { "on_road": 0.55, "near_main": 0.3, "beside_river": 0.1 },
       "gap_m": 250,
       "forest_share": [0.02, 0.08],
       "river_chance": 0.4,
       "sizes": {
-        "small": { "urban_share_max": 0.3, "settlements": { "town": [0, 1], "village": [1, 2], "hamlet": [1, 2] } },
-        "medium": { "urban_share_max": 0.3, "settlements": { "town": [2, 3], "village": [3, 4], "hamlet": [2, 4] } },
-        "large": { "urban_share_max": 0.3, "settlements": { "town": [4, 5], "village": [5, 7], "hamlet": [5, 6] } }
+        "small": { "centre": { "class": "city" }, "urban_share_max": 0.3, "settlements": { "town": [0, 0], "village": [0, 1], "hamlet": [0, 1] } },
+        "medium": { "centre": { "class": "city" }, "urban_share_max": 0.3, "settlements": { "town": [0, 1], "village": [1, 2], "hamlet": [1, 2] } },
+        "large": { "centre": { "class": "city" }, "urban_share_max": 0.3, "settlements": { "town": [2, 3], "village": [3, 4], "hamlet": [2, 4] } },
+        "xl": { "centre": { "class": "city" }, "urban_share_max": 0.3, "settlements": { "town": [4, 5], "village": [5, 7], "hamlet": [5, 6] } }
       }
     }
   },

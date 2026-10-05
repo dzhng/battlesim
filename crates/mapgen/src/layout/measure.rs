@@ -378,7 +378,8 @@ pub fn approach_corridors(plan: &MapPlan) -> Vec<Corridor> {
 /// corridors are open is one approach. Open ground is ground a force can
 /// advance over: a settlement, a wood and water each end it.
 pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPlan> {
-    let rule = presets.approach;
+    let rule = &presets.approach;
+    let depth_m = rule.depth_m(plan.size[0].min(plan.size[1]));
     let water = super::water::rings(&plan.rivers);
     // What stands in the open country ends an approach as a wood does, but
     // is smaller than the gap between a corridor's lanes, so each is asked
@@ -433,7 +434,7 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
         }
         let center = settlement.center;
         let farthest = reach(settlement);
-        let bearings = bearings(settlement, rule.depth_m);
+        let bearings = bearings(settlement, depth_m);
         let step = TAU / bearings as f64;
         // What stands near enough for a corridor to reach.
         let near: Vec<&Obstacle> = obstacles
@@ -442,14 +443,14 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
             .filter(|(other, obstacle)| {
                 *other != index
                     && distance(obstacle.center, center)
-                        <= farthest + rule.depth_m + rule.front_m + obstacle.reach
+                        <= farthest + depth_m + rule.front_m + obstacle.reach
             })
             .map(|(_, obstacle)| obstacle)
             .collect();
         let near_small: Vec<(Point, f64)> = small
             .iter()
             .filter(|(at, reach)| {
-                distance(*at, center) <= farthest + rule.depth_m + rule.front_m + reach
+                distance(*at, center) <= farthest + depth_m + rule.front_m + reach
             })
             .copied()
             .collect();
@@ -469,14 +470,14 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
                 let bare = near_small.iter().all(|(at, reach)| {
                     let [along, off] = place(*at);
                     along < edge - reach
-                        || along > edge + rule.depth_m + reach
+                        || along > edge + depth_m + reach
                         || off.abs() > rule.front_m / 2.0 + reach
                 });
                 let clear = bare
                     && (0..=lanes).all(|lane| {
                         let across = rule.front_m * (lane as f64 / lanes as f64 - 0.5);
                         let from = add(center, add(scale(toward, edge), scale(aside, across)));
-                        let to = add(from, scale(toward, rule.depth_m));
+                        let to = add(from, scale(toward, depth_m));
                         let inside = [from, to].iter().all(|p| {
                             (0..2).all(|axis| p[axis] >= 0.0 && p[axis] <= plan.size[axis])
                         });
@@ -485,16 +486,16 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
                                 let [along, off] = place(obstacle.center);
                                 if (off - across).abs() > obstacle.reach
                                     || along < edge - obstacle.reach
-                                    || along > edge + rule.depth_m + obstacle.reach
+                                    || along > edge + depth_m + obstacle.reach
                                 {
                                     return true;
                                 }
                                 !polygon_contains(obstacle.ring, from)
                                     && ray_crossings(from, toward, obstacle.ring)
-                                        .all(|hit| hit > rule.depth_m)
+                                        .all(|hit| hit > depth_m)
                             })
                     });
-                let half_way = center[1] + toward[1] * (edge + rule.depth_m / 2.0);
+                let half_way = center[1] + toward[1] * (edge + depth_m / 2.0);
                 clear.then_some(if half_way >= plan.size[1] / 2.0 {
                     Half::Top
                 } else {
@@ -526,7 +527,7 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
                 // enough for any JSON reader to read back exactly.
                 from_rad: libm::round(step * first as f64 * 1e6) / 1e6,
                 to_rad: libm::round(step * last as f64 * 1e6) / 1e6,
-                depth_m: rule.depth_m,
+                depth_m,
                 front_m: rule.front_m,
             });
         }

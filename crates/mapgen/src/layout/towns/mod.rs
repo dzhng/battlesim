@@ -645,9 +645,7 @@ fn finish(
             .copied()
             .filter(|leaf| !fronted(*leaf, &streets))
             .collect();
-        if cramped.is_empty() {
-            break (streets, laid);
-        }
+        let frontage_complete = cramped.is_empty();
         for leaf in cramped {
             built.remove(&leaf);
         }
@@ -668,6 +666,9 @@ fn finish(
                         .filter(|other| built.contains(other)),
                 );
             }
+        }
+        if frontage_complete && joined == built {
+            break (streets, laid);
         }
         built = joined;
     };

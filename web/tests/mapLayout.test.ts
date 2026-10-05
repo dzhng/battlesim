@@ -29,7 +29,9 @@ test.each(cases)("$name: native CLI and WASM agree on bytes or refusal", (record
 });
 
 test("a generated map carries the plan's ground and buildings and none of its plan-only layers", () => {
-  const record = cases.find((c) => c.command === "generate-map" && c.name.includes("metro small"))!;
+  const record = cases.find(
+    (c) => c.command === "generate-map" && c.name.includes("metro medium"),
+  )!;
   const plan = JSON.parse(generate_map_plan(record.request_json, presets, templates, rules)).plan;
   const map = JSON.parse(generate_map(record.request_json, presets, templates, rules)).result.map;
   expect(map.size).toEqual([6000, 6000]);
@@ -67,7 +69,7 @@ test("a generated river and the bridges over it reach the map as the plan wrote 
 });
 
 test("generation uses the battle's explicit physical rules and pins their identity", () => {
-  const request = cases.find((c) => c.name === "open small")!.request_json;
+  const request = cases.find((c) => c.name === "open medium")!.request_json;
   const physical = JSON.parse(rules);
   const build = (input: unknown) =>
     JSON.parse(generate_map(request, presets, templates, JSON.stringify(input)));

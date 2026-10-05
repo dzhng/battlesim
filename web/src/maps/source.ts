@@ -8,9 +8,9 @@
 import { MapResolveError, type MapIdentity, type ResolvedMap } from "./resolve.ts";
 
 export type MapType = "open" | "mixed" | "metro";
-export type MapSize = "small" | "medium" | "large";
+export type MapSize = "small" | "medium" | "large" | "xl";
 export const MAP_TYPES: readonly MapType[] = ["open", "mixed", "metro"];
-export const MAP_SIZES: readonly MapSize[] = ["small", "medium", "large"];
+export const MAP_SIZES: readonly MapSize[] = ["small", "medium", "large", "xl"];
 
 /** What a player chooses: the two composition controls, the seed, and
  *  optionally the region its buildings are of. */

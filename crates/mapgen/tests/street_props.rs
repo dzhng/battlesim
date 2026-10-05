@@ -187,7 +187,7 @@ fn place(
 ) -> Vec<PropDefinition> {
     place_street_props(
         plan,
-        &request(MapType::Mixed, MapSize::Small, seed),
+        &request(MapType::Mixed, MapSize::Medium, seed),
         &catalogue(),
         catalog,
         presets,
@@ -491,7 +491,7 @@ fn a_vehicle_drives_a_dressed_street_without_shoving_a_car() {
                 }
             })
             .collect();
-        let request = request(MapType::Mixed, MapSize::Small, 1);
+        let request = request(MapType::Mixed, MapSize::Medium, 1);
         let dressed = PreparedMap::new(&compiled(&plan, &props, &request), &rules);
         let crowded = PreparedMap::new(&compiled(&plan, &at_the_kerb, &request), &rules);
         let ends = [[720.0, 1000.0], [1280.0, 1000.0]];
@@ -667,7 +667,7 @@ fn district_kinds(plan: &MapPlan) -> BTreeMap<&str, &str> {
 fn gardens_keep_to_the_back_of_their_own_lots() {
     let presets = presets_with(gardens);
     let rules = rules();
-    let request = request(MapType::Mixed, MapSize::Small, 1);
+    let request = request(MapType::Mixed, MapSize::Medium, 1);
     let plan = fill_districts(
         generate_layout(&request, &presets).unwrap(),
         &request,
@@ -879,7 +879,7 @@ fn court_town(
     Vec<PropDefinition>,
 ) {
     let presets = presets_with(court_groups);
-    let mut request = request(MapType::Mixed, MapSize::Small, seed);
+    let mut request = request(MapType::Mixed, MapSize::Medium, seed);
     request.region = Some(region.into());
     let plan = fill_districts(
         generate_layout(&request, &presets).unwrap(),
@@ -1180,7 +1180,7 @@ fn a_body_cut_to_fit_without_a_modular_appearance_is_refused() {
     let dress = |catalog: &Catalog| {
         place_street_props(
             &town(&[street(8.0)], &[]),
-            &request(MapType::Mixed, MapSize::Small, 1),
+            &request(MapType::Mixed, MapSize::Medium, 1),
             &catalogue(),
             catalog,
             &presets,
@@ -1247,7 +1247,7 @@ fn a_city_with_its_courts_and_gardens_stays_within_the_part_limit() {
     let limit = defaults["limits"]["max_authored_parts"].as_u64().unwrap();
     let presets = presets();
     let courts = court_only_kinds(&presets);
-    let mut request = request(MapType::Metro, MapSize::Large, 2);
+    let mut request = request(MapType::Metro, MapSize::Xl, 2);
     request.limits = serde_json::from_value(defaults["limits"].clone()).unwrap();
     let result = match mapgen::generate_map(
         &serde_json::to_string(&request).unwrap(),
@@ -1290,7 +1290,7 @@ fn courts_and_gardens_keep_off_the_woods_that_certify_sight() {
     let presets = presets();
     let courts = court_only_kinds(&presets);
     let clear = rules.forests.rule.trunk_clearance_m;
-    let mut request = request(MapType::Metro, MapSize::Small, 1);
+    let mut request = request(MapType::Metro, MapSize::Medium, 1);
     request.region = Some("china".into());
     let (plan, _) = mapgen::generate_with_plan(
         &serde_json::to_string(&request).unwrap(),
@@ -1465,7 +1465,7 @@ fn courts_are_structured_and_lawns_dressed_rather_than_left_open() {
     let mut lawns: BTreeMap<(&str, bool), [usize; 2]> = BTreeMap::new();
     for region in REGIONS {
         for map_type in MapType::ALL {
-            for size in MapSize::ALL {
+            for size in [MapSize::Medium, MapSize::Large, MapSize::Xl] {
                 for seed in FILL_SEEDS {
                     let mut request = request(map_type, size, seed);
                     request.region = Some(region.into());
@@ -1735,7 +1735,7 @@ fn yards_are_bounded_with_gates_and_car_parks_keep_their_aisles() {
     let hull_way = mapgen::street_props::hull_way(&rules().catalog, &presets);
     let squad_way = presets.street_props.squad_way_m;
     for (region, kind) in BOUNDARIES {
-        let mut request = request(MapType::Mixed, MapSize::Small, 1);
+        let mut request = request(MapType::Mixed, MapSize::Medium, 1);
         request.region = Some(region.into());
         let plan = fill_districts(
             generate_layout(&request, &presets).unwrap(),
@@ -1980,7 +1980,7 @@ fn neighbouring_yards_share_one_boundary_of_one_kind() {
         }
     });
     let squad_way = presets.street_props.squad_way_m;
-    let mut request = request(MapType::Mixed, MapSize::Small, 1);
+    let mut request = request(MapType::Mixed, MapSize::Medium, 1);
     request.region = Some("new_york".into());
     let plan = fill_districts(
         generate_layout(&request, &presets).unwrap(),
@@ -2056,7 +2056,7 @@ fn lawns_are_crossed_by_paths_kept_clear() {
     let presets = presets_with(lawn_paths);
     let hull_way = mapgen::street_props::hull_way(&rules().catalog, &presets);
     for region in REGIONS {
-        let mut request = request(MapType::Mixed, MapSize::Small, 1);
+        let mut request = request(MapType::Mixed, MapSize::Medium, 1);
         request.region = Some(region.into());
         let plan = fill_districts(
             generate_layout(&request, &presets).unwrap(),
@@ -2166,7 +2166,7 @@ fn lawns_are_crossed_by_paths_kept_clear() {
 fn placement_is_deterministic() {
     let presets = presets();
     let rules = rules();
-    let request = request(MapType::Mixed, MapSize::Small, 1);
+    let request = request(MapType::Mixed, MapSize::Medium, 1);
     let plan = fill_districts(
         generate_layout(&request, &presets).unwrap(),
         &request,
@@ -2293,7 +2293,7 @@ fn cars_park_at_the_kerb_and_before_the_terraces() {
     let presets = presets();
     let rules = rules();
     for seed in [1, 2, 3] {
-        let request = request(MapType::Mixed, MapSize::Small, seed);
+        let request = request(MapType::Mixed, MapSize::Medium, seed);
         let plan = fill_districts(
             generate_layout(&request, &presets).unwrap(),
             &request,
@@ -2408,7 +2408,7 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
     let mut totals = [0usize; 8];
     let mut broken: Vec<String> = Vec::new();
     for map_type in MapType::ALL {
-        for size in MapSize::ALL {
+        for size in [MapSize::Medium, MapSize::Large, MapSize::Xl] {
             for seed in SWEEP_SEEDS {
                 let name = format!("{} {} seed {seed}", map_type.name(), size.name());
                 let request = request(map_type, size, seed);
@@ -2966,7 +2966,7 @@ fn yard_stock_and_sites_keep_to_their_parcels() {
     let rules = rules();
     let seed = (1..=40)
         .find(|seed| {
-            generate_layout(&request(MapType::Mixed, MapSize::Small, *seed), &presets).is_ok_and(
+            generate_layout(&request(MapType::Mixed, MapSize::Medium, *seed), &presets).is_ok_and(
                 |plan| {
                     plan.settlements
                         .iter()
@@ -2976,7 +2976,7 @@ fn yard_stock_and_sites_keep_to_their_parcels() {
             )
         })
         .expect("a map with industry among forty seeds");
-    let request = request(MapType::Mixed, MapSize::Small, seed);
+    let request = request(MapType::Mixed, MapSize::Medium, seed);
     let plan = fill_districts(
         generate_layout(&request, &presets).unwrap(),
         &request,

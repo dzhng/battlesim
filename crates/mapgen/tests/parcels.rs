@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");
 const TYPES: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
-const SIZES: [MapSize; 3] = [MapSize::Small, MapSize::Medium, MapSize::Large];
+const SIZES: [MapSize; 3] = [MapSize::Medium, MapSize::Large, MapSize::Xl];
 /// Every cell runs these seeds: a claim about the pass is a claim about all
 /// of them, not one lucky town.
 const SEEDS: [u64; 2] = [1, u64::MAX];
@@ -217,7 +217,7 @@ fn a_fixed_request_gives_the_same_plan_and_map_bytes_every_run() {
     let (presets, catalogue) = (presets(), catalogue());
     for map_type in TYPES {
         let bytes = |seed: u64| {
-            let request = request(map_type, MapSize::Small, seed);
+            let request = request(map_type, MapSize::Medium, seed);
             let plan = fill(&request, &presets, &catalogue).unwrap();
             let map = mapgen::lower(
                 &mapgen::CompileRequest::generated(&request, plan.clone()),
@@ -500,7 +500,7 @@ fn every_entrance_faces_a_street_or_apron_within_a_short_walk() {
 fn every_street_is_paved_through_to_the_roads_that_leave_the_map() {
     for map_type in TYPES {
         for seed in SEEDS {
-            let town = town(map_type, MapSize::Small, seed);
+            let town = town(map_type, MapSize::Medium, seed);
             let map = &town.map;
             // Each carriageway's samples and half width; aprons are not ways.
             let ways: Vec<(SurfaceKind, &[Point], f64, [f64; 4])> = map
@@ -623,7 +623,7 @@ fn an_open_map_zoned_for_apartments_builds_none_above_six_floors() {
     let catalogue = catalogue();
     let mut apartments = 0;
     for seed in 1..=6 {
-        let request = request(MapType::Open, MapSize::Small, seed);
+        let request = request(MapType::Open, MapSize::Medium, seed);
         let plan = fill(&request, &presets, &catalogue).unwrap();
         let map = mapgen::lower(
             &mapgen::CompileRequest::generated(&request, plan),
@@ -718,7 +718,7 @@ fn every_building_of_a_map_is_of_one_regional_family() {
     let presets = PresetDefinitions::from_json(&source.to_string()).unwrap();
     let mut drawn = BTreeSet::new();
     for seed in 1..=8 {
-        let mut request = request(MapType::Mixed, MapSize::Small, seed);
+        let mut request = request(MapType::Mixed, MapSize::Medium, seed);
         request.template_catalog_hash = catalogue.hash().into();
         let plan = fill(&request, &presets, &catalogue).unwrap();
         let map = mapgen::lower(
@@ -749,7 +749,7 @@ fn each_regional_family_asked_for_builds_every_map_type() {
     let rules = sim::fixtures::game().to_string();
     for family in presets().parcels.regional_families {
         for map_type in TYPES {
-            let mut request = request(map_type, MapSize::Small, 1);
+            let mut request = request(map_type, MapSize::Medium, 1);
             request.region = Some(family.clone());
             let map = match mapgen::generate_map(
                 &serde_json::to_string(&request).unwrap(),
@@ -775,7 +775,7 @@ fn each_regional_family_asked_for_builds_every_map_type() {
 /// A region the presets do not list is refused, never swapped for a draw.
 #[test]
 fn a_region_the_presets_do_not_list_is_refused() {
-    let mut request = request(MapType::Mixed, MapSize::Small, 1);
+    let mut request = request(MapType::Mixed, MapSize::Medium, 1);
     request.region = Some("atlantis".into());
     match mapgen::generate_map(
         &serde_json::to_string(&request).unwrap(),
@@ -821,8 +821,8 @@ fn towns_keep_their_metre_dimensions_at_every_map_size() {
         }
         (rows, widths)
     };
-    let (small, small_widths) = density(MapSize::Small);
-    let (large, large_widths) = density(MapSize::Large);
+    let (small, small_widths) = density(MapSize::Medium);
+    let (large, large_widths) = density(MapSize::Xl);
     // A street's width and an avenue's.
     assert_eq!(small_widths.len(), 2);
     assert_eq!(small_widths, large_widths);
@@ -848,8 +848,8 @@ fn one_kinds_parcel_presets_do_not_move_the_rest_of_the_map() {
     let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
     source["districts"]["industrial"]["lots"]["front_m"] = serde_json::json!(12);
     let changed = PresetDefinitions::from_json(&source.to_string()).unwrap();
-    let seed = seed_with_industry(MapType::Mixed, MapSize::Medium);
-    let request = request(MapType::Mixed, MapSize::Medium, seed);
+    let seed = seed_with_industry(MapType::Mixed, MapSize::Large);
+    let request = request(MapType::Mixed, MapSize::Large, seed);
     let before = fill(&request, &presets(), &catalogue()).unwrap();
     let after = fill(&request, &changed, &catalogue()).unwrap();
     let json = |value: &dyn erased::Json| value.json();
@@ -905,8 +905,8 @@ mod erased {
 /// quickly, never in an emptier town.
 #[test]
 fn what_cannot_be_built_ends_in_a_named_diagnostic() {
-    let seed = seed_with_industry(MapType::Mixed, MapSize::Small);
-    let request = request(MapType::Mixed, MapSize::Small, seed);
+    let seed = seed_with_industry(MapType::Mixed, MapSize::Medium);
+    let request = request(MapType::Mixed, MapSize::Medium, seed);
     // Setbacks no district can hold.
     let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
     source["districts"]["garden_suburb"]["lots"]["front_m"] = serde_json::json!(900);
@@ -1263,7 +1263,7 @@ fn a_dense_districts_ground_between_its_parcels_is_lawn() {
     let verge = presets.parcels.verge_m;
     let mut lawn = 0;
     for map_type in TYPES {
-        let town = town(map_type, MapSize::Small, SEEDS[0]);
+        let town = town(map_type, MapSize::Medium, SEEDS[0]);
         let world = sim::world::WorldGeometry::new(&town.map, &rules);
         let ways = carriageways(&town);
         let taken: Vec<&[Point]> = town

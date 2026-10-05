@@ -67,7 +67,7 @@ pub fn place(
 ) -> Result<(Placed, Vec<River>), Vec<Diagnostic>> {
     let presets = context.presets;
     let mut rng = context.stream("sites");
-    let class_id = &context.preset.centre.class;
+    let class_id = &context.cell.centre.class;
     let class = presets.class(class_id);
     let extent = context.extent;
     let attempts = presets.retries.centre;
@@ -103,7 +103,7 @@ pub fn place(
                 "approach",
                 format!(
                     "no {class_id} of the preset size leaves {} m of open ground across {} m in both halves after {attempts} attempts",
-                    presets.approach.depth_m, presets.approach.front_m
+                    presets.approach.depth_m(extent), presets.approach.front_m
                 ),
             );
             if refusal.0 <= 1 {
@@ -200,7 +200,8 @@ fn reserve(
     half: Half,
     rng: &mut Stream,
 ) -> Option<Corridor> {
-    let rule = context.presets.approach;
+    let rule = &context.presets.approach;
+    let depth_m = rule.depth_m(context.extent);
     let extent = context.extent;
     let base = if half == Half::Top { 0.0 } else { PI };
     let phase = rng.unit();
@@ -220,7 +221,7 @@ fn reserve(
                     offset[0] * toward[0] + offset[1] * toward[1]
                 })
                 .fold(0.0, f64::max);
-            let far = limit + rule.depth_m + rule.reserve_margin_m;
+            let far = limit + depth_m + rule.reserve_margin_m;
             let half_width = rule.reserve_front_m / 2.0;
             let at = |along: f64, across: f64| {
                 add(
@@ -234,7 +235,7 @@ fn reserve(
                 .all(|p| p.iter().all(|v| *v >= 0.0 && *v <= extent));
             // Wherever its districts end, the corridor's middle is in this half.
             let in_half = [0.0, limit].into_iter().all(|edge| {
-                (at(edge + rule.depth_m / 2.0, 0.0)[1] >= extent / 2.0) == (half == Half::Top)
+                (at(edge + depth_m / 2.0, 0.0)[1] >= extent / 2.0) == (half == Half::Top)
             });
             let corridor = Corridor {
                 center: outline.center,
