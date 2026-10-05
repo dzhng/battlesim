@@ -183,7 +183,7 @@ fn endpoint(grid: &NavGrid, p: V2, who: Mover, reach: f64) -> Option<usize> {
         let (i, j) = super::cell_of(p);
         grid.index(i, j)
     } else {
-        grid.nearest_fit(p, who, reach)
+        grid.nearest_fit(p, who, reach, true)
     }
 }
 

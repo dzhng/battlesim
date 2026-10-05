@@ -2268,6 +2268,7 @@ impl Battle {
             .collect();
         let mut known = self.sides[side.index()].clone();
         let grid = known.grid(&self.world, self.authored_props);
+        let pockets = crate::navigation::Pockets::default();
         let plan = crate::formation::place(
             &members,
             v2(goal[0], goal[1]),
@@ -2276,7 +2277,21 @@ impl Battle {
             libm::hypot(self.world.width(), self.world.depth()),
             |id, p| {
                 let u = &self.units[id.0 as usize];
-                grid.destination_point(p, &u.mobility, u.hull.map(|h| h.xy().length()))
+                // A queued leg sets off from where the queue ends.
+                let from = u
+                    .orders
+                    .iter()
+                    .rev()
+                    .filter(|_| request.queued)
+                    .find_map(|o| o.movement())
+                    .map_or(u.position.xy(), |m| m.destination);
+                grid.destination_point(
+                    p,
+                    &u.mobility,
+                    u.hull.map(|h| h.xy().length()),
+                    from,
+                    &pockets,
+                )
             },
         );
         let source = self.move_source(side);

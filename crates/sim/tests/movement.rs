@@ -489,12 +489,13 @@ fn a_new_obstacle_is_learned_on_contact_and_routed_around() {
 fn an_unreachable_destination_is_rejected_without_live_route_searches() {
     let mut b = Battle::new(
         &scenario(
-            serde_json::json!([{ "side": "blue", "kind": "tank", "position": [300, 150] }]),
+            serde_json::json!([{ "side": "blue", "kind": "rifle", "position": [300, 150] }]),
             serde_json::json!([]),
         ),
         1,
     );
-    // The 45° plateau top is flat but walled by slopes past the cutoff.
+    // The 45° plateau top is flat but walled by slopes past the cutoff. (A
+    // vehicle would park at its foot instead: it is a squad that is refused.)
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
         seq: 1,
