@@ -765,13 +765,18 @@ export function fogAffectedEyes(
   afterGrid: ReturnType<typeof wholeWords>,
   eyes: readonly Pick<FogEyeRow, "position" | "reach">[],
 ): number[] {
+  // A box kept as the same object is unchanged (`knownOccluders` keeps the
+  // map's); only the rest are compared by value, so a change costs the boxes
+  // it touches rather than a key for every box.
+  const kept = new Set(after);
+  const had = new Set(before);
+  const gone = before.flatMap((b, i) => (kept.has(b) ? [] : [i]));
+  const come = after.flatMap((b, i) => (had.has(b) ? [] : [i]));
   const key = (b: FogOccluder) => [b.x, b.y, b.hx, b.hy, b.yaw, b.base, b.top].join(",");
-  const oldKeys = before.map(key);
-  const newKeys = after.map(key);
-  const oldSet = new Set(oldKeys);
-  const newSet = new Set(newKeys);
-  const removed = new Set(oldKeys.flatMap((k, i) => (newSet.has(k) ? [] : [i])));
-  const added = new Set(newKeys.flatMap((k, i) => (oldSet.has(k) ? [] : [i])));
+  const goneKeys = new Set(gone.map((i) => key(before[i])));
+  const comeKeys = new Set(come.map((i) => key(after[i])));
+  const removed = new Set(gone.filter((i) => !comeKeys.has(key(before[i]))));
+  const added = new Set(come.filter((i) => !goneKeys.has(key(after[i]))));
   if (!removed.size && !added.size) return [];
   const affected: number[] = [];
   eyes.forEach((e, i) => {

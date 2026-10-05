@@ -790,13 +790,21 @@ export async function createModelLayer(
   let hasXrayMeshes = false;
 
   let units: readonly ModelInstance[] = [];
+  /** The static models: `statics` (chunked by ground) less the indices
+   *  `staticHidden` marks, then `staticExtra` (few, visited whole). */
   let statics: readonly ModelInstance[] = [];
+  let staticExtra: readonly ModelInstance[] = [];
+  /** 1 at each index of `statics` not drawn, sized to it; `hiddenList` the
+   *  marked indices, so the next change clears only those. */
+  let staticHidden = new Uint8Array(0);
+  let hiddenList: readonly number[] = [];
   /** `statics` bucketed by ground for the appearances they were fitted to,
    *  rebuilt when either changes (null until a view first needs it). */
   let staticPop: StaticChunks | null = null;
   let staticPopFor: readonly ModelInstance[] | null = null;
   let staticPopAppearances: Map<string, GpuAppearance> | null = null;
-  /** The statics a view visits, as indices into `statics`, in list order. */
+  /** The statics a view visits, in drawing order: indices into `statics`,
+   *  then `statics.length` plus an index into `staticExtra`. */
   let staticVisit = new Int32Array(64);
   let corpseList: readonly CorpseInstance[] = [];
   let corpses: Corpses | null = null;
@@ -1262,14 +1270,27 @@ export async function createModelLayer(
     return gpu.body[tier] ?? null;
   }
 
-  /** How many of `statics` `view` can draw, listed in `staticVisit`: those
-   *  in its chunks, or every one with no view. */
+  /** How many statics `view` can draw, listed in `staticVisit`: those of
+   *  `statics` in its chunks (every one with no view) not hidden, then every
+   *  one of `staticExtra`, which `modelDetail` culls one by one. */
   function visitStatics(view: DetailView | null): number {
-    if (staticVisit.length < statics.length) staticVisit = new Int32Array(statics.length * 2);
-    if (!view) {
-      for (let i = 0; i < statics.length; i++) staticVisit[i] = i;
-      return statics.length;
+    const all = statics.length + staticExtra.length;
+    if (staticVisit.length < all) staticVisit = new Int32Array(all * 2);
+    let count = 0;
+    if (!view) for (let i = 0; i < statics.length; i++) staticVisit[count++] = i;
+    else count = staticsInChunks(view);
+    if (hiddenList.length) {
+      let kept = 0;
+      for (let k = 0; k < count; k++)
+        if (!staticHidden[staticVisit[k]]) staticVisit[kept++] = staticVisit[k];
+      count = kept;
     }
+    for (let j = 0; j < staticExtra.length; j++) staticVisit[count++] = statics.length + j;
+    return count;
+  }
+
+  /** `statics` in the chunks `view` meets, into `staticVisit`, in list order. */
+  function staticsInChunks(view: DetailView): number {
     if (staticPopFor !== statics || staticPopAppearances !== appearances) {
       staticPop = staticModelChunks(
         statics.map((inst) => {
@@ -1297,7 +1318,10 @@ export async function createModelLayer(
     const unitCount = units.length;
     const total = unitCount + visitStatics(view);
     /** The i-th model: the units, then the statics the view visits. */
-    const modelAt = (i: number) => (i < unitCount ? units[i] : statics[staticVisit[i - unitCount]]);
+    const staticAt = (k: number) =>
+      k < statics.length ? statics[k] : staticExtra[k - statics.length];
+    const modelAt = (i: number) =>
+      i < unitCount ? units[i] : staticAt(staticVisit[i - unitCount]);
     if (unitChoice.length < total) unitChoice = new Int32Array(total * 2);
     const buckets = drawables.length * FOG_CLASSES;
     bucketCount.fill(0, 0, buckets);
@@ -1693,10 +1717,22 @@ export async function createModelLayer(
       units = list;
       dirty = true;
     },
-    /** The static props to draw (the map's, and what the side knows stands),
-     *  replacing the last list. Call when it changes. */
-    setStatics(list: readonly ModelInstance[]) {
+    /** The static props to draw (the map's, and what the side knows stands):
+     *  `list` less the indices `hidden` (ascending) names, then `extra`. Keep
+     *  `list` the same array while only `hidden` and `extra` change: it is
+     *  bucketed by ground once, and a change then costs what it hides and adds. */
+    setStatics(
+      list: readonly ModelInstance[],
+      hidden: readonly number[] = [],
+      extra: readonly ModelInstance[] = [],
+    ) {
+      if (list !== statics || staticHidden.length !== list.length)
+        staticHidden = new Uint8Array(list.length);
+      else for (const i of hiddenList) staticHidden[i] = 0;
+      for (const i of hidden) staticHidden[i] = 1;
       statics = list;
+      hiddenList = hidden;
+      staticExtra = extra;
       dirty = true;
     },
     /** The corpses, a static population: call when the list changes. */
@@ -1746,13 +1782,19 @@ export async function createModelLayer(
     packExact(list: readonly ModelInstance[]) {
       const kept = units;
       const keptStatics = statics;
+      const keptExtra = staticExtra;
+      const keptHidden = hiddenList;
       const keptCorpses = corpses;
       units = list;
       statics = [];
+      staticExtra = [];
+      hiddenList = [];
       corpses = null;
       pack(null);
       units = kept;
       statics = keptStatics;
+      staticExtra = keptExtra;
+      hiddenList = keptHidden;
       corpses = keptCorpses;
       dirty = true;
     },

@@ -23,15 +23,20 @@ import {
   knownStanding,
   drawnBy,
   PropAppearances,
-  structureBodies,
+  drawnStructures,
+  fitMapProps,
+  NO_STRUCTURES,
+  sideStructures,
   type DrawnBody,
   type PropBox,
+  type SideStructures,
 } from "@packages/battle-renderer/src/models/propAppearance";
 import { pickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
 import {
   fogEyes,
   fogWorld,
   knownOccluders,
+  mapOccluders,
   type FogInput,
   type FogSensorRules,
 } from "@packages/battle-renderer/src/frame/fogInputs";
@@ -315,17 +320,22 @@ export function useBattleSession({
     [drawnBuildings, knownBuildingsKey],
   );
   const buildingsFeed = useFeed(buildings);
-  // Each drawn body's models (`structureBodies`), and all of them in order.
-  const drawnBodies = useMemo(() => {
-    if (!props || !drawnBuildings) return [];
+  // The map's props drawn apart, fitted once for the battle; what the side
+  // knows then hides those it replaced and fits only its own (`sideStructures`).
+  const fittedMap = useMemo(
+    () => props && fitMapProps(props.map, props.fit, (prop) => apart.includes(prop.kind)),
+    [props, apart],
+  );
+  const sideProps = useMemo(() => {
+    if (!props || !fittedMap || !drawnBuildings) return null;
     const part = drawnBuildings.partBuilding;
     const known = (JSON.parse(knownKey) as KnownPropView[]).filter(
       (k) => k.authoredProp === null || !part.has(k.authoredProp),
     );
-    return structureBodies(props.map, known, props.fit, (prop) => apart.includes(prop.kind));
-  }, [props, drawnBuildings, knownKey, apart]);
-  const structures = useMemo(() => drawnBodies.flatMap((b) => b.models), [drawnBodies]);
-  const structuresFeed = useFeed<readonly ModelInstance[]>(structures);
+    return sideStructures(fittedMap, known, props.fit);
+  }, [props, fittedMap, drawnBuildings, knownKey]);
+  const structures: SideStructures = sideProps ?? NO_STRUCTURES;
+  const structuresFeed = useFeed<SideStructures>(structures);
   // What the camera keeps clear of: the ground, and every building part the
   // side knows stands (a fallen one's remains once it has seen the fall).
   // Renderer fog: the side's eyes at the published tick over the static
@@ -346,12 +356,16 @@ export function useBattleSession({
     () => fogMap && foliage && (foliage === fogMap.foliage ? fogMap : { ...fogMap, foliage }),
     [fogMap, foliage],
   );
+  const staticOccluders = useMemo(
+    () => world && mapOccluders(world.exports, world.layout),
+    [world],
+  );
   const occluders = useMemo(
     () =>
-      world
-        ? knownOccluders(world.exports, world.layout, JSON.parse(knownKey) as KnownPropView[])
+      staticOccluders
+        ? knownOccluders(staticOccluders, JSON.parse(knownKey) as KnownPropView[])
         : [],
-    [world, knownKey],
+    [staticOccluders, knownKey],
   );
   const fog = useMemo<FogInput | null>(
     () =>
@@ -925,6 +939,7 @@ export function useBattleSession({
         appearances,
         gameStandIns,
       );
+      const drawnBodies = sideProps?.bodies() ?? [];
       const all: DrawnBody[] = [...statics, ...drawnBodies];
       const part = (b: DrawnBody) => drawnBy(world.layout, b.body.kind, "building");
       return {
@@ -936,7 +951,7 @@ export function useBattleSession({
     },
     /** The props drawn from what the side knows: appearance, state and placement. */
     structures: () =>
-      structures.map((m) => ({
+      drawnStructures(structures).map((m) => ({
         appearance: m.appearance,
         state: m.pose.kind === "static" ? m.pose.state : null,
         position: [m.x, m.y, m.z],

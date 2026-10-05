@@ -16,6 +16,7 @@ import type { CorpseInstance, ModelInstance } from "./models/modelInstances";
 import type { ModelStats } from "./models/modelLayer";
 import type { BuildingStats } from "./models/buildingLayer";
 import type { SideBuildings } from "./models/buildingReferences";
+import type { SideStructures } from "./models/propAppearance";
 import type { SurfaceClass } from "./models/surfaceParts";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle, TextureChannel } from "@packages/scene-assets/src/schema";
@@ -184,10 +185,13 @@ export interface BattleFrame {
   render(target: GPUTextureView, camera: ViewportCamera): void;
   /** The static world: the terrain and the props on it. */
   setWorld(world: WorldLayers): void;
-  /** Knowledge-drawn props, as fitted appearances (`structureBodies`): the
-   *  props the side knows stand and the rubble and wrecks it remembers.
-   *  Lit, graded, shadow-casting and fogged like the world. */
-  setStructures(structures: readonly ModelInstance[]): void;
+  /** Knowledge-drawn props, as fitted appearances (`SideStructures`): the
+   *  map's props drawn apart less those the side knows replaced, then the
+   *  rubble, wrecks and shoved bodies it remembers. Keep `map` the same
+   *  array while only what the side knows changes: that change then costs
+   *  only what it hides and adds. Lit, graded, shadow-casting and fogged
+   *  like the world. */
+  setStructures(structures: SideStructures): void;
   /** The map's buildings (`models/buildingReferences.ts`): its references,
    *  and those the side knows destroyed, each with the state it knows it in.
    *  Each is its template's rows from the installed library

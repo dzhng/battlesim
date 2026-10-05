@@ -20,7 +20,9 @@
 // What a side draws is what it knows (`structureBodies`): the map's props,
 // less those a known prop replaces, plus every known prop. A replacement is
 // atomic: the list that drops a wall carries its rubble, and a fall the side
-// has not seen leaves the wall standing.
+// has not seen leaves the wall standing. The map's props are fitted once
+// (`fitMapProps`); what the side learns hides the ones it replaced and fits
+// only its own (`sideStructures`), so a change costs what it touched.
 
 import type { Vec3 } from "math";
 import { color } from "math/color";
@@ -333,11 +335,94 @@ export function structureBodies(
   appearances: PropAppearances,
   keep: (prop: MapProp) => boolean = () => true,
 ): DrawnBody[] {
-  const replaced = new Map<number, KnownProp>();
-  for (const k of known) if (k.authoredProp !== null) replaced.set(k.authoredProp, k);
-  const out: DrawnBody[] = [];
-  const draw = (body: PropBox) => out.push({ body, models: appearances.fit(body, []) });
-  for (const prop of props) if (keep(prop) && !replaced.has(prop.id)) draw(prop);
-  for (const k of known) if (!k.destroyed) draw(k);
-  return out;
+  const side = sideStructures(fitMapProps(props, appearances, keep), known, appearances);
+  return side.bodies();
+}
+
+/** The map props a side may draw, each fitted once: their bodies and all
+ *  their models in map order, and each prop's models' range in that list. */
+export interface FittedMapProps {
+  bodies: readonly DrawnBody[];
+  models: readonly ModelInstance[];
+  /** By map prop id, its models' `[first, end)` in `models`. */
+  ranges: ReadonlyMap<number, readonly [number, number]>;
+}
+
+/** Fit every map prop `keep` accepts, once for the battle. */
+export function fitMapProps(
+  props: readonly MapProp[],
+  appearances: PropAppearances,
+  keep: (prop: MapProp) => boolean = () => true,
+): FittedMapProps {
+  const bodies: DrawnBody[] = [];
+  const models: ModelInstance[] = [];
+  const ranges = new Map<number, readonly [number, number]>();
+  for (const prop of props) {
+    if (!keep(prop)) continue;
+    const first = models.length;
+    appearances.fit(prop, models);
+    bodies.push({ body: prop, models: models.slice(first) });
+    ranges.set(prop.id, [first, models.length]);
+  }
+  return { bodies, models, ranges };
+}
+
+/**
+ * What a side draws of the props (`structureBodies`) as the map's fitted
+ * models less `hidden`, then `known`: drawn in that order it is the same list,
+ * but a change in what the side knows refits only its known props and hides
+ * only the map props they replace. `map` keeps its identity across changes.
+ */
+export interface SideStructures {
+  /** Every fitted map prop's models (`FittedMapProps.models`). */
+  map: readonly ModelInstance[];
+  /** Indices into `map` of the models of the props a known prop replaces, ascending. */
+  hidden: readonly number[];
+  /** The known props' models, after the map's. */
+  known: readonly ModelInstance[];
+}
+
+/** A side that draws no props apart. */
+export const NO_STRUCTURES: SideStructures = { map: [], hidden: [], known: [] };
+
+/** `structures` as one list, in drawing order. */
+export function drawnStructures(structures: SideStructures): ModelInstance[] {
+  const out: ModelInstance[] = [];
+  let next = 0;
+  structures.map.forEach((model, i) => {
+    if (structures.hidden[next] === i) next++;
+    else out.push(model);
+  });
+  return out.concat(structures.known);
+}
+
+/** What a side knowing `known` draws of `fitted`: the props the known
+ *  replace hidden, the known that stand fitted after them. `bodies` lists
+ *  what is drawn body by body. */
+export function sideStructures(
+  fitted: FittedMapProps,
+  known: readonly KnownProp[],
+  appearances: PropAppearances,
+): SideStructures & { bodies(): DrawnBody[] } {
+  const replaced = new Set<number>();
+  const hidden: number[] = [];
+  for (const k of known) {
+    if (k.authoredProp === null || replaced.has(k.authoredProp)) continue;
+    replaced.add(k.authoredProp);
+    const range = fitted.ranges.get(k.authoredProp);
+    if (range) for (let i = range[0]; i < range[1]; i++) hidden.push(i);
+  }
+  hidden.sort((a, b) => a - b);
+  const knownBodies: DrawnBody[] = known
+    .filter((k) => !k.destroyed)
+    .map((body) => ({ body, models: appearances.fit(body, []) }));
+  return {
+    map: fitted.models,
+    hidden,
+    known: knownBodies.flatMap((b) => b.models),
+    bodies: () => [
+      ...fitted.bodies.filter((b) => !replaced.has((b.body as MapProp).id)),
+      ...knownBodies,
+    ],
+  };
 }

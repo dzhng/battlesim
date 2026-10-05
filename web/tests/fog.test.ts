@@ -18,6 +18,7 @@ import {
   fogEyes,
   fogWorld,
   knownOccluders,
+  mapOccluders,
   wholeWords,
   WHOLE_BOX_WORDS,
   WHOLE_TEXTURE_WIDTH,
@@ -130,7 +131,10 @@ function blueFog(events: LabEvent[]): FogSight {
   )!;
   battle.free();
   const { exports, layout: world } = staticWorld(sensors);
-  return { eyes: fogEyes(frame.own), occluders: knownOccluders(exports, world, frame.knownProps) };
+  return {
+    eyes: fogEyes(frame.own),
+    occluders: knownOccluders(mapOccluders(exports, world), frame.knownProps),
+  };
 }
 
 const wall = (center: [number, number]): LabEvent => ({
@@ -156,7 +160,7 @@ test("a fallen building leaves fog's occluders and its known ruin takes its plac
   const firstId =
     exports.props[layout.propFields.indexOf("idLo")] +
     exports.props[layout.propFields.indexOf("idHi")] * 2 ** layout.limbBits;
-  const all = knownOccluders(exports, layout, []);
+  const all = knownOccluders(mapOccluders(exports, layout), []);
   const ruin = {
     kind: "ruin",
     center: [975, 752] as const,
@@ -166,7 +170,7 @@ test("a fallen building leaves fog's occluders and its known ruin takes its plac
     replaces: firstId,
     authoredProp: firstId,
   };
-  const after = knownOccluders(exports, layout, [ruin]);
+  const after = knownOccluders(mapOccluders(exports, layout), [ruin]);
   expect(after).toHaveLength(all.length);
   expect(after.at(-1)).toMatchObject({ x: 975, y: 752, top: 2 });
   expect(after.some((o) => o.top === all[0].top && o.x === all[0].x && o.y === all[0].y)).toBe(

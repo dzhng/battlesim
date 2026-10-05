@@ -115,26 +115,25 @@ export interface FogOccluder {
   top: number;
 }
 
-/** The occluders a side knows stand: the static map's occluding props less
- *  the ones it has seen fall, plus the learned props that occlude. */
-export function knownOccluders(
-  exports: WorldExports,
-  layout: WorldLayout,
-  known: readonly KnownProp[],
-): FogOccluder[] {
+/** The static map's occluding props, built once for a world: each as the
+ *  same box object for the whole battle, by map prop id. */
+export interface MapOccluders {
+  boxes: readonly FogOccluder[];
+  ids: readonly number[];
+  /** The occluding prop kinds, for what a side learns. */
+  occludes: ReadonlySet<string>;
+}
+
+export function mapOccluders(exports: WorldExports, layout: WorldLayout): MapOccluders {
   const occludes = new Set(layout.occludingPropKinds);
-  const fallen = new Set(known.flatMap((p) => (p.authoredProp === null ? [] : [p.authoredProp])));
   const at = Object.fromEntries(layout.propFields.map((f, i) => [f, i]));
   const props = exports.props;
-  const out: FogOccluder[] = [];
+  const boxes: FogOccluder[] = [];
+  const ids: number[] = [];
   for (let r = 0; r < props.length; r += layout.propStride) {
-    const kind = layout.propKinds[props[r + at.kind]];
-    if (
-      !occludes.has(kind) ||
-      fallen.has(props[r + at.idLo] + props[r + at.idHi] * 2 ** layout.limbBits)
-    )
-      continue;
-    out.push({
+    if (!occludes.has(layout.propKinds[props[r + at.kind]])) continue;
+    ids.push(props[r + at.idLo] + props[r + at.idHi] * 2 ** layout.limbBits);
+    boxes.push({
       x: props[r + at.x],
       y: props[r + at.y],
       yaw: props[r + at.yaw],
@@ -144,8 +143,17 @@ export function knownOccluders(
       top: props[r + at.baseZ] + 2 * props[r + at.hz],
     });
   }
+  return { boxes, ids, occludes };
+}
+
+/** The occluders a side knows stand: the static map's occluding props less
+ *  the ones it has seen fall (the same box objects, so a change is found by
+ *  identity: `fogAffectedEyes`), plus the learned props that occlude. */
+export function knownOccluders(map: MapOccluders, known: readonly KnownProp[]): FogOccluder[] {
+  const fallen = new Set(known.flatMap((p) => (p.authoredProp === null ? [] : [p.authoredProp])));
+  const out = fallen.size ? map.boxes.filter((_, i) => !fallen.has(map.ids[i])) : [...map.boxes];
   for (const p of known) {
-    if (!occludes.has(p.kind) || p.destroyed) continue;
+    if (!map.occludes.has(p.kind) || p.destroyed) continue;
     out.push({
       x: p.center[0],
       y: p.center[1],
@@ -177,17 +185,17 @@ export function wholeWords(boxes: readonly FogOccluder[], margin: number) {
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
-  const extents = boxes.map((b) => {
+  // Each grown box's own bounds: grown in its frame, then turned.
+  const extents = new Float64Array(2 * n);
+  boxes.forEach((b, i) => {
     const c = Math.abs(Math.cos(b.yaw));
     const s = Math.abs(Math.sin(b.yaw));
-    // The grown box's own bounds: grown in its frame, then turned.
-    const ex = (b.hx + margin) * c + (b.hy + margin) * s;
-    const ey = (b.hx + margin) * s + (b.hy + margin) * c;
+    const ex = (extents[2 * i] = (b.hx + margin) * c + (b.hy + margin) * s);
+    const ey = (extents[2 * i + 1] = (b.hx + margin) * s + (b.hy + margin) * c);
     minX = Math.min(minX, b.x - ex);
     minY = Math.min(minY, b.y - ey);
     maxX = Math.max(maxX, b.x + ex);
     maxY = Math.max(maxY, b.y + ey);
-    return [ex, ey];
   });
   if (!n) {
     minX = minY = 0;
@@ -197,16 +205,24 @@ export function wholeWords(boxes: readonly FogOccluder[], margin: number) {
   // One more than the far edge's cell: a point exactly on it still has one.
   const nx = Math.floor((maxX - minX) / cell) + 1;
   const ny = Math.floor((maxY - minY) / cell) + 1;
-  const lists: number[][] = Array.from({ length: nx * ny }, () => []);
+  // Each box's cell range, then the lists by counting: a cell's list holds
+  // its boxes in list order, the lists in cell order.
+  const ranges = new Int32Array(4 * n);
+  const counts = new Uint32Array(nx * ny);
   boxes.forEach((b, i) => {
-    const [ex, ey] = extents[i];
-    const i0 = Math.max(0, Math.floor((b.x - ex - minX) / cell));
-    const i1 = Math.min(nx - 1, Math.floor((b.x + ex - minX) / cell));
-    const j0 = Math.max(0, Math.floor((b.y - ey - minY) / cell));
-    const j1 = Math.min(ny - 1, Math.floor((b.y + ey - minY) / cell));
-    for (let j = j0; j <= j1; j++) for (let k = i0; k <= i1; k++) lists[j * nx + k].push(i);
+    const ex = extents[2 * i];
+    const ey = extents[2 * i + 1];
+    const i0 = (ranges[4 * i] = Math.max(0, Math.floor((b.x - ex - minX) / cell)));
+    const i1 = (ranges[4 * i + 1] = Math.min(nx - 1, Math.floor((b.x + ex - minX) / cell)));
+    const j0 = (ranges[4 * i + 2] = Math.max(0, Math.floor((b.y - ey - minY) / cell)));
+    const j1 = (ranges[4 * i + 3] = Math.min(ny - 1, Math.floor((b.y + ey - minY) / cell)));
+    for (let j = j0; j <= j1; j++) for (let k = i0; k <= i1; k++) counts[j * nx + k]++;
   });
-  const items = lists.reduce((a, l) => a + l.length, 0);
+  let items = 0;
+  for (const count of counts) {
+    if (count > 255) throw new Error("fog: more than 255 structures share a whole-fog cell");
+    items += count;
+  }
   const itemsBase = nx * ny;
   const boxesBase = itemsBase + items;
   const W = WHOLE_TEXTURE_WIDTH;
@@ -214,12 +230,17 @@ export function wholeWords(boxes: readonly FogOccluder[], margin: number) {
   const flagRows = Math.max(1, Math.ceil(n / W));
   const words = new Uint32Array((flagsRow + flagRows) * W);
   const floats = new Float32Array(words.buffer);
-  let at = itemsBase;
-  lists.forEach((l, c) => {
-    if (l.length > 255) throw new Error("fog: more than 255 structures share a whole-fog cell");
-    words[c] = ((at - itemsBase) << 8) | l.length;
-    for (const i of l) words[at++] = i;
+  // A cell's word is its list's start and length; `next` its fill cursor.
+  const next = new Uint32Array(nx * ny);
+  let start = 0;
+  counts.forEach((count, c) => {
+    words[c] = (start << 8) | count;
+    next[c] = itemsBase + start;
+    start += count;
   });
+  for (let i = 0; i < n; i++)
+    for (let j = ranges[4 * i + 2]; j <= ranges[4 * i + 3]; j++)
+      for (let k = ranges[4 * i]; k <= ranges[4 * i + 1]; k++) words[next[j * nx + k]++] = i;
   boxes.forEach((b, i) => {
     floats.set(
       [b.x, b.y, Math.cos(b.yaw), Math.sin(b.yaw), b.hx, b.hy, b.base, b.top],

@@ -44,6 +44,7 @@ import type {
   ModelInstance,
 } from "@packages/battle-renderer/src/models/modelInstances";
 import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
+import type { SideStructures } from "@packages/battle-renderer/src/models/propAppearance";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import type { Project } from "@web/battle/present/readouts";
 import { gameCamera } from "./gameCamera";
@@ -87,8 +88,8 @@ interface LabViewportProps {
   world: FeedSource<WorldLayers | null>;
   /** Knowledge-drawn props as fitted appearances (standing walls and field
    *  works, remembered rubble and wrecks), lit and fogged with the world;
-   *  fed like the overlay, since every fall changes the whole list. */
-  structures?: FeedSource<readonly ModelInstance[]>;
+   *  fed like the overlay (`SideStructures`). */
+  structures?: FeedSource<SideStructures>;
   /** The map's buildings, and those the side has seen fall, fed like the
    *  overlay; omitted or null draws none. */
   buildings?: FeedSource<SideBuildings | null>;
@@ -512,7 +513,7 @@ export function LabViewport({
     [overlay],
   );
   useEffect(() => {
-    const draw = (next: readonly ModelInstance[]) => {
+    const draw = (next: SideStructures) => {
       sceneRef.current?.setStructures(next);
       redrawRef.current();
     };

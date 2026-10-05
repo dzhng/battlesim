@@ -10,7 +10,10 @@ import type { AppearanceUnit, StaticBundle } from "@packages/scene-assets/src/sc
 import { color } from "math/color";
 import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standInKit.ts";
 import {
+  drawnStructures,
+  fitMapProps,
   PropAppearances,
+  sideStructures,
   structureBodies,
   validateStandIns,
   type KnownProp,
@@ -292,6 +295,24 @@ test("each body a side draws owns its own models, a repeated wall several", () =
     ],
     [200, [["village_ruin", 200]]],
   ]);
+});
+
+test("what a side learns hides only the props it replaced, over the map fitted once", () => {
+  const long: MapProp = { ...wallAt(5, 300), half: [10, 0.3, 0.8] };
+  const fitted = fitMapProps([walls[0], long, walls[1]], appearances);
+  const unaware = sideStructures(fitted, [], appearances);
+  const aware = sideStructures(fitted, [rubbleOf(long)], appearances);
+  // Every module of the repeated wall goes, its rubble comes after the map's.
+  expect(drawnAt(drawnStructures(aware))).toEqual([
+    ["field_wall", 100],
+    ["field_wall", 200],
+    ["village_ruin", 300],
+  ]);
+  expect(drawnStructures(unaware)).toHaveLength(7);
+  // Both draw from the one fitted list: learning changes no map model.
+  expect(aware.map).toBe(unaware.map);
+  expect(aware.hidden).toEqual([1, 2, 3, 4, 5]);
+  expect(unaware.hidden).toEqual([]);
 });
 
 test("a map prop a route draws from the world is left to it", () => {

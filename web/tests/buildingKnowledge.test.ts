@@ -19,7 +19,7 @@ import {
   mapProps,
   type MapProp,
 } from "@packages/battle-renderer/src/models/propAppearance";
-import { knownOccluders } from "@packages/battle-renderer/src/frame/fogInputs";
+import { knownOccluders, mapOccluders } from "@packages/battle-renderer/src/frame/fogInputs";
 import {
   readWorldExports,
   type WorldExports,
@@ -161,7 +161,10 @@ test("a side knows a building collapsed or gutted once it has seen it, and intac
     const tops = (side: "blue" | "red", building: number) => {
       const parts = battle.index.parts[building];
       const at = new Set(parts.map((p) => p.center.join()));
-      return knownOccluders(battle.exports, battle.layout, battle.sees(side).knownProps)
+      return knownOccluders(
+        mapOccluders(battle.exports, battle.layout),
+        battle.sees(side).knownProps,
+      )
         .filter((o) => at.has([o.x, o.y].join()))
         .map((o) => o.top - o.base);
     };

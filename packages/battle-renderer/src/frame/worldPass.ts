@@ -55,6 +55,7 @@ import {
 import type { SceneInstance, WorldLayers } from "../scene";
 import type { Mesh } from "../mesh";
 import type { ModelInstance } from "../models/modelInstances";
+import { NO_STRUCTURES, type SideStructures } from "../models/propAppearance";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth, BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
 import type { SkyRays } from "../shaders/physicalSky";
@@ -551,10 +552,26 @@ export async function createWorldPass(
     props: new MeshSlot(root, registry, identity),
     water: new MeshSlot(root, registry, identity),
   };
-  // The models layer's statics: the world's props, then the side's structures.
+  // The models layer's statics: the world's props, then the side's map
+  // props less those it knows replaced, then what it knows. The first two
+  // join only when either list is replaced, never on a knowledge change.
   let worldProps: readonly ModelInstance[] = [];
-  let structures: readonly ModelInstance[] = [];
-  const setStatics = () => models.setStatics([...worldProps, ...structures]);
+  let structures: SideStructures = NO_STRUCTURES;
+  let joined: {
+    world: typeof worldProps;
+    map: typeof structures.map;
+    list: ModelInstance[];
+  } | null = null;
+  const setStatics = () => {
+    if (joined?.world !== worldProps || joined.map !== structures.map)
+      joined = { world: worldProps, map: structures.map, list: [...worldProps, ...structures.map] };
+    const offset = worldProps.length;
+    models.setStatics(
+      joined.list,
+      offset ? structures.hidden.map((i) => i + offset) : structures.hidden,
+      structures.known,
+    );
+  };
   const backdrop = new MeshSlot(root, registry, identity);
   const proxies = new ProxyInstances(root, registry);
   let box: Box3 | null = null;
@@ -614,7 +631,7 @@ export async function createWorldPass(
       box = mapBox(next.terrain.mesh);
       if (box) backdrop.set(backdropMesh(box, environment.light.backdrop.reach_m));
     },
-    setStructures(next: readonly ModelInstance[]) {
+    setStructures(next: SideStructures) {
       structures = next;
       setStatics();
     },
@@ -1023,7 +1040,7 @@ export async function createWorldPass(
     stats() {
       return {
         worldVertices: world.ground.vertices + world.props.vertices + world.water.vertices,
-        structures: structures.length,
+        structures: structures.map.length - structures.hidden.length + structures.known.length,
         instances: proxies.count,
         shadow: environment.stats(),
         fog: fog.stats(),
