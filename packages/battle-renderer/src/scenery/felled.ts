@@ -142,6 +142,25 @@ export function crownBase(tier: Mesh): number {
   return Math.min(low, top);
 }
 
+/** `records` (`stride` floats each) reordered so equal `keys` sit
+ *  together in ascending order, and the runs they make: `[key, first,
+ *  count]` triples, one per key, `first` in records. */
+export function groupByKey(
+  records: Float32Array,
+  stride: number,
+  keys: readonly number[],
+): { records: Float32Array; runs: number[] } {
+  const order = keys.map((_, i) => i).sort((a, b) => keys[a] - keys[b]);
+  const out = new Float32Array(records.length);
+  const runs: number[] = [];
+  order.forEach((i, k) => {
+    out.set(records.subarray(i * stride, (i + 1) * stride), k * stride);
+    if (runs.length && runs[runs.length - 3] === keys[i]) runs[runs.length - 1]++;
+    else runs.push(keys[i], k, 1);
+  });
+  return { records: out, runs };
+}
+
 /** Where each of `placed`'s trees is, by trunk id. */
 export function treeIndex(ids: Uint32Array): Map<number, number> {
   const out = new Map<number, number>();

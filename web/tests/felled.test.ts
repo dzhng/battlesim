@@ -8,6 +8,7 @@ import {
   felledPoint,
   felledRecords,
   FELLED_FLOATS,
+  groupByKey,
   fellPose,
   lyingShare,
   restAngle,
@@ -213,4 +214,11 @@ test("a stump is the trunk's width at its height, its bark's colour, cut at its 
   // Half way between the rings' radii, at half the ring's height.
   expect(reach).toBeCloseTo(0.4, 6);
   expect([...colours].sort()).toEqual(["0.200,0.100,0.050", "0.400,0.300,0.200"]);
+});
+
+test("records group by key in ascending runs, each record whole", () => {
+  // Three two-float records keyed 2, 0, 2.
+  const { records, runs } = groupByKey(Float32Array.from([1, 1, 2, 2, 3, 3]), 2, [2, 0, 2]);
+  expect(Array.from(records)).toEqual([2, 2, 1, 1, 3, 3]);
+  expect(runs).toEqual([0, 0, 1, 2, 1, 2]);
 });

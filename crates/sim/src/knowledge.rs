@@ -485,7 +485,7 @@ impl SideKnowledge {
                     );
             }
         }
-        // Folded only once known, as the battle's fall log is.
+        // An empty set folds nothing, as the battle's fall log.
         if !self.fallen.is_empty() {
             d.u64(self.fallen.len() as u64);
             for prop in &self.fallen {

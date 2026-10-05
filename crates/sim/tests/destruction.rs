@@ -263,6 +263,36 @@ fn a_tree_felled_by_a_burst_falls_away_from_it() {
     }
 }
 
+/// One rule for every toppling body: a railing shelled down falls as a
+/// tree does, away from the burst, whatever its destroyed state.
+#[test]
+fn any_toppling_body_felled_by_fire_publishes_its_fall() {
+    let mut b = battle(
+        json!([prop("iron_railing", [704.0, 300.0], [0.1, 1.5, 0.6])]),
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [740.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
+        ]),
+        json!([burst(1, [700.0, 300.0]), burst(2, [700.0, 300.0])]),
+    );
+    run(&mut b, 6);
+    assert!(
+        b.world().prop(0).is_none(),
+        "the bursts destroyed the railing"
+    );
+    let fallen = &b.observe(Side::Blue).fallen_bodies;
+    let railing = fallen
+        .iter()
+        .find(|f| f.prop == 0)
+        .expect("its fall is published");
+    assert!(
+        railing.toward[0] > 0.99,
+        "away from the burst: {:?}",
+        railing.toward
+    );
+}
+
 /// Sandbags destroyed at tick 1, and blue's squad `at` some distance.
 fn sandbags_destroyed(blue_at: [f64; 2], destroy: bool) -> Battle {
     let events = if destroy {

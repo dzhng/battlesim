@@ -8,9 +8,12 @@ Decisions made where the plan was silent. Consolidated at close.
 - **Digest folds the fall log only once non-empty.** Keeps every battle where
   nothing topples bit-identical to before. Battles where trees fall change
   digest (named decision).
-- **A pass's fall direction is the shooter's line to the entry point.** The
-  flight `Pass` event carries no velocity; the shooter's position is close
-  enough for a fall direction and avoids widening the flight event.
+- **A round passing through a body pushes it along its flight.** The flight
+  `Pass` event now carries the round's unit direction (`along`), as a hit
+  carries its velocity; the shooter's position could have moved or, for
+  indirect fire, says nothing of the round's path.
+- **A fall is recorded for every toppling body however it is destroyed** (a
+  railing shelled down as well as a tree), before its destroyed state applies.
 - **Degenerate direction falls back to one of eight compass directions by prop
   id.** No trigonometry, so native and Wasm agree bit for bit.
 - **Felled trees are a separate small pass, not tilt on the forest instances.**
@@ -33,6 +36,11 @@ Decisions made where the plan was silent. Consolidated at close.
   height band found nothing.
 - **What stood below the cut collapses onto it.** The stump stands there from
   the first frame instead of appearing on landing.
+- **A forest tree leaves the drawn forest only by its fall record, not by
+  seen-cleared ground.** One owner, so a tree never vanishes without a stump
+  and log. Shrubs still leave by cleared ground; the dressing is laid again
+  when shrubs change or a fall arrives (a wood has no understorey, and falls
+  are what clear its ground).
 - **The fall starts at the start of its tick** (`(tick − 1) / tick_hz`), as
   combat effects do.
 - **The consequences scene frames the felled tree from above.** Inside a wood

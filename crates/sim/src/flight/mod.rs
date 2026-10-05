@@ -545,6 +545,8 @@ pub struct Pass {
     pub prop: PropId,
     /// Where the round entered it.
     pub point: V3,
+    /// The round's unit direction of flight through it.
+    pub along: V3,
     pub time: f64,
 }
 
@@ -1059,6 +1061,7 @@ impl Flight<'_> {
                         projectile: p.id,
                         prop,
                         point: a0 + chord * (t / len),
+                        along: chord * (1.0 / len),
                         time: s0 + (s1 - s0) * (t / len),
                     }));
             }

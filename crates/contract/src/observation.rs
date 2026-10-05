@@ -580,7 +580,6 @@ pub struct ObservationFrame {
     /// Own fallen, and enemy fallen this side has seen.
     pub corpses: Vec<Corpse>,
     /// Toppled bodies this side knocked down or has seen where they stood.
-    #[serde(default)]
     pub fallen_bodies: Vec<FallenBody>,
     /// This side's own guided missiles in flight.
     pub guided: Vec<GuidedMissile>,

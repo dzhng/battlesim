@@ -1535,23 +1535,26 @@ fn write_group_operations(
 /// Short exact spans remain reusable when variable metadata shifts their addresses.
 const VARIABLE_ANCHOR_WORDS: usize = 3;
 
-/// Non-map groups, in record order.
-pub const GROUPS: usize = 10;
+/// Each non-map group's fixed row width, in record order; 0 where variable
+/// sections leave no one width to address complete rows by.
+const GROUP_ROW_WIDTHS: [usize; 10] = [
+    0,
+    0,
+    CONTACT_FIELDS.len(),
+    AUDIBLE_FIELDS.len(),
+    0,
+    BLAST_FIELDS.len(),
+    GUIDED_FIELDS.len(),
+    CORPSE_FIELDS.len(),
+    KNOWN_PROP_FIELDS.len(),
+    FALLEN_BODY_FIELDS.len(),
+];
 
-/// Variable-section groups cannot address complete rows by one fixed width.
+/// Non-map groups, in record order.
+pub const GROUPS: usize = GROUP_ROW_WIDTHS.len();
+
 fn fixed_row_width(group: usize) -> usize {
-    [
-        0,
-        0,
-        CONTACT_FIELDS.len(),
-        AUDIBLE_FIELDS.len(),
-        0,
-        BLAST_FIELDS.len(),
-        GUIDED_FIELDS.len(),
-        CORPSE_FIELDS.len(),
-        KNOWN_PROP_FIELDS.len(),
-        FALLEN_BODY_FIELDS.len(),
-    ][group]
+    GROUP_ROW_WIDTHS[group]
 }
 
 fn compare_rows(a: &[f32], b: &[f32]) -> std::cmp::Ordering {

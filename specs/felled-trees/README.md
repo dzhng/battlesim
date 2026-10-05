@@ -32,8 +32,7 @@ low. The cover-giving `log` prop stays the only lying wood that is a body.
   body whose row `topples` leaves one record when it goes down: its prop id,
   where its foot stood, the horizontal unit direction it fell, and the tick it
   fell. Pushed by a vehicle it falls along the hull's travel; felled by fire,
-  along the round's flight, or away from the burst (a pass uses the shooter's
-  line). One rule for every toppling body; presentation draws trees and ignores
+  along the round's flight (hit or pass), or away from the burst. One rule for every toppling body; presentation draws trees and ignores
   the rest today.
 - **Per-side knowledge (L1).** The pushing side knows a fall at once; any other
   side once its fog sweep sees where the body stood. A late learner gets the
@@ -46,7 +45,8 @@ low. The cover-giving `log` prop stays the only lying wood that is a body.
 - **Frame input.** `BattleFrame.setFelled(trees)`: prop id, direction, and the
   presentation second the fall began (`(tick − 1) / tick_hz`). The scenery hides
   the standing tree by trunk id (`SceneryPlacement.forestIds`) and draws the
-  fall on the frame clock.
+  fall on the frame clock. A forest tree leaves only by its fall; seen-cleared
+  ground still clears shrubs and dressing.
 - **Drawn shape (`scenery/felled.ts`, mirrored by the felled vertex stage).** The
   tree tips about its stump's top, gathering speed; in the second half of the
   fall it lands: its foot kicks off the stump onto the ground, its top comes to

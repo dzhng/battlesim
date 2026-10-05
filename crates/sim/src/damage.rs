@@ -402,13 +402,10 @@ pub fn resolve(
                 let def = &ctx.arsenal.weapons[round.weapon].def;
                 if let Some(prop) = ctx.world.prop(pass.prop) {
                     if def.structural_damage > 0.0 {
-                        // The pass knows only where it entered: the round
-                        // came from its shooter.
-                        let from = units[round.unit.0 as usize].position.xy();
                         structural.push(StructuralHit {
                             prop: prop.id,
                             amount: def.structural_damage * prop.body.armor,
-                            toward: pass.point.xy() - from,
+                            toward: pass.along.xy(),
                         });
                     }
                 }

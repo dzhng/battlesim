@@ -1242,10 +1242,13 @@ impl Battle {
         let prop = self.world.prop(id).cloned()?;
         let state = self.world.prop_type(prop.kind).destroyed.clone()?;
         self.keep_standing(&prop, None);
+        // Whatever it leaves, a toppling body falls the way it was pushed.
+        if prop.body.topples {
+            self.fell(&prop, toward);
+        }
         match state {
             Destroyed::Cleared => {
                 self.world.knock_down(id);
-                self.fell(&prop, toward);
                 // The tree's own share of the forest, out to its spacing.
                 let reach = if prop.forest_tree {
                     self.world.forest_rule().trunk_spacing_m
@@ -2852,8 +2855,8 @@ impl Battle {
             d.u64(*id as u64).u64(*t);
         }
         self.structures.digest(&mut d);
-        // Folded only once something has fallen, so a battle where nothing
-        // topples keeps the digest it had before falls were recorded.
+        // An empty fall log folds nothing: a battle where nothing topples
+        // digests as if there were no log.
         if !self.fallen.is_empty() {
             d.u64(self.fallen.len() as u64);
             for f in self.fallen.values() {

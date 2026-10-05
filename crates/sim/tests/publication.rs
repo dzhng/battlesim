@@ -953,7 +953,10 @@ fn one_variable_route_change_does_not_resend_other_own_units() {
         "the route must finish planning within eight simulated seconds"
     );
     let wire = publisher.publish(&battle, Side::Blue).unwrap();
-    eprintln!("own route payload {} B", (3 + wire[publication::HEADER_WORDS + 2] as usize) * 4);
+    eprintln!(
+        "own route payload {} B",
+        (3 + wire[publication::HEADER_WORDS + 2] as usize) * 4
+    );
     assert!(
         wire[publication::HEADER_WORDS] > initial[publication::HEADER_WORDS],
         "the own variable section must actually grow"
@@ -1015,7 +1018,8 @@ fn cold_own_delivery_compacts_sparse_values_without_losing_the_logical_words() {
             .iter()
             .map(|v| v.to_bits())
             .collect::<Vec<_>>(),
-        logical[publication::HEADER_WORDS..publication::HEADER_WORDS + data[publication::HEADER_WORDS] as usize]
+        logical[publication::HEADER_WORDS
+            ..publication::HEADER_WORDS + data[publication::HEADER_WORDS] as usize]
             .iter()
             .map(|v| v.to_bits())
             .collect::<Vec<_>>()
