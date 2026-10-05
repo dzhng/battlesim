@@ -12,7 +12,7 @@ use mapgen::layout::{
 };
 use mapgen::parcels::fill_districts;
 use mapgen::street_props::{place_courts_and_gardens, place_street_props};
-use mapgen::{CompileLimits, MapPlan};
+use mapgen::MapPlan;
 use serde_json::{json, Value};
 use sim::encounter::legality::stands;
 use sim::encounter::PreparedMap;
@@ -80,11 +80,13 @@ fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
         map_type,
         size,
         region: None,
-        limits: CompileLimits {
-            max_authored_parts: 60_000,
-            max_bay_positions: 600_000,
-            max_ground_points: 200_000,
-        },
+        // The game's own limits, as it asks for a map.
+        limits: serde_json::from_value(
+            serde_json::from_str::<Value>(include_str!("../../../fixtures/generated-battle.json"))
+                .unwrap()["limits"]
+                .clone(),
+        )
+        .unwrap(),
     }
 }
 
@@ -350,6 +352,66 @@ fn no_car_stands_in_front_of_a_door() {
                 door[0]
             );
         }
+    }
+}
+
+/// A country road running through a town is its main street: cars park along
+/// the kerb the town's districts own, as on any of its streets, and none
+/// stands beside the road out in the country past the town's edge.
+#[test]
+fn a_country_road_parks_where_it_runs_through_a_town() {
+    let presets = presets_with(cars_only);
+    // The town spans x 600–1400; the road runs on 400 m past it either way.
+    let mut plan = town(&[(8.0, [200.0, 1000.0], [1800.0, 1000.0])], &[]);
+    plan.surfaces[0].kind = SurfaceKind::CountryRoad;
+    let props = place(&plan, &presets, &rules().catalog, 1);
+    let cars = cars(&props);
+    assert!(
+        cars.len() >= 60,
+        "{} cars beside 800 m of a country road through a town",
+        cars.len()
+    );
+    for car in &cars {
+        assert!(
+            (600.0..=1400.0).contains(&car.center[0]),
+            "a car at {:?} is parked out in the country",
+            car.center
+        );
+    }
+}
+
+/// A street lined with a tree every 10 m on both sides still parks along
+/// most of its kerb: the trees stand in the walk behind the parked cars'
+/// line, not in the kerb's room between them.
+#[test]
+fn street_trees_stand_behind_the_parked_cars() {
+    let presets = presets_with(|source| {
+        cars_only(source);
+        source["districts"]["centre"]["props"]["verge"] =
+            json!([{ "kind": "street_tree", "spacing_m": 10, "sides": "both" }]);
+    });
+    let plan = town(&[street(10.0)], &[]);
+    let props = place(&plan, &presets, &rules().catalog, 1);
+    let cars = cars(&props);
+    let trees: Vec<_> = props.iter().filter(|p| p.kind == "street_tree").collect();
+    // 600 m a side, a car to about 5 m: at 0.9 of the kerb, over 150 cars.
+    assert!(
+        cars.len() >= 150,
+        "{} cars beside a tree-lined street",
+        cars.len()
+    );
+    assert!(trees.len() >= 100, "{} trees", trees.len());
+    let car_back = cars
+        .iter()
+        .map(|car| (car.center[1] - 1000.0).abs() + car.half_extents[1])
+        .fold(0.0, f64::max);
+    for tree in &trees {
+        let near = (tree.center[1] - 1000.0).abs() - tree.half_extents[1];
+        assert!(
+            near >= car_back,
+            "a tree at {:?} stands {near:.2} m from the middle, in the cars' line (back {car_back:.2} m)",
+            tree.center
+        );
     }
 }
 

@@ -1,5 +1,5 @@
 // The static chunk owner: instances placed once and drawn many times (trees
-// and hedgerow shrubs, a town's buildings, the fallen), bucketed in
+// and hedgerow shrubs, a town's buildings, the map's props, the fallen), bucketed in
 // square chunks, with the detail level each draws at chosen on the CPU when
 // the view changes. It owns the bookkeeping only: storage in chunk order,
 // per-chunk culling, the level a chunk or an instance draws at, the merged

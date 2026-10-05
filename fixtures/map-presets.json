@@ -17,7 +17,7 @@
     "pin_rounds": 4,
     "shortest_run_m": 1.0
   },
-  "revision": "layout-presets-15",
+  "revision": "layout-presets-16",
   "terrain": { "render_margin_m": 1500, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": { "small": 1000, "medium": 1800, "large": 1800, "xl": 1800 },
@@ -166,13 +166,14 @@
     "wall_gap_m": 0.9,
     "squad_way_m": 3,
     "group_ring_m": 6,
-    "door_clear_m": 3,
+    "door_clear_m": 2,
     "corner_clear_m": 8,
     "slide_m": 6,
     "slide_step_m": 0.25,
     "attempts": 6,
     "bodies": {
-      "parked_car": { "half_extents_m": [2.1, 0.9, 0.75], "clear_m": 1.5 },
+      "parked_car": { "half_extents_m": [2.1, 0.9, 0.75], "clear_m": 0.8 },
+      "car_wreck": { "half_extents_m": [2.1, 0.9, 0.6], "clear_m": 0.8 },
       "lamp": { "half_extents_m": [0.15, 0.15, 3], "clear_m": 1 },
       "street_tree": { "half_extents_m": [0.35, 0.35, 5], "clear_m": 1 },
       "bus_shelter": { "half_extents_m": [2, 0.75, 1.3], "clear_m": 1.5 },
@@ -418,7 +419,7 @@
       "parking": { "bay_m": [2.6, 5.2], "aisle_m": 6.5, "bays": [3, 8], "every_m": 80 },
       "lawn": { "path_m": 3, "lane_m": 8, "least_m2": 300, "streets": 2, "gates": 3, "beside": { "court_tree": 3, "lawn_bench": 1 }, "beside_spacing_m": 9 }
     },
-    "parking": { "kind": "parked_car", "run": [2, 5], "bumper_gap_m": 0.5, "run_gap_m": 3, "both_sides_min_width_m": 10 },
+    "parking": { "kind": "parked_car", "run": [3, 9], "bumper_gap_m": 0.5, "run_gap_m": 2, "both_sides_min_width_m": 7 },
     "site": {
       "max_per_settlement": 3,
       "min_lot_m": [14, 14],
@@ -442,10 +443,11 @@
       "streets": { "surface": "road", "block_depth_m": 96, "block_length_m": 160, "bend": { "amplitude_m": 14, "wavelength_m": 320 }, "cross_skip": 0.2 },
       "lots": { "front_m": 6, "side_m": 6, "rear_m": 10, "coverage": 0.85, "apron_m": 0 },
       "props": {
-        "parking": 0.08,
+        "parking": 0.3,
         "verge": [
-          { "kind": "lamp", "spacing_m": 120, "sides": "alternate" },
-          { "kind": "bench", "spacing_m": 400, "sides": "scatter" }
+          { "kind": "lamp", "spacing_m": 66, "sides": "alternate" },
+          { "kind": "bench", "spacing_m": 133, "sides": "scatter" },
+          { "kind": "car_wreck", "spacing_m": 400, "sides": "scatter" }
         ],
         "gardens": {
           "depth_m": 8,
@@ -467,11 +469,14 @@
       "streets": { "surface": "road", "block_depth_m": 84, "block_length_m": 140, "bend": { "amplitude_m": 16, "wavelength_m": 360 }, "cross_skip": 0.15 },
       "lots": { "front_m": 6, "side_m": 6, "rear_m": 10, "coverage": 0.85, "apron_m": 0 },
       "props": {
-        "parking": 0.12,
+        "parking": 0.55,
         "verge": [
-          { "kind": "lamp", "spacing_m": 90, "sides": "alternate" },
-          { "kind": "hydrant", "spacing_m": 300, "sides": "scatter" },
-          { "kind": "utility_box", "spacing_m": 300, "sides": "scatter" }
+          { "kind": "lamp", "spacing_m": 50, "sides": "alternate" },
+          { "kind": "street_tree", "spacing_m": 28, "sides": "alternate" },
+          { "kind": "bins", "spacing_m": 90, "sides": "scatter" },
+          { "kind": "hydrant", "spacing_m": 100, "sides": "scatter" },
+          { "kind": "utility_box", "spacing_m": 100, "sides": "scatter" },
+          { "kind": "car_wreck", "spacing_m": 220, "sides": "scatter" }
         ],
         "gardens": {
           "depth_m": 8,
@@ -493,7 +498,7 @@
       "streets": { "surface": "road", "block_depth_m": 70, "block_length_m": 130, "cross_skip": 0 },
       "lots": { "front_m": 2, "side_m": 1.5, "rear_m": 6, "coverage": 0.95, "apron_m": 0 },
       "props": {
-        "parking": 0.35,
+        "parking": 0.85,
         "courts": {
           "paved": true,
           "spacing_m": 22,
@@ -505,14 +510,17 @@
           }
         },
         "verge": [
-          { "kind": "lamp", "spacing_m": 70, "sides": "alternate" },
-          { "kind": "bins", "spacing_m": 200, "sides": "scatter" },
-          { "kind": "bench", "spacing_m": 250, "sides": "scatter" },
-          { "kind": "planter", "spacing_m": 250, "sides": "scatter" },
-          { "kind": "bollard", "spacing_m": 300, "sides": "scatter" },
-          { "kind": "hydrant", "spacing_m": 300, "sides": "scatter" },
-          { "kind": "utility_box", "spacing_m": 300, "sides": "scatter" },
-          { "kind": "scooter", "spacing_m": 300, "sides": "scatter" }
+          { "kind": "lamp", "spacing_m": 38, "sides": "alternate" },
+          { "kind": "street_tree", "spacing_m": 22, "sides": "alternate" },
+          { "kind": "bins", "spacing_m": 40, "sides": "scatter" },
+          { "kind": "bench", "spacing_m": 83, "sides": "scatter" },
+          { "kind": "planter", "spacing_m": 83, "sides": "scatter" },
+          { "kind": "bollard", "spacing_m": 100, "sides": "scatter" },
+          { "kind": "hydrant", "spacing_m": 100, "sides": "scatter" },
+          { "kind": "utility_box", "spacing_m": 100, "sides": "scatter" },
+          { "kind": "scooter", "spacing_m": 50, "sides": "scatter" },
+          { "kind": "car_wreck", "spacing_m": 110, "sides": "scatter" },
+          { "kind": "dumpster", "spacing_m": 120, "sides": "scatter" }
         ]
       }
     },
@@ -522,7 +530,7 @@
       "streets": { "surface": "road", "block_depth_m": 72, "block_length_m": 140, "cross_skip": 0 },
       "lots": { "front_m": 2, "side_m": 1.5, "rear_m": 6, "coverage": 0.95, "apron_m": 0 },
       "props": {
-        "parking": 0.38,
+        "parking": 0.92,
         "courts": {
           "paved": true,
           "spacing_m": 18,
@@ -534,16 +542,18 @@
           }
         },
         "verge": [
-          { "kind": "lamp", "spacing_m": 60, "sides": "alternate" },
-          { "kind": "street_tree", "spacing_m": 24, "sides": "both", "avenue": true },
+          { "kind": "lamp", "spacing_m": 33, "sides": "alternate" },
+          { "kind": "street_tree", "spacing_m": 16, "sides": "both" },
           { "kind": "bus_shelter", "spacing_m": 500, "sides": "scatter", "avenue": true },
-          { "kind": "bins", "spacing_m": 180, "sides": "scatter" },
-          { "kind": "bench", "spacing_m": 220, "sides": "scatter" },
-          { "kind": "planter", "spacing_m": 220, "sides": "scatter" },
-          { "kind": "bollard", "spacing_m": 300, "sides": "scatter" },
-          { "kind": "hydrant", "spacing_m": 300, "sides": "scatter" },
-          { "kind": "utility_box", "spacing_m": 260, "sides": "scatter" },
-          { "kind": "scooter", "spacing_m": 260, "sides": "scatter" }
+          { "kind": "bins", "spacing_m": 35, "sides": "scatter" },
+          { "kind": "bench", "spacing_m": 73, "sides": "scatter" },
+          { "kind": "planter", "spacing_m": 73, "sides": "scatter" },
+          { "kind": "bollard", "spacing_m": 100, "sides": "scatter" },
+          { "kind": "hydrant", "spacing_m": 100, "sides": "scatter" },
+          { "kind": "utility_box", "spacing_m": 87, "sides": "scatter" },
+          { "kind": "scooter", "spacing_m": 40, "sides": "scatter" },
+          { "kind": "car_wreck", "spacing_m": 90, "sides": "scatter" },
+          { "kind": "dumpster", "spacing_m": 100, "sides": "scatter" }
         ],
         "site_chance": 0.15
       }
@@ -554,7 +564,7 @@
       "streets": { "surface": "road", "block_depth_m": 130, "block_length_m": 230, "cross_skip": 0.2 },
       "lots": { "front_m": 16, "side_m": 10, "rear_m": 14, "coverage": 0.9, "apron_m": 12 },
       "props": {
-        "parking": 0.33,
+        "parking": 0.9,
         "courts": {
           "paved": true,
           "spacing_m": 18,
@@ -566,14 +576,16 @@
           }
         },
         "verge": [
-          { "kind": "lamp", "spacing_m": 70, "sides": "alternate" },
-          { "kind": "street_tree", "spacing_m": 26, "sides": "both", "avenue": true },
+          { "kind": "lamp", "spacing_m": 38, "sides": "alternate" },
+          { "kind": "street_tree", "spacing_m": 18, "sides": "both" },
           { "kind": "bus_shelter", "spacing_m": 500, "sides": "scatter", "avenue": true },
-          { "kind": "bins", "spacing_m": 220, "sides": "scatter" },
-          { "kind": "bench", "spacing_m": 220, "sides": "scatter" },
-          { "kind": "hydrant", "spacing_m": 300, "sides": "scatter" },
-          { "kind": "utility_box", "spacing_m": 260, "sides": "scatter" },
-          { "kind": "scooter", "spacing_m": 300, "sides": "scatter" }
+          { "kind": "bins", "spacing_m": 40, "sides": "scatter" },
+          { "kind": "bench", "spacing_m": 73, "sides": "scatter" },
+          { "kind": "hydrant", "spacing_m": 100, "sides": "scatter" },
+          { "kind": "utility_box", "spacing_m": 87, "sides": "scatter" },
+          { "kind": "scooter", "spacing_m": 45, "sides": "scatter" },
+          { "kind": "car_wreck", "spacing_m": 90, "sides": "scatter" },
+          { "kind": "dumpster", "spacing_m": 90, "sides": "scatter" }
         ],
         "site_chance": 0.15
       }
@@ -584,7 +596,7 @@
       "streets": { "surface": "road", "block_depth_m": 120, "block_length_m": 150, "cross_skip": 0 },
       "lots": { "front_m": 10, "side_m": 9, "rear_m": 10, "coverage": 0.9, "apron_m": 0 },
       "props": {
-        "parking": 0.38,
+        "parking": 0.92,
         "courts": {
           "paved": true,
           "spacing_m": 18,
@@ -596,16 +608,18 @@
           }
         },
         "verge": [
-          { "kind": "lamp", "spacing_m": 60, "sides": "alternate" },
-          { "kind": "street_tree", "spacing_m": 24, "sides": "both", "avenue": true },
+          { "kind": "lamp", "spacing_m": 33, "sides": "alternate" },
+          { "kind": "street_tree", "spacing_m": 16, "sides": "both" },
           { "kind": "bus_shelter", "spacing_m": 400, "sides": "scatter", "avenue": true },
-          { "kind": "bins", "spacing_m": 160, "sides": "scatter" },
-          { "kind": "bench", "spacing_m": 200, "sides": "scatter" },
-          { "kind": "planter", "spacing_m": 200, "sides": "scatter" },
-          { "kind": "bollard", "spacing_m": 260, "sides": "scatter" },
-          { "kind": "hydrant", "spacing_m": 280, "sides": "scatter" },
-          { "kind": "utility_box", "spacing_m": 240, "sides": "scatter" },
-          { "kind": "scooter", "spacing_m": 240, "sides": "scatter" }
+          { "kind": "bins", "spacing_m": 30, "sides": "scatter" },
+          { "kind": "bench", "spacing_m": 67, "sides": "scatter" },
+          { "kind": "planter", "spacing_m": 67, "sides": "scatter" },
+          { "kind": "bollard", "spacing_m": 87, "sides": "scatter" },
+          { "kind": "hydrant", "spacing_m": 93, "sides": "scatter" },
+          { "kind": "utility_box", "spacing_m": 80, "sides": "scatter" },
+          { "kind": "scooter", "spacing_m": 35, "sides": "scatter" },
+          { "kind": "car_wreck", "spacing_m": 80, "sides": "scatter" },
+          { "kind": "dumpster", "spacing_m": 90, "sides": "scatter" }
         ],
         "site_chance": 0.2
       }
@@ -616,11 +630,12 @@
       "streets": { "surface": "road", "block_depth_m": 210, "block_length_m": 280, "cross_skip": 0.3 },
       "lots": { "front_m": 30, "side_m": 12, "rear_m": 10, "coverage": 0.85, "apron_m": 30 },
       "props": {
-        "parking": 0.05,
+        "parking": 0.3,
         "verge": [
-          { "kind": "lamp", "spacing_m": 100, "sides": "alternate" },
-          { "kind": "hydrant", "spacing_m": 300, "sides": "scatter" },
-          { "kind": "utility_box", "spacing_m": 240, "sides": "scatter" }
+          { "kind": "lamp", "spacing_m": 55, "sides": "alternate" },
+          { "kind": "hydrant", "spacing_m": 100, "sides": "scatter" },
+          { "kind": "utility_box", "spacing_m": 80, "sides": "scatter" },
+          { "kind": "car_wreck", "spacing_m": 140, "sides": "scatter" }
         ],
         "yard": [{ "kind": "skip_bin", "count": [0, 2] }, { "kind": "pallet_stack", "count": [1, 4] }]
       }

@@ -2780,13 +2780,7 @@ impl Battle {
         self.planner.digest(&mut d);
         d.u64(self.world.obstacle_revision());
         // Every body's pose (L3): shoves move them.
-        for p in self.world.props() {
-            d.u64(p.id as u64)
-                .f64(p.center.x)
-                .f64(p.center.y)
-                .f64(p.yaw)
-                .f64(p.base_z);
-        }
+        self.world.digest_props(&mut d);
         for (id, t) in self.world.moved() {
             d.u64(id as u64).u64(t);
         }

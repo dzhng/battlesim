@@ -125,7 +125,7 @@ impl MapAdmission {
     /// allowances must fit this envelope, and lowering them never lowers
     /// admission of a released saved map. A larger saved map is refused.
     pub const CATALOGUE: Self = Self {
-        max_authored_parts: 60_000,
+        max_authored_parts: 250_000,
         max_bay_positions: 600_000,
     };
 }

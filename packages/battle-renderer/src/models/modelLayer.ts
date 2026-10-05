@@ -105,6 +105,8 @@ import {
   corpseChunkLevel,
   corpseChunks,
   modelDetail,
+  staticModelChunks,
+  staticsInView,
   type ModelDetailPresentation,
 } from "./modelDetail";
 import { uploadCardAtlases, type CardGroup } from "./impostorCards";
@@ -789,6 +791,13 @@ export async function createModelLayer(
 
   let units: readonly ModelInstance[] = [];
   let statics: readonly ModelInstance[] = [];
+  /** `statics` bucketed by ground for the appearances they were fitted to,
+   *  rebuilt when either changes (null until a view first needs it). */
+  let staticPop: StaticChunks | null = null;
+  let staticPopFor: readonly ModelInstance[] | null = null;
+  let staticPopAppearances: Map<string, GpuAppearance> | null = null;
+  /** The statics a view visits, as indices into `statics`, in list order. */
+  let staticVisit = new Int32Array(64);
   let corpseList: readonly CorpseInstance[] = [];
   let corpses: Corpses | null = null;
   /** Something changed since the last pack (models, corpses, appearances, a bake). */
@@ -1253,14 +1262,42 @@ export async function createModelLayer(
     return gpu.body[tier] ?? null;
   }
 
+  /** How many of `statics` `view` can draw, listed in `staticVisit`: those
+   *  in its chunks, or every one with no view. */
+  function visitStatics(view: DetailView | null): number {
+    if (staticVisit.length < statics.length) staticVisit = new Int32Array(statics.length * 2);
+    if (!view) {
+      for (let i = 0; i < statics.length; i++) staticVisit[i] = i;
+      return statics.length;
+    }
+    if (staticPopFor !== statics || staticPopAppearances !== appearances) {
+      staticPop = staticModelChunks(
+        statics.map((inst) => {
+          const gpu = appearances.get(inst.appearance);
+          const grow = inst.scale ? Math.max(inst.scale[0], inst.scale[1], inst.scale[2]) : 1;
+          return {
+            x: inst.x,
+            y: inst.y,
+            z: inst.z,
+            size: (gpu?.size ?? 0) * grow,
+            radius: (gpu?.radius ?? 0) * grow,
+          };
+        }),
+      );
+      staticPopFor = statics;
+      staticPopAppearances = appearances;
+    }
+    return staticsInView(staticPop!, view, staticVisit);
+  }
+
   /** Choose, sort and upload this frame's draws. With `view` null every
    *  model draws at its own tier (0 unless given) and nothing is culled. */
   function pack(view: DetailView | null) {
     hasXrayMeshes = false;
     const unitCount = units.length;
-    const total = unitCount + statics.length;
-    /** The i-th model: the units, then the statics. */
-    const modelAt = (i: number) => (i < unitCount ? units[i] : statics[i - unitCount]);
+    const total = unitCount + visitStatics(view);
+    /** The i-th model: the units, then the statics the view visits. */
+    const modelAt = (i: number) => (i < unitCount ? units[i] : statics[staticVisit[i - unitCount]]);
     if (unitChoice.length < total) unitChoice = new Int32Array(total * 2);
     const buckets = drawables.length * FOG_CLASSES;
     bucketCount.fill(0, 0, buckets);

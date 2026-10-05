@@ -156,6 +156,12 @@ of entrances and bridge approaches, apart from existing bodies and outside measu
 open approaches. Dimensions and mix belong to presets; the resolved catalog owns
 physical properties and the widest supported hull used to reserve a lane.
 
+A street is laid out as a real one is: parked cars take the kerb, and the evenly
+spaced rows (trees, lamps) stand in the walk behind them, so neither crowds the
+other out. A country road through a town is its main street and parks like one;
+past the town's edge nothing parks. A door keeps a way to the street as wide as a
+yard's door gate, and a building site's gate stays open from its yard to the street.
+
 [Courts](src/street_props/courts.rs) dress the dense districts' blocks. A court's
 inside is infantry ground: a vehicle is owed a way in (a car park's aisle, a yard's
 vehicle gate, a lawn's lane), not a way everywhere, and every group keeps a squad's
@@ -169,8 +175,9 @@ hold courts and lawns to a measured fill.
 villages, never the front garden. Courts and gardens are dressed last, after the
 open country's cover has certified the map's sight, and keep off every forest so
 they fell no tree the certificate counted. At the request's authored-part limit,
-courts take their share first and gardens what is left: on the largest maps that
-limit, not the presets' density, decides how thickly they are dressed.
+courts take their share first and gardens what is left. That limit is the game's
+ceiling on a map's bodies, not a density control: presets decide how thickly a
+town is dressed.
 
 Kerbside parking, yard stock, courts and gardens must leave actual squad access and vehicle travel.
 A planned route or successful placement alone is insufficient; [furniture tests](tests/street_props.rs)

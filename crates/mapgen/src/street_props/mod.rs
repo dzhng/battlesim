@@ -645,11 +645,12 @@ impl<'a> Pass<'a> {
             Side::Fenced,
         ];
         self.fence_round(corners, &rule.fence, group, sides, usize::MAX);
-        // The gate's way to the street is kept open, like a door's.
+        // The gate's way to the street is kept open, like a door's: from the
+        // site's room inside the fence, through the gate, to the street.
         self.field.keep_clear(Rect {
-            center: at(0.0, (inset - self.rule.door_reach_m) / 2.0),
+            center: at(0.0, (room - self.rule.door_reach_m) / 2.0),
             axis: inward,
-            half: [(inset + self.rule.door_reach_m) / 2.0, rule.gate_m / 2.0],
+            half: [(room + self.rule.door_reach_m) / 2.0, rule.gate_m / 2.0],
         });
 
         for row in &rule.stock {
@@ -940,11 +941,12 @@ impl<'a> Pass<'a> {
     }
 
     /// A body of `body`'s box beside `way` on `side`, its middle `s` metres
-    /// along: parallel to the carriageway, its near edge on the kerb line.
-    fn beside(&self, way: usize, side: f64, s: f64, body: &PropBox) -> Candidate {
+    /// along: parallel to the carriageway, its near edge `setback` metres
+    /// past the kerb line.
+    fn beside(&self, way: usize, side: f64, s: f64, body: &PropBox, setback: f64) -> Candidate {
         let line = &self.ways[way];
         let (p, run) = line.line.at(s);
-        let off = self.kerb_line(line) + body.half_extents_m[1];
+        let off = self.kerb_line(line) + setback + body.half_extents_m[1];
         Candidate {
             beside: Some((way as u32, s)),
             corner: self.rule.corner_clear_m,
@@ -954,10 +956,12 @@ impl<'a> Pass<'a> {
 
     /// Verge furniture: each district's rows along the carriageways that
     /// run through it or along its edge. The evenly spaced rows (lamps,
-    /// trees) are placed before the cars, so a run of cars ends at one; the
-    /// scattered rows after, in the room the cars left.
+    /// trees) stand in the walk behind the parked cars' line where the
+    /// district parks, so they never take the kerb's room; the scattered
+    /// rows come after the cars, in the room they left.
     fn verges(&mut self, scattered: bool) {
         let avenue = self.presets.towns.avenue_width_m / 2.0;
+        let car = self.body(&self.rule.parking.kind);
         for way in 0..self.ways.len() {
             let length = self.ways[way].line.length();
             for side in [1.0, -1.0] {
@@ -972,6 +976,12 @@ impl<'a> Pass<'a> {
                             continue;
                         }
                         let body = self.body(&row.kind);
+                        // Behind a parked car and the room either keeps.
+                        let setback = if !scattered && props.parking > 0.0 {
+                            2.0 * car.half_extents_m[1] + car.clear_m.max(body.clear_m)
+                        } else {
+                            0.0
+                        };
                         let spots: Vec<f64> = match row.sides {
                             // One to the spacing over both sides: half that
                             // many to a side, the odd share by a draw.
@@ -995,7 +1005,7 @@ impl<'a> Pass<'a> {
                                 .collect(),
                         };
                         for s in spots {
-                            self.settle(way, side, s, [from, to], &row.kind, &body);
+                            self.settle(way, side, s, setback, [from, to], &row.kind);
                         }
                     }
                 }
@@ -1003,17 +1013,19 @@ impl<'a> Pass<'a> {
         }
     }
 
-    /// Stand a body beside `way` at `s`, or at the nearest legal place along
-    /// the way within the rule's slide, inside `within`.
+    /// Stand a `kind` beside `way` at `s`, `setback` past the kerb line, or
+    /// at the nearest legal place along the way within the rule's slide,
+    /// inside `within`.
     fn settle(
         &mut self,
         way: usize,
         side: f64,
         s: f64,
+        setback: f64,
         within: [f64; 2],
         kind: &str,
-        body: &PropBox,
     ) -> bool {
+        let body = &self.body(kind);
         let steps = libm::floor(self.rule.slide_m / self.rule.slide_step_m) as i32;
         for step in 0..=2 * steps {
             // 0, +1, −1, +2, −2, …
@@ -1023,7 +1035,7 @@ impl<'a> Pass<'a> {
             if at - half < within[0] || at + half > within[1] {
                 continue;
             }
-            let c = self.beside(way, side, at, body);
+            let c = self.beside(way, side, at, body, setback);
             if self.field.legal(&c) {
                 self.field.place(kind, body, &c);
                 return true;
@@ -1032,9 +1044,10 @@ impl<'a> Pass<'a> {
         false
     }
 
-    /// Parked cars: beside the paved streets of each district that parks,
-    /// in runs with gaps between. A narrow street parks along one side,
-    /// drawn for the whole street; an avenue along both.
+    /// Parked cars: beside the paved carriageways of each district that
+    /// parks, a country road through a town as much as its streets, in runs
+    /// with gaps between. A narrow street parks along one side, drawn for the
+    /// whole street; an avenue along both.
     fn parking(&mut self) {
         let all = self.rule;
         let rule = &all.parking;
@@ -1042,7 +1055,10 @@ impl<'a> Pass<'a> {
         let length = 2.0 * car.half_extents_m[0];
         let pitch = length + rule.bumper_gap_m;
         for way in 0..self.ways.len() {
-            if self.ways[way].kind != SurfaceKind::Road {
+            if !matches!(
+                self.ways[way].kind,
+                SurfaceKind::Road | SurfaceKind::CountryRoad
+            ) {
                 continue;
             }
             let both = 2.0 * self.ways[way].half_width >= rule.both_sides_min_width_m;
@@ -1084,7 +1100,8 @@ impl<'a> Pass<'a> {
                                 .map(|step| cursor + step as f64 * all.slide_step_m)
                                 .take_while(|start| start + length <= to)
                                 .find_map(|start| {
-                                    let mut c = self.beside(way, side, start + length / 2.0, &car);
+                                    let mut c =
+                                        self.beside(way, side, start + length / 2.0, &car, 0.0);
                                     c.group = group;
                                     self.field.legal(&c).then_some((start, c))
                                 });

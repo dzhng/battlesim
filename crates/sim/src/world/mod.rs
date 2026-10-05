@@ -97,6 +97,10 @@ pub struct WorldGeometry {
     /// The map's region (`MapDefinition.regional_family`), for presentation.
     regional_family: Option<String>,
     authored_props: PropId,
+    /// Each authored prop's pose as built, bit for bit, and their digest: a
+    /// prop still in its pose is held by that one number.
+    authored_poses: std::sync::Arc<[[u64; 4]]>,
+    authored_digest: u64,
     authored_sources: std::collections::BTreeMap<PropId, PropId>,
     index: PropIndex,
     revision: u64,
@@ -133,6 +137,8 @@ impl WorldGeometry {
             template_catalog_hash: self.template_catalog_hash.clone(),
             regional_family: self.regional_family.clone(),
             authored_props: self.authored_props,
+            authored_poses: self.authored_poses.clone(),
+            authored_digest: self.authored_digest,
             authored_sources: self.authored_sources.clone(),
             index: PropIndex::new(self.width(), self.depth(), PROP_BUCKET_M),
             revision: 0,
@@ -237,6 +243,8 @@ impl WorldGeometry {
             template_catalog_hash: map.template_catalog_hash.clone(),
             regional_family: map.regional_family.clone(),
             authored_props: 0,
+            authored_poses: std::sync::Arc::new([]),
+            authored_digest: 0,
             authored_sources: Default::default(),
             index,
             revision: 0,
@@ -347,6 +355,11 @@ impl WorldGeometry {
         world.touched.clear();
         world.authored_props =
             u32::try_from(world.props.len()).expect("authored world exceeds u32 IDs");
+        // Every authored prop stands at setup, so its id is its index here.
+        world.authored_poses = world.props().map(pose_bits).collect();
+        let mut authored = crate::digest::Digest::default();
+        world.props().for_each(|p| digest_pose(&mut authored, p));
+        world.authored_digest = authored.finish();
         world
     }
 
@@ -874,6 +887,24 @@ impl WorldGeometry {
         self.props.iter().flatten()
     }
 
+    /// The props' share of the battle's digest: how many stand, and the pose
+    /// of each that is not standing as it was authored (shoved, added, put
+    /// back by a collapse). A prop still in its authored pose is held by the
+    /// authored props' digest, taken once, so it costs a comparison, not a
+    /// hash.
+    pub fn digest_props(&self, d: &mut crate::digest::Digest) {
+        d.u64(self.authored_digest);
+        let mut standing = 0u64;
+        for p in self.props() {
+            standing += 1;
+            let pose = pose_bits(p);
+            if self.authored_poses.get(p.id as usize) != Some(&pose) {
+                digest_pose(d, p);
+            }
+        }
+        d.u64(standing);
+    }
+
     /// Props whose footprint may reach within `radius` of `center`.
     pub fn props_near(&self, center: V2, radius: f64) -> Vec<&Prop> {
         let mut ids = Vec::new();
@@ -918,4 +949,23 @@ fn bridge_contains(b: &Bridge, p: V2) -> bool {
         half: v2(b.half_extents[0], b.half_extents[1]),
     }
     .contains(p, 0.0)
+}
+
+/// A prop's pose, bit for bit.
+fn pose_bits(p: &Prop) -> [u64; 4] {
+    [
+        p.center.x.to_bits(),
+        p.center.y.to_bits(),
+        p.yaw.to_bits(),
+        p.base_z.to_bits(),
+    ]
+}
+
+/// A prop and its pose, into `d`.
+fn digest_pose(d: &mut crate::digest::Digest, p: &Prop) {
+    d.u64(p.id as u64)
+        .f64(p.center.x)
+        .f64(p.center.y)
+        .f64(p.yaw)
+        .f64(p.base_z);
 }
