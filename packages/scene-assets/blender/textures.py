@@ -1169,6 +1169,27 @@ def grille():
                  coverage=cover)
 
 
+@recipe("railing", tile=1.0, wear=(0.105, 0.046, 0.02, 0.9))
+def railing():
+    """A railing's pickets, as a far railing shows them: 3 cm square bars 12.5 cm apart,
+    their axes at 1/16 m and every 1/8 m from it, in dark paint that rusts where it wears.
+    Its coverage is the bars alone: the rails, posts and spear heads are the model's, so a
+    near tier's bars (geometry at the same places) and a far tier's panel agree. A cutout's
+    recipe."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    px = 1.0 / SIZE
+    # half a bar's width, in tiles (metres): stouter than a near picket, so a far run reads as dark
+    # iron and not as a grey mesh
+    bar_r = 0.015
+    bx = np.abs((xx * 8) % 1.0 - 0.5) / 8  # to the nearest bar's axis
+    cover = smoothstep(bar_r + px / 2, bar_r - px / 2, bx)
+    face = np.clip((bar_r - bx) / 0.004, 0, 1)  # a flat face, its arrises rounded
+    mottle = fbm((6, 12), 3321, 4)
+    col = np.broadcast_to(np.array((0.03, 0.032, 0.032)), (SIZE, SIZE, 3)) * (0.85 + 0.3 * mottle)[..., None]
+    return Baked(col, chips(3323, 16, bias=0.1), normals_from_height(blur(face * 2.0), 1.0), 1.0, 0.5 + 0.2 * mottle, 0.0, 0.0,
+                 coverage=cover)
+
+
 @recipe("perforated", tile=0.5, wear=(0.105, 0.046, 0.02, 0.9))
 def perforated():
     """Perforated steel sheet: 25 mm round holes staggered 42 mm apart in plate painted a dark

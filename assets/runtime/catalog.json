@@ -319,6 +319,17 @@
       "kind": "static",
       "unit": "kit"
     },
+    "courtyard_wall": {
+      "bundle": "a6d8d33945e7bd6c0ce2a1a9481b24e25b75980f6aa9c091df7b57be00fdd947",
+      "footprint_half_m": [
+        1.25,
+        0.125,
+        1
+      ],
+      "kind": "static",
+      "scenery": "courtyard_wall",
+      "unit": "scenery"
+    },
     "crate_stack": {
       "bundle": "44e48209a221ac8b04be72dbff9bf05d42dedbfd7338329f8d399af2634ae142",
       "footprint_half_m": [
@@ -569,6 +580,17 @@
       "scenery": "hydrant",
       "unit": "scenery"
     },
+    "iron_railing": {
+      "bundle": "abf669a5b71ce42df5fb8353616144286e11aed15c1bf61f674ce92029eb1f1a",
+      "footprint_half_m": [
+        0.75,
+        0.05,
+        0.75
+      ],
+      "kind": "static",
+      "scenery": "iron_railing",
+      "unit": "scenery"
+    },
     "jeep": {
       "bundle": "6dd05fcb19f1229c1603d4b9ee6eebe4fdd5a00efdb5bf3fc39f589eb7c0c481",
       "kind": "articulated",
@@ -707,6 +729,17 @@
       ],
       "kind": "static",
       "scenery": "playground_frame",
+      "unit": "scenery"
+    },
+    "plinth_railing": {
+      "bundle": "0b54da722198b8f9cc80b2439a0e4072938db331a00b48e3b2af6bb2954ce9ea",
+      "footprint_half_m": [
+        0.75,
+        0.2,
+        0.9
+      ],
+      "kind": "static",
+      "scenery": "plinth_railing",
       "unit": "scenery"
     },
     "recon": {

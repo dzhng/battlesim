@@ -21,7 +21,9 @@ China:
   laundry_poles quilts airing and shirts on hangers between two posts; [3.0, 0.15, 1.0]
   bench_china   lacquered slats on granite ends; the bench's box
   bins_china    four lidded bins in the sorting colours; the bins' box
+  courtyard_wall  a rendered yard wall on a brick plinth, tiled coping, piers; a 2.5 m module; [1.25, 0.125, 1.0]
 New York:
+  iron_railing  black wrought-iron pickets between posts, a 1.5 m module; [0.75, 0.05, 0.75]
   chainlink_fence  tall chain-link between posts, a 3 m module; [1.5, 0.05, 1.8]
   basketball_hoop  a pole, perforated backboard, rim and chain net facing -y; [0.9, 0.6, 1.95]
   basketball_court half a court, its baseline at -x; [7.0, 7.5, 0.02]
@@ -34,6 +36,7 @@ Paris:
   petanque_pitch  a stabilised-gravel boulodrome in timber edging; [7.5, 2.0, 0.02]
   bench_paris   the city's park bench, slats and iron all green; the bench's box
   bins_paris    two of the city's green litter hoops with their bags; the bins' box
+  plinth_railing  green iron pickets on a low limestone wall, a 1.5 m module; [0.75, 0.2, 0.9]
 
 A piece is capped at 1 MiB raw (specs/courtyards/README.md), so its recipes are
 embedded at `TEXTURE_PX`. The battle fits each placed box from the authored one.
@@ -723,7 +726,86 @@ def bins_china():
     return [hx, hy, hz]
 
 
+@kind
+def courtyard_wall():
+    """A residential compound's yard wall, 2 m high: pale grey render over a grey-brick
+    plinth, a coping of small grey tiles pitched to a ridge, and a rendered pier at each
+    end of the 2.5 m module on a brick base, capped. The piers straddle the module's ends,
+    so repeated modules share them and a wall shortened to fit its run keeps a pier at each
+    end."""
+    hx, hy, hz = 1.25, 0.125, 1.0
+    # roughcast, not `plaster`: plaster's cracks are big enough to repeat visibly module to module
+    render = textured("wall_render", "roughcast", colour=(0.6, 0.59, 0.56), chip=0.4, dirt=0.6, rise=0.6, streak=0.3,
+                      mottle=0.15)
+    brick = textured("wall_brick", "facing_brick_pale", colour=(0.16, 0.16, 0.155), chip=0.3, dirt=0.5, rise=0.4,
+                     streak=0.2, mottle=0.1)
+    tile = textured("wall_tile", "roof_tile", colour=(0.07, 0.072, 0.075), chip=0.2, dirt=0.0, streak=0.0, lichen=0.3)
+    plinth, eave, ridge = 0.45, 1.8, 1.96  # the plinth's top; the coping's foot and ridge
+    thick, pier_w = 0.18, 0.18  # the wall's thickness; a pier's width along the wall
+    box("plinth", (2 * hx, thick + 0.02, plinth), (0, 0, plinth / 2), brick, root)
+    box("body", (2 * hx, thick, eave - plinth), (0, 0, (plinth + eave) / 2), render, root)
+    # the coping: a tiled saddle out to the box either side, a rolled ridge along its top
+    prism("coping", [(-hy, eave - 0.01), (hy, eave - 0.01), (hy, eave + 0.03), (0.0, ridge), (-hy, eave + 0.03)], 2 * hx,
+          (0, 0, 0), tile, root, rot=(0, 0, math.pi / 2))
+    box("ridge", (2 * hx, 0.06, 0.035), (0, 0, ridge + 0.005), tile, root, lods=(0, 1, 2))
+    for k, s in enumerate((-1, 1)):
+        x = s * hx
+        box(f"pier_base_{k}", (pier_w, 2 * hy, plinth + 0.03), (x, 0, (plinth + 0.03) / 2), brick, root, bevel=0.006)
+        box(f"pier_{k}", (pier_w, 2 * hy - 0.02, ridge - plinth), (x, 0, (plinth + ridge) / 2), render, root, bevel=0.006)
+        box(f"pier_cap_{k}", (pier_w, 2 * hy, 0.04), (x, 0, 2 * hz - 0.02), tile, root, bevel=0.006, lods=(0, 1, 2))
+    return [hx, hy, hz]
+
+
 # ------------------------------------------------------------------ New York
+def _iron(prefix, colour):
+    """A railing's painted iron in `colour`: plain paint for its posts, rails and near
+    pickets, and the `railing` cutout in the same paint for its far pickets. Both are
+    unmetallic, barely worn and barely dusty, so the paint reads one colour near and far:
+    on parts this thin a worn edge is all rust, and a dust film turns black iron brown."""
+    iron = flat_paint(f"{prefix}_iron", colour, rough=0.5, wear=0.05, grime=0.05)
+    bars = textured(f"{prefix}_bars", "railing", colour=colour, chip=0.1, dirt=0.05, rise=0.4, streak=0.0, grain=0.0,
+                    coverage=("cutout", 0.5))
+    return iron, bars
+
+
+def _railing(prefix, hx, base, top, iron, bars, post, finial, rails, foot=None):
+    """A railing module 2 * `hx` long: square pickets 12.5 cm apart from `base` to `top`,
+    spear heads on them, `rails` (heights) through them, and a post `post` (width, height)
+    straddling each end, standing from `foot` (else `base`) under a `finial` (radius, height).
+    The pickets are geometry on the nearest tier and a cutout panel (`railing`, its bars at
+    the same places) beyond, where bars thinner than a pixel would crawl."""
+    n = int(round(2 * hx * 8))
+    for k in range(n):
+        x = -hx + (k + 0.5) / 8
+        box(f"{prefix}_picket_{k}", (0.025, 0.025, top - base), (x, 0, (base + top) / 2), iron, root, lods=(0,))
+        cyl(f"{prefix}_spear_{k}", 0.022, 0.08, (x, 0, top + 0.04), "Z", iron, root, seg=4, min_seg=4, r2=0.0,
+            rot=(0, 0, math.pi / 4), lods=(0,))
+    sheet(f"{prefix}_pickets", 2 * hx - post[0], top + 0.04 - base, (0, 0, base), bars, root, lods=(1, 2, 3))
+    for j, z in enumerate(rails):  # the top rail on every tier: far off, it and the posts say "railing"
+        lods = TIERS if j == len(rails) - 1 else (0, 1, 2)
+        box(f"{prefix}_rail_{j}", (2 * hx, 0.03, 0.035), (0, 0, z), iron, root, lods=lods)
+    w, h = post
+    r, fh = finial
+    for k, s in enumerate((-1, 1)):
+        x = s * hx
+        z0 = base if foot is None else foot
+        box(f"{prefix}_post_{k}", (w, w, h - z0), (x, 0, (z0 + h) / 2), iron, root, bevel=0.005)
+        box(f"{prefix}_collar_{k}", (w + 0.02, w + 0.02, 0.025), (x, 0, h - 0.0125), iron, root, lods=(0, 1))
+        cyl(f"{prefix}_finial_{k}", r, fh, (x, 0, h + fh / 2), "Z", iron, root, seg=8, r2=0.004, lods=(0, 1, 2))
+
+
+@kind
+def iron_railing():
+    """A New York areaway railing in black wrought iron, a 1.5 m module: square pickets
+    with spear heads between a bottom rail and a top rail, a square post at each end
+    (shared with the next module) under a spike finial."""
+    hx, hy, hz = 0.75, 0.05, 0.75
+    iron, bars = _iron("ny_railing", (0.014, 0.015, 0.015))
+    _railing("rail", hx, 0.06, 1.36, iron, bars, post=(0.06, 1.42), finial=(0.035, 2 * hz - 1.42), rails=(0.14, 1.28),
+             foot=0.0)
+    return [hx, hy, hz]
+
+
 @kind
 def chainlink_fence():
     """A ball court's tall chain-link fence: galvanised fabric between line posts 3 m
@@ -1105,6 +1187,26 @@ def bins_paris():
             bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
 
         mesh_part(f"bag_{k}", sack, bag, root, smooth=True)
+    return [hx, hy, hz]
+
+
+@kind
+def plinth_railing():
+    """A Paris courtyard's railing on a low wall: a plinth of dressed limestone with a
+    weathered coping, and on it dark green iron pickets with spear heads between two
+    rails, a 1.5 m module with a heavier post at each end (shared with the next) under a
+    pointed finial."""
+    hx, hy, hz = 0.75, 0.2, 0.9
+    stone = textured("paris_plinth", "ashlar", colour=(0.5, 0.46, 0.39), chip=0.4, dirt=0.6, rise=0.5, streak=0.5,
+                     mottle=0.1, lichen=0.15)
+    iron, bars = _iron("paris_railing", (0.012, 0.034, 0.022))
+    wall, coping = 0.5, 0.6  # the plinth's top, and its coping's
+    box("plinth", (2 * hx, 2 * hy - 0.06, wall), (0, 0, wall / 2), stone, root)
+    # the coping: a stone a little proud of the wall, its top falling either side to shed rain
+    prism("coping", [(-hy, wall), (hy, wall), (hy, wall + 0.06), (hy - 0.05, coping), (-hy + 0.05, coping),
+                     (-hy, wall + 0.06)], 2 * hx, (0, 0, 0), stone, root, rot=(0, 0, math.pi / 2))
+    _railing("rail", hx, coping, 1.68, iron, bars, post=(0.07, 1.72), finial=(0.04, 2 * hz - 1.72),
+             rails=(coping + 0.08, 1.6))
     return [hx, hy, hz]
 
 

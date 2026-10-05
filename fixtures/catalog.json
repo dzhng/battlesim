@@ -315,8 +315,7 @@
           "appearance": {
             "drawn_by": "courtyard_wall",
             "map_only": true,
-            "modular": true,
-            "status": "systems_only"
+            "modular": true
           },
           "body": {
             "armor": 1.0,
@@ -632,8 +631,7 @@
           "appearance": {
             "drawn_by": "iron_railing",
             "map_only": true,
-            "modular": true,
-            "status": "systems_only"
+            "modular": true
           },
           "body": {
             "armor": 1.0,
@@ -987,8 +985,7 @@
           "appearance": {
             "drawn_by": "plinth_railing",
             "map_only": true,
-            "modular": true,
-            "status": "systems_only"
+            "modular": true
           },
           "body": {
             "armor": 1.0,
@@ -2307,8 +2304,7 @@
       "appearance": {
         "drawn_by": "courtyard_wall",
         "map_only": true,
-        "modular": true,
-        "status": "systems_only"
+        "modular": true
       },
       "body": {
         "armor": 1.0,
@@ -2624,8 +2620,7 @@
       "appearance": {
         "drawn_by": "iron_railing",
         "map_only": true,
-        "modular": true,
-        "status": "systems_only"
+        "modular": true
       },
       "body": {
         "armor": 1.0,
@@ -2979,8 +2974,7 @@
       "appearance": {
         "drawn_by": "plinth_railing",
         "map_only": true,
-        "modular": true,
-        "status": "systems_only"
+        "modular": true
       },
       "body": {
         "armor": 1.0,

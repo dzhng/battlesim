@@ -71,17 +71,17 @@
     "courtyard_wall": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "medium", "topples": true, "hp": 250, "cover_tier": "medium"},
       "destroyed": {"into": {"prop": "rubble", "height_m": 0.4}},
-      "appearance": {"drawn_by": "courtyard_wall", "status": "systems_only", "modular": true, "map_only": true}
+      "appearance": {"drawn_by": "courtyard_wall", "modular": true, "map_only": true}
     },
     "iron_railing": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "topples": true, "hp": 30},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "iron_railing", "status": "systems_only", "modular": true, "map_only": true}
+      "appearance": {"drawn_by": "iron_railing", "modular": true, "map_only": true}
     },
     "plinth_railing": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "medium", "topples": true, "hp": 150, "cover_tier": "light"},
       "destroyed": {"into": {"prop": "rubble", "height_m": 0.3}},
-      "appearance": {"drawn_by": "plinth_railing", "status": "systems_only", "modular": true, "map_only": true}
+      "appearance": {"drawn_by": "plinth_railing", "modular": true, "map_only": true}
     }
   }
 }
