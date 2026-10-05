@@ -7,6 +7,19 @@ export async function run(ctx) {
   await page.goto(ctx.url);
   await page.locator(".mw-plan svg").waitFor({ timeout: 120000 });
   const shot = async (name) => writeFile(ctx.evidencePath(`${name}.png`), await page.screenshot());
+  /** Inspect the selected feature and wait for its crop: a plan narrower than
+   *  the whole map shown before it (the map's width depends on its size tier). */
+  const inspectSelection = async () => {
+    const plan = page.locator(".mw-plan svg");
+    const whole = Number((await plan.getAttribute("viewBox")).split(" ")[2]);
+    await page.getByRole("button", { name: "Inspect selection" }).click();
+    await page.waitForFunction(
+      (whole) =>
+        Number(document.querySelector(".mw-plan svg")?.getAttribute("viewBox")?.split(" ")[2]) <
+        whole,
+      whole,
+    );
+  };
   await shot("overview");
   const snapshot = await page.evaluate(async () =>
     (await fetch("/__map-workbench/snapshot")).json(),
@@ -41,15 +54,7 @@ export async function run(ctx) {
       .querySelector('.mw-inspection button[aria-pressed="true"]')
       ?.textContent.includes("Saved baseline"),
   );
-  await page.getByRole("button", { name: "Inspect selection" }).click();
-  await page.waitForFunction(() => {
-    const box = document
-      .querySelector(".mw-plan svg")
-      ?.getAttribute("viewBox")
-      ?.split(" ")
-      .map(Number);
-    return box && box[2] < 6000;
-  });
+  await inspectSelection();
   const baselinePlan = await page.locator(".mw-plan").innerHTML();
   await shot("baseline-before-edit");
   await control.fill(String(Number(saved) + 10));
@@ -119,15 +124,7 @@ export async function run(ctx) {
     .first()
     .getAttribute("data-feature-id");
   await page.getByLabel("Inspect feature").selectOption(currentDistrict);
-  await page.getByRole("button", { name: "Inspect selection" }).click();
-  await page.waitForFunction(() => {
-    const box = document
-      .querySelector(".mw-plan svg")
-      ?.getAttribute("viewBox")
-      ?.split(" ")
-      .map(Number);
-    return box && box[2] < 6000;
-  });
+  await inspectSelection();
   await page.locator(".mw-inspection").scrollIntoViewIfNeeded();
   await shot("district-detail");
   ctx.check(
