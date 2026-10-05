@@ -686,6 +686,9 @@ fn a_member_whose_journey_outlasts_the_allowance_does_not_unplace_the_group() {
     // move and runs out during the squad's walk.
     let mut rules = crate::common::scenario_rules();
     rules["navigation"]["move_validation_work"] = json!(10000);
+    // Keep the entire walk in the rehearsal to exercise budget exhaustion,
+    // independently of the ordinary clear-travel shortcut.
+    rules["navigation"]["move_rehearsal_m"] = json!(300);
     let setup: ScenarioDefinition = serde_json::from_value(json!({
         "map": {"size": [2000, 200], "fog_cell_m": 8, "height_grid_m": 4,
             "slope_cutoff_deg": 35, "props": []},
@@ -939,6 +942,177 @@ fn a_vehicle_standing_in_the_way_refuses_only_the_member_it_stops() {
             "the refused jeep never set off"
         );
     }
+}
+
+#[test]
+fn four_infantry_squads_and_a_supply_truck_can_move_across_open_ground() {
+    let setup = crate::common::scenario(
+        &json!({"size":[1600,400], "fog_cell_m":8, "height_grid_m":4,
+            "slope_cutoff_deg":35, "props":[]})
+        .to_string(),
+        json!([
+            {"side":"blue", "kind":"rifle", "position":[100,120]},
+            {"side":"blue", "kind":"rifle", "position":[100,160]},
+            {"side":"blue", "kind":"rifle", "position":[100,200]},
+            {"side":"blue", "kind":"rifle", "position":[100,240]},
+            {"side":"blue", "kind":"supply", "position":[100,280], "yaw":0}
+        ]),
+        json!([]),
+    );
+    for distance in [500.0, 700.0, 900.0, 1400.0] {
+        let mut battle = Battle::new(&setup, 1);
+        let goal = [100.0 + distance, 200.0];
+        let preview = battle
+            .preview_move(
+                Side::Blue,
+                &contract::command::MovePreviewRequest {
+                    units: (0..5).map(UnitId).collect(),
+                    goal,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        assert!(
+            preview.iter().all(|d| d.placed),
+            "cursor preview at {distance} m: {preview:?}"
+        );
+        let ack = battle.accept(CommandEnvelope {
+            side: Side::Blue,
+            seq: 1,
+            order: move_to(&[0, 1, 2, 3, 4], goal),
+            queued: false,
+        });
+        assert_eq!(
+            ack.error, None,
+            "open ground is reachable at {distance} m: {ack:?}"
+        );
+        let destinations = ack.placement.unwrap().destinations;
+        assert!(destinations.iter().all(|d| d.placed), "{destinations:?}");
+        arrive(&mut battle, &destinations, 20 * 60);
+    }
+}
+
+#[test]
+fn a_mixed_infantry_group_can_take_a_fast_road_move_and_upgrade_its_normal_move() {
+    let setup = crate::common::scenario(
+        &json!({"size":[1600,400], "fog_cell_m":8, "height_grid_m":4,
+        "slope_cutoff_deg":35, "surfaces":[
+            {"kind":"road", "shape":{"kind":"stroke", "points":[[20,350],[1580,350]], "width_m":8}}
+        ]})
+        .to_string(),
+        json!([
+            {"side":"blue", "kind":"rifle", "position":[100,120]},
+            {"side":"blue", "kind":"rifle", "position":[100,160]},
+            {"side":"blue", "kind":"rifle", "position":[100,200]},
+            {"side":"blue", "kind":"rifle", "position":[100,240]},
+            {"side":"blue", "kind":"supply", "position":[100,280], "yaw":0}
+        ]),
+        json!([]),
+    );
+    for (route, apply_before_upgrade) in [
+        (RoutePolicy::Fastest, false),
+        (RoutePolicy::Shortest, false),
+        (RoutePolicy::Shortest, true),
+    ] {
+        let mut battle = Battle::new(&setup, 1);
+        let goal = [1000.0, 200.0];
+        let mut order = move_to(&[0, 1, 2, 3, 4], goal);
+        if let Order::Move { route: policy, .. } = &mut order {
+            *policy = route;
+        }
+        let preview = battle
+            .preview_move(
+                Side::Blue,
+                &contract::command::MovePreviewRequest {
+                    units: (0..5).map(UnitId).collect(),
+                    goal,
+                    route,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        assert!(preview.iter().all(|d| d.placed), "{route:?}: {preview:?}");
+        let ack = battle.accept(CommandEnvelope {
+            side: Side::Blue,
+            seq: 1,
+            order,
+            queued: false,
+        });
+        assert_eq!(ack.error, None, "{route:?}: {ack:?}");
+        let destinations = ack.placement.unwrap().destinations;
+        assert!(destinations.iter().all(|d| d.placed), "{destinations:?}");
+        if route == RoutePolicy::Shortest {
+            if apply_before_upgrade {
+                battle.step();
+            }
+            let upgrade = battle.accept(CommandEnvelope {
+                side: Side::Blue,
+                seq: 2,
+                queued: false,
+                order: Order::UpgradeMove {
+                    gesture: 1,
+                    route: RoutePolicy::Fastest,
+                },
+            });
+            assert_eq!(
+                upgrade.error, None,
+                "applied={apply_before_upgrade}: {upgrade:?}"
+            );
+        }
+        let mut truck_used_road = false;
+        for _ in 0..20 * 60 * battle.rules().tick_hz {
+            battle.step();
+            let truck = battle.unit(UnitId(4)).unwrap();
+            truck_used_road |= (truck.position.y - 350.0).abs() < 4.0;
+            if battle
+                .observe(Side::Blue)
+                .own
+                .iter()
+                .all(|u| u.goal.is_none())
+            {
+                break;
+            }
+        }
+        assert!(truck_used_road, "the fast move must actually use the road");
+        arrive(&mut battle, &destinations, 1);
+    }
+}
+
+#[test]
+fn a_move_cannot_skip_a_trucks_turn_between_steep_banks() {
+    let mut setup = crate::common::scenario(
+        &json!({"size":[1000,500], "fog_cell_m":8, "height_grid_m":1,
+        "slope_cutoff_deg":35, "relief":[
+                {"kind":"mesa", "rect":[0,24,490,476], "height_m":100, "side_degrees":89},
+                {"kind":"mesa", "rect":[514,0,486,500], "height_m":100, "side_degrees":89}
+        ]})
+        .to_string(),
+        json!([{"side":"blue", "kind":"supply", "position":[100,12], "yaw":0}]),
+        json!([]),
+    );
+    let mut rules = crate::common::scenario_rules();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "supply",
+        json!({
+            "mobility":{"wheeled":{"offroad_kmh":25, "road_kmh":76,
+                "turn_deg_s":40, "turning_radius_m":50, "reverse_fraction":0.35}}
+        }),
+    );
+    setup.rules = serde_json::from_value(rules).unwrap();
+    let mut battle = Battle::new(&setup, 1);
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        queued: false,
+        order: move_to(&[0], [502.0, 400.0]),
+    });
+    assert_eq!(
+        ack.error,
+        Some(OrderError::NoValidDestination),
+        "a geometric L-shaped path is insufficient: {ack:?}"
+    );
 }
 
 #[test]

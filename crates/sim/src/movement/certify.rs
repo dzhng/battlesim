@@ -1,9 +1,8 @@
 //! Move admission runs the real movement owner on isolated, side-known state.
-//! It drives the two ends of each leg, where bodies jam, squeeze and settle,
-//! and the approach to stationary hulls and props on the way; the stretch between
-//! is taken on the route the planner found ([`carry`]), so what a move costs
-//! to rehearse does not grow with how far it goes. Planning still pays for
-//! the route it must find.
+//! It drives the two ends of each leg, vehicle bends and the approach to
+//! stationary hulls and props; straight stretches between checkpoints are taken
+//! on the planned route ([`carry`]). Rehearsal cost follows physical interactions
+//! rather than travel distance. Planning still pays for the route it must find.
 use contract::command::MovePreviewRequest;
 use contract::map::MoverClass;
 use contract::observation::MoveState;
@@ -45,8 +44,8 @@ fn distances_to_end(way: &[V2]) -> Vec<f64> {
 
 /// Carry `units[index]` along its planned route between physical checkpoints:
 /// to `move_rehearsal_m` short of the route's end, or of
-/// the first stationary vehicle or prop its hull meets. Navigation may
-/// admit pushable props, but only movement can demonstrate their shoves.
+/// the next vehicle bend, stationary vehicle or prop its hull meets.
+/// Navigation may admit pushable props, but only movement can demonstrate their shoves.
 /// A hull is set down on the route heading the way it was
 /// travelling, a squad in file along it, and where other bodies stand there
 /// it queues behind them. `false`, and nothing changes, if there is no
@@ -87,6 +86,15 @@ fn carry(
         }
     }
     if let Some(hull) = unit.hull_box() {
+        // Navigation proves standing clearance, not steering. Rehearse each
+        // bend even when terrain, rather than a prop, constrains its turn.
+        for (k, w) in way.windows(3).enumerate() {
+            let incoming = (w[1] - w[0]).normalized();
+            let outgoing = (w[2] - w[1]).normalized();
+            if incoming.dot(outgoing) < 1.0 - 1e-9 {
+                stop = stop.max(left[k + 1] + reach);
+            }
+        }
         for (k, w) in way.windows(2).enumerate() {
             let ab = w[1] - w[0];
             let length = ab.length();
@@ -313,6 +321,9 @@ pub(crate) fn certify_orders(
         crate::knowledge::SideKnowledge::new(ctx.seed, ctx.knowledge[own.index()].ground().layer());
     let mut knowledge = [&opposing; 2];
     knowledge[own.index()] = ctx.knowledge[own.index()];
+    // Only overlapping departure and arrival rehearsals require the whole
+    // journey. Road choice is independent of how much travel proves a move.
+    let full_rehearsal_m = 2.0 * ctx.rules.navigation.move_rehearsal_m;
     while active.iter().any(|v| *v) && remaining > 0 {
         // New combined plans need work left to restore failures and reprove
         // survivors. Each pass removes at least one failure or finishes.
@@ -398,8 +409,7 @@ pub(crate) fn certify_orders(
                     legs[i] = unit.movement_goal().map(|(goal, _)| {
                         (
                             orders,
-                            (goal - unit.position.xy())
-                                .outside_radius(ctx.rules.navigation.road_leg_m),
+                            (goal - unit.position.xy()).outside_radius(full_rehearsal_m),
                             unit.position.xy(),
                         )
                     });
@@ -429,7 +439,7 @@ pub(crate) fn certify_orders(
             for index in 0..planner.charges().len() {
                 let charge = planner.charges()[index];
                 if charge.new_goal && !reserve_repair {
-                    if charge.distance_m <= ctx.rules.navigation.road_leg_m {
+                    if charge.distance_m <= full_rehearsal_m {
                         remaining = remaining.saturating_sub(charge.work);
                     }
                     continue;
