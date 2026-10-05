@@ -186,3 +186,28 @@ test("the loader refuses a family's oversized looks before fetching any", async 
   expect(fetched).toEqual(["/catalog.json"]);
   expect(loader.installed).toBe(catalog);
 });
+
+// Court and garden pieces load on every map of their region (and the shared
+// ones on every map), so each is held to a fixed share of the download: at
+// most 1 MiB of raw art, every look of every piece.
+const PIECE_MAX_RAW_BYTES = 2 ** 20;
+
+test("every court and garden piece's art is at most 1 MiB raw, in every region's look", () => {
+  const catalog = json("assets/runtime/catalog.json") as RuntimeCatalog;
+  type Rows = { props: Record<string, { appearance: { drawn_by: string } }> };
+  const rows = ["courts", "gardens"].flatMap((file) =>
+    Object.values((json(`fixtures/props/city/${file}.json`) as Rows).props),
+  );
+  const sceneries = new Set(rows.map((row) => row.appearance.drawn_by));
+  const looks = Object.entries(catalog.appearances).filter(
+    ([, entry]) => entry.scenery !== undefined && sceneries.has(entry.scenery),
+  );
+  // Every piece has art: a missing look would pass a size check by absence.
+  expect(new Set(looks.map(([, entry]) => entry.scenery))).toEqual(sceneries);
+  for (const [name, entry] of looks) {
+    const raw =
+      catalog.gzip?.[entry.bundle]?.raw_bytes ??
+      read(`assets/runtime/${bundlePath(entry.bundle)}`).byteLength;
+    expect(raw, name).toBeLessThanOrEqual(PIECE_MAX_RAW_BYTES);
+  }
+});
