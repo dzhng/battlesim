@@ -237,9 +237,13 @@ export async function armyJourney(ctx) {
   await page.mouse.move(0, 500);
   await page.evaluate(() => window.__lab.route.select([]));
   ctx.check(
-    "clearing selection preserves army cards and removes the toolbar",
+    "clearing selection preserves army cards and disables every command",
     (await roster.count()) === own.length &&
-      (await page.getByRole("toolbar", { name: "Commands" }).count()) === 0,
+      (await page
+        .getByRole("toolbar", { name: "Commands" })
+        .evaluate((toolbar) =>
+          [...toolbar.querySelectorAll("button")].every((button) => button.disabled),
+        )),
   );
   await snapshot(ctx, page, "army-player-unselected.png");
   const rifle = own.find((unit) => unit.kind === "rifle");

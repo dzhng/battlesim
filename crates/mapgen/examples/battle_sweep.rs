@@ -431,12 +431,18 @@ mod tests {
             .collect();
         assert_eq!(
             rows.len(),
-            18,
+            MapType::ALL.len() * MapSize::ALL.len() * 2,
             "every exact request needs an outcome, including refusals"
         );
         for (index, row) in rows.iter().enumerate() {
-            assert_eq!(row["request"]["type"], MapType::ALL[index / 6].name());
-            assert_eq!(row["request"]["size"], MapSize::ALL[(index / 2) % 3].name());
+            assert_eq!(
+                row["request"]["type"],
+                MapType::ALL[index / (MapSize::ALL.len() * 2)].name()
+            );
+            assert_eq!(
+                row["request"]["size"],
+                MapSize::ALL[(index / 2) % MapSize::ALL.len()].name()
+            );
             assert_eq!(row["request"]["seed"], (index % 2 + 1).to_string());
             assert_eq!(row["status"], "refused");
             assert_eq!(row["stage"], "generation");

@@ -17,6 +17,7 @@
   box-sizing: border-box;
   padding: 10px 12px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
 }
 /* The HUD's panel look (hud.css `.hud-panel`, on every lab panel) owns the

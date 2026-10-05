@@ -72,6 +72,13 @@ export function pointerIntent(
   const queued = pick.shift;
   const units = selected.map((u) => u.id);
   const armed = () => reach("attack", selected, catalog).map((u) => u.id);
+  if (mode === "attack_ground") {
+    if (!pick.ground) return { kind: "blocked", disarm: false };
+    const units = armed();
+    return units.length
+      ? { kind: "attack", units, target: { kind: "ground", point: [...pick.ground, 0] }, queued }
+      : { kind: "blocked", disarm: true };
+  }
   if (isAttackMoveClick(pick)) {
     return pick.ground
       ? { kind: "attack_move", units, goal: pick.ground, queued }
@@ -100,12 +107,6 @@ export function pointerIntent(
   }
   if (!pick.ground || mode === "garrison") return { kind: "blocked", disarm: false };
   if (mode === "attack_move") return { kind: "attack_move", units, goal: pick.ground, queued };
-  if (mode === "attack_ground") {
-    const units = armed();
-    return units.length
-      ? { kind: "attack", units, target: { kind: "ground", point: [...pick.ground, 0] }, queued }
-      : { kind: "blocked", disarm: true };
-  }
 
   return {
     kind: "move",

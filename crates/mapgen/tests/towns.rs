@@ -41,7 +41,7 @@ fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
 
 fn every_settlement(mut check: impl FnMut(&str, &MapPlan, &SettlementPlan)) {
     for map_type in MapType::ALL {
-        for size in MapSize::ALL {
+        for size in [MapSize::Medium, MapSize::Large, MapSize::Xl] {
             for seed in SEEDS {
                 let plan = plan(map_type, size, seed);
                 for settlement in &plan.settlements {
@@ -352,7 +352,7 @@ fn side_roads(plan: &MapPlan, settlement: &SettlementPlan) -> Vec<Point> {
 #[test]
 fn a_city_has_roads_out_that_miss_its_central_junction() {
     let (mut total, mut cities) = (0, 0);
-    for size in MapSize::ALL {
+    for size in [MapSize::Medium, MapSize::Large, MapSize::Xl] {
         for seed in SEEDS {
             let plan = plan(MapType::Metro, size, seed);
             let city = &plan.settlements[0];
@@ -373,7 +373,7 @@ fn a_city_has_roads_out_that_miss_its_central_junction() {
 /// ground at an angle to the first.
 #[test]
 fn a_large_town_has_a_second_road_at_an_angle() {
-    for size in MapSize::ALL {
+    for size in [MapSize::Medium, MapSize::Large, MapSize::Xl] {
         for seed in SEEDS {
             let plan = plan(MapType::Mixed, size, seed);
             let town = &plan.settlements[0];

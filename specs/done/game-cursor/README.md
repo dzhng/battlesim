@@ -1,6 +1,6 @@
 # Contextual game cursor and building orders
 
-The arrow describes the useful action available to a right-click, using the ordering side's knowledge. Ordinary movement has a plain arrow. Other actions add a small badge beside the same fixed arrow tip, following the user's approved **Arrow + action** direction.
+The arrow describes the useful pointer action (left-click confirms armed attack ground; right-click cancels it), using the ordering side's knowledge. Ordinary movement has a plain arrow. Other actions add a small badge beside the same fixed arrow tip, following the user's approved **Arrow + action** direction.
 
 A building click expresses one intent for the complete selection: a fresh entrant is the squad with the shortest reachable navigation route, and its selected companions gather on the group's approach side, including cars and tanks. Compatible existing holds and entries are considered before fresh candidates, subject to earlier queued work and bounded proof. An unavailable entry becomes nearby movement. Useful parts execute when others fail; failed replacement movers hold, while failed queued movers keep their earlier work.
 

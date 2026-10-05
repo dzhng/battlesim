@@ -65,10 +65,10 @@ fn a_generated_bridge_is_stepped_onto_from_dry_land_and_carries_the_roads_over()
     let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
     let mut bridges = 0;
     for (map_type, size, seed) in [
-        (MapType::Open, MapSize::Small, 3),
-        (MapType::Mixed, MapSize::Small, 4),
-        (MapType::Metro, MapSize::Small, 5),
-        (MapType::Open, MapSize::Medium, 1),
+        (MapType::Open, MapSize::Medium, 3),
+        (MapType::Mixed, MapSize::Medium, 4),
+        (MapType::Metro, MapSize::Medium, 5),
+        (MapType::Open, MapSize::Large, 1),
     ] {
         let name = format!("{map_type:?} {size:?} seed {seed}");
         let (plan, map) = river_map(map_type, size, seed);

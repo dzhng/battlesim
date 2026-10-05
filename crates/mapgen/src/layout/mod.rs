@@ -24,15 +24,23 @@ use crate::{Diagnostic, DiagnosticCode, MapPlan};
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-13";
+pub const GENERATOR_VERSION: &str = "layout-14";
 
 pub use contract::generation::{GenerationRequest, MapSize, MapType};
 
 /// The request's own random stream of that name. The type and size are
-/// part of the key, so one seed gives each of the nine maps its own
+/// part of the key, so one seed gives each type/size combination its own
 /// layout, and each consumer draws without moving another's.
 pub(crate) fn stream(request: &GenerationRequest, name: &str) -> rng::Stream {
-    let (map_type, size) = (request.map_type.name(), request.size.name());
+    // Random namespaces stay with the existing extents when menu tiers move.
+    // This preserves the reviewed 6/8/10 km layouts under their new labels.
+    let size = match request.size {
+        MapSize::Small => "compact",
+        MapSize::Medium => "small",
+        MapSize::Large => "medium",
+        MapSize::Xl => "large",
+    };
+    let map_type = request.map_type.name();
     rng::Stream::new(request.seed.value(), &format!("{map_type}/{size}/{name}"))
 }
 
@@ -222,7 +230,8 @@ fn verify(context: &Context, plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
         "approach",
         format!(
             "the main settlement lacks {} m of open ground across {} m in a half",
-            presets.approach.depth_m, presets.approach.front_m
+            presets.approach.depth_m(context.extent),
+            presets.approach.front_m
         ),
     );
     let transit = &metrics.transit;

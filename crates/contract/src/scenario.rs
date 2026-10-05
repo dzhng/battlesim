@@ -247,8 +247,8 @@ pub struct NavigationRules {
     /// shorter initial routes and repeated searches spend this allowance.
     pub move_validation_work: u32,
     /// How much of each end of a leg certification drives, and of the
-    /// approach to an intermediate hull or prop: the stretch between is taken
-    /// on the route.
+    /// approach to a vehicle bend, intermediate hull or prop: the stretch
+    /// between is taken on the route.
     pub move_rehearsal_m: f64,
     /// Planning work every side's units share each tick: one unit is about
     /// one grid cell searched.

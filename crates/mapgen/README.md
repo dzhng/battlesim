@@ -24,7 +24,11 @@ a smaller playable rectangle cannot stand in for the complete rendered workload.
 [Layout](src/layout/) places settlements, rivers, roads, bridges and forests.
 [Presets](../../fixtures/map-presets.json) own construction choices and finite-work
 policy; [preset validation](src/layout/presets.rs) protects the physical and numeric
-constraints. A request pins preset and generator revisions. A mismatch is refused
+constraints. The size profile owns its central settlement class and surrounding settlement
+counts. Open-approach depth follows the playable extent, so compact maps retain
+room for the town and both opposing approaches. The shared
+[generation contract](../contract/src/generation.rs) owns tier names and extents.
+A request pins preset and generator revisions. A mismatch is refused
 rather than quietly producing a new battlefield.
 
 Named random streams isolate consumers: changing forest construction should not

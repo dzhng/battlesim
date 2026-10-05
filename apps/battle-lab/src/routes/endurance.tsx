@@ -89,7 +89,7 @@ export default function Endurance() {
             kind: "generated",
             request: generationRequest(
               wasm,
-              { type: "metro", size: "large", seed: "4" },
+              { type: "metro", size: "xl", seed: "4" },
               { presets, templates },
               config.limits,
             ),

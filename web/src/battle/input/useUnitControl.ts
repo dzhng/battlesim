@@ -1,7 +1,8 @@
 /** The one player command path: selection (double-click selects similar:
  * `selectSimilar.ts`), right-click moves (with the
  * double-click fast upgrade and Shift queueing), right-click on an identified
- * enemy or a contact's area to attack it, armed attack-move, reverse-move and attack-ground
+ * enemy or a contact's area to attack it, armed attack-move and reverse-move.
+ * Attack-ground confirms with left-click and cancels with right-click
  * (Ctrl+right-click attack-moves at once; a right-click behind a single
  * selected vehicle reverses), right-click on a building to garrison it (Shift
  * queues), leaving buildings, stop, the fire-policy toggle, deploy/pack, and
@@ -154,7 +155,15 @@ export function useUnitControl(
   const onPointer = useCallback(
     (pick: PointerPick, captured?: PointerIntent) => {
       if (!enabledRef.current) return;
-      if (pick.button === "left") {
+      if (
+        pick.button === "right" &&
+        (modeRef.current === "attack_ground" ||
+          (captured?.kind === "attack" && captured.target.kind === "ground"))
+      ) {
+        setMode("move");
+        return;
+      }
+      if (pick.button === "left" && modeRef.current !== "attack_ground") {
         const unit = pick.unit;
         const own = observationRef.current?.own ?? [];
         const kind = own.find((u) => u.id === unit)?.kind ?? null;

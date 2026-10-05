@@ -29,23 +29,26 @@ pub enum MapSize {
     Small,
     Medium,
     Large,
+    Xl,
 }
 
 impl MapSize {
-    pub const ALL: [MapSize; 3] = [MapSize::Small, MapSize::Medium, MapSize::Large];
+    pub const ALL: [MapSize; 4] = [MapSize::Small, MapSize::Medium, MapSize::Large, MapSize::Xl];
     pub fn name(self) -> &'static str {
         match self {
             MapSize::Small => "small",
             MapSize::Medium => "medium",
             MapSize::Large => "large",
+            MapSize::Xl => "xl",
         }
     }
     /// M04: the side of the square playable area. A user decision, not a preset.
     pub fn extent_m(self) -> f64 {
         match self {
-            MapSize::Small => 6_000.0,
-            MapSize::Medium => 8_000.0,
-            MapSize::Large => 10_000.0,
+            MapSize::Small => 4_000.0,
+            MapSize::Medium => 6_000.0,
+            MapSize::Large => 8_000.0,
+            MapSize::Xl => 10_000.0,
         }
     }
 }

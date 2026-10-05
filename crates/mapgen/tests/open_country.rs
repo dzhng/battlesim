@@ -25,7 +25,7 @@ const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");
 const RECIPES: &str = include_str!("../../../fixtures/encounters.json");
 const TYPES: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
-const SIZES: [MapSize; 3] = [MapSize::Small, MapSize::Medium, MapSize::Large];
+const SIZES: [MapSize; 3] = [MapSize::Medium, MapSize::Large, MapSize::Xl];
 /// Every cell runs these seeds: a claim about the open country is a claim
 /// about the generator, not one map.
 const SEEDS: [u64; 2] = [1, 2];
@@ -125,7 +125,7 @@ fn every_cell(mut check: impl FnMut(&Country)) {
             }
         }
     }
-    check(&country(MapType::Mixed, MapSize::Small, PLAYED));
+    check(&country(MapType::Mixed, MapSize::Medium, PLAYED));
 }
 
 /// The maps judged in the simulation's world: one of each type at the size
@@ -133,9 +133,9 @@ fn every_cell(mut check: impl FnMut(&Country)) {
 fn played_cells() -> Vec<Arc<Country>> {
     let mut cells: Vec<Arc<Country>> = TYPES
         .into_iter()
-        .map(|map_type| country(map_type, MapSize::Small, 1))
+        .map(|map_type| country(map_type, MapSize::Medium, 1))
         .collect();
-    cells.push(country(MapType::Mixed, MapSize::Small, PLAYED));
+    cells.push(country(MapType::Mixed, MapSize::Medium, PLAYED));
     cells
 }
 
@@ -646,11 +646,11 @@ fn the_halves_hold_about_the_same_of_each_thing() {
 /// furnishes another.
 #[test]
 fn the_same_request_furnishes_the_same_country() {
-    let first = generate(MapType::Mixed, MapSize::Small, PLAYED);
-    let again = generate(MapType::Mixed, MapSize::Small, PLAYED);
+    let first = generate(MapType::Mixed, MapSize::Medium, PLAYED);
+    let again = generate(MapType::Mixed, MapSize::Medium, PLAYED);
     let json = |plan: &MapPlan| serde_json::to_string(plan).unwrap();
     assert_eq!(json(&first.plan), json(&again.plan));
-    let other = country(MapType::Mixed, MapSize::Small, 1);
+    let other = country(MapType::Mixed, MapSize::Medium, 1);
     assert_ne!(
         serde_json::to_string(&first.plan.props).unwrap(),
         serde_json::to_string(&other.plan.props).unwrap()
@@ -853,7 +853,7 @@ fn no_sight_circle_is_unbroken_and_the_country_stays_open() {
         );
     }
     // The control: the map the owner played is the one that showed it.
-    let played = country(MapType::Mixed, MapSize::Small, PLAYED);
+    let played = country(MapType::Mixed, MapSize::Medium, PLAYED);
     let bare = circles(&played.bare_map, &played.bare, &rules, &played.name);
     // (Under `layout-9` a column also started with an unbroken circle
     // there. The seed is another map since the towns grew second roads, and
@@ -903,7 +903,7 @@ fn the_recorded_playable_jeep_gap_has_a_physical_and_published_sight_cut() {
     // current resolved rules, so fixture refresh cannot conceal the gap.
     let rules_json = sim::fixtures::game();
     let rules: Rules = serde_json::from_value(rules_json.clone()).unwrap();
-    let request = request(MapType::Mixed, MapSize::Small, 1);
+    let request = request(MapType::Mixed, MapSize::Medium, 1);
     let generated = mapgen::generate_map(
         &serde_json::to_string(&request).unwrap(),
         PRESETS,
@@ -974,7 +974,7 @@ fn the_recorded_playable_jeep_gap_has_a_physical_and_published_sight_cut() {
 }
 
 fn coverage_refusal(presets: &str, rules: &serde_json::Value, reason: &str) {
-    let request = serde_json::to_string(&request(MapType::Open, MapSize::Small, 1)).unwrap();
+    let request = serde_json::to_string(&request(MapType::Open, MapSize::Medium, 1)).unwrap();
     match mapgen::generate_map(&request, presets, TEMPLATES, &rules.to_string()) {
         mapgen::CompileOutcome::Error { diagnostics } => assert!(
             diagnostics
@@ -1037,7 +1037,7 @@ fn generation_refuses_an_unbounded_coverage_resolution() {
 
 #[test]
 fn real_ground_sight_is_cut_between_cells_at_edges_and_inside_an_unbuilt_town() {
-    let country = country(MapType::Mixed, MapSize::Small, 1);
+    let country = country(MapType::Mixed, MapSize::Medium, 1);
     let rules = rules();
     let prepared = PreparedMap::new(&country.map, &rules);
     let jeep = rules.catalog.by_id("jeep");
@@ -1111,7 +1111,7 @@ fn real_ground_sight_is_cut_between_cells_at_edges_and_inside_an_unbuilt_town() 
 /// Coverage additions must restore fairness measured from their final geometry.
 #[test]
 fn physical_coverage_keeps_the_recorded_metro_country_balanced() {
-    let country = generate(MapType::Metro, MapSize::Small, 3);
+    let country = generate(MapType::Metro, MapSize::Medium, 3);
     let measured = open_country::measure(&country.plan, &presets());
     assert!(
         measured.copses.fair && measured.trees.fair && measured.tree_line_m.fair,

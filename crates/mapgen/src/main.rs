@@ -22,7 +22,7 @@ the lane its widest hull drives. [output-directory] receives a saved map
 (fixtures/README.md): map.json with each building as its template and frame,
 SOURCES.json naming <catalogue.json>'s file as the map's library, and sites.json.
 `request` prints the generation request for a map type (open, mixed, metro), size
-(small, medium, large) and seed, pinned to this generator, the presets' revision and
+(small, medium, large, xl) and seed, pinned to this generator, the presets' revision and
 the catalogue's hash, under the limits of <generated-battle.json> (fixtures/generated-battle.json):
 the request the game makes for the same choice. [crop] is a settlement or district id of
 the plan, bridge-<n> for its nth bridge from 0, or x,y,width,height in metres.";

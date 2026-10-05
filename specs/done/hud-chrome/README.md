@@ -60,7 +60,8 @@ actually starts, rather than when a route merely changes.
 - Required-resource failure refuses play with the menu and manual Reload still
   available. Real `pagehide` is terminal for retained resources; restoring that
   document from the browser's back/forward cache requires Reload.
-- No selection preserves the army roster and hides commands. Replays expose
+- No selection preserves the army roster and command row, with every action
+  disabled, so selecting units does not move the deck. Replays expose
   cards and facts without command input. No selection count or capability
   fractions appear; unavailable Deploy remains disabled.
 - Army details and floating readouts share `InfoPanel`. Own living personnel
