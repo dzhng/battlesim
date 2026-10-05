@@ -12,7 +12,6 @@ import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standI
 import {
   PropAppearances,
   structureBodies,
-  structureModels,
   validateStandIns,
   type KnownProp,
   type MapProp,
@@ -101,6 +100,9 @@ const rubbleOf = (wall: MapProp): KnownProp => ({
   replaces: wall.id,
   authoredProp: wall.id,
 });
+/** Every model the side draws, body after body. */
+const structureModels = (...args: Parameters<typeof structureBodies>) =>
+  structureBodies(...args).flatMap((b) => b.models);
 const drawnAt = (list: ModelInstance[]) => list.map((m) => [m.appearance, m.x]);
 
 test("a wall stands until the side knows it fell: an unseen fall stays unseen", () => {
@@ -290,9 +292,6 @@ test("each body a side draws owns its own models, a repeated wall several", () =
     ],
     [200, [["village_ruin", 200]]],
   ]);
-  expect(bodies.flatMap((b) => b.models)).toEqual(
-    structureModels([walls[0], long, walls[1]], [rubbleOf(walls[1])], appearances),
-  );
 });
 
 test("a map prop a route draws from the world is left to it", () => {
