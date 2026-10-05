@@ -45,6 +45,7 @@ mod check;
 mod floor;
 mod foot;
 mod journey;
+mod pockets;
 mod regions;
 mod roads;
 mod search;
@@ -56,6 +57,7 @@ use base::Body;
 pub use base::NavBase;
 use cells::{cell_center, cell_of, sub_center, sub_of, Cell, Cells, ALL_FREE, NO_BODY, SUB, SUB_M};
 pub use journey::Journey;
+pub use pockets::Pockets;
 use regions::Regions;
 pub use roads::RoadNet;
 pub use search::{Leg, Scratch, SearchWork};
@@ -617,18 +619,21 @@ impl NavGrid {
         }
     }
 
-    /// Nearest cell within `radius` of `p` that the footprint fits, by distance.
-    fn nearest_fit(&self, p: V2, who: Mover, radius: f64) -> Option<usize> {
+    /// Nearest cell within `radius` of `p` that the footprint fits, by
+    /// distance; `paid` counts the work, as a route search does.
+    fn nearest_fit(&self, p: V2, who: Mover, radius: f64, paid: bool) -> Option<usize> {
         let (ci, cj) = cell_of(p);
         let reach = (radius / NAV_CELL_M).ceil() as isize;
-        self.spend(1);
+        if paid {
+            self.spend(1);
+        }
         let mut best: Option<(f64, usize)> = None;
         for dj in -reach..=reach {
             for di in -reach..=reach {
                 if let Some(k) = self.index(ci + di, cj + dj) {
                     let d = (cell_center(k % self.nx, k / self.nx) - p).length();
                     if d <= radius
-                        && self.fits(k, who)
+                        && self.fits_off_centre(k, who, 0.0, paid)
                         && best.is_none_or(|(bd, bk)| (d, k) < (bd, bk))
                     {
                         best = Some((d, k));
@@ -679,24 +684,59 @@ impl NavGrid {
     /// stands clear whichever way it comes to face: the circle of
     /// `hull_radius_m` round it meets no known body, not even one it could
     /// shove in passing, and no bank or map edge. A shove is made on the
-    /// way; a car pinned against a wall is not standing room. Where the hull
-    /// does not fit, it parks on the nearest ground it does within a hull's
-    /// length. A squad (no hull) stands as it fits.
-    pub fn destination_point(&self, p: V2, m: &Mobility, hull_radius_m: Option<f64>) -> Option<V2> {
+    /// way; a car pinned against a wall is not standing room. It must also
+    /// be ground the vehicle can drive to from `from`, not a pocket its side
+    /// knows to be closed off ([`Pockets`]), across water or up a cliff.
+    /// Where the hull does not fit, it parks on the nearest ground it does
+    /// within a hull's length; where that ground cannot be reached, on the
+    /// nearest that can within [`pockets::POCKET_REACH_M`], and with none
+    /// that near, it is sent where it was and the move is refused. A squad
+    /// (no hull) stands as it fits.
+    pub fn destination_point(
+        &self,
+        p: V2,
+        m: &Mobility,
+        hull_radius_m: Option<f64>,
+        from: V2,
+        pockets: &Pockets,
+    ) -> Option<V2> {
         let Some(radius) = hull_radius_m else {
             return self.placement_point(p, m);
         };
-        let reach = (2.0 * radius / NAV_CELL_M).ceil() as isize;
-        self.nearest_standing(p, reach, |q| {
+        let stands = |q: V2| {
             self.placement_fits(q, m)
                 && self.ground_clear(q, radius, false)
                 && self.bodies_clear(q, radius, PushClass::None)
+        };
+        let pocketed = std::cell::Cell::new(false);
+        let parks = |q: V2| {
+            stands(q)
+                && (self.reaches(from, q, m, pockets) || {
+                    pocketed.set(true);
+                    false
+                })
+        };
+        let reach = (2.0 * radius / NAV_CELL_M).ceil() as isize;
+        self.nearest_standing(p, reach, parks).or_else(|| {
+            if !pocketed.get() {
+                return None;
+            }
+            // Nothing it can reach near enough: the ground it was sent to,
+            // which admission then refuses.
+            let far = (pockets::POCKET_REACH_M / NAV_CELL_M).ceil() as isize;
+            self.nearest_standing(p, far, parks)
+                .or_else(|| self.nearest_standing(p, reach, stands))
         })
     }
 
     /// `p` if it `fits`, else the nearest cell centre within `reach` cells
     /// either way that does.
-    fn nearest_standing(&self, p: V2, reach: isize, fits: impl Fn(V2) -> bool) -> Option<V2> {
+    fn nearest_standing(
+        &self,
+        p: V2,
+        reach: isize,
+        fits: impl Fn(V2) -> bool + Copy,
+    ) -> Option<V2> {
         if fits(p) {
             return Some(p);
         }
@@ -844,7 +884,7 @@ impl NavGrid {
         if self.fits_at(p, m) {
             return Some(p);
         }
-        self.nearest_fit(p, Mover::free(m), radius)
+        self.nearest_fit(p, Mover::free(m), radius, true)
             .map(|k| self.waypoint(k, m))
     }
 

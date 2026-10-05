@@ -406,7 +406,7 @@ fn a_replay_plans_the_same_routes_on_the_same_ticks() {
 }
 
 #[test]
-fn an_enclosed_road_goal_finishes_its_counted_proof_and_replays() {
+fn an_enclosed_road_goal_finishes_its_counted_proof_and_the_tank_parks_outside_on_replay() {
     use sim::math::v2;
     use sim::navigation::{Journey, Leg, NavBase, NavGrid, Plan, RoadNet};
     use sim::world::WorldGeometry;
@@ -466,25 +466,26 @@ fn an_enclosed_road_goal_finishes_its_counted_proof_and_replays() {
         order,
         queued: false,
     });
-    assert_eq!(
-        ack.error,
-        Some(contract::command::OrderError::NoValidDestination)
+    // The tank cannot get into the yard, so it is sent to the nearest
+    // ground outside it that it can reach.
+    assert_eq!(ack.error, None, "{ack:?}");
+    let destination = &ack.placement.unwrap().destinations[0];
+    assert!(destination.placed, "{destination:?}");
+    let [x, y] = destination.goal;
+    assert!(
+        !((289.0..=311.0).contains(&x) && (88.0..=112.0).contains(&y)),
+        "{destination:?}"
     );
-    assert!(!ack.placement.unwrap().destinations[0].placed);
     let mut live = Vec::new();
     for _ in 0..130 {
         battle.step();
         live.push(battle.digest());
         assert!(battle.load().planning_work <= 200 + sim::navigation::LARGEST_STEP);
-        assert_eq!(
-            xy(&own(&battle, 0)),
-            start,
-            "a refused destination never starts movement"
-        );
-        assert_eq!(own(&battle, 0).state, MoveState::Idle);
-        assert_eq!(own(&battle, 0).goal, None);
     }
-    assert!(battle.load().routes_pending == 0);
+    assert!(
+        xy(&own(&battle, 0)) != start,
+        "the tank sets off for the yard's outside"
+    );
     let record = serde_json::from_str(&serde_json::to_string(&battle.replay()).unwrap()).unwrap();
     let mut replay = Battle::from_replay(&setup, &record).unwrap();
     for (tick, digest) in live.iter().enumerate() {

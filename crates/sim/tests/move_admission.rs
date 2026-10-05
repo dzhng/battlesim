@@ -843,8 +843,10 @@ fn a_far_destination_across_an_unbridged_river_is_refused() {
     assert_eq!(ack.error, Some(OrderError::NoValidDestination));
 }
 
+/// A yard walled on every side, far down the strip: the squad is refused,
+/// and the jeep parks outside the yard instead.
 #[test]
-fn a_far_destination_walled_in_on_every_side_is_refused() {
+fn a_far_destination_walled_in_on_every_side_refuses_a_squad_and_parks_a_vehicle_outside() {
     let wall = |center: [f64; 2], half: [f64; 2]| {
         format!(
             r#"{{"kind":"wall","center":[{},{}],"yaw":0,"half_extents":[{},{},2]}}"#,
@@ -866,12 +868,25 @@ fn a_far_destination_walled_in_on_every_side_is_refused() {
             [true],
             "unit {unit} can go into the yard through its open side"
         );
-        assert_eq!(
-            placed(&mut closed, &[unit], [2800.0, 120.0]),
-            [false],
-            "unit {unit} has no way into the closed yard"
-        );
     }
+    assert_eq!(
+        placed(&mut closed, &[1], [2800.0, 120.0]),
+        [false],
+        "the squad has no way into the closed yard"
+    );
+    let request = contract::command::MovePreviewRequest {
+        units: vec![UnitId(0)],
+        goal: [2800.0, 120.0],
+        ..Default::default()
+    };
+    let jeep = &closed.preview_move(Side::Blue, &request).unwrap()[0];
+    assert!(jeep.placed, "{jeep:?}");
+    let [x, y] = jeep.goal;
+    assert!(
+        !((2784.0..=2816.0).contains(&x) && (103.0..=137.0).contains(&y)),
+        "the jeep parks outside the closed yard, not at {:?}",
+        jeep.goal
+    );
 }
 
 #[test]
@@ -1126,6 +1141,96 @@ fn a_vehicle_sent_onto_cars_parked_against_a_wall_parks_on_the_clear_ground_besi
         off < 12.0,
         "the nearest clear ground is a few metres short of the bays, not {off:.1} m away at {at:?}"
     );
+}
+
+/// A lawn 30 m square walled round, centred on (60, 70), on open ground;
+/// with `gate_m`, a gap that wide in the middle of its south wall.
+fn walled_lawn(gate_m: f64, units: serde_json::Value) -> Battle {
+    let wall = |center: [f64; 2], half: [f64; 2]| {
+        json!({"kind": "wall", "center": center, "yaw": 0,
+            "half_extents": [half[0], half[1], 1.5]})
+    };
+    let mut props = vec![
+        wall([60.0, 85.0], [15.5, 0.5]),
+        wall([45.0, 70.0], [0.5, 15.5]),
+        wall([75.0, 70.0], [0.5, 15.5]),
+    ];
+    if gate_m > 0.0 {
+        let side = (30.0 - gate_m) / 4.0;
+        props.push(wall([45.0 + side, 55.0], [side, 0.5]));
+        props.push(wall([75.0 - side, 55.0], [side, 0.5]));
+    } else {
+        props.push(wall([60.0, 55.0], [15.5, 0.5]));
+    }
+    let map = json!({"size": [160, 140], "fog_cell_m": 8, "height_grid_m": 4,
+        "slope_cutoff_deg": 35, "props": props});
+    Battle::new(
+        &crate::common::scenario(&map.to_string(), units, json!([])),
+        1,
+    )
+}
+
+/// The moment: a tank is sent into the middle of a lawn walled all round,
+/// with no gate a vehicle could take. "Go there" means the nearest ground
+/// near there it can drive to: it pulls up against the outside of the wall
+/// nearest the click, rather than the order being refused.
+#[test]
+fn a_vehicle_sent_into_a_walled_lawn_with_no_way_in_parks_outside_its_nearest_wall() {
+    let mut battle = walled_lawn(
+        0.0,
+        json!([{"side": "blue", "kind": "tank", "position": [60, 20], "yaw": std::f64::consts::FRAC_PI_2}]),
+    );
+    let hull = battle.unit(UnitId(0)).unwrap().hull.unwrap();
+    let radius = hull.x.hypot(hull.y);
+    let goal = [60.0, 72.0];
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order: move_to(&[0], goal),
+        queued: false,
+    });
+    assert_eq!(ack.error, None, "{ack:?}");
+    let destination = &ack.placement.unwrap().destinations[0];
+    assert!(destination.placed, "{destination:?}");
+    let at = destination.goal;
+    let inside = (45.0..=75.0).contains(&at[0]) && (55.0..=85.0).contains(&at[1]);
+    assert!(
+        !inside,
+        "a tank cannot get into the lawn, yet was sent to {at:?}"
+    );
+    assert_eq!(
+        bodies_within(&battle, at, radius),
+        Vec::<String>::new(),
+        "the tank's hull at {at:?} must stand clear in any heading"
+    );
+    // The lawn's nearest edge is 13 m from the click; past the wall and a
+    // hull's radius, it stands within a few metres of that.
+    let off = (at[0] - goal[0]).hypot(at[1] - goal[1]);
+    assert!(
+        off < 13.0 + 0.5 + radius + 4.0,
+        "parks just outside the nearest wall, not {off:.1} m off at {at:?}"
+    );
+}
+
+/// The same lawn with a gate a tank fits through: it drives in and parks
+/// where it was sent.
+#[test]
+fn a_vehicle_sent_into_a_walled_lawn_through_its_gate_parks_where_it_was_sent() {
+    let mut battle = walled_lawn(
+        12.0,
+        json!([{"side": "blue", "kind": "tank", "position": [60, 20], "yaw": std::f64::consts::FRAC_PI_2}]),
+    );
+    let goal = [60.0, 72.0];
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order: move_to(&[0], goal),
+        queued: false,
+    });
+    assert_eq!(ack.error, None, "{ack:?}");
+    let destination = &ack.placement.unwrap().destinations[0];
+    assert!(destination.placed, "{destination:?}");
+    assert_eq!(destination.goal, goal);
 }
 
 /// The moment: a column of vehicles comes into a court along its row of
