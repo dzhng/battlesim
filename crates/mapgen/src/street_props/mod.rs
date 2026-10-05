@@ -31,13 +31,73 @@ use std::collections::{BTreeMap, BTreeSet};
 
 mod courts;
 mod field;
-use field::{Candidate, Field, Piece};
+use field::{faces, Candidate, Field, Piece};
 
 /// A body is set this far past the line it must keep to, so rounding its
 /// centre to a centimetre cannot put it over.
-pub(crate) const SLACK_M: f64 = 0.05;
+const SLACK_M: f64 = 0.05;
 
-/// A modular panel refused its ground is cut in two while each half would
+/// How far in from the edge of the ground it bounds a fence of `fence`
+/// stands, its middle: half its thickness and the slack, so the whole panel
+/// stays on that ground.
+pub(crate) fn fence_inset(fence: &PropBox) -> f64 {
+    fence.half_extents_m[1] + SLACK_M
+}
+
+/// The panels of a fence of `fence` along one side `length` long, between
+/// two corners, each as its middle along the side and half its length:
+/// short of each corner by a panel's thickness so two sides meet without
+/// crossing, with a gate `width` wide left open at each `(at, width)`, `at`
+/// metres from the side's middle. A fixed panel is laid whole, centred along
+/// the side, and one that would stand in a gate is left out; a cut-to-fit
+/// one is cut to the stretches between the gates, each in as few equal
+/// panels as its box allows.
+pub(crate) fn side_panels(length: f64, fence: &PropBox, gates: &[(f64, f64)]) -> Vec<[f64; 2]> {
+    let panel = 2.0 * fence.half_extents_m[0];
+    let thick = fence.half_extents_m[1];
+    let mut panels = Vec::new();
+    if !fence.cut_to_fit {
+        let count = libm::floor((length - 4.0 * thick) / panel);
+        let start = (length - count * panel) / 2.0;
+        for k in 0..count as usize {
+            let middle = start + (k as f64 + 0.5) * panel;
+            let off = middle - length / 2.0;
+            if !gates
+                .iter()
+                .any(|(at, width)| (off - at).abs() < (width + panel) / 2.0)
+            {
+                panels.push([middle, fence.half_extents_m[0]]);
+            }
+        }
+        return panels;
+    }
+    // The stretches between the corners and the gates, in order.
+    let mut cuts: Vec<[f64; 2]> = gates
+        .iter()
+        .map(|(at, width)| {
+            [
+                length / 2.0 + at - width / 2.0,
+                length / 2.0 + at + width / 2.0,
+            ]
+        })
+        .collect();
+    cuts.sort_by(|a, b| a[0].total_cmp(&b[0]));
+    let mut start = 2.0 * thick;
+    for [gate_from, gate_to] in cuts.into_iter().chain([[length - 2.0 * thick; 2]]) {
+        let stretch = gate_from.min(length - 2.0 * thick) - start;
+        if stretch >= 4.0 * thick {
+            let count = libm::ceil(stretch / panel);
+            let each = stretch / count;
+            for k in 0..count as usize {
+                panels.push([start + (k as f64 + 0.5) * each, each / 2.0]);
+            }
+        }
+        start = start.max(gate_to);
+    }
+    panels
+}
+
+/// A cut-to-fit panel refused its ground is cut in two while each half would
 /// be at least this long.
 const SPLIT_M: f64 = 1.0;
 
@@ -211,6 +271,22 @@ pub fn place_courts_and_gardens(
     Ok(pass.field.placed)
 }
 
+/// The width of `catalog`'s widest hull.
+fn widest_hull(catalog: &Catalog) -> f64 {
+    catalog
+        .indices()
+        .filter_map(|unit| catalog.get(unit).hull())
+        .map(|hull| 2.0 * hull.half_extents_m[1])
+        .fold(0.0, f64::max)
+}
+
+/// Open ground a vehicle drives through: `catalog`'s widest hull and the
+/// presets' margin. A lawn's lane keeps it open either side, and a yard's
+/// vehicle gate needs it to the building.
+pub fn hull_way(catalog: &Catalog, presets: &PresetDefinitions) -> f64 {
+    widest_hull(catalog) + presets.street_props.hull_way_margin_m
+}
+
 impl<'a> Pass<'a> {
     /// A pass over `plan` with every building standing: its kinds checked
     /// against the catalog, its lane sized to the widest hull.
@@ -224,12 +300,17 @@ impl<'a> Pass<'a> {
         let rule = &presets.street_props;
         let unknown: Vec<Diagnostic> = rule
             .bodies
-            .keys()
-            .filter_map(|kind| {
-                let refusal = match catalog.props().index(kind) {
+            .iter()
+            .filter_map(|(kind, body)| {
+                let props = catalog.props();
+                let refusal = match props.index(kind) {
                     None => "the catalog has no such prop type".to_string(),
-                    Some(index) => catalog
-                        .props()
+                    // A panel cut short draws its module repeated, not its
+                    // whole art squeezed.
+                    Some(index) if body.cut_to_fit && !props.get(index).appearance.modular => {
+                        "a body cut to fit needs a modular appearance in the catalog".to_string()
+                    }
+                    Some(index) => props
                         .check_placement(index, PropPlacement::Ordinary)
                         .err()?,
                 };
@@ -244,13 +325,7 @@ impl<'a> Pass<'a> {
         if !unknown.is_empty() {
             return Err(unknown);
         }
-        let widest_hull = catalog
-            .indices()
-            .filter_map(|unit| catalog.get(unit).hull())
-            .map(|hull| 2.0 * hull.half_extents_m[1])
-            .fold(0.0, f64::max);
-
-        let mut pass = Pass::new(plan, request, presets, widest_hull);
+        let mut pass = Pass::new(plan, request, presets, catalog);
         pass.stand_buildings(templates)?;
         pass.keep_aisles();
         pass.keep_paths();
@@ -261,10 +336,10 @@ impl<'a> Pass<'a> {
         plan: &'a MapPlan,
         request: &'a GenerationRequest,
         presets: &'a PresetDefinitions,
-        widest_hull: f64,
+        catalog: &Catalog,
     ) -> Self {
         let rule = &presets.street_props;
-        let lane = widest_hull + rule.lane_margin_m;
+        let lane = widest_hull(catalog) + rule.lane_margin_m;
         let mut ways = Vec::new();
         let mut pieces = Vec::new();
         let mut piece_grid = Grid::new(plan.size, 64.0);
@@ -335,7 +410,7 @@ impl<'a> Pass<'a> {
             district_grid,
             district_ids,
             houses: Vec::new(),
-            hull_way: widest_hull + rule.group_margin_m,
+            hull_way: hull_way(catalog, presets),
             house_ids: BTreeMap::new(),
             field: Field {
                 size: plan.size,
@@ -606,7 +681,7 @@ impl<'a> Pass<'a> {
     /// [`Pass::fence_panels`] lays it: at most `most` panels, the sides in
     /// order; a panel with no legal ground, or running beside another
     /// fence nearer than a squad's way (that fence bounds the ground
-    /// already), is left out, or, of a modular kind, cut in two and each
+    /// already), is left out, or, of a cut-to-fit kind, cut in two and each
     /// half tried in turn, down to `SPLIT_M`, so one lamp or doorway opens
     /// a gap its own width rather than a whole panel's. The answer is how
     /// many stand.
@@ -629,7 +704,7 @@ impl<'a> Pass<'a> {
             if self.field.legal(&c) && !self.field.beside_run(&c, self.rule.squad_way_m) {
                 self.field.place_run(kind, &fence, &c);
                 placed += 1;
-            } else if fence.modular && c.rect.half[0] >= SPLIT_M {
+            } else if fence.cut_to_fit && c.rect.half[0] >= SPLIT_M {
                 let half = c.rect.half[0] / 2.0;
                 let body = PropBox {
                     half_extents_m: [half, c.rect.half[1], fence.half_extents_m[2]],
@@ -649,12 +724,8 @@ impl<'a> Pass<'a> {
     }
 
     /// The panels of a fence of `kind` round `corners` (counter-clockwise),
-    /// in group `group`, along each side `sides` does not leave open, short
-    /// of each corner by a panel's thickness so two sides meet without
-    /// crossing, with each gate's width left open. A fixed panel is laid
-    /// whole, centred along its side, and one that would stand in a gate is
-    /// left out; a modular one is cut to the stretches between the gates,
-    /// each in as few equal panels as its box allows.
+    /// in group `group`, along each side `sides` does not leave open, as
+    /// [`side_panels`] lays them.
     fn fence_panels(
         &self,
         corners: [Point; 4],
@@ -663,8 +734,6 @@ impl<'a> Pass<'a> {
         sides: [Side; 4],
     ) -> Vec<Candidate> {
         let fence = self.body(kind);
-        let panel = 2.0 * fence.half_extents_m[0];
-        let thick = fence.half_extents_m[1];
         let mut panels = Vec::new();
         for (side, open) in sides.into_iter().enumerate() {
             let gates = match open {
@@ -675,54 +744,15 @@ impl<'a> Pass<'a> {
             let (from, to) = (corners[side], corners[(side + 1) % 4]);
             let length = distance(from, to);
             let run = scale(sub(to, from), 1.0 / length);
-            let mut lay = |middle: f64, half: f64| {
+            for [middle, half] in side_panels(length, &fence, &gates) {
                 let body = PropBox {
-                    half_extents_m: [half, thick, fence.half_extents_m[2]],
+                    half_extents_m: [half, fence.half_extents_m[1], fence.half_extents_m[2]],
                     ..fence
                 };
                 panels.push(Candidate {
                     group,
                     ..Candidate::new(&body, add(from, scale(run, middle)), run)
                 });
-            };
-            if !fence.modular {
-                let count = libm::floor((length - 4.0 * thick) / panel);
-                let start = (length - count * panel) / 2.0;
-                for k in 0..count as usize {
-                    let middle = start + (k as f64 + 0.5) * panel;
-                    let off = middle - length / 2.0;
-                    if gates
-                        .iter()
-                        .any(|(at, width)| (off - at).abs() < (width + panel) / 2.0)
-                    {
-                        continue;
-                    }
-                    lay(middle, fence.half_extents_m[0]);
-                }
-                continue;
-            }
-            // The stretches between the corners and the gates, in order.
-            let mut cuts: Vec<[f64; 2]> = gates
-                .iter()
-                .map(|(at, width)| {
-                    [
-                        length / 2.0 + at - width / 2.0,
-                        length / 2.0 + at + width / 2.0,
-                    ]
-                })
-                .collect();
-            cuts.sort_by(|a, b| a[0].total_cmp(&b[0]));
-            let mut start = 2.0 * thick;
-            for [gate_from, gate_to] in cuts.into_iter().chain([[length - 2.0 * thick; 2]]) {
-                let stretch = gate_from.min(length - 2.0 * thick) - start;
-                if stretch >= 4.0 * thick {
-                    let count = libm::ceil(stretch / panel);
-                    let each = stretch / count;
-                    for k in 0..count as usize {
-                        lay(start + (k as f64 + 0.5) * each, each / 2.0);
-                    }
-                }
-                start = start.max(gate_to);
             }
         }
         panels
@@ -817,10 +847,10 @@ impl<'a> Pass<'a> {
             .pick(&rule.boundary)
             .expect("a boundary names a kind")
             .as_str();
-        // Inside the parcel by the panel's half thickness: a neighbour's run
-        // along the same edge is then within the ground each keeps, and only
-        // one of the two stands.
-        let inset = self.body(kind).half_extents_m[1] + SLACK_M;
+        // On the parcel: a neighbour's run along the same edge is a run
+        // beside this one (`Field::beside_run`), and only one of the two
+        // stands.
+        let inset = fence_inset(&self.body(kind));
         // The rear edge first, then the sides; the front left open.
         let corners = [
             at(width - inset, depth - inset),
@@ -851,16 +881,7 @@ impl<'a> Pass<'a> {
                         let walls = self.houses[house].walls.clone();
                         let wall =
                             self.field.walls[walls.start + rng.below(walls.len() as u64) as usize];
-                        // One of the wall's four faces: the way it looks,
-                        // how far out it stands and how long it is.
-                        let face = rng.below(4);
-                        let turn = [-wall.axis[1], wall.axis[0]];
-                        let (out, depth, half) = match face {
-                            0 => (wall.axis, wall.half[0], wall.half[1]),
-                            1 => (scale(wall.axis, -1.0), wall.half[0], wall.half[1]),
-                            2 => (turn, wall.half[1], wall.half[0]),
-                            _ => (scale(turn, -1.0), wall.half[1], wall.half[0]),
-                        };
+                        let (out, depth, half) = faces(&wall)[rng.below(4) as usize];
                         let run = [-out[1], out[0]];
                         let off = self.rule.wall_gap_m
                             + SLACK_M

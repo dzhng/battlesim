@@ -1,6 +1,6 @@
 //! The one legality check every body of street furniture, court and garden
 //! goes through ([`Field::legal`]), and the bodies placed so far.
-use crate::layout::geometry::{direction, round_cm, Grid, Point};
+use crate::layout::geometry::{direction, round_cm, scale, Grid, Point};
 use crate::layout::water::Water;
 use crate::layout::{Corridor, PropBox, StreetProps};
 use crate::parcels::space::Rect;
@@ -87,6 +87,18 @@ pub(super) fn apart(a: &Rect, b: &Rect, gap: f64) -> bool {
         ..*a
     };
     !grown.overlaps(b, 0.0)
+}
+
+/// The four faces of `wall`, each as the way it looks, how far out from
+/// the wall's middle it stands and half its length.
+pub(super) fn faces(wall: &Rect) -> [(Point, f64, f64); 4] {
+    let turn = [-wall.axis[1], wall.axis[0]];
+    [
+        (wall.axis, wall.half[0], wall.half[1]),
+        (scale(wall.axis, -1.0), wall.half[0], wall.half[1]),
+        (turn, wall.half[1], wall.half[0]),
+        (scale(turn, -1.0), wall.half[1], wall.half[0]),
+    ]
 }
 
 pub(super) fn grow(bounds: [f64; 4], by: f64) -> [f64; 4] {
@@ -262,7 +274,7 @@ impl<'a> Field<'a> {
     }
 
     /// Stand `c` on the map as a body of `kind`, `body`'s height and its
-    /// own length and width (a modular panel's may be cut shorter).
+    /// own length and width (a cut-to-fit panel's may be cut shorter).
     pub(super) fn place(&mut self, kind: &str, body: &PropBox, c: &Candidate) {
         self.body_grid
             .insert(c.rect.bounds(), self.bodies.len() as u32);

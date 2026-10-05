@@ -5,9 +5,9 @@
 //! gate a vehicle drives through where a side leaves it room; each car park
 //! takes a car in each bay either side of its aisle; groups are planted
 //! beside the lawn's footpaths, facing them (a lane's edges are left open);
-//! amenity groups (a row of bays
-//! against a wall, a playground, a fenced basketball court) stand in the
-//! yards and on the lawn, each placed whole or not at all.
+//! amenity groups (a row of bays against a wall, a playground, a fenced
+//! basketball court) stand in the yards and on the lawn, each placed whole
+//! or not at all.
 //!
 //! A court's inside is infantry ground: a vehicle is owed a way in, not a
 //! way everywhere. A group asks for its own ground and a ring a squad
@@ -15,15 +15,15 @@
 //! wall, carriageway and body, and kept clear of every body placed after
 //! it, so a squad still passes among them; a wall group's back stands a
 //! squad's walk (`squad_way_m`) off a building wall that runs its whole
-//! length. Rings may share ground: each stays
-//! open. The vehicle's ways in are kept by others: each car park's aisle,
-//! each yard's vehicle gate, and each lawn's lane, the lawn either side of
-//! it kept open the widest hull's way (`hull_way`). A fenced group keeps a
-//! gate on its front, so its inside is reached on foot.
-use super::field::Candidate;
-use super::{Frame, Pass, Side, SLACK_M};
+//! length. Rings may share ground: each stays open. The vehicle's ways in
+//! are kept by others: each car park's aisle, each yard's vehicle gate, and
+//! each lawn's lane, the lawn either side of it kept open the widest hull's
+//! way (`hull_way`). A fenced group keeps a gate on its front, so its
+//! inside is reached on foot.
+use super::field::{faces, Candidate};
+use super::{fence_inset, Frame, Pass, Side, SLACK_M};
 use crate::layout::geometry::{add, area, direction, distance, dot, scale, sub, Point};
-use crate::layout::rng::Stream;
+use crate::layout::rng::{in_drawn_order, Stream};
 use crate::layout::{CourtParking, Courts, Group, Lawn, Yards};
 use crate::parcels::space::Rect;
 use crate::{CourtKind, CourtPlan};
@@ -36,26 +36,6 @@ use std::collections::BTreeMap;
 struct Tables<'a> {
     wall: BTreeMap<&'a str, f64>,
     open: BTreeMap<&'a str, f64>,
-}
-
-/// The names of `table` in an order drawn by weight: each in turn the
-/// heavier the likelier to come first (Efraimidis–Spirakis), so where the
-/// first does not fit the next is tried.
-fn drawn<'k>(table: &BTreeMap<&'k str, f64>, rng: &mut Stream) -> Vec<&'k str> {
-    let mut keyed: Vec<(f64, &str)> = table
-        .iter()
-        .map(|(name, weight)| (-libm::log(1.0 - rng.unit()) / weight, *name))
-        .collect();
-    keyed.sort_by(|a, b| a.0.total_cmp(&b.0));
-    keyed.into_iter().map(|(_, name)| name).collect()
-}
-
-/// `items` in an order `rng` draws, so a court whose share of parts runs
-/// out is dressed here and there rather than from one side.
-fn shuffled<T>(items: Vec<T>, rng: &mut Stream) -> Vec<T> {
-    let mut keyed: Vec<(f64, T)> = items.into_iter().map(|item| (rng.unit(), item)).collect();
-    keyed.sort_by(|a, b| a.0.total_cmp(&b.0));
-    keyed.into_iter().map(|(_, item)| item).collect()
 }
 
 /// One dense district as its courts are dressed: its rule, its tables, its
@@ -72,19 +52,15 @@ struct District<'a> {
 
 impl<'a> Pass<'a> {
     /// Every dense district whose presets pave its courts, each in the order
-    /// its own stream draws, at most the rule's court share of `room` bodies
-    /// in all. Each district may take its area's share of what the districts
+    /// its own stream draws, at most the courts' share of `room` bodies in
+    /// all. Each district may take its area's share of what the districts
     /// before it left, so where parts run short every district is dressed
-    /// thinly rather than some fully and the rest not at all. In each, the
-    /// yards are bounded first, with at most a third of its share, then the
-    /// car parks filled with at most half what is left, then its lawn's
-    /// paths planted with at most a sixth of what is left, then its groups
-    /// stood, those against a wall with at most a quarter of what is left:
-    /// where parts run short, each kind of structure gets some.
-    /// The answer is how many bodies stand.
+    /// thinly rather than some fully and the rest not at all; within one,
+    /// its parts are split as `district_courts` says. The answer is how
+    /// many bodies stand.
     pub(super) fn courts(&mut self, room: usize) -> usize {
-        let family = crate::parcels::family(self.request, self.presets);
         let plan = self.plan;
+        let family = plan.regional_family.as_deref();
         let mut courts: BTreeMap<&str, Vec<&CourtPlan>> = BTreeMap::new();
         for court in &plan.courts {
             courts
@@ -99,11 +75,12 @@ impl<'a> Pass<'a> {
                 continue;
             }
             let mut tables = Tables::default();
-            for (group, weight) in rule
-                .groups
-                .iter()
-                .chain(rule.families.get(family).into_iter().flatten())
-            {
+            for (group, weight) in rule.groups.iter().chain(
+                family
+                    .and_then(|f| rule.families.get(f))
+                    .into_iter()
+                    .flatten(),
+            ) {
                 let table = if self.rule.groups[group].wall {
                     &mut tables.wall
                 } else {
@@ -135,11 +112,11 @@ impl<'a> Pass<'a> {
                 },
             ));
         }
-        order.sort_by(|a, b| a.0.total_cmp(&b.0));
-        let budget = libm::floor(room as f64 * self.rule.court_share) as usize;
-        let mut area_left: f64 = order.iter().map(|o| area(o.1.ring)).sum();
+        let order = in_drawn_order(order);
+        let budget = libm::floor(room as f64 * self.rule.courts.share) as usize;
+        let mut area_left: f64 = order.iter().map(|d| area(d.ring)).sum();
         let mut placed = 0;
-        for (_, mut district) in order {
+        for mut district in order {
             let area = area(district.ring);
             let left = budget - placed;
             let share = (libm::floor(left as f64 * area / area_left) as usize).min(left);
@@ -149,25 +126,34 @@ impl<'a> Pass<'a> {
         placed
     }
 
-    /// One district's courts, at most `room` bodies. The answer is how many
-    /// stand.
+    /// One district's courts, at most `room` bodies: its yards bounded
+    /// first, then its car parks filled, then its lawn's paths planted,
+    /// then its groups stood, those against a wall first, each kind of
+    /// structure with at most its split of what the ones before it left.
+    /// The answer is how many stand.
     fn district_courts(&mut self, d: &mut District, room: usize) -> usize {
-        let family = crate::parcels::family(self.request, self.presets);
+        let shared = &self.rule.courts;
+        let split = shared.split;
         let rng = &mut d.rng;
         let mut placed = 0;
-        let yards = shuffled(d.yards.clone(), rng);
-        if let Some(rule) = &d.rule.yards {
-            if let Some(kinds) = rule.boundary.get(family) {
-                // One kind for the district: its yards' runs meet and
-                // continue each other, so a block's boundary reads as one.
-                let kind = rng.pick(kinds).expect("a boundary names a kind").as_str();
-                for yard in &yards {
-                    placed += self.bound(yard, rule, kind, room / 3 - placed);
-                }
+        // In a drawn order, so a court whose share of parts runs out is
+        // dressed here and there rather than from one side.
+        let yards = rng.shuffled(d.yards.clone());
+        let boundary = shared.yards.as_ref().and_then(|rule| {
+            let family = self.plan.regional_family.as_deref()?;
+            Some((rule, rule.boundary.get(family)?))
+        });
+        if let Some((rule, kinds)) = boundary {
+            // One kind for the district: its yards' runs meet and continue
+            // each other, so a block's boundary reads as one.
+            let kind = rng.pick(kinds).expect("a boundary names a kind").as_str();
+            let most = placed + (room - placed) / split.yards;
+            for yard in &yards {
+                placed += self.bound(yard, rule, kind, most - placed);
             }
         }
-        if let Some(rule) = &d.rule.parking {
-            let most = placed + (room - placed) / 2;
+        if let Some(rule) = &shared.parking {
+            let most = placed + (room - placed) / split.parking;
             for park in &d.parks {
                 placed += self.park(park, rule, most - placed);
             }
@@ -178,22 +164,19 @@ impl<'a> Pass<'a> {
             .chain(&d.paths)
             .map(|court| court.ring.as_slice())
             .collect();
-        if let Some(lawn) = &d.rule.lawn {
+        if let Some(lawn) = &shared.lawn {
             let beside: BTreeMap<&str, f64> =
                 lawn.beside.iter().map(|(k, w)| (k.as_str(), *w)).collect();
-            let most = placed + (room - placed) / 6;
-            for path in shuffled(d.paths.clone(), rng) {
+            let most = placed + (room - placed) / split.paths;
+            for path in rng.shuffled(d.paths.clone()) {
                 let room = most - placed;
                 placed += self.plant_path(path, d.ring, &paved, lawn, &beside, room, rng);
             }
         }
-        let walls = (room - placed) / 4;
-        let mut wall_placed = 0;
+        let most = placed + (room - placed) / split.walls;
         for yard in &yards {
-            let room = walls - wall_placed;
-            wall_placed += self.walls(&yard.ring, d.rule, &d.tables.wall, room, rng);
+            placed += self.walls(&yard.ring, &d.tables.wall, most - placed, rng);
         }
-        placed += wall_placed;
         for yard in &yards {
             placed += self.middle(&yard.ring, &[], d.rule, &d.tables.open, room - placed, rng);
         }
@@ -209,9 +192,10 @@ impl<'a> Pass<'a> {
             return width;
         }
         let lane = self
-            .district_ids
-            .get(path.district.as_str())
-            .and_then(|d| self.districts[*d].1.props.courts.lawn.as_ref())
+            .rule
+            .courts
+            .lawn
+            .as_ref()
             .map_or(0.0, |lawn| lawn.lane_m);
         lane.max(self.hull_way).max(width)
     }
@@ -236,11 +220,11 @@ impl<'a> Pass<'a> {
     }
 
     /// Groups of `table` planted along both sides of footpath `path`,
-    /// facing it, at most `room` bodies (none along a lane): one tried to each stretch `lawn.beside_spacing_m`
-    /// long, at drawn places along it, each group in an order drawn by
-    /// weight until one stands on the lawn of `ring`, off every one of
-    /// `paved` and the ground the path keeps. The answer is how many bodies
-    /// stand.
+    /// facing it, at most `room` bodies (none along a lane): one tried to
+    /// each stretch `lawn.beside_spacing_m` long, at drawn places along it,
+    /// as [`Pass::try_groups`] tries them, on the lawn of `ring`, off every
+    /// one of `paved` and the ground the path keeps. The answer is how many
+    /// bodies stand.
     #[allow(clippy::too_many_arguments)]
     fn plant_path(
         &mut self,
@@ -270,31 +254,22 @@ impl<'a> Pass<'a> {
                 // group's front.
                 let out = scale(frame.along, side);
                 let axis = [out[1], -out[0]];
-                'groups: for name in drawn(table, rng) {
-                    let group = &self.rule.groups[name];
+                let spacing = lawn.beside_spacing_m;
+                let behind = self.rule.squad_way_m;
+                let at = |group: &Group, rng: &mut Stream| {
                     let [gx, gy] = group.size_m.map(|v| v / 2.0);
-                    if 2.0 * gx > lawn.beside_spacing_m {
-                        continue;
+                    if 2.0 * gx > spacing {
+                        return None;
                     }
-                    for _ in 0..self.rule.attempts {
-                        let s = (k as f64 + rng.unit()) * lawn.beside_spacing_m;
-                        let s = s.clamp(
-                            k as f64 * lawn.beside_spacing_m + gx,
-                            (k + 1) as f64 * lawn.beside_spacing_m - gx,
-                        );
-                        let centre = add(frame.at(frame.width / 2.0, s), scale(out, kept + gy));
-                        let at = Stand {
-                            centre,
-                            axis,
-                            behind: self.rule.squad_way_m,
-                        };
-                        if let Some(stood) = self.stand_group(group, at, ring, paved, room - placed)
-                        {
-                            placed += stood;
-                            break 'groups;
-                        }
-                    }
-                }
+                    let s = ((k as f64 + rng.unit()) * spacing)
+                        .clamp(k as f64 * spacing + gx, (k + 1) as f64 * spacing - gx);
+                    Some(Stand {
+                        centre: add(frame.at(frame.width / 2.0, s), scale(out, kept + gy)),
+                        axis,
+                        behind,
+                    })
+                };
+                placed += self.try_groups(table, (ring, paved), room - placed, rng, at);
             }
         }
         placed
@@ -302,12 +277,11 @@ impl<'a> Pass<'a> {
 
     /// The boundary of `yard`, of `kind`, at most `room` bodies: along its
     /// street edge (`rule.front_inset_m` in, or less where its building
-    /// stands nearer, a wall gap off it), its sides and its rear, inside the
-    /// parcel by half the panel's thickness, so a neighbour's run along the
-    /// same edge is within the ground each keeps and only one of the two
-    /// stands. A side is bounded only where a squad passes between it and
-    /// the building (`squad_way_m`); nearer, the building's own wall bounds
-    /// the yard. A gate `rule.door_gate_m` wide stands where each door's
+    /// stands nearer, a wall gap off it), its sides and its rear, on the
+    /// parcel, so a neighbour's run along the same edge is a run beside it
+    /// (`Field::beside_run`) and only one of the two stands. A side is
+    /// bounded only where a squad passes between it and the building
+    /// (`squad_way_m`); nearer, the building's own wall bounds the yard. A gate `rule.door_gate_m` wide stands where each door's
     /// line out meets the boundary and in the middle of the rear; one
     /// `rule.gate_m` wide, the yard's way in for a vehicle, in the middle of
     /// the first of its street side, rear and sides that leaves a vehicle's
@@ -316,7 +290,7 @@ impl<'a> Pass<'a> {
     /// many bodies stand.
     fn bound(&mut self, yard: &CourtPlan, rule: &Yards, kind: &str, room: usize) -> usize {
         let ring = &yard.ring;
-        if ring.len() != 4 || room == 0 {
+        if room == 0 {
             return 0;
         }
         let Some(house) = self.house_on(yard) else {
@@ -324,8 +298,9 @@ impl<'a> Pass<'a> {
         };
         let frame = Frame::new(ring);
         let (width, depth) = (frame.width, frame.depth);
-        let thick = self.body(kind).half_extents_m[1];
-        let inset = thick + SLACK_M;
+        let fence = self.body(kind);
+        let thick = fence.half_extents_m[1];
+        let inset = fence_inset(&fence);
         let parts: Vec<Point> = self.houses[house]
             .walls
             .clone()
@@ -414,26 +389,22 @@ impl<'a> Pass<'a> {
 
     /// The building standing on `yard`'s parcel, as an index into `houses`.
     fn house_on(&self, yard: &CourtPlan) -> Option<usize> {
-        self.house_ids.get(yard.id.strip_suffix("/yard")?).copied()
+        self.house_ids.get(yard.parcel()?).copied()
     }
 
     /// Keep every car park's aisle open, from the far end out to the
     /// carriageway's edge at its mouth, from the first body placed.
     pub(super) fn keep_aisles(&mut self) {
         let verge = self.presets.parcels.verge_m;
+        let Some(rule) = self.rule.courts.parking else {
+            return;
+        };
         for park in self
             .plan
             .courts
             .iter()
             .filter(|c| c.kind == CourtKind::Parking)
         {
-            let Some(rule) = self
-                .district_ids
-                .get(park.district.as_str())
-                .and_then(|d| self.districts[*d].1.props.courts.parking)
-            else {
-                continue;
-            };
             let frame = Frame::new(&park.ring);
             self.field.keep_clear(Rect {
                 center: frame.at(frame.width / 2.0, (frame.depth - verge) / 2.0),
@@ -447,11 +418,10 @@ impl<'a> Pass<'a> {
     /// either side of its aisle, nose to the aisle (which `keep_aisles`
     /// keeps open). The answer is how many stand.
     fn park(&mut self, park: &CourtPlan, rule: &CourtParking, room: usize) -> usize {
-        let ring = &park.ring;
-        if ring.len() != 4 || room == 0 {
+        if room == 0 {
             return 0;
         }
-        let frame = Frame::new(ring);
+        let frame = Frame::new(&park.ring);
         let kind = self.rule.parking.kind.clone();
         let car = self.body(&kind);
         let group = self.field.group();
@@ -478,14 +448,12 @@ impl<'a> Pass<'a> {
 
     /// Wall groups along every face of a building wall that looks into
     /// `ring`, at most `room` bodies: one tried to each stretch
-    /// `rule.wall_spacing_m` long, the stretches in a drawn order, at drawn
-    /// places along it, each group in an order drawn by weight until one
-    /// stands. The answer
-    /// is how many bodies stand.
+    /// `courts.wall_spacing_m` long, the stretches in a drawn order, at
+    /// drawn places along it, as [`Pass::try_groups`] tries them. The
+    /// answer is how many bodies stand.
     fn walls(
         &mut self,
         ring: &[Point],
-        rule: &Courts,
         table: &BTreeMap<&str, f64>,
         room: usize,
         rng: &mut Stream,
@@ -509,65 +477,50 @@ impl<'a> Pass<'a> {
         // Each stretch: the face's middle, the way it looks, half its
         // length, and where along it the stretch starts.
         let mut stretches = Vec::new();
+        let spacing = self.rule.courts.wall_spacing_m;
         for wall in walls {
             let wall = self.field.walls[wall];
-            let turn = [-wall.axis[1], wall.axis[0]];
-            // Each face: the way it looks, how far out it stands and half
-            // its length.
-            let faces = [
-                (wall.axis, wall.half[0], wall.half[1]),
-                (scale(wall.axis, -1.0), wall.half[0], wall.half[1]),
-                (turn, wall.half[1], wall.half[0]),
-                (scale(turn, -1.0), wall.half[1], wall.half[0]),
-            ];
-            for (out, depth, half) in faces {
+            for (out, depth, half) in faces(&wall) {
                 let middle = add(wall.center, scale(out, depth));
                 if !polygon_contains(ring, add(middle, scale(out, gap + 1.0))) {
                     continue;
                 }
-                let count = libm::floor(2.0 * half / rule.wall_spacing_m).max(1.0);
+                let count = libm::floor(2.0 * half / spacing).max(1.0);
                 for k in 0..count as usize {
                     stretches.push((middle, out, half, 2.0 * half / count, k));
                 }
             }
         }
         let mut placed = 0;
-        for (middle, out, half, stretch, k) in shuffled(stretches, rng) {
+        for (middle, out, half, stretch, k) in rng.shuffled(stretches) {
             if placed == room {
                 break;
             }
             // Along the face, with the court on its left: a group's `x`.
             let run = [-out[1], out[0]];
             let from = -half + k as f64 * stretch;
-            'groups: for name in drawn(table, rng) {
-                let group = &self.rule.groups[name];
+            let at = |group: &Group, rng: &mut Stream| {
                 let [gx, gy] = group.size_m.map(|v| v / 2.0);
                 if gx > half {
-                    continue;
+                    return None;
                 }
-                for _ in 0..self.rule.attempts {
-                    let s = (from + rng.unit() * stretch).clamp(-half + gx, half - gx);
-                    let centre = add(middle, add(scale(out, gap + walk + gy), scale(run, s)));
-                    let at = Stand {
-                        centre,
-                        axis: run,
-                        behind: walk,
-                    };
-                    if let Some(stood) = self.stand_group(group, at, ring, &[], room - placed) {
-                        placed += stood;
-                        break 'groups;
-                    }
-                }
-            }
+                let s = (from + rng.unit() * stretch).clamp(-half + gx, half - gx);
+                Some(Stand {
+                    centre: add(middle, add(scale(out, gap + walk + gy), scale(run, s))),
+                    axis: run,
+                    behind: walk,
+                })
+            };
+            placed += self.try_groups(table, (ring, &[]), room - placed, rng, at);
         }
         placed
     }
 
     /// Open groups over `ring`, off every one of `paved`, at most `room`
     /// bodies: for each square of a grid `rule.spacing_m` apart, the squares
-    /// in a drawn order, groups in an order drawn by weight, each tried at
-    /// drawn places in that square until one stands, lined up with the ring's longest edge a quarter
-    /// turn at a time. The answer is how many bodies stand.
+    /// in a drawn order, as [`Pass::try_groups`] tries them at drawn places
+    /// in that square, lined up with the ring's longest edge a quarter turn
+    /// at a time. The answer is how many bodies stand.
     #[allow(clippy::too_many_arguments)]
     fn middle(
         &mut self,
@@ -600,31 +553,54 @@ impl<'a> Pass<'a> {
         let squares: Vec<(i64, i64)> = cells(y0, y1)
             .flat_map(|row| cells(x0, x1).map(move |column| (column, row)))
             .collect();
+        let behind = self.rule.group_ring_m;
         let mut placed = 0;
-        for (column, row) in shuffled(squares, rng) {
+        for (column, row) in rng.shuffled(squares) {
             if placed == room {
                 break;
             }
-            'groups: for name in drawn(table, rng) {
-                let group = &self.rule.groups[name];
-                for _ in 0..self.rule.attempts {
-                    let centre = [
-                        (column as f64 + rng.unit()) * spacing,
-                        (row as f64 + rng.unit()) * spacing,
-                    ];
-                    let at = Stand {
-                        centre,
-                        axis: turns[rng.below(4) as usize],
-                        behind: self.rule.group_ring_m,
-                    };
-                    if let Some(stood) = self.stand_group(group, at, ring, paved, room - placed) {
-                        placed += stood;
-                        break 'groups;
-                    }
+            let at = |_: &Group, rng: &mut Stream| {
+                let centre = [
+                    (column as f64 + rng.unit()) * spacing,
+                    (row as f64 + rng.unit()) * spacing,
+                ];
+                Some(Stand {
+                    centre,
+                    axis: turns[rng.below(4) as usize],
+                    behind,
+                })
+            };
+            placed += self.try_groups(table, (ring, paved), room - placed, rng, at);
+        }
+        placed
+    }
+
+    /// One group of `table` stood inside `ring` and off every one of
+    /// `paved`, at most `room` bodies: the groups in an order drawn by
+    /// weight, each tried at up to `attempts` places `at` draws (none where
+    /// it says the group does not fit) until one stands. The answer is how
+    /// many bodies stand.
+    fn try_groups(
+        &mut self,
+        table: &BTreeMap<&str, f64>,
+        (ring, paved): (&[Point], &[&[Point]]),
+        room: usize,
+        rng: &mut Stream,
+        mut at: impl FnMut(&Group, &mut Stream) -> Option<Stand>,
+    ) -> usize {
+        let rule = self.rule;
+        for name in rng.drawn(table) {
+            let group = &rule.groups[*name];
+            for _ in 0..rule.attempts {
+                let Some(place) = at(group, rng) else {
+                    break;
+                };
+                if let Some(stood) = self.stand_group(group, place, ring, paved, room) {
+                    return stood;
                 }
             }
         }
-        placed
+        0
     }
 
     /// Stand `group` as `at` puts it, wholly inside `ring` and off every one
@@ -687,7 +663,7 @@ impl<'a> Pass<'a> {
             })
             .collect();
         if let (Some(fence), Some(gate)) = (&group.fence, group.gate_m) {
-            let inset = self.body(fence).half_extents_m[1] + SLACK_M;
+            let inset = fence_inset(&self.body(fence));
             let [hx, hy] = [half[0] - inset, half[1] - inset];
             let corners = [at([-hx, -hy]), at([hx, -hy]), at([hx, hy]), at([-hx, hy])];
             let sides = [Side::gate(gate), Side::Fenced, Side::Fenced, Side::Fenced];
