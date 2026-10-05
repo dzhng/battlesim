@@ -17,7 +17,7 @@ You are implementing this spec with [implement-spec](../../.agents/skills/implem
 - [x] 05b Courts read as lived in, not as empty plazas ([slice](slices/05b-court-fill.md))
 - [x] 05c Courts are structured: walled yards, parking and planted lawns ([slice](slices/05c-structured-courts.md))
 - [ ] 05d Lawns and yards dressed; vehicles need a way in ([slice](slices/05d-dressed-lawns.md))
-- [ ] 05e Boundary art: wall, railings ([slice](slices/08-art.md))
+- [x] 05e Boundary art: wall, railings ([slice](slices/08-art.md))
 - [x] 06 Garden dressing in suburbs and villages ([slice](slices/06-gardens.md))
 - [x] 07 Regional appearances, loaded for the map's region only ([slice](slices/07-regional-appearances.md))
 - [x] 08 Art: shared core, then China, New York, Paris ([slice](slices/08-art.md))
