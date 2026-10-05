@@ -703,6 +703,18 @@ fn every_building_of_a_map_is_of_one_regional_family() {
     let catalogue = TemplateGeometryCatalog::new(templates).unwrap();
     let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
     source["parcels"]["regional_families"] = serde_json::json!([family, "other"]);
+    // A court's regional tables (its groups and its yards' boundaries) name
+    // only listed families: "other" dresses its courts as `family` does.
+    let mirror = |families: &mut serde_json::Value| {
+        let own = families[&family].clone();
+        *families = serde_json::json!({ family.clone(): own.clone(), "other": own });
+    };
+    for district in source["districts"].as_object_mut().unwrap().values_mut() {
+        if let Some(families) = district.pointer_mut("/props/courts/families") {
+            mirror(families);
+        }
+    }
+    mirror(&mut source["street_props"]["courts"]["yards"]["boundary"]);
     let presets = PresetDefinitions::from_json(&source.to_string()).unwrap();
     let mut drawn = BTreeSet::new();
     for seed in 1..=8 {
@@ -721,6 +733,8 @@ fn every_building_of_a_map_is_of_one_regional_family() {
             .map(|building| building.regional_family.as_str())
             .collect();
         assert_eq!(families.len(), 1, "seed {seed}: {families:?}");
+        // The map names the family its seed drew.
+        assert!(families.contains(map.regional_family.as_deref().unwrap()));
         drawn.extend(families.into_iter().map(str::to_string));
     }
     assert_eq!(drawn.len(), 2, "eight seeds drew only {drawn:?}");
@@ -749,6 +763,8 @@ fn each_regional_family_asked_for_builds_every_map_type() {
                 }
             };
             assert!(!map.buildings.is_empty(), "{family} {map_type:?}");
+            // The map names the region it was asked for.
+            assert_eq!(map.regional_family.as_ref(), Some(&family), "{map_type:?}");
             for building in &map.buildings {
                 assert_eq!(building.regional_family, family, "{map_type:?}");
             }
@@ -1058,72 +1074,94 @@ fn a_districts_parcels_square_to_its_streets_not_to_the_towns_centre() {
     );
 }
 
-/// The district's court and its parcels, when it has one.
-fn court_of<'a>(
-    town: &'a Town,
-    district: &DistrictPlan,
-) -> Option<(&'a mapgen::CourtPlan, Vec<Point>)> {
-    let court = town
-        .plan
-        .courts
+/// Every carriageway of `town`: its rounded centreline and half its width.
+fn carriageways(town: &Town) -> Vec<(&[Point], f64)> {
+    town.map
+        .surfaces
         .iter()
-        .find(|c| c.district == district.id)?;
-    let prefix = format!("{}/", district.id);
-    let corners = town
-        .plan
-        .lots
-        .iter()
-        .filter(|lot| lot.id.starts_with(&prefix))
-        .flat_map(|lot| lot.ring.iter().copied())
-        .collect();
-    Some((court, corners))
+        .filter_map(|area| match &area.shape {
+            GroundShape::Stroke {
+                centerline,
+                width_m,
+            } if area.kind.is_road() => Some((centerline.samples(), width_m / 2.0)),
+            _ => None,
+        })
+        .collect()
 }
 
-/// How far `p` lies inside `ring` (counter-clockwise, convex) from the line
-/// through `a` and `b`, an edge of it.
-fn inward(a: Point, b: Point, p: Point) -> f64 {
-    let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
-    (dx * (p[1] - a[1]) - dy * (p[0] - a[0])) / dx.hypot(dy)
+/// From `p` to the nearest carriageway's edge, negative on one.
+fn carriageway_gap(ways: &[(&[Point], f64)], p: Point) -> f64 {
+    ways.iter()
+        .flat_map(|(line, half)| {
+            line.windows(2)
+                .map(move |s| segment_gap(s[0], s[1], p) - half)
+        })
+        .fold(f64::INFINITY, f64::min)
 }
 
-/// A dense district paves its block between its buildings, and the map lays
-/// that court as paving; a district whose presets keep grass has none.
+/// Whether `ring` is laid on `town`'s map as paving.
+fn laid(town: &Town, ring: &[Point]) -> bool {
+    town.map.surfaces.iter().any(|area| {
+        area.kind == SurfaceKind::Paving
+            && matches!(&area.shape, GroundShape::Polygon { ring: laid } if laid == ring)
+    })
+}
+
+/// A dense district paves each of its built parcels as that parcel's yard,
+/// and the map lays it as paving; a district whose presets keep grass paves
+/// nothing.
 #[test]
-fn dense_blocks_are_paved_as_courts_and_no_other_district_is() {
+fn every_built_parcel_of_a_dense_district_is_paved_as_its_yard() {
     let presets = presets();
-    let mut courts = 0;
+    let mut yards = 0;
     every_cell(|name, _, town| {
-        for district in town.plan.settlements.iter().flat_map(|s| &s.districts) {
-            let paved = presets.districts[&district.kind].props.courts.paved;
-            let found: Vec<_> = town
-                .plan
-                .courts
-                .iter()
-                .filter(|c| c.district == district.id)
-                .collect();
-            assert_eq!(found.len(), usize::from(paved), "{name}: {}", district.id);
-            for court in found {
-                assert_eq!(court.id, format!("{}/court", district.id));
-                let laid = town.map.surfaces.iter().any(|area| {
-                    area.kind == SurfaceKind::Paving
-                        && matches!(&area.shape, GroundShape::Polygon { ring } if *ring == court.ring)
-                });
-                assert!(laid, "{name}: {} is not laid as paving", court.id);
-                courts += 1;
-            }
-        }
+        let built: BTreeSet<&str> = town.plan.buildings.iter().map(|b| b.id.as_str()).collect();
+        let courts: BTreeMap<&str, &mapgen::CourtPlan> = town
+            .plan
+            .courts
+            .iter()
+            .map(|court| (court.id.as_str(), court))
+            .collect();
         assert_eq!(
+            courts.len(),
             town.plan.courts.len(),
-            town.plan
-                .courts
-                .iter()
-                .map(|c| &c.id)
-                .collect::<BTreeSet<_>>()
-                .len(),
             "{name}: court ids repeat"
         );
+        for district in town.plan.settlements.iter().flat_map(|s| &s.districts) {
+            let paved = presets.districts[&district.kind].props.courts.paved;
+            let prefix = format!("{}/", district.id);
+            for lot in town
+                .plan
+                .lots
+                .iter()
+                .filter(|lot| lot.id.starts_with(&prefix))
+            {
+                let yard = courts.get(format!("{}/yard", lot.id).as_str());
+                if !paved || !built.contains(lot.id.as_str()) {
+                    assert!(yard.is_none(), "{name}: {} is paved", lot.id);
+                    continue;
+                }
+                let yard = yard.unwrap_or_else(|| panic!("{name}: {} has no yard", lot.id));
+                assert_eq!(yard.kind, mapgen::CourtKind::Yard);
+                assert_eq!(yard.district, district.id);
+                assert_eq!(yard.ring, lot.ring, "{name}: {} is not its parcel", yard.id);
+                assert!(
+                    laid(town, &yard.ring),
+                    "{name}: {} is not laid as paving",
+                    yard.id
+                );
+                yards += 1;
+            }
+            if !paved {
+                assert!(
+                    town.plan.courts.iter().all(|c| c.district != district.id),
+                    "{name}: {} paves a court",
+                    district.id
+                );
+            }
+        }
     });
-    assert!(courts >= 50, "{courts} courts");
+    assert!(yards >= 2_000, "{yards} yards");
 }
 
 /// Garden suburbs, villages and farms keep their grass (decided with the
@@ -1143,110 +1181,126 @@ fn only_the_dense_districts_pave_their_courts() {
     );
 }
 
-/// A court is a simple convex ring inside its district, and every parcel of
-/// the district stands on it: the paving runs between all the buildings.
+/// A car park is a paved rectangle inside its district on ground no parcel
+/// and no other car park takes, off every carriageway, with its mouth (its
+/// first edge) fronting one as a parcel's street edge does: it is driven
+/// into from the street.
 #[test]
-fn a_court_is_a_convex_ring_inside_its_district_under_every_parcel() {
-    const CM: f64 = 0.02;
+fn car_parks_open_on_a_carriageway_on_ground_the_parcels_leave() {
+    let presets = presets();
+    let verge = presets.parcels.verge_m;
+    let mut parks = 0;
     every_cell(|name, _, town| {
-        for district in town.plan.settlements.iter().flat_map(|s| &s.districts) {
-            let Some((court, corners)) = court_of(town, district) else {
-                continue;
-            };
-            let ring = &court.ring;
-            assert!(ring.len() >= 3, "{name}: {}", court.id);
-            let edges = || (0..ring.len()).map(|i| (ring[i], ring[(i + 1) % ring.len()]));
-            for (a, b) in edges() {
-                assert!(a != b, "{name}: {} repeats a corner", court.id);
-                for p in ring {
-                    assert!(
-                        inward(a, b, *p) >= -CM,
-                        "{name}: {} is not convex",
-                        court.id
-                    );
-                }
-                for p in &corners {
-                    assert!(
-                        inward(a, b, *p) >= -CM,
-                        "{name}: a parcel of {} is off its court at {p:?}",
-                        district.id
-                    );
-                }
-            }
-            for p in ring {
-                assert!(
-                    polygon_contains(&district.ring, *p)
-                        || ring_segment_gap(&district.ring, *p, *p) <= CM,
-                    "{name}: {} leaves its district at {p:?}",
-                    court.id
-                );
-            }
-        }
-    });
-}
-
-/// Paving never runs out into the fields: an edge of a court either lies
-/// along a carriageway or comes to the rear of one of its district's parcels.
-#[test]
-fn a_court_stops_at_its_parcels_where_no_carriageway_runs() {
-    every_cell(|name, _, town| {
-        let ways: Vec<(&[Point], f64)> = town
-            .map
-            .surfaces
+        let ways = carriageways(town);
+        let districts: BTreeMap<&str, &DistrictPlan> = town
+            .plan
+            .settlements
             .iter()
-            .filter_map(|area| match &area.shape {
-                GroundShape::Stroke {
-                    centerline,
-                    width_m,
-                } if area.kind.is_road() => Some((centerline.samples(), width_m / 2.0)),
-                _ => None,
-            })
+            .flat_map(|s| &s.districts)
+            .map(|district| (district.id.as_str(), district))
             .collect();
-        for district in town.plan.settlements.iter().flat_map(|s| &s.districts) {
-            let Some((court, corners)) = court_of(town, district) else {
-                continue;
-            };
-            let ring = &court.ring;
-            for i in 0..ring.len() {
-                let (a, b) = (ring[i], ring[(i + 1) % ring.len()]);
-                let middle = [(a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0];
-                let along = ways.iter().any(|(line, half)| {
-                    line.windows(2)
-                        .any(|s| segment_gap(s[0], s[1], middle) <= half + 1.5)
-                });
-                let rear = corners.iter().any(|p| inward(a, b, *p).abs() <= 0.05);
+        let found: Vec<&mapgen::CourtPlan> = town
+            .plan
+            .courts
+            .iter()
+            .filter(|court| court.kind == mapgen::CourtKind::Parking)
+            .collect();
+        for (index, park) in found.iter().enumerate() {
+            let ring = &park.ring;
+            let at = format!("{name}: {}", park.id);
+            assert_eq!(ring.len(), 4, "{at}");
+            assert!(laid(town, ring), "{at} is not laid as paving");
+            let district = districts[park.district.as_str()];
+            assert!(
+                ring.iter().all(|p| polygon_contains(&district.ring, *p)
+                    || ring_segment_gap(&district.ring, *p, *p) <= 0.02),
+                "{at} leaves its district"
+            );
+            for lot in &town.plan.lots {
                 assert!(
-                    along || rear,
-                    "{name}: {} runs out past its parcels from {a:?} to {b:?}",
-                    court.id
+                    overlap_depth(ring, &lot.ring) <= 0.02,
+                    "{at} stands on the parcel {}",
+                    lot.id
                 );
             }
+            for other in &found[index + 1..] {
+                assert!(
+                    overlap_depth(ring, &other.ring) <= 0.02,
+                    "{at} stands on {}",
+                    other.id
+                );
+            }
+            let middle = |a: Point, b: Point| [(a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0];
+            // A front is a straight chord of its street, at least 98 % of
+            // the arc it spans (as a parcel's): on a bend its middle stands
+            // up to a sagitta (1.5 m on a car park's width) off the verge.
+            let mouth = carriageway_gap(&ways, middle(ring[0], ring[1]));
+            assert!(
+                (mouth - verge).abs() <= 1.5,
+                "{at}: its mouth is {mouth:.2} m from a carriageway"
+            );
+            // Its sides and far end keep a verge off every carriageway.
+            for i in 1..4 {
+                let edge = middle(ring[i], ring[(i + 1) % 4]);
+                assert!(
+                    carriageway_gap(&ways, edge) >= verge - 0.1
+                        && carriageway_gap(&ways, middle(edge, middle(ring[0], ring[2]))) > 0.0,
+                    "{at} lies on a carriageway"
+                );
+            }
+            parks += 1;
         }
     });
+    assert!(parks >= 100, "{parks} car parks");
 }
 
-/// The streets laid inside a court are road to the simulation, not paving:
-/// a carriageway wins where it crosses one.
+/// A dense district's lawn is grass: its ground off its parcels, its car
+/// parks and its carriageways' verges is not paved.
 #[test]
-fn streets_draw_over_courts() {
+fn a_dense_districts_ground_between_its_parcels_is_lawn() {
+    let presets = presets();
     let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
-    let mut checked = 0;
+    let verge = presets.parcels.verge_m;
+    let mut lawn = 0;
     for map_type in TYPES {
         let town = town(map_type, MapSize::Small, SEEDS[0]);
         let world = sim::world::WorldGeometry::new(&town.map, &rules);
-        let courts: Vec<&[Point]> = town.plan.courts.iter().map(|c| &c.ring[..]).collect();
-        for area in town.map.surfaces.iter().filter(|a| a.kind.is_road()) {
-            let GroundShape::Stroke { centerline, .. } = &area.shape else {
+        let ways = carriageways(&town);
+        let taken: Vec<&[Point]> = town
+            .plan
+            .lots
+            .iter()
+            .map(|lot| lot.ring.as_slice())
+            .chain(town.plan.courts.iter().map(|court| court.ring.as_slice()))
+            .collect();
+        for district in town.plan.settlements.iter().flat_map(|s| &s.districts) {
+            if !presets.districts[&district.kind].props.courts.paved {
                 continue;
-            };
-            for p in centerline.samples() {
-                if courts.iter().any(|ring| polygon_contains(ring, *p)) {
-                    let kind = world.surface_at(p[0], p[1]).unwrap().kind;
-                    assert_eq!(kind, sim::world::SurfaceKind::Road, "{map_type:?} at {p:?}");
-                    checked += 1;
+            }
+            let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
+            let mut y = y0.ceil();
+            while y <= y1 {
+                let mut x = x0.ceil();
+                while x <= x1 {
+                    let p = [x, y];
+                    if polygon_contains(&district.ring, p)
+                        && carriageway_gap(&ways, p) > verge + 0.5
+                        && !taken.iter().any(|ring| ring_segment_gap(ring, p, p) <= 0.5)
+                    {
+                        let kind = world.surface_at(x, y).unwrap().kind;
+                        assert_ne!(
+                            kind,
+                            sim::world::SurfaceKind::Paving,
+                            "{map_type:?}: {} is paved at {p:?}",
+                            district.id
+                        );
+                        lawn += 1;
+                    }
+                    x += 4.0;
                 }
+                y += 4.0;
             }
         }
     }
-    assert!(checked >= 20, "{checked} street points in courts");
+    assert!(lawn >= 1_000, "{lawn} lawn points");
 }

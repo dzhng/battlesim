@@ -68,9 +68,13 @@ pub struct MapPlan {
     /// The parcels the parcel pass cut, in the order it cut them. Plan-only.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lots: Vec<LotPlan>,
-    /// The paved block interiors of the districts that pave theirs, each
-    /// also laid as a `Paving` surface. Plan-only: where court amenities
-    /// stand.
+    /// The regional family its buildings are of, which the map names
+    /// (`MapDefinition.regional_family`): set by the parcel pass.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub regional_family: Option<String>,
+    /// The paved pieces of the districts that pave their blocks (yards,
+    /// car parks, and the paths and lanes across their lawns), each also
+    /// laid as a `Paving` surface. Plan-only: where court amenities stand.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub courts: Vec<CourtPlan>,
     /// A requested feature without a shared physical owner cannot be discarded.
@@ -131,17 +135,62 @@ pub struct LotPlan {
     pub ring: Vec<[f64; 2]>,
 }
 
-/// A district's court: its block interior, paved between its buildings.
+/// A paved piece of a dense district's block: a built parcel's yard, a car
+/// park, or a path across its lawn. The district's ground under none, off
+/// its carriageways, is its lawn.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CourtPlan {
-    /// `settlement-3/district-2/court`, stable for a request.
+    /// `<parcel id>/yard`, `<district id>/parking-<n>` or
+    /// `<district id>/path-<n>`, stable for a request.
     pub id: String,
-    /// The district it is the interior of.
+    /// The district it lies in.
     pub district: String,
-    /// A convex ring inside the district's, counter-clockwise.
+    pub kind: CourtKind,
+    /// Its corners, counter-clockwise: a yard's from its street side, as its
+    /// parcel's; a car park's from the corner left of its mouth on the
+    /// street; a path's from the corner left of the end it starts from (a
+    /// street or a yard gate).
     #[serde(deserialize_with = "contract::numbers::points")]
     pub ring: Vec<[f64; 2]>,
+}
+
+/// What follows a yard's parcel id in its own.
+const YARD: &str = "/yard";
+
+impl CourtPlan {
+    /// The yard of the built parcel `lot`, of `district`, whose ring it is.
+    pub(crate) fn yard(lot: &str, district: &DistrictPlan, ring: Vec<[f64; 2]>) -> Self {
+        Self {
+            id: format!("{lot}{YARD}"),
+            district: district.id.clone(),
+            kind: CourtKind::Yard,
+            ring,
+        }
+    }
+
+    /// The parcel a yard paves, by its id; `None` for any other court.
+    pub(crate) fn parcel(&self) -> Option<&str> {
+        match self.kind {
+            CourtKind::Yard => self.id.strip_suffix(YARD),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CourtKind {
+    /// A built parcel's own ground, its building standing on it.
+    Yard,
+    /// Bays either side of an aisle that opens on a carriageway.
+    Parking,
+    /// A footpath across the lawn, from a street or a yard's gate to the
+    /// lawn's middle.
+    Path,
+    /// A path from a street that a vehicle drives: the lawn either side of
+    /// it is kept open the widest hull's way.
+    Lane,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -318,7 +367,7 @@ pub enum GenerateOutcome {
 /// A request's whole plan: the layout, then its districts' streets, parcels
 /// and buildings, then what stands in the open country between them, then
 /// the street furniture that stands among the buildings, the cover that
-/// certifies the open country's sight, and last the gardens.
+/// certifies the open country's sight, and last the courts and gardens.
 /// `rules_json` is the explicit battle rules record. The contract extracts
 /// only its catalog, forest rules and ground eye/target heights.
 fn generate(
@@ -357,9 +406,9 @@ fn generate(
         street_props::place_street_props(&plan, &request, &catalogue, &physics.catalog, &presets)?;
     plan.props.extend(props);
     let mut plan = open_country::cover(plan, &request, &catalogue, &presets, &physics)?;
-    // Gardens last: the cover's sight certificate needs open ground in the
-    // suburbs to stand copses on, and gardens give way to it.
-    let gardens = street_props::place_gardens(
+    // Courts and gardens last: the cover's sight certificate needs open
+    // ground in the towns to stand copses on, and they give way to it.
+    let dressing = street_props::place_courts_and_gardens(
         &plan,
         &request,
         &catalogue,
@@ -367,7 +416,7 @@ fn generate(
         &presets,
         physics.forests.rule.trunk_clearance_m,
     )?;
-    plan.props.extend(gardens);
+    plan.props.extend(dressing);
     let hash = physics.hash().map_err(|error| {
         vec![Diagnostic {
             code: DiagnosticCode::InvalidPhysicalRules,
@@ -735,6 +784,7 @@ pub fn lower(
         props: request.plan.props.clone(),
         buildings: Vec::new(),
         template_catalog_hash: Some(catalogue.hash().into()),
+        regional_family: request.plan.regional_family.clone(),
     };
     let unsound = |location: String| {
         move |message| {

@@ -121,20 +121,40 @@ export async function run(ctx) {
     JSON.stringify({ before: before.position, after: after.position, state: after.state }),
   );
 
-  // A rejected replacement holds the truck without a destination marker.
+  // A truck sent up the mesa (the map's 30 m square, 12 m high on 45° sides)
+  // is routed to its foot instead: a vehicle's destination is the nearest clear
+  // ground it can reach within 48 m of the click (`NavGrid::destination_point`),
+  // and the whole mesa top is that near its foot. Refusal beyond that reach is
+  // the simulation's (`move_admission.rs`); its display is `authority`'s.
+  const MESA = { min: [440, 330], max: [470, 360], foot: 12 };
+  const CLIFF_TOP = [455, 345];
   const truckId = (
     await lab(page, () => window.__lab.route.observation().own.find((u) => u.kind === "supply"))
   ).id;
   await lab(page, () => window.__lab.route.demo("Onto the cliff top"));
-  const supply = await planned(page, truckId);
-  const refusal = await page.getByTestId("ack-log").textContent();
+  let supply = await planned(page, truckId);
+  // A truck packs up before it drives off on its route.
+  for (let i = 0; i < 40 && supply.state === "packing"; i++) {
+    await lab(page, () => window.__lab.route.advance(5));
+    supply = await unit(page, truckId);
+  }
+  const acks = await page.getByTestId("ack-log").textContent();
+  const offMesa = (p) =>
+    Math.hypot(
+      Math.max(MESA.min[0] - p[0], 0, p[0] - MESA.max[0]),
+      Math.max(MESA.min[1] - p[1], 0, p[1] - MESA.max[1]),
+    ) >= MESA.foot;
+  const end = supply.route.at(-1);
   ctx.check(
-    "an unavailable replacement is rejected and holds without a move marker",
-    supply.goal === null &&
-      supply.queue.length === 0 &&
-      supply.state === "idle" &&
-      /rejected: no valid destination/.test(refusal),
-    JSON.stringify({ goal: supply.goal, state: supply.state, queue: supply.queue, refusal }),
+    "a truck sent onto a cliff top is routed to the nearest ground at its foot",
+    /✓ #\d+ move supply #\d+ to \(455, 345\)/.test(acks) &&
+      supply.goal !== null &&
+      offMesa(supply.goal) &&
+      Math.hypot(supply.goal[0] - CLIFF_TOP[0], supply.goal[1] - CLIFF_TOP[1]) <= 48 &&
+      supply.state === "moving" &&
+      !!end &&
+      Math.hypot(end[0] - supply.goal[0], end[1] - supply.goal[1]) < 2,
+    JSON.stringify({ goal: supply.goal, end, state: supply.state, acks }),
   );
 
   // Put the entire two-squad formation beyond the wall, then verify its

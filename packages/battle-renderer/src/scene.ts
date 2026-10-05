@@ -180,7 +180,7 @@ export interface BattleFrame {
   render(target: GPUTextureView, camera: ViewportCamera): void;
   /** The static world: the terrain and the props on it. */
   setWorld(world: WorldLayers): void;
-  /** Knowledge-drawn props, as fitted appearances (`structureModels`): the
+  /** Knowledge-drawn props, as fitted appearances (`structureBodies`): the
    *  props the side knows stand and the rubble and wrecks it remembers.
    *  Lit, graded, shadow-casting and fogged like the world. */
   setStructures(structures: readonly ModelInstance[]): void;

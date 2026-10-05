@@ -76,6 +76,32 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   road_barrier: prop,
   scaffold: prop,
   scooter: prop,
+  // The gardens' bodies (fixtures/props/city/gardens.json), shared by every region.
+  garden_shed: prop,
+  hedge: prop,
+  garden_fence: prop,
+  washing_line: prop,
+  garden_table: prop,
+  // The courts' bodies (fixtures/props/city/courts.json): shared pieces, then
+  // each region's own. A region's look of a shared piece (a Paris bench) is an
+  // appearance of the shared kind, tagged with its family.
+  bike_rack: prop,
+  playground_frame: prop,
+  swing: prop,
+  bike_shed: prop,
+  pingpong_table: prop,
+  outdoor_gym: prop,
+  laundry_poles: prop,
+  courtyard_wall: prop,
+  iron_railing: prop,
+  plinth_railing: prop,
+  chainlink_fence: prop,
+  basketball_hoop: prop,
+  basketball_court: prop,
+  garage_row: prop,
+  dumpster: prop,
+  kiosk: prop,
+  petanque_pitch: prop,
   /** The cover a forest floor holds: a fallen trunk, and a boulder. */
   log: prop,
   boulder: prop,

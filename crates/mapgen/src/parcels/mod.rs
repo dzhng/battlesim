@@ -194,7 +194,7 @@ fn fill(
                 ));
             }
         }
-        let (courts, paving) = courts::lay(&pass, &network, &plan, &ground.plan_lots)?;
+        let (courts, paving) = courts::lay(&pass, &plan, &mut ground)?;
         (
             ground.plan_lots,
             ground.buildings,
@@ -206,6 +206,7 @@ fn fill(
     plan.surfaces.extend(aprons);
     plan.surfaces.extend(paving);
     plan.courts = courts;
+    plan.regional_family = Some(pass.family.to_string());
     plan.lots = lots;
     plan.buildings = buildings;
 

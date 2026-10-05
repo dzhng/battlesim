@@ -4,35 +4,35 @@
       "name": "open small",
       "command": "generate",
       "request_json": "{\"generator_version\":\"layout-13\",\"preset_revision\":\"layout-presets-14\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "853cee59bf91f06bb0dd0134aad853b2f7ba20aadc9fdbaa6b8bc5d868213522",
+      "native_sha256": "621d1f6c0bfe1a4923c93fdd050a25323f5c90d49d0ae2bc017c6e6dffa7824a",
       "exit_code": 0
     },
     {
       "name": "mixed medium, seed above the JavaScript integer range",
       "command": "generate",
       "request_json": "{\"generator_version\":\"layout-13\",\"preset_revision\":\"layout-presets-14\",\"seed\":\"18446744073709551615\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "ce42707323ea5f986b0f2e4ddf68e4cef9e4f57b2e1a5eb6d3ea0f147dcf795b",
+      "native_sha256": "1b219f3109c6a8abbfb8c002ebfc2ab1f7f1937f0d5f6c0df87e1fbead7fad4e",
       "exit_code": 0
     },
     {
       "name": "metro large",
       "command": "generate",
       "request_json": "{\"generator_version\":\"layout-13\",\"preset_revision\":\"layout-presets-14\",\"seed\":\"7\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"large\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "51562584e61f749f1b9aba14f4eadd4853fca6055142ae0f527dc9fd19504ead",
+      "native_sha256": "4485837d09a95966992475661d6505f1a2f4e2861393c3eacabc08eab18a30cc",
       "exit_code": 0
     },
     {
       "name": "metro small compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-13\",\"preset_revision\":\"layout-presets-14\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "b2fa1ab3613a72499fa2e7dae725650a91d77666b34d597e54f71d559bca6b81",
+      "native_sha256": "43aec13f01908b9c9bda7326fc6421acce91f41869417daee1944c8786bf3b7a",
       "exit_code": 0
     },
     {
       "name": "mixed large compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-13\",\"preset_revision\":\"layout-presets-14\",\"seed\":\"5\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"large\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "7f9f56640c936476f66f6263025662731a232af1a230fb6081cc50404fd68e30",
+      "native_sha256": "d9f61036197c43c9175dcee3490be4eaf2b7fb5ed9b79f2507820d95df3cef40",
       "exit_code": 0
     },
     {
@@ -60,7 +60,7 @@
       "name": "streets over the ground point allowance",
       "command": "generate",
       "request_json": "{\"generator_version\":\"layout-13\",\"preset_revision\":\"layout-presets-14\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"large\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":6000}}",
-      "native_sha256": "b1471f633686ae53a276a66dd1c176129c76d9fe0af3ccb6f9ebc2e43a20fd53",
+      "native_sha256": "b8bbbeda0e7bd201ac5816335062e494bae8c6747fb38c333fd58b87a9e3497a",
       "exit_code": 1
     },
     {
@@ -81,21 +81,21 @@
       "name": "open small with a river and its bridges",
       "command": "generate",
       "request_json": "{\"generator_version\":\"layout-13\",\"preset_revision\":\"layout-presets-14\",\"seed\":\"2\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "d1c17d497d871ed5219500e720a353feedc5247e2d7b4b0094b30f76a5c03a86",
+      "native_sha256": "bae1dc367dcef8d46e9b2f42440db3c4340af73ca0855a8f8f1b103de18c8d9c",
       "exit_code": 0
     },
     {
       "name": "mixed small with a river, compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-13\",\"preset_revision\":\"layout-presets-14\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "9de020508909026e1f2e05c62ff4304270d003534624e33f5afa72cd5f8597a4",
+      "native_sha256": "82b0a25c2787f3bc15a4bf2b43a39aad7900ea878a1a04ec594e4eb36834fc50",
       "exit_code": 0
     },
     {
       "name": "metro small seed 10",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-13\",\"preset_revision\":\"layout-presets-14\",\"seed\":\"10\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "acc5f3f317c7e865d784f631d335496db92ddf500b937225d4ba928554d64c66",
+      "native_sha256": "775b045092c4932b5f63828588c80d1ab7755fa2cace907e776e022abc4cfff0",
       "exit_code": 0
     }
   ]

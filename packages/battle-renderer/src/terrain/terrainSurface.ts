@@ -22,7 +22,7 @@ import {
   type SurfaceAreaKind,
   type SurfaceGeometry,
 } from "./surfaces";
-import { roadRow, type Biome } from "./biome";
+import { regionalBiome, roadRow, type Biome } from "./biome";
 import { generatePlots, plotAt, type PlotTree } from "./plots";
 import { buildForestShapes, type ForestShape } from "./forestShapes";
 import { RIVER_FIELDS, RIVER_FLOATS } from "./rivers";
@@ -128,7 +128,8 @@ function rivers(exports: WorldExports, layout: WorldLayout): Float32Array {
   return exports.rivers;
 }
 
-/** The ground of the exported world under `biome`; the traversal view tints
+/** The ground of the exported world under `biome`, in its map's region's
+ *  finish (`regionalBiome`); the traversal view tints
  *  each triangle by its exported blocked flag instead. */
 export function buildTerrainSurface(
   exports: WorldExports,
@@ -198,7 +199,7 @@ export function buildTerrainSurface(
       buildings,
       footprints,
     },
-    biome,
+    regionalBiome(biome, exports.buildings.regionalFamily),
     overlay === "surface" ? exports.terrain : null,
   );
 }

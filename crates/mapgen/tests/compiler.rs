@@ -17,6 +17,7 @@ fn request() -> CompileRequest {
             "seed":"18446744073709551615", "template_catalog_hash":catalogue.hash(),
             "limits":{"max_authored_parts":3,"max_bay_positions":32,"max_ground_points":4096},
             "plan":{"size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+                "regional_family":"api_fixture",
                 "props":[{"id":2,"kind":"tooth","center":[100,100],"yaw":0,"half_extents":[0.6,0.6,0.6]}],
                 "buildings":[{"id":"compound","template_id":"asymmetric-api-compound","kind":"building","owner":0,
                     "parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],

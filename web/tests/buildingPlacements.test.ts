@@ -403,6 +403,7 @@ const part = (id: number, x: number, y: number, half: [number, number, number]):
 test("every building of a map is a reference, with its frame and its parts", () => {
   const buildings: PublicBuildings = {
     catalogueHash: "h",
+    regionalFamily: "family",
     buildings: [
       ["house", 7, [3, 4]],
       ["stand_in", 11, [6]],
@@ -463,6 +464,7 @@ test("a building's state is what the side was published of it: remains are a rui
   // A house of two parts, a tower, and a shed as low as the least remains.
   const buildings: PublicBuildings = {
     catalogueHash: "h",
+    regionalFamily: "family",
     buildings: (
       [
         ["house", 0, [0, 1]],

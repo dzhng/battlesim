@@ -2268,13 +2268,31 @@ impl Battle {
             .collect();
         let mut known = self.sides[side.index()].clone();
         let grid = known.grid(&self.world, self.authored_props);
+        let pockets = crate::navigation::Pockets::default();
         let plan = crate::formation::place(
             &members,
             v2(goal[0], goal[1]),
             facing,
             &self.rules.formation,
             libm::hypot(self.world.width(), self.world.depth()),
-            |id, p| grid.placement_point(p, &self.units[id.0 as usize].mobility),
+            |id, p| {
+                let u = &self.units[id.0 as usize];
+                // A queued leg sets off from where the queue ends.
+                let from = u
+                    .orders
+                    .iter()
+                    .rev()
+                    .filter(|_| request.queued)
+                    .find_map(|o| o.movement())
+                    .map_or(u.position.xy(), |m| m.destination);
+                grid.destination_point(
+                    p,
+                    &u.mobility,
+                    u.hull.map(|h| h.xy().length()),
+                    from,
+                    &pockets,
+                )
+            },
         );
         let source = self.move_source(side);
         let certified = self.certify_move(&source, &known, &plan.slots, Some(request));
@@ -2999,7 +3017,7 @@ mod tests {
         );
         let setup = serde_json::from_value(serde_json::json!({
             "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
-                "template_catalog_hash":catalogue.hash(),
+                "template_catalog_hash":catalogue.hash(),"regional_family":descriptor.regional_family,
                 "buildings":[{"owner":0,"kind":"building","category":descriptor.category,"regional_family":descriptor.regional_family,"parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":geometry}]},
             "rules":rules,"units":[{"side":"blue","kind":"rifle","position":[250,100],"engagement":"return_fire_only"}],"events":[],"scripts":[]
         })).unwrap();
@@ -3053,7 +3071,7 @@ mod tests {
             rules["garrison"]["survival_probability_on_collapse"] = serde_json::json!(0);
             let setup = serde_json::from_value(serde_json::json!({
                 "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
-                    "template_catalog_hash":catalogue.hash(),
+                    "template_catalog_hash":catalogue.hash(),"regional_family":descriptor.regional_family,
                     "buildings":[{"owner":0,"kind":"building","category":descriptor.category,"regional_family":descriptor.regional_family,
                         "parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":geometry}]},
                 "rules":rules,"units":[

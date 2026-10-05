@@ -11,7 +11,7 @@ import { color } from "math/color";
 import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standInKit.ts";
 import {
   PropAppearances,
-  structureModels,
+  structureBodies,
   validateStandIns,
   type KnownProp,
   type MapProp,
@@ -100,6 +100,9 @@ const rubbleOf = (wall: MapProp): KnownProp => ({
   replaces: wall.id,
   authoredProp: wall.id,
 });
+/** Every model the side draws, body after body. */
+const structureModels = (...args: Parameters<typeof structureBodies>) =>
+  structureBodies(...args).flatMap((b) => b.models);
 const drawnAt = (list: ModelInstance[]) => list.map((m) => [m.appearance, m.x]);
 
 test("a wall stands until the side knows it fell: an unseen fall stays unseen", () => {
@@ -272,6 +275,23 @@ test("a wall repeats its module along the box's long side instead of stretching 
     expect(m.x).toBeCloseTo(0, 9);
   }
   expect(across.map((m) => Math.round(m.y))).toEqual([-4, 0, 4]);
+});
+
+test("each body a side draws owns its own models, a repeated wall several", () => {
+  const long: MapProp = { ...wallAt(5, 300), half: [10, 0.3, 0.8] };
+  const bodies = structureBodies([walls[0], long, walls[1]], [rubbleOf(walls[1])], appearances);
+  // The walls in map order, less the fallen one, then what the side knows.
+  expect(bodies.map((b) => [b.body.center[0], drawnAt(b.models)])).toEqual([
+    [100, [["field_wall", 100]]],
+    [
+      300,
+      Array.from({ length: 5 }, (_, k) => [
+        "field_wall",
+        expect.closeTo(300 + (k * 4 - 8) * Math.cos(0.3), 9),
+      ]),
+    ],
+    [200, [["village_ruin", 200]]],
+  ]);
 });
 
 test("a map prop a route draws from the world is left to it", () => {

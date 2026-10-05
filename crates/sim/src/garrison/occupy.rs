@@ -537,6 +537,7 @@ fn gather(
         .unwrap_or(libm::atan2(-outward.y, -outward.x));
     let mut nav = known.planning_snapshot();
     let grid = nav.grid(ctx.world, ctx.authored);
+    let pockets = crate::navigation::Pockets::default();
     let plan = formation::place(
         &gatherers,
         anchor,
@@ -549,7 +550,13 @@ fn gather(
                 return None;
             }
             let u = &origins[id.0 as usize];
-            let point = grid.placement_point(point, &u.mobility)?;
+            let point = grid.destination_point(
+                point,
+                &u.mobility,
+                u.hull.map(|h| h.xy().length()),
+                u.position.xy(),
+                &pockets,
+            )?;
             if (point - entry.at).dot(outward) < u.mobility.half_width_m {
                 return None;
             }

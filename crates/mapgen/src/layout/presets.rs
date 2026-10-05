@@ -1,6 +1,7 @@
 //! Versioned layout presets: every number the generator tunes, read from data
 //! and refused at load when it cannot describe a map.
 use super::{MapSize, MapType};
+use crate::street_props::{fence_inset, side_panels};
 use crate::{Diagnostic, DiagnosticCode};
 use contract::map::SurfaceKind;
 use contract::templates::BuildingCategory;
@@ -420,14 +421,124 @@ pub struct DistrictProps {
     pub courts: Courts,
 }
 
-/// A district's block interior (`parcels::courts`).
-#[derive(Clone, Copy, Debug, Default, Deserialize)]
+/// A district's block interior (`parcels::courts`) and the amenity groups
+/// it is dressed with (`street_props::courts`). Its yards, car parks and
+/// lawn paths are every paved district's (`street_props.courts`).
+#[derive(Clone, Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Courts {
     /// Paved between its buildings, out to its carriageways and in to its
     /// last parcels' rears where none runs.
     #[serde(default)]
     pub paved: bool,
+    /// Open groups are tried one to each square of a grid this far apart.
+    #[serde(default)]
+    pub spacing_m: f64,
+    /// Groups of `street_props.groups` any map's court may hold, by weight.
+    #[serde(default)]
+    pub groups: BTreeMap<String, f64>,
+    /// Groups only a map of that regional family's courts hold, by weight,
+    /// drawn among the shared ones.
+    #[serde(default)]
+    pub families: BTreeMap<String, BTreeMap<String, f64>>,
+}
+
+/// What every paved district's courts are made of, and the parts they take.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CourtRule {
+    /// Courts take at most this share of the authored parts a map has left
+    /// after its streets; its gardens take what the courts leave.
+    pub share: f64,
+    /// How a district's share is spent where parts run short.
+    pub split: CourtSplit,
+    /// Wall groups are tried one to each stretch this long of a building
+    /// wall that faces into a court.
+    pub wall_spacing_m: f64,
+    /// What bounds each built parcel's yard; absent is an open yard.
+    #[serde(default)]
+    pub yards: Option<Yards>,
+    /// The car parks cut from the ground the parcels leave; absent is none,
+    /// and all that ground is lawn.
+    #[serde(default)]
+    pub parking: Option<CourtParking>,
+    /// The paths laid across a lawn; absent is none.
+    #[serde(default)]
+    pub lawn: Option<Lawn>,
+}
+
+/// Each kind of court structure, in this order, takes at most one n-th of
+/// the district's parts its predecessors left; the open groups take the
+/// rest. Where parts run short each kind gets some.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CourtSplit {
+    pub yards: usize,
+    pub parking: usize,
+    pub paths: usize,
+    pub walls: usize,
+}
+
+/// The paths across a dense district's lawn: paved strips from the streets
+/// it meets and the yard gates that open on it to its middle, one of those
+/// from a street a lane the widest hull drives, with groups planted beside.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Lawn {
+    /// A path's paved width.
+    pub path_m: f64,
+    /// The width of lawn a lane's strip finds clear, its path in the
+    /// middle. Once laid, it keeps open this or a vehicle's way
+    /// (`street_props.hull_way_margin_m`), the wider.
+    pub lane_m: f64,
+    /// A piece of lawn smaller than this has no paths.
+    pub least_m2: f64,
+    /// At most this many paths from streets, the lane among them, and from
+    /// yard gates, to a piece of lawn's middle.
+    pub streets: u32,
+    pub gates: u32,
+    /// Groups of `street_props.groups` planted beside a path, facing it, by
+    /// weight: one tried to each stretch this long of each side.
+    pub beside: BTreeMap<String, f64>,
+    pub beside_spacing_m: f64,
+}
+
+/// The boundary run round a built parcel of a dense district, its yard:
+/// along its street edge, its sides and its rear where it leaves a squad's
+/// way (`street_props.squad_way_m`) to the building, with a gate before
+/// each door, one in the middle of its rear, and one a hull wide in the
+/// first of its street side, rear and sides that leaves a vehicle's way
+/// (`street_props.hull_way_margin_m`) to the building.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Yards {
+    /// The bodies a boundary is made of, for each regional family by
+    /// weight: one kind to a district, so its yards' runs continue each other.
+    pub boundary: BTreeMap<String, BTreeMap<String, f64>>,
+    /// The width of a yard's one vehicle gate: the widest hull drives
+    /// through.
+    pub gate_m: f64,
+    /// The width of each other gate: a squad walks through.
+    pub door_gate_m: f64,
+    /// The street side runs this far in from the parcel's street edge, or
+    /// less where the building stands nearer: back from what stands at the
+    /// kerb.
+    pub front_inset_m: f64,
+}
+
+/// A car park cut from a dense district's ground beside a carriageway: an
+/// aisle running in from the street with a row of bays either side of it.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CourtParking {
+    /// One bay's width along its row and depth from the aisle.
+    pub bay_m: [f64; 2],
+    /// The aisle's width: a car turns out of a bay into it.
+    pub aisle_m: f64,
+    /// Bays in a row: a car park this short or longer, the longest that fits.
+    pub bays: [u32; 2],
+    /// Along a side of a street, at most one car park this often.
+    pub every_m: f64,
 }
 
 /// One kind of body along a district's verges.
@@ -514,6 +625,16 @@ pub struct StreetProps {
     pub kerb_gap_m: f64,
     /// Open ground between a body and a building's wall: a soldier passes.
     pub wall_gap_m: f64,
+    /// Open ground a squad walks through on the simulation's navigation
+    /// grid (its clearance either side and a cell), at least the wall gap:
+    /// kept between a court's wall group and its wall and round every court
+    /// group's open sides, and the least room between a yard's boundary and
+    /// its building for the boundary to stand.
+    pub squad_way_m: f64,
+    /// Open ground a court group keeps round its open sides: a squad
+    /// passes it abreast, and a vehicle does not, so a court's inside is
+    /// infantry ground the lanes and gates let a vehicle into.
+    pub group_ring_m: f64,
     /// Kept clear either side of a door's line to the street.
     pub door_clear_m: f64,
     /// No body beside a carriageway stands within this of another
@@ -527,6 +648,16 @@ pub struct StreetProps {
     pub attempts: u32,
     /// Each kind that may be placed: its box, and the ground it keeps.
     pub bodies: BTreeMap<String, PropBox>,
+    /// Amenities a court is dressed with, each placed whole or not at all.
+    #[serde(default)]
+    pub groups: BTreeMap<String, Group>,
+    /// A vehicle's way is the catalog's widest hull and this: the
+    /// simulation judges a vehicle's room on a 2 m grid and can lose a cell
+    /// of it at each side. A lawn's lane keeps that much open, and a yard's
+    /// vehicle gate stands only in a side that leaves that much between
+    /// itself and the building.
+    pub hull_way_margin_m: f64,
+    pub courts: CourtRule,
     pub parking: Parking,
     pub site: ConstructionSite,
 }
@@ -539,6 +670,59 @@ pub struct PropBox {
     pub half_extents_m: [f64; 3],
     /// No other body stands within this of it.
     pub clear_m: f64,
+    /// A boundary of it is cut to fit its run, in panels any length up to
+    /// its box's; its catalog appearance must be modular, repeating one
+    /// module along the box rather than stretching.
+    #[serde(default)]
+    pub cut_to_fit: bool,
+}
+
+/// Amenities that stand together (a playground, a fenced basketball court,
+/// a row of garages), in their own frame: `x` along the group, `y` across
+/// it, from its middle.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Group {
+    /// Its length and width: every piece, and its fence, stands inside.
+    pub size_m: [f64; 2],
+    pub pieces: Vec<GroupPiece>,
+    /// A body run round its edge as a fence, with a gate.
+    #[serde(default)]
+    pub fence: Option<String>,
+    /// The opening left at the middle of the fence's first side (`y` least).
+    #[serde(default)]
+    pub gate_m: Option<f64>,
+    /// It stands with its back (`y` most) to a building's wall, as a row of
+    /// parking bays or a bench does, rather than out in the open.
+    #[serde(default)]
+    pub wall: bool,
+}
+
+/// The most a fenced group's side may leave open at its two corners
+/// together, between its last whole panels and the corners: no soldier
+/// squeezes through.
+const CORNER_GAP_M: f64 = 0.6;
+
+/// One body of a group: where it stands and how it is turned against the
+/// group's own `x`, a quarter turn at a time.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GroupPiece {
+    pub kind: String,
+    pub at: [f64; 2],
+    pub yaw_deg: f64,
+}
+
+impl GroupPiece {
+    /// Its footprint's half extents along the group's `x` and `y`.
+    fn reach(&self, body: &PropBox) -> [f64; 2] {
+        let [a, b] = [body.half_extents_m[0], body.half_extents_m[1]];
+        if (self.yaw_deg / 90.0).rem_euclid(2.0) == 1.0 {
+            [b, a]
+        } else {
+            [a, b]
+        }
+    }
 }
 
 /// Cars parked along a street, in runs.
@@ -1287,6 +1471,7 @@ impl PresetDefinitions {
         for (field, message) in self.open_country.errors(self.wood_floor_m2()) {
             check(false, format!("open_country.{field}"), message);
         }
+        let family = |family: &String| self.parcels.regional_families.contains(family);
         for (id, district) in &self.districts {
             let mix = &district.mix;
             check(
@@ -1358,6 +1543,32 @@ impl PresetDefinitions {
                 format!("districts.{id}.props"),
                 "street furniture names bodies of street_props, by a parking share below 1, positive spacings and weights, ordered counts, a site chance and a garden no deeper than the rear setback",
             );
+            let courts = &props.courts;
+            // A group is tried along the walls or over the open court, each
+            // at its own spacing.
+            let table = |groups: &BTreeMap<String, f64>| {
+                groups.iter().all(|(group, weight)| {
+                    self.street_props.groups.get(group).is_some_and(|group| {
+                        positive(if group.wall {
+                            self.street_props.courts.wall_spacing_m
+                        } else {
+                            courts.spacing_m
+                        })
+                    }) && positive(*weight)
+                })
+            };
+            let dressed = !courts.groups.is_empty() || !courts.families.is_empty();
+            check(
+                table(&courts.groups)
+                    && courts
+                        .families
+                        .iter()
+                        .all(|(name, groups)| family(name) && table(groups))
+                    && (!dressed || courts.paved)
+                    && length(courts.spacing_m),
+                format!("districts.{id}.props.courts"),
+                "a court's tables name groups of street_props by positive weight, each tried at a positive spacing for where it stands, its family tables name regional families, and a dressed court is paved",
+            );
         }
         let s = &self.street_props;
         check(
@@ -1368,9 +1579,56 @@ impl PresetDefinitions {
                 && length(s.corner_clear_m)
                 && length(s.slide_m)
                 && positive(s.slide_step_m)
-                && s.attempts > 0,
+                && s.attempts > 0
+                && s.squad_way_m >= s.wall_gap_m
+                && s.group_ring_m >= s.squad_way_m
+                && length(s.hull_way_margin_m),
             "street_props".into(),
-            "street furniture needs nonnegative margins, a positive slide step and at least one attempt",
+            "street furniture needs nonnegative margins, a positive slide step, at least one attempt, a squad's way no narrower than the wall gap and a group's ring no narrower than a squad's way",
+        );
+        let courts = &s.courts;
+        let known = |kind: &String| s.bodies.contains_key(kind);
+        let split = courts.split;
+        check(
+            positive(courts.share)
+                && courts.share <= 1.0
+                && [split.yards, split.parking, split.paths, split.walls]
+                    .iter()
+                    .all(|n| *n >= 1)
+                && length(courts.wall_spacing_m)
+                && courts.yards.as_ref().is_none_or(|yards| {
+                    positive(yards.gate_m)
+                        && positive(yards.door_gate_m)
+                        && length(yards.front_inset_m)
+                        && yards.boundary.iter().all(|(name, kinds)| {
+                            family(name)
+                                && !kinds.is_empty()
+                                && kinds
+                                    .iter()
+                                    .all(|(kind, weight)| known(kind) && positive(*weight))
+                        })
+                })
+                && courts.parking.is_none_or(|parking| {
+                    parking.bay_m.iter().all(|v| positive(*v))
+                        && positive(parking.aisle_m)
+                        && parking.bays[0] >= 1
+                        && parking.bays[0] <= parking.bays[1]
+                        && length(parking.every_m)
+                })
+                && courts.lawn.as_ref().is_none_or(|lawn| {
+                    positive(lawn.path_m)
+                        && lawn.lane_m >= lawn.path_m
+                        && length(lawn.least_m2)
+                        && lawn.streets >= 1
+                        && positive(lawn.beside_spacing_m)
+                        && lawn.beside.iter().all(|(group, weight)| {
+                            s.groups.get(group).is_some_and(|group| {
+                                group.size_m[0] <= lawn.beside_spacing_m
+                            }) && positive(*weight)
+                        })
+                }),
+            "street_props.courts".into(),
+            "courts take a share in (0, 1] split one n-th at a time, n at least 1, try wall groups at a nonnegative spacing, bound yards by bodies for each regional family with two gates, cut car parks of positive bays, an aisle and an ordered count, and lay lawn paths with a lane no narrower than a path, at least one path from a street (the lane is one) and groups beside at a positive spacing no narrower than each",
         );
         for (kind, body) in &s.bodies {
             check(
@@ -1379,6 +1637,75 @@ impl PresetDefinitions {
                     && length(body.clear_m),
                 format!("street_props.bodies.{kind}"),
                 "a body is a positive box and a nonnegative clearance",
+            );
+        }
+        for (name, group) in &s.groups {
+            // The ground its fence keeps inside its edge: in to the panels'
+            // inner face.
+            let fence = group.fence.as_ref().map(|kind| s.bodies.get(kind));
+            let inset = match fence {
+                None => Some(0.0),
+                Some(Some(body)) => Some(fence_inset(body) + body.half_extents_m[1]),
+                Some(None) => None,
+            };
+            let boxes: Option<Vec<[f64; 4]>> = group
+                .pieces
+                .iter()
+                .map(|piece| {
+                    let body = s.bodies.get(&piece.kind)?;
+                    let reach = piece.reach(body);
+                    Some([
+                        piece.at[0] - reach[0],
+                        piece.at[1] - reach[1],
+                        piece.at[0] + reach[0],
+                        piece.at[1] + reach[1],
+                    ])
+                })
+                .collect();
+            let fits = match (inset, &boxes) {
+                (Some(inset), Some(boxes)) => {
+                    let half = group.size_m.map(|v| v / 2.0 - inset);
+                    let apart = |a: &[f64; 4], b: &[f64; 4]| {
+                        a[2] <= b[0] + 0.01
+                            || b[2] <= a[0] + 0.01
+                            || a[3] <= b[1] + 0.01
+                            || b[3] <= a[1] + 0.01
+                    };
+                    boxes.iter().all(|b| {
+                        b[0] >= -half[0] && b[1] >= -half[1] && b[2] <= half[0] && b[3] <= half[1]
+                    }) && boxes
+                        .iter()
+                        .enumerate()
+                        .all(|(i, a)| boxes[i + 1..].iter().all(|b| apart(a, b)))
+                }
+                _ => false,
+            };
+            // A fence's panels, as the fence routine lays them, run each
+            // side to within a soldier's squeeze of its corners.
+            let closed = fence.flatten().is_none_or(|body| {
+                group.size_m.iter().all(|side| {
+                    let run = side - 2.0 * fence_inset(body);
+                    let panels = side_panels(run, body, &[]);
+                    let covered: f64 = panels.iter().map(|[_, half]| 2.0 * half).sum();
+                    !panels.is_empty() && run - covered <= CORNER_GAP_M
+                })
+            });
+            check(
+                group.size_m.iter().all(|v| positive(*v))
+                    && !group.pieces.is_empty()
+                    && closed
+                    && group
+                        .pieces
+                        .iter()
+                        .all(|piece| piece.at.iter().all(|v| v.is_finite())
+                            && (piece.yaw_deg / 90.0).fract() == 0.0)
+                    && fits
+                    && group.gate_m.is_some() == group.fence.is_some()
+                    && group
+                        .gate_m
+                        .is_none_or(|gate| positive(gate) && gate < group.size_m[0]),
+                format!("street_props.groups.{name}"),
+                "a group names bodies of street_props turned by quarter turns, inside its size and its fence and apart, and a fenced group whole panels to its corners and a gate narrower than its first side",
             );
         }
         let parking = &s.parking;

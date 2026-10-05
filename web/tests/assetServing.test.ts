@@ -7,7 +7,11 @@ import { join } from "node:path";
 import { build, preview, type PreviewServer } from "vite";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema.ts";
-import { bundlePath, templateLibraryPath } from "@packages/scene-assets/src/schema.ts";
+import {
+  bundlePath,
+  fetchedOnRequest,
+  templateLibraryPath,
+} from "@packages/scene-assets/src/schema.ts";
 import { gzipTransport } from "@packages/scene-assets/src/gzip.ts";
 
 const WEB = new URL("../", import.meta.url).pathname;
@@ -51,7 +55,7 @@ test("every runtime catalog file is in the build and served byte for byte, same-
     "catalog.json",
     ...Object.values(catalog.skeletons).map(bundlePath),
     ...Object.values(catalog.appearances).map((a) =>
-      bundlePath(a.unit === "kit" ? gzipTransport(catalog, a.bundle).hash : a.bundle),
+      bundlePath(fetchedOnRequest(a) ? gzipTransport(catalog, a.bundle).hash : a.bundle),
     ),
     ...(catalog.templates
       ? [templateLibraryPath(gzipTransport(catalog, catalog.templates.library).hash)]

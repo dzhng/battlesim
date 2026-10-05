@@ -94,5 +94,5 @@
       "parts": [{"part": "body", "prop": 2}]
     }
   ],
-  "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"
+  "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13","regional_family":"api_fixture"
 }

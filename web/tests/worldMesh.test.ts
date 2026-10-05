@@ -3,9 +3,14 @@ import { expect, test } from "vitest";
 import {
   apartKinds,
   buildWorldLayers,
+  worldStructures,
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh.ts";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh.ts";
+import { validateStandIns } from "@packages/battle-renderer/src/models/propAppearance.ts";
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader.ts";
+import type { StaticBundle } from "@packages/scene-assets/src/schema.ts";
+import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standInKit.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
 
@@ -98,7 +103,7 @@ const exports = {
   triangleSurfaces: Uint8Array.of(0, 0, 2, 2),
   // One crate, standing on a ledge above the ground.
   props: Float32Array.of(7, 0, 2, 2, 2, 0, 0.5, 0.5, 0.5, 5),
-  buildings: { catalogueHash: null, buildings: [] },
+  buildings: { catalogueHash: null, regionalFamily: null, buildings: [] },
   rivers: new Float32Array(0),
   riverRuns: new Float32Array(0),
   forests: new Float32Array(0),
@@ -158,4 +163,36 @@ test("a battle draws apart what can move and, when asked, what the integrity col
   // Trees stay the scenery's: a felled one is dropped where its ground is cleared.
   expect(apartKinds(layout, false).sort()).toEqual(["crate", "heavy_wreck"]);
   expect(apartKinds(layout, true).sort()).toEqual(["building", "crate", "heavy_wreck", "wall"]);
+});
+
+test("a static prop with no art is drawn in the world as its stand-in box, as one drawn apart is", () => {
+  // The crate's kind as a static one: nothing shoves or destroys it, so the
+  // world draws it, not the battle's known props.
+  const still: WorldLayout = { ...layout, movablePropKinds: [], destroyablePropKinds: [] };
+  const bundle: StaticBundle = {
+    kind: "static",
+    states: [{ name: STAND_IN_MODULE, tiers: [], bounds: { min: [0, 0, 0], max: [1, 1, 1] } }],
+    materials: [],
+    textures: [],
+    bounds: { min: [0, 0, 0], max: [1, 1, 1] },
+  };
+  const kit: InstalledAppearances = {
+    generation: 1,
+    sides: { blue: [1, 1, 1], red: [1, 1, 1] },
+    skeletons: new Map(),
+    onRequest: new Map(),
+    appearances: new Map([
+      [
+        STAND_IN_KIT,
+        { unit: "kit", scenery: null, footprint: null, mounts: null, regionalFamily: null, bundle },
+      ],
+    ]),
+  } as unknown as InstalledAppearances;
+  const standIns = validateStandIns({ tints: { default: [0.5, 0.5, 0.5] } });
+  expect(worldStructures(exports, still, [], kit)).toEqual([]);
+  const [box, ...rest] = worldStructures(exports, still, [], kit, standIns);
+  expect(rest).toEqual([]);
+  expect(box.appearance).toBe(STAND_IN_KIT);
+  expect([box.x, box.y, box.z]).toEqual([2, 2, 5]);
+  expect(box.scale).toEqual([1, 1, 1]);
 });

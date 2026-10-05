@@ -170,6 +170,21 @@ export interface Road {
   curb?: Curb;
   /** The lines painted on its strokes; left out, the road has none. */
   markings?: Markings;
+  /** The joints of the slabs it is laid in as an area (a court, an apron),
+   *  square to its outline's dominant bearing (`areaBearings`); left out, an
+   *  area has none. */
+  slabs?: Slabs;
+  /** A region's own finish of this kind: per regional family (the map's
+   *  `regional_family`), the fields that differ from this row. A map of a
+   *  family with no entry draws the row as it is (`regionalBiome`). */
+  families?: Record<string, Partial<Omit<Road, "families">>>;
+}
+
+/** An area's slabs: a slab's side, and how far the joint between two darkens
+ *  the surface. A joint fades out as it nears a pixel. */
+export interface Slabs {
+  slab_m: number;
+  joint: number;
 }
 
 /** A road's painted lines: a dashed line down the middle of each stroke,
@@ -656,6 +671,19 @@ export interface Biome {
   scars: BiomeScars;
 }
 
+/** The biome as a map of regional family `family` draws it: each paved
+ *  row with that family's own fields over it (`Road.families`). The one
+ *  place a map's region reaches the ground's look. */
+export function regionalBiome(biome: Biome, family: string | null): Biome {
+  const roads = Object.fromEntries(
+    Object.entries(biome.roads).map(([kind, row]) => {
+      const own = family === null ? undefined : row.families?.[family];
+      return [kind, own ? { ...row, ...own } : row];
+    }),
+  );
+  return { ...biome, roads };
+}
+
 /** The authored paved kind selects its look row, or the biome default.
  *  A country road's promotion through built ground belongs to that row. */
 export const roadRow = (biome: Pick<Biome, "roads">, kind: SurfaceAreaKind): Road =>
@@ -787,8 +815,14 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("verge.width_m", biome.verge.width_m, 0, 50);
   within("verge.feather_m", biome.verge.feather_m, 0, 50);
   if (!biome.roads?.default) bad("roads", "needs a default");
-  for (const [kind, road] of Object.entries(biome.roads)) {
-    const at = `roads.${kind}`;
+  // Each row, and each region's finish of it as the row it makes.
+  const rows = Object.entries(biome.roads).flatMap(([kind, road]) => [
+    [`roads.${kind}`, kind, road] as const,
+    ...Object.entries(road.families ?? {}).map(
+      ([family, own]) => [`roads.${kind}.families.${family}`, kind, { ...road, ...own }] as const,
+    ),
+  ]);
+  for (const [at, kind, road] of rows) {
     if (kind !== "default" && !(SURFACE_AREA_KINDS as readonly string[]).includes(kind))
       bad(at, "names no paved kind");
     palette(`${at}.palette`, road.palette);
@@ -841,6 +875,10 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
       within(`${at}.curb.joint`, road.curb.joint, 0, 0.5);
       within(`${at}.curb.face_m`, road.curb.face_m, 0.02, 2);
       within(`${at}.curb.tilt_deg`, road.curb.tilt_deg, 0, 40);
+    }
+    if (road.slabs) {
+      within(`${at}.slabs.slab_m`, road.slabs.slab_m, 0.2, 20);
+      within(`${at}.slabs.joint`, road.slabs.joint, 0, 0.5);
     }
     if (road.markings) {
       const marks = road.markings;

@@ -35,6 +35,7 @@ import { generatePlots, plotAt } from "@packages/battle-renderer/src/terrain/plo
 import {
   PLOT_HUE_JITTER,
   PLOT_MIN_LSTAR,
+  regionalBiome,
   validateBiome,
   type Biome,
 } from "@packages/battle-renderer/src/terrain/biome.ts";
@@ -758,6 +759,7 @@ test("a country road draws a street between actual houses and keeps its paving i
       height_grid_m: 4,
       slope_cutoff_deg: 35,
       template_catalog_hash,
+      regional_family: descriptor.regional_family,
       buildings,
       surfaces: [
         {
@@ -994,6 +996,28 @@ test("a road's markings are its row's, and the field is read as far as a crossin
     /roads\.road\.markings\.dash_m: must be \[dash, gap\]/,
   );
   expect(() => marked({ line_m: 3 })).toThrow(/roads\.road\.markings\.line_m/);
+});
+
+test("a map's region dresses its paving in the region's finish, and only its own", () => {
+  const look = (family: string | null) =>
+    roadLooks(regionalBiome(biome, family))[SURFACE_AREA_KINDS.indexOf("paving")];
+  const plain = look(null);
+  const regions = ["china", "new_york", "paris"].map(look);
+  // Each region's paving is its own, and none is the plain row.
+  for (const [i, region] of regions.entries()) {
+    expect(region.core, `region ${i}`).not.toEqual(plain.core);
+    for (const other of regions.slice(i + 1)) expect(region.core).not.toEqual(other.core);
+  }
+  // A region with no row of its own, and every carriageway, keep the plain look.
+  expect(look("atlantis")).toEqual(plain);
+  for (const kind of ["road", "country_road", "dirt_track"] as const)
+    expect(roadLooks(regionalBiome(biome, "paris"))[SURFACE_AREA_KINDS.indexOf(kind)]).toEqual(
+      roadLooks(biome)[SURFACE_AREA_KINDS.indexOf(kind)],
+    );
+  // A region's row is checked as the row it makes.
+  const bad = structuredClone(summer) as unknown as Biome;
+  (bad.roads.paving as { families?: object }).families = { paris: { palette: "nowhere" } };
+  expect(() => validateBiome(bad, "summer")).toThrow(/roads\.paving\.families\.paris\.palette/);
 });
 
 test("paving is painted in the simulation's order unless a row names its layer", () => {

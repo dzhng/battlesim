@@ -43,7 +43,8 @@ import { RECT_FLOATS, type TerrainSite } from "./terrainSurface";
 
 /** Floats per record: a stroke's stretch `a, b, half width`, its kind or
  *  forest, and its cut ends (`strokes.ts`), then for a paved stretch how far
- *  along its stroke it starts; a triangle `a, b, c`; an exposed
+ *  along its stroke it starts; a triangle `a, b, c`, its kind, and for a
+ *  paved one the bearing its area's slabs are laid square to; an exposed
  *  boundary edge `a, b`; a rect `min, max`. A river's stretch is two
  *  records: `a, b`, the half width at `a` and at `b`, the bank's grade at
  *  each; then the bank's height at each, which no cell lists. */
@@ -52,6 +53,9 @@ export const SURFACE_FLOATS = 8;
  *  end `a`: what runs along a road (its markings, a walk's slabs) is laid out
  *  by it, unbroken from stretch to stretch round a bend. */
 export const SURFACE_STROKE_ALONG = 7;
+/** Where a paved triangle's record holds its area's slab bearing
+ *  (`areaBearings`). */
+export const SURFACE_AREA_BEARING = 7;
 
 /** An index entry: the record's kind in the top two bits, then whether it
  *  opens a new forest shape in its cell's list, then the record. */
@@ -240,9 +244,12 @@ export function buildSurfaceField(
   }
   // Triangles only say which side of the exposed boundary a point is on:
   // with no boundary there is nothing for them to sign.
-  for (let o = 0; o < site.surfaceTriangles.length; o += site.surfaceTriangleStride)
-    listed[put(site.surfaceTriangles, o, FOREST_TRIANGLE_FLOATS, SURFACE_TRIANGLE, PAVED, 3)] =
-      boundaryCount > 0 ? 1 : 0;
+  const bearings = areaBearings(site.surfaceTriangles, site.surfaceTriangleStride);
+  for (let o = 0, t = 0; o < site.surfaceTriangles.length; o += site.surfaceTriangleStride, t++) {
+    const at = put(site.surfaceTriangles, o, FOREST_TRIANGLE_FLOATS, SURFACE_TRIANGLE, PAVED, 3);
+    listed[at] = boundaryCount > 0 ? 1 : 0;
+    records[at * SURFACE_FLOATS + SURFACE_AREA_BEARING] = bearings[t];
+  }
   for (let o = 0; o < site.surfaceBoundaries.length; o += site.surfaceBoundaryStride)
     put(site.surfaceBoundaries, o, FOREST_BOUNDARY_FLOATS, SURFACE_EDGE, PAVED, 2);
   let shapeId = 0;
@@ -567,4 +574,101 @@ export function waterDistance(
       stretchInside(records, (index[e] & SURFACE_RECORD_MASK) * SURFACE_FLOATS, x, y),
     );
   return bed;
+}
+
+/** Sides this near square to one another share a grid. */
+const SQUARE_RAD = (1.5 * Math.PI) / 180;
+
+/** Each paved triangle's area's slab bearing, in radians within a quarter
+ *  turn: the bearing of the longest outer edge of the triangles joined to it
+ *  by shared corners (one polygon, as the simulation triangulates it) or
+ *  lying over it (an apron on a court), so overlapping paving lays its slabs
+ *  on one grid, square to as much of the outline as it can be. */
+export function areaBearings(triangles: Float32Array, stride: number): Float32Array {
+  const count = triangles.length / stride;
+  const parent = Int32Array.from({ length: count }, (_, i) => i);
+  const root = (i: number): number => (parent[i] === i ? i : (parent[i] = root(parent[i])));
+  const corner = (t: number, k: number) =>
+    `${triangles[t * stride + 2 * k]},${triangles[t * stride + 2 * k + 1]}`;
+  const owner = new Map<string, number>();
+  for (let t = 0; t < count; t++)
+    for (let k = 0; k < 3; k++) {
+      const key = corner(t, k);
+      const seen = owner.get(key);
+      if (seen === undefined) owner.set(key, t);
+      else parent[root(t)] = root(seen);
+    }
+  // A triangle whose middle lies in another's is laid over it: one surface.
+  const CELL_M = 32;
+  const cells = new Map<string, number[]>();
+  for (let t = 0; t < count; t++) {
+    const o = t * stride;
+    const xs = [triangles[o], triangles[o + 2], triangles[o + 4]];
+    const ys = [triangles[o + 1], triangles[o + 3], triangles[o + 5]];
+    for (
+      let i = Math.floor(Math.min(...xs) / CELL_M);
+      i <= Math.floor(Math.max(...xs) / CELL_M);
+      i++
+    )
+      for (
+        let j = Math.floor(Math.min(...ys) / CELL_M);
+        j <= Math.floor(Math.max(...ys) / CELL_M);
+        j++
+      ) {
+        const key = `${i},${j}`;
+        const list = cells.get(key);
+        if (list) list.push(t);
+        else cells.set(key, [t]);
+      }
+  }
+  const at = (t: number, k: number) =>
+    vec2.fromValues(triangles[t * stride + 2 * k], triangles[t * stride + 2 * k + 1]);
+  for (let t = 0; t < count; t++) {
+    const [a, b, c] = [0, 1, 2].map((k) => at(t, k));
+    const middle = vec2.fromValues((a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3);
+    const key = `${Math.floor(middle[0] / CELL_M)},${Math.floor(middle[1] / CELL_M)}`;
+    for (const u of cells.get(key) ?? [])
+      if (root(u) !== root(t) && triangle2.containsPoint(at(u, 0), at(u, 1), at(u, 2), middle))
+        parent[root(t)] = root(u);
+  }
+  // An edge two triangles of an area share is inside it.
+  const edges = new Map<string, number>();
+  const edgeKey = (t: number, k: number) => {
+    const [a, b] = [corner(t, k), corner(t, (k + 1) % 3)];
+    return a < b ? `${a}|${b}` : `${b}|${a}`;
+  };
+  for (let t = 0; t < count; t++)
+    for (let k = 0; k < 3; k++) edges.set(edgeKey(t, k), (edges.get(edgeKey(t, k)) ?? 0) + 1);
+  // Each group's outer edges, as (bearing within a quarter turn, length).
+  const quarter = Math.PI / 2;
+  const sides = new Map<number, [number, number][]>();
+  for (let t = 0; t < count; t++)
+    for (let k = 0; k < 3; k++) {
+      if (edges.get(edgeKey(t, k)) !== 1) continue;
+      const o = t * stride;
+      const dx = triangles[o + ((2 * k + 2) % 6)] - triangles[o + 2 * k];
+      const dy = triangles[o + ((2 * k + 3) % 6)] - triangles[o + 2 * k + 1];
+      const turn = Math.atan2(dy, dx);
+      const list = sides.get(root(t)) ?? [];
+      list.push([turn - Math.floor(turn / quarter) * quarter, Math.hypot(dx, dy)]);
+      sides.set(root(t), list);
+    }
+  // The grid runs square to as much of the area's outline as it can: the
+  // side bearing whose sides within `SQUARE_RAD` of it are longest in all,
+  // the longest such side breaking a tie.
+  const bearing = new Float32Array(count);
+  for (const [r, list] of sides) {
+    let best = [-1, -1, 0];
+    for (const [turn, length] of list) {
+      let along = 0;
+      for (const [other, l] of list) {
+        const off = Math.abs(((other - turn + quarter * 1.5) % quarter) - quarter / 2);
+        if (off <= SQUARE_RAD) along += l;
+      }
+      if (along > best[0] || (along === best[0] && length > best[1])) best = [along, length, turn];
+    }
+    bearing[r] = best[2];
+  }
+  for (let t = 0; t < count; t++) bearing[t] = bearing[root(t)];
+  return bearing;
 }

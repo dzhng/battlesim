@@ -9,9 +9,12 @@ import {
   drawnBy,
   mapProps,
   PropAppearances,
-  structureModels,
+  structureBodies,
+  type DrawnBody,
   type PropAppearance,
+  type StandInStyle,
 } from "./models/propAppearance";
+import type { ModelInstance } from "./models/modelInstances";
 import { grassAppearancesOf } from "./terrain/grassField";
 import { MeshBuilder, type Rgba } from "./mesh";
 import type { WorldLayers, WorldScenery } from "./scene";
@@ -81,6 +84,9 @@ import type { TerrainGrid } from "./terrain/terrainGrid";
 /** Immutable public references, not a second physical geometry table. */
 export interface PublicBuildings {
   catalogueHash: string | null;
+  /** The map's region (`MapDefinition.regional_family`): what its ground
+   *  and scenery are dressed in. Null on a map without buildings. */
+  regionalFamily: string | null;
   buildings: {
     owner: number;
     kind: string;
@@ -209,7 +215,7 @@ function fieldReader(fields: string[], stride: number, data: Float32Array) {
 }
 
 /** The prop kinds a battle draws apart from the world, from what the side
- *  knows (`structureModels`), so a change never rebuilds the whole world:
+ *  knows (`structureBodies`), so a change never rebuilds the whole world:
  *  every kind something can shove, and (`destroyable`) every kind fire can
  *  destroy. Trees stay the scenery's either way. */
 export function apartKinds(layout: WorldLayout, destroyable: boolean): string[] {
@@ -245,11 +251,42 @@ function addTraversalProps(mesh: MeshBuilder, exports: WorldExports, layout: Wor
   }
 }
 
+/** The static world's props as appearances: every map prop but the trees
+ *  and the kinds `apart` leaves to what the side knows, a kind with no art
+ *  as its stand-in box where `standIns` gives one, as a prop drawn apart is. */
+export function worldStructures(
+  exports: WorldExports,
+  layout: WorldLayout,
+  apart: readonly string[],
+  appearances: InstalledAppearances,
+  standIns?: StandInStyle,
+): ModelInstance[] {
+  return worldStructureBodies(exports, layout, apart, appearances, standIns).flatMap(
+    (b) => b.models,
+  );
+}
+
+/** `worldStructures` body by body (`structureBodies`). */
+export function worldStructureBodies(
+  exports: WorldExports,
+  layout: WorldLayout,
+  apart: readonly string[],
+  appearances: InstalledAppearances,
+  standIns?: StandInStyle,
+): DrawnBody[] {
+  return structureBodies(
+    mapProps(exports, layout),
+    [],
+    new PropAppearances(appearances, layout, exports.buildings.regionalFamily, standIns),
+    (prop) => !drawnBy(layout, prop.kind, "forest") && !apart.includes(prop.kind),
+  );
+}
+
 /** The static world's layers: the ground under `biome`, and, given the
- *  installed appearances, the props on it as appearances, the scenery and
- *  the grass kinds (the surface view; the traversal view draws the props' boxes instead).
- *  `apart` (`apartKinds`) leaves out the kinds a route draws from what the
- *  side knows (`structureModels`). */
+ *  installed appearances, the props on it as appearances (`worldStructures`),
+ *  the scenery and the grass kinds (the surface view; the traversal view
+ *  draws the props' boxes instead). `apart` (`apartKinds`) leaves out the
+ *  kinds a route draws from what the side knows (`structureBodies`). */
 export function buildWorldLayers(
   exports: WorldExports,
   layout: WorldLayout,
@@ -257,18 +294,14 @@ export function buildWorldLayers(
   overlay: WorldOverlay,
   apart: readonly string[] = [],
   appearances: InstalledAppearances | null = null,
+  standIns?: StandInStyle,
 ): WorldLayers {
   const props = new MeshBuilder();
   addSkirt(props, exports.positions);
   if (overlay === "traversal") addTraversalProps(props, exports, layout);
   const drawn =
     overlay === "surface" && appearances
-      ? structureModels(
-          mapProps(exports, layout),
-          [],
-          new PropAppearances(appearances, layout, null),
-          (prop) => !drawnBy(layout, prop.kind, "forest") && !apart.includes(prop.kind),
-        )
+      ? worldStructures(exports, layout, apart, appearances, standIns)
       : [];
 
   const terrain = buildTerrainSurface(exports, layout, biome, overlay);

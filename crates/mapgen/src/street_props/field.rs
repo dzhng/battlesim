@@ -1,6 +1,6 @@
 //! The one legality check every body of street furniture, court and garden
 //! goes through ([`Field::legal`]), and the bodies placed so far.
-use crate::layout::geometry::{direction, round_cm, Grid, Point};
+use crate::layout::geometry::{direction, round_cm, scale, Grid, Point};
 use crate::layout::water::Water;
 use crate::layout::{Corridor, PropBox, StreetProps};
 use crate::parcels::space::Rect;
@@ -73,6 +73,10 @@ pub(super) struct Field<'a> {
     pub(super) wood_grid: Grid,
     pub(super) wood_clear: f64,
     pub(super) groups: u32,
+    /// Every fence panel placed, with its group: no other fence runs
+    /// beside one (`beside_run`).
+    pub(super) runs: Vec<(Rect, u32)>,
+    pub(super) run_grid: Grid,
     pub(super) placed: Vec<AuthoredPropDefinition>,
 }
 
@@ -83,6 +87,18 @@ pub(super) fn apart(a: &Rect, b: &Rect, gap: f64) -> bool {
         ..*a
     };
     !grown.overlaps(b, 0.0)
+}
+
+/// The four faces of `wall`, each as the way it looks, how far out from
+/// the wall's middle it stands and half its length.
+pub(super) fn faces(wall: &Rect) -> [(Point, f64, f64); 4] {
+    let turn = [-wall.axis[1], wall.axis[0]];
+    [
+        (wall.axis, wall.half[0], wall.half[1]),
+        (scale(wall.axis, -1.0), wall.half[0], wall.half[1]),
+        (turn, wall.half[1], wall.half[0]),
+        (scale(turn, -1.0), wall.half[1], wall.half[0]),
+    ]
 }
 
 pub(super) fn grow(bounds: [f64; 4], by: f64) -> [f64; 4] {
@@ -97,6 +113,16 @@ pub(super) fn grow(bounds: [f64; 4], by: f64) -> [f64; 4] {
 impl<'a> Field<'a> {
     /// The one legality check: whether `c` may stand where it asks.
     pub(super) fn legal(&self, c: &Candidate) -> bool {
+        self.open(c)
+            && !self.door_grid.any(c.rect.bounds(), |item| {
+                c.rect.overlaps(&self.doors[item as usize], 0.0)
+            })
+    }
+
+    /// Whether `c` may be kept as open ground: everywhere a body may stand,
+    /// and on ground already kept clear (a door's way, the ground round a
+    /// court group), which it leaves as open as it was.
+    pub(super) fn open(&self, c: &Candidate) -> bool {
         let rect = &c.rect;
         let bounds = rect.bounds();
         if bounds[0] < self.rule.edge_m
@@ -135,11 +161,6 @@ impl<'a> Field<'a> {
         let wall = self.rule.wall_gap_m;
         if self.wall_grid.any(grow(bounds, wall), |item| {
             !apart(rect, &self.walls[item as usize], wall)
-        }) {
-            return false;
-        }
-        if self.door_grid.any(bounds, |item| {
-            rect.overlaps(&self.doors[item as usize], 0.0)
         }) {
             return false;
         }
@@ -219,6 +240,27 @@ impl<'a> Field<'a> {
         }
     }
 
+    /// Whether a fence panel `c` would run beside another group's fence,
+    /// the way it runs and nearer than `gap`: two runs side by side, with
+    /// ground between them that is no one's. One that meets it end on (a
+    /// side against a neighbour's rear) does not.
+    pub(super) fn beside_run(&self, c: &Candidate, gap: f64) -> bool {
+        self.run_grid.any(grow(c.rect.bounds(), gap), |item| {
+            let (run, group) = &self.runs[item as usize];
+            let along = c.rect.axis[0] * run.axis[0] + c.rect.axis[1] * run.axis[1];
+            *group != c.group && libm::fabs(along) > 0.95 && !apart(&c.rect, run, gap)
+        })
+    }
+
+    /// Stand fence panel `c` as a body of `kind`, as [`Field::place`] does,
+    /// and remember it as a run.
+    pub(super) fn place_run(&mut self, kind: &str, body: &PropBox, c: &Candidate) {
+        self.run_grid
+            .insert(c.rect.bounds(), self.runs.len() as u32);
+        self.runs.push((c.rect, c.group));
+        self.place(kind, body, c);
+    }
+
     pub(super) fn group(&mut self) -> u32 {
         self.groups += 1;
         self.groups
@@ -231,7 +273,8 @@ impl<'a> Field<'a> {
         self.doors.push(way);
     }
 
-    /// Stand `c` on the map as a body of `kind`.
+    /// Stand `c` on the map as a body of `kind`, `body`'s height and its
+    /// own length and width (a cut-to-fit panel's may be cut shorter).
     pub(super) fn place(&mut self, kind: &str, body: &PropBox, c: &Candidate) {
         self.body_grid
             .insert(c.rect.bounds(), self.bodies.len() as u32);
@@ -246,7 +289,7 @@ impl<'a> Field<'a> {
                 kind: kind.into(),
                 center: c.rect.center,
                 yaw: c.yaw,
-                half_extents: body.half_extents_m,
+                half_extents: [c.rect.half[0], c.rect.half[1], body.half_extents_m[2]],
                 base_z: None,
             },
         });

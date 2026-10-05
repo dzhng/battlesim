@@ -14,11 +14,17 @@ import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
-import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
+import {
+  apartKinds,
+  buildWorldLayers,
+  worldStructureBodies,
+} from "@packages/battle-renderer/src/worldMesh";
 import {
   knownStanding,
+  drawnBy,
   PropAppearances,
-  structureModels,
+  structureBodies,
+  type DrawnBody,
   type PropBox,
 } from "@packages/battle-renderer/src/models/propAppearance";
 import { pickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
@@ -235,7 +241,11 @@ export function useBattleSession({
   // The catalog, and the kits this map's buildings and stand-in boxes draw
   // from and its region's looks, fetched once the map is known: the loading
   // cover stays up for them.
-  const appearances = useMapAppearances(drawnBuildings?.placed ?? null, null, true);
+  const appearances = useMapAppearances(
+    drawnBuildings?.placed ?? null,
+    world?.exports.buildings.regionalFamily ?? null,
+    true,
+  );
   // Props that can move (shoved) or be destroyed ("apart") are drawn from
   // what the side knows, apart from the world.
   const apart = useMemo(
@@ -246,7 +256,15 @@ export function useBattleSession({
     () =>
       world &&
       appearances &&
-      buildWorldLayers(world.exports, world.layout, gameBiome, "surface", apart, appearances),
+      buildWorldLayers(
+        world.exports,
+        world.layout,
+        gameBiome,
+        "surface",
+        apart,
+        appearances,
+        gameStandIns,
+      ),
     [world, apart, appearances],
   );
   // What the side knows stands, rebuilt only when knowledge changes: the
@@ -262,7 +280,12 @@ export function useBattleSession({
       world && placedProps && appearances
         ? {
             map: placedProps,
-            fit: new PropAppearances(appearances, world.layout, null, gameStandIns),
+            fit: new PropAppearances(
+              appearances,
+              world.layout,
+              world.exports.buildings.regionalFamily,
+              gameStandIns,
+            ),
           }
         : null,
     [world, placedProps, appearances],
@@ -287,14 +310,16 @@ export function useBattleSession({
     [drawnBuildings, knownBuildingsKey],
   );
   const buildingsFeed = useFeed(buildings);
-  const structures = useMemo(() => {
+  // Each drawn body's models (`structureBodies`), and all of them in order.
+  const drawnBodies = useMemo(() => {
     if (!props || !drawnBuildings) return [];
     const part = drawnBuildings.partBuilding;
     const known = (JSON.parse(knownKey) as KnownPropView[]).filter(
       (k) => k.authoredProp === null || !part.has(k.authoredProp),
     );
-    return structureModels(props.map, known, props.fit, (prop) => apart.includes(prop.kind));
+    return structureBodies(props.map, known, props.fit, (prop) => apart.includes(prop.kind));
   }, [props, drawnBuildings, knownKey, apart]);
+  const structures = useMemo(() => drawnBodies.flatMap((b) => b.models), [drawnBodies]);
   // What the camera keeps clear of: the ground, and every building part the
   // side knows stands (a fallen one's remains once it has seen the fall).
   // Renderer fog: the side's eyes at the published tick over the static
@@ -866,6 +891,28 @@ export function useBattleSession({
             ]
           : [],
       ),
+    /** Every body drawn as models, the static world's and those drawn from
+     *  what the side knows: how many, how many of them a building draws (its
+     *  parts), how many neither a model nor a building draws, and how many
+     *  models draw the side's. */
+    structureBodies: () => {
+      if (!world || !appearances) return null;
+      const statics = worldStructureBodies(
+        world.exports,
+        world.layout,
+        apart,
+        appearances,
+        gameStandIns,
+      );
+      const all: DrawnBody[] = [...statics, ...drawnBodies];
+      const part = (b: DrawnBody) => drawnBy(world.layout, b.body.kind, "building");
+      return {
+        bodies: all.length,
+        parts: all.filter(part).length,
+        unmodelled: all.filter((b) => !part(b) && b.models.length === 0).length,
+        sideModels: drawnBodies.reduce((n, b) => n + b.models.length, 0),
+      };
+    },
     /** The props drawn from what the side knows: appearance, state and placement. */
     structures: () =>
       structures.map((m) => ({

@@ -1,5 +1,5 @@
-//! Street furniture (C46): the bodies a built town's streets, yards, gardens
-//! and open parcels are dressed with, placed after the parcel pass as ordinary props
+//! Street furniture (C46): the bodies a built town's streets, yards, courts,
+//! gardens and open parcels are dressed with, placed after the parcel pass as ordinary props
 //! of the catalog. A street fight then has cover, and a town reads as lived
 //! in.
 //!
@@ -29,20 +29,93 @@ use contract::map::{AuthoredPropDefinition, SurfaceKind};
 use contract::templates::TemplateGeometryCatalog;
 use std::collections::{BTreeMap, BTreeSet};
 
+mod courts;
 mod field;
-use field::{Candidate, Field, Piece};
+use field::{faces, Candidate, Field, Piece};
 
 /// A body is set this far past the line it must keep to, so rounding its
 /// centre to a centimetre cannot put it over.
 const SLACK_M: f64 = 0.05;
 
+/// How far in from the edge of the ground it bounds a fence of `fence`
+/// stands, its middle: half its thickness and the slack, so the whole panel
+/// stays on that ground.
+pub(crate) fn fence_inset(fence: &PropBox) -> f64 {
+    fence.half_extents_m[1] + SLACK_M
+}
+
+/// The panels of a fence of `fence` along one side `length` long, between
+/// two corners, each as its middle along the side and half its length:
+/// short of each corner by a panel's thickness so two sides meet without
+/// crossing, with a gate `width` wide left open at each `(at, width)`, `at`
+/// metres from the side's middle. A fixed panel is laid whole, centred along
+/// the side, and one that would stand in a gate is left out; a cut-to-fit
+/// one is cut to the stretches between the gates, each in as few equal
+/// panels as its box allows.
+pub(crate) fn side_panels(length: f64, fence: &PropBox, gates: &[(f64, f64)]) -> Vec<[f64; 2]> {
+    let panel = 2.0 * fence.half_extents_m[0];
+    let thick = fence.half_extents_m[1];
+    let mut panels = Vec::new();
+    if !fence.cut_to_fit {
+        let count = libm::floor((length - 4.0 * thick) / panel);
+        let start = (length - count * panel) / 2.0;
+        for k in 0..count as usize {
+            let middle = start + (k as f64 + 0.5) * panel;
+            let off = middle - length / 2.0;
+            if !gates
+                .iter()
+                .any(|(at, width)| (off - at).abs() < (width + panel) / 2.0)
+            {
+                panels.push([middle, fence.half_extents_m[0]]);
+            }
+        }
+        return panels;
+    }
+    // The stretches between the corners and the gates, in order.
+    let mut cuts: Vec<[f64; 2]> = gates
+        .iter()
+        .map(|(at, width)| {
+            [
+                length / 2.0 + at - width / 2.0,
+                length / 2.0 + at + width / 2.0,
+            ]
+        })
+        .collect();
+    cuts.sort_by(|a, b| a[0].total_cmp(&b[0]));
+    let mut start = 2.0 * thick;
+    for [gate_from, gate_to] in cuts.into_iter().chain([[length - 2.0 * thick; 2]]) {
+        let stretch = gate_from.min(length - 2.0 * thick) - start;
+        if stretch >= 4.0 * thick {
+            let count = libm::ceil(stretch / panel);
+            let each = stretch / count;
+            for k in 0..count as usize {
+                panels.push([start + (k as f64 + 0.5) * each, each / 2.0]);
+            }
+        }
+        start = start.max(gate_to);
+    }
+    panels
+}
+
+/// A cut-to-fit panel refused its ground is cut in two while each half would
+/// be at least this long.
+const SPLIT_M: f64 = 1.0;
+
 /// What a fence leaves of one side of the area it runs round.
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 enum Side {
     Fenced,
-    /// Fenced, with this wide an opening at its middle.
-    Gate(f64),
+    /// Fenced, with an opening at each `(at, width)`: `width` wide, centred
+    /// `at` metres along the side from its middle.
+    Gates(Vec<(f64, f64)>),
     Open,
+}
+
+impl Side {
+    /// Fenced with one opening `width` wide at its middle.
+    fn gate(width: f64) -> Self {
+        Side::Gates(vec![(0.0, width)])
+    }
 }
 
 /// A line of points with the distance along it to each.
@@ -80,6 +153,36 @@ impl Line {
     }
 }
 
+/// A parcel's or car park's own frame (its ring's first edge the street
+/// side): `x` metres along that edge from its first corner, `y` into it.
+struct Frame {
+    origin: Point,
+    along: Point,
+    inward: Point,
+    width: f64,
+    depth: f64,
+}
+
+impl Frame {
+    fn new(ring: &[Point]) -> Self {
+        let (width, depth) = (distance(ring[0], ring[1]), distance(ring[0], ring[3]));
+        Self {
+            origin: ring[0],
+            along: scale(sub(ring[1], ring[0]), 1.0 / width),
+            inward: scale(sub(ring[3], ring[0]), 1.0 / depth),
+            width,
+            depth,
+        }
+    }
+
+    fn at(&self, x: f64, y: f64) -> Point {
+        add(
+            self.origin,
+            add(scale(self.along, x), scale(self.inward, y)),
+        )
+    }
+}
+
 /// One carriageway: its rounded centreline, as the map's surface draws it.
 struct Way {
     line: Line,
@@ -92,8 +195,8 @@ struct House<'a> {
     id: &'a str,
     /// Its parts, as indices into the field's walls.
     walls: std::ops::Range<usize>,
-    /// The way each of its doors faces.
-    doors: Vec<Point>,
+    /// Each of its doors: where it is, and the way it faces.
+    doors: Vec<(Point, Point)>,
 }
 
 /// One request's street furniture pass.
@@ -109,6 +212,12 @@ struct Pass<'a> {
     district_grid: Grid,
     district_ids: BTreeMap<&'a str, usize>,
     houses: Vec<House<'a>>,
+    /// Open ground a vehicle drives through: the widest hull and its
+    /// margin. Kept either side of a lawn's lane, and the room a yard's
+    /// vehicle gate needs to its building.
+    hull_way: f64,
+    /// Each building's place in `houses`, by its id.
+    house_ids: BTreeMap<&'a str, usize>,
     field: Field<'a>,
 }
 
@@ -136,14 +245,15 @@ pub fn place_street_props(
     Ok(pass.field.placed)
 }
 
-/// Dress the gardens behind the houses of a finished plan, the least of a
-/// town's dressing: after the open country's cover has certified the map's
-/// sight, among every body the plan already holds, and `wood_clear_m` (the
-/// forests' trunk clearance) off every forest, so no garden fells a tree the
-/// certificate counted. Gardens stop at the request's authored-part limit.
-/// The answer is the bodies to add to the plan's `props`, as
-/// [`place_street_props`]'s are.
-pub fn place_gardens(
+/// Dress the courts of the dense districts and the gardens behind the
+/// houses of a finished plan, the last of a town's dressing: after the open
+/// country's cover has certified the map's sight, among every body the plan
+/// already holds, and `wood_clear_m` (the forests' trunk clearance) off every
+/// forest, so no court or garden fells a tree the certificate counted. Both
+/// stop at the request's authored-part limit, courts first: on the largest
+/// maps the gardens take what the courts leave. The answer is the bodies to
+/// add to the plan's `props`, as [`place_street_props`]'s are.
+pub fn place_courts_and_gardens(
     plan: &MapPlan,
     request: &GenerationRequest,
     templates: &TemplateGeometryCatalog,
@@ -154,8 +264,27 @@ pub fn place_gardens(
     let mut pass = Pass::prepare(plan, request, templates, catalog, presets)?;
     pass.field.stand_plan_bodies(&plan.props);
     pass.field.keep_off_woods(&plan.forests, wood_clear_m);
-    pass.gardens();
+    let parts = plan.props.len() + plan.buildings.iter().map(|b| b.parts.len()).sum::<usize>();
+    let room = (request.limits.max_authored_parts as usize).saturating_sub(parts);
+    let courts = pass.courts(room);
+    pass.gardens(room - courts);
     Ok(pass.field.placed)
+}
+
+/// The width of `catalog`'s widest hull.
+fn widest_hull(catalog: &Catalog) -> f64 {
+    catalog
+        .indices()
+        .filter_map(|unit| catalog.get(unit).hull())
+        .map(|hull| 2.0 * hull.half_extents_m[1])
+        .fold(0.0, f64::max)
+}
+
+/// Open ground a vehicle drives through: `catalog`'s widest hull and the
+/// presets' margin. A lawn's lane keeps it open either side, and a yard's
+/// vehicle gate needs it to the building.
+pub fn hull_way(catalog: &Catalog, presets: &PresetDefinitions) -> f64 {
+    widest_hull(catalog) + presets.street_props.hull_way_margin_m
 }
 
 impl<'a> Pass<'a> {
@@ -171,12 +300,17 @@ impl<'a> Pass<'a> {
         let rule = &presets.street_props;
         let unknown: Vec<Diagnostic> = rule
             .bodies
-            .keys()
-            .filter_map(|kind| {
-                let refusal = match catalog.props().index(kind) {
+            .iter()
+            .filter_map(|(kind, body)| {
+                let props = catalog.props();
+                let refusal = match props.index(kind) {
                     None => "the catalog has no such prop type".to_string(),
-                    Some(index) => catalog
-                        .props()
+                    // A panel cut short draws its module repeated, not its
+                    // whole art squeezed.
+                    Some(index) if body.cut_to_fit && !props.get(index).appearance.modular => {
+                        "a body cut to fit needs a modular appearance in the catalog".to_string()
+                    }
+                    Some(index) => props
                         .check_placement(index, PropPlacement::Ordinary)
                         .err()?,
                 };
@@ -191,14 +325,10 @@ impl<'a> Pass<'a> {
         if !unknown.is_empty() {
             return Err(unknown);
         }
-        let widest_hull = catalog
-            .indices()
-            .filter_map(|unit| catalog.get(unit).hull())
-            .map(|hull| 2.0 * hull.half_extents_m[1])
-            .fold(0.0, f64::max);
-
-        let mut pass = Pass::new(plan, request, presets, widest_hull + rule.lane_margin_m);
+        let mut pass = Pass::new(plan, request, presets, catalog);
         pass.stand_buildings(templates)?;
+        pass.keep_aisles();
+        pass.keep_paths();
         Ok(pass)
     }
 
@@ -206,9 +336,10 @@ impl<'a> Pass<'a> {
         plan: &'a MapPlan,
         request: &'a GenerationRequest,
         presets: &'a PresetDefinitions,
-        lane: f64,
+        catalog: &Catalog,
     ) -> Self {
         let rule = &presets.street_props;
+        let lane = widest_hull(catalog) + rule.lane_margin_m;
         let mut ways = Vec::new();
         let mut pieces = Vec::new();
         let mut piece_grid = Grid::new(plan.size, 64.0);
@@ -279,6 +410,8 @@ impl<'a> Pass<'a> {
             district_grid,
             district_ids,
             houses: Vec::new(),
+            hull_way: hull_way(catalog, presets),
+            house_ids: BTreeMap::new(),
             field: Field {
                 size: plan.size,
                 rule,
@@ -301,6 +434,8 @@ impl<'a> Pass<'a> {
                 wood_grid: Grid::new(plan.size, 64.0),
                 wood_clear: 0.0,
                 groups: 0,
+                runs: Vec::new(),
+                run_grid: Grid::new(plan.size, 32.0),
                 placed: Vec::new(),
             },
         }
@@ -393,8 +528,9 @@ impl<'a> Pass<'a> {
                     half: [reach / 2.0, self.rule.door_clear_m],
                 };
                 self.field.keep_clear(way);
-                doors.push(out);
+                doors.push((from, out));
             }
+            self.house_ids.insert(&placement.id, self.houses.len());
             self.houses.push(House {
                 id: &placement.id,
                 walls: first..self.field.walls.len(),
@@ -503,7 +639,7 @@ impl<'a> Pass<'a> {
             at(-width / 2.0 + inset, depth - inset),
         ];
         let sides = [
-            Side::Gate(rule.gate_m),
+            Side::gate(rule.gate_m),
             Side::Fenced,
             Side::Fenced,
             Side::Fenced,
@@ -541,12 +677,14 @@ impl<'a> Pass<'a> {
         true
     }
 
-    /// A fence of `kind` round `corners` (counter-clockwise): whole panels
-    /// along each side `sides` does not leave open, short of each corner by
-    /// a panel's thickness so two sides meet without crossing, with a gate's
-    /// width left open at the middle of a gated side. At most `most` panels,
-    /// the sides in order; a panel with no legal ground is left out. The
-    /// answer is how many stand.
+    /// A fence of `kind` round `corners` (counter-clockwise), as
+    /// [`Pass::fence_panels`] lays it: at most `most` panels, the sides in
+    /// order; a panel with no legal ground, or running beside another
+    /// fence nearer than a squad's way (that fence bounds the ground
+    /// already), is left out, or, of a cut-to-fit kind, cut in two and each
+    /// half tried in turn, down to `SPLIT_M`, so one lamp or doorway opens
+    /// a gap its own width rather than a whole panel's. The answer is how
+    /// many stand.
     fn fence_round(
         &mut self,
         corners: [Point; 4],
@@ -556,38 +694,68 @@ impl<'a> Pass<'a> {
         most: usize,
     ) -> usize {
         let fence = self.body(kind);
-        let panel = 2.0 * fence.half_extents_m[0];
         let mut placed = 0;
-        for (side, open) in sides.into_iter().enumerate() {
-            let gate = match open {
-                Side::Open => continue,
-                Side::Fenced => None,
-                Side::Gate(width) => Some(width),
-            };
-            let (from, to) = (corners[side], corners[(side + 1) % 4]);
-            let length = distance(from, to);
-            let run = scale(sub(to, from), 1.0 / length);
-            let count = libm::floor((length - 4.0 * fence.half_extents_m[1]) / panel);
-            let start = (length - count * panel) / 2.0;
-            for k in 0..count as usize {
-                if placed >= most {
-                    return placed;
-                }
-                let middle = start + (k as f64 + 0.5) * panel;
-                if gate.is_some_and(|gate| (middle - length / 2.0).abs() < (gate + panel) / 2.0) {
-                    continue;
-                }
-                let c = Candidate {
-                    group,
-                    ..Candidate::new(&fence, add(from, scale(run, middle)), run)
+        let mut panels = self.fence_panels(corners, kind, group, sides);
+        panels.reverse();
+        while let Some(c) = panels.pop() {
+            if placed >= most {
+                break;
+            }
+            if self.field.legal(&c) && !self.field.beside_run(&c, self.rule.squad_way_m) {
+                self.field.place_run(kind, &fence, &c);
+                placed += 1;
+            } else if fence.cut_to_fit && c.rect.half[0] >= SPLIT_M {
+                let half = c.rect.half[0] / 2.0;
+                let body = PropBox {
+                    half_extents_m: [half, c.rect.half[1], fence.half_extents_m[2]],
+                    ..fence
                 };
-                if self.field.legal(&c) {
-                    self.field.place(kind, &fence, &c);
-                    placed += 1;
+                // The nearer half first, as the side runs.
+                for side in [1.0, -1.0] {
+                    let middle = add(c.rect.center, scale(c.rect.axis, side * half));
+                    panels.push(Candidate {
+                        group,
+                        ..Candidate::new(&body, middle, c.rect.axis)
+                    });
                 }
             }
         }
         placed
+    }
+
+    /// The panels of a fence of `kind` round `corners` (counter-clockwise),
+    /// in group `group`, along each side `sides` does not leave open, as
+    /// [`side_panels`] lays them.
+    fn fence_panels(
+        &self,
+        corners: [Point; 4],
+        kind: &str,
+        group: u32,
+        sides: [Side; 4],
+    ) -> Vec<Candidate> {
+        let fence = self.body(kind);
+        let mut panels = Vec::new();
+        for (side, open) in sides.into_iter().enumerate() {
+            let gates = match open {
+                Side::Open => continue,
+                Side::Fenced => Vec::new(),
+                Side::Gates(gates) => gates,
+            };
+            let (from, to) = (corners[side], corners[(side + 1) % 4]);
+            let length = distance(from, to);
+            let run = scale(sub(to, from), 1.0 / length);
+            for [middle, half] in side_panels(length, &fence, &gates) {
+                let body = PropBox {
+                    half_extents_m: [half, fence.half_extents_m[1], fence.half_extents_m[2]],
+                    ..fence
+                };
+                panels.push(Candidate {
+                    group,
+                    ..Candidate::new(&body, add(from, scale(run, middle)), run)
+                });
+            }
+        }
+        panels
     }
 
     /// Each built parcel, in the buildings' order: its building (an index
@@ -608,14 +776,10 @@ impl<'a> Pass<'a> {
     }
 
     /// Gardens: behind each building of a district that keeps them, on its
-    /// own parcel, each parcel in the order its own stream draws, so where
-    /// the map's parts reach the request's limit the gardens left bare are
-    /// spread over the map.
-    fn gardens(&mut self) {
-        let plan = self.plan;
-        let limit = self.request.limits.max_authored_parts as usize;
-        let mut parts =
-            plan.props.len() + plan.buildings.iter().map(|b| b.parts.len()).sum::<usize>();
+    /// own parcel, each parcel in the order its own stream draws, at most
+    /// `room` bodies in all, so where the map's parts reach the request's
+    /// limit the gardens left bare are spread over the map.
+    fn gardens(&mut self, mut room: usize) {
         let mut order = Vec::new();
         for (house, lot, district) in self.built_lots() {
             let Some(rule) = &self.districts[district].1.props.gardens else {
@@ -626,12 +790,12 @@ impl<'a> Pass<'a> {
         }
         order.sort_by(|a, b| a.0.total_cmp(&b.0));
         for (_, lot, district, rule, mut rng) in order {
-            let room = limit.saturating_sub(parts).min(rule.max_per_lot as usize);
-            if room == 0 {
+            let most = room.min(rule.max_per_lot as usize);
+            if most == 0 {
                 break;
             }
             let front = self.districts[district].1.lots.front_m;
-            parts += self.garden(lot, rule, front, room, &mut rng);
+            room -= self.garden(lot, rule, front, most, &mut rng);
         }
     }
 
@@ -648,11 +812,9 @@ impl<'a> Pass<'a> {
         most: usize,
         rng: &mut Stream,
     ) -> usize {
-        let (width, depth) = (distance(ring[0], ring[1]), distance(ring[0], ring[3]));
-        let along = scale(sub(ring[1], ring[0]), 1.0 / width);
-        let inward = scale(sub(ring[3], ring[0]), 1.0 / depth);
-        // `x` metres along the parcel's front from its first corner, `y` into it.
-        let at = |x: f64, y: f64| add(ring[0], add(scale(along, x), scale(inward, y)));
+        let frame = Frame::new(ring);
+        let (width, depth, along, inward) = (frame.width, frame.depth, frame.along, frame.inward);
+        let at = |x: f64, y: f64| frame.at(x, y);
         let mut placed = 0;
         for row in &rule.pieces {
             let body = self.body(&row.kind);
@@ -681,21 +843,14 @@ impl<'a> Pass<'a> {
         if rule.boundary.is_empty() || !rng.chance(rule.boundary_chance) {
             return placed;
         }
-        let mut pick = rng.unit() * rule.boundary.values().sum::<f64>();
-        let kind = rule
-            .boundary
-            .iter()
-            .find(|(_, weight)| {
-                pick -= **weight;
-                pick < 0.0
-            })
-            .or(rule.boundary.iter().last())
-            .map(|(kind, _)| kind.as_str())
-            .expect("a boundary names a kind");
-        // Inside the parcel by the panel's half thickness: a neighbour's run
-        // along the same edge is then within the ground each keeps, and only
-        // one of the two stands.
-        let inset = self.body(kind).half_extents_m[1] + SLACK_M;
+        let kind = rng
+            .pick(&rule.boundary)
+            .expect("a boundary names a kind")
+            .as_str();
+        // On the parcel: a neighbour's run along the same edge is a run
+        // beside this one (`Field::beside_run`), and only one of the two
+        // stands.
+        let inset = fence_inset(&self.body(kind));
         // The rear edge first, then the sides; the front left open.
         let corners = [
             at(width - inset, depth - inset),
@@ -726,16 +881,7 @@ impl<'a> Pass<'a> {
                         let walls = self.houses[house].walls.clone();
                         let wall =
                             self.field.walls[walls.start + rng.below(walls.len() as u64) as usize];
-                        // One of the wall's four faces: the way it looks,
-                        // how far out it stands and how long it is.
-                        let face = rng.below(4);
-                        let turn = [-wall.axis[1], wall.axis[0]];
-                        let (out, depth, half) = match face {
-                            0 => (wall.axis, wall.half[0], wall.half[1]),
-                            1 => (scale(wall.axis, -1.0), wall.half[0], wall.half[1]),
-                            2 => (turn, wall.half[1], wall.half[0]),
-                            _ => (scale(turn, -1.0), wall.half[1], wall.half[0]),
-                        };
+                        let (out, depth, half) = faces(&wall)[rng.below(4) as usize];
                         let run = [-out[1], out[0]];
                         let off = self.rule.wall_gap_m
                             + SLACK_M
@@ -745,7 +891,7 @@ impl<'a> Pass<'a> {
                         if self.houses[house]
                             .doors
                             .iter()
-                            .any(|door| dot(*door, out) > 0.5)
+                            .any(|(_, door)| dot(*door, out) > 0.5)
                         {
                             continue;
                         }

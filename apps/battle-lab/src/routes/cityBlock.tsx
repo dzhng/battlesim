@@ -207,7 +207,10 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
   // The map's buildings: every one a template reference.
   const drawn = useMapBuildings(world);
   // The catalog, and the kits this town's buildings draw from.
-  const appearances = useMapAppearances(drawn?.index.placed ?? null, null);
+  const appearances = useMapAppearances(
+    drawn?.index.placed ?? null,
+    world?.exports.buildings.regionalFamily ?? null,
+  );
   const surfaceZ = useCallback(
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
     [world],
@@ -233,7 +236,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
         ? mapAppearances(
             appearances,
             drawn.props,
-            new PropAppearances(appearances, world.layout, null),
+            new PropAppearances(appearances, world.layout, world.exports.buildings.regionalFamily),
             drawn.index.placed,
             false,
           )

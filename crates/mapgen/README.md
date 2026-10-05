@@ -87,11 +87,10 @@ identity derives from its district so tuning one kind does not rename unrelated
 buildings. A district with no valid first parcel is a named refusal rather than an
 unexplained empty town.
 
-A dense district paves its block interior as one [court](src/parcels/courts.rs):
-its convex ring, laid as paving, so the ground between every one of its buildings
-is hard standing and its streets draw over it. Along an edge no carriageway runs
-on, the court ends at its nearest parcel's rear rather than running out into the
-fields. Paving is ground, not road: it changes no speed, sight or cover.
+A dense district's block is structured, not one plaza ([courts](src/parcels/courts.rs)):
+yards on the built parcels, car parks beside the carriageways, and the rest lawn,
+crossed by paths and one lane a vehicle drives. Lawn is the absence of paving, not
+a surface kind; paving is ground, not road: it changes no speed, sight or cover.
 
 [The generated template library](../../fixtures/prototype-building-templates.json)
 is derived from accepted [city sets](../../packages/scene-assets/README.md#city-buildings),
@@ -153,15 +152,23 @@ of entrances and bridge approaches, apart from existing bodies and outside measu
 open approaches. Dimensions and mix belong to presets; the resolved catalog owns
 physical properties and the widest supported hull used to reserve a lane.
 
-Garden suburbs and villages dress the gardens behind their houses: pieces in a
-lot's rear setback and a boundary along its rear and sides, never in the front
-garden. Gardens are the least of a town's dressing: they are placed after the
-open country's cover has certified the map's sight, keep a trunk's clearance off
-every forest so they fell no tree the certificate counted, and stop at the
-request's authored-part limit. On the largest maps that limit, not the presets'
-density, decides how many lots are dressed.
+[Courts](src/street_props/courts.rs) dress the dense districts' blocks. A court's
+inside is infantry ground: a vehicle is owed a way in (a car park's aisle, a yard's
+vehicle gate, a lawn's lane), not a way everywhere, and every group keeps a squad's
+way round its open sides. Building sites, yard boundaries, fenced groups and garden
+boundaries go through one fence routine, so two neighbours share one boundary.
+Amenity groups are presets data, placed whole or not at all; a region's signature
+group is drawn only on that region's maps. [Furniture tests](tests/street_props.rs)
+hold courts and lawns to a measured fill.
 
-Kerbside parking, yard stock and gardens must leave actual squad access and vehicle travel.
+[Gardens](src/street_props/mod.rs) dress the rear setbacks of garden suburbs and
+villages, never the front garden. Courts and gardens are dressed last, after the
+open country's cover has certified the map's sight, and keep off every forest so
+they fell no tree the certificate counted. At the request's authored-part limit,
+courts take their share first and gardens what is left: on the largest maps that
+limit, not the presets' density, decides how thickly they are dressed.
+
+Kerbside parking, yard stock, courts and gardens must leave actual squad access and vehicle travel.
 A planned route or successful placement alone is insufficient; [furniture tests](tests/street_props.rs)
 ask the simulation's navigation, while traversal and traffic remain separate
 movement proofs. Bounded local retries may omit optional furniture when it cannot

@@ -27,6 +27,7 @@ import {
 import { RIVER_FLOATS, stretchInside } from "@packages/battle-renderer/src/terrain/rivers";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import {
+  areaBearings,
   buildSurfaceField,
   forestDistance,
   pavedDistance,
@@ -390,4 +391,63 @@ test("the field's memory is bounded by the cell budget, not the map's area", () 
     expect(field.cols * field.rows).toBeLessThanOrEqual(SURFACE_MAX_CELLS);
   // Sixteen times the area again costs under twice the index (more levels share the finest cell).
   expect(huge.index.byteLength).toBeLessThan(large.index.byteLength * 2);
+});
+
+test("every triangle of a paved area lays its slabs square to the area's longest side", () => {
+  // A 40 by 10 m yard turned 30 degrees, as two triangles, and a square
+  // apart from it turned 70 degrees.
+  const turned = (turn: number, [w, h]: number[], [cx, cy]: number[]) =>
+    [
+      [0, 0],
+      [w, 0],
+      [w, h],
+      [0, h],
+    ].map(([x, y]) => [
+      cx + x * Math.cos(turn) - y * Math.sin(turn),
+      cy + x * Math.sin(turn) + y * Math.cos(turn),
+    ]);
+  const fan = (ring: number[][]) => [
+    [...ring[0], ...ring[1], ...ring[2], 3],
+    [...ring[0], ...ring[2], ...ring[3], 3],
+  ];
+  const deg = Math.PI / 180;
+  const triangles = Float32Array.from(
+    [
+      ...fan(turned(30 * deg, [40, 10], [100, 100])),
+      ...fan(turned(70 * deg, [8, 8], [300, 300])),
+    ].flat(),
+  );
+  const bearings = Array.from(areaBearings(triangles, 7));
+  // The yard's long side, 30 degrees; the square's, 70 degrees within a
+  // quarter turn: 70 - 90 = -20, which is 70 again mod 90.
+  expect(bearings[0]).toBeCloseTo(30 * deg, 4);
+  expect(bearings[1]).toBeCloseTo(30 * deg, 4);
+  expect(bearings[2]).toBeCloseTo(bearings[3], 6);
+  expect(bearings[2]).toBeCloseTo(70 * deg, 4);
+});
+
+test("an area's triangles, and paving laid over it, share the area's one grid", () => {
+  const deg = Math.PI / 180;
+  // A fan of a pentagon court whose longest side, 50 m along 10 degrees, is
+  // an outer edge of its first triangle only; the second triangle's own
+  // longest outer edge runs at 100 degrees mod 90, so 10 + 25.
+  const at = (bearing: number, length: number, [x, y]: number[]) => [
+    x + length * Math.cos(bearing * deg),
+    y + length * Math.sin(bearing * deg),
+  ];
+  const p0 = [0, 0];
+  const p1 = at(10, 50, p0);
+  const p2 = at(100, 12, p1);
+  const p3 = at(160, 30, p2);
+  const p4 = at(215, 12, p3);
+  const court = [
+    [...p0, ...p1, ...p2, 3],
+    [...p0, ...p2, ...p3, 3],
+    [...p0, ...p3, ...p4, 3],
+  ];
+  // An apron inside it, turned 25 degrees, sharing no corner with it.
+  const c = [20, 10];
+  const apron = [[...c, ...at(25, 8, c), ...at(25 + 90, 6, at(25, 8, c)), 3]];
+  const bearings = Array.from(areaBearings(Float32Array.from([...court, ...apron].flat()), 7));
+  for (const b of bearings) expect(b).toBeCloseTo(10 * deg, 4);
 });

@@ -390,6 +390,15 @@ def mesh_part(name, build, mat=None, parent=None, lods=TIERS, loc=(0, 0, 0), rot
     return _each(name, lods, make)
 
 
+def lump(bm, lod, centre, radii, rough, seed):
+    """Into `bm`: a rounded mass (a shrub's clump, a heap of spoil): a sphere pushed in and out by noise."""
+    made = bmesh.ops.create_icosphere(bm, subdivisions=max(1, 2 - lod), radius=1.0)
+    off = Vector((seed * 1.7, seed * 0.9, seed * 2.3))
+    for v in made["verts"]:
+        k = 1.0 + rough * noise.noise(v.co * 1.6 + off)
+        v.co = Vector(centre) + Vector((v.co.x * radii[0], v.co.y * radii[1], v.co.z * radii[2])) * k
+
+
 def stencil(name, text, height, loc, rot, mat, parent=None, lods=(0, 1), depth=0.003):
     """Painted markings: `text` (Blender's built-in font, `\\n` for lines) as a thin
     raised mesh of letters `height` tall, lying in its local XY plane facing +Z,
@@ -643,10 +652,11 @@ def triangles_by_tier():
     return out
 
 
-def export(path, worn=True):
+def export(path, worn=True, texture_px=textures.SIZE):
     """Export the GLB: textured parts take box-projected UVs (unless they carry
     their own, as a track's links do) and tangents, then the recipes' images are
-    written into it. `worn` false is for surfaces that never wear (`textures.attach`)."""
+    written into it, at `texture_px` (a piece under a byte cap embeds them smaller).
+    `worn` false is for surfaces that never wear (`textures.attach`)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     for o in list(bpy.data.objects):
         if o.type in ("CAMERA", "LIGHT"):
@@ -671,5 +681,5 @@ def export(path, worn=True):
         export_materials="EXPORT",
         export_image_format="NONE",
     )
-    textures.attach(path, TEXTURED, worn)
+    textures.attach(path, TEXTURED, worn, texture_px)
     print("GLB", path, os.path.getsize(path))
