@@ -60,7 +60,7 @@ It's a game, not a physics simulation. The target is **Hollywood realism**: the 
 
 ## Running it
 
-You need [Bun](https://bun.sh), a Rust toolchain with the `wasm32-unknown-unknown` target, [wasm-pack](https://rustwasm.github.io/wasm-pack/), and a WebGPU browser.
+You need [Bun](https://bun.sh), [rustup](https://rustup.rs) (it installs the pinned Rust and its `wasm32-unknown-unknown` target from [`rust-toolchain.toml`](rust-toolchain.toml), the same release the deployment builds with), [wasm-pack](https://rustwasm.github.io/wasm-pack/), and a WebGPU browser.
 
 ```bash
 bun run setup   # install web dependencies

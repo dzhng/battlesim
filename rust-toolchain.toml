@@ -1,0 +1,6 @@
+# The one Rust every checkout and the Vercel build compile with: clippy's
+# advice and the standard library's stable APIs move with the release.
+[toolchain]
+channel = "1.99.0"
+targets = ["wasm32-unknown-unknown"]
+components = ["clippy", "rustfmt"]
