@@ -78,9 +78,11 @@ export async function townGround(ctx) {
   const masks = {};
   for (const station of ["town-250", "town-edge-250", "country-250"])
     masks[station] = plotShares((await stationFrame(page, "generated", station)).mask);
+  // A dense block's courts are paved, so the open ground judged here is the
+  // lawns and gardens between them: a smaller share of the frame.
   ctx.check(
-    "between a town's buildings the ground is its yards and commons: no crop is drilled there",
-    masks["town-250"].ground > 50000 &&
+    "between a town's buildings the open ground is its yards and commons: no crop is drilled there",
+    masks["town-250"].ground > 10000 &&
       masks["town-250"].yard > 0.8 &&
       masks["town-250"].drilled < 0.005,
     JSON.stringify(masks["town-250"]),
@@ -123,10 +125,14 @@ export async function townGround(ctx) {
     page,
     world.map(({ xy }) => xy),
   );
+  // A core inside the paving is a road's only inside its own stroke: a
+  // court's paving runs up to the street.
   const surface = (kind) =>
     lit(
       join.shot,
-      cores.filter((_, i) => drawn[i]?.kind === kind && clear(world[i])),
+      cores.filter(
+        (_, i) => drawn[i]?.kind === kind && drawn[i].inside > -CORE_M && clear(world[i]),
+      ),
     );
   const [asphalt, gravel] = [surface("road"), surface("country_road")];
   ctx.check(

@@ -256,11 +256,9 @@ impl<'a> Pass<'a> {
                 let axis = [out[1], -out[0]];
                 let spacing = lawn.beside_spacing_m;
                 let behind = self.rule.squad_way_m;
+                // The presets keep each group no wider than its stretch.
                 let at = |group: &Group, rng: &mut Stream| {
                     let [gx, gy] = group.size_m.map(|v| v / 2.0);
-                    if 2.0 * gx > spacing {
-                        return None;
-                    }
                     let s = ((k as f64 + rng.unit()) * spacing)
                         .clamp(k as f64 * spacing + gx, (k + 1) as f64 * spacing - gx);
                     Some(Stand {

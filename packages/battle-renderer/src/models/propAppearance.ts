@@ -17,7 +17,7 @@
 // A building's parts are not drawn here: a building is its template's rows,
 // intact, a ruin or a gutted shell (`buildingReferences.ts`).
 //
-// What a side draws is what it knows (`structureModels`): the map's props,
+// What a side draws is what it knows (`structureBodies`): the map's props,
 // less those a known prop replaces, plus every known prop. A replacement is
 // atomic: the list that drops a wall carries its rubble, and a fall the side
 // has not seen leaves the wall standing.
@@ -313,21 +313,31 @@ export function knownStanding(
   return out;
 }
 
+/** A body a side draws, and the models drawing it: several for a repeated
+ *  module, none for a kind with no art and no stand-in (or a building's
+ *  part, which its building draws). */
+export interface DrawnBody {
+  body: PropBox;
+  models: ModelInstance[];
+}
+
 /**
- * What a side draws of the props: every map prop `keep` accepts, less those a
- * known prop replaces, plus every known prop. Known props arrive only with
- * knowledge, so a fall the side has not seen leaves the map's prop standing.
+ * What a side draws of the props, body by body: every map prop `keep`
+ * accepts, less those a known prop replaces, plus every known prop. Known
+ * props arrive only with knowledge, so a fall the side has not seen leaves
+ * the map's prop standing.
  */
-export function structureModels(
+export function structureBodies(
   props: readonly MapProp[],
   known: readonly KnownProp[],
   appearances: PropAppearances,
   keep: (prop: MapProp) => boolean = () => true,
-): ModelInstance[] {
+): DrawnBody[] {
   const replaced = new Map<number, KnownProp>();
   for (const k of known) if (k.authoredProp !== null) replaced.set(k.authoredProp, k);
-  const out: ModelInstance[] = [];
-  for (const prop of props) if (keep(prop) && !replaced.has(prop.id)) appearances.fit(prop, out);
-  for (const k of known) if (!k.destroyed) appearances.fit(k, out);
+  const out: DrawnBody[] = [];
+  const draw = (body: PropBox) => out.push({ body, models: appearances.fit(body, []) });
+  for (const prop of props) if (keep(prop) && !replaced.has(prop.id)) draw(prop);
+  for (const k of known) if (!k.destroyed) draw(k);
   return out;
 }

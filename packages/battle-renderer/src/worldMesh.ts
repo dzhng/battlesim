@@ -9,7 +9,8 @@ import {
   drawnBy,
   mapProps,
   PropAppearances,
-  structureModels,
+  structureBodies,
+  type DrawnBody,
   type PropAppearance,
   type StandInStyle,
 } from "./models/propAppearance";
@@ -214,7 +215,7 @@ function fieldReader(fields: string[], stride: number, data: Float32Array) {
 }
 
 /** The prop kinds a battle draws apart from the world, from what the side
- *  knows (`structureModels`), so a change never rebuilds the whole world:
+ *  knows (`structureBodies`), so a change never rebuilds the whole world:
  *  every kind something can shove, and (`destroyable`) every kind fire can
  *  destroy. Trees stay the scenery's either way. */
 export function apartKinds(layout: WorldLayout, destroyable: boolean): string[] {
@@ -260,7 +261,20 @@ export function worldStructures(
   appearances: InstalledAppearances,
   standIns?: StandInStyle,
 ): ModelInstance[] {
-  return structureModels(
+  return worldStructureBodies(exports, layout, apart, appearances, standIns).flatMap(
+    (b) => b.models,
+  );
+}
+
+/** `worldStructures` body by body (`structureBodies`). */
+export function worldStructureBodies(
+  exports: WorldExports,
+  layout: WorldLayout,
+  apart: readonly string[],
+  appearances: InstalledAppearances,
+  standIns?: StandInStyle,
+): DrawnBody[] {
+  return structureBodies(
     mapProps(exports, layout),
     [],
     new PropAppearances(appearances, layout, exports.buildings.regionalFamily, standIns),
@@ -272,7 +286,7 @@ export function worldStructures(
  *  installed appearances, the props on it as appearances (`worldStructures`),
  *  the scenery and the grass kinds (the surface view; the traversal view
  *  draws the props' boxes instead). `apart` (`apartKinds`) leaves out the
- *  kinds a route draws from what the side knows (`structureModels`). */
+ *  kinds a route draws from what the side knows (`structureBodies`). */
 export function buildWorldLayers(
   exports: WorldExports,
   layout: WorldLayout,

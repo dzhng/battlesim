@@ -416,7 +416,7 @@
         "front_inset_m": 3
       },
       "parking": { "bay_m": [2.6, 5.2], "aisle_m": 6.5, "bays": [3, 8], "every_m": 80 },
-      "lawn": { "path_m": 3, "lane_m": 8, "least_m2": 300, "streets": 2, "gates": 3, "beside": { "court_tree": 3, "lawn_bench": 1, "hedge_bench": 1 }, "beside_spacing_m": 9 }
+      "lawn": { "path_m": 3, "lane_m": 8, "least_m2": 300, "streets": 2, "gates": 3, "beside": { "court_tree": 3, "lawn_bench": 1 }, "beside_spacing_m": 9 }
     },
     "parking": { "kind": "parked_car", "run": [2, 5], "bumper_gap_m": 0.5, "run_gap_m": 3, "both_sides_min_width_m": 10 },
     "site": {

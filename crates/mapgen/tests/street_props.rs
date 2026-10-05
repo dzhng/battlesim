@@ -1138,16 +1138,22 @@ fn a_court_group_naming_an_unknown_body_family_or_group_is_refused() {
 
 /// The presets refuse a court rule that cannot spend its parts or lay its
 /// lawn's paths as it says: a split that gives a structure no part of what
-/// is left, and a lawn that asks for no path from a street, its lane being
-/// one.
+/// is left, a lawn that asks for no path from a street, its lane being
+/// one, and a group to plant beside a path wider than the stretch each
+/// stands on, which would never be planted.
 #[test]
 fn a_court_rule_that_cannot_split_its_parts_or_lay_its_lane_is_refused() {
-    let edits: [Edit; 2] = [
+    let edits: [Edit; 3] = [
         ("street_props.courts", |source| {
             source["street_props"]["courts"]["split"]["walls"] = 0.into();
         }),
         ("street_props.courts", |source| {
             source["street_props"]["courts"]["lawn"]["streets"] = 0.into();
+        }),
+        ("street_props.courts", |source| {
+            let lawn = &mut source["street_props"]["courts"]["lawn"];
+            lawn["beside"] = json!({ "lawn_bench": 1 });
+            lawn["beside_spacing_m"] = 5.9.into();
         }),
     ];
     for (location, edit) in edits {
