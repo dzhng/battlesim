@@ -72,9 +72,9 @@ pub struct MapPlan {
     /// (`MapDefinition.regional_family`): set by the parcel pass.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub regional_family: Option<String>,
-    /// The paved block interiors of the districts that pave theirs, each
-    /// also laid as a `Paving` surface. Plan-only: where court amenities
-    /// stand.
+    /// The paved pieces of the districts that pave their blocks (yards,
+    /// car parks, and the paths and lanes across their lawns), each also
+    /// laid as a `Paving` surface. Plan-only: where court amenities stand.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub courts: Vec<CourtPlan>,
     /// A requested feature without a shared physical owner cannot be discarded.
@@ -153,6 +153,29 @@ pub struct CourtPlan {
     /// street or a yard gate).
     #[serde(deserialize_with = "contract::numbers::points")]
     pub ring: Vec<[f64; 2]>,
+}
+
+/// What follows a yard's parcel id in its own.
+const YARD: &str = "/yard";
+
+impl CourtPlan {
+    /// The yard of the built parcel `lot`, of `district`, whose ring it is.
+    pub(crate) fn yard(lot: &str, district: &DistrictPlan, ring: Vec<[f64; 2]>) -> Self {
+        Self {
+            id: format!("{lot}{YARD}"),
+            district: district.id.clone(),
+            kind: CourtKind::Yard,
+            ring,
+        }
+    }
+
+    /// The parcel a yard paves, by its id; `None` for any other court.
+    pub(crate) fn parcel(&self) -> Option<&str> {
+        match self.kind {
+            CourtKind::Yard => self.id.strip_suffix(YARD),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

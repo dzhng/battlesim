@@ -126,7 +126,17 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
         "retries" => (PRESETS, "Retries"),
         "street_props" => (
             PRESETS,
-            if parts.contains(&"parking") {
+            if parts.contains(&"yards") {
+                "Yards"
+            } else if parts.contains(&"courts") && parts.contains(&"parking") {
+                "CourtParking"
+            } else if parts.contains(&"lawn") {
+                "Lawn"
+            } else if parts.contains(&"split") {
+                "CourtSplit"
+            } else if parts.contains(&"courts") {
+                "CourtRule"
+            } else if parts.contains(&"parking") {
                 "Parking"
             } else if parts.contains(&"site") {
                 "ConstructionSite"
@@ -152,10 +162,6 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
                 "VergeRow"
             } else if parts.contains(&"gardens") {
                 "Gardens"
-            } else if parts.contains(&"yards") {
-                "Yards"
-            } else if parts.contains(&"courts") && parts.contains(&"parking") {
-                "CourtParking"
             } else if parts.contains(&"courts") {
                 "Courts"
             } else if parts.contains(&"props") {

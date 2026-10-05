@@ -8,7 +8,7 @@ use super::lots::Ground;
 use super::Pass;
 use crate::layout::geometry::{add, distance, round_cm, scale, sub, Point};
 use crate::layout::Lawn;
-use crate::{CourtKind, CourtPlan, Diagnostic, DistrictPlan, MapPlan};
+use crate::{CourtKind, CourtPlan, Diagnostic, DiagnosticCode, DistrictPlan, MapPlan};
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::{SurfaceArea, SurfaceKind};
 use std::collections::BTreeSet;
@@ -22,22 +22,17 @@ pub fn lay(
     ground: &mut Ground,
 ) -> Result<(Vec<CourtPlan>, Vec<SurfaceArea>), Vec<Diagnostic>> {
     let built: BTreeSet<String> = ground.buildings.iter().map(|b| b.id.clone()).collect();
+    let rule = &pass.presets.street_props.courts;
     let mut courts = Vec::new();
     for district in plan.settlements.iter().flat_map(|s| &s.districts) {
-        let rule = &pass.district(district)?.props.courts;
-        if !rule.paved {
+        if !pass.district(district)?.props.courts.paved {
             continue;
         }
         let prefix = format!("{}/", district.id);
         let first = courts.len();
         for lot in &ground.plan_lots {
             if lot.id.starts_with(&prefix) && built.contains(&lot.id) {
-                courts.push(CourtPlan {
-                    id: format!("{}/yard", lot.id),
-                    district: district.id.clone(),
-                    kind: CourtKind::Yard,
-                    ring: lot.ring.clone(),
-                });
+                courts.push(CourtPlan::yard(&lot.id, district, lot.ring.clone()));
             }
         }
         if let Some(parking) = &rule.parking {
@@ -61,13 +56,20 @@ pub fn lay(
     }
     let paving = courts
         .iter()
-        .filter_map(|court| {
-            Some(SurfaceArea {
+        .map(|court| {
+            Ok(SurfaceArea {
                 kind: SurfaceKind::Paving,
-                shape: GroundShape::polygon(court.ring.clone()).ok()?,
+                shape: GroundShape::polygon(court.ring.clone()).map_err(|message| {
+                    vec![Diagnostic {
+                        code: DiagnosticCode::InvalidPlacement,
+                        feature: Some(court.id.clone()),
+                        location: "courts".into(),
+                        message,
+                    }]
+                })?,
             })
         })
-        .collect();
+        .collect::<Result<_, Vec<Diagnostic>>>()?;
     Ok((courts, paving))
 }
 
@@ -205,12 +207,11 @@ fn cells(pass: &Pass, ground: &Ground, district: &DistrictPlan, paved: &Paved) -
     (found, pieces)
 }
 
-/// Where a path starts: the end it is paved from, the lawn it is checked
-/// from, and whether it comes from a street.
+/// Where a path starts: the end it is paved from, and the lawn it is
+/// checked from.
 struct Entry {
     start: Point,
     from: Point,
-    street: bool,
 }
 
 /// The paths across `district`'s lawn, `courts` its yards and car parks:
@@ -362,17 +363,10 @@ fn paths(
             if steps == 16 {
                 continue;
             }
-            streets.push(Entry {
-                start,
-                from,
-                street: true,
-            });
+            streets.push(Entry { start, from });
         }
         let mut gates = Vec::new();
         for yard in courts.iter().filter(|c| c.kind == CourtKind::Yard) {
-            if yard.ring.len() != 4 {
-                continue;
-            }
             // The middle of its rear edge, and the way in from its street
             // edge.
             let r = &yard.ring;
@@ -393,7 +387,6 @@ fn paths(
             gates.push(Entry {
                 start: sub(rear, inward),
                 from,
-                street: false,
             });
         }
         gates.sort_by(|a, b| distance(a.from, middle).total_cmp(&distance(b.from, middle)));
@@ -445,7 +438,6 @@ fn paths(
                 add(end, left),
             ]
             .map(round_cm);
-            debug_assert!(entry.street || !lane);
             found.push(CourtPlan {
                 id: format!("{}/path-{}", district.id, found.len()),
                 district: district.id.clone(),

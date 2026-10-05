@@ -805,6 +805,11 @@ fn court_groups(source: &mut Value) {
             },
         });
     }
+    // Open courts: no yards, car parks or lawn paths.
+    let courts = source["street_props"]["courts"].as_object_mut().unwrap();
+    for structure in ["yards", "parking", "lawn"] {
+        courts.remove(structure);
+    }
 }
 
 /// The district kinds that pave a court.
@@ -1090,13 +1095,13 @@ fn court_groups_stand_whole_in_their_courts_and_keep_to_their_family() {
     }
 }
 
+/// A presets path and the edit that breaks it.
+type Edit = (&'static str, fn(&mut Value));
+
 /// The presets refuse a court group that names a body `street_props` lacks,
 /// a family table for a family the map regions do not list, a court table
 /// naming a group that does not exist, and a fenced group whose fixed-length
 /// panels leave its corners open.
-/// A presets path and the edit that breaks it.
-type Edit = (&'static str, fn(&mut Value));
-
 #[test]
 fn a_court_group_naming_an_unknown_body_family_or_group_is_refused() {
     let edits: [Edit; 4] = [
@@ -1110,7 +1115,7 @@ fn a_court_group_naming_an_unknown_body_family_or_group_is_refused() {
         ("districts.core.props.courts", |source| {
             source["districts"]["core"]["props"]["courts"]["groups"] = json!({ "maze": 1 });
         }),
-        // A fixed-length fence (a modular one is cut to its sides).
+        // A fixed-length fence (one cut to fit is cut to its sides).
         ("street_props.groups.hoops", |source| {
             source["street_props"]["groups"]["hoops"]["fence"] = "heras_fence".into();
             source["street_props"]["groups"]["hoops"]["size_m"] = json!([20, 18.45]);
@@ -1129,6 +1134,72 @@ fn a_court_group_naming_an_unknown_body_family_or_group_is_refused() {
             "{refused:?}"
         );
     }
+}
+
+/// The presets refuse a court rule that cannot spend its parts or lay its
+/// lawn's paths as it says: a split that gives a structure no part of what
+/// is left, and a lawn that asks for no path from a street, its lane being
+/// one.
+#[test]
+fn a_court_rule_that_cannot_split_its_parts_or_lay_its_lane_is_refused() {
+    let edits: [Edit; 2] = [
+        ("street_props.courts", |source| {
+            source["street_props"]["courts"]["split"]["walls"] = 0.into();
+        }),
+        ("street_props.courts", |source| {
+            source["street_props"]["courts"]["lawn"]["streets"] = 0.into();
+        }),
+    ];
+    for (location, edit) in edits {
+        let mut source: Value = serde_json::from_str(PRESETS).unwrap();
+        edit(&mut source);
+        let refused = PresetDefinitions::from_json(&source.to_string())
+            .err()
+            .unwrap_or_else(|| panic!("an edit at {location} was admitted"));
+        assert!(
+            refused.iter().any(|d| d.location.contains(location)),
+            "{refused:?}"
+        );
+    }
+}
+
+/// A boundary cut to fit its run draws its catalog appearance's module
+/// repeated along a shortened panel, so a body whose appearance is not
+/// modular cannot be cut: dressing refuses it by name.
+#[test]
+fn a_body_cut_to_fit_without_a_modular_appearance_is_refused() {
+    let presets = presets_with(|source| {
+        source["street_props"]["bodies"]["hedge"]["cut_to_fit"] = true.into();
+    });
+    let dress = |catalog: &Catalog| {
+        place_street_props(
+            &town(&[street(8.0)], &[]),
+            &request(MapType::Mixed, MapSize::Small, 1),
+            &catalogue(),
+            catalog,
+            &presets,
+        )
+    };
+    assert!(
+        dress(&rules().catalog).is_ok(),
+        "the shipped hedge appearance is modular"
+    );
+    let mut fixture = sim::fixtures::game();
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "props",
+        "hedge",
+        json!({ "appearance": { "modular": false } }),
+    );
+    let stretched = serde_json::from_value::<Rules>(fixture).unwrap().catalog;
+    let refused =
+        dress(&stretched).expect_err("a hedge cut to fit with a stretched appearance was admitted");
+    assert!(
+        refused
+            .iter()
+            .any(|d| d.location.contains("street_props.bodies.hedge")),
+        "{refused:?}"
+    );
 }
 
 /// A panel's length of the fence body `kind`.
@@ -1259,23 +1330,20 @@ const FILL_SEEDS: [u64; 3] = [1, 2, 3];
 const OPEN_M: f64 = 6.0;
 /// The court ground is sampled at points this far apart.
 const FILL_STEP_M: f64 = 2.0;
-/// At most this share of each region's court paving is open, over every map
-/// (before yards, car parks and lawns it was 19–20 %).
+/// At most this share of each region's court paving is open, over every map.
 const MOST_OPEN: f64 = 0.05;
 /// At most this share of the court paving of each district kind of each
 /// region is open, over the maps whose authored parts stop short of the
-/// request's limit: where the courts are not short of parts (before, the
-/// apartments' courts were 29–31 % open).
+/// request's limit: where the courts are not short of parts.
 const MOST_OPEN_DRESSED: f64 = 0.04;
 /// A dense district's lawn is empty farther than this from every body,
 /// building wall, carriageway and paved area: wider than a squad's field of
 /// cover either side, it reads as a bare field between the blocks.
 const EMPTY_LAWN_M: f64 = 8.0;
-/// At most this share of each region's lawn is empty, over every map
-/// (with groups ringed for a vehicle and no paths it was 12.8–13.7 %).
+/// At most this share of each region's lawn is empty, over every map.
 const MOST_EMPTY_LAWN: f64 = 0.11;
 /// At most this share of each region's lawn is empty over the maps whose
-/// authored parts stop short of the request's limit (before, 3.7–4.1 %).
+/// authored parts stop short of the request's limit.
 const MOST_EMPTY_LAWN_DRESSED: f64 = 0.025;
 
 /// A flag for each point of a map's sampling grid.
@@ -1618,20 +1686,18 @@ const BAY_M: [f64; 2] = [2.6, 5.2];
 const AISLE_M: f64 = 6.5;
 
 fn yards_and_parking(source: &mut Value) {
-    for kind in COURT_DISTRICTS {
-        let courts = &mut source["districts"][kind]["props"]["courts"];
-        courts["yards"] = json!({
-            "boundary": BOUNDARIES
-                .iter()
-                .map(|(family, kind)| (family.to_string(), json!({ *kind: 1 })))
-                .collect::<serde_json::Map<String, Value>>(),
-            "gate_m": VEHICLE_GATE_M,
-            "door_gate_m": YARD_GATE_M,
-            "front_inset_m": 3,
-        });
-        courts["parking"] =
-            json!({ "bay_m": BAY_M, "aisle_m": AISLE_M, "bays": [3, 8], "every_m": 40 });
-    }
+    let courts = &mut source["street_props"]["courts"];
+    courts["yards"] = json!({
+        "boundary": BOUNDARIES
+            .iter()
+            .map(|(family, kind)| (family.to_string(), json!({ *kind: 1 })))
+            .collect::<serde_json::Map<String, Value>>(),
+        "gate_m": VEHICLE_GATE_M,
+        "door_gate_m": YARD_GATE_M,
+        "front_inset_m": 3,
+    });
+    courts["parking"] =
+        json!({ "bay_m": BAY_M, "aisle_m": AISLE_M, "bays": [3, 8], "every_m": 40 });
 }
 
 /// Whether `p` lies within the strip from `a` to `b`, `half` either side of
@@ -1660,7 +1726,7 @@ fn in_strip(a: Point, b: Point, half: f64, p: Point) -> bool {
 #[test]
 fn yards_are_bounded_with_gates_and_car_parks_keep_their_aisles() {
     let presets = presets_with(yards_and_parking);
-    let hull_way = widest_hull(&rules().catalog) + presets.street_props.group_margin_m;
+    let hull_way = mapgen::street_props::hull_way(&rules().catalog, &presets);
     let squad_way = presets.street_props.squad_way_m;
     for (region, kind) in BOUNDARIES {
         let mut request = request(MapType::Mixed, MapSize::Small, 1);
@@ -1899,9 +1965,10 @@ fn neighbouring_yards_share_one_boundary_of_one_kind() {
     let kinds = ["iron_railing", "chainlink_fence"];
     let presets = presets_with(|source| {
         yards_and_parking(source);
+        source["street_props"]["courts"]["yards"]["boundary"]["new_york"] =
+            json!({ kinds[0]: 1, kinds[1]: 1 });
         for district in COURT_DISTRICTS {
             let courts = &mut source["districts"][district]["props"]["courts"];
-            courts["yards"]["boundary"]["new_york"] = json!({ kinds[0]: 1, kinds[1]: 1 });
             courts["groups"] = json!({});
             courts["families"] = json!({});
         }
@@ -1963,12 +2030,10 @@ const PATH_M: f64 = 3.0;
 
 fn lawn_paths(source: &mut Value) {
     yards_and_parking(source);
-    for kind in COURT_DISTRICTS {
-        source["districts"][kind]["props"]["courts"]["lawn"] = json!({
-            "path_m": PATH_M, "lane_m": 8, "least_m2": 300, "streets": 3, "gates": 6,
-            "beside": { "court_tree": 1 }, "beside_spacing_m": 9,
-        });
-    }
+    source["street_props"]["courts"]["lawn"] = json!({
+        "path_m": PATH_M, "lane_m": 8, "least_m2": 300, "streets": 3, "gates": 6,
+        "beside": { "court_tree": 1 }, "beside_spacing_m": 9,
+    });
 }
 
 /// Lawns are crossed by paved paths, kept clear, one of each lawn's from a
@@ -1983,7 +2048,7 @@ fn lawn_paths(source: &mut Value) {
 #[test]
 fn lawns_are_crossed_by_paths_kept_clear() {
     let presets = presets_with(lawn_paths);
-    let hull_way = widest_hull(&rules().catalog) + presets.street_props.group_margin_m;
+    let hull_way = mapgen::street_props::hull_way(&rules().catalog, &presets);
     for region in REGIONS {
         let mut request = request(MapType::Mixed, MapSize::Small, 1);
         request.region = Some(region.into());
@@ -2333,7 +2398,7 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
         .max_by_key(|unit| unit.squad_size())
         .unwrap();
     let on_foot = sim::units::mobility(squad, &rules);
-    let hull_way = widest_hull(&rules.catalog) + presets.street_props.group_margin_m;
+    let hull_way = mapgen::street_props::hull_way(&rules.catalog, &presets);
     let mut totals = [0usize; 8];
     let mut broken: Vec<String> = Vec::new();
     for map_type in MapType::ALL {
@@ -2671,8 +2736,8 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                         }
                         // A lawn too small for a path is a gap between
                         // buildings, not a court.
-                        let least = presets.districts[&district.kind]
-                            .props
+                        let least = presets
+                            .street_props
                             .courts
                             .lawn
                             .as_ref()

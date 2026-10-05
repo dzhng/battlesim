@@ -705,24 +705,16 @@ fn every_building_of_a_map_is_of_one_regional_family() {
     source["parcels"]["regional_families"] = serde_json::json!([family, "other"]);
     // A court's regional tables (its groups and its yards' boundaries) name
     // only listed families: "other" dresses its courts as `family` does.
+    let mirror = |families: &mut serde_json::Value| {
+        let own = families[&family].clone();
+        *families = serde_json::json!({ family.clone(): own.clone(), "other": own });
+    };
     for district in source["districts"].as_object_mut().unwrap().values_mut() {
-        let Some(courts) = district
-            .get_mut("props")
-            .and_then(|props| props.get_mut("courts"))
-        else {
-            continue;
-        };
-        let mirror = |families: &mut serde_json::Value| {
-            let own = families[&family].clone();
-            *families = serde_json::json!({ family.clone(): own.clone(), "other": own });
-        };
-        if let Some(families) = courts.get_mut("families") {
+        if let Some(families) = district.pointer_mut("/props/courts/families") {
             mirror(families);
         }
-        if let Some(boundary) = courts.get_mut("yards").and_then(|y| y.get_mut("boundary")) {
-            mirror(boundary);
-        }
     }
+    mirror(&mut source["street_props"]["courts"]["yards"]["boundary"]);
     let presets = PresetDefinitions::from_json(&source.to_string()).unwrap();
     let mut drawn = BTreeSet::new();
     for seed in 1..=8 {
