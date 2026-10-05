@@ -37,6 +37,11 @@ const GARDENS_WALKED: usize = 40;
 /// grid this fine over its lawn), spread evenly through the map's own order.
 const COURTS_WALKED: usize = 60;
 const COURT_STEP_M: f64 = 6.0;
+/// How many lawns of a map the widest hull is asked into, and at how many
+/// of each one's points it is tried on the bare map (three times as many on
+/// the dressed one).
+const LAWNS_DRIVEN: usize = 20;
+const LAWN_TRIES: usize = 3;
 /// A drive down a dressed street is at most this much longer than down the
 /// bare one.
 const DETOUR_M: f64 = 30.0;
@@ -1259,6 +1264,16 @@ const MOST_OPEN: f64 = 0.05;
 /// request's limit: where the courts are not short of parts (before, the
 /// apartments' courts were 29–31 % open).
 const MOST_OPEN_DRESSED: f64 = 0.04;
+/// A dense district's lawn is empty farther than this from every body,
+/// building wall, carriageway and paved area: wider than a squad's field of
+/// cover either side, it reads as a bare field between the blocks.
+const EMPTY_LAWN_M: f64 = 8.0;
+/// At most this share of each region's lawn is empty, over every map
+/// (with groups ringed for a vehicle and no paths it was 12.8–13.7 %).
+const MOST_EMPTY_LAWN: f64 = 0.11;
+/// At most this share of each region's lawn is empty over the maps whose
+/// authored parts stop short of the request's limit (before, 3.7–4.1 %).
+const MOST_EMPTY_LAWN_DRESSED: f64 = 0.025;
 
 /// A flag for each point of a map's sampling grid.
 struct Raster {
@@ -1358,12 +1373,19 @@ impl Raster {
 /// paving and no carriageway). Each region's share of open court paving
 /// stays under `MOST_OPEN`, and on the maps the part limit does not bind,
 /// each district kind's under `MOST_OPEN_DRESSED`: at the limit the courts
-/// are dressed thinly, the apartments' wide yards the most open.
+/// are dressed thinly, the apartments' wide yards the most open. And the
+/// lawn is dressed, not a bare field: each region's share of lawn points
+/// farther than `EMPTY_LAWN_M` from every body, building wall, carriageway
+/// and paved area (a path's included) stays under `MOST_EMPTY_LAWN`, and
+/// under `MOST_EMPTY_LAWN_DRESSED` on the maps the part limit does not bind.
 #[test]
-fn courts_are_structured_rather_than_left_as_open_plazas() {
+fn courts_are_structured_and_lawns_dressed_rather_than_left_open() {
     // (region, district kind, whether the part limit binds) → (open
     // points, points).
     let mut tally: BTreeMap<(&str, String, bool), [usize; 2]> = BTreeMap::new();
+    // (region, whether the part limit binds) → (empty lawn points, lawn
+    // points).
+    let mut lawns: BTreeMap<(&str, bool), [usize; 2]> = BTreeMap::new();
     for region in REGIONS {
         for map_type in MapType::ALL {
             for size in MapSize::ALL {
@@ -1406,8 +1428,15 @@ fn courts_are_structured_rather_than_left_as_open_plazas() {
                     let kinds = district_kinds(&plan);
                     for court in &plan.courts {
                         let kind = kinds[court.district.as_str()];
+                        // A path is paving the lawn is judged by, not a court.
+                        let path = matches!(
+                            court.kind,
+                            mapgen::CourtKind::Path | mapgen::CourtKind::Lane
+                        );
                         paved.mark_ring(&court.ring, |column, row| {
-                            cells.push((kind.to_string(), column, row))
+                            if !path {
+                                cells.push((kind.to_string(), column, row))
+                            }
                         });
                     }
                     let mut dense = Raster::new(plan.size);
@@ -1419,6 +1448,62 @@ fn courts_are_structured_rather_than_left_as_open_plazas() {
                     let lawn = |column: i64, row: i64| {
                         dense.at(column, row) && !paved.at(column, row) && !road.at(column, row)
                     };
+                    // The lawn: empty where farther than `EMPTY_LAWN_M` from
+                    // every body, building wall, carriageway and paved area
+                    // (a court, a path, an apron).
+                    let mut filled = Raster::new(plan.size);
+                    for prop in &plan.props {
+                        let p = &prop.geometry;
+                        let half = [p.half_extents[0], p.half_extents[1]];
+                        filled.mark_box(p.center, p.yaw, half, EMPTY_LAWN_M);
+                    }
+                    for part in result.map.buildings.iter().flat_map(|b| &b.geometry.parts) {
+                        let half = [part.half_extents[0], part.half_extents[1]];
+                        filled.mark_box(part.center, part.yaw, half, EMPTY_LAWN_M);
+                    }
+                    for area in &plan.surfaces {
+                        match &area.shape {
+                            GroundShape::Stroke {
+                                centerline,
+                                width_m,
+                            } if area.kind.is_road() => {
+                                for pair in centerline.samples().windows(2) {
+                                    filled.mark_segment(
+                                        pair[0],
+                                        pair[1],
+                                        width_m / 2.0 + EMPTY_LAWN_M,
+                                    );
+                                }
+                            }
+                            GroundShape::Polygon { ring } if area.kind == SurfaceKind::Paving => {
+                                for (a, b) in contract::ground::edges(ring) {
+                                    filled.mark_segment(*a, *b, EMPTY_LAWN_M);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    for district in plan.settlements.iter().flat_map(|s| &s.districts) {
+                        if !COURT_DISTRICTS.contains(&district.kind.as_str()) {
+                            continue;
+                        }
+                        let entry = lawns.entry((region, bound)).or_insert([0, 0]);
+                        let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
+                        for row in (y0 / FILL_STEP_M).ceil() as i64..=(y1 / FILL_STEP_M) as i64 {
+                            for column in
+                                (x0 / FILL_STEP_M).ceil() as i64..=(x1 / FILL_STEP_M) as i64
+                            {
+                                let p = [column as f64 * FILL_STEP_M, row as f64 * FILL_STEP_M];
+                                if !polygon_contains(&district.ring, p) || !lawn(column, row) {
+                                    continue;
+                                }
+                                entry[1] += 1;
+                                if !filled.at(column, row) {
+                                    entry[0] += 1;
+                                }
+                            }
+                        }
+                    }
                     let reach = (OPEN_M / FILL_STEP_M) as i64;
                     cells.sort();
                     cells.dedup();
@@ -1476,12 +1561,51 @@ fn courts_are_structured_rather_than_left_as_open_plazas() {
             broken.push(format!("{region}: {:.2} % of {all} points", 100.0 * share));
         }
     }
-    assert!(broken.is_empty(), "too much open court paving: {broken:?}");
+    let mut lawn_regions: BTreeMap<&str, [usize; 2]> = BTreeMap::new();
+    for ((region, bound), [empty, all]) in &lawns {
+        let limited = if *bound {
+            "at the part limit"
+        } else {
+            "short of it"
+        };
+        let share = *empty as f64 / *all as f64;
+        println!(
+            "{region} lawn, {limited}: {:.2} % of {all} lawn points empty",
+            100.0 * share
+        );
+        if !bound && share >= MOST_EMPTY_LAWN_DRESSED {
+            broken.push(format!(
+                "{region} lawn short of the limit: {:.2} % of {all} points empty",
+                100.0 * share
+            ));
+        }
+        let total = lawn_regions.entry(region).or_insert([0, 0]);
+        total[0] += empty;
+        total[1] += all;
+    }
+    for (region, [empty, all]) in &lawn_regions {
+        let share = *empty as f64 / *all as f64;
+        println!(
+            "{region}: {:.2} % of {all} lawn points empty",
+            100.0 * share
+        );
+        if share >= MOST_EMPTY_LAWN {
+            broken.push(format!(
+                "{region}: {:.2} % of {all} lawn points empty",
+                100.0 * share
+            ));
+        }
+    }
+    assert!(
+        broken.is_empty(),
+        "too much open court paving or empty lawn: {broken:?}"
+    );
 }
 
 /// The yard and car park rows these tests state, whatever the shipped
 /// presets are tuned to: each region its own boundary kind.
 const YARD_GATE_M: f64 = 4.0;
+const VEHICLE_GATE_M: f64 = 8.0;
 const BOUNDARIES: [(&str, &str); 3] = [
     ("china", "courtyard_wall"),
     ("new_york", "iron_railing"),
@@ -1498,7 +1622,8 @@ fn yards_and_parking(source: &mut Value) {
                 .iter()
                 .map(|(family, kind)| (family.to_string(), json!({ *kind: 1 })))
                 .collect::<serde_json::Map<String, Value>>(),
-            "gate_m": YARD_GATE_M,
+            "gate_m": VEHICLE_GATE_M,
+            "door_gate_m": YARD_GATE_M,
             "front_inset_m": 3,
         });
         courts["parking"] =
@@ -1517,20 +1642,23 @@ fn in_strip(a: Point, b: Point, half: f64, p: Point) -> bool {
     (0.0..=length).contains(&s) && t.abs() <= half
 }
 
-/// Each yard is bounded, with a gate before each door, and each car park
-/// keeps its aisle. On a town of each region: the boundary of a yard is its
-/// region's kind, standing along its parcel's edges; together the yards'
-/// sides and rears are covered along most of their length bar their gates
-/// (a side the building stands too near for a vehicle to drive by is the
-/// building's own); no body stands
-/// in the way out from any door of a dense district's building through its
-/// yard's boundary, a gate's width wide; and a car park's cars stand in its
-/// two rows of bays, its aisle open from its mouth on the street to its far
-/// end.
+/// Each yard is bounded, with a gate before each door and a way in for a
+/// vehicle where it has room, and each car park keeps its aisle. On a town
+/// of each region: the boundary of a yard is its region's kind, standing
+/// along its parcel's edges; together the yards' sides and rears are
+/// covered along most of their length bar their gates (a side the building
+/// stands too near for a squad to pass is the building's own); no body
+/// stands in the way out from any door of a dense district's building
+/// through its yard's boundary, a gate's width wide; a yard whose building
+/// leaves a vehicle's way to an edge of its parcel has a gate a vehicle
+/// drives through in the middle of an edge; and a car park's cars stand in
+/// its two rows of bays, its aisle open from its mouth on the street to its
+/// far end.
 #[test]
 fn yards_are_bounded_with_gates_and_car_parks_keep_their_aisles() {
     let presets = presets_with(yards_and_parking);
     let hull_way = widest_hull(&rules().catalog) + presets.street_props.group_margin_m;
+    let squad_way = presets.street_props.squad_way_m;
     for (region, kind) in BOUNDARIES {
         let mut request = request(MapType::Mixed, MapSize::Small, 1);
         request.region = Some(region.into());
@@ -1565,6 +1693,7 @@ fn yards_are_bounded_with_gates_and_car_parks_keep_their_aisles() {
             .map(|(index, building)| (building.id.as_str(), index))
             .collect();
         let (mut covered, mut length, mut doors, mut cars) = (0.0, 0.0, 0, 0);
+        let (mut roomy, mut driven_in) = (0, 0);
         for court in &plan.courts {
             let frame = LotFrame::new(&court.ring);
             match court.kind {
@@ -1572,7 +1701,7 @@ fn yards_are_bounded_with_gates_and_car_parks_keep_their_aisles() {
                     // Its sides and rear, each covered where a panel along
                     // it stands within a panel's thickness of it, its own
                     // or its neighbour's; a side its building stands too
-                    // near for a vehicle to drive between is the building's.
+                    // near for a squad to pass between is the building's.
                     let lot = court.id.strip_suffix("/yard").unwrap();
                     let building = &map.buildings[buildings[lot]];
                     let parts: Vec<Point> = building
@@ -1616,7 +1745,7 @@ fn yards_are_bounded_with_gates_and_car_parks_keep_their_aisles() {
                             .iter()
                             .map(|p| local(*p)[1].abs())
                             .fold(f64::INFINITY, f64::min);
-                        if near < hull_way + 0.5 {
+                        if near < squad_way + 0.5 {
                             continue;
                         }
                         let mut spans: Vec<[f64; 2]> = panels
@@ -1645,8 +1774,39 @@ fn yards_are_bounded_with_gates_and_car_parks_keep_their_aisles() {
                             .iter()
                             .filter(|(_, out)| out[1] * along[0] - out[0] * along[1] < -0.5)
                             .count() as f64;
-                        let gates = YARD_GATE_M + facing * 2.0 * presets.street_props.door_clear_m;
+                        let gates =
+                            VEHICLE_GATE_M + facing * 2.0 * presets.street_props.door_clear_m;
                         length += (width - gates).max(0.0);
+                    }
+                    // A gate a vehicle drives through, in the middle of an
+                    // edge the building leaves a vehicle's way to: from the
+                    // edge in past where the boundary stands.
+                    let edges = [0, 1, 2, 3].map(|k| (court.ring[k], court.ring[(k + 1) % 4]));
+                    let room = |(a, b): (Point, Point)| {
+                        let width = span(a, b);
+                        let along = [(b[0] - a[0]) / width, (b[1] - a[1]) / width];
+                        parts
+                            .iter()
+                            .map(|p| ((p[1] - a[1]) * along[0] - (p[0] - a[0]) * along[1]).abs())
+                            .fold(f64::INFINITY, f64::min)
+                    };
+                    if edges.iter().any(|edge| room(*edge) >= hull_way + 1.0) {
+                        roomy += 1;
+                        let open = edges.iter().any(|&(a, b)| {
+                            let width = span(a, b);
+                            let inward = [-(b[1] - a[1]) / width, (b[0] - a[0]) / width];
+                            let middle = [(a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0];
+                            let inside = [middle[0] + inward[0] * 4.0, middle[1] + inward[1] * 4.0];
+                            room((a, b)) >= hull_way
+                                && panels.iter().all(|prop| {
+                                    corners(prop).iter().chain([&prop.center]).all(|p| {
+                                        !in_strip(middle, inside, VEHICLE_GATE_M / 2.0 - 0.1, *p)
+                                    })
+                                })
+                        });
+                        if open {
+                            driven_in += 1;
+                        }
                     }
                     // Out from each door through the yard's boundary.
                     for door in building.geometry.entrances.iter().flatten() {
@@ -1703,6 +1863,7 @@ fn yards_are_bounded_with_gates_and_car_parks_keep_their_aisles() {
                     }
                     cars += parked.len();
                 }
+                mapgen::CourtKind::Path | mapgen::CourtKind::Lane => {}
             }
         }
         let share = covered / length;
@@ -1712,9 +1873,215 @@ fn yards_are_bounded_with_gates_and_car_parks_keep_their_aisles() {
             "{region}: {:.0} % of yard sides and rears bounded",
             100.0 * share
         );
+        println!("{region}: {driven_in} of {roomy} yards with a vehicle's room have its gate");
+        assert!(
+            roomy >= 50 && driven_in == roomy,
+            "{region}: {driven_in} of {roomy} yards with a vehicle's room have its gate"
+        );
         assert!(
             doors >= 500 && cars >= 200,
             "{region}: {doors} doors, {cars} cars"
+        );
+    }
+}
+
+/// Yards share their boundaries. On a New York town whose yards are bounded
+/// by iron railing or chain-link, its courts holding no group: every
+/// district's boundary is of one kind, and no boundary panel runs beside
+/// another, the way it runs and nearer than a squad's way, along the same
+/// stretch: where two yards meet, or face each other across a gap a squad
+/// cannot use, one boundary stands.
+#[test]
+fn neighbouring_yards_share_one_boundary_of_one_kind() {
+    let kinds = ["iron_railing", "chainlink_fence"];
+    let presets = presets_with(|source| {
+        yards_and_parking(source);
+        for district in COURT_DISTRICTS {
+            let courts = &mut source["districts"][district]["props"]["courts"];
+            courts["yards"]["boundary"]["new_york"] = json!({ kinds[0]: 1, kinds[1]: 1 });
+            courts["groups"] = json!({});
+            courts["families"] = json!({});
+        }
+    });
+    let squad_way = presets.street_props.squad_way_m;
+    let mut request = request(MapType::Mixed, MapSize::Small, 1);
+    request.region = Some("new_york".into());
+    let plan = fill_districts(
+        generate_layout(&request, &presets).unwrap(),
+        &request,
+        &catalogue(),
+        &presets,
+    )
+    .unwrap();
+    let props: Vec<PropDefinition> = dressed(&plan, &request, &presets, &rules())
+        .into_iter()
+        .map(|prop| prop.geometry)
+        .filter(|prop| kinds.contains(&prop.kind.as_str()))
+        .collect();
+    let mut found = std::collections::BTreeSet::new();
+    for district in plan.settlements.iter().flat_map(|s| &s.districts) {
+        let own: std::collections::BTreeSet<&str> = props
+            .iter()
+            .filter(|p| polygon_contains(&district.ring, p.center))
+            .map(|p| p.kind.as_str())
+            .collect();
+        assert!(own.len() <= 1, "{}: boundaries of {own:?}", district.id);
+        found.extend(own);
+    }
+    assert_eq!(found.len(), 2, "both kinds stand somewhere: {found:?}");
+    let mut beside = Vec::new();
+    for (i, a) in props.iter().enumerate() {
+        let (sin, cos) = a.yaw.sin_cos();
+        for b in &props[i + 1..] {
+            if (a.yaw - b.yaw).sin().abs() > 0.3 {
+                continue;
+            }
+            let d = [b.center[0] - a.center[0], b.center[1] - a.center[1]];
+            let (along, across) = (d[0] * cos + d[1] * sin, d[1] * cos - d[0] * sin);
+            let overlap = a.half_extents[0] + b.half_extents[0] - along.abs();
+            let gap = across.abs() - a.half_extents[1] - b.half_extents[1];
+            if overlap > 0.5 && across.abs() > 0.05 && gap < squad_way - 0.1 {
+                beside.push((a.center, b.center, gap));
+            }
+        }
+    }
+    println!("{} panels, {} side by side", props.len(), beside.len());
+    assert!(
+        props.len() >= 500 && beside.is_empty(),
+        "{} panels; side by side: {:?}",
+        props.len(),
+        &beside[..beside.len().min(10)]
+    );
+}
+
+/// The lawn rows these tests state, whatever the shipped presets are tuned
+/// to: paths 3 m wide, the lane 8 m, trees planted beside.
+const PATH_M: f64 = 3.0;
+
+fn lawn_paths(source: &mut Value) {
+    yards_and_parking(source);
+    for kind in COURT_DISTRICTS {
+        source["districts"][kind]["props"]["courts"]["lawn"] = json!({
+            "path_m": PATH_M, "lane_m": 8, "least_m2": 300, "streets": 3, "gates": 6,
+            "beside": { "court_tree": 1 }, "beside_spacing_m": 9,
+        });
+    }
+}
+
+/// Lawns are crossed by paved paths, kept clear, one of each lawn's from a
+/// street a lane a vehicle drives. On a town of each region: every path is
+/// paved, as wide as the rows say; it starts at a street (across its walk to
+/// the carriageway's edge) or in a yard's gate (the middle of its rear edge),
+/// and past its first metres runs over no yard or car park (an open
+/// parcel is lawn); no body
+/// stands on a path, nor within a vehicle's way of a lane's middle; trees
+/// are planted beside the paths; and the paths are many, with lanes among
+/// them.
+#[test]
+fn lawns_are_crossed_by_paths_kept_clear() {
+    let presets = presets_with(lawn_paths);
+    let hull_way = widest_hull(&rules().catalog) + presets.street_props.group_margin_m;
+    for region in REGIONS {
+        let mut request = request(MapType::Mixed, MapSize::Small, 1);
+        request.region = Some(region.into());
+        let plan = fill_districts(
+            generate_layout(&request, &presets).unwrap(),
+            &request,
+            &catalogue(),
+            &presets,
+        )
+        .unwrap();
+        let props: Vec<PropDefinition> = dressed(&plan, &request, &presets, &rules())
+            .into_iter()
+            .map(|prop| prop.geometry)
+            .collect();
+        let roads = Roads::new(&plan);
+        let paved: Vec<&Vec<Point>> = plan
+            .surfaces
+            .iter()
+            .filter(|area| area.kind == SurfaceKind::Paving)
+            .filter_map(|area| match &area.shape {
+                GroundShape::Polygon { ring } => Some(ring),
+                GroundShape::Stroke { .. } => None,
+            })
+            .collect();
+        let courts: Vec<&[Point]> = plan
+            .courts
+            .iter()
+            .filter(|c| matches!(c.kind, mapgen::CourtKind::Yard | mapgen::CourtKind::Parking))
+            .map(|c| c.ring.as_slice())
+            .collect();
+        let rears: Vec<Point> = plan
+            .courts
+            .iter()
+            .filter(|c| c.kind == mapgen::CourtKind::Yard)
+            .map(|c| {
+                [
+                    (c.ring[2][0] + c.ring[3][0]) / 2.0,
+                    (c.ring[2][1] + c.ring[3][1]) / 2.0,
+                ]
+            })
+            .collect();
+        let (mut paths, mut lanes, mut planted) = (0, 0, 0);
+        for path in plan
+            .courts
+            .iter()
+            .filter(|c| matches!(c.kind, mapgen::CourtKind::Path | mapgen::CourtKind::Lane))
+        {
+            let id = &path.id;
+            let frame = LotFrame::new(&path.ring);
+            assert!(
+                paved.iter().any(|ring| **ring == path.ring),
+                "{region}: {id} is not paved"
+            );
+            assert!(
+                (frame.width - PATH_M).abs() < 0.05,
+                "{region}: {id} is {:.2} m wide",
+                frame.width
+            );
+            let start = frame.at(frame.width / 2.0, 0.0);
+            let from_street = roads.clearance(start, 1.0) <= 0.5;
+            let from_gate = rears.iter().any(|rear| span(*rear, start) <= 1.5);
+            assert!(
+                from_street || from_gate,
+                "{region}: {id} starts at {start:?}, at no street or gate"
+            );
+            let mut y = 3.0;
+            while y < frame.depth {
+                let p = frame.at(frame.width / 2.0, y);
+                assert!(
+                    !courts.iter().any(|ring| polygon_contains(ring, p)),
+                    "{region}: {id} runs over a yard or car park at {p:?}"
+                );
+                y += 1.0;
+            }
+            let lane = path.kind == mapgen::CourtKind::Lane;
+            let (a, b) = (start, frame.at(frame.width / 2.0, frame.depth));
+            let half = if lane { hull_way / 2.0 } else { PATH_M / 2.0 } - 0.05;
+            for prop in &props {
+                assert!(
+                    corners(prop)
+                        .iter()
+                        .chain([&prop.center])
+                        .all(|p| !in_strip(a, b, half, *p)),
+                    "{region}: a {} at {:?} stands on {id}",
+                    prop.kind,
+                    prop.center
+                );
+            }
+            planted += props
+                .iter()
+                .filter(|p| {
+                    p.kind == "street_tree" && in_strip(a, b, hull_way / 2.0 + 3.0, p.center)
+                })
+                .count();
+            paths += 1;
+            lanes += lane as usize;
+        }
+        println!("{region}: {paths} paths, {lanes} lanes, {planted} trees beside them");
+        assert!(
+            paths >= 50 && lanes >= 5 && planted >= paths,
+            "{region}: {paths} paths, {lanes} lanes, {planted} trees beside them"
         );
     }
 }
@@ -1931,9 +2298,14 @@ macro_rules! claim {
 ///   still walks there from its settlement's centre;
 /// - a squad still walks from there to the back garden of every dressed lot
 ///   it could walk to before;
-/// - a squad still walks into every yard through its gates, and the widest
-///   hull still drives to every yard's front gate, and both to every car
-///   park's aisle and over the lawn, from there, wherever they could before;
+/// - a squad still walks to every yard's front gate and into it through its
+///   gates, to every car park's aisle and over the lawn, wherever it could
+///   before;
+/// - the widest hull still has a way in from a street to every court: to
+///   every yard's front gate, every car park's aisle, and some point of each
+///   lawn large enough for a path deeper than a hull's way from every
+///   carriageway, wherever it had one before (a court's inside is mostly infantry ground: the hull is
+///   owed a way in, not a way everywhere);
 /// - every hull of the catalog still drives down every street it drove down
 ///   before, by a way no longer than a detour round one parked run, and the
 ///   widest of them without shoving a body.
@@ -1958,7 +2330,8 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
         .max_by_key(|unit| unit.squad_size())
         .unwrap();
     let on_foot = sim::units::mobility(squad, &rules);
-    let mut totals = [0usize; 7];
+    let hull_way = widest_hull(&rules.catalog) + presets.street_props.group_margin_m;
+    let mut totals = [0usize; 8];
     let mut broken: Vec<String> = Vec::new();
     for map_type in MapType::ALL {
         for size in MapSize::ALL {
@@ -2179,10 +2552,11 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                     }
                 }
 
-                // Courts: inside each yard's rear gate (on foot), outside its
-                // front gate (by the widest hull), each car park's aisle and
-                // the lawn (both), from the settlement's centre, wherever
-                // the mover went on the bare map.
+                // Courts: inside each yard's rear gate and over the lawn (on
+                // foot), outside each yard's front gate and each car park's
+                // aisle (on foot and by the widest hull), from the
+                // settlement's centre, wherever the mover went on the bare
+                // map.
                 let mut goals: Vec<(Point, bool)> = Vec::new();
                 let doors: BTreeMap<&str, Vec<(Point, Point)>> = bare
                     .buildings
@@ -2230,33 +2604,79 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                         mapgen::CourtKind::Parking => {
                             goals.push((frame.at(frame.width / 2.0, frame.depth / 2.0), true));
                         }
+                        // Lawn, as far as a mover is concerned.
+                        mapgen::CourtKind::Path | mapgen::CourtKind::Lane => {}
                     }
                 }
                 let lawn_rings: Vec<&[Point]> = bare
                     .lots
                     .iter()
                     .map(|lot| lot.ring.as_slice())
-                    .chain(bare.courts.iter().map(|court| court.ring.as_slice()))
+                    .chain(
+                        bare.courts
+                            .iter()
+                            .filter(|court| {
+                                !matches!(
+                                    court.kind,
+                                    mapgen::CourtKind::Path | mapgen::CourtKind::Lane
+                                )
+                            })
+                            .map(|court| court.ring.as_slice()),
+                    )
                     .collect();
+                // Each lawn: the points of a grid over a dense district off
+                // its parcels, courts and carriageways, joined to their
+                // neighbours on the grid.
+                let mut lawns: Vec<Vec<Point>> = Vec::new();
                 for district in bare.settlements.iter().flat_map(|s| &s.districts) {
                     if !COURT_DISTRICTS.contains(&district.kind.as_str()) {
                         continue;
                     }
                     let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
-                    let mut y = (y0 / COURT_STEP_M).ceil() * COURT_STEP_M;
-                    while y <= y1 {
-                        let mut x = (x0 / COURT_STEP_M).ceil() * COURT_STEP_M;
-                        while x <= x1 {
-                            let p = [x, y];
+                    let mut points: BTreeMap<(i64, i64), Point> = BTreeMap::new();
+                    for row in (y0 / COURT_STEP_M).ceil() as i64..=(y1 / COURT_STEP_M) as i64 {
+                        for column in (x0 / COURT_STEP_M).ceil() as i64..=(x1 / COURT_STEP_M) as i64
+                        {
+                            let p = [column as f64 * COURT_STEP_M, row as f64 * COURT_STEP_M];
                             if polygon_contains(&district.ring, p)
                                 && roads.clearance(p, 0.0) > lane
                                 && !lawn_rings.iter().any(|ring| polygon_contains(ring, p))
                             {
-                                goals.push((p, true));
+                                goals.push((p, false));
+                                points.insert((column, row), p);
                             }
-                            x += COURT_STEP_M;
                         }
-                        y += COURT_STEP_M;
+                    }
+                    let mut seen = std::collections::BTreeSet::new();
+                    for start in points.keys().copied().collect::<Vec<_>>() {
+                        if !seen.insert(start) {
+                            continue;
+                        }
+                        let (mut lawn, mut open) = (Vec::new(), vec![start]);
+                        while let Some((column, row)) = open.pop() {
+                            lawn.push(points[&(column, row)]);
+                            for next in [
+                                (column + 1, row),
+                                (column - 1, row),
+                                (column, row + 1),
+                                (column, row - 1),
+                            ] {
+                                if points.contains_key(&next) && seen.insert(next) {
+                                    open.push(next);
+                                }
+                            }
+                        }
+                        // A lawn too small for a path is a gap between
+                        // buildings, not a court.
+                        let least = presets.districts[&district.kind]
+                            .props
+                            .courts
+                            .lawn
+                            .as_ref()
+                            .map_or(0.0, |rule| rule.least_m2);
+                        if lawn.len() as f64 * COURT_STEP_M * COURT_STEP_M >= least {
+                            lawns.push(lawn);
+                        }
                     }
                 }
                 let every = (goals.len() / COURTS_WALKED).max(1);
@@ -2297,6 +2717,57 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                             );
                         }
                     }
+                }
+
+                // A way into each lawn for the widest hull: to some point of
+                // it deeper than a hull's way from every carriageway's
+                // edge, from the settlement's centre.
+                let (hull, hull_m) = (&vehicles[0].0, &vehicles[0].1);
+                let every = (lawns.len() / LAWNS_DRIVEN).max(1);
+                for lawn in lawns.iter().step_by(every) {
+                    let deep: Vec<Point> = lawn
+                        .iter()
+                        .copied()
+                        .filter(|p| roads.clearance(*p, 1.0) >= hull_way)
+                        .collect();
+                    let Some(centre) = deep.first().and_then(|goal| {
+                        sites
+                            .settlements
+                            .iter()
+                            .find(|s| polygon_contains(&s.outline, *goal))
+                            .map(|s| s.center)
+                    }) else {
+                        continue;
+                    };
+                    let arrives = |prepared: &PreparedMap, goal: Point| {
+                        route(prepared, &rules, hull_m, centre, goal).is_some_and(|(points, _)| {
+                            points
+                                .last()
+                                .is_some_and(|end| (*end - v2(goal[0], goal[1])).length() < 6.0)
+                        })
+                    };
+                    // Spread through the lawn: a few asked of the bare map,
+                    // more of the dressed one.
+                    let spread = |most: usize| -> Vec<Point> {
+                        let step = (deep.len() / most).max(1);
+                        deep.iter().copied().step_by(step).take(most).collect()
+                    };
+                    if !spread(LAWN_TRIES).into_iter().any(|p| arrives(&before, p)) {
+                        continue;
+                    }
+                    totals[7] += 1;
+                    // Near any of its deep points: a body standing on one
+                    // closes no way in.
+                    let step = (deep.len() / (3 * LAWN_TRIES)).max(1);
+                    claim!(
+                        broken,
+                        deep.iter()
+                            .step_by(step)
+                            .take(3 * LAWN_TRIES)
+                            .any(|p| arrives(&after, *p)),
+                        "{name}: no way in for a {hull} from {centre:?} to the lawn at {:?}",
+                        deep[0]
+                    );
                 }
 
                 // Streets.
@@ -2404,7 +2875,8 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
             && totals[3] >= 500
             && totals[4] >= 150
             && totals[5] >= 200
-            && totals[6] >= 200,
+            && totals[6] >= 200
+            && totals[7] >= 100,
         "{totals:?}"
     );
 }

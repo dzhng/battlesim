@@ -45,22 +45,16 @@ const SPLIT_M: f64 = 1.0;
 #[derive(Clone)]
 enum Side {
     Fenced,
-    /// Fenced, with an opening `width` wide centred at each of `at`, metres
-    /// along the side from its middle.
-    Gates {
-        width: f64,
-        at: Vec<f64>,
-    },
+    /// Fenced, with an opening at each `(at, width)`: `width` wide, centred
+    /// `at` metres along the side from its middle.
+    Gates(Vec<(f64, f64)>),
     Open,
 }
 
 impl Side {
     /// Fenced with one opening `width` wide at its middle.
     fn gate(width: f64) -> Self {
-        Side::Gates {
-            width,
-            at: vec![0.0],
-        }
+        Side::Gates(vec![(0.0, width)])
     }
 }
 
@@ -159,8 +153,8 @@ struct Pass<'a> {
     district_ids: BTreeMap<&'a str, usize>,
     houses: Vec<House<'a>>,
     /// Open ground a vehicle drives through: the widest hull and its
-    /// margin. Kept round a group on a lawn, and between a yard's boundary
-    /// and its building.
+    /// margin. Kept either side of a lawn's lane, and the room a yard's
+    /// vehicle gate needs to its building.
     hull_way: f64,
     /// Each building's place in `houses`, by its id.
     house_ids: BTreeMap<&'a str, usize>,
@@ -259,6 +253,7 @@ impl<'a> Pass<'a> {
         let mut pass = Pass::new(plan, request, presets, widest_hull);
         pass.stand_buildings(templates)?;
         pass.keep_aisles();
+        pass.keep_paths();
         Ok(pass)
     }
 
@@ -364,6 +359,8 @@ impl<'a> Pass<'a> {
                 wood_grid: Grid::new(plan.size, 64.0),
                 wood_clear: 0.0,
                 groups: 0,
+                runs: Vec::new(),
+                run_grid: Grid::new(plan.size, 32.0),
                 placed: Vec::new(),
             },
         }
@@ -607,10 +604,12 @@ impl<'a> Pass<'a> {
 
     /// A fence of `kind` round `corners` (counter-clockwise), as
     /// [`Pass::fence_panels`] lays it: at most `most` panels, the sides in
-    /// order; a panel with no legal ground is left out, or, of a modular
-    /// kind, cut in two and each half tried in turn, down to `SPLIT_M`, so
-    /// one lamp or doorway opens a gap its own width rather than a whole
-    /// panel's. The answer is how many stand.
+    /// order; a panel with no legal ground, or running beside another
+    /// fence nearer than a squad's way (that fence bounds the ground
+    /// already), is left out, or, of a modular kind, cut in two and each
+    /// half tried in turn, down to `SPLIT_M`, so one lamp or doorway opens
+    /// a gap its own width rather than a whole panel's. The answer is how
+    /// many stand.
     fn fence_round(
         &mut self,
         corners: [Point; 4],
@@ -627,8 +626,8 @@ impl<'a> Pass<'a> {
             if placed >= most {
                 break;
             }
-            if self.field.legal(&c) {
-                self.field.place(kind, &fence, &c);
+            if self.field.legal(&c) && !self.field.beside_run(&c, self.rule.squad_way_m) {
+                self.field.place_run(kind, &fence, &c);
                 placed += 1;
             } else if fence.modular && c.rect.half[0] >= SPLIT_M {
                 let half = c.rect.half[0] / 2.0;
@@ -668,10 +667,10 @@ impl<'a> Pass<'a> {
         let thick = fence.half_extents_m[1];
         let mut panels = Vec::new();
         for (side, open) in sides.into_iter().enumerate() {
-            let (width, gates) = match open {
+            let gates = match open {
                 Side::Open => continue,
-                Side::Fenced => (0.0, Vec::new()),
-                Side::Gates { width, at } => (width, at),
+                Side::Fenced => Vec::new(),
+                Side::Gates(gates) => gates,
             };
             let (from, to) = (corners[side], corners[(side + 1) % 4]);
             let length = distance(from, to);
@@ -694,7 +693,7 @@ impl<'a> Pass<'a> {
                     let off = middle - length / 2.0;
                     if gates
                         .iter()
-                        .any(|at| (off - at).abs() < (width + panel) / 2.0)
+                        .any(|(at, width)| (off - at).abs() < (width + panel) / 2.0)
                     {
                         continue;
                     }
@@ -705,7 +704,7 @@ impl<'a> Pass<'a> {
             // The stretches between the corners and the gates, in order.
             let mut cuts: Vec<[f64; 2]> = gates
                 .iter()
-                .map(|at| {
+                .map(|(at, width)| {
                     [
                         length / 2.0 + at - width / 2.0,
                         length / 2.0 + at + width / 2.0,

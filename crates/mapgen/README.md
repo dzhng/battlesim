@@ -91,7 +91,10 @@ A dense district's block is structured, not one plaza ([courts](src/parcels/cour
 each built parcel is paved as its own yard, car parks are cut beside the
 carriageways from the ground the parcels leave (each an aisle opening on the
 street with a row of bays either side), and the rest stays grass, its lawn. Lawn
-is the absence of paving, not a surface kind. Paving is ground, not road: it
+is the absence of paving, not a surface kind. Each piece of lawn large enough is
+crossed by paved paths, straight from the streets it meets and the yard gates that
+open on it to its middle; the first from a street that leaves room is a lane, the
+lawn either side kept open for the widest hull. Paving is ground, not road: it
 changes no speed, sight or cover.
 
 [The generated template library](../../fixtures/prototype-building-templates.json)
@@ -154,27 +157,29 @@ of entrances and bridge approaches, apart from existing bodies and outside measu
 open approaches. Dimensions and mix belong to presets; the resolved catalog owns
 physical properties and the widest supported hull used to reserve a lane.
 
-Dense districts dress their courts. Each yard is bounded by one of its
-region's boundary kinds through the one fence routine, with a gate before each
-door and in the middle of each side and its rear, each wide enough for the widest
-hull. A side its building
-stands too near for that hull to drive between them is left to the building's own
-wall, so a boundary closes no way a vehicle or a squad had between two buildings:
-terraced and tightly set parcels stay unwalled, the wide yards of apartments and
-core blocks are walled. A modular boundary is cut to its sides, and a
+Dense districts dress their courts. A court's inside is infantry ground: a vehicle
+is owed a way in, not a way everywhere. Each yard is bounded by its district's one
+boundary kind (of its region's) through the one fence routine, wherever a squad passes
+between boundary and building; nearer, the building's own wall bounds it. It has a
+squad's gate before each door and at its rear, and one gate a hull wide in the first
+of its street side, rear and sides that leaves that hull room to the building. No
+fence runs beside another, the way it runs and nearer than a squad's way: two
+neighbours share one boundary. A modular boundary is cut to its sides, and a
 panel refused its ground is halved rather than dropped, so a lamp or doorway
 opens a gap its own width. Car parks take a car in each bay with the aisle kept
 open from the street pass on. Amenity groups (parking bays, a playground, a
 fenced basketball court), presets data placed whole or not at all, draw from
 groups every region shares and from those of the map's own regional family only,
-so a signature piece never appears in another region. Wall groups stand in the
-yards with their backs to a building wall that runs their whole length; open
-groups take the yards' middles and the lawn. A group keeps open ground round its
-open sides as wide as the widest hull and a margin for the navigation grid, clear
-of walls, carriageways and every body, though it may share that ground with
-another group's, so it closes no way a soldier or a vehicle had. Courts are held to a measured structure, the
+so a signature piece never appears in another region. Groups are planted along
+the lawn's paths, facing them; wall groups stand in the yards with their backs to
+a building wall that runs their whole length; open groups take the yards' middles
+and the lawn. A group keeps open ground round its open sides a squad passes
+abreast, clear of walls, carriageways and every body, though it may share that
+ground with another group's. Vehicles get in by the car parks' aisles, the yards'
+vehicle gates and the lawns' lanes. Courts are held to a measured structure, the
 share of their paving farther than a street's width from any body, building,
-carriageway or lawn ([furniture tests](tests/street_props.rs)).
+carriageway or lawn, and their lawns to a measured fill, the share farther than
+8 m from any body, building, carriageway or paving ([furniture tests](tests/street_props.rs)).
 
 Garden suburbs and villages dress the gardens behind their houses: pieces in a
 lot's rear setback and a boundary along its rear and sides, never in the front
@@ -184,7 +189,8 @@ they took the ground its copses needed and some maps were refused), keep a
 trunk's clearance off every forest so they fell no tree the certificate counted,
 and stop at the request's authored-part limit, courts first: courts take at most
 their share of the parts left after the streets, spread over the dense districts
-by area (boundaries at most a third of a district's, car parks half the rest),
+by area (boundaries at most a third of a district's, car parks half the rest,
+the lawn's paths a sixth of what is left),
 and gardens the rest. On the largest maps that limit, not the presets' density,
 decides how thickly courts and lots are dressed.
 

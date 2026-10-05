@@ -1,25 +1,30 @@
 //! Courts: a dense district's yards, car parks and lawn, dressed through the
-//! one legality check. Each yard is bounded by one kind of its region's
-//! boundary, with a gate before each door and one at its rear; each car
-//! park takes a car in each bay either side of its aisle; amenity groups (a
-//! row of bays against a wall, a playground, a fenced basketball court)
-//! stand in the yards and on the lawn, each placed whole or not at all.
+//! one legality check. Each yard is bounded by its district's one kind of
+//! its region's boundary wherever a squad passes between boundary and
+//! building, with a squad's gate before each door and at its rear and one
+//! gate a vehicle drives through where a side leaves it room; each car park
+//! takes a car in each bay either side of its aisle; groups are planted
+//! beside the lawn's footpaths, facing them (a lane's edges are left open);
+//! amenity groups (a row of bays
+//! against a wall, a playground, a fenced basketball court) stand in the
+//! yards and on the lawn, each placed whole or not at all.
 //!
-//! A group asks for its own ground and a ring of open ground round its open
-//! sides as wide as the widest hull drives through (`hull_way`), clear of
-//! every wall, carriageway and body, and kept clear of every body placed
-//! after it, so a vehicle still finds ground to stand on and pass among
-//! them. A wall group's back stands a squad's walk (`wall_walk_m`) off a
-//! building wall that runs its whole length. Rings may share ground: each
-//! stays open, so no group closes a way a squad or a vehicle had. A yard's
-//! boundary keeps a vehicle's way to its building and a hull-wide gate in
-//! each side, so it closes none either. A fenced group keeps a gate on its
-//! front, so its inside is reached on foot.
+//! A court's inside is infantry ground: a vehicle is owed a way in, not a
+//! way everywhere. A group asks for its own ground and a ring a squad
+//! passes abreast (`group_ring_m`) round its open sides, clear of every
+//! wall, carriageway and body, and kept clear of every body placed after
+//! it, so a squad still passes among them; a wall group's back stands a
+//! squad's walk (`squad_way_m`) off a building wall that runs its whole
+//! length. Rings may share ground: each stays
+//! open. The vehicle's ways in are kept by others: each car park's aisle,
+//! each yard's vehicle gate, and each lawn's lane, the lawn either side of
+//! it kept open the widest hull's way (`hull_way`). A fenced group keeps a
+//! gate on its front, so its inside is reached on foot.
 use super::field::Candidate;
 use super::{Frame, Pass, Side, SLACK_M};
 use crate::layout::geometry::{add, area, direction, distance, dot, scale, sub, Point};
 use crate::layout::rng::Stream;
-use crate::layout::{CourtParking, Courts, Group, Yards};
+use crate::layout::{CourtParking, Courts, Group, Lawn, Yards};
 use crate::parcels::space::Rect;
 use crate::{CourtKind, CourtPlan};
 use contract::ground::polygon_contains;
@@ -61,6 +66,7 @@ struct District<'a> {
     tables: Tables<'a>,
     yards: Vec<&'a CourtPlan>,
     parks: Vec<&'a CourtPlan>,
+    paths: Vec<&'a CourtPlan>,
     rng: Stream,
 }
 
@@ -71,7 +77,8 @@ impl<'a> Pass<'a> {
     /// before it left, so where parts run short every district is dressed
     /// thinly rather than some fully and the rest not at all. In each, the
     /// yards are bounded first, with at most a third of its share, then the
-    /// car parks filled with at most half what is left, then its groups
+    /// car parks filled with at most half what is left, then its lawn's
+    /// paths planted with at most a sixth of what is left, then its groups
     /// stood, those against a wall with at most a quarter of what is left:
     /// where parts run short, each kind of structure gets some.
     /// The answer is how many bodies stand.
@@ -105,7 +112,15 @@ impl<'a> Pass<'a> {
                 *table.entry(group.as_str()).or_insert(0.0) += weight;
             }
             let pieces = courts.remove(district.id.as_str()).unwrap_or_default();
-            let (yards, parks) = pieces.into_iter().partition(|c| c.kind == CourtKind::Yard);
+            let of = |kinds: &[CourtKind]| -> Vec<&CourtPlan> {
+                pieces
+                    .iter()
+                    .copied()
+                    .filter(|c| kinds.contains(&c.kind))
+                    .collect()
+            };
+            let (yards, parks) = (of(&[CourtKind::Yard]), of(&[CourtKind::Parking]));
+            let paths = of(&[CourtKind::Path, CourtKind::Lane]);
             let mut rng = self.stream(&format!("{}/courts", district.id));
             order.push((
                 rng.unit(),
@@ -115,6 +130,7 @@ impl<'a> Pass<'a> {
                     tables,
                     yards,
                     parks,
+                    paths,
                     rng,
                 },
             ));
@@ -142,8 +158,10 @@ impl<'a> Pass<'a> {
         let yards = shuffled(d.yards.clone(), rng);
         if let Some(rule) = &d.rule.yards {
             if let Some(kinds) = rule.boundary.get(family) {
+                // One kind for the district: its yards' runs meet and
+                // continue each other, so a block's boundary reads as one.
+                let kind = rng.pick(kinds).expect("a boundary names a kind").as_str();
                 for yard in &yards {
-                    let kind = rng.pick(kinds).expect("a boundary names a kind").as_str();
                     placed += self.bound(yard, rule, kind, room / 3 - placed);
                 }
             }
@@ -152,6 +170,21 @@ impl<'a> Pass<'a> {
             let most = placed + (room - placed) / 2;
             for park in &d.parks {
                 placed += self.park(park, rule, most - placed);
+            }
+        }
+        let paved: Vec<&[Point]> = yards
+            .iter()
+            .chain(&d.parks)
+            .chain(&d.paths)
+            .map(|court| court.ring.as_slice())
+            .collect();
+        if let Some(lawn) = &d.rule.lawn {
+            let beside: BTreeMap<&str, f64> =
+                lawn.beside.iter().map(|(k, w)| (k.as_str(), *w)).collect();
+            let most = placed + (room - placed) / 6;
+            for path in shuffled(d.paths.clone(), rng) {
+                let room = most - placed;
+                placed += self.plant_path(path, d.ring, &paved, lawn, &beside, room, rng);
             }
         }
         let walls = (room - placed) / 4;
@@ -164,12 +197,106 @@ impl<'a> Pass<'a> {
         for yard in &yards {
             placed += self.middle(&yard.ring, &[], d.rule, &d.tables.open, room - placed, rng);
         }
-        let paved: Vec<&[Point]> = yards
-            .iter()
-            .chain(&d.parks)
-            .map(|court| court.ring.as_slice())
-            .collect();
         placed += self.middle(d.ring, &paved, d.rule, &d.tables.open, room - placed, rng);
+        placed
+    }
+
+    /// The width of ground `path` keeps open: its own, or a lane's, the
+    /// lawn's `lane_m` and at least a vehicle's way (`hull_way`).
+    fn kept_wide(&self, path: &CourtPlan) -> f64 {
+        let width = Frame::new(&path.ring).width;
+        if path.kind != CourtKind::Lane {
+            return width;
+        }
+        let lane = self
+            .district_ids
+            .get(path.district.as_str())
+            .and_then(|d| self.districts[*d].1.props.courts.lawn.as_ref())
+            .map_or(0.0, |lawn| lawn.lane_m);
+        lane.max(self.hull_way).max(width)
+    }
+
+    /// Keep every lawn path open, and the lawn either side of a lane as
+    /// `kept_wide` says, from the first body placed.
+    pub(super) fn keep_paths(&mut self) {
+        let plan = self.plan;
+        for path in plan
+            .courts
+            .iter()
+            .filter(|c| matches!(c.kind, CourtKind::Path | CourtKind::Lane))
+        {
+            let frame = Frame::new(&path.ring);
+            let wide = self.kept_wide(path);
+            self.field.keep_clear(Rect {
+                center: frame.at(frame.width / 2.0, frame.depth / 2.0),
+                axis: frame.inward,
+                half: [frame.depth / 2.0, wide / 2.0],
+            });
+        }
+    }
+
+    /// Groups of `table` planted along both sides of footpath `path`,
+    /// facing it, at most `room` bodies (none along a lane): one tried to each stretch `lawn.beside_spacing_m`
+    /// long, at drawn places along it, each group in an order drawn by
+    /// weight until one stands on the lawn of `ring`, off every one of
+    /// `paved` and the ground the path keeps. The answer is how many bodies
+    /// stand.
+    #[allow(clippy::too_many_arguments)]
+    fn plant_path(
+        &mut self,
+        path: &CourtPlan,
+        ring: &[Point],
+        paved: &[&[Point]],
+        lawn: &Lawn,
+        table: &BTreeMap<&str, f64>,
+        room: usize,
+        rng: &mut Stream,
+    ) -> usize {
+        // A lane's edges are left open: a vehicle turns off it onto the lawn.
+        if table.is_empty() || room == 0 || path.kind == CourtKind::Lane {
+            return 0;
+        }
+        let frame = Frame::new(&path.ring);
+        // Half the open ground the path keeps, and the slack.
+        let kept = self.kept_wide(path) / 2.0 + SLACK_M;
+        let count = libm::floor(frame.depth / lawn.beside_spacing_m) as usize;
+        let mut placed = 0;
+        for k in 0..count {
+            for side in [-1.0, 1.0] {
+                if placed == room {
+                    return placed;
+                }
+                // Out from the path, and along it with the path on the
+                // group's front.
+                let out = scale(frame.along, side);
+                let axis = [out[1], -out[0]];
+                'groups: for name in drawn(table, rng) {
+                    let group = &self.rule.groups[name];
+                    let [gx, gy] = group.size_m.map(|v| v / 2.0);
+                    if 2.0 * gx > lawn.beside_spacing_m {
+                        continue;
+                    }
+                    for _ in 0..self.rule.attempts {
+                        let s = (k as f64 + rng.unit()) * lawn.beside_spacing_m;
+                        let s = s.clamp(
+                            k as f64 * lawn.beside_spacing_m + gx,
+                            (k + 1) as f64 * lawn.beside_spacing_m - gx,
+                        );
+                        let centre = add(frame.at(frame.width / 2.0, s), scale(out, kept + gy));
+                        let at = Stand {
+                            centre,
+                            axis,
+                            behind: self.rule.squad_way_m,
+                        };
+                        if let Some(stood) = self.stand_group(group, at, ring, paved, room - placed)
+                        {
+                            placed += stood;
+                            break 'groups;
+                        }
+                    }
+                }
+            }
+        }
         placed
     }
 
@@ -178,11 +305,15 @@ impl<'a> Pass<'a> {
     /// stands nearer, a wall gap off it), its sides and its rear, inside the
     /// parcel by half the panel's thickness, so a neighbour's run along the
     /// same edge is within the ground each keeps and only one of the two
-    /// stands. A gate `rule.gate_m` wide stands where each door's line out
-    /// meets the boundary and in the middle of each side and the rear, each
-    /// with its way through kept open. A side the building stands too near
-    /// for a vehicle's way (`hull_way`) is left open. The answer is how many
-    /// bodies stand.
+    /// stands. A side is bounded only where a squad passes between it and
+    /// the building (`squad_way_m`); nearer, the building's own wall bounds
+    /// the yard. A gate `rule.door_gate_m` wide stands where each door's
+    /// line out meets the boundary and in the middle of the rear; one
+    /// `rule.gate_m` wide, the yard's way in for a vehicle, in the middle of
+    /// the first of its street side, rear and sides that leaves a vehicle's
+    /// way (`hull_way`) to the building, in place of the rear's where that
+    /// is the rear. Each gate's way through is kept open. The answer is how
+    /// many bodies stand.
     fn bound(&mut self, yard: &CourtPlan, rule: &Yards, kind: &str, room: usize) -> usize {
         let ring = &yard.ring;
         if ring.len() != 4 || room == 0 {
@@ -220,19 +351,19 @@ impl<'a> Pass<'a> {
             let run = scale(sub(b, a), 1.0 / distance(a, b));
             (scale(add(a, b), 0.5), run, [run[1], -run[0]])
         });
-        // A side the building stands too near for a vehicle to drive between
-        // them is left open, so the boundary closes no way a vehicle or a
-        // squad had between two buildings: the building's own wall bounds
-        // the yard there, and a door opens on the street.
-        let narrow: [bool; 4] = core::array::from_fn(|side| {
+        // The open ground between each side and the building.
+        let room_to: [f64; 4] = core::array::from_fn(|side| {
             let (a, normal) = (corners[side], sides[side].2);
             parts
                 .iter()
                 .map(|p| dot(sub(a, *p), normal))
                 .fold(f64::INFINITY, f64::min)
-                < self.hull_way + thick
+                - thick
         });
-        let mut gates: [Vec<f64>; 4] = Default::default();
+        let vehicle = [0, 2, 1, 3]
+            .into_iter()
+            .find(|side| room_to[*side] >= self.hull_way);
+        let mut gates: [Vec<(f64, f64)>; 4] = Default::default();
         let mut ways = Vec::new();
         for &(door, out) in &self.houses[house].doors {
             let side = (0..4)
@@ -240,49 +371,41 @@ impl<'a> Pass<'a> {
                 .expect("four sides");
             let (middle, run, normal) = sides[side];
             let off = dot(sub(door, middle), run);
-            gates[side].push(off);
+            gates[side].push((off, rule.door_gate_m));
             let gate = add(middle, scale(run, off));
             // From the door out through the gate.
-            let reach = dot(sub(gate, door), normal).max(0.0) + rule.gate_m;
+            let reach = dot(sub(gate, door), normal).max(0.0) + rule.door_gate_m;
             ways.push(Rect {
                 center: add(door, scale(normal, reach / 2.0)),
                 axis: normal,
-                half: [reach / 2.0, rule.gate_m / 2.0],
+                half: [reach / 2.0, rule.door_gate_m / 2.0],
             });
         }
-        // The rear gate's way runs into the yard and through its own wall
-        // only: a neighbour backing onto it closes it with its rear wall, so
-        // a gate opens on a lawn, never into the next yard.
-        let (rear, _, normal) = sides[2];
-        gates[2].push(0.0);
-        ways.push(Rect {
-            center: add(rear, scale(normal, (2.0 * thick - rule.gate_m) / 2.0)),
-            axis: normal,
-            half: [(rule.gate_m + 2.0 * thick) / 2.0, rule.gate_m / 2.0],
-        });
-        // A gate in the middle of each side, its way running on into the
-        // neighbour's yard, so two walled yards side by side keep a way
-        // between them.
-        for side in [1, 3] {
+        // A gate in the middle of a side: its way runs into the yard and
+        // through its own boundary only, so a neighbour backing onto it
+        // closes it with its own run, and a gate opens on a lawn or a
+        // street, never into the next yard.
+        let middles = vehicle
+            .map(|side| (side, rule.gate_m))
+            .into_iter()
+            .chain((vehicle != Some(2)).then_some((2, rule.door_gate_m)));
+        for (side, gate) in middles {
             let (middle, _, normal) = sides[side];
-            gates[side].push(0.0);
+            gates[side].push((0.0, gate));
             ways.push(Rect {
-                center: middle,
+                center: add(middle, scale(normal, (2.0 * thick - gate) / 2.0)),
                 axis: normal,
-                half: [rule.gate_m, rule.gate_m / 2.0],
+                half: [(gate + 2.0 * thick) / 2.0, gate / 2.0],
             });
         }
         for way in ways {
             self.field.keep_clear(way);
         }
         let sides: [Side; 4] = core::array::from_fn(|side| {
-            if narrow[side] {
+            if room_to[side] < self.rule.squad_way_m {
                 Side::Open
             } else {
-                Side::Gates {
-                    width: rule.gate_m,
-                    at: gates[side].clone(),
-                }
+                Side::Gates(gates[side].clone())
             }
         });
         let group = self.field.group();
@@ -373,7 +496,7 @@ impl<'a> Pass<'a> {
         // A group's ground starts a wall gap off the wall, the group itself
         // a squad's walk off it.
         let gap = self.rule.wall_gap_m + SLACK_M;
-        let walk = self.rule.wall_walk_m - self.rule.wall_gap_m;
+        let walk = self.rule.squad_way_m - self.rule.wall_gap_m;
         let mut walls = Vec::new();
         self.field
             .wall_grid
@@ -492,7 +615,7 @@ impl<'a> Pass<'a> {
                     let at = Stand {
                         centre,
                         axis: turns[rng.below(4) as usize],
-                        behind: self.hull_way,
+                        behind: self.rule.group_ring_m,
                     };
                     if let Some(stood) = self.stand_group(group, at, ring, paved, room - placed) {
                         placed += stood;
@@ -505,9 +628,9 @@ impl<'a> Pass<'a> {
     }
 
     /// Stand `group` as `at` puts it, wholly inside `ring` and off every one
-    /// of `paved`, with the ground round its front and ends kept open
-    /// a vehicle's way (`hull_way`) wide and `at.behind` behind it. All of its bodies, at most
-    /// `room`, or none. The answer is how many stand.
+    /// of `paved`, with the ground round its front and ends kept open a
+    /// group's ring (`group_ring_m`) wide and `at.behind` behind it. All of
+    /// its bodies, at most `room`, or none. The answer is how many stand.
     fn stand_group(
         &mut self,
         group: &Group,
@@ -521,7 +644,7 @@ impl<'a> Pass<'a> {
             axis,
             behind,
         } = at;
-        let ring_m = self.hull_way;
+        let ring_m = self.rule.group_ring_m;
         let half = group.size_m.map(|v| v / 2.0);
         let across = [-axis[1], axis[0]];
         let at = |[x, y]: [f64; 2]| add(centre, add(scale(axis, x), scale(across, y)));

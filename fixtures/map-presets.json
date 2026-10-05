@@ -165,7 +165,8 @@
     "court_share": 0.75,
     "kerb_gap_m": 0.3,
     "wall_gap_m": 0.9,
-    "wall_walk_m": 3,
+    "squad_way_m": 3,
+    "group_ring_m": 6,
     "door_clear_m": 3,
     "corner_clear_m": 8,
     "slide_m": 6,
@@ -488,9 +489,11 @@
               "paris": { "plinth_railing": 1 }
             },
             "gate_m": 8,
+            "door_gate_m": 4,
             "front_inset_m": 3
           },
           "parking": { "bay_m": [2.6, 5.2], "aisle_m": 6.5, "bays": [3, 8], "every_m": 80 },
+          "lawn": { "path_m": 3, "lane_m": 8, "least_m2": 300, "streets": 2, "gates": 3, "beside": { "court_tree": 3, "lawn_bench": 1, "hedge_bench": 1 }, "beside_spacing_m": 9 },
           "groups": { "car_bays_6": 3, "car_bays_4": 3, "car_bays_2": 1, "tree_bench": 2, "sitting": 2, "bike_parking": 1, "playground": 3, "planted_tree": 2, "court_tree": 3, "lawn_trees": 4, "hedge_bench": 2, "lawn_bench": 2 },
           "families": {
             "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_laundry": 2 },
@@ -528,9 +531,11 @@
               "paris": { "plinth_railing": 1 }
             },
             "gate_m": 8,
+            "door_gate_m": 4,
             "front_inset_m": 3
           },
           "parking": { "bay_m": [2.6, 5.2], "aisle_m": 6.5, "bays": [3, 8], "every_m": 80 },
+          "lawn": { "path_m": 3, "lane_m": 8, "least_m2": 300, "streets": 2, "gates": 3, "beside": { "court_tree": 3, "lawn_bench": 1, "hedge_bench": 1 }, "beside_spacing_m": 9 },
           "groups": { "car_bays_6": 3, "car_bays_4": 3, "car_bays_2": 1, "tree_bench": 2, "sitting": 2, "bike_parking": 2, "playground": 1, "planted_tree": 2, "court_tree": 3, "lawn_trees": 4, "hedge_bench": 2, "lawn_bench": 2 },
           "families": {
             "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_gym": 2 },
@@ -571,9 +576,11 @@
               "paris": { "plinth_railing": 1 }
             },
             "gate_m": 8,
+            "door_gate_m": 4,
             "front_inset_m": 3
           },
           "parking": { "bay_m": [2.6, 5.2], "aisle_m": 6.5, "bays": [3, 8], "every_m": 80 },
+          "lawn": { "path_m": 3, "lane_m": 8, "least_m2": 300, "streets": 2, "gates": 3, "beside": { "court_tree": 3, "lawn_bench": 1, "hedge_bench": 1 }, "beside_spacing_m": 9 },
           "groups": { "car_bays_6": 3, "car_bays_4": 2, "car_bays_2": 1, "tree_bench": 2, "sitting": 1, "bike_parking": 1, "playground": 3, "planted_tree": 2, "court_tree": 3, "lawn_trees": 4, "hedge_bench": 2, "lawn_bench": 2 },
           "families": {
             "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_gym": 2, "china_laundry": 2 },
@@ -612,9 +619,11 @@
               "paris": { "plinth_railing": 1 }
             },
             "gate_m": 8,
+            "door_gate_m": 4,
             "front_inset_m": 3
           },
           "parking": { "bay_m": [2.6, 5.2], "aisle_m": 6.5, "bays": [3, 8], "every_m": 80 },
+          "lawn": { "path_m": 3, "lane_m": 8, "least_m2": 300, "streets": 2, "gates": 3, "beside": { "court_tree": 3, "lawn_bench": 1, "hedge_bench": 1 }, "beside_spacing_m": 9 },
           "groups": { "car_bays_6": 3, "car_bays_4": 3, "car_bays_2": 1, "tree_bench": 2, "sitting": 2, "bike_parking": 2, "playground": 1, "planted_tree": 2, "court_tree": 3, "lawn_trees": 4, "hedge_bench": 2, "lawn_bench": 2 },
           "families": {
             "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_gym": 2 },
