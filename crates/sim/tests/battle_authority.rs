@@ -208,7 +208,9 @@ fn map_resolution_cuts_visibility_and_foliage_together() {
             &[expected[0] as f32, expected[1] as f32, cell as f32]
         );
         assert!(foliage[3..]
-            .chunks_exact(4)
+            .as_chunks::<4>()
+            .0
+            .iter()
             .any(|row| row[2] > 0.0 && row[3] > 0.0));
     }
 }

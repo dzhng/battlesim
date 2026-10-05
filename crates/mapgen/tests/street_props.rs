@@ -1094,9 +1094,12 @@ fn court_groups_stand_whole_in_their_courts_and_keep_to_their_family() {
 /// a family table for a family the map regions do not list, a court table
 /// naming a group that does not exist, and a fenced group whose fixed-length
 /// panels leave its corners open.
+/// A presets path and the edit that breaks it.
+type Edit = (&'static str, fn(&mut Value));
+
 #[test]
 fn a_court_group_naming_an_unknown_body_family_or_group_is_refused() {
-    let edits: [(&str, fn(&mut Value)); 4] = [
+    let edits: [Edit; 4] = [
         ("street_props.groups.play", |source| {
             source["street_props"]["groups"]["play"]["pieces"][0]["kind"] = "gazebo".into();
         }),

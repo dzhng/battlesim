@@ -1352,7 +1352,7 @@ fn encode_delivery(
 /// writer with non-map groups, without a baseline or another staging buffer.
 fn pack_ground(values: &[f32], sink: &mut impl PackedSink) {
     let mut prior = 0;
-    for row in values.chunks_exact(GROUND_FIELDS.len()) {
+    for row in values.as_chunks::<{ GROUND_FIELDS.len() }>().0 {
         let tile = row[0] as u32;
         let span = row[1] as u32;
         let a = row[2] as u32;
