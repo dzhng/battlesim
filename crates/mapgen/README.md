@@ -87,11 +87,12 @@ identity derives from its district so tuning one kind does not rename unrelated
 buildings. A district with no valid first parcel is a named refusal rather than an
 unexplained empty town.
 
-A dense district paves its block interior as one [court](src/parcels/courts.rs):
-its convex ring, laid as paving, so the ground between every one of its buildings
-is hard standing and its streets draw over it. Along an edge no carriageway runs
-on, the court ends at its nearest parcel's rear rather than running out into the
-fields. Paving is ground, not road: it changes no speed, sight or cover.
+A dense district's block is structured, not one plaza ([courts](src/parcels/courts.rs)):
+each built parcel is paved as its own yard, car parks are cut beside the
+carriageways from the ground the parcels leave (each an aisle opening on the
+street with a row of bays either side), and the rest stays grass, its lawn. Lawn
+is the absence of paving, not a surface kind. Paving is ground, not road: it
+changes no speed, sight or cover.
 
 [The generated template library](../../fixtures/prototype-building-templates.json)
 is derived from accepted [city sets](../../packages/scene-assets/README.md#city-buildings),
@@ -153,18 +154,27 @@ of entrances and bridge approaches, apart from existing bodies and outside measu
 open approaches. Dimensions and mix belong to presets; the resolved catalog owns
 physical properties and the widest supported hull used to reserve a lane.
 
-Dense districts dress their courts with amenity groups (parking bays, a
-playground, a fenced basketball court), presets data placed whole or not at all.
-A court draws from groups every region shares and from those of the map's own
-regional family only, so a signature piece never appears in another region. Wall
-groups (parking bays, benches, a bike shed) stand with their backs to a building
-wall that runs their whole length; open groups then take the middle. A group
-keeps open ground round its open sides as wide as the widest hull and a margin
-for the simulation's navigation grid, clear of walls, carriageways and every
-body, though it may share that ground with another group's: set apart like that,
-it cannot close a way a soldier or a vehicle had, and a fenced group keeps a gate
-on its front. A court is held to a measured fill, the share of its ground far
-from any body, building or carriageway ([furniture tests](tests/street_props.rs)).
+Dense districts dress their courts. Each yard is bounded by one of its
+region's boundary kinds through the one fence routine, with a gate before each
+door and in the middle of each side and its rear, each wide enough for the widest
+hull. A side its building
+stands too near for that hull to drive between them is left to the building's own
+wall, so a boundary closes no way a vehicle or a squad had between two buildings:
+terraced and tightly set parcels stay unwalled, the wide yards of apartments and
+core blocks are walled. A modular boundary is cut to its sides, and a
+panel refused its ground is halved rather than dropped, so a lamp or doorway
+opens a gap its own width. Car parks take a car in each bay with the aisle kept
+open from the street pass on. Amenity groups (parking bays, a playground, a
+fenced basketball court), presets data placed whole or not at all, draw from
+groups every region shares and from those of the map's own regional family only,
+so a signature piece never appears in another region. Wall groups stand in the
+yards with their backs to a building wall that runs their whole length; open
+groups take the yards' middles and the lawn. A group keeps open ground round its
+open sides as wide as the widest hull and a margin for the navigation grid, clear
+of walls, carriageways and every body, though it may share that ground with
+another group's, so it closes no way a soldier or a vehicle had. Courts are held to a measured structure, the
+share of their paving farther than a street's width from any body, building,
+carriageway or lawn ([furniture tests](tests/street_props.rs)).
 
 Garden suburbs and villages dress the gardens behind their houses: pieces in a
 lot's rear setback and a boundary along its rear and sides, never in the front
@@ -173,7 +183,8 @@ after the open country's cover has certified the map's sight (placed before it,
 they took the ground its copses needed and some maps were refused), keep a
 trunk's clearance off every forest so they fell no tree the certificate counted,
 and stop at the request's authored-part limit, courts first: courts take at most
-their share of the parts left after the streets, spread over the courts by area,
+their share of the parts left after the streets, spread over the dense districts
+by area (boundaries at most a third of a district's, car parks half the rest),
 and gardens the rest. On the largest maps that limit, not the presets' density,
 decides how thickly courts and lots are dressed.
 

@@ -236,7 +236,8 @@ impl<'a> Field<'a> {
         self.doors.push(way);
     }
 
-    /// Stand `c` on the map as a body of `kind`.
+    /// Stand `c` on the map as a body of `kind`, `body`'s height and its
+    /// own length and width (a modular panel's may be cut shorter).
     pub(super) fn place(&mut self, kind: &str, body: &PropBox, c: &Candidate) {
         self.body_grid
             .insert(c.rect.bounds(), self.bodies.len() as u32);
@@ -251,7 +252,7 @@ impl<'a> Field<'a> {
                 kind: kind.into(),
                 center: c.rect.center,
                 yaw: c.yaw,
-                half_extents: body.half_extents_m,
+                half_extents: [c.rect.half[0], c.rect.half[1], body.half_extents_m[2]],
                 base_z: None,
             },
         });

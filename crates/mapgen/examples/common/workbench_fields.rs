@@ -152,6 +152,10 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
                 "VergeRow"
             } else if parts.contains(&"gardens") {
                 "Gardens"
+            } else if parts.contains(&"yards") {
+                "Yards"
+            } else if parts.contains(&"courts") && parts.contains(&"parking") {
+                "CourtParking"
             } else if parts.contains(&"courts") {
                 "Courts"
             } else if parts.contains(&"props") {
