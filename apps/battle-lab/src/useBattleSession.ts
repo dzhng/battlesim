@@ -131,6 +131,9 @@ export interface BattleSessionOptions {
   sound?: boolean;
   /** Menus and loading covers suspend command input without losing selection. */
   inputEnabled?: boolean;
+  /** Own units hidden by the world are drawn through it (the player's x-ray);
+   *  off, the picture shows only what the camera sees. */
+  xray?: boolean;
 }
 
 /** The rule values the scenario runs under (only what views read). Its
@@ -153,6 +156,7 @@ export function useBattleSession({
   destroyable,
   sound = false,
   inputEnabled = true,
+  xray = true,
   prepared,
 }: BattleSessionOptions) {
   const appAudio = useAppAudio();
@@ -321,6 +325,7 @@ export function useBattleSession({
     return structureBodies(props.map, known, props.fit, (prop) => apart.includes(prop.kind));
   }, [props, drawnBuildings, knownKey, apart]);
   const structures = useMemo(() => drawnBodies.flatMap((b) => b.models), [drawnBodies]);
+  const structuresFeed = useFeed<readonly ModelInstance[]>(structures);
   // What the camera keeps clear of: the ground, and every building part the
   // side knows stands (a fallen one's remains once it has seen the fall).
   // Renderer fog: the side's eyes at the published tick over the static
@@ -400,7 +405,7 @@ export function useBattleSession({
   // the selection's marker is on the ground.
   const xrayOf = useRef<XrayOf>(() => null);
   xrayOf.current = (unitSide, unit) =>
-    unitSide !== side || indoorUnits.has(unit)
+    !xray || unitSide !== side || indoorUnits.has(unit)
       ? null
       : control.selected.includes(unit)
         ? gameXray.selected
@@ -944,8 +949,8 @@ export function useBattleSession({
     world,
     meshes,
     /** The props drawn from what the side knows (standing destroyable props
-     *  when "apart", their remains, and wrecks), for the viewport's `structures`. */
-    structures,
+     *  when "apart", their remains, and wrecks), fed to the viewport. */
+    structures: structuresFeed,
     /** The map's buildings, and those the side has seen
      *  fall, for the viewport. */
     buildingsFeed,

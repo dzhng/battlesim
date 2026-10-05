@@ -39,6 +39,10 @@ the current battle. Menu warm-up begins after paint and prepares reusable
 resources; map preparation stays behind Play and building kits stay demanded.
 There is no preload scheduler or automatic recovery loop.
 
+The menu's backdrop battle follows the same rule: its worker, world and scene
+belong to the menu visit and are released when Play starts another. It plays no
+sound, so the menu music still fades only when combat audio starts.
+
 The user rejected two synthesized menu cues and supplied the Battlefield 2
 recording. It uses the existing sound catalog and preparation path, starts at
 its introduction and sits above quiet outdoor ambience. Retaining one audio

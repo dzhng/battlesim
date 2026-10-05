@@ -1,0 +1,83 @@
+{
+  "units": [
+    { "side": "blue", "kind": "tank", "position": [3492, 1400], "yaw": 1.666 },
+    { "side": "blue", "kind": "tank", "position": [3495, 1365], "yaw": 1.666 },
+    { "side": "blue", "kind": "jeep", "position": [3498, 1335], "yaw": 1.666 },
+    { "side": "blue", "kind": "tank", "position": [3501, 1300], "yaw": 1.666 },
+    { "side": "blue", "kind": "rifle", "position": [3440, 1560], "yaw": 1.676 },
+    { "side": "blue", "kind": "rifle", "position": [3500, 1600], "yaw": 1.676 },
+    { "side": "blue", "kind": "at", "position": [3455, 1520], "yaw": 1.676 },
+    { "side": "blue", "kind": "recon", "position": [3420, 1640], "yaw": 1.676 },
+    { "side": "blue", "kind": "tank", "position": [2350, 1250], "yaw": 0.8 },
+    { "side": "blue", "kind": "tank", "position": [2400, 1215], "yaw": 0.8 },
+    { "side": "blue", "kind": "tank", "position": [2305, 1290], "yaw": 0.8 },
+    { "side": "red", "kind": "rifle", "position": [3404, 2057], "yaw": -1.47 },
+    { "side": "red", "kind": "rifle", "position": [3346, 2065], "yaw": -1.47 },
+    { "side": "red", "kind": "rifle", "position": [3276, 2091], "yaw": -1.47 },
+    { "side": "red", "kind": "at", "position": [3720, 2080], "yaw": -2.6 },
+    { "side": "red", "kind": "rifle", "position": [3715, 2180], "yaw": -2.6 },
+    { "side": "red", "kind": "tank", "position": [3352, 2245], "yaw": -1.37 },
+    { "side": "red", "kind": "tank", "position": [2700, 1600], "yaw": -2.34 },
+    { "side": "red", "kind": "tank", "position": [2750, 1560], "yaw": -2.34 },
+    { "side": "red", "kind": "tank", "position": [2655, 1645], "yaw": -2.34 }
+  ],
+  "scripts": [
+    {
+      "tick": 0,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [0, 1, 2, 3],
+        "gesture": 1,
+        "goal": [3398, 2014],
+        "route": "fastest"
+      }
+    },
+    {
+      "tick": 0,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [4, 5, 6, 7],
+        "gesture": 2,
+        "goal": [3380, 1960],
+        "route": "shortest"
+      }
+    },
+    {
+      "tick": 0,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [8, 9, 10],
+        "gesture": 3,
+        "goal": [2800, 1700],
+        "route": "shortest"
+      }
+    },
+    {
+      "tick": 0,
+      "side": "red",
+      "order": {
+        "kind": "move",
+        "units": [17, 18, 19],
+        "gesture": 4,
+        "goal": [2250, 1150],
+        "route": "shortest"
+      }
+    }
+  ],
+  "opponent": {
+    "side": "red",
+    "garrisons": [
+      [11, 2490],
+      [12, 2764],
+      [13, 2810]
+    ],
+    "at_attack_range_m": 900.0,
+    "tank_retreat_hp_fraction": 0.35,
+    "tank_fallback": [3193.86, 3040.48],
+    "infantry_retreat_survivor_fraction": 0.5,
+    "infantry_fallback": [3193.86, 3040.48]
+  }
+}

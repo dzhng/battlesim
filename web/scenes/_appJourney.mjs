@@ -30,12 +30,23 @@ export async function appJourney(ctx) {
   await page.getByTestId("menu-deploy").waitFor();
   await page.waitForFunction(() => window.__appJourney.music.length > 0);
   const origin = await page.evaluate(() => performance.timeOrigin);
-  ctx.check(
-    "menu prepares the actual full recording without a battle worker",
-    page.workers().length === 0,
+  // The menu's one battle is its backdrop: up once its veil first lifts.
+  await page.waitForFunction(
+    () => Number(document.querySelector(".menu-backdrop-veil")?.style.opacity ?? 1) < 1,
+    null,
+    { timeout: 120000 },
   );
+  await snapshot(ctx, page, "app-journey-menu.png");
+  const backdrop = page.workers();
+  ctx.check(
+    "menu prepares the actual full recording beside one battle worker, its backdrop's",
+    backdrop.length === 1,
+    `${backdrop.length} workers`,
+  );
+  const backdropClosed = Promise.all(backdrop.map((worker) => worker.waitForEvent("close")));
   await page.getByRole("button", { name: "Developer", exact: true }).click();
   await page.getByRole("link", { name: "Village", exact: true }).click();
+  await backdropClosed;
 
   const ready = async () => {
     await page.waitForFunction(() => window.__lab?.ready && window.__lab.route?.tick() > 3);
@@ -120,6 +131,8 @@ export async function appJourney(ctx) {
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
   await departed;
   await page.getByTestId("menu-deploy").waitFor();
+  // The departed battle's allocations all return, seconds before the menu's
+  // backdrop has prepared and drawn a scene of its own.
   await page.waitForFunction(() => {
     const counts = window.__appJourney.allocations();
     return counts.buffers === 0 && counts.textures === 0;
@@ -154,22 +167,27 @@ export async function appJourney(ctx) {
   await openMenu(page);
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
   await page.getByTestId("menu-deploy").waitFor();
-  await page.waitForFunction(() => {
+  // Read when the departed battle's allocations have all returned, before the
+  // menu's backdrop allocates its own scene.
+  const released = await page.waitForFunction(() => {
     const counts = window.__appJourney.allocations();
-    return counts.buffers === 0 && counts.textures === 0;
+    return counts.buffers === 0 && counts.textures === 0 && counts;
   });
-  const owners = await page.evaluate(() => {
-    const p = window.__appJourney;
-    return {
-      devices: p.devices,
-      contexts: p.contexts.length,
-      running: p.contexts[0].state,
-      offsets: p.music.map((m) => m.offset),
-      sameBuffer: p.music.every((m) => m.buffer === p.music[0].buffer),
-      allocations: p.allocations(),
-      timeOrigin: performance.timeOrigin,
-    };
-  });
+  const owners = await page.evaluate(
+    (allocations) => {
+      const p = window.__appJourney;
+      return {
+        devices: p.devices,
+        contexts: p.contexts.length,
+        running: p.contexts[0].state,
+        offsets: p.music.map((m) => m.offset),
+        sameBuffer: p.music.every((m) => m.buffer === p.music[0].buffer),
+        allocations,
+        timeOrigin: performance.timeOrigin,
+      };
+    },
+    await released.jsonValue(),
+  );
   ctx.check(
     "complete player journey retains one GPU/audio bank and releases battle allocations",
     owners.devices === 1 &&

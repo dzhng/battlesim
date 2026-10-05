@@ -8,6 +8,6 @@
   "tags": ["road", "forest", "prop", "building"],
   "source": "generated",
   "seed": "1",
-  "encounters": ["assault"],
+  "encounters": ["assault", "menu"],
   "benchmarks": []
 }

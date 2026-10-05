@@ -86,8 +86,9 @@ interface LabViewportProps {
   /** The static world, fed like the overlay (`useFeed`); drawn once it is set. */
   world: FeedSource<WorldLayers | null>;
   /** Knowledge-drawn props as fitted appearances (standing walls and field
-   *  works, remembered rubble and wrecks), lit and fogged with the world. */
-  structures?: readonly ModelInstance[];
+   *  works, remembered rubble and wrecks), lit and fogged with the world;
+   *  fed like the overlay, since every fall changes the whole list. */
+  structures?: FeedSource<readonly ModelInstance[]>;
   /** The map's buildings, and those the side has seen fall, fed like the
    *  overlay; omitted or null draws none. */
   buildings?: FeedSource<SideBuildings | null>;
@@ -511,8 +512,13 @@ export function LabViewport({
     [overlay],
   );
   useEffect(() => {
-    if (structures) sceneRef.current?.setStructures(structures);
-    redrawRef.current();
+    const draw = (next: readonly ModelInstance[]) => {
+      sceneRef.current?.setStructures(next);
+      redrawRef.current();
+    };
+    if (!structures) return;
+    draw(structures.current);
+    return structures.subscribe(draw);
   }, [structures]);
   useEffect(() => {
     const scene = sceneRef.current;
@@ -664,7 +670,7 @@ export function LabViewport({
           // Prop effects and feeds can update this frame while appearances load.
           sceneRef.current = next;
           try {
-            if (structuresRef.current) next.setStructures(structuresRef.current);
+            if (structuresRef.current) next.setStructures(structuresRef.current.current);
             if (buildingsRef.current) next.setBuildings(buildingsRef.current.current);
             const meshes = overlayRef.current?.current;
             if (meshes) next.setOverlay(meshes);

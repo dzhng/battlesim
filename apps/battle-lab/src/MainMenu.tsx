@@ -4,13 +4,14 @@
 // the sound settings. The test village, the benchmark and the labs are
 // developer tools, behind the developer link.
 import { Link } from "react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import config from "@fixtures/generated-battle.json";
 import { listMaps } from "@web/maps/catalogue";
 import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/source";
 import { askedChoice, battleHref, playHref, REGIONS, savedBattleHref, spoken } from "./battleLinks";
 import { useSavedReplay, replayRoute } from "./replayFile";
 import { SoundControls } from "./SoundControls";
+import { MenuBackdrop } from "./MenuBackdrop";
 
 interface Entry {
   label: string;
@@ -188,6 +189,7 @@ function NewBattle() {
 export function MainMenu() {
   const [developer, setDeveloper] = useState(false);
   const [savedReplay] = useSavedReplay();
+  const plate = useRef<HTMLDivElement>(null);
   const entries: Entry[] = [
     ...savedBattles(),
     {
@@ -198,7 +200,8 @@ export function MainMenu() {
   ];
   return (
     <main className="menu">
-      <div className="hud-panel menu-body">
+      <MenuBackdrop plate={plate} />
+      <div className="hud-panel menu-body" ref={plate}>
         <h1>Battle</h1>
         <NewBattle />
         <Entries label="Main menu" entries={entries} />
