@@ -3,6 +3,8 @@
 use crate::math::{v2, v3, Obb2, V2, V3};
 use contract::catalog::{PropBody, PropKind};
 use contract::map::MoverClass;
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 pub type PropId = u32;
 
@@ -166,6 +168,17 @@ impl PropIndex {
         }
     }
 
+    /// An index of nothing over the same buckets, untracked.
+    fn empty(&self) -> Self {
+        PropIndex {
+            bucket: self.bucket,
+            nx: self.nx,
+            ny: self.ny,
+            cells: vec![Vec::new(); self.cells.len()],
+            changes: None,
+        }
+    }
+
     /// World enables tracking after authored setup. Side-known indexes do not
     /// allocate stamps: their consumers already own their change histories.
     pub(super) fn track_changes(&mut self) {
@@ -211,8 +224,14 @@ impl PropIndex {
     }
 
     pub fn insert(&mut self, p: &Prop) {
+        self.note_change(self.cell_range(p));
+        self.place(p);
+    }
+
+    /// Index `p` without counting a change: a body already standing, newly
+    /// held by a planning snapshot's own layer.
+    fn place(&mut self, p: &Prop) {
         let (i0, i1, j0, j1) = self.cell_range(p);
-        self.note_change((i0, i1, j0, j1));
         let entry = Entry {
             id: p.id,
             center: p.center,
@@ -363,6 +382,246 @@ impl PropIndex {
     }
 }
 
+/// Every body by id, and the bucket index over them. The world owns its
+/// bodies outright; a planning snapshot shares them and keeps only where its
+/// side believes otherwise, so taking one costs the side's differences, not
+/// the map's props. Queries answer as one index over the merged bodies would.
+#[derive(Clone)]
+pub(crate) struct PropStore {
+    shared: Arc<Bodies>,
+    /// A planning snapshot's own bodies; `None` in the world itself.
+    own: Option<Box<Overlay>>,
+}
+
+#[derive(Clone)]
+struct Bodies {
+    props: Vec<Option<Prop>>,
+    index: PropIndex,
+}
+
+/// The bodies a snapshot holds in place of `shared`'s, by id (`None`: none
+/// there), and an index of those standing. The snapshot's change stamps live
+/// here alone: its shared bodies are where it started.
+#[derive(Clone)]
+struct Overlay {
+    props: BTreeMap<PropId, Option<Prop>>,
+    index: PropIndex,
+    len: usize,
+}
+
+impl PropStore {
+    pub fn new(index: PropIndex) -> Self {
+        PropStore {
+            shared: Arc::new(Bodies {
+                props: Vec::new(),
+                index,
+            }),
+            own: None,
+        }
+    }
+
+    /// A snapshot sharing these bodies, holding `differences` (each id's
+    /// body instead, or none) in its own layer, over this store's own layer
+    /// when it is itself a snapshot. Later entries for an id win. Its change
+    /// stamps start at zero, as a freshly built index's do.
+    pub fn planning_layer(
+        &self,
+        differences: impl Iterator<Item = (PropId, Option<Prop>)>,
+    ) -> Self {
+        let mut own = Overlay {
+            props: self
+                .own
+                .as_ref()
+                .map_or_else(BTreeMap::new, |own| own.props.clone()),
+            index: self.shared.index.empty(),
+            len: self.len(),
+        };
+        for (id, prop) in differences {
+            own.props.insert(id, prop);
+        }
+        for (&id, prop) in &own.props {
+            own.len = own.len.max(id as usize + 1);
+            if let Some(prop) = prop {
+                own.index.place(prop);
+            }
+        }
+        own.index.track_changes();
+        PropStore {
+            shared: Arc::clone(&self.shared),
+            own: Some(Box::new(own)),
+        }
+    }
+
+    /// One past the highest id ever held.
+    pub fn len(&self) -> usize {
+        self.own.as_ref().map_or(self.shared.props.len(), |o| o.len)
+    }
+
+    pub fn get(&self, id: PropId) -> Option<&Prop> {
+        if let Some(own) = &self.own {
+            if let Some(prop) = own.props.get(&id) {
+                return prop.as_ref();
+            }
+        }
+        self.shared.props.get(id as usize)?.as_ref()
+    }
+
+    /// Every body, by ascending id.
+    pub fn iter(&self) -> impl Iterator<Item = &Prop> {
+        let own = self.own.as_deref();
+        let shared_len = self.shared.props.len() as PropId;
+        self.shared
+            .props
+            .iter()
+            .enumerate()
+            .filter_map(move |(id, prop)| match own {
+                None => prop.as_ref(),
+                Some(own) => own
+                    .props
+                    .get(&(id as PropId))
+                    .map_or(prop.as_ref(), Option::as_ref),
+            })
+            .chain(
+                own.into_iter()
+                    .flat_map(move |own| own.props.range(shared_len..))
+                    .filter_map(|(_, prop)| prop.as_ref()),
+            )
+    }
+
+    /// Bodies with ids from `first` on, ascending.
+    pub fn iter_from(&self, first: PropId) -> impl Iterator<Item = &Prop> {
+        (first..self.len() as PropId).filter_map(|id| self.get(id))
+    }
+
+    /// Add a body under the next id.
+    pub fn push(&mut self, prop: Prop) {
+        debug_assert_eq!(prop.id as usize, self.len());
+        match &mut self.own {
+            None => {
+                let bodies = Arc::make_mut(&mut self.shared);
+                bodies.index.insert(&prop);
+                bodies.props.push(Some(prop));
+            }
+            Some(own) => {
+                own.index.insert(&prop);
+                own.len += 1;
+                own.props.insert(prop.id, Some(prop));
+            }
+        }
+    }
+
+    pub fn take(&mut self, id: PropId) -> Option<Prop> {
+        match &mut self.own {
+            None => {
+                let bodies = Arc::make_mut(&mut self.shared);
+                let prop = bodies.props.get_mut(id as usize)?.take()?;
+                bodies.index.remove(&prop);
+                Some(prop)
+            }
+            Some(own) => {
+                let prop = match own.props.get_mut(&id) {
+                    Some(slot) => slot.take()?,
+                    None => {
+                        let prop = self.shared.props.get(id as usize)?.clone()?;
+                        own.props.insert(id, None);
+                        prop
+                    }
+                };
+                // Stamps the change; a shared body has no entry here to drop.
+                own.index.remove(&prop);
+                Some(prop)
+            }
+        }
+    }
+
+    /// Put back a body taken from its id, for a move.
+    pub fn put(&mut self, prop: Prop) {
+        let id = prop.id;
+        match &mut self.own {
+            None => {
+                let bodies = Arc::make_mut(&mut self.shared);
+                bodies.index.insert(&prop);
+                bodies.props[id as usize] = Some(prop);
+            }
+            Some(own) => {
+                own.index.insert(&prop);
+                own.props.insert(id, Some(prop));
+            }
+        }
+    }
+
+    /// Change a body's flags in place: never its footprint.
+    pub fn get_mut(&mut self, id: PropId) -> Option<&mut Prop> {
+        match &mut self.own {
+            None => Arc::make_mut(&mut self.shared)
+                .props
+                .get_mut(id as usize)?
+                .as_mut(),
+            Some(own) => {
+                if !own.props.contains_key(&id) {
+                    let prop = self.shared.props.get(id as usize)?.clone()?;
+                    own.index.place(&prop);
+                    own.props.insert(id, Some(prop));
+                }
+                own.props.get_mut(&id)?.as_mut()
+            }
+        }
+    }
+
+    pub fn track_changes(&mut self) {
+        match &mut self.own {
+            None => Arc::make_mut(&mut self.shared).index.track_changes(),
+            Some(own) => own.index.track_changes(),
+        }
+    }
+
+    /// Run an id query over the shared index and, for a snapshot, its own:
+    /// ids the snapshot holds itself answer from its own index alone.
+    fn ids(&self, out: &mut Vec<PropId>, query: impl Fn(&PropIndex, &mut Vec<PropId>)) {
+        let Some(own) = &self.own else {
+            return query(&self.shared.index, out);
+        };
+        let mut ids = Vec::new();
+        query(&self.shared.index, &mut ids);
+        ids.retain(|id| !own.props.contains_key(id));
+        query(&own.index, &mut ids);
+        out.extend(ids);
+        out.sort_unstable();
+        out.dedup();
+    }
+
+    pub fn near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
+        self.ids(out, |index, out| index.near(center, radius, out));
+    }
+
+    pub fn near_many(&self, views: &[(V2, f64)], out: &mut Vec<PropId>) {
+        self.ids(out, |index, out| index.near_many(views, out));
+    }
+
+    pub fn along(&self, a: V2, b: V2, out: &mut Vec<PropId>) {
+        self.ids(out, |index, out| index.along(a, b, out));
+    }
+
+    pub fn any_along(&self, a: V2, b: V2, mut hit: impl FnMut(PropId) -> bool) -> bool {
+        match &self.own {
+            None => self.shared.index.any_along(a, b, hit),
+            Some(own) => {
+                self.shared
+                    .index
+                    .any_along(a, b, |id| !own.props.contains_key(&id) && hit(id))
+                    || own.index.any_along(a, b, hit)
+            }
+        }
+    }
+
+    pub fn revision_near(&self, center: V2, radius: f64) -> u64 {
+        match &self.own {
+            None => self.shared.index.revision_near(center, radius),
+            Some(own) => own.index.revision_near(center, radius),
+        }
+    }
+}
+
 /// Slab test of `o + d * t`, t ∈ [0, max_t], against the box of half extents
 /// `half` centred at the local origin. Returns (t, local outward normal) of the
 /// entry point; an origin already inside hits at t = 0.
@@ -409,6 +668,7 @@ pub(crate) fn ray_box(o: V3, d: V3, half: V3, max_t: f64) -> Option<(f64, V3)> {
 mod query_tests {
     use super::*;
     use crate::world::WorldGeometry;
+    use contract::map::PropDefinition;
 
     #[test]
     fn overlapping_queries_keep_exact_candidates_through_index_edits() {
@@ -452,5 +712,151 @@ mod query_tests {
         out.clear();
         index.near_many(&[(v2(96.0, 16.0), 2.0)], &mut out);
         assert!(out.is_empty());
+    }
+
+    /// Each body's id and pose, by ascending id.
+    fn bodies(world: &WorldGeometry) -> Vec<(PropId, [f64; 3])> {
+        world
+            .props()
+            .map(|p| (p.id, [p.center.x, p.center.y, p.yaw]))
+            .collect()
+    }
+
+    /// Every id query over `store` answers as one index built afresh over
+    /// its bodies does, and its change stamps are `reference`'s.
+    fn answers_as_whole(store: &PropStore, reference: &PropIndex) {
+        let mut whole = reference.empty();
+        for prop in store.iter() {
+            whole.place(prop);
+        }
+        let (mut got, mut want) = (Vec::new(), Vec::new());
+        for x in (0..128).step_by(8) {
+            for y in (0..128).step_by(8) {
+                let p = v2(x as f64, y as f64);
+                for r in [1.0, 6.0, 40.0] {
+                    got.clear();
+                    want.clear();
+                    store.near(p, r, &mut got);
+                    whole.near(p, r, &mut want);
+                    assert_eq!(got, want, "near {p:?} {r}");
+                    assert_eq!(
+                        store.revision_near(p, r),
+                        reference.revision_near(p, r),
+                        "stamps near {p:?} {r}"
+                    );
+                }
+                let q = v2(127.0 - y as f64, x as f64 * 0.5);
+                got.clear();
+                want.clear();
+                store.along(p, q, &mut got);
+                whole.along(p, q, &mut want);
+                assert_eq!(got, want, "along {p:?} {q:?}");
+                for id in 0..8 {
+                    assert_eq!(
+                        store.any_along(p, q, |i| i == id),
+                        whole.any_along(p, q, |i| i == id),
+                        "any along {p:?} {q:?} meeting {id}"
+                    );
+                }
+                let views = [(p, 4.0), (q, 10.0)];
+                got.clear();
+                want.clear();
+                store.near_many(&views, &mut got);
+                whole.near_many(&views, &mut want);
+                assert_eq!(got, want, "near many {views:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_planning_snapshot_answers_as_a_world_of_its_sides_bodies() {
+        let rules = serde_json::from_value(crate::fixtures::game()).unwrap();
+        let map = serde_json::from_value(serde_json::json!({
+            "size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+            "props":[
+                {"kind":"crate","center":[16,16],"yaw":0,"half_extents":[1,1,1]},
+                {"kind":"crate","center":[40,16],"yaw":0,"half_extents":[1,1,1]},
+                {"kind":"crate","center":[64,62],"yaw":0,"half_extents":[3,1,1]},
+                {"kind":"crate","center":[96,96],"yaw":0,"half_extents":[1,1,1]}
+            ]
+        }))
+        .unwrap();
+        let mut world = WorldGeometry::new(&map, &rules);
+        let crate_at = |x: f64, y: f64| PropDefinition {
+            kind: "crate".into(),
+            center: [x, y],
+            yaw: 0.0,
+            half_extents: [1.0, 1.0, 1.0],
+            base_z: None,
+        };
+        // The truth moves on: 1 is shoved, 2 destroyed, 4 added.
+        let unshoved = world.prop(1).unwrap().clone();
+        world.move_prop(1, v2(40.0, 70.0), 0.5, 1);
+        let gone = world.remove_prop(2).unwrap();
+        assert_eq!(world.add_prop(&crate_at(30.0, 100.0)), 4);
+        let truth = bodies(&world);
+
+        // A side that did not see any of it.
+        let mut snapshot = world.planning_snapshot(
+            [
+                (4, None),
+                (1, Some(unshoved.clone())),
+                (2, Some(gone.clone())),
+            ]
+            .into_iter(),
+        );
+        assert_eq!(
+            bodies(&snapshot),
+            [
+                (0, [16.0, 16.0, 0.0]),
+                (1, [40.0, 16.0, 0.0]),
+                (2, [64.0, 62.0, 0.0]),
+                (3, [96.0, 96.0, 0.0])
+            ]
+        );
+        let mut reference = snapshot.props.shared.index.empty();
+        reference.track_changes();
+        answers_as_whole(&snapshot.props, &reference);
+
+        // Its rehearsal shoves, destroys and adds without touching the truth.
+        let moved = |p: &Prop, c: V2| Prop {
+            center: c,
+            ..p.clone()
+        };
+        let before = snapshot.prop(0).unwrap().clone();
+        snapshot.move_prop(0, v2(20.0, 50.0), 0.0, 1);
+        reference.remove(&before);
+        reference.insert(&moved(&before, v2(20.0, 50.0)));
+        let removed = snapshot.remove_prop(3).unwrap();
+        reference.remove(&removed);
+        let removed = snapshot.remove_prop(1).unwrap();
+        assert_eq!(removed.center, unshoved.center);
+        reference.remove(&removed);
+        assert_eq!(snapshot.add_prop(&crate_at(100.0, 20.0)), 5);
+        reference.insert(snapshot.prop(5).unwrap());
+        snapshot.set_known_to_all(2);
+        assert!(snapshot.prop(2).unwrap().known_to_all);
+        assert_eq!(
+            bodies(&snapshot),
+            [
+                (0, [20.0, 50.0, 0.0]),
+                (2, [64.0, 62.0, 0.0]),
+                (5, [100.0, 20.0, 0.0])
+            ]
+        );
+        answers_as_whole(&snapshot.props, &reference);
+        assert_eq!(bodies(&world), truth);
+        assert!(!world.prop(4).unwrap().known_to_all);
+
+        // A snapshot of the snapshot plans over the snapshot's bodies.
+        let nested = snapshot.planning_snapshot([(0, None)].into_iter());
+        assert_eq!(
+            bodies(&nested),
+            [(2, [64.0, 62.0, 0.0]), (5, [100.0, 20.0, 0.0])]
+        );
+        let mut reference = reference.empty();
+        reference.track_changes();
+        answers_as_whole(&nested.props, &reference);
+        assert_eq!(bodies(&world), truth);
     }
 }

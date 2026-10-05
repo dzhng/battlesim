@@ -10,6 +10,7 @@ mod surfaces;
 mod terrain;
 
 pub use forest::Foliage;
+use props::PropStore;
 pub(crate) use props::{ray_box, PropIndex};
 pub use props::{Prop, PropId, Slot};
 use terrain::HeightField;
@@ -91,8 +92,10 @@ pub struct WorldGeometry {
     forests: Vec<Forest>,
     /// The forests at runtime: foliage per fog cell and the cleared mask.
     forest: forest::ForestState,
-    props: Vec<Option<Prop>>,
-    buildings: buildings::Buildings,
+    /// Every body and the bucket index over them; a planning snapshot
+    /// shares the world's and holds only what its side believes otherwise.
+    props: PropStore,
+    buildings: Arc<buildings::Buildings>,
     template_catalog_hash: Option<String>,
     /// The map's region (`MapDefinition.regional_family`), for presentation.
     regional_family: Option<String>,
@@ -102,7 +105,6 @@ pub struct WorldGeometry {
     authored_poses: std::sync::Arc<[[u64; 4]]>,
     authored_digest: u64,
     authored_sources: std::collections::BTreeMap<PropId, PropId>,
-    index: PropIndex,
     revision: u64,
     /// The prop types: each new prop takes its type's body row.
     types: PropCatalog,
@@ -115,13 +117,15 @@ pub struct WorldGeometry {
 }
 
 impl WorldGeometry {
-    /// Physical movement against one side's remembered bodies. Immutable
-    /// terrain and paving are shared; mutations affect only this scratch world.
-    /// Forest ground begins uncleared so unseen clearing cannot certify a move.
+    /// Physical movement against one side's remembered bodies: this world's
+    /// bodies, except each of `beliefs` (the body the side plans with in
+    /// that id's place, or none; later entries win). Every body not listed
+    /// must be one the side plans with where it stands. Bodies, terrain and
+    /// paving are shared; mutations affect only this scratch world. Forest
+    /// ground begins uncleared so unseen clearing cannot certify a move.
     pub(crate) fn planning_snapshot(
         &self,
-        belief: impl Fn(&Prop) -> Option<Prop>,
-        standing: impl Iterator<Item = Prop>,
+        beliefs: impl Iterator<Item = (PropId, Option<Prop>)>,
     ) -> Self {
         let mut snapshot = Self {
             field: Arc::clone(&self.field),
@@ -132,32 +136,20 @@ impl WorldGeometry {
             bridges: self.bridges.clone(),
             forests: self.forests.clone(),
             forest: self.forest.clone(),
-            props: vec![None; self.props.len()],
-            buildings: self.buildings.clone(),
+            props: self.props.planning_layer(beliefs),
+            buildings: Arc::clone(&self.buildings),
             template_catalog_hash: self.template_catalog_hash.clone(),
             regional_family: self.regional_family.clone(),
             authored_props: self.authored_props,
             authored_poses: self.authored_poses.clone(),
             authored_digest: self.authored_digest,
             authored_sources: self.authored_sources.clone(),
-            index: PropIndex::new(self.width(), self.depth(), PROP_BUCKET_M),
             revision: 0,
             types: self.types.clone(),
             moved: Default::default(),
             touched: Vec::new(),
         };
         snapshot.forest.reset_cleared();
-        for prop in self.props().filter_map(belief).chain(standing) {
-            let id = prop.id as usize;
-            if id >= snapshot.props.len() {
-                snapshot.props.resize(id + 1, None);
-            }
-            snapshot.props[id] = Some(prop);
-        }
-        for prop in snapshot.props.iter().flatten() {
-            snapshot.index.insert(prop);
-        }
-        snapshot.index.track_changes();
         snapshot
     }
 
@@ -221,7 +213,6 @@ impl WorldGeometry {
             map.size,
         ));
         let field = Arc::new(HeightField::build(map, &surfaces));
-        let index = PropIndex::new(field.width(), field.depth(), PROP_BUCKET_M);
         let mut world = WorldGeometry {
             relief: map.relief.clone(),
             slope_cutoff_deg: map.slope_cutoff_deg,
@@ -238,15 +229,17 @@ impl WorldGeometry {
                 &map.forests,
                 rules.forests.rule,
             ),
-            props: Vec::new(),
-            buildings: buildings::Buildings::new(&map.buildings, rules.catalog.props()),
+            props: PropStore::new(PropIndex::new(field.width(), field.depth(), PROP_BUCKET_M)),
+            buildings: Arc::new(buildings::Buildings::new(
+                &map.buildings,
+                rules.catalog.props(),
+            )),
             template_catalog_hash: map.template_catalog_hash.clone(),
             regional_family: map.regional_family.clone(),
             authored_props: 0,
             authored_poses: std::sync::Arc::new([]),
             authored_digest: 0,
             authored_sources: Default::default(),
-            index,
             revision: 0,
             types: rules.catalog.props().clone(),
             moved: Default::default(),
@@ -284,7 +277,7 @@ impl WorldGeometry {
                     ],
                     base_z: None,
                 });
-                if let Some(Some(prop)) = world.props.get_mut(id as usize) {
+                if let Some(prop) = world.props.get_mut(id) {
                     prop.forest_tree = true;
                 }
             }
@@ -351,7 +344,7 @@ impl WorldGeometry {
         }
         // Authored setup is revision 0; only later changes count.
         world.revision = 0;
-        world.index.track_changes();
+        world.props.track_changes();
         world.touched.clear();
         world.authored_props =
             u32::try_from(world.props.len()).expect("authored world exceeds u32 IDs");
@@ -490,7 +483,7 @@ impl WorldGeometry {
         owner: PropId,
         replacements: &[(PropId, PropId)],
     ) {
-        self.buildings.replace(owner, replacements);
+        Arc::make_mut(&mut self.buildings).replace(owner, replacements);
     }
 
     pub fn width(&self) -> f64 {
@@ -611,15 +604,13 @@ impl WorldGeometry {
     ) {
         let first = out.len();
         let mut ids = Vec::new();
-        self.index
+        self.props
             .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
         for id in ids
             .into_iter()
             .filter(|&id| !self.skips_structure(id, past))
         {
-            let prop = self.props[id as usize]
-                .as_ref()
-                .expect("indexed prop is live");
+            let prop = self.props.get(id).expect("indexed prop is live");
             if prop.body.stops_rounds || prop.body.hp.is_none() {
                 continue;
             }
@@ -654,15 +645,13 @@ impl WorldGeometry {
             collider: Collider::Terrain,
         });
         let mut ids = Vec::new();
-        self.index
+        self.props
             .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
         for id in ids
             .into_iter()
             .filter(|&id| !self.skips_structure(id, skip))
         {
-            let prop = self.props[id as usize]
-                .as_ref()
-                .expect("indexed prop is live");
+            let prop = self.props.get(id).expect("indexed prop is live");
             if !admits(&prop.body) {
                 continue;
             }
@@ -717,10 +706,8 @@ impl WorldGeometry {
         // A hit lies on the segment inside the footprint, so within its
         // circle: the index offers every prop that could be hit.
         let (a, b) = (origin.xy(), (origin + dir * max_t).xy());
-        let by_prop = self.index.any_along(a, b, |id| {
-            let prop = self.props[id as usize]
-                .as_ref()
-                .expect("indexed prop is live");
+        let by_prop = self.props.any_along(a, b, |id| {
+            let prop = self.props.get(id).expect("indexed prop is live");
             !self.skips_structure(id, skip)
                 && admits(&prop.body)
                 && prop.raycast(origin, dir, max_t).is_some()
@@ -778,8 +765,7 @@ impl WorldGeometry {
     fn insert_prop(&mut self, def: &PropDefinition) -> PropId {
         let prop = self.placed_prop(def);
         let id = prop.id;
-        self.index.insert(&prop);
-        self.props.push(Some(prop));
+        self.props.push(prop);
         self.revision += 1;
         self.touched.push(id);
         id
@@ -809,7 +795,7 @@ impl WorldGeometry {
 
     /// Every side plans with `id` from now on ([`Prop::known_to_all`]).
     pub fn set_known_to_all(&mut self, id: PropId) {
-        if let Some(Some(p)) = self.props.get_mut(id as usize) {
+        if let Some(p) = self.props.get_mut(id) {
             p.known_to_all = true;
             self.touched.push(id);
         }
@@ -827,8 +813,7 @@ impl WorldGeometry {
     }
 
     pub fn remove_prop(&mut self, id: PropId) -> Option<Prop> {
-        let prop = self.props.get_mut(id as usize)?.take()?;
-        self.index.remove(&prop);
+        let prop = self.props.take(id)?;
         self.revision += 1;
         self.touched.push(id);
         Some(prop)
@@ -844,15 +829,13 @@ impl WorldGeometry {
     /// stands on the surface there (pushed off a deck, it drops to the bed),
     /// and the obstacle revision bumps.
     pub fn move_prop(&mut self, id: PropId, center: V2, yaw: f64, tick: u64) {
-        let Some(mut prop) = self.props.get_mut(id as usize).and_then(Option::take) else {
+        let Some(mut prop) = self.props.take(id) else {
             return;
         };
-        self.index.remove(&prop);
         prop.base_z += self.standing_z(center) - self.standing_z(prop.center);
         prop.center = center;
         prop.yaw = yaw;
-        self.index.insert(&prop);
-        self.props[id as usize] = Some(prop);
+        self.props.put(prop);
         self.moved.insert(id, tick);
         self.revision += 1;
         self.touched.push(id);
@@ -880,11 +863,17 @@ impl WorldGeometry {
     }
 
     pub fn prop(&self, id: PropId) -> Option<&Prop> {
-        self.props.get(id as usize)?.as_ref()
+        self.props.get(id)
     }
 
     pub fn props(&self) -> impl Iterator<Item = &Prop> {
-        self.props.iter().flatten()
+        self.props.iter()
+    }
+
+    /// Every body with an id from `first` on: those added after `first`
+    /// was, by ascending id.
+    pub fn props_from(&self, first: PropId) -> impl Iterator<Item = &Prop> {
+        self.props.iter_from(first)
     }
 
     /// The props' share of the battle's digest: how many stand, and the pose
@@ -908,13 +897,13 @@ impl WorldGeometry {
     /// Props whose footprint may reach within `radius` of `center`.
     pub fn props_near(&self, center: V2, radius: f64) -> Vec<&Prop> {
         let mut ids = Vec::new();
-        self.index.near(center, radius, &mut ids);
+        self.props.near(center, radius, &mut ids);
         ids.into_iter().filter_map(|id| self.prop(id)).collect()
     }
 
     /// Ascending unique prop candidates across all visibility views.
     pub(crate) fn prop_ids_near_many(&self, views: &[(V2, f64)], out: &mut Vec<PropId>) {
-        self.index.near_many(views, out);
+        self.props.near_many(views, out);
     }
 
     /// Increments whenever a prop is added, moved or removed after authored setup.
@@ -924,7 +913,7 @@ impl WorldGeometry {
 
     /// Newest prop mutation in the footprint buckets queried by `props_near`.
     pub(crate) fn obstacle_revision_near(&self, center: V2, radius: f64) -> u64 {
-        self.index.revision_near(center, radius)
+        self.props.revision_near(center, radius)
     }
 
     pub fn forests(&self) -> &[Forest] {

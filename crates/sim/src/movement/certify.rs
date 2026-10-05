@@ -310,10 +310,7 @@ pub(crate) fn certify_orders(
             unproven,
         };
     }
-    let initial_world = ctx.world.planning_snapshot(
-        |p| known.belief(p, ctx.authored),
-        known.standing().values().cloned(),
-    );
+    let initial_world = known.planning_world(ctx.world, ctx.authored);
     let own = source[slots[0].id.0 as usize].side;
     // Opponents are observed bodies, not observers whose private spotting
     // can choose new cover posts during this side's movement proof.

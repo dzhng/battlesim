@@ -137,10 +137,7 @@ pub(crate) fn occupy(
     ids.sort();
     ids.dedup();
     let side = source[ids[0].0 as usize].side;
-    let world = ctx.world.planning_snapshot(
-        |p| known.belief(p, ctx.authored),
-        known.standing().values().cloned(),
-    );
+    let world = known.planning_world(ctx.world, ctx.authored);
     let local = MovementContext {
         world: &world,
         ground: ctx.knowledge[side.index()].ground().layer(),
