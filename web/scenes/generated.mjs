@@ -347,9 +347,9 @@ export async function run(ctx) {
   // Everything on the map is drawn: every building a reference drawn from
   // its template's rows in the frame's static chunks, a tree every tree
   // body (a forest's trunk, a street's tree), and every other body on the
-  // map its model (or the kit's stand-in). A forest's boulders never change,
-  // so they draw with the static world, not among the structures the side's
-  // knowledge redraws.
+  // map its own models (or the kit's stand-in), whether it draws with the
+  // static world (a boulder, a pitch: nothing changes them) or among the
+  // structures the side's knowledge redraws.
   const counts = await lab(page, () => {
     const stats = window.__lab.stats();
     const drawn = window.__lab.route.buildings();
@@ -362,7 +362,7 @@ export async function run(ctx) {
       trunks: window.__lab.route.propsNear("trunk", 0, 0, Infinity).length,
       streetTrees: window.__lab.route.propsNear("street_tree", 0, 0, Infinity).length,
       structures: stats.structures,
-      boulders: window.__lab.route.propsNear("boulder", 0, 0, Infinity).length,
+      bodies: window.__lab.route.structureBodies(),
     };
   });
   ctx.check(
@@ -376,7 +376,12 @@ export async function run(ctx) {
       counts.trees === counts.trunks + counts.streetTrees &&
       counts.trunks > 1000 &&
       counts.streetTrees > 0 &&
-      counts.structures + counts.boulders + counts.streetTrees === generated.counts.props &&
+      // Every body but a building's part is drawn by a model of its own; a
+      // body of repeated modules (a fence, a railing) by several.
+      counts.bodies.unmodelled === 0 &&
+      counts.bodies.parts === generated.counts.parts &&
+      counts.bodies.sideModels === counts.structures &&
+      counts.bodies.bodies - counts.bodies.parts + counts.streetTrees === generated.counts.props &&
       generated.counts.props > 100,
     JSON.stringify({ ...counts, map: generated.counts }),
   );

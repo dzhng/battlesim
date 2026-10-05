@@ -324,10 +324,29 @@ export function structureModels(
   appearances: PropAppearances,
   keep: (prop: MapProp) => boolean = () => true,
 ): ModelInstance[] {
+  return structureBodies(props, known, appearances, keep).flatMap((b) => b.models);
+}
+
+/** A body a side draws, and the models drawing it: several for a repeated
+ *  module, none for a kind with no art and no stand-in (or a building's
+ *  part, which its building draws). */
+export interface DrawnBody {
+  body: PropBox;
+  models: ModelInstance[];
+}
+
+/** `structureModels` body by body, in the same order. */
+export function structureBodies(
+  props: readonly MapProp[],
+  known: readonly KnownProp[],
+  appearances: PropAppearances,
+  keep: (prop: MapProp) => boolean = () => true,
+): DrawnBody[] {
   const replaced = new Map<number, KnownProp>();
   for (const k of known) if (k.authoredProp !== null) replaced.set(k.authoredProp, k);
-  const out: ModelInstance[] = [];
-  for (const prop of props) if (keep(prop) && !replaced.has(prop.id)) appearances.fit(prop, out);
-  for (const k of known) if (!k.destroyed) appearances.fit(k, out);
+  const out: DrawnBody[] = [];
+  const draw = (body: PropBox) => out.push({ body, models: appearances.fit(body, []) });
+  for (const prop of props) if (keep(prop) && !replaced.has(prop.id)) draw(prop);
+  for (const k of known) if (!k.destroyed) draw(k);
   return out;
 }

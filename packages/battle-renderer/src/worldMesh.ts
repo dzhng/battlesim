@@ -9,7 +9,8 @@ import {
   drawnBy,
   mapProps,
   PropAppearances,
-  structureModels,
+  structureBodies,
+  type DrawnBody,
   type PropAppearance,
   type StandInStyle,
 } from "./models/propAppearance";
@@ -260,7 +261,20 @@ export function worldStructures(
   appearances: InstalledAppearances,
   standIns?: StandInStyle,
 ): ModelInstance[] {
-  return structureModels(
+  return worldStructureBodies(exports, layout, apart, appearances, standIns).flatMap(
+    (b) => b.models,
+  );
+}
+
+/** `worldStructures` body by body (`structureBodies`). */
+export function worldStructureBodies(
+  exports: WorldExports,
+  layout: WorldLayout,
+  apart: readonly string[],
+  appearances: InstalledAppearances,
+  standIns?: StandInStyle,
+): DrawnBody[] {
+  return structureBodies(
     mapProps(exports, layout),
     [],
     new PropAppearances(appearances, layout, exports.buildings.regionalFamily, standIns),
