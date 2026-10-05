@@ -5,6 +5,7 @@
 //! ([`carry`]). Rehearsal cost follows physical interactions rather than
 //! travel distance. Planning still pays for the route it must find.
 use contract::command::MovePreviewRequest;
+use contract::ground::segment_distance;
 use contract::map::MoverClass;
 use contract::observation::MoveState;
 
@@ -36,16 +37,6 @@ fn remaining_route(unit: &Unit) -> Option<Vec<V2>> {
 
 /// The least distance between segments `a0 a1` and `b0 b1`.
 fn segment_gap(a0: V2, a1: V2, b0: V2, b1: V2) -> f64 {
-    let to_segment = |p: V2, s0: V2, s1: V2| {
-        let ab = s1 - s0;
-        let l2 = ab.dot(ab);
-        let t = if l2 > 0.0 {
-            ((p - s0).dot(ab) / l2).clamp(0.0, 1.0)
-        } else {
-            0.0
-        };
-        (s0 + ab * t - p).length()
-    };
     let (da, db) = (a1 - a0, b1 - b0);
     let side = |d: V2, o: V2, p: V2| d.cross(p - o);
     let crosses =
@@ -53,10 +44,11 @@ fn segment_gap(a0: V2, a1: V2, b0: V2, b1: V2) -> f64 {
     if crosses {
         return 0.0;
     }
-    to_segment(a0, b0, b1)
-        .min(to_segment(a1, b0, b1))
-        .min(to_segment(b0, a0, a1))
-        .min(to_segment(b1, a0, a1))
+    let to = |p: V2, s0: V2, s1: V2| segment_distance([s0.x, s0.y], [s1.x, s1.y], [p.x, p.y]);
+    to(a0, b0, b1)
+        .min(to(a1, b0, b1))
+        .min(to(b0, a0, a1))
+        .min(to(b1, a0, a1))
 }
 
 /// Metres of the way left from each of its points.
