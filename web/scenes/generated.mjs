@@ -308,7 +308,7 @@ export async function run(ctx) {
     menu.drawn === "/battle?play=1&type=mixed&size=small" &&
       !menu.seedShown &&
       menu.href === `/battle?type=${MAP.type}&size=${MAP.size}&seed=${MAP.seed}` &&
-      menu.checked.join() === `${MAP.type},${MAP.size}`,
+      menu.checked.join() === `${MAP.type},${MAP.size},random`,
     JSON.stringify(menu),
   );
   ctx.check(
