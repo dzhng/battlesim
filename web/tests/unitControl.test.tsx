@@ -1,4 +1,4 @@
-// The player's right-click at the input seam: `useUnitControl.onPointer`
+// The player's pointer input at the input seam: `useUnitControl.onPointer`
 // with a pick, and the orders it sends to a recording client.
 import { act, fireEvent, renderHook } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
@@ -111,33 +111,50 @@ test("a building click sends the mixed selection as one queued building intent",
   ]);
 });
 
-test("hover and dispatch share modifier precedence without hover consuming an armed mode", async () => {
+test("attack ground confirms with left-click, preserves selection and queues only armed units", async () => {
   const { hook, sent, click } = await control();
+  act(() => hook.result.current.setMode("attack_ground"));
+  await click({ button: "left", shift: true, ctrl: true, enemy: 3, contact: 7, building: 9 });
+  expect(sent).toEqual([
+    {
+      order: { kind: "attack", units: [1], target: { kind: "ground", point: [50, 50, 0] } },
+      queued: true,
+    },
+  ]);
+  expect(hook.result.current.selected).toEqual([1, 2]);
+  expect(hook.result.current.mode).toBe("move");
+});
+
+test("right-click cancels attack ground without issuing an order or changing selection", async () => {
+  const { hook, sent, click } = await control();
+  act(() => hook.result.current.setMode("attack_ground"));
+  await click({ ctrl: true, enemy: 3, building: 9 });
+  expect(sent).toEqual([]);
+  expect(hook.result.current.selected).toEqual([1, 2]);
+  expect(hook.result.current.mode).toBe("move");
+  await click({});
+  expect(sent[0].order).toMatchObject({ kind: "move", units: [1, 2], goal: [50, 50] });
+});
+
+test("a right press captured during attack ground stays cancelled after Escape", async () => {
+  const { hook, sent } = await control();
   act(() => hook.result.current.setMode("attack_ground"));
   const pick: PointerPick = {
     unit: null,
     button: "right",
-    shift: true,
-    ctrl: true,
+    shift: false,
+    ctrl: false,
     x: 0,
     y: 0,
     time: 0,
     ground: [50, 50],
-    building: 9,
-    enemy: 3,
   };
-  expect(hook.result.current.intentAt(pick)).toEqual({
-    kind: "attack_move",
-    units: [1, 2],
-    goal: [50, 50],
-    queued: true,
-  });
-  expect(hook.result.current.mode).toBe("attack_ground");
+  const captured = hook.result.current.intentAt(pick);
+  act(() => fireEvent.keyDown(window, { code: "Escape" }));
+  await act(async () => hook.result.current.onPointer(pick, captured));
   expect(sent).toEqual([]);
-  await click(pick);
-  expect(sent).toEqual([
-    { order: { kind: "attack_move", units: [1, 2], goal: [50, 50], gesture: 1 }, queued: true },
-  ]);
+  expect(hook.result.current.selected).toEqual([1, 2]);
+  expect(hook.result.current.mode).toBe("move");
 });
 
 test("an unarmed enemy click disarms the command but sends no attack", async () => {

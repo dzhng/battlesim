@@ -241,9 +241,7 @@ export function BattleView({
         handle={session.readouts}
       />
       <RangeRulerLabels handle={rulerLabels} />
-      {/* The HUD: the route's readout at the top, the menu button, and,
-          while something is selected, a strategy game's command bar along
-          the bottom: the selection's unit card and its commands. */}
+      {/* The army roster and command row keep their place as selection changes. */}
       <div className="hud" data-testid="battle-panel" inert={pause.open}>
         <header className="hud-panel hud-top" data-occludes-readouts>
           {!sim.error && status(session)}

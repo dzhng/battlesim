@@ -133,7 +133,8 @@ test("the army remains in replay and empty selection while commands follow only 
     );
   }
   const view = render(<Harness />);
-  expect(view.queryByRole("toolbar")).toBeNull();
+  const commands = view.getByRole("toolbar", { name: "Commands" });
+  expect([...commands.querySelectorAll("button")].every((button) => button.disabled)).toBe(true);
   fireEvent.click(view.getByRole("button", { name: "Tank #11" }));
   expect(view.getByRole("toolbar", { name: "Commands" })).toBeTruthy();
   expect(view.getByRole("button", { name: /^Deploy / }).hasAttribute("disabled")).toBe(true);

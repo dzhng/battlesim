@@ -686,17 +686,16 @@ export function CommandBar({
 }) {
   const selected = control.selectedUnits;
   const n = selected.length;
-  if (n === 0) return null;
   const command = (c: CommandProps) => <CommandButton {...c} hintHost={hintHost} />;
   const key = (command: keyof typeof CommandBindings) => `(${CommandBindings[command].label})`;
   // Capability actions apply to eligible units; movement applies to everyone.
   const [armed, deployers, inside] = (["attack", "deploy", "exit_building"] as ReachCommand[]).map(
     (c) => reach(c, selected, UNITS),
   );
-  const hold = selected.every((u) => u.engagement === "return_fire_only");
+  const hold = n > 0 && selected.every((u) => u.engagement === "return_fire_only");
   const packing = deployers.every((u) => u.deployment?.target === "deployed");
   /** Movement stays available; an unsupported targeted attack is disabled. */
-  const mode = (m: CommandMode, icon: string, label: string, available = true) =>
+  const mode = (m: CommandMode, icon: string, label: string, available = n > 0) =>
     command({
       icon,
       label,
@@ -718,12 +717,14 @@ export function CommandBar({
       {command({
         icon: hudIcon("stop"),
         label: `Stop ${key("stop")}`,
+        disabled: n === 0,
         onClick: control.stop,
       })}
       {command({
         icon: hudIcon(hold ? "hold_fire" : "fire_at_will"),
         label: `${hold ? "Return fire only" : "Fire at will"} ${key("toggle_fire_policy")}`,
         pressed: hold,
+        disabled: n === 0,
         onClick: control.togglePolicy,
       })}
       {command({
@@ -732,12 +733,12 @@ export function CommandBar({
         disabled: deployers.length === 0,
         onClick: control.toggleDeployment,
       })}
-      {inside.length > 0 &&
-        command({
-          icon: hudIcon("leave_building"),
-          label: "Leave building",
-          onClick: control.exitBuilding,
-        })}
+      {command({
+        icon: hudIcon("leave_building"),
+        label: "Leave building",
+        disabled: inside.length === 0,
+        onClick: control.exitBuilding,
+      })}
     </div>
   );
 }

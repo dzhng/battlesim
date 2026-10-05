@@ -55,8 +55,8 @@ export function pickedUnit(drawn: Pick<DrawnInstances, "owners" | "enemies">, in
 }
 
 /** A viewport pick in player terms: the own unit or identified enemy drawn
- *  under the pointer, and for a right-click the building and ground it meets
- *  and the contact whose area holds that ground (of the side's `contacts`). */
+ *  under the pointer, the ground it meets and its contact area, and for a
+ *  right-click the building it meets. */
 export function pickToPointer(
   world: StaticWorld,
   drawn: Pick<DrawnInstances, "owners" | "enemies">,
@@ -64,7 +64,7 @@ export function pickToPointer(
   contacts: readonly ContactView[] = [],
 ): PointerPick {
   const right = pick.button === "right";
-  const ground = right ? groundUnderRay(world.view, pick.ray) : null;
+  const ground = groundUnderRay(world.view, pick.ray);
   const faced = right && pick.release ? groundUnderRay(world.view, pick.release) : null;
   return {
     ...pick,
