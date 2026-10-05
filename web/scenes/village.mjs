@@ -2804,7 +2804,7 @@ async function rulerTour(ctx) {
   // The ruler is paint: the frame with it less the frame with the pointer
   // off the canvas (no ruler) is lit along the line.
   const withRuler = decode(await snapshot(ctx, page, "ruler-default-on.png"));
-  await page.mouse.move(960, 1075);
+  await pointerOffCanvas(page);
   await frames();
   const offCanvas = await ruler();
   const without = decode(await snapshot(ctx, page, "ruler-default-off.png"));
@@ -3019,7 +3019,7 @@ const panelOf = (page, attr, id) =>
       return {
         shown: n.style.display !== "none",
         box: { x: r.left, y: r.top, w: r.width, h: r.height },
-        name: n.querySelector(".ro-name")?.textContent.trim() ?? null,
+        name: n.querySelector(".ro-name-word")?.textContent.trim() ?? null,
         states: [...n.querySelectorAll(".ro-state")].map((e) => ({
           state: e.dataset.state,
           word: e.querySelector(".ro-state-word").textContent,
@@ -3127,7 +3127,7 @@ async function panelTour(ctx) {
   const owned = await lab(page, () =>
     [...document.querySelectorAll("[data-testid=readouts] .ro-unit[data-owner=own]")].map((n) => [
       Number(n.dataset.unit),
-      n.querySelector(".ro-name")?.textContent.trim() ?? null,
+      n.querySelector(".ro-name-word")?.textContent.trim() ?? null,
     ]),
   );
   const titles = new Map(owned);
