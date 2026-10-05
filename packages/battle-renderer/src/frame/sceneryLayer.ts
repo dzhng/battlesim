@@ -29,6 +29,11 @@
 // darkening the gaps, in the tree's own space so it never swims), fading to
 // the plain crown as a pixel grows past a clump.
 //
+// A tree the side knows has fallen (`setFelled`) leaves the forest and is
+// drawn apart, few as they are: tipped about its stump's top on the clock,
+// then lying, pressed flat (`scenery/felled.ts`), with its stump standing
+// where it grew. It casts, fogs and lights as a standing tree does.
+//
 // A tree whose trunk stands on ground the side has seen cleared (a lane a
 // vehicle knocked through) is not drawn, nor a shrub that stood there:
 // `setCleared` rebuilds the forest and the understorey without them, and the
@@ -81,6 +86,19 @@ import { FRAME_MSAA, WORLD_OUT, worldTargets } from "./targets";
 import type { GpuRegistry, GpuSlot } from "./registry";
 import type { GroundMarks } from "./scarTexture";
 import { TREE_FIELD, TREE_FLOATS } from "../scenery/placement";
+import {
+  FELLED_FLOATS,
+  felledRecords,
+  stumpMesh,
+  stumpRecords,
+  treeIndex,
+  trunkAt,
+  crownBase,
+  KICK_RADII,
+  type FelledKind,
+  type FelledTree,
+} from "../scenery/felled";
+import type { FelledRules } from "../terrain/biome";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -104,6 +122,9 @@ export interface SceneryStats {
    *  cells of a pool of `bytes` bytes, the pieces drawn per tier, and
    *  whether wanted cells are still to be laid. */
   dressing: SceneryPopulationStats & { cells: number; bytes: number; pending: boolean };
+  /** The felled trees drawn (falling or lying), how many still fall, and
+   *  their stumps. */
+  felled: { trees: number; falling: boolean; stumps: number };
   /** Draw calls in the last whole frame, over every pass. */
   draws: number;
 }
@@ -114,6 +135,23 @@ const placedAttribs = { ...vertexLayout.attrib, ...placedLayout.attrib };
 type InstanceBuffer = ReturnType<typeof instanceBuffer>;
 function instanceBuffer(root: Root, capacity: number) {
   return root.createBuffer(placedLayout.schemaForCount(Math.max(1, capacity))).$usage("vertex");
+}
+/** A falling or lying tree (`scenery/felled.ts`): a placed instance, then
+ *  its `FellPose`: (toward x, y, angle, hinge), (squash, spread, trunk,
+ *  landed), (crown, 0, 0, 0). */
+const FelledInstance = d.unstruct({
+  pose: d.float32x4,
+  shape: d.float32x4,
+  tint: d.float32x4,
+  fall: d.float32x4,
+  rest: d.float32x4,
+  lie: d.float32x4,
+});
+const felledLayout = tgpu.vertexLayout(d.disarrayOf(FelledInstance), "instance");
+const felledAttribs = { ...vertexLayout.attrib, ...felledLayout.attrib };
+type FelledBuffer = ReturnType<typeof felledBuffer>;
+function felledBuffer(root: Root, capacity: number) {
+  return root.createBuffer(felledLayout.schemaForCount(Math.max(1, capacity))).$usage("vertex");
 }
 
 /** Square chunks instances are bucketed in for tier selection, metres. */
@@ -239,6 +277,78 @@ const dressingVertex = tgpu.vertexFn({ in: placedIn, out: placedOut })((v) => {
     color: d.vec4f(std.mul(v.color.xyz, v.tint.xyz), v.color.w),
     local,
     heart: d.vec3f(v.pose.x, v.pose.y, v.pose.z + v.shape.w * grow),
+  };
+});
+
+/** `d` metres from a trunk's axis with what lies past its `radius` scaled
+ *  by `k` (`scenery/felled.ts`'s `pastTrunk`). */
+const pastTrunk = tgpu.fn(
+  [d.f32, d.f32, d.f32],
+  d.f32,
+)(/* wgsl */ `(d: f32, radius: f32, k: f32) -> f32 {
+  let m = abs(d);
+  return sign(d) * (min(m, radius) + max(m - radius, 0.0) * k);
+}`);
+
+/** Places a felled tree as a standing one is placed, then poses it as
+ *  `felledPoint` (`scenery/felled.ts`, its CPU mirror) does: tipped `fall.z`
+ *  radians toward `fall.xy` about the hinge `fall.w` above its foot, kicked
+ *  off its stump and lowered as it lands (`rest.w`); its leaves, and its
+ *  bark above the crown's base (`lie.x`), pressed by `rest.x` up-and-down
+ *  and `rest.y` across; its trunk below keeps its radius `rest.z`. */
+const felledVertex = tgpu.vertexFn({
+  in: { ...placedIn, fall: d.vec4f, rest: d.vec4f, lie: d.vec4f },
+  out: placedOut,
+})((v) => {
+  "use gpu";
+  const local = d.vec3f(
+    v.position.x * v.shape.x,
+    v.position.y * v.shape.y,
+    v.position.z * v.shape.z,
+  );
+  const yc = std.cos(v.pose.w);
+  const ys = std.sin(v.pose.w);
+  const p = d.vec3f(local.x * yc - local.y * ys, local.x * ys + local.y * yc, local.z);
+  const t = v.fall.xy;
+  const c = std.cos(v.fall.z);
+  const s = std.sin(v.fall.z);
+  const hinge = v.fall.w;
+  const trunk = v.rest.z;
+  const landed = v.rest.w;
+  const core = std.select(trunk, 0, v.color.w > 0.5 || local.z > v.lie.x);
+  const a = std.dot(p.xy, t);
+  const across = std.sub(p.xy, std.mul(t, a));
+  const side = std.length(across);
+  // Below the cut the stump stands in its place.
+  const z = std.max(p.z - hinge, 0);
+  const flat = std.add(
+    std.mul(t, a * c + z * s + KICK_RADII * trunk * landed),
+    std.mul(across, pastTrunk(side, core, v.rest.y) / std.max(side, 1e-6)),
+  );
+  const world = d.vec3f(
+    v.pose.x + flat.x,
+    v.pose.y + flat.y,
+    v.pose.z + trunk * landed + hinge * (1 - landed) + z * c - pastTrunk(a, core, v.rest.x) * s,
+  );
+  // The normal turns with the tree; what was pressed takes its inverse.
+  const n = placedNormal(v.normal, v.shape, v.pose.w);
+  const na = std.dot(n.xy, t);
+  const nAcross = std.sub(n.xy, std.mul(t, na));
+  const pressAcross = std.select(1, v.rest.y, side > core);
+  const pressUp = std.select(1, v.rest.x, std.abs(a) > core);
+  const nFlat = std.add(std.mul(t, na * c + n.z * s), std.mul(nAcross, 1 / pressAcross));
+  const heart = v.shape.w - hinge;
+  return {
+    clip: std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(world, 1)),
+    world,
+    normal: std.normalize(d.vec3f(nFlat.x, nFlat.y, (n.z * c - na * s) / pressUp)),
+    color: d.vec4f(std.mul(v.color.xyz, v.tint.xyz), v.color.w),
+    local: d.vec3f(local.x + v.tint.w, local.y, local.z),
+    heart: d.vec3f(
+      v.pose.x + t.x * (heart * s + KICK_RADII * trunk * landed),
+      v.pose.y + t.y * (heart * s + KICK_RADII * trunk * landed),
+      v.pose.z + trunk * landed + hinge * (1 - landed) + heart * c,
+    ),
   };
 });
 
@@ -393,10 +503,40 @@ export async function createSceneryLayer(
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
+  const felledBase = {
+    attribs: felledAttribs,
+    vertex: felledVertex,
+    primitive: { topology: "triangle-list", cullMode: "back" },
+  } as const;
+  const felledPrepass = root.createRenderPipeline({
+    ...felledBase,
+    depthStencil: battleWorldDepth("read-write"),
+    multisample: { count: FRAME_MSAA },
+  });
+  const felledCaster = root.createRenderPipeline({
+    ...felledBase,
+    primitive: { topology: "triangle-list", cullMode: "none" },
+    depthStencil: battleWorldDepth("read-write"),
+  });
+  const felledColour = root.createRenderPipeline({
+    ...felledBase,
+    fragment: forestFragment,
+    targets: worldTargets(),
+    depthStencil: battleWorldDepth("prepassed"),
+    multisample: { count: FRAME_MSAA },
+  });
   await Promise.all(
-    [prepass, caster, forestColour, backdropColour, dressingPrepass, dressingColour].map(
-      (pipeline) => pipeline.initAsync(),
-    ),
+    [
+      prepass,
+      caster,
+      forestColour,
+      backdropColour,
+      dressingPrepass,
+      dressingColour,
+      felledPrepass,
+      felledCaster,
+      felledColour,
+    ].map((pipeline) => pipeline.initAsync()),
   );
 
   /** A kind's vertices per tier. */
@@ -434,6 +574,25 @@ export async function createSceneryLayer(
     /** Where each standing instance starts in `placed`; null for all. */
     kept: number[] | null;
   }
+  /** The felled trees: the forest's trees by trunk id, each kind's stump,
+   *  and the instances drawn this frame, grouped by kind and tier. */
+  interface Felled {
+    rules: FelledRules;
+    /** Per forest tree: its trunk id; and where each id's tree is placed. */
+    ids: Uint32Array;
+    index: Map<number, number>;
+    stumpMeshes: ({ buffer: VertexBuffer; vertices: number } | null)[];
+    /** Per kind: what it lends its fall (zero for no tree). */
+    kinds: FelledKind[];
+    trees: { slot: GpuSlot<FelledBuffer>; capacity: number };
+    stumps: { slot: GpuSlot<InstanceBuffer>; capacity: number };
+    /** `[kind, tier, first, count]` runs of this frame's trees. */
+    treeRuns: number[];
+    /** `[kind, first, count]` runs of the stumps. */
+    stumpRuns: number[];
+    /** Whether a tree still falls: the next frame packs them again. */
+    moving: boolean;
+  }
   interface Loaded {
     scope: GpuRegistry;
     dressing: Dressing;
@@ -441,9 +600,16 @@ export async function createSceneryLayer(
     understorey: Standing;
     sizes: ReturnType<typeof kindSize>[];
     backdrop: Population;
+    felled: Felled;
   }
   let loaded: Loaded | null = null;
   let viewKey = "";
+  /** What the side knows has fallen, by trunk id, and the frame's clock. */
+  let felledList: readonly FelledTree[] = [];
+  let felledIds = new Set<number>();
+  let clock = 0;
+  /** The felled trees need packing again (a new list, view or clock). */
+  let felledDirty = true;
   // Where the sun's shadows fall: `prepare` sets it per view.
   const { sun_azimuth, sun_elevation, cascades } = environment.light;
   const sun = { azimuth: sun_azimuth, elevation: sun_elevation, maxFarM: cascades.max_far_m };
@@ -498,6 +664,7 @@ export async function createSceneryLayer(
   interface Drawable {
     with(layout: typeof vertexLayout, buffer: VertexBuffer): Drawable;
     with(layout: typeof placedLayout, buffer: InstanceBuffer): Drawable;
+    with(layout: typeof felledLayout, buffer: FelledBuffer): Drawable;
     draw(vertices: number, instances: number, firstVertex?: number, firstInstance?: number): void;
   }
   let draws = 0;
@@ -555,6 +722,101 @@ export async function createSceneryLayer(
       }
   }
 
+  /** Pack the felled trees at the frame's clock, each at the tier its
+   *  standing height takes from the eye, grouped by kind and tier. */
+  function packFelled(felled: Felled, forest: Standing, sizes: ReturnType<typeof kindSize>[]) {
+    const now = felledRecords(
+      felledList,
+      forest.placed,
+      felled.index,
+      sizes,
+      felled.kinds,
+      felled.rules,
+      clock,
+    );
+    felled.moving = now.moving;
+    const count = now.kinds.length;
+    const keys = Array.from({ length: count }, (_, i) => {
+      const o = i * FELLED_FLOATS;
+      const distance = Math.hypot(
+        now.records[o] - view.eye[0],
+        now.records[o + 1] - view.eye[1],
+        now.records[o + 2] - view.eye[2],
+      );
+      return now.kinds[i] * TIER_COUNT + tierFor(now.heights[i], distance, view);
+    });
+    const order = keys.map((_, i) => i).sort((a, b) => keys[a] - keys[b]);
+    const records = new Float32Array(count * FELLED_FLOATS);
+    felled.treeRuns = [];
+    order.forEach((i, k) => {
+      records.set(
+        now.records.subarray(i * FELLED_FLOATS, (i + 1) * FELLED_FLOATS),
+        k * FELLED_FLOATS,
+      );
+      const runs = felled.treeRuns;
+      const key = keys[i];
+      const last = runs.length - 4;
+      if (last >= 0 && runs[last] * TIER_COUNT + runs[last + 1] === key) runs[last + 3]++;
+      else runs.push(Math.floor(key / TIER_COUNT), key % TIER_COUNT, k, 1);
+    });
+    if (count === 0) return;
+    const trees = felled.trees;
+    if (trees.capacity < count) {
+      trees.capacity = Math.max(16, count * 2);
+      trees.slot.set(felledBuffer(root, trees.capacity));
+    }
+    trees.slot.current!.write(records.buffer, { size: records.byteLength } as never);
+  }
+
+  /** The stumps of what the side knows has fallen, grouped by kind. */
+  function packStumps(felled: Felled, forest: Standing) {
+    const now = stumpRecords(felledList, forest.placed, felled.index, felled.rules.stump_height_m);
+    const count = now.kinds.length;
+    const order = Array.from(now.kinds.keys()).sort((a, b) => now.kinds[a] - now.kinds[b]);
+    const records = new Float32Array(count * INSTANCE_FLOATS);
+    felled.stumpRuns = [];
+    order.forEach((i, k) => {
+      records.set(
+        now.records.subarray(i * INSTANCE_FLOATS, (i + 1) * INSTANCE_FLOATS),
+        k * INSTANCE_FLOATS,
+      );
+      const runs = felled.stumpRuns;
+      const last = runs.length - 3;
+      if (last >= 0 && runs[last] === now.kinds[i]) runs[last + 2]++;
+      else runs.push(now.kinds[i], k, 1);
+    });
+    if (count === 0) return;
+    const stumps = felled.stumps;
+    if (stumps.capacity < count) {
+      stumps.capacity = Math.max(16, count * 2);
+      stumps.slot.set(instanceBuffer(root, stumps.capacity));
+    }
+    stumps.slot.current!.write(records.buffer, { size: records.byteLength } as never);
+  }
+
+  /** Draw the felled trees (a tier `coarser` for a cascade) through
+   *  `trees`, and their stumps through `stumps`. */
+  function drawFelled(felled: Felled, trees: Drawable, stumps: Drawable, coarser = 0) {
+    const { treeRuns, stumpRuns } = felled;
+    const meshes = loaded!.forest.drawn.meshes;
+    for (let r = 0; r < treeRuns.length; r += 4) {
+      const mesh = meshes[treeRuns[r]][Math.min(treeRuns[r + 1] + coarser, TIER_COUNT - 1)];
+      trees
+        .with(vertexLayout, mesh.buffer)
+        .with(felledLayout, felled.trees.slot.current!)
+        .draw(mesh.vertices, treeRuns[r + 3], 0, treeRuns[r + 2]);
+      draws++;
+    }
+    for (let r = 0; r < stumpRuns.length; r += 3) {
+      const mesh = felled.stumpMeshes[stumpRuns[r]]!;
+      stumps
+        .with(vertexLayout, mesh.buffer)
+        .with(placedLayout, felled.stumps.slot.current!)
+        .draw(mesh.vertices, stumpRuns[r + 2], 0, stumpRuns[r + 1]);
+      draws++;
+    }
+  }
+
   /** Lab diagnostics: the trees draw and cast, or do neither, and the shrubs
    *  under tree lines with them or not; the dressing draws or does not. */
   let treesShown = true;
@@ -572,6 +834,37 @@ export async function createSceneryLayer(
   /** Every population drawn into the view. */
   const populations = () => (trees() ? [...standing(), loaded!.backdrop] : []);
   const dressing = () => (dressingShown && loaded ? loaded.dressing : null);
+
+  /** Whether the side has seen the ground at (x, y) cleared. */
+  let cleared: ((x: number, y: number) => boolean) | null = null;
+  /** Rebuild `stand` without what stood on cleared ground or what `gone`
+   *  names (by its offset in `placed`); false where the same instances
+   *  stand as before. */
+  function restand(stand: Standing, gone: (offset: number) => boolean) {
+    const { scope, sizes } = loaded!;
+    const all = stand.placed;
+    const kept: number[] = [];
+    for (let o = 0; o < all.length; o += TREE_FLOATS)
+      if (!cleared?.(all[o + TREE_FIELD.x], all[o + TREE_FIELD.y]) && !gone(o)) kept.push(o);
+    const before = stand.kept;
+    const same = before
+      ? kept.length === before.length && kept.every((o, k) => o === before[k])
+      : kept.length * TREE_FLOATS === all.length;
+    if (same) return false;
+    const left = new Float32Array(kept.length * TREE_FLOATS);
+    kept.forEach((o, k) => left.set(all.subarray(o, o + TREE_FLOATS), k * TREE_FLOATS));
+    stand.scope.release();
+    stand.scope = scope.scope();
+    const { meshes, lodPx } = stand.drawn;
+    stand.drawn = population(stand.scope, treeInstances(left, sizes), meshes, lodPx, true);
+    stand.kept = kept;
+    return true;
+  }
+  /** The forest stands without the trees the side knows have fallen. */
+  function restandForest() {
+    const { ids } = loaded!.felled;
+    return restand(loaded!.forest, (o) => felledIds.has(ids[o / TREE_FLOATS]));
+  }
 
   return {
     /** The world's scenery (placement and appearances); `null` draws none. */
@@ -602,6 +895,35 @@ export async function createSceneryLayer(
         const own = scope.scope();
         return { drawn: trees(own, placed, true), scope: own, placed, kept: null };
       };
+      const stumpHeight = next.felled.stump_height_m;
+      const forestKinds = new Set<number>();
+      for (let o = 0; o < next.placement.forest.length; o += TREE_FLOATS)
+        forestKinds.add(next.placement.forest[o + TREE_FIELD.kind]);
+      const felled: Felled = {
+        rules: next.felled,
+        ids: next.placement.forestIds,
+        index: treeIndex(next.placement.forestIds),
+        // A stump for each kind the forest stands (hedges and dressing have
+        // no bole to cut).
+        kinds: bundles.map((bundle, kind) => {
+          if (!forestKinds.has(kind)) return { trunk: 0, crown: 0 };
+          const tier = tierMesh(bundle, 0);
+          return { trunk: trunkAt(tier, stumpHeight).radius, crown: crownBase(tier) };
+        }),
+        stumpMeshes: bundles.map((bundle, kind) => {
+          if (!forestKinds.has(kind)) return null;
+          const mesh = stumpMesh(tierMesh(bundle, 0), stumpHeight, next.felled.cut);
+          return {
+            buffer: scope.own(vertexBuffer(root, mesh)),
+            vertices: mesh.length / VERTEX_FLOATS,
+          };
+        }),
+        trees: { slot: scope.slot<FelledBuffer>(), capacity: 0 },
+        stumps: { slot: scope.slot<InstanceBuffer>(), capacity: 0 },
+        treeRuns: [],
+        stumpRuns: [],
+        moving: false,
+      };
       const field = next.placement.dressing;
       // A small map's forests are fewer cells than the pool would hold.
       const slots = Math.min(DRESSING_SLOTS, field.cells.length / 2);
@@ -617,48 +939,45 @@ export async function createSceneryLayer(
         understorey: stand(next.placement.understorey),
         sizes,
         backdrop: trees(scope, next.placement.backdrop, false),
+        felled,
       };
+      felledDirty = true;
+      restandForest();
+      packStumps(felled, loaded.forest);
     },
     /** Draw only the trees and shrubs whose foot stands on ground `ground`'s
      *  side has not seen cleared; rebuilds a population when what stands of
      *  it changes. */
     setCleared(ground: GroundMarks | null) {
-      if (!loaded) return;
-      const { scope, sizes } = loaded;
-      /** Whether the side has seen the ground at (x, y) cleared. */
-      const cleared =
+      cleared =
         ground &&
         ((x: number, y: number) => {
           const [i, j] = [Math.floor(x / ground.cellM), Math.floor(y / ground.cellM)];
           return i >= 0 && j >= 0 && i < ground.cols && j < ground.rows && ground.isCleared(i, j);
         });
-      /** Rebuild `stand` without what stood on cleared ground; false where
-       *  the same instances stand as before. */
-      const restand = (stand: Standing) => {
-        const all = stand.placed;
-        const kept: number[] = [];
-        for (let o = 0; o < all.length; o += TREE_FLOATS)
-          if (!cleared?.(all[o + TREE_FIELD.x], all[o + TREE_FIELD.y])) kept.push(o);
-        const before = stand.kept;
-        const same = before
-          ? kept.length === before.length && kept.every((o, k) => o === before[k])
-          : kept.length * TREE_FLOATS === all.length;
-        if (same) return false;
-        const left = new Float32Array(kept.length * TREE_FLOATS);
-        kept.forEach((o, k) => left.set(all.subarray(o, o + TREE_FLOATS), k * TREE_FLOATS));
-        stand.scope.release();
-        stand.scope = scope.scope();
-        const { meshes, lodPx } = stand.drawn;
-        stand.drawn = population(stand.scope, treeInstances(left, sizes), meshes, lodPx, true);
-        stand.kept = kept;
-        return true;
-      };
-      const forest = restand(loaded.forest);
-      const shrubs = restand(loaded.understorey);
+      if (!loaded) return;
+      const forest = restandForest();
+      const shrubs = restand(loaded.understorey, () => false);
       if (!forest && !shrubs) return;
       // Ground is cleared where a tree is knocked down, and only there.
       setDressingCleared(loaded.dressing.cache, cleared);
       viewKey = "";
+    },
+    /** The trees the side knows have fallen (`BattleFrame.setFelled`). */
+    setFelled(next: readonly FelledTree[]) {
+      if (next === felledList) return;
+      felledList = next;
+      felledIds = new Set(next.map((f) => f.prop));
+      felledDirty = true;
+      if (!loaded) return;
+      packStumps(loaded.felled, loaded.forest);
+      if (restandForest()) viewKey = "";
+    },
+    /** Presentation seconds: a falling tree moves on it. */
+    setClock(seconds: number) {
+      if (seconds === clock) return;
+      clock = seconds;
+      if (loaded?.felled.moving) felledDirty = true;
     },
     setTreesShown(on: boolean) {
       treesShown = on;
@@ -677,6 +996,12 @@ export async function createSceneryLayer(
     prepare(camera: Camera3DParams, height: number) {
       const key = detailKey(camera, height);
       const moved = key !== viewKey;
+      if (loaded && (moved || felledDirty)) {
+        setDetailView(view, camera, height);
+        view.lodPx = loaded.forest.drawn.lodPx;
+        packFelled(loaded.felled, loaded.forest, loaded.sizes);
+        felledDirty = false;
+      }
       if (!moved && !loaded?.dressing.cache.pending) return;
       viewKey = key;
       if (moved) {
@@ -701,10 +1026,25 @@ export async function createSceneryLayer(
     encodeShadows(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
       const bound = caster.with(pass).with(cameraGroup) as unknown as Drawable;
       for (const pop of standing()) drawPopulation(pop, bound, true, CASTER_COARSER);
+      const drawn = trees();
+      if (drawn)
+        drawFelled(
+          drawn.felled,
+          felledCaster.with(pass).with(cameraGroup) as unknown as Drawable,
+          bound,
+          CASTER_COARSER,
+        );
     },
     encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
       const bound = prepass.with(pass).with(cameraGroup) as unknown as Drawable;
       for (const pop of populations()) drawPopulation(pop, bound);
+      const drawn = trees();
+      if (drawn)
+        drawFelled(
+          drawn.felled,
+          felledPrepass.with(pass).with(cameraGroup) as unknown as Drawable,
+          bound,
+        );
       const dressed = dressing();
       if (dressed)
         drawDressing(
@@ -718,15 +1058,18 @@ export async function createSceneryLayer(
       cameraGroup: CameraGroup,
       fogFaces: ReturnType<FogVisibility["groups"]>["faces"],
     ) {
-      const colour = (pipeline: typeof forestColour) =>
-        pipeline
+      const colour = (pipeline: typeof forestColour | typeof felledColour) =>
+        (pipeline as typeof forestColour)
           .with(pass)
           .with(cameraGroup)
           .with(environment.group)
           .with(fogFaces) as unknown as Drawable;
       for (const pop of standing()) drawPopulation(pop, colour(forestColour));
       const drawn = trees();
-      if (drawn) drawPopulation(drawn.backdrop, colour(backdropColour));
+      if (drawn) {
+        drawPopulation(drawn.backdrop, colour(backdropColour));
+        drawFelled(drawn.felled, colour(felledColour), colour(forestColour));
+      }
       const dressed = dressing();
       if (dressed) drawDressing(dressed, colour(dressingColour), root.unwrap(pass));
     },
@@ -736,6 +1079,13 @@ export async function createSceneryLayer(
       draws = 0;
     },
     stats(): SceneryStats {
+      const felledStats = (felled: Felled | undefined) => {
+        let trees = 0,
+          stumps = 0;
+        for (let r = 3; r < (felled?.treeRuns.length ?? 0); r += 4) trees += felled!.treeRuns[r];
+        for (let r = 2; r < (felled?.stumpRuns.length ?? 0); r += 3) stumps += felled!.stumpRuns[r];
+        return { trees, falling: felled?.moving ?? false, stumps };
+      };
       const population = (pop: Population | undefined) => {
         const tiers = Array.from({ length: TIER_COUNT }, () => 0);
         let placed = 0,
@@ -790,6 +1140,7 @@ export async function createSceneryLayer(
         understorey: population(loaded?.understorey.drawn),
         backdrop: population(loaded?.backdrop),
         dressing: dressing(loaded?.dressing),
+        felled: felledStats(loaded?.felled),
         draws: lastDraws,
       };
     },

@@ -107,6 +107,7 @@ import { posedSockets } from "./workbench/benchWorld";
 import type { Vec3 } from "math";
 import type { Pose } from "@web/battle/present/interpolate";
 import { circleContains, unitCircle } from "@packages/battle-renderer/src/orderOverlay";
+import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import { orderView } from "./battleOverlay";
 
 export interface BattleSessionOptions {
@@ -432,6 +433,19 @@ export function useBattleSession({
       corpses: { version: -1, list: [] as CorpseInstance[], soldiers: [] as number[] },
     };
   }, [appearances, rules, side]);
+  // The trees the side knows have fallen, each from the start of the tick
+  // it fell (the clock is ticks over tick_hz, as the effects' are). The
+  // decoder keeps an unchanged list's reference, and so does this.
+  const fallenBodies = observation?.fallenBodies;
+  const felled = useMemo<readonly FelledTree[]>(
+    () =>
+      (fallenBodies ?? []).map((f) => ({
+        prop: f.prop,
+        toward: f.toward,
+        fellAt: (f.tick - 1) / rules.tick_hz,
+      })),
+    [fallenBodies, rules.tick_hz],
+  );
   const frame = useCallback(
     (now: number): ViewportFrame | null => {
       const interpolator = sim.interpolator.current;
@@ -455,7 +469,7 @@ export function useBattleSession({
       if (!posing) {
         effects.build(time, effectBatch);
         heard.current = { clock: time, motion: soundMotion(null, side) };
-        return { picks: d.picks, clock: time, effects: effectBatch, ground };
+        return { picks: d.picks, clock: time, effects: effectBatch, ground, felled };
       }
       const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
       // Flashes sit on the muzzles as this frame draws them.
@@ -482,6 +496,7 @@ export function useBattleSession({
         picks: d.picks,
         models,
         corpses: posing.corpses.list,
+        felled,
         clock: time,
         effects: effectBatch,
         ground,
@@ -489,6 +504,7 @@ export function useBattleSession({
     },
     [
       observation,
+      felled,
       sim.interpolator,
       sim.ground,
       posing,

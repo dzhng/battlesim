@@ -463,7 +463,9 @@ test("every frozen animation field and ground value decodes, integers exact past
   expect([o.own[0].kind, o.identified[0].kind, o.corpses[0].kind]).toEqual(["rifle", "tank", "at"]);
   expect(o.knownProps.map((p) => p.kind)).toEqual(["tank_wreck"]);
   // A prop id past 2^24 survives as two limbs.
-  expect(o.fallenBodies).toEqual([{ prop: 16777300, at: [120.5, 64.25], toward: [0, -1], tick: 7 }]);
+  expect(o.fallenBodies).toEqual([
+    { prop: 16777300, at: [120.5, 64.25], toward: [0, -1], tick: 7 },
+  ]);
   const ground = new GroundView(layout.ground);
   ground.applyRuns(o.groundPatch);
   const cell = big + 12;

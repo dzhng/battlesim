@@ -188,6 +188,23 @@ test("the forest draws exactly the simulation's trunks, one tree each", () => {
   expect(drawn.length).toBe(trunks);
 });
 
+test("each forest tree names the trunk it stands on, so a published fall finds it", () => {
+  const at = Object.fromEntries(layout.propFields.map((f, i) => [f, i]));
+  const trunkSpot = new Map<number, [number, number]>();
+  for (let o = 0; o < exports.props.length; o += layout.propStride) {
+    if (layout.propKinds[exports.props[o + at.kind]] !== "trunk") continue;
+    const id = exports.props[o + at.idLo] + exports.props[o + at.idHi] * 2 ** layout.limbBits;
+    trunkSpot.set(id, [exports.props[o + at.x], exports.props[o + at.y]]);
+  }
+  const drawn = trees(placement.forest);
+  expect(placement.forestIds.length).toBe(drawn.length);
+  expect(new Set(placement.forestIds).size).toBe(trunkSpot.size);
+  drawn.forEach((t, i) => {
+    const [x, y] = trunkSpot.get(placement.forestIds[i])!;
+    expect(Math.hypot(t.x - x, t.y - y), `tree ${i}`).toBeLessThan(1e-3);
+  });
+});
+
 /** Whether (x, y) is on a road's surface. */
 function onRoad(x: number, y: number): boolean {
   const r = exports.surfaceStrokes;

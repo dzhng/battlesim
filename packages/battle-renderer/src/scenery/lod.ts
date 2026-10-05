@@ -27,7 +27,7 @@ export const TIER_COUNT = 4;
  *  where a whole tree probes fog; the seed offsets its leaf noise. */
 export const INSTANCE_FLOATS = 12;
 /** A crown's heart, as a fraction of the tree's height. */
-const HEART = 0.62;
+export const HEART = 0.62;
 
 /** Placed scenery: the GPU's records, and what bucketing and tier selection
  *  read of each. */
@@ -49,6 +49,12 @@ export function createPlacedInstances(count: number): PlacedInstances {
     heights: new Float32Array(count),
     reaches: new Float32Array(count),
   };
+}
+
+/** A tree's leaf-noise offset, by where it stands, so neighbours' leaf
+ *  clumps differ. */
+export function leafSeed(x: number, y: number): number {
+  return (x * 0.618 + y * 0.382) % 97;
 }
 
 /** Placed trees (`TREE_FLOATS` each, of `sizes.length` kinds) as instances. */
@@ -77,8 +83,7 @@ export function treeInstances(placed: Float32Array, sizes: readonly KindSize[]):
         placed[o + TREE_FIELD.r],
         placed[o + TREE_FIELD.g],
         placed[o + TREE_FIELD.b],
-        // A per-tree noise offset, so neighbours' leaf clumps differ.
-        (x * 0.618 + y * 0.382) % 97,
+        leafSeed(x, y),
       ],
       i * INSTANCE_FLOATS,
     );

@@ -20,6 +20,8 @@ import type { SurfaceClass } from "./models/surfaceParts";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle, TextureChannel } from "@packages/scene-assets/src/schema";
 import type { SceneryPlacement } from "./scenery/placement";
+import type { FelledTree } from "./scenery/felled";
+import type { FelledRules } from "./terrain/biome";
 import type { SceneryStats } from "./frame/sceneryLayer";
 import type { GrassProbes, GrassStats } from "./frame/grassPass";
 import type { GrassAppearances } from "./terrain/grassField";
@@ -62,6 +64,8 @@ export interface WorldScenery {
   appearances: ReadonlyMap<string, StaticBundle>;
   /** `biome.trees.lod_px`: the detail tiers by projected height. */
   lodPx: readonly [number, number, number];
+  /** How a felled tree falls and lies (`biome.trees.felled`). */
+  felled: FelledRules;
   /** The dressing's tiers and fade (`biome.forest_floor.dressing`). */
   dressing: { lodPx: readonly [number, number, number]; fadePx: number };
 }
@@ -199,6 +203,12 @@ export interface BattleFrame {
    *  view is uploaded whole, the same view only where it changed since the
    *  last call. Returns whether anything drawn changed. `null` draws none. */
   setGround(ground: GroundMarks | null): boolean;
+  /** The forest trees the observing side knows have fallen (its
+   *  `fallenBodies`, each fall's tick as a presentation second): each leaves
+   *  the standing forest and falls on the clock (`setClock`), then lies by
+   *  its stump. A tree the forest never drew is ignored. Call when the list
+   *  changes, not every frame. */
+  setFelled(felled: readonly FelledTree[]): void;
   /** Display-space marks (orders, contacts, tracers, rings), drawn after post
    *  over the world's depth so their colours are exactly their own. */
   setOverlay(overlay: WorldMeshes): void;

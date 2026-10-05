@@ -111,7 +111,43 @@ export async function run(ctx) {
   // Then the same 20 s into the forest squad; the fallen in the open stay put.
   const before = JSON.stringify(o.corpses);
   await demo(page, "HE on the forest squad");
-  await advance(page, 600);
+  // The first tree blue sees felled: framed close as it falls, then lying
+  // by its stump, pressed under a man's height (it gives no cover).
+  let spent = 0;
+  o = await until(
+    page,
+    (f) => f.fallenBodies.length > 0,
+    600,
+    1,
+    () => spent++,
+  );
+  const tree = o?.fallenBodies[0];
+  ctx.check("a burst in the wood fells a tree blue sees", !!tree, JSON.stringify(o?.fallenBodies));
+  if (tree) {
+    // From above (a wood's crowns hide anything lower), side-on to the fall.
+    const yaw = Math.atan2(tree.toward[1], tree.toward[0]) + Math.PI / 2;
+    const at = [tree.at[0] + tree.toward[0] * 5, tree.at[1] + tree.toward[1] * 5];
+    await aim(page, at, { distance: 30, pitch: 1.35, yaw });
+    await advance(page, 36);
+    await presented(page);
+    const falling = await lab(page, () => window.__lab.stats().scenery.felled);
+    await snapshot(ctx, page, "felled-falling.png");
+    await advance(page, 90);
+    await presented(page);
+    const lying = await lab(page, () => window.__lab.stats().scenery.felled);
+    await snapshot(ctx, page, "felled-lying.png");
+    await aim(page, at, { distance: 55, pitch: 0.9, yaw });
+    await presented(page);
+    await snapshot(ctx, page, "felled-lying-game.png");
+    spent += 126;
+    ctx.check(
+      "a felled tree falls on the clock, then lies by its stump",
+      falling.trees > 0 && falling.falling && lying.trees > 0 && !lying.falling && lying.stumps > 0,
+      JSON.stringify({ tree, falling, lying }),
+    );
+  }
+  await look(page, [330, 250], 330);
+  await advance(page, Math.max(0, 600 - spent));
   o = await obs(page);
   // One seed is a sample, not a verdict: the Rust paired trial owns the rate.
   await writeFile(

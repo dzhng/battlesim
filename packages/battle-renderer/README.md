@@ -23,7 +23,9 @@ kits before drawing them; a catalog listing is not installed kit geometry.
 [Terrain](src/terrain/) uses compiled map shapes; [scenery](src/scenery/) places
 admitted appearances around them. Physical bounds and visual-only landscape remain
 separate. Cosmetic geometry must not invent a physical obstruction or imply cover
-that the simulation does not provide. A map's region (its `regional_family`) is a
+that the simulation does not provide: a tree the side has seen felled falls on the
+clock and lies pressed under cover height by its stump ([felled trees](src/scenery/felled.ts)),
+since the simulation gives it no body. A map's region (its `regional_family`) is a
 look, never physics: the biome's paved rows take that region's own finish through
 one function (`regionalBiome` in [the biome](src/terrain/biome.ts)), and scenery
 its region's appearances.

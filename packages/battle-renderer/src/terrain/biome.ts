@@ -476,6 +476,28 @@ export interface CopseRules {
   spacing_m: number;
 }
 
+/** A felled tree as the side saw it go (`BattleFrame.setFelled`): it tips
+ *  over from its stump, gathering speed as it falls, rocks back and lies.
+ *  It blocks nothing and gives no cover, so lying it reads as brush: no
+ *  taller than `rest_height_m` and its crown a `rest_spread` share of its
+ *  width. A stump of its trunk stands where it grew. */
+export interface FelledRules {
+  /** Seconds from standing to striking the ground. */
+  fall_s: number;
+  /** Seconds it rocks back and settles after striking it. */
+  settle_s: number;
+  /** How far it rocks back up, degrees. */
+  settle_deg: number;
+  /** The highest a lying tree reaches above the ground, metres. */
+  rest_height_m: number;
+  /** A lying crown's width across its trunk, over its standing width. */
+  rest_spread: number;
+  /** The stump's height, metres; the tree hinges at its top. */
+  stump_height_m: number;
+  /** The stump's cut face, linear albedo. */
+  cut: Rgb;
+}
+
 /** `biome.trees`: species and detail for forests and scenery. */
 export interface BiomeTrees {
   species: readonly TreeSpecies[];
@@ -487,6 +509,7 @@ export interface BiomeTrees {
   understorey: UnderstoreyRules;
   hedgerows: HedgerowRules;
   copses: CopseRules;
+  felled: FelledRules;
   /** Scenery past the map stands at least `clear_m` outside it and within
    *  `reach_m` of it; the haze hides anything farther. */
   backdrop: { clear_m: number; reach_m: number };
@@ -1021,6 +1044,15 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("trees.copses.chance", t.copses.chance, 0, 1);
   range("trees.copses.radius_m", t.copses.radius_m, 1, 1000);
   within("trees.copses.spacing_m", t.copses.spacing_m, 1, 100);
+  const fell = t.felled;
+  if (!fell || typeof fell !== "object") bad("trees.felled", "is missing");
+  within("trees.felled.fall_s", fell.fall_s, 0.1, 30);
+  within("trees.felled.settle_s", fell.settle_s, 0, 10);
+  within("trees.felled.settle_deg", fell.settle_deg, 0, 30);
+  within("trees.felled.stump_height_m", fell.stump_height_m, 0.05, 3);
+  within("trees.felled.rest_height_m", fell.rest_height_m, fell.stump_height_m + 0.05, 10);
+  within("trees.felled.rest_spread", fell.rest_spread, 0.1, 1);
+  tint("trees.felled.cut", fell.cut);
   within("trees.backdrop.clear_m", t.backdrop.clear_m, 0, 1000);
   within("trees.backdrop.reach_m", t.backdrop.reach_m, 0, r.extent_m);
   const px = t.lod_px;

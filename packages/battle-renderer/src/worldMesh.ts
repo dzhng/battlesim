@@ -345,6 +345,7 @@ function worldScenery(
     placement: placeScenery(scenerySite(exports, layout, terrain), biome, sizes),
     appearances,
     lodPx: trees.lod_px,
+    felled: trees.felled,
     dressing: { lodPx: dressing.lod_px, fadePx: dressing.fade_px },
   };
 }

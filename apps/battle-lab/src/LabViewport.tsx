@@ -43,6 +43,7 @@ import type {
   CorpseInstance,
   ModelInstance,
 } from "@packages/battle-renderer/src/models/modelInstances";
+import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import type { Project } from "@web/battle/present/readouts";
 import { gameCamera } from "./gameCamera";
@@ -167,6 +168,9 @@ export interface ViewportFrame {
   models?: readonly ModelInstance[];
   /** The corpses: handed to the frame only when the array changes. */
   corpses?: readonly CorpseInstance[];
+  /** The trees the side knows have fallen: handed over only when the array
+   *  changes. */
+  felled?: readonly FelledTree[];
   /** The presentation clock, in seconds (the pose driver's and the wind's). */
   clock?: number;
   /** Combat effects at that clock (`EffectFrame.build`). */
@@ -393,6 +397,7 @@ export function LabViewport({
   const modelsRef = useRef(models);
   modelsRef.current = models;
   const corpsesRef = useRef<readonly CorpseInstance[]>([]);
+  const felledRef = useRef<readonly FelledTree[]>([]);
   const modelsSuppressed = useRef(false);
   const effectsSuppressed = useRef(false);
   const scarsSuppressed = useRef(false);
@@ -674,6 +679,7 @@ export function LabViewport({
             if (modelsRef.current) next.setModels(modelsRef.current);
             next.setClock(clock);
             next.setCorpses(corpsesRef.current);
+            next.setFelled(felledRef.current);
             next.setGround(groundNow());
             return next;
           } catch (error) {
@@ -756,6 +762,10 @@ export function LabViewport({
             if (animated.corpses && animated.corpses !== corpsesRef.current) {
               corpsesRef.current = animated.corpses;
               if (!modelsSuppressed.current) scene.setCorpses(animated.corpses);
+            }
+            if (animated.felled && animated.felled !== felledRef.current) {
+              felledRef.current = animated.felled;
+              scene.setFelled(animated.felled);
             }
             dirty = true;
           }

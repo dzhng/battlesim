@@ -343,6 +343,7 @@
     "colour_jitter": 0.12,
     "forest": { "top": [0.8, 0.97], "girth": [0.9, 1] },
     "lone": { "species": ["tree_tall", "tree_birch"], "top": [0.85, 1], "girth": [0.7, 0.85] },
+    "felled": { "fall_s": 2.6, "settle_s": 0.6, "settle_deg": 4, "rest_height_m": 1, "rest_spread": 0.6, "stump_height_m": 0.4, "cut": [0.26, 0.19, 0.11] },
     "understorey": {
       "appearance": "hedge_shrub",
       "tint": [0.8, 0.82, 0.78],

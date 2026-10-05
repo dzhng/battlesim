@@ -262,6 +262,10 @@ export async function createBattleFrame(
         },
         setClock(seconds) {
           clock = seconds;
+          if (!disposed) world.setClock(seconds);
+        },
+        setFelled(next) {
+          if (!disposed) world.setFelled(next);
         },
         setOverlay(next) {
           if (!disposed) {

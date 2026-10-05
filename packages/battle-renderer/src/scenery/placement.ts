@@ -92,6 +92,9 @@ export interface SceneryPlacement {
   /** Appearance names, indexed by each tree's `kind`. */
   kinds: readonly string[];
   forest: Float32Array;
+  /** Per `forest` tree: the simulation's trunk it stands on (a prop id), so
+   *  a published fall finds the tree it felled. */
+  forestIds: Uint32Array;
   understorey: Float32Array;
   backdrop: Float32Array;
   dressing: DressingField;
@@ -259,9 +262,11 @@ export function placeScenery(
     );
   const size = kinds.map((k) => sizes.get(k)!);
   const pick = speciesAt(trees, kinds, biome.seed);
+  const forest = placeForests(site, trees, kinds, size, pick, biome.seed);
   return {
     kinds,
-    forest: placeForests(site, trees, kinds, size, pick, biome.seed),
+    forest: forest.placed,
+    forestIds: forest.ids,
     understorey: placeUnderstorey(
       site,
       trees,
@@ -379,8 +384,9 @@ function placeForests(
   size: readonly KindSize[],
   pick: SpeciesPick,
   seed: number,
-): Float32Array {
+): { placed: Float32Array; ids: Uint32Array } {
   const out = new Builder();
+  const ids: number[] = [];
   const rules = trees.forest;
   const rng = stream(seed, 1);
   const ground = (x: number, y: number) => groundHeight(site.ground, x, y);
@@ -434,6 +440,7 @@ function placeForests(
     while (trunk < site.trunkIds.length && site.trunkIds[trunk] < first) trunk++;
     while (trunk < site.trunkIds.length && site.trunkIds[trunk] < end) {
       plant(site.trunks[trunk * 2], site.trunks[trunk * 2 + 1]);
+      ids.push(site.trunkIds[trunk]);
       planted[trunk++] = 1;
     }
   }
@@ -448,6 +455,7 @@ function placeForests(
     const own = stream(seed ^ LONE_SALT, site.trunkIds[t]);
     const [x, y] = [site.trunks[t * 2], site.trunks[t * 2 + 1]];
     const s = weighted(own, alone);
+    ids.push(site.trunkIds[t]);
     const top = site.trunkHeights[t] * random.float(own, lone.top[0], lone.top[1]);
     out.push(
       x,
@@ -462,7 +470,7 @@ function placeForests(
       trees.colour_jitter,
     );
   }
-  return Float32Array.from(out.out);
+  return { placed: Float32Array.from(out.out), ids: Uint32Array.from(ids) };
 }
 
 /** Parts the understorey's streams from every other stream of the seed. */

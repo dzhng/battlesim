@@ -104,6 +104,7 @@ import {
   WATER_SHADOW,
 } from "./terrainMaterial";
 import { createSceneryLayer } from "./sceneryLayer";
+import type { FelledTree } from "../scenery/felled";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
 import type { GroundMarks, ScarRegion } from "./scarTexture";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
@@ -626,6 +627,14 @@ export async function createWorldPass(
         scenery.setCleared(next);
       }
       return changed;
+    },
+    /** The trees the side knows have fallen (`BattleFrame.setFelled`). */
+    setFelled(next: readonly FelledTree[]) {
+      scenery.setFelled(next);
+    },
+    /** Presentation seconds: felled trees fall on it. */
+    setClock(seconds: number) {
+      scenery.setClock(seconds);
     },
     /** The painted ground marks: still, and marching on the clock. */
     setPainted(still: Mesh, marching: Mesh) {
