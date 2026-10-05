@@ -1622,11 +1622,13 @@ impl PresetDefinitions {
                         && lawn.streets >= 1
                         && positive(lawn.beside_spacing_m)
                         && lawn.beside.iter().all(|(group, weight)| {
-                            s.groups.contains_key(group) && positive(*weight)
+                            s.groups.get(group).is_some_and(|group| {
+                                group.size_m[0] <= lawn.beside_spacing_m
+                            }) && positive(*weight)
                         })
                 }),
             "street_props.courts".into(),
-            "courts take a share in (0, 1] split one n-th at a time, n at least 1, try wall groups at a nonnegative spacing, bound yards by bodies for each regional family with two gates, cut car parks of positive bays, an aisle and an ordered count, and lay lawn paths with a lane no narrower than a path, at least one path from a street (the lane is one) and groups beside at a positive spacing",
+            "courts take a share in (0, 1] split one n-th at a time, n at least 1, try wall groups at a nonnegative spacing, bound yards by bodies for each regional family with two gates, cut car parks of positive bays, an aisle and an ordered count, and lay lawn paths with a lane no narrower than a path, at least one path from a street (the lane is one) and groups beside at a positive spacing no narrower than each",
         );
         for (kind, body) in &s.bodies {
             check(
