@@ -645,6 +645,7 @@ impl<'a> Pass<'a> {
             group: 0,
             beside: None,
             corner: 0.0,
+            in_road: false,
         };
         if !self.field.open(&ground) {
             return None;

@@ -162,6 +162,14 @@ other out. A country road through a town is its main street and parks like one;
 past the town's edge nothing parks. A door keeps a way to the street as wide as a
 yard's door gate, and a building site's gate stays open from its yard to the street.
 
+A car abandoned in the road stands askew in one half of its carriageway, every one
+of a street in the same half, placed before the kerbs are parked. It keeps open beside
+it the way the widest hull that cannot shove it needs (that hull and the vehicle
+margin), and no car parks in that way; a tank may shove one. It keeps far enough from
+a junction for a vehicle turning in to move over before reaching it. [Furniture
+tests](tests/street_props.rs) ask the simulation's own routes: every hull drives every
+street through nothing it cannot shove.
+
 [Courts](src/street_props/courts.rs) dress the dense districts' blocks. A court's
 inside is infantry ground: a vehicle is owed a way in (a car park's aisle, a yard's
 vehicle gate, a lawn's lane), not a way everywhere, and every group keeps a squad's

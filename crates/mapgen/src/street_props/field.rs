@@ -41,6 +41,10 @@ pub(super) struct Candidate {
     pub(super) beside: Option<(u32, f64)>,
     /// Kept between it and any other carriageway's edge.
     pub(super) corner: f64,
+    /// It stands on the carriageway it is beside, in the half its centre is
+    /// on (a car abandoned in the road); the way it leaves open beside it is
+    /// kept clear by its placement (`strand`).
+    pub(super) in_road: bool,
 }
 
 /// Everything a body must keep clear of, and the bodies placed so far.
@@ -78,6 +82,15 @@ pub(super) struct Field<'a> {
     pub(super) runs: Vec<(Rect, u32)>,
     pub(super) run_grid: Grid,
     pub(super) placed: Vec<AuthoredPropDefinition>,
+}
+
+/// Whether all of `rect` stays on the side of `piece`'s middle line its
+/// centre is on.
+fn in_its_half(rect: &Rect, piece: &Piece) -> bool {
+    let run = [piece.b[0] - piece.a[0], piece.b[1] - piece.a[1]];
+    let off = |p: Point| run[0] * (p[1] - piece.a[1]) - run[1] * (p[0] - piece.a[0]);
+    let side = off(rect.center).signum();
+    rect.corners().into_iter().all(|p| off(p) * side >= 0.0)
 }
 
 /// Whether `a` and `b` stand at least `gap` apart.
@@ -148,6 +161,9 @@ impl<'a> Field<'a> {
             let beside = c.beside.is_some_and(|(way, s)| {
                 way == piece.way && piece.along[1] >= s - window && piece.along[0] <= s + window
             });
+            if beside && c.in_road {
+                return !in_its_half(rect, piece);
+            }
             let need = if beside {
                 lane
             } else {
@@ -266,6 +282,13 @@ impl<'a> Field<'a> {
         self.groups
     }
 
+    /// Whether no body placed so far stands on `rect`.
+    pub(super) fn clear_of_bodies(&self, rect: &Rect) -> bool {
+        !self.body_grid.any(rect.bounds(), |item| {
+            rect.overlaps(&self.bodies[item as usize].rect, 0.0)
+        })
+    }
+
     /// Keep `way` open, as a door's way to the street is: no body may
     /// stand on it.
     pub(super) fn keep_clear(&mut self, way: Rect) {
@@ -312,6 +335,7 @@ impl Candidate {
             group: 0,
             beside: None,
             corner: 0.0,
+            in_road: false,
         }
     }
 }

@@ -431,6 +431,19 @@ pub struct DistrictProps {
     /// Its block interior; absent is grass.
     #[serde(default)]
     pub courts: Courts,
+    /// Bodies left standing in the road (a car abandoned askew), each in its
+    /// own half of the carriageway; absent is a clear road.
+    #[serde(default)]
+    pub abandoned: Vec<AbandonedRow>,
+}
+
+/// A kind left in a district's roads, one to so many metres of street.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AbandonedRow {
+    /// A row of `street_props.bodies`.
+    pub kind: String,
+    pub spacing_m: f64,
 }
 
 /// A district's block interior (`parcels::courts`) and the amenity groups
@@ -658,6 +671,14 @@ pub struct StreetProps {
     pub slide_step_m: f64,
     /// Places tried for a body that has no street to slide along.
     pub attempts: u32,
+    /// How far askew of its street a body abandoned in the road stands, degrees.
+    pub abandoned_skew_deg: [f64; 2],
+    /// How far a body abandoned in the road keeps from another carriageway:
+    /// a vehicle's lane on a road begins at the junction, and it needs this
+    /// much road to move over before a body in it, or it searches round the
+    /// body instead (the simulation's road lines, `MERGE_M` and its lead-in,
+    /// `crates/sim/src/navigation/journey.rs`).
+    pub abandoned_corner_m: f64,
     /// Each kind that may be placed: its box, and the ground it keeps.
     pub bodies: BTreeMap<String, PropBox>,
     /// Amenities a court is dressed with, each placed whole or not at all.
@@ -1537,6 +1558,10 @@ impl PresetDefinitions {
                         .iter()
                         .all(|row| known(&row.kind) && positive(row.spacing_m))
                     && props
+                        .abandoned
+                        .iter()
+                        .all(|row| known(&row.kind) && positive(row.spacing_m))
+                    && props
                         .yard
                         .iter()
                         .all(|row| known(&row.kind) && row.count[0] <= row.count[1])
@@ -1594,6 +1619,10 @@ impl PresetDefinitions {
                 && length(s.slide_m)
                 && positive(s.slide_step_m)
                 && s.attempts > 0
+                && (0.0..90.0).contains(&s.abandoned_skew_deg[0])
+                && s.abandoned_skew_deg[0] <= s.abandoned_skew_deg[1]
+                && s.abandoned_skew_deg[1] < 90.0
+                && s.abandoned_corner_m >= s.corner_clear_m
                 && s.squad_way_m >= s.wall_gap_m
                 && s.group_ring_m >= s.squad_way_m
                 && length(s.hull_way_margin_m),

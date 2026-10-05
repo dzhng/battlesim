@@ -716,3 +716,87 @@ fn a_short_bridge_journey_keeps_distance_and_time_policies_distinct() {
         "fastest uses the farther paved bridge"
     );
 }
+
+/// A car left askew in a truck's lane, wherever along the road it stands:
+/// the truck moves over and passes it rather than going round, and its way
+/// crosses nothing it cannot shove. The road runs at several angles and
+/// offsets to the navigation grid's cells.
+#[test]
+fn a_truck_moves_over_round_a_car_abandoned_in_its_lane_wherever_it_stands() {
+    use sim::encounter::PreparedMap;
+    use sim::math::v2;
+    use sim::navigation::{self, Leg, Plan};
+    let setup = scenario(one_road(), json!([]), json!([]));
+    let rules = &setup.rules;
+    let supply = rules
+        .catalog
+        .indices()
+        .find(|u| rules.catalog.id(*u) == "supply")
+        .unwrap();
+    let m = sim::units::mobility(rules.catalog.get(supply), rules);
+    let car = |at: [f64; 2], yaw: f64| json!({ "kind": "parked_car", "center": at, "yaw": yaw, "half_extents": [2.1, 0.9, 0.75] });
+    for (turn, lift) in [
+        (0.0, 0.0),
+        (0.0, 0.7),
+        (0.06, 0.0),
+        (0.06, 1.1),
+        (0.13, 0.4),
+    ] {
+        // A 10 m road from (20, 200 + lift), `turn` radians north of east.
+        let (dir, normal) = (
+            [f64::cos(turn), f64::sin(turn)],
+            [-f64::sin(turn), f64::cos(turn)],
+        );
+        let at = |s: f64, off: f64| {
+            [
+                20.0 + dir[0] * s + normal[0] * off,
+                200.0 + lift + dir[1] * s + normal[1] * off,
+            ]
+        };
+        let road = json!({ "kind": "road", "shape": { "kind": "stroke",
+            "points": [at(0.0, 0.0), at(2900.0, 0.0)], "width_m": 10 } });
+        let (from, goal) = (at(100.0, 0.0), at(2800.0, 0.0));
+        for k in 0..72 {
+            // Driving east the mover's lane is the road's right (south)
+            // half: the car stands there, 20 degrees askew, its outer edge
+            // at the kerb. The far kerb is parked nose to tail.
+            let s = 1000.0 + k as f64;
+            let props: Vec<Value> = std::iter::once(car(at(s, -3.6), turn + 0.35))
+                .chain((0..60).map(|n| car(at(900.0 + 4.7 * n as f64, 6.25), turn)))
+                .collect();
+            let map = json!({ "size": [3000, 600], "fog_cell_m": 8, "height_grid_m": 4,
+                "slope_cutoff_deg": 35, "surfaces": [road], "props": props });
+            let map = scenario(map, json!([]), json!([])).map;
+            let prepared = PreparedMap::new(&map, rules);
+            let leg = Leg {
+                from: v2(from[0], from[1]),
+                goal: v2(goal[0], goal[1]),
+                m: &m,
+                policy: RoutePolicy::Fastest,
+                avoid: &[],
+            };
+            let what =
+                format!("a car abandoned {s} m along a road turned {turn} and lifted {lift}");
+            let Plan::Route(points) =
+                navigation::plan(&prepared.grid, &prepared.roads, leg, &rules.navigation).0
+            else {
+                panic!("no route past {what}");
+            };
+            let length: f64 = std::iter::once(leg.from)
+                .chain(points.iter().copied())
+                .collect::<Vec<_>>()
+                .windows(2)
+                .map(|w| (w[1] - w[0]).length())
+                .sum();
+            assert!(
+                length < dist(from, goal) + 12.0,
+                "a truck drives {length:.0} m past {what}, {:.0} m straight",
+                dist(from, goal)
+            );
+            assert!(
+                !prepared.grid.route_pushes(leg.from, &points, &m),
+                "a truck's way past {what} runs into a body"
+            );
+        }
+    }
+}

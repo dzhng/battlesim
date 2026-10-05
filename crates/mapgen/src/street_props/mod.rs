@@ -216,6 +216,10 @@ struct Pass<'a> {
     /// margin. Kept either side of a lawn's lane, and the room a yard's
     /// vehicle gate needs to its building.
     hull_way: f64,
+    /// Each kind abandoned in a district's roads, and the way it leaves open
+    /// beside it: as wide as the widest hull that cannot shove it and the
+    /// vehicle margin, a hull's length past it either way.
+    left_open: BTreeMap<&'a str, [f64; 2]>,
     /// Each building's place in `houses`, by its id.
     house_ids: BTreeMap<&'a str, usize>,
     field: Field<'a>,
@@ -240,6 +244,7 @@ pub fn place_street_props(
     pass.sites();
     pass.yards();
     pass.verges(false);
+    pass.abandoned();
     pass.parking();
     pass.verges(true);
     Ok(pass.field.placed)
@@ -278,6 +283,33 @@ fn widest_hull(catalog: &Catalog) -> f64 {
         .filter_map(|unit| catalog.get(unit).hull())
         .map(|hull| 2.0 * hull.half_extents_m[1])
         .fold(0.0, f64::max)
+}
+
+/// The way a body of prop `kind` abandoned in the road leaves open: the
+/// widest of `catalog`'s hulls that cannot shove it, with the presets'
+/// vehicle margin, and the longest such hull's length; none where every
+/// hull shoves it.
+fn left_open(catalog: &Catalog, presets: &PresetDefinitions, kind: &str) -> [f64; 2] {
+    let props = catalog.props();
+    let weight = props
+        .get(props.index(kind).expect("a presets body is a catalog prop"))
+        .body
+        .weight_class;
+    let [wide, long] = catalog
+        .indices()
+        .filter_map(|unit| catalog.get(unit).hull())
+        .filter(|hull| !hull.push_class.pushes(weight))
+        .fold([0.0_f64, 0.0_f64], |[w, l], hull| {
+            [
+                w.max(2.0 * hull.half_extents_m[1]),
+                l.max(2.0 * hull.half_extents_m[0]),
+            ]
+        });
+    if wide > 0.0 {
+        [wide + presets.street_props.hull_way_margin_m, long]
+    } else {
+        [0.0, 0.0]
+    }
 }
 
 /// Open ground a vehicle drives through: `catalog`'s widest hull and the
@@ -411,6 +443,12 @@ impl<'a> Pass<'a> {
             district_ids,
             houses: Vec::new(),
             hull_way: hull_way(catalog, presets),
+            left_open: presets
+                .districts
+                .values()
+                .flat_map(|d| &d.props.abandoned)
+                .map(|row| (row.kind.as_str(), left_open(catalog, presets, &row.kind)))
+                .collect(),
             house_ids: BTreeMap::new(),
             field: Field {
                 size: plan.size,
@@ -1038,6 +1076,109 @@ impl<'a> Pass<'a> {
             let c = self.beside(way, side, at, body, setback);
             if self.field.legal(&c) {
                 self.field.place(kind, body, &c);
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Bodies abandoned in the road, before the kerbs are parked: askew in
+    /// one half of each street, the same half its whole length, each keeping
+    /// open beside it the way a hull that cannot shove it needs.
+    fn abandoned(&mut self) {
+        let [least, most] = self.rule.abandoned_skew_deg.map(f64::to_radians);
+        for way in 0..self.ways.len() {
+            if !matches!(
+                self.ways[way].kind,
+                SurfaceKind::Road | SurfaceKind::CountryRoad
+            ) {
+                continue;
+            }
+            let side = if self
+                .stream(&format!("way-{way}/abandoned-side"))
+                .chance(0.5)
+            {
+                1.0
+            } else {
+                -1.0
+            };
+            let mut rng = self.stream(&format!("way-{way}/abandoned"));
+            for (from, to, district) in self.owners(&self.ways[way], side) {
+                let props = &self.districts[district].1.props;
+                for row in &props.abandoned {
+                    let count = (to - from) / row.spacing_m + rng.unit();
+                    for _ in 0..libm::floor(count) as usize {
+                        // A few places along the stretch, each slid to room.
+                        for _ in 0..self.rule.attempts {
+                            let s = rng.range([from, to]);
+                            let turn = if rng.chance(0.5) { 1.0 } else { -1.0 };
+                            let skew = turn * rng.range([least, most]);
+                            if self.strand(way, side, s, skew, [from, to], &row.kind) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Stand a `kind` in `way`'s half on `side`, `skew` askew of the street,
+    /// its outer edge on its kerb line, at `s` or the nearest place along the
+    /// way within the rule's slide where the way it leaves open is clear;
+    /// then keep that way clear of every body placed after it.
+    fn strand(
+        &mut self,
+        way: usize,
+        side: f64,
+        s: f64,
+        skew: f64,
+        within: [f64; 2],
+        kind: &str,
+    ) -> bool {
+        let body = &self.body(kind);
+        let [long, wide] = [body.half_extents_m[0], body.half_extents_m[1]];
+        // How far the askew box reaches across the street, and along it.
+        let across = long * libm::fabs(libm::sin(skew)) + wide * libm::cos(skew);
+        let ahead = long * libm::cos(skew) + wide * libm::fabs(libm::sin(skew));
+        // Its outer edge on its own kerb line, where parked cars begin, but
+        // never across the middle nor so far out that less than half of it
+        // stands in the road. The way it leaves open runs from its inner edge
+        // across the road and, where it must, into the far kerb's parking:
+        // no car parks opposite one abandoned.
+        let [open, hull] = self.left_open[kind];
+        let kerb = self.kerb_line(&self.ways[way]);
+        let inner = (kerb - 2.0 * across).clamp(0.0, self.ways[way].half_width - wide);
+        let off = inner + across;
+        let steps = libm::floor(self.rule.slide_m / self.rule.slide_step_m) as i32;
+        for step in 0..=2 * steps {
+            let at = s
+                + ((step + 1) / 2 * if step % 2 == 1 { 1 } else { -1 }) as f64
+                    * self.rule.slide_step_m;
+            if at - long < within[0] || at + long > within[1] {
+                continue;
+            }
+            let (p, run) = self.ways[way].line.at(at);
+            let normal = [-run[1], run[0]];
+            let heading = libm::atan2(run[1], run[0]) + skew;
+            let c = Candidate {
+                beside: Some((way as u32, at)),
+                corner: self.rule.abandoned_corner_m,
+                in_road: true,
+                ..Candidate::new(
+                    body,
+                    add(p, scale(normal, side * off)),
+                    [libm::cos(heading), libm::sin(heading)],
+                )
+            };
+            let way = Rect {
+                center: add(p, scale(normal, side * (inner - open / 2.0))),
+                axis: run,
+                half: [ahead + hull, open / 2.0],
+            };
+            if self.field.legal(&c) && self.field.clear_of_bodies(&way) {
+                self.field.place(kind, body, &c);
+                self.field.keep_clear(way);
                 return true;
             }
         }

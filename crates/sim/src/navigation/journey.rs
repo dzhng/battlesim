@@ -6,12 +6,12 @@
 //! goal. A mover's lane is the free width of the road: where a known body
 //! stands in or beside its own side of it, the mover moves over toward the
 //! middle (and past it, while its own middle stays on the road) and comes
-//! back to its side after the body; only a road with no free width is
-//! searched round. A run nothing gets past closes its arc and the graph is
-//! asked again. With no road
-//! worth taking, or by the shortest policy, the leg is one search across
-//! the grid ([`RouteSearch`]). Every step is counted work, so a battle
-//! spends a share of a tick on it.
+//! back to its side after the body, starting over back along the stretch it
+//! found clear when it cannot from that stretch's end; only a road with no
+//! free width is searched round. A run nothing gets past closes its arc and
+//! the graph is asked again. With no road worth taking, or by the shortest
+//! policy, the leg is one search across the grid ([`RouteSearch`]). Every
+//! step is counted work, so a battle spends a share of a tick on it.
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 
 use contract::command::RoutePolicy;
@@ -40,6 +40,11 @@ const ROUND_M: f64 = 2.0 * CHECK_M;
 /// the road, reached this far along: the longest of these that is clear, so
 /// it moves over early and gently, and sharply only when the body is close.
 const SHIFT_REACH_M: [f64; 3] = [MERGE_M, MERGE_M / 2.0, MERGE_M / 4.0];
+/// A mover on its lane with no line free from where its clear stretch ends
+/// tries them again begun up to this far back along that stretch, as a driver
+/// who sees a body ahead starts over before reaching it (never before the
+/// route's last point on the run), before it searches round the body.
+const SHIFT_LEAD_M: f64 = MERGE_M / 2.0;
 /// The lines tried: its own lane first, then this many evenly spaced ones
 /// leftward, the last with the mover's middle as near the far edge of the
 /// road as its own lane is to the near one.
@@ -641,6 +646,10 @@ struct Driving {
     piece: usize,
     /// Metres of the run in hand found clear.
     checked: f64,
+    /// Metres along the run in hand of the route's last point on it.
+    committed: f64,
+    /// Its lines are being tried begun back along the clear stretch.
+    leading: bool,
     /// Where the route stands that far along the run, when it has moved
     /// over from the run's lane, and how many shifts over that is.
     off_lane: Option<(V2, usize)>,
@@ -901,6 +910,8 @@ impl Journey {
                 d.u64(1)
                     .u64(driving.piece as u64)
                     .f64(driving.checked)
+                    .f64(driving.committed)
+                    .u64(driving.leading as u64)
                     .u64(driving.out.len() as u64)
                     .u64(driving.search.is_some() as u64);
                 d.u64(driving.candidate as u64)
@@ -986,6 +997,8 @@ impl Journey {
                                     out: Vec::new(),
                                     piece: 0,
                                     checked: 0.0,
+                                    committed: 0.0,
+                                    leading: false,
                                     off_lane: None,
                                     search: None,
                                     sought: (joined, 0),
@@ -1070,9 +1083,11 @@ impl Journey {
                     driving.extend(route);
                     // A way round a body rejoins the run further along it.
                     driving.checked += ROUND_M;
+                    driving.committed = driving.checked;
                     if !on_road || driving.checked >= length {
                         driving.piece += 1;
                         driving.checked = 0.0;
+                        driving.committed = 0.0;
                     }
                     if driving.piece == pieces {
                         Stage::Done(Plan::Route(driving.out))
@@ -1167,9 +1182,16 @@ impl Journey {
                 .nth(driving.candidate - 1)
         };
         let Some((shove, reach, shift)) = candidate else {
+            if held == 0 && !driving.leading {
+                driving.leading = true;
+                driving.candidate = 1;
+                return Stage::Driving(driving);
+            }
+            driving.leading = false;
             // No line is free: search round the body to a standing place
             // farther down the road.
             driving.extend([here]);
+            driving.committed = driving.checked;
             let rejoin = driving.checked + ROUND_M;
             driving.sought = (0..=shifts)
                 .map(|k| (line(rejoin, k), k))
@@ -1180,6 +1202,13 @@ impl Journey {
             return Stage::Driving(driving);
         };
         let target = line(reach, shift);
+        // Moving over from the lane, it starts back along the stretch
+        // already found clear.
+        let here = if driving.leading {
+            line((driving.checked - SHIFT_LEAD_M).max(driving.committed), 0)
+        } else {
+            here
+        };
         if driving.probe.is_none() {
             if !grid.stands(target, who) {
                 grid.spend(1);
@@ -1205,14 +1234,17 @@ impl Journey {
         }
         if driving.candidate > 0 || held > 0 {
             driving.extend([here, target]);
+            driving.committed = reach;
         }
         driving.candidate = 0;
+        driving.leading = false;
         driving.off_lane = (shift > 0).then(|| (line(reach, shift), shift));
         driving.checked = reach;
         if driving.checked >= length {
             driving.extend([driving.off_lane.map_or(to, |(at, _)| at)]);
             driving.piece += 1;
             driving.checked = 0.0;
+            driving.committed = 0.0;
         }
         Stage::Driving(driving)
     }

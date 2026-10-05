@@ -5,7 +5,7 @@ use contract::catalog::Catalog;
 use contract::encounter::EncounterRecipes;
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::{AuthoredPropDefinition, MapDefinition, PropDefinition, SurfaceKind};
-use contract::scenario::Rules;
+use contract::scenario::{Rules, WeightClass};
 use contract::templates::TemplateGeometryCatalog;
 use mapgen::layout::{
     approach_corridors, generate_layout, GenerationRequest, MapSize, MapType, PresetDefinitions,
@@ -580,6 +580,74 @@ fn a_vehicle_drives_a_dressed_street_without_shoving_a_car() {
                 shoved_at_the_kerb,
                 "cars on a 7 m carriageway were in no vehicle's way: the lane rule asks too much"
             );
+        }
+    }
+}
+
+/// Cars abandoned in the road: each stands askew in its own half of the
+/// carriageway, every one of a street on the same side, so the other half
+/// stays a straight lane. A hull that cannot shove a car (a truck, a jeep)
+/// drives the street without touching one; one that can (a tank) gets
+/// through, shoving where the lane is too tight for it.
+#[test]
+fn abandoned_cars_keep_to_their_half_and_leave_a_lane() {
+    let presets = presets_with(|source| {
+        cars_only(source);
+        source["districts"]["centre"]["props"]["abandoned"] =
+            json!([{ "kind": "parked_car", "spacing_m": 30 }]);
+        // Both kerbs parked, a narrow street's too: the lane is what is left.
+        source["street_props"]["parking"]["both_sides_min_width_m"] = 7.into();
+    });
+    let rules = rules();
+    for width in [7.0, 10.0] {
+        let plan = town(&[street(width)], &[]);
+        let props = place(&plan, &presets, &rules.catalog, 1);
+        let in_road: Vec<&PropDefinition> = cars(&props)
+            .into_iter()
+            .filter(|car| {
+                corners(car)
+                    .iter()
+                    .any(|c| (c[1] - 1000.0).abs() < width / 2.0)
+            })
+            .collect();
+        assert!(
+            in_road.len() >= 4,
+            "{} cars abandoned on a {width} m street",
+            in_road.len()
+        );
+        let side = (in_road[0].center[1] - 1000.0).signum();
+        for car in &in_road {
+            assert!(
+                (car.yaw.sin()).abs() > 0.05,
+                "a car abandoned at {:?} stands square to the kerb",
+                car.center
+            );
+            for corner in corners(car) {
+                assert!(
+                    (corner[1] - 1000.0) * side >= -0.011,
+                    "a car abandoned at {:?} crosses the middle of a {width} m street",
+                    car.center
+                );
+            }
+        }
+        let request = request(MapType::Mixed, MapSize::Medium, 1);
+        let dressed = PreparedMap::new(&compiled(&plan, &props, &request), &rules);
+        let ends = [[720.0, 1000.0], [1280.0, 1000.0]];
+        for (name, m) in vehicles(&rules) {
+            for (from, to) in [(ends[0], ends[1]), (ends[1], ends[0])] {
+                let (points, pushes) = route(&dressed, &rules, &m, from, to).unwrap_or_else(|| {
+                    panic!("no route for a {name} down a {width} m street with abandoned cars")
+                });
+                assert!(
+                    !pushes || m.push.pushes(WeightClass::Medium),
+                    "a {name}, which cannot shove a car, needs to on a {width} m street"
+                );
+                let end = points[points.len() - 1];
+                assert!(
+                    (end.x - to[0]).abs() < 4.0 && (end.y - to[1]).abs() < 4.0,
+                    "a {name} stops at {end:?}"
+                );
+            }
         }
     }
 }
@@ -2328,6 +2396,76 @@ impl Roads {
             })
             .fold(f64::INFINITY, f64::min)
     }
+
+    /// Whether every one of `corners` lies on the same side of the middle
+    /// line of the piece nearest their centre: a body in one half of its road.
+    fn in_one_half(&self, corners: &[Point; 4]) -> bool {
+        let centre = [
+            corners.iter().map(|c| c[0]).sum::<f64>() / 4.0,
+            corners.iter().map(|c| c[1]).sum::<f64>() / 4.0,
+        ];
+        let key = (
+            (centre[0] / Self::BUCKET_M).floor() as i64,
+            (centre[1] / Self::BUCKET_M).floor() as i64,
+        );
+        let Some(&(a, b, _)) = self
+            .buckets
+            .get(&key)
+            .into_iter()
+            .flatten()
+            .map(|i| &self.pieces[*i])
+            .min_by(|x, y| {
+                segment_distance(x.0, x.1, centre).total_cmp(&segment_distance(y.0, y.1, centre))
+            })
+        else {
+            return false;
+        };
+        let side =
+            |p: &Point| ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])).signum();
+        let first = side(&centre);
+        corners.iter().all(|c| side(c) == first)
+    }
+}
+
+/// The kind of the first body that stops vehicles and is too heavy for `m`
+/// to shove whose box the route from `from` along `points` overlaps, its
+/// footprint a disc of `m`'s half width sampled every 25 cm; none if it
+/// meets no such body.
+fn crosses_unshoved(
+    map: &MapDefinition,
+    rules: &Rules,
+    m: &Mobility,
+    from: Point,
+    points: &[V2],
+) -> Option<String> {
+    let props = rules.catalog.props();
+    let heavy: Vec<&PropDefinition> = map
+        .props
+        .iter()
+        .map(|prop| &prop.geometry)
+        .filter(|g| {
+            let body = &props.get(props.index(&g.kind).unwrap()).body;
+            body.blocks.vehicle && !m.push.pushes(body.weight_class)
+        })
+        .collect();
+    let mut a = v2(from[0], from[1]);
+    for &b in points {
+        let samples = (((b - a).length() / 0.25).ceil() as usize).max(1);
+        for k in 0..samples {
+            let q = a + (b - a) * ((k as f64 + 0.5) / samples as f64);
+            for g in &heavy {
+                let (sin, cos) = g.yaw.sin_cos();
+                let d = q - v2(g.center[0], g.center[1]);
+                let u = (d.x * cos + d.y * sin).abs() - g.half_extents[0];
+                let w = (-d.x * sin + d.y * cos).abs() - g.half_extents[1];
+                if u.max(0.0).hypot(w.max(0.0)) < m.half_width_m {
+                    return Some(g.kind.clone());
+                }
+            }
+        }
+        a = b;
+    }
+    None
 }
 
 fn span(a: Point, b: Point) -> f64 {
@@ -2498,6 +2636,18 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                 let run = presets.rivers.bridge.approach_m;
                 for prop in &props {
                     let at = format!("{name}: a {} at {:?}", prop.kind, prop.center);
+                    // A body abandoned in the road keeps to one half of it;
+                    // every other keeps off the carriageway and its lane.
+                    let in_road = corners(prop)
+                        .iter()
+                        .any(|c| roads.clearance(*c, 1.0) <= 0.0);
+                    if in_road {
+                        claim!(
+                            broken,
+                            roads.in_one_half(&corners(prop)),
+                            "{at} stands across a carriageway's middle"
+                        );
+                    }
                     for corner in corners(prop) {
                         claim!(
                             broken,
@@ -2513,13 +2663,8 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                         );
                         claim!(
                             broken,
-                            roads.clearance(corner, 0.0) >= lane - 0.011,
+                            in_road || roads.clearance(corner, 0.0) >= lane - 0.011,
                             "{at} is in the lane beside a carriageway's middle"
-                        );
-                        claim!(
-                            broken,
-                            roads.clearance(corner, 1.0) > 0.0,
-                            "{at} is on a carriageway"
                         );
                         claim!(
                             broken,
@@ -2942,7 +3087,37 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                     if index / every % 2 == 1 {
                         ends.swap(0, 1);
                     }
-                    for (rank, (kind, m)) in vehicles.iter().enumerate() {
+                    for (kind, m) in &vehicles {
+                        // Each end where the hull stands clear on the dressed
+                        // street, as an order's destination is placed: a car
+                        // abandoned in the road may stand on its middle.
+                        let unit = rules
+                            .catalog
+                            .indices()
+                            .find(|u| rules.catalog.id(*u) == kind)
+                            .unwrap();
+                        let hull = rules.catalog.get(unit).hull().unwrap().half_extents_m;
+                        let pockets = navigation::Pockets::default();
+                        let start = v2(ends[0][0], ends[0][1]);
+                        let Some(ends) = ends
+                            .iter()
+                            .map(|e| {
+                                after.grid.destination_point(
+                                    v2(e[0], e[1]),
+                                    m,
+                                    Some(hull[0].hypot(hull[1])),
+                                    start,
+                                    &pockets,
+                                )
+                            })
+                            .collect::<Option<Vec<_>>>()
+                            .map(|e| [[e[0].x, e[0].y], [e[1].x, e[1].y]])
+                        else {
+                            broken.push(note(format!(
+                                "{name}: a {kind} has no standing room near {ends:?}"
+                            )));
+                            continue;
+                        };
                         let arrives = |prepared: &PreparedMap| {
                             route(prepared, &rules, m, ends[0], ends[1]).filter(|(points, _)| {
                                 points.last().is_some_and(|end| {
@@ -2951,13 +3126,13 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                             })
                         };
                         // A drive down the street: by the street, not round it.
-                        let Some((open, shoved_before)) = arrives(&before)
+                        let Some((open, _)) = arrives(&before)
                             .filter(|(points, _)| length(ends[0], points) <= stretch + DETOUR_M)
                         else {
                             continue;
                         };
                         totals[3] += 1;
-                        let Some((dressed, shoves)) = arrives(&after) else {
+                        let Some((dressed, _)) = arrives(&after) else {
                             broken.push(note(format!(
                                 "{name}: no route for a {kind} from {:?} to {:?} any more",
                                 ends[0], ends[1]
@@ -2971,16 +3146,19 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                             ends[0],
                             ends[1]
                         );
-                        if rank == 0 && !shoved_before {
-                            totals[4] += 1;
-                            claim!(
-                                broken,
-                                !shoves,
-                                "{name}: a {kind} shoves a body to drive from {:?} to {:?}",
-                                ends[0],
-                                ends[1]
-                            );
-                        }
+                        // It may brush aside what it can shove (a tank a car
+                        // abandoned in its way, a truck a bench), never drive
+                        // through what it cannot.
+                        totals[4] += 1;
+                        let unshoved = crosses_unshoved(&maps[1], &rules, m, ends[0], &dressed);
+                        claim!(
+                            broken,
+                            unshoved.is_none(),
+                            "{name}: a {kind} drives from {:?} to {:?} through a {} it cannot shove",
+                            ends[0],
+                            ends[1],
+                            unshoved.unwrap_or_default()
+                        );
                     }
                 }
                 println!(
@@ -2992,7 +3170,8 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
         }
     }
     // The sweep asked something: assaults planned, doors stood at and walked
-    // to, streets driven, and driven by the widest hull without a shove.
+    // to, streets driven, and driven by every hull through nothing it cannot
+    // shove.
     assert!(
         broken.is_empty(),
         "{} claims broken:\n{}",
