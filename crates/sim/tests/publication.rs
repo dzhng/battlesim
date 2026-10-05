@@ -528,7 +528,7 @@ fn fog_snapshots_fit_the_admitted_extents_and_preserve_padding() {
             publication::pack_logical(&frame, &patch, &full_fog(), std::iter::empty(), &mut out)
                 .unwrap();
             assert!(
-                out.len() * 4 <= 20_250_108,
+                out.len() * 4 <= 20_250_000 + publication::HEADER_WORDS * 4,
                 "18 km at 2 m is the snapshot bound"
             );
             let tail = if cells.is_multiple_of(32) {
@@ -868,8 +868,8 @@ fn group_delivery_reconstructs_the_logical_oracle_across_side_and_epoch_changes(
         if wire[25] == 1.0 {
             previous.clear();
         }
-        let mut at = 27;
-        previous.resize_with(9, Vec::new);
+        let mut at = publication::HEADER_WORDS;
+        previous.resize_with(publication::GROUPS, Vec::new);
         for group in &mut previous {
             let decoded = codec::group(wire, at, group);
             at += 3 + wire[at + 2] as usize;
@@ -891,7 +891,7 @@ fn group_delivery_reconstructs_the_logical_oracle_across_side_and_epoch_changes(
         let actual: Vec<u32> = previous.iter().flatten().map(|f| f.to_bits()).collect();
         assert_eq!(
             actual,
-            oracle[27..row_end]
+            oracle[publication::HEADER_WORDS..row_end]
                 .iter()
                 .map(|f| f.to_bits())
                 .collect::<Vec<_>>(),
@@ -925,7 +925,7 @@ fn one_variable_route_change_does_not_resend_other_own_units() {
     battle.step();
     let mut publisher = publication::Publisher::new();
     let initial = publisher.publish(&battle, Side::Blue).unwrap().to_vec();
-    let old = codec::group(&initial, 27, &[]);
+    let old = codec::group(&initial, publication::HEADER_WORDS, &[]);
     assert!(battle
         .accept(CommandEnvelope {
             side: Side::Blue,
@@ -953,22 +953,22 @@ fn one_variable_route_change_does_not_resend_other_own_units() {
         "the route must finish planning within eight simulated seconds"
     );
     let wire = publisher.publish(&battle, Side::Blue).unwrap();
-    eprintln!("own route payload {} B", (3 + wire[29] as usize) * 4);
+    eprintln!("own route payload {} B", (3 + wire[publication::HEADER_WORDS + 2] as usize) * 4);
     assert!(
-        wire[27] > initial[27],
+        wire[publication::HEADER_WORDS] > initial[publication::HEADER_WORDS],
         "the own variable section must actually grow"
     );
-    let own_bytes = (3 + wire[29] as usize) * 4;
+    let own_bytes = (3 + wire[publication::HEADER_WORDS + 2] as usize) * 4;
     assert!(
         own_bytes < 2000,
         "one route change must retain the other 79 own units: {own_bytes} B"
     );
-    let words = codec::group(wire, 27, &old);
+    let words = codec::group(wire, publication::HEADER_WORDS, &old);
     let mut snapshot = publication::Publisher::new();
     let fresh = snapshot.publish(&battle, Side::Blue).unwrap();
     assert_eq!(
         words.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
-        codec::group(fresh, 27, &[])
+        codec::group(fresh, publication::HEADER_WORDS, &[])
             .iter()
             .map(|v| v.to_bits())
             .collect::<Vec<_>>()
@@ -987,10 +987,10 @@ fn cold_own_delivery_compacts_sparse_values_without_losing_the_logical_words() {
     let mut publisher = publication::Publisher::new();
     let data = publisher.publish(&battle, Side::Blue).unwrap();
     assert!(
-        data[29] < data[27],
+        data[publication::HEADER_WORDS + 2] < data[publication::HEADER_WORDS],
         "sparse cold own rows should reduce their canonical byte count: {} / {}",
-        data[29] * 4.0,
-        data[27] * 4.0
+        data[publication::HEADER_WORDS + 2] * 4.0,
+        data[publication::HEADER_WORDS] * 4.0
     );
     let frame = battle.observe(Side::Blue);
     let ground = publication::GroundHeader {
@@ -1011,11 +1011,11 @@ fn cold_own_delivery_compacts_sparse_values_without_losing_the_logical_words() {
     )
     .unwrap();
     assert_eq!(
-        codec::group(data, 27, &[])
+        codec::group(data, publication::HEADER_WORDS, &[])
             .iter()
             .map(|v| v.to_bits())
             .collect::<Vec<_>>(),
-        logical[27..27 + data[27] as usize]
+        logical[publication::HEADER_WORDS..publication::HEADER_WORDS + data[publication::HEADER_WORDS] as usize]
             .iter()
             .map(|v| v.to_bits())
             .collect::<Vec<_>>()

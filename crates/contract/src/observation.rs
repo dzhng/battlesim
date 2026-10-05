@@ -544,6 +544,22 @@ pub struct Corpse {
     pub yaw: f64,
 }
 
+/// A body that toppled (its row `topples`: a tree knocked down by a vehicle
+/// or felled by fire): a permanent record that blocks nothing and gives no
+/// cover. Presentation draws the fall and what lies after it.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FallenBody {
+    /// The body's exact identity (`KnownProp::id`, a trunk's prop id).
+    pub prop: u32,
+    /// Where its foot stood.
+    pub at: [f64; 2],
+    /// The horizontal unit direction it fell toward: the pushing hull's
+    /// travel, the felling round's flight, or away from the felling burst.
+    pub toward: [f64; 2],
+    /// The tick it fell, whenever this side learned of it.
+    pub tick: Tick,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ObservationFrame {
     pub tick: Tick,
@@ -563,6 +579,9 @@ pub struct ObservationFrame {
     pub blasts: Vec<Blast>,
     /// Own fallen, and enemy fallen this side has seen.
     pub corpses: Vec<Corpse>,
+    /// Toppled bodies this side knocked down or has seen where they stood.
+    #[serde(default)]
+    pub fallen_bodies: Vec<FallenBody>,
     /// This side's own guided missiles in flight.
     pub guided: Vec<GuidedMissile>,
     /// The fixture's completion condition, when it has one.

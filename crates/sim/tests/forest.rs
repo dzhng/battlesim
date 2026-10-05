@@ -313,6 +313,66 @@ fn a_side_that_did_not_see_a_tree_fall_keeps_it_standing() {
     assert_eq!(hidden.world().cleared_cells(), seen.world().cleared_cells());
 }
 
+/// A tree a tank knocks down falls the way the tank drives, and the
+/// tank's side knows it at once, with the tick it fell.
+#[test]
+fn a_knocked_tree_falls_along_the_hull_it_met() {
+    let mut b = Battle::new(&carve([990.0, 40.0]), 1);
+    let start: Vec<_> = b
+        .world()
+        .props()
+        .filter(|p| p.kind == common::kind("trunk"))
+        .map(|p| (p.id, p.center))
+        .collect();
+    run(&mut b, 60.0);
+    let fallen = &b.observe(Side::Blue).fallen_bodies;
+    let standing: Vec<_> = b.world().props().map(|p| p.id).collect();
+    let knocked: Vec<_> = start
+        .iter()
+        .filter(|(id, _)| !standing.contains(id))
+        .collect();
+    assert!(!knocked.is_empty(), "the tank knocked trees down");
+    assert_eq!(
+        fallen.len(),
+        knocked.len(),
+        "one record per tree it knocked"
+    );
+    for (id, center) in knocked {
+        let f = fallen
+            .iter()
+            .find(|f| f.prop == *id)
+            .unwrap_or_else(|| panic!("trunk {id} has no record"));
+        assert_eq!(f.at, [center.x, center.y]);
+        // The tank drives along +x through the wood.
+        assert!(f.toward[0] > 0.9, "trunk {id} fell toward {:?}", f.toward);
+        assert!((v2(f.toward[0], f.toward[1]).length() - 1.0).abs() < 1e-9);
+        assert!(f.tick > 0 && f.tick <= b.tick());
+    }
+}
+
+/// L1 for falls: a side learns of a tree another side knocked down only by
+/// seeing where it stood, and then learns when it fell, not when it looked.
+#[test]
+fn a_side_learns_a_fall_only_by_seeing_where_the_tree_stood() {
+    let watched = |at: [f64; 2]| {
+        let mut b = Battle::new(&carve(at), 1);
+        run(&mut b, 60.0);
+        b
+    };
+    let (hidden, seen) = (watched([990.0, 40.0]), watched([250.0, 40.0]));
+    assert!(hidden.observe(Side::Red).fallen_bodies.is_empty());
+    let red = &seen.observe(Side::Red).fallen_bodies;
+    assert!(!red.is_empty(), "the watcher down the lane saw trees down");
+    let blue = &seen.observe(Side::Blue).fallen_bodies;
+    for f in red {
+        assert_eq!(
+            Some(f),
+            blue.iter().find(|b| b.prop == f.prop),
+            "the same fall, whoever saw it"
+        );
+    }
+}
+
 /// 34c: the drawn fog's foliage follows ground a side has seen cleared. The
 /// static world's grid, less the trees standing on cleared ground, is the
 /// foliage the battle's world has at each cell's centre once those trees are

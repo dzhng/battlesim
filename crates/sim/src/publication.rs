@@ -142,7 +142,9 @@ const POSE_FIELDS: [&str; 7] = [
     "operatorHi",
 ];
 
-const HEADER: [&str; 27] = [
+/// Header words; the non-map groups' delivery metadata starts here.
+pub const HEADER_WORDS: usize = HEADER.len();
+const HEADER: [&str; 28] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -170,6 +172,7 @@ const HEADER: [&str; 27] = [
     "groundRevision",
     "groundFull",
     "groundRunCount",
+    "fallenBodyCount",
 ];
 const GROUND_FIELDS: [&str; 4] = ["tile", "span", "craterScorch", "tracksTrampledCleared"];
 const CONTACT_FIELDS: [&str; 9] = [
@@ -209,6 +212,7 @@ const CORPSE_FIELDS: [&str; 9] = [
     "slot",
     "yaw",
 ];
+const FALLEN_BODY_FIELDS: [&str; 7] = ["propLo", "propHi", "x", "y", "towardX", "towardY", "tick"];
 const KNOWN_PROP_FIELDS: [&str; 19] = [
     "kind",
     "x",
@@ -455,8 +459,14 @@ pub fn layout_json(battle: &Battle) -> String {
                 "fields": KNOWN_PROP_FIELDS,
                 "sections": [],
             },
+            {
+                "name": "fallenBodies",
+                "count": "fallenBodyCount",
+                "fields": FALLEN_BODY_FIELDS,
+                "sections": [],
+            },
         ],
-        "groupDelivery": { "fields": ["length", "encoding", "floats"], "range": ["start", "length"], "copy": ["source", "length"], "copyAlignments": (0..9).map(|g| fixed_row_width(g).max(1)).collect::<Vec<_>>(), "encodings": GROUP_ENCODINGS,
+        "groupDelivery": { "fields": ["length", "encoding", "floats"], "range": ["start", "length"], "copy": ["source", "length"], "copyAlignments": (0..GROUPS).map(|g| fixed_row_width(g).max(1)).collect::<Vec<_>>(), "encodings": GROUP_ENCODINGS,
             "packed": {
                 "bitOrder": "lsb-first in raw u32 carrier words",
                 "form": "u8: replacement=0, snapshot=1, copies=2",
@@ -647,7 +657,7 @@ impl Publisher {
             revision,
             changed: &changed,
         };
-        let mut ends = Vec::with_capacity(9);
+        let mut ends = Vec::with_capacity(GROUPS);
         pack_record(
             frame,
             &ground,
@@ -802,6 +812,7 @@ fn pack_record(
         ground.revision as f32,
         ground.full as u8 as f32,
         ground.count as f32,
+        frame.fallen_bodies.len() as f32,
     ]);
     for u in &frame.own {
         let [garrison_lo, garrison_hi] = limbs_or_absent(u.garrison.map(|g| g.building));
@@ -1086,6 +1097,21 @@ fn pack_record(
             authored_hi,
         ]);
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    for f in &frame.fallen_bodies {
+        let [lo, hi] = limbs(f.prop);
+        out.extend([
+            lo,
+            hi,
+            f.at[0] as f32,
+            f.at[1] as f32,
+            f.toward[0] as f32,
+            f.toward[1] as f32,
+            f.tick as f32,
+        ]);
+    }
     let word = |i: usize| {
         let value = fog.bits[i];
         if i + 1 == words && !cells.is_multiple_of(32) {
@@ -1189,6 +1215,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     add(frame.guided.len(), GUIDED_FIELDS.len())?;
     add(frame.corpses.len(), CORPSE_FIELDS.len())?;
     add(frame.known_props.len(), KNOWN_PROP_FIELDS.len())?;
+    add(frame.fallen_bodies.len(), FALLEN_BODY_FIELDS.len())?;
     add(fog, 1)?;
     add(runs, GROUND_FIELDS.len())?;
     Ok(length)
@@ -1508,6 +1535,9 @@ fn write_group_operations(
 /// Short exact spans remain reusable when variable metadata shifts their addresses.
 const VARIABLE_ANCHOR_WORDS: usize = 3;
 
+/// Non-map groups, in record order.
+pub const GROUPS: usize = 10;
+
 /// Variable-section groups cannot address complete rows by one fixed width.
 fn fixed_row_width(group: usize) -> usize {
     [
@@ -1520,6 +1550,7 @@ fn fixed_row_width(group: usize) -> usize {
         GUIDED_FIELDS.len(),
         CORPSE_FIELDS.len(),
         KNOWN_PROP_FIELDS.len(),
+        FALLEN_BODY_FIELDS.len(),
     ][group]
 }
 

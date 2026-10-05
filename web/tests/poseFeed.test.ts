@@ -137,6 +137,7 @@ const observation = (
   projectiles,
   blasts: [],
   corpses,
+  fallenBodies: [],
   guided: [],
   encounter: null,
   fog: { cellM: 8, nx: 0, ny: 0, bits: new Uint32Array(0) },

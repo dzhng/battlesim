@@ -231,6 +231,38 @@ fn destroyed_props_become_their_rows_state() {
     }
 }
 
+/// A tree a burst fells falls away from it: the record a watching side
+/// gets points from the burst to where the tree stood.
+#[test]
+fn a_tree_felled_by_a_burst_falls_away_from_it() {
+    let burst_at = v2(700.0, 300.0);
+    let events: Vec<Value> = (1..=4).map(|t| burst(t, [700.0, 300.0])).collect();
+    let mut b = battle(
+        json!([]),
+        json!([{ "shape":{"kind":"polygon","ring":[[680.0,280.0],[720.0,280.0],[720.0,320.0],[680.0,320.0]]}}]),
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [740.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
+        ]),
+        json!(events),
+    );
+    run(&mut b, 6);
+    let fallen = &b.observe(Side::Blue).fallen_bodies;
+    assert!(!fallen.is_empty(), "the bursts felled trees blue watched");
+    for f in fallen {
+        let away =
+            (v2(f.at[0], f.at[1]) - burst_at) * (1.0 / (v2(f.at[0], f.at[1]) - burst_at).length());
+        let toward = v2(f.toward[0], f.toward[1]);
+        assert!(
+            toward.dot(away) > 1.0 - 1e-9,
+            "trunk {} at {:?} fell toward {:?}",
+            f.prop,
+            f.at,
+            f.toward
+        );
+    }
+}
+
 /// Sandbags destroyed at tick 1, and blue's squad `at` some distance.
 fn sandbags_destroyed(blue_at: [f64; 2], destroy: bool) -> Battle {
     let events = if destroy {

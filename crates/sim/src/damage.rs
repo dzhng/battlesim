@@ -21,7 +21,7 @@ use crate::flight::{
     BodyId, FlightEvent, ImpactContext, ImpactDecision, ImpactResolver, Pose, ProjectileId, Struck,
 };
 use crate::ground::GroundLayer;
-use crate::math::{v3, V3};
+use crate::math::{v3, V2, V3};
 use crate::units::{hull_face_at, Unit};
 use crate::weapons::{Arsenal, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
@@ -251,7 +251,17 @@ pub struct Outcome {
     /// (victim, shooter): a hostile round damaged or suppressed the victim.
     pub attacked: Vec<(UnitId, UnitId)>,
     /// Structural damage rounds did to props they struck, in event order.
-    pub structural: Vec<(PropId, f64)>,
+    pub structural: Vec<StructuralHit>,
+}
+
+/// Structural damage to one body, and the horizontal way it pushed: a
+/// round's flight, or from a burst out to the body. A toppling body this
+/// destroys falls that way.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StructuralHit {
+    pub prop: PropId,
+    pub amount: f64,
+    pub toward: V2,
 }
 
 /// Where a body lives: (unit index, soldier index) or a vehicle.
@@ -317,7 +327,11 @@ pub fn resolve(
                     _ => None,
                 };
                 if let Some(prop) = struck.filter(|_| def.structural_damage > 0.0) {
-                    structural.push((prop.id, def.structural_damage * prop.body.armor));
+                    structural.push(StructuralHit {
+                        prop: prop.id,
+                        amount: def.structural_damage * prop.body.armor,
+                        toward: hit.velocity.xy(),
+                    });
                 }
                 if hit.detonated {
                     let at = hit.point + hit.normal * BLAST_LIFT_M;
@@ -388,7 +402,14 @@ pub fn resolve(
                 let def = &ctx.arsenal.weapons[round.weapon].def;
                 if let Some(prop) = ctx.world.prop(pass.prop) {
                     if def.structural_damage > 0.0 {
-                        structural.push((prop.id, def.structural_damage * prop.body.armor));
+                        // The pass knows only where it entered: the round
+                        // came from its shooter.
+                        let from = units[round.unit.0 as usize].position.xy();
+                        structural.push(StructuralHit {
+                            prop: prop.id,
+                            amount: def.structural_damage * prop.body.armor,
+                            toward: pass.point.xy() - from,
+                        });
                     }
                 }
             }
@@ -553,7 +574,7 @@ pub fn blast_props(
     def: &WeaponDefinition,
     at: V3,
     skip: Option<PropId>,
-    out: &mut Vec<(PropId, f64)>,
+    out: &mut Vec<StructuralHit>,
 ) {
     let radius = def.blast_radius_m;
     if radius <= 0.0 || def.structural_damage <= 0.0 {
@@ -570,10 +591,14 @@ pub fn blast_props(
         if r < radius {
             let amount = def.structural_damage * (1.0 - r / radius);
             if let Some(&index) = owners.get(&owner) {
-                out[index].1 = out[index].1.max(amount);
+                out[index].amount = out[index].amount.max(amount);
             } else {
                 owners.insert(owner, out.len());
-                out.push((owner, amount));
+                out.push(StructuralHit {
+                    prop: owner,
+                    amount,
+                    toward: prop.center - at.xy(),
+                });
             }
         }
     }

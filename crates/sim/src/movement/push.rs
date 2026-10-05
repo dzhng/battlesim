@@ -27,6 +27,8 @@ pub struct Shove {
     pub yaw: f64,
     /// The pusher's side: it learns at once what it moved (contact).
     pub by: Side,
+    /// The pusher's horizontal travel: the way a body it knocks down falls.
+    pub heading: V2,
 }
 
 /// What a hull moving to `next` from `here` meets among the bodies that
@@ -80,6 +82,7 @@ pub fn shove(
             center: prop.center,
             yaw: prop.yaw,
             by,
+            heading,
         });
     }
     let before = prop.footprint();
@@ -121,5 +124,6 @@ pub fn shove(
         center: rect.center,
         yaw: rect.yaw,
         by,
+        heading,
     })
 }

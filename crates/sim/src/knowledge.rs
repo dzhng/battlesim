@@ -66,6 +66,8 @@ pub struct SideKnowledge {
     /// Seen fallen, remembered for good. A fighting-floor corpse carries its
     /// last observed pose; `None` is an ordinary corpse whose anchor never moves.
     corpses: BTreeMap<u32, Option<Fallen>>,
+    /// Toppled bodies this side knocked down or saw where they stood.
+    fallen: BTreeSet<u32>,
     /// The ground as this side last saw it.
     ground: KnownGround,
 }
@@ -81,6 +83,7 @@ impl SideKnowledge {
             rng: Rng::new(seed),
             destroyed: BTreeSet::new(),
             corpses: BTreeMap::new(),
+            fallen: BTreeSet::new(),
             ground: KnownGround::new(ground),
         }
     }
@@ -124,6 +127,15 @@ impl SideKnowledge {
         self.corpses
             .get(&soldier)
             .map(|remembered| remembered.unwrap_or(actual))
+    }
+
+    /// The side knows toppled body `prop` is down, for good.
+    pub fn learn_fallen(&mut self, prop: u32) {
+        self.fallen.insert(prop);
+    }
+
+    pub fn knows_fallen(&self, prop: u32) -> bool {
+        self.fallen.contains(&prop)
     }
 
     /// An enemy fired: firing is disclosed map-wide, whatever the line of
@@ -471,6 +483,13 @@ impl SideKnowledge {
                             .support_building
                             .map_or(u64::MAX, |owner| owner as u64),
                     );
+            }
+        }
+        // Folded only once known, as the battle's fall log is.
+        if !self.fallen.is_empty() {
+            d.u64(self.fallen.len() as u64);
+            for prop in &self.fallen {
+                d.u64(u64::from(*prop));
             }
         }
         self.ground.digest(d);

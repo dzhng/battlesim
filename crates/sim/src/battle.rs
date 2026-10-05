@@ -9,7 +9,7 @@ use contract::command::{
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{MoverClass, PropDefinition};
 use contract::observation::{
-    Blast, Corpse, EncounterStatus, GuidedMissile, KnownProp, MemberOrder, MoveState,
+    Blast, Corpse, EncounterStatus, FallenBody, GuidedMissile, KnownProp, MemberOrder, MoveState,
     ObservationFrame, OwnUnit, Posture, SegmentHit, SegmentRicochet, ServiceStatus, SoundCue,
     SquadArea, UnitSight, VisibilityField, VisibleSegment,
 };
@@ -279,6 +279,9 @@ pub struct Battle {
     config_digest: u64,
     /// Transient bodies (a row with a `lifetime_s`) and the tick each goes.
     expiries: BTreeMap<PropId, Tick>,
+    /// Every toppling body that went down: where, which way and when. Each
+    /// side publishes those it knocked down or has seen where they stood.
+    fallen: BTreeMap<PropId, FallenBody>,
 }
 
 /// The parts of a round's flight over ground `fog` shows as seen, leg by leg
@@ -593,6 +596,7 @@ impl Battle {
             scenario_digest: scenario_digest(setup),
             config_digest: config_digest(setup),
             expiries: BTreeMap::new(),
+            fallen: BTreeMap::new(),
         };
         let authored: Vec<PropId> = battle.world.props().map(|p| p.id).collect();
         for id in authored {
@@ -1133,7 +1137,7 @@ impl Battle {
                 continue;
             };
             if prop.body.topples {
-                self.knock_down(prop, s.by);
+                self.knock_down(prop, s.by, s.heading);
                 continue;
             }
             for side in &mut self.sides {
@@ -1147,12 +1151,49 @@ impl Battle {
         }
     }
 
-    /// A vehicle of side `by` knocked a tree down (Q16): its body goes, and
-    /// its side replans without it at once (contact). Every other side
-    /// keeps it standing until it sees the ground where it stood (L1).
-    fn knock_down(&mut self, prop: crate::world::Prop, by: Side) {
+    /// A vehicle of side `by`, driving along `heading`, knocked a tree down
+    /// (Q16): its body goes and it falls the way the vehicle drove. Its side
+    /// replans without it and knows the fall at once (contact). Every other
+    /// side keeps it standing until it sees the ground where it stood (L1).
+    fn knock_down(&mut self, prop: crate::world::Prop, by: Side, heading: V2) {
         self.world.knock_down(prop.id);
         self.keep_standing(&prop, Some(by));
+        self.fell(&prop, heading);
+        self.knowledge[by.index()].learn_fallen(prop.id);
+    }
+
+    /// Record that toppling `prop` went down toward `toward` this tick. A
+    /// degenerate direction (a burst at the foot) falls back to one from the
+    /// body's id, so the record is always a unit vector and deterministic.
+    fn fell(&mut self, prop: &crate::world::Prop, toward: V2) {
+        let len = toward.length();
+        let toward = if len > 1e-9 {
+            toward * (1.0 / len)
+        } else {
+            // No trigonometry: it must match bit for bit in Wasm.
+            const D: f64 = std::f64::consts::FRAC_1_SQRT_2;
+            const COMPASS: [(f64, f64); 8] = [
+                (1.0, 0.0),
+                (D, D),
+                (0.0, 1.0),
+                (-D, D),
+                (-1.0, 0.0),
+                (-D, -D),
+                (0.0, -1.0),
+                (D, -D),
+            ];
+            let (x, y) = COMPASS[prop.id as usize % 8];
+            v2(x, y)
+        };
+        self.fallen.insert(
+            prop.id,
+            FallenBody {
+                prop: prop.id,
+                at: [prop.center.x, prop.center.y],
+                toward: [toward.x, toward.y],
+                tick: self.tick,
+            },
+        );
     }
 
     /// `prop` is gone: side `by` (the one that touched it) replans without
@@ -1174,15 +1215,16 @@ impl Battle {
     /// tank knocks through; a crate is removed; sandbags, a wall, a building
     /// or a wreck leave their remains on the same plan (a building's
     /// occupants escape its collapse, L10). No side learns of it by contact:
-    /// each sees it gone once it sees where it stood. Returns units destroyed.
-    fn destroy_prop(&mut self, id: PropId) -> Vec<UnitId> {
+    /// each sees it gone once it sees where it stood. A tree falls `toward`
+    /// the way the felling blow pushed. Returns units destroyed.
+    fn destroy_prop(&mut self, id: PropId, toward: V2) -> Vec<UnitId> {
         let Some(owner) = self.world.structure_owner(id) else {
             return Vec::new();
         };
         let parts = self.world.structure_parts(owner);
         let replacements: Vec<_> = parts
             .into_iter()
-            .filter_map(|part| self.destroy_part(part).map(|new| (part, new)))
+            .filter_map(|part| self.destroy_part(part, toward).map(|new| (part, new)))
             .collect();
         self.world.replace_building_parts(owner, &replacements);
         // All shells/remains are final before any occupant attempts escape.
@@ -1196,13 +1238,14 @@ impl Battle {
         )
     }
 
-    fn destroy_part(&mut self, id: PropId) -> Option<PropId> {
+    fn destroy_part(&mut self, id: PropId, toward: V2) -> Option<PropId> {
         let prop = self.world.prop(id).cloned()?;
         let state = self.world.prop_type(prop.kind).destroyed.clone()?;
         self.keep_standing(&prop, None);
         match state {
             Destroyed::Cleared => {
                 self.world.knock_down(id);
+                self.fell(&prop, toward);
                 // The tree's own share of the forest, out to its spacing.
                 let reach = if prop.forest_tree {
                     self.world.forest_rule().trunk_spacing_m
@@ -1317,9 +1360,9 @@ impl Battle {
         damage::blast_props(&self.world, &w.def, at, None, &mut structural);
         self.ground
             .burst(&self.world, at, w.def.blast_radius_m, &self.rules.ground);
-        for (prop, amount) in structural {
-            if self.structures.damage(&self.world, prop, amount) {
-                self.destroy_prop(prop);
+        for hit in structural {
+            if self.structures.damage(&self.world, hit.prop, hit.amount) {
+                self.destroy_prop(hit.prop, hit.toward);
             }
         }
     }
@@ -1568,9 +1611,9 @@ impl Battle {
         }
         let mut destroyed = outcome.destroyed;
         // Structural damage in event order; a prop is destroyed once (L10, Q17).
-        for (prop, amount) in outcome.structural {
-            if self.structures.damage(&self.world, prop, amount) {
-                destroyed.extend(self.destroy_prop(prop));
+        for hit in outcome.structural {
+            if self.structures.damage(&self.world, hit.prop, hit.amount) {
+                destroyed.extend(self.destroy_prop(hit.prop, hit.toward));
             }
         }
         for id in destroyed {
@@ -1856,6 +1899,11 @@ impl Battle {
         // Enemy fallen in view are remembered, and the ground in view learned.
         let knowledge = &mut self.knowledge[side.index()];
         knowledge.learn_ground(&self.ground, &field);
+        for f in self.fallen.values() {
+            if field.visible(f.at[0], f.at[1]) {
+                knowledge.learn_fallen(f.prop);
+            }
+        }
         for u in self.units.iter().filter(|u| u.side != side) {
             for s in &u.members {
                 if let Some(fallen) = s.corpse.filter(|f| field.visible(f.at.x, f.at.y)) {
@@ -2740,6 +2788,13 @@ impl Battle {
                     .partial_cmp(&(b.position[0], b.position[1]))
                     .unwrap()
             });
+            frame.fallen_bodies.clear();
+            frame.fallen_bodies.extend(
+                self.fallen
+                    .values()
+                    .filter(|f| knowledge.knows_fallen(f.prop))
+                    .cloned(),
+            );
         }
     }
 
@@ -2797,6 +2852,19 @@ impl Battle {
             d.u64(*id as u64).u64(*t);
         }
         self.structures.digest(&mut d);
+        // Folded only once something has fallen, so a battle where nothing
+        // topples keeps the digest it had before falls were recorded.
+        if !self.fallen.is_empty() {
+            d.u64(self.fallen.len() as u64);
+            for f in self.fallen.values() {
+                d.u64(u64::from(f.prop))
+                    .f64(f.at[0])
+                    .f64(f.at[1])
+                    .f64(f.toward[0])
+                    .f64(f.toward[1])
+                    .u64(f.tick);
+            }
+        }
         self.ground.digest(&mut d);
         self.projectiles.digest(&mut d);
         d.u64(self.rounds.len() as u64);
@@ -3022,7 +3090,7 @@ mod tests {
             "rules":rules,"units":[{"side":"blue","kind":"rifle","position":[250,100],"engagement":"return_fire_only"}],"events":[],"scripts":[]
         })).unwrap();
         let mut battle = Battle::new(&setup, 11);
-        battle.destroy_prop(0);
+        battle.destroy_prop(0, v2(1.0, 0.0));
         assert!(
             battle.sides[0].standing().contains_key(&1),
             "unseen wing remains remembered"
@@ -3174,7 +3242,7 @@ mod tests {
             }
             battle.sweep_fog(Side::Blue);
             assert!(!battle.fog[0].visible(remembered.position[0], remembered.position[1]));
-            battle.destroy_prop(0);
+            battle.destroy_prop(0, v2(1.0, 0.0));
             battle.observe_all();
             let physical = battle
                 .observe(Side::Red)
@@ -3203,7 +3271,7 @@ mod tests {
                 "an unseen collapse cannot move a remembered enemy corpse"
             );
             let mut unchanged = battle.damage_rng.clone();
-            battle.destroy_prop(0);
+            battle.destroy_prop(0, v2(1.0, 0.0));
             assert_eq!(
                 battle.damage_rng.unit(),
                 unchanged.unit(),

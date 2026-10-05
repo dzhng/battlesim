@@ -227,6 +227,19 @@ export interface CorpseView {
   yaw: number;
 }
 
+/** A toppled body (a felled tree) this side knocked down or saw where it
+ * stood: blocks nothing, gives no cover. Presentation draws its fall. */
+export interface FallenBodyView {
+  /** The body's prop id (a trunk's id in the props export). */
+  prop: number;
+  /** Where its foot stood. */
+  at: [number, number];
+  /** Horizontal unit direction it fell toward. */
+  toward: [number, number];
+  /** The tick it fell, however late this side learned of it. */
+  tick: number;
+}
+
 /**
  * What a weapon mount is doing, for posing its model (the renderer derives
  * the pose; the simulation never names an animation).
@@ -395,6 +408,7 @@ export interface ObservationView {
   projectiles: ProjectileView[];
   blasts: BlastView[];
   corpses: readonly CorpseView[];
+  fallenBodies: readonly FallenBodyView[];
   guided: GuidedView[];
   /** The fixture's completion condition, when it has one. */
   encounter: { heldS: number; result: string } | null;
@@ -404,9 +418,15 @@ export interface ObservationView {
 
 type Row = { field: (name: string) => number; sections: Record<string, number[][]> };
 
+/** Groups whose unchanged payload keeps its previous view (a stable reference). */
+const STATIC_GROUPS = ["corpses", "knownProps", "fallenBodies"] as const;
+type StaticGroup = (typeof STATIC_GROUPS)[number];
+const isStatic = (name: string): name is StaticGroup =>
+  (STATIC_GROUPS as readonly string[]).includes(name);
+
 type GroupBaseline = {
   words: Float32Array[];
-  staticViews: Pick<ObservationView, "corpses" | "knownProps">;
+  staticViews: Pick<ObservationView, StaticGroup>;
 };
 
 /** One ordered side-publication stream. Retained observations are immutable;
@@ -501,7 +521,11 @@ export class ObservationDecoder {
     this.fog = observation.fog;
     this.groupBaseline = {
       words: reconstructed.groups,
-      staticViews: { corpses: observation.corpses, knownProps: observation.knownProps },
+      staticViews: {
+        corpses: observation.corpses,
+        knownProps: observation.knownProps,
+        fallenBodies: observation.fallenBodies,
+      },
     };
     return observation;
   }
@@ -739,7 +763,11 @@ function decodeFrame(
 ): ObservationView {
   let cursor = tailOffset;
   const groups: Record<string, Row[]> = {};
-  const reuse = { corpses: false, knownProps: false };
+  const reuse: Record<StaticGroup, boolean> = {
+    corpses: false,
+    knownProps: false,
+    fallenBodies: false,
+  };
   for (const [index, group] of layout.groups.entries()) {
     const payload = payloads[index];
     let offset = 0;
@@ -751,7 +779,7 @@ function decodeFrame(
       throw new Error("observation group row count exceeds its payload");
     if (
       baseline !== null &&
-      (group.name === "corpses" || group.name === "knownProps") &&
+      isStatic(group.name) &&
       group.sections.length === 0 &&
       payload === baseline.words[index]
     ) {
@@ -1083,6 +1111,16 @@ function decodeFrame(
           yaw: f("yaw"),
         }),
       );
+  const fallenBodies = reuse.fallenBodies
+    ? baseline!.staticViews.fallenBodies
+    : groups.fallenBodies.map(
+        ({ field: f }): FallenBodyView => ({
+          prop: limbs(f, "prop")!,
+          at: [f("x"), f("y")],
+          toward: [f("towardX"), f("towardY")],
+          tick: f("tick"),
+        }),
+      );
   return {
     tick: header.tick,
     own,
@@ -1093,6 +1131,7 @@ function decodeFrame(
     projectiles,
     blasts,
     corpses,
+    fallenBodies,
     guided,
     encounter:
       header.encounterResult < 0
