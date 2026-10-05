@@ -53,6 +53,7 @@ const entry = (
   footprint,
   mounts: null,
   regionalFamily: null,
+  paints: null,
   bundle: bundle(...states),
 });
 
@@ -421,4 +422,48 @@ test("a tree is never a stand-in, in a forest or beside a street, and nothing is
     [],
   );
   expect(drawnModels([car], [], appearances)).toEqual([]);
+});
+
+test("a car wears one of its appearance's paints, the same car the same paint wherever it is shoved", () => {
+  const paints: Vec3[] = [
+    [0.9, 0.9, 0.88],
+    [0.2, 0.2, 0.2],
+    [0.45, 0.47, 0.3],
+  ];
+  const painted = new PropAppearances(
+    {
+      ...installed,
+      appearances: new Map([
+        ...installed.appearances,
+        ["parked_car", { ...entry("scenery", "parked_car", [2.1, 0.9, 0.75], "default"), paints }],
+      ]),
+    },
+    layout,
+    null,
+  );
+  const car = (id: number, x: number): MapProp => ({
+    id,
+    kind: "parked_car",
+    center: [x, 10],
+    yaw: 0,
+    half: [2.1, 0.9, 0.75],
+    baseZ: 0,
+  });
+  const street = Array.from({ length: 40 }, (_, i) => car(i, i * 5));
+  const linear = paints.map((p) => [...color.fromSRGB(p)].map((c) => +c.toFixed(5)).join());
+  const tints = drawnModels(street, [], painted).map((m) =>
+    m.tint!.map((c) => +c.toFixed(5)).join(),
+  );
+  // Each car one of the paints, and a street of them more than one.
+  expect(tints.every((t) => linear.includes(t))).toBe(true);
+  expect(new Set(tints).size).toBeGreaterThan(1);
+  // Shoved along the kerb, a car keeps its paint.
+  const [moved] = drawnModels(
+    street,
+    [{ ...car(7, 0), center: [61, 13], replaces: 7, authoredProp: 7 }],
+    painted,
+  ).filter((m) => m.x === 61);
+  expect(moved.tint!.map((c) => +c.toFixed(5)).join()).toBe(tints[7]);
+  // A prop whose appearance has no paints is drawn as authored.
+  expect(drawnModels(walls, [], painted).every((m) => m.tint === undefined)).toBe(true);
 });

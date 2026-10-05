@@ -44,8 +44,9 @@ if WRECK:
     rubber = textured("tyre", "burnt_metal", colour=(0.07, 0.04, 0.022), chip=0.2, dirt=0.2, ash=0.05, seed=13.0)
     lamp = tail = glass = trim
 else:
-    # one colour for every car: a pale, dusty grey that is neither side's tint
-    paint = textured("car_paint", "enamel", colour=(0.34, 0.35, 0.34), chip=0.35, dirt=0.8, rise=0.7, streak=0.15)
+    # a pale, dusty base each car's paint tints (the catalog's `paints`)
+    paint = textured("car_paint", "painted_enamel", colour=(0.6, 0.61, 0.6), tint=1.0, chip=0.35, dirt=0.8, rise=0.7,
+                     streak=0.15)
     trim = textured("trim", "rubber", chip=0.0, dirt=0.5, streak=0.0, rise=0.6)
     under = textured("floor_pan", "bare_steel", colour=(0.03, 0.03, 0.03), chip=0.2, dirt=1.0)
     wheel_m = textured("wheel", "galvanised", chip=0.2, dirt=0.15)

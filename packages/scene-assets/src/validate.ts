@@ -1173,6 +1173,36 @@ export function regionalFindings(
   return [];
 }
 
+/** A prop's paints are scenery's, sRGB colours within [0, 1], and land on
+ *  something: at least one of its `materials` takes a tint. */
+export function paintFindings(
+  name: string,
+  entry: Pick<AppearanceEntry, "unit" | "paints">,
+  materials: readonly { tint: number }[],
+): Finding[] {
+  const paints = entry.paints;
+  if (paints === undefined) return [];
+  const problem =
+    entry.unit !== "scenery"
+      ? `a ${entry.unit} appearance takes its side's tint, not paints`
+      : paints.length === 0
+        ? "it names no paint"
+        : !paints.every((p) => p.length === 3 && p.every((c) => c >= 0 && c <= 1))
+          ? "a paint is not an sRGB colour within [0, 1]"
+          : !materials.some((m) => m.tint > 0)
+            ? "no material of its art takes a tint, so no paint would show"
+            : null;
+  return problem
+    ? [
+        finding(
+          "structure.paints",
+          `${name}: paints: ${problem}`,
+          "give the art's paintable material extras tint > 0, and list sRGB paints for scenery",
+        ),
+      ]
+    : [];
+}
+
 /** Every unit type draws appearances the catalog has, of the right kind: a
  *  hull its vehicle appearance, each soldier kind of a squad every soldier
  *  appearance of its set. */

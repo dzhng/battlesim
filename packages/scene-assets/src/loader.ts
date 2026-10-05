@@ -48,6 +48,9 @@ export interface InstalledAppearance {
   /** The regional family it is a look of (catalog `regional_family`); null
    *  for one of every region. */
   regionalFamily: string | null;
+  /** The sRGB tints its paintable surfaces take, one per body (catalog
+   *  `paints`); null for an appearance drawn as authored. */
+  paints: Vec3[] | null;
   bundle: Exclude<Bundle, SkeletonClips>;
 }
 
@@ -260,6 +263,7 @@ export class AppearanceLibrary {
       footprint: entry.footprint_half_m ?? null,
       mounts: entry.mounts ?? null,
       regionalFamily: entry.regional_family ?? null,
+      paints: entry.paints ?? null,
       bundle,
     };
   }

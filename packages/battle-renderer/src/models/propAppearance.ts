@@ -12,7 +12,9 @@
 //   (a tank's wreck against a truck's);
 // - it is scaled per axis from its footprint to the box, except a module
 //   (a wall, a fence, a sandbag line) that is repeated along the
-//   box's long side instead of stretched.
+//   box's long side instead of stretched;
+// - where the appearance has paints (a car's), each body wears one, chosen
+//   by the authored prop it is, so a shoved car keeps its colour.
 //
 // A building's parts are not drawn here: a building is its template's rows,
 // intact, a ruin or a gutted shell (`buildingReferences.ts`).
@@ -26,6 +28,7 @@
 
 import type { Vec3 } from "math";
 import { color } from "math/color";
+import { mulberry32 } from "math/random";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standInKit";
 import type { StaticBundle } from "@packages/scene-assets/src/schema";
@@ -101,6 +104,8 @@ interface Candidate {
   name: string;
   footprint: Vec3;
   bundle: StaticBundle;
+  /** The tints its paintable surfaces take, linear; null where it has none. */
+  paints: Vec3[] | null;
 }
 
 /** The installed prop appearances, indexed by the simulation prop kind:
@@ -154,7 +159,12 @@ export class PropAppearances {
       );
       for (const kind of kinds) {
         const list = lists.get(kind) ?? [];
-        list.push({ name, footprint: entry.footprint, bundle: entry.bundle });
+        list.push({
+          name,
+          footprint: entry.footprint,
+          bundle: entry.bundle,
+          paints: entry.paints?.map((p) => [...color.fromSRGB(p)] as Vec3) ?? null,
+        });
         list.sort((a, b) => (a.name < b.name ? -1 : 1));
         lists.set(kind, list);
       }
@@ -207,7 +217,8 @@ export class PropAppearances {
     const [hx, hy, hz] = box.half;
     const ground = this.walkedOn.has(box.kind);
     if (!this.bindings[box.kind]?.modular) {
-      out.push(placed(chosen.name, box, 0, [hx / fx, hy / fy, hz / fz], 0, ground));
+      const model = placed(chosen.name, box, 0, [hx / fx, hy / fy, hz / fz], 0, ground);
+      out.push(chosen.paints ? { ...model, tint: paintOf(chosen.paints, box) } : model);
       return out;
     }
     // A module runs along its own long axis; turn it to the box's long side.
@@ -270,6 +281,16 @@ function placed(
     scale,
     pose: ground ? { kind: "static", state, ground } : { kind: "static", state },
   };
+}
+
+/** The paint `box` wears of `paints`: drawn from the authored prop it is (a
+ *  map prop's id, or the one a known body stands for), else from where it
+ *  stands, so the same car is the same colour in every battle. */
+function paintOf(paints: readonly Vec3[], box: PropBox | MapProp | KnownProp): Vec3 {
+  const authored = "id" in box ? box.id : "authoredProp" in box ? box.authoredProp : null;
+  const seed =
+    authored ?? Math.round(box.center[0] * 10) * 73856093 + Math.round(box.center[1] * 10);
+  return paints[Math.floor(mulberry32.sample(mulberry32.create(seed)) * paints.length)];
 }
 
 /** The static map's props, in exported order. */

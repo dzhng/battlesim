@@ -280,10 +280,12 @@ function report(result) {
   }
 }
 
+/** The bake's own directories: each named by its content's sha256. Others
+ *  under the runtime directory (the sound library's) are not the bake's. */
 function runtimeHashDirs() {
   return existsSync(RUNTIME)
     ? readdirSync(RUNTIME, { withFileTypes: true })
-        .filter((d) => d.isDirectory())
+        .filter((d) => d.isDirectory() && /^[0-9a-f]{64}$/.test(d.name))
         .map((d) => d.name)
     : [];
 }

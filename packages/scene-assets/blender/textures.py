@@ -514,11 +514,10 @@ def ammo_paint():
     return Baked(col, chips(1203, 16), normals_from_height(fbm(96, 1205, 2) * 0.3, 1.0), 1.0, 0.45 + 0.15 * n)
 
 
-@recipe("enamel", tile=2.0, wear=(0.1, 0.06, 0.04, 0.85))
-def enamel():
-    """Sprayed enamel on pressed steel (a car's body, a street cabinet, a skip): a pale
-    neutral gloss the vertex colour tints, a faint orange peel, road film in drifts and
-    fine scratches; the wear is primer going to rust."""
+def _enamel(tint):
+    """Sprayed enamel on pressed steel: a pale neutral gloss the vertex colour tints, a
+    faint orange peel, road film in drifts and fine scratches; the wear is primer going
+    to rust. `tint` is how much of its face takes its instance's tint."""
     peel = fbm(96, 3301, 2)
     film = smoothstep(0.45, 0.9, fbm(6, 3303, 4))
     scr = scratches(3307, 2)
@@ -527,7 +526,19 @@ def enamel():
     col = mix(col, (0.5, 0.5, 0.48), scr * 0.3)
     h = peel * 0.15 - scr * 0.4
     return Baked(col, chips(3309, 12, bias=0.12), normals_from_height(blur(h), 0.8), 1.0, 0.3 + 0.35 * film + 0.2 * scr,
-                 0.0, 0.0)
+                 0.0, tint)
+
+
+@recipe("enamel", tile=2.0, wear=(0.1, 0.06, 0.04, 0.85))
+def enamel():
+    """Enamel in the colour it was sprayed (a street cabinet, a skip, a kiosk)."""
+    return _enamel(0.0)
+
+
+@recipe("painted_enamel", tile=2.0, wear=(0.1, 0.06, 0.04, 0.85))
+def painted_enamel():
+    """Enamel whose colour is its instance's (a car wearing one of its catalog paints)."""
+    return _enamel(1.0)
 
 
 @recipe("galvanised", tile=0.6, wear=(0.09, 0.055, 0.035, 0.9))

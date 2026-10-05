@@ -30,6 +30,7 @@ import {
 } from "./templateSource.ts";
 import {
   hasErrors,
+  paintFindings,
   regionalFindings,
   typeAppearanceFindings,
   validateAppearance,
@@ -201,6 +202,8 @@ export async function bakeCatalog(
     if (result.bundle && result.bundle.kind !== "clips")
       result.findings.push(...(await bindInteriors(name, result.bundle, sheets)));
     result.findings.push(...regionalFindings(name, entry, context.regionalFamilies ?? []));
+    if (result.bundle && result.bundle.kind !== "clips")
+      result.findings.push(...paintFindings(name, entry, result.bundle.materials));
     const out =
       result.bundle && !hasErrors(result.findings)
         ? await emit(result.bundle, fetchedOnRequest(entry))
@@ -218,6 +221,7 @@ export async function bakeCatalog(
         ...(entry.footprint_half_m ? { footprint_half_m: entry.footprint_half_m } : {}),
         ...(entry.mounts ? { mounts: entry.mounts } : {}),
         ...(entry.regional_family ? { regional_family: entry.regional_family } : {}),
+        ...(entry.paints ? { paints: entry.paints } : {}),
       };
     reports.push({
       name,

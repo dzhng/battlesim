@@ -16,6 +16,7 @@ import {
   type SkeletonEntry,
 } from "@packages/scene-assets/src/schema.ts";
 import {
+  paintFindings,
   regionalFindings,
   typeAppearanceFindings,
   validateAppearance,
@@ -196,6 +197,11 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "structure.grass": async () => (await scenery("grass", { default: blockGlb(3) })).findings,
   "structure.regional_family": async () =>
     regionalFindings("crate_mars", { unit: "scenery", regional_family: "mars" }, ["paris"]),
+  // A paint brighter than white, and paints on art with nothing to paint.
+  "structure.paints": async () => [
+    ...paintFindings("car", { unit: "scenery", paints: [[1.2, 0.5, 0.5]] }, [{ tint: 1 }]),
+    ...paintFindings("car", { unit: "scenery", paints: [[0.5, 0.5, 0.5]] }, [{ tint: 0 }]),
+  ],
   "structure.texture": () =>
     tank(
       {},

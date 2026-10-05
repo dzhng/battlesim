@@ -36,6 +36,7 @@ export const FINDING_CODES = [
   "structure.states",
   "structure.scenery_kind",
   "structure.regional_family",
+  "structure.paints",
   "structure.texture",
   "structure.grass",
   // textures
@@ -208,9 +209,10 @@ export interface Material {
   base_color: [number, number, number, number];
   metallic: number;
   roughness: number;
-  /** The side-tint mask: how much of the side's tint this surface takes, 0..1
+  /** The tint mask: how much of its instance's tint this surface takes, 0..1
    *  (glTF material extras `tint`), times the ORM texture's alpha where the
-   *  material has one. Blue and red share one mesh. */
+   *  material has one: a body's side (blue and red share one mesh), or a
+   *  prop's paint (the catalog's `paints`). */
   tint: number;
   /** Baked textures, as indices into the bundle's `textures`. */
   textures?: MaterialTextures;
@@ -457,6 +459,10 @@ export interface AppearanceEntry {
    *  fetched only for a map of that family, which draws it in place of the
    *  looks of no region for its scenery kind. Absent: every map's. */
   regional_family?: string;
+  /** A prop's paints (sRGB): each placed body wears one on its paintable
+   *  surfaces (materials marked `tint`), chosen by which body it is. Absent:
+   *  every body as authored. */
+  paints?: Vec3[];
   /** A generated grass kind's spec: `asset grass` writes its one state's
    *  GLB from it (`grass.ts`). The bake reads the GLB, never the spec. */
   grass?: GrassSpec;
@@ -555,6 +561,7 @@ export interface RuntimeCatalog {
       footprint_half_m?: Vec3;
       mounts?: MountDraws;
       regional_family?: string;
+      paints?: Vec3[];
     }
   >;
   /** The template art library (`templateLibrary.ts`), when the catalog has
