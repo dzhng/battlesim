@@ -576,14 +576,14 @@ export function waterDistance(
   return bed;
 }
 
+/** Sides this near square to one another share a grid. */
+const SQUARE_RAD = (1.5 * Math.PI) / 180;
+
 /** Each paved triangle's area's slab bearing, in radians within a quarter
  *  turn: the bearing of the longest outer edge of the triangles joined to it
  *  by shared corners (one polygon, as the simulation triangulates it) or
  *  lying over it (an apron on a court), so overlapping paving lays its slabs
  *  on one grid, square to as much of the outline as it can be. */
-/** Sides this near square to one another share a grid. */
-const SQUARE_RAD = (1.5 * Math.PI) / 180;
-
 export function areaBearings(triangles: Float32Array, stride: number): Float32Array {
   const count = triangles.length / stride;
   const parent = Int32Array.from({ length: count }, (_, i) => i);

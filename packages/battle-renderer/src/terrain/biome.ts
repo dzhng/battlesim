@@ -171,7 +171,8 @@ export interface Road {
   /** The lines painted on its strokes; left out, the road has none. */
   markings?: Markings;
   /** The joints of the slabs it is laid in as an area (a court, an apron),
-   *  square to the nearest street; left out, an area has none. */
+   *  square to its outline's dominant bearing (`areaBearings`); left out, an
+   *  area has none. */
   slabs?: Slabs;
   /** A region's own finish of this kind: per regional family (the map's
    *  `regional_family`), the fields that differ from this row. A map of a

@@ -1489,9 +1489,9 @@ const groundMarks = tgpu
  *  grain; along a stroke's lanes it is shaded by its ruts (`groundRuts`), and
  *  a narrow track's middle goes to the verge's grass (`groundStrip`); a walk
  *  is crossed by its slabs' joints (`walkJoint`), an area by its own slabs'
- *  square to its nearest street. Last a street's painted
- *  lines (`groundMarks`), worn in patches, and its kerbstones along its edge
- *  (`groundCurb`). `paved` is the point's `groundPaved`. */
+ *  joints, square to its outline's dominant bearing (`areaBearings`). Last a
+ *  street's painted lines (`groundMarks`), worn in patches, and its
+ *  kerbstones along its edge (`groundCurb`). `paved` is the point's `groundPaved`. */
 const groundRoads = tgpu
   .fn(
     [d.vec2f, d.f32, GroundPaved, d.vec4f],
