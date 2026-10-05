@@ -1,45 +1,16 @@
 """Court and garden bodies, each authored to one simulation box (the presets'
-`street_props.bodies`): the rows of `fixtures/props/city/gardens.json` and `courts.json`.
-A `<kind>_<family>` is that region's look of a shared kind, on the shared kind's box.
+`street_props.bodies`). The kinds are the props of `fixtures/props/city/gardens.json`
+and `courts.json`, each a function below that returns its authored box's half extents;
+a `<kind>_<family>` is that region's look of a shared kind, on the shared kind's box.
 Generic: no brand, logo or sign.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/courts.py <kind> <out.glb>
 
-kind (box half extents, metres):
-  garden_shed   a timber apex shed: shiplap walls, a ledged door, a window, a felt roof; [1.2, 0.9, 1.1]
-  hedge         a clipped privet hedge, a 6 m module; [3.0, 0.4, 0.9]
-  garden_fence  close-board timber panels between posts on a gravel board, a 5.5 m module; [2.75, 0.05, 0.9]
-  washing_line  two T-posts, two lines, sheets and towels pegged out; [2.0, 0.1, 0.9]
-  garden_table  a slatted timber patio table with four chairs; [1.0, 0.7, 0.4]
-  bike_rack     four Sheffield stands, three bikes parked; [1.5, 0.9, 0.5]
-  playground_frame  a timber play tower: slide, ladder, net, monkey bars; [2.0, 1.5, 1.25]
-  swing         a two-seat A-frame swing; [1.7, 0.9, 1.1]
-China:
-  bike_shed     a blue steel-roofed shed, scooters and bikes under it; [5.0, 1.25, 1.2]
-  pingpong_table  a cast-concrete table-tennis table; [1.37, 0.76, 0.45]
-  outdoor_gym   a double air walker in blue and yellow; [0.8, 0.5, 0.9]
-  laundry_poles quilts airing and shirts on hangers between two posts; [3.0, 0.15, 1.0]
-  bench_china   lacquered slats on granite ends; the bench's box
-  bins_china    four lidded bins in the sorting colours; the bins' box
-  courtyard_wall  a rendered yard wall on a brick plinth, tiled coping, piers; a 2.5 m module; [1.25, 0.125, 1.0]
-New York:
-  iron_railing  black wrought-iron pickets between posts, a 1.5 m module; [0.75, 0.05, 0.75]
-  chainlink_fence  tall chain-link between posts, a 3 m module; [1.5, 0.05, 1.8]
-  basketball_hoop  a pole, perforated backboard, rim and chain net facing -y; [0.9, 0.6, 1.95]
-  basketball_court half a court, its baseline at -x; [7.0, 7.5, 0.02]
-  garage_row    three lock-up garages in block, shutters at -y; [4.5, 3.0, 1.3]
-  dumpster      a front-load dumpster; [1.0, 0.6, 0.65]
-  bench_new_york  the parks' slatted bench on cast-iron ends; the bench's box
-  bins_new_york the parks' wire litter basket and rubbish bags; the bins' box
-Paris:
-  kiosk         a green newspaper kiosk under an ogee roof; [1.5, 1.0, 1.5]
-  petanque_pitch  a stabilised-gravel boulodrome in timber edging; [7.5, 2.0, 0.02]
-  bench_paris   the city's park bench, slats and iron all green; the bench's box
-  bins_paris    two of the city's green litter hoops with their bags; the bins' box
-  plinth_railing  green iron pickets on a low limestone wall, a 1.5 m module; [0.75, 0.2, 0.9]
-
-A piece is capped at 1 MiB raw (specs/courtyards/README.md), so its recipes are
-embedded at `TEXTURE_PX`. The battle fits each placed box from the authored one.
+A modular boundary (a fence, a railing, a wall) is authored as one module, which the
+battle repeats along a placed panel, a whole number of times stretched a little to fit:
+its box here is one module, not the longest panel the presets lay.
+A piece is capped at 1 MiB raw, so its recipes are embedded at `TEXTURE_PX`. The battle
+fits each placed box from the authored one.
 Origin at the box's centre on the ground, +X along its first half extent.
 """
 import bpy, bmesh, sys, os, math, json, random
