@@ -123,7 +123,8 @@ fn request(directory: &std::path::Path) -> PathBuf {
         "template_catalog_hash": catalogue().hash(),
         "type": "mixed",
         "size": "medium",
-        "limits": {"max_authored_parts": 20_000, "max_bay_positions": 200_000, "max_ground_points": 200_000},
+        // The game's own limits, as it asks for a map.
+        "limits": serde_json::from_str::<serde_json::Value>(include_str!("../../../fixtures/generated-battle.json")).unwrap()["limits"],
     });
     std::fs::write(&path, request.to_string()).unwrap();
     path

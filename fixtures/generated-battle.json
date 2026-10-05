@@ -1,6 +1,6 @@
 {
   "limits": {
-    "max_authored_parts": 60000,
+    "max_authored_parts": 250000,
     "max_bay_positions": 600000,
     "max_ground_points": 200000
   },

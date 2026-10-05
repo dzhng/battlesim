@@ -132,7 +132,7 @@
     "max_expansions": 8
   },
   "navigation": {
-    "move_validation_work": 250000,
+    "move_validation_work": 375000,
     "move_rehearsal_m": 60,
     "work_per_tick": 4000,
     "search_cells_base": 20000,

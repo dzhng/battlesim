@@ -11,7 +11,9 @@ and units belong to [contract](../contract/README.md), with WebAssembly exposed 
 Battle state belongs in [the digest](src/digest.rs). Equal digests mean equal
 battles; replays must reproduce outcomes as well as presentation evidence. An
 optimization that changes a digest has changed behavior, even if a picture looks
-the same. Seeded randomness and iteration order are part of that contract.
+the same. Seeded randomness and iteration order are part of that contract. A body
+still where the map authored it is held by one digest of the authored props, taken
+when the world is built, so a tick's digest costs what changed, not the map's size.
 
 [Publication](src/publication.rs) exposes only the selected side's observation.
 Geometry, sensing, hearing and knowledge owners decide what that observation may
