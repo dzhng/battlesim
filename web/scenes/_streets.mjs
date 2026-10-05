@@ -3,6 +3,7 @@
 // on a street or on the country road by how wide the way under it is.
 import {
   BIOME,
+  classAt,
   classPixels,
   fixture,
   groundUnder,
@@ -44,9 +45,12 @@ const PAINT = 1.5;
 /** A group is judged on at least this many pixels. */
 const GROUP_PIXELS = 150;
 
-/** For each point `{ xy, out }` (`out` metres outside the paving, or under
- *  0 on it), the width of the way it lies on or beside: the shortest chord
- *  of road through it, or through the nearest road `out` from it. */
+/** For each point `{ xy, out, sd }` (`out` metres outside the paving, or
+ *  under 0 on it), the width of the way it lies on or beside: the shortest
+ *  chord of road through it, or through the nearest road `out` from it.
+ *  Beside the paving, the paving nearest it (`sd` metres off) must be that
+ *  road's: a court's paving runs up to the streets, and ground beside a
+ *  court is no street's walk (Infinity). */
 const wayWidths = (page, points) =>
   lab(
     page,
@@ -65,8 +69,15 @@ const wayWidths = (page, points) =>
         }
         return least;
       };
-      return points.map(({ xy: [x, y], out }) => {
+      const ring = (x, y, r, k) => [
+        x + r * Math.cos((k / 32) * 2 * Math.PI),
+        y + r * Math.sin((k / 32) * 2 * Math.PI),
+      ];
+      return points.map(({ xy: [x, y], out, sd }) => {
         if (out <= 0) return width(x, y);
+        for (let k = 0; k < 32; k++)
+          if (window.__lab.route.surfaceAt(...ring(x, y, sd + 0.5, k))?.kind === "paving")
+            return Infinity;
         let least = Infinity;
         for (let k = 0; k < 32; k++) {
           const a = (k / 32) * 2 * Math.PI;
@@ -106,7 +117,7 @@ export async function streetLooks(ctx) {
   const picked = {
     core: [sample(shot.mask, 41, (c) => c.roadSd < CORE_M), 0],
     walk: [sample(shot.mask, 13, within(WALK_M)), WALK_M[1]],
-    lawn: [sample(shot.mask, 29, within(LAWN_M)), LAWN_M[1]],
+    lawn: [sample(shot.mask, 13, within(LAWN_M)), LAWN_M[1]],
     curb: [sample(shot.mask, 3, within(CURB_M)), CURB_M[1]],
     middle: [sample(shot.mask, 2, (c) => c.roadSd <= MIDDLE_M), 0],
     lane: [sample(shot.mask, 41, within(LANE_M)), 0],
@@ -117,7 +128,7 @@ export async function streetLooks(ctx) {
     const world = await groundUnder(page, pixels);
     const widths = await wayWidths(
       page,
-      world.map(({ xy }) => ({ xy, out })),
+      world.map(({ xy }, i) => ({ xy, out, sd: classAt(shot.mask, ...pixels[i]).roadSd })),
     );
     groups[name] = {
       street: pixels.filter((_, i) => isStreet(widths[i])),
