@@ -6,7 +6,7 @@ use super::streets::Network;
 use super::Pass;
 use crate::layout::geometry::{add, distance, round_cm, scale, sub, Grid, Point, TAU};
 use crate::layout::rng::Stream;
-use crate::layout::LotRule;
+use crate::layout::{CourtParking, LotRule};
 use crate::{BuildingPlacement, Diagnostic, DiagnosticCode, DistrictPlan, LotPlan, MapPlan};
 use contract::ground::GroundShape;
 use contract::map::{BuildingPartReference, SurfaceArea, SurfaceKind};
@@ -112,14 +112,27 @@ impl<'a> Ground<'a> {
 
     /// A parcel may stand here: inside its district, off every carriageway
     /// and forest, and on no other parcel.
-    fn clear(&self, rect: &Rect, site: &Site) -> bool {
-        rect.inside(&site.district.ring)
+    fn clear(&self, rect: &Rect, district: &DistrictPlan, forests: &[&[Point]]) -> bool {
+        rect.inside(&district.ring)
             && !self.network.covers(rect)
-            && !site.forests.iter().any(|ring| rect.touches(ring))
+            && !forests.iter().any(|ring| rect.touches(ring))
             && !self.lot_grid.any(rect.bounds(), |item| {
                 // Neighbours share a boundary; a centimetre is rounding.
                 rect.overlaps(&self.lots[item as usize], 0.01)
             })
+    }
+
+    /// The forests near enough `district` to matter.
+    fn forests_near(&self, district: &DistrictPlan) -> Vec<&'a [Point]> {
+        let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
+        self.forests
+            .iter()
+            .copied()
+            .filter(|ring| {
+                let b = contract::ground::limits(ring, 0.0);
+                !(b[0] > x1 || b[2] < x0 || b[1] > y1 || b[3] < y0)
+            })
+            .collect()
     }
 
     /// Cut parcels along every carriageway that runs through the district
@@ -127,23 +140,89 @@ impl<'a> Ground<'a> {
     pub fn fill(&mut self, pass: &Pass, district: &DistrictPlan) -> Result<usize, Vec<Diagnostic>> {
         let rule = pass.district(district)?.lots;
         let mut rng = pass.stream(&format!("lots/{}", district.id));
-        let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
-        let apart = |b: &[f64; 4]| b[0] > x1 || b[2] < x0 || b[1] > y1 || b[3] < y0;
         let site = Site {
             district,
             rule,
             choices: pass.choices(district)?,
-            forests: self
-                .forests
-                .iter()
-                .copied()
-                .filter(|ring| !apart(&contract::ground::limits(ring, 0.0)))
-                .collect(),
+            forests: self.forests_near(district),
         };
         let before = self.buildings.len();
         self.first_lot = self.plan_lots.len();
-        let network = self.network;
-        for way in network.ways.iter().filter(|way| !apart(&way.bounds)) {
+        for (run, half_width) in self.runs(district) {
+            for side in [1.0, -1.0] {
+                let frontage = Frontage {
+                    run: &run,
+                    side,
+                    offset: half_width + pass.presets.parcels.verge_m,
+                };
+                self.march(pass, &site, frontage, &mut rng);
+            }
+        }
+        Ok(self.buildings.len() - before)
+    }
+
+    /// Car parks along every carriageway that runs through the district, on
+    /// ground its parcels left: each a rectangle `rule` sizes, fronting the
+    /// street as a parcel does, at most one to `rule.every_m` of a street's
+    /// side, each as long as the most bays that fit. They are kept as
+    /// parcels are, so no later parcel or car park stands on one.
+    pub fn parking(
+        &mut self,
+        pass: &Pass,
+        district: &DistrictPlan,
+        rule: &CourtParking,
+    ) -> Vec<[Point; 4]> {
+        let mut rng = pass.stream(&format!("parking/{}", district.id));
+        let forests = self.forests_near(district);
+        let width = 2.0 * rule.bay_m[1] + rule.aisle_m;
+        let step = pass.presets.parcels.lot_step_m;
+        // A verge kept off every other carriageway, as a parcel's street
+        // edge is off its own.
+        let verge = pass.presets.parcels.verge_m - 0.01;
+        let mut parks = Vec::new();
+        for (run, half_width) in self.runs(district) {
+            for side in [1.0, -1.0] {
+                let frontage = Frontage {
+                    run: &run,
+                    side,
+                    offset: half_width + pass.presets.parcels.verge_m,
+                };
+                let mut s = rng.unit() * rule.every_m;
+                while s < run.length() {
+                    let found = (rule.bays[0]..=rule.bays[1]).rev().find_map(|bays| {
+                        let depth = bays as f64 * rule.bay_m[0];
+                        frontage.place(s, width, depth).filter(|park| {
+                            let kept = Rect {
+                                center: add(park.rect.center, scale(park.inward, verge / 2.0)),
+                                half: [park.rect.half[0] + verge, park.rect.half[1] + verge / 2.0],
+                                ..park.rect
+                            };
+                            self.clear(&park.rect, district, &forests)
+                                && !self.network.covers(&kept)
+                        })
+                    });
+                    let Some(park) = found else {
+                        s += step;
+                        continue;
+                    };
+                    self.lot_grid
+                        .insert(park.rect.bounds(), self.lots.len() as u32);
+                    self.lots.push(park.rect);
+                    parks.push(park.rect.corners().map(round_cm));
+                    s += width + rule.every_m;
+                }
+            }
+        }
+        parks
+    }
+
+    /// The stretches of each carriageway inside `district`, with its half
+    /// width.
+    fn runs(&self, district: &DistrictPlan) -> Vec<(Run, f64)> {
+        let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
+        let apart = |b: &[f64; 4]| b[0] > x1 || b[2] < x0 || b[1] > y1 || b[3] < y0;
+        let mut found = Vec::new();
+        for way in self.network.ways.iter().filter(|way| !apart(&way.bounds)) {
             // The stretches of this carriageway inside the district.
             let mut runs: Vec<Vec<Point>> = Vec::new();
             for pair in way.samples.windows(2) {
@@ -172,19 +251,12 @@ impl<'a> Ground<'a> {
                     }
                 }
             }
-            for points in runs {
-                let run = Run::new(points);
-                for side in [1.0, -1.0] {
-                    let frontage = Frontage {
-                        run: &run,
-                        side,
-                        offset: way.half_width + pass.presets.parcels.verge_m,
-                    };
-                    self.march(pass, &site, frontage, &mut rng);
-                }
-            }
+            found.extend(
+                runs.into_iter()
+                    .map(|points| (Run::new(points), way.half_width)),
+            );
         }
-        Ok(self.buildings.len() - before)
+        found
     }
 
     /// Walk one side of a street, cutting a parcel wherever a template of
@@ -204,7 +276,7 @@ impl<'a> Ground<'a> {
                 let Some(lot) = frontage.lot(s, fit, rule) else {
                     continue;
                 };
-                if !self.clear(&lot.rect, site) {
+                if !self.clear(&lot.rect, site.district, &site.forests) {
                     continue;
                 }
                 advance = 2.0 * lot.rect.half[0];
@@ -336,6 +408,13 @@ impl Frontage<'_> {
     /// `None` when the run ends first or bends too far to front it.
     pub fn lot(&self, s: f64, fit: &Fit, rule: &LotRule) -> Option<Lot> {
         let [width, depth] = fit.lot(rule);
+        self.place(s, width, depth)
+    }
+
+    /// A rectangle `width` along the front from `s` metres along the run
+    /// and `depth` deep: `None` when the run ends first or bends too far to
+    /// front it.
+    pub fn place(&self, s: f64, width: f64, depth: f64) -> Option<Lot> {
         if s + width > self.run.length() {
             return None;
         }

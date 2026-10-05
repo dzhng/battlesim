@@ -135,17 +135,31 @@ pub struct LotPlan {
     pub ring: Vec<[f64; 2]>,
 }
 
-/// A district's court: its block interior, paved between its buildings.
+/// A paved piece of a dense district's block: a built parcel's yard or a
+/// car park. The district's ground under neither, off its carriageways, is
+/// its lawn.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CourtPlan {
-    /// `settlement-3/district-2/court`, stable for a request.
+    /// `<parcel id>/yard` or `<district id>/parking-<n>`, stable for a
+    /// request.
     pub id: String,
-    /// The district it is the interior of.
+    /// The district it lies in.
     pub district: String,
-    /// A convex ring inside the district's, counter-clockwise.
+    pub kind: CourtKind,
+    /// Its corners, counter-clockwise: a yard's from its street side, as its
+    /// parcel's; a car park's from the corner left of its mouth on the street.
     #[serde(deserialize_with = "contract::numbers::points")]
     pub ring: Vec<[f64; 2]>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CourtKind {
+    /// A built parcel's own ground, its building standing on it.
+    Yard,
+    /// Bays either side of an aisle that opens on a carriageway.
+    Parking,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]

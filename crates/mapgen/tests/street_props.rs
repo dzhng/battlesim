@@ -32,12 +32,11 @@ const DOORS_WALKED: usize = 40;
 const STREETS_DRIVEN: usize = 40;
 /// How many dressed gardens of a map a squad walks to the back of.
 const GARDENS_WALKED: usize = 40;
-/// How many places among a map's court amenities a squad walks to and the
-/// widest hull drives to: points of a grid this fine over its courts, within
-/// this of an amenity.
-const COURTS_WALKED: usize = 40;
+/// How many places of a map's dense districts a squad walks to and the
+/// widest hull drives to (its yards' gates, its car parks and points of a
+/// grid this fine over its lawn), spread evenly through the map's own order.
+const COURTS_WALKED: usize = 60;
 const COURT_STEP_M: f64 = 6.0;
-const COURT_NEAR_M: f64 = 12.0;
 /// A drive down a dressed street is at most this much longer than down the
 /// bare one.
 const DETOUR_M: f64 = 30.0;
@@ -576,7 +575,9 @@ fn nothing_stands_on_a_bridge_or_in_an_open_approach() {
 
 /// The garden rows these tests state for the suburb and the village,
 /// whatever the shipped presets are tuned to: every lot dressed, a boundary
-/// round most of them, as many pieces as a rear garden holds.
+/// round most of them, as many pieces as a rear garden holds. The dense
+/// districts' courts stand no amenity groups, so every garden kind placed
+/// (a lawn's hedge is one) is a garden's.
 const GARDEN_PIECES: [&str; 3] = ["garden_shed", "washing_line", "garden_table"];
 const GARDEN_BOUNDARY: [&str; 2] = ["hedge", "garden_fence"];
 const GARDEN_MOST: usize = 12;
@@ -591,6 +592,11 @@ fn gardens(source: &mut Value) {
             "pieces": GARDEN_PIECES.map(|kind| json!({ "kind": kind, "count": [0, 1] })),
             "max_per_lot": GARDEN_MOST,
         });
+    }
+    for kind in COURT_DISTRICTS {
+        let courts = &mut source["districts"][kind]["props"]["courts"];
+        courts["groups"] = json!({});
+        courts["families"] = json!({});
     }
 }
 
@@ -898,10 +904,10 @@ fn same_heading(a: f64, b: f64) -> bool {
     turn < 1e-3 || std::f64::consts::PI - turn < 1e-3
 }
 
-/// Court amenities stand whole, inside their courts, and only a map's own
-/// family's signature pieces stand on it. On a town of each region every
-/// piece of a court group lies wholly inside the court of a district that
-/// paves one, off every building's walls; every piece belongs to a group
+/// Court amenities stand whole, in yards or on the lawn, and only a map's
+/// own family's signature pieces stand on it. On a town of each region every
+/// piece of a court group lies wholly inside a yard, or on a dense
+/// district's lawn off every yard and car park, off every building's walls; every piece belongs to a group
 /// whose every piece stands where the group puts it (a fenced group with its
 /// fence round it and its gate open); both the shared group and the map's
 /// own family's group are placed; and no kind of another family's group is.
@@ -912,7 +918,20 @@ fn court_groups_stand_whole_in_their_courts_and_keep_to_their_family() {
         let groups = &presets.street_props.groups;
         let map = compiled(&plan, &[], &request);
         let wall_gap = presets.street_props.wall_gap_m;
-        let courts: Vec<&[Point]> = plan.courts.iter().map(|c| c.ring.as_slice()).collect();
+        let yards: Vec<&[Point]> = plan
+            .courts
+            .iter()
+            .filter(|c| c.kind == mapgen::CourtKind::Yard)
+            .map(|c| c.ring.as_slice())
+            .collect();
+        let paved: Vec<&[Point]> = plan.courts.iter().map(|c| c.ring.as_slice()).collect();
+        let dense: Vec<&[Point]> = plan
+            .settlements
+            .iter()
+            .flat_map(|s| &s.districts)
+            .filter(|d| COURT_DISTRICTS.contains(&d.kind.as_str()))
+            .map(|d| d.ring.as_slice())
+            .collect();
         let court_kinds = court_kinds(&presets);
         // Every court piece, and whether a whole group claims it.
         let pieces: Vec<&PropDefinition> = props
@@ -921,11 +940,14 @@ fn court_groups_stand_whole_in_their_courts_and_keep_to_their_family() {
             .collect();
         for prop in &pieces {
             let at = format!("{family}: a {} at {:?}", prop.kind, prop.center);
-            assert!(
-                courts
+            let within = |ring: &&[Point]| corners(prop).iter().all(|p| polygon_contains(ring, *p));
+            let on_lawn = dense.iter().any(within)
+                && !paved
                     .iter()
-                    .any(|ring| corners(prop).iter().all(|p| polygon_contains(ring, *p))),
-                "{at} stands in no court"
+                    .any(|ring| corners(prop).iter().any(|p| polygon_contains(ring, *p)));
+            assert!(
+                yards.iter().any(within) || on_lawn,
+                "{at} stands in no yard and on no lawn"
             );
             for (others, signature) in SIGNATURES {
                 assert!(
@@ -1065,8 +1087,8 @@ fn court_groups_stand_whole_in_their_courts_and_keep_to_their_family() {
 
 /// The presets refuse a court group that names a body `street_props` lacks,
 /// a family table for a family the map regions do not list, a court table
-/// naming a group that does not exist, and a fenced group whose panels leave
-/// its corners open.
+/// naming a group that does not exist, and a fenced group whose fixed-length
+/// panels leave its corners open.
 #[test]
 fn a_court_group_naming_an_unknown_body_family_or_group_is_refused() {
     let edits: [(&str, fn(&mut Value)); 4] = [
@@ -1080,7 +1102,9 @@ fn a_court_group_naming_an_unknown_body_family_or_group_is_refused() {
         ("districts.core.props.courts", |source| {
             source["districts"]["core"]["props"]["courts"]["groups"] = json!({ "maze": 1 });
         }),
+        // A fixed-length fence (a modular one is cut to its sides).
         ("street_props.groups.hoops", |source| {
+            source["street_props"]["groups"]["hoops"]["fence"] = "heras_fence".into();
             source["street_props"]["groups"]["hoops"]["size_m"] = json!([20, 18.45]);
         }),
     ];
@@ -1219,52 +1243,58 @@ fn courts_and_gardens_keep_off_the_woods_that_certify_sight() {
 
 /// The regions a map is generated in.
 const REGIONS: [&str; 3] = ["china", "new_york", "paris"];
-/// The fill sweep runs every type, size and region on these seeds.
+/// The structure sweep runs every type, size and region on these seeds.
 const FILL_SEEDS: [u64; 3] = [1, 2, 3];
-/// Court ground is empty farther than this from every body, building and
-/// carriageway: a dressed court leaves no open plaza wider than a street
-/// block's depth.
-const EMPTY_M: f64 = 12.0;
+/// Court paving is open farther than this from every body, building wall,
+/// carriageway and lawn: a stretch of bare floor wider than a street with
+/// its verges, which reads as an empty plaza.
+const OPEN_M: f64 = 6.0;
 /// The court ground is sampled at points this far apart.
 const FILL_STEP_M: f64 = 2.0;
-/// At most this share of the court ground of each region is empty, over
-/// every map.
-const MOST_EMPTY: f64 = 0.05;
-/// At most this share of the court ground of each district kind of each
-/// region is empty, over the maps whose authored parts stop short of the
-/// request's limit: where the courts are not short of parts.
-const MOST_EMPTY_DRESSED: f64 = 0.01;
+/// At most this share of each region's court paving is open, over every map
+/// (before yards, car parks and lawns it was 19–20 %).
+const MOST_OPEN: f64 = 0.05;
+/// At most this share of the court paving of each district kind of each
+/// region is open, over the maps whose authored parts stop short of the
+/// request's limit: where the courts are not short of parts (before, the
+/// apartments' courts were 29–31 % open).
+const MOST_OPEN_DRESSED: f64 = 0.04;
 
-/// Points of a map marked within `EMPTY_M` of something, on the fill grid.
-struct Near {
+/// A flag for each point of a map's sampling grid.
+struct Raster {
     columns: usize,
+    rows: usize,
     marked: Vec<bool>,
 }
 
-impl Near {
+impl Raster {
     fn new(size: [f64; 2]) -> Self {
         let columns = (size[0] / FILL_STEP_M) as usize + 1;
         let rows = (size[1] / FILL_STEP_M) as usize + 1;
-        Near {
+        Raster {
             columns,
+            rows,
             marked: vec![false; columns * rows],
         }
     }
 
     fn cell(&self, column: i64, row: i64) -> Option<usize> {
-        let rows = (self.marked.len() / self.columns) as i64;
-        (column >= 0 && row >= 0 && (column as usize) < self.columns && row < rows)
+        (column >= 0 && row >= 0 && (column as usize) < self.columns && (row as usize) < self.rows)
             .then(|| row as usize * self.columns + column as usize)
     }
 
-    /// Mark every point within `EMPTY_M` of the box (centre, yaw, half
+    fn at(&self, column: i64, row: i64) -> bool {
+        self.cell(column, row).is_some_and(|cell| self.marked[cell])
+    }
+
+    /// Mark every point within `reach` of the box (centre, yaw, half
     /// extents).
-    fn mark_box(&mut self, center: Point, yaw: f64, half: [f64; 2]) {
-        let reach = half[0].hypot(half[1]) + EMPTY_M;
+    fn mark_box(&mut self, center: Point, yaw: f64, half: [f64; 2], reach: f64) {
+        let outer = half[0].hypot(half[1]) + reach;
         let (sin, cos) = yaw.sin_cos();
         let span = |v: f64| {
-            (((v - reach) / FILL_STEP_M).ceil() as i64)
-                ..=(((v + reach) / FILL_STEP_M).floor() as i64)
+            (((v - outer) / FILL_STEP_M).ceil() as i64)
+                ..=(((v + outer) / FILL_STEP_M).floor() as i64)
         };
         for row in span(center[1]) {
             for column in span(center[0]) {
@@ -1277,16 +1307,15 @@ impl Near {
                 ];
                 let local = [d[0] * cos + d[1] * sin, d[1] * cos - d[0] * sin];
                 let out = [0, 1].map(|axis| (local[axis].abs() - half[axis]).max(0.0));
-                if out[0].hypot(out[1]) <= EMPTY_M {
+                if out[0].hypot(out[1]) <= reach {
                     self.marked[cell] = true;
                 }
             }
         }
     }
 
-    /// Mark every point within `EMPTY_M` of a carriageway's edge.
-    fn mark_stroke(&mut self, a: Point, b: Point, half_width: f64) {
-        let reach = half_width + EMPTY_M;
+    /// Mark every point within `reach` of a segment.
+    fn mark_segment(&mut self, a: Point, b: Point, reach: f64) {
         let span = |u: f64, v: f64| {
             (((u.min(v) - reach) / FILL_STEP_M).ceil() as i64)
                 ..=(((u.max(v) + reach) / FILL_STEP_M).floor() as i64)
@@ -1303,18 +1332,36 @@ impl Near {
             }
         }
     }
+
+    /// Mark every point inside `ring`, and call `each` with it.
+    fn mark_ring(&mut self, ring: &[Point], mut each: impl FnMut(i64, i64)) {
+        let [x0, y0, x1, y1] = contract::ground::limits(ring, 0.0);
+        for row in (y0 / FILL_STEP_M).ceil() as i64..=(y1 / FILL_STEP_M).floor() as i64 {
+            for column in (x0 / FILL_STEP_M).ceil() as i64..=(x1 / FILL_STEP_M).floor() as i64 {
+                let p = [column as f64 * FILL_STEP_M, row as f64 * FILL_STEP_M];
+                if let Some(cell) = self.cell(column, row) {
+                    if polygon_contains(ring, p) {
+                        self.marked[cell] = true;
+                        each(column, row);
+                    }
+                }
+            }
+        }
+    }
 }
 
-/// Courts read as lived in, not as empty plazas. On every type and size of
-/// map in every region, at three seeds each, the court ground of the dense
-/// districts is sampled on a 2 m grid, and a point is empty when it lies
-/// farther than `EMPTY_M` from every body, building wall and carriageway.
-/// Each region's share of empty court ground stays under `MOST_EMPTY`, and
-/// on the maps the part limit does not bind, each district kind's under
-/// `MOST_EMPTY_DRESSED`.
+/// Courts are structured ground, not empty plazas. On every type and size
+/// of map in every region, at three seeds each, the court paving of the
+/// dense districts is sampled on a 2 m grid, and a point is open when it lies
+/// farther than `OPEN_M` from every body (a boundary's included), building
+/// wall, carriageway and lawn (a dense district's ground under no court
+/// paving and no carriageway). Each region's share of open court paving
+/// stays under `MOST_OPEN`, and on the maps the part limit does not bind,
+/// each district kind's under `MOST_OPEN_DRESSED`: at the limit the courts
+/// are dressed thinly, the apartments' wide yards the most open.
 #[test]
-fn courts_are_dressed_rather_than_left_as_empty_plazas() {
-    // (region, district kind, whether the part limit binds) → (empty
+fn courts_are_structured_rather_than_left_as_open_plazas() {
+    // (region, district kind, whether the part limit binds) → (open
     // points, points).
     let mut tally: BTreeMap<(&str, String, bool), [usize; 2]> = BTreeMap::new();
     for region in REGIONS {
@@ -1330,17 +1377,16 @@ fn courts_are_dressed_rather_than_left_as_empty_plazas() {
                         &sim::fixtures::game().to_string(),
                     )
                     .unwrap_or_else(|failure| panic!("{:?}", failure.diagnostics));
-                    let mut near = Near::new(plan.size);
+                    let mut near = Raster::new(plan.size);
+                    let mut road = Raster::new(plan.size);
                     for prop in &plan.props {
                         let p = &prop.geometry;
-                        near.mark_box(p.center, p.yaw, [p.half_extents[0], p.half_extents[1]]);
+                        let half = [p.half_extents[0], p.half_extents[1]];
+                        near.mark_box(p.center, p.yaw, half, OPEN_M);
                     }
                     for part in result.map.buildings.iter().flat_map(|b| &b.geometry.parts) {
-                        near.mark_box(
-                            part.center,
-                            part.yaw,
-                            [part.half_extents[0], part.half_extents[1]],
-                        );
+                        let half = [part.half_extents[0], part.half_extents[1]];
+                        near.mark_box(part.center, part.yaw, half, OPEN_M);
                     }
                     for area in plan.surfaces.iter().filter(|area| area.kind.is_road()) {
                         if let GroundShape::Stroke {
@@ -1349,34 +1395,48 @@ fn courts_are_dressed_rather_than_left_as_empty_plazas() {
                         } = &area.shape
                         {
                             for pair in centerline.samples().windows(2) {
-                                near.mark_stroke(pair[0], pair[1], width_m / 2.0);
+                                near.mark_segment(pair[0], pair[1], width_m / 2.0 + OPEN_M);
+                                road.mark_segment(pair[0], pair[1], width_m / 2.0);
                             }
                         }
                     }
                     let bound = result.report.authored_parts >= request.limits.max_authored_parts;
+                    let mut paved = Raster::new(plan.size);
+                    let mut cells: Vec<(String, i64, i64)> = Vec::new();
                     let kinds = district_kinds(&plan);
                     for court in &plan.courts {
-                        let kind = kinds[court.district.as_str()].to_string();
+                        let kind = kinds[court.district.as_str()];
+                        paved.mark_ring(&court.ring, |column, row| {
+                            cells.push((kind.to_string(), column, row))
+                        });
+                    }
+                    let mut dense = Raster::new(plan.size);
+                    for district in plan.settlements.iter().flat_map(|s| &s.districts) {
+                        if COURT_DISTRICTS.contains(&district.kind.as_str()) {
+                            dense.mark_ring(&district.ring, |_, _| ());
+                        }
+                    }
+                    let lawn = |column: i64, row: i64| {
+                        dense.at(column, row) && !paved.at(column, row) && !road.at(column, row)
+                    };
+                    let reach = (OPEN_M / FILL_STEP_M) as i64;
+                    cells.sort();
+                    cells.dedup();
+                    for (kind, column, row) in cells {
                         let entry = tally.entry((region, kind, bound)).or_insert([0, 0]);
-                        let [x0, y0, x1, y1] = contract::ground::limits(&court.ring, 0.0);
-                        for row in
-                            (y0 / FILL_STEP_M).ceil() as i64..=(y1 / FILL_STEP_M).floor() as i64
-                        {
-                            for column in
-                                (x0 / FILL_STEP_M).ceil() as i64..=(x1 / FILL_STEP_M).floor() as i64
-                            {
-                                let p = [column as f64 * FILL_STEP_M, row as f64 * FILL_STEP_M];
-                                if !polygon_contains(&court.ring, p) {
-                                    continue;
-                                }
-                                entry[1] += 1;
-                                if near
-                                    .cell(column, row)
-                                    .is_some_and(|cell| !near.marked[cell])
-                                {
-                                    entry[0] += 1;
-                                }
-                            }
+                        entry[1] += 1;
+                        if near.at(column, row) {
+                            continue;
+                        }
+                        let by_lawn = (-reach..=reach).any(|dy| {
+                            (-reach..=reach).any(|dx| {
+                                (dx * dx + dy * dy) as f64 * FILL_STEP_M * FILL_STEP_M
+                                    <= OPEN_M * OPEN_M
+                                    && lawn(column + dx, row + dy)
+                            })
+                        });
+                        if !by_lawn {
+                            entry[0] += 1;
                         }
                     }
                 }
@@ -1385,38 +1445,278 @@ fn courts_are_dressed_rather_than_left_as_empty_plazas() {
     }
     let mut regions: BTreeMap<&str, [usize; 2]> = BTreeMap::new();
     let mut broken = Vec::new();
-    for ((region, kind, bound), [empty, all]) in &tally {
-        let share = *empty as f64 / *all as f64;
+    for ((region, kind, bound), [open, all]) in &tally {
         let limited = if *bound {
             "at the part limit"
         } else {
             "short of it"
         };
+        let share = *open as f64 / *all as f64;
         println!(
-            "{region} {kind}, {limited}: {:.1} % of {all} court points empty",
+            "{region} {kind}, {limited}: {:.2} % of {all} court points open",
             100.0 * share
         );
-        if !bound && (*all < 10_000 || share >= MOST_EMPTY_DRESSED) {
+        if !bound && share >= MOST_OPEN_DRESSED {
             broken.push(format!(
-                "{region} {kind}: {:.1} % of {all} points",
+                "{region} {kind}: {:.2} % of {all} points",
                 100.0 * share
             ));
         }
         let total = regions.entry(region).or_insert([0, 0]);
-        total[0] += empty;
+        total[0] += open;
         total[1] += all;
     }
-    for (region, [empty, all]) in &regions {
-        let share = *empty as f64 / *all as f64;
+    for (region, [open, all]) in &regions {
+        let share = *open as f64 / *all as f64;
         println!(
-            "{region}: {:.1} % of {all} court points empty",
+            "{region}: {:.2} % of {all} court points open",
             100.0 * share
         );
-        if share >= MOST_EMPTY {
-            broken.push(format!("{region}: {:.1} % of {all} points", 100.0 * share));
+        if share >= MOST_OPEN {
+            broken.push(format!("{region}: {:.2} % of {all} points", 100.0 * share));
         }
     }
-    assert!(broken.is_empty(), "too much empty court ground: {broken:?}");
+    assert!(broken.is_empty(), "too much open court paving: {broken:?}");
+}
+
+/// The yard and car park rows these tests state, whatever the shipped
+/// presets are tuned to: each region its own boundary kind.
+const YARD_GATE_M: f64 = 4.0;
+const BOUNDARIES: [(&str, &str); 3] = [
+    ("china", "courtyard_wall"),
+    ("new_york", "iron_railing"),
+    ("paris", "plinth_railing"),
+];
+const BAY_M: [f64; 2] = [2.6, 5.2];
+const AISLE_M: f64 = 6.5;
+
+fn yards_and_parking(source: &mut Value) {
+    for kind in COURT_DISTRICTS {
+        let courts = &mut source["districts"][kind]["props"]["courts"];
+        courts["yards"] = json!({
+            "boundary": BOUNDARIES
+                .iter()
+                .map(|(family, kind)| (family.to_string(), json!({ *kind: 1 })))
+                .collect::<serde_json::Map<String, Value>>(),
+            "gate_m": YARD_GATE_M,
+            "front_inset_m": 3,
+        });
+        courts["parking"] =
+            json!({ "bay_m": BAY_M, "aisle_m": AISLE_M, "bays": [3, 8], "every_m": 40 });
+    }
+}
+
+/// Whether `p` lies within the strip from `a` to `b`, `half` either side of
+/// its line.
+fn in_strip(a: Point, b: Point, half: f64, p: Point) -> bool {
+    let length = span(a, b);
+    let along = [(b[0] - a[0]) / length, (b[1] - a[1]) / length];
+    let d = [p[0] - a[0], p[1] - a[1]];
+    let s = d[0] * along[0] + d[1] * along[1];
+    let t = d[1] * along[0] - d[0] * along[1];
+    (0.0..=length).contains(&s) && t.abs() <= half
+}
+
+/// Each yard is bounded, with a gate before each door, and each car park
+/// keeps its aisle. On a town of each region: the boundary of a yard is its
+/// region's kind, standing along its parcel's edges; together the yards'
+/// sides and rears are covered along most of their length bar their gates
+/// (a side the building stands too near for a vehicle to drive by is the
+/// building's own); no body stands
+/// in the way out from any door of a dense district's building through its
+/// yard's boundary, a gate's width wide; and a car park's cars stand in its
+/// two rows of bays, its aisle open from its mouth on the street to its far
+/// end.
+#[test]
+fn yards_are_bounded_with_gates_and_car_parks_keep_their_aisles() {
+    let presets = presets_with(yards_and_parking);
+    let hull_way = widest_hull(&rules().catalog) + presets.street_props.group_margin_m;
+    for (region, kind) in BOUNDARIES {
+        let mut request = request(MapType::Mixed, MapSize::Small, 1);
+        request.region = Some(region.into());
+        let plan = fill_districts(
+            generate_layout(&request, &presets).unwrap(),
+            &request,
+            &catalogue(),
+            &presets,
+        )
+        .unwrap();
+        let props: Vec<PropDefinition> = dressed(&plan, &request, &presets, &rules())
+            .into_iter()
+            .map(|prop| prop.geometry)
+            .collect();
+        let map = compiled(&plan, &[], &request);
+        let boundaries = ["courtyard_wall", "iron_railing", "plinth_railing"];
+        for prop in props
+            .iter()
+            .filter(|p| boundaries.contains(&p.kind.as_str()))
+        {
+            assert_eq!(
+                prop.kind, kind,
+                "{region}: a {} at {:?}",
+                prop.kind, prop.center
+            );
+        }
+        let panels: Vec<&PropDefinition> = props.iter().filter(|p| p.kind == kind).collect();
+        let buildings: BTreeMap<&str, usize> = plan
+            .buildings
+            .iter()
+            .enumerate()
+            .map(|(index, building)| (building.id.as_str(), index))
+            .collect();
+        let (mut covered, mut length, mut doors, mut cars) = (0.0, 0.0, 0, 0);
+        for court in &plan.courts {
+            let frame = LotFrame::new(&court.ring);
+            match court.kind {
+                mapgen::CourtKind::Yard => {
+                    // Its sides and rear, each covered where a panel along
+                    // it stands within a panel's thickness of it, its own
+                    // or its neighbour's; a side its building stands too
+                    // near for a vehicle to drive between is the building's.
+                    let lot = court.id.strip_suffix("/yard").unwrap();
+                    let building = &map.buildings[buildings[lot]];
+                    let parts: Vec<Point> = building
+                        .geometry
+                        .parts
+                        .iter()
+                        .flat_map(|part| {
+                            let (sin, cos) = part.yaw.sin_cos();
+                            [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]].map(|[u, v]| {
+                                let (x, y) = (u * part.half_extents[0], v * part.half_extents[1]);
+                                [
+                                    part.center[0] + cos * x - sin * y,
+                                    part.center[1] + sin * x + cos * y,
+                                ]
+                            })
+                        })
+                        .collect();
+                    let entrances: Vec<(Point, Point)> = building
+                        .geometry
+                        .entrances
+                        .iter()
+                        .flatten()
+                        .map(|door| ([door.position[0], door.position[1]], door.normal))
+                        .collect();
+                    for (a, b) in [
+                        (court.ring[1], court.ring[2]),
+                        (court.ring[2], court.ring[3]),
+                        (court.ring[3], court.ring[0]),
+                    ] {
+                        let width = span(a, b);
+                        let along = [(b[0] - a[0]) / width, (b[1] - a[1]) / width];
+                        // Along the edge, and off its line.
+                        let local = |p: Point| {
+                            let d = [p[0] - a[0], p[1] - a[1]];
+                            [
+                                d[0] * along[0] + d[1] * along[1],
+                                d[1] * along[0] - d[0] * along[1],
+                            ]
+                        };
+                        let near = parts
+                            .iter()
+                            .map(|p| local(*p)[1].abs())
+                            .fold(f64::INFINITY, f64::min);
+                        if near < hull_way + 0.5 {
+                            continue;
+                        }
+                        let mut spans: Vec<[f64; 2]> = panels
+                            .iter()
+                            .filter(|p| {
+                                local(p.center)[1].abs() <= 2.0 * p.half_extents[1] + 0.1
+                                    && same_heading(p.yaw, along[1].atan2(along[0]))
+                            })
+                            .map(|p| {
+                                let s = local(p.center)[0];
+                                [s - p.half_extents[0], s + p.half_extents[0]]
+                            })
+                            .collect();
+                        spans.sort_by(|x, y| x[0].total_cmp(&y[0]));
+                        let mut reach = 0.0_f64;
+                        for [from, to] in spans {
+                            let (from, to) = (from.max(reach).max(0.0), to.min(width));
+                            if to > from {
+                                covered += to - from;
+                                reach = to;
+                            }
+                        }
+                        // Its openings: its gate, and the way out from each
+                        // door that faces it.
+                        let facing = entrances
+                            .iter()
+                            .filter(|(_, out)| out[1] * along[0] - out[0] * along[1] < -0.5)
+                            .count() as f64;
+                        let gates = YARD_GATE_M + facing * 2.0 * presets.street_props.door_clear_m;
+                        length += (width - gates).max(0.0);
+                    }
+                    // Out from each door through the yard's boundary.
+                    for door in building.geometry.entrances.iter().flatten() {
+                        let from = [door.position[0], door.position[1]];
+                        let out = door.normal;
+                        let edge = (1..80)
+                            .map(|k| [from[0] + out[0] * k as f64, from[1] + out[1] * k as f64])
+                            .find(|p| !polygon_contains(&court.ring, *p))
+                            .unwrap();
+                        let to = [edge[0] + out[0], edge[1] + out[1]];
+                        for prop in &props {
+                            assert!(
+                                corners(prop).iter().chain([&prop.center]).all(|p| {
+                                    !in_strip(from, to, YARD_GATE_M / 2.0 - 0.1, *p)
+                                }),
+                                "{region}: a {} at {:?} stands in the way out of {lot}'s door at {from:?}",
+                                prop.kind,
+                                prop.center
+                            );
+                        }
+                        doors += 1;
+                    }
+                }
+                mapgen::CourtKind::Parking => {
+                    let mouth = frame.at(frame.width / 2.0, -presets.parcels.verge_m);
+                    let end = frame.at(frame.width / 2.0, frame.depth);
+                    for prop in &props {
+                        assert!(
+                            corners(prop)
+                                .iter()
+                                .chain([&prop.center])
+                                .all(|p| !in_strip(mouth, end, AISLE_M / 2.0 - 0.05, *p)),
+                            "{region}: a {} at {:?} stands in the aisle of {}",
+                            prop.kind,
+                            prop.center,
+                            court.id
+                        );
+                    }
+                    let parked: Vec<&PropDefinition> = props
+                        .iter()
+                        .filter(|p| {
+                            p.kind == "parked_car" && polygon_contains(&court.ring, p.center)
+                        })
+                        .collect();
+                    for car in &parked {
+                        let local = frame.local(car.center);
+                        let row = local[0].min(frame.width - local[0]);
+                        assert!(
+                            (row - BAY_M[1] / 2.0).abs() < 0.05,
+                            "{region}: a car at {:?} stands out of {}'s rows",
+                            car.center,
+                            court.id
+                        );
+                    }
+                    cars += parked.len();
+                }
+            }
+        }
+        let share = covered / length;
+        println!("{region}: {:.0} % of {length:.0} m of yard sides and rears bounded; {doors} doors; {cars} cars in car parks", 100.0 * share);
+        assert!(
+            share >= 0.8,
+            "{region}: {:.0} % of yard sides and rears bounded",
+            100.0 * share
+        );
+        assert!(
+            doors >= 500 && cars >= 200,
+            "{region}: {doors} doors, {cars} cars"
+        );
+    }
 }
 
 /// The same request places the same bodies, courts and gardens included,
@@ -1631,8 +1931,9 @@ macro_rules! claim {
 ///   still walks there from its settlement's centre;
 /// - a squad still walks from there to the back garden of every dressed lot
 ///   it could walk to before;
-/// - a squad still walks, and the widest hull still drives, from there into
-///   every court among its amenities wherever it could before;
+/// - a squad still walks into every yard through its gates, and the widest
+///   hull still drives to every yard's front gate, and both to every car
+///   park's aisle and over the lawn, from there, wherever they could before;
 /// - every hull of the catalog still drives down every street it drove down
 ///   before, by a way no longer than a detour round one parked run, and the
 ///   widest of them without shoving a body.
@@ -1657,7 +1958,6 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
         .max_by_key(|unit| unit.squad_size())
         .unwrap();
     let on_foot = sim::units::mobility(squad, &rules);
-    let court_kinds = court_kinds(&presets);
     let mut totals = [0usize; 7];
     let mut broken: Vec<String> = Vec::new();
     for map_type in MapType::ALL {
@@ -1879,40 +2179,91 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                     }
                 }
 
-                // Courts: open ground among each court's amenities, walked
-                // to from the settlement's centre and driven to by the widest
-                // hull, each as far as it went on the bare court.
-                let near: Vec<Point> = props
+                // Courts: inside each yard's rear gate (on foot), outside its
+                // front gate (by the widest hull), each car park's aisle and
+                // the lawn (both), from the settlement's centre, wherever
+                // the mover went on the bare map.
+                let mut goals: Vec<(Point, bool)> = Vec::new();
+                let doors: BTreeMap<&str, Vec<(Point, Point)>> = bare
+                    .buildings
                     .iter()
-                    .filter(|prop| court_kinds.contains(prop.kind.as_str()))
-                    .map(|prop| prop.center)
+                    .zip(&maps[0].buildings)
+                    .map(|(placed, building)| {
+                        let doors = building
+                            .geometry
+                            .entrances
+                            .iter()
+                            .flatten()
+                            .map(|door| ([door.position[0], door.position[1]], door.normal))
+                            .collect();
+                        (placed.id.as_str(), doors)
+                    })
                     .collect();
-                let mut grounds: Vec<Point> = Vec::new();
+                let clear_of_bodies = |p: Point| {
+                    !props.iter().any(|prop| {
+                        let (sin, cos) = prop.yaw.sin_cos();
+                        let d = [p[0] - prop.center[0], p[1] - prop.center[1]];
+                        (d[0] * cos + d[1] * sin).abs() < prop.half_extents[0] + 1.0
+                            && (d[1] * cos - d[0] * sin).abs() < prop.half_extents[1] + 1.0
+                    })
+                };
                 for court in &bare.courts {
-                    let [x0, y0, x1, y1] = contract::ground::limits(&court.ring, 0.0);
+                    let frame = LotFrame::new(&court.ring);
+                    match court.kind {
+                        mapgen::CourtKind::Yard => {
+                            goals.push((frame.at(frame.width / 2.0, frame.depth - 2.5), false));
+                            let lot = court.id.strip_suffix("/yard").unwrap();
+                            if let Some(&(door, out)) = doors.get(lot).and_then(|d| d.first()) {
+                                // Out along the door's line to past the
+                                // parcel's street edge.
+                                let front = (0..60)
+                                    .map(|k| {
+                                        [door[0] + out[0] * k as f64, door[1] + out[1] * k as f64]
+                                    })
+                                    .find(|p| !polygon_contains(&court.ring, *p));
+                                if let Some(front) = front {
+                                    let gate = [front[0] + out[0] * 2.0, front[1] + out[1] * 2.0];
+                                    goals.push((gate, true));
+                                }
+                            }
+                        }
+                        mapgen::CourtKind::Parking => {
+                            goals.push((frame.at(frame.width / 2.0, frame.depth / 2.0), true));
+                        }
+                    }
+                }
+                let lawn_rings: Vec<&[Point]> = bare
+                    .lots
+                    .iter()
+                    .map(|lot| lot.ring.as_slice())
+                    .chain(bare.courts.iter().map(|court| court.ring.as_slice()))
+                    .collect();
+                for district in bare.settlements.iter().flat_map(|s| &s.districts) {
+                    if !COURT_DISTRICTS.contains(&district.kind.as_str()) {
+                        continue;
+                    }
+                    let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
                     let mut y = (y0 / COURT_STEP_M).ceil() * COURT_STEP_M;
                     while y <= y1 {
                         let mut x = (x0 / COURT_STEP_M).ceil() * COURT_STEP_M;
                         while x <= x1 {
                             let p = [x, y];
-                            if polygon_contains(&court.ring, p)
-                                && near.iter().any(|q| span(*q, p) < COURT_NEAR_M)
+                            if polygon_contains(&district.ring, p)
+                                && roads.clearance(p, 0.0) > lane
+                                && !lawn_rings.iter().any(|ring| polygon_contains(ring, p))
                             {
-                                grounds.push(p);
+                                goals.push((p, true));
                             }
                             x += COURT_STEP_M;
                         }
                         y += COURT_STEP_M;
                     }
                 }
-                let every = (grounds.len() / COURTS_WALKED).max(1);
-                for goal in grounds.iter().step_by(every) {
-                    let open = !props.iter().any(|prop| {
-                        let (sin, cos) = prop.yaw.sin_cos();
-                        let d = [goal[0] - prop.center[0], goal[1] - prop.center[1]];
-                        (d[0] * cos + d[1] * sin).abs() < prop.half_extents[0] + 1.0
-                            && (d[1] * cos - d[0] * sin).abs() < prop.half_extents[1] + 1.0
-                    });
+                let every = (goals.len() / COURTS_WALKED).max(1);
+                for (goal, driven) in goals.iter().step_by(every) {
+                    if !clear_of_bodies(*goal) {
+                        continue;
+                    }
                     let Some(centre) = sites
                         .settlements
                         .iter()
@@ -1921,17 +2272,19 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                     else {
                         continue;
                     };
-                    if !open {
-                        continue;
-                    }
-                    for (mover, m, near_m) in [
-                        ("squad", &on_foot, 3.0),
-                        (vehicles[0].0.as_str(), &vehicles[0].1, 6.0),
-                    ] {
+                    let movers: &[(&str, &Mobility, f64)] = if *driven {
+                        &[
+                            ("squad", &on_foot, 3.0),
+                            (vehicles[0].0.as_str(), &vehicles[0].1, 6.0),
+                        ]
+                    } else {
+                        &[("squad", &on_foot, 3.0)]
+                    };
+                    for (mover, m, near_m) in movers {
                         let arrives = |prepared: &PreparedMap| {
                             route(prepared, &rules, m, centre, *goal).is_some_and(|(points, _)| {
                                 points.last().is_some_and(|end| {
-                                    (*end - v2(goal[0], goal[1])).length() < near_m
+                                    (*end - v2(goal[0], goal[1])).length() < *near_m
                                 })
                             })
                         };
@@ -1940,7 +2293,7 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                             claim!(
                                 broken,
                                 arrives(&after),
-                                "{name}: no way for a {mover} from {centre:?} into the court at {goal:?}"
+                                "{name}: no way for a {mover} from {centre:?} to the court ground at {goal:?}"
                             );
                         }
                     }

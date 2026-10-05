@@ -194,7 +194,7 @@ fn fill(
                 ));
             }
         }
-        let (courts, paving) = courts::lay(&pass, &network, &plan, &ground.plan_lots)?;
+        let (courts, paving) = courts::lay(&pass, &plan, &mut ground)?;
         (
             ground.plan_lots,
             ground.buildings,
