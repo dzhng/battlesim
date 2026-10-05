@@ -73,6 +73,10 @@ pub(super) struct Field<'a> {
     pub(super) wood_grid: Grid,
     pub(super) wood_clear: f64,
     pub(super) groups: u32,
+    /// Every fence panel placed, with its group: no other fence runs
+    /// beside one (`beside_run`).
+    pub(super) runs: Vec<(Rect, u32)>,
+    pub(super) run_grid: Grid,
     pub(super) placed: Vec<AuthoredPropDefinition>,
 }
 
@@ -222,6 +226,27 @@ impl<'a> Field<'a> {
                 .insert(forest.shape.limits(), self.woods.len() as u32);
             self.woods.push(&forest.shape);
         }
+    }
+
+    /// Whether a fence panel `c` would run beside another group's fence,
+    /// the way it runs and nearer than `gap`: two runs side by side, with
+    /// ground between them that is no one's. One that meets it end on (a
+    /// side against a neighbour's rear) does not.
+    pub(super) fn beside_run(&self, c: &Candidate, gap: f64) -> bool {
+        self.run_grid.any(grow(c.rect.bounds(), gap), |item| {
+            let (run, group) = &self.runs[item as usize];
+            let along = c.rect.axis[0] * run.axis[0] + c.rect.axis[1] * run.axis[1];
+            *group != c.group && libm::fabs(along) > 0.95 && !apart(&c.rect, run, gap)
+        })
+    }
+
+    /// Stand fence panel `c` as a body of `kind`, as [`Field::place`] does,
+    /// and remember it as a run.
+    pub(super) fn place_run(&mut self, kind: &str, body: &PropBox, c: &Candidate) {
+        self.run_grid
+            .insert(c.rect.bounds(), self.runs.len() as u32);
+        self.runs.push((c.rect, c.group));
+        self.place(kind, body, c);
     }
 
     pub(super) fn group(&mut self) -> u32 {

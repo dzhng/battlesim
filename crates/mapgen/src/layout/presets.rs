@@ -451,20 +451,51 @@ pub struct Courts {
     /// and all that ground is lawn.
     #[serde(default)]
     pub parking: Option<CourtParking>,
+    /// The paths laid across its lawn; absent is none.
+    #[serde(default)]
+    pub lawn: Option<Lawn>,
+}
+
+/// The paths across a dense district's lawn: paved strips from the streets
+/// it meets and the yard gates that open on it to its middle, one of those
+/// from a street a lane the widest hull drives, with groups planted beside.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Lawn {
+    /// A path's paved width.
+    pub path_m: f64,
+    /// The width of lawn a lane keeps clear, its path in the middle: at
+    /// least the widest hull's way (`street_props.group_margin_m`).
+    pub lane_m: f64,
+    /// A piece of lawn smaller than this has no paths.
+    pub least_m2: f64,
+    /// At most this many paths from streets, and from yard gates, to a
+    /// piece of lawn's middle.
+    pub streets: u32,
+    pub gates: u32,
+    /// Groups of `street_props.groups` planted beside a path, facing it, by
+    /// weight: one tried to each stretch this long of each side.
+    pub beside: BTreeMap<String, f64>,
+    pub beside_spacing_m: f64,
 }
 
 /// The boundary run round a built parcel of a dense district, its yard:
-/// along its street edge, its sides and its rear where it leaves a vehicle's
-/// way (`street_props.group_margin_m`) to the building, with a gate before
-/// each door and one in the middle of each side and its rear.
+/// along its street edge, its sides and its rear where it leaves a squad's
+/// way (`street_props.squad_way_m`) to the building, with a gate before
+/// each door, one in the middle of its rear, and one a hull wide in the
+/// first of its street side, rear and sides that leaves a vehicle's way
+/// (`street_props.group_margin_m`) to the building.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Yards {
     /// The bodies a boundary is made of, for each regional family by
-    /// weight: one kind to a yard.
+    /// weight: one kind to a district, so its yards' runs continue each other.
     pub boundary: BTreeMap<String, BTreeMap<String, f64>>,
-    /// The width of each gate: the widest hull drives through.
+    /// The width of a yard's one vehicle gate: the widest hull drives
+    /// through.
     pub gate_m: f64,
+    /// The width of each other gate: a squad walks through.
+    pub door_gate_m: f64,
     /// The street side runs this far in from the parcel's street edge, or
     /// less where the building stands nearer: back from what stands at the
     /// kerb.
@@ -570,10 +601,16 @@ pub struct StreetProps {
     pub kerb_gap_m: f64,
     /// Open ground between a body and a building's wall: a soldier passes.
     pub wall_gap_m: f64,
-    /// Open ground a court's wall group keeps between itself and its wall,
-    /// at least the wall gap: a squad walks behind it on the simulation's
-    /// navigation grid (its clearance either side and a cell).
-    pub wall_walk_m: f64,
+    /// Open ground a squad walks through on the simulation's navigation
+    /// grid (its clearance either side and a cell), at least the wall gap:
+    /// kept between a court's wall group and its wall and round every court
+    /// group's open sides, and the least room between a yard's boundary and
+    /// its building for the boundary to stand.
+    pub squad_way_m: f64,
+    /// Open ground a court group keeps round its open sides: a squad
+    /// passes it abreast, and a vehicle does not, so a court's inside is
+    /// infantry ground the lanes and gates let a vehicle into.
+    pub group_ring_m: f64,
     /// Kept clear either side of a door's line to the street.
     pub door_clear_m: f64,
     /// No body beside a carriageway stands within this of another
@@ -592,10 +629,9 @@ pub struct StreetProps {
     pub groups: BTreeMap<String, Group>,
     /// A vehicle's way is the catalog's widest hull and this: the
     /// simulation judges a vehicle's room on a 2 m grid and can lose a cell
-    /// of it at each side. A court group keeps that much open ground round
-    /// its open sides, so the hull still stands and passes between the
-    /// group and anything else; a yard's boundary is laid only along a side
-    /// it leaves that much between itself and the building.
+    /// of it at each side. A lawn's lane keeps that much open, and a yard's
+    /// vehicle gate stands only in a side that leaves that much between
+    /// itself and the building.
     pub group_margin_m: f64,
     /// Courts take at most this share of the authored parts a map has left
     /// after its streets; its gardens take what the courts leave.
@@ -1500,7 +1536,8 @@ impl PresetDefinitions {
             let dressed = !courts.groups.is_empty()
                 || !courts.families.is_empty()
                 || courts.yards.is_some()
-                || courts.parking.is_some();
+                || courts.parking.is_some()
+                || courts.lawn.is_some();
             let family = |family: &String| self.parcels.regional_families.contains(family);
             check(
                 table(&courts.groups)
@@ -1513,6 +1550,7 @@ impl PresetDefinitions {
                     && length(courts.wall_spacing_m)
                     && courts.yards.as_ref().is_none_or(|yards| {
                         positive(yards.gate_m)
+                            && positive(yards.door_gate_m)
                             && length(yards.front_inset_m)
                             && yards.boundary.iter().all(|(name, kinds)| {
                                 family(name)
@@ -1528,9 +1566,18 @@ impl PresetDefinitions {
                             && parking.bays[0] >= 1
                             && parking.bays[0] <= parking.bays[1]
                             && length(parking.every_m)
+                    })
+                    && courts.lawn.as_ref().is_none_or(|lawn| {
+                        positive(lawn.path_m)
+                            && lawn.lane_m >= lawn.path_m
+                            && length(lawn.least_m2)
+                            && positive(lawn.beside_spacing_m)
+                            && lawn.beside.iter().all(|(group, weight)| {
+                                self.street_props.groups.contains_key(group) && positive(*weight)
+                            })
                     }),
                 format!("districts.{id}.props.courts"),
-                "a court's tables name groups of street_props by positive weight, each tried at a positive spacing for where it stands, its family tables name regional families, its yards bodies by family and a gate, its car parks positive bays, an aisle and an ordered count, and a dressed court is paved",
+                "a court's tables name groups of street_props by positive weight, each tried at a positive spacing for where it stands, its family tables name regional families, its yards bodies by family and two gates, its car parks positive bays, an aisle and an ordered count, its lawn a path, a lane no narrower and groups beside at a positive spacing, and a dressed court is paved",
             );
         }
         let s = &self.street_props;
@@ -1543,12 +1590,13 @@ impl PresetDefinitions {
                 && length(s.slide_m)
                 && positive(s.slide_step_m)
                 && s.attempts > 0
-                && s.wall_walk_m >= s.wall_gap_m
+                && s.squad_way_m >= s.wall_gap_m
+                && s.group_ring_m >= s.squad_way_m
                 && length(s.group_margin_m)
                 && positive(s.court_share)
                 && s.court_share <= 1.0,
             "street_props".into(),
-            "street furniture needs nonnegative margins, a positive slide step, at least one attempt, a wall walk no narrower than the wall gap and a court share in (0, 1]",
+            "street furniture needs nonnegative margins, a positive slide step, at least one attempt, a squad's way no narrower than the wall gap, a group's ring no narrower than a squad's way and a court share in (0, 1]",
         );
         for (kind, body) in &s.bodies {
             check(

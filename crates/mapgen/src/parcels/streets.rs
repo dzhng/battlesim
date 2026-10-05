@@ -392,6 +392,11 @@ impl<'a> Network<'a> {
         })
     }
 
+    /// Whether `p` lies within `margin` of the water.
+    pub fn near_water(&self, p: Point, margin: f64) -> bool {
+        self.water.near(p, margin)
+    }
+
     /// Open ground between `p` and the nearest carriageway's edge, negative
     /// on one; `within` when there is at least that much.
     pub fn edge_gap(&self, p: Point, within: f64, charge: impl FnMut() -> bool) -> f64 {

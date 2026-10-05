@@ -135,20 +135,22 @@ pub struct LotPlan {
     pub ring: Vec<[f64; 2]>,
 }
 
-/// A paved piece of a dense district's block: a built parcel's yard or a
-/// car park. The district's ground under neither, off its carriageways, is
-/// its lawn.
+/// A paved piece of a dense district's block: a built parcel's yard, a car
+/// park, or a path across its lawn. The district's ground under none, off
+/// its carriageways, is its lawn.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CourtPlan {
-    /// `<parcel id>/yard` or `<district id>/parking-<n>`, stable for a
-    /// request.
+    /// `<parcel id>/yard`, `<district id>/parking-<n>` or
+    /// `<district id>/path-<n>`, stable for a request.
     pub id: String,
     /// The district it lies in.
     pub district: String,
     pub kind: CourtKind,
     /// Its corners, counter-clockwise: a yard's from its street side, as its
-    /// parcel's; a car park's from the corner left of its mouth on the street.
+    /// parcel's; a car park's from the corner left of its mouth on the
+    /// street; a path's from the corner left of the end it starts from (a
+    /// street or a yard gate).
     #[serde(deserialize_with = "contract::numbers::points")]
     pub ring: Vec<[f64; 2]>,
 }
@@ -160,6 +162,12 @@ pub enum CourtKind {
     Yard,
     /// Bays either side of an aisle that opens on a carriageway.
     Parking,
+    /// A footpath across the lawn, from a street or a yard's gate to the
+    /// lawn's middle.
+    Path,
+    /// A path from a street that a vehicle drives: the lawn either side of
+    /// it is kept open the widest hull's way.
+    Lane,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
