@@ -12,11 +12,53 @@
   display: grid;
   place-items: center;
   padding: 48px 24px;
-  background: radial-gradient(
-    ellipse at 50% 20%,
-    rgb(var(--hud-accent) / 0.08) 0%,
-    rgb(var(--hud-glass)) 70%
-  );
+}
+/* The plain ground, and the veil the backdrop fades through at its cuts:
+   opaque, so nothing of the battle shows through a cut. */
+.menu,
+.menu-backdrop-veil {
+  background:
+    radial-gradient(ellipse at 50% 20%, rgb(var(--hud-accent) / 0.08) 0%, transparent 70%),
+    rgb(var(--hud-glass));
+}
+/* The backdrop battle, behind the plate: a blue monotone film, darkened at
+   its edges so the plate reads over it. */
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.menu-backdrop-film {
+  position: absolute;
+  inset: 0;
+  filter: grayscale(1) contrast(1.1) brightness(0.7);
+}
+/* Shade under the grade, so the edges darken in the same blue. */
+.menu-backdrop-film::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 60% 50%, transparent 40%, rgb(0 0 0 / 0.65) 100%),
+    linear-gradient(to right, rgb(0 0 0 / 0.55), transparent 50%);
+}
+.menu-backdrop-grade {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: color;
+  background: rgb(var(--hud-accent) / 0.8);
+}
+.menu-backdrop-veil {
+  position: absolute;
+  inset: 0;
+}
+/* With room beside it, the plate stands at the left and the battle plays
+   across the rest of the screen. */
+@media (min-width: 1100px) {
+  .menu {
+    justify-items: start;
+    padding-left: max(48px, 7vw);
+  }
 }
 .menu-body {
   width: min(560px, 100%);

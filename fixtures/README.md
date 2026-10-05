@@ -16,6 +16,9 @@ policy without coordinates; [the simulation planner](../crates/sim/src/encounter
 places them on admitted geometry. [Generated-battle settings](generated-battle.json)
 own preparation policy and default encounter selection. [Camera lab settings](camera-lab.json)
 belong to the isolated camera experiment, not a second gameplay camera policy.
+[The menu backdrop](menu-backdrop.json) names the saved battle the main menu films
+(an ordinary saved encounter, scripted orders and all) and its reel of camera shots;
+a tracking shot frames by an offset from one of blue's units.
 
 [Sound authoring](#sound-catalog) owns audio provenance and choices independently
 of gameplay weapon cycles. Saved maps, component inheritance and paired evidence

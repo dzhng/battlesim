@@ -25,6 +25,14 @@ may try bounded fresh candidates and a released saved fallback, then publishes t
 actual admitted identity. A refused explicit seed cannot silently become another
 battle. [Saved-map policy](../../fixtures/README.md#saved-maps) owns what the menu lists.
 
+[The menu backdrop](src/MenuBackdrop.tsx) is a real battle, not a recording: a
+saved encounter run by the ordinary session, silent and inert, filmed by
+[the reel](src/menuReel.ts) through the viewport's pilot and graded to the HUD's
+blue in CSS. It shows blue's observation like any battle, without the player's
+x-ray. Cuts dip through an opaque veil of the menu's own ground, behind which the
+battle restarts when the reel ends. The plate measures where it stands, and the
+pilot slides each framing so its subject plays in the open screen beside it.
+
 [The shared battle view](src/BattleView.tsx) composes page resources and observation
 feeds. [Session ownership](src/useBattleSession.ts) keeps worker preparation and
 cleanup tied to that page. [Lab loading](src/LabLoading.tsx) uses the player
