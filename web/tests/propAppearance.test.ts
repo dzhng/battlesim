@@ -101,19 +101,19 @@ const rubbleOf = (wall: MapProp): KnownProp => ({
   authoredProp: wall.id,
 });
 /** Every model the side draws, body after body. */
-const structureModels = (...args: Parameters<typeof structureBodies>) =>
+const drawnModels = (...args: Parameters<typeof structureBodies>) =>
   structureBodies(...args).flatMap((b) => b.models);
 const drawnAt = (list: ModelInstance[]) => list.map((m) => [m.appearance, m.x]);
 
 test("a wall stands until the side knows it fell: an unseen fall stays unseen", () => {
-  expect(drawnAt(structureModels(walls, [], appearances))).toEqual([
+  expect(drawnAt(drawnModels(walls, [], appearances))).toEqual([
     ["field_wall", 100],
     ["field_wall", 200],
   ]);
 });
 
 test("known rubble replaces its wall atomically, in its place", () => {
-  const drawn = structureModels(walls, [rubbleOf(walls[1])], appearances);
+  const drawn = drawnModels(walls, [rubbleOf(walls[1])], appearances);
   expect(drawnAt(drawn)).toEqual([
     ["field_wall", 100],
     ["village_ruin", 200],
@@ -125,7 +125,7 @@ test("known rubble replaces its wall atomically, in its place", () => {
 test("a map prop the side saw destroyed with nothing in its place is drawn no more", () => {
   // 34c: a crate blown away; its known entry only removes it.
   const gone: KnownProp = { ...rubbleOf(walls[1]), kind: "wall", destroyed: true };
-  expect(drawnAt(structureModels(walls, [gone], appearances))).toEqual([["field_wall", 100]]);
+  expect(drawnAt(drawnModels(walls, [gone], appearances))).toEqual([["field_wall", 100]]);
 });
 
 test("a placed prop takes the appearance nearest its box, scaled to fit it", () => {
@@ -138,10 +138,10 @@ test("a placed prop takes the appearance nearest its box, scaled to fit it", () 
     replaces: null,
     authoredProp: null,
   });
-  const [tank] = structureModels([], [wreck([3.5, 1.8, 1.2])], appearances);
+  const [tank] = drawnModels([], [wreck([3.5, 1.8, 1.2])], appearances);
   expect(tank.appearance).toBe("tank_wreck");
   expect(tank.scale).toEqual([1, 1, 1]);
-  const [truck] = structureModels([], [wreck([3, 1.4, 1.8])], appearances);
+  const [truck] = drawnModels([], [wreck([3, 1.4, 1.8])], appearances);
   expect(truck.appearance).toBe("truck_wreck");
   // A deck longer and wider than the authored one stretches to its box.
   const deck: MapProp = {
@@ -152,11 +152,11 @@ test("a placed prop takes the appearance nearest its box, scaled to fit it", () 
     half: [27, 5, 0.4],
     baseZ: 1,
   };
-  const [drawn] = structureModels([deck], [], appearances);
+  const [drawn] = drawnModels([deck], [], appearances);
   expect(drawn.appearance).toBe("bridge_deck");
   expect(drawn.scale).toEqual([1.5, 1, 1]);
   // A ruin no building owns is the ruin appearance, fitted.
-  const [loose] = structureModels(
+  const [loose] = drawnModels(
     [],
     [
       {
@@ -206,7 +206,7 @@ test("a map draws a kind in its own region's look, else the shared one, never an
   };
   const drawn = (family: string | null) => {
     const fit = new PropAppearances(regional, layout, family);
-    const walls = [...new Set(structureModels([wall], [], fit).map((m) => m.appearance))];
+    const walls = [...new Set(drawnModels([wall], [], fit).map((m) => m.appearance))];
     return { walls, installs: [...fit.drawnFor([wall])].filter((n) => n.endsWith("wall")).sort() };
   };
   // Paris prefers its own over the better-fitting shared and New York
@@ -229,7 +229,7 @@ test("a building's part is no prop appearance: its building draws it", () => {
     half: [15, 12, 4],
     baseZ: 0,
   };
-  expect(structureModels([part], [], appearances)).toEqual([]);
+  expect(drawnModels([part], [], appearances)).toEqual([]);
   // Nor does a map with one install anything for it here.
   expect(appearances.drawnFor([part])).toEqual(appearances.drawnFor([]));
 });
@@ -245,8 +245,8 @@ test("a prop movers stand on takes the ground paint; a body that stops them does
     half,
     baseZ: 0,
   });
-  const [deck] = structureModels([at("bridge_deck", [18, 5, 0.4])], [], appearances);
-  const [wall] = structureModels([at("wall", [2, 0.3, 0.8])], [], appearances);
+  const [deck] = drawnModels([at("bridge_deck", [18, 5, 0.4])], [], appearances);
+  const [wall] = drawnModels([at("wall", [2, 0.3, 0.8])], [], appearances);
   expect(modelFog(deck.pose)).toBe("paintedFaces");
   expect(modelFog(wall.pose)).toBe("faces");
 });
@@ -260,7 +260,7 @@ test("a wall repeats its module along the box's long side instead of stretching 
     half,
     baseZ: 0,
   });
-  const along = structureModels([wall([10, 0.3, 0.8], 0)], [], appearances);
+  const along = drawnModels([wall([10, 0.3, 0.8], 0)], [], appearances);
   expect(along).toHaveLength(5);
   expect(along.map((m) => m.x)).toEqual([-8, -4, 0, 4, 8]);
   for (const m of along) {
@@ -268,7 +268,7 @@ test("a wall repeats its module along the box's long side instead of stretching 
     expect(m.y).toBeCloseTo(0, 9);
   }
   // Long along its box's y: each module turns to run along it.
-  const across = structureModels([wall([0.3, 6, 0.8], 0)], [], appearances);
+  const across = drawnModels([wall([0.3, 6, 0.8], 0)], [], appearances);
   expect(across).toHaveLength(3);
   for (const m of across) {
     expect(m.yaw).toBeCloseTo(Math.PI / 2, 9);
@@ -295,7 +295,7 @@ test("each body a side draws owns its own models, a repeated wall several", () =
 });
 
 test("a map prop a route draws from the world is left to it", () => {
-  const drawn = structureModels(walls, [rubbleOf(walls[0])], appearances, () => false);
+  const drawn = drawnModels(walls, [rubbleOf(walls[0])], appearances, () => false);
   // Only the known rubble: the standing walls are the world's.
   expect(drawnAt(drawn)).toEqual([["village_ruin", 100]]);
 });
@@ -322,9 +322,7 @@ test("the battle installs the map's props and every body a battle can leave or p
 test("a second replacement never resurrects the static body", () => {
   const source = walls[0];
   const current: KnownProp = { ...rubbleOf(source), replaces: 41, authoredProp: source.id };
-  expect(drawnAt(structureModels([source], [current], appearances))).toEqual([
-    ["village_ruin", 100],
-  ]);
+  expect(drawnAt(drawnModels([source], [current], appearances))).toEqual([["village_ruin", 100]]);
 });
 
 // A prop kind with no art fitted is drawn as the stand-in kit's unit box (a
@@ -352,7 +350,7 @@ const linear = (srgb: [number, number, number]) => [...color.fromSRGB(srgb)];
 
 test("a prop kind with no art is drawn as a box of its own size, tinted by its kind", () => {
   const lamp: MapProp = { ...car, id: 41, kind: "lamp", half: [0.15, 0.15, 3] };
-  const [box, post] = structureModels([car, lamp], [], artless);
+  const [box, post] = drawnModels([car, lamp], [], artless);
   expect(box.appearance).toBe(STAND_IN_KIT);
   expect(box.pose).toMatchObject({ kind: "static", state: STAND_IN_MODULE });
   expect([box.x, box.y, box.z, box.yaw]).toEqual([10, 20, 3, 0.7]);
@@ -368,8 +366,8 @@ test("a prop kind with no art is drawn as a box of its own size, tinted by its k
 
 test("a building's part is never a stand-in box: its building draws it from its template's art", () => {
   const part: MapProp = { ...car, id: 42, kind: "building", half: [6, 5, 4] };
-  expect(structureModels([part], [], artless)).toEqual([]);
-  expect(structureModels([part, car], [], artless).map((m) => m.x)).toEqual([car.center[0]]);
+  expect(drawnModels([part], [], artless)).toEqual([]);
+  expect(drawnModels([part, car], [], artless).map((m) => m.x)).toEqual([car.center[0]]);
 });
 
 test("a stand-in follows what the side knows: shoved, burnt out, gone", () => {
@@ -379,27 +377,27 @@ test("a stand-in follows what the side knows: shoved, burnt out, gone", () => {
     authoredProp: car.id,
     ...over,
   });
-  const [shoved] = structureModels([car], [known({ center: [14, 22], yaw: 1.2 })], artless);
+  const [shoved] = drawnModels([car], [known({ center: [14, 22], yaw: 1.2 })], artless);
   expect([shoved.x, shoved.y, shoved.yaw]).toEqual([14, 22, 1.2]);
   shoved.tint!.forEach((c, k) => expect(c).toBeCloseTo(linear([1, 0.5, 0])[k], 6));
-  const [wreck] = structureModels(
+  const [wreck] = drawnModels(
     [car],
     [known({ kind: "car_wreck", half: [2.1, 0.9, 0.35] })],
     artless,
   );
   expect(wreck.scale).toEqual([4.2, 1.8, 0.7]);
   wreck.tint!.forEach((c, k) => expect(c).toBeCloseTo(linear([0.5, 0.5, 0.5])[k], 6));
-  expect(structureModels([car], [known({ destroyed: true })], artless)).toEqual([]);
+  expect(drawnModels([car], [known({ destroyed: true })], artless)).toEqual([]);
 });
 
 test("a tree is never a stand-in, in a forest or beside a street, and nothing is without the kit", () => {
   // The scenery draws every tree body as a tree.
   const tree = (kind: string): MapProp => ({ ...car, kind, half: [0.35, 0.35, 5] });
-  expect(structureModels([tree("trunk")], [], artless)).toEqual([]);
-  expect(structureModels([tree("street_tree")], [], artless)).toEqual([]);
+  expect(drawnModels([tree("trunk")], [], artless)).toEqual([]);
+  expect(drawnModels([tree("street_tree")], [], artless)).toEqual([]);
   // The stand-in kit not installed, or no stand-in style: nothing.
-  expect(
-    structureModels([car], [], new PropAppearances(installed, layout, null, standIns)),
-  ).toEqual([]);
-  expect(structureModels([car], [], appearances)).toEqual([]);
+  expect(drawnModels([car], [], new PropAppearances(installed, layout, null, standIns))).toEqual(
+    [],
+  );
+  expect(drawnModels([car], [], appearances)).toEqual([]);
 });

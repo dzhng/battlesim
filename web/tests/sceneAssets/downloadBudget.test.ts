@@ -187,9 +187,9 @@ test("the loader refuses a family's oversized looks before fetching any", async 
   expect(loader.installed).toBe(catalog);
 });
 
-// Court and garden pieces load on every map of their region (and the shared
-// ones on every map), so each is held to a fixed share of the download: at
-// most 1 MiB of raw art, every look of every piece.
+// Court and garden pieces load on every map (a region's bench and bins on its
+// own maps), so each is held to a fixed share of the download: at most 1 MiB
+// of raw art, every look of every piece.
 const PIECE_MAX_RAW_BYTES = 2 ** 20;
 
 test("every court and garden piece's art is at most 1 MiB raw, in every region's look", () => {
