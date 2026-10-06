@@ -21,6 +21,7 @@ pub struct EnteredUnit {
 
 pub struct Skirmish {
     pub setup: SkirmishSetup,
+    pub objectives: crate::objectives::Objectives,
     pub phase: Phase,
     pub ready: [bool; 2],
     pub active_tick: Option<Tick>,
@@ -37,7 +38,9 @@ impl Skirmish {
         let budget = u64::from(setup.rules.credits_per_minute)
             * u64::from(setup.rules.starting_minutes)
             * CREDIT_SCALE;
+        let objectives = crate::objectives::Objectives::new(setup.sites.objectives.len());
         Self {
+            objectives,
             setup,
             phase: Phase::Preparation,
             ready: [false; 2],
@@ -85,6 +88,9 @@ impl Skirmish {
             credits: self.wallets[side.index()] as f64 / CREDIT_SCALE as f64,
             occupied_slots: living + self.reservations[side.index()].len() as u32,
             max_units: self.setup.rules.max_units,
+            objectives: self.objectives.views(&self.setup.sites.objectives, hz),
+            scores: self.objectives.scores(hz),
+            result: self.objectives.result,
             pending: self.reservations[side.index()]
                 .iter()
                 .map(|r| r.data.clone())
@@ -126,6 +132,7 @@ impl Skirmish {
     }
 
     pub fn digest(&self, digest: &mut crate::digest::Digest) {
+        self.objectives.digest(digest);
         digest
             .u64(self.phase as u64)
             .u64(self.ready[0] as u64)

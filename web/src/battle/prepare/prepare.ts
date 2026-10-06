@@ -34,6 +34,7 @@ export interface PreparationModule extends MapGenerator {
 /** The simulation's world of one map, built once: the planner places the
  *  encounter on it and the battle then takes it. */
 export interface PreparedWorld {
+  admit_skirmish(sites: string): string;
   extents(): string;
   plan_encounter(sites: string, recipe: string, encounterSeed: string): string;
   into_battle(scenario: string, seed: number): SimBattle;
@@ -191,6 +192,19 @@ export async function prepare(
     : new wasm.PreparedWorld(map.json, documents.rules);
   const worldBuiltAt = now();
   try {
+    let skirmish = map.sites === null ? null :
+      (JSON.parse(map.sites) as { skirmish?: { entries: {side: string; center: [number,number]; yaw: number}[] } }).skirmish;
+    if (skirmish) {
+      try {
+        const admitted = JSON.parse(world.admit_skirmish(map.sites!)) as {sites: {skirmish: NonNullable<typeof skirmish>}};
+        map.sites = JSON.stringify(admitted.sites);
+        skirmish = admitted.sites.skirmish;
+      }
+      catch (error) { throw new PreparationRefused("encounter", [{
+        code: "invalid_skirmish_sites", feature: "skirmish_sites", location: "$.sites.skirmish",
+        message: error instanceof Error ? error.message : String(error),
+      }]); }
+    }
     let laid: LaidEncounter;
     if (stress && stressScenario && metadata) {
       laid = { scenario: stressScenario, metadata, stress, rule: null, planned: null };
@@ -243,9 +257,10 @@ export async function prepare(
     if ("metadata" in laid) start = laid.metadata.start;
     else {
       const first = laid.units.find((u) => u.side === "blue");
-      if (!first) throw new Error("the encounter has no blue unit");
+      const base = skirmish?.entries.find((e) => e.side === "blue");
+      if (!first && !base) throw new Error("the encounter has no blue unit or admitted base");
       const column = laid.planned?.placement.deployments.find((d) => d.side === "blue");
-      start = { at: column?.head ?? first.position, yaw: column?.yaw ?? first.yaw ?? 0 };
+      start = { at: column?.head ?? base?.center ?? first!.position, yaw: column?.yaw ?? base?.yaw ?? first?.yaw ?? 0 };
     }
     const buildings = map.definition.buildings ?? [];
     return {

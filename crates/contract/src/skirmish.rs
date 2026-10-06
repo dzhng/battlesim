@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::catalog::{Faction, TypeIndex};
 use crate::encounter::SkirmishSites;
-use crate::ids::Tick;
+use crate::ids::{Side, Tick};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -86,4 +86,25 @@ pub struct SkirmishView {
     pub occupied_slots: u32,
     pub max_units: u32,
     pub pending: Vec<PendingPurchase>,
+    pub objectives: Vec<ObjectiveView>,
+    pub scores: [f64; 2],
+    pub result: Option<MatchResult>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ObjectiveView {
+    pub id: String,
+    pub center: [f64; 2],
+    pub radius_m: f64,
+    pub owner: Option<Side>,
+    pub capturing: Option<Side>,
+    pub capture_progress: f64,
+    pub contested: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum MatchResult {
+    Winner { side: Side },
+    Draw,
 }

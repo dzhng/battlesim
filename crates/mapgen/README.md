@@ -57,7 +57,10 @@ so generator legality cannot differ from world admission.
 
 Settlements, lots and measured approaches are plan evidence, not extra runtime
 geometry. Their [encounter sites](../contract/src/encounter.rs) accompany the compiled
-map so the simulation's planner can place forces on it. [Saved-map policy](../../fixtures/README.md#saved-maps)
+map so the simulation's planner can place forces on it. Skirmish generation reserves
+bounded alternative clearings through every furnishing stage. The simulation
+selects the final sites from actual navigation on the completed physical map;
+mapgen's geometric placement cannot certify counterpart travel fairness. [Saved-map policy](../../fixtures/README.md#saved-maps)
 explains the retained documents.
 
 ## Road ends (`joints`)

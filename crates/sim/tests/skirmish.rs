@@ -12,7 +12,7 @@ fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     }
 }
 
-fn setup() -> contract::scenario::ScenarioDefinition {
+pub(crate) fn setup() -> contract::scenario::ScenarioDefinition {
     let mut rules = sim::fixtures::game();
     sim::fixtures::patch_catalog(
         &mut rules,
@@ -378,7 +378,11 @@ fn thirty_pending_units_fill_the_cap_even_when_credits_remain() {
 
 #[test]
 fn purchase_commands_have_a_paired_native_browser_record() {
-    let setup = setup();
+    let saved: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/skirmish-purchases.json"
+    ))
+    .unwrap();
+    let setup = serde_json::from_value(saved["scenario"].clone()).unwrap();
     let commands = [
         command(
             Side::Blue,
@@ -402,11 +406,10 @@ fn purchase_commands_have_a_paired_native_browser_record() {
     if crate::common::bless_parity("skirmish-purchases.json", &record) {
         return;
     }
-    let saved: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/skirmish-purchases.json"
-    ))
-    .unwrap();
-    assert_eq!(record, saved);
+    assert_eq!(
+        serde_json::to_string(&record).unwrap(),
+        include_str!("../../../fixtures/parity/skirmish-purchases.json").trim()
+    );
 }
 
 #[test]

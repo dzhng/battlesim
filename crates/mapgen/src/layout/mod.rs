@@ -143,7 +143,7 @@ pub fn generate_layout(
     let skirmish = crate::skirmish::reserve(request, &surfaces, skeleton.hub,
         &towns.iter().map(|t| t.outline.as_slice()).collect::<Vec<_>>())?;
     if let Some(sites) = &skirmish {
-        placed.reserved.extend(sites.objectives.iter().map(|o|
+        placed.reserved.extend(sites.all_reserved_objectives().map(|o|
             sites::Corridor::objective(o.center, o.radius_m + 10.0)));
     }
     let forests = forests::grow(&context, &towns, &placed.reserved, &water, woodland);

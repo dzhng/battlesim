@@ -24,6 +24,7 @@ pub mod maps;
 pub mod math;
 pub mod movement;
 pub mod navigation;
+pub mod objectives;
 pub mod publication;
 pub mod route_planner;
 pub mod sensing;

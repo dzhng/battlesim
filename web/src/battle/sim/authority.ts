@@ -26,6 +26,7 @@ export interface SimBattle {
   preview_building(side: string, buildingJson: string): string;
   step(): number;
   tick(): number;
+  finished(): boolean;
   digest(): string;
   replay_json(): string;
   /** Pack `side`'s observation with visibility and learned-ground changes. */
@@ -78,7 +79,10 @@ export function createAuthority(host: AuthorityHost): Authority {
   };
 
   const fail = (error: unknown) => {
-    host.post({ type: "error", message: error instanceof Error ? error.message : String(error) });
+    host.post({
+      type: "error",
+      message: error instanceof Error ? error.message : String(error),
+    });
     setStatus("failed");
     teardown();
   };
@@ -107,7 +111,7 @@ export function createAuthority(host: AuthorityHost): Authority {
       buffer = new ArrayBuffer(Math.max(length * 4, buffer.byteLength * 2));
     new Float32Array(buffer, 0, length).set(view);
     host.post({ type: "publication", tick, digest: b.digest(), length, buffer, stepMs }, [buffer]);
-    if (script && tick >= script.target) {
+    if (script && (tick >= script.target || b.finished())) {
       host.post({ type: "advanced", id: script.id, tick });
       script = null;
     }
@@ -115,11 +119,19 @@ export function createAuthority(host: AuthorityHost): Authority {
 
   function pump() {
     if (disposed || !battle || !started) return;
+    if (battle.finished()) {
+      if (script) {
+        host.post({ type: "advanced", id: script.id, tick: battle.tick() });
+        script = null;
+      }
+      return setStatus("finished");
+    }
     if (script) {
       while (script && credits.length > 0) stepAndPublish();
       if (script) return setStatus("waiting-consumer");
       nextTickAt = host.now();
     }
+    if (battle.finished()) return setStatus("finished");
     if (hidden) return setStatus("hidden");
     if (paused) return setStatus("paused");
     const now = host.now();
@@ -136,6 +148,7 @@ export function createAuthority(host: AuthorityHost): Authority {
         return setStatus("waiting-consumer");
       }
       stepAndPublish();
+      if (battle.finished()) return setStatus("finished");
       nextTickAt += tickMs;
       ran++;
     }

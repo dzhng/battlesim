@@ -76,6 +76,7 @@ export interface ObservationLayout {
   /** Suppression tiers: none, suppressed, pinned. */
   suppressionTiers: SuppressionTier[];
   encounterResults: string[];
+  objectiveIds: string[];
 }
 
 export type Point2 = [number, number];
@@ -398,11 +399,24 @@ export interface VisibilityView {
   bits: Uint32Array;
 }
 
+export interface ObjectiveView {
+  id: string;
+  center: Point2;
+  radiusM: number;
+  owner: "blue" | "red" | null;
+  capturing: "blue" | "red" | null;
+  captureProgress: number;
+  contested: boolean;
+}
+
 export interface SkirmishView {
   phase: "preparation" | "active" | "finished";
   ready: [boolean, boolean];
   preparationRemainingS: number;
   credits: number;
+  scores: [number, number];
+  result: "blue" | "red" | "draw" | null;
+  objectives: ObjectiveView[];
   occupiedSlots: number;
   maxUnits: number;
   pending: {
@@ -433,7 +447,10 @@ export interface ObservationView {
   groundPatch: GroundRunsPatch;
 }
 
-type Row = { field: (name: string) => number; sections: Record<string, number[][]> };
+type Row = {
+  field: (name: string) => number;
+  sections: Record<string, number[][]>;
+};
 
 /** Groups whose unchanged payload keeps its previous view (a stable reference). */
 const STATIC_GROUPS = ["corpses", "knownProps", "fallenBodies"] as const;
@@ -950,7 +967,10 @@ function decodeFrame(
       const side = f("side");
       return side < 0
         ? null
-        : { side: layout.leanSides[side] as MemberLeanView["side"], at: [f("x"), f("y")] };
+        : {
+            side: layout.leanSides[side] as MemberLeanView["side"],
+            at: [f("x"), f("y")],
+          };
     });
   const [ownLeans, seenLeans] = [reader("own", "memberLeans"), reader("identified", "memberLeans")];
   const own = groups.own.map(({ field: f, sections }): OwnUnitView => {
@@ -1005,7 +1025,10 @@ function decodeFrame(
       deployment:
         deployTarget < 0
           ? null
-          : { progress: f("deployProgress"), target: layout.postures[deployTarget] },
+          : {
+              progress: f("deployProgress"),
+              target: layout.postures[deployTarget],
+            },
       // All three garrison fields are -1 without a building.
       garrison:
         garrisonPhase < 0
@@ -1022,7 +1045,11 @@ function decodeFrame(
       sight: {
         eyes: sections.sightEyes as Point3[],
         forward: f("sightForward"),
-        shape: { front: f("sightFront"), side: f("sightSide"), rear: f("sightRear") },
+        shape: {
+          front: f("sightFront"),
+          side: f("sightSide"),
+          rear: f("sightRear"),
+        },
         range: f("sightRange"),
       },
     };
@@ -1153,7 +1180,10 @@ function decodeFrame(
     encounter:
       header.encounterResult < 0
         ? null
-        : { heldS: header.encounterHeldS, result: layout.encounterResults[header.encounterResult] },
+        : {
+            heldS: header.encounterHeldS,
+            result: layout.encounterResults[header.encounterResult],
+          },
     skirmish:
       header.skirmishPhase < 0
         ? null
@@ -1162,6 +1192,20 @@ function decodeFrame(
             ready: [header.readyBlue !== 0, header.readyRed !== 0],
             preparationRemainingS: header.preparationRemainingS,
             credits: header.credits,
+            scores: [header.scoreBlue, header.scoreRed],
+            result:
+              header.matchResult < 0
+                ? null
+                : (["blue", "red", "draw"] as const)[header.matchResult],
+            objectives: groups.objectives.map(({ field: f }) => ({
+              id: layout.objectiveIds[f("id")],
+              center: [f("x"), f("y")],
+              radiusM: f("radius"),
+              owner: f("owner") < 0 ? null : (["blue", "red"] as const)[f("owner")],
+              capturing: f("capturing") < 0 ? null : (["blue", "red"] as const)[f("capturing")],
+              captureProgress: f("captureProgress"),
+              contested: f("contested") !== 0,
+            })),
             occupiedSlots: header.occupiedSlots,
             maxUnits: header.maxUnits,
             pending: groups.pendingPurchases.map(({ field: f }) => ({

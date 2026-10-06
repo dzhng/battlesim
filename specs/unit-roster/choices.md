@@ -97,3 +97,42 @@ index consequence. Reach: paired records and replays use current engine/catalog
 admission; weapon names remain the authored stable reference.
 Verdict: sound; one current arsenal implements the requested hard cut. All five
 publication streams retain fog; noncombat streams retain their complete digests.
+
+### Objective final-tick ordering — sound, medium confidence
+
+When: slice 06 authority checkpoint.
+Choice: existing ownership earns a tick's points before that tick completes a capture.
+If two scores reach the limit during one tick, compare their exact fractions of the
+tick; the earlier crossing wins and only equal crossing times draw. A capture that
+completes at the end of that tick then evaluates all-flags victory if score has not
+already ended the match. The last displayed scores include only the winning fraction.
+Gap: the plan required deterministic finish ordering but did not choose the ordering
+between a score crossing and an end-of-tick capture.
+Reach: replays and browser fast-forward share one terminal moment; changing this
+ordering later is an intentional gameplay change.
+Verdict: sound; scoring from previously held territory precedes a newly completed hold.
+
+### Terminal advancement returns the actual final tick — sound, high confidence
+
+When: slice 06 authority checkpoint.
+Choice: asking a finished match to advance another hundred ticks returns its existing
+final tick. A request that encounters victory partway through also returns that final
+tick and publishes the terminal frame once. The browser stops its tick scheduling;
+no timeout or repeated identical frames stand in for match completion.
+Gap: the old browser advancement contract assumed every match could keep advancing.
+Reach: replay viewers, probes and player transport can finish without a no-progress loop.
+Verdict: sound; explicit authoritative completion avoids treating a stalled engine as victory.
+
+### Admitted geography chooses from reserved alternatives — sound, medium confidence
+
+When: slice 02 final route admission.
+Choice: generated maps reserve a bounded set of potential central and paired sites
+before placing forests, parcels and props. Final admission measures infantry, light
+vehicle and tank travel on the furnished map and selects a fair set. The browser and
+native preparation use those selected coordinates, rather than measuring an
+alternative but playing on the original. Reciprocal pair references follow selection.
+Gap: the plan required organic route fairness but left the bounded search strategy open.
+Reach: furnishing must protect every candidate until admission; map identity includes
+the selected sites. Generation can still refuse when no fair set is provable.
+Verdict: sound; measured final terrain, matching access/makeup and the existing 15%
+travel limit remain admission requirements rather than best-effort placement.

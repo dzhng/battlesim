@@ -10,6 +10,7 @@ const request: PrepareBattleRequest = {
       type: "metro",
       size: "large",
       seed: "4",
+      profile: "standard",
       generator_version: "test",
       preset_revision: "test",
       template_catalog_hash: "a".repeat(64),

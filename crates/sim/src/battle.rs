@@ -936,12 +936,14 @@ impl Battle {
         }
     }
 
-    fn validate(&self, command: &CommandEnvelope) -> Result<(), OrderError> {
-        if self
-            .skirmish
+    pub fn finished(&self) -> bool {
+        self.skirmish
             .as_ref()
             .is_some_and(|s| s.phase == contract::skirmish::Phase::Finished)
-        {
+    }
+
+    fn validate(&self, command: &CommandEnvelope) -> Result<(), OrderError> {
+        if self.finished() {
             return Err(OrderError::MatchFinished);
         }
         let units = match &command.order {
@@ -1023,6 +1025,9 @@ impl Battle {
     /// Advance the production tick, notifying the report after each work
     /// bracket. Repeated phases (movement and each side's fog) add together.
     pub fn step_profiled(&mut self, mut completed: impl FnMut(TickPhase)) -> Tick {
+        if self.finished() {
+            return self.tick;
+        }
         self.tick += 1;
         for side in Side::ALL {
             for contact in self.knowledge[side.index()].expire_contacts(self.tick) {
@@ -1188,6 +1193,18 @@ impl Battle {
             &fired,
             &mut self.last_soldier,
         );
+        if let Some(skirmish) = &mut self.skirmish {
+            if skirmish.phase == contract::skirmish::Phase::Active {
+                skirmish.objectives.advance(
+                    &skirmish.setup.sites.objectives,
+                    &self.units,
+                    &self.rules,
+                );
+                if skirmish.objectives.result.is_some() {
+                    skirmish.phase = contract::skirmish::Phase::Finished;
+                }
+            }
+        }
         completed(TickPhase::Weapons);
         let bucket = (self.rules.sensors.sound_bucket_s * self.rules.tick_hz as f64).round() as u64;
         for side in Side::ALL {

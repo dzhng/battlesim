@@ -17,6 +17,7 @@ export const MAP_SIZES: readonly MapSize[] = ["small", "medium", "large", "xl"];
 export interface MapChoice {
   type: MapType;
   size: MapSize;
+  profile?: "standard" | "skirmish";
   /** Canonical u64 decimal text: a JS number cannot hold every seed. */
   seed: string;
   /** One of the presets' `parcels.regional_families`; absent, the seed draws one. */
@@ -34,6 +35,7 @@ export interface CompileLimits {
  *  generator, presets and physical catalogue that make it one map. The
  *  generator refuses a request pinned to others. */
 export interface GenerationRequest extends MapChoice {
+  profile: "standard" | "skirmish";
   generator_version: string;
   preset_revision: string;
   template_catalog_hash: string;
@@ -130,6 +132,7 @@ export function generationRequest(
     template_catalog_hash: hash,
     type: choice.type,
     size: choice.size,
+    profile: choice.profile ?? "standard",
     ...(choice.region !== undefined && { region: choice.region }),
     limits,
   };

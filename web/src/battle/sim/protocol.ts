@@ -35,13 +35,24 @@ export type Order =
     }
   | { kind: "stop"; units: number[] }
   | { kind: "attack"; units: number[]; target: TargetRef }
-  | { kind: "attack_move"; units: number[]; gesture: number; goal: [number, number] }
+  | {
+      kind: "attack_move";
+      units: number[];
+      gesture: number;
+      goal: [number, number];
+    }
   | { kind: "set_engagement"; units: number[]; policy: Engagement }
   /** Set up in place (true) or pack for movement (false); others ignore it. */
   | { kind: "set_deployment"; units: number[]; deployed: boolean }
   /** Walk one squad into a building; the complete squad must fit. */
   | { kind: "garrison"; units: number[]; building: number }
-  | { kind: "occupy_building"; units: number[]; building: number; gesture: number; facing?: number }
+  | {
+      kind: "occupy_building";
+      units: number[];
+      building: number;
+      gesture: number;
+      facing?: number;
+    }
   /** Leave the building after a stationary timer. */
   | { kind: "exit_building"; units: number[] }
   | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
@@ -108,6 +119,7 @@ export type AuthorityStatus =
   | "loading"
   | "ready"
   | "running"
+  | "finished"
   | "paused"
   | "hidden"
   | "waiting-consumer"
@@ -129,14 +141,24 @@ export type SimRequest =
   /** The battle is on screen: nothing ticks before this. */
   | { type: "start" }
   | { type: "command"; command: CommandEnvelope }
-  | { type: "move_preview"; id: number; side: SideName; move: MovePreviewRequest }
-  | { type: "building_preview"; id: number; side: SideName; building: BuildingPreviewRequest }
+  | {
+      type: "move_preview";
+      id: number;
+      side: SideName;
+      move: MovePreviewRequest;
+    }
+  | {
+      type: "building_preview";
+      id: number;
+      side: SideName;
+      building: BuildingPreviewRequest;
+    }
   /** A consumed publication buffer returned to the producer. */
   | { type: "credit"; buffer: ArrayBuffer }
   | { type: "pause" }
   | { type: "resume" }
   | { type: "hidden"; hidden: boolean }
-  /** Advance exactly `ticks` while paused, as fast as credit allows. */
+  /** Advance up to `ticks` or match completion while paused, as fast as credit allows. */
   | { type: "advance"; id: number; ticks: number }
   | { type: "replay" }
   /** Lab diagnostic: publish the other side's observation from now on. Its
@@ -148,7 +170,12 @@ export type SimReply =
   | { type: "ready"; layout: string; tickHz: number; tick: number }
   | { type: "ack"; ack: CommandAck }
   | { type: "move_preview"; id: number; destinations: MoveDestination[] }
-  | { type: "building_preview"; id: number; placement: BuildingPlacement | null; error?: string }
+  | {
+      type: "building_preview";
+      id: number;
+      placement: BuildingPlacement | null;
+      error?: string;
+    }
   | {
       type: "publication";
       tick: number;

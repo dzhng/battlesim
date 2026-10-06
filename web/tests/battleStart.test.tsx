@@ -59,6 +59,7 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
       kind: "generated",
       request: {
         ...paris,
+        profile: "standard",
         generator_version: "test",
         preset_revision: "test",
         template_catalog_hash: "test",
@@ -247,6 +248,7 @@ test("ordinary admission closes refused workers, and exact winner identity keeps
         type: "metro",
         size: "large",
         seed,
+        profile: "standard",
         generator_version: "test",
         preset_revision: "test",
         template_catalog_hash: "test",

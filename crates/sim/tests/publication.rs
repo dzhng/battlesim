@@ -780,7 +780,7 @@ fn the_encoder_packs_the_codec_vectors_the_web_decoder_reads() {
     );
     let current: Value = serde_json::from_str(&publication::layout_json(&probe)).unwrap();
     let mut blessed = record.clone();
-    for key in ["header", "groups", "groupDelivery"] {
+    for key in ["header", "groups", "groupDelivery", "objectiveIds"] {
         blessed["layout"][key] = current[key].clone();
     }
     blessed["layout"]["ground"]["packed"] = current["ground"]["packed"].clone();
@@ -834,12 +834,22 @@ fn unchanged_observation_groups_do_not_retransmit_own_rows() {
     );
     let battle = Battle::new(&setup, 1);
     let mut publisher = publication::Publisher::new();
-    let snapshot = publisher.publish(&battle, Side::Blue).unwrap().len() * 4;
-    let steady = publisher.publish(&battle, Side::Blue).unwrap().len() * 4;
-    assert!(snapshot > 300);
-    assert!(
-        steady < 300,
-        "unchanged own rows must be retained: {steady} B"
+    let snapshot = publisher.publish(&battle, Side::Blue).unwrap().to_vec();
+    let own = codec::group(&snapshot, publication::HEADER_WORDS, &[]);
+    assert!(!own.is_empty());
+    let steady = publisher.publish(&battle, Side::Blue).unwrap();
+    let metadata = publication::HEADER_WORDS;
+    assert_eq!(
+        steady[metadata + 2],
+        0.0,
+        "unchanged own rows transmit no payload"
+    );
+    assert_eq!(
+        codec::group(steady, metadata, &own)
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>(),
+        own.iter().map(|v| v.to_bits()).collect::<Vec<_>>()
     );
 }
 

@@ -1,6 +1,6 @@
 # 06 — Capture, proportional score and victory
 
-Status: not started. Dependencies: 02,04. Follow the README handoff and repository
+Status: authority checkpoint implemented; player markers/readouts and remaining boundary proofs open. Dependencies: 02,04. Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -56,3 +56,19 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 - [ ] Narrow green proof and any allowed digest change recorded.
 - [ ] Artifact/visual gates resolved where applicable.
 - [ ] Choices, status and next pickup updated; focused pass committed.
+
+## Authority checkpoint evidence
+
+Capture period, interrupted hold preservation, reset/takeover, empty owned scoring,
+logistics exclusion, majority/minority rates, exact fractional crossing/tie and
+all-flags authority freeze pass focused tests. Capture was red before its owner was
+installed; the contest-reset mutation failed progress preservation and was restored.
+The final-tick freeze regression failed before the terminal guard. Native replay and
+WASM agree on capture/progress/score timeline; packed publication carries only public
+objective state. Browser scripted advancement was red on terminal no-progress and
+now completes at the actual final tick without retransmitting identical frames.
+
+The authority owner scores previous ownership before end-of-tick capture, comparing
+exact crossing fractions. No hard cutoff or objective credits are introduced.
+Production marker/HUD visual gates, garrison boundary and extra-unit eligibility
+proofs remain open with the slice; this checkpoint is not visual acceptance.

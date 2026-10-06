@@ -35,6 +35,7 @@ mod movement;
 mod movement_scenarios;
 mod navigation;
 mod order_markers;
+mod objectives;
 mod publication;
 mod ricochet;
 mod roster_ground;

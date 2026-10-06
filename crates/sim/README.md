@@ -29,11 +29,20 @@ bodies. These are different questions and must not expose private occupancy thro
 a free preview. [Match contracts](../contract/src/skirmish.rs) carry setup and the
 side's observation through the existing publication owner.
 
+[Objective authority](src/objectives.rs) uses physical eligible combat presence for
+capture, independently of either side's contacts. Public objective progress reveals
+no participant identity. Score and capture completion share deterministic finish
+ordering; a finished match stops authoritative advancement rather than relying on
+a browser timer.
+
 Native fixture and map adapters load the same [authored inputs](../../fixtures/README.md)
 that browser preparation admits. [Encounter planning](src/encounter/) asks ordinary
 placement rules where its roster can stand; it does not invent a second movement model.
 [Map analysis](src/map_analysis.rs) shares sampled sight calculations with generation
-tools, without making the production generator depend on the simulation.
+tools, without making the production generator depend on the simulation. Skirmish
+admission returns selected sites together with route evidence. Native and browser
+preparation carry those selected coordinates into gameplay; measurements of an
+alternative are never permission to use the original unmeasured site.
 
 ## Replay compatibility and build identity
 

@@ -72,6 +72,9 @@ pub struct EncounterSites {
 pub struct SkirmishSites {
     pub entries: [EntrySite; 2],
     pub objectives: Vec<ObjectiveSite>,
+    /// Reserved alternatives; simulation admission publishes the selected objectives.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub candidates: Vec<ObjectiveSite>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -168,6 +171,9 @@ impl EncounterSites {
 }
 
 impl SkirmishSites {
+    pub fn all_reserved_objectives(&self) -> impl Iterator<Item = &ObjectiveSite> {
+        self.objectives.iter().chain(&self.candidates)
+    }
     pub fn validate(&self) -> Result<(), String> {
         let finite = |points: &[[f64; 2]]| points.iter().flatten().all(|v| v.is_finite());
         if self.entries[0].side != crate::ids::Side::Blue || self.entries[1].side != crate::ids::Side::Red
@@ -177,8 +183,11 @@ impl SkirmishSites {
         if !matches!(self.objectives.len(), 3 | 5 | 7) {
             return Err("skirmish requires three, five or seven objectives".into());
         }
+        if self.candidates.len() > 24 {
+            return Err("skirmish reserves at most 24 alternatives".into());
+        }
         let mut ids = std::collections::BTreeSet::new();
-        for o in &self.objectives {
+        for o in self.all_reserved_objectives() {
             if o.id.is_empty() || !ids.insert(&o.id) {
                 return Err("skirmish objective identity is empty or duplicated".into());
             }
@@ -186,12 +195,16 @@ impl SkirmishSites {
                 return Err(format!("objective {} requires finite positive geometry",o.id));
             }
         }
-        for o in &self.objectives {
+        for o in self.all_reserved_objectives() {
             if let Some(id) = &o.counterpart {
-                if !self.objectives.iter().any(|p| &p.id==id && p.id!=o.id && p.counterpart.as_ref()==Some(&o.id)) {
+                if !self.all_reserved_objectives().any(|p| &p.id==id && p.id!=o.id && p.counterpart.as_ref()==Some(&o.id)) {
                     return Err(format!("objective {} has no reciprocal counterpart",o.id));
                 }
             }
+        }
+        let central = self.objectives.iter().filter(|o| o.counterpart.is_none()).count();
+        if central != if self.objectives.len() == 7 { 3 } else { 1 } {
+            return Err("skirmish requires one central objective, or three for seven-site maps".into());
         }
         Ok(())
     }

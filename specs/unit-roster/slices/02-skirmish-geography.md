@@ -1,6 +1,6 @@
 # 02 — Compact admitted maps with reserved objective sites
 
-Status: not started. Dependencies: — (independent feasibility/layout work). Follow the README handoff and repository
+Status: route/site admission verified; visual checkpoint remains. Dependencies: — (independent feasibility/layout work). Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -56,3 +56,41 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 - [ ] Narrow green proof and any allowed digest change recorded.
 - [ ] Artifact/visual gates resolved where applicable.
 - [ ] Choices, status and next pickup updated; focused pass committed.
+
+## Current implementation evidence — 2026-10-06
+
+The named skirmish profile uses 1.8/2.4/3.0/3.6 km extents; standard
+requests retain their existing extents and construction path. Mapgen reserves
+bounded alternatives through forests, parcels, country cover and furniture.
+Independent approach-band coordinates replace reflected counterpart placement.
+Large/XL also reserve alternative centerline fields; the central junction remains
+the actual road hub.
+
+The simulation measures ordinary foot/tracked/wheeled navigation on the complete
+physical world. It selects spaced counterpart sites with matching final ground
+access and makeup and representative own-side travel within the unchanged 15%
+gate. Central sites meet that same gate between both entries. The admission
+result carries selected sites together with their journeys; native probes and
+browser preparation consume that result. Selected sites preserve their identities,
+publish reciprocal selected counterparts and discard unused alternatives.
+
+Focused proof: the authored regression first refused the original unequal pair;
+a reserved independent pair then passed and its actual coordinates and journeys
+were returned. A second authored case proves fair alternative centerline fields
+preserve all three central objectives. Contract tests reject duplicate candidate
+identity, nonfinite geometry and nonreciprocal pairs. Compiled-map tests prove
+reserved clearings remain outside forests and selected sites remain spaced.
+Browser preparation tests prove the selected sites reach encounter planning and
+zero-unit camera framing. Native game-wasm check and browser typecheck pass.
+
+Bounded complete-generation probes admit seeds 1/2 for every combination of all
+four sizes and Open/Mixed/Metro. Small/Medium retained the initial green result;
+Large/XL were rerun after central alternatives changed their reservations. These
+are sampled admission evidence, not a promise that every seed passes: bounded
+exhaustion still produces named generation/admission refusals. Raw evidence lives
+in ignored `throwaway/geography-evidence/`.
+
+Remaining slice gates: rebuild/execute browser WASM integration, inspect generated
+objective geography in the existing map and game review surfaces, and complete
+the declared compare/Preview/unprimed-critique visual checkpoint. No full suite
+or balance run was performed in this geography pass.

@@ -144,7 +144,7 @@ const POSE_FIELDS: [&str; 7] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 36] = [
+const HEADER: [&str; 40] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -181,6 +181,20 @@ const HEADER: [&str; 36] = [
     "occupiedSlots",
     "maxUnits",
     "pendingCount",
+    "objectiveCount",
+    "scoreBlue",
+    "scoreRed",
+    "matchResult",
+];
+const OBJECTIVE_FIELDS: [&str; 8] = [
+    "id",
+    "x",
+    "y",
+    "radius",
+    "owner",
+    "capturing",
+    "captureProgress",
+    "contested",
 ];
 const PENDING_FIELDS: [&str; 8] = [
     "idLo",
@@ -484,6 +498,7 @@ pub fn layout_json(battle: &Battle) -> String {
                 "sections": [],
             },
             { "name": "pendingPurchases", "count": "pendingCount", "fields": PENDING_FIELDS, "sections": [] },
+            { "name": "objectives", "count": "objectiveCount", "fields": OBJECTIVE_FIELDS, "sections": [] },
         ],
         "groupDelivery": { "fields": ["length", "encoding", "floats"], "range": ["start", "length"], "copy": ["source", "length"], "copyAlignments": (0..GROUPS).map(|g| fixed_row_width(g).max(1)).collect::<Vec<_>>(), "encodings": GROUP_ENCODINGS,
             "packed": {
@@ -539,6 +554,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "serviceStatuses": names(&SERVICE_STATUSES),
         "suppressionTiers": names(&SUPPRESSION_TIERS),
         "encounterResults": names(&ENCOUNTER_RESULTS),
+        "objectiveIds": battle.observe(Side::Blue).skirmish.as_ref().map_or_else(Vec::new, |s| s.objectives.iter().map(|o| o.id.clone()).collect()),
         // Mount ammo is rounds left per kind: -1 unlimited, -2 no such kind.
         // goalX/goalY are NaN without a movement order; policy, direction and blocker are -1 when absent.
         // reversing is 1 while the unit drives backwards this tick, else 0.
@@ -858,6 +874,20 @@ fn pack_record(
             .skirmish
             .as_ref()
             .map_or(0.0, |s| s.pending.len() as f32),
+        frame
+            .skirmish
+            .as_ref()
+            .map_or(0.0, |s| s.objectives.len() as f32),
+        frame.skirmish.as_ref().map_or(0.0, |s| s.scores[0] as f32),
+        frame.skirmish.as_ref().map_or(0.0, |s| s.scores[1] as f32),
+        frame
+            .skirmish
+            .as_ref()
+            .and_then(|s| s.result)
+            .map_or(-1.0, |r| match r {
+                contract::skirmish::MatchResult::Winner { side } => side.index() as f32,
+                contract::skirmish::MatchResult::Draw => 2.0,
+            }),
     ]);
     for u in &frame.own {
         let [garrison_lo, garrison_hi] = limbs_or_absent(u.garrison.map(|g| g.building));
@@ -1180,6 +1210,23 @@ fn pack_record(
             ]);
         }
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    if let Some(skirmish) = &frame.skirmish {
+        for (i, o) in skirmish.objectives.iter().enumerate() {
+            out.extend([
+                i as f32,
+                o.center[0] as f32,
+                o.center[1] as f32,
+                o.radius_m as f32,
+                o.owner.map_or(-1.0, |s| s.index() as f32),
+                o.capturing.map_or(-1.0, |s| s.index() as f32),
+                o.capture_progress as f32,
+                o.contested as u8 as f32,
+            ]);
+        }
+    }
     let word = |i: usize| {
         let value = fog.bits[i];
         if i + 1 == words && !cells.is_multiple_of(32) {
@@ -1242,6 +1289,10 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     add(
         frame.skirmish.as_ref().map_or(0, |s| s.pending.len()),
         PENDING_FIELDS.len(),
+    )?;
+    add(
+        frame.skirmish.as_ref().map_or(0, |s| s.objectives.len()),
+        OBJECTIVE_FIELDS.len(),
     )?;
     add(frame.own.len(), OWN_FIELDS.len())?;
     for u in &frame.own {
@@ -1609,7 +1660,7 @@ const VARIABLE_ANCHOR_WORDS: usize = 3;
 
 /// Each non-map group's fixed row width, in record order; 0 where variable
 /// sections leave no one width to address complete rows by.
-const GROUP_ROW_WIDTHS: [usize; 11] = [
+const GROUP_ROW_WIDTHS: [usize; 12] = [
     0,
     0,
     CONTACT_FIELDS.len(),
@@ -1621,6 +1672,7 @@ const GROUP_ROW_WIDTHS: [usize; 11] = [
     KNOWN_PROP_FIELDS.len(),
     FALLEN_BODY_FIELDS.len(),
     PENDING_FIELDS.len(),
+    OBJECTIVE_FIELDS.len(),
 ];
 
 /// Non-map groups, in record order.

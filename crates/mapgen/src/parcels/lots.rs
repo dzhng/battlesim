@@ -93,7 +93,7 @@ impl<'a> Ground<'a> {
     pub fn new(plan: &'a MapPlan, network: &'a Network<'a>) -> Self {
         Self {
             network,
-            objectives: plan.skirmish.as_ref().map(|sites| sites.objectives.iter().map(|o| Rect {
+            objectives: plan.skirmish.as_ref().map(|sites| sites.all_reserved_objectives().map(|o| Rect {
                 center: o.center, axis: [1.0,0.0], half: [o.radius_m+10.0;2]
             }).collect()).unwrap_or_default(),
             forests: plan

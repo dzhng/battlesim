@@ -1389,7 +1389,7 @@ impl<'a> Country<'a> {
             presets,
             rules,
             size,
-            objectives: plan.skirmish.as_ref().map(|sites| sites.objectives.iter()
+            objectives: plan.skirmish.as_ref().map(|sites| sites.all_reserved_objectives()
                 .map(|o| (o.center,o.radius_m+10.0)).collect()).unwrap_or_default(),
             network: Network::new(plan, clearance, &presets.parcels.geometry),
             towns,

@@ -59,6 +59,7 @@ export function askedChoice(search: string): Partial<MapChoice> {
   return {
     ...(one(type, MAP_TYPES) && { type }),
     ...(one(size, MAP_SIZES) && { size }),
+    ...(params.get("profile") === "skirmish" && { profile: "skirmish" as const }),
     seed: canonicalSeed(params.get("seed") ?? "") ?? undefined,
     ...(one(region, REGIONS) && { region }),
   };
@@ -70,6 +71,7 @@ const query = (choice: Partial<MapChoice> & Pick<MapChoice, "type" | "size">) =>
     `type=${choice.type}&size=${choice.size}`,
     choice.seed !== undefined && `seed=${choice.seed}`,
     choice.region !== undefined && `region=${choice.region}`,
+    choice.profile !== undefined && `profile=${choice.profile}`,
   ]
     .filter(Boolean)
     .join("&");
@@ -118,7 +120,11 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   const region = params.get("region");
   if (region !== null && !one(region, REGIONS))
     return { error: `region must be one of ${REGIONS.join(", ")}` };
-  const chosen = region === null ? {} : { region };
+  const profile = params.get("profile");
+  if (profile !== null && profile !== "standard" && profile !== "skirmish")
+    return { error: "profile must be standard or skirmish" };
+  const chosen = { ...(region === null ? {} : { region }),
+    ...(profile !== null && { profile }) } as Pick<MapChoice,"region"|"profile">;
   if (params.has("play"))
     return {
       kind: "play",

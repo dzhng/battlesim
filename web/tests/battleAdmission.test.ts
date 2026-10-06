@@ -11,6 +11,7 @@ const candidate = (seed: string): PrepareBattleRequest => ({
       type: "mixed",
       size: "small",
       seed,
+      profile: "standard",
       generator_version: "test",
       preset_revision: "test",
       template_catalog_hash: "test",

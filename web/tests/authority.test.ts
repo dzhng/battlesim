@@ -73,7 +73,13 @@ function harness(load: () => Promise<SimModule> = async () => sim) {
       }
     },
     async init(replay?: string, setup = scenario) {
-      authority.handle({ type: "init", scenario: setup, seed: 9, side: "blue", replay });
+      authority.handle({
+        type: "init",
+        scenario: setup,
+        seed: 9,
+        side: "blue",
+        replay,
+      });
       await new Promise((r) => setTimeout(r, 0));
     },
   };
@@ -89,7 +95,13 @@ const move = (seq: number, units: number[]): CommandEnvelope => ({
   side: "blue",
   seq,
   queued: false,
-  order: { kind: "move", units, gesture: seq, goal: [120, 150], route: "shortest" },
+  order: {
+    kind: "move",
+    units,
+    gesture: seq,
+    goal: [120, 150],
+    route: "shortest",
+  },
 });
 
 test("a paused formation preview returns only own destinations without issuing an order", async () => {
@@ -98,8 +110,17 @@ test("a paused formation preview returns only own destinations without issuing a
   h.authority.handle({ type: "start" });
   h.authority.handle({ type: "pause" });
   const count = h.publications().length;
-  const moveRequest = { units: [0], goal: [120, 150] as [number, number], facing: Math.PI / 2 };
-  h.authority.handle({ type: "move_preview", id: 1, side: "blue", move: moveRequest });
+  const moveRequest = {
+    units: [0],
+    goal: [120, 150] as [number, number],
+    facing: Math.PI / 2,
+  };
+  h.authority.handle({
+    type: "move_preview",
+    id: 1,
+    side: "blue",
+    move: moveRequest,
+  });
   h.authority.handle({
     type: "move_preview",
     id: 2,
@@ -111,7 +132,12 @@ test("a paused formation preview returns only own destinations without issuing a
       type: "move_preview",
       id: 1,
       destinations: [
-        { unit: 0, placed: true, goal: [120, 150], facing: expect.closeTo(Math.PI / 2, 12) },
+        {
+          unit: 0,
+          placed: true,
+          goal: [120, 150],
+          facing: expect.closeTo(Math.PI / 2, 12),
+        },
       ],
     },
     { type: "move_preview", id: 2, destinations: [] },
@@ -263,7 +289,10 @@ test("a scripted advance steps exactly that many ticks while paused", async () =
     h.authority.pump();
   }
   expect(h.publications().length - start).toBe(6);
-  expect(h.replies.find((r) => r.type === "advanced")).toMatchObject({ id: 1, tick: start + 6 });
+  expect(h.replies.find((r) => r.type === "advanced")).toMatchObject({
+    id: 1,
+    tick: start + 6,
+  });
   h.advanceClock(1000);
   expect(h.publications().length - start).toBe(6); // still paused
 });
@@ -389,7 +418,13 @@ test("a scripted blue commands like a player: recorded, replayable, timed per st
   const accepted = (JSON.parse(json) as { accepted: [number, { side: string }][] }).accepted;
   expect(accepted.some(([, c]) => c.side === "blue")).toBe(true);
 
-  const again = await run({ type: "init", scenario: setup, seed: 3, side: "blue", replay: json });
+  const again = await run({
+    type: "init",
+    scenario: setup,
+    seed: 3,
+    side: "blue",
+    replay: json,
+  });
   expect(published(again).map((p) => p.digest)).toEqual(published(live).map((p) => p.digest));
 });
 
@@ -405,6 +440,7 @@ test("worker publication copying and transfer preserve every raw NaN carrier bit
     preview_building: () => "null",
     step: () => ++tick,
     tick: () => tick,
+    finished: () => false,
     digest: () => "carrier",
     replay_json: () => "{}",
     publish: () => bits.length,
@@ -421,4 +457,50 @@ test("worker publication copying and transfer preserve every raw NaN carrier bit
   h.authority.handle({ type: "start" });
   const publication = h.publications()[0];
   expect(new Uint32Array(publication.buffer, 0, publication.length)).toEqual(bits);
+});
+
+test("terminal matches complete fast-forward at their final tick and stop publishing", async () => {
+  const memory = new WebAssembly.Memory({ initial: 1 });
+  let tick = 0;
+  const battle = {
+    observation_layout: () => "{}",
+    accept: () => "{}",
+    preview_move: () => "[]",
+    preview_building: () => "null",
+    step: () => (tick < 2 ? ++tick : tick),
+    tick: () => tick,
+    finished: () => tick === 2,
+    digest: () => "final",
+    replay_json: () => "{}",
+    publish: () => 1,
+    resync_observation: () => {},
+    publication_ptr: () => 0,
+    free: () => {},
+  };
+  const h = harness(async () => ({
+    memory,
+    createBattle: () => battle,
+    replayBattle: () => battle,
+  }));
+  await h.init();
+  h.authority.handle({ type: "start" });
+  h.authority.handle({ type: "advance", id: 7, ticks: 100 });
+  expect(h.replies.find((r) => r.type === "advanced")).toEqual({
+    type: "advanced",
+    id: 7,
+    tick: 2,
+  });
+  expect(h.publications().map((p) => p.tick)).toEqual([1, 2]);
+  expect(h.replies.filter((r) => r.type === "status").at(-1)).toMatchObject({
+    status: "finished",
+  });
+  h.releaseAll();
+  h.advanceClock(10000);
+  h.authority.handle({ type: "advance", id: 8, ticks: 10 });
+  expect(h.replies.find((r) => r.type === "advanced" && r.id === 8)).toEqual({
+    type: "advanced",
+    id: 8,
+    tick: 2,
+  });
+  expect(h.publications().map((p) => p.tick)).toEqual([1, 2]);
 });

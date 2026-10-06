@@ -3,28 +3,27 @@
 
 ## Next Agent Prompt
 
-Status: implementation active under the existing harness goal, 2026-10-06.
-Slice 01 is committed. Slice 03 supported-ground data foundation is verified;
-physical-frame research and final named art remain open. Slice 04 purchase authority
-is the current pickup. Slice 02 compact geography is implemented but larger-profile
-travel fairness needs resolution. Model workers are producing named families in parallel.
-Exploration is complete in [the map](unknowns.md). Hard cutover and no adversarial
-review are authorized; continue through every slice without asking for stat approval.
+Status: implementation active under the existing harness goal. Slice 01 is committed;
+slices 03/04 ground-data and purchase authority foundations are committed. Objective
+capture/score/terminal authority and route-aware final geography are the current
+checkpoint. Named model workers and value-targeting implementation remain parallel.
+Hard cutover and no adversarial review are authorized; numerical tuning is delegated.
 
-Next: finish slice 04 browser publication/command parity and focused purchase gates;
-commit that authority pass. Then implement purchase UI and objective referee at the
-wavefront. Keep geography/model lanes active with exclusive file assignments.
+Next: finish the objective/geography checkpoint proof and commit. Then implement
+slice 05 production faction selection, purchase preview/ghost and army bar, followed
+by slice 07 basic observation-bound AI. Continue settlement, withdrawal and Trophy
+at their independent seams; integrate named models after physical-frame acceptance.
 
-Evidence: canonical catalog has 50 memberships/faction; ground fire, independent
-finite gun ammo and truck service tests pass. Physical entry, blocked FIFO, prep
-income and replay tests pass locally. Packed match header is tested; browser codec
-proof is in progress. See owning slices for detailed evidence.
+Evidence: 50 memberships/faction; finite ground loadouts and purchase replay parity
+pass. Geography admits 24/24 sampled type/size/seed combinations with unchanged 15%
+travel fairness. Capture/score/replay and native/WASM timeline agree; terminal worker
+advance stops at the actual final tick. Detailed evidence lives in owning slices.
 
-Open gates: Large/XL objective travel fairness; body-versus-mounted-envelope facts
-for five light vehicles; resupply deployment art must reflect actual hardware;
-model bindings, icons and in-renderer comparison/Preview/unprimed critique. Generic
-admitted art is temporary and cannot close model acceptance. Unsupported capabilities
-stay visibly disabled. Full checks run once at final closeout.
+Open gates: remaining light-vehicle frame research; truthful supply deployment art;
+named runtime bindings/icons and required renderer comparison/Preview/unprimed
+critique. Production purchase/objective UI and AI remain unimplemented. Generic
+admitted art cannot close model acceptance. Unsupported cards stay disabled.
+Run full checks once at final closeout.
 
 Global implementation TODOs:
 
