@@ -185,6 +185,15 @@ pub fn hull_bodies<'a>(hulls: impl IntoIterator<Item = &'a crate::lean::Hull>) -
 /// swept `reach` toward the shooter, meets it. A soldier peering past a
 /// trunk's edge is still behind it; one beside a wall's end is not.
 pub fn covers(rect: &Obb2, p: V2, from: V2, reach: f64, radius: f64) -> bool {
+    // A body farther from `p` than `reach` past its corners cannot be
+    // within reach of it (its half-sides bound the half-diagonal without a
+    // square root): no turning `p` into its frame for most of a crowded
+    // street's bodies.
+    let off = rect.center - p;
+    let past = reach + rect.half.x.abs() + rect.half.y.abs();
+    if off.dot(off) > past * past * (1.0 + 1e-9) + 1e-9 {
+        return false;
+    }
     let d = from - p;
     let len = d.length();
     len > 1e-9
