@@ -613,6 +613,8 @@ function foliageCells(foliage: Float32Array): Float32Array {
 
 const _fog_position: Vec2 = [0, 0];
 const _fog_center: Vec2 = [0, 0];
+let _fog_seen = new Uint32Array(0);
+let _fog_found = new Uint32Array(0);
 const _fog_half: Vec2 = [0, 0];
 
 /** Reuse the whole-structure grid for horizon candidates. Lists are deduplicated
@@ -650,7 +652,17 @@ export function fogOccludersInReach(
     p.wholeNy - 1,
     Math.floor((y + queryReach + pad - p.wholeOrigin[1]) / p.wholeCellM),
   );
-  const found = new Set<number>();
+  // A box spans several cells: each is judged once (`seen`), and those in
+  // reach are marked in `found`, read back in index order. Both are bit
+  // sets over the grid's boxes, cleared where they were set.
+  const words = (p.wholeCount + 31) >>> 5;
+  if (_fog_seen.length < words) {
+    _fog_seen = new Uint32Array(words);
+    _fog_found = new Uint32Array(words);
+  }
+  const seen = _fog_seen;
+  const marked = _fog_found;
+  const touched: number[] = [];
   const floats = new Float32Array(grid.words.buffer);
   vec2.set(_fog_position, x, y);
   for (let j = loY; j <= hiY; j++)
@@ -659,16 +671,28 @@ export function fogOccludersInReach(
       const start = p.wholeItemsBase + (cell >>> 8);
       for (let at = start; at < start + (cell & 255); at++) {
         const index = grid.words[at];
-        if (found.has(index)) continue;
+        const w = index >>> 5;
+        const bit = 1 << (index & 31);
+        if (seen[w] & bit) continue;
+        if (!seen[w]) touched.push(w);
+        seen[w] |= bit;
         const b = p.wholeBoxesBase + index * WHOLE_BOX_WORDS;
         vec2.fromBuffer(_fog_center, floats, b);
         vec2.fromBuffer(_fog_half, floats, b + 4);
         const radius = vec2.length(_fog_half);
         if (vec2.squaredDistance(_fog_center, _fog_position) <= (reach + radius + pad) ** 2)
-          found.add(index);
+          marked[w] |= bit;
       }
     }
-  return [...found].sort((a, b) => a - b);
+  touched.sort((a, b) => a - b);
+  const found: number[] = [];
+  for (const w of touched) {
+    for (let bits = marked[w]; bits; bits &= bits - 1)
+      found.push((w << 5) | (31 - Math.clz32(bits & -bits)));
+    seen[w] = 0;
+    marked[w] = 0;
+  }
+  return found;
 }
 
 /** Conservative angular lists reduce ray work without changing box intersections.
@@ -680,80 +704,113 @@ export function fogHorizonRecords(
   indices: readonly number[] = eyes.map((_, i) => i),
 ): Uint32Array {
   const floats = new Float32Array(grid.words.buffer);
-  const lists = eyes.map((eye) => {
-    const sectors = Array.from({ length: HORIZON_SECTORS }, () => [] as number[]);
-    for (const index of fogOccludersInReach(grid, eye.position, eye.reach)) {
+  const scale = HORIZON_SECTORS / (Math.PI * 2);
+  // Each eye's boxes with the sectors they span (all of them when the eye
+  // is inside its circle, or the span would wrap round): counted per
+  // sector first, then laid out, so each list keeps the boxes' order.
+  const spans = eyes.map((eye) => {
+    const found = fogOccludersInReach(grid, eye.position, eye.reach);
+    const range = new Int32Array(found.length * 2);
+    vec2.set(_fog_position, Math.fround(eye.position[0]), Math.fround(eye.position[1]));
+    found.forEach((index, k) => {
       const b = grid.params.wholeBoxesBase + index * WHOLE_BOX_WORDS;
       vec2.fromBuffer(_fog_center, floats, b);
       vec2.fromBuffer(_fog_half, floats, b + 4);
-      vec2.set(_fog_position, Math.fround(eye.position[0]), Math.fround(eye.position[1]));
       const distance = vec2.distance(_fog_center, _fog_position);
       const radius = vec2.length(_fog_half);
-      if (distance <= radius * (1 + 8 * 2 ** -23)) {
-        sectors.forEach((list) => list.push(index));
-        continue;
+      let lo = 0;
+      let hi = HORIZON_SECTORS - 1;
+      if (distance > radius * (1 + 8 * 2 ** -23)) {
+        const angle = Math.atan2(
+          _fog_center[1] - _fog_position[1],
+          _fog_center[0] - _fog_position[0],
+        );
+        const half = Math.asin(Math.min(1, radius / distance));
+        const a = Math.floor((angle - half + Math.PI) * scale) - 1;
+        const z = Math.floor((angle + half + Math.PI) * scale) + 1;
+        if (z - a + 1 < HORIZON_SECTORS) [lo, hi] = [a, z];
       }
-      const angle = Math.atan2(
-        _fog_center[1] - _fog_position[1],
-        _fog_center[0] - _fog_position[0],
-      );
-      const half = Math.asin(Math.min(1, radius / distance));
-      const scale = HORIZON_SECTORS / (Math.PI * 2);
-      const lo = Math.floor((angle - half + Math.PI) * scale) - 1;
-      const hi = Math.floor((angle + half + Math.PI) * scale) + 1;
-      if (hi - lo + 1 >= HORIZON_SECTORS) {
-        sectors.forEach((list) => list.push(index));
-      } else {
-        for (let sector = lo; sector <= hi; sector++)
-          sectors[(sector + HORIZON_SECTORS) % HORIZON_SECTORS].push(index);
-      }
-    }
-    return sectors;
+      range[2 * k] = lo;
+      range[2 * k + 1] = hi;
+    });
+    return { found, range };
   });
   const headers = eyes.length * 3;
   const tableWords = eyes.length * HORIZON_SECTORS * 2;
-  const count =
-    headers +
-    tableWords +
-    lists.reduce((n, sectors) => n + sectors.reduce((m, list) => m + list.length, 0), 0);
+  let count = headers + tableWords;
+  for (const { range } of spans)
+    for (let k = 0; k < range.length; k += 2) count += range[k + 1] - range[k] + 1;
   const records = new Uint32Array(count);
+  const sizes = new Uint32Array(HORIZON_SECTORS);
+  const cursor = new Uint32Array(HORIZON_SECTORS);
+  const sector = (s: number) => (s + HORIZON_SECTORS) % HORIZON_SECTORS;
   let at = headers + tableWords;
-  lists.forEach((sectors, r) => {
+  spans.forEach(({ found, range }, r) => {
     const table = headers + r * HORIZON_SECTORS * 2;
     records.set([indices[r], table, HORIZON_SECTORS], r * 3);
-    sectors.forEach((list, sector) => {
-      records.set([at, list.length], table + sector * 2);
-      records.set(list, at);
-      at += list.length;
+    sizes.fill(0);
+    for (let k = 0; k < found.length; k++)
+      for (let s = range[2 * k]; s <= range[2 * k + 1]; s++) sizes[sector(s)]++;
+    for (let s = 0; s < HORIZON_SECTORS; s++) {
+      records[table + s * 2] = at;
+      records[table + s * 2 + 1] = sizes[s];
+      cursor[s] = at;
+      at += sizes[s];
+    }
+    found.forEach((index, k) => {
+      for (let s = range[2 * k]; s <= range[2 * k + 1]; s++) records[cursor[sector(s)]++] = index;
     });
   });
   return records;
 }
 
-/** Reachable structure rows and their eye lists for the whole-fog pass. */
+/** Each eye's occluders in reach, by where it stands and how far it sees,
+ *  on the grid they were found on. */
+export type EyeOccluders = { grid: ReturnType<typeof wholeWords>; lists: Map<string, number[]> };
+
+/** Reachable structure rows and their eye lists for the whole-fog pass. An
+ *  eye standing where it stood at the last call (`kept`, on the same grid)
+ *  reuses its list rather than searching the grid again: most have not moved.
+ *  The records are the same either way. */
 export function wholeFogRecords(
   grid: ReturnType<typeof wholeWords>,
   eyes: readonly Pick<FogEyeRow, "position" | "reach">[],
   queryMargin: number,
+  kept?: EyeOccluders,
 ) {
-  const pairs = new Map<number, number[]>();
-  eyes.forEach((eye, e) => {
-    for (const index of fogOccludersInReach(grid, eye.position, eye.reach, queryMargin)) {
-      let list = pairs.get(index);
-      if (!list) pairs.set(index, (list = []));
-      list.push(e);
-    }
+  const reuse = kept?.grid === grid ? kept.lists : undefined;
+  const lists = new Map<string, number[]>();
+  const found = eyes.map((eye) => {
+    const key = `${eye.position[0]},${eye.position[1]},${eye.reach}`;
+    let list = lists.get(key) ?? reuse?.get(key);
+    if (!list) list = fogOccludersInReach(grid, eye.position, eye.reach, queryMargin);
+    lists.set(key, list);
+    return list;
   });
-  const rows = [...pairs].sort(([a], [b]) => a - b);
-  const count = rows.length;
-  const words = new Uint32Array(count * 3 + rows.reduce((n, [, list]) => n + list.length, 0));
+  // Rows in box order, each with its eyes in eye order: by counting, not by
+  // sorting (a box's eyes are counted, then laid out after the row headers).
+  const boxes = grid.params.wholeCount;
+  const eyesOf = new Uint32Array(boxes);
+  let pairs = 0;
+  for (const list of found) for (const index of list) (eyesOf[index]++, pairs++);
+  let count = 0;
+  for (let b = 0; b < boxes; b++) if (eyesOf[b]) count++;
+  const words = new Uint32Array(count * 3 + pairs);
+  // Each box's next free eye slot, from its row's offset.
+  const cursor = new Uint32Array(boxes);
+  let row = 0;
   let at = count * 3;
-  rows.forEach(([box, list], i) => {
-    words.set([box, at, list.length], i * 3);
-    words.set(list, at);
-    at += list.length;
+  for (let b = 0; b < boxes; b++) {
+    if (!eyesOf[b]) continue;
+    words.set([b, at, eyesOf[b]], row * 3);
+    cursor[b] = at;
+    at += eyesOf[b];
+    row++;
+  }
+  found.forEach((list, e) => {
+    for (const index of list) words[cursor[index]++] = e;
   });
-  return { count, words };
+  return { count, words, kept: { grid, lists } satisfies EyeOccluders };
 }
 
 /** An unchanged geometry set preserves every eye map, even when row indices
@@ -875,6 +932,7 @@ export async function createFogVisibility(
   /** The structures' lookup (`wholeWords`), and whether their flags are stale. */
   let wholes = wholeWords([], 0);
   let wholesDirty = false;
+  let eyeOccluders: EyeOccluders | undefined;
   let wholeItemCapacity = 1;
   let maxOccluderRadius = 0;
 
@@ -1301,11 +1359,12 @@ export async function createFogVisibility(
         wholesDirty = false;
         // Preserve the original bounding-circle reach test: roof probes may
         // look inward from a box just outside the eye's circle.
-        const { count: n, words: items } = wholeFogRecords(
-          wholes,
-          order.map(eyeRow),
-          maxOccluderRadius,
-        );
+        const {
+          count: n,
+          words: items,
+          kept,
+        } = wholeFogRecords(wholes, order.map(eyeRow), maxOccluderRadius, eyeOccluders);
+        eyeOccluders = kept;
         if (items.length > wholeItemCapacity) {
           wholeItemCapacity = Math.max(items.length, wholeItemCapacity * 2);
           buffers.wholeItems.set(storage("fog-whole-items", wholeItemCapacity * WORD));

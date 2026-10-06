@@ -194,6 +194,25 @@ test("an occluder update immediately rebuilds only affected built maps through t
   }
 });
 
+test("eye candidates come once each, in index order, and asking again gives the same answer", () => {
+  // Boxes of every size, some spanning many cells, past one 32-box word.
+  const boxes = Array.from({ length: 300 }, (_, i) =>
+    box((i * 97) % 900, (i * 61) % 700, 1 + (i % 7) * 6, 1 + (i % 5) * 9, i * 0.3),
+  );
+  const grid = wholeWords(boxes, 0.2);
+  for (const [x, y, reach] of [
+    [100, 100, 80],
+    [450, 350, 250],
+    [880, 20, 40],
+  ]) {
+    const got = fogOccludersInReach(grid, [x, y, 2], reach);
+    expect(got.length).toBeGreaterThan(0);
+    expect(got).toEqual([...new Set(got)].sort((a, b) => a - b));
+    // Nothing is left marked between queries.
+    expect(fogOccludersInReach(grid, [x, y, 2], reach)).toEqual(got);
+  }
+});
+
 test("whole-surface candidates retain boxes whose roof probes can reach inward from outside the eye circle", () => {
   const boxes = [box(0, 0), box(132, 0, 1, 100), box(3000, 3000)];
   const grid = wholeWords(boxes, 0.2);
@@ -214,10 +233,29 @@ test("whole-fog records pair each reachable structure only with eyes that can re
   expect(records.count).toBe(3);
   // GPU records: [box, eye-list offset, eye count], then the eye indices.
   expect([...records.words]).toEqual([0, 9, 1, 1, 10, 1, 3, 11, 1, 0, 1, 0]);
-  expect(wholeFogRecords(wholeWords(boxes, 0.2), [], 101)).toEqual({
-    count: 0,
-    words: new Uint32Array(0),
-  });
+  const none = wholeFogRecords(wholeWords(boxes, 0.2), [], 101);
+  expect(none.count).toBe(0);
+  expect(none.words).toEqual(new Uint32Array(0));
+});
+
+test("whole-fog records reusing the eyes' last lists match records made afresh, as eyes move and the grid changes", async () => {
+  const { wholeFogRecords } = await import("@packages/battle-renderer/src/frame/fogVisibility");
+  const boxes = Array.from({ length: 60 }, (_, i) => box((i * 37) % 400, (i * 53) % 400));
+  let grid = wholeWords(boxes, 0.2);
+  let kept: import("@packages/battle-renderer/src/frame/fogVisibility").EyeOccluders | undefined;
+  for (let frame = 0; frame < 6; frame++) {
+    // Half the eyes stand still; the rest walk, and once the grid changes.
+    const eyes = Array.from({ length: 8 }, (_, e) => ({
+      position: [e * 50 + (e % 2 ? frame * 7 : 0), 200, 2] as const,
+      reach: 90 + e,
+    }));
+    if (frame === 3) grid = wholeWords(boxes.slice(10), 0.2);
+    const fresh = wholeFogRecords(grid, eyes, 101);
+    const reused = wholeFogRecords(grid, eyes, 101, kept);
+    expect(reused.count).toBe(fresh.count);
+    expect([...reused.words]).toEqual([...fresh.words]);
+    kept = reused.kept;
+  }
 });
 
 test("horizon sectors conservatively retain slab intersections across west wrap and turned boxes", async () => {
