@@ -33,6 +33,10 @@ export async function mechanicsSourcePaths(root: string): Promise<string[]> {
     }
     for (const item of entries) {
       const child = `${path}/${item.name}`;
+      // Model manifests are review metadata for the unit workbench, not
+      // mechanics documents. They do not have catalog sections and must not be
+      // handed to the native catalog validator.
+      if (child === "fixtures/units/model-manifest.json") continue;
       if (item.isDirectory()) await walk(child);
       else if (item.isFile() && child.endsWith(".json")) out.push(child);
     }

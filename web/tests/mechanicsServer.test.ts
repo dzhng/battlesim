@@ -1,11 +1,12 @@
 // @vitest-environment node
-import { cp, mkdtemp, mkdir, writeFile, readFile, readdir, rm } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import * as filesystem from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { MechanicsStore, nativeValidator } from "../../apps/mechanics-editor/server";
+import { mechanicsSourcePaths } from "../../apps/fixture-publication/publication";
 import type { JsonObject } from "../../apps/mechanics-editor/src/protocol";
 
 vi.mock("node:fs/promises", async (importOriginal) => ({
@@ -200,7 +201,22 @@ test("a shared weapon preview names all users and invalid flight settings never 
       { section: "weapons", id: "rifle", path: ["damage"], value: Number(weapon.damage) + 1 },
     ],
   });
-  expect(preview.affectedUnits.sort()).toEqual(["at", "recon", "rifle"]);
+  expect(preview.affectedUnits.sort()).toEqual([
+    "assault_squad",
+    "at",
+    "eastern_atgm_team_kornet",
+    "eastern_rpg_team_rpg_29",
+    "eastern_rpg_team_rpg_7",
+    "eastern_scouts_light_patrol",
+    "europe_recon_patrol_light_patrol",
+    "recon",
+    "rifle",
+    "rifle_squad",
+    "us_army_scouts_light_patrol",
+    "us_atgm_team_bgm_71_tow_2a",
+    "us_force_recon_recon_patrol",
+    "us_marine_squad_close_quarters_infantry",
+  ]);
   await expect(
     editor.save({
       revision: initial.revision,
@@ -296,13 +312,8 @@ test("save publishes the Rust catalog generator’s exact canonical bytes", asyn
     changes: [{ section: "weapons", id: "rifle", path: ["damage"], value: 40 }],
   });
   const texts: string[] = [];
-  for (const folder of ["props", "units"]) {
-    const paths = (await readdir(join(root, "fixtures", folder), { recursive: true }))
-      .filter((path) => path.endsWith(".json"))
-      .sort();
-    for (const path of paths)
-      texts.push(await readFile(join(root, "fixtures", folder, path), "utf8"));
-  }
+  for (const path of (await mechanicsSourcePaths(root)).filter((path) => path !== "fixtures/game.json"))
+    texts.push(await readFile(join(root, path), "utf8"));
   const game = await readFile(join(root, "fixtures/game.json"), "utf8");
   const native = spawnSync(
     resolve(
