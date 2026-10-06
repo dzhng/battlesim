@@ -42,6 +42,62 @@ fn player_roster_resolves_shared_identities_and_disabled_future_cards() {
 }
 
 #[test]
+fn disabled_model_manifest_covers_cards_without_admitting_units() {
+    #[derive(serde::Deserialize)]
+    struct Manifest {
+        schema_version: u32,
+        entries: Vec<Entry>,
+    }
+    #[derive(serde::Deserialize)]
+    struct Entry {
+        id: String,
+        family: String,
+        category: String,
+        model_status: String,
+        source_family: String,
+        source_kind: String,
+        disabled_reason: String,
+    }
+
+    let path = sim::fixtures::dir().join("units/model-manifest.json");
+    let manifest: Manifest = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    assert_eq!(manifest.schema_version, 1);
+    let catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents()).unwrap();
+    let disabled: std::collections::BTreeMap<_, _> = catalog
+        .cards()
+        .filter(|card| card.disabled_reason.is_some())
+        .map(|card| (card.id.to_owned(), card))
+        .collect();
+    let mut seen = std::collections::BTreeSet::new();
+    for entry in &manifest.entries {
+        assert!(
+            seen.insert(&entry.id),
+            "duplicate model manifest entry: {}",
+            entry.id
+        );
+        let card = disabled
+            .get(entry.id.as_str())
+            .unwrap_or_else(|| panic!("model manifest entry is not a disabled card: {}", entry.id));
+        assert_eq!(entry.family, card.family);
+        assert_eq!(
+            entry.category,
+            format!("{:?}", card.roster.category).to_lowercase()
+        );
+        assert!(!entry.model_status.is_empty());
+        assert!(!entry.source_family.is_empty());
+        assert!(!entry.source_kind.is_empty());
+        assert_eq!(Some(entry.disabled_reason.as_str()), card.disabled_reason);
+        assert!(
+            catalog.index(&entry.id).is_none(),
+            "disabled model became admitted: {}",
+            entry.id
+        );
+    }
+    assert_eq!(seen.len(), disabled.len());
+    assert_eq!(seen, disabled.keys().cloned().collect());
+}
+
+#[test]
 fn faction_supply_trucks_start_with_two_hundred_fifty_stock() {
     let catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents()).unwrap();
     for id in [
