@@ -1,9 +1,9 @@
 {
   "units": [
-    { "side": "blue", "kind": "tank", "position": [3486, 1463], "yaw": 1.666 },
-    { "side": "blue", "kind": "tank", "position": [3489, 1428], "yaw": 1.666 },
-    { "side": "blue", "kind": "jeep", "position": [3492, 1399], "yaw": 1.666 },
-    { "side": "blue", "kind": "tank", "position": [3495, 1363], "yaw": 1.666 },
+    { "side": "blue", "kind": "tank", "position": [3486, 1463], "yaw": 1.666, "engagement": "return_fire_only" },
+    { "side": "blue", "kind": "tank", "position": [3531, 1438], "yaw": 1.62, "engagement": "return_fire_only" },
+    { "side": "blue", "kind": "jeep", "position": [3790, 1500], "yaw": 2.2, "engagement": "return_fire_only" },
+    { "side": "blue", "kind": "tank", "position": [3576, 1413], "yaw": 1.64, "condition": {"hp": 40.0}, "engagement": "return_fire_only" },
     { "side": "blue", "kind": "rifle", "position": [3440, 1560], "yaw": 1.676 },
     { "side": "blue", "kind": "rifle", "position": [3500, 1600], "yaw": 1.676 },
     { "side": "blue", "kind": "at", "position": [3455, 1520], "yaw": 1.676 },
@@ -11,37 +11,31 @@
     { "side": "red", "kind": "rifle", "position": [3404, 2057], "yaw": -1.47 },
     { "side": "red", "kind": "rifle", "position": [3346, 2065], "yaw": -1.47 },
     { "side": "red", "kind": "rifle", "position": [3276, 2091], "yaw": -1.47 },
-    { "side": "red", "kind": "at", "position": [3720, 2080], "yaw": -2.6 },
+    { "side": "red", "kind": "at", "position": [3690, 1995], "yaw": -2.6, "engagement": "return_fire_only" },
     { "side": "red", "kind": "rifle", "position": [3715, 2180], "yaw": -2.6 },
-    { "side": "red", "kind": "tank", "position": [3352, 2245], "yaw": -1.37 },
-    { "side": "red", "kind": "at", "position": [3700, 2010], "yaw": -2.57 },
-    { "side": "red", "kind": "at", "position": [3712, 2150], "yaw": -2.64 },
-    { "side": "red", "kind": "at", "position": [3745, 2240], "yaw": -2.44 },
-    { "side": "blue", "kind": "rifle", "position": [3457, 1420], "yaw": 1.67 },
-    { "side": "blue", "kind": "rifle", "position": [3471, 1380], "yaw": 1.67 },
-    { "side": "red", "kind": "rifle", "position": [3300, 1985], "yaw": -1.581 },
-    { "side": "red", "kind": "rifle", "position": [3455, 1990], "yaw": -1.765 },
-    { "side": "red", "kind": "rifle", "position": [3520, 2030], "yaw": -1.496 },
-    { "side": "blue", "kind": "tank", "position": [2346, 1121], "yaw": 0.597 },
-    { "side": "blue", "kind": "tank", "position": [2333, 1156], "yaw": 0.849 },
-    { "side": "blue", "kind": "tank", "position": [2277, 1192], "yaw": 0.824 },
-    { "side": "blue", "kind": "tank", "position": [2253, 1217], "yaw": 1.023 },
-    { "side": "blue", "kind": "tank", "position": [2234, 1255], "yaw": 0.964 },
-    { "side": "red", "kind": "tank", "position": [2604, 1358], "yaw": -2.316 },
-    { "side": "red", "kind": "tank", "position": [2558, 1395], "yaw": -2.42 },
-    { "side": "red", "kind": "tank", "position": [2525, 1427], "yaw": -2.575 },
-    { "side": "red", "kind": "tank", "position": [2505, 1458], "yaw": -2.504 },
-    { "side": "red", "kind": "tank", "position": [2475, 1517], "yaw": -2.393 },
-    { "side": "blue", "kind": "tank", "position": [1787, 1443], "yaw": 0.884 },
-    { "side": "blue", "kind": "tank", "position": [1774, 1480], "yaw": 0.822 },
-    { "side": "blue", "kind": "tank", "position": [1729, 1513], "yaw": 0.973 },
-    { "side": "blue", "kind": "tank", "position": [1685, 1544], "yaw": 0.679 },
-    { "side": "red", "kind": "tank", "position": [2180, 1814], "yaw": -2.362 },
-    { "side": "red", "kind": "tank", "position": [2123, 1822], "yaw": -2.272 },
-    { "side": "red", "kind": "tank", "position": [2086, 1877], "yaw": -2.32 },
-    { "side": "red", "kind": "tank", "position": [2059, 1922], "yaw": -2.45 },
-    { "side": "blue", "kind": "tank", "position": [3360, 1520], "yaw": 1.659 },
-    { "side": "blue", "kind": "tank", "position": [3385, 1490], "yaw": 1.639 }
+    { "side": "red", "kind": "at", "position": [3712, 2150], "yaw": -2.57, "engagement": "return_fire_only" },
+    { "side": "blue", "kind": "rifle", "position": [3460, 1420], "yaw": 1.67 },
+    { "side": "blue", "kind": "rifle", "position": [3475, 1380], "yaw": 1.67 },
+    { "side": "red", "kind": "rifle", "position": [3300, 1985], "yaw": -1.757 },
+    { "side": "red", "kind": "rifle", "position": [3455, 1990], "yaw": -1.478 },
+    { "side": "red", "kind": "rifle", "position": [3520, 2030], "yaw": -1.581 },
+    { "side": "blue", "kind": "tank", "position": [2319, 1149], "yaw": 0.57 },
+    { "side": "blue", "kind": "tank", "position": [2304, 1190], "yaw": 0.747 },
+    { "side": "blue", "kind": "tank", "position": [2244, 1223], "yaw": 0.597 },
+    { "side": "red", "kind": "tank", "position": [2562, 1396], "yaw": -2.408 },
+    { "side": "red", "kind": "tank", "position": [2533, 1448], "yaw": -2.583 },
+    { "side": "red", "kind": "tank", "position": [2510, 1489], "yaw": -2.462 },
+    { "side": "blue", "kind": "tank", "position": [1754, 1462], "yaw": 0.943 },
+    { "side": "blue", "kind": "tank", "position": [1721, 1493], "yaw": 0.826 },
+    { "side": "red", "kind": "tank", "position": [2129, 1845], "yaw": -2.575 },
+    { "side": "red", "kind": "tank", "position": [2096, 1864], "yaw": -2.504 },
+    { "side": "blue", "kind": "tank", "position": [3360, 1520], "yaw": 1.656 },
+    { "side": "blue", "kind": "tank", "position": [3385, 1490], "yaw": 1.606 },
+    { "side": "blue", "kind": "jeep", "position": [3835, 1480], "yaw": 2.2 },
+    { "side": "blue", "kind": "jeep", "position": [3875, 1445], "yaw": 2.2 },
+    { "side": "red", "kind": "rifle", "position": [3330, 2150], "yaw": -1.6, "engagement": "return_fire_only" },
+    { "side": "red", "kind": "rifle", "position": [3400, 2165], "yaw": -1.6, "engagement": "return_fire_only" },
+    { "side": "red", "kind": "rifle", "position": [3470, 2180], "yaw": -1.6, "engagement": "return_fire_only" }
   ],
   "scripts": [
     {
@@ -49,7 +43,7 @@
       "side": "blue",
       "order": {
         "kind": "move",
-        "units": [0, 1, 2, 3],
+        "units": [0],
         "gesture": 1,
         "goal": [3398, 2014],
         "route": "fastest"
@@ -60,8 +54,41 @@
       "side": "blue",
       "order": {
         "kind": "move",
-        "units": [4, 5, 6, 7],
+        "units": [1],
         "gesture": 2,
+        "goal": [3445, 1985],
+        "route": "shortest"
+      }
+    },
+    {
+      "tick": 0,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [3],
+        "gesture": 3,
+        "goal": [3490, 1975],
+        "route": "shortest"
+      }
+    },
+    {
+      "tick": 0,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [2],
+        "gesture": 4,
+        "goal": [3540, 1960],
+        "route": "shortest"
+      }
+    },
+    {
+      "tick": 0,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [4, 5, 6, 7],
+        "gesture": 5,
         "goal": [3380, 1960],
         "route": "shortest"
       }
@@ -71,8 +98,8 @@
       "side": "blue",
       "order": {
         "kind": "move",
-        "units": [17, 18],
-        "gesture": 3,
+        "units": [14, 15],
+        "gesture": 6,
         "goal": [3420, 1980],
         "route": "shortest"
       }
@@ -82,8 +109,8 @@
       "side": "blue",
       "order": {
         "kind": "move",
-        "units": [32, 33, 34, 35],
-        "gesture": 4,
+        "units": [25, 26],
+        "gesture": 7,
         "goal": [1897, 1646],
         "route": "shortest"
       }
@@ -93,9 +120,88 @@
       "side": "blue",
       "order": {
         "kind": "move",
-        "units": [40, 41],
-        "gesture": 5,
+        "units": [29, 30],
+        "gesture": 8,
         "goal": [3345, 1900],
+        "route": "shortest"
+      }
+    },
+    {
+      "tick": 0,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [31],
+        "gesture": 9,
+        "goal": [3570, 1930],
+        "route": "shortest"
+      }
+    },
+    {
+      "tick": 0,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [32],
+        "gesture": 10,
+        "goal": [3600, 1900],
+        "route": "shortest"
+      }
+    },
+    {
+      "tick": 1200,
+      "side": "blue",
+      "order": {
+        "kind": "set_engagement",
+        "units": [0, 1, 2, 3],
+        "policy": "fire_at_will"
+      }
+    },
+    {
+      "tick": 2460,
+      "side": "red",
+      "order": {
+        "kind": "move",
+        "units": [33, 34, 35],
+        "gesture": 12,
+        "goal": [3420, 1990],
+        "route": "shortest"
+      }
+    },
+    {
+      "tick": 2460,
+      "side": "red",
+      "order": {
+        "kind": "set_engagement",
+        "units": [33, 34, 35],
+        "policy": "fire_at_will"
+      }
+    },
+    {
+      "tick": 2790,
+      "side": "red",
+      "order": {
+        "kind": "stop",
+        "units": [13]
+      }
+    },
+    {
+      "tick": 2790,
+      "side": "red",
+      "order": {
+        "kind": "set_engagement",
+        "units": [13],
+        "policy": "return_fire_only"
+      }
+    },
+    {
+      "tick": 2791,
+      "side": "red",
+      "order": {
+        "kind": "move",
+        "units": [13],
+        "gesture": 11,
+        "goal": [3960, 2330],
         "route": "shortest"
       }
     }
@@ -107,7 +213,7 @@
       [9, 2764],
       [10, 2810]
     ],
-    "at_attack_range_m": 900.0,
+    "at_attack_range_m": 300.0,
     "tank_retreat_hp_fraction": 0.35,
     "tank_fallback": [3193.86, 3040.48],
     "infantry_retreat_survivor_fraction": 0.5,
