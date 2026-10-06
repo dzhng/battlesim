@@ -592,7 +592,7 @@
       "unit": "scenery"
     },
     "jeep": {
-      "bundle": "6dd05fcb19f1229c1603d4b9ee6eebe4fdd5a00efdb5bf3fc39f589eb7c0c481",
+      "bundle": "f002b8dd5eed5ce8bfa556673984405f02805d0e5b904d3d93083864c3aeb494",
       "kind": "articulated",
       "mounts": {
         "HMG": "hmg"

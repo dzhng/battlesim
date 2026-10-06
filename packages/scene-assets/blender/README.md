@@ -25,6 +25,11 @@ Clips and meshes must retain the shared skeleton contract: regenerating one does
 not regenerate the other. Shared rig, weapon and mesh-tier helpers concentrate
 that policy rather than defining extra standalone asset commands.
 
+Visible vehicle crew reuse the exported infantry art in fixed operating poses.
+They belong to the vehicle's appearance and mount hierarchy, rather than adding
+simulation soldiers. Re-export their vehicles after changing the infantry source;
+the crew exporter preserves that source's exact textures and material masks.
+
 Subject exporters build vehicles, wrecks, props, trees and forest-floor material.
 Shared part, masonry, texture and damage helpers keep frame conventions and seeded
 source identity consistent across those subjects. [The batch script](build_sources.sh)
