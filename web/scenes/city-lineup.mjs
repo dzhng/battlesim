@@ -35,8 +35,7 @@ import { cropBox, decode } from "./_png.mjs";
 import { writeSheet } from "./_sheet.mjs";
 import { bounds, judge, projected, setFits } from "./_templateFit.mjs";
 
-const HIDE_PANEL =
-  "[data-testid=city-lineup-panel] { display: none !important; }";
+const HIDE_PANEL = "[data-testid=city-lineup-panel] { display: none !important; }";
 /** Clear picture round a template in a pair's crop, pixels. */
 const CROP_PX = 6;
 const PAIR_WIDTH = 520;
@@ -78,8 +77,7 @@ async function runSet(ctx, page, set, fit) {
   const warnings = gpuWarnings(page);
   const query = new URLSearchParams();
   query.set("set", set);
-  if (process.env.CITY_CATEGORY)
-    query.set("category", process.env.CITY_CATEGORY);
+  if (process.env.CITY_CATEGORY) query.set("category", process.env.CITY_CATEGORY);
   await ctx.openLab(page, `${ctx.url}?${query}`, 120000);
   await page.waitForFunction(
     async () => {
@@ -92,9 +90,7 @@ async function runSet(ctx, page, set, fit) {
   await page.addStyleTag({ content: HIDE_PANEL });
 
   const lineup = await route(page, "lineup");
-  const costs = Object.fromEntries(
-    (await route(page, "costs")).map((c) => [c.id, c]),
-  );
+  const costs = Object.fromEntries((await route(page, "costs")).map((c) => [c.id, c]));
   const boundaries = await route(page, "boundaries");
   const built = await stats(page);
   const categories = lineup.rows.map((row) => row.category);
@@ -113,9 +109,7 @@ async function runSet(ctx, page, set, fit) {
     lineup.missing.length === 0 &&
       built.buildings === lineup.entries.length &&
       built.coarse >= built.buildings &&
-      lineup.entries.every((e) =>
-        costs[e.id].states.intact.rows.every((n) => n > 0),
-      ),
+      lineup.entries.every((e) => costs[e.id].states.intact.rows.every((n) => n > 0)),
     JSON.stringify({
       missing: lineup.missing,
       stood: lineup.entries.length,
@@ -128,39 +122,26 @@ async function runSet(ctx, page, set, fit) {
   await settle(page);
   const labels = await lab(page, () =>
     window.__lab.route.lineup().entries.map((e) => {
-      const node = [
-        ...document.querySelectorAll("[data-testid=city-lineup-labels] span"),
-      ].find((n) => n.textContent === e.id);
-      const box = node?.getBoundingClientRect();
-      const anchor = window.__lab.projectToCss(
-        (e.min[0] + e.max[0]) / 2,
-        e.min[1] - 3,
-        0,
+      const node = [...document.querySelectorAll("[data-testid=city-lineup-labels] span")].find(
+        (n) => n.textContent === e.id,
       );
+      const box = node?.getBoundingClientRect();
+      const anchor = window.__lab.projectToCss((e.min[0] + e.max[0]) / 2, e.min[1] - 3, 0);
       // How far its middle is from the anchor's column, and how far below
       // the anchor its top is (a row's labels alternate between two lines).
-      return box
-        ? [box.left + box.width / 2 - anchor[0], box.top - anchor[1]]
-        : null;
+      return box ? [box.left + box.width / 2 - anchor[0], box.top - anchor[1]] : null;
     }),
   );
   ctx.check(
     "every template is labelled with its id, at its front",
-    labels.every(
-      (off) =>
-        off !== null && Math.abs(off[0]) < 2 && off[1] > -2 && off[1] < 24,
-    ),
-    JSON.stringify(
-      labels.map((off) => off && off.map((px) => Number(px.toFixed(1)))),
-    ),
+    labels.every((off) => off !== null && Math.abs(off[0]) < 2 && off[1] > -2 && off[1] < 24),
+    JSON.stringify(labels.map((off) => off && off.map((px) => Number(px.toFixed(1))))),
   );
   await writeFile(ctx.evidencePath("all-1920x1080.png"), await frame(page));
 
   const tiers = (process.env.CITY_TIERS ?? "0,1,2,3").split(",").map(Number);
   const states = (
-    process.env.CITY_STATE
-      ? [process.env.CITY_STATE]
-      : ["intact", "ruin", "gutted"]
+    process.env.CITY_STATE ? [process.env.CITY_STATE] : ["intact", "ruin", "gutted"]
   ).filter((state) => lineup.entries.some((e) => costs[e.id].states[state]));
   const pairs = (process.env.CITY_PAIRS ?? DEFAULT_PAIRS)
     .split(",")
@@ -178,11 +159,8 @@ async function runSet(ctx, page, set, fit) {
     await show(page, "setState", "state", state);
     // What stands in this state: the templates with rows for it.
     const standing = lineup.entries.filter((e) => costs[e.id].states[state]);
-    const inCategory = (category) =>
-      standing.filter((e) => e.category === category);
-    const rows = categories.filter(
-      (category) => inCategory(category).length > 0,
-    );
+    const inCategory = (category) => standing.filter((e) => e.category === category);
+    const rows = categories.filter((category) => inCategory(category).length > 0);
     stood.push({
       state,
       templates: standing.length,
@@ -268,10 +246,7 @@ async function runSet(ctx, page, set, fit) {
           // The crop alone too, a folder a tier: what a comparison measures.
           const folder = `crops/${pair.station}${tag}-tier${tier}`;
           await mkdir(ctx.evidencePath(folder), { recursive: true });
-          await writeFile(
-            ctx.evidencePath(`${folder}/${entry.id}.png`),
-            halves[tier],
-          );
+          await writeFile(ctx.evidencePath(`${folder}/${entry.id}.png`), halves[tier]);
         }
       }
     }
@@ -365,20 +340,13 @@ async function runSet(ctx, page, set, fit) {
 
 export async function run(ctx) {
   const repo = new URL("../../", import.meta.url);
-  const catalog = JSON.parse(
-    await readFile(new URL("assets/catalog.json", repo), "utf8"),
-  );
+  const catalog = JSON.parse(await readFile(new URL("assets/catalog.json", repo), "utf8"));
   const templates = JSON.parse(
-    await readFile(
-      new URL("fixtures/prototype-building-templates.json", repo),
-      "utf8",
-    ),
+    await readFile(new URL("fixtures/prototype-building-templates.json", repo), "utf8"),
   );
   const { fit, setOf } = await setFits();
   const expected = templates.filter(
-    (template) =>
-      !process.env.CITY_CATEGORY ||
-      template.category === process.env.CITY_CATEGORY,
+    (template) => !process.env.CITY_CATEGORY || template.category === process.env.CITY_CATEGORY,
   );
   const sets = process.env.CITY_SET
     ? [process.env.CITY_SET]
@@ -400,8 +368,7 @@ export async function run(ctx) {
       const scoped = {
         ...ctx,
         evidencePath: (path) => ctx.evidencePath(`${set}/${path}`),
-        writeEvidence: (path, value) =>
-          ctx.writeEvidence(`${set}/${path}`, value),
+        writeEvidence: (path, value) => ctx.writeEvidence(`${set}/${path}`, value),
         check: (name, ok, detail) => ctx.check(`${set}: ${name}`, ok, detail),
       };
       const page = await ctx.newPage({
