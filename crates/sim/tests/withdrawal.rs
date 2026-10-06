@@ -5,7 +5,7 @@ use sim::battle::Battle;
 
 #[test]
 fn finite_resources_are_an_unweighted_mean_and_unlimited_rows_do_not_dilute_it() {
-    let mut rules = sim::fixtures::game();
+    let mut rules = sim::fixtures::stand_in_game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

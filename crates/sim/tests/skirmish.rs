@@ -14,8 +14,14 @@ fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     }
 }
 
+/// A match on the stand-ins, with a U.S. deck of a tank and a supply truck.
 pub(crate) fn setup() -> contract::scenario::ScenarioDefinition {
-    let mut rules = sim::fixtures::game();
+    match_on(deck())
+}
+
+/// The stand-ins, with a U.S. deck of a tank and a supply truck.
+fn deck() -> serde_json::Value {
+    let mut rules = sim::fixtures::stand_in_game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -25,6 +31,19 @@ pub(crate) fn setup() -> contract::scenario::ScenarioDefinition {
             "roster": { "factions": ["us"], "category": "veh", "family_name": "Test tank", "variant": "Test" }
         }),
     );
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "supply",
+        json!({
+            "roster": { "factions": ["us"], "category": "sup", "family_name": "Test truck", "variant": "Test" }
+        }),
+    );
+    rules
+}
+
+/// A U.S. against Eastern match on `rules`.
+fn match_on(rules: serde_json::Value) -> contract::scenario::ScenarioDefinition {
     serde_json::from_value(json!({
         "map": { "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules, "units": [],
@@ -450,7 +469,15 @@ fn preparation_timeout_starts_combat_without_granting_preparation_income() {
 
 #[test]
 fn the_basic_opponent_buys_from_zero_through_recorded_commands_and_replays_every_tick() {
-    let mut setup = setup();
+    // Red's deck: squads, a launcher team and a truck.
+    let mut rules = deck();
+    for (id, category) in [("rifle", "inf"), ("at", "inf"), ("supply", "sup")] {
+        rules["catalog"].as_array_mut().unwrap().push(json!({ "units": { format!("red_{id}"): {
+            "extends": id,
+            "roster": { "factions": ["eastern"], "category": category, "family_name": id, "variant": "Test" }
+        } } }));
+    }
+    let mut setup = match_on(rules);
     setup.skirmish.as_mut().unwrap().ai_side = Some(Side::Red);
     let mut live = Battle::new(&setup, 3);
     let mut digests = Vec::new();
@@ -614,7 +641,7 @@ fn a_new_order_cancels_withdrawal_without_a_refund() {
 #[test]
 fn a_destroyed_withdrawing_unit_never_refunds_or_retires() {
     let mut setup = setup();
-    let mut rules = sim::fixtures::game();
+    let mut rules = sim::fixtures::stand_in_game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -706,7 +733,7 @@ fn refund_condition_counts_casualties_lost_ammunition_carriers_and_empty_trucks(
         json!([]),
         json!([]),
     );
-    let mut rules = sim::fixtures::game();
+    let mut rules = sim::fixtures::stand_in_game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "soldiers",

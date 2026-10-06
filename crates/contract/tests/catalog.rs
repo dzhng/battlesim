@@ -585,3 +585,50 @@ fn operator_equipment_refuses_unpaired_variants_and_shared_operators() {
         }
     );
 }
+
+/// A playable entry of `faction`'s roster in `family`, in the vehicle
+/// category.
+fn card(family: &str, factions: &[&str]) -> Value {
+    json!({
+        "extends": "base", "family": family,
+        "roster": { "factions": factions, "family_name": family, "category": "veh", "variant": "A" }
+    })
+}
+
+#[test]
+fn one_variant_serves_every_faction_it_names() {
+    let catalog = resolve(&units(json!({
+        "base": base_tank(),
+        "shared": card("shared", &["us", "europe"]),
+    })))
+    .unwrap();
+    let factions = &catalog.card("shared").unwrap().roster.factions;
+    assert_eq!(
+        serde_json::to_value(factions).unwrap(),
+        json!(["us", "europe"])
+    );
+    let error = resolve(&units(json!({
+        "base": base_tank(),
+        "twice": card("twice", &["us", "us"]),
+    })))
+    .unwrap_err()
+    .to_string();
+    assert!(error.contains("distinct factions"), "{error}");
+}
+
+/// A faction's deck groups variants into family cards, at most ten to a
+/// category: an eleventh family is refused, wherever its variants come from.
+#[test]
+fn a_faction_holds_at_most_ten_families_in_a_category() {
+    let mut entries = json!({ "base": base_tank() });
+    for k in 0..10 {
+        entries[format!("own{k}")] = card(&format!("family{k}"), &["us"]);
+        // A second variant of the same family adds no family.
+        entries[format!("own{k}b")] = card(&format!("family{k}"), &["us"]);
+    }
+    entries["other"] = card("other", &["europe"]);
+    assert!(resolve(&units(entries.clone())).is_ok());
+    entries["shared"] = card("shared", &["europe", "us"]);
+    let error = resolve(&units(entries)).unwrap_err().to_string();
+    assert!(error.contains("ten families"), "{error}");
+}

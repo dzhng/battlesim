@@ -85,6 +85,12 @@ Use `cargo test -p sim` for the crate. Test the behavior first, then verify the
 digest for changes intended to preserve outcomes. Full workspace gates and when
 to run them are defined by the root [checking policy](../../README.md#checks).
 
+A test of a mechanic runs on the stand-in units (`fixtures/units/generic`),
+loaded by `fixtures::stand_in_game`, and adds a fake unit when it needs a shape
+they lack; it never names or walks the faction roster, which grows every day.
+What the roster must satisfy is refused where the catalog loads
+([catalog resolution](../contract/src/catalog.rs)), so loading it is its check.
+
 ## Reports and cost
 
 [The native experiment guide](examples/README.md) distinguishes tactical

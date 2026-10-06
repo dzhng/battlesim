@@ -300,10 +300,32 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    /// The stand-ins as a U.S. deck: a card for each, in its category.
+    fn deck() -> serde_json::Value {
+        let mut rules = crate::fixtures::stand_in_game();
+        for (id, category) in [
+            ("rifle", "inf"),
+            ("at", "inf"),
+            ("recon", "rec"),
+            ("jeep", "rec"),
+            ("tank", "veh"),
+            ("supply", "sup"),
+        ] {
+            crate::fixtures::patch_catalog(
+                &mut rules,
+                "units",
+                id,
+                json!({ "roster": { "factions": ["us"], "category": category,
+                    "family_name": id, "variant": "Test" } }),
+            );
+        }
+        rules
+    }
+
     fn empty_match() -> (Rules, ObservationFrame, EntrySite) {
         let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
             "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-            "rules":crate::fixtures::game(),"units":[{"side":"blue","kind":"rifle","position":[900,950]}],"events":[],"scripts":[]
+            "rules":deck(),"units":[{"side":"blue","kind":"rifle","position":[900,950]}],"events":[],"scripts":[]
         })).unwrap();
         let battle = crate::battle::Battle::new(&setup, 1);
         let mut frame = battle.observe(Side::Red).clone();
@@ -341,17 +363,9 @@ mod tests {
     #[test]
     fn missing_opening_role_uses_admitted_category_fallback() {
         let (_, frame, entry) = empty_match();
-        let mut authored = crate::fixtures::game();
-        let admitted: Rules = serde_json::from_value(authored.clone()).unwrap();
-        let infantry: Vec<_> = admitted
-            .catalog
-            .indices()
-            .filter(|&k| admitted.catalog.get(k).has_role("infantry"))
-            .map(|k| admitted.catalog.id(k).to_string())
-            .collect();
-        for id in infantry {
-            crate::fixtures::patch_catalog(&mut authored, "units", &id, json!({"roles":["at"]}));
-        }
+        // The deck's one infantry-role card loses the role.
+        let mut authored = deck();
+        crate::fixtures::patch_catalog(&mut authored, "units", "rifle", json!({"roles":["at"]}));
         let rules: Rules = serde_json::from_value(authored).unwrap();
         let orders =
             SkirmishAi::default().decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
@@ -370,9 +384,9 @@ mod tests {
         let (rules, mut frame, entry) = empty_match();
         let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
             "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-            "rules":crate::fixtures::game(),"units":[
+            "rules":deck(),"units":[
                 {"side":"red","kind":"rifle","position":[500,600]},
-                {"side":"red","kind":"us_m977_hemtt_general_resupply","position":[500,10]}],
+                {"side":"red","kind":"supply","position":[500,10]}],
             "events":[],"scripts":[]
         }))
         .unwrap();
@@ -521,11 +535,12 @@ mod tests {
     #[test]
     fn objective_orders_use_known_route_cost_and_stable_sites() {
         let (rules, mut frame, entry) = empty_match();
-        let setup:contract::scenario::ScenarioDefinition=serde_json::from_value(json!({
+        let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
             "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-            "rules":crate::fixtures::game(),"units":[{"side":"red","kind":"rifle","position":[500,100]}],
+            "rules":deck(),"units":[{"side":"red","kind":"rifle","position":[500,100]}],
             "events":[],"scripts":[]
-        })).unwrap();
+        }))
+        .unwrap();
         let battle = crate::battle::Battle::new(&setup, 1);
         frame.own = battle.observe(Side::Red).own.clone();
         let view = frame.skirmish.as_mut().unwrap();

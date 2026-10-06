@@ -74,7 +74,7 @@ fn catalogue() -> TemplateGeometryCatalog {
 }
 
 fn rules() -> Rules {
-    serde_json::from_value(sim::fixtures::game()).unwrap()
+    serde_json::from_value(sim::fixtures::stand_in_game()).unwrap()
 }
 
 fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
@@ -269,8 +269,8 @@ fn compiled(
     .map
 }
 
-/// The hulls of the catalog that stand for the rest, as movers, the widest
-/// first.
+/// The stand-ins' hulls (a tank, a truck, a jeep: tracked and wheeled,
+/// heavy to light) as movers, the widest first.
 fn vehicles(rules: &Rules) -> Vec<(String, Mobility)> {
     let catalog = &rules.catalog;
     let mut hulls: Vec<(String, Mobility)> = catalog
@@ -283,39 +283,7 @@ fn vehicles(rules: &Rules) -> Vec<(String, Mobility)> {
             )
         })
         .collect();
-    hulls.sort_by(|a, b| {
-        b.1.half_width_m
-            .total_cmp(&a.1.half_width_m)
-            .then_with(|| a.0.cmp(&b.0))
-    });
-    // The planner knows a hull by its width, its turn and its kind (what it
-    // stops at and shoves, tracked or wheeled). So each kind is driven by its
-    // widest hull and its widest-turning one: where both fit and turn, the
-    // rest of their kind do too. Driving all forty-odd hulls of the roster
-    // street by street was most of an hour.
-    let kind = |m: &Mobility| {
-        format!(
-            "{:?} {:?} {:?}",
-            m.class,
-            m.push,
-            m.drive.map(|d| d.tracked)
-        )
-    };
-    let turn = |m: &Mobility| m.drive.map_or(0.0, |d| d.radius_m);
-    // Hulls are widest first, so the first of a kind is its widest and, of
-    // those that turn widest, the first is the widest too.
-    let mut representatives: Vec<String> = Vec::new();
-    for (_, m) in &hulls {
-        let kin = || hulls.iter().filter(|(_, o)| kind(o) == kind(m));
-        let widest = kin().next();
-        let turner = kin().reduce(|best, o| if turn(&o.1) > turn(&best.1) { o } else { best });
-        for (id, _) in widest.into_iter().chain(turner) {
-            if !representatives.contains(id) {
-                representatives.push(id.clone());
-            }
-        }
-    }
-    hulls.retain(|(id, _)| representatives.contains(id));
+    hulls.sort_by(|a, b| b.1.half_width_m.total_cmp(&a.1.half_width_m));
     hulls
 }
 
@@ -496,7 +464,7 @@ fn nothing_stands_at_a_junctions_corner() {
 fn the_driven_lane_stays_clear_and_a_narrow_street_parks_one_side() {
     let presets = presets_with(cars_only);
     let catalog = rules().catalog;
-    let mut fixture = sim::fixtures::game();
+    let mut fixture = sim::fixtures::stand_in_game();
     let wide = catalog
         .indices()
         .filter_map(|unit| catalog.get(unit).hull())
@@ -1359,7 +1327,7 @@ fn a_body_cut_to_fit_without_a_modular_appearance_is_refused() {
         dress(&rules().catalog).is_ok(),
         "the shipped hedge appearance is modular"
     );
-    let mut fixture = sim::fixtures::game();
+    let mut fixture = sim::fixtures::stand_in_game();
     sim::fixtures::patch_catalog(
         &mut fixture,
         "props",
@@ -1422,7 +1390,7 @@ fn a_city_with_its_courts_and_gardens_stays_within_the_part_limit() {
         &serde_json::to_string(&request).unwrap(),
         PRESETS,
         include_str!("../../../fixtures/prototype-building-templates.json"),
-        &sim::fixtures::game().to_string(),
+        &sim::fixtures::stand_in_game().to_string(),
     ) {
         mapgen::CompileOutcome::Ok { result } => result,
         mapgen::CompileOutcome::Error { diagnostics } => panic!("{diagnostics:?}"),
@@ -1465,7 +1433,7 @@ fn courts_and_gardens_keep_off_the_woods_that_certify_sight() {
         &serde_json::to_string(&request).unwrap(),
         PRESETS,
         TEMPLATES,
-        &sim::fixtures::game().to_string(),
+        &sim::fixtures::stand_in_game().to_string(),
     )
     .unwrap_or_else(|failure| panic!("{:?}", failure.diagnostics));
     let (mut gardens, mut court) = (0, 0);
@@ -1661,7 +1629,7 @@ fn courts_are_structured_and_lawns_dressed_rather_than_left_open() {
             &serde_json::to_string(&request).unwrap(),
             PRESETS,
             TEMPLATES,
-            &sim::fixtures::game().to_string(),
+            &sim::fixtures::stand_in_game().to_string(),
         )
         .unwrap_or_else(|failure| panic!("{:?}", failure.diagnostics));
         let mut near = Raster::new(plan.size);

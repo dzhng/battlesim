@@ -1,7 +1,8 @@
 //! The unit catalog as the battle uses it: the view the browser reads stays
-//! current, and every resolved type (the shipped ones and the test-only M1
-//! family) passes the same generated checks: it sets up, moves, and fires
-//! each of its mounts. Type 300 gets these checks with no test of its own.
+//! current, and every stand-in type (`fixtures/units/generic` and the
+//! test-only M1 family) passes the same generated checks: it sets up, moves,
+//! and fires each of its mounts. The faction roster is data on the same
+//! rules: it is admitted where the view is written, and no test walks it.
 use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::scenario::Rules;
@@ -9,37 +10,6 @@ use serde_json::{json, Value};
 use sim::battle::Battle;
 
 use crate::common;
-
-#[test]
-fn player_roster_resolves_shared_identities_and_disabled_future_cards() {
-    use contract::catalog::Faction;
-    let documents = sim::fixtures::catalog_documents();
-    let catalog = contract::catalog::resolve(&documents).unwrap();
-    for faction in [Faction::Us, Faction::Europe, Faction::Eastern] {
-        let cards: Vec<_> = catalog
-            .cards()
-            .filter(|card| card.roster.factions.contains(&faction))
-            .collect();
-        assert_eq!(cards.len(), 50, "{faction:?}");
-        let mut families = std::collections::BTreeMap::<_, std::collections::BTreeSet<_>>::new();
-        for card in cards {
-            families
-                .entry(card.roster.category)
-                .or_default()
-                .insert(card.family);
-        }
-        assert!(families.values().all(|families| families.len() <= 10));
-    }
-    let shared = catalog.card("f_35a").unwrap();
-    assert_eq!(shared.roster.factions, [Faction::Us, Faction::Europe]);
-    assert_eq!(shared.roster.family_name, "F-35 Lightning II");
-    assert!(shared.disabled_reason.is_some());
-    assert!(catalog.index("f_35a").is_none());
-    // The same owner serializes every planned identity without admitting physics.
-    let round_trip: contract::catalog::Catalog =
-        serde_json::from_value(serde_json::to_value(&catalog).unwrap()).unwrap();
-    assert_eq!(catalog, round_trip);
-}
 
 #[test]
 fn disabled_model_manifest_covers_cards_without_admitting_units() {
@@ -97,26 +67,10 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
     assert_eq!(seen, disabled.keys().cloned().collect());
 }
 
-#[test]
-fn faction_supply_trucks_start_with_two_hundred_fifty_stock() {
-    let catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents()).unwrap();
-    for id in [
-        "us_m977_hemtt_general_resupply",
-        "europe_man_hx_general_resupply",
-        "eastern_ural_4320_general_resupply",
-    ] {
-        assert_eq!(
-            catalog.by_id(id).capabilities.supply.unwrap().stock,
-            250,
-            "{id}"
-        );
-    }
-}
-
-/// The shipped fixture with the M1 family's catalog document and the
+/// The stand-in fixture with the M1 family's catalog document and the
 /// weapon row its M1A1 swaps in (a row that `extends` the tank's sabot).
 fn with_m1_family() -> Value {
-    let mut fixture = common::game();
+    let mut fixture = sim::fixtures::stand_in_game();
     let family: Value = serde_json::from_str(include_str!("fixtures/m1-family.json")).unwrap();
     fixture["catalog"].as_array_mut().unwrap().push(family);
     fixture["weapons"]["m829"] = json!({
@@ -125,19 +79,6 @@ fn with_m1_family() -> Value {
     });
     fixture["service"]["round_costs"]["m829"] = json!(6);
     fixture
-}
-
-#[test]
-fn shipped_rules_admit_every_weapon_before_battle_startup() {
-    let rules: Rules = serde_json::from_value(common::game()).unwrap();
-    let config = sim::flight::FlightConfig::new(&rules.physics.flight, rules.tick_hz).unwrap();
-    for (id, weapon) in &rules.weapons {
-        assert!(
-            config.profile(&weapon.ballistics).is_ok(),
-            "weapon {id} cannot start a battle: {:?}",
-            config.profile(&weapon.ballistics).err()
-        );
-    }
 }
 
 #[test]
@@ -285,7 +226,7 @@ fn battle(fixture: &Value, id: &str, others: Value) -> Battle {
     Battle::new(&setup, 1)
 }
 
-/// Every resolved type: it sets up, fires each mount within a minute at a
+/// Every stand-in type: it sets up, fires each mount within a minute at a
 /// squad and a tank in reach, and on open ground drives or walks where it
 /// is ordered.
 #[test]

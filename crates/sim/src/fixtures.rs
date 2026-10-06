@@ -22,6 +22,28 @@ fn read(path: &Path) -> Value {
 /// Every catalog document under `fixtures/units/` and `fixtures/props/`, in
 /// path order.
 pub fn catalog_documents() -> Vec<Value> {
+    documents(&["units", "props"])
+}
+
+/// The catalog documents a test of a mechanic runs on: the stand-in units
+/// (`fixtures/units/generic`), the roles and the props, never the faction
+/// roster. A unit added to the roster then changes no test; a test that needs
+/// a shape the stand-ins lack adds its own fake unit.
+pub fn stand_in_documents() -> Vec<Value> {
+    documents(&["units/generic", "units/roles.json", "props"])
+}
+
+/// The game fixture as [`game`] reads it, with [`stand_in_documents`] as its
+/// catalog.
+pub fn stand_in_game() -> Value {
+    let mut fixture = game();
+    fixture["catalog"] = Value::Array(stand_in_documents());
+    fixture
+}
+
+/// The catalog documents at `roots` under `fixtures/` (a directory, walked,
+/// or one file), in path order.
+fn documents(roots: &[&str]) -> Vec<Value> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         for entry in std::fs::read_dir(dir).expect("a catalog directory is readable") {
             let path = entry.expect("a directory entry").path();
@@ -37,8 +59,14 @@ pub fn catalog_documents() -> Vec<Value> {
         }
     }
     let mut paths = Vec::new();
-    walk(&dir().join("units"), &mut paths);
-    walk(&dir().join("props"), &mut paths);
+    for root in roots {
+        let root = dir().join(root);
+        if root.is_dir() {
+            walk(&root, &mut paths);
+        } else {
+            paths.push(root);
+        }
+    }
     paths.sort();
     paths
         .iter()

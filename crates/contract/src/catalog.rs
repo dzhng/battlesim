@@ -1018,7 +1018,7 @@ pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
         check(id, t, &roles, &soldiers, &props)?;
         mounts.push(carried(id, t, &soldiers)?);
     }
-    Ok(Catalog {
+    let catalog = Catalog {
         roles,
         parts,
         soldiers,
@@ -1027,8 +1027,38 @@ pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
         mounts,
         props,
         planned,
-    })
+    };
+    check_families(&catalog)?;
+    Ok(catalog)
 }
+
+/// A faction's deck groups its variants into family cards, at most
+/// [`FAMILIES_PER_CATEGORY`] to a category.
+fn check_families(catalog: &Catalog) -> Result<(), CatalogError> {
+    let mut families: BTreeMap<(String, Category), std::collections::BTreeSet<&str>> =
+        BTreeMap::new();
+    for card in catalog.cards() {
+        for faction in &card.roster.factions {
+            let key = (format!("{faction:?}"), card.roster.category);
+            let held = families.entry(key).or_default();
+            held.insert(card.family);
+            if held.len() > FAMILIES_PER_CATEGORY {
+                return Err(CatalogError::Invalid {
+                    section: "units",
+                    id: card.id.into(),
+                    error: format!(
+                        "{faction:?} holds more than ten families in {:?}",
+                        card.roster.category
+                    ),
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
+/// How many family cards a faction's deck holds in one category.
+const FAMILIES_PER_CATEGORY: usize = 10;
 
 fn check_roster(id: &str, roster: &RosterMembership) -> Result<(), CatalogError> {
     let unique: std::collections::BTreeSet<_> = roster.factions.iter().collect();

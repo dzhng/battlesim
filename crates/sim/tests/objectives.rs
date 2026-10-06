@@ -63,7 +63,7 @@ fn a_resupply_truck_cannot_capture_or_contest_a_flag() {
             Side::Blue,
             1,
             Order::ConfirmPurchase {
-                variant: "us_m977_hemtt_general_resupply".into(),
+                variant: "supply".into(),
                 destination: [400.0, 10.0]
             }
         ))

@@ -748,7 +748,7 @@ fn every_building_of_a_map_is_of_one_regional_family() {
 /// district kinds; the sweep covers the sizes.
 #[test]
 fn each_regional_family_asked_for_builds_every_map_type() {
-    let rules = sim::fixtures::game().to_string();
+    let rules = sim::fixtures::stand_in_game().to_string();
     for family in presets().parcels.regional_families {
         for map_type in TYPES {
             let mut request = request(map_type, MapSize::Medium, 1);
@@ -783,7 +783,7 @@ fn a_region_the_presets_do_not_list_is_refused() {
         &serde_json::to_string(&request).unwrap(),
         PRESETS,
         TEMPLATES,
-        &sim::fixtures::game().to_string(),
+        &sim::fixtures::stand_in_game().to_string(),
     ) {
         mapgen::CompileOutcome::Ok { .. } => panic!("an unlisted region built a map"),
         mapgen::CompileOutcome::Error { diagnostics } => {
@@ -1261,7 +1261,8 @@ fn car_parks_open_on_a_carriageway_on_ground_the_parcels_leave() {
 #[test]
 fn a_dense_districts_ground_between_its_parcels_is_lawn() {
     let presets = presets();
-    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::stand_in_game()).unwrap();
     let verge = presets.parcels.verge_m;
     let mut lawn = 0;
     for map_type in TYPES {

@@ -660,7 +660,7 @@ mod tests {
     use super::*;
 
     fn physics() -> GenerationPhysics {
-        GenerationPhysics::from_rules_json(&sim::fixtures::game().to_string()).unwrap()
+        GenerationPhysics::from_rules_json(&sim::fixtures::stand_in_game().to_string()).unwrap()
     }
     fn map(size: f64, bounds: [f64; 4]) -> MapDefinition {
         serde_json::from_value(serde_json::json!({
@@ -735,7 +735,7 @@ mod tests {
         let c = Coverage::new(&map, &physics, 100.).unwrap();
         assert_eq!(c.points, vec![[1004., 1004.]]);
         let rules: contract::scenario::Rules =
-            serde_json::from_value(sim::fixtures::game()).unwrap();
+            serde_json::from_value(sim::fixtures::stand_in_game()).unwrap();
         let mut rules = rules;
         rules.forests = physics.forests.clone();
         let world = sim::world::WorldGeometry::new(&map, &rules);

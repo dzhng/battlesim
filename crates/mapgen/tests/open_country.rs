@@ -84,7 +84,7 @@ fn generate(map_type: MapType, size: MapSize, seed: u64) -> Country {
         &serde_json::to_string(&request).unwrap(),
         PRESETS,
         TEMPLATES,
-        &sim::fixtures::game().to_string(),
+        &sim::fixtures::stand_in_game().to_string(),
     ) {
         mapgen::GenerateOutcome::Ok { plan } => *plan,
         mapgen::GenerateOutcome::Error { diagnostics } => fail(diagnostics),
@@ -140,7 +140,7 @@ fn played_cells() -> Vec<Arc<Country>> {
 }
 
 fn rules() -> Rules {
-    serde_json::from_value(sim::fixtures::game()).unwrap()
+    serde_json::from_value(sim::fixtures::stand_in_game()).unwrap()
 }
 
 fn outside_settlements(plan: &MapPlan, p: Point) -> bool {
@@ -914,7 +914,7 @@ fn the_recorded_playable_jeep_gap_has_a_physical_and_published_sight_cut() {
     // Exact counterexample to rifle-only and centre-proximity validation.
     // Generate the same real request that produced saved Market Town, under
     // current resolved rules, so fixture refresh cannot conceal the gap.
-    let rules_json = sim::fixtures::game();
+    let rules_json = sim::fixtures::stand_in_game();
     let rules: Rules = serde_json::from_value(rules_json.clone()).unwrap();
     let request = request(MapType::Mixed, MapSize::Medium, 1);
     let generated = mapgen::generate_map(
@@ -1002,7 +1002,7 @@ fn coverage_refusal(presets: &str, rules: &serde_json::Value, reason: &str) {
 
 #[test]
 fn generation_refuses_foliage_below_every_ground_eye() {
-    let mut rules = sim::fixtures::game();
+    let mut rules = sim::fixtures::stand_in_game();
     rules["forests"]["rule"]["canopy_height_m"] = serde_json::json!(0.5);
     coverage_refusal(PRESETS, &rules, "foliage below every ground eye");
 }
@@ -1015,7 +1015,7 @@ fn generation_refuses_when_no_patch_has_legal_ground() {
     presets["open_country"]["clear"]["edge_m"] = serde_json::json!(3100.0);
     coverage_refusal(
         &presets.to_string(),
-        &sim::fixtures::game(),
+        &sim::fixtures::stand_in_game(),
         "no legal patch placement",
     );
 }
@@ -1032,7 +1032,7 @@ fn generation_refuses_an_unbounded_fallback_tree_line() {
     presets["open_country"]["sight"]["fill"] = serde_json::json!(["tree_line"]);
     coverage_refusal(
         &presets.to_string(),
-        &sim::fixtures::game(),
+        &sim::fixtures::stand_in_game(),
         "unbounded fallback tree-line sampling and grove allocation",
     );
 }
@@ -1043,7 +1043,7 @@ fn generation_refuses_an_unbounded_coverage_resolution() {
     presets["open_country"]["sight"]["cell_m"] = serde_json::json!(1e-9);
     coverage_refusal(
         &presets.to_string(),
-        &sim::fixtures::game(),
+        &sim::fixtures::stand_in_game(),
         "unbounded coverage grid and placement lattice",
     );
 }
