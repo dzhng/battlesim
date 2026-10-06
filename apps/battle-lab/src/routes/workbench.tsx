@@ -172,12 +172,33 @@ export default function Workbench() {
   const gpu = useRef<ViewportGpu | null>(null);
   const [ready, setReady] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(params.get("catalog") === "1");
+  const [catalogShots, setCatalogShots] = useState<Record<string, string>>({});
+  const [catalogBusy, setCatalogBusy] = useState(false);
 
   const bundle = model?.installed.appearances.get(model.name)?.bundle ?? null;
   const skeleton =
     bundle?.kind === "skinned" ? (model!.installed.skeletons.get(bundle.skeleton) ?? null) : null;
   const tint = useMemo(() => (model ? sideTint(model, side) : undefined), [model, side]);
   const framing = useMemo(() => (model && bundle ? framingBounds(model) : null), [model, bundle]);
+
+  /** Deployable unit types, reduced to one current production appearance per
+   * type. Disabled cards have no runtime appearance and therefore do not get
+   * silently represented by a blockout in this catalog. */
+  const catalogRows = useMemo(() => {
+    if (!catalog) return [];
+    const seen = new Set<string>();
+    return UNITS.ids.flatMap((id) => {
+      const type = UNITS.type(id);
+      const candidates = type.appearance
+        ? [type.appearance]
+        : [...new Set(UNITS.slots(id).flatMap((kind) => UNITS.soldier(kind).appearance))];
+      const appearance = candidates.find((name) => catalog.appearances.has(name));
+      if (!appearance || seen.has(`${id}|${appearance}`)) return [];
+      seen.add(`${id}|${appearance}`);
+      return [{ id, name: type.name, category: type.roster?.category ?? type.family, appearance }];
+    });
+  }, [catalog]);
 
   // The replay drives the unit type the model is fitted to, its mounts drawn
   // by the rigs the model declares.
@@ -404,6 +425,29 @@ export default function Workbench() {
     return result;
   }, [model, impostor, side]);
 
+  /** Render the catalog cards through the same production sheet renderer used
+   * by the selected-model workbench. Each card is a real current appearance,
+   * never a hand-authored thumbnail. */
+  const renderCatalog = useCallback(async () => {
+    if (!catalog || !gpu.current || catalogBusy) return;
+    setCatalogBusy(true);
+    try {
+      for (const row of catalogRows) {
+        if (catalogShots[row.id]) continue;
+        const next = await catalogModel(catalog, row.appearance);
+        if (!next) continue;
+        const result = await renderSheet(gpu.current.device, gpu.current.format, next, null, side);
+        setCatalogShots((shots) => ({ ...shots, [row.id]: result.contact.toDataURL("image/png") }));
+      }
+    } finally {
+      setCatalogBusy(false);
+    }
+  }, [catalog, catalogBusy, catalogRows, catalogShots, side]);
+
+  useEffect(() => {
+    if (catalogOpen && catalogRows.length) void renderCatalog();
+  }, [catalogOpen, catalogRows, renderCatalog]);
+
   // The channel switches live on the frame's models layer; a rebuilt frame
   // or a new model takes them again.
   useEffect(() => {
@@ -589,7 +633,12 @@ export default function Workbench() {
       />
       {dragging && <div className="wb-dropping">Drop a .glb to validate and render it</div>}
       <aside className="hud-panel lab-panel wb-panel" data-testid="workbench-panel">
-        <strong>Model workbench</strong>
+        <div className="wb-title-row">
+          <strong>Model workbench</strong>
+          <button type="button" onClick={() => setCatalogOpen(true)}>
+            unit catalog
+          </button>
+        </div>
         <label className="wb-file">
           <input
             type="file"
@@ -986,6 +1035,51 @@ export default function Workbench() {
         <div className="wb-sheet" onClick={() => setSheetUrl(null)}>
           <img src={sheetUrl} alt="contact sheet" />
         </div>
+      )}
+      {catalogOpen && (
+        <section className="wb-catalog" data-testid="unit-catalog" aria-label="unit catalog">
+          <header className="wb-catalog-header">
+            <div>
+              <strong>Unit catalog</strong>
+              <span className="lab-hint">
+                {catalogRows.length} deployable unit appearances · rendered from the current asset
+                catalog
+              </span>
+            </div>
+            <div className="lab-row">
+              {catalogBusy && <span className="lab-hint">rendering…</span>}
+              <button type="button" onClick={() => setCatalogOpen(false)}>
+                back to workbench
+              </button>
+            </div>
+          </header>
+          <div className="wb-catalog-grid">
+            {catalogRows.map((row) => (
+              <button
+                className="wb-catalog-card"
+                type="button"
+                key={row.id}
+                onClick={() => {
+                  if (!catalog) return;
+                  void catalogModel(catalog, row.appearance).then(
+                    (found) => found && install(found),
+                  );
+                  setCatalogOpen(false);
+                }}
+              >
+                {catalogShots[row.id] ? (
+                  <img src={catalogShots[row.id]} alt={`${row.name} rendered model`} />
+                ) : (
+                  <span className="wb-catalog-pending">{catalogBusy ? "rendering" : "queued"}</span>
+                )}
+                <span className="wb-catalog-name">{row.name}</span>
+                <span className="wb-catalog-meta">
+                  {row.category} · {row.appearance}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );
