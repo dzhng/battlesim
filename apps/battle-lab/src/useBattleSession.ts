@@ -51,6 +51,8 @@ import {
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
 import { knownFallen } from "./destroyedBuildings";
+import { CookOffWatch, effectCookOff, flightOf, piecesOf, type Flight } from "./cookOffs";
+import { landedAfter } from "@packages/battle-renderer/src/effects/cookOff";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
@@ -114,6 +116,11 @@ import type { Pose } from "@web/battle/present/interpolate";
 import { circleContains, unitCircle } from "@packages/battle-renderer/src/orderOverlay";
 import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import { orderView } from "./battleOverlay";
+
+/** Seconds a cook-off's pieces stay drawn, still, before the whole wreck
+ *  takes over: the swap rebuilds the side's structures, and this keeps the
+ *  pieces drawn until it has. */
+const LANDED_HOLD_S = 0.5;
 
 export interface BattleSessionOptions {
   /** The scenario JSON the authority runs. */
@@ -180,14 +187,37 @@ export function useBattleSession({
     [sound, rules.tick_hz, appAudio],
   );
   useEffect(() => () => audio?.dispose(), [audio]);
+  // Hulls the side watched brew up (`cookOffs.ts`): the effects blow each
+  // up, and while its pieces move its wreck draws as them, each frame, not
+  // among the side's structures. The wreck is fitted as the side's props
+  // are, once they can be. A side learns a wreck within a second of losing
+  // its hull.
+  const cookOffWatch = useMemo(() => new CookOffWatch(UNITS, rules.tick_hz), [rules.tick_hz]);
+  const flightFitting = useRef<{ fit: PropAppearances; installed: InstalledAppearances } | null>(
+    null,
+  );
+  const [flights, setFlights] = useState<readonly Flight[]>([]);
+  const lastDecoded = useRef(-1);
   const noteDecoded = useCallback(
     (o: ObservationView, digest: string) => {
-      const pub = effectPublication(o, side, UNITS);
+      if (o.tick < lastDecoded.current) setFlights([]);
+      lastDecoded.current = o.tick;
+      const fitting = flightFitting.current;
+      const brewed = cookOffWatch.note(o).map((c) => ({
+        c,
+        flight: fitting && flightOf(c, fitting.fit, fitting.installed, rules.tick_hz),
+      }));
+      const thrown = brewed.flatMap(({ flight }) => (flight ? [flight] : []));
+      if (thrown.length) setFlights((now) => [...now, ...thrown]);
+      const pub = {
+        ...effectPublication(o, side, UNITS),
+        cookOffs: brewed.map(({ c, flight }) => effectCookOff(c, flight)),
+      };
       effects.note(pub);
       audio?.note({ effects: pub, audible: o.audible });
       onDecoded?.(o, digest);
     },
-    [effects, audio, side, onDecoded],
+    [effects, audio, side, onDecoded, cookOffWatch, rules.tick_hz],
   );
   const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted, prepared });
   const { observation } = sim;
@@ -329,11 +359,17 @@ export function useBattleSession({
   const sideProps = useMemo(() => {
     if (!props || !fittedMap || !drawnBuildings) return null;
     const part = drawnBuildings.partBuilding;
+    // A wreck whose pieces still move is drawn as them, each frame.
+    const moving = new Set(flights.map((f) => f.cookOff.prop));
     const known = (JSON.parse(knownKey) as KnownPropView[]).filter(
-      (k) => k.authoredProp === null || !part.has(k.authoredProp),
+      (k) => (k.authoredProp === null || !part.has(k.authoredProp)) && !moving.has(k.id),
     );
     return sideStructures(fittedMap, known, props.fit);
-  }, [props, fittedMap, drawnBuildings, knownKey]);
+  }, [props, fittedMap, drawnBuildings, knownKey, flights]);
+  useEffect(() => {
+    flightFitting.current =
+      props && appearances ? { fit: props.fit, installed: appearances } : null;
+  }, [props, appearances]);
   const structures: SideStructures = sideProps ?? NO_STRUCTURES;
   const structuresFeed = useFeed<SideStructures>(structures);
   // What the camera keeps clear of: the ground, and every building part the
@@ -504,7 +540,16 @@ export function useBattleSession({
           motion: soundMotion(poses, side, reversing, enemyReversing),
         };
       }
-      const models = poseFrameInstances(posing.models, poses, posing.resolve, xrayOf.current);
+      const posed = poseFrameInstances(posing.models, poses, posing.resolve, xrayOf.current);
+      // Each cooking-off wreck's pieces, until a moment after they lie
+      // still, when the whole wreck takes over (the structures, rebuilt as
+      // the flight ends).
+      const feel = gameEffects.cook_off;
+      const done = flights.filter((f) => time - f.hitAt > landedAfter(feel) + LANDED_HOLD_S);
+      if (done.length) setFlights((now) => now.filter((f) => !done.includes(f)));
+      const models = flights.length
+        ? posed.concat(flights.flatMap((f) => piecesOf(f, feel, time)))
+        : posed;
       if (poses.corpsesVersion !== posing.corpses.version)
         posing.corpses = {
           version: poses.corpsesVersion,
@@ -534,6 +579,7 @@ export function useBattleSession({
       side,
       orderReveal,
       control.showOrders,
+      flights,
     ],
   );
   /** Sound for the last frame, heard from `camera`: call once a frame. */

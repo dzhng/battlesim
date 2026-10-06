@@ -3,6 +3,7 @@
 // and one per corpse. Poses come from the pose driver (`poseDriver.ts`);
 // `poseFrameInstances` and `corpseInstances` turn a pose frame into these.
 
+import type { Mat4 } from "math";
 import type { Side } from "@packages/scene-assets/src/schema";
 import type { Articulation } from "@packages/scene-assets/src/articulation";
 import { isRgba, type Rgba } from "../mesh";
@@ -29,6 +30,10 @@ export interface ArticulatedModelPose {
 export interface StaticModelPose {
   kind: "static";
   state: string;
+  /** A rigid motion of the state in its own frame, before its scale and
+   *  yaw (a cook-off's wreck pieces, `effects/cookOff.ts`); none: as authored.
+   *  A moving piece is never drawn as a card. */
+  motion?: Mat4;
   /** A surface movers stand on (its body stops no mover: a bridge deck,
    *  rubble): it takes the ground paint, as the ground does (`modelFog`). */
   ground?: boolean;

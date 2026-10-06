@@ -17,7 +17,10 @@
 // - dust behind a vehicle the side sees move, by the distance it covers;
 // - flames and a rising smoke column over every smoke source the side knows
 //   (a wreck; a future smoke-screen body is another row of the same table),
-//   burning, then smouldering, then out.
+//   burning, then smouldering, then out;
+// - a hull the side watched die cooks off (`cookOff.ts`): fireballs out of
+//   its turret ring a beat after the hit, and sparks and dust where its
+//   thrown turret lands.
 //
 // Every effect has a published cause, and nothing else: no rule, no
 // simulation state (enemy stretches arrive already clipped to seen ground).
@@ -35,6 +38,7 @@ import { pick, requireDefaults } from "@packages/renderer-core/src/kindTable";
 import type { MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
 import { LaunchTracker, type Launch } from "./launches";
 import { createCastLightList, offerCastLight, type CastLightList } from "../light/castLights";
+import { GRAVITY, impactAfter, validateCookOff, type CookOffFeel } from "./cookOff";
 
 type P3 = readonly [number, number, number] | readonly number[];
 
@@ -106,6 +110,16 @@ export interface EffectSmokeSource {
   half: P3;
 }
 
+/** A hull the side watched die this tick (`cookOff.ts`). */
+export interface EffectCookOff {
+  /** Its base centre, on the ground. */
+  center: P3;
+  /** Its hull's top, metres above `center`. */
+  height: number;
+  /** Where its thrown turret lands, or null: it has none to throw. */
+  landing: P3 | null;
+}
+
 /** Where a shot's muzzle is drawn at this frame: the model's, not the
  *  simulation's. A flash sits on it, so it stays on the drawn barrel as the
  *  model is interpolated, turns, pitches and recoils, and on the weapon a
@@ -125,6 +139,8 @@ export interface EffectPublication {
   blasts: readonly EffectBlast[];
   shooters: readonly EffectShooter[];
   smokes: readonly EffectSmokeSource[];
+  /** Hulls the side watched die this tick; none where absent. */
+  cookOffs?: readonly EffectCookOff[];
 }
 
 /** One light of a round in flight: its colour, strength and width, metres. */
@@ -327,6 +343,8 @@ export interface EffectPresentation {
   sparks: SparkStyle;
   ricochet_sparks: number;
   blast: BlastStyle;
+  /** How a hull the side watched die cooks off. */
+  cook_off: CookOffFeel;
   dust: DustStyle;
   /** Smoke sources' looks by kind; a kind without one draws nothing. */
   smoke: Record<string, SmokeSourceStyle>;
@@ -372,6 +390,7 @@ export function validateEffects(p: EffectPresentation): EffectPresentation {
     }
   if (p.blast.cast.duration_s > p.blast.duration_s)
     throw new Error("presentation.effects.blast.cast outlives its blast");
+  validateCookOff(p.cook_off);
   if (!Number.isFinite(maxEffectLifetime(p)))
     throw new Error("presentation.effects: every life must be finite");
   return p;
@@ -432,6 +451,15 @@ export function maxEffectLifetime(p: EffectPresentation): number {
     p.dust.life_s,
     p.sparks.duration_s * Math.sqrt(Math.max(1, b.spark_scale)),
   );
+  // A cook-off's fireballs, and its landing dust, come after its tick.
+  const c = p.cook_off;
+  const burst = Math.max(
+    b.duration_s,
+    b.plume.over_s + b.plume.life_s,
+    b.smoke.over_s + b.smoke.life_s,
+  );
+  for (const f of c.fireballs) longest = Math.max(longest, c.delay_s + f.after_s + burst);
+  longest = Math.max(longest, impactAfter(c) + b.plume.over_s + b.plume.life_s);
   for (const f of Object.values(p.flashes))
     longest = Math.max(longest, f.duration_s, f.fireball_s, f.cast?.duration_s ?? 0);
   for (const i of Object.values(p.impacts)) {
@@ -692,8 +720,6 @@ const TRAIL = 7;
 
 /** How far off a face sparks start, metres. */
 const SURFACE_LIFT_M = 0.08;
-/** Sparks fall under gravity, m/s². */
-const GRAVITY = 9.81;
 /** A tracer on a very short stretch lives at most this past its tick, s. */
 const TRACER_TAIL_MAX_S = 1;
 /** Frames a puff's flipbook turns through over its life. */
@@ -908,6 +934,7 @@ export class EffectFrame {
       }
     }
     for (const b of pub.blasts) this.addBlast(t1, b, rng);
+    for (const c of pub.cookOffs ?? []) this.addCookOff(t0, c, rng);
     this.noteMovers(pub, gap, t0);
     this.noteSources(pub, t0, t1);
   }
@@ -1302,14 +1329,21 @@ export class EffectFrame {
     return e;
   }
 
-  private addBlast(at: number, b: EffectBlast, rng: ReturnType<typeof mulberry32.create>) {
+  /** A blast's fireball, sparks (a share `sparks` of its style's) and dirt and smoke. */
+  private addBlast(
+    at: number,
+    b: EffectBlast,
+    rng: ReturnType<typeof mulberry32.create>,
+    sparks = 1,
+  ) {
     const style = this.p.blast;
     const e = this.push(BLAST, at, at + style.duration_s);
     vec3.set(e.p, b.point[0], b.point[1], b.point[2]);
     e.size = Math.max(style.min_size_m, b.radius * style.size_per_radius);
     e.rotation = mulberry32.sample(rng) * Math.PI * 2;
     vec3.set(_note_dir, 0, 0, 1);
-    this.addSparks(at, b.point, _note_dir, _note_dir, style.sparks, rng, style.spark_scale);
+    const count = Math.round(style.sparks * sparks);
+    if (count) this.addSparks(at, b.point, _note_dir, _note_dir, count, rng, style.spark_scale);
     // Dirt thrown up in a column, then smoke rising out of it; a bigger
     // burst's by the square root of its fireball's size over the least.
     const scale = Math.sqrt(e.size / style.min_size_m);
@@ -1328,6 +1362,41 @@ export class EffectFrame {
           rng,
         );
       }
+  }
+
+  /** A hull cooking off from `at` (its death's tick): each fireball out of
+   *  its ring, then the sparks and dust its turret throws up where it lands. */
+  private addCookOff(at: number, c: EffectCookOff, rng: ReturnType<typeof mulberry32.create>) {
+    const feel = this.p.cook_off;
+    const top = c.center[2] + c.height;
+    for (const f of feel.fireballs)
+      this.addBlast(
+        at + feel.delay_s + f.after_s,
+        { point: [c.center[0], c.center[1], top + f.up_m], radius: f.radius_m, kind: "cook_off" },
+        rng,
+        f.sparks,
+      );
+    if (!c.landing) return;
+    const plume = this.p.blast.plume;
+    const landed = at + impactAfter(feel);
+    // Steel slamming onto steel: sparks off the deck, then the dust it shakes up.
+    vec3.set(_note_dir, 0, 0, 1);
+    if (feel.landing_sparks)
+      this.addSparks(landed, c.landing, _note_dir, _note_dir, feel.landing_sparks, rng);
+    for (let k = 0; feel.landing_dust > 0 && k < plume.count; k++) {
+      const r = feel.landing_dust * Math.sqrt(mulberry32.sample(rng));
+      const a = mulberry32.sample(rng) * Math.PI * 2;
+      this.addPuff(
+        landed + plume.over_s * 0.5 * (k / Math.max(1, plume.count - 1)),
+        c.landing[0] + Math.cos(a) * r,
+        c.landing[1] + Math.sin(a) * r,
+        c.landing[2],
+        plume,
+        feel.landing_dust,
+        1,
+        rng,
+      );
+    }
   }
 
   /** A puff born at `at` at (x, y, z): its own drift, spin and first frame. */

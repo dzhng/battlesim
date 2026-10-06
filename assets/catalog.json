@@ -462,7 +462,9 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/vehicles/tank_wreck.glb"
+        "default": "assets/source/vehicles/tank_wreck.glb",
+        "hull": "assets/source/vehicles/tank_wreck_hull.glb",
+        "turret": "assets/source/vehicles/tank_wreck_turret.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [

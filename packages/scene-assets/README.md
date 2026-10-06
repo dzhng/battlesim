@@ -31,7 +31,9 @@ catalog binding selects its drawn rig; its name cannot infer a pivot or muzzle.
 [Unit bindings](src/units.ts) and [articulation](src/articulation.ts) own that mapping.
 Bounds cover all reachable poses, while physical fit remains measured at rest.
 
-[Scenery kinds](src/scenery.ts) define art roles, states and per-tier budgets.
+[Scenery kinds](src/scenery.ts) define art roles, states and per-tier budgets. A kind may also take pieces: states cut
+from its whole where they lie in it (a tank wreck's hull and turret, for the
+turret's throw), held inside the whole rather than to the ground or the box.
 Prop bindings belong to the resolved simulation catalog; the renderer does not
 maintain a second prop roster. Art fits boxes the simulation actually places,
 including a wreck's hull or a building's physical remains. Nonphysical dressing

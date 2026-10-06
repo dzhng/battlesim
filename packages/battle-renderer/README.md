@@ -25,7 +25,10 @@ admitted appearances around them. Physical bounds and visual-only landscape rema
 separate. Cosmetic geometry must not invent a physical obstruction or imply cover
 that the simulation does not provide: a tree the side has seen felled falls on the
 clock and lies pressed under cover height by its stump ([felled trees](src/scenery/felled.ts)),
-since the simulation gives it no body. A map's region (its `regional_family`) is a
+since the simulation gives it no body. A hull the side watched die cooks off
+([cook-off](src/effects/cookOff.ts)): fireballs from its ring, its hull jolted and
+its turret thrown, both its wreck's own pieces, until they lie where the wreck has
+them and the whole wreck takes over without a seam. A wreck found later is simply there. A map's region (its `regional_family`) is a
 look, never physics: the biome's paved rows take that region's own finish through
 one function (`regionalBiome` in [the biome](src/terrain/biome.ts)), and scenery
 its region's appearances.

@@ -226,6 +226,8 @@ export async function validateAppearance(
       const bounds = positionsBounds(built.tiers[0].positions);
       states.push({ name: state, tiers: built.tiers, bounds });
       const rule = SCENERY_KINDS[entry.scenery ?? ""];
+      // A piece is held to its whole (`pieceFindings`), not to the ground or the box.
+      if (rule?.pieces?.includes(state)) continue;
       if (rule?.blades) findings.push(...grassStripFindings(path, built.tiers));
       findings.push(...groundFindings(`${path}`, bounds.min[2], tolerances));
       if (rule?.footprint.kind === "tree")
@@ -243,7 +245,12 @@ export async function validateAppearance(
         );
     }
     states.sort((a, b) => a.name.localeCompare(b.name));
-    if (required) findings.push(...footprintFindings(entry, states, tolerances, input.name));
+    const pieces = SCENERY_KINDS[entry.scenery ?? ""]?.pieces ?? [];
+    if (required) {
+      const whole = states.filter((s) => !pieces.includes(s.name));
+      findings.push(...footprintFindings(entry, whole, tolerances, input.name));
+      findings.push(...pieceFindings(input.name, states, required[0], pieces));
+    }
     const bounds = states.reduce<Bounds | null>((b, s) => union(b, s.bounds), null);
     const bundle: StaticBundle | null = bounds
       ? {
@@ -1114,6 +1121,37 @@ function extentFindings(
         ),
       ]
     : [];
+}
+
+/** Each of a scenery appearance's pieces (`SceneryRule.pieces`) against the
+ *  whole it was cut from, its `whole` state: inside it on every face. */
+function pieceFindings(
+  label: string,
+  states: readonly { name: string; bounds: Bounds }[],
+  whole: string,
+  pieces: readonly string[],
+): Finding[] {
+  const of = states.find((s) => s.name === whole)?.bounds;
+  if (!of) return [];
+  // A millimetre: a piece is cut from the same export as its whole.
+  const slack = 0.001;
+  return states
+    .filter((s) => pieces.includes(s.name))
+    .flatMap(({ name, bounds: b }) => {
+      const out = [0, 1, 2].flatMap((k) => [
+        ...(b.min[k] < of.min[k] - slack ? [`-${"xyz"[k]}`] : []),
+        ...(b.max[k] > of.max[k] + slack ? [`+${"xyz"[k]}`] : []),
+      ]);
+      return out.length
+        ? [
+            finding(
+              "fit.piece",
+              `${label} (${name}): reaches past its ${whole} state on ${out.join(", ")}`,
+              `export the piece from the same build as ${whole}, where it lies in it`,
+            ),
+          ]
+        : [];
+    });
 }
 
 /** A scenery appearance that stands for a simulation prop, against its box. */

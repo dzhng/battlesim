@@ -21,6 +21,8 @@ blender() {
 for variant in a b c; do blender infantry_kit.py at_carried "$variant"; done
 blender tank.py "$v/tank.glb"
 blender tank.py "$v/tank_wreck.glb" --wreck
+blender tank.py "$v/tank_wreck_hull.glb" --wreck --piece=hull
+blender tank.py "$v/tank_wreck_turret.glb" --wreck --piece=turret
 blender supply_truck.py "$v/supply_truck.glb"
 blender supply_truck.py "$v/supply_truck_wreck.glb" --wreck
 blender jeep.py "$v/jeep.glb"

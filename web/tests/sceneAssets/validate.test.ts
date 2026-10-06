@@ -251,6 +251,14 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.vehicle_muzzle": () => tank({ muzzleX: 5.9 }),
   "fit.footprint": async () =>
     (await scenery("crate", { default: blockGlb(2) }, [1, 1, 1])).findings,
+  "fit.piece": async () =>
+    (
+      await scenery(
+        "wreck",
+        { default: blockGlb(6), hull: blockGlb(2), turret: blockGlb(2, 5) },
+        [5, 4, 3],
+      )
+    ).findings,
   "fit.muzzle_arc": () => tank({ turretX: -1 }),
   "fit.mount_draw": () => tank({}, { mounts: { cannon: "gun" } }),
   "fit.part_nodes": async () =>
@@ -525,6 +533,17 @@ test("a prop scenery kind is fitted to its declared box; a tree has no box to fi
     "fit.footprint",
   ]);
   expect((await scenery("tree", { summer: treeGlb() })).findings).toEqual([]);
+});
+
+test("a wreck's pieces lie within the whole wreck, off the ground and short of its box", async () => {
+  const pieces = (turret: Uint8Array) =>
+    scenery("wreck", { default: blockGlb(6), hull: blockGlb(2), turret }, [5, 4, 3]);
+  // The thrown turret lies 3 m up on the hull: no ground or box finding.
+  expect((await pieces(blockGlb(2, 3))).findings).toEqual([]);
+  // One standing out of the whole is not a piece of it.
+  const proud = (await pieces(blockGlb(2, 5))).findings;
+  expect(proud.map((f) => f.code)).toEqual(["fit.piece"]);
+  expect(proud[0].message).toMatch(/turret/);
 });
 
 test("the hull top has its own tolerance, so an antenna does not loosen the sides", async () => {

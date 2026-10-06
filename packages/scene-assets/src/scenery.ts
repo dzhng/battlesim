@@ -24,6 +24,11 @@ export interface SceneryRule {
   /** States the art must carry, one GLB each; the first is what an impostor
    *  and a sheet show. */
   states: readonly string[];
+  /** States an appearance may carry besides, each a piece of its first
+   *  state where it lies in it (a wreck's burnt hull and its thrown turret),
+   *  so the battle can move the pieces apart and then draw the whole. A piece
+   *  stands off the ground and short of the box; it is held inside the whole. */
+  pieces?: readonly string[];
   footprint: SceneryFootprint;
   /** The art is blade strips the grass field instances and bends in the
    *  wind: every tier the same blades in one layout (`grass.ts`). */
@@ -44,12 +49,17 @@ export interface SceneryRule {
 
 const prop: SceneryRule = { states: ["default"], footprint: { kind: "prop" } };
 
+/** A wreck's pieces: its burnt hull, and the turret a cook-off throws. */
+export const WRECK_PIECES = { hull: "hull", turret: "turret" } as const;
+
 /** Every scenery kind. */
 export const SCENERY_KINDS: Record<string, SceneryRule> = {
   wall: prop,
   crate: prop,
   bridge_deck: prop,
-  wreck: prop,
+  /** A tank's wreck may carry its pieces: a cook-off throws the turret clear
+   *  of the hull before it lands where the wreck has it. */
+  wreck: { ...prop, pieces: [WRECK_PIECES.hull, WRECK_PIECES.turret] },
   ruin: prop,
   fence: prop,
   sandbags: prop,

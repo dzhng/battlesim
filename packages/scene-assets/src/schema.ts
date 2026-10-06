@@ -63,6 +63,8 @@ export const FINDING_CODES = [
   "fit.tree_size",
   "fit.dressing",
   "fit.footprint",
+  /** A scenery piece (a wreck's thrown turret) reaches outside the whole it is part of. */
+  "fit.piece",
   /** A type listing a part must draw that part's hardware nodes. */
   "fit.part_nodes",
   "fit.mount_draw",

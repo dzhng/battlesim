@@ -987,6 +987,25 @@
           "over_s": 0.8
         }
       },
+      "cook_off": {
+        "delay_s": 0.35,
+        "rise_m": 7,
+        "flip_turns": 1,
+        "spin_turns": 0.6,
+        "bounce_m": 0.35,
+        "bounce_tilt_deg": 7,
+        "heave_m": 0.22,
+        "jolt_m": 0.07,
+        "rock_deg": 1.5,
+        "settle_s": 0.9,
+        "fireballs": [
+          { "after_s": 0, "up_m": 0.3, "radius_m": 6, "sparks": 0.5 },
+          { "after_s": 0.12, "up_m": 3.5, "radius_m": 4.5, "sparks": 0 },
+          { "after_s": 0.3, "up_m": 1, "radius_m": 5, "sparks": 0 }
+        ],
+        "landing_dust": 2.2,
+        "landing_sparks": 14
+      },
       "dust": {
         "albedo": [0.74, 0.63, 0.48],
         "opacity": 0.4,

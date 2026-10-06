@@ -26,6 +26,7 @@ import {
   type EffectSmokeSource,
   type MuzzleSource,
 } from "@packages/battle-renderer/src/effects/effectFrame";
+import { impactAfter } from "@packages/battle-renderer/src/effects/cookOff";
 
 const HZ = 30;
 const DT = 1 / HZ;
@@ -1052,4 +1053,23 @@ test("tracer core and glow retain their own pixel widths", () => {
   );
   const streaks = drawn(f, 1.5 * DT).filter((i) => i.shape === SHAPE.streak);
   expect(streaks.map((i) => i.b[3]).sort()).toEqual([0.375, 1.125]);
+});
+
+test("a hull watched die cooks off a beat after the hit, and its turret lands in dust", () => {
+  const c = PRESENTATION.cook_off;
+  const f = frame();
+  f.note(pub(1));
+  // Its turret, in this test, lands well clear of the fireballs' own dust.
+  f.note(pub(2, { cookOffs: [{ center: [0, 0, 0], height: 2.4, landing: [30, 0, 0] }] }));
+  const hit = DT;
+  const fireballs = (t: number) => drawn(f, t).filter((i) => i.shape === SHAPE.flipbook);
+  expect(fireballs(hit + c.delay_s * 0.5)).toEqual([]);
+  const roar = fireballs(hit + c.delay_s + 0.05);
+  expect(roar.length).toBeGreaterThan(0);
+  for (const b of roar) expect(b.a[2]).toBeGreaterThan(2.4);
+  const landingDust = (t: number) =>
+    puffs(drawn(f, t)).filter((i) => Math.hypot(i.a[0] - 30, i.a[1]) < 6);
+  expect(landingDust(hit + impactAfter(c) - 0.05)).toEqual([]);
+  expect(landingDust(hit + impactAfter(c) + 0.3).length).toBeGreaterThan(0);
+  expect(drawn(f, hit + LONGEST + 1)).toEqual([]);
 });

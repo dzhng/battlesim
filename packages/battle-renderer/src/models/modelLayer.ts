@@ -5,7 +5,8 @@
 // - articulated vehicles are rigidly skinned, one palette matrix per node,
 //   posed on the CPU from the pose inputs (`articulate`);
 // - static models (a prop, a kit's module), and every corpse, use the
-//   palette's identity slot. A corpse is its body posed once at the bundle's
+//   palette's identity slot; a static piece in motion (a wreck's, cooking
+//   off) takes a slot of its own. A corpse is its body posed once at the bundle's
 //   `corpse_pose` at install (`posedMesh`), so the fallen (up to their
 //   presentation cap) are never skinned.
 //
@@ -1340,8 +1341,19 @@ export async function createModelLayer(
       const card = lying ? gpu.corpseCard : gpu.farCard;
       const tiers = tierCount(gpu.bundle);
       let tier: number;
-      // A fitted prop's reach grows with its largest scale.
+      // A fitted prop's reach grows with its largest scale, and a moving
+      // piece's by how far it has moved.
       const grow = inst.scale ? Math.max(inst.scale[0], inst.scale[1], inst.scale[2]) : 1;
+      const motion = inst.pose.kind === "static" ? inst.pose.motion : undefined;
+      const moved = motion ? grow * Math.hypot(motion[12], motion[13], motion[14]) : 0;
+      // A card shows its bundle's first state, at rest: a piece of it, or one
+      // in motion, is drawn as a mesh however far.
+      const carded =
+        card >= 0 &&
+        (inst.pose.kind !== "static" ||
+          (!motion &&
+            gpu.bundle.kind === "static" &&
+            inst.pose.state === gpu.bundle.states[0]?.name));
       if (inst.tier !== undefined || !view) tier = Math.min(tiers - 1, Math.max(0, inst.tier ?? 0));
       else
         tier = modelDetail(
@@ -1351,8 +1363,8 @@ export async function createModelLayer(
           inst.y,
           inst.z,
           (lying ? gpu.corpseSize : gpu.size) * grow,
-          (lying ? gpu.corpseRadius : gpu.radius) * grow,
-          card >= 0,
+          (lying ? gpu.corpseRadius : gpu.radius) * grow + moved,
+          carded,
         );
       if (tier === CULLED) {
         culled++;
@@ -1438,11 +1450,13 @@ export async function createModelLayer(
     for (let i = 0; i < total; i++) {
       if (unitChoice[i] < 0) continue;
       const gpu = appearances.get(modelAt(i).appearance)!;
-      const kind = modelAt(i).pose.kind;
+      const pose = modelAt(i).pose;
+      const kind = pose.kind;
       if (gpu.bundle.kind === "skinned" && kind === "skinned") {
         matrices += gpu.joints;
         skinned++;
       } else if (gpu.bundle.kind === "articulated") matrices += gpu.joints;
+      else if (pose.kind === "static" && pose.motion) matrices++;
     }
     growPalette(matrices);
     growControls(skinned);
@@ -1521,6 +1535,9 @@ export async function createModelLayer(
         const scroll = trackScroll(gpu.rig!, input);
         scrollL = scroll.left;
         scrollR = scroll.right;
+      } else if (inst.pose.kind === "static" && inst.pose.motion) {
+        base = cursor++;
+        paletteStaging.set(inst.pose.motion, base * 16);
       }
       if (choice % FOG_CLASSES === UNITS && (inst.xray?.[3] ?? 0) > 0) hasXrayMeshes = true;
       writeRecord(recordStaging, bucketCursor[choice]++, inst, base, scrollL, scrollR, -1);
