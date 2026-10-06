@@ -114,8 +114,11 @@ test("the menu leaves the region to the seed unless the player picks one of the 
   fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   const deploy = () => menu.getByTestId("menu-deploy").getAttribute("href")!;
   expect(menu.getByRole("radio", { name: "random" }).getAttribute("aria-checked")).toBe("true");
-  for (const region of ["china", "new york", "paris"])
+  for (const region of ["taiwan", "new york", "paris"])
     expect(menu.getByRole("radio", { name: region })).toBeTruthy();
+  // The player reads the china family as Taiwan; the address keeps its data name.
+  fireEvent.click(menu.getByRole("radio", { name: "taiwan" }));
+  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&region=china");
 
   fireEvent.click(menu.getByRole("radio", { name: "new york" }));
   expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&region=new_york");

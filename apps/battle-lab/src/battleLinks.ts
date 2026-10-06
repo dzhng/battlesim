@@ -42,8 +42,11 @@ export type AskedBattle =
 
 /** The regions a player may ask for: the presets' regional families. */
 export const REGIONS: readonly string[] = presets.parcels.regional_families;
-/** A data name as the player reads it: `new_york` is "new york". */
-export const spoken = (name: string) => name.replaceAll("_", " ");
+/** Data names the player reads as another name. */
+const SAID: Readonly<Record<string, string>> = { china: "taiwan" };
+
+/** A data name as the player reads it: `new_york` is "new york", `china` "taiwan". */
+export const spoken = (name: string) => SAID[name] ?? name.replaceAll("_", " ");
 
 const one = <T extends string>(value: string | null, of: readonly T[]): value is T =>
   value !== null && (of as readonly string[]).includes(value);
