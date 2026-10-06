@@ -691,6 +691,11 @@ pub fn threat(unit: &Unit, knowledge: &SideKnowledge, sensed: u64) -> Option<Ene
 /// that `fits` (where he stands and fights, the caller's test, which says
 /// how); failing that, the nearest ring out to `far` with such a place, its
 /// best cover. `None`: nowhere within `far`, and he sits out.
+///
+/// Within `step_out_m` the rings and the places on them are
+/// [`STEP_RING_M`] apart. Past it they spread with the distance, so each
+/// lies the same angle from him: half a metre matters in the next step, not
+/// fifteen metres off.
 pub fn step_out<T>(
     from: V2,
     target: V2,
@@ -700,15 +705,16 @@ pub fn step_out<T>(
     far: f64,
     fits: &impl Fn(V2) -> Option<T>,
 ) -> Option<(V2, T)> {
-    let near = (rules.step_out_m / STEP_RING_M).floor() as usize;
-    let rings = (far / STEP_RING_M).floor() as usize;
+    let near = rules.step_out_m;
+    let last = far.max(near);
     let mut best: Option<(Option<Tier>, V2, T)> = None;
-    for ring in 1..=rings.max(near) {
-        if ring > near && best.is_some() {
+    let mut r = STEP_RING_M;
+    while r <= last + 1e-9 {
+        if r > near + 1e-9 && best.is_some() {
             break;
         }
-        let r = ring as f64 * STEP_RING_M;
-        let n = ((std::f64::consts::TAU * r / STEP_RING_M).ceil() as usize).max(6);
+        let spacing = STEP_RING_M * (r / near).max(1.0);
+        let n = ((std::f64::consts::TAU * r / spacing).ceil() as usize).max(6);
         for k in 0..n {
             let a = std::f64::consts::TAU * k as f64 / n as f64;
             let p = from + v2(libm::cos(a), libm::sin(a)) * r;
@@ -720,6 +726,7 @@ pub fn step_out<T>(
                 best = Some((tier, p, how));
             }
         }
+        r += spacing;
     }
     best.map(|(_, p, how)| (p, how))
 }
