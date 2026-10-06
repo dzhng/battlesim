@@ -11,8 +11,8 @@
   "inputs": [
     {
       "kind": "supplied",
-      "label": "the-corner layout script",
-      "sha256": "49846f0092ec2b7400827f79d7afda61ff7b9f647e4e77f9069a717c94067923"
+      "label": "layout script that wrote map.json (two streets, frontages, cars)",
+      "sha256": "8f646804e162f098a9631930bcce53e55e33f76ec5e78e3f8fabe9e6390731c1"
     }
   ]
 }
