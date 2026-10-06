@@ -57,7 +57,11 @@ pub fn grow(
     // A park's trees are a wood on its block, whatever the halves hold.
     for town in towns {
         for park in &town.parks {
-            woods.claim(park);
+            let center = super::geometry::centroid(park);
+            let reach = park.iter().map(|p| super::geometry::distance(*p, center)).fold(0.0, f64::max);
+            if !reserved.iter().any(|r| r.blocks(center, reach)) {
+                woods.claim(park);
+            }
         }
     }
     // Woods then stand on some of the blocks settlements left open beside

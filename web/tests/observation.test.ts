@@ -581,8 +581,8 @@ test("every frozen animation field and ground value decodes, integers exact past
       replaces: big + 8,
     },
   ]);
-  // Round kinds are the fixture's weapon rows, in name order.
-  expect(layout.roundKinds).toEqual(Object.keys(game.weapons).sort());
+  // Frozen vectors carry their own weapon vocabulary and index meanings.
+  expect(layout.roundKinds).toEqual(["atgm", "grenade", "hmg", "rifle", "tank_ap", "tank_he"]);
 });
 
 test("a live battle publishes poses, soldier ids, tracer kinds and blasts", () => {

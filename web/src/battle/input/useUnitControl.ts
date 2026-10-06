@@ -132,6 +132,12 @@ export function useUnitControl(
           return `occupy building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
         case "exit_building":
           return `leave building: ${order.units.map(unitName).join(", ")}`;
+        case "ready":
+          return "ready";
+        case "confirm_purchase":
+          return `purchase ${order.variant}`;
+        case "cancel_pending":
+          return `cancel pending purchase ${order.purchase}`;
         case "upgrade_move":
           return `upgrade gesture ${order.gesture} to fast route`;
       }

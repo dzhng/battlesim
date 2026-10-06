@@ -1,6 +1,6 @@
 # 04 — Zero-unit preparation, credits, reservations and physical entry
 
-Status: not started. Dependencies: 01,02,03. Follow the README handoff and repository
+Status: authority and packed publication implemented; focused native/browser proof green. Dependencies: 01,02,03. Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -53,3 +53,26 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 - [ ] Narrow green proof and any allowed digest change recorded.
 - [ ] Artifact/visual gates resolved where applicable.
 - [ ] Choices, status and next pickup updated; focused pass committed.
+
+## Authority checkpoint evidence
+
+Zero start/preparation freeze, early readiness/timeout, exact income, atomic overspend,
+faction/unavailable/destination refusal, 30 pending cap, idempotent cancellation,
+physical movement and occupied FIFO entry pass focused authority tests. Removing the
+entry collision check spawned two units into the occupied entry and failed the
+regression; restored green. Packed side wallet/pending observations pass native
+checks and browser decoding. A paired purchase record agrees on the exact native/WASM
+digest; live/replay readiness and blocked queue digests agree.
+
+The publication hard cut adds match header fields and a pending-purchase group.
+Existing stream records are re-recorded for the wire shape. Four existing battle
+streams preserve every digest and all five preserve fog; combat digest words change
+once projectiles exist because the expanded catalog reindexes sorted weapon rows,
+a named content-identity change rather than a compatibility remapping. Frozen codec
+vectors retain their own six-weapon vocabulary; their layout follows the new schema.
+
+Physical standing admission is shared with encounter placement. Purchased instances
+retain original price/entry tick for later settlement/withdrawal, independently of
+reservation IDs. Side-scoped purchase IDs prevent enemy purchase-count leakage.
+Browser purchase controls and authored production setup are slice 05; this authority
+checkpoint changes no production battle framing or rendered UI.

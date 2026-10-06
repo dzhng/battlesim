@@ -398,6 +398,22 @@ export interface VisibilityView {
   bits: Uint32Array;
 }
 
+export interface SkirmishView {
+  phase: "preparation" | "active" | "finished";
+  ready: [boolean, boolean];
+  preparationRemainingS: number;
+  credits: number;
+  occupiedSlots: number;
+  maxUnits: number;
+  pending: {
+    id: number;
+    kind: string;
+    destination: Point2;
+    confirmedTick: number;
+    blocked: boolean;
+  }[];
+}
+
 export interface ObservationView {
   tick: number;
   own: OwnUnitView[];
@@ -412,6 +428,7 @@ export interface ObservationView {
   guided: GuidedView[];
   /** The fixture's completion condition, when it has one. */
   encounter: { heldS: number; result: string } | null;
+  skirmish: SkirmishView | null;
   fog: VisibilityView;
   groundPatch: GroundRunsPatch;
 }
@@ -1137,6 +1154,24 @@ function decodeFrame(
       header.encounterResult < 0
         ? null
         : { heldS: header.encounterHeldS, result: layout.encounterResults[header.encounterResult] },
+    skirmish:
+      header.skirmishPhase < 0
+        ? null
+        : {
+            phase: (["preparation", "active", "finished"] as const)[header.skirmishPhase],
+            ready: [header.readyBlue !== 0, header.readyRed !== 0],
+            preparationRemainingS: header.preparationRemainingS,
+            credits: header.credits,
+            occupiedSlots: header.occupiedSlots,
+            maxUnits: header.maxUnits,
+            pending: groups.pendingPurchases.map(({ field: f }) => ({
+              id: f("idLo") + f("idHi") * 2 ** layout.limbBits,
+              kind: layout.unitKinds[f("kind")],
+              destination: [f("x"), f("y")],
+              confirmedTick: f("confirmedLo") + f("confirmedHi") * 2 ** layout.limbBits,
+              blocked: f("blocked") !== 0,
+            })),
+          },
     fog: { cellM: header.fogCellM, nx: header.fogNx, ny: header.fogNy, bits },
     groundPatch,
   };

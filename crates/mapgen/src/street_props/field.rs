@@ -58,6 +58,7 @@ pub(super) struct Field<'a> {
     pub(super) pieces: Vec<Piece>,
     pub(super) piece_grid: Grid,
     pub(super) widest: f64,
+    pub(super) objectives: Vec<Rect>,
     pub(super) walls: Vec<Rect>,
     pub(super) wall_grid: Grid,
     /// Each door's way to the street.
@@ -175,6 +176,7 @@ impl<'a> Field<'a> {
             return false;
         }
         let wall = self.rule.wall_gap_m;
+        if self.objectives.iter().any(|r| rect.overlaps(r, 0.0)) { return false; }
         if self.wall_grid.any(grow(bounds, wall), |item| {
             !apart(rect, &self.walls[item as usize], wall)
         }) {

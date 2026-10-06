@@ -61,3 +61,39 @@ Gap: planning named the platform, not the admitted weapon mounting.
 Reach: model artists and service costs use the same two physical mount owners.
 Verdict: sound; platform equipment and supported guidance agree. A third articulation
 role is unnecessary because the existing secondary rig can carry the second gun.
+
+### Purchase handles are private to each side — sound, high confidence
+
+When: slice 04 authority checkpoint.
+Choice: each player sees reservation numbers from their own counter. If the opponent
+buys five unseen units, your next reservation number does not jump by five. Physical
+unit IDs remain ordinary authoritative IDs once the vehicle actually enters.
+Gap: the plan required stable reservation handles without choosing counter scope.
+Reach: cancellation and browser queues use private purchase handles; replay records
+still carry the issuing side so the authority knows which queue to address.
+Verdict: sound; a shared purchase counter would leak enemy economic activity.
+
+### Credit arithmetic keeps fractional carry — sound, high confidence
+
+When: slice 04 authority checkpoint.
+Choice: the authority stores millionths of a credit and carries the remainder from
+each income division. After one active minute each player receives exactly the
+configured minute's income, even when the tick rate does not divide it evenly.
+The browser displays a numeric snapshot and never computes or spends its own wallet.
+Gap: the plan required deterministic fractional carry but not the numeric format.
+Reach: kill rewards and refunds can reuse one credit owner instead of parallel
+floating-point balances. Exact state is proved through native/WASM digests.
+Verdict: sound; integer carry avoids accumulated floating-point income drift.
+
+### Expanded weapon vocabulary changes indexed combat identity — sound, high confidence
+
+When: ground data integrated with slice 04 publication records.
+Choice: new weapon rows enter the existing sorted arsenal, so a rifle's numeric
+weapon index moves. Once a bullet is in flight its indexed identity changes the
+battle digest, even when the shot geometry is the same. Records are regenerated
+against the canonical vocabulary; no old-index compatibility map is retained.
+Gap: the hard cut permits content identity changes but did not name this existing
+index consequence. Reach: paired records and replays use current engine/catalog
+admission; weapon names remain the authored stable reference.
+Verdict: sound; one current arsenal implements the requested hard cut. All five
+publication streams retain fog; noncombat streams retain their complete digests.

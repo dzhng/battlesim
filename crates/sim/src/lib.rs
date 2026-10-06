@@ -18,7 +18,6 @@ pub mod ground;
 pub mod hearing;
 pub mod knowledge;
 pub mod lean;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod map_analysis;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod maps;
@@ -29,6 +28,7 @@ pub mod publication;
 pub mod route_planner;
 pub mod sensing;
 pub mod sight;
+pub mod skirmish;
 pub mod structures;
 pub mod supply;
 pub mod units;

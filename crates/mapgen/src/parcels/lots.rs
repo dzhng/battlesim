@@ -78,6 +78,7 @@ impl<'a> Fit<'a> {
 pub struct Ground<'a> {
     pub network: &'a Network<'a>,
     forests: Vec<&'a [Point]>,
+    objectives: Vec<Rect>,
     lots: Vec<Rect>,
     lot_grid: Grid,
     pub plan_lots: Vec<LotPlan>,
@@ -92,6 +93,9 @@ impl<'a> Ground<'a> {
     pub fn new(plan: &'a MapPlan, network: &'a Network<'a>) -> Self {
         Self {
             network,
+            objectives: plan.skirmish.as_ref().map(|sites| sites.objectives.iter().map(|o| Rect {
+                center: o.center, axis: [1.0,0.0], half: [o.radius_m+10.0;2]
+            }).collect()).unwrap_or_default(),
             forests: plan
                 .forests
                 .iter()
@@ -113,7 +117,8 @@ impl<'a> Ground<'a> {
     /// A parcel may stand here: inside its district, off every carriageway
     /// and forest, and on no other parcel.
     fn clear(&self, rect: &Rect, district: &DistrictPlan, forests: &[&[Point]]) -> bool {
-        rect.inside(&district.ring)
+        !self.objectives.iter().any(|reserved| rect.overlaps(reserved, 0.0))
+            && rect.inside(&district.ring)
             && !self.network.covers(rect)
             && !forests.iter().any(|ring| rect.touches(ring))
             && !self.lot_grid.any(rect.bounds(), |item| {

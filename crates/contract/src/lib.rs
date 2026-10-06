@@ -21,5 +21,6 @@ pub mod preparation;
 pub mod random;
 pub mod river;
 pub mod scenario;
+pub mod skirmish;
 pub mod templates;
 pub mod weapons;

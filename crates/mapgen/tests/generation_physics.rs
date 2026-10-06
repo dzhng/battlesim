@@ -20,6 +20,7 @@ fn physical_rules_are_explicit_generation_inputs_and_identity() {
         template_catalog_hash: catalogue.hash().into(),
         map_type: MapType::Open,
         size: MapSize::Medium,
+        profile: contract::generation::GenerationProfile::Standard,
         region: None,
         limits: limits::game_limits(),
     })

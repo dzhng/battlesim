@@ -217,6 +217,7 @@ impl std::fmt::Display for ReplayError {
 }
 
 pub struct Battle {
+    skirmish: Option<crate::skirmish::Skirmish>,
     world: WorldGeometry,
     rules: Rules,
     seed: u64,
@@ -382,6 +383,94 @@ fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
     }
 }
 
+/// Physical construction is shared by authored placements and reinforcements.
+fn spawn_unit(
+    i: usize,
+    u: &contract::scenario::UnitSetup,
+    world: &WorldGeometry,
+    rules: &Rules,
+    arsenal: &Arsenal,
+    soldier_ids: &mut u32,
+    seed: u64,
+) -> Unit {
+    let kind = rules
+        .catalog
+        .index(&u.kind)
+        .unwrap_or_else(|| panic!("unit {i} names unknown unit type {:?}", u.kind));
+    let t = rules.catalog.get(kind);
+    let xy = v2(u.position[0], u.position[1]);
+    // A squad starts spread out like any squad that has just
+    // arrived: a seeded arrangement around its position.
+    let slots = t.slots().unwrap_or_default();
+    let count = slots.len();
+    let solid = |p: &crate::world::Prop| p.blocks(MoverClass::Infantry);
+    let mut draws = arrangement::rng(seed, i as u32, 0);
+    let members: Vec<Soldier> = arrangement::squad_spots(
+        world,
+        xy,
+        count,
+        &rules.infantry_movement,
+        rules.physics.soldier_radius_m,
+        &solid,
+        &mut draws,
+    )
+    .into_iter()
+    .enumerate()
+    .map(|(slot, p)| {
+        *soldier_ids += 1;
+        let z = world.surface_at(p.x, p.y).map_or(0.0, |s| s.z);
+        let hp = rules.catalog.soldier(&slots[slot]).hp;
+        Soldier::new(*soldier_ids, slot, p.with_z(z), hp)
+    })
+    .collect();
+    let mounts = arsenal.mounts_for(kind, u.yaw, &members);
+    Unit {
+        id: UnitId(i as u32),
+        side: u.side,
+        kind,
+        position: xy.with_z(world.surface_at(xy.x, xy.y).map_or(0.0, |s| s.z)),
+        yaw: u.yaw,
+        mobility: units::mobility(t, rules),
+        hull: t.hull().map(|h| {
+            let [x, y, z] = h.half_extents_m;
+            crate::math::v3(x, y, z)
+        }),
+        members,
+        orders: VecDeque::new(),
+        route: None,
+        route_from: xy,
+        state: MoveState::Idle,
+        blocker: None,
+        planned_revision: 0,
+        progress: (f64::INFINITY, 0),
+        pursuit: None,
+        planned_goal: None,
+        engagement: u.engagement.unwrap_or(Engagement::FireAtWill),
+        mounts,
+        attackers: BTreeSet::new(),
+        reach: Default::default(),
+        hp: t.hull().map_or(0.0, |h| h.hp),
+        suppression: 0.0,
+        suppressed_at: 0,
+        deployment: deployment::initial(t, rules),
+        garrison: None,
+        stock: t.capabilities.supply.map(|s| u.stock.unwrap_or(s.stock)),
+        progress_service: Default::default(),
+        service: ServiceStatus::OutOfRange,
+        sight_forward: u.yaw,
+        cover: Default::default(),
+        // A squad placed by the scenario holds round where it was put.
+        anchor: t.hull().is_none().then_some(crate::cover::Anchor {
+            at: xy,
+            halt: false,
+        }),
+        manoeuvre: None,
+        reversing: false,
+        drive_speed_mps: 0.0,
+        turn_to: None,
+    }
+}
+
 fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
     let map = serde_json::to_string(&setup.map).expect("map serializes");
     let units = serde_json::to_string(&setup.units).expect("units serialize");
@@ -391,7 +480,12 @@ fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
     // commands mean, so a replay is pinned to them too.
     let opponent = serde_json::to_string(&setup.opponent).expect("opponent serializes");
     let encounter = serde_json::to_string(&setup.encounter).expect("encounter serializes");
-    digest::of_str(&(map + &units + &events + &scripts + &opponent + &encounter))
+    let skirmish = setup
+        .skirmish
+        .as_ref()
+        .map(|s| serde_json::to_string(s).expect("skirmish serializes"))
+        .unwrap_or_default();
+    digest::of_str(&(map + &units + &events + &scripts + &opponent + &encounter + &skirmish))
 }
 
 fn config_digest(setup: &ScenarioDefinition) -> u64 {
@@ -399,6 +493,97 @@ fn config_digest(setup: &ScenarioDefinition) -> u64 {
 }
 
 impl Battle {
+    fn dispatch_reinforcements(&mut self) {
+        use crate::encounter::legality::{apart, footprint, stands_on};
+        let Some(skirmish) = &mut self.skirmish else {
+            return;
+        };
+        if skirmish.phase != contract::skirmish::Phase::Active {
+            return;
+        }
+        for side in [Side::Blue, Side::Red] {
+            let index = side.index();
+            if self.tick < skirmish.next_dispatch[index] {
+                continue;
+            }
+            let Some(reservation) = skirmish.reservations[index].front_mut() else {
+                continue;
+            };
+            let entry = &skirmish.setup.sites.entries[index];
+            let at = v2(entry.center[0], entry.center[1]);
+            let t = self.rules.catalog.get(reservation.data.kind);
+            let mobility = units::mobility(t, &self.rules);
+            let candidate = footprint(t, &self.rules, at, entry.yaw);
+            let clear = stands_on(
+                &self.world,
+                self.sides[index].grid(&self.world, self.authored_props),
+                &self.rules,
+                t,
+                &mobility,
+                at,
+                entry.yaw,
+            )
+            .is_ok()
+                && self.units.iter().filter(|u| u.alive()).all(|u| {
+                    apart(
+                        &candidate,
+                        &footprint(
+                            self.rules.catalog.get(u.kind),
+                            &self.rules,
+                            u.position.xy(),
+                            u.yaw,
+                        ),
+                        0.0,
+                    )
+                });
+            reservation.data.blocked = !clear;
+            if !clear {
+                continue;
+            }
+            let reservation = skirmish.reservations[index].pop_front().unwrap();
+            let setup = contract::scenario::UnitSetup {
+                side,
+                kind: self.rules.catalog.id(reservation.data.kind).to_string(),
+                position: entry.center,
+                yaw: entry.yaw,
+                engagement: None,
+                condition: None,
+                stock: None,
+            };
+            let mut unit = spawn_unit(
+                self.units.len(),
+                &setup,
+                &self.world,
+                &self.rules,
+                &self.arsenal,
+                &mut self.last_soldier,
+                self.seed,
+            );
+            unit.settle();
+            unit.orders.push_back(UnitOrder::Move(MoveOrder {
+                destination: v2(
+                    reservation.data.destination[0],
+                    reservation.data.destination[1],
+                ),
+                policy: RoutePolicy::Fastest,
+                gesture: 0,
+                direction: contract::command::MoveDirection::Forward,
+                facing: None,
+            }));
+            skirmish.entered.insert(
+                unit.id,
+                crate::skirmish::EnteredUnit {
+                    price: reservation.price,
+                    entered_tick: self.tick,
+                },
+            );
+            skirmish.next_dispatch[index] = self.tick
+                + u64::from(skirmish.setup.rules.dispatch_interval_s)
+                    * u64::from(self.rules.tick_hz);
+            self.units.push(unit);
+        }
+    }
+
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
         Self::from_prepared(
             setup,
@@ -415,6 +600,15 @@ impl Battle {
         prepared: crate::encounter::PreparedMap,
     ) -> Self {
         let rules = setup.rules.clone();
+        assert!(
+            setup.skirmish.is_none()
+                || (setup.units.is_empty()
+                    && setup.events.is_empty()
+                    && setup.scripts.is_empty()
+                    && setup.opponent.is_none()
+                    && setup.encounter.is_none()),
+            "skirmish begins empty and owns its controller/referee"
+        );
         assert!(
             rules.physics.vehicle_aim_height_fraction > 0.0
                 && rules.physics.vehicle_aim_height_fraction <= 1.0,
@@ -454,84 +648,7 @@ impl Battle {
             .units
             .iter()
             .enumerate()
-            .map(|(i, u)| {
-                let kind = rules
-                    .catalog
-                    .index(&u.kind)
-                    .unwrap_or_else(|| panic!("unit {i} names unknown unit type {:?}", u.kind));
-                let t = rules.catalog.get(kind);
-                let xy = v2(u.position[0], u.position[1]);
-                // A squad starts spread out like any squad that has just
-                // arrived: a seeded arrangement around its position.
-                let slots = t.slots().unwrap_or_default();
-                let count = slots.len();
-                let solid = |p: &crate::world::Prop| p.blocks(MoverClass::Infantry);
-                let mut draws = arrangement::rng(seed, i as u32, 0);
-                let members: Vec<Soldier> = arrangement::squad_spots(
-                    &world,
-                    xy,
-                    count,
-                    &rules.infantry_movement,
-                    rules.physics.soldier_radius_m,
-                    &solid,
-                    &mut draws,
-                )
-                .into_iter()
-                .enumerate()
-                .map(|(slot, p)| {
-                    soldier_ids += 1;
-                    let z = world.surface_at(p.x, p.y).map_or(0.0, |s| s.z);
-                    let hp = rules.catalog.soldier(&slots[slot]).hp;
-                    Soldier::new(soldier_ids, slot, p.with_z(z), hp)
-                })
-                .collect();
-                let mounts = arsenal.mounts_for(kind, u.yaw, &members);
-                Unit {
-                    id: UnitId(i as u32),
-                    side: u.side,
-                    kind,
-                    position: xy.with_z(world.surface_at(xy.x, xy.y).map_or(0.0, |s| s.z)),
-                    yaw: u.yaw,
-                    mobility: units::mobility(t, &rules),
-                    hull: t.hull().map(|h| {
-                        let [x, y, z] = h.half_extents_m;
-                        crate::math::v3(x, y, z)
-                    }),
-                    members,
-                    orders: VecDeque::new(),
-                    route: None,
-                    route_from: xy,
-                    state: MoveState::Idle,
-                    blocker: None,
-                    planned_revision: 0,
-                    progress: (f64::INFINITY, 0),
-                    pursuit: None,
-                    planned_goal: None,
-                    engagement: u.engagement.unwrap_or(Engagement::FireAtWill),
-                    mounts,
-                    attackers: BTreeSet::new(),
-                    reach: Default::default(),
-                    hp: t.hull().map_or(0.0, |h| h.hp),
-                    suppression: 0.0,
-                    suppressed_at: 0,
-                    deployment: deployment::initial(t, &rules),
-                    garrison: None,
-                    stock: t.capabilities.supply.map(|s| u.stock.unwrap_or(s.stock)),
-                    progress_service: Default::default(),
-                    service: ServiceStatus::OutOfRange,
-                    sight_forward: u.yaw,
-                    cover: Default::default(),
-                    // A squad placed by the scenario holds round where it was put.
-                    anchor: t.hull().is_none().then_some(crate::cover::Anchor {
-                        at: xy,
-                        halt: false,
-                    }),
-                    manoeuvre: None,
-                    reversing: false,
-                    drive_speed_mps: 0.0,
-                    turn_to: None,
-                }
-            })
+            .map(|(i, u)| spawn_unit(i, u, &world, &rules, &arsenal, &mut soldier_ids, seed))
             .collect::<Vec<Unit>>();
         for (unit, setup) in units.iter_mut().zip(&setup.units) {
             if let Some(c) = &setup.condition {
@@ -551,6 +668,7 @@ impl Battle {
             SideKnowledge::new(seed ^ OBSERVATION_STREAM ^ 1, &ground),
         ];
         let mut battle = Battle {
+            skirmish: setup.skirmish.clone().map(crate::skirmish::Skirmish::new),
             authored_props: world.props().count() as PropId,
             world,
             rules,
@@ -819,7 +937,21 @@ impl Battle {
     }
 
     fn validate(&self, command: &CommandEnvelope) -> Result<(), OrderError> {
+        if self
+            .skirmish
+            .as_ref()
+            .is_some_and(|s| s.phase == contract::skirmish::Phase::Finished)
+        {
+            return Err(OrderError::MatchFinished);
+        }
         let units = match &command.order {
+            Order::Ready | Order::ConfirmPurchase { .. } | Order::CancelPending { .. } => {
+                return self
+                    .skirmish
+                    .as_ref()
+                    .map(|_| ())
+                    .ok_or(OrderError::NotSkirmish)
+            }
             Order::Move { units, goal, .. } | Order::AttackMove { units, goal, .. } => {
                 if self.world.height_at(goal[0], goal[1]).is_none() {
                     return Err(OrderError::OutOfBounds);
@@ -952,7 +1084,10 @@ impl Battle {
                         .get(id.0 as usize)
                         .is_none_or(|u| u.side != script.side || u.alive())
                 }),
-                Order::UpgradeMove { .. } => {}
+                Order::UpgradeMove { .. }
+                | Order::Ready
+                | Order::ConfirmPurchase { .. }
+                | Order::CancelPending { .. } => {}
             }
             let command = CommandEnvelope {
                 side: script.side,
@@ -967,6 +1102,10 @@ impl Battle {
         for command in std::mem::take(&mut self.pending) {
             self.apply(command);
         }
+        if let Some(skirmish) = &mut self.skirmish {
+            skirmish.advance(self.tick, self.rules.tick_hz);
+        }
+        self.dispatch_reinforcements();
         completed(TickPhase::Orders);
         garrison::advance(
             &self.world,
@@ -1993,6 +2132,35 @@ impl Battle {
         planning_tick: Tick,
     ) -> Result<PreparedCommand, OrderError> {
         self.validate(&command)?;
+        if matches!(command.order, Order::Ready) {
+            self.skirmish.as_mut().unwrap().ready[command.side.index()] = true;
+        }
+        if let Order::CancelPending { purchase } = command.order {
+            self.skirmish
+                .as_mut()
+                .unwrap()
+                .cancel(command.side, purchase);
+        }
+        if let Order::ConfirmPurchase {
+            variant,
+            destination,
+        } = &command.order
+        {
+            let kind = self.preview_purchase(command.side, variant, *destination)?;
+            let living = self
+                .units
+                .iter()
+                .filter(|u| u.side == command.side && u.alive())
+                .count() as u32;
+            self.skirmish.as_mut().unwrap().reserve(
+                command.side,
+                kind,
+                *destination,
+                self.rules.catalog.get(kind).cost,
+                planning_tick + 1,
+                living,
+            )?;
+        }
         if let Order::UpgradeMove { gesture, route } = command.order {
             self.validate_upgrade(command.side, gesture, route)?;
         }
@@ -2080,6 +2248,7 @@ impl Battle {
         let queued = command.queued;
         let push = |unit: &mut Unit, order: UnitOrder| unit.enqueue(order, queued);
         match command.order {
+            Order::Ready | Order::ConfirmPurchase { .. } | Order::CancelPending { .. } => {}
             Order::OccupyBuilding {
                 gesture, facing, ..
             } => {
@@ -2303,6 +2472,50 @@ impl Battle {
 
     /// Preview placement on this side's known map without advancing time,
     /// recording a command, changing orders, or warming live navigation caches.
+    /// Admission uses side knowledge, so an unseen enemy body cannot reject a ghost.
+    pub fn preview_purchase(
+        &mut self,
+        side: Side,
+        variant: &str,
+        destination: [f64; 2],
+    ) -> Result<contract::catalog::TypeIndex, OrderError> {
+        let skirmish = self.skirmish.as_ref().ok_or(OrderError::NotSkirmish)?;
+        let kind = self
+            .rules
+            .catalog
+            .index(variant)
+            .ok_or(OrderError::UnitUnavailable)?;
+        let card = self
+            .rules
+            .catalog
+            .card(variant)
+            .ok_or(OrderError::UnitUnavailable)?;
+        if !card
+            .roster
+            .factions
+            .contains(&skirmish.setup.factions[side.index()])
+        {
+            return Err(OrderError::WrongFaction);
+        }
+        if !destination.iter().all(|n| n.is_finite())
+            || self
+                .world
+                .height_at(destination[0], destination[1])
+                .is_none()
+        {
+            return Err(OrderError::OutOfBounds);
+        }
+        let mobility = units::mobility(self.rules.catalog.get(kind), &self.rules);
+        let mut known = self.sides[side.index()].clone();
+        if !known
+            .grid(&self.world, self.authored_props)
+            .placement_fits(v2(destination[0], destination[1]), &mobility)
+        {
+            return Err(OrderError::NoValidDestination);
+        }
+        Ok(kind)
+    }
+
     pub fn preview_move(
         &mut self,
         side: Side,
@@ -2765,6 +2978,17 @@ impl Battle {
                     }),
             );
             frame.encounter = self.encounter;
+            frame.skirmish = self.skirmish.as_ref().map(|s| {
+                s.view(
+                    side,
+                    self.tick,
+                    self.rules.tick_hz,
+                    self.units
+                        .iter()
+                        .filter(|u| u.side == side && u.alive())
+                        .count() as u32,
+                )
+            });
             frame.guided.clear();
             frame
                 .guided
@@ -2824,6 +3048,9 @@ impl Battle {
     pub fn digest(&self) -> u64 {
         let mut d = Digest::default();
         d.u64(self.tick);
+        if let Some(skirmish) = &self.skirmish {
+            skirmish.digest(&mut d);
+        }
         d.u64(self.units.len() as u64);
         for u in &self.units {
             u.digest(&mut d);

@@ -1049,6 +1049,8 @@ fn is_zero(v: &f64) -> bool {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ScenarioDefinition {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skirmish: Option<crate::skirmish::SkirmishSetup>,
     pub map: MapDefinition,
     pub rules: Rules,
     pub units: Vec<UnitSetup>,
@@ -1085,6 +1087,7 @@ impl EncounterDefinition {
     /// The scenario this encounter makes on `map` under `rules`.
     pub fn on(self, map: MapDefinition, rules: Rules) -> ScenarioDefinition {
         ScenarioDefinition {
+            skirmish: None,
             map,
             rules,
             units: self.units,

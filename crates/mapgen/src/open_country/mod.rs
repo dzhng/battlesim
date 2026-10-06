@@ -245,6 +245,7 @@ struct Country<'a> {
     presets: &'a PresetDefinitions,
     rules: &'a Rules,
     size: [f64; 2],
+    objectives: Vec<(Point,f64)>,
     towns: Vec<Ground<'a>>,
     woods: Vec<Ground<'a>>,
     network: Network<'a>,
@@ -338,6 +339,10 @@ impl<'a> Country<'a> {
     /// The one question: may something of `ask` stand at `p`.
     fn open(&self, p: Point, ask: Ask) -> bool {
         if !self.charge(1) {
+            return false;
+        }
+        if self.objectives.iter().any(|(center,radius)|
+            libm::hypot(p[0]-center[0],p[1]-center[1]) < radius + ask.radius) {
             return false;
         }
         let c = &self.rules.clear;
@@ -1384,6 +1389,8 @@ impl<'a> Country<'a> {
             presets,
             rules,
             size,
+            objectives: plan.skirmish.as_ref().map(|sites| sites.objectives.iter()
+                .map(|o| (o.center,o.radius_m+10.0)).collect()).unwrap_or_default(),
             network: Network::new(plan, clearance, &presets.parcels.geometry),
             towns,
             woods,
@@ -1429,7 +1436,7 @@ pub(crate) fn admit_coverage(
         }]
     })?;
     coverage::preflight(
-        [request.size.extent_m(); 2],
+        [request.extent_m(); 2],
         presets.terrain.fog_cell_m,
         presets.open_country.sight.cell_m,
         range,

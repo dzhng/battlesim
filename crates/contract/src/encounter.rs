@@ -63,6 +63,40 @@ pub struct EncounterSites {
     /// The main settlement first.
     pub settlements: Vec<SettlementSite>,
     pub approaches: Vec<Approach>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skirmish: Option<SkirmishSites>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SkirmishSites {
+    pub entries: [EntrySite; 2],
+    pub objectives: Vec<ObjectiveSite>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EntrySite {
+    pub side: crate::ids::Side,
+    pub center: [f64; 2],
+    pub yaw: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ObjectiveSite {
+    pub id: String,
+    pub center: [f64; 2],
+    pub radius_m: f64,
+    pub kind: ObjectiveSiteKind,
+    pub counterpart: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ObjectiveSiteKind {
+    Junction,
+    Field,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -125,6 +159,38 @@ impl EncounterSites {
                 .all(|v| v.is_finite())
             {
                 return Err(format!("approaches[{i}] is not finite"));
+            }
+        }
+        if let Some(sites) = &self.skirmish { sites.validate()?; }
+
+        Ok(())
+    }
+}
+
+impl SkirmishSites {
+    pub fn validate(&self) -> Result<(), String> {
+        let finite = |points: &[[f64; 2]]| points.iter().flatten().all(|v| v.is_finite());
+        if self.entries[0].side != crate::ids::Side::Blue || self.entries[1].side != crate::ids::Side::Red
+            || self.entries.iter().any(|e| !finite(&[e.center]) || !e.yaw.is_finite()) {
+            return Err("skirmish entries require finite blue/red geometry".into());
+        }
+        if !matches!(self.objectives.len(), 3 | 5 | 7) {
+            return Err("skirmish requires three, five or seven objectives".into());
+        }
+        let mut ids = std::collections::BTreeSet::new();
+        for o in &self.objectives {
+            if o.id.is_empty() || !ids.insert(&o.id) {
+                return Err("skirmish objective identity is empty or duplicated".into());
+            }
+            if !finite(&[o.center]) || !o.radius_m.is_finite() || o.radius_m <= 0.0 {
+                return Err(format!("objective {} requires finite positive geometry",o.id));
+            }
+        }
+        for o in &self.objectives {
+            if let Some(id) = &o.counterpart {
+                if !self.objectives.iter().any(|p| &p.id==id && p.id!=o.id && p.counterpart.as_ref()==Some(&o.id)) {
+                    return Err(format!("objective {} has no reciprocal counterpart",o.id));
+                }
             }
         }
         Ok(())
@@ -463,6 +529,7 @@ impl EncounterSetup {
         rules: crate::scenario::Rules,
     ) -> crate::scenario::ScenarioDefinition {
         crate::scenario::ScenarioDefinition {
+            skirmish: None,
             map,
             rules,
             units: self.units,

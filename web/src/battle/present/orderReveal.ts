@@ -41,6 +41,9 @@ function flashedUnits(order: Order): readonly number[] {
   switch (order.kind) {
     case "set_engagement":
     case "set_deployment":
+    case "ready":
+    case "confirm_purchase":
+    case "cancel_pending":
     case "upgrade_move":
       return [];
     default:

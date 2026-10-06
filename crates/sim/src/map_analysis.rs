@@ -133,3 +133,98 @@ impl AnalysisPolicy {
         errors
     }
 }
+
+/// Route evidence from the same placement and navigation used by a battle.
+#[derive(Debug, serde::Serialize)]
+pub struct SkirmishJourney {
+    pub unit: String,
+    pub side: contract::ids::Side,
+    pub objective: String,
+    pub travel_s: f64,
+}
+
+pub fn admit_skirmish(q: &crate::encounter::MapQueries, rules: &Rules)
+    -> Result<Vec<SkirmishJourney>, String> {
+    use contract::catalog::Mobility;
+    use contract::command::RoutePolicy;
+    use crate::navigation::{self, Leg, Plan};
+    q.sites.validate()?;
+    let sites = q.sites.skirmish.as_ref().ok_or("skirmish sites are missing")?;
+    let mut representatives = [None; 3];
+    for kind in rules.catalog.indices() {
+        let unit = rules.catalog.get(kind);
+        let class = match unit.mobility { Mobility::Foot {..} => 0,
+            Mobility::Tracked {..} => 1, Mobility::Wheeled {..} => 2 };
+        let width = crate::units::mobility(unit,rules).half_width_m;
+        if representatives[class].is_none_or(|(old,_)| width > old) {
+            representatives[class] = Some((width,kind));
+        }
+    }
+    if representatives.iter().any(Option::is_none) { return Err("representative foot/tracked/wheeled movers are required".into()); }
+    let mut results = Vec::new();
+    for (_,kind) in representatives.into_iter().flatten() {
+        let unit = rules.catalog.get(kind);
+        let mobility = crate::units::mobility(unit,rules);
+        for entry in &sites.entries {
+            let from = v2(entry.center[0],entry.center[1]);
+            crate::encounter::legality::stands(q,rules,unit,&mobility,from,entry.yaw)
+                .map_err(|e| format!("entry {:?} cannot admit {}: {e:?}",entry.side,rules.catalog.id(kind)))?;
+            for objective in &sites.objectives {
+                let goal = v2(objective.center[0],objective.center[1]);
+                if q.map.forests.iter().any(|f| f.shape.contains(objective.center,objective.radius_m)) { return Err(format!("objective {} reaches forest ground",objective.id)); }
+                let (plan,_) = navigation::plan(q.grid,q.roads,Leg {from,goal,m:&mobility,
+                    policy:RoutePolicy::Fastest,avoid:&[]},&rules.navigation);
+                let Plan::Route(route) = plan else { return Err(format!("no route for {} to {}",rules.catalog.id(kind),objective.id)); };
+                if route.last().is_some_and(|p| (*p-goal).length() > mobility.half_width_m+2.0)
+                    || !q.grid.route_fits(from,&route,&mobility) {
+                    return Err(format!("route to {} does not reach its site",objective.id));
+                }
+                results.push(SkirmishJourney {unit:rules.catalog.id(kind).into(),side:entry.side,
+                    objective:objective.id.clone(),travel_s:q.grid.route_time(from,&route,&mobility)});
+            }
+        }
+        let travel = |id:&str,side| results.iter().find(|r| r.unit==rules.catalog.id(kind)
+            && r.objective==id && r.side==side).unwrap().travel_s;
+        for objective in &sites.objectives {
+            let (a,b) = if let Some(other) = &objective.counterpart {
+                let mate = sites.objectives.iter().find(|o| &o.id==other).ok_or("unknown counterpart")?;
+                let own = |y:f64| if y > q.world.depth()/2.0 {contract::ids::Side::Blue} else {contract::ids::Side::Red};
+                let first = q.world.ground_surface_at(objective.center[0],objective.center[1]).unwrap();
+                let second = q.world.ground_surface_at(mate.center[0],mate.center[1]).unwrap();
+                if first.kind != second.kind || first.road_factor != second.road_factor || objective.kind!=mate.kind {
+                    return Err(format!("counterpart makeup/access differs for {}",objective.id));
+                }
+                (travel(&objective.id,own(objective.center[1])),travel(other,own(mate.center[1])))
+            } else { (travel(&objective.id,contract::ids::Side::Blue),travel(&objective.id,contract::ids::Side::Red)) };
+            if !a.is_finite() || !b.is_finite() || (a-b).abs() > 0.15*a.max(b) {
+                return Err(format!("objective travel differs beyond 15% for {}: {a:.2}/{b:.2} s",objective.id));
+            }
+        }
+    }
+    Ok(results)
+}
+
+#[cfg(test)]
+mod skirmish_tests {
+    #[test]
+    fn unequal_objective_routes_are_refused() {
+        let rules: contract::scenario::Rules = serde_json::from_value(crate::fixtures::game()).unwrap();
+        let map: contract::map::MapDefinition = serde_json::from_str(
+            r#"{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#
+        ).unwrap();
+        let sites: contract::encounter::EncounterSites = serde_json::from_value(serde_json::json!({
+            "settlements": [], "approaches": [], "skirmish": {
+                "entries": [{"side":"blue","center":[500,990],"yaw":-1.57},
+                    {"side":"red","center":[500,10],"yaw":1.57}],
+                "objectives": [
+                    {"id":"center","center":[500,500],"radius_m":50,"kind":"junction","counterpart":null},
+                    {"id":"a","center":[500,790],"radius_m":50,"kind":"field","counterpart":"b"},
+                    {"id":"b","center":[500,110],"radius_m":50,"kind":"field","counterpart":"a"}
+                ]
+            }
+        })).unwrap();
+        let prepared = crate::encounter::PreparedMap::new(&map,&rules);
+        let result = super::admit_skirmish(&prepared.queries(&map,&sites), &rules);
+        assert!(result.unwrap_err().contains("travel"));
+    }
+}

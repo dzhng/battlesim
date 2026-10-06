@@ -275,6 +275,7 @@ fn scenario_in_arena(
         }
     }
     Ok(ScenarioDefinition {
+        skirmish: None,
         map,
         rules,
         units,

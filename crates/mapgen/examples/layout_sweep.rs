@@ -147,6 +147,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     template_catalog_hash: catalogue.hash().into(),
                     map_type,
                     size,
+                    profile: contract::generation::GenerationProfile::Standard,
                     region: None,
                     limits: CompileLimits {
                         max_authored_parts: 1_000_000,

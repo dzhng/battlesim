@@ -794,6 +794,12 @@ impl BattleHandle {
         serde_json::to_string(&self.battle.accept(command)).map_err(js_error)
     }
 
+    /// Check a ghost destination using only the purchasing side's geometry.
+    pub fn preview_purchase(&mut self, side: &str, variant: &str, x: f64, y: f64) -> Result<String, JsError> {
+        let side = parse_side(side)?;
+        serde_json::to_string(&self.battle.preview_purchase(side, variant, [x, y])).map_err(js_error)
+    }
+
     /// Resolve a proposed formation without accepting an order or advancing time.
     pub fn preview_move(&mut self, side: &str, move_json: &str) -> Result<String, JsError> {
         let side = parse_side(side)?;
@@ -875,6 +881,14 @@ pub struct PreparedWorld {
 
 #[wasm_bindgen]
 impl PreparedWorld {
+    /// Final skirmish placement/route admission on this prepared physical world.
+    pub fn admit_skirmish(&self, sites_json: &str) -> Result<String, JsError> {
+        let sites = serde_json::from_str(sites_json).map_err(js_error)?;
+        let journeys = sim::map_analysis::admit_skirmish(
+            &self.prepared.queries(&self.map, &sites), &self.rules,
+        ).map_err(js_error)?;
+        serde_json::to_string(&journeys).map_err(js_error)
+    }
     #[wasm_bindgen(constructor)]
     pub fn new(map_json: &str, rules_json: &str) -> Result<PreparedWorld, JsError> {
         let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;

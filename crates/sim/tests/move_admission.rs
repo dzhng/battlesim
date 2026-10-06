@@ -726,6 +726,7 @@ fn market_town_column() -> ScenarioDefinition {
     let mut assault = sim::maps::encounter("market-town", "assault").unwrap();
     assault.units.retain(|u| u.side == Side::Blue);
     ScenarioDefinition {
+        skirmish: None,
         scripts: Vec::new(),
         opponent: None,
         encounter: None,

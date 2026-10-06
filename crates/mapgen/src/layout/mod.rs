@@ -78,6 +78,8 @@ pub fn generate_layout(
     request: &GenerationRequest,
     presets: &PresetDefinitions,
 ) -> Result<MapPlan, Vec<Diagnostic>> {
+    let resolved_presets = presets.for_request(&request);
+    let presets = &resolved_presets;
     let pins = [
         (
             "generator_version",
@@ -109,7 +111,7 @@ pub fn generate_layout(
         presets,
         preset,
         cell,
-        extent: request.size.extent_m(),
+        extent: request.extent_m(),
     };
     // What kind of country this seed is: a few corridors or a road network,
     // sparse woodland or large forests.
@@ -120,7 +122,7 @@ pub fn generate_layout(
     let mut road_draws = context.stream("roads");
     let skeleton = roads::skeleton(&context, &mut road_draws);
     let mut source = rivers::Source::new(&context, &skeleton);
-    let (placed, rivers) = sites::place(&context, &skeleton, &mut source)?;
+    let (mut placed, rivers) = sites::place(&context, &skeleton, &mut source)?;
     let water = water::Water::new(&rivers, [context.extent; 2]);
     let (roads, bridges) = roads::build(
         &context,
@@ -132,13 +134,19 @@ pub fn generate_layout(
     )?;
     // A settlement grows from the roads across its ground.
     let towns = towns::grow(&context, &placed.sites, &roads)?;
-    let forests = forests::grow(&context, &towns, &placed.reserved, &water, woodland);
     let mut surfaces = roads
         .iter()
         .enumerate()
         .map(|(index, road)| roads::surface(&context, index, road))
         .collect::<Result<Vec<_>, _>>()?;
     surfaces.extend(towns::surfaces(&context, &towns)?);
+    let skirmish = crate::skirmish::reserve(request, &surfaces, skeleton.hub,
+        &towns.iter().map(|t| t.outline.as_slice()).collect::<Vec<_>>())?;
+    if let Some(sites) = &skirmish {
+        placed.reserved.extend(sites.objectives.iter().map(|o|
+            sites::Corridor::objective(o.center, o.radius_m + 10.0)));
+    }
+    let forests = forests::grow(&context, &towns, &placed.reserved, &water, woodland);
     let blocks: Vec<&[geometry::Point]> = towns
         .iter()
         .flat_map(|town| town.blocks.iter().map(|block| &block.ring[..]))
@@ -157,6 +165,7 @@ pub fn generate_layout(
         .map(|(index, (site, town))| towns::settlement(&context, index, site, town))
         .collect();
     let mut plan = MapPlan {
+        skirmish,
         size: [context.extent; 2],
         render_margin_m: presets.terrain.render_margin_m,
         fog_cell_m: presets.terrain.fog_cell_m,

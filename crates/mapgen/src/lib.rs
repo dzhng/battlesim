@@ -11,6 +11,7 @@ pub mod layout;
 pub mod open_country;
 pub mod parcels;
 pub mod street_props;
+mod skirmish;
 
 use layout::{GenerationRequest, PresetDefinitions};
 
@@ -27,6 +28,8 @@ pub struct BuildingPlacement {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MapPlan {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skirmish: Option<contract::encounter::SkirmishSites>,
     #[serde(deserialize_with = "contract::numbers::array")]
     pub size: [f64; 2],
     #[serde(
@@ -212,6 +215,7 @@ impl MapPlan {
     pub fn sites(&self) -> contract::encounter::EncounterSites {
         use contract::encounter::{DistrictSite, EncounterSites, SettlementSite};
         EncounterSites {
+            skirmish: self.skirmish.clone(),
             settlements: self
                 .settlements
                 .iter()
@@ -385,6 +389,7 @@ fn generate(
         }]
     })?;
     let presets = PresetDefinitions::from_json(presets_json)?;
+    let presets = presets.for_request(&request);
     let catalogue = catalogue(descriptors_json)?;
     let physics = contract::generation_physics::GenerationPhysics::from_rules_json(rules_json)
         .map_err(|message| {
@@ -504,6 +509,7 @@ pub fn generate_with_plan(
                 }
             },
         )?;
+    let profile = request.profile;
     let request = CompileRequest::generated(&request, plan);
     let mut compiled = lower(&request, &catalogue).map_err(|diagnostics| GenerationFailure {
         stage: GenerationStage::Compile,
@@ -512,10 +518,12 @@ pub fn generate_with_plan(
     // Borrow the large plan rather than materializing a second JSON tree.
     #[derive(Serialize)]
     struct GeneratedConfiguration<'a> {
+        profile: contract::generation::GenerationProfile,
         physical_inputs_hash: &'a str,
         plan: &'a MapPlan,
     }
     compiled.identity.config_hash = contract::identity::json_hash(&GeneratedConfiguration {
+        profile,
         physical_inputs_hash: &physical_inputs_hash,
         plan: &request.plan,
     })
@@ -707,6 +715,12 @@ pub fn lower(
         }]);
     }
     validate_plan(&request.plan)?;
+    if let Some(sites) = &request.plan.skirmish {
+        sites.validate().map_err(|message| vec![Diagnostic {
+            code: DiagnosticCode::InvalidPlacement, feature: Some("skirmish_sites".into()),
+            location: "$.plan.skirmish".into(), message,
+        }])?;
+    }
     let mut authored_parts = request.plan.props.len() as u64;
     let mut bay_positions = 0u64;
     let mut descriptors = Vec::new();

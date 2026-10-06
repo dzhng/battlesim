@@ -28,6 +28,7 @@ fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
         template_catalog_hash: catalogue.hash().into(),
         map_type,
         size,
+        profile: contract::generation::GenerationProfile::Standard,
         region: None,
         limits: CompileLimits {
             max_authored_parts: 0,

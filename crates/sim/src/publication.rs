@@ -144,7 +144,7 @@ const POSE_FIELDS: [&str; 7] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 28] = [
+const HEADER: [&str; 36] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -173,6 +173,24 @@ const HEADER: [&str; 28] = [
     "groundFull",
     "groundRunCount",
     "fallenBodyCount",
+    "skirmishPhase",
+    "readyBlue",
+    "readyRed",
+    "preparationRemainingS",
+    "credits",
+    "occupiedSlots",
+    "maxUnits",
+    "pendingCount",
+];
+const PENDING_FIELDS: [&str; 8] = [
+    "idLo",
+    "idHi",
+    "kind",
+    "x",
+    "y",
+    "confirmedLo",
+    "confirmedHi",
+    "blocked",
 ];
 const GROUND_FIELDS: [&str; 4] = ["tile", "span", "craterScorch", "tracksTrampledCleared"];
 const CONTACT_FIELDS: [&str; 9] = [
@@ -375,7 +393,7 @@ pub fn layout_json(battle: &Battle) -> String {
         .collect();
     let ground = battle.ground();
     serde_json::json!({
-        "header": HEADER,
+        "header": HEADER.as_slice(),
         "groups": [
             {
                 "name": "own",
@@ -465,6 +483,7 @@ pub fn layout_json(battle: &Battle) -> String {
                 "fields": FALLEN_BODY_FIELDS,
                 "sections": [],
             },
+            { "name": "pendingPurchases", "count": "pendingCount", "fields": PENDING_FIELDS, "sections": [] },
         ],
         "groupDelivery": { "fields": ["length", "encoding", "floats"], "range": ["start", "length"], "copy": ["source", "length"], "copyAlignments": (0..GROUPS).map(|g| fixed_row_width(g).max(1)).collect::<Vec<_>>(), "encodings": GROUP_ENCODINGS,
             "packed": {
@@ -813,6 +832,32 @@ fn pack_record(
         ground.full as u8 as f32,
         ground.count as f32,
         frame.fallen_bodies.len() as f32,
+        frame
+            .skirmish
+            .as_ref()
+            .map_or(-1.0, |s| s.phase as u8 as f32),
+        frame
+            .skirmish
+            .as_ref()
+            .map_or(0.0, |s| s.ready[0] as u8 as f32),
+        frame
+            .skirmish
+            .as_ref()
+            .map_or(0.0, |s| s.ready[1] as u8 as f32),
+        frame
+            .skirmish
+            .as_ref()
+            .map_or(0.0, |s| s.preparation_remaining_s as f32),
+        frame.skirmish.as_ref().map_or(0.0, |s| s.credits as f32),
+        frame
+            .skirmish
+            .as_ref()
+            .map_or(0.0, |s| s.occupied_slots as f32),
+        frame.skirmish.as_ref().map_or(0.0, |s| s.max_units as f32),
+        frame
+            .skirmish
+            .as_ref()
+            .map_or(0.0, |s| s.pending.len() as f32),
     ]);
     for u in &frame.own {
         let [garrison_lo, garrison_hi] = limbs_or_absent(u.garrison.map(|g| g.building));
@@ -1112,6 +1157,29 @@ fn pack_record(
             f.tick as f32,
         ]);
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    if let Some(skirmish) = &frame.skirmish {
+        for p in &skirmish.pending {
+            let [lo, hi] = limbs(p.id.0);
+            let [tick_lo, tick_hi] = limbs(
+                p.confirmed_tick
+                    .try_into()
+                    .map_err(|_| "purchase tick exceeds publication range")?,
+            );
+            out.extend([
+                lo,
+                hi,
+                p.kind.0 as f32,
+                p.destination[0] as f32,
+                p.destination[1] as f32,
+                tick_lo,
+                tick_hi,
+                p.blocked as u8 as f32,
+            ]);
+        }
+    }
     let word = |i: usize| {
         let value = fog.bits[i];
         if i + 1 == words && !cells.is_multiple_of(32) {
@@ -1171,6 +1239,10 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
             .ok_or("publication exceeds its 64 MiB atomic allocation allowance")?;
         Ok(())
     };
+    add(
+        frame.skirmish.as_ref().map_or(0, |s| s.pending.len()),
+        PENDING_FIELDS.len(),
+    )?;
     add(frame.own.len(), OWN_FIELDS.len())?;
     for u in &frame.own {
         add(u.route.len(), 2)?;
@@ -1537,7 +1609,7 @@ const VARIABLE_ANCHOR_WORDS: usize = 3;
 
 /// Each non-map group's fixed row width, in record order; 0 where variable
 /// sections leave no one width to address complete rows by.
-const GROUP_ROW_WIDTHS: [usize; 10] = [
+const GROUP_ROW_WIDTHS: [usize; 11] = [
     0,
     0,
     CONTACT_FIELDS.len(),
@@ -1548,6 +1620,7 @@ const GROUP_ROW_WIDTHS: [usize; 10] = [
     CORPSE_FIELDS.len(),
     KNOWN_PROP_FIELDS.len(),
     FALLEN_BODY_FIELDS.len(),
+    PENDING_FIELDS.len(),
 ];
 
 /// Non-map groups, in record order.

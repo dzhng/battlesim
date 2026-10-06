@@ -18,6 +18,9 @@ export type TargetRef =
 
 /** Mirrors `contract::command::Order` (serde tag = "kind"). */
 export type Order =
+  | { kind: "ready" }
+  | { kind: "confirm_purchase"; variant: string; destination: [number, number] }
+  | { kind: "cancel_pending"; purchase: number }
   | {
       kind: "move";
       units: number[];

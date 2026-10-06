@@ -21,6 +21,14 @@ contain; the renderer and audio engine do not grant visibility or reveal identit
 Rules follow physical components, with the game's [first-principles policy](../../README.md#rules-from-first-principles)
 explaining where deliberate cinematic exceptions belong.
 
+[Skirmish authority](src/skirmish.rs) owns player wallets, preparation and pending
+reinforcements. A confirmed purchase reserves both its cost and a slot; physical
+entry converts that reservation to a living unit only when the road-edge footprint
+is clear. Browser previews use side knowledge, while actual entry checks physical
+bodies. These are different questions and must not expose private occupancy through
+a free preview. [Match contracts](../contract/src/skirmish.rs) carry setup and the
+side's observation through the existing publication owner.
+
 Native fixture and map adapters load the same [authored inputs](../../fixtures/README.md)
 that browser preparation admits. [Encounter planning](src/encounter/) asks ordinary
 placement rules where its roster can stand; it does not invent a second movement model.

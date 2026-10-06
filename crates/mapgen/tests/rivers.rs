@@ -41,6 +41,7 @@ fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
         template_catalog_hash: empty_catalogue().hash().into(),
         map_type,
         size,
+        profile: contract::generation::GenerationProfile::Standard,
         region: None,
         limits: CompileLimits {
             max_authored_parts: 0,

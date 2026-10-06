@@ -42,6 +42,7 @@ mod rivers;
 mod road_journeys;
 mod route_planning;
 mod sensing;
+mod skirmish;
 mod sight;
 mod soldier_bodies;
 mod supply;

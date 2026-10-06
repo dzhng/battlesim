@@ -50,6 +50,7 @@ const frame = (tick: number, own: OwnUnitView[]): ObservationView => ({
   fallenBodies: [],
   guided: [],
   encounter: null,
+  skirmish: null,
   knownProps: [],
   fog: { cellM: 8, nx: 0, ny: 0, bits: new Uint32Array(0) },
   groundPatch: {

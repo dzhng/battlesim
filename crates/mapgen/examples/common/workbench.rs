@@ -30,6 +30,8 @@ pub struct Choice {
     #[serde(rename = "type")]
     map_type: MapType,
     size: MapSize,
+    #[serde(default)]
+    profile: contract::generation::GenerationProfile,
     seed: Seed,
 }
 #[derive(Deserialize)]
@@ -233,6 +235,7 @@ fn generated(inputs: Inputs, choice: Choice, directory: PathBuf) -> Result<Value
         template_catalog_hash: c.catalogue.hash().into(),
         map_type: choice.map_type,
         size: choice.size,
+        profile: choice.profile,
         region: None,
         limits: c.limits,
     };

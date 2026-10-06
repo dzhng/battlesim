@@ -17,7 +17,7 @@
     "pin_rounds": 4,
     "shortest_run_m": 1.0
   },
-  "revision": "layout-presets-18",
+  "revision": "layout-presets-19",
   "terrain": { "render_margin_m": 1500, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": { "small": 1000, "medium": 1800, "large": 1800, "xl": 1800 },
@@ -25,6 +25,40 @@
     "reserve_front_m": 650,
     "reserve_margin_m": 120,
     "bearing_candidates": 16
+  },
+  "skirmish": {
+    "approach": {
+      "depth_m": { "small": 250, "medium": 350, "large": 450, "xl": 550 },
+      "front_m": 120,
+      "reserve_front_m": 180,
+      "reserve_margin_m": 40,
+      "bearing_candidates": 16
+    },
+    "hub_offset_m": [60, 0],
+    "settlement_gap_m": 150,
+    "main_road_length_factor": 0.56,
+    "exit_window": 0.2,
+    "river_side_margin_m": 160,
+    "types": {
+      "open": {
+        "small": { "centre": { "class": "village" }, "urban_share_max": 0.18, "settlements": { "hamlet": [1, 1] } },
+        "medium": { "centre": { "class": "village" }, "urban_share_max": 0.16, "settlements": { "hamlet": [1, 2] } },
+        "large": { "centre": { "class": "small_town" }, "urban_share_max": 0.22, "settlements": { "village": [0, 1], "hamlet": [1, 2] } },
+        "xl": { "centre": { "class": "town" }, "urban_share_max": 0.25, "settlements": { "village": [1, 1], "hamlet": [1, 2] } }
+      },
+      "mixed": {
+        "small": { "centre": { "class": "small_town" }, "urban_share_max": 0.32, "settlements": { "hamlet": [1, 1] } },
+        "medium": { "centre": { "class": "town" }, "urban_share_max": 0.34, "settlements": { "hamlet": [1, 2] } },
+        "large": { "centre": { "class": "town" }, "urban_share_max": 0.34, "settlements": { "village": [1, 1], "hamlet": [1, 2] } },
+        "xl": { "centre": { "class": "large_town" }, "urban_share_max": 0.60, "settlements": { "village": [0, 1], "hamlet": [1, 2] } }
+      },
+      "metro": {
+        "small": { "centre": { "class": "city" }, "urban_share_max": 0.35, "settlements": { "hamlet": [1, 1] } },
+        "medium": { "centre": { "class": "city" }, "urban_share_max": 0.35, "settlements": { "hamlet": [1, 2] } },
+        "large": { "centre": { "class": "city" }, "urban_share_max": 0.40, "settlements": { "village": [0, 1], "hamlet": [1, 1] } },
+        "xl": { "centre": { "class": "city" }, "urban_share_max": 0.45, "settlements": { "town": [0, 1], "village": [0, 1], "hamlet": [1, 1] } }
+      }
+    }
   },
   "fairness": {
     "town": { "rel": 0.1, "abs": 0.004 },

@@ -22,6 +22,7 @@ pub struct PresetDefinitions {
     pub joints: JointPolicy,
     pub terrain: Terrain,
     pub approach: Approach,
+    pub skirmish: SkirmishPreset,
     pub fairness: Fairness,
     pub transit: Transit,
     pub roads: Roads,
@@ -40,6 +41,18 @@ pub struct PresetDefinitions {
     pub types: BTreeMap<MapType, TypePreset>,
     /// What stands between the settlements and the woods (M24).
     pub open_country: crate::open_country::Rules,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SkirmishPreset {
+    pub approach: Approach,
+    pub hub_offset_m: [f64; 2],
+    pub settlement_gap_m: f64,
+    pub main_road_length_factor: f64,
+    pub exit_window: f64,
+    pub river_side_margin_m: f64,
+    pub types: BTreeMap<MapType, BTreeMap<MapSize, SizePreset>>,
 }
 
 /// The plan header the compiler and the battle read; flat ground has no more.
@@ -1006,6 +1019,23 @@ pub struct SizePreset {
 }
 
 impl PresetDefinitions {
+    pub fn for_request(&self, request: &contract::generation::GenerationRequest) -> Self {
+        let mut resolved = self.clone();
+        if request.profile == contract::generation::GenerationProfile::Skirmish {
+            resolved.approach = self.skirmish.approach.clone();
+            resolved.approach.depth_m.values_mut().for_each(|v| *v = self.skirmish.approach.depth_m[&request.size]);
+            resolved.transit.max_s = resolved.transit.allowance_s + request.extent_m()*self.skirmish.main_road_length_factor/resolved.transit.road_mps();
+            resolved.transit.exit_window = self.skirmish.exit_window;
+            resolved.rivers.side_margin_m = self.skirmish.river_side_margin_m;
+            resolved.roads.hub_offset_m = self.skirmish.hub_offset_m;
+            for (kind,preset) in &mut resolved.types {
+                preset.gap_m = self.skirmish.settlement_gap_m;
+                preset.sizes = self.skirmish.types[kind].clone();
+            }
+        }
+        resolved
+    }
+
     pub fn from_json(source: &str) -> Result<Self, Vec<Diagnostic>> {
         let presets: Self = serde_json::from_str(source)
             .map_err(|error| vec![refusal("$.presets".into(), error.to_string())])?;
@@ -1029,6 +1059,23 @@ impl PresetDefinitions {
         let range = |r: Range| r[0].is_finite() && r[1].is_finite() && r[0] <= r[1];
         let positive_range = |r: Range| range(r) && r[0] > 0.0;
         let length = |v: f64| v.is_finite() && v >= 0.0;
+
+        let s = &self.skirmish;
+        let a = &s.approach;
+        check(
+            s.main_road_length_factor.is_finite() && s.main_road_length_factor > 0.5
+                && share(s.exit_window) && length(s.settlement_gap_m)
+                && s.river_side_margin_m.is_finite() && s.river_side_margin_m >= self.rivers.junction_gap_m
+                && s.hub_offset_m.iter().all(|v| length(*v)) && s.hub_offset_m[1] == 0.0
+                && MapType::ALL.into_iter().all(|kind| s.types.get(&kind).is_some_and(|sizes|
+                    MapSize::ALL.into_iter().all(|size| sizes.get(&size).is_some_and(|cell|
+                        self.classes.contains_key(&cell.centre.class) && share(cell.urban_share_max)
+                            && cell.settlements.iter().all(|(name,count)| self.classes.contains_key(name) && count[0]<=count[1])))))
+                && MapSize::ALL.into_iter().all(|size| a.depth_m.get(&size).is_some_and(|v| positive(*v)))
+                && positive(a.front_m) && a.reserve_front_m.is_finite() && a.reserve_front_m >= a.front_m
+                && length(a.reserve_margin_m) && a.bearing_candidates > 0,
+            "skirmish".into(), "compact construction requires feasible road/river budgets, midpoint hub and valid reserves",
+        );
 
         check(
             self.joints.meet_m.is_finite() && self.joints.meet_m > 0.0,

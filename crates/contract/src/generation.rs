@@ -66,6 +66,15 @@ pub struct CompileLimits {
     pub max_ground_points: u64,
 }
 
+/// Geometry family, independent of the player's size tier.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GenerationProfile {
+    #[default]
+    Standard,
+    Skirmish,
+}
+
 /// Everything that decides a generated plan. The same request and presets
 /// give the same plan bytes on every target. The generator refuses a request
 /// that pins another generator version, preset revision or catalogue than
@@ -80,6 +89,8 @@ pub struct GenerationRequest {
     #[serde(rename = "type")]
     pub map_type: MapType,
     pub size: MapSize,
+    #[serde(default)]
+    pub profile: GenerationProfile,
     /// The regional family every building of the map is built in, one of
     /// the presets' `parcels.regional_families`. Absent, the seed draws one;
     /// a request without it serializes as it did before the field existed.
@@ -87,4 +98,18 @@ pub struct GenerationRequest {
     pub region: Option<String>,
     /// The compiler's admission for the plan this request yields.
     pub limits: CompileLimits,
+}
+
+impl GenerationRequest {
+    pub fn extent_m(&self) -> f64 {
+        match self.profile {
+            GenerationProfile::Standard => self.size.extent_m(),
+            GenerationProfile::Skirmish => match self.size {
+                MapSize::Small => 1800.0,
+                MapSize::Medium => 2400.0,
+                MapSize::Large => 3000.0,
+                MapSize::Xl => 3600.0,
+            },
+        }
+    }
 }

@@ -562,6 +562,7 @@ pub struct FallenBody {
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ObservationFrame {
+    pub skirmish: Option<crate::skirmish::SkirmishView>,
     pub tick: Tick,
     pub own: Vec<OwnUnit>,
     /// Enemies identified by any friendly sensor (team-shared).

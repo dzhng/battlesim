@@ -154,6 +154,7 @@ pub fn scenario(fixture: &serde_json::Value, variant: &str) -> Result<ScenarioDe
         .filter_map(|&(spawn, b)| Some([*red_ids.get(&spawn)?, *buildings.get(b)?]))
         .collect();
     Ok(ScenarioDefinition {
+        skirmish: None,
         map: f.map,
         rules,
         units,

@@ -124,7 +124,19 @@ pub fn stands(
     at: V2,
     yaw: f64,
 ) -> Result<(), Illegal> {
-    let world = q.world;
+    stands_on(q.world, q.grid, rules, t, m, at, yaw)
+}
+
+/// Shared standing admission for prepared encounters and physical reinforcements.
+pub fn stands_on(
+    world: &crate::world::WorldGeometry,
+    grid: &crate::navigation::NavGrid,
+    rules: &Rules,
+    t: &UnitType,
+    m: &Mobility,
+    at: V2,
+    yaw: f64,
+) -> Result<(), Illegal> {
     let inside = |p: V2| p.x >= 0.0 && p.y >= 0.0 && p.x <= world.width() && p.y <= world.depth();
     match footprint(t, rules, at, yaw) {
         Footprint::Hull(hull) => {
@@ -148,7 +160,7 @@ pub fn stands(
             if blocked {
                 return Err(Illegal::Body);
             }
-            if !q.grid.fits_at(at, m) {
+            if !grid.fits_at(at, m) {
                 return Err(Illegal::NoRoom);
             }
             Ok(())
@@ -165,7 +177,7 @@ pub fn stands(
             if !arrangement::standing_room(world, centre, soldier, &solid) {
                 return Err(Illegal::Body);
             }
-            if !q.grid.fits_at(centre, m) {
+            if !grid.fits_at(centre, m) {
                 return Err(Illegal::NoRoom);
             }
             // A lattice of places the squad's spacing apart over its spread:

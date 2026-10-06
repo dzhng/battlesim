@@ -103,6 +103,14 @@ pub struct BuildingPlacement {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Order {
+    Ready,
+    CancelPending {
+        purchase: crate::skirmish::PurchaseId,
+    },
+    ConfirmPurchase {
+        variant: String,
+        destination: [f64; 2],
+    },
     Move {
         units: Vec<UnitId>,
         /// Client-issued token identifying this gesture for a later upgrade.
@@ -186,6 +194,12 @@ pub struct CommandEnvelope {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "reason", rename_all = "snake_case")]
 pub enum OrderError {
+    NotSkirmish,
+    MatchFinished,
+    UnitUnavailable,
+    WrongFaction,
+    InsufficientCredits,
+    UnitLimitReached,
     /// `seq` is not the next number for this side.
     OutOfSequence {
         expected: u64,
