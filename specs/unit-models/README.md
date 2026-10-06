@@ -33,9 +33,18 @@ passes for whole-body and turret-throwing wrecks, including vehicles killed whil
 moving. New model work must preserve the wreck states and fit contract so every
 vehicle continues to use that presentation path.
 
-The next art pass should replace the remaining generic disabled silhouettes with
-family-specific meshes as the corresponding mechanics contracts are designed.
-Do not bind these records to the runtime catalog until a unit type, mount
-layout, animation contract, and the relevant mechanics exist.
+The latest exporter pass gives the deferred cards family-specific blockouts:
+stealth and conventional aircraft, transport and gunship rotorcraft, artillery
+and MLRS support vehicles, air-defense radar/turret forms, airborne drones,
+recon/armour silhouettes, and distinct ATGM/MANPADS infantry kits. These remain
+source art rather than finished gameplay assets. Do not bind them to the runtime
+catalog until a unit type, mount layout, animation contract, and the relevant
+mechanics exist.
+
+The disabled GLB gate checks that all 86 files are valid version-2 GLBs with a
+JSON scene chunk and that every manifest path exists. Full scene-assets fit and
+mount validation applies when a card graduates from the disabled registry into
+the runtime catalog, where its physical unit contract supplies the required
+vehicle nodes and bounds.
 
 The archived roster model-production rationale remains at [`specs/done/unit-roster/model-production.md`](../done/unit-roster/model-production.md). The source and validation owner is [`packages/scene-assets`](../../packages/scene-assets/README.md).
