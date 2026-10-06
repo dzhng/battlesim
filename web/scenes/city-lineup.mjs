@@ -40,6 +40,8 @@ const HIDE_PANEL = "[data-testid=city-lineup-panel] { display: none !important; 
 const CROP_PX = 6;
 const PAIR_WIDTH = 520;
 const DEFAULT_PAIRS = "transition-1:0:1,transition-2:1:2,transition-3:2:3";
+/** Source sets visited side by side. */
+const SETS_AT_ONCE = Number(process.env.CITY_SETS_AT_ONCE ?? 3);
 
 const settle = async (page) => {
   await lab(page, () => window.__lab.frame());
@@ -351,23 +353,29 @@ export async function run(ctx) {
         .map(([set]) => set);
   const visited = [];
   const drawnStates = new Set();
-  for (const set of sets) {
-    await mkdir(ctx.evidencePath(set), { recursive: true });
-    const scoped = {
-      ...ctx,
-      evidencePath: (path) => ctx.evidencePath(`${set}/${path}`),
-      writeEvidence: (path, value) => ctx.writeEvidence(`${set}/${path}`, value),
-      check: (name, ok, detail) => ctx.check(`${set}: ${name}`, ok, detail),
-    };
-    const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-    try {
-      const result = await runSet(scoped, page, set, fit);
-      visited.push(...result.ids);
-      for (const state of result.states) drawnStates.add(state);
-    } finally {
-      await page.context().close();
+  // The sets are independent pages: a few at once keep the GPU busy while
+  // another page encodes its screenshots.
+  const queue = [...sets];
+  const visit = async () => {
+    for (let set = queue.shift(); set; set = queue.shift()) {
+      await mkdir(ctx.evidencePath(set), { recursive: true });
+      const scoped = {
+        ...ctx,
+        evidencePath: (path) => ctx.evidencePath(`${set}/${path}`),
+        writeEvidence: (path, value) => ctx.writeEvidence(`${set}/${path}`, value),
+        check: (name, ok, detail) => ctx.check(`${set}: ${name}`, ok, detail),
+      };
+      const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+      try {
+        const result = await runSet(scoped, page, set, fit);
+        visited.push(...result.ids);
+        for (const state of result.states) drawnStates.add(state);
+      } finally {
+        await page.context().close();
+      }
     }
-  }
+  };
+  await Promise.all(Array.from({ length: SETS_AT_ONCE }, visit));
   if (!process.env.CITY_SET) {
     const ids = expected.map((template) => template.id).sort();
     ctx.check(
