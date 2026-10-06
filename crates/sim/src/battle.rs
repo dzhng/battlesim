@@ -266,6 +266,7 @@ pub struct Battle {
     /// This tick's bursts, by firing side.
     blasts: Vec<(Side, Blast)>,
     next_seq: [u64; 2],
+    order_bucket: [(u64, Tick); 2],
     /// The observation-bound opponent and its memory (off while replaying).
     opponent: Option<(Opponent, Defender)>,
     skirmish_ai: Option<crate::skirmish_ai::SkirmishAi>,
@@ -357,6 +358,11 @@ fn footprint_seen(field: &VisibilityField, prop: &crate::world::Prop) -> bool {
 fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
     if let (Some(hp), Some(_)) = (c.hp, unit.hull) {
         unit.hp = hp.clamp(1.0, unit.max_hp(rules));
+    }
+    if let Some(hp) = c.soldier_hp {
+        for soldier in &mut unit.members {
+            soldier.hp = hp.max(1.0);
+        }
     }
     let n = unit.members.len();
     for k in n.saturating_sub(c.casualties as usize)..n {
@@ -748,6 +754,7 @@ impl Battle {
             fog: [occlusion.field(), occlusion.field()],
             occlusion,
             next_seq: [1, 1],
+            order_bucket: [(u64::from(setup.rules.commands.orders_per_s) * u64::from(setup.rules.tick_hz), 0); 2],
             opponent: setup.opponent.clone().map(|o| (o, Defender::default())),
             skirmish_ai: setup
                 .skirmish
@@ -950,6 +957,19 @@ impl Battle {
         )
     }
 
+    fn spend_order(&mut self, side: usize, tick: Tick) -> bool {
+        let per_s = u64::from(self.rules.commands.orders_per_s);
+        let hz = u64::from(self.rules.tick_hz);
+        let (left, at) = &mut self.order_bucket[side];
+        *left = (*left + tick.saturating_sub(*at) * per_s).min(per_s * hz);
+        *at = (*at).max(tick);
+        if *left < hz {
+            return false;
+        }
+        *left -= hz;
+        true
+    }
+
     fn admit(
         &mut self,
         command: CommandEnvelope,
@@ -963,6 +983,9 @@ impl Battle {
         }
         self.next_seq[side] += 1;
         self.accepted.push((applied_tick, command.clone()));
+        if !self.spend_order(side, applied_tick) {
+            return Err(OrderError::RateLimited);
+        }
         let prepared = self.prepare(command, applied_tick.saturating_sub(1))?;
         let placement = prepared.placement.clone();
         let building = prepared.building.as_ref().map(|p| p.placement.clone());
@@ -1933,10 +1956,29 @@ impl Battle {
             let unit = &self.units[id.0 as usize];
             let own = unit.side;
             let wreck = unit.unit_type(&self.rules).hull().map(|h| h.wreck.clone());
+            let hulls: Vec<Obb2> = self
+                .units
+                .iter()
+                .filter(|o| o.id != id && o.alive())
+                .filter_map(|o| o.hull_box())
+                .collect();
+            let soldiers: Vec<V2> = self
+                .units
+                .iter()
+                .filter(|o| o.id != id)
+                .flat_map(|o| o.member_positions().map(|p| p.xy()))
+                .collect();
+            let rest = crate::movement::drive::death_roll(
+                &self.world,
+                &self.rules,
+                unit,
+                &hulls,
+                &soldiers,
+            );
             let wreck = match (unit.hull, wreck) {
                 (Some(half), Some(kind)) => Some(self.add_prop(&PropDefinition {
                     kind,
-                    center: [unit.position.x, unit.position.y],
+                    center: [rest.x, rest.y],
                     yaw: unit.yaw,
                     half_extents: [half.x, half.y, half.z],
                     base_z: Some(unit.position.z),
@@ -2777,6 +2819,15 @@ impl Battle {
         let mut known = self.sides[side.index()].clone();
         let grid = known.grid(&self.world, self.authored_props);
         let pockets = crate::navigation::Pockets::default();
+        // A queued leg sets off from where the queue ends.
+        let from = |u: &Unit| {
+            u.orders
+                .iter()
+                .rev()
+                .filter(|_| request.queued)
+                .find_map(|o| o.movement())
+                .map_or(u.position.xy(), |m| m.destination)
+        };
         let plan = crate::formation::place(
             &members,
             v2(goal[0], goal[1]),
@@ -2785,37 +2836,40 @@ impl Battle {
             libm::hypot(self.world.width(), self.world.depth()),
             |id, p| {
                 let u = &self.units[id.0 as usize];
-                // A queued leg sets off from where the queue ends.
-                let from = u
-                    .orders
-                    .iter()
-                    .rev()
-                    .filter(|_| request.queued)
-                    .find_map(|o| o.movement())
-                    .map_or(u.position.xy(), |m| m.destination);
                 grid.destination_point(
                     p,
                     &u.mobility,
                     u.hull.map(|h| h.xy().length()),
-                    from,
+                    from(u),
                     &pockets,
                 )
             },
         );
+        // A placed marker is a place to stand that its unit can reach on the
+        // ground its side knows; the way there is found and kept on the move.
         let source = self.move_source(side);
-        let certified = self.certify_move(&source, &known, &plan.slots, Some(request));
         Ok(plan
             .slots
             .into_iter()
-            .enumerate()
-            .map(|(i, slot)| {
+            .map(|slot| {
                 let u = &self.units[slot.id.0 as usize];
-                let goal = slot.point.unwrap_or(u.position.xy());
+                // An attack has no end to set a queued leg off from.
+                let after_attack = request.queued
+                    && source[slot.id.0 as usize]
+                        .orders
+                        .iter()
+                        .any(|o| matches!(o, UnitOrder::Attack { .. }));
+                let slot_point = slot
+                    .point
+                    .filter(|p| !after_attack && grid.reaches(from(u), *p, &u.mobility, &pockets));
+                let goal = slot_point.unwrap_or(u.position.xy());
+                let facing =
+                    movement::final_yaw(u, request.facing, from(u), goal, request.direction);
                 contract::command::MoveDestination {
                     unit: slot.id,
                     goal: [goal.x, goal.y],
-                    placed: certified[i].is_some(),
-                    facing: certified[i].unwrap_or(u.yaw),
+                    placed: slot_point.is_some(),
+                    facing: facing.unwrap_or(u.yaw),
                 }
             })
             .collect())
@@ -2899,37 +2953,7 @@ impl Battle {
         slots: &[crate::formation::Slot],
         request: Option<&MovePreviewRequest>,
     ) -> Vec<Option<f64>> {
-        let mut allowance = self.rules.navigation.move_validation_work as u64;
-        let orders = request.map(|request| {
-            slots
-                .iter()
-                .map(|slot| {
-                    let destination = slot
-                        .point
-                        .unwrap_or(source[slot.id.0 as usize].position.xy());
-                    vec![crate::units::UnitOrder::Move(crate::units::MoveOrder {
-                            destination,
-                            policy: request.route,
-                            gesture: 0,
-                            direction: request.direction,
-                            facing: request.facing,
-                        })]
-                })
-                .collect::<Vec<_>>()
-        });
-        let proof = movement::certify_orders(
-            &self.movement_context(),
-            source,
-            known,
-            movement::ProofRequest {
-                slots,
-                orders: orders.as_deref(),
-                queued: request.is_none_or(|r| r.queued),
-                reserve_repair: false,
-            },
-            &mut allowance,
-        );
-        proof.facings
+        movement::certify(&self.movement_context(), source, known, slots, request)
     }
 
     fn movement_context(&self) -> MovementContext<'_> {

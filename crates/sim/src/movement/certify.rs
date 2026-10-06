@@ -10,6 +10,7 @@ use contract::observation::MoveState;
 
 use super::{MovementContext, SideGeometry, KNOT_M, STALL_REPLAN_S, TRAFFIC_MARGIN_M};
 use crate::formation::Slot;
+use contract::command::MovePreviewRequest;
 use crate::math::{v2, Obb2, V2};
 use crate::route_planner::RoutePlanner;
 use crate::units::{Unit, UnitOrder};
@@ -25,6 +26,28 @@ fn stand(unit: &mut Unit) {
     unit.manoeuvre = None;
     unit.drive_speed_mps = 0.0;
     unit.state = MoveState::Idle;
+}
+
+/// Rehearse a proposed move without changing the live battle.
+pub(crate) fn certify(
+    ctx: &MovementContext,
+    source: &[Unit],
+    known: &SideGeometry,
+    slots: &[Slot],
+    request: Option<&MovePreviewRequest>,
+) -> Vec<Option<f64>> {
+    let queued = request.is_none_or(|r| r.queued);
+    let orders = request.map(|request| {
+        slots.iter().map(|slot| vec![UnitOrder::Move(crate::units::MoveOrder {
+            destination: slot.point.unwrap_or(source[slot.id.0 as usize].position.xy()),
+            policy: request.route,
+            gesture: 0,
+            direction: request.direction,
+            facing: request.facing,
+        })]).collect::<Vec<_>>()
+    });
+    let mut allowance = ctx.rules.navigation.move_validation_work as u64;
+    certify_orders(ctx, source, known, ProofRequest { slots, orders: orders.as_deref(), queued, reserve_repair: false }, &mut allowance).facings
 }
 
 /// What is left of a unit's route: where it stands, then its waypoints.
