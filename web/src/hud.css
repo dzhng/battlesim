@@ -789,18 +789,18 @@
   text-align: left;
   border-color: transparent;
   background: none;
-  padding: 4px 8px 4px 18px;
+  padding: 4px 10px 4px 26px;
 }
 .hud-panel button.hud-menu-choice::before {
   content: "";
   position: absolute;
-  left: 5px;
+  left: 11px;
   top: 50%;
   width: 5px;
   height: 5px;
-  margin-top: -3px;
+  margin-top: -1px;
   border: 1px solid rgb(var(--hud-accent) / 0.6);
-  transform: rotate(45deg);
+  transform: translateY(-50%) rotate(45deg);
 }
 .hud-panel button.hud-menu-choice[aria-checked="true"] {
   color: rgb(var(--hud-accent));

@@ -6,7 +6,6 @@
 //   /battle?play=1&type=mixed&size=small      ordinary unpinned Play
 //   /battle?type=mixed&size=small&seed=<u64>   an exact generated map
 //       [&recipe=<name>] [&encounter=<u64>] [&battle=<n>]
-//   /battle?map=<id>&recipe=<name>             a saved map and its encounter
 //   /battle?replay=saved                       the saved replay of either
 // A generated map's address may add `&region=<family>`; without it the seed
 // draws the region.
@@ -22,7 +21,6 @@ import {
   type MapSize,
   type MapType,
 } from "@web/maps/source";
-import { MAP_ID } from "@web/maps/resolve";
 
 /** What a battle address asks for, before it is pinned to this build. */
 export type AskedBattle =
@@ -33,7 +31,6 @@ export type AskedBattle =
       encounterSeed: string;
       battleSeed: number;
     }
-  | { kind: "catalogue"; id: string; recipe: string; encounterSeed: string; battleSeed: number }
   | {
       kind: "play";
       map: Omit<MapChoice, "seed">;
@@ -90,9 +87,6 @@ export function preparedBattleHref(request: PrepareBattleRequest): string {
   return `/battle?${params}`;
 }
 
-/** The battle on saved map `id`: its saved encounter `recipe`. */
-export const savedBattleHref = (id: string, recipe: string) =>
-  `/battle?map=${id}&recipe=${recipe}` as const;
 /** The main menu, opened on `choice`. */
 export const menuHref = (choice: MapChoice | Omit<MapChoice, "seed"> | null) =>
   choice ? `/?${query(choice)}` : "/";
@@ -112,12 +106,7 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   if (!Number.isSafeInteger(battleSeed) || battleSeed < 0)
     return { error: `battle must be a whole number from 0 to ${Number.MAX_SAFE_INTEGER}` };
   const recipe = params.get("recipe");
-  const id = params.get("map");
-  if (id !== null) {
-    if (!MAP_ID.test(id)) return { error: "map must be a saved map's id" };
-    if (recipe === null) return { error: "recipe must name one of the map's saved encounters" };
-    return { kind: "catalogue", id, recipe, encounterSeed, battleSeed };
-  }
+  if (params.has("map")) return { error: "map is not supported; start a generated skirmish" };
   const type = params.get("type") ?? ("mixed" satisfies MapType);
   const size = params.get("size") ?? ("small" satisfies MapSize);
   const mapSeed = seed("seed", "1");

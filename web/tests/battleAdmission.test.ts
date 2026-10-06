@@ -21,10 +21,6 @@ const candidate = (seed: string): PrepareBattleRequest => ({
   encounter_seed: "3",
   battle_seed: 7,
 });
-const fallback: PrepareBattleRequest = {
-  ...candidate("1"),
-  map_source: { kind: "catalogue", id: "market-town" },
-};
 const documents = { rules: "{}", presets: "{}", templates: "[]", recipes: "{}" };
 const policy = { max_generated_attempts: 2, generated_deadline_ms: 8000 };
 const session = (request: PrepareBattleRequest): PreparedSession => ({
@@ -38,7 +34,7 @@ test("ordinary Play admits a fresh candidate after refusal and retains its worke
   const closed: string[] = [];
   const winner = session(candidate("22"));
   const seeds = ["11", "22"];
-  const admission = admitBattle({ candidate, documents, fallback, policy }, () => {}, {
+  const admission = admitBattle({ candidate, documents, policy }, () => {}, {
     seed: () => seeds.shift()!,
     prepare: (message: PreparationMessage) => {
       if (message.type !== "prepare") throw new Error("unexpected replay");
@@ -79,147 +75,59 @@ test("ordinary Play admits a fresh candidate after refusal and retains its worke
   expect(closed).toEqual(["11", "22"]);
 });
 
-test("encounter exhaustion changes the candidate; invalid catalogue inputs go straight to saved fallback", async () => {
-  for (const [stage, code, wanted] of [
-    ["encounter", "no_open_approach", ["11", "22"]],
-    ["map", "invalid_catalogue", ["11", "market-town"]],
-  ] as const) {
-    const seen: string[] = [];
-    const seeds = ["11", "22"];
-    const admission = admitBattle({ candidate, documents, fallback, policy }, () => {}, {
-      seed: () => seeds.shift()!,
-      prepare: (message) => {
-        if (message.type !== "prepare") throw new Error("unexpected replay");
-        const source = message.request.map_source;
-        const key = source.kind === "generated" ? source.request.seed : source.id;
-        seen.push(key);
-        return {
-          battle:
-            seen.length === 1
-              ? Promise.reject(
-                  new PreparationFailed(
-                    "refused",
-                    [{ code, feature: null, location: "$", message: "refused" }],
-                    stage,
-                  ),
-                )
-              : Promise.resolve(session(message.request)),
-          cancel: () => {},
-        };
-      },
-    });
-    const battle = await admission.battle;
-    expect(seen).toEqual(wanted);
-    expect(battle.report.request.map_source).toEqual(
-      wanted[1] === "market-town" ? fallback.map_source : candidate("22").map_source,
-    );
-    admission.cancel();
-  }
-});
-
-test("the total generated deadline terminates a worker waiting in encounter placement and admits saved fallback", async () => {
+test("the total generation deadline refuses Play and ignores a late worker reply", async () => {
   let tick!: () => void;
-  const closed: string[] = [];
   let late!: (value: PreparedSession) => void;
-  const admission = admitBattle({ candidate, documents, fallback, policy }, () => {}, {
+  let closed = false;
+  const admission = admitBattle({ candidate, documents, policy }, () => {}, {
     seed: () => "11",
     schedule: (run) => {
       tick = run;
       return () => {};
     },
-    prepare: (message) => {
-      if (message.type !== "prepare") throw new Error("unexpected replay");
-      const source = message.request.map_source;
-      return source.kind === "generated"
-        ? {
-            battle: new Promise((resolve) => {
-              late = resolve;
-            }),
-            cancel: () => {
-              closed.push(source.request.seed);
-            },
-          }
-        : {
-            battle: Promise.resolve(session(message.request)),
-            cancel: () => {
-              closed.push(source.id);
-            },
-          };
-    },
+    prepare: () => ({
+      battle: new Promise((resolve) => {
+        late = resolve;
+      }),
+      cancel: () => {
+        closed = true;
+      },
+    }),
   });
+  const refused = expect(admission.battle).rejects.toThrow("timed out");
   tick();
-  const admitted = await admission.battle;
-  expect(closed).toEqual(["11"]);
-  expect(admitted.report.request).toEqual(fallback);
+  await refused;
+  expect(closed).toBe(true);
   late(session(candidate("11")));
-  expect(await admission.battle).toBe(admitted);
-  expect(admission.attempts.map((a) => a.outcome)).toEqual(["timeout", "admitted"]);
-  admission.cancel();
-  expect(closed).toEqual(["11", "market-town"]);
+  await expect(admission.battle).rejects.toThrow("timed out");
+  expect(admission.attempts.map((a) => a.outcome)).toEqual(["timeout"]);
 });
 
-test("exhausted distinct candidates fall back even when the seed source repeats a full u64 value", async () => {
-  const seen: string[] = [];
-  const closed: string[] = [];
-  const admission = admitBattle({ candidate, documents, fallback, policy }, () => {}, {
-    seed: () => "18446744073709551615",
-    prepare: (message) => {
-      if (message.type !== "prepare") throw new Error("unexpected replay");
-      const source = message.request.map_source;
-      const key = source.kind === "generated" ? source.request.seed : source.id;
-      seen.push(key);
-      return {
-        battle:
-          source.kind === "generated"
-            ? Promise.reject(
-                new PreparationFailed(
-                  "no map",
-                  [{ code: "generation_failed", feature: null, location: "$", message: "no map" }],
-                  "map",
-                ),
-              )
-            : Promise.resolve(session(message.request)),
-        cancel: () => {
-          closed.push(key);
-        },
-      };
-    },
-  });
-  expect((await admission.battle).report.request).toEqual(fallback);
-  expect(seen).toEqual(["18446744073709551615", "0", "market-town"]);
-  expect(closed).toEqual(["18446744073709551615", "0"]);
-  admission.cancel();
-});
-
-test("leaving cancels the active candidate and suppresses queued stages, replies and fallback", async () => {
+test("leaving cancels the active candidate and suppresses queued stages, replies", async () => {
   let answer!: (battle: PreparedSession) => void;
   let emitStage!: (stage: "map" | "encounter") => void;
   let jobs = 0;
   let closed = false;
   let cleared = false;
   const stages: string[] = [];
-  const admission = admitBattle(
-    { candidate, documents, fallback, policy },
-    (stage) => stages.push(stage),
-    {
-      seed: () => "11",
-      schedule: () => () => {
-        cleared = true;
-      },
-      prepare: (_message, stage) => {
-        jobs++;
-        emitStage = stage;
-        return {
-          battle: new Promise((resolve) => {
-            answer = resolve;
-          }),
-          cancel: () => {
-            closed = true;
-          },
-        };
-      },
+  const admission = admitBattle({ candidate, documents, policy }, (stage) => stages.push(stage), {
+    seed: () => "11",
+    schedule: () => () => {
+      cleared = true;
     },
-  );
+    prepare: (_message, stage) => {
+      jobs++;
+      emitStage = stage;
+      return {
+        battle: new Promise((resolve) => {
+          answer = resolve;
+        }),
+        cancel: () => {
+          closed = true;
+        },
+      };
+    },
+  });
   let settled = false;
   void admission.battle.then(() => {
     settled = true;
@@ -238,69 +146,28 @@ test("leaving cancels the active candidate and suppresses queued stages, replies
   });
 });
 
-test("loading identifies the current candidate and then the saved fallback", async () => {
-  const loading: PrepareBattleRequest[] = [];
-  const admission = admitBattle(
-    { candidate, documents, fallback, policy, onRequest: (request) => loading.push(request) },
-    () => {},
-    {
-      seed: () => "11",
-      prepare: (message) => {
-        if (message.type !== "prepare") throw new Error("unexpected replay");
-        return {
-          battle:
-            message.request.map_source.kind === "generated"
-              ? Promise.reject(
-                  new PreparationFailed(
-                    "bad presets",
-                    [
-                      {
-                        code: "invalid_presets",
-                        feature: null,
-                        location: "$",
-                        message: "bad presets",
-                      },
-                    ],
-                    "map",
-                  ),
-                )
-              : Promise.resolve(session(message.request)),
-          cancel: () => {},
-        };
-      },
-    },
-  );
-  await admission.battle;
-  expect(loading).toEqual([candidate("11"), fallback]);
-  admission.cancel();
-});
-
 test("the second candidate inherits the remaining total deadline instead of another full budget", async () => {
   vi.useFakeTimers();
   try {
     const closed: string[] = [];
     const seeds = ["11", "22"];
     let refuse!: (error: unknown) => void;
-    const admission = admitBattle({ candidate, documents, fallback, policy }, () => {}, {
+    const admission = admitBattle({ candidate, documents, policy }, () => {}, {
       seed: () => seeds.shift()!,
       prepare: (message) => {
         if (message.type !== "prepare") throw new Error("unexpected replay");
-        const source = message.request.map_source;
-        return source.kind === "generated"
-          ? {
-              battle: new Promise((_resolve, reject) => {
-                refuse = reject;
-              }),
-              cancel: () => {
-                closed.push(source.request.seed);
-              },
-            }
-          : {
-              battle: Promise.resolve(session(message.request)),
-              cancel: () => {
-                closed.push(source.id);
-              },
-            };
+        return {
+          battle: new Promise((_resolve, reject) => {
+            refuse = reject;
+          }),
+          cancel: () => {
+            closed.push(
+              message.request.map_source.kind === "generated"
+                ? message.request.map_source.request.seed
+                : "unexpected saved map",
+            );
+          },
+        };
       },
     });
     await vi.advanceTimersByTimeAsync(6000);
@@ -315,8 +182,9 @@ test("the second candidate inherits the remaining total deadline instead of anot
     expect(closed).toEqual(["11"]);
     await vi.advanceTimersByTimeAsync(1999);
     expect(closed).toEqual(["11"]);
+    const refused = expect(admission.battle).rejects.toThrow("timed out");
     await vi.advanceTimersByTimeAsync(1);
-    expect((await admission.battle).report.request).toEqual(fallback);
+    await refused;
     expect(closed).toEqual(["11", "22"]);
     admission.cancel();
   } finally {
@@ -324,19 +192,60 @@ test("the second candidate inherits the remaining total deadline instead of anot
   }
 });
 
-test("a worker that cannot start records the runtime fault and resolves fallback once", async () => {
-  const admission = admitBattle({ candidate, documents, fallback, policy }, () => {}, {
-    seed: () => "11",
-    prepare: (message) => {
-      if (message.type !== "prepare") throw new Error("unexpected replay");
-      if (message.request.map_source.kind === "generated") throw new Error("worker startup failed");
-      return { battle: Promise.resolve(session(message.request)), cancel: () => {} };
+test("invalid inputs and runtime faults refuse Play without trying another map", async () => {
+  for (const fault of [
+    new Error("worker startup failed"),
+    new PreparationFailed(
+      "bad presets",
+      [{ code: "invalid_presets", feature: null, location: "$", message: "bad presets" }],
+      "map",
+    ),
+  ]) {
+    const requests: PrepareBattleRequest[] = [];
+    const admission = admitBattle({ candidate, documents, policy }, () => {}, {
+      seed: () => "11",
+      prepare: (message) => {
+        if (message.type !== "prepare") throw new Error("unexpected replay");
+        requests.push(message.request);
+        throw fault;
+      },
+    });
+    await expect(admission.battle).rejects.toBe(fault);
+    expect(requests).toEqual([candidate("11")]);
+    expect(admission.attempts[0].failure?.message).toBe(fault.message);
+  }
+});
+
+test("exhausted generation refuses Play without preparing a prebuilt map", async () => {
+  const requests: PrepareBattleRequest[] = [];
+  const loading: PrepareBattleRequest[] = [];
+  const refusal = new PreparationFailed(
+    "cannot fit",
+    [{ code: "generation_failed", feature: null, location: "$", message: "cannot fit" }],
+    "map",
+  );
+  const admission = admitBattle(
+    { candidate, documents, policy, onRequest: (r) => loading.push(r) },
+    () => {},
+    {
+      seed: () => "18446744073709551615",
+      prepare: (message) => {
+        if (message.type !== "prepare") throw new Error("unexpected replay");
+        requests.push(message.request);
+        return {
+          battle:
+            message.request.map_source.kind === "generated"
+              ? Promise.reject(refusal)
+              : Promise.resolve(session(message.request)),
+          cancel: () => {},
+        };
+      },
     },
-  });
-  expect((await admission.battle).report.request).toEqual(fallback);
-  expect(admission.attempts[0]).toMatchObject({
-    outcome: "error",
-    failure: { message: "worker startup failed", stage: null, diagnostics: [] },
-  });
-  admission.cancel();
+  );
+  await expect(admission.battle).rejects.toBe(refusal);
+  expect(loading).toEqual(requests);
+  expect(requests.map((r) => r.map_source)).toEqual([
+    candidate("18446744073709551615").map_source,
+    candidate("0").map_source,
+  ]);
 });

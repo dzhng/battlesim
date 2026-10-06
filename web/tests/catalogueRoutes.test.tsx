@@ -1,10 +1,8 @@
 import { renderInRouter as render } from "./support/router";
 import { LAB_FIXTURES } from "@apps/battle-lab/src/fixtures";
 import { createElement } from "react";
-import { fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { LabRouter } from "@apps/battle-lab/src/router";
-import { MainMenu } from "@apps/battle-lab/src/MainMenu";
 import * as catalogue from "@web/maps/catalogue";
 
 afterEach(() => vi.restoreAllMocks());
@@ -24,7 +22,7 @@ const entry = (id: string, status: catalogue.MapStatus): catalogue.MapEntry => (
   benchmarks: [],
 });
 
-test("a catalogue draft is inspectable in labs by name and absent from player battles", () => {
+test("active catalogue maps are inspectable in labs by name", () => {
   const entries = [
     entry("released-field", "released"),
     entry("draft-field", "draft"),
@@ -46,17 +44,6 @@ test("a catalogue draft is inspectable in labs by name and absent from player ba
   expect(labs.queryByRole("link", { name: "Battlefield retired-field" })).toBeNull();
   expect(labs.getByRole("link", { name: "workbench" }).getAttribute("href")).toBe("/workbench");
   labs.unmount();
-  window.history.replaceState(null, "", "/");
-  const menu = render(createElement(MainMenu));
-  fireEvent.click(menu.getByRole("button", { name: "Battlefields" }));
-  expect(
-    menu.getByRole("link", { name: "Play Battlefield released-field" }).getAttribute("href"),
-  ).toBe("/battle?map=released-field&recipe=assault");
-  expect(menu.queryByRole("link", { name: "Play Battlefield draft-field" })).toBeNull();
-  expect(menu.queryByRole("link", { name: "Play Battlefield retired-field" })).toBeNull();
-  expect(menu.queryByRole("link", { name: "Play Battlefield released-arena" })).toBeNull();
-  expect(menu.queryByRole("link", { name: "Play Battlefield other-encounter" })).toBeNull();
-  menu.unmount();
 });
 
 test("every saved route names an existing catalogue map and every active map has an inspection link", () => {

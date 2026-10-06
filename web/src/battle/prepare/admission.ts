@@ -12,7 +12,6 @@ export type AdmissionPolicy = Pick<
 export interface AdmissionInputs {
   candidate(seed: string): PrepareBattleRequest;
   documents: PrepareDocuments;
-  fallback: PrepareBattleRequest;
   policy: AdmissionPolicy;
   onRequest?(request: PrepareBattleRequest): void;
 }
@@ -39,7 +38,7 @@ const edges: AdmissionEdges = {
 };
 
 /** Only search/placement exhaustion can improve by changing a map seed.
- * Unknown failures go to the independently resolved released fallback. */
+ * Invalid inputs and runtime faults cannot improve with another seed. */
 function canRetry(error: unknown): boolean {
   if (!(error instanceof PreparationFailed) || !error.diagnostics.length) return false;
   if (error.stage === "map")
@@ -94,6 +93,7 @@ export function admitBattle(
     if (!cancelled) onStage(value);
   };
   const select = async (): Promise<PreparedSession> => {
+    let failure: unknown = new PreparationFailed("No generated battlefield was admitted.");
     for (let index = 0; index < input.policy.max_generated_attempts && !expired; index++) {
       // A random collision must not turn selection into an unbounded draw loop.
       let seed = run.seed();
@@ -108,6 +108,7 @@ export function admitBattle(
         if (cancelled) return new Promise(() => {});
         if (battle === null) {
           attempts.push({ request, outcome: "timeout" });
+          failure = new PreparationFailed("Map generation timed out.");
           break;
         }
         attempts.push({ request, outcome: "admitted" });
@@ -121,30 +122,13 @@ export function admitBattle(
           outcome: error instanceof PreparationFailed && error.stage ? "refused" : "error",
           failure: evidence(error),
         });
+        failure = error;
         if (!canRetry(error)) break;
       }
     }
     clearDeadline();
     if (cancelled) return new Promise(() => {});
-    const request = input.fallback;
-    input.onRequest?.(request);
-    current = null;
-    try {
-      current = run.prepare({ type: "prepare", request, documents: input.documents }, stage);
-      const battle = await current.battle;
-      if (cancelled) return new Promise(() => {});
-      attempts.push({ request, outcome: "admitted" });
-      return battle;
-    } catch (error) {
-      if (cancelled) return new Promise(() => {});
-      current?.cancel();
-      attempts.push({
-        request,
-        outcome: error instanceof PreparationFailed && error.stage ? "refused" : "error",
-        failure: evidence(error),
-      });
-      throw error;
-    }
+    throw failure;
   };
   return {
     battle: select().finally(clearDeadline),

@@ -6,9 +6,9 @@ The user’s scope and interaction choices are retained in the [exploration map]
 
 ### Ordinary Play allows at most two generated candidates within eight seconds
 
-When: player admission pass. Pressing Play first tries a fresh seed with the selected type and size. A seed-dependent refusal can try another; exhausting the attempt or time allowance moves to the released Market Town assault. The alternative is either immediate fallback or a longer search that consumes startup time. The eight seconds cover candidate preparation, not drawing the final view.
+When: player admission pass. Pressing Play first tries a fresh seed with the selected type and size. A seed-dependent refusal can try another; exhausting the attempt or time allowance refuses preparation. A longer search would consume more startup time. The eight seconds cover candidate preparation, not drawing the final view.
 
-Gap: the user required a playable battle without choosing retry numbers. Reach: future changes must preserve enough time to resolve and draw the fallback. Verdict: sound; selection is finite and the actual winner becomes the URL and replay identity. Confidence: medium.
+Gap: the user required fresh generated skirmishes without choosing retry numbers. Reach: future changes must keep generation bounded without substituting a fixed map. Verdict: sound; selection is finite and the actual winner becomes the URL and replay identity. Confidence: medium.
 
 ### Advanced numerical controls have conservative domains
 
@@ -28,11 +28,11 @@ When: final editor review. If a seed finishes and the user cancels while its inp
 
 Gap: cancellation during receipt capture was unspecified. Reach: complete outcomes and complete source export remain separate claims. Execution failures have no tested-input fingerprint or receipt; they explicitly say that evidence is unavailable. Verdict: sound; incomplete evidence is visible instead of appearing reproducible. Confidence: medium.
 
-### Unknown worker faults go directly to the saved fallback
+### Unknown worker faults refuse preparation
 
-When: player admission pass. If the worker fails for an unknown runtime reason, Play attempts the independently resolved released battlefield once. Only recognized generation or placement exhaustion tries another generated seed. Repeating an unknown fault is unlikely to improve it and spends the allowance.
+When: player admission pass. If the worker fails for an unknown runtime reason, Play refuses preparation. Only recognized generation or placement exhaustion tries another generated seed. Repeating an unknown fault is unlikely to improve it and spends the allowance.
 
-Gap: the user required recovery without prescribing fault classification. Reach: new retryable diagnostics must represent something a fresh map seed can change. Verdict: sound; attempts retain their failures for developer inspection. Confidence: medium.
+Gap: the user required fresh generation without prescribing fault classification. Reach: new retryable diagnostics must represent something a fresh map seed can change. Verdict: sound; attempts retain their failures for developer inspection. Confidence: medium.
 
 ## Sound — high confidence
 
@@ -44,7 +44,7 @@ Gap: the workbench needed access to native inspection and analysis. Reach: local
 
 ### Released-map admission stays independent of generation work allowances
 
-When: policy extraction. Lowering the generated part allowance to one makes a generated seed refuse, but does not forbid the released fallback. Editable part and bay allowances fit within the fixed released-map ceilings. Coupling both would let a failed tuning experiment invalidate Play recovery.
+When: policy extraction. Lowering the generated part allowance to one makes a generated seed refuse, but does not forbid saved-map admission for developer fixtures and exact replays. Editable part and bay allowances fit within the fixed released-map ceilings. Coupling both would let a failed tuning experiment invalidate those saved consumers.
 
 Gap: generation and saved-map limits previously matched without defining whether they must remain equal. Reach: saved-map support is a release contract, while generation work limits are tunable. Verdict: sound; containment preserves that distinction. Confidence: high.
 

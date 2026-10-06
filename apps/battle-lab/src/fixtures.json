@@ -153,7 +153,7 @@
   {
     "id": "generated",
     "route": "/battle",
-    "describe": "A prepared battle, in the village's battle view: what the main menu's New battle starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map (mixed, small, 1 by default); ?recipe= the encounter recipe, ?encounter= its seed and ?battle= the battle's. ?map=<id>&recipe=<name> plays a saved map's saved encounter instead, and ?replay=saved watches the saved replay of either. A preparation worker resolves the map and has the simulation's planner place the assault recipe on a generated one (blue's column on the road in from the bottom edge, red's from the top, red's garrison round the main town's crossroads); a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet.",
+    "describe": "A prepared battle, in the village's battle view: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map (mixed, small, 1 by default); ?recipe= the encounter recipe, ?encounter= its seed and ?battle= the battle's. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker resolves the map and has the simulation's planner place the assault recipe on a generated one (blue's column on the road in from the bottom edge, red's from the top, red's garrison round the main town's crossroads); a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet.",
     "map": null
   },
   {

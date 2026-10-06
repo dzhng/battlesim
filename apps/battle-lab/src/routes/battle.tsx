@@ -143,20 +143,18 @@ function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "repla
       encounter_seed: a.encounterSeed,
       battle_seed: a.battleSeed,
     };
-    return a.kind === "catalogue"
-      ? { map_source: { kind: "catalogue", id: a.id }, ...rest }
-      : {
-          map_source: {
-            kind: "generated",
-            request: generationRequest(
-              wasm,
-              { ...a.map, seed: a.kind === "play" ? "0" : a.map.seed },
-              GENERATOR,
-              config.limits,
-            ),
-          },
-          ...rest,
-        };
+    return {
+      map_source: {
+        kind: "generated",
+        request: generationRequest(
+          wasm,
+          { ...a.map, seed: a.kind === "play" ? "0" : a.map.seed },
+          GENERATOR,
+          config.limits,
+        ),
+      },
+      ...rest,
+    };
   });
   if (!request) return null;
   if (buildFailed(request))
@@ -238,11 +236,6 @@ function PreparedBattleView({
               };
             },
             documents,
-            fallback: {
-              ...request,
-              map_source: { kind: "catalogue", id: config.admission.fallback.map },
-              recipe_id: config.admission.fallback.recipe,
-            },
             policy: config.admission,
             onRequest: setLoadingRequest,
           },

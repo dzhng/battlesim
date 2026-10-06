@@ -19,14 +19,15 @@ address updates the current entry without restarting that visit. Queued async
 continuations stop when history leaves their visit, before React necessarily
 finishes unmounting the previous page.
 
-The main menu starts generated or released saved battles and opens replays. It is
-one plate over its backdrop: opening a page replaces the plate's contents under a
+The main menu starts fresh generated skirmishes and opens replays. It is
+one plate over its backdrop, with title-only entries over generated military art.
+Opening a page replaces the plate's contents under a
 Back button, and Escape is Back, so the film behind never changes. A menu address asking for a battle opens on the
 skirmish page. A
 seeded address names exact preparation inputs on the same build. Ordinary Play
-may try bounded fresh candidates and a released saved fallback, then publishes the
+may try bounded fresh candidates, then publishes the
 actual admitted identity. A refused explicit seed cannot silently become another
-battle. [Saved-map policy](../../fixtures/README.md#saved-maps) owns what the menu lists.
+battle. Exhausted generation returns a refusal; it never substitutes a fixed map.
 
 [The menu backdrop](src/MenuBackdrop.tsx) is a real battle, not a recording: a
 saved encounter run by the ordinary session, silent and inert, filmed by

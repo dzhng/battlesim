@@ -98,8 +98,9 @@ and prevents late admission.
 The [page audio owner](src/appAudio.ts) retains one context and bank across
 client navigation. Its menu bed attempts playback early; when browser permission
 blocks that attempt, a qualifying input resumes the same context. The bed stays
-through loading and fades only when prepared battle audio updates. Source
-calibration and the persisted sound settings govern both mixes.
+through loading and fades only when prepared battle audio updates. Short mechanical actions give menu controls a quiet hover and a stronger activation.
+They share the prepared bank, keep one transient voice and respect the persisted
+sound settings. Source calibration governs both mixes.
 
 Each [battle observer](src/battleAudio.ts) owns fresh side-visible evidence and
 a disposable mixer. Leaving a battle disconnects every voice and the whole

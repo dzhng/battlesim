@@ -4,8 +4,6 @@
 // battle view, and its buildings (their templates' rows), trees and roads
 // are drawn where the static map says they are, with fog over what blue does
 // not see. The camera flown through its main town never enters a building.
-// The menu's saved battlefield (a generated map of the catalogue) starts the
-// same way.
 //
 // `CAMERA_MAP=metro:large:1` flies the camera through that map's main town
 // instead, and reports what clearance costs there. `STARTUP_MAP=mixed:large:1`
@@ -302,10 +300,10 @@ async function cameraOnMap(ctx, spec) {
 export async function run(ctx) {
   if (process.env.CAMERA_MAP) return cameraOnMap(ctx, process.env.CAMERA_MAP);
   if (process.env.STARTUP_MAP) return startupOf(ctx, process.env.STARTUP_MAP);
-  if (process.env.PLAY_RECOVERY) return playRecovery(ctx);
-  if (process.env.PLAY_DEADLINE) return playRecovery(ctx, true);
-  await playRecovery(ctx);
-  await playRecovery(ctx, true);
+  if (process.env.PLAY_REFUSAL) return playRefusal(ctx);
+  if (process.env.PLAY_DEADLINE) return playRefusal(ctx, true);
+  await playRefusal(ctx);
+  await playRefusal(ctx, true);
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   const warnings = [];
   page.on("console", (m) => {
@@ -697,44 +695,10 @@ export async function run(ctx) {
     `${message} | ${details}`,
   );
   await writeFile(ctx.evidencePath("refused-1280x800.png"), await refused.screenshot());
-
-  // The saved battlefield, started from the menu beside the village: the
-  // catalogue's generated map under the identity its sources pin, with its
-  // saved encounter, in the same battle view.
-  const town = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await town.goto(new URL("/", ctx.url).href);
-  await openMenuPage(town, "Battlefields");
-  const entry = town.getByRole("link", { name: "Play Market Town" });
-  await entry.waitFor();
-  await entry.hover();
-  await writeFile(ctx.evidencePath("menu-saved-1920x1080.png"), await town.screenshot());
-  const href = await entry.getAttribute("href");
-  await entry.click();
-  await town.getByTestId("loading").waitFor();
-  const subject = await town.getByTestId("loading-subject").textContent();
-  await playable(town);
-  const report = await lab(town, () => window.__lab.route.prepared());
-  const start = await lab(town, () => window.__lab.route.startup());
-  ctx.check(
-    "the menu's saved battlefield plays the catalogue's map with its saved encounter",
-    href === "/battle?map=market-town&recipe=assault" &&
-      /MARKET TOWN/.test(subject) &&
-      report.request.map_source.kind === "catalogue" &&
-      report.identity.kind === "generated" &&
-      report.planned === null &&
-      report.objective !== null &&
-      report.counts.buildings > 1000,
-    JSON.stringify({ href, subject, identity: report.identity, counts: report.counts }),
-  );
-  console.log(
-    `METRIC saved map market-town: prepared ${start.prepared.toFixed(0)} ms (map ${report.timings.map.toFixed(0)}, encounter ${report.timings.encounter.toFixed(0)}), playable ${start.playable.toFixed(0)} ms after the menu's link; ${report.counts.buildings} buildings (development build)`,
-  );
-  await writeFile(ctx.evidencePath("saved-battle-1920x1080.png"), await town.screenshot());
 }
 
-/** Exercise the real menu and workers with deliberately tiny generation
- * allowances; the released map must remain admissible independently. */
-async function playRecovery(ctx, deadline = false) {
+/** Exhausted generation remains a refused skirmish, never a fixed map. */
+async function playRefusal(ctx, deadline = false) {
   const page = await ctx.newPage();
   const defaults = JSON.parse(
     readFileSync(new URL("../../fixtures/generated-battle.json", import.meta.url)),
@@ -765,37 +729,26 @@ async function playRecovery(ctx, deadline = false) {
     );
   }
   await page.goto(new URL("/", ctx.url).href);
+  await openMenuPage(page, "Skirmish");
   const deploy = page.getByRole("link", { name: "Deploy" });
   ctx.check(
     "ordinary menu Play carries preferences without a promised seed",
     (await deploy.getAttribute("href")) === "/battle?play=1&type=mixed&size=small",
   );
   await deploy.click();
-  await playable(page, 30000);
-  const report = await lab(page, () => window.__lab.route.prepared());
-  const startup = await lab(page, () => window.__lab.route.startup());
-  const actual = new URL(page.url());
+  await page.getByTestId("error").waitFor({ timeout: 30000 });
+  await page.getByRole("button", { name: "Details", exact: true }).click();
+  const failure = await page.getByTestId("error").textContent();
+  ctx.check(
+    "exhausted generation refuses Play without switching to a saved map",
+    /The battle could not be prepared/.test(failure) &&
+      new URL(page.url()).searchParams.get("play") === "1" &&
+      !(await page.evaluate(() => window.__lab?.ready ?? false)),
+    `${page.url()} | ${failure}`,
+  );
   if (deadline)
-    ctx.check(
-      "the stalled candidate consumes the allowance then its worker is replaced",
-      workers === 2 && startup.prepared >= defaults.admission.generated_deadline_ms,
-      `${workers} workers, ${startup.prepared.toFixed(0)} ms to preparation`,
-    );
-  ctx.check(
-    "refused generated candidates automatically admit the released battlefield",
-    report.request.map_source.kind === "catalogue" &&
-      report.request.map_source.id === defaults.admission.fallback.map &&
-      actual.searchParams.get("map") === defaults.admission.fallback.map &&
-      !actual.searchParams.has("play"),
-    JSON.stringify(report.request),
-  );
-  ctx.check(
-    "automatic fallback remains playable within the startup budget",
-    startup.playable < 30000,
-    `${startup.playable.toFixed(0)} ms`,
-  );
-  const name = deadline ? "play-deadline" : "play-recovery";
-  await ctx.writeEvidence(`${name}.json`, { request: report.request, startup });
+    ctx.check("the stalled worker is not replaced by a saved map", workers === 1, workers);
+  const name = deadline ? "play-deadline" : "play-refused";
   await writeFile(ctx.evidencePath(`${name}.png`), await page.screenshot());
   await page.close();
 }

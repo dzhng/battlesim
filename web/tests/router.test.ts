@@ -24,7 +24,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
     ),
   );
   const links = () => menu.queryAllByRole("link").map((a) => a.getAttribute("href"));
-  const pages = ["Skirmish", "Battlefields", "Settings", "Developer"];
+  const pages = ["Skirmish", "Settings", "Developer"];
   expect(links()).toEqual(["/replay/village"]);
   for (const page of pages) expect(menu.getByRole("button", { name: page })).toBeTruthy();
   expect(menu.queryByRole("button", { name: "Back" })).toBeNull();
@@ -37,7 +37,6 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   };
   const entries: Record<string, Record<string, string>> = {
     Skirmish: { Deploy: "/battle?play=1&type=mixed&size=small" },
-    Battlefields: { "Play Market Town": "/battle?map=market-town&recipe=assault" },
     Settings: {},
     Developer: {
       "Mechanics editor": "/mechanics",
@@ -52,13 +51,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
     open(page);
     expect(links()).toEqual(Object.values(expected));
     for (const [name, href] of Object.entries(expected)) {
-      // Each entry is one link named by its title; its description is inside
-      // the same link, so a click on it navigates too.
-      const link = menu.getByRole("link", { name });
-      expect(link.getAttribute("href")).toBe(href);
-      const note = document.getElementById(link.getAttribute("aria-describedby")!);
-      expect(note?.textContent).toBeTruthy();
-      expect(note?.closest("a")).toBe(link);
+      expect(menu.getByRole("link", { name }).getAttribute("href")).toBe(href);
     }
     fireEvent.click(menu.getByRole("button", { name: "Back" }));
     expect(menu.getByRole("button", { name: page })).toBeTruthy();

@@ -1,6 +1,6 @@
 # battlegame
 
-A browser real-time tactics game, built around reconnaissance, physical fire and positioning. Every round is a flown projectile, and every side sees only what its own units can see. Players fight on seeded generated maps or a saved generated battlefield; the village remains a developer test arena. The full design lives in [`specs/`](specs/).
+A browser real-time tactics game, built around reconnaissance, physical fire and positioning. Every round is a flown projectile, and every side sees only what its own units can see. Players fight on fresh seeded generated maps; the village remains a developer test arena. The full design lives in [`specs/`](specs/).
 
 ## How it fits together
 
@@ -67,9 +67,9 @@ bun run setup   # install web dependencies
 bun run dev     # build the WebAssembly, start the lab app
 ```
 
-`/` is the main menu: start a battle on a generated map (its type, its size and optionally its region), play a saved battlefield of the catalogue, or watch a replay; behind its developer link, play the test village, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`, with `&region=` when one was chosen) is its share identity: the same address prepares the same battle on the same build. The [benchmark](web/src/battle/benchmark/README.md) is the one frame-cost measure: `/benchmark` retains the village control; `/benchmark?preset=city-contact` selects explicitly synthetic local contact on a complete generated world.
+`/` is the main menu: start a battle on a generated map (its type, its size and optionally its region), or watch a replay; behind its developer link, play the test village, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`, with `&region=` when one was chosen) is its share identity: the same address prepares the same battle on the same build. The [benchmark](web/src/battle/benchmark/README.md) is the one frame-cost measure: `/benchmark` retains the village control; `/benchmark?preset=city-contact` selects explicitly synthetic local contact on a complete generated world.
 
-Ordinary Play chooses an admitted battlefield from the selected type and size, with bounded fresh candidates and a released saved fallback. Once admitted, its address names the actual battlefield. Explicit seed addresses and saved replays remain exact.
+Ordinary Play chooses an admitted battlefield from the selected type and size, with bounded fresh candidates. Once admitted, its address names the actual battlefield. Explicit seed addresses and saved replays remain exact.
 
 The local [map workbench](apps/map-workbench/README.md) tunes generation on a live
 top-down plan. The [mechanics editor](apps/mechanics-editor/README.md) edits resolved

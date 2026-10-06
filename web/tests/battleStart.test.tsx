@@ -7,8 +7,7 @@ import { createElement } from "react";
 import { cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { askedBattle, battleHref, preparedBattleHref } from "@apps/battle-lab/src/battleLinks";
-import { MainMenu, savedBattles } from "@apps/battle-lab/src/MainMenu";
-import { listMaps } from "../src/maps/catalogue";
+import { MainMenu } from "@apps/battle-lab/src/MainMenu";
 import { admitBattle } from "../src/battle/prepare/admission";
 import { PreparationFailed, prepareBattle } from "../src/battle/prepare/client";
 import type {
@@ -71,11 +70,7 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
     battle_seed: 1,
   });
   expect(askedBattle(new URL(admitted, "http://game").search)).toMatchObject({ map: paris });
-  expect(askedBattle("?map=village&recipe=lean")).toMatchObject({
-    kind: "catalogue",
-    id: "village",
-    recipe: "lean",
-  });
+  expect(askedBattle("?map=village&recipe=lean")).toHaveProperty("error");
   expect(askedBattle("?replay=saved")).toEqual({ kind: "replay" });
   // A wrong parameter is refused by name: nothing is guessed in its place.
   for (const [search, names] of [
@@ -86,7 +81,7 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
     ["?seed=1&battle=9007199254740993", /^battle /],
     ["?seed=1&battle=-1", /^battle /],
     ["?map=../village&recipe=lean", /^map /],
-    ["?map=village", /^recipe /],
+    ["?map=village", /^map /],
     ["?seed=1&region=atlantis", /^region /],
     ["?play=1&region=", /^region /],
   ] as const) {
@@ -146,23 +141,13 @@ test("the menu opens on the battle a cancelled or refused request asked for", ()
   );
 });
 
-test("the menu lists each saved battlefield by name, and its link asks for that map's saved encounter", () => {
+test("the menu offers fresh skirmishes without prebuilt battlefields", () => {
   const menu = render(createElement(MainMenu));
-  fireEvent.click(menu.getByRole("button", { name: "Battlefields" }));
-  const battles = savedBattles();
-  expect(battles.map((battle) => battle.label)).toContain("Play Market Town");
-  for (const battle of battles) {
-    expect(menu.getByRole("link", { name: battle.label }).getAttribute("href")).toBe(battle.href);
-    // The address is one the battle route reads as a released playable map
-    // of the catalogue and an encounter saved on it.
-    const asked = askedBattle(new URL(battle.href, "http://game").search);
-    if (!("kind" in asked) || asked.kind !== "catalogue") throw new Error(battle.href);
-    const map = listMaps({ category: "playable", status: "released" }).find(
-      (listed) => listed.id === asked.id,
-    );
-    expect(map?.encounters, battle.href).toContain(asked.recipe);
-    expect(battle.label).toBe(`Play ${map!.label}`);
-  }
+  expect(menu.queryByRole("button", { name: "Battlefields" })).toBeNull();
+  fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
+  expect(menu.getByRole("link", { name: "Deploy" }).getAttribute("href")).toBe(
+    "/battle?play=1&type=mixed&size=small",
+  );
 });
 
 /** A preparation worker that answers when the test says so. */
@@ -274,7 +259,6 @@ test("ordinary admission closes refused workers, and exact winner identity keeps
     {
       candidate: request,
       documents: message(1).documents,
-      fallback: { ...request("1"), map_source: { kind: "catalogue", id: "market-town" } },
       policy: { max_generated_attempts: 2, generated_deadline_ms: 8000 },
     },
     () => {},
@@ -315,4 +299,31 @@ test("ordinary admission closes refused workers, and exact winner identity keeps
   expect(observed).toEqual([{ type: "status", status: "paused", slow: false }]);
   admission.cancel();
   expect(winner.terminated).toBe(true);
+});
+
+test("skirmish controls and Deploy stand alone without explanatory subtitles", () => {
+  const menu = render(createElement(MainMenu));
+  fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
+  expect(menu.container.textContent).not.toMatch(/fields and woods|defended town|as blue/i);
+  expect(menu.getByRole("link", { name: "Deploy" }).textContent).toBe("Deploy");
+});
+
+test("repeated preparation diagnostics appear once in loading details", async () => {
+  const { LoadingScreen } = await import("@apps/battle-lab/src/LoadingScreen");
+  const loading = render(
+    createElement(LoadingScreen, {
+      title: "Deploying",
+      stages: [],
+      current: "",
+      failure: {
+        message: "Cannot prepare",
+        details: ["cannot fit", "cannot fit", "bad input"],
+      },
+    }),
+  );
+  fireEvent.click(loading.getByRole("button", { name: "Details" }));
+  expect(loading.getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+    "cannot fit",
+    "bad input",
+  ]);
 });

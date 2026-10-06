@@ -18,10 +18,6 @@
   },
   "admission": {
     "max_generated_attempts": 2,
-    "generated_deadline_ms": 8000,
-    "fallback": {
-      "map": "market-town",
-      "recipe": "assault"
-    }
+    "generated_deadline_ms": 8000
   }
 }

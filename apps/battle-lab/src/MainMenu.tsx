@@ -1,6 +1,6 @@
 // The game's front door at `/`, in the HUD's look: start a battle on a
 // generated map (its type, its size and, if the player cares, its region),
-// play a saved battlefield of the catalogue, or watch a saved battle, and
+// watch a saved battle, and
 // the sound settings. The test village, the benchmark and the labs are
 // developer tools, behind the developer link.
 //
@@ -12,10 +12,8 @@ import { Link } from "react-router";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
-import config from "@fixtures/generated-battle.json";
-import { listMaps } from "@web/maps/catalogue";
 import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/source";
-import { askedChoice, battleHref, playHref, REGIONS, savedBattleHref, spoken } from "./battleLinks";
+import { askedChoice, battleHref, playHref, REGIONS, spoken } from "./battleLinks";
 import { useSavedReplay, replayRoute } from "./replayFile";
 import { SoundControls } from "./SoundControls";
 import { MenuBackdrop } from "./MenuBackdrop";
@@ -25,7 +23,7 @@ import { LoadingScreen } from "./LoadingScreen";
 interface Entry {
   label: string;
   href: string | null;
-  note: string;
+  art?: "replay";
 }
 
 const DEVELOPER: Entry[] = [
@@ -34,93 +32,41 @@ const DEVELOPER: Entry[] = [
         {
           label: "Mechanics editor",
           href: "/mechanics",
-          note: "Tune unit and weapon values with validated JSON saves.",
         },
         {
           label: "Map workbench",
           href: "/map-workbench",
-          note: "Tune generation and validation rules on a live plan.",
         },
         {
           label: "Sound workbench",
           href: "/sound-workbench",
-          note: "Audition recordings and choose sounds for each unit type.",
         },
       ]
     : []),
   {
     label: "Village",
     href: "/battle/village",
-    note: "The test village: attack it as blue.",
   },
   {
     label: "Benchmark",
     href: "/benchmark",
-    note: "A scripted battle and camera tour, with frame timings.",
   },
-  { label: "Labs", href: "/labs", note: "One focused fixture per mechanic." },
+  { label: "Labs", href: "/labs" },
 ];
-
-/** What each map type is, in the player's words. */
-const TYPE_NOTE: Record<MapType, string> = {
-  open: "Open country: villages, fields and woods.",
-  mixed: "A town among fields and woods.",
-  metro: "A city and the country round it.",
-};
 
 const RANDOM = "random";
 
-/** The catalogue's battlefields a player can start: every released playable
- *  map that has the game's encounter saved on it. Each is the same map and
- *  the same deployment every time. */
-export function savedBattles() {
-  const recipe = config.encounter.recipe;
-  return listMaps({ category: "playable", status: "released" })
-    .filter((map) => map.encounters.includes(recipe))
-    .map((map) => ({
-      label: `Play ${map.label}`,
-      href: savedBattleHref(map.id, recipe),
-      note: "A fixed battlefield: attack the defended town as blue.",
-    }));
-}
-
-const id = (href: string) => `menu${href.replaceAll(/[^a-z0-9]/g, "-")}`;
-
-/** A tile's title and note, and the attributes that name the tile by its
- *  title and describe it by its note; `key` keeps its ids unique. */
-function card(key: string, label: string, note: string) {
-  const at = id(key);
-  return {
-    props: {
-      className: "menu-card",
-      "aria-labelledby": `${at}-label`,
-      "aria-describedby": `${at}-note`,
-    },
-    text: (
-      <>
-        <span className="menu-card-label" id={`${at}-label`}>
-          {label}
-        </span>
-        <span className="menu-card-note" id={`${at}-note`}>
-          {note}
-        </span>
-      </>
-    ),
-  };
-}
-
 /** One entry, one link: a click anywhere on its tile navigates. */
 function EntryItem({ entry: e }: { entry: Entry }) {
-  const { props, text: content } = card(e.href ?? e.label, e.label, e.note);
   return (
     <li>
       {e.href === null ? (
-        <a {...props} aria-disabled>
-          {content}
+        <a className="menu-card" data-art={e.art} aria-disabled>
+          <span className="menu-card-label">{e.label}</span>
         </a>
       ) : (
-        <Link {...props} to={e.href}>
-          {content}
+        <Link className="menu-card" data-art={e.art} to={e.href}>
+          <span className="menu-card-label">{e.label}</span>
         </Link>
       )}
     </li>
@@ -184,7 +130,6 @@ function NewBattle({ asked }: { asked: ReturnType<typeof askedChoice> }) {
   // Random leaves the region to the seed.
   const [region, setRegion] = useState(asked.region ?? RANDOM);
   const choice = { type, size, ...(region !== RANDOM && { region }) };
-  const deploy = card("deploy", "Deploy", "Attack the defended town as blue.");
   return (
     <section className="menu-battle" aria-label="New battle">
       <div className="menu-fields">
@@ -192,16 +137,12 @@ function NewBattle({ asked }: { asked: ReturnType<typeof askedChoice> }) {
         <Choice label="size" options={MAP_SIZES} value={size} onChange={setSize} />
         <Choice label="region" options={[RANDOM, ...REGIONS]} value={region} onChange={setRegion} />
       </div>
-      <p className="menu-battle-note" data-testid="menu-note">
-        {TYPE_NOTE[type]}
-      </p>
       <Link
-        {...deploy.props}
         className="menu-card menu-deploy"
         data-testid="menu-deploy"
         to={asked.seed ? battleHref({ ...choice, seed: asked.seed }) : playHref(choice)}
       >
-        {deploy.text}
+        <span className="menu-card-label">Deploy</span>
       </Link>
     </section>
   );
@@ -209,9 +150,8 @@ function NewBattle({ asked }: { asked: ReturnType<typeof askedChoice> }) {
 
 /** The plate's pages: each opens in the plate's place, under a Back button. */
 const PAGES = {
-  skirmish: { title: "Skirmish", note: "A battle on a new generated map." },
-  battlefields: { title: "Battlefields", note: "A fixed battlefield of the catalogue." },
-  settings: { title: "Settings", note: "Sound and volume." },
+  skirmish: { title: "Skirmish" },
+  settings: { title: "Settings" },
   // Opened by the quiet developer link, not a tile.
   developer: { title: "Developer" },
 } as const;
@@ -220,11 +160,16 @@ type TilePage = Exclude<Page, "developer">;
 
 /** A page's entry in the list: a tile like a link's, opening the page. */
 function PageEntry({ page, open }: { page: TilePage; open: (page: Page) => void }) {
-  const { props, text } = card(`page-${page}`, PAGES[page].title, PAGES[page].note);
   return (
     <li>
-      <button {...props} type="button" data-page={page} onClick={() => open(page)}>
-        {text}
+      <button
+        className="menu-card"
+        data-art={page}
+        type="button"
+        data-page={page}
+        onClick={() => open(page)}
+      >
+        <span className="menu-card-label">{PAGES[page].title}</span>
       </button>
     </li>
   );
@@ -295,8 +240,8 @@ export function MainMenu() {
   }, [page, back]);
   const replay: Entry = {
     label: "Watch replay",
+    art: "replay",
     href: savedReplay.file === undefined ? null : replayRoute(savedReplay.file),
-    note: savedReplay.file === undefined ? "Reading saved battle…" : "Load a saved battle.",
   };
   const content =
     page === null ? (
@@ -305,7 +250,6 @@ export function MainMenu() {
         <nav aria-label="Main menu">
           <ul>
             <PageEntry page="skirmish" open={setPage} />
-            <PageEntry page="battlefields" open={setPage} />
             <EntryItem entry={replay} />
             <PageEntry page="settings" open={setPage} />
           </ul>
@@ -322,7 +266,6 @@ export function MainMenu() {
     ) : (
       <PageView key={page} page={page} back={back}>
         {page === "skirmish" && <NewBattle asked={asked} />}
-        {page === "battlefields" && <Entries label="Battlefields" entries={savedBattles()} />}
         {page === "settings" && <SoundControls />}
         {page === "developer" && <Entries label="Developer" entries={DEVELOPER} />}
       </PageView>

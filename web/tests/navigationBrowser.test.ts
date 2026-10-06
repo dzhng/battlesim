@@ -21,15 +21,15 @@ test("client exit and history keep the document while discarding preparation vis
     });
     const page = await browser.newPage();
     await page.goto(server.resolvedUrls!.local[0]);
-    await page.getByRole("button", { name: "Battlefields", exact: true }).click();
+    await page.getByRole("button", { name: "Skirmish", exact: true }).click();
     const origin = await page.evaluate(() => performance.timeOrigin);
     const workerOpened = page.waitForEvent("worker");
-    await page.getByRole("link", { name: "Play Market Town" }).click();
+    await page.getByRole("link", { name: "Deploy" }).click();
     const worker = await workerOpened;
     const closed = worker.waitForEvent("close");
     await page.getByRole("link", { name: "Cancel", exact: true }).click();
     await closed;
-    await page.getByRole("button", { name: "Skirmish", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Skirmish", exact: true }).waitFor();
     expect(await page.evaluate(() => performance.timeOrigin)).toBe(origin);
     const freshWorkerOpened = page.waitForEvent("worker");
     await page.goBack();
@@ -44,7 +44,7 @@ test("client exit and history keep the document while discarding preparation vis
     await page.goForward();
     await forwardOpened;
     await page.getByRole("link", { name: "Cancel", exact: true }).click();
-    await page.getByRole("button", { name: "Skirmish", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Skirmish", exact: true }).waitFor();
     expect(await page.evaluate(() => performance.timeOrigin)).toBe(origin);
   } finally {
     await browser?.close();

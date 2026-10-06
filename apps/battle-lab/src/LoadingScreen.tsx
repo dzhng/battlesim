@@ -71,7 +71,7 @@ export function LoadingScreen({
             )}
             {details && (
               <ul className="loading-details" data-testid="error-details">
-                {failure.details.map((line) => (
+                {[...new Set(failure.details)].map((line) => (
                   <li key={line}>{line}</li>
                 ))}
               </ul>

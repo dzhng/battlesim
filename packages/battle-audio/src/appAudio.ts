@@ -12,6 +12,10 @@ export const MENU_BED = [
   { sound: "menu_music", gain: 2.2, offset: 0 },
   { sound: "countryside", gain: 0.08, offset: undefined },
 ] as const;
+export const MENU_CUES = {
+  hover: { sound: "recorded-clack-14", gain: 0.12 },
+  click: { sound: "recorded-clack-17", gain: 0.3 },
+} as const;
 export const MENU_FADE_S = 1.2;
 
 export type AudioScreen = "menu" | "loading" | "other";
@@ -40,6 +44,26 @@ export class AppAudio {
       return;
     this.start();
   };
+  private readonly onMenuInput = (event: Event) => {
+    const target =
+      event.target instanceof Element
+        ? event.target.closest<HTMLElement>("button, a[href], input")
+        : null;
+    if (
+      !target?.closest(".menu, .hud-menu") ||
+      target.closest('[inert], [aria-disabled="true"]') ||
+      target.matches(":disabled")
+    )
+      return;
+    if (
+      event.type === "pointerover" &&
+      event instanceof MouseEvent &&
+      event.relatedTarget instanceof Node &&
+      target.contains(event.relatedTarget)
+    )
+      return;
+    this.playMenuCue(event.type === "click" ? "click" : "hover");
+  };
   private readonly onPageHide = () => this.dispose();
 
   constructor(
@@ -48,6 +72,8 @@ export class AppAudio {
     this.unsubscribe = soundSettings.subscribe(() => this.applySettings());
     for (const type of ["pointerdown", "keydown"] as const)
       window.addEventListener(type, this.onGesture, { capture: true });
+    for (const type of ["pointerover", "click"])
+      window.addEventListener(type, this.onMenuInput, { capture: true });
     window.addEventListener("pagehide", this.onPageHide);
   }
 
@@ -98,6 +124,33 @@ export class AppAudio {
     this.syncMenu();
   }
 
+  private playMenuCue(kind: keyof typeof MENU_CUES) {
+    if (
+      this.closed ||
+      soundSettings.get().muted ||
+      !this.menuReady ||
+      this.context?.state !== "running" ||
+      !this.menu
+    )
+      return;
+    const at = this.menu.now();
+    // One transient slot bounds rapid pointer sweeps and lets activation win.
+    this.menu.stop(3, at, 0);
+    this.menu.start(3, {
+      ...MENU_CUES[kind],
+      variant: 0,
+      bus: "effects",
+      at,
+      rate: 1,
+      lowpass: 20000,
+      wet: 0,
+      attack: 0,
+      position: null,
+      pan: null,
+      loop: false,
+    });
+  }
+
   createBattle(options: Omit<SoundFrameOptions, "catalog">) {
     this.battle?.dispose();
     const battle = new BattleAudio(
@@ -125,7 +178,10 @@ export class AppAudio {
       return;
     this.menuPreparing = true;
     void this.bank
-      .prepare(MENU_BED.map(({ sound }) => sound))
+      .prepare([
+        ...MENU_BED.map(({ sound }) => sound),
+        ...Object.values(MENU_CUES).map(({ sound }) => sound),
+      ])
       .then(() => {
         if (this.closed) return;
         this.menuReady = true;
@@ -210,6 +266,8 @@ export class AppAudio {
     this.unsubscribe();
     for (const type of ["pointerdown", "keydown"] as const)
       window.removeEventListener(type, this.onGesture, { capture: true });
+    for (const type of ["pointerover", "click"])
+      window.removeEventListener(type, this.onMenuInput, { capture: true });
     window.removeEventListener("pagehide", this.onPageHide);
     this.battle?.dispose();
     this.menu?.dispose();

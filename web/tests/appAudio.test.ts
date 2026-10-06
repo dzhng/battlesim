@@ -7,9 +7,14 @@ import { soundSettings } from "@packages/battle-audio/src/settings";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 
-const param = () => ({
-  setTargetAtTime() {},
-  setValueAtTime() {},
+const param = (value = 0) => ({
+  value,
+  setTargetAtTime(value: number) {
+    this.value = value;
+  },
+  setValueAtTime(value: number) {
+    this.value = value;
+  },
   linearRampToValueAtTime() {},
   cancelScheduledValues() {},
 });
@@ -40,7 +45,7 @@ class Node {
       "positionY",
       "positionZ",
     ])
-      if (options[key] !== undefined) Object.assign(this, { [key]: param() });
+      if (options[key] !== undefined) Object.assign(this, { [key]: param(Number(options[key])) });
   }
   connect(node: Node) {
     this.connections.add(node);
@@ -151,6 +156,8 @@ function setup() {
   };
   // A short fixture bed keeps lifecycle checks independent of musical content.
   catalog.sounds.menu_music = { ...catalog.sounds.countryside };
+  catalog.sounds["recorded-clack-14"] = { ...catalog.sounds.rifle };
+  catalog.sounds["recorded-clack-17"] = { ...catalog.sounds.cannon };
   const app = new AppAudio({ presentation, catalog });
   active.push(app);
   return app;
@@ -307,4 +314,40 @@ test("resuming a browser-suspended context starts battle sound from fresh eviden
   window.dispatchEvent(new Event("pointerdown"));
   await vi.waitFor(() => expect(battle.stats()?.running).toBe(true));
   expect(battle.stats()).toMatchObject({ tick: -1, pending: 0 });
+});
+
+test("menu controls play one quiet hover and a stronger click, respecting mute and disabled controls", async () => {
+  const app = setup();
+  app.setScreen("menu");
+  await vi.waitFor(() => expect(app.stats().menuReady).toBe(true));
+  const plate = document.createElement("main");
+  plate.className = "menu";
+  plate.innerHTML = "<button><span>Skirmish</span></button><button disabled>Unavailable</button>";
+  document.body.append(plate);
+  try {
+    const button = plate.querySelector("button")!;
+    const child = button.querySelector("span")!;
+    const initial = sources.length;
+    button.dispatchEvent(new MouseEvent("pointerover", { bubbles: true }));
+    expect(sources.length).toBe(initial + 1);
+    const hoverGain = [...sources.at(-1)!.connections][0].gain.value;
+    child.dispatchEvent(new MouseEvent("pointerover", { bubbles: true, relatedTarget: button }));
+    expect(sources.length).toBe(initial + 1);
+    child.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(sources.length).toBe(initial + 2);
+    expect([...sources.at(-1)!.connections][0].gain.value).toBeGreaterThan(hoverGain);
+    expect(sources.at(-1)!.buffer.duration).toBeGreaterThan(sources.at(-2)!.buffer.duration);
+    plate
+      .querySelector("button:disabled")!
+      .dispatchEvent(new MouseEvent("pointerover", { bubbles: true }));
+    soundSettings.set({ muted: true });
+    button.click();
+    expect(sources.length).toBe(initial + 2);
+    app.dispose();
+    soundSettings.set({ muted: false });
+    button.click();
+    expect(sources.length).toBe(initial + 2);
+  } finally {
+    plate.remove();
+  }
 });

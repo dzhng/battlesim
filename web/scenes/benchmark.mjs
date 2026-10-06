@@ -40,22 +40,20 @@ export async function run(ctx, preset = "village-contact") {
     const labels = await nav.locator(".menu-card-label").allTextContents();
     ctx.check(
       "the main menu lists its pages and replay, and the village, benchmark and labs behind the developer link",
-      played.join() === "Skirmish,Battlefields,Watch replay,Settings" &&
+      played.join() === "Skirmish,Watch replay,Settings" &&
         hidden === 0 &&
         labels.join() === "Village,Benchmark,Labs",
       JSON.stringify({ played, hidden, labels }),
     );
     const card = nav.getByRole("link", { name: "Benchmark", exact: true });
     ctx.check(
-      "each menu entry is one link, named by its title and described by its note",
-      (await nav.getByRole("link").count()) === labels.length &&
-        (await card.getAttribute("aria-describedby")) !== null,
+      "each menu entry is one link named by its title",
+      (await nav.getByRole("link").count()) === labels.length,
       `${await nav.getByRole("link").count()} links for ${labels.length} entries`,
     );
     await card.hover();
     await shot(ctx, page, "menu.png");
-    // The whole card navigates: click its description, not its title.
-    await card.locator(".menu-card-note").click();
+    await card.click();
     await page.waitForURL("**/benchmark", { timeout: 10_000 });
     ctx.check(
       "clicking a menu card's description navigates",
