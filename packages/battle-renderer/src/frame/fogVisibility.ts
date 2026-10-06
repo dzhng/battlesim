@@ -792,7 +792,11 @@ export function wholeFogRecords(
   const boxes = grid.params.wholeCount;
   const eyesOf = new Uint32Array(boxes);
   let pairs = 0;
-  for (const list of found) for (const index of list) (eyesOf[index]++, pairs++);
+  for (const list of found)
+    for (const index of list) {
+      eyesOf[index]++;
+      pairs++;
+    }
   let count = 0;
   for (let b = 0; b < boxes; b++) if (eyesOf[b]) count++;
   const words = new Uint32Array(count * 3 + pairs);
