@@ -41,11 +41,15 @@ def build(e):
         elif any(k in eid for k in ('f_22','f_35','j_20','su_57')):
             cube('stealth_fuselage',(0,0,.78),(4.5,.58,.48),base); cube('stealth_wing',(.1,0,.72),(2.0,3.7,.10),base)
             cube('stealth_tail',(-1.65,.48,1.2),(.48,.10,.82),base,0); cube('stealth_tail',(-1.65,-.48,1.2),(.48,.10,.82),base,0)
-            cube('stealth_nose',(2.0,0,.80),(1.0,.42,.34),base)
+            cube('stealth_nose',(2.0,0,.80),(1.0,.42,.34),base); cube('cockpit',(1.05,0,1.03),(.78,.38,.18),glass,.03)
+            cube('intake_L',(.15,.32,.63),(.55,.12,.16),dark,.01); cube('intake_R',(.15,-.32,.63),(.55,.12,.16),dark,.01)
         elif any(k in eid for k in ('su_34','su_25','a_10','f_15','f_a_18','rafale','mirage','tornado','eurofighter','gripen','j_10','mig_29','mig_31')):
             cube('fighter_fuselage',(0,0,.76),(4.4,.62,.52),base); cube('fighter_nose',(2.0,0,.76),(1.0,.5,.4),base)
             cube('fighter_wing',(.1,0,.72),(2.3,3.2,.10),base); cube('fighter_tail',(-1.65,0,1.2),(.45,.12,1.0),base)
             cyl('engine',(-1.4,.38,.72),.18,.9,dark,rot=(math.pi/2,0,0)); cyl('engine',(-1.4,-.38,.72),.18,.9,dark,rot=(math.pi/2,0,0))
+            cube('cockpit',(1.05,0,1.05),(.8,.4,.2),glass,.03)
+            if any(k in eid for k in ('rafale','eurofighter','gripen','j_10')):
+                cube('canard_L',(.95,.48,.88),(.55,.18,.06),base,0); cube('canard_R',(.95,-.48,.88),(.55,.18,.06),base,0)
             if 'su_34' in eid or 'a_10' in eid: cube('strike_store',(.15,0,.48),(1.4,1.3,.16),dark)
         else:
             cube('transport_fuselage',(0,0,.95),(4.8,1.05,.95),base); cube('transport_nose',(2.2,0,.95),(1.0,.9,.7),base)
@@ -54,7 +58,7 @@ def build(e):
         if 'growler' in eid or 'ecr' in eid:
             cube('pod_left',(-.15,.7,.65),(1.1,.18,.22),dark); cube('pod_right',(-.15,-.7,.65),(1.1,.18,.22),dark)
     elif kind=='rotorcraft':
-        cube('helicopter_body',(0,0,.9),(2.7,1.05,1.05),base); cube('tail',(-1.75,0,1.0),(2.0,.22,.25),base); cyl('main_rotor',(0,0,1.65),.08,4.2,dark,rot=(0,math.pi/2,0)); cube('rotor_blade',(0,0,1.7),(.2,4.4,.06),dark,0); cyl('tail_rotor',(-2.55,0,1.0),.06,.8,dark,rot=(math.pi/2,0,0)); cube('cockpit',(1.0,0,1.0),(.6,.85,.5),glass,.02)
+        cube('helicopter_body',(0,0,.9),(2.7,1.05,1.05),base); cube('tail',(-1.75,0,1.0),(2.0,.22,.25),base); cyl('main_rotor',(0,0,1.65),.08,4.2,dark,rot=(0,math.pi/2,0)); cube('rotor_blade',(0,0,1.7),(.2,4.4,.06),dark,0); cyl('tail_rotor',(-2.55,0,1.0),.06,.8,dark,rot=(math.pi/2,0,0)); cube('cockpit',(1.0,0,1.0),(.6,.85,.5),glass,.02); cube('landing_skid_L',(-.1,.58,.32),(1.8,.08,.08),dark,0); cube('landing_skid_R',(-.1,-.58,.32),(1.8,.08,.08),dark,0)
         if 'chinook' in eid:
             cube('cargo_body',(-.45,0,.92),(1.9,1.25,1.1),base); cube('ramp',(-1.45,0,.62),(.35,1.0,.55),dark)
             cyl('rear_rotor',(-1.0,0,1.7),.07,3.3,dark,rot=(0,math.pi/2,0))
@@ -67,6 +71,9 @@ def build(e):
             cube('light_body',(.2,0,.78),(1.5,.62,.6),base); cube('skid_left',(-.1,.5,.38),(1.5,.08,.08),dark,0); cube('skid_right',(-.1,-.5,.38),(1.5,.08,.08),dark,0)
     elif kind=='support':
         cube('support_hull',(0,0,.8),(3.2,1.7,1.0),base); cube('deck',(-.1,0,1.45),(1.7,1.4,.35),base)
+        if any(k in eid for k in ('himars','caesar','mars','grad','tornado','m109','m270')):
+            for x in (-1.0,.1,1.2):
+                cyl('wheel', (x,.92,.42), .28, .18, dark, rot=(math.pi/2,0,0)); cyl('wheel', (x,-.92,.42), .28, .18, dark, rot=(math.pi/2,0,0))
         if 'kamikaze_drone' in eid:
             cube('launch_box',(-.25,0,1.75),(1.25,1.1,.55),base); cube('drone_boom',(1.1,0,2.2),(1.0,.12,.12),dark); cube('drone_wing',(.2,0,2.15),(.5,1.4,.06),base)
         elif any(k in eid for k in ('air_defense','buk','nasams','pantsir','gepard','shorad')):
@@ -92,11 +99,12 @@ def build(e):
         else:
             cube('scout_hull',(0,0,.7),(2.6,1.35,.9),base); cyl('wheel',(-.75,.73,.45),.36,.22,dark,rot=(math.pi/2,0,0)); cyl('wheel',(.75,.73,.45),.36,.22,dark,rot=(math.pi/2,0,0)); cube('sensor',(.15,0,1.35),(.55,.45,.3),glass); cube('mast',(-.55,0,1.65),(.08,.08,.8),dark)
     else:
-        cube('infantry_rig',(0,0,1.0),(.35,.22,1.5),base)
+        cube('infantry_rig',(0,0,1.0),(.35,.22,1.5),base); cyl('helmet',(0,0,1.85),.16,.12,base); cube('leg_L',(-.1,0,.25),(.12,.14,.5),base,0); cube('leg_R',(.1,0,.25),(.12,.14,.5),base,0)
         if any(k in eid for k in ('javelin','akeron')):
-            cube('atgm_tube',(.1,-.22,1.15),(.18,1.15,.18),dark,.02); cube('launch_pack',(-.18,.18,1.05),(.35,.22,.55),base)
+            cube('atgm_tube',(.42,-.22,1.32),(.95,.18,.18),dark,.02); cube('seeker',(.9,-.22,1.32),(.18,.22,.22),glass,.01); cube('launch_pack',(-.18,.18,1.05),(.35,.22,.55),base); cube('bipod',(.42,-.22,.7),(.08,.45,.08),dark,0)
+            cube('assistant_rig',(-.5,.28,.95),(.32,.22,1.35),base); cyl('assistant_helmet',(-.5,.28,1.72),.15,.1,base)
         elif any(k in eid for k in ('stinger','igla','fn_6')):
-            cube('manpads_tube',(.08,-.2,1.35),(.16,1.0,.16),dark,.02); cube('grip',(.08,-.2,1.05),(.12,.18,.25),dark,.01)
+            cube('manpads_tube',(.42,-.2,1.35),(.9,.16,.16),dark,.02); cube('grip',(.35,-.2,1.05),(.12,.18,.25),dark,.01)
         else:
             cube('weapon',(0,-.2,1.0),(.12,.9,.12),dark,.02)
     for obj in list(bpy.context.scene.objects):
