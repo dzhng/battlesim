@@ -304,6 +304,168 @@
       "blast_radius_m": 4,
       "structural_damage": 100,
       "anti_armor": true
+    },
+    "assault_rifle": {
+      "extends": "rifle",
+      "name": "Assault rifle",
+      "range_m": 240,
+      "scatter_mrad": 10
+    },
+    "marksman_rifle": {
+      "extends": "rifle",
+      "name": "Marksman rifle",
+      "range_m": 450,
+      "damage": 45,
+      "penetration": 8,
+      "ammo": 120,
+      "reload_s": 3,
+      "aim_s": 2,
+      "magazine": {
+        "rounds": 20,
+        "shot_interval_s": 0.5,
+        "burst": null
+      }
+    },
+    "heavy_sniper": {
+      "extends": "rifle",
+      "name": "Heavy sniper rifle",
+      "range_m": 700,
+      "damage": 100,
+      "penetration": 30,
+      "ammo": 30,
+      "reload_s": 2.5,
+      "aim_s": 2,
+      "magazine": null
+    },
+    "autocannon": {
+      "extends": "hmg",
+      "name": "Autocannon",
+      "range_m": 650,
+      "damage": 20,
+      "penetration": 65,
+      "ammo": 240,
+      "reload_s": 6,
+      "magazine": {
+        "rounds": 30,
+        "shot_interval_s": 0.2,
+        "burst": {
+          "rounds": 3,
+          "aim_max_s": 1
+        }
+      }
+    },
+    "ground_tank_ap": {
+      "extends": "tank_ap",
+      "name": "AP",
+      "range_m": 850,
+      "damage": 45,
+      "penetration": 250
+    },
+    "ground_tank_he": {
+      "extends": "tank_he",
+      "name": "HE",
+      "range_m": 850,
+      "damage": 80
+    },
+    "advanced_tank_ap": {
+      "extends": "tank_ap",
+      "name": "AP",
+      "range_m": 900,
+      "damage": 50,
+      "penetration": 300
+    },
+    "advanced_tank_he": {
+      "extends": "tank_he",
+      "name": "HE",
+      "range_m": 900,
+      "damage": 80
+    },
+    "light_tank_ap": {
+      "extends": "tank_ap",
+      "name": "AP",
+      "range_m": 750,
+      "damage": 40,
+      "penetration": 170
+    },
+    "light_tank_he": {
+      "extends": "tank_he",
+      "name": "HE",
+      "range_m": 750,
+      "damage": 65
+    },
+    "tow": {
+      "extends": "atgm",
+      "name": "TOW 2A",
+      "description": "Optically supported direct anti-tank missile; launcher line of sight is required."
+    },
+    "kornet": {
+      "extends": "atgm",
+      "name": "Kornet",
+      "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
+      "range_m": 950,
+      "damage": 55,
+      "penetration": 320,
+      "ammo": 4,
+      "reload_s": 10
+    },
+    "spike": {
+      "extends": "atgm",
+      "name": "Spike (direct guidance)",
+      "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
+      "range_m": 900,
+      "damage": 55,
+      "penetration": 320,
+      "ammo": 4,
+      "reload_s": 10
+    },
+    "bastion": {
+      "extends": "atgm",
+      "name": "Bastion (gun-launched)",
+      "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
+      "range_m": 650,
+      "damage": 55,
+      "penetration": 320,
+      "ammo": 4,
+      "reload_s": 10
+    },
+    "ifv_he": {
+      "extends": "tank_he",
+      "name": "100 mm HE",
+      "range_m": 650,
+      "damage": 65,
+      "penetration": 25,
+      "ammo": 20,
+      "scatter_mrad": 4
+    },
+    "rpg_light": {
+      "extends": "grenade",
+      "name": "RPG-7",
+      "description": "Unguided direct anti-tank rocket.",
+      "range_m": 300,
+      "damage": 45,
+      "penetration": 160,
+      "ammo": 4,
+      "reload_s": 8,
+      "aim_s": 2,
+      "speed_mps": 400,
+      "gravity_scale": 1.7651,
+      "scatter_mrad": 8,
+      "anti_armor": true
+    },
+    "rpg_heavy": {
+      "extends": "grenade",
+      "name": "RPG-29",
+      "description": "Unguided direct anti-tank rocket.",
+      "range_m": 400,
+      "damage": 55,
+      "penetration": 240,
+      "ammo": 3,
+      "reload_s": 9,
+      "aim_s": 2,
+      "speed_mps": 400,
+      "gravity_scale": 1.7651,
+      "scatter_mrad": 8,
+      "anti_armor": true
     }
   },
   "suppression": {
@@ -353,7 +515,23 @@
       "grenade": 2,
       "tank_ap": 5,
       "tank_he": 5,
-      "atgm": 20
+      "atgm": 20,
+      "marksman_rifle": 1,
+      "heavy_sniper": 2,
+      "autocannon": 1,
+      "ground_tank_ap": 5,
+      "ground_tank_he": 5,
+      "advanced_tank_ap": 5,
+      "advanced_tank_he": 5,
+      "light_tank_ap": 5,
+      "light_tank_he": 5,
+      "tow": 20,
+      "kornet": 20,
+      "spike": 20,
+      "bastion": 20,
+      "ifv_he": 5,
+      "rpg_light": 10,
+      "rpg_heavy": 10
     },
     "ammo_rounds_per_s": 1,
     "vehicle_hp_per_s": 2,

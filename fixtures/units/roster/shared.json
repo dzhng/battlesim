@@ -27,10 +27,12 @@
     },
     "assault_squad": {
       "name": "Assault Squad",
-      "description": "Close-quarters infantry",
+      "description": "Close-quarters infantry; temporary generic appearance until named model admission",
       "faction": "generic",
       "family": "assault_squad",
-      "roles": [],
+      "roles": [
+        "infantry"
+      ],
       "cost": 110,
       "roster": {
         "factions": [
@@ -41,13 +43,20 @@
         "variant": "Close-quarters infantry",
         "family_name": "Assault Squad"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "assault",
-        "weapons": [
-          "assault-rifle",
-          "grenade"
-        ]
+      "extends": "roster_profile_assault",
+      "body": {
+        "squad": {
+          "slots": [
+            "roster_assault_rifle",
+            "roster_assault_rifle",
+            "roster_assault_rifle",
+            "roster_assault_rifle",
+            "roster_assault_rifle",
+            "roster_assault_rifle",
+            "roster_assault_rifle",
+            "roster_assault_rifle"
+          ]
+        }
       }
     },
     "f_16c_block_50": {
@@ -152,10 +161,12 @@
     },
     "rifle_squad": {
       "name": "Rifle Squad",
-      "description": "Standard infantry",
+      "description": "Standard infantry; temporary generic appearance until named model admission",
       "faction": "generic",
       "family": "rifle_squad",
-      "roles": [],
+      "roles": [
+        "infantry"
+      ],
       "cost": 90,
       "roster": {
         "factions": [
@@ -167,13 +178,20 @@
         "variant": "Standard infantry",
         "family_name": "Rifle Squad"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "rifle",
-        "weapons": [
-          "rifle",
-          "grenade"
-        ]
+      "extends": "roster_profile_rifle",
+      "body": {
+        "squad": {
+          "slots": [
+            "grenadier",
+            "rifleman",
+            "rifleman",
+            "rifleman",
+            "rifleman",
+            "rifleman",
+            "rifleman",
+            "rifleman"
+          ]
+        }
       }
     }
   }

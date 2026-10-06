@@ -37,6 +37,7 @@ mod navigation;
 mod order_markers;
 mod publication;
 mod ricochet;
+mod roster_ground;
 mod rivers;
 mod road_journeys;
 mod route_planning;

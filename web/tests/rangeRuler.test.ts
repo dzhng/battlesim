@@ -3,7 +3,7 @@
 // distance as the range check measures it, and where each reach ends.
 import { expect, test } from "vitest";
 import game from "@fixtures/game.json";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 import {
   buildRangeRuler,
@@ -24,16 +24,16 @@ const stroke = (m: number) => strokeWidth(validateStrokeRule(game.presentation.o
 const rules: RulerRules = {
   physics: game.physics,
   weapons: {
-    ...game.weapons,
-    rifle: { ...game.weapons.rifle, range_m: 400 },
-    grenade: { ...game.weapons.grenade, range_m: 200 },
-    hmg: { ...game.weapons.hmg, range_m: 500 },
-    tank_ap: { ...game.weapons.tank_ap, range_m: 900 },
-    tank_he: { ...game.weapons.tank_he, range_m: 900 },
+    ...WEAPONS,
+    rifle: { ...WEAPONS.rifle, range_m: 400 },
+    grenade: { ...WEAPONS.grenade, range_m: 200 },
+    hmg: { ...WEAPONS.hmg, range_m: 500 },
+    tank_ap: { ...WEAPONS.tank_ap, range_m: 900 },
+    tank_he: { ...WEAPONS.tank_he, range_m: 900 },
   },
 };
 const { infantry_muzzle_m: muzzle, infantry_aim_m: aim } = game.physics;
-const range = (row: keyof typeof game.weapons) => rules.weapons[row].range_m;
+const range = (row: keyof typeof WEAPONS) => rules.weapons[row].range_m;
 const at = (kind: string, position: [number, number, number], id = 1) => ({ id, kind, position });
 
 test("the ruler measures from the selected unit nearest the cursor across the ground", () => {
@@ -64,7 +64,7 @@ test("the ruler estimates 3D reach from the first mount's height to the aim poin
 test("each reach of the unit's weapons is one mark, nearest first; rows sharing a range share it", () => {
   const ruler = rangeRuler(at("tank", [0, 0, 0]), [1000, 0, 0], rules, UNITS);
   expect(ruler.marks.map((m) => [m.names, m.range_m])).toEqual([
-    [[game.weapons.hmg.name], range("hmg")],
+    [[WEAPONS.hmg.name], range("hmg")],
     [[UNITS.type("tank").mounts[0].name], range("tank_ap")],
   ]);
   expect(rangeRuler(at("supply", [0, 0, 0]), [10, 0, 0], rules, UNITS).marks).toEqual([]);

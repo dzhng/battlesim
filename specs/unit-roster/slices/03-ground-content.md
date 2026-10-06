@@ -1,6 +1,6 @@
 # 03 — Admitted ground profiles and frozen family manifests
 
-Status: not started. Dependencies: 01. Follow the README handoff and repository
+Status: supported-ground data foundation verified; physical research and model admission remain open. Dependencies: 01. Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -51,3 +51,15 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 - [ ] Narrow green proof and any allowed digest change recorded.
 - [ ] Artifact/visual gates resolved where applicable.
 - [ ] Choices, status and next pickup updated; focused pass committed.
+
+## Ground data foundation evidence
+
+Supported rows use shared physical profiles and preserve canonical membership/cost
+ownership. Rifle fire, finite per-gun squad ammunition and stock-limited TOW service
+pass focused simulation tests; deliberately pooled ammo and free unlimited launcher
+mutations failed before restoration. Coupled flight validation remains intact.
+BMP-3 carries Bastion through its 100 mm gun and an independent 30 mm secondary;
+the existing secondary rig suffices. Direct-guided systems describe their admitted
+capability honestly; authentic top attack, APS and research-gated platforms remain
+planned. Named art is temporary generic art until slice 12 acceptance. Frozen-frame
+research still needs the body/envelope corrections documented in the active handoff.

@@ -1,0 +1,681 @@
+{
+  "units": {
+    "roster_profile_scout": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 750,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        },
+        "concealed_range_multiplier": 2
+      },
+      "sound": {
+        "profile": "infantry",
+        "loudness_m": 200
+      },
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 11,
+          "road_kmh": 14
+        }
+      }
+    },
+    "roster_profile_elite_scout": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 800,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        },
+        "concealed_range_multiplier": 2
+      },
+      "sound": {
+        "profile": "infantry",
+        "loudness_m": 200
+      },
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 11,
+          "road_kmh": 14
+        }
+      }
+    },
+    "roster_profile_sniper": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 800,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        }
+      },
+      "sound": {
+        "profile": "infantry",
+        "loudness_m": 200
+      },
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 10,
+          "road_kmh": 12
+        }
+      }
+    },
+    "roster_profile_rifle": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 600,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        }
+      },
+      "sound": {
+        "profile": "infantry",
+        "loudness_m": 200
+      },
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 11,
+          "road_kmh": 14
+        }
+      }
+    },
+    "roster_profile_assault": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        }
+      },
+      "sound": {
+        "profile": "infantry",
+        "loudness_m": 200
+      },
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 11,
+          "road_kmh": 14
+        }
+      }
+    },
+    "roster_profile_marksman": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 650,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        }
+      },
+      "sound": {
+        "profile": "infantry",
+        "loudness_m": 200
+      },
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 11,
+          "road_kmh": 14
+        }
+      }
+    },
+    "roster_profile_at_team": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 600,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        }
+      },
+      "sound": {
+        "profile": "infantry",
+        "loudness_m": 200
+      },
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 10,
+          "road_kmh": 12
+        }
+      }
+    },
+    "roster_profile_rpg_team": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        }
+      },
+      "sound": {
+        "profile": "infantry",
+        "loudness_m": 200
+      },
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 11,
+          "road_kmh": 14
+        }
+      }
+    },
+    "roster_profile_light_car": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 700,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_wheeled_recon": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 850,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        },
+        "concealed_range_multiplier": 1.5
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_tracked_recon": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 850,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        },
+        "concealed_range_multiplier": 1.5
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_apc": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 450,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_heavy_apc": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 450,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_light_ifv": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_ifv": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_wheeled_ifv": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_advanced_ifv": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 600,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_heavy_ifv": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_missile_carrier": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 650,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_older_mbt": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 450,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_mbt": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_improved_mbt": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_heavy_mbt": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_advanced_mbt": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 600,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    },
+    "roster_profile_truck": {
+      "abstract": true,
+      "sensors": {
+        "ground_m": 300,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 650
+      }
+    }
+  },
+  "soldiers": {
+    "roster_assault_rifle": {
+      "extends": "rifleman",
+      "name": "Assault Rifle",
+      "description": "Ground weapon profile; named equipment art pending.",
+      "mounts": [
+        {
+          "name": "rifles",
+          "weapons": [
+            "assault_rifle"
+          ],
+          "squad": true
+        }
+      ]
+    },
+    "roster_tow_gunner": {
+      "extends": "at_rifleman",
+      "name": "Tow gunner",
+      "description": "One carried launcher with ordinary guards; named launcher art pending.",
+      "mounts": [
+        {
+          "name": "launcher",
+          "weapons": [
+            "tow"
+          ],
+          "special": true,
+          "operator_appearance": {
+            "active": [
+              "at",
+              "at_b",
+              "at_c"
+            ],
+            "carried": [
+              "at_carried",
+              "at_carried_b",
+              "at_carried_c"
+            ]
+          }
+        }
+      ]
+    },
+    "roster_kornet_gunner": {
+      "extends": "at_rifleman",
+      "name": "Kornet gunner",
+      "description": "One carried launcher with ordinary guards; named launcher art pending.",
+      "mounts": [
+        {
+          "name": "launcher",
+          "weapons": [
+            "kornet"
+          ],
+          "special": true,
+          "operator_appearance": {
+            "active": [
+              "at",
+              "at_b",
+              "at_c"
+            ],
+            "carried": [
+              "at_carried",
+              "at_carried_b",
+              "at_carried_c"
+            ]
+          }
+        }
+      ]
+    },
+    "roster_rpg_light_gunner": {
+      "extends": "at_rifleman",
+      "name": "Rpg Light gunner",
+      "description": "One carried launcher with ordinary guards; named launcher art pending.",
+      "mounts": [
+        {
+          "name": "launcher",
+          "weapons": [
+            "rpg_light"
+          ],
+          "special": true,
+          "operator_appearance": {
+            "active": [
+              "at",
+              "at_b",
+              "at_c"
+            ],
+            "carried": [
+              "at_carried",
+              "at_carried_b",
+              "at_carried_c"
+            ]
+          }
+        }
+      ]
+    },
+    "roster_rpg_heavy_gunner": {
+      "extends": "at_rifleman",
+      "name": "Rpg Heavy gunner",
+      "description": "One carried launcher with ordinary guards; named launcher art pending.",
+      "mounts": [
+        {
+          "name": "launcher",
+          "weapons": [
+            "rpg_heavy"
+          ],
+          "special": true,
+          "operator_appearance": {
+            "active": [
+              "at",
+              "at_b",
+              "at_c"
+            ],
+            "carried": [
+              "at_carried",
+              "at_carried_b",
+              "at_carried_c"
+            ]
+          }
+        }
+      ]
+    },
+    "roster_marksman_rifle_body": {
+      "abstract": true,
+      "hp": 100,
+      "appearance": [
+        "rifle",
+        "rifle_b",
+        "rifle_c"
+      ]
+    },
+    "roster_marksman_rifle_1": {
+      "extends": "roster_marksman_rifle_body",
+      "name": "Marksman Rifle",
+      "description": "One finite physical gun; named equipment appearance pending.",
+      "mounts": [
+        {
+          "name": "marksman_rifle_1",
+          "weapons": [
+            "marksman_rifle"
+          ],
+          "squad": true
+        }
+      ]
+    },
+    "roster_marksman_rifle_2": {
+      "extends": "roster_marksman_rifle_body",
+      "name": "Marksman Rifle",
+      "description": "One finite physical gun; named equipment appearance pending.",
+      "mounts": [
+        {
+          "name": "marksman_rifle_2",
+          "weapons": [
+            "marksman_rifle"
+          ],
+          "squad": true
+        }
+      ]
+    },
+    "roster_marksman_rifle_3": {
+      "extends": "roster_marksman_rifle_body",
+      "name": "Marksman Rifle",
+      "description": "One finite physical gun; named equipment appearance pending.",
+      "mounts": [
+        {
+          "name": "marksman_rifle_3",
+          "weapons": [
+            "marksman_rifle"
+          ],
+          "squad": true
+        }
+      ]
+    },
+    "roster_marksman_rifle_4": {
+      "extends": "roster_marksman_rifle_body",
+      "name": "Marksman Rifle",
+      "description": "One finite physical gun; named equipment appearance pending.",
+      "mounts": [
+        {
+          "name": "marksman_rifle_4",
+          "weapons": [
+            "marksman_rifle"
+          ],
+          "squad": true
+        }
+      ]
+    },
+    "roster_marksman_rifle_5": {
+      "extends": "roster_marksman_rifle_body",
+      "name": "Marksman Rifle",
+      "description": "One finite physical gun; named equipment appearance pending.",
+      "mounts": [
+        {
+          "name": "marksman_rifle_5",
+          "weapons": [
+            "marksman_rifle"
+          ],
+          "squad": true
+        }
+      ]
+    },
+    "roster_marksman_rifle_6": {
+      "extends": "roster_marksman_rifle_body",
+      "name": "Marksman Rifle",
+      "description": "One finite physical gun; named equipment appearance pending.",
+      "mounts": [
+        {
+          "name": "marksman_rifle_6",
+          "weapons": [
+            "marksman_rifle"
+          ],
+          "squad": true
+        }
+      ]
+    },
+    "roster_heavy_sniper_body": {
+      "abstract": true,
+      "hp": 100,
+      "appearance": [
+        "rifle",
+        "rifle_b",
+        "rifle_c"
+      ]
+    },
+    "roster_heavy_sniper_1": {
+      "extends": "roster_heavy_sniper_body",
+      "name": "Heavy Sniper",
+      "description": "One finite physical gun; named equipment appearance pending.",
+      "mounts": [
+        {
+          "name": "heavy_sniper_1",
+          "weapons": [
+            "heavy_sniper"
+          ],
+          "squad": true
+        }
+      ]
+    },
+    "roster_heavy_sniper_2": {
+      "extends": "roster_heavy_sniper_body",
+      "name": "Heavy Sniper",
+      "description": "One finite physical gun; named equipment appearance pending.",
+      "mounts": [
+        {
+          "name": "heavy_sniper_2",
+          "weapons": [
+            "heavy_sniper"
+          ],
+          "squad": true
+        }
+      ]
+    }
+  }
+}

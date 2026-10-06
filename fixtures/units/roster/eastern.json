@@ -94,10 +94,12 @@
     },
     "eastern_atgm_team_kornet": {
       "name": "Kornet Team",
-      "description": "Kornet",
+      "description": "Kornet; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
       "family": "atgm_team",
-      "roles": [],
+      "roles": [
+        "at"
+      ],
       "cost": 140,
       "roster": {
         "factions": [
@@ -107,12 +109,15 @@
         "variant": "Kornet",
         "family_name": "ATGM Team"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "at-team",
-        "weapons": [
-          "Kornet"
-        ]
+      "extends": "roster_profile_at_team",
+      "body": {
+        "squad": {
+          "slots": [
+            "roster_kornet_gunner",
+            "at_rifleman",
+            "at_rifleman"
+          ]
+        }
       }
     },
     "eastern_bm_21_grad_bm_21_rocket_artillery": {
@@ -140,10 +145,12 @@
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
       "name": "BMP IFV Family BMP-2M Berezhok",
-      "description": "BMP-2M Berezhok; ground combat platform, passenger carriage not implemented",
+      "description": "BMP-2M Berezhok; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
       "family": "bmp_ifv_family",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 190,
       "roster": {
         "factions": [
@@ -153,21 +160,97 @@
         "variant": "BMP-2M Berezhok",
         "family_name": "BMP IFV Family"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "light-ifv",
-        "weapons": [
-          "autocannon",
-          "Kornet"
-        ]
+      "extends": "roster_profile_light_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.3675,
+            1.575,
+            1.225
+          ],
+          "eye_m": 2.303,
+          "hp": 70,
+          "armor": {
+            "front": 45,
+            "side": 25,
+            "rear": 15,
+            "roof": 10,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 75,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.593
+          ],
+          "muzzle_m": [
+            2.829,
+            0,
+            0.441
+          ]
+        },
+        {
+          "name": "launcher",
+          "weapons": [
+            "kornet"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0.851,
+            2.009
+          ],
+          "muzzle_m": [
+            1.05,
+            0,
+            0
+          ],
+          "on": "autocannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "autocannon"
       }
     },
     "eastern_bmp_ifv_family_bmp_3": {
       "name": "BMP IFV Family BMP-3",
-      "description": "BMP-3; ground combat platform, passenger carriage not implemented",
+      "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; passenger carriage not implemented; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
       "family": "bmp_ifv_family",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 210,
       "roster": {
         "factions": [
@@ -177,14 +260,88 @@
         "variant": "BMP-3",
         "family_name": "BMP IFV Family"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "ifv",
-        "weapons": [
-          "IFV-HE",
-          "autocannon",
-          "Kornet"
-        ]
+      "extends": "roster_profile_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.57,
+            1.6,
+            1.2
+          ],
+          "eye_m": 2.256,
+          "hp": 90,
+          "armor": {
+            "front": 75,
+            "side": 40,
+            "rear": 25,
+            "roof": 20,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "main_gun",
+          "weapons": [
+            "ifv_he",
+            "bastion"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.6
+          ],
+          "muzzle_m": [
+            3.8,
+            0,
+            0.35
+          ]
+        },
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            -0.22,
+            1.6
+          ],
+          "muzzle_m": [
+            3.25,
+            0,
+            0.35
+          ],
+          "on": "main_gun"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "main_gun"
       }
     },
     "eastern_brm_brm_3k": {
@@ -212,10 +369,12 @@
     },
     "eastern_btr_btr_82a": {
       "name": "BTR BTR-82A",
-      "description": "BTR-82A; ground combat platform, passenger carriage not implemented",
+      "description": "BTR-82A; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "btr",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 140,
       "roster": {
         "factions": [
@@ -225,12 +384,70 @@
         "variant": "BTR-82A",
         "family_name": "BTR"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "light-ifv",
-        "weapons": [
-          "autocannon"
-        ]
+      "extends": "roster_profile_light_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.85,
+            1.45,
+            1.205
+          ],
+          "eye_m": 2.265,
+          "hp": 70,
+          "armor": {
+            "front": 45,
+            "side": 25,
+            "rear": 15,
+            "roof": 10,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 28,
+          "road_kmh": 75,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.567
+          ],
+          "muzzle_m": [
+            4.0,
+            0,
+            0.434
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "autocannon"
       }
     },
     "eastern_buk_buk_m3_medium_range_air_defense": {
@@ -377,10 +594,12 @@
     },
     "eastern_marksman_squad_svd_equipped_longer_range_infantry": {
       "name": "Marksman Squad",
-      "description": "SVD-equipped longer-range infantry",
+      "description": "SVD-equipped longer-range infantry; temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "marksman_squad",
-      "roles": [],
+      "roles": [
+        "infantry"
+      ],
       "cost": 110,
       "roster": {
         "factions": [
@@ -390,12 +609,18 @@
         "variant": "SVD-equipped longer-range infantry",
         "family_name": "Marksman Squad"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "marksman",
-        "weapons": [
-          "marksman-rifle"
-        ]
+      "extends": "roster_profile_marksman",
+      "body": {
+        "squad": {
+          "slots": [
+            "roster_marksman_rifle_1",
+            "roster_marksman_rifle_2",
+            "roster_marksman_rifle_3",
+            "roster_marksman_rifle_4",
+            "roster_marksman_rifle_5",
+            "roster_marksman_rifle_6"
+          ]
+        }
       }
     },
     "eastern_mi_24_mi_35_hind_mi_35m": {
@@ -588,10 +813,12 @@
     },
     "eastern_rpg_team_rpg_29": {
       "name": "RPG-29 Team",
-      "description": "RPG-29",
+      "description": "RPG-29; temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "rpg_team",
-      "roles": [],
+      "roles": [
+        "at"
+      ],
       "cost": 110,
       "roster": {
         "factions": [
@@ -601,20 +828,25 @@
         "variant": "RPG-29",
         "family_name": "RPG Team"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "rpg-team",
-        "weapons": [
-          "RPG-heavy"
-        ]
+      "extends": "roster_profile_rpg_team",
+      "body": {
+        "squad": {
+          "slots": [
+            "roster_rpg_heavy_gunner",
+            "at_rifleman",
+            "at_rifleman"
+          ]
+        }
       }
     },
     "eastern_rpg_team_rpg_7": {
       "name": "RPG-7 Team",
-      "description": "RPG-7",
+      "description": "RPG-7; temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "rpg_team",
-      "roles": [],
+      "roles": [
+        "at"
+      ],
       "cost": 90,
       "roster": {
         "factions": [
@@ -624,12 +856,15 @@
         "variant": "RPG-7",
         "family_name": "RPG Team"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "rpg-team",
-        "weapons": [
-          "RPG-light"
-        ]
+      "extends": "roster_profile_rpg_team",
+      "body": {
+        "squad": {
+          "slots": [
+            "roster_rpg_light_gunner",
+            "at_rifleman",
+            "at_rifleman"
+          ]
+        }
       }
     },
     "eastern_scout_drone_thermal": {
@@ -655,10 +890,12 @@
     },
     "eastern_scouts_light_patrol": {
       "name": "Scouts",
-      "description": "Light patrol",
+      "description": "Light patrol; temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "scouts",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 80,
       "roster": {
         "factions": [
@@ -668,20 +905,26 @@
         "variant": "Light patrol",
         "family_name": "Scouts"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "scout",
-        "weapons": [
-          "rifle"
-        ]
+      "extends": "roster_profile_scout",
+      "body": {
+        "squad": {
+          "slots": [
+            "scout",
+            "scout",
+            "scout",
+            "scout"
+          ]
+        }
       }
     },
     "eastern_sniper_team_asvk_heavy_sniper_team": {
       "name": "Sniper Team",
-      "description": "ASVK heavy sniper team",
+      "description": "ASVK heavy sniper team; temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "sniper_team",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 100,
       "roster": {
         "factions": [
@@ -691,12 +934,14 @@
         "variant": "ASVK heavy sniper team",
         "family_name": "Sniper Team"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "sniper",
-        "weapons": [
-          "heavy-sniper"
-        ]
+      "extends": "roster_profile_sniper",
+      "body": {
+        "squad": {
+          "slots": [
+            "roster_heavy_sniper_1",
+            "roster_heavy_sniper_2"
+          ]
+        }
       }
     },
     "eastern_su_25_frogfoot_su_25sm3": {
@@ -897,10 +1142,12 @@
     },
     "eastern_t_72_t_72b3_2016": {
       "name": "T-72 T-72B3 (2016)",
-      "description": "T-72B3 (2016)",
+      "description": "T-72B3 (2016); temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "t_72",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 280,
       "roster": {
         "factions": [
@@ -910,21 +1157,98 @@
         "variant": "T-72B3 (2016)",
         "family_name": "T-72"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "older-mbt",
-        "weapons": [
-          "tank-gun",
-          "HMG"
-        ]
+      "extends": "roster_profile_older_mbt",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.43,
+            1.795,
+            1.115
+          ],
+          "eye_m": 2.096,
+          "hp": 100,
+          "armor": {
+            "front": 160,
+            "side": 90,
+            "rear": 55,
+            "roof": 30,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24,
+          "road_kmh": 55,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "ground_tank_ap",
+            "ground_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.338
+          ],
+          "muzzle_m": [
+            6.3,
+            0,
+            0.401
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.096
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 450,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "cannon"
       }
     },
     "eastern_t_80_t_80bvm": {
       "name": "T-80 T-80BVM",
-      "description": "T-80BVM",
+      "description": "T-80BVM; temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "t_80",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 310,
       "roster": {
         "factions": [
@@ -934,21 +1258,98 @@
         "variant": "T-80BVM",
         "family_name": "T-80"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "mbt",
-        "weapons": [
-          "tank-gun",
-          "HMG"
-        ]
+      "extends": "roster_profile_mbt",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.7,
+            1.8015,
+            1.101
+          ],
+          "eye_m": 2.07,
+          "hp": 110,
+          "armor": {
+            "front": 190,
+            "side": 100,
+            "rear": 60,
+            "roof": 35,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 27,
+          "road_kmh": 60,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "ground_tank_ap",
+            "ground_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.321
+          ],
+          "muzzle_m": [
+            6.2,
+            0,
+            0.396
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.07
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "cannon"
       }
     },
     "eastern_t_90_t_90m_proryv": {
       "name": "T-90 T-90M Proryv",
-      "description": "T-90M Proryv",
+      "description": "T-90M Proryv; temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "t_90",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 360,
       "roster": {
         "factions": [
@@ -958,21 +1359,98 @@
         "variant": "T-90M Proryv",
         "family_name": "T-90"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "improved-mbt",
-        "weapons": [
-          "tank-gun",
-          "HMG"
-        ]
+      "extends": "roster_profile_improved_mbt",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.43,
+            1.89,
+            1.11
+          ],
+          "eye_m": 2.087,
+          "hp": 120,
+          "armor": {
+            "front": 220,
+            "side": 115,
+            "rear": 65,
+            "roof": 40,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "ground_tank_ap",
+            "ground_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.332
+          ],
+          "muzzle_m": [
+            6.2,
+            0,
+            0.4
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.087
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "cannon"
       }
     },
     "eastern_tigr_tigr_m": {
       "name": "Tigr Tigr-M",
-      "description": "Tigr-M",
+      "description": "Tigr-M; temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "tigr",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 90,
       "roster": {
         "factions": [
@@ -982,12 +1460,70 @@
         "variant": "Tigr-M",
         "family_name": "Tigr"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "light-car",
-        "weapons": [
-          "HMG"
-        ]
+      "extends": "roster_profile_light_car",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            2.835,
+            1.1,
+            1.0
+          ],
+          "eye_m": 1.88,
+          "hp": 45,
+          "armor": {
+            "front": 10,
+            "side": 8,
+            "rear": 6,
+            "roof": 5,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "light",
+          "push_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 32,
+          "road_kmh": 100,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.82
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 700,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "HMG"
       }
     },
     "eastern_type_15_ztq_15_light_tank": {
@@ -1016,10 +1552,12 @@
     },
     "eastern_type_99_ztz_99a": {
       "name": "Type 99 ZTZ-99A",
-      "description": "ZTZ-99A",
+      "description": "ZTZ-99A; temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "type_99",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 360,
       "roster": {
         "factions": [
@@ -1029,21 +1567,98 @@
         "variant": "ZTZ-99A",
         "family_name": "Type 99"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "improved-mbt",
-        "weapons": [
-          "tank-gun",
-          "HMG"
-        ]
+      "extends": "roster_profile_improved_mbt",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.8,
+            1.85,
+            1.175
+          ],
+          "eye_m": 2.209,
+          "hp": 120,
+          "armor": {
+            "front": 220,
+            "side": 115,
+            "rear": 65,
+            "roof": 40,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "ground_tank_ap",
+            "ground_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.41
+          ],
+          "muzzle_m": [
+            7.2,
+            0,
+            0.423
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.209
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "cannon"
       }
     },
     "eastern_ural_4320_general_resupply": {
       "name": "Ural-4320 General resupply",
-      "description": "General resupply",
+      "description": "General resupply; temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "ural_4320",
-      "roles": [],
+      "roles": [
+        "logistics"
+      ],
       "cost": 90,
       "roster": {
         "factions": [
@@ -1053,10 +1668,52 @@
         "variant": "General resupply",
         "family_name": "Ural-4320"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "truck",
-        "weapons": []
+      "extends": "roster_profile_truck",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.683,
+            1.25,
+            1.5025
+          ],
+          "eye_m": 2.825,
+          "hp": 60,
+          "armor": {
+            "front": 10,
+            "side": 10,
+            "rear": 8,
+            "roof": 5,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 25,
+          "road_kmh": 80,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [],
+      "appearance": "supply_truck",
+      "capabilities": {
+        "deploy": {
+          "seconds": 3,
+          "pack_seconds": 1
+        },
+        "supply": {
+          "stock": 600
+        }
       }
     },
     "eastern_z_10_attack_helicopter": {
@@ -1108,10 +1765,12 @@
     },
     "eastern_zbl_08_wheeled_ifv": {
       "name": "ZBL-08 Wheeled IFV",
-      "description": "Wheeled IFV; ground combat platform, passenger carriage not implemented",
+      "description": "Wheeled IFV; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
       "faction": "eastern",
       "family": "zbl_08",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 190,
       "roster": {
         "factions": [
@@ -1121,12 +1780,70 @@
         "variant": "Wheeled IFV",
         "family_name": "ZBL-08"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "wheeled-ifv",
-        "weapons": [
-          "autocannon"
-        ]
+      "extends": "roster_profile_wheeled_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            4.0,
+            1.5,
+            1.4
+          ],
+          "eye_m": 2.65,
+          "hp": 85,
+          "armor": {
+            "front": 60,
+            "side": 35,
+            "rear": 20,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 30,
+          "road_kmh": 85,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.05
+          ],
+          "muzzle_m": [
+            4.25,
+            0,
+            0.3
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "autocannon"
       }
     }
   }

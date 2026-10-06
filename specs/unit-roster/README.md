@@ -4,34 +4,27 @@
 ## Next Agent Prompt
 
 Status: implementation active under the existing harness goal, 2026-10-06.
-Slice 01 catalog admission is implemented. Slice 03 ground admission is the
-current pickup; compact geography and physical/model manifests run independently.
-No named model production has started. Exploration is complete in [the map](unknowns.md).
-The user requests **`/goal /implement-spec` once this spec is ready**, no backward
-compatibility and no adversarial review.
+Slice 01 is committed. Slice 03 supported-ground data foundation is verified;
+physical-frame research and final named art remain open. Slice 04 purchase authority
+is the current pickup. Slice 02 compact geography is implemented but larger-profile
+travel fairness needs resolution. Model workers are producing named families in parallel.
+Exploration is complete in [the map](unknowns.md). Hard cutover and no adversarial
+review are authorized; continue through every slice without asking for stat approval.
 
-Continue [03 ground admission](slices/03-ground-content.md), then physical purchase
-authority using the admitted catalog and geography contracts.
-Read the repository and owner READMEs, this spec, starter balance and model contract.
-Follow implement-spec through committed passes; a green slice is a checkpoint,
-not a stopping point. Update this prompt, TODOs and the choices ledger before
-ending each pass. Do not ask for individual numerical-stat approval.
+Next: finish slice 04 browser publication/command parity and focused purchase gates;
+commit that authority pass. Then implement purchase UI and objective referee at the
+wavefront. Keep geography/model lanes active with exclusive file assignments.
 
-Evidence: 142 canonical planned records, 50 memberships per faction; contract
-catalog tests and native/WASM card parity pass. Browser types pass.
+Evidence: canonical catalog has 50 memberships/faction; ground fire, independent
+finite gun ammo and truck service tests pass. Physical entry, blocked FIFO, prep
+income and replay tests pass locally. Packed match header is tested; browser codec
+proof is in progress. See owning slices for detailed evidence.
 
-Warnings: planned records cannot enter live physics/asset admission; zero-unit
-preparation currently assumes a blue starting unit for camera framing; compact
-layout extents need measured admission; kill source and swept APS interception
-need explicit proof. Unsupported capabilities remain visibly disabled. The AI is
-basic only; sophisticated AI belongs in another spec. Preserve existing authored
-developer scenarios as legitimate scenario mode, not compatibility scaffolding.
-
-Work at the dependency wavefront: freeze catalog/physical contracts before consumer
-or model workers depend on them; use exclusive file assignments. Model families
-begin as their own manifests freeze, with a continuously refilled worker pool.
-Numeric tuning, internal clean decomposition and reversible cosmetic choices are
-delegated; selected mechanics/visibility/non-goals are binding.
+Open gates: Large/XL objective travel fairness; body-versus-mounted-envelope facts
+for five light vehicles; resupply deployment art must reflect actual hardware;
+model bindings, icons and in-renderer comparison/Preview/unprimed critique. Generic
+admitted art is temporary and cannot close model acceptance. Unsupported capabilities
+stay visibly disabled. Full checks run once at final closeout.
 
 Global implementation TODOs:
 

@@ -27,10 +27,12 @@
     },
     "us_acv_acv_p": {
       "name": "ACV ACV-P",
-      "description": "ACV-P; ground combat platform, passenger carriage not implemented",
+      "description": "ACV-P; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "acv",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 170,
       "roster": {
         "factions": [
@@ -40,12 +42,70 @@
         "variant": "ACV-P",
         "family_name": "ACV"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "heavy-apc",
-        "weapons": [
-          "HMG"
-        ]
+      "extends": "roster_profile_heavy_apc",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            4.6,
+            1.55,
+            1.45
+          ],
+          "eye_m": 2.726,
+          "hp": 90,
+          "armor": {
+            "front": 65,
+            "side": 40,
+            "rear": 25,
+            "roof": 20,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 28,
+          "road_kmh": 80,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.639
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 450,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "HMG"
       }
     },
     "us_ah_1z_viper_attack_helicopter": {
@@ -121,10 +181,12 @@
     },
     "us_army_scouts_light_patrol": {
       "name": "Army Scouts",
-      "description": "Light patrol",
+      "description": "Light patrol; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "army_scouts",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 80,
       "roster": {
         "factions": [
@@ -134,20 +196,26 @@
         "variant": "Light patrol",
         "family_name": "Army Scouts"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "scout",
-        "weapons": [
-          "rifle"
-        ]
+      "extends": "roster_profile_scout",
+      "body": {
+        "squad": {
+          "slots": [
+            "scout",
+            "scout",
+            "scout",
+            "scout"
+          ]
+        }
       }
     },
     "us_atgm_team_bgm_71_tow_2a": {
       "name": "BGM-71 TOW 2A Team",
-      "description": "BGM-71 TOW 2A",
+      "description": "BGM-71 TOW 2A; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "atgm_team",
-      "roles": [],
+      "roles": [
+        "at"
+      ],
       "cost": 130,
       "roster": {
         "factions": [
@@ -157,12 +225,15 @@
         "variant": "BGM-71 TOW 2A",
         "family_name": "ATGM Team"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "at-team",
-        "weapons": [
-          "TOW"
-        ]
+      "extends": "roster_profile_at_team",
+      "body": {
+        "squad": {
+          "slots": [
+            "roster_tow_gunner",
+            "at_rifleman",
+            "at_rifleman"
+          ]
+        }
       }
     },
     "us_ch_47_chinook_ch_47f": {
@@ -337,10 +408,12 @@
     },
     "us_force_recon_recon_patrol": {
       "name": "Force Recon",
-      "description": "Recon patrol",
+      "description": "Recon patrol; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "force_recon",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 100,
       "roster": {
         "factions": [
@@ -350,13 +423,16 @@
         "variant": "Recon patrol",
         "family_name": "Force Recon"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "elite-scout",
-        "weapons": [
-          "rifle",
-          "grenade"
-        ]
+      "extends": "roster_profile_elite_scout",
+      "body": {
+        "squad": {
+          "slots": [
+            "grenadier",
+            "scout",
+            "scout",
+            "scout"
+          ]
+        }
       }
     },
     "us_kamikaze_drone_anti_armor": {
@@ -407,10 +483,12 @@
     },
     "us_lav_lav_25a2": {
       "name": "LAV LAV-25A2",
-      "description": "LAV-25A2; ground combat platform, passenger carriage not implemented",
+      "description": "LAV-25A2; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "lav",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 160,
       "roster": {
         "factions": [
@@ -420,20 +498,80 @@
         "variant": "LAV-25A2",
         "family_name": "LAV"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "light-ifv",
-        "weapons": [
-          "autocannon"
-        ]
+      "extends": "roster_profile_light_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.195,
+            1.25,
+            1.345
+          ],
+          "eye_m": 2.529,
+          "hp": 70,
+          "armor": {
+            "front": 45,
+            "side": 25,
+            "rear": 15,
+            "roof": 10,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 28,
+          "road_kmh": 75,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.748
+          ],
+          "muzzle_m": [
+            3.65,
+            0,
+            0.484
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "autocannon"
       }
     },
     "us_lav_lav_at": {
       "name": "LAV LAV-AT",
-      "description": "LAV-AT",
+      "description": "LAV-AT; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "lav",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 180,
       "roster": {
         "factions": [
@@ -443,12 +581,70 @@
         "variant": "LAV-AT",
         "family_name": "LAV"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "missile-carrier",
-        "weapons": [
-          "TOW"
-        ]
+      "extends": "roster_profile_missile_carrier",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.195,
+            1.25,
+            1.345
+          ],
+          "eye_m": 2.529,
+          "hp": 70,
+          "armor": {
+            "front": 40,
+            "side": 25,
+            "rear": 15,
+            "roof": 10,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 30,
+          "road_kmh": 85,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "launcher",
+          "weapons": [
+            "tow"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.25
+          ],
+          "muzzle_m": [
+            1.05,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 650,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "launcher"
       }
     },
     "us_m109_paladin_m109a7": {
@@ -476,10 +672,12 @@
     },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
       "name": "M1127 Stryker RV Reconnaissance vehicle",
-      "description": "Reconnaissance vehicle",
+      "description": "Reconnaissance vehicle; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "m1127_stryker_rv",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 130,
       "roster": {
         "factions": [
@@ -489,12 +687,71 @@
         "variant": "Reconnaissance vehicle",
         "family_name": "M1127 Stryker RV"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "wheeled-recon",
-        "weapons": [
-          "HMG"
-        ]
+      "extends": "roster_profile_wheeled_recon",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.475,
+            1.36,
+            1.32
+          ],
+          "eye_m": 2.482,
+          "hp": 65,
+          "armor": {
+            "front": 35,
+            "side": 20,
+            "rear": 15,
+            "roof": 10,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 32,
+          "road_kmh": 90,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.402
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 850,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        },
+        "concealed_range_multiplier": 1.5,
+        "on": "HMG"
       }
     },
     "us_m1129_stryker_mortar_120_mm_mortar_carrier": {
@@ -522,10 +779,12 @@
     },
     "us_m1278_jltv_hmg": {
       "name": "M1278 JLTV HMG",
-      "description": "HMG",
+      "description": "HMG; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "m1278_jltv",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 90,
       "roster": {
         "factions": [
@@ -535,12 +794,70 @@
         "variant": "HMG",
         "family_name": "M1278 JLTV"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "light-car",
-        "weapons": [
-          "HMG"
-        ]
+      "extends": "roster_profile_light_car",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.1,
+            1.25,
+            1.3
+          ],
+          "eye_m": 2.444,
+          "hp": 45,
+          "armor": {
+            "front": 10,
+            "side": 8,
+            "rear": 6,
+            "roof": 5,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "light",
+          "push_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 32,
+          "road_kmh": 100,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.366
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 700,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "HMG"
       }
     },
     "us_m142_himars_gmlrs": {
@@ -591,10 +908,12 @@
     },
     "us_m1_abrams_sep_v2": {
       "name": "M1A2 Abrams SEP v2",
-      "description": "SEP v2",
+      "description": "SEP v2; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "m1_abrams",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 350,
       "roster": {
         "factions": [
@@ -604,13 +923,88 @@
         "variant": "SEP v2",
         "family_name": "M1 Abrams"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "mbt",
-        "weapons": [
-          "tank-gun",
-          "HMG"
-        ]
+      "extends": "roster_profile_mbt",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.965,
+            1.83,
+            1.22
+          ],
+          "eye_m": 2.294,
+          "hp": 110,
+          "armor": {
+            "front": 190,
+            "side": 100,
+            "rear": 60,
+            "roof": 35,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 27,
+          "road_kmh": 60,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "ground_tank_ap",
+            "ground_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.464
+          ],
+          "muzzle_m": [
+            5.805,
+            0,
+            0.439
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.294
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "cannon"
       }
     },
     "us_m1_abrams_sep_v2_trophy": {
@@ -688,10 +1082,12 @@
     },
     "us_m2_bradley_ifv_m2a4": {
       "name": "M2 Bradley IFV M2A4",
-      "description": "M2A4; ground combat platform, passenger carriage not implemented",
+      "description": "M2A4; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "m2_bradley_ifv",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 230,
       "roster": {
         "factions": [
@@ -701,21 +1097,97 @@
         "variant": "M2A4",
         "family_name": "M2 Bradley IFV"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "ifv",
-        "weapons": [
-          "autocannon",
-          "TOW"
-        ]
+      "extends": "roster_profile_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.275,
+            1.8,
+            1.49
+          ],
+          "eye_m": 2.801,
+          "hp": 90,
+          "armor": {
+            "front": 75,
+            "side": 40,
+            "rear": 25,
+            "roof": 20,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.937
+          ],
+          "muzzle_m": [
+            3.6,
+            0,
+            0.536
+          ]
+        },
+        {
+          "name": "launcher",
+          "weapons": [
+            "tow"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0.972,
+            2.444
+          ],
+          "muzzle_m": [
+            1.05,
+            0,
+            0
+          ],
+          "on": "autocannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "autocannon"
       }
     },
     "us_m3_bradley_cfv_m3a3": {
       "name": "M3 Bradley CFV M3A3",
-      "description": "M3A3",
+      "description": "M3A3; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "m3_bradley_cfv",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 210,
       "roster": {
         "factions": [
@@ -725,21 +1197,98 @@
         "variant": "M3A3",
         "family_name": "M3 Bradley CFV"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "tracked-recon",
-        "weapons": [
-          "autocannon",
-          "TOW"
-        ]
+      "extends": "roster_profile_tracked_recon",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.275,
+            1.8,
+            1.49
+          ],
+          "eye_m": 2.801,
+          "hp": 80,
+          "armor": {
+            "front": 55,
+            "side": 30,
+            "rear": 20,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.937
+          ],
+          "muzzle_m": [
+            3.6,
+            0,
+            0.536
+          ]
+        },
+        {
+          "name": "launcher",
+          "weapons": [
+            "tow"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0.972,
+            2.444
+          ],
+          "muzzle_m": [
+            1.05,
+            0,
+            0
+          ],
+          "on": "autocannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 850,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        },
+        "concealed_range_multiplier": 1.5,
+        "on": "autocannon"
       }
     },
     "us_m977_hemtt_general_resupply": {
       "name": "M977 HEMTT General resupply",
-      "description": "General resupply",
+      "description": "General resupply; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "m977_hemtt",
-      "roles": [],
+      "roles": [
+        "logistics"
+      ],
       "cost": 90,
       "roster": {
         "factions": [
@@ -749,18 +1298,62 @@
         "variant": "General resupply",
         "family_name": "M977 HEMTT"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "truck",
-        "weapons": []
+      "extends": "roster_profile_truck",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            5.2,
+            1.2,
+            1.5
+          ],
+          "eye_m": 2.82,
+          "hp": 60,
+          "armor": {
+            "front": 10,
+            "side": 10,
+            "rear": 8,
+            "roof": 5,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 25,
+          "road_kmh": 80,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [],
+      "appearance": "supply_truck",
+      "capabilities": {
+        "deploy": {
+          "seconds": 3,
+          "pack_seconds": 1
+        },
+        "supply": {
+          "stock": 600
+        }
       }
     },
     "us_marine_squad_close_quarters_infantry": {
       "name": "Marine Squad",
-      "description": "Close-quarters infantry",
+      "description": "Close-quarters infantry; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "marine_squad",
-      "roles": [],
+      "roles": [
+        "infantry"
+      ],
       "cost": 110,
       "roster": {
         "factions": [
@@ -770,21 +1363,30 @@
         "variant": "Close-quarters infantry",
         "family_name": "Marine Squad"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "assault",
-        "weapons": [
-          "assault-rifle",
-          "grenade"
-        ]
+      "extends": "roster_profile_assault",
+      "body": {
+        "squad": {
+          "slots": [
+            "roster_assault_rifle",
+            "roster_assault_rifle",
+            "roster_assault_rifle",
+            "roster_assault_rifle",
+            "roster_assault_rifle",
+            "roster_assault_rifle",
+            "roster_assault_rifle",
+            "roster_assault_rifle"
+          ]
+        }
       }
     },
     "us_marksman_squad_m110_equipped_longer_range_infantry": {
       "name": "Marksman Squad",
-      "description": "M110-equipped longer-range infantry",
+      "description": "M110-equipped longer-range infantry; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "marksman_squad",
-      "roles": [],
+      "roles": [
+        "infantry"
+      ],
       "cost": 110,
       "roster": {
         "factions": [
@@ -794,12 +1396,18 @@
         "variant": "M110-equipped longer-range infantry",
         "family_name": "Marksman Squad"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "marksman",
-        "weapons": [
-          "marksman-rifle"
-        ]
+      "extends": "roster_profile_marksman",
+      "body": {
+        "squad": {
+          "slots": [
+            "roster_marksman_rifle_1",
+            "roster_marksman_rifle_2",
+            "roster_marksman_rifle_3",
+            "roster_marksman_rifle_4",
+            "roster_marksman_rifle_5",
+            "roster_marksman_rifle_6"
+          ]
+        }
       }
     },
     "us_mq_9_reaper_mq_9a": {
@@ -869,10 +1477,12 @@
     },
     "us_scout_snipers_m107_heavy_sniper_team": {
       "name": "Scout Snipers",
-      "description": "M107 heavy sniper team",
+      "description": "M107 heavy sniper team; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "scout_snipers",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 100,
       "roster": {
         "factions": [
@@ -882,20 +1492,24 @@
         "variant": "M107 heavy sniper team",
         "family_name": "Scout Snipers"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "sniper",
-        "weapons": [
-          "heavy-sniper"
-        ]
+      "extends": "roster_profile_sniper",
+      "body": {
+        "squad": {
+          "slots": [
+            "roster_heavy_sniper_1",
+            "roster_heavy_sniper_2"
+          ]
+        }
       }
     },
     "us_stryker_m1126_icv": {
       "name": "Stryker M1126 ICV",
-      "description": "M1126 ICV; ground combat platform, passenger carriage not implemented",
+      "description": "M1126 ICV; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "stryker",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 140,
       "roster": {
         "factions": [
@@ -905,20 +1519,80 @@
         "variant": "M1126 ICV",
         "family_name": "Stryker"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "apc",
-        "weapons": [
-          "HMG"
-        ]
+      "extends": "roster_profile_apc",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.475,
+            1.36,
+            1.32
+          ],
+          "eye_m": 2.482,
+          "hp": 70,
+          "armor": {
+            "front": 35,
+            "side": 25,
+            "rear": 15,
+            "roof": 10,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 30,
+          "road_kmh": 90,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.402
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 450,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "HMG"
       }
     },
     "us_stryker_m1134_atgm": {
       "name": "Stryker M1134 ATGM",
-      "description": "M1134 ATGM",
+      "description": "M1134 ATGM; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "stryker",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 190,
       "roster": {
         "factions": [
@@ -928,20 +1602,80 @@
         "variant": "M1134 ATGM",
         "family_name": "Stryker"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "missile-carrier",
-        "weapons": [
-          "TOW"
-        ]
+      "extends": "roster_profile_missile_carrier",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.475,
+            1.36,
+            1.32
+          ],
+          "eye_m": 2.482,
+          "hp": 70,
+          "armor": {
+            "front": 40,
+            "side": 25,
+            "rear": 15,
+            "roof": 10,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 30,
+          "road_kmh": 85,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "launcher",
+          "weapons": [
+            "tow"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0.734,
+            2.165
+          ],
+          "muzzle_m": [
+            1.05,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 650,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "launcher"
       }
     },
     "us_stryker_m1296_dragoon": {
       "name": "Stryker M1296 Dragoon",
-      "description": "M1296 Dragoon; ground combat platform, passenger carriage not implemented",
+      "description": "M1296 Dragoon; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
       "faction": "us",
       "family": "stryker",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 200,
       "roster": {
         "factions": [
@@ -951,12 +1685,70 @@
         "variant": "M1296 Dragoon",
         "family_name": "Stryker"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "wheeled-ifv",
-        "weapons": [
-          "autocannon"
-        ]
+      "extends": "roster_profile_wheeled_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.475,
+            1.36,
+            1.32
+          ],
+          "eye_m": 2.482,
+          "hp": 85,
+          "armor": {
+            "front": 60,
+            "side": 35,
+            "rear": 20,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 30,
+          "road_kmh": 85,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.716
+          ],
+          "muzzle_m": [
+            2.919,
+            0,
+            0.475
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "autocannon"
       }
     },
     "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {

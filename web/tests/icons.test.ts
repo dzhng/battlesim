@@ -9,7 +9,7 @@ import game from "@fixtures/game.json";
 import { iconFiles, unitIcons } from "@packages/scene-assets/src/icons";
 import { inkBounds } from "@packages/scene-assets/src/inkBounds";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
 import {
   runtimeLookup,
   silhouetteSvg,
@@ -27,8 +27,8 @@ const lookup = runtimeLookup(
 const shipped = (id: string) => unitSolids(UNITS, id, lookup);
 
 test("every weapon, role and unit type has its generated icon, current, and nothing else", () => {
-  const files = iconFiles(game.weapons, UNITS, shipped);
-  for (const w of Object.values(game.weapons))
+  const files = iconFiles(WEAPONS, UNITS, shipped);
+  for (const w of Object.values(WEAPONS))
     expect(files.has(`weapons/${w.icon}.svg`), `weapon icon ${w.icon}`).toBe(true);
   for (const t of UNITS.view.units) {
     const { silhouette, role } = unitIcons(t);
@@ -94,7 +94,7 @@ test("an icon drawing's bounds follow its curves, not just its end points", () =
 });
 
 test("every weapon, state and glyph icon is centred on its ink", () => {
-  const files = iconFiles(game.weapons, UNITS, shipped);
+  const files = iconFiles(WEAPONS, UNITS, shipped);
   const offCentre = [...files]
     .filter(([path]) => /^(weapons|states|glyphs)\//.test(path))
     .filter(([, svg]) => {

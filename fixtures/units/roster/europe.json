@@ -2,10 +2,12 @@
   "units": {
     "europe_ajax_tracked_reconnaissance_vehicle": {
       "name": "Ajax Tracked reconnaissance vehicle",
-      "description": "Tracked reconnaissance vehicle",
+      "description": "Tracked reconnaissance vehicle; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "ajax",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 220,
       "roster": {
         "factions": [
@@ -15,12 +17,70 @@
         "variant": "Tracked reconnaissance vehicle",
         "family_name": "Ajax"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "tracked-recon",
-        "weapons": [
-          "autocannon"
-        ]
+      "extends": "roster_profile_tracked_recon",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.81,
+            1.675,
+            1.5
+          ],
+          "eye_m": 2.82,
+          "hp": 80,
+          "armor": {
+            "front": 55,
+            "side": 30,
+            "rear": 20,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.95
+          ],
+          "muzzle_m": [
+            4.1,
+            0,
+            0.54
+          ]
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 850,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        },
+        "concealed_range_multiplier": 1.5,
+        "on": "autocannon"
       }
     },
     "europe_atgm_team_akeron_mp": {
@@ -94,10 +154,12 @@
     },
     "europe_boxer_apc": {
       "name": "Boxer APC",
-      "description": "APC; ground combat platform, passenger carriage not implemented",
+      "description": "APC; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "boxer",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 170,
       "roster": {
         "factions": [
@@ -107,20 +169,80 @@
         "variant": "APC",
         "family_name": "Boxer"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "heavy-apc",
-        "weapons": [
-          "HMG"
-        ]
+      "extends": "roster_profile_heavy_apc",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.965,
+            1.495,
+            1.19
+          ],
+          "eye_m": 2.237,
+          "hp": 90,
+          "armor": {
+            "front": 65,
+            "side": 40,
+            "rear": 25,
+            "roof": 20,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 28,
+          "road_kmh": 80,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.166
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 450,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "HMG"
       }
     },
     "europe_boxer_rct30": {
       "name": "Boxer RCT30",
-      "description": "RCT30; ground combat platform, passenger carriage not implemented",
+      "description": "RCT30; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "boxer",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 240,
       "roster": {
         "factions": [
@@ -130,12 +252,70 @@
         "variant": "RCT30",
         "family_name": "Boxer"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "wheeled-ifv",
-        "weapons": [
-          "autocannon"
-        ]
+      "extends": "roster_profile_wheeled_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.965,
+            1.495,
+            1.19
+          ],
+          "eye_m": 2.237,
+          "hp": 85,
+          "armor": {
+            "front": 60,
+            "side": 35,
+            "rear": 20,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 30,
+          "road_kmh": 85,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.547
+          ],
+          "muzzle_m": [
+            3.331,
+            0,
+            0.428
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "autocannon"
       }
     },
     "europe_boxer_skyranger_30_gun_and_missile_air_defense": {
@@ -210,10 +390,12 @@
     },
     "europe_challenger_challenger_2_tes": {
       "name": "Challenger Challenger 2 TES",
-      "description": "Challenger 2 TES",
+      "description": "Challenger 2 TES; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "challenger",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 390,
       "roster": {
         "factions": [
@@ -223,13 +405,88 @@
         "variant": "Challenger 2 TES",
         "family_name": "Challenger"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "heavy-mbt",
-        "weapons": [
-          "tank-gun",
-          "HMG"
-        ]
+      "extends": "roster_profile_heavy_mbt",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            4.15,
+            2.1,
+            1.245
+          ],
+          "eye_m": 2.341,
+          "hp": 130,
+          "armor": {
+            "front": 230,
+            "side": 120,
+            "rear": 65,
+            "roof": 40,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 24,
+          "road_kmh": 55,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "ground_tank_ap",
+            "ground_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.494
+          ],
+          "muzzle_m": [
+            5.561,
+            0,
+            0.448
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.341
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "cannon"
       }
     },
     "europe_challenger_challenger_3": {
@@ -259,10 +516,12 @@
     },
     "europe_cv90_cv9040c": {
       "name": "CV90 CV9040C",
-      "description": "CV9040C; ground combat platform, passenger carriage not implemented",
+      "description": "CV9040C; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "cv90",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 220,
       "roster": {
         "factions": [
@@ -272,20 +531,79 @@
         "variant": "CV9040C",
         "family_name": "CV90"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "ifv",
-        "weapons": [
-          "autocannon"
-        ]
+      "extends": "roster_profile_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.4,
+            1.6,
+            1.4
+          ],
+          "eye_m": 2.632,
+          "hp": 90,
+          "armor": {
+            "front": 75,
+            "side": 40,
+            "rear": 25,
+            "roof": 20,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.82
+          ],
+          "muzzle_m": [
+            3.9,
+            0,
+            0.504
+          ]
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "autocannon"
       }
     },
     "europe_cv90_mk_iv": {
       "name": "CV90 Mk IV",
-      "description": "Mk IV; ground combat platform, passenger carriage not implemented",
+      "description": "Mk IV; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "cv90",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 260,
       "roster": {
         "factions": [
@@ -295,12 +613,69 @@
         "variant": "Mk IV",
         "family_name": "CV90"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "advanced-ifv",
-        "weapons": [
-          "autocannon"
-        ]
+      "extends": "roster_profile_advanced_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.4,
+            1.6,
+            1.4
+          ],
+          "eye_m": 2.632,
+          "hp": 100,
+          "armor": {
+            "front": 90,
+            "side": 50,
+            "rear": 30,
+            "roof": 25,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 30,
+          "road_kmh": 70,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.82
+          ],
+          "muzzle_m": [
+            3.9,
+            0,
+            0.504
+          ]
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 600,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "autocannon"
       }
     },
     "europe_ebrc_jaguar_armed_reconnaissance_vehicle": {
@@ -402,10 +777,12 @@
     },
     "europe_fennek_reconnaissance_vehicle": {
       "name": "Fennek Reconnaissance vehicle",
-      "description": "Reconnaissance vehicle",
+      "description": "Reconnaissance vehicle; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "fennek",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 130,
       "roster": {
         "factions": [
@@ -415,12 +792,71 @@
         "variant": "Reconnaissance vehicle",
         "family_name": "Fennek"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "wheeled-recon",
-        "weapons": [
-          "HMG"
-        ]
+      "extends": "roster_profile_wheeled_recon",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            2.79,
+            1.275,
+            1.145
+          ],
+          "eye_m": 2.153,
+          "hp": 65,
+          "armor": {
+            "front": 35,
+            "side": 20,
+            "rear": 15,
+            "roof": 10,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 32,
+          "road_kmh": 90,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.084
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 850,
+        "sight_shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        },
+        "concealed_range_multiplier": 1.5,
+        "on": "HMG"
       }
     },
     "europe_gepard_1a2": {
@@ -519,10 +955,12 @@
     },
     "europe_kf51_panther_prototype_main_battle_tank": {
       "name": "KF51 Panther Prototype main battle tank",
-      "description": "Prototype main battle tank",
+      "description": "Prototype main battle tank; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "kf51_panther",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 460,
       "roster": {
         "factions": [
@@ -532,21 +970,98 @@
         "variant": "Prototype main battle tank",
         "family_name": "KF51 Panther"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "advanced-mbt",
-        "weapons": [
-          "advanced-tank-gun",
-          "HMG"
-        ]
+      "extends": "roster_profile_advanced_mbt",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.9,
+            1.85,
+            1.25
+          ],
+          "eye_m": 2.35,
+          "hp": 135,
+          "armor": {
+            "front": 260,
+            "side": 130,
+            "rear": 70,
+            "roof": 45,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "advanced_tank_ap",
+            "advanced_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.5
+          ],
+          "muzzle_m": [
+            6.1,
+            0,
+            0.45
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.35
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 600,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "cannon"
       }
     },
     "europe_leclerc_xlr": {
       "name": "Leclerc XLR",
-      "description": "XLR",
+      "description": "XLR; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "leclerc",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 390,
       "roster": {
         "factions": [
@@ -556,21 +1071,98 @@
         "variant": "XLR",
         "family_name": "Leclerc"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "improved-mbt",
-        "weapons": [
-          "tank-gun",
-          "HMG"
-        ]
+      "extends": "roster_profile_improved_mbt",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.44,
+            1.8,
+            1.265
+          ],
+          "eye_m": 2.378,
+          "hp": 120,
+          "armor": {
+            "front": 220,
+            "side": 115,
+            "rear": 65,
+            "roof": 40,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "ground_tank_ap",
+            "ground_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.518
+          ],
+          "muzzle_m": [
+            6.43,
+            0,
+            0.455
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.378
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "cannon"
       }
     },
     "europe_leopard_2_2a6": {
       "name": "Leopard 2 2A6",
-      "description": "2A6",
+      "description": "2A6; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "leopard_2",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 340,
       "roster": {
         "factions": [
@@ -580,21 +1172,98 @@
         "variant": "2A6",
         "family_name": "Leopard 2"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "mbt",
-        "weapons": [
-          "tank-gun",
-          "HMG"
-        ]
+      "extends": "roster_profile_mbt",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.85,
+            1.875,
+            1.5
+          ],
+          "eye_m": 2.82,
+          "hp": 110,
+          "armor": {
+            "front": 190,
+            "side": 100,
+            "rear": 60,
+            "roof": 35,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 27,
+          "road_kmh": 60,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "ground_tank_ap",
+            "ground_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.8
+          ],
+          "muzzle_m": [
+            7.12,
+            0,
+            0.54
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.82
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 500,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "cannon"
       }
     },
     "europe_leopard_2_2a7v": {
       "name": "Leopard 2 2A7V",
-      "description": "2A7V",
+      "description": "2A7V; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "leopard_2",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 390,
       "roster": {
         "factions": [
@@ -604,13 +1273,88 @@
         "variant": "2A7V",
         "family_name": "Leopard 2"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "improved-mbt",
-        "weapons": [
-          "tank-gun",
-          "HMG"
-        ]
+      "extends": "roster_profile_improved_mbt",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.85,
+            1.875,
+            1.5
+          ],
+          "eye_m": 2.82,
+          "hp": 120,
+          "armor": {
+            "front": 220,
+            "side": 115,
+            "rear": 65,
+            "roof": 40,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "ground_tank_ap",
+            "ground_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.8
+          ],
+          "muzzle_m": [
+            7.12,
+            0,
+            0.54
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.82
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "cannon"
       }
     },
     "europe_leopard_2_2a8": {
@@ -640,10 +1384,12 @@
     },
     "europe_man_hx_general_resupply": {
       "name": "MAN HX General resupply",
-      "description": "General resupply",
+      "description": "General resupply; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "man_hx",
-      "roles": [],
+      "roles": [
+        "logistics"
+      ],
       "cost": 90,
       "roster": {
         "factions": [
@@ -653,18 +1399,62 @@
         "variant": "General resupply",
         "family_name": "MAN HX"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "truck",
-        "weapons": []
+      "extends": "roster_profile_truck",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            5.168,
+            1.25,
+            1.65
+          ],
+          "eye_m": 3.102,
+          "hp": 60,
+          "armor": {
+            "front": 10,
+            "side": 10,
+            "rear": 8,
+            "roof": 5,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 25,
+          "road_kmh": 80,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [],
+      "appearance": "supply_truck",
+      "capabilities": {
+        "deploy": {
+          "seconds": 3,
+          "pack_seconds": 1
+        },
+        "supply": {
+          "stock": 600
+        }
       }
     },
     "europe_marksman_squad_longer_range_infantry": {
       "name": "Marksman Squad",
-      "description": "Longer-range infantry",
+      "description": "Longer-range infantry; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "marksman_squad",
-      "roles": [],
+      "roles": [
+        "infantry"
+      ],
       "cost": 110,
       "roster": {
         "factions": [
@@ -674,12 +1464,18 @@
         "variant": "Longer-range infantry",
         "family_name": "Marksman Squad"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "marksman",
-        "weapons": [
-          "marksman-rifle"
-        ]
+      "extends": "roster_profile_marksman",
+      "body": {
+        "squad": {
+          "slots": [
+            "roster_marksman_rifle_1",
+            "roster_marksman_rifle_2",
+            "roster_marksman_rifle_3",
+            "roster_marksman_rifle_4",
+            "roster_marksman_rifle_5",
+            "roster_marksman_rifle_6"
+          ]
+        }
       }
     },
     "europe_mars_ii_multiple_launch_rocket_system": {
@@ -778,10 +1574,12 @@
     },
     "europe_puma_level_c": {
       "name": "Puma Level C",
-      "description": "Level C; ground combat platform, passenger carriage not implemented",
+      "description": "Level C; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "europe",
       "family": "puma",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 260,
       "roster": {
         "factions": [
@@ -791,13 +1589,87 @@
         "variant": "Level C",
         "family_name": "Puma"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "heavy-ifv",
-        "weapons": [
-          "autocannon",
-          "Spike"
-        ]
+      "extends": "roster_profile_heavy_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.7,
+            2.0,
+            1.55
+          ],
+          "eye_m": 2.914,
+          "hp": 120,
+          "armor": {
+            "front": 130,
+            "side": 75,
+            "rear": 40,
+            "roof": 30,
+            "ricochet": {
+              "front": 0.5,
+              "side": 0.35,
+              "rear": 0.2,
+              "roof": 0.6
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 25,
+          "road_kmh": 60,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.015
+          ],
+          "muzzle_m": [
+            4.1,
+            0,
+            0.558
+          ]
+        },
+        {
+          "name": "launcher",
+          "weapons": [
+            "spike"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            1.08,
+            2.542
+          ],
+          "muzzle_m": [
+            1.05,
+            0,
+            0
+          ],
+          "on": "autocannon"
+        }
+      ],
+      "appearance": "tank",
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "autocannon"
       }
     },
     "europe_pzh_2000_tracked_155_mm_howitzer": {
@@ -850,10 +1722,12 @@
     },
     "europe_recon_patrol_light_patrol": {
       "name": "Recon Patrol",
-      "description": "Light patrol",
+      "description": "Light patrol; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "recon_patrol",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 80,
       "roster": {
         "factions": [
@@ -863,12 +1737,16 @@
         "variant": "Light patrol",
         "family_name": "Recon Patrol"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "scout",
-        "weapons": [
-          "rifle"
-        ]
+      "extends": "roster_profile_scout",
+      "body": {
+        "squad": {
+          "slots": [
+            "scout",
+            "scout",
+            "scout",
+            "scout"
+          ]
+        }
       }
     },
     "europe_scout_drone_standard": {
@@ -963,10 +1841,12 @@
     },
     "europe_vbci_infantry_fighting_vehicle": {
       "name": "VBCI Infantry fighting vehicle",
-      "description": "Infantry fighting vehicle; ground combat platform, passenger carriage not implemented",
+      "description": "Infantry fighting vehicle; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "vbci",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 220,
       "roster": {
         "factions": [
@@ -976,20 +1856,80 @@
         "variant": "Infantry fighting vehicle",
         "family_name": "VBCI"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "wheeled-ifv",
-        "weapons": [
-          "autocannon"
-        ]
+      "extends": "roster_profile_wheeled_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.8,
+            1.49,
+            1.5
+          ],
+          "eye_m": 2.82,
+          "hp": 85,
+          "armor": {
+            "front": 60,
+            "side": 35,
+            "rear": 20,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 30,
+          "road_kmh": 85,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "autocannon",
+          "weapons": [
+            "autocannon"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.95
+          ],
+          "muzzle_m": [
+            4.05,
+            0,
+            0.54
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 550,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "autocannon"
       }
     },
     "europe_vbl_machine_gun_scout": {
       "name": "VBL Machine-gun scout",
-      "description": "Machine-gun scout",
+      "description": "Machine-gun scout; temporary generic appearance until named model admission",
       "faction": "europe",
       "family": "vbl",
-      "roles": [],
+      "roles": [
+        "light_vehicle"
+      ],
       "cost": 90,
       "roster": {
         "factions": [
@@ -999,12 +1939,70 @@
         "variant": "Machine-gun scout",
         "family_name": "VBL"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "light-car",
-        "weapons": [
-          "HMG"
-        ]
+      "extends": "roster_profile_light_car",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            1.9,
+            1.01,
+            0.85
+          ],
+          "eye_m": 1.598,
+          "hp": 45,
+          "armor": {
+            "front": 10,
+            "side": 8,
+            "rear": 6,
+            "roof": 5,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.15
+            }
+          },
+          "weight_class": "light",
+          "push_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 32,
+          "road_kmh": 100,
+          "turn_deg_s": 40,
+          "reverse_fraction": 0.35,
+          "turning_radius_m": 6
+        }
+      },
+      "mounts": [
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.547
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ]
+        }
+      ],
+      "appearance": "jeep",
+      "sensors": {
+        "ground_m": 700,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.5,
+          "rear": 0.3
+        },
+        "on": "HMG"
       }
     }
   }

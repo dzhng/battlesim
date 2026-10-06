@@ -13,7 +13,7 @@ Catalog metadata admission is implemented; skirmish gameplay is still in progres
 | Thirteen focused contracts with an early playable checkpoint and concurrent model lane | Agent synthesis of three independent, differently biased drafts under write-spec. | 01–13 | Planned; avoid both a giant all-systems slice and serializing independent families. |
 | Planned metadata outside available physical type admission, within one catalog owner | Agent, avoids invalid future aircraft breaking strict ground parser and live-type tests. | 01 | Sound/high: planned rows serialize with the same catalog but cannot acquire a physical type index. |
 | Preserve developer generic scenario types without player memberships | Agent, real authored labs are intentional consumers rather than a compatibility shim. | 01/04 | Sound/high: generic scenario units retain their real consumers; no player cards are synthesized for them. |
-| Compact skirmish profile research, standard map sizes intact | Agent, existing 4–10 km travel conflicts with quick edge-entry infantry play. | 02 | OPEN measured admission; candidate extents are delegated tuning. |
+| Compact skirmish profile, hard identity cutover | Agent, standard 4–10 km travel conflicts with quick edge-entry infantry play. Profile owns 1.8/2.4/3.0/3.6km extents and compact road/river/site budgets; preset revision advanced to layout-presets-19, with parity records regenerated at closeout. | 02 | Small/Open seed1 full geometry+navigation green; bounded Mixed/Metro probes retain named generation/route refusals pending wider profile tuning. |
 | Own base geometry replaces camera dependency on an initial unit | Territory finding, required by user zero-unit start. | 02 | Planned; prepare.ts:245–248 currently throws without a blue unit. |
 | Ground carrier platforms only claim supported ground combat until transport exists | Agent, prevents expanding first phase into unasked transport mechanics. | 01/03 | Admission audit must record exact enabled/disabled role per variant. |
 | Trophy is a defensive capability projected into a weapon row | Agent, obeys user panel vocabulary without fake offensive ballistics/commands. | 10 | Planned; reuse shared weapon UI and side-only readiness. |
@@ -39,3 +39,25 @@ later. Faction membership changes availability, not a second set of stats.
 separately from its stable identifier and concrete variant title, rather than
 asking each UI to strip designation text heuristically. The plan specified family
 grouping but not the title representation; later pickers consume this one owner.
+
+### Ground resource ownership — sound, high confidence
+
+When: slice 03 ground-data foundation.
+Choice: a marksman squad's soldiers each carry their own finite gun/ammunition state.
+If one soldier fires two rounds, only that soldier's reserve falls; combining the
+weapons into one pooled squad mount would make surviving soldiers share an artificial
+magazine. The existing mount owner already supports the physical-gun contract.
+Gap: starter loadout authoring did not specify pooled versus individual resources.
+Reach: resupply and refund ammunition condition observe these independent owners;
+weapon panels should group repeated rows for readability without pooling physics.
+Verdict: sound; finite logistics must follow actual carried guns, not a UI grouping.
+
+### BMP-3 gun-launched missile — sound, high confidence
+
+When: slice 03 ground-data foundation.
+Choice: the ordinary BMP-3 fires Bastion through its 100 mm gun and uses a separate
+30 mm gun. Adding an external Kornet launcher would depict a different loadout.
+Gap: planning named the platform, not the admitted weapon mounting.
+Reach: model artists and service costs use the same two physical mount owners.
+Verdict: sound; platform equipment and supported guidance agree. A third articulation
+role is unnecessary because the existing secondary rig can carry the second gun.
