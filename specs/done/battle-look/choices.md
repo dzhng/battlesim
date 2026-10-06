@@ -1068,6 +1068,8 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **The reach.** No reverse planning; a narrow lane may take more than three points.
 
+**Since (2026-10-05).** A leg whose turning arc is blocked backs out straight, or turning the other way, before it ends: a truck nosed into a gap between parked cars otherwise flipped between leg and forward arc for ever. Arcs are also swept for solids every 10 cm (`drive::SAMPLE_M`), since a turning corner clips a body within a metre.
+
 **Verdict.** sound.
 
 ### Final facing: the ordered facing if the unit can turn to it, otherwise the way it arrives; wheels never pivot

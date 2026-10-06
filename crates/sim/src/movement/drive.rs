@@ -333,7 +333,8 @@ pub fn steer(
                 };
             }
         }
-        // Nothing behind is clear either: turn the other way again.
+        // Nothing behind is clear either: the leg ends, and the forward arc
+        // decides again.
         unit.manoeuvre = None;
     }
     let desired = turn_speed(&drive, speed_in(&drive, gear, speed), error)
