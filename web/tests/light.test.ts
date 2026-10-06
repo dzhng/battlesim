@@ -13,6 +13,7 @@ import {
 import { skyModelParams } from "@packages/battle-renderer/src/light/skyParameters.ts";
 import { photorealEnvironment } from "@packages/battle-renderer/src/light/physicalEnvironment.ts";
 import { aerialWgsl } from "@packages/battle-renderer/src/shaders/aerial.ts";
+import { skyCloudsWgsl } from "@packages/battle-renderer/src/shaders/physicalSky.ts";
 import { aerialParams } from "@packages/battle-renderer/src/light/aerialParameters.ts";
 import { createTypegpuPost } from "@packages/battle-renderer/src/world/post.ts";
 import { cascadeFrameData } from "@packages/battle-renderer/src/shadowData.ts";
@@ -228,4 +229,23 @@ test("post encodes sRGB itself, so it refuses an sRGB canvas that would encode t
   await expect(createTypegpuPost(device, input, 256, 256, "bgra8unorm-srgb", post)).rejects.toThrow(
     /sRGB/,
   );
+});
+
+test("a sunny sky carries fair-weather clouds that give way to the overcast dome, and a cloud field past full is refused", () => {
+  const clouds = skyModelParams(LIGHT).clouds;
+  expect(clouds.coverage).toBeGreaterThan(0);
+  expect(clouds.opacity).toBeGreaterThan(0.5);
+  // Overcast is one grey dome: no separate cloud field over it.
+  const overcast = withLight((l) => {
+    l.sky.turbidity = 12;
+  });
+  expect(skyModelParams(overcast).clouds.opacity).toBe(0);
+  expect(skyCloudsWgsl(skyModelParams(LIGHT))).not.toMatch(/NaN|Infinity/);
+  expect(() =>
+    validateLight(
+      withLight((l) => {
+        l.sky.clouds.coverage = 1.5;
+      }),
+    ),
+  ).toThrow(/sky\.clouds\.coverage/);
 });

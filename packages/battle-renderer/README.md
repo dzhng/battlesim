@@ -41,6 +41,9 @@ its region's appearances.
 [Renderer core](../renderer-core/README.md) owns the live camera and depth convention.
 [Light](src/light/sceneLight.ts) shares one fixture-owned sun and environment;
 [world shading](src/world/) and [shader functions](src/shaders/) reuse it.
+The [sky](src/world/sky.ts) shows a fair-weather cloud layer over the clear
+atmosphere it bakes; the environment light is baked clear, so clouds never dim
+the sun on the ground.
 Fog eyes use published positions while model motion may interpolate. Unknown
 occluders cannot enter a side's fog. Seen ground and sun shadow must remain visually
 distinct from unseen ground; [fog and light rationale](../../specs/done/battle-look/README.md)

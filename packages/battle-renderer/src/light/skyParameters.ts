@@ -1,6 +1,10 @@
 // Physical atmosphere data shared by renderer backends. Units, authored tuning,
 // and parameter derivation stay here; GPU resources and shader assembly do not.
-import { sunDirection as sunToward, type LightPresentation } from "./sceneLight";
+import {
+  sunDirection as sunToward,
+  type CloudSettings,
+  type LightPresentation,
+} from "./sceneLight";
 import { smoothstep as smoothstepScalar } from "@packages/renderer-core/src/math";
 import type { Vec3 } from "math";
 
@@ -92,6 +96,8 @@ export interface SkyModelParams {
   /** The sun DirectionalLight colour: transmittance desaturated toward grey
    *  as overcast rises (cloud diffusion kills the direct tint). */
   sunLightColor: Readonly<Vec3>;
+  /** The view's cloud layer; its opacity gives way to the overcast dome. */
+  clouds: CloudSettings;
 }
 
 /** The pure light → sky-model mapping (no GPU). Sun elevation + turbidity
@@ -116,6 +122,7 @@ export function skyModelParams(light: LightPresentation): SkyModelParams {
     overcast,
     sunTransmittance,
     sunLightColor,
+    clouds: { ...light.sky.clouds, opacity: light.sky.clouds.opacity * (1 - overcast) },
   };
 }
 

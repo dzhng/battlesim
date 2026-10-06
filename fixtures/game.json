@@ -816,7 +816,12 @@
       "sun_elevation": 0.7,
       "sun_intensity": 6.5,
       "shadow_floor": 0.4,
-      "sky": { "turbidity": 2.0, "radiance": 12, "fill": [1.0, 0.75, 0.47] },
+      "sky": {
+        "turbidity": 2.0,
+        "radiance": 12,
+        "fill": [1.0, 0.75, 0.47],
+        "clouds": { "coverage": 0.42, "height_m": 1600, "scale_m": 600, "softness": 0.05, "opacity": 0.95, "radiance": 1.5, "shade": [0.55, 0.6, 0.7] }
+      },
       "haze": {
         "distance_scale": 4.6,
         "clear_radius_m": 300,
