@@ -72,6 +72,8 @@ interface ReelBattle {
   restart: () => void;
   /** An own unit's position, or null once it is gone. */
   unitAt: (id: number) => ArrayLike<number> | null;
+  /** The battle's presentation clock at `now`, in simulation seconds. */
+  clock: (now: number) => number | null;
 }
 
 /** The reel's pilot: it veils the picture until the battle stands at its warm
@@ -83,9 +85,12 @@ function createReelPilot(
   hold: () => Promise<void>,
 ) {
   const reel = reelFor(matchMedia("(prefers-reduced-motion: reduce)").matches);
-  const battle: ReelBattle = { restart: () => {}, unitAt: () => null };
+  const battle: ReelBattle = { restart: () => {}, unitAt: () => null, clock: () => null };
   let warm = false;
-  let startedAt: number | null = null;
+  // The reel runs on the battle's clock, not the wall's: a battle running
+  // behind real time (a slow worker, a stalled frame) keeps each cut on the
+  // moment it was cut for.
+  const warmClock = Math.round(backdrop.warm_s * game.tick_hz) / game.tick_hz;
   // The tracked unit's smoothed position; it holds where a fallen unit was.
   let tracked: { follow: number; at: [number, number]; now: number } | null = null;
   // The last framed subject's world position.
@@ -112,15 +117,14 @@ function createReelPilot(
   };
   const pilot: ViewportPilot = {
     pose(now) {
-      if (warm && startedAt === null) startedAt = now;
+      const clock = warm ? battle.clock(now) : null;
       const sample =
-        startedAt === null
+        clock === null
           ? { pose: reel.shots[0].from, follow: null, black: 1, done: false }
-          : sampleReel(reel, (now - startedAt) / 1000);
+          : sampleReel(reel, Math.max(0, clock - warmClock));
       if (veil.current) veil.current.style.opacity = String(sample.black);
       if (sample.done) {
         warm = false;
-        startedAt = null;
         tracked = null;
         battle.restart();
       }
@@ -186,6 +190,7 @@ function BackdropBattle({
   const { sim } = session;
   reel.battle.restart = sim.restart;
   reel.battle.unitAt = (id) => sim.latest.current?.own.find((u) => u.id === id)?.position ?? null;
+  reel.battle.clock = (now) => sim.interpolator.current?.time(now) ?? null;
   useEffect(() => {
     if (sim.error) console.error(`The menu backdrop battle could not start: ${sim.error}`);
   }, [sim.error]);
