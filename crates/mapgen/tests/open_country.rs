@@ -6,6 +6,10 @@
 mod halves;
 #[path = "common/limits.rs"]
 mod limits;
+#[path = "common/memo.rs"]
+mod memo;
+#[path = "common/parallel.rs"]
+mod parallel;
 use contract::encounter::EncounterRecipes;
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::MapDefinition;
@@ -21,7 +25,7 @@ use mapgen::MapPlan;
 use sim::encounter::{plan_encounter, PreparedMap};
 use sim::math::v2;
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::Arc;
 
 use sim::map_analysis as sight;
 
@@ -104,29 +108,24 @@ fn generate(map_type: MapType, size: MapSize, seed: u64) -> Country {
 
 /// Each map is generated once, whichever tests ask for it.
 fn country(map_type: MapType, size: MapSize, seed: u64) -> Arc<Country> {
-    type Countries = BTreeMap<(MapType, MapSize, u64), Arc<Country>>;
-    static COUNTRIES: OnceLock<Mutex<Countries>> = OnceLock::new();
-    let countries = COUNTRIES.get_or_init(Default::default);
-    if let Some(found) = countries.lock().unwrap().get(&(map_type, size, seed)) {
-        return found.clone();
-    }
-    let made = Arc::new(generate(map_type, size, seed));
-    countries
-        .lock()
-        .unwrap()
-        .insert((map_type, size, seed), made.clone());
-    made
+    static COUNTRIES: memo::Memo<(MapType, MapSize, u64), Country> = memo::Memo::new();
+    COUNTRIES.get((map_type, size, seed), || generate(map_type, size, seed))
 }
 
+/// Every type and size on each seed, and the map the owner played: made side
+/// by side, checked in this order.
 fn every_cell(mut check: impl FnMut(&Country)) {
-    for map_type in TYPES {
-        for size in SIZES {
-            for seed in SEEDS {
-                check(&country(map_type, size, seed));
-            }
-        }
+    let mut cells: Vec<(MapType, MapSize, u64)> = TYPES
+        .into_iter()
+        .flat_map(|map_type| SIZES.into_iter().map(move |size| (map_type, size)))
+        .flat_map(|(map_type, size)| SEEDS.into_iter().map(move |seed| (map_type, size, seed)))
+        .collect();
+    cells.push((MapType::Mixed, MapSize::Medium, PLAYED));
+    for made in parallel::each(&cells, |&(map_type, size, seed)| {
+        country(map_type, size, seed)
+    }) {
+        check(&made);
     }
-    check(&country(MapType::Mixed, MapSize::Medium, PLAYED));
 }
 
 /// The maps judged in the simulation's world: one of each type at the size

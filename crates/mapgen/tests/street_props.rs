@@ -5,6 +5,8 @@
 mod halves;
 #[path = "common/limits.rs"]
 mod limits;
+#[path = "common/parallel.rs"]
+mod parallel;
 use contract::catalog::Catalog;
 use contract::encounter::EncounterRecipes;
 use contract::ground::{polygon_contains, GroundShape};
@@ -267,7 +269,8 @@ fn compiled(
     .map
 }
 
-/// Every hull of the catalog as a mover, the widest first.
+/// The hulls of the catalog that stand for the rest, as movers, the widest
+/// first.
 fn vehicles(rules: &Rules) -> Vec<(String, Mobility)> {
     let catalog = &rules.catalog;
     let mut hulls: Vec<(String, Mobility)> = catalog
@@ -280,7 +283,39 @@ fn vehicles(rules: &Rules) -> Vec<(String, Mobility)> {
             )
         })
         .collect();
-    hulls.sort_by(|a, b| b.1.half_width_m.total_cmp(&a.1.half_width_m));
+    hulls.sort_by(|a, b| {
+        b.1.half_width_m
+            .total_cmp(&a.1.half_width_m)
+            .then_with(|| a.0.cmp(&b.0))
+    });
+    // The planner knows a hull by its width, its turn and its kind (what it
+    // stops at and shoves, tracked or wheeled). So each kind is driven by its
+    // widest hull and its widest-turning one: where both fit and turn, the
+    // rest of their kind do too. Driving all forty-odd hulls of the roster
+    // street by street was most of an hour.
+    let kind = |m: &Mobility| {
+        format!(
+            "{:?} {:?} {:?}",
+            m.class,
+            m.push,
+            m.drive.map(|d| d.tracked)
+        )
+    };
+    let turn = |m: &Mobility| m.drive.map_or(0.0, |d| d.radius_m);
+    // Hulls are widest first, so the first of a kind is its widest and, of
+    // those that turn widest, the first is the widest too.
+    let mut representatives: Vec<String> = Vec::new();
+    for (_, m) in &hulls {
+        let kin = || hulls.iter().filter(|(_, o)| kind(o) == kind(m));
+        let widest = kin().next();
+        let turner = kin().reduce(|best, o| if turn(&o.1) > turn(&best.1) { o } else { best });
+        for (id, _) in widest.into_iter().chain(turner) {
+            if !representatives.contains(id) {
+                representatives.push(id.clone());
+            }
+        }
+    }
+    hulls.retain(|(id, _)| representatives.contains(id));
     hulls
 }
 
@@ -1597,146 +1632,168 @@ fn courts_are_structured_and_lawns_dressed_rather_than_left_open() {
     // (region, whether the part limit binds) → (empty lawn points, lawn
     // points).
     let mut lawns: BTreeMap<(&str, bool), [usize; 2]> = BTreeMap::new();
-    for region in REGIONS {
-        for map_type in MapType::ALL {
-            for size in [MapSize::Medium, MapSize::Large, MapSize::Xl] {
-                for seed in FILL_SEEDS {
-                    let mut request = request(map_type, size, seed);
-                    request.region = Some(region.into());
-                    let (plan, result) = mapgen::generate_with_plan(
-                        &serde_json::to_string(&request).unwrap(),
-                        PRESETS,
-                        TEMPLATES,
-                        &sim::fixtures::game().to_string(),
-                    )
-                    .unwrap_or_else(|failure| panic!("{:?}", failure.diagnostics));
-                    let mut near = Raster::new(plan.size);
-                    let mut road = Raster::new(plan.size);
-                    for prop in &plan.props {
-                        let p = &prop.geometry;
-                        let half = [p.half_extents[0], p.half_extents[1]];
-                        near.mark_box(p.center, p.yaw, half, OPEN_M);
+    // Each map tallies its own, side by side; the sums are taken in order.
+    type Tally<'a> = BTreeMap<(&'a str, String, bool), [usize; 2]>;
+    type Lawns<'a> = BTreeMap<(&'a str, bool), [usize; 2]>;
+    let cases: Vec<(&str, MapType, MapSize, u64)> = REGIONS
+        .into_iter()
+        .flat_map(|region| {
+            MapType::ALL
+                .into_iter()
+                .map(move |map_type| (region, map_type))
+        })
+        .flat_map(|(region, map_type)| {
+            [MapSize::Medium, MapSize::Large, MapSize::Xl]
+                .into_iter()
+                .flat_map(move |size| {
+                    FILL_SEEDS
+                        .into_iter()
+                        .map(move |seed| (region, map_type, size, seed))
+                })
+        })
+        .collect();
+    let answers = parallel::each(&cases, |&(region, map_type, size, seed)| {
+        let mut tally = Tally::new();
+        let mut lawns = Lawns::new();
+        let mut request = request(map_type, size, seed);
+        request.region = Some(region.into());
+        let (plan, result) = mapgen::generate_with_plan(
+            &serde_json::to_string(&request).unwrap(),
+            PRESETS,
+            TEMPLATES,
+            &sim::fixtures::game().to_string(),
+        )
+        .unwrap_or_else(|failure| panic!("{:?}", failure.diagnostics));
+        let mut near = Raster::new(plan.size);
+        let mut road = Raster::new(plan.size);
+        for prop in &plan.props {
+            let p = &prop.geometry;
+            let half = [p.half_extents[0], p.half_extents[1]];
+            near.mark_box(p.center, p.yaw, half, OPEN_M);
+        }
+        for part in result.map.buildings.iter().flat_map(|b| &b.geometry.parts) {
+            let half = [part.half_extents[0], part.half_extents[1]];
+            near.mark_box(part.center, part.yaw, half, OPEN_M);
+        }
+        for area in plan.surfaces.iter().filter(|area| area.kind.is_road()) {
+            if let GroundShape::Stroke {
+                centerline,
+                width_m,
+            } = &area.shape
+            {
+                for pair in centerline.samples().windows(2) {
+                    near.mark_segment(pair[0], pair[1], width_m / 2.0 + OPEN_M);
+                    road.mark_segment(pair[0], pair[1], width_m / 2.0);
+                }
+            }
+        }
+        let bound = result.report.authored_parts >= request.limits.max_authored_parts;
+        let mut paved = Raster::new(plan.size);
+        let mut cells: Vec<(String, i64, i64)> = Vec::new();
+        let kinds = district_kinds(&plan);
+        for court in &plan.courts {
+            let kind = kinds[court.district.as_str()];
+            // A path is paving the lawn is judged by, not a court.
+            let path = matches!(
+                court.kind,
+                mapgen::CourtKind::Path | mapgen::CourtKind::Lane
+            );
+            paved.mark_ring(&court.ring, |column, row| {
+                if !path {
+                    cells.push((kind.to_string(), column, row))
+                }
+            });
+        }
+        let mut dense = Raster::new(plan.size);
+        for district in plan.settlements.iter().flat_map(|s| &s.districts) {
+            if COURT_DISTRICTS.contains(&district.kind.as_str()) {
+                dense.mark_ring(&district.ring, |_, _| ());
+            }
+        }
+        let lawn = |column: i64, row: i64| {
+            dense.at(column, row) && !paved.at(column, row) && !road.at(column, row)
+        };
+        // The lawn: empty where farther than `EMPTY_LAWN_M` from
+        // every body, building wall, carriageway and paved area
+        // (a court, a path, an apron).
+        let mut filled = Raster::new(plan.size);
+        for prop in &plan.props {
+            let p = &prop.geometry;
+            let half = [p.half_extents[0], p.half_extents[1]];
+            filled.mark_box(p.center, p.yaw, half, EMPTY_LAWN_M);
+        }
+        for part in result.map.buildings.iter().flat_map(|b| &b.geometry.parts) {
+            let half = [part.half_extents[0], part.half_extents[1]];
+            filled.mark_box(part.center, part.yaw, half, EMPTY_LAWN_M);
+        }
+        for area in &plan.surfaces {
+            match &area.shape {
+                GroundShape::Stroke {
+                    centerline,
+                    width_m,
+                } if area.kind.is_road() => {
+                    for pair in centerline.samples().windows(2) {
+                        filled.mark_segment(pair[0], pair[1], width_m / 2.0 + EMPTY_LAWN_M);
                     }
-                    for part in result.map.buildings.iter().flat_map(|b| &b.geometry.parts) {
-                        let half = [part.half_extents[0], part.half_extents[1]];
-                        near.mark_box(part.center, part.yaw, half, OPEN_M);
+                }
+                GroundShape::Polygon { ring } if area.kind == SurfaceKind::Paving => {
+                    for (a, b) in contract::ground::edges(ring) {
+                        filled.mark_segment(*a, *b, EMPTY_LAWN_M);
                     }
-                    for area in plan.surfaces.iter().filter(|area| area.kind.is_road()) {
-                        if let GroundShape::Stroke {
-                            centerline,
-                            width_m,
-                        } = &area.shape
-                        {
-                            for pair in centerline.samples().windows(2) {
-                                near.mark_segment(pair[0], pair[1], width_m / 2.0 + OPEN_M);
-                                road.mark_segment(pair[0], pair[1], width_m / 2.0);
-                            }
-                        }
+                }
+                _ => {}
+            }
+        }
+        for district in plan.settlements.iter().flat_map(|s| &s.districts) {
+            if !COURT_DISTRICTS.contains(&district.kind.as_str()) {
+                continue;
+            }
+            let entry = lawns.entry((region, bound)).or_insert([0, 0]);
+            let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
+            for row in (y0 / FILL_STEP_M).ceil() as i64..=(y1 / FILL_STEP_M) as i64 {
+                for column in (x0 / FILL_STEP_M).ceil() as i64..=(x1 / FILL_STEP_M) as i64 {
+                    let p = [column as f64 * FILL_STEP_M, row as f64 * FILL_STEP_M];
+                    if !polygon_contains(&district.ring, p) || !lawn(column, row) {
+                        continue;
                     }
-                    let bound = result.report.authored_parts >= request.limits.max_authored_parts;
-                    let mut paved = Raster::new(plan.size);
-                    let mut cells: Vec<(String, i64, i64)> = Vec::new();
-                    let kinds = district_kinds(&plan);
-                    for court in &plan.courts {
-                        let kind = kinds[court.district.as_str()];
-                        // A path is paving the lawn is judged by, not a court.
-                        let path = matches!(
-                            court.kind,
-                            mapgen::CourtKind::Path | mapgen::CourtKind::Lane
-                        );
-                        paved.mark_ring(&court.ring, |column, row| {
-                            if !path {
-                                cells.push((kind.to_string(), column, row))
-                            }
-                        });
-                    }
-                    let mut dense = Raster::new(plan.size);
-                    for district in plan.settlements.iter().flat_map(|s| &s.districts) {
-                        if COURT_DISTRICTS.contains(&district.kind.as_str()) {
-                            dense.mark_ring(&district.ring, |_, _| ());
-                        }
-                    }
-                    let lawn = |column: i64, row: i64| {
-                        dense.at(column, row) && !paved.at(column, row) && !road.at(column, row)
-                    };
-                    // The lawn: empty where farther than `EMPTY_LAWN_M` from
-                    // every body, building wall, carriageway and paved area
-                    // (a court, a path, an apron).
-                    let mut filled = Raster::new(plan.size);
-                    for prop in &plan.props {
-                        let p = &prop.geometry;
-                        let half = [p.half_extents[0], p.half_extents[1]];
-                        filled.mark_box(p.center, p.yaw, half, EMPTY_LAWN_M);
-                    }
-                    for part in result.map.buildings.iter().flat_map(|b| &b.geometry.parts) {
-                        let half = [part.half_extents[0], part.half_extents[1]];
-                        filled.mark_box(part.center, part.yaw, half, EMPTY_LAWN_M);
-                    }
-                    for area in &plan.surfaces {
-                        match &area.shape {
-                            GroundShape::Stroke {
-                                centerline,
-                                width_m,
-                            } if area.kind.is_road() => {
-                                for pair in centerline.samples().windows(2) {
-                                    filled.mark_segment(
-                                        pair[0],
-                                        pair[1],
-                                        width_m / 2.0 + EMPTY_LAWN_M,
-                                    );
-                                }
-                            }
-                            GroundShape::Polygon { ring } if area.kind == SurfaceKind::Paving => {
-                                for (a, b) in contract::ground::edges(ring) {
-                                    filled.mark_segment(*a, *b, EMPTY_LAWN_M);
-                                }
-                            }
-                            _ => {}
-                        }
-                    }
-                    for district in plan.settlements.iter().flat_map(|s| &s.districts) {
-                        if !COURT_DISTRICTS.contains(&district.kind.as_str()) {
-                            continue;
-                        }
-                        let entry = lawns.entry((region, bound)).or_insert([0, 0]);
-                        let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
-                        for row in (y0 / FILL_STEP_M).ceil() as i64..=(y1 / FILL_STEP_M) as i64 {
-                            for column in
-                                (x0 / FILL_STEP_M).ceil() as i64..=(x1 / FILL_STEP_M) as i64
-                            {
-                                let p = [column as f64 * FILL_STEP_M, row as f64 * FILL_STEP_M];
-                                if !polygon_contains(&district.ring, p) || !lawn(column, row) {
-                                    continue;
-                                }
-                                entry[1] += 1;
-                                if !filled.at(column, row) {
-                                    entry[0] += 1;
-                                }
-                            }
-                        }
-                    }
-                    let reach = (OPEN_M / FILL_STEP_M) as i64;
-                    cells.sort();
-                    cells.dedup();
-                    for (kind, column, row) in cells {
-                        let entry = tally.entry((region, kind, bound)).or_insert([0, 0]);
-                        entry[1] += 1;
-                        if near.at(column, row) {
-                            continue;
-                        }
-                        let by_lawn = (-reach..=reach).any(|dy| {
-                            (-reach..=reach).any(|dx| {
-                                (dx * dx + dy * dy) as f64 * FILL_STEP_M * FILL_STEP_M
-                                    <= OPEN_M * OPEN_M
-                                    && lawn(column + dx, row + dy)
-                            })
-                        });
-                        if !by_lawn {
-                            entry[0] += 1;
-                        }
+                    entry[1] += 1;
+                    if !filled.at(column, row) {
+                        entry[0] += 1;
                     }
                 }
             }
+        }
+        let reach = (OPEN_M / FILL_STEP_M) as i64;
+        cells.sort();
+        cells.dedup();
+        for (kind, column, row) in cells {
+            let entry = tally.entry((region, kind, bound)).or_insert([0, 0]);
+            entry[1] += 1;
+            if near.at(column, row) {
+                continue;
+            }
+            let by_lawn = (-reach..=reach).any(|dy| {
+                (-reach..=reach).any(|dx| {
+                    (dx * dx + dy * dy) as f64 * FILL_STEP_M * FILL_STEP_M <= OPEN_M * OPEN_M
+                        && lawn(column + dx, row + dy)
+                })
+            });
+            if !by_lawn {
+                entry[0] += 1;
+            }
+        }
+        (tally, lawns)
+    });
+    for (case_tally, case_lawns) in answers {
+        for (key, [open, all]) in case_tally {
+            let entry = tally.entry(key).or_insert([0, 0]);
+            entry[0] += open;
+            entry[1] += all;
+        }
+        for (key, [empty, all]) in case_lawns {
+            let entry = lawns.entry(key).or_insert([0, 0]);
+            entry[0] += empty;
+            entry[1] += all;
         }
     }
     let mut regions: BTreeMap<&str, [usize; 2]> = BTreeMap::new();
@@ -2587,569 +2644,573 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
         .unwrap();
     let on_foot = sim::units::mobility(squad, &rules);
     let hull_way = mapgen::street_props::hull_way(&rules.catalog, &presets);
-    let mut totals = [0usize; 8];
-    let mut broken: Vec<String> = Vec::new();
-    for map_type in MapType::ALL {
-        for size in [MapSize::Medium, MapSize::Large, MapSize::Xl] {
-            for seed in SWEEP_SEEDS {
-                let name = format!("{} {} seed {seed}", map_type.name(), size.name());
-                let request = request(map_type, size, seed);
-                let bare = fill_districts(
-                    generate_layout(&request, &presets).unwrap(),
-                    &request,
-                    &catalogue(),
-                    &presets,
-                )
-                .unwrap_or_else(|errors| panic!("{name}: {errors:?}"));
-                let props: Vec<PropDefinition> = dressed(&bare, &request, &presets, &rules)
-                    .into_iter()
-                    .map(|prop| prop.geometry)
-                    .collect();
-                let maps = [
-                    compiled(&bare, &[], &request),
-                    compiled(&bare, &props, &request),
-                ];
-                let [before, after] = [0, 1].map(|arm| PreparedMap::new(&maps[arm], &rules));
-                let sites = bare.sites();
+    let cases: Vec<(MapType, MapSize, u64)> = MapType::ALL
+        .into_iter()
+        .flat_map(|map_type| {
+            [MapSize::Medium, MapSize::Large, MapSize::Xl]
+                .into_iter()
+                .flat_map(move |size| SWEEP_SEEDS.map(move |seed| (map_type, size, seed)))
+        })
+        .collect();
+    // Each map is its own question, so they run side by side; their
+    // answers are read in the order the cases are listed.
+    let answers = parallel::each(&cases, |&(map_type, size, seed)| {
+        let mut totals = [0usize; 8];
+        let mut broken: Vec<String> = Vec::new();
+        let name = format!("{} {} seed {seed}", map_type.name(), size.name());
+        let request = request(map_type, size, seed);
+        let bare = fill_districts(
+            generate_layout(&request, &presets).unwrap(),
+            &request,
+            &catalogue(),
+            &presets,
+        )
+        .unwrap_or_else(|errors| panic!("{name}: {errors:?}"));
+        let props: Vec<PropDefinition> = dressed(&bare, &request, &presets, &rules)
+            .into_iter()
+            .map(|prop| prop.geometry)
+            .collect();
+        let maps = [
+            compiled(&bare, &[], &request),
+            compiled(&bare, &props, &request),
+        ];
+        let [before, after] = [0, 1].map(|arm| PreparedMap::new(&maps[arm], &rules));
+        let sites = bare.sites();
 
-                // Where every body stands.
-                let roads = Roads::new(&bare);
-                let corridors = approach_corridors(&bare);
-                let run = presets.rivers.bridge.approach_m;
-                for prop in &props {
-                    let at = format!("{name}: a {} at {:?}", prop.kind, prop.center);
-                    // A body abandoned in the road keeps to one half of it;
-                    // every other keeps off the carriageway and its lane.
-                    let in_road = corners(prop)
-                        .iter()
-                        .any(|c| roads.clearance(*c, 1.0) <= 0.0);
-                    if in_road {
-                        claim!(
-                            broken,
-                            roads.in_one_half(&corners(prop)),
-                            "{at} stands across a carriageway's middle"
-                        );
-                    }
-                    for corner in corners(prop) {
-                        claim!(
-                            broken,
-                            corner.iter().all(|v| *v > 0.0)
-                                && corner[0] < bare.size[0]
-                                && corner[1] < bare.size[1],
-                            "{at} is off the map"
-                        );
-                        claim!(
-                            broken,
-                            after.world.traversable_at(corner[0], corner[1]),
-                            "{at} is in the water or on ground too steep"
-                        );
-                        claim!(
-                            broken,
-                            in_road || roads.clearance(corner, 0.0) >= lane - 0.011,
-                            "{at} is in the lane beside a carriageway's middle"
-                        );
-                        claim!(
-                            broken,
-                            !corridors.iter().any(|corridor| corridor.contains(corner)),
-                            "{at} is in an open approach"
-                        );
-                        for bridge in &bare.bridges {
-                            let (sin, cos) = bridge.yaw.sin_cos();
-                            let d = [corner[0] - bridge.center[0], corner[1] - bridge.center[1]];
-                            let (along, across) =
-                                (d[0] * cos + d[1] * sin, d[1] * cos - d[0] * sin);
-                            claim!(
-                                broken,
-                                along.abs() > bridge.half_extents[0] + run - 0.011
-                                    || across.abs() > bridge.half_extents[1] - 0.011,
-                                "{at} is on a bridge or the run onto it"
-                            );
-                        }
-                    }
-                }
-
-                // The planner.
-                let plan = |arm: usize, prepared: &PreparedMap| {
-                    sim::encounter::plan_encounter(
-                        &prepared.queries(&maps[arm], &sites),
-                        &rules,
-                        recipe,
-                        1.into(),
-                    )
-                };
-                if plan(0, &before).is_ok() {
-                    totals[0] += 1;
-                    if let Err(diagnostics) = plan(1, &after) {
-                        broken.push(note(format!(
-                            "{name}: the assault no longer plans: {diagnostics:?}"
-                        )));
-                    }
-                }
-
-                // Doors.
-                let stations: Vec<(V2, f64)> = maps[0]
-                    .buildings
-                    .iter()
-                    .flat_map(|building| building.geometry.entrances.iter().flatten())
-                    .map(|door| {
-                        let out = recipe.garrison.door_standoff_m;
-                        (
-                            v2(
-                                door.position[0] + door.normal[0] * out,
-                                door.position[1] + door.normal[1] * out,
-                            ),
-                            door.normal[1].atan2(door.normal[0]),
-                        )
-                    })
-                    .collect();
-                let stands = |arm: usize, prepared: &PreparedMap, (at, yaw): (V2, f64)| {
-                    stands(
-                        &prepared.queries(&maps[arm], &sites),
-                        &rules,
-                        squad,
-                        &on_foot,
-                        at,
-                        yaw,
-                    )
-                };
-                let every = (stations.len() / DOORS_WALKED).max(1);
-                for (index, station) in stations.iter().enumerate() {
-                    if stands(0, &before, *station).is_err() {
-                        continue;
-                    }
-                    totals[1] += 1;
-                    if let Err(why) = stands(1, &after, *station) {
-                        broken.push(note(format!(
-                            "{name}: no squad stands at the door at {:?} any more: {}",
-                            station.0,
-                            why.describe()
-                        )));
-                    }
-                    if index % every != 0 {
-                        continue;
-                    }
-                    // From the centre of the settlement the door is in.
-                    let goal = [station.0.x, station.0.y];
-                    let Some(centre) = sites
-                        .settlements
-                        .iter()
-                        .find(|s| polygon_contains(&s.outline, goal))
-                        .map(|s| s.center)
-                    else {
-                        continue;
-                    };
-                    let arrives = |prepared: &PreparedMap| {
-                        route(prepared, &rules, &on_foot, centre, goal).is_some_and(
-                            |(points, _)| {
-                                points
-                                    .last()
-                                    .is_some_and(|end| (*end - station.0).length() < 3.0)
-                            },
-                        )
-                    };
-                    if arrives(&before) {
-                        totals[2] += 1;
-                        claim!(
-                            broken,
-                            arrives(&after),
-                            "{name}: no way on foot from {centre:?} to the door at {goal:?}"
-                        );
-                    }
-                }
-
-                // Gardens: the back of a dressed lot, as far behind its house
-                // as half its rear setback, on open ground.
-                let kinds = district_kinds(&bare);
-                let built: std::collections::BTreeSet<&str> =
-                    bare.buildings.iter().map(|b| b.id.as_str()).collect();
-                let gardens: Vec<Point> = bare
-                    .lots
-                    .iter()
-                    .filter(|lot| built.contains(lot.id.as_str()))
-                    .filter_map(|lot| {
-                        let (district, _) = lot.id.rsplit_once("/lot-")?;
-                        let preset = &presets.districts[kinds[district]];
-                        preset.props.gardens.as_ref()?;
-                        let frame = LotFrame::new(&lot.ring);
-                        let y = frame.depth - preset.lots.rear_m / 2.0;
-                        [0.5, 0.3, 0.7, 0.15, 0.85]
-                            .map(|share| frame.at(share * frame.width, y))
-                            .into_iter()
-                            .find(|p| {
-                                !props.iter().any(|prop| {
-                                    let (sin, cos) = prop.yaw.sin_cos();
-                                    let d = [p[0] - prop.center[0], p[1] - prop.center[1]];
-                                    (d[0] * cos + d[1] * sin).abs() < prop.half_extents[0] + 1.0
-                                        && (d[1] * cos - d[0] * sin).abs()
-                                            < prop.half_extents[1] + 1.0
-                                })
-                            })
-                    })
-                    .collect();
-                let every = (gardens.len() / GARDENS_WALKED).max(1);
-                for goal in gardens.iter().step_by(every) {
-                    let Some(centre) = sites
-                        .settlements
-                        .iter()
-                        .find(|s| polygon_contains(&s.outline, *goal))
-                        .map(|s| s.center)
-                    else {
-                        continue;
-                    };
-                    let arrives = |prepared: &PreparedMap| {
-                        route(prepared, &rules, &on_foot, centre, *goal).is_some_and(
-                            |(points, _)| {
-                                points
-                                    .last()
-                                    .is_some_and(|end| (*end - v2(goal[0], goal[1])).length() < 3.0)
-                            },
-                        )
-                    };
-                    if arrives(&before) {
-                        totals[5] += 1;
-                        claim!(
-                            broken,
-                            arrives(&after),
-                            "{name}: no way on foot from {centre:?} to the garden at {goal:?}"
-                        );
-                    }
-                }
-
-                // Courts: inside each yard's rear gate and over the lawn (on
-                // foot), outside each yard's front gate and each car park's
-                // aisle (on foot and by the widest hull), from the
-                // settlement's centre, wherever the mover went on the bare
-                // map.
-                let mut goals: Vec<(Point, bool)> = Vec::new();
-                let doors: BTreeMap<&str, Vec<(Point, Point)>> = bare
-                    .buildings
-                    .iter()
-                    .zip(&maps[0].buildings)
-                    .map(|(placed, building)| {
-                        let doors = building
-                            .geometry
-                            .entrances
-                            .iter()
-                            .flatten()
-                            .map(|door| ([door.position[0], door.position[1]], door.normal))
-                            .collect();
-                        (placed.id.as_str(), doors)
-                    })
-                    .collect();
-                let clear_of_bodies = |p: Point| {
-                    !props.iter().any(|prop| {
-                        let (sin, cos) = prop.yaw.sin_cos();
-                        let d = [p[0] - prop.center[0], p[1] - prop.center[1]];
-                        (d[0] * cos + d[1] * sin).abs() < prop.half_extents[0] + 1.0
-                            && (d[1] * cos - d[0] * sin).abs() < prop.half_extents[1] + 1.0
-                    })
-                };
-                for court in &bare.courts {
-                    let frame = LotFrame::new(&court.ring);
-                    match court.kind {
-                        mapgen::CourtKind::Yard => {
-                            goals.push((frame.at(frame.width / 2.0, frame.depth - 2.5), false));
-                            let lot = court.id.strip_suffix("/yard").unwrap();
-                            if let Some(&(door, out)) = doors.get(lot).and_then(|d| d.first()) {
-                                // Out along the door's line to past the
-                                // parcel's street edge.
-                                let front = (0..60)
-                                    .map(|k| {
-                                        [door[0] + out[0] * k as f64, door[1] + out[1] * k as f64]
-                                    })
-                                    .find(|p| !polygon_contains(&court.ring, *p));
-                                if let Some(front) = front {
-                                    let gate = [front[0] + out[0] * 2.0, front[1] + out[1] * 2.0];
-                                    goals.push((gate, true));
-                                }
-                            }
-                        }
-                        mapgen::CourtKind::Parking => {
-                            goals.push((frame.at(frame.width / 2.0, frame.depth / 2.0), true));
-                        }
-                        // Lawn, as far as a mover is concerned.
-                        mapgen::CourtKind::Path | mapgen::CourtKind::Lane => {}
-                    }
-                }
-                let lawn_rings: Vec<&[Point]> = bare
-                    .lots
-                    .iter()
-                    .map(|lot| lot.ring.as_slice())
-                    .chain(
-                        bare.courts
-                            .iter()
-                            .filter(|court| {
-                                !matches!(
-                                    court.kind,
-                                    mapgen::CourtKind::Path | mapgen::CourtKind::Lane
-                                )
-                            })
-                            .map(|court| court.ring.as_slice()),
-                    )
-                    .collect();
-                // Each lawn: the points of a grid over a dense district off
-                // its parcels, courts and carriageways, joined to their
-                // neighbours on the grid.
-                let mut lawns: Vec<Vec<Point>> = Vec::new();
-                for district in bare.settlements.iter().flat_map(|s| &s.districts) {
-                    if !COURT_DISTRICTS.contains(&district.kind.as_str()) {
-                        continue;
-                    }
-                    let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
-                    let mut points: BTreeMap<(i64, i64), Point> = BTreeMap::new();
-                    for row in (y0 / COURT_STEP_M).ceil() as i64..=(y1 / COURT_STEP_M) as i64 {
-                        for column in (x0 / COURT_STEP_M).ceil() as i64..=(x1 / COURT_STEP_M) as i64
-                        {
-                            let p = [column as f64 * COURT_STEP_M, row as f64 * COURT_STEP_M];
-                            if polygon_contains(&district.ring, p)
-                                && roads.clearance(p, 0.0) > lane
-                                && !lawn_rings.iter().any(|ring| polygon_contains(ring, p))
-                            {
-                                goals.push((p, false));
-                                points.insert((column, row), p);
-                            }
-                        }
-                    }
-                    let mut seen = std::collections::BTreeSet::new();
-                    for start in points.keys().copied().collect::<Vec<_>>() {
-                        if !seen.insert(start) {
-                            continue;
-                        }
-                        let (mut lawn, mut open) = (Vec::new(), vec![start]);
-                        while let Some((column, row)) = open.pop() {
-                            lawn.push(points[&(column, row)]);
-                            for next in [
-                                (column + 1, row),
-                                (column - 1, row),
-                                (column, row + 1),
-                                (column, row - 1),
-                            ] {
-                                if points.contains_key(&next) && seen.insert(next) {
-                                    open.push(next);
-                                }
-                            }
-                        }
-                        // A lawn too small for a path is a gap between
-                        // buildings, not a court.
-                        let least = presets
-                            .street_props
-                            .courts
-                            .lawn
-                            .as_ref()
-                            .map_or(0.0, |rule| rule.least_m2);
-                        if lawn.len() as f64 * COURT_STEP_M * COURT_STEP_M >= least {
-                            lawns.push(lawn);
-                        }
-                    }
-                }
-                let every = (goals.len() / COURTS_WALKED).max(1);
-                for (goal, driven) in goals.iter().step_by(every) {
-                    if !clear_of_bodies(*goal) {
-                        continue;
-                    }
-                    let Some(centre) = sites
-                        .settlements
-                        .iter()
-                        .find(|s| polygon_contains(&s.outline, *goal))
-                        .map(|s| s.center)
-                    else {
-                        continue;
-                    };
-                    let movers: &[(&str, &Mobility, f64)] = if *driven {
-                        &[
-                            ("squad", &on_foot, 3.0),
-                            (vehicles[0].0.as_str(), &vehicles[0].1, 6.0),
-                        ]
-                    } else {
-                        &[("squad", &on_foot, 3.0)]
-                    };
-                    for (mover, m, near_m) in movers {
-                        let arrives = |prepared: &PreparedMap| {
-                            route(prepared, &rules, m, centre, *goal).is_some_and(|(points, _)| {
-                                points.last().is_some_and(|end| {
-                                    (*end - v2(goal[0], goal[1])).length() < *near_m
-                                })
-                            })
-                        };
-                        if arrives(&before) {
-                            totals[6] += 1;
-                            claim!(
-                                broken,
-                                arrives(&after),
-                                "{name}: no way for a {mover} from {centre:?} to the court ground at {goal:?}"
-                            );
-                        }
-                    }
-                }
-
-                // A way into each lawn for the widest hull: to some point of
-                // it deeper than a hull's way from every carriageway's
-                // edge, from the settlement's centre.
-                let (hull, hull_m) = (&vehicles[0].0, &vehicles[0].1);
-                let every = (lawns.len() / LAWNS_DRIVEN).max(1);
-                for lawn in lawns.iter().step_by(every) {
-                    let deep: Vec<Point> = lawn
-                        .iter()
-                        .copied()
-                        .filter(|p| roads.clearance(*p, 1.0) >= hull_way)
-                        .collect();
-                    let Some(centre) = deep.first().and_then(|goal| {
-                        sites
-                            .settlements
-                            .iter()
-                            .find(|s| polygon_contains(&s.outline, *goal))
-                            .map(|s| s.center)
-                    }) else {
-                        continue;
-                    };
-                    let arrives = |prepared: &PreparedMap, goal: Point| {
-                        route(prepared, &rules, hull_m, centre, goal).is_some_and(|(points, _)| {
-                            points
-                                .last()
-                                .is_some_and(|end| (*end - v2(goal[0], goal[1])).length() < 6.0)
-                        })
-                    };
-                    // Spread through the lawn: a few asked of the bare map,
-                    // more of the dressed one.
-                    let spread = |most: usize| -> Vec<Point> {
-                        let step = (deep.len() / most).max(1);
-                        deep.iter().copied().step_by(step).take(most).collect()
-                    };
-                    if !spread(LAWN_TRIES).into_iter().any(|p| arrives(&before, p)) {
-                        continue;
-                    }
-                    totals[7] += 1;
-                    // Near any of its deep points: a body standing on one
-                    // closes no way in.
-                    let step = (deep.len() / (3 * LAWN_TRIES)).max(1);
+        // Where every body stands.
+        let roads = Roads::new(&bare);
+        let corridors = approach_corridors(&bare);
+        let run = presets.rivers.bridge.approach_m;
+        for prop in &props {
+            let at = format!("{name}: a {} at {:?}", prop.kind, prop.center);
+            // A body abandoned in the road keeps to one half of it;
+            // every other keeps off the carriageway and its lane.
+            let in_road = corners(prop)
+                .iter()
+                .any(|c| roads.clearance(*c, 1.0) <= 0.0);
+            if in_road {
+                claim!(
+                    broken,
+                    roads.in_one_half(&corners(prop)),
+                    "{at} stands across a carriageway's middle"
+                );
+            }
+            for corner in corners(prop) {
+                claim!(
+                    broken,
+                    corner.iter().all(|v| *v > 0.0)
+                        && corner[0] < bare.size[0]
+                        && corner[1] < bare.size[1],
+                    "{at} is off the map"
+                );
+                claim!(
+                    broken,
+                    after.world.traversable_at(corner[0], corner[1]),
+                    "{at} is in the water or on ground too steep"
+                );
+                claim!(
+                    broken,
+                    in_road || roads.clearance(corner, 0.0) >= lane - 0.011,
+                    "{at} is in the lane beside a carriageway's middle"
+                );
+                claim!(
+                    broken,
+                    !corridors.iter().any(|corridor| corridor.contains(corner)),
+                    "{at} is in an open approach"
+                );
+                for bridge in &bare.bridges {
+                    let (sin, cos) = bridge.yaw.sin_cos();
+                    let d = [corner[0] - bridge.center[0], corner[1] - bridge.center[1]];
+                    let (along, across) = (d[0] * cos + d[1] * sin, d[1] * cos - d[0] * sin);
                     claim!(
                         broken,
-                        deep.iter()
-                            .step_by(step)
-                            .take(3 * LAWN_TRIES)
-                            .any(|p| arrives(&after, *p)),
-                        "{name}: no way in for a {hull} from {centre:?} to the lawn at {:?}",
-                        deep[0]
+                        along.abs() > bridge.half_extents[0] + run - 0.011
+                            || across.abs() > bridge.half_extents[1] - 0.011,
+                        "{at} is on a bridge or the run onto it"
                     );
                 }
+            }
+        }
 
-                // Streets.
-                let streets: Vec<Vec<Point>> = bare
-                    .surfaces
-                    .iter()
-                    .filter(|area| area.kind == SurfaceKind::Road)
-                    .filter_map(|area| match &area.shape {
-                        GroundShape::Stroke { centerline, .. } => {
-                            Some(centerline.samples().to_vec())
-                        }
-                        GroundShape::Polygon { .. } => None,
-                    })
-                    .collect();
-                let every = (streets.len() / STREETS_DRIVEN).max(1);
-                for (index, street) in streets
-                    .iter()
-                    .enumerate()
-                    .filter(|(index, _)| index % every == 0)
-                {
-                    // Its longest straight run, from a hull's length inside
-                    // one end to as far inside the other, each way on
-                    // alternate streets.
-                    let run = street
-                        .windows(2)
-                        .max_by(|a, b| span(a[0], a[1]).total_cmp(&span(b[0], b[1])))
-                        .unwrap();
-                    let stretch = span(run[0], run[1]);
-                    if stretch < 60.0 {
-                        continue;
-                    }
-                    let inside = |share: f64| {
-                        [0, 1].map(|axis| run[0][axis] + (run[1][axis] - run[0][axis]) * share)
-                    };
-                    let mut ends = [inside(12.0 / stretch), inside(1.0 - 12.0 / stretch)];
-                    if index / every % 2 == 1 {
-                        ends.swap(0, 1);
-                    }
-                    for (kind, m) in &vehicles {
-                        // Each end where the hull stands clear on the dressed
-                        // street, as an order's destination is placed: a car
-                        // abandoned in the road may stand on its middle.
-                        let unit = rules
-                            .catalog
-                            .indices()
-                            .find(|u| rules.catalog.id(*u) == kind)
-                            .unwrap();
-                        let hull = rules.catalog.get(unit).hull().unwrap().half_extents_m;
-                        let pockets = navigation::Pockets::default();
-                        let start = v2(ends[0][0], ends[0][1]);
-                        let Some(ends) = ends
-                            .iter()
-                            .map(|e| {
-                                after.grid.destination_point(
-                                    v2(e[0], e[1]),
-                                    m,
-                                    Some(hull[0].hypot(hull[1])),
-                                    start,
-                                    &pockets,
-                                )
-                            })
-                            .collect::<Option<Vec<_>>>()
-                            .map(|e| [[e[0].x, e[0].y], [e[1].x, e[1].y]])
-                        else {
-                            broken.push(note(format!(
-                                "{name}: a {kind} has no standing room near {ends:?}"
-                            )));
-                            continue;
-                        };
-                        let arrives = |prepared: &PreparedMap| {
-                            route(prepared, &rules, m, ends[0], ends[1]).filter(|(points, _)| {
-                                points.last().is_some_and(|end| {
-                                    (*end - v2(ends[1][0], ends[1][1])).length() < 6.0
-                                })
-                            })
-                        };
-                        // A drive down the street: by the street, not round it.
-                        let Some((open, _)) = arrives(&before)
-                            .filter(|(points, _)| length(ends[0], points) <= stretch + DETOUR_M)
-                        else {
-                            continue;
-                        };
-                        totals[3] += 1;
-                        let Some((dressed, _)) = arrives(&after) else {
-                            broken.push(note(format!(
-                                "{name}: no route for a {kind} from {:?} to {:?} any more",
-                                ends[0], ends[1]
-                            )));
-                            continue;
-                        };
-                        let (was, now) = (length(ends[0], &open), length(ends[0], &dressed));
-                        claim!(broken,
-                            now <= was + DETOUR_M,
-                            "{name}: a {kind} drives {now:.0} m from {:?} to {:?}, {was:.0} m on bare streets",
-                            ends[0],
-                            ends[1]
-                        );
-                        // It may brush aside what it can shove (a tank a car
-                        // abandoned in its way, a truck a bench), never drive
-                        // through what it cannot.
-                        totals[4] += 1;
-                        let unshoved = crosses_unshoved(&maps[1], &rules, m, ends[0], &dressed);
-                        claim!(
-                            broken,
-                            unshoved.is_none(),
-                            "{name}: a {kind} drives from {:?} to {:?} through a {} it cannot shove",
-                            ends[0],
-                            ends[1],
-                            unshoved.unwrap_or_default()
-                        );
-                    }
-                }
-                println!(
-                    "{name}: {} bodies; {totals:?}; {} broken",
-                    props.len(),
-                    broken.len()
+        // The planner.
+        let plan = |arm: usize, prepared: &PreparedMap| {
+            sim::encounter::plan_encounter(
+                &prepared.queries(&maps[arm], &sites),
+                &rules,
+                recipe,
+                1.into(),
+            )
+        };
+        if plan(0, &before).is_ok() {
+            totals[0] += 1;
+            if let Err(diagnostics) = plan(1, &after) {
+                broken.push(note(format!(
+                    "{name}: the assault no longer plans: {diagnostics:?}"
+                )));
+            }
+        }
+
+        // Doors.
+        let stations: Vec<(V2, f64)> = maps[0]
+            .buildings
+            .iter()
+            .flat_map(|building| building.geometry.entrances.iter().flatten())
+            .map(|door| {
+                let out = recipe.garrison.door_standoff_m;
+                (
+                    v2(
+                        door.position[0] + door.normal[0] * out,
+                        door.position[1] + door.normal[1] * out,
+                    ),
+                    door.normal[1].atan2(door.normal[0]),
+                )
+            })
+            .collect();
+        let stands = |arm: usize, prepared: &PreparedMap, (at, yaw): (V2, f64)| {
+            stands(
+                &prepared.queries(&maps[arm], &sites),
+                &rules,
+                squad,
+                &on_foot,
+                at,
+                yaw,
+            )
+        };
+        let every = (stations.len() / DOORS_WALKED).max(1);
+        for (index, station) in stations.iter().enumerate() {
+            if stands(0, &before, *station).is_err() {
+                continue;
+            }
+            totals[1] += 1;
+            if let Err(why) = stands(1, &after, *station) {
+                broken.push(note(format!(
+                    "{name}: no squad stands at the door at {:?} any more: {}",
+                    station.0,
+                    why.describe()
+                )));
+            }
+            if index % every != 0 {
+                continue;
+            }
+            // From the centre of the settlement the door is in.
+            let goal = [station.0.x, station.0.y];
+            let Some(centre) = sites
+                .settlements
+                .iter()
+                .find(|s| polygon_contains(&s.outline, goal))
+                .map(|s| s.center)
+            else {
+                continue;
+            };
+            let arrives = |prepared: &PreparedMap| {
+                route(prepared, &rules, &on_foot, centre, goal).is_some_and(|(points, _)| {
+                    points
+                        .last()
+                        .is_some_and(|end| (*end - station.0).length() < 3.0)
+                })
+            };
+            if arrives(&before) {
+                totals[2] += 1;
+                claim!(
+                    broken,
+                    arrives(&after),
+                    "{name}: no way on foot from {centre:?} to the door at {goal:?}"
                 );
             }
         }
+
+        // Gardens: the back of a dressed lot, as far behind its house
+        // as half its rear setback, on open ground.
+        let kinds = district_kinds(&bare);
+        let built: std::collections::BTreeSet<&str> =
+            bare.buildings.iter().map(|b| b.id.as_str()).collect();
+        let gardens: Vec<Point> = bare
+            .lots
+            .iter()
+            .filter(|lot| built.contains(lot.id.as_str()))
+            .filter_map(|lot| {
+                let (district, _) = lot.id.rsplit_once("/lot-")?;
+                let preset = &presets.districts[kinds[district]];
+                preset.props.gardens.as_ref()?;
+                let frame = LotFrame::new(&lot.ring);
+                let y = frame.depth - preset.lots.rear_m / 2.0;
+                [0.5, 0.3, 0.7, 0.15, 0.85]
+                    .map(|share| frame.at(share * frame.width, y))
+                    .into_iter()
+                    .find(|p| {
+                        !props.iter().any(|prop| {
+                            let (sin, cos) = prop.yaw.sin_cos();
+                            let d = [p[0] - prop.center[0], p[1] - prop.center[1]];
+                            (d[0] * cos + d[1] * sin).abs() < prop.half_extents[0] + 1.0
+                                && (d[1] * cos - d[0] * sin).abs() < prop.half_extents[1] + 1.0
+                        })
+                    })
+            })
+            .collect();
+        let every = (gardens.len() / GARDENS_WALKED).max(1);
+        for goal in gardens.iter().step_by(every) {
+            let Some(centre) = sites
+                .settlements
+                .iter()
+                .find(|s| polygon_contains(&s.outline, *goal))
+                .map(|s| s.center)
+            else {
+                continue;
+            };
+            let arrives = |prepared: &PreparedMap| {
+                route(prepared, &rules, &on_foot, centre, *goal).is_some_and(|(points, _)| {
+                    points
+                        .last()
+                        .is_some_and(|end| (*end - v2(goal[0], goal[1])).length() < 3.0)
+                })
+            };
+            if arrives(&before) {
+                totals[5] += 1;
+                claim!(
+                    broken,
+                    arrives(&after),
+                    "{name}: no way on foot from {centre:?} to the garden at {goal:?}"
+                );
+            }
+        }
+
+        // Courts: inside each yard's rear gate and over the lawn (on
+        // foot), outside each yard's front gate and each car park's
+        // aisle (on foot and by the widest hull), from the
+        // settlement's centre, wherever the mover went on the bare
+        // map.
+        let mut goals: Vec<(Point, bool)> = Vec::new();
+        let doors: BTreeMap<&str, Vec<(Point, Point)>> = bare
+            .buildings
+            .iter()
+            .zip(&maps[0].buildings)
+            .map(|(placed, building)| {
+                let doors = building
+                    .geometry
+                    .entrances
+                    .iter()
+                    .flatten()
+                    .map(|door| ([door.position[0], door.position[1]], door.normal))
+                    .collect();
+                (placed.id.as_str(), doors)
+            })
+            .collect();
+        let clear_of_bodies = |p: Point| {
+            !props.iter().any(|prop| {
+                let (sin, cos) = prop.yaw.sin_cos();
+                let d = [p[0] - prop.center[0], p[1] - prop.center[1]];
+                (d[0] * cos + d[1] * sin).abs() < prop.half_extents[0] + 1.0
+                    && (d[1] * cos - d[0] * sin).abs() < prop.half_extents[1] + 1.0
+            })
+        };
+        for court in &bare.courts {
+            let frame = LotFrame::new(&court.ring);
+            match court.kind {
+                mapgen::CourtKind::Yard => {
+                    goals.push((frame.at(frame.width / 2.0, frame.depth - 2.5), false));
+                    let lot = court.id.strip_suffix("/yard").unwrap();
+                    if let Some(&(door, out)) = doors.get(lot).and_then(|d| d.first()) {
+                        // Out along the door's line to past the
+                        // parcel's street edge.
+                        let front = (0..60)
+                            .map(|k| [door[0] + out[0] * k as f64, door[1] + out[1] * k as f64])
+                            .find(|p| !polygon_contains(&court.ring, *p));
+                        if let Some(front) = front {
+                            let gate = [front[0] + out[0] * 2.0, front[1] + out[1] * 2.0];
+                            goals.push((gate, true));
+                        }
+                    }
+                }
+                mapgen::CourtKind::Parking => {
+                    goals.push((frame.at(frame.width / 2.0, frame.depth / 2.0), true));
+                }
+                // Lawn, as far as a mover is concerned.
+                mapgen::CourtKind::Path | mapgen::CourtKind::Lane => {}
+            }
+        }
+        let lawn_rings: Vec<&[Point]> = bare
+            .lots
+            .iter()
+            .map(|lot| lot.ring.as_slice())
+            .chain(
+                bare.courts
+                    .iter()
+                    .filter(|court| {
+                        !matches!(
+                            court.kind,
+                            mapgen::CourtKind::Path | mapgen::CourtKind::Lane
+                        )
+                    })
+                    .map(|court| court.ring.as_slice()),
+            )
+            .collect();
+        // Each lawn: the points of a grid over a dense district off
+        // its parcels, courts and carriageways, joined to their
+        // neighbours on the grid.
+        let mut lawns: Vec<Vec<Point>> = Vec::new();
+        for district in bare.settlements.iter().flat_map(|s| &s.districts) {
+            if !COURT_DISTRICTS.contains(&district.kind.as_str()) {
+                continue;
+            }
+            let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
+            let mut points: BTreeMap<(i64, i64), Point> = BTreeMap::new();
+            for row in (y0 / COURT_STEP_M).ceil() as i64..=(y1 / COURT_STEP_M) as i64 {
+                for column in (x0 / COURT_STEP_M).ceil() as i64..=(x1 / COURT_STEP_M) as i64 {
+                    let p = [column as f64 * COURT_STEP_M, row as f64 * COURT_STEP_M];
+                    if polygon_contains(&district.ring, p)
+                        && roads.clearance(p, 0.0) > lane
+                        && !lawn_rings.iter().any(|ring| polygon_contains(ring, p))
+                    {
+                        goals.push((p, false));
+                        points.insert((column, row), p);
+                    }
+                }
+            }
+            let mut seen = std::collections::BTreeSet::new();
+            for start in points.keys().copied().collect::<Vec<_>>() {
+                if !seen.insert(start) {
+                    continue;
+                }
+                let (mut lawn, mut open) = (Vec::new(), vec![start]);
+                while let Some((column, row)) = open.pop() {
+                    lawn.push(points[&(column, row)]);
+                    for next in [
+                        (column + 1, row),
+                        (column - 1, row),
+                        (column, row + 1),
+                        (column, row - 1),
+                    ] {
+                        if points.contains_key(&next) && seen.insert(next) {
+                            open.push(next);
+                        }
+                    }
+                }
+                // A lawn too small for a path is a gap between
+                // buildings, not a court.
+                let least = presets
+                    .street_props
+                    .courts
+                    .lawn
+                    .as_ref()
+                    .map_or(0.0, |rule| rule.least_m2);
+                if lawn.len() as f64 * COURT_STEP_M * COURT_STEP_M >= least {
+                    lawns.push(lawn);
+                }
+            }
+        }
+        let every = (goals.len() / COURTS_WALKED).max(1);
+        for (goal, driven) in goals.iter().step_by(every) {
+            if !clear_of_bodies(*goal) {
+                continue;
+            }
+            let Some(centre) = sites
+                .settlements
+                .iter()
+                .find(|s| polygon_contains(&s.outline, *goal))
+                .map(|s| s.center)
+            else {
+                continue;
+            };
+            let movers: &[(&str, &Mobility, f64)] = if *driven {
+                &[
+                    ("squad", &on_foot, 3.0),
+                    (vehicles[0].0.as_str(), &vehicles[0].1, 6.0),
+                ]
+            } else {
+                &[("squad", &on_foot, 3.0)]
+            };
+            for (mover, m, near_m) in movers {
+                let arrives = |prepared: &PreparedMap| {
+                    route(prepared, &rules, m, centre, *goal).is_some_and(|(points, _)| {
+                        points
+                            .last()
+                            .is_some_and(|end| (*end - v2(goal[0], goal[1])).length() < *near_m)
+                    })
+                };
+                if arrives(&before) {
+                    totals[6] += 1;
+                    claim!(
+                        broken,
+                        arrives(&after),
+                        "{name}: no way for a {mover} from {centre:?} to the court ground at {goal:?}"
+                    );
+                }
+            }
+        }
+
+        // A way into each lawn for the widest hull: to some point of
+        // it deeper than a hull's way from every carriageway's
+        // edge, from the settlement's centre.
+        let (hull, hull_m) = (&vehicles[0].0, &vehicles[0].1);
+        let every = (lawns.len() / LAWNS_DRIVEN).max(1);
+        for lawn in lawns.iter().step_by(every) {
+            let deep: Vec<Point> = lawn
+                .iter()
+                .copied()
+                .filter(|p| roads.clearance(*p, 1.0) >= hull_way)
+                .collect();
+            let Some(centre) = deep.first().and_then(|goal| {
+                sites
+                    .settlements
+                    .iter()
+                    .find(|s| polygon_contains(&s.outline, *goal))
+                    .map(|s| s.center)
+            }) else {
+                continue;
+            };
+            let arrives = |prepared: &PreparedMap, goal: Point| {
+                route(prepared, &rules, hull_m, centre, goal).is_some_and(|(points, _)| {
+                    points
+                        .last()
+                        .is_some_and(|end| (*end - v2(goal[0], goal[1])).length() < 6.0)
+                })
+            };
+            // Spread through the lawn: a few asked of the bare map,
+            // more of the dressed one.
+            let spread = |most: usize| -> Vec<Point> {
+                let step = (deep.len() / most).max(1);
+                deep.iter().copied().step_by(step).take(most).collect()
+            };
+            if !spread(LAWN_TRIES).into_iter().any(|p| arrives(&before, p)) {
+                continue;
+            }
+            totals[7] += 1;
+            // Near any of its deep points: a body standing on one
+            // closes no way in.
+            let step = (deep.len() / (3 * LAWN_TRIES)).max(1);
+            claim!(
+                broken,
+                deep.iter()
+                    .step_by(step)
+                    .take(3 * LAWN_TRIES)
+                    .any(|p| arrives(&after, *p)),
+                "{name}: no way in for a {hull} from {centre:?} to the lawn at {:?}",
+                deep[0]
+            );
+        }
+
+        // Streets.
+        let streets: Vec<Vec<Point>> = bare
+            .surfaces
+            .iter()
+            .filter(|area| area.kind == SurfaceKind::Road)
+            .filter_map(|area| match &area.shape {
+                GroundShape::Stroke { centerline, .. } => Some(centerline.samples().to_vec()),
+                GroundShape::Polygon { .. } => None,
+            })
+            .collect();
+        let every = (streets.len() / STREETS_DRIVEN).max(1);
+        for (index, street) in streets
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| index % every == 0)
+        {
+            // Its longest straight run, from a hull's length inside
+            // one end to as far inside the other, each way on
+            // alternate streets.
+            let run = street
+                .windows(2)
+                .max_by(|a, b| span(a[0], a[1]).total_cmp(&span(b[0], b[1])))
+                .unwrap();
+            let stretch = span(run[0], run[1]);
+            if stretch < 60.0 {
+                continue;
+            }
+            let inside = |share: f64| {
+                [0, 1].map(|axis| run[0][axis] + (run[1][axis] - run[0][axis]) * share)
+            };
+            let mut ends = [inside(12.0 / stretch), inside(1.0 - 12.0 / stretch)];
+            if index / every % 2 == 1 {
+                ends.swap(0, 1);
+            }
+            for (kind, m) in &vehicles {
+                // Each end where the hull stands clear on the dressed
+                // street, as an order's destination is placed: a car
+                // abandoned in the road may stand on its middle.
+                let unit = rules
+                    .catalog
+                    .indices()
+                    .find(|u| rules.catalog.id(*u) == kind)
+                    .unwrap();
+                let hull = rules.catalog.get(unit).hull().unwrap().half_extents_m;
+                let pockets = navigation::Pockets::default();
+                let start = v2(ends[0][0], ends[0][1]);
+                let Some(ends) = ends
+                    .iter()
+                    .map(|e| {
+                        after.grid.destination_point(
+                            v2(e[0], e[1]),
+                            m,
+                            Some(hull[0].hypot(hull[1])),
+                            start,
+                            &pockets,
+                        )
+                    })
+                    .collect::<Option<Vec<_>>>()
+                    .map(|e| [[e[0].x, e[0].y], [e[1].x, e[1].y]])
+                else {
+                    broken.push(note(format!(
+                        "{name}: a {kind} has no standing room near {ends:?}"
+                    )));
+                    continue;
+                };
+                let arrives = |prepared: &PreparedMap| {
+                    route(prepared, &rules, m, ends[0], ends[1]).filter(|(points, _)| {
+                        points
+                            .last()
+                            .is_some_and(|end| (*end - v2(ends[1][0], ends[1][1])).length() < 6.0)
+                    })
+                };
+                // A drive down the street: by the street, not round it.
+                let Some((open, _)) = arrives(&before)
+                    .filter(|(points, _)| length(ends[0], points) <= stretch + DETOUR_M)
+                else {
+                    continue;
+                };
+                totals[3] += 1;
+                let Some((dressed, _)) = arrives(&after) else {
+                    broken.push(note(format!(
+                        "{name}: no route for a {kind} from {:?} to {:?} any more",
+                        ends[0], ends[1]
+                    )));
+                    continue;
+                };
+                let (was, now) = (length(ends[0], &open), length(ends[0], &dressed));
+                claim!(broken,
+                    now <= was + DETOUR_M,
+                    "{name}: a {kind} drives {now:.0} m from {:?} to {:?}, {was:.0} m on bare streets",
+                    ends[0],
+                    ends[1]
+                );
+                // It may brush aside what it can shove (a tank a car
+                // abandoned in its way, a truck a bench), never drive
+                // through what it cannot.
+                totals[4] += 1;
+                let unshoved = crosses_unshoved(&maps[1], &rules, m, ends[0], &dressed);
+                claim!(
+                    broken,
+                    unshoved.is_none(),
+                    "{name}: a {kind} drives from {:?} to {:?} through a {} it cannot shove",
+                    ends[0],
+                    ends[1],
+                    unshoved.unwrap_or_default()
+                );
+            }
+        }
+        println!(
+            "{name}: {} bodies; {totals:?}; {} broken",
+            props.len(),
+            broken.len()
+        );
+        (totals, broken)
+    });
+    let mut totals = [0usize; 8];
+    let mut broken: Vec<String> = Vec::new();
+    for (counted, claims) in answers {
+        for (total, n) in totals.iter_mut().zip(counted) {
+            *total += n;
+        }
+        broken.extend(claims);
     }
     // The sweep asked something: assaults planned, doors stood at and walked
     // to, streets driven, and driven by every hull through nothing it cannot

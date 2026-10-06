@@ -14,7 +14,12 @@ use mapgen::layout::{generate_layout, GenerationRequest, MapSize, MapType, Prese
 use mapgen::parcels::fill_districts;
 use mapgen::{Diagnostic, DiagnosticCode, DistrictPlan, MapPlan};
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::Arc;
+
+#[path = "common/memo.rs"]
+mod memo;
+#[path = "common/parallel.rs"]
+mod parallel;
 
 const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");
@@ -96,39 +101,37 @@ impl Town {
 
 /// Each cell is generated once, whichever tests ask for it.
 fn town(map_type: MapType, size: MapSize, seed: u64) -> Arc<Town> {
-    type Towns = BTreeMap<(MapType, MapSize, u64), Arc<Town>>;
-    static TOWNS: OnceLock<Mutex<Towns>> = OnceLock::new();
-    let towns = TOWNS.get_or_init(Default::default);
-    if let Some(town) = towns.lock().unwrap().get(&(map_type, size, seed)) {
-        return town.clone();
-    }
-    let request = request(map_type, size, seed);
-    let plan = fill(&request, &presets(), &catalogue())
+    static TOWNS: memo::Memo<(MapType, MapSize, u64), Town> = memo::Memo::new();
+    TOWNS.get((map_type, size, seed), || {
+        let request = request(map_type, size, seed);
+        let plan = fill(&request, &presets(), &catalogue())
+            .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
+        let compiled = mapgen::lower(
+            &mapgen::CompileRequest::generated(&request, plan.clone()),
+            &catalogue(),
+        )
         .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
-    let compiled = mapgen::lower(
-        &mapgen::CompileRequest::generated(&request, plan.clone()),
-        &catalogue(),
-    )
-    .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
-    let town = Arc::new(Town {
-        plan,
-        map: compiled.map,
-    });
-    towns
-        .lock()
-        .unwrap()
-        .insert((map_type, size, seed), town.clone());
-    town
+        Town {
+            plan,
+            map: compiled.map,
+        }
+    })
 }
 
+/// Every type and size on each seed: made side by side, checked in order.
 fn every_cell(mut check: impl FnMut(&str, MapType, &Town)) {
-    for map_type in TYPES {
-        for size in SIZES {
-            for seed in SEEDS {
-                let name = format!("{map_type:?} {size:?} seed {seed}");
-                check(&name, map_type, &town(map_type, size, seed));
-            }
-        }
+    let cells: Vec<(MapType, MapSize, u64)> = TYPES
+        .into_iter()
+        .flat_map(|map_type| SIZES.into_iter().map(move |size| (map_type, size)))
+        .flat_map(|(map_type, size)| SEEDS.into_iter().map(move |seed| (map_type, size, seed)))
+        .collect();
+    let towns = parallel::each(&cells, |&(map_type, size, seed)| town(map_type, size, seed));
+    for ((map_type, size, seed), town) in cells.into_iter().zip(towns) {
+        check(
+            &format!("{map_type:?} {size:?} seed {seed}"),
+            map_type,
+            &town,
+        );
     }
 }
 
