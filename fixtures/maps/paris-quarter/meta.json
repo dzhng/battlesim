@@ -1,0 +1,23 @@
+{
+  "category": "playable",
+  "status": "draft",
+  "label": "Paris Quarter",
+  "character": "metro",
+  "biome": "summer",
+  "size_m": [
+    4000,
+    4000
+  ],
+  "tags": [
+    "road",
+    "forest",
+    "prop",
+    "building"
+  ],
+  "source": "generated",
+  "seed": "1",
+  "encounters": [
+    "street"
+  ],
+  "benchmarks": []
+}

@@ -16,8 +16,9 @@ policy without coordinates; [the simulation planner](../crates/sim/src/encounter
 places them on admitted geometry. [Generated-battle settings](generated-battle.json)
 own preparation policy and default encounter selection. [Camera lab settings](camera-lab.json)
 belong to the isolated camera experiment, not a second gameplay camera policy.
-[The menu backdrop](menu-backdrop.json) names the saved battle the main menu films
-(an ordinary saved encounter, scripted orders and all) and its reel of camera shots;
+[The menu backdrop](menu-backdrop.json) lists the scenes the main menu films, in order:
+each a saved battle (an ordinary saved encounter, scripted orders and all, on its own
+map) and its reel of camera shots;
 a tracking shot frames by an offset from one of blue's units. The encounter is staged
 like a film, not balanced: set-pieces in different parts of the map open fire on a
 schedule, set by how far each force starts from its enemy, so every cut has guns

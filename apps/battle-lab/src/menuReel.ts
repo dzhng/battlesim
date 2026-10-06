@@ -90,3 +90,48 @@ function between(a: CameraPose, b: CameraPose, s: number): CameraPose {
     pitch: at(a.pitch, b.pitch),
   };
 }
+
+/** One scene of the menu's backdrop: a saved battle (`map`'s encounter
+ *  `encounter`, from `seed`, stepped to `warm_s` before it is filmed) and
+ *  the reel that films it. */
+export interface BackdropScene {
+  map: string;
+  encounter: string;
+  seed: number;
+  warm_s: number;
+  reel: MenuReel;
+}
+
+/** The menu's backdrop: its scenes, played in order, then over again. */
+export interface Backdrop {
+  scenes: readonly BackdropScene[];
+}
+
+/** `json` as a backdrop, or a refusal naming the field at fault. */
+export function validateBackdrop(json: {
+  scenes: {
+    map: string;
+    encounter: string;
+    seed: number;
+    warm_s: number;
+    reel: Parameters<typeof validateReel>[0];
+  }[];
+}): Backdrop {
+  if (!json.scenes?.length) throw new Error("menu backdrop scenes: none");
+  return {
+    scenes: json.scenes.map((s, i) => {
+      for (const k of ["map", "encounter"] as const)
+        if (typeof s[k] !== "string" || !s[k])
+          throw new Error(`menu backdrop scenes[${i}].${k}: a saved map's name`);
+      if (!Number.isInteger(s.seed)) throw new Error(`menu backdrop scenes[${i}].seed: an integer`);
+      if (!(s.warm_s >= 0)) throw new Error(`menu backdrop scenes[${i}].warm_s: not a duration`);
+      return {
+        map: s.map,
+        encounter: s.encounter,
+        seed: s.seed,
+        warm_s: s.warm_s,
+        reel: validateReel(s.reel),
+      };
+    }),
+  };
+}

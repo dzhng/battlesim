@@ -1,8 +1,10 @@
-// The main menu's backdrop: a live battle on a saved battlefield, filmed by
-// the backdrop reel's slow camera moves and graded to the menu's amber. Silent
-// (the menu's music plays over it) and inert: input belongs to the menu.
-// It is the menu's own battle, so leaving the menu releases its worker and
-// scene like any battle's; when the reel ends the battle starts again.
+// The main menu's backdrop: live battles on saved battlefields, one scene
+// after another, each filmed by its reel's camera moves and graded to the
+// menu's amber. Silent (the menu's music plays over it) and inert: input
+// belongs to the menu. Each is the menu's own battle, so leaving the menu
+// releases its worker and scene like any battle's; when a scene's reel ends
+// the next scene's battle takes its place behind the veil (prepared while the
+// last one played), and after the last the first starts again.
 // Its preparation reports to the menu's loading screen, and the battle holds
 // at its warm tick until the menu is shown, so the reel's first cut opens on
 // the moment it was cut for.
@@ -14,7 +16,7 @@ import { appResources } from "./appResources";
 import { useFeed } from "./feed";
 import { gameCamera } from "./gameCamera";
 import { LabViewport, type ViewportPilot } from "./LabViewport";
-import { sampleReel, validateReel, type MenuReel } from "./menuReel";
+import { sampleReel, validateBackdrop, type BackdropScene, type MenuReel } from "./menuReel";
 import { savedBattle } from "./savedMaps";
 import { buildFailed, useBuiltScenario } from "./useBuiltScenario";
 import { useBattleSession } from "./useBattleSession";
@@ -22,14 +24,28 @@ import { useLabLoading } from "./LabLoading";
 import type { ScriptedSim } from "./useSimSession";
 import game from "@fixtures/game.json";
 
-const REEL = validateReel(backdrop.reel);
+const SCENES = validateBackdrop(backdrop).scenes;
+
+/** Each scene's battle, prepared once: the next scene's is asked for while
+ *  the current one plays, so the cut to it waits only on drawing it. */
+const scenarios = new Map<BackdropScene, Promise<string>>();
+function sceneScenario(scene: BackdropScene): Promise<string> {
+  let s = scenarios.get(scene);
+  if (!s) {
+    s = savedBattle(scene.map, scene.encounter).then((b) => b.scenario);
+    // A failed preparation is asked again next time, not remembered.
+    s.catch(() => scenarios.delete(scene));
+    scenarios.set(scene, s);
+  }
+  return s;
+}
 
 /** Under reduced motion the camera holds the first framing for the reel's length. */
-function reelFor(reduced: boolean): MenuReel {
-  if (!reduced) return REEL;
-  const seconds = REEL.shots.reduce((sum, shot) => sum + shot.seconds, 0);
-  const still = REEL.shots[0].from;
-  return { fade_s: REEL.fade_s, shots: [{ seconds, from: still, to: still }] };
+function reelFor(reel: MenuReel, reduced: boolean): MenuReel {
+  if (!reduced) return reel;
+  const seconds = reel.shots.reduce((sum, shot) => sum + shot.seconds, 0);
+  const still = reel.shots[0].from;
+  return { fade_s: reel.fade_s, shots: [{ seconds, from: still, to: still }] };
 }
 
 const cameraAt = (pose: CameraPose): Camera3DParams => ({
@@ -51,16 +67,27 @@ export function MenuBackdrop({
   // A refused page GPU leaves the menu its plain background, with nothing to wait for.
   const refused = useSyncExternalStore(appResources.subscribe, appResources.error);
   useLabLoading("renderer", refused ? true : null);
-  const battle = useBuiltScenario(
-    backdrop,
-    async (_, b) => (await savedBattle(b.map, b.encounter)).scenario,
-  );
+  // Scenes played so far: the one playing is `played` modulo their count.
+  const [played, setPlayed] = useState(0);
+  const scene = SCENES[played % SCENES.length];
+  const next = SCENES[(played + 1) % SCENES.length];
+  const battle = useBuiltScenario(scene, (_, s) => sceneScenario(s));
   const failed = buildFailed(battle) ? battle.error : null;
   useEffect(() => {
     if (failed) console.error(`The menu backdrop could not be prepared: ${failed}`);
   }, [failed]);
   if (refused || !battle || buildFailed(battle)) return null;
-  return <BackdropBattle scenario={battle} plate={plate} shown={shown} />;
+  return (
+    <BackdropBattle
+      key={played}
+      scene={scene}
+      scenario={battle}
+      plate={plate}
+      shown={shown}
+      onWarm={() => void sceneScenario(next).catch(() => {})}
+      onEnd={() => setPlayed((n) => n + 1)}
+    />
+  );
 }
 
 /** How long a tracking shot's camera takes to catch up with its unit, seconds:
@@ -69,7 +96,6 @@ const TRACK_LAG_S = 0.5;
 
 /** What the pilot reads from the running battle. */
 interface ReelBattle {
-  restart: () => void;
   /** An own unit's position, or null once it is gone. */
   unitAt: (id: number) => ArrayLike<number> | null;
   /** The battle's presentation clock at `now`, in simulation seconds. */
@@ -77,20 +103,23 @@ interface ReelBattle {
 }
 
 /** The reel's pilot: it veils the picture until the battle stands at its warm
- *  tick and `hold` settles, plays the shots, and at the end restarts the
- *  battle behind the veil. */
+ *  tick and `hold` settles, plays the shots, and at the end, behind the veil,
+ *  hands over to the next scene (`onEnd`). */
 function createReelPilot(
+  scene: BackdropScene,
   veil: RefObject<HTMLDivElement | null>,
   plate: RefObject<HTMLElement | null>,
   hold: () => Promise<void>,
+  onEnd: () => void,
 ) {
-  const reel = reelFor(matchMedia("(prefers-reduced-motion: reduce)").matches);
-  const battle: ReelBattle = { restart: () => {}, unitAt: () => null, clock: () => null };
+  const reel = reelFor(scene.reel, matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const battle: ReelBattle = { unitAt: () => null, clock: () => null };
+  let ended = false;
   let warm = false;
   // The reel runs on the battle's clock, not the wall's: a battle running
   // behind real time (a slow worker, a stalled frame) keeps each cut on the
   // moment it was cut for.
-  const warmClock = Math.round(backdrop.warm_s * game.tick_hz) / game.tick_hz;
+  const warmClock = Math.round(scene.warm_s * game.tick_hz) / game.tick_hz;
   // The tracked unit's smoothed position; it holds where a fallen unit was.
   let tracked: { follow: number; at: [number, number]; now: number } | null = null;
   // The last framed subject's world position.
@@ -110,7 +139,7 @@ function createReelPilot(
     return tracked.at;
   };
   const scripted: ScriptedSim = {
-    warmTo: Math.round(backdrop.warm_s * game.tick_hz),
+    warmTo: Math.round(scene.warm_s * game.tick_hz),
     hold,
     onWarm: () => (warm = true),
     onTick: () => {},
@@ -123,10 +152,9 @@ function createReelPilot(
           ? { pose: reel.shots[0].from, follow: null, black: 1, done: false }
           : sampleReel(reel, Math.max(0, clock - warmClock));
       if (veil.current) veil.current.style.opacity = String(sample.black);
-      if (sample.done) {
-        warm = false;
-        tracked = null;
-        battle.restart();
+      if (sample.done && !ended) {
+        ended = true;
+        onEnd();
       }
       const [x, y] = sample.pose.target;
       if (sample.follow === null) subject = [x, y];
@@ -161,34 +189,48 @@ function createReelPilot(
 }
 
 function BackdropBattle({
+  scene,
   scenario,
   plate,
   shown,
+  onWarm,
+  onEnd,
 }: {
+  scene: BackdropScene;
   scenario: string;
   plate: RefObject<HTMLElement | null>;
   shown: Promise<void>;
+  /** The battle first stands at its warm tick. */
+  onWarm: () => void;
+  /** Its reel has played to the end, under the veil. */
+  onEnd: () => void;
 }) {
   const veil = useRef<HTMLDivElement>(null);
   // Ready to film once the battle first stands at its warm tick.
   const [warmed, setWarmed] = useState(false);
   useLabLoading("renderer", warmed);
   const [reel] = useState(() =>
-    createReelPilot(veil, plate, () => {
-      setWarmed(true);
-      return shown;
-    }),
+    createReelPilot(
+      scene,
+      veil,
+      plate,
+      () => {
+        setWarmed(true);
+        onWarm();
+        return shown;
+      },
+      onEnd,
+    ),
   );
   const session = useBattleSession({
     scenario,
-    seed: backdrop.seed,
+    seed: scene.seed,
     scripted: reel.scripted,
     destroyable: "apart",
     inputEnabled: false,
     xray: false,
   });
   const { sim } = session;
-  reel.battle.restart = sim.restart;
   reel.battle.unitAt = (id) => sim.latest.current?.own.find((u) => u.id === id)?.position ?? null;
   reel.battle.clock = (now) => sim.interpolator.current?.time(now) ?? null;
   useEffect(() => {
