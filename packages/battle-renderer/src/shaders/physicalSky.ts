@@ -95,9 +95,9 @@ export function skyDiscWgsl(p: sky.SkyModelParams): string {
 }
 
 // The view's clouds: a cumulus layer `height_m` above the eye, its masses
-// value-noise fBm thresholded to the coverage. Each sample is shaded by the
-// cloud between it and the sun, so tops toward the sun are lit and bases and
-// lee sides are grey; near the horizon they thin into the haze. Integer
+// warped value-noise fBm thresholded to the coverage. Each is lit as if its
+// thickness were height, so sunward flanks are bright and lee sides and thick
+// cores grey; toward the horizon they pile up and take its haze. Integer
 // hashing keeps the pattern stable at the layer's large coordinates.
 export const cloudHashWgsl = `(i: vec2i) -> f32 {
   var h = (bitcast<u32>(i.x) * 0x8da6b343u) ^ (bitcast<u32>(i.y) * 0xd8163841u);
@@ -130,15 +130,12 @@ export const cloudFbmWgsl = `(p0: vec2f) -> f32 {
 /** Clouds over the shown sky `sky` along `dir` (z-up); never baked into the LUT. */
 export function skyCloudsWgsl(p: sky.SkyModelParams): string {
   const c = p.clouds;
-  const toSun =
-    Math.hypot(p.sunDirection[0], p.sunDirection[1]) > 1e-6
-      ? [p.sunDirection[0], p.sunDirection[1]].map(
-          (v) => v / Math.hypot(p.sunDirection[0], p.sunDirection[1]),
-        )
-      : [1, 0];
+  // The sun's bearing across the layer (any, for a sun overhead).
+  const across = Math.hypot(p.sunDirection[0], p.sunDirection[1]);
+  const toSun = across > 1e-6 ? [p.sunDirection[0] / across, p.sunDirection[1] / across] : [1, 0];
   const lo = 1 - c.coverage;
   return `(dir: vec3f, sky: vec3f) -> vec3f {
-  if (dir.z < 0.012 || ${f(c.opacity)} <= 0.0) { return sky; }
+  if (dir.z < 0.012) { return sky; }
   // A dome, not a plane: far clouds keep their bulk instead of thinning to
   // streaks along the horizon.
   let at = dir.xy * (${f(c.height_m / c.scale_m)} / (dir.z + 0.12));
