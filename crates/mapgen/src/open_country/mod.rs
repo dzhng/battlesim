@@ -245,7 +245,7 @@ struct Country<'a> {
     presets: &'a PresetDefinitions,
     rules: &'a Rules,
     size: [f64; 2],
-    objectives: Vec<(Point,f64)>,
+    objectives: Vec<(Point, f64)>,
     towns: Vec<Ground<'a>>,
     woods: Vec<Ground<'a>>,
     network: Network<'a>,
@@ -341,8 +341,9 @@ impl<'a> Country<'a> {
         if !self.charge(1) {
             return false;
         }
-        if self.objectives.iter().any(|(center,radius)|
-            libm::hypot(p[0]-center[0],p[1]-center[1]) < radius + ask.radius) {
+        if self.objectives.iter().any(|(center, radius)| {
+            libm::hypot(p[0] - center[0], p[1] - center[1]) < radius + ask.radius
+        }) {
             return false;
         }
         let c = &self.rules.clear;
@@ -1389,8 +1390,16 @@ impl<'a> Country<'a> {
             presets,
             rules,
             size,
-            objectives: plan.skirmish.as_ref().map(|sites| sites.all_reserved_objectives()
-                .map(|o| (o.center,o.radius_m+10.0)).collect()).unwrap_or_default(),
+            objectives: plan
+                .skirmish
+                .as_ref()
+                .map(|sites| {
+                    sites
+                        .all_reserved_objectives()
+                        .map(|o| (o.center, o.radius_m + 10.0))
+                        .collect()
+                })
+                .unwrap_or_default(),
             network: Network::new(plan, clearance, &presets.parcels.geometry),
             towns,
             woods,

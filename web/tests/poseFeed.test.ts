@@ -8,6 +8,7 @@ import { expect, test } from "vitest";
 import { ObservationFeed, gamePose } from "@apps/battle-lab/src/poseFeed";
 import { drawnMuzzleSource, effectPublication } from "@apps/battle-lab/src/effectFeed";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UnitCatalog } from "@packages/scene-assets/src/units";
 import { shippedMounts } from "./shippedMounts";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import {
@@ -65,6 +66,8 @@ const squad = (
   policy: null,
   direction: null,
   reversing: false,
+  withdrawing: false,
+  protection: null,
   state: "idle",
   blocker: null,
   route: [],
@@ -154,11 +157,11 @@ const observation = (
 
 /** The live battle's path: publications into the interpolator, one feed and
  *  one driver, sampled at wall times like animation frames. */
-function battle() {
+function battle(units = UNITS) {
   const interpolator = new TickInterpolator(TICK_MS);
-  const feed = new ObservationFeed("blue", UNITS);
+  const feed = new ObservationFeed("blue", units);
   const driver = new PoseDriver({
-    units: UNITS,
+    units,
     mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
     feel: gamePose,
@@ -446,6 +449,70 @@ test("a previous weapon's flash cannot attach to the soldier's currently drawn m
   const shooter = sideKey(7, "blue", "blue");
   expect(source.muzzle(shooter, 1, 1, at)).toBe(true);
   expect(source.muzzle(shooter, 0, 1, at)).toBe(false);
+});
+
+test("the supported hold aligns the drawn bore and moving carried kit rejects its launcher flash", async () => {
+  const sources = testSources();
+  const baked = await bakeCatalog(testCatalog(), async (path) => sources[path], {
+    authority: AUTHORITY,
+  });
+  expect(baked.ok).toBe(true);
+  const files = new Map([
+    ["catalog.json", new TextEncoder().encode(runtimeCatalogText(baked.runtime))],
+    ...baked.files,
+  ]);
+  const installed = await new AppearanceLibrary(memoryFetch(files, "/assets/")).load("/assets/");
+  const units = new UnitCatalog({
+    ...UNITS.view,
+    units: UNITS.view.units.map((u) =>
+      u.id === "at"
+        ? {
+            ...u,
+            mounts: u.mounts.map((m, i) =>
+              i === 1
+                ? {
+                    ...m,
+                    operator_appearance: {
+                      active: ["rifleman"],
+                      carried: ["rifleman"],
+                      active_pose: { clip: "kneel_fire", phase: 0 },
+                    },
+                  }
+                : m,
+            ),
+          }
+        : u,
+    ),
+  });
+  const drawn = new DrawnMuzzles(
+    installed,
+    () => ({ appearance: "rifleman", tint: [1, 1, 1] }),
+    units,
+  );
+  const b = battle(units);
+  const team = (x: number): OwnUnitView => ({
+    ...squad(7, [{ id: 1, at: [x, 0, 0] }]),
+    kind: "at",
+    memberActiveMounts: [1],
+    weaponPoses: [{ mount: 1, operator: 1, bearing: Math.PI / 2, elevation: 0, shots: 0 }],
+  });
+  b.publish(observation(0, [team(0)]), 0);
+  const held = b.draw(0);
+  expect([held.soldiers[0].clip, held.soldiers[0].phase, held.soldiers[0].facing]).toEqual([
+    "kneel_fire",
+    0,
+    Math.PI / 2,
+  ]);
+  drawn.update(held);
+  const at: Point3 = [0, 0, 0];
+  expect(drawn.soldier("blue", 1, 1, at)).toBe(true);
+  // The baked socket is [.7,-.2,1.4]; +90° facing turns it into [.2,.7,1.4].
+  at.forEach((v, i) => expect(v).toBeCloseTo([0.2, 0.7, 1.4][i], 5));
+  b.publish(observation(15, [team(1)]), 500);
+  const moving = b.draw(600);
+  expect(moving.soldiers[0].activeMount).toBeNull();
+  drawn.update(moving);
+  expect(drawn.soldier("blue", 1, 1, at)).toBe(false);
 });
 
 test("an own tank and an identified enemy with the same id keep their own mounts", () => {

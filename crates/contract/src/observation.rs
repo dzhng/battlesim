@@ -375,9 +375,19 @@ pub struct GarrisonState {
     pub half: [f64; 2],
 }
 
+/// Defensive readiness is visible only to its owner.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ProtectionReadiness {
+    pub charges: u32,
+    /// Running cooldown progress in [0,1], absent when ready.
+    pub cooldown: Option<f64>,
+}
+
 /// A unit of the observing side: its own state is complete.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OwnUnit {
+    pub withdrawing: bool,
+    pub protection: Option<ProtectionReadiness>,
     pub id: UnitId,
     /// Its unit type: its rank in the catalog, the layout's `unitKinds`.
     pub kind: TypeIndex,

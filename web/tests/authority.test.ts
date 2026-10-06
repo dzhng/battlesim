@@ -436,6 +436,7 @@ test("worker publication copying and transfer preserve every raw NaN carrier bit
   const battle = {
     observation_layout: () => "{}",
     accept: () => "{}",
+    preview_purchase: () => '{"Err":{"reason":"not_skirmish"}}',
     preview_move: () => "[]",
     preview_building: () => "null",
     step: () => ++tick,
@@ -465,6 +466,7 @@ test("terminal matches complete fast-forward at their final tick and stop publis
   const battle = {
     observation_layout: () => "{}",
     accept: () => "{}",
+    preview_purchase: () => '{"Err":{"reason":"not_skirmish"}}',
     preview_move: () => "[]",
     preview_building: () => "null",
     step: () => (tick < 2 ? ++tick : tick),
@@ -503,4 +505,37 @@ test("terminal matches complete fast-forward at their final tick and stop publis
     tick: 2,
   });
   expect(h.publications().map((p) => p.tick)).toEqual([1, 2]);
+});
+
+test("purchase preview resolves through the authority without spending or advancing", async () => {
+  const { default: record } = await import("@fixtures/parity/skirmish-purchases.json");
+  const h = harness();
+  await h.init(undefined, JSON.stringify(record.scenario));
+  h.authority.handle({
+    type: "purchase_preview",
+    id: 1,
+    side: "blue",
+    variant: "tank",
+    destination: [400, 250],
+  });
+  h.authority.handle({
+    type: "purchase_preview",
+    id: 2,
+    side: "red",
+    variant: "tank",
+    destination: [400, 250],
+  });
+  expect(h.replies.filter((r) => r.type === "purchase_preview")).toEqual([
+    { type: "purchase_preview", id: 1, placement: { Ok: expect.any(Number) } },
+    { type: "purchase_preview", id: 2, placement: { Err: { reason: "wrong_faction" } } },
+  ]);
+  expect(h.publications()).toHaveLength(0);
+  h.authority.handle({ type: "start" });
+  const layout = JSON.parse(
+    (h.replies.find((r) => r.type === "ready") as { layout: string }).layout,
+  ) as ObservationLayout;
+  const p = h.publications()[0];
+  const view = new ObservationDecoder(layout).decode(new Float32Array(p.buffer, 0, p.length))!;
+  expect(view.skirmish).toMatchObject({ credits: 1000, occupiedSlots: 0, pending: [] });
+  expect(view.own).toEqual([]);
 });

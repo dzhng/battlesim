@@ -27,7 +27,7 @@
     },
     "assault_squad": {
       "name": "Assault Squad",
-      "description": "Close-quarters infantry; temporary generic appearance until named model admission",
+      "description": "Close-quarters infantry",
       "faction": "generic",
       "family": "assault_squad",
       "roles": [
@@ -47,14 +47,14 @@
       "body": {
         "squad": {
           "slots": [
-            "roster_assault_rifle",
-            "roster_assault_rifle",
-            "roster_assault_rifle",
-            "roster_assault_rifle",
-            "roster_assault_rifle",
-            "roster_assault_rifle",
-            "roster_assault_rifle",
-            "roster_assault_rifle"
+            "assault_squad__roster_assault_rifle",
+            "assault_squad__roster_assault_rifle",
+            "assault_squad__roster_assault_rifle",
+            "assault_squad__roster_assault_rifle",
+            "assault_squad__roster_assault_rifle",
+            "assault_squad__roster_assault_rifle",
+            "assault_squad__roster_assault_rifle",
+            "assault_squad__roster_assault_rifle"
           ]
         }
       }
@@ -161,7 +161,7 @@
     },
     "rifle_squad": {
       "name": "Rifle Squad",
-      "description": "Standard infantry; temporary generic appearance until named model admission",
+      "description": "Standard infantry",
       "faction": "generic",
       "family": "rifle_squad",
       "roles": [
@@ -182,14 +182,14 @@
       "body": {
         "squad": {
           "slots": [
-            "grenadier",
-            "rifleman",
-            "rifleman",
-            "rifleman",
-            "rifleman",
-            "rifleman",
-            "rifleman",
-            "rifleman"
+            "rifle_squad__grenadier",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman"
           ]
         }
       }

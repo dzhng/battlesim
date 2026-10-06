@@ -169,3 +169,27 @@ test("keyboard focus takes ownership from an old hover and mouse leave restores 
   fireEvent.mouseLeave(tank);
   expect(view.getByRole("tooltip").getAttribute("data-unit")).toBe("22");
 });
+
+test("reinforcements remain available before the first unit enters", () => {
+  const view = render(
+    <ArmyDeck
+      own={[]}
+      selected={[]}
+      onSelect={vi.fn()}
+      rules={game as unknown as PanelRules}
+      captions={null}
+      reinforcements={<button>Reinforcements</button>}
+    />,
+  );
+  expect(view.getByRole("button", { name: "Reinforcements" })).toBeTruthy();
+  expect(view.getByRole("group", { name: "Your units" }).children.length).toBe(0);
+});
+
+test("the command row exposes refund for a selected skirmish unit", () => {
+  const refund = vi.fn();
+  const unit = specimenUnit("tank", {id:11});
+  const control = {selectedUnits:[unit],mode:"move" as const,setMode:vi.fn(),stop:vi.fn(),togglePolicy:vi.fn(),toggleDeployment:vi.fn(),exitBuilding:vi.fn(),refund};
+  const view = render(<ArmyDeck own={[unit]} selected={[11]} onSelect={vi.fn()} rules={game as unknown as PanelRules} captions={null} control={control} />);
+  fireEvent.click(view.getByRole("button", {name:"Refund · Return to base"}));
+  expect(refund).toHaveBeenCalledOnce();
+});

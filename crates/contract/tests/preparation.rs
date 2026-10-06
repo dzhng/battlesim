@@ -10,6 +10,7 @@ fn generated() -> Value {
             "seed": "18446744073709551615",
             "template_catalog_hash": "ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb",
             "type": "mixed",
+            "profile": "standard",
             "size": "small",
             "limits": { "max_authored_parts": 1, "max_bay_positions": 1, "max_ground_points": 1 },
         }},
@@ -105,4 +106,18 @@ fn a_request_that_cannot_be_prepared_names_the_field_at_fault() {
     refusal(&with(&["map_source"], json!({ "kind": "village" })));
     refusal(&with(&["map_source", "request", "type"], json!("huge")));
     refusal(&with(&["fallback_seed"], json!("1")));
+}
+
+#[test]
+fn faction_skirmish_requires_generated_compact_geography() {
+    let mut input = generated();
+    input["skirmish"] = json!(["europe", "eastern"]);
+    input["map_source"]["request"]["profile"] = json!("skirmish");
+    let outcome: Value = serde_json::from_str(&check_request_json(&input.to_string())).unwrap();
+    assert_eq!(outcome["status"], "ok");
+    assert_eq!(outcome["request"]["skirmish"], json!(["europe", "eastern"]));
+    input["map_source"]["request"]["profile"] = json!("standard");
+    assert_eq!(refusal(&input).0, "$.map_source");
+    input["map_source"] = json!({"kind":"catalogue","id":"village"});
+    assert_eq!(refusal(&input).0, "$.map_source");
 }

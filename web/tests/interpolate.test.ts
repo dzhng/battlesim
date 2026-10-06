@@ -12,6 +12,8 @@ const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   policy: null,
   direction: null,
   reversing: false,
+  withdrawing: false,
+  protection: null,
   state: "idle",
   blocker: null,
   route: [],

@@ -210,12 +210,47 @@ pub struct HullResolver<'a> {
     pub rules: &'a Rules,
     pub arsenal: &'a Arsenal,
     pub rounds: &'a BTreeMap<ProjectileId, Round>,
-    pub units: &'a [Unit],
+    pub units: &'a mut [Unit],
+    pub tick: Tick,
     /// The ricochet stream: rolls and scatter.
     pub rng: &'a mut Rng,
 }
 
 impl ImpactResolver for HullResolver<'_> {
+    fn max_standoff(&self, projectile: ProjectileId) -> f64 {
+        let Some(round) = self.rounds.get(&projectile) else {
+            return 0.0;
+        };
+        if !self.arsenal.weapons[round.weapon].def.interceptable {
+            return 0.0;
+        }
+        self.units
+            .iter()
+            .filter(|unit| unit.alive())
+            .filter_map(|unit| unit.unit_type(self.rules).capabilities.active_protection)
+            .map(|cap| cap.standoff_m)
+            .fold(0.0, f64::max)
+    }
+    fn standoff(&self, projectile: ProjectileId, body: &crate::flight::Body) -> Option<f64> {
+        let round = self.rounds.get(&projectile)?;
+        if !self.arsenal.weapons[round.weapon].def.interceptable {
+            return None;
+        }
+        let unit = self.units.get(body.unit.0 as usize)?;
+        (unit.alive() && unit.hull.is_some())
+            .then(|| unit.unit_type(self.rules).capabilities.active_protection)?
+            .map(|cap| cap.standoff_m)
+    }
+    fn intercept(&mut self, event: &crate::flight::Interception) -> bool {
+        let unit = &mut self.units[event.unit.0 as usize];
+        let Some(cap) = unit.unit_type(self.rules).capabilities.active_protection else {
+            return false;
+        };
+        let time = self.tick.saturating_sub(1) as f64 + event.time;
+        unit.protection
+            .as_mut()
+            .is_some_and(|state| state.intercept(cap, time, self.rules.tick_hz))
+    }
     fn resolve(&mut self, hit: &ImpactContext) -> ImpactDecision {
         let Some(round) = self.rounds.get(&hit.projectile) else {
             return ImpactDecision::Stop;
@@ -247,11 +282,24 @@ impl ImpactResolver for HullResolver<'_> {
 #[derive(Default)]
 pub struct Outcome {
     /// Units that died this tick.
-    pub destroyed: Vec<UnitId>,
+    pub destroyed: Vec<UnitDeath>,
     /// (victim, shooter): a hostile round damaged or suppressed the victim.
     pub attacked: Vec<(UnitId, UnitId)>,
     /// Structural damage rounds did to props they struck, in event order.
     pub structural: Vec<StructuralHit>,
+}
+
+/// Causal identity survives the shooter and never depends on visible contacts.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LethalSource {
+    pub unit: UnitId,
+    pub side: contract::ids::Side,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct UnitDeath {
+    pub victim: UnitId,
+    pub source: Option<LethalSource>,
 }
 
 /// Structural damage to one body, and the horizontal way it pushed: a
@@ -259,6 +307,7 @@ pub struct Outcome {
 /// destroys falls that way.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct StructuralHit {
+    pub source: Option<LethalSource>,
     pub prop: PropId,
     pub amount: f64,
     pub toward: V2,
@@ -289,12 +338,13 @@ pub fn resolve(
     rng: &mut Rng,
 ) -> Outcome {
     let was_alive: Vec<bool> = units.iter().map(|u| u.alive()).collect();
+    let mut lethal = vec![None; units.len()];
     // A round suppresses a squad once over its whole flight, by the strongest
     // of its near misses and its impact: this tick's strongest, less what it
     // has already dealt on earlier ticks (a slow round takes several ticks to
     // pass a squad, and the eye sees one pass).
     let mut suppression: BTreeMap<(ProjectileId, usize), f64> = BTreeMap::new();
-    let mut hurt: Vec<(usize, UnitId)> = Vec::new();
+    let mut hurt: Vec<(usize, LethalSource)> = Vec::new();
     let mut structural = Vec::new();
     for event in events {
         match event {
@@ -328,6 +378,10 @@ pub fn resolve(
                 };
                 if let Some(prop) = struck.filter(|_| def.structural_damage > 0.0) {
                     structural.push(StructuralHit {
+                        source: Some(LethalSource {
+                            unit: round.unit,
+                            side: round.side,
+                        }),
                         prop: prop.id,
                         amount: def.structural_damage * prop.body.armor,
                         toward: hit.velocity.xy(),
@@ -335,7 +389,17 @@ pub fn resolve(
                 }
                 if hit.detonated {
                     let at = hit.point + hit.normal * BLAST_LIFT_M;
-                    blast_props(ctx.world, def, at, struck.map(|p| p.id), &mut structural);
+                    blast_props(
+                        ctx.world,
+                        def,
+                        at,
+                        struck.map(|p| p.id),
+                        Some(LethalSource {
+                            unit: round.unit,
+                            side: round.side,
+                        }),
+                        &mut structural,
+                    );
                 }
                 if let Some((_, (i, soldier))) = direct {
                     let unit = &mut units[i];
@@ -346,15 +410,33 @@ pub fn resolve(
                         _ => def.damage,
                     };
                     if damage > 0.0 {
-                        take(unit, soldier, damage);
-                        hurt.push((i, round.unit));
+                        if take(unit, soldier, damage) {
+                            lethal[i] = Some(LethalSource {
+                                unit: round.unit,
+                                side: round.side,
+                            });
+                        }
+                        hurt.push((
+                            i,
+                            LethalSource {
+                                unit: round.unit,
+                                side: round.side,
+                            },
+                        ));
                     }
                 }
                 let at = hit.point + hit.normal * BLAST_LIFT_M;
                 if hit.detonated {
                     let skip = direct.map(|(b, _)| b);
-                    blast(ctx, def, at, skip, units, rng, |i| {
-                        hurt.push((i, round.unit))
+                    blast(ctx, def, at, skip, units, rng, |i, died| {
+                        let source = LethalSource {
+                            unit: round.unit,
+                            side: round.side,
+                        };
+                        hurt.push((i, source));
+                        if died {
+                            lethal[i] = Some(source);
+                        }
                     });
                 }
                 // Impacts suppress squads near them, whoever was aimed at; like a
@@ -389,8 +471,19 @@ pub fn resolve(
                     let unit = &mut units[i];
                     let damage = hull_damage(ctx, def, unit, r.pose, r.point, r.normal, r.bounces);
                     if damage > 0.0 {
-                        take(unit, None, damage);
-                        hurt.push((i, round.unit));
+                        if take(unit, None, damage) {
+                            lethal[i] = Some(LethalSource {
+                                unit: round.unit,
+                                side: round.side,
+                            });
+                        }
+                        hurt.push((
+                            i,
+                            LethalSource {
+                                unit: round.unit,
+                                side: round.side,
+                            },
+                        ));
                     }
                 }
             }
@@ -403,6 +496,10 @@ pub fn resolve(
                 if let Some(prop) = ctx.world.prop(pass.prop) {
                     if def.structural_damage > 0.0 {
                         structural.push(StructuralHit {
+                            source: Some(LethalSource {
+                                unit: round.unit,
+                                side: round.side,
+                            }),
                             prop: prop.id,
                             amount: def.structural_damage * prop.body.armor,
                             toward: pass.along.xy(),
@@ -427,11 +524,18 @@ pub fn resolve(
         let unit = &mut units[i];
         unit.suppression = (unit.suppression + more).min(1.0);
         unit.suppressed_at = ctx.tick;
-        hurt.push((i, rounds[&projectile].unit));
+        let round = &rounds[&projectile];
+        hurt.push((
+            i,
+            LethalSource {
+                unit: round.unit,
+                side: round.side,
+            },
+        ));
     }
     for (i, shooter) in hurt {
-        if units[i].side != units[shooter.0 as usize].side {
-            outcome.attacked.push((units[i].id, shooter));
+        if units[i].side != shooter.side {
+            outcome.attacked.push((units[i].id, shooter.unit));
         }
     }
     // The fallen stay where they fell (a soldier is down once its hp is gone,
@@ -459,7 +563,10 @@ pub fn resolve(
             unit.orders.clear();
             unit.route = None;
             unit.garrison = None;
-            outcome.destroyed.push(unit.id);
+            outcome.destroyed.push(UnitDeath {
+                victim: unit.id,
+                source: lethal[i],
+            });
         }
     }
     outcome
@@ -495,11 +602,13 @@ fn near_miss(def: &WeaponDefinition, distance: f64) -> f64 {
     def.near_miss_suppression * (1.0 - distance / r).max(0.0)
 }
 
-fn take(unit: &mut Unit, soldier: Option<usize>, damage: f64) {
+fn take(unit: &mut Unit, soldier: Option<usize>, damage: f64) -> bool {
+    let alive = unit.alive();
     match soldier {
         Some(k) => unit.members[k].hp -= damage,
         None => unit.hp -= damage,
     }
+    alive && !unit.alive()
 }
 
 /// Per-soldier fragment sampling and distance-scaled vehicle damage inside the
@@ -511,7 +620,7 @@ fn blast(
     skip: Option<BodyId>,
     units: &mut [Unit],
     rng: &mut Rng,
-    mut hurt: impl FnMut(usize),
+    mut hurt: impl FnMut(usize, bool),
 ) {
     let radius = def.blast_radius_m;
     for (i, unit) in units.iter_mut().enumerate() {
@@ -532,7 +641,7 @@ fn blast(
                 let face = unit.hull_face(at);
                 if pierces(def.penetration, 0, &ctx.rules.ricochet, armor, face) {
                     unit.hp -= def.damage * (1.0 - r / radius);
-                    hurt(i);
+                    hurt(i, !unit.alive());
                 }
             }
             None => {
@@ -554,7 +663,7 @@ fn blast(
                     let exposure = fragment_exposure(ctx.rules, shelter);
                     if let Some(damage) = fragment(r, radius, exposure, def.damage, rng.unit()) {
                         unit.members[k].hp -= damage;
-                        hurt(i);
+                        hurt(i, !unit.alive());
                     }
                 }
             }
@@ -571,6 +680,7 @@ pub fn blast_props(
     def: &WeaponDefinition,
     at: V3,
     skip: Option<PropId>,
+    source: Option<LethalSource>,
     out: &mut Vec<StructuralHit>,
 ) {
     let radius = def.blast_radius_m;
@@ -592,6 +702,7 @@ pub fn blast_props(
             } else {
                 owners.insert(owner, out.len());
                 out.push(StructuralHit {
+                    source,
                     prop: owner,
                     amount,
                     toward: prop.center - at.xy(),

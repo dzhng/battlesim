@@ -13,6 +13,10 @@ import type { MapExtents } from "@packages/battle-renderer/src/worldMesh";
  *  Everything preparation needs to create a new battle. */
 export interface PrepareBattleRequest {
   map_source: MapSource;
+  skirmish?: [
+    import("@packages/scene-assets/src/units").Faction,
+    import("@packages/scene-assets/src/units").Faction,
+  ];
   /** Which encounter. On a generated map, a recipe of
    *  `fixtures/encounters.json`, placed by the simulation's planner; on a
    *  catalogue map, its saved encounter of that name. */

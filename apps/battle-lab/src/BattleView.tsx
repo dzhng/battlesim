@@ -1,3 +1,7 @@
+import {
+  ObjectiveMarkers,
+  type ObjectiveMarkersHandle,
+} from "@web/battle/present/objectiveMarkers";
 // A played (or replayed) battle for blue: the world, the side's units and
 // every overlay, and the HUD: the top bar's readout, the unit card and
 // command bar, subtitles, and the pause menu. Routes compose it with their
@@ -9,6 +13,8 @@ import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
 import { ReadoutLayer } from "@web/battle/present/readouts";
+import { SkirmishStatus } from "./battleStatus";
+import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
 import { buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
@@ -119,6 +125,7 @@ export function BattleView({
   const { contacts } = session;
   const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
+  const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
   const { clear: clearCues } = cues;
   const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
   const { audio } = session;
@@ -223,6 +230,7 @@ export function BattleView({
               setZoom(step);
             }
             session.placePanels(project, view, pointer);
+            objectiveMarkers.current?.place(project, surfaceZ);
           }}
           diagnostics={{
             ...session.probes,
@@ -231,6 +239,10 @@ export function BattleView({
           }}
         />
       )}
+      <ObjectiveMarkers
+        objectives={observation?.skirmish?.objectives ?? []}
+        handle={objectiveMarkers}
+      />
       <ReadoutLayer
         own={observation?.own ?? []}
         identified={observation?.identified}
@@ -244,7 +256,12 @@ export function BattleView({
       {/* The army roster and command row keep their place as selection changes. */}
       <div className="hud" data-testid="battle-panel" inert={pause.open}>
         <header className="hud-panel hud-top" data-occludes-readouts>
-          {!sim.error && status(session)}
+          {!sim.error &&
+            (observation?.skirmish ? (
+              <SkirmishStatus match={observation.skirmish} />
+            ) : (
+              status(session)
+            ))}
           {sim.error && (
             <div className="hud-error" data-testid="error">
               {sim.error}
@@ -259,6 +276,29 @@ export function BattleView({
           rules={session.rules}
           control={input ? control : undefined}
           captions={<CaptionList captions={cues} />}
+          reinforcements={
+            input && session.purchase && observation?.skirmish ? (
+              <>
+                <PurchasePicker
+                  cards={session.purchase.cards}
+                  faction={session.purchase.faction}
+                  match={observation.skirmish}
+                  onChoose={session.purchase.choose}
+                  onReady={session.purchase.ready}
+                  onCancelPending={session.purchase.cancelPending}
+                />
+                {session.purchase.placing && (
+                  <button
+                    type="button"
+                    className="hud-menu-choice hud-placement-cancel"
+                    onClick={session.purchase.cancel}
+                  >
+                    Cancel deployment · Esc
+                  </button>
+                )}
+              </>
+            ) : undefined
+          }
         />
       </div>
       {input && <RejectedOrder acks={control.acks} />}

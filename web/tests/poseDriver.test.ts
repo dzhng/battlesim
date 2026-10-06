@@ -237,7 +237,7 @@ test("a fallen soldier plays his death once, facing as he fell, then lies static
   const done = d.update(frame(3.1, [squad([])], fallen));
   expect(done.soldiers).toEqual([]);
   expect(done.corpses).toEqual([
-    { soldier: 1, kind: "rifle", slot: 0, side: "blue", position: [0, 0, 0], yaw: own },
+    { soldier: 1, kind: "rifle", slot: 0, side: "blue", position: [0, 0, 0], yaw: own, operatorMount: null },
   ]);
 });
 
@@ -603,7 +603,71 @@ test("changing equipment clears the old hold even when posture changes on the sa
   expect(pose.blend).toBeNull();
 });
 
-test("a fallen launcher carrier starts his ordinary death pose without the former hold", () => {
+test("a stationary active operator uses its authored supported hold", () => {
+  const units = new UnitCatalog({
+    ...UNITS.view,
+    units: UNITS.view.units.map((u) =>
+      u.id === "at"
+        ? {
+            ...u,
+            mounts: u.mounts.map((m, i) =>
+              i === 1
+                ? {
+                    ...m,
+                    operator_appearance: {
+                      active: ["deployed"],
+                      carried: ["packed"],
+                      active_pose: { clip: "kneel_fire", phase: 0.25 },
+                    },
+                  }
+                : m,
+            ),
+          }
+        : u,
+    ),
+  });
+  const d = new PoseDriver({
+    units,
+    mounts: shippedMounts,
+    clip: (_kind, name) => CLIPS[name] ?? null,
+    feel: FEEL,
+    leanHold: 0.1,
+  });
+  const unit = squad([{ id: 1, x: 0, y: 0 }], {
+    kind: "at",
+    mounts: [
+      { bearing: 0, elevation: 0, shots: 0 },
+      { operator: 1, bearing: 1, elevation: 0, shots: 0 },
+    ],
+  });
+  unit.soldiers[0].activeMount = 1;
+  d.update(frame(0, [unit]));
+  const pose = d.update(frame(0.5, [unit])).soldiers[0];
+  expect([pose.clip, pose.phase, pose.activeMount, pose.blend]).toEqual([
+    "kneel_fire",
+    0.25,
+    1,
+    null,
+  ]);
+  expect(pose.facing).toBe(1);
+  unit.soldiers[0].position[0] += 1;
+  const moving = d.update(frame(1, [unit])).soldiers[0];
+  expect([moving.clip, moving.operatorMount, moving.activeMount, moving.blend]).toEqual([
+    "walk",
+    1,
+    null,
+    null,
+  ]);
+  const stopped = d.update(frame(1.5, [unit])).soldiers[0];
+  expect([stopped.clip, stopped.phase, stopped.activeMount, stopped.blend]).toEqual([
+    "kneel_fire",
+    0.25,
+    1,
+    null,
+  ]);
+});
+
+test("a fallen launcher carrier keeps his carried identity through death and corpse", () => {
   const d = driver();
   const unit = squad([{ id: 1, x: 0, y: 0 }], {
     kind: "at",
@@ -618,7 +682,10 @@ test("a fallen launcher carrier starts his ordinary death pose without the forme
     { soldier: 1, kind: "at", slot: 0, side: "blue", position: [0, 0, 0], yaw: 0 },
   ];
   const pose = d.update(frame(0.01, [], fallen)).soldiers[0];
-  expect(pose.operatorMount).toBeNull();
+  expect(pose.operatorMount).toBe(1);
+  expect(pose.activeMount).toBeNull();
   expect(pose.clip).toBe("death");
   expect(pose.blend).toBeNull();
+  const corpse = d.update(frame(3, [], fallen)).corpses[0];
+  expect(corpse.operatorMount).toBe(1);
 });

@@ -1,0 +1,4063 @@
+{
+  "assignment": "infantry-equipment",
+  "status": "shared-rig-frozen; named-equipment-hold-fit-required",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/infantry_equipment.py",
+  "frame": {
+    "soldier_height_m": 1.7,
+    "eye_m": 1.6,
+    "muzzle_m": 1.4
+  },
+  "shared_rig": "Quaternius UBC 65 joints; shared UAL clips; existing infantry_rig.py only",
+  "export_basis_yaw_deg": 90,
+  "skeletons": [
+    "quaternius-ubc-rifle",
+    "quaternius-ubc-launcher"
+  ],
+  "sockets": {
+    "eye": "under Head",
+    "muzzle": "under hand_r",
+    "tripod_muzzle": "under root, judged at declared active_pose against physical mount pivot+muzzle"
+  },
+  "equipment_shapes": {
+    "M110": "Long straight AR-pattern semi-auto rifle, optic and bipod; 1.029 m unsuppressed reference",
+    "SVD": "Distinct skeletal stock, long slim barrel, curved magazine and side optic; 1.225 m reference",
+    "M107": "Large rectangular receiver, long barrel, prominent multi-port muzzle brake and bipod; exact M107 length to confirm from Barrett source",
+    "ASVK": "Bullpup anti-materiel rifle with forward grip/bipod and large brake; 1.420 m reference",
+    "RPG-7": "0.950 m tube, flared rear, two grips, optic and distinctive loaded grenade",
+    "RPG-29": "1.850 m ready-to-fire long straight launcher; 1 m packed reference",
+    "TOW": "Tube and optical launcher on actual tripod; missile length is NOT launcher tube length; no shoulder-fired Javelin clone",
+    "Kornet": "Tube/optic/tripod actual kit; missile length is NOT complete launcher dimensions"
+  },
+  "references": [
+    {
+      "page": "M110_Semi-Automatic_Sniper_System",
+      "url": "https://en.m.wikipedia.org/wiki/M110_Semi-Automatic_Sniper_System",
+      "status": 200,
+      "sha256": "fbb04637b1e84d1d62e1b5050532527423aed0fea71d67970f2ffe6fb17ab021",
+      "rows": [
+        "Length 1,029\u20131,181 mm (40.51\u201346.50 in) M110: buttstock fully retracted without and with suppressor 1,009.65\u20131,104.9 mm (39.75\u201343.50 in) M110A2: buttstock fully retracted to fully extended (presumably without suppressor) [ 2 ]"
+      ],
+      "images": [
+        "//thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/PEO_M110_SASS_Profile.jpg/330px-PEO_M110_SASS_Profile.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+      ]
+    },
+    {
+      "page": "Barrett_M82",
+      "url": "https://en.m.wikipedia.org/wiki/Barrett_M82",
+      "status": 200,
+      "sha256": "1ec0bd5f75fd572c69de46871ce95fcba738b62c1c43031674cf8c933d2e730e",
+      "rows": [
+        "Length 48 in (120 cm) to 57 in (140 cm)"
+      ],
+      "images": [
+        "//thumb.wikimedia.org/wikipedia/commons/thumb/5/5a/Barrett-M82A1-Independence-Day-2017-IZE-048-white.jpg/330px-Barrett-M82A1-Independence-Day-2017-IZE-048-white.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+      ]
+    },
+    {
+      "page": "ASVK",
+      "url": "https://en.m.wikipedia.org/wiki/ASVK",
+      "status": 200,
+      "sha256": "f3e2adbcec9e62f935b34124cc0044780393aad4907a8ca5f0845afeb51198f2",
+      "rows": [
+        "Length 1420 mm"
+      ],
+      "images": [
+        "//thumb.wikimedia.org/wikipedia/commons/thumb/b/be/KSVK1.jpg/330px-KSVK1.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+      ]
+    },
+    {
+      "page": "Dragunov_sniper_rifle",
+      "url": "https://en.m.wikipedia.org/wiki/Dragunov_sniper_rifle",
+      "status": 200,
+      "sha256": "b0de154375f58e024ca3519dc5da02c573fe4f4c8438040e847e6b50a9a2296d",
+      "rows": [
+        "Length 1,225 mm (48.2 in) (SVD) [ 1 ] 1,135 mm (44.7 in) stock extended / 875 mm (34.4 in) stock folded (SVDS) 900 mm (35.4 in) (SVU) 1,155 mm (45.5 in) stock extended / 875 mm (34.4 in) stock folded (SVDM) 1,135 mm (44.7 in) (SWD-M)"
+      ],
+      "images": [
+        "//thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/SVD_Dragunov.jpg/250px-SVD_Dragunov.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+      ]
+    },
+    {
+      "page": "BGM-71_TOW",
+      "url": "https://en.m.wikipedia.org/wiki/BGM-71_TOW",
+      "status": 200,
+      "sha256": "a617225bbbc6f1630276249a7eabf79e39a32292e6d1f8e5625b88ef95b04bea",
+      "rows": [
+        "Length 1.16\u20131.17 m with probe folded 1.41\u20131.51 m with probe extended (some variants have no probe)"
+      ],
+      "images": [
+        "//thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Hires_090509-A-4842R-001a.jpg/250px-Hires_090509-A-4842R-001a.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+      ]
+    },
+    {
+      "page": "9M133_Kornet",
+      "url": "https://en.m.wikipedia.org/wiki/9M133_Kornet",
+      "status": 200,
+      "sha256": "61c8594f3baf2415d64187f7158ccbab5ac6095045377e86ec9c7d7f7b0c65e7",
+      "rows": [
+        "Length 1200 mm"
+      ],
+      "images": [
+        "//thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/%D0%9A%D0%BE%D1%80%D0%BD%D0%B5%D1%82_-_%D0%9A%D0%BE%D0%BD%D1%82%D1%80%D0%BE%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F_%D0%BF%D1%80%D0%BE%D0%B2%D0%B5%D1%80%D0%BA%D0%B0_%D0%BA%D1%83%D1%80%D1%81%D0%B0%D0%BD%D1%82%D0%BE%D0%B2_%D0%A3%D1%87%D0%B5%D0%B1%D0%BD%D0%BE%D0%B3%D0%BE_%D1%86%D0%B5%D0%BD%D1%82%D1%80%D0%B0_%D0%B1%D0%BE%D0%B5%D0%B2%D0%BE%D0%B3%D0%BE_%D0%BF%D1%80%D0%B8%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D1%8F_%D1%80%D0%B0%D0%BA%D0%B5%D1%82%D0%BD%D1%8B%D1%85_%D0%B2%D0%BE%D0%B9%D1%81%D0%BA_%D0%B8_%D0%B0%D1%80%D1%82%D0%B8%D0%BB%D0%BB%D0%B5%D1%80%D0%B8%D0%B8_05.jpg/330px-thumbnail.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+      ]
+    },
+    {
+      "page": "RPG-7",
+      "url": "https://en.m.wikipedia.org/wiki/RPG-7",
+      "status": 200,
+      "sha256": "e28ca329dce7e19398161dc6cdf6b84748b44a3ac330e8ec3967527125de1ca7",
+      "rows": [
+        "Length 950 mm (37.4 in)"
+      ],
+      "images": [
+        "//thumb.wikimedia.org/wikipedia/commons/thumb/3/33/RPG-7_detached.jpg/330px-RPG-7_detached.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+      ]
+    },
+    {
+      "page": "RPG-29",
+      "url": "https://en.m.wikipedia.org/wiki/RPG-29",
+      "status": 200,
+      "sha256": "80aa842f5e0cefe93da9cb0d94c00ecf3f061967a0c3072f3834b37b71a0f61f",
+      "rows": [
+        "Length 1 m (3 ft 3 in) (dismantled for transport) 1.85 m (6 ft 1 in) (ready to fire)"
+      ],
+      "images": [
+        "//thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/RPG-29_USGov.JPG/330px-RPG-29_USGov.JPG?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+      ]
+    }
+  ],
+  "hold_gate": "Rifle/DMR rig reusable. Large sniper weapons preserve joint identity but must demonstrate grip/sight/muzzle fit. Tripod TOW/Kornet active/carried kit must not masquerade as existing shouldered launcher; coordinator freezes equipment/hold/socket fit before these workers dispatch. No shared-rig edits by worker.",
+  "variants": [
+    {
+      "id": "eastern_atgm_team_kornet",
+      "name": "Kornet Team",
+      "factions": [
+        "eastern"
+      ],
+      "profile": "at-team",
+      "equipment": [
+        "Kornet"
+      ],
+      "rig_family": "launcher",
+      "export_directory": "assets/source/roster/infantry/eastern_atgm_team_kornet/",
+      "gate": "Ground profile/rig/socket fit",
+      "dispatch_gate": "Grounded active and full-size packed carried sources authored and numeric-fit clean; fixed active_pose and measured physical bore bound; coordinator neutral/runtime gates pending.",
+      "equipment_model": "kornet",
+      "appearance_sources": [
+        {
+          "id": "eastern_atgm_team_kornet_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/eastern_atgm_team_kornet/active_a.glb",
+          "skeleton": "quaternius-ubc-launcher"
+        },
+        {
+          "id": "eastern_atgm_team_kornet_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/eastern_atgm_team_kornet/active_b.glb",
+          "skeleton": "quaternius-ubc-launcher"
+        },
+        {
+          "id": "eastern_atgm_team_kornet_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/eastern_atgm_team_kornet/active_c.glb",
+          "skeleton": "quaternius-ubc-launcher"
+        },
+        {
+          "id": "eastern_atgm_team_kornet_carried_a",
+          "mode": "carried",
+          "look": "a",
+          "export": "assets/source/roster/infantry/eastern_atgm_team_kornet/carried_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "eastern_atgm_team_kornet_carried_b",
+          "mode": "carried",
+          "look": "b",
+          "export": "assets/source/roster/infantry/eastern_atgm_team_kornet/carried_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "eastern_atgm_team_kornet_carried_c",
+          "mode": "carried",
+          "look": "c",
+          "export": "assets/source/roster/infantry/eastern_atgm_team_kornet/carried_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "physical_authoring": {
+        "tube_length_m": 1.32,
+        "bore_m": 1.18,
+        "pivot_m": [
+          0.6422607327,
+          -0.2,
+          1.18
+        ],
+        "muzzle_m": [
+          0.81,
+          0,
+          0
+        ],
+        "frame_limit": "Chosen source-derived tripod frame against actual shared kneel_fire phase0 and photo; complete tube lengths are image-derived authoring approximations, not missile lengths or factory drawings.",
+        "posed_root_translation_source_m": [
+          0,
+          0.0577395,
+          0
+        ]
+      },
+      "reference_photos": [
+        {
+          "subject": "9M133_Kornet",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/%D0%9A%D0%BE%D1%80%D0%BD%D0%B5%D1%82_-_%D0%9A%D0%BE%D0%BD%D1%82%D1%80%D0%BE%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F_%D0%BF%D1%80%D0%BE%D0%B2%D0%B5%D1%80%D0%BA%D0%B0_%D0%BA%D1%83%D1%80%D1%81%D0%B0%D0%BD%D1%82%D0%BE%D0%B2_%D0%A3%D1%87%D0%B5%D0%B1%D0%BD%D0%BE%D0%B3%D0%BE_%D1%86%D0%B5%D0%BD%D1%82%D1%80%D0%B0_%D0%B1%D0%BE%D0%B5%D0%B2%D0%BE%D0%B3%D0%BE_%D0%BF%D1%80%D0%B8%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D1%8F_%D1%80%D0%B0%D0%BA%D0%B5%D1%82%D0%BD%D1%8B%D1%85_%D0%B2%D0%BE%D0%B9%D1%81%D0%BA_%D0%B8_%D0%B0%D1%80%D1%82%D0%B8%D0%BB%D0%BB%D0%B5%D1%80%D0%B8%D0%B8_05.jpg/500px-thumbnail.jpg",
+          "path": "throwaway/unit-roster-references/infantry/9M133_Kornet.jpg",
+          "sha256": "3f453b561fc2a9b78916178562febe3ff43b400429af35bd3c4d16a00e09a5d3",
+          "status": 200
+        }
+      ],
+      "hold_fit": "All active/carried looks pass unchanged soldier-height/ground/eye source limits. Active root muzzle matches the canonical mount in shared kneel_fire phase0. Other active clip poses are diagnostic only; production runtime/neutral acceptance pending.",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "eastern_atgm_team_kornet_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "1f98019489b45ab982e0f924a7ea881ae421eaa5ca26c463eb2237e2548ff39b",
+            "bytes": 7306956,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28795,
+                  "vertices": 48130
+                },
+                {
+                  "triangles": 6979,
+                  "vertices": 14736
+                },
+                {
+                  "triangles": 2384,
+                  "vertices": 5726
+                },
+                {
+                  "triangles": 740,
+                  "vertices": 1952
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7306956,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -0.8753589391708374,
+                  -0.24022437632083893
+                ],
+                "max": [
+                  1.533038854598999,
+                  0.8753587007522583,
+                  1.7199115753173828
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_atgm_team_kornet_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "48de0ddb4dadf4a57d651da7fc09ac2a2bc1ca4f6a2a493f1f7a76380f6b4f8a",
+            "bytes": 7699356,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 29079,
+                  "vertices": 48680
+                },
+                {
+                  "triangles": 6972,
+                  "vertices": 15066
+                },
+                {
+                  "triangles": 2472,
+                  "vertices": 6208
+                },
+                {
+                  "triangles": 762,
+                  "vertices": 2027
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7699356,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -0.8788341283798218,
+                  -0.15176673233509064
+                ],
+                "max": [
+                  1.5363256931304932,
+                  0.8787399530410767,
+                  1.7163424491882324
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_atgm_team_kornet_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "4078ea517917485bbffaf84af881bb4998b83c2714a6adfe4f50fb740c7f6c83",
+            "bytes": 7003060,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27575,
+                  "vertices": 45260
+                },
+                {
+                  "triangles": 6904,
+                  "vertices": 14268
+                },
+                {
+                  "triangles": 2350,
+                  "vertices": 5585
+                },
+                {
+                  "triangles": 695,
+                  "vertices": 1842
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7003060,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -0.8788341283798218,
+                  -0.13439390063285828
+                ],
+                "max": [
+                  1.5363256931304932,
+                  0.8787399530410767,
+                  1.7199115753173828
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_atgm_team_kornet_carried_a",
+            "mode": "carried",
+            "look": "a",
+            "source_sha256": "25f75f718d6e0a104339ff775e4b374f7a58410fdc4fa514524d1c4cbebfb272",
+            "bytes": 7258924,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28071,
+                  "vertices": 47364
+                },
+                {
+                  "triangles": 6968,
+                  "vertices": 14816
+                },
+                {
+                  "triangles": 2382,
+                  "vertices": 5798
+                },
+                {
+                  "triangles": 750,
+                  "vertices": 1991
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7258924,
+              "bounds": {
+                "min": [
+                  -1.5143829584121704,
+                  -1.0143643617630005,
+                  -0.7640332579612732
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8753587007522583,
+                  1.8790820837020874
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_atgm_team_kornet_carried_b",
+            "mode": "carried",
+            "look": "b",
+            "source_sha256": "f36d3b025f97cf8c7ee40187eba44bb073180e93d32db4216d93b6d9189081c6",
+            "bytes": 7646896,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28355,
+                  "vertices": 47960
+                },
+                {
+                  "triangles": 6965,
+                  "vertices": 15064
+                },
+                {
+                  "triangles": 2477,
+                  "vertices": 6263
+                },
+                {
+                  "triangles": 769,
+                  "vertices": 2060
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7646896,
+              "bounds": {
+                "min": [
+                  -1.4501681327819824,
+                  -1.0143643617630005,
+                  -0.6968308687210083
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.8259077072143555
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_atgm_team_kornet_carried_c",
+            "mode": "carried",
+            "look": "c",
+            "source_sha256": "a3f4340b71edff174eab60e2e57d623fc1ce9eaee1946df7319d72a58255233e",
+            "bytes": 6944600,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26851,
+                  "vertices": 44392
+                },
+                {
+                  "triangles": 6953,
+                  "vertices": 14389
+                },
+                {
+                  "triangles": 2348,
+                  "vertices": 5624
+                },
+                {
+                  "triangles": 693,
+                  "vertices": 1834
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6944600,
+              "bounds": {
+                "min": [
+                  -1.4225395917892456,
+                  -1.0143643617630005,
+                  -0.666148841381073
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.802452564239502
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/active/prone_pinned_front.png"
+          ],
+          "carried": [
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/carried/idle_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/carried/idle_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/carried/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/carried/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/carried/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/carried/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/carried/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_atgm_team_kornet/carried/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "eastern_marksman_squad_svd_equipped_longer_range_infantry",
+      "name": "Marksman Squad",
+      "factions": [
+        "eastern"
+      ],
+      "profile": "marksman",
+      "equipment": [
+        "marksman-rifle"
+      ],
+      "rig_family": "rifle",
+      "export_directory": "assets/source/roster/infantry/eastern_marksman_squad_svd_equipped_longer_range_infantry/",
+      "gate": "Ground profile/rig/socket fit",
+      "reference_photos": [
+        {
+          "subject": "Dragunov_sniper_rifle",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/SVD_Dragunov.jpg/500px-SVD_Dragunov.jpg",
+          "path": "throwaway/unit-roster-references/infantry/Dragunov_sniper_rifle.jpg",
+          "sha256": "86bdea068725f7dfe323cda58e81d80f7b5663d513ca6830e5b673e93cee25b4",
+          "status": 200
+        }
+      ],
+      "appearance_sources": [
+        {
+          "id": "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/eastern_marksman_squad_svd_equipped_longer_range_infantry/active_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/eastern_marksman_squad_svd_equipped_longer_range_infantry/active_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/eastern_marksman_squad_svd_equipped_longer_range_infantry/active_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "Source structure, skeleton, sockets and global soldier/eye/muzzle fit clean on shared aim reference; source poses are author candidates, coordinator neutral/runtime acceptance pending.",
+      "equipment_model": "svd",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "547c78ffcd1454e11a6b288c15172d0efbce079566c136a392c8fc7a9a0d8401",
+            "bytes": 7347360,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28151,
+                  "vertices": 48225
+                },
+                {
+                  "triangles": 7101,
+                  "vertices": 15115
+                },
+                {
+                  "triangles": 2425,
+                  "vertices": 5834
+                },
+                {
+                  "triangles": 751,
+                  "vertices": 1938
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7347360,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.2161098718643188,
+                  -0.24022437632083893
+                ],
+                "max": [
+                  1.4875048398971558,
+                  0.8787399530410767,
+                  1.9416601657867432
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "1ff17b664e2184b78ef8a91016c626bdbfad6b2bbab7ee7ee1ea7c8173d24559",
+            "bytes": 7720212,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28435,
+                  "vertices": 48768
+                },
+                {
+                  "triangles": 7102,
+                  "vertices": 15390
+                },
+                {
+                  "triangles": 2461,
+                  "vertices": 6155
+                },
+                {
+                  "triangles": 752,
+                  "vertices": 1984
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7720212,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.2161098718643188,
+                  -0.15176673233509064
+                ],
+                "max": [
+                  1.4875048398971558,
+                  0.8787399530410767,
+                  1.9416601657867432
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "f236f2b0a864754b3562c555f213d5bff3159da0d50cd99638c2fe948b7391f9",
+            "bytes": 7039348,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26931,
+                  "vertices": 45414
+                },
+                {
+                  "triangles": 7075,
+                  "vertices": 14726
+                },
+                {
+                  "triangles": 2350,
+                  "vertices": 5549
+                },
+                {
+                  "triangles": 683,
+                  "vertices": 1781
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7039348,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.2161098718643188,
+                  -0.13439390063285828
+                ],
+                "max": [
+                  1.4875048398971558,
+                  0.8787399530410767,
+                  1.9416601657867432
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/eastern_marksman_squad_svd_equipped_longer_range_infantry/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_marksman_squad_svd_equipped_longer_range_infantry/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_marksman_squad_svd_equipped_longer_range_infantry/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_marksman_squad_svd_equipped_longer_range_infantry/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_marksman_squad_svd_equipped_longer_range_infantry/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_marksman_squad_svd_equipped_longer_range_infantry/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_marksman_squad_svd_equipped_longer_range_infantry/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_marksman_squad_svd_equipped_longer_range_infantry/active/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "eastern_rpg_team_rpg_29",
+      "name": "RPG-29 Team",
+      "factions": [
+        "eastern"
+      ],
+      "profile": "rpg-team",
+      "equipment": [
+        "RPG-heavy"
+      ],
+      "rig_family": "launcher",
+      "export_directory": "assets/source/roster/infantry/eastern_rpg_team_rpg_29/",
+      "gate": "Ground profile/rig/socket fit",
+      "reference_photos": [
+        {
+          "subject": "RPG-29",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/RPG-29_USGov.JPG/500px-RPG-29_USGov.JPG",
+          "path": "throwaway/unit-roster-references/infantry/RPG-29.jpg",
+          "sha256": "d028d99ebb743a80cb4f6cfb072ceb2d31d66ccad7f44afd61aeefe78a018251",
+          "status": 200
+        }
+      ],
+      "appearance_sources": [
+        {
+          "id": "eastern_rpg_team_rpg_29_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/eastern_rpg_team_rpg_29/active_a.glb",
+          "skeleton": "quaternius-ubc-launcher"
+        },
+        {
+          "id": "eastern_rpg_team_rpg_29_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/eastern_rpg_team_rpg_29/active_b.glb",
+          "skeleton": "quaternius-ubc-launcher"
+        },
+        {
+          "id": "eastern_rpg_team_rpg_29_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/eastern_rpg_team_rpg_29/active_c.glb",
+          "skeleton": "quaternius-ubc-launcher"
+        },
+        {
+          "id": "eastern_rpg_team_rpg_29_carried_a",
+          "mode": "carried",
+          "look": "a",
+          "export": "assets/source/roster/infantry/eastern_rpg_team_rpg_29/carried_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "eastern_rpg_team_rpg_29_carried_b",
+          "mode": "carried",
+          "look": "b",
+          "export": "assets/source/roster/infantry/eastern_rpg_team_rpg_29/carried_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "eastern_rpg_team_rpg_29_carried_c",
+          "mode": "carried",
+          "look": "c",
+          "export": "assets/source/roster/infantry/eastern_rpg_team_rpg_29/carried_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "All active/carried looks pass source-fit/clip checks. Active operator uses shared stand_aim phase0; support geometry follows the actual clip fingers. Idle/prone holds are diagnostic, not accepted all-pose holds. Production runtime/neutral acceptance pending.",
+      "equipment_model": "rpg29",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "eastern_rpg_team_rpg_29_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "70e8d08327be405bb084ed4722e0f4f8164faa650c8360a6b5748ea8e2b55601",
+            "bytes": 6910404,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26419,
+                  "vertices": 43409
+                },
+                {
+                  "triangles": 6970,
+                  "vertices": 14335
+                },
+                {
+                  "triangles": 2414,
+                  "vertices": 5783
+                },
+                {
+                  "triangles": 756,
+                  "vertices": 1984
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6910404,
+              "bounds": {
+                "min": [
+                  -1.638840913772583,
+                  -1.3664799928665161,
+                  -0.24022437632083893
+                ],
+                "max": [
+                  1.841497778892517,
+                  0.8787399530410767,
+                  1.7987550497055054
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_rpg_team_rpg_29_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "391908486fea5eec79d1aadbb3c50937ec22cbcfa85662780abfa8dcd27d77eb",
+            "bytes": 7275028,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26703,
+                  "vertices": 43888
+                },
+                {
+                  "triangles": 6981,
+                  "vertices": 14636
+                },
+                {
+                  "triangles": 2466,
+                  "vertices": 6037
+                },
+                {
+                  "triangles": 765,
+                  "vertices": 2024
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7275028,
+              "bounds": {
+                "min": [
+                  -1.638840913772583,
+                  -1.3644136190414429,
+                  -0.15176673233509064
+                ],
+                "max": [
+                  1.841497778892517,
+                  0.8787399530410767,
+                  1.7987550497055054
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_rpg_team_rpg_29_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "65e1206b36eded63c6b87c850cd3046425d0b25f775ee8f416791e77c599398e",
+            "bytes": 6588300,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 25199,
+                  "vertices": 40549
+                },
+                {
+                  "triangles": 6972,
+                  "vertices": 13887
+                },
+                {
+                  "triangles": 2345,
+                  "vertices": 5424
+                },
+                {
+                  "triangles": 690,
+                  "vertices": 1821
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6588300,
+              "bounds": {
+                "min": [
+                  -1.638840913772583,
+                  -1.3664799928665161,
+                  -0.13741523027420044
+                ],
+                "max": [
+                  1.841497778892517,
+                  0.8787399530410767,
+                  1.7987550497055054
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_rpg_team_rpg_29_carried_a",
+            "mode": "carried",
+            "look": "a",
+            "source_sha256": "8f6da88bcb92039b1fbf34f9f8fe5463bed90a73f5f7195173a7d81546a15a81",
+            "bytes": 7200356,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27615,
+                  "vertices": 46685
+                },
+                {
+                  "triangles": 6966,
+                  "vertices": 14777
+                },
+                {
+                  "triangles": 2376,
+                  "vertices": 5742
+                },
+                {
+                  "triangles": 767,
+                  "vertices": 2030
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7200356,
+              "bounds": {
+                "min": [
+                  -1.4619927406311035,
+                  -1.0143643617630005,
+                  -0.49525412917137146
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8753587007522583,
+                  1.8450045585632324
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_rpg_team_rpg_29_carried_b",
+            "mode": "carried",
+            "look": "b",
+            "source_sha256": "ae94725e8edea26bc51a22163ba4189f25da57097ed6d38d7ce521ad397296cd",
+            "bytes": 7583188,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27899,
+                  "vertices": 47073
+                },
+                {
+                  "triangles": 7022,
+                  "vertices": 15183
+                },
+                {
+                  "triangles": 2476,
+                  "vertices": 6255
+                },
+                {
+                  "triangles": 763,
+                  "vertices": 2030
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7583188,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.4176700711250305
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8753587007522583,
+                  1.7898118495941162
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_rpg_team_rpg_29_carried_c",
+            "mode": "carried",
+            "look": "c",
+            "source_sha256": "eab87ec2debc7e1973491dd11efb26ed3a0549ed7462833802e01efe7b34c1bb",
+            "bytes": 6873860,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26395,
+                  "vertices": 43543
+                },
+                {
+                  "triangles": 6942,
+                  "vertices": 14375
+                },
+                {
+                  "triangles": 2351,
+                  "vertices": 5609
+                },
+                {
+                  "triangles": 693,
+                  "vertices": 1818
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6873860,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.38546761870384216
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.766361951828003
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/active/prone_pinned_front.png"
+          ],
+          "carried": [
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/carried/idle_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/carried/idle_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/carried/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/carried/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/carried/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/carried/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/carried/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_29/carried/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "eastern_rpg_team_rpg_7",
+      "name": "RPG-7 Team",
+      "factions": [
+        "eastern"
+      ],
+      "profile": "rpg-team",
+      "equipment": [
+        "RPG-light"
+      ],
+      "rig_family": "launcher",
+      "export_directory": "assets/source/roster/infantry/eastern_rpg_team_rpg_7/",
+      "gate": "Ground profile/rig/socket fit",
+      "reference_photos": [
+        {
+          "subject": "RPG-7",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/RPG-7_detached.jpg/500px-RPG-7_detached.jpg",
+          "path": "throwaway/unit-roster-references/infantry/RPG-7.jpg",
+          "sha256": "f6d9c66b47c50cb99ab811960eba98aa0eeadd8d5240c987d04ee8feb904ad90",
+          "status": 200
+        }
+      ],
+      "appearance_sources": [
+        {
+          "id": "eastern_rpg_team_rpg_7_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/eastern_rpg_team_rpg_7/active_a.glb",
+          "skeleton": "quaternius-ubc-launcher"
+        },
+        {
+          "id": "eastern_rpg_team_rpg_7_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/eastern_rpg_team_rpg_7/active_b.glb",
+          "skeleton": "quaternius-ubc-launcher"
+        },
+        {
+          "id": "eastern_rpg_team_rpg_7_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/eastern_rpg_team_rpg_7/active_c.glb",
+          "skeleton": "quaternius-ubc-launcher"
+        },
+        {
+          "id": "eastern_rpg_team_rpg_7_carried_a",
+          "mode": "carried",
+          "look": "a",
+          "export": "assets/source/roster/infantry/eastern_rpg_team_rpg_7/carried_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "eastern_rpg_team_rpg_7_carried_b",
+          "mode": "carried",
+          "look": "b",
+          "export": "assets/source/roster/infantry/eastern_rpg_team_rpg_7/carried_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "eastern_rpg_team_rpg_7_carried_c",
+          "mode": "carried",
+          "look": "c",
+          "export": "assets/source/roster/infantry/eastern_rpg_team_rpg_7/carried_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "All active/carried looks pass source-fit/clip checks. Active operator uses shared stand_aim phase0; support geometry follows the actual clip fingers. Idle/prone holds are diagnostic, not accepted all-pose holds. Production runtime/neutral acceptance pending.",
+      "equipment_model": "rpg7",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "eastern_rpg_team_rpg_7_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "dc1f8d124a31367fd7ac197f8ae24f967c17d4ee1e194a4eacfc3c7f3cd45cad",
+            "bytes": 6960724,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26737,
+                  "vertices": 44027
+                },
+                {
+                  "triangles": 6980,
+                  "vertices": 14373
+                },
+                {
+                  "triangles": 2417,
+                  "vertices": 5728
+                },
+                {
+                  "triangles": 749,
+                  "vertices": 1944
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6960724,
+              "bounds": {
+                "min": [
+                  -1.428688406944275,
+                  -1.2162977457046509,
+                  -0.24022437632083893
+                ],
+                "max": [
+                  1.6425594091415405,
+                  0.8787399530410767,
+                  1.7357145547866821
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_rpg_team_rpg_7_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "510c34b031d4a4c18524d28c905b01f06370e38388297f2f0737d1b21406a2a5",
+            "bytes": 7335320,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27021,
+                  "vertices": 44483
+                },
+                {
+                  "triangles": 6993,
+                  "vertices": 14727
+                },
+                {
+                  "triangles": 2458,
+                  "vertices": 6065
+                },
+                {
+                  "triangles": 757,
+                  "vertices": 2003
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7335320,
+              "bounds": {
+                "min": [
+                  -1.428688406944275,
+                  -1.2162977457046509,
+                  -0.15176673233509064
+                ],
+                "max": [
+                  1.6425594091415405,
+                  0.8787399530410767,
+                  1.7357145547866821
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_rpg_team_rpg_7_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "8152398705fff0299471c71fa2f0b69ca5a79f6ae280665ede207b866cac3ed4",
+            "bytes": 6632416,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 25517,
+                  "vertices": 41167
+                },
+                {
+                  "triangles": 6921,
+                  "vertices": 13773
+                },
+                {
+                  "triangles": 2346,
+                  "vertices": 5447
+                },
+                {
+                  "triangles": 686,
+                  "vertices": 1778
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6632416,
+              "bounds": {
+                "min": [
+                  -1.428688406944275,
+                  -1.2162977457046509,
+                  -0.13439390063285828
+                ],
+                "max": [
+                  1.6425594091415405,
+                  0.8787399530410767,
+                  1.7357145547866821
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_rpg_team_rpg_7_carried_a",
+            "mode": "carried",
+            "look": "a",
+            "source_sha256": "44e34b8215099c8f3c1bbed815718cda5b3634cd64ff3e442737a2f621f89330",
+            "bytes": 7194416,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27563,
+                  "vertices": 46633
+                },
+                {
+                  "triangles": 6955,
+                  "vertices": 14751
+                },
+                {
+                  "triangles": 2372,
+                  "vertices": 5724
+                },
+                {
+                  "triangles": 756,
+                  "vertices": 1979
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7194416,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.6029831171035767
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8753587007522583,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_rpg_team_rpg_7_carried_b",
+            "mode": "carried",
+            "look": "b",
+            "source_sha256": "a83aedc40690bc9ce14e25f94066ec4f77b1ee8d3d8b695bd360817ce91a1820",
+            "bytes": 7585388,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27847,
+                  "vertices": 47105
+                },
+                {
+                  "triangles": 7019,
+                  "vertices": 15167
+                },
+                {
+                  "triangles": 2476,
+                  "vertices": 6234
+                },
+                {
+                  "triangles": 755,
+                  "vertices": 1994
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7585388,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.5252741575241089
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_rpg_team_rpg_7_carried_c",
+            "mode": "carried",
+            "look": "c",
+            "source_sha256": "301d77fa56719dfd83149b613497eee3c27619ed9c6fc95cdb025fdc064d80e7",
+            "bytes": 6881620,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26343,
+                  "vertices": 43606
+                },
+                {
+                  "triangles": 6939,
+                  "vertices": 14353
+                },
+                {
+                  "triangles": 2349,
+                  "vertices": 5605
+                },
+                {
+                  "triangles": 687,
+                  "vertices": 1813
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6881620,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.49961158633232117
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/active/prone_pinned_front.png"
+          ],
+          "carried": [
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/carried/idle_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/carried/idle_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/carried/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/carried/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/carried/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/carried/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/carried/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_rpg_team_rpg_7/carried/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "eastern_scouts_light_patrol",
+      "name": "Scouts",
+      "factions": [
+        "eastern"
+      ],
+      "profile": "scout",
+      "equipment": [
+        "rifle"
+      ],
+      "rig_family": "rifle",
+      "export_directory": "assets/source/roster/infantry/eastern_scouts_light_patrol/",
+      "gate": "Ground profile/rig/socket fit",
+      "appearance_sources": [
+        {
+          "id": "eastern_scouts_light_patrol_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/eastern_scouts_light_patrol/active_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "eastern_scouts_light_patrol_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/eastern_scouts_light_patrol/active_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "eastern_scouts_light_patrol_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/eastern_scouts_light_patrol/active_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "Source structure, skeleton, sockets and global soldier/eye/muzzle fit clean on shared aim reference; source poses are author candidates, coordinator neutral/runtime acceptance pending.",
+      "equipment_model": "carbine",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "eastern_scouts_light_patrol_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "9aaa5d7058d134264487f379eaac7caeb07b51145bf6cfd6b0b57397ea4a7812",
+            "bytes": 6658584,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26683,
+                  "vertices": 43952
+                },
+                {
+                  "triangles": 6976,
+                  "vertices": 14412
+                },
+                {
+                  "triangles": 2415,
+                  "vertices": 5769
+                },
+                {
+                  "triangles": 755,
+                  "vertices": 1960
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6658584,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_scouts_light_patrol_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "ab1d673fec6d5ed578bd35471fe2b08200c33bcb01a4a593d9a2a7bc9ce65f40",
+            "bytes": 7238068,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27799,
+                  "vertices": 46757
+                },
+                {
+                  "triangles": 7008,
+                  "vertices": 15040
+                },
+                {
+                  "triangles": 2468,
+                  "vertices": 6138
+                },
+                {
+                  "triangles": 761,
+                  "vertices": 1992
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7238068,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_scouts_light_patrol_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "5a65d03a1a15c98de1e756b2f0536981193c65a967bd379475d989550038e10e",
+            "bytes": 6428508,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26735,
+                  "vertices": 43359
+                },
+                {
+                  "triangles": 7046,
+                  "vertices": 14302
+                },
+                {
+                  "triangles": 2550,
+                  "vertices": 5966
+                },
+                {
+                  "triangles": 932,
+                  "vertices": 2377
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6428508,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/eastern_scouts_light_patrol/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_scouts_light_patrol/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_scouts_light_patrol/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_scouts_light_patrol/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_scouts_light_patrol/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_scouts_light_patrol/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_scouts_light_patrol/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_scouts_light_patrol/active/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "eastern_sniper_team_asvk_heavy_sniper_team",
+      "name": "Sniper Team",
+      "factions": [
+        "eastern"
+      ],
+      "profile": "sniper",
+      "equipment": [
+        "heavy-sniper"
+      ],
+      "rig_family": "rifle",
+      "export_directory": "assets/source/roster/infantry/eastern_sniper_team_asvk_heavy_sniper_team/",
+      "gate": "Ground profile/rig/socket fit",
+      "reference_photos": [
+        {
+          "subject": "ASVK",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/be/KSVK1.jpg/500px-KSVK1.jpg",
+          "path": "throwaway/unit-roster-references/infantry/ASVK.jpg",
+          "sha256": "d57919d8cbacc9e1d8b8be80579a965cac1d9f68160924a608d68fee3d1f9809",
+          "status": 200
+        }
+      ],
+      "appearance_sources": [
+        {
+          "id": "eastern_sniper_team_asvk_heavy_sniper_team_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/eastern_sniper_team_asvk_heavy_sniper_team/active_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "eastern_sniper_team_asvk_heavy_sniper_team_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/eastern_sniper_team_asvk_heavy_sniper_team/active_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "eastern_sniper_team_asvk_heavy_sniper_team_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/eastern_sniper_team_asvk_heavy_sniper_team/active_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "Source structure, skeleton, sockets and global soldier/eye/muzzle fit clean on shared aim reference; source poses are author candidates, coordinator neutral/runtime acceptance pending.",
+      "equipment_model": "asvk",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "eastern_sniper_team_asvk_heavy_sniper_team_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "cab7aba00ead21416af0db3d3e3d81bdf96bfb9472dd5d6569a44acd4414feaa",
+            "bytes": 7204904,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27539,
+                  "vertices": 46501
+                },
+                {
+                  "triangles": 7004,
+                  "vertices": 14666
+                },
+                {
+                  "triangles": 2569,
+                  "vertices": 6178
+                },
+                {
+                  "triangles": 747,
+                  "vertices": 1938
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7204904,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.346474528312683,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.6916390657424927,
+                  0.8787399530410767,
+                  2.0592329502105713
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_sniper_team_asvk_heavy_sniper_team_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "840ed8b702a9c9a67c7678135ab83a9732c3a01570bff660dd885dc5883cab21",
+            "bytes": 7768876,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28655,
+                  "vertices": 49080
+                },
+                {
+                  "triangles": 7052,
+                  "vertices": 15276
+                },
+                {
+                  "triangles": 2622,
+                  "vertices": 6575
+                },
+                {
+                  "triangles": 759,
+                  "vertices": 1980
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7768876,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.3465684652328491,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.6916390657424927,
+                  0.8787399530410767,
+                  2.0592329502105713
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "eastern_sniper_team_asvk_heavy_sniper_team_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "17abec579efd44f3de01cf5e5c956b628fc83fc68bf219173bdce93bf77f43a1",
+            "bytes": 6978452,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27591,
+                  "vertices": 45891
+                },
+                {
+                  "triangles": 7076,
+                  "vertices": 14558
+                },
+                {
+                  "triangles": 2709,
+                  "vertices": 6437
+                },
+                {
+                  "triangles": 924,
+                  "vertices": 2355
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6978452,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.346474528312683,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.6916390657424927,
+                  0.8787399530410767,
+                  2.0592329502105713
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/eastern_sniper_team_asvk_heavy_sniper_team/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_sniper_team_asvk_heavy_sniper_team/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_sniper_team_asvk_heavy_sniper_team/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_sniper_team_asvk_heavy_sniper_team/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_sniper_team_asvk_heavy_sniper_team/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_sniper_team_asvk_heavy_sniper_team/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/eastern_sniper_team_asvk_heavy_sniper_team/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/eastern_sniper_team_asvk_heavy_sniper_team/active/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "us_army_scouts_light_patrol",
+      "name": "Army Scouts",
+      "factions": [
+        "us"
+      ],
+      "profile": "scout",
+      "equipment": [
+        "rifle"
+      ],
+      "rig_family": "rifle",
+      "export_directory": "assets/source/roster/infantry/us_army_scouts_light_patrol/",
+      "gate": "Ground profile/rig/socket fit",
+      "appearance_sources": [
+        {
+          "id": "us_army_scouts_light_patrol_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/us_army_scouts_light_patrol/active_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "us_army_scouts_light_patrol_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/us_army_scouts_light_patrol/active_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "us_army_scouts_light_patrol_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/us_army_scouts_light_patrol/active_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "Source structure, skeleton, sockets and global soldier/eye/muzzle fit clean on shared aim reference; source poses are author candidates, coordinator neutral/runtime acceptance pending.",
+      "equipment_model": "carbine",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "us_army_scouts_light_patrol_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "48cabafef3da1154a3a13d248026a908193cfa191745768fd9b956bed900bf12",
+            "bytes": 6658588,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26683,
+                  "vertices": 43952
+                },
+                {
+                  "triangles": 6976,
+                  "vertices": 14409
+                },
+                {
+                  "triangles": 2415,
+                  "vertices": 5770
+                },
+                {
+                  "triangles": 755,
+                  "vertices": 1962
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6658588,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_army_scouts_light_patrol_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "5925cb06b35fbe0461469f7265f541ea8ed5a0754783cf6010c8b74cccff6917",
+            "bytes": 7238072,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27799,
+                  "vertices": 46757
+                },
+                {
+                  "triangles": 7009,
+                  "vertices": 15044
+                },
+                {
+                  "triangles": 2468,
+                  "vertices": 6136
+                },
+                {
+                  "triangles": 761,
+                  "vertices": 1990
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7238072,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_army_scouts_light_patrol_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "545e5fd141fce5f71551893d67a07f8375c5267e6c3c0709c9624413b9bc6601",
+            "bytes": 6428508,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26735,
+                  "vertices": 43359
+                },
+                {
+                  "triangles": 7046,
+                  "vertices": 14302
+                },
+                {
+                  "triangles": 2550,
+                  "vertices": 5966
+                },
+                {
+                  "triangles": 932,
+                  "vertices": 2377
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6428508,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/us_army_scouts_light_patrol/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/us_army_scouts_light_patrol/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/us_army_scouts_light_patrol/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/us_army_scouts_light_patrol/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/us_army_scouts_light_patrol/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/us_army_scouts_light_patrol/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/us_army_scouts_light_patrol/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/us_army_scouts_light_patrol/active/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "us_atgm_team_bgm_71_tow_2a",
+      "name": "BGM-71 TOW 2A Team",
+      "factions": [
+        "us"
+      ],
+      "profile": "at-team",
+      "equipment": [
+        "TOW"
+      ],
+      "rig_family": "launcher",
+      "export_directory": "assets/source/roster/infantry/us_atgm_team_bgm_71_tow_2a/",
+      "gate": "Ground profile/rig/socket fit",
+      "dispatch_gate": "Grounded active and full-size packed carried sources authored and numeric-fit clean; fixed active_pose and measured physical bore bound; coordinator neutral/runtime gates pending.",
+      "equipment_model": "tow",
+      "appearance_sources": [
+        {
+          "id": "us_atgm_team_bgm_71_tow_2a_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/us_atgm_team_bgm_71_tow_2a/active_a.glb",
+          "skeleton": "quaternius-ubc-launcher"
+        },
+        {
+          "id": "us_atgm_team_bgm_71_tow_2a_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/us_atgm_team_bgm_71_tow_2a/active_b.glb",
+          "skeleton": "quaternius-ubc-launcher"
+        },
+        {
+          "id": "us_atgm_team_bgm_71_tow_2a_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/us_atgm_team_bgm_71_tow_2a/active_c.glb",
+          "skeleton": "quaternius-ubc-launcher"
+        },
+        {
+          "id": "us_atgm_team_bgm_71_tow_2a_carried_a",
+          "mode": "carried",
+          "look": "a",
+          "export": "assets/source/roster/infantry/us_atgm_team_bgm_71_tow_2a/carried_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "us_atgm_team_bgm_71_tow_2a_carried_b",
+          "mode": "carried",
+          "look": "b",
+          "export": "assets/source/roster/infantry/us_atgm_team_bgm_71_tow_2a/carried_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "us_atgm_team_bgm_71_tow_2a_carried_c",
+          "mode": "carried",
+          "look": "c",
+          "export": "assets/source/roster/infantry/us_atgm_team_bgm_71_tow_2a/carried_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "physical_authoring": {
+        "tube_length_m": 1.28,
+        "bore_m": 1.066,
+        "pivot_m": [
+          0.6422605133,
+          -0.2,
+          1.066
+        ],
+        "muzzle_m": [
+          0.79,
+          0,
+          0
+        ],
+        "frame_limit": "Chosen source-derived tripod frame against actual shared kneel_fire phase0 and photo; complete tube lengths are image-derived authoring approximations, not missile lengths or factory drawings.",
+        "posed_root_translation_source_m": [
+          0,
+          0.0577395,
+          0
+        ]
+      },
+      "reference_photos": [
+        {
+          "subject": "BGM-71_TOW",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Hires_090509-A-4842R-001a.jpg/500px-Hires_090509-A-4842R-001a.jpg",
+          "path": "throwaway/unit-roster-references/infantry/BGM-71_TOW.jpg",
+          "sha256": "9bab88104843a5b4e2370086db25f820ff23c7cc6879bffd4f5a9058be13fda3",
+          "status": 200
+        }
+      ],
+      "hold_fit": "All active/carried looks pass unchanged soldier-height/ground/eye source limits. Active root muzzle matches the canonical mount in shared kneel_fire phase0. Other active clip poses are diagnostic only; production runtime/neutral acceptance pending.",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "us_atgm_team_bgm_71_tow_2a_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "7e385006d3dc303528f5b205c6adccf6c56d58e8c18abc8cdb5aefbdc8e61e9f",
+            "bytes": 7310020,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 29083,
+                  "vertices": 48398
+                },
+                {
+                  "triangles": 6916,
+                  "vertices": 14505
+                },
+                {
+                  "triangles": 2361,
+                  "vertices": 5682
+                },
+                {
+                  "triangles": 745,
+                  "vertices": 1983
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7310020,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -0.8753589391708374,
+                  -0.24022437632083893
+                ],
+                "max": [
+                  1.5130361318588257,
+                  0.8753587007522583,
+                  1.7199115753173828
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_atgm_team_bgm_71_tow_2a_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "925bdb16747397d91c11aeba752a037ccacaaf26855f9de7003ad39df9c13b15",
+            "bytes": 7718616,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 29367,
+                  "vertices": 48930
+                },
+                {
+                  "triangles": 6987,
+                  "vertices": 15036
+                },
+                {
+                  "triangles": 2486,
+                  "vertices": 6249
+                },
+                {
+                  "triangles": 741,
+                  "vertices": 1996
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7718616,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -0.8753589391708374,
+                  -0.15176673233509064
+                ],
+                "max": [
+                  1.5130361318588257,
+                  0.8753587007522583,
+                  1.7199115753173828
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_atgm_team_bgm_71_tow_2a_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "5daa8b3f31e1de33cc9e6a2ca9a7f16bf1a0a910a3adec89c36d95c4e8e1c514",
+            "bytes": 7011356,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27863,
+                  "vertices": 45437
+                },
+                {
+                  "triangles": 6915,
+                  "vertices": 14222
+                },
+                {
+                  "triangles": 2354,
+                  "vertices": 5585
+                },
+                {
+                  "triangles": 685,
+                  "vertices": 1797
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7011356,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -0.8788341283798218,
+                  -0.13439390063285828
+                ],
+                "max": [
+                  1.5130361318588257,
+                  0.8787399530410767,
+                  1.7199115753173828
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_atgm_team_bgm_71_tow_2a_carried_a",
+            "mode": "carried",
+            "look": "a",
+            "source_sha256": "075837cc67e9d45e7e74b3aa2f4a948764136b6946a34caf2854257d6d94e26f",
+            "bytes": 7254292,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28071,
+                  "vertices": 47325
+                },
+                {
+                  "triangles": 6969,
+                  "vertices": 14800
+                },
+                {
+                  "triangles": 2382,
+                  "vertices": 5778
+                },
+                {
+                  "triangles": 750,
+                  "vertices": 2005
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7254292,
+              "bounds": {
+                "min": [
+                  -1.5068200826644897,
+                  -1.0143643617630005,
+                  -0.7577313780784607
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8753587007522583,
+                  1.8656660318374634
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_atgm_team_bgm_71_tow_2a_carried_b",
+            "mode": "carried",
+            "look": "b",
+            "source_sha256": "208a20fc16a57a7e08bb41b39045a10a4a39f8bb55fa4a6fae775f807c421d76",
+            "bytes": 7640812,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28355,
+                  "vertices": 47940
+                },
+                {
+                  "triangles": 6965,
+                  "vertices": 15052
+                },
+                {
+                  "triangles": 2477,
+                  "vertices": 6213
+                },
+                {
+                  "triangles": 768,
+                  "vertices": 2062
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7640812,
+              "bounds": {
+                "min": [
+                  -1.435577630996704,
+                  -1.0143643617630005,
+                  -0.6780256628990173
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.8135771751403809
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_atgm_team_bgm_71_tow_2a_carried_c",
+            "mode": "carried",
+            "look": "c",
+            "source_sha256": "9f7b7ff4501d18d2acc4779c92be8e8dcbce3c7f6dcdad0f036730e4a67b08e3",
+            "bytes": 6937756,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26851,
+                  "vertices": 44339
+                },
+                {
+                  "triangles": 6953,
+                  "vertices": 14354
+                },
+                {
+                  "triangles": 2348,
+                  "vertices": 5627
+                },
+                {
+                  "triangles": 693,
+                  "vertices": 1829
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6937756,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.6537643671035767
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.7890533208847046
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/active/prone_pinned_front.png"
+          ],
+          "carried": [
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/carried/idle_side.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/carried/idle_front.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/carried/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/carried/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/carried/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/carried/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/carried/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/us_atgm_team_bgm_71_tow_2a/carried/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "us_force_recon_recon_patrol",
+      "name": "Force Recon",
+      "factions": [
+        "us"
+      ],
+      "profile": "elite-scout",
+      "equipment": [
+        "rifle",
+        "grenade"
+      ],
+      "rig_family": "rifle",
+      "export_directory": "assets/source/roster/infantry/us_force_recon_recon_patrol/",
+      "gate": "Ground profile/rig/socket fit",
+      "appearance_sources": [
+        {
+          "id": "us_force_recon_recon_patrol_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/us_force_recon_recon_patrol/active_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "us_force_recon_recon_patrol_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/us_force_recon_recon_patrol/active_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "us_force_recon_recon_patrol_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/us_force_recon_recon_patrol/active_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "Source structure, skeleton, sockets and global soldier/eye/muzzle fit clean on shared aim reference; source poses are author candidates, coordinator neutral/runtime acceptance pending.",
+      "equipment_model": "carbine",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "us_force_recon_recon_patrol_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "43068bf3f9c87403ffa35062665e6de876c88b5d5baed33982fcc1360bd4bfba",
+            "bytes": 7007360,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27043,
+                  "vertices": 44683
+                },
+                {
+                  "triangles": 6936,
+                  "vertices": 14298
+                },
+                {
+                  "triangles": 2421,
+                  "vertices": 5784
+                },
+                {
+                  "triangles": 755,
+                  "vertices": 1992
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7007360,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_force_recon_recon_patrol_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "541cd11da8fc4a71c19496b22499697efb92e928e997cd442ef5640c5c6e1e87",
+            "bytes": 7577580,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28159,
+                  "vertices": 47268
+                },
+                {
+                  "triangles": 6964,
+                  "vertices": 14964
+                },
+                {
+                  "triangles": 2479,
+                  "vertices": 6246
+                },
+                {
+                  "triangles": 761,
+                  "vertices": 1991
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7577580,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_force_recon_recon_patrol_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "ac600e36294f45ce9a0e9ce448893d0adc142476c68d8993c47c9256ec1220ea",
+            "bytes": 6777140,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27095,
+                  "vertices": 44020
+                },
+                {
+                  "triangles": 7018,
+                  "vertices": 14241
+                },
+                {
+                  "triangles": 2558,
+                  "vertices": 6021
+                },
+                {
+                  "triangles": 932,
+                  "vertices": 2383
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6777140,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/us_force_recon_recon_patrol/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/us_force_recon_recon_patrol/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/us_force_recon_recon_patrol/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/us_force_recon_recon_patrol/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/us_force_recon_recon_patrol/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/us_force_recon_recon_patrol/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/us_force_recon_recon_patrol/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/us_force_recon_recon_patrol/active/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "us_marine_squad_close_quarters_infantry",
+      "name": "Marine Squad",
+      "factions": [
+        "us"
+      ],
+      "profile": "assault",
+      "equipment": [
+        "assault-rifle",
+        "grenade"
+      ],
+      "rig_family": "rifle",
+      "export_directory": "assets/source/roster/infantry/us_marine_squad_close_quarters_infantry/",
+      "gate": "Ground profile/rig/socket fit",
+      "appearance_sources": [
+        {
+          "id": "us_marine_squad_close_quarters_infantry_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/us_marine_squad_close_quarters_infantry/active_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "us_marine_squad_close_quarters_infantry_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/us_marine_squad_close_quarters_infantry/active_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "us_marine_squad_close_quarters_infantry_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/us_marine_squad_close_quarters_infantry/active_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "Source structure, skeleton, sockets and global soldier/eye/muzzle fit clean on shared aim reference; source poses are author candidates, coordinator neutral/runtime acceptance pending.",
+      "equipment_model": "carbine",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "us_marine_squad_close_quarters_infantry_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "32c037326325da2a3c0ded76f5d13756bc25f1b99c28c0fb9ee54709adb9f7d8",
+            "bytes": 7050872,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27171,
+                  "vertices": 45085
+                },
+                {
+                  "triangles": 6944,
+                  "vertices": 14423
+                },
+                {
+                  "triangles": 2416,
+                  "vertices": 5820
+                },
+                {
+                  "triangles": 757,
+                  "vertices": 1991
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7050872,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.24022437632083893
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_marine_squad_close_quarters_infantry_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "e0b46c6c2698f5d3f340d8521b12561818e9177c834df2f7d5426d0c4477a34e",
+            "bytes": 7420296,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27455,
+                  "vertices": 45514
+                },
+                {
+                  "triangles": 7010,
+                  "vertices": 14853
+                },
+                {
+                  "triangles": 2467,
+                  "vertices": 6112
+                },
+                {
+                  "triangles": 753,
+                  "vertices": 1974
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7420296,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.15176673233509064
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_marine_squad_close_quarters_infantry_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "cb5e0f72d8bbd07437b97fee2fa129d5d853357cc887a4143342bf7505e2fcab",
+            "bytes": 6722828,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 25951,
+                  "vertices": 42085
+                },
+                {
+                  "triangles": 6938,
+                  "vertices": 14061
+                },
+                {
+                  "triangles": 2346,
+                  "vertices": 5488
+                },
+                {
+                  "triangles": 686,
+                  "vertices": 1778
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6722828,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.13439390063285828
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/us_marine_squad_close_quarters_infantry/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/us_marine_squad_close_quarters_infantry/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/us_marine_squad_close_quarters_infantry/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/us_marine_squad_close_quarters_infantry/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/us_marine_squad_close_quarters_infantry/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/us_marine_squad_close_quarters_infantry/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/us_marine_squad_close_quarters_infantry/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/us_marine_squad_close_quarters_infantry/active/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "us_marksman_squad_m110_equipped_longer_range_infantry",
+      "name": "Marksman Squad",
+      "factions": [
+        "us"
+      ],
+      "profile": "marksman",
+      "equipment": [
+        "marksman-rifle"
+      ],
+      "rig_family": "rifle",
+      "export_directory": "assets/source/roster/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/",
+      "gate": "Ground profile/rig/socket fit",
+      "reference_photos": [
+        {
+          "subject": "M110_Semi-Automatic_Sniper_System",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/PEO_M110_SASS_Profile.jpg/500px-PEO_M110_SASS_Profile.jpg",
+          "path": "throwaway/unit-roster-references/infantry/M110_Semi-Automatic_Sniper_System.jpg",
+          "sha256": "42caafd5e4ea0c8ddde6cedb2bcdee628776ed7d2b55f4fd1c55a80165530008",
+          "status": 200
+        }
+      ],
+      "appearance_sources": [
+        {
+          "id": "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "us_marksman_squad_m110_equipped_longer_range_infantry_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "Source structure, skeleton, sockets and global soldier/eye/muzzle fit clean on shared aim reference; source poses are author candidates, coordinator neutral/runtime acceptance pending.",
+      "equipment_model": "m110",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "us_marksman_squad_m110_equipped_longer_range_infantry_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "4c25d1803f2422da47712605f5c966e9b4630b0dda859788418510762ec41d5e",
+            "bytes": 7367700,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28295,
+                  "vertices": 48306
+                },
+                {
+                  "triangles": 7149,
+                  "vertices": 15244
+                },
+                {
+                  "triangles": 2431,
+                  "vertices": 5852
+                },
+                {
+                  "triangles": 751,
+                  "vertices": 1962
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7367700,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.1103531122207642,
+                  -0.24022437632083893
+                ],
+                "max": [
+                  1.2915136814117432,
+                  0.8787399530410767,
+                  1.840227723121643
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_marksman_squad_m110_equipped_longer_range_infantry_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "62b56979088395e3e26a48b44fec75d2a91f612f25eb02d3b3cfb1327d4a9c90",
+            "bytes": 7735612,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28579,
+                  "vertices": 48894
+                },
+                {
+                  "triangles": 7163,
+                  "vertices": 15498
+                },
+                {
+                  "triangles": 2455,
+                  "vertices": 6119
+                },
+                {
+                  "triangles": 752,
+                  "vertices": 1973
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7735612,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.1103531122207642,
+                  -0.15176673233509064
+                ],
+                "max": [
+                  1.2915136814117432,
+                  0.8787399530410767,
+                  1.840227723121643
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_marksman_squad_m110_equipped_longer_range_infantry_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "e44cafa5141244a8f2a555fbc1081fdbd66a20049f955ce4bbd6268f48e1c79e",
+            "bytes": 7060416,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27075,
+                  "vertices": 45616
+                },
+                {
+                  "triangles": 7122,
+                  "vertices": 14809
+                },
+                {
+                  "triangles": 2350,
+                  "vertices": 5523
+                },
+                {
+                  "triangles": 684,
+                  "vertices": 1784
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7060416,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.1103531122207642,
+                  -0.13439390063285828
+                ],
+                "max": [
+                  1.2915136814117432,
+                  0.8787399530410767,
+                  1.840227723121643
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/us_marksman_squad_m110_equipped_longer_range_infantry/active/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "us_scout_snipers_m107_heavy_sniper_team",
+      "name": "Scout Snipers",
+      "factions": [
+        "us"
+      ],
+      "profile": "sniper",
+      "equipment": [
+        "heavy-sniper"
+      ],
+      "rig_family": "rifle",
+      "export_directory": "assets/source/roster/infantry/us_scout_snipers_m107_heavy_sniper_team/",
+      "gate": "Ground profile/rig/socket fit",
+      "reference_photos": [
+        {
+          "subject": "Barrett_M82",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5a/Barrett-M82A1-Independence-Day-2017-IZE-048-white.jpg/500px-Barrett-M82A1-Independence-Day-2017-IZE-048-white.jpg",
+          "path": "throwaway/unit-roster-references/infantry/Barrett_M82.jpg",
+          "sha256": "5d8c176b494048283b163ba10129f3f8121dd4bcfbc1a56738642741edb84d19",
+          "status": 200
+        }
+      ],
+      "appearance_sources": [
+        {
+          "id": "us_scout_snipers_m107_heavy_sniper_team_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/us_scout_snipers_m107_heavy_sniper_team/active_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "us_scout_snipers_m107_heavy_sniper_team_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/us_scout_snipers_m107_heavy_sniper_team/active_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "us_scout_snipers_m107_heavy_sniper_team_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/us_scout_snipers_m107_heavy_sniper_team/active_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "Source structure, skeleton, sockets and global soldier/eye/muzzle fit clean on shared aim reference; source poses are author candidates, coordinator neutral/runtime acceptance pending.",
+      "equipment_model": "m107",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "us_scout_snipers_m107_heavy_sniper_team_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "d1855e29c8956e54ff4479342385d12bea41f1305208d0e4d8a12c991d3c759b",
+            "bytes": 7367236,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 29483,
+                  "vertices": 52094
+                },
+                {
+                  "triangles": 7026,
+                  "vertices": 15356
+                },
+                {
+                  "triangles": 2350,
+                  "vertices": 5782
+                },
+                {
+                  "triangles": 749,
+                  "vertices": 1966
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7367236,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.3563364744186401,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.7174263000488281,
+                  0.8787399530410767,
+                  2.0675535202026367
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_scout_snipers_m107_heavy_sniper_team_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "073112f234fdbb1b69fd1453b47331e3a83f4f01e05efa5587634124c4482767",
+            "bytes": 7961048,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 30599,
+                  "vertices": 54901
+                },
+                {
+                  "triangles": 7053,
+                  "vertices": 15936
+                },
+                {
+                  "triangles": 2486,
+                  "vertices": 6396
+                },
+                {
+                  "triangles": 759,
+                  "vertices": 1981
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7961048,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.3563364744186401,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.7174263000488281,
+                  0.8787399530410767,
+                  2.0675535202026367
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "us_scout_snipers_m107_heavy_sniper_team_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "bc49fcfb1c295700f37e130fa5755d800d8333d583ecaca1029858f35aa13575",
+            "bytes": 7144656,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 29535,
+                  "vertices": 51469
+                },
+                {
+                  "triangles": 7111,
+                  "vertices": 15283
+                },
+                {
+                  "triangles": 2511,
+                  "vertices": 6077
+                },
+                {
+                  "triangles": 929,
+                  "vertices": 2375
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7144656,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.3563364744186401,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.7174263000488281,
+                  0.8787399530410767,
+                  2.0675535202026367
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/us_scout_snipers_m107_heavy_sniper_team/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/us_scout_snipers_m107_heavy_sniper_team/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/us_scout_snipers_m107_heavy_sniper_team/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/us_scout_snipers_m107_heavy_sniper_team/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/us_scout_snipers_m107_heavy_sniper_team/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/us_scout_snipers_m107_heavy_sniper_team/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/us_scout_snipers_m107_heavy_sniper_team/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/us_scout_snipers_m107_heavy_sniper_team/active/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "assault_squad",
+      "name": "Assault Squad",
+      "factions": [
+        "europe",
+        "eastern"
+      ],
+      "profile": "assault",
+      "equipment": [
+        "assault-rifle",
+        "grenade"
+      ],
+      "rig_family": "rifle",
+      "export_directory": "assets/source/roster/infantry/assault_squad/",
+      "gate": "Ground profile/rig/socket fit",
+      "appearance_sources": [
+        {
+          "id": "assault_squad_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/assault_squad/active_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "assault_squad_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/assault_squad/active_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "assault_squad_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/assault_squad/active_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "Source structure, skeleton, sockets and global soldier/eye/muzzle fit clean on shared aim reference; source poses are author candidates, coordinator neutral/runtime acceptance pending.",
+      "equipment_model": "carbine",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "assault_squad_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "d0c90aa316cabd29859918e6064ff84738983a0f1c2c63156f3187eeea58d778",
+            "bytes": 7050872,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27171,
+                  "vertices": 45085
+                },
+                {
+                  "triangles": 6944,
+                  "vertices": 14424
+                },
+                {
+                  "triangles": 2416,
+                  "vertices": 5820
+                },
+                {
+                  "triangles": 757,
+                  "vertices": 1990
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7050872,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.24022437632083893
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "assault_squad_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "bdcc0b9d081f6c98545bc7b7a17414038a6ec7140eac0ec01627c9e3a57ee5e4",
+            "bytes": 7420296,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27455,
+                  "vertices": 45514
+                },
+                {
+                  "triangles": 7010,
+                  "vertices": 14853
+                },
+                {
+                  "triangles": 2467,
+                  "vertices": 6112
+                },
+                {
+                  "triangles": 753,
+                  "vertices": 1974
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7420296,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.15176673233509064
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "assault_squad_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "200617e171b230bfd141c7b1d730bd0dde8d7446c118c7d4137d52ece52836fe",
+            "bytes": 6722828,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 25951,
+                  "vertices": 42085
+                },
+                {
+                  "triangles": 6938,
+                  "vertices": 14061
+                },
+                {
+                  "triangles": 2346,
+                  "vertices": 5488
+                },
+                {
+                  "triangles": 686,
+                  "vertices": 1778
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6722828,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.13439390063285828
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/assault_squad/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/assault_squad/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/assault_squad/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/assault_squad/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/assault_squad/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/assault_squad/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/assault_squad/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/assault_squad/active/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "fgm_148_javelin_team",
+      "name": "FGM-148 Javelin Team",
+      "factions": [
+        "us",
+        "europe"
+      ],
+      "profile": "at-team",
+      "equipment": [
+        "Javelin"
+      ],
+      "rig_family": "launcher",
+      "export_directory": "assets/source/roster/infantry/fgm_148_javelin_team/",
+      "gate": "Authentic top attack disabled; art does not admit capability"
+    },
+    {
+      "id": "rifle_squad",
+      "name": "Rifle Squad",
+      "factions": [
+        "us",
+        "europe",
+        "eastern"
+      ],
+      "profile": "rifle",
+      "equipment": [
+        "rifle",
+        "grenade"
+      ],
+      "rig_family": "rifle",
+      "export_directory": "assets/source/roster/infantry/rifle_squad/",
+      "gate": "Ground profile/rig/socket fit",
+      "appearance_sources": [
+        {
+          "id": "rifle_squad_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/rifle_squad/active_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "rifle_squad_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/rifle_squad/active_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "rifle_squad_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/rifle_squad/active_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "Source structure, skeleton, sockets and global soldier/eye/muzzle fit clean on shared aim reference; source poses are author candidates, coordinator neutral/runtime acceptance pending.",
+      "equipment_model": "carbine",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "rifle_squad_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "4b7a7194a42efb78d10598252cf62be1309b949aaf16d209e373597fb2ea3599",
+            "bytes": 7050872,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27171,
+                  "vertices": 45085
+                },
+                {
+                  "triangles": 6944,
+                  "vertices": 14423
+                },
+                {
+                  "triangles": 2416,
+                  "vertices": 5820
+                },
+                {
+                  "triangles": 757,
+                  "vertices": 1991
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7050872,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.24022437632083893
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "rifle_squad_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "cf64259d9d1ee4e862005901f26179ee44d5d41ec0ed0f15df237b8a80d31475",
+            "bytes": 7420288,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27455,
+                  "vertices": 45514
+                },
+                {
+                  "triangles": 7010,
+                  "vertices": 14852
+                },
+                {
+                  "triangles": 2466,
+                  "vertices": 6111
+                },
+                {
+                  "triangles": 753,
+                  "vertices": 1976
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7420288,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.15176673233509064
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "rifle_squad_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "6b1eeff10df1d63ea1627a5eb9ece0f5463cc10cb0dbf1601bf0cd89818ff361",
+            "bytes": 6722592,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 25951,
+                  "vertices": 42085
+                },
+                {
+                  "triangles": 6938,
+                  "vertices": 14062
+                },
+                {
+                  "triangles": 2346,
+                  "vertices": 5486
+                },
+                {
+                  "triangles": 685,
+                  "vertices": 1776
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6722592,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.13439390063285828
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/rifle_squad/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/rifle_squad/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/rifle_squad/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/rifle_squad/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/rifle_squad/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/rifle_squad/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/rifle_squad/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/rifle_squad/active/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "europe_atgm_team_akeron_mp",
+      "name": "Akeron MP Team",
+      "factions": [
+        "europe"
+      ],
+      "profile": "at-team",
+      "equipment": [
+        "Akeron"
+      ],
+      "rig_family": "launcher",
+      "export_directory": "assets/source/roster/infantry/europe_atgm_team_akeron_mp/",
+      "gate": "Authentic top attack disabled; art does not admit capability"
+    },
+    {
+      "id": "europe_marksman_squad_longer_range_infantry",
+      "name": "Marksman Squad",
+      "factions": [
+        "europe"
+      ],
+      "profile": "marksman",
+      "equipment": [
+        "marksman-rifle"
+      ],
+      "rig_family": "rifle",
+      "export_directory": "assets/source/roster/infantry/europe_marksman_squad_longer_range_infantry/",
+      "gate": "Ground profile/rig/socket fit",
+      "reference_photos": [
+        {
+          "subject": "M110_Semi-Automatic_Sniper_System",
+          "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/PEO_M110_SASS_Profile.jpg/500px-PEO_M110_SASS_Profile.jpg",
+          "path": "throwaway/unit-roster-references/infantry/M110_Semi-Automatic_Sniper_System.jpg",
+          "sha256": "42caafd5e4ea0c8ddde6cedb2bcdee628776ed7d2b55f4fd1c55a80165530008",
+          "status": 200
+        }
+      ],
+      "appearance_sources": [
+        {
+          "id": "europe_marksman_squad_longer_range_infantry_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/europe_marksman_squad_longer_range_infantry/active_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "europe_marksman_squad_longer_range_infantry_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/europe_marksman_squad_longer_range_infantry/active_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "europe_marksman_squad_longer_range_infantry_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/europe_marksman_squad_longer_range_infantry/active_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "Source structure, skeleton, sockets and global soldier/eye/muzzle fit clean on shared aim reference; source poses are author candidates, coordinator neutral/runtime acceptance pending.",
+      "equipment_model": "m110",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "europe_marksman_squad_longer_range_infantry_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "e0438d8900f919305913f05b1dcbdbdaff6679a61cd52097487de6cecbcdb106",
+            "bytes": 7367248,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28295,
+                  "vertices": 48306
+                },
+                {
+                  "triangles": 7149,
+                  "vertices": 15234
+                },
+                {
+                  "triangles": 2431,
+                  "vertices": 5851
+                },
+                {
+                  "triangles": 752,
+                  "vertices": 1967
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7367248,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.1103531122207642,
+                  -0.24022437632083893
+                ],
+                "max": [
+                  1.2915136814117432,
+                  0.8787399530410767,
+                  1.840227723121643
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "europe_marksman_squad_longer_range_infantry_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "9f686bd86549d50f8dcfe2b0f1a2df175c3398cf4289ae6c828c28a78c436a6f",
+            "bytes": 7735304,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 28579,
+                  "vertices": 48894
+                },
+                {
+                  "triangles": 7163,
+                  "vertices": 15500
+                },
+                {
+                  "triangles": 2455,
+                  "vertices": 6114
+                },
+                {
+                  "triangles": 751,
+                  "vertices": 1972
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7735304,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.1103531122207642,
+                  -0.15176673233509064
+                ],
+                "max": [
+                  1.2915136814117432,
+                  0.8787399530410767,
+                  1.840227723121643
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "europe_marksman_squad_longer_range_infantry_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "84b7ce0e7620b2919563d3f267187332d62125c5f48ccdb588c8c836f7d1073e",
+            "bytes": 7059724,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27075,
+                  "vertices": 45616
+                },
+                {
+                  "triangles": 7122,
+                  "vertices": 14810
+                },
+                {
+                  "triangles": 2350,
+                  "vertices": 5522
+                },
+                {
+                  "triangles": 683,
+                  "vertices": 1775
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7059724,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.1103531122207642,
+                  -0.13439390063285828
+                ],
+                "max": [
+                  1.2915136814117432,
+                  0.8787399530410767,
+                  1.840227723121643
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/europe_marksman_squad_longer_range_infantry/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/europe_marksman_squad_longer_range_infantry/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/europe_marksman_squad_longer_range_infantry/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/europe_marksman_squad_longer_range_infantry/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/europe_marksman_squad_longer_range_infantry/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/europe_marksman_squad_longer_range_infantry/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/europe_marksman_squad_longer_range_infantry/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/europe_marksman_squad_longer_range_infantry/active/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    },
+    {
+      "id": "europe_recon_patrol_light_patrol",
+      "name": "Recon Patrol",
+      "factions": [
+        "europe"
+      ],
+      "profile": "scout",
+      "equipment": [
+        "rifle"
+      ],
+      "rig_family": "rifle",
+      "export_directory": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/",
+      "gate": "Ground profile/rig/socket fit",
+      "appearance_sources": [
+        {
+          "id": "europe_recon_patrol_light_patrol_active_a",
+          "mode": "active",
+          "look": "a",
+          "export": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/active_a.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "europe_recon_patrol_light_patrol_active_b",
+          "mode": "active",
+          "look": "b",
+          "export": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/active_b.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        },
+        {
+          "id": "europe_recon_patrol_light_patrol_active_c",
+          "mode": "active",
+          "look": "c",
+          "export": "assets/source/roster/infantry/europe_recon_patrol_light_patrol/active_c.glb",
+          "skeleton": "quaternius-ubc-rifle"
+        }
+      ],
+      "hold_fit": "Source structure, skeleton, sockets and global soldier/eye/muzzle fit clean on shared aim reference; source poses are author candidates, coordinator neutral/runtime acceptance pending.",
+      "equipment_model": "carbine",
+      "production": {
+        "status": "source-fit-clean; coordinator-neutral-runtime-review-pending",
+        "sources": [
+          {
+            "id": "europe_recon_patrol_light_patrol_active_a",
+            "mode": "active",
+            "look": "a",
+            "source_sha256": "a95f530f1580c2b1c88de487b4a1268e06a535f4cb9b8a9d6ae8f28cc51ca003",
+            "bytes": 6658588,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26683,
+                  "vertices": 43952
+                },
+                {
+                  "triangles": 6976,
+                  "vertices": 14409
+                },
+                {
+                  "triangles": 2415,
+                  "vertices": 5767
+                },
+                {
+                  "triangles": 755,
+                  "vertices": 1965
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6658588,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "europe_recon_patrol_light_patrol_active_b",
+            "mode": "active",
+            "look": "b",
+            "source_sha256": "39187d456a333b9ece11a85a7de054be04e2602c0eb3c7fa1ec2d8ea9805ceea",
+            "bytes": 7238224,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 27799,
+                  "vertices": 46757
+                },
+                {
+                  "triangles": 7008,
+                  "vertices": 15040
+                },
+                {
+                  "triangles": 2469,
+                  "vertices": 6137
+                },
+                {
+                  "triangles": 761,
+                  "vertices": 1995
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 7238224,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          },
+          {
+            "id": "europe_recon_patrol_light_patrol_active_c",
+            "mode": "active",
+            "look": "c",
+            "source_sha256": "a25c5b80fd74d3c2756e89c84fe4aacf253a50b6c725c5740f70519577038942",
+            "bytes": 6428508,
+            "stats": {
+              "kind": "skinned",
+              "tiers": [
+                {
+                  "triangles": 26735,
+                  "vertices": 43359
+                },
+                {
+                  "triangles": 7046,
+                  "vertices": 14302
+                },
+                {
+                  "triangles": 2550,
+                  "vertices": 5966
+                },
+                {
+                  "triangles": 932,
+                  "vertices": 2377
+                }
+              ],
+              "joints": 53,
+              "source_bytes": 6428508,
+              "bounds": {
+                "min": [
+                  -1.4177781343460083,
+                  -1.0143643617630005,
+                  -0.28771141171455383
+                ],
+                "max": [
+                  1.1187111139297485,
+                  0.8787399530410767,
+                  1.749826192855835
+                ]
+              }
+            },
+            "findings": [],
+            "clip_findings": []
+          }
+        ],
+        "shots": {
+          "active": [
+            "throwaway/unit-roster-models/infantry/europe_recon_patrol_light_patrol/active/idle_side.png",
+            "throwaway/unit-roster-models/infantry/europe_recon_patrol_light_patrol/active/idle_front.png",
+            "throwaway/unit-roster-models/infantry/europe_recon_patrol_light_patrol/active/stand_aim_side.png",
+            "throwaway/unit-roster-models/infantry/europe_recon_patrol_light_patrol/active/stand_aim_front.png",
+            "throwaway/unit-roster-models/infantry/europe_recon_patrol_light_patrol/active/kneel_fire_side.png",
+            "throwaway/unit-roster-models/infantry/europe_recon_patrol_light_patrol/active/kneel_fire_front.png",
+            "throwaway/unit-roster-models/infantry/europe_recon_patrol_light_patrol/active/prone_pinned_side.png",
+            "throwaway/unit-roster-models/infantry/europe_recon_patrol_light_patrol/active/prone_pinned_front.png"
+          ]
+        },
+        "inspection_report": "throwaway/unit-roster-models/infantry-validation.json"
+      }
+    }
+  ],
+  "candidate_contract": {
+    "sources": "One unit-specific active binding per look; RPG special operator also has carried bindings with rifle and packed actual launcher. Shared skeleton, joint identity, clips, soldier scale and basis remain unchanged.",
+    "clip_review": "Actual exported clip source is reimported onto each candidate; stand_aim, idle, kneel_fire and prone_pinned reviewed as candidate evidence. Runtime/neutral acceptance belongs to coordinator.",
+    "scale": "Named geometry lengths compensate existing rifle hold scale and soldier scale; these shared scales are not changed.",
+    "equipment_limits": [
+      "Europe marksman shares the AR-pattern M110 candidate geometry; this is an equipment choice for an unspecific marksman row, not a national service-equipment claim.",
+      "M107 length follows related M107A1 manufacturer 29-inch-barrel specification; available shape photo is M82A1. Exact legacy M107 subtype primary pages denied access.",
+      "Existing launcher clips do not fully reach their ideal left-hand IK target. Candidate support grip/cradle fits actual shared exported finger positions; equipment/hold approximation remains a coordinator visual gate.",
+      "Shared launcher clips have pose-dependent left-hand contact. Coordinator selects stationary active stand_aim0 for RPG and kneel_fire0 for tripod; movement/death uses carried kits. Idle/prone active source images are diagnostic, not the frozen active pose."
+    ]
+  },
+  "additional_references": [
+    {
+      "url": "https://barrett.net/products/firearms/m107a1/",
+      "sha256": "19c35a3680d0806cc6894f7ef092d15ef829a3a1b7ab530cb3ec09914b91184e",
+      "rows": [
+        "29-inch barrel: overall length 57 inches (1448 mm)"
+      ],
+      "limit": "Related M107A1 subtype; not an exact legacy M107 manufacturing drawing."
+    }
+  ],
+  "equipment_authoring": {
+    "m110": {
+      "length_m": 1.029
+    },
+    "svd": {
+      "length_m": 1.225
+    },
+    "m107": {
+      "length_m": 1.448,
+      "length_limit": "Related M107A1 manufacturer 29-inch-barrel specification; exact legacy M107 primary drawing not fetched."
+    },
+    "asvk": {
+      "length_m": 1.42
+    },
+    "rpg7": {
+      "length_m": 0.95,
+      "packed_length_m": 0.95,
+      "length_limit": "Unloaded tube; active grenade adds forward reach."
+    },
+    "rpg29": {
+      "length_m": 1.85,
+      "packed_length_m": 1.0
+    },
+    "tow": {
+      "tube_length_m": 1.28,
+      "bore_m": 1.066,
+      "pivot_m": [
+        0.6422605133,
+        -0.2,
+        1.066
+      ],
+      "muzzle_m": [
+        0.79,
+        0,
+        0
+      ],
+      "frame_limit": "Chosen source-derived tripod frame against actual shared kneel_fire phase0 and photo; complete tube lengths are image-derived authoring approximations, not missile lengths or factory drawings.",
+      "posed_root_translation_source_m": [
+        0,
+        0.0577395,
+        0
+      ]
+    },
+    "kornet": {
+      "tube_length_m": 1.32,
+      "bore_m": 1.18,
+      "pivot_m": [
+        0.6422607327,
+        -0.2,
+        1.18
+      ],
+      "muzzle_m": [
+        0.81,
+        0,
+        0
+      ],
+      "frame_limit": "Chosen source-derived tripod frame against actual shared kneel_fire phase0 and photo; complete tube lengths are image-derived authoring approximations, not missile lengths or factory drawings.",
+      "posed_root_translation_source_m": [
+        0,
+        0.0577395,
+        0
+      ]
+    }
+  },
+  "shared_source_receipts": [
+    {
+      "path": "assets/source/infantry/clips_rifle.glb",
+      "sha256": "d28add7f9b8944d3d29d7ada5b2535c44e631eb8840c10d8e58a77c276cfa3f9"
+    },
+    {
+      "path": "assets/source/infantry/clips_launcher.glb",
+      "sha256": "106dc8c541f45eabdb198220a34dfaf90ca0887c9ebba4737545a88952f97961"
+    }
+  ]
+}

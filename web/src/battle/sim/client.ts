@@ -9,6 +9,7 @@ import type {
   AuthorityStatus,
   CommandAck,
   Order,
+  PurchasePlacement,
   MovePreviewRequest,
   MoveDestination,
   BuildingPreviewRequest,
@@ -53,13 +54,14 @@ export interface SimClient {
   readonly paused: boolean;
   start(): void;
   command(order: Order, queued?: boolean): Promise<CommandAck>;
+  previewPurchase(variant: string, destination: [number, number]): Promise<PurchasePlacement>;
   previewMove(move: MovePreviewRequest): Promise<MoveDestination[]>;
   previewBuilding(building: BuildingPreviewRequest): Promise<BuildingPlacement>;
   onPublication(consumer: (publication: Publication) => void): void;
   onStatus(listener: (status: AuthorityStatus, slow: boolean) => void): void;
   pause(): void;
   resume(): void;
-  /** Advance exactly `ticks`; resolves once that tick's publication is released. */
+  /** Advance up to `ticks` or match completion; resolves after the final publication is released. */
   advance(ticks: number): Promise<number>;
   replay(): Promise<string>;
   /** Lab diagnostic: observe as the other side. Commands keep their side.
@@ -143,6 +145,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
     number,
     | (Pending<MoveDestination[]> & { kind: "move" })
     | (Pending<BuildingPlacement> & { kind: "building" })
+    | (Pending<PurchasePlacement> & { kind: "purchase" })
   >();
   const advanceTargets = new Map<number, number>();
   const statusListeners: ((status: AuthorityStatus, slow: boolean) => void)[] = [];
@@ -218,6 +221,12 @@ export function createSimClient(options: SimClientOptions): SimClient {
           pendingAcks.get(reply.ack.seq)?.resolve(reply.ack);
           pendingAcks.delete(reply.ack.seq);
           break;
+        case "purchase_preview": {
+          const preview = previews.get(reply.id);
+          if (preview?.kind === "purchase") preview.resolve(reply.placement);
+          previews.delete(reply.id);
+          break;
+        }
         case "move_preview": {
           const preview = previews.get(reply.id);
           if (preview?.kind === "move") preview.resolve(reply.destinations);
@@ -317,6 +326,15 @@ export function createSimClient(options: SimClientOptions): SimClient {
       return new Promise<CommandAck>((resolve, reject) => {
         pendingAcks.set(seq, { resolve, reject });
         channel.send({ type: "command", command });
+      });
+    },
+    previewPurchase(variant, destination) {
+      if (failure || disposed)
+        return Promise.reject(failure ?? new Error("simulation client disposed"));
+      const id = nextPreview++;
+      return new Promise<PurchasePlacement>((resolve, reject) => {
+        previews.set(id, { kind: "purchase", resolve, reject });
+        channel.send({ type: "purchase_preview", id, side: options.side, variant, destination });
       });
     },
     previewMove(move) {

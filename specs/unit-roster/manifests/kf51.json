@@ -1,0 +1,123 @@
+{
+  "assignment": "kf51",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/kf51.py",
+  "exclusive_export_directory": "assets/source/roster/kf51/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "Panther_KF51",
+    "url": "https://en.m.wikipedia.org/wiki/Panther_KF51",
+    "sha256": "ac07c690f4e198b708022019c0d48c3fde043a930df296f323580d3f9d8ec9dc",
+    "rows": [
+      "Length 7.8 m (10 m with tank gun )",
+      "Width 3.7 m",
+      "Height 2.5 m",
+      "Main armament Rh-130 L/52 130 mm smoothbore cannon (up to 20 rounds) [ 1 ]",
+      "Secondary armament 12.7 mm coaxial machine gun (250 rounds), 7.62 mm 'Natter' RCWS (2,500 rounds) [ 1 ]"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/0/0e/Rheinmetall_kf51_dynamisch_hohe_aufloesung_R6MJ1833.jpg/330px-Rheinmetall_kf51_dynamisch_hohe_aufloesung_R6MJ1833.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0e/Rheinmetall_kf51_dynamisch_hohe_aufloesung_R6MJ1833.jpg/500px-Rheinmetall_kf51_dynamisch_hohe_aufloesung_R6MJ1833.jpg",
+        "sha256": "f44d717f69aea341b6f6d4d602f1bd7765beb9b93e3dea592eacbd374c3166ae"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4e/Rheinmetall_kf51_dynamisch_hohe_aufloesung_1XII0825.jpg/500px-Rheinmetall_kf51_dynamisch_hohe_aufloesung_1XII0825.jpg",
+        "sha256": "b8d55cc2a153ef6619cc3205913b8fcb8ef01638e0e27e2d42d19fed438570ba"
+      }
+    ]
+  },
+  "silhouette_requirements": "Seven wheels per side; broad angular low turret; very long 130 mm gun; angular modular side armor and rear bustle.",
+  "reference_limits": "Prototype exterior only; do not add drones, new APS or autoloader mechanics. 7.8 m hull versus 10 m total.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally. Cannon rest muzzle X is chosen from cited gun-forward length minus half the selected hull length; this assumes the rear hull extent is the total-length rear reference.",
+  "variants": [
+    {
+      "id": "europe_kf51_panther_prototype_main_battle_tank",
+      "name": "KF51 Panther Prototype main battle tank",
+      "factions": [
+        "europe"
+      ],
+      "variant": "Prototype main battle tank",
+      "profile": "advanced-mbt",
+      "appearance_id": "europe_kf51_panther_prototype_main_battle_tank",
+      "export": "assets/source/roster/kf51/europe_kf51_panther_prototype_main_battle_tank.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.8,
+          3.7,
+          2.5
+        ],
+        "half_extents_m": [
+          3.9,
+          1.85,
+          1.25
+        ],
+        "eye_m": 2.35,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "advanced-tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.5
+            ],
+            "muzzle_m": [
+              6.1,
+              0,
+              0.45
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.35
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/remaining_tanks.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/remaining-tank-reference-review.md",
+    "variants": [
+      {
+        "id": "europe_kf51_panther_prototype_main_battle_tank",
+        "glb_sha256": "2d7933049b493d4081d209c1230c2d93feeed06b8082f41e127e605e0ed68142",
+        "source_bytes": 3359216,
+        "triangles_by_tier": [
+          19122,
+          6080,
+          2500,
+          1472
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/kf51/europe_kf51_panther_prototype_main_battle_tank/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/kf51/europe_kf51_panther_prototype_main_battle_tank/europe_kf51_panther_prototype_main_battle_tank.svg"
+      }
+    ]
+  }
+}

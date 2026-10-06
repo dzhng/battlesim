@@ -31,6 +31,11 @@ catalog binding selects its drawn rig; its name cannot infer a pivot or muzzle.
 [Unit bindings](src/units.ts) and [articulation](src/articulation.ts) own that mapping.
 Bounds cover all reachable poses, while physical fit remains measured at rest.
 
+Stationary supply service is a simulation capability, not evidence of deployment
+hardware. Sources may remain ordinary cargo vehicles. A source that declares
+deployment nodes or motion is held to the declared hardware chains and deployed
+ground contact; the validator does not invent a mast or outriggers.
+
 [Scenery kinds](src/scenery.ts) define art roles, states and per-tier budgets. A kind may also take pieces: states cut
 from its whole where they lie in it (a tank wreck's hull and turret, for the
 turret's throw), held inside the whole rather than to the ground or the box.
@@ -82,8 +87,11 @@ Both sides draw the same meshes. [Appearance resolution](src/appearanceCatalog.t
 combines the catalog's side tint and unit bindings with observed carrier and active
 weapon assignments. A soldier's variant identity persists when an equipment hold
 changes; the current hold supplies its own skeleton clips and muzzle socket.
-Recovered equipment follows its living operator, while the fallen return to their
-ordinary appearance so the weapon is not duplicated.
+Recovered equipment follows its living operator. A supported active pose is
+stationary: moving operators show their carried kit, and the fallen keep that
+carried identity through death and corpse presentation. The active kit's muzzle
+socket must fit its declared physical bore in that supported pose; the shared
+standing frame still owns body height, eye height and ground contact.
 
 Variant sets must satisfy the [shared rig contract](src/validate.ts). Side tint
 changes masked albedo, not geometry or the authoritative unit type.

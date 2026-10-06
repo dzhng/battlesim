@@ -230,3 +230,42 @@ fn surface_distance(shape: &Shape, yaw: f64, q: V3) -> f64 {
         }
     }
 }
+
+/// First crossing of a surface-distance envelope, on a chord known to lead
+/// into this body. Uses the same moving pose as the collision sweep.
+pub(super) fn standoff_entry(
+    shape: &Shape,
+    motion: &Motion,
+    a0: V3,
+    a1: V3,
+    end: f64,
+    reach: f64,
+) -> Option<f64> {
+    let lift = match *shape {
+        Shape::Box { half } => v3(0.0, 0.0, half.z),
+        Shape::Capsule { height, .. } => v3(0.0, 0.0, height * 0.5),
+    };
+    let distance = |u| {
+        surface_distance(
+            shape,
+            motion.yaw0 + motion.turn * u,
+            motion.relative(a0, a1, lift, u),
+        )
+    };
+    if distance(0.0) <= reach {
+        return Some(0.0);
+    }
+    if distance(end) > reach {
+        return None;
+    }
+    let (mut lo, mut hi) = (0.0, end);
+    for _ in 0..50 {
+        let mid = (lo + hi) * 0.5;
+        if distance(mid) > reach {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    Some(hi)
+}

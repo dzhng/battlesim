@@ -1,6 +1,6 @@
 # 09 — Cancellable physical return and condition-based retirement
 
-Status: not started. Dependencies: 04. Follow the README handoff and repository
+Status: implementation in progress. Dependencies: 04. Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -56,3 +56,10 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 - [ ] Narrow green proof and any allowed digest change recorded.
 - [ ] Artifact/visual gates resolved where applicable.
 - [ ] Choices, status and next pickup updated; focused pass committed.
+
+Focused evidence: arrival-only physical return and replay, Stop cancellation,
+combat destruction without refund, occupied base retaining slot/payment, and
+original health/finite-resource condition checks pass. Route-policy upgrade
+cancellation exposed a missing branch and is under red/green correction. Trophy
+resource fraction is integrated; its native/publication proof waits for protection
+completion. Fresh browser departure and exact-once visual/lifecycle gates remain open.

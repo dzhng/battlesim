@@ -1,0 +1,101 @@
+{
+  "assignment": "fennek",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/fennek.py",
+  "exclusive_export_directory": "assets/source/roster/fennek/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "Fennek",
+    "url": "https://en.m.wikipedia.org/wiki/Fennek",
+    "sha256": "a50d24b556789ac3198a8120219cf7c3086f9ad62ca4b41acb4360bfa1077c3a",
+    "rows": [
+      "Length 5.58 metres (18.3 ft) [ 1 ]",
+      "Width 2.55 metres (8.4 ft) [ 1 ]",
+      "Height 2.29 metres (7.5 ft) [ 1 ]",
+      "Main armament HK GMG 40 mm grenade autocannon or Rheinmetall MG3 (German version), M2HB 12.7 mm machine gun (Dutch versions)",
+      "Secondary armament 2x3 smoke grenade launcher [ 2 ]"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Fennek-highres.jpg/330px-Fennek-highres.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Fennek-highres.jpg/500px-Fennek-highres.jpg",
+        "sha256": "90c8a142f6ff9bd830e9bacd191bef54285b761ac38180c58a6e6ea501233d0e"
+      }
+    ]
+  },
+  "silhouette_requirements": "Two axles/four wheels; low wedge nose; broad sloping windscreen; flat rear engine deck; roof sensor mast/head packed and HMG station.",
+  "reference_limits": "Do not animate an unimplemented sensor deployment; ground sensing uses admitted sensor parameters.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "europe_fennek_reconnaissance_vehicle",
+      "name": "Fennek Reconnaissance vehicle",
+      "factions": [
+        "europe"
+      ],
+      "variant": "Reconnaissance vehicle",
+      "profile": "wheeled-recon",
+      "appearance_id": "europe_fennek_reconnaissance_vehicle",
+      "export": "assets/source/roster/fennek/europe_fennek_reconnaissance_vehicle.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          5.58,
+          2.55,
+          2.29
+        ],
+        "half_extents_m": [
+          2.79,
+          1.275,
+          1.145
+        ],
+        "eye_m": 2.153,
+        "mounts": [
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              2.084
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/remaining_ground.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/remaining-ground-reference-review.md",
+    "variants": [
+      {
+        "id": "europe_fennek_reconnaissance_vehicle",
+        "glb_sha256": "a95b0de564fb9d96fbaf4537897642a82bf11ca9e1ae53f7226bfb62394da7e6",
+        "source_bytes": 1612000,
+        "triangles_by_tier": [
+          5308,
+          2432,
+          660,
+          524
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/fennek/europe_fennek_reconnaissance_vehicle/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/fennek/europe_fennek_reconnaissance_vehicle/europe_fennek_reconnaissance_vehicle.svg"
+      }
+    ]
+  }
+}

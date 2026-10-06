@@ -164,7 +164,9 @@ impl EncounterSites {
                 return Err(format!("approaches[{i}] is not finite"));
             }
         }
-        if let Some(sites) = &self.skirmish { sites.validate()?; }
+        if let Some(sites) = &self.skirmish {
+            sites.validate()?;
+        }
 
         Ok(())
     }
@@ -176,8 +178,13 @@ impl SkirmishSites {
     }
     pub fn validate(&self) -> Result<(), String> {
         let finite = |points: &[[f64; 2]]| points.iter().flatten().all(|v| v.is_finite());
-        if self.entries[0].side != crate::ids::Side::Blue || self.entries[1].side != crate::ids::Side::Red
-            || self.entries.iter().any(|e| !finite(&[e.center]) || !e.yaw.is_finite()) {
+        if self.entries[0].side != crate::ids::Side::Blue
+            || self.entries[1].side != crate::ids::Side::Red
+            || self
+                .entries
+                .iter()
+                .any(|e| !finite(&[e.center]) || !e.yaw.is_finite())
+        {
             return Err("skirmish entries require finite blue/red geometry".into());
         }
         if !matches!(self.objectives.len(), 3 | 5 | 7) {
@@ -192,19 +199,31 @@ impl SkirmishSites {
                 return Err("skirmish objective identity is empty or duplicated".into());
             }
             if !finite(&[o.center]) || !o.radius_m.is_finite() || o.radius_m <= 0.0 {
-                return Err(format!("objective {} requires finite positive geometry",o.id));
+                return Err(format!(
+                    "objective {} requires finite positive geometry",
+                    o.id
+                ));
             }
         }
         for o in self.all_reserved_objectives() {
             if let Some(id) = &o.counterpart {
-                if !self.all_reserved_objectives().any(|p| &p.id==id && p.id!=o.id && p.counterpart.as_ref()==Some(&o.id)) {
-                    return Err(format!("objective {} has no reciprocal counterpart",o.id));
+                if !self
+                    .all_reserved_objectives()
+                    .any(|p| &p.id == id && p.id != o.id && p.counterpart.as_ref() == Some(&o.id))
+                {
+                    return Err(format!("objective {} has no reciprocal counterpart", o.id));
                 }
             }
         }
-        let central = self.objectives.iter().filter(|o| o.counterpart.is_none()).count();
+        let central = self
+            .objectives
+            .iter()
+            .filter(|o| o.counterpart.is_none())
+            .count();
         if central != if self.objectives.len() == 7 { 3 } else { 1 } {
-            return Err("skirmish requires one central objective, or three for seven-site maps".into());
+            return Err(
+                "skirmish requires one central objective, or three for seven-site maps".into(),
+            );
         }
         Ok(())
     }

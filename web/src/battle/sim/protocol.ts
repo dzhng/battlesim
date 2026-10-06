@@ -18,6 +18,7 @@ export type TargetRef =
 
 /** Mirrors `contract::command::Order` (serde tag = "kind"). */
 export type Order =
+  | { kind: "refund"; units: number[] }
   | { kind: "ready" }
   | { kind: "confirm_purchase"; variant: string; destination: [number, number] }
   | { kind: "cancel_pending"; purchase: number }
@@ -102,6 +103,8 @@ export interface MoveDestination {
   placed: boolean;
 }
 
+export type PurchasePlacement = { Ok: number } | { Err: OrderError };
+
 export interface OrderError {
   reason: string;
   [detail: string]: unknown;
@@ -140,6 +143,13 @@ export type SimRequest =
     }
   /** The battle is on screen: nothing ticks before this. */
   | { type: "start" }
+  | {
+      type: "purchase_preview";
+      id: number;
+      side: SideName;
+      variant: string;
+      destination: [number, number];
+    }
   | { type: "command"; command: CommandEnvelope }
   | {
       type: "move_preview";
@@ -169,6 +179,7 @@ export type SimRequest =
 export type SimReply =
   | { type: "ready"; layout: string; tickHz: number; tick: number }
   | { type: "ack"; ack: CommandAck }
+  | { type: "purchase_preview"; id: number; placement: PurchasePlacement }
   | { type: "move_preview"; id: number; destinations: MoveDestination[] }
   | {
       type: "building_preview";

@@ -15,6 +15,8 @@ pub const BATTLE_SEED_MAX: u64 = (1 << 53) - 1;
 #[serde(deny_unknown_fields)]
 pub struct PrepareBattleRequest {
     pub map_source: MapSource,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skirmish: Option<[crate::catalog::Faction; 2]>,
     /// Which encounter. On a generated map it is a recipe of
     /// `fixtures/encounters.json`, which the planner places; on a catalogue
     /// map it is the map's saved encounter of that name
@@ -65,6 +67,15 @@ impl PrepareBattleRequest {
                 "an encounter is named by one lowercase word".into(),
             )
         })?;
+        if request.skirmish.is_some()
+            && !matches!(&request.map_source,
+            MapSource::Generated { request: map } if map.profile == crate::generation::GenerationProfile::Skirmish)
+        {
+            return Err(refused(
+                "$.map_source",
+                "a faction skirmish requires generated skirmish geography".into(),
+            ));
+        }
         if request.battle_seed > BATTLE_SEED_MAX {
             return Err(refused(
                 "$.battle_seed",

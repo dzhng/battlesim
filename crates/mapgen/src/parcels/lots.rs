@@ -93,9 +93,20 @@ impl<'a> Ground<'a> {
     pub fn new(plan: &'a MapPlan, network: &'a Network<'a>) -> Self {
         Self {
             network,
-            objectives: plan.skirmish.as_ref().map(|sites| sites.all_reserved_objectives().map(|o| Rect {
-                center: o.center, axis: [1.0,0.0], half: [o.radius_m+10.0;2]
-            }).collect()).unwrap_or_default(),
+            objectives: plan
+                .skirmish
+                .as_ref()
+                .map(|sites| {
+                    sites
+                        .all_reserved_objectives()
+                        .map(|o| Rect {
+                            center: o.center,
+                            axis: [1.0, 0.0],
+                            half: [o.radius_m + 10.0; 2],
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
             forests: plan
                 .forests
                 .iter()
@@ -117,7 +128,10 @@ impl<'a> Ground<'a> {
     /// A parcel may stand here: inside its district, off every carriageway
     /// and forest, and on no other parcel.
     fn clear(&self, rect: &Rect, district: &DistrictPlan, forests: &[&[Point]]) -> bool {
-        !self.objectives.iter().any(|reserved| rect.overlaps(reserved, 0.0))
+        !self
+            .objectives
+            .iter()
+            .any(|reserved| rect.overlaps(reserved, 0.0))
             && rect.inside(&district.ring)
             && !self.network.covers(rect)
             && !forests.iter().any(|ring| rect.touches(ring))

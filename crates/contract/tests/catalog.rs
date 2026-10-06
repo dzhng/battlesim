@@ -372,8 +372,8 @@ fn a_structurally_broken_type_fails_at_load_naming_it() {
     );
 }
 
-/// A soldier kind's weapons are hand weapons: never on a turret or a pivot,
-/// and never both a squad's and a special one.
+/// Infantry cannot have turret chains or a shared squad bore; a single
+/// operator may declare a physical mount offset.
 #[test]
 fn a_broken_soldier_kind_fails_at_load_naming_it() {
     let with = |soldier: Value| {
@@ -397,13 +397,13 @@ fn a_broken_soldier_kind_fails_at_load_naming_it() {
         json!({ "turret": true }),
         json!({ "on": "gun" }),
         json!({ "pivot_m": [0, 0, 1] }),
-        json!({ "muzzle_m": [1, 0, 0] }),
+        json!({ "squad": true, "muzzle_m": [1, 0, 0] }),
     ] {
         let mut mount = json!({ "name": "gun", "weapons": ["rifle"] });
         contract::catalog::merge(&mut mount, &placed);
         assert_eq!(
             with(soldier(mount)),
-            invalid("mount \"gun\" is a hand weapon: no turret, on, pivot_m or muzzle_m"),
+            invalid("mount \"gun\": infantry cannot use turret/on, share bore offsets, or declare a pivot without a muzzle"),
         );
     }
     let mut dead = soldier(json!({ "name": "gun", "weapons": ["rifle"] }));
@@ -513,6 +513,46 @@ fn a_single_operator_has_paired_active_and_carried_appearances() {
         view["mounts"][0]["operator_appearance"],
         json!({"active":["launcher","launcher_b"],"carried":["carried","carried_b"]})
     );
+}
+
+#[test]
+fn a_single_operator_can_declare_a_grounded_bore_and_supported_pose() {
+    let mut docs = units(json!({}));
+    docs.push(json!({"soldiers":{"s":{
+        "name":"S", "description":"", "hp":100, "appearance":["rifle"],
+        "mounts":[{"name":"launcher", "weapons":["atgm"],
+            "pivot_m":[0.2,0,0.75], "muzzle_m":[0.6,0,0],
+            "operator_appearance":{"active":["tripod"],"carried":["packed"],
+                "active_pose":{"clip":"kneel_fire","phase":0.25}}}]
+    }}}));
+    let catalog = resolve(&docs).expect("single-operator grounded mount must load");
+    let view = serde_json::to_value(catalog.soldier("s")).unwrap();
+    assert_eq!(view["mounts"][0]["muzzle_m"], json!([0.6, 0.0, 0.0]));
+    assert_eq!(
+        view["mounts"][0]["operator_appearance"]["active_pose"],
+        json!({"clip":"kneel_fire","phase":0.25})
+    );
+}
+
+#[test]
+fn supported_operator_poses_refuse_locomotion_and_out_of_clip_phases() {
+    for pose in [
+        json!({"clip":"walk","phase":0}),
+        json!({"clip":"kneel_fire","phase":-0.1}),
+        json!({"clip":"stand_aim","phase":1.1}),
+    ] {
+        let mut docs = units(json!({}));
+        docs.push(json!({"soldiers":{"s":{
+            "name":"S", "description":"", "hp":100, "appearance":["rifle"],
+            "mounts":[{"name":"launcher", "weapons":["atgm"],
+                "operator_appearance":{"active":["active"],"carried":["packed"],"active_pose":pose}}]
+        }}}));
+        let error = resolve(&docs).unwrap_err().to_string();
+        assert!(
+            error.contains("active_pose") && error.contains("finite phase"),
+            "{error}"
+        );
+    }
 }
 
 #[test]

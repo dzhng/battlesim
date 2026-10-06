@@ -140,11 +140,21 @@ pub fn generate_layout(
         .map(|(index, road)| roads::surface(&context, index, road))
         .collect::<Result<Vec<_>, _>>()?;
     surfaces.extend(towns::surfaces(&context, &towns)?);
-    let skirmish = crate::skirmish::reserve(request, &surfaces, skeleton.hub,
-        &towns.iter().map(|t| t.outline.as_slice()).collect::<Vec<_>>())?;
+    let skirmish = crate::skirmish::reserve(
+        request,
+        &surfaces,
+        skeleton.hub,
+        &towns
+            .iter()
+            .map(|t| t.outline.as_slice())
+            .collect::<Vec<_>>(),
+    )?;
     if let Some(sites) = &skirmish {
-        placed.reserved.extend(sites.all_reserved_objectives().map(|o|
-            sites::Corridor::objective(o.center, o.radius_m + 10.0)));
+        placed.reserved.extend(
+            sites
+                .all_reserved_objectives()
+                .map(|o| sites::Corridor::objective(o.center, o.radius_m + 10.0)),
+        );
     }
     let forests = forests::grow(&context, &towns, &placed.reserved, &water, woodland);
     let blocks: Vec<&[geometry::Point]> = towns

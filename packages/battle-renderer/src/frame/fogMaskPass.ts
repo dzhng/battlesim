@@ -36,7 +36,7 @@ import {
   fogStyleUniform,
   type FogStyle,
 } from "./fogStyle";
-import { FOG_DISTANCE_FORMAT, HDR_FORMAT, type FrameTargets } from "./targets";
+import { FOG_DISTANCE_FORMAT, FRAME_MSAA, HDR_FORMAT, type FrameTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -250,6 +250,7 @@ export async function createFogMaskPass(
     vertex: common.fullScreenTriangle,
     fragment: screen(composeFog),
     targets: { format: HDR_FORMAT },
+    multisample: { count: FRAME_MSAA },
   });
   const rim = root.createRenderPipeline({
     vertex: common.fullScreenTriangle,
@@ -297,7 +298,12 @@ export async function createFogMaskPass(
       compose
         .with(encoder)
         .with(groups.compose)
-        .withColorAttachment({ view: t.hdr.createView(), loadOp: "clear", storeOp: "store" })
+        .withColorAttachment({
+          view: t.hdrMsaa.createView(),
+          resolveTarget: t.hdr.createView(),
+          loadOp: "clear",
+          storeOp: "store",
+        })
         .draw(3);
     },
     /** After post: the rim over `output`. */

@@ -1,0 +1,101 @@
+{
+  "assignment": "btr",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/btr.py",
+  "exclusive_export_directory": "assets/source/roster/btr/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "BTR-80",
+    "url": "https://en.m.wikipedia.org/wiki/BTR-80",
+    "sha256": "8930c4cc52c906ed3e32710f682675435a959cd5a53656f8edec6d48d93e9107",
+    "rows": [
+      "Length 7.7 m (25.3 ft)",
+      "Width 2.9 m (9.5 ft)",
+      "Height 2.41 m (7.9 ft)",
+      "Main armament 14.5 mm KPVT machine gun or 30 mm 2A72",
+      "Secondary armament 7.62 mm PKT machine gun"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/3/3f/2011_Moscow_Victory_Day_Parade_%28360-06%29_%28cropped%29.jpg/330px-2011_Moscow_Victory_Day_Parade_%28360-06%29_%28cropped%29.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c3/BTR-82AT_during_the_%22Armiya_2021%22_exhibition.jpg/500px-BTR-82AT_during_the_%22Armiya_2021%22_exhibition.jpg",
+        "sha256": "7fb615c0146a98c91bfde637be46f8d9230028a21955c0b7d86c205bd5f8fb54"
+      }
+    ]
+  },
+  "silhouette_requirements": "Four axles/eight wheels; long boat-shaped low hull; small high-angle BTR-82A 30 mm turret; central side doors.",
+  "reference_limits": "Base BTR-80 family envelope; 82A turret extends above old KPVT fit.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "eastern_btr_btr_82a",
+      "name": "BTR BTR-82A",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "BTR-82A",
+      "profile": "light-ifv",
+      "appearance_id": "eastern_btr_btr_82a",
+      "export": "assets/source/roster/btr/eastern_btr_btr_82a.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.7,
+          2.9,
+          2.41
+        ],
+        "half_extents_m": [
+          3.85,
+          1.45,
+          1.205
+        ],
+        "eye_m": 2.265,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.567
+            ],
+            "muzzle_m": [
+              4.0,
+              0,
+              0.434
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/eastern_armor.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; source-fit-clean; runtime-and-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/east-reference-review.md",
+    "variants": [
+      {
+        "id": "eastern_btr_btr_82a",
+        "glb_sha256": "89d3ba22981f31c8b0219807f4900501988baacc12556b967dfe4abc3862891b",
+        "source_bytes": 2485764,
+        "triangles_by_tier": [
+          9002,
+          4472,
+          1358,
+          904
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/btr/eastern_btr_btr_82a/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/btr/eastern_btr_btr_82a/eastern_btr_btr_82a.svg"
+      }
+    ]
+  }
+}

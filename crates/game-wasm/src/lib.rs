@@ -902,6 +902,28 @@ impl PreparedWorld {
         .map_err(js_error)?;
         serde_json::to_string(&admitted).map_err(js_error)
     }
+    /// Scenario fields for a faction match, without an authored encounter army.
+    pub fn skirmish_fields(
+        &self,
+        sites_json: &str,
+        factions_json: &str,
+    ) -> Result<String, JsError> {
+        let sites: contract::encounter::EncounterSites =
+            serde_json::from_str(sites_json).map_err(js_error)?;
+        let factions: [contract::catalog::Faction; 2] =
+            serde_json::from_str(factions_json).map_err(js_error)?;
+        let setup = contract::skirmish::SkirmishSetup {
+            factions,
+            ai_side: Some(Side::Red),
+            rules: sim::skirmish::starter_rules(),
+            sites: sites
+                .skirmish
+                .ok_or_else(|| JsError::new("skirmish sites are missing"))?,
+        };
+        setup.sites.validate().map_err(js_error)?;
+        Ok(serde_json::json!({"units": [], "skirmish": setup}).to_string())
+    }
+
     #[wasm_bindgen(constructor)]
     pub fn new(map_json: &str, rules_json: &str) -> Result<PreparedWorld, JsError> {
         let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;

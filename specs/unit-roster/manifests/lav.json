@@ -1,0 +1,179 @@
+{
+  "assignment": "lav",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/lav.py",
+  "exclusive_export_directory": "assets/source/roster/lav/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "LAV-25",
+    "url": "https://en.m.wikipedia.org/wiki/LAV-25",
+    "sha256": "7094f85b05cbbbb79f6ea43d733aae2b95e73cb2f12d43472d8351f653cb142f",
+    "rows": [
+      "Length 6.39 m (21 ft 0 in)",
+      "Width 2.50 m (8 ft 2 in)",
+      "Height 2.69 m (8 ft 10 in)",
+      "Main armament M242 Bushmaster 25 mm chain gun with 210 rounds of ammunition",
+      "Secondary armament Two M240 7.62 mm machine guns with 660 rounds of ammunition, one mounted co-axially and one pintle-mounted on the roof"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/0/07/LAV-25A2.jpg/500px-LAV-25A2.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/LAV-ATM_at_Camp_Fuji%2C_Japan.jpg/500px-LAV-ATM_at_Camp_Fuji%2C_Japan.jpg",
+        "sha256": "20cab2db32c93f7fde52679ccac445db98c984eaae1ffde20df2bd81e1882d53"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/LAV-25A2.jpg/500px-LAV-25A2.jpg",
+        "sha256": "548f107b52d83b8c45bec79096b472ccbeb4de3e2f7bd97370b4f1645258e0c0"
+      }
+    ],
+    "at_height_correction": {
+      "url": "https://man.fas.org/dod-101/sys/land/lav-at.htm",
+      "sha256": "c31e46aed87510d60ba66cc6871bef94defbc82a691d59cd0c96144f7470ec81",
+      "raised_height_m": 3.1242,
+      "lowered_height_m": 2.6924,
+      "photo_url": "https://man.fas.org/dod-101/sys/land/lav-at.jpg",
+      "photo_sha256": "bf70036183751f54c29dfd4ba0a128b75c9f7cbac64a4e6ea903716ce65bc4b2",
+      "independent_photo_body_estimate_m": 2.0,
+      "uncertainty_m": 0.15
+    }
+  },
+  "silhouette_requirements": "Four axles/eight wheels; low sloping nose and compact rear hull. LAV-25A2 small angular two-man turret with 25 mm cannon. LAV-AT raised twin TOW turret replaces cannon turret.",
+  "reference_limits": "Common LAV-25 family envelope; LAV-AT launcher is an alternate entire turret, not a cannon plus missile pack.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "us_lav_lav_25a2",
+      "name": "LAV LAV-25A2",
+      "factions": [
+        "us"
+      ],
+      "variant": "LAV-25A2",
+      "profile": "light-ifv",
+      "appearance_id": "us_lav_lav_25a2",
+      "export": "assets/source/roster/lav/us_lav_lav_25a2.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.39,
+          2.5,
+          2.69
+        ],
+        "half_extents_m": [
+          3.195,
+          1.25,
+          1.345
+        ],
+        "eye_m": 2.529,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.748
+            ],
+            "muzzle_m": [
+              3.65,
+              0,
+              0.484
+            ]
+          }
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "us_lav_lav_at",
+      "name": "LAV LAV-AT",
+      "factions": [
+        "us"
+      ],
+      "variant": "LAV-AT",
+      "profile": "missile-carrier",
+      "appearance_id": "us_lav_lav_at",
+      "export": "assets/source/roster/lav/us_lav_lav_at.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.39,
+          2.5,
+          2.0
+        ],
+        "half_extents_m": [
+          3.195,
+          1.25,
+          1.0
+        ],
+        "eye_m": 2.75,
+        "mounts": [
+          {
+            "name": "launcher",
+            "pack": [
+              "TOW"
+            ],
+            "role": "hmg",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              2.83
+            ],
+            "muzzle_m": [
+              1.05,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "notes": [],
+      "frame_correction": {
+        "date": "2026-10-06",
+        "reason": "Original2.69 m is LAV-AT reduced overall transport height including launcher, not hull. FAS Marine-equipment LAV-AT specification gives raised123in=3.1242 m, reduced106in=2.6924 m. Same-page LAV-AT photograph lav-at.jpg (257x176), raised-launcher top y~31, hullroof y~80 and near ground y~167 give (167-80)/(167-31)*3.1242\u22482.00 m. Adopt independent source/photo gameplay bodyH2.00\u00b10.15m (small image/perspective/state uncertainties), not current model top1.755. Worker must reauthor credible hull/hatches; no roof filler or blind scaling. Launcher/eye retained. Raised launcher correction: same source photo ground~167, raised top~31, bore~44 gives bore(167-44)/(167-31)*3.1242\u22482.83 m. Adopt yaw/boreZ2.83 with local muzzleZ0, optic eye2.75 as photo-relative gameplay choices. Prior2.25 bore was below raised-launcher silhouette; do not use current case dimensions to pick target.",
+        "mount_measurement": "Approximate photo-relative gameplay authoring, not factory measurements"
+      }
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/light_armor.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; coordinator-envelope-refreeze-and-runtime-gates-pending",
+    "reference_review": "throwaway/unit-roster-models/light-reference-review.md",
+    "variants": [
+      {
+        "id": "us_lav_lav_25a2",
+        "glb_sha256": "81bb746e79fbde5e21478a0613db58ea190d3f2e330f6946674c61ccf6e14493",
+        "source_bytes": 2413864,
+        "triangles_by_tier": [
+          8364,
+          4210,
+          1198,
+          828
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/lav/us_lav_lav_25a2/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/lav/us_lav_lav_25a2/us_lav_lav_25a2.svg"
+      },
+      {
+        "id": "us_lav_lav_at",
+        "glb_sha256": "edf5eb0fc3e51a8927edd9b0c370f6e04dd157e0721ea7d845ac3ba324fafd57",
+        "source_bytes": 2454708,
+        "triangles_by_tier": [
+          8558,
+          4308,
+          1238,
+          880
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/lav/us_lav_lav_at/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/lav/us_lav_lav_at/us_lav_lav_at.svg"
+      }
+    ]
+  }
+}

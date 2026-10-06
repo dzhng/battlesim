@@ -1,0 +1,106 @@
+{
+  "assignment": "vbci",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/vbci.py",
+  "exclusive_export_directory": "assets/source/roster/vbci/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "VBCI",
+    "url": "https://en.m.wikipedia.org/wiki/VBCI",
+    "sha256": "ea69e85747daa40ad5bafe6f2dc69b48ed912bef668fee2879ad1828048427e9",
+    "rows": [
+      "Length 7.6 m",
+      "Width 2.98 m",
+      "Height 3 m",
+      "Main armament GIAT M811 25 mm autocannon (400 rounds/ minute) [ 3 ]",
+      "Secondary armament co-axial 7.62 mm machine gun"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/VBCI%2C_nouvelles_couleurs_Arm%C3%A9e_de_Terre_%2814_juillet_2021%29_%284%29.jpg/330px-VBCI%2C_nouvelles_couleurs_Arm%C3%A9e_de_Terre_%2814_juillet_2021%29_%284%29.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/VBCI%2C_nouvelles_couleurs_Arm%C3%A9e_de_Terre_%2814_juillet_2021%29_%284%29.jpg/500px-VBCI%2C_nouvelles_couleurs_Arm%C3%A9e_de_Terre_%2814_juillet_2021%29_%284%29.jpg",
+        "sha256": "be837ae7d6ee7cd3efd2e992622f7debf12083de0cbb0f6d7a3c49e06c96a33b"
+      }
+    ]
+  },
+  "silhouette_requirements": "Four axles/eight wheels; tall slope-front box hull; compact offset one-man 25 mm turret and rear ramp.",
+  "reference_limits": "Use turreted VBCI infantry vehicle, not command-post variant.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "europe_vbci_infantry_fighting_vehicle",
+      "name": "VBCI Infantry fighting vehicle",
+      "factions": [
+        "europe"
+      ],
+      "variant": "Infantry fighting vehicle",
+      "profile": "wheeled-ifv",
+      "appearance_id": "europe_vbci_infantry_fighting_vehicle",
+      "export": "assets/source/roster/vbci/europe_vbci_infantry_fighting_vehicle.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.6,
+          2.98,
+          3.0
+        ],
+        "half_extents_m": [
+          3.8,
+          1.49,
+          1.5
+        ],
+        "eye_m": 2.82,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              2.35
+            ],
+            "muzzle_m": [
+              2.65,
+              0,
+              0.35
+            ]
+          }
+        ]
+      },
+      "notes": [],
+      "frame_correction": {
+        "date": "2026-10-06",
+        "reason": "Named parade photo shows compact one-man turret on roof around2.3\u20132.4 m against published overall3.0 m. Default fractional yawZ1.95 put ring below deck and bore2.49 barely above it. Photo-relative authored yawZ2.35/localmuzzleZ0.35 give bore2.70 above roof; body3.0/eye2.82 retained. Lateral offset is visible qualitatively but not quantitatively established by this photograph; centeredXY remains an explicit approximation, not a measured centerline claim. Additional photo comparison: parade view shows muzzle behind nose; old4.05 m rest reach put it0.25 m beyond3.80 nose and forced3.25m exposed tube. Chosen restX2.65 (1.15m behindnose) is a photo-relative authoring approximation; not factory measured.",
+        "mount_measurement": "Approximate photo-relative gameplay authoring, not factory measurements"
+      }
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/remaining_ground.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/remaining-ground-reference-review.md",
+    "variants": [
+      {
+        "id": "europe_vbci_infantry_fighting_vehicle",
+        "glb_sha256": "8b418e677ba7990d0393e02c14516192b3879c2d187b24b0a6ef4968b4af2ab9",
+        "source_bytes": 2414264,
+        "triangles_by_tier": [
+          10166,
+          4396,
+          1054,
+          708
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/vbci/europe_vbci_infantry_fighting_vehicle/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/vbci/europe_vbci_infantry_fighting_vehicle/europe_vbci_infantry_fighting_vehicle.svg"
+      }
+    ]
+  }
+}

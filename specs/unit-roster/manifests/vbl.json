@@ -1,0 +1,105 @@
+{
+  "assignment": "vbl",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/vbl.py",
+  "exclusive_export_directory": "assets/source/roster/vbl/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "V%C3%A9hicule_Blind%C3%A9_L%C3%A9ger",
+    "url": "https://en.m.wikipedia.org/wiki/V%C3%A9hicule_Blind%C3%A9_L%C3%A9ger",
+    "sha256": "fc41f8fd5468a59800b0d2398ea2280a0e6e59b5a178039289ba1845e7df8b9b",
+    "rows": [
+      "Length 3.80 m (4.00 m long version)",
+      "Width 2.02 m",
+      "Height 1.70 m",
+      "Main armament depends on the version",
+      "Secondary armament none"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/VBL%2C_nouvelles_couleurs_Arm%C3%A9e_de_Terre_%2814_juillet_2021%29_%282%29.jpg/330px-VBL%2C_nouvelles_couleurs_Arm%C3%A9e_de_Terre_%2814_juillet_2021%29_%282%29.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/VBL%2C_nouvelles_couleurs_Arm%C3%A9e_de_Terre_%2814_juillet_2021%29_%282%29.jpg/500px-VBL%2C_nouvelles_couleurs_Arm%C3%A9e_de_Terre_%2814_juillet_2021%29_%282%29.jpg",
+        "sha256": "d0eb4577f868649d0c7b53de01ada6d569ede8e69ba20ddd30b35ef85cb0b6d5"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/VBL_p1040667.jpg/500px-VBL_p1040667.jpg",
+        "sha256": "a5aed6d1df0ed6f0c73506eeacb84d573fc34b03602bf472a7e126b548eacc6e"
+      }
+    ]
+  },
+  "silhouette_requirements": "Two axles/four wheels; tiny low angular scout body; short sloped hood; narrow armored windows; roof HMG pedestal.",
+  "reference_limits": "Use short VBL body, not 4.00 m long derivative.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "europe_vbl_machine_gun_scout",
+      "name": "VBL Machine-gun scout",
+      "factions": [
+        "europe"
+      ],
+      "variant": "Machine-gun scout",
+      "profile": "light-car",
+      "appearance_id": "europe_vbl_machine_gun_scout",
+      "export": "assets/source/roster/vbl/europe_vbl_machine_gun_scout.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          3.8,
+          2.02,
+          1.7
+        ],
+        "half_extents_m": [
+          1.9,
+          1.01,
+          0.85
+        ],
+        "eye_m": 1.598,
+        "mounts": [
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.547
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/remaining_ground.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/remaining-ground-reference-review.md",
+    "variants": [
+      {
+        "id": "europe_vbl_machine_gun_scout",
+        "glb_sha256": "5f30ab75ac505f8dc97830772f2faa65b0993f2350e4ae080be121bf346c7156",
+        "source_bytes": 1537976,
+        "triangles_by_tier": [
+          4170,
+          2116,
+          588,
+          492
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/vbl/europe_vbl_machine_gun_scout/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/vbl/europe_vbl_machine_gun_scout/europe_vbl_machine_gun_scout.svg"
+      }
+    ]
+  }
+}

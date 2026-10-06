@@ -1,6 +1,6 @@
 # 13 — Complete first-phase skirmish and close the spec
 
-Status: not started. Dependencies: 07,08,09,10,11,12. Follow the README handoff and repository
+Status: integration in progress. Dependencies: 07,08,09,10,11,12. Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -56,3 +56,10 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 - [ ] Narrow green proof and any allowed digest change recorded.
 - [ ] Artifact/visual gates resolved where applicable.
 - [ ] Choices, status and next pickup updated; focused pass committed.
+
+
+Native focused skirmish, protection, settlement, withdrawal and browser panel suites
+are green. WASM rebuilt and the paired purchase record was regenerated after the hard
+catalog/publication cutover. Remaining closeout gates are a clean production scene
+capture with current baked assets, full check/verify/balance once, whole-spec review,
+choices consolidation and archive.

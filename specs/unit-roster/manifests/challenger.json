@@ -1,0 +1,189 @@
+{
+  "assignment": "challenger",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/challenger.py",
+  "exclusive_export_directory": "assets/source/roster/challenger/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "Challenger_2",
+    "url": "https://en.m.wikipedia.org/wiki/Challenger_2",
+    "sha256": "d6d71e27a13e3fc737515f32e872b4336aaf42de4e4d51e2ca434bdfc1f17d02",
+    "rows": [
+      "Length 8.3 m (27 ft 3 in), 13.5 m (44 ft 3 in) gun forward",
+      "Width 3.5 m (11 ft 6 in), 4.2 m (13 ft 9 in) with appliqu\u00e9 armour",
+      "Height 2.49 m (8 ft 2 in)",
+      "Main armament L30A1 120 mm rifled gun with 47 rounds [ 4 ] [ 5 ]",
+      "Secondary armament 7.62 mm coaxial L94A1 chain gun 7.62 mm L37A2 loader\u2013operator hatch machine gun"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Challenger_2_Main_Battle_Tank_patrolling_outside_Basra%2C_Iraq_MOD_45148325.jpg/330px-Challenger_2_Main_Battle_Tank_patrolling_outside_Basra%2C_Iraq_MOD_45148325.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a3/Challenger_Main_Battle_Tank_with_Improved_Armour_MOD_45149015.jpg/500px-Challenger_Main_Battle_Tank_with_Improved_Armour_MOD_45149015.jpg",
+        "sha256": "53cf736f95a739a0832a8853685e42785ea19108168bf7eeded559d37b1751a6"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Challenger_2_FV4034_-_Megatron_%287527723404%29.jpg/500px-Challenger_2_FV4034_-_Megatron_%287527723404%29.jpg",
+        "sha256": "e02832af1a63473a1317da932ee5035feac1f85a4af5027b6cdb8f97bf2ebaf8"
+      }
+    ]
+  },
+  "silhouette_requirements": "Six wheels per side; high frontal glacis; angular tall turret; rifled long gun on 2 TES; large TES skirts/applique and rear protection. Challenger 3 has different turret and smoothbore L55A1, Trophy radar/launcher hardware.",
+  "reference_limits": "4.2 m is appliqu\u00e9-equipped envelope; Challenger 3 not an identical turret repaint. Its exact envelope is research-gated. Gun-forward 13.5 m source appears anomalous and is not used; cannon reach remains an authoring estimate pending authoritative corroboration.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "europe_challenger_challenger_2_tes",
+      "name": "Challenger Challenger 2 TES",
+      "factions": [
+        "europe"
+      ],
+      "variant": "Challenger 2 TES",
+      "profile": "heavy-mbt",
+      "appearance_id": "europe_challenger_challenger_2_tes",
+      "export": "assets/source/roster/challenger/europe_challenger_challenger_2_tes.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          8.3,
+          4.2,
+          2.49
+        ],
+        "half_extents_m": [
+          4.15,
+          2.1,
+          1.245
+        ],
+        "eye_m": 2.341,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.494
+            ],
+            "muzzle_m": [
+              5.561,
+              0,
+              0.448
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.341
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "europe_challenger_challenger_3",
+      "name": "Challenger Challenger 3",
+      "factions": [
+        "europe"
+      ],
+      "variant": "Challenger 3",
+      "profile": "advanced-mbt",
+      "appearance_id": "europe_challenger_challenger_3",
+      "export": "assets/source/roster/challenger/europe_challenger_challenger_3.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          8.3,
+          4.2,
+          2.49
+        ],
+        "half_extents_m": [
+          4.15,
+          2.1,
+          1.245
+        ],
+        "eye_m": 2.341,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "advanced-tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.494
+            ],
+            "muzzle_m": [
+              5.561,
+              0,
+              0.448
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.341
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": [
+        "Trophy is automatic capability, not offensive mount. Required static hardware nodes trophy_radar_L/R and trophy_launcher_L/R; capability/parts binding remains coordinator-owned; no spawn before slice 10."
+      ],
+      "dispatch_gate": "Research exact Challenger 3 hull/turret envelope and Trophy source; provisional donor frame is not released."
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/remaining_tanks.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/remaining-tank-reference-review.md",
+    "variants": [
+      {
+        "id": "europe_challenger_challenger_2_tes",
+        "glb_sha256": "2e6b27f267e34e25acb1f9154bc620664983785dbd4780dce9b609065fc0ad98",
+        "source_bytes": 3256216,
+        "triangles_by_tier": [
+          18382,
+          6360,
+          2338,
+          1292
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/challenger/europe_challenger_challenger_2_tes/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/challenger/europe_challenger_challenger_2_tes/europe_challenger_challenger_2_tes.svg"
+      }
+    ]
+  }
+}

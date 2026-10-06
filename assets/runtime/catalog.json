@@ -1,5 +1,23 @@
 {
   "appearances": {
+    "assault_squad_active_a": {
+      "bundle": "0785402cb575800c7627c064e251b46ce8e04e80044342e2bbff3d9698724bdb",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "assault_squad_active_b": {
+      "bundle": "f4679e13261eaefca0f2762c44466c6f250800513cbc57935b60aa124ec278dd",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "assault_squad_active_c": {
+      "bundle": "344904ebaa063fc5c9c2187f9eca6f2f2338fa396a51502c3b3cb1699046cb14",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
     "at": {
       "bundle": "0cfb10f022c39c12c6c0cf9f657e627045f10681cfe4bde283280701ec1de0d3",
       "kind": "skinned",
@@ -362,6 +380,475 @@
       "kind": "static",
       "scenery": "dumpster",
       "unit": "scenery"
+    },
+    "eastern_atgm_team_kornet_active_a": {
+      "bundle": "94f4bd67284dec1e2a8734f861f3709482c8298dfe8f32f02563f800a5213a31",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "eastern_atgm_team_kornet_active_b": {
+      "bundle": "2ced6a2dea9451ffb8c505e812d5de5936903d389599fc68f8fddf78acfc88de",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "eastern_atgm_team_kornet_active_c": {
+      "bundle": "6aa3621e2c68ceb1dad6a21ebf139b7ba0df454ee6ade5206f9612b9a82423d8",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "eastern_atgm_team_kornet_carried_a": {
+      "bundle": "21e5099692345cfdb558d977c3441fb1c0799cd189bdbccb94a9969749f107c9",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_atgm_team_kornet_carried_b": {
+      "bundle": "78df2447813b88b1bb349370632742f846e2709648b15c06c5220b831c34aa5d",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_atgm_team_kornet_carried_c": {
+      "bundle": "ab6bb6a5d801b2e42c3610dc426de554977df4056b672dccf6a1dac3621d1eb4",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_atgm_team_kornet_guard_a": {
+      "bundle": "67e9e0e5b141049b012b34f431a4a14a5900587abc92ad0ed869bf87e4c6ff8c",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_atgm_team_kornet_guard_b": {
+      "bundle": "69d670d44517bfd7a28d287ba6a79bf31910b979e6262f9ef287b615acb2bcf4",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_atgm_team_kornet_guard_c": {
+      "bundle": "63ba944e867cf3651a4d24555037dc71e59e049b85e8fc38d3463c158c204d2f",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_bmp_ifv_family_bmp_2m_berezhok": {
+      "bundle": "7c8774c7a0cd558e250e3a35a5a3695082f9de8afec17ae2c541699e22ecf108",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun",
+        "launcher": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "eastern_bmp_ifv_family_bmp_3": {
+      "bundle": "fa813f163ea50c8e6f6518a3e10fa60828d09889e92e86cdcb06bdb8186349ba",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "hmg",
+        "main_gun": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "eastern_btr_btr_82a": {
+      "bundle": "7e9b46bff98704e28cce2263858c70d65ae0c171ff8787845c90ce05e24688c1",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_a": {
+      "bundle": "6d5ec55139cdbf791ea798cd0340b1dd0eec0dac0a89ca23e0177c708b600d2a",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_b": {
+      "bundle": "1433ab7acd9a3a428436d53fec2690b6cbc09c1f964f8a8b74e7276f8346420b",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_marksman_squad_svd_equipped_longer_range_infantry_active_c": {
+      "bundle": "006bfd43565dc836766624caaa8c5b42a88739837a3b026bb48c19ff62de7f82",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_29_active_a": {
+      "bundle": "4036cec03d9e2212ecff39b13cbef5c465d27a01740cab86ad6e8fe6b4c31958",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_29_active_b": {
+      "bundle": "7dc8f19d2b44a4b5a1d1b3fc33c5ef1ba104cda91098d02655bddb1ca151a059",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_29_active_c": {
+      "bundle": "4adc97f92c9992793351f455994f67288619924e298c0382645bb99a65ccce2a",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_29_carried_a": {
+      "bundle": "a504f28a7b1d96e4ee287d76bedc07305238ceb4231bd478f17744a6d0560f96",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_29_carried_b": {
+      "bundle": "2feae02149f7d07f07bd09b5a79338ed815912c7182ffa5966bb5e324e25d3f1",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_29_carried_c": {
+      "bundle": "fdc0949c52bfa62d47ff3bee31d91069c017391a7e47dfb1995a2e9a245bd6c1",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_29_guard_a": {
+      "bundle": "67e9e0e5b141049b012b34f431a4a14a5900587abc92ad0ed869bf87e4c6ff8c",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_29_guard_b": {
+      "bundle": "69d670d44517bfd7a28d287ba6a79bf31910b979e6262f9ef287b615acb2bcf4",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_29_guard_c": {
+      "bundle": "63ba944e867cf3651a4d24555037dc71e59e049b85e8fc38d3463c158c204d2f",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_7_active_a": {
+      "bundle": "8459ce811c2d6eb605171ed8def073c6b92e7ce9fe3d9370e7732ae16387d4ce",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_7_active_b": {
+      "bundle": "acde5ff9df0164540053805a0a19571243b02cbfa0bc0495f2dd1dbb0c905fdb",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_7_active_c": {
+      "bundle": "35a91f8e98bf7307a4afe2fc1d3e9d0c3630c8a581ecd1c18ed6fd2ed44fd84a",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_7_carried_a": {
+      "bundle": "4ce149fa44963e17bdcf6d3de47d609a0792ab7e2b6030dc38e2540b6d54b3ea",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_7_carried_b": {
+      "bundle": "7577381926b21872dce297edcb20a47089b3a40d18bbbc8a1e0d8ae7286a148b",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_7_carried_c": {
+      "bundle": "d4d4f0e1e42aef8d88fbcd0614256efc6424f1f6e976e7385a0895405231564f",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_7_guard_a": {
+      "bundle": "67e9e0e5b141049b012b34f431a4a14a5900587abc92ad0ed869bf87e4c6ff8c",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_7_guard_b": {
+      "bundle": "69d670d44517bfd7a28d287ba6a79bf31910b979e6262f9ef287b615acb2bcf4",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_rpg_team_rpg_7_guard_c": {
+      "bundle": "63ba944e867cf3651a4d24555037dc71e59e049b85e8fc38d3463c158c204d2f",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_scouts_light_patrol_active_a": {
+      "bundle": "67e9e0e5b141049b012b34f431a4a14a5900587abc92ad0ed869bf87e4c6ff8c",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_scouts_light_patrol_active_b": {
+      "bundle": "69d670d44517bfd7a28d287ba6a79bf31910b979e6262f9ef287b615acb2bcf4",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_scouts_light_patrol_active_c": {
+      "bundle": "63ba944e867cf3651a4d24555037dc71e59e049b85e8fc38d3463c158c204d2f",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_sniper_team_asvk_heavy_sniper_team_active_a": {
+      "bundle": "54b37e2380724e3d2476bfd8f89e9652113db8203216af1f0c32db9f2c40d70d",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_sniper_team_asvk_heavy_sniper_team_active_b": {
+      "bundle": "2596828d2f30f648fbde349b06f62df9966d04eee39d922ef81e65ff7d05dfcc",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_sniper_team_asvk_heavy_sniper_team_active_c": {
+      "bundle": "4ad69e805e587021a1ad10cd4982fbd231c70a5893a475bf9b219b7e960ce79a",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "eastern_t_72_t_72b3_2016": {
+      "bundle": "75b618ce12e726ca0b725ee9600570cda17847ce31498793b83a832bad9ed556",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "eastern_t_80_t_80bvm": {
+      "bundle": "8e03e7ac059b39c0f0024f7beeab2d217a5dea102f236a45ad21077d12c67292",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "eastern_t_90_t_90m_proryv": {
+      "bundle": "aed5b77fc186e6a422f9ba1fbc21331c20abd97b13bfd3799b2a8b742ba89147",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "eastern_tigr_tigr_m": {
+      "bundle": "2d1efa23a13c8979347703d1ae33a74ba9197c05b928a453d44e8f046772575d",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "eastern_type_99_ztz_99a": {
+      "bundle": "20591923413e1cc2037d4a8107bac0dad065259abbcf6e77738916b055150cb1",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "eastern_ural_4320_general_resupply": {
+      "bundle": "c39ba2d53bb79d010ebb48df824b75db4dae51634f6f0240c70528c9a2b06e28",
+      "kind": "articulated",
+      "mounts": {},
+      "unit": "vehicle"
+    },
+    "eastern_zbl_08_wheeled_ifv": {
+      "bundle": "0fc70fc03294ddc565e157704949a6ea9688fb9c0b5d1f44f7b9c1525ec09565",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "europe_ajax_tracked_reconnaissance_vehicle": {
+      "bundle": "405d94aa1f6b9c223b76ab578503a8ec39324904d509d33e349ed1761c892cbb",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "europe_boxer_apc": {
+      "bundle": "c25950b6b60983ecce3733fdd697a2fe657eafbbb7af60bf35b000e5d3f380a9",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "europe_boxer_rct30": {
+      "bundle": "fcbdfce9d8ac13cb6c347fdf52581b0a4a6eb8bcabd1448395a3692ad483ac59",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "europe_challenger_challenger_2_tes": {
+      "bundle": "2855795ca60a7745e238e9f7ee9a9fbc40a9fe743b76711a544ef389978d6219",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "europe_cv90_cv9040c": {
+      "bundle": "eb99d23283712a79b4b436193a5027da814c09f0b0afaae4a43f63586dccb2bf",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "europe_cv90_mk_iv": {
+      "bundle": "144e6682e89de4f7a50e797ea41f2840da0513815d8808cbb6bd22a3a9ae910e",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "europe_fennek_reconnaissance_vehicle": {
+      "bundle": "77b99062c1f9c284fbf36cfea8df1406565db40278b22a4c93a7f0d8ec8bdd3e",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "europe_kf51_panther_prototype_main_battle_tank": {
+      "bundle": "15e1842ac7b5e2fba1eefc1c9408fabc5ea14cced866ad700f1086ce44caa285",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "europe_leclerc_xlr": {
+      "bundle": "27e319201686f7b6f0589f34e6aeaed7e2703edc6a080df649d6a14556c4d1b4",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "europe_leopard_2_2a6": {
+      "bundle": "105e91a261d06d279507db1c64c24070eae2ad8e23153d34580712bfb1e84639",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "europe_leopard_2_2a7v": {
+      "bundle": "338f0d8c8147196040ec91c4457e5f88f2dd72069490cbbfe1b8168f3a6045bb",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "europe_leopard_2_2a8": {
+      "bundle": "3fc4bd44b987e7b7455ef19f924b747697234c3eed54b2098ce2f02d7b9377cc",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "europe_man_hx_general_resupply": {
+      "bundle": "24d8b3712ede3bc9a0bddbebc1ab34fda67c9c7a25cc1814eaf8ff1c5914fc8a",
+      "kind": "articulated",
+      "mounts": {},
+      "unit": "vehicle"
+    },
+    "europe_marksman_squad_longer_range_infantry_active_a": {
+      "bundle": "b26f116105b07dbd2d2fc4f4548b0d60ec65735b6b59af8b57d90678c9539d2e",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "europe_marksman_squad_longer_range_infantry_active_b": {
+      "bundle": "de722050573047c0a9b54216f4966228109ee80a2fd3d6a67a22b802122b115f",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "europe_marksman_squad_longer_range_infantry_active_c": {
+      "bundle": "239d00a6ca881b0f7bbc5d1cf20c9b93c58e5800c29fc9cbd8f98069b607b834",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "europe_puma_level_c": {
+      "bundle": "1fd3f1b0455604f912a9d6bd8a0abd7fb1d44d13ad176fdfae60a507c1e32c52",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun",
+        "launcher": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "europe_recon_patrol_light_patrol_active_a": {
+      "bundle": "b06120335fa5ed0abbe97f10d2b058dc40dda97ad5d79a0451147b0220479566",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "europe_recon_patrol_light_patrol_active_b": {
+      "bundle": "d931827d9582d3a6c18ad6facb2cbb15060548cac7d468c3f451331408d76a35",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "europe_recon_patrol_light_patrol_active_c": {
+      "bundle": "17156a0e00cfdf721ea9b96277031c9aad2b284db40b5613a47de264c90e3ff1",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "europe_vbci_infantry_fighting_vehicle": {
+      "bundle": "1f38e459709eca5dcd1faefebdb2bd6414948f98f72bcdfea6f7248c83fe7538",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "europe_vbl_machine_gun_scout": {
+      "bundle": "ed7f060c6dceae734d80620fccd5997a47c0c1f925ca2d59f0706f30360e3cdd",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg"
+      },
+      "unit": "vehicle"
     },
     "fence": {
       "bundle": "54bb6277a2b555a382822105ea46546eb7608fe484edbdcac902a08475c3aae0",
@@ -840,6 +1327,24 @@
       "skeleton": "quaternius-ubc-rifle",
       "unit": "soldier"
     },
+    "rifle_squad_active_a": {
+      "bundle": "4f06e1b2a1f757de7dfd5a6235acbfba2843785ab6e9e68ecb90c8ff0ea540e5",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "rifle_squad_active_b": {
+      "bundle": "36fa52b645234107bf53df91ea209d01088397d7748b348b8c14409dd93d2e51",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "rifle_squad_active_c": {
+      "bundle": "881771829d6de2f56be98d62b078d981d243c9da60ba2e03d1dacf02d78c7f7b",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
     "road_barrier": {
       "bundle": "90852d1e926c8273888802832388ad335e8cb3e9b11cd01c922113db69a780b0",
       "footprint_half_m": [
@@ -1005,6 +1510,265 @@
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
+    },
+    "us_acv_acv_p": {
+      "bundle": "c2f62104d9334ccc5fc407138cf89144b02d052d56016a93525e763b15bf6f60",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "us_army_scouts_light_patrol_active_a": {
+      "bundle": "64aca710e751056fc42deaa479a0e82454ba039f0a4666b68a71b3692b0ec82c",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_army_scouts_light_patrol_active_b": {
+      "bundle": "40515c563874281d43f15a1d813677fea798d3db1d929a11f0736cdc62319275",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_army_scouts_light_patrol_active_c": {
+      "bundle": "17156a0e00cfdf721ea9b96277031c9aad2b284db40b5613a47de264c90e3ff1",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_atgm_team_bgm_71_tow_2a_active_a": {
+      "bundle": "752d1fc00284fe678633c867fa482ffd48699e9d4381586607febbcd07cdec57",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "us_atgm_team_bgm_71_tow_2a_active_b": {
+      "bundle": "1cf028a5192e9b86ae6095f3edac20e96c22853aea429ea237e80614bd614a1c",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "us_atgm_team_bgm_71_tow_2a_active_c": {
+      "bundle": "3efe9257eb87e7a064dca42b5f31399153ccd884e5bdf16312d57d6c827c601b",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "us_atgm_team_bgm_71_tow_2a_carried_a": {
+      "bundle": "c1b459732c4a69b0e2c1a3cd3b97a91db58f4d02f3de7313b77bb37a4fbb6d82",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_atgm_team_bgm_71_tow_2a_carried_b": {
+      "bundle": "5720b865346a52f43e1664ffe2df57aafe6c2b5f5b3ad0aa9b1cd010e283ebed",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_atgm_team_bgm_71_tow_2a_carried_c": {
+      "bundle": "8e9a56b8ce837bee0d6f83909f0d31ac5ec89f0f8ab4236074e932cd9407b2a9",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_atgm_team_bgm_71_tow_2a_guard_a": {
+      "bundle": "64aca710e751056fc42deaa479a0e82454ba039f0a4666b68a71b3692b0ec82c",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_atgm_team_bgm_71_tow_2a_guard_b": {
+      "bundle": "40515c563874281d43f15a1d813677fea798d3db1d929a11f0736cdc62319275",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_atgm_team_bgm_71_tow_2a_guard_c": {
+      "bundle": "17156a0e00cfdf721ea9b96277031c9aad2b284db40b5613a47de264c90e3ff1",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_force_recon_recon_patrol_active_a": {
+      "bundle": "a404dd7e8a28c3da4e76067da0005e7c640891a34e6431359180827ded15c29d",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_force_recon_recon_patrol_active_b": {
+      "bundle": "ae254d9defda7571bea1ec4b7c0ad8ef6d30cb3a42594c765effd8d3218339f7",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_force_recon_recon_patrol_active_c": {
+      "bundle": "a112ef5f198afbdd26669574ef3c9890a801fe00ee689881d7154ea0dcbb0b27",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_lav_lav_25a2": {
+      "bundle": "499ebb62ac00dd1bb73071a9a5d6960ae27fdfdac0e2476355da8f4cee8d79d5",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "us_lav_lav_at": {
+      "bundle": "c504d06616e6c63f3e9c031b50eefb52f1311e8e63791eaabfbde575ff41ba05",
+      "kind": "articulated",
+      "mounts": {
+        "launcher": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "us_m1127_stryker_rv_reconnaissance_vehicle": {
+      "bundle": "520b5e173c536ba0e2eb4e75107a78bec6488c8538f97547f6f3dd2e0d1a4af4",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "us_m1278_jltv_hmg": {
+      "bundle": "0c30062877e0631906865aa11dec84f6b0aea26ad802cb9354fd392345b49c40",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "us_m1_abrams_sep_v2": {
+      "bundle": "b9a6d1a57263c19a9cf4c9ee28d7330e4766ce725ab0645137309cc97025a1ed",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "us_m1_abrams_sep_v2_trophy": {
+      "bundle": "f8bccd4b4deb869f20b8baffc811e76ccef6aead777faf5e94facb271ab02d0c",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "us_m1_abrams_sep_v3_trophy": {
+      "bundle": "c4988aca47e7d4e21af2b37ecc51687022363d7ff2b88399db7dbac278618ed2",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg",
+        "cannon": "gun"
+      },
+      "unit": "vehicle"
+    },
+    "us_m2_bradley_ifv_m2a4": {
+      "bundle": "63ed7321d870ff6d7c7b86a1a3dc72b771e3275869cb2e16ce25f87dac8e698b",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun",
+        "launcher": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "us_m3_bradley_cfv_m3a3": {
+      "bundle": "22fbe1b5e5f2a89bcd4c6699fdf3655c98bead2803f721fd6ce0c2875d765e02",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun",
+        "launcher": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "us_m977_hemtt_general_resupply": {
+      "bundle": "a9d1420e14042728f5fcb7770551292ab6eedc1c22d27d5c4bf42228dd542419",
+      "kind": "articulated",
+      "mounts": {},
+      "unit": "vehicle"
+    },
+    "us_marine_squad_close_quarters_infantry_active_a": {
+      "bundle": "ff5d352a2ff241a5a23238f46bd7d41f735b4c2e1230a504c031846d7c8e015d",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_marine_squad_close_quarters_infantry_active_b": {
+      "bundle": "29b7e827d0c70393ba6cb9a3d2c6493360ac57e8fc2401a74dbce76627ee575b",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_marine_squad_close_quarters_infantry_active_c": {
+      "bundle": "344904ebaa063fc5c9c2187f9eca6f2f2338fa396a51502c3b3cb1699046cb14",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_marksman_squad_m110_equipped_longer_range_infantry_active_a": {
+      "bundle": "9767ac665e2663b2932d39cfcc720f29bb1c5f6b44b7c797cc53bf557310f069",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_marksman_squad_m110_equipped_longer_range_infantry_active_b": {
+      "bundle": "6fd5597d21232253da67dc551fecbf07374ffa5d9f046840c83aa9c19fe90c60",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_marksman_squad_m110_equipped_longer_range_infantry_active_c": {
+      "bundle": "8764dc32b265946d95c6cd2c1d52b1bb66b8f6e23dadd3c9c75ca5677b19fc15",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_scout_snipers_m107_heavy_sniper_team_active_a": {
+      "bundle": "1531a0a682e0a0f82d4666869294c48df3c3d52eea8392af5a633c7e0c35b7a9",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_scout_snipers_m107_heavy_sniper_team_active_b": {
+      "bundle": "9b2b9d853190c1c81e77a95a77a88afd3bf6ea82c56f9c5de18c4c74c1d7081c",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_scout_snipers_m107_heavy_sniper_team_active_c": {
+      "bundle": "3821317a15e033d99b24b8746606310cf514aa87aaf95accc6a9f77c17e88e0f",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "us_stryker_m1126_icv": {
+      "bundle": "f22e4a6cc38c63d7592deee941b00f50c94a42d7d9461e4b62adb60e7b7fac87",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "us_stryker_m1134_atgm": {
+      "bundle": "23426898c225199fcb693abb9e269245dd2daf83b8fe583ac169c68baacfe6a0",
+      "kind": "articulated",
+      "mounts": {
+        "launcher": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "us_stryker_m1296_dragoon": {
+      "bundle": "4183faa5dc34e247ecc00643f21d6f3cf86e289c7970fd561b7d2583dfd8634d",
+      "kind": "articulated",
+      "mounts": {
+        "autocannon": "gun"
+      },
+      "unit": "vehicle"
     },
     "utility_box": {
       "bundle": "43cc6cfd5c9a80698574c5976914715de51f8f565312882c5be4a3f417ae3977",

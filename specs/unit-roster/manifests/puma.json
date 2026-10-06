@@ -1,0 +1,132 @@
+{
+  "assignment": "puma",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/puma.py",
+  "exclusive_export_directory": "assets/source/roster/puma/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "Puma_(German_infantry_fighting_vehicle)",
+    "url": "https://en.m.wikipedia.org/wiki/Puma_(German_infantry_fighting_vehicle)",
+    "sha256": "988e20a4c4f738279032442e3f09f397c67eed7e295f1098ea69b978211da5e5",
+    "rows": [
+      "Length 7.4 m (24 ft) [ 4 ]",
+      "Width 3.7 m (12 ft) with base armour 4.0 m (13 ft) up-armoured [ 5 ]",
+      "Height 3.1 m (10 ft) for the turret roof 3.6 m (12 ft) for the optics [ 3 ]",
+      "Main armament Autocanon MK 30-2/ABM [ de ] ( 30 mm , 200 rounds ready to fire, 200 in storage)",
+      "Secondary armament Base variant: HK MG4 ( 5.56\u00d745mm NATO ) S1 variant: Spike LR (MELLS) ATGM [ 3 ] Multishot grenade launcher for close-in defense"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/Puma%2C_first_series.jpg/330px-Puma%2C_first_series.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/Puma%2C_first_series.jpg/500px-Puma%2C_first_series.jpg",
+        "sha256": "7bc95c1c83be856ecd4f0000f576b848a011c14304f192a37bd7aecbffb5873c"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/79/MELLS_launcher_on_PUMA_1.jpg/500px-MELLS_launcher_on_PUMA_1.jpg",
+        "sha256": "c033b7ded271b7a635e9a67a8b33ee74e761a321da2a1f0765b6b7bcd7bb70d9"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Puma_IFV_MUSS.jpg/500px-Puma_IFV_MUSS.jpg",
+        "sha256": "854790d19d423bf848d2af17700941f3d3c38bba2f0f99e7a8278fe0d4a575dd"
+      }
+    ]
+  },
+  "silhouette_requirements": "Six wheels per side; high asymmetric hull; unmanned low-profile 30 mm turret; heavy Level C modular armor/skirts; twin Spike launcher hardware.",
+  "reference_limits": "3.1 m turret roof, 3.6 m optics. Use Level C 4.0 m up-armored width, not 3.7 m base.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "europe_puma_level_c",
+      "name": "Puma Level C",
+      "factions": [
+        "europe"
+      ],
+      "variant": "Level C",
+      "profile": "heavy-ifv",
+      "appearance_id": "europe_puma_level_c",
+      "export": "assets/source/roster/puma/europe_puma_level_c.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.4,
+          4.0,
+          3.6
+        ],
+        "half_extents_m": [
+          3.7,
+          2.0,
+          1.8
+        ],
+        "eye_m": 3.45,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              2.55
+            ],
+            "muzzle_m": [
+              4.1,
+              0,
+              0.4
+            ]
+          },
+          {
+            "name": "launcher",
+            "pack": [
+              "Spike"
+            ],
+            "role": "hmg",
+            "on": "autocannon",
+            "pivot_m": [
+              0,
+              1.08,
+              2.95
+            ],
+            "muzzle_m": [
+              1.05,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "notes": [],
+      "frame_correction": {
+        "date": "2026-10-06",
+        "reason": "Published 3.1 m is turret roof, 3.6 m rigid optics. Gun-role validator includes turret-fixed optics/MUSS, excludes pitching cannon. Adopt gameplay body 3.6 m including actual fixed tower, no artificial filler. Photo-relative turret-ring Z 2.55 m and bore Z 2.95 m (local muzzleZ0.40), launcher absoluteZ2.95, optic eye3.45 chosen to reproduce above-deck hardware; these are approximate authoring choices, not factory mount measurements.",
+        "mount_measurement": "Approximate photo-relative gameplay authoring, not factory measurements"
+      }
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/remaining_ground.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/remaining-ground-reference-review.md",
+    "variants": [
+      {
+        "id": "europe_puma_level_c",
+        "glb_sha256": "fbc4626858e73159199b4e6b0da525f9436a2646a4d5fe2aba3b1b3b45b5db8e",
+        "source_bytes": 2374792,
+        "triangles_by_tier": [
+          13158,
+          4726,
+          1574,
+          992
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/puma/europe_puma_level_c/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/puma/europe_puma_level_c/europe_puma_level_c.svg"
+      }
+    ]
+  }
+}

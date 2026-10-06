@@ -552,7 +552,8 @@
   stroke: rgb(var(--tone));
   stroke-width: 1.6;
 }
-.ro-reload .ro-arc {
+.ro-reload .ro-arc,
+.ro-cooldown .ro-arc {
   stroke-dasharray: 2 1.4;
 }
 .ro-aim .ro-arc {
@@ -1151,4 +1152,152 @@
 
 .ro-callout[data-retiring] .ro-unit {
   pointer-events: none;
+}
+
+/* Reinforcements grow above the army row while its zero-unit state stays usable. */
+.hud-reinforcements {
+  position: relative;
+  min-width: min(520px, 80vw);
+  padding: 4px 8px;
+}
+.hud-purchase-controls,
+.hud-purchase-categories,
+.hud-purchase-variants,
+.hud-purchase-pending {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hud-credits {
+  color: rgb(var(--hud-accent));
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+.hud-panel.hud-purchase-picker {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  width: min(720px, calc(100vw - 44px));
+  padding: 12px;
+  background: rgb(var(--hud-glass) / 0.96);
+}
+.hud-purchase-categories {
+  margin-bottom: 12px;
+}
+.hud-purchase-categories [aria-selected="true"],
+.hud-purchase-family[aria-pressed="true"] {
+  color: rgb(var(--hud-accent));
+  background: rgb(var(--hud-accent) / 0.08);
+}
+.hud-purchase-families {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+  max-height: min(360px, 45vh);
+  overflow-y: auto;
+}
+.hud-panel button.hud-purchase-family {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 76px;
+  padding: 6px;
+  border: 1px solid rgb(var(--hud-accent) / 0.2);
+}
+.hud-purchase-family > .icon {
+  width: 76px;
+  height: 38px;
+}
+.hud-purchase-price,
+.hud-purchase-pending small {
+  font-size: 11px;
+  color: rgb(var(--hud-text) / 0.7);
+}
+.hud-purchase-variants {
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(var(--hud-accent) / 0.2);
+}
+.hud-purchase-variants button,
+.hud-purchase-pending button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hud-purchase-pending {
+  max-width: min(700px, 80vw);
+  overflow-x: auto;
+  padding-block: 6px;
+}
+.hud-placement-cancel {
+  align-self: center;
+}
+.hud-score {
+  color: rgb(var(--hud-accent));
+  font-variant-numeric: tabular-nums;
+}
+.hud-score-enemy {
+  color: rgb(var(--hud-enemy));
+}
+.hud-objective-flags {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+}
+.hud-objective-flags [data-owner="blue"] {
+  color: rgb(var(--hud-accent));
+}
+.hud-objective-flags [data-owner="red"] {
+  color: rgb(var(--hud-enemy));
+}
+.hud-objective-flags [data-contested="true"] {
+  text-decoration: underline dashed;
+}
+
+.hud-purchase-faction {
+  color: rgb(var(--hud-accent));
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  margin-bottom: 8px;
+}
+.hud-panel .hud-purchase-variants button:disabled {
+  opacity: 0.65;
+}
+.hud-purchase-variants small {
+  font-size: 10px;
+}
+.hud-objective-flags > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.hud-objective-flags .ro-icon {
+  width: 14px;
+  height: 14px;
+}
+.hud-objective-flags [data-owner="neutral"] .ro-icon {
+  opacity: 0.65;
+}
+.hud-objective-flags [data-owner="blue"] .ro-icon path,
+.hud-objective-flags [data-owner="red"] .ro-icon path {
+  fill: currentColor;
+  fill-opacity: 0.18;
+}
+
+.skirmish-objective-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.skirmish-objective-mark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 3px 5px;
+  background: rgb(var(--hud-glass) / 0.8);
+  text-shadow: 0 0 4px rgb(var(--hud-glass));
 }

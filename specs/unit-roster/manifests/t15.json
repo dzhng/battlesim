@@ -1,0 +1,88 @@
+{
+  "assignment": "t15",
+  "status": "research-gated",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/t15.py",
+  "exclusive_export_directory": "assets/source/roster/t15/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "T-15_Armata",
+    "url": "https://en.m.wikipedia.org/wiki/T-15_Armata",
+    "sha256": "175db57bc23546a90642c9fd433af5442cd9ef831276a642eff523913e015ab8",
+    "rows": [
+      "Length 9.65 m (31.7 ft)",
+      "Main armament Bumerang-BM remote weapon station turret with 30 mm automatic cannon 2A42 , 9M133 Kornet-EM anti-tank missiles , and PKT 7.62 mm coaxial machine gun [ 3 ] [ 4 ] with 500 rounds ( AP /HE) [ 5 ] or DUBM-57 Kinzhal remote weapon station turret with 57mm BM-57 autocannon and Ataka-T anti-tank guided missiles (ATGM) [ 6 ] or AU-220M Baikal remote weapon station with BM-57, coaxial PKMT machine gun, and 9M120-1 Ataka ATGM missiles"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/3/3e/9may2015Moscow-09_%28cropped%29.jpg/330px-9may2015Moscow-09_%28cropped%29.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ]
+  },
+  "silhouette_requirements": "Seven wheels per side; front-engine heavy hull; rear troop ramp; unmanned Bumerang-BM turret at rear with 30 mm gun and paired Kornet packs.",
+  "reference_limits": "Published 9.65 m lacks full width/height and length qualifier; research-gated. No passenger behavior or functioning unlisted APS.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "eastern_t_15_armata_heavy_ifv",
+      "name": "T-15 Armata Heavy IFV",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "Heavy IFV",
+      "profile": "heavy-ifv",
+      "appearance_id": "eastern_t_15_armata_heavy_ifv",
+      "export": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          null,
+          null,
+          null
+        ],
+        "half_extents_m": [
+          null,
+          null,
+          null
+        ],
+        "eye_m": null,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.82
+            ],
+            "muzzle_m": [
+              2.94,
+              0,
+              0.504
+            ]
+          },
+          {
+            "name": "launcher",
+            "pack": [
+              "Kornet"
+            ],
+            "role": "hmg",
+            "on": "autocannon",
+            "pivot_m": [
+              0,
+              0.81,
+              2.296
+            ],
+            "muzzle_m": [
+              1.05,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ]
+}

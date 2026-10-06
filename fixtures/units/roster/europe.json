@@ -2,7 +2,7 @@
   "units": {
     "europe_ajax_tracked_reconnaissance_vehicle": {
       "name": "Ajax Tracked reconnaissance vehicle",
-      "description": "Tracked reconnaissance vehicle; temporary generic appearance until named model admission",
+      "description": "Tracked reconnaissance vehicle",
       "faction": "europe",
       "family": "ajax",
       "roles": [
@@ -65,13 +65,13 @@
             1.95
           ],
           "muzzle_m": [
-            4.1,
+            2.65,
             0,
             0.54
           ]
         }
       ],
-      "appearance": "tank",
+      "appearance": "europe_ajax_tracked_reconnaissance_vehicle",
       "sensors": {
         "ground_m": 850,
         "sight_shape": {
@@ -154,7 +154,7 @@
     },
     "europe_boxer_apc": {
       "name": "Boxer APC",
-      "description": "APC; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
+      "description": "APC; ground combat platform, passenger carriage not implemented",
       "faction": "europe",
       "family": "boxer",
       "roles": [
@@ -177,7 +177,7 @@
             1.495,
             1.19
           ],
-          "eye_m": 2.237,
+          "eye_m": 2.73,
           "hp": 90,
           "armor": {
             "front": 65,
@@ -215,7 +215,7 @@
           "pivot_m": [
             0,
             0,
-            2.166
+            2.51
           ],
           "muzzle_m": [
             1.43,
@@ -224,7 +224,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "europe_boxer_apc",
       "sensors": {
         "ground_m": 450,
         "sight_shape": {
@@ -237,7 +237,7 @@
     },
     "europe_boxer_rct30": {
       "name": "Boxer RCT30",
-      "description": "RCT30; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
+      "description": "RCT30; ground combat platform, passenger carriage not implemented",
       "faction": "europe",
       "family": "boxer",
       "roles": [
@@ -258,9 +258,9 @@
           "half_extents_m": [
             3.965,
             1.495,
-            1.19
+            1.815
           ],
-          "eye_m": 2.237,
+          "eye_m": 3.4,
           "hp": 85,
           "armor": {
             "front": 60,
@@ -298,16 +298,16 @@
           "pivot_m": [
             0,
             0,
-            1.547
+            2.38
           ],
           "muzzle_m": [
             3.331,
             0,
-            0.428
+            0.62
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "europe_boxer_rct30",
       "sensors": {
         "ground_m": 550,
         "sight_shape": {
@@ -343,8 +343,8 @@
       }
     },
     "europe_caesar_88": {
-      "name": "CAESAR 8×8",
-      "description": "8×8",
+      "name": "CAESAR 8\u00d78",
+      "description": "8\u00d78",
       "faction": "europe",
       "family": "caesar",
       "roles": [],
@@ -354,7 +354,7 @@
           "europe"
         ],
         "category": "sup",
-        "variant": "8×8",
+        "variant": "8\u00d78",
         "family_name": "CAESAR"
       },
       "planned": {
@@ -390,7 +390,7 @@
     },
     "europe_challenger_challenger_2_tes": {
       "name": "Challenger Challenger 2 TES",
-      "description": "Challenger 2 TES; temporary generic appearance until named model admission",
+      "description": "Challenger 2 TES",
       "faction": "europe",
       "family": "challenger",
       "roles": [
@@ -478,7 +478,7 @@
           "on": "cannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "europe_challenger_challenger_2_tes",
       "sensors": {
         "ground_m": 500,
         "sight_shape": {
@@ -516,7 +516,7 @@
     },
     "europe_cv90_cv9040c": {
       "name": "CV90 CV9040C",
-      "description": "CV9040C; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
+      "description": "CV9040C; ground combat platform, passenger carriage not implemented",
       "faction": "europe",
       "family": "cv90",
       "roles": [
@@ -585,7 +585,7 @@
           ]
         }
       ],
-      "appearance": "tank",
+      "appearance": "europe_cv90_cv9040c",
       "sensors": {
         "ground_m": 550,
         "sight_shape": {
@@ -598,7 +598,7 @@
     },
     "europe_cv90_mk_iv": {
       "name": "CV90 Mk IV",
-      "description": "Mk IV; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
+      "description": "Mk IV; ground combat platform, passenger carriage not implemented",
       "faction": "europe",
       "family": "cv90",
       "roles": [
@@ -667,7 +667,7 @@
           ]
         }
       ],
-      "appearance": "tank",
+      "appearance": "europe_cv90_mk_iv",
       "sensors": {
         "ground_m": 600,
         "sight_shape": {
@@ -777,7 +777,7 @@
     },
     "europe_fennek_reconnaissance_vehicle": {
       "name": "Fennek Reconnaissance vehicle",
-      "description": "Reconnaissance vehicle; temporary generic appearance until named model admission",
+      "description": "Reconnaissance vehicle",
       "faction": "europe",
       "family": "fennek",
       "roles": [
@@ -847,7 +847,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "europe_fennek_reconnaissance_vehicle",
       "sensors": {
         "ground_m": 850,
         "sight_shape": {
@@ -955,7 +955,7 @@
     },
     "europe_kf51_panther_prototype_main_battle_tank": {
       "name": "KF51 Panther Prototype main battle tank",
-      "description": "Prototype main battle tank; temporary generic appearance until named model admission",
+      "description": "Prototype main battle tank",
       "faction": "europe",
       "family": "kf51_panther",
       "roles": [
@@ -1043,7 +1043,7 @@
           "on": "cannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "europe_kf51_panther_prototype_main_battle_tank",
       "sensors": {
         "ground_m": 600,
         "sight_shape": {
@@ -1056,7 +1056,7 @@
     },
     "europe_leclerc_xlr": {
       "name": "Leclerc XLR",
-      "description": "XLR; temporary generic appearance until named model admission",
+      "description": "XLR",
       "faction": "europe",
       "family": "leclerc",
       "roles": [
@@ -1144,7 +1144,7 @@
           "on": "cannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "europe_leclerc_xlr",
       "sensors": {
         "ground_m": 550,
         "sight_shape": {
@@ -1157,7 +1157,7 @@
     },
     "europe_leopard_2_2a6": {
       "name": "Leopard 2 2A6",
-      "description": "2A6; temporary generic appearance until named model admission",
+      "description": "2A6",
       "faction": "europe",
       "family": "leopard_2",
       "roles": [
@@ -1245,7 +1245,7 @@
           "on": "cannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "europe_leopard_2_2a6",
       "sensors": {
         "ground_m": 500,
         "sight_shape": {
@@ -1258,7 +1258,7 @@
     },
     "europe_leopard_2_2a7v": {
       "name": "Leopard 2 2A7V",
-      "description": "2A7V; temporary generic appearance until named model admission",
+      "description": "2A7V",
       "faction": "europe",
       "family": "leopard_2",
       "roles": [
@@ -1346,7 +1346,7 @@
           "on": "cannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "europe_leopard_2_2a7v",
       "sensors": {
         "ground_m": 550,
         "sight_shape": {
@@ -1362,7 +1362,9 @@
       "description": "2A8",
       "faction": "europe",
       "family": "leopard_2",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 450,
       "roster": {
         "factions": [
@@ -1372,19 +1374,66 @@
         "variant": "2A8",
         "family_name": "Leopard 2"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "advanced-mbt",
-        "weapons": [
-          "advanced-tank-gun",
-          "HMG",
-          "Trophy"
-        ]
+      "extends": "europe_leopard_2_2a7v",
+      "appearance": "europe_leopard_2_2a8",
+      "parts": [
+        "trophy_aps"
+      ],
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.85,
+            1.875,
+            1.5
+          ],
+          "eye_m": 2.82
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "advanced_tank_ap",
+            "advanced_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.8
+          ],
+          "muzzle_m": [
+            7.12,
+            0,
+            0.54
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.82
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "sensors": {
+        "ground_m": 600
       }
     },
     "europe_man_hx_general_resupply": {
       "name": "MAN HX General resupply",
-      "description": "General resupply; temporary generic appearance until named model admission",
+      "description": "General resupply",
       "faction": "europe",
       "family": "man_hx",
       "roles": [
@@ -1436,7 +1485,7 @@
         }
       },
       "mounts": [],
-      "appearance": "supply_truck",
+      "appearance": "europe_man_hx_general_resupply",
       "capabilities": {
         "deploy": {
           "seconds": 3,
@@ -1449,7 +1498,7 @@
     },
     "europe_marksman_squad_longer_range_infantry": {
       "name": "Marksman Squad",
-      "description": "Longer-range infantry; temporary generic appearance until named model admission",
+      "description": "Longer-range infantry",
       "faction": "europe",
       "family": "marksman_squad",
       "roles": [
@@ -1468,12 +1517,12 @@
       "body": {
         "squad": {
           "slots": [
-            "roster_marksman_rifle_1",
-            "roster_marksman_rifle_2",
-            "roster_marksman_rifle_3",
-            "roster_marksman_rifle_4",
-            "roster_marksman_rifle_5",
-            "roster_marksman_rifle_6"
+            "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_1",
+            "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_2",
+            "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_3",
+            "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_4",
+            "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_5",
+            "europe_marksman_squad_longer_range_infantry__roster_marksman_rifle_6"
           ]
         }
       }
@@ -1574,7 +1623,7 @@
     },
     "europe_puma_level_c": {
       "name": "Puma Level C",
-      "description": "Level C; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "Level C; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "europe",
       "family": "puma",
       "roles": [
@@ -1595,9 +1644,9 @@
           "half_extents_m": [
             3.7,
             2.0,
-            1.55
+            1.8
           ],
-          "eye_m": 2.914,
+          "eye_m": 3.45,
           "hp": 120,
           "armor": {
             "front": 130,
@@ -1634,12 +1683,12 @@
           "pivot_m": [
             0,
             0,
-            2.015
+            2.55
           ],
           "muzzle_m": [
             4.1,
             0,
-            0.558
+            0.4
           ]
         },
         {
@@ -1651,7 +1700,7 @@
           "pivot_m": [
             0,
             1.08,
-            2.542
+            2.95
           ],
           "muzzle_m": [
             1.05,
@@ -1661,7 +1710,7 @@
           "on": "autocannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "europe_puma_level_c",
       "sensors": {
         "ground_m": 550,
         "sight_shape": {
@@ -1722,7 +1771,7 @@
     },
     "europe_recon_patrol_light_patrol": {
       "name": "Recon Patrol",
-      "description": "Light patrol; temporary generic appearance until named model admission",
+      "description": "Light patrol",
       "faction": "europe",
       "family": "recon_patrol",
       "roles": [
@@ -1741,10 +1790,10 @@
       "body": {
         "squad": {
           "slots": [
-            "scout",
-            "scout",
-            "scout",
-            "scout"
+            "europe_recon_patrol_light_patrol__scout",
+            "europe_recon_patrol_light_patrol__scout",
+            "europe_recon_patrol_light_patrol__scout",
+            "europe_recon_patrol_light_patrol__scout"
           ]
         }
       }
@@ -1841,7 +1890,7 @@
     },
     "europe_vbci_infantry_fighting_vehicle": {
       "name": "VBCI Infantry fighting vehicle",
-      "description": "Infantry fighting vehicle; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
+      "description": "Infantry fighting vehicle; ground combat platform, passenger carriage not implemented",
       "faction": "europe",
       "family": "vbci",
       "roles": [
@@ -1902,16 +1951,16 @@
           "pivot_m": [
             0,
             0,
-            1.95
+            2.35
           ],
           "muzzle_m": [
-            4.05,
+            2.65,
             0,
-            0.54
+            0.35
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "europe_vbci_infantry_fighting_vehicle",
       "sensors": {
         "ground_m": 550,
         "sight_shape": {
@@ -1924,7 +1973,7 @@
     },
     "europe_vbl_machine_gun_scout": {
       "name": "VBL Machine-gun scout",
-      "description": "Machine-gun scout; temporary generic appearance until named model admission",
+      "description": "Machine-gun scout",
       "faction": "europe",
       "family": "vbl",
       "roles": [
@@ -1994,7 +2043,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "europe_vbl_machine_gun_scout",
       "sensors": {
         "ground_m": 700,
         "sight_shape": {

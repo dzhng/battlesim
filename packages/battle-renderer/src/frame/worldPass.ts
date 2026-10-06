@@ -121,6 +121,7 @@ import {
 } from "../models/modelLayer";
 import {
   createGlassFragment,
+  createGhostFragment,
   createRoomFragment,
   modelCutoutCaster,
   modelCutoutDepth,
@@ -453,6 +454,19 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("read"),
     multisample: { count: FRAME_MSAA },
   });
+  const modelGhost = root.createRenderPipeline({
+    ...modelBase,
+    fragment: createGhostFragment(environment),
+    targets: {
+      format: HDR_FORMAT,
+      blend: {
+        color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
+        alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+      },
+    },
+    depthStencil: battleWorldDepth("read"),
+    multisample: { count: FRAME_MSAA },
+  });
   // The x-ray: a unit's fragments behind the world's depth (without the
   // units), over the transparent overlay target. Max blending, so a hidden
   // arm behind a hidden torso never doubles the silhouette's alpha. The
@@ -522,6 +536,7 @@ export async function createWorldPass(
       modelCutout,
       modelRooms,
       modelBlended,
+      modelGhost,
       modelXray,
       modelXrayCount,
       modelCards,
@@ -1036,6 +1051,26 @@ export async function createWorldPass(
       }
       pass.end();
       return { encoder, raw };
+    },
+    /** Placement meshes over the fog-treated world, without changing its mask or depth. */
+    encodeGhosts(encoder: TgpuCommandEncoder, targets: FrameTargets, cameraGroup: CameraGroup) {
+      if (!models.hasGhostMeshes) return;
+      const pass = encoder.beginRenderPass({
+        label: "placement-ghosts",
+        colorAttachments: [
+          {
+            view: targets.hdrMsaa.createView(),
+            resolveTarget: targets.hdr.createView(),
+            loadOp: "load",
+            storeOp: "discard",
+          },
+        ],
+        depthStencilAttachment: { view: targets.depth.createView(), depthReadOnly: true },
+      });
+      models.drawGhosts(
+        modelGhost.with(pass).with(cameraGroup).with(environment.group) as unknown as Bound,
+      );
+      pass.end();
     },
     stats() {
       return {

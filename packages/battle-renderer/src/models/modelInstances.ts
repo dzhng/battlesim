@@ -4,8 +4,8 @@
 // `poseFrameInstances` and `corpseInstances` turn a pose frame into these.
 
 import type { Mat4 } from "math";
-import type { Side } from "@packages/scene-assets/src/schema";
-import type { Articulation } from "@packages/scene-assets/src/articulation";
+import type { Bundle, Side, SkeletonClips } from "@packages/scene-assets/src/schema";
+import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
 import { isRgba, type Rgba } from "../mesh";
 import type { PoseFrame } from "./poseDriver";
 
@@ -62,6 +62,14 @@ export function validateXray(x: XrayStyle): XrayStyle {
 
 export type ModelPose = SkinnedModelPose | ArticulatedModelPose | StaticModelPose | CorpseModelPose;
 
+/** The authored resting model: shared by placement previews and far-model bakes. */
+export function restingModelPose(bundle: Exclude<Bundle, SkeletonClips>): ModelPose {
+  if (bundle.kind === "skinned") return { kind: "skinned", ...bundle.far_pose, blend: null };
+  if (bundle.kind === "articulated")
+    return { kind: "articulated", articulation: { ...REST_ARTICULATION } };
+  return { kind: "static", state: bundle.states[0].name };
+}
+
 export interface ModelInstance {
   /** An appearance name in the installed catalog generation. */
   appearance: string;
@@ -87,6 +95,9 @@ export interface ModelInstance {
    *  are suppressed by the frame's per-model coverage gate. Presentation
    *  chooses it (`XrayOf`). */
   xray?: readonly [number, number, number, number] | null;
+  /** Placement preview colour and opacity. Draws the named mesh translucent,
+   *  reading world depth, with no depth writes, shadow, impostor or x-ray. */
+  ghost?: Rgba;
 }
 
 /** A fallen soldier at rest: his appearance's static corpse mesh (the end of
@@ -174,7 +185,7 @@ export function poseFrameInstances(
   // Corpses the cap has pushed out, sinking: posed per frame until gone.
   for (const f of frame.fading) {
     const c = f.corpse;
-    const resolved = resolve(c.kind, c.side, c.soldier, c.slot);
+    const resolved = resolve(c.kind, c.side, c.soldier, c.slot, c.operatorMount ?? null, null);
     if (!resolved) continue;
     const m = record();
     m.appearance = resolved.appearance;
@@ -194,7 +205,7 @@ export function poseFrameInstances(
 export function corpseInstances(frame: PoseFrame, resolve: ResolveAppearance): CorpseInstance[] {
   const out: CorpseInstance[] = [];
   for (const c of frame.corpses) {
-    const resolved = resolve(c.kind, c.side, c.soldier, c.slot);
+    const resolved = resolve(c.kind, c.side, c.soldier, c.slot, c.operatorMount ?? null, null);
     if (!resolved) continue;
     out.push({
       appearance: resolved.appearance,

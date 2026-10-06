@@ -21,6 +21,7 @@ import {
   mountRoles,
   type Articulation,
   type MountDraws,
+  type MountRow,
   type UnitCatalog,
   type UnitType,
 } from "./units.ts";
@@ -343,6 +344,14 @@ export async function validateAppearance(
       skeleton.aim_reference,
       context.authority,
       tolerances,
+      context.authority.units.view.units
+        .flatMap((u) => u.mounts)
+        .filter(
+          (m) =>
+            m.muzzle_m !== null &&
+            m.operator_appearance?.active.includes(input.name) &&
+            m.operator_appearance.active_pose !== undefined,
+        ),
     ),
   );
   const bounds = animatedBounds(joints, tiers, skeleton.clips);
@@ -504,6 +513,7 @@ function infantryFindings(
   aim: PoseRef,
   authority: Authority,
   tolerances: Tolerances,
+  grounded: readonly MountRow[],
 ): Finding[] {
   const out: Finding[] = [];
   for (const name of INFANTRY_SOCKETS)
@@ -566,12 +576,46 @@ function infantryFindings(
           "face the model along +X after the catalog's basis_yaw_deg (Quaternius rigs need 90)",
         ),
       );
-    else if (Math.abs(muzzle[2] - authority.infantry_muzzle_m) > tolerances.muzzle_m)
+    else if (
+      !grounded.length &&
+      Math.abs(muzzle[2] - authority.infantry_muzzle_m) > tolerances.muzzle_m
+    )
       out.push(
         finding(
           "fit.muzzle",
           `${label}: muzzle at ${fmt(muzzle[2])} m ${pose}, physics.infantry_muzzle_m is ${authority.infantry_muzzle_m} ± ${tolerances.muzzle_m}`,
           "fix the standing-aim pose or the weapon's muzzle socket",
+        ),
+      );
+  }
+  for (const mount of grounded) {
+    const hold = mount.operator_appearance!.active_pose!;
+    const heldClip = clips.clips.find((c) => c.name === hold.clip);
+    if (!heldClip) {
+      out.push(
+        finding(
+          "structure.clips",
+          `${label}: active_pose clip "${hold.clip}" is absent`,
+          "author the declared supported hold on this skeleton",
+        ),
+      );
+      continue;
+    }
+    const socket = sockets.find((s) => s.name === "muzzle");
+    if (!socket) continue;
+    const heldWorlds = worldTransforms(
+      joints.map((j) => j.parent),
+      sampleClip(clips, heldClip, joints, hold.phase),
+    );
+    const actual = pointAt(heldWorlds[socket.joint], socket.offset.t);
+    const expected = vec3.add([0, 0, 0], mount.pivot_m, mount.muzzle_m!);
+    const error = vec3.distance(actual, expected);
+    if (error > tolerances.muzzle_m)
+      out.push(
+        finding(
+          "fit.muzzle",
+          `${label}: muzzle [${actual.map(fmt).join(", ")}] in active_pose "${hold.clip}" at ${hold.phase}, mount "${mount.name}" declares [${expected.map(fmt).join(", ")}] (${fmt(error)} m off, tolerance ${tolerances.muzzle_m})`,
+          "fit the supported active kit's socket to its physical mount bore",
         ),
       );
   }
@@ -745,22 +789,30 @@ export function typeFindings(
     }),
   );
 
-  // Deploying.
-  if (type.capabilities.deploy) {
+  // Stationary service does not imply legs or a mast. Declared deployment
+  // hardware retains its chain and motion checks.
+  const declaresDeployment = nodes.some(
+    (node) =>
+      node.name.startsWith("deploy_") ||
+      DEPLOY_EXTRAS.some((key) => node.extras?.[key] !== undefined),
+  );
+  if (type.capabilities.deploy && declaresDeployment) {
     const legs = nodes
-      .map((n) => n.name.match(/^deploy_leg_([A-Za-z0-9]+)$/)?.[1])
+      .map((n) => n.name.match(/^deploy_leg_([A-Za-z0-9]+)(?:_(?:jack|pad))?$/)?.[1])
       .filter((leg): leg is string => !!leg);
-    if (!legs.length) missing("deploy_leg_*");
-    for (const leg of legs) {
+    for (const leg of new Set(legs)) {
+      if (!index.has(`deploy_leg_${leg}`)) missing(`deploy_leg_${leg}`);
       for (const suffix of ["_jack", "_pad"])
         if (!index.has(`deploy_leg_${leg}${suffix}`)) missing(`deploy_leg_${leg}${suffix}`);
       chain(`deploy_leg_${leg}`, `deploy_leg_${leg}_jack`);
       chain(`deploy_leg_${leg}_jack`, `deploy_leg_${leg}_pad`);
     }
-    for (const name of MAST_CHAIN) if (!index.has(name)) missing(name);
-    for (let i = 1; i < MAST_CHAIN.length; i++) chain(MAST_CHAIN[i - 1], MAST_CHAIN[i]);
+    if (MAST_CHAIN.some((name) => index.has(name))) {
+      for (const name of MAST_CHAIN) if (!index.has(name)) missing(name);
+      for (let i = 1; i < MAST_CHAIN.length; i++) chain(MAST_CHAIN[i - 1], MAST_CHAIN[i]);
+      up("deploy_mast");
+    }
     out.push(...deployFindings(label, nodes, index, tolerances));
-    up("deploy_mast");
   }
 
   // The hull box, without what its mounts carry beyond it.

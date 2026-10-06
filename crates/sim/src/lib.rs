@@ -28,8 +28,10 @@ pub mod objectives;
 pub mod publication;
 pub mod route_planner;
 pub mod sensing;
+pub mod settlement;
 pub mod sight;
 pub mod skirmish;
+pub mod skirmish_ai;
 pub mod structures;
 pub mod supply;
 pub mod units;
@@ -37,3 +39,7 @@ pub mod village;
 pub mod visibility;
 pub mod weapons;
 pub mod world;
+
+pub mod withdrawal;
+
+pub mod protection;

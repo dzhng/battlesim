@@ -94,7 +94,7 @@
     },
     "eastern_atgm_team_kornet": {
       "name": "Kornet Team",
-      "description": "Kornet; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "Kornet; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
       "family": "atgm_team",
       "roles": [
@@ -113,9 +113,9 @@
       "body": {
         "squad": {
           "slots": [
-            "roster_kornet_gunner",
-            "at_rifleman",
-            "at_rifleman"
+            "eastern_atgm_team_kornet__roster_kornet_gunner",
+            "eastern_atgm_team_kornet__at_rifleman",
+            "eastern_atgm_team_kornet__at_rifleman"
           ]
         }
       }
@@ -145,7 +145,7 @@
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
       "name": "BMP IFV Family BMP-2M Berezhok",
-      "description": "BMP-2M Berezhok; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "BMP-2M Berezhok; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
       "family": "bmp_ifv_family",
       "roles": [
@@ -232,7 +232,7 @@
           "on": "autocannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "eastern_bmp_ifv_family_bmp_2m_berezhok",
       "sensors": {
         "ground_m": 500,
         "sight_shape": {
@@ -245,7 +245,7 @@
     },
     "eastern_bmp_ifv_family_bmp_3": {
       "name": "BMP IFV Family BMP-3",
-      "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; passenger carriage not implemented; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
       "family": "bmp_ifv_family",
       "roles": [
@@ -333,7 +333,7 @@
           "on": "main_gun"
         }
       ],
-      "appearance": "tank",
+      "appearance": "eastern_bmp_ifv_family_bmp_3",
       "sensors": {
         "ground_m": 550,
         "sight_shape": {
@@ -369,7 +369,7 @@
     },
     "eastern_btr_btr_82a": {
       "name": "BTR BTR-82A",
-      "description": "BTR-82A; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
+      "description": "BTR-82A; ground combat platform, passenger carriage not implemented",
       "faction": "eastern",
       "family": "btr",
       "roles": [
@@ -439,7 +439,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "eastern_btr_btr_82a",
       "sensors": {
         "ground_m": 500,
         "sight_shape": {
@@ -594,7 +594,7 @@
     },
     "eastern_marksman_squad_svd_equipped_longer_range_infantry": {
       "name": "Marksman Squad",
-      "description": "SVD-equipped longer-range infantry; temporary generic appearance until named model admission",
+      "description": "SVD-equipped longer-range infantry",
       "faction": "eastern",
       "family": "marksman_squad",
       "roles": [
@@ -613,12 +613,12 @@
       "body": {
         "squad": {
           "slots": [
-            "roster_marksman_rifle_1",
-            "roster_marksman_rifle_2",
-            "roster_marksman_rifle_3",
-            "roster_marksman_rifle_4",
-            "roster_marksman_rifle_5",
-            "roster_marksman_rifle_6"
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_1",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_2",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_3",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_4",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_5",
+            "eastern_marksman_squad_svd_equipped_longer_range_infantry__roster_marksman_rifle_6"
           ]
         }
       }
@@ -813,7 +813,7 @@
     },
     "eastern_rpg_team_rpg_29": {
       "name": "RPG-29 Team",
-      "description": "RPG-29; temporary generic appearance until named model admission",
+      "description": "RPG-29",
       "faction": "eastern",
       "family": "rpg_team",
       "roles": [
@@ -832,16 +832,16 @@
       "body": {
         "squad": {
           "slots": [
-            "roster_rpg_heavy_gunner",
-            "at_rifleman",
-            "at_rifleman"
+            "eastern_rpg_team_rpg_29__roster_rpg_heavy_gunner",
+            "eastern_rpg_team_rpg_29__at_rifleman",
+            "eastern_rpg_team_rpg_29__at_rifleman"
           ]
         }
       }
     },
     "eastern_rpg_team_rpg_7": {
       "name": "RPG-7 Team",
-      "description": "RPG-7; temporary generic appearance until named model admission",
+      "description": "RPG-7",
       "faction": "eastern",
       "family": "rpg_team",
       "roles": [
@@ -860,9 +860,9 @@
       "body": {
         "squad": {
           "slots": [
-            "roster_rpg_light_gunner",
-            "at_rifleman",
-            "at_rifleman"
+            "eastern_rpg_team_rpg_7__roster_rpg_light_gunner",
+            "eastern_rpg_team_rpg_7__at_rifleman",
+            "eastern_rpg_team_rpg_7__at_rifleman"
           ]
         }
       }
@@ -890,7 +890,7 @@
     },
     "eastern_scouts_light_patrol": {
       "name": "Scouts",
-      "description": "Light patrol; temporary generic appearance until named model admission",
+      "description": "Light patrol",
       "faction": "eastern",
       "family": "scouts",
       "roles": [
@@ -909,17 +909,17 @@
       "body": {
         "squad": {
           "slots": [
-            "scout",
-            "scout",
-            "scout",
-            "scout"
+            "eastern_scouts_light_patrol__scout",
+            "eastern_scouts_light_patrol__scout",
+            "eastern_scouts_light_patrol__scout",
+            "eastern_scouts_light_patrol__scout"
           ]
         }
       }
     },
     "eastern_sniper_team_asvk_heavy_sniper_team": {
       "name": "Sniper Team",
-      "description": "ASVK heavy sniper team; temporary generic appearance until named model admission",
+      "description": "ASVK heavy sniper team",
       "faction": "eastern",
       "family": "sniper_team",
       "roles": [
@@ -938,8 +938,8 @@
       "body": {
         "squad": {
           "slots": [
-            "roster_heavy_sniper_1",
-            "roster_heavy_sniper_2"
+            "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_1",
+            "eastern_sniper_team_asvk_heavy_sniper_team__roster_heavy_sniper_2"
           ]
         }
       }
@@ -1142,7 +1142,7 @@
     },
     "eastern_t_72_t_72b3_2016": {
       "name": "T-72 T-72B3 (2016)",
-      "description": "T-72B3 (2016); temporary generic appearance until named model admission",
+      "description": "T-72B3 (2016)",
       "faction": "eastern",
       "family": "t_72",
       "roles": [
@@ -1230,7 +1230,7 @@
           "on": "cannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "eastern_t_72_t_72b3_2016",
       "sensors": {
         "ground_m": 450,
         "sight_shape": {
@@ -1243,7 +1243,7 @@
     },
     "eastern_t_80_t_80bvm": {
       "name": "T-80 T-80BVM",
-      "description": "T-80BVM; temporary generic appearance until named model admission",
+      "description": "T-80BVM",
       "faction": "eastern",
       "family": "t_80",
       "roles": [
@@ -1331,7 +1331,7 @@
           "on": "cannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "eastern_t_80_t_80bvm",
       "sensors": {
         "ground_m": 500,
         "sight_shape": {
@@ -1344,7 +1344,7 @@
     },
     "eastern_t_90_t_90m_proryv": {
       "name": "T-90 T-90M Proryv",
-      "description": "T-90M Proryv; temporary generic appearance until named model admission",
+      "description": "T-90M Proryv",
       "faction": "eastern",
       "family": "t_90",
       "roles": [
@@ -1432,7 +1432,7 @@
           "on": "cannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "eastern_t_90_t_90m_proryv",
       "sensors": {
         "ground_m": 550,
         "sight_shape": {
@@ -1445,7 +1445,7 @@
     },
     "eastern_tigr_tigr_m": {
       "name": "Tigr Tigr-M",
-      "description": "Tigr-M; temporary generic appearance until named model admission",
+      "description": "Tigr-M",
       "faction": "eastern",
       "family": "tigr",
       "roles": [
@@ -1515,7 +1515,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "eastern_tigr_tigr_m",
       "sensors": {
         "ground_m": 700,
         "sight_shape": {
@@ -1552,7 +1552,7 @@
     },
     "eastern_type_99_ztz_99a": {
       "name": "Type 99 ZTZ-99A",
-      "description": "ZTZ-99A; temporary generic appearance until named model admission",
+      "description": "ZTZ-99A",
       "faction": "eastern",
       "family": "type_99",
       "roles": [
@@ -1640,7 +1640,7 @@
           "on": "cannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "eastern_type_99_ztz_99a",
       "sensors": {
         "ground_m": 550,
         "sight_shape": {
@@ -1653,7 +1653,7 @@
     },
     "eastern_ural_4320_general_resupply": {
       "name": "Ural-4320 General resupply",
-      "description": "General resupply; temporary generic appearance until named model admission",
+      "description": "General resupply",
       "faction": "eastern",
       "family": "ural_4320",
       "roles": [
@@ -1705,7 +1705,7 @@
         }
       },
       "mounts": [],
-      "appearance": "supply_truck",
+      "appearance": "eastern_ural_4320_general_resupply",
       "capabilities": {
         "deploy": {
           "seconds": 3,
@@ -1765,7 +1765,7 @@
     },
     "eastern_zbl_08_wheeled_ifv": {
       "name": "ZBL-08 Wheeled IFV",
-      "description": "Wheeled IFV; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
+      "description": "Wheeled IFV; ground combat platform, passenger carriage not implemented",
       "faction": "eastern",
       "family": "zbl_08",
       "roles": [
@@ -1835,7 +1835,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "eastern_zbl_08_wheeled_ifv",
       "sensors": {
         "ground_m": 550,
         "sight_shape": {

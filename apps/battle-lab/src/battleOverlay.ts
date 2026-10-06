@@ -11,6 +11,7 @@
 // missile's flare and smoke trail, and a garrisoned squad's circle says where
 // it holds. Labs compose the layers their fixture exercises, the rest among
 // them as diagnostics.
+import { gameHud } from "@web/battle/present/hudTheme";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { buildContactGlyphs } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
@@ -230,7 +231,22 @@ export function buildBattleOverlay(
         z,
       )
     : null;
+  const objectives = (o.skirmish?.objectives ?? []).map((objective) => ({
+    painted: buildZoneRing(
+      objective.center,
+      objective.radiusM,
+      line,
+      objective.owner === "red"
+        ? [...gameHud.enemy, 1]
+        : objective.owner === "blue"
+          ? gameOrderStyle.selected
+          : gameZone,
+      objective.owner !== null && !objective.contested,
+      z,
+    ),
+  }));
   return combineWorldMeshes([
+    ...objectives,
     ...(zone ? [{ painted: zone }] : []),
     ...(border ? [{ painted: border }] : []),
     contactMarks,

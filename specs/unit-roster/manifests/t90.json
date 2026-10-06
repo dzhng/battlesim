@@ -1,0 +1,91 @@
+{
+  "assignment": "t90",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/t90.py",
+  "exclusive_export_directory": "assets/source/roster/t90/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "T-90",
+    "url": "https://en.m.wikipedia.org/wiki/T-90",
+    "sha256": "16067ffbee7169c788697f35ab3e9a5fc3d8b7dce786ea4e6c8970cd85e816c9",
+    "rows": [
+      "Length 9.63 m (31 ft 7 in) 6.86 m (22 ft 6 in) (hull)",
+      "Width 3.78 m (12 ft 5 in)",
+      "Height 2.22 m (7 ft 3 in)",
+      "Main armament 2A46M 125 mm smoothbore gun with 43 rounds (T-90) 2A46M-2 125 mm smoothbore gun with 42 rounds (T-90A) 2A46M-5 125 mm smoothbore gun with 43 rounds (T-90M)",
+      "Secondary armament 12.7mm Kord Heavy machine gun , 7.62mm PKMT"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/d/d9/T-90M.jpg/330px-T-90M.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ]
+  },
+  "silhouette_requirements": "Six wheels per side; T-90M welded angular turret with large bustle; Relikt armor and skirts; commander remote HMG; rear slat protection.",
+  "reference_limits": "Base family hull dimensions; T-90M bustle changes silhouette and cannot be generic rounded T-72 turret.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally. Cannon rest muzzle X is chosen from cited gun-forward length minus half the selected hull length; this assumes the rear hull extent is the total-length rear reference.",
+  "variants": [
+    {
+      "id": "eastern_t_90_t_90m_proryv",
+      "name": "T-90 T-90M Proryv",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "T-90M Proryv",
+      "profile": "improved-mbt",
+      "appearance_id": "eastern_t_90_t_90m_proryv",
+      "export": "assets/source/roster/t90/eastern_t_90_t_90m_proryv.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.86,
+          3.78,
+          2.22
+        ],
+        "half_extents_m": [
+          3.43,
+          1.89,
+          1.11
+        ],
+        "eye_m": 2.087,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.332
+            ],
+            "muzzle_m": [
+              6.2,
+              0,
+              0.4
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.087
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ]
+}

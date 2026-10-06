@@ -38,6 +38,7 @@ const centred = (w: number, h: number, body: string, stroke = 1.5) => {
 
 /** Each weapon icon's drawing on a 24 × 24 grid, the muzzle to the right. */
 const WEAPON_ICONS: Record<string, string> = {
+  trophy: '<path d="M12 3l8 4v6c0 4-4 7-8 9-4-2-8-5-8-9V7z"/><path d="M7 12h10M12 8v8"/>',
   rifle: '<path d="M2 13h13l2-1.5h5"/><path d="M5 13l-1 4h3l1.5-4"/><path d="M11 13l1 3"/>',
   grenade: '<circle cx="11" cy="14" r="5"/><path d="M11 9V6h3"/><path d="M14 6l3-2"/>',
   ap_shell: '<path d="M3 10h11l6 2-6 2H3z"/><path d="M6 10v4"/><path d="M14 10l-2-3M14 14l-2 3"/>',
@@ -58,6 +59,7 @@ const CLOSED_EYE = `${EYE}<path d="M4 21L20 3"/>`;
  *  bar (being served), a ticked box (full), a crossed box (cannot). Waiting
  *  (a pause) and a blocked route (an arrow meeting a wall) differ too. */
 const STATE_ICONS = {
+  withdrawing: '<path d="M20 5H8v14"/><path d="M3 14l5 5 5-5"/><path d="M16 19h5"/>',
   deploy: '<path d="M12 4v10"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/>',
   pack: '<path d="M12 18V8"/><path d="M7 12l5-5 5 5"/><path d="M4 20h16"/>',
   deployed: '<path d="M12 4v7"/><path d="M12 11l-7 9M12 11l7 9M12 11v9"/>',
@@ -96,6 +98,7 @@ export const glyphIcon = (glyph: keyof typeof GLYPHS) => `glyphs/${glyph}.svg`;
  *  font glyph or emoji as an icon; every one is here or among the state
  *  marks. Each differs from its neighbours by form. */
 const HUD_ICONS = {
+  objective: '<path d="M6 21V3h13l-3 4 3 4H6"/>',
   // Tip at (2, 2) is a cursor hotspot, so this icon keeps its authored grid.
   cursor_arrow: '<path d="M2 2L25 11L14 15L11 26Z"/>',
   move: '<path d="M4 12h15"/><path d="M13 6l6 6-6 6"/>',

@@ -1,0 +1,212 @@
+{
+  "assignment": "bmp",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/bmp.py",
+  "exclusive_export_directory": "assets/source/roster/bmp/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "BMP-2",
+    "url": "https://en.m.wikipedia.org/wiki/BMP-2",
+    "sha256": "ec0ca473d9901b2ea2ee62c9350124dd1f911d7d894f12f5a66c446fe7ca3496",
+    "rows": [
+      "Length 6.735 metres (22 ft 1.2 in)",
+      "Width 3.15 metres (10 ft 4 in)",
+      "Height 2.45 metres (8 ft 0 in)",
+      "Main armament 30 mm 2A42 autocannon 9M113 Konkurs ATGM ,",
+      "Secondary armament 7.62 mm PKT machine gun"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Army2016demo-007.jpg/330px-Army2016demo-007.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/BMP-2M.jpg/500px-BMP-2M.jpg",
+        "sha256": "5b4bc77823c67f0a2fa8a1a8ac2672e13bc8a96a2093372c7c3a932221d24ded"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Army2016demo-007.jpg/500px-Army2016demo-007.jpg",
+        "sha256": "595d9449e5f2581f164391ed82859fb186d1e34ab9a3760e0687e3ba23d9b6bf"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/BMP-3_%286%29.jpg/500px-BMP-3_%286%29.jpg",
+        "sha256": "ab9abebc7c5c777d97510b2365cefb143b6737d09c674e26836e4ccf416049fa"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/04/Army2016demo-011.jpg/500px-Army2016demo-011.jpg",
+        "sha256": "a2d5e4132b82a4e1e55cd6cd87760e73e0f693536098864bce7a7e55ae653967"
+      }
+    ]
+  },
+  "silhouette_requirements": "Six wheels per side. BMP-2M Berezhok: low wedge hull, tall turret, 30 mm barrel and paired Kornet boxes on turret sides. BMP-3: wider boat-like hull, paired 100 mm/30 mm gun tubes, rear engine deck.",
+  "reference_limits": "BMP-3 uses its own 7.14/3.2/2.4 m envelope. Correct captured Kornet shorthand to gun-launched Bastion through 100 mm 2A70; no fictional external Kornet boxes.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "name": "BMP IFV Family BMP-2M Berezhok",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "BMP-2M Berezhok",
+      "profile": "light-ifv",
+      "appearance_id": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "export": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.735,
+          3.15,
+          2.45
+        ],
+        "half_extents_m": [
+          3.3675,
+          1.575,
+          1.225
+        ],
+        "eye_m": 2.303,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.593
+            ],
+            "muzzle_m": [
+              2.829,
+              0,
+              0.441
+            ]
+          },
+          {
+            "name": "launcher",
+            "pack": [
+              "Kornet"
+            ],
+            "role": "hmg",
+            "on": "autocannon",
+            "pivot_m": [
+              0,
+              0.851,
+              2.009
+            ],
+            "muzzle_m": [
+              1.05,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "eastern_bmp_ifv_family_bmp_3",
+      "name": "BMP IFV Family BMP-3",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "BMP-3",
+      "profile": "ifv",
+      "appearance_id": "eastern_bmp_ifv_family_bmp_3",
+      "export": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_3.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.14,
+          3.2,
+          2.4
+        ],
+        "half_extents_m": [
+          3.57,
+          1.6,
+          1.2
+        ],
+        "eye_m": 2.256,
+        "mounts": [
+          {
+            "name": "main_gun",
+            "pack": [
+              "IFV-HE",
+              "Bastion"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.6
+            ],
+            "muzzle_m": [
+              3.8,
+              0,
+              0.35
+            ]
+          },
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "hmg",
+            "on": "main_gun",
+            "pivot_m": [
+              0,
+              -0.22,
+              1.6
+            ],
+            "muzzle_m": [
+              3.25,
+              0,
+              0.35
+            ]
+          }
+        ]
+      },
+      "notes": [
+        "Standard BMP-3 has a 100 mm 2A70 gun with gun-launched Bastion, plus a separate 30 mm 2A72. Bastion shares the real 100 mm bore; the existing second hmg rig draws the 30 mm barrel."
+      ]
+    }
+  ],
+  "dependency": "BMP-3 requires two distinct articulated muzzles using existing gun and hmg roles; Bastion shares the real 100 mm bore.",
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/eastern_armor.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; source-fit-clean; runtime-and-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/east-reference-review.md",
+    "variants": [
+      {
+        "id": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+        "glb_sha256": "9cd9d10ee82580c72825a015c1652ecc48e4871c4843297fc8a2990e46a3a023",
+        "source_bytes": 2148692,
+        "triangles_by_tier": [
+          9804,
+          3888,
+          1918,
+          1224
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok/eastern_bmp_ifv_family_bmp_2m_berezhok.svg"
+      },
+      {
+        "id": "eastern_bmp_ifv_family_bmp_3",
+        "glb_sha256": "1dff63ab936f134669cceead67316367ed812d835be38f4b68893cc914eb7fc1",
+        "source_bytes": 2152208,
+        "triangles_by_tier": [
+          9756,
+          4056,
+          1778,
+          1072
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/bmp/eastern_bmp_ifv_family_bmp_3/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/bmp/eastern_bmp_ifv_family_bmp_3/eastern_bmp_ifv_family_bmp_3.svg"
+      }
+    ]
+  }
+}

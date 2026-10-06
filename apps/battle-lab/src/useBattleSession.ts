@@ -68,11 +68,13 @@ import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import {
   corpseInstances,
   poseFrameInstances,
+  restingModelPose,
   type CorpseInstance,
   type ModelInstance,
   type ResolveAppearance,
   type XrayOf,
 } from "@packages/battle-renderer/src/models/modelInstances";
+import { gameHud } from "@web/battle/present/hudTheme";
 import { gameOrderFlash, gameXray, gameOrderStyle } from "./gameOverlay";
 import {
   NOTHING_REVEALED,
@@ -80,6 +82,8 @@ import {
   sameReveal,
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
+import type { Faction } from "@packages/scene-assets/src/units";
+import { PurchasePlacementControl, type PurchaseGhost } from "@web/battle/input/purchasePlacement";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import {
   dragFacing,
@@ -123,6 +127,8 @@ import type { Pose } from "@web/battle/present/interpolate";
 import { circleContains, unitCircle } from "@packages/battle-renderer/src/orderOverlay";
 import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import { orderView } from "./battleOverlay";
+
+const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
 
 /** Seconds a cook-off's pieces stay drawn, still, before the whole wreck
  *  takes over: the swap rebuilds the side's structures, and this keeps the
@@ -179,8 +185,13 @@ export function useBattleSession({
   prepared,
 }: BattleSessionOptions) {
   const appAudio = useAppAudio();
-  const { map, rules } = useMemo(
-    () => JSON.parse(scenario) as { map: unknown; rules: ScenarioRules },
+  const { map, rules, skirmish } = useMemo(
+    () =>
+      JSON.parse(scenario) as {
+        map: unknown;
+        rules: ScenarioRules;
+        skirmish?: { factions: [Faction, Faction] };
+      },
     [scenario],
   );
   const world = useStaticWorld(map, rules);
@@ -274,13 +285,40 @@ export function useBattleSession({
     noteOrder,
     inputEnabled,
   );
+  const [purchasePlacement] = useState(() => new PurchasePlacementControl());
+  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const purchaseGhost = useRef<PurchaseGhost | null>(null);
+  const cancelPurchase = useCallback(() => {
+    purchasePlacement.cancel();
+    purchaseGhost.current = null;
+    setPurchasing(null);
+  }, [purchasePlacement]);
+  const choosePurchase = useCallback(
+    (variant: string) => {
+      control.setSelected([]);
+      control.setMode("move");
+      purchasePlacement.choose(variant);
+      setPurchasing(variant);
+    },
+    [control, purchasePlacement],
+  );
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !purchasePlacement.variant) return;
+      event.preventDefault();
+      cancelPurchase();
+    };
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
+  }, [purchasePlacement, cancelPurchase]);
   // A new battle carries no flash over.
   useEffect(() => {
+    cancelPurchase();
     orderReveal.clear();
     pendingAction.current = null;
     captured.current = null;
     pointerPaint.resolvePreview(null, [], null, 0);
-  }, [sim.client, orderReveal, pointerPaint]);
+  }, [sim.client, orderReveal, pointerPaint, cancelPurchase]);
 
   // Every building is drawn from its template's rows, as instances of kit
   // modules, standing or fallen: no fitted model stands for one or for its
@@ -498,6 +536,22 @@ export function useBattleSession({
       corpses: { version: -1, list: [] as CorpseInstance[], soldiers: [] as number[] },
     };
   }, [appearances, rules, side]);
+  const ghostModel = useMemo<ModelInstance | null>(() => {
+    if (!purchasing || !posing || !appearances) return null;
+    const resolved = posing.resolve(purchasing, side, 0, 0);
+    const bundle = resolved && appearances.appearances.get(resolved.appearance)?.bundle;
+    if (!resolved || !bundle) return null;
+    return {
+      appearance: resolved.appearance,
+      x: 0,
+      y: 0,
+      z: 0,
+      yaw: 0,
+      pose: restingModelPose(bundle),
+      ghost: gameXray.selected,
+    };
+  }, [purchasing, posing, appearances, side]);
+  const frameModels = useRef<ModelInstance[]>([]);
   // The trees the side knows have fallen, each from the start of the tick
   // it fell (the clock is ticks over tick_hz, as the effects' are). The
   // decoder keeps an unchanged list's reference, and so does this.
@@ -578,9 +632,20 @@ export function useBattleSession({
           list: corpseInstances(poses, posing.resolve),
           soldiers: poses.corpses.map((c) => c.soldier),
         };
+      const placement = purchaseGhost.current;
+      const composed = frameModels.current;
+      composed.length = 0;
+      for (const model of models) composed.push(model);
+      if (placement && ghostModel && inputEnabled) {
+        ghostModel.x = placement.destination[0];
+        ghostModel.y = placement.destination[1];
+        ghostModel.z = surfaceZ(ghostModel.x, ghostModel.y);
+        ghostModel.ghost = placement.valid === false ? PURCHASE_BLOCKED : gameXray.selected;
+        composed.push(ghostModel);
+      }
       return {
         picks: d.picks,
-        models,
+        models: composed,
         corpses: posing.corpses.list,
         felled,
         clock: time,
@@ -603,6 +668,9 @@ export function useBattleSession({
       control.showOrders,
       flights,
       lastHulls,
+      ghostModel,
+      inputEnabled,
+      surfaceZ,
     ],
   );
   /** Sound for the last frame, heard from `camera`: call once a frame. */
@@ -667,6 +735,17 @@ export function useBattleSession({
   };
   const onPick = useCallback(
     (pick: LabPick) => {
+      if (purchasePlacement.variant) {
+        if (pick.button === "right") cancelPurchase();
+        else if (inputEnabled)
+          void purchasePlacement.confirm(control.issue).then((accepted) => {
+            if (accepted && !purchasePlacement.variant) {
+              purchaseGhost.current = null;
+              setPurchasing(null);
+            }
+          });
+        return;
+      }
       const held = captured.current;
       if (pick.button === "right") {
         // A reset cancels the old press; its release cannot command the new battle.
@@ -682,7 +761,7 @@ export function useBattleSession({
         if (pointer) control.onPointer(pointer);
       }
     },
-    [semanticPick, control, world, sim.client],
+    [semanticPick, control, world, sim.client, purchasePlacement, cancelPurchase, inputEnabled],
   );
   const eligibilityIdentity = JSON.stringify(
     (observation?.own ?? []).map((u) => [
@@ -728,6 +807,21 @@ export function useBattleSession({
       (!pointer.rightPress || captured.current?.client === sim.client) &&
       sim.client &&
       world;
+    if (purchasePlacement.variant) {
+      const at = active && inputEnabled && groundUnderRay(world.view, pointer.ray!);
+      purchaseGhost.current = purchasePlacement.at(
+        at ? [at[0], at[1]] : null,
+        active ? sim.client : null,
+        `${semanticRevision.current.version}`,
+      );
+      pointerPaint.update(
+        null,
+        [],
+        surfaceZ,
+        metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
+      );
+      return active ? (purchaseGhost.current?.valid === false ? "blocked" : "default") : null;
+    }
     const pick = active
       ? semanticPick({
           ...pointer.position!,
@@ -1048,6 +1142,19 @@ export function useBattleSession({
     contacts,
     sim,
     control,
+    purchase: skirmish
+      ? {
+          faction: skirmish.factions[side === "blue" ? 0 : 1],
+          cards: UNITS.cards,
+          placing: purchasing,
+          ghost: purchaseGhost,
+          choose: choosePurchase,
+          cancel: cancelPurchase,
+          ready: () => void control.issue({ kind: "ready" }),
+          cancelPending: (id: number) =>
+            void control.issue({ kind: "cancel_pending", purchase: id }),
+        }
+      : null,
     /** Which own units' order marks show, at what opacity (`OrderReveal`):
      *  every unit's with Space held, an order's units' as it flashes. */
     revealed,

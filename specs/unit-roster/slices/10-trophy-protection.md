@@ -1,6 +1,6 @@
 # 10 — Swept interception, finite service and weapon-row presentation
 
-Status: not started. Dependencies: 03,04. Follow the README handoff and repository
+Status: focused implementation complete; integrated publication/commit pending. Dependencies: 03,04. Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -58,3 +58,11 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 - [ ] Narrow green proof and any allowed digest change recorded.
 - [ ] Artifact/visual gates resolved where applicable.
 - [ ] Choices, status and next pickup updated; focused pass committed.
+
+
+Focused proof: seven protection tests cover swept standoff, pass/cover bypass,
+chronological simultaneous threats, exact three-second cooldown/four-charge
+exhaustion, ordinary-shell bypass, collateral/source preservation and finite-stock
+service. The production resolver and native replay state are green. Own panel rows
+show charges/cooldown while enemy rows reveal equipment only. Full production browser
+capture and final catalog/model admission remain integration gates.

@@ -1,0 +1,73 @@
+{
+  "assignment": "brm",
+  "status": "research-gated",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/brm.py",
+  "exclusive_export_directory": "assets/source/roster/brm/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "BMP-3",
+    "url": "https://en.m.wikipedia.org/wiki/BMP-3",
+    "sha256": "4f78ec73da8b471367fd84fb71b17b4220ae272bd7dd52364ebaaed6f5205058",
+    "rows": [
+      "Length 7.14 m (23 ft 5 in)",
+      "Width 3.2 m (10 ft 6 in)",
+      "Height 2.4 m (7 ft 10 in)",
+      "Main armament 2K23/Bakhcha-U/Berezhok turret with 100 mm 2A70 cannon 30 mm 2A72 autocannon AGS-30 grenade launcher and Kornet-EM (Berezhok turret only) [ 2 ] AU-220M Baikal remote weapon station turret with 57 mm BM-57 autocannon",
+      "Secondary armament 3 \u00d7 7.62 mm PKT machine guns"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/0/04/Army2016demo-011.jpg/330px-Army2016demo-011.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ]
+  },
+  "silhouette_requirements": "BRM-3K Lynx: six wheels per side; BMP-3 derived hull but distinctive reconnaissance turret with 30 mm gun and radar/sensor hardware.",
+  "reference_limits": "BRM-3K source URL returned 404. BMP-3 donor dimensions are an estimate, not BRM-specific proof; family remains research-gated.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "eastern_brm_brm_3k",
+      "name": "BRM BRM-3K",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "BRM-3K",
+      "profile": "tracked-recon",
+      "appearance_id": "eastern_brm_brm_3k",
+      "export": "assets/source/roster/brm/eastern_brm_brm_3k.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.14,
+          3.2,
+          2.4
+        ],
+        "half_extents_m": [
+          3.57,
+          1.6,
+          1.2
+        ],
+        "eye_m": 2.256,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.56
+            ],
+            "muzzle_m": [
+              2.999,
+              0,
+              0.432
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ]
+}

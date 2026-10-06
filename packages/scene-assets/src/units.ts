@@ -55,7 +55,12 @@ export interface MountRow {
   squad: boolean;
   special: boolean;
   /** Appearance set worn by this single infantry weapon's current operator. */
-  operator_appearance?: { active: string[]; carried: string[] };
+  operator_appearance?: {
+    active: string[];
+    carried: string[];
+    /** Authored stationary hold. Movement uses the carried kit. */
+    active_pose?: { clip: string; phase: number };
+  };
   turret: boolean;
   /** The earlier turret mount that carries it; null, the hull. */
   on: string | null;
@@ -101,7 +106,17 @@ export interface UnitType {
     on?: string;
   };
   mounts: MountRow[];
-  capabilities: { deploy?: { seconds: number; pack_seconds?: number }; supply?: { stock: number } };
+  capabilities: {
+    deploy?: { seconds: number; pack_seconds?: number };
+    supply?: { stock: number };
+    active_protection?: {
+      capacity: number;
+      cooldown_s: number;
+      standoff_m: number;
+      service_s: number;
+      stock_per_charge: number;
+    };
+  };
   sound: { profile: "infantry" | "vehicle"; loudness_m: number };
   /** A hull's model; a squad draws its soldiers' appearance sets. */
   appearance?: string;

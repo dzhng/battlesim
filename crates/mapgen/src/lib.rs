@@ -10,8 +10,8 @@ mod joints;
 pub mod layout;
 pub mod open_country;
 pub mod parcels;
-pub mod street_props;
 mod skirmish;
+pub mod street_props;
 
 use layout::{GenerationRequest, PresetDefinitions};
 
@@ -716,10 +716,14 @@ pub fn lower(
     }
     validate_plan(&request.plan)?;
     if let Some(sites) = &request.plan.skirmish {
-        sites.validate().map_err(|message| vec![Diagnostic {
-            code: DiagnosticCode::InvalidPlacement, feature: Some("skirmish_sites".into()),
-            location: "$.plan.skirmish".into(), message,
-        }])?;
+        sites.validate().map_err(|message| {
+            vec![Diagnostic {
+                code: DiagnosticCode::InvalidPlacement,
+                feature: Some("skirmish_sites".into()),
+                location: "$.plan.skirmish".into(),
+                message,
+            }]
+        })?;
     }
     let mut authored_parts = request.plan.props.len() as u64;
     let mut bay_positions = 0u64;

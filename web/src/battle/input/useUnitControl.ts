@@ -132,6 +132,8 @@ export function useUnitControl(
           return `occupy building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
         case "exit_building":
           return `leave building: ${order.units.map(unitName).join(", ")}`;
+        case "refund":
+          return `return ${order.units.map(unitName).join(", ")} to base`;
         case "ready":
           return "ready";
         case "confirm_purchase":
@@ -279,6 +281,11 @@ export function useUnitControl(
     if (units.length) void issue({ kind: "exit_building", units });
   }, [issue]);
 
+  const refund = useCallback(() => {
+    const units = selectedUnitsRef.current.map((unit) => unit.id);
+    if (units.length) void issue({ kind: "refund", units });
+  }, [issue]);
+
   // Command keys, from the one binding table.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -305,6 +312,7 @@ export function useUnitControl(
   }, [stop, togglePolicy, toggleDeployment, setMode]);
 
   return {
+    refund: observation?.skirmish ? refund : undefined,
     selected,
     setSelected,
     selectedUnits,

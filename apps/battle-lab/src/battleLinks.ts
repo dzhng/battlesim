@@ -9,6 +9,7 @@
 //   /battle?replay=saved                       the saved replay of either
 // A generated map's address may add `&region=<family>`; without it the seed
 // draws the region.
+import type { Faction } from "@packages/scene-assets/src/units";
 import type { PrepareBattleRequest } from "@web/battle/prepare/protocol";
 import game from "@fixtures/game.json";
 import config from "@fixtures/generated-battle.json";
@@ -26,6 +27,8 @@ import {
 export type AskedBattle =
   | {
       kind: "generated";
+      faction?: Faction;
+      enemy?: Faction;
       map: MapChoice;
       recipe: string;
       encounterSeed: string;
@@ -33,6 +36,8 @@ export type AskedBattle =
     }
   | {
       kind: "play";
+      faction?: Faction;
+      enemy?: Faction;
       map: Omit<MapChoice, "seed">;
       recipe: string;
       encounterSeed: string;
@@ -43,7 +48,14 @@ export type AskedBattle =
 /** The regions a player may ask for: the presets' regional families. */
 export const REGIONS: readonly string[] = presets.parcels.regional_families;
 /** Data names the player reads as another name. */
-const SAID: Readonly<Record<string, string>> = { china: "taiwan" };
+const SAID: Readonly<Record<string, string>> = {
+  china: "taiwan",
+  us: "U.S.",
+  europe: "European",
+  eastern: "Eastern",
+};
+export const FACTIONS = ["us", "europe", "eastern"] as const;
+type BattleChoice = MapChoice & { faction?: Faction };
 
 /** A data name as the player reads it: `new_york` is "new york", `china` "taiwan". */
 export const spoken = (name: string) => SAID[name] ?? name.replaceAll("_", " ");
@@ -53,10 +65,11 @@ const one = <T extends string>(value: string | null, of: readonly T[]): value is
 
 /** The map a menu address names (`/?type=&size=&seed=&region=`), field by
  *  field: what the menu opens on after a battle is cancelled or refused. */
-export function askedChoice(search: string): Partial<MapChoice> {
+export function askedChoice(search: string): Partial<BattleChoice> {
   const params = new URLSearchParams(search);
   const [type, size, region] = [params.get("type"), params.get("size"), params.get("region")];
   return {
+    ...(one(params.get("faction"), FACTIONS) && { faction: params.get("faction") as Faction }),
     ...(one(type, MAP_TYPES) && { type }),
     ...(one(size, MAP_SIZES) && { size }),
     ...(params.get("profile") === "skirmish" && { profile: "skirmish" as const }),
@@ -66,19 +79,20 @@ export function askedChoice(search: string): Partial<MapChoice> {
 }
 
 /** A generated map's fields as address text, the region only when chosen. */
-const query = (choice: Partial<MapChoice> & Pick<MapChoice, "type" | "size">) =>
+const query = (choice: Partial<BattleChoice> & Pick<MapChoice, "type" | "size">) =>
   [
     `type=${choice.type}&size=${choice.size}`,
     choice.seed !== undefined && `seed=${choice.seed}`,
     choice.region !== undefined && `region=${choice.region}`,
     choice.profile !== undefined && `profile=${choice.profile}`,
+    choice.faction !== undefined && `faction=${choice.faction}`,
   ]
     .filter(Boolean)
     .join("&");
 /** The battle on the generated map `choice`. */
-export const battleHref = (choice: MapChoice) => `/battle?${query(choice)}`;
+export const battleHref = (choice: BattleChoice) => `/battle?${query(choice)}`;
 /** Ordinary Play chooses an admitted battle after navigation. */
-export const playHref = (choice: Omit<MapChoice, "seed">) => `/battle?play=1&${query(choice)}`;
+export const playHref = (choice: Omit<BattleChoice, "seed">) => `/battle?play=1&${query(choice)}`;
 
 /** The exact address of the battle preparation actually admitted. */
 export function preparedBattleHref(request: PrepareBattleRequest): string {
@@ -86,6 +100,10 @@ export function preparedBattleHref(request: PrepareBattleRequest): string {
   const params = new URLSearchParams(
     source.kind === "generated" ? query(source.request) : { map: source.id },
   );
+  if (request.skirmish) {
+    params.set("faction", request.skirmish[0]);
+    params.set("enemy", request.skirmish[1]);
+  }
   params.set("recipe", request.recipe_id);
   params.set("encounter", request.encounter_seed);
   params.set("battle", String(request.battle_seed));
@@ -110,6 +128,16 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   const battleSeed = Number(params.get("battle") ?? game.seed);
   if (!Number.isSafeInteger(battleSeed) || battleSeed < 0)
     return { error: `battle must be a whole number from 0 to ${Number.MAX_SAFE_INTEGER}` };
+  const faction = params.get("faction");
+  const enemy = params.get("enemy");
+  if (faction !== null && !one(faction, FACTIONS))
+    return { error: "faction must be us, europe or eastern" };
+  if (enemy !== null && !one(enemy, FACTIONS))
+    return { error: "enemy must be us, europe or eastern" };
+  const factions = {
+    ...(faction !== null && { faction: faction as Faction }),
+    ...(enemy !== null && { enemy: enemy as Faction }),
+  };
   const recipe = params.get("recipe");
   if (params.has("map")) return { error: "map is not supported; start a generated skirmish" };
   const type = params.get("type") ?? ("mixed" satisfies MapType);
@@ -123,11 +151,14 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   const profile = params.get("profile");
   if (profile !== null && profile !== "standard" && profile !== "skirmish")
     return { error: "profile must be standard or skirmish" };
-  const chosen = { ...(region === null ? {} : { region }),
-    ...(profile !== null && { profile }) } as Pick<MapChoice,"region"|"profile">;
+  const chosen = {
+    ...(region === null ? {} : { region }),
+    ...(profile !== null && { profile }),
+  } as Pick<MapChoice, "region" | "profile">;
   if (params.has("play"))
     return {
       kind: "play",
+      ...factions,
       map: { type, size, ...chosen },
       recipe: recipe ?? config.encounter.recipe,
       encounterSeed,
@@ -137,6 +168,7 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
     return { error: "seed must be a whole number from 0 to 18446744073709551615" };
   return {
     kind: "generated",
+    ...factions,
     map: { type, size, seed: mapSeed, ...chosen },
     recipe: recipe ?? config.encounter.recipe,
     encounterSeed,

@@ -1,6 +1,6 @@
 # 05 — Faction picker, disabled variants, ghost and persistent army bar
 
-Status: not started. Dependencies: 04. Follow the README handoff and repository
+Status: production purchase/entry proof green; visual acceptance and closeout pending. Dependencies: 04. Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -56,3 +56,14 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 - [ ] Narrow green proof and any allowed digest change recorded.
 - [ ] Artifact/visual gates resolved where applicable.
 - [ ] Choices, status and next pickup updated; focused pass committed.
+
+## Current evidence
+
+Production unit-roster scene proves empty preparation, grouped family/variant picker,
+free ghost/Escape, cursor confirmation with exact wallet/slot reservation and physical
+road-edge entry. Focused input checks reject stale variant/destination/authority
+previews and allow confirmation after async completion without another cursor move.
+Actual model ghost uses ordinary named appearance/pose through a translucent mesh
+pass; alpha/depth/occlusion/shadow checks were falsified and restored for three rigs.
+Integrated screenshots live in ignored throwaway/evidence/unit-roster. Reference
+comparison, Preview and fresh unprimed critique remain acceptance gates.

@@ -15,6 +15,7 @@ export function ArmyDeck({
   rules,
   control,
   captions,
+  reinforcements,
 }: {
   own: readonly OwnUnitView[];
   selected: readonly number[];
@@ -22,6 +23,7 @@ export function ArmyDeck({
   rules: PanelRules;
   control?: Parameters<typeof CommandBar>[0]["control"];
   captions: ReactNode;
+  reinforcements?: ReactNode;
 }) {
   const lower = useRef<HTMLDivElement>(null);
   const [hintHost, setHintHost] = useState<HTMLDivElement | null>(null);
@@ -58,8 +60,9 @@ export function ArmyDeck({
         </div>
       )}
       <div className="hud-command-hint" ref={setHintHost} />
-      {own.length > 0 && (
+      {(own.length > 0 || reinforcements) && (
         <footer className="hud-panel hud-bar hud-bottom hud-army-deck" data-occludes-readouts>
+          {reinforcements}
           <div
             className="hud-army"
             role="group"

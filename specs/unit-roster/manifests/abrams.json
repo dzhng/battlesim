@@ -1,0 +1,221 @@
+{
+  "assignment": "abrams",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/abrams.py",
+  "exclusive_export_directory": "assets/source/roster/abrams/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "M1_Abrams",
+    "url": "https://en.m.wikipedia.org/wiki/M1_Abrams",
+    "sha256": "34ed37c17b1a405f7f983b60da0a154862c37331f02c31ab80162fccfdd63d03",
+    "rows": [
+      "Length Gun forward: 32.04 ft (9.77 m) [ 8 ] Hull length: 26.02 ft (7.93 m)",
+      "Width 12 ft (3.66 m) [ 8 ]",
+      "Height 8 ft (2.44 m) [ 8 ]",
+      "Main armament M1: 105 mm L/52 M68A1 rifled gun (55 rounds) M1A1+M1A2: 120 mm L/44 M256 smoothbore gun (40 rounds)",
+      "Secondary armament 1 \u00d7 0.50 caliber (12.7 mm) M2HB heavy machine gun with 900 rounds 2 \u00d7 7.62 mm (.308 in) M240 machine guns with 10,400 rounds (1 pintle-mounted , 1 coaxial )"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/M1A2_SEP_v3.jpg/330px-M1A2_SEP_v3.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ]
+  },
+  "silhouette_requirements": "Seven road wheels per side; low wedge glacis; broad angular turret with bustle basket; long 120 mm gun and bore evacuator; engine rear deck; commander HMG. Trophy variants need paired launchers and radar panels, plain SEP v2 omits them. SEP v3 adds recognizable turret/hull equipment/stowage from its reference.",
+  "reference_limits": "7.93 m is hull; 9.77 m is gun-forward total, never use 9.77 as hull collision length. Exact SEP roof equipment and Trophy reference require family review.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally. Cannon rest muzzle X is chosen from cited gun-forward length minus half the selected hull length; this assumes the rear hull extent is the total-length rear reference.",
+  "variants": [
+    {
+      "id": "us_m1_abrams_sep_v2",
+      "name": "M1A2 Abrams SEP v2",
+      "factions": [
+        "us"
+      ],
+      "variant": "SEP v2",
+      "profile": "mbt",
+      "appearance_id": "us_m1_abrams_sep_v2",
+      "export": "assets/source/roster/abrams/us_m1_abrams_sep_v2.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.93,
+          3.66,
+          2.44
+        ],
+        "half_extents_m": [
+          3.965,
+          1.83,
+          1.22
+        ],
+        "eye_m": 2.294,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.464
+            ],
+            "muzzle_m": [
+              5.805,
+              0,
+              0.439
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.294
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "us_m1_abrams_sep_v2_trophy",
+      "name": "M1A2 Abrams SEP v2 Trophy",
+      "factions": [
+        "us"
+      ],
+      "variant": "SEP v2 Trophy",
+      "profile": "mbt",
+      "appearance_id": "us_m1_abrams_sep_v2_trophy",
+      "export": "assets/source/roster/abrams/us_m1_abrams_sep_v2_trophy.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.93,
+          3.66,
+          2.44
+        ],
+        "half_extents_m": [
+          3.965,
+          1.83,
+          1.22
+        ],
+        "eye_m": 2.294,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.464
+            ],
+            "muzzle_m": [
+              5.805,
+              0,
+              0.439
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.294
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": [
+        "Trophy is automatic capability, not offensive mount. Required static hardware nodes trophy_radar_L/R and trophy_launcher_L/R; capability/parts binding remains coordinator-owned; no spawn before slice 10."
+      ]
+    },
+    {
+      "id": "us_m1_abrams_sep_v3_trophy",
+      "name": "M1A2 Abrams SEP v3 Trophy",
+      "factions": [
+        "us"
+      ],
+      "variant": "SEP v3 Trophy",
+      "profile": "advanced-mbt",
+      "appearance_id": "us_m1_abrams_sep_v3_trophy",
+      "export": "assets/source/roster/abrams/us_m1_abrams_sep_v3_trophy.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.93,
+          3.66,
+          2.44
+        ],
+        "half_extents_m": [
+          3.965,
+          1.83,
+          1.22
+        ],
+        "eye_m": 2.294,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "advanced-tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.464
+            ],
+            "muzzle_m": [
+              5.805,
+              0,
+              0.439
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.294
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": [
+        "Trophy is automatic capability, not offensive mount. Required static hardware nodes trophy_radar_L/R and trophy_launcher_L/R; capability/parts binding remains coordinator-owned; no spawn before slice 10."
+      ]
+    }
+  ]
+}

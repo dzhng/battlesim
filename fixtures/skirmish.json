@@ -1,0 +1,7 @@
+{
+  "credits_per_minute": 200,
+  "starting_minutes": 5,
+  "preparation_s": 60,
+  "max_units": 30,
+  "dispatch_interval_s": 1
+}

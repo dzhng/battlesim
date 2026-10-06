@@ -50,7 +50,7 @@ export type PanelZoom = "default" | "far" | "compressed";
 
 /** The activity currently represented by the single progress ring. */
 interface Timer {
-  kind: "aim" | "reload" | "progress";
+  kind: "aim" | "reload" | "cooldown" | "progress";
   value: number;
 }
 
@@ -133,11 +133,13 @@ function WeaponCounts({ w }: { w: Pick<WeaponRow, "kinds"> }) {
 function WeaponRowView({ w }: { w: WeaponRow }) {
   const live = w.live;
   const timer: Timer | null =
-    live?.aim != null
-      ? { kind: "aim", value: live.aim }
-      : live?.reload != null
-        ? { kind: "reload", value: live.reload }
-        : null;
+    live?.cooldown != null
+      ? { kind: "cooldown", value: live.cooldown }
+      : live?.aim != null
+        ? { kind: "aim", value: live.aim }
+        : live?.reload != null
+          ? { kind: "reload", value: live.reload }
+          : null;
   const mark = live ? REASON_MARK[live.reason] : null;
   return (
     <div

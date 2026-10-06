@@ -266,7 +266,7 @@ const KNOWN_PROP_FIELDS: [&str; 19] = [
     "authoredPropLo",
     "authoredPropHi",
 ];
-const OWN_FIELDS: [&str; 44] = [
+const OWN_FIELDS: [&str; 47] = [
     "id",
     "kind",
     "x",
@@ -311,6 +311,9 @@ const OWN_FIELDS: [&str; 44] = [
     "areaX",
     "areaY",
     "areaM",
+    "withdrawing",
+    "protectionCharges",
+    "protectionCooldownProgress",
 ];
 const IDENTIFIED_FIELDS: [&str; 12] = [
     "id",
@@ -937,6 +940,11 @@ fn pack_record(
             u.area.map_or(f32::NAN, |a| a.anchor[0] as f32),
             u.area.map_or(f32::NAN, |a| a.anchor[1] as f32),
             u.area.map_or(f32::NAN, |a| a.radius as f32),
+            u.withdrawing as u8 as f32,
+            u.protection.map_or(-1.0, |p| p.charges as f32),
+            u.protection
+                .and_then(|p| p.cooldown)
+                .map_or(-1.0, |p| p as f32),
         ]);
     }
     for u in &frame.own {

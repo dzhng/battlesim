@@ -1,0 +1,100 @@
+{
+  "assignment": "tigr",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/tigr.py",
+  "exclusive_export_directory": "assets/source/roster/tigr/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "GAZ_Tigr",
+    "url": "https://en.m.wikipedia.org/wiki/GAZ_Tigr",
+    "sha256": "24a5dcd3283e03f29ab91c3a13419d1cd6e49dd95dae3f5c72baf7aedac9fd58",
+    "rows": [
+      "Length 5.67 m (18.6 ft) 5.7 m (19 ft) (Tigr-6A SPV) 5.7 m (19 ft) (Falcon)",
+      "Width 2.2 m (7.2 ft) 2.3 m (7.5 ft) (Tigr-6A SPV) 2.33 m (7.6 ft) (Falcon)",
+      "Height 2.0 m (6.6 ft) 2.2 m (7.2 ft) (Tigr-6A SPV) 2.4 m (7.9 ft) (Falcon)",
+      "Main armament 7.62mm PKP \"Pecheneg\" machine gun or Kord-12.7mm heavy machine gun or .50 Cal M2HB or 30mm AGS-17 grenade launcher"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/Zajedni%C4%8Dka_ve%C5%BEba_72_brSO_VS_i_2_br_Specnaz_OSRF_-_GAZ_Tigr_-_05.jpg/330px-Zajedni%C4%8Dka_ve%C5%BEba_72_brSO_VS_i_2_br_Specnaz_OSRF_-_GAZ_Tigr_-_05.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/VPK-233114_Tigr-M.jpg/500px-VPK-233114_Tigr-M.jpg",
+        "sha256": "2ddd05736cab0b296fff18071574f4b09b442abad5033e047515e6d49ac193c6"
+      }
+    ]
+  },
+  "silhouette_requirements": "Two axles/four wheels; long squared hood; flat upright windshield; rectangular armored cab; roof HMG station; rear spare.",
+  "reference_limits": "Common Tigr dimensions, not asserted exact Tigr-M fit.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "eastern_tigr_tigr_m",
+      "name": "Tigr Tigr-M",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "Tigr-M",
+      "profile": "light-car",
+      "appearance_id": "eastern_tigr_tigr_m",
+      "export": "assets/source/roster/tigr/eastern_tigr_tigr_m.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          5.67,
+          2.2,
+          2.0
+        ],
+        "half_extents_m": [
+          2.835,
+          1.1,
+          1.0
+        ],
+        "eye_m": 1.88,
+        "mounts": [
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.82
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/remaining_ground.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/remaining-ground-reference-review.md",
+    "variants": [
+      {
+        "id": "eastern_tigr_tigr_m",
+        "glb_sha256": "e28cfdcff3dc45a9fa491abb4eda4da6cbdc94929eb1f7d0c27d9e12507f521f",
+        "source_bytes": 1920604,
+        "triangles_by_tier": [
+          7064,
+          3096,
+          878,
+          660
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/tigr/eastern_tigr_tigr_m/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/tigr/eastern_tigr_tigr_m/eastern_tigr_tigr_m.svg"
+      }
+    ]
+  }
+}

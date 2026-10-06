@@ -1,0 +1,91 @@
+{
+  "assignment": "jaguar",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/jaguar.py",
+  "exclusive_export_directory": "assets/source/roster/jaguar/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "EBRC_Jaguar",
+    "url": "https://en.m.wikipedia.org/wiki/EBRC_Jaguar",
+    "sha256": "b6e23113fb55a6d1a3a3a2aa06f59f7754a37184e3c21ea31982ed0e60569156",
+    "rows": [
+      "Length 7.1 m (23 ft 4 in) (chassis) 7.8 m (25 ft 7 in) (including the 40 mm autocannon)",
+      "Width 2.99 m (9 ft 10 in)",
+      "Height 2.8 m (9 ft 2 in)",
+      "Main armament 40 mm Cased Telescoped Armament System 4 Akeron MP missiles",
+      "Secondary armament T3 Hornet S RCWS with a 7.62 mm machine gun GALIX self-protection system with 14 80 mm smoke grenades"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/9/9b/E20iPMrXMAUFTsh.jpg/330px-E20iPMrXMAUFTsh.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ]
+  },
+  "silhouette_requirements": "Three axles/six wheels; angular tall cab/hull, offset driver front, tall CT40 turret, side Akeron launcher boxes.",
+  "reference_limits": "Akeron authentic top attack remains deferred; art may be prepared but model must not enable behavior.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+      "name": "EBRC Jaguar Armed reconnaissance vehicle",
+      "factions": [
+        "europe"
+      ],
+      "variant": "Armed reconnaissance vehicle",
+      "profile": "wheeled-recon",
+      "appearance_id": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+      "export": "assets/source/roster/jaguar/europe_ebrc_jaguar_armed_reconnaissance_vehicle.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.1,
+          2.99,
+          2.8
+        ],
+        "half_extents_m": [
+          3.55,
+          1.495,
+          1.4
+        ],
+        "eye_m": 2.632,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.82
+            ],
+            "muzzle_m": [
+              2.982,
+              0,
+              0.504
+            ]
+          },
+          {
+            "name": "launcher",
+            "pack": [
+              "Akeron"
+            ],
+            "role": "hmg",
+            "on": "autocannon",
+            "pivot_m": [
+              0,
+              0.807,
+              2.296
+            ],
+            "muzzle_m": [
+              1.05,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ]
+}

@@ -1,0 +1,209 @@
+{
+  "assignment": "bradley",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/bradley.py",
+  "exclusive_export_directory": "assets/source/roster/bradley/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "M2_Bradley",
+    "url": "https://en.m.wikipedia.org/wiki/M2_Bradley",
+    "sha256": "44a332d6e6b2ddced3f86c68e408d7272cd573a459fa5dcbb33e043e5eb4f42f",
+    "rows": [
+      "Length 6.55 m",
+      "Width 3.60 m",
+      "Height 2.98 m"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/9/91/US_M2A1_Bradley_deployed_to_Saudi_Arabia_during_Operation_Desert_Shield.jpg/330px-US_M2A1_Bradley_deployed_to_Saudi_Arabia_during_Operation_Desert_Shield.jpg?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail"
+    ],
+    "additional_variant_reference": {
+      "url": "https://en.m.wikipedia.org/wiki/M3_Bradley",
+      "sha256": "e60cad28ccdd86efa70c7f6b187a52b7ec9cfb8e7b2cf7dba9103ae985ae5a45",
+      "scope": "M3 CFV sensor/stowage versus M2 IFV exterior"
+    },
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7b/M2A4_Bradley_%281%29.jpg/500px-M2A4_Bradley_%281%29.jpg",
+        "sha256": "d1319764356dd318aeb87894786d0c717f9f153f34b9a61a3b38afa24a3a61e1"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/M2A3_Bradley_Thermal_Sight.jpg/500px-M2A3_Bradley_Thermal_Sight.jpg",
+        "sha256": "a297c1a5d7641cad65e2518a43fba8872f9dd72289b2ec6f36e3894ac887cda1"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/M3_Bradley_Hohenfels_%28cropped%29.jpg/500px-M3_Bradley_Hohenfels_%28cropped%29.jpg",
+        "sha256": "959f7b98ddfb403b9c37de7be9e483e701f3295e077b82000dcf6a721df04826",
+        "page_url": "https://en.m.wikipedia.org/wiki/M3_Bradley",
+        "page_sha256": "e60cad28ccdd86efa70c7f6b187a52b7ec9cfb8e7b2cf7dba9103ae985ae5a45"
+      }
+    ]
+  },
+  "silhouette_requirements": "Six road wheels per side; slab-sided tracked hull; side skirts; angular two-man turret; slender 25 mm M242; turret-left twin TOW boxes; rear ramp; M3A3 commander viewer; M2A4 updated glacis/suspension.",
+  "reference_limits": "Family envelope; M3 reference separately reports 3.20\u20133.28 m width. Using a shared 3.60 m combat envelope is delegated fit tuning, not an M3A3 measured width.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "us_m2_bradley_ifv_m2a4",
+      "name": "M2 Bradley IFV M2A4",
+      "factions": [
+        "us"
+      ],
+      "variant": "M2A4",
+      "profile": "ifv",
+      "appearance_id": "us_m2_bradley_ifv_m2a4",
+      "export": "assets/source/roster/bradley/us_m2_bradley_ifv_m2a4.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.55,
+          3.6,
+          2.98
+        ],
+        "half_extents_m": [
+          3.275,
+          1.8,
+          1.49
+        ],
+        "eye_m": 2.801,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.937
+            ],
+            "muzzle_m": [
+              3.6,
+              0,
+              0.536
+            ]
+          },
+          {
+            "name": "launcher",
+            "pack": [
+              "TOW"
+            ],
+            "role": "hmg",
+            "on": "autocannon",
+            "pivot_m": [
+              0,
+              0.972,
+              2.444
+            ],
+            "muzzle_m": [
+              1.05,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "us_m3_bradley_cfv_m3a3",
+      "name": "M3 Bradley CFV M3A3",
+      "factions": [
+        "us"
+      ],
+      "variant": "M3A3",
+      "profile": "tracked-recon",
+      "appearance_id": "us_m3_bradley_cfv_m3a3",
+      "export": "assets/source/roster/bradley/us_m3_bradley_cfv_m3a3.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.55,
+          3.6,
+          2.98
+        ],
+        "half_extents_m": [
+          3.275,
+          1.8,
+          1.49
+        ],
+        "eye_m": 2.801,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.937
+            ],
+            "muzzle_m": [
+              3.6,
+              0,
+              0.536
+            ]
+          },
+          {
+            "name": "launcher",
+            "pack": [
+              "TOW"
+            ],
+            "role": "hmg",
+            "on": "autocannon",
+            "pivot_m": [
+              0,
+              0.972,
+              2.444
+            ],
+            "muzzle_m": [
+              1.05,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/light_armor.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; coordinator-envelope-refreeze-and-runtime-gates-pending",
+    "reference_review": "throwaway/unit-roster-models/light-reference-review.md",
+    "variants": [
+      {
+        "id": "us_m2_bradley_ifv_m2a4",
+        "glb_sha256": "d4a43847479aa3cf2d3d04fc394fecbb52e6c895c929a8c7455d26f7a71bc165",
+        "source_bytes": 2858892,
+        "triangles_by_tier": [
+          13828,
+          5134,
+          2208,
+          1244
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/bradley/us_m2_bradley_ifv_m2a4/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/bradley/us_m2_bradley_ifv_m2a4/us_m2_bradley_ifv_m2a4.svg"
+      },
+      {
+        "id": "us_m3_bradley_cfv_m3a3",
+        "glb_sha256": "316cd5069f401e1e54c09df3da8f9f16b7e0040b0f89fd4acdea8e01cdd5fc89",
+        "source_bytes": 2871212,
+        "triangles_by_tier": [
+          13884,
+          5154,
+          2220,
+          1256
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/bradley/us_m3_bradley_cfv_m3a3/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/bradley/us_m3_bradley_cfv_m3a3/us_m3_bradley_cfv_m3a3.svg"
+      }
+    ]
+  }
+}

@@ -203,6 +203,9 @@ pub struct Unit {
     pub side: Side,
     /// Its unit type, the catalog's index.
     pub kind: TypeIndex,
+    /// Returned through the physical base entry; distinct from combat death.
+    pub retired: bool,
+    pub withdrawing: bool,
     pub position: V3,
     pub yaw: f64,
     pub mobility: Mobility,
@@ -244,6 +247,7 @@ pub struct Unit {
     pub garrison: Option<Garrison>,
     /// A supply vehicle's remaining stock (L05); `None` for every other unit.
     pub stock: Option<u32>,
+    pub protection: Option<crate::protection::State>,
     /// Service received: progress toward the next item, and why or why not.
     pub progress_service: crate::supply::Progress,
     pub service: contract::observation::ServiceStatus,
@@ -398,6 +402,9 @@ impl Unit {
 
     /// A squad lives while any member does; a vehicle while its hull has health.
     pub fn alive(&self) -> bool {
+        if self.retired {
+            return false;
+        }
         match self.hull {
             Some(_) => self.hp > 0.0,
             None => self.members.iter().any(|s| s.alive()),
@@ -444,6 +451,7 @@ impl Unit {
             .f64(self.position.z)
             .f64(self.yaw);
         d.u64(self.state as u64).u64(self.reversing as u64);
+        d.u64(self.retired as u64).u64(self.withdrawing as u64);
         if self.is_vehicle() {
             d.f64(self.drive_speed_mps);
         }
@@ -499,8 +507,13 @@ impl Unit {
             .u64(self.progress.1);
         d.f64(self.hp).f64(self.suppression).u64(self.suppressed_at);
         d.u64(self.stock.map_or(u64::MAX, u64::from));
+        d.u64(self.protection.is_some() as u64);
+        if let Some(protection) = self.protection {
+            protection.digest(d);
+        }
         let p = self.progress_service;
         d.f64(p.ammo_s)
+            .f64(p.protection_s)
             .f64(p.hp_s)
             .f64(p.soldier_s)
             .u64(self.service as u64);

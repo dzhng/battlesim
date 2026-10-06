@@ -139,6 +139,12 @@ export default function Battle() {
 function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "replay" }> }) {
   const request = useBuiltScenario(asked, (wasm, a): PrepareBattleRequest => {
     const rest = {
+      ...(a.faction && {
+        skirmish: [
+          a.faction,
+          a.enemy ?? (a.faction === "eastern" ? "us" : "eastern"),
+        ] as PrepareBattleRequest["skirmish"],
+      }),
       recipe_id: a.recipe,
       encounter_seed: a.encounterSeed,
       battle_seed: a.battleSeed,
@@ -148,7 +154,11 @@ function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "repla
         kind: "generated",
         request: generationRequest(
           wasm,
-          { ...a.map, seed: a.kind === "play" ? "0" : a.map.seed },
+          {
+            ...a.map,
+            ...(a.faction && { profile: "skirmish" as const }),
+            seed: a.kind === "play" ? "0" : a.map.seed,
+          },
           GENERATOR,
           config.limits,
         ),

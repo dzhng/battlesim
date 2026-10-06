@@ -56,6 +56,10 @@ pub struct WeaponDefinition {
     /// Dedicated anti-armour: fires only at identified vehicles (W10).
     #[serde(default)]
     pub anti_armor: bool,
+    /// A missile/rocket body vulnerable to active protection; shells and
+    /// bullets do not inherit eligibility from penetration or guidance.
+    #[serde(default)]
+    pub interceptable: bool,
     /// Share of `damage` a vehicle still takes when this round fails to
     /// penetrate the struck face: HE's partial effect on armour. Absent
     /// means none (the round does nothing to armour it cannot pierce).
@@ -91,6 +95,16 @@ pub struct Burst {
 pub struct OperatorAppearance {
     pub active: Vec<String>,
     pub carried: Vec<String>,
+    /// A fixed authored hold for a stationary active operator only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_pose: Option<OperatorPose>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OperatorPose {
+    pub clip: String,
+    pub phase: f64,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -120,7 +134,7 @@ pub struct MountDefinition {
     #[serde(default)]
     pub on: Option<String>,
     /// Where this mount turns, in its carrier's frame (forward, left, up
-    /// from the hull origin), turned by the carrier's bearing (or the
+    /// from the hull or infantry operator origin), turned by the carrier's bearing (or the
     /// hull's yaw).
     #[serde(default)]
     pub pivot_m: [f64; 3],

@@ -1,0 +1,164 @@
+{
+  "assignment": "cv90",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/cv90.py",
+  "exclusive_export_directory": "assets/source/roster/cv90/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "Combat_Vehicle_90",
+    "url": "https://en.m.wikipedia.org/wiki/Combat_Vehicle_90",
+    "sha256": "95cf5d5adade8ba937a889bd409cb4ebfcd38999f6cc53423b70ac8731c8c449",
+    "rows": [
+      "Length 6.8 m (22 ft) [ 2 ]",
+      "Width 3.2 m (10 ft)",
+      "Height 2.8 m (9 ft 2 in)",
+      "Main armament 40 mm Bofors L/70 autocannon or 35 mm/50 Bushmaster autocannon (export models Mk III and Mk IV) or 30 mm/40 Bushmaster autocannon (export model Mk I & Mk II) or Cockerill XC-8 turret with 105 mm/120 mm cannon or 120 mm mortar",
+      "Secondary armament 7.62 mm Ksp m/39 machine gun or 7.62 FN MAG machine gun and 6 \u00d7 76 mm grenade launchers Spike LR anti-tank guided missile"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Stridsfordon_90_Revinge_2012-2.jpg/330px-Stridsfordon_90_Revinge_2012-2.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/Stridsfordon_90_Revinge_2012-2.jpg/500px-Stridsfordon_90_Revinge_2012-2.jpg",
+        "sha256": "b133be4fed07d34a7ad4344b90addac1159bdcf255b10ae40c8ae5bc8c616551"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/CV_90_Mk_IV_SIAF-2022.jpg/500px-CV_90_Mk_IV_SIAF-2022.jpg",
+        "sha256": "7d0c47a3a40e9f4b28952b7640e53349e9a82134cd807b7abc4ea478226784cc"
+      }
+    ]
+  },
+  "silhouette_requirements": "Seven wheels per side; tracked wedge-front IFV; turret behind driver. CV9040C Bofors 40 mm barrel and armor package; Mk IV revised angular D-series turret and modular armor.",
+  "reference_limits": "Common family envelope; Mk IV barrel/caliber and turret require variant-specific reference before dispatch.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "europe_cv90_cv9040c",
+      "name": "CV90 CV9040C",
+      "factions": [
+        "europe"
+      ],
+      "variant": "CV9040C",
+      "profile": "ifv",
+      "appearance_id": "europe_cv90_cv9040c",
+      "export": "assets/source/roster/cv90/europe_cv90_cv9040c.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.8,
+          3.2,
+          2.8
+        ],
+        "half_extents_m": [
+          3.4,
+          1.6,
+          1.4
+        ],
+        "eye_m": 2.632,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.82
+            ],
+            "muzzle_m": [
+              3.9,
+              0,
+              0.504
+            ]
+          }
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "europe_cv90_mk_iv",
+      "name": "CV90 Mk IV",
+      "factions": [
+        "europe"
+      ],
+      "variant": "Mk IV",
+      "profile": "advanced-ifv",
+      "appearance_id": "europe_cv90_mk_iv",
+      "export": "assets/source/roster/cv90/europe_cv90_mk_iv.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.8,
+          3.2,
+          2.8
+        ],
+        "half_extents_m": [
+          3.4,
+          1.6,
+          1.4
+        ],
+        "eye_m": 2.632,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.82
+            ],
+            "muzzle_m": [
+              3.9,
+              0,
+              0.504
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/europe_carriers.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/carrier-reference-review.md",
+    "variants": [
+      {
+        "id": "europe_cv90_cv9040c",
+        "glb_sha256": "ea055347de2594e1f8e0a7a9a2994d9ddc059c5fd1e93a5ac1d04b70cfa4e5c9",
+        "source_bytes": 2356140,
+        "triangles_by_tier": [
+          11688,
+          4260,
+          1830,
+          1040
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/cv90/europe_cv90_cv9040c/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/cv90/europe_cv90_cv9040c/europe_cv90_cv9040c.svg"
+      },
+      {
+        "id": "europe_cv90_mk_iv",
+        "glb_sha256": "78ad545f9497f04faefaeb430232743fa17b5900a6c715be756e9b0eb7c361b4",
+        "source_bytes": 2429712,
+        "triangles_by_tier": [
+          12072,
+          4386,
+          1870,
+          1076
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/cv90/europe_cv90_mk_iv/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/cv90/europe_cv90_mk_iv/europe_cv90_mk_iv.svg"
+      }
+    ]
+  }
+}

@@ -377,3 +377,32 @@ test("fresh firing keeps a previously identified name and labels its evidence ho
   expect(p.states.map((s) => s.word)).toEqual(["HEARD 5 s AGO"]);
   expect(p.weapons.every((w) => w.live === null && w.fill === null)).toBe(true);
 });
+
+test("Trophy shares weapon rows with charges and cooldown while enemy readiness stays private", () => {
+  const tank = UNITS.type("tank");
+  const lookup = vi.spyOn(UNITS, "type").mockReturnValue({
+    ...tank,
+    capabilities: {
+      active_protection: {
+        capacity: 4,
+        cooldown_s: 3,
+        standoff_m: 8,
+        service_s: 10,
+        stock_per_charge: 20,
+      },
+    },
+  });
+  try {
+    const own = unit({ kind: "tank", mounts: [], protection: { charges: 2, cooldown: 0.5 } });
+    const ready = ownPanel(own, [own], RULES).weapons.find((row) => row.name === "TROPHY");
+    expect(ready?.kinds).toEqual([{ label: null, count: 2, loaded: true }]);
+    expect(ready?.fill).toBe(0.5);
+    expect(ready?.live?.cooldown).toBe(0.5);
+    const enemy = enemyPanel("tank", RULES).weapons.find((row) => row.name === "TROPHY");
+    expect(enemy?.kinds).toEqual([{ label: null, loaded: false }]);
+    expect(enemy?.live).toBeNull();
+    expect(enemy?.fill).toBeNull();
+  } finally {
+    lookup.mockRestore();
+  }
+});

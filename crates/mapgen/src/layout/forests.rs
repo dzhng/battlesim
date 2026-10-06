@@ -58,7 +58,10 @@ pub fn grow(
     for town in towns {
         for park in &town.parks {
             let center = super::geometry::centroid(park);
-            let reach = park.iter().map(|p| super::geometry::distance(*p, center)).fold(0.0, f64::max);
+            let reach = park
+                .iter()
+                .map(|p| super::geometry::distance(*p, center))
+                .fold(0.0, f64::max);
             if !reserved.iter().any(|r| r.blocks(center, reach)) {
                 woods.claim(park);
             }

@@ -103,6 +103,9 @@ pub struct BuildingPlacement {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Order {
+    Refund {
+        units: Vec<UnitId>,
+    },
     Ready,
     CancelPending {
         purchase: crate::skirmish::PurchaseId,

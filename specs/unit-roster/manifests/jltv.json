@@ -1,0 +1,117 @@
+{
+  "assignment": "jltv",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/jltv.py",
+  "exclusive_export_directory": "assets/source/roster/jltv/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "Joint_Light_Tactical_Vehicle",
+    "url": "https://en.m.wikipedia.org/wiki/Joint_Light_Tactical_Vehicle",
+    "sha256": "c90ce0049384074d6335fbaa203cd6061aa883270f9349ae035886f5eeb54bb0",
+    "rows": [
+      "Length 20.5 ft (6.2 m) (nominal)",
+      "Width 8.2 ft (2.5 m) (nominal)",
+      "Height 8.5 ft (2.6 m) (nominal)",
+      "Main armament A variety of light and medium caliber weapons, AGLs , or ATGMs can be fitted"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/6/63/L-ATV_4.jpg/330px-L-ATV_4.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/M1278_JLTV_Heavy_Guns_Carrier_%28JLTV-HGC%29.jpg/500px-M1278_JLTV_Heavy_Guns_Carrier_%28JLTV-HGC%29.jpg",
+        "sha256": "00b4f8d8f5ba8d61634880b1eb6ab97f210cc063bbd5205b9bffd0fce5f332ac"
+      }
+    ]
+  },
+  "silhouette_requirements": "Two axles/four wheels; large tires; short sloped hood; armored angular cab; four doors; roof protected HMG station; compact rear cargo.",
+  "reference_limits": "Nominal JLTV family dimensions; use M1278 heavy-guns-carrier roof hardware references, not M-ATV.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "us_m1278_jltv_hmg",
+      "name": "M1278 JLTV HMG",
+      "factions": [
+        "us"
+      ],
+      "variant": "HMG",
+      "profile": "light-car",
+      "appearance_id": "us_m1278_jltv_hmg",
+      "export": "assets/source/roster/jltv/us_m1278_jltv_hmg.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.2,
+          2.5,
+          2.6
+        ],
+        "half_extents_m": [
+          3.1,
+          1.25,
+          1.3
+        ],
+        "eye_m": 2.885,
+        "mounts": [
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              2.665
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": [],
+      "frame_correction": {
+        "date": "2026-10-06",
+        "reason": "Preserve adopted body envelope; reauthor genuine taller hull/cab and hatches/periscopes rather than lower physics to prior candidate. Independent exact-variant photos show station clearly above roof. Chosen approximate station bore above authored nominal deck: Stryker ICV/RV0.65m, M1134launcher0.55m, JLTVHGC0.45m. Eye chosen near station optic. These are physical authoring decisions, not factory measurements.",
+        "body_measurement": "Published family body height retained by coordinator; bare roof versus total armed source semantics unresolved. Geometry deliberately approximate within adopted gameplay envelope, no filler.",
+        "mount_measurement": "Photo-relative estimate; approximately +/-0.15m due to perspective and suspension state. Stryker_ICV_front_q, Stryker_RV_front_q, Stryker_M1134_ATGM and M1278HGC independent photographs, pinned production_photo_receipts.",
+        "additional_evidence": "AM General JLTV-A2 brochure explicitly adjustable-height suspension; MotorTrend reports transport setting can match Humvee74in roof. These prove state dependence, not an M1278 normal-height bare roof numeric. A2 brochure is family-suspension corroboration, not exact M1278 dimension proof.",
+        "tire_scale_audit": {
+          "status": "fitted-tire-size-unconfirmed; frame-preserved",
+          "manufacturer_url": "https://business.michelinman.com/tires/michelin-xzl",
+          "manufacturer_sha256": "cbc4eeea2d25e8c21509bdfb7c7b96ab39a3b7939ebcdf15a28929d59dad6c02",
+          "manufacturer_dimensions": "XZL365/85R20 unloaded OD1144mm; XZL395/85R20 unloaded OD46.8in=1188.72mm. Neither establishes actual M1278 fitted size. Loaded tire shape/suspension state/perspective add uncertainty.",
+          "photo_url": "https://upload.wikimedia.org/wikipedia/commons/8/84/M1278_JLTV_Heavy_Guns_Carrier_%28JLTV-HGC%29.jpg",
+          "photo_sha256": "3c5b7fe42d241b034f7db17c55ecd0a4b400239b4ef3137ad1055061d0139f9d",
+          "photo_scale": "1920px photo front tire vertical392px, cab-ground844px; rear tire328px, cab-ground710px. Ratios2.153/2.165 imply rough cab2.46\u20132.48m for365 or2.56\u20132.57m for395, subject to loaded diameter/perspective. This does not support blindly lowering body to candidate cab2.23m.",
+          "limit": "Candidate tire radii are authored approximations, not source scale. No tire fit identification was obtained; Commons follow-up imagery unavailable (403)."
+        }
+      }
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/light_armor.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/roof-reference-review.md",
+    "variants": [
+      {
+        "id": "us_m1278_jltv_hmg",
+        "glb_sha256": "2ce4c5c9627d56bdd7bb7f344622962a4ba1ccf9916b38c1aa1353072f30f6a3",
+        "source_bytes": 2003844,
+        "triangles_by_tier": [
+          7502,
+          3162,
+          868,
+          700
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/jltv/us_m1278_jltv_hmg/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/jltv/us_m1278_jltv_hmg/us_m1278_jltv_hmg.svg"
+      }
+    ]
+  }
+}

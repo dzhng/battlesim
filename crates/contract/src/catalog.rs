@@ -255,6 +255,19 @@ pub struct Capabilities {
     /// Serves nearby units from a finite stock (L05); needs `deploy`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub supply: Option<Supply>,
+    /// A finite defensive interceptor, independent of offensive mounts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_protection: Option<ActiveProtection>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ActiveProtection {
+    pub capacity: u32,
+    pub cooldown_s: f64,
+    pub standoff_m: f64,
+    pub service_s: f64,
+    pub stock_per_charge: u32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -1334,6 +1347,21 @@ fn check(
             return rule("body.hull.armor.ricochet needs probabilities in [0, 1] on every face");
         }
     }
+    if let Some(p) = t.capabilities.active_protection {
+        if t.hull().is_none() {
+            return rule("active protection requires a hull");
+        }
+        if p.capacity == 0
+            || p.stock_per_charge == 0
+            || ![p.cooldown_s, p.standoff_m, p.service_s]
+                .into_iter()
+                .all(positive)
+        {
+            return rule(
+                "active protection needs finite positive timings, reach, capacity and stock price",
+            );
+        }
+    }
     ranges(t).map_or(Ok(()), rule)
 }
 
@@ -1411,8 +1439,8 @@ fn lower(v: &impl std::fmt::Debug) -> String {
     format!("{v:?}").to_lowercase()
 }
 
-/// The rules one soldier kind must keep: living hp, and hand weapons only,
-/// never both a squad's and a special one.
+/// Infantry mounts follow one operator or are shared hand weapons, never
+/// turrets or both a squad's and a special one.
 fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
     let invalid = |error: String| {
         Err(CatalogError::Invalid {
@@ -1441,6 +1469,13 @@ fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
                     m.name
                 ));
             }
+            if appearance.active_pose.as_ref().is_some_and(|p| {
+                !matches!(p.clip.as_str(), "stand_aim" | "kneel_fire")
+                    || !p.phase.is_finite()
+                    || !(0.0..=1.0).contains(&p.phase)
+            }) {
+                return invalid(format!("mount {:?}: active_pose needs stand_aim or kneel_fire and a finite phase in [0, 1]", m.name));
+            }
         }
         if m.squad && m.special {
             return invalid(format!(
@@ -1448,9 +1483,23 @@ fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
                 m.name
             ));
         }
-        if m.turret || m.on.is_some() || m.pivot_m != [0.0; 3] || m.muzzle_m.is_some() {
+        if m.turret
+            || m.on.is_some()
+            || (m.squad && (m.pivot_m != [0.0; 3] || m.muzzle_m.is_some()))
+            || (m.muzzle_m.is_none() && m.pivot_m != [0.0; 3])
+        {
             return invalid(format!(
-                "mount {:?} is a hand weapon: no turret, on, pivot_m or muzzle_m",
+                "mount {:?}: infantry cannot use turret/on, share bore offsets, or declare a pivot without a muzzle",
+                m.name
+            ));
+        }
+        if m.pivot_m
+            .iter()
+            .chain(m.muzzle_m.iter().flatten())
+            .any(|x| !x.is_finite())
+        {
+            return invalid(format!(
+                "mount {:?}: pivot_m and muzzle_m must be finite",
                 m.name
             ));
         }

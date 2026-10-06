@@ -22,6 +22,7 @@ export interface SimBattle {
   /** The publication layout: offsets, tags and this battle's round kinds. */
   observation_layout(): string;
   accept(commandJson: string): string;
+  preview_purchase(side: string, variant: string, x: number, y: number): string;
   preview_move(side: string, moveJson: string): string;
   preview_building(side: string, buildingJson: string): string;
   step(): number;
@@ -208,6 +209,15 @@ export function createAuthority(host: AuthorityHost): Authority {
           host.post({
             type: "ack",
             ack: JSON.parse(battle!.accept(JSON.stringify(request.command))),
+          });
+          return;
+        case "purchase_preview":
+          host.post({
+            type: "purchase_preview",
+            id: request.id,
+            placement: JSON.parse(
+              battle!.preview_purchase(request.side, request.variant, ...request.destination),
+            ),
           });
           return;
         case "move_preview":

@@ -1,0 +1,5 @@
+"""Named cv90 exports; adopted manifest frames."""
+import os,sys
+sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
+from europe_carriers import build
+build("cv90")

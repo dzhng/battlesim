@@ -1,0 +1,20 @@
+{
+  "parts": {
+    "trophy_aps": {
+      "name": "Trophy",
+      "description": "Finite automatic interception of imminent missile and RPG hull hits.",
+      "nodes": ["trophy_radar_L", "trophy_radar_R", "trophy_launcher_L", "trophy_launcher_R"],
+      "patch": {
+        "capabilities": {
+          "active_protection": {
+            "capacity": 4,
+            "cooldown_s": 3,
+            "standoff_m": 8,
+            "service_s": 10,
+            "stock_per_charge": 20
+          }
+        }
+      }
+    }
+  }
+}

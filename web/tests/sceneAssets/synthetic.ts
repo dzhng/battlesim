@@ -661,6 +661,8 @@ export function tankGlb(o: TankOptions = {}): Uint8Array {
 }
 
 export interface TruckOptions {
+  /** Cargo body with stationary service and no deployment hardware. */
+  stationary?: boolean;
   omit?: string;
   reversed?: boolean;
   /** Author no deploy windows (breaks the deploy motion rule). */
@@ -677,7 +679,7 @@ export interface TruckOptions {
  */
 export function truckGlb(o: TruckOptions = {}): Uint8Array {
   const b = new GltfBuilder();
-  const skip = (name: string) => o.omit === name;
+  const skip = (name: string) => o.omit === name || (!!o.stationary && name.startsWith("deploy_"));
   const motion = (extras: Record<string, number>) => (o.noDeployMotion ? undefined : extras);
   const empty = (name: string, t: Vec3, children: number[] = [], extras?: Record<string, number>) =>
     skip(name) ? -1 : b.node({ name, t: g3(t), children: children.filter((c) => c >= 0), extras });
@@ -733,7 +735,7 @@ export function truckGlb(o: TruckOptions = {}): Uint8Array {
     ),
   );
   const bodyParts = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"].map((suffix) =>
-    part(`shelter${suffix}`, [-3, -1.4, 0.5], [3, 1.4, 3.4]),
+    part(`shelter${suffix}`, [-3, -1.4, 0.5], [3, 1.4, o.stationary ? 3.6 : 3.4]),
   );
   const body = empty("body", [0, 0, 0], [...bodyParts, ...legs, mast, ...wheels]);
   b.roots(b.node({ name: "truck", children: [body] }));

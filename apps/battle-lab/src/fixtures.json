@@ -157,6 +157,12 @@
     "map": null
   },
   {
+    "id": "unit-roster",
+    "route": "/battle?type=open&size=small&seed=1&profile=skirmish&faction=us",
+    "describe": "First-phase faction skirmish: empty preparation, grouped variant purchases, physical reinforcement entry, public objective scoring and basic opponent.",
+    "map": null
+  },
+  {
     "id": "benchmark",
     "route": "/benchmark",
     "describe": "The scripted benchmark (the one frame-cost measure): the village warm-started to heavy contact with blue on the supported script, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",

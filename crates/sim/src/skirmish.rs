@@ -22,6 +22,7 @@ pub struct EnteredUnit {
 pub struct Skirmish {
     pub setup: SkirmishSetup,
     pub objectives: crate::objectives::Objectives,
+    pub settlement: crate::settlement::Settlement,
     pub phase: Phase,
     pub ready: [bool; 2],
     pub active_tick: Option<Tick>,
@@ -41,6 +42,7 @@ impl Skirmish {
         let objectives = crate::objectives::Objectives::new(setup.sites.objectives.len());
         Self {
             objectives,
+            settlement: Default::default(),
             setup,
             phase: Phase::Preparation,
             ready: [false; 2],
@@ -133,6 +135,7 @@ impl Skirmish {
 
     pub fn digest(&self, digest: &mut crate::digest::Digest) {
         self.objectives.digest(digest);
+        self.settlement.digest(digest);
         digest
             .u64(self.phase as u64)
             .u64(self.ready[0] as u64)
@@ -177,4 +180,10 @@ impl Skirmish {
             self.wallets[index] += u64::from(reservation.price) * CREDIT_SCALE;
         }
     }
+}
+
+/// Shared first-playtest match tuning for native and browser preparation.
+pub fn starter_rules() -> contract::skirmish::MatchRules {
+    serde_json::from_str(include_str!("../../../fixtures/skirmish.json"))
+        .expect("authored match rules")
 }

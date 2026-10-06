@@ -39,6 +39,7 @@ export const STATE_ROWS = {
   hidden: { icon: "hidden", word: () => "HIDDEN", lasting: true },
   stock: { icon: "stock", word: (n: number) => `SUPPLY ${n}`, lasting: true },
   stock_empty: { icon: "stock", word: (n: number) => `SUPPLY ${n}`, lasting: true, tone: "warn" },
+  withdrawing: { icon: "withdrawing", word: () => "RETURNING TO BASE" },
   deploying: { icon: "deploy", word: () => "DEPLOYING" },
   packing: { icon: "pack", word: () => "PACKING" },
   entering: { icon: "building", word: () => "ENTERING" },
@@ -152,6 +153,7 @@ export function ownStateRows(
   rules: PanelRules,
 ): StateRow[] {
   const rows: (StateRow | null)[] = [deploymentRow(u.deployment)];
+  if (u.withdrawing) rows.push(row("withdrawing"));
   if (u.garrison) rows.push(GARRISON_ROWS[u.garrison.phase]?.(u.garrison.progress) ?? null);
   if (u.concealed) rows.push(row("hidden"));
   if (u.suppression !== "none") rows.push(row(u.suppression));
@@ -195,6 +197,8 @@ interface WeaponLive {
   aim: number | null;
   reload: number | null;
   guiding: boolean;
+  /** Defensive interception cooldown uses the same timer ring. */
+  cooldown?: number | null;
 }
 
 /** One weapon row: its icon, its name and each kind it fires. The same
@@ -304,14 +308,41 @@ export function weaponRows(
   mounts: readonly MountRow[],
   rules: PanelRules,
   readiness?: readonly MountView[],
+  protection?: { capacity: number },
+  protectionReadiness?: OwnUnitView["protection"],
 ): WeaponRow[] {
-  if (readiness) return readiness.map((m) => ownWeaponRow(mounts, m, rules));
-  return mounts.map((m, k) => ({
-    ...mountRow(String(k), m.weapons, m.name, rules, -1),
-    name: equipmentName(mounts, k, rules),
-    live: null,
-    fill: null,
-  }));
+  const rows = readiness
+    ? readiness.map((m) => ownWeaponRow(mounts, m, rules))
+    : mounts.map((m, k) => ({
+        ...mountRow(String(k), m.weapons, m.name, rules, -1),
+        name: equipmentName(mounts, k, rules),
+        live: null,
+        fill: null,
+      }));
+  if (protection)
+    rows.push({
+      key: "protection",
+      icon: weaponIcon("trophy"),
+      name: "TROPHY",
+      kinds: [
+        {
+          label: null,
+          ...(protectionReadiness ? { count: protectionReadiness.charges } : {}),
+          loaded: !!protectionReadiness,
+        },
+      ],
+      live: protectionReadiness
+        ? {
+            reason: protectionReadiness.charges === 0 ? "no_ammo" : "ready",
+            aim: null,
+            reload: null,
+            guiding: false,
+            cooldown: protectionReadiness.cooldown,
+          }
+        : null,
+      fill: protectionReadiness ? protectionReadiness.charges / protection.capacity : null,
+    });
+  return rows;
 }
 
 /** Rounds left against a full load; null when either is unlimited or
@@ -369,7 +400,13 @@ export function ownPanel(u: OwnUnitView, own: readonly OwnUnitView[], rules: Pan
     strength: unitStrength(u),
     personnel: u.memberHp.length ? u.memberHp.filter((hp) => hp > 0).length : undefined,
     mark: null,
-    weapons: weaponRows(UNITS.type(u.kind).mounts, rules, u.mounts),
+    weapons: weaponRows(
+      UNITS.type(u.kind).mounts,
+      rules,
+      u.mounts,
+      UNITS.type(u.kind).capabilities.active_protection,
+      u.protection,
+    ),
     states: ownStateRows(u, own, rules),
   };
 }
@@ -383,7 +420,7 @@ export function enemyPanel(kind: string, rules: PanelRules): Panel {
     name: t.name.toUpperCase(),
     strength: null,
     mark: null,
-    weapons: weaponRows(t.mounts, rules),
+    weapons: weaponRows(t.mounts, rules, undefined, t.capabilities.active_protection),
     states: [],
   };
 }

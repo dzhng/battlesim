@@ -1,0 +1,87 @@
+{
+  "assignment": "type15",
+  "status": "research-gated",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/type15.py",
+  "exclusive_export_directory": "assets/source/roster/type15/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "Type_15_tank",
+    "url": "https://en.m.wikipedia.org/wiki/Type_15_tank",
+    "sha256": "b6f120b63bf17b21471b0d1349edea84464df742791d661ac50dd93ec8d718a4",
+    "rows": [
+      "Secondary armament Remotely operated weapon station armed with coaxial 12.7mm machine gun and QLZ-04 automatic grenade launcher"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/7/75/Type_15_tank_20221020.jpg/330px-Type_15_tank_20221020.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ]
+  },
+  "silhouette_requirements": "Six wheels per side; compact high boxy turret on light tracked hull; 105 mm gun with muzzle reference; side ERA and roof station.",
+  "reference_limits": "Retrieved source has no dimensions. Research-gated; no guessed physical row frozen.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "eastern_type_15_ztq_15_light_tank",
+      "name": "Type 15 ZTQ-15 light tank",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "ZTQ-15 light tank",
+      "profile": "light-tank",
+      "appearance_id": "eastern_type_15_ztq_15_light_tank",
+      "export": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          null,
+          null,
+          null
+        ],
+        "half_extents_m": [
+          null,
+          null,
+          null
+        ],
+        "eye_m": null,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "light-tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.68
+            ],
+            "muzzle_m": [
+              5.36,
+              0,
+              0.504
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.632
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "assignment": "zbl08",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/zbl08.py",
+  "exclusive_export_directory": "assets/source/roster/zbl08/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "Type_08",
+    "url": "https://en.m.wikipedia.org/wiki/Type_08",
+    "sha256": "f3a7c74c48cf84eb94e3d8cd3b6d9f0521ac77d8ef5dc041a091fd7387c4272b",
+    "rows": [
+      "Length 8 m (26 ft)",
+      "Width 3 m (9.8 ft)",
+      "Height 2.1 m (6 ft 11 in) (without turret)",
+      "Main armament ZPL-98A 105 mm gun (ZTL-11) QJC-88 12.7 mm gun (ZSL-10) ZPT-99 30 mm cannon (ZBL-08) KDG 35 mm revolver autocannon (PGL-12) [ 2 ] PL-96 122 mm howitzer (PLL-09) PL-01 155 mm howitzer (PLL-09)",
+      "Secondary armament HJ-73 C Anti-Tank Guided Missile Type 86 7.62 mm machine gun QJT 5.8 mm machine gun"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/b/ba/ZBL-08.jpg/330px-ZBL-08.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/ba/ZBL-08.jpg/500px-ZBL-08.jpg",
+        "sha256": "f32c0dccef9a58ac93b62c4f696e40934f8697953ab806986c5cca46a94c0ca9"
+      }
+    ]
+  },
+  "silhouette_requirements": "Four axles/eight wheels; high boat-like hull; angular 30 mm two-man turret; rear ramp.",
+  "reference_limits": "2.1 m is hull without turret; physical/art top and muzzle must account for actual turret. Do not add omitted HJ-73 capability. Chosen complete turreted authoring top is 2.8 m (approximate from silhouette), not the cited 2.1 m hull-only dimension.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "eastern_zbl_08_wheeled_ifv",
+      "name": "ZBL-08 Wheeled IFV",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "Wheeled IFV",
+      "profile": "wheeled-ifv",
+      "appearance_id": "eastern_zbl_08_wheeled_ifv",
+      "export": "assets/source/roster/zbl08/eastern_zbl_08_wheeled_ifv.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          8.0,
+          3.0,
+          2.8
+        ],
+        "half_extents_m": [
+          4.0,
+          1.5,
+          1.4
+        ],
+        "eye_m": 2.65,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              2.05
+            ],
+            "muzzle_m": [
+              4.25,
+              0,
+              0.3
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/eastern_armor.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; source-fit-clean; runtime-and-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/east-reference-review.md",
+    "variants": [
+      {
+        "id": "eastern_zbl_08_wheeled_ifv",
+        "glb_sha256": "b5999ad9c1422f7140749d89ec227ed84214f7b8dd0b36ae0d6a1790c533cd2f",
+        "source_bytes": 2611580,
+        "triangles_by_tier": [
+          9878,
+          4836,
+          1354,
+          864
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/zbl08/eastern_zbl_08_wheeled_ifv/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/zbl08/eastern_zbl_08_wheeled_ifv/eastern_zbl_08_wheeled_ifv.svg"
+      }
+    ]
+  }
+}

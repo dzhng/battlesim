@@ -18,6 +18,11 @@ when the world is built, so a tick's digest costs what changed, not the map's si
 [Publication](src/publication.rs) exposes only the selected side's observation.
 Geometry, sensing, hearing and knowledge owners decide what that observation may
 contain; the renderer and audio engine do not grant visibility or reveal identities.
+[Weapon origins](src/weapons.rs) follow the actual operator, occupied window or
+claimed lean. An individual infantry mount may declare a bore offset; both its
+pivot and muzzle turn with the operator bearing. Known enemy threat assessment
+uses the observed center and declared offset, never a hidden operator position.
+
 Rules follow physical components, with the game's [first-principles policy](../../README.md#rules-from-first-principles)
 explaining where deliberate cinematic exceptions belong.
 
@@ -28,6 +33,20 @@ is clear. Browser previews use side knowledge, while actual entry checks physica
 bodies. These are different questions and must not expose private occupancy through
 a free preview. [Match contracts](../contract/src/skirmish.rs) carry setup and the
 side's observation through the existing publication owner.
+
+[Active protection](src/protection.rs) owns finite defensive charges and cooldowns.
+Flight offers it only an imminent swept hull collision at the authored standoff;
+ordinary projectiles, passes and cover remain ordinary flight events. Supply
+service restores one charge from finite stock after offensive ammunition and
+before vehicle health or soldiers. Protection state is part of the battle digest
+and never becomes an offensive weapon row.
+
+[Kill settlement](src/settlement.rs) consumes causal full-unit deaths and immutable
+purchase receipts. Both sides settle against the same pre-tick bounty pools, so
+simultaneous trades cannot depend on iteration order. Rewards affect the wallet;
+they confer no identity, location or destruction knowledge. Projectile and
+structural-collapse provenance belong to combat, while economic deduplication and
+fractional carry belong to settlement.
 
 [Objective authority](src/objectives.rs) uses physical eligible combat presence for
 capture, independently of either side's contacts. Public objective progress reveals

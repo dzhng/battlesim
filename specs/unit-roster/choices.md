@@ -153,3 +153,26 @@ Reach: price tuning affects acquisition and reacquisition. Continuous reprioriti
 would be a separate intentional targeting change, rather than a hidden side effect.
 Verdict: sound; stable fire control avoids aim thrashing while implementing the
 selected value priorities whenever the weapon needs a target.
+
+### Purchase ghost uses the named resting model — sound, medium confidence
+
+When: production purchase interface.
+Choice: the free placement cue draws the selected variant's actual mesh with its
+authored resting pose, tinted through the existing selection color. For a squad,
+one actual soldier represents the unit; the authority still admits the complete
+squad footprint. The preview casts no shadow and writes no depth.
+Gap: the request specified a unit ghost, without choosing a full formation preview.
+Reach: no invented client formation or second placement geometry; a full squad
+formation preview can later consume authority-owned destinations.
+Verdict: keeps model identity recognizable without duplicating squad placement.
+
+### AI commands run before tick advancement — sound, high confidence
+
+When: basic skirmish policy integration.
+Choice: the basic opponent issues ordinary commands against the last completed
+observation before the next tick advances. Purchases reserve credits immediately
+through the same admission path as player purchases. Replays execute recorded
+commands and do not rerun the policy.
+Gap: policy scheduling was unspecified beyond the five-second decision interval.
+Reach: wallets and reservations change at the same boundary live and in replay.
+Verdict: policy timing preserves exact replay outcomes without an AI-only economy.

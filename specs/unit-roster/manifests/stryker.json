@@ -1,0 +1,308 @@
+{
+  "assignment": "stryker",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/stryker.py",
+  "exclusive_export_directory": "assets/source/roster/stryker/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "Stryker",
+    "url": "https://en.m.wikipedia.org/wiki/Stryker",
+    "sha256": "c71bc1beb13beac457d0b8b33a39bbef23b3e4ed70ab2e75ec79466a6ef387f8",
+    "rows": [
+      "Length 22 ft 10 in (6.95 m)",
+      "Width 8 ft 11 in (2.72 m)",
+      "Height 8 ft 8 in (2.64 m)",
+      "Main armament .mw-parser-output .plainlist ol,.mw-parser-output .plainlist ul{line-height:inherit;list-style:none;margin:0;padding:0}.mw-parser-output .plainlist ol li,.mw-parser-output .plainlist ul li{margin-bottom:0} 0.50 in (12.7 mm) M2 machine gun or 40 mm Mk 19 grenade launcher mounted in a Protector remote weapon station or 30 mm Mk44 Bushmaster II gun (on Stryker Dragoons ) or 105 mm M68A2 gun (on M1128 mobile gun system )",
+      "Secondary armament 0.50 in (12.7 mm) M2 and 7.62 mm M240 machine guns (on M1128 mobile gun system)"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Stryker_ICV_front_q.jpg/330px-Stryker_ICV_front_q.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/Stryker_ICV_front_q.jpg/500px-Stryker_ICV_front_q.jpg",
+        "sha256": "ba46186c3c34745efb99b26906dc7c300245684d83863c67fbbfb7ba0d75c2be"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/Dragoon_at_Hohenfels.jpg/500px-Dragoon_at_Hohenfels.jpg",
+        "sha256": "2875611fa74b362cc6b3f61deece7e62b96aab924e7d1694b6aa07c9a2bc1682"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/Stryker_M1134_ATGM.jpg/500px-Stryker_M1134_ATGM.jpg",
+        "sha256": "0597be590872916d82b99546395cde270d775e19043396328505b23e16527c86"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Stryker_RV_front_q.jpg/500px-Stryker_RV_front_q.jpg",
+        "sha256": "bf6d73da759f2a93dd4bf85e0bd5582294d1359e3eec0bf8d91fe6f0380b2537"
+      }
+    ]
+  },
+  "silhouette_requirements": "Four axles/eight wheels; faceted high hull; steep front glacis; rear ramp. M1126 low remote HMG station; M1127 raised sensor head/stowage; M1296 Dragoon substantial unmanned 30 mm turret; M1134 elevated twin TOW launcher.",
+  "reference_limits": "Common base envelope; sensor, Dragoon turret and ATGM launcher may extend above it, checked by existing per-appearance tolerances.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "us_m1127_stryker_rv_reconnaissance_vehicle",
+      "name": "M1127 Stryker RV Reconnaissance vehicle",
+      "factions": [
+        "us"
+      ],
+      "variant": "Reconnaissance vehicle",
+      "profile": "wheeled-recon",
+      "appearance_id": "us_m1127_stryker_rv_reconnaissance_vehicle",
+      "export": "assets/source/roster/stryker/us_m1127_stryker_rv_reconnaissance_vehicle.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.95,
+          2.72,
+          2.64
+        ],
+        "half_extents_m": [
+          3.475,
+          1.36,
+          1.32
+        ],
+        "eye_m": 3.095,
+        "mounts": [
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              2.875
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": [],
+      "frame_correction": {
+        "date": "2026-10-06",
+        "reason": "Preserve adopted body envelope; reauthor genuine taller hull/cab and hatches/periscopes rather than lower physics to prior candidate. Independent exact-variant photos show station clearly above roof. Chosen approximate station bore above authored nominal deck: Stryker ICV/RV0.65m, M1134launcher0.55m, JLTVHGC0.45m. Eye chosen near station optic. These are physical authoring decisions, not factory measurements.",
+        "body_measurement": "Published family body height retained by coordinator; bare roof versus total armed source semantics unresolved. Geometry deliberately approximate within adopted gameplay envelope, no filler.",
+        "mount_measurement": "Photo-relative estimate; approximately +/-0.15m due to perspective and suspension state. Stryker_ICV_front_q, Stryker_RV_front_q, Stryker_M1134_ATGM and M1278HGC independent photographs, pinned production_photo_receipts."
+      }
+    },
+    {
+      "id": "us_stryker_m1126_icv",
+      "name": "Stryker M1126 ICV",
+      "factions": [
+        "us"
+      ],
+      "variant": "M1126 ICV",
+      "profile": "apc",
+      "appearance_id": "us_stryker_m1126_icv",
+      "export": "assets/source/roster/stryker/us_stryker_m1126_icv.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.95,
+          2.72,
+          2.64
+        ],
+        "half_extents_m": [
+          3.475,
+          1.36,
+          1.32
+        ],
+        "eye_m": 3.095,
+        "mounts": [
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              2.875
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": [],
+      "frame_correction": {
+        "date": "2026-10-06",
+        "reason": "Preserve adopted body envelope; reauthor genuine taller hull/cab and hatches/periscopes rather than lower physics to prior candidate. Independent exact-variant photos show station clearly above roof. Chosen approximate station bore above authored nominal deck: Stryker ICV/RV0.65m, M1134launcher0.55m, JLTVHGC0.45m. Eye chosen near station optic. These are physical authoring decisions, not factory measurements.",
+        "body_measurement": "Published family body height retained by coordinator; bare roof versus total armed source semantics unresolved. Geometry deliberately approximate within adopted gameplay envelope, no filler.",
+        "mount_measurement": "Photo-relative estimate; approximately +/-0.15m due to perspective and suspension state. Stryker_ICV_front_q, Stryker_RV_front_q, Stryker_M1134_ATGM and M1278HGC independent photographs, pinned production_photo_receipts."
+      }
+    },
+    {
+      "id": "us_stryker_m1134_atgm",
+      "name": "Stryker M1134 ATGM",
+      "factions": [
+        "us"
+      ],
+      "variant": "M1134 ATGM",
+      "profile": "missile-carrier",
+      "appearance_id": "us_stryker_m1134_atgm",
+      "export": "assets/source/roster/stryker/us_stryker_m1134_atgm.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.95,
+          2.72,
+          2.64
+        ],
+        "half_extents_m": [
+          3.475,
+          1.36,
+          1.32
+        ],
+        "eye_m": 3.015,
+        "mounts": [
+          {
+            "name": "launcher",
+            "pack": [
+              "TOW"
+            ],
+            "role": "hmg",
+            "on": null,
+            "pivot_m": [
+              0,
+              0.734,
+              3.095
+            ],
+            "muzzle_m": [
+              1.05,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "notes": [],
+      "frame_correction": {
+        "date": "2026-10-06",
+        "reason": "Preserve adopted body envelope; reauthor genuine taller hull/cab and hatches/periscopes rather than lower physics to prior candidate. Independent exact-variant photos show station clearly above roof. Chosen approximate station bore above authored nominal deck: Stryker ICV/RV0.65m, M1134launcher0.55m, JLTVHGC0.45m. Eye chosen near station optic. These are physical authoring decisions, not factory measurements.",
+        "body_measurement": "Published family body height retained by coordinator; bare roof versus total armed source semantics unresolved. Geometry deliberately approximate within adopted gameplay envelope, no filler.",
+        "mount_measurement": "Photo-relative estimate; approximately +/-0.15m due to perspective and suspension state. Stryker_ICV_front_q, Stryker_RV_front_q, Stryker_M1134_ATGM and M1278HGC independent photographs, pinned production_photo_receipts."
+      }
+    },
+    {
+      "id": "us_stryker_m1296_dragoon",
+      "name": "Stryker M1296 Dragoon",
+      "factions": [
+        "us"
+      ],
+      "variant": "M1296 Dragoon",
+      "profile": "wheeled-ifv",
+      "appearance_id": "us_stryker_m1296_dragoon",
+      "export": "assets/source/roster/stryker/us_stryker_m1296_dragoon.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.95,
+          2.72,
+          2.64
+        ],
+        "half_extents_m": [
+          3.475,
+          1.36,
+          1.32
+        ],
+        "eye_m": 2.482,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.716
+            ],
+            "muzzle_m": [
+              2.919,
+              0,
+              0.475
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/light_armor.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/roof-reference-review.md",
+    "variants": [
+      {
+        "id": "us_m1127_stryker_rv_reconnaissance_vehicle",
+        "glb_sha256": "3fdbddea5487dd4d0f3a01c8937462374a9179b9d0f8fa2c27aff8c00924bdd8",
+        "source_bytes": 2377120,
+        "triangles_by_tier": [
+          8354,
+          4172,
+          1194,
+          816
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/stryker/us_m1127_stryker_rv_reconnaissance_vehicle/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/stryker/us_m1127_stryker_rv_reconnaissance_vehicle/us_m1127_stryker_rv_reconnaissance_vehicle.svg"
+      },
+      {
+        "id": "us_stryker_m1126_icv",
+        "glb_sha256": "235a6a68d89e8d66c901c0f34ade21026c5f446fe4018415535206f189f08588",
+        "source_bytes": 2356052,
+        "triangles_by_tier": [
+          8278,
+          4136,
+          1162,
+          784
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/stryker/us_stryker_m1126_icv/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/stryker/us_stryker_m1126_icv/us_stryker_m1126_icv.svg"
+      },
+      {
+        "id": "us_stryker_m1134_atgm",
+        "glb_sha256": "9743ce6c79e2beef95844b97bf236de5b713a5c357958208b7b2b17ec5a4ad18",
+        "source_bytes": 2465052,
+        "triangles_by_tier": [
+          8906,
+          4396,
+          1258,
+          880
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/stryker/us_stryker_m1134_atgm/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/stryker/us_stryker_m1134_atgm/us_stryker_m1134_atgm.svg"
+      },
+      {
+        "id": "us_stryker_m1296_dragoon",
+        "glb_sha256": "21c676613aba122cc4e815a243add274859e724f9afbb5888c23cffb4e6dff8f",
+        "source_bytes": 2433236,
+        "triangles_by_tier": [
+          8640,
+          4270,
+          1218,
+          840
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/stryker/us_stryker_m1296_dragoon/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/stryker/us_stryker_m1296_dragoon/us_stryker_m1296_dragoon.svg"
+      }
+    ]
+  }
+}

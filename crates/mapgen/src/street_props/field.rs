@@ -176,7 +176,9 @@ impl<'a> Field<'a> {
             return false;
         }
         let wall = self.rule.wall_gap_m;
-        if self.objectives.iter().any(|r| rect.overlaps(r, 0.0)) { return false; }
+        if self.objectives.iter().any(|r| rect.overlaps(r, 0.0)) {
+            return false;
+        }
         if self.wall_grid.any(grow(bounds, wall), |item| {
             !apart(rect, &self.walls[item as usize], wall)
         }) {

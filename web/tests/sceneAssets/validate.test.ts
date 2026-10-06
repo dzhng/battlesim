@@ -23,6 +23,7 @@ import {
   validateSkeleton,
 } from "@packages/scene-assets/src/validate.ts";
 import { textureFindings } from "@packages/scene-assets/src/texture.ts";
+import { UnitCatalog } from "@packages/scene-assets/src/units.ts";
 import { bakeCatalog, kitBytesFindings } from "@packages/scene-assets/src/bake.ts";
 import {
   HOUSE,
@@ -66,6 +67,52 @@ const rig = (() => {
     aim_reference: SKELETON_ENTRY.aim_reference,
   };
 })();
+
+test.each([0, 0.4])(
+  "a grounded active kit is checked against its declared full bore (error %s m)",
+  async (boreError) => {
+    const units = syntheticUnits();
+    const view = units.view;
+    const grounded = new UnitCatalog({
+      ...view,
+      units: view.units.map((u) =>
+        u.id === "rifle"
+          ? {
+              ...u,
+              mounts: [
+                {
+                  ...tankMounts()[0],
+                  turret: false,
+                  on: null,
+                  pivot_m: [0, 0, 0.75],
+                  muzzle_m: [0.7 + boreError, -0.2, 0],
+                  operator_appearance: {
+                    active: ["tripod"],
+                    carried: ["packed"],
+                    active_pose: { clip: "kneel_fire", phase: 0 },
+                  },
+                },
+              ],
+            }
+          : u,
+      ),
+    });
+    const result = await validateAppearance(
+      {
+        name: "tripod",
+        entry: { unit: "soldier", source: "tripod.glb", basis_yaw_deg: 90, skeleton: "test-rig" },
+        files: { "tripod.glb": soldierGlb({ animated: false, muzzleY: 0.75 }) },
+        skeleton: rig,
+      },
+      { ...context, authority: { ...AUTHORITY, units: grounded } },
+    );
+    if (boreError === 0) expect(result.findings.map((f) => f.message)).toEqual([]);
+    else
+      expect(
+        result.findings.some((f) => f.code === "fit.muzzle" && f.message.includes("declares")),
+      ).toBe(true);
+  },
+);
 
 async function soldier(
   options: SoldierOptions = {},
@@ -486,6 +533,10 @@ test("the roof HMG is fitted on its own pivot, turning with the turret and on it
   expect(codes).toContain("fit.muzzle_arc");
   expect(codes).not.toContain("fit.vehicle_muzzle");
   expect(result.findings.find((f) => f.code === "fit.muzzle_arc")?.message).toContain("hmg_muzzle");
+});
+
+test("stationary supply service needs no deployment hardware", async () => {
+  expect(await truck({ stationary: true })).toEqual([]);
 });
 
 test("a supply truck facing backwards and missing a mast stage is caught", async () => {

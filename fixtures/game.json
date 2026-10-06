@@ -282,6 +282,7 @@
       "structural_damage": 4
     },
     "atgm": {
+      "interceptable": true,
       "name": "ATGM",
       "description": "A wire-guided anti-tank missile, steered onto its target.",
       "icon": "atgm",
@@ -394,11 +395,13 @@
       "damage": 65
     },
     "tow": {
+      "interceptable": true,
       "extends": "atgm",
       "name": "TOW 2A",
       "description": "Optically supported direct anti-tank missile; launcher line of sight is required."
     },
     "kornet": {
+      "interceptable": true,
       "extends": "atgm",
       "name": "Kornet",
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
@@ -409,6 +412,7 @@
       "reload_s": 10
     },
     "spike": {
+      "interceptable": true,
       "extends": "atgm",
       "name": "Spike (direct guidance)",
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
@@ -419,6 +423,7 @@
       "reload_s": 10
     },
     "bastion": {
+      "interceptable": true,
       "extends": "atgm",
       "name": "Bastion (gun-launched)",
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
@@ -438,6 +443,7 @@
       "scatter_mrad": 4
     },
     "rpg_light": {
+      "interceptable": true,
       "extends": "grenade",
       "name": "RPG-7",
       "description": "Unguided direct anti-tank rocket.",
@@ -453,6 +459,7 @@
       "anti_armor": true
     },
     "rpg_heavy": {
+      "interceptable": true,
       "extends": "grenade",
       "name": "RPG-29",
       "description": "Unguided direct anti-tank rocket.",

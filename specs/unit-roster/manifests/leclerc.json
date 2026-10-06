@@ -1,0 +1,124 @@
+{
+  "assignment": "leclerc",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/leclerc.py",
+  "exclusive_export_directory": "assets/source/roster/leclerc/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "Leclerc_tank",
+    "url": "https://en.m.wikipedia.org/wiki/Leclerc_tank",
+    "sha256": "80d7157c9ae9642cf89aa8b4a48506519d40a9073178cdead62f6ffe51a6921a",
+    "rows": [
+      "Length 9.87 m (6.88 without gun [ 3 ] )",
+      "Width 3.60 m [ 3 ]",
+      "Height 2.53 m [ 3 ]",
+      "Main armament GIAT CN120-26/52 120mm tank gun [ 3 ] 40 rounds (1 round ready to fire in the chamber, 22 rounds inside the autoloader magazine with additional 18 rounds cylinder in the hull)",
+      "Secondary armament 12.7 mm coaxial M2HB machine gun (1,100 rounds) 7.62 mm machine gun (3,000 rounds)"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Leclerc-openphotonet_PICT6015.JPG/330px-Leclerc-openphotonet_PICT6015.JPG?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fc/Leclerc-openphotonet_PICT6015.JPG/500px-Leclerc-openphotonet_PICT6015.JPG",
+        "sha256": "32522b5caece0fc85700c74653937432f8c4504e627f3ca1a1b1f7b400f84970"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Leclerc_XLR_expos%C3%A9_%C3%A0_l%27Eurosatory_de_2022.jpg/500px-Leclerc_XLR_expos%C3%A9_%C3%A0_l%27Eurosatory_de_2022.jpg",
+        "sha256": "2a4d00304e991a4ad893ec616ce73b5bd9cd037c18f85a8141bc6377105bf357",
+        "description_url": "https://commons.wikimedia.org/wiki/File:Leclerc_XLR_expos%C3%A9_%C3%A0_l%27Eurosatory_de_2022.jpg"
+      }
+    ]
+  },
+  "silhouette_requirements": "Six wheels per side; compact low hull; angular turret with long box bustle; straight L52 gun; XLR added side/rear armor and roof remote station.",
+  "reference_limits": "Base Leclerc dimensions; XLR equipment allowance must be measured against source imagery.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally. Cannon rest muzzle X is chosen from cited gun-forward length minus half the selected hull length; this assumes the rear hull extent is the total-length rear reference.",
+  "variants": [
+    {
+      "id": "europe_leclerc_xlr",
+      "name": "Leclerc XLR",
+      "factions": [
+        "europe"
+      ],
+      "variant": "XLR",
+      "profile": "improved-mbt",
+      "appearance_id": "europe_leclerc_xlr",
+      "export": "assets/source/roster/leclerc/europe_leclerc_xlr.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          6.88,
+          3.6,
+          2.53
+        ],
+        "half_extents_m": [
+          3.44,
+          1.8,
+          1.265
+        ],
+        "eye_m": 2.378,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.518
+            ],
+            "muzzle_m": [
+              6.43,
+              0,
+              0.455
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.378
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/remaining_tanks.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/remaining-tank-reference-review.md",
+    "variants": [
+      {
+        "id": "europe_leclerc_xlr",
+        "glb_sha256": "0a5bf5b7964d34d1528de46290196dc7a582dcf6b0f6ed882b65ad07656ba791",
+        "source_bytes": 3107580,
+        "triangles_by_tier": [
+          16834,
+          5368,
+          2282,
+          1328
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/leclerc/europe_leclerc_xlr/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/leclerc/europe_leclerc_xlr/europe_leclerc_xlr.svg"
+      }
+    ]
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "assignment": "hemtt",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/hemtt.py",
+  "exclusive_export_directory": "assets/source/roster/hemtt/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "Heavy_Expanded_Mobility_Tactical_Truck",
+    "url": "https://en.m.wikipedia.org/wiki/Heavy_Expanded_Mobility_Tactical_Truck",
+    "sha256": "1fa9ddcee2b64322d8bae068b43bb31f887ec5a19100ac0d973b5b0cdc2fb966",
+    "rows": [
+      "Length 34 ft 1 in; 10.4 m",
+      "Width 8 ft 0 in; 2.4 m",
+      "Height 9 ft 10 in; 3.0 m (over spare tire)"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/f/f7/HEMTT_M1120A4_in_B-kit_configuration.jpg/330px-HEMTT_M1120A4_in_B-kit_configuration.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo": {
+      "family": "hemtt",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4a/HEMTT_truck.JPEG/500px-HEMTT_truck.JPEG",
+      "sha256": "908dc1af6f1da8c90bd9728e25c2354fb60cd1618c76988bf8b4e5a1296e5295"
+    }
+  },
+  "silhouette_requirements": "Four axles/eight large wheels; cab-forward two-seat cab; flat cargo bed with sideboards, supply crates/tarp; spare behind cab; M977 rear material-handling crane folded as static real hardware.",
+  "reference_limits": "Article infobox covers HEMTT family, photograph may depict M1120 load-handling version. Worker must use M977 cargo/crane photo, not a hook-loader silhouette.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "us_m977_hemtt_general_resupply",
+      "name": "M977 HEMTT General resupply",
+      "factions": [
+        "us"
+      ],
+      "variant": "General resupply",
+      "profile": "truck",
+      "appearance_id": "us_m977_hemtt_general_resupply",
+      "export": "assets/source/roster/hemtt/us_m977_hemtt_general_resupply.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          10.4,
+          2.4,
+          3.0
+        ],
+        "half_extents_m": [
+          5.2,
+          1.2,
+          1.5
+        ],
+        "eye_m": 2.82,
+        "mounts": []
+      },
+      "notes": []
+    }
+  ],
+  "dependency": "Coordinator removes mandatory fictional deploy art: stationary service, no deploy-motion nodes, no mast/outriggers invented for validation.",
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/logistics.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "glb_sha256": "c20d563f4d842a3b111ebe5e5bbb4d3cf29e98121a6e9b3b1e0f62c1f7db9b8f",
+    "source_bytes": 4405164,
+    "triangles_by_tier": [
+      21304,
+      8682,
+      2404,
+      848
+    ],
+    "geometry_bounds_m": {
+      "min": [
+        -5.220000267028809,
+        -1.2739999294281006,
+        -4.768371808516747e-09
+      ],
+      "max": [
+        5.175000190734863,
+        1.2739999294281006,
+        2.9600000381469727
+      ]
+    },
+    "nodes": "body plus 8 wheel nodes (HEMTT/HX), 6 wheel nodes (Ural); no weapon/deployment nodes",
+    "structural_admission": "Loose GLB validation passed; four tiers, textured/vertex-color PBR, tangent/UV/material basis admission",
+    "physical_fit": "Inspection against the adopted authored hull found no non-deployment findings; full generated-catalog/bake fit awaits coordinator integration",
+    "pending_gate": "Coordinator optional deployment-art validator change; appearance registration/bake/icons; in-renderer reference comparison and unprimed screenshot critique",
+    "candidate_shots": "throwaway/unit-roster-models/hemtt/{front,side,rear}.png",
+    "candidate_icon": "throwaway/unit-roster-models/hemtt/us_m977_hemtt_general_resupply.svg"
+  }
+}

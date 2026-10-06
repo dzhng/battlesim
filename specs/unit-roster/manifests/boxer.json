@@ -1,0 +1,184 @@
+{
+  "assignment": "boxer",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/boxer.py",
+  "exclusive_export_directory": "assets/source/roster/boxer/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "Boxer_(armoured_fighting_vehicle)",
+    "url": "https://en.m.wikipedia.org/wiki/Boxer_(armoured_fighting_vehicle)",
+    "sha256": "09bb269166a06771e146daa41264e614e5f333fce721cc8be1dc60ab56548251",
+    "rows": [
+      "Main armament See Boxer variants and mission modules"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/DSCN7330-crop_-_Copy.jpg/330px-DSCN7330-crop_-_Copy.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "additional_primary": {
+      "url": "https://www.rheinmetall.com/Rheinmetall%20Group/brochure-download/Vehicle-Systems/B227e0717-Boxer-CRV.pdf",
+      "sha256": "e913813328b302b6ef533ea5389a6cb0f8d4be0627313a9ceabe9c1d48f26083",
+      "scope": "CRV manufacturer proportions/photographs; not exact APC/RCT30 variant proof"
+    },
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/GTK_Boxer_side.jpg/500px-GTK_Boxer_side.jpg",
+        "sha256": "2820b0c2d7bc12bc760c2983158bd849922e7f74584f8b72e8fd0ec9b5af438c"
+      }
+    ],
+    "roof_primary": {
+      "url": "https://www.artec-boxer.com/fileadmin/documents/DB_APC.pdf",
+      "sha256": "16dbe0f4ebe9ca442785814dfc96395f83610bd0e4d0efda9afa914d0d984674",
+      "fact": "Height (hull roof) 2.38 m; APC only"
+    },
+    "rct30_secondary": {
+      "url": "https://armyrecognition.com/news/army-news/army-news-2024/dutch-13th-light-brigade-to-receive-boxer-rct30-infantry-fighting-vehicles",
+      "sha256": "66e4d24ea3df8b965b8ffb500488e1ea1aa08e4fef5b61b0fe209362147fbf19",
+      "facts": "Named RCT30 overall height 3.63 m; overall length 8.12 m, hull-vs-gun semantics unresolved; photo shows Puma turret, not CRV Lance turret"
+    }
+  },
+  "silhouette_requirements": "Four axles/eight wheels; tall modular hull; angular driver cab and separated rear mission module. APC remote HMG; RCT30 has substantial unmanned 30 mm turret.",
+  "reference_limits": "Wikipedia comparison table gives 7.93/2.99/2.38 m hull. Manufacturer CRV PDF is a turret reference, not proof that CRV equals RCT30.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "europe_boxer_apc",
+      "name": "Boxer APC",
+      "factions": [
+        "europe"
+      ],
+      "variant": "APC",
+      "profile": "heavy-apc",
+      "appearance_id": "europe_boxer_apc",
+      "export": "assets/source/roster/boxer/europe_boxer_apc.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.93,
+          2.99,
+          2.38
+        ],
+        "half_extents_m": [
+          3.965,
+          1.495,
+          1.19
+        ],
+        "eye_m": 2.73,
+        "mounts": [
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              2.51
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": [],
+      "frame_correction": {
+        "date": "2026-10-06",
+        "reason": "ARTEC DB_APC.pdf explicitly defines 2.38 m hull roof. GTK_Boxer_side photo shows raised RCWS; chosen bore 0.45 m above published roof (2.83 m), yaw 2.51 m with existing 0.32 m muzzle offset. Optic eye 2.73 m is chosen near bore, not a factory measurement.",
+        "sourced_dimensions": false,
+        "mount_measurement": "Approximate photo-relative authoring; not measured mechanical specification"
+      }
+    },
+    {
+      "id": "europe_boxer_rct30",
+      "name": "Boxer RCT30",
+      "factions": [
+        "europe"
+      ],
+      "variant": "RCT30",
+      "profile": "wheeled-ifv",
+      "appearance_id": "europe_boxer_rct30",
+      "export": "assets/source/roster/boxer/europe_boxer_rct30.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.93,
+          2.99,
+          3.63
+        ],
+        "half_extents_m": [
+          3.965,
+          1.495,
+          1.815
+        ],
+        "eye_m": 3.4,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              2.38
+            ],
+            "muzzle_m": [
+              3.331,
+              0,
+              0.62
+            ]
+          }
+        ]
+      },
+      "notes": [],
+      "frame_correction": {
+        "date": "2026-10-06",
+        "reason": "Original 2.38 m was APC hull-roof height and omitted the RCT30 turret from the gun-role body envelope. Named Army Recognition RCT30 specification lists 3.63 m overall height. Adopt 3.63 m body including turret/optic, retain 7.93 m hull-only length (article 8.12 m length semantics unresolved). Source photos place turret ring near hull roof and bore above it; chosen yaw Z 2.38 m, bore Z 3.00 m (muzzle local Z 0.62), optic eye 3.40 m. Mount coordinates remain photo-relative authoring choices.",
+        "sourced_dimensions": true,
+        "mount_measurement": "Approximate photo-relative authoring; not measured mechanical specification",
+        "height_semantics": "Chosen gameplay envelope excludes movable gun branch; includes main turret and rigid turret-fixed MUSS/optic tower. Named 3.63 m overall source does not explicitly say antenna-excluded; photo-fixed-tower anchoring is approximate, accepted by coordinator. No artificial roof filler; model must reproduce actual fixed tower."
+      }
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/europe_carriers.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/carrier-reference-review.md",
+    "variants": [
+      {
+        "id": "europe_boxer_apc",
+        "glb_sha256": "f3177902caef24aeee0b6d5f5df4d8d4347c23ea53bf0a50f343bf34a35b135b",
+        "source_bytes": 2512056,
+        "triangles_by_tier": [
+          10530,
+          4502,
+          1218,
+          716
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/boxer/europe_boxer_apc/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/boxer/europe_boxer_apc/europe_boxer_apc.svg"
+      },
+      {
+        "id": "europe_boxer_rct30",
+        "glb_sha256": "3106ca9ec2a603283cb2a22717b424e656619728ac0b208dee78118258de97a2",
+        "source_bytes": 2784244,
+        "triangles_by_tier": [
+          12172,
+          5180,
+          1438,
+          796
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/boxer/europe_boxer_rct30/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/boxer/europe_boxer_rct30/europe_boxer_rct30.svg"
+      }
+    ]
+  }
+}

@@ -51,3 +51,7 @@ mod suppression;
 mod village;
 mod weapons;
 mod world_geometry;
+
+mod settlement;
+mod protection;
+mod withdrawal;

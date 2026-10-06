@@ -1,0 +1,114 @@
+{
+  "assignment": "acv",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/acv.py",
+  "exclusive_export_directory": "assets/source/roster/acv/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "Amphibious_Combat_Vehicle",
+    "url": "https://en.m.wikipedia.org/wiki/Amphibious_Combat_Vehicle",
+    "sha256": "bf0aaf7a773ec44ce1be1dabe60afe60fde520f8b74a02df18b6f94a34b6207a",
+    "rows": [
+      "Length 361 in (9.2 m)",
+      "Width 124 in (3.1 m)",
+      "Height 114 in (2.9 m) (hull)",
+      "Main armament M2 Browning or Mk 19 grenade launcher with Remote controlled weapon station (RCWS) [ 4 ]"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/3/39/MOUT_Training_during_ITX_-_210406-M-LO635-1081.jpg/330px-MOUT_Training_during_ITX_-_210406-M-LO635-1081.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/ACV_at_Twentynine_Palms.jpg/500px-ACV_at_Twentynine_Palms.jpg",
+        "sha256": "6524aaa3b6dafac8d655f30af3ff8f02f860ed55f2bf2aafc38683669f2b434d"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Amphibious_Combat_Vehicle_190228-M-YL753-265.jpg/500px-Amphibious_Combat_Vehicle_190228-M-YL753-265.jpg",
+        "sha256": "d595a0adbcd1d16fd7d3fe2cec5d18e26811d9ea7c3cf7a474a78586256060b7"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3f/Amphibious_Combat_Vehicle_180828-M-VM836-800.jpg/500px-Amphibious_Combat_Vehicle_180828-M-VM836-800.jpg",
+        "sha256": "997aae16681dfe5edda6a237f5345810022a07d899b2d8bcfa290acb77fb4593"
+      }
+    ]
+  },
+  "silhouette_requirements": "Four axles/eight wheels; long boat-like high hull; steep prow; rear ramp; remote HMG on roof.",
+  "reference_limits": "Ground-only combat exterior; no water propulsion or passenger behavior is admitted.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "us_acv_acv_p",
+      "name": "ACV ACV-P",
+      "factions": [
+        "us"
+      ],
+      "variant": "ACV-P",
+      "profile": "heavy-apc",
+      "appearance_id": "us_acv_acv_p",
+      "export": "assets/source/roster/acv/us_acv_acv_p.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          9.2,
+          3.1,
+          2.9
+        ],
+        "half_extents_m": [
+          4.6,
+          1.55,
+          1.45
+        ],
+        "eye_m": 3.25,
+        "mounts": [
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              3.03
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": [],
+      "frame_correction": {
+        "date": "2026-10-06",
+        "reason": "Published 2.90 m explicitly hull height. USMC profile photographs show elevated RCWS pedestal; chosen bore 0.45 m over nominal roof (3.35 m), yaw 3.03 m with existing 0.32 m muzzle offset. Optic eye 3.25 m is chosen near receiver, not factory measurement.",
+        "sourced_dimensions": false,
+        "mount_measurement": "Approximate photo-relative authoring; not measured mechanical specification"
+      }
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/europe_carriers.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/carrier-reference-review.md",
+    "variants": [
+      {
+        "id": "us_acv_acv_p",
+        "glb_sha256": "f134a6903917cdfe8a7cab0fb38c03456d791a173a32c0391c4685a757ed532b",
+        "source_bytes": 2435616,
+        "triangles_by_tier": [
+          11128,
+          4694,
+          1270,
+          724
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/acv/us_acv_acv_p/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/acv/us_acv_acv_p/us_acv_acv_p.svg"
+      }
+    ]
+  }
+}

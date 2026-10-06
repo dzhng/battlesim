@@ -1,6 +1,6 @@
 # 12 — Parallel family models, variants and runtime appearance admission
 
-Status: not started. Dependencies: 03; integrate Trophy families after 10. Follow the README handoff and repository
+Status: authored runtime integration complete; visual acceptance pending. Dependencies: 03; integrate Trophy families after 10. Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -56,3 +56,9 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 - [ ] Narrow green proof and any allowed digest change recorded.
 - [ ] Artifact/visual gates resolved where applicable.
 - [ ] Choices, status and next pickup updated; focused pass committed.
+
+
+Runtime production is baked and checked: 216 content-addressed files, 72 bound
+appearance entries, 60 infantry sources with exact physical inheritance and grounded
+launcher socket validation. GPU ghost probes pass after fog composition. Representative
+model sheets and fresh unprimed review remain before final acceptance.

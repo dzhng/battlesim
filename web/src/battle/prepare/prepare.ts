@@ -35,6 +35,7 @@ export interface PreparationModule extends MapGenerator {
  *  encounter on it and the battle then takes it. */
 export interface PreparedWorld {
   admit_skirmish(sites: string): string;
+  skirmish_fields(sites: string, factions: string): string;
   extents(): string;
   plan_encounter(sites: string, recipe: string, encounterSeed: string): string;
   into_battle(scenario: string, seed: number): SimBattle;
@@ -192,22 +193,43 @@ export async function prepare(
     : new wasm.PreparedWorld(map.json, documents.rules);
   const worldBuiltAt = now();
   try {
-    let skirmish = map.sites === null ? null :
-      (JSON.parse(map.sites) as { skirmish?: { entries: {side: string; center: [number,number]; yaw: number}[] } }).skirmish;
+    let skirmish =
+      map.sites === null
+        ? null
+        : (
+            JSON.parse(map.sites) as {
+              skirmish?: { entries: { side: string; center: [number, number]; yaw: number }[] };
+            }
+          ).skirmish;
     if (skirmish) {
       try {
-        const admitted = JSON.parse(world.admit_skirmish(map.sites!)) as {sites: {skirmish: NonNullable<typeof skirmish>}};
+        const admitted = JSON.parse(world.admit_skirmish(map.sites!)) as {
+          sites: { skirmish: NonNullable<typeof skirmish> };
+        };
         map.sites = JSON.stringify(admitted.sites);
         skirmish = admitted.sites.skirmish;
+      } catch (error) {
+        throw new PreparationRefused("encounter", [
+          {
+            code: "invalid_skirmish_sites",
+            feature: "skirmish_sites",
+            location: "$.sites.skirmish",
+            message: error instanceof Error ? error.message : String(error),
+          },
+        ]);
       }
-      catch (error) { throw new PreparationRefused("encounter", [{
-        code: "invalid_skirmish_sites", feature: "skirmish_sites", location: "$.sites.skirmish",
-        message: error instanceof Error ? error.message : String(error),
-      }]); }
     }
     let laid: LaidEncounter;
     if (stress && stressScenario && metadata) {
       laid = { scenario: stressScenario, metadata, stress, rule: null, planned: null };
+    } else if (checked.skirmish) {
+      if (!skirmish || map.sites === null) throw new Error("the skirmish has no admitted sites");
+      laid = {
+        fields: world.skirmish_fields(map.sites, JSON.stringify(checked.skirmish)).slice(1),
+        units: [],
+        rule: null,
+        planned: null,
+      };
     } else if (source.kind === "generated") {
       const recipe = (JSON.parse(documents.recipes) as { recipes: Record<string, unknown> })
         .recipes[checked.recipe_id];
@@ -260,7 +282,10 @@ export async function prepare(
       const base = skirmish?.entries.find((e) => e.side === "blue");
       if (!first && !base) throw new Error("the encounter has no blue unit or admitted base");
       const column = laid.planned?.placement.deployments.find((d) => d.side === "blue");
-      start = { at: column?.head ?? base?.center ?? first!.position, yaw: column?.yaw ?? base?.yaw ?? first?.yaw ?? 0 };
+      start = {
+        at: column?.head ?? base?.center ?? first!.position,
+        yaw: column?.yaw ?? base?.yaw ?? first?.yaw ?? 0,
+      };
     }
     const buildings = map.definition.buildings ?? [];
     return {

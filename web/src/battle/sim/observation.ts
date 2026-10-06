@@ -83,6 +83,9 @@ export type Point2 = [number, number];
 export type Point3 = [number, number, number];
 
 export interface OwnUnitView {
+  withdrawing: boolean;
+  /** Defensive charges and running cooldown progress; private to the owning side. */
+  protection: { charges: number; cooldown: number | null } | null;
   id: number;
   kind: string;
   position: Point3;
@@ -988,6 +991,15 @@ function decodeFrame(
       policy: policy < 0 ? null : layout.policies[policy],
       direction: direction < 0 ? null : (layout.directions[direction] as MoveDirection),
       reversing: f("reversing") === 1,
+      withdrawing: f("withdrawing") === 1,
+      protection:
+        f("protectionCharges") < 0
+          ? null
+          : {
+              charges: f("protectionCharges"),
+              cooldown:
+                f("protectionCooldownProgress") < 0 ? null : f("protectionCooldownProgress"),
+            },
       state: layout.moveStates[f("state")],
       blocker: blocker < 0 ? null : blocker,
       route: sections.route as Point2[],

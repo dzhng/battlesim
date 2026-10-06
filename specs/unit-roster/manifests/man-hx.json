@@ -1,0 +1,88 @@
+{
+  "assignment": "man-hx",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/man-hx.py",
+  "exclusive_export_directory": "assets/source/roster/man-hx/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "RMMV_HX_range_of_tactical_trucks",
+    "url": "https://en.m.wikipedia.org/wiki/RMMV_HX_range_of_tactical_trucks",
+    "sha256": "dd0a2adf90e54fbbd67b54e7481a0ff9fa596ca71aa2327359e0a15cd0c5a316",
+    "rows": [
+      "Length 10.336 m ( chassis cab ) [ 1 ]",
+      "Width 2.5 m [ 1 ]",
+      "Height 3.3 m (cab, unladen ) [ 1 ]"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/A_British_Army_HX77_%288x8%29_EPLS_with_Project_Fortress_protection_upgrade.JPG/330px-A_British_Army_HX77_%288x8%29_EPLS_with_Project_Fortress_protection_upgrade.JPG?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo": {
+      "family": "man-hx",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/HX77_%288x8%29_with_RMMV_MAC_protected_cabin.JPG/500px-HX77_%288x8%29_with_RMMV_MAC_protected_cabin.JPG",
+      "sha256": "213c711964a7e60773e0deaafa813b323583f4ccfbce1692b238e0dea9ca32dd"
+    }
+  },
+  "silhouette_requirements": "Use HX77 8x8 cargo exterior as the concrete authoring reference: cab-forward upright flat cab, four axles, ribbed cargo sideboards, canvas cargo cover and supplies. No armored EPLS hook-loader substitution.",
+  "reference_limits": "MAN HX roster is a family label; HX77 cargo exterior is a delegated production selection. Published chassis-cab dimensions do not fix finished body; verify photo proportion.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "europe_man_hx_general_resupply",
+      "name": "MAN HX General resupply",
+      "factions": [
+        "europe"
+      ],
+      "variant": "General resupply",
+      "profile": "truck",
+      "appearance_id": "europe_man_hx_general_resupply",
+      "export": "assets/source/roster/man-hx/europe_man_hx_general_resupply.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          10.336,
+          2.5,
+          3.3
+        ],
+        "half_extents_m": [
+          5.168,
+          1.25,
+          1.65
+        ],
+        "eye_m": 3.102,
+        "mounts": []
+      },
+      "notes": []
+    }
+  ],
+  "dependency": "Coordinator removes mandatory fictional deploy art: stationary service, no deploy-motion nodes, no mast/outriggers invented for validation.",
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/logistics.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "glb_sha256": "997ab2636c0fe83db2f9a9684ec23718a18bf30c15a7a3fa829ad9df5369e002",
+    "source_bytes": 4185728,
+    "triangles_by_tier": [
+      19954,
+      8422,
+      2290,
+      706
+    ],
+    "geometry_bounds_m": {
+      "min": [
+        -5.188000202178955,
+        -1.3240000009536743,
+        -2.220446049250313e-16
+      ],
+      "max": [
+        5.14300012588501,
+        1.3240000009536743,
+        3.259999990463257
+      ]
+    },
+    "nodes": "body plus 8 wheel nodes (HEMTT/HX), 6 wheel nodes (Ural); no weapon/deployment nodes",
+    "structural_admission": "Loose GLB validation passed; four tiers, textured/vertex-color PBR, tangent/UV/material basis admission",
+    "physical_fit": "Inspection against the adopted authored hull found no non-deployment findings; full generated-catalog/bake fit awaits coordinator integration",
+    "pending_gate": "Coordinator optional deployment-art validator change; appearance registration/bake/icons; in-renderer reference comparison and unprimed screenshot critique",
+    "candidate_shots": "throwaway/unit-roster-models/man-hx/{front,side,rear}.png",
+    "candidate_icon": "throwaway/unit-roster-models/man-hx/europe_man_hx_general_resupply.svg"
+  }
+}

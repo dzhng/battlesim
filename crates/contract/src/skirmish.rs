@@ -19,6 +19,8 @@ pub struct MatchRules {
 #[serde(try_from = "UncheckedSetup")]
 pub struct SkirmishSetup {
     pub factions: [Faction; 2],
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ai_side: Option<Side>,
     pub rules: MatchRules,
     pub sites: SkirmishSites,
 }
@@ -27,6 +29,8 @@ pub struct SkirmishSetup {
 #[serde(deny_unknown_fields)]
 struct UncheckedSetup {
     factions: [Faction; 2],
+    #[serde(default)]
+    ai_side: Option<Side>,
     rules: MatchRules,
     sites: SkirmishSites,
 }
@@ -49,6 +53,7 @@ impl TryFrom<UncheckedSetup> for SkirmishSetup {
         value.sites.validate()?;
         Ok(Self {
             factions: value.factions,
+            ai_side: value.ai_side,
             rules: value.rules,
             sites: value.sites,
         })

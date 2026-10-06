@@ -268,6 +268,7 @@ pub struct Battle {
     next_seq: [u64; 2],
     /// The observation-bound opponent and its memory (off while replaying).
     opponent: Option<(Opponent, Defender)>,
+    skirmish_ai: Option<crate::skirmish_ai::SkirmishAi>,
     /// The fixture's completion referee and its latest verdict.
     referee: Option<(EncounterRules, Referee)>,
     encounter: Option<EncounterStatus>,
@@ -450,11 +451,17 @@ fn spawn_unit(
         attackers: BTreeSet::new(),
         reach: Default::default(),
         hp: t.hull().map_or(0.0, |h| h.hp),
+        retired: false,
+        withdrawing: false,
         suppression: 0.0,
         suppressed_at: 0,
         deployment: deployment::initial(t, rules),
         garrison: None,
         stock: t.capabilities.supply.map(|s| u.stock.unwrap_or(s.stock)),
+        protection: t
+            .capabilities
+            .active_protection
+            .map(crate::protection::State::new),
         progress_service: Default::default(),
         service: ServiceStatus::OutOfRange,
         sight_forward: u.yaw,
@@ -584,6 +591,42 @@ impl Battle {
         }
     }
 
+    fn retire_withdrawals(&mut self) {
+        let Some(skirmish) = &mut self.skirmish else {
+            return;
+        };
+        for unit in &mut self.units {
+            if !unit.alive() || !unit.withdrawing || unit.movement_goal().is_some() {
+                continue;
+            }
+            let entry = skirmish
+                .setup
+                .sites
+                .entries
+                .iter()
+                .find(|entry| entry.side == unit.side)
+                .unwrap();
+            // Retirement follows completed ordinary movement at the admitted base.
+            let half = unit.hull.map_or(2.0, |half| half.x.max(half.y));
+            if (unit.position.xy() - v2(entry.center[0], entry.center[1])).length() > half * 2.0 {
+                continue;
+            }
+            let entered = &skirmish.entered[&unit.id];
+            let (health, ammo) = crate::withdrawal::condition(unit, &self.rules, &self.arsenal);
+            let age = self.tick.saturating_sub(entered.entered_tick) as f64
+                / f64::from(self.rules.tick_hz);
+            let credits = (f64::from(entered.price)
+                * crate::withdrawal::fraction(health, ammo, age)
+                * crate::skirmish::CREDIT_SCALE as f64)
+                .round() as u64;
+            skirmish.wallets[unit.side.index()] += credits;
+            unit.retired = true;
+            unit.withdrawing = false;
+            unit.orders.clear();
+            unit.route = None;
+        }
+    }
+
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
         Self::from_prepared(
             setup,
@@ -705,6 +748,11 @@ impl Battle {
             occlusion,
             next_seq: [1, 1],
             opponent: setup.opponent.clone().map(|o| (o, Defender::default())),
+            skirmish_ai: setup
+                .skirmish
+                .as_ref()
+                .and_then(|s| s.ai_side)
+                .map(|_| crate::skirmish_ai::SkirmishAi::default()),
             referee: setup.encounter.clone().map(|e| (e, Referee::default())),
             encounter: None,
             pending: Vec::new(),
@@ -947,6 +995,16 @@ impl Battle {
             return Err(OrderError::MatchFinished);
         }
         let units = match &command.order {
+            Order::Refund { units } => {
+                let Some(skirmish) = &self.skirmish else {
+                    return Err(OrderError::NotSkirmish);
+                };
+                self.validate_units(command.side, units)?;
+                if units.iter().any(|id| !skirmish.entered.contains_key(id)) {
+                    return Err(OrderError::NotSkirmish);
+                }
+                units
+            }
             Order::Ready | Order::ConfirmPurchase { .. } | Order::CancelPending { .. } => {
                 return self
                     .skirmish
@@ -1028,6 +1086,7 @@ impl Battle {
         if self.finished() {
             return self.tick;
         }
+        self.skirmish_ai_turn();
         self.tick += 1;
         for side in Side::ALL {
             for contact in self.knowledge[side.index()].expire_contacts(self.tick) {
@@ -1076,7 +1135,8 @@ impl Battle {
             // A fixed script addresses a formation's survivors. Keep invalid
             // ids for ordinary validation; only its own fallen actors leave.
             match &mut script.order {
-                Order::Move { units, .. }
+                Order::Refund { units }
+                | Order::Move { units, .. }
                 | Order::Stop { units }
                 | Order::Attack { units, .. }
                 | Order::AttackMove { units, .. }
@@ -1193,6 +1253,7 @@ impl Battle {
             &fired,
             &mut self.last_soldier,
         );
+        self.retire_withdrawals();
         if let Some(skirmish) = &mut self.skirmish {
             if skirmish.phase == contract::skirmish::Phase::Active {
                 skirmish.objectives.advance(
@@ -1516,7 +1577,7 @@ impl Battle {
         let at = v3(point[0], point[1], z);
         // Its blast wears the props it reaches down, as a round's would (Q17).
         let mut structural = Vec::new();
-        damage::blast_props(&self.world, &w.def, at, None, &mut structural);
+        damage::blast_props(&self.world, &w.def, at, None, None, &mut structural);
         self.ground
             .burst(&self.world, at, w.def.blast_radius_m, &self.rules.ground);
         for hit in structural {
@@ -1552,12 +1613,73 @@ impl Battle {
         if self.replaying.is_some() {
             return;
         }
-        let Some((op, defender)) = self.opponent.as_mut() else {
+        let mut commands = Vec::new();
+        if let Some((op, defender)) = self.opponent.as_mut() {
+            let side = op.side;
+            commands.extend(
+                defender
+                    .decide(op, &self.observations[side.index()], &self.rules)
+                    .into_iter()
+                    .map(|order| (side, order)),
+            );
+        }
+        for (side, order) in commands {
+            let seq = self.next_seq[side.index()];
+            let _ = self.accept(CommandEnvelope {
+                side,
+                seq,
+                order,
+                queued: false,
+            });
+        }
+    }
+
+    fn skirmish_ai_turn(&mut self) {
+        if self.replaying.is_some() || self.finished() {
             return;
-        };
-        let side = op.side;
-        let orders = defender.decide(op, &self.observations[side.index()], &self.rules);
-        for order in orders {
+        }
+        let mut commands = Vec::new();
+        if let Some(mut ai) = self.skirmish_ai.take() {
+            let setup = &self.skirmish.as_ref().unwrap().setup;
+            let side = setup.ai_side.unwrap();
+            let entry = setup.sites.entries.iter().find(|e| e.side == side).unwrap();
+            let frame = &self.observations[side.index()];
+            let mut known = self.sides[side.index()].clone();
+            let grid = known.grid(&self.world, self.authored_props);
+            let orders = ai.decide(
+                side,
+                setup.factions[side.index()],
+                entry,
+                frame,
+                &self.rules,
+                |id, destination| {
+                    let own = frame.own.iter().find(|u| u.id == id)?;
+                    let mobility = units::mobility(self.rules.catalog.get(own.kind), &self.rules);
+                    let from = v2(own.position[0], own.position[1]);
+                    let goal = v2(destination[0], destination[1]);
+                    let (plan, _) = crate::navigation::plan(
+                        grid,
+                        &self.roads,
+                        crate::navigation::Leg {
+                            from,
+                            goal,
+                            m: &mobility,
+                            policy: RoutePolicy::Fastest,
+                            avoid: &[],
+                        },
+                        &self.rules.navigation,
+                    );
+                    let crate::navigation::Plan::Route(route) = plan else {
+                        return None;
+                    };
+                    let time = grid.route_time(from, &route, &mobility);
+                    time.is_finite().then_some(time)
+                },
+            );
+            self.skirmish_ai = Some(ai);
+            commands.extend(orders.into_iter().map(|order| (side, order)));
+        }
+        for (side, order) in commands {
             let seq = self.next_seq[side.index()];
             let _ = self.accept(CommandEnvelope {
                 side,
@@ -1668,7 +1790,8 @@ impl Battle {
             rules: &self.rules,
             arsenal: &self.arsenal,
             rounds: &self.rounds,
-            units: &self.units,
+            units: &mut self.units,
+            tick: self.tick,
             rng: &mut self.ricochet_rng,
         };
         flight::advance_projectiles(
@@ -1775,10 +1898,37 @@ impl Battle {
         // Structural damage in event order; a prop is destroyed once (L10, Q17).
         for hit in outcome.structural {
             if self.structures.damage(&self.world, hit.prop, hit.amount) {
-                destroyed.extend(self.destroy_prop(hit.prop, hit.toward));
+                destroyed.extend(self.destroy_prop(hit.prop, hit.toward).into_iter().map(
+                    |victim| damage::UnitDeath {
+                        victim,
+                        source: hit.source,
+                    },
+                ));
             }
         }
-        for id in destroyed {
+        if let Some(skirmish) = &mut self.skirmish {
+            let deaths: Vec<_> = destroyed
+                .iter()
+                .filter_map(|death| {
+                    let entered = skirmish.entered.get(&death.victim)?;
+                    let unit = &self.units[death.victim.0 as usize];
+                    Some(crate::settlement::EconomicDeath {
+                        victim: death.victim,
+                        side: unit.side,
+                        price: entered.price,
+                        source: death.source,
+                        supply: unit.unit_type(&self.rules).capabilities.supply.is_some(),
+                    })
+                })
+                .collect();
+            let starting_budget = u64::from(skirmish.setup.rules.credits_per_minute)
+                * u64::from(skirmish.setup.rules.starting_minutes);
+            skirmish
+                .settlement
+                .settle(&deaths, starting_budget, &mut skirmish.wallets);
+        }
+        for death in destroyed {
+            let id = death.victim;
             let unit = &self.units[id.0 as usize];
             let own = unit.side;
             let wreck = unit.unit_type(&self.rules).hull().map(|h| h.wreck.clone());
@@ -2202,6 +2352,30 @@ impl Battle {
             None
         };
         let placement = match &command.order {
+            Order::Refund { units } => {
+                let entry = self
+                    .skirmish
+                    .as_ref()
+                    .unwrap()
+                    .setup
+                    .sites
+                    .entries
+                    .iter()
+                    .find(|entry| entry.side == command.side)
+                    .unwrap();
+                Some(MovePlacement {
+                    gesture: 0,
+                    destinations: units
+                        .iter()
+                        .map(|unit| contract::command::MoveDestination {
+                            unit: *unit,
+                            goal: entry.center,
+                            placed: true,
+                            facing: entry.yaw,
+                        })
+                        .collect(),
+                })
+            }
             Order::OccupyBuilding { gesture, .. } => Some(MovePlacement {
                 gesture: *gesture,
                 destinations: building.as_ref().unwrap().placement.destinations.clone(),
@@ -2264,7 +2438,43 @@ impl Battle {
         let side = command.side;
         let queued = command.queued;
         let push = |unit: &mut Unit, order: UnitOrder| unit.enqueue(order, queued);
+        let replacing = match &command.order {
+            Order::Move { units, .. }
+            | Order::AttackMove { units, .. }
+            | Order::Stop { units }
+            | Order::Attack { units, .. }
+            | Order::SetEngagement { units, .. }
+            | Order::SetDeployment { units, .. }
+            | Order::Garrison { units, .. }
+            | Order::OccupyBuilding { units, .. }
+            | Order::ExitBuilding { units } => Some(units),
+            _ => None,
+        };
+        if let Some(units) = replacing {
+            for id in units {
+                movers[id.0 as usize].withdrawing = false;
+            }
+        }
         match command.order {
+            Order::Refund { .. } => {
+                for slot in prepared.placement.unwrap().destinations {
+                    if !slot.placed {
+                        continue;
+                    }
+                    let unit = &mut movers[slot.unit.0 as usize];
+                    unit.enqueue(
+                        UnitOrder::Move(MoveOrder {
+                            destination: v2(slot.goal[0], slot.goal[1]),
+                            policy: RoutePolicy::Fastest,
+                            gesture: 0,
+                            direction: Default::default(),
+                            facing: None,
+                        }),
+                        false,
+                    );
+                    unit.withdrawing = true;
+                }
+            }
             Order::Ready | Order::ConfirmPurchase { .. } | Order::CancelPending { .. } => {}
             Order::OccupyBuilding {
                 gesture, facing, ..
@@ -2464,6 +2674,7 @@ impl Battle {
                         if let Some(m) = order.movement_mut() {
                             if m.gesture == gesture && m.policy != route {
                                 m.policy = route;
+                                unit.withdrawing = false;
                                 if k == 0 {
                                     unit.route = None; // replan the active order
                                     unit.planned_goal = None;
@@ -2875,6 +3086,24 @@ impl Battle {
                     .iter()
                     .filter(|u| u.side == side && u.alive())
                     .map(|u| OwnUnit {
+                        withdrawing: u.withdrawing,
+                        protection: u.protection.as_ref().map(|p| {
+                            let definition = u
+                                .unit_type(&self.rules)
+                                .capabilities
+                                .active_protection
+                                .as_ref()
+                                .unwrap();
+                            let remaining = (p.ready_at_tick - self.tick as f64).max(0.0);
+                            contract::observation::ProtectionReadiness {
+                                charges: p.charges,
+                                cooldown: (remaining > 0.0).then(|| {
+                                    (1.0 - remaining
+                                        / (definition.cooldown_s * f64::from(self.rules.tick_hz)))
+                                    .clamp(0.0, 1.0)
+                                }),
+                            }
+                        }),
                         id: u.id,
                         kind: u.kind,
                         position: [u.position.x, u.position.y, u.position.z],
@@ -3551,5 +3780,99 @@ mod tests {
                 [remembered.position[0], remembered.position[1], z]
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod settlement_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn hostile_collapse_uses_first_destructive_source_and_original_receipt() {
+        let mut rules = crate::fixtures::game();
+        for kind in ["tank", "rifle"] {
+            crate::fixtures::patch_catalog(
+                &mut rules,
+                "units",
+                kind,
+                json!({"sensors":{"ground_m":1}}),
+            );
+        }
+        crate::fixtures::patch_catalog(&mut rules, "units", "rifle", json!({"cost":900}));
+        rules["garrison"]["survival_probability_on_collapse"] = json!(0);
+        let setup: ScenarioDefinition = serde_json::from_value(json!({
+            "map":rules["map"],"rules":rules,"units":[
+                {"side":"blue","kind":"tank","position":[50,50]},
+                {"side":"red","kind":"rifle","position":[700,550]}
+            ]
+        }))
+        .unwrap();
+        let mut battle = Battle::new(&setup, 7);
+        let building = battle.world.props().find(|p| p.body.garrison).unwrap().id;
+        let center = battle.world.prop(building).unwrap().center;
+        battle.units[1].position = center.with_z(0.0);
+        for member in &mut battle.units[1].members {
+            member.position = center.with_z(0.0);
+        }
+        battle.units[1].garrison = Some(garrison::Garrison {
+            building,
+            phase: garrison::Phase::Inside,
+            slots: Vec::new(),
+            seats: vec![None; battle.units[1].members.len()],
+            entry: center,
+        });
+        battle.skirmish = Some(crate::skirmish::Skirmish::new(serde_json::from_value(json!({
+            "factions":["us","eastern"],
+            "rules":{"credits_per_minute":200,"starting_minutes":5,"preparation_s":60,"max_units":30,"dispatch_interval_s":1},
+            "sites":{"entries":[{"side":"blue","center":[400,10],"yaw":0},{"side":"red","center":[400,590],"yaw":0}],
+                "objectives":[{"id":"center","center":[400,300],"radius_m":50,"kind":"junction","counterpart":null},
+                    {"id":"south","center":[200,200],"radius_m":50,"kind":"field","counterpart":"north"},
+                    {"id":"north","center":[600,400],"radius_m":50,"kind":"field","counterpart":"south"}]}
+        })).unwrap()));
+        battle.skirmish.as_mut().unwrap().entered.insert(
+            UnitId(1),
+            crate::skirmish::EnteredUnit {
+                price: 200,
+                entered_tick: 0,
+            },
+        );
+        battle.tick = 1;
+        battle.observe_all();
+        let before = battle.observe(Side::Blue).clone();
+        let source = Some(damage::LethalSource {
+            unit: UnitId(0),
+            side: Side::Blue,
+        });
+        battle.consequences(damage::Outcome {
+            destroyed: Vec::new(),
+            attacked: Vec::new(),
+            structural: vec![
+                damage::StructuralHit {
+                    prop: building,
+                    amount: 1e12,
+                    toward: v2(1.0, 0.0),
+                    source,
+                },
+                damage::StructuralHit {
+                    prop: building,
+                    amount: 1e12,
+                    toward: v2(1.0, 0.0),
+                    source: None,
+                },
+            ],
+        });
+        assert!(!battle.units[1].alive());
+        battle.observe_all();
+        let after = battle.observe(Side::Blue);
+        assert_eq!(after.skirmish.as_ref().unwrap().credits, 1050.0);
+        assert_eq!(after.identified, before.identified);
+        assert_eq!(after.contacts, before.contacts);
+        assert_eq!(after.known_props, before.known_props);
+        assert_eq!(after.corpses, before.corpses);
+        assert_eq!(
+            battle.skirmish.as_ref().unwrap().settlement.pools(),
+            [100_000_000, 0]
+        );
     }
 }

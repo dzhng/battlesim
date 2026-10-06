@@ -141,6 +141,8 @@ export interface VehiclePose {
 /** A fallen soldier whose death has played out (or was never seen): drawn
  *  as a static mesh, never skinned. */
 export interface CorpsePose {
+  /** Last observed carried equipment; unknown for a body first seen fallen. */
+  operatorMount?: number | null;
   soldier: number;
   kind: string;
   slot: number;
@@ -490,20 +492,28 @@ export class PoseDriver {
       const pose = state.pose;
       const operatorMount = unit.mounts.findIndex((m) => m.operator === soldier.id);
       const carried = operatorMount < 0 ? null : operatorMount;
+      const dx = soldier.position[0] - state.at[0];
+      const dy = soldier.position[1] - state.at[1];
+      const moved = Math.hypot(dx, dy);
+      const speed = dt > 0 ? moved / dt : 0;
+      const authoredHold =
+        carried === null
+          ? undefined
+          : this.options.units.type(unit.kind).mounts[carried]?.operator_appearance?.active_pose;
+      const holding = authoredHold && soldier.activeMount === carried && speed < gait.walk_mps;
+      // This changes presentation equipment only; the feed remains observed authority.
+      const activeMount =
+        authoredHold && soldier.activeMount === carried && !holding ? null : soldier.activeMount;
       const equipmentChanged =
         pose.operatorMount !== carried ||
-        (carried !== null && (pose.activeMount === carried) !== (soldier.activeMount === carried));
-      if (pose.activeMount !== soldier.activeMount) {
+        (carried !== null && (pose.activeMount === carried) !== (activeMount === carried));
+      if (pose.activeMount !== activeMount) {
         state.firedAt = -Infinity;
         state.lastShots = shots;
         state.ownShots = soldier.shots ?? 0;
       }
       pose.operatorMount = carried;
-      pose.activeMount = soldier.activeMount;
-      const dx = soldier.position[0] - state.at[0];
-      const dy = soldier.position[1] - state.at[1];
-      const moved = Math.hypot(dx, dy);
-      const speed = dt > 0 ? moved / dt : 0;
+      pose.activeMount = activeMount;
       // He fired when his own count rose; a feed that names no one leaves it
       // to a rise of the squad's counter, a shot by the whole squad.
       const own = soldier.shots;
@@ -519,7 +529,8 @@ export class PoseDriver {
       const target = speed > gait.facing_mps ? Math.atan2(dy, dx) : aim + state.turn * settled;
       const turn = deltaAngle(pose.facing, target);
       const step = gait.turn_rad_s * dt;
-      pose.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
+      if (holding) pose.facing = aim;
+      else pose.facing += Math.abs(turn) <= step ? turn : Math.sign(turn) * step;
 
       // Out on his lean he kneels to fire, pinned or not: the film's man
       // pops out from behind the tree and drops back. Otherwise, under fire
@@ -534,8 +545,9 @@ export class PoseDriver {
               ? state.stance.firing
               : "stand");
 
-      const clip =
-        posture === "prone"
+      const clip = holding
+        ? authoredHold.clip
+        : posture === "prone"
           ? "prone_pinned"
           : posture === "kneel" && speed < gait.walk_mps
             ? "kneel_fire"
@@ -551,7 +563,13 @@ export class PoseDriver {
         // must not blend a pose sampled from the former equipment family.
         this.resetClip(state, clip);
       }
-      this.advance(state, clip, moved, dt);
+      if (holding) {
+        // A supported active kit is authored against this exact hold, not every body clip.
+        pose.clip = authoredHold.clip;
+        pose.phase = authoredHold.phase;
+        pose.blend = null;
+        state.fadeLeft = 0;
+      } else this.advance(state, clip, moved, dt);
       vec3.copy(state.at, soldier.position);
       // Out on his lean: slide to the lean point; tucked in: ease back.
       const lean = soldier.lean ?? null;
@@ -636,7 +654,6 @@ export class PoseDriver {
         vec3.copy(state.pose.position, f.position);
         state.pose.unit = -1;
         const changedHold = state.pose.operatorMount !== null;
-        state.pose.operatorMount = null;
         state.pose.activeMount = null;
         if (changedHold) this.resetClip(state, "death");
         else this.switchTo(state, "death");
@@ -680,7 +697,6 @@ export class PoseDriver {
       const state = this.soldiers.get(id)!;
       state.seen = generation;
       const pose = state.pose;
-      pose.operatorMount = null;
       pose.activeMount = null;
       const facts = this.options.clip(pose.kind, "death", pose);
       pose.phase = facts ? Math.min(1, (time - state.fellAt!) / facts.duration) : 1;
@@ -691,6 +707,7 @@ export class PoseDriver {
         this.lay({
           soldier: id,
           kind: pose.kind,
+          operatorMount: pose.operatorMount,
           slot: pose.slot,
           side: pose.side,
           position: vec3.clone(pose.position),

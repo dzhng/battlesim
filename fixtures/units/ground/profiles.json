@@ -464,8 +464,22 @@
               "at_carried",
               "at_carried_b",
               "at_carried_c"
-            ]
-          }
+            ],
+            "active_pose": {
+              "clip": "kneel_fire",
+              "phase": 0
+            }
+          },
+          "pivot_m": [
+            0.6422605133,
+            -0.2,
+            1.066
+          ],
+          "muzzle_m": [
+            0.79,
+            0,
+            0
+          ]
         }
       ]
     },
@@ -490,8 +504,22 @@
               "at_carried",
               "at_carried_b",
               "at_carried_c"
-            ]
-          }
+            ],
+            "active_pose": {
+              "clip": "kneel_fire",
+              "phase": 0
+            }
+          },
+          "pivot_m": [
+            0.6422607327,
+            -0.2,
+            1.18
+          ],
+          "muzzle_m": [
+            0.81,
+            0,
+            0
+          ]
         }
       ]
     },
@@ -516,7 +544,11 @@
               "at_carried",
               "at_carried_b",
               "at_carried_c"
-            ]
+            ],
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0
+            }
           }
         }
       ]
@@ -542,7 +574,11 @@
               "at_carried",
               "at_carried_b",
               "at_carried_c"
-            ]
+            ],
+            "active_pose": {
+              "clip": "stand_aim",
+              "phase": 0
+            }
           }
         }
       ]

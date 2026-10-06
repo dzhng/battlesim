@@ -1,0 +1,123 @@
+{
+  "assignment": "type99",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/type99.py",
+  "exclusive_export_directory": "assets/source/roster/type99/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "Type_99_tank",
+    "url": "https://en.m.wikipedia.org/wiki/Type_99_tank",
+    "sha256": "a90db7a3faec0ab2f4f0dcc9b4f214648f49d4b7f9b7d5eb56a21a18cb6a8360",
+    "rows": [
+      "Length Hull: 7.6 metres (25 ft) Gun forward: 11 metres (36 ft) [ 3 ]",
+      "Width Hull: 3.7 metres (12 ft) [ 4 ]",
+      "Height Hull: 2.35 metres (7.7 ft) [ 4 ]",
+      "Main armament 125mm ZPT-98 smoothbore gun (42 Rounds; autoloader)",
+      "Secondary armament QJC-88 heavy machine gun [ 5 ] Type 86 coaxial machine gun"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/7/77/ZTZ-99A_tank_front_20170902.jpg/250px-ZTZ-99A_tank_front_20170902.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/ZTZ-99A_tank_front_20170902.jpg/500px-ZTZ-99A_tank_front_20170902.jpg",
+        "sha256": "ca92389708547e390c3a26c77e23074e5ce1523850ee27b3b66f0f6685f5b464"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/ZTZ-99A_tank_20170919.jpg/500px-ZTZ-99A_tank_20170919.jpg",
+        "sha256": "ad1a92a5617e992e527d4170e62c61f4b3a4ba454a02efb65e8199b70e7f5dce"
+      }
+    ]
+  },
+  "silhouette_requirements": "Six wheels per side; angular ZTZ-99A wedge-cheek turret; ERA and deep side skirts; long 125 mm gun; commander HMG.",
+  "reference_limits": "Hull dimensions are explicit; gun-forward 11 m remains distinct.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally. Cannon rest muzzle X is chosen from cited gun-forward length minus half the selected hull length; this assumes the rear hull extent is the total-length rear reference.",
+  "variants": [
+    {
+      "id": "eastern_type_99_ztz_99a",
+      "name": "Type 99 ZTZ-99A",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "ZTZ-99A",
+      "profile": "improved-mbt",
+      "appearance_id": "eastern_type_99_ztz_99a",
+      "export": "assets/source/roster/type99/eastern_type_99_ztz_99a.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.6,
+          3.7,
+          2.35
+        ],
+        "half_extents_m": [
+          3.8,
+          1.85,
+          1.175
+        ],
+        "eye_m": 2.209,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.41
+            ],
+            "muzzle_m": [
+              7.2,
+              0,
+              0.423
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.209
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/remaining_tanks.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/remaining-tank-reference-review.md",
+    "variants": [
+      {
+        "id": "eastern_type_99_ztz_99a",
+        "glb_sha256": "8bbb01b687208099c129d4c0ebf7128f15bfd2546ff7439192d8df551330179a",
+        "source_bytes": 3155864,
+        "triangles_by_tier": [
+          17586,
+          5614,
+          2388,
+          1324
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/type99/eastern_type_99_ztz_99a/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/type99/eastern_type_99_ztz_99a/eastern_type_99_ztz_99a.svg"
+      }
+    ]
+  }
+}

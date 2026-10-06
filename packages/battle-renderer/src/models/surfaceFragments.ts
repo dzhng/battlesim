@@ -37,6 +37,35 @@ const coverageValue = tgpu.fn(
   }
   return value;
 });
+
+/** The same named geometry as a unit, shown as a translucent placement cue.
+ *  Presentation reuses the x-ray RGBA lanes: ghost runs never enter x-ray. */
+export function createGhostFragment(environment: EnvironmentFrame) {
+  return tgpu.fragmentFn({ in: modelVaryings, out: d.vec4f })((v) => {
+    "use gpu";
+    const coverage = coverageValue(v.material, v.uv);
+    const cutoff = modelLayout.$.materials[v.material * MATERIAL_ROWS + 4].x;
+    if (cutoff > 0 && coverage < cutoff) std.discard();
+    const eye = typegpuCameraLayout.$.cam.eye;
+    let n = std.normalize(v.normal);
+    if (std.dot(n, std.sub(eye, v.world)) < 0) n = std.neg(n);
+    const surface = modelSurface(v.color, v.material, v.track, v.uv, n, v.tangent);
+    const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
+    const shaded = environment.shade(
+      v.xray.xyz,
+      d.vec3f(0),
+      surface.roughness,
+      0,
+      surface.metallic,
+      surface.occlusion,
+      surface.normal,
+      v.world,
+      sun,
+      eye,
+    );
+    return d.vec4f(shaded.xyz, v.xray.w * coverage);
+  });
+}
 /**
  * How much of a cutout's surface is there at a fragment, 0..1: its coverage
  * value, scaled so that the material's cutoff is half there. Sampled through

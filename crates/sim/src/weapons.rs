@@ -554,26 +554,32 @@ fn placed_muzzle(position: V3, pivot: V3, muzzle: V3, carried: f64, bearing: f64
     position + (turn(pivot, carried) + turn(muzzle, bearing))
 }
 
+fn infantry_offset(spec: &MountSpec, rules: &Rules, bearing: f64) -> V3 {
+    match spec.muzzle {
+        Some(muzzle) => placed_muzzle(v3(0.0, 0.0, 0.0), spec.pivot, muzzle, bearing, bearing),
+        None => v3(0.0, 0.0, rules.physics.infantry_muzzle_m),
+    }
+}
 
 /// Where a mount's rounds leave when it points along `bearing`: each mount
 /// fires from its own muzzle. Its pivot turns with its carrier (the turret
 /// it sits on, at that mount's bearing, or the hull), and its muzzle turns
-/// with its own bearing about the pivot. A hand weapon fires at the
+/// with its own bearing about the pivot. An infantry offset turns with its
+/// operator and starts at his position. A hand weapon fires at the
 /// infantry muzzle height: a single one from its operator where he stands
 /// (his lean is [`fire_from`]'s), a squad weapon's volley judged first from
 /// the squad's middle (each soldier then fires from his own).
 fn muzzle(unit: &Unit, mount: &Mount, spec: &MountSpec, rules: &Rules, bearing: f64) -> V3 {
-    let Some(muzzle) = spec.muzzle else {
-        let at = match operator(unit, mount).filter(|_| !spec.squad) {
-            Some(k) => unit.members[k].position,
-            None => unit.position,
-        };
-        return at + v3(0.0, 0.0, rules.physics.infantry_muzzle_m);
-    };
-    // A unit's mounts are its type's list, in order (`Arsenal::mounts_for`).
+    if unit.hull.is_none() {
+        let at = operator(unit, mount)
+            .filter(|_| !spec.squad)
+            .map_or(unit.position, |k| unit.members[k].position);
+        return at + infantry_offset(spec, rules, bearing);
+    }
+    let muzzle = spec
+        .muzzle
+        .expect("hull mounts have a muzzle (catalog admission)");
     let carried = spec.on.map_or(unit.yaw, |c| unit.mounts[c].bearing);
-    // Offset first, then placed: a mount on the hull's axis lands on exactly
-    // the point a single hull-frame offset did.
     placed_muzzle(unit.position, spec.pivot, muzzle, carried, bearing)
 }
 
@@ -726,7 +732,7 @@ fn engage(
             };
             // Assessment and launch use the same occupied window's muzzle.
             result = from(
-                seat.position + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m),
+                seat.position + infantry_offset(spec, ctx.rules, bearing),
                 None,
                 None,
             );
@@ -752,7 +758,13 @@ fn engage(
     let blockers = lean::hulls(units, ctx.rules);
     candidates(unit, mount, spec)
         .map(|k| {
-            let f = fire_from(ctx, &blockers, &unit.members[k], r.point)?;
+            let f = fire_from(
+                ctx,
+                &blockers,
+                &unit.members[k],
+                r.point,
+                infantry_offset(spec, ctx.rules, bearing),
+            )?;
             from(f.origin, f.past, f.hull).ok()
         })
         .find_map(|s| s.map(Ok))
@@ -927,7 +939,7 @@ fn return_fire_threat(
                 track.position,
                 spec.pivot,
                 muzzle,
-                if spec.on.is_some() {
+                if spec.on.is_some() || ctx.rules.catalog.get(kind).hull().is_none() {
                     bearing
                 } else {
                     track.yaw
@@ -1643,7 +1655,7 @@ fn fire(
         None => participants(unit, mount, spec)
             .map(|k| {
                 (
-                    unit.members[k].position + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m),
+                    unit.members[k].position + infantry_offset(spec, ctx.rules, mount.bearing),
                     BodyId(unit.members[k].id),
                     (!unit.garrisoned()).then_some(k),
                 )
@@ -1738,7 +1750,13 @@ fn fire(
                 return None;
             }
             let from = match soldier {
-                Some(s) => fire_from(ctx, &blockers, s, p)?,
+                Some(s) => fire_from(
+                    ctx,
+                    &blockers,
+                    s,
+                    p,
+                    infantry_offset(spec, ctx.rules, mount.bearing),
+                )?,
                 None => standing,
             };
             ((p - from.origin).length() >= weapon.def.min_range_m).then_some((p, from))
@@ -1892,10 +1910,10 @@ fn fire_from(
     blockers: &[lean::Hull],
     soldier: &crate::units::Soldier,
     point: V3,
+    offset: V3,
 ) -> Option<FirePoint> {
     let muzzle = |p: crate::math::V2| {
-        p.with_z(ctx.world.height_at(p.x, p.y).unwrap_or(soldier.position.z))
-            + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m)
+        p.with_z(ctx.world.height_at(p.x, p.y).unwrap_or(soldier.position.z)) + offset
     };
     let lean = soldier
         .lean
@@ -1906,7 +1924,7 @@ fn fire_from(
         lean::Round::Hull(u) => Some(u),
         lean::Round::Prop(_) => None,
     });
-    let standing = soldier.position + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m);
+    let standing = soldier.position + offset;
     if lean::reaches(ctx.world, blockers, standing, point, None) {
         return Some(FirePoint {
             origin: standing,
@@ -2249,6 +2267,101 @@ pub fn readiness(
 mod target_priority_tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn a_claimed_lean_preserves_the_launchers_full_bore_offset() {
+        let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+            "map":{"size":[500,500],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+                "props":[{"kind":"wall","center":[101,100],"yaw":0,"half_extents":[0.3,2,3]}]},
+            "rules":crate::fixtures::game(),"units":[{"side":"blue","kind":"at","position":[100,100]}],
+            "events":[],"scripts":[]
+        })).unwrap();
+        let battle = crate::battle::Battle::new(&setup, 5);
+        let knowledge = [
+            SideKnowledge::new(1, battle.ground()),
+            SideKnowledge::new(2, battle.ground()),
+        ];
+        let ctx = FireContext {
+            world: battle.world(),
+            structures: battle.structures(),
+            ground: battle.ground(),
+            arsenal: battle.arsenal(),
+            rules: &setup.rules,
+            tick: 0,
+            knowledge: &knowledge,
+        };
+        let mut soldier = battle.unit(UnitId(0)).unwrap().members[0].clone();
+        soldier.position = v3(100.0, 100.0, 0.0);
+        soldier.lean = Some(lean::Lean {
+            from: v2(100.0, 100.0),
+            at: v2(100.0, 103.0),
+            side: lean::LeanSide::Left,
+            body: lean::Round::Prop(0),
+        });
+        let from = fire_from(
+            &ctx,
+            &[],
+            &soldier,
+            v3(300.0, 100.0, 1.0),
+            v3(0.8, -0.1, 0.75),
+        )
+        .expect("lean clears the wall");
+        assert!(from.leaning, "the standing bore is behind the wall");
+        assert!(
+            (from.origin - v3(100.8, 102.9, 0.75)).length() < 1e-9,
+            "{:?}",
+            from.origin
+        );
+    }
+
+    #[test]
+    fn known_infantry_bore_turns_toward_us_from_the_observed_center() {
+        let mut game = crate::fixtures::game();
+        game["weapons"]["atgm"]["min_range_m"] = json!(200.0);
+        game["catalog"].as_array_mut().unwrap().push(json!({
+            "soldiers":{"grounded":{"extends":"atgm_gunner", "mounts":[{
+                "name":"ATGM launcher","pivot_m":[20,0,0.75],"muzzle_m":[0,0,0]
+            }]}},
+            "units":{"grounded":{"extends":"at","body":{"squad":{"slots":["grounded"]}}}}
+        }));
+        let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+            "map":{"size":[1000,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+            "rules":game,"units":[{"side":"blue","kind":"tank","position":[100,300]},
+                {"side":"red","kind":"grounded","position":[800,300]}],"events":[],"scripts":[]
+        }))
+        .unwrap();
+        let battle = crate::battle::Battle::new(&setup, 5);
+        let knowledge = [
+            SideKnowledge::new(1, battle.ground()),
+            SideKnowledge::new(2, battle.ground()),
+        ];
+        let ctx = FireContext {
+            world: battle.world(),
+            structures: battle.structures(),
+            ground: battle.ground(),
+            arsenal: battle.arsenal(),
+            rules: &setup.rules,
+            tick: 0,
+            knowledge: &knowledge,
+        };
+        let track = crate::knowledge::Track {
+            id: contract::observation::ObservedTargetId(7),
+            last_seen: 0,
+            position: v3(300.0, 300.0, 0.0),
+            yaw: 0.0,
+            velocity: v2(0.0, 0.0),
+            members: vec![],
+        };
+        // The declared bore points west: 180m to us is inside its minimum.
+        // Using its observed carrier yaw would point east (220m), and using
+        // the hidden physical squad at800m would also misclassify the threat.
+        assert!(!return_fire_threat(
+            &ctx,
+            battle.unit(UnitId(0)).unwrap(),
+            battle.unit(UnitId(1)).unwrap().kind,
+            &track
+        ));
+    }
 
     #[test]
     fn known_return_fire_threat_requires_a_clear_physical_trajectory() {

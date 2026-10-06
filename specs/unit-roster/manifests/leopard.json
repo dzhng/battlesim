@@ -1,0 +1,219 @@
+{
+  "assignment": "leopard",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/leopard.py",
+  "exclusive_export_directory": "assets/source/roster/leopard/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "Leopard_2",
+    "url": "https://en.m.wikipedia.org/wiki/Leopard_2",
+    "sha256": "ea4c3450906fe6ae30e55e5157f1d87e4e794eba730b340f0a08eece4cb26aee",
+    "rows": [
+      "Length 2A4: 9.97 metres (32.7 feet) (gun forward) 2A6: 10.97 metres (36.0 feet)",
+      "Width 2A4: 3.7 metres (12 feet) 2A6: 3.75 m (12.3 ft)",
+      "Height 2A4: 2.8 metres (9.2 feet) 2A6: 3 m (9.8 ft)",
+      "Main armament 1 \u00d7 Rh-120 L/44 120 mm or Rh-120 L/55 120 mm Rheinmetall Rh-120 [ 1 ] (42 rounds)",
+      "Secondary armament 2 \u00d7 7.62 mm MG3A1 [ 1 ] or 2 \u00d7 7.62 mm FN MAG (4,750 rounds)"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Leopard_2_A7V_313_Bad_Frankenhausen_2024.JPG/330px-Leopard_2_A7V_313_Bad_Frankenhausen_2024.JPG?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ]
+  },
+  "silhouette_requirements": "Seven wheels per side; long slab hull; angular turret wedge cheeks; long L55 gun. 2A6 clean wedge turret; 2A7V added hull/turret kit; 2A8 visible Trophy radar/launcher hardware.",
+  "reference_limits": "7.7 m hull is authoring estimate from family imagery; cited 10.97 m is gun-forward 2A6. Exact variant hull and Trophy geometry require reference review.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally. Cannon rest muzzle X is chosen from cited gun-forward length minus half the selected hull length; this assumes the rear hull extent is the total-length rear reference.",
+  "variants": [
+    {
+      "id": "europe_leopard_2_2a6",
+      "name": "Leopard 2 2A6",
+      "factions": [
+        "europe"
+      ],
+      "variant": "2A6",
+      "profile": "mbt",
+      "appearance_id": "europe_leopard_2_2a6",
+      "export": "assets/source/roster/leopard/europe_leopard_2_2a6.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.7,
+          3.75,
+          3.0
+        ],
+        "half_extents_m": [
+          3.85,
+          1.875,
+          1.5
+        ],
+        "eye_m": 2.82,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.8
+            ],
+            "muzzle_m": [
+              7.12,
+              0,
+              0.54
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.82
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "europe_leopard_2_2a7v",
+      "name": "Leopard 2 2A7V",
+      "factions": [
+        "europe"
+      ],
+      "variant": "2A7V",
+      "profile": "improved-mbt",
+      "appearance_id": "europe_leopard_2_2a7v",
+      "export": "assets/source/roster/leopard/europe_leopard_2_2a7v.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.7,
+          3.75,
+          3.0
+        ],
+        "half_extents_m": [
+          3.85,
+          1.875,
+          1.5
+        ],
+        "eye_m": 2.82,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.8
+            ],
+            "muzzle_m": [
+              7.12,
+              0,
+              0.54
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.82
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "europe_leopard_2_2a8",
+      "name": "Leopard 2 2A8",
+      "factions": [
+        "europe"
+      ],
+      "variant": "2A8",
+      "profile": "advanced-mbt",
+      "appearance_id": "europe_leopard_2_2a8",
+      "export": "assets/source/roster/leopard/europe_leopard_2_2a8.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.7,
+          3.75,
+          3.0
+        ],
+        "half_extents_m": [
+          3.85,
+          1.875,
+          1.5
+        ],
+        "eye_m": 2.82,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "advanced-tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.8
+            ],
+            "muzzle_m": [
+              7.12,
+              0,
+              0.54
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.82
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": [
+        "Trophy is automatic capability, not offensive mount. Required static hardware nodes trophy_radar_L/R and trophy_launcher_L/R; capability/parts binding remains coordinator-owned; no spawn before slice 10."
+      ]
+    }
+  ]
+}

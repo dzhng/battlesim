@@ -1,0 +1,104 @@
+import type { CommandAck, Order, PurchasePlacement } from "../sim/protocol";
+import type { SimClient } from "../sim/client";
+export interface PurchaseGhost {
+  variant: string;
+  destination: [number, number];
+  valid: boolean | null;
+}
+/** Free previews are coalesced; only an acknowledgement commits a purchase. */
+export class PurchasePlacementControl {
+  variant: string | null = null;
+  private ghost: PurchaseGhost | null = null;
+  private intent: { client: SimClient; key: string; ghost: PurchaseGhost } | null = null;
+  private resolved: { key: string; placement: PurchasePlacement } | null = null;
+  private inFlight = false;
+  private generation = 0;
+  private confirming = false;
+  private client: SimClient | null = null;
+
+  choose(variant: string) {
+    this.cancel();
+    this.variant = variant;
+  }
+  cancel() {
+    this.generation++;
+    this.variant = null;
+    this.ghost = null;
+    this.intent = null;
+    this.resolved = null;
+  }
+  at(
+    destination: [number, number] | null,
+    client: SimClient | null,
+    revision: string,
+  ): PurchaseGhost | null {
+    if (!this.variant || !destination || !client) {
+      this.ghost = null;
+      this.intent = null;
+      return null;
+    }
+    if (this.client !== client) {
+      this.client = client;
+      this.generation++;
+      this.resolved = null;
+    }
+    const key = JSON.stringify([this.generation, this.variant, destination, revision]);
+    const ghost = {
+      variant: this.variant,
+      destination,
+      valid: this.resolved?.key === key ? "Ok" in this.resolved.placement : null,
+    };
+    this.intent = { client, key, ghost };
+    this.ghost = ghost;
+    this.resolve();
+    return ghost;
+  }
+  private resolve() {
+    const intent = this.intent;
+    if (!intent || this.inFlight || this.resolved?.key === intent.key) return;
+    this.inFlight = true;
+    void intent.client
+      .previewPurchase(intent.ghost.variant, intent.ghost.destination)
+      .then(
+        (placement) => {
+          if (this.intent?.key === intent.key) this.resolved = { key: intent.key, placement };
+        },
+        () => {
+          if (this.intent?.key === intent.key)
+            this.resolved = {
+              key: intent.key,
+              placement: { Err: { reason: "preview_unavailable" } },
+            };
+        },
+      )
+      .finally(() => {
+        this.inFlight = false;
+        this.resolve();
+      });
+  }
+  async confirm(send: (order: Order) => Promise<CommandAck | null | undefined>): Promise<boolean> {
+    const ghost = this.ghost;
+    if (
+      !ghost ||
+      this.resolved?.key !== this.intent?.key ||
+      !this.resolved ||
+      !("Ok" in this.resolved.placement) ||
+      this.confirming
+    )
+      return false;
+    const generation = this.generation;
+    this.confirming = true;
+    try {
+      const ack = await send({
+        kind: "confirm_purchase",
+        variant: ghost.variant,
+        destination: ghost.destination,
+      });
+      if (!ack || ack.error) return false;
+      if (generation === this.generation) this.cancel();
+      return true;
+    } finally {
+      this.confirming = false;
+    }
+  }
+}

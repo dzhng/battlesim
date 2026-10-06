@@ -514,8 +514,29 @@ pub enum ImpactDecision {
 
 /// Judges each hit during flight. Damage owns the battle's resolver
 /// (penetration, faces, ricochet); flight only carries out the decision.
+#[derive(Clone, Copy, Debug)]
+pub struct Interception {
+    pub projectile: ProjectileId,
+    pub body: BodyId,
+    pub unit: UnitId,
+    pub point: V3,
+    pub velocity: V3,
+    /// Fraction of the advancing tick.
+    pub time: f64,
+    pub pose: Pose,
+}
+
 pub trait ImpactResolver {
     fn resolve(&mut self, impact: &ImpactContext) -> ImpactDecision;
+    fn max_standoff(&self, _projectile: ProjectileId) -> f64 {
+        0.0
+    }
+    fn standoff(&self, _projectile: ProjectileId, _body: &Body) -> Option<f64> {
+        None
+    }
+    fn intercept(&mut self, _event: &Interception) -> bool {
+        false
+    }
 }
 
 impl<F: FnMut(&ImpactContext) -> ImpactDecision> ImpactResolver for F {
@@ -781,7 +802,52 @@ pub fn advance_projectiles(
         bodies,
         grid,
     };
-    active.retain_mut(|p| flight.fly_tick(p, &mut scratch, events, resolver));
+    // Protection decisions consume shared unit resources, so evaluate imminent
+    // swept hits first and resolve by physical event time, then projectile id.
+    let mut candidates: Vec<_> = active
+        .iter()
+        .filter_map(|p| flight.interception(p, &mut scratch, resolver))
+        .collect();
+    candidates.sort_by(|a, b| {
+        a.time
+            .total_cmp(&b.time)
+            .then(a.projectile.cmp(&b.projectile))
+    });
+    let intercepted: std::collections::BTreeMap<_, _> = candidates
+        .into_iter()
+        .filter(|event| resolver.intercept(event))
+        .map(|event| (event.projectile, event))
+        .collect();
+    scratch.passes.clear();
+    scratch.misses.clear();
+    active.retain_mut(|p| {
+        if let Some(event) = intercepted.get(&p.id) {
+            // Trace only to the premature detonation, preserving ordinary
+            // pass-through and near-miss evidence before that point.
+            let mut traced = p.clone();
+            let span = event.time * config.tick_s;
+            let tick_span = config.tick_s.min(traced.lifetime_s - traced.age_s);
+            let gravity = flight.acceleration(&mut traced, tick_span);
+            scratch.misses.clear();
+            let _ = flight.fly_leg(&traced, &mut scratch, gravity, span, 0.0, None);
+            events.extend(scratch.passes.drain(..).map(FlightEvent::Pass));
+            events.extend(scratch.misses.drain(..).map(FlightEvent::NearMiss));
+            events.push(FlightEvent::Impact(Impact {
+                projectile: p.id,
+                struck: Struck::Terrain,
+                point: event.point,
+                normal: V3::default(),
+                velocity: event.velocity,
+                time: event.time,
+                bounces: p.bounces,
+                pose: None,
+                detonated: true,
+            }));
+            false
+        } else {
+            flight.fly_tick(p, &mut scratch, events, resolver)
+        }
+    });
     events[first..].sort_by(|a, b| {
         let (ka, kb) = (a.order_key(), b.order_key());
         ka.0.total_cmp(&kb.0)
@@ -824,6 +890,68 @@ struct Hit {
 }
 
 impl Flight<'_> {
+    fn acceleration(&self, p: &mut Projectile, span: f64) -> V3 {
+        let gravity = match p.guidance {
+            Some(g) => {
+                p.velocity = steer(p.velocity, g.point - p.position, g.turn_rad_s * span);
+                V3::default()
+            }
+            None => self.config.gravity * p.gravity_scale,
+        };
+        gravity
+            + p.motor
+                .map_or(V3::default(), |motor| motor.thrust(p.velocity, span))
+    }
+
+    fn interception(
+        &self,
+        original: &Projectile,
+        scratch: &mut Scratch,
+        resolver: &impl ImpactResolver,
+    ) -> Option<Interception> {
+        let max_reach = resolver.max_standoff(original.id);
+        if max_reach <= 0.0 {
+            return None;
+        }
+        let mut p = original.clone();
+        let tick_span = self.config.tick_s.min(p.lifetime_s - p.age_s);
+        let gravity = self.acceleration(&mut p, tick_span);
+        // Look only one standoff travel ahead of this tick. Guidance and body
+        // motion are re-evaluated on every ordinary advancement.
+        let span =
+            (tick_span + max_reach / p.velocity.length().max(1.0)).min(p.lifetime_s - p.age_s);
+        scratch.passes.clear();
+        scratch.misses.clear();
+        let hit = self.fly_leg(&p, scratch, gravity, span, 0.0, None)?;
+        let body = &self.bodies[hit.body?];
+        let reach = resolver.standoff(p.id, body)?;
+        for k in 0..scratch.accelerations.len() {
+            let s0 = scratch.path_times[k] / self.config.tick_s;
+            let s1 = scratch.path_times[k + 1] / self.config.tick_s;
+            if s0 > hit.time || s0 > 1.0 {
+                break;
+            }
+            let end = ((hit.time - s0) / (s1 - s0)).min(1.0);
+            let motion = sweep::Motion::new(body, s0, s1);
+            let ((a0, v0), (a1, _)) = (scratch.path[k], scratch.path[k + 1]);
+            if let Some(u) = sweep::standoff_entry(&body.shape, &motion, a0, a1, end, reach) {
+                let time = s0 + (s1 - s0) * u;
+                if time > 1.0 {
+                    return None;
+                }
+                return Some(Interception {
+                    projectile: p.id,
+                    body: body.id,
+                    unit: body.unit,
+                    point: a0 + (a1 - a0) * u,
+                    velocity: v0 + scratch.accelerations[k] * (u * (s1 - s0) * self.config.tick_s),
+                    time,
+                    pose: body.pose_at(time),
+                });
+            }
+        }
+        None
+    }
     /// Returns whether the round is still in flight.
     fn fly_tick(
         &self,
@@ -834,17 +962,7 @@ impl Flight<'_> {
     ) -> bool {
         let config = self.config;
         let span = config.tick_s.min(p.lifetime_s - p.age_s);
-        // A guided round turns toward its point, then flies straight this
-        // tick, speeding up along it under its motor.
-        let gravity = match p.guidance {
-            Some(g) => {
-                p.velocity = steer(p.velocity, g.point - p.position, g.turn_rad_s * span);
-                v3(0.0, 0.0, 0.0)
-            }
-            None => config.gravity * p.gravity_scale,
-        } + p
-            .motor
-            .map_or(v3(0.0, 0.0, 0.0), |m| m.thrust(p.velocity, span));
+        let gravity = self.acceleration(p, span);
         scratch.misses.clear();
         // Each leg flies from the round's state `flown` seconds into the tick;
         // a ricochet starts the next leg at its hit, clear of the body it

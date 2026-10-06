@@ -1,0 +1,148 @@
+{
+  "assignment": "ajax",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/ajax.py",
+  "exclusive_export_directory": "assets/source/roster/ajax/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "Ajax_(armoured_vehicle)",
+    "url": "https://en.m.wikipedia.org/wiki/Ajax_(armoured_vehicle)",
+    "sha256": "8d205eeebd2ad62ad67bcf34be58e7fe81b99cb72cf3991747f9b856d99fbead",
+    "rows": [
+      "Length 7.62 m (25 ft 0 in)",
+      "Width 3.35 m (11 ft 0 in)",
+      "Height 3.00 m (9 ft 10 in)",
+      "Main armament 40 mm (1.6 in) CTA International CTAS40 cannon",
+      "Secondary armament 7.62 mm L94A1 coaxial chain gun Kongsberg Protector Remote Weapon Station (UK testing with 7.62 mm L7 General-purpose machine gun and Javelin ATGM [ 2 ] [ 3 ] [ 4 ] )"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159441.jpg/330px-AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159441.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ],
+    "production_photo_receipts": [
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159441.jpg/500px-AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159441.jpg",
+        "sha256": "ca9a23f89e0220665a680dd6edd0c5b26be58a53bc3f739530196c0e4cbae475"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/60/AJAX_Armoured_Vehicle_at_a_3_Div_Combined_Arms_Manoeuvre_Demonstration_MOD_45161419.jpg/500px-AJAX_Armoured_Vehicle_at_a_3_Div_Combined_Arms_Manoeuvre_Demonstration_MOD_45161419.jpg",
+        "sha256": "8109b0c30c5ac2411c301f3d4ae77e680b71253aed5a1d8b74555198fb43e479"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159446.jpg/500px-AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159446.jpg",
+        "sha256": "7b7914815e59932f1487c8b181215b9a8e017438567cd86a33c81b4b9dedfbe7"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/Scout_SV_Specialist_Vehicle_MOD_45157765.jpg/500px-Scout_SV_Specialist_Vehicle_MOD_45157765.jpg",
+        "sha256": "17c45d32246fc2c01532a7b415c485d38197f06bb7ff9c45b27741f61b381663"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159442.jpg/500px-AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159442.jpg",
+        "sha256": "0f49a35d4f6fbbead4f316ef6624289eae7bd926b5fc6eab45350a4194345167",
+        "description_url": "https://commons.wikimedia.org/wiki/File:AJAX,_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159442.jpg"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159443.jpg/500px-AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159443.jpg",
+        "sha256": "a10e5c366b113a60362f42b43070d2da110fff4c7af318203325b0ab4ae8cf8d",
+        "description_url": "https://commons.wikimedia.org/wiki/File:AJAX,_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159443.jpg"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159444.jpg/500px-AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159444.jpg",
+        "sha256": "d03fe84e7c98895be66455b5de598a83b9b629c8a97a5155663b87c632bae1e0",
+        "description_url": "https://commons.wikimedia.org/wiki/File:AJAX,_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159444.jpg"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159445.jpg/500px-AJAX%2C_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159445.jpg",
+        "sha256": "185687654e22534b6f010bb0f213a9938b8fdfa6c977cd1fe6a8238eb51ed13b",
+        "description_url": "https://commons.wikimedia.org/wiki/File:AJAX,_the_Future_Armoured_Fighting_Vehicle_for_the_British_Army_MOD_45159445.jpg"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2a/Ajax_%2854086955827%29.jpg/500px-Ajax_%2854086955827%29.jpg",
+        "sha256": "00c50556c544abf776cabb6b7ca661bd19e8a49e3257ca057a718fbbe4ac71bb",
+        "description_url": "https://commons.wikimedia.org/wiki/File:Ajax_(54086955827).jpg"
+      },
+      {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3f/Ajax_%2854088288435%29.jpg/500px-Ajax_%2854088288435%29.jpg",
+        "sha256": "057181f075094a77167eabf4b7ab92a35f63b51d7a94f2aa34894ae2234179d5",
+        "description_url": "https://commons.wikimedia.org/wiki/File:Ajax_(54088288435).jpg"
+      }
+    ]
+  },
+  "silhouette_requirements": "Seven road wheels per side; tall slab hull with modular side armor; distinctive high angular turret; moderate CT40 cannon ending behind hull nose and optics.",
+  "reference_limits": "Use Ajax turreted reconnaissance, not Ares APC.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "europe_ajax_tracked_reconnaissance_vehicle",
+      "name": "Ajax Tracked reconnaissance vehicle",
+      "factions": [
+        "europe"
+      ],
+      "variant": "Tracked reconnaissance vehicle",
+      "profile": "tracked-recon",
+      "appearance_id": "europe_ajax_tracked_reconnaissance_vehicle",
+      "export": "assets/source/roster/ajax/europe_ajax_tracked_reconnaissance_vehicle.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.62,
+          3.35,
+          3.0
+        ],
+        "half_extents_m": [
+          3.81,
+          1.675,
+          1.5
+        ],
+        "eye_m": 2.82,
+        "mounts": [
+          {
+            "name": "autocannon",
+            "pack": [
+              "autocannon"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.95
+            ],
+            "muzzle_m": [
+              2.65,
+              0,
+              0.54
+            ]
+          }
+        ]
+      },
+      "notes": [],
+      "frame_correction": {
+        "date": "2026-10-06",
+        "reason": "Two independent named Ajax front/side photographs (MOD 45159443 and Ajax54088288435) place the CT40 muzzle behind the hull nose. Prior default 4.10 m reach extended 0.29 m beyond the 3.81 m nose and forced a misleading long gun. Chosen gameplay rest muzzle X 2.65 m lies 1.16 m behind nose, estimated against projected hull length, not factory dimensions. Original centered yaw pivot and bore Z retained. CT40 is moderate length, not a stubby gun.",
+        "mount_measurement": "Approximate photo-relative authored reach, not factory measurement"
+      }
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/europe_carriers.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "candidate-exported; adopted-source-fit-clean; runtime-neutral-critique-pending",
+    "reference_review": "throwaway/unit-roster-models/carrier-reference-review.md",
+    "variants": [
+      {
+        "id": "europe_ajax_tracked_reconnaissance_vehicle",
+        "glb_sha256": "bf141e2bb295b45c731518c1763f9badffc98c5a730f37ea0dd8a1f92af21c27",
+        "source_bytes": 2528836,
+        "triangles_by_tier": [
+          13600,
+          4820,
+          1858,
+          1052
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/ajax/europe_ajax_tracked_reconnaissance_vehicle/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/ajax/europe_ajax_tracked_reconnaissance_vehicle/europe_ajax_tracked_reconnaissance_vehicle.svg"
+      }
+    ]
+  }
+}

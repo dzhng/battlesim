@@ -1023,12 +1023,18 @@ impl PresetDefinitions {
         let mut resolved = self.clone();
         if request.profile == contract::generation::GenerationProfile::Skirmish {
             resolved.approach = self.skirmish.approach.clone();
-            resolved.approach.depth_m.values_mut().for_each(|v| *v = self.skirmish.approach.depth_m[&request.size]);
-            resolved.transit.max_s = resolved.transit.allowance_s + request.extent_m()*self.skirmish.main_road_length_factor/resolved.transit.road_mps();
+            resolved
+                .approach
+                .depth_m
+                .values_mut()
+                .for_each(|v| *v = self.skirmish.approach.depth_m[&request.size]);
+            resolved.transit.max_s = resolved.transit.allowance_s
+                + request.extent_m() * self.skirmish.main_road_length_factor
+                    / resolved.transit.road_mps();
             resolved.transit.exit_window = self.skirmish.exit_window;
             resolved.rivers.side_margin_m = self.skirmish.river_side_margin_m;
             resolved.roads.hub_offset_m = self.skirmish.hub_offset_m;
-            for (kind,preset) in &mut resolved.types {
+            for (kind, preset) in &mut resolved.types {
                 preset.gap_m = self.skirmish.settlement_gap_m;
                 preset.sizes = self.skirmish.types[kind].clone();
             }

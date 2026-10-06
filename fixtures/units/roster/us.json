@@ -27,7 +27,7 @@
     },
     "us_acv_acv_p": {
       "name": "ACV ACV-P",
-      "description": "ACV-P; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
+      "description": "ACV-P; ground combat platform, passenger carriage not implemented",
       "faction": "us",
       "family": "acv",
       "roles": [
@@ -50,7 +50,7 @@
             1.55,
             1.45
           ],
-          "eye_m": 2.726,
+          "eye_m": 3.25,
           "hp": 90,
           "armor": {
             "front": 65,
@@ -88,7 +88,7 @@
           "pivot_m": [
             0,
             0,
-            2.639
+            3.03
           ],
           "muzzle_m": [
             1.43,
@@ -97,7 +97,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "us_acv_acv_p",
       "sensors": {
         "ground_m": 450,
         "sight_shape": {
@@ -181,7 +181,7 @@
     },
     "us_army_scouts_light_patrol": {
       "name": "Army Scouts",
-      "description": "Light patrol; temporary generic appearance until named model admission",
+      "description": "Light patrol",
       "faction": "us",
       "family": "army_scouts",
       "roles": [
@@ -200,17 +200,17 @@
       "body": {
         "squad": {
           "slots": [
-            "scout",
-            "scout",
-            "scout",
-            "scout"
+            "us_army_scouts_light_patrol__scout",
+            "us_army_scouts_light_patrol__scout",
+            "us_army_scouts_light_patrol__scout",
+            "us_army_scouts_light_patrol__scout"
           ]
         }
       }
     },
     "us_atgm_team_bgm_71_tow_2a": {
       "name": "BGM-71 TOW 2A Team",
-      "description": "BGM-71 TOW 2A; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "BGM-71 TOW 2A; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "atgm_team",
       "roles": [
@@ -229,9 +229,9 @@
       "body": {
         "squad": {
           "slots": [
-            "roster_tow_gunner",
-            "at_rifleman",
-            "at_rifleman"
+            "us_atgm_team_bgm_71_tow_2a__roster_tow_gunner",
+            "us_atgm_team_bgm_71_tow_2a__at_rifleman",
+            "us_atgm_team_bgm_71_tow_2a__at_rifleman"
           ]
         }
       }
@@ -408,7 +408,7 @@
     },
     "us_force_recon_recon_patrol": {
       "name": "Force Recon",
-      "description": "Recon patrol; temporary generic appearance until named model admission",
+      "description": "Recon patrol",
       "faction": "us",
       "family": "force_recon",
       "roles": [
@@ -427,10 +427,10 @@
       "body": {
         "squad": {
           "slots": [
-            "grenadier",
-            "scout",
-            "scout",
-            "scout"
+            "us_force_recon_recon_patrol__grenadier",
+            "us_force_recon_recon_patrol__scout",
+            "us_force_recon_recon_patrol__scout",
+            "us_force_recon_recon_patrol__scout"
           ]
         }
       }
@@ -483,7 +483,7 @@
     },
     "us_lav_lav_25a2": {
       "name": "LAV LAV-25A2",
-      "description": "LAV-25A2; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
+      "description": "LAV-25A2; ground combat platform, passenger carriage not implemented",
       "faction": "us",
       "family": "lav",
       "roles": [
@@ -553,7 +553,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "us_lav_lav_25a2",
       "sensors": {
         "ground_m": 500,
         "sight_shape": {
@@ -566,7 +566,7 @@
     },
     "us_lav_lav_at": {
       "name": "LAV LAV-AT",
-      "description": "LAV-AT; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "LAV-AT; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "lav",
       "roles": [
@@ -587,9 +587,9 @@
           "half_extents_m": [
             3.195,
             1.25,
-            1.345
+            1.0
           ],
-          "eye_m": 2.529,
+          "eye_m": 2.75,
           "hp": 70,
           "armor": {
             "front": 40,
@@ -627,7 +627,7 @@
           "pivot_m": [
             0,
             0,
-            2.25
+            2.83
           ],
           "muzzle_m": [
             1.05,
@@ -636,7 +636,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "us_lav_lav_at",
       "sensors": {
         "ground_m": 650,
         "sight_shape": {
@@ -672,7 +672,7 @@
     },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
       "name": "M1127 Stryker RV Reconnaissance vehicle",
-      "description": "Reconnaissance vehicle; temporary generic appearance until named model admission",
+      "description": "Reconnaissance vehicle",
       "faction": "us",
       "family": "m1127_stryker_rv",
       "roles": [
@@ -695,7 +695,7 @@
             1.36,
             1.32
           ],
-          "eye_m": 2.482,
+          "eye_m": 3.095,
           "hp": 65,
           "armor": {
             "front": 35,
@@ -733,7 +733,7 @@
           "pivot_m": [
             0,
             0,
-            2.402
+            2.875
           ],
           "muzzle_m": [
             1.43,
@@ -742,7 +742,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "us_m1127_stryker_rv_reconnaissance_vehicle",
       "sensors": {
         "ground_m": 850,
         "sight_shape": {
@@ -779,7 +779,7 @@
     },
     "us_m1278_jltv_hmg": {
       "name": "M1278 JLTV HMG",
-      "description": "HMG; temporary generic appearance until named model admission",
+      "description": "HMG",
       "faction": "us",
       "family": "m1278_jltv",
       "roles": [
@@ -802,7 +802,7 @@
             1.25,
             1.3
           ],
-          "eye_m": 2.444,
+          "eye_m": 2.885,
           "hp": 45,
           "armor": {
             "front": 10,
@@ -840,7 +840,7 @@
           "pivot_m": [
             0,
             0,
-            2.366
+            2.665
           ],
           "muzzle_m": [
             1.43,
@@ -849,7 +849,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "us_m1278_jltv_hmg",
       "sensors": {
         "ground_m": 700,
         "sight_shape": {
@@ -908,7 +908,7 @@
     },
     "us_m1_abrams_sep_v2": {
       "name": "M1A2 Abrams SEP v2",
-      "description": "SEP v2; temporary generic appearance until named model admission",
+      "description": "SEP v2",
       "faction": "us",
       "family": "m1_abrams",
       "roles": [
@@ -996,7 +996,7 @@
           "on": "cannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "us_m1_abrams_sep_v2",
       "sensors": {
         "ground_m": 500,
         "sight_shape": {
@@ -1012,7 +1012,9 @@
       "description": "SEP v2 Trophy",
       "faction": "us",
       "family": "m1_abrams",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 410,
       "roster": {
         "factions": [
@@ -1022,22 +1024,68 @@
         "variant": "SEP v2 Trophy",
         "family_name": "M1 Abrams"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "mbt",
-        "weapons": [
-          "tank-gun",
-          "HMG",
-          "Trophy"
-        ]
-      }
+      "extends": "us_m1_abrams_sep_v2",
+      "appearance": "us_m1_abrams_sep_v2_trophy",
+      "parts": [
+        "trophy_aps"
+      ],
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.965,
+            1.83,
+            1.22
+          ],
+          "eye_m": 2.294
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "ground_tank_ap",
+            "ground_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.464
+          ],
+          "muzzle_m": [
+            5.805,
+            0,
+            0.439
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.294
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ]
     },
     "us_m1_abrams_sep_v3_trophy": {
       "name": "M1A2 Abrams SEP v3 Trophy",
       "description": "SEP v3 Trophy",
       "faction": "us",
       "family": "m1_abrams",
-      "roles": [],
+      "roles": [
+        "mbt"
+      ],
       "cost": 450,
       "roster": {
         "factions": [
@@ -1047,14 +1095,61 @@
         "variant": "SEP v3 Trophy",
         "family_name": "M1 Abrams"
       },
-      "planned": {
-        "reason": "Ground profile and model admission pending",
-        "profile": "advanced-mbt",
-        "weapons": [
-          "advanced-tank-gun",
-          "HMG",
-          "Trophy"
-        ]
+      "extends": "us_m1_abrams_sep_v2",
+      "appearance": "us_m1_abrams_sep_v3_trophy",
+      "parts": [
+        "trophy_aps"
+      ],
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.965,
+            1.83,
+            1.22
+          ],
+          "eye_m": 2.294
+        }
+      },
+      "mounts": [
+        {
+          "name": "cannon",
+          "weapons": [
+            "advanced_tank_ap",
+            "advanced_tank_he"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            1.464
+          ],
+          "muzzle_m": [
+            5.805,
+            0,
+            0.439
+          ]
+        },
+        {
+          "name": "HMG",
+          "weapons": [
+            "hmg"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -0.25,
+            -0.58,
+            2.294
+          ],
+          "muzzle_m": [
+            1.43,
+            0,
+            0.32
+          ],
+          "on": "cannon"
+        }
+      ],
+      "sensors": {
+        "ground_m": 600
       }
     },
     "us_m270_mlrs_m270a2": {
@@ -1082,7 +1177,7 @@
     },
     "us_m2_bradley_ifv_m2a4": {
       "name": "M2 Bradley IFV M2A4",
-      "description": "M2A4; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "M2A4; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "m2_bradley_ifv",
       "roles": [
@@ -1169,7 +1264,7 @@
           "on": "autocannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "us_m2_bradley_ifv_m2a4",
       "sensors": {
         "ground_m": 550,
         "sight_shape": {
@@ -1182,7 +1277,7 @@
     },
     "us_m3_bradley_cfv_m3a3": {
       "name": "M3 Bradley CFV M3A3",
-      "description": "M3A3; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "M3A3; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "m3_bradley_cfv",
       "roles": [
@@ -1269,7 +1364,7 @@
           "on": "autocannon"
         }
       ],
-      "appearance": "tank",
+      "appearance": "us_m3_bradley_cfv_m3a3",
       "sensors": {
         "ground_m": 850,
         "sight_shape": {
@@ -1283,7 +1378,7 @@
     },
     "us_m977_hemtt_general_resupply": {
       "name": "M977 HEMTT General resupply",
-      "description": "General resupply; temporary generic appearance until named model admission",
+      "description": "General resupply",
       "faction": "us",
       "family": "m977_hemtt",
       "roles": [
@@ -1335,7 +1430,7 @@
         }
       },
       "mounts": [],
-      "appearance": "supply_truck",
+      "appearance": "us_m977_hemtt_general_resupply",
       "capabilities": {
         "deploy": {
           "seconds": 3,
@@ -1348,7 +1443,7 @@
     },
     "us_marine_squad_close_quarters_infantry": {
       "name": "Marine Squad",
-      "description": "Close-quarters infantry; temporary generic appearance until named model admission",
+      "description": "Close-quarters infantry",
       "faction": "us",
       "family": "marine_squad",
       "roles": [
@@ -1367,21 +1462,21 @@
       "body": {
         "squad": {
           "slots": [
-            "roster_assault_rifle",
-            "roster_assault_rifle",
-            "roster_assault_rifle",
-            "roster_assault_rifle",
-            "roster_assault_rifle",
-            "roster_assault_rifle",
-            "roster_assault_rifle",
-            "roster_assault_rifle"
+            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
+            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
+            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
+            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
+            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
+            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
+            "us_marine_squad_close_quarters_infantry__roster_assault_rifle",
+            "us_marine_squad_close_quarters_infantry__roster_assault_rifle"
           ]
         }
       }
     },
     "us_marksman_squad_m110_equipped_longer_range_infantry": {
       "name": "Marksman Squad",
-      "description": "M110-equipped longer-range infantry; temporary generic appearance until named model admission",
+      "description": "M110-equipped longer-range infantry",
       "faction": "us",
       "family": "marksman_squad",
       "roles": [
@@ -1400,12 +1495,12 @@
       "body": {
         "squad": {
           "slots": [
-            "roster_marksman_rifle_1",
-            "roster_marksman_rifle_2",
-            "roster_marksman_rifle_3",
-            "roster_marksman_rifle_4",
-            "roster_marksman_rifle_5",
-            "roster_marksman_rifle_6"
+            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_1",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_2",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_3",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_4",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_5",
+            "us_marksman_squad_m110_equipped_longer_range_infantry__roster_marksman_rifle_6"
           ]
         }
       }
@@ -1477,7 +1572,7 @@
     },
     "us_scout_snipers_m107_heavy_sniper_team": {
       "name": "Scout Snipers",
-      "description": "M107 heavy sniper team; temporary generic appearance until named model admission",
+      "description": "M107 heavy sniper team",
       "faction": "us",
       "family": "scout_snipers",
       "roles": [
@@ -1496,15 +1591,15 @@
       "body": {
         "squad": {
           "slots": [
-            "roster_heavy_sniper_1",
-            "roster_heavy_sniper_2"
+            "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_1",
+            "us_scout_snipers_m107_heavy_sniper_team__roster_heavy_sniper_2"
           ]
         }
       }
     },
     "us_stryker_m1126_icv": {
       "name": "Stryker M1126 ICV",
-      "description": "M1126 ICV; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
+      "description": "M1126 ICV; ground combat platform, passenger carriage not implemented",
       "faction": "us",
       "family": "stryker",
       "roles": [
@@ -1527,7 +1622,7 @@
             1.36,
             1.32
           ],
-          "eye_m": 2.482,
+          "eye_m": 3.095,
           "hp": 70,
           "armor": {
             "front": 35,
@@ -1565,7 +1660,7 @@
           "pivot_m": [
             0,
             0,
-            2.402
+            2.875
           ],
           "muzzle_m": [
             1.43,
@@ -1574,7 +1669,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "us_stryker_m1126_icv",
       "sensors": {
         "ground_m": 450,
         "sight_shape": {
@@ -1587,7 +1682,7 @@
     },
     "us_stryker_m1134_atgm": {
       "name": "Stryker M1134 ATGM",
-      "description": "M1134 ATGM; temporary generic appearance until named model admission; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "M1134 ATGM; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "stryker",
       "roles": [
@@ -1610,7 +1705,7 @@
             1.36,
             1.32
           ],
-          "eye_m": 2.482,
+          "eye_m": 3.015,
           "hp": 70,
           "armor": {
             "front": 40,
@@ -1648,7 +1743,7 @@
           "pivot_m": [
             0,
             0.734,
-            2.165
+            3.095
           ],
           "muzzle_m": [
             1.05,
@@ -1657,7 +1752,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "us_stryker_m1134_atgm",
       "sensors": {
         "ground_m": 650,
         "sight_shape": {
@@ -1670,7 +1765,7 @@
     },
     "us_stryker_m1296_dragoon": {
       "name": "Stryker M1296 Dragoon",
-      "description": "M1296 Dragoon; ground combat platform, passenger carriage not implemented; temporary generic appearance until named model admission",
+      "description": "M1296 Dragoon; ground combat platform, passenger carriage not implemented",
       "faction": "us",
       "family": "stryker",
       "roles": [
@@ -1740,7 +1835,7 @@
           ]
         }
       ],
-      "appearance": "jeep",
+      "appearance": "us_stryker_m1296_dragoon",
       "sensors": {
         "ground_m": 550,
         "sight_shape": {

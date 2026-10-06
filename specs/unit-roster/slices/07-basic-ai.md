@@ -1,6 +1,6 @@
 # 07 — First playable human versus basic AI checkpoint
 
-Status: not started. Dependencies: 03,04,05,06. Follow the README handoff and repository
+Status: policy and replay hook proved; full playable loop acceptance pending. Dependencies: 03,04,05,06. Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -56,3 +56,13 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 - [ ] Narrow green proof and any allowed digest change recorded.
 - [ ] Artifact/visual gates resolved where applicable.
 - [ ] Choices, status and next pickup updated; focused pass committed.
+
+## Current evidence
+
+Six policy checks pass for observed opening purchases/readiness, cap/budget, missing
+truck replacement, route-aware objective assignments and support movement/deployment.
+Production preparation selects an ordinary AI side. Before-tick policy commands
+use ordinary admission and replay records; replay skips policy. Removing that hook
+fails the opening-wallet proof; restored policy matches replay digest every tick
+through 45 seconds. Production purchase/entry browser scene passes. A won human/AI
+battle and final model/visual composition remain integration gates.

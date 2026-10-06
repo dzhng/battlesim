@@ -105,6 +105,28 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
   const panelOf = (u: OwnUnitView, others: OwnUnitView[] = []) =>
     ownPanel(u, [u, ...others], rules);
 
+  add("withdrawal", "returning to base", panelOf(specimenUnit("tank", { withdrawing: true })));
+  for (const [label, charges, cooldown, service] of [
+    ["ready", 4, null, "out_of_range"],
+    ["cooling", 2, 0.5, "out_of_range"],
+    ["empty", 0, null, "out_of_range"],
+    ["resupplying", 1, null, "serving"],
+  ] as const) {
+    const unit = specimenUnit("tank", { protection: { charges, cooldown }, service });
+    const panel = panelOf(unit);
+    panel.weapons = weaponRows(
+      UNITS.type(unit.kind).mounts,
+      rules,
+      unit.mounts,
+      { capacity: 4 },
+      unit.protection,
+    );
+    add("Trophy", label, panel);
+  }
+  const enemyTrophy = enemyPanel("tank", rules);
+  enemyTrophy.weapons = weaponRows(UNITS.type("tank").mounts, rules, undefined, { capacity: 4 });
+  add("Trophy", "enemy equipment only", enemyTrophy, "enemy");
+
   // The key cases first: a timer's ring beside an idle row's bare icon, and
   // amounts as pips (a partial, an empty, unlimited with none).
   const key = "key cases";

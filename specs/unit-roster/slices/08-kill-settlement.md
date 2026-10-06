@@ -1,6 +1,6 @@
 # 08 — Lethal provenance, credits and net team bounty
 
-Status: not started. Dependencies: 04. Follow the README handoff and repository
+Status: focused native implementation complete; integrated publication/commit pending. Dependencies: 04. Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -51,3 +51,10 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 - [ ] Narrow green proof and any allowed digest change recorded.
 - [ ] Artifact/visual gates resolved where applicable.
 - [ ] Choices, status and next pickup updated; focused pass committed.
+
+Focused proof: twelve settlement integration tests plus an actual building collapse
+confirm causal attribution, immutable entered price, hidden-victim wallet-only payout,
+symmetric same-tick trades, finite pool caps, once-only payment, supply bonus and
+fractional carry. Source/payout mutations produced expected red results and were
+restored. Actual blind-fire purchase battle replays at every tick. Whole-feature
+packed native/browser proof remains an integration gate.

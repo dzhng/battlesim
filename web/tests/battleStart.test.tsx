@@ -332,3 +332,18 @@ test("repeated preparation diagnostics appear once in loading details", async ()
     "bad input",
   ]);
 });
+
+test("faction choice round-trips with an admitted exact skirmish address", () => {
+  const href = battleHref({
+    type: "open",
+    size: "small",
+    profile: "skirmish",
+    seed: "17",
+    faction: "europe",
+  });
+  const asked = askedBattle(new URL(href, "http://game").search);
+  expect(asked).toMatchObject({ map: { profile: "skirmish" }, faction: "europe" });
+  expect(askedBattle("?faction=unknown")).toEqual({
+    error: "faction must be us, europe or eastern",
+  });
+});

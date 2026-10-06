@@ -1,0 +1,91 @@
+{
+  "assignment": "t80",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/t80.py",
+  "exclusive_export_directory": "assets/source/roster/t80/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "T-80",
+    "url": "https://en.m.wikipedia.org/wiki/T-80",
+    "sha256": "30cd0e152386e3d321e4a1d5f658f9bd90ad2821c61618b89c5f553f59b36bac",
+    "rows": [
+      "Length Gun forward: 9.9 m (32 ft 6 in) T-80B, 9.654 m (31 ft 8.1 in) T-80U Hull: 7.4 m (24 ft 3 in) T-80B, 7 m (23 ft 0 in) T-80U [ 4 ]",
+      "Width 3.4 m (11 ft 2 in) T-80B 3.603 m (11 ft 9.9 in) T-80U [ 4 ]",
+      "Height 2.202 m (7 ft 2.7 in) T-80B, T \u2011 80U [ 4 ]",
+      "Main armament Smoothbore 125 mm 2A46-2 gun , [ 9 ] 36 rounds and 4 9M112 Kobra ATGMs (T-80B) 2A46M-1 with 45 rounds and 6 9M119 Refleks ATGMs (T-80U) [ 4 ]",
+      "Secondary armament 7.62 mm PKT coax MG , 12.7 mm NSVT or DShK or PKT antiaircraft MG"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/T-80BVM.jpg/330px-T-80BVM.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ]
+  },
+  "silhouette_requirements": "Six wheels per side; low turbine tank; compact rounded turret enclosed by BVM Relikt blocks; side ERA skirts; rear turbine exhaust; commander HMG.",
+  "reference_limits": "Family infobox mixes B/U values; chosen envelope is delegated approximation, not a BVM measurement.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally. Cannon rest muzzle X is chosen from cited gun-forward length minus half the selected hull length; this assumes the rear hull extent is the total-length rear reference.",
+  "variants": [
+    {
+      "id": "eastern_t_80_t_80bvm",
+      "name": "T-80 T-80BVM",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "T-80BVM",
+      "profile": "mbt",
+      "appearance_id": "eastern_t_80_t_80bvm",
+      "export": "assets/source/roster/t80/eastern_t_80_t_80bvm.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.4,
+          3.603,
+          2.202
+        ],
+        "half_extents_m": [
+          3.7,
+          1.8015,
+          1.101
+        ],
+        "eye_m": 2.07,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.321
+            ],
+            "muzzle_m": [
+              6.2,
+              0,
+              0.396
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              2.07
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ]
+}

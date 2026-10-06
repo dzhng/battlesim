@@ -90,6 +90,7 @@ import { buildClipTable, clipFrames, type ClipFrames, type ClipTable } from "./c
 import { CONTROL_WORDS, poseKernelWgsl, writeControl } from "./poseKernel";
 import {
   MODEL_RECORD_FLOATS,
+  restingModelPose,
   type CorpseInstance,
   type ModelInstance,
   type ModelPose,
@@ -133,16 +134,17 @@ export const ModelVertex = d.unstruct({
 });
 export const VERTEX_BYTES = 48;
 /** Per model: x, y, z, yaw; palette base, left and right track scroll, and
- *  the x-ray colour's rgb (`packXray`); the side's tint (rgb) on tint-masked
+ *  the presentation colour's rgb (`packXray`: x-ray or placement ghost); the side's tint (rgb) on tint-masked
  *  materials, and the impostor atlas layer a card draws from; the per-axis
- *  scale a fitted prop takes (xyz), and the x-ray colour's alpha (0: not
- *  x-rayed). */
+ *  scale a fitted prop takes (xyz), and the presentation colour's alpha. */
 export const ModelRecord = d.unstruct({
   placement: d.float32x4,
   data: d.float32x4,
   tint: d.float32x4,
   scale: d.float32x4,
 });
+// Each drawable has ordinary and ghost runs, each with the same fog classes.
+const DRAW_CLASSES = FOG_CLASSES * 2;
 const RECORD_FLOATS = MODEL_RECORD_FLOATS;
 export const modelVertexLayout = tgpu.vertexLayout(d.disarrayOf(ModelVertex));
 export const modelRecordLayout = tgpu.vertexLayout(d.disarrayOf(ModelRecord), "instance");
@@ -641,6 +643,7 @@ const boundsSize = (b: Bounds) => ({
 
 /** A mesh draw: one drawable over a run of records, in one fog class. */
 interface DrawRun {
+  ghost: boolean;
   drawable: Drawable;
   fog: number;
   firstInstance: number;
@@ -1169,9 +1172,9 @@ export async function createModelLayer(
       arrayBytes(size(layers.albedo), Math.max(1, layers.albedo.length)) +
       arrayBytes(size(layers.surface), Math.max(1, layers.surface.length));
     stats.appearanceTextureBytes = appearanceTextureBytes;
-    if (bucketCount.length < drawables.length * FOG_CLASSES) {
-      bucketCount = new Int32Array(drawables.length * FOG_CLASSES);
-      bucketCursor = new Int32Array(drawables.length * FOG_CLASSES);
+    if (bucketCount.length < drawables.length * DRAW_CLASSES) {
+      bucketCount = new Int32Array(drawables.length * DRAW_CLASSES);
+      bucketCursor = new Int32Array(drawables.length * DRAW_CLASSES);
     }
     setCards([]);
     rebind();
@@ -1324,7 +1327,7 @@ export async function createModelLayer(
     const modelAt = (i: number) =>
       i < unitCount ? units[i] : staticAt(staticVisit[i - unitCount]);
     if (unitChoice.length < total) unitChoice = new Int32Array(total * 2);
-    const buckets = drawables.length * FOG_CLASSES;
+    const buckets = drawables.length * DRAW_CLASSES;
     bucketCount.fill(0, 0, buckets);
     let culled = 0;
     let culledBodies = 0;
@@ -1349,6 +1352,7 @@ export async function createModelLayer(
       // A card shows its bundle's first state, at rest: a piece of it, or one
       // in motion, is drawn as a mesh however far.
       const carded =
+        !inst.ghost &&
         card >= 0 &&
         (inst.pose.kind !== "static" ||
           (!motion &&
@@ -1378,7 +1382,8 @@ export async function createModelLayer(
       }
       const drawable = drawableOf(gpu, inst.pose, tier);
       if (!drawable) continue;
-      const bucket = drawable.id * FOG_CLASSES + fogClassOf(inst.pose);
+      const bucket =
+        drawable.id * DRAW_CLASSES + fogClassOf(inst.pose) + (inst.ghost ? FOG_CLASSES : 0);
       unitChoice[i] = bucket;
       bucketCount[bucket]++;
     }
@@ -1428,7 +1433,7 @@ export async function createModelLayer(
             nearCards++;
             continue;
           }
-          const bucket = gpu.corpse[tier].id * FOG_CLASSES + fog;
+          const bucket = gpu.corpse[tier].id * DRAW_CLASSES + fog;
           corpseChoice[i] = bucket;
           bucketCount[bucket]++;
         }
@@ -1539,7 +1544,7 @@ export async function createModelLayer(
         base = cursor++;
         paletteStaging.set(inst.pose.motion, base * 16);
       }
-      if (choice % FOG_CLASSES === UNITS && (inst.xray?.[3] ?? 0) > 0) hasXrayMeshes = true;
+      if (choice % DRAW_CLASSES === UNITS && (inst.xray?.[3] ?? 0) > 0) hasXrayMeshes = true;
       writeRecord(recordStaging, bucketCursor[choice]++, inst, base, scrollL, scrollR, -1);
     }
     if (corpses) {
@@ -1568,11 +1573,13 @@ export async function createModelLayer(
     for (let b = 0; b < buckets; b++) {
       const n = bucketCount[b];
       if (!n) continue;
-      const drawable = drawables[Math.floor(b / FOG_CLASSES)];
+      const drawable = drawables[Math.floor(b / DRAW_CLASSES)];
       let run = runs[runCount];
-      if (!run) runs[runCount] = run = { drawable, fog: 0, firstInstance: 0, instances: 0 };
+      if (!run)
+        runs[runCount] = run = { drawable, ghost: false, fog: 0, firstInstance: 0, instances: 0 };
       run.drawable = drawable;
       run.fog = b % FOG_CLASSES;
+      run.ghost = b % DRAW_CLASSES >= FOG_CLASSES;
       run.firstInstance = first;
       run.instances = n;
       runCount++;
@@ -1652,12 +1659,12 @@ export async function createModelLayer(
     into[r + 4] = base;
     into[r + 5] = scrollL - Math.floor(scrollL);
     into[r + 6] = scrollR - Math.floor(scrollR);
-    const xray = inst.xray ?? NO_XRAY;
-    into[r + 7] = packXray(xray);
+    const presentation = inst.ghost ?? inst.xray ?? NO_XRAY;
+    into[r + 7] = packXray(presentation);
     into.set(inst.tint ?? NO_TINT, r + 8);
     into[r + 11] = layer;
     into.set(inst.scale ?? UNIT_SCALE, r + 12);
-    into[r + 15] = xray[3];
+    into[r + 15] = presentation[3];
   }
 
   /** The pose an impostor of `name` shows, and its bounds in that pose. */
@@ -1666,17 +1673,7 @@ export async function createModelLayer(
     if (!gpu) return null;
     const bundle = gpu.bundle;
     const skeleton = bundle.kind === "skinned" ? (skeletons.get(bundle.skeleton) ?? null) : null;
-    const pose: ModelPose =
-      bundle.kind === "skinned"
-        ? {
-            kind: "skinned",
-            clip: bundle.far_pose.clip,
-            phase: bundle.far_pose.phase,
-            blend: null,
-          }
-        : bundle.kind === "articulated"
-          ? { kind: "articulated", articulation: { ...REST_ARTICULATION } }
-          : { kind: "static", state: bundle.states[0].name };
+    const pose = restingModelPose(bundle);
     return { pose, bounds: farPoseBounds(bundle, skeleton) };
   }
 
@@ -1858,6 +1855,7 @@ export async function createModelLayer(
       const b = bound.with(modelLayout, renderGroup);
       for (let i = 0; i < runCount; i++) {
         const run = runs[i];
+        if (run.ghost) continue;
         const caster = run.drawable.caster;
         const part = partRange(caster.parts, surface, hiddenSurfaces);
         if (!part.count) continue;
@@ -1874,13 +1872,37 @@ export async function createModelLayer(
       const b = bound.with(modelLayout, renderGroup);
       for (let i = 0; i < runCount; i++) {
         const run = runs[i];
-        if (only >= 0 && run.fog !== only) continue;
+        if (run.ghost || (only >= 0 && run.fog !== only)) continue;
         const part = partRange(run.drawable.parts, surface, hiddenSurfaces);
         if (!part.count) continue;
         b.with(modelVertexLayout, run.drawable.mesh.vertices)
           .with(modelRecordLayout, records.current)
           .withIndexBuffer(run.drawable.mesh.indices, "uint32")
           .drawIndexed(part.count, run.instances, part.first, 0, run.firstInstance);
+      }
+    },
+    /** Whether the current packed mesh runs contain a placement preview. */
+    get hasGhostMeshes(): boolean {
+      for (let i = 0; i < runCount; i++) if (runs[i].ghost) return true;
+      return false;
+    },
+    /** Placement previews draw actual mesh geometry, never cards or casters. */
+    drawGhosts(bound: Drawable3) {
+      if (!runCount || !renderGroup || !records.current) return;
+      const b = bound.with(modelLayout, renderGroup);
+      for (let i = 0; i < runCount; i++) {
+        const run = runs[i];
+        if (!run.ghost) continue;
+        b.with(modelVertexLayout, run.drawable.mesh.vertices)
+          .with(modelRecordLayout, records.current)
+          .withIndexBuffer(run.drawable.mesh.indices, "uint32")
+          .drawIndexed(
+            run.drawable.count,
+            run.instances,
+            run.drawable.parts.cutout.first,
+            0,
+            run.firstInstance,
+          );
       }
     },
     /** One surface class of every building's modules into the view: the

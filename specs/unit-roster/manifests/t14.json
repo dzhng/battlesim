@@ -1,0 +1,91 @@
+{
+  "assignment": "t14",
+  "status": "research-gated",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/t14.py",
+  "exclusive_export_directory": "assets/source/roster/t14/",
+  "mobility": "tracked",
+  "reference": {
+    "page": "T-14_Armata",
+    "url": "https://en.m.wikipedia.org/wiki/T-14_Armata",
+    "sha256": "3e06f372903d40b0fd49cc125b8164fab9346e15ebbf4b6f5501aea6d77cfc31",
+    "rows": [
+      "Length 10.7 m (35 ft) [ 9 ]",
+      "Width 3.5 m (11 ft)",
+      "Height 3.3 m (11 ft)",
+      "Main armament 2A82-1M 125 mm smoothbore cannon with 45 rounds (of which, 32 in the autoloader ). [ 11 ] Future version may use the smoothbore 2A83 152 mm tank gun.",
+      "Secondary armament .mw-parser-output .frac{white-space:nowrap}.mw-parser-output .frac .num,.mw-parser-output .frac .den{font-size:80%;line-height:0;vertical-align:super}.mw-parser-output .frac .den{vertical-align:sub}.mw-parser-output .sr-only{border:0;clip:rect(0,0,0,0);clip-path:polygon(0px 0px,0px 0px,0px 0px);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px} 12.7 mm ( 1 \u2044 2 in) Kord machine gun (6P49), 7.62 mm (0.30 in) PKTM machine gun (6P7\u041a)"
+    ],
+    "images": [
+      "//thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/VDayRehearsal05052016-28.jpg/330px-VDayRehearsal05052016-28.jpg?utm_source=en.wikipedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail"
+    ]
+  },
+  "silhouette_requirements": "Seven wheels per side; long capsule hull; small unmanned turret with angular sensor housings; 125 mm gun.",
+  "reference_limits": "Published 10.7 m length does not distinguish hull/gun-forward; hull length remains research-gated. Do not add Afghanit as functioning Trophy.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "eastern_t_14_armata_main_battle_tank",
+      "name": "T-14 Armata Main battle tank",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "Main battle tank",
+      "profile": "advanced-mbt",
+      "appearance_id": "eastern_t_14_armata_main_battle_tank",
+      "export": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          null,
+          3.5,
+          3.3
+        ],
+        "half_extents_m": [
+          null,
+          1.75,
+          1.65
+        ],
+        "eye_m": 3.102,
+        "mounts": [
+          {
+            "name": "cannon",
+            "pack": [
+              "advanced-tank-gun"
+            ],
+            "role": "gun",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              1.98
+            ],
+            "muzzle_m": [
+              5.36,
+              0,
+              0.594
+            ]
+          },
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": "cannon",
+            "pivot_m": [
+              -0.25,
+              -0.58,
+              3.102
+            ],
+            "muzzle_m": [
+              1.43,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": []
+    }
+  ]
+}

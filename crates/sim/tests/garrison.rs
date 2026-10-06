@@ -1315,6 +1315,70 @@ fn garrison_ticks(key: &str) -> u64 {
 }
 
 #[test]
+fn a_grounded_launcher_leaves_its_occupied_window_at_the_declared_bore() {
+    let mut game = rules();
+    sim::fixtures::patch_catalog(
+        &mut game,
+        "soldiers",
+        "atgm_gunner",
+        json!({"mounts":[{
+            "name":"ATGM launcher","pivot_m":[0.2,-0.1,0.75],"muzzle_m":[0.6,0,0]
+        }]}),
+    );
+    let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map":serde_json::from_str::<Value>(&map(json!([]))).unwrap(),"rules":game,
+        "units":[{"side":"blue","kind":"at","position":[350,300],"engagement":"return_fire_only"},
+            {"side":"red","kind":"tank","position":[400,550],"engagement":"return_fire_only"}],
+        "events":[],"scripts":[]
+    }))
+    .unwrap();
+    setup.map = common::physical_map(setup.map, &setup.rules);
+    let mut b = Battle::new(&setup, 1);
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 1200, "inside", |b| inside(b, 0));
+    c.ok(
+        &mut b,
+        Side::Blue,
+        Order::SetEngagement {
+            units: vec![UnitId(0)],
+            policy: Engagement::FireAtWill,
+        },
+    );
+    until(&mut b, 600, "launcher round", |b| {
+        b.rounds()
+            .any(|(_, r)| r.unit == UnitId(0) && b.arsenal().weapons[r.weapon].id == "atgm")
+    });
+    let (p, _) = b
+        .rounds()
+        .find(|(_, r)| r.unit == UnitId(0) && b.arsenal().weapons[r.weapon].id == "atgm")
+        .unwrap();
+    let u = b.unit(UnitId(0)).unwrap();
+    let m = &u.mounts[1];
+    let soldier = u.members.iter().find(|s| Some(s.id) == m.operator).unwrap();
+    let g = u.garrison.as_ref().unwrap();
+    let member = u.members.iter().position(|s| s.id == soldier.id).unwrap();
+    let seat = g.slots[g.seats[member].unwrap()].position;
+    assert!(
+        (seat - soldier.position).length() < 1e-9,
+        "operator occupies the firing window"
+    );
+    let gravity = setup.rules.physics.flight.gravity_mps2;
+    let origin =
+        p.position - p.velocity * p.age_s - v3(0.0, 0.0, 0.5 * gravity * p.age_s * p.age_s);
+    let expected = seat
+        + v3(
+            0.8 * m.bearing.cos() + 0.1 * m.bearing.sin(),
+            0.8 * m.bearing.sin() - 0.1 * m.bearing.cos(),
+            0.75,
+        );
+    assert!(
+        (origin - expected).length() < 0.02,
+        "origin {origin:?}, seat bore {expected:?}"
+    );
+}
+
+#[test]
 fn an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour() {
     // A house with one window per facade. The AT team is seated gunner east,
     // riflemen north and west (each soldier on the next facade in turn); a

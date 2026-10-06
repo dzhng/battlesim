@@ -682,7 +682,7 @@ export function CommandBar({
     | "togglePolicy"
     | "toggleDeployment"
     | "exitBuilding"
-  >;
+  > & { refund?: () => void };
 }) {
   const selected = control.selectedUnits;
   const n = selected.length;
@@ -733,6 +733,13 @@ export function CommandBar({
         disabled: deployers.length === 0,
         onClick: control.toggleDeployment,
       })}
+      {control.refund &&
+        command({
+          icon: stateIcon("withdrawing"),
+          label: "Refund · Return to base",
+          disabled: n === 0,
+          onClick: control.refund,
+        })}
       {command({
         icon: hudIcon("leave_building"),
         label: "Leave building",

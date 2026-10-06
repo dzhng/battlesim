@@ -31,8 +31,12 @@ pub struct Corridor {
 
 impl Corridor {
     pub(crate) fn objective(center: Point, radius: f64) -> Self {
-        Self { center: [center[0] - radius, center[1]], toward: [1.0, 0.0],
-            half_width: radius, far: 2.0 * radius }
+        Self {
+            center: [center[0] - radius, center[1]],
+            toward: [1.0, 0.0],
+            half_width: radius,
+            far: 2.0 * radius,
+        }
     }
     /// Whether a circle of `radius` about `p` reaches into the corridor.
     pub fn blocks(&self, p: Point, radius: f64) -> bool {

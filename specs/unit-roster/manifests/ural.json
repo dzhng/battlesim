@@ -1,0 +1,86 @@
+{
+  "assignment": "ural",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/ural.py",
+  "exclusive_export_directory": "assets/source/roster/ural/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "Ural-4320",
+    "url": "https://en.wikipedia.org/wiki/Ural-4320",
+    "sha256": "2b94b555c35f031a301876a1e48bf9b08ac08796b68b31fa99d3e5dc888f28d5",
+    "rows": [
+      "Length 7.366 m",
+      "Width 2.500 m",
+      "Height 2.715 m; 3.005 m with tent"
+    ],
+    "images": [],
+    "production_photo": {
+      "family": "ural",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/Ural-4320.jpg/330px-Ural-4320.jpg",
+      "sha256": "9b71e584f90fcbe90ecc3460cd6011dd7431aaabceb31bab6e3c6fb83fab8292"
+    }
+  },
+  "silhouette_requirements": "Three axles/six wheels, long bonnet, rounded conventional cab, circular headlamps, rectangular grille, canvas-covered cargo bed and spare wheel.",
+  "reference_limits": "3.005 m includes canvas tent; 2.715 m is uncovered cab/body reference.",
+  "frame_evidence": "Envelope derived from cited family references where present. Mount/eye frames are approximate delegated authoring choices, NOT factory measurements; coordinator adopts matching physical rows before dispatch. Worker must never change frames unilaterally.",
+  "variants": [
+    {
+      "id": "eastern_ural_4320_general_resupply",
+      "name": "Ural-4320 General resupply",
+      "factions": [
+        "eastern"
+      ],
+      "variant": "General resupply",
+      "profile": "truck",
+      "appearance_id": "eastern_ural_4320_general_resupply",
+      "export": "assets/source/roster/ural/eastern_ural_4320_general_resupply.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          7.366,
+          2.5,
+          3.005
+        ],
+        "half_extents_m": [
+          3.683,
+          1.25,
+          1.5025
+        ],
+        "eye_m": 2.825,
+        "mounts": []
+      },
+      "notes": []
+    }
+  ],
+  "dependency": "Coordinator removes mandatory fictional deploy art: stationary service, no deploy-motion nodes, no mast/outriggers invented for validation.",
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/logistics.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "glb_sha256": "db0ddd57ca60ccca17fa9050544352610e4c7e0d24a951b3f6501ac39b247900",
+    "source_bytes": 3838724,
+    "triangles_by_tier": [
+      15978,
+      7440,
+      2048,
+      690
+    ],
+    "geometry_bounds_m": {
+      "min": [
+        -3.703000068664551,
+        -1.3240000009536743,
+        -7.152557546241667e-09
+      ],
+      "max": [
+        3.682999849319458,
+        1.3240000009536743,
+        2.9600000381469727
+      ]
+    },
+    "nodes": "body plus 8 wheel nodes (HEMTT/HX), 6 wheel nodes (Ural); no weapon/deployment nodes",
+    "structural_admission": "Loose GLB validation passed; four tiers, textured/vertex-color PBR, tangent/UV/material basis admission",
+    "physical_fit": "Inspection against the adopted authored hull found no non-deployment findings; full generated-catalog/bake fit awaits coordinator integration",
+    "pending_gate": "Coordinator optional deployment-art validator change; appearance registration/bake/icons; in-renderer reference comparison and unprimed screenshot critique",
+    "candidate_shots": "throwaway/unit-roster-models/ural/{front,side,rear}.png",
+    "candidate_icon": "throwaway/unit-roster-models/ural/eastern_ural_4320_general_resupply.svg"
+  }
+}

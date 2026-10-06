@@ -13,7 +13,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
 import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/source";
-import { askedChoice, battleHref, playHref, REGIONS, spoken } from "./battleLinks";
+import { askedChoice, battleHref, playHref, REGIONS, FACTIONS, spoken } from "./battleLinks";
 import { ReplayImport, useSavedReplay, replayRoute, type ReplayFile } from "./replayFile";
 import { SoundControls } from "./SoundControls";
 import { MenuBackdrop } from "./MenuBackdrop";
@@ -125,14 +125,22 @@ function Choice<T extends string>({
 /** Ordinary Play selects a battlefield after deployment. An explicit seed
  * carried by a menu address still asks for that exact battle. */
 function NewBattle({ asked }: { asked: ReturnType<typeof askedChoice> }) {
+  const [faction, setFaction] = useState(asked.faction ?? "us");
   const [type, setType] = useState<MapType>(asked.type ?? "mixed");
   const [size, setSize] = useState<MapSize>(asked.size ?? "small");
   // Random leaves the region to the seed.
   const [region, setRegion] = useState(asked.region ?? RANDOM);
-  const choice = { type, size, ...(region !== RANDOM && { region }) };
+  const choice = {
+    type,
+    size,
+    faction,
+    profile: "skirmish" as const,
+    ...(region !== RANDOM && { region }),
+  };
   return (
     <section className="menu-battle" aria-label="New battle">
       <div className="menu-fields">
+        <Choice label="faction" options={FACTIONS} value={faction} onChange={setFaction} />
         <Choice label="map" options={MAP_TYPES} value={type} onChange={setType} />
         <Choice label="size" options={MAP_SIZES} value={size} onChange={setSize} />
         <Choice label="region" options={[RANDOM, ...REGIONS]} value={region} onChange={setRegion} />

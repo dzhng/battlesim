@@ -684,12 +684,13 @@ async function catalogue() {
 /** Every generated icon for the fixture's weapon rows and the unit catalog,
  *  each type's silhouette rendered from its baked model in assets/runtime. */
 function generatedIcons() {
-  const units = new UnitCatalog(readJson(UNIT_CATALOG));
+  const view = readJson(UNIT_CATALOG);
+  const units = new UnitCatalog(view);
   const lookup = runtimeLookup(
     readJson(join(RUNTIME, "catalog.json")),
     (path) => new Uint8Array(readFileSync(join(RUNTIME, path))),
   );
-  return iconFiles(readJson(FIXTURE).weapons, units, (id) => unitSolids(units, id, lookup));
+  return iconFiles(view.weapons, units, (id) => unitSolids(units, id, lookup));
 }
 
 /** Every .svg under assets/icons/, by its path there. */

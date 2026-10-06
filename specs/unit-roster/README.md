@@ -3,27 +3,40 @@
 
 ## Next Agent Prompt
 
-Status: implementation active under the existing harness goal. Slice 01 is committed;
-slices 03/04 ground-data and purchase authority foundations are committed. Objective
-capture/score/terminal authority and route-aware final geography are the current
-checkpoint. Named model workers and value-targeting implementation remain parallel.
-Hard cutover and no adversarial review are authorized; numerical tuning is delegated.
+Status: implementation active under the existing harness goal. Catalog, ground-data,
+purchase authority, objective/referee/geography and observed threat-first targeting
+have committed foundations. Production preparation/purchase interface and basic AI
+are the current checkpoint. Hard cutover is confirmed: no saved-data/replay
+compatibility, migration readers or shims. No adversarial/CLI second-agent review.
 
-Next: finish the objective/geography checkpoint proof and commit. Then implement
-slice 05 production faction selection, purchase preview/ghost and army bar, followed
-by slice 07 basic observation-bound AI. Continue settlement, withdrawal and Trophy
-at their independent seams; integrate named models after physical-frame acceptance.
+Next: integrate the now-authored infantry runtime, finish Trophy simulation/service,
+then rebuild WASM and regenerate paired publication records. Re-capture production
+purchase/refund/Trophy UI after the post-fog ghost composition change. Commit the
+coherent integrated checkpoint after focused review; keep going through closeout.
 
-Evidence: 50 memberships/faction; finite ground loadouts and purchase replay parity
-pass. Geography admits 24/24 sampled type/size/seed combinations with unchanged 15%
-travel fairness. Capture/score/replay and native/WASM timeline agree; terminal worker
-advance stops at the actual final tick. Detailed evidence lives in owning slices.
+Evidence: native preparation, purchases, physical entry, objectives, basic-AI
+commands and replay are proven. Bounty settlement has twelve focused integration
+checks and a real structural-collapse attribution case. Withdrawal proves arrival
+payment/replay, cancellation, vulnerable combat death, blocked entry and lost-resource
+accounting. UpgradeMove cancellation was genuinely red and is now being fixed.
+The frozen purchase record is intentionally stale after the schema cutover; regenerate
+and prove native/browser agreement once the catalog and protection fields settle.
 
-Open gates: remaining light-vehicle frame research; truthful supply deployment art;
-named runtime bindings/icons and required renderer comparison/Preview/unprimed
-critique. Production purchase/objective UI and AI remain unimplemented. Generic
-admitted art cannot close model acceptance. Unsupported cards stay disabled.
-Run full checks once at final closeout.
+Parallel owners: geography_finish completed grounded launcher origins/holds and
+post-fog translucent ghost composition; roster_plan_seams owns Trophy after bounty;
+roster_plan_min owns the authored infantry bake, icons and runtime sheets. Root owns
+withdrawal, packed readiness, panels, production scene and composition. Shared checkout
+edits have explicit ownership; never stage unrelated work.
+
+Open gates: infantry actual runtime visual acceptance; Trophy saturation/service/
+replay and shared weapon rows; fresh integrated UI captures/comparison/Preview/neutral
+critique; complete human/basic-AI victory loop and full closeout checks. The initial
+UI critique found dim future variants, unlabelled objective numbers and a weak fogged
+ghost; fixes are in progress. A close crop disproved the reported physical-tank border
+layering defect: the hull correctly occludes ground paint. Failed startup evidence
+is historical and must be replaced by the next successful capture. T3 preview automation
+remains unavailable after inspected/retried errors; the repository scene harness is the
+current proof path. Full checks/browser verification/balance run once at closeout.
 
 Global implementation TODOs:
 

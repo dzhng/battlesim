@@ -221,6 +221,7 @@ export async function createBattleFrame(
           const classes = view === "ground-classes";
           if (!classes) effects.encode(raw, t, t.effectGroup);
           fogMask.encode(raw, t, t.fogEdge);
+          if (view === "final" || view === "world") world.encodeGhosts(encoder, t, cameraGroup);
           const maskView = view === "fog-mask" || view === "ground-mask";
           const worldOnly = view === "world" || maskView || classes;
           if (view === "final" || worldOnly) {

@@ -2481,6 +2481,48 @@ fn a_tank_round_leaves_the_muzzle_past_the_hull_front_on_the_turret_bearing() {
     );
 }
 
+#[test]
+fn a_grounded_launcher_fires_from_its_operator_and_declared_bore() {
+    let mut game = rules();
+    game["weapons"]["atgm"]["damage"] = json!(0.0);
+    game["catalog"].as_array_mut().unwrap().push(json!({
+        "soldiers":{"tripod_gunner":{"extends":"atgm_gunner", "mounts":[{
+            "name":"ATGM launcher", "weapons":["atgm"], "special":true,
+            "pivot_m":[0.2,-0.1,0.75], "muzzle_m":[0.6,0,0]
+        }]}},
+        "units":{"tripod_team":{"extends":"at", "body":{"squad":{"slots":["at_rifleman","tripod_gunner","at_rifleman"]}}}}
+    }));
+    let setup = serde_json::from_value(json!({
+        "map":serde_json::from_str::<Value>(&map(json!([]))).unwrap(), "rules":game,
+        "units":[{"side":"blue","kind":"tripod_team","position":[100,300]},
+            {"side":"red","kind":"tank","position":[500,450],"engagement":"return_fire_only"}],
+        "events":[], "scripts":[]
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 5);
+    let (origin, bearings) = first_launch(&mut b, 0, "atgm", 20.0, |_| true);
+    let unit = b.unit(UnitId(0)).unwrap();
+    let operator = unit.mounts[1].operator.unwrap();
+    let at = unit
+        .members
+        .iter()
+        .find(|s| s.id == operator)
+        .unwrap()
+        .position;
+    let bearing = bearings[1];
+    let expected = [
+        at.x + 0.8 * bearing.cos() + 0.1 * bearing.sin(),
+        at.y + 0.8 * bearing.sin() - 0.1 * bearing.cos(),
+        at.z + 0.75,
+    ];
+    for i in 0..3 {
+        assert!(
+            (origin[i] - expected[i]).abs() < 0.02,
+            "origin {origin:?}, operator bore {expected:?}"
+        );
+    }
+}
+
 /// The first round `unit` launches from `weapon` within `seconds` while its
 /// weapon bearings pass `when`: where it left (backed out of its flight:
 /// p = o + v0·t − ½g·t², v = v0 − g·t) and those bearings.
