@@ -5,6 +5,7 @@
 // map is part of a script; a map is fetched when a route first asks for it.
 // Node tools read the same documents with `node.ts`; the native reader is
 // `sim::maps`.
+import { countedFetch } from "../downloads";
 import { loadWasm } from "../battle/sim/module";
 import {
   checkAddress,
@@ -35,7 +36,7 @@ async function document(path: string, location: string): Promise<string> {
       location,
       `the catalogue has no fixtures/${path}`,
     );
-  const response = await fetch(url);
+  const response = await countedFetch(url);
   if (!response.ok)
     throw new MapResolveError(
       "missing_document",

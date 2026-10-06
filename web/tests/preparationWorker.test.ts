@@ -188,11 +188,12 @@ test("a preparation worker becomes the battle authority and replays its commands
               };
               try {
                 while (!host.textContent?.includes("Watch replay")) await wait();
-                const watch = [...host.querySelectorAll("a")].find((a) =>
-                  a.textContent?.includes("Watch replay"),
-                )!;
+                [...host.querySelectorAll("button")]
+                  .find((b) => b.textContent?.includes("Watch replay"))!
+                  .click();
+                while (!host.querySelector('input[type="file"]')) await wait();
                 await shot("menu-pending");
-                if (watch.hasAttribute("href"))
+                if (host.querySelector('a[href^="/battle"], a[href^="/replay"]'))
                   throw new Error("pending storage guessed a replay viewer");
                 window.history.replaceState(null, "", "/battle?replay=saved");
                 renderScreen(createElement(Battle));
@@ -216,6 +217,9 @@ test("a preparation worker becomes the battle authority and replays its commands
                 await shot("village-pending");
                 renderScreen(createElement(MainMenu));
                 while (!host.textContent?.includes("Watch replay")) await wait();
+                [...host.querySelectorAll("button")]
+                  .find((b) => b.textContent?.includes("Watch replay"))!
+                  .click();
               } finally {
                 held = false;
               }
@@ -230,7 +234,9 @@ test("a preparation worker becomes the battle authority and replays its commands
                   },
                 }),
               );
-              while (!host.querySelector('input[type="file"]')) await wait();
+              // The menu's own file input stays until React replaces the menu.
+              while (host.querySelector(".menu") || !host.querySelector('input[type="file"]'))
+                await wait();
               const open = indexedDB.open.bind(indexedDB);
               indexedDB.open = () => {
                 throw new Error("Storage unavailable");

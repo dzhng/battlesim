@@ -7,6 +7,7 @@
 // (`useMapAppearances`), a lab for the kit it shows. Every route that draws
 // the world waits for its appearances, so its trees and buildings are there
 // from the first frame. The workbench reloads the catalog after a re-bake.
+import { countedFetch } from "@web/downloads";
 import { useEffect, useMemo, useState } from "react";
 import { AppearanceLibrary, type InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { familyLooks } from "@packages/scene-assets/src/schema";
@@ -16,7 +17,7 @@ import type { PlacedBuildings } from "@packages/battle-renderer/src/models/build
 import type { MapProp, PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
 import { appResources } from "./appResources";
 
-const library = new AppearanceLibrary();
+const library = new AppearanceLibrary(countedFetch);
 let loading: Promise<InstalledAppearances> | null = null;
 
 /** The page's appearances with `asked` among them: the catalog's one load,

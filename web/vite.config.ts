@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import typegpu from "unplugin-typegpu/vite";
@@ -74,7 +74,22 @@ function assetWatch(): Plugin {
   };
 }
 
+/** The app's commit, as the menu's build line shows it: Vercel's, or the
+ *  checkout's, marked dirty when it has uncommitted changes. */
+function appCommit(): string {
+  const vercel = process.env.VERCEL_GIT_COMMIT_SHA;
+  if (vercel) return vercel.slice(0, 7);
+  try {
+    const sha = execSync("git rev-parse --short=7 HEAD").toString().trim();
+    const dirty = execSync("git status --porcelain --untracked-files=no").toString().trim();
+    return dirty ? `${sha}-dirty` : sha;
+  } catch {
+    return "unknown";
+  }
+}
+
 export default defineConfig({
+  define: { __APP_COMMIT__: JSON.stringify(appCommit()) },
   // Worktrees share dependencies; compiled caches stay local.
   cacheDir: fileURLToPath(new URL("../throwaway/vite-cache/", import.meta.url)),
   plugins: [

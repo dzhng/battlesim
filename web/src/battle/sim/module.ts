@@ -1,4 +1,6 @@
 import init, * as wasm from "@wasm/game_wasm.js";
+import wasmUrl from "@wasm/game_wasm_bg.wasm?url";
+import { countedFetch } from "../../downloads";
 import type { SimModule } from "./authority";
 
 export type Wasm = typeof wasm;
@@ -18,7 +20,10 @@ export function simModule(memory: WebAssembly.Memory): SimModule {
 let loaded: Promise<{ wasm: Wasm; memory: WebAssembly.Memory }> | null = null;
 
 function load() {
-  return (loaded ??= init().then((out) => ({ wasm, memory: out.memory })));
+  return (loaded ??= init({ module_or_path: countedFetch(wasmUrl) }).then((out) => ({
+    wasm,
+    memory: out.memory,
+  })));
 }
 
 /** The simulation module, initialised once per realm (page or worker): the

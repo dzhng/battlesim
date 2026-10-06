@@ -2,7 +2,7 @@ import { renderInRouter as render } from "./support/router";
 // @vitest-environment jsdom
 import { LAB_FIXTURES } from "@apps/battle-lab/src/fixtures";
 import { createElement } from "react";
-import { cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { LabRouter } from "@apps/battle-lab/src/router";
 
@@ -17,15 +17,9 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   vi.resetModules();
   const { LabRouter: DevelopmentRouter } = await import("@apps/battle-lab/src/router");
   const menu = render(createElement(DevelopmentRouter));
-  // The saved-file read finishes before its viewer link becomes available.
-  await waitFor(() =>
-    expect(menu.getByRole("link", { name: "Watch replay" }).getAttribute("href")).toBe(
-      "/replay/village",
-    ),
-  );
   const links = () => menu.queryAllByRole("link").map((a) => a.getAttribute("href"));
-  const pages = ["Skirmish", "Settings", "Developer"];
-  expect(links()).toEqual(["/replay/village"]);
+  const pages = ["Skirmish", "Watch replay", "Settings", "Developer"];
+  expect(links()).toEqual([]);
   for (const page of pages) expect(menu.getByRole("button", { name: page })).toBeTruthy();
   expect(menu.queryByRole("button", { name: "Back" })).toBeNull();
 
@@ -37,6 +31,8 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   };
   const entries: Record<string, Record<string, string>> = {
     Skirmish: { Deploy: "/battle?play=1&type=mixed&size=small" },
+    // No battle saved on this browser: only the file to load one from.
+    "Watch replay": {},
     Settings: {},
     Developer: {
       "Mechanics editor": "/mechanics",
@@ -56,6 +52,9 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
     fireEvent.click(menu.getByRole("button", { name: "Back" }));
     expect(menu.getByRole("button", { name: page })).toBeTruthy();
   }
+  open("Watch replay");
+  expect(menu.getByTestId("replay-file")).toBeTruthy();
+  fireEvent.click(menu.getByRole("button", { name: "Back" }));
   open("Settings");
   expect(menu.getByTestId("sound-controls")).toBeTruthy();
   // Escape is Back, as in a game's menus.

@@ -14,16 +14,16 @@ import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
 import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/source";
 import { askedChoice, battleHref, playHref, REGIONS, spoken } from "./battleLinks";
-import { useSavedReplay, replayRoute } from "./replayFile";
+import { ReplayImport, useSavedReplay, replayRoute, type ReplayFile } from "./replayFile";
 import { SoundControls } from "./SoundControls";
 import { MenuBackdrop } from "./MenuBackdrop";
 import { LOADING_STAGES, LoadingTasks, useLoadingTasks } from "./LabLoading";
 import { LoadingScreen } from "./LoadingScreen";
+import { APP_COMMIT, simFingerprint } from "./buildIdentity";
 
 interface Entry {
   label: string;
   href: string | null;
-  art?: "replay";
 }
 
 const DEVELOPER: Entry[] = [
@@ -61,11 +61,11 @@ function EntryItem({ entry: e }: { entry: Entry }) {
   return (
     <li>
       {e.href === null ? (
-        <a className="menu-card" data-art={e.art} aria-disabled>
+        <a className="menu-card" aria-disabled>
           <span className="menu-card-label">{e.label}</span>
         </a>
       ) : (
-        <Link className="menu-card" data-art={e.art} to={e.href}>
+        <Link className="menu-card" to={e.href}>
           <span className="menu-card-label">{e.label}</span>
         </Link>
       )}
@@ -148,9 +148,43 @@ function NewBattle({ asked }: { asked: ReturnType<typeof askedChoice> }) {
   );
 }
 
+/** Which build is running: the app's commit and the simulation module's
+ *  fingerprint (`buildIdentity.ts`), small, under everything else. */
+function BuildLine() {
+  const [sim, setSim] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    void simFingerprint().then((h) => live && setSim(h));
+    return () => {
+      live = false;
+    };
+  }, []);
+  return (
+    <p className="menu-build" data-testid="menu-build">
+      build {APP_COMMIT} · sim {sim ?? "…"}
+    </p>
+  );
+}
+
+/** The replay page: the battle saved last on this browser, when there is
+ *  one, and a saved battle's file to load; a file opens in its viewer. */
+function ReplayPage({ saved }: { saved: ReplayFile | null | undefined }) {
+  return (
+    <nav aria-label="Replays">
+      <ul>
+        {saved && <EntryItem entry={{ label: "Last saved battle", href: replayRoute(saved) }} />}
+        <li>
+          <ReplayImport plays={(_: ReplayFile): _ is never => false} onLoad={() => {}} />
+        </li>
+      </ul>
+    </nav>
+  );
+}
+
 /** The plate's pages: each opens in the plate's place, under a Back button. */
 const PAGES = {
   skirmish: { title: "Skirmish" },
+  replay: { title: "Watch replay" },
   settings: { title: "Settings" },
   // Opened by the quiet developer link, not a tile.
   developer: { title: "Developer" },
@@ -238,11 +272,6 @@ export function MainMenu() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [page, back]);
-  const replay: Entry = {
-    label: "Watch replay",
-    art: "replay",
-    href: savedReplay.file === undefined ? null : replayRoute(savedReplay.file),
-  };
   const content =
     page === null ? (
       <>
@@ -250,7 +279,7 @@ export function MainMenu() {
         <nav aria-label="Main menu">
           <ul>
             <PageEntry page="skirmish" open={setPage} />
-            <EntryItem entry={replay} />
+            <PageEntry page="replay" open={setPage} />
             <PageEntry page="settings" open={setPage} />
           </ul>
         </nav>
@@ -262,10 +291,12 @@ export function MainMenu() {
         >
           Developer
         </button>
+        <BuildLine />
       </>
     ) : (
       <PageView key={page} page={page} back={back}>
         {page === "skirmish" && <NewBattle asked={asked} />}
+        {page === "replay" && <ReplayPage saved={savedReplay.file} />}
         {page === "settings" && <SoundControls />}
         {page === "developer" && <Entries label="Developer" entries={DEVELOPER} />}
       </PageView>

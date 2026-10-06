@@ -1,7 +1,8 @@
 import { Link } from "react-router";
 // The cover over a battle that is still being prepared: what is being made,
 // how far along it is, and, if it cannot be made, why. In the HUD's look.
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { downloads, type DownloadProgress } from "@web/downloads";
 
 export interface LoadingStage {
   id: string;
@@ -15,6 +16,33 @@ export interface LoadingFailure {
   /** What was asked for stands as asked: the seed, and what to do next. */
   advice?: string;
   details: string[];
+}
+
+/** The page's downloads, sampled a few times a second (a byte count per
+ *  chunk would redraw the screen hundreds of times a second). */
+function useDownloads(): DownloadProgress {
+  const [d, setD] = useState(downloads.get);
+  useEffect(() => {
+    const id = setInterval(() => setD(downloads.get()), 200);
+    return () => clearInterval(id);
+  }, []);
+  return d;
+}
+
+const mb = (bytes: number) => (bytes / 1e6).toFixed(1);
+
+/** What is downloading: megabytes received, of the size announced when it
+ *  is (a compressed download can outrun its announced size). */
+function Downloading() {
+  const d = useDownloads();
+  if (!d.active) return null;
+  const of = d.total >= d.loaded ? ` of ${mb(d.total)}` : "";
+  return (
+    <div className="loading-bytes" data-testid="loading-bytes">
+      Downloading {mb(d.loaded)}
+      {of} MB
+    </div>
+  );
 }
 
 export function LoadingScreen({
@@ -91,6 +119,7 @@ export function LoadingScreen({
             <div className="loading-stage" role="status" data-testid="loading-stage">
               {stages[at]?.label}
             </div>
+            <Downloading />
             {back !== null && (
               <Link className="hud-menu-item loading-cancel" to={back} data-testid="loading-cancel">
                 Cancel

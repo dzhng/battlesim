@@ -240,6 +240,47 @@
   font-size: 9.5px;
   color: rgb(var(--hud-dim));
 }
+/* Loading a saved battle in the menu: a tile like the others, opening the
+   file chooser, never the browser's own file control. */
+.hud-panel.menu-body .hud-menu-file {
+  position: relative;
+  display: block;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-accent));
+  background: rgb(var(--hud-accent) / 0.05);
+  border: 1px solid rgb(var(--hud-accent) / 0.3);
+  border-left: 2px solid rgb(var(--hud-accent) / 0.8);
+  cursor: pointer;
+}
+.hud-panel.menu-body .hud-menu-file:is(:hover, :focus-within) {
+  background: rgb(var(--hud-accent) / 0.14);
+  box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.45);
+}
+.hud-panel.menu-body .hud-menu-file input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.hud-panel.menu-body .hud-menu-file .hud-error {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+/* Which build is running: for checking a deploy, not for playing. */
+.menu-build {
+  justify-self: end;
+  margin: -8px 0 0;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgb(var(--hud-dim) / 0.7);
+}
 .hud-panel button.menu-dev:hover {
   box-shadow: none;
   color: rgb(var(--hud-accent));
@@ -288,6 +329,13 @@
   50% {
     opacity: 0.35;
   }
+}
+.loading-bytes {
+  margin-top: -6px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--hud-dim));
 }
 .loading-stage {
   font-size: 11px;
