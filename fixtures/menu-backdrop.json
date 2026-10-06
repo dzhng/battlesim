@@ -14,25 +14,25 @@
       },
       {
         "seconds": 6,
+        "follow": 16,
+        "from": { "target": [2, 8], "distance": 30, "yaw": 2.792, "pitch": 0.14 },
+        "to": { "target": [2, 8], "distance": 26.4, "yaw": 3.092, "pitch": 0.129 }
+      },
+      {
+        "seconds": 6,
+        "follow": 17,
+        "from": { "target": [-1, 12], "distance": 40, "yaw": -1.274, "pitch": 0.15 },
+        "to": { "target": [-1, 12], "distance": 35.2, "yaw": -1.024, "pitch": 0.138 }
+      },
+      {
+        "seconds": 6,
+        "follow": 33,
+        "from": { "target": [-6, 5], "distance": 45, "yaw": 0.711, "pitch": 0.16 },
+        "to": { "target": [-6, 5], "distance": 39.6, "yaw": 0.411, "pitch": 0.147 }
+      },
+      {
+        "seconds": 6,
         "follow": 31,
-        "from": { "target": [-6, 5], "distance": 30, "yaw": 0.711, "pitch": 0.14 },
-        "to": { "target": [-6, 5], "distance": 26.4, "yaw": 0.411, "pitch": 0.129 }
-      },
-      {
-        "seconds": 6,
-        "follow": 15,
-        "from": { "target": [1, 12], "distance": 40, "yaw": -1.758, "pitch": 0.15 },
-        "to": { "target": [1, 12], "distance": 35.2, "yaw": -1.508, "pitch": 0.138 }
-      },
-      {
-        "seconds": 6,
-        "follow": 15,
-        "from": { "target": [0, 0], "distance": 30, "yaw": 1.281, "pitch": 0.15 },
-        "to": { "target": [0, 0], "distance": 26.4, "yaw": 1.031, "pitch": 0.138 }
-      },
-      {
-        "seconds": 6,
-        "follow": 29,
         "from": { "target": [3, 22], "distance": 55, "yaw": -1.835, "pitch": 0.17 },
         "to": { "target": [3, 22], "distance": 48.4, "yaw": -1.585, "pitch": 0.156 }
       },
@@ -45,68 +45,74 @@
       {
         "seconds": 7,
         "follow": 0,
-        "from": { "target": [20, 9], "distance": 55, "yaw": -3.207, "pitch": 0.17 },
-        "to": { "target": [20, 9], "distance": 48.4, "yaw": -2.957, "pitch": 0.156 }
+        "from": { "target": [20, 9], "distance": 55, "yaw": -2.857, "pitch": 0.17 },
+        "to": { "target": [20, 9], "distance": 48.4, "yaw": -2.607, "pitch": 0.156 }
+      },
+      {
+        "seconds": 6,
+        "follow": 17,
+        "from": { "target": [-1, 8], "distance": 45, "yaw": 3.414, "pitch": 0.16 },
+        "to": { "target": [-1, 8], "distance": 39.6, "yaw": 3.714, "pitch": 0.147 }
+      },
+      {
+        "seconds": 4,
+        "follow": 16,
+        "from": { "target": [2, 12], "distance": 40, "yaw": -1.896, "pitch": 0.15 },
+        "to": { "target": [2, 12], "distance": 35.2, "yaw": -1.646, "pitch": 0.138 }
       },
       {
         "seconds": 7,
         "follow": 1,
-        "from": { "target": [8, 9], "distance": 40, "yaw": -2.074, "pitch": 0.15 },
-        "to": { "target": [8, 9], "distance": 35.2, "yaw": -1.824, "pitch": 0.138 }
+        "from": { "target": [9, 8], "distance": 40, "yaw": -2.539, "pitch": 0.15 },
+        "to": { "target": [9, 8], "distance": 35.2, "yaw": -2.289, "pitch": 0.138 }
       },
       {
         "seconds": 6,
         "follow": 1,
-        "from": { "target": [-2, 12], "distance": 40, "yaw": -1.137, "pitch": 0.15 },
-        "to": { "target": [-2, 12], "distance": 35.2, "yaw": -0.887, "pitch": 0.138 }
+        "from": { "target": [-3, 12], "distance": 40, "yaw": -1.083, "pitch": 0.15 },
+        "to": { "target": [-3, 12], "distance": 35.2, "yaw": -0.833, "pitch": 0.138 }
       },
       {
         "seconds": 6,
-        "follow": 30,
-        "from": { "target": [-8, 0], "distance": 30, "yaw": -1.359, "pitch": 0.14 },
-        "to": { "target": [-8, 0], "distance": 26.4, "yaw": -1.059, "pitch": 0.129 }
-      },
-      {
-        "seconds": 6,
-        "follow": 29,
+        "follow": 31,
         "from": { "target": [4, 11], "distance": 40, "yaw": -1.725, "pitch": 0.15 },
         "to": { "target": [4, 11], "distance": 35.2, "yaw": -1.475, "pitch": 0.138 }
       },
       {
         "seconds": 6,
-        "follow": 6,
-        "from": { "target": [0, 12], "distance": 40, "yaw": -1.322, "pitch": 0.15 },
-        "to": { "target": [0, 12], "distance": 35.2, "yaw": -1.072, "pitch": 0.138 }
+        "follow": 32,
+        "from": { "target": [-8, 0], "distance": 45, "yaw": -1.709, "pitch": 0.16 },
+        "to": { "target": [-8, 0], "distance": 39.6, "yaw": -1.409, "pitch": 0.147 }
       },
       {
         "seconds": 7,
         "follow": 1,
-        "from": { "target": [-11, 33], "distance": 80, "yaw": -0.801, "pitch": 0.27 },
-        "to": { "target": [-11, 33], "distance": 70.4, "yaw": -0.501, "pitch": 0.248 }
+        "from": { "target": [-13, 33], "distance": 80, "yaw": -0.749, "pitch": 0.27 },
+        "to": { "target": [-13, 33], "distance": 70.4, "yaw": -0.449, "pitch": 0.248 }
       },
       {
         "seconds": 6,
         "follow": 3,
-        "from": { "target": [-7, 9], "distance": 40, "yaw": -0.683, "pitch": 0.15 },
-        "to": { "target": [-7, 9], "distance": 35.2, "yaw": -0.433, "pitch": 0.138 }
+        "from": { "target": [-7, -4], "distance": 30, "yaw": -0.864, "pitch": 0.14 },
+        "to": { "target": [-7, -4], "distance": 26.4, "yaw": -0.564, "pitch": 0.129 }
       },
       {
         "seconds": 6,
-        "follow": 29,
+        "follow": 31,
         "from": { "target": [4, 11], "distance": 40, "yaw": -2.006, "pitch": 0.15 },
         "to": { "target": [4, 11], "distance": 35.2, "yaw": -1.756, "pitch": 0.138 }
       },
       {
         "seconds": 6,
         "follow": 1,
-        "from": { "target": [-4, 11], "distance": 40, "yaw": -1.323, "pitch": 0.15 },
-        "to": { "target": [-4, 11], "distance": 35.2, "yaw": -1.073, "pitch": 0.138 }
+        "from": { "target": [-8, 20], "distance": 55, "yaw": -1.323, "pitch": 0.17 },
+        "to": { "target": [-8, 20], "distance": 48.4, "yaw": -1.073, "pitch": 0.156 }
       },
       {
         "seconds": 8,
         "follow": 1,
-        "from": { "target": [-13, 33], "distance": 80, "yaw": -1.048, "pitch": 0.27 },
-        "to": { "target": [-13, 33], "distance": 70.4, "yaw": -0.748, "pitch": 0.248 }
+        "from": { "target": [-18, 47], "distance": 100, "yaw": -1.348, "pitch": 0.32 },
+        "to": { "target": [-18, 47], "distance": 88.0, "yaw": -1.048, "pitch": 0.294 }
       }
     ]
   }
