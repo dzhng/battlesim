@@ -45,6 +45,8 @@ pub struct FlightConfig {
     chord_error_m: f64,
     max_unguided_lifetime_s: f64,
     min_spread_at_max_range_m: f64,
+    /// Intercepts and launches already solved ([`solve::Solved`]).
+    solved: solve::Solved,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -145,6 +147,7 @@ impl FlightConfig {
             });
         }
         Ok(FlightConfig {
+            solved: solve::Solved::default(),
             gravity: v3(0.0, 0.0, -rules.gravity_mps2),
             miss_fall_max_s: rules.miss_fall_max_s,
             ricochet_lifetime_s: rules.ricochet_lifetime_s,

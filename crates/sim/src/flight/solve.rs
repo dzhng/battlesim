@@ -17,6 +17,8 @@ use super::{
 use crate::math::{v3, V3};
 use crate::world::{Collider, PropId, WorldGeometry};
 use contract::random::Rng;
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 /// A static hit this close to the intended intercept counts as arrival: an aim
 /// point on the ground, or a target standing on a surface.
@@ -81,6 +83,49 @@ pub fn solve_launch_past(
     aim: &Aim,
     past: Option<PropId>,
 ) -> Result<FiringSolution, NoSolution> {
+    let (o, t, w) = (aim.origin, aim.target, aim.target_velocity);
+    let motor = profile
+        .motor
+        .map_or([f64::NAN; 2], |m| [m.accel_mps2, m.top_speed_mps]);
+    let flight = [
+        o.x,
+        o.y,
+        o.z,
+        t.x,
+        t.y,
+        t.z,
+        w.x,
+        w.y,
+        w.z,
+        profile.speed_mps,
+        profile.gravity_scale,
+        profile.lifetime_s,
+        profile.turn_rad_s.unwrap_or(f64::NAN),
+        motor[0],
+        motor[1],
+        profile.motor.map_or(0.0, |_| 1.0),
+    ]
+    .map(f64::to_bits);
+    let world_at = (
+        world as *const WorldGeometry as usize,
+        world.obstacle_revision(),
+    );
+    let indirect = profile.trajectory == Trajectory::Indirect;
+    let key = (flight, past, indirect, world_at.0, world_at.1);
+    config
+        .solved
+        .launches
+        .get_or(key, || launch_uncached(world, config, profile, aim, past))
+}
+
+/// [`solve_launch_past`], worked out.
+fn launch_uncached(
+    world: &WorldGeometry,
+    config: &FlightConfig,
+    profile: &LaunchProfile,
+    aim: &Aim,
+    past: Option<PropId>,
+) -> Result<FiringSolution, NoSolution> {
     let arcs = intercepts(config, profile, aim);
     let preferred: Vec<FiringSolution> = match profile.trajectory {
         Trajectory::Direct => arcs.into_iter().filter(|s| s.arc == ArcKind::Low).collect(),
@@ -102,16 +147,101 @@ pub fn solve_launch_past(
     Err(blocked.unwrap_or(NoSolution::OutOfReach))
 }
 
+/// What a ballistic intercept is solved from, to the bit: the aim's origin,
+/// target and target velocity, the round's speed and lifetime, and the
+/// gravity it falls under.
+type InterceptKey = [u64; 14];
+
+/// Answers already worked out, by their exact inputs. Weapons ask the same
+/// aim again within a tick and the next (a mount weighing its targets, then
+/// firing at one), and each answer kept is a pure function of its key, so a
+/// kept one is the very answer. Two generations of at most [`KEPT`] each
+/// bound it: the older is dropped when the newer fills.
+#[derive(Clone, Debug)]
+struct Kept<K, V> {
+    generations: RefCell<[HashMap<K, V>; 2]>,
+}
+
+impl<K, V> Default for Kept<K, V> {
+    fn default() -> Self {
+        Self {
+            generations: RefCell::new([HashMap::new(), HashMap::new()]),
+        }
+    }
+}
+
+/// About a tick and a half of a 200-unit battle's aims.
+const KEPT: usize = 4096;
+
+impl<K: std::hash::Hash + Eq, V: Clone> Kept<K, V> {
+    fn get_or(&self, key: K, answer: impl FnOnce() -> V) -> V {
+        if let Some(found) = self.generations.borrow()[0].get(&key) {
+            return found.clone();
+        }
+        let older = self.generations.borrow()[1].get(&key).cloned();
+        let found = older.unwrap_or_else(answer);
+        let mut generations = self.generations.borrow_mut();
+        if generations[0].len() >= KEPT {
+            generations[1] = std::mem::take(&mut generations[0]);
+        }
+        generations[0].insert(key, found.clone());
+        found
+    }
+}
+
+/// What a launch is solved from, to the bit: the aim (origin, target and
+/// target velocity), the round's flight (speed, gravity scale, lifetime,
+/// arc, turn limit, motor), the body it flies past, and the world it is
+/// flown against: which one, at which obstacle revision.
+type LaunchKey = ([u64; 16], Option<PropId>, bool, usize, u64);
+
+/// The ballistic intercepts and the launches already solved: kept answers
+/// ([`Kept`]). An intercept depends on nothing but its inputs; a launch also
+/// on the world's static bodies, which change only with its obstacle
+/// revision. One flight configuration serves one battle's world.
+#[derive(Clone, Debug, Default)]
+pub struct Solved {
+    intercepts: Kept<InterceptKey, Vec<FiringSolution>>,
+    launches: Kept<LaunchKey, Result<FiringSolution, NoSolution>>,
+}
+
 /// The low and (if distinct) high intercepts within the round's lifetime.
 fn intercepts(config: &FlightConfig, profile: &LaunchProfile, aim: &Aim) -> Vec<FiringSolution> {
-    let d = aim.target - aim.origin;
-    let w = aim.target_velocity;
     if let Some(motor) = profile.motor {
         return motor_intercept(profile.speed_mps, motor, profile.lifetime_s, aim)
             .into_iter()
             .collect();
     }
-    let a = profile.gravity(config) * -0.5;
+    let g = profile.gravity(config);
+    let (o, t, w) = (aim.origin, aim.target, aim.target_velocity);
+    let key = [
+        o.x,
+        o.y,
+        o.z,
+        t.x,
+        t.y,
+        t.z,
+        w.x,
+        w.y,
+        w.z,
+        profile.speed_mps,
+        profile.lifetime_s,
+        g.x,
+        g.y,
+        g.z,
+    ]
+    .map(f64::to_bits);
+    config
+        .solved
+        .intercepts
+        .get_or(key, || ballistic_intercepts(g, profile, aim))
+}
+
+/// [`intercepts`] for a round with no motor, falling under `gravity`.
+fn ballistic_intercepts(gravity: V3, profile: &LaunchProfile, aim: &Aim) -> Vec<FiringSolution> {
+    let d = aim.target - aim.origin;
+    let w = aim.target_velocity;
+    let a = gravity * -0.5;
     let s = profile.speed_mps;
     let quartic = [
         d.dot(d),
