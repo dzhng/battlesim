@@ -648,7 +648,7 @@ export async function createSceneryLayer(
   /** Write the first `count` records (`stride` floats each) of `data` into
    *  `held`'s buffer, made anew by `make` at twice the need when too small. */
   function writeGrowing<
-    B extends Releasable & { write: (data: ArrayBuffer, options: never) => void },
+    B extends Releasable & { write: (data: ArrayBuffer, options: { endOffset: number }) => void },
   >(
     held: { slot: GpuSlot<B>; capacity: number },
     data: Float32Array,
@@ -661,7 +661,7 @@ export async function createSceneryLayer(
       held.capacity = Math.max(64, count * 2);
       held.slot.set(make(held.capacity));
     }
-    held.slot.current!.write(data.buffer as ArrayBuffer, { size: count * stride * 4 } as never);
+    held.slot.current!.write(data.buffer as ArrayBuffer, { endOffset: count * stride * 4 });
   }
 
   function upload(pop: Population) {

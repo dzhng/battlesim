@@ -92,10 +92,14 @@ interface Drawable {
   draw(vertices: number, instances: number): void;
 }
 
-/** One replaceable static mesh, drawn once through the identity instance. */
+/** One replaceable mesh, drawn once through the identity instance. A mesh
+ *  set every frame (the overlays) keeps its buffer while it fits: the buffer
+ *  grows only when a mesh outgrows it, and each set uploads only its own
+ *  vertices. */
 export class MeshSlot {
   private readonly slot: GpuSlot<VertexBuffer>;
   private count = 0;
+  private capacity = 0;
 
   constructor(
     private readonly root: Root,
@@ -110,8 +114,14 @@ export class MeshSlot {
   }
 
   set(floats: Mesh) {
-    this.slot.set(vertexBuffer(this.root, floats));
     this.count = floats.length / VERTEX_FLOATS;
+    if (this.count > this.capacity) {
+      this.capacity = Math.max(1024, this.count * 2);
+      this.slot.set(
+        this.root.createBuffer(vertexLayout.schemaForCount(this.capacity)).$usage("vertex"),
+      );
+    }
+    if (this.count > 0) this.slot.current!.write(floats.buffer, { endOffset: floats.byteLength });
   }
 
   draw(bound: Drawable) {
