@@ -60,20 +60,26 @@ test("purchase availability follows observed credits and reserved slots", () => 
     onReady: vi.fn(),
     onCancelPending: vi.fn(),
   };
+  // A one-variant family is bought by clicking it, once it is affordable
+  // and a slot is free.
   const view = render(<PurchasePicker {...props} match={{ ...match, credits: 199 }} />);
-  fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
-  fireEvent.click(view.getByRole("tab", { name: "VEH" }));
-  fireEvent.click(view.getByRole("button", { name: "M1 Abrams" }));
-  const variant = () => view.getByRole("button", { name: "SEP v2 — 200 credits" });
-  expect(variant().hasAttribute("disabled")).toBe(true);
+  const family = () => view.getByRole("button", { name: "M1 Abrams" });
+  const open = () => {
+    fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+    fireEvent.click(view.getByRole("tab", { name: "VEH" }));
+  };
+  open();
+  fireEvent.click(family());
+  expect(choose).not.toHaveBeenCalled();
   view.rerender(
     <PurchasePicker {...props} match={{ ...match, credits: 200, occupiedSlots: 30 }} />,
   );
-  expect(variant().hasAttribute("disabled")).toBe(true);
+  fireEvent.click(family());
+  expect(choose).not.toHaveBeenCalled();
   view.rerender(
     <PurchasePicker {...props} match={{ ...match, credits: 200, occupiedSlots: 29 }} />,
   );
-  fireEvent.click(variant());
+  fireEvent.click(family());
   expect(choose).toHaveBeenCalledExactlyOnceWith("base");
 });
 

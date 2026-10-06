@@ -806,15 +806,7 @@ export function useBattleSession({
         if (pointer) control.onPointer(pointer);
       }
     },
-    [
-      semanticPick,
-      control,
-      world,
-      sim.client,
-      purchasePlacement,
-      cancelPurchase,
-      inputEnabled,
-    ],
+    [semanticPick, control, world, sim.client, purchasePlacement, cancelPurchase, inputEnabled],
   );
   const eligibilityIdentity = JSON.stringify(
     (observation?.own ?? []).map((u) => [
@@ -867,9 +859,7 @@ export function useBattleSession({
           ? groundUnderRay(world.view, pointer.ray)
           : null;
       const facing =
-        at && facingTo
-          ? Math.atan2(facingTo[1] - at[1], facingTo[0] - at[0])
-          : undefined;
+        at && facingTo ? Math.atan2(facingTo[1] - at[1], facingTo[0] - at[0]) : undefined;
       purchaseGhost.current = purchasePlacement.at(
         at ? [at[0], at[1]] : null,
         active ? sim.client : null,
