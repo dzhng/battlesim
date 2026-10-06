@@ -10,6 +10,9 @@ export interface LabFixture {
   map: string | null;
   /** A timing verdict runs against a production build. */
   build?: "production";
+  /** Seconds its scene may run, past the runner's default: a scene whose
+   *  work grows with the art library. */
+  timeout_s?: number;
 }
 
 export const LAB_FIXTURES: readonly LabFixture[] = fixtures as readonly LabFixture[];

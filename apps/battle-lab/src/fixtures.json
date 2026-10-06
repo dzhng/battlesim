@@ -129,7 +129,8 @@
     "id": "city-lineup",
     "route": "/lab/city-lineup",
     "describe": "Every building template of the installed art library on flat ground, in rows by category at its real size, each labelled with its id, drawn through the frame's own buildings path with no battle. ?set= or ?category= narrows it, ?tier=0..3 draws every building at one detail tier, ?state=ruin|gutted draws the templates that end in that state as a side that saw them destroyed knows them (a low template collapses to a ruin, a tall one stands gutted; the others are left out), and ?station= with ?at=<template id> opens on a station: all, row, fit, close (30 m), tactical (65 m), wide (250 m), or transition-1..3 (where the template changes to that tier). The scene writes a contact sheet per category at each tier and the pairs across each tier boundary.",
-    "map": null
+    "map": null,
+    "timeout_s": 1800
   },
   {
     "id": "city-ruins",

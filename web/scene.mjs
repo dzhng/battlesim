@@ -8,8 +8,9 @@
 // exactly one scene at web/scenes/<id>.mjs and vice versa. Without VERIFY_URL
 // the runner starts its own Vite server; a fixture registered with
 // `"build": "production"` (a timing verdict) runs against a production build
-// served by Vite's preview instead. A scene longer than SCENE_TIMEOUT_S
-// (900 by default) fails. Evidence goes to throwaway/evidence/.
+// served by Vite's preview instead. A scene longer than its fixture's
+// `timeout_s` (900 by default; SCENE_TIMEOUT_S overrides every fixture's)
+// fails. Evidence goes to throwaway/evidence/.
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
@@ -207,7 +208,7 @@ export async function run(fixtures) {
       };
       // No scene may hang the gate: a stalled page fails its fixture instead.
       let timer;
-      const limit = Number(process.env.SCENE_TIMEOUT_S ?? 900);
+      const limit = Number(process.env.SCENE_TIMEOUT_S ?? fixture.timeout_s ?? 900);
       const timedOut = new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error(`scene exceeded ${limit} s`)), limit * 1000);
       });
