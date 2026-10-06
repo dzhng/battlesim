@@ -12,7 +12,7 @@ def build(family):
     if v.get('dispatch_gate') and os.environ.get('ALLOW_RESEARCH_MODELS') != '1':raise ValueError('Variant retains a research dispatch gate: '+ident)
     frame=v['physical_authoring'];L,W,H=frame['body_dimensions_m'];reset()
     paint=textured('tank_olive','olive_paint',tint=1,chip=.3,dirt=.4,rise=1.1);dark=textured('chassis_dark','olive_paint',colour=(.045,.055,.035),chip=.22,dirt=.5);rubber=textured('rubber','rubber',chip=0,dirt=.3);steel=textured('barrel_steel','bare_steel',chip=.15,dirt=.2);glass=flat_paint('optic_glass',(.018,.06,.065),rough=.13,grime=.1)
-    root=empty(family);body=empty('body',parent=root);count=7 if family=='kf51' else 6;r=.43 if family in ('challenger','kf51') else .40;half=L/2-.60;track_y=W/2-(.46 if family=='challenger' else .35);deck={'leclerc':1.49,'challenger':1.47,'kf51':1.48,'type99':1.39}[family]
+    root=empty(family);body=empty('body',parent=root);count=7 if family in ('kf51','t14','t15') else 6;r=.43 if family in ('challenger','kf51','t14','t15') else .40;half=L/2-.60;track_y=W/2-(.46 if family=='challenger' else .35);deck={'leclerc':1.49,'challenger':1.47,'kf51':1.48,'type99':1.39,'t14':1.78,'t15':1.72,'type15':1.46}[family]
     for side in (-1,1):
         for i in range(count):
             x=L*.34-i*(L*.68/(count-1));wn=empty('wheel_'+('F' if i<count/2 else 'R')+str(i)+('L' if side>0 else 'R'),(x,side*track_y,r+.075),body,props={'radius_m':r});cyl('roadwheel_'+str(side)+str(i),r,.50,axis='Y',mat=rubber,parent=wn,seg=24);cyl('wheel_disc_'+str(side)+str(i),r*.74,.055,(0,side*.27,0),'Y',paint,wn,seg=20);cyl('wheel_hub_'+str(side)+str(i),r*.22,.08,(0,side*.29,0),'Y',dark,wn,seg=12)
@@ -34,6 +34,8 @@ def build(family):
     nose=L/2;rear=-L/2
     profile=[(rear,.72),(nose,.78),(nose,1.10),(nose-1.24,deck),(rear+.04,deck)]
     if family=='challenger':profile=[(rear,.74),(nose,.79),(nose,1.18),(nose-1.58,deck),(rear+.03,deck)]
+    elif family in ('t14','t15'):profile=[(rear,.78),(nose,.82),(nose,1.20),(nose-1.58,deck),(rear+.03,deck)]
+    elif family=='type15':profile=[(rear,.66),(nose,.72),(nose,1.04),(nose-1.32,deck),(rear+.04,deck)]
     elif family=='type99':profile=[(rear,.64),(nose,.72),(nose,1.01),(nose-1.29,deck),(rear+.04,deck)]
     prism(family+'_hull',profile,W-.50 if family!='challenger' else 3.57,mat=paint,parent=body,bevel=.035)
     for side in (-1,1):

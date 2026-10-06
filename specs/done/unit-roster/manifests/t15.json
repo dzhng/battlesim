@@ -33,14 +33,14 @@
       "export": "assets/source/roster/t15/eastern_t_15_armata_heavy_ifv.glb",
       "physical_authoring": {
         "body_dimensions_m": [
-          null,
-          null,
-          null
+          9.5,
+          3.5,
+          3.5
         ],
         "half_extents_m": [
-          null,
-          null,
-          null
+          4.75,
+          1.75,
+          1.75
         ],
         "eye_m": null,
         "mounts": [
@@ -82,7 +82,8 @@
           }
         ]
       },
-      "notes": []
+      "notes": [],
+      "status": "authoring-frame-frozen-disabled"
     }
   ]
 }

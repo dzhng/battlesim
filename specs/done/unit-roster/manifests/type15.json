@@ -32,14 +32,14 @@
       "export": "assets/source/roster/type15/eastern_type_15_ztq_15_light_tank.glb",
       "physical_authoring": {
         "body_dimensions_m": [
-          null,
-          null,
-          null
+          7.3,
+          3.35,
+          2.5
         ],
         "half_extents_m": [
-          null,
-          null,
-          null
+          3.65,
+          1.675,
+          1.25
         ],
         "eye_m": null,
         "mounts": [
@@ -81,7 +81,8 @@
           }
         ]
       },
-      "notes": []
+      "notes": [],
+      "status": "authoring-frame-frozen-disabled"
     }
   ]
 }

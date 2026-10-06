@@ -36,12 +36,12 @@
       "export": "assets/source/roster/t14/eastern_t_14_armata_main_battle_tank.glb",
       "physical_authoring": {
         "body_dimensions_m": [
-          null,
+          8.7,
           3.5,
           3.3
         ],
         "half_extents_m": [
-          null,
+          4.35,
           1.75,
           1.65
         ],
@@ -85,7 +85,9 @@
           }
         ]
       },
-      "notes": []
+      "notes": [],
+      "status": "authoring-frame-frozen-disabled"
     }
-  ]
+  ],
+  "model_status": "authoring-complete-disabled"
 }
