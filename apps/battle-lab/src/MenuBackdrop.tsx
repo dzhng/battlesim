@@ -3,8 +3,8 @@
 // menu's amber. Silent (the menu's music plays over it) and inert: input
 // belongs to the menu. Each is the menu's own battle, so leaving the menu
 // releases its worker and scene like any battle's; when a scene's reel ends
-// the next scene's battle takes its place behind the veil (prepared while the
-// last one played), and after the last the first starts again.
+// the next scene's battle starts behind the veil (its saved scenario fetched
+// while the last one played), and after the last the first starts again.
 // Its preparation reports to the menu's loading screen, and the battle holds
 // at its warm tick until the menu is shown, so the reel's first cut opens on
 // the moment it was cut for.
@@ -26,8 +26,9 @@ import game from "@fixtures/game.json";
 
 const SCENES = validateBackdrop(backdrop).scenes;
 
-/** Each scene's battle, prepared once: the next scene's is asked for while
- *  the current one plays, so the cut to it waits only on drawing it. */
+/** Each scene's saved scenario, fetched once: the next scene's is asked for
+ *  while the current one plays, so the cut to it waits on starting and
+ *  warming its battle, not on the download. */
 const scenarios = new Map<BackdropScene, Promise<string>>();
 function sceneScenario(scene: BackdropScene): Promise<string> {
   let s = scenarios.get(scene);

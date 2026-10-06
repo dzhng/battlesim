@@ -338,12 +338,12 @@ export function weaponLabel(w: Pick<WeaponRow, "name" | "kinds">): string {
 
 /** Strength in [0, 1]: a vehicle's hit points, or a squad's soldiers' health
  *  against the full squad (each slot's soldier kind), so losses show as well
- *  as wounds. */
+ *  as wounds. A squad a battle started tougher than its type reads full. */
 export function unitStrength(u: Pick<OwnUnitView, "kind" | "hp" | "memberHp">): number {
   const hull = UNITS.hull(u.kind);
   if (hull) return u.hp / hull.hp;
   const full = UNITS.slots(u.kind).reduce((sum, kind) => sum + UNITS.soldier(kind).hp, 0);
-  return u.memberHp.reduce((a, b) => a + b, 0) / (full || 1);
+  return Math.min(1, u.memberHp.reduce((a, b) => a + b, 0) / (full || 1));
 }
 
 /** One info panel: NAME (with its strength), then WEAPONS, then STATES. */

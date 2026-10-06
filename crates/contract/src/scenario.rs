@@ -1059,8 +1059,8 @@ pub struct UnitCondition {
     /// Soldiers already fallen at the start (their corpses lie where they stood).
     #[serde(default)]
     pub casualties: u32,
-    /// Each soldier's health at the start, in place of his type's: a
-    /// directed battle (the menu's) keeps a squad standing as long as its
+    /// Each soldier's health at the start, in place of his type's, and may
+    /// exceed it: a directed battle keeps a squad standing as long as its
     /// shots need. Left out of the serialized setup when unset, so older
     /// setups digest as before.
     #[serde(default, skip_serializing_if = "Option::is_none")]

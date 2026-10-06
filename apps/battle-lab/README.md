@@ -31,16 +31,16 @@ battle. Exhausted generation returns a refusal; it never substitutes a fixed map
 
 [The menu backdrop](src/MenuBackdrop.tsx) is real battles, not recordings: scenes
 played in order and then over again, each a saved encounter on its own map run by
-the ordinary session, silent and inert. The next scene's battle is prepared while
-one plays, and takes its place behind the veil when its reel ends. Each is filmed by
+the ordinary session, silent and inert. Each is filmed by
 [the reel](src/menuReel.ts) through the viewport's pilot and graded in CSS to the
 HUD's `film` amber, which the plate's blue reads against. It shows blue's
 observation like any battle, without the player's x-ray. Its preparation reports
 to the same loading stages as a lab, and the menu's loading screen stands in the
 plate's place until the battle first stands at its warm tick; the battle holds
 there until the menu is shown, so the reel's first cut opens on the moment it was
-cut for. Cuts dip through an opaque veil of the menu's own ground, behind which the
-next scene starts when a reel ends, without the loading screen. The plate measures where it stands, and the
+cut for. Cuts dip through an opaque veil of the menu's own ground. When a reel
+ends the next scene's battle (its saved map and encounter fetched while the last
+one played) starts and warms behind the veil, without the loading screen. The plate measures where it stands, and the
 pilot slides each framing so its subject plays in the open screen beside it.
 
 [The shared battle view](src/BattleView.tsx) composes page resources and observation

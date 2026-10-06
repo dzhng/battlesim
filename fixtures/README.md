@@ -19,15 +19,15 @@ belong to the isolated camera experiment, not a second gameplay camera policy.
 [The menu backdrop](menu-backdrop.json) lists the scenes the main menu films, in order:
 each a saved battle (an ordinary saved encounter, scripted orders and all, on its own
 map) and its reel of camera shots;
-a tracking shot frames by an offset from one of blue's units. The encounter is staged
-like a film, not balanced: set-pieces in different parts of the map open fire on a
-schedule, set by how far each force starts from its enemy, so every cut has guns
-firing in frame. Cannon fire and blasts read at film distance; rifle fire barely
-does. A changed encounter or rule retimes the set-pieces, so recheck each cut's
-frames after either. The battle is directed, not left to play out: starting
-health, scheduled fire policies and scripted attacks set who fires and who
-dies when, so a change keeps the cuts it was not asked to change and retimes
-the battle to them, never the reverse.
+a tracking shot frames by an offset from one of blue's units. Each encounter is staged
+like a film, not balanced: set-pieces open fire on a schedule, set by how far each
+force starts from its enemy, so every cut has guns firing in frame. Cannon fire and
+blasts read at film distance; rifle fire barely does. A changed encounter or rule
+(movement included) retimes the set-pieces, so recheck each scene's cuts after
+either. Each battle is directed, not left to play out: starting health, scheduled
+fire policies and scripted attacks set who fires and who dies when, so a change
+keeps the cuts it was not asked to change and retimes the battle to them, never
+the reverse.
 
 [Sound authoring](#sound-catalog) owns audio provenance and choices independently
 of gameplay weapon cycles. Saved maps, component inheritance and paired evidence

@@ -176,6 +176,8 @@ test("strength counts a squad's losses as well as its wounds, and an enemy's is 
   expect(unitStrength(unit({ memberHp: hp }))).toBe(1);
   const half = unit({ memberHp: hp.slice(0, hp.length / 2).map((h) => h / 2) });
   expect(unitStrength(half)).toBe(0.25);
+  // A squad a battle started tougher than its type reads full, never past it.
+  expect(unitStrength(unit({ memberHp: hp.map((h) => 3 * h) }))).toBe(1);
   const full = UNITS.hull("tank")!.hp;
   const tank = unit({ kind: "tank", hp: 0.4 * full, mounts: [] });
   // The panel carries it for its name line's pips.
