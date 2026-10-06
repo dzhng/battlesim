@@ -6,11 +6,11 @@ from parts import *
 ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'../../../..'))
 
 def build(family):
-    args=script_args();out=next(a for a in args if not a.startswith('--'));ident=os.path.basename(out).removesuffix('.glb');m=json.load(open(os.path.join(ROOT,'specs/unit-roster/manifests',family+'.json')));v=next(v for v in m['variants'] if v['id']==ident);frame=v['physical_authoring'];L,W,H=frame['body_dimensions_m']
+    args=script_args();out=next(a for a in args if not a.startswith('--'));ident=os.path.basename(out).removesuffix('.glb');mp=os.path.join(ROOT,'specs/unit-roster/manifests',family+'.json');mp=mp if os.path.exists(mp) else os.path.join(ROOT,'specs/done/unit-roster/manifests',family+'.json');m=json.load(open(mp));v=next(v for v in m['variants'] if v['id']==ident);frame=v['physical_authoring'];L,W,H=frame['body_dimensions_m']
     reset();paint=textured('ground_olive','olive_paint',tint=1,chip=.25,dirt=.45,rise=.9);dark=textured('dark_steel','olive_paint',colour=(.045,.055,.035),chip=.18,dirt=.4);rubber=textured('rubber','rubber',chip=0,dirt=.3);steel=textured('gun_steel','bare_steel',chip=.12,dirt=.2);glass=flat_paint('armor_glass',(.018,.055,.063),rough=.15,grime=.1)
     root=empty(family);body=empty('body',parent=root)
-    scout=family in ('fennek','vbl','tigr');deck={'fennek':1.86,'vbl':1.64,'tigr':1.94,'puma':2.56,'vbci':2.36}[family]
-    if family=='puma':
+    scout=family in ('fennek','vbl','tigr');deck={'fennek':1.86,'vbl':1.64,'tigr':1.94,'puma':2.56,'vbci':2.36,'brm':1.85,'jaguar':2.36}[family]
+    if family in ('puma','brm'):
         r=.43;y=1.53;half=L/2-.63
         for side in (-1,1):
             for i in range(6):
@@ -34,7 +34,7 @@ def build(family):
         for j in range(8):box('engine_deck_grille_'+str(j),(.055,.91,.025),(1.15+j*.13,-.63,deck-.055),dark,body,lods=(0,1))
         box('rear_ramp',(.075,2.73,1.42),(-L/2-.004,0,1.63),paint,body)
     else:
-        r={'fennek':.49,'vbl':.36,'tigr':.52,'vbci':.59}[family];depth=.36 if family=='vbl' else .43;axles=[L*.31,-L*.31] if scout else [L*.33,L*.112,-L*.115,-L*.33]
+        r={'fennek':.49,'vbl':.36,'tigr':.52,'vbci':.59,'jaguar':.56}[family];depth=.36 if family=='vbl' else .43;axles=[L*.31,-L*.31] if scout else ([L*.33,L*.0,-L*.33] if family=='jaguar' else [L*.33,L*.112,-L*.115,-L*.33])
         for i,x in enumerate(axles):
             for side in (-1,1):
                 row=('F' if i<len(axles)/2 else 'R')+str(i);wn=empty('wheel_'+row+('L' if side>0 else 'R'),(x,side*(W/2-depth/2-.025),r),body,props={'radius_m':r});cyl('tire_'+row+str(side),r,depth,axis='Y',mat=rubber,parent=wn,seg=28);cyl('rim_'+row+str(side),r*.61,.055,(0,side*(depth/2+.015),0),'Y',paint,wn,seg=20);cyl('hub_'+row+str(side),r*.20,.08,(0,side*(depth/2+.041),0),'Y',dark,wn,seg=12)
@@ -91,7 +91,7 @@ def build(family):
             for side in (-1,1):cyl('mells_launch_port_'+str(side),.11,.03,(mu.x-.014,side*.15,0),'X',dark,pitch,seg=16)
             box('mells_cover',(1.43,.70,.045),(mu.x-.71,0,.264),paint,pitch)
         elif gun:
-            if family=='puma':
+            if family in ('puma','brm'):
                 low=2.58-p.z
                 prism('puma_unmanned_turret',[(-1.03,low),(.94,low),(.78,low+.30),(.19,low+.50),(-.89,low+.50)],1.94,mat=paint,parent=yaw,bevel=.035)
                 cyl('puma_muss_pedestal',.13,.24,(-.50,-.45,3.29-p.z),'Z',paint,yaw,seg=16)
@@ -104,7 +104,7 @@ def build(family):
                 cyl('vbci_commander_hatch',.235,.07,(-.18,-.12,2.87-p.z),'Z',paint,yaw,seg=16)
             box('gun_mantlet',(.40,.39,.32),(.69,0,0),paint,pitch,bevel=.035)
             start=.80;cyl('cannon_barrel',.060 if family=='puma' else .048,mu.x-start,((mu.x+start)/2,0,0),'X',steel,pitch,seg=16);cyl('cannon_muzzle',.085,.14,(mu.x-.07,0,0),'X',dark,pitch,seg=12)
-            if family=='puma':
+            if family in ('puma','brm'):
                 box('puma_barrel_guard',(mu.x-.84,.17,.13),((mu.x+.84)/2,0,-.10),paint,pitch)
                 for j in range(10):cyl('guard_vent_'+str(j),.034,.012,(.98+j*(mu.x-1.10)/10,-.094,-.10),'Y',dark,pitch,seg=8,lods=(0,1))
         else:
