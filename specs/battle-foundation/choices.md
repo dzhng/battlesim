@@ -664,6 +664,13 @@ These are the decisions the build made where the spec was silent or contradicted
 - **The reach:** performance only; no behaviour changes.
 - **Confidence:** high.
 
+### Needs user: a tick of move admission is unbounded
+- **When:** 2026-10-05, found by the city-contact benchmark.
+- **The finding:** Move admission rehearses each order within its own allowance (`navigation.move_validation_work`, unit-steps), and every rehearsal step advances every unit. On its contact tick the city-contact workload issues about 20 group orders for 100 units a side, and many use their whole allowance. On Metro Large seed 4 that one tick took 49 s natively before the dense-street work and 42 s after the boxes' trig-free early rejection (1.34 trillion instructions). The browser benchmark's real-time check fails because of it.
+- **The options:** (a) a per-tick admission budget shared by the tick's orders; a member left unproven is refused today (`NoValidDestination`), so later orders in a busy tick would need deferring rather than refusing. (b) Rehearse only the movers and treat idle units, which are already observed bodies for the opposing side, as fixed. Holding cover is about a third of the stalled tick's samples. Both change which orders are admitted, so both change digests.
+- **Recommendation:** (b) first: it is the physically honest reading of "standing units are obstacles" and keeps every order's own proof; then measure whether (a) is still needed.
+- **Confidence:** medium.
+
 ### One battle view and one session shell
 - **When:** slice 16 (finished in the closing cleanup).
 - **The choice:** One component (`BattleView`) is the played or replayed battle: world, units, overlays, readouts, sounds, selection and command bar. The village, its replay and the endurance route add only their own panel content. Underneath, one hook (`useBattleSession`) owns the static world, the worker session, the command path, the drawn units and the click and drag-select adapters for both the battle view and the labs. Labs build their overlays from the same per-concern layers the battle view combines. So every lab right-clicks a spotted enemy to attack it, and drag-select works on the battle routes. The overlay takes the supply reach and objective zone from the scenario it draws.
