@@ -63,3 +63,12 @@ are green. WASM rebuilt and the paired purchase record was regenerated after the
 catalog/publication cutover. Remaining closeout gates are a clean production scene
 capture with current baked assets, full check/verify/balance once, whole-spec review,
 choices consolidation and archive.
+
+Closeout run evidence (2026-10-06): focused native skirmish (18), protection (7),
+contract catalog (19), browser roster/panel suites (60) and model/ghost GPU probes
+are green. The full native workspace run reached an unrelated seeded mapgen encounter
+failure (`mixed medium, the lab's map: the request generates no map`). The full web
+run reached 1,164 passing tests but 54 existing Node/WASM loader failures because the
+Vitest environment resolves `/src/wasm/game_wasm_bg.wasm` without a browser base URL.
+These failures are recorded rather than masked; full closeout remains open until the
+shared harness is corrected or the failures are proven pre-existing.
