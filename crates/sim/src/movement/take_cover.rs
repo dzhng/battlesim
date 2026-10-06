@@ -23,7 +23,9 @@
 //! weapon's range: straight from the place, or from a free lean point round
 //! the tall cover he hides behind ([`crate::lean`], the same line test the
 //! fire code uses). Whoever is left unable to engage steps to the nearest
-//! place inside the area he can engage from, or sits out (D3).
+//! place inside the area he can engage from, or sits out (D3). One who sat
+//! out does not search again until he or the enemy moves, or his side
+//! learns of a body or a crater within his search.
 use contract::ids::UnitId;
 use contract::map::MoverClass;
 
@@ -653,7 +655,20 @@ fn resolve(
         });
     }
     if let Some(f) = &fight {
-        step_out(ctx, side, &known, &stands, f, area, &mut places);
+        let mut sat_out: Vec<_> = living.iter().map(|&k| unit.members[k].sat_out).collect();
+        step_out(
+            ctx,
+            side,
+            &known,
+            &stands,
+            f,
+            area,
+            &mut places,
+            &mut sat_out,
+        );
+        for (&k, memory) in living.iter().zip(sat_out) {
+            unit.members[k].sat_out = memory;
+        }
     }
     for (&k, &(place, tier, lean, _)) in living.iter().zip(&places) {
         let s = &mut unit.members[k];
@@ -692,7 +707,11 @@ fn into_area(
 
 /// A soldier who cannot engage from his place steps to the nearest place
 /// inside the area he can engage from, keeping the best cover he can
-/// within `step_out_m` (D3, Q8); with none, he sits out where he is.
+/// within `step_out_m` (D3, Q8); with none, he sits out where he is. One
+/// who searched there in vain (`sat_out`) does not search again until he,
+/// or the enemy (`step_out_retry_m`), has moved, or his side learns of a
+/// body or a crater within his search.
+#[allow(clippy::too_many_arguments)]
 fn step_out(
     ctx: &MovementContext,
     side: &SideGeometry,
@@ -701,6 +720,7 @@ fn step_out(
     fight: &Fight,
     area: Area,
     places: &mut [(V2, Option<Tier>, Option<Lean>, bool)],
+    sat_out: &mut [Option<cover::SatOut>],
 ) {
     let solid = |q: &Prop| q.blocks(MoverClass::Infantry) && side.knows(q, ctx.authored);
     let (c, r) = (&ctx.rules.cover, ctx.soldier_radius_m);
@@ -708,6 +728,25 @@ fn step_out(
     for k in 0..places.len() {
         let (place, _, _, engages) = places[k];
         if engages {
+            sat_out[k] = None;
+            continue;
+        }
+        // No ring further out than the area's far edge (and a metre) holds a
+        // place inside it.
+        let far = (2.0 * area.radius).min((place - area.centre).length() + area.radius + 1.0);
+        // The area's known craters: the search never leaves the area.
+        let craters = known
+            .craters
+            .iter()
+            .filter(|q| (**q - place).length() <= far)
+            .count() as u32;
+        let unchanged = sat_out[k].is_some_and(|m| {
+            (m.at - place).length() <= IN_PLACE_M
+                && (m.threat - fight.threat).length() <= c.step_out_retry_m
+                && !side.changed_near(m.revision, place, far)
+                && m.craters == craters
+        });
+        if unchanged {
             continue;
         }
         let others: Vec<V2> = (0..places.len())
@@ -743,11 +782,19 @@ fn step_out(
                 .find(|l| clear_of(l.at, ctx.rules.cover.lean_apart_m))
                 .map(Some)
         };
-        // No ring further out than the area's far edge (and a metre) holds a
-        // place inside it.
-        let far = (2.0 * area.radius).min((place - area.centre).length() + area.radius + 1.0);
-        if let Some((p, lean)) = cover::step_out(place, fight.threat, known, c, r, far, &fits) {
-            places[k] = (p, known.tier(p, fight.threat, c, r), lean, true);
+        match cover::step_out(place, fight.threat, known, c, r, far, &fits) {
+            Some((p, lean)) => {
+                places[k] = (p, known.tier(p, fight.threat, c, r), lean, true);
+                sat_out[k] = None;
+            }
+            None => {
+                sat_out[k] = Some(cover::SatOut {
+                    at: place,
+                    threat: fight.threat,
+                    revision: side.revision,
+                    craters,
+                })
+            }
         }
     }
 }

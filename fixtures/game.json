@@ -321,6 +321,7 @@
     "reach_m": 1.5,
     "search_m": 8,
     "step_out_m": 4,
+    "step_out_retry_m": 4,
     "reresolve_s": 1,
     "swing_deg": 45,
     "vehicle_moved_m": 2,

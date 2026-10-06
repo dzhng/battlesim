@@ -329,6 +329,19 @@ pub fn craters(ground: &KnownGround, rules: &Rules, centre: V2, radius: f64) -> 
     out
 }
 
+/// Where a soldier last searched in vain for a place to fight from, and
+/// what he searched against: until it changes he sits out without
+/// searching again.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SatOut {
+    pub at: V2,
+    pub threat: V2,
+    /// His side's planning revision then.
+    pub revision: u64,
+    /// Craters his side knew within his search then.
+    pub craters: u32,
+}
+
 /// Cover a side may seek around a squad: the tiered props it plans with,
 /// its own live vehicles, and the craters it has seen.
 pub struct Known {

@@ -891,6 +891,10 @@ pub struct CoverRules {
     /// far; beyond it, to the nearest place in the area he can engage from
     /// (D3, Q8).
     pub step_out_m: f64,
+    /// A soldier who found nowhere to fight from searches again once the
+    /// enemy has moved this far, or he has, or his side learns of a body or
+    /// a crater within his search.
+    pub step_out_retry_m: f64,
     /// A squad re-resolves its cover at most this often (Q11).
     pub reresolve_s: f64,
     /// A threat bearing swing that re-resolves cover (Q11).

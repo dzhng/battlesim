@@ -57,6 +57,8 @@ pub struct Soldier {
     /// The lean point claimed with his spot or post, round the tall cover
     /// he fires past.
     pub lean: Option<crate::lean::Lean>,
+    /// His last search for a place to fight from that found none.
+    pub sat_out: Option<crate::cover::SatOut>,
     /// He leans out, firing, from `lean_since` until `leaning_until`;
     /// tucked in behind his cover otherwise. After a burst out he
     /// stays tucked in until `tucked_until`.
@@ -86,6 +88,7 @@ impl Soldier {
             post: None,
             cover: None,
             lean: None,
+            sat_out: None,
             lean_since: 0,
             leaning_until: 0,
             tucked_until: 0,
@@ -542,6 +545,11 @@ impl Unit {
                 l.digest(d);
             }
             d.u64(s.lean_since).u64(s.leaning_until).u64(s.tucked_until);
+            d.u64(s.sat_out.is_some() as u64);
+            if let Some(m) = s.sat_out {
+                d.f64(m.at.x).f64(m.at.y).f64(m.threat.x).f64(m.threat.y);
+                d.u64(m.revision).u64(u64::from(m.craters));
+            }
             d.u64(s.corpse.is_some() as u64);
             if let Some(Fallen {
                 at: p,
