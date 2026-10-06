@@ -356,6 +356,11 @@ fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
     if let (Some(hp), Some(_)) = (c.hp, unit.hull) {
         unit.hp = hp.clamp(1.0, unit.max_hp(rules));
     }
+    if let Some(hp) = c.soldier_hp {
+        for soldier in &mut unit.members {
+            soldier.hp = hp.max(1.0);
+        }
+    }
     let n = unit.members.len();
     for k in n.saturating_sub(c.casualties as usize)..n {
         let at = unit.members[k].position;

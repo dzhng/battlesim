@@ -628,3 +628,42 @@ fn a_tank_killed_on_the_move_rolls_to_a_stop_its_tracks_locked() {
         "it rolled straight: {wreck:?} from {at:?}"
     );
 }
+
+/// The tick red's squad loses its first soldier to blue's rifles, its
+/// soldiers starting at `soldier_hp` when given.
+fn first_casualty(soldier_hp: Option<f64>) -> u64 {
+    let mut red = json!({ "side": "red", "kind": "rifle", "position": [260, 300], "engagement": "return_fire_only" });
+    if let Some(hp) = soldier_hp {
+        red["condition"] = json!({ "soldier_hp": hp });
+    }
+    let mut b = battle(
+        json!([]),
+        json!([{ "side": "blue", "kind": "rifle", "position": [100, 300] }, red]),
+        1,
+    );
+    let full = b.unit(UnitId(1)).unwrap().members.len();
+    for _ in 0..6000 {
+        b.step();
+        let standing = b
+            .unit(UnitId(1))
+            .unwrap()
+            .members
+            .iter()
+            .filter(|s| s.alive())
+            .count();
+        if standing < full {
+            return b.tick();
+        }
+    }
+    panic!("red lost no soldier");
+}
+
+#[test]
+fn a_squad_whose_soldiers_start_tougher_stands_longer_under_the_same_fire() {
+    let plain = first_casualty(None);
+    let tough = first_casualty(Some(400.0));
+    assert!(
+        tough > plain,
+        "tough squad's first loss at tick {tough}, plain at {plain}"
+    );
+}

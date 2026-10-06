@@ -25,10 +25,11 @@ export interface LabUnit {
   position: [number, number];
   yaw?: number;
   engagement?: Engagement;
-  /** Starting wear: vehicle hp, fallen soldiers, rounds spent per weapon row,
-   *  a squad's hidden suppression level. */
+  /** Starting condition: vehicle hp, each soldier's hp, fallen soldiers,
+   *  rounds spent per weapon row, a squad's hidden suppression level. */
   condition?: {
     hp?: number;
+    soldier_hp?: number;
     casualties?: number;
     spent?: Record<string, number>;
     suppression?: number;
