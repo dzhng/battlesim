@@ -98,12 +98,30 @@ export interface LightPresentation extends PostSettings {
    *  shadow fill. A warm fill stands in for light bounced off sunlit ground,
    *  which the sky-only environment lacks, so shade under a blue sky stays
    *  darkened ground instead of turning teal. */
-  sky: { turbidity: number; radiance: number; fill: Rgb };
+  sky: { turbidity: number; radiance: number; fill: Rgb; clouds: CloudSettings };
   haze: HazeSettings;
   /** The land past the map edge reaches this far out. Its look is the
    *  biome's (`fixtures/biomes/summer.json`). */
   backdrop: { reach_m: number };
   cascades: CascadeSettings;
+}
+
+/** A fair-weather cumulus layer over the view's sky: drawn in the background
+ *  only, never in the environment light, so the day stays sunny. */
+export interface CloudSettings {
+  /** The share of the sky the clouds cover, 0–1. */
+  coverage: number;
+  /** The layer's height above the eye, metres. */
+  height_m: number;
+  /** The size of the largest cloud masses, metres. */
+  scale_m: number;
+  /** How soft a cloud's edge is, in noise units. */
+  softness: number;
+  opacity: number;
+  /** A sunlit cloud top's radiance, in the sky's linear units. */
+  radiance: number;
+  /** A cloud base's colour against its sunlit top, per linear channel. */
+  shade: Rgb;
 }
 
 /** Unit vector toward the sun, z up: the one sun direction. */
@@ -147,6 +165,14 @@ export function validateLight(light: LightPresentation): LightPresentation {
   within("sky.turbidity", light.sky.turbidity, 1, 12);
   within("sky.radiance", light.sky.radiance, 0, 1000);
   light.sky.fill.forEach((c, i) => within(`sky.fill[${i}]`, c, 0, 4));
+  const clouds = light.sky.clouds;
+  within("sky.clouds.coverage", clouds.coverage, 0, 1);
+  within("sky.clouds.height_m", clouds.height_m, 100, 20000);
+  within("sky.clouds.scale_m", clouds.scale_m, 10, 1e5);
+  within("sky.clouds.softness", clouds.softness, 0.001, 0.5);
+  within("sky.clouds.opacity", clouds.opacity, 0, 1);
+  within("sky.clouds.radiance", clouds.radiance, 0, 100);
+  clouds.shade.forEach((c, i) => within(`sky.clouds.shade[${i}]`, c, 0, 4));
   within("exposure", light.exposure, 0.01, 16);
   within("backdrop.reach_m", light.backdrop.reach_m, 0, 1e6);
   within("haze.overview_from_m", light.haze.overview_from_m, 1, 1e6);

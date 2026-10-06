@@ -7,11 +7,16 @@ import {
   equirectUvWgsl,
   skyRadianceWgsl,
   skyDiscWgsl,
+  skyCloudsWgsl,
+  cloudHashWgsl,
+  cloudNoiseWgsl,
+  cloudFbmWgsl,
 } from "../shaders/physicalSky";
 
 const Rays = d.struct({ origin: d.vec3f, dx: d.vec3f, dy: d.vec3f });
 
-/** Linear HDR sky only: no exposure, tone mapping, PMREM or environment lighting. */
+/** Linear HDR sky only: no exposure, tone mapping, PMREM or environment lighting.
+ *  The shown background carries the cloud layer; the baked LUT stays clear. */
 export async function createTypegpuSky(
   device: GPUDevice,
   params: SkyModelParams,
@@ -32,6 +37,10 @@ export async function createTypegpuSky(
   const radiance = tgpu.fn([d.vec3f], d.vec3f)(skyRadianceWgsl(params));
   const equirectUv = tgpu.fn([d.vec3f], d.vec2f)(equirectUvWgsl);
   const disc = tgpu.fn([d.vec3f], d.vec3f)(skyDiscWgsl(params));
+  const hash = tgpu.fn([d.vec2i], d.f32)(cloudHashWgsl);
+  const noise = tgpu.fn([d.vec2f], d.f32)(cloudNoiseWgsl).$uses({ hash });
+  const fbm = tgpu.fn([d.vec2f], d.f32)(cloudFbmWgsl).$uses({ noise });
+  const clouds = tgpu.fn([d.vec3f, d.vec3f], d.vec3f)(skyCloudsWgsl(params)).$uses({ fbm });
   const sample = tgpu
     .fn(
       [d.vec3f],
@@ -42,9 +51,10 @@ export async function createTypegpuSky(
     // ground-bounce hemisphere (that stays for the environment light only):
     // the backdrop land dissolves into it rather than into a khaki band.
     let shown = normalize(vec3f(dir.xy, max(dir.z, 0.004)));
-    return textureSampleLevel(lutView, linearSampler, equirectUv(shown), 0.0).rgb + disc(dir);
+    // Clouds pass in front of the sun's disc; the LUT stays clear-sky.
+    return clouds(dir, textureSampleLevel(lutView, linearSampler, equirectUv(shown), 0.0).rgb + disc(dir));
   }`)
-    .$uses({ lutView: lut.createView(), linearSampler: sampler, equirectUv, disc });
+    .$uses({ lutView: lut.createView(), linearSampler: sampler, equirectUv, disc, clouds });
   // NodeMaterial.setup() applies max(output, 0) after colorNode. Preserve that
   // operation too: omitting it produces nonfinite lower-hemisphere texels.
   const bakeColor = tgpu
