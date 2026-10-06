@@ -111,6 +111,8 @@ const HUD_ICONS = {
   hold_fire: '<circle cx="12" cy="12" r="8"/><path d="M7 12h10"/>',
   leave_building: '<path d="M4 20V10l7-6 7 6"/><path d="M11 15h10"/><path d="M18 12l3 3-3 3"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  // A bare chevron: back out of a menu page, unlike reverse's barred arrow.
+  back: '<path d="M15 4l-8 8 8 8"/>',
   rejected: '<path d="M6 6l12 12M18 6L6 18"/>',
   guiding: '<path d="M3 20c5 0 6-8 10-8"/><path d="M13 12h5l3-2v4l-3-2"/>',
   blocked_shot:

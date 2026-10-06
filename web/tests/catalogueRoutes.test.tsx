@@ -1,6 +1,7 @@
 import { renderInRouter as render } from "./support/router";
 import { LAB_FIXTURES } from "@apps/battle-lab/src/fixtures";
 import { createElement } from "react";
+import { fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { LabRouter } from "@apps/battle-lab/src/router";
 import { MainMenu } from "@apps/battle-lab/src/MainMenu";
@@ -47,6 +48,7 @@ test("a catalogue draft is inspectable in labs by name and absent from player ba
   labs.unmount();
   window.history.replaceState(null, "", "/");
   const menu = render(createElement(MainMenu));
+  fireEvent.click(menu.getByRole("button", { name: "Battlefields" }));
   expect(
     menu.getByRole("link", { name: "Play Battlefield released-field" }).getAttribute("href"),
   ).toBe("/battle?map=released-field&recipe=assault");

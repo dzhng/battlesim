@@ -1,4 +1,14 @@
-import { advance, obs, openMenu, closeMenu, presented, snapshot, groundCss } from "./_lab.mjs";
+import {
+  advance,
+  obs,
+  openMenu,
+  closeMenu,
+  presented,
+  snapshot,
+  groundCss,
+  menuShown,
+  openMenuPage,
+} from "./_lab.mjs";
 
 /** The actual player entry and retained page owners, across complete battles. */
 export async function appJourney(ctx) {
@@ -27,7 +37,7 @@ export async function appJourney(ctx) {
     };
   });
   await page.goto(new URL(ctx.url).origin);
-  await page.getByTestId("menu-deploy").waitFor();
+  await menuShown(page);
   await page.waitForFunction(() => window.__appJourney.music.length > 0);
   const origin = await page.evaluate(() => performance.timeOrigin);
   // The menu's one battle is its backdrop: up once its veil first lifts.
@@ -44,7 +54,7 @@ export async function appJourney(ctx) {
     `${backdrop.length} workers`,
   );
   const backdropClosed = Promise.all(backdrop.map((worker) => worker.waitForEvent("close")));
-  await page.getByRole("button", { name: "Developer", exact: true }).click();
+  await openMenuPage(page, "Developer");
   await page.getByRole("link", { name: "Village", exact: true }).click();
   await backdropClosed;
 
@@ -130,13 +140,13 @@ export async function appJourney(ctx) {
   const departed = Promise.all(page.workers().map((worker) => worker.waitForEvent("close")));
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
   await departed;
-  await page.getByTestId("menu-deploy").waitFor();
   // The departed battle's allocations all return, seconds before the menu's
   // backdrop has prepared and drawn a scene of its own.
   await page.waitForFunction(() => {
     const counts = window.__appJourney.allocations();
     return counts.buffers === 0 && counts.textures === 0;
   });
+  await menuShown(page);
   await page.goBack();
   await ready();
   await advance(page, 90 - (await obs(page)).tick);
@@ -146,7 +156,7 @@ export async function appJourney(ctx) {
       (await page.evaluate(() => window.__lab.route.digest())) === digest,
   );
   await page.goForward();
-  await page.getByTestId("menu-deploy").waitFor();
+  await menuShown(page);
   await page.goBack();
   await ready();
   await openMenu(page);
@@ -166,13 +176,13 @@ export async function appJourney(ctx) {
   await snapshot(ctx, page, "app-journey-replay.png");
   await openMenu(page);
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
-  await page.getByTestId("menu-deploy").waitFor();
   // Read when the departed battle's allocations have all returned, before the
   // menu's backdrop allocates its own scene.
   const released = await page.waitForFunction(() => {
     const counts = window.__appJourney.allocations();
     return counts.buffers === 0 && counts.textures === 0 && counts;
   });
+  await menuShown(page);
   const owners = await page.evaluate(
     (allocations) => {
       const p = window.__appJourney;

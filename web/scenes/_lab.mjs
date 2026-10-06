@@ -109,6 +109,17 @@ export async function openMenu(page) {
   await page.getByRole("dialog", { name: "Paused" }).waitFor();
 }
 
+/** The main menu is up, its loading screen gone, showing its list of pages. */
+export async function menuShown(page) {
+  await page.getByRole("button", { name: "Skirmish", exact: true }).click({ trial: true });
+}
+
+/** Open the main menu's page `name` from its list. */
+export async function openMenuPage(page, name) {
+  await page.getByRole("button", { name, exact: true }).click();
+  await page.getByRole("heading", { name, exact: true }).waitFor();
+}
+
 /** Close the pause menu (Resume). */
 export async function closeMenu(page) {
   await page.getByRole("button", { name: "Resume", exact: true }).click();

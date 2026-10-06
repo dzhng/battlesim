@@ -12,7 +12,7 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-test("the main menu at / offers a new battle, the village, the saved battlefield and replay, the benchmark and labs behind its developer link; the lab index is /labs", async () => {
+test("the main menu at / opens each of its pages inside its plate, and Back returns to the list; the lab index is /labs", async () => {
   vi.stubEnv("DEV", true);
   vi.resetModules();
   const { LabRouter: DevelopmentRouter } = await import("@apps/battle-lab/src/router");
@@ -23,33 +23,51 @@ test("the main menu at / offers a new battle, the village, the saved battlefield
       "/replay/village",
     ),
   );
-  const links = () => menu.getAllByRole("link").map((a) => a.getAttribute("href"));
-  expect(links()).toEqual([
-    "/battle?play=1&type=mixed&size=small",
-    "/battle?map=market-town&recipe=assault",
-    "/replay/village",
-  ]);
-  fireEvent.click(menu.getByRole("button", { name: "Developer" }));
-  const entries = {
-    "Play Market Town": "/battle?map=market-town&recipe=assault",
-    "Watch replay": "/replay/village",
-    Village: "/battle/village",
-    "Mechanics editor": "/mechanics",
-    "Map workbench": "/map-workbench",
-    "Sound workbench": "/sound-workbench",
-    Benchmark: "/benchmark",
-    Labs: "/labs",
+  const links = () => menu.queryAllByRole("link").map((a) => a.getAttribute("href"));
+  const pages = ["Skirmish", "Battlefields", "Settings", "Developer"];
+  expect(links()).toEqual(["/replay/village"]);
+  for (const page of pages) expect(menu.getByRole("button", { name: page })).toBeTruthy();
+  expect(menu.queryByRole("button", { name: "Back" })).toBeNull();
+
+  /** Open `page` from the list: the plate shows only it, under a Back button. */
+  const open = (page: string) => {
+    fireEvent.click(menu.getByRole("button", { name: page }));
+    expect(menu.getByRole("heading", { name: page })).toBeTruthy();
+    for (const other of pages) expect(menu.queryByRole("button", { name: other })).toBeNull();
   };
-  expect(links()).toHaveLength(Object.keys(entries).length + 1);
-  for (const [name, href] of Object.entries(entries)) {
-    // Each entry is one link named by its title; its description is inside
-    // the same link, so a click on it navigates too.
-    const link = menu.getByRole("link", { name });
-    expect(link.getAttribute("href")).toBe(href);
-    const note = document.getElementById(link.getAttribute("aria-describedby")!);
-    expect(note?.textContent).toBeTruthy();
-    expect(note?.closest("a")).toBe(link);
+  const entries: Record<string, Record<string, string>> = {
+    Skirmish: { Deploy: "/battle?play=1&type=mixed&size=small" },
+    Battlefields: { "Play Market Town": "/battle?map=market-town&recipe=assault" },
+    Settings: {},
+    Developer: {
+      "Mechanics editor": "/mechanics",
+      "Map workbench": "/map-workbench",
+      "Sound workbench": "/sound-workbench",
+      Village: "/battle/village",
+      Benchmark: "/benchmark",
+      Labs: "/labs",
+    },
+  };
+  for (const [page, expected] of Object.entries(entries)) {
+    open(page);
+    expect(links()).toEqual(Object.values(expected));
+    for (const [name, href] of Object.entries(expected)) {
+      // Each entry is one link named by its title; its description is inside
+      // the same link, so a click on it navigates too.
+      const link = menu.getByRole("link", { name });
+      expect(link.getAttribute("href")).toBe(href);
+      const note = document.getElementById(link.getAttribute("aria-describedby")!);
+      expect(note?.textContent).toBeTruthy();
+      expect(note?.closest("a")).toBe(link);
+    }
+    fireEvent.click(menu.getByRole("button", { name: "Back" }));
+    expect(menu.getByRole("button", { name: page })).toBeTruthy();
   }
+  open("Settings");
+  expect(menu.getByTestId("sound-controls")).toBeTruthy();
+  // Escape is Back, as in a game's menus.
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(menu.getByRole("button", { name: "Settings" })).toBeTruthy();
   menu.unmount();
   window.history.replaceState(null, "", "/labs");
   const index = render(createElement(LabRouter));

@@ -3,8 +3,15 @@
 // play a saved battlefield of the catalogue, or watch a saved battle, and
 // the sound settings. The test village, the benchmark and the labs are
 // developer tools, behind the developer link.
+//
+// The menu is one plate over its backdrop battle. Opening one of its pages
+// replaces the plate's contents, under a Back button, so the battle behind
+// never changes; a loading screen stands in the plate's place until that
+// battle is ready to film.
 import { Link } from "react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { hudIcon } from "@packages/scene-assets/src/icons";
+import { Icon } from "@web/battle/present/icons";
 import config from "@fixtures/generated-battle.json";
 import { listMaps } from "@web/maps/catalogue";
 import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/source";
@@ -12,6 +19,8 @@ import { askedChoice, battleHref, playHref, REGIONS, savedBattleHref, spoken } f
 import { useSavedReplay, replayRoute } from "./replayFile";
 import { SoundControls } from "./SoundControls";
 import { MenuBackdrop } from "./MenuBackdrop";
+import { LOADING_STAGES, LoadingTasks, useLoadingTasks } from "./LabLoading";
+import { LoadingScreen } from "./LoadingScreen";
 
 interface Entry {
   label: string;
@@ -77,42 +86,47 @@ export function savedBattles() {
 
 const id = (href: string) => `menu${href.replaceAll(/[^a-z0-9]/g, "-")}`;
 
-/** A list of entries, each one link: its title names it, its note describes
- *  it, and a click anywhere on it navigates. */
+/** One entry, one link: its title names it, its note describes it, and a
+ *  click anywhere on it navigates. */
+function EntryItem({ entry: e }: { entry: Entry }) {
+  const props = {
+    className: "menu-card",
+    "aria-labelledby": `${id(e.href ?? e.label)}-label`,
+    "aria-describedby": `${id(e.href ?? e.label)}-note`,
+  };
+  const content = (
+    <>
+      <span className="menu-card-label" id={`${id(e.href ?? e.label)}-label`}>
+        {e.label}
+      </span>
+      <span className="menu-card-note" id={`${id(e.href ?? e.label)}-note`}>
+        {e.note}
+      </span>
+    </>
+  );
+  return (
+    <li>
+      {e.href === null ? (
+        <a {...props} aria-disabled>
+          {content}
+        </a>
+      ) : (
+        <Link {...props} to={e.href}>
+          {content}
+        </Link>
+      )}
+    </li>
+  );
+}
+
+/** A list of entries. */
 function Entries({ label, entries }: { label: string; entries: Entry[] }) {
   return (
     <nav aria-label={label}>
       <ul>
-        {entries.map((e) => {
-          const props = {
-            className: "menu-card",
-            "aria-labelledby": `${id(e.href ?? e.label)}-label`,
-            "aria-describedby": `${id(e.href ?? e.label)}-note`,
-          };
-          const content = (
-            <>
-              <span className="menu-card-label" id={`${id(e.href ?? e.label)}-label`}>
-                {e.label}
-              </span>
-              <span className="menu-card-note" id={`${id(e.href ?? e.label)}-note`}>
-                {e.note}
-              </span>
-            </>
-          );
-          return (
-            <li key={e.href ?? e.label}>
-              {e.href === null ? (
-                <a {...props} aria-disabled>
-                  {content}
-                </a>
-              ) : (
-                <Link {...props} to={e.href}>
-                  {content}
-                </Link>
-              )}
-            </li>
-          );
-        })}
+        {entries.map((e) => (
+          <EntryItem key={e.href ?? e.label} entry={e} />
+        ))}
       </ul>
     </nav>
   );
@@ -156,8 +170,7 @@ function Choice<T extends string>({
 
 /** Ordinary Play selects a battlefield after deployment. An explicit seed
  * carried by a menu address still asks for that exact battle. */
-function NewBattle() {
-  const [asked] = useState(() => askedChoice(window.location.search));
+function NewBattle({ asked }: { asked: ReturnType<typeof askedChoice> }) {
   const [type, setType] = useState<MapType>(asked.type ?? "mixed");
   const [size, setSize] = useState<MapSize>(asked.size ?? "small");
   // Random leaves the region to the seed.
@@ -165,7 +178,6 @@ function NewBattle() {
   const choice = { type, size, ...(region !== RANDOM && { region }) };
   return (
     <section className="menu-battle" aria-label="New battle">
-      <h2>Skirmish</h2>
       <div className="menu-fields">
         <Choice label="map" options={MAP_TYPES} value={type} onChange={setType} />
         <Choice label="size" options={MAP_SIZES} value={size} onChange={setSize} />
@@ -177,45 +189,174 @@ function NewBattle() {
       <Link
         className="menu-card menu-deploy"
         data-testid="menu-deploy"
+        aria-labelledby="menu-deploy-label"
+        aria-describedby="menu-deploy-note"
         to={asked.seed ? battleHref({ ...choice, seed: asked.seed }) : playHref(choice)}
       >
-        <span className="menu-card-label">Deploy</span>
-        <span className="menu-card-note">Attack the defended town as blue.</span>
+        <span className="menu-card-label" id="menu-deploy-label">
+          Deploy
+        </span>
+        <span className="menu-card-note" id="menu-deploy-note">
+          Attack the defended town as blue.
+        </span>
       </Link>
     </section>
   );
 }
 
+/** The plate's pages: each opens in the plate's place, under a Back button. */
+const PAGES = {
+  skirmish: { title: "Skirmish", note: "A battle on a new generated map." },
+  battlefields: { title: "Battlefields", note: "A fixed battlefield of the catalogue." },
+  settings: { title: "Settings", note: "Sound and volume." },
+  developer: { title: "Developer", note: "Test battles, tools and labs." },
+} as const;
+type Page = keyof typeof PAGES;
+
+/** A page's entry in the list: a tile like a link's, opening the page. */
+function PageEntry({ page, open }: { page: Page; open: (page: Page) => void }) {
+  const { title, note } = PAGES[page];
+  return (
+    <li>
+      <button
+        type="button"
+        className="menu-card"
+        data-page={page}
+        aria-labelledby={`menu-page-${page}-label`}
+        aria-describedby={`menu-page-${page}-note`}
+        onClick={() => open(page)}
+      >
+        <span className="menu-card-label" id={`menu-page-${page}-label`}>
+          {title}
+        </span>
+        <span className="menu-card-note" id={`menu-page-${page}-note`}>
+          {note}
+        </span>
+      </button>
+    </li>
+  );
+}
+
+/** An open page: its title beside the Back button, then its contents. */
+function PageView({ page, back, children }: { page: Page; back: () => void; children: ReactNode }) {
+  const backButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => backButton.current?.focus(), []);
+  return (
+    <>
+      <header className="menu-page-head">
+        <button
+          ref={backButton}
+          type="button"
+          className="menu-back"
+          aria-label="Back"
+          data-testid="menu-back"
+          onClick={back}
+        >
+          <Icon path={hudIcon("back")} />
+        </button>
+        <h2>{PAGES[page].title}</h2>
+      </header>
+      {children}
+    </>
+  );
+}
+
 export function MainMenu() {
-  const [developer, setDeveloper] = useState(false);
+  const [asked] = useState(() => askedChoice(window.location.search));
+  // An address asking for a battle opens on the page that starts it.
+  const [page, setPage] = useState<Page | null>(
+    Object.values(asked).some((v) => v !== undefined) ? "skirmish" : null,
+  );
   const [savedReplay] = useSavedReplay();
   const plate = useRef<HTMLDivElement>(null);
-  const entries: Entry[] = [
-    ...savedBattles(),
-    {
-      label: "Watch replay",
-      href: savedReplay.file === undefined ? null : replayRoute(savedReplay.file),
-      note: savedReplay.file === undefined ? "Reading saved battle…" : "Load a saved battle.",
-    },
-  ];
-  return (
-    <main className="menu">
-      <MenuBackdrop plate={plate} />
-      <div className="hud-panel menu-body" ref={plate}>
+  const { report, progress } = useLoadingTasks();
+  // Covered only until the backdrop is first ready: its restarts happen
+  // behind its own veil. One that cannot be made leaves the plain ground.
+  const [revealed, setRevealed] = useState(false);
+  const loading = !revealed && !progress.done && !progress.error;
+  const [shown] = useState(() => {
+    let resolve = () => {};
+    const promise = new Promise<void>((r) => (resolve = r));
+    return { promise, resolve };
+  });
+  useEffect(() => {
+    if (loading) return;
+    setRevealed(true);
+    shown.resolve();
+  }, [loading, shown]);
+  // Back to the list, onto the entry of the page just left.
+  const left = useRef<Page | null>(null);
+  const back = () => {
+    left.current = page;
+    setPage(null);
+  };
+  useEffect(() => {
+    if (page !== null || left.current === null) return;
+    plate.current?.querySelector<HTMLElement>(`[data-page="${left.current}"]`)?.focus();
+    left.current = null;
+  }, [page]);
+  useEffect(() => {
+    if (page === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      left.current = page;
+      setPage(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [page]);
+  const replay: Entry = {
+    label: "Watch replay",
+    href: savedReplay.file === undefined ? null : replayRoute(savedReplay.file),
+    note: savedReplay.file === undefined ? "Reading saved battle…" : "Load a saved battle.",
+  };
+  const content =
+    page === null ? (
+      <>
         <h1>Battle</h1>
-        <NewBattle />
-        <Entries label="Main menu" entries={entries} />
-        <SoundControls />
+        <nav aria-label="Main menu">
+          <ul>
+            <PageEntry page="skirmish" open={setPage} />
+            <PageEntry page="battlefields" open={setPage} />
+            <EntryItem entry={replay} />
+            <PageEntry page="settings" open={setPage} />
+          </ul>
+        </nav>
         <button
           type="button"
           className="menu-dev"
-          aria-expanded={developer}
-          onClick={() => setDeveloper(!developer)}
+          data-page="developer"
+          onClick={() => setPage("developer")}
         >
           Developer
         </button>
-        {developer && <Entries label="Developer" entries={DEVELOPER} />}
-      </div>
-    </main>
+      </>
+    ) : (
+      <PageView key={page} page={page} back={back}>
+        {page === "skirmish" && <NewBattle asked={asked} />}
+        {page === "battlefields" && <Entries label="Battlefields" entries={savedBattles()} />}
+        {page === "settings" && <SoundControls />}
+        {page === "developer" && <Entries label="Developer" entries={DEVELOPER} />}
+      </PageView>
+    );
+  return (
+    <>
+      <main className="menu" inert={loading}>
+        <LoadingTasks report={report}>
+          <MenuBackdrop plate={plate} shown={shown.promise} />
+        </LoadingTasks>
+        <div className="hud-panel menu-body" ref={plate} data-page={page ?? "list"}>
+          {content}
+        </div>
+      </main>
+      {loading && (
+        <LoadingScreen
+          title="Battle"
+          stages={LOADING_STAGES}
+          current={progress.current}
+          back={null}
+        />
+      )}
+    </>
   );
 }

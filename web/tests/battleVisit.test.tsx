@@ -62,7 +62,8 @@ test("Cancel discards admission even when its resolved continuation is already q
     fireEvent.click(cancel);
   });
   expect(pending.cancelled).toBe(true);
-  expect(screen.getByRole("heading", { name: "Battle" })).toBeDefined();
+  // Back on the menu, on the page that asks for the cancelled battle.
+  expect(screen.getByRole("heading", { name: "Skirmish" })).toBeDefined();
   expect(window.location.pathname).toBe("/");
   expect(window.location.search).toBe("?type=mixed&size=small");
 });

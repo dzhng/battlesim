@@ -21,19 +21,21 @@
     radial-gradient(ellipse at 50% 20%, rgb(var(--hud-accent) / 0.08) 0%, transparent 70%),
     rgb(var(--hud-glass));
 }
-/* The backdrop battle, behind the plate: a blue monotone film, darkened at
-   its edges so the plate reads over it. */
+/* The backdrop battle, behind the plate: an amber monotone film, darkened at
+   its edges so the plate's blue reads over it. */
 .menu-backdrop {
   position: fixed;
   inset: 0;
   pointer-events: none;
 }
+/* Contrast before brightness: the battle's shadows sink while its muzzle
+   flashes, tracers and blasts stay near white and burn through the grade. */
 .menu-backdrop-film {
   position: absolute;
   inset: 0;
-  filter: grayscale(1) contrast(1.1) brightness(0.7);
+  filter: grayscale(1) contrast(1.35) brightness(0.85);
 }
-/* Shade under the grade, so the edges darken in the same blue. */
+/* Shade under the grade, so the edges darken in the same amber. */
 .menu-backdrop-film::after {
   content: "";
   position: absolute;
@@ -46,18 +48,21 @@
   position: absolute;
   inset: 0;
   mix-blend-mode: color;
-  background: rgb(var(--hud-accent) / 0.8);
+  background: rgb(var(--hud-film) / 0.85);
 }
 .menu-backdrop-veil {
   position: absolute;
   inset: 0;
 }
 /* With room beside it, the plate stands at the left and the battle plays
-   across the rest of the screen. */
+   across the rest of the screen. Its top edge stays put, so the plate grows
+   and shrinks downward as its pages change instead of jumping. */
 @media (min-width: 1100px) {
   .menu {
     justify-items: start;
+    align-items: start;
     padding-left: max(48px, 7vw);
+    padding-top: 22vh;
   }
 }
 .menu-body {
@@ -87,9 +92,12 @@
   display: grid;
   gap: 8px;
 }
-.hud-panel a.menu-card {
+.hud-panel :is(a, button).menu-card {
   display: block;
+  width: 100%;
+  box-sizing: border-box;
   align-self: stretch;
+  text-align: left;
   padding: 12px 16px;
   text-decoration: none;
   text-transform: none;
@@ -116,27 +124,52 @@
   font-size: 11px;
   color: rgb(var(--hud-dim));
 }
-.hud-panel a.menu-card:hover,
-.hud-panel a.menu-card:focus-visible {
+.hud-panel :is(a, button).menu-card:hover,
+.hud-panel :is(a, button).menu-card:focus-visible {
   outline: none;
   background: rgb(var(--hud-accent) / 0.14);
   box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.45);
   text-shadow: none;
+}
+/* An open page: Back at the plate's top left, the page's name beside it,
+   ruled off from its contents. */
+.menu-page-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgb(var(--hud-accent) / 0.22);
+}
+.menu-page-head h2 {
+  margin: 0;
+  font: 700 18px var(--hud-font);
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-accent));
+  text-shadow: var(--hud-text-halo);
+}
+.hud-panel button.menu-back {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: rgb(var(--hud-accent));
+  border-color: rgb(var(--hud-accent) / 0.6);
+}
+.hud-panel button.menu-back .ro-icon {
+  margin: 0;
+}
+.hud-panel button.menu-back .ro-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5;
 }
 /* A new battle: the map's type, size and seed as the pause menu's choices
    are drawn, and the order to deploy as the plate's one bright tile. */
 .menu-battle {
   display: grid;
   gap: 10px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgb(var(--hud-accent) / 0.22);
-}
-.menu-battle h2 {
-  margin: 0;
-  font: 700 11px var(--hud-font);
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: rgb(var(--hud-dim));
 }
 .menu-fields {
   display: grid;

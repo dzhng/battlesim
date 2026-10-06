@@ -19,7 +19,11 @@ address updates the current entry without restarting that visit. Queued async
 continuations stop when history leaves their visit, before React necessarily
 finishes unmounting the previous page.
 
-The main menu starts generated or released saved battles and opens replays. A
+The main menu starts generated or released saved battles and opens replays. It is
+one plate over its backdrop: opening a page (skirmish, battlefields, settings,
+developer) replaces the plate's contents under a Back button, and Escape is Back,
+so the film behind never changes. A menu address asking for a battle opens on the
+skirmish page. A
 seeded address names exact preparation inputs on the same build. Ordinary Play
 may try bounded fresh candidates and a released saved fallback, then publishes the
 actual admitted identity. A refused explicit seed cannot silently become another
@@ -27,10 +31,14 @@ battle. [Saved-map policy](../../fixtures/README.md#saved-maps) owns what the me
 
 [The menu backdrop](src/MenuBackdrop.tsx) is a real battle, not a recording: a
 saved encounter run by the ordinary session, silent and inert, filmed by
-[the reel](src/menuReel.ts) through the viewport's pilot and graded to the HUD's
-blue in CSS. It shows blue's observation like any battle, without the player's
-x-ray. Cuts dip through an opaque veil of the menu's own ground, behind which the
-battle restarts when the reel ends. The plate measures where it stands, and the
+[the reel](src/menuReel.ts) through the viewport's pilot and graded in CSS to the
+HUD's `film` amber, which the plate's blue reads against. It shows blue's
+observation like any battle, without the player's x-ray. Its preparation reports
+to the same loading stages as a lab, and the menu's loading screen stands in the
+plate's place until the battle first stands at its warm tick; the battle holds
+there until the menu is shown, so the reel's first cut opens on the moment it was
+cut for. Cuts dip through an opaque veil of the menu's own ground, behind which the
+battle restarts when the reel ends, without the loading screen. The plate measures where it stands, and the
 pilot slides each framing so its subject plays in the open screen beside it.
 
 [The shared battle view](src/BattleView.tsx) composes page resources and observation

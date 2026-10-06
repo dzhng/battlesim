@@ -58,6 +58,7 @@ test("Deploy changes the actual route without replacing the document", async () 
     </BrowserRouter>,
   );
   const documentElement = document.documentElement;
+  fireEvent.click(screen.getByRole("button", { name: "Skirmish" }));
   fireEvent.click(screen.getByTestId("menu-deploy"));
   expect(await screen.findByText("Battle requested: ?play=1&type=mixed&size=small")).toBeDefined();
   expect(window.location.pathname + window.location.search).toBe(
@@ -92,6 +93,7 @@ test("same-path navigation and Back/Forward prepare fresh requested visits", asy
       <LabRouter />
     </BrowserRouter>,
   );
+  fireEvent.click(screen.getByRole("button", { name: "Skirmish" }));
   fireEvent.click(screen.getByTestId("menu-deploy"));
   fireEvent.click(await screen.findByRole("button", { name: "Advance" }));
   fireEvent.click(screen.getByRole("button", { name: "Publish admitted battle" }));
@@ -139,6 +141,7 @@ test("a rapid history round trip discards progress before the intermediate scree
       <LabRouter />
     </BrowserRouter>,
   );
+  fireEvent.click(screen.getByRole("button", { name: "Skirmish" }));
   fireEvent.click(screen.getByTestId("menu-deploy"));
   fireEvent.click(await screen.findByRole("button", { name: "Advance" }));
   fireEvent.click(screen.getByRole("button", { name: "Queue publication" }));

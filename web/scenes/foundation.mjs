@@ -3,6 +3,7 @@
 // crate and soldiers proxies; picking reads the simulation's boxes.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
+import { menuShown, openMenuPage } from "./_lab.mjs";
 
 // The crate is a pale warm proxy (r > b); the tank's camouflage is dark
 // (retuned when the tank was a blue proxy, told apart by hue).
@@ -203,13 +204,17 @@ export async function run(ctx) {
     };
   });
   await visits.goto(new URL(ctx.url).origin);
-  await visits.getByTestId("menu-deploy").waitFor();
+  await menuShown(visits);
   await visits.waitForFunction(() => window.__pageGpuProbe.devices.length === 1);
-  ctx.check("menu warm-up starts no battle worker", visits.workers().length === 0);
+  ctx.check(
+    "menu warm-up starts one battle worker, its backdrop's",
+    visits.workers().length === 1,
+    `${visits.workers().length} workers`,
+  );
   const origin = await visits.evaluate(() => performance.timeOrigin);
   const visitCounts = [];
   for (let i = 0; i < 2; i++) {
-    await visits.getByRole("button", { name: "Developer", exact: true }).click();
+    await openMenuPage(visits, "Developer");
     await visits.getByRole("link", { name: "Labs", exact: true }).click();
     await visits.getByRole("link", { name: "foundation", exact: true }).click();
     await visits.waitForFunction(() => window.__lab?.ready);
@@ -218,18 +223,23 @@ export async function run(ctx) {
     });
     await visits.goBack();
     await visits.getByRole("link", { name: "Main menu", exact: true }).click();
-    await visits.getByTestId("menu-deploy").waitFor();
-    await visits.waitForFunction(() => {
+    // Read before the menu's backdrop allocates a scene of its own.
+    const released = await visits.waitForFunction(() => {
       const n = window.__pageGpuProbe.allocations();
-      return n.buffers === 0 && n.textures === 0;
+      return n.buffers === 0 && n.textures === 0 && n;
     });
+    const allocations = await released.jsonValue();
+    await menuShown(visits);
     visitCounts.push(
-      await visits.evaluate(() => ({
-        devices: window.__pageGpuProbe.devices.length,
-        destroyed: window.__pageGpuProbe.destroyed,
-        allocations: window.__pageGpuProbe.allocations(),
-        sameDocument: performance.timeOrigin,
-      })),
+      await visits.evaluate(
+        (allocations) => ({
+          devices: window.__pageGpuProbe.devices.length,
+          destroyed: window.__pageGpuProbe.destroyed,
+          allocations,
+          sameDocument: performance.timeOrigin,
+        }),
+        allocations,
+      ),
     );
   }
   ctx.check(

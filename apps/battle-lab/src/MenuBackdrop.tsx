@@ -1,8 +1,11 @@
 // The main menu's backdrop: a live battle on a saved battlefield, filmed by
-// the backdrop reel's slow camera moves and graded to the HUD's blue. Silent
+// the backdrop reel's slow camera moves and graded to the menu's amber. Silent
 // (the menu's music plays over it) and inert: input belongs to the menu.
 // It is the menu's own battle, so leaving the menu releases its worker and
 // scene like any battle's; when the reel ends the battle starts again.
+// Its preparation reports to the menu's loading screen, and the battle holds
+// at its warm tick until the menu is shown, so the reel's first cut opens on
+// the moment it was cut for.
 import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import backdrop from "@fixtures/menu-backdrop.json";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
@@ -15,6 +18,7 @@ import { sampleReel, validateReel, type MenuReel } from "./menuReel";
 import { savedBattle } from "./savedMaps";
 import { buildFailed, useBuiltScenario } from "./useBuiltScenario";
 import { useBattleSession } from "./useBattleSession";
+import { useLabLoading } from "./LabLoading";
 import type { ScriptedSim } from "./useSimSession";
 import game from "@fixtures/game.json";
 
@@ -36,9 +40,17 @@ const cameraAt = (pose: CameraPose): Camera3DParams => ({
   ...gameCamera.lens,
 });
 
-export function MenuBackdrop({ plate }: { plate: RefObject<HTMLElement | null> }) {
-  // A refused page GPU leaves the menu its plain background.
+export function MenuBackdrop({
+  plate,
+  shown,
+}: {
+  plate: RefObject<HTMLElement | null>;
+  /** Settles when the menu is shown. */
+  shown: Promise<void>;
+}) {
+  // A refused page GPU leaves the menu its plain background, with nothing to wait for.
   const refused = useSyncExternalStore(appResources.subscribe, appResources.error);
+  useLabLoading("renderer", refused ? true : null);
   const battle = useBuiltScenario(
     backdrop,
     async (_, b) => (await savedBattle(b.map, b.encounter)).scenario,
@@ -48,7 +60,7 @@ export function MenuBackdrop({ plate }: { plate: RefObject<HTMLElement | null> }
     if (failed) console.error(`The menu backdrop could not be prepared: ${failed}`);
   }, [failed]);
   if (refused || !battle || buildFailed(battle)) return null;
-  return <BackdropBattle scenario={battle} plate={plate} />;
+  return <BackdropBattle scenario={battle} plate={plate} shown={shown} />;
 }
 
 /** How long a tracking shot's camera takes to catch up with its unit, seconds:
@@ -63,10 +75,12 @@ interface ReelBattle {
 }
 
 /** The reel's pilot: it veils the picture until the battle stands at its warm
- *  tick, plays the shots, and at the end restarts the battle behind the veil. */
+ *  tick and `hold` settles, plays the shots, and at the end restarts the
+ *  battle behind the veil. */
 function createReelPilot(
   veil: RefObject<HTMLDivElement | null>,
   plate: RefObject<HTMLElement | null>,
+  hold: () => Promise<void>,
 ) {
   const reel = reelFor(matchMedia("(prefers-reduced-motion: reduce)").matches);
   const battle: ReelBattle = { restart: () => {}, unitAt: () => null };
@@ -92,6 +106,7 @@ function createReelPilot(
   };
   const scripted: ScriptedSim = {
     warmTo: Math.round(backdrop.warm_s * game.tick_hz),
+    hold,
     onWarm: () => (warm = true),
     onTick: () => {},
   };
@@ -144,12 +159,22 @@ function createReelPilot(
 function BackdropBattle({
   scenario,
   plate,
+  shown,
 }: {
   scenario: string;
   plate: RefObject<HTMLElement | null>;
+  shown: Promise<void>;
 }) {
   const veil = useRef<HTMLDivElement>(null);
-  const [reel] = useState(() => createReelPilot(veil, plate));
+  // Ready to film once the battle first stands at its warm tick.
+  const [warmed, setWarmed] = useState(false);
+  useLabLoading("renderer", warmed);
+  const [reel] = useState(() =>
+    createReelPilot(veil, plate, () => {
+      setWarmed(true);
+      return shown;
+    }),
+  );
   const session = useBattleSession({
     scenario,
     seed: backdrop.seed,
@@ -161,6 +186,9 @@ function BackdropBattle({
   const { sim } = session;
   reel.battle.restart = sim.restart;
   reel.battle.unitAt = (id) => sim.latest.current?.own.find((u) => u.id === id)?.position ?? null;
+  useEffect(() => {
+    if (sim.error) console.error(`The menu backdrop battle could not start: ${sim.error}`);
+  }, [sim.error]);
   const world = useFeed(session.meshes);
   if (!session.meshes || session.sim.error) return null;
   return (

@@ -36,6 +36,8 @@ import {
   aim,
   groundCss,
   pointerOffCanvas,
+  menuShown,
+  openMenuPage,
 } from "./_lab.mjs";
 import { anyNear, decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation, orderPaint, paintHue, paintOnly } from "./_overlays.mjs";
@@ -3434,7 +3436,8 @@ async function captionsTour(ctx) {
     );
   });
   await page.goto(new URL("/", ctx.url).href);
-  await page.getByTestId("menu-deploy").waitFor();
+  await menuShown(page);
+  await openMenuPage(page, "Settings");
   ctx.check(
     "the main menu keeps audio preferences but has no caption opt-out",
     (await page.getByLabel("Subtitles", { exact: true }).count()) === 0 &&
@@ -3483,7 +3486,7 @@ async function menuTour(ctx) {
   await button.click();
   await snapshot(ctx, page, "pause-main-menu-1920x1080.png");
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
-  await page.getByTestId("menu-deploy").waitFor();
+  await menuShown(page);
   ctx.check(
     "Main menu returns from the paused battle to the game's home",
     new URL(page.url()).pathname === "/",

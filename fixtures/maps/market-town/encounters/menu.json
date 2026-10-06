@@ -1,25 +1,35 @@
 {
   "units": [
-    { "side": "blue", "kind": "tank", "position": [3492, 1400], "yaw": 1.666 },
-    { "side": "blue", "kind": "tank", "position": [3495, 1365], "yaw": 1.666 },
-    { "side": "blue", "kind": "jeep", "position": [3498, 1335], "yaw": 1.666 },
-    { "side": "blue", "kind": "tank", "position": [3501, 1300], "yaw": 1.666 },
-    { "side": "blue", "kind": "rifle", "position": [3440, 1560], "yaw": 1.676 },
-    { "side": "blue", "kind": "rifle", "position": [3500, 1600], "yaw": 1.676 },
-    { "side": "blue", "kind": "at", "position": [3455, 1520], "yaw": 1.676 },
-    { "side": "blue", "kind": "recon", "position": [3420, 1640], "yaw": 1.676 },
-    { "side": "blue", "kind": "tank", "position": [2350, 1250], "yaw": 0.8 },
-    { "side": "blue", "kind": "tank", "position": [2400, 1215], "yaw": 0.8 },
-    { "side": "blue", "kind": "tank", "position": [2305, 1290], "yaw": 0.8 },
+    { "side": "blue", "kind": "tank", "position": [3478, 1542], "yaw": 1.666 },
+    { "side": "blue", "kind": "tank", "position": [3481, 1507], "yaw": 1.666 },
+    { "side": "blue", "kind": "jeep", "position": [3484, 1480], "yaw": 1.666 },
+    { "side": "blue", "kind": "tank", "position": [3488, 1442], "yaw": 1.666 },
+    { "side": "blue", "kind": "rifle", "position": [3413, 1767], "yaw": 1.676 },
+    { "side": "blue", "kind": "rifle", "position": [3467, 1806], "yaw": 1.676 },
+    { "side": "blue", "kind": "at", "position": [3427, 1722], "yaw": 1.676 },
+    { "side": "blue", "kind": "recon", "position": [3392, 1848], "yaw": 1.676 },
+    { "side": "blue", "kind": "tank", "position": [2364, 1136], "yaw": 0.785 },
+    { "side": "blue", "kind": "tank", "position": [2332, 1168], "yaw": 0.785 },
+    { "side": "blue", "kind": "tank", "position": [2300, 1200], "yaw": 0.785 },
     { "side": "red", "kind": "rifle", "position": [3404, 2057], "yaw": -1.47 },
     { "side": "red", "kind": "rifle", "position": [3346, 2065], "yaw": -1.47 },
     { "side": "red", "kind": "rifle", "position": [3276, 2091], "yaw": -1.47 },
     { "side": "red", "kind": "at", "position": [3720, 2080], "yaw": -2.6 },
     { "side": "red", "kind": "rifle", "position": [3715, 2180], "yaw": -2.6 },
     { "side": "red", "kind": "tank", "position": [3352, 2245], "yaw": -1.37 },
-    { "side": "red", "kind": "tank", "position": [2700, 1600], "yaw": -2.34 },
-    { "side": "red", "kind": "tank", "position": [2750, 1560], "yaw": -2.34 },
-    { "side": "red", "kind": "tank", "position": [2655, 1645], "yaw": -2.34 }
+    { "side": "red", "kind": "tank", "position": [2597, 1370], "yaw": -2.357 },
+    { "side": "red", "kind": "tank", "position": [2565, 1401], "yaw": -2.357 },
+    { "side": "red", "kind": "tank", "position": [2533, 1433], "yaw": -2.357 },
+    { "side": "blue", "kind": "tank", "position": [2268, 1232], "yaw": 0.785 },
+    { "side": "blue", "kind": "tank", "position": [2236, 1264], "yaw": 0.785 },
+    { "side": "red", "kind": "tank", "position": [2502, 1465], "yaw": -2.357 },
+    { "side": "red", "kind": "tank", "position": [2470, 1497], "yaw": -2.357 },
+    { "side": "blue", "kind": "tank", "position": [1802, 1487], "yaw": 0.785 },
+    { "side": "blue", "kind": "tank", "position": [1770, 1518], "yaw": 0.785 },
+    { "side": "blue", "kind": "tank", "position": [1738, 1550], "yaw": 0.785 },
+    { "side": "red", "kind": "tank", "position": [2141, 1826], "yaw": -2.357 },
+    { "side": "red", "kind": "tank", "position": [2109, 1858], "yaw": -2.357 },
+    { "side": "red", "kind": "tank", "position": [2078, 1890], "yaw": -2.357 }
   ],
   "scripts": [
     {
@@ -49,20 +59,9 @@
       "side": "blue",
       "order": {
         "kind": "move",
-        "units": [8, 9, 10],
-        "gesture": 3,
-        "goal": [2800, 1700],
-        "route": "shortest"
-      }
-    },
-    {
-      "tick": 0,
-      "side": "red",
-      "order": {
-        "kind": "move",
-        "units": [17, 18, 19],
-        "gesture": 4,
-        "goal": [2250, 1150],
+        "units": [24, 25, 26],
+        "gesture": 5,
+        "goal": [1897, 1646],
         "route": "shortest"
       }
     }

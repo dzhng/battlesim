@@ -26,6 +26,9 @@ export interface ScriptedSim {
    * scenario already carries its two sides' scripted orders. */
   script?: string;
   warmTo: number;
+  /** Called when the battle first stands at `warmTo`; it holds there until
+   *  the promise settles. Without it real time starts at once. */
+  hold?: () => Promise<void>;
   /** Real time starts: the battle stands at `warmTo`. */
   onWarm: () => void;
   /** Every tick published once warm, with its cost. */
@@ -87,11 +90,14 @@ export function useSimSession({
       // Queued ahead of `start`: the battle steps to warmTo as fast as its
       // publications are consumed, then runs in real time.
       next.pause();
-      void next.advance(plan.warmTo).then(() => {
-        warm = true;
-        next.resume();
-        plan.onWarm();
-      });
+      void next
+        .advance(plan.warmTo)
+        .then(() => plan.hold?.())
+        .then(() => {
+          warm = true;
+          next.resume();
+          plan.onWarm();
+        });
     }
     setClient(next);
     setObservation(null);

@@ -28,14 +28,15 @@ export function LoadingScreen({
 }: {
   title: string;
   /** What is loading, e.g. the map's type, size and seed. */
-  subject: string;
+  subject?: string;
   stages: readonly LoadingStage[];
   /** The stage in progress (an id of `stages`). */
   current: string;
   failure?: LoadingFailure | null;
   recovery?: ReactNode;
-  /** Where cancelling, or leaving a failure, goes: the menu. */
-  back?: string;
+  /** Where cancelling, or leaving a failure, goes: the menu. Null when
+   *  there is nowhere to go back to (the menu's own loading). */
+  back?: string | null;
 }) {
   const at = stages.findIndex((s) => s.id === current);
   const [details, setDetails] = useState(false);
@@ -43,16 +44,20 @@ export function LoadingScreen({
     <main className="menu loading" data-testid="loading" aria-busy={!failure}>
       <div className="hud-panel menu-body">
         <h1>{failure ? "Aborted" : title}</h1>
-        <div className="loading-subject" data-testid="loading-subject">
-          {subject}
-        </div>
+        {subject && (
+          <div className="loading-subject" data-testid="loading-subject">
+            {subject}
+          </div>
+        )}
         {failure ? (
           <div className="loading-failure" role="alert" data-testid="error">
             <p className="hud-error">{failure.message}</p>
             {failure.advice && <p className="loading-advice">{failure.advice}</p>}
-            <Link className="hud-menu-item" to={back}>
-              Back to the menu
-            </Link>
+            {back !== null && (
+              <Link className="hud-menu-item" to={back}>
+                Back to the menu
+              </Link>
+            )}
             {recovery}
             {failure.details.length > 0 && (
               <button
@@ -86,9 +91,11 @@ export function LoadingScreen({
             <div className="loading-stage" role="status" data-testid="loading-stage">
               {stages[at]?.label}
             </div>
-            <Link className="hud-menu-item loading-cancel" to={back} data-testid="loading-cancel">
-              Cancel
-            </Link>
+            {back !== null && (
+              <Link className="hud-menu-item loading-cancel" to={back} data-testid="loading-cancel">
+                Cancel
+              </Link>
+            )}
           </>
         )}
       </div>

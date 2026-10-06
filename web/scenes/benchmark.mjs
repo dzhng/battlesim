@@ -5,6 +5,7 @@
 // the camera flew its keyframes; saves the report, the frame-cost.md row and
 // screenshots of the menu, the run and the results as evidence.
 import { writeFile } from "node:fs/promises";
+import { openMenuPage } from "./_lab.mjs";
 
 const PREPARE_TIMEOUT_MS = 600_000;
 const FULL = process.env.BENCHMARK_LENGTH === "full";
@@ -34,12 +35,12 @@ export async function run(ctx, preset = "village-contact") {
     const played = await main.locator(".menu-card-label").allTextContents();
     // The test village, the benchmark and the labs are behind the developer link.
     const hidden = await page.getByRole("navigation", { name: "Developer" }).count();
-    await page.getByRole("button", { name: "Developer" }).click();
+    await openMenuPage(page, "Developer");
     const nav = page.getByRole("navigation", { name: "Developer" });
     const labels = await nav.locator(".menu-card-label").allTextContents();
     ctx.check(
-      "the main menu offers play and replay, and the village, benchmark and labs behind the developer link",
-      played.join() === "Play Market Town,Watch replay" &&
+      "the main menu lists its pages and replay, and the village, benchmark and labs behind the developer link",
+      played.join() === "Skirmish,Battlefields,Watch replay,Settings" &&
         hidden === 0 &&
         labels.join() === "Village,Benchmark,Labs",
       JSON.stringify({ played, hidden, labels }),

@@ -13,7 +13,7 @@
 import { startupResources } from "./_startupResources.mjs";
 import { writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { advance, buildingsSettled, lab, obs, openMenu, presented } from "./_lab.mjs";
+import { advance, buildingsSettled, lab, obs, openMenu, openMenuPage, presented } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { flyTown } from "./_cameraClearance.mjs";
 import { bareClassMask, classAt } from "./_groundStations.mjs";
@@ -76,7 +76,7 @@ async function preparedBattle(page) {
  *  menu and the loading screen showed. */
 async function deployFromMenu(ctx, page, map, shots = false, beforeDeploy = async () => {}) {
   await page.goto(new URL("/", ctx.url).href);
-  await page.getByTestId("menu-deploy").waitFor();
+  await openMenuPage(page, "Skirmish");
   const drawn = await page.getByTestId("menu-deploy").getAttribute("href");
   await page.goto(new URL(`/?seed=${map.seed}`, ctx.url).href);
   await page.getByTestId("menu-deploy").waitFor();
@@ -703,6 +703,7 @@ export async function run(ctx) {
   // saved encounter, in the same battle view.
   const town = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   await town.goto(new URL("/", ctx.url).href);
+  await openMenuPage(town, "Battlefields");
   const entry = town.getByRole("link", { name: "Play Market Town" });
   await entry.waitFor();
   await entry.hover();

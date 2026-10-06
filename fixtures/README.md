@@ -18,7 +18,11 @@ own preparation policy and default encounter selection. [Camera lab settings](ca
 belong to the isolated camera experiment, not a second gameplay camera policy.
 [The menu backdrop](menu-backdrop.json) names the saved battle the main menu films
 (an ordinary saved encounter, scripted orders and all) and its reel of camera shots;
-a tracking shot frames by an offset from one of blue's units.
+a tracking shot frames by an offset from one of blue's units. The encounter is staged
+like a film, not balanced: set-pieces in different parts of the map (two tank duels,
+the column's assault on the town) open fire on a schedule, set by how far each
+force starts from its enemy, so every cut has guns firing in frame. A changed
+encounter or rule retimes them, so recheck each cut's frames after either.
 
 [Sound authoring](#sound-catalog) owns audio provenance and choices independently
 of gameplay weapon cycles. Saved maps, component inheritance and paired evidence

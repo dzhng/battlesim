@@ -97,6 +97,7 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
 
 test("ordinary menu Play asks for the chosen type and size without pinning a seed", () => {
   const menu = render(createElement(MainMenu));
+  fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   const deploy = () => menu.getByTestId("menu-deploy").getAttribute("href")!;
   expect(deploy()).toBe("/battle?play=1&type=mixed&size=small");
   expect(askedBattle(new URL(deploy(), "http://game").search)).toMatchObject({
@@ -115,6 +116,7 @@ test("ordinary menu Play asks for the chosen type and size without pinning a see
 
 test("the menu leaves the region to the seed unless the player picks one of the presets' regions", () => {
   const menu = render(createElement(MainMenu));
+  fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   const deploy = () => menu.getByTestId("menu-deploy").getAttribute("href")!;
   expect(menu.getByRole("radio", { name: "random" }).getAttribute("aria-checked")).toBe("true");
   for (const region of ["china", "new york", "paris"])
@@ -146,6 +148,7 @@ test("the menu opens on the battle a cancelled or refused request asked for", ()
 
 test("the menu lists each saved battlefield by name, and its link asks for that map's saved encounter", () => {
   const menu = render(createElement(MainMenu));
+  fireEvent.click(menu.getByRole("button", { name: "Battlefields" }));
   const battles = savedBattles();
   expect(battles.map((battle) => battle.label)).toContain("Play Market Town");
   for (const battle of battles) {

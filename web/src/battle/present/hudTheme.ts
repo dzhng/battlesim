@@ -28,6 +28,9 @@ export interface HudTheme {
   /** The one "can't" colour: a rejected order, a route the unit can't take,
    *  a range ruler past its last reach. Told from the enemy's red by form. */
   bad: Readonly<Vec3>;
+  /** The main menu's backdrop film, graded to one military amber that the
+   *  menu plate's blue reads against. Never a mark or readout. */
+  film: Readonly<Vec3>;
   /** The panel's glass: its colour and opacity. */
   glass: readonly [number, number, number, number];
   /** Soft glow around lines and text, in CSS pixels. */
@@ -50,7 +53,17 @@ export function validateCalloutGlow(callouts: number): number {
 
 export const gameCalloutGlow: number = validateCalloutGlow(game.presentation.overlay.glow.callouts);
 
-const COLOURS = ["accent", "enemy", "text", "dim", "warn", "pinned", "good", "bad"] as const;
+const COLOURS = [
+  "accent",
+  "enemy",
+  "text",
+  "dim",
+  "warn",
+  "pinned",
+  "good",
+  "bad",
+  "film",
+] as const;
 
 export function validateHudTheme(theme: HudTheme): HudTheme {
   const unit = (c: readonly number[], n: number) =>
