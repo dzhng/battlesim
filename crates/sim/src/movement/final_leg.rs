@@ -161,6 +161,7 @@ fn search(
         .filter(|q| (**q - from).at_least_radius(apart) && (**q - to).at_least_radius(apart))
         .copied()
         .collect();
+    let reach = Reach::new(&solids, radius, grid);
     // 0 unknown, 1 open, 2 closed; the ends are open whatever their centre.
     let mut state = vec![0u8; n * n];
     state[start] = 1;
@@ -169,7 +170,7 @@ fn search(
         if state[k] == 0 {
             let c = center(k);
             let free = walkable(c)
-                && !solids.iter().any(|b| b.contains(c, radius))
+                && !reach.near(c, c, &solids).any(|b| b.contains(c, radius))
                 && soldiers.iter().all(|q| (*q - c).at_least_radius(apart));
             state[k] = if free { 1 } else { 2 };
         }
@@ -232,7 +233,8 @@ fn search(
                 continue;
             }
             let diagonal = di != 0 && dj != 0;
-            if !clear_segment(point(cell), point(next), &solids, &soldiers, radius, slide) {
+            let (a, b) = (point(cell), point(next));
+            if !clear_segment(a, b, reach.near(a, b, &solids), &soldiers, radius, slide) {
                 continue;
             }
             if diagonal {
@@ -273,14 +275,94 @@ fn search(
     Some(pull(&points, &solids, &soldiers, radius, slide))
 }
 
+/// Which solids may reach each cell of a search's window: those whose box,
+/// grown by the soldier's radius, overlaps the cell. A segment, or a disc at
+/// a point, meets no solid that reaches none of the cells its bounds cover,
+/// so a step is tested against those alone, with the same answer. A mask
+/// holds 64 solids; with more, every step is tested against all.
+struct Reach {
+    masks: Option<Vec<u64>>,
+    grid: (usize, V2),
+}
+
+impl Reach {
+    fn new(solids: &[Obb2], radius: f64, grid: (usize, V2)) -> Self {
+        let n = grid.0;
+        if solids.len() > 64 {
+            return Self { masks: None, grid };
+        }
+        let mut masks = vec![0u64; n * n];
+        for (k, solid) in solids.iter().enumerate() {
+            let (sin, cos) = libm::sincos(solid.yaw);
+            let extent = v2(
+                cos.abs() * solid.half.x + sin.abs() * solid.half.y,
+                sin.abs() * solid.half.x + cos.abs() * solid.half.y,
+            ) + v2(radius, radius) * (1.0 + 1e-9)
+                + v2(1e-6, 1e-6);
+            let [(i0, i1), (j0, j1)] =
+                Self::span(grid, solid.center - extent, solid.center + extent);
+            for j in j0..=j1 {
+                for i in i0..=i1 {
+                    masks[j * n + i] |= 1 << k;
+                }
+            }
+        }
+        Self {
+            masks: Some(masks),
+            grid,
+        }
+    }
+
+    /// The cells, clamped to the window, that the box from `low` to `high`
+    /// covers.
+    fn span(grid: (usize, V2), low: V2, high: V2) -> [(usize, usize); 2] {
+        let (n, origin) = grid;
+        let cell =
+            |v: f64, o: f64| ((v - o) / FINE_CELL_M).floor().clamp(0.0, (n - 1) as f64) as usize;
+        [
+            (cell(low.x, origin.x), cell(high.x, origin.x)),
+            (cell(low.y, origin.y), cell(high.y, origin.y)),
+        ]
+    }
+
+    /// The solids that may meet the segment `a`→`b` (or the point `a`).
+    fn near<'s>(&self, a: V2, b: V2, solids: &'s [Obb2]) -> impl Iterator<Item = &'s Obb2> {
+        let mask = self.masks.as_ref().map_or(u64::MAX, |masks| {
+            let n = self.grid.0;
+            let low = v2(a.x.min(b.x), a.y.min(b.y));
+            let high = v2(a.x.max(b.x), a.y.max(b.y));
+            let [(i0, i1), (j0, j1)] = Self::span(self.grid, low, high);
+            let mut mask = 0;
+            for j in j0..=j1 {
+                for i in i0..=i1 {
+                    mask |= masks[j * n + i];
+                }
+            }
+            mask
+        });
+        solids
+            .iter()
+            .enumerate()
+            .filter(move |(k, _)| *k >= 64 || mask & (1 << k) != 0)
+            .map(|(_, s)| s)
+    }
+}
+
 /// Body clearance belongs to the actual segment, including a route's exact
 /// endpoints: their containing grid cell's centre may lie inside a body.
 /// A standing soldier is passed a full disc clear, or from a point touching
 /// him no more than `slide` nearer than that point.
-fn clear_segment(a: V2, b: V2, solids: &[Obb2], soldiers: &[V2], radius: f64, slide: f64) -> bool {
+fn clear_segment<'s>(
+    a: V2,
+    b: V2,
+    solids: impl IntoIterator<Item = &'s Obb2>,
+    soldiers: &[V2],
+    radius: f64,
+    slide: f64,
+) -> bool {
     let apart = 2.0 * radius;
     solids
-        .iter()
+        .into_iter()
         .all(|s| !s.meets_segment(a, b, radius) || s.contains(a, radius))
         && soldiers.iter().all(|&q| {
             let ab = b - a;
