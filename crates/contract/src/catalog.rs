@@ -33,6 +33,68 @@ use crate::weapons::MountDefinition;
 #[serde(transparent)]
 pub struct TypeIndex(pub u16);
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Faction {
+    Us,
+    Europe,
+    Eastern,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Category {
+    Rec,
+    Inf,
+    Veh,
+    Sup,
+    Hel,
+    Air,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RosterMembership {
+    pub factions: Vec<Faction>,
+    pub family_name: String,
+    pub category: Category,
+    pub variant: String,
+}
+
+/// Unimplemented equipment remains card data, outside physical type admission.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlannedCapability {
+    pub reason: String,
+    pub profile: String,
+    pub weapons: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlannedUnit {
+    pub name: String,
+    pub description: String,
+    pub faction: String,
+    pub family: String,
+    pub roles: Vec<String>,
+    pub cost: u32,
+    pub roster: RosterMembership,
+    pub planned: PlannedCapability,
+}
+
+/// A picker projection; availability is decided by this catalog alone.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct UnitCard<'a> {
+    pub id: &'a str,
+    pub name: &'a str,
+    pub description: &'a str,
+    pub family: &'a str,
+    pub cost: u32,
+    pub roster: &'a RosterMembership,
+    pub disabled_reason: Option<&'a str>,
+}
+
 /// One unit type, fully specified.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -43,9 +105,11 @@ pub struct UnitType {
     pub faction: String,
     /// UI grouping and balance (a file under the faction).
     pub family: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub roster: Option<RosterMembership>,
     /// Tags from the role registry: what scripts and the AI select by.
     pub roles: Vec<String>,
-    /// Target priority and, later, army points.
+    /// Purchase price and automatic target-value priority share one owner.
     pub cost: u32,
     pub body: Body,
     pub mobility: Mobility,
@@ -499,9 +563,42 @@ pub struct Catalog {
     types: Vec<UnitType>,
     mounts: Vec<Vec<CarriedMount>>,
     props: PropCatalog,
+    planned: BTreeMap<String, PlannedUnit>,
 }
 
 impl Catalog {
+    pub fn card(&self, id: &str) -> Option<UnitCard<'_>> {
+        if let Some((id, unit)) = self.planned.get_key_value(id) {
+            return Some(UnitCard {
+                id,
+                name: &unit.name,
+                description: &unit.description,
+                family: &unit.family,
+                cost: unit.cost,
+                roster: &unit.roster,
+                disabled_reason: Some(&unit.planned.reason),
+            });
+        }
+        let index = self.index(id)?;
+        let unit = self.get(index);
+        Some(UnitCard {
+            id: self.id(index),
+            name: &unit.name,
+            description: &unit.description,
+            family: &unit.family,
+            cost: unit.cost,
+            roster: unit.roster.as_ref()?,
+            disabled_reason: None,
+        })
+    }
+
+    pub fn cards(&self) -> impl Iterator<Item = UnitCard<'_>> {
+        self.ids
+            .iter()
+            .chain(self.planned.keys())
+            .filter_map(|id| self.card(id))
+    }
+
     /// Every type's index, in id order.
     pub fn indices(&self) -> impl Iterator<Item = TypeIndex> {
         (0..self.types.len() as u16).map(TypeIndex)
@@ -610,6 +707,7 @@ impl Catalog {
             "parts": self.parts,
             "soldiers": self.soldiers,
             "units": units,
+            "cards": self.cards().collect::<Vec<_>>(),
             "props": props,
         })
     }
@@ -865,7 +963,30 @@ pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
             merge_entry("units", unit, &p.patch);
         }
     }
-    let types: BTreeMap<String, UnitType> = parse("units", units)?;
+    let mut planned = BTreeMap::new();
+    let mut physical = BTreeMap::new();
+    for (id, unit) in units {
+        if unit.get("planned").is_some() {
+            planned.insert(id, unit);
+        } else {
+            physical.insert(id, unit);
+        }
+    }
+    let planned: BTreeMap<String, PlannedUnit> = parse("units", planned)?;
+    let types: BTreeMap<String, UnitType> = parse("units", physical)?;
+    for (id, unit) in &planned {
+        check_roster(id, &unit.roster)?;
+        if unit.planned.reason.trim().is_empty()
+            || unit.planned.profile.trim().is_empty()
+            || unit.cost == 0
+        {
+            return Err(CatalogError::Invalid {
+                section: "units",
+                id: id.clone(),
+                error: "planned unit needs a reason, profile and positive cost".into(),
+            });
+        }
+    }
     let (ids, types): (Vec<String>, Vec<UnitType>) = types.into_iter().unzip();
     let props: BTreeMap<String, PropType> = parse("props", inherit("props", &section("props"))?)?;
     let (prop_ids, prop_types): (Vec<String>, Vec<PropType>) = props.into_iter().unzip();
@@ -878,6 +999,9 @@ pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
     }
     let mut mounts = Vec::with_capacity(types.len());
     for (id, t) in ids.iter().zip(&types) {
+        if let Some(roster) = &t.roster {
+            check_roster(id, roster)?;
+        }
         check(id, t, &roles, &soldiers, &props)?;
         mounts.push(carried(id, t, &soldiers)?);
     }
@@ -889,7 +1013,24 @@ pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
         types,
         mounts,
         props,
+        planned,
     })
+}
+
+fn check_roster(id: &str, roster: &RosterMembership) -> Result<(), CatalogError> {
+    let unique: std::collections::BTreeSet<_> = roster.factions.iter().collect();
+    if unique.is_empty()
+        || unique.len() != roster.factions.len()
+        || roster.family_name.trim().is_empty()
+        || roster.variant.trim().is_empty()
+    {
+        return Err(CatalogError::Invalid {
+            section: "units",
+            id: id.into(),
+            error: "roster needs distinct factions, a family name and a variant name".into(),
+        });
+    }
+    Ok(())
 }
 
 /// Parse each flat entry of a section into its record.
@@ -1449,12 +1590,19 @@ fn carried(
 /// resolves to itself.
 impl Serialize for Catalog {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        let units: BTreeMap<&str, &UnitType> = self
+        let mut units: BTreeMap<&str, Value> = self
             .ids
             .iter()
             .map(String::as_str)
             .zip(&self.types)
+            .map(|(id, unit)| (id, serde_json::to_value(unit).expect("unit serialization")))
             .collect();
+        for (id, unit) in &self.planned {
+            units.insert(
+                id,
+                serde_json::to_value(unit).expect("planned unit serialization"),
+            );
+        }
         let props: BTreeMap<&str, &PropType> = self
             .props
             .ids

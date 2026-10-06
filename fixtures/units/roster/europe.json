@@ -1,0 +1,1011 @@
+{
+  "units": {
+    "europe_ajax_tracked_reconnaissance_vehicle": {
+      "name": "Ajax Tracked reconnaissance vehicle",
+      "description": "Tracked reconnaissance vehicle",
+      "faction": "europe",
+      "family": "ajax",
+      "roles": [],
+      "cost": 220,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "rec",
+        "variant": "Tracked reconnaissance vehicle",
+        "family_name": "Ajax"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "tracked-recon",
+        "weapons": [
+          "autocannon"
+        ]
+      }
+    },
+    "europe_atgm_team_akeron_mp": {
+      "name": "Akeron MP Team",
+      "description": "Akeron MP",
+      "faction": "europe",
+      "family": "atgm_team",
+      "roles": [],
+      "cost": 150,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "inf",
+        "variant": "Akeron MP",
+        "family_name": "ATGM Team"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "at-team",
+        "weapons": [
+          "Akeron"
+        ]
+      }
+    },
+    "europe_aw101_merlin_hc4": {
+      "name": "AW101 Merlin HC4",
+      "description": "HC4",
+      "faction": "europe",
+      "family": "aw101_merlin",
+      "roles": [],
+      "cost": 230,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "hel",
+        "variant": "HC4",
+        "family_name": "AW101 Merlin"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "heavy-helicopter",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "europe_aw159_wildcat_ah1": {
+      "name": "AW159 Wildcat AH1",
+      "description": "AH1",
+      "faction": "europe",
+      "family": "aw159_wildcat",
+      "roles": [],
+      "cost": 170,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "hel",
+        "variant": "AH1",
+        "family_name": "AW159 Wildcat"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "light-helicopter",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "europe_boxer_apc": {
+      "name": "Boxer APC",
+      "description": "APC; ground combat platform, passenger carriage not implemented",
+      "faction": "europe",
+      "family": "boxer",
+      "roles": [],
+      "cost": 170,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "APC",
+        "family_name": "Boxer"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "heavy-apc",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "europe_boxer_rct30": {
+      "name": "Boxer RCT30",
+      "description": "RCT30; ground combat platform, passenger carriage not implemented",
+      "faction": "europe",
+      "family": "boxer",
+      "roles": [],
+      "cost": 240,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "RCT30",
+        "family_name": "Boxer"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "wheeled-ifv",
+        "weapons": [
+          "autocannon"
+        ]
+      }
+    },
+    "europe_boxer_skyranger_30_gun_and_missile_air_defense": {
+      "name": "Boxer Skyranger 30 Gun-and-missile air defense",
+      "description": "Gun-and-missile air defense; ground combat platform, passenger carriage not implemented",
+      "faction": "europe",
+      "family": "boxer_skyranger_30",
+      "roles": [],
+      "cost": 250,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "sup",
+        "variant": "Gun-and-missile air defense",
+        "family_name": "Boxer Skyranger 30"
+      },
+      "planned": {
+        "reason": "Air-defense targeting and airborne targets deferred",
+        "profile": "wheeled-ifv",
+        "weapons": [
+          "AA-gun",
+          "MANPADS"
+        ]
+      }
+    },
+    "europe_caesar_88": {
+      "name": "CAESAR 8×8",
+      "description": "8×8",
+      "faction": "europe",
+      "family": "caesar",
+      "roles": [],
+      "cost": 260,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "sup",
+        "variant": "8×8",
+        "family_name": "CAESAR"
+      },
+      "planned": {
+        "reason": "Artillery and indirect-support mechanics deferred",
+        "profile": "wheeled-howitzer",
+        "weapons": [
+          "howitzer"
+        ]
+      }
+    },
+    "europe_ch_47_chinook_hc6": {
+      "name": "CH-47 Chinook HC6",
+      "description": "HC6",
+      "faction": "europe",
+      "family": "ch_47_chinook",
+      "roles": [],
+      "cost": 240,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "hel",
+        "variant": "HC6",
+        "family_name": "CH-47 Chinook"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "heavy-helicopter",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "europe_challenger_challenger_2_tes": {
+      "name": "Challenger Challenger 2 TES",
+      "description": "Challenger 2 TES",
+      "faction": "europe",
+      "family": "challenger",
+      "roles": [],
+      "cost": 390,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "Challenger 2 TES",
+        "family_name": "Challenger"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "heavy-mbt",
+        "weapons": [
+          "tank-gun",
+          "HMG"
+        ]
+      }
+    },
+    "europe_challenger_challenger_3": {
+      "name": "Challenger Challenger 3",
+      "description": "Challenger 3",
+      "faction": "europe",
+      "family": "challenger",
+      "roles": [],
+      "cost": 450,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "Challenger 3",
+        "family_name": "Challenger"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "advanced-mbt",
+        "weapons": [
+          "advanced-tank-gun",
+          "HMG",
+          "Trophy"
+        ]
+      }
+    },
+    "europe_cv90_cv9040c": {
+      "name": "CV90 CV9040C",
+      "description": "CV9040C; ground combat platform, passenger carriage not implemented",
+      "faction": "europe",
+      "family": "cv90",
+      "roles": [],
+      "cost": 220,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "CV9040C",
+        "family_name": "CV90"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "ifv",
+        "weapons": [
+          "autocannon"
+        ]
+      }
+    },
+    "europe_cv90_mk_iv": {
+      "name": "CV90 Mk IV",
+      "description": "Mk IV; ground combat platform, passenger carriage not implemented",
+      "faction": "europe",
+      "family": "cv90",
+      "roles": [],
+      "cost": 260,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "Mk IV",
+        "family_name": "CV90"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "advanced-ifv",
+        "weapons": [
+          "autocannon"
+        ]
+      }
+    },
+    "europe_ebrc_jaguar_armed_reconnaissance_vehicle": {
+      "name": "EBRC Jaguar Armed reconnaissance vehicle",
+      "description": "Armed reconnaissance vehicle",
+      "faction": "europe",
+      "family": "ebrc_jaguar",
+      "roles": [],
+      "cost": 230,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "rec",
+        "variant": "Armed reconnaissance vehicle",
+        "family_name": "EBRC Jaguar"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "wheeled-recon",
+        "weapons": [
+          "autocannon",
+          "Akeron"
+        ]
+      }
+    },
+    "europe_ec665_tiger_had": {
+      "name": "EC665 Tiger HAD",
+      "description": "HAD",
+      "faction": "europe",
+      "family": "ec665_tiger",
+      "roles": [],
+      "cost": 350,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "hel",
+        "variant": "HAD",
+        "family_name": "EC665 Tiger"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "attack-helicopter",
+        "weapons": [
+          "helicopter-gun",
+          "helicopter-AT"
+        ]
+      }
+    },
+    "europe_ec665_tiger_uht": {
+      "name": "EC665 Tiger UHT",
+      "description": "UHT",
+      "faction": "europe",
+      "family": "ec665_tiger",
+      "roles": [],
+      "cost": 330,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "hel",
+        "variant": "UHT",
+        "family_name": "EC665 Tiger"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "attack-helicopter",
+        "weapons": [
+          "helicopter-AT",
+          "rocket-pod"
+        ]
+      }
+    },
+    "europe_eurofighter_typhoon_tranche_3": {
+      "name": "Eurofighter Typhoon Tranche 3",
+      "description": "Tranche 3",
+      "faction": "europe",
+      "family": "eurofighter_typhoon",
+      "roles": [],
+      "cost": 410,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "air",
+        "variant": "Tranche 3",
+        "family_name": "Eurofighter Typhoon"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "europe_fennek_reconnaissance_vehicle": {
+      "name": "Fennek Reconnaissance vehicle",
+      "description": "Reconnaissance vehicle",
+      "faction": "europe",
+      "family": "fennek",
+      "roles": [],
+      "cost": 130,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "rec",
+        "variant": "Reconnaissance vehicle",
+        "family_name": "Fennek"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "wheeled-recon",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "europe_gepard_1a2": {
+      "name": "Gepard 1A2",
+      "description": "1A2",
+      "faction": "europe",
+      "family": "gepard",
+      "roles": [],
+      "cost": 200,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "sup",
+        "variant": "1A2",
+        "family_name": "Gepard"
+      },
+      "planned": {
+        "reason": "Air-defense targeting and airborne targets deferred",
+        "profile": "aa-tracked",
+        "weapons": [
+          "AA-gun"
+        ]
+      }
+    },
+    "europe_jas_39_gripen_e": {
+      "name": "JAS 39 Gripen E",
+      "description": "E",
+      "faction": "europe",
+      "family": "jas_39_gripen",
+      "roles": [],
+      "cost": 350,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "air",
+        "variant": "E",
+        "family_name": "JAS 39 Gripen"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "europe_kamikaze_drone_anti_armor": {
+      "name": "Kamikaze Drone Anti-armor",
+      "description": "Anti-armor",
+      "faction": "europe",
+      "family": "kamikaze_drone",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "sup",
+        "variant": "Anti-armor",
+        "family_name": "Kamikaze Drone"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "kamikaze-armor",
+        "weapons": [
+          "drone-AT"
+        ]
+      }
+    },
+    "europe_kamikaze_drone_anti_personnel": {
+      "name": "Kamikaze Drone Anti-personnel",
+      "description": "Anti-personnel",
+      "faction": "europe",
+      "family": "kamikaze_drone",
+      "roles": [],
+      "cost": 60,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "sup",
+        "variant": "Anti-personnel",
+        "family_name": "Kamikaze Drone"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "kamikaze-personnel",
+        "weapons": [
+          "drone-HE"
+        ]
+      }
+    },
+    "europe_kf51_panther_prototype_main_battle_tank": {
+      "name": "KF51 Panther Prototype main battle tank",
+      "description": "Prototype main battle tank",
+      "faction": "europe",
+      "family": "kf51_panther",
+      "roles": [],
+      "cost": 460,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "Prototype main battle tank",
+        "family_name": "KF51 Panther"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "advanced-mbt",
+        "weapons": [
+          "advanced-tank-gun",
+          "HMG"
+        ]
+      }
+    },
+    "europe_leclerc_xlr": {
+      "name": "Leclerc XLR",
+      "description": "XLR",
+      "faction": "europe",
+      "family": "leclerc",
+      "roles": [],
+      "cost": 390,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "XLR",
+        "family_name": "Leclerc"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "improved-mbt",
+        "weapons": [
+          "tank-gun",
+          "HMG"
+        ]
+      }
+    },
+    "europe_leopard_2_2a6": {
+      "name": "Leopard 2 2A6",
+      "description": "2A6",
+      "faction": "europe",
+      "family": "leopard_2",
+      "roles": [],
+      "cost": 340,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "2A6",
+        "family_name": "Leopard 2"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "mbt",
+        "weapons": [
+          "tank-gun",
+          "HMG"
+        ]
+      }
+    },
+    "europe_leopard_2_2a7v": {
+      "name": "Leopard 2 2A7V",
+      "description": "2A7V",
+      "faction": "europe",
+      "family": "leopard_2",
+      "roles": [],
+      "cost": 390,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "2A7V",
+        "family_name": "Leopard 2"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "improved-mbt",
+        "weapons": [
+          "tank-gun",
+          "HMG"
+        ]
+      }
+    },
+    "europe_leopard_2_2a8": {
+      "name": "Leopard 2 2A8",
+      "description": "2A8",
+      "faction": "europe",
+      "family": "leopard_2",
+      "roles": [],
+      "cost": 450,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "2A8",
+        "family_name": "Leopard 2"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "advanced-mbt",
+        "weapons": [
+          "advanced-tank-gun",
+          "HMG",
+          "Trophy"
+        ]
+      }
+    },
+    "europe_man_hx_general_resupply": {
+      "name": "MAN HX General resupply",
+      "description": "General resupply",
+      "faction": "europe",
+      "family": "man_hx",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "sup",
+        "variant": "General resupply",
+        "family_name": "MAN HX"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "truck",
+        "weapons": []
+      }
+    },
+    "europe_marksman_squad_longer_range_infantry": {
+      "name": "Marksman Squad",
+      "description": "Longer-range infantry",
+      "faction": "europe",
+      "family": "marksman_squad",
+      "roles": [],
+      "cost": 110,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "inf",
+        "variant": "Longer-range infantry",
+        "family_name": "Marksman Squad"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "marksman",
+        "weapons": [
+          "marksman-rifle"
+        ]
+      }
+    },
+    "europe_mars_ii_multiple_launch_rocket_system": {
+      "name": "MARS II Multiple-launch rocket system",
+      "description": "Multiple-launch rocket system",
+      "faction": "europe",
+      "family": "mars_ii",
+      "roles": [],
+      "cost": 340,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "sup",
+        "variant": "Multiple-launch rocket system",
+        "family_name": "MARS II"
+      },
+      "planned": {
+        "reason": "Artillery and indirect-support mechanics deferred",
+        "profile": "heavy-rocket",
+        "weapons": [
+          "rocket-battery"
+        ]
+      }
+    },
+    "europe_mirage_2000_2000d_rmv": {
+      "name": "Mirage 2000 2000D RMV",
+      "description": "2000D RMV",
+      "faction": "europe",
+      "family": "mirage_2000",
+      "roles": [],
+      "cost": 290,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "air",
+        "variant": "2000D RMV",
+        "family_name": "Mirage 2000"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "strike-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "europe_nasams_nasams_3": {
+      "name": "NASAMS NASAMS 3",
+      "description": "NASAMS 3",
+      "faction": "europe",
+      "family": "nasams",
+      "roles": [],
+      "cost": 300,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "sup",
+        "variant": "NASAMS 3",
+        "family_name": "NASAMS"
+      },
+      "planned": {
+        "reason": "Air-defense targeting and airborne targets deferred",
+        "profile": "aa-launcher",
+        "weapons": [
+          "SAM"
+        ]
+      }
+    },
+    "europe_nh90_tth": {
+      "name": "NH90 TTH",
+      "description": "TTH",
+      "faction": "europe",
+      "family": "nh90",
+      "roles": [],
+      "cost": 190,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "hel",
+        "variant": "TTH",
+        "family_name": "NH90"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "utility-helicopter",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "europe_puma_level_c": {
+      "name": "Puma Level C",
+      "description": "Level C; ground combat platform, passenger carriage not implemented",
+      "faction": "europe",
+      "family": "puma",
+      "roles": [],
+      "cost": 260,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "Level C",
+        "family_name": "Puma"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "heavy-ifv",
+        "weapons": [
+          "autocannon",
+          "Spike"
+        ]
+      }
+    },
+    "europe_pzh_2000_tracked_155_mm_howitzer": {
+      "name": "PzH 2000 Tracked 155 mm howitzer",
+      "description": "Tracked 155 mm howitzer",
+      "faction": "europe",
+      "family": "pzh_2000",
+      "roles": [],
+      "cost": 310,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "sup",
+        "variant": "Tracked 155 mm howitzer",
+        "family_name": "PzH 2000"
+      },
+      "planned": {
+        "reason": "Artillery and indirect-support mechanics deferred",
+        "profile": "tracked-howitzer",
+        "weapons": [
+          "howitzer"
+        ]
+      }
+    },
+    "europe_rafale_c_f4": {
+      "name": "Rafale C F4",
+      "description": "C F4",
+      "faction": "europe",
+      "family": "rafale",
+      "roles": [],
+      "cost": 420,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "air",
+        "variant": "C F4",
+        "family_name": "Rafale"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "europe_recon_patrol_light_patrol": {
+      "name": "Recon Patrol",
+      "description": "Light patrol",
+      "faction": "europe",
+      "family": "recon_patrol",
+      "roles": [],
+      "cost": 80,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "rec",
+        "variant": "Light patrol",
+        "family_name": "Recon Patrol"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "scout",
+        "weapons": [
+          "rifle"
+        ]
+      }
+    },
+    "europe_scout_drone_standard": {
+      "name": "Scout Drone Standard",
+      "description": "Standard",
+      "faction": "europe",
+      "family": "scout_drone",
+      "roles": [],
+      "cost": 60,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "rec",
+        "variant": "Standard",
+        "family_name": "Scout Drone"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "scout-drone",
+        "weapons": []
+      }
+    },
+    "europe_scout_drone_thermal": {
+      "name": "Scout Drone Thermal",
+      "description": "Thermal",
+      "faction": "europe",
+      "family": "scout_drone",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "rec",
+        "variant": "Thermal",
+        "family_name": "Scout Drone"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "thermal-drone",
+        "weapons": []
+      }
+    },
+    "europe_tornado_ecr": {
+      "name": "Tornado ECR",
+      "description": "ECR",
+      "faction": "europe",
+      "family": "tornado",
+      "roles": [],
+      "cost": 340,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "air",
+        "variant": "ECR",
+        "family_name": "Tornado"
+      },
+      "planned": {
+        "reason": "Aircraft movement and electronic-warfare mechanics deferred",
+        "profile": "ew-aircraft",
+        "weapons": [
+          "AAM"
+        ]
+      }
+    },
+    "europe_tornado_ids": {
+      "name": "Tornado IDS",
+      "description": "IDS",
+      "faction": "europe",
+      "family": "tornado",
+      "roles": [],
+      "cost": 310,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "air",
+        "variant": "IDS",
+        "family_name": "Tornado"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "strike-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "europe_vbci_infantry_fighting_vehicle": {
+      "name": "VBCI Infantry fighting vehicle",
+      "description": "Infantry fighting vehicle; ground combat platform, passenger carriage not implemented",
+      "faction": "europe",
+      "family": "vbci",
+      "roles": [],
+      "cost": 220,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "Infantry fighting vehicle",
+        "family_name": "VBCI"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "wheeled-ifv",
+        "weapons": [
+          "autocannon"
+        ]
+      }
+    },
+    "europe_vbl_machine_gun_scout": {
+      "name": "VBL Machine-gun scout",
+      "description": "Machine-gun scout",
+      "faction": "europe",
+      "family": "vbl",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "rec",
+        "variant": "Machine-gun scout",
+        "family_name": "VBL"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "light-car",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    }
+  }
+}

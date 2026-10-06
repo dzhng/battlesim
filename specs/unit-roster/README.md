@@ -4,17 +4,21 @@
 ## Next Agent Prompt
 
 Status: implementation active under the existing harness goal, 2026-10-06.
-Slice 01 catalog admission is the coordinator pickup; slice 02 compact-map
-feasibility is running independently. No model production has started. Exploration is complete in [the map](unknowns.md).
+Slice 01 catalog admission is implemented. Slice 03 ground admission is the
+current pickup; compact geography and physical/model manifests run independently.
+No named model production has started. Exploration is complete in [the map](unknowns.md).
 The user requests **`/goal /implement-spec` once this spec is ready**, no backward
 compatibility and no adversarial review.
 
-Continue the active implementation goal with [01 catalog admission](slices/01-catalog-admission.md)
-and the independent [02 geography feasibility](slices/02-skirmish-geography.md).
+Continue [03 ground admission](slices/03-ground-content.md), then physical purchase
+authority using the admitted catalog and geography contracts.
 Read the repository and owner READMEs, this spec, starter balance and model contract.
 Follow implement-spec through committed passes; a green slice is a checkpoint,
 not a stopping point. Update this prompt, TODOs and the choices ledger before
 ending each pass. Do not ask for individual numerical-stat approval.
+
+Evidence: 142 canonical planned records, 50 memberships per faction; contract
+catalog tests and native/WASM card parity pass. Browser types pass.
 
 Warnings: planned records cannot enter live physics/asset admission; zero-unit
 preparation currently assumes a blue starting unit for camera framing; compact
@@ -31,7 +35,7 @@ delegated; selected mechanics/visibility/non-goals are binding.
 
 Global implementation TODOs:
 
-- [ ] [01 — Canonical identities and planned availability](slices/01-catalog-admission.md)
+- [x] [01 — Canonical identities and planned availability](slices/01-catalog-admission.md)
 - [ ] [02 — Compact admitted maps with reserved objective sites](slices/02-skirmish-geography.md)
 - [ ] [03 — Admitted ground profiles and frozen family manifests](slices/03-ground-content.md)
 - [ ] [04 — Zero-unit preparation, credits, reservations and physical entry](slices/04-purchase-authority.md)

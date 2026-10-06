@@ -197,6 +197,7 @@ export function citySources(
 /** No unit types: a city catalog draws none. */
 const NO_UNITS = new UnitCatalog({
   documents: [],
+  cards: [],
   props: {},
   roles: {},
   parts: {},

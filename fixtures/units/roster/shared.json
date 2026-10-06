@@ -1,0 +1,180 @@
+{
+  "units": {
+    "ah_64e_guardian": {
+      "name": "AH-64 Apache AH-64E Guardian",
+      "description": "AH-64E Guardian",
+      "faction": "us",
+      "family": "ah_64_apache",
+      "roles": [],
+      "cost": 360,
+      "roster": {
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "category": "hel",
+        "variant": "AH-64E Guardian",
+        "family_name": "AH-64 Apache"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "attack-helicopter",
+        "weapons": [
+          "helicopter-gun",
+          "helicopter-AT"
+        ]
+      }
+    },
+    "assault_squad": {
+      "name": "Assault Squad",
+      "description": "Close-quarters infantry",
+      "faction": "generic",
+      "family": "assault_squad",
+      "roles": [],
+      "cost": 110,
+      "roster": {
+        "factions": [
+          "europe",
+          "eastern"
+        ],
+        "category": "inf",
+        "variant": "Close-quarters infantry",
+        "family_name": "Assault Squad"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "assault",
+        "weapons": [
+          "assault-rifle",
+          "grenade"
+        ]
+      }
+    },
+    "f_16c_block_50": {
+      "name": "F-16 Fighting Falcon F-16C Block 50",
+      "description": "F-16C Block 50",
+      "faction": "us",
+      "family": "f_16_fighting_falcon",
+      "roles": [],
+      "cost": 350,
+      "roster": {
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "category": "air",
+        "variant": "F-16C Block 50",
+        "family_name": "F-16 Fighting Falcon"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "f_35a": {
+      "name": "F-35 Lightning II F-35A",
+      "description": "F-35A",
+      "faction": "us",
+      "family": "f_35_lightning_ii",
+      "roles": [],
+      "cost": 470,
+      "roster": {
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "category": "air",
+        "variant": "F-35A",
+        "family_name": "F-35 Lightning II"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "stealth-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "fgm_148_javelin_team": {
+      "name": "FGM-148 Javelin Team",
+      "description": "FGM-148 Javelin",
+      "faction": "us",
+      "family": "atgm_team",
+      "roles": [],
+      "cost": 150,
+      "roster": {
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "category": "inf",
+        "variant": "FGM-148 Javelin",
+        "family_name": "ATGM Team"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "at-team",
+        "weapons": [
+          "Javelin"
+        ]
+      }
+    },
+    "fim_92_stinger_team": {
+      "name": "FIM-92 Stinger Team",
+      "description": "FIM-92 Stinger",
+      "faction": "us",
+      "family": "air_defense_team",
+      "roles": [],
+      "cost": 100,
+      "roster": {
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "category": "inf",
+        "variant": "FIM-92 Stinger",
+        "family_name": "Air-Defense Team"
+      },
+      "planned": {
+        "reason": "Air-defense targeting and airborne targets deferred",
+        "profile": "aa-team",
+        "weapons": [
+          "MANPADS"
+        ]
+      }
+    },
+    "rifle_squad": {
+      "name": "Rifle Squad",
+      "description": "Standard infantry",
+      "faction": "generic",
+      "family": "rifle_squad",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "us",
+          "europe",
+          "eastern"
+        ],
+        "category": "inf",
+        "variant": "Standard infantry",
+        "family_name": "Rifle Squad"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "rifle",
+        "weapons": [
+          "rifle",
+          "grenade"
+        ]
+      }
+    }
+  }
+}

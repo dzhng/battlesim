@@ -17,6 +17,12 @@ world. Templates describe physics, not meshes; [scene-assets](../../packages/sce
 dresses them without changing the map's physical identity. [Fixtures](../../fixtures/README.md)
 owns authored documents and resolved catalog publication.
 
+The catalog separates player card identity from physical admission. Planned
+variants retain faction memberships, price and a disabled reason without acquiring
+a live type index. Admitted variants supply validated physics and carried mounts;
+developer scenario types may have no player membership. Shared equipment has one
+canonical variant and several memberships, so factions do not duplicate tuning.
+
 [Identity](src/identity.rs) defines canonical content and exact generation seeds.
 Its decimal-text seed contract must survive JSON without JavaScript number
 rounding. Typed serialization order and meaningful authored sequence order can

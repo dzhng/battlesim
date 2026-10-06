@@ -10,6 +10,37 @@ use sim::battle::Battle;
 
 use crate::common;
 
+#[test]
+fn player_roster_resolves_shared_identities_and_disabled_future_cards() {
+    use contract::catalog::Faction;
+    let documents = sim::fixtures::catalog_documents();
+    let catalog = contract::catalog::resolve(&documents).unwrap();
+    for faction in [Faction::Us, Faction::Europe, Faction::Eastern] {
+        let cards: Vec<_> = catalog
+            .cards()
+            .filter(|card| card.roster.factions.contains(&faction))
+            .collect();
+        assert_eq!(cards.len(), 50, "{faction:?}");
+        let mut families = std::collections::BTreeMap::<_, std::collections::BTreeSet<_>>::new();
+        for card in cards {
+            families
+                .entry(card.roster.category)
+                .or_default()
+                .insert(card.family);
+        }
+        assert!(families.values().all(|families| families.len() <= 10));
+    }
+    let shared = catalog.card("f_35a").unwrap();
+    assert_eq!(shared.roster.factions, [Faction::Us, Faction::Europe]);
+    assert_eq!(shared.roster.family_name, "F-35 Lightning II");
+    assert!(shared.disabled_reason.is_some());
+    assert!(catalog.index("f_35a").is_none());
+    // The same owner serializes every planned identity without admitting physics.
+    let round_trip: contract::catalog::Catalog =
+        serde_json::from_value(serde_json::to_value(&catalog).unwrap()).unwrap();
+    assert_eq!(catalog, round_trip);
+}
+
 /// The shipped fixture with the M1 family's catalog document and the
 /// weapon row its M1A1 swaps in (a row that `extends` the tank's sabot).
 fn with_m1_family() -> Value {

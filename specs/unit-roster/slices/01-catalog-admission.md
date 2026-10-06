@@ -1,6 +1,6 @@
 # 01 — Canonical identities and planned availability
 
-Status: not started. Dependencies: —. Follow the README handoff and repository
+Status: implemented. Dependencies: —. Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -47,7 +47,7 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 
 ## Handoff evidence
 
-- [ ] Red behavior/admission case observed where applicable.
-- [ ] Narrow green proof and any allowed digest change recorded.
-- [ ] Artifact/visual gates resolved where applicable.
-- [ ] Choices, status and next pickup updated; focused pass committed.
+- [x] Red physical-lookup/card-publication tracers observed; missing shared membership and stale native/browser cost independently falsified.
+- [x] Contract catalog suite (17 tests), shipped metadata/admission and native/WASM card parity pass; browser types and focused lint pass. Live generic type indices remain unchanged.
+- [x] Metadata only: no visual change. Authored 142 canonical records resolve to 50 memberships per faction.
+- [x] Local shape/diff/docs review resolved; next pickup is ground content while geography and manifests proceed independently.

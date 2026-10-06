@@ -96,6 +96,7 @@ export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
   };
   return new UnitCatalog({
     documents: [],
+    cards: [],
     props: {},
     roles: {},
     parts: {

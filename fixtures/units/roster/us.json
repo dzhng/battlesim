@@ -1,0 +1,1033 @@
+{
+  "units": {
+    "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed": {
+      "name": "A-10 Warthog A-10C",
+      "description": "A-10C",
+      "faction": "us",
+      "family": "a_10_warthog",
+      "roles": [],
+      "cost": 300,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "air",
+        "variant": "A-10C",
+        "family_name": "A-10 Warthog"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "attack-aircraft",
+        "weapons": [
+          "attack-gun",
+          "air-AT",
+          "bomb"
+        ]
+      }
+    },
+    "us_acv_acv_p": {
+      "name": "ACV ACV-P",
+      "description": "ACV-P; ground combat platform, passenger carriage not implemented",
+      "faction": "us",
+      "family": "acv",
+      "roles": [],
+      "cost": 170,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "ACV-P",
+        "family_name": "ACV"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "heavy-apc",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "us_ah_1z_viper_attack_helicopter": {
+      "name": "AH-1Z Viper Attack helicopter",
+      "description": "Attack helicopter",
+      "faction": "us",
+      "family": "ah_1z_viper",
+      "roles": [],
+      "cost": 320,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "hel",
+        "variant": "Attack helicopter",
+        "family_name": "AH-1Z Viper"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "attack-helicopter",
+        "weapons": [
+          "helicopter-gun",
+          "helicopter-AT"
+        ]
+      }
+    },
+    "us_ah_6_mh_6_little_bird_ah_6m": {
+      "name": "AH-6/MH-6 Little Bird AH-6M",
+      "description": "AH-6M",
+      "faction": "us",
+      "family": "ah_6_mh_6_little_bird",
+      "roles": [],
+      "cost": 180,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "hel",
+        "variant": "AH-6M",
+        "family_name": "AH-6/MH-6 Little Bird"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "light-helicopter",
+        "weapons": [
+          "helicopter-gun",
+          "rocket-pod"
+        ]
+      }
+    },
+    "us_ah_6_mh_6_little_bird_mh_6m": {
+      "name": "AH-6/MH-6 Little Bird MH-6M",
+      "description": "MH-6M",
+      "faction": "us",
+      "family": "ah_6_mh_6_little_bird",
+      "roles": [],
+      "cost": 120,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "hel",
+        "variant": "MH-6M",
+        "family_name": "AH-6/MH-6 Little Bird"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "light-helicopter",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "us_army_scouts_light_patrol": {
+      "name": "Army Scouts",
+      "description": "Light patrol",
+      "faction": "us",
+      "family": "army_scouts",
+      "roles": [],
+      "cost": 80,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "rec",
+        "variant": "Light patrol",
+        "family_name": "Army Scouts"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "scout",
+        "weapons": [
+          "rifle"
+        ]
+      }
+    },
+    "us_atgm_team_bgm_71_tow_2a": {
+      "name": "BGM-71 TOW 2A Team",
+      "description": "BGM-71 TOW 2A",
+      "faction": "us",
+      "family": "atgm_team",
+      "roles": [],
+      "cost": 130,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "inf",
+        "variant": "BGM-71 TOW 2A",
+        "family_name": "ATGM Team"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "at-team",
+        "weapons": [
+          "TOW"
+        ]
+      }
+    },
+    "us_ch_47_chinook_ch_47f": {
+      "name": "CH-47 Chinook CH-47F",
+      "description": "CH-47F",
+      "faction": "us",
+      "family": "ch_47_chinook",
+      "roles": [],
+      "cost": 240,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "hel",
+        "variant": "CH-47F",
+        "family_name": "CH-47 Chinook"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "heavy-helicopter",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "us_ea_18g_growler_electronic_warfare_aircraft": {
+      "name": "EA-18G Growler Electronic-warfare aircraft",
+      "description": "Electronic-warfare aircraft",
+      "faction": "us",
+      "family": "ea_18g_growler",
+      "roles": [],
+      "cost": 380,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "air",
+        "variant": "Electronic-warfare aircraft",
+        "family_name": "EA-18G Growler"
+      },
+      "planned": {
+        "reason": "Aircraft movement and electronic-warfare mechanics deferred",
+        "profile": "ew-aircraft",
+        "weapons": [
+          "AAM"
+        ]
+      }
+    },
+    "us_f_15_eagle_f_15e_strike_eagle": {
+      "name": "F-15 Eagle F-15E Strike Eagle",
+      "description": "F-15E Strike Eagle",
+      "faction": "us",
+      "family": "f_15_eagle",
+      "roles": [],
+      "cost": 400,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "air",
+        "variant": "F-15E Strike Eagle",
+        "family_name": "F-15 Eagle"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "strike-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "us_f_15_eagle_f_15ex_eagle_ii": {
+      "name": "F-15 Eagle F-15EX Eagle II",
+      "description": "F-15EX Eagle II",
+      "faction": "us",
+      "family": "f_15_eagle",
+      "roles": [],
+      "cost": 430,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "air",
+        "variant": "F-15EX Eagle II",
+        "family_name": "F-15 Eagle"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "heavy-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "us_f_22_raptor_f_22a": {
+      "name": "F-22 Raptor F-22A",
+      "description": "F-22A",
+      "faction": "us",
+      "family": "f_22_raptor",
+      "roles": [],
+      "cost": 500,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "air",
+        "variant": "F-22A",
+        "family_name": "F-22 Raptor"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "stealth-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM"
+        ]
+      }
+    },
+    "us_f_35_lightning_ii_f_35b": {
+      "name": "F-35 Lightning II F-35B",
+      "description": "F-35B",
+      "faction": "us",
+      "family": "f_35_lightning_ii",
+      "roles": [],
+      "cost": 490,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "air",
+        "variant": "F-35B",
+        "family_name": "F-35 Lightning II"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "stealth-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "us_f_a_18_super_hornet_f_a_18e": {
+      "name": "F/A-18 Super Hornet F/A-18E",
+      "description": "F/A-18E",
+      "faction": "us",
+      "family": "f_a_18_super_hornet",
+      "roles": [],
+      "cost": 370,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "air",
+        "variant": "F/A-18E",
+        "family_name": "F/A-18 Super Hornet"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "us_force_recon_recon_patrol": {
+      "name": "Force Recon",
+      "description": "Recon patrol",
+      "faction": "us",
+      "family": "force_recon",
+      "roles": [],
+      "cost": 100,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "rec",
+        "variant": "Recon patrol",
+        "family_name": "Force Recon"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "elite-scout",
+        "weapons": [
+          "rifle",
+          "grenade"
+        ]
+      }
+    },
+    "us_kamikaze_drone_anti_armor": {
+      "name": "Kamikaze Drone Anti-armor",
+      "description": "Anti-armor",
+      "faction": "us",
+      "family": "kamikaze_drone",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "sup",
+        "variant": "Anti-armor",
+        "family_name": "Kamikaze Drone"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "kamikaze-armor",
+        "weapons": [
+          "drone-AT"
+        ]
+      }
+    },
+    "us_kamikaze_drone_anti_personnel": {
+      "name": "Kamikaze Drone Anti-personnel",
+      "description": "Anti-personnel",
+      "faction": "us",
+      "family": "kamikaze_drone",
+      "roles": [],
+      "cost": 60,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "sup",
+        "variant": "Anti-personnel",
+        "family_name": "Kamikaze Drone"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "kamikaze-personnel",
+        "weapons": [
+          "drone-HE"
+        ]
+      }
+    },
+    "us_lav_lav_25a2": {
+      "name": "LAV LAV-25A2",
+      "description": "LAV-25A2; ground combat platform, passenger carriage not implemented",
+      "faction": "us",
+      "family": "lav",
+      "roles": [],
+      "cost": 160,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "LAV-25A2",
+        "family_name": "LAV"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "light-ifv",
+        "weapons": [
+          "autocannon"
+        ]
+      }
+    },
+    "us_lav_lav_at": {
+      "name": "LAV LAV-AT",
+      "description": "LAV-AT",
+      "faction": "us",
+      "family": "lav",
+      "roles": [],
+      "cost": 180,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "LAV-AT",
+        "family_name": "LAV"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "missile-carrier",
+        "weapons": [
+          "TOW"
+        ]
+      }
+    },
+    "us_m109_paladin_m109a7": {
+      "name": "M109 Paladin M109A7",
+      "description": "M109A7",
+      "faction": "us",
+      "family": "m109_paladin",
+      "roles": [],
+      "cost": 280,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "sup",
+        "variant": "M109A7",
+        "family_name": "M109 Paladin"
+      },
+      "planned": {
+        "reason": "Artillery and indirect-support mechanics deferred",
+        "profile": "tracked-howitzer",
+        "weapons": [
+          "howitzer"
+        ]
+      }
+    },
+    "us_m1127_stryker_rv_reconnaissance_vehicle": {
+      "name": "M1127 Stryker RV Reconnaissance vehicle",
+      "description": "Reconnaissance vehicle",
+      "faction": "us",
+      "family": "m1127_stryker_rv",
+      "roles": [],
+      "cost": 130,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "rec",
+        "variant": "Reconnaissance vehicle",
+        "family_name": "M1127 Stryker RV"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "wheeled-recon",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "us_m1129_stryker_mortar_120_mm_mortar_carrier": {
+      "name": "M1129 Stryker Mortar 120 mm mortar carrier",
+      "description": "120 mm mortar carrier",
+      "faction": "us",
+      "family": "m1129_stryker_mortar",
+      "roles": [],
+      "cost": 180,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "sup",
+        "variant": "120 mm mortar carrier",
+        "family_name": "M1129 Stryker Mortar"
+      },
+      "planned": {
+        "reason": "Artillery and indirect-support mechanics deferred",
+        "profile": "mortar-carrier",
+        "weapons": [
+          "mortar"
+        ]
+      }
+    },
+    "us_m1278_jltv_hmg": {
+      "name": "M1278 JLTV HMG",
+      "description": "HMG",
+      "faction": "us",
+      "family": "m1278_jltv",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "HMG",
+        "family_name": "M1278 JLTV"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "light-car",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "us_m142_himars_gmlrs": {
+      "name": "M142 HIMARS GMLRS",
+      "description": "GMLRS",
+      "faction": "us",
+      "family": "m142_himars",
+      "roles": [],
+      "cost": 300,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "sup",
+        "variant": "GMLRS",
+        "family_name": "M142 HIMARS"
+      },
+      "planned": {
+        "reason": "Artillery and indirect-support mechanics deferred",
+        "profile": "light-rocket",
+        "weapons": [
+          "rocket-battery"
+        ]
+      }
+    },
+    "us_m142_himars_prsm": {
+      "name": "M142 HIMARS PrSM",
+      "description": "PrSM",
+      "faction": "us",
+      "family": "m142_himars",
+      "roles": [],
+      "cost": 400,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "sup",
+        "variant": "PrSM",
+        "family_name": "M142 HIMARS"
+      },
+      "planned": {
+        "reason": "Artillery and indirect-support mechanics deferred",
+        "profile": "light-rocket",
+        "weapons": [
+          "precision-missile"
+        ]
+      }
+    },
+    "us_m1_abrams_sep_v2": {
+      "name": "M1A2 Abrams SEP v2",
+      "description": "SEP v2",
+      "faction": "us",
+      "family": "m1_abrams",
+      "roles": [],
+      "cost": 350,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "SEP v2",
+        "family_name": "M1 Abrams"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "mbt",
+        "weapons": [
+          "tank-gun",
+          "HMG"
+        ]
+      }
+    },
+    "us_m1_abrams_sep_v2_trophy": {
+      "name": "M1A2 Abrams SEP v2 Trophy",
+      "description": "SEP v2 Trophy",
+      "faction": "us",
+      "family": "m1_abrams",
+      "roles": [],
+      "cost": 410,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "SEP v2 Trophy",
+        "family_name": "M1 Abrams"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "mbt",
+        "weapons": [
+          "tank-gun",
+          "HMG",
+          "Trophy"
+        ]
+      }
+    },
+    "us_m1_abrams_sep_v3_trophy": {
+      "name": "M1A2 Abrams SEP v3 Trophy",
+      "description": "SEP v3 Trophy",
+      "faction": "us",
+      "family": "m1_abrams",
+      "roles": [],
+      "cost": 450,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "SEP v3 Trophy",
+        "family_name": "M1 Abrams"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "advanced-mbt",
+        "weapons": [
+          "advanced-tank-gun",
+          "HMG",
+          "Trophy"
+        ]
+      }
+    },
+    "us_m270_mlrs_m270a2": {
+      "name": "M270 MLRS M270A2",
+      "description": "M270A2",
+      "faction": "us",
+      "family": "m270_mlrs",
+      "roles": [],
+      "cost": 350,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "sup",
+        "variant": "M270A2",
+        "family_name": "M270 MLRS"
+      },
+      "planned": {
+        "reason": "Artillery and indirect-support mechanics deferred",
+        "profile": "heavy-rocket",
+        "weapons": [
+          "rocket-battery"
+        ]
+      }
+    },
+    "us_m2_bradley_ifv_m2a4": {
+      "name": "M2 Bradley IFV M2A4",
+      "description": "M2A4; ground combat platform, passenger carriage not implemented",
+      "faction": "us",
+      "family": "m2_bradley_ifv",
+      "roles": [],
+      "cost": 230,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "M2A4",
+        "family_name": "M2 Bradley IFV"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "ifv",
+        "weapons": [
+          "autocannon",
+          "TOW"
+        ]
+      }
+    },
+    "us_m3_bradley_cfv_m3a3": {
+      "name": "M3 Bradley CFV M3A3",
+      "description": "M3A3",
+      "faction": "us",
+      "family": "m3_bradley_cfv",
+      "roles": [],
+      "cost": 210,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "rec",
+        "variant": "M3A3",
+        "family_name": "M3 Bradley CFV"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "tracked-recon",
+        "weapons": [
+          "autocannon",
+          "TOW"
+        ]
+      }
+    },
+    "us_m977_hemtt_general_resupply": {
+      "name": "M977 HEMTT General resupply",
+      "description": "General resupply",
+      "faction": "us",
+      "family": "m977_hemtt",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "sup",
+        "variant": "General resupply",
+        "family_name": "M977 HEMTT"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "truck",
+        "weapons": []
+      }
+    },
+    "us_marine_squad_close_quarters_infantry": {
+      "name": "Marine Squad",
+      "description": "Close-quarters infantry",
+      "faction": "us",
+      "family": "marine_squad",
+      "roles": [],
+      "cost": 110,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "inf",
+        "variant": "Close-quarters infantry",
+        "family_name": "Marine Squad"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "assault",
+        "weapons": [
+          "assault-rifle",
+          "grenade"
+        ]
+      }
+    },
+    "us_marksman_squad_m110_equipped_longer_range_infantry": {
+      "name": "Marksman Squad",
+      "description": "M110-equipped longer-range infantry",
+      "faction": "us",
+      "family": "marksman_squad",
+      "roles": [],
+      "cost": 110,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "inf",
+        "variant": "M110-equipped longer-range infantry",
+        "family_name": "Marksman Squad"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "marksman",
+        "weapons": [
+          "marksman-rifle"
+        ]
+      }
+    },
+    "us_mq_9_reaper_mq_9a": {
+      "name": "MQ-9 Reaper MQ-9A",
+      "description": "MQ-9A",
+      "faction": "us",
+      "family": "mq_9_reaper",
+      "roles": [],
+      "cost": 260,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "air",
+        "variant": "MQ-9A",
+        "family_name": "MQ-9 Reaper"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "armed-drone",
+        "weapons": [
+          "air-AT"
+        ]
+      }
+    },
+    "us_scout_drone_standard": {
+      "name": "Scout Drone Standard",
+      "description": "Standard",
+      "faction": "us",
+      "family": "scout_drone",
+      "roles": [],
+      "cost": 60,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "rec",
+        "variant": "Standard",
+        "family_name": "Scout Drone"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "scout-drone",
+        "weapons": []
+      }
+    },
+    "us_scout_drone_thermal": {
+      "name": "Scout Drone Thermal",
+      "description": "Thermal",
+      "faction": "us",
+      "family": "scout_drone",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "rec",
+        "variant": "Thermal",
+        "family_name": "Scout Drone"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "thermal-drone",
+        "weapons": []
+      }
+    },
+    "us_scout_snipers_m107_heavy_sniper_team": {
+      "name": "Scout Snipers",
+      "description": "M107 heavy sniper team",
+      "faction": "us",
+      "family": "scout_snipers",
+      "roles": [],
+      "cost": 100,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "rec",
+        "variant": "M107 heavy sniper team",
+        "family_name": "Scout Snipers"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "sniper",
+        "weapons": [
+          "heavy-sniper"
+        ]
+      }
+    },
+    "us_stryker_m1126_icv": {
+      "name": "Stryker M1126 ICV",
+      "description": "M1126 ICV; ground combat platform, passenger carriage not implemented",
+      "faction": "us",
+      "family": "stryker",
+      "roles": [],
+      "cost": 140,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "M1126 ICV",
+        "family_name": "Stryker"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "apc",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "us_stryker_m1134_atgm": {
+      "name": "Stryker M1134 ATGM",
+      "description": "M1134 ATGM",
+      "faction": "us",
+      "family": "stryker",
+      "roles": [],
+      "cost": 190,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "M1134 ATGM",
+        "family_name": "Stryker"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "missile-carrier",
+        "weapons": [
+          "TOW"
+        ]
+      }
+    },
+    "us_stryker_m1296_dragoon": {
+      "name": "Stryker M1296 Dragoon",
+      "description": "M1296 Dragoon; ground combat platform, passenger carriage not implemented",
+      "faction": "us",
+      "family": "stryker",
+      "roles": [],
+      "cost": 200,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "M1296 Dragoon",
+        "family_name": "Stryker"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "wheeled-ifv",
+        "weapons": [
+          "autocannon"
+        ]
+      }
+    },
+    "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {
+      "name": "Stryker M-SHORAD Gun-and-missile air-defense vehicle",
+      "description": "Gun-and-missile air-defense vehicle; ground combat platform, passenger carriage not implemented",
+      "faction": "us",
+      "family": "stryker_m_shorad",
+      "roles": [],
+      "cost": 240,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "sup",
+        "variant": "Gun-and-missile air-defense vehicle",
+        "family_name": "Stryker M-SHORAD"
+      },
+      "planned": {
+        "reason": "Air-defense targeting and airborne targets deferred",
+        "profile": "wheeled-ifv",
+        "weapons": [
+          "AA-gun",
+          "MANPADS"
+        ]
+      }
+    },
+    "us_uh_1y_venom_utility_transport": {
+      "name": "UH-1Y Venom Utility transport",
+      "description": "Utility transport",
+      "faction": "us",
+      "family": "uh_1y_venom",
+      "roles": [],
+      "cost": 160,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "hel",
+        "variant": "Utility transport",
+        "family_name": "UH-1Y Venom"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "utility-helicopter",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "us_uh_60_black_hawk_uh_60m": {
+      "name": "UH-60 Black Hawk UH-60M",
+      "description": "UH-60M",
+      "faction": "us",
+      "family": "uh_60_black_hawk",
+      "roles": [],
+      "cost": 180,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "hel",
+        "variant": "UH-60M",
+        "family_name": "UH-60 Black Hawk"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "utility-helicopter",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    }
+  }
+}

@@ -4,15 +4,15 @@ Planning baseline: 2026-10-06. The [exploration map](unknowns.md) attributes exp
 user decisions and delegated planning choices; it remains the authority for why
 the captured mechanics were selected. This ledger records choices made while
 turning that map into the implementation ladder and later committed passes.
-No gameplay behavior has been implemented or verified yet.
+Catalog metadata admission is implemented; skirmish gameplay is still in progress.
 
 | Choice | Attribution / reason | Owning slice | Evidence / verdict |
 |---|---|---|---|
 | Hard cutover, no migration/compatibility work | User explicitly selected no backward compatibility. | All | Planned; current replay admission already rejects differing identities. |
 | Basic AI only | User defers sophisticated AI to another spec. | 07 | Planned; existing defensive controller is not a purchasing policy. |
 | Thirteen focused contracts with an early playable checkpoint and concurrent model lane | Agent synthesis of three independent, differently biased drafts under write-spec. | 01–13 | Planned; avoid both a giant all-systems slice and serializing independent families. |
-| Planned metadata outside available physical type admission, within one catalog owner | Agent, avoids invalid future aircraft breaking strict ground parser and live-type tests. | 01 | Planned; contract::catalog is the existing owner. |
-| Preserve developer generic scenario types without player memberships | Agent, real authored labs are intentional consumers rather than a compatibility shim. | 01/04 | Planned; do not confuse hard schema cutover with deleting developer fixtures. |
+| Planned metadata outside available physical type admission, within one catalog owner | Agent, avoids invalid future aircraft breaking strict ground parser and live-type tests. | 01 | Sound/high: planned rows serialize with the same catalog but cannot acquire a physical type index. |
+| Preserve developer generic scenario types without player memberships | Agent, real authored labs are intentional consumers rather than a compatibility shim. | 01/04 | Sound/high: generic scenario units retain their real consumers; no player cards are synthesized for them. |
 | Compact skirmish profile research, standard map sizes intact | Agent, existing 4–10 km travel conflicts with quick edge-entry infantry play. | 02 | OPEN measured admission; candidate extents are delegated tuning. |
 | Own base geometry replaces camera dependency on an initial unit | Territory finding, required by user zero-unit start. | 02 | Planned; prepare.ts:245–248 currently throws without a blue unit. |
 | Ground carrier platforms only claim supported ground combat until transport exists | Agent, prevents expanding first phase into unasked transport mechanics. | 01/03 | Admission audit must record exact enabled/disabled role per variant. |
@@ -24,3 +24,18 @@ For each implementation pass, append a concise decision → reason → proof/ver
 entry for material choices the spec left delegated or silent. Do not turn this
 into a file/diff log. Reconcile provisional entries against actual shipped code
 at closeout; a future promise is not a verified final decision.
+
+## Slice 01 — catalog contract
+
+**Sound, medium confidence — generic equipment shares tuning across factions.**
+Buying a standard rifle squad in any faction names the same equipment/profile
+identity; an Eastern SVD marksman and U.S. M110 marksman remain different variants.
+The plan required shared named platforms but left generic role sharing unspecified.
+This avoids copies of identical tuning while allowing meaningful equipment splits
+later. Faction membership changes availability, not a second set of stats.
+
+**Sound, high confidence — family titles are explicit metadata.** A player opens
+“M1 Abrams” and chooses a variant inside it. The catalog stores the family title
+separately from its stable identifier and concrete variant title, rather than
+asking each UI to strip designation text heuristically. The plan specified family
+grouping but not the title representation; later pickers consume this one owner.

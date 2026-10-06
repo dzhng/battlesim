@@ -64,12 +64,33 @@ export interface MountRow {
   muzzle_m: Vec3 | null;
 }
 
+export type Faction = "us" | "europe" | "eastern";
+export type UnitCategory = "rec" | "inf" | "veh" | "sup" | "hel" | "air";
+
+export interface RosterMembership {
+  factions: Faction[];
+  family_name: string;
+  category: UnitCategory;
+  variant: string;
+}
+
+export interface UnitCard {
+  id: string;
+  name: string;
+  description: string;
+  family: string;
+  cost: number;
+  roster: RosterMembership;
+  disabled_reason: string | null;
+}
+
 export interface UnitType {
   id: string;
   name: string;
   description: string;
   faction: string;
   family: string;
+  roster?: RosterMembership;
   roles: string[];
   cost: number;
   body: Body;
@@ -174,6 +195,8 @@ export interface CatalogView {
   soldiers: Record<string, SoldierKind>;
   /** In the simulation's index order: the publication's `unitKinds`. */
   units: UnitType[];
+  /** Player cards include planned variants that have no physical type index. */
+  cards: UnitCard[];
   /** The prop types, by id. */
   props: Record<string, PropType>;
 }
@@ -230,6 +253,10 @@ export class UnitCatalog {
 
   get documents(): unknown[] {
     return this.view.documents;
+  }
+
+  get cards(): readonly UnitCard[] {
+    return this.view.cards;
   }
 
   has(id: string): boolean {

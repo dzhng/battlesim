@@ -55,6 +55,32 @@ fn units(entries: Value) -> Vec<Value> {
 }
 
 #[test]
+fn planned_aircraft_is_a_visible_card_but_not_a_physical_type() {
+    let catalog = resolve(&units(json!({
+        "base": base_tank(),
+        "tank": { "extends": "base" },
+        "f22": {
+            "name": "F-22 Raptor", "description": "Air superiority fighter",
+            "faction": "us", "family": "f22", "roles": [], "cost": 400,
+            "roster": { "factions": ["us"], "family_name": "F-22 Raptor", "category": "air", "variant": "F-22A" },
+            "planned": { "reason": "Aircraft mechanics are not implemented", "profile": "stealth-fighter", "weapons": ["fighter-missiles"] }
+        }
+    }))).unwrap();
+    assert!(catalog.index("f22").is_none());
+    assert_eq!(catalog.ids(), ["tank"]);
+    let card = catalog.card("f22").unwrap();
+    assert_eq!(card.name, "F-22 Raptor");
+    assert_eq!(card.cost, 400);
+    assert_eq!(
+        card.disabled_reason.as_deref(),
+        Some("Aircraft mechanics are not implemented")
+    );
+    assert_eq!(catalog.view()["cards"][0]["id"], "f22");
+    let document = serde_json::to_value(&catalog).unwrap();
+    assert_eq!(resolve(document.as_array().unwrap()).unwrap(), catalog);
+}
+
+#[test]
 fn concealed_detection_bonus_cannot_reduce_ordinary_sight() {
     for multiplier in [0.5, 0.0, -1.0] {
         let mut base = base_tank();

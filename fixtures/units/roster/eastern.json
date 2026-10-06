@@ -1,0 +1,1133 @@
+{
+  "units": {
+    "eastern_2s19_msta_s_2s19m2": {
+      "name": "2S19 Msta-S 2S19M2",
+      "description": "2S19M2",
+      "faction": "eastern",
+      "family": "2s19_msta_s",
+      "roles": [],
+      "cost": 270,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "sup",
+        "variant": "2S19M2",
+        "family_name": "2S19 Msta-S"
+      },
+      "planned": {
+        "reason": "Artillery and indirect-support mechanics deferred",
+        "profile": "tracked-howitzer",
+        "weapons": [
+          "howitzer"
+        ]
+      }
+    },
+    "eastern_9k515_tornado_s_heavy_rocket_artillery": {
+      "name": "9K515 Tornado-S Heavy rocket artillery",
+      "description": "Heavy rocket artillery",
+      "faction": "eastern",
+      "family": "9k515_tornado_s",
+      "roles": [],
+      "cost": 360,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "sup",
+        "variant": "Heavy rocket artillery",
+        "family_name": "9K515 Tornado-S"
+      },
+      "planned": {
+        "reason": "Artillery and indirect-support mechanics deferred",
+        "profile": "heavy-rocket",
+        "weapons": [
+          "rocket-battery"
+        ]
+      }
+    },
+    "eastern_air_defense_team_fn_6": {
+      "name": "FN-6 Team",
+      "description": "FN-6",
+      "faction": "eastern",
+      "family": "air_defense_team",
+      "roles": [],
+      "cost": 100,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "inf",
+        "variant": "FN-6",
+        "family_name": "Air-Defense Team"
+      },
+      "planned": {
+        "reason": "Air-defense targeting and airborne targets deferred",
+        "profile": "aa-team",
+        "weapons": [
+          "MANPADS"
+        ]
+      }
+    },
+    "eastern_air_defense_team_igla_s": {
+      "name": "Igla-S Team",
+      "description": "Igla-S",
+      "faction": "eastern",
+      "family": "air_defense_team",
+      "roles": [],
+      "cost": 100,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "inf",
+        "variant": "Igla-S",
+        "family_name": "Air-Defense Team"
+      },
+      "planned": {
+        "reason": "Air-defense targeting and airborne targets deferred",
+        "profile": "aa-team",
+        "weapons": [
+          "MANPADS"
+        ]
+      }
+    },
+    "eastern_atgm_team_kornet": {
+      "name": "Kornet Team",
+      "description": "Kornet",
+      "faction": "eastern",
+      "family": "atgm_team",
+      "roles": [],
+      "cost": 140,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "inf",
+        "variant": "Kornet",
+        "family_name": "ATGM Team"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "at-team",
+        "weapons": [
+          "Kornet"
+        ]
+      }
+    },
+    "eastern_bm_21_grad_bm_21_rocket_artillery": {
+      "name": "BM-21 Grad BM-21 rocket artillery",
+      "description": "BM-21 rocket artillery",
+      "faction": "eastern",
+      "family": "bm_21_grad",
+      "roles": [],
+      "cost": 220,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "sup",
+        "variant": "BM-21 rocket artillery",
+        "family_name": "BM-21 Grad"
+      },
+      "planned": {
+        "reason": "Artillery and indirect-support mechanics deferred",
+        "profile": "light-rocket",
+        "weapons": [
+          "rocket-battery"
+        ]
+      }
+    },
+    "eastern_bmp_ifv_family_bmp_2m_berezhok": {
+      "name": "BMP IFV Family BMP-2M Berezhok",
+      "description": "BMP-2M Berezhok; ground combat platform, passenger carriage not implemented",
+      "faction": "eastern",
+      "family": "bmp_ifv_family",
+      "roles": [],
+      "cost": 190,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "veh",
+        "variant": "BMP-2M Berezhok",
+        "family_name": "BMP IFV Family"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "light-ifv",
+        "weapons": [
+          "autocannon",
+          "Kornet"
+        ]
+      }
+    },
+    "eastern_bmp_ifv_family_bmp_3": {
+      "name": "BMP IFV Family BMP-3",
+      "description": "BMP-3; ground combat platform, passenger carriage not implemented",
+      "faction": "eastern",
+      "family": "bmp_ifv_family",
+      "roles": [],
+      "cost": 210,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "veh",
+        "variant": "BMP-3",
+        "family_name": "BMP IFV Family"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "ifv",
+        "weapons": [
+          "IFV-HE",
+          "autocannon",
+          "Kornet"
+        ]
+      }
+    },
+    "eastern_brm_brm_3k": {
+      "name": "BRM BRM-3K",
+      "description": "BRM-3K",
+      "faction": "eastern",
+      "family": "brm",
+      "roles": [],
+      "cost": 180,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "rec",
+        "variant": "BRM-3K",
+        "family_name": "BRM"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "tracked-recon",
+        "weapons": [
+          "autocannon"
+        ]
+      }
+    },
+    "eastern_btr_btr_82a": {
+      "name": "BTR BTR-82A",
+      "description": "BTR-82A; ground combat platform, passenger carriage not implemented",
+      "faction": "eastern",
+      "family": "btr",
+      "roles": [],
+      "cost": 140,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "veh",
+        "variant": "BTR-82A",
+        "family_name": "BTR"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "light-ifv",
+        "weapons": [
+          "autocannon"
+        ]
+      }
+    },
+    "eastern_buk_buk_m3_medium_range_air_defense": {
+      "name": "Buk Buk-M3 medium-range air defense",
+      "description": "Buk-M3 medium-range air defense",
+      "faction": "eastern",
+      "family": "buk",
+      "roles": [],
+      "cost": 300,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "sup",
+        "variant": "Buk-M3 medium-range air defense",
+        "family_name": "Buk"
+      },
+      "planned": {
+        "reason": "Air-defense targeting and airborne targets deferred",
+        "profile": "aa-launcher",
+        "weapons": [
+          "SAM"
+        ]
+      }
+    },
+    "eastern_j_10_vigorous_dragon_j_10c": {
+      "name": "J-10 Vigorous Dragon J-10C",
+      "description": "J-10C",
+      "faction": "eastern",
+      "family": "j_10_vigorous_dragon",
+      "roles": [],
+      "cost": 340,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "air",
+        "variant": "J-10C",
+        "family_name": "J-10 Vigorous Dragon"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "eastern_j_20_mighty_dragon_stealth_fighter": {
+      "name": "J-20 Mighty Dragon Stealth fighter",
+      "description": "Stealth fighter",
+      "faction": "eastern",
+      "family": "j_20_mighty_dragon",
+      "roles": [],
+      "cost": 490,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "air",
+        "variant": "Stealth fighter",
+        "family_name": "J-20 Mighty Dragon"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "stealth-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM"
+        ]
+      }
+    },
+    "eastern_ka_52_alligator_ka_52m": {
+      "name": "Ka-52 Alligator Ka-52M",
+      "description": "Ka-52M",
+      "faction": "eastern",
+      "family": "ka_52_alligator",
+      "roles": [],
+      "cost": 360,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "hel",
+        "variant": "Ka-52M",
+        "family_name": "Ka-52 Alligator"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "attack-helicopter",
+        "weapons": [
+          "helicopter-gun",
+          "helicopter-AT"
+        ]
+      }
+    },
+    "eastern_kamikaze_drone_anti_armor": {
+      "name": "Kamikaze Drone Anti-armor",
+      "description": "Anti-armor",
+      "faction": "eastern",
+      "family": "kamikaze_drone",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "sup",
+        "variant": "Anti-armor",
+        "family_name": "Kamikaze Drone"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "kamikaze-armor",
+        "weapons": [
+          "drone-AT"
+        ]
+      }
+    },
+    "eastern_kamikaze_drone_anti_personnel": {
+      "name": "Kamikaze Drone Anti-personnel",
+      "description": "Anti-personnel",
+      "faction": "eastern",
+      "family": "kamikaze_drone",
+      "roles": [],
+      "cost": 60,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "sup",
+        "variant": "Anti-personnel",
+        "family_name": "Kamikaze Drone"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "kamikaze-personnel",
+        "weapons": [
+          "drone-HE"
+        ]
+      }
+    },
+    "eastern_marksman_squad_svd_equipped_longer_range_infantry": {
+      "name": "Marksman Squad",
+      "description": "SVD-equipped longer-range infantry",
+      "faction": "eastern",
+      "family": "marksman_squad",
+      "roles": [],
+      "cost": 110,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "inf",
+        "variant": "SVD-equipped longer-range infantry",
+        "family_name": "Marksman Squad"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "marksman",
+        "weapons": [
+          "marksman-rifle"
+        ]
+      }
+    },
+    "eastern_mi_24_mi_35_hind_mi_35m": {
+      "name": "Mi-24/Mi-35 Hind Mi-35M",
+      "description": "Mi-35M",
+      "faction": "eastern",
+      "family": "mi_24_mi_35_hind",
+      "roles": [],
+      "cost": 270,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "hel",
+        "variant": "Mi-35M",
+        "family_name": "Mi-24/Mi-35 Hind"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "armored-helicopter",
+        "weapons": [
+          "helicopter-gun",
+          "helicopter-AT"
+        ]
+      }
+    },
+    "eastern_mi_28_havoc_mi_28nm": {
+      "name": "Mi-28 Havoc Mi-28NM",
+      "description": "Mi-28NM",
+      "faction": "eastern",
+      "family": "mi_28_havoc",
+      "roles": [],
+      "cost": 330,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "hel",
+        "variant": "Mi-28NM",
+        "family_name": "Mi-28 Havoc"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "armored-helicopter",
+        "weapons": [
+          "helicopter-gun",
+          "helicopter-AT"
+        ]
+      }
+    },
+    "eastern_mi_8_hip_mi_8amtsh": {
+      "name": "Mi-8 Hip Mi-8AMTSh",
+      "description": "Mi-8AMTSh",
+      "faction": "eastern",
+      "family": "mi_8_hip",
+      "roles": [],
+      "cost": 170,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "hel",
+        "variant": "Mi-8AMTSh",
+        "family_name": "Mi-8 Hip"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "utility-helicopter",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "eastern_mig_29_fulcrum_mig_29smt": {
+      "name": "MiG-29 Fulcrum MiG-29SMT",
+      "description": "MiG-29SMT",
+      "faction": "eastern",
+      "family": "mig_29_fulcrum",
+      "roles": [],
+      "cost": 280,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "air",
+        "variant": "MiG-29SMT",
+        "family_name": "MiG-29 Fulcrum"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "eastern_mig_31_foxhound_mig_31bm": {
+      "name": "MiG-31 Foxhound MiG-31BM",
+      "description": "MiG-31BM",
+      "faction": "eastern",
+      "family": "mig_31_foxhound",
+      "roles": [],
+      "cost": 350,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "air",
+        "variant": "MiG-31BM",
+        "family_name": "MiG-31 Foxhound"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "heavy-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM"
+        ]
+      }
+    },
+    "eastern_orlan_10_reconnaissance_drone": {
+      "name": "Orlan-10 Reconnaissance drone",
+      "description": "Reconnaissance drone",
+      "faction": "eastern",
+      "family": "orlan_10",
+      "roles": [],
+      "cost": 80,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "rec",
+        "variant": "Reconnaissance drone",
+        "family_name": "Orlan-10"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "scout-drone",
+        "weapons": []
+      }
+    },
+    "eastern_pantsir_pantsir_sm": {
+      "name": "Pantsir Pantsir-SM",
+      "description": "Pantsir-SM",
+      "faction": "eastern",
+      "family": "pantsir",
+      "roles": [],
+      "cost": 250,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "sup",
+        "variant": "Pantsir-SM",
+        "family_name": "Pantsir"
+      },
+      "planned": {
+        "reason": "Air-defense targeting and airborne targets deferred",
+        "profile": "aa-launcher",
+        "weapons": [
+          "AA-gun",
+          "SAM"
+        ]
+      }
+    },
+    "eastern_plz_05_chinese_tracked_155_mm_howitzer": {
+      "name": "PLZ-05 Chinese tracked 155 mm howitzer",
+      "description": "Chinese tracked 155 mm howitzer",
+      "faction": "eastern",
+      "family": "plz_05",
+      "roles": [],
+      "cost": 280,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "sup",
+        "variant": "Chinese tracked 155 mm howitzer",
+        "family_name": "PLZ-05"
+      },
+      "planned": {
+        "reason": "Artillery and indirect-support mechanics deferred",
+        "profile": "tracked-howitzer",
+        "weapons": [
+          "howitzer"
+        ]
+      }
+    },
+    "eastern_rpg_team_rpg_29": {
+      "name": "RPG-29 Team",
+      "description": "RPG-29",
+      "faction": "eastern",
+      "family": "rpg_team",
+      "roles": [],
+      "cost": 110,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "inf",
+        "variant": "RPG-29",
+        "family_name": "RPG Team"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "rpg-team",
+        "weapons": [
+          "RPG-heavy"
+        ]
+      }
+    },
+    "eastern_rpg_team_rpg_7": {
+      "name": "RPG-7 Team",
+      "description": "RPG-7",
+      "faction": "eastern",
+      "family": "rpg_team",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "inf",
+        "variant": "RPG-7",
+        "family_name": "RPG Team"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "rpg-team",
+        "weapons": [
+          "RPG-light"
+        ]
+      }
+    },
+    "eastern_scout_drone_thermal": {
+      "name": "Scout Drone Thermal",
+      "description": "Thermal",
+      "faction": "eastern",
+      "family": "scout_drone",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "rec",
+        "variant": "Thermal",
+        "family_name": "Scout Drone"
+      },
+      "planned": {
+        "reason": "Drone movement, sensing and mission mechanics deferred",
+        "profile": "thermal-drone",
+        "weapons": []
+      }
+    },
+    "eastern_scouts_light_patrol": {
+      "name": "Scouts",
+      "description": "Light patrol",
+      "faction": "eastern",
+      "family": "scouts",
+      "roles": [],
+      "cost": 80,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "rec",
+        "variant": "Light patrol",
+        "family_name": "Scouts"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "scout",
+        "weapons": [
+          "rifle"
+        ]
+      }
+    },
+    "eastern_sniper_team_asvk_heavy_sniper_team": {
+      "name": "Sniper Team",
+      "description": "ASVK heavy sniper team",
+      "faction": "eastern",
+      "family": "sniper_team",
+      "roles": [],
+      "cost": 100,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "rec",
+        "variant": "ASVK heavy sniper team",
+        "family_name": "Sniper Team"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "sniper",
+        "weapons": [
+          "heavy-sniper"
+        ]
+      }
+    },
+    "eastern_su_25_frogfoot_su_25sm3": {
+      "name": "Su-25 Frogfoot Su-25SM3",
+      "description": "Su-25SM3",
+      "faction": "eastern",
+      "family": "su_25_frogfoot",
+      "roles": [],
+      "cost": 270,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "air",
+        "variant": "Su-25SM3",
+        "family_name": "Su-25 Frogfoot"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "attack-aircraft",
+        "weapons": [
+          "attack-gun",
+          "air-AT",
+          "bomb"
+        ]
+      }
+    },
+    "eastern_su_57_felon_stealth_multirole_fighter": {
+      "name": "Su-57 Felon Stealth multirole fighter",
+      "description": "Stealth multirole fighter",
+      "faction": "eastern",
+      "family": "su_57_felon",
+      "roles": [],
+      "cost": 480,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "air",
+        "variant": "Stealth multirole fighter",
+        "family_name": "Su-57 Felon"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "stealth-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "eastern_sukhoi_flanker_family_su_27sm3": {
+      "name": "Sukhoi Flanker Family Su-27SM3",
+      "description": "Su-27SM3",
+      "faction": "eastern",
+      "family": "sukhoi_flanker_family",
+      "roles": [],
+      "cost": 310,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "air",
+        "variant": "Su-27SM3",
+        "family_name": "Sukhoi Flanker Family"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM"
+        ]
+      }
+    },
+    "eastern_sukhoi_flanker_family_su_30sm2": {
+      "name": "Sukhoi Flanker Family Su-30SM2",
+      "description": "Su-30SM2",
+      "faction": "eastern",
+      "family": "sukhoi_flanker_family",
+      "roles": [],
+      "cost": 370,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "air",
+        "variant": "Su-30SM2",
+        "family_name": "Sukhoi Flanker Family"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "strike-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "eastern_sukhoi_flanker_family_su_34": {
+      "name": "Sukhoi Flanker Family Su-34",
+      "description": "Su-34",
+      "faction": "eastern",
+      "family": "sukhoi_flanker_family",
+      "roles": [],
+      "cost": 390,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "air",
+        "variant": "Su-34",
+        "family_name": "Sukhoi Flanker Family"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "strike-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM",
+          "bomb"
+        ]
+      }
+    },
+    "eastern_sukhoi_flanker_family_su_35s": {
+      "name": "Sukhoi Flanker Family Su-35S",
+      "description": "Su-35S",
+      "faction": "eastern",
+      "family": "sukhoi_flanker_family",
+      "roles": [],
+      "cost": 410,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "air",
+        "variant": "Su-35S",
+        "family_name": "Sukhoi Flanker Family"
+      },
+      "planned": {
+        "reason": "Aircraft movement and air-combat mechanics deferred",
+        "profile": "heavy-fighter",
+        "weapons": [
+          "fighter-gun",
+          "AAM"
+        ]
+      }
+    },
+    "eastern_t_14_armata_main_battle_tank": {
+      "name": "T-14 Armata Main battle tank",
+      "description": "Main battle tank",
+      "faction": "eastern",
+      "family": "t_14_armata",
+      "roles": [],
+      "cost": 440,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "veh",
+        "variant": "Main battle tank",
+        "family_name": "T-14 Armata"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "advanced-mbt",
+        "weapons": [
+          "advanced-tank-gun",
+          "HMG"
+        ]
+      }
+    },
+    "eastern_t_15_armata_heavy_ifv": {
+      "name": "T-15 Armata Heavy IFV",
+      "description": "Heavy IFV; ground combat platform, passenger carriage not implemented",
+      "faction": "eastern",
+      "family": "t_15_armata",
+      "roles": [],
+      "cost": 300,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "veh",
+        "variant": "Heavy IFV",
+        "family_name": "T-15 Armata"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "heavy-ifv",
+        "weapons": [
+          "autocannon",
+          "Kornet"
+        ]
+      }
+    },
+    "eastern_t_72_t_72b3_2016": {
+      "name": "T-72 T-72B3 (2016)",
+      "description": "T-72B3 (2016)",
+      "faction": "eastern",
+      "family": "t_72",
+      "roles": [],
+      "cost": 280,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "veh",
+        "variant": "T-72B3 (2016)",
+        "family_name": "T-72"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "older-mbt",
+        "weapons": [
+          "tank-gun",
+          "HMG"
+        ]
+      }
+    },
+    "eastern_t_80_t_80bvm": {
+      "name": "T-80 T-80BVM",
+      "description": "T-80BVM",
+      "faction": "eastern",
+      "family": "t_80",
+      "roles": [],
+      "cost": 310,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "veh",
+        "variant": "T-80BVM",
+        "family_name": "T-80"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "mbt",
+        "weapons": [
+          "tank-gun",
+          "HMG"
+        ]
+      }
+    },
+    "eastern_t_90_t_90m_proryv": {
+      "name": "T-90 T-90M Proryv",
+      "description": "T-90M Proryv",
+      "faction": "eastern",
+      "family": "t_90",
+      "roles": [],
+      "cost": 360,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "veh",
+        "variant": "T-90M Proryv",
+        "family_name": "T-90"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "improved-mbt",
+        "weapons": [
+          "tank-gun",
+          "HMG"
+        ]
+      }
+    },
+    "eastern_tigr_tigr_m": {
+      "name": "Tigr Tigr-M",
+      "description": "Tigr-M",
+      "faction": "eastern",
+      "family": "tigr",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "rec",
+        "variant": "Tigr-M",
+        "family_name": "Tigr"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "light-car",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "eastern_type_15_ztq_15_light_tank": {
+      "name": "Type 15 ZTQ-15 light tank",
+      "description": "ZTQ-15 light tank",
+      "faction": "eastern",
+      "family": "type_15",
+      "roles": [],
+      "cost": 230,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "veh",
+        "variant": "ZTQ-15 light tank",
+        "family_name": "Type 15"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "light-tank",
+        "weapons": [
+          "light-tank-gun",
+          "HMG"
+        ]
+      }
+    },
+    "eastern_type_99_ztz_99a": {
+      "name": "Type 99 ZTZ-99A",
+      "description": "ZTZ-99A",
+      "faction": "eastern",
+      "family": "type_99",
+      "roles": [],
+      "cost": 360,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "veh",
+        "variant": "ZTZ-99A",
+        "family_name": "Type 99"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "improved-mbt",
+        "weapons": [
+          "tank-gun",
+          "HMG"
+        ]
+      }
+    },
+    "eastern_ural_4320_general_resupply": {
+      "name": "Ural-4320 General resupply",
+      "description": "General resupply",
+      "faction": "eastern",
+      "family": "ural_4320",
+      "roles": [],
+      "cost": 90,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "sup",
+        "variant": "General resupply",
+        "family_name": "Ural-4320"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "truck",
+        "weapons": []
+      }
+    },
+    "eastern_z_10_attack_helicopter": {
+      "name": "Z-10 Attack helicopter",
+      "description": "Attack helicopter",
+      "faction": "eastern",
+      "family": "z_10",
+      "roles": [],
+      "cost": 300,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "hel",
+        "variant": "Attack helicopter",
+        "family_name": "Z-10"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "attack-helicopter",
+        "weapons": [
+          "helicopter-gun",
+          "helicopter-AT"
+        ]
+      }
+    },
+    "eastern_z_20_utility_transport": {
+      "name": "Z-20 Utility transport",
+      "description": "Utility transport",
+      "faction": "eastern",
+      "family": "z_20",
+      "roles": [],
+      "cost": 180,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "hel",
+        "variant": "Utility transport",
+        "family_name": "Z-20"
+      },
+      "planned": {
+        "reason": "Helicopter movement, combat and transport mechanics deferred",
+        "profile": "utility-helicopter",
+        "weapons": [
+          "HMG"
+        ]
+      }
+    },
+    "eastern_zbl_08_wheeled_ifv": {
+      "name": "ZBL-08 Wheeled IFV",
+      "description": "Wheeled IFV; ground combat platform, passenger carriage not implemented",
+      "faction": "eastern",
+      "family": "zbl_08",
+      "roles": [],
+      "cost": 190,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "veh",
+        "variant": "Wheeled IFV",
+        "family_name": "ZBL-08"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "wheeled-ifv",
+        "weapons": [
+          "autocannon"
+        ]
+      }
+    }
+  }
+}
