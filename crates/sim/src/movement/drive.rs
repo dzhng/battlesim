@@ -155,7 +155,7 @@ fn inside_circle(at: V2, heading: f64, side: f64, radius: f64, target: V2, margi
 
 /// Whether a hull at `center`/`yaw` would stand in a body that stops it, or
 /// off traversable ground (true geometry: what the step itself meets).
-pub(crate) fn blocked(world: &WorldGeometry, unit: &Unit, center: V2, yaw: f64) -> bool {
+fn blocked(world: &WorldGeometry, unit: &Unit, center: V2, yaw: f64) -> bool {
     let half = unit.hull.expect("a vehicle has a hull").xy();
     let here = unit.hull_box().expect("a vehicle has a hull");
     let hull = Obb2 { center, yaw, half };

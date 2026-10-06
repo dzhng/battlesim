@@ -23,7 +23,10 @@ like a film, not balanced: set-pieces in different parts of the map open fire on
 schedule, set by how far each force starts from its enemy, so every cut has guns
 firing in frame. Cannon fire and blasts read at film distance; rifle fire barely
 does. A changed encounter or rule retimes the set-pieces, so recheck each cut's
-frames after either.
+frames after either. The battle is directed, not left to play out: starting
+health, scheduled fire policies and scripted attacks set who fires and who
+dies when, so a change keeps the cuts it was not asked to change and retimes
+the battle to them, never the reverse.
 
 [Sound authoring](#sound-catalog) owns audio provenance and choices independently
 of gameplay weapon cycles. Saved maps, component inheritance and paired evidence

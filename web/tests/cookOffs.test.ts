@@ -94,7 +94,8 @@ const tankPose = (at: readonly [number, number], turret: number) => ({
 });
 
 test("a hull that brews up is drawn whole, as last seen, until its ammunition goes; then as the wreck's pieces", () => {
-  const feel = gameEffects.cook_off;
+  // A beat between the hit and the ammunition going, whatever the shipped feel has.
+  const feel = { ...gameEffects.cook_off, delay_s: 0.35 };
   const resolve: ResolveAppearance = (kind) => ({ appearance: kind, tint: [1, 0, 0] });
   const hulls = new LastSeenHulls(() => 2);
   hulls.note([tankPose([40, 30], 1.2)], 10);

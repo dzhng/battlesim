@@ -1,9 +1,9 @@
 // Brew-ups a side watched, from its publications: a hull it saw that is gone,
-// and a wreck, where it stood, soon after. The simulation leaves a destroyed
-// vehicle's wreck on its own place and heading the tick it dies
-// (`sim::Battle::consequences`); the side loses the hull at once and learns
-// the wreck within a few ticks, so a side that saw the hull alive within
-// `window` ticks of learning its wreck saw it die. A wreck found later,
+// and a wreck near where it stood. The simulation lays a destroyed vehicle's
+// wreck where it rolls to a stop, on its heading, the tick it dies
+// (`sim::Battle::consequences`), and a side that knew the hull learns the
+// wreck that tick, so a side that saw the hull alive within `window` ticks
+// of learning its wreck saw it die. A wreck found later,
 // scouted onto, was no one's to watch: it is simply there, burning as the
 // effects have it.
 //
@@ -299,21 +299,19 @@ export function cookOffModels(
   clock: number,
 ): ModelInstance[] {
   const t = clock - f.hitAt;
-  const hull = last?.model;
-  const models = hull && t < feel.delay_s ? [{ ...hull }] : piecesOf(f, feel, clock);
-  if (!last || !hull) return models;
-  const { braking } = last;
+  if (!last) return piecesOf(f, feel, clock);
+  const { model: hull, braking } = last;
   // Constant deceleration over `length` metres: done in √(2·length/braking) s.
   const [dx, dy] = [f.wreck.x - hull.x, f.wreck.y - hull.y];
   const length = Math.hypot(dx, dy);
   const done = Math.sqrt((2 * length) / braking);
   const s = t >= done ? 1 : (braking * done * t - (braking * t * t) / 2) / length;
-  // Where the hull has rolled to, less where the wreck lies.
-  const [ox, oy] = [hull.x + dx * s - f.wreck.x, hull.y + dy * s - f.wreck.y];
-  for (const m of models) {
-    const base = m === models[0] && t < feel.delay_s ? f.wreck : m;
-    m.x = base.x + ox;
-    m.y = base.y + oy;
+  const [x, y] = [hull.x + dx * s, hull.y + dy * s];
+  if (t < feel.delay_s) return [{ ...hull, x, y }];
+  const pieces = piecesOf(f, feel, clock);
+  for (const m of pieces) {
+    m.x += x - f.wreck.x;
+    m.y += y - f.wreck.y;
   }
-  return models;
+  return pieces;
 }

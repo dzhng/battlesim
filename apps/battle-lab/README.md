@@ -45,7 +45,12 @@ pilot slides each framing so its subject plays in the open screen beside it.
 feeds. [Session ownership](src/useBattleSession.ts) keeps worker preparation and
 cleanup tied to that page. [Lab loading](src/LabLoading.tsx) uses the player
 loading screen across preparation, the first observation and the first drawn
-frame; routes keep preparing beneath the cover so it never delays readiness.
+frame; routes keep preparing beneath the cover so it never delays readiness. While
+anything the page needs is downloading, the screen counts the megabytes
+([download counting](../../web/src/downloads.ts)), so a first visit's long wait
+visibly moves. The menu's build line names the app's commit and a fingerprint
+of the simulation module the page actually loaded ([build identity](src/buildIdentity.ts)),
+so a stale deploy or cache shows on screen.
 Art uses [scene-assets](../../packages/scene-assets/README.md),
 and sound uses [battle-audio](../../packages/battle-audio/README.md). [Model review](src/workbench/)
 installs previews through the same appearance loader used by battles.
