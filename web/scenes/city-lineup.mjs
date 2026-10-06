@@ -41,7 +41,7 @@ const CROP_PX = 6;
 const PAIR_WIDTH = 520;
 const DEFAULT_PAIRS = "transition-1:0:1,transition-2:1:2,transition-3:2:3";
 /** Source sets visited side by side. */
-const SETS_AT_ONCE = Number(process.env.CITY_SETS_AT_ONCE ?? 3);
+const SETS_AT_ONCE = Math.max(1, Number(process.env.CITY_SETS_AT_ONCE) || 3);
 
 const settle = async (page) => {
   await lab(page, () => window.__lab.frame());

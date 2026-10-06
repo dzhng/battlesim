@@ -293,12 +293,15 @@ impl Reach {
         }
         let mut masks = vec![0u64; n * n];
         for (k, solid) in solids.iter().enumerate() {
+            // The box grown by the radius in its own frame, square corners
+            // and all (as `Obb2::contains` and `meets_segment` grow it),
+            // then turned onto the grid's axes.
             let (sin, cos) = libm::sincos(solid.yaw);
+            let half = (solid.half + v2(radius, radius)) * (1.0 + 1e-9);
             let extent = v2(
-                cos.abs() * solid.half.x + sin.abs() * solid.half.y,
-                sin.abs() * solid.half.x + cos.abs() * solid.half.y,
-            ) + v2(radius, radius) * (1.0 + 1e-9)
-                + v2(1e-6, 1e-6);
+                cos.abs() * half.x + sin.abs() * half.y,
+                sin.abs() * half.x + cos.abs() * half.y,
+            ) + v2(1e-6, 1e-6);
             let [(i0, i1), (j0, j1)] =
                 Self::span(grid, solid.center - extent, solid.center + extent);
             for j in j0..=j1 {
@@ -542,5 +545,39 @@ mod tests {
             .path,
             None
         );
+    }
+}
+
+#[cfg(test)]
+mod reach_tests {
+    use super::*;
+
+    /// Every body a point's disc or a short step can meet stays among the
+    /// bodies its cells offer, whichever way the body is turned.
+    #[test]
+    fn the_cells_offer_every_body_a_disc_or_step_can_meet() {
+        let radius = 0.4;
+        let grid = (40, v2(0.0, 0.0));
+        for (turn, shift) in (0..24).flat_map(|t| (0..10).map(move |k| (t, k))) {
+            let solid = Obb2 {
+                center: v2(10.0, 10.0) + v2(0.05, 0.05) * shift as f64,
+                half: v2(2.1, 0.9),
+                yaw: turn as f64 * std::f64::consts::PI / 12.0,
+            };
+            let solids = [solid];
+            let reach = Reach::new(&solids, radius, grid);
+            for j in 0..160 {
+                for i in 0..160 {
+                    let p = v2(i as f64 * 0.125, j as f64 * 0.125);
+                    if solid.contains(p, radius) {
+                        assert_eq!(reach.near(p, p, &solids).count(), 1, "turn {turn} at {p:?}");
+                    }
+                    let q = p + v2(0.3, 0.2);
+                    if solid.meets_segment(p, q, radius) {
+                        assert_eq!(reach.near(p, q, &solids).count(), 1, "turn {turn} {p:?}");
+                    }
+                }
+            }
+        }
     }
 }

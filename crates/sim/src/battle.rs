@@ -2879,13 +2879,13 @@ impl Battle {
                     .and_then(|radius| {
                         grid.room_on_the_way(p, &u.mobility, radius, from(u), &pockets)
                     })
+                    .filter(|&at| at != placed)
                     .map(|at| crate::units::StopShort {
                         at,
                         detour_m: self.rules.navigation.stop_short_detour_ratio
-                            * ((at - p).length() - (placed - p).length()),
+                            * ((at - p).length() - (placed - p).length()).max(0.0),
                         nearest: None,
-                    })
-                    .filter(|short| short.detour_m > 0.0);
+                    });
                 shorts.borrow_mut().insert(id, (placed, short));
                 Some(placed)
             },

@@ -21,6 +21,7 @@ failures and capabilities once; consumers use [the admitted capability record](s
 instead of independently probing a different device policy.
 
 [Allocation tracking](src/gpuAllocations.ts) measures device allocations, including
-library-created resources. Destruction belongs to [the battle renderer's registry](../battle-renderer/README.md#resource-lifetime-and-bounded-work),
+library-created resources. It counts in creation order, so an owner's teardown can be
+checked while the next owner is already allocating. Destruction belongs to [the battle renderer's registry](../battle-renderer/README.md#resource-lifetime-and-bounded-work),
 not to the tracker. [Presentation tables](src/kindTable.ts) share explicit fallback
 selection for kinds not given their own row; they are not a gameplay type registry.

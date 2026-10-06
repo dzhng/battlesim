@@ -399,6 +399,18 @@ fn a_dense_roadside_body_query_yields_without_changing_the_route() {
 /// gain it ground, at most a fifth of the way it adds.
 #[test]
 fn a_truck_sent_onto_an_abandoned_car_stops_short_of_it_rather_than_loop_round() {
+    stops_short_of_the_wreck(None);
+}
+
+/// With no detour worth any ground, it stops short all the more.
+#[test]
+fn with_no_detour_worth_its_ground_a_truck_stops_short() {
+    stops_short_of_the_wreck(Some(0.0));
+}
+
+/// The wide truck sent onto the abandoned car, the detour ratio `ratio`
+/// (the shipped one by default), pulls up short of the car on its way.
+fn stops_short_of_the_wreck(ratio: Option<f64>) {
     let bearing = 0.0;
     // The abandoned car, half across the middle and turned off the street.
     let wreck = at(bearing, 20.0, 0.3);
@@ -417,6 +429,9 @@ fn a_truck_sent_onto_an_abandoned_car_stops_short_of_it_rather_than_loop_round()
         "supply",
         json!({ "body": { "hull": { "half_extents_m": [3.6, 1.55, 1.5] } } }),
     );
+    if let Some(ratio) = ratio {
+        rules["navigation"]["stop_short_detour_ratio"] = json!(ratio);
+    }
     let from = at(bearing, -200.0, 0.0);
     let units = json!([{ "side": "blue", "kind": "supply", "position": from, "yaw": bearing }]);
     let setup = serde_json::from_value(json!({
