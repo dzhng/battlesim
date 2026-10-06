@@ -20,9 +20,8 @@ continuations stop when history leaves their visit, before React necessarily
 finishes unmounting the previous page.
 
 The main menu starts generated or released saved battles and opens replays. It is
-one plate over its backdrop: opening a page (skirmish, battlefields, settings,
-developer) replaces the plate's contents under a Back button, and Escape is Back,
-so the film behind never changes. A menu address asking for a battle opens on the
+one plate over its backdrop: opening a page replaces the plate's contents under a
+Back button, and Escape is Back, so the film behind never changes. A menu address asking for a battle opens on the
 skirmish page. A
 seeded address names exact preparation inputs on the same build. Ordinary Play
 may try bounded fresh candidates and a released saved fallback, then publishes the

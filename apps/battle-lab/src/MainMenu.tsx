@@ -9,7 +9,7 @@
 // never changes; a loading screen stands in the plate's place until that
 // battle is ready to film.
 import { Link } from "react-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
 import config from "@fixtures/generated-battle.json";
@@ -86,24 +86,32 @@ export function savedBattles() {
 
 const id = (href: string) => `menu${href.replaceAll(/[^a-z0-9]/g, "-")}`;
 
-/** One entry, one link: its title names it, its note describes it, and a
- *  click anywhere on it navigates. */
-function EntryItem({ entry: e }: { entry: Entry }) {
-  const props = {
-    className: "menu-card",
-    "aria-labelledby": `${id(e.href ?? e.label)}-label`,
-    "aria-describedby": `${id(e.href ?? e.label)}-note`,
+/** A tile's title and note, and the attributes that name the tile by its
+ *  title and describe it by its note; `key` keeps its ids unique. */
+function card(key: string, label: string, note: string) {
+  const at = id(key);
+  return {
+    props: {
+      className: "menu-card",
+      "aria-labelledby": `${at}-label`,
+      "aria-describedby": `${at}-note`,
+    },
+    text: (
+      <>
+        <span className="menu-card-label" id={`${at}-label`}>
+          {label}
+        </span>
+        <span className="menu-card-note" id={`${at}-note`}>
+          {note}
+        </span>
+      </>
+    ),
   };
-  const content = (
-    <>
-      <span className="menu-card-label" id={`${id(e.href ?? e.label)}-label`}>
-        {e.label}
-      </span>
-      <span className="menu-card-note" id={`${id(e.href ?? e.label)}-note`}>
-        {e.note}
-      </span>
-    </>
-  );
+}
+
+/** One entry, one link: a click anywhere on its tile navigates. */
+function EntryItem({ entry: e }: { entry: Entry }) {
+  const { props, text: content } = card(e.href ?? e.label, e.label, e.note);
   return (
     <li>
       {e.href === null ? (
@@ -176,6 +184,7 @@ function NewBattle({ asked }: { asked: ReturnType<typeof askedChoice> }) {
   // Random leaves the region to the seed.
   const [region, setRegion] = useState(asked.region ?? RANDOM);
   const choice = { type, size, ...(region !== RANDOM && { region }) };
+  const deploy = card("deploy", "Deploy", "Attack the defended town as blue.");
   return (
     <section className="menu-battle" aria-label="New battle">
       <div className="menu-fields">
@@ -187,18 +196,12 @@ function NewBattle({ asked }: { asked: ReturnType<typeof askedChoice> }) {
         {TYPE_NOTE[type]}
       </p>
       <Link
+        {...deploy.props}
         className="menu-card menu-deploy"
         data-testid="menu-deploy"
-        aria-labelledby="menu-deploy-label"
-        aria-describedby="menu-deploy-note"
         to={asked.seed ? battleHref({ ...choice, seed: asked.seed }) : playHref(choice)}
       >
-        <span className="menu-card-label" id="menu-deploy-label">
-          Deploy
-        </span>
-        <span className="menu-card-note" id="menu-deploy-note">
-          Attack the defended town as blue.
-        </span>
+        {deploy.text}
       </Link>
     </section>
   );
@@ -209,29 +212,19 @@ const PAGES = {
   skirmish: { title: "Skirmish", note: "A battle on a new generated map." },
   battlefields: { title: "Battlefields", note: "A fixed battlefield of the catalogue." },
   settings: { title: "Settings", note: "Sound and volume." },
-  developer: { title: "Developer", note: "Test battles, tools and labs." },
+  // Opened by the quiet developer link, not a tile.
+  developer: { title: "Developer" },
 } as const;
 type Page = keyof typeof PAGES;
+type TilePage = Exclude<Page, "developer">;
 
 /** A page's entry in the list: a tile like a link's, opening the page. */
-function PageEntry({ page, open }: { page: Page; open: (page: Page) => void }) {
-  const { title, note } = PAGES[page];
+function PageEntry({ page, open }: { page: TilePage; open: (page: Page) => void }) {
+  const { props, text } = card(`page-${page}`, PAGES[page].title, PAGES[page].note);
   return (
     <li>
-      <button
-        type="button"
-        className="menu-card"
-        data-page={page}
-        aria-labelledby={`menu-page-${page}-label`}
-        aria-describedby={`menu-page-${page}-note`}
-        onClick={() => open(page)}
-      >
-        <span className="menu-card-label" id={`menu-page-${page}-label`}>
-          {title}
-        </span>
-        <span className="menu-card-note" id={`menu-page-${page}-note`}>
-          {note}
-        </span>
+      <button {...props} type="button" data-page={page} onClick={() => open(page)}>
+        {text}
       </button>
     </li>
   );
@@ -249,7 +242,6 @@ function PageView({ page, back, children }: { page: Page; back: () => void; chil
           type="button"
           className="menu-back"
           aria-label="Back"
-          data-testid="menu-back"
           onClick={back}
         >
           <Icon path={hudIcon("back")} />
@@ -286,10 +278,10 @@ export function MainMenu() {
   }, [loading, shown]);
   // Back to the list, onto the entry of the page just left.
   const left = useRef<Page | null>(null);
-  const back = () => {
+  const back = useCallback(() => {
     left.current = page;
     setPage(null);
-  };
+  }, [page]);
   useEffect(() => {
     if (page !== null || left.current === null) return;
     plate.current?.querySelector<HTMLElement>(`[data-page="${left.current}"]`)?.focus();
@@ -297,14 +289,10 @@ export function MainMenu() {
   }, [page]);
   useEffect(() => {
     if (page === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      left.current = page;
-      setPage(null);
-    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && back();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [page]);
+  }, [page, back]);
   const replay: Entry = {
     label: "Watch replay",
     href: savedReplay.file === undefined ? null : replayRoute(savedReplay.file),
@@ -345,7 +333,7 @@ export function MainMenu() {
         <LoadingTasks report={report}>
           <MenuBackdrop plate={plate} shown={shown.promise} />
         </LoadingTasks>
-        <div className="hud-panel menu-body" ref={plate} data-page={page ?? "list"}>
+        <div className="hud-panel menu-body" ref={plate}>
           {content}
         </div>
       </main>
