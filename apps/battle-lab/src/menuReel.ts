@@ -91,6 +91,24 @@ function between(a: CameraPose, b: CameraPose, s: number): CameraPose {
   };
 }
 
+/** The backdrop's camera rig: the player's `config`, reaching in as close as
+ *  the closest framing of `reels` asks (a film may stand nearer its subject
+ *  than a player may zoom), at the pitch of the player's nearest. */
+export function filmCamera<
+  C extends { zoom_min: number; pitch_curve: readonly (readonly [number, number])[] },
+>(config: C, reels: readonly MenuReel[]): C {
+  const closest = Math.min(
+    ...reels.flatMap((r) => r.shots.flatMap((s) => [s.from.distance, s.to.distance])),
+  );
+  if (!(closest < config.zoom_min)) return config;
+  const [first] = config.pitch_curve;
+  return {
+    ...config,
+    zoom_min: closest,
+    pitch_curve: [[closest, first[1]], ...config.pitch_curve],
+  };
+}
+
 /** One scene of the menu's backdrop: a saved battle (`map`'s encounter
  *  `encounter`, from `seed`, stepped to `warm_s` before it is filmed) and
  *  the reel that films it. */

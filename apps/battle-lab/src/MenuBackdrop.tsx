@@ -16,7 +16,13 @@ import { appResources } from "./appResources";
 import { useFeed } from "./feed";
 import { gameCamera } from "./gameCamera";
 import { LabViewport, type ViewportPilot } from "./LabViewport";
-import { sampleReel, validateBackdrop, type BackdropScene, type MenuReel } from "./menuReel";
+import {
+  filmCamera,
+  sampleReel,
+  validateBackdrop,
+  type BackdropScene,
+  type MenuReel,
+} from "./menuReel";
 import { savedBattle } from "./savedMaps";
 import { buildFailed, useBuiltScenario } from "./useBuiltScenario";
 import { useBattleSession } from "./useBattleSession";
@@ -25,6 +31,10 @@ import type { ScriptedSim } from "./useSimSession";
 import game from "@fixtures/game.json";
 
 const SCENES = validateBackdrop(backdrop).scenes;
+const FILM_CAMERA = filmCamera(
+  gameCamera.config,
+  SCENES.map((s) => s.reel),
+);
 
 /** Each scene's saved scenario, fetched once: the next scene's is asked for
  *  while the current one plays, so the cut to it waits on starting and
@@ -255,6 +265,7 @@ function BackdropBattle({
           groundAt={session.surfaceZ}
           onReady={session.onReady}
           pilot={reel.pilot}
+          cameraConfig={FILM_CAMERA}
         />
       </div>
       <div className="menu-backdrop-grade" />

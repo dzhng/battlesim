@@ -1,0 +1,23 @@
+{
+  "units": [
+    {"side": "blue", "kind": "rifle", "position": [244.0, 166.5], "yaw": 0.0, "condition": {"soldier_hp": 2500.0}},
+    {"side": "blue", "kind": "rifle", "position": [228.0, 166.5], "yaw": 0.0, "condition": {"soldier_hp": 2500.0}},
+    {"side": "blue", "kind": "rifle", "position": [222.0, 153.5], "yaw": 0.0, "condition": {"soldier_hp": 2500.0}},
+    {"side": "blue", "kind": "at", "position": [214.0, 166.5], "yaw": 0.0, "condition": {"soldier_hp": 2500.0}},
+    {"side": "blue", "kind": "tank", "position": [185.0, 160.0], "yaw": 0.0},
+    {"side": "red", "kind": "rifle", "position": [280.0, 262.0], "yaw": -1.571, "condition": {"soldier_hp": 250.0}},
+    {"side": "red", "kind": "rifle", "position": [274.2, 213.0], "yaw": -1.571, "condition": {"soldier_hp": 250.0}}
+  ],
+  "scripts": [
+    {"tick": 0, "side": "blue", "order": {"kind": "move", "units": [0], "gesture": 1, "route": "shortest", "goal": [273.8, 189.0]}},
+    {"tick": 0, "side": "blue", "order": {"kind": "move", "units": [1], "gesture": 2, "route": "shortest", "goal": [269.5, 167.0]}},
+    {"tick": 0, "side": "blue", "order": {"kind": "move", "units": [2], "gesture": 3, "route": "shortest", "goal": [258.5, 153.0]}},
+    {"tick": 0, "side": "blue", "order": {"kind": "move", "units": [3], "gesture": 4, "route": "shortest", "goal": [262.5, 166.5]}},
+    {"tick": 0, "side": "blue", "order": {"kind": "move", "units": [4], "gesture": 5, "route": "shortest", "goal": [210.0, 160.0]}},
+    {"tick": 300, "side": "blue", "order": {"kind": "move", "units": [4], "gesture": 6, "route": "shortest", "goal": [235.0, 160.0]}},
+    {"tick": 600, "side": "blue", "order": {"kind": "move", "units": [4], "gesture": 7, "route": "shortest", "goal": [281.0, 190.0]}},
+    {"tick": 885, "side": "blue", "order": {"kind": "attack", "units": [4], "target": {"kind": "ground", "point": [279.0, 213.0, 1.0]}}},
+    {"tick": 1065, "side": "blue", "order": {"kind": "attack", "units": [4], "target": {"kind": "ground", "point": [280.0, 255.5, 7.0]}}}
+  ],
+  "opponent": {"side": "red", "garrisons": [[5, 16]], "at_attack_range_m": 0.0, "tank_retreat_hp_fraction": 0.0, "tank_fallback": [280.0, 246.0], "infantry_retreat_survivor_fraction": 0.0, "infantry_fallback": [280.0, 246.0]}
+}

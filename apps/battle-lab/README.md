@@ -41,7 +41,9 @@ there until the menu is shown, so the reel's first cut opens on the moment it wa
 cut for. Cuts dip through an opaque veil of the menu's own ground. When a reel
 ends the next scene's battle (its saved map and encounter fetched while the last
 one played) starts and warms behind the veil, without the loading screen. The plate measures where it stands, and the
-pilot slides each framing so its subject plays in the open screen beside it.
+pilot slides each framing so its subject plays in the open screen beside it. The
+film's camera is the player's rig reaching in as close as the reels' closest
+framing, so a shot in a narrow street may stand nearer than a player may zoom.
 
 [The shared battle view](src/BattleView.tsx) composes page resources and observation
 feeds. [Session ownership](src/useBattleSession.ts) keeps worker preparation and
