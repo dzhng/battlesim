@@ -151,6 +151,34 @@ pub type WeaponRules = BTreeMap<String, WeaponDefinition>;
 pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponRules, D::Error> {
     use serde::de::Error;
     let rows = serde_json::Map::deserialize(d)?;
+    // Name a directly-authored bad value before inheritance expands children.
+    // This keeps diagnostics attached to the row the author edited (rather
+    // than to the first descendant that happens to be visited).
+    for (id, row) in &rows {
+        for field in [
+            "damage", "penetration", "aim_s", "reload_s", "blast_radius_m",
+            "structural_damage", "near_miss_suppression", "suppression_radius_m",
+            "min_range_m",
+        ] {
+            if let Some(value) = row.get(field).and_then(serde_json::Value::as_f64) {
+                if !value.is_finite() || value < 0.0 {
+                    return Err(Error::custom(format!(
+                        "weapons.{id}: {field} must be finite and nonnegative"
+                    )));
+                }
+            }
+        }
+        if let Some(value) = row.get("armor_fraction").and_then(serde_json::Value::as_f64) {
+            if !(0.0..=1.0).contains(&value) {
+                return Err(Error::custom(format!("weapons.{id}: armor_fraction must lie in [0, 1]")));
+            }
+        }
+        if let Some(value) = row.get("turn_deg_s").and_then(serde_json::Value::as_f64) {
+            if !value.is_finite() || value <= 0.0 {
+                return Err(Error::custom(format!("weapons.{id}: turn_deg_s must be finite and positive")));
+            }
+        }
+    }
     crate::catalog::inherit("weapons", &rows)
         .map_err(Error::custom)?
         .into_iter()
