@@ -421,3 +421,60 @@ fn an_all_fallen_script_group_does_not_stop_the_next_order() {
         Some([120.0, 100.0])
     );
 }
+
+/// A side may give `commands.orders_per_s` orders a second and no burst
+/// beyond it: one past is dropped (its number used, nothing applied), the
+/// next second's are taken again, and the replay drops the same one.
+#[test]
+fn orders_past_the_rate_are_dropped_and_the_replay_drops_them_too() {
+    let setup = scenario();
+    let per_s = setup.rules.commands.orders_per_s as u64;
+    let mut live = Battle::new(&setup, 7);
+    live.step();
+    let mut digests = Vec::new();
+    let mut errors = Vec::new();
+    for seq in 1..=per_s + 1 {
+        let goal = [100.0 + seq as f64, 60.0];
+        errors.push(live.accept(mv(Side::Blue, seq, 0, goal, false)).error);
+    }
+    assert!(
+        errors[..per_s as usize].iter().all(Option::is_none),
+        "{errors:?}"
+    );
+    assert_eq!(errors[per_s as usize], Some(OrderError::RateLimited));
+    live.step();
+    let tank = |b: &Battle| {
+        b.unit(UnitId(0))
+            .unwrap()
+            .orders
+            .back()
+            .and_then(|o| o.movement())
+            .map(|m| m.destination)
+    };
+    assert_eq!(
+        tank(&live).map(|d| d.x),
+        Some(100.0 + per_s as f64),
+        "the last order taken is the one carried out"
+    );
+    digests.push(live.digest());
+    for _ in 0..setup.rules.tick_hz {
+        live.step();
+    }
+    let next = per_s + 2;
+    assert_eq!(
+        live.accept(mv(Side::Blue, next, 0, [90.0, 90.0], false))
+            .error,
+        None
+    );
+    live.step();
+    digests.push(live.digest());
+    let replay_record = live.replay();
+    let mut replay = Battle::from_replay(&setup, &replay_record).unwrap();
+    let mut seen = Vec::new();
+    for _ in 0..live.tick() {
+        replay.step();
+        seen.push(replay.digest());
+    }
+    assert_eq!(seen[1], digests[0], "the replay drops the same order");
+    assert_eq!(*seen.last().unwrap(), digests[1]);
+}

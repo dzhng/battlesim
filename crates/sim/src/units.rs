@@ -225,6 +225,10 @@ pub struct Unit {
     pub planned_revision: u64,
     /// Failure-to-advance watch: best distance to the next waypoint and when.
     pub progress: (f64, u64),
+    /// Give-up watch: the shortest way left seen at a stall, and the tick it
+    /// was seen; a way no shorter for long enough gives the move up
+    /// ([`MoveState::RouteBlocked`]).
+    pub stalls: (f64, u64),
     pub engagement: Engagement,
     pub mounts: Vec<Mount>,
     /// Enemies that attacked this unit, whom Return fire only may answer while
@@ -498,7 +502,9 @@ impl Unit {
         }
         d.u64(self.planned_revision)
             .f64(self.progress.0)
-            .u64(self.progress.1);
+            .u64(self.progress.1)
+            .f64(self.stalls.0)
+            .u64(self.stalls.1);
         d.f64(self.hp).f64(self.suppression).u64(self.suppressed_at);
         d.u64(self.stock.map_or(u64::MAX, u64::from));
         let p = self.progress_service;

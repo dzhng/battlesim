@@ -15,6 +15,7 @@
   ],
   "units": "metres-seconds-radians",
   "tick_hz": 30,
+  "commands": { "orders_per_s": 30 },
   "buildings": {
     "capacity_soldiers": 32,
     "cover_strength": 1

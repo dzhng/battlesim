@@ -664,12 +664,12 @@ These are the decisions the build made where the spec was silent or contradicted
 - **The reach:** performance only; no behaviour changes.
 - **Confidence:** high.
 
-### Needs user: a tick of move admission is unbounded
-- **When:** 2026-10-05, found by the city-contact benchmark.
-- **The finding:** Move admission rehearses each order within its own allowance (`navigation.move_validation_work`, unit-steps), and every rehearsal step advances every unit. On its contact tick the city-contact workload issues about 20 group orders for 100 units a side, and many use their whole allowance. On Metro Large seed 4 that one tick took 49 s natively before the dense-street work and 42 s after the boxes' trig-free early rejection (1.34 trillion instructions). The browser benchmark's real-time check fails because of it.
-- **The options:** (a) a per-tick admission budget shared by the tick's orders; a member left unproven is refused today (`NoValidDestination`), so later orders in a busy tick would need deferring rather than refusing. (b) Rehearse only the movers and treat idle units, which are already observed bodies for the opposing side, as fixed. Holding cover is about a third of the stalled tick's samples. Both change which orders are admitted, so both change digests.
-- **Recommendation:** (b) first: it is the physically honest reading of "standing units are obstacles" and keeps every order's own proof; then measure whether (a) is still needed.
-- **Confidence:** medium.
+### Move orders are admitted by reach, not rehearsal
+- **When:** 2026-10-05, after the city-contact benchmark's contact tick stalled for 42 s.
+- **The choice:** A move's marker is placed where its unit has standing room it can reach on the ground its side knows (terrain components and known pockets); the journey is no longer rehearsed. Execution replans on what its side learns and on stalls, and gives a move up (`RouteBlocked`) when no way is left or its way has not got shorter in 30 s. Orders are rate limited at `commands.orders_per_s` (30) a side and dropped silently past it.
+- **Why / the gap:** Rehearsal advanced every unit each step against a per-order allowance. In a 200-unit city battle most orders were refused for running out of allowance, not route, at about a second each; proving them fully cost 3–50 s. Placing the same 40 orders now costs 0.4 G instructions in all, and the contact tick's worst is 297 ms. A proof at the click cannot hold anyway: an unseen body or an enemy can close a route after it. The user chose this (2026-10-05).
+- **The reach:** every move and attack-move order and its preview; garrison entry still rehearses. Digests change where orders used to be refused.
+- **Confidence:** high.
 
 ### One battle view and one session shell
 - **When:** slice 16 (finished in the closing cleanup).

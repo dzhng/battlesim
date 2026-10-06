@@ -242,9 +242,11 @@ export async function armyJourney(ctx) {
     (await roster.count()) === own.length &&
       (await page.locator('.hud-army-card[aria-pressed="true"]').count()) === 1,
   );
+  const armyDigest = await page.evaluate(() => window.__lab.route.digest());
   ctx.check(
     "matched army capture preserves the original battle digest",
-    (await page.evaluate(() => window.__lab.route.digest())) === "e2a99d4587f678d9",
+    armyDigest === "a5cef0d9897459e0",
+    armyDigest,
   );
   await roster.first().click();
   await roster.nth(1).click({ modifiers: ["Shift"] });

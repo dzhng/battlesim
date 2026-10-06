@@ -242,7 +242,7 @@ pub struct MovementRules {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NavigationRules {
-    /// Motion steps and route work allowed to certify one group move.
+    /// Motion steps and route work allowed to prove one garrison entry.
     /// A long leg's initial route uses the live planner's separate bound;
     /// shorter initial routes and repeated searches spend this allowance.
     pub move_validation_work: u32,
@@ -541,6 +541,7 @@ pub struct ServiceRules {
 #[serde(try_from = "UncheckedRules")]
 pub struct Rules {
     pub tick_hz: u32,
+    pub commands: CommandRules,
     pub movement: MovementRules,
     pub navigation: NavigationRules,
     pub formation: FormationRules,
@@ -571,6 +572,7 @@ pub struct Rules {
 #[derive(Deserialize)]
 struct UncheckedRules {
     tick_hz: u32,
+    commands: CommandRules,
     movement: MovementRules,
     navigation: NavigationRules,
     #[serde(default)]
@@ -604,6 +606,7 @@ impl TryFrom<UncheckedRules> for Rules {
             ("navigation", r.navigation.check()),
             ("forests", r.forests.check(&r.catalog)),
             ("formation", r.formation.check()),
+            ("commands", r.commands.check()),
         ] {
             checked.map_err(|error| crate::catalog::CatalogError::Invalid {
                 section: "rules",
@@ -613,6 +616,7 @@ impl TryFrom<UncheckedRules> for Rules {
         }
         Ok(Rules {
             tick_hz: r.tick_hz,
+            commands: r.commands,
             movement: r.movement,
             navigation: r.navigation,
             formation: r.formation,
@@ -633,6 +637,25 @@ impl TryFrom<UncheckedRules> for Rules {
             buildings: r.buildings,
             garrison: r.garrison,
         })
+    }
+}
+
+/// How fast a side may give orders: a backstop no player reaches (a
+/// tournament player's effective rate is about 5 a second), so a flood from
+/// a script or a stuck input cannot buy the battle unbounded work.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CommandRules {
+    /// Orders a side may give in a second, and in one burst; one past it is
+    /// dropped without a word.
+    pub orders_per_s: u32,
+}
+
+impl CommandRules {
+    fn check(&self) -> Result<(), String> {
+        if self.orders_per_s == 0 {
+            return Err("orders_per_s must be positive: no order would ever be taken".into());
+        }
+        Ok(())
     }
 }
 

@@ -31,8 +31,8 @@ mod push;
 mod soldier;
 mod take_cover;
 
-pub(crate) use certify::{certify, certify_orders, ProofRequest};
-pub use drive::{final_facing, Manoeuvre};
+pub(crate) use certify::{certify_orders, ProofRequest};
+pub use drive::{final_facing, final_yaw, Manoeuvre};
 pub use final_leg::{final_leg, FinalLeg, FINE_CELL_M};
 pub use push::Shove;
 pub use soldier::{clear_of, soldier_steer, Around, Corridor, Steer, Threat};
@@ -41,6 +41,13 @@ pub use soldier::{clear_of, soldier_steer, Around, Corridor, Steer, Threat};
 const GOAL_REPLAN_M: f64 = 5.0;
 /// Seconds without closing on the next waypoint before a route is replanned.
 const STALL_REPLAN_S: f64 = 2.0;
+/// How long a stalled unit's way may stay no shorter before it gives the
+/// move up and holds until its side learns something new of the ground:
+/// longer than a truck's three-point turn takes. Waiting for a vehicle in
+/// the way is traffic, not a stall.
+const GIVE_UP_S: f64 = 30.0;
+/// How much shorter its way must have become to count as progress.
+const STALL_GAIN_M: f64 = 2.0;
 /// Progress shorter than this does not reset the stall watch.
 const PROGRESS_EPSILON_M: f64 = 0.5;
 /// A vehicle planning its way out of a traffic knot plans round every
@@ -518,6 +525,22 @@ fn request_route(
     let changed = unit.planned_revision != side.revision;
     let stall_ticks = (STALL_REPLAN_S * ctx.tick_hz as f64) as u64;
     let stalled = unit.route.is_some() && ctx.tick.saturating_sub(unit.progress.1) > stall_ticks;
+    if goal_moved {
+        unit.stalls = (f64::INFINITY, ctx.tick);
+    } else if stalled && unit.blocker.is_none() {
+        let route = unit.route.as_deref().unwrap_or(&[]);
+        let left = way_left(unit.position.xy(), route);
+        if left < unit.stalls.0 - STALL_GAIN_M {
+            unit.stalls = (left, ctx.tick);
+        } else if ctx.tick.saturating_sub(unit.stalls.1) > (GIVE_UP_S * ctx.tick_hz as f64) as u64 {
+            planner.cancel(unit.id);
+            unit.route = None;
+            unit.state = MoveState::RouteBlocked;
+            unit.stalls = (f64::INFINITY, ctx.tick);
+            unit.planned_revision = side.revision;
+            return;
+        }
+    }
     // A stalled vehicle goes round the whole knot. A waiting rear vehicle
     // must also move aside when the one in front needs room to reverse.
     let detour: Vec<Obb2> = if stalled && unit.is_vehicle() {
@@ -590,6 +613,16 @@ fn request_route(
             new_goal: goal_moved,
         },
     );
+}
+
+/// Metres from `here` along `route` to its end.
+fn way_left(here: V2, route: &[V2]) -> f64 {
+    let mut at = here;
+    route.iter().fold(0.0, |sum, p| {
+        let leg = (*p - at).length();
+        at = *p;
+        sum + leg
+    })
 }
 
 /// A long ordered leg goes by road: a move or attack-move leg strictly over

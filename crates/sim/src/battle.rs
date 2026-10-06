@@ -265,6 +265,9 @@ pub struct Battle {
     /// This tick's bursts, by firing side.
     blasts: Vec<(Side, Blast)>,
     next_seq: [u64; 2],
+    /// Each side's order allowance, in orders × `tick_hz`, and the tick it
+    /// was last topped up to (see [`Self::spend_order`]).
+    order_bucket: [(u64, Tick); 2],
     /// The observation-bound opponent and its memory (off while replaying).
     opponent: Option<(Opponent, Defender)>,
     /// The fixture's completion referee and its latest verdict.
@@ -510,6 +513,7 @@ impl Battle {
                     blocker: None,
                     planned_revision: 0,
                     progress: (f64::INFINITY, 0),
+                    stalls: (f64::INFINITY, 0),
                     pursuit: None,
                     planned_goal: None,
                     engagement: u.engagement.unwrap_or(Engagement::FireAtWill),
@@ -591,6 +595,10 @@ impl Battle {
             fog: [occlusion.field(), occlusion.field()],
             occlusion,
             next_seq: [1, 1],
+            order_bucket: [(
+                u64::from(setup.rules.commands.orders_per_s) * u64::from(setup.rules.tick_hz),
+                0,
+            ); 2],
             opponent: setup.opponent.clone().map(|o| (o, Defender::default())),
             referee: setup.encounter.clone().map(|e| (e, Referee::default())),
             encounter: None,
@@ -788,6 +796,22 @@ impl Battle {
         )
     }
 
+    /// Take one order from `side`'s allowance at `tick`, topping it up first:
+    /// `orders_per_s` a second, holding at most a second's worth. Counted by
+    /// the tick an order applies at, which live play and its replay share.
+    fn spend_order(&mut self, side: usize, tick: Tick) -> bool {
+        let per_s = u64::from(self.rules.commands.orders_per_s);
+        let hz = u64::from(self.rules.tick_hz);
+        let (left, at) = &mut self.order_bucket[side];
+        *left = (*left + tick.saturating_sub(*at) * per_s).min(per_s * hz);
+        *at = (*at).max(tick);
+        if *left < hz {
+            return false;
+        }
+        *left -= hz;
+        true
+    }
+
     fn admit(
         &mut self,
         command: CommandEnvelope,
@@ -801,6 +825,9 @@ impl Battle {
         }
         self.next_seq[side] += 1;
         self.accepted.push((applied_tick, command.clone()));
+        if !self.spend_order(side, applied_tick) {
+            return Err(OrderError::RateLimited);
+        }
         let prepared = self.prepare(command, applied_tick.saturating_sub(1))?;
         let placement = prepared.placement.clone();
         let building = prepared.building.as_ref().map(|p| p.placement.clone());
@@ -2017,9 +2044,6 @@ impl Battle {
         planning_tick: Tick,
     ) -> Result<PreparedCommand, OrderError> {
         self.validate(&command)?;
-        if let Order::UpgradeMove { gesture, route } = command.order {
-            self.validate_upgrade(command.side, gesture, route)?;
-        }
         let building = if let Order::OccupyBuilding {
             units,
             building,
@@ -2359,6 +2383,15 @@ impl Battle {
         let mut known = self.sides[side.index()].clone();
         let grid = known.grid(&self.world, self.authored_props);
         let pockets = crate::navigation::Pockets::default();
+        // A queued leg sets off from where the queue ends.
+        let from = |u: &Unit| {
+            u.orders
+                .iter()
+                .rev()
+                .filter(|_| request.queued)
+                .find_map(|o| o.movement())
+                .map_or(u.position.xy(), |m| m.destination)
+        };
         let plan = crate::formation::place(
             &members,
             v2(goal[0], goal[1]),
@@ -2367,37 +2400,40 @@ impl Battle {
             libm::hypot(self.world.width(), self.world.depth()),
             |id, p| {
                 let u = &self.units[id.0 as usize];
-                // A queued leg sets off from where the queue ends.
-                let from = u
-                    .orders
-                    .iter()
-                    .rev()
-                    .filter(|_| request.queued)
-                    .find_map(|o| o.movement())
-                    .map_or(u.position.xy(), |m| m.destination);
                 grid.destination_point(
                     p,
                     &u.mobility,
                     u.hull.map(|h| h.xy().length()),
-                    from,
+                    from(u),
                     &pockets,
                 )
             },
         );
+        // A placed marker is a place to stand that its unit can reach on the
+        // ground its side knows; the way there is found and kept on the move.
         let source = self.move_source(side);
-        let certified = self.certify_move(&source, &known, &plan.slots, Some(request));
         Ok(plan
             .slots
             .into_iter()
-            .enumerate()
-            .map(|(i, slot)| {
+            .map(|slot| {
                 let u = &self.units[slot.id.0 as usize];
-                let goal = slot.point.unwrap_or(u.position.xy());
+                // An attack has no end to set a queued leg off from.
+                let after_attack = request.queued
+                    && source[slot.id.0 as usize]
+                        .orders
+                        .iter()
+                        .any(|o| matches!(o, UnitOrder::Attack { .. }));
+                let slot_point = slot.point.filter(|p| {
+                    !after_attack && grid.can_reach(from(u), *p, &u.mobility, &pockets)
+                });
+                let goal = slot_point.unwrap_or(u.position.xy());
+                let facing =
+                    movement::final_yaw(u, request.facing, from(u), goal, request.direction);
                 contract::command::MoveDestination {
                     unit: slot.id,
                     goal: [goal.x, goal.y],
-                    placed: certified[i].is_some(),
-                    facing: certified[i].unwrap_or(u.yaw),
+                    placed: slot_point.is_some(),
+                    facing: facing.unwrap_or(u.yaw),
                 }
             })
             .collect())
@@ -2474,16 +2510,6 @@ impl Battle {
         source
     }
 
-    fn certify_move(
-        &self,
-        source: &[Unit],
-        known: &SideGeometry,
-        slots: &[crate::formation::Slot],
-        request: Option<&MovePreviewRequest>,
-    ) -> Vec<Option<f64>> {
-        movement::certify(&self.movement_context(), source, known, slots, request)
-    }
-
     fn movement_context(&self) -> MovementContext<'_> {
         MovementContext {
             world: &self.world,
@@ -2500,53 +2526,6 @@ impl Battle {
             knowledge: [&self.knowledge[0], &self.knowledge[1]],
             arsenal: &self.arsenal,
         }
-    }
-
-    fn validate_upgrade(
-        &self,
-        side: Side,
-        gesture: u64,
-        route: RoutePolicy,
-    ) -> Result<(), OrderError> {
-        let mut source = self.move_source(side);
-        let mut slots = Vec::new();
-        for unit in source.iter_mut().filter(|u| u.side == side && u.alive()) {
-            let mut changed = false;
-            for (k, order) in unit.orders.iter_mut().enumerate() {
-                if let Some(m) = order.movement_mut() {
-                    if m.gesture == gesture && m.policy != route {
-                        m.policy = route;
-                        changed = true;
-                        if k == 0 {
-                            unit.route = None;
-                            unit.planned_goal = None;
-                        }
-                    }
-                }
-            }
-            if changed {
-                slots.push(crate::formation::Slot {
-                    id: unit.id,
-                    point: unit
-                        .orders
-                        .back()
-                        .and_then(|o| o.movement())
-                        .map(|m| m.destination),
-                });
-            }
-        }
-        if slots.is_empty() {
-            return Ok(());
-        }
-        let known = &self.sides[side.index()];
-        if self
-            .certify_move(&source, known, &slots, None)
-            .iter()
-            .any(Option::is_none)
-        {
-            return Err(OrderError::NoValidDestination);
-        }
-        Ok(())
     }
 
     /// A soldier's resolved place and cover (D2+): his spot while moving, his
