@@ -13,7 +13,6 @@ Review the diff or specified files against these principles.
 - Variable and function names should describe what they ARE, not what they used to be.
 - If the underlying mechanism changed (e.g. FUSE → NFS), all related names must update.
 - Ask: would a new reader be confused by this name?
-- Apply [refactor-clean](../refactor-clean/SKILL.md)'s naming sweep when scope changes; inspect bindings and shared exports as well as filenames.
 
 ## 2. No stale references
 

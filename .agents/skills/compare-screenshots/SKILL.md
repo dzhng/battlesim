@@ -34,10 +34,6 @@ differences, never decide correctness. Use
    pixelmatch diff, per-image Sobel/edge maps, edge-difference heatmap, JSON
    metrics.
 4. **Inspect boundaries before judging the whole.** For every changed visual
-   disclosure or scrollable panel, open it and capture its contents at desktop
-   and narrow widths. A collapsed summary cannot prove content readability;
-   long unbroken text can overflow a layout whose ordinary forms fit.
-   For every changed visual
    effect, inspect all sides at native scale and in matched detail crops. Include
    the effect's full fade and surrounding space; a crop ending at the component
    box hides spill. Compare top/right/bottom/left extents separately, anchored to
