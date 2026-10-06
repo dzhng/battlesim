@@ -71,7 +71,7 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
     let mut seen = std::collections::BTreeSet::new();
     for entry in &manifest.entries {
         assert!(
-            seen.insert(&entry.id),
+            seen.insert(entry.id.clone()),
             "duplicate model manifest entry: {}",
             entry.id
         );

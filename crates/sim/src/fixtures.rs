@@ -27,7 +27,9 @@ pub fn catalog_documents() -> Vec<Value> {
             let path = entry.expect("a directory entry").path();
             if path.is_dir() {
                 walk(&path, out);
-            } else if path.extension().is_some_and(|e| e == "json") {
+            } else if path.extension().is_some_and(|e| e == "json")
+                && path.file_name().is_none_or(|name| name != "model-manifest.json")
+            {
                 out.push(path);
             }
         }

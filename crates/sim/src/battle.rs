@@ -444,6 +444,7 @@ fn spawn_unit(
         blocker: None,
         planned_revision: 0,
         progress: (f64::INFINITY, 0),
+        stalls: (f64::INFINITY, 0),
         pursuit: None,
         planned_goal: None,
         engagement: u.engagement.unwrap_or(Engagement::FireAtWill),
@@ -2898,7 +2899,36 @@ impl Battle {
         slots: &[crate::formation::Slot],
         request: Option<&MovePreviewRequest>,
     ) -> Vec<Option<f64>> {
-        movement::certify(&self.movement_context(), source, known, slots, request)
+        let mut allowance = self.rules.navigation.move_validation_work as u64;
+        let orders = request.map(|request| {
+            slots
+                .iter()
+                .map(|slot| {
+                    slot.point.map_or_else(Vec::new, |destination| {
+                        vec![crate::units::UnitOrder::Move(crate::units::MoveOrder {
+                            destination,
+                            policy: request.route,
+                            gesture: 0,
+                            direction: request.direction,
+                            facing: request.facing,
+                        })]
+                    })
+                })
+                .collect::<Vec<_>>()
+        });
+        let proof = movement::certify_orders(
+            &self.movement_context(),
+            source,
+            known,
+            movement::ProofRequest {
+                slots,
+                orders: orders.as_deref(),
+                queued: request.is_some_and(|r| r.queued),
+                reserve_repair: true,
+            },
+            &mut allowance,
+        );
+        proof.facings
     }
 
     fn movement_context(&self) -> MovementContext<'_> {
