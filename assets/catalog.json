@@ -2120,9 +2120,9 @@
       "basis_yaw_deg": 0,
       "mounts": {}
     },
-    "us_m1278_jltv_hmg": {
+    "us_m1151_hmmwv_hmg": {
       "unit": "vehicle",
-      "source": "assets/source/roster/jltv/us_m1278_jltv_hmg.glb",
+      "source": "assets/source/roster/humvee/us_m1151_hmmwv_hmg.glb",
       "basis_yaw_deg": 0,
       "mounts": {
         "HMG": "hmg"

@@ -777,11 +777,11 @@
         ]
       }
     },
-    "us_m1278_jltv_hmg": {
-      "name": "M1278 JLTV HMG",
+    "us_m1151_hmmwv_hmg": {
+      "name": "M1151 HMMWV HMG",
       "description": "HMG",
       "faction": "us",
-      "family": "m1278_jltv",
+      "family": "m1151_hmmwv",
       "roles": [
         "light_vehicle"
       ],
@@ -792,7 +792,7 @@
         ],
         "category": "veh",
         "variant": "HMG",
-        "family_name": "M1278 JLTV"
+        "family_name": "M1151 HMMWV"
       },
       "extends": "roster_profile_light_car",
       "body": {
@@ -849,7 +849,7 @@
           ]
         }
       ],
-      "appearance": "us_m1278_jltv_hmg",
+      "appearance": "us_m1151_hmmwv_hmg",
       "sensors": {
         "ground_m": 700,
         "sight_shape": {

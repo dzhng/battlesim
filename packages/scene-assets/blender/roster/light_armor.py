@@ -80,6 +80,27 @@ def build(family):
             box('upper_side_'+str(side),(L-1.55,.12,.25),(-.44,side*(W/2-.19),roof-.17),paint,body)
             for j in range(4):box('stowage_'+str(side)+'_'+str(j),(.66,.16,.25),(-2.25+j*.92,side*(W/2-.08),roof-.17),dark,body,lods=(0,1,2))
         if not islav:box('driver_periscope',(.40,.36,.13),(1.47,.57,roof+.03),glass,body)
+    elif family=='humvee':
+        # HMMWV silhouette: short hood, upright split windscreen, exposed
+        # wheel arches and a compact rear bed under the ring mount.
+        roof=2.18
+        for i,x in enumerate((1.65,-1.55)):
+            for side in (-1,1):
+                wheel('F' if i==0 else 'R',x,side,.54,1.04,.40)
+                box('humvee_fender_'+str(i)+str(side),(1.42,.38,.15),(x,side*1.01,1.13),paint,body,bevel=.05)
+        prism('humvee_cab',[(-1.42,.91),(1.18,.91),(1.08,1.66),(.70,roof),(-1.25,roof)],2.04,mat=paint,parent=body,bevel=.045)
+        prism('humvee_hood',[(1.00,1.00),(2.72,1.00),(2.62,1.38),(1.18,1.52)],1.90,mat=paint,parent=body,bevel=.045)
+        box('humvee_rear_bed',(1.65,2.02,.42),(-1.98,0,1.18),paint,body,bevel=.035)
+        box('humvee_bumper',(.18,2.30,.20),(2.75,0,.92),dark,body)
+        box('humvee_grille',(.035,1.06,.28),(2.82,0,1.29),dark,body)
+        for j in range(7): box('humvee_grille_bar_'+str(j),(.04,.035,.24),(2.84,-.43+j*.14,1.29),paint,body,lods=(0,1))
+        for side in (-1,1):
+            box('humvee_windscreen_'+str(side),(.035,.72,.48),(.88,side*.42,1.86),glass,body,rot=(0,-.57,0))
+            box('humvee_mirror_'+str(side),(.10,.16,.20),(.73,side*1.20,1.98),dark,body,lods=(0,1,2))
+            for j,x in enumerate((.25,-.72)):
+                box('humvee_door_'+str(side)+str(j),(.85,.032,.91),(x,side*1.03,1.48),paint,body,bevel=.02)
+                box('humvee_window_'+str(side)+str(j),(.68,.034,.39),(x,side*1.05,1.99),glass,body,bevel=.02)
+            box('humvee_bed_rail_'+str(side),(1.58,.08,.38),(-1.96,side*.98,1.56),paint,body)
     else:
         roof=2.535
         for i,x in enumerate((2.13,-1.86)):

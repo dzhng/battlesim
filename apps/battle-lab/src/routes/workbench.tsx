@@ -48,6 +48,8 @@ import {
 } from "../workbench/sources";
 import { gamePose } from "../poseFeed";
 import game from "@fixtures/game.json";
+import rosterCatalog from "@fixtures/catalog.json";
+import modelManifest from "@fixtures/units/model-manifest.json";
 import {
   WORKBENCH_CAMERA,
   WORKBENCH_VIEWS,
@@ -174,6 +176,7 @@ export default function Workbench() {
   const [dragging, setDragging] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(params.get("catalog") === "1");
   const [catalogShots, setCatalogShots] = useState<Record<string, string>>({});
+  const [catalogModels, setCatalogModels] = useState<Record<string, LoadedModel>>({});
   const [catalogBusy, setCatalogBusy] = useState(false);
 
   const bundle = model?.installed.appearances.get(model.name)?.bundle ?? null;
@@ -182,21 +185,36 @@ export default function Workbench() {
   const tint = useMemo(() => (model ? sideTint(model, side) : undefined), [model, side]);
   const framing = useMemo(() => (model && bundle ? framingBounds(model) : null), [model, bundle]);
 
-  /** Deployable unit types, reduced to one current production appearance per
-   * type. Disabled cards have no runtime appearance and therefore do not get
-   * silently represented by a blockout in this catalog. */
+  /** Every roster card, including disabled cards. Disabled cards retain their
+   * authored source path so the workbench can render the exact blockout under
+   * audit rather than silently substituting a deployable model. */
   const catalogRows = useMemo(() => {
     if (!catalog) return [];
     const seen = new Set<string>();
-    return UNITS.ids.flatMap((id) => {
-      const type = UNITS.type(id);
-      const candidates = type.appearance
+    return rosterCatalog.cards.flatMap((card) => {
+      const manifest = modelManifest.entries.find((entry) => entry.id === card.id);
+      const type = UNITS.ids.includes(card.id) ? UNITS.type(card.id) : null;
+      const candidates = type?.appearance
         ? [type.appearance]
-        : [...new Set(UNITS.slots(id).flatMap((kind) => UNITS.soldier(kind).appearance))];
-      const appearance = candidates.find((name) => catalog.appearances.has(name));
-      if (!appearance || seen.has(`${id}|${appearance}`)) return [];
-      seen.add(`${id}|${appearance}`);
-      return [{ id, name: type.name, category: type.roster?.category ?? type.family, appearance }];
+        : type
+          ? [...new Set(UNITS.slots(card.id).flatMap((kind) => UNITS.soldier(kind).appearance))]
+          : [];
+      const appearance = candidates.find((name) => catalog.appearances.has(name)) ?? null;
+      const key = `${card.id}|${appearance ?? manifest?.source_path ?? "missing"}`;
+      if (seen.has(key)) return [];
+      seen.add(key);
+      return [
+        {
+          id: card.id,
+          name: card.name,
+          category: card.roster?.category ?? card.family,
+          appearance,
+          sourcePath: manifest?.source_path ?? null,
+          status: card.disabled_reason ? (manifest ? "DISABLED" : "DISABLED · NO MODEL") : "ENABLED",
+          modelState: appearance ? "runtime-authored" : manifest ? "disabled-source-authored" : "missing-model",
+          disabledReason: card.disabled_reason,
+        },
+      ];
     });
   }, [catalog]);
 
@@ -434,7 +452,15 @@ export default function Workbench() {
     try {
       for (const row of catalogRows) {
         if (catalogShots[row.id]) continue;
-        const next = await catalogModel(catalog, row.appearance);
+        let next = row.appearance ? await catalogModel(catalog, row.appearance) : null;
+        if (!next && row.sourcePath) {
+          const response = await fetch(`/${row.sourcePath}`);
+          if (response.ok) {
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            next = await loadDropped(row.id, bytes, { loops: INFANTRY_LOOPS });
+            setCatalogModels((models) => ({ ...models, [row.id]: next! }));
+          }
+        }
         if (!next) continue;
         const result = await renderSheet(gpu.current.device, gpu.current.format, next, null, side);
         setCatalogShots((shots) => ({ ...shots, [row.id]: result.contact.toDataURL("image/png") }));
@@ -1042,8 +1068,8 @@ export default function Workbench() {
             <div>
               <strong>Unit catalog</strong>
               <span className="lab-hint">
-                {catalogRows.length} deployable unit appearances · rendered from the current asset
-                catalog
+                {catalogRows.length} roster units · enabled and disabled models rendered from the
+                current asset sources
               </span>
             </div>
             <div className="lab-row">
@@ -1056,14 +1082,17 @@ export default function Workbench() {
           <div className="wb-catalog-grid">
             {catalogRows.map((row) => (
               <button
-                className="wb-catalog-card"
+                className={`wb-catalog-card ${row.status.startsWith("DISABLED") ? "wb-catalog-card-disabled" : ""}`}
                 type="button"
                 key={row.id}
                 onClick={() => {
                   if (!catalog) return;
-                  void catalogModel(catalog, row.appearance).then(
-                    (found) => found && install(found),
-                  );
+                  const cached = catalogModels[row.id];
+                  if (cached) install(cached);
+                  else if (row.appearance)
+                    void catalogModel(catalog, row.appearance).then(
+                      (found) => found && install(found),
+                    );
                   setCatalogOpen(false);
                 }}
               >
@@ -1074,8 +1103,9 @@ export default function Workbench() {
                 )}
                 <span className="wb-catalog-name">{row.name}</span>
                 <span className="wb-catalog-meta">
-                  {row.category} · {row.appearance}
+                  <b>{row.status}</b> · {row.category} · {row.modelState}
                 </span>
+                {row.disabledReason && <span className="wb-catalog-reason">{row.disabledReason}</span>}
               </button>
             ))}
           </div>

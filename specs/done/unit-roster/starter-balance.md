@@ -212,7 +212,7 @@ stats while their concrete platforms/model identities remain to be chosen.
 | VEH | ACV | ACV-P | 170 | heavy-apc | HMG |
 | VEH | LAV | LAV-25A2 | 160 | light-ifv | autocannon |
 | VEH | LAV | LAV-AT | 180 | missile-carrier | TOW |
-| VEH | M1278 JLTV | HMG | 90 | light-car | HMG |
+| VEH | M1151 HMMWV | HMG | 90 | light-car | HMG |
 | SUP | M109 Paladin | M109A7 | 280 | tracked-howitzer | howitzer |
 | SUP | M270 MLRS | M270A2 | 350 | heavy-rocket | rocket-battery |
 | SUP | M142 HIMARS | GMLRS | 300 | light-rocket | rocket-battery |

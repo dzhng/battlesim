@@ -1,0 +1,92 @@
+{
+  "assignment": "humvee",
+  "status": "authoring-frame-frozen; dispatch-after-fixture-match",
+  "common_contract": "README.md",
+  "source_script": "packages/scene-assets/blender/roster/humvee.py",
+  "exclusive_export_directory": "assets/source/roster/humvee/",
+  "mobility": "wheeled",
+  "reference": {
+    "page": "High Mobility Multipurpose Wheeled Vehicle",
+    "url": "https://en.wikipedia.org/wiki/High_Mobility_Multipurpose_Wheeled_Vehicle",
+    "rows": [
+      "Length 4.6 m (nominal)",
+      "Width 2.1 m (nominal)",
+      "Height 1.9 m body / 2.2 m weapon station (nominal)",
+      "Main armament HMG or automatic grenade launcher"
+    ]
+  },
+  "silhouette_requirements": "Short hood; upright split windscreen; four large wheels with exposed arches; compact rear bed; roof HMG station.",
+  "reference_limits": "HMMWV family silhouette and gameplay envelope; mount frames are authoring approximations.",
+  "frame_evidence": "Envelope and mount frames are approximate delegated authoring choices, not factory measurements.",
+  "variants": [
+    {
+      "id": "us_m1151_hmmwv_hmg",
+      "name": "M1151 HMMWV HMG",
+      "factions": [
+        "us"
+      ],
+      "variant": "HMG",
+      "profile": "light-car",
+      "appearance_id": "us_m1151_hmmwv_hmg",
+      "export": "assets/source/roster/humvee/us_m1151_hmmwv_hmg.glb",
+      "physical_authoring": {
+        "body_dimensions_m": [
+          5.2,
+          2.1,
+          2.2
+        ],
+        "half_extents_m": [
+          2.6,
+          1.05,
+          1.1
+        ],
+        "eye_m": 2.42,
+        "mounts": [
+          {
+            "name": "HMG",
+            "pack": [
+              "HMG"
+            ],
+            "role": "hmg",
+            "on": null,
+            "pivot_m": [
+              0,
+              0,
+              2.28
+            ],
+            "muzzle_m": [
+              1.35,
+              0,
+              0.32
+            ]
+          }
+        ]
+      },
+      "notes": [
+        "HMMWV M1151 silhouette with roof HMG station; re-export with humvee.py when Blender is available."
+      ]
+    }
+  ],
+  "production": {
+    "source_helper": "packages/scene-assets/blender/roster/light_armor.py",
+    "blender": "5.2.1 LTS / 9e2066aef7ef",
+    "status": "source-staged; deterministic re-export pending local Blender",
+    "reference_review": "throwaway/unit-roster-models/roof-reference-review.md",
+    "variants": [
+      {
+        "id": "us_m1151_hmmwv_hmg",
+        "glb_sha256": "",
+        "source_bytes": 0,
+        "triangles_by_tier": [
+          7502,
+          3162,
+          868,
+          700
+        ],
+        "fit_findings": [],
+        "candidate_shots": "throwaway/unit-roster-models/humvee/us_m1151_hmmwv_hmg/{front,side,rear}.png",
+        "candidate_icon": "throwaway/unit-roster-models/humvee/us_m1151_hmmwv_hmg/us_m1151_hmmwv_hmg.svg"
+      }
+    ]
+  }
+}

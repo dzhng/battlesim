@@ -695,15 +695,15 @@
       "cost": 90,
       "description": "HMG",
       "disabled_reason": null,
-      "family": "m1278_jltv",
-      "id": "us_m1278_jltv_hmg",
-      "name": "M1278 JLTV HMG",
+      "family": "m1151_hmmwv",
+      "id": "us_m1151_hmmwv_hmg",
+      "name": "M1151 HMMWV HMG",
       "roster": {
         "category": "veh",
         "factions": [
           "us"
         ],
-        "family_name": "M1278 JLTV",
+        "family_name": "M1151 HMMWV",
         "variant": "HMG"
       }
     },
@@ -11445,8 +11445,8 @@
             "variant": "120 mm mortar carrier"
           }
         },
-        "us_m1278_jltv_hmg": {
-          "appearance": "us_m1278_jltv_hmg",
+        "us_m1151_hmmwv_hmg": {
+          "appearance": "us_m1151_hmmwv_hmg",
           "body": {
             "hull": {
               "armor": {
@@ -11477,7 +11477,7 @@
           "cost": 90,
           "description": "HMG",
           "faction": "us",
-          "family": "m1278_jltv",
+          "family": "m1151_hmmwv",
           "mobility": {
             "wheeled": {
               "offroad_kmh": 32.0,
@@ -11509,7 +11509,7 @@
               ]
             }
           ],
-          "name": "M1278 JLTV HMG",
+          "name": "M1151 HMMWV HMG",
           "roles": [
             "light_vehicle"
           ],
@@ -11518,7 +11518,7 @@
             "factions": [
               "us"
             ],
-            "family_name": "M1278 JLTV",
+            "family_name": "M1151 HMMWV",
             "variant": "HMG"
           },
           "sensors": {
@@ -21063,7 +21063,7 @@
       }
     },
     {
-      "appearance": "us_m1278_jltv_hmg",
+      "appearance": "us_m1151_hmmwv_hmg",
       "body": {
         "hull": {
           "armor": {
@@ -21094,8 +21094,8 @@
       "cost": 90,
       "description": "HMG",
       "faction": "us",
-      "family": "m1278_jltv",
-      "id": "us_m1278_jltv_hmg",
+      "family": "m1151_hmmwv",
+      "id": "us_m1151_hmmwv_hmg",
       "mobility": {
         "wheeled": {
           "offroad_kmh": 32.0,
@@ -21128,7 +21128,7 @@
           ]
         }
       ],
-      "name": "M1278 JLTV HMG",
+      "name": "M1151 HMMWV HMG",
       "roles": [
         "light_vehicle"
       ],
@@ -21137,7 +21137,7 @@
         "factions": [
           "us"
         ],
-        "family_name": "M1278 JLTV",
+        "family_name": "M1151 HMMWV",
         "variant": "HMG"
       },
       "sensors": {

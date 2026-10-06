@@ -274,7 +274,7 @@
 }
 .wb-catalog-card {
   display: grid;
-  grid-template-rows: 150px auto auto;
+  grid-template-rows: 150px auto auto auto;
   gap: 5px;
   min-width: 0;
   padding: 7px;
@@ -284,6 +284,10 @@
   color: #e6ecf5;
   text-align: left;
   cursor: pointer;
+}
+.wb-catalog-card-disabled {
+  border-color: rgba(255, 177, 92, 0.58);
+  background: linear-gradient(155deg, rgba(58, 43, 31, 0.96), rgba(20, 18, 17, 0.96));
 }
 .wb-catalog-card:hover,
 .wb-catalog-card:focus-visible {
@@ -325,6 +329,18 @@
     11px ui-monospace,
     Menlo,
     monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wb-catalog-meta b {
+  color: #ffbf72;
+  font-weight: 700;
+}
+.wb-catalog-reason {
+  overflow: hidden;
+  color: #c9a887;
+  font-size: 10px;
+  line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
