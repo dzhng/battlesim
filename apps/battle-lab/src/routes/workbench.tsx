@@ -216,6 +216,7 @@ export default function Workbench() {
           category: card.roster?.category ?? card.family,
           appearance,
           sourcePath: manifest?.source_path ?? null,
+          sourceKind: manifest?.source_kind ?? null,
           status: card.disabled_reason
             ? manifest
               ? "DISABLED"
@@ -482,7 +483,10 @@ export default function Workbench() {
             const response = await fetch(`/${row.sourcePath}`);
             if (!response.ok) throw new Error(`model source returned ${response.status}`);
             const bytes = new Uint8Array(await response.arrayBuffer());
-            next = await loadDropped(row.id, bytes, { loops: INFANTRY_LOOPS });
+            next = await loadDropped(row.id, bytes, {
+              unit: row.sourceKind === "infantry" ? "soldier" : "vehicle",
+              loops: INFANTRY_LOOPS,
+            });
             setCatalogModels((models) => ({ ...models, [row.id]: next! }));
           }
           if (!next) throw new Error("no runtime appearance or authored model source");
