@@ -32,6 +32,7 @@ import {
   RangeRulerLabels,
   type RangeRulerLabelsHandle,
 } from "@web/battle/present/rangeRulerLabels";
+import { SpawnMarker, type SpawnMarkerHandle } from "@web/battle/present/spawnMarker";
 
 /** What has finished loading: the static world's meshes are built
  *  (`world`), the viewport has drawn its first frame (`renderer`), and the
@@ -57,6 +58,7 @@ export function BattleView({
   diagnostics,
   cover,
   onLoadStage,
+  spawn,
 }: {
   fixture: string;
   /** The scenario JSON the authority runs; the view draws its map. */
@@ -82,6 +84,8 @@ export function BattleView({
   cover?: ReactNode;
   /** Each stage of loading, once, as it completes. */
   onLoadStage?: (stage: BattleLoadStage) => void;
+  /** The authoritative blue entry, used for the deployment cue. */
+  spawn?: [number, number] | null;
 }) {
   const parsed = useMemo(() => {
     const s = JSON.parse(scenario) as {
@@ -126,6 +130,7 @@ export function BattleView({
   const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
+  const spawnMarker = useRef<SpawnMarkerHandle>(null);
   const { clear: clearCues } = cues;
   const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
   const { audio } = session;
@@ -210,6 +215,7 @@ export function BattleView({
           cameraConfig={cameraConfig}
           groundAt={surfaceZ}
           onPick={input ? session.onPick : undefined}
+          leftDragAction={input && !!session.purchase?.placing}
           onRightPress={session.onRightPress}
           onCursor={(pointer, view, project) => {
             const action = session.onCursor(pointer, view);
@@ -231,6 +237,7 @@ export function BattleView({
             }
             session.placePanels(project, view, pointer);
             objectiveMarkers.current?.place(project, surfaceZ);
+            spawnMarker.current?.place(project, surfaceZ);
           }}
           diagnostics={{
             ...session.probes,
@@ -243,6 +250,7 @@ export function BattleView({
         objectives={observation?.skirmish?.objectives ?? []}
         handle={objectiveMarkers}
       />
+      <SpawnMarker at={spawn ?? null} handle={spawnMarker} />
       <ReadoutLayer
         own={observation?.own ?? []}
         identified={observation?.identified}

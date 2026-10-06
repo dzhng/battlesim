@@ -120,6 +120,8 @@ interface LabViewportProps {
   groundAt?: (x: number, y: number) => number;
   /** Left/right click: the picked instance index (−1 for none) and the camera ray. */
   onPick?: (pick: LabPick) => void;
+  /** Treat a left drag as a placement gesture instead of box selection. */
+  leftDragAction?: boolean;
   /** Capture the semantic target once; null cancels a press. */
   onRightPress?: (pick: LabPick | null) => void;
   /** Per-frame pointer feedback; null leaves the native pointer active. */
@@ -373,6 +375,7 @@ export function LabViewport({
   initialCamera,
   groundAt,
   onPick,
+  leftDragAction = false,
   onRightPress,
   onCursor,
   onBox,
@@ -388,6 +391,8 @@ export function LabViewport({
 }: LabViewportProps) {
   const inputEnabledRef = useRef(inputEnabled);
   inputEnabledRef.current = inputEnabled;
+  const leftDragActionRef = useRef(leftDragAction);
+  leftDragActionRef.current = leftDragAction;
   const cancelInputRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!inputEnabled) cancelInputRef.current?.();
@@ -1077,6 +1082,11 @@ export function LabViewport({
           setBox(null);
           if (Math.hypot(e.clientX - start.x, e.clientY - start.y) <= CLICK_SLOP_PX) {
             onPickRef.current?.(makePick(e, "left"));
+          } else if (leftDragActionRef.current) {
+            onPickRef.current?.({
+              ...makePick(e, "left", e),
+              release: handle.rayAt!(e.clientX, e.clientY),
+            });
           } else {
             onBoxRef.current?.({
               x0: Math.min(start.x, e.clientX),

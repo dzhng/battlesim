@@ -77,3 +77,11 @@ test("a completed preview can confirm without another pointer movement", async (
     destination: [10, 20],
   });
 });
+
+test("deployment ghosts face the opposing edge by default and track a drag bearing", () => {
+  const client = { previewPurchase: vi.fn(async () => ({ Ok: 1 })) } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("scout");
+  expect(control.at([10, 20], client, "1")?.facing).toBeCloseTo(-Math.PI / 2);
+  expect(control.at([10, 20], client, "1", Math.PI / 2)?.facing).toBeCloseTo(Math.PI / 2);
+});

@@ -670,6 +670,7 @@ export function useBattleSession({
       if (placement && ghostModel && inputEnabled) {
         ghostModel.x = placement.destination[0];
         ghostModel.y = placement.destination[1];
+        ghostModel.yaw = placement.facing;
         ghostModel.z = surfaceZ(ghostModel.x, ghostModel.y);
         ghostModel.ghost = placement.valid === false ? PURCHASE_BLOCKED : gameXray.selected;
         composed.push(ghostModel);
@@ -768,13 +769,26 @@ export function useBattleSession({
     (pick: LabPick) => {
       if (purchasePlacement.variant) {
         if (pick.button === "right") cancelPurchase();
-        else if (inputEnabled)
+        else if (inputEnabled) {
+          if (pick.release && world) {
+            const ground = groundUnderRay(world.view, pick.ray);
+            const release = groundUnderRay(world.view, pick.release);
+            if (ground && release) {
+              purchasePlacement.at(
+                [ground[0], ground[1]],
+                sim.client,
+                "placement",
+                Math.atan2(release[1] - ground[1], release[0] - ground[0]),
+              );
+            }
+          }
           void purchasePlacement.confirm(control.issue).then((accepted) => {
             if (accepted && !purchasePlacement.variant) {
               purchaseGhost.current = null;
               setPurchasing(null);
             }
           });
+        }
         return;
       }
       const held = captured.current;
@@ -792,7 +806,15 @@ export function useBattleSession({
         if (pointer) control.onPointer(pointer);
       }
     },
-    [semanticPick, control, world, sim.client, purchasePlacement, cancelPurchase, inputEnabled],
+    [
+      semanticPick,
+      control,
+      world,
+      sim.client,
+      purchasePlacement,
+      cancelPurchase,
+      inputEnabled,
+    ],
   );
   const eligibilityIdentity = JSON.stringify(
     (observation?.own ?? []).map((u) => [
@@ -840,10 +862,19 @@ export function useBattleSession({
       world;
     if (purchasePlacement.variant) {
       const at = active && inputEnabled && groundUnderRay(world.view, pointer.ray!);
+      const facingTo =
+        active && inputEnabled && pointer.rightDragging && pointer.ray
+          ? groundUnderRay(world.view, pointer.ray)
+          : null;
+      const facing =
+        at && facingTo
+          ? Math.atan2(facingTo[1] - at[1], facingTo[0] - at[0])
+          : undefined;
       purchaseGhost.current = purchasePlacement.at(
         at ? [at[0], at[1]] : null,
         active ? sim.client : null,
         `${semanticRevision.current.version}`,
+        facing,
       );
       pointerPaint.update(
         null,

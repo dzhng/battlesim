@@ -41,7 +41,6 @@ test("an empty army can inspect one family and purchase its enabled concrete var
   fireEvent.click(view.getByRole("tab", { name: "VEH" }));
   expect(view.getAllByRole("button", { name: "M1 Abrams" })).toHaveLength(1);
   fireEvent.click(view.getByRole("button", { name: "M1 Abrams" }));
-  fireEvent.click(view.getByRole("button", { name: "SEP v2 — 200 credits" }));
   expect(choose).toHaveBeenCalledExactlyOnceWith("base");
   fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
   const unavailable = view.getByRole("button", {
@@ -75,5 +74,23 @@ test("purchase availability follows observed credits and reserved slots", () => 
     <PurchasePicker {...props} match={{ ...match, credits: 200, occupiedSlots: 29 }} />,
   );
   fireEvent.click(variant());
+  expect(choose).toHaveBeenCalledExactlyOnceWith("base");
+});
+
+test("clicking a unit family immediately arms its first available variant", () => {
+  const choose = vi.fn();
+  const view = render(
+    <PurchasePicker
+      cards={[card("base", "SEP v2"), card("trophy", "SEP v2 Trophy", "Protection deferred")]}
+      faction="us"
+      match={match}
+      onChoose={choose}
+      onReady={vi.fn()}
+      onCancelPending={vi.fn()}
+    />,
+  );
+  fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  fireEvent.click(view.getByRole("tab", { name: "VEH" }));
+  fireEvent.click(view.getByRole("button", { name: "M1 Abrams" }));
   expect(choose).toHaveBeenCalledExactlyOnceWith("base");
 });

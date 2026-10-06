@@ -3,6 +3,8 @@ import type { SimClient } from "../sim/client";
 export interface PurchaseGhost {
   variant: string;
   destination: [number, number];
+  /** World bearing of the ghost; deployment defaults toward the opposing edge. */
+  facing: number;
   valid: boolean | null;
 }
 /** Free previews are coalesced; only an acknowledgement commits a purchase. */
@@ -31,6 +33,7 @@ export class PurchasePlacementControl {
     destination: [number, number] | null,
     client: SimClient | null,
     revision: string,
+    facing = -Math.PI / 2,
   ): PurchaseGhost | null {
     if (!this.variant || !destination || !client) {
       this.ghost = null;
@@ -42,10 +45,11 @@ export class PurchasePlacementControl {
       this.generation++;
       this.resolved = null;
     }
-    const key = JSON.stringify([this.generation, this.variant, destination, revision]);
+    const key = JSON.stringify([this.generation, this.variant, destination, facing, revision]);
     const ghost = {
       variant: this.variant,
       destination,
+      facing,
       valid: this.resolved?.key === key ? "Ok" in this.resolved.placement : null,
     };
     this.intent = { client, key, ghost };

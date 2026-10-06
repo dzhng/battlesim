@@ -93,6 +93,13 @@ export function PurchasePicker({
             {[...families].map(([id, variants]) => {
               const named = variants.find((c) => UNITS.has(c.id));
               const silhouette = named && unitIcons(UNITS.type(named.id)).silhouette;
+              const firstAvailable = variants.find(
+                (v) =>
+                  finished === false &&
+                  v.disabled_reason === null &&
+                  v.cost <= match.credits &&
+                  match.occupiedSlots < match.maxUnits,
+              );
               return (
                 <button
                   key={id}
@@ -100,7 +107,15 @@ export function PurchasePicker({
                   className="hud-purchase-family"
                   aria-label={variants[0].roster.family_name}
                   aria-pressed={id === family}
-                  onClick={() => setFamily(id)}
+                  onMouseEnter={variants.length > 1 ? () => setFamily(id) : undefined}
+                  onFocus={variants.length > 1 ? () => setFamily(id) : undefined}
+                  onClick={() => {
+                    setFamily(id);
+                    if (firstAvailable) {
+                      onChoose(firstAvailable.id);
+                      setOpen(false);
+                    }
+                  }}
                 >
                   {silhouette && <Icon path={silhouette} />}
                   <span>{variants[0].roster.family_name}</span>
@@ -112,7 +127,7 @@ export function PurchasePicker({
               );
             })}
           </div>
-          {chosen.length > 0 && (
+          {chosen.length > 1 && (
             <div
               className="hud-purchase-variants"
               role="group"

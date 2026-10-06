@@ -345,6 +345,7 @@ function PreparedBattleView({
       replay={replay?.replay}
       camera={view.camera}
       cameraConfig={view.cameraConfig}
+      spawn={prepared.report.start.at}
       cover={cover}
       onLoadStage={(loaded) => {
         marks.current[loaded] ??= performance.now();
