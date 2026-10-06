@@ -2,6 +2,10 @@
 //! settlements and the woods, judged on the finished plan and, where a rule
 //! is about what a unit sees or a vehicle fits through, in the simulation's
 //! own world. The arithmetic here is this file's own, not the generator's.
+#[path = "common/halves.rs"]
+mod halves;
+#[path = "common/limits.rs"]
+mod limits;
 use contract::encounter::EncounterRecipes;
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::MapDefinition;
@@ -13,7 +17,7 @@ use mapgen::layout::{
 };
 use mapgen::open_country;
 use mapgen::parcels::fill_districts;
-use mapgen::{CompileLimits, MapPlan};
+use mapgen::MapPlan;
 use sim::encounter::{plan_encounter, PreparedMap};
 use sim::math::v2;
 use std::collections::BTreeMap;
@@ -51,11 +55,7 @@ fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
         map_type,
         size,
         region: None,
-        limits: CompileLimits {
-            max_authored_parts: 60_000,
-            max_bay_positions: 600_000,
-            max_ground_points: 200_000,
-        },
+        limits: limits::game_limits(),
     }
 }
 
@@ -672,21 +672,34 @@ fn roads_bridges_and_water_stay_clear() {
             .map(|area| &area.shape)
             .collect();
         let road_bounds: Vec<_> = roads.iter().map(|road| road.limits()).collect();
+        let on_road = |p: [f64; 2]| {
+            roads
+                .iter()
+                .zip(&road_bounds)
+                .any(|(road, [x0, y0, x1, y1])| {
+                    p[0] >= *x0 && p[1] >= *y0 && p[0] <= *x1 && p[1] <= *y1 && road.contains(p, 0.)
+                })
+        };
+        // A body abandoned in the road keeps to one half of it; every other
+        // body keeps off the carriageway.
+        let pieces: Vec<([f64; 2], [f64; 2])> = roads
+            .iter()
+            .filter_map(|road| match road {
+                GroundShape::Stroke { centerline, .. } => Some(centerline.samples().to_vec()),
+                _ => None,
+            })
+            .flat_map(|points| points.windows(2).map(|w| (w[0], w[1])).collect::<Vec<_>>())
+            .collect();
         for body in loose_bodies(plan) {
-            for p in body.corners().into_iter().chain([body.center]) {
+            let corners = body.corners();
+            if corners.iter().any(|c| on_road(*c)) {
                 assert!(
-                    !roads
-                        .iter()
-                        .zip(&road_bounds)
-                        .any(|(road, [x0, y0, x1, y1])| {
-                            p[0] >= *x0
-                                && p[1] >= *y0
-                                && p[0] <= *x1
-                                && p[1] <= *y1
-                                && road.contains(p, 0.)
-                        }),
-                    "{name}: a body lies on a carriageway at {p:?}"
+                    halves::in_one_half(pieces.iter().copied(), &corners),
+                    "{name}: a body stands across a carriageway's middle at {:?}",
+                    body.center
                 );
+            }
+            for p in corners.into_iter().chain([body.center]) {
                 assert!(
                     map.rivers.iter().all(|river| river.inside(p) < 0.0),
                     "{name}: a body lies in the water at {p:?}"

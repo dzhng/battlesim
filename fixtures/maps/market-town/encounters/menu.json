@@ -12,7 +12,7 @@
     { "side": "blue", "kind": "tank", "position": [2332, 1168], "yaw": 0.785 },
     { "side": "blue", "kind": "tank", "position": [2300, 1200], "yaw": 0.785 },
     { "side": "red", "kind": "rifle", "position": [3404, 2057], "yaw": -1.47 },
-    { "side": "red", "kind": "rifle", "position": [3346, 2065], "yaw": -1.47 },
+    { "side": "red", "kind": "rifle", "position": [3349, 2060], "yaw": -1.47 },
     { "side": "red", "kind": "rifle", "position": [3276, 2091], "yaw": -1.47 },
     { "side": "red", "kind": "at", "position": [3720, 2080], "yaw": -2.6 },
     { "side": "red", "kind": "rifle", "position": [3715, 2180], "yaw": -2.6 },

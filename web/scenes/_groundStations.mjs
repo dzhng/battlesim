@@ -638,12 +638,13 @@ export async function shoot(
 }
 
 /** A station's frame, its bare ground (no grass, no trees) and its class
- *  mask, decoded. */
-export async function stationFrame(page, map, station) {
+ *  mask, decoded; with `trees` false the frame and mask are drawn without
+ *  trees too, for a check that judges the ground under street trees. */
+export async function stationFrame(page, map, station, { trees = true } = {}) {
   return {
-    mask: decode(await shoot(page, map, station, { view: "ground-classes" })),
+    mask: decode(await shoot(page, map, station, { view: "ground-classes", trees })),
     bare: decode(await shoot(page, map, station, { grass: false, trees: false })),
-    shot: decode(await shoot(page, map, station)),
+    shot: decode(await shoot(page, map, station, { trees })),
   };
 }
 

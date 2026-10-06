@@ -682,8 +682,10 @@ test("a generated town's blocks are yards and commons, and the plain beyond keep
   const [x0, y0, x1, y1] = surface.site.map;
   const town = { ground: 0, yards: 0, drilled: 0 };
   const plain = { ground: 0, drilled: 0 };
+  let samples = 0;
   for (let y = y0 + 10; y < y1; y += 20)
     for (let x = x0 + 10; x < x1; x += 20) {
+      samples++;
       const kind = kindAt(x, y);
       const drilled = biome.plots[kind].furrow_m > 0 ? 1 : 0;
       // Inside one of the generator's blocks, clear of the street round it.
@@ -701,8 +703,9 @@ test("a generated town's blocks are yards and commons, and the plain beyond keep
   expect(town.ground).toBeGreaterThan(3000);
   expect(town.yards / town.ground).toBeGreaterThan(0.8);
   expect(town.drilled / town.ground).toBeLessThan(0.01);
-  // The biome drills about half its plots.
-  expect(plain.ground).toBeGreaterThan(50000);
+  // A large share of a mixed map lies out in the plain beyond its towns'
+  // reach, and the biome drills about half its plots.
+  expect(plain.ground / samples).toBeGreaterThan(0.4);
   expect(plain.drilled / plain.ground).toBeGreaterThan(0.4);
 });
 

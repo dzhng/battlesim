@@ -169,8 +169,21 @@ impl Obb2 {
         libm::hypot(x, y)
     }
 
+    /// The squared radius, a hair over, of the circle about the centre that
+    /// holds the rectangle grown by `margin`: a point or a segment further
+    /// off cannot meet it, and is answered without turning it into the
+    /// rectangle's frame (most of the boxes a short step is tested against).
+    fn reach_sq(&self, margin: f64) -> f64 {
+        let (x, y) = (self.half.x + margin, self.half.y + margin);
+        (x * x + y * y) * (1.0 + 1e-9) + 1e-9
+    }
+
     /// Whether `p` lies inside, the rectangle grown by `margin` on each side.
     pub fn contains(&self, p: V2, margin: f64) -> bool {
+        let off = p - self.center;
+        if off.dot(off) > self.reach_sq(margin) {
+            return false;
+        }
         let d = self.to_local(p);
         d.x.abs() <= self.half.x + margin && d.y.abs() <= self.half.y + margin
     }
@@ -185,6 +198,12 @@ impl Obb2 {
     /// the rectangle grown by `margin` on each side (a slab clip in the
     /// rectangle's frame); `None` when it misses.
     pub fn clip_segment(&self, a: V2, b: V2, margin: f64) -> Option<(f64, f64)> {
+        let (ab, ac) = (b - a, self.center - a);
+        let t = (ac.dot(ab) / ab.dot(ab).max(1e-300)).clamp(0.0, 1.0);
+        let off = ab * t - ac;
+        if off.dot(off) > self.reach_sq(margin) {
+            return None;
+        }
         let to_local = Rotation::new(-self.yaw);
         let (p, q) = (
             to_local.apply(a - self.center),

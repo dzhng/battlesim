@@ -223,24 +223,22 @@ export async function run(ctx) {
     });
     await visits.goBack();
     await visits.getByRole("link", { name: "Main menu", exact: true }).click();
-    // Read before the menu's backdrop allocates a scene of its own.
+    // Read in the same moment the visit's allocations have all returned:
+    // the menu's backdrop allocates its own scene soon after.
     const released = await visits.waitForFunction(() => {
       const n = window.__pageGpuProbe.allocations();
-      return n.buffers === 0 && n.textures === 0 && n;
-    });
-    const allocations = await released.jsonValue();
-    await menuShown(visits);
-    visitCounts.push(
-      await visits.evaluate(
-        (allocations) => ({
+      return (
+        n.buffers === 0 &&
+        n.textures === 0 && {
           devices: window.__pageGpuProbe.devices.length,
           destroyed: window.__pageGpuProbe.destroyed,
-          allocations,
+          allocations: n,
           sameDocument: performance.timeOrigin,
-        }),
-        allocations,
-      ),
-    );
+        }
+      );
+    });
+    visitCounts.push(await released.jsonValue());
+    await menuShown(visits);
   }
   ctx.check(
     "client visit disposal returns allocations to zero and retains one live page GPU",

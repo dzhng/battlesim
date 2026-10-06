@@ -103,7 +103,10 @@ Exact cost shortcuts can reduce the price of a refusal without repairing it.
 ## Limits that remain with the parent
 
 The historical matrix retains Mixed Medium seed 9's approach-balance refusal,
-with no replacement seed. Frozen vehicle obstruction proves finite refusal, not
+with no replacement seed. Since the 4 km Small tier (`ee24bfea`), Metro Medium
+seed 13 is refused for town balance: its city, centred on the midline, grows
+1.91 km² north of it and 0.46 km² south. The river test skips a seed refused
+without a river (at most two of its 360) rather than blaming the river. Frozen vehicle obstruction proves finite refusal, not
 reachable encounter placement. Fresh refused infantry extensions are idle before
 planning, so they cannot prove that the ten historically pending generated
 journeys now complete. Current public corner/centroid arrival and replay tests

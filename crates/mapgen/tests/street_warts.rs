@@ -4,12 +4,14 @@
 //! side by side on the same ground. Each wart is counted over every type and
 //! size and held at or near zero. The arithmetic here is this file's own,
 //! not the generator's.
+#[path = "common/limits.rs"]
+mod limits;
 use contract::ground::GroundShape;
 use contract::map::{SurfaceArea, SurfaceKind};
 use contract::templates::TemplateGeometryCatalog;
 use mapgen::layout::{generate_layout, GenerationRequest, MapSize, MapType, PresetDefinitions};
 use mapgen::parcels::fill_districts;
-use mapgen::{CompileLimits, MapPlan};
+use mapgen::MapPlan;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::OnceLock;
 
@@ -67,11 +69,7 @@ fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
         map_type,
         size,
         region: None,
-        limits: CompileLimits {
-            max_authored_parts: 60_000,
-            max_bay_positions: 600_000,
-            max_ground_points: 200_000,
-        },
+        limits: limits::game_limits(),
     };
     let layout = generate_layout(&request, &presets)
         .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));

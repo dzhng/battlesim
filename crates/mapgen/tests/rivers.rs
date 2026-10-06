@@ -79,15 +79,26 @@ fn json(value: &impl serde::Serialize) -> String {
 }
 
 /// M11: the seed decides whether a map has a river, as often as its type's
-/// presets say.
+/// presets say, and a river never costs a map. A seed whose map without a
+/// river is refused, for anything but water, says nothing about rivers (the
+/// game draws another); a rare few may be.
 #[test]
 fn the_seed_decides_whether_a_map_has_a_river() {
     let (never, half, always) = (presets(0.0), presets(0.5), presets(1.0));
-    let mut with_river = 0;
+    let (mut maps, mut with_river, mut refused) = (0, 0, Vec::new());
     for map_type in TYPES {
         for size in SIZES {
             for seed in 1..=40 {
                 let name = format!("{map_type:?} {size:?} seed {seed}");
+                if let Err(errors) = generate(&never, map_type, size, seed) {
+                    let feature = errors[0].feature.as_deref().unwrap_or_default();
+                    assert!(
+                        !["river", "bridges", "fairness.river"].contains(&feature),
+                        "{name}: {errors:?}"
+                    );
+                    refused.push(name);
+                    continue;
+                }
                 let rivers = |presets| {
                     generate(presets, map_type, size, seed)
                         .unwrap_or_else(|errors| panic!("{name}: {errors:?}"))
@@ -97,13 +108,17 @@ fn the_seed_decides_whether_a_map_has_a_river() {
                 assert_eq!(rivers(&never), 0, "{name}");
                 assert_eq!(rivers(&always), 1, "{name}");
                 with_river += rivers(&half);
+                maps += 1;
             }
         }
     }
-    // 360 maps at one in two: 180, and five standard deviations is 47.
+    assert!(refused.len() <= 2, "refused without a river: {refused:?}");
+    // At one in two, five standard deviations either side of half the maps.
+    let spread = 5.0 * (maps as f64 / 4.0).sqrt();
+    let expected = maps as f64 / 2.0;
     assert!(
-        (133..=227).contains(&with_river),
-        "{with_river} of 360 maps have a river"
+        (with_river as f64 - expected).abs() <= spread,
+        "{with_river} of {maps} maps have a river"
     );
 }
 
@@ -675,7 +690,7 @@ fn a_river_the_map_cannot_hold_is_refused_by_name() {
     let errors = generate(&hemmed, MapType::Open, MapSize::Medium, 5).unwrap_err();
     assert_eq!(errors[0].code, mapgen::DiagnosticCode::GenerationFailed);
     assert_eq!(errors[0].feature.as_deref(), Some("river"));
-    assert_eq!(errors[0].location, "$.presets.types.open.sizes.small");
+    assert_eq!(errors[0].location, "$.presets.types.open.sizes.medium");
     assert!(
         errors[0].message.contains("seed 5"),
         "{}",

@@ -108,33 +108,45 @@ const changed = (a, b, pixels) =>
 
 export async function streetLooks(ctx) {
   const page = await openStations(ctx, "generated");
-  const shot = await stationFrame(page, "generated", "junction-65");
+  // The ground is judged, not what stands on it: street trees stand in the
+  // walk and over the ground beside it, so every frame here is drawn without
+  // them. The junction nearest the town's centre has its painted lines; its
+  // frontage is paved yards, so the walk beside a lawn is read where the
+  // town's yards stop.
   const within =
     ([lo, hi]) =>
     (c) =>
       c.roadSd >= lo && c.roadSd <= hi;
   // Each group's pixels, and how far outside the paving its farthest are.
-  const picked = {
-    core: [sample(shot.mask, 41, (c) => c.roadSd < CORE_M), 0],
-    walk: [sample(shot.mask, 13, within(WALK_M)), WALK_M[1]],
-    lawn: [sample(shot.mask, 13, within(LAWN_M)), LAWN_M[1]],
-    curb: [sample(shot.mask, 3, within(CURB_M)), CURB_M[1]],
-    middle: [sample(shot.mask, 2, (c) => c.roadSd <= MIDDLE_M), 0],
-    lane: [sample(shot.mask, 41, within(LANE_M)), 0],
-    gutter: [sample(shot.mask, 5, within(GUTTER_M)), 0],
+  const pickers = {
+    core: (mask) => [sample(mask, 41, (c) => c.roadSd < CORE_M), 0],
+    walk: (mask) => [sample(mask, 13, within(WALK_M)), WALK_M[1]],
+    lawn: (mask) => [sample(mask, 13, within(LAWN_M)), LAWN_M[1]],
+    curb: (mask) => [sample(mask, 3, within(CURB_M)), CURB_M[1]],
+    middle: (mask) => [sample(mask, 2, (c) => c.roadSd <= MIDDLE_M), 0],
+    lane: (mask) => [sample(mask, 41, within(LANE_M)), 0],
+    gutter: (mask) => [sample(mask, 5, within(GUTTER_M)), 0],
   };
-  const groups = {};
-  for (const [name, [pixels, out]] of Object.entries(picked)) {
-    const world = await groundUnder(page, pixels);
-    const widths = await wayWidths(
-      page,
-      world.map(({ xy }, i) => ({ xy, out, sd: classAt(shot.mask, ...pixels[i]).roadSd })),
-    );
-    groups[name] = {
-      street: pixels.filter((_, i) => isStreet(widths[i])),
-      country: pixels.filter((_, i) => isCountry(widths[i])),
-    };
-  }
+  /** A station's frame and the named groups' pixels, by the way under them. */
+  const framed = async (station, names) => {
+    const shot = await stationFrame(page, "generated", station, { trees: false });
+    const groups = {};
+    for (const name of names) {
+      const [pixels, out] = pickers[name](shot.mask);
+      const world = await groundUnder(page, pixels);
+      const widths = await wayWidths(
+        page,
+        world.map(({ xy }, i) => ({ xy, out, sd: classAt(shot.mask, ...pixels[i]).roadSd })),
+      );
+      groups[name] = {
+        street: pixels.filter((_, i) => isStreet(widths[i])),
+        country: pixels.filter((_, i) => isCountry(widths[i])),
+      };
+    }
+    return { shot, groups };
+  };
+  const centre = await framed("junction-65", ["core", "walk", "curb", "middle", "lane", "gutter"]);
+  const edge = await framed("town-edge-65", ["core", "walk", "lawn"]);
   // The street against the country road is read from the town at 250 m (at
   // one junction a block of flats can shade the whole of it) and from the
   // plain at 250 m, where the country road is gravel: through the town it
@@ -144,7 +156,7 @@ export async function streetLooks(ctx) {
     ["town", "town-250"],
     ["plain", "country-250"],
   ]) {
-    const seen = await stationFrame(page, "generated", station);
+    const seen = await stationFrame(page, "generated", station, { trees: false });
     const cores = sample(seen.mask, 23, (c) => c.roadSd < CORE_M);
     const widths = await wayWidths(
       page,
@@ -156,7 +168,7 @@ export async function streetLooks(ctx) {
   // The town's buildings shade much of every street, and not the same share
   // of each group: a group is read in the sun, as the brighter half of its
   // pixels (its luminance their median, the group's upper quartile).
-  const of = (pixels, from = shot, share = 0.5) => {
+  const of = (pixels, from, share = 0.5) => {
     const lit = pixels
       .map((p) => [luminance(pixel(from.shot, ...p)), p])
       .sort((a, b) => a[0] - b[0])
@@ -172,7 +184,9 @@ export async function streetLooks(ctx) {
       ).toFixed(3),
     };
   };
-  const roadbed = of(groups.core.street);
+  const roadbed = of(centre.groups.core.street, centre.shot);
+  // Beside a lawn, where the town's yards stop.
+  const edgeRoadbed = of(edge.groups.core.street, edge.shot);
   // Between tall blocks a road may be in the sun for a short stretch only:
   // each is read as its brightest tenth.
   const toneOf = ({ seen, cores, widths }, is) =>
@@ -185,9 +199,9 @@ export async function streetLooks(ctx) {
     roadbed: toneOf(tones.town, isStreet),
     gravel: toneOf(tones.plain, isCountry),
   };
-  const walk = of(groups.walk.street);
-  const lawn = of(groups.lawn.street);
-  const counted = [roadbed, tone.roadbed, tone.gravel, walk, lawn].every(
+  const walk = of(edge.groups.walk.street, edge.shot);
+  const lawn = of(edge.groups.lawn.street, edge.shot);
+  const counted = [roadbed, edgeRoadbed, tone.roadbed, tone.gravel, walk, lawn].every(
     (g) => g.count >= GROUP_PIXELS,
   );
   ctx.check(
@@ -195,34 +209,35 @@ export async function streetLooks(ctx) {
     counted &&
       tone.roadbed.luminance <= 0.85 * tone.gravel.luminance &&
       tone.roadbed.warmth < tone.gravel.warmth &&
-      roadbed.luminance >= lawn.luminance,
-    JSON.stringify({ roadbed, tone, lawn }),
+      edgeRoadbed.luminance >= lawn.luminance,
+    JSON.stringify({ roadbed: edgeRoadbed, tone, lawn }),
   );
   // Grass is drawn over the ground it grows on: where none grows, the frame
   // is the bare ground's. A yard's mown lawn takes its ground's colour and
   // moves a pixel little; the walk's must move far less still.
   const grown = {
-    walk: +changed(shot.shot, shot.bare, groups.walk.street).toFixed(2),
-    lawn: +changed(shot.shot, shot.bare, groups.lawn.street).toFixed(2),
+    walk: +changed(edge.shot.shot, edge.shot.bare, edge.groups.walk.street).toFixed(2),
+    lawn: +changed(edge.shot.shot, edge.shot.bare, edge.groups.lawn.street).toFixed(2),
   };
   ctx.check(
     "a street has a walk each side: paler than its roadbed, and bare of grass",
     counted &&
-      walk.luminance >= 1.2 * roadbed.luminance &&
+      walk.luminance >= 1.2 * edgeRoadbed.luminance &&
       grown.walk < 0.2 &&
       grown.lawn > 4 * grown.walk + 0.4,
-    JSON.stringify({ walk, roadbed, grown }),
+    JSON.stringify({ walk, roadbed: edgeRoadbed, grown }),
   );
-  const curb = of(groups.curb.street);
+  const curb = of(centre.groups.curb.street, centre.shot);
+  const behind = of(centre.groups.walk.street, centre.shot);
   ctx.check(
     "a street's edge is a line of kerbstones, paler than the walk behind them",
-    curb.count >= GROUP_PIXELS && curb.luminance >= 1.1 * walk.luminance,
-    JSON.stringify({ curb, walk }),
+    curb.count >= GROUP_PIXELS && curb.luminance >= 1.1 * behind.luminance,
+    JSON.stringify({ curb, walk: behind }),
   );
   // Paint: the share of a group's pixels far brighter than the roadbed, and
   // how bright those are.
   const painted = (pixels) => {
-    const light = pixels.map(([x, y]) => luminance(pixel(shot.shot, x, y)));
+    const light = pixels.map(([x, y]) => luminance(pixel(centre.shot.shot, x, y)));
     const paint = light.filter((v) => v > PAINT * roadbed.luminance);
     return {
       count: pixels.length,
@@ -231,9 +246,9 @@ export async function streetLooks(ctx) {
     };
   };
   const marks = {
-    middle: painted(groups.middle.street),
-    lane: painted(groups.lane.street),
-    gutter: painted(groups.gutter.street),
+    middle: painted(centre.groups.middle.street),
+    lane: painted(centre.groups.lane.street),
+    gutter: painted(centre.groups.gutter.street),
   };
   ctx.check(
     "a street's centre line is dashes of paint that stand out from its roadbed, and its lanes are bare but for a crossing's bars",
@@ -252,6 +267,7 @@ export async function streetLooks(ctx) {
   );
   await ctx.writeEvidence("street-looks.json", {
     roadbed,
+    edgeRoadbed,
     tone,
     walk,
     lawn,

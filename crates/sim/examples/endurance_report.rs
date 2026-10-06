@@ -9,7 +9,7 @@
 //! publication packing excluded), in billions: unlike wall time it does not
 //! move with machine load, so it is the number to compare between builds.
 //!
-//!     cargo run -p sim --release --example endurance_report [minutes] [early|late] [map.json]
+//!     cargo run -p sim --release --example endurance_report [minutes] [early|late] [map.json | map-folder]
 use std::time::Instant;
 
 use contract::ids::Side;
@@ -28,6 +28,13 @@ fn main() {
     let field = std::env::args().nth(3).map_or_else(
         || sim::maps::load("endurance").unwrap().definition,
         |path| {
+            let path = std::path::Path::new(&path);
+            if path.is_dir() {
+                // A saved map's folder, as `mapgen generate-map` writes it.
+                return sim::maps::load_folder(path)
+                    .unwrap_or_else(|e| panic!("{e}"))
+                    .definition;
+            }
             serde_json::from_str(&std::fs::read_to_string(path).expect("read map"))
                 .expect("compiled map")
         },
