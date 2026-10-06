@@ -110,6 +110,12 @@
         "family_name": "ATGM Team"
       },
       "extends": "roster_profile_at_team",
+      "capabilities": {
+        "deploy": {
+          "seconds": 3,
+          "pack_seconds": 3
+        }
+      },
       "body": {
         "squad": {
           "slots": [

@@ -10,6 +10,7 @@ use contract::weapons::{AmmoCapacity, WeaponDefinition};
 mod cycle;
 use cycle::Cycle;
 
+use crate::deployment;
 use crate::digest::Digest;
 use crate::flight::{
     launch_along, predicted_path, solve_launch_past, Aim, BodyId, FiringSolution, FlightConfig,
@@ -1289,6 +1290,17 @@ fn select_active(
     moving: bool,
 ) {
     if unit.hull.is_some() {
+        return;
+    }
+    // A carried launcher remains packed until its deployment/aiming setup is
+    // complete.  The deployment owner is the single timer for both the
+    // visual carried/active pose and weapon readiness; selecting a mount
+    // early would make the model appear unpacked while the unit still cannot
+    // fire.
+    if unit.deployment.is_some() && !deployment::fully_deployed(unit) {
+        for member in &mut unit.members {
+            member.active_mount = None;
+        }
         return;
     }
     for member in 0..unit.members.len() {

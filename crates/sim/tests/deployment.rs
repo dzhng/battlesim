@@ -12,6 +12,7 @@ use crate::common;
 
 const SUPPLY: UnitId = UnitId(0);
 const TANK: UnitId = UnitId(1);
+const KORNET: UnitId = UnitId(2);
 
 // Symmetric timing control for the reversal and movement matrix.
 fn duration() -> u32 {
@@ -31,13 +32,43 @@ fn setup() -> contract::scenario::ScenarioDefinition {
     serde_json::from_value(json!({
         "map": { "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": fixture,
-        "units": [{ "side": "blue", "kind": "supply", "position": [100, 200] }, { "side": "blue", "kind": "tank", "position": [100, 300] }],
+        "units": [{ "side": "blue", "kind": "supply", "position": [100, 200] }, { "side": "blue", "kind": "tank", "position": [100, 300] }, { "side": "blue", "kind": "eastern_atgm_team_kornet", "position": [140, 200] }],
         "events": []
     })).unwrap()
 }
 
 fn battle() -> Battle {
     Battle::new(&setup(), 12)
+}
+
+#[test]
+fn kornet_uses_its_three_second_aim_time_for_setup() {
+    let mut b = battle();
+    let deployment = b.unit(KORNET).unwrap().deployment.as_ref().unwrap();
+    assert_eq!(deployment.duration, 90);
+    assert_eq!(deployment.current, 0);
+    assert!(b
+        .unit(KORNET)
+        .unwrap()
+        .members
+        .iter()
+        .all(|member| member.active_mount.is_none()));
+    run(&mut b, 89);
+    assert!(b.unit(KORNET).unwrap().deployment.as_ref().unwrap().current < 90);
+    assert!(b
+        .unit(KORNET)
+        .unwrap()
+        .members
+        .iter()
+        .all(|member| member.active_mount.is_none()));
+    run(&mut b, 1);
+    assert!(deployment::fully_deployed(b.unit(KORNET).unwrap()));
+    assert!(b
+        .unit(KORNET)
+        .unwrap()
+        .members
+        .iter()
+        .any(|member| member.active_mount.is_some()));
 }
 
 struct Commander {
