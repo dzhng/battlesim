@@ -1,6 +1,6 @@
 //! Solid props: oriented boxes standing on the ground. One store for static
 //! scenery and later dynamic remains; a uniform bucket grid accelerates queries.
-use crate::math::{v2, v3, Obb2, V2, V3};
+use crate::math::{v2, v3, Obb2, Rotation, V2, V3};
 use contract::catalog::{PropBody, PropKind};
 use contract::map::MoverClass;
 use std::collections::BTreeMap;
@@ -45,23 +45,16 @@ impl Prop {
         }
     }
 
-    /// World point → prop-local frame (origin at box centre).
-    fn to_local(&self, p: V3) -> V3 {
-        let d = self.footprint().to_local(p.xy());
-        v3(d.x, d.y, p.z - (self.base_z + self.half.z))
-    }
-
-    fn dir_to_local(&self, d: V3) -> V3 {
-        let r = d.xy().rotated(-self.yaw);
-        v3(r.x, r.y, d.z)
-    }
-
     /// Slab test. Returns (t, world normal) of the entry point; an origin
     /// already inside the box hits at t = 0.
     pub fn raycast(&self, origin: V3, dir: V3, max_t: f64) -> Option<(f64, V3)> {
+        // Into the box's frame (origin at its centre): one rotation for the
+        // point and the direction.
+        let into = Rotation::new(-self.yaw);
+        let (o, d) = (into.apply(origin.xy() - self.center), into.apply(dir.xy()));
         let (t, n) = ray_box(
-            self.to_local(origin),
-            self.dir_to_local(dir),
+            v3(o.x, o.y, origin.z - (self.base_z + self.half.z)),
+            v3(d.x, d.y, dir.z),
             self.half,
             max_t,
         )?;
@@ -302,6 +295,21 @@ impl PropIndex {
         }
         out.sort_unstable();
         out.dedup();
+    }
+
+    /// Whether `hit` holds for some prop whose footprint circle comes within
+    /// `radius` (and a millimetre) of `center`, stopping at the first. Ids
+    /// are not deduplicated: one in several buckets may be offered more than
+    /// once.
+    pub fn any_near(&self, center: V2, radius: f64, mut hit: impl FnMut(PropId) -> bool) -> bool {
+        let (i0, i1, j0, j1) = self.range(center, radius);
+        (j0..=j1).any(|j| {
+            (i0..=i1).any(|i| {
+                self.cells[j * self.nx + i].iter().any(|e| {
+                    (e.center - center).within_radius(radius + e.radius + 1e-3) && hit(e.id)
+                })
+            })
+        })
     }
 
     /// Whether `hit` holds for some prop whose footprint circle the XY
@@ -610,6 +618,18 @@ impl PropStore {
                     .index
                     .any_along(a, b, |id| !own.props.contains_key(&id) && hit(id))
                     || own.index.any_along(a, b, hit)
+            }
+        }
+    }
+
+    pub fn any_near(&self, center: V2, radius: f64, mut hit: impl FnMut(PropId) -> bool) -> bool {
+        match &self.own {
+            None => self.shared.index.any_near(center, radius, hit),
+            Some(own) => {
+                self.shared
+                    .index
+                    .any_near(center, radius, |id| !own.props.contains_key(&id) && hit(id))
+                    || own.index.any_near(center, radius, hit)
             }
         }
     }

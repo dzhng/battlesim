@@ -123,6 +123,10 @@ pub fn sees_point(
     foliage_reach(range * concealment, foliage, s).is_some_and(|reach| distance <= reach)
 }
 
+/// A visibility sample: the member it belongs to (none for a hull), where
+/// it is, and the concealment its ground and building give it.
+type Sample = (Option<usize>, V3, f64);
+
 /// Visibility samples of a unit, with the member index they belong to.
 fn samples(unit: &Unit) -> Vec<(Option<usize>, V3)> {
     match unit.hull {
@@ -193,10 +197,17 @@ pub fn evaluate(
     let mut out = Vec::new();
     // The living enemy, once: fallen squads stay in the list all battle.
     let body = rules.physics.soldier_radius_m;
-    let targets: Vec<(&Unit, f64)> = units
+    // Each with its samples and their concealment, which no observer changes.
+    let targets: Vec<(&Unit, f64, Vec<Sample>)> = units
         .iter()
         .filter(|u| u.side != side && u.alive())
-        .map(|u| (u, u.footprint_radius(body)))
+        .map(|u| {
+            let samples = samples(u)
+                .into_iter()
+                .map(|(member, at)| (member, at, target_concealment(world, u, at, rules)))
+                .collect();
+            (u, u.footprint_radius(body), samples)
+        })
         .collect();
     for observer in units
         .iter()
@@ -207,7 +218,8 @@ pub fn evaluate(
         let concealed_range_multiplier =
             observer.unit_type(rules).sensors.concealed_range_multiplier;
         let observer_radius = observer.footprint_radius(body);
-        for &(target, target_radius) in &targets {
+        for (target, target_radius, samples) in &targets {
+            let (target, target_radius) = (*target, *target_radius);
             // Every eye and sample lies within `spread` of the two centres, so
             // no sample can be seen past the widest reach across that arc.
             let spread = observer_radius + target_radius;
@@ -223,10 +235,8 @@ pub fn evaluate(
             }
             let mut seen = Vec::new();
             let mut any = false;
-            for (member, at) in samples(target) {
-                let concealment = (target_concealment(world, target, at, rules)
-                    * concealed_range_multiplier)
-                    .min(1.0);
+            for &(member, at, sheltered) in samples {
+                let concealment = (sheltered * concealed_range_multiplier).min(1.0);
                 if from
                     .iter()
                     .any(|&eye| sees_point(world, eye, at, &sight, concealment, s))

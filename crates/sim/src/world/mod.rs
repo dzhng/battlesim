@@ -611,7 +611,10 @@ impl WorldGeometry {
             .filter(|&id| !self.skips_structure(id, past))
         {
             let prop = self.props.get(id).expect("indexed prop is live");
-            if prop.body.stops_rounds || prop.body.hp.is_none() {
+            if prop.body.stops_rounds
+                || prop.body.hp.is_none()
+                || !track_near(origin, dir, max_t, prop)
+            {
                 continue;
             }
             if let Some((t, _)) = prop.raycast(origin, dir, max_t) {
@@ -644,19 +647,24 @@ impl WorldGeometry {
             normal,
             collider: Collider::Terrain,
         });
-        let mut ids = Vec::new();
-        self.props
-            .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
-        for id in ids
-            .into_iter()
-            .filter(|&id| !self.skips_structure(id, skip))
-        {
+        // Bodies are offered as the index holds them (each whose footprint
+        // circle the track passes, perhaps more than once): the nearest hit
+        // wins, a body only before the ground strictly nearer, and among
+        // bodies hit at the same distance the lowest id.
+        let (a, b) = (origin.xy(), (origin + dir * max_t).xy());
+        self.props.any_along(a, b, |id| {
+            if self.skips_structure(id, skip) {
+                return false;
+            }
             let prop = self.props.get(id).expect("indexed prop is live");
             if !admits(&prop.body) {
-                continue;
+                return false;
             }
             if let Some((t, normal)) = prop.raycast(origin, dir, max_t) {
-                if best.is_none_or(|b| t < b.t) {
+                let nearer = best.is_none_or(|h| {
+                    t < h.t || (t == h.t && matches!(h.collider, Collider::Prop(o) if id < o))
+                });
+                if nearer {
                     best = Some(Hit {
                         t,
                         point: origin + dir * t,
@@ -665,7 +673,8 @@ impl WorldGeometry {
                     });
                 }
             }
-        }
+            false
+        });
         best
     }
 
@@ -894,6 +903,21 @@ impl WorldGeometry {
         d.u64(standing);
     }
 
+    /// Whether `hit` holds for some prop whose footprint comes within
+    /// `radius` of `center` (every such prop is offered, and some farther;
+    /// one may be offered more than once), stopping at the first. Unlike
+    /// [`Self::props_near`] it neither allocates nor sorts.
+    pub fn any_prop_near(
+        &self,
+        center: V2,
+        radius: f64,
+        mut hit: impl FnMut(&Prop) -> bool,
+    ) -> bool {
+        self.props.any_near(center, radius, |id| {
+            hit(self.prop(id).expect("indexed prop is live"))
+        })
+    }
+
     /// Props whose footprint may reach within `radius` of `center`.
     pub fn props_near(&self, center: V2, radius: f64) -> Vec<&Prop> {
         let mut ids = Vec::new();
@@ -957,4 +981,17 @@ fn digest_pose(d: &mut crate::digest::Digest, p: &Prop) {
         .f64(p.center.y)
         .f64(p.yaw)
         .f64(p.base_z);
+}
+
+/// Whether the ground track of `origin + dir * t`, t ∈ [0, max_t], comes
+/// within `prop`'s footprint circle (its half-sides bound the half-diagonal
+/// without a square root): a ray whose track stays outside it cannot meet
+/// the box, so the slab test is skipped for most bodies a ray's buckets hold.
+fn track_near(origin: V3, dir: V3, max_t: f64, prop: &Prop) -> bool {
+    let (a, ab) = (origin.xy(), dir.xy() * max_t);
+    let ac = prop.center - a;
+    let t = (ac.dot(ab) / ab.dot(ab).max(1e-300)).clamp(0.0, 1.0);
+    let off = ab * t - ac;
+    let reach = prop.half.x.abs() + prop.half.y.abs();
+    off.dot(off) <= reach * reach * (1.0 + 1e-9) + 1e-9
 }

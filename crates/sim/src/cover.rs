@@ -247,16 +247,17 @@ pub fn at(
 ) -> Option<Tier> {
     let c = &rules.cover;
     let r = rules.physics.soldier_radius_m;
-    let props: Vec<Body> = world
-        .props_near(p, c.reach_m)
-        .into_iter()
-        .filter_map(prop_body)
-        .collect();
-    let near = hulls
-        .iter()
-        .filter(|h| (h.rect.center - p).length() <= h.rect.half.length() + c.reach_m);
     let fill = ground.crater_fill(p.x, p.y, &rules.ground);
-    strongest(props.iter().chain(near), crater(fill, c), p, from, c, r)
+    // The strongest tier wins whatever the order, so bodies are offered as
+    // the index holds them; `covers` turns the far ones away cheaply.
+    let mut best = strongest(hulls, crater(fill, c), p, from, c, r);
+    world.any_prop_near(p, c.reach_m, |prop| {
+        if let Some(b) = prop_body(prop).filter(|b| body_covers(b, p, from, c.reach_m, r)) {
+            best = best.max(Some(b.tier));
+        }
+        false
+    });
+    best
 }
 
 /// The spread multiplier a soldier's cover `tier` gives a round aimed at him.
