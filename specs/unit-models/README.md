@@ -16,4 +16,18 @@ This implementation pass adds authored 3D model coverage for roster cards that r
 3. Disabled support/air/drone model families, using one explicit source family per platform and no runtime admission.
 4. Asset bake/check and visual review; keep the disabled-card gate green.
 
+## Current handoff
+
+The disabled-card registry now has source-authored GLBs for all 86 disabled
+cards under `assets/source/roster/disabled/`. These are deliberately static
+source placeholders for deferred mechanics families (aircraft, rotorcraft,
+artillery/support, drones, and deferred ground cards); they are not entries in
+`assets/catalog.json` and cannot be selected or deployed. Challenger 3 also has
+an authored family model at `assets/source/roster/challenger/`.
+
+The next art pass should replace the generic disabled silhouettes with
+family-specific meshes as the corresponding mechanics contracts are designed.
+Do not bind these records to the runtime catalog until a unit type, mount
+layout, animation contract, and the relevant mechanics exist.
+
 The archived roster model-production rationale remains at [`specs/done/unit-roster/model-production.md`](../done/unit-roster/model-production.md). The source and validation owner is [`packages/scene-assets`](../../packages/scene-assets/README.md).

@@ -6,775 +6,861 @@
       "id": "ah_64e_guardian",
       "family": "ah_64_apache",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "ah_64_apache",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/ah_64e_guardian.glb"
     },
     {
       "id": "eastern_2s19_msta_s_2s19m2",
       "family": "2s19_msta_s",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "2s19_msta_s",
       "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred"
+      "disabled_reason": "Artillery and indirect-support mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_2s19_msta_s_2s19m2.glb"
     },
     {
       "id": "eastern_9k515_tornado_s_heavy_rocket_artillery",
       "family": "9k515_tornado_s",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "9k515_tornado_s",
       "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred"
+      "disabled_reason": "Artillery and indirect-support mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_9k515_tornado_s_heavy_rocket_artillery.glb"
     },
     {
       "id": "eastern_air_defense_team_fn_6",
       "family": "air_defense_team",
       "category": "inf",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "air_defense_team",
       "source_kind": "infantry",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred"
+      "disabled_reason": "Air-defense targeting and airborne targets deferred",
+      "source_path": "assets/source/roster/disabled/eastern_air_defense_team_fn_6.glb"
     },
     {
       "id": "eastern_air_defense_team_igla_s",
       "family": "air_defense_team",
       "category": "inf",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "air_defense_team",
       "source_kind": "infantry",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred"
+      "disabled_reason": "Air-defense targeting and airborne targets deferred",
+      "source_path": "assets/source/roster/disabled/eastern_air_defense_team_igla_s.glb"
     },
     {
       "id": "eastern_bm_21_grad_bm_21_rocket_artillery",
       "family": "bm_21_grad",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "bm_21_grad",
       "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred"
+      "disabled_reason": "Artillery and indirect-support mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_bm_21_grad_bm_21_rocket_artillery.glb"
     },
     {
       "id": "eastern_brm_brm_3k",
       "family": "brm",
       "category": "rec",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "brm",
       "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending"
+      "disabled_reason": "Ground profile and model admission pending",
+      "source_path": "assets/source/roster/disabled/eastern_brm_brm_3k.glb"
     },
     {
       "id": "eastern_buk_buk_m3_medium_range_air_defense",
       "family": "buk",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "buk",
       "source_kind": "support",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred"
+      "disabled_reason": "Air-defense targeting and airborne targets deferred",
+      "source_path": "assets/source/roster/disabled/eastern_buk_buk_m3_medium_range_air_defense.glb"
     },
     {
       "id": "eastern_j_10_vigorous_dragon_j_10c",
       "family": "j_10_vigorous_dragon",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "j_10_vigorous_dragon",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_j_10_vigorous_dragon_j_10c.glb"
     },
     {
       "id": "eastern_j_20_mighty_dragon_stealth_fighter",
       "family": "j_20_mighty_dragon",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "j_20_mighty_dragon",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_j_20_mighty_dragon_stealth_fighter.glb"
     },
     {
       "id": "eastern_ka_52_alligator_ka_52m",
       "family": "ka_52_alligator",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "ka_52_alligator",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_ka_52_alligator_ka_52m.glb"
     },
     {
       "id": "eastern_kamikaze_drone_anti_armor",
       "family": "kamikaze_drone",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "kamikaze_drone",
       "source_kind": "support",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_kamikaze_drone_anti_armor.glb"
     },
     {
       "id": "eastern_kamikaze_drone_anti_personnel",
       "family": "kamikaze_drone",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "kamikaze_drone",
       "source_kind": "support",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_kamikaze_drone_anti_personnel.glb"
     },
     {
       "id": "eastern_mi_24_mi_35_hind_mi_35m",
       "family": "mi_24_mi_35_hind",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "mi_24_mi_35_hind",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_mi_24_mi_35_hind_mi_35m.glb"
     },
     {
       "id": "eastern_mi_28_havoc_mi_28nm",
       "family": "mi_28_havoc",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "mi_28_havoc",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_mi_28_havoc_mi_28nm.glb"
     },
     {
       "id": "eastern_mi_8_hip_mi_8amtsh",
       "family": "mi_8_hip",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "mi_8_hip",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_mi_8_hip_mi_8amtsh.glb"
     },
     {
       "id": "eastern_mig_29_fulcrum_mig_29smt",
       "family": "mig_29_fulcrum",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "mig_29_fulcrum",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_mig_29_fulcrum_mig_29smt.glb"
     },
     {
       "id": "eastern_mig_31_foxhound_mig_31bm",
       "family": "mig_31_foxhound",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "mig_31_foxhound",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_mig_31_foxhound_mig_31bm.glb"
     },
     {
       "id": "eastern_orlan_10_reconnaissance_drone",
       "family": "orlan_10",
       "category": "rec",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "orlan_10",
       "source_kind": "ground_vehicle",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_orlan_10_reconnaissance_drone.glb"
     },
     {
       "id": "eastern_pantsir_pantsir_sm",
       "family": "pantsir",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "pantsir",
       "source_kind": "support",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred"
+      "disabled_reason": "Air-defense targeting and airborne targets deferred",
+      "source_path": "assets/source/roster/disabled/eastern_pantsir_pantsir_sm.glb"
     },
     {
       "id": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
       "family": "plz_05",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "plz_05",
       "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred"
+      "disabled_reason": "Artillery and indirect-support mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_plz_05_chinese_tracked_155_mm_howitzer.glb"
     },
     {
       "id": "eastern_scout_drone_thermal",
       "family": "scout_drone",
       "category": "rec",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "scout_drone",
       "source_kind": "ground_vehicle",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_scout_drone_thermal.glb"
     },
     {
       "id": "eastern_su_25_frogfoot_su_25sm3",
       "family": "su_25_frogfoot",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "su_25_frogfoot",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_su_25_frogfoot_su_25sm3.glb"
     },
     {
       "id": "eastern_su_57_felon_stealth_multirole_fighter",
       "family": "su_57_felon",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "su_57_felon",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_su_57_felon_stealth_multirole_fighter.glb"
     },
     {
       "id": "eastern_sukhoi_flanker_family_su_27sm3",
       "family": "sukhoi_flanker_family",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "sukhoi_flanker_family",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_27sm3.glb"
     },
     {
       "id": "eastern_sukhoi_flanker_family_su_30sm2",
       "family": "sukhoi_flanker_family",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "sukhoi_flanker_family",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_30sm2.glb"
     },
     {
       "id": "eastern_sukhoi_flanker_family_su_34",
       "family": "sukhoi_flanker_family",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "sukhoi_flanker_family",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_34.glb"
     },
     {
       "id": "eastern_sukhoi_flanker_family_su_35s",
       "family": "sukhoi_flanker_family",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "sukhoi_flanker_family",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_35s.glb"
     },
     {
       "id": "eastern_t_14_armata_main_battle_tank",
       "family": "t_14_armata",
       "category": "veh",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "t_14_armata",
       "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending"
+      "disabled_reason": "Ground profile and model admission pending",
+      "source_path": "assets/source/roster/disabled/eastern_t_14_armata_main_battle_tank.glb"
     },
     {
       "id": "eastern_t_15_armata_heavy_ifv",
       "family": "t_15_armata",
       "category": "veh",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "t_15_armata",
       "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending"
+      "disabled_reason": "Ground profile and model admission pending",
+      "source_path": "assets/source/roster/disabled/eastern_t_15_armata_heavy_ifv.glb"
     },
     {
       "id": "eastern_type_15_ztq_15_light_tank",
       "family": "type_15",
       "category": "veh",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "type_15",
       "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending"
+      "disabled_reason": "Ground profile and model admission pending",
+      "source_path": "assets/source/roster/disabled/eastern_type_15_ztq_15_light_tank.glb"
     },
     {
       "id": "eastern_z_10_attack_helicopter",
       "family": "z_10",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "z_10",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_z_10_attack_helicopter.glb"
     },
     {
       "id": "eastern_z_20_utility_transport",
       "family": "z_20",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "z_20",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/eastern_z_20_utility_transport.glb"
     },
     {
       "id": "europe_atgm_team_akeron_mp",
       "family": "atgm_team",
       "category": "inf",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "atgm_team",
       "source_kind": "infantry",
-      "disabled_reason": "Ground profile and model admission pending"
+      "disabled_reason": "Ground profile and model admission pending",
+      "source_path": "assets/source/roster/disabled/europe_atgm_team_akeron_mp.glb"
     },
     {
       "id": "europe_aw101_merlin_hc4",
       "family": "aw101_merlin",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "aw101_merlin",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_aw101_merlin_hc4.glb"
     },
     {
       "id": "europe_aw159_wildcat_ah1",
       "family": "aw159_wildcat",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "aw159_wildcat",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_aw159_wildcat_ah1.glb"
     },
     {
       "id": "europe_boxer_skyranger_30_gun_and_missile_air_defense",
       "family": "boxer_skyranger_30",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "boxer_skyranger_30",
       "source_kind": "support",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred"
+      "disabled_reason": "Air-defense targeting and airborne targets deferred",
+      "source_path": "assets/source/roster/disabled/europe_boxer_skyranger_30_gun_and_missile_air_defense.glb"
     },
     {
       "id": "europe_caesar_88",
       "family": "caesar",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "caesar",
       "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred"
+      "disabled_reason": "Artillery and indirect-support mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_caesar_88.glb"
     },
     {
       "id": "europe_ch_47_chinook_hc6",
       "family": "ch_47_chinook",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "ch_47_chinook",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_ch_47_chinook_hc6.glb"
     },
     {
       "id": "europe_challenger_challenger_3",
       "family": "challenger",
       "category": "veh",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "challenger",
       "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending"
+      "disabled_reason": "Ground profile and model admission pending",
+      "source_path": "assets/source/roster/disabled/europe_challenger_challenger_3.glb"
     },
     {
       "id": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
       "family": "ebrc_jaguar",
       "category": "rec",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "ebrc_jaguar",
       "source_kind": "ground_vehicle",
-      "disabled_reason": "Ground profile and model admission pending"
+      "disabled_reason": "Ground profile and model admission pending",
+      "source_path": "assets/source/roster/disabled/europe_ebrc_jaguar_armed_reconnaissance_vehicle.glb"
     },
     {
       "id": "europe_ec665_tiger_had",
       "family": "ec665_tiger",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "ec665_tiger",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_ec665_tiger_had.glb"
     },
     {
       "id": "europe_ec665_tiger_uht",
       "family": "ec665_tiger",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "ec665_tiger",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_ec665_tiger_uht.glb"
     },
     {
       "id": "europe_eurofighter_typhoon_tranche_3",
       "family": "eurofighter_typhoon",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "eurofighter_typhoon",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_eurofighter_typhoon_tranche_3.glb"
     },
     {
       "id": "europe_gepard_1a2",
       "family": "gepard",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "gepard",
       "source_kind": "support",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred"
+      "disabled_reason": "Air-defense targeting and airborne targets deferred",
+      "source_path": "assets/source/roster/disabled/europe_gepard_1a2.glb"
     },
     {
       "id": "europe_jas_39_gripen_e",
       "family": "jas_39_gripen",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "jas_39_gripen",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_jas_39_gripen_e.glb"
     },
     {
       "id": "europe_kamikaze_drone_anti_armor",
       "family": "kamikaze_drone",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "kamikaze_drone",
       "source_kind": "support",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_kamikaze_drone_anti_armor.glb"
     },
     {
       "id": "europe_kamikaze_drone_anti_personnel",
       "family": "kamikaze_drone",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "kamikaze_drone",
       "source_kind": "support",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_kamikaze_drone_anti_personnel.glb"
     },
     {
       "id": "europe_mars_ii_multiple_launch_rocket_system",
       "family": "mars_ii",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "mars_ii",
       "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred"
+      "disabled_reason": "Artillery and indirect-support mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_mars_ii_multiple_launch_rocket_system.glb"
     },
     {
       "id": "europe_mirage_2000_2000d_rmv",
       "family": "mirage_2000",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "mirage_2000",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_mirage_2000_2000d_rmv.glb"
     },
     {
       "id": "europe_nasams_nasams_3",
       "family": "nasams",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "nasams",
       "source_kind": "support",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred"
+      "disabled_reason": "Air-defense targeting and airborne targets deferred",
+      "source_path": "assets/source/roster/disabled/europe_nasams_nasams_3.glb"
     },
     {
       "id": "europe_nh90_tth",
       "family": "nh90",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "nh90",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_nh90_tth.glb"
     },
     {
       "id": "europe_pzh_2000_tracked_155_mm_howitzer",
       "family": "pzh_2000",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "pzh_2000",
       "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred"
+      "disabled_reason": "Artillery and indirect-support mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_pzh_2000_tracked_155_mm_howitzer.glb"
     },
     {
       "id": "europe_rafale_c_f4",
       "family": "rafale",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "rafale",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_rafale_c_f4.glb"
     },
     {
       "id": "europe_scout_drone_standard",
       "family": "scout_drone",
       "category": "rec",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "scout_drone",
       "source_kind": "ground_vehicle",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_scout_drone_standard.glb"
     },
     {
       "id": "europe_scout_drone_thermal",
       "family": "scout_drone",
       "category": "rec",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "scout_drone",
       "source_kind": "ground_vehicle",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_scout_drone_thermal.glb"
     },
     {
       "id": "europe_tornado_ecr",
       "family": "tornado",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "tornado",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and electronic-warfare mechanics deferred"
+      "disabled_reason": "Aircraft movement and electronic-warfare mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_tornado_ecr.glb"
     },
     {
       "id": "europe_tornado_ids",
       "family": "tornado",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "tornado",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/europe_tornado_ids.glb"
     },
     {
       "id": "f_16c_block_50",
       "family": "f_16_fighting_falcon",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "f_16_fighting_falcon",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/f_16c_block_50.glb"
     },
     {
       "id": "f_35a",
       "family": "f_35_lightning_ii",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "f_35_lightning_ii",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/f_35a.glb"
     },
     {
       "id": "fgm_148_javelin_team",
       "family": "atgm_team",
       "category": "inf",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "atgm_team",
       "source_kind": "infantry",
-      "disabled_reason": "Ground profile and model admission pending"
+      "disabled_reason": "Ground profile and model admission pending",
+      "source_path": "assets/source/roster/disabled/fgm_148_javelin_team.glb"
     },
     {
       "id": "fim_92_stinger_team",
       "family": "air_defense_team",
       "category": "inf",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "air_defense_team",
       "source_kind": "infantry",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred"
+      "disabled_reason": "Air-defense targeting and airborne targets deferred",
+      "source_path": "assets/source/roster/disabled/fim_92_stinger_team.glb"
     },
     {
       "id": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
       "family": "a_10_warthog",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "a_10_warthog",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed.glb"
     },
     {
       "id": "us_ah_1z_viper_attack_helicopter",
       "family": "ah_1z_viper",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "ah_1z_viper",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_ah_1z_viper_attack_helicopter.glb"
     },
     {
       "id": "us_ah_6_mh_6_little_bird_ah_6m",
       "family": "ah_6_mh_6_little_bird",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "ah_6_mh_6_little_bird",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_ah_6_mh_6_little_bird_ah_6m.glb"
     },
     {
       "id": "us_ah_6_mh_6_little_bird_mh_6m",
       "family": "ah_6_mh_6_little_bird",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "ah_6_mh_6_little_bird",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_ah_6_mh_6_little_bird_mh_6m.glb"
     },
     {
       "id": "us_ch_47_chinook_ch_47f",
       "family": "ch_47_chinook",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "ch_47_chinook",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_ch_47_chinook_ch_47f.glb"
     },
     {
       "id": "us_ea_18g_growler_electronic_warfare_aircraft",
       "family": "ea_18g_growler",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "ea_18g_growler",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and electronic-warfare mechanics deferred"
+      "disabled_reason": "Aircraft movement and electronic-warfare mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_ea_18g_growler_electronic_warfare_aircraft.glb"
     },
     {
       "id": "us_f_15_eagle_f_15e_strike_eagle",
       "family": "f_15_eagle",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "f_15_eagle",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_f_15_eagle_f_15e_strike_eagle.glb"
     },
     {
       "id": "us_f_15_eagle_f_15ex_eagle_ii",
       "family": "f_15_eagle",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "f_15_eagle",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_f_15_eagle_f_15ex_eagle_ii.glb"
     },
     {
       "id": "us_f_22_raptor_f_22a",
       "family": "f_22_raptor",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "f_22_raptor",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_f_22_raptor_f_22a.glb"
     },
     {
       "id": "us_f_35_lightning_ii_f_35b",
       "family": "f_35_lightning_ii",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "f_35_lightning_ii",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_f_35_lightning_ii_f_35b.glb"
     },
     {
       "id": "us_f_a_18_super_hornet_f_a_18e",
       "family": "f_a_18_super_hornet",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "f_a_18_super_hornet",
       "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred"
+      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_f_a_18_super_hornet_f_a_18e.glb"
     },
     {
       "id": "us_kamikaze_drone_anti_armor",
       "family": "kamikaze_drone",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "kamikaze_drone",
       "source_kind": "support",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_kamikaze_drone_anti_armor.glb"
     },
     {
       "id": "us_kamikaze_drone_anti_personnel",
       "family": "kamikaze_drone",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "kamikaze_drone",
       "source_kind": "support",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_kamikaze_drone_anti_personnel.glb"
     },
     {
       "id": "us_m109_paladin_m109a7",
       "family": "m109_paladin",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "m109_paladin",
       "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred"
+      "disabled_reason": "Artillery and indirect-support mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_m109_paladin_m109a7.glb"
     },
     {
       "id": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
       "family": "m1129_stryker_mortar",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "m1129_stryker_mortar",
       "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred"
+      "disabled_reason": "Artillery and indirect-support mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_m1129_stryker_mortar_120_mm_mortar_carrier.glb"
     },
     {
       "id": "us_m142_himars_gmlrs",
       "family": "m142_himars",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "m142_himars",
       "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred"
+      "disabled_reason": "Artillery and indirect-support mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_m142_himars_gmlrs.glb"
     },
     {
       "id": "us_m142_himars_prsm",
       "family": "m142_himars",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "m142_himars",
       "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred"
+      "disabled_reason": "Artillery and indirect-support mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_m142_himars_prsm.glb"
     },
     {
       "id": "us_m270_mlrs_m270a2",
       "family": "m270_mlrs",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "m270_mlrs",
       "source_kind": "support",
-      "disabled_reason": "Artillery and indirect-support mechanics deferred"
+      "disabled_reason": "Artillery and indirect-support mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_m270_mlrs_m270a2.glb"
     },
     {
       "id": "us_mq_9_reaper_mq_9a",
       "family": "mq_9_reaper",
       "category": "air",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "mq_9_reaper",
       "source_kind": "aircraft",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_mq_9_reaper_mq_9a.glb"
     },
     {
       "id": "us_scout_drone_standard",
       "family": "scout_drone",
       "category": "rec",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "scout_drone",
       "source_kind": "ground_vehicle",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_scout_drone_standard.glb"
     },
     {
       "id": "us_scout_drone_thermal",
       "family": "scout_drone",
       "category": "rec",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "scout_drone",
       "source_kind": "ground_vehicle",
-      "disabled_reason": "Drone movement, sensing and mission mechanics deferred"
+      "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_scout_drone_thermal.glb"
     },
     {
       "id": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle",
       "family": "stryker_m_shorad",
       "category": "sup",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "stryker_m_shorad",
       "source_kind": "support",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred"
+      "disabled_reason": "Air-defense targeting and airborne targets deferred",
+      "source_path": "assets/source/roster/disabled/us_stryker_m_shorad_gun_and_missile_air_defense_vehicle.glb"
     },
     {
       "id": "us_uh_1y_venom_utility_transport",
       "family": "uh_1y_venom",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "uh_1y_venom",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_uh_1y_venom_utility_transport.glb"
     },
     {
       "id": "us_uh_60_black_hawk_uh_60m",
       "family": "uh_60_black_hawk",
       "category": "hel",
-      "model_status": "planned",
+      "model_status": "source_authored",
       "source_family": "uh_60_black_hawk",
       "source_kind": "rotorcraft",
-      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred"
+      "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
+      "source_path": "assets/source/roster/disabled/us_uh_60_black_hawk_uh_60m.glb"
     }
   ]
 }

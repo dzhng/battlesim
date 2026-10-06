@@ -2924,7 +2924,7 @@ impl Battle {
                 slots,
                 orders: orders.as_deref(),
                 queued: request.is_some_and(|r| r.queued),
-                reserve_repair: true,
+                reserve_repair: false,
             },
             &mut allowance,
         );
