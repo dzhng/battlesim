@@ -13,6 +13,9 @@ transfer buffer. WebAssembly memory can grow, so retaining its old typed view
 across calls is invalid. Transfer hands buffer ownership to the consumer. The
 consumer releases a publication only after its readers finish; until credits
 return, the producer may stall rather than accumulate an unbounded queue.
+The lab's session decodes every publication but renders only the latest once
+an animation frame, so the page's cost per frame does not grow with the ticks
+that arrived during it.
 
 [Decoding](observation.ts) follows the layout supplied by [Rust publication](../../../../crates/sim/src/publication.rs).
 Do not copy field offsets, enum rosters or packed bit grammars into another owner.

@@ -106,6 +106,14 @@ export function useSimSession({
     ground.current = null;
     held.current = null;
     next.onStatus((s, slow) => setStatus({ status: s, slow }));
+    // React sees the latest observation once a frame: ticks that arrive
+    // between two frames are each decoded and interpolated, but rendering
+    // them all would cost the page a render per tick.
+    let frame: number | null = null;
+    const render = () => {
+      frame = null;
+      setObservation(latest.current);
+    };
     next.onPublication((publication) => {
       digest.current = publication.digest;
       interpolator.current?.push(publication.observation, performance.now());
@@ -116,7 +124,7 @@ export function useSimSession({
         const { tick, stepMs, bytes } = publication;
         plan?.onTick({ tick, stepMs, bytes });
       }
-      setObservation(publication.observation);
+      frame ??= requestAnimationFrame(render);
       onDecodedRef.current?.(publication.observation, publication.digest);
       if (held.current) held.current.push(publication);
       else publication.release();
@@ -130,7 +138,10 @@ export function useSimSession({
       },
       () => {}, // reported through `error`
     );
-    return () => next.dispose();
+    return () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+      next.dispose();
+    };
   }, [scenario, seed, generation, replay, prepared]);
 
   const onViewportReady = useCallback(() => {
