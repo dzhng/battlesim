@@ -556,6 +556,129 @@ fn every_mount_aims_and_reloads_independently_and_aims_once_per_target() {
 }
 
 #[test]
+fn automatic_acquisition_prefers_a_damaging_threat_over_harmless_value() {
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([
+            {"side":"blue","kind":"tank","position":[100,300]},
+            {"side":"red","kind":"rifle","position":[300,260],"engagement":"return_fire_only"},
+            {"side":"red","kind":"tank","position":[300,340],"engagement":"return_fire_only"}
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let mut authored = rules();
+    sim::fixtures::patch_catalog(&mut authored, "units", "rifle", json!({"cost":1000}));
+    sim::fixtures::patch_catalog(&mut authored, "units", "tank", json!({"cost":100}));
+    setup.rules = serde_json::from_value(authored).unwrap();
+    let mut b = Battle::new(&setup, 5);
+    run(&mut b, 3);
+    let threat = b
+        .observe(Side::Blue)
+        .identified
+        .iter()
+        .find(|e| e.kind == common::unit_kind("tank"))
+        .unwrap()
+        .id;
+    assert_eq!(
+        mount(&b, Side::Blue, 0, 0).target,
+        Some(TargetRef::Identified { id: threat })
+    );
+}
+
+#[test]
+fn threatening_targets_use_authored_price_before_distance() {
+    for (tank_cost, at_cost, expected) in [(1000, 100, "tank"), (100, 1000, "at")] {
+        let mut setup = scenario_with(
+            &map(json!([])),
+            json!([
+                {"side":"blue","kind":"tank","position":[100,300]},
+                {"side":"red","kind":"tank","position":[400,260],"engagement":"return_fire_only"},
+                {"side":"red","kind":"at","position":[300,340],"engagement":"return_fire_only"}
+            ]),
+            json!([]),
+            json!([]),
+        );
+        let mut authored = rules();
+        sim::fixtures::patch_catalog(&mut authored, "units", "tank", json!({"cost":tank_cost}));
+        sim::fixtures::patch_catalog(&mut authored, "units", "at", json!({"cost":at_cost}));
+        setup.rules = serde_json::from_value(authored).unwrap();
+        let mut b = Battle::new(&setup, 5);
+        run(&mut b, 3);
+        let wanted = b
+            .observe(Side::Blue)
+            .identified
+            .iter()
+            .find(|e| e.kind == common::unit_kind(expected))
+            .unwrap()
+            .id;
+        assert_eq!(
+            mount(&b, Side::Blue, 0, 0).target,
+            Some(TargetRef::Identified { id: wanted })
+        );
+    }
+}
+
+#[test]
+fn expensive_launcher_without_return_fire_reach_loses_threat_priority() {
+    for (minimum, maximum) in [(300.0, 1800.0), (0.0, 100.0)] {
+        let mut setup = scenario_with(
+            &map(json!([])),
+            json!([
+                {"side":"blue","kind":"tank","position":[100,300]},
+                {"side":"red","kind":"at","position":[300,260],"engagement":"return_fire_only"},
+                {"side":"red","kind":"tank","position":[300,340],"engagement":"return_fire_only"}
+            ]),
+            json!([]),
+            json!([]),
+        );
+        let mut authored = rules();
+        sim::fixtures::patch_catalog(&mut authored, "units", "tank", json!({"cost":100}));
+        sim::fixtures::patch_catalog(&mut authored, "units", "at", json!({"cost":1000}));
+        authored["weapons"]["atgm"]["min_range_m"] = json!(minimum);
+        authored["weapons"]["atgm"]["range_m"] = json!(maximum);
+        setup.rules = serde_json::from_value(authored).unwrap();
+        let mut b = Battle::new(&setup, 5);
+        run(&mut b, 3);
+        let wanted = b
+            .observe(Side::Blue)
+            .identified
+            .iter()
+            .find(|e| e.kind == common::unit_kind("tank"))
+            .unwrap()
+            .id;
+        assert_eq!(
+            mount(&b, Side::Blue, 0, 0).target,
+            Some(TargetRef::Identified { id: wanted })
+        );
+    }
+}
+
+#[test]
+fn equal_threat_and_price_use_distance_then_stable_observed_id() {
+    for (second, nearest) in [(json!([250, 340]), true), (json!([300, 340]), false)] {
+        let mut b = battle(
+            json!([]),
+            json!([
+                {"side":"blue","kind":"tank","position":[100,300]},
+                {"side":"red","kind":"tank","position":[300,260],"engagement":"return_fire_only"},
+                {"side":"red","kind":"tank","position":second,"engagement":"return_fire_only"}
+            ]),
+            json!([]),
+            json!([]),
+        );
+        run(&mut b, 3);
+        let mut observed = b.observe(Side::Blue).identified.clone();
+        observed.sort_by_key(|u| u.id);
+        let wanted = observed[usize::from(nearest)].id;
+        assert_eq!(
+            mount(&b, Side::Blue, 0, 0).target,
+            Some(TargetRef::Identified { id: wanted })
+        );
+    }
+}
+
+#[test]
 fn each_weapon_takes_the_costliest_target_it_can_damage() {
     // Blue tank faces a red tank and a red rifle squad.
     let mut b = battle(
@@ -695,6 +818,8 @@ fn a_default_gun_with_a_finite_supply_keeps_it_for_what_it_can_hurt() {
     let mut rules = rules();
     rules["weapons"]["rifle"]["ammo"] = json!(200);
     rules["service"]["round_costs"]["rifle"] = json!(1);
+    // The assault row inherits this finite supply and needs the same service admission.
+    rules["service"]["round_costs"]["assault_rifle"] = json!(1);
     let map: Value = serde_json::from_str(&map(json!([]))).unwrap();
     let setup = serde_json::from_value(json!({
         "map": map,

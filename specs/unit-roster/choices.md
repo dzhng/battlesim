@@ -136,3 +136,20 @@ Reach: furnishing must protect every candidate until admission; map identity inc
 the selected sites. Generation can still refuse when no fair set is provable.
 Verdict: sound; measured final terrain, matching access/makeup and the existing 15%
 travel limit remain admission requirements rather than best-effort placement.
+
+### Automatic priorities apply when acquiring a target — sound, medium confidence
+
+When: slice 11 authority checkpoint.
+Choice: when a weapon chooses a new target, an observed enemy that can damage the
+shooter at its current observed range comes before a harmless enemy. Purchase cost
+then breaks that priority, followed by distance and the stable observed handle.
+A weapon already tracking a usable target keeps that lock; an arriving expensive
+or more threatening target does not interrupt an aim/reload cycle. Explicit attacks
+still choose the player's target. The enemy's hidden ammunition, orders and actual
+unobserved position never decide whether it poses a threat.
+Gap: the plan required threat-first value priority but did not explicitly replace
+the game's existing lock persistence with continuous target switching.
+Reach: price tuning affects acquisition and reacquisition. Continuous reprioritizing
+would be a separate intentional targeting change, rather than a hidden side effect.
+Verdict: sound; stable fire control avoids aim thrashing while implementing the
+selected value priorities whenever the weapon needs a target.

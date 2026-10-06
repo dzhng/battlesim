@@ -1,6 +1,6 @@
 # 11 — Threat-first automatic selection with intentional price priority
 
-Status: not started. Dependencies: 03. Follow the README handoff and repository
+Status: authority implemented; visual/composition gates remain. Dependencies: 03. Follow the README handoff and repository
 skills before editing. This slice is a committed checkpoint, not a stopping point.
 
 ## Contract and scope
@@ -49,3 +49,15 @@ ready slice. No adversarial review or legacy compatibility scaffolding.
 - [ ] Narrow green proof and any allowed digest change recorded.
 - [ ] Artifact/visual gates resolved where applicable.
 - [ ] Choices, status and next pickup updated; focused pass committed.
+
+## Authority checkpoint
+
+Threat-first acquisition, price-swap ordering, return-fire minimum/maximum range,
+armor eligibility and stable observed-id tie-break pass the focused weapon group.
+The expensive harmless-target regression was red before the change and green after.
+A frozen knowledge test changes hidden ammunition, reload, orders and actual enemy
+pose while preserving the observed track; priority remains identical. Existing
+explicit attacks, contact fallback, default suppression and usable-lock persistence
+remain green. Source uses the shared mounted muzzle transform and physical flight
+admission rather than weapon-name cases. The intentional acquisition outcome change
+is recorded in choices; no price/stat retuning accompanied it.

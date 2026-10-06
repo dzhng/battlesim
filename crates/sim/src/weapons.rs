@@ -549,6 +549,12 @@ fn point_mount(unit: &Unit, mount: &mut Mount, spec: &MountSpec, point: V3, turr
     };
 }
 
+fn placed_muzzle(position: V3, pivot: V3, muzzle: V3, carried: f64, bearing: f64) -> V3 {
+    let turn = |p: V3, by: f64| v2(p.x, p.y).rotated(by).with_z(p.z);
+    position + (turn(pivot, carried) + turn(muzzle, bearing))
+}
+
+
 /// Where a mount's rounds leave when it points along `bearing`: each mount
 /// fires from its own muzzle. Its pivot turns with its carrier (the turret
 /// it sits on, at that mount's bearing, or the hull), and its muzzle turns
@@ -566,10 +572,9 @@ fn muzzle(unit: &Unit, mount: &Mount, spec: &MountSpec, rules: &Rules, bearing: 
     };
     // A unit's mounts are its type's list, in order (`Arsenal::mounts_for`).
     let carried = spec.on.map_or(unit.yaw, |c| unit.mounts[c].bearing);
-    let turn = |p: V3, by: f64| v2(p.x, p.y).rotated(by).with_z(p.z);
     // Offset first, then placed: a mount on the hull's axis lands on exactly
     // the point a single hull-frame offset did.
-    unit.position + (turn(spec.pivot, carried) + turn(muzzle, bearing))
+    placed_muzzle(unit.position, spec.pivot, muzzle, carried, bearing)
 }
 
 /// P11: withhold when a friendly vehicle sits on the predicted path or in the
@@ -891,8 +896,75 @@ fn enemy_in_reach(ctx: &FireContext, unit: &Unit, mount: &Mount, spec: &MountSpe
         })
 }
 
-/// Automatic choice (W06, W09, W10), in order: the highest-cost identified
-/// target some kind can damage; for the unlimited default gun, the nearest
+/// A known platform can threaten us from its observed pose, independent of
+/// its private ammunition, cycle, orders or current weapon choice. This asks
+/// physical shot geometry, not whether the opposing side would choose to fire.
+fn return_fire_threat(
+    ctx: &FireContext,
+    shooter: &Unit,
+    kind: TypeIndex,
+    track: &crate::knowledge::Track,
+) -> bool {
+    let target_height = shooter.hull.map_or(ctx.rules.physics.infantry_aim_m, |h| {
+        2.0 * h.z * ctx.rules.physics.vehicle_aim_height_fraction
+    });
+    let target = shooter.position + v3(0.0, 0.0, target_height);
+    let delta = target.xy() - track.position.xy();
+    let bearing = libm::atan2(delta.y, delta.x);
+    let eye = track.position
+        + v3(
+            0.0,
+            0.0,
+            ctx.rules
+                .catalog
+                .get(kind)
+                .hull()
+                .map_or(ctx.rules.physics.infantry_eye_m, |h| h.eye_m),
+        );
+    ctx.arsenal.specs(kind).iter().any(|spec| {
+        let origin = match spec.muzzle {
+            Some(muzzle) => placed_muzzle(
+                track.position,
+                spec.pivot,
+                muzzle,
+                if spec.on.is_some() {
+                    bearing
+                } else {
+                    track.yaw
+                },
+                bearing,
+            ),
+            None => track.position + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m),
+        };
+        spec.kinds.iter().any(|&k| {
+            let weapon = &ctx.arsenal.weapons[k];
+            let distance = (target - origin).length();
+            can_damage(&weapon.def, shooter.armor(ctx.rules))
+                && distance >= weapon.def.min_range_m
+                && distance <= weapon.def.ballistics.range_m
+                && (weapon.profile.turn_rad_s.is_none()
+                    || (ctx.world.sight_clear(eye, target)
+                        && ctx.world.foliage_depth(eye, target)
+                            < ctx.rules.sensors.foliage_full_block))
+                && solve_launch_past(
+                    ctx.world,
+                    &ctx.arsenal.config,
+                    &weapon.profile,
+                    &Aim {
+                        origin,
+                        target,
+                        target_velocity: v3(0.0, 0.0, 0.0),
+                    },
+                    None,
+                )
+                .is_ok()
+        })
+    })
+}
+
+/// Automatic choice (W06, W09, W10), in order: an identified target some kind can
+/// damage, ranked by known return-fire threat, then value, distance and observed
+/// id; for the unlimited default gun, the nearest
 /// identified target it cannot hurt; and only with no identified enemy in
 /// reach (`enemy_in_reach`), the nearest area for general-purpose kinds. A
 /// weapon with a finite supply never fires at what it cannot hurt. Only a
@@ -909,17 +981,27 @@ fn select(
     let knowledge = &ctx.knowledge[unit.side.index()];
     let here = unit.position.xy();
     let weapons = &ctx.arsenal.weapons;
-    let mut by_cost: Vec<(u32, f64, u32, UnitId)> = knowledge
+    let mut ranked: Vec<(bool, u32, f64, u32, UnitId)> = knowledge
         .identified_now(ctx.tick)
         .map(|(u, t)| {
             let cost = units[u.0 as usize].unit_type(ctx.rules).cost;
-            (cost, (t.position.xy() - here).length(), t.id.0, u)
+            (
+                return_fire_threat(ctx, unit, units[u.0 as usize].kind, t),
+                cost,
+                (t.position.xy() - here).length(),
+                t.id.0,
+                u,
+            )
         })
         .collect();
-    // Highest cost, then nearest, then stable observed id.
-    by_cost.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.total_cmp(&b.1)).then(a.2.cmp(&b.2)));
+    ranked.sort_by(|a, b| {
+        b.0.cmp(&a.0)
+            .then(b.1.cmp(&a.1))
+            .then(a.2.total_cmp(&b.2))
+            .then(a.3.cmp(&b.3))
+    });
     let mut by_distance: Vec<(f64, u32, UnitId)> =
-        by_cost.iter().map(|&(_, d, id, u)| (d, id, u)).collect();
+        ranked.iter().map(|&(_, _, d, id, u)| (d, id, u)).collect();
     by_distance.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
     let mut areas: Vec<(f64, ContactId)> = if enemy_in_reach(ctx, unit, mount, spec) {
         Vec::new()
@@ -931,7 +1013,7 @@ fn select(
     };
     areas.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
 
-    let stages = by_cost
+    let stages = ranked
         .iter()
         .map(|&(.., u)| (Target::Unit(u), true))
         .chain(by_distance.iter().map(|&(.., u)| (Target::Unit(u), false)))
@@ -2160,5 +2242,124 @@ pub fn readiness(
         target: target_ref,
         reason: mount.reason,
         guiding: mount.support.is_some(),
+    }
+}
+
+#[cfg(test)]
+mod target_priority_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn known_return_fire_threat_requires_a_clear_physical_trajectory() {
+        for blocked in [false, true] {
+            let props = if blocked {
+                json!([{"kind":"wall","center":[200,300],"yaw":0,
+                "half_extents":[1,50,5]}])
+            } else {
+                json!([])
+            };
+            let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+                "map":{"size":[1000,600],"fog_cell_m":8,"height_grid_m":4,
+                    "slope_cutoff_deg":35,"props":props},"rules":crate::fixtures::game(),
+                "units":[{"side":"blue","kind":"tank","position":[100,300]},
+                    {"side":"red","kind":"tank","position":[300,300]}],"events":[],"scripts":[]
+            }))
+            .unwrap();
+            let battle = crate::battle::Battle::new(&setup, 5);
+            let knowledge = [
+                SideKnowledge::new(1, battle.ground()),
+                SideKnowledge::new(2, battle.ground()),
+            ];
+            let ctx = FireContext {
+                world: battle.world(),
+                structures: battle.structures(),
+                ground: battle.ground(),
+                arsenal: battle.arsenal(),
+                rules: &setup.rules,
+                tick: 0,
+                knowledge: &knowledge,
+            };
+            let enemy = battle.unit(UnitId(1)).unwrap();
+            let track = crate::knowledge::Track {
+                id: contract::observation::ObservedTargetId(7),
+                last_seen: 0,
+                position: enemy.position,
+                yaw: enemy.yaw,
+                velocity: v2(0.0, 0.0),
+                members: vec![],
+            };
+            assert_eq!(
+                return_fire_threat(&ctx, battle.unit(UnitId(0)).unwrap(), enemy.kind, &track),
+                !blocked
+            );
+        }
+    }
+
+    #[test]
+    fn frozen_observation_keeps_priority_with_hidden_ammo_reload_orders_and_pose_changes() {
+        let mut authored = crate::fixtures::game();
+        crate::fixtures::patch_catalog(&mut authored, "units", "rifle", json!({"cost":1000}));
+        crate::fixtures::patch_catalog(&mut authored, "units", "tank", json!({"cost":100}));
+        let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+            "map":{"size":[1000,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+            "rules":authored,"units":[
+                {"side":"blue","kind":"tank","position":[100,300]},
+                {"side":"red","kind":"rifle","position":[300,260]},
+                {"side":"red","kind":"tank","position":[300,340]}],
+            "events":[],"scripts":[]
+        }))
+        .unwrap();
+        let battle = crate::battle::Battle::new(&setup, 5);
+        let mut units: Vec<_> = (0..3)
+            .map(|id| battle.unit(UnitId(id)).unwrap().clone())
+            .collect();
+        let mut knowledge = [
+            SideKnowledge::new(1, battle.ground()),
+            SideKnowledge::new(2, battle.ground()),
+        ];
+        let sightings: Vec<_> = (1..3)
+            .map(|id| crate::sensing::Sighting {
+                observer: UnitId(0),
+                target: UnitId(id),
+                members: (0..units[id as usize].members.len()).collect(),
+            })
+            .collect();
+        knowledge[0].update(0, &sightings, &units, &setup.rules);
+        let ctx = FireContext {
+            world: battle.world(),
+            structures: battle.structures(),
+            ground: battle.ground(),
+            arsenal: battle.arsenal(),
+            rules: &setup.rules,
+            tick: 0,
+            knowledge: &knowledge,
+        };
+        let choose = |units: &[Unit]| {
+            select(
+                &ctx,
+                &units[0],
+                units,
+                &units[0].mounts[0],
+                &ctx.arsenal.specs(units[0].kind)[0],
+                &mut Assessed::default(),
+            )
+            .0
+        };
+        assert_eq!(choose(&units), Some(Target::Unit(UnitId(2))));
+        let enemy = &mut units[2];
+        enemy.position = v3(950.0, 550.0, 0.0);
+        enemy.yaw = 2.0;
+        enemy.engagement = Engagement::ReturnFireOnly;
+        enemy.orders.push_back(crate::units::UnitOrder::Exit);
+        for mount in &mut enemy.mounts {
+            mount.ammo.fill(Some(0));
+            mount.bearing = 2.0;
+            for cycle in &mut mount.cycles {
+                cycle.loaded = None;
+                cycle.reload = Some((0, 0.0));
+            }
+        }
+        assert_eq!(choose(&units), Some(Target::Unit(UnitId(2))));
     }
 }
