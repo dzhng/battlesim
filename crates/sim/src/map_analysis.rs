@@ -285,7 +285,9 @@ pub fn admit_skirmish(
                 continue;
             };
             if measured
-                .chunks_exact(2)
+                .as_chunks::<2>()
+                .0
+                .iter()
                 .all(|r| fair(r[0].travel_s, r[1].travel_s))
             {
                 admitted = Some((objective.clone(), measured));
@@ -349,7 +351,12 @@ pub fn admit_skirmish(
             }
             let mut score: f64 = 0.0;
             let mut accepted = true;
-            for (ar, br) in aj.chunks_exact(2).zip(bj.chunks_exact(2)) {
+            for (ar, br) in aj
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .zip(bj.as_chunks::<2>().0.iter())
+            {
                 let at = ar
                     .iter()
                     .find(|r| r.side == own(a.center[1]))

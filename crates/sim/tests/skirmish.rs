@@ -1,3 +1,5 @@
+#![allow(clippy::approx_constant)]
+
 use contract::command::{CommandEnvelope, Order};
 use contract::ids::Side;
 use serde_json::json;

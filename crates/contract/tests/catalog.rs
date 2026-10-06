@@ -72,7 +72,7 @@ fn planned_aircraft_is_a_visible_card_but_not_a_physical_type() {
     assert_eq!(card.name, "F-22 Raptor");
     assert_eq!(card.cost, 400);
     assert_eq!(
-        card.disabled_reason.as_deref(),
+        card.disabled_reason,
         Some("Aircraft mechanics are not implemented")
     );
     assert_eq!(catalog.view()["cards"][0]["id"], "f22");

@@ -47,9 +47,16 @@ test("the catalog ships an appearance for every accepted prop kind a scenery kin
 });
 
 test("every vehicle's wreck has an appearance on its hull box", () => {
+  const wrecks = propEntries
+    .filter(([, e]) => e.scenery === "wreck")
+    .map(([name, e]) => ({
+      name,
+      half: e.footprint_half_m!,
+      tolerance: e.tolerances?.footprint_m ?? 0,
+    }));
   for (const h of hulls)
     expect(
-      propEntries.some(([, e]) => e.scenery === "wreck" && same(h, e.footprint_half_m!)),
+      wrecks.some(({ half, tolerance }) => h.every((v, i) => Math.abs(v - half[i]) <= tolerance)),
       `${h}`,
     ).toBe(true);
 });

@@ -6,7 +6,7 @@ decisions made where the plan was silent. Read that handoff before implementing 
 slice. A planning document can describe future behavior, so it is not proof that
 a capability has shipped.
 
-[Unit roster and skirmish requirements](unit-roster/README.md) capture factions, unit
+[Unit roster and skirmish requirements](done/unit-roster/README.md) capture factions, unit
 variants, the skirmish economy/objectives, basic AI and a phased implementation
 ladder with parallel named-model production.
 

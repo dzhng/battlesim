@@ -237,7 +237,15 @@ test("a fallen soldier plays his death once, facing as he fell, then lies static
   const done = d.update(frame(3.1, [squad([])], fallen));
   expect(done.soldiers).toEqual([]);
   expect(done.corpses).toEqual([
-    { soldier: 1, kind: "rifle", slot: 0, side: "blue", position: [0, 0, 0], yaw: own, operatorMount: null },
+    {
+      soldier: 1,
+      kind: "rifle",
+      slot: 0,
+      side: "blue",
+      position: [0, 0, 0],
+      yaw: own,
+      operatorMount: null,
+    },
   ]);
 });
 

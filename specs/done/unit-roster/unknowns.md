@@ -4,7 +4,7 @@ Status: exploration complete, 2026-10-06. This is the four-quadrant handoff for
 `/write-spec`; no gameplay or asset implementation has started. The [roster spec](README.md),
 [starter balance](starter-balance.md), [economy research](economy-research.md) and
 [model contract](model-production.md) carry the detailed decisions. This page is
-self-contained as the decision/risk map; the implementation ladder will supersede
+self-contained as the decision/risk map; the shipped code supersedes
 its next-action prompt; use README.md for implementation pickup.
 
 ## Known knowns — settled ground
@@ -143,7 +143,7 @@ income (user chose 200), and separating cost from target priority (user correcti
 
 | Item | What unblocks it / owner |
 |---|---|
-| Compact skirmish layout admission | Owning slice 02: early map/travel probe under mapgen: candidate 1.2/1.8/2.4/3 km extents, retain standard maps, test terrain character, flags, edge roads and bounded generation. Numbers delegated; do not silently accept invalid geometry. |
+| Compact skirmish layout admission | Owning slice 02: early map/travel probe under mapgen: shipped 1.8/2.4/3.0/3.6 km extents, retain standard maps, test terrain character, flags, edge roads and bounded generation. Numbers delegated; do not silently accept invalid geometry. |
 | Exact physical dimensions/mount frames | Owning slices 03/12: platform references plus existing asset-fit validation; coordinator freezes each manifest before dispatch. |
 | Authentic top-attack and troop carriage | Owning slice 01: first capability audit determines existing support. Unsupported variants remain visible/disabled; adding missing rules requires an explicit bounded slice or later capability spec. |
 | Air/drone/artillery/EW mechanics | Their later specs define mobility, sensing, entry, targeting and resupply; current cards/stats are placeholders only. |
@@ -215,14 +215,14 @@ Stage 4 is closed. No gameplay tests/battles ran because only planning files cha
 
 The user requested `/write-spec` after exploration. That plan is now materialized
 in README.md and slices/; this map's planning kickoff is superseded by the
-README's live Next Agent Prompt. Follow the dependency wavefront there.
+the closed README and code pointers are authoritative.
 Reuse the starter tables and model contract; keep remaining research in an early
 feasibility/capability checkpoint, not buried inside implementation passes.
 Do not run adversarial review: the user explicitly excluded it. The user subsequently authorized `/goal /implement-spec` once the spec is ready,
 with no backward compatibility. Begin only from the materialized plan, not an
 exploration note.
 
-Next-message prompt, for the authorized implementation after the plan is ready:
+Historical planning prompt (implementation is complete):
 
 > Implement specs/unit-roster/README.md from its first unchecked slice. Preserve
 > the selected economy/objective/targeting contracts, use starter tuning without

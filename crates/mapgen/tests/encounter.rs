@@ -108,7 +108,7 @@ fn native_planning_replays_the_frozen_encounter_records() {
                 record.encounter_seed
             );
             // The sides start at opposite edges of the map.
-            let depth = 6000.0;
+            let depth = 2400.0;
             for d in &encounter.placement.deployments {
                 let near = match d.side {
                     Side::Blue => d.head[1],

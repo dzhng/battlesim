@@ -342,11 +342,35 @@ fn supply_restores_one_charge_per_ten_seconds_with_finite_stock_and_unchanged_co
 
 #[test]
 fn ordinary_tank_shell_metadata_bypasses_active_protection() {
-    let rules=sim::fixtures::game();
-    for id in ["rifle","tank_ap","tank_he","advanced_tank_ap","advanced_tank_he"] {
-        assert!(!rules["weapons"][id]["interceptable"].as_bool().unwrap_or(false),"{id} is ordinary fire");
+    let rules = sim::fixtures::game();
+    for id in [
+        "rifle",
+        "tank_ap",
+        "tank_he",
+        "advanced_tank_ap",
+        "advanced_tank_he",
+    ] {
+        assert!(
+            !rules["weapons"][id]["interceptable"]
+                .as_bool()
+                .unwrap_or(false),
+            "{id} is ordinary fire"
+        );
     }
-    for id in ["atgm","tow","kornet","spike","bastion","rpg_light","rpg_heavy"] {
-        assert!(rules["weapons"][id]["interceptable"].as_bool().unwrap_or(false),"{id} is an eligible threat");
+    for id in [
+        "atgm",
+        "tow",
+        "kornet",
+        "spike",
+        "bastion",
+        "rpg_light",
+        "rpg_heavy",
+    ] {
+        assert!(
+            rules["weapons"][id]["interceptable"]
+                .as_bool()
+                .unwrap_or(false),
+            "{id} is an eligible threat"
+        );
     }
 }

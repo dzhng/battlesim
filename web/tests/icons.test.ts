@@ -5,7 +5,6 @@
 // -- icons` rewrites them.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { expect, test } from "vitest";
-import game from "@fixtures/game.json";
 import { iconFiles, unitIcons } from "@packages/scene-assets/src/icons";
 import { inkBounds } from "@packages/scene-assets/src/inkBounds";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";

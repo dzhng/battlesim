@@ -78,7 +78,7 @@ pub fn generate_layout(
     request: &GenerationRequest,
     presets: &PresetDefinitions,
 ) -> Result<MapPlan, Vec<Diagnostic>> {
-    let resolved_presets = presets.for_request(&request);
+    let resolved_presets = presets.for_request(request);
     let presets = &resolved_presets;
     let pins = [
         (

@@ -123,8 +123,8 @@ impl Objectives {
             });
             return;
         }
-        for i in 0..2 {
-            self.flag_ticks[i] += rates[i];
+        for (i, rate) in rates.iter().enumerate() {
+            self.flag_ticks[i] += *rate;
         }
         for (site, present) in self.sites.iter_mut().zip(presence) {
             if present[0] && present[1] {

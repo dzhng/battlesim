@@ -156,8 +156,14 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
     // than to the first descendant that happens to be visited).
     for (id, row) in &rows {
         for field in [
-            "damage", "penetration", "aim_s", "reload_s", "blast_radius_m",
-            "structural_damage", "near_miss_suppression", "suppression_radius_m",
+            "damage",
+            "penetration",
+            "aim_s",
+            "reload_s",
+            "blast_radius_m",
+            "structural_damage",
+            "near_miss_suppression",
+            "suppression_radius_m",
             "min_range_m",
         ] {
             if let Some(value) = row.get(field).and_then(serde_json::Value::as_f64) {
@@ -168,14 +174,21 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                 }
             }
         }
-        if let Some(value) = row.get("armor_fraction").and_then(serde_json::Value::as_f64) {
+        if let Some(value) = row
+            .get("armor_fraction")
+            .and_then(serde_json::Value::as_f64)
+        {
             if !(0.0..=1.0).contains(&value) {
-                return Err(Error::custom(format!("weapons.{id}: armor_fraction must lie in [0, 1]")));
+                return Err(Error::custom(format!(
+                    "weapons.{id}: armor_fraction must lie in [0, 1]"
+                )));
             }
         }
         if let Some(value) = row.get("turn_deg_s").and_then(serde_json::Value::as_f64) {
             if !value.is_finite() || value <= 0.0 {
-                return Err(Error::custom(format!("weapons.{id}: turn_deg_s must be finite and positive")));
+                return Err(Error::custom(format!(
+                    "weapons.{id}: turn_deg_s must be finite and positive"
+                )));
             }
         }
     }
