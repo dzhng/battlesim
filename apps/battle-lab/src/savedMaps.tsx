@@ -6,10 +6,9 @@
 import { fixtureMap } from "./fixtures";
 import type { ReactNode } from "react";
 import { loadEncounter, loadMap } from "@web/maps/browser";
-import type { MapDefinition } from "@web/maps/resolve";
+import type { Encounter, MapDefinition } from "@web/maps/resolve";
 import type { Wasm } from "@web/battle/sim/module";
 import {
-  labScenario,
   GAME_RULES,
   type LabEncounter,
   type LabEvent,
@@ -54,6 +53,21 @@ export async function enduranceScenario(
   );
 }
 
+/** The scenario a saved encounter makes on `map` under `rules`: the whole
+ *  encounter, its opponent and completion rules included, as the native
+ *  `EncounterDefinition::on` builds it, so a battle runs the same here. */
+export function savedScenario(map: unknown, saved: Encounter, rules: unknown): string {
+  return JSON.stringify({
+    map,
+    rules,
+    units: saved.units,
+    events: saved.events ?? [],
+    scripts: saved.scripts ?? [],
+    ...(saved.opponent != null && { opponent: saved.opponent }),
+    ...(saved.encounter != null && { encounter: saved.encounter }),
+  });
+}
+
 /** The saved encounter `name` of the saved map `id`, as a battle under
  *  `rules`. */
 export async function savedBattle(
@@ -70,7 +84,7 @@ export async function savedBattle(
   return {
     map: definition,
     encounter,
-    scenario: labScenario(definition, encounter.units, encounter.events, encounter.scripts, rules),
+    scenario: savedScenario(definition, saved, rules),
   };
 }
 
