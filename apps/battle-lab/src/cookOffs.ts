@@ -127,7 +127,9 @@ export class CookOffWatch {
   /** Whether a hull the side lost from sight lately stood where wreck `p` lies. */
   private watched(p: KnownPropView): boolean {
     return [...this.hulls.values()].some(
-      (h) => h.wreck === p.kind && Math.hypot(p.center[0] - h.x, p.center[1] - h.y) <= h.reach,
+      (h) =>
+        h.wreck === p.kind &&
+        Math.hypot(p.center[0] - h.x, p.center[1] - h.y) <= h.reach + ROLL_REACH_M,
     );
   }
 }
@@ -210,10 +212,24 @@ export function piecesOf(f: Flight, feel: CookOffFeel, clock: number): ModelInst
  *  longer than a cook-off waits to blow up. */
 const REMEMBERED_S = 2;
 
+/** How far beyond its own half length a wreck may lie from where its hull
+ *  was last seen: a vehicle killed at full road speed rolls this far on
+ *  before it stops (`sim::movement::drive::death_roll`), with room to spare. */
+export const ROLL_REACH_M = 12;
+
 /** Each vehicle as the frame last drew it, a moment after it is gone: the
  *  hull a cook-off draws whole until its ammunition goes. Each is kept in
  *  one record, updated in place, so a warm frame allocates nothing. */
+/** A hull as the side last saw it, and how hard it brakes, m/s². */
+export interface LastHull {
+  model: ModelInstance;
+  braking: number;
+}
+
 export class LastSeenHulls {
+  /** `braking`: a unit type's deceleration as its brakes stop it, m/s². */
+  constructor(private readonly braking: (kind: string) => number) {}
+
   private readonly hulls = new Map<number, { pose: VehiclePose; at: number }>();
   /** The clock of the last frame noted: a hull it did not draw is gone. */
   private clock = -Infinity;
@@ -242,24 +258,30 @@ export class LastSeenHulls {
     this.clock = clock;
   }
 
-  /** The hull, gone from the frame lately, that stood where `c`'s wreck lies,
-   *  as last drawn; null if none did. */
-  at(c: CookOff, clock: number, resolve: ResolveAppearance): ModelInstance | null {
+  /** The hull, gone from the frame lately, nearest where `c`'s wreck lies
+   *  (within a roll to a stop), as last drawn; null if none. */
+  at(c: CookOff, clock: number, resolve: ResolveAppearance): LastHull | null {
+    let best: { pose: VehiclePose; d: number } | null = null;
     for (const { pose, at } of this.hulls.values()) {
       const gone = at < this.clock && clock - at <= REMEMBERED_S;
-      const there =
-        Math.hypot(pose.position[0] - c.center[0], pose.position[1] - c.center[1]) <= c.half[0];
-      if (!gone || !there) continue;
+      const d = Math.hypot(pose.position[0] - c.center[0], pose.position[1] - c.center[1]);
+      if (gone && d <= c.half[0] + ROLL_REACH_M && (!best || d < best.d)) best = { pose, d };
+    }
+    if (best) {
+      const { pose } = best;
       const looks = resolve(pose.kind, pose.side, pose.unit, 0);
       if (!looks) return null;
       return {
-        appearance: looks.appearance,
-        tint: looks.tint,
-        x: pose.position[0],
-        y: pose.position[1],
-        z: pose.position[2],
-        yaw: pose.yaw,
-        pose: { kind: "articulated", articulation: { ...pose.articulation } },
+        model: {
+          appearance: looks.appearance,
+          tint: looks.tint,
+          x: pose.position[0],
+          y: pose.position[1],
+          z: pose.position[2],
+          yaw: pose.yaw,
+          pose: { kind: "articulated", articulation: { ...pose.articulation } },
+        },
+        braking: this.braking(pose.kind),
       };
     }
     return null;
@@ -267,12 +289,31 @@ export class LastSeenHulls {
 }
 
 /** What cook-off `f` draws at presentation second `clock`: its hull whole,
- *  as last seen (`hull`), until the ammunition goes; then the wreck's pieces. */
+ *  as last seen (`hull`), until the ammunition goes; then the wreck's pieces.
+ *  A hull killed on the move rolls on to where its wreck lies, slowing as
+ *  its brakes would stop it, and the pieces with it. */
 export function cookOffModels(
   f: Flight,
-  hull: ModelInstance | null,
+  last: LastHull | null,
   feel: CookOffFeel,
   clock: number,
 ): ModelInstance[] {
-  return hull && clock - f.hitAt < feel.delay_s ? [hull] : piecesOf(f, feel, clock);
+  const t = clock - f.hitAt;
+  const hull = last?.model;
+  const models = hull && t < feel.delay_s ? [{ ...hull }] : piecesOf(f, feel, clock);
+  if (!last || !hull) return models;
+  const { braking } = last;
+  // Constant deceleration over `length` metres: done in √(2·length/braking) s.
+  const [dx, dy] = [f.wreck.x - hull.x, f.wreck.y - hull.y];
+  const length = Math.hypot(dx, dy);
+  const done = Math.sqrt((2 * length) / braking);
+  const s = t >= done ? 1 : (braking * done * t - (braking * t * t) / 2) / length;
+  // Where the hull has rolled to, less where the wreck lies.
+  const [ox, oy] = [hull.x + dx * s - f.wreck.x, hull.y + dy * s - f.wreck.y];
+  for (const m of models) {
+    const base = m === models[0] && t < feel.delay_s ? f.wreck : m;
+    m.x = base.x + ox;
+    m.y = base.y + oy;
+  }
+  return models;
 }

@@ -561,3 +561,68 @@ fn a_wall_shields_soldiers_from_a_blast_beside_it() {
         }
     }
 }
+
+/// Blue's tank, one hit from death, driving east past red's tank; `props` in
+/// its way. Returns where it stood and how fast it drove the tick before it
+/// died, its braking rate, and where its wreck lies.
+fn killed_driving(props: Value) -> ([f64; 2], f64, f64, [f64; 2]) {
+    let mut b = battle(
+        props,
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300], "condition": { "hp": 1 }, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "tank", "position": [300, 420], "yaw": -1.2 },
+        ]),
+        1,
+    );
+    common::order(
+        &mut b,
+        Side::Blue,
+        1,
+        Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [600.0, 300.0],
+            route: contract::command::RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+            facing: None,
+        },
+    );
+    let mut last = None;
+    for _ in 0..2000 {
+        let u = b.unit(UnitId(0)).unwrap();
+        if !u.alive() {
+            break;
+        }
+        last = Some(([u.position.x, u.position.y], u.drive_speed_mps));
+        b.step();
+    }
+    let (at, speed) = last.expect("it drove");
+    assert!(!b.unit(UnitId(0)).unwrap().alive(), "blue's tank survived");
+    let braking = b.unit(UnitId(0)).unwrap().mobility.road_mps
+        / rules()["movement"]["drive"]["braking_s"].as_f64().unwrap();
+    let wreck = b
+        .observe(Side::Blue)
+        .known_props
+        .iter()
+        .find(|p| p.kind == common::kind("heavy_wreck"))
+        .expect("blue knows its tank's wreck")
+        .center;
+    (at, speed, braking, wreck)
+}
+
+#[test]
+fn a_tank_killed_on_the_move_rolls_to_a_stop_where_its_brakes_would_stop_it() {
+    let (at, speed, braking, wreck) = killed_driving(json!([]));
+    assert!(speed > 3.0, "it was driving: {speed} m/s");
+    // Within one tick's travel of its stopping distance, straight ahead.
+    let rolled = speed * speed / (2.0 * braking);
+    let ahead = wreck[0] - at[0];
+    assert!(
+        (ahead - rolled).abs() < speed / 30.0 + 0.05,
+        "rolled {ahead} m, brakes stop it in {rolled} m"
+    );
+    assert!(
+        (wreck[1] - at[1]).abs() < 0.2,
+        "it rolled straight: {wreck:?} from {at:?}"
+    );
+}

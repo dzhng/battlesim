@@ -1626,10 +1626,17 @@ impl Battle {
             let unit = &self.units[id.0 as usize];
             let own = unit.side;
             let wreck = unit.unit_type(&self.rules).hull().map(|h| h.wreck.clone());
+            let hulls: Vec<_> = self
+                .units
+                .iter()
+                .filter(|o| o.id != id && o.alive())
+                .filter_map(|o| o.hull_box())
+                .collect();
+            let rest = crate::movement::drive::death_roll(&self.world, unit, &hulls);
             let wreck = match (unit.hull, wreck) {
                 (Some(half), Some(kind)) => Some(self.add_prop(&PropDefinition {
                     kind,
-                    center: [unit.position.x, unit.position.y],
+                    center: [rest.x, rest.y],
                     yaw: unit.yaw,
                     half_extents: [half.x, half.y, half.z],
                     base_z: Some(unit.position.z),
@@ -2925,6 +2932,37 @@ struct PreparedCommand {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_tank_rolling_to_a_stop_stops_short_of_a_wall() {
+        let battle = |props: serde_json::Value| {
+            let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+                "map": { "size": [400, 200], "fog_cell_m": 8, "height_grid_m": 4,
+                    "slope_cutoff_deg": 35, "props": props },
+                "rules": crate::fixtures::game(),
+                "units": [{ "side": "blue", "kind": "tank", "position": [100, 100], "yaw": 0.0 }],
+            }))
+            .unwrap();
+            Battle::new(&setup, 1)
+        };
+        // At full road speed its brakes would roll it on well past 4 m.
+        let rolled = |b: &Battle| {
+            let mut tank = b.unit(UnitId(0)).unwrap().clone();
+            tank.drive_speed_mps = tank.mobility.road_mps;
+            crate::movement::drive::death_roll(&b.world, &tank, &[]).x - 100.0
+        };
+        let open = rolled(&battle(serde_json::json!([])));
+        assert!(open > 4.0, "rolls {open} m in the open");
+        // A wall across its path 1 m beyond its nose (half length 3.5 m).
+        let wall = rolled(&battle(
+            serde_json::json!([{ "kind": "wall", "center": [104.8, 100],
+            "yaw": std::f64::consts::FRAC_PI_2, "half_extents": [6, 0.3, 1.2] }]),
+        ));
+        assert!(
+            wall > 0.5 && wall + 3.5 <= 104.5 + 0.05,
+            "stops at the wall after {wall} m"
+        );
+    }
+
     use super::*;
 
     /// A battle that changes what each side knows in every way a battle

@@ -25,7 +25,7 @@ use crate::units::Unit;
 use crate::world::{Prop, PropId, PropIndex, WorldGeometry, PROP_BUCKET_M};
 
 mod certify;
-mod drive;
+pub(crate) mod drive;
 mod final_leg;
 mod push;
 mod soldier;

@@ -96,7 +96,7 @@ const tankPose = (at: readonly [number, number], turret: number) => ({
 test("a hull that brews up is drawn whole, as last seen, until its ammunition goes; then as the wreck's pieces", () => {
   const feel = gameEffects.cook_off;
   const resolve: ResolveAppearance = (kind) => ({ appearance: kind, tint: [1, 0, 0] });
-  const hulls = new LastSeenHulls();
+  const hulls = new LastSeenHulls(() => 2);
   hulls.note([tankPose([40, 30], 1.2)], 10);
   hulls.note([], 10.03);
   const wreck: ModelInstance = {
@@ -124,7 +124,7 @@ test("a hull that brews up is drawn whole, as last seen, until its ammunition go
   };
   const hull = hulls.at(flight.cookOff, 10.1, resolve);
   // Before the ammunition goes: the clean tank, turret where it was trained.
-  const before = cookOffModels(flight, hull, feel, 10 + feel.delay_s / 2);
+  const before = cookOffModels(flight, hull, feel, 10);
   expect(before.map((m) => [m.appearance, m.x, m.y, m.yaw])).toEqual([["tank", 40, 30, 0.5]]);
   expect(before[0].pose.kind === "articulated" && before[0].pose.articulation.turret_yaw).toBe(1.2);
   // Once it goes: the wreck's hull and its thrown turret.
@@ -136,4 +136,47 @@ test("a hull that brews up is drawn whole, as last seen, until its ammunition go
   // A hull long gone, or one that stood elsewhere, is not the one that brewed up.
   expect(hulls.at(flight.cookOff, 15, resolve)).toBeNull();
   expect(hulls.at({ ...flight.cookOff, center: [200, 30] }, 10.1, resolve)).toBeNull();
+});
+
+test("a hull killed on the move glides on to its wreck, slowing as it brakes, and its pieces follow", () => {
+  const feel = gameEffects.cook_off;
+  const resolve: ResolveAppearance = (kind) => ({ appearance: kind, tint: [1, 0, 0] });
+  const hulls = new LastSeenHulls(() => 2);
+  // Last seen 4 m short of where its wreck came to rest.
+  hulls.note([tankPose([36, 30], 0)], 10);
+  hulls.note([], 10.03);
+  const wreck: ModelInstance = {
+    appearance: WRECK,
+    x: 40,
+    y: 30,
+    z: 0,
+    yaw: 0,
+    pose: { kind: "static", state: "default" },
+  };
+  const flight: Flight = {
+    cookOff: {
+      prop: 3,
+      kind: WRECK,
+      center: [40, 30],
+      yaw: 0,
+      half: [3.5, 1.8, 1.2],
+      baseZ: 0,
+      tick: 301,
+    },
+    wreck,
+    lies: [0, 0, 1.6],
+    underside: 1.2,
+    hitAt: 10,
+  };
+  // Braking at 2 m/s²: 4 m takes 2 s to roll.
+  const hull = hulls.at(flight.cookOff, 10.05, resolve);
+  const xAt = (clock: number) => cookOffModels(flight, hull, feel, clock)[0].x;
+  expect(xAt(10)).toBeCloseTo(36);
+  // Half its time, three quarters of its way: it slows as it goes.
+  expect(xAt(11)).toBeCloseTo(39);
+  expect(xAt(12)).toBeCloseTo(40);
+  expect(xAt(14)).toBeCloseTo(40);
+  // The wreck's pieces, once the ammunition goes, are where the hull has rolled to.
+  const pieces = cookOffModels(flight, hull, feel, 11);
+  expect(pieces.every((m) => Math.abs(m.x - 39) < 1e-9)).toBe(true);
 });

@@ -6,6 +6,7 @@
 // pick and box-select adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
+import { GAME_RULES } from "./scenarios";
 import { ContactPresentation } from "@web/battle/present/contactPresentation";
 import { gameContactStyle } from "./gameFog";
 import type { PreparedSession } from "@web/battle/prepare/client";
@@ -55,6 +56,7 @@ import {
   CookOffWatch,
   LastSeenHulls,
   cookOffModels,
+  type LastHull,
   effectCookOff,
   flightOf,
   type Flight,
@@ -206,7 +208,18 @@ export function useBattleSession({
   const [flights, setFlights] = useState<readonly Flight[]>([]);
   // Each vehicle as last drawn: a hull that brews up is drawn whole until
   // its ammunition goes, and only then as its wreck's pieces.
-  const lastHulls = useMemo(() => new LastSeenHulls(), []);
+  const lastHulls = useMemo(
+    () =>
+      new LastSeenHulls((kind) => {
+        const m = UNITS.type(kind).mobility;
+        const road = "tracked" in m ? m.tracked : "wheeled" in m ? m.wheeled : m.foot;
+        // As the simulation brakes: full road speed lost in `braking_s`.
+        return road.road_kmh / 3.6 / GAME_RULES.movement.drive.braking_s;
+      }),
+    [],
+  );
+  // Each cook-off's hull, as last seen, found once as it starts.
+  const flightHulls = useRef(new WeakMap<Flight, LastHull | null>());
   const lastDecoded = useRef(-1);
   const noteDecoded = useCallback(
     (o: ObservationView, digest: string) => {
@@ -560,16 +573,11 @@ export function useBattleSession({
       if (done.length) setFlights((now) => now.filter((f) => !done.includes(f)));
       const models = flights.length
         ? posed.concat(
-            flights.flatMap((f) =>
-              cookOffModels(
-                f,
-                time - f.hitAt < feel.delay_s
-                  ? lastHulls.at(f.cookOff, time, posing.resolve)
-                  : null,
-                feel,
-                time,
-              ),
-            ),
+            flights.flatMap((f) => {
+              if (!flightHulls.current.has(f))
+                flightHulls.current.set(f, lastHulls.at(f.cookOff, time, posing.resolve));
+              return cookOffModels(f, flightHulls.current.get(f) ?? null, feel, time);
+            }),
           )
         : posed;
       if (poses.corpsesVersion !== posing.corpses.version)

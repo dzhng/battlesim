@@ -154,7 +154,7 @@ fn inside_circle(at: V2, heading: f64, side: f64, radius: f64, target: V2, margi
 
 /// Whether a hull at `center`/`yaw` would stand in a body that stops it, or
 /// off traversable ground (true geometry: what the step itself meets).
-fn blocked(world: &WorldGeometry, unit: &Unit, center: V2, yaw: f64) -> bool {
+pub(crate) fn blocked(world: &WorldGeometry, unit: &Unit, center: V2, yaw: f64) -> bool {
     let half = unit.hull.expect("a vehicle has a hull").xy();
     let here = unit.hull_box().expect("a vehicle has a hull");
     let hull = Obb2 { center, yaw, half };
@@ -460,4 +460,37 @@ pub fn prune(unit: &mut Unit) -> bool {
         unit.progress = (f64::INFINITY, unit.progress.1);
     }
     route.is_empty()
+}
+
+/// Where a vehicle killed on the move comes to rest: it rolls on along its
+/// travel and brakes as it would to stop (`braking_s` from full road speed),
+/// cut short, in steps of `STEP_M`, where its hull would meet a body, leave
+/// traversable ground or run into one of `hulls` (the other vehicles). A
+/// wreck lies there, so a tank killed at speed does not halt on the spot.
+pub fn death_roll(world: &WorldGeometry, unit: &Unit, hulls: &[Obb2]) -> V2 {
+    const STEP_M: f64 = 0.25;
+    let at = unit.position.xy();
+    let (Some(drive), Some(_)) = (unit.mobility.drive, unit.hull) else {
+        return at;
+    };
+    let speed = unit.drive_speed_mps.max(0.0);
+    let braking = unit.mobility.road_mps / drive.feel.braking_s;
+    let length = speed * speed / (2.0 * braking);
+    let gear = if unit.reversing { -1.0 } else { 1.0 };
+    let toward = dir(travel(unit.yaw, gear));
+    let mut rest = at;
+    let mut rolled = 0.0;
+    while rolled < length {
+        rolled = (rolled + STEP_M).min(length);
+        let next = at + toward * rolled;
+        let hull = Obb2 {
+            center: next,
+            ..unit.hull_box().expect("a vehicle has a hull")
+        };
+        if blocked(world, unit, next, unit.yaw) || hulls.iter().any(|h| hull.overlaps(h)) {
+            break;
+        }
+        rest = next;
+    }
+    rest
 }
