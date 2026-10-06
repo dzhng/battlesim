@@ -1,5 +1,7 @@
 //! The generator through its file boundary: the same commands a person or a
 //! build step runs.
+#[path = "common/limits.rs"]
+mod limits;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -123,8 +125,7 @@ fn request(directory: &std::path::Path) -> PathBuf {
         "template_catalog_hash": catalogue().hash(),
         "type": "mixed",
         "size": "medium",
-        // The game's own limits, as it asks for a map.
-        "limits": serde_json::from_str::<serde_json::Value>(include_str!("../../../fixtures/generated-battle.json")).unwrap()["limits"],
+        "limits": limits::game_limits(),
     });
     std::fs::write(&path, request.to_string()).unwrap();
     path

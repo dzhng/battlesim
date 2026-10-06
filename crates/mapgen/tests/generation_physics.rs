@@ -1,6 +1,8 @@
 //! Generation consumes the physical rules of the battle it will prepare.
 //! Input identity must change even when those inputs leave layout bytes alone.
-use contract::generation::{CompileLimits, GenerationRequest, MapSize, MapType};
+#[path = "common/limits.rs"]
+mod limits;
+use contract::generation::{GenerationRequest, MapSize, MapType};
 use contract::templates::TemplateGeometryCatalog;
 use mapgen::{generate_map, CompileOutcome};
 
@@ -19,11 +21,7 @@ fn physical_rules_are_explicit_generation_inputs_and_identity() {
         map_type: MapType::Open,
         size: MapSize::Medium,
         region: None,
-        limits: CompileLimits {
-            max_authored_parts: 60000,
-            max_bay_positions: 600000,
-            max_ground_points: 200000,
-        },
+        limits: limits::game_limits(),
     })
     .unwrap();
     let mut rules = sim::fixtures::game();

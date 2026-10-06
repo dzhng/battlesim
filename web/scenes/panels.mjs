@@ -337,6 +337,9 @@ export async function run(ctx) {
           singleRow: cards.every((r) => Math.abs(r.top - cards[0].top) < 1),
           commandTop: commands?.top ?? null,
           commandHeight: commands?.height ?? null,
+          commandsDisabled: [
+            ...(deck.querySelector('[role="toolbar"]')?.querySelectorAll("button") ?? []),
+          ].every((button) => button.disabled),
           captionBottom: document.querySelector('[data-testid="captions"]').getBoundingClientRect()
             .bottom,
           text: deck.textContent,
@@ -360,11 +363,14 @@ export async function run(ctx) {
           Math.abs(layout.cardCenter - (layout.left + layout.right) / 2) <= 1,
           JSON.stringify(layout),
         );
+      // No selection keeps the command row, every action disabled, so the
+      // deck does not move when units are selected; a replay has none.
       ctx.check(
-        `${width}px ${name}: no-selection and replay keep the roster without commands or a selection label`,
-        (name === "No selection" || name === "Replay"
+        `${width}px ${name}: no-selection keeps disabled commands, replay none, and neither a selection label`,
+        (name === "Replay"
           ? layout.commandTop === null
-          : layout.commandTop !== null) && !/\d+ selected/i.test(layout.text),
+          : layout.commandTop !== null && (name !== "No selection" || layout.commandsDisabled)) &&
+          !/\d+ selected/i.test(layout.text),
         JSON.stringify(layout),
       );
       const slug = name.toLowerCase().replaceAll(" ", "-");

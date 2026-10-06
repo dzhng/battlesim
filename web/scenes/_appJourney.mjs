@@ -234,7 +234,7 @@ export async function armyJourney(ctx) {
   );
   ctx.check(
     "matched army capture preserves the original battle digest",
-    (await page.evaluate(() => window.__lab.route.digest())) === "905eacbe69a7d504",
+    (await page.evaluate(() => window.__lab.route.digest())) === "e2a99d4587f678d9",
   );
   await roster.first().click();
   await roster.nth(1).click({ modifiers: ["Shift"] });

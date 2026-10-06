@@ -205,7 +205,12 @@ export async function run(ctx) {
   await visits.goto(new URL(ctx.url).origin);
   await visits.getByTestId("menu-deploy").waitFor();
   await visits.waitForFunction(() => window.__pageGpuProbe.devices.length === 1);
-  ctx.check("menu warm-up starts no battle worker", visits.workers().length === 0);
+  // The menu owns one battle, its backdrop's, which may not have started yet.
+  ctx.check(
+    "menu warm-up starts no battle worker but its backdrop's",
+    visits.workers().length <= 1,
+    `${visits.workers().length} workers`,
+  );
   const origin = await visits.evaluate(() => performance.timeOrigin);
   const visitCounts = [];
   for (let i = 0; i < 2; i++) {
@@ -219,18 +224,21 @@ export async function run(ctx) {
     await visits.goBack();
     await visits.getByRole("link", { name: "Main menu", exact: true }).click();
     await visits.getByTestId("menu-deploy").waitFor();
-    await visits.waitForFunction(() => {
+    // Read in the same moment the visit's allocations have all returned:
+    // the menu's backdrop allocates its own scene soon after.
+    const released = await visits.waitForFunction(() => {
       const n = window.__pageGpuProbe.allocations();
-      return n.buffers === 0 && n.textures === 0;
+      return (
+        n.buffers === 0 &&
+        n.textures === 0 && {
+          devices: window.__pageGpuProbe.devices.length,
+          destroyed: window.__pageGpuProbe.destroyed,
+          allocations: n,
+          sameDocument: performance.timeOrigin,
+        }
+      );
     });
-    visitCounts.push(
-      await visits.evaluate(() => ({
-        devices: window.__pageGpuProbe.devices.length,
-        destroyed: window.__pageGpuProbe.destroyed,
-        allocations: window.__pageGpuProbe.allocations(),
-        sameDocument: performance.timeOrigin,
-      })),
-    );
+    visitCounts.push(await released.jsonValue());
   }
   ctx.check(
     "client visit disposal returns allocations to zero and retains one live page GPU",

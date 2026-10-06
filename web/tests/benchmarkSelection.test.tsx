@@ -12,7 +12,7 @@ afterEach(() => {
 test("the advertised city-contact address selects the city workload rather than the village", () => {
   window.history.replaceState(null, "", "/benchmark?preset=city-contact");
   render(<BenchmarkPage />);
-  expect(screen.getByText(/city-contact v4/).textContent).toContain("city-contact v4");
+  expect(screen.getByText(/city-contact v5/).textContent).toContain("city-contact v5");
   expect(screen.getByText(/local-contact stress/i).textContent).toContain(
     "complete generated world",
   );

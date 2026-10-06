@@ -1,6 +1,10 @@
 //! Street furniture (C46), judged by where the bodies stand and by what the
 //! simulation's own navigation makes of them. Geometry here is checked with
 //! its own arithmetic, not the generator's.
+#[path = "common/halves.rs"]
+mod halves;
+#[path = "common/limits.rs"]
+mod limits;
 use contract::catalog::Catalog;
 use contract::encounter::EncounterRecipes;
 use contract::ground::{polygon_contains, GroundShape};
@@ -80,13 +84,7 @@ fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
         map_type,
         size,
         region: None,
-        // The game's own limits, as it asks for a map.
-        limits: serde_json::from_value(
-            serde_json::from_str::<Value>(include_str!("../../../fixtures/generated-battle.json"))
-                .unwrap()["limits"]
-                .clone(),
-        )
-        .unwrap(),
+        limits: limits::game_limits(),
     }
 }
 
@@ -2397,8 +2395,7 @@ impl Roads {
             .fold(f64::INFINITY, f64::min)
     }
 
-    /// Whether every one of `corners` lies on the same side of the middle
-    /// line of the piece nearest their centre: a body in one half of its road.
+    /// Whether `corners` keep to one half of the road nearest them.
     fn in_one_half(&self, corners: &[Point; 4]) -> bool {
         let centre = [
             corners.iter().map(|c| c[0]).sum::<f64>() / 4.0,
@@ -2408,22 +2405,11 @@ impl Roads {
             (centre[0] / Self::BUCKET_M).floor() as i64,
             (centre[1] / Self::BUCKET_M).floor() as i64,
         );
-        let Some(&(a, b, _)) = self
-            .buckets
-            .get(&key)
-            .into_iter()
-            .flatten()
-            .map(|i| &self.pieces[*i])
-            .min_by(|x, y| {
-                segment_distance(x.0, x.1, centre).total_cmp(&segment_distance(y.0, y.1, centre))
-            })
-        else {
-            return false;
-        };
-        let side =
-            |p: &Point| ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])).signum();
-        let first = side(&centre);
-        corners.iter().all(|c| side(c) == first)
+        let pieces = self.buckets.get(&key).into_iter().flatten().map(|i| {
+            let (a, b, _) = self.pieces[*i];
+            (a, b)
+        });
+        halves::in_one_half(pieces, corners)
     }
 }
 
