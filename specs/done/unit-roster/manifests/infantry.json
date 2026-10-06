@@ -3369,7 +3369,9 @@
       ],
       "rig_family": "launcher",
       "export_directory": "assets/source/roster/infantry/fgm_148_javelin_team/",
-      "gate": "Authentic top attack disabled; art does not admit capability"
+      "gate": "Authentic top attack disabled; art does not admit capability",
+      "status": "authoring-complete-disabled-capability",
+      "model_source": "assets/source/roster/infantry/fgm_148_javelin_team/active_a.glb + carried_a.glb"
     },
     {
       "id": "rifle_squad",

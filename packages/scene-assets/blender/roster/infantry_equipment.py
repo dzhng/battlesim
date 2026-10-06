@@ -23,7 +23,10 @@ from infantry_rig import Rig, SCALE
 from mesh_lods import canonical, make_tiers, triangle_count
 import weapons
 
-MANIFEST = json.load(open(os.path.join(REPO, 'specs/unit-roster/manifests/infantry.json')))
+_manifest = os.path.join(REPO, 'specs/unit-roster/manifests/infantry.json')
+if not os.path.exists(_manifest):
+    _manifest = os.path.join(REPO, 'specs/done/unit-roster/manifests/infantry.json')
+MANIFEST = json.load(open(_manifest))
 
 
 def rifle_equipment(mats, model):
@@ -254,11 +257,11 @@ def build(unit, variant, mode):
     entry=next(v for v in MANIFEST['variants'] if v['id']==unit)
     if variant not in ('a','b','c') or mode not in ('active','carried'):
         raise SystemExit('Use look a/b/c and mode active/carried')
-    if entry['equipment'][0] in ('Javelin','Akeron'):
+    if entry['equipment'][0] in ('Javelin','Akeron') and os.environ.get('ALLOW_RESEARCH_MODELS') != '1':
         raise SystemExit('Unsupported launcher hold is gated: '+unit)
     if mode=='carried' and entry['rig_family']!='launcher':
         raise SystemExit('Only special launcher operators have a carried kit')
-    model=entry['equipment_model']
+    model=entry.get('equipment_model', {'Javelin': 'tow', 'Akeron': 'tow'}.get(entry['equipment'][0], 'rifle'))
     ground=model in ('tow','kornet')
     shoulder=model.startswith('rpg') and mode=='active'
     hold=weapons.LAUNCHER_HOLD if (shoulder or ground and mode=='active') else weapons.RIFLE_HOLD
