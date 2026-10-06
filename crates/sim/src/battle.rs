@@ -2904,15 +2904,16 @@ impl Battle {
             slots
                 .iter()
                 .map(|slot| {
-                    slot.point.map_or_else(Vec::new, |destination| {
-                        vec![crate::units::UnitOrder::Move(crate::units::MoveOrder {
+                    let destination = slot
+                        .point
+                        .unwrap_or(source[slot.id.0 as usize].position.xy());
+                    vec![crate::units::UnitOrder::Move(crate::units::MoveOrder {
                             destination,
                             policy: request.route,
                             gesture: 0,
                             direction: request.direction,
                             facing: request.facing,
                         })]
-                    })
                 })
                 .collect::<Vec<_>>()
         });
@@ -2923,7 +2924,7 @@ impl Battle {
             movement::ProofRequest {
                 slots,
                 orders: orders.as_deref(),
-                queued: request.is_some_and(|r| r.queued),
+                queued: request.is_none_or(|r| r.queued),
                 reserve_repair: false,
             },
             &mut allowance,
