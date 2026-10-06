@@ -391,3 +391,63 @@ fn a_dense_roadside_body_query_yields_without_changing_the_route() {
     assert!(matches!(job.plan(), Some(sim::navigation::Plan::Route(_))));
     assert_eq!(job.plan().unwrap(), &together);
 }
+
+/// The moment: a wide truck is sent down the parked street to where a car
+/// stands abandoned askew in the middle of it. It cannot stand there nor
+/// squeeze past the car, and the nearest room beyond the car is a drive
+/// round the block. It pulls up short of the car on its way: a detour may
+/// gain it ground, at most a fifth of the way it adds.
+#[test]
+fn a_truck_sent_onto_an_abandoned_car_stops_short_of_it_rather_than_loop_round() {
+    let bearing = 0.0;
+    // The abandoned car, half across the middle and turned off the street.
+    let wreck = at(bearing, 20.0, 0.3);
+    let mut map = street(bearing, true);
+    map["props"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({ "kind": "parked_car",
+        "center": wreck, "yaw": bearing + 0.45, "half_extents": [CAR[0], CAR[1], 0.75] }));
+    // A truck as wide as the widest wheeled hull, which turns no tighter
+    // than the stand-in's six metres.
+    let mut rules = common::scenario_rules();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "supply",
+        json!({ "body": { "hull": { "half_extents_m": [3.6, 1.55, 1.5] } } }),
+    );
+    let from = at(bearing, -200.0, 0.0);
+    let units = json!([{ "side": "blue", "kind": "supply", "position": from, "yaw": bearing }]);
+    let setup = serde_json::from_value(json!({
+        "map": map, "rules": rules, "units": units, "events": [], "scripts": [],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    // Sent just past the car's middle: the truck cannot stand there, nor
+    // get past the car on this street.
+    send(&mut b, 1, 0, at(bearing, 22.0, 0.0));
+    let hz = b.rules().tick_hz as u64;
+    let (mut furthest, mut driven, mut last) = (f64::NEG_INFINITY, 0.0, v2(from[0], from[1]));
+    for _ in 0..300 * hz {
+        b.step();
+        let p = own(&b, 0).position;
+        let here = v2(p[0], p[1]);
+        driven += (here - last).length();
+        last = here;
+        furthest = furthest.max(p[0] - MIDDLE[0]);
+        if own(&b, 0).state == MoveState::Idle {
+            break;
+        }
+    }
+    let short = 20.0 - (last.x - MIDDLE[0]);
+    assert!(
+        furthest < 20.0,
+        "it drove past the car, {:.1} m down the street, and came back",
+        furthest
+    );
+    assert!(
+        (0.0..=15.0).contains(&short) && driven < 220.0 + 5.0,
+        "it stopped {short:.1} m short of the car after {driven:.0} m"
+    );
+}

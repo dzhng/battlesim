@@ -153,6 +153,24 @@ pub struct MoveOrder {
     pub direction: MoveDirection,
     /// A right-drag's facing once there (Q9); `None`: the way it travels.
     pub facing: Option<f64>,
+    /// Sent where it had no room to stand, its destination is the nearest
+    /// room it can reach: where it stops instead if the way there proves
+    /// the longer detour.
+    pub short: Option<StopShort>,
+}
+
+/// Room on a unit's way to ground it could not stand on, short of the
+/// nearest room it was sent to instead.
+#[derive(Clone, Debug, PartialEq)]
+pub struct StopShort {
+    pub at: V2,
+    /// How much farther than the way to `at` the way to the nearest room
+    /// may run: what the ground it gains is worth
+    /// (`navigation.stop_short_detour_ratio`).
+    pub detour_m: f64,
+    /// While the way to `at` is planned: the nearest room, and the route
+    /// found to it.
+    pub nearest: Option<(V2, Vec<V2>)>,
 }
 
 /// Where an attack order is heading this tick: the target's live position
@@ -480,6 +498,10 @@ impl Unit {
                         .u64(m.gesture)
                         .u64(m.direction as u64);
                     d.opt_f64(m.facing);
+                    let short = m.short.as_ref();
+                    d.opt_v2(short.map(|s| s.at));
+                    d.opt_f64(short.map(|s| s.detour_m));
+                    d.opt_v2(short.and_then(|s| s.nearest.as_ref()).map(|n| n.0));
                 }
                 UnitOrder::Attack { target, last_known } => {
                     d.u64(2);

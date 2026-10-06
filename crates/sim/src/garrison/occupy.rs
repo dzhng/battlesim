@@ -590,6 +590,7 @@ fn gather(
                 gesture: 0,
                 direction: Default::default(),
                 facing: request.facing,
+                short: None,
             })]
         })
         .collect();
@@ -608,6 +609,7 @@ fn gather(
                     gesture: 0,
                     direction: Default::default(),
                     facing: None,
+                    short: None,
                 }),
                 UnitOrder::Garrison {
                     building: owner,

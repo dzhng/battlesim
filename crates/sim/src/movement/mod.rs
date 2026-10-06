@@ -707,6 +707,9 @@ fn take_route(
         unit.state = MoveState::Waiting;
         return;
     }
+    let Some(plan) = weigh_stop(unit, &request, plan) else {
+        return;
+    };
     match plan {
         Plan::Route(route) => {
             if !unit.is_vehicle() {
@@ -727,6 +730,62 @@ fn take_route(
         Plan::Blocked(_) => {
             unit.route = None;
             unit.state = MoveState::RouteBlocked;
+        }
+    }
+}
+
+/// A unit sent to the room nearest ground it could not stand on stops at
+/// the room on its way instead ([`crate::units::StopShort`]) when the way to
+/// the nearest runs longer than the way to it by more than the ground it
+/// gains is worth. The route to the nearest is weighed first against the
+/// straight line to the room on the way, which no route undercuts; only if
+/// that cannot settle it is the way to the room on the way planned, and the
+/// two routes weighed. `None`: the unit plans again.
+fn weigh_stop(unit: &mut Unit, request: &Request, plan: Plan) -> Option<Plan> {
+    let order = unit
+        .orders
+        .front_mut()
+        .and_then(|o| o.movement_mut())
+        .filter(|o| o.destination == request.goal);
+    let Some(order) = order else {
+        return Some(plan);
+    };
+    let Some(short) = order.short.take() else {
+        return Some(plan);
+    };
+    let from = request.from;
+    match (short.nearest, plan) {
+        // The way to the nearest room: plainly worth it, or none.
+        (None, Plan::Route(route))
+            if way_left(from, &route) <= (short.at - from).length() + short.detour_m =>
+        {
+            Some(Plan::Route(route))
+        }
+        (None, Plan::Route(route)) => {
+            let nearest = order.destination;
+            order.destination = short.at;
+            order.short = Some(crate::units::StopShort {
+                nearest: Some((nearest, route)),
+                ..short
+            });
+            unit.route = None;
+            None
+        }
+        (None, blocked) => Some(blocked),
+        // The way to the room on the way: the nearest if it gains enough.
+        (Some((nearest, kept)), plan) => {
+            let worth = match &plan {
+                Plan::Route(route) => {
+                    way_left(from, &kept) - way_left(from, route) <= short.detour_m
+                }
+                Plan::Blocked(_) => true,
+            };
+            if !worth {
+                return Some(plan);
+            }
+            order.destination = nearest;
+            unit.planned_goal = Some(nearest);
+            Some(Plan::Route(kept))
         }
     }
 }

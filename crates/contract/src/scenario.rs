@@ -264,6 +264,11 @@ pub struct NavigationRules {
     pub road_leg_m: f64,
     /// How far from each end of a leg a road is looked for.
     pub road_access_m: f64,
+    /// A unit sent where it has no room to stand stops at the nearest room
+    /// it can reach, or short of it on its way there: it drives a detour to
+    /// the nearer only while each metre of ground gained costs at most this
+    /// many metres of extra driving.
+    pub stop_short_detour_ratio: f64,
 }
 
 impl NavigationRules {
@@ -281,6 +286,9 @@ impl NavigationRules {
         }
         if self.search_cells_base == 0 {
             return Err("search_cells_base must be positive: no search would look anywhere".into());
+        }
+        if !self.stop_short_detour_ratio.is_finite() || self.stop_short_detour_ratio < 0.0 {
+            return Err("stop_short_detour_ratio must be finite and not negative".into());
         }
         for (name, v) in [
             ("road_leg_m", self.road_leg_m),

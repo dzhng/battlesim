@@ -583,6 +583,7 @@ impl Battle {
                 gesture: 0,
                 direction: contract::command::MoveDirection::Forward,
                 facing: None,
+                short: None,
             }));
             skirmish.entered.insert(
                 unit.id,
@@ -2394,6 +2395,7 @@ impl Battle {
         } else {
             None
         };
+        let mut stops = BTreeMap::new();
         let placement = match &command.order {
             Order::Refund { units } => {
                 let entry = self
@@ -2431,9 +2433,8 @@ impl Battle {
                 direction,
                 route,
                 ..
-            } => Some(MovePlacement {
-                gesture: *gesture,
-                destinations: self.preview_move(
+            } => {
+                let (destinations, found) = self.place_move(
                     command.side,
                     &MovePreviewRequest {
                         units: units.clone(),
@@ -2443,15 +2444,19 @@ impl Battle {
                         route: *route,
                         queued: command.queued,
                     },
-                )?,
-            }),
+                )?;
+                stops = found;
+                Some(MovePlacement {
+                    gesture: *gesture,
+                    destinations,
+                })
+            }
             Order::AttackMove {
                 units,
                 gesture,
                 goal,
-            } => Some(MovePlacement {
-                gesture: *gesture,
-                destinations: self.preview_move(
+            } => {
+                let (destinations, found) = self.place_move(
                     command.side,
                     &MovePreviewRequest {
                         units: units.clone(),
@@ -2459,14 +2464,20 @@ impl Battle {
                         queued: command.queued,
                         ..Default::default()
                     },
-                )?,
-            }),
+                )?;
+                stops = found;
+                Some(MovePlacement {
+                    gesture: *gesture,
+                    destinations,
+                })
+            }
             _ => None,
         };
         Ok(PreparedCommand {
             command,
             placement,
             building,
+            stops,
         })
     }
 
@@ -2512,6 +2523,7 @@ impl Battle {
                             gesture: 0,
                             direction: Default::default(),
                             facing: None,
+                            short: None,
                         }),
                         false,
                     );
@@ -2546,6 +2558,7 @@ impl Battle {
                                 gesture,
                                 direction: Default::default(),
                                 facing: None,
+                                short: None,
                             }),
                         );
                         unit.enqueue(
@@ -2568,6 +2581,7 @@ impl Battle {
                                 gesture,
                                 direction: Default::default(),
                                 facing,
+                                short: None,
                             }),
                         );
                     } else if !queued {
@@ -2598,6 +2612,7 @@ impl Battle {
                         gesture,
                         direction,
                         facing,
+                        short: prepared.stops.get(&slot.unit).cloned(),
                     });
                     push(unit, order);
                 }
@@ -2619,6 +2634,7 @@ impl Battle {
                         gesture,
                         direction: contract::command::MoveDirection::Forward,
                         facing: None,
+                        short: prepared.stops.get(&slot.unit).cloned(),
                     });
                     push(unit, order);
                 }
@@ -2792,6 +2808,24 @@ impl Battle {
         side: Side,
         request: &MovePreviewRequest,
     ) -> Result<Vec<contract::command::MoveDestination>, OrderError> {
+        self.place_move(side, request)
+            .map(|(destinations, _)| destinations)
+    }
+
+    /// Each unit's destination, and where a hull sent onto ground it has no
+    /// room on stops short of it instead, if the room nearest is a long way
+    /// round ([`crate::units::StopShort`]).
+    fn place_move(
+        &mut self,
+        side: Side,
+        request: &MovePreviewRequest,
+    ) -> Result<
+        (
+            Vec<contract::command::MoveDestination>,
+            BTreeMap<UnitId, crate::units::StopShort>,
+        ),
+        OrderError,
+    > {
         let ids = &request.units;
         let goal = request.goal;
         let facing = request.facing;
@@ -2819,6 +2853,8 @@ impl Battle {
         let mut known = self.sides[side.index()].clone();
         let grid = known.grid(&self.world, self.authored_props);
         let pockets = crate::navigation::Pockets::default();
+        // Per unit, the last point placed for it and where it stops short.
+        let shorts = std::cell::RefCell::new(BTreeMap::new());
         // A queued leg sets off from where the queue ends.
         let from = |u: &Unit| {
             u.orders
@@ -2836,19 +2872,39 @@ impl Battle {
             libm::hypot(self.world.width(), self.world.depth()),
             |id, p| {
                 let u = &self.units[id.0 as usize];
-                grid.destination_point(
-                    p,
-                    &u.mobility,
-                    u.hull.map(|h| h.xy().length()),
-                    from(u),
-                    &pockets,
-                )
+                let hull = u.hull.map(|h| h.xy().length());
+                let placed = grid.destination_point(p, &u.mobility, hull, from(u), &pockets)?;
+                let short = hull
+                    .filter(|_| placed != p)
+                    .and_then(|radius| {
+                        grid.room_on_the_way(p, &u.mobility, radius, from(u), &pockets)
+                    })
+                    .map(|at| crate::units::StopShort {
+                        at,
+                        detour_m: self.rules.navigation.stop_short_detour_ratio
+                            * ((at - p).length() - (placed - p).length()),
+                        nearest: None,
+                    })
+                    .filter(|short| short.detour_m > 0.0);
+                shorts.borrow_mut().insert(id, (placed, short));
+                Some(placed)
             },
         );
         // A placed marker is a place to stand that its unit can reach on the
         // ground its side knows; the way there is found and kept on the move.
         let source = self.move_source(side);
-        Ok(plan
+        let shorts = shorts.into_inner();
+        // Where each placed unit stops short, if it was placed where that
+        // was worked out for.
+        let stops = plan
+            .slots
+            .iter()
+            .filter_map(|slot| {
+                let (placed, short) = shorts.get(&slot.id)?;
+                (slot.point == Some(*placed)).then(|| Some((slot.id, short.clone()?)))?
+            })
+            .collect();
+        let destinations = plan
             .slots
             .into_iter()
             .map(|slot| {
@@ -2872,7 +2928,8 @@ impl Battle {
                     facing: facing.unwrap_or(u.yaw),
                 }
             })
-            .collect())
+            .collect();
+        Ok((destinations, stops))
     }
 
     /// Resolve entry and gathering using only this side's known, isolated state.
@@ -3392,6 +3449,8 @@ struct PreparedCommand {
     command: CommandEnvelope,
     placement: Option<MovePlacement>,
     building: Option<garrison::BuildingPlan>,
+    /// Where a placed unit stops short ([`crate::units::StopShort`]).
+    stops: BTreeMap<UnitId, crate::units::StopShort>,
 }
 
 #[cfg(test)]
