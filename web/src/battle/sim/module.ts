@@ -20,10 +20,15 @@ export function simModule(memory: WebAssembly.Memory): SimModule {
 let loaded: Promise<{ wasm: Wasm; memory: WebAssembly.Memory }> | null = null;
 
 function load() {
-  return (loaded ??= init({ module_or_path: countedFetch(wasmUrl) }).then((out) => ({
-    wasm,
-    memory: out.memory,
-  })));
+  if (!loaded) {
+    // Init reads the download only when the module is not set up yet (a
+    // test sets it up from disk): a fetch it never reads must not fail the
+    // realm, and one it does read still fails init.
+    const download = countedFetch(wasmUrl);
+    download.catch(() => {});
+    loaded = init({ module_or_path: download }).then((out) => ({ wasm, memory: out.memory }));
+  }
+  return loaded;
 }
 
 /** The simulation module, initialised once per realm (page or worker): the
