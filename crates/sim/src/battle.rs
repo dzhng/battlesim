@@ -2423,9 +2423,9 @@ impl Battle {
                         .orders
                         .iter()
                         .any(|o| matches!(o, UnitOrder::Attack { .. }));
-                let slot_point = slot.point.filter(|p| {
-                    !after_attack && grid.can_reach(from(u), *p, &u.mobility, &pockets)
-                });
+                let slot_point = slot
+                    .point
+                    .filter(|p| !after_attack && grid.reaches(from(u), *p, &u.mobility, &pockets));
                 let goal = slot_point.unwrap_or(u.position.xy());
                 let facing =
                     movement::final_yaw(u, request.facing, from(u), goal, request.direction);

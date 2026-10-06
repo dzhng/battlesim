@@ -1,5 +1,5 @@
-//! Move admission runs the real movement owner on isolated, side-known state.
-//! It drives the two ends of each leg, vehicle bends, the approach to
+//! Garrison entry is proven by running the real movement owner on isolated,
+//! side-known state (move orders are admitted by reach alone). It drives the two ends of each leg, vehicle bends, the approach to
 //! stationary hulls and props, and meetings with movers coming the other way;
 //! straight stretches between checkpoints are taken on the planned route
 //! ([`carry`]). Rehearsal cost follows physical interactions rather than
