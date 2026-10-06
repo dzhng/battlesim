@@ -280,7 +280,7 @@ These are the decisions the build made where the spec was silent or contradicted
 
 ### What happens when a unit dies
 - **When:** slice 09.
-- **The choice:** A destroyed vehicle or a squad with nobody standing drops out of its side's unit list. Its wreck and fallen soldiers stay on the map, and any order naming it is refused as "destroyed". If the enemy side had it spotted when it died, the enemy's track ends at once with no last-seen area, and an attack order on it counts as complete. If it died unseen, nothing changes: the track lapses after the usual 1.5 s and a last-seen area follows. Enemy fallen soldiers appear once your side has seen the ground they lie on, and are remembered afterwards. Your own fallen are always shown.
+- **The choice:** A destroyed vehicle or a squad with nobody standing drops out of its side's unit list. Its wreck and fallen soldiers stay on the map, and any order naming it is refused as "destroyed". If the enemy side had it spotted when it died, the enemy's track ends at once with no last-seen area, and an attack order on it counts as complete. If it died unseen, nothing changes: the track lapses after the usual 1.5 s and a last-seen area follows. Enemy fallen soldiers appear once your side has seen the ground they lie on, and are remembered afterwards. Your own fallen are always shown. Your own vehicle's wreck is always known too, because a side knows where its vehicle died; otherwise a tank dying with no other friendly eyes on its spot vanished from its own side's picture. A side that had an enemy vehicle spotted when it died sees its wreck appear.
 - **Why / the gap:** the spec says "a dead visible target completes the attack" and "corpses remain", but not how a dead unit appears to its owner, or who learns of a death and when.
 - **The reach:** selection, attack orders, and what a player can infer.
 - **Confidence:** medium.
@@ -533,7 +533,7 @@ These are the decisions the build made where the spec was silent or contradicted
 
 ### How a side learns of new obstacles
 - **When:** slice 04 (extended in slices 05 and 11).
-- **The choice:** Each side plans routes with the map's authored props plus the new obstacles it knows about. It learns a new obstacle, such as a wall dropped across a road or a wreck, when any fog cell under its footprint comes into view, or when one of its units comes within 2 m of it. A unit planning far away drives straight at an unseen new obstacle, learns it on arrival, and detours. A side that never sees or reaches it never learns it.
+- **The choice:** Each side plans routes with the map's authored props plus the new obstacles it knows about. It learns a new obstacle, such as a wall dropped across a road or a wreck, when any fog cell under its footprint comes into view, or when one of its units comes within 2 m of it. A unit planning far away drives straight at an unseen new obstacle, learns it on arrival, and detours. A side that never sees or reaches it never learns it. The one exception is a wreck its own vehicle left, or one it watched an enemy vehicle leave, which it knows at once (see the choice on destroyed units).
 - **Why / the gap:** the spec says remains enter a side's knowledge "when observed or physically encountered" without saying how near counts as encountered. Checking only a prop's centre missed large props, because a 24 m ruin hides the ground at its own middle.
 - **The reach:** wrecks and dropped walls. Ruins are the one exception (next entry).
 - **Confidence:** high.

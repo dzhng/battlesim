@@ -1607,7 +1607,10 @@ impl Battle {
 
     /// Hostile damage or suppression grants return fire; a destroyed vehicle
     /// leaves a permanent wreck (M06, M07); a death a side was watching ends
-    /// its track, while an unseen death discloses nothing.
+    /// its track, while an unseen death discloses nothing. The vehicle's own
+    /// side knows where it died, and a side that watched it die saw the wreck
+    /// appear: both learn the wreck at once, so a vehicle never vanishes from
+    /// the picture of a side that knew where it stood.
     fn consequences(&mut self, outcome: damage::Outcome) {
         for (victim, shooter) in outcome.attacked {
             self.units[victim.0 as usize].attackers.insert(shooter);
@@ -1621,22 +1624,34 @@ impl Battle {
         }
         for id in destroyed {
             let unit = &self.units[id.0 as usize];
+            let own = unit.side;
             let wreck = unit.unit_type(&self.rules).hull().map(|h| h.wreck.clone());
-            if let (Some(half), Some(kind)) = (unit.hull, wreck) {
-                let def = PropDefinition {
+            let wreck = match (unit.hull, wreck) {
+                (Some(half), Some(kind)) => Some(self.add_prop(&PropDefinition {
                     kind,
                     center: [unit.position.x, unit.position.y],
                     yaw: unit.yaw,
                     half_extents: [half.x, half.y, half.z],
                     base_z: Some(unit.position.z),
-                };
-                self.add_prop(&def);
-            }
-            let unit = &self.units[id.0 as usize];
-            for side in Side::ALL.into_iter().filter(|&s| s != unit.side) {
+                })),
+                _ => None,
+            };
+            let mut knowing = vec![own];
+            for side in Side::ALL.into_iter().filter(|&s| s != own) {
                 let knowledge = &mut self.knowledge[side.index()];
                 if knowledge.identifies(id, self.tick - 1) {
                     knowledge.saw_destroyed(id);
+                    knowing.push(side);
+                }
+            }
+            if let Some(prop) = wreck.and_then(|w| self.world.prop(w)) {
+                for side in knowing {
+                    self.sides[side.index()].learn(
+                        prop,
+                        self.authored_props,
+                        self.rules.pushing.relearn_m,
+                        true,
+                    );
                 }
             }
         }
