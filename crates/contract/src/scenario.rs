@@ -305,6 +305,9 @@ pub struct DriveRules {
     pub acceleration_s: f64,
     /// Seconds to brake from full road speed to rest.
     pub braking_s: f64,
+    /// Seconds a destroyed vehicle takes to come to rest from full road
+    /// speed: its tracks or wheels lock, so it stops harder than it brakes.
+    pub wreck_stop_s: f64,
     /// Tracks turn in place beyond this heading error.
     pub turn_in_place_deg: f64,
     /// A wheeled vehicle reaches a waypoint it passes abeam within this.

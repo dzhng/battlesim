@@ -599,7 +599,9 @@ fn killed_driving(props: Value) -> ([f64; 2], f64, f64, [f64; 2]) {
     let (at, speed) = last.expect("it drove");
     assert!(!b.unit(UnitId(0)).unwrap().alive(), "blue's tank survived");
     let braking = b.unit(UnitId(0)).unwrap().mobility.road_mps
-        / rules()["movement"]["drive"]["braking_s"].as_f64().unwrap();
+        / rules()["movement"]["drive"]["wreck_stop_s"]
+            .as_f64()
+            .unwrap();
     let wreck = b
         .observe(Side::Blue)
         .known_props
@@ -611,7 +613,7 @@ fn killed_driving(props: Value) -> ([f64; 2], f64, f64, [f64; 2]) {
 }
 
 #[test]
-fn a_tank_killed_on_the_move_rolls_to_a_stop_where_its_brakes_would_stop_it() {
+fn a_tank_killed_on_the_move_rolls_to_a_stop_its_tracks_locked() {
     let (at, speed, braking, wreck) = killed_driving(json!([]));
     assert!(speed > 3.0, "it was driving: {speed} m/s");
     // Within one tick's travel of its stopping distance, straight ahead.
@@ -619,7 +621,7 @@ fn a_tank_killed_on_the_move_rolls_to_a_stop_where_its_brakes_would_stop_it() {
     let ahead = wreck[0] - at[0];
     assert!(
         (ahead - rolled).abs() < speed / 30.0 + 0.05,
-        "rolled {ahead} m, brakes stop it in {rolled} m"
+        "rolled {ahead} m, locked tracks stop it in {rolled} m"
     );
     assert!(
         (wreck[1] - at[1]).abs() < 0.2,

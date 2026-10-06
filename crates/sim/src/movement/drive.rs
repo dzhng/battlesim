@@ -18,6 +18,7 @@
 //! speed (Q30).
 use contract::command::MoveDirection;
 use contract::ids::UnitId;
+use contract::scenario::{PushClass, Rules};
 
 use crate::math::{v2, wrap_angle, Obb2, V2};
 use crate::navigation::Drive;
@@ -463,21 +464,29 @@ pub fn prune(unit: &mut Unit) -> bool {
 }
 
 /// Where a vehicle killed on the move comes to rest: it rolls on along its
-/// travel and brakes as it would to stop (`braking_s` from full road speed),
-/// cut short, in steps of `STEP_M`, where its hull would meet a body, leave
-/// traversable ground or run into one of `hulls` (the other vehicles). A
-/// wreck lies there, so a tank killed at speed does not halt on the spot.
-pub fn death_roll(world: &WorldGeometry, unit: &Unit, hulls: &[Obb2]) -> V2 {
+/// travel, its tracks or wheels locked, losing its full road speed in
+/// `wreck_stop_s`, and stops short, in steps of `STEP_M`, of whatever its
+/// hull would meet: any body that stops vehicles (even one it could shove
+/// while driving: a dead hull shoves nothing), a bank, one of `hulls` (the
+/// other vehicles) or one of `soldiers`. Its wreck lies there.
+pub fn death_roll(
+    world: &WorldGeometry,
+    rules: &Rules,
+    unit: &Unit,
+    hulls: &[Obb2],
+    soldiers: &[V2],
+) -> V2 {
     const STEP_M: f64 = 0.25;
     let at = unit.position.xy();
-    let (Some(drive), Some(_)) = (unit.mobility.drive, unit.hull) else {
+    let Some(here) = unit.hull_box() else {
         return at;
     };
     let speed = unit.drive_speed_mps.max(0.0);
-    let braking = unit.mobility.road_mps / drive.feel.braking_s;
-    let length = speed * speed / (2.0 * braking);
+    let stopping = unit.mobility.road_mps / rules.movement.drive.wreck_stop_s;
+    let length = speed * speed / (2.0 * stopping);
     let gear = if unit.reversing { -1.0 } else { 1.0 };
     let toward = dir(travel(unit.yaw, gear));
+    let soldier_r = rules.physics.soldier_radius_m;
     let mut rest = at;
     let mut rolled = 0.0;
     while rolled < length {
@@ -485,9 +494,20 @@ pub fn death_roll(world: &WorldGeometry, unit: &Unit, hulls: &[Obb2]) -> V2 {
         let next = at + toward * rolled;
         let hull = Obb2 {
             center: next,
-            ..unit.hull_box().expect("a vehicle has a hull")
+            ..here
         };
-        if blocked(world, unit, next, unit.yaw) || hulls.iter().any(|h| hull.overlaps(h)) {
+        let stopped = world
+            .surface_at(next.x, next.y)
+            .is_none_or(|s| !s.traversable)
+            || super::push::meet(world, &hull, &here, PushClass::None)
+                .solid
+                .is_some()
+            || hulls.iter().any(|h| hull.overlaps(h))
+            // One already against the hull where it died stays where he is.
+            || soldiers
+                .iter()
+                .any(|&p| hull.contains(p, soldier_r) && !here.contains(p, soldier_r));
+        if stopped {
             break;
         }
         rest = next;

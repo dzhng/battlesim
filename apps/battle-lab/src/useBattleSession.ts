@@ -213,8 +213,8 @@ export function useBattleSession({
       new LastSeenHulls((kind) => {
         const m = UNITS.type(kind).mobility;
         const road = "tracked" in m ? m.tracked : "wheeled" in m ? m.wheeled : m.foot;
-        // As the simulation brakes: full road speed lost in `braking_s`.
-        return road.road_kmh / 3.6 / GAME_RULES.movement.drive.braking_s;
+        // As the simulation stops a dead hull: full road speed lost in `wreck_stop_s`.
+        return road.road_kmh / 3.6 / GAME_RULES.movement.drive.wreck_stop_s;
       }),
     [],
   );

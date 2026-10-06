@@ -213,9 +213,9 @@ export function piecesOf(f: Flight, feel: CookOffFeel, clock: number): ModelInst
 const REMEMBERED_S = 2;
 
 /** How far beyond its own half length a wreck may lie from where its hull
- *  was last seen: a vehicle killed at full road speed rolls this far on
+ *  was last seen: a vehicle killed at full road speed rolls a few metres on
  *  before it stops (`sim::movement::drive::death_roll`), with room to spare. */
-export const ROLL_REACH_M = 12;
+export const ROLL_REACH_M = 6;
 
 /** Each vehicle as the frame last drew it, a moment after it is gone: the
  *  hull a cook-off draws whole until its ammunition goes. Each is kept in
@@ -291,7 +291,7 @@ export class LastSeenHulls {
 /** What cook-off `f` draws at presentation second `clock`: its hull whole,
  *  as last seen (`hull`), until the ammunition goes; then the wreck's pieces.
  *  A hull killed on the move rolls on to where its wreck lies, slowing as
- *  its brakes would stop it, and the pieces with it. */
+ *  its locked tracks stop it, and the pieces with it. */
 export function cookOffModels(
   f: Flight,
   last: LastHull | null,

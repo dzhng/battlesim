@@ -325,8 +325,10 @@ pub fn validate_drive(rules: &Rules) {
         d.acceleration_s.is_finite()
             && d.acceleration_s > 0.0
             && d.braking_s.is_finite()
-            && d.braking_s > 0.0,
-        "movement.drive acceleration and braking times must be finite and positive"
+            && d.braking_s > 0.0
+            && d.wreck_stop_s.is_finite()
+            && d.wreck_stop_s > 0.0,
+        "movement.drive acceleration, braking and wreck stop times must be finite and positive"
     );
     for (name, v) in [
         ("turn_in_place_deg", d.turn_in_place_deg),

@@ -1632,7 +1632,19 @@ impl Battle {
                 .filter(|o| o.id != id && o.alive())
                 .filter_map(|o| o.hull_box())
                 .collect();
-            let rest = crate::movement::drive::death_roll(&self.world, unit, &hulls);
+            let soldiers: Vec<V2> = self
+                .units
+                .iter()
+                .filter(|o| o.id != id)
+                .flat_map(|o| o.member_positions().map(|p| p.xy()))
+                .collect();
+            let rest = crate::movement::drive::death_roll(
+                &self.world,
+                &self.rules,
+                unit,
+                &hulls,
+                &soldiers,
+            );
             let wreck = match (unit.hull, wreck) {
                 (Some(half), Some(kind)) => Some(self.add_prop(&PropDefinition {
                     kind,
@@ -2933,33 +2945,60 @@ struct PreparedCommand {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn a_tank_rolling_to_a_stop_stops_short_of_a_wall() {
-        let battle = |props: serde_json::Value| {
+    fn a_dead_tank_rolls_a_few_metres_and_stops_short_of_whatever_is_in_its_way() {
+        let battle = |props: serde_json::Value, units: serde_json::Value| {
             let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
                 "map": { "size": [400, 200], "fog_cell_m": 8, "height_grid_m": 4,
                     "slope_cutoff_deg": 35, "props": props },
                 "rules": crate::fixtures::game(),
-                "units": [{ "side": "blue", "kind": "tank", "position": [100, 100], "yaw": 0.0 }],
+                "units": units,
             }))
             .unwrap();
             Battle::new(&setup, 1)
         };
-        // At full road speed its brakes would roll it on well past 4 m.
+        let tank = serde_json::json!({ "side": "blue", "kind": "tank", "position": [100, 100] });
+        // Killed at full road speed: its tracks lock, it rolls a few metres.
         let rolled = |b: &Battle| {
-            let mut tank = b.unit(UnitId(0)).unwrap().clone();
-            tank.drive_speed_mps = tank.mobility.road_mps;
-            crate::movement::drive::death_roll(&b.world, &tank, &[]).x - 100.0
+            let mut dead = b.unit(UnitId(0)).unwrap().clone();
+            dead.drive_speed_mps = dead.mobility.road_mps;
+            let soldiers: Vec<V2> = b
+                .units
+                .iter()
+                .flat_map(|u| u.member_positions().map(|p| p.xy()))
+                .collect();
+            let rest =
+                crate::movement::drive::death_roll(&b.world, &b.rules, &dead, &[], &soldiers);
+            rest.x - 100.0
         };
-        let open = rolled(&battle(serde_json::json!([])));
-        assert!(open > 4.0, "rolls {open} m in the open");
+        let alone = |props| rolled(&battle(props, serde_json::json!([tank])));
+        let open = alone(serde_json::json!([]));
+        assert!(open > 2.5 && open < 5.0, "rolls {open} m in the open");
         // A wall across its path 1 m beyond its nose (half length 3.5 m).
-        let wall = rolled(&battle(
-            serde_json::json!([{ "kind": "wall", "center": [104.8, 100],
-            "yaw": std::f64::consts::FRAC_PI_2, "half_extents": [6, 0.3, 1.2] }]),
-        ));
+        let wall = alone(serde_json::json!([{ "kind": "wall", "center": [104.8, 100],
+            "yaw": std::f64::consts::FRAC_PI_2, "half_extents": [6, 0.3, 1.2] }]));
         assert!(
             wall > 0.5 && wall + 3.5 <= 104.5 + 0.05,
             "stops at the wall after {wall} m"
+        );
+        // A crate it would shove aside when driving still stops a dead hull.
+        let crate_ = alone(
+            serde_json::json!([{ "kind": "crate", "center": [105.0, 100],
+            "yaw": 0.0, "half_extents": [0.3, 1.0, 0.6] }]),
+        );
+        assert!(
+            crate_ + 3.5 <= 104.7 + 0.05,
+            "stops at the crate after {crate_} m"
+        );
+        // So does a soldier in its path.
+        let squad =
+            serde_json::json!({ "side": "blue", "kind": "rifle", "position": [106.0, 100] });
+        let soldier = rolled(&battle(
+            serde_json::json!([]),
+            serde_json::json!([tank, squad]),
+        ));
+        assert!(
+            soldier < open - 0.5,
+            "stops short of the squad after {soldier} m, not {open}"
         );
     }
 
