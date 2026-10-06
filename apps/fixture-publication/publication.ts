@@ -23,6 +23,8 @@ const queues = new Map<string, Promise<unknown>>();
 /** Authored mechanics sources, also used to validate interrupted destinations. */
 export async function mechanicsSourcePaths(root: string): Promise<string[]> {
   const out = ["fixtures/game.json"];
+  const candidates: string[] = [];
+  const sections = new Set(["parts", "props", "roles", "soldiers", "units", "weapons"]);
   async function walk(path: string) {
     let entries;
     try {
@@ -33,16 +35,28 @@ export async function mechanicsSourcePaths(root: string): Promise<string[]> {
     }
     for (const item of entries) {
       const child = `${path}/${item.name}`;
-      // Model manifests are review metadata for the unit workbench, not
-      // mechanics documents. They do not have catalog sections and must not be
-      // handed to the native catalog validator.
-      if (child === "fixtures/units/model-manifest.json") continue;
       if (item.isDirectory()) await walk(child);
-      else if (item.isFile() && child.endsWith(".json")) out.push(child);
+      else if (item.isFile() && child.endsWith(".json")) candidates.push(child);
     }
   }
   await walk("fixtures/units");
   await walk("fixtures/props");
+  for (const path of candidates) {
+    try {
+      const value = JSON.parse(await fs.readFile(join(root, path), "utf8"));
+      if (
+        value &&
+        typeof value === "object" &&
+        !Array.isArray(value) &&
+        Object.keys(value).some((key) => sections.has(key))
+      )
+        out.push(path);
+    } catch {
+      // Keep malformed JSON in the source list so the editor reports the file
+      // error instead of silently hiding it.
+      out.push(path);
+    }
+  }
   return out.sort();
 }
 

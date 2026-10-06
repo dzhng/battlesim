@@ -284,6 +284,7 @@
   color: #e6ecf5;
   text-align: left;
   cursor: pointer;
+  touch-action: none;
 }
 .wb-catalog-card-disabled {
   border-color: rgba(255, 177, 92, 0.58);
@@ -315,6 +316,18 @@
     Menlo,
     monospace;
   text-transform: uppercase;
+}
+.wb-catalog-error {
+  display: grid;
+  place-items: center;
+  height: 150px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(135deg, #3a2525 0 8px, #4a2d2d 8px 16px);
+  color: #ff9e9e;
+  font:
+    700 12px ui-monospace,
+    Menlo,
+    monospace;
 }
 .wb-catalog-name {
   overflow: hidden;

@@ -20,7 +20,8 @@ export function simModule(memory: WebAssembly.Memory): SimModule {
 let loaded: Promise<{ wasm: Wasm; memory: WebAssembly.Memory }> | null = null;
 
 function load() {
-  return (loaded ??= (async () => {
+  if (loaded) return loaded;
+  loaded = (async () => {
     // Vitest runs the browser module in Node, where Vite's root-relative asset
     // URL cannot be passed to native fetch. The browser path remains a counted
     // fetch so production download accounting is unchanged.
@@ -30,11 +31,11 @@ function load() {
             readFile(new URL("../../wasm/game_wasm_bg.wasm", import.meta.url)),
           )
         : countedFetch(wasmUrl);
-    return init({ module_or_path: moduleOrPath }).then((out) => ({
-      wasm,
-      memory: out.memory,
-    }));
-  })());
+    const out = await init({ module_or_path: moduleOrPath });
+    if (!out) throw new Error("WASM simulation module did not initialize");
+    return { wasm, memory: out.memory };
+  })();
+  return loaded;
 }
 
 /** The simulation module, initialised once per realm (page or worker): the

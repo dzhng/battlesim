@@ -16,8 +16,11 @@ test("mechanics sources exclude model-only roster manifests", async () => {
   await mkdir(join(root, "fixtures/units"), { recursive: true });
   await mkdir(join(root, "fixtures/props"), { recursive: true });
   await writeFile(join(root, "fixtures/game.json"), "{}\n");
-  await writeFile(join(root, "fixtures/units/roster.json"), "{}\n");
-  await writeFile(join(root, "fixtures/units/model-manifest.json"), "{\"description\":\"asset metadata\"}\n");
+  await writeFile(join(root, "fixtures/units/roster.json"), '{"units":{}}\n');
+  await writeFile(
+    join(root, "fixtures/units/model-manifest.json"),
+    '{"description":"asset metadata"}\n',
+  );
 
   await expect(mechanicsSourcePaths(root)).resolves.toEqual([
     "fixtures/game.json",

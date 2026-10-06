@@ -17,6 +17,7 @@ import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery";
 import type { LooseOptions } from "@packages/scene-assets/src/loose";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
+import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
   poseFrameInstances,
   type ModelInstance,
@@ -177,7 +178,12 @@ export default function Workbench() {
   const [catalogOpen, setCatalogOpen] = useState(params.get("catalog") === "1");
   const [catalogShots, setCatalogShots] = useState<Record<string, string>>({});
   const [catalogModels, setCatalogModels] = useState<Record<string, LoadedModel>>({});
+  const [catalogErrors, setCatalogErrors] = useState<Record<string, string>>({});
   const [catalogBusy, setCatalogBusy] = useState(false);
+  const catalogAttempted = useRef(new Set<string>());
+  const catalogRendering = useRef(false);
+  const catalogDrag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const catalogCamera = useRef<Camera3DParams | null>(null);
 
   const bundle = model?.installed.appearances.get(model.name)?.bundle ?? null;
   const skeleton =
@@ -210,8 +216,16 @@ export default function Workbench() {
           category: card.roster?.category ?? card.family,
           appearance,
           sourcePath: manifest?.source_path ?? null,
-          status: card.disabled_reason ? (manifest ? "DISABLED" : "DISABLED · NO MODEL") : "ENABLED",
-          modelState: appearance ? "runtime-authored" : manifest ? "disabled-source-authored" : "missing-model",
+          status: card.disabled_reason
+            ? manifest
+              ? "DISABLED"
+              : "DISABLED · NO MODEL"
+            : "ENABLED",
+          modelState: appearance
+            ? "runtime-authored"
+            : manifest
+              ? "disabled-source-authored"
+              : "missing-model",
           disabledReason: card.disabled_reason,
         },
       ];
@@ -417,14 +431,22 @@ export default function Workbench() {
   const setCamera = useCallback(
     (v: WorkbenchView) => {
       setView(v);
-      if (framing) window.__lab?.setCamera?.(viewCamera(v, framing));
+      if (framing) {
+        const next = viewCamera(v, framing);
+        catalogCamera.current = next;
+        window.__lab?.setCamera?.(next);
+      }
     },
     [framing],
   );
 
   // Frame a new model in the current view.
   useEffect(() => {
-    if (framing && ready) window.__lab?.setCamera?.(viewCamera(view, framing));
+    if (framing && ready) {
+      const next = viewCamera(view, framing);
+      catalogCamera.current = next;
+      window.__lab?.setCamera?.(next);
+    }
     // Only when the model changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [framing, ready]);
@@ -447,28 +469,46 @@ export default function Workbench() {
    * by the selected-model workbench. Each card is a real current appearance,
    * never a hand-authored thumbnail. */
   const renderCatalog = useCallback(async () => {
-    if (!catalog || !gpu.current || catalogBusy) return;
+    if (!catalog || !gpu.current || catalogRendering.current) return;
+    catalogRendering.current = true;
     setCatalogBusy(true);
     try {
       for (const row of catalogRows) {
-        if (catalogShots[row.id]) continue;
-        let next = row.appearance ? await catalogModel(catalog, row.appearance) : null;
-        if (!next && row.sourcePath) {
-          const response = await fetch(`/${row.sourcePath}`);
-          if (response.ok) {
+        if (catalogAttempted.current.has(row.id)) continue;
+        catalogAttempted.current.add(row.id);
+        try {
+          let next = row.appearance ? await catalogModel(catalog, row.appearance) : null;
+          if (!next && row.sourcePath) {
+            const response = await fetch(`/${row.sourcePath}`);
+            if (!response.ok) throw new Error(`model source returned ${response.status}`);
             const bytes = new Uint8Array(await response.arrayBuffer());
             next = await loadDropped(row.id, bytes, { loops: INFANTRY_LOOPS });
             setCatalogModels((models) => ({ ...models, [row.id]: next! }));
           }
+          if (!next) throw new Error("no runtime appearance or authored model source");
+          const result = await renderSheet(
+            gpu.current!.device,
+            gpu.current!.format,
+            next,
+            null,
+            side,
+          );
+          setCatalogShots((shots) => ({
+            ...shots,
+            [row.id]: result.contact.toDataURL("image/png"),
+          }));
+        } catch (error) {
+          setCatalogErrors((errors) => ({
+            ...errors,
+            [row.id]: error instanceof Error ? error.message : String(error),
+          }));
         }
-        if (!next) continue;
-        const result = await renderSheet(gpu.current.device, gpu.current.format, next, null, side);
-        setCatalogShots((shots) => ({ ...shots, [row.id]: result.contact.toDataURL("image/png") }));
       }
     } finally {
+      catalogRendering.current = false;
       setCatalogBusy(false);
     }
-  }, [catalog, catalogBusy, catalogRows, catalogShots, side]);
+  }, [catalog, catalogRows, side]);
 
   useEffect(() => {
     if (catalogOpen && catalogRows.length) void renderCatalog();
@@ -1069,7 +1109,7 @@ export default function Workbench() {
               <strong>Unit catalog</strong>
               <span className="lab-hint">
                 {catalogRows.length} roster units · enabled and disabled models rendered from the
-                current asset sources
+                current asset sources · left-drag a card to orbit
               </span>
             </div>
             <div className="lab-row">
@@ -1085,7 +1125,40 @@ export default function Workbench() {
                 className={`wb-catalog-card ${row.status.startsWith("DISABLED") ? "wb-catalog-card-disabled" : ""}`}
                 type="button"
                 key={row.id}
+                onPointerDown={(event) => {
+                  if (event.button !== 0) return;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  catalogDrag.current = { x: event.clientX, y: event.clientY, moved: false };
+                }}
+                onPointerMove={(event) => {
+                  const drag = catalogDrag.current;
+                  if (!drag || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+                  const dx = event.clientX - drag.x;
+                  const dy = event.clientY - drag.y;
+                  if (Math.hypot(dx, dy) > 5) drag.moved = true;
+                  drag.x = event.clientX;
+                  drag.y = event.clientY;
+                  if (Math.hypot(dx, dy) <= 0) return;
+                  const camera = catalogCamera.current;
+                  if (!camera) return;
+                  const next = {
+                    ...camera,
+                    yaw: camera.yaw - dx * 0.012,
+                    pitch: Math.max(0.04, Math.min(Math.PI / 2 - 0.03, camera.pitch + dy * 0.012)),
+                  };
+                  catalogCamera.current = next;
+                  window.__lab?.setCamera?.(next);
+                }}
+                onPointerUp={(event) => {
+                  if (event.currentTarget.hasPointerCapture(event.pointerId))
+                    event.currentTarget.releasePointerCapture(event.pointerId);
+                }}
                 onClick={() => {
+                  if (catalogDrag.current?.moved) {
+                    catalogDrag.current = null;
+                    return;
+                  }
+                  catalogDrag.current = null;
                   if (!catalog) return;
                   const cached = catalogModels[row.id];
                   if (cached) install(cached);
@@ -1098,6 +1171,10 @@ export default function Workbench() {
               >
                 {catalogShots[row.id] ? (
                   <img src={catalogShots[row.id]} alt={`${row.name} rendered model`} />
+                ) : catalogErrors[row.id] ? (
+                  <span className="wb-catalog-error" title={catalogErrors[row.id]}>
+                    MODEL ERROR
+                  </span>
                 ) : (
                   <span className="wb-catalog-pending">{catalogBusy ? "rendering" : "queued"}</span>
                 )}
@@ -1105,7 +1182,9 @@ export default function Workbench() {
                 <span className="wb-catalog-meta">
                   <b>{row.status}</b> · {row.category} · {row.modelState}
                 </span>
-                {row.disabledReason && <span className="wb-catalog-reason">{row.disabledReason}</span>}
+                {row.disabledReason && (
+                  <span className="wb-catalog-reason">{row.disabledReason}</span>
+                )}
               </button>
             ))}
           </div>

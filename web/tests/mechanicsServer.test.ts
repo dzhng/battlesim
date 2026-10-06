@@ -312,7 +312,9 @@ test("save publishes the Rust catalog generator’s exact canonical bytes", asyn
     changes: [{ section: "weapons", id: "rifle", path: ["damage"], value: 40 }],
   });
   const texts: string[] = [];
-  for (const path of (await mechanicsSourcePaths(root)).filter((path) => path !== "fixtures/game.json"))
+  for (const path of (await mechanicsSourcePaths(root)).filter(
+    (path) => path !== "fixtures/game.json",
+  ))
     texts.push(await readFile(join(root, path), "utf8"));
   const game = await readFile(join(root, "fixtures/game.json"), "utf8");
   const native = spawnSync(
