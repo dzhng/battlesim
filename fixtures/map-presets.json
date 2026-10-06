@@ -17,7 +17,7 @@
     "pin_rounds": 4,
     "shortest_run_m": 1.0
   },
-  "revision": "layout-presets-17",
+  "revision": "layout-presets-18",
   "terrain": { "render_margin_m": 1500, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": { "small": 1000, "medium": 1800, "large": 1800, "xl": 1800 },
@@ -165,7 +165,7 @@
     "kerb_gap_m": 0.3,
     "wall_gap_m": 0.9,
     "squad_way_m": 3,
-    "group_ring_m": 6,
+    "group_ring_m": 4,
     "door_clear_m": 2,
     "corner_clear_m": 8,
     "slide_m": 6,
@@ -419,7 +419,7 @@
         "front_inset_m": 3
       },
       "parking": { "bay_m": [2.6, 5.2], "aisle_m": 6.5, "bays": [3, 8], "every_m": 80 },
-      "lawn": { "path_m": 3, "lane_m": 8, "least_m2": 300, "streets": 2, "gates": 3, "beside": { "court_tree": 3, "lawn_bench": 1 }, "beside_spacing_m": 9 }
+      "lawn": { "path_m": 3, "lane_m": 8, "least_m2": 300, "streets": 2, "gates": 3, "beside": { "court_tree": 2, "lawn_bench": 2 }, "beside_spacing_m": 9 }
     },
     "parking": { "kind": "parked_car", "run": [3, 9], "bumper_gap_m": 0.5, "run_gap_m": 2, "both_sides_min_width_m": 7 },
     "site": {
@@ -505,12 +505,12 @@
         "abandoned": [{ "kind": "parked_car", "spacing_m": 120 }, { "kind": "car_wreck", "spacing_m": 300 }],
         "courts": {
           "paved": true,
-          "spacing_m": 22,
-          "groups": { "car_bays_6": 3, "car_bays_4": 3, "car_bays_2": 1, "tree_bench": 2, "sitting": 2, "bike_parking": 1, "playground": 3, "planted_tree": 2, "court_tree": 3, "lawn_trees": 4, "hedge_bench": 2, "lawn_bench": 2 },
+          "spacing_m": 12,
+          "groups": { "car_bays_6": 3, "car_bays_4": 3, "car_bays_2": 1, "tree_bench": 1, "sitting": 2, "bike_parking": 3, "playground": 4, "planted_tree": 1, "court_tree": 1, "lawn_trees": 2, "hedge_bench": 2, "lawn_bench": 2 },
           "families": {
-            "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_laundry": 2 },
-            "new_york": { "ny_dumpsters": 2, "ny_garages": 2, "ny_half_court": 1 },
-            "paris": { "paris_kiosk": 1, "paris_petanque": 3, "paris_square": 1 }
+            "china": { "china_bike_shed": 2, "china_pingpong": 3, "china_laundry": 3 },
+            "new_york": { "ny_dumpsters": 2, "ny_garages": 2, "ny_half_court": 2 },
+            "paris": { "paris_kiosk": 1, "paris_petanque": 3, "paris_square": 2 }
           }
         },
         "verge": [
@@ -538,12 +538,12 @@
         "abandoned": [{ "kind": "parked_car", "spacing_m": 60 }, { "kind": "car_wreck", "spacing_m": 150 }],
         "courts": {
           "paved": true,
-          "spacing_m": 18,
-          "groups": { "car_bays_6": 3, "car_bays_4": 3, "car_bays_2": 1, "tree_bench": 2, "sitting": 2, "bike_parking": 2, "playground": 1, "planted_tree": 2, "court_tree": 3, "lawn_trees": 4, "hedge_bench": 2, "lawn_bench": 2 },
+          "spacing_m": 10,
+          "groups": { "car_bays_6": 3, "car_bays_4": 3, "car_bays_2": 1, "tree_bench": 1, "sitting": 2, "bike_parking": 3, "playground": 4, "planted_tree": 1, "court_tree": 1, "lawn_trees": 2, "hedge_bench": 2, "lawn_bench": 2 },
           "families": {
-            "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_gym": 2 },
-            "new_york": { "ny_dumpsters": 2, "ny_half_court": 1, "ny_garages": 2 },
-            "paris": { "paris_kiosk": 1, "paris_petanque": 3, "paris_square": 1 }
+            "china": { "china_bike_shed": 2, "china_pingpong": 3, "china_gym": 3, "china_laundry": 3 },
+            "new_york": { "ny_dumpsters": 2, "ny_half_court": 2, "ny_garages": 2 },
+            "paris": { "paris_kiosk": 1, "paris_petanque": 3, "paris_square": 2 }
           }
         },
         "verge": [
@@ -573,12 +573,12 @@
         "abandoned": [{ "kind": "parked_car", "spacing_m": 80 }, { "kind": "car_wreck", "spacing_m": 200 }],
         "courts": {
           "paved": true,
-          "spacing_m": 18,
-          "groups": { "car_bays_6": 3, "car_bays_4": 2, "car_bays_2": 1, "tree_bench": 2, "sitting": 1, "bike_parking": 1, "playground": 3, "planted_tree": 2, "court_tree": 3, "lawn_trees": 4, "hedge_bench": 2, "lawn_bench": 2 },
+          "spacing_m": 10,
+          "groups": { "car_bays_6": 3, "car_bays_4": 2, "car_bays_2": 1, "tree_bench": 1, "sitting": 1, "bike_parking": 3, "playground": 4, "planted_tree": 1, "court_tree": 1, "lawn_trees": 2, "hedge_bench": 2, "lawn_bench": 2 },
           "families": {
-            "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_gym": 2, "china_laundry": 2 },
-            "new_york": { "ny_basketball": 1, "ny_half_court": 1, "ny_garages": 2, "ny_dumpsters": 2 },
-            "paris": { "paris_petanque": 3, "paris_square": 1, "paris_kiosk": 1 }
+            "china": { "china_bike_shed": 2, "china_pingpong": 3, "china_gym": 3, "china_laundry": 3 },
+            "new_york": { "ny_basketball": 2, "ny_half_court": 2, "ny_garages": 2, "ny_dumpsters": 2 },
+            "paris": { "paris_petanque": 3, "paris_square": 2, "paris_kiosk": 1 }
           }
         },
         "verge": [
@@ -606,12 +606,12 @@
         "abandoned": [{ "kind": "parked_car", "spacing_m": 60 }, { "kind": "car_wreck", "spacing_m": 150 }],
         "courts": {
           "paved": true,
-          "spacing_m": 18,
-          "groups": { "car_bays_6": 3, "car_bays_4": 3, "car_bays_2": 1, "tree_bench": 2, "sitting": 2, "bike_parking": 2, "playground": 1, "planted_tree": 2, "court_tree": 3, "lawn_trees": 4, "hedge_bench": 2, "lawn_bench": 2 },
+          "spacing_m": 10,
+          "groups": { "car_bays_6": 3, "car_bays_4": 3, "car_bays_2": 1, "tree_bench": 1, "sitting": 2, "bike_parking": 3, "playground": 4, "planted_tree": 1, "court_tree": 1, "lawn_trees": 2, "hedge_bench": 2, "lawn_bench": 2 },
           "families": {
-            "china": { "china_bike_shed": 2, "china_pingpong": 1, "china_gym": 2 },
-            "new_york": { "ny_dumpsters": 2, "ny_half_court": 1, "ny_garages": 2 },
-            "paris": { "paris_kiosk": 1, "paris_petanque": 3, "paris_square": 1 }
+            "china": { "china_bike_shed": 2, "china_pingpong": 3, "china_gym": 3, "china_laundry": 3 },
+            "new_york": { "ny_dumpsters": 2, "ny_half_court": 2, "ny_garages": 2 },
+            "paris": { "paris_kiosk": 1, "paris_petanque": 3, "paris_square": 2 }
           }
         },
         "verge": [

@@ -2,7 +2,7 @@
   "cases": [
     {
       "name": "mixed medium, the lab's map",
-      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-17\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-18\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "encounter_seed": "1",
       "native_sha256": "2959e7cbdb4ddf65ec0f7b2ff5d978e3758a73c5f4b85e049c14a45d3128d56d",
@@ -10,7 +10,7 @@
     },
     {
       "name": "open medium with a river",
-      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-17\",\"seed\":\"2\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-18\",\"seed\":\"2\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "encounter_seed": "1",
       "native_sha256": "e4fe750c1fa612350abd14a21ff256f3dadd716ff4da763ca7de480741b8dfa3",
@@ -18,7 +18,7 @@
     },
     {
       "name": "metro medium with a river, an encounter seed above the JavaScript integer range",
-      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-17\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-18\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "encounter_seed": "18446744073709551615",
       "native_sha256": "945d221f2b64f99ba1965e3fdf7551e3d13553fa95d5cb324d203d0fd9b55d8a",
@@ -26,7 +26,7 @@
     },
     {
       "name": "no building within reach of the objective",
-      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-17\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-18\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "recipe_patch": {
         "garrison": {
@@ -39,7 +39,7 @@
     },
     {
       "name": "a start that cannot be made fair",
-      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-17\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-18\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "recipe_patch": {
         "deployment": {
@@ -53,7 +53,7 @@
     },
     {
       "name": "a seed that is not canonical decimal text",
-      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-17\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-18\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "encounter_seed": "01",
       "native_sha256": "f9f2d069d0c30be88ec5162ae9172c0e0f7b3ca2fe2d52c5dc78b744e248fdf1",

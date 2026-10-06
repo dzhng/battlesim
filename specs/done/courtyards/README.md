@@ -41,6 +41,15 @@ That last constraint shaped everything. Each attempt to fill a court tightened w
 
 Parked cars and some street trees and lamps stand on the renderer's drawn walk (the verge pass keeps bodies off the carriageway, not off the walk); shaded fences and walls read dark under the scene's light.
 
+Presets `layout-presets-18` packed the courts tighter (a 4 m group ring, a 10 m grid, amenities weighted over trees): open centre and apartment lawn more than 5 m from any body fell from 22–25 % to 6–8 % on Market Town. More placement attempts (`street_props.attempts`) were tried and dropped: the knob is shared with the street furniture, which then lengthened some street drives past the sweep's 30 m detour. An unprimed critique of that town still found:
+- From 160 m up, court pieces (gym bars, benches, ping-pong tables) are too small and thin to read, so lawns read as green with dots.
+- A tree's planters stand under its crown, half hidden, the same way in every group.
+- Some street trees stand in the parking lane between parked cars.
+- Fence and railing runs read as separate panels with gaps.
+- Some trunks are drawn pale cream and untapered, so they read as posts.
+- A few parked cars poke out past a building's corner.
+- The objective's dashed hold ring reads as stray white lines over the town from 400 m.
+
 ## Visual provenance
 
 All captures are in-game shots from the ground rig's stations (`web/scenes/_groundStations.mjs` `openStations`/`shoot`, fog, HUD and effects off, models drawn), one Mixed Small map per region, file names `<region>-<framing>`. Folder names are the build steps that produced them.
