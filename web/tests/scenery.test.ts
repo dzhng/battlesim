@@ -33,6 +33,7 @@ import {
 import summer from "@fixtures/biomes/summer.json";
 import game from "@fixtures/game.json";
 import { loadMap } from "@web/maps/node";
+import { WHOLE_MAP_MS } from "./support/wholeMap";
 
 const villageMap = loadMap("village").definition;
 
@@ -979,55 +980,59 @@ test("a tree body outside every forest is drawn as a tree of its own height, of 
 
 // ------------------------------------------------------------ a generated map
 
-test("on a generated map every tree line carries its shrubs and every street tree is a drawn tree", () => {
-  const fixture = (path: string) =>
-    readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8");
-  const documents = {
-    presets: fixture("map-presets.json"),
-    templates: fixture("prototype-building-templates.json"),
-    rules: JSON.stringify(GAME_RULES),
-  };
-  const request = generationRequest(
-    generator,
-    { type: "mixed", size: "medium", seed: "2" },
-    documents,
-    generated.limits,
-  );
-  const { map } = JSON.parse(
-    generator.generate_map(
-      JSON.stringify(request),
-      documents.presets,
-      documents.templates,
-      documents.rules,
-    ),
-  ).result as { map: { props: { kind: string }[] } };
-  const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
-  try {
-    const { site } = siteOf(world);
-    const placed = placeScenery(site, biome, PLACED);
-    const lines = site.forests.filter((f) => f.kind === "stroke");
-    expect(lines.length).toBeGreaterThan(5);
-    const hedge = shrubs(placed);
-    for (const line of lines) {
-      let length = 0;
-      for (let o = 0; o < line.strokes.length; o += FOREST_STROKE_FLOATS)
-        length += Math.hypot(
-          line.strokes[o + 2] - line.strokes[o],
-          line.strokes[o + 3] - line.strokes[o + 1],
-        );
-      // Two rows of them, less the gaps and the ends: one a row every two
-      // spacings at the least.
-      const along = hedge.filter((s) => forestInside(line, s.x, s.y) >= 0).length;
-      expect(along, `${length} m`).toBeGreaterThan(length / (2 * UNDERSTOREY.spacing_m));
+test(
+  "on a generated map every tree line carries its shrubs and every street tree is a drawn tree",
+  () => {
+    const fixture = (path: string) =>
+      readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8");
+    const documents = {
+      presets: fixture("map-presets.json"),
+      templates: fixture("prototype-building-templates.json"),
+      rules: JSON.stringify(GAME_RULES),
+    };
+    const request = generationRequest(
+      generator,
+      { type: "mixed", size: "medium", seed: "2" },
+      documents,
+      generated.limits,
+    );
+    const { map } = JSON.parse(
+      generator.generate_map(
+        JSON.stringify(request),
+        documents.presets,
+        documents.templates,
+        documents.rules,
+      ),
+    ).result as { map: { props: { kind: string }[] } };
+    const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+    try {
+      const { site } = siteOf(world);
+      const placed = placeScenery(site, biome, PLACED);
+      const lines = site.forests.filter((f) => f.kind === "stroke");
+      expect(lines.length).toBeGreaterThan(5);
+      const hedge = shrubs(placed);
+      for (const line of lines) {
+        let length = 0;
+        for (let o = 0; o < line.strokes.length; o += FOREST_STROKE_FLOATS)
+          length += Math.hypot(
+            line.strokes[o + 2] - line.strokes[o],
+            line.strokes[o + 3] - line.strokes[o + 1],
+          );
+        // Two rows of them, less the gaps and the ends: one a row every two
+        // spacings at the least.
+        const along = hedge.filter((s) => forestInside(line, s.x, s.y) >= 0).length;
+        expect(along, `${length} m`).toBeGreaterThan(length / (2 * UNDERSTOREY.spacing_m));
+      }
+      // Every tree body is one drawn tree: the forests' trunks and the streets'.
+      const street = map.props.filter((p) => p.kind === "street_tree").length;
+      expect(street).toBeGreaterThan(100);
+      expect(placed.forest.length / TREE_FLOATS).toBe(site.trunkIds.length);
+      const alone = new Set(biome.trees.lone.species);
+      const lone = named(placed, placed.forest).slice(-street);
+      expect(lone.every((t) => alone.has(t.appearance))).toBe(true);
+    } finally {
+      world.free();
     }
-    // Every tree body is one drawn tree: the forests' trunks and the streets'.
-    const street = map.props.filter((p) => p.kind === "street_tree").length;
-    expect(street).toBeGreaterThan(100);
-    expect(placed.forest.length / TREE_FLOATS).toBe(site.trunkIds.length);
-    const alone = new Set(biome.trees.lone.species);
-    const lone = named(placed, placed.forest).slice(-street);
-    expect(lone.every((t) => alone.has(t.appearance))).toBe(true);
-  } finally {
-    world.free();
-  }
-});
+  },
+  WHOLE_MAP_MS,
+);

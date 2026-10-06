@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, generate_map, generate_map_plan } from "@wasm/game_wasm.js";
+import { WHOLE_MAP_MS } from "./support/wholeMap";
 
 const fixture = (path: string) =>
   readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8");
@@ -21,9 +22,6 @@ beforeAll(() => {
 type Record = { name: string; command: string; request_json: string; native_sha256: string };
 const cases: Record[] = JSON.parse(fixture("parity/map-layout/paired-records.json")).cases;
 const recordedRules = fixture("parity/map-layout/physical-rules.json");
-/** Each case generates a whole map in Wasm: up to about two minutes on a
- *  loaded machine at the game's own part limits. */
-const WHOLE_MAP_MS = 300_000;
 
 test.each(cases)(
   "$name: native CLI and WASM agree on bytes or refusal",
