@@ -1,18 +1,18 @@
 // Brew-ups a side watched, from its publications: a hull it saw that is gone,
-// and a wreck, where it stood, soon after. The simulation leaves a destroyed
-// vehicle's wreck on its own place and heading the tick it dies
-// (`sim::Battle::consequences`); the side loses the hull at once and learns
-// the wreck within a few ticks, so a side that saw the hull alive within
-// `window` ticks of learning its wreck saw it die. A wreck found later,
+// and a wreck near where it stood. The simulation lays a destroyed vehicle's
+// wreck where it rolls to a stop, on its heading, the tick it dies
+// (`sim::Battle::consequences`), and a side that knew the hull learns the
+// wreck that tick, so a side that saw the hull alive within `window` ticks
+// of learning its wreck saw it die. A wreck found later,
 // scouted onto, was no one's to watch: it is simply there, burning as the
 // effects have it.
 //
 // Presentation only: the effects blow the hull up (fireballs out of the
 // turret ring, and sparks and dust where its turret lands) and, where its
-// wreck is cut into pieces, the battle jolts the hull and throws the turret
-// (`effects/cookOff.ts`), from the tick the wreck appeared. Until the
-// ammunition goes the hull is drawn whole, as the side last saw it, so the
-// fire, not a cut, turns the clean tank into the wreck.
+// wreck is cut into pieces, the battle jolts the hull and throws the turret;
+// other wrecks jolt whole (`effects/cookOff.ts`), from the tick the wreck
+// appeared. Until the ammunition goes the hull is drawn whole, as the side
+// last saw it, so the fire turns the live vehicle into the wreck.
 import { mat4, type Mat4, type Vec3 } from "math";
 import {
   hullMotion,
@@ -27,6 +27,7 @@ import type {
 import type { VehiclePose } from "@packages/battle-renderer/src/models/poseDriver";
 import type { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import type { Bounds } from "@packages/scene-assets/src/schema";
 import { WRECK_PIECES } from "@packages/scene-assets/src/scenery";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
@@ -127,32 +128,35 @@ export class CookOffWatch {
   /** Whether a hull the side lost from sight lately stood where wreck `p` lies. */
   private watched(p: KnownPropView): boolean {
     return [...this.hulls.values()].some(
-      (h) => h.wreck === p.kind && Math.hypot(p.center[0] - h.x, p.center[1] - h.y) <= h.reach,
+      (h) =>
+        h.wreck === p.kind &&
+        Math.hypot(p.center[0] - h.x, p.center[1] - h.y) <= h.reach + ROLL_REACH_M,
     );
   }
 }
 
-/** A cook-off whose wreck is cut into pieces, as the battle draws it while
- *  they move: the wreck as fitted, and where its turret piece lies in it. */
-export interface Flight {
+/** A moving wreck, either whole or cut into a hull and thrown turret. */
+export interface CookOffTransition {
   cookOff: CookOff;
   wreck: ModelInstance;
-  /** The turret piece's centre in the wreck's own frame. */
-  lies: Vec3;
+  /** Resting bounds, used to keep a whole wreck above its ground plane. */
+  bounds: Bounds;
+  /** The turret piece's centre in the wreck's own frame, or null for a whole wreck. */
+  lies: Vec3 | null;
   /** How high its underside lies on the deck, in the same frame. */
   underside: number;
   /** The presentation second of the killing hit (its tick's start). */
   hitAt: number;
 }
 
-/** `c` as the battle draws it, its wreck fitted by `fit` from `installed`;
- *  null where its wreck has no pieces to move. */
-export function flightOf(
+/** Fit any watched vehicle wreck for its death transition. Only wrecks
+ *  with both authored pieces throw a turret; other wrecks jolt whole. */
+export function transitionOf(
   c: CookOff,
   fit: PropAppearances,
   installed: InstalledAppearances,
   tickHz: number,
-): Flight | null {
+): CookOffTransition | null {
   const wreck = fit.fit(
     { kind: c.kind, center: c.center, yaw: c.yaw, half: c.half, baseZ: c.baseZ },
     [],
@@ -160,25 +164,34 @@ export function flightOf(
   const bundle = wreck && installed.appearances.get(wreck.appearance)?.bundle;
   const states = bundle?.kind === "static" ? bundle.states : [];
   const turret = states.find((s) => s.name === WRECK_PIECES.turret);
-  if (!turret || !states.some((s) => s.name === WRECK_PIECES.hull)) return null;
-  const { min, max } = turret.bounds;
+  const whole = states.find((s) => s.name === "default");
+  if (!wreck || !whole) return null;
+  const moving = turret && states.some((s) => s.name === WRECK_PIECES.hull) ? turret : null;
+  const min = moving?.bounds.min;
+  const max = moving?.bounds.max;
   return {
     cookOff: c,
     wreck,
-    lies: [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2],
-    underside: min[2],
+    bounds: whole.bounds,
+    lies: min && max ? [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2] : null,
+    underside: min?.[2] ?? 0,
     hitAt: (c.tick - 1) / tickHz,
   };
 }
 
 /** `c` as the effects take it: its hull, and where its turret lands, if its
- *  wreck throws one (`flight`). */
-export function effectCookOff(c: CookOff, flight: Flight | null): EffectCookOff {
+ *  wreck throws one (`transition`). */
+export function effectCookOff(c: CookOff, transition: CookOffTransition | null): EffectCookOff {
   return {
     center: [c.center[0], c.center[1], c.baseZ],
     height: 2 * c.half[2],
-    landing:
-      flight && placedPoint(flight.wreck, [flight.lies[0], flight.lies[1], flight.underside]),
+    landing: transition?.lies
+      ? placedPoint(transition.wreck, [
+          transition.lies[0],
+          transition.lies[1],
+          transition.underside,
+        ])
+      : null,
   };
 }
 
@@ -191,15 +204,31 @@ function placedPoint(model: ModelInstance, p: Vec3): Vec3 {
   return [model.x + x * c - y * s, model.y + x * s + y * c, model.z + p[2] * sz];
 }
 
-/** `f`'s pieces at presentation second `clock`: its hull, jolted
- *  (`hullMotion`), and its turret, thrown (`turretMotion`). */
-export function piecesOf(f: Flight, feel: CookOffFeel, clock: number): ModelInstance[] {
+/** The wreck at `clock`: jolting whole, or as its hull and thrown turret. */
+export function wreckModels(
+  f: CookOffTransition,
+  feel: CookOffFeel,
+  clock: number,
+): ModelInstance[] {
   const age = clock - f.hitAt;
   const seed = f.cookOff.prop;
   const piece = (state: string, motion: Mat4): ModelInstance => ({
     ...f.wreck,
     pose: { kind: "static", state, motion },
   });
+  if (!f.lies) {
+    const motion = hullMotion(mat4.create(), feel, age, seed);
+    const { min, max } = f.bounds;
+    // A tank hull clears the deck; a complete wreck includes wheels and
+    // loose panels on it. Raise its lowest rotated bound to the resting plane.
+    const low =
+      Math.min(motion[2] * min[0], motion[2] * max[0]) +
+      Math.min(motion[6] * min[1], motion[6] * max[1]) +
+      Math.min(motion[10] * min[2], motion[10] * max[2]) +
+      motion[14];
+    motion[14] += Math.max(0, min[2] - low);
+    return [piece("default", motion)];
+  }
   return [
     piece(WRECK_PIECES.hull, hullMotion(mat4.create(), feel, age, seed)),
     piece(WRECK_PIECES.turret, turretMotion(mat4.create(), feel, age, f.lies, seed)),
@@ -210,10 +239,26 @@ export function piecesOf(f: Flight, feel: CookOffFeel, clock: number): ModelInst
  *  longer than a cook-off waits to blow up. */
 const REMEMBERED_S = 2;
 
-/** Each vehicle as the frame last drew it, a moment after it is gone: the
- *  hull a cook-off draws whole until its ammunition goes. Each is kept in
- *  one record, updated in place, so a warm frame allocates nothing. */
+/** How far beyond its own half length a wreck may lie from where its hull
+ *  was last seen: a vehicle killed at full road speed rolls a few metres on
+ *  before it stops (`sim::movement::drive::death_roll`), with room to spare. */
+export const ROLL_REACH_M = 6;
+
+/** A hull as the side last saw it, and how hard it brakes, m/s². */
+export interface LastHull {
+  model: ModelInstance;
+  braking: number;
+}
+
+/** Each recently drawn vehicle, retained to start a watched death transition.
+ *  Records update in place so a warm frame allocates nothing. */
 export class LastSeenHulls {
+  /** `braking`: a unit type's deceleration as its brakes stop it, m/s². */
+  constructor(
+    private readonly units: UnitCatalog,
+    private readonly braking: (kind: string) => number,
+  ) {}
+
   private readonly hulls = new Map<number, { pose: VehiclePose; at: number }>();
   /** The clock of the last frame noted: a hull it did not draw is gone. */
   private clock = -Infinity;
@@ -242,24 +287,36 @@ export class LastSeenHulls {
     this.clock = clock;
   }
 
-  /** The hull, gone from the frame lately, that stood where `c`'s wreck lies,
-   *  as last drawn; null if none did. */
-  at(c: CookOff, clock: number, resolve: ResolveAppearance): ModelInstance | null {
+  /** The hull, gone from the frame lately, nearest where `c`'s wreck lies
+   *  (within a roll to a stop), as last drawn; null if none. */
+  at(c: CookOff, clock: number, resolve: ResolveAppearance): LastHull | null {
+    let best: { pose: VehiclePose; d: number } | null = null;
     for (const { pose, at } of this.hulls.values()) {
       const gone = at < this.clock && clock - at <= REMEMBERED_S;
-      const there =
-        Math.hypot(pose.position[0] - c.center[0], pose.position[1] - c.center[1]) <= c.half[0];
-      if (!gone || !there) continue;
+      const d = Math.hypot(pose.position[0] - c.center[0], pose.position[1] - c.center[1]);
+      if (
+        gone &&
+        this.units.hull(pose.kind)?.wreck === c.kind &&
+        d <= c.half[0] + ROLL_REACH_M &&
+        (!best || d < best.d)
+      )
+        best = { pose, d };
+    }
+    if (best) {
+      const { pose } = best;
       const looks = resolve(pose.kind, pose.side, pose.unit, 0);
       if (!looks) return null;
       return {
-        appearance: looks.appearance,
-        tint: looks.tint,
-        x: pose.position[0],
-        y: pose.position[1],
-        z: pose.position[2],
-        yaw: pose.yaw,
-        pose: { kind: "articulated", articulation: { ...pose.articulation } },
+        model: {
+          appearance: looks.appearance,
+          tint: looks.tint,
+          x: pose.position[0],
+          y: pose.position[1],
+          z: pose.position[2],
+          yaw: pose.yaw,
+          pose: { kind: "articulated", articulation: { ...pose.articulation } },
+        },
+        braking: this.braking(pose.kind),
       };
     }
     return null;
@@ -267,12 +324,29 @@ export class LastSeenHulls {
 }
 
 /** What cook-off `f` draws at presentation second `clock`: its hull whole,
- *  as last seen (`hull`), until the ammunition goes; then the wreck's pieces. */
+ *  as last seen (`hull`), until the ammunition goes; then its moving wreck.
+ *  A hull killed on the move rolls on to where its wreck lies, slowing as
+ *  its stopped running gear slows it, carrying the moving wreck with it. */
 export function cookOffModels(
-  f: Flight,
-  hull: ModelInstance | null,
+  f: CookOffTransition,
+  last: LastHull | null,
   feel: CookOffFeel,
   clock: number,
 ): ModelInstance[] {
-  return hull && clock - f.hitAt < feel.delay_s ? [hull] : piecesOf(f, feel, clock);
+  const t = clock - f.hitAt;
+  if (!last) return wreckModels(f, feel, clock);
+  const { model: hull, braking } = last;
+  // Constant deceleration over `length` metres: done in √(2·length/braking) s.
+  const [dx, dy] = [f.wreck.x - hull.x, f.wreck.y - hull.y];
+  const length = Math.hypot(dx, dy);
+  const done = Math.sqrt((2 * length) / braking);
+  const s = t >= done ? 1 : (braking * done * t - (braking * t * t) / 2) / length;
+  const [x, y] = [hull.x + dx * s, hull.y + dy * s];
+  if (t < feel.delay_s) return [{ ...hull, x, y }];
+  const models = wreckModels(f, feel, clock);
+  for (const m of models) {
+    m.x += x - f.wreck.x;
+    m.y += y - f.wreck.y;
+  }
+  return models;
 }

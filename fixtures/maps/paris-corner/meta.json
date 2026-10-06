@@ -1,0 +1,13 @@
+{
+  "category": "lab",
+  "status": "draft",
+  "label": "Paris Corner",
+  "character": "metro",
+  "biome": "summer",
+  "size_m": [420, 400],
+  "tags": ["road", "prop", "building"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["corner"],
+  "benchmarks": []
+}

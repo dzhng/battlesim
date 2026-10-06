@@ -15,6 +15,7 @@
   ],
   "units": "metres-seconds-radians",
   "tick_hz": 30,
+  "commands": { "orders_per_s": 30 },
   "buildings": {
     "capacity_soldiers": 32,
     "cover_strength": 1
@@ -148,6 +149,7 @@
     "drive": {
       "acceleration_s": 4.5,
       "braking_s": 1.5,
+      "wreck_stop_s": 0.6,
       "turn_in_place_deg": 60,
       "abeam_m": 1.5,
       "abeam_deg": 60,
@@ -488,6 +490,7 @@
     "reach_m": 1.5,
     "search_m": 8,
     "step_out_m": 4,
+    "step_out_retry_m": 4,
     "reresolve_s": 1,
     "swing_deg": 45,
     "vehicle_moved_m": 2,
@@ -1177,7 +1180,7 @@
         }
       },
       "cook_off": {
-        "delay_s": 0.35,
+        "delay_s": 0,
         "rise_m": 7,
         "flip_turns": 1,
         "spin_turns": 0.6,

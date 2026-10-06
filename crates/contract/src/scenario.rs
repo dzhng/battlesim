@@ -242,7 +242,7 @@ pub struct MovementRules {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NavigationRules {
-    /// Motion steps and route work allowed to certify one group move.
+    /// Motion steps and route work allowed to prove one garrison entry.
     /// A long leg's initial route uses the live planner's separate bound;
     /// shorter initial routes and repeated searches spend this allowance.
     pub move_validation_work: u32,
@@ -305,6 +305,9 @@ pub struct DriveRules {
     pub acceleration_s: f64,
     /// Seconds to brake from full road speed to rest.
     pub braking_s: f64,
+    /// Seconds a destroyed vehicle takes to come to rest from full road
+    /// speed: its tracks or wheels lock, so it stops harder than it brakes.
+    pub wreck_stop_s: f64,
     /// Tracks turn in place beyond this heading error.
     pub turn_in_place_deg: f64,
     /// A wheeled vehicle reaches a waypoint it passes abeam within this.
@@ -538,6 +541,7 @@ pub struct ServiceRules {
 #[serde(try_from = "UncheckedRules")]
 pub struct Rules {
     pub tick_hz: u32,
+    pub commands: CommandRules,
     pub movement: MovementRules,
     pub navigation: NavigationRules,
     pub formation: FormationRules,
@@ -568,6 +572,7 @@ pub struct Rules {
 #[derive(Deserialize)]
 struct UncheckedRules {
     tick_hz: u32,
+    commands: CommandRules,
     movement: MovementRules,
     navigation: NavigationRules,
     #[serde(default)]
@@ -601,6 +606,7 @@ impl TryFrom<UncheckedRules> for Rules {
             ("navigation", r.navigation.check()),
             ("forests", r.forests.check(&r.catalog)),
             ("formation", r.formation.check()),
+            ("commands", r.commands.check()),
         ] {
             checked.map_err(|error| crate::catalog::CatalogError::Invalid {
                 section: "rules",
@@ -610,6 +616,7 @@ impl TryFrom<UncheckedRules> for Rules {
         }
         Ok(Rules {
             tick_hz: r.tick_hz,
+            commands: r.commands,
             movement: r.movement,
             navigation: r.navigation,
             formation: r.formation,
@@ -630,6 +637,25 @@ impl TryFrom<UncheckedRules> for Rules {
             buildings: r.buildings,
             garrison: r.garrison,
         })
+    }
+}
+
+/// How fast a side may give orders: a backstop no player reaches (a
+/// tournament player's effective rate is about 5 a second), so a flood from
+/// a script or a stuck input cannot buy the battle unbounded work.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CommandRules {
+    /// Orders a side may give in a second, and in one burst; one past it is
+    /// dropped without a word.
+    pub orders_per_s: u32,
+}
+
+impl CommandRules {
+    fn check(&self) -> Result<(), String> {
+        if self.orders_per_s == 0 {
+            return Err("orders_per_s must be positive: no order would ever be taken".into());
+        }
+        Ok(())
     }
 }
 
@@ -865,6 +891,10 @@ pub struct CoverRules {
     /// far; beyond it, to the nearest place in the area he can engage from
     /// (D3, Q8).
     pub step_out_m: f64,
+    /// A soldier who found nowhere to fight from searches again once the
+    /// enemy has moved this far, or he has, or his side learns of a body or
+    /// a crater within his search.
+    pub step_out_retry_m: f64,
     /// A squad re-resolves its cover at most this often (Q11).
     pub reresolve_s: f64,
     /// A threat bearing swing that re-resolves cover (Q11).
@@ -1033,6 +1063,12 @@ pub struct UnitCondition {
     /// Soldiers already fallen at the start (their corpses lie where they stood).
     #[serde(default)]
     pub casualties: u32,
+    /// Each soldier's health at the start, in place of his type's, and may
+    /// exceed it: a directed battle keeps a squad standing as long as its
+    /// shots need. Left out of the serialized setup when unset, so older
+    /// setups digest as before.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub soldier_hp: Option<f64>,
     /// Rounds already spent, by weapon row.
     #[serde(default)]
     pub spent: std::collections::BTreeMap<String, u32>,

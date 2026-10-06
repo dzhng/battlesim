@@ -215,10 +215,13 @@ pub enum OrderError {
         unit: UnitId,
     },
     OutOfBounds,
-    /// No destination could be certified executable within the planning budget.
+    /// No unit has a place to stand there that it can reach.
     NoValidDestination,
     /// Input is disabled while a replay feeds recorded commands.
     ReplayInProgress,
+    /// More orders than the side may give this second
+    /// (`rules.commands.orders_per_s`): dropped, and never shown.
+    RateLimited,
     /// The target reference is not one this side currently holds.
     UnknownTarget,
     /// The unit has been destroyed.

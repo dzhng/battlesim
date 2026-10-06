@@ -744,6 +744,33 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
+            name: "t1-step-out-after-the-enemy-moves",
+            caption: "at rest behind a tall wall in a firefight, the enemy moving along: soldiers who sat out look again, and still step out round its end",
+            map: flat(
+                [140.0, 100.0],
+                json!({ "props": [wall([62.0, 45.0], 0.0, [0.4, 5.0, 1.5])] }),
+            ),
+            units: json!([
+                { "side": "blue", "kind": "rifle", "position": [57, 47] },
+                { "side": "red", "kind": "rifle", "position": [100, 72] },
+            ]),
+            events: none.clone(),
+            // Ten seconds in, the enemy moves 12 m along the wall's far side.
+            scripts: json!([{ "tick": 300, "side": "red", "order":
+                { "kind": "move", "units": [1], "gesture": 2, "goal": [100.0, 60.0], "route": "shortest" } }]),
+            rules: json!({ "sensors": { "squad_identification_fraction": 0.125 }, "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            seconds: 40.0,
+            seed: 1,
+            checks: vec![
+                check(ClearLines {
+                    unit: 0,
+                    threat: 1,
+                    min: 7,
+                }),
+                check(SoldiersClearOfProps),
+            ],
+        },
+        Scenario {
             name: "t1-wood-lean-out",
             caption: "a squad at rest in a wood trades fire with a squad in the open: men lean out from their trees, fire and tuck back",
             map: flat(

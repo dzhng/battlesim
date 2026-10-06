@@ -27,6 +27,10 @@ const REFUSAL_TEXT: Record<string, string> = {
   building_occupied: "BUILDING TAKEN",
 };
 
+/** Refusals the player is never told about: an order past the rate limit
+ *  is a stuck input or a script's flood, not a choice to explain. */
+const SILENT = new Set(["rate_limited"]);
+
 const refusalText = (reason: string) =>
   REFUSAL_TEXT[reason] ?? reason.replaceAll("_", " ").toUpperCase();
 
@@ -42,6 +46,7 @@ export function RejectedOrder({ acks }: { acks: readonly AckEntry[] }) {
   const newest = acks[0];
   useEffect(() => {
     const error = newest?.ack.error;
+    if (error && SILENT.has(error.reason)) return;
     const destinations = newest?.ack.placement?.destinations;
     const partial = destinations?.some((mark) => !mark.placed);
     if (!error && !partial) {

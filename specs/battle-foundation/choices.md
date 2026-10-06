@@ -280,7 +280,7 @@ These are the decisions the build made where the spec was silent or contradicted
 
 ### What happens when a unit dies
 - **When:** slice 09.
-- **The choice:** A destroyed vehicle or a squad with nobody standing drops out of its side's unit list. Its wreck and fallen soldiers stay on the map, and any order naming it is refused as "destroyed". If the enemy side had it spotted when it died, the enemy's track ends at once with no last-seen area, and an attack order on it counts as complete. If it died unseen, nothing changes: the track lapses after the usual 1.5 s and a last-seen area follows. Enemy fallen soldiers appear once your side has seen the ground they lie on, and are remembered afterwards. Your own fallen are always shown. Your own vehicle's wreck is always known too, because a side knows where its vehicle died; otherwise a tank dying with no other friendly eyes on its spot vanished from its own side's picture. A side that had an enemy vehicle spotted when it died sees its wreck appear.
+- **The choice:** A destroyed vehicle or a squad with nobody standing drops out of its side's unit list. Its wreck and fallen soldiers stay on the map, and any order naming it is refused as "destroyed". If the enemy side had it spotted when it died, the enemy's track ends at once with no last-seen area, and an attack order on it counts as complete. If it died unseen, nothing changes: the track lapses after the usual 1.5 s and a last-seen area follows. Enemy fallen soldiers appear once your side has seen the ground they lie on, and are remembered afterwards. Your own fallen are always shown. Your own vehicle's wreck is always known too, because a side knows where its vehicle died; otherwise a tank dying with no other friendly eyes on its spot vanished from its own side's picture. A side that had an enemy vehicle spotted when it died sees its wreck appear. A vehicle killed on the move rolls on and stops hard, its tracks or wheels locked (`wreck_stop_s`, shorter than `braking_s`), short of anything in its way: any body that stops vehicles (a dead hull shoves nothing, not even what it could push aside while driving), a bank, another vehicle or a soldier. Its wreck lies there, a body like any other, so it is cover where it stops. A vehicle killed standing still stays where it stood.
 - **Why / the gap:** the spec says "a dead visible target completes the attack" and "corpses remain", but not how a dead unit appears to its owner, or who learns of a death and when.
 - **The reach:** selection, attack orders, and what a player can infer.
 - **Confidence:** medium.
@@ -664,12 +664,12 @@ These are the decisions the build made where the spec was silent or contradicted
 - **The reach:** performance only; no behaviour changes.
 - **Confidence:** high.
 
-### Needs user: a tick of move admission is unbounded
-- **When:** 2026-10-05, found by the city-contact benchmark.
-- **The finding:** Move admission rehearses each order within its own allowance (`navigation.move_validation_work`, unit-steps), and every rehearsal step advances every unit. On its contact tick the city-contact workload issues about 20 group orders for 100 units a side, and many use their whole allowance. On Metro Large seed 4 that one tick took 49 s natively before the dense-street work and 42 s after the boxes' trig-free early rejection (1.34 trillion instructions). The browser benchmark's real-time check fails because of it.
-- **The options:** (a) a per-tick admission budget shared by the tick's orders; a member left unproven is refused today (`NoValidDestination`), so later orders in a busy tick would need deferring rather than refusing. (b) Rehearse only the movers and treat idle units, which are already observed bodies for the opposing side, as fixed. Holding cover is about a third of the stalled tick's samples. Both change which orders are admitted, so both change digests.
-- **Recommendation:** (b) first: it is the physically honest reading of "standing units are obstacles" and keeps every order's own proof; then measure whether (a) is still needed.
-- **Confidence:** medium.
+### Move orders are admitted by reach, not rehearsal
+- **When:** 2026-10-05, after the city-contact benchmark's contact tick stalled for 42 s.
+- **The choice:** A move's marker is placed where its unit has standing room it can reach on the ground its side knows (terrain components and known pockets); the journey is no longer rehearsed. Execution replans on what its side learns and on stalls, and gives a move up (`RouteBlocked`) when no way is left or its way has not got shorter in 30 s. Orders are rate limited at `commands.orders_per_s` (30) a side and dropped silently past it.
+- **Why / the gap:** Rehearsal advanced every unit each step against a per-order allowance. In a 200-unit city battle most orders were refused for running out of allowance, not route, at about a second each; proving them fully cost 3–50 s. Placing the same 40 orders now costs 0.4 G instructions in all, and the contact tick's worst is 297 ms. A proof at the click cannot hold anyway: an unseen body or an enemy can close a route after it. The user chose this (2026-10-05).
+- **The reach:** every move and attack-move order and its preview; garrison entry still rehearses. Digests change where orders used to be refused.
+- **Confidence:** high.
 
 ### One battle view and one session shell
 - **When:** slice 16 (finished in the closing cleanup).

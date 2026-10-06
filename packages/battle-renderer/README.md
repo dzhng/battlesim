@@ -28,7 +28,10 @@ clock and lies pressed under cover height by its stump ([felled trees](src/scene
 since the simulation gives it no body. A hull the side watched die cooks off
 ([cook-off](src/effects/cookOff.ts)): fireballs from its ring, its hull jolted and
 its turret thrown, both its wreck's own pieces, until they lie where the wreck has
-them and the whole wreck takes over without a seam. A wreck found later is simply there. A map's region (its `regional_family`) is a
+them and the whole wreck takes over without a seam. A wreck without detachable
+pieces jolts as one body. Every watched vehicle keeps its last live appearance
+until the blast and follows its roll to the resting wreck; a wreck found
+later is simply there. A map's region (its `regional_family`) is a
 look, never physics: the biome's paved rows take that region's own finish through
 one function (`regionalBiome` in [the biome](src/terrain/biome.ts)), and scenery
 its region's appearances.

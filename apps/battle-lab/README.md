@@ -29,23 +29,32 @@ may try bounded fresh candidates, then publishes the
 actual admitted identity. A refused explicit seed cannot silently become another
 battle. Exhausted generation returns a refusal; it never substitutes a fixed map.
 
-[The menu backdrop](src/MenuBackdrop.tsx) is a real battle, not a recording: a
-saved encounter run by the ordinary session, silent and inert, filmed by
+[The menu backdrop](src/MenuBackdrop.tsx) is real battles, not recordings: scenes
+played in order and then over again, each a saved encounter on its own map run by
+the ordinary session, silent and inert. Each is filmed by
 [the reel](src/menuReel.ts) through the viewport's pilot and graded in CSS to the
 HUD's `film` amber, which the plate's blue reads against. It shows blue's
 observation like any battle, without the player's x-ray. Its preparation reports
 to the same loading stages as a lab, and the menu's loading screen stands in the
 plate's place until the battle first stands at its warm tick; the battle holds
 there until the menu is shown, so the reel's first cut opens on the moment it was
-cut for. Cuts dip through an opaque veil of the menu's own ground, behind which the
-battle restarts when the reel ends, without the loading screen. The plate measures where it stands, and the
-pilot slides each framing so its subject plays in the open screen beside it.
+cut for. Cuts dip through an opaque veil of the menu's own ground. When a reel
+ends the next scene's battle (its saved map and encounter fetched while the last
+one played) starts and warms behind the veil, without the loading screen. The plate measures where it stands, and the
+pilot slides each framing so its subject plays in the open screen beside it. The
+film's camera is the player's rig reaching in as close as the reels' closest
+framing, so a shot in a narrow street may stand nearer than a player may zoom.
 
 [The shared battle view](src/BattleView.tsx) composes page resources and observation
 feeds. [Session ownership](src/useBattleSession.ts) keeps worker preparation and
 cleanup tied to that page. [Lab loading](src/LabLoading.tsx) uses the player
 loading screen across preparation, the first observation and the first drawn
-frame; routes keep preparing beneath the cover so it never delays readiness.
+frame; routes keep preparing beneath the cover so it never delays readiness. While
+anything the page needs is downloading, the screen counts the megabytes
+([download counting](../../web/src/downloads.ts)), so a first visit's long wait
+visibly moves. The menu's build line names the app's commit and a fingerprint
+of the simulation module the page actually loaded ([build identity](src/buildIdentity.ts)),
+so a stale deploy or cache shows on screen.
 Art uses [scene-assets](../../packages/scene-assets/README.md),
 and sound uses [battle-audio](../../packages/battle-audio/README.md). [Model review](src/workbench/)
 installs previews through the same appearance loader used by battles.

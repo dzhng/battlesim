@@ -60,3 +60,19 @@ test("a refusal starts beyond the complete approved cursor composite", () => {
   expect(x).toBeGreaterThan(120 + 28.7);
   expect(callout.textContent).toContain("MOVE NOT AVAILABLE");
 });
+
+test("an order dropped by the rate limit says nothing", () => {
+  render(
+    <RejectedOrder
+      acks={[
+        {
+          seq: 31,
+          label: "move",
+          order: { kind: "move", units: [1], gesture: 31, goal: [50, 50], route: "shortest" },
+          ack: { seq: 31, applied_tick: 1, error: { reason: "rate_limited" } },
+        },
+      ]}
+    />,
+  );
+  expect(screen.queryByRole("status")).toBeNull();
+});

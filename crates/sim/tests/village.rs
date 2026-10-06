@@ -381,36 +381,25 @@ fn a_scripted_trial_repeats_from_its_seed() {
     assert_eq!(a.rejected, 0, "every script order is a legal command");
 }
 
-fn replenished_rejoin(block_objective: bool) -> (Battle, sim::village::ScriptedBlue) {
-    let mut props = Vec::new();
-    let mut pockets = vec![([1025., 800.], "tooth")];
-    if block_objective {
-        pockets.push(([1000., 800.], "fence"));
-    }
-    for ([x, y], west) in pockets {
-        props.extend([
-            json!({"kind":west,"yaw":0,"center":[x-2.5,y],"half_extents":[0.5,3,1]}),
-            json!({"kind":"tooth","yaw":0,"center":[x+2.5,y],"half_extents":[0.5,3,1]}),
-            json!({"kind":"tooth","yaw":0,"center":[x,y-2.5],"half_extents":[3,0.5,1]}),
-            json!({"kind":"tooth","yaw":0,"center":[x,y+2.5],"half_extents":[3,0.5,1]}),
-        ]);
-    }
+fn replenished_rejoin() -> (Battle, sim::village::ScriptedBlue) {
+    // The squad's offset beside the objective, walled round by teeth.
+    let [x, y] = [1025., 800.];
+    let props = vec![
+        json!({"kind":"tooth","yaw":0,"center":[x-2.5,y],"half_extents":[0.5,3,1]}),
+        json!({"kind":"tooth","yaw":0,"center":[x+2.5,y],"half_extents":[0.5,3,1]}),
+        json!({"kind":"tooth","yaw":0,"center":[x,y-2.5],"half_extents":[3,0.5,1]}),
+        json!({"kind":"tooth","yaw":0,"center":[x,y+2.5],"half_extents":[3,0.5,1]}),
+    ];
     let map = json!({
         "size": [1200,1000], "fog_cell_m":8, "height_grid_m":4, "slope_cutoff_deg":35,
         "props": props
     })
     .to_string();
     let casualties = common::rules().catalog.by_id("rifle").squad_size() * 2 / 3;
-    let mut units = json!([
+    let units = json!([
         {"side":"blue","kind":"rifle","position":[325,800],"engagement":"return_fire_only","condition":{"casualties":casualties}},
         {"side":"blue","kind":"supply","position":[300,800]}
     ]);
-    if block_objective {
-        units.as_array_mut().unwrap().extend([
-            json!({"side":"blue","kind":"recon","position":[360,720],"engagement":"return_fire_only"}),
-            json!({"side":"red","kind":"tank","position":[940,800],"engagement":"return_fire_only"}),
-        ]);
-    }
     let mut setup = common::scenario_with(&map, units, json!([]), json!([]));
     setup.encounter = Some(contract::scenario::EncounterRules {
         attacker: Side::Blue,
@@ -445,11 +434,13 @@ fn rejoin_preview(battle: &mut Battle, goal: [f64; 2]) -> bool {
         .placed
 }
 
+/// A replenished squad goes back to the fight with an order its side
+/// accepts: its offset beside the objective is walled round by small bodies,
+/// which it finds on the way rather than at the click.
 #[test]
-fn a_replenished_squad_rejoins_at_an_admitted_objective_when_its_offset_is_unreachable() {
-    let (mut battle, mut commander) = replenished_rejoin(false);
-    assert!(!rejoin_preview(&mut battle, [1025., 800.]));
-    assert!(rejoin_preview(&mut battle, [1000., 800.]));
+fn a_replenished_squad_rejoins_with_an_accepted_order() {
+    let (mut battle, mut commander) = replenished_rejoin();
+    assert!(rejoin_preview(&mut battle, [1025., 800.]));
     commander.command(&mut battle);
     assert_eq!(
         commander.rejected, 0,
@@ -461,76 +452,10 @@ fn a_replenished_squad_rejoins_at_an_admitted_objective_when_its_offset_is_unrea
     );
     assert!(
         battle.replay().accepted.iter().any(|(_, c)| matches!(
-            &c.order, Order::AttackMove { units, goal, .. }
-            if units == &[UnitId(0)] && *goal == [1000.,800.]
+            &c.order, Order::AttackMove { units, .. } if units == &[UnitId(0)]
         )),
-        "the rejoin uses the admitted objective instead of the unreachable offset"
+        "the rejoin is an accepted order"
     );
-}
-
-#[test]
-fn a_replenished_squad_waits_and_retries_when_return_access_opens() {
-    let (mut battle, mut commander) = replenished_rejoin(true);
-    assert!(!rejoin_preview(&mut battle, [1025., 800.]));
-    assert!(!rejoin_preview(&mut battle, [1000., 800.]));
-    for _ in 0..2 {
-        commander.command(&mut battle);
-        battle.step();
-    }
-    assert_eq!(
-        commander.rejoined, 0,
-        "a full squad has not rejoined without an accepted order"
-    );
-    assert_eq!(
-        commander.rejected, 0,
-        "waiting must not submit an illegal return"
-    );
-    assert!(!battle.replay().accepted.iter().any(|(_, c)| matches!(
-        &c.order, Order::AttackMove { units, .. } if units == &[UnitId(0)]
-    )));
-    let refused_at = battle.tick() - 2;
-    common::order(
-        &mut battle,
-        Side::Red,
-        1,
-        Order::Attack {
-            units: vec![UnitId(3)],
-            target: TargetRef::Ground {
-                point: [997.5, 800., 0.],
-            },
-        },
-    );
-    for _ in 0..8 * hz() {
-        battle.step();
-        if rejoin_preview(&mut battle, [1000., 800.]) {
-            break;
-        }
-    }
-    assert!(
-        rejoin_preview(&mut battle, [1000., 800.]),
-        "the real shot must open return access"
-    );
-    assert!(
-        battle.tick() < refused_at + 10 * hz(),
-        "access opens before the existing wait elapses"
-    );
-    commander.command(&mut battle);
-    assert_eq!(
-        commander.rejoined, 0,
-        "a refused return waits before another physical rehearsal"
-    );
-    for _ in 0..12 * hz() {
-        battle.step();
-        commander.command(&mut battle);
-        if commander.rejoined != 0 {
-            break;
-        }
-    }
-    assert_eq!(
-        commander.rejoined, 1,
-        "a legal retry proves the squad stayed in the resting set"
-    );
-    assert_eq!(commander.rejected, 0);
 }
 
 /// Smoke is presentation only. A burning wreck's

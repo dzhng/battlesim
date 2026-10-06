@@ -36,12 +36,14 @@ struct Flooded {
 }
 
 impl NavGrid {
-    /// Whether a vehicle `m` standing at `from` can drive to `to` on this
-    /// grid, judged by the pocket `to` lies in, between the cells a route
-    /// search would start and end in (without paying a route's work). Ground the flood calls open
-    /// is taken as reachable, and so is everything when `from` is wedged
-    /// where it fits no cell: the route search then has the last word.
-    pub(super) fn reaches(&self, from: V2, to: V2, m: &Mobility, pockets: &Pockets) -> bool {
+    /// Whether a unit of mobility `m` standing at `from` can get to `to` on
+    /// this grid, without paying a route's work: bare terrain joins the
+    /// cells a route search would start and end in (no water or cliff
+    /// between), and `to` lies in no pocket its side knows to be closed off.
+    /// Ground the flood calls open is taken as reachable, and so is
+    /// everything when `from` is wedged where it fits no cell: the route
+    /// search then has the last word.
+    pub(crate) fn reaches(&self, from: V2, to: V2, m: &Mobility, pockets: &Pockets) -> bool {
         let Some(start) = self.nearest_fit(from, Mover::free(m), START_REACH_M, false) else {
             return true;
         };

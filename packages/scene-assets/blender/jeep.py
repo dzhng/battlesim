@@ -203,7 +203,10 @@ box("hmg_receiver", (0.32, 0.13, 0.15), (-0.02, 0, 0), dark, hmg_gun, bevel=0.01
 cyl("hmg_jacket", 0.035, 0.45, (0.36, 0, 0.0), "X", dark, hmg_gun, seg=12, lods=(0, 1, 2))
 cyl("hmg_barrel", 0.018, 0.75, (0.9, 0, 0.0), "X", dark, hmg_gun, seg=10, lods=(0, 1, 2))
 cyl("hmg_flash_hider", 0.028, 0.08, (1.24, 0, 0.0), "X", dark, hmg_gun, seg=10, lods=(0, 1))
-box("hmg_grips", (0.08, 0.12, 0.08), (-0.22, 0, 0.0), dark, hmg_gun, lods=(0, 1))
+for s in (-1, 1):
+    cyl(f"hmg_handle_strut_{s}", 0.014, 0.07, (-0.21, s * 0.05, 0), "X", dark, hmg_gun,
+        seg=8, lods=(0, 1, 2))
+box("hmg_grips", (0.08, 0.12, 0.08), (-0.25, 0, 0.0), dark, hmg_gun, lods=(0, 1, 2))
 box("hmg_sight", (0.03, 0.03, 0.06), (0.14, 0, 0.1), dark, hmg_gun, lods=(0,))
 box("hmg_ammo", (0.26, 0.12, 0.18), (0.02, -0.14, -0.08), ammo, hmg_gun, bevel=0.01, lods=(0, 1))
 box("hmg_brass_bag", (0.2, 0.1, 0.16), (0.02, 0.12, -0.1), canvas, hmg_gun, bevel=0.03, lods=(0,))
@@ -264,8 +267,19 @@ if WRECK:
 
 rest_on_ground(0.006 if WRECK else 0.0)
 finish(ao_distance=1.0)
+if not WRECK:
+    from vehicle_crew import crew
+    crew("driver", body, (-0.32, 0.37, 0.96),
+         ((0.1, 0.51, 1.24), (0.1, 0.23, 1.24)),
+         ((0.35, 0.49, 0.6), (0.35, 0.25, 0.6)))
+    crew("gunner", hmg, (-0.23, 0, 1.47),
+         ((-0.1, 0.065, 2.0), (-0.1, -0.065, 2.0)),
+         ((-0.13, 0.13, FLOOR_Z + 0.06), (-0.13, -0.13, FLOOR_Z + 0.06)))
 bpy.context.view_layer.update()
 info = dict(tris=triangles_by_tier(), muzzle=[round(v, 4) for v in hmg_muzzle.matrix_world.translation],
             nodes=sorted(o.name for o in bpy.data.objects if o.type == "EMPTY"))
 print("JEEP", json.dumps(info))
 export(OUT)
+if not WRECK:
+    from vehicle_crew import preserve_materials
+    preserve_materials(OUT)

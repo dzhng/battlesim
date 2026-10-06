@@ -4,7 +4,8 @@ import {
   CookOffWatch,
   LastSeenHulls,
   cookOffModels,
-  type Flight,
+  transitionOf,
+  type CookOffTransition,
 } from "@apps/battle-lab/src/cookOffs";
 import { gameEffects } from "@apps/battle-lab/src/effectFeed";
 import { REST_ARTICULATION } from "@packages/scene-assets/src/articulation";
@@ -14,8 +15,88 @@ import type {
 } from "@packages/battle-renderer/src/models/modelInstances";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { ObservationView } from "@web/battle/sim/observation";
+import type { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import { landedAfter } from "@packages/battle-renderer/src/effects/cookOff";
 
 const WRECK = UNITS.hull("tank")!.wreck;
+
+test("a whole vehicle wreck keeps the live hull until the blast, then jolts and settles without a cut", () => {
+  const wreck: ModelInstance = {
+    appearance: "jeep_wreck",
+    x: 40,
+    y: 30,
+    z: 0,
+    yaw: 0.5,
+    pose: { kind: "static", state: "default" },
+  };
+  const c = {
+    prop: 3,
+    kind: UNITS.hull("jeep")!.wreck,
+    center: [40, 30] as const,
+    yaw: 0.5,
+    half: [2.2, 1, 0.95] as const,
+    baseZ: 0,
+    tick: 301,
+  };
+  const fit = { fit: () => [wreck] } as unknown as PropAppearances;
+  const installed = {
+    appearances: new Map([
+      [
+        "jeep_wreck",
+        {
+          bundle: {
+            kind: "static",
+            states: [{ name: "default", bounds: { min: [-2.2, -1, 0], max: [2.2, 1, 2.8] } }],
+          },
+        },
+      ],
+    ]),
+  } as unknown as InstalledAppearances;
+  const transition = transitionOf(c, fit, installed, 30);
+  expect(transition).not.toBeNull();
+  const hull: ModelInstance = {
+    ...wreck,
+    appearance: "jeep",
+    pose: { kind: "articulated", articulation: REST_ARTICULATION },
+  };
+  const feel = { ...gameEffects.cook_off, delay_s: 0.35 };
+  const rolling = { model: { ...hull, x: 36 }, braking: 2 };
+  expect(cookOffModels(transition!, rolling, feel, 10)[0].x).toBeCloseTo(36);
+  expect(cookOffModels(transition!, rolling, feel, 11)[0].x).toBeCloseTo(39);
+  expect(cookOffModels(transition!, rolling, feel, 12)[0].x).toBeCloseTo(40);
+  expect(
+    cookOffModels(transition!, { model: hull, braking: 2 }, feel, 10 + feel.delay_s / 2),
+  ).toEqual([hull]);
+  const moving = cookOffModels(
+    transition!,
+    { model: hull, braking: 2 },
+    feel,
+    10 + feel.delay_s + feel.settle_s / 8,
+  );
+  expect(moving[0].appearance).toBe("jeep_wreck");
+  expect(moving[0].pose.kind).toBe("static");
+  if (moving[0].pose.kind !== "static") throw new Error("expected moving wreck");
+  expect(moving[0].pose.state).toBe("default");
+  expect(moving[0].pose.motion![14]).not.toBe(0);
+  // The complete wreck includes wheels and grounded debris: no corner may sink.
+  for (const age of [0.4, 0.7, 1.1, 2.5]) {
+    const m = cookOffModels(transition!, null, feel, 10 + age)[0];
+    if (m.pose.kind !== "static") throw new Error("expected moving wreck");
+    const motion = m.pose.motion!;
+    for (const x of [-2.2, 2.2])
+      for (const y of [-1, 1])
+        for (const z of [0, 2.8])
+          expect(
+            motion[2] * x + motion[6] * y + motion[10] * z + motion[14],
+          ).toBeGreaterThanOrEqual(-1e-7);
+  }
+  const settled = cookOffModels(transition!, null, feel, 10 + landedAfter(feel));
+  if (settled[0].pose.kind !== "static") throw new Error("expected resting wreck");
+  expect(settled[0].pose.state).toBe("default");
+  const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  settled[0].pose.motion!.forEach((v, i) => expect(v).toBeCloseTo(identity[i], 12));
+});
 
 /** A side's publication at `tick`: the enemy tank it identifies (if any), at
  *  `at`, and the wrecks it knows. */
@@ -93,10 +174,28 @@ const tankPose = (at: readonly [number, number], turret: number) => ({
   articulation: { ...REST_ARTICULATION, turret_yaw: turret },
 });
 
-test("a hull that brews up is drawn whole, as last seen, until its ammunition goes; then as the wreck's pieces", () => {
-  const feel = gameEffects.cook_off;
+test("a Jeep death retains its own hull when another vehicle disappeared nearby", () => {
+  const hulls = new LastSeenHulls(UNITS, () => 2);
+  hulls.note([tankPose([40.5, 30], 1.2), { ...tankPose([40, 30], 0), unit: 8, kind: "jeep" }], 10);
+  hulls.note([], 10.03);
+  const c = {
+    prop: 3,
+    kind: UNITS.hull("jeep")!.wreck,
+    center: [40.5, 30] as const,
+    yaw: 0.5,
+    half: [2.2, 1, 0.95] as const,
+    baseZ: 0,
+    tick: 301,
+  };
   const resolve: ResolveAppearance = (kind) => ({ appearance: kind, tint: [1, 0, 0] });
-  const hulls = new LastSeenHulls();
+  expect(hulls.at(c, 10.1, resolve)?.model.appearance).toBe("jeep");
+});
+
+test("a hull that brews up is drawn whole, as last seen, until its ammunition goes; then as the wreck's pieces", () => {
+  // A beat between the hit and the ammunition going, whatever the shipped feel has.
+  const feel = { ...gameEffects.cook_off, delay_s: 0.35 };
+  const resolve: ResolveAppearance = (kind) => ({ appearance: kind, tint: [1, 0, 0] });
+  const hulls = new LastSeenHulls(UNITS, () => 2);
   hulls.note([tankPose([40, 30], 1.2)], 10);
   hulls.note([], 10.03);
   const wreck: ModelInstance = {
@@ -107,7 +206,7 @@ test("a hull that brews up is drawn whole, as last seen, until its ammunition go
     yaw: 0.5,
     pose: { kind: "static", state: "default" },
   };
-  const flight: Flight = {
+  const transition: CookOffTransition = {
     cookOff: {
       prop: 3,
       kind: WRECK,
@@ -118,22 +217,67 @@ test("a hull that brews up is drawn whole, as last seen, until its ammunition go
       tick: 301,
     },
     wreck,
+    bounds: { min: [-2.2, -1, 0], max: [2.2, 1, 2.8] },
     lies: [0, 0, 1.6],
     underside: 1.2,
     hitAt: 10,
   };
-  const hull = hulls.at(flight.cookOff, 10.1, resolve);
+  const hull = hulls.at(transition.cookOff, 10.1, resolve);
   // Before the ammunition goes: the clean tank, turret where it was trained.
-  const before = cookOffModels(flight, hull, feel, 10 + feel.delay_s / 2);
+  const before = cookOffModels(transition, hull, feel, 10);
   expect(before.map((m) => [m.appearance, m.x, m.y, m.yaw])).toEqual([["tank", 40, 30, 0.5]]);
   expect(before[0].pose.kind === "articulated" && before[0].pose.articulation.turret_yaw).toBe(1.2);
-  // Once it goes: the wreck's hull and its thrown turret.
-  const after = cookOffModels(flight, hull, feel, 10 + feel.delay_s + 0.05);
+  // Once it goes: the wreck's hull and its moving turret.
+  const after = cookOffModels(transition, hull, feel, 10 + feel.delay_s + 0.05);
   expect(after.map((m) => [m.appearance, m.pose.kind === "static" && m.pose.state])).toEqual([
     [WRECK, "hull"],
     [WRECK, "turret"],
   ]);
   // A hull long gone, or one that stood elsewhere, is not the one that brewed up.
-  expect(hulls.at(flight.cookOff, 15, resolve)).toBeNull();
-  expect(hulls.at({ ...flight.cookOff, center: [200, 30] }, 10.1, resolve)).toBeNull();
+  expect(hulls.at(transition.cookOff, 15, resolve)).toBeNull();
+  expect(hulls.at({ ...transition.cookOff, center: [200, 30] }, 10.1, resolve)).toBeNull();
+});
+
+test("a hull killed on the move glides on to its wreck, slowing as it brakes, and its pieces follow", () => {
+  const feel = gameEffects.cook_off;
+  const resolve: ResolveAppearance = (kind) => ({ appearance: kind, tint: [1, 0, 0] });
+  const hulls = new LastSeenHulls(UNITS, () => 2);
+  // Last seen 4 m short of where its wreck came to rest.
+  hulls.note([tankPose([36, 30], 0)], 10);
+  hulls.note([], 10.03);
+  const wreck: ModelInstance = {
+    appearance: WRECK,
+    x: 40,
+    y: 30,
+    z: 0,
+    yaw: 0,
+    pose: { kind: "static", state: "default" },
+  };
+  const transition: CookOffTransition = {
+    cookOff: {
+      prop: 3,
+      kind: WRECK,
+      center: [40, 30],
+      yaw: 0,
+      half: [3.5, 1.8, 1.2],
+      baseZ: 0,
+      tick: 301,
+    },
+    wreck,
+    bounds: { min: [-2.2, -1, 0], max: [2.2, 1, 2.8] },
+    lies: [0, 0, 1.6],
+    underside: 1.2,
+    hitAt: 10,
+  };
+  // Braking at 2 m/s²: 4 m takes 2 s to roll.
+  const hull = hulls.at(transition.cookOff, 10.05, resolve);
+  const xAt = (clock: number) => cookOffModels(transition, hull, feel, clock)[0].x;
+  expect(xAt(10)).toBeCloseTo(36);
+  // Half its time, three quarters of its way: it slows as it goes.
+  expect(xAt(11)).toBeCloseTo(39);
+  expect(xAt(12)).toBeCloseTo(40);
+  expect(xAt(14)).toBeCloseTo(40);
+  // The wreck's pieces, once the ammunition goes, are where the hull has rolled to.
+  const pieces = cookOffModels(transition, hull, feel, 11);
+  expect(pieces.every((m) => Math.abs(m.x - 39) < 1e-9)).toBe(true);
 });

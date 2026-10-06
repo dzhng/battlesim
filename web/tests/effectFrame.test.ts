@@ -1056,8 +1056,11 @@ test("tracer core and glow retain their own pixel widths", () => {
 });
 
 test("a hull watched die cooks off a beat after the hit, and its turret lands in dust", () => {
-  const c = PRESENTATION.cook_off;
-  const f = frame();
+  const c = { ...PRESENTATION.cook_off, delay_s: 0.35 };
+  const f = new EffectFrame({
+    tickHz: HZ,
+    presentation: { ...PRESENTATION, cook_off: c },
+  });
   f.note(pub(1));
   // Its turret, in this test, lands well clear of the fireballs' own dust.
   f.note(pub(2, { cookOffs: [{ center: [0, 0, 0], height: 2.4, landing: [30, 0, 0] }] }));

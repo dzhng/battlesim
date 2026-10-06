@@ -57,6 +57,8 @@ pub struct Soldier {
     /// The lean point claimed with his spot or post, round the tall cover
     /// he fires past.
     pub lean: Option<crate::lean::Lean>,
+    /// His last search for a place to fight from that found none.
+    pub sat_out: Option<crate::cover::SatOut>,
     /// He leans out, firing, from `lean_since` until `leaning_until`;
     /// tucked in behind his cover otherwise. After a burst out he
     /// stays tucked in until `tucked_until`.
@@ -86,6 +88,7 @@ impl Soldier {
             post: None,
             cover: None,
             lean: None,
+            sat_out: None,
             lean_since: 0,
             leaning_until: 0,
             tucked_until: 0,
@@ -228,6 +231,10 @@ pub struct Unit {
     pub planned_revision: u64,
     /// Failure-to-advance watch: best distance to the next waypoint and when.
     pub progress: (f64, u64),
+    /// Give-up watch: the shortest way left seen at a stall, and the tick it
+    /// was seen; a way no shorter for long enough gives the move up
+    /// ([`MoveState::RouteBlocked`]).
+    pub stalls: (f64, u64),
     pub engagement: Engagement,
     pub mounts: Vec<Mount>,
     /// Enemies that attacked this unit, whom Return fire only may answer while
@@ -329,8 +336,10 @@ pub fn validate_drive(rules: &Rules) {
         d.acceleration_s.is_finite()
             && d.acceleration_s > 0.0
             && d.braking_s.is_finite()
-            && d.braking_s > 0.0,
-        "movement.drive acceleration and braking times must be finite and positive"
+            && d.braking_s > 0.0
+            && d.wreck_stop_s.is_finite()
+            && d.wreck_stop_s > 0.0,
+        "movement.drive acceleration, braking and wreck stop times must be finite and positive"
     );
     for (name, v) in [
         ("turn_in_place_deg", d.turn_in_place_deg),
@@ -504,7 +513,9 @@ impl Unit {
         }
         d.u64(self.planned_revision)
             .f64(self.progress.0)
-            .u64(self.progress.1);
+            .u64(self.progress.1)
+            .f64(self.stalls.0)
+            .u64(self.stalls.1);
         d.f64(self.hp).f64(self.suppression).u64(self.suppressed_at);
         d.u64(self.stock.map_or(u64::MAX, u64::from));
         d.u64(self.protection.is_some() as u64);
@@ -547,6 +558,11 @@ impl Unit {
                 l.digest(d);
             }
             d.u64(s.lean_since).u64(s.leaning_until).u64(s.tucked_until);
+            d.u64(s.sat_out.is_some() as u64);
+            if let Some(m) = s.sat_out {
+                d.f64(m.at.x).f64(m.at.y).f64(m.threat.x).f64(m.threat.y);
+                d.u64(m.revision).u64(u64::from(m.craters));
+            }
             d.u64(s.corpse.is_some() as u64);
             if let Some(Fallen {
                 at: p,

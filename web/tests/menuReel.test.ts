@@ -1,5 +1,11 @@
 import { expect, test } from "vitest";
-import { sampleReel, validateReel, type MenuReel } from "@apps/battle-lab/src/menuReel";
+import {
+  sampleReel,
+  filmCamera,
+  validateBackdrop,
+  validateReel,
+  type MenuReel,
+} from "@apps/battle-lab/src/menuReel";
 
 const at = (x: number, y: number, distance = 100, yaw = 0, pitch = 0.5) => ({
   target: [x, y] as [number, number],
@@ -69,4 +75,48 @@ test("after the last shot the reel is done and holds black on its last framing",
     black: 1,
     done: true,
   });
+});
+
+test("a backdrop is scenes in order, each a saved battle and its own reel; none is refused", () => {
+  const scene = (map: string) => ({
+    map,
+    encounter: "e",
+    seed: 1,
+    warm_s: 2,
+    reel: { fade_s: 0.5, shots: [{ seconds: 4, from: at(0, 0), to: at(1, 1) }] },
+  });
+  const backdrop = validateBackdrop({ scenes: [scene("town"), scene("city")] });
+  expect(backdrop.scenes.map((s) => [s.map, s.reel.shots.length])).toEqual([
+    ["town", 1],
+    ["city", 1],
+  ]);
+  expect(() => validateBackdrop({ scenes: [] })).toThrow(/scenes/);
+  expect(() => validateBackdrop({ scenes: [{ ...scene("x"), map: "" }] })).toThrow(
+    /scenes\[0\]\.map/,
+  );
+});
+
+test("the backdrop's camera reaches as close as its closest framing, and is the player's otherwise", () => {
+  const player = {
+    zoom_min: 25,
+    zoom_max: 2000,
+    pitch_curve: [
+      [25, 0.22],
+      [65, 0.85],
+    ] as [number, number][],
+  };
+  const reel = (d: number) => ({
+    fade_s: 0.5,
+    shots: [{ seconds: 4, from: at(0, 0, 40), to: at(1, 1, d) }],
+  });
+  const near = filmCamera(player, [reel(40), reel(12)]);
+  expect(near.zoom_min).toBe(12);
+  // The curve still covers the range: the closest framing pitches as the player's nearest.
+  expect(near.pitch_curve).toEqual([
+    [12, 0.22],
+    [25, 0.22],
+    [65, 0.85],
+  ]);
+  expect(near.zoom_max).toBe(2000);
+  expect(filmCamera(player, [reel(30)])).toBe(player);
 });

@@ -690,8 +690,8 @@ impl NavGrid {
     /// Where the hull does not fit, it parks on the nearest ground it does
     /// within a hull's length; where that ground cannot be reached, on the
     /// nearest that can within [`pockets::POCKET_REACH_M`], and with none
-    /// that near, it is sent where it was and the move is refused. A squad
-    /// (no hull) stands as it fits.
+    /// that near, it is sent where it was, and placement leaves it
+    /// unplaced ([`Self::reaches`]). A squad (no hull) stands as it fits.
     pub fn destination_point(
         &self,
         p: V2,
@@ -722,7 +722,7 @@ impl NavGrid {
                 return None;
             }
             // Nothing it can reach near enough: the ground it was sent to,
-            // which admission then refuses.
+            // which placement then leaves unplaced.
             let far = (pockets::POCKET_REACH_M / NAV_CELL_M).ceil() as isize;
             self.nearest_standing(p, far, parks)
                 .or_else(|| self.nearest_standing(p, reach, stands))

@@ -3153,6 +3153,8 @@ Where the operator fires it from is the operator-muzzle entry.
 
 **The choice.** After cover places are claimed against a seen enemy, one soldier's place gives him no line to any enemy, straight or by a lean. He searches rings every 0.5 m outward: within `cover.step_out_m` (4 m) he takes the best cover, then the nearest place; beyond that, the nearest ring with any place, out to the full width of the squad's area and never outside it. A place must be standing room, `spacing_m` from the others, reachable on foot from where he is (`arrangement::reachable`, which stops a step offering the far side of a wall), and must let him engage straight or from a free lean point there. With none he sits out. The alternatives were no step-out (men hide uselessly) or only the short 4 m reach, which stranded men once squad areas grew.
 
+**Since (2026-10-06).** Past `step_out_m` the rings and the places on them spread with the distance, staying the same angle apart as seen from him (0.5 m at 4 m, 2 m at 16 m); within it they stay 0.5 m apart. Unlike the uniform 1 m spacing declined earlier, the next step keeps its resolution. The user chose it (2026-10-06): on the city-contact minute it halves movement's work (321 → 165 G instructions), and searches find a place about as often (3,586 of 4,000 found none, against 3,617). A soldier who sat out also searches again only when he, the enemy (`step_out_retry_m`) or what his side knows near him has changed (`Soldier::sat_out`).
+
 **The gap.** The planning decision (D3) named the step-out, not its search or reach.
 
 **The reach.** Guarantees a holding squad ends mostly able to fight; works with the squad-area claim rules.

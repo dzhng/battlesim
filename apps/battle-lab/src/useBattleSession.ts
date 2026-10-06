@@ -6,6 +6,7 @@
 // pick and box-select adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
+import { GAME_RULES } from "./scenarios";
 import { ContactPresentation } from "@web/battle/present/contactPresentation";
 import { gameContactStyle } from "./gameFog";
 import type { PreparedSession } from "@web/battle/prepare/client";
@@ -55,9 +56,10 @@ import {
   CookOffWatch,
   LastSeenHulls,
   cookOffModels,
+  type LastHull,
   effectCookOff,
-  flightOf,
-  type Flight,
+  transitionOf,
+  type CookOffTransition,
 } from "./cookOffs";
 import { landedAfter } from "@packages/battle-renderer/src/effects/cookOff";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
@@ -206,33 +208,45 @@ export function useBattleSession({
   );
   useEffect(() => () => audio?.dispose(), [audio]);
   // Hulls the side watched brew up (`cookOffs.ts`): the effects blow each
-  // up, and while its pieces move its wreck draws as them, each frame, not
+  // up, and while its wreck moves it draws each frame, not
   // among the side's structures. The wreck is fitted as the side's props
   // are, once they can be. A side learns a wreck within a second of losing
   // its hull.
   const cookOffWatch = useMemo(() => new CookOffWatch(UNITS, rules.tick_hz), [rules.tick_hz]);
-  const flightFitting = useRef<{ fit: PropAppearances; installed: InstalledAppearances } | null>(
-    null,
-  );
-  const [flights, setFlights] = useState<readonly Flight[]>([]);
+  const transitionFitting = useRef<{
+    fit: PropAppearances;
+    installed: InstalledAppearances;
+  } | null>(null);
+  const [transitions, setTransitions] = useState<readonly CookOffTransition[]>([]);
   // Each vehicle as last drawn: a hull that brews up is drawn whole until
-  // its ammunition goes, and only then as its wreck's pieces.
-  const lastHulls = useMemo(() => new LastSeenHulls(), []);
+  // its ammunition goes, and only then as its moving wreck.
+  const lastHulls = useMemo(
+    () =>
+      new LastSeenHulls(UNITS, (kind) => {
+        const m = UNITS.type(kind).mobility;
+        const road = "tracked" in m ? m.tracked : "wheeled" in m ? m.wheeled : m.foot;
+        // As the simulation stops a dead hull: full road speed lost in `wreck_stop_s`.
+        return road.road_kmh / 3.6 / GAME_RULES.movement.drive.wreck_stop_s;
+      }),
+    [],
+  );
+  // Each cook-off's hull, as last seen, found once as it starts.
+  const transitionHulls = useRef(new WeakMap<CookOffTransition, LastHull | null>());
   const lastDecoded = useRef(-1);
   const noteDecoded = useCallback(
     (o: ObservationView, digest: string) => {
-      if (o.tick < lastDecoded.current) setFlights([]);
+      if (o.tick < lastDecoded.current) setTransitions([]);
       lastDecoded.current = o.tick;
-      const fitting = flightFitting.current;
+      const fitting = transitionFitting.current;
       const brewed = cookOffWatch.note(o).map((c) => ({
         c,
-        flight: fitting && flightOf(c, fitting.fit, fitting.installed, rules.tick_hz),
+        transition: fitting && transitionOf(c, fitting.fit, fitting.installed, rules.tick_hz),
       }));
-      const thrown = brewed.flatMap(({ flight }) => (flight ? [flight] : []));
-      if (thrown.length) setFlights((now) => [...now, ...thrown]);
+      const moving = brewed.flatMap(({ transition }) => (transition ? [transition] : []));
+      if (moving.length) setTransitions((now) => [...now, ...moving]);
       const pub = {
         ...effectPublication(o, side, UNITS),
-        cookOffs: brewed.map(({ c, flight }) => effectCookOff(c, flight)),
+        cookOffs: brewed.map(({ c, transition }) => effectCookOff(c, transition)),
       };
       effects.note(pub);
       audio?.note({ effects: pub, audible: o.audible });
@@ -407,15 +421,15 @@ export function useBattleSession({
   const sideProps = useMemo(() => {
     if (!props || !fittedMap || !drawnBuildings) return null;
     const part = drawnBuildings.partBuilding;
-    // A wreck whose pieces still move is drawn as them, each frame.
-    const moving = new Set(flights.map((f) => f.cookOff.prop));
+    // A moving wreck is drawn each frame rather than among static props.
+    const moving = new Set(transitions.map((f) => f.cookOff.prop));
     const known = (JSON.parse(knownKey) as KnownPropView[]).filter(
       (k) => (k.authoredProp === null || !part.has(k.authoredProp)) && !moving.has(k.id),
     );
     return sideStructures(fittedMap, known, props.fit);
-  }, [props, fittedMap, drawnBuildings, knownKey, flights]);
+  }, [props, fittedMap, drawnBuildings, knownKey, transitions]);
   useEffect(() => {
-    flightFitting.current =
+    transitionFitting.current =
       props && appearances ? { fit: props.fit, installed: appearances } : null;
   }, [props, appearances]);
   const structures: SideStructures = sideProps ?? NO_STRUCTURES;
@@ -607,23 +621,18 @@ export function useBattleSession({
       const posed = poseFrameInstances(posing.models, poses, posing.resolve, xrayOf.current);
       lastHulls.note(poses.vehicles, time);
       // Each cooking-off hull: whole until its ammunition goes, then its
-      // wreck's pieces until a moment after they lie still, when the whole
-      // wreck takes over (the structures, rebuilt as the flight ends).
+      // moving wreck until a moment after it lies still, when the static
+      // wreck takes over (the structures, rebuilt as the transition ends).
       const feel = gameEffects.cook_off;
-      const done = flights.filter((f) => time - f.hitAt > landedAfter(feel) + LANDED_HOLD_S);
-      if (done.length) setFlights((now) => now.filter((f) => !done.includes(f)));
-      const models = flights.length
+      const done = transitions.filter((f) => time - f.hitAt > landedAfter(feel) + LANDED_HOLD_S);
+      if (done.length) setTransitions((now) => now.filter((f) => !done.includes(f)));
+      const models = transitions.length
         ? posed.concat(
-            flights.flatMap((f) =>
-              cookOffModels(
-                f,
-                time - f.hitAt < feel.delay_s
-                  ? lastHulls.at(f.cookOff, time, posing.resolve)
-                  : null,
-                feel,
-                time,
-              ),
-            ),
+            transitions.flatMap((f) => {
+              if (!transitionHulls.current.has(f))
+                transitionHulls.current.set(f, lastHulls.at(f.cookOff, time, posing.resolve));
+              return cookOffModels(f, transitionHulls.current.get(f) ?? null, feel, time);
+            }),
           )
         : posed;
       if (poses.corpsesVersion !== posing.corpses.version)
@@ -666,7 +675,7 @@ export function useBattleSession({
       side,
       orderReveal,
       control.showOrders,
-      flights,
+      transitions,
       lastHulls,
       ghostModel,
       inputEnabled,

@@ -76,8 +76,10 @@ export async function run(ctx, preset = "village-contact") {
 
   const clicked = Date.now();
   await page.getByRole("button", { name: RUN }).click();
+  // Ready once the map is generated and the world built: an XL map takes
+  // minutes, as the warm-up below may.
   await page.waitForFunction(() => window.__lab?.ready || window.__lab?.error, undefined, {
-    timeout: 60_000,
+    timeout: PREPARE_TIMEOUT_MS,
   });
   const error = await page.evaluate(() => window.__lab.error);
   if (error) throw new Error(`viewport failed: ${error}`);
