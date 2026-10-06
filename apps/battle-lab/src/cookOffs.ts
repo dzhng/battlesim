@@ -10,7 +10,9 @@
 // Presentation only: the effects blow the hull up (fireballs out of the
 // turret ring, and sparks and dust where its turret lands) and, where its
 // wreck is cut into pieces, the battle jolts the hull and throws the turret
-// (`effects/cookOff.ts`), from the tick the wreck appeared.
+// (`effects/cookOff.ts`), from the tick the wreck appeared. Until the
+// ammunition goes the hull is drawn whole, as the side last saw it, so the
+// fire, not a cut, turns the clean tank into the wreck.
 import { mat4, type Mat4, type Vec3 } from "math";
 import {
   hullMotion,
@@ -18,7 +20,11 @@ import {
   type CookOffFeel,
 } from "@packages/battle-renderer/src/effects/cookOff";
 import type { EffectCookOff } from "@packages/battle-renderer/src/effects/effectFrame";
-import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
+import type {
+  ModelInstance,
+  ResolveAppearance,
+} from "@packages/battle-renderer/src/models/modelInstances";
+import type { VehiclePose } from "@packages/battle-renderer/src/models/poseDriver";
 import type { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { WRECK_PIECES } from "@packages/scene-assets/src/scenery";
@@ -198,4 +204,75 @@ export function piecesOf(f: Flight, feel: CookOffFeel, clock: number): ModelInst
     piece(WRECK_PIECES.hull, hullMotion(mat4.create(), feel, age, seed)),
     piece(WRECK_PIECES.turret, turretMotion(mat4.create(), feel, age, f.lies, seed)),
   ];
+}
+
+/** Seconds a vehicle gone from the frame is still remembered as last drawn:
+ *  longer than a cook-off waits to blow up. */
+const REMEMBERED_S = 2;
+
+/** Each vehicle as the frame last drew it, a moment after it is gone: the
+ *  hull a cook-off draws whole until its ammunition goes. Each is kept in
+ *  one record, updated in place, so a warm frame allocates nothing. */
+export class LastSeenHulls {
+  private readonly hulls = new Map<number, { pose: VehiclePose; at: number }>();
+  /** The clock of the last frame noted: a hull it did not draw is gone. */
+  private clock = -Infinity;
+
+  /** The vehicles the frame at `clock` draws. */
+  note(vehicles: readonly VehiclePose[], clock: number): void {
+    for (const v of vehicles) {
+      const key = v.side === "blue" ? v.unit : -1 - v.unit;
+      let h = this.hulls.get(key);
+      if (!h) {
+        h = {
+          pose: { ...v, position: [0, 0, 0], articulation: { ...v.articulation } },
+          at: clock,
+        };
+        this.hulls.set(key, h);
+      }
+      h.pose.kind = v.kind;
+      h.pose.position[0] = v.position[0];
+      h.pose.position[1] = v.position[1];
+      h.pose.position[2] = v.position[2];
+      h.pose.yaw = v.yaw;
+      Object.assign(h.pose.articulation, v.articulation);
+      h.at = clock;
+    }
+    for (const [key, h] of this.hulls) if (clock - h.at > REMEMBERED_S) this.hulls.delete(key);
+    this.clock = clock;
+  }
+
+  /** The hull, gone from the frame lately, that stood where `c`'s wreck lies,
+   *  as last drawn; null if none did. */
+  at(c: CookOff, clock: number, resolve: ResolveAppearance): ModelInstance | null {
+    for (const { pose, at } of this.hulls.values()) {
+      const gone = at < this.clock && clock - at <= REMEMBERED_S;
+      const there =
+        Math.hypot(pose.position[0] - c.center[0], pose.position[1] - c.center[1]) <= c.half[0];
+      if (!gone || !there) continue;
+      const looks = resolve(pose.kind, pose.side, pose.unit, 0);
+      if (!looks) return null;
+      return {
+        appearance: looks.appearance,
+        tint: looks.tint,
+        x: pose.position[0],
+        y: pose.position[1],
+        z: pose.position[2],
+        yaw: pose.yaw,
+        pose: { kind: "articulated", articulation: { ...pose.articulation } },
+      };
+    }
+    return null;
+  }
+}
+
+/** What cook-off `f` draws at presentation second `clock`: its hull whole,
+ *  as last seen (`hull`), until the ammunition goes; then the wreck's pieces. */
+export function cookOffModels(
+  f: Flight,
+  hull: ModelInstance | null,
+  feel: CookOffFeel,
+  clock: number,
+): ModelInstance[] {
+  return hull && clock - f.hitAt < feel.delay_s ? [hull] : piecesOf(f, feel, clock);
 }

@@ -51,7 +51,14 @@ import {
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
 import { knownFallen } from "./destroyedBuildings";
-import { CookOffWatch, effectCookOff, flightOf, piecesOf, type Flight } from "./cookOffs";
+import {
+  CookOffWatch,
+  LastSeenHulls,
+  cookOffModels,
+  effectCookOff,
+  flightOf,
+  type Flight,
+} from "./cookOffs";
 import { landedAfter } from "@packages/battle-renderer/src/effects/cookOff";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
@@ -197,6 +204,9 @@ export function useBattleSession({
     null,
   );
   const [flights, setFlights] = useState<readonly Flight[]>([]);
+  // Each vehicle as last drawn: a hull that brews up is drawn whole until
+  // its ammunition goes, and only then as its wreck's pieces.
+  const lastHulls = useMemo(() => new LastSeenHulls(), []);
   const lastDecoded = useRef(-1);
   const noteDecoded = useCallback(
     (o: ObservationView, digest: string) => {
@@ -541,14 +551,26 @@ export function useBattleSession({
         };
       }
       const posed = poseFrameInstances(posing.models, poses, posing.resolve, xrayOf.current);
-      // Each cooking-off wreck's pieces, until a moment after they lie
-      // still, when the whole wreck takes over (the structures, rebuilt as
-      // the flight ends).
+      lastHulls.note(poses.vehicles, time);
+      // Each cooking-off hull: whole until its ammunition goes, then its
+      // wreck's pieces until a moment after they lie still, when the whole
+      // wreck takes over (the structures, rebuilt as the flight ends).
       const feel = gameEffects.cook_off;
       const done = flights.filter((f) => time - f.hitAt > landedAfter(feel) + LANDED_HOLD_S);
       if (done.length) setFlights((now) => now.filter((f) => !done.includes(f)));
       const models = flights.length
-        ? posed.concat(flights.flatMap((f) => piecesOf(f, feel, time)))
+        ? posed.concat(
+            flights.flatMap((f) =>
+              cookOffModels(
+                f,
+                time - f.hitAt < feel.delay_s
+                  ? lastHulls.at(f.cookOff, time, posing.resolve)
+                  : null,
+                feel,
+                time,
+              ),
+            ),
+          )
         : posed;
       if (poses.corpsesVersion !== posing.corpses.version)
         posing.corpses = {
@@ -580,6 +602,7 @@ export function useBattleSession({
       orderReveal,
       control.showOrders,
       flights,
+      lastHulls,
     ],
   );
   /** Sound for the last frame, heard from `camera`: call once a frame. */
