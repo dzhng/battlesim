@@ -993,7 +993,7 @@
         }
       },
       "cook_off": {
-        "delay_s": 0.35,
+        "delay_s": 0,
         "rise_m": 7,
         "flip_turns": 1,
         "spin_turns": 0.6,
