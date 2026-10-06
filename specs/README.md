@@ -6,6 +6,10 @@ decisions made where the plan was silent. Read that handoff before implementing 
 slice. A planning document can describe future behavior, so it is not proof that
 a capability has shipped.
 
+[Unit roster and skirmish requirements](unit-roster/README.md) capture factions, unit
+variants, the skirmish economy/objectives, basic AI and a phased implementation
+ladder with parallel named-model production.
+
 [Finished features](done/) retain the rationale and accepted scope after shipping.
 Their README explains why the design works and points to current owners. Choices,
 measurements, references and rejected experiments beneath each feature retain their
