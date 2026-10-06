@@ -63,20 +63,31 @@ export function textureByteSize(descriptor: GPUTextureDescriptor): number {
   return texels * texel * (descriptor.sampleCount ?? 1);
 }
 
-const trackers = new WeakMap<GPUDevice, () => GpuAllocationCounts>();
+/** A device's live allocations: all of them, or only those made before a
+ *  mark (`created()` read earlier), so an owner's teardown can be checked
+ *  while the next owner allocates beside it. */
+export interface GpuAllocationTracker {
+  (createdBefore?: number): GpuAllocationCounts;
+  /** How many buffers and textures the device has made so far: a mark. */
+  created(): number;
+}
+
+const trackers = new WeakMap<GPUDevice, GpuAllocationTracker>();
 
 /** Count this device's live allocations. Installing twice returns the one
  *  tracker, so the factories are wrapped once however many owners ask. */
-export function trackGpuAllocations(device: GPUDevice): () => GpuAllocationCounts {
+export function trackGpuAllocations(device: GPUDevice): GpuAllocationTracker {
   const existing = trackers.get(device);
   if (existing) return existing;
-  const buffers = new Set<GPUBuffer>();
-  const textures = new Map<GPUTexture, number>();
+  // Each live resource with its place in creation order.
+  const buffers = new Map<GPUBuffer, number>();
+  const textures = new Map<GPUTexture, { bytes: number; order: number }>();
+  let created = 0;
   const createBuffer = device.createBuffer.bind(device);
   const createTexture = device.createTexture.bind(device);
   device.createBuffer = (descriptor) => {
     const buffer = createBuffer(descriptor);
-    buffers.add(buffer);
+    buffers.set(buffer, created++);
     const destroy = buffer.destroy.bind(buffer);
     buffer.destroy = () => {
       buffers.delete(buffer);
@@ -87,7 +98,7 @@ export function trackGpuAllocations(device: GPUDevice): () => GpuAllocationCount
   device.createTexture = (descriptor) => {
     const bytes = textureByteSize(descriptor);
     const texture = createTexture(descriptor);
-    textures.set(texture, bytes);
+    textures.set(texture, { bytes, order: created++ });
     const destroy = texture.destroy.bind(texture);
     texture.destroy = () => {
       textures.delete(texture);
@@ -95,16 +106,21 @@ export function trackGpuAllocations(device: GPUDevice): () => GpuAllocationCount
     };
     return texture;
   };
-  const counts = () => {
-    let textureBytes = 0;
-    for (const bytes of textures.values()) textureBytes += bytes;
-    return {
-      buffers: buffers.size,
-      textures: textures.size,
-      bufferBytes: [...buffers].reduce((n, b) => n + b.size, 0),
-      textureBytes,
-    };
+  const counts = (createdBefore = Infinity) => {
+    let [bufferCount, bufferBytes, textureCount, textureBytes] = [0, 0, 0, 0];
+    for (const [buffer, order] of buffers)
+      if (order < createdBefore) {
+        bufferCount++;
+        bufferBytes += buffer.size;
+      }
+    for (const { bytes, order } of textures.values())
+      if (order < createdBefore) {
+        textureCount++;
+        textureBytes += bytes;
+      }
+    return { buffers: bufferCount, textures: textureCount, bufferBytes, textureBytes };
   };
+  counts.created = () => created;
   trackers.set(device, counts);
   return counts;
 }

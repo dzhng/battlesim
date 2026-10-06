@@ -22,6 +22,20 @@ test("counts live buffers, their bytes and textures through create and destroy",
   expect(native.destroyCalls).toBe(2);
 });
 
+test("allocations made before a mark are counted apart from those made after it", () => {
+  const { device } = fakeGpuDevice();
+  const live = trackGpuAllocations(device);
+  const old = device.createBuffer({ size: 4, usage: 0 });
+  const mark = live.created();
+  // What arrives after the mark (the next owner's) never counts against it.
+  device.createBuffer({ size: 8, usage: 0 });
+  device.createTexture({ size: [1, 1], format: "r8unorm", usage: 0 });
+  expect(live(mark)).toEqual({ buffers: 1, textures: 0, bufferBytes: 4, textureBytes: 0 });
+  old.destroy();
+  expect(live(mark)).toEqual({ buffers: 0, textures: 0, bufferBytes: 0, textureBytes: 0 });
+  expect(live()).toMatchObject({ buffers: 1, textures: 1 });
+});
+
 test("texture bytes count every sample, layer and mip level", () => {
   // The frame's 1080p MSAA HDR colour: 8 bytes a texel, four samples.
   expect(

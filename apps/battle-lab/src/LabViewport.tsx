@@ -9,7 +9,7 @@ import { gpuFailureMessage } from "@packages/renderer-core/src/device";
 import { appResources } from "./appResources";
 import {
   trackGpuAllocations,
-  type GpuAllocationCounts,
+  type GpuAllocationTracker,
 } from "@packages/renderer-core/src/gpuAllocations";
 import { vec3 } from "math";
 import {
@@ -199,7 +199,7 @@ export interface ViewportPilot {
 
 /** What the viewport's device reports once it is up. */
 export interface ViewportGpu {
-  allocations: () => GpuAllocationCounts;
+  allocations: GpuAllocationTracker;
   /** The device and canvas format, for work beside the viewport (model sheets). */
   device: GPUDevice;
   format: GPUTextureFormat;
@@ -263,7 +263,7 @@ interface LabHandle {
   error: string | null;
   adapter?: { vendor: string; architecture: string; description: string; format: string };
   stats?: () => ReturnType<BattleFrame["stats"]>;
-  allocations?: () => GpuAllocationCounts;
+  allocations?: GpuAllocationTracker;
   /** The camera drawn. */
   camera?: () => Camera3DParams;
   /** The harness's raw framing: drawn exactly as given, through neither the

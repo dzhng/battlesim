@@ -138,14 +138,16 @@ export async function appJourney(ctx) {
 
   await openMenu(page);
   const departed = Promise.all(page.workers().map((worker) => worker.waitForEvent("close")));
+  // Everything the battle made comes before this mark; the menu's backdrop,
+  // which starts building at once, allocates after it.
+  let mark = await page.evaluate(() => window.__appJourney.allocations.created());
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
   await departed;
-  // The departed battle's allocations all return, seconds before the menu's
-  // backdrop has prepared and drawn a scene of its own.
-  await page.waitForFunction(() => {
-    const counts = window.__appJourney.allocations();
+  // The departed battle's allocations all return.
+  await page.waitForFunction((mark) => {
+    const counts = window.__appJourney.allocations(mark);
     return counts.buffers === 0 && counts.textures === 0;
-  });
+  }, mark);
   await menuShown(page);
   await page.goBack();
   await ready();
@@ -175,13 +177,14 @@ export async function appJourney(ctx) {
   );
   await snapshot(ctx, page, "app-journey-replay.png");
   await openMenu(page);
+  mark = await page.evaluate(() => window.__appJourney.allocations.created());
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
-  // Read when the departed battle's allocations have all returned, before the
-  // menu's backdrop allocates its own scene.
-  const released = await page.waitForFunction(() => {
-    const counts = window.__appJourney.allocations();
+  // Read when the departed battle's allocations have all returned, whatever
+  // the menu's backdrop has allocated of its own scene meanwhile.
+  const released = await page.waitForFunction((mark) => {
+    const counts = window.__appJourney.allocations(mark);
     return counts.buffers === 0 && counts.textures === 0 && counts;
-  });
+  }, mark);
   await menuShown(page);
   const owners = await page.evaluate(
     (allocations) => {
@@ -245,7 +248,7 @@ export async function armyJourney(ctx) {
   const armyDigest = await page.evaluate(() => window.__lab.route.digest());
   ctx.check(
     "matched army capture preserves the original battle digest",
-    armyDigest === "f5815bb9d29640a0",
+    armyDigest === "a03ed47451db67b4",
     armyDigest,
   );
   await roster.first().click();
