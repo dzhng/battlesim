@@ -493,6 +493,10 @@
         "default": { "near": "explosion", "far": "explosion_far", "gain": 1.0, "far_m": 600 },
         "grenade": { "near": "explosion", "far": "explosion_far", "gain": 0.45, "far_m": 400 }
       },
+      "cook_off": {
+        "blast": { "near": "explosion", "far": "explosion_far", "gain": 1.4, "far_m": 900 },
+        "landing": { "hit": "hull", "as": "tank_ap", "gain": 1.1 }
+      },
       "motors": { "atgm": { "sound": "motor", "gain": 0.25 } },
       "vehicles": {
         "default": {

@@ -6,6 +6,9 @@ import type { AudioPresentation } from "@packages/battle-audio/src/audioPresenta
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
 import { soundSettings } from "@packages/battle-audio/src/settings";
+import type { EffectPresentation } from "@packages/battle-renderer/src/effects/effectFrame";
+
+const COOK_OFF = (game.presentation.effects as unknown as EffectPresentation).cook_off;
 
 const param = () => ({
   setTargetAtTime() {},
@@ -131,6 +134,7 @@ function setupDecode(decode: () => Promise<AudioBuffer>) {
     tickHz: 30,
     presentation: game.presentation.audio as unknown as AudioPresentation,
     smokeTimes: {},
+    cookOff: COOK_OFF,
   });
   active.push(app);
   audio.start();
@@ -203,6 +207,7 @@ test("a departed battle cannot admit late decoding and its replacement shares th
     tickHz: 30,
     presentation: game.presentation.audio as unknown as AudioPresentation,
     smokeTimes: {},
+    cookOff: COOK_OFF,
   });
   next.note(empty(5));
   finish(buffer(1, 2, 8000));

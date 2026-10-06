@@ -26,6 +26,7 @@ export function createBattleAudio(tickHz: number, audio: AppAudio): BattleAudio 
     tickHz,
     presentation: gameAudio,
     smokeTimes: gameEffects.smoke,
+    cookOff: gameEffects.cook_off,
   });
 }
 

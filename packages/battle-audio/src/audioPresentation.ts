@@ -90,6 +90,10 @@ export interface AudioPresentation {
   ricochet: OneShot;
   /** Blasts by round kind. */
   blasts: Record<string, NearFar>;
+  /** A hull cooking off: the boom of each fireball, and its turret's clang
+   *  as it strikes the deck, heard as a round of kind `as` striking `hit`
+   *  (the catalog's contact sound for it), at `gain`. */
+  cook_off: { blast: NearFar; landing: { hit: string; as: string; gain: number } };
   /** A flying round's motor by round kind; a kind without a row has none. */
   motors: Record<string, OneShot>;
   vehicles: Record<string, VehicleSound>;
@@ -116,6 +120,8 @@ const TABLES = ["shots", "impacts", "impact_scale", "blasts", "vehicles", "fires
 export function validateAudio(p: AudioPresentation): AudioPresentation {
   requireDefaults("presentation.audio", p, TABLES);
   if (!p.cues.sounds.default) throw new Error("presentation.audio.cues.sounds needs a default");
+  if (!p.cook_off?.blast || !p.cook_off.landing)
+    throw new Error("presentation.audio.cook_off needs a blast and a landing");
   if (!(p.budget.voices > p.budget.loops && p.budget.loops >= 0))
     throw new Error("presentation.audio.budget: voices must exceed loops");
   const { floor, cull } = p.distance;

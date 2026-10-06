@@ -367,7 +367,13 @@ async function offlineSound(seconds: number, solo?: Bus, catalog: SoundCatalog =
   const sink = new OfflineSink(ctx, presentation, catalog);
   await sink.bank.prepare(battleSounds(catalog));
   const frame = new SoundFrame(
-    { tickHz: HZ, presentation, catalog, smokeTimes: gameEffects.smoke },
+    {
+      tickHz: HZ,
+      presentation,
+      catalog,
+      smokeTimes: gameEffects.smoke,
+      cookOff: gameEffects.cook_off,
+    },
     sink,
   );
   return { sampleRate, ctx, sink, frame };

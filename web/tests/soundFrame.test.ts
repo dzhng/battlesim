@@ -10,6 +10,7 @@ import { expect, test } from "vitest";
 import game from "@fixtures/game.json";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
+import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import {
   distanceGain,
@@ -21,6 +22,7 @@ import {
   type VoiceSink,
   type VoiceSpec,
 } from "@packages/battle-audio/src/soundFrame";
+import { impactAfter } from "@packages/battle-renderer/src/effects/cookOff";
 import type {
   EffectPresentation,
   EffectPublication,
@@ -31,6 +33,7 @@ const HZ = 30;
 const DT = 1 / HZ;
 const AUDIO = game.presentation.audio as unknown as AudioPresentation;
 const SMOKE = (game.presentation.effects as unknown as EffectPresentation).smoke;
+const COOK_OFF = (game.presentation.effects as unknown as EffectPresentation).cook_off;
 const LISTENER: Listener = { position: [0, -20, 20], forward: [0, 1, 0] };
 const STILL: SoundMotion = { vehicles: [], soldiers: [] };
 
@@ -81,6 +84,7 @@ function setup() {
         effects: {},
       },
       smokeTimes: SMOKE,
+      cookOff: COOK_OFF,
     },
     sink,
   );
@@ -379,7 +383,7 @@ test("unit and named mount choices change reports without changing observed cade
   };
   const sink = new FakeSink();
   const frame = new SoundFrame(
-    { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, catalog },
+    { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
     sink,
   );
   const shooters = [
@@ -455,7 +459,7 @@ test("a burst recording sounds once per burst, its shots on the gun's launches",
   const heard = (kind: string, ticks: number[]) => {
     const sink = new FakeSink();
     const frame = new SoundFrame(
-      { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, catalog },
+      { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
       sink,
     );
     run(frame, sink, 1, 70, rifleman(kind, ticks));
@@ -492,7 +496,7 @@ test("separate named mounts preserve explicit recipes while implicit impacts fol
   };
   const sink = new FakeSink();
   const frame = new SoundFrame(
-    { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, catalog },
+    { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
     sink,
   );
   const pub = (tick: number): EffectPublication => ({
@@ -570,7 +574,7 @@ test("a glancing round's ricochet follows its kind, heavier rounds louder", () =
   const glance = (kind: string) => {
     const sink = new FakeSink();
     const frame = new SoundFrame(
-      { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, catalog },
+      { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog },
       sink,
     );
     run(frame, sink, 1, 3, (tick) => ({
@@ -612,7 +616,10 @@ test("a missile striking armour sounds the strike and its explosion; tank rounds
   /** Shipped sounds heard for one round of `kind` hitting a hull, with or without its blast. */
   const strike = (kind: string, blast: boolean) => {
     const sink = new FakeSink();
-    const frame = new SoundFrame({ tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE }, sink);
+    const frame = new SoundFrame(
+      { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF },
+      sink,
+    );
     const point = [0, 0, 1.5];
     run(frame, sink, 1, 3, (tick) => ({
       tick,
@@ -646,4 +653,53 @@ test("a missile striking armour sounds the strike and its explosion; tank rounds
   expect(shell.gain / bullet.gain).toBeCloseTo(
     AUDIO.impact_scale.tank_ap / AUDIO.impact_scale.default,
   );
+});
+
+test("a cook-off booms as its ammunition goes and clangs where its turret lands", () => {
+  const { sink, frame } = setup();
+  const landing = [1, 10, 2];
+  const hit = 2;
+  const ticks = Math.ceil((impactAfter(COOK_OFF) + 0.5) * HZ) + hit;
+  run(frame, sink, 1, ticks, (tick) => ({
+    tick,
+    shooters: [],
+    segments: [],
+    blasts: [],
+    smokes: [],
+    cookOffs: tick === hit ? [{ center: [0, 10, 0], height: 2.4, landing }] : [],
+  }));
+  const heard = sink.started.filter((v) => !v.loop);
+  const killed = (hit - 1) * DT;
+  const booms = heard.filter((v) => v.sound === AUDIO.cook_off.blast.near);
+  // Not with the killing hit: as the ammunition goes, one per fireball.
+  expect(booms.length).toBe(COOK_OFF.fireballs.length);
+  expect(Math.min(...booms.map((v) => v.at))).toBeGreaterThanOrEqual(
+    killed + COOK_OFF.delay_s - DT,
+  );
+  for (const b of booms) expect(near(b, [0, 10], 3)).toBe(true);
+  // The turret striking the deck, where and when it lands.
+  const clang = heard.filter((v) => v.sound === AUDIO.impacts.hull.sound);
+  expect(clang.length).toBe(1);
+  expect(clang[0].at).toBeGreaterThanOrEqual(killed + impactAfter(COOK_OFF) - DT);
+  expect(clang[0].at).toBeLessThanOrEqual(killed + impactAfter(COOK_OFF) + DT);
+  expect(near(clang[0], landing, 0.5)).toBe(true);
+});
+
+test("the turret's landing clang is the catalog's tank shell striking armour", () => {
+  const sink = new FakeSink();
+  const frame = new SoundFrame(
+    { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, cookOff: COOK_OFF, catalog: gameSounds },
+    sink,
+  );
+  const ticks = Math.ceil((impactAfter(COOK_OFF) + 0.5) * HZ) + 2;
+  run(frame, sink, 1, ticks, (tick) => ({
+    tick,
+    shooters: [],
+    segments: [],
+    blasts: [],
+    smokes: [],
+    cookOffs: tick === 2 ? [{ center: [0, 10, 0], height: 2.4, landing: [1, 10, 2] }] : [],
+  }));
+  const last = sink.started.filter((v) => !v.loop).at(-1)!;
+  expect(last.sound).toBe(gameSounds.impacts.hull.tank_ap);
 });

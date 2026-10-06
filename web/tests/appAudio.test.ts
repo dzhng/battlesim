@@ -6,6 +6,7 @@ import { SOUNDS } from "@packages/battle-audio/src/synth";
 import { soundSettings } from "@packages/battle-audio/src/settings";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import type { EffectPresentation } from "@packages/battle-renderer/src/effects/effectFrame";
 
 const param = () => ({
   setTargetAtTime() {},
@@ -108,6 +109,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 const presentation = game.presentation.audio as unknown as AudioPresentation;
+const cookOff = (game.presentation.effects as unknown as EffectPresentation).cook_off;
 const empty = (tick: number) => ({
   effects: { tick, shooters: [], segments: [], blasts: [], smokes: [] },
   audible: [],
@@ -170,7 +172,7 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
   app.start();
   await vi.waitFor(() => expect(app.stats().menuReady).toBe(true));
   app.setScreen("loading");
-  const first = app.createBattle({ tickHz: 30, presentation, smokeTimes: {} });
+  const first = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff });
   await vi.waitFor(() => expect(first.stats()?.loading).toBe(false));
   first.note(empty(8));
   first.update(8 / 30, { vehicles: [], soldiers: [] }, camera);
@@ -181,7 +183,7 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
   expect(first.stats()).toBeNull();
   expect(oldSources.every((s) => s.stopped && s.connections.size === 0)).toBe(true);
   expect(contexts[0].close).not.toHaveBeenCalled();
-  const second = app.createBattle({ tickHz: 30, presentation, smokeTimes: {} });
+  const second = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff });
   await vi.waitFor(() => expect(second.stats()?.loading).toBe(false));
   expect(second.stats()).toMatchObject({ tick: -1, pending: 0 });
   second.note(empty(1));
@@ -194,7 +196,7 @@ test("battle exit keeps the page context and prepared buffers but disconnects it
 
 test("changing master volume preserves battle evidence, while mute and unmute discard it", async () => {
   const app = setup();
-  const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {} });
+  const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff });
   await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
   battle.note(empty(4));
   expect(battle.stats()?.tick).toBe(4);
@@ -221,7 +223,7 @@ test("a blocked early attempt resumes on menu input and the bed lasts until batt
   await vi.waitFor(() => expect(app.stats().menuReady).toBe(true));
   expect(app.stats().running).toBe(false);
   app.setScreen("loading");
-  const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {} });
+  const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff });
   await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
   battle.note(empty(4));
   battle.update(4 / 30, { vehicles: [], soldiers: [] }, camera);
@@ -249,7 +251,7 @@ test("repeated battle visits return every audio connection to the menu baseline"
   const baseline = nodes.reduce((n, node) => n + node.connections.size, 0);
   for (let visit = 0; visit < 5; visit++) {
     app.setScreen("loading");
-    const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {} });
+    const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff });
     await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
     battle.note(empty(1));
     battle.update(1 / 30, { vehicles: [], soldiers: [] }, camera);
@@ -298,7 +300,7 @@ test("quick mute then unmute resumes even while the earlier suspension is pendin
 
 test("resuming a browser-suspended context starts battle sound from fresh evidence", async () => {
   const app = setup();
-  const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {} });
+  const battle = app.createBattle({ tickHz: 30, presentation, smokeTimes: {}, cookOff });
   await vi.waitFor(() => expect(battle.stats()?.loading).toBe(false));
   battle.note(empty(4));
   expect(battle.stats()?.tick).toBe(4);
