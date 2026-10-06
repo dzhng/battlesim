@@ -5897,7 +5897,12 @@
               ]
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "deploy": {
+              "pack_seconds": 3.0,
+              "seconds": 3.0
+            }
+          },
           "cost": 140,
           "description": "Kornet; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "eastern",
@@ -7657,7 +7662,7 @@
               "seconds": 3.0
             },
             "supply": {
-              "stock": 600
+              "stock": 250
             }
           },
           "cost": 90,
@@ -9434,7 +9439,7 @@
               "seconds": 3.0
             },
             "supply": {
-              "stock": 600
+              "stock": 250
             }
           },
           "cost": 90,
@@ -10444,7 +10449,7 @@
               "seconds": 3.0
             },
             "supply": {
-              "stock": 600
+              "stock": 250
             }
           },
           "cost": 60,
@@ -12204,7 +12209,7 @@
               "seconds": 3.0
             },
             "supply": {
-              "stock": 600
+              "stock": 250
             }
           },
           "cost": 90,
@@ -16379,7 +16384,12 @@
           ]
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "deploy": {
+          "pack_seconds": 3.0,
+          "seconds": 3.0
+        }
+      },
       "cost": 140,
       "description": "Kornet; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
@@ -17908,7 +17918,7 @@
           "seconds": 3.0
         },
         "supply": {
-          "stock": 600
+          "stock": 250
         }
       },
       "cost": 90,
@@ -19317,7 +19327,7 @@
           "seconds": 3.0
         },
         "supply": {
-          "stock": 600
+          "stock": 250
         }
       },
       "cost": 90,
@@ -20269,7 +20279,7 @@
           "seconds": 3.0
         },
         "supply": {
-          "stock": 600
+          "stock": 250
         }
       },
       "cost": 60,
@@ -21764,7 +21774,7 @@
           "seconds": 3.0
         },
         "supply": {
-          "stock": 600
+          "stock": 250
         }
       },
       "cost": 90,

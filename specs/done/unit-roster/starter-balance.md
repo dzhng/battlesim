@@ -154,7 +154,7 @@ and armor interpretation await their future mechanics.
 
 ## Resupply baseline
 
-All three trucks start with 600 supply stock, 80 m service radius, 3 s setup and
+All three trucks start with 250 supply stock, 80 m service radius, 3 s setup and
 1 s packing, preserving the existing service baseline. Stock remains finite and
 cannot be replenished by another truck or by returning to base in this phase.
 Truck retirement uses the ordinary refund flow; a new truck is a new purchase.

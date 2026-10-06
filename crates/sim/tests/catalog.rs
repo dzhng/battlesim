@@ -41,6 +41,22 @@ fn player_roster_resolves_shared_identities_and_disabled_future_cards() {
     assert_eq!(catalog, round_trip);
 }
 
+#[test]
+fn faction_supply_trucks_start_with_two_hundred_fifty_stock() {
+    let catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents()).unwrap();
+    for id in [
+        "us_m977_hemtt_general_resupply",
+        "europe_man_hx_general_resupply",
+        "eastern_ural_4320_general_resupply",
+    ] {
+        assert_eq!(
+            catalog.by_id(id).capabilities.supply.unwrap().stock,
+            250,
+            "{id}"
+        );
+    }
+}
+
 /// The shipped fixture with the M1 family's catalog document and the
 /// weapon row its M1A1 swaps in (a row that `extends` the tank's sabot).
 fn with_m1_family() -> Value {
