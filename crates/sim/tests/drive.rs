@@ -284,3 +284,50 @@ fn the_surface_table_must_cover_every_kind_within_bounds() {
         );
     }
 }
+
+/// The moment: a truck has nosed half into a gap in a row of parked cars,
+/// a yard's wall just ahead of it, and its way on lies in the street behind
+/// it. It backs out however the gap behind it lets it (turning toward its
+/// way where it can, else straight), and drives on. (Market Town's supply
+/// truck, as it stood.)
+#[test]
+fn a_truck_nosed_into_a_kerb_gap_backs_out_to_the_street_behind_it() {
+    // A row of cars and the yard's wall behind it, along 101 degrees.
+    let row = 1.77;
+    let body = |kind: &str, at: [f64; 2], yaw: f64, half: [f64; 3]| json!({ "kind": kind, "center": at, "yaw": yaw, "half_extents": half });
+    let car = |at| body("parked_car", at, row, [2.1, 0.9, 0.75]);
+    let wall = |at, long| body("courtyard_wall", at, row, [long, 0.125, 1.0]);
+    let props = json!([
+        car([74.0, 54.69]),
+        car([71.73, 66.12]),
+        car([74.92, 50.08]),
+        car([70.81, 70.73]),
+        body("bins", [71.38, 58.03], row, [0.6, 0.4, 0.6]),
+        wall([70.43, 54.44], 1.5),
+        wall([69.85, 57.38], 1.5),
+        wall([67.82, 67.58], 1.63),
+        body("street_tree", [69.91, 63.72], row, [0.35, 0.35, 4.0]),
+    ]);
+    let mut b = battle(
+        "supply",
+        [72.98, 60.04],
+        2.470,
+        [84.0, 63.0],
+        "forward",
+        props,
+    );
+    drive(&mut b, 60.0);
+    let truck = b.unit(UnitId(0)).unwrap();
+    assert_eq!(
+        truck.state,
+        MoveState::Idle,
+        "it is still {:?} at {:?}",
+        truck.state,
+        truck.position.xy()
+    );
+    assert!(
+        (truck.position.xy() - sim::math::v2(84.0, 63.0)).length() < 1.0,
+        "it stopped at {:?}, short of the street",
+        truck.position.xy()
+    );
+}

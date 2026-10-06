@@ -754,9 +754,10 @@ fn arrive(battle: &mut Battle, destinations: &[contract::command::MoveDestinatio
         let (there, gap) = at_marker(battle, d);
         assert!(
             there,
-            "unit {:?} is {gap:.0} m from its accepted marker, {:?}, at tick {}",
+            "unit {:?} is {gap:.0} m from its accepted marker, {:?} at {:?}, at tick {}",
             d.unit,
             battle.unit(d.unit).unwrap().state,
+            battle.unit(d.unit).unwrap().position.xy(),
             battle.tick()
         );
     }
