@@ -358,6 +358,9 @@ fn thirty_pending_units_fill_the_cap_even_when_credits_remain() {
             .error
             .is_none());
     }
+    // A tick on, as a player's next click would land: the rate allows one
+    // more order, and the unit cap is what refuses it.
+    battle.step();
     assert_eq!(
         battle
             .accept(command(

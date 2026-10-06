@@ -754,7 +754,10 @@ impl Battle {
             fog: [occlusion.field(), occlusion.field()],
             occlusion,
             next_seq: [1, 1],
-            order_bucket: [(u64::from(setup.rules.commands.orders_per_s) * u64::from(setup.rules.tick_hz), 0); 2],
+            order_bucket: [(
+                u64::from(setup.rules.commands.orders_per_s) * u64::from(setup.rules.tick_hz),
+                0,
+            ); 2],
             opponent: setup.opponent.clone().map(|o| (o, Defender::default())),
             skirmish_ai: setup
                 .skirmish
@@ -2371,9 +2374,6 @@ impl Battle {
                 living,
             )?;
         }
-        if let Order::UpgradeMove { gesture, route } = command.order {
-            self.validate_upgrade(command.side, gesture, route)?;
-        }
         let building = if let Order::OccupyBuilding {
             units,
             building,
@@ -2946,16 +2946,6 @@ impl Battle {
         source
     }
 
-    fn certify_move(
-        &self,
-        source: &[Unit],
-        known: &SideGeometry,
-        slots: &[crate::formation::Slot],
-        request: Option<&MovePreviewRequest>,
-    ) -> Vec<Option<f64>> {
-        movement::certify(&self.movement_context(), source, known, slots, request)
-    }
-
     fn movement_context(&self) -> MovementContext<'_> {
         MovementContext {
             world: &self.world,
@@ -2972,53 +2962,6 @@ impl Battle {
             knowledge: [&self.knowledge[0], &self.knowledge[1]],
             arsenal: &self.arsenal,
         }
-    }
-
-    fn validate_upgrade(
-        &self,
-        side: Side,
-        gesture: u64,
-        route: RoutePolicy,
-    ) -> Result<(), OrderError> {
-        let mut source = self.move_source(side);
-        let mut slots = Vec::new();
-        for unit in source.iter_mut().filter(|u| u.side == side && u.alive()) {
-            let mut changed = false;
-            for (k, order) in unit.orders.iter_mut().enumerate() {
-                if let Some(m) = order.movement_mut() {
-                    if m.gesture == gesture && m.policy != route {
-                        m.policy = route;
-                        changed = true;
-                        if k == 0 {
-                            unit.route = None;
-                            unit.planned_goal = None;
-                        }
-                    }
-                }
-            }
-            if changed {
-                slots.push(crate::formation::Slot {
-                    id: unit.id,
-                    point: unit
-                        .orders
-                        .back()
-                        .and_then(|o| o.movement())
-                        .map(|m| m.destination),
-                });
-            }
-        }
-        if slots.is_empty() {
-            return Ok(());
-        }
-        let known = &self.sides[side.index()];
-        if self
-            .certify_move(&source, known, &slots, None)
-            .iter()
-            .any(Option::is_none)
-        {
-            return Err(OrderError::NoValidDestination);
-        }
-        Ok(())
     }
 
     /// A soldier's resolved place and cover (D2+): his spot while moving, his
