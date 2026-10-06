@@ -4,10 +4,10 @@
     { "side": "blue", "kind": "tank", "position": [3489, 1428], "yaw": 1.666 },
     { "side": "blue", "kind": "jeep", "position": [3492, 1399], "yaw": 1.666 },
     { "side": "blue", "kind": "tank", "position": [3495, 1363], "yaw": 1.666 },
-    { "side": "blue", "kind": "rifle", "position": [3430, 1690], "yaw": 1.676 },
-    { "side": "blue", "kind": "rifle", "position": [3490, 1730], "yaw": 1.676 },
-    { "side": "blue", "kind": "at", "position": [3445, 1650], "yaw": 1.676 },
-    { "side": "blue", "kind": "recon", "position": [3410, 1770], "yaw": 1.676 },
+    { "side": "blue", "kind": "rifle", "position": [3440, 1560], "yaw": 1.676 },
+    { "side": "blue", "kind": "rifle", "position": [3500, 1600], "yaw": 1.676 },
+    { "side": "blue", "kind": "at", "position": [3455, 1520], "yaw": 1.676 },
+    { "side": "blue", "kind": "recon", "position": [3420, 1640], "yaw": 1.676 },
     { "side": "red", "kind": "rifle", "position": [3404, 2057], "yaw": -1.47 },
     { "side": "red", "kind": "rifle", "position": [3346, 2065], "yaw": -1.47 },
     { "side": "red", "kind": "rifle", "position": [3276, 2091], "yaw": -1.47 },
@@ -39,7 +39,9 @@
     { "side": "red", "kind": "tank", "position": [2180, 1814], "yaw": -2.362 },
     { "side": "red", "kind": "tank", "position": [2123, 1822], "yaw": -2.272 },
     { "side": "red", "kind": "tank", "position": [2086, 1877], "yaw": -2.32 },
-    { "side": "red", "kind": "tank", "position": [2059, 1922], "yaw": -2.45 }
+    { "side": "red", "kind": "tank", "position": [2059, 1922], "yaw": -2.45 },
+    { "side": "blue", "kind": "tank", "position": [3360, 1520], "yaw": 1.659 },
+    { "side": "blue", "kind": "tank", "position": [3385, 1490], "yaw": 1.639 }
   ],
   "scripts": [
     {
@@ -83,6 +85,17 @@
         "units": [32, 33, 34, 35],
         "gesture": 4,
         "goal": [1897, 1646],
+        "route": "shortest"
+      }
+    },
+    {
+      "tick": 0,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [40, 41],
+        "gesture": 5,
+        "goal": [3345, 1900],
         "route": "shortest"
       }
     }

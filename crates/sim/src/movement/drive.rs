@@ -8,7 +8,10 @@
 //! U-turn is an arc. A waypoint inside the turning circle, or a turn whose
 //! next metre runs into a solid, starts a three-point turn: a leg driven
 //! against the order's direction that keeps turning the same way, until
-//! the forward arc to the waypoint is clear.
+//! the forward arc to the waypoint is clear. A leg that cannot turn its way
+//! (a hull nosed into a gap between parked cars) backs out straight, or
+//! turning the other way. Every arc is swept for bodies finer than a corner
+//! can swing through one.
 //!
 //! A reverse move (Q31) drives the same way with the travel direction
 //! behind the hull, so the facing is held, at the reverse fraction of the
@@ -23,6 +26,10 @@ use crate::world::WorldGeometry;
 
 /// A turn looks this far along its arc for a solid.
 const PROBE_M: f64 = 1.0;
+/// Bodies are looked for along the arc at least this often: a turning
+/// hull's corner swings through a body and out again within a metre, so
+/// sampling only the end of each metre would pass a step it cannot take.
+const SAMPLE_M: f64 = 0.1;
 
 /// A three-point turn's leg against the order's direction (Q29): it turns
 /// the hull toward `turn` (+1 counter-clockwise, -1 clockwise).
@@ -195,6 +202,19 @@ fn arc_clear(
             return Err(ArcBlock::Vehicle(id));
         }
     }
+    // Between those poses the hull's corners sweep too: no body it cannot
+    // shove may lie in the way of any part of the arc.
+    let (mut at, mut yaw) = (unit.position.xy(), unit.yaw);
+    let fine = (length / SAMPLE_M).ceil().max(1.0) as usize;
+    let piece = length / fine as f64;
+    for _ in 0..fine {
+        let dyaw = turn * piece;
+        at = at + dir(travel(yaw, gear) + dyaw / 2.0) * piece;
+        yaw += dyaw;
+        if blocked(world, unit, at, yaw) {
+            return Err(ArcBlock::Solid);
+        }
+    }
     Ok(())
 }
 
@@ -296,19 +316,24 @@ pub fn steer(
         let back = -gear;
         let v = accelerate(unit, speed_in(&drive, back, speed), back, dt);
         let step = v * dt;
-        let turn = m.turn * curvature(v);
-        if arc_clear(world, unit, back, turn, PROBE_M, traffic).is_ok() {
-            let dyaw = turn * step;
-            return Motion {
-                yaw: unit.yaw + dyaw,
-                heading: dir(travel(unit.yaw, back) + dyaw / 2.0),
-                step,
-                backwards: back < 0.0,
-                making_space: false,
-                blocker: None,
-            };
+        // The leg turns its own way where it can; nosed into a gap, it
+        // backs out however the space behind lets it: straight, or the
+        // other way.
+        let full = m.turn * curvature(v);
+        for turn in [full, 0.0, -full] {
+            if arc_clear(world, unit, back, turn, PROBE_M, traffic).is_ok() {
+                let dyaw = turn * step;
+                return Motion {
+                    yaw: unit.yaw + dyaw,
+                    heading: dir(travel(unit.yaw, back) + dyaw / 2.0),
+                    step,
+                    backwards: back < 0.0,
+                    making_space: false,
+                    blocker: None,
+                };
+            }
         }
-        // The leg meets a solid: turn the other way again.
+        // Nothing behind is clear either: turn the other way again.
         unit.manoeuvre = None;
     }
     let desired = turn_speed(&drive, speed_in(&drive, gear, speed), error)

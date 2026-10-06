@@ -4,7 +4,9 @@
 // - the effects' `EffectPublication`: gunfire at each launch (`launches.ts`,
 //   the muzzle flashes' own derivation), near or far by distance, a recorded
 //   burst sounding the gun's next rounds on its cadence; a
-//   ricochet whine at each glance; an impact by hit kind; a blast; a motor
+//   ricochet whine at each glance; an impact by hit kind; a blast; a hull
+//   cooking off, booming with each fireball and clanging where its turret
+//   lands, on the effects' own timing (`cookOff.ts`); a motor
 //   on a flying guided round; fire crackle and roar on every smoke source
 //   the side knows (a wreck), burning then smouldering;
 // - the pose driver's motion: each drawn vehicle's engine (idle to load),
@@ -36,6 +38,7 @@ import {
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import { clamp, lerp, vec3, type Vec3 } from "math";
 import { hashString } from "@packages/renderer-core/src/math";
+import { impactAfter, type CookOffFeel } from "@packages/battle-renderer/src/effects/cookOff";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { pick } from "@packages/renderer-core/src/kindTable";
 import { validateAudio, type AudioPresentation, type Bus } from "./audioPresentation";
@@ -164,6 +167,8 @@ export interface SoundFrameOptions {
   catalog?: SoundCatalog;
   /** How long each smoke kind burns and smoulders (`presentation.effects.smoke`). */
   smokeTimes: Record<string, { burn_s: number; smoulder_s: number }>;
+  /** When a cook-off's fireballs go and its turret lands (`presentation.effects.cook_off`). */
+  cookOff: CookOffFeel;
 }
 
 /** A transient waiting for the clock. */
@@ -259,6 +264,7 @@ export class SoundFrame {
   private readonly dt: number;
   private readonly launches: LaunchTracker;
   private readonly smokeTimes: SoundFrameOptions["smokeTimes"];
+  private readonly cookOff: CookOffFeel;
   private pending: Pending[] = [];
   private transients: Voice[] = [];
   private readonly loops = new Map<string, Voice>();
@@ -285,6 +291,7 @@ export class SoundFrame {
     this.dt = 1 / options.tickHz;
     this.launches = new LaunchTracker();
     this.smokeTimes = options.smokeTimes;
+    this.cookOff = options.cookOff;
   }
 
   /** Silence and forget everything (a new battle). */
@@ -426,6 +433,40 @@ export class SoundFrame {
         b.point,
         endKey(b.point),
       );
+    }
+    // A cook-off: a boom with each fireball, the biggest loudest, and the
+    // clang of its turret striking the deck, as the effects time them.
+    const cook = this.cookOff;
+    const biggest = Math.max(...cook.fireballs.map((f) => f.radius_m));
+    for (const c of fx.cookOffs ?? []) {
+      const ring: P3 = [c.center[0], c.center[1], c.center[2] + c.height];
+      cook.fireballs.forEach((f, i) =>
+        this.queue(
+          t0 + cook.delay_s + f.after_s,
+          this.effect(p.cook_off.blast.near),
+          this.effect(p.cook_off.blast.far),
+          p.cook_off.blast.far_m,
+          "effects",
+          (p.cook_off.blast.gain * f.radius_m) / biggest,
+          ring,
+          `cook_off:${i}:${endKey(ring)}`,
+        ),
+      );
+      if (c.landing)
+        this.queue(
+          t0 + impactAfter(cook),
+          this.contact(
+            p.cook_off.landing.hit,
+            p.cook_off.landing.as,
+            pick(p.impacts, p.cook_off.landing.hit).sound,
+          ),
+          null,
+          0,
+          "effects",
+          p.cook_off.landing.gain,
+          c.landing,
+          `cook_off:landing:${endKey(c.landing)}`,
+        );
     }
     // Fires: every smoke source the side knows, from when it was first known.
     const known = new Set<string>();

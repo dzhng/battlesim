@@ -48,6 +48,7 @@ import {
   roadLooks,
   roadOrder,
 } from "@packages/battle-renderer/src/frame/terrainMaterial";
+import { WHOLE_MAP_MS } from "./support/wholeMap";
 
 const geometry = loadMap("geometry").definition;
 const riverLab = loadMap("river").definition;
@@ -674,40 +675,44 @@ function generatedTown() {
   };
 }
 
-test("a generated town's blocks are yards and commons, and the plain beyond keeps its fields", () => {
-  const { surface, inTown, inBlock } = generatedTown();
-  const { plots } = surface;
-  const yard = biome.plots.findIndex((p) => p.name === biome.field_rules.settlement_kind);
-  const kindAt = (x: number, y: number) => plots.plots[plotAt(plots, x, y)!.plot].kind;
-  const [x0, y0, x1, y1] = surface.site.map;
-  const town = { ground: 0, yards: 0, drilled: 0 };
-  const plain = { ground: 0, drilled: 0 };
-  let samples = 0;
-  for (let y = y0 + 10; y < y1; y += 20)
-    for (let x = x0 + 10; x < x1; x += 20) {
-      samples++;
-      const kind = kindAt(x, y);
-      const drilled = biome.plots[kind].furrow_m > 0 ? 1 : 0;
-      // Inside one of the generator's blocks, clear of the street round it.
-      if (inBlock(x, y) > 10) {
-        town.ground++;
-        town.drilled += drilled;
-        if (kind === yard) town.yards++;
-      } else if (inTown(x, y) < -300) {
-        plain.ground++;
-        plain.drilled += drilled;
+test(
+  "a generated town's blocks are yards and commons, and the plain beyond keeps its fields",
+  () => {
+    const { surface, inTown, inBlock } = generatedTown();
+    const { plots } = surface;
+    const yard = biome.plots.findIndex((p) => p.name === biome.field_rules.settlement_kind);
+    const kindAt = (x: number, y: number) => plots.plots[plotAt(plots, x, y)!.plot].kind;
+    const [x0, y0, x1, y1] = surface.site.map;
+    const town = { ground: 0, yards: 0, drilled: 0 };
+    const plain = { ground: 0, drilled: 0 };
+    let samples = 0;
+    for (let y = y0 + 10; y < y1; y += 20)
+      for (let x = x0 + 10; x < x1; x += 20) {
+        samples++;
+        const kind = kindAt(x, y);
+        const drilled = biome.plots[kind].furrow_m > 0 ? 1 : 0;
+        // Inside one of the generator's blocks, clear of the street round it.
+        if (inBlock(x, y) > 10) {
+          town.ground++;
+          town.drilled += drilled;
+          if (kind === yard) town.yards++;
+        } else if (inTown(x, y) < -300) {
+          plain.ground++;
+          plain.drilled += drilled;
+        }
       }
-    }
-  // A block is built ground but for an unbuilt margin here and there, which
-  // the generator's rings take in and a field may reach into.
-  expect(town.ground).toBeGreaterThan(3000);
-  expect(town.yards / town.ground).toBeGreaterThan(0.8);
-  expect(town.drilled / town.ground).toBeLessThan(0.01);
-  // A large share of a mixed map lies out in the plain beyond its towns'
-  // reach, and the biome drills about half its plots.
-  expect(plain.ground / samples).toBeGreaterThan(0.4);
-  expect(plain.drilled / plain.ground).toBeGreaterThan(0.4);
-});
+    // A block is built ground but for an unbuilt margin here and there, which
+    // the generator's rings take in and a field may reach into.
+    expect(town.ground).toBeGreaterThan(3000);
+    expect(town.yards / town.ground).toBeGreaterThan(0.8);
+    expect(town.drilled / town.ground).toBeLessThan(0.01);
+    // A large share of a mixed map lies out in the plain beyond its towns'
+    // reach, and the biome drills about half its plots.
+    expect(plain.ground / samples).toBeGreaterThan(0.4);
+    expect(plain.drilled / plain.ground).toBeGreaterThan(0.4);
+  },
+  WHOLE_MAP_MS,
+);
 
 test("a country road draws a street between actual houses and keeps its paving in unbuilt country", () => {
   const descriptor = JSON.parse(
