@@ -18,7 +18,7 @@ they look like the real vehicles and soldiers.
 
 ## Next Agent Prompt
 
-**Status, 2026-10-07:** in progress. Done and merged: 01, 02, 03, 04 (steps 1–2), 09, 10 (catalog load ~130 MiB, was ~1.2 GB), 12. In flight in parallel worktrees (`um/slice-NN`): 04 step 3 (`um/slice-04b`), 05, 07, 13. Next: 11 after 05; 06 and 08 after 05; 14 after 11 and 13.
+**Status, 2026-10-07:** in progress. Done and merged: 01–04, 07, 09, 10, 12, 13 (catalog load ~129 MiB, was ~1.2 GB; real-nation paint, dark glass on all 40 vehicles). In flight: 05 (test units), reference collection for the pilot, tracked and wheeled families (lanes' step 0, started early). Next: 11 after 05; 06 and 08 after 05; 14 after 11. Slice 13 found the tyres were already black by albedo: the grey read is the oversized painted rims, fixed by the lanes' wheel geometry.
 
 **Pick up at [slice 01](slices/01-presentation-by-property.md):** every roster
 vehicle and weapon plays default sounds today, a bug players hear.
@@ -113,7 +113,7 @@ TODO:
 - [x] [10 Shared textures and download](slices/10-shared-textures-and-download.md): textures as shared files, gzip bundles, catalog-load limit, real texture-layer limit.
 - [ ] [11 Wrecks](slices/11-wrecks.md): `wreck_of` on the published prop; every vehicle names its own wreck; interim wrecks.
 - [x] [12 Art rules](slices/12-art-rules.md): strict tiers, dressing allowance, unit budget rules (numbers from 14).
-- [ ] [13 Materials](slices/13-materials.md): material roles, black tyres, dark glass, real-nation paint on every current model.
+- [x] [13 Materials](slices/13-materials.md): material roles, black tyres, dark glass, real-nation paint on every current model.
 - [ ] [14 Pilot](slices/14-pilot.md): Abrams, Stryker, HMMWV (real frame), rifle squad; class budgets measured and fixed.
 - [ ] [15 Tracked lane](slices/15-tracked.md)
 - [ ] [16 Wheeled, light and trucks lane](slices/16-wheeled.md)
