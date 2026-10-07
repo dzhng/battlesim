@@ -11,14 +11,12 @@ roster unit needs no presentation table edit.
   pose gauge (`presentation.pose.gauge`, `game.json:1074`,
   `packages/battle-renderer/src/models/poseDriver.ts:434`) are keyed by unit
   id `tank`/`jeep`/`supply`: every roster vehicle gets the default row.
-- Weapon-keyed tables (audio `shots`, `impact_scale`, `motors`; effects
-  `tracers`, `flashes`, `impact_scale`; looked up exactly by
-  `renderer-core/src/kindTable.ts` `pick`) are keyed by base weapon ids
-  (`rifle`, `hmg`, `tank_ap`, `tank_he`, `atgm`, `grenade`), but roster units
-  fire derived rows (`ground_tank_ap`, `tow`, `kornet`, `rpg_light`,
-  `assault_rifle`, `autocannon`, `ifv_he`), and the resolved weapon view drops
-  `extends`. So every roster shot is the default, and TOW and Kornet missiles
-  have no motor loop.
+- Weapon tables: since `6c258b3d`, a derived roster weapon (`ground_tank_ap`,
+  `tow`, `kornet`, `assault_rifle`, …) takes its nearest ancestor's `shots`,
+  `impact_scale` and `blasts` rows and its effects (`inheritRows` in
+  `soundFeed.ts`, `effectFeed.ts`). `motors` is not inherited, so TOW and
+  Kornet missiles still have no motor loop: add it to the same `inheritRows`
+  call.
 - `fixtures/sounds.json` `units` overrides are keyed by unit and mount.
 
 ## Contract (decision 6)
@@ -29,11 +27,14 @@ roster unit needs no presentation table edit.
   wheeled light (4), wheeled medium (14), wheeled medium logistics (4). No
   new catalog field, so `UnitType` (`deny_unknown_fields`,
   `crates/contract/src/catalog.rs:100`) and the engine id don't change.
-- **Weapon presentation key:** the resolved catalog view publishes each
-  weapon's `base`, the root of its `extends` chain, from the one resolver
-  (`sim::fixtures::admit`, `fixtures.rs:137-150`, the view the browser reads);
-  TypeScript never walks `extends` itself. If publishing `base` touches
-  `config_digest` (`battle.rs:505`) or the engine id, say so and name the move.
+- **Weapon rows: done on main** (`6c258b3d`, 2026-10-06): a weapon without
+  a row takes its nearest ancestor's through `extends`
+  (`renderer-core/src/kindTable.ts` `inheritRows`, used by `effectFeed.ts` and
+  `soundFeed.ts`), so an assault rifle looks and sounds like the rifle it
+  extends; tested on fake weapons (`web/tests/kindTable.test.ts`). That is the
+  one owner for weapon presentation; don't add a second (the earlier plan's
+  published `base` field is dropped). What remains here is `motors`, and the
+  unit-keyed `sounds.json` `units` overrides.
 - **One TypeScript owner** for the vehicle class: `vehicleClass(type)` in
   `packages/scene-assets/src/units.ts`, already "the one owner on the
   TypeScript side" of derived unit questions (`units.ts:1-6`). The same class
@@ -53,8 +54,9 @@ logistics and wheeled medium; gauge likewise.
 ## Work
 
 1. **Test first** (`write-tests`): every roster vehicle card resolves to a
-   non-default vehicle sound and gauge, and every roster weapon to a
-   non-default shot, tracer and flash (and motor for guided missiles). Red today.
+   non-default vehicle sound and gauge, and a guided missile that extends one
+   with a motor row gets that motor (on fake weapons, like
+   `web/tests/kindTable.test.ts`). Red today.
 2. Classes and keys; rekey the tables; change the readers (`soundFrame.ts`,
    `poseDriver.ts`, the effect and audio table lookups); fold the overrides.
 3. The sound workbench (`apps/sound-workbench`), which is built around unit ×
