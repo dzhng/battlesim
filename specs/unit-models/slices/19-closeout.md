@@ -25,7 +25,15 @@ saves for a spec's end.
    device admission (which requests the adapter's texture-layer limit, slice
    10), not a bare `requestDevice()`: the `unit-roster` scene's model-check
    page did, and default limits (256 layers) break once Part B's textures grow.
-9. Close the spec with close-spec.
+9. Known scene failures to fix in the full run (found 2026-10-07):
+   - `ground`: "the paused street: each side holds ground the other never
+     saw" reports `onlyBlue: 0`. The `street` map's encounter now plays without
+     the deleted scripted blue (slice 06), so blue may never advance far enough;
+     re-stage blue in the `street` encounter or re-anchor the check.
+   - `street-watch` (frame tick untuned for the self-playing encounter) and the
+     22 `street` tours slice 06 didn't run.
+   - Scenes need `bun run build:mechanics` and `assets/third-party` from LFS.
+10. Close the spec with close-spec.
 
 ## Delegated
 
