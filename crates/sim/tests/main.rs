@@ -31,6 +31,7 @@ mod guidance;
 mod kerbside;
 mod lean;
 mod maps;
+mod menu_reel;
 mod move_admission;
 mod movement;
 mod movement_scenarios;
