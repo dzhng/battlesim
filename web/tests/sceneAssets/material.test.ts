@@ -218,8 +218,9 @@ const UNSUPPORTED: [string, FindingCode, (m: GltfJson, b: GltfBuilder) => void][
 ];
 
 // Material roles. Black rubber and sight glass are held dark by what the
-// surface draws: its albedo texture's mean times its mean vertex colour
-// (`colour_scale` times the base colour), as the model shader multiplies them.
+// surface draws on average, as the model shader does: its albedo texture's
+// mean times the vertex colour (`colour_scale` times the base colour), and the
+// wear colour where the vertex's wear passes the texture's threshold.
 
 /** A linear value as a recipe's PNG stores it: an sRGB byte. */
 const srgbByte = (x: number) =>
@@ -234,7 +235,7 @@ const DUST = [0.15, 0.13, 0.1] as const;
  *  albedo, factors 1, and a vertex colour at a third of its film's colour
  *  relative to the recipe's mean (`textures.macro`). `film` is how far the
  *  dust film carries it toward `DUST`. */
-const tyre = (film: number) => (m: GltfJson, b: GltfBuilder) => {
+const tyre = (film: number, wear = 0) => (m: GltfJson, b: GltfBuilder) => {
   m.extras = { role: "rubber", wear: [0.12, 0.105, 0.085, 1], colour_scale: 3 };
   m.pbrMetallicRoughness = {
     baseColorFactor: [1, 1, 1, 1],
@@ -244,7 +245,7 @@ const tyre = (film: number) => (m: GltfJson, b: GltfBuilder) => {
   const byte = srgbByte(RUBBER);
   m.pbrMetallicRoughness.baseColorTexture = { index: b.texture(4, () => [byte, byte, byte, 128]) };
   const [r, g, bl] = DUST.map((d) => lerp(RUBBER, d, film) / RUBBER / 3);
-  b.colour = [r, g, bl, 0];
+  b.colour = [r, g, bl, wear];
 };
 
 /** Glass as the exporters wrote optics (`parts.flat_paint`): a base colour of
@@ -273,10 +274,13 @@ test("a material that names no role ships none", async () => {
 
 const ROLE_REFUSED: [string, FindingCode, (m: GltfJson, b: GltfBuilder) => void][] = [
   ["a role the contract does not have", "material.role", (m) => (m.extras = { role: "chrome" })],
-  // Today's roster tyre: `textured('rubber', 'rubber', dirt=.3)` films the
-  // whole tyre, which lies below the dust's rise, with `DUST` (the film at
-  // its most is dirt × 0.7; most of a tyre is near the ground).
-  ["a tyre filmed grey with dust, as the roster's were", "material.role_rubber", tyre(0.3 * 0.7 * 0.8)],
+  // The roster's tyre recipe, filmed all over with `DUST` as far as the
+  // exporters' `textured('rubber', 'rubber', dirt=.3)` films its lowest rim
+  // (dirt × 0.7, times the film's break-up at its most).
+  ["a tyre filmed grey with dust all over", "material.role_rubber", tyre(0.3 * 0.7 * 0.8)],
+  // Black rubber, but worn everywhere past its threshold (a half): the light
+  // wear colour (dried mud) is what draws.
+  ["a black tyre worn through to its light wear colour", "material.role_rubber", tyre(0, 1)],
   // Today's roster optics: `flat_paint('optics', (.018, .06, .07), rough=.15)`.
   ["cyan optics, as the roster's were", "material.role_glass", optic([0.018, 0.06, 0.07], 0.15)],
   ["dark glass that is matte", "material.role_glass", optic([0.01, 0.014, 0.015], 0.6)],

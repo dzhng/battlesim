@@ -81,7 +81,7 @@ const { TEMPLATE_TIER_TRIANGLES, catalogueRows, catalogueText, readTemplateSet }
 const { STAND_IN_KIT, standInKitGlb } = await import("../packages/scene-assets/src/standInKit.ts");
 const { hasErrors } = await import("../packages/scene-assets/src/validate.ts");
 const { validateLoose } = await import("../packages/scene-assets/src/loose.ts");
-const { describeMaterial } = await import("../packages/scene-assets/src/material.ts");
+const { describeMaterials } = await import("../packages/scene-assets/src/material.ts");
 const { fixtureAuthority } = await import("../packages/scene-assets/src/authority.ts");
 const { UnitCatalog } = await import("../packages/scene-assets/src/units.ts");
 const { grassClumpGlb } = await import("../packages/scene-assets/src/grass.ts");
@@ -224,8 +224,8 @@ async function validate(args) {
       console.log(JSON.stringify({ stats: judged.stats, findings: judged.findings }, null, 2));
     else {
       printStats(judged.stats);
-      for (const material of judged.preview?.materials ?? [])
-        console.log(`  material ${describeMaterial(material, judged.preview.textures)}`);
+      if (judged.preview?.materials)
+        for (const line of describeMaterials(judged.preview)) console.log(`  material ${line}`);
       printFindings(judged.findings);
       if (!judged.findings.length) console.log("  no findings");
     }

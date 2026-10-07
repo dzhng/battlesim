@@ -289,6 +289,10 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
       {},
       withJson(tankGlb(), (j) => (j.materials[0].extras = { interior: "rooms" })),
     ),
+  "material.role": () => panel((m) => (m.extras = { role: "chrome" })),
+  // The panel's own olive paint, named what it is not.
+  "material.role_rubber": () => panel((m) => (m.extras = { role: "rubber" })),
+  "material.role_glass": () => panel((m) => (m.extras = { role: "glass" })),
   "basis.ground": () => soldier({ lift: 0.1 }),
   "basis.forward": () => tank({}, { basis_yaw_deg: 180 }),
   "basis.up": () => tank({ flip: true }),

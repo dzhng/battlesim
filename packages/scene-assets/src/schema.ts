@@ -226,13 +226,15 @@ export const MATERIAL_ROLES = [
   "marking",
 ] as const;
 export type MaterialRole = (typeof MATERIAL_ROLES)[number];
-/** The most a rubber surface's drawn albedo may be, as linear luminance: black
- *  rubber is about 0.025, and dust low on a tread lifts it a little. The roster's
- *  tyres filmed grey with dust drew about 0.045, the dark olive paint's tone. */
+/** The most a rubber surface's drawn albedo may be, as linear luminance (its
+ *  mean over its area, `material.ts`): black rubber is about 0.025, and a little
+ *  dust low on the tread lifts it slightly; the roster's tyres drew 0.015 to
+ *  0.022 under their occlusion. A tyre filmed with dust all over draws about
+ *  0.04, the dark olive paint's tone, and reads grey. */
 export const RUBBER_MAX_LUMINANCE = 0.035;
 /** The most a glass surface's drawn albedo may be, as linear luminance, and the
  *  roughest it may be: sight glass is near black and shows what it reflects. The
- *  roster's cyan optics drew about 0.05 at roughness 0.15. */
+ *  roster's cyan optics drew 0.021 to 0.043 at roughness 0.1 to 0.15. */
 export const GLASS_MAX_LUMINANCE = 0.025;
 export const GLASS_MAX_ROUGHNESS = 0.3;
 
