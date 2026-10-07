@@ -54,7 +54,7 @@ def build(family):
                     k=(j+1)%count
                     for a,b in [(0,2),(1,3),(0,1),(2,3)]:bm.faces.new((rings[a][j],rings[a][k],rings[b][k],rings[b][j]))
                 bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
-            mesh_part('track_band_'+str(side),belt,dark,track)
+            mesh_part('track_band_'+str(side),belt,track_steel('track',links=False),track)
         prism('bradley_hull',[(-L/2,.66),(L/2,.78),(L/2,1.20),(2.10,1.98),(-2.80,2.07),(-L/2,1.84)],3.03,mat=paint,parent=body,bevel=.035)
         for side in (-1,1):
             box('armored_skirt_'+str(side),(5.9,.19,.70),(-.10,side*1.70,1.22),paint,body,bevel=.035)

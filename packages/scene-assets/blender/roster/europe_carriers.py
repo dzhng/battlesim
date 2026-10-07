@@ -31,7 +31,7 @@ def build(family):
                     k=(j+1)%count
                     for a,b in [(0,2),(1,3),(0,1),(2,3)]:bm.faces.new((rings[a][j],rings[a][k],rings[b][k],rings[b][j]))
                 bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
-            mesh_part('track_band_'+str(side),belt,dark,track)
+            mesh_part('track_band_'+str(side),belt,track_steel('track',links=False),track)
         front=L/2;rear=-L/2
         prism('ajax_tall_hull' if family=='ajax' else 'cv90_wedge_hull',[(rear,.72),(front,.82),(front,1.16),(front-1.30,deck),(rear+.06,deck)],W-.55,mat=paint,parent=body,bevel=.035)
         for side in (-1,1):

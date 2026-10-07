@@ -31,7 +31,7 @@ def build(family):
                     k=(j+1)%count
                     for a,b in [(0,2),(1,3),(0,1),(2,3)]:bm.faces.new((rings[a][j],rings[a][k],rings[b][k],rings[b][j]))
                 bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
-            mesh_part('track_band_'+str(side),belt,dark,track)
+            mesh_part('track_band_'+str(side),belt,track_steel('track',links=False),track)
         prism('puma_asymmetric_hull',[(-L/2,.76),(L/2,.83),(L/2,1.49),(L/2-1.47,deck),(-L/2+.05,deck)],3.34,mat=paint,parent=body,bevel=.035)
         for side in (-1,1):
             box('level_c_skirt_'+str(side),(L-.20,.36,.93),(0,side*1.80,1.59),paint,body,bevel=.03)

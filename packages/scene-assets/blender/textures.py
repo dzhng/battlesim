@@ -344,7 +344,7 @@ def french_three_tone():
     """French centre-Europe three-tone: an olive green ground under broad brown
     patches and narrower black ones, softer-edged and larger than the German bands."""
     green, brown, black = (0.07, 0.078, 0.042), (0.082, 0.06, 0.037), (0.014, 0.014, 0.013)
-    col = _bands((green, brown, black), (0.56, 0.7), 1201, (2, 3), edge=0.02, warp_px=16)
+    col = _bands((green, brown, black), (0.62, 0.74), 1201, (2, 3), edge=0.02, warp_px=16)
     return _sprayed(col, 1203)
 
 

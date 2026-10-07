@@ -222,10 +222,12 @@ def glass(name="glass"):
     return flat_paint(name, (0.008, 0.01, 0.011), rough=0.08, grime=0, role="glass")
 
 
-def track_steel(name="track", dirt=0.45):
-    """All-steel track links (the `track_link` recipe) on a belt whose UVs run one link
-    per unit along its length; dusty, never chipped."""
-    return textured(name, "track_link", chip=0, dirt=dirt, role="track")
+def track_steel(name="track", links=True, dirt=0.15):
+    """All-steel track: dark, a little dusty, never chipped. With `links`, the
+    `track_link` recipe on a belt whose UVs run one link per unit along its length;
+    a belt without link UVs takes plain worn steel instead, since box-projected
+    UVs would draw a link a metre long."""
+    return textured(name, "track_link" if links else "bare_steel", chip=0, dirt=dirt, streak=0, role="track")
 
 
 def bare_steel(name="steel", chip=0.15, dirt=0.2):

@@ -38,7 +38,7 @@ def build(family):
                     k=(j+1)%count
                     for a,b in [(0,2),(1,3),(0,1),(2,3)]:bm.faces.new((rings[a][j],rings[a][k],rings[b][k],rings[b][j]))
                 bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
-            mesh_part('track_band_'+str(side),belt,dark,track)
+            mesh_part('track_band_'+str(side),belt,track_steel('track',links=False),track)
             box('track_fender_'+str(side),(L-.22,.32,.11),(0,side*(W/2-.14),1.08),paint,body,bevel=.025)
             for j in range(5):box('fender_rib_'+str(side)+str(j),(.04,.36,.24),(-2.40+j*1.15,side*(W/2-.16),1.20),paint,body,lods=(0,1,2))
         if bmp3:

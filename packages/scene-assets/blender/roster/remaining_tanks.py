@@ -31,7 +31,7 @@ def build(family):
                 k=(j+1)%cnt
                 for a,b in [(0,2),(1,3),(0,1),(2,3)]:bm.faces.new((rings[a][j],rings[a][k],rings[b][k],rings[b][j]))
             bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
-        mesh_part('track_band_'+str(side),belt,dark,track)
+        mesh_part('track_band_'+str(side),belt,track_steel('track',links=False),track)
     # Explicit hull proportion and glacis differ, while running gear is shared.
     nose=L/2;rear=-L/2
     profile=[(rear,.72),(nose,.78),(nose,1.10),(nose-1.24,deck),(rear+.04,deck)]
