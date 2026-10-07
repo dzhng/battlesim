@@ -399,11 +399,11 @@ export default function Workbench() {
 
   const reloadCatalog = useCallback(
     async (fresh = false) => {
-      const installed = await loadCatalog(session.rules, fresh);
+      const installed = await loadCatalog(session, fresh);
       setCatalog(installed);
       return installed;
     },
-    [session.rules],
+    [session],
   );
 
   // The runtime catalog, and `?bundle=` naming one of its appearances.

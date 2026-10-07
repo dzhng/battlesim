@@ -312,16 +312,23 @@ async function bake() {
     if (!live.has(dir)) rmSync(join(RUNTIME, dir), { recursive: true });
   writeFileSync(join(RUNTIME, "catalog.json"), runtimeCatalogText(result.runtime));
   console.log(`wrote ${result.files.size} runtime file(s) and assets/runtime/catalog.json`);
-  return reportTransport(result) ? 0 : 1;
+  return (await reportTransport(result)) ? 0 : 1;
 }
 
-/** Print what a page downloads with the catalog and each texture array's
- *  distinct layers against their limits; false when over either. */
-function reportTransport(result) {
+/** The appearances a game page's units wear: what its catalog load takes of
+ *  unit art (`catalogLoadNames`). */
+const gameWearing = async () => (await nodeCatalogSet("game", ROOT)).units.appearances;
+
+/** Print what a game page downloads with the catalog, and what a page wearing
+ *  every unit's art would, and each texture array's distinct layers, against
+ *  their limits; false when over either. The limit holds the largest load
+ *  any page could take, every unit's art. */
+async function reportTransport(result) {
+  const game = catalogLoadBytes(result.runtime, await gameWearing());
   const bytes = catalogLoadBytes(result.runtime);
   const mib = (n) => `${(n / 2 ** 20).toFixed(1)} MiB`;
   console.log(
-    `catalog load: ${mib(bytes)} on the wire (limit ${mib(CATALOG_LOAD_MAX_BYTES)})${bytes > CATALOG_LOAD_MAX_BYTES ? " — over its limit" : ""}`,
+    `catalog load: game page ${mib(game)}, every unit's art ${mib(bytes)}, on the wire (limit ${mib(CATALOG_LOAD_MAX_BYTES)})${bytes > CATALOG_LOAD_MAX_BYTES ? " — over its limit" : ""}`,
   );
   const { albedo, surface } = result.textureLayers;
   console.log(
@@ -391,7 +398,7 @@ async function check() {
       if (f.severity === "error") problems.push(`${f.code}: ${f.message}`);
       else console.log(`warn ${f.code}: ${f.message}`);
   }
-  if (!reportTransport(result)) problems.push("the catalog load is over its limit");
+  if (!(await reportTransport(result))) problems.push("the catalog load is over its limit");
   for (const p of problems) console.log(p);
   console.log(
     problems.length
@@ -406,6 +413,7 @@ async function download(args) {
   const runtime = readJson(join(RUNTIME, "catalog.json"));
   const hash = runtime.templates?.library;
   if (!hash) throw new Error("runtime catalog has no template library");
+  // The largest load any page could take: every unit's art.
   const loadBytes = catalogLoadBytes(runtime);
   if (loadBytes > CATALOG_LOAD_MAX_BYTES)
     throw new Error(`catalog load ${loadBytes} bytes is over ${CATALOG_LOAD_MAX_BYTES}`);
@@ -418,7 +426,9 @@ async function download(args) {
   const kits = templateKits(library, ids);
   // A map of no regional family fetches no regional look.
   const looks = familyLooks(onRequestOf(runtime), map.regional_family ?? null);
-  const bytes = downloadBytes(runtime, [...kits, ...looks]);
+  // Counted beyond the game page's load, the smallest any page takes, so it
+  // holds whatever page draws the map.
+  const bytes = downloadBytes(runtime, [...kits, ...looks], await gameWearing());
   if (bytes <= MAP_DOWNLOAD_MAX_BYTES)
     for (const name of [...kits, ...looks])
       await readBundle(

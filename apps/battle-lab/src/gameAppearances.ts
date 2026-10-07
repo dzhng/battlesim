@@ -1,7 +1,10 @@
 // The page's appearances, through the one loader (`AppearanceLibrary`), from
 // what the bake wrote under `assets/runtime/` (Vite's publicDir, served at
-// the site root). The catalog loads once per page: every appearance but those
-// fetched on request (kits and regional looks). One of those is fetched the
+// the site root). The catalog loads once per page: the scenery and the art
+// its session's units wear (`UnitCatalog.appearances`), not every unit's, so
+// a game page never fetches the art only test units wear; a later session
+// with other units (a lab after the game) adds theirs. Kits and regional
+// looks are fetched on request. One of those is fetched the
 // first time the page asks for it, and a page asks for what it will draw: a
 // map for the kits its buildings' templates place and its region's looks
 // (`useMapAppearances`), a lab for the kit it shows. Every route that draws
@@ -12,6 +15,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AppearanceLibrary, type InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { familyLooks } from "@packages/scene-assets/src/schema";
 import { STAND_IN_KIT } from "@packages/scene-assets/src/standInKit";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { TemplateArtError, templateKits } from "@packages/scene-assets/src/templateLibrary";
 import type { PlacedBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { MapProp, PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
@@ -20,33 +25,42 @@ import { appResources } from "./appResources";
 const library = new AppearanceLibrary(countedFetch);
 let loading: Promise<InstalledAppearances> | null = null;
 
-/** The page's appearances with `asked` among them: the catalog's one load,
- *  then whichever of those the page has not fetched yet. */
-export function gameAppearances(asked: Iterable<string> = []): Promise<InstalledAppearances> {
-  loading ??= library.load("/");
-  return loading.then(() => library.withAppearances(asked));
+/** The page's appearances for a session running `units`, with `asked`
+ *  among them: the catalog's one load, then whichever of their art and of
+ *  those the page has not fetched yet. */
+export function gameAppearances(
+  units: UnitCatalog,
+  asked: Iterable<string> = [],
+): Promise<InstalledAppearances> {
+  loading ??= library.load("/", units.appearances);
+  return loading
+    .then(() => library.withUnits(units.appearances))
+    .then(() => library.withAppearances(asked));
 }
 
-/** Load the catalog afresh (it was re-baked): the page's appearances from now
- *  on. The new bake's kits are fetched when asked for again. */
-export function reloadGameAppearances(): Promise<InstalledAppearances> {
+/** Load the catalog afresh (it was re-baked) for a session running `units`:
+ *  the page's appearances from now on. The new bake's kits are fetched when
+ *  asked for again. */
+export function reloadGameAppearances(units: UnitCatalog): Promise<InstalledAppearances> {
   loading = null;
-  return gameAppearances();
+  return gameAppearances(units);
 }
 
 const NOTHING: ReadonlySet<string> = new Set();
 
-/** The installed appearances with `asked` among them, or null until they
- *  have loaded, and while `asked` is null (the page does not know yet what it
- *  draws). Required failures refuse the active view through the app boundary. */
+/** The installed appearances for the session's units (`useSessionCatalog`)
+ *  with `asked` among them, or null until they have loaded, and while `asked`
+ *  is null (the page does not know yet what it draws). Required failures
+ *  refuse the active view through the app boundary. */
 export function useGameAppearances(
   asked: ReadonlySet<string> | null = NOTHING,
 ): InstalledAppearances | null {
+  const { units } = useSessionCatalog();
   const [installed, setInstalled] = useState<InstalledAppearances | null>(null);
   useEffect(() => {
     if (!asked) return;
     let live = true;
-    gameAppearances(asked).then(
+    gameAppearances(units, asked).then(
       (next) => live && setInstalled(next),
       (error: unknown) => {
         if (live) appResources.refuse(error);
@@ -55,7 +69,7 @@ export function useGameAppearances(
     return () => {
       live = false;
     };
-  }, [asked]);
+  }, [asked, units]);
   // What an earlier request installed answers this one only if it has what it asked.
   const held = installed && asked && [...asked].every((name) => installed.appearances.has(name));
   return held ? installed : null;

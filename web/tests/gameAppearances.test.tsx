@@ -1,6 +1,17 @@
 import { renderInRouter as render } from "./support/router";
 import { cleanup, fireEvent, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, expect, test, vi } from "vitest";
+import { TEST_CATALOG } from "./catalog";
+
+/** A view under the test set, through the context module the freshly
+ *  imported page modules read (`vi.resetModules` gives each test its own). */
+async function underTestCatalog() {
+  const { SessionCatalogProvider } = await import("@web/battle/catalog/context");
+  return ({ children }: { children: ReactNode }) => (
+    <SessionCatalogProvider catalog={TEST_CATALOG}>{children}</SessionCatalogProvider>
+  );
+}
 
 afterEach(() => {
   cleanup();
@@ -14,13 +25,16 @@ test("required appearance rejection replaces loading with a recoverable refusal"
   });
   const { AppResourceBoundary } = await import("@apps/battle-lab/src/AppResourceBoundary");
   const { useGameAppearances } = await import("@apps/battle-lab/src/gameAppearances");
+  const Scope = await underTestCatalog();
   function World() {
     const appearances = useGameAppearances();
     return <div>{appearances ? "Battlefield ready" : "Loading appearance"}</div>;
   }
   const view = render(
     <AppResourceBoundary menu={false}>
-      <World />
+      <Scope>
+        <World />
+      </Scope>
     </AppResourceBoundary>,
   );
   await waitFor(() => expect(view.getByRole("heading", { name: "Aborted" })).toBeTruthy());
@@ -41,16 +55,19 @@ test("a demanded building kit refuses play even after the shared catalog loaded"
   const { AppResourceBoundary } = await import("@apps/battle-lab/src/AppResourceBoundary");
   const { gameAppearances, useGameAppearances } =
     await import("@apps/battle-lab/src/gameAppearances");
-  const base = await gameAppearances();
+  const base = await gameAppearances(TEST_CATALOG.units);
   expect(base.appearances.size).toBe(0);
   const kits = new Set(["required-building-kit"]);
+  const Scope = await underTestCatalog();
   function World() {
     useGameAppearances(kits);
     return <div>Loading required kit</div>;
   }
   const view = render(
     <AppResourceBoundary menu={false}>
-      <World />
+      <Scope>
+        <World />
+      </Scope>
     </AppResourceBoundary>,
   );
   await waitFor(() => expect(view.getByRole("heading", { name: "Aborted" })).toBeTruthy());

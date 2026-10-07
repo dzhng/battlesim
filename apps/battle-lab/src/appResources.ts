@@ -48,7 +48,11 @@ export class AppResources {
       await Promise.all([
         this.gpu(),
         import("@web/battle/sim/module").then(({ loadWasm }) => loadWasm()),
-        import("./gameAppearances").then(({ gameAppearances }) => gameAppearances()),
+        // The menu leads to a game: the art the game's units wear.
+        Promise.all([import("./gameAppearances"), import("@web/battle/catalog/sets")]).then(
+          async ([{ gameAppearances }, { catalogSet }]) =>
+            gameAppearances((await catalogSet("game")).units),
+        ),
       ]);
     } catch (error) {
       if (!this.released) this.refuse(error);
