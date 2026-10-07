@@ -9,7 +9,7 @@ import { TEST_RULES } from "./catalog";
 import { prepare } from "@web/battle/prepare/prepare";
 import type { PrepareMessage } from "@web/battle/prepare/protocol";
 import type { BenchmarkReport } from "@web/battle/benchmark/report";
-import { loadEncounter, loadMap } from "@web/maps/node";
+import { loadMap } from "@web/maps/node";
 import { WHOLE_MAP_MS } from "./support/wholeMap";
 
 const memory = wasm.initSync({
@@ -31,7 +31,7 @@ test(
           memory,
           message.request,
           message.documents,
-          { loadMap, loadEncounter },
+          { loadMap },
           undefined,
           undefined,
           message.stress,
@@ -58,8 +58,7 @@ test(
           kind: "generated",
           request: expect.objectContaining({ type: "metro", size: "xl", seed: "4" }),
         },
-        recipe_id: "assault",
-        encounter_seed: "1",
+        factions: ["us", "eastern"],
         battle_seed: 4,
       });
       expect(asked!.stress).toEqual({ kind: "city-arena-2", late: false });

@@ -6,7 +6,10 @@ import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import * as wasm from "@wasm/game_wasm.js";
+import config from "@fixtures/generated-battle.json";
 import { TEST_RULES } from "./catalog";
+import { generationRequest } from "../src/maps/source";
 
 // No GPU device or drawing: this tests the real worker ownership boundary.
 test("a preparation worker becomes the battle authority and replays its commands", async () => {
@@ -30,19 +33,28 @@ test("a preparation worker becomes the battle authority and replays its commands
       await page.screenshot({ path: join(shots, `${name}.png`) });
     });
     const documents = Object.fromEntries(
-      ["presets", "templates", "recipes"].map((name, i) => [
+      ["presets", "templates"].map((name, i) => [
         name,
         readFileSync(
           new URL(
-            `../../fixtures/${["map-presets", "prototype-building-templates", "encounters"][i]}.json`,
+            `../../fixtures/${["map-presets", "prototype-building-templates"][i]}.json`,
             import.meta.url,
           ),
           "utf8",
         ),
       ]),
+    ) as { presets: string; templates: string };
+    wasm.initSync({
+      module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
+    });
+    const map = generationRequest(
+      wasm,
+      { type: "open", size: "small", seed: "1", profile: "skirmish" },
+      documents,
+      config.limits,
     );
     const result = await page.evaluate(
-      async ({ documents, rules, root }) => {
+      async ({ documents, map, rules, root }) => {
         // Keep browser imports outside Vitest's server-side import rewriting.
         const importModule = new Function("url", "return import(url)");
         const { applyHudTheme } = await importModule(`${root}/battle/present/hudTheme.ts`);
@@ -63,9 +75,8 @@ test("a preparation worker becomes the battle authority and replays its commands
           {
             type: "prepare",
             request: {
-              map_source: { kind: "catalogue", id: "village" },
-              recipe_id: "lean",
-              encounter_seed: "1",
+              map_source: { kind: "generated", request: map },
+              factions: ["us", "eastern"],
               battle_seed: 1,
             },
             documents: { ...documents, rules },
@@ -89,7 +100,7 @@ test("a preparation worker becomes the battle authority and replays its commands
           await client.ready;
           client.pause();
           client.start();
-          const command = client.command({ kind: "stop", units: [0] });
+          const command = client.command({ kind: "ready" });
           const tick = await client.advance(3);
           if ((await command).error !== null) throw new Error("the recorded command was refused");
           const captured = {
@@ -287,6 +298,7 @@ test("a preparation worker becomes the battle authority and replays its commands
       },
       {
         documents,
+        map,
         rules: JSON.stringify(TEST_RULES),
         root: `/@fs/${fileURLToPath(new URL("../src", import.meta.url))}`,
       },

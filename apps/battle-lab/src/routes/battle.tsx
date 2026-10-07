@@ -5,7 +5,6 @@ import { usePageVisitActive, usePublishBattleAddress } from "../navigation";
 // preparation before publishing its exact address and starting its worker.
 import { useEffect, useMemo, useRef, useState } from "react";
 import config from "@fixtures/generated-battle.json";
-import recipes from "@fixtures/encounters.json?raw";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
 import { prepareBattle, PreparationFailed, type PreparedSession } from "@web/battle/prepare/client";
@@ -24,7 +23,7 @@ import {
   spoken,
   type AskedBattle,
 } from "../battleLinks";
-import { BattleClock, objectiveStatus } from "../battleStatus";
+import { BattleClock } from "../battleStatus";
 import { BattleView, type BattleLoadStage } from "../BattleView";
 import { LoadingScreen, type LoadingFailure, type LoadingStage } from "../LoadingScreen";
 import {
@@ -48,7 +47,7 @@ const generatedChoice = (request: PrepareBattleRequest): MapChoice | null =>
   request.map_source.kind === "generated" ? request.map_source.request : null;
 
 /** What the loading screen and the top bar call the battle's map: a
- *  generated map's choice, or a saved map's listed name and its encounter. */
+ *  generated map's choice, or a saved map's listed name. */
 function subjectOf(request: PrepareBattleRequest): string {
   const source = request.map_source;
   if (source.kind === "generated") {
@@ -56,7 +55,7 @@ function subjectOf(request: PrepareBattleRequest): string {
     return [type, size, region && spoken(region)].filter(Boolean).join(" · ").toUpperCase();
   }
   const listed = listMaps().find((map) => map.id === source.id);
-  return `${listed?.label ?? source.id} · ${request.recipe_id}`.toUpperCase();
+  return (listed?.label ?? source.id).toUpperCase();
 }
 
 type Stage = PrepareStage | "world" | "renderer";
@@ -137,35 +136,22 @@ export default function Battle() {
 /** The request for what the address asks, pinned to this build's generator,
  *  presets and catalogue. */
 function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "replay" }> }) {
-  const request = useBuiltScenario(asked, (wasm, a): PrepareBattleRequest => {
-    const rest = {
-      ...(a.faction && {
-        skirmish: [
-          a.faction,
-          a.enemy ?? (a.faction === "eastern" ? "us" : "eastern"),
-        ] as PrepareBattleRequest["skirmish"],
-      }),
-      recipe_id: a.recipe,
-      encounter_seed: a.encounterSeed,
-      battle_seed: a.battleSeed,
-    };
-    return {
+  const request = useBuiltScenario(
+    asked,
+    (wasm, a): PrepareBattleRequest => ({
       map_source: {
         kind: "generated",
         request: generationRequest(
           wasm,
-          {
-            ...a.map,
-            ...(a.faction && { profile: "skirmish" as const }),
-            seed: a.kind === "play" ? "0" : a.map.seed,
-          },
+          { ...a.map, profile: "skirmish", seed: a.kind === "play" ? "0" : a.map.seed },
           GENERATOR,
           config.limits,
         ),
       },
-      ...rest,
-    };
-  });
+      factions: a.factions,
+      battle_seed: a.battleSeed,
+    }),
+  );
   if (!request) return null;
   if (buildFailed(request))
     return (
@@ -234,7 +220,7 @@ function PreparedBattleView({
     setFailure(null);
     setStage("map");
     marks.current = {};
-    const documents = { rules: JSON.stringify(rules), presets, templates, recipes };
+    const documents = { rules: JSON.stringify(rules), presets, templates };
     const selection = play
       ? admitBattle(
           {
@@ -331,7 +317,6 @@ function PreparedBattleView({
     await saveReplay(file, `battle-${name}-tick${sim.latest.current?.tick ?? 0}.json`);
     return file;
   };
-  const objective = prepared.report.objective;
   return (
     <BattleView
       fixture="generated"
@@ -347,11 +332,7 @@ function PreparedBattleView({
         marks.current[loaded] ??= performance.now();
         if (loaded === "world") setStage("renderer");
       }}
-      status={
-        objective
-          ? objectiveStatus(objective.hold_s, "OBJECTIVE CAPTURED")
-          : ({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />
-      }
+      status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}
       menu={(session) => (
         <>
           <div className="hud-menu-note" data-testid="status">
@@ -379,7 +360,7 @@ function PreparedBattleView({
       )}
       diagnostics={(session) => ({
         /** What the preparation worker made: the request, the map's identity
-         *  and counts, the planned encounter and what each stage cost. */
+         *  and counts, where blue starts and what each stage cost. */
         prepared: () => prepared.report,
         admission: () => admission.current?.attempts ?? [],
         /** When each loading stage finished, ms since navigation started. */

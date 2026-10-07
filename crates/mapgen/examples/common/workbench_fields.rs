@@ -47,7 +47,6 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
             ("limits","max_bay_positions")=>"Maximum materialized facade bay positions admitted by the compiler. Lowering it may refuse a generated seed; released catalogue admission stays fixed.",
             ("limits","max_ground_points")=>"Maximum polygon vertices and rounded stroke samples across surfaces, forests and rivers. Layout, parcel and compiler checks name refusals when their generated geometry exceeds this work allowance.",
             ("admission",_)=>"Read-only ordinary Play recovery policy. Explicit seed inspection and replay remain exact.",
-            ("encounter",_)=>"Read-only encounter recipe and planner seed. The workbench reports encounter readiness independently of map admission.",
             ("camera",_)=>"Read-only initial battle camera framing; it changes no generated geometry.",
             _=>"Read-only battle defaults.",
         }.into();

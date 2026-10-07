@@ -7,7 +7,6 @@ import game from "@fixtures/game.json";
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
-import recipes from "@fixtures/encounters.json?raw";
 import { prepareBattle } from "@web/battle/prepare/client";
 import { generationRequest } from "@web/maps/source";
 import { useSessionCatalog } from "@web/battle/catalog/context";
@@ -98,11 +97,11 @@ export default function Endurance() {
               config.limits,
             ),
           },
-          recipe_id: config.encounter.recipe,
-          encounter_seed: config.encounter.seed,
+          // The stress scene fields its own forces; the request still names two.
+          factions: ["us", "eastern"],
           battle_seed: o.seed,
         },
-        documents: { presets, templates, recipes, rules: JSON.stringify(rules) },
+        documents: { presets, templates, rules: JSON.stringify(rules) },
         stress: { kind: "city-arena-2", late: o.late },
       },
       () => {},

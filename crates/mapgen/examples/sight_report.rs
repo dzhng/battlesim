@@ -62,7 +62,7 @@ fn load(presets: Option<&str>) -> Result<Inputs, Box<dyn std::error::Error>> {
             .get("assault")
             .ok_or("no assault recipe")?
             .clone(),
-        encounter_seed: serde_json::from_value(config["encounter"]["seed"].clone())?,
+        encounter_seed: 1.into(),
         limits: serde_json::from_value(config["limits"].clone())?,
     })
 }

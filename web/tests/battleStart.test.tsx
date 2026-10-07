@@ -44,47 +44,67 @@ test("a seed is canonical u64 decimal text, exact above what a number holds", ()
 
 test("a battle address round-trips the menu's choice, and names a parameter it gets wrong", () => {
   const map = { type: "metro", size: "large", seed: ABOVE_NUMBER } as const;
-  const asked = askedBattle(new URL(battleHref(map), "http://game").search);
-  expect(asked).toMatchObject({ kind: "generated", map, recipe: "assault" });
+  const asked = askedBattle(
+    new URL(battleHref({ ...map, faction: "europe" }), "http://game").search,
+  );
+  expect(asked).toEqual({
+    kind: "generated",
+    factions: ["europe", "eastern"],
+    map,
+    battleSeed: expect.any(Number),
+  });
   // A chosen region rides along; without one the address names none.
   const paris = { ...map, region: "paris" };
-  expect(askedBattle(new URL(battleHref(paris), "http://game").search)).toMatchObject({
-    map: paris,
-  });
+  expect(
+    askedBattle(new URL(battleHref({ ...paris, faction: "us" }), "http://game").search),
+  ).toMatchObject({ map: paris });
   expect("map" in asked && asked.map).not.toHaveProperty("region");
-  // The address Play publishes after admission names the region it asked
-  // for, so the link makes the same map again.
+  // The address Play publishes after admission names both factions and the
+  // region it asked for, so the link makes the same battle again.
   const admitted = preparedBattleHref({
     map_source: {
       kind: "generated",
       request: {
         ...paris,
-        profile: "standard",
+        profile: "skirmish",
         generator_version: "test",
         preset_revision: "test",
         template_catalog_hash: "test",
         limits: { max_authored_parts: 1, max_bay_positions: 1, max_ground_points: 1 },
       },
     },
-    recipe_id: "assault",
-    encounter_seed: "1",
+    factions: ["eastern", "europe"],
     battle_seed: 1,
   });
-  expect(askedBattle(new URL(admitted, "http://game").search)).toMatchObject({ map: paris });
-  expect(askedBattle("?map=village&recipe=lean")).toHaveProperty("error");
+  expect(admitted).not.toMatch(/recipe|encounter/);
+  expect(askedBattle(new URL(admitted, "http://game").search)).toEqual({
+    kind: "generated",
+    factions: ["eastern", "europe"],
+    map: { ...paris, profile: "skirmish" },
+    battleSeed: 1,
+  });
   expect(askedBattle("?replay=saved")).toEqual({ kind: "replay" });
-  // A wrong parameter is refused by name: nothing is guessed in its place.
+  // A wrong, missing or unknown parameter is refused by name: nothing is
+  // guessed in its place, and nothing is silently ignored.
   for (const [search, names] of [
-    ["?type=huge&size=small&seed=1", /^type /],
-    ["?type=open&size=tiny&seed=1", /^size /],
-    ["?type=open&size=small&seed=18446744073709551616", /^seed /],
-    ["?seed=1&encounter=1.5", /^encounter /],
-    ["?seed=1&battle=9007199254740993", /^battle /],
-    ["?seed=1&battle=-1", /^battle /],
-    ["?map=../village&recipe=lean", /^map /],
-    ["?map=village", /^map /],
-    ["?seed=1&region=atlantis", /^region /],
-    ["?play=1&region=", /^region /],
+    ["?type=open&size=small&seed=1", /^faction /],
+    ["?play=1&type=open&size=small", /^faction /],
+    ["?type=open&size=small&seed=1&enemy=us", /^faction /],
+    ["?faction=atlantis&seed=1", /^faction /],
+    ["?faction=us&enemy=atlantis&seed=1", /^enemy /],
+    ["?faction=us&type=huge&size=small&seed=1", /^type /],
+    ["?faction=us&type=open&size=tiny&seed=1", /^size /],
+    ["?faction=us&type=open&size=small&seed=18446744073709551616", /^seed /],
+    ["?faction=us&seed=1&battle=9007199254740993", /^battle /],
+    ["?faction=us&seed=1&battle=-1", /^battle /],
+    ["?faction=us&seed=1&region=atlantis", /^region /],
+    ["?faction=us&seed=1&profile=standard", /^profile /],
+    ["?faction=us&play=1&region=", /^region /],
+    // Parameters the battle no longer reads, or never did.
+    ["?faction=us&seed=1&recipe=assault", /^recipe /],
+    ["?faction=us&seed=1&encounter=1", /^encounter /],
+    ["?faction=us&map=village", /^map /],
+    ["?faction=us&seed=1&sneed=2", /^sneed /],
   ] as const) {
     const refused = askedBattle(search);
     expect("error" in refused && refused.error, search).toMatch(names);
@@ -184,7 +204,7 @@ class FakeWorker {
 const message = (seed: number): PrepareMessage => ({
   type: "prepare",
   request: { battle_seed: seed } as PrepareBattleRequest,
-  documents: { rules: "{}", presets: "{}", templates: "[]", recipes: "{}" },
+  documents: { rules: "{}", presets: "{}", templates: "[]" },
 });
 const battle = (name: string) => ({ scenario: name }) as PreparedBattle;
 /** What `promise` has settled to by now, or "pending". */
@@ -252,15 +272,14 @@ test("ordinary admission closes refused workers, and exact winner identity keeps
         type: "metro",
         size: "large",
         seed,
-        profile: "standard",
+        profile: "skirmish",
         generator_version: "test",
         preset_revision: "test",
         template_catalog_hash: "test",
         limits: { max_authored_parts: 1, max_bay_positions: 1, max_ground_points: 1 },
       },
     },
-    recipe_id: "assault",
-    encounter_seed: ABOVE_NUMBER,
+    factions: ["us", "eastern"],
     battle_seed: 7,
   });
   const seeds = ["11", ABOVE_NUMBER];
@@ -291,9 +310,8 @@ test("ordinary admission closes refused workers, and exact winner identity keeps
   const address = preparedBattleHref(admitted.report.request);
   expect(askedBattle(new URL(address, "http://game").search)).toEqual({
     kind: "generated",
-    map: { type: "metro", size: "large", seed: ABOVE_NUMBER, profile: "standard" },
-    recipe: "assault",
-    encounterSeed: ABOVE_NUMBER,
+    factions: ["us", "eastern"],
+    map: { type: "metro", size: "large", seed: ABOVE_NUMBER, profile: "skirmish" },
     battleSeed: 7,
   });
   expect(first.terminated).toBe(true);
@@ -346,7 +364,7 @@ test("faction choice round-trips with an admitted exact skirmish address", () =>
     faction: "europe",
   });
   const asked = askedBattle(new URL(href, "http://game").search);
-  expect(asked).toMatchObject({ map: { profile: "skirmish" }, faction: "europe" });
+  expect(asked).toMatchObject({ map: { profile: "skirmish" }, factions: ["europe", "eastern"] });
   expect(askedBattle("?faction=unknown")).toEqual({
     error: "faction must be us, europe or eastern",
   });

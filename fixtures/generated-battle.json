@@ -4,10 +4,6 @@
     "max_bay_positions": 600000,
     "max_ground_points": 200000
   },
-  "encounter": {
-    "recipe": "assault",
-    "seed": "1"
-  },
   "camera": {
     "overview_span": 1.5,
     "overview_pitch": 1.3

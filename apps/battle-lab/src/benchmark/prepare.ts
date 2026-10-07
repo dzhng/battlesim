@@ -4,7 +4,6 @@
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
-import recipes from "@fixtures/encounters.json?raw";
 import { generationRequest, type MapChoice } from "@web/maps/source";
 import { prepareBattle, type PreparedSession } from "@web/battle/prepare/client";
 import type { PrepareMessage } from "@web/battle/prepare/protocol";
@@ -26,11 +25,11 @@ export function benchmarkPreparation(
         kind: "generated",
         request: generationRequest(wasm, scenario.generated, { presets, templates }, config.limits),
       },
-      recipe_id: config.encounter.recipe,
-      encounter_seed: config.encounter.seed,
+      // The stress scene fields its own forces; the request still names two.
+      factions: ["us", "eastern"],
       battle_seed: scenario.seed,
     },
-    documents: { presets, templates, recipes, rules: JSON.stringify(rules) },
+    documents: { presets, templates, rules: JSON.stringify(rules) },
     stress: { kind: "city-arena-2", late: false },
   };
 }

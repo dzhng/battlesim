@@ -24,7 +24,9 @@ one plate over its backdrop, with title-only entries over generated military art
 Opening a page replaces the plate's contents under a
 Back button, and Escape is Back, so the film behind never changes. A menu address asking for a battle opens on the
 skirmish page. A
-seeded address names exact preparation inputs on the same build. Ordinary Play
+seeded address names exact preparation inputs on the same build, both factions
+included. A battle address without the player's faction, or with a parameter the
+battle does not read, is refused by name; nothing is defaulted or ignored. Ordinary Play
 may try bounded fresh candidates, then publishes the
 actual admitted identity. A refused explicit seed cannot silently become another
 battle. Exhausted generation returns a refusal; it never substitutes a fixed map.

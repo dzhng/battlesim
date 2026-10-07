@@ -45,7 +45,7 @@ afterEach(() => {
 });
 
 test("Cancel discards admission even when its resolved continuation is already queued", async () => {
-  window.history.replaceState(null, "", "/battle?play=1&type=mixed&size=small");
+  window.history.replaceState(null, "", "/battle?play=1&type=mixed&size=small&faction=us");
   render(
     <BrowserRouter unstable_useTransitions={false}>
       <LabRouter />
@@ -72,7 +72,7 @@ test("successful ordinary admission publishes the exact address without returnin
   window.history.replaceState(
     { usr: { note: "keep" } },
     "",
-    "/battle?play=1&type=mixed&size=small",
+    "/battle?play=1&type=mixed&size=small&faction=us",
   );
   render(
     <BrowserRouter unstable_useTransitions={false}>
@@ -90,7 +90,6 @@ test("successful ordinary admission publishes the exact address without returnin
         start: { at: [0, 0], yaw: 0 },
         size: [100, 100],
         extents: { playable: bounds, physical: bounds, rendered: bounds },
-        objective: null,
       } as PreparedSession["report"],
       connect: () => ({ send() {}, close() {} }),
     });

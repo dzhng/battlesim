@@ -52,7 +52,8 @@ impl Inputs {
             .get("assault")
             .ok_or("no assault recipe")?
             .clone();
-        let encounter_seed = serde_json::from_value(config["encounter"]["seed"].clone())?;
+        // The planner's seed: this tool's choice, as the recipe is.
+        let encounter_seed = contract::identity::Seed::from(1);
         let identity = json!({
             "presets_hash": contract::identity::json_hash(&serde_json::from_str::<Value>(&presets)?)?,
             "templates_hash": catalogue.hash(),
