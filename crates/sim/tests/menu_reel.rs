@@ -167,10 +167,10 @@ fn event_log(scene: &Scene) -> String {
         before = now;
         // A round is launched at the end of a tick and flies the next.
         for (p, r) in battle.rounds() {
-            if !rounds.contains_key(&p.id) {
+            if let std::collections::btree_map::Entry::Vacant(new) = rounds.entry(p.id) {
                 let weapon = battle.arsenal().weapons[r.weapon].id.clone();
                 writeln!(log, "{tick} fire {} {weapon}", r.unit.0).unwrap();
-                rounds.insert(p.id, (r.unit.0, weapon));
+                new.insert((r.unit.0, weapon));
             }
         }
     }

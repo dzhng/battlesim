@@ -30,6 +30,19 @@ fire policies and scripted attacks set who fires and who dies when, so a change
 keeps the cuts it was not asked to change and retimes the battle to them, never
 the reverse.
 
+The backdrop is directed footage, not a battle. It may field any units, including
+the [menu's own](units/menu/) (`menu_*`, in the menu's catalog set only) with
+whatever stats, hulls, weapons, scripts and positions it needs, and anything in it
+may change. What may not change is an approved shot: its camera, framing, timing
+and what happens in it (who fires, which round or missile flies, who is hit, who
+dies, and when). [The exact-shot test](../crates/sim/tests/menu_reel.rs) holds
+each scene's battle to the event log recorded from the approved reel, and no shot
+may open on a unit it follows that has already fallen. A battle this chaotic can
+only keep its log if its physics stays the same, so a menu unit extends the test
+unit whose part it plays, hull and all, and changes its look; one shared random
+stream means any physical difference retimes the whole scene. Re-record a log
+only for a reel the user has approved.
+
 [Sound authoring](#sound-catalog) owns audio provenance and choices independently
 of gameplay weapon cycles. Saved maps, component inheritance and paired evidence
 have the contracts below.
