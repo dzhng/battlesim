@@ -4,7 +4,7 @@
  *  back, and is the hull's width plus `reverse_zone_margin_m` each side. */
 import { vec2, type Vec2 } from "math";
 import game from "@fixtures/game.json";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { OwnUnitView } from "../sim/observation";
 
 const { reverse_zone_length_m: LENGTH_M, reverse_zone_margin_m: MARGIN_M } = game.controls;
@@ -15,10 +15,14 @@ const _zone_origin: Vec2 = [0, 0];
 /** Whether a right-click at `point` on the ground reverses `selected`:
  *  exactly one unit, a vehicle, and the point inside the strip behind it.
  *  The rear face itself counts; the far end and the sides are inclusive. */
-export function inReverseZone(selected: readonly OwnUnitView[], point: [number, number]): boolean {
+export function inReverseZone(
+  units: UnitCatalog,
+  selected: readonly OwnUnitView[],
+  point: [number, number],
+): boolean {
   if (selected.length !== 1) return false;
   const unit = selected[0];
-  const hull = UNITS.hull(unit.kind)?.half_extents_m;
+  const hull = units.hull(unit.kind)?.half_extents_m;
   if (!hull) return false;
   _zone_local[0] = point[0] - unit.position[0];
   _zone_local[1] = point[1] - unit.position[1];

@@ -5,6 +5,7 @@
  *  rows expire a few seconds after the sound was last heard, and only the
  *  newest few show. Hearing cues are always captioned, independently of
  *  audio settings. */
+import { useSessionCatalog } from "../catalog/context";
 import { useCallback, useState } from "react";
 import game from "@fixtures/game.json";
 import type { ObservationView, SoundCueView } from "../sim/observation";
@@ -80,19 +81,23 @@ export function foldCaptions(
 }
 
 export function useCaptions() {
+  const { units } = useSessionCatalog();
   const [captions, setCaptions] = useState<CaptionLine[]>([]);
 
   /** Caption one decoded frame's cues; expire old rows. */
-  const note = useCallback((o: ObservationView) => {
-    const lines = o.audible.map((cue) => {
-      const listener = o.own.find((u) => u.id === cue.listener);
-      return cueLine(cue, o.tick, listener ? unitName(listener) : "a unit");
-    });
-    setCaptions((current) => {
-      const expiring = current.some((r) => o.tick - r.tick >= CAPTION_TICKS);
-      return lines.length || expiring ? foldCaptions(current, lines, o.tick) : current;
-    });
-  }, []);
+  const note = useCallback(
+    (o: ObservationView) => {
+      const lines = o.audible.map((cue) => {
+        const listener = o.own.find((u) => u.id === cue.listener);
+        return cueLine(cue, o.tick, listener ? unitName(units, listener) : "a unit");
+      });
+      setCaptions((current) => {
+        const expiring = current.some((r) => o.tick - r.tick >= CAPTION_TICKS);
+        return lines.length || expiring ? foldCaptions(current, lines, o.tick) : current;
+      });
+    },
+    [units],
+  );
 
   /** A fresh battle starts with nothing heard. */
   const clear = useCallback(() => {

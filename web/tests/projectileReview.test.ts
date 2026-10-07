@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { Battle, initSync } from "@wasm/game_wasm.js";
-import { labScenario } from "@apps/battle-lab/src/scenarios";
+import { labScenario, TEST_RULES } from "./catalog";
 import { projectileReviewRules } from "@apps/battle-lab/src/projectileReview";
 import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 
@@ -14,7 +14,7 @@ beforeAll(() => {
 });
 
 test("review combat keeps firing with unlimited reserves and leaves every body alive", () => {
-  const rules = projectileReviewRules();
+  const rules = projectileReviewRules(TEST_RULES);
   const battle = new Battle(
     labScenario(
       {

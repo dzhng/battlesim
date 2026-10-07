@@ -4,7 +4,7 @@
 // of its trunk and under its canopy over the simulation's ground, the
 // simulation's trunks each a drawn tree), and scenery past the map stays off
 // it.
-import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES } from "./catalog";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import * as generator from "@wasm/game_wasm.js";
@@ -68,8 +68,8 @@ let placement: SceneryPlacement;
 
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
-  layout = JSON.parse(world_layout(JSON.stringify(GAME_RULES))) as WorldLayout;
-  view = new WorldView(JSON.stringify(villageMap), JSON.stringify(GAME_RULES));
+  layout = JSON.parse(world_layout(JSON.stringify(TEST_RULES))) as WorldLayout;
+  view = new WorldView(JSON.stringify(villageMap), JSON.stringify(TEST_RULES));
   exports = readWorldExports(view);
   const site = scenerySite(exports, layout, buildTerrainSurface(exports, layout, biome));
   placement = placeScenery(site, biome, PLACED);
@@ -247,7 +247,7 @@ test("scenery past the map stays clear of it and within reach, as hedgerows and 
 test("map-owned surrounding scenery keeps each complete crown inside the rendered extent", () => {
   const surrounded = new WorldView(
     JSON.stringify({ ...villageMap, render_margin_m: 200 }),
-    JSON.stringify(GAME_RULES),
+    JSON.stringify(TEST_RULES),
   );
   try {
     const exported = readWorldExports(surrounded);
@@ -340,7 +340,7 @@ function wood(shape: unknown, trees: Biome["trees"]) {
       slope_cutoff_deg: 35,
       forests: [{ shape }],
     }),
-    JSON.stringify(GAME_RULES),
+    JSON.stringify(TEST_RULES),
   );
   try {
     const exported = readWorldExports(view);
@@ -467,7 +467,7 @@ test("overlapping polygon and strip draw each original native-owned trunk exactl
         }),
       ],
     }),
-    JSON.stringify(GAME_RULES),
+    JSON.stringify(TEST_RULES),
   );
   try {
     const exported = readWorldExports(overlap);
@@ -558,7 +558,7 @@ test("dressing lies only on the simulation's forest ground, on the ground, off i
 test("dressing keeps clear of every trunk and of every body on the floor", () => {
   // The floor's own cover (logs and boulders) at the densities its systems
   // tests use: the village's default may hold none.
-  const rules = structuredClone(GAME_RULES) as typeof GAME_RULES;
+  const rules = structuredClone(TEST_RULES) as typeof TEST_RULES;
   rules.forests.rule.logs_per_ha = 5;
   rules.forests.rule.boulders_per_ha = 3;
   const world = new WorldView(JSON.stringify(villageMap), JSON.stringify(rules));
@@ -619,7 +619,7 @@ test("a strip of forest and a concave wood are dressed inside their own shapes, 
     slope_cutoff_deg: 35,
     forests: [{ shape: { kind: "polygon", ring } }, { shape: { kind: "stroke", ...strip } }],
   };
-  const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  const world = new WorldView(JSON.stringify(map), JSON.stringify(TEST_RULES));
   try {
     const { site } = siteOf(world);
     // Evenly and out to the edge, so a count is an area: no kind gathers in
@@ -736,7 +736,7 @@ test("a tree line's crowns are as wide as a wood's, and lie within a fog cell of
     slope_cutoff_deg: 35,
     forests: [{ shape: strip }],
   };
-  const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  const world = new WorldView(JSON.stringify(map), JSON.stringify(TEST_RULES));
   try {
     const { worldExports, site } = siteOf(world);
     const placed = placeScenery(site, biome, PLACED);
@@ -849,7 +849,7 @@ test("a tree line carries shrubs along its whole length, inside the strip and it
     surfaces: [road],
     forests: [{ shape: strip }, { shape: { kind: "polygon", ring } }],
   };
-  const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  const world = new WorldView(JSON.stringify(map), JSON.stringify(TEST_RULES));
   try {
     const { worldExports, site } = siteOf(world);
     const placed = placeScenery(site, biome, PLACED);
@@ -946,7 +946,7 @@ test("a tree body outside every forest is drawn as a tree of its own height, of 
       },
     ],
   };
-  const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  const world = new WorldView(JSON.stringify(map), JSON.stringify(TEST_RULES));
   try {
     const { site } = siteOf(world);
     const placed = placeScenery(site, biome, PLACED);
@@ -988,7 +988,7 @@ test(
     const documents = {
       presets: fixture("map-presets.json"),
       templates: fixture("prototype-building-templates.json"),
-      rules: JSON.stringify(GAME_RULES),
+      rules: JSON.stringify(TEST_RULES),
     };
     const request = generationRequest(
       generator,
@@ -1004,7 +1004,7 @@ test(
         documents.rules,
       ),
     ).result as { map: { props: { kind: string }[] } };
-    const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+    const world = new WorldView(JSON.stringify(map), JSON.stringify(TEST_RULES));
     try {
       const { site } = siteOf(world);
       const placed = placeScenery(site, biome, PLACED);

@@ -1,5 +1,5 @@
 import game from "@fixtures/game.json";
-import catalog from "@fixtures/catalog.json";
+import { editGameView } from "@web/battle/catalog/sets";
 import { MECHANICS_API, type MechanicsSnapshot } from "@apps/mechanics-editor/src/protocol";
 
 function freeze(value: unknown): void {
@@ -30,9 +30,9 @@ export async function startWithMechanics(
     const rules = snapshot.documents.find((document) => document.path === "fixtures/game.json");
     if (!rules) throw new Error("The mechanics snapshot has no game rules");
     replace(game, rules.value);
-    replace(catalog, snapshot.catalog);
+    editGameView((view) => replace(view, snapshot.catalog));
   }
   freeze(game);
-  freeze(catalog);
+  editGameView(freeze);
   await start();
 }

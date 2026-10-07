@@ -5,7 +5,7 @@ import * as wasm from "@wasm/game_wasm.js";
 import { CITY_CONTACT, VILLAGE_CONTACT } from "@web/battle/benchmark/presets";
 import { prepareBenchmark } from "@apps/battle-lab/src/benchmark/prepare";
 import { createBenchmarkRun } from "@apps/battle-lab/src/benchmark/run";
-import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES } from "./catalog";
 import { prepare } from "@web/battle/prepare/prepare";
 import type { PrepareMessage } from "@web/battle/prepare/protocol";
 import type { BenchmarkReport } from "@web/battle/benchmark/report";
@@ -46,7 +46,12 @@ test(
     }
     vi.stubGlobal("Worker", Worker);
     try {
-      const built = await prepareBenchmark(wasm, CITY_CONTACT, new AbortController().signal);
+      const built = await prepareBenchmark(
+        wasm,
+        CITY_CONTACT,
+        new AbortController().signal,
+        TEST_RULES,
+      );
       const report = built.prepared!.report;
       expect(asked!.request).toEqual({
         map_source: {
@@ -68,7 +73,7 @@ test(
       const city = JSON.parse(built.scenario);
       const village = JSON.parse(
         wasm.village_scenario(
-          JSON.stringify({ ...GAME_RULES, map: loadMap("village").definition }),
+          JSON.stringify({ ...TEST_RULES, map: loadMap("village").definition }),
           VILLAGE_CONTACT.variant,
         ),
       );
@@ -118,7 +123,9 @@ test("leaving city benchmark preparation closes its worker and a late answer can
   try {
     const controller = new AbortController();
     let settled = false;
-    void prepareBenchmark(wasm, CITY_CONTACT, controller.signal).then(() => (settled = true));
+    void prepareBenchmark(wasm, CITY_CONTACT, controller.signal, TEST_RULES).then(
+      () => (settled = true),
+    );
     controller.abort();
     expect(stopped).toBe(true);
     workers[0].onmessage?.({ data: { type: "prepared", battle: { scenario: "{}", report: {} } } });

@@ -10,7 +10,7 @@ import templates from "@fixtures/prototype-building-templates.json?raw";
 import recipes from "@fixtures/encounters.json?raw";
 import { prepareBattle } from "@web/battle/prepare/client";
 import { generationRequest } from "@web/maps/source";
-import { GAME_RULES } from "../scenarios";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { enduranceScenario } from "../savedMaps";
 import { BattleView } from "../BattleView";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
@@ -78,9 +78,13 @@ export default function Endurance() {
     setSeed(nextSeed);
     setLate(nextLate);
   };
+  const { rules } = useSessionCatalog();
   const built = useBuiltScenario({ late, seed, generated }, async (wasm, o, signal) => {
     if (!o.generated)
-      return { scenario: await enduranceScenario(wasm, "endurance", o.seed, o.late), report: null };
+      return {
+        scenario: await enduranceScenario(wasm, "endurance", o.seed, o.late, rules),
+        report: null,
+      };
     const preparation = prepareBattle(
       {
         type: "prepare",
@@ -98,7 +102,7 @@ export default function Endurance() {
           encounter_seed: config.encounter.seed,
           battle_seed: o.seed,
         },
-        documents: { presets, templates, recipes, rules: JSON.stringify(GAME_RULES) },
+        documents: { presets, templates, recipes, rules: JSON.stringify(rules) },
         stress: { kind: "city-arena-2", late: o.late },
       },
       () => {},

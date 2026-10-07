@@ -12,7 +12,7 @@
 // it holds. Labs compose the layers their fixture exercises, the rest among
 // them as diagnostics.
 import { gameHud } from "@web/battle/present/hudTheme";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { buildContactGlyphs } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
@@ -167,13 +167,18 @@ export function supplyLayer(
 
 /** An own unit as the orders draw it: selected or not, its order marks
  *  shown at `reveal` (0: none). */
-export function orderView(u: OwnUnitView, selected: boolean, reveal = 0): OrderView {
+export function orderView(
+  units: UnitCatalog,
+  u: OwnUnitView,
+  selected: boolean,
+  reveal = 0,
+): OrderView {
   const g = u.garrison;
   return {
     ...u,
     // Its footprint sizes its marker: a hull's half length, 0 for a squad;
     // a garrisoned squad's, its building's (inside or leaving, not entering).
-    hullHalfLength: UNITS.hull(u.kind)?.half_extents_m[0] ?? 0,
+    hullHalfLength: units.hull(u.kind)?.half_extents_m[0] ?? 0,
     building: g && g.phase !== "entering" ? { center: g.center, half: g.half } : null,
     selected,
     reveal,
@@ -186,6 +191,7 @@ export function orderView(u: OwnUnitView, selected: boolean, reveal = 0): OrderV
  *  the stroke rule (the opening camera's scale for a view that doesn't
  *  follow its camera). */
 export function orderLayer(
+  units: UnitCatalog,
   o: ObservationView,
   selected: readonly number[],
   reveal: RevealedOrders,
@@ -195,7 +201,7 @@ export function orderLayer(
   return buildOrderOverlay(
     o.own
       .filter((u) => selected.includes(u.id) || reveal.has(u.id))
-      .map((u) => orderView(u, selected.includes(u.id), reveal.get(u.id))),
+      .map((u) => orderView(units, u, selected.includes(u.id), reveal.get(u.id))),
     z,
     gameOrderStyle,
     { stroke: gameStroke(metresPerPx) },
@@ -203,6 +209,7 @@ export function orderLayer(
 }
 
 export function buildBattleOverlay(
+  units: UnitCatalog,
   o: ObservationView,
   selected: readonly number[],
   z: SurfaceHeight,
@@ -217,7 +224,7 @@ export function buildBattleOverlay(
 ): WorldMeshes {
   const contactMarks = contactLayer(contacts, z);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
-  const orders = orderLayer(o, selected, reveal, z, metresPerPx);
+  const orders = orderLayer(units, o, selected, reveal, z, metresPerPx);
   // The hold zone, a line of the orders' weight: dashed while blue is not
   // holding it. The zone and the border are paint, like the orders.
   const line = gameStroke(metresPerPx)(gameOrderStyle.line_px);

@@ -13,7 +13,7 @@ import type {
   ModelInstance,
   ResolveAppearance,
 } from "@packages/battle-renderer/src/models/modelInstances";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 import type { ObservationView } from "@web/battle/sim/observation";
 import type { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";

@@ -115,7 +115,7 @@ export function pointerIntent(
     queued,
     route: mode === "fast_move" ? "fastest" : "shortest",
     direction:
-      mode === "reverse_move" || (mode === "move" && inReverseZone(selected, pick.ground))
+      mode === "reverse_move" || (mode === "move" && inReverseZone(catalog, selected, pick.ground))
         ? "reverse"
         : "forward",
     ...(facing === undefined ? {} : { facing }),

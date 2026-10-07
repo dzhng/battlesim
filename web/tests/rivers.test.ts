@@ -2,7 +2,7 @@
 // Rivers at the renderer's seam: the export follows its published layout, the
 // water surface covers the water once, and fields are cut along the authored
 // runs.
-import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES } from "./catalog";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
@@ -36,11 +36,11 @@ afterEach(() => {
 });
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
-  layout = JSON.parse(world_layout(JSON.stringify(GAME_RULES))) as WorldLayout;
+  layout = JSON.parse(world_layout(JSON.stringify(TEST_RULES))) as WorldLayout;
 });
 
 function exportsOf(map: unknown) {
-  const view = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  const view = new WorldView(JSON.stringify(map), JSON.stringify(TEST_RULES));
   views.push(view);
   return readWorldExports(view);
 }

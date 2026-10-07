@@ -26,7 +26,7 @@ import {
 } from "./pointerIntent";
 import { reach } from "./commandReach";
 import { SelectClicks, similarUnits } from "./selectSimilar";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { useSessionCatalog } from "../catalog/context";
 
 export interface AckEntry {
   seq: number;
@@ -44,6 +44,7 @@ export function useUnitControl(
   onIssue?: (order: Order, queued: boolean) => void,
   enabled = true,
 ) {
+  const { units: catalog } = useSessionCatalog();
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
   const onIssueRef = useRef(onIssue);
@@ -179,7 +180,7 @@ export function useUnitControl(
         if (similar && kind) {
           // Select similar: every own unit of its type, or of its role
           // (Shift adds them to the selection).
-          const hits = similarUnits(own, kind, similar, UNITS);
+          const hits = similarUnits(own, kind, similar, catalog);
           setSelection((current) => (pick.shift ? [...new Set([...current, ...hits])] : hits));
           return;
         }
@@ -198,7 +199,7 @@ export function useUnitControl(
       }
       const intent = captured
         ? reconcilePointerIntent(captured, observationRef.current)
-        : pointerIntent(pick, selectedUnitsRef.current, modeRef.current, UNITS);
+        : pointerIntent(pick, selectedUnitsRef.current, modeRef.current, catalog);
       if (intent.kind === "none") return;
       if (intent.kind === "blocked") {
         if (intent.disarm) setMode("move");
@@ -224,12 +225,12 @@ export function useUnitControl(
         void issue({ ...command, gesture: gestures.current.token() }, queued);
       }
     },
-    [issue, setMode],
+    [issue, setMode, catalog],
   );
 
   const intentAt = useCallback(
-    (pick: PointerPick) => pointerIntent(pick, selectedUnitsRef.current, modeRef.current, UNITS),
-    [],
+    (pick: PointerPick) => pointerIntent(pick, selectedUnitsRef.current, modeRef.current, catalog),
+    [catalog],
   );
 
   /** Return fire only for the selection, or Fire at will if all hold. */
@@ -260,26 +261,26 @@ export function useUnitControl(
   /** Deploy (set up in place) or pack the selection's units that deploy. */
   const setDeployment = useCallback(
     (deployed: boolean) => {
-      const units = reach("deploy", selectedUnitsRef.current, UNITS).map((u) => u.id);
+      const units = reach("deploy", selectedUnitsRef.current, catalog).map((u) => u.id);
       if (units.length) void issue({ kind: "set_deployment", units, deployed });
     },
-    [issue],
+    [issue, catalog],
   );
 
   /** Deploy the selection's units that deploy, or pack them if all are
    *  already deployed or deploying. */
   const toggleDeployment = useCallback(() => {
-    const units = reach("deploy", selectedUnitsRef.current, UNITS);
+    const units = reach("deploy", selectedUnitsRef.current, catalog);
     if (!units.length) return;
     const deployed = units.every((u) => u.deployment?.target === "deployed");
     void issue({ kind: "set_deployment", units: units.map((u) => u.id), deployed: !deployed });
-  }, [issue]);
+  }, [issue, catalog]);
 
   /** The selection's units inside a building leave it. */
   const exitBuilding = useCallback(() => {
-    const units = reach("exit_building", selectedUnitsRef.current, UNITS).map((u) => u.id);
+    const units = reach("exit_building", selectedUnitsRef.current, catalog).map((u) => u.id);
     if (units.length) void issue({ kind: "exit_building", units });
-  }, [issue]);
+  }, [issue, catalog]);
 
   const refund = useCallback(() => {
     const units = selectedUnitsRef.current.map((unit) => unit.id);
@@ -296,7 +297,7 @@ export function useUnitControl(
       if (!command || (command === "disarm" && modeRef.current === "move")) return;
       e.preventDefault();
       const any = selectedUnitsRef.current.length > 0;
-      const armed = reach("attack", selectedUnitsRef.current, UNITS).length > 0;
+      const armed = reach("attack", selectedUnitsRef.current, catalog).length > 0;
       if (command === "stop") stop();
       else if (command === "toggle_fire_policy") togglePolicy();
       else if (command === "toggle_deployment") toggleDeployment();
@@ -309,7 +310,7 @@ export function useUnitControl(
     // listeners' order.
     window.addEventListener("keydown", onKey, { capture: true });
     return () => window.removeEventListener("keydown", onKey, { capture: true });
-  }, [stop, togglePolicy, toggleDeployment, setMode]);
+  }, [stop, togglePolicy, toggleDeployment, setMode, catalog]);
 
   return {
     refund: observation?.skirmish ? refund : undefined,

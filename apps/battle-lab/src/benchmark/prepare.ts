@@ -11,12 +11,13 @@ import type { PrepareMessage } from "@web/battle/prepare/protocol";
 import type { Wasm } from "@web/battle/sim/module";
 import { cityContactTour } from "@web/battle/benchmark/camera";
 import type { BenchmarkPreset, BenchmarkScenario } from "@web/battle/benchmark/presets";
-import { GAME_RULES } from "../scenarios";
+import type { GameRules } from "@web/battle/catalog/compose";
 import { villageScenario } from "../savedMaps";
 
 export function benchmarkPreparation(
   wasm: Wasm,
   scenario: Extract<BenchmarkPreset, { generated: MapChoice }>,
+  rules: GameRules,
 ): PrepareMessage {
   return {
     type: "prepare",
@@ -29,7 +30,7 @@ export function benchmarkPreparation(
       encounter_seed: config.encounter.seed,
       battle_seed: scenario.seed,
     },
-    documents: { presets, templates, recipes, rules: JSON.stringify(GAME_RULES) },
+    documents: { presets, templates, recipes, rules: JSON.stringify(rules) },
     stress: { kind: "city-arena-2", late: false },
   };
 }
@@ -44,13 +45,14 @@ export async function prepareBenchmark(
   wasm: Wasm,
   workload: BenchmarkPreset,
   signal: AbortSignal,
+  rules: GameRules,
 ): Promise<BenchmarkBattle> {
   if (!workload.generated)
     return {
-      scenario: await villageScenario(wasm, "benchmark", workload.variant),
+      scenario: await villageScenario(wasm, "benchmark", workload.variant, rules),
       workload: { ...workload, tour: workload.tour },
     };
-  const preparation = prepareBattle(benchmarkPreparation(wasm, workload), () => {});
+  const preparation = prepareBattle(benchmarkPreparation(wasm, workload, rules), () => {});
   signal.addEventListener("abort", preparation.cancel, { once: true });
   if (signal.aborted) preparation.cancel();
   const prepared = await preparation.battle;

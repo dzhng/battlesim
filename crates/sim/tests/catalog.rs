@@ -32,7 +32,10 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
     let path = sim::fixtures::dir().join("units/model-manifest.json");
     let manifest: Manifest = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     assert_eq!(manifest.schema_version, 1);
-    let catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents()).unwrap();
+    let catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents(
+        sim::fixtures::CatalogSet::Game,
+    ))
+    .unwrap();
     let disabled: std::collections::BTreeMap<_, _> = catalog
         .cards()
         .filter(|card| card.disabled_reason.is_some())
@@ -79,6 +82,32 @@ fn with_m1_family() -> Value {
     });
     fixture["service"]["round_costs"]["m829"] = json!(6);
     fixture
+}
+
+/// The test and menu document sets are the game's set plus their own
+/// folders, each document once, and resolve as one catalog: a lab never runs
+/// without the game's units, and a document both sets name is not doubled.
+#[test]
+fn the_test_and_menu_sets_extend_the_games() {
+    use sim::fixtures::{catalog_documents, CatalogSet};
+    let game = catalog_documents(CatalogSet::Game);
+    for set in [CatalogSet::Test, CatalogSet::Menu] {
+        let documents = catalog_documents(set);
+        for doc in &game {
+            let copies = documents.iter().filter(|d| *d == doc).count();
+            assert_eq!(copies, 1, "{set:?} holds a game document {copies} times");
+        }
+        if let Err(e) = contract::catalog::resolve(&documents) {
+            panic!("the {set:?} set does not resolve: {e}");
+        }
+    }
+    let test = catalog_documents(CatalogSet::Test);
+    for doc in sim::fixtures::documents(&["units/generic"]) {
+        assert!(
+            test.contains(&doc),
+            "the test set lacks a test unit document"
+        );
+    }
 }
 
 #[test]

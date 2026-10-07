@@ -3,7 +3,7 @@
 // through the bucket index is the same signed distance wherever a consumer
 // reads it, on the simulation's own exports and on a map dense enough that
 // the index matters.
-import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES } from "./catalog";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { vec2, type Vec2 } from "math";
@@ -55,11 +55,11 @@ afterEach(() => {
 });
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
-  layout = JSON.parse(world_layout(JSON.stringify(GAME_RULES))) as WorldLayout;
+  layout = JSON.parse(world_layout(JSON.stringify(TEST_RULES))) as WorldLayout;
 });
 
 function siteOf(map: unknown): TerrainSite {
-  const view = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  const view = new WorldView(JSON.stringify(map), JSON.stringify(TEST_RULES));
   views.push(view);
   return buildTerrainSurface(readWorldExports(view), layout, biome).site;
 }

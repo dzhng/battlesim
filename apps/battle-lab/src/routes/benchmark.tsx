@@ -1,3 +1,4 @@
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { Link } from "react-router";
 import { useLabLoading } from "../LabLoading";
 // /benchmark: choose a run length, run the scripted battle while the camera
@@ -117,7 +118,10 @@ function BenchmarkBattle({
   workload: BenchmarkPreset;
   onDone: (report: BenchmarkReport) => void;
 }) {
-  const built = useBuiltScenario(workload, prepareBenchmark);
+  const { rules } = useSessionCatalog();
+  const built = useBuiltScenario(workload, (wasm, w, signal) =>
+    prepareBenchmark(wasm, w, signal, rules),
+  );
   if (!built) return null;
   if (buildFailed(built))
     return (

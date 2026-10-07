@@ -8,7 +8,9 @@
 // Its preparation reports to the menu's loading screen, and the battle holds
 // at its warm tick until the menu is shown, so the reel's first cut opens on
 // the moment it was cut for.
-import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import { Suspense, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
+import type { GameRules } from "@web/battle/catalog/compose";
+import { SessionCatalogScope, useSessionCatalog } from "@web/battle/catalog/context";
 import backdrop from "@fixtures/menu-backdrop.json";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -36,14 +38,14 @@ const FILM_CAMERA = filmCamera(
   SCENES.map((s) => s.reel),
 );
 
-/** Each scene's saved scenario, fetched once: the next scene's is asked for
- *  while the current one plays, so the cut to it waits on starting and
- *  warming its battle, not on the download. */
+/** Each scene's saved scenario under the menu catalog's `rules`, fetched
+ *  once: the next scene's is asked for while the current one plays, so the
+ *  cut to it waits on starting and warming its battle, not on the download. */
 const scenarios = new Map<BackdropScene, Promise<string>>();
-function sceneScenario(scene: BackdropScene): Promise<string> {
+function sceneScenario(scene: BackdropScene, rules: GameRules): Promise<string> {
   let s = scenarios.get(scene);
   if (!s) {
-    s = savedBattle(scene.map, scene.encounter).then((b) => b.scenario);
+    s = savedBattle(scene.map, scene.encounter, rules).then((b) => b.scenario);
     // A failed preparation is asked again next time, not remembered.
     s.catch(() => scenarios.delete(scene));
     scenarios.set(scene, s);
@@ -67,14 +69,25 @@ const cameraAt = (pose: CameraPose): Camera3DParams => ({
   ...gameCamera.lens,
 });
 
-export function MenuBackdrop({
-  plate,
-  shown,
-}: {
+interface BackdropProps {
   plate: RefObject<HTMLElement | null>;
   /** Settles when the menu is shown. */
   shown: Promise<void>;
-}) {
+}
+
+/** The backdrop's battles run on the menu's own catalog. */
+export function MenuBackdrop(props: BackdropProps) {
+  return (
+    <Suspense fallback={null}>
+      <SessionCatalogScope set="menu">
+        <BackdropScenes {...props} />
+      </SessionCatalogScope>
+    </Suspense>
+  );
+}
+
+function BackdropScenes({ plate, shown }: BackdropProps) {
+  const { rules } = useSessionCatalog();
   // A refused page GPU leaves the menu its plain background, with nothing to wait for.
   const refused = useSyncExternalStore(appResources.subscribe, appResources.error);
   useLabLoading("renderer", refused ? true : null);
@@ -82,7 +95,7 @@ export function MenuBackdrop({
   const [played, setPlayed] = useState(0);
   const scene = SCENES[played % SCENES.length];
   const next = SCENES[(played + 1) % SCENES.length];
-  const battle = useBuiltScenario(scene, (_, s) => sceneScenario(s));
+  const battle = useBuiltScenario(scene, (_, s) => sceneScenario(s, rules));
   const failed = buildFailed(battle) ? battle.error : null;
   useEffect(() => {
     if (failed) console.error(`The menu backdrop could not be prepared: ${failed}`);
@@ -95,7 +108,7 @@ export function MenuBackdrop({
       scenario={battle}
       plate={plate}
       shown={shown}
-      onWarm={() => void sceneScenario(next).catch(() => {})}
+      onWarm={() => void sceneScenario(next, rules).catch(() => {})}
       onEnd={() => setPlayed((n) => n + 1)}
     />
   );

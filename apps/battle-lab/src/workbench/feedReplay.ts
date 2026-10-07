@@ -17,8 +17,7 @@ import type {
   FeedMount,
   FeedUnit,
 } from "@packages/battle-renderer/src/models/poseDriver";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
-import type { MountRole } from "@packages/scene-assets/src/units";
+import type { MountRole, UnitCatalog } from "@packages/scene-assets/src/units";
 
 export const TICK_HZ = game.tick_hz;
 
@@ -27,6 +26,8 @@ export const TICK_HZ = game.tick_hz;
 export interface ReplayUnit {
   kind: string;
   mounts: readonly MountRole[];
+  /** The catalog `kind` is read from. */
+  units: UnitCatalog;
 }
 
 /** One scripted beat: from `at` seconds, what the unit is doing. */
@@ -77,9 +78,9 @@ export const HMG_BEATS: Beat[] = [
 type Script = "infantry" | "deploy" | "gun" | "hmg";
 
 /** Which script a unit type's components call for. */
-function scriptFor({ kind, mounts }: ReplayUnit): Script {
-  if (!UNITS.hull(kind)) return "infantry";
-  if (UNITS.type(kind).capabilities.deploy) return "deploy";
+function scriptFor({ kind, mounts, units }: ReplayUnit): Script {
+  if (!units.hull(kind)) return "infantry";
+  if (units.type(kind).capabilities.deploy) return "deploy";
   return mounts.includes("gun") ? "gun" : "hmg";
 }
 
@@ -125,7 +126,7 @@ function mountsOf(
 
 /** The unit at an exact tick time. */
 function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
-  const { kind } = replay;
+  const { kind, units } = replay;
   const script = scriptFor(replay);
   if (script === "gun") {
     const drive = Math.min(Math.max(0, t - 1), 4) * 5;
@@ -191,7 +192,7 @@ function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
   }
   // Infantry: each soldier on his own lane, speed profile and delay, in
   // his slot of the squad type.
-  const slots = UNITS.slots(kind).length;
+  const slots = units.slots(kind).length;
   const members = Array.from({ length: soldiers }, (_, i) => {
     const delay = i * 0.35;
     const lane = (i - (soldiers - 1) / 2) * 1.6;
@@ -212,7 +213,7 @@ function unitAt(replay: ReplayUnit, t: number, soldiers: number): FeedUnit {
     yaw: 0,
     soldiers: members,
     // Synthetic replay soldiers use their default hand weapon.
-    mounts: UNITS.type(kind).mounts.map((_, mount) => ({
+    mounts: units.type(kind).mounts.map((_, mount) => ({
       bearing: 0.2,
       elevation: 0.02,
       shots:

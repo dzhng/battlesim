@@ -1,7 +1,12 @@
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent, render as renderView } from "@testing-library/react";
+import { WithTestCatalog } from "./catalog";
 import { afterEach, expect, test, vi } from "vitest";
 import { CommandBar } from "../src/battle/present/readouts";
 import type { OwnUnitView } from "../src/battle/sim/observation";
+
+/** Views render under the test set, as a lab page provides it. */
+const render = (ui: Parameters<typeof renderView>[0]) =>
+  renderView(ui, { wrapper: WithTestCatalog });
 
 const unit = (kind: string, patch: Partial<OwnUnitView> = {}) =>
   ({ kind, engagement: "fire_at_will", garrison: null, deployment: null, ...patch }) as OwnUnitView;

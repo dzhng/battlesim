@@ -1,4 +1,4 @@
-import { GAME_RULES } from "../scenarios";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import generated from "@fixtures/generated-battle.json";
 import { listMaps } from "@web/maps/catalogue";
 import { fixtureMap } from "../fixtures";
@@ -81,7 +81,8 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
     : GEOMETRY_CAMERA;
   const cameraConfig = gameCamera.forMap(map.size);
   const probeReach = Math.max(5000, cameraConfig.zoom_max + Math.hypot(...map.size));
-  const world = useStaticWorld(map, GAME_RULES);
+  const { rules } = useSessionCatalog();
+  const world = useStaticWorld(map, rules);
   const [overlay, setOverlay] = useState<WorldOverlay>("surface");
   const [showTrees, setShowTrees] = useState(true);
   const buildings = useStandingBuildings(world);

@@ -10,7 +10,8 @@ import { BattleMemory, guidanceLayer, remainsLayer, tracerLayer } from "../battl
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounters, type SavedBattle } from "../savedMaps";
-import { GAME_RULES } from "../scenarios";
+import type { GameRules } from "@web/battle/catalog/compose";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
@@ -41,13 +42,13 @@ type Variant = keyof typeof VARIANTS;
 const VARIANT_NAMES = Object.keys(VARIANTS) as Variant[];
 const SEED = 10;
 // Guidance compares controlled LOS crossings, independent of vehicle startup time.
-const AMBUSH_RULES = {
-  ...GAME_RULES,
+const ambushRules = (rules: GameRules): GameRules => ({
+  ...rules,
   movement: {
-    ...GAME_RULES.movement,
-    drive: { ...GAME_RULES.movement.drive, acceleration_s: 1e-6, braking_s: 1e-6 },
+    ...rules.movement,
+    drive: { ...rules.movement.drive, acceleration_s: 1e-6, braking_s: 1e-6 },
   },
-};
+});
 
 const AMBUSH_CAMERA: Camera3DParams = {
   target: [300, 290, 0],
@@ -61,8 +62,10 @@ const LAUNCHER_MARK = [0.95, 0.95, 0.95, 1] as const;
 const SCOUT_MARK = [0.55, 0.75, 1.0, 1] as const;
 
 export default function Ambush() {
+  const { rules } = useSessionCatalog();
+  const pinned = useMemo(() => ambushRules(rules), [rules]);
   return (
-    <SavedEncounters fixture="ambush" encounters={VARIANT_NAMES} rules={AMBUSH_RULES}>
+    <SavedEncounters fixture="ambush" encounters={VARIANT_NAMES} rules={pinned}>
       {(battles) => <AmbushLab battles={battles} />}
     </SavedEncounters>
   );

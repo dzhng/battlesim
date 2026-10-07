@@ -8,7 +8,7 @@
 // weapon mix; selected and not; the default and the far zoom. A test
 // (`web/tests/panelWorkbench.test.ts`) holds this list to every row kind the
 // derivation can produce.
-import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
+import type { SessionCatalog } from "@web/battle/catalog/compose";
 import {
   contactPanel,
   enemyPanel,
@@ -35,13 +35,13 @@ export interface Specimen {
 type MountPatch = Partial<MountView>;
 
 /** A full, idle mount of `kind`'s mount `k`. */
-function fullMount(kind: string, k: number): MountView {
-  const rows = UNITS.type(kind).mounts[k].weapons;
+function fullMount(catalog: SessionCatalog, kind: string, k: number): MountView {
+  const rows = catalog.units.type(kind).mounts[k].weapons;
   return {
     mount: k,
     loaded: 0,
     ammo: rows.map((r) => {
-      const a = (WEAPONS[r] as { ammo?: number | "unlimited" } | undefined)?.ammo;
+      const a = (catalog.weapons[r] as { ammo?: number | "unlimited" } | undefined)?.ammo;
       return typeof a === "number" ? a : null;
     }),
     aim: 1,
@@ -58,11 +58,12 @@ const TARGET = { kind: "identified" as const, id: 99 };
 /** An own unit of `kind`, idle, full and at full strength, with `patch`
  *  over it and each of `mounts` over its mount of that index. */
 export function specimenUnit(
+  catalog: SessionCatalog,
   kind: string,
   patch: Partial<OwnUnitView> = {},
   mounts: MountPatch[] = [],
 ): OwnUnitView {
-  const t = UNITS.type(kind);
+  const t = catalog.units.type(kind);
   return {
     id: 1,
     kind,
@@ -74,17 +75,19 @@ export function specimenUnit(
     garrison: null,
     stock: t.capabilities?.supply ? t.capabilities.supply.stock : null,
     service: "out_of_range",
-    hp: UNITS.hull(kind)?.hp ?? 0,
-    memberHp: UNITS.hull(kind) ? [] : UNITS.slots(kind).map((s) => UNITS.soldier(s).hp),
-    mounts: t.mounts.map((_, k) => ({ ...fullMount(kind, k), ...mounts[k] })),
+    hp: catalog.units.hull(kind)?.hp ?? 0,
+    memberHp: catalog.units.hull(kind)
+      ? []
+      : catalog.units.slots(kind).map((s) => catalog.units.soldier(s).hp),
+    mounts: t.mounts.map((_, k) => ({ ...fullMount(catalog, kind, k), ...mounts[k] })),
     ...patch,
   } as OwnUnitView;
 }
 
 /** Every specimen, in sheet order. */
-export function panelSpecimens(rules: PanelRules): Specimen[] {
+export function panelSpecimens(catalog: SessionCatalog, rules: PanelRules): Specimen[] {
   const out: Specimen[] = [];
-  const kinds = UNITS.ids;
+  const kinds = catalog.units.ids;
   const add = (
     group: string,
     label: string,
@@ -103,19 +106,23 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
       ...extra,
     });
   const panelOf = (u: OwnUnitView, others: OwnUnitView[] = []) =>
-    ownPanel(u, [u, ...others], rules);
+    ownPanel(catalog.units, u, [u, ...others], rules);
 
-  add("withdrawal", "returning to base", panelOf(specimenUnit("tank", { withdrawing: true })));
+  add(
+    "withdrawal",
+    "returning to base",
+    panelOf(specimenUnit(catalog, "tank", { withdrawing: true })),
+  );
   for (const [label, charges, cooldown, service] of [
     ["ready", 4, null, "out_of_range"],
     ["cooling", 2, 0.5, "out_of_range"],
     ["empty", 0, null, "out_of_range"],
     ["resupplying", 1, null, "serving"],
   ] as const) {
-    const unit = specimenUnit("tank", { protection: { charges, cooldown }, service });
+    const unit = specimenUnit(catalog, "tank", { protection: { charges, cooldown }, service });
     const panel = panelOf(unit);
     panel.weapons = weaponRows(
-      UNITS.type(unit.kind).mounts,
+      catalog.units.type(unit.kind).mounts,
       rules,
       unit.mounts,
       { capacity: 4 },
@@ -123,8 +130,10 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
     );
     add("Trophy", label, panel);
   }
-  const enemyTrophy = enemyPanel("tank", rules);
-  enemyTrophy.weapons = weaponRows(UNITS.type("tank").mounts, rules, undefined, { capacity: 4 });
+  const enemyTrophy = enemyPanel(catalog.units, "tank", rules);
+  enemyTrophy.weapons = weaponRows(catalog.units.type("tank").mounts, rules, undefined, {
+    capacity: 4,
+  });
   add("Trophy", "enemy equipment only", enemyTrophy, "enemy");
 
   // The key cases first: a timer's ring beside an idle row's bare icon, and
@@ -134,7 +143,7 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
     key,
     "tank mid-reload, HMG idle",
     panelOf(
-      specimenUnit("tank", {}, [
+      specimenUnit(catalog, "tank", {}, [
         { loaded: null, reloading: 0, reload: 0.55, ammo: [13, 15], reason: "reloading" },
       ]),
     ),
@@ -142,26 +151,34 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
   add(
     key,
     "rifle aiming, grenade idle",
-    panelOf(specimenUnit("rifle", {}, [{ target: TARGET, aim: 0.4, reason: "aiming" }])),
+    panelOf(specimenUnit(catalog, "rifle", {}, [{ target: TARGET, aim: 0.4, reason: "aiming" }])),
   );
   add(
     key,
     "truck deploying 40%, partial supply",
     panelOf(
-      specimenUnit("supply", { deployment: { progress: 0.4, target: "deployed" }, stock: 250 }),
+      specimenUnit(catalog, "supply", {
+        deployment: { progress: 0.4, target: "deployed" },
+        stock: 250,
+      }),
     ),
   );
   add(
     key,
     "grenade at 0",
-    panelOf(specimenUnit("rifle", {}, [{}, { ammo: [0], loaded: null, reason: "out_of_ammo" }])),
+    panelOf(
+      specimenUnit(catalog, "rifle", {}, [{}, { ammo: [0], loaded: null, reason: "out_of_ammo" }]),
+    ),
   );
 
   // Synthetic equipment configurations, through the production row builder.
   // Keep them here rather than retuning a playable unit just for a UI specimen.
-  const atMounts = UNITS.type("at").mounts;
+  const atMounts = catalog.units.type("at").mounts;
   const paired = [...atMounts, atMounts[1]];
-  const pairedReadiness = specimenUnit("at").mounts.concat({ ...fullMount("at", 1), mount: 2 });
+  const pairedReadiness = specimenUnit(catalog, "at").mounts.concat({
+    ...fullMount(catalog, "at", 1),
+    mount: 2,
+  });
   pairedReadiness[1] = {
     ...pairedReadiness[1],
     ammo: [2],
@@ -179,39 +196,39 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
     reason: "reloading",
   };
   const twinLaunchers = {
-    ...panelOf(specimenUnit("at")),
+    ...panelOf(specimenUnit(catalog, "at")),
     weapons: weaponRows(paired, rules, pairedReadiness),
   };
   add(key, "two launchers, separate reloads", twinLaunchers, "own", { selected: true });
   add(
     key,
     "two launchers, enemy equipment",
-    { ...enemyPanel("at", rules), weapons: weaponRows(paired, rules) },
+    { ...enemyPanel(catalog.units, "at", rules), weapons: weaponRows(paired, rules) },
     "enemy",
   );
-  const hmg = UNITS.type("tank").mounts[1];
+  const hmg = catalog.units.type("tank").mounts[1];
   const twinHmg = [
     { ...hmg, name: "turret HMG" },
     { ...hmg, name: "hull HMG" },
   ];
   add(key, "turret and hull HMG", {
-    ...panelOf(specimenUnit("tank")),
+    ...panelOf(specimenUnit(catalog, "tank")),
     weapons: weaponRows(twinHmg, rules, [
       {
-        ...fullMount("tank", 1),
+        ...fullMount(catalog, "tank", 1),
         mount: 0,
         loaded: null,
         reloading: 0,
         reload: 0.4,
         reason: "reloading",
       },
-      { ...fullMount("tank", 1), mount: 1 },
+      { ...fullMount(catalog, "tank", 1), mount: 1 },
     ]),
   });
   add("far out", "two launchers selected", twinLaunchers, "own", { selected: true, zoom: "far" });
 
   // Every type, as the battle opens: idle and full.
-  for (const kind of kinds) add("own, idle", kind, panelOf(specimenUnit(kind, {}, [])));
+  for (const kind of kinds) add("own, idle", kind, panelOf(specimenUnit(catalog, kind, {}, [])));
 
   // Each weapon situation (the key cases' aside).
   const w = "own weapons";
@@ -219,7 +236,7 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
     w,
     "rifle reloading, grenade aiming",
     panelOf(
-      specimenUnit("rifle", {}, [
+      specimenUnit(catalog, "rifle", {}, [
         { loaded: null, reload: 0.6, reloading: 0, reason: "reloading" },
         { target: TARGET, aim: 0.7, reason: "aiming" },
       ]),
@@ -229,7 +246,7 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
     w,
     "aiming and reloading at once",
     panelOf(
-      specimenUnit("rifle", {}, [
+      specimenUnit(catalog, "rifle", {}, [
         {},
         { target: TARGET, aim: 0.5, loaded: null, reload: 0.3, reloading: 0, reason: "reloading" },
       ]),
@@ -239,18 +256,22 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
     w,
     "aim complete, reload continues",
     panelOf(
-      specimenUnit("rifle", {}, [
+      specimenUnit(catalog, "rifle", {}, [
         {},
         { target: TARGET, aim: 1, loaded: null, reload: 0.3, reloading: 0, reason: "reloading" },
       ]),
     ),
   );
-  add(w, "tank AP loaded", panelOf(specimenUnit("tank", {}, [{ loaded: 0, ammo: [17, 15] }])));
+  add(
+    w,
+    "tank AP loaded",
+    panelOf(specimenUnit(catalog, "tank", {}, [{ loaded: 0, ammo: [17, 15] }])),
+  );
   add(
     w,
     "tank loading HE",
     panelOf(
-      specimenUnit("tank", {}, [
+      specimenUnit(catalog, "tank", {}, [
         { loaded: null, reloading: 1, reload: 0.45, ammo: [17, 9], reason: "reloading" },
         { target: TARGET, aim: 0.2, reason: "aiming" },
       ]),
@@ -259,32 +280,38 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
   add(
     w,
     "tank AP empty, turning",
-    panelOf(specimenUnit("tank", {}, [{ loaded: 1, ammo: [0, 3], reason: "turret_traversing" }])),
+    panelOf(
+      specimenUnit(catalog, "tank", {}, [{ loaded: 1, ammo: [0, 3], reason: "turret_traversing" }]),
+    ),
   );
   add(
     w,
     "AT guiding",
-    panelOf(specimenUnit("at", {}, [{}, { guiding: true, ammo: [3], reason: "guiding" }])),
+    panelOf(specimenUnit(catalog, "at", {}, [{}, { guiding: true, ammo: [3], reason: "guiding" }])),
   );
-  add(w, "jeep firing", panelOf(specimenUnit("jeep", {}, [{ reason: "firing" }])));
+  add(w, "jeep firing", panelOf(specimenUnit(catalog, "jeep", {}, [{ reason: "firing" }])));
 
   // Every reason a weapon can't fire, as its warning mark.
   for (const reason of Object.keys(REASON_MARK).filter((r) => REASON_MARK[r]))
-    add("why it can't fire", reason, panelOf(specimenUnit("rifle", {}, [{ reason }, { reason }])));
+    add(
+      "why it can't fire",
+      reason,
+      panelOf(specimenUnit(catalog, "rifle", {}, [{ reason }, { reason }])),
+    );
 
   // Every state row alone, on the unit that shows it.
   const s = "own states";
   const truckAt = (progress: number, target: "deployed" | "packed", patch = {}) =>
-    specimenUnit("supply", { deployment: { progress, target }, ...patch });
+    specimenUnit(catalog, "supply", { deployment: { progress, target }, ...patch });
   add(s, "deploying 40%", panelOf(truckAt(0.4, "deployed")));
   add(s, "packing 70%", panelOf(truckAt(0.3, "packed")));
   add(s, "deployed", panelOf(truckAt(1, "deployed")));
   add(s, "stock empty", panelOf(truckAt(1, "deployed", { stock: 0 })));
-  const served = specimenUnit("tank", { id: 2, service: "serving" });
+  const served = specimenUnit(catalog, "tank", { id: 2, service: "serving" });
   add(s, "supplying", panelOf(truckAt(1, "deployed", { stock: 412 }), [served]));
   add(s, "resupplying", panelOf(served));
-  add(s, "supply full", panelOf(specimenUnit("rifle", { service: "full" })));
-  add(s, "cannot supply", panelOf(specimenUnit("at", { service: "moving" })));
+  add(s, "supply full", panelOf(specimenUnit(catalog, "rifle", { service: "full" })));
+  add(s, "cannot supply", panelOf(specimenUnit(catalog, "at", { service: "moving" })));
   const inside = (phase: string, progress: number) => ({
     garrison: { building: 3, phase, progress },
     concealed: phase === "inside" || phase === "exiting",
@@ -292,26 +319,32 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
   add(
     s,
     "entering 50%",
-    panelOf(specimenUnit("rifle", inside("entering", 0.5) as Partial<OwnUnitView>)),
+    panelOf(specimenUnit(catalog, "rifle", inside("entering", 0.5) as Partial<OwnUnitView>)),
   );
-  add(s, "hidden in foliage", panelOf(specimenUnit("rifle", { concealed: true })));
-  add(s, "hidden, compressed", panelOf(specimenUnit("rifle", { concealed: true })), "own", {
-    zoom: "compressed",
-  });
+  add(s, "hidden in foliage", panelOf(specimenUnit(catalog, "rifle", { concealed: true })));
+  add(
+    s,
+    "hidden, compressed",
+    panelOf(specimenUnit(catalog, "rifle", { concealed: true })),
+    "own",
+    {
+      zoom: "compressed",
+    },
+  );
   add(
     s,
     "in building",
-    panelOf(specimenUnit("rifle", inside("inside", 1) as Partial<OwnUnitView>)),
+    panelOf(specimenUnit(catalog, "rifle", inside("inside", 1) as Partial<OwnUnitView>)),
   );
   add(
     s,
     "leaving 70%",
-    panelOf(specimenUnit("rifle", inside("exiting", 0.7) as Partial<OwnUnitView>)),
+    panelOf(specimenUnit(catalog, "rifle", inside("exiting", 0.7) as Partial<OwnUnitView>)),
   );
-  add(s, "suppressed", panelOf(specimenUnit("rifle", { suppression: "suppressed" })));
-  add(s, "pinned", panelOf(specimenUnit("rifle", { suppression: "pinned" })));
-  add(s, "waiting", panelOf(specimenUnit("tank", { state: "waiting" })));
-  add(s, "route blocked", panelOf(specimenUnit("supply", { state: "route_blocked" })));
+  add(s, "suppressed", panelOf(specimenUnit(catalog, "rifle", { suppression: "suppressed" })));
+  add(s, "pinned", panelOf(specimenUnit(catalog, "rifle", { suppression: "pinned" })));
+  add(s, "waiting", panelOf(specimenUnit(catalog, "tank", { state: "waiting" })));
+  add(s, "route blocked", panelOf(specimenUnit(catalog, "supply", { state: "route_blocked" })));
 
   // The longest realistic panels.
   const c = "own, busiest";
@@ -320,6 +353,7 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
     "squad in a fight",
     panelOf(
       specimenUnit(
+        catalog,
         "rifle",
         {
           ...(inside("inside", 1) as Partial<OwnUnitView>),
@@ -337,7 +371,7 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
     c,
     "AT team pinned",
     panelOf(
-      specimenUnit("at", { suppression: "pinned", state: "waiting", service: "moving" }, [
+      specimenUnit(catalog, "at", { suppression: "pinned", state: "waiting", service: "moving" }, [
         {},
         { ammo: [1], reason: "no_own_sight" },
       ]),
@@ -347,7 +381,7 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
     c,
     "tank waiting, supply blocked",
     panelOf(
-      specimenUnit("tank", { state: "waiting", service: "firing" }, [
+      specimenUnit(catalog, "tank", { state: "waiting", service: "firing" }, [
         { loaded: null, reloading: 0, reload: 0.8, ammo: [2, 0], reason: "reloading" },
         { reason: "friendly_in_line" },
       ]),
@@ -356,23 +390,32 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
   add(
     c,
     "truck packing, stock low",
-    panelOf(specimenUnit("supply", { deployment: { progress: 0.8, target: "packed" }, stock: 55 })),
+    panelOf(
+      specimenUnit(catalog, "supply", {
+        deployment: { progress: 0.8, target: "packed" },
+        stock: 55,
+      }),
+    ),
   );
 
   // Selected beside unselected.
   for (const kind of ["rifle", "tank"]) {
-    const p = panelOf(specimenUnit(kind, {}, [{ target: TARGET, aim: 0.6, reason: "aiming" }]));
+    const p = panelOf(
+      specimenUnit(catalog, kind, {}, [{ target: TARGET, aim: 0.6, reason: "aiming" }]),
+    );
     add("selected / not", `${kind} selected`, p, "own", { selected: true });
     add("selected / not", `${kind} unselected`, p);
   }
 
   // The enemy: every type identified, every type last seen, every heard mix.
-  for (const kind of kinds) add("enemy identified", kind, enemyPanel(kind, rules), "enemy");
+  for (const kind of kinds)
+    add("enemy identified", kind, enemyPanel(catalog.units, kind, rules), "enemy");
   kinds.forEach((kind, i) =>
     add(
       "last seen",
       `${kind}, ${3 + i * 5} s ago`,
       contactPanel(
+        catalog.units,
         { source: "last_seen", kind, heard: [], evidenceTick: 0 },
         (3 + i * 5) * rules.tick_hz,
         rules,
@@ -393,6 +436,7 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
       "heard",
       heard.length ? heard.join(" + ") : "nothing named",
       contactPanel(
+        catalog.units,
         { source: "firing", kind: null, heard, evidenceTick: 0 },
         i * rules.tick_hz,
         rules,
@@ -406,17 +450,23 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
   add(
     far,
     "rifle, selected",
-    panelOf(specimenUnit("rifle", { suppression: "suppressed" })),
+    panelOf(specimenUnit(catalog, "rifle", { suppression: "suppressed" })),
     "own",
     {
       selected: true,
       zoom: "far",
     },
   );
-  add(far, "tank, selected", panelOf(specimenUnit("tank", {}, [{ ammo: [17, 15] }])), "own", {
-    selected: true,
-    zoom: "far",
-  });
+  add(
+    far,
+    "tank, selected",
+    panelOf(specimenUnit(catalog, "tank", {}, [{ ammo: [17, 15] }])),
+    "own",
+    {
+      selected: true,
+      zoom: "far",
+    },
+  );
   add(far, "truck, selected", panelOf(truckAt(1, "deployed", { stock: 412 })), "own", {
     selected: true,
     zoom: "far",

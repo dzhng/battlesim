@@ -6,7 +6,7 @@
 // known wreck burns, smoulders and goes out; a moving hull raises dust; every
 // life is bounded; what is drawn does not hang on how publications arrive;
 // reset clears everything.
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 import { expect, test } from "vitest";
 import game from "@fixtures/game.json";
 import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";

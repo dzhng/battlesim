@@ -8,6 +8,7 @@ import game from "@fixtures/game.json";
 import { InfoPanel, PanelCallout } from "@web/battle/present/infoPanel";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import { useEffect, useState } from "react";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { panelSpecimens, specimenUnit, type Specimen } from "../panelSpecimens";
 
 import { CommandBar } from "@web/battle/present/readouts";
@@ -45,7 +46,8 @@ export default function Panels() {
   useLabLoading("renderer", true);
   const params = new URLSearchParams(location.search);
   const scale = Number(params.get("scale") ?? 1) || 1;
-  const specimens = panelSpecimens(RULES);
+  const catalog = useSessionCatalog();
+  const specimens = panelSpecimens(catalog, RULES);
   const groups = [...new Set(specimens.map((s) => s.group))];
   useEffect(() => {
     window.__lab = { ready: true, fixture: "panels", error: null, frame: async () => {} };
@@ -87,32 +89,36 @@ export default function Panels() {
 
 /** The real selection and command components over controlled presentation data. */
 function DeckReview({ onBack }: { onBack: () => void }) {
+  const catalog = useSessionCatalog();
   const cases: {
     name: string;
     units: ReturnType<typeof specimenUnit>[];
     replay?: boolean;
     selected?: number[];
   }[] = [
-    { name: "Rifle squad", units: [specimenUnit("rifle")] },
-    { name: "Tank ammunition", units: [specimenUnit("tank")] },
+    { name: "Rifle squad", units: [specimenUnit(catalog, "rifle")] },
+    { name: "Tank ammunition", units: [specimenUnit(catalog, "tank")] },
     {
       name: "Suppressed and resupplying",
-      units: [specimenUnit("rifle", { suppression: "suppressed", service: "serving" })],
+      units: [specimenUnit(catalog, "rifle", { suppression: "suppressed", service: "serving" })],
     },
     {
       name: "Deploying supply truck",
       units: [
-        specimenUnit("supply", { deployment: { progress: 0.4, target: "deployed" }, stock: 250 }),
+        specimenUnit(catalog, "supply", {
+          deployment: { progress: 0.4, target: "deployed" },
+          stock: 250,
+        }),
       ],
     },
     {
       name: "Mixed capabilities",
-      units: [specimenUnit("tank", { id: 1 }), specimenUnit("supply", { id: 2 })],
+      units: [specimenUnit(catalog, "tank", { id: 1 }), specimenUnit(catalog, "supply", { id: 2 })],
     },
     {
       name: "Garrison exit",
       units: [
-        specimenUnit("rifle", {
+        specimenUnit(catalog, "rifle", {
           garrison: { building: 3, phase: "inside", progress: 1, center: [0, 0], half: [10, 10] },
         }),
       ],
@@ -120,7 +126,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     {
       name: "Large selection",
       units: ["tank", "rifle", "at", "supply", "recon", "jeep"].map((kind, id) =>
-        specimenUnit(kind, { id }),
+        specimenUnit(catalog, kind, { id }),
       ),
     },
     {
@@ -138,21 +144,21 @@ function DeckReview({ onBack }: { onBack: () => void }) {
         "rifle",
         "recon",
         "supply",
-      ].map((kind, id) => specimenUnit(kind, { id: id + 1 })),
+      ].map((kind, id) => specimenUnit(catalog, kind, { id: id + 1 })),
       selected: [1, 2, 3, 4, 5, 6],
     },
     {
       name: "Entire force",
       units: Array.from({ length: 48 }, (_, id) =>
-        specimenUnit("rifle", { id, suppression: "suppressed", service: "serving" }),
+        specimenUnit(catalog, "rifle", { id, suppression: "suppressed", service: "serving" }),
       ),
     },
     {
       name: "No selection",
-      units: [specimenUnit("rifle"), specimenUnit("tank", { id: 2 })],
+      units: [specimenUnit(catalog, "rifle"), specimenUnit(catalog, "tank", { id: 2 })],
       selected: [],
     },
-    { name: "Replay", units: [specimenUnit("tank")], replay: true },
+    { name: "Replay", units: [specimenUnit(catalog, "tank")], replay: true },
   ];
   const [chosen, setChosen] = useState(0);
   const [mode, setMode] = useState<Parameters<typeof CommandBar>[0]["control"]["mode"]>("move");

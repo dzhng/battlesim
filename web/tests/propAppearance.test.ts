@@ -21,7 +21,7 @@ import {
 } from "@packages/battle-renderer/src/models/propAppearance.ts";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances.ts";
 import { modelFog } from "@packages/battle-renderer/src/models/modelFog.ts";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits.ts";
+import { UNITS } from "./catalog";
 
 const bundle = (...states: string[]): StaticBundle => {
   const bounds = { min: [0, 0, 0] as Vec3, max: [1, 1, 1] as Vec3 };

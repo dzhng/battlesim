@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
 import { createRef } from "react";
-import { render, cleanup } from "@testing-library/react";
+import { render as renderView, cleanup } from "@testing-library/react";
+import { WithTestCatalog } from "./catalog";
 import { afterEach, expect, test } from "vitest";
 import game from "@fixtures/game.json";
 import { ReadoutLayer, type ReadoutLayerHandle } from "../src/battle/present/readouts";
 import type { ContactView } from "../src/battle/sim/observation";
 import type { PanelRules } from "../src/battle/present/panelRows";
+
+/** Views render under the test set, as a lab page provides it. */
+const render = (ui: Parameters<typeof renderView>[0]) =>
+  renderView(ui, { wrapper: WithTestCatalog });
 
 afterEach(cleanup);
 const camera: import("@packages/renderer-core/src/camera3d").Camera3DParams = {

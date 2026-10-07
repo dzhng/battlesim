@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES } from "./catalog";
 
 // No GPU device or drawing: this tests the real worker ownership boundary.
 test("a preparation worker becomes the battle authority and replays its commands", async () => {
@@ -146,6 +146,17 @@ test("a preparation worker becomes the battle authority and replays its commands
             );
             const renderScreen = (screen: unknown) =>
               uiRoot.render(createElement(BrowserVisit, null, screen));
+            // A route renders under its page's catalog, as the router scopes it.
+            const { catalogSet } = await importModule(`${root}/battle/catalog/sets.ts`);
+            const { SessionCatalogProvider } = await importModule(
+              `${root}/battle/catalog/context.tsx`,
+            );
+            const [gameCatalog, testCatalog] = await Promise.all([
+              catalogSet("game"),
+              catalogSet("test"),
+            ]);
+            const scoped = (catalog: unknown, page: unknown) =>
+              createElement(SessionCatalogProvider, { catalog }, page);
             let imported: unknown = null;
             renderScreen(
               createElement(ReplayImport, {
@@ -196,7 +207,7 @@ test("a preparation worker becomes the battle authority and replays its commands
                 if (host.querySelector('a[href^="/battle"], a[href^="/replay"]'))
                   throw new Error("pending storage guessed a replay viewer");
                 window.history.replaceState(null, "", "/battle?replay=saved");
-                renderScreen(createElement(Battle));
+                renderScreen(scoped(gameCatalog, createElement(Battle)));
                 while (!host.querySelector('[data-testid="loading"]')) await wait();
                 if (host.querySelector('input[type="file"]'))
                   throw new Error("pending replay looked absent");
@@ -207,7 +218,7 @@ test("a preparation worker becomes the battle authority and replays its commands
                 await shot("prepared-pulse-high");
                 pulse.currentTime = Number(pulse.effect!.getComputedTiming().duration) / 2;
                 await shot("prepared-pulse-low");
-                renderScreen(createElement(VillageReplay));
+                renderScreen(scoped(testCatalog, createElement(VillageReplay)));
                 await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
                 if (
                   !host.querySelector('[data-testid="loading"]') ||
@@ -276,7 +287,7 @@ test("a preparation worker becomes the battle authority and replays its commands
       },
       {
         documents,
-        rules: JSON.stringify(GAME_RULES),
+        rules: JSON.stringify(TEST_RULES),
         root: `/@fs/${fileURLToPath(new URL("../src", import.meta.url))}`,
       },
     );

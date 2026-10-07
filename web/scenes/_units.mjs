@@ -1,10 +1,11 @@
 // The fixtures as the scenes read them: the game's rules and presentation
 // (`fixtures/game.json`), its map, resolved from the saved catalogue, and
-// the catalog, the simulation's resolved view
-// (`fixtures/catalog.json`), unit and prop types by id. The derived questions mirror
+// the test catalog (the game's units and the test units labs field), the
+// simulation's resolved view, unit and prop types by id. The derived questions mirror
 // `packages/scene-assets/src/units.ts`, answered from a type's components.
 import { readFile } from "node:fs/promises";
 import { loadMap } from "../src/maps/node.ts";
+import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
 
 /** `fixtures/game.json`. */
 export const game = JSON.parse(
@@ -26,9 +27,7 @@ export function curvePitch(distance) {
   return curve.at(-1)[1];
 }
 
-const view = JSON.parse(
-  await readFile(new URL("../../fixtures/catalog.json", import.meta.url), "utf8"),
-);
+const { view } = (await nodeCatalogSet("test")).units;
 const byId = new Map(view.units.map((t) => [t.id, t]));
 
 /** The resolved type `id`. */

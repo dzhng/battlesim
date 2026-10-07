@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { UNITS } from "./catalog";
 import { buildDestinationPreview } from "@packages/battle-renderer/src/orderOverlay";
 import { gameOrderStyle, gameStroke } from "@apps/battle-lab/src/gameOverlay";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
@@ -35,7 +36,7 @@ test("the held destination marker keeps its anchor while its arrow follows facin
 
 test("pointer paint clears the preview when the gesture ends", async () => {
   const { PointerPaint } = await import("@apps/battle-lab/src/pointerPaint");
-  const paint = new PointerPaint();
+  const paint = new PointerPaint(UNITS);
   const mark = { unit: 1, placed: true, opacity: 1, c: [100, 200] as const, r: 8, facing: 0 };
   paint.update(null, [mark], () => 0, 0.05);
   const east = paint.feed.current;
@@ -48,7 +49,7 @@ test("pointer paint clears the preview when the gesture ends", async () => {
 
 test("placement queries coalesce cursor updates and a cancelled reply cannot restore markers", async () => {
   const { PointerPaint } = await import("@apps/battle-lab/src/pointerPaint");
-  const paint = new PointerPaint();
+  const paint = new PointerPaint(UNITS);
   const selected = [
     { id: 1, kind: "tank", position: [0, 0, 0], members: [], area: null, garrison: null },
   ] as unknown as import("../src/battle/sim/observation").OwnUnitView[];
@@ -103,7 +104,7 @@ test("a rejected destination paints no destination marker", () => {
 
 test("a cancelled query cannot paint a new press at the same anchor", async () => {
   const { PointerPaint } = await import("@apps/battle-lab/src/pointerPaint");
-  const paint = new PointerPaint();
+  const paint = new PointerPaint(UNITS);
   const own = [
     { id: 1, kind: "tank", position: [0, 0, 0], members: [], area: null, garrison: null },
   ] as unknown as import("../src/battle/sim/observation").OwnUnitView[];
@@ -130,7 +131,7 @@ test("a cancelled query cannot paint a new press at the same anchor", async () =
 
 test("pointer paint reveals only accepted destinations from a partially blocked group", async () => {
   const { PointerPaint } = await import("@apps/battle-lab/src/pointerPaint");
-  const paint = new PointerPaint();
+  const paint = new PointerPaint(UNITS);
   const own = [1, 2].map((id) => ({
     id,
     kind: "tank",
@@ -153,7 +154,7 @@ test("pointer paint reveals only accepted destinations from a partially blocked 
 
 test("a changed building cannot inherit a late entry result, and fallback displays its accepted moves", async () => {
   const { PointerPaint } = await import("@apps/battle-lab/src/pointerPaint");
-  const paint = new PointerPaint();
+  const paint = new PointerPaint(UNITS);
   const own = [
     { id: 1, kind: "tank", position: [0, 0, 0], members: [], area: null, garrison: null },
     { id: 2, kind: "rifle", position: [0, 0, 0], members: [], area: null, garrison: null },
@@ -201,7 +202,7 @@ test("a changed building cannot inherit a late entry result, and fallback displa
 test("a building cursor keeps a current certificate during tick refresh, clears changed intent immediately, and shows plain fallback", async () => {
   const { PointerPaint, cursorForIntent, previewForIntent } =
     await import("@apps/battle-lab/src/pointerPaint");
-  const paint = new PointerPaint();
+  const paint = new PointerPaint(UNITS);
   const own = [1, 2].map((id) => ({
     id,
     kind: "rifle",
@@ -253,7 +254,7 @@ test.each(["clearing", "epoch replacement"] as const)(
   async (change) => {
     const { PointerPaint, cursorForIntent, previewForIntent, previewContextIdentity } =
       await import("@apps/battle-lab/src/pointerPaint");
-    const paint = new PointerPaint();
+    const paint = new PointerPaint(UNITS);
     const own = [
       { id: 1, kind: "rifle", position: [0, 0, 0], members: [], area: null, garrison: null },
     ] as unknown as import("../src/battle/sim/observation").OwnUnitView[];
@@ -351,7 +352,7 @@ test("unproven movement and building searches keep the cursor plain, while a kno
     [building, true, "default"],
     [building, false, "blocked"],
   ] as const) {
-    const paint = new PointerPaint();
+    const paint = new PointerPaint(UNITS);
     const client = {
       previewMove: async () => [],
       previewBuilding: async () => ({ building: 7, entrant: null, destinations: [], unproven }),

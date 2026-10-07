@@ -2,7 +2,7 @@
 import { expect, test } from "vitest";
 import { readFileSync } from "node:fs";
 import { initSync, Battle } from "@wasm/game_wasm.js";
-import { labScenario } from "@apps/battle-lab/src/scenarios";
+import { labScenario, UNITS } from "./catalog";
 import { loadMap } from "@web/maps/node";
 import type { ObservationLayout } from "../src/battle/sim/observation";
 import { easeNudge } from "../src/battle/present/readouts";
@@ -54,7 +54,7 @@ test("every published action reason has player words and a mark, and every garri
   const rules = { tick_hz: 30, weapons: {}, service: { radius_m: 1 } } as PanelRules;
   for (const phase of phases) {
     const u = { garrison: { phase, progress: 0.5 }, suppression: "none", service: "", stock: null };
-    expect(ownStateRows(u as unknown as OwnUnitView, [], rules), phase).toHaveLength(1);
+    expect(ownStateRows(UNITS, u as unknown as OwnUnitView, [], rules), phase).toHaveLength(1);
   }
 });
 

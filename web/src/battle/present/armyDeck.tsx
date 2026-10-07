@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type ReactNode } from "react";
 import type { OwnUnitView } from "../sim/observation";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { useSessionCatalog } from "../catalog/context";
 import { unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { InfoPanel } from "./infoPanel";
@@ -25,6 +25,7 @@ export function ArmyDeck({
   captions: ReactNode;
   reinforcements?: ReactNode;
 }) {
+  const { units } = useSessionCatalog();
   const lower = useRef<HTMLDivElement>(null);
   const [hintHost, setHintHost] = useState<HTMLDivElement | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
@@ -54,7 +55,10 @@ export function ArmyDeck({
             style={{ left: detailX }}
           >
             <InfoPanel
-              panel={{ ...ownPanel(detail, own, rules), name: `${unitName(detail)} #${detail.id}` }}
+              panel={{
+                ...ownPanel(units, detail, own, rules),
+                name: `${unitName(units, detail)} #${detail.id}`,
+              }}
             />
           </div>
         </div>
@@ -76,9 +80,9 @@ export function ArmyDeck({
             }}
           >
             {own.map((unit) => {
-              const { role, silhouette } = unitIcons(UNITS.type(unit.kind));
-              const name = `${unitName(unit)} #${unit.id}`;
-              const strength = unitStrength(unit);
+              const { role, silhouette } = unitIcons(units.type(unit.kind));
+              const name = `${unitName(units, unit)} #${unit.id}`;
+              const strength = unitStrength(units, unit);
               return (
                 <button
                   type="button"

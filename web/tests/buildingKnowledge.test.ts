@@ -8,7 +8,8 @@ import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { knownFallen } from "@apps/battle-lab/src/destroyedBuildings";
 import { effectPublication, gameEffects } from "@apps/battle-lab/src/effectFeed";
-import { GAME_RULES, labScenario, type LabEncounter } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES, labScenario } from "./catalog";
+import { type LabEncounter } from "@apps/battle-lab/src/scenarios";
 import { Battle, initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
 import {
   indexBuildings,
@@ -26,7 +27,7 @@ import {
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh";
 import { buildingCollapse } from "@packages/scene-assets/src/authority";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 import { ruinHeight } from "@packages/scene-assets/src/templateSource";
 import { loadEncounter, loadMap } from "@web/maps/node";
 import {
@@ -63,7 +64,7 @@ interface Played {
 /** The camera lab's map with `encounter` on it, as a battle. */
 function play(encounter: LabEncounter): Played {
   const map = loadMap("camera-lab").definition;
-  const rules = JSON.stringify(GAME_RULES);
+  const rules = JSON.stringify(TEST_RULES);
   const view = new WorldView(JSON.stringify(map), rules);
   const layout = JSON.parse(world_layout(rules)) as WorldLayout;
   const exports = readWorldExports(view);
@@ -114,7 +115,8 @@ test("a side knows a building collapsed or gutted once it has seen it, and intac
   const battle = play(encounter);
   try {
     const [compound, tower] = [battle.building(COMPOUND), battle.building(TOWER)];
-    const drawn = (side: "blue" | "red") => knownFallen(battle.index, battle.sees(side).knownProps);
+    const drawn = (side: "blue" | "red") =>
+      knownFallen(UNITS, battle.index, battle.sees(side).knownProps);
     // Before a round lands, both sides know the map.
     battle.to(30);
     expect(drawn("blue")).toEqual([]);
@@ -253,7 +255,9 @@ test("a side that sees part of a compound come down knows the whole building a r
     battle.to(lastBurst(encounter) + 30);
     expect(outOfSight()).toEqual(hidden);
     const known = battle.sees("blue").knownProps;
-    expect(knownFallen(battle.index, known)).toEqual([{ building: compound, state: "ruin" }]);
+    expect(knownFallen(UNITS, battle.index, known)).toEqual([
+      { building: compound, state: "ruin" },
+    ]);
     // Every part is published, the hidden one too: the simulation ends a
     // building whole, and seeing a part of it reveals all of it.
     expect(known.map((k) => k.authoredProp).sort()).toEqual(parts.map((p) => p.id).sort());

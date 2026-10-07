@@ -13,7 +13,7 @@ import {
   type Side,
   type TextureChannel,
 } from "@packages/scene-assets/src/schema";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery";
 import type { LooseOptions } from "@packages/scene-assets/src/loose";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
@@ -51,7 +51,6 @@ import {
 } from "../workbench/sources";
 import { gamePose } from "../poseFeed";
 import game from "@fixtures/game.json";
-import rosterCatalog from "@fixtures/catalog.json";
 import modelManifest from "@fixtures/units/model-manifest.json";
 import {
   WORKBENCH_CAMERA,
@@ -140,6 +139,9 @@ function initialPose(model: LoadedModel | null): ModelPose | null {
 }
 
 export default function Workbench() {
+  // The test set: test units' art is judged here as roster art is.
+  const session = useSessionCatalog();
+  const { units } = session;
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const [catalog, setCatalog] = useState<InstalledAppearances | null>(null);
   const [model, setModel] = useState<LoadedModel | null>(null);
@@ -201,13 +203,13 @@ export default function Workbench() {
   const catalogRows = useMemo(() => {
     if (!catalog) return [];
     const seen = new Set<string>();
-    return rosterCatalog.cards.flatMap((card) => {
+    return units.cards.flatMap((card) => {
       const manifest = modelManifest.entries.find((entry) => entry.id === card.id);
-      const type = UNITS.ids.includes(card.id) ? UNITS.type(card.id) : null;
+      const type = units.ids.includes(card.id) ? units.type(card.id) : null;
       const candidates = type?.appearance
         ? [type.appearance]
         : type
-          ? [...new Set(UNITS.slots(card.id).flatMap((kind) => UNITS.soldier(kind).appearance))]
+          ? [...new Set(units.slots(card.id).flatMap((kind) => units.soldier(kind).appearance))]
           : [];
       const appearance = candidates.find((name) => catalog.appearances.has(name)) ?? null;
       const key = `${card.id}|${appearance ?? manifest?.source_path ?? "missing"}`;
@@ -235,15 +237,15 @@ export default function Workbench() {
         },
       ];
     });
-  }, [catalog]);
+  }, [catalog, units]);
 
   // The replay drives the unit type the model is fitted to, its mounts drawn
   // by the rigs the model declares.
   const replay = useMemo((): ReplayUnit | null => {
     if (!model?.type || UNIT_BUNDLE_KIND[model.unit] === "static") return null;
     const draws = model.installed.appearances.get(model.name)?.mounts;
-    return { kind: model.type, mounts: mountRoles(UNITS.type(model.type), draws) };
-  }, [model]);
+    return { kind: model.type, mounts: mountRoles(units.type(model.type), draws), units };
+  }, [model, units]);
 
   // The pose driver, fed by the replay; rebuilt per model. The model on the
   // bench plays every kind the replay drives, so its clips and rigs answer
@@ -252,7 +254,7 @@ export default function Workbench() {
     const facts = skeleton;
     const mounts = replay?.mounts ?? [];
     return new PoseDriver({
-      units: UNITS,
+      units,
       mounts: () => mounts,
       feel: gamePose,
       leanHold: game.cover.lean_hold_s,
@@ -263,7 +265,7 @@ export default function Workbench() {
           : null;
       },
     });
-  }, [skeleton, replay]);
+  }, [skeleton, replay, units]);
 
   const feedModels = useCallback(
     (t: number): ModelInstance[] => {
@@ -369,7 +371,7 @@ export default function Workbench() {
     async (name: string, bytes: Uint8Array, opts: typeof options) => {
       setBusy(true);
       try {
-        const next = await loadDropped(name, bytes, {
+        const next = await loadDropped(session, name, bytes, {
           unit: opts.unit === "auto" ? undefined : opts.unit,
           type: opts.type === "auto" ? undefined : opts.type,
           scenery: opts.unit === "scenery" ? opts.scenery : undefined,
@@ -383,7 +385,7 @@ export default function Workbench() {
         setBusy(false);
       }
     },
-    [install],
+    [install, session],
   );
 
   const onFile = useCallback(
@@ -395,11 +397,14 @@ export default function Workbench() {
     [loadBytes, options],
   );
 
-  const reloadCatalog = useCallback(async (fresh = false) => {
-    const installed = await loadCatalog(fresh);
-    setCatalog(installed);
-    return installed;
-  }, []);
+  const reloadCatalog = useCallback(
+    async (fresh = false) => {
+      const installed = await loadCatalog(session.rules, fresh);
+      setCatalog(installed);
+      return installed;
+    },
+    [session.rules],
+  );
 
   // The runtime catalog, and `?bundle=` naming one of its appearances.
   useEffect(() => {
@@ -407,12 +412,12 @@ export default function Workbench() {
       .then(async (installed) => {
         const name = params.get("bundle");
         if (!name) return;
-        const found = await catalogModel(installed, name);
+        const found = await catalogModel(units, installed, name);
         if (found) install(found);
         else setError(`no appearance "${name}" in the runtime catalog`);
       })
       .catch((e) => setError(`runtime catalog: ${e instanceof Error ? e.message : String(e)}`));
-  }, [params, reloadCatalog, install]);
+  }, [params, reloadCatalog, install, units]);
 
   // Hot reload: the dev server re-bakes on a source change and says so.
   useEffect(() => {
@@ -426,12 +431,12 @@ export default function Workbench() {
       const installed = await reloadCatalog(true);
       const shown = latest.current.model;
       if (shown?.source !== "catalog") return;
-      const rebaked = await catalogModel(installed, shown.name);
+      const rebaked = await catalogModel(units, installed, shown.name);
       setModel((current) => (current === shown ? (rebaked ?? current) : current));
     };
     hot.on("assets:rebaked", onRebaked);
     return () => hot.off("assets:rebaked", onRebaked);
-  }, [reloadCatalog]);
+  }, [reloadCatalog, units]);
 
   const setCamera = useCallback(
     (v: WorkbenchView) => {
@@ -482,12 +487,12 @@ export default function Workbench() {
         if (catalogAttempted.current.has(row.id)) continue;
         catalogAttempted.current.add(row.id);
         try {
-          let next = row.appearance ? await catalogModel(catalog, row.appearance) : null;
+          let next = row.appearance ? await catalogModel(units, catalog, row.appearance) : null;
           if (!next && row.sourcePath) {
             const response = await fetch(`/${row.sourcePath}`);
             if (!response.ok) throw new Error(`model source returned ${response.status}`);
             const bytes = new Uint8Array(await response.arrayBuffer());
-            next = await loadDropped(row.id, bytes, {
+            next = await loadDropped(session, row.id, bytes, {
               unit: row.sourceKind === "infantry" ? "soldier" : "vehicle",
               loops: INFANTRY_LOOPS,
             });
@@ -516,7 +521,7 @@ export default function Workbench() {
       catalogRendering.current = false;
       setCatalogBusy(false);
     }
-  }, [catalog, catalogRows, side]);
+  }, [catalog, catalogRows, side, session, units]);
 
   useEffect(() => {
     if (catalogOpen && catalogRows.length) void renderCatalog();
@@ -549,7 +554,7 @@ export default function Workbench() {
     const handle: WorkbenchHandle = {
       async drop(name, bytes, opts = {}) {
         dropped.current = { name, bytes };
-        const next = await loadDropped(name, bytes, {
+        const next = await loadDropped(session, name, bytes, {
           loops: INFANTRY_LOOPS,
           ...opts,
         });
@@ -558,7 +563,7 @@ export default function Workbench() {
       },
       async select(name) {
         const installed = latest.current.catalog ?? (await reloadCatalog());
-        const found = await catalogModel(installed, name);
+        const found = await catalogModel(units, installed, name);
         if (!found) throw new Error(`no appearance ${name}`);
         install(found);
         await installedOnGpu(name);
@@ -664,7 +669,7 @@ export default function Workbench() {
     return () => {
       if (window.__workbench === handle) delete window.__workbench;
     };
-  }, [install, reloadCatalog, setCamera, driver, replay]);
+  }, [install, reloadCatalog, setCamera, driver, replay, session, units]);
 
   const initialCamera = useMemo(
     () => viewCamera("q-front", { min: [-1, -1, 0], max: [1, 1, 2] }),
@@ -771,7 +776,7 @@ export default function Workbench() {
               }}
             >
               <option value="auto">auto</option>
-              {UNITS.ids.map((id) => (
+              {units.ids.map((id) => (
                 <option key={id} value={id}>
                   {id}
                 </option>
@@ -828,7 +833,7 @@ export default function Workbench() {
             <select
               value={model?.source === "catalog" ? model.name : ""}
               onChange={(e) => {
-                void catalogModel(catalog, e.target.value).then(
+                void catalogModel(units, catalog, e.target.value).then(
                   (found) => found && install(found),
                   (error: unknown) =>
                     setError(error instanceof Error ? error.message : String(error)),
@@ -1184,7 +1189,7 @@ export default function Workbench() {
                   const cached = catalogModels[row.id];
                   if (cached) install(cached);
                   else if (row.appearance)
-                    void catalogModel(catalog, row.appearance).then(
+                    void catalogModel(units, catalog, row.appearance).then(
                       (found) => found && install(found),
                     );
                   setCatalogOpen(false);

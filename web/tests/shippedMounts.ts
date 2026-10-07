@@ -2,7 +2,7 @@
 // appearance catalog, for tests that pose units without installing bundles.
 import catalog from "../../assets/catalog.json";
 import type { Catalog } from "@packages/scene-assets/src/schema";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 import { mountRoles, type MountRole } from "@packages/scene-assets/src/units";
 
 const appearances = (catalog as unknown as Catalog).appearances;

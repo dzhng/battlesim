@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 import { expect, test } from "vitest";
 import game from "@fixtures/game.json";
 import { inReverseZone } from "../src/battle/input/reverseZone";
@@ -25,20 +25,22 @@ function behind(yaw: number, back: number, side: number, at: [number, number] = 
 test("a point in the strip behind a single vehicle is in the zone, whatever its facing", () => {
   for (const yaw of [0, 1, Math.PI, -2.5]) {
     const tank = unit("tank", yaw);
-    expect(inReverseZone([tank], behind(yaw, 10, 0))).toBe(true);
-    expect(inReverseZone([tank], behind(yaw, length - 0.1, halfWidth + margin - 0.1))).toBe(true);
+    expect(inReverseZone(UNITS, [tank], behind(yaw, 10, 0))).toBe(true);
+    expect(inReverseZone(UNITS, [tank], behind(yaw, length - 0.1, halfWidth + margin - 0.1))).toBe(
+      true,
+    );
   }
 });
 
 test("past the strip's end or sides, or in front, is outside the zone", () => {
   const tank = unit("tank", 0.7);
-  expect(inReverseZone([tank], behind(0.7, length + 0.5, 0))).toBe(false);
-  expect(inReverseZone([tank], behind(0.7, 10, halfWidth + margin + 0.5))).toBe(false);
-  expect(inReverseZone([tank], behind(0.7, -2 * halfLength - 10, 0))).toBe(false);
+  expect(inReverseZone(UNITS, [tank], behind(0.7, length + 0.5, 0))).toBe(false);
+  expect(inReverseZone(UNITS, [tank], behind(0.7, 10, halfWidth + margin + 0.5))).toBe(false);
+  expect(inReverseZone(UNITS, [tank], behind(0.7, -2 * halfLength - 10, 0))).toBe(false);
 });
 
 test("two selected units, or a squad, never reverse", () => {
   const tank = unit("tank", 0);
-  expect(inReverseZone([tank, unit("tank", 0, [100, 60])], behind(0, 10, 0))).toBe(false);
-  expect(inReverseZone([unit("rifle", 0)], behind(0, 10, 0))).toBe(false);
+  expect(inReverseZone(UNITS, [tank, unit("tank", 0, [100, 60])], behind(0, 10, 0))).toBe(false);
+  expect(inReverseZone(UNITS, [unit("rifle", 0)], behind(0, 10, 0))).toBe(false);
 });

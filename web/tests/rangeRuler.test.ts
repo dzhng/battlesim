@@ -3,7 +3,7 @@
 // distance as the range check measures it, and where each reach ends.
 import { expect, test } from "vitest";
 import game from "@fixtures/game.json";
-import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS, WEAPONS } from "./catalog";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 import {
   buildRangeRuler,

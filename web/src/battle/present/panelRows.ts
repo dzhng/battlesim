@@ -12,8 +12,7 @@
  *  - A contact's panel (`contactPanel`): its remembered type's name and weapons,
  *    or UNKNOWN and what was heard, and how long ago. */
 import { stateIcon, weaponIcon, type StateIcon } from "@packages/scene-assets/src/icons";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
-import type { MountRow } from "@packages/scene-assets/src/units";
+import type { MountRow, UnitCatalog } from "@packages/scene-assets/src/units";
 import type { ContactView, MountView, OwnUnitView } from "../sim/observation";
 
 /** The rule blocks the panels read (the scenario's). */
@@ -148,6 +147,7 @@ function supplying(truck: OwnUnitView, own: readonly OwnUnitView[], rules: Panel
  *  Suppression is the published tier's word alone (SUPPRESSED, PINNED):
  *  the sim owns the thresholds, and the level under them stays hidden. */
 export function ownStateRows(
+  units: UnitCatalog,
   u: OwnUnitView,
   own: readonly OwnUnitView[],
   rules: PanelRules,
@@ -162,7 +162,7 @@ export function ownStateRows(
   if (u.state === "waiting") rows.push(row("waiting"));
   if (u.state === "route_blocked") rows.push(row("route_blocked"));
   if (u.stock !== null) {
-    const full = UNITS.has(u.kind) ? UNITS.type(u.kind).capabilities?.supply?.stock : undefined;
+    const full = units.type(u.kind).capabilities?.supply?.stock;
     rows.push(
       row(u.stock > 0 ? "stock" : "stock_empty", {
         n: u.stock,
@@ -370,10 +370,13 @@ export function weaponLabel(w: Pick<WeaponRow, "name" | "kinds">): string {
 /** Strength in [0, 1]: a vehicle's hit points, or a squad's soldiers' health
  *  against the full squad (each slot's soldier kind), so losses show as well
  *  as wounds. A squad a battle started tougher than its type reads full. */
-export function unitStrength(u: Pick<OwnUnitView, "kind" | "hp" | "memberHp">): number {
-  const hull = UNITS.hull(u.kind);
+export function unitStrength(
+  units: UnitCatalog,
+  u: Pick<OwnUnitView, "kind" | "hp" | "memberHp">,
+): number {
+  const hull = units.hull(u.kind);
   if (hull) return u.hp / hull.hp;
-  const full = UNITS.slots(u.kind).reduce((sum, kind) => sum + UNITS.soldier(kind).hp, 0);
+  const full = units.slots(u.kind).reduce((sum, kind) => sum + units.soldier(kind).hp, 0);
   return Math.min(1, u.memberHp.reduce((a, b) => a + b, 0) / (full || 1));
 }
 
@@ -394,28 +397,28 @@ export interface Panel {
 
 /** An own unit's panel. `own` is the side's own units (a truck's
  *  supplying reads them). */
-export function ownPanel(u: OwnUnitView, own: readonly OwnUnitView[], rules: PanelRules): Panel {
+export function ownPanel(
+  units: UnitCatalog,
+  u: OwnUnitView,
+  own: readonly OwnUnitView[],
+  rules: PanelRules,
+): Panel {
+  const t = units.type(u.kind);
   return {
-    name: UNITS.type(u.kind).name.toUpperCase(),
-    strength: unitStrength(u),
+    name: t.name.toUpperCase(),
+    strength: unitStrength(units, u),
     personnel: u.memberHp.length ? u.memberHp.filter((hp) => hp > 0).length : undefined,
     mark: null,
-    weapons: weaponRows(
-      UNITS.type(u.kind).mounts,
-      rules,
-      u.mounts,
-      UNITS.type(u.kind).capabilities.active_protection,
-      u.protection,
-    ),
-    states: ownStateRows(u, own, rules),
+    weapons: weaponRows(t.mounts, rules, u.mounts, t.capabilities.active_protection, u.protection),
+    states: ownStateRows(units, u, own, rules),
   };
 }
 
 /** An identified enemy's panel: its type's name and every mount's weapon
  *  types, from the catalog alone. The observation says nothing of its
  *  ammunition, health or timers, and neither does this. */
-export function enemyPanel(kind: string, rules: PanelRules): Panel {
-  const t = UNITS.type(kind);
+export function enemyPanel(units: UnitCatalog, kind: string, rules: PanelRules): Panel {
+  const t = units.type(kind);
   return {
     name: t.name.toUpperCase(),
     strength: null,
@@ -427,8 +430,12 @@ export function enemyPanel(kind: string, rules: PanelRules): Panel {
 
 /** The weapon types a firing report heard: each heard row under the first
  *  catalog mount that fires it, named as that mount would be, once. */
-export function heardWeapons(heard: readonly string[], rules: PanelRules): WeaponRow[] {
-  const mounts = UNITS.view.units.flatMap((t) => t.mounts);
+export function heardWeapons(
+  units: UnitCatalog,
+  heard: readonly string[],
+  rules: PanelRules,
+): WeaponRow[] {
+  const mounts = units.view.units.flatMap((t) => t.mounts);
   const tags = new Map<string, WeaponRow>();
   for (const r of heard) {
     const m = mounts.find((m) => m.weapons.includes(r));
@@ -445,6 +452,7 @@ const since = (now: number, tick: number, rules: PanelRules) =>
 
 /** Remembered type or heard weapons, with the latest evidence's age. */
 export function contactPanel(
+  units: UnitCatalog,
   c: Pick<ContactView, "source" | "kind" | "heard" | "evidenceTick">,
   now: number,
   rules: PanelRules,
@@ -452,14 +460,14 @@ export function contactPanel(
   const ago = since(now, c.evidenceTick, rules);
   if (c.kind)
     return {
-      ...enemyPanel(c.kind, rules),
+      ...enemyPanel(units, c.kind, rules),
       states: [row(c.source === "last_seen" ? "last_seen" : "heard", { n: ago })],
     };
   return {
     name: "UNKNOWN",
     strength: null,
     mark: stateIcon("unknown"),
-    weapons: heardWeapons(c.heard, rules),
+    weapons: heardWeapons(units, c.heard, rules),
     states: [row("heard", { n: ago })],
   };
 }

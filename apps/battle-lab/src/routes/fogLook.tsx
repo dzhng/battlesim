@@ -21,7 +21,7 @@ import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { FrameView } from "@packages/battle-renderer/src/scene";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import game from "@fixtures/game.json";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { contactLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
@@ -47,26 +47,26 @@ const lightFor = (sun: Sun, bloom: boolean): LightPresentation => ({
 /** A contact's radius as the simulation sizes it (`Unit::contact_radius`):
  *  the fixture's factor over its cause's catalog footprint, a hull's
  *  half-diagonal or half a full squad's spread plus a soldier's body. */
-function contactRadius(kind: string): number {
-  const hull = UNITS.hull(kind);
+function contactRadius(units: UnitCatalog, kind: string): number {
+  const hull = units.hull(kind);
   const m = game.infantry_movement;
   const footprint = hull
     ? Math.hypot(hull.half_extents_m[0], hull.half_extents_m[1])
-    : (m.spread_m * Math.sqrt(UNITS.slots(kind).length / m.spread_squad_size)) / 2 +
+    : (m.spread_m * Math.sqrt(units.slots(kind).length / m.spread_squad_size)) / 2 +
       game.physics.soldier_radius_m;
   return game.sensors.contact_radius_factor * footprint;
 }
 
 /** Material specimens at infantry and vehicle uncertainty scales. */
-const SPECIMENS: ContactShape[] = [
+const specimensOf = (units: UnitCatalog): ContactShape[] => [
   {
     center: [1120, 930],
-    radius: contactRadius("rifle"),
+    radius: contactRadius(units, "rifle"),
     opacity: 1,
   },
   {
     center: [1260, 700],
-    radius: contactRadius("tank"),
+    radius: contactRadius(units, "tank"),
     opacity: 0.6,
   },
 ];
@@ -117,6 +117,7 @@ export default function FogLook() {
 function FogLookLab({ scenario }: { scenario: string }) {
   const session = useBattleSession({ scenario, seed: STREET_SEED, destroyable: "apart" });
   const { meshes, sim, surfaceZ } = session;
+  const specimenShapes = useMemo(() => specimensOf(session.units), [session.units]);
   const { observation } = sim;
   const [styles, setStyles] = useState<FogPresentation["styles"]>(() =>
     structuredClone(gameFogPresentation.styles),
@@ -152,14 +153,14 @@ function FogLookLab({ scenario }: { scenario: string }) {
   const fogFeed = useFeed(fog);
   const overlay = useMemo(() => {
     const battle = contactLayer(session.contacts, surfaceZ);
-    const shown = specimens ? buildContactGlyphs(SPECIMENS, surfaceZ, gameContactStyle) : null;
+    const shown = specimens ? buildContactGlyphs(specimenShapes, surfaceZ, gameContactStyle) : null;
     return {
       opaque: battle.opaque,
       translucent: concatMeshes(
         shown ? [battle.translucent, shown.translucent] : [battle.translucent],
       ),
     };
-  }, [surfaceZ, specimens, session.contacts]);
+  }, [surfaceZ, specimens, specimenShapes, session.contacts]);
   const overlayFeed = useFeed(overlay);
 
   const show = (next: FrameView) => {
@@ -179,7 +180,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
     setEyes,
     setSpecimens,
     setGrass,
-    specimens: () => SPECIMENS,
+    specimens: () => specimenShapes,
     showMask: (on: boolean) => show(on ? "fog-mask" : "final"),
     showWorld: (on: boolean) => show(on ? "world" : "final"),
     /** White where a pixel is mostly ground (terrain and grass), black elsewhere. */

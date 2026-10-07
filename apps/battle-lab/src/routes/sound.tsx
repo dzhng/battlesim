@@ -1,3 +1,4 @@
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { Link } from "react-router";
 // The sound lab: a scripted eight-second firefight rendered offline through
 // the battle's audio graph, to listen to here and to measure in the scene
@@ -68,17 +69,18 @@ declare global {
 }
 
 export default function Sound() {
+  const { units } = useSessionCatalog();
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     window.__sound = {
       ready: true,
       async render(solo, catalog) {
-        const r = await renderFirefight(solo, catalog);
+        const r = await renderFirefight(units, solo, catalog);
         const { samples, ...rest } = r;
         return { ...rest, wav: base64(encodeWav(samples, r.sampleRate)) };
       },
-      events: () => visualEvents(firefightScript()),
+      events: () => visualEvents(firefightScript(units)),
       cost: battleScaleCost,
       async distance() {
         const r = await renderDistanceProbe();
@@ -86,10 +88,10 @@ export default function Sound() {
       },
     };
     return () => void delete window.__sound;
-  }, []);
+  }, [units]);
   const render = async () => {
     setBusy(true);
-    const r = await renderFirefight();
+    const r = await renderFirefight(units);
     const blob = new Blob([encodeWav(r.samples, r.sampleRate) as Uint8Array<ArrayBuffer>], {
       type: "audio/wav",
     });

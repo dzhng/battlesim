@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import { createSimClient, type Publication } from "../src/battle/sim/client";
 import type { SimReply, SimRequest } from "../src/battle/sim/protocol";
-import { labScenario } from "@apps/battle-lab/src/scenarios";
+import { labScenario } from "./catalog";
 import { loadMap } from "@web/maps/node";
 
 test("a direct authority's terminal error rejects ready before its transport closes", async () => {

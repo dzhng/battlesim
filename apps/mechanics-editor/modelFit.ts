@@ -6,7 +6,10 @@ import { UnitCatalog, type CatalogView } from "../../packages/scene-assets/src/u
 import type { Catalog, RuntimeCatalog } from "../../packages/scene-assets/src/schema";
 import type { JsonObject } from "./src/protocol";
 
-/** Baked geometry is the model's authority; the editor never invents fit limits. */
+/** Baked geometry is the model's authority; the editor never invents fit limits.
+ *  `view` resolves the editor's documents, every one under `fixtures/units/`,
+ *  so it holds the test set (the game's units and the test units) and test
+ *  art is held to its frames as roster art is. */
 export async function validateGeometry(root: string, view: JsonObject): Promise<void> {
   const authored: Catalog = JSON.parse(await readFile(join(root, "assets/catalog.json"), "utf8"));
   const runtime: RuntimeCatalog = JSON.parse(

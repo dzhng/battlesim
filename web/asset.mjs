@@ -83,7 +83,7 @@ const { hasErrors } = await import("../packages/scene-assets/src/validate.ts");
 const { validateLoose } = await import("../packages/scene-assets/src/loose.ts");
 const { describeMaterial } = await import("../packages/scene-assets/src/material.ts");
 const { fixtureAuthority } = await import("../packages/scene-assets/src/authority.ts");
-const { UnitCatalog } = await import("../packages/scene-assets/src/units.ts");
+const { nodeCatalogSet } = await import("./src/battle/catalog/node.ts");
 const { grassClumpGlb } = await import("../packages/scene-assets/src/grass.ts");
 const { iconFiles } = await import("../packages/scene-assets/src/icons.ts");
 const { runtimeLookup, unitSolids } = await import("../packages/scene-assets/src/silhouette.ts");
@@ -96,7 +96,6 @@ const RUNTIME = join(ROOT, "assets/runtime");
 const FIXTURE = join(ROOT, "fixtures/game.json");
 const ICONS = join(ROOT, "assets/icons");
 const REFERENCES = join(ROOT, "assets/references");
-const UNIT_CATALOG = join(ROOT, "fixtures/catalog.json");
 const PRESETS = join(ROOT, "fixtures/map-presets.json");
 /** The physical template catalogues the city sets dress, by the name a set
  *  gives its own (`city_sets.<set>.catalogue`): where each is, how its file
@@ -122,8 +121,10 @@ const BLENDER = process.env.BLENDER ?? "/Applications/Blender.app/Contents/MacOS
 
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const catalog = () => readJson(CATALOG);
-const authority = () =>
-  fixtureAuthority(readJson(FIXTURE), new UnitCatalog(readJson(UNIT_CATALOG)));
+/** The fit authority: the test set, so test units' art is held to their
+ *  frames as the roster's is. */
+const authority = async () =>
+  fixtureAuthority(readJson(FIXTURE), (await nodeCatalogSet("test", ROOT)).units);
 const repoPath = (path) => relative(ROOT, resolve(path));
 const readSource = async (path) => new Uint8Array(readFileSync(join(ROOT, path)));
 /** The physical template contract, judged by the simulation's own code. Loaded
@@ -174,7 +175,7 @@ async function validate(args) {
     throw new Error(
       "validate <glb> [--unit soldier|vehicle|scenery|kit] [--type <unit type id>] [--yaw deg] [--clips glb] [--loop a,b]",
     );
-  const context = { authority: authority(), tolerances: catalog().tolerances };
+  const context = { authority: await authority(), tolerances: catalog().tolerances };
   let failed = false;
   for (const file of positionals) {
     const path = repoPath(file);
@@ -247,7 +248,7 @@ async function bakeAll() {
       }
     : undefined;
   return bakeCatalog(cat, readSource, {
-    authority: authority(),
+    authority: await authority(),
     templates,
     regionalFamilies: readJson(PRESETS).parcels.regional_families,
   });
@@ -777,16 +778,15 @@ async function catalogue() {
   return 0;
 }
 
-/** Every generated icon for the fixture's weapon rows and the unit catalog,
- *  each type's silhouette rendered from its baked model in assets/runtime. */
+/** Every generated icon for the fixture's weapon rows and the test set's
+ *  units, each type's silhouette rendered from its baked model in assets/runtime. */
 async function generatedIcons() {
-  const view = readJson(UNIT_CATALOG);
-  const units = new UnitCatalog(view);
+  const { units, weapons } = await nodeCatalogSet("test", ROOT);
   const lookup = await runtimeLookup(
     readJson(join(RUNTIME, "catalog.json")),
     async (path) => new Uint8Array(readFileSync(join(RUNTIME, path))),
   );
-  return iconFiles(view.weapons, units, (id) => unitSolids(units, id, lookup));
+  return iconFiles(weapons, units, (id) => unitSolids(units, id, lookup));
 }
 
 /** Every family folder under assets/references/; none is fine. */

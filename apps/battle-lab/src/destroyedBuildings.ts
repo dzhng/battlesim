@@ -3,7 +3,7 @@
 // and how (a battle's observation is classified here), and, for a lab with no
 // battle, what a side that saw a building destroyed would have been published.
 import { buildingCollapse, buildingRemains } from "@packages/scene-assets/src/authority";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { templateArt, type TemplateArtLibrary } from "@packages/scene-assets/src/templateLibrary";
 import { ruinHeight } from "@packages/scene-assets/src/templateSource";
 import {
@@ -14,13 +14,15 @@ import {
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { KnownProp } from "@packages/battle-renderer/src/models/propAppearance";
 
-/** The prop types a gutted building's parts become. */
-const guttedShells = buildingRemains(UNITS).shells;
-
 /** The buildings of `index` a side that knows `known` knows destroyed, each
- *  in the state the game's catalog says it was published in. */
-export function knownFallen(index: BuildingIndex, known: readonly KnownProp[]): FallenBuilding[] {
-  return fallenBuildings(index, known, guttedShells);
+ *  in the state `units`' catalog says it was published in (a gutted
+ *  building's parts become its shell prop types). */
+export function knownFallen(
+  units: UnitCatalog,
+  index: BuildingIndex,
+  known: readonly KnownProp[],
+): FallenBuilding[] {
+  return fallenBuildings(index, known, buildingRemains(units).shells);
 }
 
 /**
@@ -32,20 +34,21 @@ export function knownFallen(index: BuildingIndex, known: readonly KnownProp[]): 
  * template to the state the rule destroys it into.
  */
 export function seenDestroyed(
+  units: UnitCatalog,
   index: BuildingIndex,
   building: number,
   library: TemplateArtLibrary,
 ): KnownProp[] {
   const { placed } = index;
   const parts = index.parts[building];
-  const collapse = buildingCollapse(UNITS);
+  const collapse = buildingCollapse(units);
   const gutted =
     templateArt(library, placed.templates[placed.template[building]]).states.gutted !== undefined;
   const ground = placed.frames[building * FRAME_FLOATS + 2];
   const top = Math.max(...parts.map((part) => part.baseZ + 2 * part.half[2]));
   const remainsM = collapse && ruinHeight(top - ground, collapse);
   return parts.map((part) => {
-    const ends = UNITS.view.props[part.kind]?.destroyed;
+    const ends = units.view.props[part.kind]?.destroyed;
     if (typeof ends !== "object" || !ends.into.building || remainsM === null)
       throw new Error(`prop type "${part.kind}" does not end as a building does`);
     return {

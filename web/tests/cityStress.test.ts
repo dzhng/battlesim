@@ -2,17 +2,17 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import * as wasm from "@wasm/game_wasm.js";
-import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES } from "./catalog";
 
 wasm.initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
 
 test("the city stress boundary keeps the full map and authoritative early/late load", () => {
   const map = { size: [3200, 2200], fog_cell_m: 8, height_grid_m: 4, slope_cutoff_deg: 35 };
   const early = JSON.parse(
-    wasm.city_stress_preparation(JSON.stringify(map), JSON.stringify(GAME_RULES), 4n, false),
+    wasm.city_stress_preparation(JSON.stringify(map), JSON.stringify(TEST_RULES), 4n, false),
   );
   const late = JSON.parse(
-    wasm.city_stress_preparation(JSON.stringify(map), JSON.stringify(GAME_RULES), 4n, true),
+    wasm.city_stress_preparation(JSON.stringify(map), JSON.stringify(TEST_RULES), 4n, true),
   );
   expect(early.report.livingUnits).toEqual({ blue: 100, red: 100 });
   expect(late.report.livingUnits).toEqual(early.report.livingUnits);

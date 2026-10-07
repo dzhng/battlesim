@@ -155,6 +155,7 @@ export function BattleView({
     () =>
       world && observation
         ? buildBattleOverlay(
+            session.units,
             observation,
             control.selected,
             surfaceZ,
@@ -165,6 +166,7 @@ export function BattleView({
           )
         : undefined,
     [
+      session.units,
       world,
       observation,
       contacts,

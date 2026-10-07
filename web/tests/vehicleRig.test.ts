@@ -24,7 +24,7 @@ import {
   type FeedUnit,
 } from "@packages/battle-renderer/src/models/poseDriver.ts";
 import { gamePose } from "@apps/battle-lab/src/poseFeed";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 import { shippedMounts } from "./shippedMounts";
 import {
   AUTHORITY,

@@ -11,12 +11,8 @@ import {
   type ObservationView,
 } from "../src/battle/sim/observation";
 
-import {
-  labScenario,
-  type LabEvent,
-  type LabScript,
-  type LabUnit,
-} from "@apps/battle-lab/src/scenarios";
+import { labScenario } from "./catalog";
+import { type LabEvent, type LabScript, type LabUnit } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
 import type { MapDefinition } from "@web/maps/resolve";
 

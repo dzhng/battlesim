@@ -3,7 +3,6 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { AckLog } from "../AckLog";
 import { orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
@@ -76,12 +75,13 @@ function DeploymentLab({ battle }: { battle: SavedBattle }) {
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
     return orderLayer(
+      session.units,
       observation,
       observation.own.map((u) => u.id),
       session.revealed,
       surfaceZ,
     );
-  }, [world, observation, session.revealed, surfaceZ]);
+  }, [world, observation, session.units, session.revealed, surfaceZ]);
   const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(
@@ -153,7 +153,7 @@ function DeploymentLab({ battle }: { battle: SavedBattle }) {
             <DeploymentReadout
               key={u.id}
               unit={u}
-              seconds={UNITS.type(u.kind).capabilities.deploy?.seconds ?? 0}
+              seconds={session.units.type(u.kind).capabilities.deploy?.seconds ?? 0}
             />
           ))}
         </div>

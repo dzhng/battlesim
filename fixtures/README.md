@@ -89,7 +89,15 @@ Resolution happens once through the contract owner. Invalid inheritance,
 references, physical mounts or numbers fail at load with an entry-specific error.
 [Catalog tests](../crates/sim/tests/catalog.rs) own the explicit regeneration gate
 for `catalog.json`; browser presentation reads that resolved view, including
-resolved weapons, rather than reinterpreting authored families. After a catalog
+resolved weapons, rather than reinterpreting authored families.
+
+A battle runs one of three document sets (`sim::fixtures::CatalogSet`): the
+game's, the only one committed as `catalog.json`; the test set, which adds the
+test units labs, scenes and art checks field; and the menu set, which adds the
+menu reel's own units. The test and menu sets are resolved when asked for and
+never written, so one generated file stays the editors' and publication's. The
+browser's [session factory](../web/src/battle/catalog/) is the one reader of
+`catalog.json`, and each battle session owns the set its page runs. After a catalog
 change, the [asset CLI](../web/asset.mjs) regenerates and checks model-derived icons.
 
 ## Weapon cycles

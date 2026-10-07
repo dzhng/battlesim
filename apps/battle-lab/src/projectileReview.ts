@@ -1,8 +1,7 @@
-import { GAME_RULES, type LabScript } from "./scenarios";
+import type { LabScript, LabUnit } from "./scenarios";
 import { buildStreetScenario } from "./streetScenario";
-import type { LabUnit } from "./scenarios";
 import type { Wasm } from "@web/battle/sim/module";
-import { WEAPONS } from "@packages/scene-assets/src/shippedUnits";
+import type { GameRules, SessionCatalog } from "@web/battle/catalog/compose";
 
 export const REVIEW_LANES = [
   { name: "Rifle", weapon: "rifle", shooter: "rifle", target: "rifle" },
@@ -13,27 +12,31 @@ export const REVIEW_LANES = [
   { name: "Grenade", weapon: "grenade", shooter: "rifle", target: "rifle" },
 ] as const;
 
-export function reviewLanePositions(index: number): {
+export function reviewLanePositions(
+  weapons: SessionCatalog["weapons"],
+  index: number,
+): {
   from: [number, number];
   to: [number, number];
 } {
   const lane = REVIEW_LANES[index];
   const y = 80 + index * 75;
-  const range = WEAPONS[lane.weapon].range_m;
+  const range = weapons[lane.weapon].range_m;
   return { from: [100, y], to: [100 + range - 10, y] };
 }
 
 /** Private experiment controls; gameplay keeps the authored rules. */
-export function projectileReviewRules() {
-  const rules = structuredClone(GAME_RULES);
+export function projectileReviewRules(game: GameRules): GameRules {
+  const rules = structuredClone(game);
   for (const weapon of Object.values(rules.weapons)) {
     Object.assign(weapon, { ammo: "unlimited", damage: 0, structural_damage: 0 });
   }
   return rules;
 }
 
-export async function buildProjectileReview(wasm: Wasm) {
-  const s = JSON.parse(await buildStreetScenario(wasm, "projectiles", projectileReviewRules())) as {
+export async function buildProjectileReview(wasm: Wasm, catalog: SessionCatalog) {
+  const rules = projectileReviewRules(catalog.rules);
+  const s = JSON.parse(await buildStreetScenario(wasm, "projectiles", rules)) as {
     units: LabUnit[];
     scripts: LabScript[];
     opponent?: { garrisons: [number, number][] };
@@ -44,7 +47,7 @@ export async function buildProjectileReview(wasm: Wasm) {
   delete s.opponent;
   for (let i = 0; i < REVIEW_LANES.length; i++) {
     const lane = REVIEW_LANES[i];
-    const { from, to } = reviewLanePositions(i);
+    const { from, to } = reviewLanePositions(catalog.weapons, i);
     s.units.push(
       { side: "blue", kind: lane.shooter, position: from, engagement: "return_fire_only" },
       {

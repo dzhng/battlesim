@@ -16,7 +16,8 @@ import {
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
-import { durableSoldiers, GAME_RULES } from "../scenarios";
+import { useSessionCatalog } from "@web/battle/catalog/context";
+import { durableSoldiers } from "../scenarios";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
@@ -39,7 +40,6 @@ import { TickStatus } from "../TickStatus";
 const BUILDING = 0;
 // Keep direct fire from eliminating the occupants before the house falls;
 // collapse itself still decides which soldiers escape.
-const RULES = durableSoldiers(GAME_RULES);
 const SEED = 11;
 
 const GARRISON_CAMERA: Camera3DParams = {
@@ -88,8 +88,10 @@ function scriptTick(battle: SavedBattle, kind: Order["kind"]): number {
 }
 
 export default function Garrison() {
+  const { rules } = useSessionCatalog();
+  const durable = useMemo(() => durableSoldiers(rules), [rules]);
   return (
-    <SavedEncounter fixture="garrison" encounter="garrison" rules={RULES}>
+    <SavedEncounter fixture="garrison" encounter="garrison" rules={durable}>
       {(battle) => <GarrisonLab battle={battle} />}
     </SavedEncounter>
   );
@@ -117,10 +119,16 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
     const tracers = tracerLayer(observation);
     const remains = remainsLayer(observation, memory.current, surfaceZ);
     const garrisons = garrisonLayer(observation, surfaceZ);
-    const orders = orderLayer(observation, control.selected, session.revealed, surfaceZ);
+    const orders = orderLayer(
+      session.units,
+      observation,
+      control.selected,
+      session.revealed,
+      surfaceZ,
+    );
     const parts = [tracers, remains, garrisons, orders];
     return combineWorldMeshes(parts);
-  }, [world, observation, surfaceZ, control.selected, session.revealed]);
+  }, [world, observation, surfaceZ, control.selected, session.revealed, session.units]);
   const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(

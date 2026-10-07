@@ -10,7 +10,7 @@
 // bursts from the far side; a round glances off it. A wreck burns. An
 // unseen red truck and unseen riflemen are heard only as cues.
 import game from "@fixtures/game.json";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { vec3 } from "math";
 import type { AudioPresentation, Bus } from "@packages/battle-audio/src/audioPresentation";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
@@ -38,8 +38,6 @@ import { battleSounds, type SoundCatalog } from "@packages/battle-audio/src/cata
 export const FIREFIGHT_S = 8;
 const HZ = game.tick_hz;
 const DT = 1 / HZ;
-/** The tank's mounts' muzzles: the cannon's and the roof HMG's. */
-const [CANNON, HMG] = mountMuzzles(UNITS.type("tank").mounts);
 /** Frames a second the offline render schedules at, like a display. */
 const FPS = 60;
 
@@ -87,8 +85,10 @@ interface Script {
   audible: SoundCue[][];
 }
 
-/** Every tick's publication and cues. */
-export function firefightScript(): Script {
+/** Every tick's publication and cues; the tanks fire from `units`' tank's
+ *  muzzles, the cannon's and the roof HMG's. */
+export function firefightScript(units: UnitCatalog): Script {
+  const [CANNON, HMG] = mountMuzzles(units.type("tank").mounts);
   const ticks = tickAt(FIREFIGHT_S);
   const pubs: EffectPublication[] = [];
   const audible: SoundCue[][] = [];
@@ -374,11 +374,12 @@ async function offlineSound(seconds: number, solo?: Bus, catalog: SoundCatalog =
 
 /** Render the firefight offline; `solo` keeps one bus and mutes the others. */
 export async function renderFirefight(
+  units: UnitCatalog,
   solo?: Bus,
   catalog: SoundCatalog = gameSounds,
 ): Promise<FirefightRender> {
   const { sampleRate, ctx, sink, frame } = await offlineSound(FIREFIGHT_S, solo, catalog);
-  const script = firefightScript();
+  const script = firefightScript(units);
   const t0 = performance.now();
   let next = 0;
   for (let f = 0; f <= FIREFIGHT_S * FPS; f++) {

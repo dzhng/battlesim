@@ -6,7 +6,8 @@
 // pick and box-select adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
-import { GAME_RULES } from "./scenarios";
+import { admitScenario } from "@web/battle/catalog/sets";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { ContactPresentation } from "@web/battle/present/contactPresentation";
 import { gameContactStyle } from "./gameFog";
 import type { PreparedSession } from "@web/battle/prepare/client";
@@ -66,7 +67,6 @@ import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import {
   corpseInstances,
   poseFrameInstances,
@@ -167,9 +167,11 @@ export interface BattleSessionOptions {
 }
 
 /** The rule values the scenario runs under (only what views read). Its
- *  units are the shipped catalog's (`UNITS`), as every lab scenario's are. */
+ *  units are its session catalog's: the scenario's rules carry that
+ *  catalog's documents. */
 export interface ScenarioRules extends PoseRules, PanelRules, RulerRules {
   tick_hz: number;
+  movement: { drive: { wreck_stop_s: number } };
   weapons: PanelRules["weapons"] & RulerRules["weapons"];
   physics: SoldierBody & RulerRules["physics"];
   service: { radius_m: number };
@@ -190,15 +192,18 @@ export function useBattleSession({
   prepared,
 }: BattleSessionOptions) {
   const appAudio = useAppAudio();
-  const { map, rules, skirmish } = useMemo(
-    () =>
-      JSON.parse(scenario) as {
-        map: unknown;
-        rules: ScenarioRules;
-        skirmish?: { factions: [Faction, Faction] };
-      },
-    [scenario],
-  );
+  const catalog = useSessionCatalog();
+  // The session draws, reads and loads its own catalog's units; a scenario
+  // fielding a unit the catalog lacks is refused by name, not left undrawn.
+  const { map, rules, skirmish, units } = useMemo(() => {
+    const parsed = JSON.parse(scenario) as {
+      map: unknown;
+      rules: ScenarioRules;
+      skirmish?: { factions: [Faction, Faction] };
+      units?: { kind: string }[];
+    };
+    return { ...parsed, units: admitScenario(parsed, catalog) };
+  }, [scenario, catalog]);
   const world = useStaticWorld(map, rules);
   // Combat effects: every decoded publication noted (the frame dedupes),
   // drawn at each animation frame's presentation clock.
@@ -215,7 +220,10 @@ export function useBattleSession({
   // among the side's structures. The wreck is fitted as the side's props
   // are, once they can be. A side learns a wreck within a second of losing
   // its hull.
-  const cookOffWatch = useMemo(() => new CookOffWatch(UNITS, rules.tick_hz), [rules.tick_hz]);
+  const cookOffWatch = useMemo(
+    () => new CookOffWatch(units, rules.tick_hz),
+    [units, rules.tick_hz],
+  );
   const transitionFitting = useRef<{
     fit: PropAppearances;
     installed: InstalledAppearances;
@@ -225,13 +233,13 @@ export function useBattleSession({
   // its ammunition goes, and only then as its moving wreck.
   const lastHulls = useMemo(
     () =>
-      new LastSeenHulls(UNITS, (kind) => {
-        const m = UNITS.type(kind).mobility;
+      new LastSeenHulls(units, (kind) => {
+        const m = units.type(kind).mobility;
         const road = "tracked" in m ? m.tracked : "wheeled" in m ? m.wheeled : m.foot;
         // As the simulation stops a dead hull: full road speed lost in `wreck_stop_s`.
-        return road.road_kmh / 3.6 / GAME_RULES.movement.drive.wreck_stop_s;
+        return road.road_kmh / 3.6 / rules.movement.drive.wreck_stop_s;
       }),
-    [],
+    [units, rules],
   );
   // Each cook-off's hull, as last seen, found once as it starts.
   const transitionHulls = useRef(new WeakMap<CookOffTransition, LastHull | null>());
@@ -248,14 +256,14 @@ export function useBattleSession({
       const moving = brewed.flatMap(({ transition }) => (transition ? [transition] : []));
       if (moving.length) setTransitions((now) => [...now, ...moving]);
       const pub = {
-        ...effectPublication(o, side, UNITS),
+        ...effectPublication(o, side, units),
         cookOffs: brewed.map(({ c, transition }) => effectCookOff(c, transition)),
       };
       effects.note(pub);
       audio?.note({ effects: pub, audible: o.audible });
       onDecoded?.(o, digest);
     },
-    [effects, audio, side, onDecoded, cookOffWatch, rules.tick_hz],
+    [effects, audio, side, onDecoded, cookOffWatch, rules.tick_hz, units],
   );
   const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted, prepared });
   const { observation } = sim;
@@ -277,7 +285,7 @@ export function useBattleSession({
   // each frame and kept as state only when it changes.
   const orderReveal = useMemo(() => new OrderReveal(gameOrderFlash), []);
   /** Bridge the released preview until the publication contains its order. */
-  const [pointerPaint] = useState(() => new PointerPaint());
+  const [pointerPaint] = useState(() => new PointerPaint(units));
   const pendingAction = useRef<{ order: Order; queued: boolean; generation: number } | null>(null);
   const pressGeneration = useRef(0);
   const captured = useRef<{
@@ -409,10 +417,14 @@ export function useBattleSession({
       drawnBuildings && knownBuildingsKey
         ? {
             placed: drawnBuildings.placed,
-            fallen: knownFallen(drawnBuildings, JSON.parse(knownBuildingsKey) as KnownPropView[]),
+            fallen: knownFallen(
+              units,
+              drawnBuildings,
+              JSON.parse(knownBuildingsKey) as KnownPropView[],
+            ),
           }
         : null,
-    [drawnBuildings, knownBuildingsKey],
+    [drawnBuildings, knownBuildingsKey, units],
   );
   const buildingsFeed = useFeed(buildings);
   // The map's props drawn apart, fitted once for the battle; what the side
@@ -558,20 +570,20 @@ export function useBattleSession({
   // the appearance for their kind and side. A new side or catalog starts over.
   const posing = useMemo(() => {
     if (!appearances) return null;
-    const catalog = new AppearanceCatalog(appearances, UNITS);
+    const drawing = new AppearanceCatalog(appearances, units);
     const resolve: ResolveAppearance = (kind, s, id, slot, operatorMount, activeMount) =>
-      catalog.resolve(kind, s, id, slot, operatorMount, activeMount);
-    const muzzles = new DrawnMuzzles(appearances, resolve, UNITS);
+      drawing.resolve(kind, s, id, slot, operatorMount, activeMount);
+    const muzzles = new DrawnMuzzles(appearances, resolve, units);
     return {
-      driver: createPoseDriver(rules, UNITS, appearances),
-      feed: new ObservationFeed(side, UNITS),
+      driver: createPoseDriver(rules, units, appearances),
+      feed: new ObservationFeed(side, units),
       resolve,
       muzzles,
       source: drawnMuzzleSource(muzzles, side),
       models: [] as ModelInstance[],
       corpses: { version: -1, list: [] as CorpseInstance[], soldiers: [] as number[] },
     };
-  }, [appearances, rules, side]);
+  }, [appearances, rules, side, units]);
   const ghostModel = useMemo<ModelInstance | null>(() => {
     if (!purchasing || !posing || !appearances) return null;
     const resolved = posing.resolve(purchasing, side, 0, 0);
@@ -609,7 +621,7 @@ export function useBattleSession({
       const own = interpolator.sample(now);
       drawnPoses.current = own;
       const identified = interpolator.sampleIdentified(now);
-      const d = sideInstances(own, identified, observation, rules.physics, UNITS);
+      const d = sideInstances(own, identified, observation, rules.physics, units);
       drawn.current = d;
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
       drawnEnemyAt.current = new Map(identified.map((p) => [p.id, p.position]));
@@ -623,7 +635,7 @@ export function useBattleSession({
       const ground = sim.ground.current;
       if (!posing) {
         effects.build(time, effectBatch);
-        heard.current = { clock: time, motion: soundMotion(null, UNITS, side) };
+        heard.current = { clock: time, motion: soundMotion(null, units, side) };
         return { picks: d.picks, clock: time, effects: effectBatch, ground, felled };
       }
       const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
@@ -637,7 +649,7 @@ export function useBattleSession({
         );
         heard.current = {
           clock: time,
-          motion: soundMotion(poses, UNITS, side, reversing, enemyReversing),
+          motion: soundMotion(poses, units, side, reversing, enemyReversing),
         };
       }
       const posed = poseFrameInstances(posing.models, poses, posing.resolve, xrayOf.current);
@@ -692,6 +704,7 @@ export function useBattleSession({
       sim.ground,
       posing,
       rules,
+      units,
       effects,
       effectBatch,
       audio,
@@ -723,8 +736,8 @@ export function useBattleSession({
         const ground = groundUnderRay(world.view, pick.ray);
         if (ground) {
           for (const u of observation?.own ?? []) {
-            if (UNITS.hull(u.kind)) continue;
-            const pose = orderView(u, true);
+            if (units.hull(u.kind)) continue;
+            const pose = orderView(units, u, true);
             const drawnPose = drawnPoses.current.find((p) => p.id === u.id);
             if (drawnPose) {
               pose.position = drawnPose.position;
@@ -740,7 +753,7 @@ export function useBattleSession({
       }
       return panel ? { ...pointer, ...panel } : pointer;
     },
-    [world, observation],
+    [world, observation, units],
   );
   const onRightPress = useCallback(
     (pick: LabPick | null) => {
@@ -935,7 +948,15 @@ export function useBattleSession({
     }
     const ruler =
       active && control.showOrders
-        ? rulerAt(pointer.ray, world!, control.selectedUnits, drawnAt.current, rules, surfaceZ)
+        ? rulerAt(
+            pointer.ray,
+            world!,
+            control.selectedUnits,
+            drawnAt.current,
+            rules,
+            units,
+            surfaceZ,
+          )
         : null;
     pointerPaint.update(
       ruler,
@@ -1191,13 +1212,15 @@ export function useBattleSession({
     fog,
     fogFeed,
     rules,
+    /** The session's unit catalog, for views drawing its units. */
+    units,
     contacts,
     sim,
     control,
     purchase: skirmish
       ? {
           faction: skirmish.factions[side === "blue" ? 0 : 1],
-          cards: UNITS.cards,
+          cards: units.cards,
           placing: purchasing,
           ghost: purchaseGhost,
           choose: choosePurchase,

@@ -4,7 +4,7 @@ import { beforeAll, expect, test } from "vitest";
 import * as wasm from "@wasm/game_wasm.js";
 import config from "@fixtures/generated-battle.json";
 import encounters from "@fixtures/encounters.json";
-import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES } from "./catalog";
 import { PreparationRefused, prepare, prepareReplay } from "../src/battle/prepare/prepare";
 import { parseReplayFile, isPreparedReplay } from "@apps/battle-lab/src/replayFile";
 import type { PrepareBattleRequest, PrepareDocuments } from "../src/battle/prepare/protocol";
@@ -22,7 +22,7 @@ beforeAll(() => {
   }).memory;
 });
 
-const rules = JSON.stringify(GAME_RULES);
+const rules = JSON.stringify(TEST_RULES);
 const assault = encounters.recipes.assault;
 const documents: PrepareDocuments = {
   rules,
@@ -164,7 +164,7 @@ test("a prepared battle is the requested map with the planned encounter on it, a
       }),
       fixture("map-presets.json"),
       fixture("prototype-building-templates.json"),
-      JSON.stringify(GAME_RULES),
+      JSON.stringify(TEST_RULES),
     ),
   );
   expect(identity).toEqual(direct.result.identity);
