@@ -18,7 +18,7 @@ they look like the real vehicles and soldiers.
 
 ## Next Agent Prompt
 
-**Status, 2026-10-07:** in progress. Done and merged: 01, 02, 03 (see choices.md per slice). In flight in parallel worktrees (`um/slice-NN` branches): 04 (steps 1–2; step 3 waits for 10), 09, 10, 12. The earlier pass of this
+**Status, 2026-10-07:** in progress. Done and merged: 01, 02, 03, 09, 10 (catalog load now ~130 MiB, was ~1.2 GB). In flight in parallel worktrees (`um/slice-NN` branches): 04 (steps 1–2; step 3, session-scoped loading, now unblocked by 10), 12, 13. The earlier pass of this
 spec (every disabled card has a source GLB, see [History](#history)) is
 finished. The plan was walked with the user quadrant by quadrant
 ([the map](visualizations/unknowns-map.html)), then redrafted by four
@@ -113,8 +113,8 @@ TODO:
 - [ ] [06 Village retired, maps labelled](slices/06-retire-village-label-maps.md): map-free rules, village deleted, live art renamed, every map `test` or `menu`, market-town-test.
 - [ ] [07 Request contract](slices/07-request-contract.md): factions required, unknown parameters refused, recipe fields gone.
 - [ ] [08 Menu reel](slices/08-menu-reel.md): `menu_*` units in roster looks; exact-shot test against the recorded reel.
-- [ ] [09 Pipeline](slices/09-pipeline.md): exporters read the fixture catalog; shared detail parts; crew module fixed; references schema and sheet; baselines.
-- [ ] [10 Shared textures and download](slices/10-shared-textures-and-download.md): textures as shared files, gzip bundles, catalog-load limit, real texture-layer limit.
+- [x] [09 Pipeline](slices/09-pipeline.md): exporters read the fixture catalog; shared detail parts; crew module fixed; references schema and sheet; baselines.
+- [x] [10 Shared textures and download](slices/10-shared-textures-and-download.md): textures as shared files, gzip bundles, catalog-load limit, real texture-layer limit.
 - [ ] [11 Wrecks](slices/11-wrecks.md): `wreck_of` on the published prop; every vehicle names its own wreck; interim wrecks.
 - [ ] [12 Art rules](slices/12-art-rules.md): strict tiers, dressing allowance, unit budget rules (numbers from 14).
 - [ ] [13 Materials](slices/13-materials.md): material roles, black tyres, dark glass, real-nation paint on every current model.

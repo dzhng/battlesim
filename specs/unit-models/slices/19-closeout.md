@@ -21,7 +21,11 @@ saves for a spec's end.
    `git grep` for the bare old generic ids lists only the weapon `rifle` and
    the roles `at`, `recon`. No family script redefines a wheel or a track; the
    legacy family helpers are gone.
-8. Close the spec with close-spec.
+8. Every page that draws models gets its GPU device through `renderer-core`'s
+   device admission (which requests the adapter's texture-layer limit, slice
+   10), not a bare `requestDevice()`: the `unit-roster` scene's model-check
+   page did, and default limits (256 layers) break once Part B's textures grow.
+9. Close the spec with close-spec.
 
 ## Delegated
 
