@@ -15,7 +15,6 @@ import {
   type FindingCode,
   type SkeletonEntry,
 } from "@packages/scene-assets/src/schema.ts";
-import { PENDING_ART_RULES } from "@packages/scene-assets/src/unitArt.ts";
 import {
   budgetFindings,
   paintFindings,
@@ -393,8 +392,7 @@ for (const code of FINDING_CODES)
     const hit = findings.find((f) => f.code === code);
     expect(hit, JSON.stringify(findings, null, 1)).toBeDefined();
     expect(hit!.fix.length).toBeGreaterThan(0);
-    // The rules today's art still fails warn until the closeout.
-    expect(hit!.severity).toBe(PENDING_ART_RULES.includes(code) ? "warning" : "error");
+    expect(hit!.severity).toBe("error");
   });
 
 test("a tree must stand inside the simulation's canopy; a hedgerow need not", async () => {

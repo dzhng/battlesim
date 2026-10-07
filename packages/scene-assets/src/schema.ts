@@ -104,6 +104,17 @@ export const FINDING_CODES = [
 ] as const;
 export type FindingCode = (typeof FINDING_CODES)[number];
 
+/** A frame-cost budget: a scenery kind's (`SCENERY_KINDS`) or a unit
+ *  class's (`UNIT_ART`). Each limit is enforced only when set. */
+export interface Budget {
+  /** The most triangles each tier may draw, finest first. */
+  tier_triangles?: readonly number[];
+  /** The most bytes the encoded bundle may hold. */
+  bundle_bytes?: number;
+  /** The most distinct textures, each a GPU texture layer. */
+  texture_layers?: number;
+}
+
 /** Mesh tiers, finest first. Source meshes carry them as a `_LOD<n>` name suffix. */
 export const TIER_COUNT = 4;
 

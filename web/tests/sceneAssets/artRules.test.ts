@@ -43,13 +43,14 @@ function tank(options: TankOptions = {}, entry: Partial<AppearanceEntry> = {}) {
   );
 }
 
-test("a unit's mesh with no tier suffix is named, and the bundle still builds while today's art is rebuilt", async () => {
+test("a unit's mesh that names no tier is refused, though the tiers it would be copied into still reduce", async () => {
+  // The turret is in every tier already: only the missing name is wrong.
   const result = await tank({ unsuffixed: "turret_shell" });
   expect(result.findings.map((f) => [f.code, f.severity])).toEqual([
-    ["structure.tier_unsuffixed", "warning"],
+    ["structure.tier_unsuffixed", "error"],
   ]);
   expect(result.findings[0].message).toContain('"turret_shell"');
-  expect(result.bundle).not.toBeNull();
+  expect(result.bundle).toBeNull();
 });
 
 test("each tier of a unit draws at most its class's ratio of the tier before", async () => {
@@ -58,7 +59,7 @@ test("each tier of a unit draws at most its class's ratio of the tier before", a
   const wheels = { wheel_L_1_disc: 3, wheel_R_1_disc: 3, wheel_L_2_disc: 3 };
   const flat = await tank({ partTiers: wheels });
   expect(flat.findings.map((f) => [f.code, f.severity])).toEqual([
-    ["structure.tier_ratio", "warning"],
+    ["structure.tier_ratio", "error"],
   ]);
   expect(flat.findings[0].message).toMatch(/tier 2 draws 96 triangles, 1\.00 of tier 1's 96/);
   expect((await tank()).findings).toEqual([]);

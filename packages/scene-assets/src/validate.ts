@@ -45,7 +45,7 @@ import {
   worldTransforms,
 } from "./pose.ts";
 import { bindTextures, importScene, type Scene } from "./scene.ts";
-import { tierFindings, unitArtRule, unitClasses, type DressingAllowance } from "./unitArt.ts";
+import { SOLDIER_CLASS, tierFindings, unitArtRule, type DressingAllowance } from "./unitArt.ts";
 import { materialFindings } from "./material.ts";
 import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
@@ -58,6 +58,7 @@ import {
   type ArticulatedNode,
   type Authority,
   type Bounds,
+  type Budget,
   type Bundle,
   type Finding,
   type Joint,
@@ -229,6 +230,8 @@ export async function validateAppearance(
       if (!built.tiers) continue;
       const bounds = positionsBounds(built.tiers[0].positions);
       states.push({ name: state, tiers: built.tiers, bounds });
+      // A wreck's tiers are a unit's: it is drawn where its vehicle was. It
+      // takes the default row, since nothing yet says whose wreck it is.
       if (entry.scenery === "wreck")
         findings.push(
           ...tierFindings(
@@ -326,7 +329,8 @@ export async function validateAppearance(
         imported.scene,
         bundle,
         tiers.map((t) => t.triangles),
-        unitClasses("vehicle", units, types),
+        // A vehicle no type draws has no class, and takes the default rules.
+        types.length ? [...new Set(types.map((id) => vehicleClass(units.type(id))))] : [null],
       ),
     );
     return {
@@ -398,13 +402,7 @@ export async function validateAppearance(
   };
   findings.push(
     ...surfaceFindings(path, bundle),
-    ...unitArtFindings(
-      path,
-      imported.scene,
-      bundle,
-      tiers.map(triangleCount),
-      unitClasses("soldier", context.authority.units, []),
-    ),
+    ...unitArtFindings(path, imported.scene, bundle, tiers.map(triangleCount), [SOLDIER_CLASS]),
   );
   return {
     findings,
@@ -1251,17 +1249,6 @@ function sizeFindings(
       ),
     );
   return out;
-}
-
-/** A frame-cost budget: a scenery kind's (`SCENERY_KINDS`) or a unit
- *  class's (`UNIT_ART`). Each limit is enforced only when set. */
-export interface Budget {
-  /** The most triangles each tier may draw, finest first. */
-  tier_triangles?: readonly number[];
-  /** The most bytes the encoded bundle may hold. */
-  bundle_bytes?: number;
-  /** The most distinct textures, each a GPU texture layer. */
-  texture_layers?: number;
 }
 
 /** Each tier's triangles, and the bundle they are built into when its
