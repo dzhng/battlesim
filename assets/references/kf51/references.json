@@ -1,0 +1,86 @@
+{
+  "entries": [
+    {
+      "file": "europe_kf51_panther_prototype_main_battle_tank-front.jpg",
+      "variant": "europe_kf51_panther_prototype_main_battle_tank",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Rheinmetall_kf51_dynamisch_hohe_aufloesung_R6MJ1833.jpg",
+      "author": "Rheinmetall Defence",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "6cbabcc96f0094f355e8f1cd29cbe151b6d8a586501b40f875e22f0a47ffa887",
+      "note": "KF51 Panther prototype head-on (Rheinmetall photo)"
+    },
+    {
+      "file": "europe_kf51_panther_prototype_main_battle_tank-three_quarter_front.jpg",
+      "variant": "europe_kf51_panther_prototype_main_battle_tank",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Rheinmetall_kf51_dynamisch_hohe_aufloesung_1XII0825.jpg",
+      "author": "Rheinmetall Defence",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "17e6a61fb3b0242761181522789818d767a13fb592a82c4b778dac9806e62841",
+      "note": "KF51 Panther prototype, front right, in motion (Rheinmetall photo)"
+    },
+    {
+      "file": "kf51u-side.jpg",
+      "variant": "kf51u",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:KF-51U_04.jpg",
+      "author": "Meumeu03",
+      "licence": "CC-BY-4.0",
+      "sha256": "1e1c49adb384eba46a246f41c534b44d753681465bace71e8d4ef31d0b7f30ec",
+      "note": "KF-51U, Eurosatory 2024: hull side and road wheels (turret differs from KF51)"
+    },
+    {
+      "file": "kf51u-three_quarter_rear.jpg",
+      "variant": "kf51u",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:KF-51U_10.jpg",
+      "author": "Meumeu03",
+      "licence": "CC-BY-4.0",
+      "sha256": "6d5b65e13ad7685b03aae2b3fbd6dc2092f4bcd1949ad69cd18a392ee45991bb",
+      "note": "KF-51U hull rear (assumed shared with KF51)"
+    },
+    {
+      "file": "kf51u-rear.jpg",
+      "variant": "kf51u",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:KF-51U_06.jpg",
+      "author": "Meumeu03",
+      "licence": "CC-BY-4.0",
+      "sha256": "971a1d447900da6b82f5c59243ed5266c3351a09cd8ef7130b83d11837bad0b9",
+      "note": "KF-51U hull rear plate"
+    },
+    {
+      "file": "kf51u-detail.jpg",
+      "variant": "kf51u",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:KF-51U_05.jpg",
+      "author": "Meumeu03",
+      "licence": "CC-BY-4.0",
+      "sha256": "6de3fbe27c31d0c4f20d508a698fb05d761ab97bcf662cbb3f59bfca1acac3a2",
+      "note": "KF-51U front hull, sprocket and first road wheels"
+    },
+    {
+      "file": "kf51u-detail-2.jpg",
+      "variant": "kf51u",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:KF-51U_14.jpg",
+      "author": "Meumeu03",
+      "licence": "CC-BY-4.0",
+      "sha256": "324c224dc27981cd6481b27abb519d224e19ed3d8de8dba4a0af548fc21950c5",
+      "note": "KF-51U hull side skirt and running gear"
+    }
+  ],
+  "gaps": [
+    "KF51 Panther prototype: only two licensable photos (Rheinmetall, CC BY-SA 4.0): front and three-quarter front in motion.",
+    "Rear, three_quarter_rear and running gear are from the KF-51U (Eurosatory 2024, variant kf51u), assumed to share the Panther hull; its unmanned turret differs and must not be read as the KF51 turret.",
+    "No top view and no turret roof, sight or rear-turret detail of the 2022 prototype."
+  ]
+}
