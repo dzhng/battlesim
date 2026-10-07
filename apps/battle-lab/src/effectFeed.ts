@@ -16,15 +16,22 @@ import {
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import type { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
 import { fromSideKey, sideKey } from "@packages/battle-renderer/src/sideKey";
+import { inheritRows } from "@packages/renderer-core/src/kindTable";
 import { buildingRemains } from "@packages/scene-assets/src/authority";
 import { mountMuzzles, type MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
 import type { UnitCatalog, UnitType } from "@packages/scene-assets/src/units";
 import type { SideName } from "@web/battle/sim/protocol";
 import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
 
-export const gameEffects: EffectPresentation = validateEffects(
-  game.presentation.effects as unknown as EffectPresentation,
-);
+const effects = game.presentation.effects as unknown as EffectPresentation;
+/** The game's effects, each weapon's round looking as its nearest styled
+ *  ancestor's (`inheritRows`) where it has no row of its own. */
+export const gameEffects: EffectPresentation = validateEffects({
+  ...effects,
+  tracers: inheritRows(effects.tracers, game.weapons),
+  flashes: inheritRows(effects.flashes, game.weapons),
+  impact_scale: inheritRows(effects.impact_scale, game.weapons),
+});
 
 /** The prop kinds that smoke once a side knows of them, each with its look (a
  *  `presentation.effects.smoke` row), per catalog, read once: what a

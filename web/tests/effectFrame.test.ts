@@ -609,21 +609,6 @@ test("a tracer never leaves its published stretch, corners included", () => {
   expect(streaks).toBeGreaterThan(10);
 });
 
-test("the village's round kinds each have a tracer and flash of their own", () => {
-  const kinds = Object.keys(game.weapons);
-  const look = (kind: string) =>
-    JSON.stringify([PRESENTATION.tracers[kind], PRESENTATION.flashes[kind]]);
-  for (const kind of kinds) {
-    expect(PRESENTATION.tracers[kind], kind).toBeDefined();
-    expect(PRESENTATION.flashes[kind], kind).toBeDefined();
-  }
-  // Rounds of different weapons differ in colour, size or length, except the
-  // one cannon's two ammunition kinds, whose flash is the same gun's.
-  const tracerLooks = new Set(kinds.map((k) => JSON.stringify(PRESENTATION.tracers[k])));
-  expect(tracerLooks.size).toBe(kinds.length);
-  expect(new Set(kinds.map(look)).size).toBe(kinds.length);
-});
-
 /** How far behind the head a round's glow reaches at the end of its tick,
  *  flying `speed` m/s along x. */
 function tailBehind(kind: string, speed: number): number {

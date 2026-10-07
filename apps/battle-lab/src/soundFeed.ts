@@ -14,11 +14,18 @@ import type { SoundMotion, SoundVehicle } from "@packages/battle-audio/src/sound
 import type { PoseFrame } from "@packages/battle-renderer/src/models/poseDriver";
 import { gameEffects } from "./effectFeed";
 import { sideKey } from "@packages/battle-renderer/src/sideKey";
+import { inheritRows } from "@packages/renderer-core/src/kindTable";
 import type { Side } from "@packages/scene-assets/src/schema";
 
-export const gameAudio: AudioPresentation = validateAudio(
-  game.presentation.audio as unknown as AudioPresentation,
-);
+const audio = game.presentation.audio as unknown as AudioPresentation;
+/** The game's sound, each weapon heard as its nearest styled ancestor
+ *  (`inheritRows`) where it has no row of its own. */
+export const gameAudio: AudioPresentation = validateAudio({
+  ...audio,
+  shots: inheritRows(audio.shots, game.weapons),
+  impact_scale: inheritRows(audio.impact_scale, game.weapons),
+  blasts: inheritRows(audio.blasts, game.weapons),
+});
 
 /** A battle's sound, heard as `presentation.audio` says. */
 export function createBattleAudio(tickHz: number, audio: AppAudio): BattleAudio {

@@ -95,7 +95,7 @@ test("ordinary menu Play asks for the chosen type and size without pinning a see
   const menu = render(createElement(MainMenu));
   fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   const deploy = () => menu.getByTestId("menu-deploy").getAttribute("href")!;
-  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small");
+  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us");
   expect(askedBattle(new URL(deploy(), "http://game").search)).toMatchObject({
     kind: "play",
     map: { type: "mixed", size: "small" },
@@ -105,7 +105,7 @@ test("ordinary menu Play asks for the chosen type and size without pinning a see
   // The preference changes before admission chooses a concrete battle.
   fireEvent.click(menu.getByRole("radio", { name: "metro" }));
   fireEvent.click(menu.getByRole("radio", { name: "xl" }));
-  expect(deploy()).toBe("/battle?play=1&type=metro&size=xl");
+  expect(deploy()).toBe("/battle?play=1&type=metro&size=xl&profile=skirmish&faction=us");
   expect(menu.getByRole("radio", { name: "metro" }).getAttribute("aria-checked")).toBe("true");
   expect(menu.getByRole("radio", { name: "mixed" }).getAttribute("aria-checked")).toBe("false");
 });
@@ -119,29 +119,33 @@ test("the menu leaves the region to the seed unless the player picks one of the 
     expect(menu.getByRole("radio", { name: region })).toBeTruthy();
   // The player reads the china family as Taiwan; the address keeps its data name.
   fireEvent.click(menu.getByRole("radio", { name: "taiwan" }));
-  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&region=china");
+  expect(deploy()).toBe(
+    "/battle?play=1&type=mixed&size=small&region=china&profile=skirmish&faction=us",
+  );
 
   fireEvent.click(menu.getByRole("radio", { name: "new york" }));
-  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&region=new_york");
+  expect(deploy()).toBe(
+    "/battle?play=1&type=mixed&size=small&region=new_york&profile=skirmish&faction=us",
+  );
   expect(askedBattle(new URL(deploy(), "http://game").search)).toMatchObject({
     kind: "play",
     map: { type: "mixed", size: "small", region: "new_york" },
   });
   fireEvent.click(menu.getByRole("radio", { name: "random" }));
-  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small");
+  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us");
 });
 
 test("the menu opens on the battle a cancelled or refused request asked for", () => {
   window.history.replaceState(null, "", `/?type=open&size=medium&seed=${ABOVE_NUMBER}`);
   const menu = render(createElement(MainMenu));
   expect(menu.getByTestId("menu-deploy").getAttribute("href")).toBe(
-    `/battle?type=open&size=medium&seed=${ABOVE_NUMBER}`,
+    `/battle?type=open&size=medium&seed=${ABOVE_NUMBER}&profile=skirmish&faction=us`,
   );
   cleanup();
   window.history.replaceState(null, "", `/?type=open&size=medium&region=paris`);
   const again = render(createElement(MainMenu));
   expect(again.getByTestId("menu-deploy").getAttribute("href")).toBe(
-    `/battle?play=1&type=open&size=medium&region=paris`,
+    `/battle?play=1&type=open&size=medium&region=paris&profile=skirmish&faction=us`,
   );
 });
 
@@ -150,7 +154,7 @@ test("the menu offers fresh skirmishes without prebuilt battlefields", () => {
   expect(menu.queryByRole("button", { name: "Battlefields" })).toBeNull();
   fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   expect(menu.getByRole("link", { name: "Deploy" }).getAttribute("href")).toBe(
-    "/battle?play=1&type=mixed&size=small",
+    "/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us",
   );
 });
 
@@ -287,7 +291,7 @@ test("ordinary admission closes refused workers, and exact winner identity keeps
   const address = preparedBattleHref(admitted.report.request);
   expect(askedBattle(new URL(address, "http://game").search)).toEqual({
     kind: "generated",
-    map: { type: "metro", size: "large", seed: ABOVE_NUMBER },
+    map: { type: "metro", size: "large", seed: ABOVE_NUMBER, profile: "standard" },
     recipe: "assault",
     encounterSeed: ABOVE_NUMBER,
     battleSeed: 7,
