@@ -257,6 +257,12 @@ function mergeFn(radialBins: number) {
   let theta = (f32(ai) + 0.5) / f32(AZ) * ${TAU} - ${PI};
   let dir = vec2f(cos(theta), sin(theta));
   let lnr = log(e.reach / P.firstBinM);
+  // A ray squeezing past boxes on both sides with less than the least sight
+  // gap between them is blocked where it passes the second (as the
+  // simulation's \`squeezed\`; here the closest box on each side counts).
+  let gap = P.minSightGapM;
+  var left = vec3f(1e9, 0.0, 0.0);
+  var right = vec3f(1e9, 0.0, 0.0);
   var pm: array<f32, ${radialBins}>;
   var pt: array<f32, ${radialBins}>;
   for (var k = 0u; k < R; k++) { pm[k] = -1e4; pt[k] = 0.0; }
@@ -292,8 +298,24 @@ function mergeFn(radialBins: number) {
       tn = max(tn, min(t1, t2));
       tf = min(tf, max(t1, t2));
     }
+    let crossed = !(miss || tn > tf || tf <= 0.0);
+    if (!crossed && gap > 0.0 && length(max(abs(o) - b.half, vec2f(0.0))) >= gap * 0.5) {
+      // Room beside the ray: the nearest corner ahead, (offset, distance, top).
+      var near = vec3f(1e9, 0.0, b.top);
+      var side = 0.0;
+      for (var q = 0u; q < 4u; q++) {
+        let v = vec2f(select(-1.0, 1.0, (q & 1u) == 0u), select(-1.0, 1.0, q < 2u)) * b.half - o;
+        let t = dot(dl, v);
+        if (t <= 0.0 || t >= e.reach) { continue; }
+        let off = dl.x * v.y - dl.y * v.x;
+        side = sign(off);
+        if (abs(off) < near.x) { near = vec3f(abs(off), t, b.top); }
+      }
+      if (side > 0.0 && near.x < left.x) { left = near; }
+      if (side < 0.0 && near.x < right.x) { right = near; }
+    }
     // An eye inside a box (a garrison slot) sees out of it.
-    if (miss || tn > tf || tf <= 0.0 || tn < 0.0 || tn > e.reach) { continue; }
+    if (!crossed || tn < 0.0 || tn > e.reach) { continue; }
     let rel = b.top - e.position.z;
     // Above the eye the steepest point is the entry; below it, the exit.
     // A quarter metre floors the distance of a box touching the eye.
@@ -307,6 +329,13 @@ function mergeFn(radialBins: number) {
     if (te > P.firstBinM) { k0 = u32(ceil(log(te / P.firstBinM) / lnr * f32(R - 1u))); }
     if (k0 >= R) { continue; }
     if (sl > pm[k0]) { pm[k0] = sl; pt[k0] = te; }
+  }
+  if (left.x + right.x < gap) {
+    let te = max(left.y, right.y);
+    let sl = (min(left.z, right.z) - e.position.z) / max(te, 0.25);
+    var k0 = 0u;
+    if (te > P.firstBinM) { k0 = u32(ceil(log(te / P.firstBinM) / lnr * f32(R - 1u))); }
+    if (k0 < R && sl > pm[k0]) { pm[k0] = sl; pt[k0] = te; }
   }
   let a = (theta + ${PI}) / ${TAU} * f32(AZT) - 0.5;
   let af = floor(a);
@@ -697,11 +726,13 @@ export function fogOccludersInReach(
 
 /** Conservative angular lists reduce ray work without changing box intersections.
  * Bounding circles enclose every turned box; one extra sector at either edge
- * covers f32 ray-angle rounding. Source order preserves equal-slope ties. */
+ * covers f32 ray-angle rounding. Source order preserves equal-slope ties.
+ * `margin` widens each circle, for boxes a ray only passes near. */
 export function fogHorizonRecords(
   grid: ReturnType<typeof wholeWords>,
   eyes: readonly Pick<FogEyeRow, "position" | "reach">[],
   indices: readonly number[] = eyes.map((_, i) => i),
+  margin = 0,
 ): Uint32Array {
   const floats = new Float32Array(grid.words.buffer);
   const scale = HORIZON_SECTORS / (Math.PI * 2);
@@ -717,7 +748,7 @@ export function fogHorizonRecords(
       vec2.fromBuffer(_fog_center, floats, b);
       vec2.fromBuffer(_fog_half, floats, b + 4);
       const distance = vec2.distance(_fog_center, _fog_position);
-      const radius = vec2.length(_fog_half);
+      const radius = vec2.length(_fog_half) + margin;
       let lo = 0;
       let hi = HORIZON_SECTORS - 1;
       if (distance > radius * (1 + 8 * 2 ** -23)) {
@@ -1130,6 +1161,7 @@ export async function createFogVisibility(
       targetHeightM: world?.targetHeightM ?? 0,
       foliageCellM: world && world.foliage.length > 3 ? world.foliage[2] : 1,
       foliageFullBlock: world?.foliageFullBlock ?? 1,
+      minSightGapM: world?.minSightGapM ?? 0,
       heightSpacing: world?.spacing ?? 1,
       faceProbeM: g.face_probe_m,
       width: extra.width ?? 0,
@@ -1173,6 +1205,7 @@ export async function createFogVisibility(
           wholes,
           picked.map((i) => ({ position: order[i].built!, reach: order[i].reach })),
           picked,
+          (world?.minSightGapM ?? 0) / 2,
         );
         if (records.length > rebuildCapacity) {
           rebuildCapacity = Math.max(records.length, rebuildCapacity * 2);
@@ -1550,6 +1583,7 @@ const FOG_PARAMS_ZERO = {
   targetHeightM: 0,
   foliageCellM: 1,
   foliageFullBlock: 1,
+  minSightGapM: 0,
   heightSpacing: 1,
   faceProbeM: 0,
   width: 0,

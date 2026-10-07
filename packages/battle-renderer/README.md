@@ -45,9 +45,10 @@ The [sky](src/world/sky.ts) shows a fair-weather cloud layer over the clear
 atmosphere it bakes; the environment light is baked clear, so clouds never dim
 the sun on the ground.
 Fog eyes use published positions while model motion may interpolate. Unknown
-occluders cannot enter a side's fog. The fog fills the gaps too narrow to see
-through exactly as sight does (the world's sight gaps, while the side knows both
-their bodies stand), so it draws no sliver of sight the simulation would not give. Seen ground and sun shadow must remain visually
+occluders cannot enter a side's fog. A ray squeezing between occluders, one on
+each side, with less than `sensors.min_sight_gap_m` of room on its two sides
+together is blocked there, as the simulation's sight is (`WorldGeometry::squeezed`),
+so the fog draws no sliver of sight between houses. Seen ground and sun shadow must remain visually
 distinct from unseen ground; [fog and light rationale](../../specs/done/battle-look/README.md)
 records that design requirement.
 

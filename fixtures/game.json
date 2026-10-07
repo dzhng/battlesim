@@ -171,7 +171,7 @@
     "hearing_shot_m": 2000,
     "sound_bucket_s": 0.5,
     "fog_target_height_m": 1.0,
-    "min_sight_gap_m": 1.0
+    "min_sight_gap_m": 0.5
   },
   "ricochet": {
     "speed_kept": 0.6,

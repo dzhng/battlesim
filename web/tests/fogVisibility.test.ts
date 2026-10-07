@@ -152,6 +152,7 @@ test("an occluder update immediately rebuilds only affected built maps through t
       foliage: new Float32Array(0),
       targetHeightM: 0,
       foliageFullBlock: 1,
+      minSightGapM: 0,
     };
     const eyes = [0, 2000].map((x, i) => ({
       key: `${i}`,

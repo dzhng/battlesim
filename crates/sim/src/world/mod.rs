@@ -6,7 +6,6 @@ mod carve;
 pub mod export;
 mod forest;
 mod props;
-mod sight_gaps;
 mod surfaces;
 mod terrain;
 
@@ -14,7 +13,6 @@ pub use forest::Foliage;
 use props::PropStore;
 pub(crate) use props::{ray_box, PropIndex};
 pub use props::{Prop, PropId, Slot};
-pub use sight_gaps::SightGap;
 use terrain::HeightField;
 
 use crate::math::{v2, v3, Obb2, V2, V3};
@@ -116,8 +114,9 @@ pub struct WorldGeometry {
     /// Props added, moved, removed or made known to all since
     /// [`Self::take_touched`] last emptied it.
     touched: Vec<PropId>,
-    /// The map's gaps too narrow to see through ([`sight_gaps`]).
-    sight_gaps: Arc<sight_gaps::SightGaps>,
+    /// The least room a line of sight needs between the bodies it squeezes
+    /// past, on its two sides together (`sensors.min_sight_gap_m`).
+    min_sight_gap_m: f64,
 }
 
 impl WorldGeometry {
@@ -152,7 +151,7 @@ impl WorldGeometry {
             types: self.types.clone(),
             moved: Default::default(),
             touched: Vec::new(),
-            sight_gaps: Arc::clone(&self.sight_gaps),
+            min_sight_gap_m: self.min_sight_gap_m,
         };
         snapshot.forest.reset_cleared();
         snapshot
@@ -249,7 +248,7 @@ impl WorldGeometry {
             types: rules.catalog.props().clone(),
             moved: Default::default(),
             touched: Vec::new(),
-            sight_gaps: Default::default(),
+            min_sight_gap_m: rules.sensors.min_sight_gap_m,
             field,
         };
         for (id, def) in &authored {
@@ -359,12 +358,6 @@ impl WorldGeometry {
         let mut authored = crate::digest::Digest::default();
         world.props().for_each(|p| digest_pose(&mut authored, p));
         world.authored_digest = authored.finish();
-        world.sight_gaps = Arc::new(sight_gaps::SightGaps::find(
-            world.props().filter(|p| p.body.occludes),
-            |center, radius| world.props_near(center, radius),
-            rules.sensors.min_sight_gap_m,
-            v2(world.width(), world.depth()),
-        ));
         world
     }
 
@@ -664,7 +657,7 @@ impl WorldGeometry {
         // wins, a body only before the ground strictly nearer, and among
         // bodies hit at the same distance the lowest id.
         let (a, b) = (origin.xy(), (origin + dir * max_t).xy());
-        self.props.any_along(a, b, |id| {
+        self.props.any_along(a, b, 0.0, |id| {
             if self.skips_structure(id, skip) {
                 return false;
             }
@@ -711,14 +704,63 @@ impl WorldGeometry {
         let len = d.length();
         len == 0.0
             || !(self.blocked_by(a, d * (1.0 / len), len, None, |b| b.occludes)
-                || self
-                    .sight_gaps
-                    .close(a, b, |id| self.prop(id).is_some_and(|p| p.body.occludes)))
+                || self.squeezed(a, b))
     }
 
-    /// The map's gaps too narrow to see through ([`sight_gaps::SightGaps`]).
-    pub fn sight_gaps(&self) -> impl Iterator<Item = &sight_gaps::SightGap> {
-        self.sight_gaps.iter()
+    /// Whether the line from `a` to `b` squeezes between bodies that hide
+    /// what lies behind them, one on its left and one on its right, with
+    /// less than `min_sight_gap_m` of room on its two sides together:
+    /// through the crack between two houses, or the sliver between a near
+    /// house on one side and a far one on the other. A body that stands
+    /// within half that of either end is passed, so one at a wall or in a
+    /// crack still sees and is seen. Where the line passes a box it misses
+    /// most closely is a corner; the body counts where it stands above the
+    /// line.
+    fn squeezed(&self, a: V3, b: V3) -> bool {
+        let least = self.min_sight_gap_m;
+        let (from, to) = (a.xy(), b.xy());
+        let len = (to - from).length();
+        if least <= 0.0 || len <= least {
+            return false;
+        }
+        let dir = (to - from) * (1.0 / len);
+        let (mut left, mut right) = (f64::INFINITY, f64::INFINITY);
+        self.props.any_along(from, to, least, |id| {
+            let prop = self.props.get(id).expect("indexed prop is live");
+            let f = prop.footprint();
+            if !prop.body.occludes || f.distance(from) < least / 2.0 || f.distance(to) < least / 2.0
+            {
+                return false;
+            }
+            let (x, y) = (v2(1.0, 0.0).rotated(f.yaw), v2(0.0, 1.0).rotated(f.yaw));
+            let mut nearest: Option<(f64, f64)> = None;
+            let mut side = 0.0;
+            for (sx, sy) in [(1.0, 1.0), (1.0, -1.0), (-1.0, 1.0), (-1.0, -1.0)] {
+                let v = f.center + x * (sx * f.half.x) + y * (sy * f.half.y) - from;
+                let t = v.dot(dir);
+                if t <= 0.0 || t >= len {
+                    continue;
+                }
+                let off = dir.x * v.y - dir.y * v.x;
+                if side * off < 0.0 {
+                    // Corners either side: the line crosses the box, which
+                    // the body test judges.
+                    return false;
+                }
+                side = off.signum();
+                if nearest.is_none_or(|(o, _)| off.abs() < o) {
+                    nearest = Some((off.abs(), t));
+                }
+            }
+            if let Some((off, t)) = nearest {
+                let z = a.z + (b.z - a.z) * (t / len);
+                if prop.top_z() > z {
+                    let room = if side > 0.0 { &mut left } else { &mut right };
+                    *room = room.min(off);
+                }
+            }
+            left + right < least
+        })
     }
 
     /// Whether [`raycast_by`](Self::raycast_by) would hit anything, without
@@ -736,7 +778,7 @@ impl WorldGeometry {
         // A hit lies on the segment inside the footprint, so within its
         // circle: the index offers every prop that could be hit.
         let (a, b) = (origin.xy(), (origin + dir * max_t).xy());
-        let by_prop = self.props.any_along(a, b, |id| {
+        let by_prop = self.props.any_along(a, b, 0.0, |id| {
             let prop = self.props.get(id).expect("indexed prop is live");
             !self.skips_structure(id, skip)
                 && admits(&prop.body)

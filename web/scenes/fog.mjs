@@ -1,7 +1,9 @@
 // Sight-light fog over the village street. The GPU
 // lookup against its oracle vectors (the sight shape from Rust, the lookup
 // from its CPU mirror), agreement with the simulation's 8 m sweep, a sharp
-// sight-shadow edge at ground framing, a turned turret, a garrison's eyes,
+// sight-shadow edge at ground framing, a line of sight threaded between two
+// houses' corners (closed under `sensors.min_sight_gap_m` of room, open
+// above it), a turned turret, a garrison's eyes,
 // and the frames the visual verdict reads. FOG_COST=1 also measures fog's GPU
 // cost at 100 a side (run it alone, under the GPU lock).
 import { writeFile } from "node:fs/promises";
@@ -46,6 +48,109 @@ async function writeDiffMap(ctx, name, a, observation) {
     }
   }
   await writeFile(ctx.evidencePath(name), PNG.sync.write(png));
+}
+
+/** Lines of sight threaded between two buildings' corners, one near on the
+ *  left and one farther on the right: the gap looks narrow from the eye
+ *  however far apart the houses stand. Each candidate is the line at each of
+ *  `rooms` metres beside each corner, as [eye, target]. */
+function threadedLines(occluders, rooms) {
+  const tall = occluders.filter((b) => b.top - b.base > 4);
+  const corners = (b) =>
+    [
+      [1, 1],
+      [1, -1],
+      [-1, 1],
+      [-1, -1],
+    ].map(([i, j]) => [
+      b.x + Math.cos(b.yaw) * b.hx * i - Math.sin(b.yaw) * b.hy * j,
+      b.y + Math.sin(b.yaw) * b.hx * i + Math.cos(b.yaw) * b.hy * j,
+    ]);
+  // Whether the segment p→q meets the box grown by `grow`.
+  const meets = (b, p, q, grow) => {
+    const [c, s] = [Math.cos(b.yaw), Math.sin(b.yaw)];
+    const local = ([x, y]) => [(x - b.x) * c + (y - b.y) * s, -(x - b.x) * s + (y - b.y) * c];
+    const [o, e] = [local(p), local(q)];
+    let [lo, hi] = [0, 1];
+    for (const [k, h] of [
+      [0, b.hx + grow],
+      [1, b.hy + grow],
+    ]) {
+      const d = e[k] - o[k];
+      if (Math.abs(d) < 1e-9) {
+        if (Math.abs(o[k]) > h) return false;
+        continue;
+      }
+      const [t1, t2] = [(-h - o[k]) / d, (h - o[k]) / d];
+      lo = Math.max(lo, Math.min(t1, t2));
+      hi = Math.min(hi, Math.max(t1, t2));
+    }
+    return lo <= hi;
+  };
+  const lines = [];
+  for (const [i, near] of tall.entries())
+    for (const [j, far] of tall.entries()) {
+      if (i === j) continue;
+      for (const a of corners(near))
+        for (const b of corners(far)) {
+          const along = Math.hypot(b[0] - a[0], b[1] - a[1]);
+          if (along < 6 || along > 120) continue;
+          const u = [(b[0] - a[0]) / along, (b[1] - a[1]) / along];
+          const n = [-u[1], u[0]];
+          const line = (room) => {
+            const pa = [a[0] - n[0] * room, a[1] - n[1] * room];
+            const pb = [b[0] + n[0] * room, b[1] + n[1] * room];
+            const w = Math.hypot(pb[0] - pa[0], pb[1] - pa[1]);
+            const v = [(pb[0] - pa[0]) / w, (pb[1] - pa[1]) / w];
+            return [
+              [pa[0] - v[0] * 15, pa[1] - v[1] * 15],
+              [pb[0] + v[0] * 15, pb[1] + v[1] * 15],
+            ];
+          };
+          const each = rooms.map(line);
+          const clear = ([eye, target]) =>
+            !tall.some((box) => meets(box, eye, target, 0.02)) &&
+            !occluders.some((box) => meets(box, eye, eye, 2) || meets(box, target, target, 2));
+          if (each.every(clear)) lines.push(each);
+        }
+    }
+  return lines;
+}
+
+/** A line threaded between two corners with less than `sensors.min_sight_gap_m`
+ *  of room is blocked on the GPU, as in the simulation; with room it is open. */
+async function checkThreaded(ctx, page, input, recon) {
+  const lines = threadedLines(input.sight.occluders, [0.1, 0.4]);
+  const probe = async ([eye, target]) => {
+    const z = await lab(page, (p) => window.__lab.route.surfaceZ(p[0], p[1]), eye);
+    const tz = await lab(page, (p) => window.__lab.route.surfaceZ(p[0], p[1]), target);
+    const forward = Math.atan2(target[1] - eye[1], target[0] - eye[0]);
+    const one = { ...recon, key: "threaded", position: [eye[0], eye[1], z + 1.7], forward };
+    await lab(page, (e) => window.__lab.route.setEyes(e), [one]);
+    await page.evaluate(() => window.__lab.frame());
+    const [seen] = await lab(page, (p) => window.__lab.route.probe(p), [
+      { position: [target[0], target[1], tz] },
+    ]);
+    return seen;
+  };
+  // Of the corner pairs open with room (nothing else in the way), those
+  // closed without.
+  const pairs = Math.min(lines.length, 24);
+  const results = [];
+  for (const [tight, roomy] of lines.slice(0, pairs)) {
+    if (!(await probe(roomy))) continue;
+    results.push({ line: tight, closed: !(await probe(tight)) });
+  }
+  await lab(page, () => window.__lab.route.setEyes(null));
+  ctx.check(
+    "a sight line threaded between a near house's corner and a farther one's is closed with 0.2 m of room and open with 0.8 m",
+    results.length >= 3 && results.every((r) => r.closed),
+    JSON.stringify({
+      candidates: pairs,
+      open: results.length,
+      closed: results.filter((r) => r.closed).length,
+    }),
+  );
 }
 
 async function checkAgreement(ctx, page, label, file) {
@@ -275,6 +380,8 @@ export async function run(ctx) {
   await lab(page, (e) => window.__lab.route.setEyes(e), [recon]);
   await checkEdge(ctx, page, "far", GROUND, { x0: 0, x1: 1920, y0: 300, y1: 800 }, recon);
   await checkEdge(ctx, page, "near", NEAR, { x0: 300, x1: 1300, y0: 360, y1: 1080 }, recon);
+  await checkThreaded(ctx, page, input, recon);
+  await lab(page, (e) => window.__lab.route.setEyes(e), [recon]);
   await lab(page, (c) => window.__lab.setCamera(c), opening);
   // The recon's sight alone over the street: ARMAPHRACT's lit wedge between
   // buildings (the visual variable's reference crop).

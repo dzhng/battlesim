@@ -19,9 +19,6 @@ pub const FLAG_BLOCKED: u8 = 2;
 pub const PROP_STRIDE: usize = 10;
 /// min x, min y, width, height, z.
 pub const AREA_STRIDE: usize = 5;
-/// A gap too narrow to see through: center x, y, yaw, half x, half y, base,
-/// top, and the ids of the two bodies it lies between (lo, hi limbs each).
-pub const SIGHT_GAP_STRIDE: usize = 11;
 /// One stretch of a stroke between two rounded samples: end a, end b, half
 /// width, its area's kind (`surface_area_tag`), and which of its ends are cut square
 /// (`contract::ground::CUT_A | CUT_B`, from `contract::ground::stretches`).
@@ -91,8 +88,6 @@ pub fn layout_json(types: &PropCatalog) -> String {
         "destroyablePropKinds": kinds(&|b| b.hp.is_some()),
         "flags": { "forest": FLAG_FOREST, "blocked": FLAG_BLOCKED },
         "propStride": PROP_STRIDE,
-        "sightGapStride": SIGHT_GAP_STRIDE,
-        "sightGapFields": ["x", "y", "yaw", "hx", "hy", "base", "top", "aLo", "aHi", "bLo", "bHi"],
         "limbBits":16,
         "areaStride": AREA_STRIDE,
         "propFields": ["idLo", "idHi", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
@@ -259,24 +254,6 @@ impl WorldGeometry {
     /// those that stray from the run by less than half the river's narrowest
     /// water: a meander authored point by point then cuts fields along a few
     /// long chords that stay in its water, not into a fan of slivers.
-    /// Every gap too narrow to see through (`SIGHT_GAP_STRIDE` each): the
-    /// fog fills them as sight does, while both their bodies stand.
-    pub fn export_sight_gaps(&self) -> Vec<f32> {
-        let mut out = Vec::new();
-        for g in self.sight_gaps() {
-            let f = &g.footprint;
-            let [a, b] = g.between.map(crate::publication::limbs);
-            out.extend(
-                [
-                    f.center.x, f.center.y, f.yaw, f.half.x, f.half.y, g.base, g.top,
-                ]
-                .map(|v| v as f32),
-            );
-            out.extend([a[0], a[1], b[0], b[1]]);
-        }
-        out
-    }
-
     pub fn export_river_runs(&self) -> Vec<f32> {
         let mut out = Vec::new();
         for river in self.rivers() {
