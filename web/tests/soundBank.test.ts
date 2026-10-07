@@ -34,7 +34,6 @@ function recordingCatalog(): SoundCatalog {
       },
     },
     defaults: {},
-    units: {},
     impacts: {},
     effects: {},
   };

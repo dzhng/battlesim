@@ -18,14 +18,15 @@ Recipe and assignment gains remain the authoring controls for intentional level 
 Audition centers mono material in stereo and uses a memoryless safety ceiling;
 safe brief attacks are not attenuated by a newly created compressor's startup.
 
-Assignments name an exact unit type and authored mount. Types are derived from the
-resolved unit catalog, and repeated physical mounts with the same authored name
-share a choice. Restoring an override exposes the global firing default or implicit
-fallback, including its effect replacement. Near and far may select different
+Firing choices name a weapon row from `game.json`. A row without its own choice
+shows and plays its nearest ancestor's, else the default row's; restoring a row's
+own choice exposes that fallback, including its effect replacement. Vehicle classes
+are listed read-only for audition: their loops and levels belong to the game's
+presentation, and a loop is replaced for every class through its effect slot. Near and far may select different
 recordings or recipes sharing the same core; the battle applies distance attenuation,
 filtering, attack and reverb during playback. Workbench auditions play the recipe
-without battlefield distance processing. Cannon launch choices follow the mount across its ammunition types;
-the existing observed launch contract does not identify the selected cannon round.
+without battlefield distance processing. A cannon's launch is heard as its mount's first weapon row across its ammunition
+types; the observed launch contract does not identify the selected cannon round.
 Impact choices may distinguish the published round and material; the ricochet row
 chooses each round's glance the same way. Stored reloads and
 mechanical actions remain useful auditions without inventing battle events.

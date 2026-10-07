@@ -76,8 +76,8 @@ export interface SoundCatalog {
   sources: Record<string, SoundSource>;
   clips: Record<string, SoundClip>;
   sounds: Record<string, SoundRecipe>;
+  /** Firing choices by weapon row; `default` for a row without one. */
   defaults: Record<string, ShotChoice>;
-  units: Record<string, Record<string, ShotChoice>>;
   impacts: Record<string, Record<string, string>>;
   /** Replacements for baseline effect/loop slots; baseline recipes remain selectable. */
   effects: Record<string, string>;
@@ -97,8 +97,10 @@ function finite(value: unknown, low: number, high: number): boolean {
 }
 export function validateSoundCatalog(value: unknown): SoundCatalog {
   const root = record(value, "sound catalog");
-  for (const section of ["sources", "clips", "sounds", "defaults", "units", "impacts", "effects"])
-    record(root[section], section);
+  const sections = ["sources", "clips", "sounds", "defaults", "impacts", "effects"];
+  for (const section of sections) record(root[section], section);
+  const unknown = Object.keys(root).find((key) => !sections.includes(key));
+  if (unknown) throw new Error(`sound catalog: unknown section ${unknown}`);
   const catalog = value as SoundCatalog;
   for (const [name, source] of Object.entries(catalog.sources)) {
     record(source, `source ${name}`);
@@ -215,11 +217,6 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
       throw new Error(`${where}: near and far play different bursts`);
   };
   for (const [kind, choice] of Object.entries(catalog.defaults)) firing(choice, `default ${kind}`);
-  for (const [unit, mounts] of Object.entries(catalog.units)) {
-    record(mounts, `unit ${unit}`);
-    for (const [mount, choice] of Object.entries(mounts))
-      firing(choice, `unit ${unit} mount ${mount}`);
-  }
   for (const [hit, kinds] of Object.entries(catalog.impacts)) {
     record(kinds, `impact ${hit}`);
     for (const [kind, name] of Object.entries(kinds))
@@ -260,11 +257,7 @@ export function firingCadence(catalog: SoundCatalog, sound: string): Cadence {
  *  for audition, prepared only when auditioned. */
 export function battleSounds(catalog: SoundCatalog): string[] {
   const names = new Set(Object.keys(catalog.sounds).filter((name) => Object.hasOwn(SOUNDS, name)));
-  const choices = [
-    ...Object.values(catalog.defaults),
-    ...Object.values(catalog.units).flatMap(Object.values),
-  ];
-  for (const choice of choices) names.add(choice.near).add(choice.far);
+  for (const choice of Object.values(catalog.defaults)) names.add(choice.near).add(choice.far);
   for (const row of Object.values(catalog.impacts))
     for (const name of Object.values(row)) names.add(name);
   for (const name of Object.values(catalog.effects)) names.add(name);
@@ -275,14 +268,10 @@ export function battleSounds(catalog: SoundCatalog): string[] {
 export function resolveEffect(catalog: SoundCatalog, baseline: string): string {
   return catalog.effects[baseline] ?? baseline;
 }
-export function resolveShot(
-  catalog: SoundCatalog,
-  base: NearFar,
-  unit: string,
-  mount: string,
-  kind: string,
-): NearFar {
-  const choice = catalog.units[unit]?.[mount] ?? catalog.defaults[kind] ?? catalog.defaults.default;
+/** How a round of weapon row `kind` fires: its chosen recording, else the
+ *  `default` choice, else the synthesized `base` (with effect replacements). */
+export function resolveShot(catalog: SoundCatalog, base: NearFar, kind: string): NearFar {
+  const choice = catalog.defaults[kind] ?? catalog.defaults.default;
   if (choice) return { ...base, near: choice.near, far: choice.far, gain: base.gain * choice.gain };
   const near = resolveEffect(catalog, base.near);
   const far = resolveEffect(catalog, base.far);

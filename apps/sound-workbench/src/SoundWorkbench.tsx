@@ -7,7 +7,7 @@ import {
 import { SoundAuditioner, type Auditioner } from "./audition";
 import { workbenchAPI, type Review, type Snapshot, type WorkbenchAPI } from "./protocol";
 import { Library, type Selection } from "./Library";
-import { UnitAssignments, GlobalAssignments } from "./Assignments";
+import { VehicleClasses, GlobalAssignments } from "./Assignments";
 import "./sound-workbench.css";
 
 function changedSettings(
@@ -38,10 +38,9 @@ export function SoundWorkbench({
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [draft, setDraft] = useState<SoundCatalog | null>(null);
   const [review, setReview] = useState<Review | null>(null);
-  const [tab, setTab] = useState<"library" | "units" | "effects">("library");
+  const [tab, setTab] = useState<"library" | "vehicles" | "effects">("library");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Selection | null>(null);
-  const [unitId, setUnitId] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [playing, setPlaying] = useState("");
@@ -71,9 +70,6 @@ export function SoundWorkbench({
         const sound = Object.keys(value.catalog.sounds)[0];
         return clip ? { kind: "clip", id: clip } : sound ? { kind: "sound", id: sound } : null;
       });
-      setUnitId((id) =>
-        value.units.some((unit) => unit.id === id) ? id : (value.units[0]?.id ?? ""),
-      );
     },
     [stopAudio],
   );
@@ -187,7 +183,7 @@ export function SoundWorkbench({
         {(
           [
             ["library", "Library & recipes"],
-            ["units", "Unit assignments"],
+            ["vehicles", "Vehicle classes"],
             ["effects", "Defaults & effects"],
           ] as const
         ).map(([value, label]) => (
@@ -238,17 +234,8 @@ export function SoundWorkbench({
                 clone={clone}
               />
             )}
-            {tab === "units" && (
-              <UnitAssignments
-                snapshot={snapshot}
-                draft={draft}
-                edit={edit}
-                play={play}
-                search={search}
-                setSearch={setSearch}
-                unitId={unitId}
-                setUnitId={setUnitId}
-              />
+            {tab === "vehicles" && (
+              <VehicleClasses snapshot={snapshot} draft={draft} edit={edit} play={play} />
             )}
             {tab === "effects" && (
               <GlobalAssignments snapshot={snapshot} draft={draft} edit={edit} play={play} />

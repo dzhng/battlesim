@@ -122,7 +122,6 @@ function setupDecode(decode: () => Promise<AudioBuffer>) {
     },
     // A battle prepares only what it can play: the controlled recording fires.
     defaults: { default: { near: "pending", far: "pending", gain: 1 } },
-    units: {},
     impacts: {},
     effects: {},
   };

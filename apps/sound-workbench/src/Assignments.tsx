@@ -1,175 +1,114 @@
 import { SOUNDS } from "../../../packages/battle-audio/src/synth";
-import { resolveShot } from "../../../packages/battle-audio/src/catalog";
+import { resolveEffect, resolveShot } from "../../../packages/battle-audio/src/catalog";
+import { inheritRows } from "../../../packages/renderer-core/src/kindTable";
 import { Choices } from "./controls";
 import type { EditorProps } from "./editorProps";
-import type { NearFar } from "../../../packages/battle-audio/src/audioPresentation";
 
-function firingChoice(
-  draft: EditorProps["draft"],
-  base: NearFar,
-  kind: string,
-  unit = "",
-  mount = "",
-) {
-  const { near, far, gain } = resolveShot(draft, { ...base, gain: 1 }, unit, mount, kind);
-  return { near, far, gain };
-}
-export function UnitAssignments({
-  snapshot,
-  draft,
-  edit,
-  play,
-  search,
-  setSearch,
-  unitId,
-  setUnitId,
-}: EditorProps & {
-  search: string;
-  setSearch(value: string): void;
-  unitId: string;
-  setUnitId(value: string): void;
-}) {
-  const matches = (text: string) => text.toLowerCase().includes(search.toLowerCase());
+/** Each vehicle class's loops, as the battle plays them: read only here,
+ *  since the classes and their rows live in `presentation.audio.vehicles`. */
+export function VehicleClasses({ snapshot, draft, play }: EditorProps) {
   return (
-    <div className="sw-layout">
-      <aside className="sw-browser">
-        <label>
-          Find unit type
-          <input
-            aria-label="Find unit type"
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </label>
-        {snapshot.units
-          .filter((unit) => matches(`${unit.id} ${unit.name}`))
-          .map((unit) => (
-            <button
-              className="sw-library-row"
-              aria-label={unit.name}
-              aria-pressed={unitId === unit.id}
-              key={unit.id}
-              onClick={() => setUnitId(unit.id)}
-            >
-              <span>{unit.name}</span>
-              <small>
-                {unit.id} ·{" "}
-                {unit.mounts.length ? `${unit.mounts.length} mount choices` : "no firing mounts"}
-              </small>
-            </button>
-          ))}
-      </aside>
-      <section className="sw-inspector sw-detail">
-        {(() => {
-          const unit = snapshot.units.find((u) => u.id === unitId);
-          if (!unit)
+    <section className="sw-detail sw-global">
+      <h2>Vehicle classes</h2>
+      <p>
+        A vehicle sounds as its class: how it moves, its hull&apos;s weight and whether it hauls
+        supply. Classes and their levels live in the game&apos;s presentation; replace a loop for
+        every class under Defaults &amp; effects.
+      </p>
+      {Object.entries(snapshot.vehicles).map(([cls, row]) => (
+        <div className="sw-assignment" key={cls}>
+          <h3>{cls}</h3>
+          {(
+            [
+              ["engine", row.engine],
+              ["running gear", row.running],
+              ["turret", row.turret],
+              ["reverse", row.reverse],
+            ] as const
+          ).map(([slot, baseline]) => {
+            if (!baseline) return null;
+            const sound = resolveEffect(draft, baseline);
             return (
-              <>
-                <h2>Choose an exact unit type</h2>
-                <p>
-                  Variants have independent choices. Equivalent named physical mounts share one
-                  assignment.
-                </p>
-              </>
+              <div className="sw-effect-row" key={slot}>
+                <span>
+                  {slot} · {draft.sounds[sound]?.label ?? sound}
+                </span>
+                <button
+                  aria-label={`Play ${cls} ${slot}`}
+                  onClick={() => void play("sound", sound)}
+                >
+                  Play
+                </button>
+              </div>
             );
-          return (
-            <>
-              <p className="sw-eyebrow">EXACT UNIT TYPE · {unit.id}</p>
-              <h2>{unit.name}</h2>
-              <p>
-                Launch choices follow the mount. Cannon mounts use one choice across their
-                ammunition types.
-              </p>
-              {unit.mounts.map((mount) => {
-                const kind = mount.weapons[0];
-                const override = draft.units[unit.id]?.[mount.name];
-                const global = draft.defaults[kind] ?? draft.defaults.default;
-                const base = snapshot.firing[kind] ?? snapshot.firing.default;
-                const choice = firingChoice(draft, base, kind, unit.id, mount.name);
-                return (
-                  <div className="sw-assignment" key={mount.name}>
-                    <h3>{mount.name}</h3>
-                    <p>
-                      {mount.weapons.join(" / ")} ·{" "}
-                      {override
-                        ? "unit override"
-                        : global
-                          ? "global firing default"
-                          : "implicit firing fallback"}
-                    </p>
-                    {mount.count > 1 && <p>{mount.count} physical mounts share this choice</p>}
-                    <Choices
-                      name={mount.name}
-                      choice={choice}
-                      catalog={draft}
-                      onChange={(value) =>
-                        edit((c) => {
-                          (c.units[unit.id] ??= {})[mount.name] = value;
-                        })
-                      }
-                      play={(id, gain) => void play("sound", id, 0, gain)}
-                    />
-                    <button
-                      disabled={!override}
-                      aria-label={`Restore ${mount.name} fallback`}
-                      onClick={() =>
-                        edit((c) => {
-                          delete c.units[unit.id][mount.name];
-                          if (!Object.keys(c.units[unit.id]).length) delete c.units[unit.id];
-                        })
-                      }
-                    >
-                      Restore fallback
-                    </button>
-                  </div>
-                );
-              })}
-              {!unit.mounts.length && (
-                <p>
-                  This type has no firing mount. Its movement and environmental slots remain under
-                  Defaults & effects.
-                </p>
-              )}
-            </>
-          );
-        })()}
-      </section>
-    </div>
+          })}
+        </div>
+      ))}
+    </section>
   );
 }
 
 export function GlobalAssignments({ snapshot, draft, edit, play }: EditorProps) {
+  const rows = Object.keys(snapshot.weapons);
+  const bases = inheritRows(snapshot.firing, snapshot.weapons);
+  // The row each weapon's choice comes from: its own, or its nearest
+  // ancestor's that has one.
+  const owners = inheritRows(
+    Object.fromEntries(Object.keys(draft.defaults).map((kind) => [kind, kind])),
+    snapshot.weapons,
+  );
+  const heard = { ...draft, defaults: inheritRows(draft.defaults, snapshot.weapons) };
   return (
     <section className="sw-detail sw-global">
-      <h2>Global firing defaults</h2>
-      <p>Used when an exact unit mount has no override.</p>
-      {Object.entries(snapshot.firing).map(([kind, base]) => (
-        <div className="sw-assignment" key={kind}>
-          <h3>{kind}</h3>
-          <Choices
-            name={kind}
-            choice={firingChoice(draft, base, kind)}
-            catalog={draft}
-            onChange={(value) =>
-              edit((c) => {
-                c.defaults[kind] = value;
-              })
-            }
-            play={(id, gain) => void play("sound", id, 0, gain)}
-          />
-          <button
-            disabled={!draft.defaults[kind]}
-            onClick={() =>
-              edit((c) => {
-                delete c.defaults[kind];
-              })
-            }
-          >
-            Restore {kind} firing fallback
-          </button>
-        </div>
-      ))}
+      <h2>Firing by weapon row</h2>
+      <p>
+        A weapon row without a choice of its own fires its nearest ancestor&apos;s, else the default
+        row&apos;s.
+      </p>
+      {["default", ...rows].map((kind) => {
+        const own = Object.hasOwn(draft.defaults, kind);
+        const owner = owners[kind];
+        const { near, far, gain } = resolveShot(
+          heard,
+          { ...(bases[kind] ?? bases.default), gain: 1 },
+          kind,
+        );
+        return (
+          <div className="sw-assignment" key={kind}>
+            <h3>{kind}</h3>
+            <p>
+              {own
+                ? "own choice"
+                : owner
+                  ? `inherited from ${owner}`
+                  : draft.defaults.default
+                    ? "default row"
+                    : "implicit firing fallback"}
+            </p>
+            <Choices
+              name={kind}
+              choice={{ near, far, gain }}
+              catalog={draft}
+              onChange={(value) =>
+                edit((c) => {
+                  c.defaults[kind] = value;
+                })
+              }
+              play={(id, gain) => void play("sound", id, 0, gain)}
+            />
+            <button
+              disabled={!own}
+              onClick={() =>
+                edit((c) => {
+                  delete c.defaults[kind];
+                })
+              }
+            >
+              Restore {kind} firing fallback
+            </button>
+          </div>
+        );
+      })}
       <h2>Round / material impacts</h2>
       <p>
         Each round may replace the sound for the material it actually hits. The default row applies
@@ -178,7 +117,7 @@ export function GlobalAssignments({ snapshot, draft, edit, play }: EditorProps) 
       {snapshot.materials.map((material) => (
         <details key={material}>
           <summary>{material}</summary>
-          {["default", ...snapshot.rounds].map((round) => (
+          {["default", ...rows].map((round) => (
             <div className="sw-effect-row" key={round}>
               <label>
                 {round}
@@ -217,7 +156,7 @@ export function GlobalAssignments({ snapshot, draft, edit, play }: EditorProps) 
       ))}
       <h2>Effects, flight and movement</h2>
       <p>
-        Replace an implicit baseline slot. Explicit unit and impact selections keep their recipe.
+        Replace an implicit baseline slot. Explicit weapon and impact selections keep their recipe.
       </p>
       {Object.entries(SOUNDS).map(([slot, sound]) => (
         <div className="sw-effect-row" key={slot}>

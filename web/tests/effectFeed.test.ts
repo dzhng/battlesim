@@ -5,7 +5,7 @@ import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { ObservationView } from "@web/battle/sim/observation";
 
-test("the production observed feed preserves exact own/enemy type and authored mount through launches", () => {
+test("the production observed feed launches own and enemy rounds by shooter and weapon row", () => {
   const observation = (tick: number): ObservationView =>
     ({
       tick,
@@ -59,8 +59,8 @@ test("the production observed feed preserves exact own/enemy type and authored m
     ...launches.note(effectPublication(observation(2), "blue", UNITS), false),
     ...launches.note(effectPublication(observation(3), "blue", UNITS), false),
   ];
-  expect(shots.map((shot) => [shot.shooter, shot.unitKind, shot.mountName])).toEqual([
-    [15, "tank", UNITS.type("tank").mounts[1].name],
-    [2, "rifle", UNITS.type("rifle").mounts[0].name],
+  expect(shots.map((shot) => [shot.shooter, shot.kind])).toEqual([
+    [15, UNITS.type("tank").mounts[1].weapons[0]],
+    [2, UNITS.type("rifle").mounts[0].weapons[0]],
   ]);
 });

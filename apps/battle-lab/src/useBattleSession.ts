@@ -623,7 +623,7 @@ export function useBattleSession({
       const ground = sim.ground.current;
       if (!posing) {
         effects.build(time, effectBatch);
-        heard.current = { clock: time, motion: soundMotion(null, side) };
+        heard.current = { clock: time, motion: soundMotion(null, UNITS, side) };
         return { picks: d.picks, clock: time, effects: effectBatch, ground, felled };
       }
       const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
@@ -637,7 +637,7 @@ export function useBattleSession({
         );
         heard.current = {
           clock: time,
-          motion: soundMotion(poses, side, reversing, enemyReversing),
+          motion: soundMotion(poses, UNITS, side, reversing, enemyReversing),
         };
       }
       const posed = poseFrameInstances(posing.models, poses, posing.resolve, xrayOf.current);

@@ -67,7 +67,8 @@ export interface SoundPublication {
 export interface SoundVehicle {
   /** Unique across both sides (the effects' shooter key). */
   key: number;
-  kind: string;
+  /** Its presentation class (`vehicleClass`): the `vehicles` row it sounds as. */
+  vehicleClass: string;
   position: P3;
   /** Metres the left and right running gear have rolled (the pose's articulation). */
   travelL: number;
@@ -332,7 +333,7 @@ export class SoundFrame {
       if (t0 > b.start + b.shots * b.interval) this.bursts.delete(gun);
     for (const l of this.launches.note(fx, gap)) {
       const base = pick(p.shots, l.kind);
-      const s = resolveShot(this.catalog, base, l.unitKind, l.mountName, l.kind);
+      const s = resolveShot(this.catalog, base, l.kind);
       // A burst recording sounds the gun's next rounds too, while they land
       // on its shots; a round off its cadence, or past its last, starts another.
       const gun = `${l.shooter}:${l.mount}:${l.soldier}`;
@@ -692,7 +693,7 @@ export class SoundFrame {
     const seen = new Set<number>();
     for (const v of motion.vehicles) {
       seen.add(v.key);
-      const row = pick(p.vehicles, v.kind);
+      const row = pick(p.vehicles, v.vehicleClass);
       const travel = (Math.abs(v.travelL) + Math.abs(v.travelR)) / 2;
       let m = this.movers.get(v.key);
       if (!m) {

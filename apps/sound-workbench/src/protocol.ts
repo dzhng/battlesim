@@ -2,18 +2,17 @@ import type { AudioPresentation } from "../../../packages/battle-audio/src/audio
 import type { SoundCatalog } from "../../../packages/battle-audio/src/catalog";
 import type { Replacement } from "../../fixture-publication/publication";
 
-export interface SoundUnit {
-  id: string;
-  name: string;
-  mounts: { name: string; weapons: string[]; count: number }[];
-}
 export interface Snapshot {
   revision: string;
   catalog: SoundCatalog;
-  units: SoundUnit[];
+  /** `game.json`'s weapon rows by name, each with the row it `extends`: a
+   *  row without a firing choice of its own takes its nearest ancestor's. */
+  weapons: Record<string, { extends?: string }>;
+  /** The synthesized baseline shots (`presentation.audio.shots`). */
   firing: AudioPresentation["shots"];
+  /** Each vehicle class's loops (`presentation.audio.vehicles`), read only here. */
+  vehicles: AudioPresentation["vehicles"];
   materials: string[];
-  rounds: string[];
 }
 export interface Draft {
   revision: string;

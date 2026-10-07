@@ -409,12 +409,11 @@ function launchPublication(): EffectPublication {
     smokes: [],
     shooters: SHOTS.map((s, i) => ({
       key: i,
-      kind: "ballistic-emitter",
       half: null,
       yaw: 0,
       position: [s.from[0], s.from[1], 0],
       members: [EMITTER_BASE + i],
-      mounts: [{ name: "emitter", bearing: 0, elevation: 0, shots: 0, kind: s.kind, muzzle: null }],
+      mounts: [{ bearing: 0, elevation: 0, shots: 0, kind: s.kind, muzzle: null }],
     })),
   };
 }
@@ -472,7 +471,6 @@ function stepRun(run: Run, view: WorldView): EffectPublication {
     // Each emitter fired its one round at tick 0: counted from tick 1 on.
     shooters: SHOTS.map((s, i) => ({
       key: i,
-      kind: "ballistic-emitter",
       half: null,
       yaw: 0,
       position: [s.from[0], s.from[1], 0],
@@ -481,7 +479,6 @@ function stepRun(run: Run, view: WorldView): EffectPublication {
         {
           bearing: 0,
           elevation: 0,
-          name: "emitter",
           shots: run.shots[i].fired ? 1 : 0,
           kind: s.kind,
           muzzle: null,

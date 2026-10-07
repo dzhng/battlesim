@@ -6,9 +6,8 @@ import type { Plugin } from "vite";
 import { FixturePublication } from "../fixture-publication/publication";
 import type { SoundCatalog } from "../../packages/battle-audio/src/catalog";
 import { GLANCE } from "../../packages/battle-audio/src/contacts";
-import { UnitCatalog, type CatalogView } from "../../packages/scene-assets/src/units";
 import type { AudioPresentation } from "../../packages/battle-audio/src/audioPresentation";
-import type { Draft, Review, Save, Snapshot, SoundUnit } from "./src/protocol";
+import type { Draft, Review, Save, Snapshot } from "./src/protocol";
 
 class WorkbenchError extends Error {
   constructor(
@@ -52,9 +51,8 @@ const equal = (a: unknown, b: unknown): boolean => {
 interface Inputs {
   texts: string[];
   catalog: SoundCatalog;
-  unitCatalog: UnitCatalog;
   audio: AudioPresentation;
-  rounds: string[];
+  weapons: Snapshot["weapons"];
   media: [string, string][];
   revision: string;
 }
@@ -82,13 +80,10 @@ export class SoundWorkbenchStore {
 
   private async inputs(): Promise<Inputs> {
     const texts = await Promise.all(
-      ["sounds", "catalog", "game"].map((name) =>
-        readFile(join(this.root, `fixtures/${name}.json`), "utf8"),
-      ),
+      ["sounds", "game"].map((name) => readFile(join(this.root, `fixtures/${name}.json`), "utf8")),
     );
     const catalog = this.validateCatalog(JSON.parse(texts[0]));
-    const unitCatalog = new UnitCatalog(JSON.parse(texts[1]) as CatalogView);
-    const game = JSON.parse(texts[2]);
+    const game = JSON.parse(texts[1]);
     const audio = game.presentation.audio as AudioPresentation;
     const media: [string, string][] = [];
     for (const [id, clip] of Object.entries(catalog.clips)) {
@@ -106,35 +101,28 @@ export class SoundWorkbenchStore {
     return {
       texts,
       catalog,
-      unitCatalog,
       audio,
-      rounds: Object.keys(game.weapons),
+      // Each row's lineage only: what it inherits a firing choice from.
+      weapons: Object.fromEntries(
+        Object.entries(game.weapons as Record<string, { extends?: string }>).map(([kind, row]) => [
+          kind,
+          row.extends ? { extends: row.extends } : {},
+        ]),
+      ),
       media,
       revision: hash(JSON.stringify([texts, media])),
     };
   }
 
   private snapshotOf(input: Inputs): Snapshot {
-    const units: SoundUnit[] = input.unitCatalog.ids.map((id) => {
-      const unit = input.unitCatalog.type(id);
-      const mounts: SoundUnit["mounts"] = [];
-      for (const mount of unit.mounts) {
-        const repeated = mounts.find((row) => row.name === mount.name);
-        if (repeated) {
-          repeated.count++;
-          repeated.weapons = [...new Set([...repeated.weapons, ...mount.weapons])];
-        } else mounts.push({ name: mount.name, weapons: [...mount.weapons], count: 1 });
-      }
-      return { id, name: unit.name, mounts };
-    });
     return {
       revision: input.revision,
       catalog: input.catalog,
-      units,
+      weapons: input.weapons,
       firing: input.audio.shots,
+      vehicles: input.audio.vehicles,
       // A glance is a contact too: each round may choose its ricochet.
       materials: [...Object.keys(input.audio.impacts), GLANCE],
-      rounds: input.rounds,
     };
   }
 
@@ -143,7 +131,7 @@ export class SoundWorkbenchStore {
   }
 
   private validate(candidate: unknown, input: Inputs): SoundCatalog {
-    object(candidate, ["sources", "clips", "sounds", "defaults", "units", "impacts", "effects"]);
+    object(candidate, ["sources", "clips", "sounds", "defaults", "impacts", "effects"]);
     let catalog;
     try {
       catalog = this.validateCatalog(candidate);
@@ -158,20 +146,14 @@ export class SoundWorkbenchStore {
     for (const name of this.baselines)
       if (!equal(catalog.sounds[name], input.catalog.sounds[name]))
         throw new WorkbenchError(`Baseline ${name} is immutable; clone it to a new recipe`);
-    for (const [kind] of Object.entries(catalog.defaults))
-      if (!Object.hasOwn(input.audio.shots, kind))
-        throw new WorkbenchError(`Unknown firing kind ${kind}`);
-    for (const [id, mounts] of Object.entries(catalog.units)) {
-      if (!input.unitCatalog.ids.includes(id)) throw new WorkbenchError(`Unknown unit type ${id}`);
-      for (const mount of Object.keys(mounts))
-        if (!input.unitCatalog.type(id).mounts.some((row) => row.name === mount))
-          throw new WorkbenchError(`Unknown mount ${id}.${mount}`);
-    }
+    for (const kind of Object.keys(catalog.defaults))
+      if (kind !== "default" && !Object.hasOwn(input.weapons, kind))
+        throw new WorkbenchError(`Unknown weapon row ${kind}`);
     for (const [material, rounds] of Object.entries(catalog.impacts)) {
       if (!Object.hasOwn(input.audio.impacts, material))
         throw new WorkbenchError(`Unknown impact material ${material}`);
       for (const round of Object.keys(rounds))
-        if (round !== "default" && !input.rounds.includes(round))
+        if (round !== "default" && !Object.hasOwn(input.weapons, round))
           throw new WorkbenchError(`Unknown impact round ${round}`);
     }
     return catalog;

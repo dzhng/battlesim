@@ -8,6 +8,21 @@ import type { WorkbenchAPI, Snapshot } from "../../apps/sound-workbench/src/prot
 import type { Auditioner } from "../../apps/sound-workbench/src/audition";
 
 afterEach(cleanup);
+const VEHICLE: Snapshot["vehicles"][string] = {
+  engine: "engine_small",
+  idle_rate: 0.8,
+  load_rate: 1.4,
+  idle_gain: 0.2,
+  load_gain: 0.4,
+  running: "wheels",
+  running_gain: 0.3,
+  full_speed_mps: 12,
+  turret: null,
+  turret_gain: 0,
+  full_traverse_rps: 0.5,
+  reverse: "reverse_whine",
+  reverse_gain: 0.1,
+};
 // jsdom has no layout; scrolling is checked on the real browser route.
 HTMLElement.prototype.scrollIntoView = () => {};
 function fixture() {
@@ -28,7 +43,6 @@ function fixture() {
       ]),
     ),
     defaults: {},
-    units: {},
     impacts: {},
     effects: {},
   };
@@ -59,13 +73,17 @@ function fixture() {
   const snapshot: Snapshot = {
     revision: "saved",
     catalog,
-    units: [
-      { id: "alpha", name: "Alpha", mounts: [{ name: "rifle", weapons: ["rifle"], count: 2 }] },
-      { id: "bravo", name: "Bravo", mounts: [{ name: "rifle", weapons: ["rifle"], count: 1 }] },
-    ],
-    firing: { rifle: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 } },
+    // A carbine derives from the rifle; a cannon has no firing row at all.
+    weapons: { rifle: {}, carbine: { extends: "rifle" }, cannon: {} },
+    firing: {
+      default: { near: "hmg", far: "hmg_far", gain: 0.5, far_m: 300 },
+      rifle: { near: "rifle", far: "rifle_far", gain: 0.35, far_m: 300 },
+    },
+    vehicles: {
+      default: VEHICLE,
+      tracked_heavy: { ...VEHICLE, engine: "engine_diesel", turret: "turret" },
+    },
     materials: ["ground", "hull"],
-    rounds: ["rifle"],
   };
   let saved = snapshot;
   const api: WorkbenchAPI = {
@@ -129,8 +147,8 @@ test("library selection, filtering and view changes stay usable when scrolling c
     fireEvent.change(screen.getByLabelText("Library filter"), { target: { value: "baselines" } });
     fireEvent.click(screen.getByRole("button", { name: "Synth · hmg" }));
     expect(screen.getByRole("heading", { name: "Synth · hmg" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Unit assignments" }));
-    expect(screen.getByRole("button", { name: "Alpha" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Vehicle classes" }));
+    expect(screen.getByRole("heading", { name: "tracked_heavy" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Library & recipes" }));
     expect(screen.getByRole("heading", { name: "Synth · hmg" })).toBeTruthy();
   } finally {
@@ -171,13 +189,10 @@ test("implicit firing fallbacks display effect replacements and retain them when
   fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
   expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("hmg");
   expect((screen.getByLabelText("rifle far") as HTMLSelectElement).value).toBe("hmg_far");
-  fireEvent.click(screen.getByRole("button", { name: "Unit assignments" }));
-  fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
-  expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("hmg");
   fireEvent.change(screen.getByLabelText("rifle gain"), { target: { value: "0.8" } });
   fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
   await screen.findByRole("button", { name: "Save reviewed JSON" });
-  expect(vi.mocked(f.api.preview).mock.calls[0][0].catalog.units.alpha.rifle).toEqual({
+  expect(vi.mocked(f.api.preview).mock.calls[0][0].catalog.defaults.rifle).toEqual({
     near: "hmg",
     far: "hmg_far",
     gain: 0.8,
@@ -187,13 +202,12 @@ test("implicit firing fallbacks display effect replacements and retain them when
 test("preview shows the changed sound setting without searching full source JSON", async () => {
   const f = fixture();
   render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Unit assignments" }));
-  fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
   fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
   fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
   await screen.findByRole("button", { name: "Save reviewed JSON" });
   const changes = screen.getByRole("region", { name: "Changed sound settings" });
-  expect(changes.textContent).toContain("units.alpha.rifle.near");
+  expect(changes.textContent).toContain("defaults.rifle.near");
   expect(changes.textContent).toContain("hmg");
 });
 
@@ -209,27 +223,46 @@ test("cloning a filtered baseline shows the new selected recipe in the library",
   ).toBe("true");
 });
 
-test("exact type assignments can be edited independently, restored, reviewed and saved", async () => {
+test("a derived weapon row fires its ancestor's choice until given its own, then restores to it", async () => {
   const f = fixture();
+  f.snapshot.catalog.defaults.rifle = { near: "rifle", far: "rifle_far", gain: 1 };
   render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Unit assignments" }));
-  fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
-  expect(screen.getByText("2 physical mounts share this choice")).toBeTruthy();
-  fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
-  fireEvent.click(screen.getByRole("button", { name: "Bravo" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
+  expect(screen.getByText("inherited from rifle")).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("carbine near"), { target: { value: "hmg" } });
+  // The ancestor keeps its own choice.
   expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("rifle");
   fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
   await screen.findByRole("button", { name: "Save reviewed JSON" });
   const draft = vi.mocked(f.api.preview).mock.calls[0][0];
-  expect(draft.catalog.units.alpha.rifle.near).toBe("hmg");
-  expect(draft.catalog.units.bravo).toBeUndefined();
+  expect(draft.catalog.defaults.carbine.near).toBe("hmg");
+  expect(draft.catalog.defaults.rifle.near).toBe("rifle");
   f.publish(draft.catalog);
   fireEvent.click(screen.getByRole("button", { name: "Save reviewed JSON" }));
   await screen.findByText("Saved. Reload or open a battle page to use this generation.");
   expect(f.api.save).toHaveBeenCalledWith({ candidateId: "reviewed", revision: "saved" });
-  fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
-  fireEvent.click(screen.getByRole("button", { name: "Restore rifle fallback" }));
-  expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("rifle");
+  fireEvent.click(screen.getByRole("button", { name: "Restore carbine firing fallback" }));
+  expect((screen.getByLabelText("carbine near") as HTMLSelectElement).value).toBe("rifle");
+});
+
+test("a weapon row with no styled ancestor fires the default row's baseline", async () => {
+  const f = fixture();
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
+  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
+  expect((screen.getByLabelText("cannon near") as HTMLSelectElement).value).toBe("hmg");
+});
+
+test("a vehicle class auditions the loops the battle plays for it, replacements included", async () => {
+  const f = fixture();
+  f.snapshot.catalog.effects.engine_diesel = "engine_small";
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
+  fireEvent.click(await screen.findByRole("button", { name: "Vehicle classes" }));
+  fireEvent.click(screen.getByRole("button", { name: "Play tracked_heavy engine" }));
+  await waitFor(() => expect(f.audition.play).toHaveBeenCalled());
+  const [, kind, id] = vi.mocked(f.audition.play).mock.calls[0];
+  expect([kind, id]).toEqual(["sound", "engine_small"]);
+  // A class without a turret has nothing to play for it.
+  expect(screen.queryByRole("button", { name: "Play default turret" })).toBeNull();
 });
 
 test("an edit after preview invalidates review, and a stale-save error retains the draft", async () => {
@@ -238,8 +271,7 @@ test("an edit after preview invalidates review, and a stale-save error retains t
     throw new Error("Outside edit; reload sources");
   });
   render(<SoundWorkbench api={api} audition={audition} />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Unit assignments" }));
-  fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
   fireEvent.change(screen.getByLabelText("rifle near"), { target: { value: "hmg" } });
   fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
   fireEvent.click(await screen.findByRole("button", { name: "Save reviewed JSON" }));
