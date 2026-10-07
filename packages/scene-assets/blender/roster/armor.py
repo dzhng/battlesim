@@ -1,4 +1,4 @@
-"""Worker-owned armor construction for Abrams/Leopard; scene-assets owns primitives,
+"""Worker-owned armor construction for Leopard 2 (the Abrams is rebuilt in abrams.py); scene-assets owns primitives,
 materials, physical admission, LOD generation and export. Family outlines/gear live
 in the two entrypoints, never inferred from an ID or a rescaled generic tank.
 """
@@ -12,11 +12,11 @@ from catalog_frames import family_variants
 from wreckage import WRECK_ARG, burn, export_wreck
 
 REPO = Path(__file__).resolve().parents[4]
-REFERENCE_PHOTOS = [{'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/M1A2_SEP_v3.jpg/960px-M1A2_SEP_v3.jpg', 'sha256': 'd453561e2b47a9399f8380a8d67f049f9fba6e69d7da95adff8f6aa4caf5deea'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/M1A1_Trophy_Technology_Demonstrator.jpg/960px-M1A1_Trophy_Technology_Demonstrator.jpg', 'sha256': '4c3261b6f0e50ce553a079b56638723d48463996787d3f2b6fddc7d97d6cd5bb', 'limitation': 'M1A1 demonstrator: hardware layout only, not SEP v2/v3 subtype proof'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/M1A2_Sep_v3.jpg/960px-M1A2_Sep_v3.jpg', 'sha256': '1fbc8a413841948b4f5b0f136fd5eef3e623d4797eba4e76d68873138270e775'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Leopard_2_A7V_313_Bad_Frankenhausen_2024.JPG/960px-Leopard_2_A7V_313_Bad_Frankenhausen_2024.JPG', 'sha256': '0674f7147d27ecf1e16ab1a4f5c4e63da36726708b1f9388bb7df698a5959ea6'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/German_Army_Leopard_2A6_tank_in_Oct._2012.jpg/960px-German_Army_Leopard_2A6_tank_in_Oct._2012.jpg', 'sha256': 'ca93b972d63f2d4b4707908c621e2156bfe0ab4b5cb5059aff925b93a50315e6'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/LEOPARD_2A9.jpg/960px-LEOPARD_2A9.jpg', 'sha256': '24a4b45810e13bbcf15a90b1085f5f914dbbf14c7f0d0170e1da76f1e68093c0', 'limitation': 'Leopard2 article labels this as2A8 demonstrator; file says2A9. Trophy layout evidence only, not verified production2A8.'}]
+REFERENCE_PHOTOS = [{'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Leopard_2_A7V_313_Bad_Frankenhausen_2024.JPG/960px-Leopard_2_A7V_313_Bad_Frankenhausen_2024.JPG', 'sha256': '0674f7147d27ecf1e16ab1a4f5c4e63da36726708b1f9388bb7df698a5959ea6'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/German_Army_Leopard_2A6_tank_in_Oct._2012.jpg/960px-German_Army_Leopard_2A6_tank_in_Oct._2012.jpg', 'sha256': 'ca93b972d63f2d4b4707908c621e2156bfe0ab4b5cb5059aff925b93a50315e6'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/LEOPARD_2A9.jpg/960px-LEOPARD_2A9.jpg', 'sha256': '24a4b45810e13bbcf15a90b1085f5f914dbbf14c7f0d0170e1da76f1e68093c0', 'limitation': 'Leopard2 article labels this as2A8 demonstrator; file says2A9. Trophy layout evidence only, not verified production2A8.'}]
 
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
-SCHEME = {'abrams': 'us_desert_tan', 'leopard': 'german_three_tone'}
+SCHEME = {'leopard': 'german_three_tone'}
 
 
 def palette(scheme):
@@ -109,9 +109,9 @@ def rig(frame,root):
     return turret,gun,hmg,hmg_gun,trunnion
 
 
-def guns(frame,gun,hmg,hmg_gun,trunnion,mats,leopard=False):
+def guns(frame,gun,hmg,hmg_gun,trunnion,mats):
     reach=frame['mounts'][0]['muzzle_m'][0]-trunnion
-    # Distinct long L55 versus shorter Abrams L44 envelope, fixed by adopted muzzles.
+    # The long L55, fixed by the adopted muzzle.
     cyl('main_barrel',.086,reach-.12,((reach-.12)/2,0,0),'X',mats['armor'],gun,seg=28)
     cyl('muzzle_end',.092,.15,(reach-.075,0,0),'X',mats['steel'],gun,seg=24)
     cyl('muzzle_bore',.064,.012,(reach-.005,0,0),'X',mats['black'],gun,seg=20)
@@ -120,12 +120,8 @@ def guns(frame,gun,hmg,hmg_gun,trunnion,mats,leopard=False):
     for i,x in enumerate((.25,evac-.36,evac+.36,reach-.25)):
         cyl(f'thermal_sleeve_band_{i}',.102,.055,(x,0,0),'X',mats['dark'],gun,seg=20,lods=(0,1,2))
     box('mantlet',(.55,.70,.48),(.03,0,-.01),mats['armor'],gun,bevel=.045)
-    if not leopard:
-        box('crows_base',(.52,.44,.30),(0,0,.15),mats['armor'],hmg,bevel=.025)
-        box('crows_sight',(.22,.18,.20),(.05,-.23,.23),mats['black'],hmg,lods=(0,1,2))
-    else:
-        cyl('roof_gun_ring',.27,.075,(0,0,.04),'Z',mats['armor'],hmg,seg=24)
-        box('roof_gun_support',(.15,.14,.27),(0,0,.17),mats['dark'],hmg)
+    cyl('roof_gun_ring',.27,.075,(0,0,.04),'Z',mats['armor'],hmg,seg=24)
+    box('roof_gun_support',(.15,.14,.27),(0,0,.17),mats['dark'],hmg)
     box('roof_receiver',(.49,.13,.14),(.15,0,0),mats['dark'],hmg_gun,bevel=.018)
     cyl('roof_barrel',.025,1.01,(.925,0,0),'X',mats['dark'],hmg_gun,seg=16)
     cyl('roof_muzzle',.036,.06,(1.40,0,0),'X',mats['steel'],hmg_gun,seg=12)
@@ -186,7 +182,7 @@ def export_family(family,build):
         running_gear(hull,*frame['body_dimensions_m'][:2],mats)
         turret,gun,hmg,hmg_gun,trunnion=rig(frame,root)
         build(variant,frame,hull,turret,mats)
-        guns(frame,gun,hmg,hmg_gun,trunnion,mats,family=='leopard')
+        guns(frame,gun,hmg,hmg_gun,trunnion,mats)
         if wreck:burn()
         finish(ao_distance=1.0,ao_rays=8)
         counts=triangles_by_tier();assert all(counts[k]>counts[k+1]>0 for k in range(3)),counts
@@ -194,12 +190,12 @@ def export_family(family,build):
         if wreck:
             print('VARIANT',variant['id'],counts,export_wreck(str(out)),flush=True);continue
         export(str(out))
-        receipt.append({'id':variant['id'],'sha256':hashlib.sha256(out.read_bytes()).hexdigest(),'triangles_by_tier':counts,'mounts':frame['mounts'],'trophy_nodes':['trophy_radar_L','trophy_radar_R','trophy_launcher_L','trophy_launcher_R'] if 'Trophy' in variant['name'] or variant['variant']=='2A8' else []})
+        receipt.append({'id':variant['id'],'sha256':hashlib.sha256(out.read_bytes()).hexdigest(),'triangles_by_tier':counts,'mounts':frame['mounts'],'trophy_nodes':['trophy_radar_L','trophy_radar_R','trophy_launcher_L','trophy_launcher_R'] if variant['variant']=='2A8' else []})
         print('VARIANT',variant['id'],counts,flush=True)
         if review:preview(out,Path(review)/variant['id'],frame['body_dimensions_m'][0],frame['body_dimensions_m'][2])
     if wreck:return
     receipt_path=REPO/'assets/source/roster'/family/'source-receipt.json'
-    references=[r for r in REFERENCE_PHOTOS if ('M1' in r['url'])==(family=='abrams')]
+    references=REFERENCE_PHOTOS
     source_paths=[Path(__file__),Path(__file__).with_name(family+'.py'),Path(__file__).parent.parent/'parts.py',Path(__file__).parent.parent/'catalog_frames.py',Path(__file__).parent.parent/'common.py',Path(__file__).parent.parent/'textures.py']
     sources={str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest() for p in source_paths}
-    receipt_path.write_text(json.dumps({'blender_version':bpy.app.version_string,'source_sha256':sources,'references':references,'reference_limits':['Procedural visual approximation against frozen authoring frame, not factory drawings','M1A1 Trophy demonstrator informs hardware layout only, not SEP subtype proof'] if family=='abrams' else ['A8 hardware based on demonstrator photo with conflicting filename; production layout not verified'],'authoring':'Original procedural geometry; photos used as visual reference only, no source mesh/texture extraction','frames':'fixtures/catalog.json','variants':receipt},indent=2)+'\n')
+    receipt_path.write_text(json.dumps({'blender_version':bpy.app.version_string,'source_sha256':sources,'references':references,'reference_limits':['A8 hardware based on demonstrator photo with conflicting filename; production layout not verified'],'authoring':'Original procedural geometry; photos used as visual reference only, no source mesh/texture extraction','frames':'fixtures/catalog.json','variants':receipt},indent=2)+'\n')
