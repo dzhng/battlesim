@@ -64,7 +64,7 @@ fn on_deck(bridge: &Bridge, along: f64, across: f64) -> [f64; 2] {
 #[test]
 fn a_generated_bridge_is_stepped_onto_from_dry_land_and_carries_the_roads_over() {
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::stand_in_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_game()).unwrap();
     let mut bridges = 0;
     for (map_type, size, seed) in [
         (MapType::Open, MapSize::Medium, 3),

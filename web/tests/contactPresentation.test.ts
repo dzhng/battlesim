@@ -10,7 +10,7 @@ const contact: ContactView = {
   radius: 20,
   evidenceTick: 0,
   expiresTick: 300,
-  kind: "tank",
+  kind: "test_tank",
   heard: [],
 };
 

@@ -9,7 +9,7 @@ use sim::battle::Battle;
 use sim::math::wrap_angle;
 
 fn rules() -> Value {
-    sim::fixtures::game()
+    sim::fixtures::test_game()
 }
 
 /// One vehicle of `kind` on open flat ground at `at` facing `yaw`, moved to
@@ -28,7 +28,7 @@ fn battle(
     sim::fixtures::patch_catalog(
         &mut fixture,
         "units",
-        "supply",
+        "test_supply",
         json!({
             "capabilities": { "deploy": { "pack_seconds": 1 } }
         }),
@@ -74,7 +74,7 @@ fn pace(kind: &str, yaw: f64, direction: &str) -> f64 {
 
 #[test]
 fn wheeled_vehicles_turn_back_within_fourteen_metres_of_the_starting_line() {
-    for kind in ["jeep", "supply"] {
+    for kind in ["test_jeep", "test_supply"] {
         let mut b = battle(kind, [80.0, 60.0], 0.0, [40.0, 60.0], "forward", json!([]));
         let poses = drive(&mut b, 60.0);
         assert_eq!(
@@ -99,7 +99,7 @@ fn wheeled_vehicles_turn_back_within_fourteen_metres_of_the_starting_line() {
 
 #[test]
 fn reverse_speed_is_the_fraction_of_forward() {
-    for kind in ["tank", "supply", "jeep"] {
+    for kind in ["test_tank", "test_supply", "test_jeep"] {
         let forward = pace(kind, 0.0, "forward");
         let reverse = pace(kind, std::f64::consts::PI, "reverse");
         let fraction = match mobility(kind) {
@@ -120,7 +120,7 @@ fn reverse_speed_is_the_fraction_of_forward() {
 
 #[test]
 fn a_reverse_order_holds_the_facing_and_drives_backwards() {
-    for kind in ["tank", "supply"] {
+    for kind in ["test_tank", "test_supply"] {
         let yaw = std::f64::consts::PI;
         let mut b = battle(kind, [20.0, 60.0], yaw, [60.0, 60.0], "reverse", json!([]));
         let poses = drive(&mut b, 40.0);
@@ -141,7 +141,7 @@ fn a_reverse_order_holds_the_facing_and_drives_backwards() {
 fn a_reverse_order_repeats_from_its_seed_and_changes_the_digest() {
     let run = |direction: &str| {
         let mut b = battle(
-            "tank",
+            "test_tank",
             [20.0, 60.0],
             0.0,
             [60.0, 60.0],
@@ -165,9 +165,9 @@ fn a_seen_enemy_reversing_is_published_to_the_observer() {
         "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] },
         "rules": rules(),
         "units": [
-            { "side": "blue", "kind": "tank", "position": [20, 60], "yaw": std::f64::consts::PI,
+            { "side": "blue", "kind": "test_tank", "position": [20, 60], "yaw": std::f64::consts::PI,
               "engagement": "return_fire_only" },
-            { "side": "red", "kind": "recon", "position": [110, 60], "yaw": std::f64::consts::PI,
+            { "side": "red", "kind": "test_recon", "position": [110, 60], "yaw": std::f64::consts::PI,
               "engagement": "return_fire_only" }
         ],
         "events": [],
@@ -218,7 +218,7 @@ fn cruise(kind: &str, surface: Option<&str>) -> f64 {
 fn each_road_kind_carries_its_own_speed() {
     let rules: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
     let factor = |kind| rules.surfaces[&kind].speed_factor;
-    for kind in ["jeep", "tank"] {
+    for kind in ["test_jeep", "test_tank"] {
         let (open, road) = (cruise(kind, None), cruise(kind, Some("road")));
         assert!(
             road > open * 1.5,
@@ -252,7 +252,7 @@ fn each_road_kind_carries_its_own_speed() {
 #[test]
 fn a_slow_surface_is_never_slower_than_open_ground() {
     let rules: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
-    let foot = sim::units::mobility(rules.catalog.by_id("rifle"), &rules);
+    let foot = sim::units::mobility(rules.catalog.by_id("test_rifle"), &rules);
     let dirt = rules.surfaces[&contract::map::SurfaceKind::DirtTrack].speed_factor;
     assert!(
         foot.road_mps * dirt < foot.off_road_mps,
@@ -309,7 +309,7 @@ fn a_truck_nosed_into_a_kerb_gap_backs_out_to_the_street_behind_it() {
         body("street_tree", [69.91, 63.72], row, [0.35, 0.35, 4.0]),
     ]);
     let mut b = battle(
-        "supply",
+        "test_supply",
         [72.98, 60.04],
         2.470,
         [84.0, 63.0],

@@ -64,7 +64,7 @@ export async function run(ctx) {
   // (Astern lies off screen, so the drawn check uses the side reach.)
   const tankSight = await lab(
     page,
-    () => window.__lab.route.observation().own.find((u) => u.kind === "tank").sight,
+    () => window.__lab.route.observation().own.find((u) => u.kind === "test_tank").sight,
   );
   const lobePoint = (off, inset) => {
     const { eyes, forward, shape, range } = tankSight;
@@ -139,7 +139,7 @@ export async function run(ctx) {
       await lab(page, () => window.__lab.route.setSide("red"));
       await advance(page, 1);
       const tank = await lab(page, () =>
-        window.__lab.route.observation().own.find((u) => u.kind === "tank"),
+        window.__lab.route.observation().own.find((u) => u.kind === "test_tank"),
       );
       await lab(page, () => window.__lab.route.setSide("blue"));
       await advance(page, 1);
@@ -154,7 +154,7 @@ export async function run(ctx) {
   );
   await page.evaluate(() => window.__lab.frame());
   const hiddenNow = await lab(page, () =>
-    window.__lab.route.observation().identified.filter((e) => e.kind === "tank"),
+    window.__lab.route.observation().identified.filter((e) => e.kind === "test_tank"),
   );
   const accounting = await enemyAccounting(page);
   ctx.check(

@@ -188,9 +188,9 @@
       "source": "assets/source/city/prototype/kit.glb",
       "basis_yaw_deg": 0
     },
-    "at": {
+    "test_at": {
       "unit": "soldier",
-      "source": "assets/source/infantry/at.glb",
+      "source": "assets/source/test/at.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-launcher",
       "tolerances": {
@@ -205,9 +205,9 @@
         "phase": 1
       }
     },
-    "at_b": {
+    "test_at_b": {
       "unit": "soldier",
-      "source": "assets/source/infantry/at_b.glb",
+      "source": "assets/source/test/at_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-launcher",
       "tolerances": {
@@ -222,9 +222,9 @@
         "phase": 1
       }
     },
-    "at_c": {
+    "test_at_c": {
       "unit": "soldier",
-      "source": "assets/source/infantry/at_c.glb",
+      "source": "assets/source/test/at_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-launcher",
       "tolerances": {
@@ -239,9 +239,9 @@
         "phase": 1
       }
     },
-    "at_carried": {
+    "test_at_carried": {
       "unit": "soldier",
-      "source": "assets/source/infantry/at_carried.glb",
+      "source": "assets/source/test/at_carried.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -253,9 +253,9 @@
         "phase": 1
       }
     },
-    "at_carried_b": {
+    "test_at_carried_b": {
       "unit": "soldier",
-      "source": "assets/source/infantry/at_carried_b.glb",
+      "source": "assets/source/test/at_carried_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -267,9 +267,9 @@
         "phase": 1
       }
     },
-    "at_carried_c": {
+    "test_at_carried_c": {
       "unit": "soldier",
-      "source": "assets/source/infantry/at_carried_c.glb",
+      "source": "assets/source/test/at_carried_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -289,9 +289,9 @@
       },
       "basis_yaw_deg": 0
     },
-    "recon": {
+    "test_recon": {
       "unit": "soldier",
-      "source": "assets/source/infantry/recon.glb",
+      "source": "assets/source/test/recon.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -303,9 +303,9 @@
         "phase": 1
       }
     },
-    "recon_b": {
+    "test_recon_b": {
       "unit": "soldier",
-      "source": "assets/source/infantry/recon_b.glb",
+      "source": "assets/source/test/recon_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -317,9 +317,9 @@
         "phase": 1
       }
     },
-    "recon_c": {
+    "test_recon_c": {
       "unit": "soldier",
-      "source": "assets/source/infantry/recon_c.glb",
+      "source": "assets/source/test/recon_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -331,9 +331,9 @@
         "phase": 1
       }
     },
-    "rifle": {
+    "test_rifle": {
       "unit": "soldier",
-      "source": "assets/source/infantry/rifle.glb",
+      "source": "assets/source/test/rifle.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -345,9 +345,9 @@
         "phase": 1
       }
     },
-    "rifle_c": {
+    "test_rifle_c": {
       "unit": "soldier",
-      "source": "assets/source/infantry/rifle_c.glb",
+      "source": "assets/source/test/rifle_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -359,9 +359,9 @@
         "phase": 1
       }
     },
-    "rifle_b": {
+    "test_rifle_b": {
       "unit": "soldier",
-      "source": "assets/source/infantry/rifle_b.glb",
+      "source": "assets/source/test/rifle_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -429,35 +429,35 @@
       },
       "basis_yaw_deg": 0
     },
-    "tank": {
+    "test_tank": {
       "unit": "vehicle",
-      "source": "assets/source/vehicles/tank.glb",
+      "source": "assets/source/test/tank.glb",
       "basis_yaw_deg": 0,
       "mounts": {
         "cannon": "gun",
         "HMG": "hmg"
       }
     },
-    "supply_truck": {
+    "test_supply_truck": {
       "unit": "vehicle",
-      "source": "assets/source/vehicles/supply_truck.glb",
+      "source": "assets/source/test/supply_truck.glb",
       "basis_yaw_deg": 0
     },
-    "jeep": {
+    "test_jeep": {
       "unit": "vehicle",
-      "source": "assets/source/vehicles/jeep.glb",
+      "source": "assets/source/test/jeep.glb",
       "basis_yaw_deg": 0,
       "mounts": {
         "HMG": "hmg"
       }
     },
-    "tank_wreck": {
+    "test_tank_wreck": {
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/vehicles/tank_wreck.glb",
-        "hull": "assets/source/vehicles/tank_wreck_hull.glb",
-        "turret": "assets/source/vehicles/tank_wreck_turret.glb"
+        "default": "assets/source/test/tank_wreck.glb",
+        "hull": "assets/source/test/tank_wreck_hull.glb",
+        "turret": "assets/source/test/tank_wreck_turret.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -469,11 +469,11 @@
         "footprint_m": 3.0
       }
     },
-    "supply_truck_wreck": {
+    "test_supply_truck_wreck": {
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/vehicles/supply_truck_wreck.glb"
+        "default": "assets/source/test/supply_truck_wreck.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -485,11 +485,11 @@
         "footprint_m": 2.0
       }
     },
-    "jeep_wreck": {
+    "test_jeep_wreck": {
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/vehicles/jeep_wreck.glb"
+        "default": "assets/source/test/jeep_wreck.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [

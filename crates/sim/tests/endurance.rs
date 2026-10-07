@@ -17,7 +17,7 @@ fn each_side_fields_100_units_half_of_them_rifle_squads() {
     for side in Side::ALL {
         let mine: Vec<_> = s.units.iter().filter(|u| u.side == side).collect();
         assert_eq!(mine.len(), 100);
-        assert_eq!(mine.iter().filter(|u| u.kind == "rifle").count(), 50);
+        assert_eq!(mine.iter().filter(|u| u.kind == "test_rifle").count(), 50);
     }
     assert!(!s.scripts.is_empty(), "seeded waves drive the battle");
     // Same seed, same battle.
@@ -213,15 +213,16 @@ fn fallen_squads_do_not_multiply_vehicle_traffic_work() {
         return;
     }
     fn movement_cost(vehicles: usize, fallen: usize) -> u64 {
-        let mut units =
-            vec![serde_json::json!({ "side": "blue", "kind": "rifle", "position": [900,900] })];
+        let mut units = vec![
+            serde_json::json!({ "side": "blue", "kind": "test_rifle", "position": [900,900] }),
+        ];
         for k in 0..vehicles {
-            units.push(serde_json::json!({ "side": "blue", "kind": "tank", "position": [50 + k * 10, 50] }));
+            units.push(serde_json::json!({ "side": "blue", "kind": "test_tank", "position": [50 + k * 10, 50] }));
         }
         for _ in 0..fallen {
             units.push(
-                serde_json::json!({ "side": "blue", "kind": "rifle", "position": [500,500],
-                "condition": { "casualties": common::rules().catalog.by_id("rifle").squad_size() } }),
+                serde_json::json!({ "side": "blue", "kind": "test_rifle", "position": [500,500],
+                "condition": { "casualties": common::rules().catalog.by_id("test_rifle").squad_size() } }),
             );
         }
         let setup = common::scenario(

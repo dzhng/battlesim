@@ -38,7 +38,8 @@ const CLIPS: Record<string, { duration: number; loop: boolean; stride_m: number 
 
 /** Half the tank's track gauge: its hull's half width by its class's gauge share. */
 const HALF_TRACK =
-  UNITS.hull("tank")!.half_extents_m[1] * (FEEL.gauge[vehicleClass(UNITS.type("tank"))!] ?? 1);
+  UNITS.hull("test_tank")!.half_extents_m[1] *
+  (FEEL.gauge[vehicleClass(UNITS.type("test_tank"))!] ?? 1);
 
 const driver = () =>
   new PoseDriver({
@@ -54,7 +55,7 @@ const squad = (
   extra: Partial<FeedUnit> = {},
 ): FeedUnit => ({
   id: 1,
-  kind: "rifle",
+  kind: "test_rifle",
   side: "blue",
   position: [0, 0, 0],
   yaw: 0,
@@ -220,7 +221,7 @@ test("a fallen soldier plays his death once, facing as he fell, then lies static
       soldier: 1,
       position: [0, 0, 0] as Vec3,
       yaw: 2,
-      kind: "rifle" as const,
+      kind: "test_rifle" as const,
       slot: 0,
       side: "blue" as const,
     },
@@ -240,7 +241,7 @@ test("a fallen soldier plays his death once, facing as he fell, then lies static
   expect(done.corpses).toEqual([
     {
       soldier: 1,
-      kind: "rifle",
+      kind: "test_rifle",
       slot: 0,
       side: "blue",
       position: [0, 0, 0],
@@ -325,7 +326,7 @@ test("a pinned soldier holds his own stance behind cover, and kneels to fire out
 
 const tank = (x: number, yaw: number, bearing: number, hmg: number, elevation = 0): FeedUnit => ({
   id: 5,
-  kind: "tank",
+  kind: "test_tank",
   side: "blue",
   position: [x, 0, 0],
   yaw,
@@ -360,7 +361,7 @@ test("driving rolls both tracks; turning in place counter-rotates them", () => {
 
 test("a supply vehicle's deploy progress is its articulation's", () => {
   const out = driver().update(
-    frame(0, [{ ...tank(0, 0, 0, 0), kind: "supply", mounts: [], deployment: 0.4 }]),
+    frame(0, [{ ...tank(0, 0, 0, 0), kind: "test_supply", mounts: [], deployment: 0.4 }]),
   );
   expect(out.vehicles[0].articulation.deploy).toBe(0.4);
 });
@@ -406,7 +407,7 @@ test("an HMG yaws relative to the mount its catalog row rides (`on`), else the h
   const hullHmg = new UnitCatalog({
     ...view,
     units: view.units.map((t) =>
-      t.id === "tank" ? { ...t, mounts: t.mounts.map((m) => ({ ...m, on: null })) } : t,
+      t.id === "test_tank" ? { ...t, mounts: t.mounts.map((m) => ({ ...m, on: null })) } : t,
     ),
   });
   const d = new PoseDriver({
@@ -447,7 +448,7 @@ const downed = (ids: number[]): FeedFrame["fallen"] =>
     soldier,
     position: [soldier, 0, 0] as Vec3,
     yaw: 0,
-    kind: "rifle" as const,
+    kind: "test_rifle" as const,
     slot: 0,
     side: "blue" as const,
   }));
@@ -479,7 +480,7 @@ test("at most `corpses.max` lie drawn; the oldest leave first, sinking away over
     [1, 0],
     [2, 0],
   ]);
-  expect(fell.fading[0].corpse).toMatchObject({ position: [1, 0, 0], kind: "rifle" });
+  expect(fell.fading[0].corpse).toMatchObject({ position: [1, 0, 0], kind: "test_rifle" });
   // Deeper as the fade runs, and gone once it has run.
   const mid = d.update(frame(2, [], more)).fading.map((c) => c.sink);
   expect(mid[0]).toBeGreaterThan(0);
@@ -538,7 +539,7 @@ test("changed corpse support moves both dying and static bodies without replayin
     soldier: 1,
     position: [0, 0, 6] as Vec3,
     yaw: 2,
-    kind: "rifle" as const,
+    kind: "test_rifle" as const,
     slot: 0,
     side: "blue" as const,
   };
@@ -580,7 +581,7 @@ test("each soldier follows his selected weapon's aim rather than another mount's
     leanHold: 0.1,
   });
   const team = squad([], {
-    kind: "at",
+    kind: "test_at",
     soldiers: [
       { id: 10, slot: 0, activeMount: 1, position: [0, 0, 0] },
       { id: 11, slot: 1, activeMount: 0, position: [3, 0, 0] },
@@ -599,7 +600,7 @@ test("each soldier follows his selected weapon's aim rather than another mount's
 test("changing equipment clears the old hold even when posture changes on the same frame", () => {
   const d = driver();
   const unit = squad([{ id: 1, x: 0, y: 0 }], {
-    kind: "at",
+    kind: "test_at",
     mounts: [
       { bearing: 0, elevation: 0, shots: 0 },
       { operator: 1, bearing: 1, elevation: 0, shots: 0 },
@@ -618,7 +619,7 @@ test("a stationary active operator uses its authored supported hold", () => {
   const units = new UnitCatalog({
     ...UNITS.view,
     units: UNITS.view.units.map((u) =>
-      u.id === "at"
+      u.id === "test_at"
         ? {
             ...u,
             mounts: u.mounts.map((m, i) =>
@@ -645,7 +646,7 @@ test("a stationary active operator uses its authored supported hold", () => {
     leanHold: 0.1,
   });
   const unit = squad([{ id: 1, x: 0, y: 0 }], {
-    kind: "at",
+    kind: "test_at",
     mounts: [
       { bearing: 0, elevation: 0, shots: 0 },
       { operator: 1, bearing: 1, elevation: 0, shots: 0 },
@@ -681,7 +682,7 @@ test("a stationary active operator uses its authored supported hold", () => {
 test("a fallen launcher carrier keeps his carried identity through death and corpse", () => {
   const d = driver();
   const unit = squad([{ id: 1, x: 0, y: 0 }], {
-    kind: "at",
+    kind: "test_at",
     mounts: [
       { bearing: 0, elevation: 0, shots: 0 },
       { operator: 1, bearing: 1, elevation: 0, shots: 0 },
@@ -690,7 +691,7 @@ test("a fallen launcher carrier keeps his carried identity through death and cor
   unit.soldiers[0].activeMount = 1;
   d.update(frame(0, [unit]));
   const fallen: FeedFrame["fallen"] = [
-    { soldier: 1, kind: "at", slot: 0, side: "blue", position: [0, 0, 0], yaw: 0 },
+    { soldier: 1, kind: "test_at", slot: 0, side: "blue", position: [0, 0, 0], yaw: 0 },
   ];
   const pose = d.update(frame(0.01, [], fallen)).soldiers[0];
   expect(pose.operatorMount).toBe(1);

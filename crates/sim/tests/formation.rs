@@ -11,7 +11,7 @@ fn queued_destinations_do_not_assume_an_unfinished_attack_will_end() {
     use sim::battle::Battle;
     let setup = crate::common::scenario(
         r#"{"size":[300,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[]}"#,
-        serde_json::json!([{"side":"blue","kind":"jeep","position":[30,100]}]),
+        serde_json::json!([{"side":"blue","kind":"test_jeep","position":[30,100]}]),
         serde_json::json!([]),
     );
     let mut battle = Battle::new(&setup, 1);
@@ -63,7 +63,7 @@ fn a_free_destination_across_an_unbridged_river_is_not_validated() {
             ], "surface_z": -0.5 }]
         })
         .to_string(),
-        serde_json::json!([{ "side": "blue", "kind": "jeep", "position": [30, 100], "yaw": 0 }]),
+        serde_json::json!([{ "side": "blue", "kind": "test_jeep", "position": [30, 100], "yaw": 0 }]),
         serde_json::json!([]),
     );
     let mut b = Battle::new(&setup, 1);
@@ -199,8 +199,8 @@ fn a_partial_order_moves_the_units_that_fit_and_holds_the_others() {
     let mut setup = crate::common::scenario(
         &map.to_string(),
         serde_json::json!([
-            {"side": "blue", "kind": "tank", "position": [30, 100]},
-            {"side": "blue", "kind": "rifle", "position": [260, 260]}
+            {"side": "blue", "kind": "test_tank", "position": [30, 100]},
+            {"side": "blue", "kind": "test_rifle", "position": [260, 260]}
         ]),
         serde_json::json!([]),
     );
@@ -210,7 +210,7 @@ fn a_partial_order_moves_the_units_that_fit_and_holds_the_others() {
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "tank",
+        "test_tank",
         serde_json::json!({
             "body": {"hull": {"half_extents_m": [2, 200, 2]}}
         }),
@@ -265,7 +265,7 @@ fn preview_queries_cannot_change_later_navigation_or_replay() {
     let setup = crate::common::scenario(
         crate::common::saved_map("geometry"),
         serde_json::json!([
-            {"side": "blue", "kind": "tank", "position": [30, 150]}
+            {"side": "blue", "kind": "test_tank", "position": [30, 150]}
         ]),
         serde_json::json!([]),
     );

@@ -43,10 +43,10 @@ fn shot_counters_and_elevation_move_only_when_a_round_leaves() {
     let mut setup = common::scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 250] },
-            { "side": "blue", "kind": "rifle", "position": [100, 350] },
-            { "side": "red", "kind": "tank", "position": [380, 150], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [400, 350], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 250] },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 350] },
+            { "side": "red", "kind": "test_tank", "position": [380, 150], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [400, 350], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -141,8 +141,8 @@ fn watched_turret(red: [f64; 2], order: bool) -> Battle {
     battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "tank", "position": red, "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": red, "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
         ]),
         scripts,
         2,
@@ -199,8 +199,8 @@ fn identified_enemies_carry_their_seen_soldiers_ids_through_reacquisition() {
     let mut b = battle(
         wall,
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [400, 250], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [400, 250], "engagement": "return_fire_only" },
         ]),
         scripts,
         3,
@@ -242,8 +242,8 @@ fn own_soldier_ids_survive_casualties_and_reinforcement_and_corpses_name_the_fal
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "supply", "position": [200, 250], "stock": 55 },
-            { "side": "blue", "kind": "rifle", "position": [220, 250], "yaw": 0.7,
+            { "side": "blue", "kind": "test_supply", "position": [200, 250], "stock": 55 },
+            { "side": "blue", "kind": "test_rifle", "position": [220, 250], "yaw": 0.7,
               "engagement": "return_fire_only", "condition": { "casualties": 2 } },
         ]),
         json!([]),
@@ -259,7 +259,7 @@ fn own_soldier_ids_survive_casualties_and_reinforcement_and_corpses_name_the_fal
     assert_eq!(fallen.len(), 2);
     for c in &frame.corpses {
         assert!(
-            c.own && c.kind == common::unit_kind("rifle") && c.yaw == 0.7,
+            c.own && c.kind == common::unit_kind("test_rifle") && c.yaw == 0.7,
             "{c:?}"
         );
         assert!(
@@ -285,8 +285,8 @@ fn ids_follow_their_soldiers_as_the_squad_takes_losses() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [360, 300] },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [360, 300] },
         ]),
         json!([]),
         6,
@@ -335,8 +335,8 @@ fn segments_and_blasts_carry_kind_shooter_and_what_was_struck() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [330, 300] },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [330, 300] },
         ]),
         json!([]),
         7,
@@ -411,8 +411,8 @@ fn a_blast_on_unseen_ground_is_not_published_to_the_enemy() {
     let mut b = battle(
         wall,
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "tank", "position": [700, 300], "yaw": std::f64::consts::PI },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [700, 300], "yaw": std::f64::consts::PI },
         ]),
         scripts,
         8,

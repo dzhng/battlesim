@@ -310,7 +310,7 @@ test("oversized field dimensions cannot wrap past the wasm delivery bound", () =
 test("a live variable route copy matches a fresh producer snapshot and retains prior observations", () => {
   const units: LabUnit[] = Array.from({ length: 80 }, (_, i) => ({
     side: "blue",
-    kind: "rifle",
+    kind: "test_rifle",
     // The mover has a short clear corridor outside the stationary squads.
     position: i === 0 ? [300, 32] : [32 + (i % 10) * 24, 32 + Math.floor(i / 10) * 24],
   }));

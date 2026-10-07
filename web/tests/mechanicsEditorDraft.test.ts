@@ -19,8 +19,8 @@ it("preserves landing spread when range changes, through subsequent spread and r
 
 it("isolates matching soldier-kind edits to a selected unit and replaces earlier drafts by path", () => {
   const original = { hp: 100, mounts: [{ name: "rifles", weapons: ["rifle"] }] };
-  const rifleTarget = { section: "soldiers" as const, id: "rifleman", unit: "rifle" };
-  const atTarget = { ...rifleTarget, unit: "at" };
+  const rifleTarget = { section: "soldiers" as const, id: "test_rifleman", unit: "test_rifle" };
+  const atTarget = { ...rifleTarget, unit: "test_at" };
   let draft = editDraft({ revision: "one", changes: [] }, rifleTarget, ["hp"], 80, original);
   draft = editDraft(draft, rifleTarget, ["hp"], 90, original);
   expect(draftEntry(original, draft, rifleTarget).hp).toBe(90);

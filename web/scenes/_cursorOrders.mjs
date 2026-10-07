@@ -467,8 +467,8 @@ export async function battleCursor(ctx) {
     { url: `${base(ctx)}/battle/village`, tick: 40 },
   );
   const o = await obs(page);
-  const tank = o.own.find((u) => u.kind === "tank");
-  const squad = o.own.find((u) => u.kind === "rifle");
+  const tank = o.own.find((u) => u.kind === "test_tank");
+  const squad = o.own.find((u) => u.kind === "test_rifle");
   await select(page, [tank.id]);
   await lab(
     page,
@@ -516,7 +516,7 @@ export async function battleCursor(ctx) {
     (await action(page)) === "reverse_move",
   );
   // Unarmed units still advance on attack-move.
-  const supply = o.own.find((u) => u.kind === "supply");
+  const supply = o.own.find((u) => u.kind === "test_supply");
   await select(page, [supply.id]);
   await page.mouse.move(...p);
   await page.keyboard.down("Control");
@@ -649,7 +649,8 @@ export async function queuedBuildingCursor(ctx) {
 export async function attackCursor(ctx) {
   const page = await openBattle(ctx, { url: `${base(ctx)}/lab/weapons`, tick: 40 });
   const observation = await obs(page);
-  const enemy = observation.identified.find((u) => u.kind === "tank") ?? observation.identified[0];
+  const enemy =
+    observation.identified.find((u) => u.kind === "test_tank") ?? observation.identified[0];
   if (!enemy) throw Error("weapons fixture exposes no identified enemy");
   await select(page, [0]);
   await lab(

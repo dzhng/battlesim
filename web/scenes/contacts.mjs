@@ -13,7 +13,7 @@ export async function run(ctx) {
   const firing = o.contacts.find((c) => c.source === "firing");
   ctx.check(
     "a shot from behind the ridge shows an area, not the shooter",
-    !!firing && !o.identified.some((e) => e.kind === "rifle"),
+    !!firing && !o.identified.some((e) => e.kind === "test_rifle"),
     JSON.stringify({ contacts: o.contacts, identified: o.identified.map((e) => e.kind) }),
   );
   if (!firing) throw new Error("contact fixture did not publish firing evidence");
@@ -65,7 +65,7 @@ export async function run(ctx) {
   for (let i = 0; i < 200 && !lastSeen; i++) {
     await lab(page, () => window.__lab.route.advance(6));
     o = await obs(page);
-    const tank = o.identified.find((e) => e.kind === "tank");
+    const tank = o.identified.find((e) => e.kind === "test_tank");
     if (tank) seenAt = tank.position;
     const ls = o.contacts.find((c) => c.source === "last_seen");
     if (ls && seenAt) lastSeen = ls;

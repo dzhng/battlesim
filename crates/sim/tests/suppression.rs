@@ -46,14 +46,14 @@ fn tier(b: &Battle, side: Side, id: u32) -> SuppressionTier {
 /// A red rifle squad starting at hidden `level`, alone but for a blue tank
 /// far out of sight: nothing fires on it.
 fn alone(level: f64, extra: Value) -> Battle {
-    let mut red = json!({ "side": "red", "kind": "rifle", "position": [100, 100],
+    let mut red = json!({ "side": "red", "kind": "test_rifle", "position": [100, 100],
         "engagement": "return_fire_only", "condition": { "suppression": level } });
     for (k, v) in extra.as_object().unwrap() {
         red[k] = v.clone();
     }
     battle(
         json!([
-            { "side": "blue", "kind": "tank", "position": [1150, 550], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [1150, 550], "engagement": "return_fire_only" },
             red,
         ]),
         3,
@@ -66,8 +66,8 @@ fn one_near_miss_never_suppresses_but_sustained_fire_does() {
     // its nearest soldiers: sustained fire, every round a near miss.
     let mut b = battle(
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [200, 303], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [200, 303], "engagement": "return_fire_only" },
         ]),
         4,
     );
@@ -284,8 +284,8 @@ fn tiers_that_do_not_climb_or_cost_less_deeper_fail_at_load() {
 fn a_suppressed_battle_replays_identically() {
     // A squad starting suppressed, then fired on: its tier moves both ways.
     let setup = setup(json!([
-        { "side": "blue", "kind": "tank", "position": [100, 300] },
-        { "side": "red", "kind": "rifle", "position": [200, 303], "engagement": "return_fire_only", "condition": { "suppression": 0.5 } },
+        { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+        { "side": "red", "kind": "test_rifle", "position": [200, 303], "engagement": "return_fire_only", "condition": { "suppression": 0.5 } },
     ]));
     let mut live = Battle::new(&setup, 6);
     let mut digests = Vec::new();
@@ -329,8 +329,8 @@ fn suppression_widens_actual_launch_directions_at_each_tier() {
     let spread = |level: f64| {
         (1..=16).map(|seed| {
             let mut setup = setup(json!([
-                { "side": "blue", "kind": "rifle", "position": [100, 300], "condition": { "suppression": level } },
-                { "side": "red", "kind": "tank", "position": [1150, 550], "engagement": "return_fire_only" }
+                { "side": "blue", "kind": "test_rifle", "position": [100, 300], "condition": { "suppression": level } },
+                { "side": "red", "kind": "test_tank", "position": [1150, 550], "engagement": "return_fire_only" }
             ]));
             // Pin reach so only the suppression tier changes launch scatter.
             setup.rules.weapons.get_mut("rifle").unwrap().ballistics.range_m = 450.0;

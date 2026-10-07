@@ -5,27 +5,22 @@
 import view from "@fixtures/catalog.json";
 import game from "@fixtures/game.json";
 import { loadWasm } from "../sim/module";
-import {
-  composeCatalog,
-  newDocuments,
-  type CatalogSetName,
-  type GameView,
-  type SessionCatalog,
-} from "./compose";
+import { composeCatalog, type CatalogSetName, type GameView, type SessionCatalog } from "./compose";
 
 export { admitScenario, type CatalogSetName, type SessionCatalog } from "./compose";
 
-/** Each set's own documents' source text, beyond the game's. */
+/** Each set's own documents' source text, beyond the game's: the folders
+ *  `SET_FOLDERS` names (Vite globs must be literal). */
 const OWN: Record<CatalogSetName, Record<string, () => Promise<string>>> = {
   game: {},
-  test: import.meta.glob<string>("../../../../fixtures/units/generic/**/*.json", {
+  test: import.meta.glob<string>("../../../../fixtures/units/test/**/*.json", {
     query: "?raw",
     import: "default",
   }),
-  menu: import.meta.glob<string>("../../../../fixtures/units/menu/**/*.json", {
-    query: "?raw",
-    import: "default",
-  }),
+  menu: import.meta.glob<string>(
+    ["../../../../fixtures/units/test/**/*.json", "../../../../fixtures/units/menu/**/*.json"],
+    { query: "?raw", import: "default" },
+  ),
 };
 
 const resolved = new Map<CatalogSetName, Promise<SessionCatalog>>();
@@ -44,10 +39,10 @@ export async function resolveCatalogSet(
         .sort()
         .map((path) => files[path]()),
     ));
-  const gameView = view as unknown as GameView;
-  const added = newDocuments(gameView, texts);
-  const wasm = added.length ? await loadWasm() : null;
-  return composeCatalog(set, game, gameView, added, (json) => wasm!.resolve_catalog(json));
+  const wasm = texts.length ? await loadWasm() : null;
+  return composeCatalog(set, game, view as unknown as GameView, texts, (json) =>
+    wasm!.resolve_catalog(json),
+  );
 }
 
 /** The catalog of `set` for this page, resolved on first request. */

@@ -96,7 +96,7 @@ async function stageContact(ctx, page) {
     JSON.stringify({ tick: start.tick }),
   );
   if (start.tick !== 600) throw new Error("contact journey missed its opening checkpoint");
-  const recon = start.own.find((u) => u.kind === "recon");
+  const recon = start.own.find((u) => u.kind === "test_recon");
   if (!recon) throw new Error("contact capture needs a living recon observer");
   const journey = [];
   const stage = async (order, name) => {
@@ -132,7 +132,7 @@ async function stageContact(ctx, page) {
   );
   const seen = await until(
     page,
-    (o) => arrived(o, approach) && o.identified.some((u) => u.kind === "tank"),
+    (o) => arrived(o, approach) && o.identified.some((u) => u.kind === "test_tank"),
     4200,
     15,
   );
@@ -142,7 +142,7 @@ async function stageContact(ctx, page) {
     JSON.stringify(seen && { tick: seen.tick, own: seen.own, identified: seen.identified }),
   );
   if (!seen) throw new Error("contact capture needs an arrived observer identifying the tank");
-  const tank = seen.identified.find((u) => u.kind === "tank");
+  const tank = seen.identified.find((u) => u.kind === "test_tank");
   journey.push({
     name: "identified",
     tick: seen.tick,
@@ -157,7 +157,7 @@ async function stageContact(ctx, page) {
     page,
     (o) =>
       !o.identified.some((u) => u.id === tank.id) &&
-      o.contacts.some((c) => c.kind === "tank" && c.source === "last_seen"),
+      o.contacts.some((c) => c.kind === "test_tank" && c.source === "last_seen"),
     1200,
     15,
   );
@@ -167,7 +167,7 @@ async function stageContact(ctx, page) {
     JSON.stringify(hidden?.contacts),
   );
   if (!hidden) throw new Error("contact capture needs the tank's last sighting");
-  const memory = hidden.contacts.find((c) => c.kind === "tank" && c.source === "last_seen");
+  const memory = hidden.contacts.find((c) => c.kind === "test_tank" && c.source === "last_seen");
   journey.push({ name: "last_seen", tick: hidden.tick, contact: memory });
   const observation = await until(
     page,
@@ -177,7 +177,7 @@ async function stageContact(ctx, page) {
       o.contacts.some(
         (c) =>
           c.id === memory.id &&
-          c.kind === "tank" &&
+          c.kind === "test_tank" &&
           c.source === "firing" &&
           c.evidenceTick > memory.evidenceTick,
       ),

@@ -73,7 +73,7 @@ fn compact_profile_completes_physical_compilation() {
     );
     assert_eq!(sites["skirmish"]["entries"].as_array().unwrap().len(), 2);
     let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::stand_in_game()).unwrap();
+        serde_json::from_value(sim::fixtures::test_game()).unwrap();
     let prepared = sim::encounter::PreparedMap::new(&result.map, &rules);
     let reserved = result.sites.skirmish.as_ref().unwrap();
     assert!(reserved.all_reserved_objectives().all(|o| !result

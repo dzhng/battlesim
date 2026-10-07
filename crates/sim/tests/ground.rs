@@ -102,7 +102,7 @@ fn craters_are_never_impassable() {
         events.extend(barrage(150.0, 250.0, 80.0, 120.0, 2.0));
     }
     let mut b = battle(
-        json!([{ "side": "blue", "kind": "tank", "position": [100, 100] }]),
+        json!([{ "side": "blue", "kind": "test_tank", "position": [100, 100] }]),
         events,
         json!([drive(0, [300.0, 100.0])]),
         1,
@@ -139,7 +139,7 @@ fn crossing(b: &mut Battle, id: u32, x: f64) -> (u32, Vec<sim::math::V2>) {
 
 #[test]
 fn craters_slow_a_moving_vehicle_slightly_and_never_its_plan() {
-    let tank = json!([{ "side": "blue", "kind": "tank", "position": [100, 100] }]);
+    let tank = json!([{ "side": "blue", "kind": "test_tank", "position": [100, 100] }]);
     let order = json!([drive(0, [300.0, 100.0])]);
     let mut events = Vec::new();
     for _ in 0..4 {
@@ -168,8 +168,8 @@ fn craters_slow_a_moving_vehicle_slightly_and_never_its_plan() {
 fn craters_never_slow_a_vehicle_turning_in_place_or_a_squad() {
     // A tank turns in place to face west and a squad walks east, on craters and off.
     let units = json!([
-        { "side": "blue", "kind": "tank", "position": [200, 100] },
-        { "side": "blue", "kind": "rifle", "position": [150, 140] },
+        { "side": "blue", "kind": "test_tank", "position": [200, 100] },
+        { "side": "blue", "kind": "test_rifle", "position": [150, 140] },
     ]);
     let orders = json!([drive(0, [150.0, 100.0]), drive(1, [260.0, 140.0])]);
     let mut events = Vec::new();
@@ -208,7 +208,7 @@ fn craters_never_slow_a_vehicle_turning_in_place_or_a_squad() {
 #[test]
 fn craters_appearing_never_bump_a_side_navigation_revision_or_replan() {
     // Shells land along the route ahead of a driving tank, then behind it.
-    let tank = json!([{ "side": "blue", "kind": "tank", "position": [100, 100] }]);
+    let tank = json!([{ "side": "blue", "kind": "test_tank", "position": [100, 100] }]);
     let order = json!([drive(0, [400.0, 100.0])]);
     let mut events = Vec::new();
     for (k, x) in (150..380).step_by(10).enumerate() {
@@ -243,10 +243,10 @@ fn the_cosmetic_channels_leave_combat_identical() {
     // HE on a squad in the open, a squad walking and a tank driving: once with
     // scorch, tracks and trampling recorded and once with them switched off.
     let units = json!([
-        { "side": "blue", "kind": "tank", "position": [100, 200] },
-        { "side": "blue", "kind": "rifle", "position": [100, 150] },
-        { "side": "red", "kind": "rifle", "position": [300, 200], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
-        { "side": "blue", "kind": "supply", "position": [100, 300] },
+        { "side": "blue", "kind": "test_tank", "position": [100, 200] },
+        { "side": "blue", "kind": "test_rifle", "position": [100, 150] },
+        { "side": "red", "kind": "test_rifle", "position": [300, 200], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+        { "side": "blue", "kind": "test_supply", "position": [100, 300] },
     ]);
     let scripts = json!([
         { "tick": 1, "side": "blue", "order": { "kind": "attack", "units": [0],
@@ -344,7 +344,7 @@ fn the_endurance_battle_keeps_the_layer_within_its_bound() {
 
 #[test]
 fn craters_enter_the_digest_and_replay_to_it() {
-    let units = json!([{ "side": "blue", "kind": "tank", "position": [100, 100] }]);
+    let units = json!([{ "side": "blue", "kind": "test_tank", "position": [100, 100] }]);
     let quiet = battle(units.clone(), vec![], json!([]), 1);
     let mut shelled = battle(
         units.clone(),

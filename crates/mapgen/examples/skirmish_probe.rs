@@ -26,7 +26,8 @@ fn main() {
     let catalog =
         contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(templates).unwrap())
             .unwrap();
-    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_game()).unwrap();
     let rules_json = serde_json::to_string(&rules).unwrap();
     let presets_def = mapgen::layout::PresetDefinitions::from_json(presets).unwrap();
     let defaults: serde_json::Value =

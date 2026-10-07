@@ -12,8 +12,15 @@ export interface SourceDocument {
 export interface MechanicsSnapshot {
   revision: string;
   documents: SourceDocument[];
+  /** Every editable unit's resolved view, the test units included. */
   catalog: JsonObject;
+  /** The game's resolved view, as `fixtures/catalog.json` holds it: what a
+   *  page installs as its game catalog. */
+  game: JsonObject;
 }
+
+/** What the editor's draft reads: the sources and every editable unit. */
+export type EditableSources = Pick<MechanicsSnapshot, "documents" | "catalog">;
 
 export interface MechanicsChange {
   section: Section;

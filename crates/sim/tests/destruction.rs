@@ -55,7 +55,7 @@ fn run(b: &mut Battle, ticks: u64) {
 
 /// A red squad far off, so no side sees the props unless placed to.
 fn far() -> Value {
-    json!([{ "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" }])
+    json!([{ "side": "red", "kind": "test_rifle", "position": [1150, 550], "engagement": "return_fire_only" }])
 }
 
 #[test]
@@ -96,8 +96,8 @@ fn a_direct_round_wears_the_struck_prop_by_its_armour() {
         json!([prop("light_wreck", [300.0, 300.0], [2.0, 1.0, 1.0])]),
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [1150, 550], "engagement": "return_fire_only" },
         ]),
         json!([]),
     );
@@ -241,8 +241,8 @@ fn a_tree_felled_by_a_burst_falls_away_from_it() {
         json!([]),
         json!([{ "shape":{"kind":"polygon","ring":[[680.0,280.0],[720.0,280.0],[720.0,320.0],[680.0,320.0]]}}]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [740.0, 300.0], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [740.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [1150, 550], "engagement": "return_fire_only" },
         ]),
         json!(events),
     );
@@ -271,8 +271,8 @@ fn any_toppling_body_felled_by_fire_publishes_its_fall() {
         json!([prop("iron_railing", [704.0, 300.0], [0.1, 1.5, 0.6])]),
         json!([]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [740.0, 300.0], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [740.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [1150, 550], "engagement": "return_fire_only" },
         ]),
         json!([burst(1, [700.0, 300.0]), burst(2, [700.0, 300.0])]),
     );
@@ -307,8 +307,8 @@ fn sandbags_destroyed(blue_at: [f64; 2], destroy: bool) -> Battle {
         ]),
         json!([]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": blue_at, "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": blue_at, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [1150, 550], "engagement": "return_fire_only" },
         ]),
         events,
     );
@@ -389,8 +389,8 @@ fn destruction_enters_the_digest_and_replays_exactly() {
                  "forests": [] })
         .to_string(),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [380.0, 300.0], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [380.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [1150, 550], "engagement": "return_fire_only" },
         ]),
         json!([burst(1, [400.0, 300.0]), burst(2, [400.0, 300.0])]),
         json!([]),

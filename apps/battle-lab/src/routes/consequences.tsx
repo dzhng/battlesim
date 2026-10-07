@@ -44,7 +44,7 @@ const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
     target: { kind: "ground", point: [373, 273, 0] },
   }),
   "Destroy the red tank": (o) => {
-    const tank = o.identified.find((e) => e.kind === "tank");
+    const tank = o.identified.find((e) => e.kind === "test_tank");
     return tank
       ? { kind: "attack", units: [0], target: { kind: "identified", id: tank.id } }
       : null;

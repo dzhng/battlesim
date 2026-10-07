@@ -5,10 +5,10 @@ import { decode, writeCrop } from "./_png.mjs";
 import { lab, advance, openBattle } from "./_lab.mjs";
 import { unitType, game } from "./_units.mjs";
 
-const N = Math.round(unitType("supply").capabilities.deploy.seconds * game.tick_hz);
+const N = Math.round(unitType("test_supply").capabilities.deploy.seconds * game.tick_hz);
 
 const supply = async (page) =>
-  lab(page, () => window.__lab.route.observation().own.find((u) => u.kind === "supply"));
+  lab(page, () => window.__lab.route.observation().own.find((u) => u.kind === "test_supply"));
 const move = (goal) => ({ kind: "move", units: [0], gesture: 1, goal, route: "shortest" });
 const STOP = { kind: "stop", units: [0] };
 const deploy = (deployed) => ({ kind: "set_deployment", units: [0], deployed });

@@ -170,8 +170,8 @@ of a street in the same half, placed before the kerbs are parked. It keeps open 
 it the way the widest hull that cannot shove it needs (that hull and the vehicle
 margin), and no car parks in that way; a tank may shove one. It keeps far enough from
 a junction for a vehicle turning in to move over before reaching it. [Furniture
-tests](tests/street_props.rs) ask the simulation's own routes: each stand-in hull drives
-every street through nothing it cannot shove. They generate on the stand-in units, not
+tests](tests/street_props.rs) ask the simulation's own routes: each test unit's hull drives
+every street through nothing it cannot shove. They generate on the test units, not
 the roster, so a unit added to the roster changes no test map.
 
 [Courts](src/street_props/courts.rs) dress the dense districts' blocks. A court's

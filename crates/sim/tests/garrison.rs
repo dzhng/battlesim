@@ -148,7 +148,7 @@ fn battle_with_capacity(units: Value, seed: u64, capacity: u32) -> Battle {
 /// One rifle squad garrisoned in a building that takes exactly its eight
 /// soldiers: every slot held.
 fn full_building(seed: u64) -> (Battle, Commander) {
-    let mut b = battle_with_capacity(west_squads(&["rifle"]), seed, 8);
+    let mut b = battle_with_capacity(west_squads(&["test_rifle"]), seed, 8);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "the squad inside", |b| inside(b, 0));
@@ -159,7 +159,7 @@ mod occupy;
 
 #[test]
 fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
-    let mut b = battle(west_squads(&["rifle", "recon"]), 1);
+    let mut b = battle(west_squads(&["test_rifle", "test_recon"]), 1);
     let mut c = Commander::new();
     // An order naming two squads is refused whole: nobody moves.
     assert_eq!(
@@ -206,7 +206,7 @@ fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
     until(&mut b, 1200, "the second squad inside", |b| inside(b, 1));
     // Non-infantry and non-buildings are refused.
     let mut v = battle(
-        json!([{ "side": "blue", "kind": "tank", "position": [350, 300] }]),
+        json!([{ "side": "blue", "kind": "test_tank", "position": [350, 300] }]),
         1,
     );
     let mut cv = Commander::new();
@@ -216,7 +216,7 @@ fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
     );
     let mut w = battle_with(
         json!([{ "kind": "wall", "center": [300, 100], "yaw": 0, "half_extents": [5, 1, 2] }]),
-        west_squads(&["rifle"]),
+        west_squads(&["test_rifle"]),
         json!([]),
         1,
     );
@@ -239,7 +239,7 @@ fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
 fn a_squad_larger_than_the_building_is_refused_and_a_smaller_one_enters_whole() {
     // Buildings that take six: the rifle squad's eight are refused, the
     // scouts' four enter, every one of them at a slot.
-    let mut b = battle_with_capacity(west_squads(&["rifle", "recon"]), 1, 6);
+    let mut b = battle_with_capacity(west_squads(&["test_rifle", "test_recon"]), 1, 6);
     let mut c = Commander::new();
     assert_eq!(
         c.send(&mut b, Side::Blue, garrison(&[0]), false),
@@ -260,8 +260,8 @@ fn a_squad_that_finds_an_enemy_squad_inside_gives_up_its_order() {
     // order lapses and blue stands where it is; it never waits for room.
     let mut b = battle(
         json!([
-            { "side": "blue", "kind": "rifle", "position": [350.0, 300.0], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [450.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [350.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [450.0, 300.0], "engagement": "return_fire_only" },
         ]),
         1,
     );
@@ -286,7 +286,7 @@ fn a_squad_that_finds_an_enemy_squad_inside_gives_up_its_order() {
 
 #[test]
 fn a_squad_enters_after_arriving_and_a_stationary_timer() {
-    let mut b = battle(west_squads(&["rifle"]), 2);
+    let mut b = battle(west_squads(&["test_rifle"]), 2);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     let walk = until(&mut b, 1200, "entering", |b| {
@@ -366,8 +366,8 @@ fn occupants_publish_interior_bodies_at_distinct_window_slots() {
 fn identified_occupants_publish_interior_bodies_while_exit_waits_inside() {
     let mut b = battle(
         json!([
-            {"side":"blue","kind":"rifle","position":[350,300],"engagement":"return_fire_only"},
-            {"side":"red","kind":"recon","position":[400,345],"engagement":"return_fire_only"}
+            {"side":"blue","kind":"test_rifle","position":[350,300],"engagement":"return_fire_only"},
+            {"side":"red","kind":"test_recon","position":[400,345],"engagement":"return_fire_only"}
         ]),
         7,
     );
@@ -450,7 +450,7 @@ fn remember_heading(b: &Battle, headings: &mut BTreeMap<ProjectileId, f64>, deg:
 
 #[test]
 fn outgoing_fire_clears_its_own_walls_toward_every_facade_and_corner() {
-    let mut b = battle(west_squads(&["rifle"]), 4);
+    let mut b = battle(west_squads(&["test_rifle"]), 4);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "inside", |b| inside(b, 0));
@@ -508,7 +508,7 @@ fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
     }
     assert_eq!(shooters.len(), 2, "only the two north windows fire");
     // In a building with room, the free north slots fill from the squad.
-    let mut b = battle(west_squads(&["rifle"]), 5);
+    let mut b = battle(west_squads(&["test_rifle"]), 5);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "inside", |b| inside(b, 0));
@@ -548,8 +548,8 @@ fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
 /// Blue's squad garrisoned; red's tank to the east shells and machine-guns
 /// the occupants it sees (its own eyes reach a garrison at 70 m).
 fn under_fire(extra_props: Value, events: Value, seed: u64) -> (Battle, Commander) {
-    let mut units = west_squads(&["rifle"]).as_array().unwrap().clone();
-    units.push(json!({ "side": "red", "kind": "tank", "position": [CENTRE[0] + HALF[0] + 45.0, CENTRE[1] + 4.0], "yaw": std::f64::consts::PI }));
+    let mut units = west_squads(&["test_rifle"]).as_array().unwrap().clone();
+    units.push(json!({ "side": "red", "kind": "test_tank", "position": [CENTRE[0] + HALF[0] + 45.0, CENTRE[1] + 4.0], "yaw": std::f64::consts::PI }));
     let mut setup =
         common::scenario_with(&map(extra_props), Value::Array(units), events, json!([]));
     setup.rules.buildings.capacity_soldiers = 16;
@@ -583,7 +583,7 @@ fn under_fire(extra_props: Value, events: Value, seed: u64) -> (Battle, Commande
 /// the north facade, and red's tank shells what it spots from 300 m, where
 /// its spread puts most rounds into the walls.
 fn shelled(extra_props: Value, events: Value, seed: u64) -> (Battle, Commander) {
-    let mut units: Vec<Value> = west_squads(&["rifle"])
+    let mut units: Vec<Value> = west_squads(&["test_rifle"])
         .as_array()
         .unwrap()
         .iter()
@@ -593,8 +593,8 @@ fn shelled(extra_props: Value, events: Value, seed: u64) -> (Battle, Commander) 
             u
         })
         .collect();
-    units.push(json!({ "side": "red", "kind": "tank", "position": [620.0, 520.0] }));
-    units.push(json!({ "side": "red", "kind": "rifle", "position": [CENTRE[0], CENTRE[1] + 100.0], "engagement": "return_fire_only" }));
+    units.push(json!({ "side": "red", "kind": "test_tank", "position": [620.0, 520.0] }));
+    units.push(json!({ "side": "red", "kind": "test_rifle", "position": [CENTRE[0], CENTRE[1] + 100.0], "engagement": "return_fire_only" }));
     let mut b = battle_with(extra_props, Value::Array(units), events, seed);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
@@ -731,7 +731,7 @@ fn every_round_meets_the_same_capsules_and_shell_whatever_it_was_aimed_at() {
 #[test]
 fn a_garrison_is_sheltered_by_its_building_and_only_a_garrison() {
     let r: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
-    let mut b = battle(west_squads(&["rifle"]), 1);
+    let mut b = battle(west_squads(&["test_rifle"]), 1);
     let shelter = |b: &Battle| sim::garrison::shelter(b.unit(UnitId(0)).unwrap(), b.rules());
     assert_eq!(shelter(&b), 0.0, "an outside squad has no building shelter");
     let mut c = Commander::new();
@@ -1104,9 +1104,9 @@ fn occupants_see_only_from_occupied_slots_and_are_seen_only_there() {
     let mut setup = common::scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "at", "position": [400, 335] },
-            { "side": "red", "kind": "rifle", "position": [CENTRE[0], CENTRE[1] - HALF[1] - 30.0], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [CENTRE[0], CENTRE[1] + HALF[1] + 60.0], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_at", "position": [400, 335] },
+            { "side": "red", "kind": "test_rifle", "position": [CENTRE[0], CENTRE[1] - HALF[1] - 30.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [CENTRE[0], CENTRE[1] + HALF[1] + 60.0], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -1170,7 +1170,7 @@ fn another_building_still_blocks_a_garrison_normally() {
     // A second building east blocks the squad's line to ground beyond it.
     let mut b = battle_with(
         json!([{ "kind": "building", "center": [CENTRE[0] + 60.0, CENTRE[1]], "yaw": 0, "half_extents": [10, 10, 4] }]),
-        west_squads(&["rifle"]),
+        west_squads(&["test_rifle"]),
         json!([]),
         10,
     );
@@ -1190,7 +1190,7 @@ fn another_building_still_blocks_a_garrison_normally() {
 
 #[test]
 fn leaving_takes_the_timer_and_steps_out_to_free_ground() {
-    let mut b = battle(west_squads(&["rifle"]), 11);
+    let mut b = battle(west_squads(&["test_rifle"]), 11);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "inside", |b| inside(b, 0));
@@ -1242,7 +1242,7 @@ fn leaving_takes_the_timer_and_steps_out_to_free_ground() {
 
 #[test]
 fn a_queued_garrison_follows_the_move_before_it() {
-    let mut b = battle(west_squads(&["rifle"]), 12);
+    let mut b = battle(west_squads(&["test_rifle"]), 12);
     let mut c = Commander::new();
     c.ok(
         &mut b,
@@ -1270,7 +1270,7 @@ fn a_queued_garrison_follows_the_move_before_it() {
 
 #[test]
 fn garrison_orders_replay_every_tick_exactly() {
-    let units = west_squads(&["rifle", "rifle"]);
+    let units = west_squads(&["test_rifle", "test_rifle"]);
     let setup = common::scenario_with(&map(json!([])), units, json!([]), json!([]));
     let mut b = Battle::new(&setup, 13);
     let mut c = Commander::new();
@@ -1320,15 +1320,15 @@ fn a_grounded_launcher_leaves_its_occupied_window_at_the_declared_bore() {
     sim::fixtures::patch_catalog(
         &mut game,
         "soldiers",
-        "atgm_gunner",
+        "test_atgm_gunner",
         json!({"mounts":[{
             "name":"ATGM launcher","pivot_m":[0.2,-0.1,0.75],"muzzle_m":[0.6,0,0]
         }]}),
     );
     let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map":serde_json::from_str::<Value>(&map(json!([]))).unwrap(),"rules":game,
-        "units":[{"side":"blue","kind":"at","position":[350,300],"engagement":"return_fire_only"},
-            {"side":"red","kind":"tank","position":[400,550],"engagement":"return_fire_only"}],
+        "units":[{"side":"blue","kind":"test_at","position":[350,300],"engagement":"return_fire_only"},
+            {"side":"red","kind":"test_tank","position":[400,550],"engagement":"return_fire_only"}],
         "events":[],"scripts":[]
     }))
     .unwrap();
@@ -1385,8 +1385,8 @@ fn an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour() {
     // tank it saw on the way waits 250 m north, holding fire.
     let mut b = battle_with_capacity(
         json!([
-            { "side": "blue", "kind": "at", "position": [350.0, 300.0], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "tank", "position": [CENTRE[0], CENTRE[1] + 250.0], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_at", "position": [350.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [CENTRE[0], CENTRE[1] + 250.0], "engagement": "return_fire_only" },
         ]),
         1,
         4,
@@ -1444,9 +1444,9 @@ fn a_squad_faces_armour_with_its_launcher_and_infantry_with_its_rifles() {
     for capacity in [8, 12] {
         let mut b = battle_with_capacity(
             json!([
-                { "side": "blue", "kind": "at", "position": [350.0, 300.0], "engagement": "return_fire_only" },
-                { "side": "red", "kind": "tank", "position": [CENTRE[0], CENTRE[1] + 250.0], "engagement": "return_fire_only" },
-                { "side": "red", "kind": "rifle", "position": [CENTRE[0], CENTRE[1] - 150.0], "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_at", "position": [350.0, 300.0], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_tank", "position": [CENTRE[0], CENTRE[1] + 250.0], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_rifle", "position": [CENTRE[0], CENTRE[1] - 150.0], "engagement": "return_fire_only" },
             ]),
             1,
             capacity,
@@ -1471,8 +1471,8 @@ fn a_surviving_rifleman_yields_the_launchers_only_facing_window() {
     let mut setup = common::scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "at", "position": [350.0, 300.0], "engagement": "return_fire_only", "condition": { "casualties": 1 } },
-            { "side": "red", "kind": "tank", "position": [CENTRE[0], CENTRE[1] + 250.0], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_at", "position": [350.0, 300.0], "engagement": "return_fire_only", "condition": { "casualties": 1 } },
+            { "side": "red", "kind": "test_tank", "position": [CENTRE[0], CENTRE[1] + 250.0], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -1526,9 +1526,9 @@ fn an_unusable_launcher_does_not_keep_its_operator_at_a_useless_window() {
         let mut setup = common::scenario_with(
             &map(json!([])),
             json!([
-                { "side": "blue", "kind": "at", "position": [350, 300], "engagement": "return_fire_only" },
-                { "side": "red", "kind": "tank", "position": [400, 550], "engagement": "return_fire_only" },
-                { "side": "red", "kind": "rifle", "position": [400, if return_fire { 250 } else { 150 }], "engagement": "return_fire_only" }
+                { "side": "blue", "kind": "test_at", "position": [350, 300], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_tank", "position": [400, 550], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_rifle", "position": [400, if return_fire { 250 } else { 150 }], "engagement": "return_fire_only" }
             ]),
             json!([]),
             json!([]),
@@ -1658,7 +1658,7 @@ fn an_unseen_collapse_cannot_change_a_garrison_order_until_discovered() {
         let setup = common::scenario_with(
             &map.to_string(),
             json!([
-                { "side": "blue", "kind": "rifle", "position": [1500, 40], "engagement": "return_fire_only" }
+                { "side": "blue", "kind": "test_rifle", "position": [1500, 40], "engagement": "return_fire_only" }
             ]),
             json!(events),
             json!([]),

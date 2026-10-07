@@ -1,7 +1,7 @@
 {
   "units": [
-    {"side":"blue","kind":"recon","position":[330,250],"engagement":"return_fire_only"},
-    {"side":"red","kind":"rifle","position":[535,365],"engagement":"return_fire_only"}
+    {"side":"blue","kind":"test_recon","position":[330,250],"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_rifle","position":[535,365],"engagement":"return_fire_only"}
   ],
   "events": [
     {"tick":90,"burst":{"point":[331.5,141.2],"weapon":"tank_he"}},

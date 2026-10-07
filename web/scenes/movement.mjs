@@ -40,11 +40,11 @@ export async function run(ctx) {
   await until(page, () =>
     window.__lab.route
       .observation()
-      .own.filter((u) => u.kind === "tank")
+      .own.filter((u) => u.kind === "test_tank")
       .every((u) => u.route.length),
   );
   const [shortTank, fastTank] = await lab(page, () =>
-    window.__lab.route.observation().own.filter((u) => u.kind === "tank"),
+    window.__lab.route.observation().own.filter((u) => u.kind === "test_tank"),
   );
   ctx.check(
     "the fastest route takes the roads round the forest; the shortest cuts through",
@@ -129,7 +129,9 @@ export async function run(ctx) {
   const MESA = { min: [440, 330], max: [470, 360], foot: 12 };
   const CLIFF_TOP = [455, 345];
   const truckId = (
-    await lab(page, () => window.__lab.route.observation().own.find((u) => u.kind === "supply"))
+    await lab(page, () =>
+      window.__lab.route.observation().own.find((u) => u.kind === "test_supply"),
+    )
   ).id;
   await lab(page, () => window.__lab.route.demo("Onto the cliff top"));
   let supply = await planned(page, truckId);
@@ -147,7 +149,7 @@ export async function run(ctx) {
   const end = supply.route.at(-1);
   ctx.check(
     "a truck sent onto a cliff top is routed to the nearest ground at its foot",
-    /✓ #\d+ move supply #\d+ to \(455, 345\)/.test(acks) &&
+    /✓ #\d+ move test_supply #\d+ to \(455, 345\)/.test(acks) &&
       supply.goal !== null &&
       offMesa(supply.goal) &&
       Math.hypot(supply.goal[0] - CLIFF_TOP[0], supply.goal[1] - CLIFF_TOP[1]) <= 48 &&
@@ -176,7 +178,7 @@ export async function run(ctx) {
   const gapStages = [];
   // Admission may precede a route. Keep each completed route before advancing
   // for its squadmate, so travel cannot consume the checkpoint we judge.
-  for (const rifle of gapBefore.own.filter((u) => u.kind === "rifle")) {
+  for (const rifle of gapBefore.own.filter((u) => u.kind === "test_rifle")) {
     const tick = await lab(page, () => window.__lab.route.tick());
     rifles.push(await planned(page, rifle.id));
     gapStages.push({
@@ -205,10 +207,10 @@ export async function run(ctx) {
   for (let i = 0; i < 100; i++) {
     await lab(page, () => window.__lab.route.advance(60));
     const own = await lab(page, () => window.__lab.route.observation().own);
-    if (own.filter((u) => u.kind === "rifle").every((u) => !u.goal)) break;
+    if (own.filter((u) => u.kind === "test_rifle").every((u) => !u.goal)) break;
   }
   const gapArrival = await lab(page, () => window.__lab.route.observation());
-  const arrivedRifles = gapArrival.own.filter((u) => u.kind === "rifle");
+  const arrivedRifles = gapArrival.own.filter((u) => u.kind === "test_rifle");
   await ctx.writeEvidence("gap-arrival.json", { ack: gapAck, publication: gapArrival });
   ctx.check(
     "both rifle squads finish their admitted moves beyond the wall",
@@ -226,7 +228,7 @@ export async function run(ctx) {
   );
   await page.evaluate(() => window.__lab.frame());
   const recon = await lab(page, () =>
-    window.__lab.route.observation().own.find((u) => u.kind === "recon"),
+    window.__lab.route.observation().own.find((u) => u.kind === "test_recon"),
   );
   const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), recon.position);
   await page.mouse.move(at[0] - 30, at[1] - 30);
@@ -299,8 +301,8 @@ async function paintOnDeckAndWater(ctx) {
   await until(page, () => window.__lab.route?.tick() > 3);
   await lab(page, () => window.__lab.route.pause());
   const own = await lab(page, () => window.__lab.route.observation().own);
-  const tank = own.find((u) => u.kind === "tank");
-  const truck = own.find((u) => u.kind === "supply");
+  const tank = own.find((u) => u.kind === "test_tank");
+  const truck = own.find((u) => u.kind === "test_supply");
   await lab(page, (ids) => window.__lab.route.select(ids), [tank.id, truck.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 2);
   const move = (id, goal, gesture, queued = false) =>
@@ -397,7 +399,7 @@ async function paintOnDeckAndWater(ctx) {
   const onDeck =
     Math.abs(parked.position[0] - DECK[0]) < 12 && Math.abs(parked.position[1] - DECK[1]) < 3;
   const marker =
-    hull("tank").half_extents_m[0] + game.presentation.overlay.orders.vehicle_marker_margin_m;
+    hull("test_tank").half_extents_m[0] + game.presentation.overlay.orders.vehicle_marker_margin_m;
   const deck = await shown(await paintAt(parked.position, "deck"), ring(parked.position, marker));
   ctx.check(
     "ground paint shows on the water and on the bridge deck: queued dashes mid-river, a parked tank's ring",

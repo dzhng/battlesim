@@ -1,12 +1,12 @@
 {
   "units": [
-    {"side":"blue","kind":"tank","position":[110,110],"engagement":"return_fire_only"},
-    {"side":"blue","kind":"tank","position":[110,170],"engagement":"return_fire_only"},
-    {"side":"blue","kind":"tank","position":[120,300],"engagement":"return_fire_only"},
-    {"side":"blue","kind":"tank","position":[120,390],"engagement":"return_fire_only"},
-    {"side":"blue","kind":"rifle","position":[140,235],"engagement":"return_fire_only"},
-    {"side":"red","kind":"rifle","position":[470,310],"yaw":3.141592653589793,"engagement":"return_fire_only"},
-    {"side":"red","kind":"rifle","position":[470,380],"yaw":3.141592653589793,"engagement":"return_fire_only"}
+    {"side":"blue","kind":"test_tank","position":[110,110],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_tank","position":[110,170],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_tank","position":[120,300],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_tank","position":[120,390],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_rifle","position":[140,235],"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_rifle","position":[470,310],"yaw":3.141592653589793,"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_rifle","position":[470,380],"yaw":3.141592653589793,"engagement":"return_fire_only"}
   ],
   "events": [
     {"tick":1,"burst":{"point":[220.9640584088862,96.68323225155473],"weapon":"tank_he"}},

@@ -127,37 +127,42 @@ fn trial(
         "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
     .to_string();
     let units = json!([
-        { "side": "blue", "kind": if weapon == "rifle" || mode == Mode::Splash { "rifle" } else { "jeep" },
+        { "side": "blue", "kind": if weapon == "rifle" || mode == Mode::Splash { "test_rifle" } else { "test_jeep" },
           "position": [target[0] + distance, target[1]], "yaw": std::f64::consts::PI,
           "engagement": "return_fire_only" },
-        { "side": "red", "kind": "recon", "position": target,
+        { "side": "red", "kind": "test_recon", "position": target,
           "engagement": "return_fire_only" },
         // A nearby unarmed observer holds identification even at the
         // long garrison ranges; concealment is not a scatter multiplier.
-        { "side": "blue", "kind": "recon", "position": [target[0] + 50.0, target[1] + 40.0],
+        { "side": "blue", "kind": "test_recon", "position": [target[0] + 50.0, target[1] + 40.0],
           "engagement": "return_fire_only" }
     ]);
     let mut rules = baseline.clone();
     sim::fixtures::patch_catalog(
         &mut rules,
         "soldiers",
-        "scout",
+        "test_scout",
         json!({ "hp": 1.0e6, "mounts": [] }),
     );
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "recon",
-        json!({ "body": { "squad": { "slots": vec!["scout"; case.targets()] } } }),
+        "test_recon",
+        json!({ "body": { "squad": { "slots": vec!["test_scout"; case.targets()] } } }),
     );
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "rifle",
-        json!({ "body": { "squad": { "slots": vec![if mode == Mode::Splash { "grenadier" } else { "rifleman" }; 8] } } }),
+        "test_rifle",
+        json!({ "body": { "squad": { "slots": vec![if mode == Mode::Splash { "test_grenadier" } else { "test_rifleman" }; 8] } } }),
     );
     if mode == Mode::Splash {
-        sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "mounts": [] }));
+        sim::fixtures::patch_catalog(
+            &mut rules,
+            "soldiers",
+            "test_rifleman",
+            json!({ "mounts": [] }),
+        );
     }
     sim::fixtures::patch_catalog(
         &mut rules,

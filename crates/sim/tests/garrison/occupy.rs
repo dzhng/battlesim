@@ -5,9 +5,9 @@ use super::*;
 fn a_building_group_enters_one_squad_and_gathers_its_selected_companions() {
     let mut b = battle(
         json!([
-            { "side": "blue", "kind": "recon", "position": [350, 300] },
-            { "side": "blue", "kind": "rifle", "position": [320, 320] },
-            { "side": "blue", "kind": "tank", "position": [300, 280] }
+            { "side": "blue", "kind": "test_recon", "position": [350, 300] },
+            { "side": "blue", "kind": "test_rifle", "position": [320, 320] },
+            { "side": "blue", "kind": "test_tank", "position": [300, 280] }
         ]),
         1,
     );
@@ -58,8 +58,8 @@ fn replacing_a_hold_cancels_departure_behind_an_expiring_contact_attack() {
             {"kind":"wall", "center":[425,300], "yaw":0, "half_extents":[1,60,10]}
         ])),
         json!([
-            {"side":"blue", "kind":"recon", "position":[350,300], "engagement":"return_fire_only"},
-            {"side":"red", "kind":"rifle", "position":[450,300], "engagement":"return_fire_only"}
+            {"side":"blue", "kind":"test_recon", "position":[350,300], "engagement":"return_fire_only"},
+            {"side":"red", "kind":"test_rifle", "position":[450,300], "engagement":"return_fire_only"}
         ]),
         json!([{"tick":1000, "fire":{"unit":1}}]),
         json!([]),
@@ -107,9 +107,9 @@ fn queued_reentry_after_an_entering_squads_attack_and_exit_remains_unproven() {
             {"kind":"wall", "center":[425,300], "yaw":0, "half_extents":[1,60,10]}
         ])),
         json!([
-            {"side":"blue", "kind":"recon", "position":[350,300], "engagement":"return_fire_only"},
-            {"side":"blue", "kind":"tank", "position":[300,280], "engagement":"return_fire_only"},
-            {"side":"red", "kind":"rifle", "position":[450,300], "engagement":"return_fire_only"}
+            {"side":"blue", "kind":"test_recon", "position":[350,300], "engagement":"return_fire_only"},
+            {"side":"blue", "kind":"test_tank", "position":[300,280], "engagement":"return_fire_only"},
+            {"side":"red", "kind":"test_rifle", "position":[450,300], "engagement":"return_fire_only"}
         ]),
         json!([{"tick":5, "fire":{"unit":2}}]),
         json!([]),
@@ -158,8 +158,8 @@ fn a_building_group_ranks_reachable_route_distance_instead_of_distance_to_the_wa
     let mut b = battle_with(
         json!([{ "kind": "wall", "center": [375, 300], "yaw": 0, "half_extents": [1, 20, 2] }]),
         json!([
-            { "side": "blue", "kind": "recon", "position": [350, 300] },
-            { "side": "blue", "kind": "recon", "position": [365, 260] }
+            { "side": "blue", "kind": "test_recon", "position": [350, 300] },
+            { "side": "blue", "kind": "test_recon", "position": [365, 260] }
         ]),
         json!([]),
         1,
@@ -190,7 +190,7 @@ fn a_building_group_ranks_reachable_route_distance_instead_of_distance_to_the_wa
 
 #[test]
 fn a_combined_building_admission_reserves_its_entry_before_the_next_tick() {
-    let mut b = battle(west_squads(&["recon", "recon"]), 1);
+    let mut b = battle(west_squads(&["test_recon", "test_recon"]), 1);
     let first = b.accept(CommandEnvelope {
         side: Side::Blue,
         seq: 1,
@@ -227,7 +227,7 @@ fn a_combined_building_admission_reserves_its_entry_before_the_next_tick() {
 
 #[test]
 fn a_selected_holder_keeps_its_work_while_a_queued_building_group_gathers_others() {
-    let mut b = battle(west_squads(&["recon", "recon"]), 1);
+    let mut b = battle(west_squads(&["test_recon", "test_recon"]), 1);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "the selected holder inside", |b| inside(b, 0));
@@ -267,7 +267,7 @@ fn a_selected_holder_keeps_its_work_while_a_queued_building_group_gathers_others
 fn a_building_entry_can_use_the_rest_of_a_facade_when_its_nearest_projection_is_blocked() {
     let mut b = battle_with(
         json!([{ "kind": "wall", "center": [385, 300], "yaw": 0, "half_extents": [1, 5, 2] }]),
-        json!([{ "side": "blue", "kind": "recon", "position": [365, 300] }]),
+        json!([{ "side": "blue", "kind": "test_recon", "position": [365, 300] }]),
         json!([]),
         1,
     );
@@ -301,7 +301,7 @@ fn a_building_entry_can_use_the_rest_of_a_facade_when_its_nearest_projection_is_
 #[test]
 fn a_future_garrison_behind_an_indefinite_attack_is_unproven_until_replaced() {
     for queued in [true, false] {
-        let mut b = battle(west_squads(&["recon"]), 1);
+        let mut b = battle(west_squads(&["test_recon"]), 1);
         let mut c = Commander::new();
         c.ok(&mut b, Side::Blue, ground(0, [600.0, 300.0]));
         assert_eq!(c.send(&mut b, Side::Blue, garrison(&[0]), true), None);
@@ -341,8 +341,8 @@ fn a_nearby_entry_is_not_starved_by_farther_candidates_earlier_in_unit_order() {
     let mut setup = common::scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "recon", "position": [30, 30] },
-            { "side": "blue", "kind": "recon", "position": [350, 300] }
+            { "side": "blue", "kind": "test_recon", "position": [30, 30] },
+            { "side": "blue", "kind": "test_recon", "position": [350, 300] }
         ]),
         json!([]),
         json!([]),
@@ -377,7 +377,7 @@ fn a_building_preview_after_live_forest_clearance_rebases_its_scratch_navigation
             "forests":[{"shape":{"kind":"polygon","ring":[[70,0],[130,0],[130,80],[70,80]]}}]
         })
         .to_string(),
-        json!([{"side":"blue","kind":"tank","position":[15,40],"yaw":0,"engagement":"return_fire_only"}]),
+        json!([{"side":"blue","kind":"test_tank","position":[15,40],"yaw":0,"engagement":"return_fire_only"}]),
         json!([]),
     );
     let mut b = Battle::new(&setup, 1);
@@ -417,9 +417,9 @@ fn a_building_preview_after_live_forest_clearance_rebases_its_scratch_navigation
 fn queued_building_entry_ranks_predicted_origins_and_preserves_an_indefinite_companion() {
     let mut b = battle(
         json!([
-            {"side":"blue","kind":"recon","position":[350,300]},
-            {"side":"blue","kind":"recon","position":[300,350]},
-            {"side":"blue","kind":"rifle","position":[250,200]}
+            {"side":"blue","kind":"test_recon","position":[350,300]},
+            {"side":"blue","kind":"test_recon","position":[300,350]},
+            {"side":"blue","kind":"test_rifle","position":[250,200]}
         ]),
         1,
     );
@@ -489,9 +489,9 @@ fn combined_building_queries_are_pure_and_queued_exit_orders_replay_every_tick()
     let setup = common::scenario_with(
         &map(json!([])),
         json!([
-            {"side":"blue","kind":"recon","position":[350,300]},
-            {"side":"blue","kind":"recon","position":[330,330]},
-            {"side":"blue","kind":"tank","position":[310,280]}
+            {"side":"blue","kind":"test_recon","position":[350,300]},
+            {"side":"blue","kind":"test_recon","position":[330,330]},
+            {"side":"blue","kind":"test_tank","position":[310,280]}
         ]),
         json!([]),
         json!([]),
@@ -609,8 +609,8 @@ fn a_replacement_building_group_can_replace_an_unreachable_selected_entry_reserv
             {"kind":"wall","center":[350,310],"yaw":0,"half_extents":[11,1,2]}
         ]),
         json!([
-            {"side":"blue","kind":"recon","position":[350,300]},
-            {"side":"blue","kind":"recon","position":[370,270]}
+            {"side":"blue","kind":"test_recon","position":[350,300]},
+            {"side":"blue","kind":"test_recon","position":[370,270]}
         ]),
         json!([]),
         1,
@@ -646,7 +646,7 @@ fn a_replacement_building_group_can_replace_an_unreachable_selected_entry_reserv
 
 #[test]
 fn replacement_entry_cancels_a_pending_exit_but_does_not_preserve_an_actual_exit() {
-    let mut b = battle(west_squads(&["recon", "tank"]), 1);
+    let mut b = battle(west_squads(&["test_recon", "test_tank"]), 1);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "holder inside", |b| inside(b, 0));
@@ -697,15 +697,15 @@ fn an_unseen_enemy_occupant_cannot_change_a_building_group_plan() {
     let mut setup = common::scenario_with(
         &map(json!([])),
         json!([
-            {"side":"blue","kind":"recon","position":[350,300],"engagement":"return_fire_only"},
-            {"side":"blue","kind":"tank","position":[320,320],"engagement":"return_fire_only"},
-            {"side":"red","kind":"rifle","position":[450,300],"engagement":"return_fire_only"}
+            {"side":"blue","kind":"test_recon","position":[350,300],"engagement":"return_fire_only"},
+            {"side":"blue","kind":"test_tank","position":[320,320],"engagement":"return_fire_only"},
+            {"side":"red","kind":"test_rifle","position":[450,300],"engagement":"return_fire_only"}
         ]),
         json!([]),
         json!([]),
     );
     let mut rules = serde_json::to_value(&setup.rules).unwrap();
-    for kind in ["recon", "tank"] {
+    for kind in ["test_recon", "test_tank"] {
         sim::fixtures::patch_catalog(
             &mut rules,
             "units",
@@ -764,8 +764,8 @@ fn unfinished_shorter_routes_withhold_entry_and_keep_useful_gathering() {
             {"kind":"wall","center":[375,300],"yaw":0,"half_extents":[1,80,2]}
         ])),
         json!([
-            {"side":"blue","kind":"recon","position":[370,300]},
-            {"side":"blue","kind":"recon","position":[420,335]}
+            {"side":"blue","kind":"test_recon","position":[370,300]},
+            {"side":"blue","kind":"test_recon","position":[420,335]}
         ]),
         json!([]),
         json!([]),
@@ -807,9 +807,9 @@ fn known_occupied_and_too_small_buildings_gather_the_whole_selection() {
         let mut setup = common::scenario_with(
             &map(json!([])),
             json!([
-                {"side":"blue","kind":"recon","position":[350,300]},
-                {"side":"blue","kind":"rifle","position":[325,325]},
-                {"side":"blue","kind":"tank","position":[310,275]}
+                {"side":"blue","kind":"test_recon","position":[350,300]},
+                {"side":"blue","kind":"test_rifle","position":[325,325]},
+                {"side":"blue","kind":"test_tank","position":[310,275]}
             ]),
             json!([]),
             json!([]),
@@ -869,7 +869,7 @@ fn known_occupied_and_too_small_buildings_gather_the_whole_selection() {
 
 #[test]
 fn a_selected_entering_squad_keeps_its_entry_before_an_indefinite_attack_suffix() {
-    let mut b = battle(west_squads(&["recon", "tank"]), 1);
+    let mut b = battle(west_squads(&["test_recon", "test_tank"]), 1);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "selected squad already entering", |b| {
@@ -906,7 +906,7 @@ fn a_selected_entering_squad_keeps_its_entry_before_an_indefinite_attack_suffix(
 
 #[test]
 fn an_entering_squad_with_a_leaving_suffix_is_unproven_for_queued_reentry() {
-    let mut b = battle(west_squads(&["recon", "tank"]), 1);
+    let mut b = battle(west_squads(&["test_recon", "test_tank"]), 1);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "selected squad already entering", |b| {
@@ -967,7 +967,7 @@ fn an_entering_squad_with_a_leaving_suffix_is_unproven_for_queued_reentry() {
 
 #[test]
 fn an_inside_holder_with_finite_leaving_work_before_an_attack_cannot_promise_queued_reentry() {
-    let mut b = battle(west_squads(&["recon", "tank"]), 1);
+    let mut b = battle(west_squads(&["test_recon", "test_tank"]), 1);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "selected holder already inside", |b| {
@@ -1030,7 +1030,7 @@ fn exhausted_entry_proof_remains_unproven_when_gathering_succeeds() {
     let mut setup = common::scenario_with(
         &map(json!([])),
         json!([
-            {"side":"blue","kind":"recon","position":[380,300]}
+            {"side":"blue","kind":"test_recon","position":[380,300]}
         ]),
         json!([]),
         json!([]),
@@ -1069,8 +1069,8 @@ fn an_unfinished_finite_predecessor_cannot_be_skipped_for_a_different_entrant() 
     let mut setup = common::scenario_with(
         &map(json!([])),
         json!([
-            {"side":"blue","kind":"recon","position":[30,30]},
-            {"side":"blue","kind":"recon","position":[350,300]}
+            {"side":"blue","kind":"test_recon","position":[30,30]},
+            {"side":"blue","kind":"test_recon","position":[350,300]}
         ]),
         json!([]),
         json!([]),
@@ -1116,7 +1116,7 @@ fn an_unfinished_finite_predecessor_cannot_be_skipped_for_a_different_entrant() 
 
 #[test]
 fn replacement_entry_reasserts_an_inside_hold_before_its_finite_leaving_suffix() {
-    let mut b = battle(west_squads(&["recon", "tank"]), 1);
+    let mut b = battle(west_squads(&["test_recon", "test_tank"]), 1);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "holder inside", |b| inside(b, 0));

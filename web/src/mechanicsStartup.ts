@@ -30,7 +30,7 @@ export async function startWithMechanics(
     const rules = snapshot.documents.find((document) => document.path === "fixtures/game.json");
     if (!rules) throw new Error("The mechanics snapshot has no game rules");
     replace(game, rules.value);
-    editGameView((view) => replace(view, snapshot.catalog));
+    editGameView((view) => replace(view, snapshot.game));
   }
   freeze(game);
   editGameView(freeze);

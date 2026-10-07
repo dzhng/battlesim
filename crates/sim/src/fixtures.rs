@@ -33,54 +33,54 @@ pub enum CatalogSet {
     Menu,
 }
 
-/// The game's roots under `fixtures/`. Until the generic units move to
-/// `fixtures/units/test` (unit-models slice 05) the game's set still holds
-/// them, so the test set adds nothing new yet.
-const GAME_ROOTS: [&str; 5] = [
-    "units/generic",
-    "units/ground",
-    "units/roles.json",
-    "units/roster",
-    "props",
-];
+/// The game's roots under `fixtures/`: the roster, its profiles and roles,
+/// and the props. Never the test or menu units.
+const GAME_ROOTS: [&str; 4] = ["units/ground", "units/roles.json", "units/roster", "props"];
 
 impl CatalogSet {
-    /// The folder under `fixtures/` a set adds to the game's; absent is empty.
-    fn own_root(self) -> Option<&'static str> {
+    /// The folders under `fixtures/` a set adds to the game's; an absent one
+    /// is empty. The menu's units extend the test units (unit-models slice
+    /// 08), so the menu set holds both. The browser names the same folders
+    /// (`web/src/battle/catalog/compose.ts` `SET_FOLDERS`).
+    fn own_roots(self) -> &'static [&'static str] {
         match self {
-            CatalogSet::Game => None,
-            CatalogSet::Test => Some("units/generic"),
-            CatalogSet::Menu => Some("units/menu"),
+            CatalogSet::Game => &[],
+            CatalogSet::Test => &[TEST_ROOT],
+            CatalogSet::Menu => &[TEST_ROOT, "units/menu"],
         }
     }
 }
 
+/// The test units' folder: fakes tests, labs and art checks run on, never
+/// game content.
+const TEST_ROOT: &str = "units/test";
+
 /// The catalog documents of `set`, in path order, each file once.
 pub fn catalog_documents(set: CatalogSet) -> Vec<Value> {
     let mut roots = GAME_ROOTS.to_vec();
-    roots.extend(set.own_root());
+    roots.extend(set.own_roots());
     documents(&roots)
 }
 
-/// The catalog documents a test of a mechanic runs on: the stand-in units
-/// (`fixtures/units/generic`), the roles and the props, never the faction
+/// The catalog documents a test of a mechanic runs on: the test units
+/// (`fixtures/units/test`), the roles and the props, never the faction
 /// roster. A unit added to the roster then changes no test; a test that needs
-/// a shape the stand-ins lack adds its own fake unit.
-pub fn stand_in_documents() -> Vec<Value> {
-    documents(&["units/generic", "units/roles.json", "props"])
+/// a shape the test units lack adds its own fake unit.
+pub fn test_documents() -> Vec<Value> {
+    documents(&[TEST_ROOT, "units/roles.json", "props"])
 }
 
-/// The game fixture as [`game`] reads it, with [`stand_in_documents`] as its
+/// The game fixture as [`game`] reads it, with [`test_documents`] as its
 /// catalog.
-pub fn stand_in_game() -> Value {
+pub fn test_game() -> Value {
     let mut fixture = game();
-    fixture["catalog"] = Value::Array(stand_in_documents());
+    fixture["catalog"] = Value::Array(test_documents());
     fixture
 }
 
 /// Add to `fixture`'s catalog a hull at each drive's absolute limits
-/// (`hull_limits`): `limit_tracked`, the stand-in tank grown to the tracked
-/// limits, and `limit_wheeled`, the stand-in truck grown to the wheeled
+/// (`hull_limits`): `test_limit_tracked`, the test tank grown to the tracked
+/// limits, and `test_limit_wheeled`, the test truck grown to the wheeled
 /// limits and turning as wide as they allow. What is proven for them holds
 /// for every unit the limits admit.
 pub fn with_units_at_limits(fixture: &mut Value) {
@@ -91,15 +91,15 @@ pub fn with_units_at_limits(fixture: &mut Value) {
             .unwrap()
             .iter()
             .find_map(|d| d["units"][base]["body"]["hull"]["half_extents_m"][2].as_f64())
-            .unwrap_or_else(|| panic!("the stand-in {base} has a hull"));
+            .unwrap_or_else(|| panic!("the test unit {base} has a hull"));
         serde_json::json!({ "hull": { "half_extents_m": [
             limits[drive]["half_length_m"], limits[drive]["half_width_m"], height
         ] } })
     };
     let units = serde_json::json!({
-        "limit_tracked": { "extends": "tank", "name": "Tracked hull at the limits", "body": hull("tank", "tracked") },
-        "limit_wheeled": {
-            "extends": "supply", "name": "Wheeled hull at the limits", "body": hull("supply", "wheeled"),
+        "test_limit_tracked": { "extends": "test_tank", "name": "Tracked hull at the limits", "body": hull("test_tank", "tracked") },
+        "test_limit_wheeled": {
+            "extends": "test_supply", "name": "Wheeled hull at the limits", "body": hull("test_supply", "wheeled"),
             "mobility": { "wheeled": { "turning_radius_m": limits["wheeled"]["turning_radius_m"] } }
         },
     });
@@ -120,7 +120,7 @@ pub fn lift_hull_limits(fixture: &mut Value) {
 
 /// The catalog documents at `roots` under `fixtures/` (a directory, walked,
 /// or one file; an absent root holds none), in path order, each file once.
-pub fn documents(roots: &[&str]) -> Vec<Value> {
+fn documents(roots: &[&str]) -> Vec<Value> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         for entry in std::fs::read_dir(dir).expect("a catalog directory is readable") {
             let path = entry.expect("a directory entry").path();

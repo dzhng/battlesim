@@ -105,7 +105,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let templates_json =
         std::fs::read_to_string(format!("{fixtures}/prototype-building-templates.json"))?;
     let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&templates_json)?)?;
-    let rules_json = sim::fixtures::game().to_string();
+    let rules_json = sim::fixtures::test_game().to_string();
     let presets_json = source.to_string();
     if let Some(out) = &out {
         std::fs::create_dir_all(out)?;

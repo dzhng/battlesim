@@ -23,8 +23,14 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    /// The workbench's catalog input: the test set's documents, as the
+    /// workbench server captures them, since its recipes field test units.
+    fn test_catalog() -> String {
+        json!({"documents": sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Test)})
+            .to_string()
+    }
     fn inputs() -> Value {
-        json!({"presets":include_str!("../../../fixtures/map-presets.json"),"defaults":include_str!("../../../fixtures/generated-battle.json"),"templates":include_str!("../../../fixtures/prototype-building-templates.json"),"rules":include_str!("../../../fixtures/game.json"),"catalog":include_str!("../../../fixtures/catalog.json"),"recipes":include_str!("../../../fixtures/encounters.json")})
+        json!({"presets":include_str!("../../../fixtures/map-presets.json"),"defaults":include_str!("../../../fixtures/generated-battle.json"),"templates":include_str!("../../../fixtures/prototype-building-templates.json"),"rules":include_str!("../../../fixtures/game.json"),"catalog":test_catalog(),"recipes":include_str!("../../../fixtures/encounters.json")})
     }
     #[test]
     fn retained_plan_geometry_matches_standalone_and_notes_follow_the_crop() {
@@ -248,7 +254,7 @@ mod tests {
             "defaults":"{\"analysis\":{\"step_m\":0,\"min_median_open\":0.5}}",
             "templates":include_str!("../../../fixtures/prototype-building-templates.json"),
             "rules":include_str!("../../../fixtures/game.json"),
-            "catalog":include_str!("../../../fixtures/catalog.json"),
+            "catalog":test_catalog(),
             "recipes":include_str!("../../../fixtures/encounters.json")
         }});
         let result = run(request);

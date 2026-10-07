@@ -90,7 +90,7 @@ const squad = (over: Partial<OrderView> = {}): OrderView => ({
   ...over,
 });
 /** A tank's view: no soldiers, no area, its type's hull. */
-const TANK_HALF = UNITS.hull("tank")!.half_extents_m[0];
+const TANK_HALF = UNITS.hull("test_tank")!.half_extents_m[0];
 const vehicle = { members: [], memberOrders: [], area: null, hullHalfLength: TANK_HALF };
 
 test("cover icons appear only with the order marks, one per tier present, none for no cover", () => {
@@ -346,7 +346,7 @@ test("a selected squad's circle where it stands is the selection's colour; its r
 });
 
 test("a vehicle's marker ring clears its own hull, a jeep's and a tank's alike", () => {
-  for (const kind of ["jeep", "tank"] as const) {
+  for (const kind of ["test_jeep", "test_tank"] as const) {
     const hull = UNITS.hull(kind)!.half_extents_m[0];
     const view = squad({ ...vehicle, hullHalfLength: hull, goal: null, route: [], selected: true });
     const mesh = buildOrderOverlay([view], flat).painted!;

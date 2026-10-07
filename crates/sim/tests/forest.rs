@@ -215,7 +215,7 @@ fn only_the_forests_own_tree_decides_who_clears_a_lane() {
                       "forests": [forest([70.0, 0.0, 60.0, 40.0])] });
     let setup = serde_json::from_value(json!({
         "map": map, "rules": rules, "events": [],
-        "units": [{ "side": "blue", "kind": "supply", "position": [40, 40.4] }],
+        "units": [{ "side": "blue", "kind": "test_supply", "position": [40, 40.4] }],
         "scripts": [{ "tick": 1, "side": "blue", "order":
             { "kind": "move", "units": [0], "gesture": 1, "goal": [170, 40.4], "route": "shortest" } }],
     }))
@@ -238,8 +238,8 @@ fn carve(watcher: [f64; 2]) -> contract::scenario::ScenarioDefinition {
     common::scenario_with(
         &map.to_string(),
         json!([
-            { "side": "blue", "kind": "tank", "position": [15, 40], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": watcher, "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [15, 40], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": watcher, "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([{ "tick": 1, "side": "blue", "order":
@@ -768,8 +768,8 @@ fn a_real_tree_line_hides_a_recon_squad_from_the_far_field() {
         let mut setup = common::scenario(
             &map.to_string(),
             json!([
-                {"side":"blue","kind":"recon","position":[observer_x,150],"engagement":"return_fire_only"},
-                {"side":"red","kind":"recon","position":[target_x,150],"engagement":"return_fire_only"}
+                {"side":"blue","kind":"test_recon","position":[observer_x,150],"engagement":"return_fire_only"},
+                {"side":"red","kind":"test_recon","position":[target_x,150],"engagement":"return_fire_only"}
             ]),
             json!([]),
         );
@@ -778,7 +778,7 @@ fn a_real_tree_line_hides_a_recon_squad_from_the_far_field() {
         sim::fixtures::patch_catalog(
             &mut rules,
             "units",
-            "recon",
+            "test_recon",
             json!({"sensors":{"ground_m":1000}}),
         );
         setup.rules.catalog = serde_json::from_value::<contract::scenario::Rules>(rules)

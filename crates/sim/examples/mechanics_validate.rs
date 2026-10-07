@@ -83,17 +83,17 @@ mod tests {
     #[test]
     fn rejects_more_ammunition_kinds_than_a_mount_can_publish() {
         let game = game();
-        let mut documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
+        let mut documents = sim::fixtures::test_documents();
         let doc = documents
             .iter_mut()
-            .find(|doc| doc["units"].get("tank").is_some())
+            .find(|doc| doc["units"].get("test_tank").is_some())
             .unwrap();
-        doc["units"]["tank"]["mounts"][0]["weapons"] = json!(["tank_ap", "tank_he", "rifle"]);
+        doc["units"]["test_tank"]["mounts"][0]["weapons"] = json!(["tank_ap", "tank_he", "rifle"]);
         let error = sim::fixtures::admit(game, documents)
             .err()
             .expect("too many ammunition kinds must fail");
         assert!(
-            error.contains("units.tank") && error.contains("publication"),
+            error.contains("units.test_tank") && error.contains("publication"),
             "{error}"
         );
     }
@@ -155,17 +155,17 @@ mod tests {
 
     #[test]
     fn supplied_mounts_must_name_existing_weapon_rows() {
-        let mut documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
+        let mut documents = sim::fixtures::test_documents();
         let doc = documents
             .iter_mut()
-            .find(|doc| doc["units"].get("tank").is_some())
+            .find(|doc| doc["units"].get("test_tank").is_some())
             .unwrap();
-        doc["units"]["tank"]["mounts"][0]["weapons"] = json!(["missing_weapon"]);
+        doc["units"]["test_tank"]["mounts"][0]["weapons"] = json!(["missing_weapon"]);
         let error = sim::fixtures::admit(game(), documents)
             .err()
             .expect("unknown weapons must fail");
         assert!(
-            error.contains("tank") && error.contains("missing_weapon"),
+            error.contains("test_tank") && error.contains("missing_weapon"),
             "{error}"
         );
     }

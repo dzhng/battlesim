@@ -12,15 +12,15 @@ import type { Wasm } from "@web/battle/sim/module";
 
 /** Blue's nine units, in the village's blue order. */
 const STREET: { kind: string; position: [number, number]; yaw: number }[] = [
-  { kind: "recon", position: [1004, 788], yaw: 0 },
-  { kind: "rifle", position: [1012, 842], yaw: 0 },
-  { kind: "rifle", position: [930, 800], yaw: 0 },
-  { kind: "rifle", position: [905, 745], yaw: 0 },
-  { kind: "tank", position: [942, 826], yaw: 0.15 },
-  { kind: "tank", position: [870, 790], yaw: 0.3 },
-  { kind: "at", position: [950, 715], yaw: 0 },
-  { kind: "supply", position: [820, 790], yaw: 0 },
-  { kind: "jeep", position: [855, 812], yaw: 0 },
+  { kind: "test_recon", position: [1004, 788], yaw: 0 },
+  { kind: "test_rifle", position: [1012, 842], yaw: 0 },
+  { kind: "test_rifle", position: [930, 800], yaw: 0 },
+  { kind: "test_rifle", position: [905, 745], yaw: 0 },
+  { kind: "test_tank", position: [942, 826], yaw: 0.15 },
+  { kind: "test_tank", position: [870, 790], yaw: 0.3 },
+  { kind: "test_at", position: [950, 715], yaw: 0 },
+  { kind: "test_supply", position: [820, 790], yaw: 0 },
+  { kind: "test_jeep", position: [855, 812], yaw: 0 },
 ];
 export const STREET_SEED = 20260925;
 

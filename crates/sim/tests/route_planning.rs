@@ -71,14 +71,14 @@ fn send(b: &mut Battle, seq: u64, order: Order) {
 }
 
 fn one_tank() -> serde_json::Value {
-    json!([{ "side": "blue", "kind": "tank", "position": [100, 100] }])
+    json!([{ "side": "blue", "kind": "test_tank", "position": [100, 100] }])
 }
 
 #[test]
 fn a_new_body_during_infantry_refinement_replans_without_panicking() {
     let mut setup = scenario(
         r#"{"size":[120,120],"fog_cell_m":4,"height_grid_m":4,"slope_cutoff_deg":35}"#,
-        json!([{"side":"blue","kind":"recon","position":[20,20]}]),
+        json!([{"side":"blue","kind":"test_recon","position":[20,20]}]),
         1,
     );
     setup.events = serde_json::from_value(json!([{
@@ -208,7 +208,7 @@ fn a_search_gives_up_at_its_limit_and_reports_the_route_blocked() {
             setup.rules.physics.soldier_radius_m,
         )));
         let roads = RoadNet::build(&world);
-        let mobility = sim::units::mobility(setup.rules.catalog.by_id("tank"), &setup.rules);
+        let mobility = sim::units::mobility(setup.rules.catalog.by_id("test_tank"), &setup.rules);
         let before = grid.work();
         let mut journey = Journey::new(
             &grid,
@@ -300,7 +300,7 @@ fn a_new_order_replaces_the_route_being_planned() {
 /// Six tanks either side of the wall, each sent across it at once.
 fn crossing() -> (ScenarioDefinition, Vec<Order>) {
     let units: Vec<_> = (0..6)
-        .map(|k| json!({ "side": "blue", "kind": "tank", "position": [60 + 12 * k, 40 + 24 * k] }))
+        .map(|k| json!({ "side": "blue", "kind": "test_tank", "position": [60 + 12 * k, 40 + 24 * k] }))
         .collect();
     let orders = (0..6)
         .map(|k| go(&[k], [330.0 - 12.0 * k as f64, 40.0 + 24.0 * k as f64]))
@@ -420,7 +420,7 @@ fn an_enclosed_road_goal_finishes_its_counted_proof_and_the_tank_parks_outside_o
         ]}"#;
     let setup = scenario(
         map,
-        json!([{"side":"blue","kind":"tank","position":[20,100]}]),
+        json!([{"side":"blue","kind":"test_tank","position":[20,100]}]),
         200,
     );
     let mut battle = Battle::new(&setup, 7);
@@ -439,7 +439,7 @@ fn an_enclosed_road_goal_finishes_its_counted_proof_and_the_tank_parks_outside_o
         setup.rules.physics.soldier_radius_m,
     )));
     let roads = RoadNet::build(&world);
-    let mobility = sim::units::mobility(setup.rules.catalog.by_id("tank"), &setup.rules);
+    let mobility = sim::units::mobility(setup.rules.catalog.by_id("test_tank"), &setup.rules);
     let mut journey = Journey::new(
         &grid,
         &roads,
@@ -521,7 +521,7 @@ fn a_route_searched_while_the_side_learns_of_a_body_fits_what_it_now_knows() {
     let both = format!("{wall},{closed}");
     let ((_, before), (_, after)) = (picture(wall), picture(&both));
     let rules = common::rules();
-    let tank = sim::units::mobility(rules.catalog.by_id("tank"), &rules);
+    let tank = sim::units::mobility(rules.catalog.by_id("test_tank"), &rules);
     let (from, goal) = (v2(100.0, 100.0), v2(300.0, 100.0));
     let request = || Request {
         side: Side::Blue,
@@ -611,9 +611,9 @@ fn a_wreck_appearing_on_the_road_ahead_is_driven_round_by_the_side_that_sees_it(
             &common::scenario_with(
                 ROAD,
                 json!([
-                    { "side": "blue", "kind": "jeep", "position": [100, 200], "yaw": 0.0,
+                    { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0,
                       "engagement": "return_fire_only" },
-                    { "side": "red", "kind": "jeep", "position": [2900, 200],
+                    { "side": "red", "kind": "test_jeep", "position": [2900, 200],
                       "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
                 ]),
                 events,
@@ -708,7 +708,7 @@ fn checking_a_long_route_after_learning_stays_inside_the_tick_allowance() {
         0.3,
     )));
     let mut planner = RoutePlanner::default();
-    let m: Mobility = sim::units::mobility(rules.catalog.by_id("tank"), &rules);
+    let m: Mobility = sim::units::mobility(rules.catalog.by_id("test_tank"), &rules);
     let (from, goal) = (v2(100.0, 100.0), v2(9900.0, 100.0));
     let slow = contract::scenario::NavigationRules {
         work_per_tick: 40,
@@ -766,7 +766,7 @@ fn initial_long_open_orders_do_not_sample_every_half_metre() {
         world.props(),
         0.3,
     )));
-    let m = sim::units::mobility(rules.catalog.by_id("tank"), &rules);
+    let m = sim::units::mobility(rules.catalog.by_id("test_tank"), &rules);
     let budget = contract::scenario::NavigationRules {
         work_per_tick: 1,
         ..rules.navigation
@@ -821,7 +821,7 @@ fn an_irregular_diagonal_terrain_probe_yields_within_a_tiny_allowance() {
         world.props(),
         0.3,
     )));
-    let m = sim::units::mobility(rules.catalog.by_id("tank"), &rules);
+    let m = sim::units::mobility(rules.catalog.by_id("test_tank"), &rules);
     let budget = contract::scenario::NavigationRules {
         work_per_tick: 1,
         ..rules.navigation

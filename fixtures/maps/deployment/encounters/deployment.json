@@ -1,5 +1,5 @@
 {
   "units": [
-    {"side":"blue","kind":"supply","position":[100,100]}
+    {"side":"blue","kind":"test_supply","position":[100,100]}
   ]
 }

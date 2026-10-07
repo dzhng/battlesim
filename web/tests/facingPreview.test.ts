@@ -51,7 +51,7 @@ test("placement queries coalesce cursor updates and a cancelled reply cannot res
   const { PointerPaint } = await import("@apps/battle-lab/src/pointerPaint");
   const paint = new PointerPaint(UNITS);
   const selected = [
-    { id: 1, kind: "tank", position: [0, 0, 0], members: [], area: null, garrison: null },
+    { id: 1, kind: "test_tank", position: [0, 0, 0], members: [], area: null, garrison: null },
   ] as unknown as import("../src/battle/sim/observation").OwnUnitView[];
   const requested: import("../src/battle/sim/protocol").MovePreviewRequest[] = [];
   let finish!: (marks: import("../src/battle/sim/protocol").MoveDestination[]) => void;
@@ -106,7 +106,7 @@ test("a cancelled query cannot paint a new press at the same anchor", async () =
   const { PointerPaint } = await import("@apps/battle-lab/src/pointerPaint");
   const paint = new PointerPaint(UNITS);
   const own = [
-    { id: 1, kind: "tank", position: [0, 0, 0], members: [], area: null, garrison: null },
+    { id: 1, kind: "test_tank", position: [0, 0, 0], members: [], area: null, garrison: null },
   ] as unknown as import("../src/battle/sim/observation").OwnUnitView[];
   let finish!: (marks: import("../src/battle/sim/protocol").MoveDestination[]) => void;
   const client = {
@@ -134,7 +134,7 @@ test("pointer paint reveals only accepted destinations from a partially blocked 
   const paint = new PointerPaint(UNITS);
   const own = [1, 2].map((id) => ({
     id,
-    kind: "tank",
+    kind: "test_tank",
     position: [0, 0, 0],
     members: [],
     area: null,
@@ -156,8 +156,8 @@ test("a changed building cannot inherit a late entry result, and fallback displa
   const { PointerPaint } = await import("@apps/battle-lab/src/pointerPaint");
   const paint = new PointerPaint(UNITS);
   const own = [
-    { id: 1, kind: "tank", position: [0, 0, 0], members: [], area: null, garrison: null },
-    { id: 2, kind: "rifle", position: [0, 0, 0], members: [], area: null, garrison: null },
+    { id: 1, kind: "test_tank", position: [0, 0, 0], members: [], area: null, garrison: null },
+    { id: 2, kind: "test_rifle", position: [0, 0, 0], members: [], area: null, garrison: null },
   ] as unknown as import("../src/battle/sim/observation").OwnUnitView[];
   let finish!: (placement: import("../src/battle/sim/protocol").BuildingPlacement) => void;
   const client = {
@@ -205,7 +205,7 @@ test("a building cursor keeps a current certificate during tick refresh, clears 
   const paint = new PointerPaint(UNITS);
   const own = [1, 2].map((id) => ({
     id,
-    kind: "rifle",
+    kind: "test_rifle",
     position: [0, 0, 0],
     members: [],
     area: null,
@@ -256,7 +256,7 @@ test.each(["clearing", "epoch replacement"] as const)(
       await import("@apps/battle-lab/src/pointerPaint");
     const paint = new PointerPaint(UNITS);
     const own = [
-      { id: 1, kind: "rifle", position: [0, 0, 0], members: [], area: null, garrison: null },
+      { id: 1, kind: "test_rifle", position: [0, 0, 0], members: [], area: null, garrison: null },
     ] as unknown as import("../src/battle/sim/observation").OwnUnitView[];
     const ground = new GroundView({ cellM: 1, cols: 4, rows: 4 });
     const publish = (epoch: number, revision: number, cell: number, full: boolean) =>
@@ -331,7 +331,7 @@ test("unproven movement and building searches keep the cursor plain, while a kno
   const { PointerPaint, cursorForIntent, previewForIntent } =
     await import("@apps/battle-lab/src/pointerPaint");
   const own = [
-    { id: 1, kind: "rifle", position: [0, 0, 0], members: [], area: null, garrison: null },
+    { id: 1, kind: "test_rifle", position: [0, 0, 0], members: [], area: null, garrison: null },
   ] as unknown as import("../src/battle/sim/observation").OwnUnitView[];
   const move: import("../src/battle/input/pointerIntent").PointerIntent = {
     kind: "move",

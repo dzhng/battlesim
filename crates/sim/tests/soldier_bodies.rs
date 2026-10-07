@@ -23,7 +23,7 @@ fn setup(map: Value, units: Value, scripts: Value) -> ScenarioDefinition {
 }
 
 fn rifle(at: [f64; 2]) -> Value {
-    json!({ "side": "blue", "kind": "rifle", "position": at, "engagement": "return_fire_only" })
+    json!({ "side": "blue", "kind": "test_rifle", "position": at, "engagement": "return_fire_only" })
 }
 
 fn go(tick: u64, unit: u32, gesture: u64, goal: [f64; 2]) -> Value {
@@ -48,14 +48,14 @@ fn a_corridor_member_walks_round_idle_soldiers_while_his_squadmate_advances() {
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "rifle",
-        json!({"body":{"squad":{"slots":["rifleman","rifleman"]}}}),
+        "test_rifle",
+        json!({"body":{"squad":{"slots":["test_rifleman","test_rifleman"]}}}),
     );
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "recon",
-        json!({"body":{"squad":{"slots":["scout"]}}}),
+        "test_recon",
+        json!({"body":{"squad":{"slots":["test_scout"]}}}),
     );
     rules["physics"]["soldier_radius_m"] = json!(0.3);
     let mut s: ScenarioDefinition = serde_json::from_value(json!({
@@ -63,8 +63,8 @@ fn a_corridor_member_walks_round_idle_soldiers_while_his_squadmate_advances() {
         "rules":rules,
         "units":[
             rifle([500.0,100.0]),
-            {"side":"blue","kind":"recon","position":[500.4159144498272,100.43245389398865],"engagement":"return_fire_only"},
-            {"side":"blue","kind":"recon","position":[499.3909583746914,100.04399329150203],"engagement":"return_fire_only"}
+            {"side":"blue","kind":"test_recon","position":[500.4159144498272,100.43245389398865],"engagement":"return_fire_only"},
+            {"side":"blue","kind":"test_recon","position":[499.3909583746914,100.04399329150203],"engagement":"return_fire_only"}
         ],"scripts":[],"events":[]
     }))
     .unwrap();
@@ -233,7 +233,7 @@ fn every_move_ends_in_a_fresh_seeded_arrangement() {
 fn the_squad_stands_where_its_living_soldiers_stand() {
     let s = setup(
         json!({ "relief": [{ "kind": "ridge", "center": [60, 40], "peak_m": 8, "radius_m": 30 }] }),
-        json!([{ "side": "blue", "kind": "rifle", "position": [10, 36], "condition": { "casualties": 3 } }]),
+        json!([{ "side": "blue", "kind": "test_rifle", "position": [10, 36], "condition": { "casualties": 3 } }]),
         json!([go(1, 0, 1, [110.0, 44.0])]),
     );
     let mut b = Battle::new(&s, 1);

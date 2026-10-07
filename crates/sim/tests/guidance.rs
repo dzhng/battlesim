@@ -49,8 +49,8 @@ fn identical_launchers_have_their_own_rounds_reload_and_guidance() {
     let mut b = quick(
         json!([]),
         json!([
-            { "side": "blue", "kind": "at", "position": [40, 300] },
-            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_at", "position": [40, 300] },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "engagement": "return_fire_only" },
         ]),
         1,
         |r| {
@@ -58,9 +58,9 @@ fn identical_launchers_have_their_own_rounds_reload_and_guidance() {
             sim::fixtures::patch_catalog(
                 r,
                 "units",
-                "at",
+                "test_at",
                 json!({
-                    "body": { "squad": { "slots": ["atgm_gunner", "atgm_gunner", "at_rifleman"] } }
+                    "body": { "squad": { "slots": ["test_atgm_gunner", "test_atgm_gunner", "test_at_rifleman"] } }
                 }),
             );
         },
@@ -92,14 +92,14 @@ fn identical_launchers_have_their_own_rounds_reload_and_guidance() {
 #[test]
 fn identical_launchers_can_hold_different_targets_from_their_own_muzzles() {
     for seed in 1..=3 {
-        let team = json!({ "side": "blue", "kind": "at", "position": [200, 300] });
+        let team = json!({ "side": "blue", "kind": "test_at", "position": [200, 300] });
         let paired = |r: &mut Value| {
             sim::fixtures::patch_catalog(
                 r,
                 "units",
-                "at",
+                "test_at",
                 json!({
-                    "body": { "squad": { "slots": ["atgm_gunner", "atgm_gunner", "at_rifleman"] } }
+                    "body": { "squad": { "slots": ["test_atgm_gunner", "test_atgm_gunner", "test_at_rifleman"] } }
                 }),
             )
         };
@@ -119,8 +119,8 @@ fn identical_launchers_can_hold_different_targets_from_their_own_muzzles() {
             json!([]),
             json!([
                 team,
-                { "side": "red", "kind": "tank", "position": [targets[0].x, targets[0].y], "engagement": "return_fire_only" },
-                { "side": "red", "kind": "tank", "position": [targets[1].x, targets[1].y], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_tank", "position": [targets[0].x, targets[0].y], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_tank", "position": [targets[1].x, targets[1].y], "engagement": "return_fire_only" },
             ]),
             seed,
             |r| {
@@ -160,8 +160,8 @@ fn one_survivor_operates_one_launcher_then_takes_up_a_stocked_spare() {
     let mut b = quick(
         json!([]),
         json!([
-            { "side": "blue", "kind": "at", "position": [40, 300], "condition": { "casualties": 2 } },
-            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_at", "position": [40, 300], "condition": { "casualties": 2 } },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "engagement": "return_fire_only" },
         ]),
         1,
         |r| {
@@ -169,16 +169,16 @@ fn one_survivor_operates_one_launcher_then_takes_up_a_stocked_spare() {
             sim::fixtures::patch_catalog(
                 r,
                 "units",
-                "at",
+                "test_at",
                 json!({
-                    "body": { "squad": { "slots": ["at_rifleman", "atgm_gunner", "atgm_gunner"] } }
+                    "body": { "squad": { "slots": ["test_at_rifleman", "test_atgm_gunner", "test_atgm_gunner"] } }
                 }),
             );
-            sim::fixtures::patch_catalog(r, "soldiers", "at_rifleman", json!({ "hp": 1.0e6 }));
+            sim::fixtures::patch_catalog(r, "soldiers", "test_at_rifleman", json!({ "hp": 1.0e6 }));
             sim::fixtures::patch_catalog(
                 r,
                 "units",
-                "tank",
+                "test_tank",
                 json!({ "body": { "hull": { "hp": 1.0e6 } } }),
             );
         },
@@ -217,9 +217,9 @@ fn a_recovered_spare_pauses_its_existing_reload_without_losing_progress() {
     let mut b = quick(
         json!([]),
         json!([
-            { "side": "blue", "kind": "at", "position": [40, 300] },
-            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "recon", "position": [100, 330], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_at", "position": [40, 300] },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_recon", "position": [100, 330], "engagement": "return_fire_only" },
         ]),
         1,
         |r| {
@@ -227,17 +227,17 @@ fn a_recovered_spare_pauses_its_existing_reload_without_losing_progress() {
             sim::fixtures::patch_catalog(
                 r,
                 "units",
-                "at",
+                "test_at",
                 json!({
-                    "body": { "squad": { "slots": ["atgm_gunner", "atgm_gunner", "at_rifleman"] } }
+                    "body": { "squad": { "slots": ["test_atgm_gunner", "test_atgm_gunner", "test_at_rifleman"] } }
                 }),
             );
-            sim::fixtures::patch_catalog(r, "soldiers", "at_rifleman", json!({ "hp": 1.0e6 }));
-            sim::fixtures::patch_catalog(r, "soldiers", "atgm_gunner", json!({ "hp": 1 }));
+            sim::fixtures::patch_catalog(r, "soldiers", "test_at_rifleman", json!({ "hp": 1.0e6 }));
+            sim::fixtures::patch_catalog(r, "soldiers", "test_atgm_gunner", json!({ "hp": 1 }));
             sim::fixtures::patch_catalog(
                 r,
                 "units",
-                "tank",
+                "test_tank",
                 json!({ "body": { "hull": { "hp": 1.0e6 } } }),
             );
         },
@@ -294,8 +294,8 @@ fn ambush(seed: u64) -> Battle {
     let mut setup = common::scenario_with(
         &map,
         json!([
-            { "side": "blue", "kind": "at", "position": [100, 300], "engagement": "fire_at_will" },
-            { "side": "red", "kind": "tank", "position": [600, 300], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" }
+            { "side": "blue", "kind": "test_at", "position": [100, 300], "engagement": "fire_at_will" },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" }
         ]),
         json!([]),
         json!([]),
@@ -341,13 +341,13 @@ fn crossing_shot(range_m: f64, seed: u64) -> (f64, bool) {
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "at",
+        "test_at",
         json!({ "sensors": { "ground_m": 2000 } }),
     );
     let map = json!({ "size": [2200, 1400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] });
     let units = json!([
-        { "side": "blue", "kind": "at", "position": [100, 500], "engagement": "fire_at_will" },
-        { "side": "red", "kind": "tank", "position": [100.0 + range_m, 400], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
+        { "side": "blue", "kind": "test_at", "position": [100, 500], "engagement": "fire_at_will" },
+        { "side": "red", "kind": "test_tank", "position": [100.0 + range_m, 400], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
     ]);
     let setup = serde_json::from_value(
         json!({ "map": map, "rules": rules, "units": units, "events": [], "scripts": [] }),
@@ -372,7 +372,7 @@ fn a_missile_hits_a_tank_driving_across_its_line_near_and_at_full_range() {
     // after the launch, close in and near its full range (100 m short of it,
     // since the tank also stands 100 m off the launcher's line). (With
     // steering off, the missile misses.)
-    let full = common::hull("tank").hp;
+    let full = common::hull("test_tank").hp;
     let damage = common::game()["weapons"]["atgm"]["damage"]
         .as_f64()
         .unwrap();
@@ -406,8 +406,8 @@ fn a_ready_next_round_waits_while_one_is_guided_and_fires_once_released() {
     let mut b = quick(
         json!([]),
         json!([
-            { "side": "blue", "kind": "at", "position": [40, 300] },
-            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_at", "position": [40, 300] },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "engagement": "return_fire_only" },
         ]),
         1,
         |r| r["weapons"]["atgm"]["aim_s"] = json!(0.2),
@@ -451,15 +451,15 @@ fn the_launcher_dying_releases_its_missile() {
     let mut b = quick(
         json!([]),
         json!([
-            { "side": "blue", "kind": "at", "position": [40, 300] },
-            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "recon", "position": [100, 330] },
+            { "side": "blue", "kind": "test_at", "position": [40, 300] },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_recon", "position": [100, 330] },
         ]),
         2,
         |r| {
-            let at = json!({ "body": { "squad": { "slots": ["atgm_gunner"] } } });
-            sim::fixtures::patch_catalog(r, "units", "at", at);
-            sim::fixtures::patch_catalog(r, "soldiers", "rifleman", json!({ "hp": 1 }));
+            let at = json!({ "body": { "squad": { "slots": ["test_atgm_gunner"] } } });
+            sim::fixtures::patch_catalog(r, "units", "test_at", at);
+            sim::fixtures::patch_catalog(r, "soldiers", "test_rifleman", json!({ "hp": 1 }));
         },
     );
     until_launch(&mut b);
@@ -483,16 +483,16 @@ fn shared_identification_supports_a_missile_beyond_the_launchers_sensor_range() 
     let mut b = quick(
         json!([]),
         json!([
-            { "side": "blue", "kind": "at", "position": [100, 300] },
-            { "side": "blue", "kind": "recon", "position": [450, 320] },
-            { "side": "red", "kind": "tank", "position": [800, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_at", "position": [100, 300] },
+            { "side": "blue", "kind": "test_recon", "position": [450, 320] },
+            { "side": "red", "kind": "test_tank", "position": [800, 300], "engagement": "return_fire_only" },
         ]),
         2,
         |r| {
             sim::fixtures::patch_catalog(
                 r,
                 "units",
-                "at",
+                "test_at",
                 json!({ "sensors": { "ground_m": 100 } }),
             );
             r["weapons"]["atgm"]["range_m"] = json!(900);
@@ -524,9 +524,9 @@ fn shared_spotting_cannot_launch_through_an_obstruction() {
     let mut b = battle(
         json!([{ "kind": "wall", "center": [140, 300], "yaw": 0, "half_extents": [0.5, 40, 5] }]),
         json!([
-            { "side": "blue", "kind": "at", "position": [100, 300] },
-            { "side": "blue", "kind": "recon", "position": [160, 380] },
-            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_at", "position": [100, 300] },
+            { "side": "blue", "kind": "test_recon", "position": [160, 380] },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "engagement": "return_fire_only" },
         ]),
         2,
     );
@@ -546,9 +546,9 @@ fn shared_spotting_cannot_launch_through_an_obstruction() {
 fn a_screen_breaks_guidance_even_while_the_scout_keeps_the_target_identified() {
     let map = json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] }).to_string();
     let units = json!([
-        { "side": "blue", "kind": "at", "position": [100, 300] },
-        { "side": "blue", "kind": "recon", "position": [450, 320] },
-        { "side": "red", "kind": "tank", "position": [800, 300], "engagement": "return_fire_only" },
+        { "side": "blue", "kind": "test_at", "position": [100, 300] },
+        { "side": "blue", "kind": "test_recon", "position": [450, 320] },
+        { "side": "red", "kind": "test_tank", "position": [800, 300], "engagement": "return_fire_only" },
     ]);
     let setup = |events| {
         let mut s = common::scenario_with(&map, units.clone(), events, json!([]));
@@ -556,7 +556,7 @@ fn a_screen_breaks_guidance_even_while_the_scout_keeps_the_target_identified() {
         sim::fixtures::patch_catalog(
             &mut r,
             "units",
-            "at",
+            "test_at",
             json!({ "sensors": { "ground_m": 100 } }),
         );
         r["weapons"]["atgm"]["range_m"] = json!(900);
@@ -624,7 +624,7 @@ fn moving_releases_at_once_and_frees_the_crew() {
         "the crew is free to move"
     );
     // It dives into the ground at the point, never reaching the tank.
-    let full = common::hull("tank").hp;
+    let full = common::hull("test_tank").hp;
     let mut burst = None;
     for _ in 0..120 {
         b.step();
@@ -676,7 +676,7 @@ fn a_launcher_that_moves_with_its_missile_close_still_hits_a_still_target() {
     }
     let mut o = Commander::new();
     o.ok(&mut b, Side::Blue, move_to(0, [100.0, 200.0]));
-    let full = common::hull("tank").hp;
+    let full = common::hull("test_tank").hp;
     let damage = common::game()["weapons"]["atgm"]["damage"]
         .as_f64()
         .unwrap();
@@ -744,7 +744,7 @@ fn dot(a: [f64; 3], b: [f64; 3]) -> f64 {
 
 #[test]
 fn a_prompt_retreat_out_of_sight_escapes_and_a_late_one_does_not() {
-    let full = common::hull("tank").hp;
+    let full = common::hull("test_tank").hp;
     for seed in [6, 7, 8] {
         let (prompt, lost) = retreat(0, seed, false);
         assert!(lost, "the launcher lost sight");
@@ -783,8 +783,8 @@ fn a_guided_missile_ends_at_its_lifetime() {
     let mut b = quick(
         json!([]),
         json!([
-            { "side": "blue", "kind": "at", "position": [40, 300] },
-            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_at", "position": [40, 300] },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "engagement": "return_fire_only" },
         ]),
         3,
         |r| {
@@ -832,8 +832,8 @@ struct Screened {
 /// The screened battle, before its first step, and its launch tick.
 fn screened_battle(screen_after: u64, seed: u64) -> (Battle, u64) {
     let units = json!([
-        { "side": "blue", "kind": "at", "position": [100, 300] },
-        { "side": "red", "kind": "tank", "position": [600, 300], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
+        { "side": "blue", "kind": "test_at", "position": [100, 300] },
+        { "side": "red", "kind": "test_tank", "position": [600, 300], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
     ]);
     let map =
         json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
@@ -897,7 +897,7 @@ fn horizontal(a: [f64; 3], b: [f64; 3]) -> f64 {
 
 #[test]
 fn a_far_missile_that_loses_sight_coasts_and_goes_to_ground_short_of_a_still_target() {
-    let full = common::hull("tank").hp;
+    let full = common::hull("test_tank").hp;
     for seed in [21, 22] {
         let s = screened(15, seed);
         let speed = s.velocity[0].hypot(s.velocity[1]);
@@ -917,7 +917,7 @@ fn a_far_missile_that_loses_sight_coasts_and_goes_to_ground_short_of_a_still_tar
 
 #[test]
 fn a_close_missile_that_loses_sight_still_hits_a_still_target() {
-    let full = common::hull("tank").hp;
+    let full = common::hull("test_tank").hp;
     let damage = common::game()["weapons"]["atgm"]["damage"]
         .as_f64()
         .unwrap();
@@ -959,15 +959,15 @@ fn a_survivor_keeps_guiding_when_the_original_gunner_falls() {
         let mut b = quick(
             json!([]),
             json!([
-                { "side": "blue", "kind": "at", "position": [40, 300] },
-                { "side": "red", "kind": "tank", "position": [630, 300], "engagement": "return_fire_only" },
-                { "side": "red", "kind": "recon", "position": [100, 330], "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_at", "position": [40, 300] },
+                { "side": "red", "kind": "test_tank", "position": [630, 300], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_recon", "position": [100, 330], "engagement": "return_fire_only" },
             ]),
             seed,
             |r| {
                 let hp = |hp| json!({ "hp": hp });
-                sim::fixtures::patch_catalog(r, "soldiers", "at_rifleman", hp(100_000));
-                sim::fixtures::patch_catalog(r, "soldiers", "atgm_gunner", hp(1));
+                sim::fixtures::patch_catalog(r, "soldiers", "test_at_rifleman", hp(100_000));
+                sim::fixtures::patch_catalog(r, "soldiers", "test_atgm_gunner", hp(1));
             },
         );
         until_launch(&mut b);
@@ -1076,14 +1076,14 @@ fn a_special_weapon_leaves_from_its_carrier_in_whatever_slot_he_stands() {
     let mut b = quick(
         json!([]),
         json!([
-            { "side": "blue", "kind": "at", "position": [40, 300] },
-            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_at", "position": [40, 300] },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "engagement": "return_fire_only" },
         ]),
         1,
         |r| {
-            let slots = ["at_rifleman", "atgm_gunner", "at_rifleman"];
+            let slots = ["test_at_rifleman", "test_atgm_gunner", "test_at_rifleman"];
             let at = json!({ "body": { "squad": { "slots": slots } } });
-            sim::fixtures::patch_catalog(r, "units", "at", at);
+            sim::fixtures::patch_catalog(r, "units", "test_at", at);
         },
     );
     let (origin, members) = atgm_launch(&mut b, 600).expect("the team launched");
@@ -1105,15 +1105,15 @@ fn a_fallen_gunners_launcher_fires_from_the_soldier_who_took_it_up() {
     let mut b = quick(
         json!([]),
         json!([
-            { "side": "blue", "kind": "at", "position": [40, 300] },
-            { "side": "red", "kind": "tank", "position": [600, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "recon", "position": [100, 330] },
+            { "side": "blue", "kind": "test_at", "position": [40, 300] },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_recon", "position": [100, 330] },
         ]),
         2,
         |r| {
             let hp = |hp| json!({ "hp": hp });
-            sim::fixtures::patch_catalog(r, "soldiers", "at_rifleman", hp(100_000));
-            sim::fixtures::patch_catalog(r, "soldiers", "atgm_gunner", hp(1));
+            sim::fixtures::patch_catalog(r, "soldiers", "test_at_rifleman", hp(100_000));
+            sim::fixtures::patch_catalog(r, "soldiers", "test_atgm_gunner", hp(1));
         },
     );
     let mut fallen = false;
@@ -1149,13 +1149,18 @@ fn the_published_launcher_operator_follows_the_survivor_who_takes_it_up() {
     let mut b = quick(
         json!([]),
         json!([
-            { "side": "blue", "kind": "at", "position": [40, 300] },
-            { "side": "red", "kind": "recon", "position": [100, 330], "engagement": "return_fire_only" }
+            { "side": "blue", "kind": "test_at", "position": [40, 300] },
+            { "side": "red", "kind": "test_recon", "position": [100, 330], "engagement": "return_fire_only" }
         ]),
         2,
         |r| {
-            sim::fixtures::patch_catalog(r, "soldiers", "at_rifleman", json!({ "hp": 100_000 }));
-            sim::fixtures::patch_catalog(r, "soldiers", "atgm_gunner", json!({ "hp": 1 }));
+            sim::fixtures::patch_catalog(
+                r,
+                "soldiers",
+                "test_at_rifleman",
+                json!({ "hp": 100_000 }),
+            );
+            sim::fixtures::patch_catalog(r, "soldiers", "test_atgm_gunner", json!({ "hp": 1 }));
         },
     );
     let team = own(&b, Side::Blue, 0).unwrap();
@@ -1196,8 +1201,8 @@ fn the_published_launcher_operator_follows_the_survivor_who_takes_it_up() {
 #[test]
 fn a_seen_team_does_not_publish_its_unseen_launcher_operator() {
     let units = json!([
-        { "side": "blue", "kind": "tank", "position": [100, 300], "engagement": "return_fire_only" },
-        { "side": "red", "kind": "at", "position": [200, 300], "engagement": "return_fire_only" }
+        { "side": "blue", "kind": "test_tank", "position": [100, 300], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_at", "position": [200, 300], "engagement": "return_fire_only" }
     ]);
     let mut clear = quick(json!([]), units.clone(), 7, |_| {});
     for _ in 0..5 {
@@ -1207,7 +1212,7 @@ fn a_seen_team_does_not_publish_its_unseen_launcher_operator() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == common::unit_kind("at"))
+        .find(|e| e.kind == common::unit_kind("test_at"))
         .unwrap();
     let gunner = seen.weapon_poses[1]
         .operator
@@ -1223,7 +1228,7 @@ fn a_seen_team_does_not_publish_its_unseen_launcher_operator() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == common::unit_kind("at"))
+        .find(|e| e.kind == common::unit_kind("test_at"))
         .expect("the guards still identify the team");
     assert!(
         !seen.member_ids.contains(&gunner),

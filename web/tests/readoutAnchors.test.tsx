@@ -56,7 +56,7 @@ test("every live report gets a truthful label, including never-identified firing
     center: [200, 300],
     radius: 20,
     source: "last_seen",
-    kind: "at",
+    kind: "test_at",
     heard: [],
     evidenceTick: 0,
     expiresTick: 300,
@@ -83,7 +83,7 @@ test("own callout bounds are selectable, including rectangle overlap, but hidden
   const handle = createRef<ReadoutLayerHandle>();
   const unit = {
     id: 3,
-    kind: "tank",
+    kind: "test_tank",
     position: [200, 300, 0],
     hp: 100,
     memberHp: [],
@@ -116,7 +116,7 @@ test("panels show name and health until details are requested", () => {
   const handle = createRef<ReadoutLayerHandle>();
   const units = Array.from({ length: 9 }, (_, id) => ({
     id,
-    kind: "tank",
+    kind: "test_tank",
     position: [200 + id * 50, 300, 0],
     hp: 100,
     memberHp: [],
@@ -155,7 +155,7 @@ test("held details reach nearby cards with only one card moved", () => {
     [100, 300],
   ].map((p, id) => ({
     id,
-    kind: "tank",
+    kind: "test_tank",
     position: [...p, 0],
     hp: 100,
     memberHp: [],
@@ -199,7 +199,7 @@ test("detail priority follows the actual camera eye rather than its orbit target
   const handle = createRef<ReadoutLayerHandle>();
   const units = [200, 600].map((x, id) => ({
     id,
-    kind: "tank",
+    kind: "test_tank",
     position: [x, 0, 0],
     hp: 100,
     memberHp: [],
@@ -248,7 +248,7 @@ test("retiring contact panels fade together with their leader and cannot be pick
     radius: 20,
     evidenceTick: 0,
     expiresTick: 300,
-    kind: "tank",
+    kind: "test_tank",
     heard: [],
     opacity: 0.4,
     retiring: true,
@@ -278,7 +278,7 @@ test("far panels remain visible, overlap by depth, and pick the front card", () 
   const handle = createRef<ReadoutLayerHandle>();
   const units = [600, 200].map((x, id) => ({
     id,
-    kind: "tank",
+    kind: "test_tank",
     position: [x, 0, 0],
     hp: 100,
     memberHp: [],

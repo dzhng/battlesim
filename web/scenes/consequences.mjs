@@ -41,7 +41,7 @@ export async function run(ctx) {
   );
   ctx.check(
     "the destroyed tank is no longer identified",
-    !!o && !o.identified.some((e) => e.kind === "tank"),
+    !!o && !o.identified.some((e) => e.kind === "test_tank"),
     JSON.stringify(o?.identified),
   );
 
@@ -52,7 +52,7 @@ export async function run(ctx) {
   for (let i = 0; i < 100; i++) {
     await advance(page, 4);
     o = await obs(page);
-    truck = o.own.find((u) => u.kind === "supply");
+    truck = o.own.find((u) => u.kind === "test_supply");
     if (truck.state !== "planning") break;
   }
   const crosses = (() => {
@@ -91,7 +91,7 @@ export async function run(ctx) {
   for (let t = 0; t < 600; t += 15) {
     await advance(page, 15);
     o = await obs(page);
-    const squad = o.own.find((u) => u.kind === "rifle");
+    const squad = o.own.find((u) => u.kind === "test_rifle");
     if (squad && TIERS.indexOf(squad.suppression) > TIERS.indexOf(worst)) {
       worst = squad.suppression;
       if (!halo) halo = await frame(ctx, page, "open");
@@ -173,7 +173,7 @@ export async function run(ctx) {
  *  A real ground attack supplies the event independently of assault balance. */
 export async function ownDeath(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
-  const squad = (await obs(page)).own.find((u) => u.kind === "rifle");
+  const squad = (await obs(page)).own.find((u) => u.kind === "test_rifle");
   await aim(page, squad.position, { distance: 35, pitch: 0.6 });
   await presented(page);
   await snapshot(ctx, page, "own-death-alive.png");

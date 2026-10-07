@@ -23,84 +23,84 @@
   "spawn": {
     "blue": [
       [
-        "recon",
+        "test_recon",
         180,
         750
       ],
       [
-        "rifle",
+        "test_rifle",
         180,
         790
       ],
       [
-        "rifle",
+        "test_rifle",
         150,
         825
       ],
       [
-        "rifle",
+        "test_rifle",
         150,
         865
       ],
       [
-        "tank",
+        "test_tank",
         220,
         780
       ],
       [
-        "tank",
+        "test_tank",
         220,
         840
       ],
       [
-        "at",
+        "test_at",
         130,
         740
       ],
       [
-        "supply",
+        "test_supply",
         100,
         800
       ],
       [
-        "jeep",
+        "test_jeep",
         125,
         905
       ]
     ],
     "red": [
       [
-        "rifle",
+        "test_rifle",
         975,
         750
       ],
       [
-        "rifle",
+        "test_rifle",
         1045,
         815
       ],
       [
-        "rifle",
+        "test_rifle",
         985,
         875
       ],
       [
-        "at",
+        "test_at",
         760,
         886
       ],
       [
-        "at",
+        "test_at",
         1120,
         650
       ],
       [
-        "tank",
+        "test_tank",
         1080,
         850
       ],
       [
-        "jeep",
+        "test_jeep",
         1175,
         800
       ]

@@ -221,7 +221,9 @@ test("a side that sees part of a compound come down knows the whole building a r
   const saved = shelling();
   const compoundBursts = saved.events.filter((e) => "burst" in e && e.burst.point[1] < 200);
   const encounter: LabEncounter = {
-    units: [{ side: "blue", kind: "rifle", position: [330, 60], engagement: "return_fire_only" }],
+    units: [
+      { side: "blue", kind: "test_rifle", position: [330, 60], engagement: "return_fire_only" },
+    ],
     events: compoundBursts,
     scripts: [],
   };

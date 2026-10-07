@@ -47,7 +47,7 @@ fn scenario(map: Value, units: Value, events: Value) -> ScenarioDefinition {
 }
 
 fn jeep(at: [f64; 2]) -> Value {
-    json!([{ "side": "blue", "kind": "jeep", "position": at }])
+    json!([{ "side": "blue", "kind": "test_jeep", "position": at }])
 }
 
 fn own(b: &Battle, id: u32) -> OwnUnit {
@@ -136,7 +136,7 @@ fn a_leg_over_two_kilometres_goes_by_road_and_a_shorter_one_goes_straight() {
         unit.route
     );
     let rules = common::rules();
-    let (off_road_mps, _) = rules.catalog.by_id("jeep").mobility.speeds_mps();
+    let (off_road_mps, _) = rules.catalog.by_id("test_jeep").mobility.speeds_mps();
     let took = arrive(&mut b, 400.0, |_| {});
     assert!(
         dist(
@@ -303,8 +303,8 @@ fn a_road_with_no_bridge_is_no_road_across() {
 /// once both have arrived.
 fn head_on(map: Value) -> u64 {
     let units = json!([
-        { "side": "blue", "kind": "jeep", "position": [100, 400] },
-        { "side": "blue", "kind": "tank", "position": [2900, 400], "yaw": std::f64::consts::PI },
+        { "side": "blue", "kind": "test_jeep", "position": [100, 400] },
+        { "side": "blue", "kind": "test_tank", "position": [2900, 400], "yaw": std::f64::consts::PI },
     ]);
     let mut b = Battle::new(&scenario(map, units, json!([])), 1);
     for (seq, (unit, goal)) in [(0, 2920.0), (1, 80.0)].into_iter().enumerate() {
@@ -384,10 +384,10 @@ fn two_columns_meeting_on_a_narrow_track_all_get_past() {
     map["surfaces"][0]["kind"] = json!("dirt_track");
     map["surfaces"][0]["shape"]["width_m"] = json!(5);
     let units = json!([
-        { "side": "blue", "kind": "jeep", "position": [100, 400] },
-        { "side": "blue", "kind": "tank", "position": [60, 400] },
-        { "side": "blue", "kind": "jeep", "position": [2900, 400], "yaw": std::f64::consts::PI },
-        { "side": "blue", "kind": "tank", "position": [2940, 400], "yaw": std::f64::consts::PI },
+        { "side": "blue", "kind": "test_jeep", "position": [100, 400] },
+        { "side": "blue", "kind": "test_tank", "position": [60, 400] },
+        { "side": "blue", "kind": "test_jeep", "position": [2900, 400], "yaw": std::f64::consts::PI },
+        { "side": "blue", "kind": "test_tank", "position": [2940, 400], "yaw": std::f64::consts::PI },
     ]);
     let goals = [2920.0, 2960.0, 80.0, 40.0];
     let mut b = Battle::new(&scenario(map, units, json!([])), 1);
@@ -482,8 +482,8 @@ fn a_fast_move_takes_the_road_round_a_wood_and_beats_the_straight_move_through_i
     // As the crow flies over open ground the road is the longer way; over
     // the wood that lies on the straight line it is the quicker one.
     let units = json!([
-        { "side": "blue", "kind": "tank", "position": [40, 190] },
-        { "side": "blue", "kind": "tank", "position": [40, 215] },
+        { "side": "blue", "kind": "test_tank", "position": [40, 190] },
+        { "side": "blue", "kind": "test_tank", "position": [40, 215] },
     ]);
     let map: Value = serde_json::from_str(common::saved_map("movement")).unwrap();
     let mut b = Battle::new(&scenario(map, units, json!([])), 1);
@@ -731,7 +731,7 @@ fn a_truck_moves_over_round_a_car_abandoned_in_its_lane_wherever_it_stands() {
     let supply = rules
         .catalog
         .indices()
-        .find(|u| rules.catalog.id(*u) == "supply")
+        .find(|u| rules.catalog.id(*u) == "test_supply")
         .unwrap();
     let m = sim::units::mobility(rules.catalog.get(supply), rules);
     let car = |at: [f64; 2], yaw: f64| json!({ "kind": "parked_car", "center": at, "yaw": yaw, "half_extents": [2.1, 0.9, 0.75] });

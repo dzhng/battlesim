@@ -8,18 +8,13 @@ import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog.
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { bundleFiles, catalogLoadBytes } from "@packages/scene-assets/src/gzip.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
+import { ownDocuments } from "@web/battle/catalog/node";
 import { admitScenario, catalogSet, resolveCatalogSet } from "@web/battle/catalog/sets";
 import { AUTHORITY, tankGlb, testCatalog, testSources } from "./sceneAssets/synthetic";
 
 /** A fake test-unit document: a tank only a lab's catalog holds. */
 const LAB_ONLY = JSON.stringify({
-  units: {
-    lab_only_tank: {
-      extends: "tank",
-      name: "Lab-only tank",
-      appearance: "tank",
-    },
-  },
+  units: { lab_only_tank: { extends: "test_tank", name: "Lab-only tank", appearance: "tank" } },
 });
 
 const scenario = (kind: string) => ({
@@ -40,7 +35,7 @@ async function installed() {
 }
 
 test("a lab session draws a unit only its test set holds", async () => {
-  const catalog = await resolveCatalogSet("test", [LAB_ONLY]);
+  const catalog = await resolveCatalogSet("test", [...ownDocuments("test"), LAB_ONLY]);
   const units = admitScenario(scenario("lab_only_tank"), catalog);
   const drawn = new AppearanceCatalog(await installed(), units).resolve("lab_only_tank", "blue");
   expect(drawn?.appearance).toBe("tank");
@@ -49,8 +44,9 @@ test("a lab session draws a unit only its test set holds", async () => {
   expect(catalog.rules.catalog).toEqual(catalog.units.documents);
 });
 
-/** A bake whose `lab_tank` art, painted in the tank's textures, only a test
- *  unit wears; `truck` no unit of either set wears. Fetches are recorded. */
+/** A bake of test art (`tank`, `truck`, and `lab_tank` painted in the tank's
+ *  textures) beside scenery; no unit of the game set wears any of it.
+ *  Fetches are recorded. */
 async function sharedArt() {
   const catalog = testCatalog();
   catalog.appearances.lab_tank = {
@@ -82,7 +78,7 @@ async function sharedArt() {
 const LAB_TANK = JSON.stringify({
   units: {
     lab_only_tank: {
-      extends: "tank",
+      extends: "test_tank",
       name: "Lab-only tank",
       appearance: "lab_tank",
     },
@@ -93,13 +89,13 @@ test("a game page's catalog load leaves out the art only test units wear, and co
   const { runtime, files, library, requests } = await sharedArt();
   const game = await catalogSet("game");
   const installed = await library.load("/assets/", game.units.appearances);
-  expect(installed.appearances.has("tank")).toBe(true);
+  expect(installed.appearances.has("tank")).toBe(false);
   expect(installed.appearances.has("crate")).toBe(true);
   expect(installed.appearances.has("lab_tank")).toBe(false);
   expect(installed.appearances.has("truck")).toBe(false);
   const fetched = (name: string) =>
     requests.includes(`/assets/${bundleFiles(runtime, runtime.appearances[name].bundle)[0]}`);
-  expect(fetched("tank")).toBe(true);
+  expect(fetched("tank")).toBe(false);
   expect(fetched("lab_tank")).toBe(false);
   expect(fetched("truck")).toBe(false);
   // What the load is counted as is what it fetched, each file once.
@@ -121,8 +117,7 @@ test("a lab page after a game page adds its test units' art, fetching nothing tw
   expect(new AppearanceCatalog(installed, units).resolve("lab_only_tank", "blue")?.appearance).toBe(
     "lab_tank",
   );
-  // The tank's textures the lab tank shares, and the scenery, came with the
-  // game's load and are not fetched again.
+  // The scenery came with the game's load and is not fetched again.
   expect(requests.filter((url) => url.endsWith("/catalog.json"))).toHaveLength(1);
   expect(new Set(requests).size).toBe(requests.length);
   expect(requests).toContain(
@@ -136,6 +131,9 @@ test("a lab page after a game page adds its test units' art, fetching nothing tw
 
 test("a game session refuses a unit outside its catalog by name", async () => {
   const game = await catalogSet("game");
+  expect(() => admitScenario(scenario("test_tank"), game)).toThrow(
+    /test_tank.*not in the game catalog/,
+  );
   expect(() => admitScenario(scenario("lab_only_tank"), game)).toThrow(
     /lab_only_tank.*not in the game catalog/,
   );

@@ -4,12 +4,12 @@ import type { Wasm } from "@web/battle/sim/module";
 import type { GameRules, SessionCatalog } from "@web/battle/catalog/compose";
 
 export const REVIEW_LANES = [
-  { name: "Rifle", weapon: "rifle", shooter: "rifle", target: "rifle" },
-  { name: "HMG", weapon: "hmg", shooter: "jeep", target: "rifle" },
-  { name: "Tank AP", weapon: "tank_ap", shooter: "tank", target: "tank" },
-  { name: "Tank HE", weapon: "tank_he", shooter: "tank", target: "rifle" },
-  { name: "ATGM", weapon: "atgm", shooter: "at", target: "tank" },
-  { name: "Grenade", weapon: "grenade", shooter: "rifle", target: "rifle" },
+  { name: "Rifle", weapon: "rifle", shooter: "test_rifle", target: "test_rifle" },
+  { name: "HMG", weapon: "hmg", shooter: "test_jeep", target: "test_rifle" },
+  { name: "Tank AP", weapon: "tank_ap", shooter: "test_tank", target: "test_tank" },
+  { name: "Tank HE", weapon: "tank_he", shooter: "test_tank", target: "test_rifle" },
+  { name: "ATGM", weapon: "atgm", shooter: "test_at", target: "test_tank" },
+  { name: "Grenade", weapon: "grenade", shooter: "test_rifle", target: "test_rifle" },
 ] as const;
 
 export function reviewLanePositions(
@@ -57,7 +57,7 @@ export async function buildProjectileReview(wasm: Wasm, catalog: SessionCatalog)
         yaw: Math.PI,
         engagement: "return_fire_only",
       },
-      { side: "blue", kind: "recon", position: [(from[0] + to[0]) / 2, from[1] + 20] },
+      { side: "blue", kind: "test_recon", position: [(from[0] + to[0]) / 2, from[1] + 20] },
     );
   }
   return JSON.stringify(s);

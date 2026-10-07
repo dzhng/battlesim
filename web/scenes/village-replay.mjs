@@ -13,7 +13,7 @@ export async function run(ctx) {
   await lab(page, () => window.__lab.route.pause());
   await page.waitForFunction(() => window.__lab.route.status().status === "paused");
   const o = await lab(page, () => window.__lab.route.observation());
-  const tanks = o.own.filter((u) => u.kind === "tank").map((u) => u.id);
+  const tanks = o.own.filter((u) => u.kind === "test_tank").map((u) => u.id);
   await lab(page, (ids) => window.__lab.route.select(ids), tanks);
   await page.waitForFunction((n) => window.__lab.route.selected().length === n, tanks.length);
   await page.keyboard.press("r");

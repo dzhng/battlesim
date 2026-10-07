@@ -401,8 +401,6 @@ No battle runs for art-only changes.
 
 **Transitional seams**, each with its removal point:
 
-- Until slice 05, the test document set is the game's plus
-  `fixtures/units/generic`; slice 05 replaces it with `fixtures/units/test/`.
 - Interim wrecks (a vehicle's current hull in burnt materials, slice 11) are
   replaced family by family in slices 14–18; slice 19 fails if any remain.
 - The list of current units failing slice 12's new art rules is expected and

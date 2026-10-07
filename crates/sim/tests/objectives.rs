@@ -20,7 +20,7 @@ fn an_uncontested_ground_unit_captures_after_twenty_seconds_and_scores_without_c
         Side::Blue,
         1,
         Order::ConfirmPurchase {
-            variant: "tank".into(),
+            variant: "test_tank".into(),
             destination: [400.0, 10.0],
         },
     ));
@@ -63,7 +63,7 @@ fn a_resupply_truck_cannot_capture_or_contest_a_flag() {
             Side::Blue,
             1,
             Order::ConfirmPurchase {
-                variant: "supply".into(),
+                variant: "test_supply".into(),
                 destination: [400.0, 10.0]
             }
         ))
@@ -95,7 +95,7 @@ fn capturing_all_flags_finishes_and_freezes_the_authority() {
         Side::Blue,
         1,
         Order::ConfirmPurchase {
-            variant: "tank".into(),
+            variant: "test_tank".into(),
             destination: [400.0, 10.0],
         },
     ));
@@ -129,7 +129,7 @@ fn objective_transitions_replay_and_have_a_paired_browser_record() {
             Side::Blue,
             1,
             Order::ConfirmPurchase {
-                variant: "tank".into(),
+                variant: "test_tank".into(),
                 destination: [400.0, 10.0],
             },
         ),

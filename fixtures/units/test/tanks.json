@@ -1,6 +1,6 @@
 {
   "units": {
-    "tank": {
+    "test_tank": {
       "name": "Tank",
       "description": "A main battle tank: a turret cannon firing AP and HE, and a roof HMG.",
       "faction": "generic",
@@ -31,7 +31,7 @@
         { "name": "HMG", "weapons": ["hmg"], "turret": true, "on": "cannon", "pivot_m": [-0.25, -0.58, 2.35], "muzzle_m": [1.43, 0, 0.32] }
       ],
       "sound": { "profile": "vehicle", "loudness_m": 650 },
-      "appearance": "tank"
+      "appearance": "test_tank"
     }
   }
 }

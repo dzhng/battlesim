@@ -95,8 +95,8 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         &common::scenario(
             &map.to_string(),
             json!([
-                { "side": "blue", "kind": "rifle", "position": [100, 300] },
-                { "side": "red", "kind": "tank", "position": [300, 300], "yaw": std::f64::consts::PI },
+                { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+                { "side": "red", "kind": "test_tank", "position": [300, 300], "yaw": std::f64::consts::PI },
             ]),
             json!([]),
         ),
@@ -127,7 +127,7 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         position: [5.0; 3],
         own: true,
         soldier: big + 6,
-        kind: common::unit_kind("rifle"),
+        kind: common::unit_kind("test_rifle"),
         slot: 5,
         yaw: 0.25,
     }];
@@ -197,7 +197,7 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
     assert_eq!(layout["hitKinds"][segment["hit"] as usize], "hull");
     let corpse = &groups["corpses"][0].fields;
     assert_eq!(integer(bits, corpse, "soldier"), big + 6);
-    assert_eq!(layout["unitKinds"][corpse["kind"] as usize], "rifle");
+    assert_eq!(layout["unitKinds"][corpse["kind"] as usize], "test_rifle");
     assert_eq!((corpse["slot"], corpse["yaw"]), (5.0, 0.25));
     // The ground patch trails the record: its cell index in limbs, its
     // marks two bytes, then three, to a float.
@@ -249,7 +249,7 @@ fn uniform_learned_ground_is_delivered_without_one_record_per_cell() {
     // expand equal neighboring marks into a full-cell staging buffer.
     let mut setup = common::scenario(
         &json!({"size":[32,32],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}).to_string(),
-        json!([{"side":"blue","kind":"tank","position":[2,2],"engagement":"return_fire_only"}]),
+        json!([{"side":"blue","kind":"test_tank","position":[2,2],"engagement":"return_fire_only"}]),
         json!([{"tick":1,"burst":{"point":[16,16],"weapon":"tank_he"}}]),
     );
     let weapon = setup.rules.weapons.get_mut("tank_he").unwrap();
@@ -286,7 +286,7 @@ fn uniform_learned_ground_is_delivered_without_one_record_per_cell() {
 fn a_detailed_learned_ground_burst_stays_within_the_delivery_budget() {
     let mut setup = common::scenario(
         &json!({"size":[64,64],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}).to_string(),
-        json!([{"side":"blue","kind":"tank","position":[2,2],"engagement":"return_fire_only"}]),
+        json!([{"side":"blue","kind":"test_tank","position":[2,2],"engagement":"return_fire_only"}]),
         json!([{"tick":1,"burst":{"point":[32,32],"weapon":"tank_he"}}]),
     );
     let weapon = setup.rules.weapons.get_mut("tank_he").unwrap();
@@ -401,12 +401,18 @@ fn publication_stream(record: Value, path: &str, combat: bool) {
         Some(id) => sim::maps::load(id).unwrap().definition,
         None => serde_json::from_value(record["map"].clone()).unwrap(),
     };
-    let setup = common::scenario_with(
+    let mut setup = common::scenario_with(
         &serde_json::to_string(&map).unwrap(),
         record["units"].clone(),
         record["events"].clone(),
         record["scripts"].clone(),
     );
+    // The web half runs a lab's catalog, the test set (the game's units and
+    // the test units): the published type table must be the same one.
+    setup.rules.catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents(
+        sim::fixtures::CatalogSet::Test,
+    ))
+    .unwrap();
     let mut battle = Battle::new(&setup, record["seed"].as_u64().unwrap());
     let layout: Value = serde_json::from_str(&publication::layout_json(&battle)).unwrap();
     let header = names(&layout["header"]);
@@ -548,7 +554,7 @@ fn fog_snapshots_fit_the_admitted_extents_and_preserve_padding() {
 fn high_churn_replaces_the_field_inside_the_same_stream() {
     let setup = common::scenario(
         &json!({"size":[64,64],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}).to_string(),
-        json!([{"side":"blue","kind":"rifle","position":[16,32]}]),
+        json!([{"side":"blue","kind":"test_rifle","position":[16,32]}]),
         json!([{"tick":2,"add_prop":{"kind":"wall","center":[32,32],"yaw":0,"half_extents":[4,32,8]}}]),
     );
     let mut battle = Battle::new(&setup, 1);
@@ -652,7 +658,7 @@ fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
         &common::scenario(
             &json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
                 .to_string(),
-            json!([{ "side":"blue","kind":"rifle","position":[100,300]}]),
+            json!([{ "side":"blue","kind":"test_rifle","position":[100,300]}]),
             json!([]),
         ),
         1,
@@ -829,7 +835,7 @@ fn unchanged_observation_groups_do_not_retransmit_own_rows() {
     let setup = common::scenario(
         &json!({"size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
             .to_string(),
-        json!([{"side":"blue","kind":"rifle","position":[32,32]}]),
+        json!([{"side":"blue","kind":"test_rifle","position":[32,32]}]),
         json!([]),
     );
     let battle = Battle::new(&setup, 1);
@@ -858,7 +864,7 @@ fn group_delivery_reconstructs_the_logical_oracle_across_side_and_epoch_changes(
     let setup = common::scenario(
         &json!({"size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
             .to_string(),
-        json!([{"side":"blue","kind":"rifle","position":[32,32]}, {"side":"red","kind":"rifle","position":[64,32]}]),
+        json!([{"side":"blue","kind":"test_rifle","position":[32,32]}, {"side":"red","kind":"test_rifle","position":[64,32]}]),
         json!([]),
     );
     let mut battle = Battle::new(&setup, 1);
@@ -922,7 +928,7 @@ fn one_variable_route_change_does_not_resend_other_own_units() {
             } else {
                 [32 + i % 10 * 24, 32 + i / 10 * 24]
             };
-            json!({"side":"blue","kind":"rifle","position":position})
+            json!({"side":"blue","kind":"test_rifle","position":position})
         })
         .collect();
     let setup = common::scenario(
@@ -992,8 +998,8 @@ fn one_variable_route_change_does_not_resend_other_own_units() {
 fn cold_own_delivery_compacts_sparse_values_without_losing_the_logical_words() {
     let setup = common::scenario(
         r#"{"size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
-        json!([{"side":"blue","kind":"rifle","position":[32,32]},
-               {"side":"blue","kind":"rifle","position":[96,96]}]),
+        json!([{"side":"blue","kind":"test_rifle","position":[32,32]},
+               {"side":"blue","kind":"test_rifle","position":[96,96]}]),
         json!([]),
     );
     let battle = Battle::new(&setup, 1);
@@ -1041,8 +1047,8 @@ fn visible_members_publish_the_weapon_they_are_using() {
     let setup = common::scenario_with(
         &json!({"size":[300,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[]}).to_string(),
         json!([
-            {"side":"blue","kind":"at","position":[40,100]},
-            {"side":"red","kind":"tank","position":[180,100],"yaw":std::f64::consts::PI,"engagement":"return_fire_only"}
+            {"side":"blue","kind":"test_at","position":[40,100]},
+            {"side":"red","kind":"test_tank","position":[180,100],"yaw":std::f64::consts::PI,"engagement":"return_fire_only"}
         ]), json!([]), json!([]));
     let mut battle = Battle::new(&setup, 1);
     battle.step();

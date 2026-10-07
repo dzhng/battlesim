@@ -15,17 +15,17 @@ use crate::common;
 fn hull_cover_keeps_live_vehicle_geometry_and_order_among_fallen_squads() {
     let rules: contract::scenario::Rules =
         serde_json::from_value(common::scenario_rules()).unwrap();
-    let fallen = rules.catalog.by_id("rifle").squad_size();
+    let fallen = rules.catalog.by_id("test_rifle").squad_size();
     let setup = common::scenario_with(
         r#"{"size":[340,160],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
         json!([
-            {"side":"blue","kind":"rifle","position":[20,20],"condition":{"casualties":fallen}},
-            {"side":"red","kind":"jeep","position":[40,120]},
-            {"side":"blue","kind":"tank","position":[100,60],"yaw":0.37},
-            {"side":"red","kind":"rifle","position":[140,120],"condition":{"casualties":1}},
-            {"side":"red","kind":"jeep","position":[180,60],"yaw":-0.82},
-            {"side":"red","kind":"rifle","position":[240,120],"condition":{"casualties":fallen}},
-            {"side":"blue","kind":"jeep","position":[260,60],"yaw":1.1}
+            {"side":"blue","kind":"test_rifle","position":[20,20],"condition":{"casualties":fallen}},
+            {"side":"red","kind":"test_jeep","position":[40,120]},
+            {"side":"blue","kind":"test_tank","position":[100,60],"yaw":0.37},
+            {"side":"red","kind":"test_rifle","position":[140,120],"condition":{"casualties":1}},
+            {"side":"red","kind":"test_jeep","position":[180,60],"yaw":-0.82},
+            {"side":"red","kind":"test_rifle","position":[240,120],"condition":{"casualties":fallen}},
+            {"side":"blue","kind":"test_jeep","position":[260,60],"yaw":1.1}
         ]),
         json!([]),
         json!([]),
@@ -92,14 +92,19 @@ fn fight(
     seconds: u64,
 ) -> Fight {
     let mut rules = common::game();
-    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
-    units.insert(
-        0,
-        json!({ "side": "red", "kind": "rifle", "position": red }),
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "soldiers",
+        "test_rifleman",
+        json!({ "hp": 1.0e6 }),
     );
     units.insert(
         0,
-        json!({ "side": "blue", "kind": "rifle", "position": blue }),
+        json!({ "side": "red", "kind": "test_rifle", "position": red }),
+    );
+    units.insert(
+        0,
+        json!({ "side": "blue", "kind": "test_rifle", "position": blue }),
     );
     let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
@@ -231,7 +236,7 @@ fn a_soldier_leans_out_round_a_wreck_to_fire() {
 
 #[test]
 fn a_soldier_leans_out_round_a_parked_tanks_hull_to_fire() {
-    let tank = json!({ "side": "blue", "kind": "tank", "position": [64, 45],
+    let tank = json!({ "side": "blue", "kind": "test_tank", "position": [64, 45],
         "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" });
     let f = fight(
         json!([]),
@@ -251,7 +256,12 @@ fn nobody_leans_round_a_trunk_when_neither_edge_gives_a_line() {
     // a man behind the trunk has no line either way, so no one leans round
     // it, and nobody stays behind it (the cover search rejects the spot).
     let mut rules = common::game();
-    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "soldiers",
+        "test_rifleman",
+        json!({ "hp": 1.0e6 }),
+    );
     let setup = serde_json::from_value(json!({
         "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": [
@@ -260,8 +270,8 @@ fn nobody_leans_round_a_trunk_when_neither_edge_gives_a_line() {
                  ], "forests": [] },
         "rules": rules,
         "units": [
-            { "side": "blue", "kind": "rifle", "position": [60, 45] },
-            { "side": "red", "kind": "rifle", "position": [110, 45] },
+            { "side": "blue", "kind": "test_rifle", "position": [60, 45] },
+            { "side": "red", "kind": "test_rifle", "position": [110, 45] },
         ],
         "events": [], "scripts": [],
     }))
@@ -296,11 +306,16 @@ fn a_squad_holding_through_a_long_firefight_keeps_its_anchor_and_area() {
     // squad re-resolves again and again. Nothing it does moves its anchor,
     // and no soldier leaves the area round it (no drift).
     let mut rules = common::game();
-    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "soldiers",
+        "test_rifleman",
+        json!({ "hp": 1.0e6 }),
+    );
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "jeep",
+        "test_jeep",
         json!({ "body": { "hull": { "hp": 1.0e6 } } }),
     );
     let mut props: Vec<Value> = (0..6)
@@ -337,9 +352,9 @@ fn a_squad_holding_through_a_long_firefight_keeps_its_anchor_and_area() {
                  "props": props, "forests": [] },
         "rules": rules,
         "units": [
-            { "side": "blue", "kind": "rifle", "position": [60, 45] },
-            { "side": "red", "kind": "rifle", "position": [112, 40] },
-            { "side": "red", "kind": "jeep", "position": [110, 58], "yaw": std::f64::consts::PI },
+            { "side": "blue", "kind": "test_rifle", "position": [60, 45] },
+            { "side": "red", "kind": "test_rifle", "position": [112, 40] },
+            { "side": "red", "kind": "test_jeep", "position": [110, 58], "yaw": std::f64::consts::PI },
         ],
         "events": events, "scripts": [],
     }))
@@ -373,14 +388,19 @@ fn a_squad_holding_through_a_long_firefight_keeps_its_anchor_and_area() {
 #[test]
 fn a_fight_from_leaning_positions_replays_to_the_same_digest() {
     let mut rules = common::game();
-    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "soldiers",
+        "test_rifleman",
+        json!({ "hp": 1.0e6 }),
+    );
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": [prop("heavy_wreck", [64.0, 45.0], [1.8, 3.5, 1.2])], "forests": [] },
         "rules": rules,
         "units": [
-            { "side": "blue", "kind": "rifle", "position": [60, 45] },
-            { "side": "red", "kind": "rifle", "position": [110, 45] },
+            { "side": "blue", "kind": "test_rifle", "position": [60, 45] },
+            { "side": "red", "kind": "test_rifle", "position": [110, 45] },
         ],
         "events": [], "scripts": [],
     }))
@@ -412,14 +432,19 @@ fn a_lean_is_published_for_its_own_side_and_for_an_enemy_that_sees_him() {
     // Own: every leaning soldier, with his side and lean point. Enemy: the
     // same lean for each seen soldier, beside his tucked-in position.
     let mut rules = common::game();
-    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "soldiers",
+        "test_rifleman",
+        json!({ "hp": 1.0e6 }),
+    );
     let setup = serde_json::from_value(json!({
         "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": [prop("heavy_wreck", [64.0, 45.0], [1.8, 3.5, 1.2])], "forests": [] },
         "rules": rules,
         "units": [
-            { "side": "blue", "kind": "rifle", "position": [60, 45] },
-            { "side": "red", "kind": "rifle", "position": [110, 45] },
+            { "side": "blue", "kind": "test_rifle", "position": [60, 45] },
+            { "side": "red", "kind": "test_rifle", "position": [110, 45] },
         ],
         "events": [], "scripts": [],
     }))
@@ -469,7 +494,12 @@ fn a_soldier_leans_out_for_a_burst_then_tucks_back_in() {
     // and out again. No stretch out lasts longer than a burst, and he stays
     // tucked in for the spell between.
     let mut rules = common::game();
-    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "soldiers",
+        "test_rifleman",
+        json!({ "hp": 1.0e6 }),
+    );
     let burst = rules["cover"]["lean_burst_s"].as_f64().unwrap();
     let tuck = rules["cover"]["lean_tuck_s"].as_f64().unwrap();
     let setup = serde_json::from_value(json!({
@@ -477,8 +507,8 @@ fn a_soldier_leans_out_for_a_burst_then_tucks_back_in() {
                  "props": [prop("trunk", [64.0, 45.0], [0.35, 0.35, 6.0])], "forests": [] },
         "rules": rules,
         "units": [
-            { "side": "blue", "kind": "rifle", "position": [61, 45] },
-            { "side": "red", "kind": "rifle", "position": [110, 45] },
+            { "side": "blue", "kind": "test_rifle", "position": [61, 45] },
+            { "side": "red", "kind": "test_rifle", "position": [110, 45] },
         ],
         "events": [], "scripts": [],
     }))

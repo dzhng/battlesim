@@ -1,6 +1,6 @@
 {
   "units": {
-    "squad": {
+    "test_squad": {
       "abstract": true,
       "faction": "generic",
       "family": "infantry",
@@ -8,34 +8,34 @@
       "sensors": { "ground_m": 600, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "sound": { "profile": "infantry", "loudness_m": 200 }
     },
-    "rifle": {
-      "extends": "squad",
+    "test_rifle": {
+      "extends": "test_squad",
       "name": "Rifle squad",
       "description": "Eight riflemen, one with a grenade launcher.",
       "roles": ["infantry"],
       "cost": 100,
       "body": {
         "squad": {
-          "slots": ["grenadier", "rifleman", "rifleman", "rifleman", "rifleman", "rifleman", "rifleman", "rifleman"]
+          "slots": ["test_grenadier", "test_rifleman", "test_rifleman", "test_rifleman", "test_rifleman", "test_rifleman", "test_rifleman", "test_rifleman"]
         }
       }
     },
-    "recon": {
-      "extends": "squad",
+    "test_recon": {
+      "extends": "test_squad",
       "name": "Recon team",
       "description": "Four scouts with the longest vision and twice the spotting range against concealed enemies.",
       "roles": ["recon"],
       "cost": 80,
-      "body": { "squad": { "slots": ["scout", "scout", "scout", "scout"] } },
+      "body": { "squad": { "slots": ["test_scout", "test_scout", "test_scout", "test_scout"] } },
       "sensors": { "ground_m": 650, "concealed_range_multiplier": 2 }
     },
-    "at": {
-      "extends": "squad",
+    "test_at": {
+      "extends": "test_squad",
       "name": "AT team",
       "description": "A guided anti-tank missile and two riflemen to guard it.",
       "roles": ["at"],
       "cost": 120,
-      "body": { "squad": { "slots": ["atgm_gunner", "at_rifleman", "at_rifleman"] } }
+      "body": { "squad": { "slots": ["test_atgm_gunner", "test_at_rifleman", "test_at_rifleman"] } }
     }
   }
 }

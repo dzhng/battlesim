@@ -94,7 +94,7 @@ test("corpses become static instances: no clip, the side's tint, and never a pos
       {
         soldier: 1,
         unit: 3,
-        kind: "rifle",
+        kind: "test_rifle",
         slot: 0,
         operatorMount: null,
         activeMount: null,
@@ -107,7 +107,7 @@ test("corpses become static instances: no clip, the side's tint, and never a pos
       },
     ],
     vehicles: [],
-    corpses: [{ soldier: 2, kind: "at", slot: 0, side: "red", position: [5, 5, 0], yaw: 1 }],
+    corpses: [{ soldier: 2, kind: "test_at", slot: 0, side: "red", position: [5, 5, 0], yaw: 1 }],
     corpsesVersion: 1,
     fading: [],
   };
@@ -117,17 +117,17 @@ test("corpses become static instances: no clip, the side's tint, and never a pos
   });
   const models = poseFrameInstances([] as ModelInstance[], frame, resolve);
   expect(models).toHaveLength(1);
-  expect(models[0]).toMatchObject({ appearance: "rifle", xray: null, yaw: 0.5 });
+  expect(models[0]).toMatchObject({ appearance: "test_rifle", xray: null, yaw: 0.5 });
   expect(models[0].pose).toMatchObject({ kind: "skinned", clip: "walk", phase: 0.25 });
   expect(corpseInstances(frame, resolve)).toEqual([
-    { appearance: "at", x: 5, y: 5, z: 0, yaw: 1, tint: [1.18, 1, 0.78] },
+    { appearance: "test_at", x: 5, y: 5, z: 0, yaw: 1, tint: [1.18, 1, 0.78] },
   ]);
 });
 
 test("a fading corpse draws each frame as his corpse, sunk by its fade, never in the static list", () => {
   const corpse = {
     soldier: 4,
-    kind: "rifle" as const,
+    kind: "test_rifle" as const,
     slot: 0,
     operatorMount: null,
     activeMount: null,
@@ -149,7 +149,7 @@ test("a fading corpse draws each frame as his corpse, sunk by its fade, never in
   const models = poseFrameInstances([] as ModelInstance[], frame, resolve);
   expect(models).toHaveLength(1);
   expect(models[0]).toMatchObject({
-    appearance: "rifle",
+    appearance: "test_rifle",
     x: 3,
     y: 4,
     z: 1.75,
@@ -164,7 +164,7 @@ test("a soldier wears the variant his id resolves to, alive and fallen", () => {
   const pose = (soldier: number) => ({
     soldier,
     unit: 3,
-    kind: "rifle" as const,
+    kind: "test_rifle" as const,
     slot: 0,
     operatorMount: null,
     activeMount: null,
@@ -178,7 +178,9 @@ test("a soldier wears the variant his id resolves to, alive and fallen", () => {
   const frame: PoseFrame = {
     soldiers: [pose(7), pose(8)],
     vehicles: [],
-    corpses: [{ soldier: 7, kind: "rifle", slot: 0, side: "blue", position: [0, 0, 0], yaw: 0 }],
+    corpses: [
+      { soldier: 7, kind: "test_rifle", slot: 0, side: "blue", position: [0, 0, 0], yaw: 0 },
+    ],
     corpsesVersion: 1,
     fading: [],
   };
@@ -187,15 +189,15 @@ test("a soldier wears the variant his id resolves to, alive and fallen", () => {
     tint: [1, 1, 1] as [number, number, number],
   });
   const worn = poseFrameInstances([] as ModelInstance[], frame, resolve).map((m) => m.appearance);
-  expect(worn).toEqual(["rifle_1", "rifle_2"]);
-  expect(corpseInstances(frame, resolve)[0].appearance).toBe("rifle_1");
+  expect(worn).toEqual(["test_rifle_1", "test_rifle_2"]);
+  expect(corpseInstances(frame, resolve)[0].appearance).toBe("test_rifle_1");
 });
 
 test("each unit's models are x-rayed in the colour presentation gives its unit, or not at all", () => {
   const soldier = (side: "blue" | "red", id: number) => ({
     soldier: id,
     unit: id,
-    kind: "rifle" as const,
+    kind: "test_rifle" as const,
     slot: 0,
     operatorMount: null,
     activeMount: null,

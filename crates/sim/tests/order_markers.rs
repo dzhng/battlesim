@@ -11,7 +11,7 @@ use sim::math::wrap_angle;
 use sim::publication::Publisher;
 
 fn rules() -> Value {
-    sim::fixtures::game()
+    sim::fixtures::test_game()
 }
 
 fn setup(size: [f64; 2], props: Value, units: Value, scripts: Value) -> ScenarioDefinition {
@@ -61,7 +61,7 @@ fn an_oblique_squad_preview_keeps_the_committed_approach_heading() {
         &setup(
             [160.0, 120.0],
             json!([]),
-            json!([{ "side": "blue", "kind": "rifle", "position": [30, 60], "engagement": "return_fire_only" }]),
+            json!([{ "side": "blue", "kind": "test_rifle", "position": [30, 60], "engagement": "return_fire_only" }]),
             json!([]),
         ),
         1,
@@ -114,8 +114,8 @@ fn a_squads_published_spots_and_cover_are_its_soldiers_resolved_ones() {
         [260.0, 120.0],
         json!([wall]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [40, 60], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [200, 60], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [40, 60], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [200, 60], "engagement": "return_fire_only" },
         ]),
         json!([mv(1, "blue", 0, [97.0, 60.0], json!({}))]),
     );
@@ -165,9 +165,9 @@ fn a_right_drag_facing_is_published_and_kept_by_a_squad_and_a_tank_but_not_by_wh
         [200.0, 200.0],
         json!([]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [40, 40], "engagement": "return_fire_only" },
-            { "side": "blue", "kind": "tank", "position": [40, 100], "yaw": 0, "engagement": "return_fire_only" },
-            { "side": "blue", "kind": "jeep", "position": [40, 160], "yaw": 0, "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [40, 40], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [40, 100], "yaw": 0, "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_jeep", "position": [40, 160], "yaw": 0, "engagement": "return_fire_only" },
         ]),
         json!([
             mv(1, "blue", 0, [100.0, 40.0], json!({ "facing": north })),
@@ -179,9 +179,12 @@ fn a_right_drag_facing_is_published_and_kept_by_a_squad_and_a_tank_but_not_by_wh
     b.step();
     b.step();
     assert!((own(&b, 0).final_facing - north).abs() < 1e-9, "squad");
-    assert!((own(&b, 1).final_facing - north).abs() < 1e-9, "tank");
+    assert!((own(&b, 1).final_facing - north).abs() < 1e-9, "test_tank");
     // Wheels never pivot: the jeep's marker shows the way it will come in.
-    assert!(wrap_angle(own(&b, 2).final_facing).abs() < 0.05, "jeep");
+    assert!(
+        wrap_angle(own(&b, 2).final_facing).abs() < 0.05,
+        "test_jeep"
+    );
     for _ in 0..40 * 30 {
         b.step();
     }
@@ -208,7 +211,7 @@ fn a_reversing_units_final_marker_shows_its_held_facing() {
     let s = setup(
         [200.0, 120.0],
         json!([]),
-        json!([{ "side": "blue", "kind": "tank", "position": [120, 60], "yaw": 0,
+        json!([{ "side": "blue", "kind": "test_tank", "position": [120, 60], "yaw": 0,
             "engagement": "return_fire_only" }]),
         json!([mv(
             1,
@@ -251,8 +254,8 @@ fn nothing_of_the_enemys_plan_reaches_the_other_side() {
     // The same battle, except red is ordered somewhere else, with a facing,
     // while blue cannot see it: blue's publications stay bit-identical.
     let units = json!([
-        { "side": "blue", "kind": "rifle", "position": [40, 60], "engagement": "return_fire_only" },
-        { "side": "red", "kind": "tank", "position": [1150, 60], "engagement": "return_fire_only" },
+        { "side": "blue", "kind": "test_rifle", "position": [40, 60], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_tank", "position": [1150, 60], "engagement": "return_fire_only" },
     ]);
     let blue = mv(1, "blue", 0, [70.0, 60.0], json!({}));
     let plan = |goal: [f64; 2], extra: Value| {

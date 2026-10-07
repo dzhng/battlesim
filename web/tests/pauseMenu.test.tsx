@@ -67,7 +67,7 @@ test("pause controls own shortcuts while armed Escape cancels before opening pau
     },
   } as unknown as SimClient;
   const observation = {
-    own: [{ id: 1, kind: "rifle", position: [0, 0, 0] }],
+    own: [{ id: 1, kind: "test_rifle", position: [0, 0, 0] }],
     contacts: [],
   } as unknown as ObservationView;
   function Battle() {

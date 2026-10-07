@@ -75,8 +75,8 @@ fn compound_with_descriptor(
 fn a_building_group_has_the_same_plan_when_either_aggregate_part_is_nominated() {
     let mut setup = compound_setup(json!([]));
     setup.units = serde_json::from_value(json!([
-        {"side":"blue","kind":"recon","position":[350,300]},
-        {"side":"blue","kind":"tank","position":[320,330]}
+        {"side":"blue","kind":"test_recon","position":[350,300]},
+        {"side":"blue","kind":"test_tank","position":[320,330]}
     ]))
     .unwrap();
     let b = Battle::new(&setup, 1);
@@ -106,12 +106,12 @@ fn an_unseen_multipart_collapse_cannot_change_the_building_group_plan() {
         .map(|tick| json!({"tick":tick,"burst":{"point":[409,301],"weapon":"tank_he"}}))
         .collect::<Vec<_>>()));
     setup.units = serde_json::from_value(json!([
-        {"side":"blue","kind":"recon","position":[350,250],"engagement":"return_fire_only"},
-        {"side":"blue","kind":"tank","position":[320,250],"engagement":"return_fire_only"}
+        {"side":"blue","kind":"test_recon","position":[350,250],"engagement":"return_fire_only"},
+        {"side":"blue","kind":"test_tank","position":[320,250],"engagement":"return_fire_only"}
     ]))
     .unwrap();
     let mut rules = serde_json::to_value(&setup.rules).unwrap();
-    for kind in ["recon", "tank"] {
+    for kind in ["test_recon", "test_tank"] {
         sim::fixtures::patch_catalog(
             &mut rules,
             "units",
@@ -282,13 +282,13 @@ fn seeing_one_part_reveals_all_replacements_but_hidden_sides_keep_prior_state() 
     let mut setup = compound_setup(json!((1..=11)
         .map(|tick| json!({"tick":tick,"burst":{"point":[409,301],"weapon":"tank_he"}}))
         .collect::<Vec<_>>()));
-    setup.units=serde_json::from_value(json!([{"side":"blue","kind":"rifle","position":[370,300],"engagement":"return_fire_only"},{"side":"red","kind":"rifle","position":[250,100],"engagement":"return_fire_only"}])).unwrap();
+    setup.units=serde_json::from_value(json!([{"side":"blue","kind":"test_rifle","position":[370,300],"engagement":"return_fire_only"},{"side":"red","kind":"test_rifle","position":[250,100],"engagement":"return_fire_only"}])).unwrap();
     let mut rules = serde_json::to_value(&setup.rules).unwrap();
     // A short-range observer sees the near part; the other side is wholly hidden.
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "rifle",
+        "test_rifle",
         json!({"sensors":{"ground_m":28}}),
     );
     setup.rules = serde_json::from_value(rules).unwrap();
@@ -355,7 +355,7 @@ fn seeing_one_part_reveals_all_replacements_but_hidden_sides_keep_prior_state() 
 #[test]
 fn different_clicked_parts_claim_one_building_in_the_same_tick() {
     let mut setup = compound_setup(json!([]));
-    setup.units=serde_json::from_value(json!([{"side":"blue","kind":"rifle","position":[425,301]},{"side":"blue","kind":"rifle","position":[425,340]}])).unwrap();
+    setup.units=serde_json::from_value(json!([{"side":"blue","kind":"test_rifle","position":[425,301]},{"side":"blue","kind":"test_rifle","position":[425,340]}])).unwrap();
     let mut b = Battle::new(&setup, 11);
     let order = |seq, unit, building| contract::command::CommandEnvelope {
         side: Side::Blue,
@@ -390,7 +390,7 @@ fn different_clicked_parts_claim_one_building_in_the_same_tick() {
 #[test]
 fn stepped_facade_eyes_stay_outside_every_shell_and_fire_past_the_whole_owner() {
     let mut setup = compound_setup(json!([]));
-    setup.units=serde_json::from_value(json!([{"side":"blue","kind":"rifle","position":[425,301],"engagement":"return_fire_only"}])).unwrap();
+    setup.units=serde_json::from_value(json!([{"side":"blue","kind":"test_rifle","position":[425,301],"engagement":"return_fire_only"}])).unwrap();
     let mut b = Battle::new(&setup, 11);
     crate::common::order(
         &mut b,
@@ -582,7 +582,7 @@ fn ordinary_authored_remains_keep_their_source_while_dynamic_remains_have_none()
             events.push(json!({"tick":tick,"burst":{"point":[x,300],"weapon":"tank_he"}}));
         }
     }
-    let setup:ScenarioDefinition=serde_json::from_value(json!({"map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[{"kind":"wall","center":[400,300],"yaw":0,"half_extents":[2,2,4]}]},"rules":rules,"units":[{"side":"blue","kind":"rifle","position":[450,340],"engagement":"return_fire_only"}],"events":events,"scripts":[]})).unwrap();
+    let setup:ScenarioDefinition=serde_json::from_value(json!({"map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[{"kind":"wall","center":[400,300],"yaw":0,"half_extents":[2,2,4]}]},"rules":rules,"units":[{"side":"blue","kind":"test_rifle","position":[450,340],"engagement":"return_fire_only"}],"events":events,"scripts":[]})).unwrap();
     let mut b = Battle::new(&setup, 11);
     for _ in 0..18 {
         b.step();
@@ -664,7 +664,7 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
         json!({"body":{"garrison":true}}),
     );
     setup.rules = serde_json::from_value(rules).unwrap();
-    setup.units=serde_json::from_value(json!([{"side":"blue","kind":"rifle","position":[425,301],"engagement":"return_fire_only"}])).unwrap();
+    setup.units=serde_json::from_value(json!([{"side":"blue","kind":"test_rifle","position":[425,301],"engagement":"return_fire_only"}])).unwrap();
     let mut b = Battle::new(&setup, 11);
     for _ in 0..12 {
         b.step();
@@ -811,7 +811,7 @@ fn abundant_facade_bays_never_admit_more_than_32_seats() {
 fn each_directional_eye_is_an_occupied_seat_on_its_highest_held_floor() {
     let mut setup = compound_setup(json!([]));
     setup.map.buildings[0].geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
-    setup.units = serde_json::from_value(json!([{"side":"blue","kind":"rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
+    setup.units = serde_json::from_value(json!([{"side":"blue","kind":"test_rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
     let mut b = Battle::new(&setup, 11);
     crate::common::order(
         &mut b,
@@ -872,8 +872,8 @@ fn a_third_floor_garrison_sees_over_a_two_storey_obstacle() {
         .unwrap(),
     );
     setup.units = serde_json::from_value(json!([
-        {"side":"blue","kind":"rifle","position":[380,300],"engagement":"return_fire_only"},
-        {"side":"red","kind":"tank","position":[580,301],"engagement":"return_fire_only"}
+        {"side":"blue","kind":"test_rifle","position":[380,300],"engagement":"return_fire_only"},
+        {"side":"red","kind":"test_tank","position":[580,301],"engagement":"return_fire_only"}
     ]))
     .unwrap();
     let mut b = Battle::new(&setup, 11);
@@ -1026,7 +1026,7 @@ fn tall_buildings_leave_a_terminal_ungarrisonable_shell() {
     );
     setup.rules = serde_json::from_value(rows).unwrap();
     setup.rules.garrison.survival_probability_on_collapse = 1.0;
-    setup.units = serde_json::from_value(json!([{"side":"blue","kind":"rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
+    setup.units = serde_json::from_value(json!([{"side":"blue","kind":"test_rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
     let mut b = Battle::new(&setup, 11);
     crate::common::order(
         &mut b,
@@ -1086,8 +1086,8 @@ fn a_squad_reinforced_during_entry_never_enters_only_partly_seated() {
     setup.rules.garrison.enter_exit_s = 15.0;
     setup.rules.service.soldier_replacement_s = 0.1;
     setup.units = serde_json::from_value(json!([
-        {"side":"blue","kind":"rifle","position":[380,300],"engagement":"return_fire_only","condition":{"casualties":2}},
-        {"side":"blue","kind":"supply","position":[380,330],"engagement":"return_fire_only"}
+        {"side":"blue","kind":"test_rifle","position":[380,300],"engagement":"return_fire_only","condition":{"casualties":2}},
+        {"side":"blue","kind":"test_supply","position":[380,330],"engagement":"return_fire_only"}
     ])).unwrap();
     let mut b = Battle::new(&setup, 11);
     crate::common::order(
@@ -1132,7 +1132,7 @@ fn seeing_the_near_part_learns_replacements_beyond_the_eyes_reach() {
             .collect::<Vec<_>>()),
     );
     setup.units = serde_json::from_value(json!([{
-        "side":"blue","kind":"rifle","position":[328,300],
+        "side":"blue","kind":"test_rifle","position":[328,300],
         "engagement":"return_fire_only"
     }]))
     .unwrap();
@@ -1140,7 +1140,7 @@ fn seeing_the_near_part_learns_replacements_beyond_the_eyes_reach() {
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "rifle",
+        "test_rifle",
         json!({"sensors":{"ground_m":30}}),
     );
     setup.rules = serde_json::from_value(rules).unwrap();
@@ -1189,7 +1189,7 @@ fn upper_floor_collapse_deaths_land_on_the_remaining_physical_surface() {
     }
     setup.rules.garrison.survival_probability_on_collapse = 0.0;
     setup.rules.weapons.get_mut("tank_he").unwrap().damage = 0.0;
-    setup.units = serde_json::from_value(json!([{"side":"blue","kind":"rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
+    setup.units = serde_json::from_value(json!([{"side":"blue","kind":"test_rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
     let mut b = Battle::new(&setup, 11);
     crate::common::order(
         &mut b,

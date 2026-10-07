@@ -41,7 +41,7 @@ fn battle_with(rules: Value, map: String, blue: Value) -> Battle {
         "rules": rules,
         "units": [
             blue,
-            { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [1150, 550], "engagement": "return_fire_only" },
         ],
         "events": [],
         "scripts": [],
@@ -60,7 +60,7 @@ fn cannon_only() -> Value {
 }
 
 fn tank() -> Value {
-    json!({ "side": "blue", "kind": "tank", "position": SHOOTER })
+    json!({ "side": "blue", "kind": "test_tank", "position": SHOOTER })
 }
 
 /// Blue's unit 0 attacks the ground at the house's centre, as the flank
@@ -203,8 +203,8 @@ fn a_gun_without_structural_damage_holds_fire_behind_sandbags() {
         .unwrap(),
         "rules": rules,
         "units": [
-            { "side": "blue", "kind": "rifle", "position": SHOOTER },
-            { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": SHOOTER },
+            { "side": "red", "kind": "test_rifle", "position": [1150, 550], "engagement": "return_fire_only" },
         ],
         "events": [],
         "scripts": [],
@@ -243,7 +243,7 @@ fn a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker() {
             "rules": rules,
             "units": [
                 tank(),
-                { "side": "red", "kind": "rifle", "position": [1150, 550], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_rifle", "position": [1150, 550], "engagement": "return_fire_only" },
             ],
             "events": [],
             "scripts": [],
@@ -271,8 +271,8 @@ fn a_rifle_squad_fires_through_a_fence_at_the_squad_beyond_it() {
         json!([]),
     );
     let units = json!([
-        { "side": "blue", "kind": "rifle", "position": [240, 300] },
-        { "side": "red", "kind": "rifle", "position": [303, 300], "engagement": "return_fire_only" },
+        { "side": "blue", "kind": "test_rifle", "position": [240, 300] },
+        { "side": "red", "kind": "test_rifle", "position": [303, 300], "engagement": "return_fire_only" },
     ]);
     let mut b = Battle::new(&common::scenario(&map, units, json!([])), 1);
     let full = b.unit(UnitId(1)).unwrap().members[0].hp;
@@ -365,7 +365,7 @@ fn a_tank_firing_at_will_shoots_through_sandbags_at_the_squad_behind_them() {
     );
     let units = json!([
         tank(),
-        { "side": "red", "kind": "rifle", "position": [360, 300], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_rifle", "position": [360, 300], "engagement": "return_fire_only" },
     ]);
     let mut b = Battle::new(&common::scenario(&map, units, json!([])), 1);
     assert!(
@@ -408,7 +408,7 @@ fn an_hmg_knocks_a_fence_panel_down_by_sustained_fire_through_it() {
     // The panel stands on the line to ground 10 m past it: every round
     // flies through it and wears it.
     let gone = wears_down(
-        "jeep",
+        "test_jeep",
         json!([prop("fence", [300.0, 300.0], [0.1, 3.0, 0.6])]),
         [310.0, 300.0],
         30,
@@ -422,7 +422,7 @@ fn an_hmg_fells_a_tree_in_about_ten_seconds_of_sustained_fire() {
     // of fire, within ±30%. The ground point lies in the trunk, so the
     // rounds are fired into it; at 30 m about half of them strike it.
     let secs = wears_down(
-        "jeep",
+        "test_jeep",
         json!([prop("trunk", [300.0, 300.0], [0.35, 0.35, 6.0])]),
         [300.0, 300.0],
         60,
@@ -436,7 +436,7 @@ fn a_rifle_squad_fells_a_tree_by_sustained_fire() {
     // Rifles chip wood (the user): a squad firing on one trunk fells
     // it under sustained fire.
     let secs = wears_down(
-        "rifle",
+        "test_rifle",
         json!([prop("trunk", [300.0, 300.0], [0.35, 0.35, 6.0])]),
         [300.0, 300.0],
         300,
@@ -469,14 +469,19 @@ fn firefight_from_trunks(seconds: u64) -> Trunks {
         .map(|k| prop("trunk", [64.0, 39.0 + 2.0 * k as f64], [0.35, 0.35, 6.0]))
         .collect();
     let mut rules = common::game();
-    sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "soldiers",
+        "test_rifleman",
+        json!({ "hp": 1.0e6 }),
+    );
     let setup = serde_json::from_value(json!({
         "map": { "size": [140, 90], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "props": trunks, "forests": [] },
         "rules": rules,
         "units": [
-            { "side": "blue", "kind": "rifle", "position": [61, 45] },
-            { "side": "red", "kind": "rifle", "position": [110, 45] },
+            { "side": "blue", "kind": "test_rifle", "position": [61, 45] },
+            { "side": "red", "kind": "test_rifle", "position": [110, 45] },
         ],
         "events": [],
         "scripts": [],

@@ -56,7 +56,7 @@ test("ticks published within one frame render once, the latest, while each is st
   }).memory;
   const battle = new Battle(
     labScenario(loadMap("geometry").definition, [
-      { side: "blue", kind: "tank", position: [40, 150] },
+      { side: "blue", kind: "test_tank", position: [40, 150] },
     ]),
     9,
   );

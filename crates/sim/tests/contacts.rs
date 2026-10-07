@@ -40,8 +40,8 @@ fn lifetime_ticks() -> u64 {
 // Blue's scout looks east at the ridge; red hides behind it at (840, 480).
 fn hidden_shooter() -> Value {
     json!([
-        { "side": "blue", "kind": "recon", "position": [560, 480] },
-        { "side": "red", "kind": "rifle", "position": [840, 480] },
+        { "side": "blue", "kind": "test_recon", "position": [560, 480] },
+        { "side": "red", "kind": "test_rifle", "position": [840, 480] },
     ])
 }
 
@@ -51,9 +51,9 @@ fn a_shot_from_hiding_reveals_an_area_round_the_shooter_sized_by_its_cause() {
     // holding the shooter, never the shooter, and a vehicle's area is
     // smaller than a squad's (it scales with its cause's footprint).
     let mut radius = std::collections::BTreeMap::new();
-    for kind in ["tank", "rifle"] {
+    for kind in ["test_tank", "test_rifle"] {
         let units = json!([
-            { "side": "blue", "kind": "recon", "position": [560, 480] },
+            { "side": "blue", "kind": "test_recon", "position": [560, 480] },
             { "side": "red", "kind": kind, "position": [840, 480], "yaw": std::f64::consts::PI },
         ]);
         let mut b = battle(units, fires(1, &[5]), json!([]));
@@ -68,7 +68,7 @@ fn a_shot_from_hiding_reveals_an_area_round_the_shooter_sized_by_its_cause() {
         radius.insert(kind, c.radius);
     }
     assert!(
-        radius["tank"] < radius["rifle"],
+        radius["test_tank"] < radius["test_rifle"],
         "a tank's area is smaller than a squad's: {radius:?}"
     );
 }
@@ -96,8 +96,8 @@ fn repeated_shots_refresh_one_report_without_new_samples() {
 fn hidden_movement_stays_private_and_an_outside_shot_refreshes_one_contact() {
     // A hidden tank fires, drives 170 m inside the ridge's shadow, fires again.
     let units = json!([
-        { "side": "blue", "kind": "recon", "position": [560, 480] },
-        { "side": "red", "kind": "tank", "position": [900, 420], "yaw": std::f64::consts::PI },
+        { "side": "blue", "kind": "test_recon", "position": [560, 480] },
+        { "side": "red", "kind": "test_tank", "position": [900, 420], "yaw": std::f64::consts::PI },
     ]);
     let scripts = json!([{ "tick": 10, "side": "red", "order":
         { "kind": "move", "units": [1], "gesture": 1, "goal": [900, 590], "route": "shortest" } }]);
@@ -172,8 +172,8 @@ fn areas_expire_without_fresh_evidence() {
 #[test]
 fn an_identified_shooter_adds_no_area() {
     let units = json!([
-        { "side": "blue", "kind": "recon", "position": [560, 480] },
-        { "side": "red", "kind": "rifle", "position": [560, 560] },
+        { "side": "blue", "kind": "test_recon", "position": [560, 480] },
+        { "side": "red", "kind": "test_rifle", "position": [560, 560] },
     ]);
     let mut b = battle(units, fires(1, &[5]), json!([]));
     run(&mut b, 6);
@@ -185,8 +185,8 @@ fn an_identified_shooter_adds_no_area() {
 fn losing_and_regaining_sight_reuses_one_fixed_last_seen_slot() {
     // Red crosses into shadow, returns to sight, and crosses into shadow again.
     let units = json!([
-        { "side": "blue", "kind": "recon", "position": [560, 400], "engagement": "return_fire_only" },
-        { "side": "red", "kind": "tank", "position": [820, 330], "engagement": "return_fire_only" },
+        { "side": "blue", "kind": "test_recon", "position": [560, 400], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_tank", "position": [820, 330], "engagement": "return_fire_only" },
     ]);
     let scripts = json!([
         { "tick": 1, "side": "red", "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [820, 460], "route": "shortest" } },
@@ -222,7 +222,7 @@ fn losing_and_regaining_sight_reuses_one_fixed_last_seen_slot() {
             );
             assert_eq!(
                 (c.kind, c.heard),
-                (common::rules().catalog.index("tank"), 0),
+                (common::rules().catalog.index("test_tank"), 0),
                 "it names the type the side identified, and heard nothing"
             );
             assert_eq!(f.contacts.len(), 1, "one area for the hidden tank");
@@ -256,14 +256,14 @@ fn a_firing_report_hears_whole_mounts_and_never_names_the_shooter() {
     // ground east of it. Red learns an area and the weapons it heard: a
     // mount's every row (its report doesn't say AP or HE), never the type.
     let units = json!([
-        { "side": "red", "kind": "recon", "position": [560, 480] },
-        { "side": "blue", "kind": "tank", "position": [840, 480], "yaw": 0.0 },
+        { "side": "red", "kind": "test_recon", "position": [560, 480] },
+        { "side": "blue", "kind": "test_tank", "position": [840, 480], "yaw": 0.0 },
     ]);
     let scripts = json!([{ "tick": 1, "side": "blue", "order": { "kind": "attack", "units": [1],
         "target": { "kind": "ground", "point": [1000, 480, 0] } } }]);
     let mut b = battle(units, json!([]), scripts);
     let rules = common::rules();
-    let tank = rules.catalog.index("tank").unwrap();
+    let tank = rules.catalog.index("test_tank").unwrap();
     let mounts: Vec<u32> = rules
         .catalog
         .mounts(tank)
@@ -308,9 +308,9 @@ fn listeners_hear_unseen_enemies_by_category_range_and_direction() {
     // A hidden tank 280 m east of blue's scout moves; a hidden rifle squad
     // 300 m away idles (beyond infantry hearing).
     let units = json!([
-        { "side": "blue", "kind": "recon", "position": [560, 480] },
-        { "side": "red", "kind": "tank", "position": [840, 480] },
-        { "side": "red", "kind": "rifle", "position": [860, 470] },
+        { "side": "blue", "kind": "test_recon", "position": [560, 480] },
+        { "side": "red", "kind": "test_tank", "position": [840, 480] },
+        { "side": "red", "kind": "test_rifle", "position": [860, 470] },
     ]);
     let scripts = json!([{ "tick": 1, "side": "red", "order":
         { "kind": "move", "units": [1], "gesture": 1, "goal": [840, 520], "route": "shortest" } }]);
@@ -350,7 +350,7 @@ fn obstacles_become_known_by_sight() {
         { "tick": 10, "add_prop": { "kind": "wall", "center": [620, 470], "yaw": 0, "half_extents": [0.5, 3, 2] } },
         { "tick": 10, "add_prop": { "kind": "wall", "center": [860, 400], "yaw": 0, "half_extents": [0.5, 3, 2] } },
     ]);
-    let units = json!([{ "side": "blue", "kind": "recon", "position": [560, 480] }]);
+    let units = json!([{ "side": "blue", "kind": "test_recon", "position": [560, 480] }]);
     let mut b = battle(units, events, json!([]));
     run(&mut b, 30);
     let known: Vec<_> = blue(&b).known_props.iter().map(|p| p.center).collect();
@@ -367,8 +367,8 @@ fn hidden_firing_refreshes_the_last_sighting_and_retains_only_known_type() {
             Side::Blue
         };
         let units = json!([
-            { "side": side, "kind": "recon", "position": [560, 400], "engagement": "return_fire_only" },
-            { "side": enemy, "kind": "tank", "position": [820, 330], "engagement": "return_fire_only" },
+            { "side": side, "kind": "test_recon", "position": [560, 400], "engagement": "return_fire_only" },
+            { "side": enemy, "kind": "test_tank", "position": [820, 330], "engagement": "return_fire_only" },
         ]);
         let scripts = json!([
             { "tick": 1, "side": enemy, "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [820, 460], "route": "shortest" } }
@@ -391,7 +391,7 @@ fn hidden_firing_refreshes_the_last_sighting_and_retains_only_known_type() {
             if let Some(c) = f.contacts.first() {
                 assert_eq!(
                     c.kind,
-                    common::rules().catalog.index("tank"),
+                    common::rules().catalog.index("test_tank"),
                     "retain the identified type"
                 );
                 if c.source == ContactSource::LastSeen {

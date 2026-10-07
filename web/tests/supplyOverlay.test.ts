@@ -23,13 +23,13 @@ const own = (u: Partial<OwnUnitView>) =>
 
 const truck = own({
   id: 1,
-  kind: "supply",
+  kind: "test_supply",
   position: [100, 100, 0],
   stock: 40,
   deployment: { progress: 1, target: "deployed" } as OwnUnitView["deployment"],
 });
-const served = own({ id: 2, kind: "rifle", position: [130, 100, 0], service: "serving" });
-const waiting = own({ id: 3, kind: "tank", position: [70, 100, 0], service: "moving" });
+const served = own({ id: 2, kind: "test_rifle", position: [130, 100, 0], service: "serving" });
+const waiting = own({ id: 3, kind: "test_tank", position: [70, 100, 0], service: "moving" });
 const observation = { own: [truck, served, waiting] } as unknown as ObservationView;
 
 /** Distances from `c` of every painted vertex. */

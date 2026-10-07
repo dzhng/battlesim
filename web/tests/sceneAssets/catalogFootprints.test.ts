@@ -8,9 +8,9 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { fixtureAuthority } from "@packages/scene-assets/src/authority.ts";
 import { SCENERY_KINDS, propsDrawnBy } from "@packages/scene-assets/src/scenery.ts";
-import { WEAPONS } from "../catalog";
+import { UNITS, WEAPONS } from "../catalog";
+import { UnitCatalog } from "@packages/scene-assets/src/units.ts";
 import type { Catalog } from "@packages/scene-assets/src/schema.ts";
-import { UnitCatalog, type CatalogView } from "@packages/scene-assets/src/units.ts";
 import { loadMap } from "@web/maps/node";
 
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
@@ -21,8 +21,9 @@ const same = (a: readonly number[], b: readonly number[]) =>
 
 const villageMap = loadMap("village").definition;
 const buildings = villageMap.buildings!.flatMap((b) => b.geometry.parts.map((p) => p.half_extents));
-/** Every unit type with a hull leaves a wreck on its hull box. */
-const units = new UnitCatalog(read("../../../fixtures/catalog.json") as CatalogView);
+/** Every unit type with a hull leaves a wreck on its hull box: the test set's
+ *  (the game's units and the test units), whose art the catalog ships. */
+const units = UNITS;
 const hulls = units.ids.flatMap((id) => {
   const hull = units.hull(id);
   return hull ? [hull.half_extents_m] : [];

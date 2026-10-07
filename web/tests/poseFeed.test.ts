@@ -59,7 +59,7 @@ const squad = (
   { shots = 0, suppression = "none" as SuppressionTier, bearing = 0 } = {},
 ): OwnUnitView => ({
   id,
-  kind: "rifle",
+  kind: "test_rifle",
   position: soldiers[0]?.at ?? [0, 0, 0],
   yaw: Math.PI / 2,
   goal: null,
@@ -97,7 +97,7 @@ const squad = (
 
 const enemy = (id: number, soldiers: Soldier[], shots = 0): IdentifiedView => ({
   id,
-  kind: "rifle",
+  kind: "test_rifle",
   cost: 1,
   position: soldiers[0]?.at ?? [0, 0, 0],
   yaw: 0,
@@ -187,21 +187,24 @@ test("the launcher appearance follows the published operator across a handoff", 
   // Only the asset-loading seam is synthetic; feed, posing, and model selection are real.
   const appearances = new Map(
     [
-      "rifle",
-      "rifle_b",
-      "rifle_c",
-      "at",
-      "at_b",
-      "at_c",
-      "at_carried",
-      "at_carried_b",
-      "at_carried_c",
+      "test_rifle",
+      "test_rifle_b",
+      "test_rifle_c",
+      "test_at",
+      "test_at_b",
+      "test_at_c",
+      "test_at_carried",
+      "test_at_carried_b",
+      "test_at_carried_c",
     ].map((name) => [
       name,
       {
         bundle: {
           kind: "skinned",
-          skeleton: name.startsWith("at") && !name.startsWith("at_carried") ? "launcher" : "rifle",
+          skeleton:
+            name.startsWith("test_at") && !name.startsWith("test_at_carried")
+              ? "launcher"
+              : "rifle",
         },
       },
     ]),
@@ -217,7 +220,7 @@ test("the launcher appearance follows the published operator across a handoff", 
       { id: 11, at: [3, 0, 0] },
       { id: 12, at: [0, 3, 0] },
     ]),
-    kind: "at",
+    kind: "test_at",
     memberSlots: [0, 1, 2],
     memberActiveMounts: [1, 0, 0],
     weaponPoses: [{ mount: 1, operator: 10, bearing: 0, elevation: 0, shots: 0 }],
@@ -227,12 +230,16 @@ test("the launcher appearance follows the published operator across a handoff", 
       catalog.resolve(kind, side, id, slot, mount, active),
     );
   b.publish(observation(1, [team]), 0);
-  expect(models(b.draw(0)).map((m) => m.appearance)).toEqual(["at_b", "rifle_c", "rifle"]);
+  expect(models(b.draw(0)).map((m) => m.appearance)).toEqual([
+    "test_at_b",
+    "test_rifle_c",
+    "test_rifle",
+  ]);
   b.publish(observation(2, [{ ...team, memberActiveMounts: [0, 0, 0] }]), TICK_MS);
   expect(models(b.draw(TICK_MS)).map((m) => m.appearance)).toEqual([
-    "at_carried_b",
-    "rifle_c",
-    "rifle",
+    "test_at_carried_b",
+    "test_rifle_c",
+    "test_rifle",
   ]);
   b.publish(
     observation(3, [
@@ -248,7 +255,7 @@ test("the launcher appearance follows the published operator across a handoff", 
     TICK_MS,
   );
   const survivorModels = models(b.draw(2 * TICK_MS + 150));
-  expect(survivorModels.map((m) => m.appearance)).toEqual(["at_c", "rifle"]);
+  expect(survivorModels.map((m) => m.appearance)).toEqual(["test_at_c", "test_rifle"]);
 });
 
 const clips = (frame: PoseFrame) =>
@@ -373,7 +380,7 @@ test("a delayed rifle launch cannot fire the launcher selected on the following 
   const at = (tick: number) => {
     const team: OwnUnitView = {
       ...squad(7, [{ id: 1, at: [0, 0, 0] }]),
-      kind: "at",
+      kind: "test_at",
       memberActiveMounts: [tick >= 7 ? 1 : 0],
       weaponPoses: [
         { mount: 0, operator: null, bearing: 0, elevation: 0, shots: tick >= 6 ? 5 : 4 },
@@ -400,7 +407,7 @@ test("a rifle shot still poses its shooter when he receives a carried launcher",
   const at = (tick: number) => {
     const team: OwnUnitView = {
       ...squad(7, [{ id: 1, at: [0, 0, 0] }]),
-      kind: "at",
+      kind: "test_at",
       memberSlots: [1],
       memberActiveMounts: [0],
       weaponPoses: [
@@ -438,7 +445,7 @@ test("a previous weapon's flash cannot attach to the soldier's currently drawn m
   const b = battle();
   const team: OwnUnitView = {
     ...squad(7, [{ id: 1, at: [0, 0, 0] }]),
-    kind: "at",
+    kind: "test_at",
     memberActiveMounts: [1],
     weaponPoses: [{ mount: 1, operator: 1, bearing: 0, elevation: 0, shots: 0 }],
   };
@@ -465,7 +472,7 @@ test("the supported hold aligns the drawn bore and moving carried kit rejects it
   const units = new UnitCatalog({
     ...UNITS.view,
     units: UNITS.view.units.map((u) =>
-      u.id === "at"
+      u.id === "test_at"
         ? {
             ...u,
             mounts: u.mounts.map((m, i) =>
@@ -492,7 +499,7 @@ test("the supported hold aligns the drawn bore and moving carried kit rejects it
   const b = battle(units);
   const team = (x: number): OwnUnitView => ({
     ...squad(7, [{ id: 1, at: [x, 0, 0] }]),
-    kind: "at",
+    kind: "test_at",
     memberActiveMounts: [1],
     weaponPoses: [{ mount: 1, operator: 1, bearing: Math.PI / 2, elevation: 0, shots: 0 }],
   });
@@ -520,12 +527,12 @@ test("an own tank and an identified enemy with the same id keep their own mounts
   const feed = new ObservationFeed("blue", UNITS);
   const own: OwnUnitView = {
     ...squad(3, []),
-    kind: "tank",
+    kind: "test_tank",
     weaponPoses: [{ mount: 0, operator: null, bearing: 0.4, elevation: 0, shots: 1 }],
   };
   const seen: IdentifiedView = {
     ...enemy(3, []),
-    kind: "tank",
+    kind: "test_tank",
     weaponPoses: [{ mount: 0, operator: null, bearing: 2, elevation: 0, shots: 7 }],
   };
   const o = observation(1, [own], { identified: [seen] });
@@ -601,9 +608,9 @@ test("a death seen plays out then lies static; a death unseen is only ever a cor
   const man = { id: 1, at: [0, 0, 0] as Point3 };
   play(b, 0, 5, (tick) => observation(tick, [squad(7, [man])]));
   const fallen: CorpseView[] = [
-    { position: [0, 0, 0], own: true, soldier: 1, kind: "rifle", slot: 0, yaw: 2 },
+    { position: [0, 0, 0], own: true, soldier: 1, kind: "test_rifle", slot: 0, yaw: 2 },
     // Enemy soldier 50 fell where blue never saw him alive.
-    { position: [80, 0, 0], own: false, soldier: 50, kind: "rifle", slot: 0, yaw: 1 },
+    { position: [80, 0, 0], own: false, soldier: 50, kind: "test_rifle", slot: 0, yaw: 1 },
   ];
   const dying = play(b, 6, 8, (tick) => observation(tick, [squad(7, [])], { corpses: fallen }));
   expect(clips(dying)).toEqual({ 1: "death" });
@@ -624,7 +631,7 @@ test("immutable corpse input keeps its converted list across active observation 
     soldier: 12,
     position: [2, 3, 4],
     yaw: 0,
-    kind: "rifle",
+    kind: "test_rifle",
     slot: 0,
     own: true,
   };

@@ -13,8 +13,9 @@ use crate::world::WorldGeometry;
 use contract::encounter::EncounterSites;
 use contract::scenario::Rules;
 
-/// The unit type whose sight is the standard infantry sight.
-pub const INFANTRY: &str = "rifle";
+/// The unit type whose sight is the standard infantry sight: the test rifle
+/// squad, so a roster change moves no sight measurement.
+pub const INFANTRY: &str = "test_rifle";
 
 /// The standard infantry sight: an even circle of the rifle squad's range.
 pub fn infantry_sight(rules: &Rules) -> Sight {
@@ -438,7 +439,7 @@ mod skirmish_tests {
     #[test]
     fn admission_returns_route_selected_sites() {
         let rules: contract::scenario::Rules =
-            serde_json::from_value(crate::fixtures::game()).unwrap();
+            serde_json::from_value(crate::fixtures::test_game()).unwrap();
         let map: contract::map::MapDefinition = serde_json::from_str(
             r#"{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
         )
@@ -481,7 +482,7 @@ mod skirmish_tests {
     #[test]
     fn central_fields_use_fair_reserved_centerline_locations() {
         let rules: contract::scenario::Rules =
-            serde_json::from_value(crate::fixtures::game()).unwrap();
+            serde_json::from_value(crate::fixtures::test_game()).unwrap();
         let map: contract::map::MapDefinition = serde_json::from_str(
             r#"{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
         )
@@ -513,7 +514,7 @@ mod skirmish_tests {
     #[test]
     fn unequal_objective_routes_are_refused() {
         let rules: contract::scenario::Rules =
-            serde_json::from_value(crate::fixtures::game()).unwrap();
+            serde_json::from_value(crate::fixtures::test_game()).unwrap();
         let map: contract::map::MapDefinition = serde_json::from_str(
             r#"{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
         )

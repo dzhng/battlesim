@@ -47,7 +47,7 @@ fn load(presets: Option<&str>) -> Result<Inputs, Box<dyn std::error::Error>> {
         PresetDefinitions::from_json(&presets_json).map_err(|errors| format!("{errors:?}"))?;
     let templates_json = read("prototype-building-templates.json")?;
     let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&templates_json)?)?;
-    let rules_json = sim::fixtures::game().to_string();
+    let rules_json = sim::fixtures::test_game().to_string();
     let config: Value = serde_json::from_str(&read("generated-battle.json")?)?;
     let recipes = EncounterRecipes::from_json(&read("encounters.json")?)?;
     Ok(Inputs {

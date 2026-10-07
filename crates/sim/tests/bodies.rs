@@ -52,7 +52,7 @@ fn vehicle(side: &str, kind: &str, at: [f64; 2]) -> Value {
 #[test]
 fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
     let r = rules();
-    for mover in ["jeep", "supply", "tank"] {
+    for mover in ["test_jeep", "test_supply", "test_tank"] {
         for body in [
             "crate",
             "fence",
@@ -145,8 +145,8 @@ fn shove_setup(red_at: [f64; 2]) -> ScenarioDefinition {
     common::scenario_with(
         &map.to_string(),
         json!([
-            vehicle("blue", "supply", [15.0, 30.0]),
-            { "side": "red", "kind": "rifle", "position": red_at, "engagement": "return_fire_only" },
+            vehicle("blue", "test_supply", [15.0, 30.0]),
+            { "side": "red", "kind": "test_rifle", "position": red_at, "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([drive("blue", 0, [110.0, 30.0])]),
@@ -262,8 +262,8 @@ fn a_smoke_row_blocks_nobody_but_hides_while_it_lasts() {
     let mut b = Battle::new(
         &smoke(
             json!([
-                { "side": "blue", "kind": "rifle", "position": [84, 50], "engagement": "return_fire_only" },
-                vehicle("blue", "tank", [72.0, 38.0]),
+                { "side": "blue", "kind": "test_rifle", "position": [84, 50], "engagement": "return_fire_only" },
+                vehicle("blue", "test_tank", [72.0, 38.0]),
             ]),
             json!([
                 drive("blue", 0, [140.0, 50.0]),
@@ -300,8 +300,8 @@ fn a_smoke_row_hides_from_sensing_and_the_fog_until_it_expires() {
     let mut b = Battle::new(
         &smoke(
             json!([
-                { "side": "blue", "kind": "rifle", "position": [60, 50], "engagement": "return_fire_only" },
-                { "side": "red", "kind": "rifle", "position": [140, 50], "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_rifle", "position": [60, 50], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_rifle", "position": [140, 50], "engagement": "return_fire_only" },
             ]),
             json!([]),
         ),
@@ -340,17 +340,17 @@ fn a_jeep_sees_all_round_and_only_rifles_cannot_hurt_it() {
         .unwrap()
         .def;
     for w in &arsenal.weapons {
-        let hurts = sim::weapons::can_damage(&w.def, Some(&common::hull("jeep").armor));
+        let hurts = sim::weapons::can_damage(&w.def, Some(&common::hull("test_jeep").armor));
         let heavier = w.def.penetration > rifle.penetration;
         assert_eq!(hurts, heavier, "{}", w.id);
     }
-    let range = r.catalog.by_id("jeep").sensors.ground_m;
+    let range = r.catalog.by_id("test_jeep").sensors.ground_m;
     for dx in [-0.9 * range, 0.9 * range] {
         let setup = common::scenario(
             &json!({ "size": [1200, 200], "fog_cell_m": 8, "height_grid_m": 8, "slope_cutoff_deg": 35 }).to_string(),
             json!([
-                vehicle("blue", "jeep", [600.0, 100.0]),
-                { "side": "red", "kind": "rifle", "position": [600.0 + dx, 100], "engagement": "return_fire_only" },
+                vehicle("blue", "test_jeep", [600.0, 100.0]),
+                { "side": "red", "kind": "test_rifle", "position": [600.0 + dx, 100], "engagement": "return_fire_only" },
             ]),
             json!([]),
         );
@@ -372,8 +372,8 @@ fn a_destroyed_jeep_leaves_a_light_wreck() {
         &json!({ "size": [400, 200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 })
             .to_string(),
         json!([
-            vehicle("blue", "jeep", [200.0, 100.0]),
-            { "side": "red", "kind": "tank", "position": [320, 100], "yaw": std::f64::consts::PI },
+            vehicle("blue", "test_jeep", [200.0, 100.0]),
+            { "side": "red", "kind": "test_tank", "position": [320, 100], "yaw": std::f64::consts::PI },
         ]),
         json!([]),
     );
@@ -389,8 +389,11 @@ fn a_destroyed_jeep_leaves_a_light_wreck() {
         .props()
         .find(|p| p.blocks(MoverClass::Vehicle))
         .expect("the jeep left a wreck");
-    assert_eq!(b.world().types().id(wreck.kind), common::hull("jeep").wreck);
-    assert!(common::hull("tank")
+    assert_eq!(
+        b.world().types().id(wreck.kind),
+        common::hull("test_jeep").wreck
+    );
+    assert!(common::hull("test_tank")
         .push_class
         .pushes(wreck.body.weight_class));
 }
@@ -412,15 +415,15 @@ fn a_wreck_is_whatever_prop_type_its_vehicle_names() {
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "jeep",
+        "test_jeep",
         json!({ "body": { "hull": { "wreck": "burnt_out_jeep" } } }),
     );
     let setup: ScenarioDefinition = serde_json::from_value(json!({
         "map": { "size": [400, 200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules,
         "units": [
-            vehicle("blue", "jeep", [200.0, 100.0]),
-            { "side": "red", "kind": "tank", "position": [320, 100], "yaw": std::f64::consts::PI },
+            vehicle("blue", "test_jeep", [200.0, 100.0]),
+            { "side": "red", "kind": "test_tank", "position": [320, 100], "yaw": std::f64::consts::PI },
         ],
         "events": [], "scripts": [],
     }))

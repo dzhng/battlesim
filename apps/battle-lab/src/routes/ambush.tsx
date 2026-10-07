@@ -126,7 +126,7 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
     const marks = buildUnitMarks(
       observation.own.map((u) => ({
         at: [u.position[0], u.position[1]] as const,
-        color: u.kind === "at" ? LAUNCHER_MARK : SCOUT_MARK,
+        color: u.kind === "test_at" ? LAUNCHER_MARK : SCOUT_MARK,
       })),
       surfaceZ,
     );
@@ -135,7 +135,7 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
   }, [world, observation, surfaceZ]);
   const overlayFeed = useFeed(overlay);
 
-  const launchers = (observation?.own ?? []).filter((u) => u.kind === "at");
+  const launchers = (observation?.own ?? []).filter((u) => u.kind === "test_at");
   const command = useCallback(
     (order: Order) => {
       if ("units" in order) control.setSelected(order.units);

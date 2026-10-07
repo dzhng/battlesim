@@ -1,4 +1,4 @@
-"""The supply truck: a 6×6 with four deploy legs and a telescoping mast (and, with --wreck, its burnt wreck).
+"""The test supply truck (test unit art, never game content): a 6×6 with four deploy legs and a telescoping mast (and, with --wreck, its burnt wreck).
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/supply_truck.py -- [out.glb] [--wreck]
 
@@ -26,7 +26,7 @@ OUT = POS[0] if POS else os.path.abspath("supply_truck.glb")
 
 reset()
 
-# sim authority: units.supply.body.hull.half_extents_m [3, 1.4, 1.8]
+# sim authority: units.test_supply.body.hull.half_extents_m [3, 1.4, 1.8]
 TYRE_R = 0.55
 LUG = 0.0175  # tread lugs stand proud of the tyre (radially 0.035 m blocks centred on its surface)
 WHEEL_Z = TYRE_R + LUG  # seated: the lugs touch the ground

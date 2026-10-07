@@ -1,4 +1,4 @@
-"""The main battle tank: an articulated appearance (and, with --wreck, its burnt wreck).
+"""The test tank (test unit art, never game content): an articulated appearance (and, with --wreck, its burnt wreck).
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/tank.py -- [out.glb] [--wreck [--piece=hull|turret]]
 
@@ -35,7 +35,7 @@ MUZZLE_Z = 2.0  # the cannon row's pivot_m[2] + muzzle_m[2]
 
 reset()
 
-# sim authority: units.tank.body.hull.half_extents_m [3.5, 1.8, 1.2]
+# sim authority: units.test_tank.body.hull.half_extents_m [3.5, 1.8, 1.2]
 TRUNNION = Vector((1.70, 0, MUZZLE_Z))
 TURRET_Z = 1.45
 WHEEL_R = 0.33

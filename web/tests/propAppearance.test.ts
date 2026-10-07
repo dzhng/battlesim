@@ -63,7 +63,7 @@ const installed: InstalledAppearances = {
   skeletons: new Map(),
   onRequest: new Map(),
   appearances: new Map([
-    ["tank_wreck", entry("scenery", "wreck", [3.5, 1.8, 1.2], "default")],
+    ["test_tank_wreck", entry("scenery", "wreck", [3.5, 1.8, 1.2], "default")],
     ["truck_wreck", entry("scenery", "wreck", [3, 1.4, 1.8], "default")],
     ["village_ruin", entry("scenery", "ruin", [15, 12, 1], "default")],
     ["field_wall", entry("scenery", "wall", [2, 0.3, 0.8], "default")],
@@ -143,7 +143,7 @@ test("a placed prop takes the appearance nearest its box, scaled to fit it", () 
     authoredProp: null,
   });
   const [tank] = drawnModels([], [wreck([3.5, 1.8, 1.2])], appearances);
-  expect(tank.appearance).toBe("tank_wreck");
+  expect(tank.appearance).toBe("test_tank_wreck");
   expect(tank.scale).toEqual([1, 1, 1]);
   const [truck] = drawnModels([], [wreck([3, 1.4, 1.8])], appearances);
   expect(truck.appearance).toBe("truck_wreck");
@@ -334,7 +334,7 @@ test("the battle installs the map's props and every body a battle can leave or p
   // A deck is only ever a map's: it is installed for a map that has one.
   expect([...appearances.drawnFor([])].sort()).toEqual([
     "field_wall",
-    "tank_wreck",
+    "test_tank_wreck",
     "truck_wreck",
     "village_ruin",
   ]);

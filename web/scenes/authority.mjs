@@ -28,7 +28,7 @@ async function fieldWorks(ctx, page) {
   );
   ctx.check(
     "the jeep is drawn as its appearance",
-    vehicles.some((v) => v.appearance === unitType("jeep").appearance),
+    vehicles.some((v) => v.appearance === unitType("test_jeep").appearance),
     JSON.stringify(vehicles.map((v) => v.appearance)),
   );
   ctx.check(
@@ -67,7 +67,7 @@ export async function run(ctx) {
   // Under heavy load a click can land before a fresh frame; wait for the
   // selection to register, and click once more at a fresh projection if not.
   const tank = await route(page, () =>
-    window.__lab.route.observation().own.find((u) => u.kind === "tank"),
+    window.__lab.route.observation().own.find((u) => u.kind === "test_tank"),
   );
   const selectTank = async () => {
     await route(page, () => window.__lab.frame());
@@ -134,7 +134,7 @@ export async function run(ctx) {
   const log = await page.getByTestId("ack-log").textContent();
   ctx.check(
     "the ack log leads with the verdict's mark and names unit, target, reason and tick, newest first",
-    /✕ #2 move unit #99 .* · rejected: unknown unit✓ #1 move tank #0 to \(8\d, 1\d\d\) · tick \d+/.test(
+    /✕ #2 move unit #99 .* · rejected: unknown unit✓ #1 move test_tank #0 to \(8\d, 1\d\d\) · tick \d+/.test(
       log,
     ),
     log,
@@ -142,7 +142,7 @@ export async function run(ctx) {
   const selection = await page.getByTestId("selection").textContent();
   ctx.check(
     "the panel names the selected unit and its order",
-    /tank #0: moving to \(8\d, 1\d\d\)/.test(selection),
+    /test_tank #0: moving to \(8\d, 1\d\d\)/.test(selection),
     selection,
   );
 

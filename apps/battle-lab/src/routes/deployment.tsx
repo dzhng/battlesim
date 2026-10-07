@@ -64,7 +64,7 @@ function DeploymentLab({ battle }: { battle: SavedBattle }) {
 
   // The truck starts selected, so the buttons act on it at once.
   const { setSelected } = control;
-  const firstSupply = observation?.own.find((u) => u.kind === "supply")?.id ?? null;
+  const firstSupply = observation?.own.find((u) => u.kind === "test_supply")?.id ?? null;
   const autoSelected = useRef<typeof sim.client>(null);
   useEffect(() => {
     if (firstSupply === null || autoSelected.current === sim.client) return;

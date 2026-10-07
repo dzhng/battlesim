@@ -96,16 +96,18 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     replay?: boolean;
     selected?: number[];
   }[] = [
-    { name: "Rifle squad", units: [specimenUnit(catalog, "rifle")] },
-    { name: "Tank ammunition", units: [specimenUnit(catalog, "tank")] },
+    { name: "Rifle squad", units: [specimenUnit(catalog, "test_rifle")] },
+    { name: "Tank ammunition", units: [specimenUnit(catalog, "test_tank")] },
     {
       name: "Suppressed and resupplying",
-      units: [specimenUnit(catalog, "rifle", { suppression: "suppressed", service: "serving" })],
+      units: [
+        specimenUnit(catalog, "test_rifle", { suppression: "suppressed", service: "serving" }),
+      ],
     },
     {
       name: "Deploying supply truck",
       units: [
-        specimenUnit(catalog, "supply", {
+        specimenUnit(catalog, "test_supply", {
           deployment: { progress: 0.4, target: "deployed" },
           stock: 250,
         }),
@@ -113,52 +115,55 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     },
     {
       name: "Mixed capabilities",
-      units: [specimenUnit(catalog, "tank", { id: 1 }), specimenUnit(catalog, "supply", { id: 2 })],
+      units: [
+        specimenUnit(catalog, "test_tank", { id: 1 }),
+        specimenUnit(catalog, "test_supply", { id: 2 }),
+      ],
     },
     {
       name: "Garrison exit",
       units: [
-        specimenUnit(catalog, "rifle", {
+        specimenUnit(catalog, "test_rifle", {
           garrison: { building: 3, phase: "inside", progress: 1, center: [0, 0], half: [10, 10] },
         }),
       ],
     },
     {
       name: "Large selection",
-      units: ["tank", "rifle", "at", "supply", "recon", "jeep"].map((kind, id) =>
-        specimenUnit(catalog, kind, { id }),
+      units: ["test_tank", "test_rifle", "test_at", "test_supply", "test_recon", "test_jeep"].map(
+        (kind, id) => specimenUnit(catalog, kind, { id }),
       ),
     },
     {
       name: "Army roster",
       units: [
-        "tank",
-        "rifle",
-        "at",
-        "supply",
-        "recon",
-        "jeep",
-        "rifle",
-        "at",
-        "tank",
-        "rifle",
-        "recon",
-        "supply",
+        "test_tank",
+        "test_rifle",
+        "test_at",
+        "test_supply",
+        "test_recon",
+        "test_jeep",
+        "test_rifle",
+        "test_at",
+        "test_tank",
+        "test_rifle",
+        "test_recon",
+        "test_supply",
       ].map((kind, id) => specimenUnit(catalog, kind, { id: id + 1 })),
       selected: [1, 2, 3, 4, 5, 6],
     },
     {
       name: "Entire force",
       units: Array.from({ length: 48 }, (_, id) =>
-        specimenUnit(catalog, "rifle", { id, suppression: "suppressed", service: "serving" }),
+        specimenUnit(catalog, "test_rifle", { id, suppression: "suppressed", service: "serving" }),
       ),
     },
     {
       name: "No selection",
-      units: [specimenUnit(catalog, "rifle"), specimenUnit(catalog, "tank", { id: 2 })],
+      units: [specimenUnit(catalog, "test_rifle"), specimenUnit(catalog, "test_tank", { id: 2 })],
       selected: [],
     },
-    { name: "Replay", units: [specimenUnit(catalog, "tank")], replay: true },
+    { name: "Replay", units: [specimenUnit(catalog, "test_tank")], replay: true },
   ];
   const [chosen, setChosen] = useState(0);
   const [mode, setMode] = useState<Parameters<typeof CommandBar>[0]["control"]["mode"]>("move");

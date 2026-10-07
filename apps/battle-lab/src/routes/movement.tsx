@@ -25,7 +25,7 @@ const MOVEMENT_CAMERA: Camera3DParams = {
 /** Reference commands the lab can send, exactly as a player would. */
 const DEMOS: Record<string, (own: OwnUnitView[]) => { order: Order; queued?: boolean }[]> = {
   "Shortest vs fastest": (own) => {
-    const tanks = own.filter((u) => u.kind === "tank").map((u) => u.id);
+    const tanks = own.filter((u) => u.kind === "test_tank").map((u) => u.id);
     return [
       {
         order: {
@@ -62,7 +62,7 @@ const DEMOS: Record<string, (own: OwnUnitView[]) => { order: Order; queued?: boo
     {
       order: {
         kind: "move",
-        units: own.filter((u) => u.kind === "rifle").map((u) => u.id),
+        units: own.filter((u) => u.kind === "test_rifle").map((u) => u.id),
         gesture: 9004,
         goal: [245, 325],
         route: "shortest",
@@ -73,7 +73,7 @@ const DEMOS: Record<string, (own: OwnUnitView[]) => { order: Order; queued?: boo
     {
       order: {
         kind: "move",
-        units: [own.find((u) => u.kind === "supply")!.id],
+        units: [own.find((u) => u.kind === "test_supply")!.id],
         gesture: 9005,
         goal: [455, 345],
         route: "shortest",

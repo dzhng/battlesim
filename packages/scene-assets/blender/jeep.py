@@ -1,8 +1,8 @@
-"""The recon jeep: an open-topped 4×4 with a pedestal HMG (and, with --wreck, its burnt wreck).
+"""The test jeep (test unit art, never game content): an open-topped 4×4 with a pedestal HMG (and, with --wreck, its burnt wreck).
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/jeep.py -- [out.glb] [--wreck]
 
-Built to the simulation's jeep: hull `units.jeep.body.hull.half_extents_m` [2.2, 1.0, 0.95]
+Built to the simulation's test jeep: hull `units.test_jeep.body.hull.half_extents_m` [2.2, 1.0, 0.95]
 and the HMG's `mounts` row: pivot [0, 0, 1.68], muzzle [1.43, 0, 0.32]. The HMG
 is the jeep's turret: its pedestal stands on the hull origin's axis, and the
 simulation swings the muzzle about it.
@@ -23,7 +23,7 @@ OUT = POS[0] if POS else os.path.abspath("jeep.glb")
 
 reset()
 
-# sim authority: units.jeep.body.hull.half_extents_m [2.2, 1.0, 0.95]; the HMG row's pivot_m and muzzle_m
+# sim authority: units.test_jeep.body.hull.half_extents_m [2.2, 1.0, 0.95]; the HMG row's pivot_m and muzzle_m
 TYRE_R = 0.42
 LUG = 0.012
 WHEEL_Z = TYRE_R + LUG  # seated: the lugs touch the ground
@@ -273,7 +273,7 @@ finish(ao_distance=1.0)
 if not WRECK:
     from vehicle_crew import REPO, crew
     # The jeep is a test unit with no faction; its crew wear the test soldier.
-    CREW = str(REPO / "assets/source/infantry/rifle.glb")
+    CREW = str(REPO / "assets/source/test/rifle.glb")
     crew("driver", body, (-0.32, 0.37, 0.96),
          ((0.1, 0.51, 1.24), (0.1, 0.23, 1.24)),
          ((0.35, 0.49, 0.6), (0.35, 0.25, 0.6)), CREW)

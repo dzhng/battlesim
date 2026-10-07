@@ -1,11 +1,11 @@
 {
   "units": [
-    {"side":"blue","kind":"tank","position":[40,190]},
-    {"side":"blue","kind":"tank","position":[40,215]},
-    {"side":"blue","kind":"rifle","position":[70,200]},
-    {"side":"blue","kind":"rifle","position":[70,225]},
-    {"side":"blue","kind":"recon","position":[75,175]},
-    {"side":"blue","kind":"supply","position":[20,240]}
+    {"side":"blue","kind":"test_tank","position":[40,190]},
+    {"side":"blue","kind":"test_tank","position":[40,215]},
+    {"side":"blue","kind":"test_rifle","position":[70,200]},
+    {"side":"blue","kind":"test_rifle","position":[70,225]},
+    {"side":"blue","kind":"test_recon","position":[75,175]},
+    {"side":"blue","kind":"test_supply","position":[20,240]}
   ],
   "events": [
     {"tick":150,"add_prop":{"kind":"wall","center":[160,60],"yaw":0,"half_extents":[0.5,10,2]}}

@@ -2,17 +2,17 @@
   "units": [
     {
       "side": "blue",
-      "kind": "tank",
+      "kind": "test_tank",
       "position": [160, 160]
     },
     {
       "side": "blue",
-      "kind": "recon",
+      "kind": "test_recon",
       "position": [325, 250]
     },
     {
       "side": "blue",
-      "kind": "rifle",
+      "kind": "test_rifle",
       "position": [270, 210]
     }
   ],

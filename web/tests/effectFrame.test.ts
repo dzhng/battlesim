@@ -32,7 +32,7 @@ const HZ = 30;
 const DT = 1 / HZ;
 const PRESENTATION = game.presentation.effects as unknown as EffectPresentation;
 /** The tank's mounts' muzzles, from its type's `mounts` rows. */
-const [CANNON, HMG] = mountMuzzles(UNITS.type("tank").mounts);
+const [CANNON, HMG] = mountMuzzles(UNITS.type("test_tank").mounts);
 /** The cannon at rest, from the hull origin (forward, left, up): its pivot
  *  sits on the turret axis. */
 const MUZZLE = [CANNON!.muzzle[0], CANNON!.muzzle[1], CANNON!.pivot[2] + CANNON!.muzzle[2]];

@@ -14,18 +14,18 @@ fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     }
 }
 
-/// A match on the stand-ins, with a U.S. deck of a tank and a supply truck.
+/// A match on the test units, with a U.S. deck of a tank and a supply truck.
 pub(crate) fn setup() -> contract::scenario::ScenarioDefinition {
     match_on(deck())
 }
 
-/// The stand-ins, with a U.S. deck of a tank and a supply truck.
+/// The test units, with a U.S. deck of a tank and a supply truck.
 fn deck() -> serde_json::Value {
-    let mut rules = sim::fixtures::stand_in_game();
+    let mut rules = sim::fixtures::test_game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "tank",
+        "test_tank",
         json!({
             "cost": 200,
             "roster": { "factions": ["us"], "category": "veh", "family_name": "Test tank", "variant": "Test" }
@@ -34,7 +34,7 @@ fn deck() -> serde_json::Value {
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "supply",
+        "test_supply",
         json!({
             "roster": { "factions": ["us"], "category": "sup", "family_name": "Test truck", "variant": "Test" }
         }),
@@ -116,7 +116,7 @@ fn confirmed_purchases_reserve_credits_and_slots_atomically_during_preparation()
             Side::Blue,
             seq,
             Order::ConfirmPurchase {
-                variant: "tank".into(),
+                variant: "test_tank".into(),
                 destination: [400.0, 300.0],
             },
         ));
@@ -126,7 +126,7 @@ fn confirmed_purchases_reserve_credits_and_slots_atomically_during_preparation()
         Side::Blue,
         6,
         Order::ConfirmPurchase {
-            variant: "tank".into(),
+            variant: "test_tank".into(),
             destination: [400.0, 300.0],
         },
     ));
@@ -155,7 +155,7 @@ fn cancelling_a_pending_purchase_returns_the_price_and_slot_once() {
             Side::Blue,
             1,
             Order::ConfirmPurchase {
-                variant: "tank".into(),
+                variant: "test_tank".into(),
                 destination: [400.0, 300.0]
             }
         ))
@@ -194,7 +194,7 @@ fn paid_reinforcement_enters_at_base_once_and_moves_to_its_destination() {
             Side::Blue,
             1,
             Order::ConfirmPurchase {
-                variant: "tank".into(),
+                variant: "test_tank".into(),
                 destination: [400.0, 300.0]
             }
         ))
@@ -232,7 +232,7 @@ fn occupied_entry_keeps_the_next_paid_unit_pending_without_overlap() {
                 Side::Blue,
                 seq,
                 Order::ConfirmPurchase {
-                    variant: "tank".into(),
+                    variant: "test_tank".into(),
                     destination: [400.0, 10.0]
                 }
             ))
@@ -267,7 +267,7 @@ fn packed_match_header_exposes_only_the_observed_wallet_and_pending_count() {
         Side::Blue,
         1,
         Order::ConfirmPurchase {
-            variant: "tank".into(),
+            variant: "test_tank".into(),
             destination: [400.0, 300.0],
         },
     ));
@@ -324,14 +324,14 @@ fn purchase_admission_refuses_unavailable_wrong_faction_and_invalid_destination_
         (
             1,
             Side::Red,
-            "tank",
+            "test_tank",
             [400.0, 300.0],
             contract::command::OrderError::WrongFaction,
         ),
         (
             2,
             Side::Blue,
-            "tank",
+            "test_tank",
             [-10.0, 300.0],
             contract::command::OrderError::OutOfBounds,
         ),
@@ -370,7 +370,7 @@ fn thirty_pending_units_fill_the_cap_even_when_credits_remain() {
                 Side::Blue,
                 seq,
                 Order::ConfirmPurchase {
-                    variant: "tank".into(),
+                    variant: "test_tank".into(),
                     destination: [400.0, 300.0]
                 }
             ))
@@ -386,7 +386,7 @@ fn thirty_pending_units_fill_the_cap_even_when_credits_remain() {
                 Side::Blue,
                 31,
                 Order::ConfirmPurchase {
-                    variant: "tank".into(),
+                    variant: "test_tank".into(),
                     destination: [400.0, 300.0]
                 }
             ))
@@ -412,7 +412,7 @@ fn purchase_commands_have_a_paired_native_browser_record() {
             Side::Blue,
             1,
             Order::ConfirmPurchase {
-                variant: "tank".into(),
+                variant: "test_tank".into(),
                 destination: [400.0, 300.0],
             },
         ),
@@ -471,7 +471,11 @@ fn preparation_timeout_starts_combat_without_granting_preparation_income() {
 fn the_basic_opponent_buys_from_zero_through_recorded_commands_and_replays_every_tick() {
     // Red's deck: squads, a launcher team and a truck.
     let mut rules = deck();
-    for (id, category) in [("rifle", "inf"), ("at", "inf"), ("supply", "sup")] {
+    for (id, category) in [
+        ("test_rifle", "inf"),
+        ("test_at", "inf"),
+        ("test_supply", "sup"),
+    ] {
         rules["catalog"].as_array_mut().unwrap().push(json!({ "units": { format!("red_{id}"): {
             "extends": id,
             "roster": { "factions": ["eastern"], "category": category, "family_name": id, "variant": "Test" }
@@ -512,7 +516,7 @@ fn a_refund_orders_a_vulnerable_return_and_pays_only_at_base() {
             Side::Blue,
             1,
             Order::ConfirmPurchase {
-                variant: "tank".into(),
+                variant: "test_tank".into(),
                 destination: [400.0, 150.0]
             }
         ))
@@ -608,7 +612,7 @@ fn a_new_order_cancels_withdrawal_without_a_refund() {
         Side::Blue,
         1,
         Order::ConfirmPurchase {
-            variant: "tank".into(),
+            variant: "test_tank".into(),
             destination: [400.0, 150.0],
         },
     ));
@@ -641,11 +645,11 @@ fn a_new_order_cancels_withdrawal_without_a_refund() {
 #[test]
 fn a_destroyed_withdrawing_unit_never_refunds_or_retires() {
     let mut setup = setup();
-    let mut rules = sim::fixtures::stand_in_game();
+    let mut rules = sim::fixtures::test_game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "tank",
+        "test_tank",
         json!({
             "cost":200,"roster":{"factions":["us","eastern"],"category":"veh","family_name":"Test tank","variant":"Test"},
             "body":{"hull":{"hp":0.01}},"sensors":{"ground_m":500},"mobility":{"tracked":{"offroad_kmh":5,"road_kmh":5}}
@@ -660,7 +664,7 @@ fn a_destroyed_withdrawing_unit_never_refunds_or_retires() {
                 side,
                 1,
                 Order::ConfirmPurchase {
-                    variant: "tank".into(),
+                    variant: "test_tank".into(),
                     destination
                 }
             ))
@@ -729,15 +733,15 @@ fn refund_condition_counts_casualties_lost_ammunition_carriers_and_empty_trucks(
     let mut setup = crate::common::scenario_with(
         &json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
             .to_string(),
-        json!([{"side":"blue","kind":"rifle","position":[100,200]}, {"side":"blue","kind":"supply","position":[200,200]}]),
+        json!([{"side":"blue","kind":"test_rifle","position":[100,200]}, {"side":"blue","kind":"test_supply","position":[200,200]}]),
         json!([]),
         json!([]),
     );
-    let mut rules = sim::fixtures::stand_in_game();
+    let mut rules = sim::fixtures::test_game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "soldiers",
-        "grenadier",
+        "test_grenadier",
         json!({"mounts":[{"name":"grenade launcher","weapons":["grenade"],"special":false}]}),
     );
     setup.rules = serde_json::from_value(rules).unwrap();
@@ -763,7 +767,7 @@ fn changing_the_return_route_cancels_withdrawal_without_a_refund() {
         Side::Blue,
         1,
         Order::ConfirmPurchase {
-            variant: "tank".into(),
+            variant: "test_tank".into(),
             destination: [400.0, 150.0],
         },
     ));
@@ -808,7 +812,7 @@ fn an_occupied_base_keeps_the_returning_unit_and_its_slot_without_payment() {
         Side::Blue,
         1,
         Order::ConfirmPurchase {
-            variant: "tank".into(),
+            variant: "test_tank".into(),
             destination: [400.0, 150.0],
         },
     ));
@@ -823,7 +827,7 @@ fn an_occupied_base_keeps_the_returning_unit_and_its_slot_without_payment() {
         Side::Blue,
         3,
         Order::ConfirmPurchase {
-            variant: "tank".into(),
+            variant: "test_tank".into(),
             destination: [400.0, 10.0],
         },
     ));

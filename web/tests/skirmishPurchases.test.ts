@@ -24,7 +24,7 @@ test("native purchases replay in WASM and publish the side wallet, queue and phy
     const prep = frame("blue").skirmish!;
     expect(prep.credits).toBe(800);
     expect(prep.pending).toEqual([
-      { id: 0, kind: "tank", destination: [400, 300], confirmedTick: 1, blocked: false },
+      { id: 0, kind: "test_tank", destination: [400, 300], confirmedTick: 1, blocked: false },
     ]);
     expect(frame("red").skirmish).toMatchObject({ credits: 1000, pending: [] });
     for (const command of record.commands.slice(1))

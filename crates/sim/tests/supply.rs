@@ -44,7 +44,11 @@ fn service() -> Value {
 
 /// Ticks until a freshly placed supply truck is fully deployed.
 fn deploy_ticks() -> u64 {
-    let supply = common::rules().catalog.by_id("supply").capabilities.clone();
+    let supply = common::rules()
+        .catalog
+        .by_id("test_supply")
+        .capabilities
+        .clone();
     (supply.deploy.unwrap().seconds * 30.0) as u64
 }
 
@@ -52,7 +56,7 @@ fn deploy_ticks() -> u64 {
 fn full_stock() -> u32 {
     common::rules()
         .catalog
-        .by_id("supply")
+        .by_id("test_supply")
         .capabilities
         .supply
         .unwrap()
@@ -69,8 +73,10 @@ fn holding(kind: &str, x: f64, condition: Value) -> Value {
 
 fn truck(stock: Option<u32>) -> Value {
     match stock {
-        Some(n) => json!({ "side": "blue", "kind": "supply", "position": [100, 200], "stock": n }),
-        None => json!({ "side": "blue", "kind": "supply", "position": [100, 200] }),
+        Some(n) => {
+            json!({ "side": "blue", "kind": "test_supply", "position": [100, 200], "stock": n })
+        }
+        None => json!({ "side": "blue", "kind": "test_supply", "position": [100, 200] }),
     }
 }
 
@@ -79,7 +85,7 @@ fn nothing_is_served_before_full_deployment() {
     let mut b = battle(
         json!([
             truck(None),
-            holding("at", 130.0, json!({ "spent": { "atgm": 2 } }))
+            holding("test_at", 130.0, json!({ "spent": { "atgm": 2 } }))
         ]),
         1,
     );
@@ -100,7 +106,7 @@ fn rounds_refill_to_capacity_at_their_price_and_rate() {
     let mut b = battle(
         json!([
             truck(None),
-            holding("at", 130.0, json!({ "spent": { "atgm": 2 } }))
+            holding("test_at", 130.0, json!({ "spent": { "atgm": 2 } }))
         ]),
         2,
     );
@@ -129,8 +135,8 @@ fn rounds_refill_to_capacity_at_their_price_and_rate() {
 fn vehicles_are_repaired_but_the_truck_never_serves_itself() {
     let mut b = battle(
         json!([
-            { "side": "blue", "kind": "supply", "position": [100, 200], "condition": { "hp": 30 } },
-            holding("tank", 130.0, json!({ "hp": 90 })),
+            { "side": "blue", "kind": "test_supply", "position": [100, 200], "condition": { "hp": 30 } },
+            holding("test_tank", 130.0, json!({ "hp": 90 })),
         ]),
         3,
     );
@@ -147,7 +153,7 @@ fn casualties_are_replaced_by_new_soldiers_and_the_fallen_stay() {
     let mut b = battle(
         json!([
             truck(None),
-            holding("rifle", 130.0, json!({ "casualties": 2 }))
+            holding("test_rifle", 130.0, json!({ "casualties": 2 }))
         ]),
         4,
     );
@@ -190,7 +196,7 @@ fn a_garrisoned_squad_is_reinforced_inside_its_building() {
     .to_string();
     let units = json!([
         truck(None),
-        { "side": "blue", "kind": "rifle", "position": [150, 214], "engagement": "return_fire_only",
+        { "side": "blue", "kind": "test_rifle", "position": [150, 214], "engagement": "return_fire_only",
           "condition": { "casualties": 2 } },
     ]);
     let scripts = json!([{ "tick": 1, "side": "blue", "order": { "kind": "garrison", "units": [1], "building": 0 } }]);
@@ -226,7 +232,7 @@ fn an_eliminated_squad_is_never_resurrected() {
     let mut b = battle(
         json!([
             truck(None),
-            holding("at", 130.0, json!({ "casualties": 3 }))
+            holding("test_at", 130.0, json!({ "casualties": 3 }))
         ]),
         5,
     );
@@ -240,9 +246,9 @@ fn moving_or_firing_recipients_wait() {
     let mut b = battle(
         json!([
             truck(None),
-            { "side": "blue", "kind": "rifle", "position": [140, 230], "condition": { "casualties": 1 } },
+            { "side": "blue", "kind": "test_rifle", "position": [140, 230], "condition": { "casualties": 1 } },
             // The rifles plink at a tank they cannot hurt (W09).
-            { "side": "red", "kind": "tank", "position": [480, 230], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [480, 230], "engagement": "return_fire_only" },
         ]),
         6,
     );
@@ -286,9 +292,9 @@ fn incoming_fire_does_not_stop_service() {
     let units = json!([
         truck(None),
         // 70 m from the truck: inside its reach.
-        holding("rifle", 170.0, json!({ "casualties": 7 })),
-        { "side": "red", "kind": "recon", "position": [700, 260], "engagement": "return_fire_only" },
-        { "side": "red", "kind": "tank", "position": [1100, 200] },
+        holding("test_rifle", 170.0, json!({ "casualties": 7 })),
+        { "side": "red", "kind": "test_recon", "position": [700, 260], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_tank", "position": [1100, 200] },
     ]);
     let mut judged = 0;
     for seed in 1..=8 {
@@ -331,8 +337,8 @@ fn shared_stock_is_paid_whole_in_unit_order_and_never_regrows() {
     let mut b = battle(
         json!([
             truck(Some(cost + 3)),
-            holding("at", 130.0, json!({ "spent": { "atgm": 1 } })),
-            holding("at", 140.0, json!({ "spent": { "atgm": 1 } })),
+            holding("test_at", 130.0, json!({ "spent": { "atgm": 1 } })),
+            holding("test_at", 140.0, json!({ "spent": { "atgm": 1 } })),
         ]),
         7,
     );
@@ -353,7 +359,10 @@ fn shared_stock_is_paid_whole_in_unit_order_and_never_regrows() {
 #[test]
 fn a_moving_truck_serves_nobody() {
     let mut b = battle(
-        json!([truck(None), holding("tank", 130.0, json!({ "hp": 50 }))]),
+        json!([
+            truck(None),
+            holding("test_tank", 130.0, json!({ "hp": 50 }))
+        ]),
         8,
     );
     run(&mut b, deploy_ticks() + 30);
@@ -385,8 +394,8 @@ fn service_repeats_from_its_seed() {
         battle(
             json!([
                 truck(None),
-                holding("rifle", 130.0, json!({ "casualties": 3 })),
-                holding("tank", 140.0, json!({ "hp": 40 }))
+                holding("test_rifle", 130.0, json!({ "casualties": 3 })),
+                holding("test_tank", 140.0, json!({ "hp": 40 }))
             ]),
             9,
         )
@@ -406,8 +415,8 @@ fn a_unit_in_a_fight_is_not_served_between_its_shots() {
     let mut b = battle(
         json!([
             truck(None),
-            { "side": "blue", "kind": "rifle", "position": [140, 230], "condition": { "casualties": 2 } },
-            { "side": "red", "kind": "tank", "position": [480, 230], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [140, 230], "condition": { "casualties": 2 } },
+            { "side": "red", "kind": "test_tank", "position": [480, 230], "engagement": "return_fire_only" },
         ]),
         11,
     );
@@ -435,8 +444,8 @@ fn an_empty_truck_never_blocks_a_stocked_one() {
     let mut b = battle(
         json!([
             truck(Some(0)),
-            { "side": "blue", "kind": "supply", "position": [110, 230] },
-            holding("tank", 130.0, json!({ "hp": 90 })),
+            { "side": "blue", "kind": "test_supply", "position": [110, 230] },
+            holding("test_tank", 130.0, json!({ "hp": 90 })),
         ]),
         12,
     );
@@ -453,7 +462,7 @@ fn trucks_are_never_serviced_even_by_each_other() {
     let mut b = battle(
         json!([
             truck(None),
-            { "side": "blue", "kind": "supply", "position": [110, 230], "condition": { "hp": 20 } },
+            { "side": "blue", "kind": "test_supply", "position": [110, 230], "condition": { "hp": 20 } },
         ]),
         13,
     );
@@ -468,7 +477,7 @@ fn ammunition_comes_before_soldiers_and_an_empty_launcher_reloads() {
         json!([
             truck(None),
             holding(
-                "at",
+                "test_at",
                 130.0,
                 json!({ "spent": { "atgm": 4 }, "casualties": 1 })
             )
@@ -495,8 +504,8 @@ fn replacements_get_fresh_ids_unique_across_the_battle() {
     let mut b = battle(
         json!([
             truck(None),
-            holding("rifle", 130.0, json!({ "casualties": 2 })),
-            holding("recon", 150.0, json!({}))
+            holding("test_rifle", 130.0, json!({ "casualties": 2 })),
+            holding("test_recon", 150.0, json!({}))
         ]),
         15,
     );
@@ -520,7 +529,10 @@ fn replacements_get_fresh_ids_unique_across_the_battle() {
 #[test]
 fn a_truck_on_the_move_serves_nobody() {
     let mut b = battle(
-        json!([truck(None), holding("tank", 130.0, json!({ "hp": 50 }))]),
+        json!([
+            truck(None),
+            holding("test_tank", 130.0, json!({ "hp": 50 }))
+        ]),
         16,
     );
     run(&mut b, deploy_ticks() + 30);

@@ -22,7 +22,7 @@ use sim::world::WorldGeometry;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub fn game() -> Value {
-    sim::fixtures::game()
+    sim::fixtures::test_game()
 }
 
 /// The shipped prop types.
@@ -162,7 +162,7 @@ pub fn soldier_shape() -> Shape {
 }
 
 pub fn tank_shape() -> Shape {
-    let [x, y, z] = hull("tank").half_extents_m;
+    let [x, y, z] = hull("test_tank").half_extents_m;
     Shape::Box { half: v3(x, y, z) }
 }
 
@@ -337,7 +337,7 @@ impl TankHulls {
         TankHulls {
             hulls: hulls.into_iter().map(BodyId).collect(),
             rounds: BTreeMap::new(),
-            armor: hull("tank").armor,
+            armor: hull("test_tank").armor,
             rules: ricochet_rules(),
             rng: Rng::new(seed),
         }

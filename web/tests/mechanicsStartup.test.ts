@@ -15,9 +15,11 @@ test("page startup captures one accepted rules and presentation generation", asy
   const catalog = structuredClone(baselineCatalog);
   game.weapons.grenade.speed_mps = 123;
   catalog.weapons.grenade.speed_mps = 123;
-  const tank = catalog.units.find((unit) => unit.id === "tank")!;
-  tank.name = "Snapshot tank";
-  catalog.documents[0].units.tank.name = "Snapshot tank";
+  // Whichever unit the game's catalog lists first: the game's units are the
+  // roster's, and this names none of them.
+  const unit = catalog.units[0];
+  unit.name = "Snapshot unit";
+  (catalog.documents[0].units as Record<string, { name: string }>)[unit.id].name = "Snapshot unit";
   const fetcher = vi.fn(
     async () =>
       new Response(
@@ -25,6 +27,7 @@ test("page startup captures one accepted rules and presentation generation", asy
           revision: "accepted",
           documents: [{ path: "fixtures/game.json", value: game }],
           catalog,
+          game: catalog,
         }),
       ),
   );
@@ -35,8 +38,10 @@ test("page startup captures one accepted rules and presentation generation", asy
       const { units, weapons, rules } = await catalogSet("game");
       expect(rules.weapons.grenade.speed_mps).toBe(123);
       expect(weapons.grenade.speed_mps).toBe(123);
-      expect(units.type("tank").name).toBe("Snapshot tank");
-      expect(JSON.parse(JSON.stringify(rules)).catalog[0].units.tank.name).toBe("Snapshot tank");
+      expect(units.type(unit.id).name).toBe("Snapshot unit");
+      expect(JSON.parse(JSON.stringify(rules)).catalog[0].units[unit.id].name).toBe(
+        "Snapshot unit",
+      );
       // Saving elsewhere changes the next response, never this page's values.
       game.weapons.grenade.speed_mps = 456;
       catalog.weapons.grenade.speed_mps = 456;

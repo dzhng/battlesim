@@ -12,7 +12,7 @@ export async function concealmentTour(ctx) {
   try {
     const frame = await obs(page);
     const unit = frame.own
-      .filter((u) => u.kind === "rifle")
+      .filter((u) => u.kind === "test_rifle")
       .sort(
         (a, b) =>
           Math.hypot(a.position[0] - 866, a.position[1] - 956) -

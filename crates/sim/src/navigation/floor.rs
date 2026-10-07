@@ -115,12 +115,12 @@ mod tests {
     use std::sync::Arc;
 
     fn floor_movers(rules: &Rules) -> [Mobility; 2] {
-        ["rifle", "jeep"].map(|id| crate::units::mobility(rules.catalog.by_id(id), rules))
+        ["test_rifle", "test_jeep"].map(|id| crate::units::mobility(rules.catalog.by_id(id), rules))
     }
 
     #[test]
     fn a_prop_only_catalog_has_no_required_infantry_or_jeep_kind() {
-        let mut input = crate::fixtures::game();
+        let mut input = crate::fixtures::test_game();
         input["forests"]["rule"]["logs_per_ha"] = serde_json::json!(5);
         input["forests"]["rule"]["boulders_per_ha"] = serde_json::json!(3);
         for document in input["catalog"].as_array_mut().unwrap() {
@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn isolated_cover_is_admitted_with_routes_around_it() {
-        let rules: Rules = serde_json::from_value(crate::fixtures::game()).unwrap();
+        let rules: Rules = serde_json::from_value(crate::fixtures::test_game()).unwrap();
         let map: MapDefinition = serde_json::from_value(serde_json::json!({
             "size":[100,100], "fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
             "props":[{"kind":"boulder","center":[50,50],"yaw":0,"half_extents":[2,1,1]}]
@@ -180,13 +180,13 @@ mod tests {
         }))
         .unwrap();
         for (half_width, accepted) in [(1.0, true), (4.0, false)] {
-            let mut input = crate::fixtures::game();
+            let mut input = crate::fixtures::test_game();
             // A hull this wide is past what the game admits.
             crate::fixtures::lift_hull_limits(&mut input);
             for document in input["catalog"].as_array_mut().unwrap() {
                 if let Some(jeep) = document
                     .get_mut("units")
-                    .and_then(|units| units.get_mut("jeep"))
+                    .and_then(|units| units.get_mut("test_jeep"))
                 {
                     jeep["body"]["hull"]["half_extents_m"][1] = serde_json::json!(half_width);
                 }
@@ -210,7 +210,7 @@ mod tests {
 
     #[test]
     fn floor_admission_rejects_a_new_pocket_and_retains_the_route() {
-        let rules: Rules = serde_json::from_value(crate::fixtures::game()).unwrap();
+        let rules: Rules = serde_json::from_value(crate::fixtures::test_game()).unwrap();
         let map: MapDefinition = serde_json::from_value(serde_json::json!({
             "size":[200,200], "fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
             "props":[

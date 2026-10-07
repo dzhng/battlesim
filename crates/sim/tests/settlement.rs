@@ -14,8 +14,8 @@ fn lethal_damage_keeps_the_rounds_dead_shooter() {
         &json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
             .to_string(),
         json!([
-            {"side":"blue","kind":"tank","position":[100,300]},
-            {"side":"red","kind":"tank","position":[200,300]}
+            {"side":"blue","kind":"test_tank","position":[100,300]},
+            {"side":"red","kind":"test_tank","position":[200,300]}
         ]),
         json!([]),
         json!([]),
@@ -89,7 +89,7 @@ fn direct_and_blast_structural_damage_keep_the_same_round_source() {
             {"kind":"crate","center":[204,304],"yaw":0,"half_extents":[0.5,0.5,0.5]}
         ]})
         .to_string(),
-        json!([{ "side":"blue","kind":"tank","position":[100,300]}]),
+        json!([{ "side":"blue","kind":"test_tank","position":[100,300]}]),
         json!([]),
         json!([]),
     );
@@ -187,7 +187,7 @@ fn pass_through_structural_hit_keeps_round_source() {
         &json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
             "props":[{"kind":"sandbags","center":[200,300],"yaw":0,"half_extents":[0.5,2,0.5]}]})
         .to_string(),
-        json!([{ "side":"blue","kind":"tank","position":[100,300]}]),
+        json!([{ "side":"blue","kind":"test_tank","position":[100,300]}]),
         json!([]),
         json!([]),
     );
@@ -279,11 +279,11 @@ fn friendly_and_source_free_deaths_preserve_bounty_and_pay_nothing() {
 fn unseen_purchased_kill_changes_wallet_without_enemy_identity_and_replays() {
     use contract::command::{CommandEnvelope, Order, TargetRef};
     let mut setup = crate::skirmish::setup();
-    let mut rules = sim::fixtures::stand_in_game();
+    let mut rules = sim::fixtures::test_game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "tank",
+        "test_tank",
         json!({
             "cost":200,
             "roster":{"factions":["us","eastern"],"category":"veh","family_name":"Test tank","variant":"Test"},
@@ -308,7 +308,7 @@ fn unseen_purchased_kill_changes_wallet_without_enemy_identity_and_replays() {
             side,
             1,
             Order::ConfirmPurchase {
-                variant: "tank".into(),
+                variant: "test_tank".into(),
                 destination,
             },
         );
@@ -401,8 +401,8 @@ fn squad_emits_one_death_only_when_its_last_soldier_dies() {
         &json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
             .to_string(),
         json!([
-            {"side":"blue","kind":"tank","position":[100,300]},
-            {"side":"red","kind":"rifle","position":[200,300]}
+            {"side":"blue","kind":"test_tank","position":[100,300]},
+            {"side":"red","kind":"test_rifle","position":[200,300]}
         ]),
         json!([]),
         json!([]),
@@ -480,9 +480,9 @@ fn one_blast_preserves_source_for_multiple_full_unit_deaths() {
         &json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
             .to_string(),
         json!([
-            {"side":"blue","kind":"tank","position":[100,300]},
-            {"side":"red","kind":"jeep","position":[200,300]},
-            {"side":"red","kind":"jeep","position":[204,300]}
+            {"side":"blue","kind":"test_tank","position":[100,300]},
+            {"side":"red","kind":"test_jeep","position":[200,300]},
+            {"side":"red","kind":"test_jeep","position":[204,300]}
         ]),
         json!([]),
         json!([]),

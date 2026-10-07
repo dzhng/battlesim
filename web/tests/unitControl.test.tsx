@@ -19,7 +19,9 @@ const catalog = {
   units: new UnitCatalog({
     ...TEST_CATALOG.units.view,
     units: TEST_CATALOG.units.view.units.map((type) =>
-      type.id === "recon" ? { ...type, roles: TEST_CATALOG.units.type("rifle").roles } : type,
+      type.id === "test_recon"
+        ? { ...type, roles: TEST_CATALOG.units.type("test_rifle").roles }
+        : type,
     ),
   }),
 };
@@ -55,7 +57,7 @@ const contact = (id: number, center: [number, number], radius: number): ContactV
 /** A rifle squad (armed) and a supply truck (unarmed), both selected. */
 async function control(contacts: ContactView[] = []) {
   const observation = {
-    own: [own(1, "rifle"), own(2, "supply")],
+    own: [own(1, "test_rifle"), own(2, "test_supply")],
     contacts,
   } as unknown as ObservationView;
   const { client, sent } = recordingClient();
@@ -183,7 +185,7 @@ test("the contact under a ground point is the one whose area holds it, the neare
 
 test("every order sent is heard as it goes, a queued (Shift) one too", async () => {
   // The order flash starts from this hook: it hears what is sent.
-  const observation = { own: [own(1, "rifle")], contacts: [] } as unknown as ObservationView;
+  const observation = { own: [own(1, "test_rifle")], contacts: [] } as unknown as ObservationView;
   const { client, sent } = recordingClient();
   const heard: { order: Order; queued: boolean }[] = [];
   const hook = renderHook(
@@ -205,7 +207,7 @@ test("every order sent is heard as it goes, a queued (Shift) one too", async () 
 test("losing a selected unit leaves survivors commandable without reselecting", async () => {
   const { client, sent } = recordingClient();
   const observation = (ids: number[]) =>
-    ({ own: ids.map((id) => own(id, "rifle")), contacts: [] }) as unknown as ObservationView;
+    ({ own: ids.map((id) => own(id, "test_rifle")), contacts: [] }) as unknown as ObservationView;
   const hook = renderHook(({ ids }) => useUnitControl(client, observation(ids)), {
     wrapper,
     initialProps: { ids: [1, 2] },
@@ -242,7 +244,7 @@ test("losing a selected unit leaves survivors commandable without reselecting", 
 
 test("successive double-clicks widen type to role; external selection and timeout start over", () => {
   const observation = {
-    own: [own(1, "rifle"), own(2, "rifle"), own(3, "recon")],
+    own: [own(1, "test_rifle"), own(2, "test_rifle"), own(3, "test_recon")],
     contacts: [],
   } as unknown as ObservationView;
   const { client } = recordingClient();
@@ -304,7 +306,7 @@ test("a captured building intent keeps its selection, target and modifiers when 
 test("a casualty during a captured press leaves the surviving original selection commandable", async () => {
   const { client, sent } = recordingClient();
   const observation = (ids: number[]) =>
-    ({ own: ids.map((id) => own(id, "rifle")), contacts: [] }) as unknown as ObservationView;
+    ({ own: ids.map((id) => own(id, "test_rifle")), contacts: [] }) as unknown as ObservationView;
   const hook = renderHook(({ ids }) => useUnitControl(client, observation(ids)), {
     wrapper,
     initialProps: { ids: [1, 2, 3] },
@@ -335,7 +337,7 @@ test("a captured contact that expires is refused locally instead of repicking th
   const { client, sent } = recordingClient();
   const observation = (contact: boolean) =>
     ({
-      own: [own(1, "rifle")],
+      own: [own(1, "test_rifle")],
       contacts: contact ? [{ id: 7 }] : [],
     }) as unknown as ObservationView;
   const hook = renderHook(({ contact }) => useUnitControl(client, observation(contact)), {
@@ -371,7 +373,7 @@ test("an old client's delayed acknowledgement cannot repopulate a reset log", as
       }),
   } as unknown as SimClient;
   const fresh = recordingClient().client;
-  const observation = { own: [own(1, "rifle")], contacts: [] } as unknown as ObservationView;
+  const observation = { own: [own(1, "test_rifle")], contacts: [] } as unknown as ObservationView;
   const hook = renderHook(({ client }) => useUnitControl(client, observation), {
     wrapper,
     initialProps: { client: old },
@@ -394,7 +396,7 @@ test("an old client's delayed acknowledgement cannot repopulate a reset log", as
 
 test("blocked battle input preserves selection and armed mode without issuing shortcuts", async () => {
   const { client, sent } = recordingClient();
-  const observation = { own: [own(1, "rifle")], contacts: [] } as unknown as ObservationView;
+  const observation = { own: [own(1, "test_rifle")], contacts: [] } as unknown as ObservationView;
   const hook = renderHook(
     ({ enabled }) => useUnitControl(client, observation, undefined, enabled),
     {

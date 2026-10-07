@@ -6,7 +6,7 @@ test("a saved encounter becomes the scenario natively built from it: its opponen
   const map = { size: [100, 100] };
   const rules = { tick_hz: 30 };
   const saved = {
-    units: [{ side: "blue", kind: "tank", position: [1, 2] }],
+    units: [{ side: "blue", kind: "test_tank", position: [1, 2] }],
     scripts: [{ tick: 0, side: "blue", order: { kind: "stop", units: [0] } }],
     opponent: { side: "red", garrisons: [] },
     encounter: { attacker: "blue" },
