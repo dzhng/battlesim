@@ -591,7 +591,7 @@ fn request_route(
                     && {
                         let grid = side.grid(ctx.world, ctx.authored);
                         !grid.route_fits(from, route, &unit.mobility)
-                            || grid.route_pushes_beyond(from, route, &unit.mobility, swerve)
+                            || grid.route_pushes(from, route, &unit.mobility, swerve)
                     })
         }
     };

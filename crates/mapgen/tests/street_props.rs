@@ -314,7 +314,7 @@ fn route(
     };
     match navigation::plan(&map.grid, &map.roads, leg, &rules.navigation).0 {
         Plan::Route(points) => {
-            let pushes = map.grid.route_pushes(start, &points, m);
+            let pushes = map.grid.route_pushes(start, &points, m, 0.0);
             Some((points, pushes))
         }
         Plan::Blocked(_) => None,

@@ -290,39 +290,24 @@ impl NavGrid {
         offer(w - p.x, v2(-1.0, 0.0));
         offer(p.y, v2(0.0, 1.0));
         offer(d - p.y, v2(0.0, -1.0));
-        let (i0, j0) = cell_of(p - v2(cap, cap));
-        let (i1, j1) = cell_of(p + v2(cap, cap));
-        let mut buckets = Vec::new();
-        let mut reads = 0usize;
-        for j in j0..=j1 {
-            for i in i0..=i1 {
-                let Some(k) = self.index(i, j) else {
-                    continue;
-                };
-                reads += 1;
-                if !self.cells[k].ground {
-                    let c = cell_center(i as usize, j as usize);
-                    let half = NAV_CELL_M / 2.0;
-                    let q = v2(
-                        p.x.clamp(c.x - half, c.x + half),
-                        p.y.clamp(c.y - half, c.y + half),
-                    );
-                    let at = (p - q).length();
-                    offer(
-                        at,
-                        if at > 0.0 {
-                            (p - q) * (1.0 / at)
-                        } else {
-                            v2(0.0, 0.0)
-                        },
-                    );
-                }
-                let bucket = body_bucket(i as usize, j as usize, self.nx);
-                if !buckets.contains(&bucket) {
-                    buckets.push(bucket);
-                }
+        let (buckets, mut reads, _) = self.scan(p - v2(cap, cap), p + v2(cap, cap), |c, cell| {
+            if !cell.ground {
+                let half = NAV_CELL_M / 2.0;
+                let q = v2(
+                    p.x.clamp(c.x - half, c.x + half),
+                    p.y.clamp(c.y - half, c.y + half),
+                );
+                let at = (p - q).length();
+                offer(
+                    at,
+                    if at > 0.0 {
+                        (p - q) * (1.0 / at)
+                    } else {
+                        v2(0.0, 0.0)
+                    },
+                );
             }
-        }
+        });
         for bucket in buckets {
             for body in self.bodies_in(bucket) {
                 reads += 1;
@@ -350,21 +335,10 @@ impl NavGrid {
     ) -> bool {
         let lo = v2(a.x.min(b.x), a.y.min(b.y)) - v2(radius, radius);
         let hi = v2(a.x.max(b.x), a.y.max(b.y)) + v2(radius, radius);
-        let ((i0, j0), (i1, j1)) = (cell_of(lo), cell_of(hi));
-        let mut buckets = Vec::new();
-        let (mut reads, mut banks) = (0usize, false);
-        for j in j0..=j1 {
-            for i in i0..=i1 {
-                let Some(k) = self.index(i, j) else {
-                    return false;
-                };
-                reads += 1;
-                banks |= !self.cells[k].ground;
-                let bucket = body_bucket(i as usize, j as usize, self.nx);
-                if !buckets.contains(&bucket) {
-                    buckets.push(bucket);
-                }
-            }
+        let mut banks = false;
+        let (buckets, mut reads, on_map) = self.scan(lo, hi, |_, cell| banks |= !cell.ground);
+        if !on_map {
+            return false;
         }
         let mut clear = true;
         'bodies: for bucket in buckets {
@@ -384,6 +358,29 @@ impl NavGrid {
             && (!banks
                 || (1..n)
                     .all(|k| self.ground_clear(a + (b - a) * (k as f64 / n as f64), radius, paid)))
+    }
+
+    /// Visit each cell of the box from `lo` to `hi` on the map with its
+    /// centre: the body buckets they lie in, how many cells there were, and
+    /// whether the whole box is on the map.
+    fn scan(&self, lo: V2, hi: V2, mut visit: impl FnMut(V2, &Cell)) -> (Vec<usize>, usize, bool) {
+        let ((i0, j0), (i1, j1)) = (cell_of(lo), cell_of(hi));
+        let (mut buckets, mut cells, mut on_map) = (Vec::new(), 0, true);
+        for j in j0..=j1 {
+            for i in i0..=i1 {
+                let Some(k) = self.index(i, j) else {
+                    on_map = false;
+                    continue;
+                };
+                cells += 1;
+                visit(cell_center(i as usize, j as usize), &self.cells[k]);
+                let bucket = body_bucket(i as usize, j as usize, self.nx);
+                if !buckets.contains(&bucket) {
+                    buckets.push(bucket);
+                }
+            }
+        }
+        (buckets, cells, on_map)
     }
 
     /// The bodies in a bucket after this side's replacements and removals.

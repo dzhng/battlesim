@@ -48,7 +48,9 @@ Fog eyes use published positions while model motion may interpolate. Unknown
 occluders cannot enter a side's fog. A ray squeezing between occluders, one on
 each side, with less than `sensors.min_sight_gap_m` of room on its two sides
 together is blocked there, as the simulation's sight is (`WorldGeometry::squeezed`),
-so the fog draws no sliver of sight between houses. Seen ground and sun shadow must remain visually
+so the fog draws no sliver of sight between houses. The horizon build counts the
+nearest occluder either side of each ray, so it may close a squeeze a little later
+along the ray than sight does. Seen ground and sun shadow must remain visually
 distinct from unseen ground; [fog and light rationale](../../specs/done/battle-look/README.md)
 records that design requirement.
 

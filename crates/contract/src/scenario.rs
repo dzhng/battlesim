@@ -508,9 +508,10 @@ pub struct SensorRules {
     pub sound_bucket_s: f64,
     /// Height above ground tested for ground visibility.
     pub fog_target_height_m: f64,
-    /// Sight passes between two bodies that hide what lies behind them only
-    /// through a gap at least this wide: no one is seen through the crack
-    /// between two houses (`world::SightGaps`).
+    /// A line of sight squeezing between bodies that hide what lies behind
+    /// them, one either side, needs at least this much room on its two sides
+    /// together: no one is seen through the crack between two houses, nor the
+    /// sliver between a near one and a far one (`WorldGeometry::squeezed`).
     pub min_sight_gap_m: f64,
 }
 

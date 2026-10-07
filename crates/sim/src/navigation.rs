@@ -82,9 +82,9 @@ pub fn plan(
 }
 
 pub const NAV_CELL_M: f64 = 2.0;
-/// How many times a tight cell's seat moves away from what stands nearest,
-/// and the hair it keeps beyond the footprint's half width when it does.
+/// How many times a tight cell's seat moves away from what stands nearest.
 const SEAT_TRIES: usize = 3;
+/// The hair a seat keeps beyond the footprint's half width when it moves.
 const SEAT_SLACK_M: f64 = 1e-3;
 /// A step through a tight cell is checked at this spacing.
 const STEP_CHECK_M: f64 = 0.4;
@@ -745,14 +745,9 @@ impl NavGrid {
     /// Whether any part of the remaining route crosses a known body this
     /// footprint would shove aside: a pusher weighs every such body against
     /// a detour when it learns of it (Q13).
-    pub fn route_pushes(&self, from: V2, route: &[V2], m: &Mobility) -> bool {
-        self.route_pushes_beyond(from, route, m, 0.0)
-    }
-
-    /// [`route_pushes`](Self::route_pushes), counting only bodies more than
-    /// `reach` metres along it: one nearer than a vehicle can steer round
-    /// is pushed through, not weighed again.
-    pub fn route_pushes_beyond(&self, from: V2, route: &[V2], m: &Mobility, reach: f64) -> bool {
+    /// Only bodies more than `reach` metres along it count: one nearer than a
+    /// vehicle can steer round is pushed through, not weighed again.
+    pub fn route_pushes(&self, from: V2, route: &[V2], m: &Mobility, reach: f64) -> bool {
         if m.class == MoverClass::Infantry {
             return false;
         }

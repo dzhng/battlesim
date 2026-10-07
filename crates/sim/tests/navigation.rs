@@ -1005,8 +1005,8 @@ fn a_stamped_car_cell_does_not_mean_a_clear_drive_shoves_the_car() {
         half_width_m: 1.0,
         ..TANK
     };
-    assert!(!g.route_pushes(v2(180.0, 104.01), &[v2(220.0, 104.01)], &vehicle));
-    assert!(g.route_pushes(v2(180.0, 105.2), &[v2(220.0, 105.2)], &vehicle));
+    assert!(!g.route_pushes(v2(180.0, 104.01), &[v2(220.0, 104.01)], &vehicle, 0.0));
+    assert!(g.route_pushes(v2(180.0, 105.2), &[v2(220.0, 105.2)], &vehicle, 0.0));
 }
 
 /// Refining roadside bodies does not give a vehicle permission to hang
