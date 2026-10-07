@@ -73,9 +73,12 @@ fn catalogue() -> TemplateGeometryCatalog {
     TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap()).unwrap()
 }
 
-/// The stand-in units: what streets are dressed for and driven by.
+/// The stand-in units and a hull at each drive's limits: what streets are
+/// dressed for and driven by.
 fn game() -> serde_json::Value {
-    sim::fixtures::stand_in_game()
+    let mut game = sim::fixtures::stand_in_game();
+    sim::fixtures::with_units_at_limits(&mut game);
+    game
 }
 
 fn rules() -> Rules {
@@ -274,8 +277,8 @@ fn compiled(
     .map
 }
 
-/// The hulls of [`rules`] (the stand-ins' tank, truck and jeep) as movers,
-/// the widest first.
+/// The hulls of [`rules`] (the stand-ins' tank, truck and jeep, and a hull
+/// at each drive's limits) as movers, the widest first.
 fn vehicles(rules: &Rules) -> Vec<(String, Mobility)> {
     let catalog = &rules.catalog;
     let mut hulls: Vec<(String, Mobility)> = catalog

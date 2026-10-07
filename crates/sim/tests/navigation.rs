@@ -1031,3 +1031,50 @@ fn vehicle_placement_keeps_its_footprint_on_traversable_ground() {
     assert!(g.placement_fits(v2(184.0, 50.0), &TANK));
     assert!(g.placement_fits(v2(216.0, 50.0), &TANK));
 }
+
+/// A hull at either drive's width limit finds its way between two walls
+/// standing two metres clear of it either side (the room a generated street
+/// leaves beside a body a hull cannot shove), whatever the way's heading and
+/// however it lies across the grid's cells: the planner judges room by the
+/// bodies themselves, not only by whole cells, so a truck is not turned back
+/// from a street it plainly fits. (On the cells alone it needs eight metres
+/// or more.)
+#[test]
+fn a_hull_at_the_width_limit_fits_a_way_two_metres_wider_either_side() {
+    let limits = crate::common::rules().hull_limits;
+    for half_width_m in [limits.tracked.half_width_m, limits.wheeled.half_width_m] {
+        let hull = Mobility {
+            half_width_m,
+            push: PushClass::Medium,
+            ..TANK
+        };
+        let way = 2.0 * half_width_m + 4.0;
+        for deg in (0..=45).step_by(5) {
+            let (s, c) = f64::from(deg).to_radians().sin_cos();
+            // Across the cells in steps of a fifth of one.
+            for shift in [0.0, 0.4, 0.8, 1.2, 1.6] {
+                let at = |along: f64, right: f64| {
+                    v2(200.0 + c * along + s * right, 100.0 + s * along - c * right)
+                };
+                let wall = |side: f64| {
+                    let p = at(0.0, shift + side * (way / 2.0 + 0.5));
+                    format!(
+                        r#"{{"kind":"wall","center":[{},{}],"yaw":{},"half_extents":[180,0.5,3]}}"#,
+                        p.x,
+                        p.y,
+                        f64::from(deg).to_radians()
+                    )
+                };
+                let w = world(&format!(r#","props":[{},{}]"#, wall(1.0), wall(-1.0)));
+                let (from, goal) = (at(-40.0, shift), at(40.0, shift));
+                let plan = grid(&w).plan(from, goal, &hull, RoutePolicy::Shortest);
+                assert!(
+                    matches!(&plan, Plan::Route(r) if route_length(from, r) < 90.0),
+                    "a hull {:.1} m wide is turned from a way {way:.1} m wide at {deg}°, \
+                     {shift} m across: {plan:?}",
+                    2.0 * half_width_m
+                );
+            }
+        }
+    }
+}

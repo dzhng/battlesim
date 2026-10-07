@@ -412,14 +412,18 @@ fn with_no_detour_worth_its_ground_a_truck_stops_short() {
 /// (the shipped one by default), pulls up short of the car on its way.
 fn stops_short_of_the_wreck(ratio: Option<f64>) {
     let bearing = 0.0;
-    // The abandoned car, half across the middle and turned off the street.
-    let wreck = at(bearing, 20.0, 0.3);
+    // Two cars abandoned side by side, turned off the street, one half
+    // across the middle: with the cars parked at the kerb they close it to a
+    // truck, leaving under its width between any two.
     let mut map = street(bearing, true);
-    map["props"]
-        .as_array_mut()
-        .unwrap()
-        .push(json!({ "kind": "parked_car",
-        "center": wreck, "yaw": bearing + 0.45, "half_extents": [CAR[0], CAR[1], 0.75] }));
+    for right in [0.3, -3.5] {
+        map["props"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({ "kind": "parked_car",
+            "center": at(bearing, 20.0, right), "yaw": bearing + 0.45,
+            "half_extents": [CAR[0], CAR[1], 0.75] }));
+    }
     // A truck at the wheeled limits: as wide, as long and as wide-turning as
     // any wheeled hull a battle may field.
     let mut rules = common::scenario_rules();

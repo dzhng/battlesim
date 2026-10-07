@@ -586,27 +586,42 @@ impl NavGrid {
 
     /// Whether a footprint fits with its centre in this cell.
     fn fits(&self, cell: usize, who: Mover) -> bool {
-        self.fits_off_centre(cell, who, 0.0, true)
+        self.fits_off_centre(cell, who, 0.0, true, true)
     }
 
     /// Whether a footprint fits passing `off` metres from this cell's
     /// centre. A cell's room is measured from its centre, so a vehicle
-    /// passing to one side of it has that much less.
-    fn fits_off_centre(&self, cell: usize, who: Mover, off: f64, paid: bool) -> bool {
+    /// passing to one side of it has that much less. A vehicle short of the
+    /// cell's room by less than a cell is judged against the bodies and
+    /// ground themselves, at the centre, unless `exact` is false: a segment
+    /// judges its own points instead.
+    fn fits_off_centre(&self, cell: usize, who: Mover, off: f64, paid: bool, exact: bool) -> bool {
         let m = who.m;
         let c = &self.cells[cell];
-        // The nearest blocked cell's centre is `clearance` away; its near edge
-        // half a cell closer.
+        let center = cell_center(cell % self.nx, cell / self.nx);
         let enters = match m.class {
             // Infantry's room is its sub-cell gap, judged at build.
             MoverClass::Infantry => c.infantry,
             MoverClass::Vehicle => {
+                // The nearest blocked cell's centre is `clearance` away; its
+                // near edge half a cell closer. A body blocks a cell it comes
+                // within half a cell of, so the bodies themselves may stand up
+                // to a cell farther: short of room by less than that, the
+                // footprint is judged against them and the ground exactly.
+                // Then it keeps its half width from them a step either side
+                // too: a corner standing between two such cells is that far
+                // from each.
+                let room = self.clearance_at(m.push, cell, paid) - NAV_CELL_M / 2.0 - off;
+                let reach = (m.half_width_m + off).hypot(NAV_CELL_M / 2.0);
                 Self::vehicle_enters(c, m.push)
-                    && self.clearance_at(m.push, cell, paid) - NAV_CELL_M / 2.0 - off
-                        >= m.half_width_m
+                    && (room >= m.half_width_m
+                        || (exact
+                            && room + NAV_CELL_M >= m.half_width_m
+                            && self.ground_clear(center, reach, paid)
+                            && self.bodies_clear_paid(center, reach, m.push, paid)))
             }
         };
-        enters && who.clears(cell_center(cell % self.nx, cell / self.nx))
+        enters && who.clears(center)
     }
 
     /// A step's cost on this cell: its length, or its time for the fastest
@@ -642,7 +657,7 @@ impl NavGrid {
                 if let Some(k) = self.index(ci + di, cj + dj) {
                     let d = (cell_center(k % self.nx, k / self.nx) - p).length();
                     if d <= radius
-                        && self.fits_off_centre(k, who, 0.0, paid)
+                        && self.fits_off_centre(k, who, 0.0, paid, true)
                         && best.is_none_or(|(bd, bk)| (d, k) < (bd, bk))
                     {
                         best = Some((d, k));
@@ -856,7 +871,7 @@ impl NavGrid {
             // A vehicle standing off the middle of its cell has that much
             // less of the cell's room.
             let off = (cell_center(k % self.nx, k / self.nx) - p).length();
-            self.fits_off_centre(k, Mover::free(who.m), off, paid)
+            self.fits_off_centre(k, Mover::free(who.m), off, paid, true)
                 && who.clears(p)
                 && (who.m.class != MoverClass::Infantry
                     || self.cells[k].free & (1 << sub_of(p)) != 0)
@@ -1057,7 +1072,7 @@ impl NavGrid {
                         .cross(along)
                         .abs();
                     let off = if off > NAV_CELL_M / 2.0 { 0.0 } else { off };
-                    let fits = self.fits_off_centre(cell, Mover::free(who.m), off, true);
+                    let fits = self.fits_off_centre(cell, Mover::free(who.m), off, true, false);
                     let cost = self.cost(cell, m, policy, piece);
                     crossing = Some((cell, fits, cost));
                     (fits, cost)

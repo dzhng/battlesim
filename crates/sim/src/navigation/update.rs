@@ -260,9 +260,21 @@ impl NavGrid {
         width: f64,
         push: contract::scenario::PushClass,
     ) -> bool {
+        self.bodies_clear_paid(point, width, push, false)
+    }
+
+    /// [`bodies_clear`](Self::bodies_clear), counting its reads as planning
+    /// work when `paid`.
+    pub(super) fn bodies_clear_paid(
+        &self,
+        point: V2,
+        width: f64,
+        push: contract::scenario::PushClass,
+        paid: bool,
+    ) -> bool {
         let mut check = BodyCheck::new(self, point, width, push);
         loop {
-            if let Some(clear) = check.advance(self, false) {
+            if let Some(clear) = check.advance(self, paid) {
                 return clear;
             }
         }
