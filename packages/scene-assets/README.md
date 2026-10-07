@@ -98,9 +98,14 @@ Gzip is an explicit file transport, not an assumed hosting optimization. The bro
 
 ## Sides
 
-Both sides draw the same meshes. [Appearance resolution](src/appearanceCatalog.ts)
-combines the catalog's side tint and unit bindings with observed carrier and active
-weapon assignments. A soldier's variant identity persists when an equipment hold
+Both sides draw the same meshes; what differs is the army, not the side. A card
+several factions field (the rifle squad) draws one appearance set, and a soldier
+appearance may name its look per faction (`factions`): a soldier wears his side's
+faction's look, so a US and an Eastern squad wear their own uniforms whichever side
+each is on, and a battle of no factions (a lab) draws the base look. A faction look
+loads with the appearance it belongs to and is held to the same rig.
+[Appearance resolution](src/appearanceCatalog.ts) combines that with the catalog's
+side tint and unit bindings and with observed carrier and active weapon assignments. A soldier's variant identity persists when an equipment hold
 changes; the current hold supplies its own skeleton clips and muzzle socket.
 Recovered equipment follows its living operator. A supported active pose is
 stationary: moving operators show their carried kit, and the fallen keep that

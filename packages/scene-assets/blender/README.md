@@ -21,6 +21,10 @@ subject-owned default, so inspect its usage before replacing committed art.
 
 [Infantry clip export](clips_infantry.py) builds a hold family's animation library;
 [infantry kit export](infantry_kit.py) builds bodies and equipment using that rig.
+A roster kit several factions field is built once per army
+([roster equipment](roster/infantry_equipment.py) `ARMIES`, named as its reference
+variants): each army's uniform print ([`textures.py`](textures.py) `UNIFORMS`),
+helmet, carrier and rifle on the same rig, the appearance's faction looks.
 Clips and meshes must retain the shared skeleton contract: regenerating one does
 not regenerate the other. Shared rig, weapon and mesh-tier helpers concentrate
 that policy rather than defining extra standalone asset commands.
