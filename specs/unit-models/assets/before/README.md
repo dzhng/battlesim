@@ -1,0 +1,51 @@
+# Before: runtime vehicles, 2026-10-06
+
+Blender Eevee renders of each runtime vehicle source GLB (finest tier, 3/4 front), four to a row, in this order. They show source albedo and vertex colour as Blender imports them, not game shading: the baseline each family's after-shot is compared against, not a gate.
+
+## vehicles-aa.png
+- eastern_bmp_ifv_family_bmp_2m_berezhok
+- eastern_bmp_ifv_family_bmp_3
+- eastern_btr_btr_82a
+- eastern_t_72_t_72b3_2016
+- eastern_t_80_t_80bvm
+- eastern_t_90_t_90m_proryv
+- eastern_tigr_tigr_m
+- eastern_type_99_ztz_99a
+- eastern_ural_4320_general_resupply
+- eastern_zbl_08_wheeled_ifv
+- europe_ajax_tracked_reconnaissance_vehicle
+- europe_boxer_apc
+## vehicles-ab.png
+- europe_boxer_rct30
+- europe_challenger_challenger_2_tes
+- europe_cv90_cv9040c
+- europe_cv90_mk_iv
+- europe_fennek_reconnaissance_vehicle
+- europe_kf51_panther_prototype_main_battle_tank
+- europe_leclerc_xlr
+- europe_leopard_2_2a6
+- europe_leopard_2_2a7v
+- europe_leopard_2_2a8
+- europe_man_hx_general_resupply
+- europe_puma_level_c
+## vehicles-ac.png
+- europe_vbci_infantry_fighting_vehicle
+- europe_vbl_machine_gun_scout
+- jeep
+- supply_truck
+- tank
+- us_acv_acv_p
+- us_lav_lav_25a2
+- us_lav_lav_at
+- us_m1127_stryker_rv_reconnaissance_vehicle
+- us_m1151_hmmwv_hmg
+- us_m1_abrams_sep_v2
+- us_m1_abrams_sep_v2_trophy
+## vehicles-ad.png
+- us_m1_abrams_sep_v3_trophy
+- us_m2_bradley_ifv_m2a4
+- us_m3_bradley_cfv_m3a3
+- us_m977_hemtt_general_resupply
+- us_stryker_m1126_icv
+- us_stryker_m1134_atgm
+- us_stryker_m1296_dragoon
