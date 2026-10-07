@@ -1,0 +1,28 @@
+# 19 Closeout
+
+Runs once, after every lane (slices 15–18) has landed: the full runs AGENTS.md
+saves for a spec's end.
+
+1. `bun run check` and `bun run verify` once; fix what they find.
+2. Balance: roster numbers are untouched except the HMMWV's frame (slice 14),
+   which was sampled there; run the balance report once.
+3. Icons re-derived for every rebuilt appearance and every disabled card;
+   `check` green.
+4. No vehicle on an interim wreck (slice 11's seam ends here); every unit's
+   tiers pass slice 12's reduction check and its class budgets; catalog-load
+   bytes and texture layers within slice 10's limits.
+5. Frame cost: the pilot's lab scene with a column of rebuilt vehicles and
+   squads, against slice 09's baseline; within what slice 14 accepted.
+6. The menu reel's exact-shot test passes (slice 08). One ordinary skirmish
+   per faction pairing, and the menu reel: screenshots at each zoom where a
+   tier changes, compare-screenshots against the before sheets,
+   screenshot-critique unprimed, last; show the user with preview-shots.
+7. `git grep -i village` lists only the generator's settlement class;
+   `git grep` for the bare old generic ids lists only the weapon `rifle` and
+   the roles `at`, `recon`. No family script redefines a wheel or a track; the
+   legacy family helpers are gone.
+8. Close the spec with close-spec.
+
+## Delegated
+
+Nothing: this slice runs checks and fixes what they find.

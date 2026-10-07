@@ -1,11 +1,11 @@
-# 07 Pipeline
+# 09 Pipeline
 
 **Unlocks:** exporters that run, one place to put reusable detail, a review
 sheet that shows references, and measured triangle counts to budget against.
 
 ## Known state of the exporters (2026-10-06)
 
-- Five helpers open `specs/unit-roster/manifests` with no fallback and fail
+- Eight roster scripts open `specs/unit-roster/manifests`; five with no fallback fail
   (`armor`, `eastern_armor`, `eastern_tanks`, `europe_carriers`,
   `light_armor`); three already fall back to the archive (`remaining_ground`,
   `remaining_tanks`, `infantry_equipment`); `logistics.py` takes dimensions inline.
@@ -22,10 +22,8 @@ sheet that shows references, and measured triangle counts to budget against.
   is the same Git blob as `jltv/us_m1278_jltv_hmg.glb` (`ccf5f60f`), its frame
   in the fixtures is the JLTV's (6.2 × 2.5 × 2.6 m, eye 2.885, HMG pivot z
   2.665), and the `humvee_*` branch in `light_armor.py` was never exported.
-  **Decision 3:** give the HMMWV its real frame (about 5.2 × 2.1 × 2.2 m, eye
-  2.42, pivot z 2.28 per the archived manifest; check against slice 11's
-  references) and export the HMMWV branch. A physics change: digests move,
-  and a quick balance sample for the HMMWV only, named in choices.md.
+  The decided fix (its real frame and model) is in the pilot, slice 14, after
+  its references are collected.
 
 ## Work
 
@@ -42,33 +40,57 @@ sheet that shows references, and measured triangle counts to budget against.
    export proves not byte-stable even with an unchanged script, compare the
    validator's node, frame and triangle stats instead and record that in
    choices.md.
-1b. The HMMWV frame and export (decision 3 above).
 2. **Shared detail parts.** A new `blender/vehicle_parts.py` owns the pieces
    the [detail bar](../README.md#the-detail-bar) names, each a function taking
    frame, size, material set and parent, emitting tiered geometry:
    `tyre_wheel`, `road_wheel`, `sprocket`, `idler`, `return_roller`,
-   `track_run` (a belt whose shoes and guide horns are texture and normal map, since track UVs scroll), `hatch`,
+   `track_run` (a belt whose shoes and guide horns are texture and normal map, since the track material's UVs scroll), `hatch`,
    `periscope`, `sight_housing`, `light_with_guard`, `tow_hook`, `shackle`,
    `smoke_discharger_bank`, `antenna`, `jerrycan`, `stowage_box`, `tarp_roll`,
    `grille`, `exhaust`, `mudflap`, `weld_line`. Lift the existing per-family
    `wheel()` and track belt into it; families switch to it as each is rebuilt
-   (slices 12–14), not in this slice. Write each part readable: one statement
+   (slices 14–18), not in this slice. Write each part readable: one statement
    per line, named arguments.
    Box UVs take only the first material's tile (`parts.py:655-668`): each
    part puts each material on its own object, so a tyre and its rim keep their
-   own texel scale. Track nodes scroll every vertex's UV beneath them
-   (`modelLayer.ts:308-330`): `track_run` keeps link relief in texture and
+   own texel scale. Track-material vertices scroll their UVs
+   (`modelLayer.ts:308-330`, `:311-318`): `track_run` keeps link relief in texture and
    normal maps, never modelled shoes, and nothing else is parented under a
    track node.
+2b. **Crew module (coordinator-owned, frozen before the pilot).** The jeep's visible crew
+   (`blender/vehicle_crew.py`, commit `349fe766`) is reused, not re-made: every
+   roster vehicle whose references show an exposed gunner or commander (HMMWV
+   M1151 turret gunner, Tigr-M and VBL gunners, open hatches where photos show
+   them) gets crew through that module, in its existing fixed poses. Crew stay
+   presentation inside the vehicle's appearance, not simulation soldiers. Fix the
+   module first (coordinator-owned):
+   
+   - source soldier per faction, not the hard-coded `assets/source/infantry/rifle.glb`
+     (`vehicle_crew.py:18`, which slice 05 relabels as test art);
+   - crew from the soldier's tier 1, counted in the class budget;
+   - hide the carried weapon by its node, not by the material name
+     `gun_black` plus `hand_r` weight (`:60-70`), which slice 17 may rename;
+   - `preserve_materials` (`:133-144`) must not overwrite the vehicle's own
+     role-tagged materials (slice 13).
+   
+   Crew vanish when the wreck appears (`cookOffs.ts` has no crew handling):
+   accepted; they were inside.
+2c. **References schema and check.** `assets/references/<family>/references.json`
+   (README [References](../README.md#references)) is checked by `asset check`
+   and a test: parses, every file exists with its sha256, licence in the
+   allowed list, long edge ≤ 1600 px, generated entries carry model, prompt,
+   inputs and seed, and no view's only source is a generated image. Add the
+   `assets/references/` line to the assets README's third-party table (review
+   inputs, never shipped).
 3. **References on the sheet.** `asset sheet` takes `--references`: it reads
-   `assets/references/<family>/references.json` (slice 11's layout) and writes
+   `assets/references/<family>/references.json` (the layout in 2c) and writes
    `reference.png`, the sheet's views each beside the reference photo of the
    same view, missing views marked. No reference file, no panel.
 4. **Count.** Record, per runtime vehicle, triangles per tier from the sheet's
    stats, into choices.md as the baseline (dated). The benchmark runs on
    test units (slice 05), so it can't see roster models: measure frame cost in
    a lab scene holding a column of roster vehicles (Abrams, Stryker and one of
-   each class), using the benchmark's cost measure, as the "before" for slice 12.
+   each class), using the benchmark's cost measure, as the "before" for slice 14.
 
 ## Seam
 

@@ -1,4 +1,8 @@
-# 13 Tracked families
+# 15 Tracked families
+
+Runs in parallel with the other lanes (slices 15–18) once the pilot (14)
+sets the bar; workers take one family at a time, export and validate only,
+and the coordinator bakes and commits runtime output in batches.
 
 **Unlocks:** every runtime tank and tracked IFV/recon vehicle at the pilot's bar.
 
@@ -9,7 +13,7 @@ Mk IV), Puma, Ajax, BMP-2M and BMP-3.
 
 ## Per family
 
-1. Read its references (slice 11) and its frames (fixture catalog).
+1. Collect its references (README [References](../README.md#references)), then read them and its frames (fixture catalog).
 2. Rebuild in its own `roster/<family>.py` from `vehicle_parts.py`, variants
    as branches. Correct road-wheel, return-roller and sprocket counts and
    positions from the photos (for example: Leopard 2 seven road wheels and four
@@ -17,13 +21,13 @@ Mk IV), Puma, Ajax, BMP-2M and BMP-3.
    BMP-3 six road wheels, its own hull; Bradley six road wheels).
    Russian ERA (Kontakt-5, Relikt) as tile blocks where the vehicle wears them;
    T-90M's slat cage, T-72B3's side screens as the reference shows.
-3. Scheme from slice 10, chosen from the photos.
-4. Within the slice 12 budget.
+3. Scheme from slice 13, chosen from the photos.
+4. Within the slice 14 budget.
 5. Tank commanders in open hatches where the references show them, through
-   `vehicle_crew.py` as in [slice 14](14-wheeled.md).
+   `vehicle_crew.py` as fixed in [slice 09](09-pipeline.md).
 6. Delete the family's branch from its legacy helper; delete a helper when empty.
 
-**Own wreck.** Each variant exports its own wreck (slice 09): the burnt hull
+**Own wreck.** Each variant exports its own wreck (slice 11): the burnt hull
 at the unit's size, plus a turret piece where it has a turret, replacing its
 interim wreck.
 

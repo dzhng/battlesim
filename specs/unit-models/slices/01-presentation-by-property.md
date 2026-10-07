@@ -25,15 +25,19 @@ roster unit needs no presentation table edit.
 
 - **Vehicle class is derived from physics, not authored:** mobility (tracked
   or wheeled) × hull `weight_class`, with the `logistics` role splitting
-  trucks. Today's hulls fall into tracked heavy (15), tracked medium (7),
-  wheeled light (4), wheeled medium (13), wheeled medium logistics (4). No
+  trucks. Today's hulls fall into tracked heavy (16), tracked medium (7),
+  wheeled light (4), wheeled medium (14), wheeled medium logistics (4). No
   new catalog field, so `UnitType` (`deny_unknown_fields`,
   `crates/contract/src/catalog.rs:100`) and the engine id don't change.
-- **Weapon presentation key:** each resolved weapon carries the root of its
-  `extends` chain (its base weapon) as its presentation key; tables are
-  looked up by key. Whether that is a resolved field or derived client-side is
-  the implementer's choice, provided it doesn't change `config_digest`
-  (`battle.rs:505`) or the engine id; if it must, say so and name the move.
+- **Weapon presentation key:** the resolved catalog view publishes each
+  weapon's `base`, the root of its `extends` chain, from the one resolver
+  (`sim::fixtures::admit`, `fixtures.rs:137-150`, the view the browser reads);
+  TypeScript never walks `extends` itself. If publishing `base` touches
+  `config_digest` (`battle.rs:505`) or the engine id, say so and name the move.
+- **One TypeScript owner** for the vehicle class: `vehicleClass(type)` in
+  `packages/scene-assets/src/units.ts`, already "the one owner on the
+  TypeScript side" of derived unit questions (`units.ts:1-6`). The same class
+  keys the unit budgets (slice 12); no second class table anywhere.
 - **Overrides fold into `sounds.json` `defaults`** (already per weapon,
   validated against `presentation.audio.shots` by
   `apps/sound-workbench/server.ts:161`). Two collisions are decided here:
@@ -67,4 +71,4 @@ Stryker, a HEMTT and a TOW team.
 
 ## Delegated
 
-Class names; where the presentation key is computed (within the digest rule).
+Class names.

@@ -35,6 +35,7 @@
 </head>
 <body>
 <header>
+  <p style="background:#3a2a10;color:#e0a446;padding:8px 12px;border-radius:4px;margin:0 0 12px"><b>Superseded numbering.</b> This map was handed over before the 2026-10-06 redraft. Its decisions stand; its slice numbers and kickoff prompt do not. The current ladder and handoff are in <code>specs/unit-models/README.md</code> (Next Agent Prompt); the redraft is recorded in <code>choices.md</code> under "Synthesis of four drafts".</p>
   <h1>Units: roster-only content and reference-built models — the map</h1>
   <p>Walked 2026-10-06. Spec: <code>specs/unit-models/README.md</code> (15+2 slices). Decision ledger: <code>specs/unit-models/choices.md</code>. Delegation: offered, not taken — every decision below was the user's or shown to them.</p>
 </header>
@@ -145,7 +146,7 @@
 
 <section class="wide">
   <h2>Kick off the build</h2>
-  <pre id="prompt">Implement specs/unit-models with the implement-spec skill. Read its README's Next Agent Prompt and choices.md first. You are the coordinator: run Part A (slices 01–06) and slices 07–10 and the pilot (12) yourself; once 07 lands, fan out reference collection (11) to parallel workers, and after the pilot's checkpoint fan out families (13–15) and disabled cards (17), six workers to start, more while the Mac mini keeps up. Workers export and validate only; you bake, check and commit runtime output. Tests use test units; the menu reel's approved shots must stay exactly the same. Free disk first and pull LFS only for what you touch. Update the Next Agent Prompt before ending each pass.</pre>
+  <pre id="prompt">Implement specs/unit-models with the implement-spec skill. Read its README's Next Agent Prompt and choices.md first, and follow the order there: Part A slices 01–08, Part B from 09 in parallel; you coordinate and run 09–14 yourself, then fan out the lanes (15–18) to parallel workers, six to start and more while the Mac mini keeps up. Workers export and validate only; you bake, check and commit runtime output in batches. Tests use test units; the menu reel's approved shots must stay exactly the same. Pull LFS only for what you touch and watch disk. Run the full check and verify once, in slice 19. Update the Next Agent Prompt before ending each pass.</pre>
   <p><button onclick="navigator.clipboard.writeText(document.getElementById('prompt').textContent)">Copy prompt</button></p>
 </section>
 

@@ -1,4 +1,4 @@
-# 08 Shared textures and a download limit
+# 10 Shared textures and a download limit
 
 **Unlocks:** detailed models without a multi-gigabyte page load, and a test
 that catches growth before a player does.
@@ -12,9 +12,10 @@ that catches growth before a player does.
 - Unit bundles carry 765 MB of texture bytes but only 51 distinct textures
   (17.8 MB): each bundle embeds its own copy (`texture.ts`); only the GPU
   shares them by address (`modelTextures.ts:20-29`).
-- The only byte gates cover the template library (`loader.ts:117`), map
-  downloads (`gzip.ts` `downloadBytes`) and court pieces
-  (`downloadBudget.test.ts`). Nothing counts the catalog load.
+- A 50 MiB limit exists (`MAP_DOWNLOAD_MAX_BYTES`, `schema.ts:589-594`,
+  enforced at `loader.ts:117-119`), but `downloadBytes(catalog, [])`
+  (`gzip.ts:48-65`) counts only on-request content; the eagerly loaded unit
+  and scenery bundles escape every gate.
 - Texture arrays are sized to the largest texture installed
   (`modelTextures.ts:58`), and the device requests no `maxTextureArrayLayers`
   (`device.ts:40`), so the cap is WebGPU's default 256; normal+ORM already
@@ -22,14 +23,17 @@ that catches growth before a player does.
 
 ## Contract
 
-- **A texture is its own content-addressed runtime file**, named in the
-  runtime catalog; a bundle references textures by address and never embeds
+- **A texture is its own content-addressed runtime file**, named in a
+  runtime texture table (material texture indices are bundle-local today,
+  `schema.ts`, `codec.ts`); a bundle references textures by address and never embeds
   them. The loader fetches each texture once, however many bundles use it.
 - **Unit and scenery bundles travel as gzip** like kits (`gzip.ts`), with
   their original content hashes kept as art identity.
 - **Catalog-load bytes have a limit**, a constant in `schema.ts` beside
-  `MAP_DOWNLOAD_MAX_BYTES`: what every page downloads before its first frame
-  (catalog bundles, their textures, skeleton clips, the template library). A
+  `MAP_DOWNLOAD_MAX_BYTES` and counted by the same `downloadBytes` owner,
+  extended to the eager set: what a game page downloads before its first frame
+  (the bundles its session catalog binds, slice 04, their textures, skeleton
+  clips, the template library). Test art never counts toward a game page. A
   test fails above it; `asset check` prints the total. Set the limit from the
   measured total after this slice with room for Part B's growth, recorded in
   choices.md.
@@ -60,3 +64,8 @@ art hashes unchanged: only transport moved.
 ## Stays green
 
 Every bundle's original content hash; map hashes; replay identity.
+
+## Delegated
+
+The texture table's file layout and naming; the byte limit's exact value
+within the rule above (recorded in choices.md).
