@@ -47,11 +47,16 @@ export const FINDING_CODES = [
   "texture.size",
   "texture.mips",
   "texture.tangents",
-  // materials (`material.ts`): coverage and interior metadata
+  // materials (`material.ts`): coverage, interior and role metadata
   "material.coverage",
   "material.coverage_source",
   "material.wear",
   "material.interior",
+  "material.role",
+  /** Rubber that draws lighter than black rubber looks on screen. */
+  "material.role_rubber",
+  /** Glass that draws lighter, or rougher, than sight glass looks on screen. */
+  "material.role_glass",
   // basis
   "basis.ground",
   "basis.forward",
@@ -242,6 +247,31 @@ export const INTERIOR_ATLAS = {
   pinhole_m: 16,
 } as const;
 
+/** What a surface is (glTF material extras `role`): a vehicle's tyres and
+ *  optics, its scheme's paint, its bare steel and track, cloth, skin and
+ *  painted markings. Validation holds rubber and glass dark (`material.ts`). */
+export const MATERIAL_ROLES = [
+  "rubber",
+  "glass",
+  "paint",
+  "steel",
+  "track",
+  "fabric",
+  "skin",
+  "marking",
+] as const;
+export type MaterialRole = (typeof MATERIAL_ROLES)[number];
+/** The most a rubber surface's drawn albedo may be, as linear luminance (its
+ *  mean over its area, `material.ts`): black rubber is about 0.025, a little dust
+ *  low on a tread lifts it slightly, and a tyre filmed with dust all over (about
+ *  0.04) reads grey. Calibration: specs/unit-models/choices.md, slice 13. */
+export const RUBBER_MAX_LUMINANCE = 0.035;
+/** The most a glass surface's drawn albedo may be, as linear luminance, and the
+ *  roughest it may be: sight glass is near black and shows what it reflects, so a
+ *  lighter or matte one reads as a coloured block. */
+export const GLASS_MAX_LUMINANCE = 0.025;
+export const GLASS_MAX_ROUGHNESS = 0.3;
+
 export interface Material {
   name: string;
   /** Linear rgb, and the coverage value's factor in alpha (`Coverage`). */
@@ -271,6 +301,8 @@ export interface Material {
    *  own. glTF extras `interior`. A baked bundle carries the sheet as this
    *  material's albedo texture (`interior.ts`). */
   interior?: InteriorSheet;
+  /** What the surface is (`MATERIAL_ROLES`), when its source says. glTF extras `role`. */
+  role?: MaterialRole;
 }
 
 /**

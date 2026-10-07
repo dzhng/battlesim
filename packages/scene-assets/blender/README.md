@@ -36,6 +36,13 @@ Reusable vehicle detail (wheels, running gear, hatches, sights, lights, tow
 points, stowage, grilles, exhausts) has [one owner](vehicle_parts.py); a family
 script places those parts rather than redefining them.
 
+A vehicle's surfaces come from the named helpers in [`parts.py`](parts.py),
+each carrying its material role: `tyre()`, `glass()`, `track_steel()`,
+`bare_steel()` and `paint(scheme)`. A family's scheme is its real nation's,
+named as data in its exporter's table; [`textures.py`](textures.py) holds one
+recipe per scheme. The dust film never greys rubber or glass, and only paint
+takes its side's tint.
+
 Roster vehicle exporters build to the physical frame of the unit type that
 draws their appearance, read from the resolved catalogs by
 [one helper](catalog_frames.py); a family is the appearances whose sources lie

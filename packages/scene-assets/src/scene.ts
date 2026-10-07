@@ -16,7 +16,7 @@ import {
   type Texture,
   type TextureChannel,
 } from "./schema.ts";
-import { sourceCoverage, sourceInterior } from "./material.ts";
+import { sourceCoverage, sourceInterior, sourceRole } from "./material.ts";
 import { bakeTexture, decodePng, validTextureSize, type Rgba8 } from "./texture.ts";
 
 export interface SceneNode {
@@ -390,6 +390,7 @@ export function importScene(
     const wear = m.extras?.wear;
     const colourScale = Number(m.extras?.colour_scale);
     const interior = sourceInterior(m, name, add);
+    const role = sourceRole(m, name, add);
     return {
       name,
       base_color: (pbr.baseColorFactor ?? [1, 1, 1, 1]) as Material["base_color"],
@@ -402,6 +403,7 @@ export function importScene(
       ...(colourScale > 0 && colourScale !== 1 ? { colour_scale: colourScale } : {}),
       coverage: sourceCoverage(m, name, add),
       ...(interior ? { interior } : {}),
+      ...(role ? { role } : {}),
       ...(Object.keys(channels).length ? { images: channels } : {}),
     };
   });

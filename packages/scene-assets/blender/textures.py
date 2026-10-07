@@ -292,6 +292,108 @@ def olive_paint():
     return Baked(col, chips(109, 12), normals_from_height(blur(h), 1.2), 0.86 - 0.1 * dust, 0.66 + 0.2 * dust)
 
 
+# ---------------------------------------------------------------- paint schemes
+# A vehicle wears its real nation's scheme (`parts.paint(scheme)`): scheme ->
+# recipe. Each is a seamless tile at metre scale, in the dark, desaturated
+# range the battle's sun needs, and chips in a lighter tone of itself: the
+# look's painted edge highlights.
+SCHEMES = {
+    "us_desert_tan": "us_desert_tan",
+    "german_three_tone": "nato_camo",
+    "french_three_tone": "french_three_tone",
+    "british_green": "british_green",
+    "swedish_splinter": "swedish_splinter",
+    "russian_green": "russian_green",
+    "chinese_digital": "chinese_digital",
+}
+
+
+def _sprayed(col, seed):
+    """Finish a scheme's colours as sprayed enamel: mottled and sun-faded, dust in
+    patches, fine scratches over an orange peel. -> Baked."""
+    mottle = fbm(24, seed, 4)
+    col = col * (0.92 + 0.16 * mottle)[..., None]
+    dust = smoothstep(0.5, 0.9, fbm(8, seed + 10, 4))
+    col = mix(col, (0.12, 0.11, 0.085), dust * 0.2)
+    lines = scratches(seed + 50)
+    col = mix(col, col * 1.6, lines * 0.5)
+    h = fbm(96, seed + 20, 2) * 0.2 - lines * 0.6
+    rough = 0.5 + 0.3 * dust + 0.08 * (mottle - 0.5)
+    return Baked(col, chips(seed + 40, 14), normals_from_height(blur(h), 1.0), 0.86 - 0.1 * dust, rough)
+
+
+def _bands(colours, levels, seed, cells, edge=0.012, warp_px=10):
+    """Hand-sprayed disruptive bands: each colour after the first laid over the
+    ground where its own warped noise field passes its level, crisp-edged."""
+    col = np.broadcast_to(np.array(colours[0]), (SIZE, SIZE, 3)).copy()
+    for k, (colour, level) in enumerate(zip(colours[1:], levels)):
+        f = warp(fbm(cells, seed + 17 * k, 4), warp_px, seed + 17 * k + 1)
+        col = mix(col, colour, smoothstep(level - edge, level + edge, f))
+    return col
+
+
+@recipe("us_desert_tan", tile=2.0, wear=(0.46, 0.4, 0.29, 0.9))
+def us_desert_tan():
+    """CARC tan 686A: one flat sandy tan, chalky and sun-faded, chipped paler."""
+    base = np.broadcast_to(np.array((0.285, 0.24, 0.17)), (SIZE, SIZE, 3))
+    return _sprayed(base * (0.94 + 0.12 * fbm(6, 1101, 3))[..., None], 1103)
+
+
+@recipe("french_three_tone", tile=4.0, wear=(0.15, 0.14, 0.1, 0.95))
+def french_three_tone():
+    """French centre-Europe three-tone: an olive green ground under broad brown
+    patches and narrower black ones, softer-edged and larger than the German bands."""
+    green, brown, black = (0.07, 0.078, 0.042), (0.082, 0.06, 0.037), (0.014, 0.014, 0.013)
+    col = _bands((green, brown, black), (0.62, 0.74), 1201, (2, 3), edge=0.02, warp_px=16)
+    return _sprayed(col, 1203)
+
+
+@recipe("british_green", tile=4.0, wear=(0.13, 0.14, 0.1, 0.95))
+def british_green():
+    """British NATO green with black disruptive stripes: green the most of it."""
+    green, black = (0.052, 0.068, 0.036), (0.013, 0.014, 0.012)
+    col = _bands((green, black), (0.63,), 1301, (3, 4), edge=0.01, warp_px=8)
+    return _sprayed(col, 1303)
+
+
+@recipe("swedish_splinter", tile=4.0, wear=(0.16, 0.17, 0.12, 0.95))
+def swedish_splinter():
+    """Swedish M90 splinter: angular shards of light green, dark green, pale grey-green
+    and black, the shards straight-edged cells of a cellular field."""
+    tones = np.array(((0.085, 0.1, 0.05), (0.04, 0.055, 0.03), (0.12, 0.125, 0.09), (0.013, 0.014, 0.012)))
+    weights = np.array((0.38, 0.3, 0.17, 0.15))
+    _, _, big = worley(5, 1401)
+    _, _, small = worley(11, 1403)
+    pick = lambda ids, seed: np.searchsorted(np.cumsum(weights), np.random.default_rng(seed).random(ids.max() + 1))[ids]
+    tone = pick(big, 1405)
+    # smaller shards break the big ones where a coarse field says so
+    tone = np.where(fbm(3, 1407, 3) > 0.6, pick(small, 1409), tone)
+    return _sprayed(tones[np.minimum(tone, 3)], 1411)
+
+
+@recipe("russian_green", tile=2.0, wear=(0.17, 0.18, 0.12, 0.95))
+def russian_green():
+    """Russian protective green (4BO): one yellowish mid green, faded and dusty."""
+    base = np.broadcast_to(np.array((0.058, 0.068, 0.043)), (SIZE, SIZE, 3))
+    return _sprayed(base * (0.92 + 0.16 * fbm(6, 1501, 3))[..., None], 1503)
+
+
+@recipe("chinese_digital", tile=4.0, wear=(0.15, 0.16, 0.11, 0.95))
+def chinese_digital():
+    """Chinese digital woodland: square pixels about 12 cm across in light and dark
+    green, brown and black, clustered in blotches the way the print lays them."""
+    block = 8  # texels: 32 pixels across the 4 m tile
+    tones = np.array(((0.085, 0.1, 0.05), (0.038, 0.055, 0.03), (0.07, 0.05, 0.032), (0.013, 0.014, 0.012)))
+    f = fbm(4, 1601, 4)
+    g = fbm(6, 1603, 3)
+    jitter = np.random.default_rng(1605).random((SIZE // block, SIZE // block)).repeat(block, 0).repeat(block, 1)
+    cell = lambda x: x[::block, ::block].repeat(block, 0).repeat(block, 1)
+    f, g = cell(f) + 0.08 * (jitter - 0.5), cell(g)
+    tone = np.where(f < 0.42, 0, np.where(f < 0.6, 1, 2))
+    tone = np.where((g > 0.64) & (f > 0.48), 3, tone)
+    return _sprayed(tones[tone], 1607)
+
+
 @recipe("rubber", tile=0.6, wear=(0.12, 0.105, 0.085, 1.0))
 def rubber():
     """Worn tyre and pad rubber: near black, a little grey where it scuffs, fine grain and cuts."""
@@ -1331,11 +1433,13 @@ def macro(rgb, recipe_name):
 # opacity). `surface` fills it and `attach` writes it into the export.
 COVERAGE = {}
 INTERIOR_SHEETS = ("rooms", "shops")
+# What a surface is (`scene-assets` `MATERIAL_ROLES`); validation holds rubber and glass dark.
+ROLES = ("rubber", "glass", "paint", "steel", "track", "fabric", "skin", "marking")
 
 
-def surface(material, coverage=None, interior=None):
+def surface(material, coverage=None, interior=None, role=None):
     """Say what a Blender material is beyond an opaque surface with a look of
-    its own. Every material helper takes these two and passes them here.
+    its own. Every material helper takes these and passes them here.
 
     `coverage` is ("cutout", cutoff): the surface is drawn only where its
     coverage value reaches the cutoff; or ("blended", opacity): it is partly
@@ -1344,7 +1448,10 @@ def surface(material, coverage=None, interior=None):
 
     `interior` names the interior atlas sheet ("rooms", "shops") the surface
     shows a cell of: a wall of the room box behind a window, opaque and
-    untextured, its UVs the room's box unfolded (`parts.room_box`; city/README.md, "Interiors")."""
+    untextured, its UVs the room's box unfolded (`parts.room_box`; city/README.md, "Interiors").
+
+    `role` says what the surface is (`ROLES`): tyres are "rubber", optics "glass"
+    and a vehicle's scheme "paint" (`parts.tyre`, `parts.glass`, `parts.paint`)."""
     if coverage is not None:
         kind, value = coverage
         if kind not in ("cutout", "blended") or not 0.0 <= value <= 1.0:
@@ -1354,6 +1461,10 @@ def surface(material, coverage=None, interior=None):
         if interior not in INTERIOR_SHEETS:
             raise ValueError(f"{material.name}: interior sheet is one of {', '.join(INTERIOR_SHEETS)}")
         material["interior"] = interior  # exported as the glTF material's extras
+    if role is not None:
+        if role not in ROLES:
+            raise ValueError(f"{material.name}: role is one of {', '.join(ROLES)}")
+        material["role"] = role
     return material
 
 

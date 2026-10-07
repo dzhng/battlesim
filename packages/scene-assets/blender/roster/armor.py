@@ -14,19 +14,21 @@ REPO = Path(__file__).resolve().parents[4]
 REFERENCE_PHOTOS = [{'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/M1A2_SEP_v3.jpg/960px-M1A2_SEP_v3.jpg', 'sha256': 'd453561e2b47a9399f8380a8d67f049f9fba6e69d7da95adff8f6aa4caf5deea'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/M1A1_Trophy_Technology_Demonstrator.jpg/960px-M1A1_Trophy_Technology_Demonstrator.jpg', 'sha256': '4c3261b6f0e50ce553a079b56638723d48463996787d3f2b6fddc7d97d6cd5bb', 'limitation': 'M1A1 demonstrator: hardware layout only, not SEP v2/v3 subtype proof'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/M1A2_Sep_v3.jpg/960px-M1A2_Sep_v3.jpg', 'sha256': '1fbc8a413841948b4f5b0f136fd5eef3e623d4797eba4e76d68873138270e775'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Leopard_2_A7V_313_Bad_Frankenhausen_2024.JPG/960px-Leopard_2_A7V_313_Bad_Frankenhausen_2024.JPG', 'sha256': '0674f7147d27ecf1e16ab1a4f5c4e63da36726708b1f9388bb7df698a5959ea6'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/German_Army_Leopard_2A6_tank_in_Oct._2012.jpg/960px-German_Army_Leopard_2A6_tank_in_Oct._2012.jpg', 'sha256': 'ca93b972d63f2d4b4707908c621e2156bfe0ab4b5cb5059aff925b93a50315e6'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/LEOPARD_2A9.jpg/960px-LEOPARD_2A9.jpg', 'sha256': '24a4b45810e13bbcf15a90b1085f5f914dbbf14c7f0d0170e1da76f1e68093c0', 'limitation': 'Leopard2 article labels this as2A8 demonstrator; file says2A9. Trophy layout evidence only, not verified production2A8.'}]
 
 
-def palette(sand=False):
+# Each family's paint scheme (`textures.SCHEMES`): its real nation's.
+SCHEME = {'abrams': 'us_desert_tan', 'leopard': 'german_three_tone'}
+
+
+def palette(scheme):
     return {
-        'armor': textured('armor_paint', 'olive_paint' if sand else 'nato_camo',
-                          colour=(.34,.285,.185) if sand else None, tint=1,
-                          chip=.4, dirt=.55, rise=1.0),
-        'dark': textured('running_gear', 'olive_paint', colour=(.046,.055,.035), dirt=.65),
-        'rubber': textured('track_rubber', 'rubber', dirt=.45, chip=0),
-        'steel': textured('metal', 'bare_steel', dirt=.35, chip=.3),
-        'track': textured('track_shoes', 'track_link', dirt=.45, chip=0),
-        'glass': flat_paint('optics', (.024,.05,.063), rough=.1, grime=.1),
+        'armor': paint(scheme, 'armor_paint', chip=.4, dirt=.55, rise=1.0),
+        'dark': textured('running_gear', 'olive_paint', colour=(.046,.055,.035), dirt=.65, role='paint'),
+        'rubber': tyre('track_rubber'),
+        'steel': bare_steel('metal', chip=.3, dirt=.35),
+        'track': track_steel('track_shoes'),
+        'glass': glass('optics'),
         'black': flat_paint('recesses', (.016,.024,.018), rough=.8, grime=.2),
         'lamp': flat_paint('lamps', (.6,.55,.4), rough=.25, grime=.05),
-        'canvas': textured('stowage_canvas', 'canvas', colour=(.13,.145,.075), dirt=.3),
+        'canvas': textured('stowage_canvas', 'canvas', colour=(.13,.145,.075), dirt=.3, role='fabric'),
     }
 
 
@@ -179,7 +181,7 @@ def export_family(family,build):
     for variant in family_variants(family):
         if selected and variant['id']!=selected:continue
         reset();frame=variant['frame'];root=empty(variant['id']);root['unit_id']=variant['id']
-        mats=palette(family=='abrams');hull=empty('hull',parent=root)
+        mats=palette(SCHEME[family]);hull=empty('hull',parent=root)
         running_gear(hull,*frame['body_dimensions_m'][:2],mats)
         turret,gun,hmg,hmg_gun,trunnion=rig(frame,root)
         build(variant,frame,hull,turret,mats)

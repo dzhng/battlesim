@@ -3,12 +3,17 @@ import bpy,bmesh,os,sys,json,math
 from mathutils import Vector
 sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
+import parts as P
 from catalog_frames import requested_variant
+
+# Each family's paint scheme (`textures.SCHEMES`): its real nation's.
+SCHEME={'bmp':'russian_green','btr':'russian_green','zbl08':'chinese_digital'}
+
 
 def build(family):
     args=script_args();v,out=requested_variant(family,args);ident=v['id']
     frame=v['frame'];L,W,H=frame['body_dimensions_m'];bmp3=ident.endswith('_bmp_3')
-    reset();paint=textured('named_olive','olive_paint',tint=1,chip=.28,dirt=.4,rise=.9);dark=textured('dark_steel','olive_paint',colour=(.045,.055,.035),chip=.2,dirt=.4);rubber=textured('rubber','rubber',chip=0,dirt=.3);steel=textured('barrel_steel','bare_steel',chip=.12,dirt=.25);glass=flat_paint('optics',(.018,.06,.065),rough=.13,grime=.1)
+    reset();paint=P.paint(SCHEME[family],'named_paint',chip=.28,dirt=.4,rise=.9);dark=textured('dark_steel','olive_paint',colour=(.045,.055,.035),chip=.2,dirt=.4,role='paint');rubber=tyre();steel=bare_steel('barrel_steel',chip=.12,dirt=.25);glass=P.glass('optics')
     root=empty(family);body=empty('body',parent=root)
     if family=='bmp':
         deck=1.60 if bmp3 else 1.58
@@ -33,7 +38,7 @@ def build(family):
                     k=(j+1)%count
                     for a,b in [(0,2),(1,3),(0,1),(2,3)]:bm.faces.new((rings[a][j],rings[a][k],rings[b][k],rings[b][j]))
                 bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
-            mesh_part('track_band_'+str(side),belt,dark,track)
+            mesh_part('track_band_'+str(side),belt,track_steel('track',links=False),track)
             box('track_fender_'+str(side),(L-.22,.32,.11),(0,side*(W/2-.14),1.08),paint,body,bevel=.025)
             for j in range(5):box('fender_rib_'+str(side)+str(j),(.04,.36,.24),(-2.40+j*1.15,side*(W/2-.16),1.20),paint,body,lods=(0,1,2))
         if bmp3:

@@ -179,6 +179,8 @@ export class GltfBuilder {
   private length = 0;
   /** Boxes carry UVs (one per face, metres) and, unless false, tangents. */
   surface: { tangents: boolean } | null = null;
+  /** Every box vertex's colour (glTF `COLOR_0`, linear rgba), when set. */
+  colour: [number, number, number, number] | null = null;
 
   private view(bytes: Uint8Array): number {
     const padded = new Uint8Array(Math.ceil(bytes.byteLength / 4) * 4);
@@ -298,6 +300,12 @@ export class GltfBuilder {
     if (this.surface) {
       attrs.TEXCOORD_0 = this.accessor(Float32Array.from(uvs), "VEC2");
       if (this.surface.tangents) attrs.TANGENT = this.accessor(Float32Array.from(tangents), "VEC4");
+    }
+    if (this.colour) {
+      const count = positions.length / 3;
+      const colours = new Float32Array(count * 4);
+      for (let v = 0; v < count; v++) colours.set(this.colour, v * 4);
+      attrs.COLOR_0 = this.accessor(colours, "VEC4");
     }
     if (influence) {
       attrs.JOINTS_0 = this.accessor(Uint16Array.from(joints), "VEC4");

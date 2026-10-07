@@ -6,7 +6,7 @@ from mathutils import Vector
 sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
 from parts import *
 from catalog_frames import family_variants
-from armor import rig, preview, palette as western_palette
+from armor import rig, preview, palette
 REPO=Path(__file__).resolve().parents[4]
 REFERENCE_PHOTOS=[{'family': 't72', 'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Alabino05042017-40.jpg/960px-Alabino05042017-40.jpg', 'sha256': '8165f13648a6c2d3c000bc38b0ba3bbff97c65c91d3e65411a4870c1c1ac3547'}, {'family': 't80', 'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/T-80BVM.jpg/960px-T-80BVM.jpg', 'sha256': 'ba29c5dd0d9f53f747d4b253667a25c06d9eb1a3103966ffdbe8a278977df88f'}, {'family': 't90', 'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d9/T-90M.jpg/960px-T-90M.jpg', 'sha256': 'a6a58e43ed972944db823af7ea606e0ca7ba94fa326541019c75015e70fe2b5f'}]
 REFERENCE_LIMITS={
@@ -78,10 +78,8 @@ def running_gear(parent, length, width, mats, turbine=False):
             box(f'track_pad_{sn}_{j}',(.12,track_width*.78,.032),(x,side*track_y,.024),mats['rubber'],track,lods=(0,1))
 
 
-def palette():
-    m=western_palette()
-    m['armor']=textured('eastern_olive','olive_paint',colour=(.16,.205,.115),tint=.3,chip=.4,dirt=.5,rise=1)
-    return m
+# Each family's paint scheme (`textures.SCHEMES`): its real nation's.
+SCHEME={'t72':'russian_green','t80':'russian_green','t90':'russian_green'}
 
 
 def chassis(frame,hull,m,turbine=False,modern=False):
@@ -170,7 +168,7 @@ def export_family(family,build):
     args=script_args();review=next((a.split('=',1)[1] for a in args if a.startswith('--preview=')),None)
     rows=[]
     for v in family_variants(family):
-        frame=v['frame'];reset();root=empty(v['id']);root['unit_id']=v['id'];hull=empty('hull',parent=root);m=palette()
+        frame=v['frame'];reset();root=empty(v['id']);root['unit_id']=v['id'];hull=empty('hull',parent=root);m=palette(SCHEME[family])
         running_gear(hull,*frame['body_dimensions_m'][:2],m,family=='t80');turret,gun,hmg,hmg_gun,trunnion=rig(frame,root)
         build(v,frame,hull,turret,m);weapons(frame,gun,hmg,hmg_gun,trunnion,m,family=='t90')
         finish(ao_distance=1.0,ao_rays=8);counts=triangles_by_tier();assert all(counts[k]>counts[k+1]>0 for k in range(3))

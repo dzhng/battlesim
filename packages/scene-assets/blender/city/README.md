@@ -124,7 +124,7 @@ composition in the source pictures; shader brightness is not an authoring contro
 
 ## Surfaces that are not opaque
 
-A material says so through the material helpers (`coverage=`; [scene-assets readme](../../README.md), "Coverage and rooms"), and the battle draws each kind its own way:
+A material says so through the material helpers (`coverage=`; [scene-assets readme](../../README.md), "Coverage, rooms and roles"), and the battle draws each kind its own way:
 
 - **A cutout** (`coverage=("cutout", cutoff)` on a recipe with a coverage image, as `grille` and `perforated` are): a grille, a perforated sheet, a sign's cut letters. It is there or not texel by texel in colour, depth and shadow, so model it as one face (`parts.sheet`), not as bars: a hundred thin boxes alias where one face thins evenly with distance. Too far away to resolve, it is a veil as dense as the share of it that is there, and its shadow the same share of shade.
 - **Glass** (`coverage=("blended", opacity)`): one face, never a thin box (two layers and their edges). It is drawn after everything opaque, darkens what is behind it by its opacity, casts no shadow and hides nothing from the depth the overlays and the fog read. Panes are not sorted: keep one glass's opacity and colour alike across a building, and two panes blend the same either way round.
