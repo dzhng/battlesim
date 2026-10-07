@@ -49,9 +49,12 @@ mod tests {
     fn rejects_launch_profiles_tighter_than_the_games_accuracy_ceiling() {
         let mut game = game();
         game["weapons"]["rifle"]["scatter_mrad"] = json!(0);
-        let error = sim::fixtures::admit(game, sim::fixtures::catalog_documents())
-            .err()
-            .expect("invalid spread must fail");
+        let error = sim::fixtures::admit(
+            game,
+            sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game),
+        )
+        .err()
+        .expect("invalid spread must fail");
         assert!(
             error.contains("weapons.rifle")
                 && error.contains("Landing spread must be at least")
@@ -65,9 +68,12 @@ mod tests {
         for index in 0..sim::publication::MAX_WEAPON_ROWS {
             game["weapons"][format!("extra_{index}")] = json!({ "extends": "rifle" });
         }
-        let error = sim::fixtures::admit(game, sim::fixtures::catalog_documents())
-            .err()
-            .expect("too many weapon rows must fail");
+        let error = sim::fixtures::admit(
+            game,
+            sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game),
+        )
+        .err()
+        .expect("too many weapon rows must fail");
         assert!(
             error.contains("weapons") && error.contains("publication"),
             "{error}"
@@ -77,7 +83,7 @@ mod tests {
     #[test]
     fn rejects_more_ammunition_kinds_than_a_mount_can_publish() {
         let game = game();
-        let mut documents = sim::fixtures::catalog_documents();
+        let mut documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
         let doc = documents
             .iter_mut()
             .find(|doc| doc["units"].get("tank").is_some())
@@ -96,9 +102,12 @@ mod tests {
     fn rejects_finite_ammunition_without_a_supply_price() {
         let mut game = game();
         game["weapons"]["rifle"]["ammo"] = json!(60);
-        let error = sim::fixtures::admit(game, sim::fixtures::catalog_documents())
-            .err()
-            .expect("finite ammunition needs a supply price");
+        let error = sim::fixtures::admit(
+            game,
+            sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game),
+        )
+        .err()
+        .expect("finite ammunition needs a supply price");
         assert!(
             error.contains("service.round_costs") && error.contains("rifle"),
             "{error}"
@@ -107,7 +116,11 @@ mod tests {
 
     #[test]
     fn admitted_shipped_view_matches_the_generated_catalog() {
-        let view = sim::fixtures::admit(game(), sim::fixtures::catalog_documents()).unwrap();
+        let view = sim::fixtures::admit(
+            game(),
+            sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game),
+        )
+        .unwrap();
         let text = serde_json::to_string_pretty(&view).unwrap() + "\n";
         assert_eq!(text, include_str!("../../../fixtures/catalog.json"));
     }
@@ -116,7 +129,11 @@ mod tests {
     fn supplied_weapon_inheritance_is_in_the_returned_view() {
         let mut game = game();
         game["weapons"]["custom_rifle"] = json!({"extends": "rifle", "damage": 123});
-        let view = sim::fixtures::admit(game, sim::fixtures::catalog_documents()).unwrap();
+        let view = sim::fixtures::admit(
+            game,
+            sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game),
+        )
+        .unwrap();
         assert_eq!(view["weapons"]["custom_rifle"]["damage"], json!(123.0));
         assert_eq!(
             view["weapons"]["custom_rifle"]["speed_mps"],
@@ -138,7 +155,7 @@ mod tests {
 
     #[test]
     fn supplied_mounts_must_name_existing_weapon_rows() {
-        let mut documents = sim::fixtures::catalog_documents();
+        let mut documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
         let doc = documents
             .iter_mut()
             .find(|doc| doc["units"].get("tank").is_some())

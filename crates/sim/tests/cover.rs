@@ -385,7 +385,7 @@ fn firefight(cover: bool, blue: &str) -> Battle {
     );
     // Only rifles take part: launcher selection and its delayed first shot
     // must not let impacts enter the comparison before the full volley.
-    let mut documents = sim::fixtures::catalog_documents();
+    let mut documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
     for document in &mut documents {
         if let Some(grenadier) = document
             .get_mut("soldiers")
