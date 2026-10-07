@@ -68,10 +68,10 @@ def fbm(p, scale, octaves=3, seed=0.0):
     return v / tot  # about -1..1
 
 
-def paint(name, rough=0.6, metal=0.0, coverage=None, interior=None):
+def vertex_paint(name, rough=0.6, metal=0.0, coverage=None, interior=None, role=None):
     """Register a paint function under `name`, with its material. `coverage`
-    makes it a cutout or blended and `interior` a room behind a window
-    (`textures.surface`)."""
+    makes it a cutout or blended, `interior` a room behind a window and `role`
+    says what the surface is (`textures.surface`)."""
 
     def wrap(fn):
         PAINTS[name] = fn
@@ -81,12 +81,12 @@ def paint(name, rough=0.6, metal=0.0, coverage=None, interior=None):
         b.inputs["Base Color"].default_value = (BASE, BASE, BASE, 1)
         b.inputs["Roughness"].default_value = rough
         b.inputs["Metallic"].default_value = metal
-        return textures.surface(m, coverage, interior)
+        return textures.surface(m, coverage, interior, role)
 
     return wrap
 
 
-def flat_paint(name, colour, rough=0.6, metal=0.0, wear=0.0, grime=1.0, coverage=None, interior=None):
+def flat_paint(name, colour, rough=0.6, metal=0.0, wear=0.0, grime=1.0, coverage=None, interior=None, role=None):
     def fn(p, n, edge):
         c = colour
         v = fbm(p, 3.0, 2, 11.0) * 0.08
@@ -95,7 +95,7 @@ def flat_paint(name, colour, rough=0.6, metal=0.0, wear=0.0, grime=1.0, coverage
             c = lerp3(c, (0.36, 0.35, 0.33), min(1.0, edge * wear))
         return grime_rise(c, p, grime)
 
-    paint(name, rough, metal, coverage, interior)(fn)
+    vertex_paint(name, rough, metal, coverage, interior, role)(fn)
     return bpy.data.materials[name]
 
 
@@ -141,7 +141,8 @@ SCORCH = []
 
 
 def textured(name, recipe, rough=None, metal=None, tint=0.0, colour=None, dirt=0.7, chip=0.8, streak=0.3,
-             rise=1.0, seed=0.0, soot=0.0, ash=0.0, dust=DUST, mottle=0.0, lichen=0.0, coverage=None, grain=0.06):
+             rise=1.0, seed=0.0, soot=0.0, ash=0.0, dust=DUST, mottle=0.0, lichen=0.0, coverage=None, grain=0.06,
+             role=None):
     """A material that samples `recipe`: `colour` (linear) tints the recipe's mean,
     `chip` scales wear on convex edges, `dirt` the dust (colour `dust`) and mud rising
     from the ground to `rise` metres, `streak` rain streaks on walls, `soot` blackens
@@ -149,7 +150,7 @@ def textured(name, recipe, rough=None, metal=None, tint=0.0, colour=None, dirt=0
     piece to piece and `lichen` greens what faces the sky. `grain` is the tone's own fine
     variation, vertex to vertex: 0 on a big flat surface seen from far off, where it
     shows as the mesh's grid. `coverage` makes it a cutout or blended, by the recipe's
-    coverage image (`textures.surface`)."""
+    coverage image, and `role` says what the surface is (`textures.surface`)."""
     mean = textures.baked(recipe).mean()
     hue = tuple(c / m for c, m in zip(colour, mean)) if colour else (1.0, 1.0, 1.0)
 
@@ -197,7 +198,48 @@ def textured(name, recipe, rough=None, metal=None, tint=0.0, colour=None, dirt=0
     b.inputs["Metallic"].default_value = 1.0 if metal is None else metal
     if tint:
         m["tint"] = float(tint)
-    return textures.surface(m, coverage)
+    return textures.surface(m, coverage, role=role)
+
+
+# ---------------------------------------------------------------- vehicle surfaces
+# What every vehicle exporter draws its surfaces with, each carrying its role. The
+# dust film (`dirt`) skips rubber and glass: a tyre takes only a little dust low
+# down, where the tread meets the ground, so it stays black; glass takes none.
+TYRE_DUST = 0.12  # how far the dust film carries a tyre's lowest rim toward `DUST`
+TYRE_DUST_RISE = 0.35  # metres: the dust's reach up the tyre
+
+
+def tyre(name="rubber"):
+    """Black tyre and pad rubber (the `rubber` recipe): never chipped, no rain
+    streaks, and only `TYRE_DUST` of dust on the tread low down."""
+    return textured(name, "rubber", chip=0, streak=0, dirt=TYRE_DUST, rise=TYRE_DUST_RISE, role="rubber")
+
+
+def glass(name="glass"):
+    """Sight glass and windows: near black and smooth, so what it shows is what it
+    reflects (a pale sky at grazing angles), never a colour of its own. Opaque and
+    unworn: a blended surface cannot wear."""
+    return flat_paint(name, (0.008, 0.01, 0.011), rough=0.08, grime=0, role="glass")
+
+
+def track_steel(name="track", dirt=0.45):
+    """All-steel track links (the `track_link` recipe) on a belt whose UVs run one link
+    per unit along its length; dusty, never chipped."""
+    return textured(name, "track_link", chip=0, dirt=dirt, role="track")
+
+
+def bare_steel(name="steel", chip=0.15, dirt=0.2):
+    """Bare, oiled and worn steel (the `bare_steel` recipe): barrels, rails, bolts."""
+    return textured(name, "bare_steel", chip=chip, dirt=dirt, role="steel")
+
+
+def paint(scheme, name="paint", chip=0.3, dirt=0.45, rise=1.0):
+    """A vehicle's paint in its nation's scheme (`textures.SCHEMES`), chipped on its
+    edges in a lighter tone of itself and dusty low down. It takes its side's tint,
+    which nothing else on a vehicle does."""
+    if scheme not in textures.SCHEMES:
+        raise ValueError(f"{name}: scheme is one of {', '.join(textures.SCHEMES)}")
+    return textured(name, textures.SCHEMES[scheme], tint=1.0, chip=chip, dirt=dirt, rise=rise, role="paint")
 
 
 # NATO three-colour camouflage, linear albedo: the spike's hues, darkened and
@@ -224,7 +266,7 @@ def woodland(name, colours=WOODLAND, scale=0.6, wear=0.4, dirt=0.6, rough=0.62, 
         c = streaks(c, p, n, 0.35)
         return grime_rise(c, p, dirt)
 
-    return paint(name, rough)(fn)
+    return vertex_paint(name, rough)(fn)
 
 
 def burnt(name, rough=0.9, dirt=0.3, seed=4.0):
@@ -249,7 +291,7 @@ def burnt(name, rough=0.9, dirt=0.3, seed=4.0):
             c = lerp3(c, rust, min(0.35, edge * 0.35))
         return grime_rise(c, p, dirt)
 
-    return paint(name, rough)(fn)
+    return vertex_paint(name, rough)(fn)
 
 
 # ---------------------------------------------------------------- primitives

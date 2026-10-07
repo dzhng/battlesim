@@ -3,19 +3,23 @@ import bpy, bmesh, sys, os, math, json
 from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
+import parts as P
 from catalog_frames import requested_variant
 
+
+# Each family's paint scheme (`textures.SCHEMES`): its real nation's.
+SCHEME={'bradley':'us_desert_tan','stryker':'us_desert_tan','lav':'us_desert_tan','humvee':'us_desert_tan','jltv':'us_desert_tan'}
 
 def build(family):
     args=script_args(); variant,out=requested_variant(family,args)
     ident=variant['id']
     frame=variant['frame']; L,W,H=frame['body_dimensions_m']
     reset()
-    paint=textured('armor_olive','olive_paint',tint=1,chip=.25,dirt=.45,rise=1.1)
-    dark=textured('dark_steel','olive_paint',colour=(.045,.055,.035),chip=.2,dirt=.5)
-    rubber=textured('rubber','rubber',chip=0,dirt=.3)
-    steel=textured('gun_steel','bare_steel',chip=.15,dirt=.2)
-    glass=flat_paint('optics',(.018,.06,.07),rough=.15,grime=.1)
+    paint=P.paint(SCHEME[family],'armor_paint',chip=.25,dirt=.45,rise=1.1)
+    dark=textured('dark_steel','olive_paint',colour=(.045,.055,.035),chip=.2,dirt=.5,role='paint')
+    rubber=tyre()
+    steel=bare_steel('gun_steel',chip=.15,dirt=.2)
+    glass=P.glass('optics')
     root=empty(family); body=empty('body',parent=root)
 
     def wheel(row,x,side,r,y,depth):

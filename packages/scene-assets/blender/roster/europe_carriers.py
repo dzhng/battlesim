@@ -3,11 +3,16 @@ import bpy,bmesh,os,sys,json,math
 from mathutils import Vector
 sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
+import parts as P
 from catalog_frames import requested_variant
+
+# Each family's paint scheme (`textures.SCHEMES`): its real nation's.
+SCHEME={'acv':'us_desert_tan','ajax':'british_green','boxer':'german_three_tone','cv90':'swedish_splinter'}
+
 
 def build(family):
     args=script_args();v,out=requested_variant(family,args);ident=v['id'];frame=v['frame'];L,W,H=frame['body_dimensions_m'];mkiv=ident.endswith('mk_iv');rct=ident.endswith('rct30')
-    reset();paint=textured('carrier_olive','olive_paint',tint=1,chip=.25,dirt=.4,rise=1.2);dark=textured('dark_armor','olive_paint',colour=(.045,.055,.035),chip=.2,dirt=.4);rubber=textured('rubber','rubber',chip=0,dirt=.3);steel=textured('gun_steel','bare_steel',chip=.12,dirt=.2);glass=flat_paint('optics',(.018,.055,.063),rough=.15,grime=.1)
+    reset();paint=P.paint(SCHEME[family],'carrier_paint',chip=.25,dirt=.4,rise=1.2);dark=textured('dark_armor','olive_paint',colour=(.045,.055,.035),chip=.2,dirt=.4,role='paint');rubber=tyre();steel=bare_steel('gun_steel',chip=.12,dirt=.2);glass=P.glass('optics')
     root=empty(family);body=empty('body',parent=root)
     tracked=family in ('ajax','cv90');deck={'acv':2.82,'ajax':2.02,'boxer':2.31,'cv90':1.86}[family]
     if tracked:

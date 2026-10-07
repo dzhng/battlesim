@@ -29,7 +29,7 @@ def _plaster(base, seed, burnt_=False):
 
 
 def plaster(name, base=(0.52, 0.47, 0.38), seed=1.0, rough=0.92, burnt_=False):
-    return paint(name, rough)(_plaster(base, seed, burnt_))
+    return vertex_paint(name, rough)(_plaster(base, seed, burnt_))
 
 
 def brick(name, seed=3.0, burnt_=False):
@@ -46,7 +46,7 @@ def brick(name, seed=3.0, burnt_=False):
             c = lerp3(c, (0.02, 0.018, 0.016), 0.35 + 0.4 * max(0, fbm(p, 0.8, 3, seed + 5)))
         return grime_rise(c, p, 0.8, top=1.0, colour=(0.1, 0.08, 0.06))
 
-    return paint(name, 0.9)(fn)
+    return vertex_paint(name, 0.9)(fn)
 
 
 def stone(name, base=(0.25, 0.24, 0.21), seed=5.0):
@@ -56,7 +56,7 @@ def stone(name, base=(0.25, 0.24, 0.21), seed=5.0):
             c = lerp3(c, (0.12, 0.14, 0.07), max(0.0, fbm(p, 1.8, 2, seed + 3)) * 0.8)  # moss on top
         return grime_rise(c, p, 0.7, top=0.6, colour=(0.1, 0.09, 0.07))
 
-    return paint(name, 0.95)(fn)
+    return vertex_paint(name, 0.95)(fn)
 
 
 def tiles(name, base=(0.3, 0.11, 0.06), seed=7.0):
@@ -71,7 +71,7 @@ def tiles(name, base=(0.3, 0.11, 0.06), seed=7.0):
         c = lerp3(c, (0.05, 0.04, 0.035), smoothstep(0.3, 0.6, fbm(p, 0.35, 2, seed + 8)) * 0.5)
         return c
 
-    return paint(name, 0.8)(fn)
+    return vertex_paint(name, 0.8)(fn)
 
 
 def timber(name, base=(0.13, 0.085, 0.05), seed=9.0):
@@ -81,7 +81,7 @@ def timber(name, base=(0.13, 0.085, 0.05), seed=9.0):
         c = lerp3(c, (0.2, 0.19, 0.17), smoothstep(0.2, 0.6, fbm(p, 2.0, 2, seed + 1)) * 0.35)  # weathered grey
         return grime_rise(c, p, 0.6, top=0.8)
 
-    return paint(name, 0.85)(fn)
+    return vertex_paint(name, 0.85)(fn)
 
 
 def charred(name, seed=11.0, ember=0.3):
@@ -92,7 +92,7 @@ def charred(name, seed=11.0, ember=0.3):
             c = lerp3(c, (0.2, 0.08, 0.03), ember * edge)  # embers' glow gone to rust-brown
         return c
 
-    return paint(name, 0.95)(fn)
+    return vertex_paint(name, 0.95)(fn)
 
 
 def rubble_paint(name, seed=13.0):
@@ -102,7 +102,7 @@ def rubble_paint(name, seed=13.0):
         c = lerp3(c, (0.03, 0.028, 0.025), 0.25 + smoothstep(0.45, 0.8, fbm(p, 0.8, 2, seed + 3)) * 0.6)  # soot and ash
         return tuple(x * (0.8 + 0.4 * (0.5 + 0.5 * fbm(p, 9.0, 1, seed + 6))) for x in c)
 
-    return paint(name, 1.0)(fn)
+    return vertex_paint(name, 1.0)(fn)
 
 
 # ---------------------------------------------------------------- builders

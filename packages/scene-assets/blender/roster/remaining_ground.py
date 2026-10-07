@@ -3,11 +3,16 @@ import bpy,bmesh,os,sys,json,math
 from mathutils import Vector
 sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
+import parts as P
 from catalog_frames import requested_variant
+
+# Each family's paint scheme (`textures.SCHEMES`): its real nation's.
+SCHEME={'fennek':'german_three_tone','puma':'german_three_tone','vbl':'french_three_tone','vbci':'french_three_tone','jaguar':'french_three_tone','tigr':'russian_green','brm':'russian_green'}
+
 
 def build(family):
     args=script_args();v,out=requested_variant(family,args);ident=v['id'];frame=v['frame'];L,W,H=frame['body_dimensions_m']
-    reset();paint=textured('ground_olive','olive_paint',tint=1,chip=.25,dirt=.45,rise=.9);dark=textured('dark_steel','olive_paint',colour=(.045,.055,.035),chip=.18,dirt=.4);rubber=textured('rubber','rubber',chip=0,dirt=.3);steel=textured('gun_steel','bare_steel',chip=.12,dirt=.2);glass=flat_paint('armor_glass',(.018,.055,.063),rough=.15,grime=.1)
+    reset();paint=P.paint(SCHEME[family],'ground_paint',chip=.25,dirt=.45,rise=.9);dark=textured('dark_steel','olive_paint',colour=(.045,.055,.035),chip=.18,dirt=.4,role='paint');rubber=tyre();steel=bare_steel('gun_steel',chip=.12,dirt=.2);glass=P.glass('armor_glass')
     root=empty(family);body=empty('body',parent=root)
     scout=family in ('fennek','vbl','tigr');deck={'fennek':1.86,'vbl':1.64,'tigr':1.94,'puma':2.56,'vbci':2.36,'brm':1.85,'jaguar':2.36}[family]
     if family in ('puma','brm'):

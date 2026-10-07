@@ -8,7 +8,12 @@ import bpy, bmesh, sys, os, math, json
 from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
+import parts as P
 from catalog_frames import requested_variant
+
+
+# Each family's paint scheme (`textures.SCHEMES`): its real nation's.
+SCHEME={'hemtt':'us_desert_tan','man-hx':'german_three_tone','ural':'russian_green'}
 
 
 def build(FAMILY, AXLES, CAB_STYLE):
@@ -18,13 +23,13 @@ def build(FAMILY, AXLES, CAB_STYLE):
     L, W, H = VARIANT['frame']['body_dimensions_m']
     PREVIEW = next((a.split('=', 1)[1] for a in ARGS if a.startswith('--preview=')), None)
     reset()
-    paint_m = textured('cargo_olive', 'olive_paint', tint=1.0, chip=.35, dirt=.65, rise=1.25)
-    chassis_m = textured('chassis_dark', 'olive_paint', colour=(.047,.056,.035), chip=.25, dirt=.7)
-    rubber_m = textured('rubber', 'rubber', dirt=.3, chip=0, rise=.9)
-    canvas_m = textured('canvas', 'canvas', colour=(.14,.17,.105), chip=.1, dirt=.35)
-    steel_m = textured('steel', 'bare_steel', chip=.3, dirt=.45)
+    paint_m = paint(SCHEME[FAMILY], 'cargo_paint', chip=.35, dirt=.65, rise=1.25)
+    chassis_m = textured('chassis_dark', 'olive_paint', colour=(.047,.056,.035), chip=.25, dirt=.7, role='paint')
+    rubber_m = tyre()
+    canvas_m = textured('canvas', 'canvas', colour=(.14,.17,.105), chip=.1, dirt=.35, role='fabric')
+    steel_m = bare_steel('steel', chip=.3, dirt=.45)
     wood_m = textured('supply_wood', 'pallet_wood', dirt=.4)
-    glass_m = flat_paint('glass', (.028,.059,.062), rough=.13, grime=.1)
+    glass_m = glass('glass')
     black_m = flat_paint('grille', (.018,.025,.018), rough=.8, grime=.3)
     lamp_m = flat_paint('lamp', (.62,.58,.41), rough=.25, grime=.05)
     red_m = flat_paint('tail_lamp', (.17,.025,.012), rough=.3, grime=.05)

@@ -142,9 +142,11 @@ A material may also be a **room**: a wall of the open box behind a window, which
 
 The bundle only carries these statements. What draws them is the renderer's (`battle-renderer` `models/surfaceParts.ts`, which orders a mesh's triangles by kind, and `models/surfaceFragments.ts`, the stage each kind is drawn by), and a bundle of another format is refused, never read as if it were opaque.
 
-The validator's `material.*` findings (`material.ts`) refuse what would be drawn wrong without anyone noticing. A cutout or blended material whose coverage value never crosses its own threshold has lost its coverage on the way (authored in the albedo's alpha, say). A blended surface cannot wear, since a worn patch has no coverage of its own. A room is opaque, has no textures or wear of its own in its source, and is on a static appearance; one whose sheet the catalog has no picture for does not bake.
+A material may also say what it **is**, its **role** (extras `role`, `MATERIAL_ROLES` in `schema.ts`): a vehicle's tyres are rubber, its optics and windows glass, its scheme paint, and the rest steel, track, fabric, skin or marking. A role is a statement about the real surface, so the validator can hold the surfaces players judge a model by to what they look like: rubber reads black and glass dark and smooth, whatever dust or paint a script lays on. It judges what the surface draws on average over its area, as the model shader does (albedo texture, vertex colour and its scale, base colour, and the wear colour where wear passes its threshold), against bounds in `schema.ts`.
 
-`asset validate <glb>` prints each material as it would be baked.
+The validator's `material.*` findings (`material.ts`) refuse what would be drawn wrong without anyone noticing. A cutout or blended material whose coverage value never crosses its own threshold has lost its coverage on the way (authored in the albedo's alpha, say). A blended surface cannot wear, since a worn patch has no coverage of its own. A room is opaque, has no textures or wear of its own in its source, and is on a static appearance; one whose sheet the catalog has no picture for does not bake. Rubber that draws lighter than black rubber (`material.role_rubber`), and glass that draws lighter or rougher than sight glass (`material.role_glass`), are refused.
+
+`asset validate <glb>` prints each material as it would be baked, and what its rubber and glass draw.
 
 ## Where things are
 
