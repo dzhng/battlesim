@@ -80,3 +80,66 @@ Four drafters got the same neutral brief (the interview's decisions and measured
 - **Not adopted:** a vehicle impostor (A, C). Vehicles draw tier 3 far away; the pilot measures whether that costs too much, and an impostor is the named alternative only if it does. Merging village removal with test units into one slice (A): kept separate (05 then 06) so each has one verdict, with 06 after 05 so the renames land once.
 - **Weapon presentation shipped another way** (main `6c258b3d`, 2026-10-06): `kindTable.inheritRows` walks `extends` client-side for weapons without a row. Slice 01 keeps only the vehicle class and the unit-keyed overrides; the synthesis's published `base` field is dropped so weapon presentation keeps one owner.
 - **No number is a requirement** (user, 2026-10-06): "numbers like the 50 MB download limit are arbitrary... I don't want you to spend too much time over-optimizing for some random number that you came up with yourself." Budgets, limits, ratios and allowances are loose tripwires set from measurement with room to spare; when one is exceeded and nothing visibly suffers, raise it. An earlier session had set the map download and kit bundle limits (`schema.ts`) to 50 MiB; both were raised to 256 MiB on 2026-10-06 and marked as tripwires.
+
+## Slice 09 (implementation)
+
+- **Frame helper is a sibling of `parts.py`** (`blender/catalog_frames.py`), plain Python with no Blender, so it is unit-tested on fake catalogs (`catalog_frames_test.py`). A variant is the one unit type whose `appearance` names it; its frame is that type's `body.hull` extents and eye and its `mounts`, each mount's role from the appearance's `mounts`; body dimensions are `2 × half_extents_m`; a family is every appearance whose source is in `assets/source/roster/<family>/`, ordered by id. A per-variant exporter takes an appearance id (written to its catalog source) or an output `.glb` named after one, refuses another family's, and a family of one needs no argument (this also fixes the trucks' default path, which resolved against the CLI's `web/` working directory).
+- **Re-exports are byte-identical.** Before switching, Bradley re-exported through the old script (archive path) matched its committed blob; after switching, every variant of Abrams (armor.py), Bradley (light_armor), BMP (eastern_armor), Boxer (europe_carriers), Fennek (remaining_ground), Leclerc (remaining_tanks), T-90 (eastern_tanks) and HEMTT (logistics), 13 GLBs, hashes to its committed LFS oid. So art hashes are unchanged and no GLB is committed. Every bound family's archived manifest frame equals its catalog frame exactly (extents, eye, mount order, pivots, muzzles, roles, names), except the HMMWV, whose manifest frame was never exported (slice 14). The stale receipts of Bradley and Leclerc did not change output: their scripts changed only in ways that move no bytes.
+- **Appearances no unit draws have no frame.** The disabled families' exporters (T-14, T-15, Type 15, BRM, Jaguar, JLTV, Challenger 3) now refuse by name; their models come from slice 18. The research `dispatch_gate` check in `remaining_tanks.py` went with the manifest.
+- **Receipts** (`source-receipt.json`, written by armor.py and eastern_tanks.py) record `frames: fixtures/catalog.json` instead of a manifest hash, and the eastern tanks' reference limits are inlined. Nothing reads receipts; regenerated ones were not committed since no GLB changed.
+- **Infantry keeps reading the archived infantry manifest** (`specs/done/...` directly, no dead path): it reads equipment lengths and appearance sources, not a physical frame. Slice 17 replaces it.
+- **Parts library** (`vehicle_parts.py`, nothing imports it yet): static parts make no empty (every empty is an articulated bundle node); wheel parts make a `wheel_*` empty with `radius_m`; `track_run` reproduces armor.py's belt exactly and drops its rubber pads, which hung under the track node and so scrolled; a `black` material role covers bores and openings; tiers per piece are fixed inside each part; sprocket teeth scale with radius.
+- **Crew module.** Faction soldier: `CREW_SOLDIER` maps each faction to an appearance (`rifle_squad_active_a` for all three, since the roster rifle squads share one look until slice 17). Tiers: vehicle tier t carries the soldier's tier t + 1, and tier 3 carries no crew. Weapon: every connected piece skinned wholly to the `hand_r` joint is cut; the soldiers carry no separate weapon node (the weapon is joined into the one skinned mesh), so the joint it rides is the node used; on both `rifle.glb` and `rifle_squad/active_a.glb` this cuts exactly the faces the old material rule cut, at every tier. Materials: crew materials are renamed `crew_<name>` (shared between crewmen), and only those are restored after export. The jeep (test art) passes `assets/source/infantry/rifle.glb` explicitly and was not re-exported; a scratch re-export validates clean under its catalog settings and drops from 64512 / 17314 / 5616 / 1798 to 26114 / 8554 / 2538 / 364 triangles, the crew having been most of the jeep.
+- **References.** `references.json` is `{entries, gaps}`; licences are SPDX ids (`CC0-1.0`, `CC-BY-*`, `CC-BY-SA-*`) or `public-domain`, and `ours` for generated views only; an unpulled LFS image is hash-checked by its pointer oid and its size skipped with a warning; a family folder without `references.json` fails `check`. The sheet's family is the source's roster folder and its variant the appearance id; `side` pairs with the vehicle's left view, a new `q-rear` studio view serves `three_quarter_rear`, and `detail` has no model view. Verified with a stub library for `us_m1_abrams_sep_v3_trophy`, then deleted.
+
+### Triangle baseline (2026-10-06)
+
+Triangles per tier 0 / 1 / 2 / 3, from `asset validate` on each committed source (the sheet's `stats.json` has no tiers for a catalog appearance). All 43 vehicle sources validate.
+
+| Appearance | Triangles |
+|---|---|
+| us_m1_abrams_sep_v2 | 25942 / 10186 / 3284 / 1296 |
+| us_m1_abrams_sep_v2_trophy | 26774 / 10522 / 3428 / 1392 |
+| us_m1_abrams_sep_v3_trophy | 27346 / 10710 / 3484 / 1392 |
+| europe_leopard_2_2a6 | 26942 / 10298 / 3408 / 1362 |
+| europe_leopard_2_2a7v | 28062 / 10642 / 3464 / 1362 |
+| europe_leopard_2_2a8 | 28894 / 10978 / 3608 / 1458 |
+| europe_challenger_challenger_2_tes | 18382 / 6360 / 2338 / 1292 |
+| europe_leclerc_xlr | 16834 / 5368 / 2282 / 1328 |
+| europe_kf51_panther_prototype_main_battle_tank | 19122 / 6080 / 2500 / 1472 |
+| eastern_t_72_t_72b3_2016 | 25816 / 10566 / 3520 / 1468 |
+| eastern_t_80_t_80bvm | 25688 / 10718 / 3408 / 1372 |
+| eastern_t_90_t_90m_proryv | 27096 / 10910 / 3278 / 1228 |
+| eastern_type_99_ztz_99a | 17586 / 5614 / 2388 / 1324 |
+| us_m2_bradley_ifv_m2a4 | 13828 / 5134 / 2208 / 1244 |
+| us_m3_bradley_cfv_m3a3 | 13884 / 5154 / 2220 / 1256 |
+| europe_cv90_cv9040c | 11688 / 4260 / 1830 / 1040 |
+| europe_cv90_mk_iv | 12072 / 4386 / 1870 / 1076 |
+| europe_puma_level_c | 13158 / 4726 / 1574 / 992 |
+| europe_ajax_tracked_reconnaissance_vehicle | 13600 / 4820 / 1858 / 1052 |
+| eastern_bmp_ifv_family_bmp_2m_berezhok | 9804 / 3888 / 1918 / 1224 |
+| eastern_bmp_ifv_family_bmp_3 | 9756 / 4056 / 1778 / 1072 |
+| us_stryker_m1126_icv | 8278 / 4136 / 1162 / 784 |
+| us_m1127_stryker_rv_reconnaissance_vehicle | 8354 / 4172 / 1194 / 816 |
+| us_stryker_m1134_atgm | 8906 / 4396 / 1258 / 880 |
+| us_stryker_m1296_dragoon | 8640 / 4270 / 1218 / 840 |
+| us_lav_lav_25a2 | 8364 / 4210 / 1198 / 828 |
+| us_lav_lav_at | 8558 / 4308 / 1238 / 880 |
+| europe_boxer_apc | 10530 / 4502 / 1218 / 716 |
+| europe_boxer_rct30 | 12172 / 5180 / 1438 / 796 |
+| europe_vbci_infantry_fighting_vehicle | 10166 / 4396 / 1054 / 708 |
+| eastern_btr_btr_82a | 9002 / 4472 / 1358 / 904 |
+| eastern_zbl_08_wheeled_ifv | 9878 / 4836 / 1354 / 864 |
+| us_acv_acv_p | 11128 / 4694 / 1270 / 724 |
+| us_m1151_hmmwv_hmg | 7502 / 3162 / 868 / 700 |
+| eastern_tigr_tigr_m | 7064 / 3096 / 878 / 660 |
+| europe_fennek_reconnaissance_vehicle | 5308 / 2432 / 660 / 524 |
+| europe_vbl_machine_gun_scout | 4170 / 2116 / 588 / 492 |
+| us_m977_hemtt_general_resupply | 21304 / 8682 / 2404 / 848 |
+| europe_man_hx_general_resupply | 19954 / 8422 / 2290 / 706 |
+| eastern_ural_4320_general_resupply | 15978 / 7440 / 2048 / 690 |
+| tank (test) | 56670 / 17858 / 3398 / 976 |
+| jeep (test) | 64512 / 17314 / 5616 / 1798 |
+| supply_truck (test) | 25340 / 8222 / 1526 / 264 |
+
+**Frame-cost baseline: pending for the coordinator.** The GPU browser runs here (a sheet takes about 14 s), but no lab scene holds roster vehicles, and the slice's column-of-roster-vehicles scene is new lab code; it was not built in this slice.
