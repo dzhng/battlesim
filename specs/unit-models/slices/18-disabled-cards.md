@@ -16,6 +16,14 @@ Challenger 2 file. Every card gets its own model; start from the authored ones
 where they exist. The disabled gate (`crates/sim/tests/catalog.rs:15`) checks
 only ids and strings: make it check that each `source_path` exists and
 validates, and that `model_status` is one of the registry's values.
+**Frames.** Since slice 09, exporters take frames only from a unit type that
+draws the appearance (`blender/catalog_frames.py`) and refuse appearances no
+unit draws, which is every disabled card. Give the helper a second, explicit
+source for disabled cards: the card's own physical data where the catalog has
+it, else the archived manifest frame (`specs/done/unit-roster/manifests/`) or
+the reference dimensions, recorded per card in its receipt. One helper, two
+named sources; no silent fallback.
+
 Every vehicle card also gets its own wreck (slice 11), ready for when its
 mechanics land.
 
