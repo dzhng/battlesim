@@ -1,31 +1,109 @@
-"""Freeze the shared infantry art into vehicle crew poses at source export.
+"""Freeze a soldier's art into vehicle crew poses at source export.
 
 Crew are part of the vehicle appearance, not extra simulation soldiers. The
 driver follows the body; a gunner follows the mount's yaw, not barrel pitch.
-The existing infantry source supplies clothing, equipment and all four tiers.
+
+- A vehicle's crew wear its faction's soldier (`soldier_source`).
+- Crew are drawn from the soldier's tier 1 down: vehicle tier t carries the
+  soldier's tier t + 1, and the far tier 3 carries no crew. They are the
+  vehicle's own triangles, so its budget counts them.
+- Crew carry no weapon: every piece of the soldier skinned wholly to the
+  right hand's joint (the node his weapon and its muzzle socket ride) is cut.
+- Crew materials are named `crew_<soldier material>`, and only those take the
+  soldier's exact materials back after export (`preserve_materials`), so a
+  vehicle material is never overwritten.
 """
 import math
 import os
 import copy
 import json
 import struct
+from pathlib import Path
 
 import bmesh
 import bpy
 from mathutils import Matrix, Vector
 
-SOURCE = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                    "../../../assets/source/infantry/rifle.glb"))
+REPO = Path(__file__).resolve().parents[3]
+# Each faction's crew soldier, an appearance in assets/catalog.json. The
+# roster's rifle squads share one look today; give a faction its own here
+# when its infantry gets one.
+CREW_SOLDIER = {
+    "us": "rifle_squad_active_a",
+    "europe": "rifle_squad_active_a",
+    "eastern": "rifle_squad_active_a",
+}
+CREW_TIERS = 3
+WEAPON_JOINT = "hand_r"
+PREFIX = "crew_"
 
 
-def crew(name, parent, hips, hands, feet):
+def soldier_source(faction):
+    """The source GLB of the faction's crew soldier."""
+    appearances = json.loads((REPO / "assets/catalog.json").read_text())["appearances"]
+    return str(REPO / appearances[CREW_SOLDIER[faction]]["source"])
+
+
+def _without_weapon(mesh):
+    """Cut every connected piece skinned wholly to the weapon joint."""
+    bm = bmesh.new()
+    bm.from_mesh(mesh.data)
+    weights = bm.verts.layers.deform.active
+    joint = mesh.vertex_groups[WEAPON_JOINT].index
+    seen = set()
+    cut = []
+    for start in bm.verts:
+        if start in seen:
+            continue
+        seen.add(start)
+        piece = [start]
+        stack = [start]
+        while stack:
+            vert = stack.pop()
+            for edge in vert.link_edges:
+                other = edge.other_vert(vert)
+                if other not in seen:
+                    seen.add(other)
+                    piece.append(other)
+                    stack.append(other)
+        if all(v[weights].get(joint, 0) > 0.99 for v in piece):
+            cut.extend(piece)
+    bmesh.ops.delete(bm, geom=cut, context="VERTS")
+    bm.to_mesh(mesh.data)
+    bm.free()
+
+
+def _crew_materials(mesh):
+    """Rename the soldier's materials into the crew's namespace, sharing one
+    material per name between every crewman."""
+    for slot in mesh.material_slots:
+        material = slot.material
+        if material is None or material.name.startswith(PREFIX):
+            continue
+        name = PREFIX + material.name.split(".")[0]
+        existing = bpy.data.materials.get(name)
+        if existing is None:
+            material.name = name
+        else:
+            slot.material = existing
+
+
+def crew(name, parent, hips, hands, feet, source):
+    """Pose one crewman from the soldier GLB `source` with his pelvis at
+    `hips`, hands at `hands` and feet at `feet` (left, right), frozen under
+    `parent` as `<name>_LOD0..2`."""
     before = set(bpy.data.objects)
-    bpy.ops.import_scene.gltf(filepath=SOURCE)
+    bpy.ops.import_scene.gltf(filepath=source)
     imported = set(bpy.data.objects) - before
     arm = next(o for o in imported if o.type == "ARMATURE")
-    meshes = sorted((o for o in imported if o.type == "MESH"
-                     and any(m.type == "ARMATURE" and m.object == arm for m in o.modifiers)),
-                    key=lambda o: o.name)
+    skinned = [o for o in imported if o.type == "MESH"
+               and any(m.type == "ARMATURE" and m.object == arm for m in o.modifiers)]
+    meshes = []
+    for mesh in skinned:
+        tier = int(mesh.name.split("_LOD")[-1].split(".")[0]) - 1
+        if 0 <= tier < CREW_TIERS:
+            meshes.append((tier, mesh))
+    meshes.sort(key=lambda item: item[0])
     arm.animation_data_clear()
     # The shared source faces -Y. Vehicle art faces +X. Place its pelvis at
     # the seat / standing position, preserving the source's authored scale.
@@ -55,20 +133,9 @@ def crew(name, parent, hips, hands, feet):
             constraint.chain_count = 2
     bpy.context.view_layer.update()
 
-    for mesh in meshes:
-        # Remove the hand-bound rifle, retaining black helmet fittings,
-        # belt buckles and radio aerials elsewhere on the shared soldier.
-        bm = bmesh.new()
-        bm.from_mesh(mesh.data)
-        gun = {i for i, m in enumerate(mesh.data.materials) if m.name.split(".")[0] == "gun_black"}
-        hand = mesh.vertex_groups["hand_r"].index
-        weights = bm.verts.layers.deform.active
-        rifle = [f for f in bm.faces if f.material_index in gun
-                 and all(v[weights].get(hand, 0) > 0.99 for v in f.verts)]
-        bmesh.ops.delete(bm, geom=rifle, context="FACES")
-        bm.to_mesh(mesh.data)
-        bm.free()
-        tier = mesh.name.split("_LOD")[-1].split(".")[0]
+    for tier, mesh in meshes:
+        _without_weapon(mesh)
+        _crew_materials(mesh)
         deps = bpy.context.evaluated_depsgraph_get()
         frozen = bpy.data.meshes.new_from_object(mesh.evaluated_get(deps), depsgraph=deps)
         world = mesh.matrix_world.copy()
@@ -81,15 +148,16 @@ def crew(name, parent, hips, hands, feet):
         mesh.parent = parent
         mesh.matrix_parent_inverse = Matrix.Identity(4)
         mesh.matrix_basis = Matrix.Identity(4)
-    for o in (imported - set(meshes)) | set(targets):
+    for o in (imported - {mesh for _, mesh in meshes}) | set(targets):
         bpy.data.objects.remove(o, do_unlink=True)
 
 
-def preserve_materials(path):
-    """Carry the shared source's exact materials and embedded pixels through
-    Blender. Its export strips images for the vehicle's recipe baker; routing
-    imported ORM through Blender would also lose the side-tint alpha channel.
-    Geometry, UVs and vertex colours are already on the frozen crew meshes.
+def preserve_materials(path, source):
+    """Carry the crew soldier's exact materials and embedded pixels through
+    Blender into the vehicle GLB at `path`. Its export strips images for the
+    vehicle's recipe baker; routing imported ORM through Blender would also
+    lose the side-tint alpha channel. Geometry, UVs and vertex colours are
+    already on the frozen crew meshes. Only `crew_*` materials are replaced.
     """
     def read(path):
         data = open(path, "rb").read()
@@ -99,7 +167,7 @@ def preserve_materials(path):
         size = struct.unpack_from("<I", data, start)[0]
         return doc, bytearray(data[start + 8:start + 8 + size])
 
-    source, pixels = read(SOURCE)
+    soldier, pixels = read(source)
     doc, binary = read(path)
     images = {}
     slots = {}
@@ -107,11 +175,11 @@ def preserve_materials(path):
     def texture(index):
         if index in slots:
             return slots[index]
-        tex = copy.deepcopy(source["textures"][index])
+        tex = copy.deepcopy(soldier["textures"][index])
         image = tex["source"]
         if image not in images:
-            record = copy.deepcopy(source["images"][image])
-            view = source["bufferViews"][record["bufferView"]]
+            record = copy.deepcopy(soldier["images"][image])
+            view = soldier["bufferViews"][record["bufferView"]]
             offset = view.get("byteOffset", 0)
             binary.extend(b"\0" * (-len(binary) % 4))
             record["bufferView"] = len(doc["bufferViews"])
@@ -124,15 +192,17 @@ def preserve_materials(path):
             sampler = tex["sampler"]
             if sampler not in samplers:
                 samplers[sampler] = len(doc.setdefault("samplers", []))
-                doc["samplers"].append(source["samplers"][sampler])
+                doc["samplers"].append(soldier["samplers"][sampler])
             tex["sampler"] = samplers[sampler]
         slots[index] = len(doc.setdefault("textures", []))
         doc["textures"].append(tex)
         return slots[index]
 
-    materials = {m["name"]: m for m in source["materials"]}
+    materials = {m["name"]: m for m in soldier["materials"]}
     for i, current in enumerate(doc["materials"]):
-        original = materials.get(current["name"].split(".")[0])
+        if not current["name"].startswith(PREFIX):
+            continue
+        original = materials.get(current["name"][len(PREFIX):].split(".")[0])
         if original is None:
             continue
         material = copy.deepcopy(original)

@@ -12,6 +12,7 @@ def unit(type_id, appearance, half, eye, mounts):
         id=type_id,
         appearance=appearance,
         name=type_id.title(),
+        faction="us",
         roster=dict(variant="Mk " + type_id[-1]),
         body=dict(hull=dict(half_extents_m=half, eye_m=eye)),
         mounts=mounts,
@@ -52,6 +53,7 @@ class CatalogFramesTest(unittest.TestCase):
         self.assertEqual(variant["id"], "tank_2")
         self.assertEqual(variant["name"], "Tank_2")
         self.assertEqual(variant["variant"], "Mk 2")
+        self.assertEqual(variant["faction"], "us")
         self.assertEqual(variant["export"], "assets/source/roster/tank/look_2.glb")
         frame = variant["frame"]
         self.assertEqual(frame["half_extents_m"], [4.0, 1.8, 1.2])

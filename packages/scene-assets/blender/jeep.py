@@ -268,13 +268,15 @@ if WRECK:
 rest_on_ground(0.006 if WRECK else 0.0)
 finish(ao_distance=1.0)
 if not WRECK:
-    from vehicle_crew import crew
+    from vehicle_crew import REPO, crew
+    # The jeep is a test unit with no faction; its crew wear the test soldier.
+    CREW = str(REPO / "assets/source/infantry/rifle.glb")
     crew("driver", body, (-0.32, 0.37, 0.96),
          ((0.1, 0.51, 1.24), (0.1, 0.23, 1.24)),
-         ((0.35, 0.49, 0.6), (0.35, 0.25, 0.6)))
+         ((0.35, 0.49, 0.6), (0.35, 0.25, 0.6)), CREW)
     crew("gunner", hmg, (-0.23, 0, 1.47),
          ((-0.1, 0.065, 2.0), (-0.1, -0.065, 2.0)),
-         ((-0.13, 0.13, FLOOR_Z + 0.06), (-0.13, -0.13, FLOOR_Z + 0.06)))
+         ((-0.13, 0.13, FLOOR_Z + 0.06), (-0.13, -0.13, FLOOR_Z + 0.06)), CREW)
 bpy.context.view_layer.update()
 info = dict(tris=triangles_by_tier(), muzzle=[round(v, 4) for v in hmg_muzzle.matrix_world.translation],
             nodes=sorted(o.name for o in bpy.data.objects if o.type == "EMPTY"))
@@ -282,4 +284,4 @@ print("JEEP", json.dumps(info))
 export(OUT)
 if not WRECK:
     from vehicle_crew import preserve_materials
-    preserve_materials(OUT)
+    preserve_materials(OUT, CREW)

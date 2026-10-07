@@ -53,13 +53,14 @@ def _variant(appearance_id, appearance, units):
         id=unit["id"],
         name=unit["name"],
         variant=unit["roster"]["variant"],
+        faction=unit["faction"],
         export=appearance["source"],
         frame=frame,
     )
 
 
 def roster_variant(appearance_id, repo=REPO):
-    """The variant drawn by one appearance: unit id, names, export path and frame."""
+    """The variant drawn by one appearance: unit id, names, faction, export path and frame."""
     units, appearances = _catalogs(repo)
     if appearance_id not in appearances:
         raise LookupError(f"{appearance_id}: no appearance in assets/catalog.json")
