@@ -14,11 +14,11 @@ import { lab } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
 import { classAt, openStations, pairedCost, shoot } from "./_groundStations.mjs";
 
-/** Where the floor is judged: inside the village's west wood and at its
+/** Where the floor is judged: inside the street's west wood and at its
  *  edge, at a log and a boulder where the forest rule lays any, the river
  *  lab's wood, and a generated map's wood edge. */
 const FLOOR_STATIONS = {
-  village: ["forest-deep-25", "forest-edge-65", "forest-65", "floor-log-25", "floor-boulder-25"],
+  street: ["forest-deep-25", "forest-edge-65", "forest-65", "floor-log-25", "floor-boulder-25"],
   river: ["wood-65"],
   generated: ["forest-edge-65", "forest-edge-250"],
 };
@@ -26,7 +26,7 @@ const FLOOR_STATIONS = {
 /** The rig hides every model; the floor's bodies are models. */
 const showBodies = (page) => page.evaluate(() => window.__lab.suppressModels(false));
 
-/** `FLOOR_SHOTS=1`, or `FLOOR_SHOTS=village,river` for those maps alone. A
+/** `FLOOR_SHOTS=1`, or `FLOOR_SHOTS=street,river` for those maps alone. A
  *  station with nothing to stand on (no log on the map) is left out. */
 export async function forestFloorShots(ctx, only) {
   const maps = only === "1" ? Object.keys(FLOOR_STATIONS) : only.split(",");
@@ -59,17 +59,17 @@ const CHANGED = 10;
  *  with the crowns off, the pixels that change with the dressing lie over
  *  forest ground (a piece at the very edge leans a little over the verge). */
 export async function forestFloor(ctx) {
-  const page = await openStations(ctx, "village");
+  const page = await openStations(ctx, "street");
   const station = "forest-edge-65";
   const frame = async (dressing) => {
     await lab(page, (off) => window.__lab.suppressDressing(off), !dressing);
-    return decode(await shoot(page, "village", station, { trees: false, grass: false }));
+    return decode(await shoot(page, "street", station, { trees: false, grass: false }));
   };
   const [dressed, bare] = [await frame(true), await frame(false)];
   // The ground's classes under the same pixels, with no scenery over them.
   await lab(page, () => window.__lab.suppressDressing(true));
   const mask = decode(
-    await shoot(page, "village", station, { view: "ground-classes", trees: false, grass: false }),
+    await shoot(page, "street", station, { view: "ground-classes", trees: false, grass: false }),
   );
   await lab(page, () => window.__lab.suppressDressing(false));
   const pixels = { changed: 0, floor: 0, verge: 0, outside: 0, forest: 0 };
@@ -107,7 +107,7 @@ const COST_PAIRS = 4;
 export async function forestFloorCost(ctx) {
   const result = { stations: {} };
   for (const [map, stations] of [
-    ["village", ["forest-65"]],
+    ["street", ["forest-65"]],
     ["generated", ["forest-edge-250"]],
   ]) {
     const page = await openStations(ctx, map);

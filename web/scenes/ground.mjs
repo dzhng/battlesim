@@ -3,12 +3,12 @@
 // tank slowed (never stopped) by a crater field, tracks, trampling and scorch,
 // all drawn from blue's learned cells (the ground patches its publications
 // carry); a side switch reopens the stream with red's full snapshot. Then the
-// paused village inspector: after the supported attack's opening, each side
-// holds its own ground.
+// paused street inspector: two minutes into the street test map's fight,
+// each side holds its own ground.
 // The learned ground drawn as scars on the terrain and
 // the grass (crater bowls and rims, scorch, tracks, trampling), only where the
 // observed side has learned it, at fixed framings of the lab field
-// (SCARS_ONLY=1 runs only those framings and the village inspector).
+// (SCARS_ONLY=1 runs only those framings and the street inspector).
 // The ground evidence rig's own checks run here too (RIG_ONLY=1 alone), then
 // the road looks' on its stations (ROADS_ONLY=1 alone, `_roads.mjs`), the
 // town streets' (STREETS_ONLY=1 alone, `_streets.mjs`), the town against the
@@ -83,7 +83,7 @@ export async function run(ctx) {
   await forestFloor(ctx);
   await townGround(ctx);
   await treeLines(ctx);
-  if (process.env.SCARS_ONLY) return scarFramings(ctx).then(() => villageInspector(ctx));
+  if (process.env.SCARS_ONLY) return scarFramings(ctx).then(() => streetInspector(ctx));
   const page = await openBattle(ctx);
   // Past blue's first fog sweep since the bursts (every 6 ticks).
   await advance(page, 6);
@@ -183,7 +183,7 @@ export async function run(ctx) {
 
   // One live battle page at a time: each holds a GPU device and a worker.
   await page.close();
-  await villageInspector(ctx);
+  await streetInspector(ctx);
   await scarFramings(ctx);
 }
 
@@ -266,11 +266,15 @@ async function scarFramings(ctx) {
   await page.close();
 }
 
-/** The paused village: each side's learned ground is its own. */
-async function villageInspector(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page, `${ctx.url}?village`);
-  await page.waitForFunction(() => window.__lab.route?.warm(), undefined, { timeout: 240000 });
+/** Two minutes into the street's fight, paused: each side's learned ground
+ *  is its own. */
+async function streetInspector(ctx) {
+  const page = await openBattle(ctx, {
+    viewport: { width: 1920, height: 1080 },
+    url: `${ctx.url}?street`,
+    tick: 120 * 30,
+    timeout: 240000,
+  });
   const blue = await cells(page);
   const blueStream = await stream(page);
   await lab(page, () => window.__lab.route.observeAs("red"));
@@ -282,7 +286,7 @@ async function villageInspector(ctx) {
   const onlyBlue = blue.cells.filter((c) => !redKeys.has(key(c))).length;
   const onlyRed = red.cells.filter((c) => !blueKeys.has(key(c))).length;
   ctx.check(
-    "the paused village: each side holds ground the other never saw",
+    "the paused street: each side holds ground the other never saw",
     blueStream.side === "blue" &&
       redStream.patch.full &&
       redStream.side === "red" &&
@@ -302,15 +306,15 @@ async function villageInspector(ctx) {
   await sidesDrawTheirOwnScars(ctx, page, blue, red);
   await lab(page, () => window.__lab.route.observeAs("blue"));
   await advance(page, 1);
-  await snapshot(ctx, page, "frame-village-blue-1920x1080.png");
-  await villageScars(ctx, page, blue);
+  await snapshot(ctx, page, "frame-street-blue-1920x1080.png");
+  await streetScars(ctx, page, blue);
   await page.close();
 }
 
-/** The village after the opening bombardment, as blue learned it: where its
+/** The street two minutes in, as blue learned it: where its
  *  craters and scorch are thickest, at the default and ground framings, with
  *  scars and without (the same paused tick). */
-async function villageScars(ctx, page, blue) {
+async function streetScars(ctx, page, blue) {
   const burnt = blue.cells.filter((c) => c.marks.crater + c.marks.scorch > 0);
   const around = (c) => burnt.filter((o) => Math.hypot(o.x - c.x, o.y - c.y) < 15).length;
   const densest = burnt.reduce((a, c) => (!a || around(c) > around(a) ? c : a), null);
@@ -323,9 +327,9 @@ async function villageScars(ctx, page, blue) {
     ground: { target: [target[0], target[1] - 14], distance: 25, pitch: 0.22 },
   })) {
     await cameraAt(page, framing);
-    await snapshot(ctx, page, `village-scars-${name}-1920x1080.png`);
+    await snapshot(ctx, page, `street-scars-${name}-1920x1080.png`);
     await lab(page, () => window.__lab.suppressScars(true));
-    await snapshot(ctx, page, `village-scars-${name}-off-1920x1080.png`);
+    await snapshot(ctx, page, `street-scars-${name}-off-1920x1080.png`);
     await lab(page, () => window.__lab.suppressScars(false));
   }
 }
@@ -342,14 +346,17 @@ async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   const props = await page.evaluate(
     async (repo) => {
       const file = (p) => `/@fs/${repo}${p}`;
-      const [wasm, { villageScenario }, { mapProps }, { readWorldExports }] = await Promise.all([
-        import("/src/wasm/game_wasm.js"),
-        import(file("apps/battle-lab/src/savedMaps.tsx")),
-        import(file("packages/battle-renderer/src/models/propAppearance.ts")),
-        import(file("packages/battle-renderer/src/worldMesh.ts")),
-      ]);
+      const [wasm, { buildStreetScenario }, { catalogSet }, { mapProps }, { readWorldExports }] =
+        await Promise.all([
+          import("/src/wasm/game_wasm.js"),
+          import(file("apps/battle-lab/src/streetScenario.ts")),
+          import(file("web/src/battle/catalog/sets.ts")),
+          import(file("packages/battle-renderer/src/models/propAppearance.ts")),
+          import(file("packages/battle-renderer/src/worldMesh.ts")),
+        ]);
       await wasm.default();
-      const setup = JSON.parse(await villageScenario(wasm, "village", "ordinary"));
+      const { rules } = await catalogSet("test");
+      const setup = JSON.parse(await buildStreetScenario(rules));
       const ruleJson = JSON.stringify(setup.rules);
       const view = new wasm.WorldView(JSON.stringify(setup.map), ruleJson);
       try {

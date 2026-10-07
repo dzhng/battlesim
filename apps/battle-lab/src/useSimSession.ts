@@ -19,12 +19,10 @@ export interface SimSessionOptions {
   scripted?: ScriptedSim;
 }
 
-/** A battle blue does not play by hand: a comparison script commands it, and
- *  the real simulation is stepped to `warmTo` before real time starts. */
+/** A battle nobody plays by hand: the scenario carries its sides' scripted
+ *  orders, and the real simulation is stepped to `warmTo` before real time
+ *  starts. */
 export interface ScriptedSim {
-  /** Blue's comparison script (`village_report`'s name); absent when the
-   * scenario already carries its two sides' scripted orders. */
-  script?: string;
   warmTo: number;
   /** Called when the battle first stands at `warmTo`; it holds there until
    *  the promise settles. Without it real time starts at once. */
@@ -82,7 +80,6 @@ export function useSimSession({
       side: "blue",
       transport: "worker",
       replay,
-      script: plan?.script,
       connect: generation === 0 ? prepared?.connect : undefined,
     });
     let warm = !plan;

@@ -26,28 +26,47 @@ test("a rejected replay shows its refusal and draws no battlefield", async () =>
       async (root) => {
         const importModule = new Function("url", "return import(url)");
         const { loadWasm } = await importModule(`${root}/web/src/battle/sim/module.ts`);
-        const { villageScenario } = await importModule(`${root}/apps/battle-lab/src/savedMaps.tsx`);
         const { catalogSet } = await importModule(`${root}/web/src/battle/catalog/sets.ts`);
         const { rememberReplay } = await importModule(`${root}/apps/battle-lab/src/replayFile.tsx`);
+        const { loadMap } = await importModule(`${root}/web/src/maps/browser.ts`);
         const wasm = await loadWasm();
-        const battle = new wasm.Battle(
-          await villageScenario(wasm, "village", "ordinary", (await catalogSet("test")).rules),
-          1,
-        );
+        const { rules } = await catalogSet("game");
+        // Battles with no units, so the game's catalog admits them; each on
+        // its own test map.
+        const scenario = async (id: string) =>
+          JSON.stringify({ map: (await loadMap(id)).definition, rules, units: [] });
+        const map = (await loadMap("street")).definition;
+        // A saved battle whose commands were recorded on another scenario.
+        const other = new wasm.Battle(await scenario("geometry"), 1);
         try {
           await rememberReplay(
             JSON.stringify({
-              variant: "prepared_crossfire",
-              replay: battle.replay_json(),
+              battle: {
+                scenario: await scenario("street"),
+                report: {
+                  request: {
+                    map_source: {
+                      kind: "generated",
+                      request: { type: "open", size: "small", seed: "1" },
+                    },
+                    factions: ["us", "eastern"],
+                    battle_seed: 1,
+                  },
+                  size: map.size,
+                  extents: { rendered: [0, 0, map.size[0], map.size[1]] },
+                  start: { at: [180, 790], yaw: 0 },
+                },
+              },
+              replay: other.replay_json(),
             }),
           );
         } finally {
-          battle.free();
+          other.free();
         }
       },
       `/@fs/${fileURLToPath(new URL("../..", import.meta.url))}`,
     );
-    await page.goto(`${base}replay/village`);
+    await page.goto(`${base}battle?replay=saved`);
     try {
       await page.getByTestId("error").waitFor({ timeout: 10000 });
     } catch (error) {
@@ -67,7 +86,7 @@ test("a rejected replay shows its refusal and draws no battlefield", async () =>
     expect(await page.getByTestId("battle-panel").count()).toBe(0);
     expect(
       await page.getByRole("link", { name: "Back to the menu", exact: true }).getAttribute("href"),
-    ).toBe("/labs");
+    ).toMatch(/^\/(\?|$)/);
     await page.screenshot({
       path: fileURLToPath(new URL("../../throwaway/battle-failure.png", import.meta.url)),
     });

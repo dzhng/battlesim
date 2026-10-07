@@ -1,4 +1,4 @@
-// Opt-in (`WATCH_TOURS=light`): the light weapons cast, in the watched village
+// Opt-in (`WATCH_TOURS=light`): the light weapons cast, in the watched street battle
 // battle. From LIGHT_TICK (default 30) the battle steps a tick at a time; the
 // first time each weapon's shot lights the world (a `flash:<kind>` cast light:
 // the tank gun, the HMG, a rifle, a grenade launcher, a missile's launch), the

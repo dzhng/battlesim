@@ -10,7 +10,9 @@ import {
   openMenuPage,
 } from "./_lab.mjs";
 
-/** The actual player entry and retained page owners, across complete battles. */
+/** The actual player entry and retained page owners, across complete battles:
+ *  the menu's Deploy into a generated battle, its pause controls, restart,
+ *  history, a saved replay and the way back to the menu. */
 export async function appJourney(ctx) {
   const page = await ctx.newPage();
   await page.addInitScript(() => {
@@ -54,12 +56,18 @@ export async function appJourney(ctx) {
     `${backdrop.length} workers`,
   );
   const backdropClosed = Promise.all(backdrop.map((worker) => worker.waitForEvent("close")));
-  await openMenuPage(page, "Developer");
-  await page.getByRole("link", { name: "Village", exact: true }).click();
+  // Ordinary Play on a small open map: preparation admits a fresh seed, and
+  // the address it publishes names that exact battle.
+  await openMenuPage(page, "Skirmish");
+  await page.getByTestId("menu-map-open").click();
+  await page.getByTestId("menu-size-small").click();
+  await page.getByTestId("menu-deploy").click();
   await backdropClosed;
 
   const ready = async () => {
-    await page.waitForFunction(() => window.__lab?.ready && window.__lab.route?.tick() > 3);
+    await page.waitForFunction(() => window.__lab?.ready && window.__lab.route?.tick() > 3, null, {
+      timeout: 120000,
+    });
     await page.evaluate(() => window.__lab.route.pause());
     await page.evaluate(() => {
       window.__appJourney.allocations = window.__lab.allocations;
@@ -70,11 +78,8 @@ export async function appJourney(ctx) {
   await advance(page, 90 - (await obs(page)).tick);
   await presented(page);
   const digest = await page.evaluate(() => window.__lab.route.digest());
-  const own = (await obs(page)).own[0].id;
-  await page.evaluate((id) => window.__lab.route.select([id]), own);
   await snapshot(ctx, page, "app-journey-play.png");
   const toolbar = page.getByRole("toolbar", { name: "Commands", exact: true });
-  ctx.check("a selected live unit exposes the real command toolbar", (await toolbar.count()) === 1);
 
   // The real pause controls own keyboard, pointer and camera input.
   await openMenu(page);
@@ -103,6 +108,31 @@ export async function appJourney(ctx) {
   await page.getByRole("button", { name: "Save replay", exact: true }).click();
   await download;
   await closeMenu(page);
+  // A unit of the player's own: bought and placed at blue's entry, the
+  // battle readied, and in through the road-edge entry.
+  const entry = await page.evaluate(() => window.__lab.route.prepared().start.at);
+  await page.evaluate(
+    (at) => window.__lab.setCamera({ ...window.__lab.camera(), target: [...at, 0], distance: 120 }),
+    entry,
+  );
+  const view = page.viewportSize();
+  const [cx, cy] = [view.width / 2, view.height / 2];
+  await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
+  await page.getByRole("tab", { name: "VEH", exact: true }).click();
+  await page.getByRole("button", { name: "M1 Abrams", exact: true }).click();
+  await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
+  await page.mouse.move(cx, cy);
+  await page.waitForTimeout(100);
+  await page.mouse.click(cx, cy);
+  await advance(page, 1);
+  await page.getByRole("button", { name: "Ready for battle", exact: true }).click();
+  await advance(page, 60 * 30);
+  const own = (await obs(page)).own[0]?.id;
+  await page.evaluate((id) => window.__lab.route.select([id]), own);
+  ctx.check(
+    "a selected live unit exposes the real command toolbar",
+    own !== undefined && (await toolbar.count()) === 1,
+  );
   // Positive controls: the same keys must work outside the menu.
   await page.keyboard.press("KeyF");
   await advance(page, 1);
@@ -123,7 +153,8 @@ export async function appJourney(ctx) {
   );
 
   // Restart closes the old authority; replaying exact inputs gives its digest.
-  const old = page.workers().find((worker) => worker.url().includes("/sim/worker.ts"));
+  // A prepared battle's authority is the worker that prepared it.
+  const old = page.workers().find((worker) => worker.url().includes("/prepare/worker.ts"));
   const closed = old.waitForEvent("close");
   await openMenu(page);
   await page.getByRole("button", { name: "Restart", exact: true }).click();
@@ -166,10 +197,6 @@ export async function appJourney(ctx) {
   await ready();
   await advance(page, 90 - (await obs(page)).tick);
   await presented(page);
-  await page.evaluate(() =>
-    window.__lab.route.select([window.__lab.route.observation().own[0].id]),
-  );
-  await page.locator('.hud-army-card[aria-pressed="true"]').waitFor();
   ctx.check(
     "saved replay preserves the captured digest and has no command buttons",
     (await page.evaluate(() => window.__lab.route.digest())) === digest &&
@@ -217,10 +244,11 @@ export async function appJourney(ctx) {
   await page.close();
 }
 
-/** Matched player-route captures, plus real card selection above compact commands. */
+/** Matched battle-view captures on the street test map's battle, plus real
+ *  card selection above compact commands. */
 export async function armyJourney(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1600, height: 900 } });
-  await page.goto(`${new URL(ctx.url).origin}/battle/village?seed=1`);
+  await page.goto(`${new URL(ctx.url).origin}/lab/street?seed=1`);
   await page.waitForFunction(() => window.__lab?.ready && window.__lab.route?.tick() > 3);
   await page.evaluate(() => window.__lab.route.pause());
   await advance(page, 90 - (await obs(page)).tick);

@@ -5,9 +5,8 @@ import * as wasm from "@wasm/game_wasm.js";
 import config from "@fixtures/generated-battle.json";
 import { TEST_RULES } from "./catalog";
 import { PreparationRefused, prepare, prepareReplay } from "../src/battle/prepare/prepare";
-import { parseReplayFile, isPreparedReplay } from "@apps/battle-lab/src/replayFile";
+import { parseReplayFile } from "@apps/battle-lab/src/replayFile";
 import type { PrepareBattleRequest, PrepareDocuments } from "../src/battle/prepare/protocol";
-import { loadMap } from "../src/maps/node";
 import { generationRequest, type MapChoice } from "../src/maps/source";
 
 const fixture = (path: string) =>
@@ -26,7 +25,6 @@ const documents: PrepareDocuments = {
   presets: fixture("map-presets.json"),
   templates: fixture("prototype-building-templates.json"),
 };
-const saved = { loadMap };
 
 const OPEN: MapChoice = { type: "open", size: "medium", seed: "1", profile: "skirmish" };
 /** Europe against Eastern on the generated map `choice`, under the game's
@@ -42,7 +40,7 @@ const request = (
   ...over,
 });
 const prepared = (r = request(), d = documents, onStage?: (stage: string) => void) =>
-  prepare(wasm, memory, r, d, saved, onStage).then(({ world, ...battle }) => {
+  prepare(wasm, memory, r, d, onStage).then(({ world, ...battle }) => {
     world.free();
     return battle;
   });
@@ -53,7 +51,6 @@ test("a saved prepared battle replays its captured map, forces and rules after f
   try {
     for (let tick = 0; tick < 30; tick++) live.step();
     const file = parseReplayFile(JSON.stringify({ battle: captured, replay: live.replay_json() }));
-    if (!isPreparedReplay(file)) throw new Error("not a prepared replay");
     const changed = JSON.parse(documents.rules);
     changed.tick_hz *= 2;
     const edited = await prepared(captured.report.request, {
@@ -208,22 +205,21 @@ test("a refused map reports the generator's diagnostics and prepares nothing", a
   expect(other.diagnostics[0].message).toContain('pins "layout-0"');
 }, 60_000);
 
-test("a map without skirmish sites cannot field the factions, and is refused by name", async () => {
-  // Standard geography, and a saved map: neither has a base for either side.
-  for (const asked of [
-    request({ ...OPEN, profile: "standard" }),
-    { ...request(), map_source: { kind: "catalogue", id: "market-town" } } as const,
-  ]) {
-    const refused = await refusal(prepared(asked));
-    expect(refused.stage).toBe("encounter");
-    expect(refused.diagnostics[0]).toMatchObject({
-      feature: "skirmish_sites",
-      location: "$.map_source",
-    });
-  }
-  // A map the catalogue lacks is refused at its own stage.
-  const noMap = await refusal(
-    prepared({ ...request(), map_source: { kind: "catalogue", id: "nowhere" } }),
+test("a map without skirmish sites cannot field the factions, and a saved map is no battle's", async () => {
+  // Standard geography has a base for neither side.
+  const refused = await refusal(prepared(request({ ...OPEN, profile: "standard" })));
+  expect(refused.stage).toBe("encounter");
+  expect(refused.diagnostics[0]).toMatchObject({
+    feature: "skirmish_sites",
+    location: "$.map_source",
+  });
+  // A saved map (a test's or the menu's) is no source a battle can name.
+  const saved = await refusal(
+    prepared({
+      ...request(),
+      map_source: { kind: "catalogue", id: "market-town" },
+    } as unknown as PrepareBattleRequest),
   );
-  expect([noMap.stage, noMap.diagnostics[0].code]).toEqual(["map", "missing_document"]);
+  expect(saved.stage).toBe("request");
+  expect(saved.diagnostics[0].message).toContain("unknown variant `catalogue`");
 }, 60_000);

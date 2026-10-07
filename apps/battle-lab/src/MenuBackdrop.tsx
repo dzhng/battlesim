@@ -12,6 +12,7 @@ import { Suspense, useEffect, useRef, useState, useSyncExternalStore, type RefOb
 import type { GameRules } from "@web/battle/catalog/compose";
 import { SessionCatalogScope, useSessionCatalog } from "@web/battle/catalog/context";
 import backdrop from "@fixtures/menu-backdrop.json";
+import { listMaps } from "@web/maps/catalogue";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { appResources } from "./appResources";
@@ -32,7 +33,7 @@ import { useLabLoading } from "./LabLoading";
 import type { ScriptedSim } from "./useSimSession";
 import game from "@fixtures/game.json";
 
-const SCENES = validateBackdrop(backdrop).scenes;
+const SCENES = validateBackdrop(backdrop, listMaps()).scenes;
 const FILM_CAMERA = filmCamera(
   gameCamera.config,
   SCENES.map((s) => s.reel),

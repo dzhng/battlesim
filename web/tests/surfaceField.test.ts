@@ -45,7 +45,7 @@ import summer from "@fixtures/biomes/summer.json";
 import { loadMap } from "@web/maps/node";
 
 const geometry = loadMap("geometry").definition;
-const villageMap = loadMap("village").definition;
+const streetMap = loadMap("street").definition;
 
 const biome = validateBiome(summer as unknown as Biome);
 let layout: WorldLayout;
@@ -233,7 +233,7 @@ test("a field lookup is the all-primitives distance wherever a consumer reads it
 });
 
 test("the shipped maps' fields match their all-primitives distances", () => {
-  expect(expectFieldMatches(siteOf(villageMap), 2000, 1).exactToM).toBe(Infinity);
+  expect(expectFieldMatches(siteOf(streetMap), 2000, 1).exactToM).toBe(Infinity);
   expect(expectFieldMatches(siteOf(geometry), 2000, 2).exactToM).toBe(Infinity);
 });
 

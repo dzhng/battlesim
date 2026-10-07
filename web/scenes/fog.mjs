@@ -1,4 +1,4 @@
-// Sight-light fog over the village street. The GPU
+// Sight-light fog over the street test map. The GPU
 // lookup against its oracle vectors (the sight shape from Rust, the lookup
 // from its CPU mirror), agreement with the simulation's 8 m sweep, a sharp
 // sight-shadow edge at ground framing, a turned turret, a garrison's eyes,
@@ -315,7 +315,7 @@ export async function run(ctx) {
   );
   await lab(page, () => window.__lab.route.setEyes(null));
 
-  // Red's rifle squads garrison the village's buildings: one eye per facade
+  // Red's rifle squads garrison the street's buildings: one eye per facade
   // they hold, each seeing out of its own facade.
   await lab(page, () => window.__lab.route.setSide("red"));
   const garrisoned = await until(

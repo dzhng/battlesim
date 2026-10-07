@@ -14,7 +14,7 @@ const bluePixels = (png) => {
 
 export async function xrayTour(ctx) {
   const page = await openBattle(ctx, {
-    url: ctx.url.replace(/\/battle\/village.*$/, "/battle/village/lean"),
+    url: ctx.url.replace(/\/lab\/street.*$/, "/lab/lean"),
     viewport: { width: 1920, height: 1080 },
     tick: 331,
     grass: true,

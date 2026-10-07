@@ -183,13 +183,13 @@ mod tests {
         captured["defaults"] = json!(defaults.to_string());
         let lowered = run(json!({"operation":"validate","inputs":captured}));
         assert_eq!(lowered["status"], "valid", "{}", lowered["diagnostics"]);
-        let fallback = sim::maps::load("market-town").unwrap();
+        let fallback = sim::maps::load("market-town-test").unwrap();
         assert!(
             fallback.definition.props.len() > 1,
             "The released fallback admits more geometry than the edited generator work allowance"
         );
         assert!(!sim::maps::Catalogue::shipped()
-            .encounter("market-town", "assault")
+            .encounter("market-town-test", "assault")
             .unwrap()
             .units
             .is_empty());

@@ -5,7 +5,7 @@
 // under the same pixels (`FrameView` "ground-classes"), written by the
 // terrain material itself, so a slice measures exactly the band it judges.
 //
-//   STATIONS=village,river bun run --cwd web scene -- ground
+//   STATIONS=street,river bun run --cwd web scene -- ground
 //
 // writes every station's shot and mask into throwaway/evidence/ground/ and a
 // sheet per map (`river:bend-65+wide-65`: those stations alone, the ones a
@@ -37,13 +37,13 @@ const HIDE_HUD = "[data-testid=battle-panel], .ro-layer, .lab-panel { display: n
 
 const at = (target, distance, pitch = PLAY, yaw = YAW) => ({ target, distance, pitch, yaw });
 
-/** A station over the middle of the village's roomiest plot of one kind
- *  (`villagePlots`), so it follows the patchwork when the biome's kinds or
+/** A station over the middle of the street's roomiest plot of one kind
+ *  (`streetPlots`), so it follows the patchwork when the biome's kinds or
  *  weights change. */
 const onPlot =
   (kind, distance, pitch) =>
   ({ plots }) => {
-    if (!plots[kind]) throw new Error(`the village has no open ${kind} plot`);
+    if (!plots[kind]) throw new Error(`the street has no open ${kind} plot`);
     return at(plots[kind].at, distance, pitch);
   };
 
@@ -55,11 +55,11 @@ const CROPS = ["pasture", "wheat", "barley", "rapeseed", "hay", "stubble", "plou
 const SETTLEMENT = "yard";
 
 /** Each map's route (from the site root) and its named poses. A generated
- *  map's stations stand on what its preparation reports (the objective town,
+ *  map's stations stand on what its preparation reports (its main town,
  *  blue's start), so they follow the generator when its layouts change. */
 export const STATION_MAPS = {
-  village: {
-    route: "/battle/village",
+  street: {
+    route: "/lab/street",
     stations: {
       ...Object.fromEntries(
         WILD.flatMap((kind) => [
@@ -87,7 +87,7 @@ export const STATION_MAPS = {
       // forest rule lays any.
       "floor-log-25": ({ floor }) => at(floor.log, 25, 0.6),
       "floor-boulder-25": ({ floor }) => at(floor.boulder, 25, 0.6),
-      // Open fields south-west of the village, and the whole patchwork.
+      // Open fields south-west of the street, and the whole patchwork.
       "field-65": at([420, 1120], 65),
       "field-250": at([420, 1120], 250),
       "patchwork-1100": at([800, 800], 1100, 1.2),
@@ -113,11 +113,11 @@ export const STATION_MAPS = {
     },
   },
   generated: {
-    route: "/battle?type=mixed&size=medium&seed=2",
+    route: "/battle?type=mixed&size=medium&seed=2&profile=skirmish&faction=us",
     stations: {
       "overview-2500": ({ size }) => at([size[0] / 2, size[1] / 2], 2500, 1.1),
-      "town-250": ({ objective }) => at(objective.center, 250),
-      "town-65": ({ objective }) => at(objective.center, 65),
+      "town-250": ({ town }) => at(town, 250),
+      "town-65": ({ town }) => at(town, 65),
       // The town's streets nearest its centre (`townStreets`): where three
       // ways or more meet, and low along the edge of a plain street.
       "junction-65": ({ streets }) => at(streets.junction, 65),
@@ -532,16 +532,16 @@ export async function openStations(ctx, map) {
   const report = await lab(page, () => window.__lab.route.prepared?.() ?? null);
   reports.set(
     page,
-    map === "village"
-      ? { plots: await villagePlots(page), floor: await villageFloor(page) }
+    map === "street"
+      ? { plots: await streetPlots(page), floor: await streetFloor(page) }
       : report && {
           ...report,
-          edges: await townEdges(page, report.objective.center),
+          edges: await townEdges(page, report.town),
           river: await riverBank(page, report.size),
           wood: await woodEdge(page, report.size, report.start.at),
           line: await treeLine(page, report.size),
-          streets: await townStreets(page, report.objective.center),
-          streetTree: await streetTrees(page, report.objective.center),
+          streets: await townStreets(page, report.town),
+          streetTree: await streetTrees(page, report.town),
         },
   );
   await lab(page, () => window.__lab.route.pause());
@@ -563,8 +563,8 @@ export async function openStations(ctx, map) {
 }
 
 /** What `openStations` learned of `page`'s map: a generated map's
- *  preparation report, the village's plots by kind (`villagePlots`) and the
- *  bodies on its forest floors (`villageFloor`). */
+ *  preparation report, the street's plots by kind (`streetPlots`) and the
+ *  bodies on its forest floors (`streetFloor`). */
 export const stationReport = (page) => reports.get(page);
 
 async function loadClassEncoding(page) {
@@ -791,26 +791,28 @@ export const groundUnder = (page, pixels) =>
     pixels,
   );
 
-/** The village's ground as the simulation exports it, built once in the page
- *  as `window.__villageGround`: its terrain surface (the plots among it),
+/** The street's ground as the simulation exports it, built once in the page
+ *  as `window.__streetGround`: its terrain surface (the plots among it),
  *  where the `first` prop of each type stands, and
  *  `paved` and `forest`, how far inside the paving and the forest a point
  *  lies by the surface field the terrain material reads. */
-const villageGround = (page) =>
+const streetGround = (page) =>
   page.evaluate(
     async (repo) => {
-      if (window.__villageGround) return;
+      if (window.__streetGround) return;
       const file = (p) => `/@fs/${repo}${p}`;
-      const [wasm, { villageScenario }, mesh, fields, terrain, biome] = await Promise.all([
-        import("/src/wasm/game_wasm.js"),
-        import(file("apps/battle-lab/src/savedMaps.tsx")),
-        import(file("packages/battle-renderer/src/worldMesh.ts")),
-        import(file("packages/battle-renderer/src/terrain/surfaceField.ts")),
-        import(file("packages/battle-renderer/src/frame/terrainMaterial.ts")),
-        import(file("fixtures/biomes/summer.json")),
-      ]);
+      const [wasm, { buildStreetScenario }, { catalogSet }, mesh, fields, terrain, biome] =
+        await Promise.all([
+          import("/src/wasm/game_wasm.js"),
+          import(file("apps/battle-lab/src/streetScenario.ts")),
+          import(file("web/src/battle/catalog/sets.ts")),
+          import(file("packages/battle-renderer/src/worldMesh.ts")),
+          import(file("packages/battle-renderer/src/terrain/surfaceField.ts")),
+          import(file("packages/battle-renderer/src/frame/terrainMaterial.ts")),
+          import(file("fixtures/biomes/summer.json")),
+        ]);
       await wasm.default();
-      const setup = JSON.parse(await villageScenario(wasm, "village", "ordinary"));
+      const setup = JSON.parse(await buildStreetScenario((await catalogSet("test")).rules));
       const rules = JSON.stringify(setup.rules);
       const view = new wasm.WorldView(JSON.stringify(setup.map), rules);
       try {
@@ -826,7 +828,7 @@ const villageGround = (page) =>
             exported.props[o + x],
             exported.props[o + y],
           ];
-        window.__villageGround = {
+        window.__streetGround = {
           surface,
           first,
           paved: (x, y, footprint) => fields.pavedDistance(field, x, y, footprint),
@@ -841,24 +843,24 @@ const villageGround = (page) =>
 
 /** At each point `{ xy, footprint }`, how far inside the paving and the
  *  forest the simulation's export puts it. */
-export async function villageExport(page, points) {
-  await villageGround(page);
+export async function streetExport(page, points) {
+  await streetGround(page);
   return page.evaluate(
     (points) =>
       points.map(({ xy: [x, y], footprint }) => ({
-        paved: window.__villageGround.paved(x, y, footprint),
-        forest: window.__villageGround.forest(x, y, footprint),
+        paved: window.__streetGround.paved(x, y, footprint),
+        forest: window.__streetGround.forest(x, y, footprint),
       })),
     points,
   );
 }
 
-/** Where the village's first log and first boulder lie (undefined where the
+/** Where the street's first log and first boulder lie (undefined where the
  *  forest rule lays none). */
-async function villageFloor(page) {
-  await villageGround(page);
+async function streetFloor(page) {
+  await streetGround(page);
   return page.evaluate(() => {
-    const { log, boulder } = window.__villageGround.first;
+    const { log, boulder } = window.__streetGround.first;
     return { log, boulder };
   });
 }
@@ -869,15 +871,15 @@ async function villageFloor(page) {
 const PLOT_INSET_M = 60;
 const PLOT_ROOM_M = 12;
 
-/** Per plot kind's name, the village's roomiest open plot of that kind
+/** Per plot kind's name, the street's roomiest open plot of that kind
  *  (inside the map, clear of buildings and woods): its middle `at`, and the
  *  unit vector `across` its rows. A settlement's yard is built on: its
  *  station is the yards' roomiest point between the buildings. */
-async function villagePlots(page) {
-  await villageGround(page);
+async function streetPlots(page) {
+  await streetGround(page);
   return page.evaluate(
     ({ inset, room }) => {
-      const { surface, forest } = window.__villageGround;
+      const { surface, forest } = window.__streetGround;
       const [x0, y0, x1, y1] = surface.site.map;
       const yard = surface.biome.field_rules.settlement_kind;
       /** How far inside convex outline `o` a point lies. */
@@ -966,10 +968,10 @@ async function villagePlots(page) {
  *  own width moves the point a fragment is shaded at. */
 const SAMPLES = 1000;
 
-/** The rig's own checks, on the village: the same pixels twice, and a mask
+/** The rig's own checks, on the street: the same pixels twice, and a mask
  *  that says what the simulation's export says. */
 export async function groundRig(ctx) {
-  const page = await openStations(ctx, "village");
+  const page = await openStations(ctx, "street");
   const twice = {};
   for (const station of ["bend-65", "forest-edge-65"]) {
     // Grass blades tie in depth on Metal, so the ground is compared bare.
@@ -980,7 +982,7 @@ export async function groundRig(ctx) {
       { view: "ground-classes" },
       { grass: false },
     ])
-      shots.push(await shoot(page, "village", station, options));
+      shots.push(await shoot(page, "street", station, options));
     twice[station] = {
       masks: Buffer.compare(decode(shots[0]).data, decode(shots[2]).data) === 0,
       ground: Buffer.compare(decode(shots[1]).data, decode(shots[3]).data) === 0,
@@ -1002,14 +1004,14 @@ export async function groundRig(ctx) {
   const worst = { road: 0, sides: 0, forest: 0, ground: 0, onRoad: 0, inForest: 0 };
   const stations = ["bend-65", "bend-250", "forest-edge-65"];
   for (const station of stations) {
-    const mask = decode(await shoot(page, "village", station, { view: "ground-classes" }));
+    const mask = decode(await shoot(page, "street", station, { view: "ground-classes" }));
     const pixels = [];
     while (pixels.length < Math.ceil(SAMPLES / stations.length)) {
       const p = [Math.floor(next() * mask.width), Math.floor(next() * mask.height)];
       if (classAt(mask, ...p)) pixels.push(p);
     }
     const points = await groundUnder(page, pixels);
-    const exported = await villageExport(page, points);
+    const exported = await streetExport(page, points);
     pixels.forEach((p, i) => {
       const c = classAt(mask, ...p);
       const { paved, forest } = exported[i];
@@ -1038,9 +1040,9 @@ export async function groundRig(ctx) {
   );
 
   // Trees are scenery: their own switch takes them and their shadows away.
-  const trees = decode(await shoot(page, "village", "forest-edge-65", { grass: false }));
+  const trees = decode(await shoot(page, "street", "forest-edge-65", { grass: false }));
   const none = decode(
-    await shoot(page, "village", "forest-edge-65", { grass: false, trees: false }),
+    await shoot(page, "street", "forest-edge-65", { grass: false, trees: false }),
   );
   let changed = 0;
   for (let i = 0; i < trees.data.length; i += 4)

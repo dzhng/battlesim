@@ -68,9 +68,6 @@ test("a preparation worker becomes the battle authority and replays its commands
         const { default: Battle } = await importModule(
           `${root}/../../apps/battle-lab/src/routes/battle.tsx`,
         );
-        const { VillageReplay } = await importModule(
-          `${root}/../../apps/battle-lab/src/routes/village.tsx`,
-        );
         const preparation = prepareBattle(
           {
             type: "prepare",
@@ -162,16 +159,12 @@ test("a preparation worker becomes the battle authority and replays its commands
             const { SessionCatalogProvider } = await importModule(
               `${root}/battle/catalog/context.tsx`,
             );
-            const [gameCatalog, testCatalog] = await Promise.all([
-              catalogSet("game"),
-              catalogSet("test"),
-            ]);
+            const gameCatalog = await catalogSet("game");
             const scoped = (catalog: unknown, page: unknown) =>
               createElement(SessionCatalogProvider, { catalog }, page);
             let imported: unknown = null;
             renderScreen(
               createElement(ReplayImport, {
-                plays: (file: { variant?: string }) => file.variant === "ordinary",
                 onLoad: (file: unknown) => {
                   imported = file;
                 },
@@ -229,14 +222,6 @@ test("a preparation worker becomes the battle authority and replays its commands
                 await shot("prepared-pulse-high");
                 pulse.currentTime = Number(pulse.effect!.getComputedTiming().duration) / 2;
                 await shot("prepared-pulse-low");
-                renderScreen(scoped(testCatalog, createElement(VillageReplay)));
-                await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-                if (
-                  !host.querySelector('[data-testid="loading"]') ||
-                  host.querySelector('input[type="file"]')
-                )
-                  throw new Error("pending village replay looked absent or started a scenario");
-                await shot("village-pending");
                 renderScreen(createElement(MainMenu));
                 while (!host.textContent?.includes("Watch replay")) await wait();
                 [...host.querySelectorAll("button")]
@@ -250,7 +235,6 @@ test("a preparation worker becomes the battle authority and replays its commands
               db.close();
               renderScreen(
                 createElement(ReplayImport, {
-                  plays: (file: { variant?: string }) => file.variant === "ordinary",
                   onLoad: (file: unknown) => {
                     imported = file;
                   },
@@ -263,10 +247,10 @@ test("a preparation worker becomes the battle authority and replays its commands
               indexedDB.open = () => {
                 throw new Error("Storage unavailable");
               };
-              const village = { variant: "ordinary", replay: "{}" };
+              const other = { battle: { scenario: "{}", report: { request: {} } }, replay: "{}" };
               const input = host.querySelector<HTMLInputElement>('input[type="file"]')!;
               const transfer = new DataTransfer();
-              transfer.items.add(new File([JSON.stringify(village)], "village.json"));
+              transfer.items.add(new File([JSON.stringify(other)], "other.json"));
               input.files = transfer.files;
               input.dispatchEvent(new Event("change", { bubbles: true }));
               try {
@@ -280,7 +264,7 @@ test("a preparation worker becomes the battle authority and replays its commands
               input.dispatchEvent(new Event("change", { bubbles: true }));
               while (imported === null) await wait();
               const remembered = await readSavedReplay();
-              if (JSON.stringify(remembered) !== JSON.stringify(village))
+              if (JSON.stringify(remembered) !== JSON.stringify(other))
                 throw new Error("import started before its file was persisted");
             } finally {
               uiRoot.unmount();

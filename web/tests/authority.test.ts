@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import { afterEach, beforeAll, expect, test } from "vitest";
-import { initSync, village_scenario } from "@wasm/game_wasm.js";
+import { initSync } from "@wasm/game_wasm.js";
 import {
   createAuthority,
   type Authority,
@@ -10,11 +10,11 @@ import {
 } from "../src/battle/sim/authority";
 import { simModule } from "../src/battle/sim/module";
 import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "../src/battle/sim/timing";
-import type { CommandEnvelope, SimReply, SimRequest } from "../src/battle/sim/protocol";
+import type { CommandEnvelope, SimReply } from "../src/battle/sim/protocol";
 import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 import game from "@fixtures/game.json";
 import { loadMap } from "@web/maps/node";
-import { labScenario, TEST_RULES } from "./catalog";
+import { labScenario } from "./catalog";
 
 const geometry = loadMap("geometry").definition;
 
@@ -386,46 +386,6 @@ test("the ground streams as deltas, and a side switch reopens it with a full sna
     [2, "red", false],
     [2, "red", false],
   ]);
-});
-
-test("a scripted blue commands like a player: recorded, replayable, timed per step", async () => {
-  const setup = village_scenario(
-    JSON.stringify({ ...TEST_RULES, map: loadMap("village").definition }),
-    "ordinary",
-  );
-  const run = async (init: SimRequest) => {
-    const h = harness();
-    h.authority.handle(init);
-    await new Promise((r) => setTimeout(r, 0));
-    h.authority.handle({ type: "start" });
-    h.authority.handle({ type: "pause" });
-    for (let i = 0; i < 30; i++) stepOnce(h, i);
-    return h;
-  };
-  const published = (h: ReturnType<typeof harness>) =>
-    h.publications().flatMap((p) => (p.type === "publication" ? [p] : []));
-  const live = await run({
-    type: "init",
-    scenario: setup,
-    seed: 3,
-    side: "blue",
-    script: "scout-suppress-flank",
-  });
-  expect(published(live).length).toBeGreaterThan(20);
-  expect(published(live).every((p) => p.stepMs >= 0)).toBe(true);
-  live.authority.handle({ type: "replay" });
-  const json = (live.replies.find((r) => r.type === "replay") as { json: string }).json;
-  const accepted = (JSON.parse(json) as { accepted: [number, { side: string }][] }).accepted;
-  expect(accepted.some(([, c]) => c.side === "blue")).toBe(true);
-
-  const again = await run({
-    type: "init",
-    scenario: setup,
-    seed: 3,
-    side: "blue",
-    replay: json,
-  });
-  expect(published(again).map((p) => p.digest)).toEqual(published(live).map((p) => p.digest));
 });
 
 test("worker publication copying and transfer preserve every raw NaN carrier bit", async () => {

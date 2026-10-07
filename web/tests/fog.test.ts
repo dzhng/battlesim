@@ -43,7 +43,7 @@ import { loadMap } from "@web/maps/node";
 import game from "@fixtures/game.json";
 
 const sensors = loadMap("sensors").definition;
-const villageMap = loadMap("village").definition;
+const streetMap = loadMap("street").definition;
 
 let memory: WebAssembly.Memory;
 beforeAll(() => {
@@ -157,7 +157,7 @@ test("a prop the side has not learned never reaches fog (metamorphic)", () => {
 });
 
 test("a fallen building leaves fog's occluders and its known ruin takes its place", () => {
-  const { exports, layout } = staticWorld(villageMap);
+  const { exports, layout } = staticWorld(streetMap);
   const firstId =
     exports.props[layout.propFields.indexOf("idLo")] +
     exports.props[layout.propFields.indexOf("idHi")] * 2 ** layout.limbBits;
@@ -234,7 +234,7 @@ test("every eye of a garrison is its own fog eye, keyed by unit and eye index", 
 });
 
 test("every point inside a structure's box finds that structure through the whole-fog grid", () => {
-  // Turned, touching and far-apart boxes, as a village's buildings, ruins and walls.
+  // Turned, touching and far-apart boxes, as a town's buildings, ruins and walls.
   const boxes: FogOccluder[] = [
     { x: 975, y: 752, yaw: 0, hx: 15, hy: 12, base: 10, top: 18 },
     { x: 1047, y: 814, yaw: 0.6, hx: 18, hy: 9, base: 11, top: 21 },

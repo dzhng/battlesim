@@ -2,7 +2,7 @@
 // Combat effects at their seam: publications in, the
 // effect pass's instances out at a presentation clock. Every effect has a
 // published cause, a publication is taken once, a tracer never leaves its
-// published stretch, and the village's round kinds each look their own. A
+// published stretch, and the street test map's round kinds each look their own. A
 // known wreck burns, smoulders and goes out; a moving hull raises dust; every
 // life is bounded; what is drawn does not hang on how publications arrive;
 // reset clears everything.

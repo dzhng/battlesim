@@ -4,7 +4,7 @@
 //! by name, with nothing standing in for it.
 use std::path::PathBuf;
 
-use contract::maps::ResolveCode;
+use contract::maps::{MapCategory, ResolveCode};
 use sim::battle::Battle;
 use sim::maps::Catalogue;
 
@@ -31,6 +31,40 @@ fn every_saved_map_resolves_by_id_to_the_identity_its_sources_pin() {
             "{id} has its listing metadata"
         );
     }
+}
+
+#[test]
+fn every_saved_map_says_whether_it_is_a_tests_or_the_menus() {
+    let catalogue = Catalogue::shipped();
+    let menu: Vec<String> = catalogue
+        .ids()
+        .into_iter()
+        .filter(|id| catalogue.category(id).unwrap_or_else(|e| panic!("{e}")) == MapCategory::Menu)
+        .collect();
+    assert_eq!(menu, ["market-town", "paris-corner"]);
+}
+
+#[test]
+fn a_listing_that_does_not_say_test_or_menu_is_refused() {
+    let dir = Scratch::new("listing");
+    for other in [r#""lab""#, r#""playable""#, r#""benchmark""#, "null"] {
+        std::fs::write(
+            dir.file("meta.json"),
+            format!(r#"{{"category": {other}, "label": "Geometry"}}"#),
+        )
+        .unwrap();
+        let error = dir.catalogue().category("geometry").unwrap_err();
+        assert_eq!(error.code, ResolveCode::InvalidListing, "{other}");
+        assert_eq!(error.location, "geometry/meta.json");
+    }
+    std::fs::write(dir.file("meta.json"), r#"{"category": "test"}"#).unwrap();
+    assert_eq!(
+        dir.catalogue().category("geometry").unwrap(),
+        MapCategory::Test
+    );
+    std::fs::remove_file(dir.file("meta.json")).unwrap();
+    let missing = dir.catalogue().category("geometry").unwrap_err();
+    assert_eq!(missing.code, ResolveCode::MissingDocument);
 }
 
 #[test]

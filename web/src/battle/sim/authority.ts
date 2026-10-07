@@ -13,8 +13,8 @@ import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "./timing";
 /** The slice of the WASM module the authority needs. */
 export interface SimModule {
   memory: WebAssembly.Memory;
-  /** A live battle; with `script`, blue is played by that comparison script. */
-  createBattle(scenario: string, seed: number, script?: string): SimBattle;
+  /** A live battle. */
+  createBattle(scenario: string, seed: number): SimBattle;
   replayBattle(scenario: string, replay: string): SimBattle;
 }
 
@@ -187,7 +187,7 @@ export function createAuthority(host: AuthorityHost): Authority {
               sim = module;
               battle = request.replay
                 ? module.replayBattle(request.scenario, request.replay)
-                : module.createBattle(request.scenario, request.seed, request.script);
+                : module.createBattle(request.scenario, request.seed);
               for (let i = 0; i < PUBLICATION_POOL; i++) credits.push(new ArrayBuffer(4096));
               host.post({
                 type: "ready",

@@ -128,16 +128,8 @@ test("same-path navigation and Back/Forward prepare fresh requested visits", asy
 test("menu sound policy follows real page resolution, including fallback and player replay", () => {
   for (const path of ["/", "/unknown", "/battle/unknown"])
     expect(screenForPath(path), path).toBe("menu");
-  for (const path of [
-    "/battle",
-    "/battle/",
-    "/battle/village",
-    "/battle/village/watch",
-    "/battle/village/lean",
-    "/replay/village",
-  ])
-    expect(screenForPath(path), path).toBe("loading");
-  for (const path of ["/labs", "/lab/panels", "/benchmark", "/workbench"])
+  for (const path of ["/battle", "/battle/"]) expect(screenForPath(path), path).toBe("loading");
+  for (const path of ["/labs", "/lab/panels", "/lab/street", "/benchmark", "/workbench"])
     expect(screenForPath(path), path).toBe("other");
 });
 

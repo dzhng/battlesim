@@ -1,9 +1,9 @@
 // What the grass field grows, checked at the ground rig's stations on the
-// village: each kind of ground grows the mix its biome row names (and
+// street: each kind of ground grows the mix its biome row names (and
 // ploughed earth nothing), a drilled crop keeps to its rows, a field varies
 // in hue and not in brightness, a clump stays the grass it was as the camera
 // closes, and nothing grows on a road or under a wood. The field's seating,
-// residency and cost are the village scene's.
+// residency and cost are the street scene's.
 import { rec709 } from "./_colour.mjs";
 import { aim, lab } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
@@ -16,7 +16,7 @@ import {
   stationReport,
 } from "./_groundStations.mjs";
 
-const MAP = "village";
+const MAP = "street";
 /** A plot's own grass is judged this near its middle, clear of its verge. */
 const PLOT_HEART_M = 8;
 /** A clump stands on a verge when the class mask changes plot within this

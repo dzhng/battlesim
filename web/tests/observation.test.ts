@@ -2,7 +2,7 @@
 import { UNITS } from "./catalog";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import { initSync, Battle, resolve_catalog, village_scenario } from "@wasm/game_wasm.js";
+import { initSync, Battle, resolve_catalog } from "@wasm/game_wasm.js";
 import type { CatalogView } from "@packages/scene-assets/src/units";
 import {
   ownPanel,
@@ -15,7 +15,7 @@ import { packedGroundRuns } from "./groundRuns";
 import { GroundView } from "../src/battle/sim/ground";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { labScenario, TEST_RULES } from "./catalog";
-import { loadMap } from "@web/maps/node";
+import { loadEncounter, loadMap } from "@web/maps/node";
 import game from "@fixtures/game.json";
 import type { Order } from "../src/battle/sim/protocol";
 
@@ -365,10 +365,11 @@ test("the encounter status decodes, and is absent outside an encounter", () => {
   expect(published(lab, layout).encounter).toBeNull();
   lab.free();
   const battle = new Battle(
-    village_scenario(
-      JSON.stringify({ ...TEST_RULES, map: loadMap("village").definition }),
-      "ordinary",
-    ),
+    JSON.stringify({
+      map: loadMap("street").definition,
+      rules: TEST_RULES,
+      ...loadEncounter("street", "attack"),
+    }),
     1,
   );
   battle.step();

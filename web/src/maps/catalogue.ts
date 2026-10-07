@@ -7,12 +7,15 @@
 // `checkMapFolder`, so a listing cannot drift from what loads.
 import { MAP_ID, type MapDefinition, type MapIdentity } from "./resolve.ts";
 
-export const MAP_CATEGORIES = ["playable", "lab", "benchmark", "test"] as const;
+/** What a saved map is for (`contract::maps::MapCategory`): a test's own
+ *  ground (tests, labs, benchmarks) or a battlefield the menu backdrop films.
+ *  Players never fight on a saved map: their battles are generated. */
+export const MAP_CATEGORIES = ["test", "menu"] as const;
 export const MAP_STATUSES = ["draft", "released", "retired"] as const;
 export const MAP_SOURCES = ["imported", "generated", "authored"] as const;
 /** What kind of ground a map is: a generated map's type (`open`, `mixed`,
- *  `metro`), the authored `village`, or a lab's or benchmark's `arena`. */
-export const MAP_CHARACTERS = ["open", "mixed", "metro", "village", "arena"] as const;
+ *  `metro`), or an authored test's `arena`. */
+export const MAP_CHARACTERS = ["open", "mixed", "metro", "arena"] as const;
 /** The physical features a map can have, each a tag when the map has any. */
 export const MAP_TAGS = [
   "relief",
@@ -31,7 +34,7 @@ export type MapCharacter = (typeof MAP_CHARACTERS)[number];
 export type MapTag = (typeof MAP_TAGS)[number];
 
 export interface MapMeta {
-  /** What the map is for: the game, a mechanic's lab, a benchmark, a test. */
+  /** What the map is for: a test's, or the menu's. */
   category: MapCategory;
   /** Drafts are listed only for developers; retired maps are not listed. */
   status: MapStatus;
@@ -187,6 +190,24 @@ export function filterMaps(entries: readonly MapEntry[], filter: MapFilter = {})
         (filter.tag === undefined || m.tags.includes(filter.tag)),
     )
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+
+/** The entry of map `id` among `entries`, which must be a `category` map:
+ *  the menu backdrop films only `menu` maps, and labs and tests stand only
+ *  on `test` maps. A map the catalogue lacks, or one of another category, is
+ *  refused by name. */
+export function categoryMap(
+  entries: readonly MapEntry[],
+  id: string,
+  category: MapCategory,
+): MapEntry {
+  const entry = entries.find((m) => m.id === id);
+  if (!entry) throw new Error(`no saved map ${JSON.stringify(id)}`);
+  if (entry.category !== category)
+    throw new Error(
+      `the saved map ${JSON.stringify(id)} is a ${entry.category} map, not a ${category} map`,
+    );
+  return entry;
 }
 
 /** The id a catalogue document's module path names: its folder. */

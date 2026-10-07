@@ -126,7 +126,6 @@ export function createBenchmarkRun(
   };
 
   const scripted: ScriptedSim & { pilot: ViewportPilot } = {
-    script: scenario.blue === "scenario-orders" ? undefined : scenario.blue,
     warmTo: scenario.startTick,
     onWarm: () => (warm = true),
     onTick(t) {

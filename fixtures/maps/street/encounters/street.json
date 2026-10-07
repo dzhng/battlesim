@@ -1,0 +1,21 @@
+{
+  "units": [
+    {"side":"blue","kind":"test_recon","position":[1004,788],"yaw":0},
+    {"side":"blue","kind":"test_rifle","position":[1012,842],"yaw":0},
+    {"side":"blue","kind":"test_rifle","position":[930,800],"yaw":0},
+    {"side":"blue","kind":"test_rifle","position":[905,745],"yaw":0},
+    {"side":"blue","kind":"test_tank","position":[942,826],"yaw":0.15},
+    {"side":"blue","kind":"test_tank","position":[870,790],"yaw":0.3},
+    {"side":"blue","kind":"test_at","position":[950,715],"yaw":0},
+    {"side":"blue","kind":"test_supply","position":[820,790],"yaw":0},
+    {"side":"blue","kind":"test_jeep","position":[855,812],"yaw":0},
+    {"side":"red","kind":"test_rifle","position":[975,750],"yaw":3.141592653589793},
+    {"side":"red","kind":"test_rifle","position":[1045,815],"yaw":3.141592653589793},
+    {"side":"red","kind":"test_rifle","position":[985,875],"yaw":3.141592653589793},
+    {"side":"red","kind":"test_at","position":[760,886],"yaw":3.141592653589793,"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_tank","position":[1080,850],"yaw":3.141592653589793},
+    {"side":"red","kind":"test_jeep","position":[1175,800],"yaw":3.141592653589793}
+  ],
+  "opponent": {"side": "red", "garrisons": [[9, 0], [10, 1], [11, 2]], "at_attack_range_m": 900.0, "tank_retreat_hp_fraction": 0.35, "tank_fallback": [1250.0, 850.0], "infantry_retreat_survivor_fraction": 0.5, "infantry_fallback": [1200.0, 950.0]},
+  "encounter": {"attacker": "blue", "success_zone_center": [1000.0, 800.0], "success_zone_radius_m": 100.0, "hold_s": 30.0, "max_assessment_s": 900.0}
+}

@@ -167,9 +167,9 @@
       "kit": "city_kit_industry_paris",
       "catalogue": "generated"
     },
-    "village": {
-      "templates": "assets/source/city/village/templates.json",
-      "kit": "city_kit_village",
+    "lab_boxes": {
+      "templates": "assets/source/city/lab_boxes/templates.json",
+      "kit": "city_kit_lab_boxes",
       "catalogue": "authored"
     }
   },
@@ -504,11 +504,11 @@
         "footprint_m": 1.0
       }
     },
-    "village_ruin": {
+    "ruin": {
       "unit": "scenery",
       "scenery": "ruin",
       "states": {
-        "default": "assets/source/village/ruin.glb"
+        "default": "assets/source/props/ruin.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -524,7 +524,7 @@
       "unit": "scenery",
       "scenery": "wall",
       "states": {
-        "default": "assets/source/village/wall.glb"
+        "default": "assets/source/props/wall.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -540,7 +540,7 @@
       "unit": "scenery",
       "scenery": "crate",
       "states": {
-        "default": "assets/source/village/crate.glb"
+        "default": "assets/source/props/crate.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -553,7 +553,7 @@
       "unit": "scenery",
       "scenery": "bridge_deck",
       "states": {
-        "default": "assets/source/village/bridge_deck.glb"
+        "default": "assets/source/props/bridge_deck.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -570,7 +570,7 @@
       "unit": "scenery",
       "scenery": "fence",
       "states": {
-        "default": "assets/source/village/fence.glb"
+        "default": "assets/source/props/fence.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -583,7 +583,7 @@
       "unit": "scenery",
       "scenery": "sandbags",
       "states": {
-        "default": "assets/source/village/sandbags.glb"
+        "default": "assets/source/props/sandbags.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -596,7 +596,7 @@
       "unit": "scenery",
       "scenery": "tooth",
       "states": {
-        "default": "assets/source/village/tooth.glb"
+        "default": "assets/source/props/tooth.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2038,9 +2038,9 @@
         "ground_m": 0.3
       }
     },
-    "city_kit_village": {
+    "city_kit_lab_boxes": {
       "unit": "kit",
-      "source": "assets/source/city/village/kit.glb",
+      "source": "assets/source/city/lab_boxes/kit.glb",
       "basis_yaw_deg": 0
     },
     "eastern_zbl_08_wheeled_ifv": {

@@ -1,6 +1,7 @@
 // Routes and scene identities belong to the fixture registry; their saved
 // map references name catalogue folders, never another map definition.
 import fixtures from "./fixtures.json";
+import { categoryMap, listMaps } from "@web/maps/catalogue";
 
 export interface LabFixture {
   id: string;
@@ -17,9 +18,10 @@ export interface LabFixture {
 
 export const LAB_FIXTURES: readonly LabFixture[] = fixtures as readonly LabFixture[];
 
-/** The fixed saved-map source declared by a fixture. */
+/** The fixed saved map declared by a fixture: always a `test` map, since a
+ *  lab stands on no menu's battlefield. */
 export function fixtureMap(id: string): string {
   const fixture = LAB_FIXTURES.find((fixture) => fixture.id === id);
   if (!fixture?.map) throw new Error(`fixture ${id} has no fixed saved map`);
-  return fixture.map;
+  return categoryMap(listMaps(), fixture.map, "test").id;
 }

@@ -137,9 +137,6 @@ export type SimRequest =
       side: SideName;
       /** Replay these accepted commands instead of taking input. */
       replay?: string;
-      /** Blue is played by this comparison script (`village_report`'s name,
-       *  e.g. "scout-suppress-flank"); blue input is then refused. */
-      script?: string;
     }
   /** The battle is on screen: nothing ticks before this. */
   | { type: "start" }
@@ -193,7 +190,7 @@ export type SimReply =
       digest: string;
       length: number;
       buffer: ArrayBuffer;
-      /** Wall time of this tick's step (script orders included), ms. */
+      /** Wall time of this tick's step, ms. */
       stepMs: number;
     }
   | { type: "status"; status: AuthorityStatus; slow: boolean }

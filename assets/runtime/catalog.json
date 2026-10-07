@@ -276,6 +276,11 @@
       "kind": "static",
       "unit": "kit"
     },
+    "city_kit_lab_boxes": {
+      "bundle": "ffd54afcbd5a4ff3dd4f7eaceda098698d9870c52b4786c1bc6b147459b3f78c",
+      "kind": "static",
+      "unit": "kit"
+    },
     "city_kit_prototype": {
       "bundle": "5808e059aa247e1ec61af5e4093e2777786f2cee272e9650bb192165b5d2f20b",
       "kind": "static",
@@ -293,11 +298,6 @@
     },
     "city_kit_towers_paris": {
       "bundle": "0af5ee3b48456040a3207da002db36dcbaf373c13dd72e27699feaa02fa93f38",
-      "kind": "static",
-      "unit": "kit"
-    },
-    "city_kit_village": {
-      "bundle": "ffd54afcbd5a4ff3dd4f7eaceda098698d9870c52b4786c1bc6b147459b3f78c",
       "kind": "static",
       "unit": "kit"
     },
@@ -1577,6 +1577,17 @@
       "scenery": "road_barrier",
       "unit": "scenery"
     },
+    "ruin": {
+      "bundle": "4911cfddce01856f985b6a6d7077c87bd2390a45c81b22f2213c2b15785c108c",
+      "footprint_half_m": [
+        15,
+        12,
+        1
+      ],
+      "kind": "static",
+      "scenery": "ruin",
+      "unit": "scenery"
+    },
     "sandbags": {
       "bundle": "423d3b4b1cfb92ddcb7f816196fffd9f07e377aedd84a16889702c68db228ea2",
       "footprint_half_m": [
@@ -2262,17 +2273,6 @@
       ],
       "kind": "static",
       "scenery": "utility_box",
-      "unit": "scenery"
-    },
-    "village_ruin": {
-      "bundle": "4911cfddce01856f985b6a6d7077c87bd2390a45c81b22f2213c2b15785c108c",
-      "footprint_half_m": [
-        15,
-        12,
-        1
-      ],
-      "kind": "static",
-      "scenery": "ruin",
       "unit": "scenery"
     },
     "washing_line": {
@@ -3418,6 +3418,11 @@
       "hash": "118fc4463d410ab5448c7ba01fdda19b6bb9acada39b4d8d2692eefa8b7b78e8",
       "raw_bytes": 4219592
     },
+    "5ce5098a4b82dc8612ffe3b293440c168ffaa9ef69de0e49b6e49e4af50adedd": {
+      "bytes": 215070,
+      "hash": "536d90cd85dbc553fc7c6fae88289982349ce625f5e36900909229c969d59e07",
+      "raw_bytes": 1626068
+    },
     "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0": {
       "bytes": 119600,
       "hash": "33a60aff79e931dd737747da11f6518af627b1c53cc095f9d8905b41c9ded2df",
@@ -3512,11 +3517,6 @@
       "bytes": 212316,
       "hash": "d0f48b3c657bb2168d530be3e4f12e97ae8a029a9f19096ed64d0a26bd8edb03",
       "raw_bytes": 349543
-    },
-    "65bbc3598f98d1ceb61d7f41be0379dad017d37d001d21663947f2107b0fe30c": {
-      "bytes": 215067,
-      "hash": "5630e52363fec50aaac52e3663def294de74226070d12c33ef10189eebf86504",
-      "raw_bytes": 1626040
     },
     "66383bcc8ce4e690aca3c0da16396fa816a9c104af1b5c6dd096bbeaf32bec04": {
       "bytes": 11922,
@@ -5501,12 +5501,12 @@
     "quaternius-ubc-rifle": "19706856fef2f15bd61aae8ef6d4e614c58a028296738bdeab45195880187611"
   },
   "templates": {
-    "art_hash": "798166a563015d77f387647d234ac5462817582452e67aeb1c2d72cc9f9b7a6c",
+    "art_hash": "bcfa28946c90a6efc85487201078d3529f8c7d76957731f134b583725deb6fab",
     "covers": [
       "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13",
       "9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7"
     ],
-    "library": "65bbc3598f98d1ceb61d7f41be0379dad017d37d001d21663947f2107b0fe30c"
+    "library": "5ce5098a4b82dc8612ffe3b293440c168ffaa9ef69de0e49b6e49e4af50adedd"
   },
   "textures": {
     "006bfd43565dc836766624caaa8c5b42a88739837a3b026bb48c19ff62de7f82": [

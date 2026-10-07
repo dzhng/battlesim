@@ -14,8 +14,6 @@ use sim::flight::{
 };
 use sim::math::{v3, V3};
 use sim::publication::{self, Publisher};
-use sim::village::scripts::Plan;
-use sim::village::ScriptedBlue;
 use sim::world::{export, WorldGeometry};
 use wasm_bindgen::prelude::*;
 
@@ -674,16 +672,6 @@ pub fn resolve_catalog(documents_json: &str) -> Result<String, JsError> {
     Ok(catalog.view().to_string())
 }
 
-/// The village encounter for `variant`, built from the one fixture (the
-/// rules, with the village's resolved map under `map`): a scenario JSON for
-/// `Battle` (with its defender and completion referee).
-#[wasm_bindgen]
-pub fn village_scenario(fixture_json: &str, variant: &str) -> Result<String, JsError> {
-    let fixture: serde_json::Value = serde_json::from_str(fixture_json).map_err(js_error)?;
-    let setup = sim::village::scenario(&fixture, variant).map_err(js_error)?;
-    serde_json::to_string(&setup).map_err(js_error)
-}
-
 /// The synthetic endurance battle for `seed` on its resolved field
 /// (`map_json`, the catalogue's `endurance`), with the late state's remains
 /// when `late`; rules from the one fixture.
@@ -748,8 +736,6 @@ pub struct BattleHandle {
     battle: Battle,
     /// Packs each publication and keeps the consumer's ground cursor.
     publisher: Publisher,
-    /// Blue's commander when a comparison script plays it (the benchmark).
-    blue: Option<ScriptedBlue>,
 }
 
 #[wasm_bindgen(js_class = Battle)]
@@ -760,22 +746,6 @@ impl BattleHandle {
         Ok(BattleHandle {
             battle: Battle::new(&setup, seed as u64),
             publisher: Publisher::new(),
-            blue: None,
-        })
-    }
-
-    /// A battle whose blue side is played by the comparison script `plan`
-    /// (`village_report`'s name, such as "scout-suppress-flank"). Its orders
-    /// go through `accept` before every step and are recorded like input, so
-    /// the battle replays. The script is blue's only commander: a live blue
-    /// command would be refused as out of sequence.
-    pub fn scripted(scenario_json: &str, seed: f64, plan: &str) -> Result<BattleHandle, JsError> {
-        let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
-        let plan = Plan::named(plan).ok_or_else(|| JsError::new(&format!("no script {plan}")))?;
-        Ok(BattleHandle {
-            battle: Battle::new(&setup, seed as u64),
-            publisher: Publisher::new(),
-            blue: Some(ScriptedBlue::new(plan, &setup)),
         })
     }
 
@@ -788,7 +758,6 @@ impl BattleHandle {
         Ok(BattleHandle {
             battle,
             publisher: Publisher::new(),
-            blue: None,
         })
     }
 
@@ -833,9 +802,6 @@ impl BattleHandle {
     }
 
     pub fn step(&mut self) -> f64 {
-        if let Some(blue) = self.blue.as_mut() {
-            blue.command(&mut self.battle);
-        }
         self.battle.step() as f64
     }
 
@@ -989,7 +955,6 @@ impl PreparedWorld {
         Ok(BattleHandle {
             battle: Battle::from_prepared(&setup, seed as u64, self.prepared),
             publisher: Publisher::new(),
-            blue: None,
         })
     }
 
@@ -1005,7 +970,6 @@ impl PreparedWorld {
         Ok(BattleHandle {
             battle,
             publisher: Publisher::new(),
-            blue: None,
         })
     }
 }

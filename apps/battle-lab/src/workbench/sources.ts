@@ -81,13 +81,13 @@ let propClasses: PropClasses | null = null;
 
 /** The simulation's prop classes (what blocks whom, what hides sight) under
  *  the page's `rules`, read once from `world_layout()`, with the boxes the
- *  village's resolved map places. */
+ *  street test map places. */
 export async function loadPropClasses(rules: GameRules): Promise<PropClasses> {
   if (!propClasses) {
-    const [wasm, village] = await Promise.all([loadWasm(), loadMap("village")]);
+    const [wasm, street] = await Promise.all([loadWasm(), loadMap("street")]);
     propClasses = {
       ...(JSON.parse(wasm.world_layout(JSON.stringify(rules))) as PropClasses),
-      placed: village.definition.props,
+      placed: street.definition.props,
     };
   }
   return propClasses;

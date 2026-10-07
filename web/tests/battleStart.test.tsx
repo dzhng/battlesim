@@ -103,7 +103,7 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
     // Parameters the battle no longer reads, or never did.
     ["?faction=us&seed=1&recipe=assault", /^recipe /],
     ["?faction=us&seed=1&encounter=1", /^encounter /],
-    ["?faction=us&map=village", /^map /],
+    ["?faction=us&map=street", /^map /],
     ["?faction=us&seed=1&sneed=2", /^sneed /],
   ] as const) {
     const refused = askedBattle(search);

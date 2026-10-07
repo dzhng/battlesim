@@ -5,18 +5,16 @@ use contract::templates::{
 };
 use serde_json::{json, Value};
 
-fn village_house(index: usize) -> BuildingTemplateDescriptor {
-    let village: Value =
-        serde_json::from_str(include_str!("../../../fixtures/maps/village/map.json")).unwrap();
-    // A saved building names its template; the box is the library's.
+/// The library's box template `id`, as a house shell probe: the box is the
+/// library's (`fixtures/building-templates.json`).
+fn library_house(id: &str) -> BuildingTemplateDescriptor {
     let library: Value =
         serde_json::from_str(include_str!("../../../fixtures/building-templates.json")).unwrap();
-    let id = &village["buildings"][index]["template_id"];
     let template = library["templates"]
         .as_array()
         .unwrap()
         .iter()
-        .find(|template| &template["id"] == id)
+        .find(|template| template["id"] == id)
         .unwrap();
     let half = &template["parts"][0]["half_extents"];
     let (hx, hy, hz) = (
@@ -25,7 +23,7 @@ fn village_house(index: usize) -> BuildingTemplateDescriptor {
         half[2].as_f64().unwrap(),
     );
     serde_json::from_value(json!({
-        "id":"village-shell-probe", "category":"farmstead", "regional_family":"api_fixture",
+        "id":"house-shell-probe", "category":"farmstead", "regional_family":"api_fixture",
         "parts":[{"id":"shell", "center":[0,0], "yaw":0, "half_extents":[hx,hy,hz], "base_z":0}],
         "floor_heights_m":null, "entrances":null, "edges":[], "joins":[]
     }))
@@ -34,15 +32,12 @@ fn village_house(index: usize) -> BuildingTemplateDescriptor {
 
 #[test]
 fn the_existing_house_shell_materializes_without_inventing_missing_facts() {
-    for (index, (center, half)) in [
-        ([975.0, 752.0], [15.0, 12.0, 4.0]),
-        ([1047.0, 814.0], [17.0, 14.0, 4.0]),
-        ([983.0, 871.0], [13.0, 11.0, 4.0]),
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let descriptor = village_house(index);
+    for (id, center, half) in [
+        ("api-box-15-12-4", [975.0, 752.0], [15.0, 12.0, 4.0]),
+        ("api-box-17-14-4", [1047.0, 814.0], [17.0, 14.0, 4.0]),
+        ("api-box-13-11-4", [983.0, 871.0], [13.0, 11.0, 4.0]),
+    ] {
+        let descriptor = library_house(id);
         let placed = descriptor
             .materialize(PlacementFrame {
                 translation: [center[0], center[1], 0.0],
@@ -82,7 +77,7 @@ fn an_asymmetric_rotated_part_keeps_its_own_box_frame() {
 
 #[test]
 fn physical_identity_is_canonical_and_changes_with_geometry() {
-    let first = village_house(0);
+    let first = library_house("api-box-15-12-4");
     let mut second = first.clone();
     second.id = "another-shell-probe".into();
     second.parts[0].center[0] = -0.0;
@@ -213,7 +208,7 @@ fn declared_joins_do_not_allow_false_exposed_walls_or_unproved_connections() {
 fn physical_json_preserves_authoritative_f64_bits_and_its_own_identity() {
     // The default JSON float reader rounds this finite metre value by one ULP.
     let value = f64::from_bits(0x4044000000005ccd);
-    let mut descriptor = village_house(0);
+    let mut descriptor = library_house("api-box-15-12-4");
     descriptor.parts[0].center[0] = value;
     let catalogue = TemplateGeometryCatalog::new(vec![descriptor.clone()]).unwrap();
     let loaded = TemplateGeometryCatalog::from_json(&catalogue.canonical_json().unwrap()).unwrap();
@@ -235,7 +230,7 @@ fn physical_json_preserves_authoritative_f64_bits_and_its_own_identity() {
 
 #[test]
 fn finite_inputs_cannot_publish_overflowed_world_geometry() {
-    let mut descriptor = village_house(0);
+    let mut descriptor = library_house("api-box-15-12-4");
     descriptor.parts[0].center[0] = f64::MAX;
     assert!(descriptor
         .materialize(PlacementFrame {

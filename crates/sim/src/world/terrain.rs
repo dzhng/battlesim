@@ -184,7 +184,7 @@ impl HeightField {
     /// cell along x and along y.
     // Inlined, as is `height`: the fog sweep calls them per sample, and a
     // new caller elsewhere must not tip LLVM into out-of-line calls there
-    // (without it, `village_report` once measured +21% instructions).
+    // (without it, a battle report once measured +21% instructions).
     #[inline(always)]
     fn triangle(&self, x: f64, y: f64) -> Option<(f64, f64, f64)> {
         if !self.contains(x, y) {

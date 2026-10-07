@@ -1,4 +1,4 @@
-// /lab/fog: sight-light fog over the village street
+// /lab/fog: sight-light fog over the street test map
 // (`streetScenario.ts`). The panel switches the frame between the
 // live look and the seen/unseen debug mask, and the side it is drawn for; the
 // probes let the scene measure the fog against the simulation's 8 m sweep, run
@@ -150,7 +150,7 @@ async function shapeOracle(probes: FogProbes) {
 }
 
 export default function Fog() {
-  const built = useStreetScenario("fog");
+  const built = useStreetScenario();
   if (built && typeof built !== "string")
     return <main className="lab-rejected">{built.error}</main>;
   if (!built) return null;
@@ -203,7 +203,7 @@ function FogLab({ scenario }: { scenario: string }) {
   // The sight edge's geometry is measured on bare ground: its stair and
   // position checks trace the mask's edge line, and blades standing in
   // unseen ground rise over the seen field behind it, which is right but
-  // moves that line by blade heights. The fog-look lab and the village draw
+  // moves that line by blade heights. The fog-look lab and every battle draw
   // grass under fog.
   const bare = useMemo(() => meshes && { ...meshes, grass: null }, [meshes]);
   const worldFeed = useFeed(bare);

@@ -1,7 +1,7 @@
-// The village as a game.
+// The street test map's battle as a game.
 //
-// On `/battle/village/watch` (scene `village-watch`: blue played by
-// `scout-suppress-flank`):
+// On `/lab/street?watch` (scene `street-watch`: blue's start ordered onto
+// the street at once):
 // - `battle`: the whole-battle frames the composed look is judged on, the
 //   battle stepped to BATTLE_TICK (default 9900, 5:30) and on to the first
 //   tick of a fight, and each named frame
@@ -10,16 +10,16 @@
 //   fixed seed; each also HUD-free.
 // - `edge`: fog runs on past the map edge as inside, and a dim white border marks
 //   the playable area.
-// On `/battle/village` (scene `village`, the player's controls):
+// On `/lab/street` (scene `street`, the player's controls):
 // - `woods`: a squad sent into the west wood is drawn through the canopy as
 //   an x-ray, and a squad in the open is not.
-// - `cleanup`: repeated reset and remounts (a new variant) leave nothing behind:
+// - `cleanup`: repeated reset and remounts leave nothing behind:
 //   GPU allocations, devices, workers, audio contexts, listeners, effects,
 //   corpses and sound voices.
 //
-// Rerun: `WATCH_TOURS=battle bun run --cwd web scene -- village-watch`
-// (`BATTLE_TICK=<tick>` moves the frames); `VILLAGE_TOURS=woods,cleanup bun
-// run --cwd web scene -- village`.
+// Rerun: `WATCH_TOURS=battle bun run --cwd web scene -- street-watch`
+// (`BATTLE_TICK=<tick>` moves the frames); `STREET_TOURS=woods,cleanup bun
+// run --cwd web scene -- street`.
 import {
   lab,
   obs,
@@ -28,7 +28,7 @@ import {
   until,
   snapshot,
   restart,
-  chooseVariant,
+  remount,
   openBattle,
   aim,
   groundCss,
@@ -36,7 +36,7 @@ import {
 import { anyNear, decode, mostChanged } from "./_png.mjs";
 import { trackPageResources, pageResources } from "./_leaks.mjs";
 import { orderPaint, paintOnly } from "./_overlays.mjs";
-import { hasRole, game, villageMap, curvePitch } from "./_units.mjs";
+import { hasRole, game, streetMap, streetAttack, curvePitch } from "./_units.mjs";
 
 const CAMERA = game.presentation.camera;
 const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 9900);
@@ -59,7 +59,7 @@ async function overlayOnly(ctx, page, name) {
   return png;
 }
 
-/** The whole-battle frames (the village's visual acceptance). */
+/** The whole-battle frames (the battle view's visual acceptance). */
 export async function battleTour(ctx) {
   const page = await openBattle(ctx, { viewport: VIEWPORT, tick: BATTLE_TICK, grass: true });
   // Find live fighting rather than requiring a particular casualty: a
@@ -78,7 +78,7 @@ export async function battleTour(ctx) {
     JSON.stringify({ tick: o.tick, rounds: o.projectiles.length, fighters: fighters.length }),
   );
   if (!moment(o)) return page.close();
-  const zone = game.encounter.success_zone_center;
+  const zone = streetAttack.encounter.success_zone_center;
   const front = fighters.reduce((a, b) =>
     dist(a.position, zone) <= dist(b.position, zone) ? a : b,
   );
@@ -174,14 +174,16 @@ export async function woodsTour(ctx) {
   const page = await openBattle(ctx, { viewport: VIEWPORT, tick: 60 });
   await page.addStyleTag({ content: HIDE_READOUTS });
   // The west wood is an axis-aligned ring: its rect is [x, y, w, h].
-  const [[x0, y0], , [x1, y1]] = villageMap.forests[0].shape.ring;
+  const [[x0, y0], , [x1, y1]] = streetMap.forests[0].shape.ring;
   const wood = [x0, y0, x1 - x0, y1 - y0];
   const goal = [wood[0] + 40, wood[1] + wood[3] - 20];
   let o = await obs(page);
   const squads = o.own.filter((u) => u.members.length > 0 && u.kind === "test_rifle");
   // The squad spawned furthest south walks in along the map's south, out of
-  // the village's fire; the one spawned furthest north stays in the open.
-  const spawns = game.spawn.blue.filter((r) => r[0] === "test_rifle").map((r) => [r[1], r[2]]);
+  // the street's fire; the one spawned furthest north stays in the open.
+  const spawns = streetAttack.units
+    .filter((u) => u.side === "blue" && u.kind === "test_rifle")
+    .map((u) => u.position);
   const nearest = (p) =>
     squads.reduce((a, b) => (dist(a.position, p) <= dist(b.position, p) ? a : b));
   const walker = nearest(spawns.reduce((a, b) => (a[1] >= b[1] ? a : b)));
@@ -199,10 +201,10 @@ export async function woodsTour(ctx) {
   );
 
   // Round the south, where the wood itself screens the walk from the
-  // village, then enter the wood from the actual south-west corner. The
-  // corner leg keeps the wood between the squad and the village. Since
+  // street, then enter the wood from the actual south-west corner. The
+  // corner leg keeps the wood between the squad and the street. Since
   // rounds slowed and firing reports shrank, a squad cutting across the
-  // open south of the wood is pinned there by the village's fire and falls.
+  // open south of the wood is pinned there by the street's fire and falls.
   // It walks holding fire: in the battle as it plays since the tank rounds
   // sped up, a walker firing at will draws the red rifles' return fire at
   // the wood's edge.
@@ -470,12 +472,11 @@ export async function cleanupTour(ctx) {
     ),
   );
 
-  // A new variant remounts the whole battle view: a new device, worker and
+  // A remount mounts the whole battle view afresh: a new device, worker and
   // sound, the old ones released.
   const remounts = [];
-  const [crossfire, ordinary] = ["Prepared crossfire", "Ordinary ambush"];
-  for (const variant of [crossfire, ordinary, crossfire, ordinary]) {
-    await chooseVariant(page, variant);
+  for (let k = 0; k < 4; k++) {
+    await remount(page);
     await lab(page, () => window.__lab.route.pause());
     remounts.push(await census(page));
   }

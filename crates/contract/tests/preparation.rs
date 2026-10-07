@@ -34,9 +34,7 @@ fn refusal(request: &Value) -> (String, String) {
 #[test]
 fn a_request_keeps_seeds_a_javascript_number_cannot_hold() {
     let request = PrepareBattleRequest::from_json(&generated().to_string()).unwrap();
-    let MapSource::Generated { request: map } = &request.map_source else {
-        panic!("the request names a generated map");
-    };
+    let MapSource::Generated { request: map } = &request.map_source;
     assert_eq!(map.seed.value(), u64::MAX);
     assert_eq!(request.factions, [Faction::Us, Faction::Eastern]);
     assert_eq!(request.battle_seed, BATTLE_SEED_MAX);
@@ -117,14 +115,15 @@ fn a_request_that_cannot_be_prepared_names_the_field_at_fault() {
     for seed in [json!(-1), json!(1.5), json!("1")] {
         assert_eq!(refusal(&with(&["battle_seed"], seed)).0, "$");
     }
-    // A catalogue map is an address, never a path.
+    // A battle is fought on a generated map: a saved map of the catalogue (a
+    // test's or the menu's) is no source a battle can name.
     let (_, message) = refusal(&with(
         &["map_source"],
-        json!({ "kind": "catalogue", "id": "../village" }),
+        json!({ "kind": "catalogue", "id": "geometry" }),
     ));
-    assert!(message.contains("catalogue id"), "{message}");
-    // Only the two sources exist, and a request holds nothing else.
-    refusal(&with(&["map_source"], json!({ "kind": "village" })));
+    assert!(message.contains("unknown variant `catalogue`"), "{message}");
+    // Only the generator is a source, and a request holds nothing else.
+    refusal(&with(&["map_source"], json!({ "kind": "saved" })));
     refusal(&with(&["map_source", "request", "type"], json!("huge")));
     refusal(&with(&["fallback_seed"], json!("1")));
 }

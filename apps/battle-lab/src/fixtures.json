@@ -98,7 +98,7 @@
   {
     "id": "ground",
     "route": "/lab/ground",
-    "describe": "The ground layer as each side learns it: two tanks race east, one through an authored crater field (craters slow vehicles slightly, never their plan); two tanks shell a red squad in craters and one in the open; a squad walks the field; a flat cell view of the observed side's learned craters, scorch, tracks and trampling, rebuilt from its ground patches, with a side switch and the patch stream readout. ?village inspects the village, paused after the supported attack's opening.",
+    "describe": "The ground layer as each side learns it: two tanks race east, one through an authored crater field (craters slow vehicles slightly, never their plan); two tanks shell a red squad in craters and one in the open; a squad walks the field; a flat cell view of the observed side's learned craters, scorch, tracks and trampling, rebuilt from its ground patches, with a side switch and the patch stream readout.",
     "map": "ground"
   },
   {
@@ -145,15 +145,21 @@
     "map": null
   },
   {
-    "id": "village",
-    "route": "/battle/village",
-    "describe": "The village encounter: blue attacks the defended village (red defender policy on its own observation), with the production readouts, command bar, and a pause menu (variant, restart, replay export, sound); ?seed= sets the seed for testing.",
-    "map": "village"
+    "id": "street",
+    "route": "/lab/street",
+    "describe": "A battle on the street test map through the production controls, readouts and pause menu: blue starts west of the street, red holds it under the encounter's defender policy (its rifle squads garrison the three buildings). ?watch plays the encounter where blue's start is ordered onto the street at once, under a free camera; ?seed= sets the seed. The browser scenes judge the battle view here.",
+    "map": "street"
+  },
+  {
+    "id": "street-watch",
+    "route": "/lab/street?watch",
+    "describe": "The street battle watched: blue's start ordered onto the street at once, the camera free. The scene takes the whole-battle frames at a fixed tick (BATTLE_TICK), and checks fog running on past the map edge and the red border that marks the playable area.",
+    "map": "street"
   },
   {
     "id": "generated",
     "route": "/battle",
-    "describe": "A prepared battle, in the village's battle view: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map (mixed, small, 1 by default); ?recipe= the encounter recipe, ?encounter= its seed and ?battle= the battle's. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker resolves the map and has the simulation's planner place the assault recipe on a generated one (blue's column on the road in from the bottom edge, red's from the top, red's garrison round the main town's crossroads); a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet.",
+    "describe": "A prepared battle: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?faction= the player's faction (required) and ?enemy= the enemy's; ?battle= the battle's seed. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet.",
     "map": null
   },
   {
@@ -165,22 +171,16 @@
   {
     "id": "benchmark",
     "route": "/benchmark",
-    "describe": "The scripted benchmark (the one frame-cost measure): the village warm-started to heavy contact with blue on the supported script, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",
-    "build": "production",
-    "map": "village"
-  },
-  {
-    "id": "city-contact",
-    "route": "/benchmark?preset=city-contact",
-    "describe": "Full-world Metro Large seed 4 benchmark with the simulation's named central city-arena-2 contact stress, 100 units a side and seeded scenario orders; a city-centred ground, tactical and whole-map tour. This is local-contact stress, separate from player transit. The scene records the same short/full timed window as the village control.",
+    "describe": "The benchmark (the one frame-cost measure), reached from the menu: city contact, the simulation's central city-arena-2 stress on Metro Large seed 4, warm-started to contact, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",
     "build": "production",
     "map": null
   },
   {
-    "id": "village-replay",
-    "route": "/replay/village",
-    "describe": "Village replay: load a saved battle; the defender and input are off, the accepted commands of both sides replay, and a mismatched fixture is refused with a clear error.",
-    "map": "village"
+    "id": "city-contact",
+    "route": "/benchmark?preset=city-contact",
+    "describe": "The benchmark opened by its named address: the same city-contact workload as /benchmark (100 units a side, seeded scenario orders, a city-centred ground, tactical and whole-map tour). This is local-contact stress, separate from player transit.",
+    "build": "production",
+    "map": null
   },
   {
     "id": "endurance",
@@ -192,14 +192,14 @@
   {
     "id": "fog",
     "route": "/lab/fog",
-    "describe": "Sight-light fog over the village street: blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU lookup against its oracle vectors, a turned turret and a garrison's eyes.",
-    "map": "village"
+    "describe": "Sight-light fog over the street test map: blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU lookup against its oracle vectors, a turned turret and a garrison's eyes.",
+    "map": "street"
   },
   {
     "id": "projectiles",
     "route": "/lab/projectiles",
-    "describe": "Projectile review with the fog-lit village close fight and range-limit rifle, HMG, AP, HE and ATGM lanes; gameplay flight, unlimited reserves and nonlethal rounds.",
-    "map": "village"
+    "describe": "Projectile review with the fog-lit street close fight and range-limit rifle, HMG, AP, HE and ATGM lanes; gameplay flight, unlimited reserves and nonlethal rounds.",
+    "map": "street"
   },
   {
     "id": "workbench",
@@ -210,20 +210,14 @@
   {
     "id": "fog-look",
     "route": "/lab/fog-look",
-    "describe": "How unseen looks: the fixture's named fog styles over the village street under a 16:00 sun, every number live on sliders with a copyable presentation.fog block; roofs and canopy tops above the eyes; contact glyphs (red through the middle, hatched, a last sighting ringed pale).",
-    "map": "village"
+    "describe": "How unseen looks: the fixture's named fog styles over the street test map under a 16:00 sun, every number live on sliders with a copyable presentation.fog block; roofs and canopy tops above the eyes; contact glyphs (red through the middle, hatched, a last sighting ringed pale).",
+    "map": "street"
   },
   {
-    "id": "village-watch",
-    "route": "/battle/village/watch",
-    "describe": "The village battle watched: blue played by village_report's scout-suppress-flank (?script= picks another), the camera free. The scene takes the whole-battle frames at a fixed tick (BATTLE_TICK), and checks fog running on past the map edge and the red border that marks the playable area.",
-    "map": "village"
-  },
-  {
-    "id": "village-lean",
-    "route": "/battle/village/lean",
-    "describe": "Soldiers lean out round tall cover: on the village's ground, a squad at rest just inside the west wood trades fire with a squad in the open. Men slide out past their trees to fire and tuck back in. The scene finds a soldier out on his lean and shoots him at the ground camera.",
-    "map": "village"
+    "id": "lean",
+    "route": "/lab/lean",
+    "describe": "Soldiers lean out round tall cover: on the street test map, a squad at rest just inside the west wood trades fire with a squad in the open. Men slide out past their trees to fire and tuck back in. The scene finds a soldier out on his lean and shoots him at the ground camera.",
+    "map": "street"
   },
   {
     "id": "sound",

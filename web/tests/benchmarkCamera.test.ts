@@ -2,7 +2,6 @@
 import { expect, test } from "vitest";
 import {
   BENCHMARK_PHASES,
-  BENCHMARK_TOUR,
   cityContactTour,
   sampleTour,
   type BenchmarkTour,
@@ -67,17 +66,18 @@ test("each moment belongs to exactly one phase, and times outside the run clamp"
 });
 
 test("the benchmark tour visits the named phases in order and covers the whole run", () => {
-  expect(BENCHMARK_TOUR.phases.map((p) => p.name)).toEqual(BENCHMARK_PHASES);
-  expect(BENCHMARK_TOUR.phases[0].from).toBe(0);
-  expect(BENCHMARK_TOUR.phases.at(-1)!.to).toBe(1);
-  for (let k = 1; k < BENCHMARK_TOUR.phases.length; k++)
-    expect(BENCHMARK_TOUR.phases[k].from).toBe(BENCHMARK_TOUR.phases[k - 1].to);
-  const times = BENCHMARK_TOUR.keyframes.map((k) => k[0]);
+  const tour = cityContactTour([6000, 8000]);
+  expect(tour.phases.map((p) => p.name)).toEqual(BENCHMARK_PHASES);
+  expect(tour.phases[0].from).toBe(0);
+  expect(tour.phases.at(-1)!.to).toBe(1);
+  for (let k = 1; k < tour.phases.length; k++)
+    expect(tour.phases[k].from).toBe(tour.phases[k - 1].to);
+  const times = tour.keyframes.map((k) => k[0]);
   expect(times[0]).toBe(0);
   expect(times.at(-1)).toBe(1);
   expect([...times].sort((a, b) => a - b)).toEqual(times);
   // It returns to its opening framing, a whole turn later.
-  const [first, last] = [BENCHMARK_TOUR.keyframes[0], BENCHMARK_TOUR.keyframes.at(-1)!];
+  const [first, last] = [tour.keyframes[0], tour.keyframes.at(-1)!];
   expect(last.slice(1, 4)).toEqual(first.slice(1, 4));
   expect(last[5]).toBe(first[5]);
   expect(Math.abs(last[4] - first[4]) % (2 * Math.PI)).toBeCloseTo(0, 2);

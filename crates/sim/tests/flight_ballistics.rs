@@ -472,7 +472,7 @@ fn an_unreachable_target_has_no_firing_solution() {
 const RIDGE: &str = r#","relief":[{"kind":"ridge","center":[300,200],"peak_m":25,"radius_m":60}]"#;
 
 /// A lab mortar: a grenade row lobbing at full gravity and 80 m/s, so its
-/// high arc lands within a round's lifetime. The slowed village grenade's
+/// high arc lands within a round's lifetime. The game's slowed grenade's
 /// high arc would take the better part of a minute.
 fn mortar(trajectory: Trajectory) -> LaunchProfile {
     config()
@@ -528,7 +528,7 @@ fn the_high_arc_is_used_only_by_indirect_fire_and_never_by_ignoring_a_ridge() {
 
 #[test]
 fn chords_per_tick_follow_the_chord_error_and_the_declared_bound_is_enforced() {
-    // Village: a 30 Hz chord sags g·dt²/8 ≈ 1.4 mm, inside 2 cm, so one chord.
+    // The game's 30 Hz: a chord sags g·dt²/8 ≈ 1.4 mm, inside 2 cm, so one chord.
     assert_eq!(config().subsegments_per_tick(), 1);
     let with_error = |e: f64| {
         FlightConfig::new(

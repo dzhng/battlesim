@@ -1,5 +1,5 @@
 // How far the canopy closes, checked at the ground rig's stations over the
-// village's west wood: the crowns hide most of the forest floor and leave
+// street's west wood: the crowns hide most of the forest floor and leave
 // some of it in view. The measure is the floor's own class in the terrain's
 // mask, with the trees and without: the share of the wood's floor pixels the
 // crowns leave seen. It says nothing of one squad: men standing under two
@@ -23,13 +23,13 @@ function floorPixels(mask) {
 }
 
 export async function canopyClosure(ctx) {
-  const page = await openStations(ctx, "village");
+  const page = await openStations(ctx, "street");
   const seen = {};
   for (const station of STATIONS) {
     const mask = async (trees) =>
       floorPixels(
         decode(
-          await shoot(page, "village", station, { view: "ground-classes", grass: false, trees }),
+          await shoot(page, "street", station, { view: "ground-classes", grass: false, trees }),
         ),
       );
     const [under, bare] = [await mask(true), await mask(false)];

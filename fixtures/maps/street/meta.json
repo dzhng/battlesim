@@ -1,13 +1,13 @@
 {
-  "category": "lab",
+  "category": "test",
   "status": "released",
-  "label": "Village (test map)",
-  "character": "village",
+  "label": "Street (test map)",
+  "character": "arena",
   "biome": "summer",
   "size_m": [1600, 1600],
   "tags": ["relief", "road", "forest", "prop", "building"],
   "source": "authored",
   "seed": null,
-  "encounters": ["lean"],
-  "benchmarks": ["benchmark"]
+  "encounters": ["advance", "attack", "lean", "street"],
+  "benchmarks": []
 }

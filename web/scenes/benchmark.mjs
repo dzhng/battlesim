@@ -16,10 +16,13 @@ const CAMERA_TOLERANCE = 1e-6;
 const shot = async (ctx, page, name) =>
   writeFile(ctx.evidencePath(name), await page.screenshot({ fullPage: false }));
 
-export async function run(ctx, preset = "village-contact") {
+/** `named`: open the workload by its address (`?preset=city-contact`)
+ *  instead of through the menu, which opens the default, the same workload. */
+export async function run(ctx, named = false) {
+  const preset = "city-contact";
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   const origin = new URL(ctx.url).origin;
-  if (preset === "city-contact") {
+  if (named) {
     await page.goto(`${origin}/benchmark?preset=city-contact`);
     await page.waitForFunction(() => window.__benchmark?.preset === "city-contact");
     const selected = await page.evaluate(() => window.__benchmark?.preset);
@@ -33,16 +36,16 @@ export async function run(ctx, preset = "village-contact") {
     const main = page.getByRole("navigation", { name: "Main menu" });
     await main.waitFor();
     const played = await main.locator(".menu-card-label").allTextContents();
-    // The test village, the benchmark and the labs are behind the developer link.
+    // The benchmark and the labs are behind the developer link.
     const hidden = await page.getByRole("navigation", { name: "Developer" }).count();
     await openMenuPage(page, "Developer");
     const nav = page.getByRole("navigation", { name: "Developer" });
     const labels = await nav.locator(".menu-card-label").allTextContents();
     ctx.check(
-      "the main menu lists its pages and replay, and the village, benchmark and labs behind the developer link",
+      "the main menu lists its pages and replay, and the benchmark and labs behind the developer link",
       played.join() === "Skirmish,Watch replay,Settings" &&
         hidden === 0 &&
-        labels.join() === "Village,Benchmark,Labs",
+        labels.join() === "Benchmark,Labs",
       JSON.stringify({ played, hidden, labels }),
     );
     const card = nav.getByRole("link", { name: "Benchmark", exact: true });
@@ -103,7 +106,7 @@ export async function run(ctx, preset = "village-contact") {
   let firstRunning = null;
   let firstSound = null;
   let firstStats = null;
-  const checkContact = FULL && preset === "city-contact";
+  const checkContact = FULL;
   // Compare actual shot counters within each window: shots from before the
   // window, or an opening burst with no later fire, cannot establish contact.
   const contact = [
@@ -201,7 +204,7 @@ export async function run(ctx, preset = "village-contact") {
         `${window.units.size} units with advancing shot counters from ${window.fromS} to ${window.toS} s`,
       );
   }
-  if (preset === "city-contact") {
+  {
     const p = report.preparation;
     const r = p?.request.map_source.request;
     ctx.check(

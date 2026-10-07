@@ -107,8 +107,6 @@ export const playHref = (choice: Omit<BattleChoice, "seed">) => `/battle?play=1&
 /** The exact address of the battle preparation actually admitted. */
 export function preparedBattleHref(request: PrepareBattleRequest): string {
   const source = request.map_source;
-  // Only generated battles are admitted; a saved map has no battle address.
-  if (source.kind !== "generated") throw new Error("a saved map has no battle address");
   const params = new URLSearchParams(query(source.request));
   params.set("faction", request.factions[0]);
   params.set("enemy", request.factions[1]);

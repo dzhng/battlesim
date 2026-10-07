@@ -6,7 +6,7 @@
 //!
 //! A map directory is what `mapgen generate-map <request> <presets>
 //! <catalogue> <rules> <catalog> <directory>` writes: a saved map (`map.json`, `SOURCES.json`)
-//! and its `sites.json`. The rules are the village's, the recipe a row of
+//! and its `sites.json`. The rules are the test rules (`fixtures::test_game`), the recipe a row of
 //! `fixtures/encounters.json`.
 //!
 //! With `--save`, each map's planned encounter is written as its saved
@@ -57,8 +57,7 @@ fn main() {
         !maps.is_empty(),
         "usage: encounter_report [--recipe id] [--seed n] [--out dir] [--save] <map-directory>..."
     );
-    let rules: Rules =
-        serde_json::from_value(sim::fixtures::test_game()).expect("the village rules");
+    let rules: Rules = serde_json::from_value(sim::fixtures::test_game()).expect("the test rules");
     let recipes = EncounterRecipes::from_json(
         &std::fs::read_to_string(sim::fixtures::dir().join("encounters.json"))
             .expect("fixtures/encounters.json"),

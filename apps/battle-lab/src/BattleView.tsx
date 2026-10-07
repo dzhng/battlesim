@@ -5,7 +5,7 @@ import {
 // A played (or replayed) battle for blue: the world, the side's units and
 // every overlay, and the HUD: the top bar's readout, the unit card and
 // command bar, subtitles, and the pause menu. Routes compose it with their
-// own readout (the village's objective and clock, a lab's telemetry) and
+// own readout (a battle's clock, a lab's telemetry) and
 // pause menu items (the scenario, replays, a lab's switches).
 import type { PreparedSession } from "@web/battle/prepare/client";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";

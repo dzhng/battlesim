@@ -4,7 +4,6 @@
  *  starts from it, so after its answer this worker is the battle's authority.
  *  The page closes it to cancel, which frees everything it allocated. */
 import init, * as wasm from "@wasm/game_wasm.js";
-import { loadMap } from "../../maps/browser";
 import { workerAuthority, type WorkerScope } from "../sim/workerAuthority";
 import type { Authority } from "../sim/authority";
 import { PreparationRefused, prepare, prepareReplay } from "./prepare";
@@ -28,7 +27,6 @@ self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => 
               memory,
               message.request,
               message.documents,
-              { loadMap },
               (stage) => self.postMessage({ type: "stage", stage }),
               undefined,
               message.stress,

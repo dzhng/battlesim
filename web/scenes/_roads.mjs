@@ -12,7 +12,7 @@ import {
   pairedCost,
   shoot,
   stationFrame,
-  villageExport,
+  streetExport,
 } from "./_groundStations.mjs";
 import { chroma, linear, meanColour, warmth } from "./_colour.mjs";
 import { aim, lab } from "./_lab.mjs";
@@ -133,17 +133,17 @@ function stripGreen({ bare, mask }, { row, half }) {
   };
 }
 
-/** Clumps per metre-wide band beside the village's straight road east of the
+/** Clumps per metre-wide band beside the street's straight road east of the
  *  bend, from its edge outward: the band's distance is the export's. */
 async function clumpBands(page) {
-  await shoot(page, "village", "bend-65");
+  await shoot(page, "street", "bend-65");
   const roots = await lab(page, async () =>
     (await window.__lab.grass().clumps())
       .map((c) => [c.root[0], c.root[1]])
       .filter(([x, y]) => x > 445 && x < 480 && Math.abs(y - 420) < 16),
   );
   // A pixel as wide as the map reads every distance exactly.
-  const paved = await villageExport(
+  const paved = await streetExport(
     page,
     roots.map((xy) => ({ xy, footprint: 1e9 })),
   );
@@ -172,7 +172,7 @@ async function wornGroundStaysPut(page, first) {
     ([x, y], i) => i % 211 === 0 && x > 200 && x < 1720 && y > 150 && y < 930,
   );
   const world = await groundUnder(page, pixels);
-  const pose = STATION_MAPS.village.stations["bend-65"];
+  const pose = STATION_MAPS.street.stations["bend-65"];
   await aim(page, [pose.target[0] + 3.7, pose.target[1] - 2.3], pose);
   await lab(page, () => window.__lab.frame());
   const moved = decode(await page.screenshot());
@@ -211,19 +211,19 @@ async function wornGroundStaysPut(page, first) {
 const plainFields = (page) => lab(page, () => window.__lab.suppressFieldTexture(true));
 
 export async function roadLooks(ctx) {
-  const village = await openStations(ctx, "village");
-  await plainFields(village);
-  const bend = await stationFrame(village, "village", "bend-65");
-  const bands = { "village bend-65": coreAgainstGrass(bend) };
+  const street = await openStations(ctx, "street");
+  await plainFields(street);
+  const bend = await stationFrame(street, "street", "bend-65");
+  const bands = { "street bend-65": coreAgainstGrass(bend) };
   const walks = {
-    "village bend-65 bare": walk(bend.bare, bend.mask),
-    "village bend-65": walk(bend.shot, bend.mask),
+    "street bend-65 bare": walk(bend.bare, bend.mask),
+    "street bend-65": walk(bend.shot, bend.mask),
   };
-  const clumps = await clumpBands(village);
+  const clumps = await clumpBands(street);
   // Grass off again, as `bend.bare` was shot.
-  await shoot(village, "village", "bend-65", { grass: false, trees: false });
-  const anchored = await wornGroundStaysPut(village, bend);
-  await village.close();
+  await shoot(street, "street", "bend-65", { grass: false, trees: false });
+  const anchored = await wornGroundStaysPut(street, bend);
+  await street.close();
   const river = await openStations(ctx, "river");
   await plainFields(river);
   const track = await stationFrame(river, "river", "track-65");
@@ -334,7 +334,7 @@ const COST_PAIRS = 4;
 export async function roadCost(ctx) {
   const result = { stations: {} };
   for (const [map, stations] of [
-    ["village", ["bend-65"]],
+    ["street", ["bend-65"]],
     ["generated", ["town-65", "junction-65", "road-join-65"]],
   ]) {
     const page = await openStations(ctx, map);

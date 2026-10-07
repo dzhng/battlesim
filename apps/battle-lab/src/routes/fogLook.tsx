@@ -1,6 +1,6 @@
 // /lab/fog-look: how unseen looks, its edge (a
 // soft fade and a rim on the seen side), and the contact
-// glyphs drawn over it, on the village street (`streetScenario.ts`). The panel
+// glyphs drawn over it, on the street test map (`streetScenario.ts`). The panel
 // picks one of the fixture's named styles, tunes every number of it live, and
 // writes the `presentation.fog` block to copy back into the fixture. A 16:00
 // sun lays long shadows beside the sight shadows, the case fog must never be
@@ -107,7 +107,7 @@ function Knob({
 }
 
 export default function FogLook() {
-  const built = useStreetScenario("fog-look");
+  const built = useStreetScenario();
   if (built && typeof built !== "string")
     return <main className="lab-rejected">{built.error}</main>;
   if (!built) return null;
@@ -200,7 +200,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
   // The fog look's rim and seen-pixel checks are measured on bare ground:
   // they count every pixel that differs between two captures, and dense
   // grass flips a stray pixel between captures now and then (a blade depth
-  // tie). The gate frames draw the grass, as the village does.
+  // tie). The gate frames draw the grass, as a battle does.
   const bare = useMemo(
     () => meshes && (grass ? meshes : { ...meshes, grass: null }),
     [meshes, grass],

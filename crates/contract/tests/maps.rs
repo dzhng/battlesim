@@ -432,19 +432,16 @@ fn recomputing_content_hash_cannot_admit_a_river_the_terrain_cannot_carry() {
 #[test]
 fn catalogue_references_refuse_paths_before_source_io() {
     for id in [
-        "../village",
-        "/village",
-        "C:/village",
-        "village/map",
-        "village\0",
-        "Village",
+        "../geometry",
+        "/geometry",
+        "C:/geometry",
+        "geometry/map",
+        "geometry\0",
+        "Geometry",
         "",
     ] {
-        let source = json!({"kind": "catalogue", "id": id});
-        assert!(
-            serde_json::from_value::<contract::maps::MapSource>(source).is_err(),
-            "{id:?}"
-        );
+        assert!(contract::maps::MapId::new(id).is_err(), "{id:?}");
+        assert!(serde_json::from_value::<contract::maps::MapId>(json!(id)).is_err());
     }
 }
 

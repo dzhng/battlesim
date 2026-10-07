@@ -491,7 +491,7 @@ const rectInside = tgpu.fn(
 
 /** Distance to a closed segment, for polygon edges and forest strokes. Road
  * strokes keep their own inline form: changing its float order would move
- * the village's road edges by an ULP. */
+ * the street test map's road edges by an ULP. */
 const polygonEdgeDistance = tgpu.fn(
   [d.vec2f, d.vec2f, d.vec2f],
   d.f32,

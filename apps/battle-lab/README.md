@@ -12,6 +12,13 @@ identities; [route modules](src/routes/) implement them. The browser [scene runn
 holds the registry and scene files to each other, so adding a lab needs its matching
 check. The registry is the route inventory; docs do not maintain a parallel list.
 
+A lab stands on a saved `test` map (its registry entry names it, and
+[`fixtureMap`](src/fixtures.ts) refuses any other category) or on a generated
+or synthetic world, and fields test units. The battle view itself is judged on
+the street test map's battle (`/lab/street`), a test's own encounter, so no
+lab plays on the game's content or the menu's. Player pages (`/battle`) only
+ever prepare generated maps.
+
 [Visit ownership](src/navigation.tsx) keeps client navigation separate from
 battle identity publication. Leaving a page discards its battle; history
 returning to its address prepares a fresh visit. Publishing the admitted exact
@@ -32,7 +39,8 @@ actual admitted identity. A refused explicit seed cannot silently become another
 battle. Exhausted generation returns a refusal; it never substitutes a fixed map.
 
 [The menu backdrop](src/MenuBackdrop.tsx) is real battles, not recordings: scenes
-played in order and then over again, each a saved encounter on its own map run by
+played in order and then over again, each a saved encounter on its own `menu` map
+(the reel refuses any other) run by
 the ordinary session, silent and inert. Each is filmed by
 [the reel](src/menuReel.ts) through the viewport's pilot and graded in CSS to the
 HUD's `film` amber, which the plate's blue reads against. It shows blue's

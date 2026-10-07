@@ -31,7 +31,7 @@ import type { PoseFrame } from "@packages/battle-renderer/src/models/poseDriver"
 
 const DETAIL = validateModelDetail(game.presentation.models as ModelDetailPresentation);
 const HEIGHT = 1080;
-/** The village's default framing: 65 m from a target on the ground, looking north. */
+/** The street test map's default framing: 65 m from a target on the ground, looking north. */
 const camera = (
   distance: number,
   target: [number, number, number] = [0, 0, 0],

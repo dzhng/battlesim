@@ -4,18 +4,17 @@
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
-import { generationRequest, type MapChoice } from "@web/maps/source";
+import { generationRequest } from "@web/maps/source";
 import { prepareBattle, type PreparedSession } from "@web/battle/prepare/client";
 import type { PrepareMessage } from "@web/battle/prepare/protocol";
 import type { Wasm } from "@web/battle/sim/module";
 import { cityContactTour } from "@web/battle/benchmark/camera";
 import type { BenchmarkPreset, BenchmarkScenario } from "@web/battle/benchmark/presets";
 import type { GameRules } from "@web/battle/catalog/compose";
-import { villageScenario } from "../savedMaps";
 
 export function benchmarkPreparation(
   wasm: Wasm,
-  scenario: Extract<BenchmarkPreset, { generated: MapChoice }>,
+  scenario: BenchmarkPreset,
   rules: GameRules,
 ): PrepareMessage {
   return {
@@ -46,11 +45,6 @@ export async function prepareBenchmark(
   signal: AbortSignal,
   rules: GameRules,
 ): Promise<BenchmarkBattle> {
-  if (!workload.generated)
-    return {
-      scenario: await villageScenario(wasm, "benchmark", workload.variant, rules),
-      workload: { ...workload, tour: workload.tour },
-    };
   const preparation = prepareBattle(benchmarkPreparation(wasm, workload, rules), () => {});
   signal.addEventListener("abort", preparation.cancel, { once: true });
   if (signal.aborted) preparation.cancel();

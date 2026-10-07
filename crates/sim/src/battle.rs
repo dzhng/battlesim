@@ -3855,7 +3855,7 @@ mod settlement_tests {
 
     #[test]
     fn hostile_collapse_uses_first_destructive_source_and_original_receipt() {
-        let mut rules = crate::fixtures::test_game();
+        let mut rules = crate::fixtures::with_map("sensors");
         for kind in ["test_tank", "test_rifle"] {
             crate::fixtures::patch_catalog(
                 &mut rules,

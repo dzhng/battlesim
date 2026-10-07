@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { afterAll, expect, test } from "vitest";
 import fixtures from "@apps/battle-lab/src/fixtures.json";
 import {
+  categoryMap,
   checkMapFolder,
   filterMaps,
   listMaps,
@@ -84,7 +85,7 @@ test("every saved encounter is listed by its map and lists its units", () => {
 });
 
 const META: MapMeta = {
-  category: "lab",
+  category: "test",
   status: "released",
   label: "A lab",
   character: "arena",
@@ -110,6 +111,11 @@ test("metadata a listing could not show is refused, naming the file and the fiel
     return "accepted";
   };
   expect(refused({ category: "arcade" })).toMatch(/^fixtures\/maps\/a-lab\/meta\.json\.category: /);
+  // A saved map is a test's or the menu's: no game, lab or benchmark map.
+  for (const category of ["playable", "lab", "benchmark", undefined])
+    expect(refused({ category })).toMatch(/^fixtures\/maps\/a-lab\/meta\.json\.category: /);
+  expect(refused({ category: "menu" })).toBe("accepted");
+  expect(refused({ character: "farmland" })).toMatch(/meta\.json\.character: /);
   expect(refused({ status: undefined })).toBe("fixtures/maps/a-lab/meta.json.status: missing");
   expect(refused({ colour: "red" })).toBe("fixtures/maps/a-lab/meta.json.colour: unknown field");
   expect(refused({ size_m: [640, 0] })).toMatch(/meta\.json\.size_m: /);
@@ -162,16 +168,35 @@ test("metadata that disagrees with its map is reported field by field", () => {
 test("a listing filters by category, status and feature, in id order", () => {
   const entry = (id: string, change: Partial<MapMeta>): MapEntry => ({ id, ...META, ...change });
   const entries = [
-    entry("b", { category: "playable" }),
+    entry("b", { category: "menu" }),
     entry("c", { status: "draft" }),
     entry("a", { tags: ["river"] }),
   ];
   expect(filterMaps(entries).map((m) => m.id)).toEqual(["a", "b", "c"]);
-  expect(filterMaps(entries, { category: "lab" }).map((m) => m.id)).toEqual(["a", "c"]);
-  expect(filterMaps(entries, { category: "lab", status: "released" }).map((m) => m.id)).toEqual([
+  expect(filterMaps(entries, { category: "test" }).map((m) => m.id)).toEqual(["a", "c"]);
+  expect(filterMaps(entries, { category: "test", status: "released" }).map((m) => m.id)).toEqual([
     "a",
   ]);
   expect(filterMaps(entries, { tag: "building" }).map((m) => m.id)).toEqual(["b", "c"]);
+});
+
+test("a map is taken only for what its category says it is for", () => {
+  const entries = [
+    { id: "town", ...META, category: "menu" },
+    { id: "range", ...META, category: "test" },
+  ] satisfies MapEntry[];
+  expect(categoryMap(entries, "town", "menu").id).toBe("town");
+  expect(categoryMap(entries, "range", "test").id).toBe("range");
+  expect(() => categoryMap(entries, "range", "menu")).toThrow(
+    'the saved map "range" is a test map, not a menu map',
+  );
+  expect(() => categoryMap(entries, "town", "test")).toThrow(/is a menu map, not a test map/);
+  expect(() => categoryMap(entries, "nowhere", "test")).toThrow('no saved map "nowhere"');
+});
+
+test("every lab stands on a test map", () => {
+  for (const fixture of fixtures)
+    if (fixture.map) expect(categoryMap(listMaps(), fixture.map, "test").id).toBe(fixture.map);
 });
 
 const scratch = mkdtempSync(join(tmpdir(), "battlegame-maps-"));

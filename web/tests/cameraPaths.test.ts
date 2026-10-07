@@ -1,5 +1,5 @@
 // @vitest-environment node
-// The camera paths the game ships, against the village's real buildings and
+// The camera paths the game ships, against the street test map's real buildings and
 // ground under the fixture's own camera numbers.
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
@@ -19,10 +19,10 @@ import * as wasm from "@wasm/game_wasm.js";
 import { cityContactTour, sampleTour } from "../src/battle/benchmark/camera";
 import { generationRequest } from "../src/maps/source";
 import generated from "@fixtures/generated-battle.json";
-import { CITY_CONTACT, VILLAGE_CONTACT } from "../src/battle/benchmark/presets";
+import { CITY_CONTACT } from "../src/battle/benchmark/presets";
 import { WHOLE_MAP_MS } from "./support/wholeMap";
 
-const villageMap = loadMap("village").definition;
+const streetMap = loadMap("street").definition;
 
 let obstacles: CameraObstacles;
 let rig: CameraController;
@@ -32,7 +32,7 @@ beforeAll(() => {
     module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
   });
   const rules = JSON.stringify(TEST_RULES);
-  const world = new wasm.WorldView(JSON.stringify(villageMap), rules);
+  const world = new wasm.WorldView(JSON.stringify(streetMap), rules);
   const exports = readWorldExports(world);
   const ground = (x: number, y: number) => world.surface_at(x, y)[0] ?? 0;
   obstacles = buildingObstacles(
@@ -44,27 +44,13 @@ beforeAll(() => {
   rig = new CameraController(gameCamera.config, ground);
 });
 
-test("the village's buildings are the camera's obstacles", () => {
+test("a test map's buildings are the camera's obstacles", () => {
   expect(obstacles.ceiling).toBe(8);
   expect(obstacles.clear([975, 752, 6], 0.1)).toBe(false);
   expect(obstacles.clear([975, 752, 12], 0.1)).toBe(true);
 });
 
-test("the benchmark tour is drawn as flown: clearance moves none of its frames", () => {
-  const { tour, durationMs } = VILLAGE_CONTACT;
-  const lens = { ...gameCamera.opening(), aspect: 16 / 9 };
-  for (const hz of [30, 120]) {
-    const state = createClearanceState();
-    let asked = lens;
-    for (let ms = 0; ms <= durationMs.short; ms += 1000 / hz) {
-      asked = rig.place(asked, sampleTour(tour, ms, durationMs.short).pose);
-      const drawn = rig.resolve(state, asked, 1 / hz, obstacles);
-      expect(drawn, `at ${(ms / 1000).toFixed(2)} s (${state.hold})`).toBe(asked);
-    }
-  }
-});
-
-test("the village's opening framing is drawn as authored", () => {
+test("the opening framing is drawn as authored", () => {
   const opening = { ...gameCamera.opening(), aspect: 16 / 9 };
   expect(rig.resolve(createClearanceState(), opening, 0, obstacles)).toBe(opening);
 });

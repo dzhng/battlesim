@@ -15,7 +15,7 @@ import {
 } from "@packages/battle-renderer/src/light/castLights";
 
 const WHITE = [1, 1, 1];
-/** The village's default framing: 65 m from the origin, looking north. */
+/** The street test map's default framing: 65 m from the origin, looking north. */
 const CAMERA: Camera3DParams = {
   target: [0, 0, 0],
   distance: 65,

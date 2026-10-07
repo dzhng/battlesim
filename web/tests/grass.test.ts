@@ -1,7 +1,7 @@
 // @vitest-environment node
 // Grass kinds are scenery appearances (generated clumps
 // of blade strips), and the grass field grows them where the biome says. The
-// field's GPU contract (seating, masks, residency, cost) is the village
+// field's GPU contract (seating, masks, residency, cost) is the street
 // scene's; this pins the CPU seams it stands on.
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
@@ -175,7 +175,7 @@ test("a clump's tints average to one, so its mean colour is the ground's it grow
   }
 });
 
-/** The village camera's framings, from the fixture. */
+/** The battle camera's framings, from the fixture. */
 function view(distance: number, pitch: number) {
   const d = game.presentation.camera.default;
   return {

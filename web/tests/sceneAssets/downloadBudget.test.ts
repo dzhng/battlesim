@@ -38,7 +38,7 @@ const readRuntime = async (path: string) => read(`assets/runtime/${path}`);
 test("the native asset reader admits the real Market Town shared-art download within the map limit", () => {
   const run = spawnSync(
     process.execPath,
-    ["web/asset.mjs", "download", "fixtures/maps/market-town/map.json"],
+    ["web/asset.mjs", "download", "fixtures/maps/market-town-test/map.json"],
     { cwd: root, encoding: "utf8" },
   );
   expect(run.status, run.stderr).toBe(0);

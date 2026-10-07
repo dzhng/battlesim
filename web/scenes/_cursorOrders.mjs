@@ -464,7 +464,7 @@ export async function battleCursor(ctx) {
         return page;
       },
     },
-    { url: `${base(ctx)}/battle/village`, tick: 40 },
+    { url: `${base(ctx)}/lab/street`, tick: 40 },
   );
   const o = await obs(page);
   const tank = o.own.find((u) => u.kind === "test_tank");

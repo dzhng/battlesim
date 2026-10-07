@@ -1,8 +1,8 @@
 // The game's front door at `/`, in the HUD's look: start a battle on a
 // generated map (its type, its size and, if the player cares, its region),
 // watch a saved battle, and
-// the sound settings. The test village, the benchmark and the labs are
-// developer tools, behind the developer link.
+// the sound settings. The benchmark and the labs are developer tools, behind
+// the developer link (kept in production builds: its audience is technical).
 //
 // The menu is one plate over its backdrop battle. Opening one of its pages
 // replaces the plate's contents, under a Back button, so the battle behind
@@ -14,7 +14,7 @@ import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
 import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/source";
 import { askedChoice, battleHref, playHref, REGIONS, FACTIONS, spoken } from "./battleLinks";
-import { ReplayImport, useSavedReplay, replayRoute, type ReplayFile } from "./replayFile";
+import { ReplayImport, useSavedReplay, REPLAY_ROUTE, type ReplayFile } from "./replayFile";
 import { SoundControls } from "./SoundControls";
 import { MenuBackdrop } from "./MenuBackdrop";
 import { LOADING_STAGES, LoadingTasks, useLoadingTasks } from "./LabLoading";
@@ -43,10 +43,6 @@ const DEVELOPER: Entry[] = [
         },
       ]
     : []),
-  {
-    label: "Village",
-    href: "/battle/village",
-  },
   {
     label: "Benchmark",
     href: "/benchmark",
@@ -180,9 +176,9 @@ function ReplayPage({ saved }: { saved: ReplayFile | null | undefined }) {
   return (
     <nav aria-label="Replays">
       <ul>
-        {saved && <EntryItem entry={{ label: "Last saved battle", href: replayRoute(saved) }} />}
+        {saved && <EntryItem entry={{ label: "Last saved battle", href: REPLAY_ROUTE }} />}
         <li>
-          <ReplayImport plays={(_: ReplayFile): _ is never => false} onLoad={() => {}} />
+          <ReplayImport />
         </li>
       </ul>
     </nav>

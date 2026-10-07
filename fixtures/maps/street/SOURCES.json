@@ -10,10 +10,9 @@
   },
   "inputs": [
     {
-      "kind": "repository",
-      "path": "fixtures/village.json",
-      "revision": "f303c07c43ad38f06f223ad1e48e4e0d1e6e73f8",
-      "sha256": "e03ec134e293064b2ddebec827e901e48c4aec31e2f0d086129b82402c1f67f2"
+      "kind": "supplied",
+      "label": "map.json, authored by hand as the first test arena's ground",
+      "sha256": "0775753649c97ae6199511db73b24859a11d5f4e70e2d03e74f90da7d6c602fd"
     }
   ]
 }

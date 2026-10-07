@@ -116,6 +116,20 @@ fn the_test_and_menu_sets_extend_the_games() {
     }
 }
 
+/// The rules a native test reads carry no ground: a test that needs a map
+/// names its test map, so no test stands on a battlefield by default.
+#[test]
+fn the_native_rules_fixture_carries_no_map() {
+    assert!(sim::fixtures::game().get("map").is_none());
+    assert!(sim::fixtures::test_game().get("map").is_none());
+    let grounded = sim::fixtures::with_map("geometry");
+    let map: contract::map::MapDefinition =
+        serde_json::from_value(grounded["map"].clone()).expect("the test map, under `map`");
+    let geometry = sim::maps::load("geometry").unwrap().definition;
+    assert_eq!(map.size, geometry.size);
+    assert_eq!(grounded["catalog"], sim::fixtures::test_game()["catalog"]);
+}
+
 #[test]
 fn the_browsers_catalog_view_is_current() {
     let path = sim::fixtures::dir().join("catalog.json");

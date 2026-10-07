@@ -27,7 +27,7 @@ import {
 } from "@packages/renderer-core/src/camera3d.ts";
 import { mat4, vec2, vec3, type Mat4, type Vec3 } from "math";
 
-const villageMap = loadMap("village").definition;
+const streetMap = loadMap("street").definition;
 
 // Private receiver-blend oracle for checking production cascade-fit geometry.
 // Runtime blending is implemented independently in shaders/shadow.ts.
@@ -58,8 +58,8 @@ const withLight = (edit: (l: LightPresentation) => void): LightPresentation => {
   return copy;
 };
 
-const [MAP_W, MAP_H] = villageMap.size;
-/** The village's ground as one flat slab (its 20 m ridge is inside the box's
+const [MAP_W, MAP_H] = streetMap.size;
+/** The street test map's ground as one flat slab (its 20 m ridge is inside the box's
  *  standing headroom). */
 const MAP = mapBox(
   new MeshBuilder().box(MAP_W / 2, MAP_H / 2, 0, MAP_W / 2, MAP_H / 2, 0, [0, 0, 0, 1]).build(),
@@ -76,7 +76,7 @@ const camera = (over: Partial<Camera3DParams>): Camera3DParams => ({
   ...over,
 });
 
-test("the village's light is valid, and a broken one is refused by name", () => {
+test("the street test map's light is valid, and a broken one is refused by name", () => {
   expect(validateLight(LIGHT)).toBe(LIGHT);
   expect(() => validateLight(withLight((l) => (l.exposure = Number.NaN)))).toThrow(/exposure/);
   expect(() => validateLight(withLight((l) => (l.sun_elevation = -0.1)))).toThrow(/sun_elevation/);
@@ -138,7 +138,7 @@ function visibleGround(cam: Camera3DParams) {
   return points;
 }
 
-// The village's cameras: ground level, the Defilade default, the village at
+// The street test map's cameras: ground level, the Defilade default, the street at
 // 160 m, WARNO's 420 m, the route overview and the strategic camera.
 const CAMERAS: Record<string, Partial<Camera3DParams>> = {
   ground: { target: [170, 800, 0], distance: 25, pitch: 0.22 },

@@ -9,25 +9,16 @@ import { useEffect, useRef, useState } from "react";
 import type { PreparedBattle } from "@web/battle/prepare/protocol";
 import { LoadingScreen } from "./LoadingScreen";
 
-export interface VillageReplayFile {
-  variant: string;
-  replay: string;
-}
-export interface PreparedReplayFile {
+/** A prepared battle and every command it accepted. */
+export interface ReplayFile {
   battle: PreparedBattle;
   replay: string;
 }
-export type ReplayFile = VillageReplayFile | PreparedReplayFile;
 
-export const isPreparedReplay = (file: ReplayFile): file is PreparedReplayFile => "battle" in file;
+/** The viewer of a saved replay. */
+export const REPLAY_ROUTE = "/battle?replay=saved";
 
-/** The viewer of a prepared battle's saved replay. */
-export const PREPARED_REPLAY_ROUTE = "/battle?replay=saved";
-/** The viewer that plays `file` (the village's when there is none). */
-export const replayRoute = (file: ReplayFile | null) =>
-  file && isPreparedReplay(file) ? PREPARED_REPLAY_ROUTE : "/replay/village";
-
-const LAST_REPLAY_KEY = "village-last-replay";
+const LAST_REPLAY_KEY = "last-replay";
 
 /** One saved battle, replaced in a transaction. Compiled maps exceed the
  *  localStorage quota; IndexedDB keeps them across the viewer's navigation. */
@@ -56,10 +47,8 @@ function storedReplay(text?: string): Promise<string | undefined> {
 
 /** A replay file's text, parsed; throws when it is not one. */
 export function parseReplayFile(text: string): ReplayFile {
-  const file = JSON.parse(text) as Partial<VillageReplayFile & PreparedReplayFile> | null;
-  const named =
-    typeof file?.variant === "string" ||
-    (typeof file?.battle?.scenario === "string" && !!file.battle.report?.request);
+  const file = JSON.parse(text) as Partial<ReplayFile> | null;
+  const named = typeof file?.battle?.scenario === "string" && !!file.battle.report?.request;
   if (!file || typeof file.replay !== "string" || !named) throw new Error("not a saved battle");
   return file as ReplayFile;
 }
@@ -127,16 +116,10 @@ export async function saveReplay(file: ReplayFile, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** Load a saved battle from a file. One this viewer `plays` is handed to
- *  `onLoad`; the other kind is kept as the last saved battle and opened in
- *  its own viewer. */
-export function ReplayImport<File extends ReplayFile>({
-  plays,
-  onLoad,
-}: {
-  plays: (file: ReplayFile) => file is File;
-  onLoad: (file: File) => void;
-}) {
+/** Load a saved battle from a file and keep it as the last saved battle.
+ *  The viewer hands it to `onLoad`; elsewhere (the menu) it is opened in the
+ *  viewer. */
+export function ReplayImport({ onLoad }: { onLoad?: (file: ReplayFile) => void }) {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const visitActive = usePageVisitActive();
@@ -168,11 +151,8 @@ export function ReplayImport<File extends ReplayFile>({
               await rememberReplay(text);
               if (!active()) return;
               setError(null);
-              if (plays(file)) return onLoad(file);
-              const viewer = replayRoute(file);
-              if (viewer === window.location.pathname + window.location.search)
-                throw new Error("not a saved battle this viewer can play");
-              void navigate(viewer);
+              if (onLoad) return onLoad(file);
+              void navigate(REPLAY_ROUTE);
             } catch (err) {
               if (active()) setError(err instanceof Error ? err.message : String(err));
             }

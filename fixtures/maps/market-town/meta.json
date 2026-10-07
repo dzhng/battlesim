@@ -1,5 +1,5 @@
 {
-  "category": "playable",
+  "category": "menu",
   "status": "released",
   "label": "Market Town",
   "character": "mixed",
@@ -8,6 +8,6 @@
   "tags": ["road", "forest", "prop", "building"],
   "source": "generated",
   "seed": "1",
-  "encounters": ["assault", "menu"],
+  "encounters": ["menu"],
   "benchmarks": []
 }

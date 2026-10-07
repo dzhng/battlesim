@@ -1,6 +1,8 @@
 # battlegame
 
-A browser real-time tactics game, built around reconnaissance, physical fire and positioning. Every round is a flown projectile, and every side sees only what its own units can see. Players fight on fresh seeded generated maps; the village remains a developer test arena. The full design lives in [`specs/`](specs/).
+A browser real-time tactics game, built around reconnaissance, physical fire and positioning. Every round is a flown projectile, and every side sees only what its own units can see. Players fight on fresh seeded generated maps with the faction roster. The full design lives in [`specs/`](specs/).
+
+Content has three owners, and none reaches another's place. Game battles are generated and field the roster's units. Test units (`test_*`) and `test` maps are the tests', labs' and benchmarks' own; menu units and `menu` maps are the menu backdrop's own. A saved map's `meta.json` says which it is ([saved maps](fixtures/README.md#saved-maps)). The developer menu's entries are tools, labelled as such, and stay in production builds.
 
 ## How it fits together
 
@@ -67,7 +69,7 @@ bun run setup   # install web dependencies
 bun run dev     # build the WebAssembly, start the lab app
 ```
 
-`/` is the main menu: start a battle on a generated map (its type, its size and optionally its region), or watch a replay; behind its developer link, play the test village, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=&faction=&enemy=`, with `&region=` when one was chosen) is its share identity: the same address prepares the same battle on the same build. An address without the player's faction, or with a parameter the battle does not read, is refused by name. The [benchmark](web/src/battle/benchmark/README.md) is the one frame-cost measure: `/benchmark` retains the village control; `/benchmark?preset=city-contact` selects explicitly synthetic local contact on a complete generated world.
+`/` is the main menu: start a battle on a generated map (its type, its size and optionally its region), or watch a replay; behind its developer link, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=&faction=&enemy=`, with `&region=` when one was chosen) is its share identity: the same address prepares the same battle on the same build. An address without the player's faction, or with a parameter the battle does not read, is refused by name. The [benchmark](web/src/battle/benchmark/README.md) is the one frame-cost measure: `/benchmark` runs explicitly synthetic local contact on a complete generated world (`?preset=city-contact` names it).
 
 Ordinary Play chooses an admitted battlefield from the selected type and size, with bounded fresh candidates. Once admitted, its address names the actual battlefield. Explicit seed addresses and saved replays remain exact.
 

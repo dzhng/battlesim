@@ -9,21 +9,19 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-test("the advertised city-contact address selects the city workload rather than the village", () => {
-  window.history.replaceState(null, "", "/benchmark?preset=city-contact");
-  render(<BenchmarkPage />);
-  expect(screen.getByText(/city-contact v5/).textContent).toContain("city-contact v5");
-  expect(screen.getByText(/local-contact stress/i).textContent).toContain(
-    "complete generated world",
-  );
-  expect(screen.queryByText(/village-contact v1/)).toBeNull();
+test("the advertised city-contact address and the plain benchmark both select the city workload", () => {
+  for (const address of ["/benchmark?preset=city-contact", "/benchmark"]) {
+    window.history.replaceState(null, "", address);
+    const page = render(<BenchmarkPage />);
+    expect(screen.getByText(/city-contact v5/).textContent, address).toContain("city-contact v5");
+    expect(screen.getByText(/local-contact stress/i).textContent).toContain(
+      "complete generated world",
+    );
+    page.unmount();
+  }
 });
 
-test("the normal benchmark retains its village control and unknown presets refuse", () => {
-  window.history.replaceState(null, "", "/benchmark");
-  const page = render(<BenchmarkPage />);
-  expect(screen.getByText(/village-contact v1/).textContent).toContain("seed 20260925");
-  page.unmount();
+test("an unknown preset refuses", () => {
   window.history.replaceState(null, "", "/benchmark?preset=missing");
   render(<BenchmarkPage />);
   expect(screen.getByTestId("error").textContent).toBe("Unknown benchmark preset.");

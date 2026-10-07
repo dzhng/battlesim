@@ -1,4 +1,5 @@
-// The village watched, blue on its comparison script.
+// The street test map's battle watched (`/lab/street?watch`): blue's start
+// is ordered onto the street at once, and the battle plays itself.
 // The whole-battle frames the composed look is judged on (`battle`), and fog
 // running on past the map edge with the playable area's border (`edge`).
 // `WATCH_TOURS=battle` runs only that tour; `BATTLE_TICK` moves the frames.
