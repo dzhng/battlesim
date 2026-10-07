@@ -8,8 +8,10 @@
 // - a kind's appearances are those of no region and those of the map's own
 //   region (an appearance's `regional_family`), never another region's; where
 //   the map's region has looks of its own for the kind, only those;
-// - an appearance is chosen among them by the footprint nearest the box
-//   (a tank's wreck against a truck's);
+// - an appearance is chosen among them by the footprint nearest the box (a
+//   long wall module against a short one); a wreck is the one exception: it
+//   is its own unit's wreck (`wreckOf`, the vehicle appearance's `wreck`),
+//   whatever box it lies on, so you can tell which unit died by looking;
 // - it is scaled per axis from its footprint to the box, except a module
 //   (a wall, a fence, a sandbag line) that is repeated along the
 //   box's long side instead of stretched;
@@ -42,6 +44,9 @@ export interface PropBox {
   yaw: number;
   half: readonly [number, number, number];
   baseZ: number;
+  /** A wreck's unit type: it is drawn as that unit's own wreck. Absent or
+   *  null for any other prop. */
+  wreckOf?: string | null;
 }
 
 /** A prop authored in the static map. */
@@ -99,6 +104,8 @@ export function validateStandIns(style: StandInStyle): StandInStyle {
 
 /** The state a prop appearance draws. */
 const STATE = "default";
+/** The scenery kind that draws a unit's wreck: each unit its own. */
+const WRECK = "wreck";
 
 interface Candidate {
   name: string;
@@ -123,6 +130,9 @@ interface Candidate {
  *  region. */
 export class PropAppearances {
   private readonly byKind = new Map<string, Candidate[]>();
+  /** Each unit type's own wreck, by unit type: what its vehicle appearance
+   *  names (`wreck`), where that is installed. */
+  private readonly wrecks = new Map<string, Candidate>();
   private readonly bindings: WorldLayout["propAppearance"];
   /** The kinds whose body stops no mover class: surfaces movers stand on. */
   private readonly walkedOn: Set<string>;
@@ -131,7 +141,7 @@ export class PropAppearances {
 
   constructor(
     installed: InstalledAppearances,
-    layout: Pick<WorldLayout, "propAppearance" | "blockingPropKinds">,
+    layout: Pick<WorldLayout, "propAppearance" | "blockingPropKinds" | "unitAppearance">,
     family: string | null,
     standIns?: StandInStyle,
   ) {
@@ -149,9 +159,26 @@ export class PropAppearances {
     this.bindings = layout.propAppearance;
     const blocking = new Set(Object.values(layout.blockingPropKinds).flat());
     this.walkedOn = new Set(Object.keys(this.bindings).filter((k) => !blocking.has(k)));
+    const candidate = (name: string): Candidate | null => {
+      const entry = installed.appearances.get(name);
+      if (entry?.bundle.kind !== "static" || !entry.footprint) return null;
+      return {
+        name,
+        footprint: entry.footprint,
+        bundle: entry.bundle,
+        paints: entry.paints?.map((p) => [...color.fromSRGB(p)] as Vec3) ?? null,
+      };
+    };
+    for (const [unit, model] of Object.entries(layout.unitAppearance)) {
+      const wreck = installed.appearances.get(model)?.wreck;
+      const drawn = wreck ? candidate(wreck) : null;
+      if (drawn) this.wrecks.set(unit, drawn);
+    }
     const own = new Map<string, Candidate[]>();
     for (const [name, entry] of installed.appearances) {
-      if (entry.bundle.kind !== "static" || !entry.footprint) continue;
+      if (entry.scenery === WRECK) continue;
+      const drawn = candidate(name);
+      if (!drawn) continue;
       if (entry.regionalFamily !== null && entry.regionalFamily !== family) continue;
       const lists = entry.regionalFamily === null ? this.byKind : own;
       const kinds = Object.keys(this.bindings).filter(
@@ -159,12 +186,7 @@ export class PropAppearances {
       );
       for (const kind of kinds) {
         const list = lists.get(kind) ?? [];
-        list.push({
-          name,
-          footprint: entry.footprint,
-          bundle: entry.bundle,
-          paints: entry.paints?.map((p) => [...color.fromSRGB(p)] as Vec3) ?? null,
-        });
+        list.push(drawn);
         list.sort((a, b) => (a.name < b.name ? -1 : 1));
         lists.set(kind, list);
       }
@@ -172,8 +194,11 @@ export class PropAppearances {
     for (const [kind, list] of own) this.byKind.set(kind, list);
   }
 
-  /** The appearance whose footprint is nearest `box` (least total log scale), or null. */
-  choose(kind: string, half: PropBox["half"]): Candidate | null {
+  /** The appearance drawing `box`: a wreck its unit's own, anything else the
+   *  one whose footprint is nearest the box (least total log scale); or null. */
+  choose(box: Pick<PropBox, "kind" | "half" | "wreckOf">): Candidate | null {
+    const { kind, half } = box;
+    if (this.bindings[kind]?.drawn_by === WRECK) return this.wrecks.get(box.wreckOf ?? "") ?? null;
     let best: Candidate | null = null;
     let bestMisfit = Infinity;
     for (const c of this.byKind.get(kind) ?? []) {
@@ -203,7 +228,7 @@ export class PropAppearances {
   /** The models drawing `box` as its kind, appended to `out`. A kind with
    *  no appearance draws its stand-in, or nothing where there is none. */
   fit(box: PropBox, out: ModelInstance[]): ModelInstance[] {
-    const chosen = this.choose(box.kind, box.half);
+    const chosen = this.choose(box);
     if (!chosen && this.standsIn(box.kind)) {
       const [hx, hy, hz] = box.half;
       out.push({
@@ -247,12 +272,14 @@ export class PropAppearances {
   drawnFor(props: readonly PropBox[]): Set<string> {
     const out = new Set<string>();
     for (const prop of props) {
-      const chosen = this.choose(prop.kind, prop.half);
+      const chosen = this.choose(prop);
       if (chosen) out.add(chosen.name);
       else if (this.standsIn(prop.kind)) out.add(STAND_IN_KIT);
     }
     for (const [kind, list] of this.byKind)
       if (!this.bindings[kind]?.map_only) for (const c of list) out.add(c.name);
+    // Any vehicle can die anywhere: every unit's own wreck.
+    for (const c of this.wrecks.values()) out.add(c.name);
     // A battle can leave a body with no art anywhere (a burnt-out car).
     for (const kind of Object.keys(this.bindings))
       if (!this.bindings[kind].map_only && this.standsIn(kind)) out.add(STAND_IN_KIT);
@@ -298,7 +325,8 @@ export function mapProps(exports: WorldExports, layout: WorldLayout): MapProp[] 
   const at = Object.fromEntries(layout.propFields.map((f, i) => [f, i]));
   const props = exports.props;
   const out: MapProp[] = [];
-  for (let r = 0; r < props.length; r += layout.propStride)
+  for (let r = 0; r < props.length; r += layout.propStride) {
+    const wreckOf = props[r + at.wreckOf];
     out.push({
       id: props[r + at.idLo] + props[r + at.idHi] * 2 ** layout.limbBits,
       kind: layout.propKinds[props[r + at.kind]],
@@ -306,7 +334,9 @@ export function mapProps(exports: WorldExports, layout: WorldLayout): MapProp[] 
       yaw: props[r + at.yaw],
       half: [props[r + at.hx], props[r + at.hy], props[r + at.hz]],
       baseZ: props[r + at.baseZ],
+      wreckOf: wreckOf >= 0 ? layout.unitKinds[wreckOf] : null,
     });
+  }
   return out;
 }
 

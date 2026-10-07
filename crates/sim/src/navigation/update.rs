@@ -455,12 +455,14 @@ mod tests {
                 // A body appears and the side learns of it.
                 0 => {
                     let half = [0.5 + draw(4) as f64, 0.5 + draw(3) as f64, 1.0];
+                    let kind = kinds[draw(kinds.len())];
                     let id = world.add_prop(&PropDefinition {
-                        kind: kinds[draw(kinds.len())].into(),
+                        kind: kind.into(),
                         center: at,
                         yaw: draw(7) as f64 * 0.45,
                         half_extents: half,
                         base_z: None,
+                        wreck_of: kind.ends_with("_wreck").then(|| "test_tank".into()),
                     });
                     belief.placed.insert(id, world.prop(id).cloned().unwrap());
                     touched.push(id);

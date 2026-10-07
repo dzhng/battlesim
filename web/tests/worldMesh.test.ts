@@ -21,6 +21,8 @@ const layout: WorldLayout = {
   surfaceAreaKinds: ["road", "country_road", "dirt_track", "paving"],
   roadAreaKinds: ["road", "country_road", "dirt_track"],
   propKinds: ["building", "wall", "crate", "trunk", "bridge_deck", "heavy_wreck", "ruin"],
+  unitKinds: [],
+  unitAppearance: {},
   blockingPropKinds: {
     infantry: ["building", "wall", "crate", "ruin"],
     vehicle: ["building", "wall", "crate", "heavy_wreck", "ruin"],

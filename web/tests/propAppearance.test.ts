@@ -54,8 +54,11 @@ const entry = (
   mounts: null,
   regionalFamily: null,
   paints: null,
+  wreck: null as string | null,
   bundle: bundle(...states),
 });
+/** A vehicle appearance and the wreck appearance it names. */
+const vehicle = (wreck: string) => ({ ...entry("vehicle", null, [0, 0, 0]), wreck });
 
 const installed: InstalledAppearances = {
   generation: 1,
@@ -63,8 +66,10 @@ const installed: InstalledAppearances = {
   skeletons: new Map(),
   onRequest: new Map(),
   appearances: new Map([
+    ["test_tank", vehicle("test_tank_wreck")],
+    ["test_jeep", vehicle("test_jeep_wreck")],
     ["test_tank_wreck", entry("scenery", "wreck", [3.5, 1.8, 1.2], "default")],
-    ["truck_wreck", entry("scenery", "wreck", [3, 1.4, 1.8], "default")],
+    ["test_jeep_wreck", entry("scenery", "wreck", [2.2, 1.0, 0.95], "default")],
     ["village_ruin", entry("scenery", "ruin", [15, 12, 1], "default")],
     ["field_wall", entry("scenery", "wall", [2, 0.3, 0.8], "default")],
     ["bridge_deck", entry("scenery", "bridge_deck", [18, 5, 0.4], "default")],
@@ -75,6 +80,9 @@ const installed: InstalledAppearances = {
 const props = Object.entries(UNITS.view.props);
 const layout = {
   propAppearance: Object.fromEntries(props.map(([id, t]) => [id, t.appearance])),
+  unitAppearance: Object.fromEntries(
+    UNITS.ids.filter((id) => UNITS.hull(id)).map((id) => [id, UNITS.type(id).appearance!]),
+  ),
   blockingPropKinds: Object.fromEntries(
     (["infantry", "vehicle"] as const).map((mover) => [
       mover,
@@ -132,21 +140,43 @@ test("a map prop the side saw destroyed with nothing in its place is drawn no mo
   expect(drawnAt(drawnModels(walls, [gone], appearances))).toEqual([["field_wall", 100]]);
 });
 
-test("a placed prop takes the appearance nearest its box, scaled to fit it", () => {
-  const wreck = (half: Vec3): KnownProp => ({
-    kind: "heavy_wreck",
-    center: [10, 20],
-    yaw: 1,
-    half,
-    baseZ: 0,
-    replaces: null,
-    authoredProp: null,
-  });
-  const [tank] = drawnModels([], [wreck([3.5, 1.8, 1.2])], appearances);
+/** A wreck the side knows, of unit type `wreckOf`, on a box of `half`. */
+const wreckOf = (wreckOf: string, half: Vec3, kind = "heavy_wreck"): KnownProp => ({
+  kind,
+  center: [10, 20],
+  yaw: 1,
+  half,
+  baseZ: 0,
+  replaces: null,
+  authoredProp: null,
+  wreckOf,
+});
+
+test("a wreck is drawn as its own unit's wreck, whatever box it lies on", () => {
+  const [tank] = drawnModels([], [wreckOf("test_tank", [3.5, 1.8, 1.2])], appearances);
   expect(tank.appearance).toBe("test_tank_wreck");
   expect(tank.scale).toEqual([1, 1, 1]);
-  const [truck] = drawnModels([], [wreck([3, 1.4, 1.8])], appearances);
-  expect(truck.appearance).toBe("truck_wreck");
+  // A jeep's wreck on a tank-sized box is still the jeep's, stretched to it:
+  // the unit says whose wreck it is, never the nearest footprint.
+  const [jeep] = drawnModels([], [wreckOf("test_jeep", [3.5, 1.8, 1.2])], appearances);
+  expect(jeep.appearance).toBe("test_jeep_wreck");
+  expect(jeep.scale).toEqual([3.5 / 2.2, 1.8, 1.2 / 0.95]);
+  // Knocked down to a lighter wreck, it is the same tank's, lower.
+  const [lower] = drawnModels(
+    [],
+    [wreckOf("test_tank", [3.5, 1.8, 0.6], "medium_wreck")],
+    appearances,
+  );
+  expect(lower.appearance).toBe("test_tank_wreck");
+  expect(lower.scale).toEqual([1, 1, 0.5]);
+});
+
+test("a wreck whose unit has no wreck art never borrows another unit's", () => {
+  // The supply truck's wreck is not installed here: nothing, not the tank's.
+  expect(drawnModels([], [wreckOf("test_supply", [3, 1.4, 1.8])], appearances)).toEqual([]);
+});
+
+test("a placed prop takes the appearance nearest its box, scaled to fit it", () => {
   // A deck longer and wider than the authored one stretches to its box.
   const deck: MapProp = {
     id: 9,
@@ -334,8 +364,8 @@ test("the battle installs the map's props and every body a battle can leave or p
   // A deck is only ever a map's: it is installed for a map that has one.
   expect([...appearances.drawnFor([])].sort()).toEqual([
     "field_wall",
+    "test_jeep_wreck",
     "test_tank_wreck",
-    "truck_wreck",
     "village_ruin",
   ]);
   expect(appearances.drawnFor([deck]).has("bridge_deck")).toBe(true);

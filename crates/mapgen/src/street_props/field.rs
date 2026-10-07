@@ -318,6 +318,7 @@ impl<'a> Field<'a> {
                 yaw: c.yaw,
                 half_extents: [c.rect.half[0], c.rect.half[1], body.half_extents_m[2]],
                 base_z: None,
+                wreck_of: None,
             },
         });
     }

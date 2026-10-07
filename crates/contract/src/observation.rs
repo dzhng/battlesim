@@ -158,6 +158,8 @@ pub struct KnownProp {
     pub structure_owner: Option<u32>,
     /// Immutable public-map source; absent for genuinely dynamic bodies.
     pub authored_prop: Option<u32>,
+    /// A wreck's unit type: what it was, so it is drawn as that unit's wreck.
+    pub wreck_of: Option<TypeIndex>,
 }
 
 /// Which ground this side can currently see: row-major cells of `cell_m`,

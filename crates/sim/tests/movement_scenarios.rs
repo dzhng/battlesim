@@ -220,12 +220,12 @@ fn crate_at(center: [f64; 2]) -> Value {
 /// A wreck of `kind` (`heavy_wreck`, `medium_wreck`, `light_wreck`) the size
 /// of its vehicle's hull.
 fn wreck(kind: &str, center: [f64; 2], yaw: f64) -> Value {
-    let half = match kind {
-        "heavy_wreck" => [3.5, 1.8, 1.2],
-        "medium_wreck" => [3.0, 1.4, 1.8],
-        _ => [2.2, 1.0, 0.95],
+    let (half, unit) = match kind {
+        "heavy_wreck" => ([3.5, 1.8, 1.2], "test_tank"),
+        "medium_wreck" => ([3.0, 1.4, 1.8], "test_supply"),
+        _ => ([2.2, 1.0, 0.95], "test_jeep"),
     };
-    json!({ "kind": kind, "center": center, "yaw": yaw, "half_extents": half })
+    json!({ "kind": kind, "center": center, "yaw": yaw, "half_extents": half, "wreck_of": unit })
 }
 
 fn prop(kind: &str, center: [f64; 2], yaw: f64, half: [f64; 3]) -> Value {

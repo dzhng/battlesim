@@ -954,6 +954,7 @@ impl<'a> Country<'a> {
                 yaw: libm::round(yaw * 1e6) / 1e6,
                 half_extents: row.half_extents_m,
                 base_z: None,
+                wreck_of: None,
             },
         });
         self.bodies.push((at, radius));

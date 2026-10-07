@@ -38,6 +38,8 @@ export interface CookOff {
   /** The wreck's known prop id. */
   prop: number;
   kind: string;
+  /** The unit type it is the wreck of. */
+  wreckOf: string;
   center: readonly [number, number];
   yaw: number;
   half: readonly [number, number, number];
@@ -46,7 +48,8 @@ export interface CookOff {
 }
 
 interface Hull {
-  wreck: string;
+  /** Its unit type: the wreck it leaves names it (`wreckOf`). */
+  kind: string;
   /** The publication it was last seen in. */
   tick: number;
   x: number;
@@ -89,7 +92,7 @@ export class CookOffWatch {
               [
                 `${who}:${u.id}`,
                 {
-                  wreck: hull.wreck,
+                  kind: u.kind,
                   tick: o.tick,
                   x: u.position[0],
                   y: u.position[1],
@@ -109,10 +112,11 @@ export class CookOffWatch {
     for (const p of o.knownProps) {
       if (this.known.has(p.id)) continue;
       this.known.add(p.id);
-      if (!first && !p.destroyed && this.watched(p))
+      if (!first && !p.destroyed && p.wreckOf !== null && this.watched(p))
         out.push({
           prop: p.id,
           kind: p.kind,
+          wreckOf: p.wreckOf,
           center: [p.center[0], p.center[1]],
           yaw: p.yaw,
           half: [p.half[0], p.half[1], p.half[2]],
@@ -125,11 +129,12 @@ export class CookOffWatch {
     return out;
   }
 
-  /** Whether a hull the side lost from sight lately stood where wreck `p` lies. */
+  /** Whether a hull the side lost from sight lately, of the unit type wreck
+   *  `p` was, stood where it lies. */
   private watched(p: KnownPropView): boolean {
     return [...this.hulls.values()].some(
       (h) =>
-        h.wreck === p.kind &&
+        h.kind === p.wreckOf &&
         Math.hypot(p.center[0] - h.x, p.center[1] - h.y) <= h.reach + ROLL_REACH_M,
     );
   }
@@ -149,8 +154,9 @@ export interface CookOffTransition {
   hitAt: number;
 }
 
-/** Fit any watched vehicle wreck for its death transition. Only wrecks
- *  with both authored pieces throw a turret; other wrecks jolt whole. */
+/** Fit any watched vehicle wreck for its death transition: its own unit's
+ *  wreck. Only a wreck with both authored pieces throws a turret (a tank's);
+ *  others jolt whole (a wheeled carrier's, which has no turret to throw). */
 export function transitionOf(
   c: CookOff,
   fit: PropAppearances,
@@ -158,7 +164,14 @@ export function transitionOf(
   tickHz: number,
 ): CookOffTransition | null {
   const wreck = fit.fit(
-    { kind: c.kind, center: c.center, yaw: c.yaw, half: c.half, baseZ: c.baseZ },
+    {
+      kind: c.kind,
+      center: c.center,
+      yaw: c.yaw,
+      half: c.half,
+      baseZ: c.baseZ,
+      wreckOf: c.wreckOf,
+    },
     [],
   )[0];
   const bundle = wreck && installed.appearances.get(wreck.appearance)?.bundle;
@@ -254,10 +267,7 @@ export interface LastHull {
  *  Records update in place so a warm frame allocates nothing. */
 export class LastSeenHulls {
   /** `braking`: a unit type's deceleration as its brakes stop it, m/s². */
-  constructor(
-    private readonly units: UnitCatalog,
-    private readonly braking: (kind: string) => number,
-  ) {}
+  constructor(private readonly braking: (kind: string) => number) {}
 
   private readonly hulls = new Map<number, { pose: VehiclePose; at: number }>();
   /** The clock of the last frame noted: a hull it did not draw is gone. */
@@ -296,7 +306,7 @@ export class LastSeenHulls {
       const d = Math.hypot(pose.position[0] - c.center[0], pose.position[1] - c.center[1]);
       if (
         gone &&
-        this.units.hull(pose.kind)?.wreck === c.kind &&
+        pose.kind === c.wreckOf &&
         d <= c.half[0] + ROLL_REACH_M &&
         (!best || d < best.d)
       )

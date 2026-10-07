@@ -628,7 +628,7 @@ fn a_wreck_appearing_on_the_road_ahead_is_driven_round_by_the_side_that_sees_it(
     let mut calm = battle(json!([]));
     let mut hit = battle(json!([{ "tick": 90, "add_prop": { "kind": "heavy_wreck",
         "center": [wreck.center.x, wreck.center.y], "yaw": wreck.yaw,
-        "half_extents": [wreck.half.x, wreck.half.y, 1.2] } }]));
+        "half_extents": [wreck.half.x, wreck.half.y, 1.2], "wreck_of": "test_tank" } }]));
     let allowance = hit.rules().navigation.work_per_tick as u64;
     // Whether the way from `from` along `route` runs through the wreck.
     let through = |from: sim::math::V2, route: &[sim::math::V2]| {

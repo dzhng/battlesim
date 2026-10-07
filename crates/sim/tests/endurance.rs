@@ -128,7 +128,7 @@ fn city_stress_places_living_units_on_usable_ground() {
     map.size = [10_000.0, 10_000.0];
     let wreck = serde_json::from_value(serde_json::json!({
         "kind": "heavy_wreck", "center": [4600, 4150], "yaw": 0,
-        "half_extents": [12, 12, 2]
+        "half_extents": [12, 12, 2], "wreck_of": "test_tank"
     }))
     .unwrap();
     map.props.push(wreck);

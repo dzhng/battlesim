@@ -335,6 +335,10 @@ pub struct PropDefinition {
     /// Base height; omitted means the ground height at `center`.
     #[serde(default, deserialize_with = "crate::numbers::optional_scalar")]
     pub base_z: Option<f64>,
+    /// The unit type whose wreck this is (a catalog `units` id): exactly a
+    /// prop drawn by `wreck` names one, whether a death or a map left it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wreck_of: Option<String>,
 }
 
 impl PropDefinition {
@@ -585,6 +589,7 @@ impl MapDefinition {
                         yaw: part.yaw,
                         half_extents: part.half_extents,
                         base_z: Some(part.base_z),
+                        wreck_of: None,
                     },
                 ));
             }

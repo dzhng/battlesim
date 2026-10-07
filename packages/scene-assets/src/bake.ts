@@ -210,6 +210,7 @@ export async function bakeCatalog(
         ...(entry.mounts ? { mounts: entry.mounts } : {}),
         ...(entry.regional_family ? { regional_family: entry.regional_family } : {}),
         ...(entry.paints ? { paints: entry.paints } : {}),
+        ...(entry.wreck ? { wreck: entry.wreck } : {}),
       };
     reports.push({
       name,

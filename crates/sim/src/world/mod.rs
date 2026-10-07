@@ -110,6 +110,8 @@ pub struct WorldGeometry {
     revision: u64,
     /// The prop types: each new prop takes its type's body row.
     types: PropCatalog,
+    /// The unit types a wreck may name ([`Prop::wreck_of`]): those with a hull.
+    wreck_units: Arc<std::collections::BTreeMap<String, contract::catalog::TypeIndex>>,
     /// The last tick each shoved prop moved: one not shoved last tick or this
     /// one has come to rest.
     moved: std::collections::BTreeMap<PropId, u64>,
@@ -150,6 +152,7 @@ impl WorldGeometry {
             authored_sources: self.authored_sources.clone(),
             revision: 0,
             types: self.types.clone(),
+            wreck_units: Arc::clone(&self.wreck_units),
             moved: Default::default(),
             touched: Vec::new(),
             sight_gaps: Arc::clone(&self.sight_gaps),
@@ -247,6 +250,14 @@ impl WorldGeometry {
             authored_sources: Default::default(),
             revision: 0,
             types: rules.catalog.props().clone(),
+            wreck_units: Arc::new(
+                rules
+                    .catalog
+                    .indices()
+                    .filter(|&t| rules.catalog.get(t).hull().is_some())
+                    .map(|t| (rules.catalog.id(t).to_string(), t))
+                    .collect(),
+            ),
             moved: Default::default(),
             touched: Vec::new(),
             sight_gaps: Default::default(),
@@ -266,6 +277,7 @@ impl WorldGeometry {
                     bridge.thickness_m / 2.0,
                 ],
                 base_z: Some(bridge.deck_z - bridge.thickness_m),
+                wreck_of: None,
             });
         }
         for (index, forest) in map.forests.iter().enumerate() {
@@ -282,6 +294,7 @@ impl WorldGeometry {
                         rule.trunk_height_m / 2.0,
                     ],
                     base_z: None,
+                    wreck_of: None,
                 });
                 if let Some(prop) = world.props.get_mut(id) {
                     prop.forest_tree = true;
@@ -806,6 +819,7 @@ impl WorldGeometry {
         let center = v2(def.center[0], def.center[1]);
         let base_z = def.base_z.unwrap_or_else(|| self.standing_z(center));
         let kind = self.types.kind(&def.kind);
+        let wreck_of = self.wreck_of(def);
         Prop {
             id,
             kind,
@@ -820,6 +834,28 @@ impl WorldGeometry {
             forest_tree: false,
             known_to_all: false,
             body: self.types.get(kind).body,
+            wreck_of,
+        }
+    }
+
+    /// The unit type `def`'s wreck was: a prop drawn by `wreck` names a unit
+    /// type with a hull, whether a death or a map placed it, and no other
+    /// prop names one. There is no default wreck to fall back to.
+    fn wreck_of(&self, def: &PropDefinition) -> Option<contract::catalog::TypeIndex> {
+        let wreck = self.types.by_id(&def.kind).appearance.drawn_by == "wreck";
+        match &def.wreck_of {
+            Some(unit) if wreck => Some(*self.wreck_units.get(unit).unwrap_or_else(|| {
+                panic!("a wreck names the unit it was: {unit:?} is no unit type with a hull")
+            })),
+            None if wreck => panic!(
+                "a wreck names the unit it was: a {:?} at {:?} names none",
+                def.kind, def.center
+            ),
+            Some(unit) => panic!(
+                "only a wreck names a unit: a {:?} names {unit:?}",
+                def.kind
+            ),
+            None => None,
         }
     }
 

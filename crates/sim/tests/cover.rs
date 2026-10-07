@@ -67,8 +67,8 @@ fn a_body_covers_a_soldier_only_from_its_far_side_and_within_reach() {
 fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
     let r = rules();
     let w = world(json!([
-        { "kind": "heavy_wreck", "center": [60, 60], "yaw": 0, "half_extents": common::hull("test_tank").half_extents_m },
-        { "kind": "medium_wreck", "center": [140, 60], "yaw": 0, "half_extents": common::hull("test_supply").half_extents_m },
+        { "kind": "heavy_wreck", "center": [60, 60], "yaw": 0, "half_extents": common::hull("test_tank").half_extents_m, "wreck_of": "test_tank" },
+        { "kind": "medium_wreck", "center": [140, 60], "yaw": 0, "half_extents": common::hull("test_supply").half_extents_m, "wreck_of": "test_supply" },
     ]));
     let ground = GroundLayer::new(w.width(), w.depth(), &r.ground);
     let east = v2(190.0, 60.0);

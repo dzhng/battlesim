@@ -534,6 +534,10 @@ export interface AppearanceEntry {
    *  surfaces (materials marked `tint`), chosen by which body it is. Absent:
    *  every body as authored. */
   paints?: Vec3[];
+  /** A vehicle's own wreck: a scenery appearance of kind `wreck` built from
+   *  its own hull, footprint its unit's hull, with `hull` and `turret` pieces
+   *  where it has a turret to throw. Every vehicle names one (`fit.wreck`). */
+  wreck?: string;
   /** A generated grass kind's spec: `asset grass` writes its one state's
    *  GLB from it (`grass.ts`). The bake reads the GLB, never the spec. */
   grass?: GrassSpec;
@@ -640,6 +644,7 @@ export interface RuntimeCatalog {
       mounts?: MountDraws;
       regional_family?: string;
       paints?: Vec3[];
+      wreck?: string;
     }
   >;
   /** The template art library (`templateLibrary.ts`), when the catalog has

@@ -2,7 +2,7 @@
 //! probes. Layout (strides, offsets, enum tags) is described by
 //! [`layout_json`] so consumers never hardcode it.
 use super::{Collider, Hit, Surface, SurfaceKind, WorldGeometry};
-use contract::catalog::{PropBody, PropCatalog};
+use contract::catalog::{Catalog, PropBody};
 use contract::map::MoverClass;
 
 pub const SURFACE_KINDS: [SurfaceKind; 5] = [
@@ -15,8 +15,9 @@ pub const SURFACE_KINDS: [SurfaceKind; 5] = [
 /// Per-vertex surface flags alongside the kind tag.
 pub const FLAG_FOREST: u8 = 1;
 pub const FLAG_BLOCKED: u8 = 2;
-/// idLo, idHi, kind, center x, center y, yaw, half x, half y, half z, base z.
-pub const PROP_STRIDE: usize = 10;
+/// idLo, idHi, kind, center x, center y, yaw, half x, half y, half z, base z,
+/// and a wreck's unit type (its index in `unitKinds`, -1 for any other prop).
+pub const PROP_STRIDE: usize = 11;
 /// min x, min y, width, height, z.
 pub const AREA_STRIDE: usize = 5;
 /// A gap too narrow to see through: center x, y, yaw, half x, half y, base,
@@ -52,8 +53,10 @@ pub fn surface_area_tag(kind: contract::map::SurfaceKind) -> f32 {
 
 /// The layout, with the prop types' `blocks`, `occludes` and weight
 /// columns spelled out per type, and what draws each, for presentation.
-/// A prop's kind tag is its type's index in `propKinds`.
-pub fn layout_json(types: &PropCatalog) -> String {
+/// A prop's kind tag is its type's index in `propKinds`; a wreck's unit
+/// type its index in `unitKinds`, whose hull's model `unitAppearance` names.
+pub fn layout_json(catalog: &Catalog) -> String {
+    let types = catalog.props();
     let lower = |name: String| name.to_lowercase();
     let kinds = |keep: &dyn Fn(&PropBody) -> bool| {
         types
@@ -95,7 +98,7 @@ pub fn layout_json(types: &PropCatalog) -> String {
         "sightGapFields": ["x", "y", "yaw", "hx", "hy", "base", "top", "aLo", "aHi", "bLo", "bHi"],
         "limbBits":16,
         "areaStride": AREA_STRIDE,
-        "propFields": ["idLo", "idHi", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
+        "propFields": ["idLo", "idHi", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ", "wreckOf"],
         "areaFields": ["x", "y", "w", "h", "z"],
         "surfaceStrokeStride": SURFACE_STROKE_STRIDE,
         "surfaceStrokeFields": ["ax", "ay", "bx", "by", "halfWidth", "kind", "cuts"],
@@ -127,6 +130,18 @@ pub fn layout_json(types: &PropCatalog) -> String {
     // long as the `json!` macro expands.)
     layout["surfaceAreaKinds"] = area_kinds(&|_| true).into();
     layout["roadAreaKinds"] = area_kinds(&|k| k.is_road()).into();
+    // A wreck's unit type is its index here; a hull's model, by unit type,
+    // is what a wreck of that type is drawn as.
+    layout["unitKinds"] = serde_json::json!(catalog.ids());
+    layout["unitAppearance"] = catalog
+        .indices()
+        .filter(|&t| catalog.get(t).hull().is_some())
+        .filter_map(|t| {
+            let appearance = catalog.get(t).appearance.as_ref()?;
+            Some((catalog.id(t).to_string(), serde_json::json!(appearance)))
+        })
+        .collect::<serde_json::Map<_, _>>()
+        .into();
     layout.to_string()
 }
 
@@ -144,6 +159,7 @@ pub fn prop_record(p: &super::Prop) -> [f32; PROP_STRIDE] {
         p.half.y as f32,
         p.half.z as f32,
         p.base_z as f32,
+        p.wreck_of.map_or(-1.0, |t| t.0 as f32),
     ]
 }
 

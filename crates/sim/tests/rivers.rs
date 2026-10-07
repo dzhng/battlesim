@@ -300,6 +300,7 @@ fn a_body_shoved_along_a_deck_stays_on_it_and_drops_to_the_bed_off_its_side() {
         yaw: 0.0,
         half_extents: [0.8, 0.8, 0.6],
         base_z: None,
+        wreck_of: None,
     });
     let base = |w: &WorldGeometry| w.prop(crate_on_the_road).unwrap().base_z;
     assert_eq!(base(&w), 0.0);

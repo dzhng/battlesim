@@ -106,6 +106,7 @@ impl<'a> Queries<'a> {
             yaw: b.yaw,
             half_extents: [b.half_extents[0], b.half_extents[1], b.thickness_m / 2.],
             base_z: Some(b.deck_z - b.thickness_m),
+            wreck_of: None,
         }));
         for area in map.surfaces.iter().filter(|s| s.kind.is_road()) {
             match &area.shape {

@@ -84,7 +84,7 @@ const placedOf = (...templates: string[]): PlacedBuildings => ({
   owners: Uint32Array.from(templates.keys()),
 });
 
-const LAYOUT = { propAppearance: {}, blockingPropKinds: {} };
+const LAYOUT = { propAppearance: {}, blockingPropKinds: {}, unitAppearance: {} };
 
 test("the catalog loads with its template library and no kit, each kit named as not fetched", async () => {
   const { loader, fetched, libraryFile } = await served();

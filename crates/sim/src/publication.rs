@@ -245,7 +245,7 @@ const CORPSE_FIELDS: [&str; 9] = [
     "yaw",
 ];
 const FALLEN_BODY_FIELDS: [&str; 7] = ["propLo", "propHi", "x", "y", "towardX", "towardY", "tick"];
-const KNOWN_PROP_FIELDS: [&str; 19] = [
+const KNOWN_PROP_FIELDS: [&str; 20] = [
     "kind",
     "x",
     "y",
@@ -265,6 +265,7 @@ const KNOWN_PROP_FIELDS: [&str; 19] = [
     "structureOwnerHi",
     "authoredPropLo",
     "authoredPropHi",
+    "wreckOf",
 ];
 const OWN_FIELDS: [&str; 47] = [
     "id",
@@ -1178,6 +1179,7 @@ fn pack_record(
             owner_hi,
             authored_lo,
             authored_hi,
+            p.wreck_of.map_or(-1.0, |t| t.0 as f32),
         ]);
     }
     if let Some(ends) = ends.as_mut() {
