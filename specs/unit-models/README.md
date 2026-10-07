@@ -107,7 +107,7 @@ TODO:
 - [x] [05 Test units](slices/05-test-units-explicit.md): `test_*` units, out of the game catalog, test art labelled.
 - [ ] [06 Village retired, maps labelled](slices/06-retire-village-label-maps.md): map-free rules, village deleted, live art renamed, every map `test` or `menu`, market-town-test.
 - [x] [07 Request contract](slices/07-request-contract.md): factions required, unknown parameters refused, recipe fields gone.
-- [ ] [08 Menu reel](slices/08-menu-reel.md): `menu_*` units in roster looks; exact-shot test against the recorded reel.
+- [x] [08 Menu reel](slices/08-menu-reel.md): `menu_*` units in roster looks; exact-shot test against the recorded reel.
 - [x] [09 Pipeline](slices/09-pipeline.md): exporters read the fixture catalog; shared detail parts; crew module fixed; references schema and sheet; baselines.
 - [x] [10 Shared textures and download](slices/10-shared-textures-and-download.md): textures as shared files, gzip bundles, catalog-load limit, real texture-layer limit.
 - [ ] [11 Wrecks](slices/11-wrecks.md): `wreck_of` on the published prop; every vehicle names its own wreck; interim wrecks.

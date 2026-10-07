@@ -65,9 +65,8 @@ coordinator builds it; it is the go/no-go for the fan-out.
   silhouette and detail placement (materials were judged in slice 13).
 - screenshot-critique, unprimed, last.
 - In-battle look: the lab scene at each zoom where a tier changes.
-- The menu exact-shot test (slice 08) still passes: the menu's HMMWV-looking
-  unit takes the HMMWV hull, which step 3 changes; retime the menu, never the
-  shots, if it fails.
+- The menu exact-shot test (slice 08) still passes (menu units keep test
+  hulls, so the HMMWV's new frame doesn't reach it; the drawn art does).
 - **Human checkpoint:** show the sheets and battle shots (preview-shots). This
   sets the bar for ~150 models, so wait about five minutes; if no answer,
   decide on the evidence, record it in choices.md, close the shots, and open

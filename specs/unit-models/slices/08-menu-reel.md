@@ -30,15 +30,13 @@ round or missile flies, who is hit, who dies, when).
   | red | `at` | `eastern_atgm_team_kornet` (guided, like the original) |
   | red | `tank` | `eastern_t_72_t_72b3_2016` |
 
-- **Hulls take the roster size.** Roster art must fit its type's hull
-  (±0.1 m), and the Abrams (`[3.965, 1.83, 1.22]` half extents against the
-  test tank's `[3.5, 1.8, 1.2]`) and HMMWV (`[3.1, 1.25, 1.3]`, the JLTV's frame until slice 14 gives it the
-  real one, against the jeep's `[2.2, 1.0, 0.95]`) don't fit the
-  test hulls. So a menu unit takes its roster hull and keeps the test unit's
-  other behaviour; positions, scripts, health and fire windows absorb the
-  difference until every shot matches. (Rejected: scaling the roster art to
-  the test hull; it would distort the look.) `paris-corner` tuned the tank to
-  pass 1.85 m from the infantry (`1296510d`); that clearance is part of the shot.
+- **Hulls stay the test units'** (decided at implementation, 2026-10-07):
+  with roster hulls the Market Town battle diverged from tick 219 (one shared
+  scatter stream retimes everything after one changed shot), so no tuning of
+  health, fire windows or positions could keep the shots. Menu units change
+  only their look; the roster art overhangs its physical body (Abrams 0.47 m
+  each end, HMMWV more), invisible at menu distance and accepted. Rejected:
+  roster hulls (would need the Market Town scene refilmed).
 
 ## Work
 
