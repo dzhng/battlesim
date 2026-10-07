@@ -1,0 +1,163 @@
+{
+  "entries": [
+    {
+      "file": "eastern_bmp_ifv_family_bmp_2m_berezhok-three_quarter_front.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Engineering_Technologies_2010_Part4_0015_copy.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "37b87812bfe6066417da37398f14170e969d83ba57eadb146d97935a0b7d2b8b",
+      "note": "BMP-2M with Berezhok module, front left, Engineering Technologies 2010"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_2m_berezhok-three_quarter_front-2.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Engineering_Technologies_2010_Part4_0017_copy.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "e5a27340eb9ff57ed8db88dbfee5c891188a8dfbe2acbcd519672a63441f4a27",
+      "note": "BMP-2M Berezhok, front left"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_2m_berezhok-side.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Engineering_Technologies_2010_Part4_0018_copy.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "d7aadde7866a207a07b18fa7fcefcc5593a8591f7a2f480efc3c43a61d536a91",
+      "note": "BMP-2M Berezhok, right side from the front quarter"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_2m_berezhok-front.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Engineering_Technologies_2010_Part4_0016_copy.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "205d1d7c53be0f13567c03ba0bcb34f7b0f5150d6cfdf0ff39ad1aec7f4d7d78",
+      "note": "BMP-2M Berezhok head-on"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_2m_berezhok-top.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "view": "top",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Engineering_Technologies_2010_Part4_0019_copy.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "796a48b85a74978cd7bdb0adf9d50cf6ce891e98b2e5781b52d774a0147959ab",
+      "note": "BMP-2M Berezhok turret and hull roof from above the front"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_2m_berezhok-detail.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Engineering_Technologies_2010_Part4_0020_copy.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "661b9c295b65a34e74f83e46d4910443272dc45a0a92e7e924ae860f624525d9",
+      "note": "Berezhok turret: Kornet launchers, sights, AG-30 grenade launcher"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_2m_berezhok-detail-2.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_2m_berezhok",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Army-2020-174.JPG",
+      "author": "Nickel nitride",
+      "licence": "CC0-1.0",
+      "sha256": "765724912e4127f237afed3b0bfb6fcb5d966a32303af7647c28494ef8b461a6",
+      "note": "BMP-2M Berezhok with slat armour, turret and engine deck, Army-2020"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_3-three_quarter_front.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_3",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Alabino22042016-17.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "56189b2fc2bc9c744243e437d6cc84102ff5a77166e6fc7a2475b20f41ec4f8e",
+      "note": "BMP-3, parade rehearsal Alabino 2016, front left"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_3-three_quarter_front-2.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_3",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:BMP-3_(3).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "4421733e405d38ef7aab8de784306970cb23402c39495ca6a51ca69471c028b7",
+      "note": "BMP-3, front right"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_3-side.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_3",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Alabino110416-26.jpg",
+      "author": "http://vitalykuzmin.net/?q=node/651",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "671cc767def384cae0f6fdc3733c08e4af6e759c0bf717e421b7e405299f8773",
+      "note": "BMP-3 left side, Alabino 2016"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_3-side-2.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_3",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Army2016demo-008.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "793886682d551e2f5e4be478d013e8aaeea74530b2c3f164143aca53ec8b2e76",
+      "note": "BMP-3 left side in motion, Army-2016"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_3-front.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_3",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:BMP-3_(4).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "b7f3c80f2a88dba1177ddc29f8859b37ee0a4f6ea9eb115df3bdc0c3bd694281",
+      "note": "BMP-3 front, gun elevated"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_3-detail.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_3",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Army-2020-180.JPG",
+      "author": "Nickel nitride",
+      "licence": "CC0-1.0",
+      "sha256": "2a3ddb26066cb12014b5111fea067f9f197a7a2d9a587f9a5e9017a51293dda1",
+      "note": "BMP-3 turret: 100 mm and 30 mm guns, sights, smoke dischargers, Army-2020"
+    },
+    {
+      "file": "eastern_bmp_ifv_family_bmp_3-detail-2.jpg",
+      "variant": "eastern_bmp_ifv_family_bmp_3",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Army-2020-179.JPG",
+      "author": "Nickel nitride",
+      "licence": "CC0-1.0",
+      "sha256": "933147ed407969b294bea1f790412fdadc36344bd13981dfa08d3413a1e1cce3",
+      "note": "BMP-3 with slat armour, Army-2020"
+    }
+  ],
+  "gaps": [
+    "BMP-2M Berezhok: no rear, three_quarter_rear or side-on photo; the side is a three-quarter view.",
+    "BMP-3: no rear or three_quarter_rear photo; no top view.",
+    "Neither variant has a close running-gear detail."
+  ]
+}
