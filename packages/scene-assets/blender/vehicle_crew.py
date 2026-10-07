@@ -25,13 +25,13 @@ import bpy
 from mathutils import Matrix, Vector
 
 REPO = Path(__file__).resolve().parents[3]
-# Each faction's crew soldier, an appearance in assets/catalog.json. The
-# roster's rifle squads share one look today; give a faction its own here
-# when its infantry gets one.
+# Each faction's crew soldier, an appearance in assets/catalog.json: its army's
+# rifleman (the rifle squad's faction look). Europe has none of its own yet
+# (slice 17) and wears the squad's default, US Army OCP.
 CREW_SOLDIER = {
     "us": "rifle_squad_active_a",
     "europe": "rifle_squad_active_a",
-    "eastern": "rifle_squad_active_a",
+    "eastern": "rifle_squad_eastern_active_a",
 }
 CREW_TIERS = 3
 WEAPON_JOINT = "hand_r"

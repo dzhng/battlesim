@@ -7,11 +7,17 @@
 // (head, kit, colours), the member his id picks, the same one alive and
 // fallen, so no squad reads as copies of one man. A published weapon operator
 // may wear its mount's equipment instead. Each appearance supplies its own clips.
+// A soldier appearance may have a look per faction (catalog `factions`): a
+// squad every faction fields wears each army's uniform, by the faction the
+// side fights for, not by the side.
 
 import type { Vec3 } from "math";
 import type { InstalledAppearances } from "./loader.ts";
 import type { Side } from "./schema.ts";
-import { mountRoles, type MountRole, type UnitCatalog } from "./units.ts";
+import { mountRoles, type Faction, type MountRole, type UnitCatalog } from "./units.ts";
+
+/** The faction each side fights for; absent for a battle of no factions (a lab). */
+export type SideFactions = Record<Side, Faction>;
 
 export interface ResolvedAppearance {
   /** The installed appearance's name. */
@@ -25,10 +31,12 @@ export class AppearanceCatalog {
   private readonly installed: InstalledAppearances;
   private readonly units: UnitCatalog;
   private readonly roles = new Map<string, readonly MountRole[]>();
+  private readonly factions: SideFactions | undefined;
 
-  constructor(installed: InstalledAppearances, units: UnitCatalog) {
+  constructor(installed: InstalledAppearances, units: UnitCatalog, factions?: SideFactions) {
     this.installed = installed;
     this.units = units;
+    this.factions = factions;
     this.sides = installed.sides;
     const skeletonOf = (names: readonly string[]) =>
       new Set(
@@ -74,8 +82,8 @@ export class AppearanceCatalog {
   /** The appearance a unit of type `kind` draws on `side`: a hull's model,
    *  or for soldier `id` in slot `slot` the member of his soldier kind's set
    *  his id picks (`id` modulo the installed members: consecutive soldiers
-   *  never share one). Null when nothing is installed for it: nothing is
-   *  drawn. */
+   *  never share one), in his side's faction's look of it where installed.
+   *  Null when nothing is installed for it: nothing is drawn. */
   resolve(
     kind: string,
     side: Side,
@@ -104,7 +112,9 @@ export class AppearanceCatalog {
           : [];
     const names = set.filter((n) => this.installed.appearances.has(n));
     if (!names.length) return null;
-    const pick = ((id % names.length) + names.length) % names.length;
-    return { appearance: names[pick], tint: this.sides[side] };
+    const picked = names[((id % names.length) + names.length) % names.length];
+    const look = this.factions && this.installed.appearances.get(picked)?.factions?.[this.factions[side]];
+    const appearance = look && this.installed.appearances.has(look) ? look : picked;
+    return { appearance, tint: this.sides[side] };
   }
 }

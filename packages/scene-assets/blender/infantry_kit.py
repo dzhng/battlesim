@@ -779,8 +779,15 @@ class Kit:
         m = self.m
         bvh = bvh_of(self.vest)
         if self.look["collar"]:
-            ring = self.ring_on(self.cloth_bvh, Vector((0.0, 0.02, 0.0)), 1.49, 0.004, steps=32)
-            self.band("armour_collar", ring, 0.075, 0.03, m["gear"],
+            # traced from just outside the neck, never from the T-posed arms' reach
+            centre, z, ring = Vector((0.0, 0.02, 1.53)), 1.53, []
+            for k in range(32):
+                b = 2 * math.pi * k / 32
+                out = Vector((math.sin(b), -math.cos(b), 0))
+                hit = self.cloth_bvh.ray_cast(centre + out * 0.13, -out, 0.13)
+                r = min((hit[0] - centre).length, 0.1) if hit[0] is not None else 0.075
+                ring.append((centre + out * (r + 0.004), out))
+            self.band("armour_collar", ring, 0.06, 0.025, m["gear"],
                       lambda p, n: grime(p, scale3(self.vest_c, 0.85 + 0.25 * fbm(p, 25, 37)), knees=False), bone="spine_03")
         if self.look["groin"]:
             hit = bvh.ray_cast(Vector((0, -0.6, 1.06)), Vector((0, 1, 0)))

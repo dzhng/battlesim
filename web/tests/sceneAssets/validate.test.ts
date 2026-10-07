@@ -22,6 +22,7 @@ import {
   regionalFindings,
   typeAppearanceFindings,
   wreckFindings,
+  factionLookFindings,
   validateAppearance,
   validateSkeleton,
 } from "@packages/scene-assets/src/validate.ts";
@@ -349,6 +350,10 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     const { tank, ...rest } = testCatalog().appearances;
     return wreckFindings({ ...rest, tank: { ...tank, wreck: undefined } }, AUTHORITY.units);
   },
+  "structure.faction_look": async () => {
+    const { rifleman, ...rest } = testCatalog().appearances;
+    return factionLookFindings({ ...rest, rifleman: { ...rifleman, factions: { eastern: "nothing" } } });
+  },
   "fit.canopy": async () => (await scenery("tree", { summer: treeGlb(12.5) })).findings,
   "fit.tree_size": async () =>
     (await scenery("tree", { summer: treeGlb(11, 0, { bole: 0.2 }) })).findings,
@@ -650,5 +655,42 @@ test("every vehicle names its own wreck, a wreck of its unit's hull", () => {
   ]);
   expect(codes({ tank: { ...appearances.tank, wreck: "truck_wreck" } })).toEqual([
     expect.stringContaining("unit type tank's hull [3.5, 1.8, 1.2]"),
+  ]);
+});
+
+test("a soldier's faction look is another soldier on its skeleton, with no look of its own", () => {
+  const appearances = testCatalog().appearances;
+  const { rifleman } = appearances;
+  const messages = (looks: Record<string, string>, over: Record<string, AppearanceEntry> = {}) =>
+    factionLookFindings({
+      ...appearances,
+      rifleman: { ...rifleman, factions: looks },
+      rifleman_eastern: { ...rifleman },
+      ...over,
+    }).map((f) => f.message);
+  expect(messages({ eastern: "rifleman_eastern" })).toEqual([]);
+  // One the catalog lacks, one that is no soldier, another rig, a look of a
+  // look, and a faction no battle fields: each refused, by name.
+  expect(messages({ eastern: "nothing" })).toEqual([
+    expect.stringContaining('eastern look "nothing", which the catalog lacks'),
+  ]);
+  expect(messages({ eastern: "tank" })).toEqual([
+    expect.stringContaining('"tank" is a vehicle, not a soldier'),
+  ]);
+  expect(
+    messages({ eastern: "rifleman_eastern" }, {
+      rifleman_eastern: { ...rifleman, skeleton: "other-rig" },
+    }),
+  ).toEqual([expect.stringContaining("skeleton other-rig, not test-rig")]);
+  expect(
+    messages({ eastern: "rifleman_eastern" }, {
+      rifleman_eastern: { ...rifleman, factions: { us: "rifleman" } },
+    }),
+  ).toEqual([
+    expect.stringContaining('"rifleman_eastern" has faction looks of its own'),
+    expect.stringContaining('us look "rifleman" has faction looks of its own'),
+  ]);
+  expect(messages({ martian: "rifleman_eastern" })).toEqual([
+    expect.stringContaining("martian is no faction"),
   ]);
 });

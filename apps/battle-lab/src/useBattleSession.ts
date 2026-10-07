@@ -567,10 +567,16 @@ export function useBattleSession({
   );
 
   // Soldiers: the observation, fed per soldier to the pose driver, drawn as
-  // the appearance for their kind and side. A new side or catalog starts over.
+  // the appearance for their kind and side, in the look of the faction the
+  // side fights for. A new side or catalog starts over.
+  const factions = skirmish?.factions;
   const posing = useMemo(() => {
     if (!appearances) return null;
-    const drawing = new AppearanceCatalog(appearances, units);
+    const drawing = new AppearanceCatalog(
+      appearances,
+      units,
+      factions && { blue: factions[0], red: factions[1] },
+    );
     const resolve: ResolveAppearance = (kind, s, id, slot, operatorMount, activeMount) =>
       drawing.resolve(kind, s, id, slot, operatorMount, activeMount);
     const muzzles = new DrawnMuzzles(appearances, resolve, units);
@@ -583,7 +589,7 @@ export function useBattleSession({
       models: [] as ModelInstance[],
       corpses: { version: -1, list: [] as CorpseInstance[], soldiers: [] as number[] },
     };
-  }, [appearances, rules, side, units]);
+  }, [appearances, rules, side, units, factions]);
   const ghostModel = useMemo<ModelInstance | null>(() => {
     if (!purchasing || !posing || !appearances) return null;
     const resolved = posing.resolve(purchasing, side, 0, 0);

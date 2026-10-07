@@ -41,6 +41,8 @@ export const FINDING_CODES = [
   "structure.scenery_kind",
   "structure.regional_family",
   "structure.paints",
+  /** A soldier's faction look is no soldier on its skeleton, or a faction no battle fields. */
+  "structure.faction_look",
   "structure.texture",
   "structure.grass",
   // textures
@@ -147,7 +149,7 @@ export const fetchedOnRequest = (entry: { unit: AppearanceUnit; regional_family?
 /** The appearances a catalog load takes: every one not fetched on request
  *  that is scenery, and of soldiers' and vehicles' art only what `wearing`
  *  names, the appearances a page's units wear (`UnitCatalog.appearances`),
- *  with each worn vehicle's own wreck. Without `wearing`, every unit's art: a
+ *  with each worn vehicle's own wreck and each worn soldier's faction looks. Without `wearing`, every unit's art: a
  *  tool judging all baked art. So a game page never fetches art only test
  *  or menu units wear. */
 export const catalogLoadNames = (
@@ -156,13 +158,16 @@ export const catalogLoadNames = (
 ): string[] => {
   const entries = Object.entries(catalog.appearances ?? {});
   const worn = (name: string) => !wearing || wearing.has(name);
+  const looks = new Set(
+    entries.flatMap(([name, e]) => (e.factions && worn(name) ? Object.values(e.factions) : [])),
+  );
   const wrecks = new Set(entries.flatMap(([name, e]) => (e.wreck && worn(name) ? [e.wreck] : [])));
   const wrecked = new Set(entries.flatMap(([, e]) => (e.wreck ? [e.wreck] : [])));
   return entries
     .filter(([name, entry]) => {
       if (fetchedOnRequest(entry)) return false;
       if (wrecked.has(name)) return wrecks.has(name);
-      return entry.unit === "scenery" || worn(name);
+      return entry.unit === "scenery" || worn(name) || looks.has(name);
     })
     .map(([name]) => name);
 };
@@ -510,6 +515,11 @@ export interface SkeletonEntry {
   clips: Record<string, ClipDeclaration>;
 }
 
+/** The factions a battle fields (`units.ts` `Faction`, the contract's). */
+export const FACTIONS = ["us", "europe", "eastern"] as const;
+/** A soldier appearance's look per faction (`AppearanceEntry.factions`). */
+export type FactionLooks = Partial<Record<(typeof FACTIONS)[number], string>>;
+
 export interface AppearanceEntry {
   unit: AppearanceUnit;
   /** For `unit: "scenery"`: the scenery kind, a key of `SCENERY_KINDS`. */
@@ -547,6 +557,12 @@ export interface AppearanceEntry {
    *  its own hull, footprint its unit's hull, with `hull` and `turret` pieces
    *  where it has a turret to throw. Every vehicle names one (`fit.wreck`). */
   wreck?: string;
+  /** A soldier's look on a faction's side, by faction: the appearance its
+   *  wearer draws instead when he fights for that faction (a rifle squad
+   *  every faction fields, in each army's uniform). It loads with this one,
+   *  is a soldier on the same skeleton (`structure.faction_look`), and names
+   *  no look of its own. Absent, or a faction it doesn't name: this one. */
+  factions?: FactionLooks;
   /** A generated grass kind's spec: `asset grass` writes its one state's
    *  GLB from it (`grass.ts`). The bake reads the GLB, never the spec. */
   grass?: GrassSpec;
@@ -654,6 +670,7 @@ export interface RuntimeCatalog {
       regional_family?: string;
       paints?: Vec3[];
       wreck?: string;
+      factions?: FactionLooks;
     }
   >;
   /** The template art library (`templateLibrary.ts`), when the catalog has

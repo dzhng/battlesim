@@ -17,6 +17,7 @@ import {
   type SideTints,
   type SkeletonClips,
   type AppearanceUnit,
+  type FactionLooks,
   type Texture,
 } from "./schema.ts";
 import {
@@ -60,6 +61,8 @@ export interface InstalledAppearance {
   paints: Vec3[] | null;
   /** A vehicle's own wreck appearance (catalog `wreck`); null for anything else. */
   wreck: string | null;
+  /** A soldier's look on a faction's side (catalog `factions`); null for one look. */
+  factions: FactionLooks | null;
   bundle: Exclude<Bundle, SkeletonClips>;
 }
 
@@ -323,6 +326,7 @@ export class AppearanceLibrary {
       regionalFamily: entry.regional_family ?? null,
       paints: entry.paints ?? null,
       wreck: entry.wreck ?? null,
+      factions: entry.factions ?? null,
       bundle,
     };
   }

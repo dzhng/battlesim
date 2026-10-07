@@ -131,9 +131,9 @@ def ak74m(mats, name="ak74m"):
         ("stock_web", box, dict(size=(0.03, 0.12, 0.04), loc=(0, 0.3, -0.035), bevel_=0.008, rot=(deg(-12), 0, 0)), poly),
         ("butt_plate", box, dict(size=(0.044, 0.022, 0.12), loc=(0, 0.369, -0.005), bevel_=0.006), g),
         ("side_rail", box, dict(size=(0.008, 0.11, 0.035), loc=(0.022, -0.06, 0.03)), g),
-        ("sight_bracket", box, dict(size=(0.03, 0.07, 0.05), loc=(0.02, -0.06, 0.075), bevel_=0.005), g),
-        ("collimator", box, dict(size=(0.036, 0.07, 0.045), loc=(0, -0.06, 0.122), bevel_=0.008), g),
-        ("collimator_lens", box, dict(size=(0.028, 0.004, 0.034), loc=(0, -0.0965, 0.122)), glass),
+        ("sight_bracket", box, dict(size=(0.03, 0.06, 0.035), loc=(0.02, -0.05, 0.07), bevel_=0.005), g),
+        ("collimator", box, dict(size=(0.034, 0.06, 0.036), loc=(0, -0.05, 0.1), bevel_=0.008), g),
+        ("collimator_lens", box, dict(size=(0.026, 0.004, 0.026), loc=(0, -0.0815, 0.1)), glass),
     ])
 
 
