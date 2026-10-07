@@ -35,6 +35,18 @@ impl<'de> Deserialize<'de> for MapId {
     }
 }
 
+/// What a saved map is for, as its `meta.json` `category` says. Players
+/// never fight on a saved map (their battles are generated), so a saved map
+/// is a test's or the menu's own; any other value is refused.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MapCategory {
+    /// Ground a test, a lab or a benchmark runs on.
+    Test,
+    /// A battlefield the main menu's backdrop films.
+    Menu,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MapSource {
@@ -165,6 +177,8 @@ pub enum ResolveCode {
     MissingDocument,
     /// A saved encounter is not an encounter definition.
     InvalidEncounter,
+    /// A saved map's listing (`meta.json`) does not say what it is for.
+    InvalidListing,
     InvalidMap,
     InvalidSources,
     IdentityMismatch,

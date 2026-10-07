@@ -159,13 +159,29 @@ fn documents(roots: &[&str]) -> Vec<Value> {
         .collect()
 }
 
-/// The game fixture as `Rules` and the village scenario read it: the rules
-/// (`game.json`), the unit catalog, and the village's map, resolved from
-/// the saved catalogue (`fixtures/maps/village`), under `map`.
+/// The game fixture as `Rules` read it: the rules (`game.json`) with the
+/// game's unit catalog. It carries no map: a battle's ground is its own
+/// (generated, or a saved map named by [`with_map`]).
 pub fn game() -> Value {
     let mut fixture = read(&dir().join("game.json"));
     fixture["catalog"] = Value::Array(catalog_documents(CatalogSet::Game));
-    let map = crate::maps::load("village").unwrap_or_else(|e| panic!("the village's map: {e}"));
+    fixture
+}
+
+/// [`test_game`] with the saved test map `id` (`fixtures/maps/<id>`),
+/// resolved, under `map`: for a test that needs ground. A map that is not a
+/// test's (the menu's) is refused, so no test stands on the menu's
+/// battlefield.
+pub fn with_map(id: &str) -> Value {
+    let catalogue = crate::maps::Catalogue::shipped();
+    let category = catalogue.category(id).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        category,
+        contract::maps::MapCategory::Test,
+        "{id} is not a test map"
+    );
+    let map = catalogue.load(id).unwrap_or_else(|e| panic!("{e}"));
+    let mut fixture = test_game();
     fixture["map"] = serde_json::to_value(map.definition).expect("the map serializes");
     fixture
 }

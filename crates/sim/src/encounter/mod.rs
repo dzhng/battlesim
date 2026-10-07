@@ -24,8 +24,8 @@
 //!
 //! The result is the scenario's encounter half
 //! ([`contract::encounter::EncounterSetup`]): the same units, opponent
-//! policy, objective and scripted orders an authored scenario carries
-//! ([`crate::village::scenario`]).
+//! policy, objective and scripted orders a saved encounter carries
+//! ([`contract::scenario::EncounterDefinition`]).
 //!
 //! Every battle with an encounter runs its opponent policy as the
 //! [`Defender`] and judges it with the [`Referee`], whoever authored it.

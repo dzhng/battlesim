@@ -120,11 +120,11 @@ fn a_request_that_cannot_be_prepared_names_the_field_at_fault() {
     // A catalogue map is an address, never a path.
     let (_, message) = refusal(&with(
         &["map_source"],
-        json!({ "kind": "catalogue", "id": "../village" }),
+        json!({ "kind": "catalogue", "id": "../geometry" }),
     ));
     assert!(message.contains("catalogue id"), "{message}");
     // Only the two sources exist, and a request holds nothing else.
-    refusal(&with(&["map_source"], json!({ "kind": "village" })));
+    refusal(&with(&["map_source"], json!({ "kind": "saved" })));
     refusal(&with(&["map_source", "request", "type"], json!("huge")));
     refusal(&with(&["fallback_seed"], json!("1")));
 }

@@ -1,7 +1,9 @@
 //! The native filesystem adapter over the one map resolver
 //! (`contract::maps::resolve`). A saved map is a folder of the catalogue,
 //! `fixtures/maps/<id>/`: its physical `map.json`, the `SOURCES.json` that
-//! pins what it is and where it came from, and its `encounters/<name>.json`.
+//! pins what it is and where it came from, its `encounters/<name>.json`, and
+//! the `meta.json` listing, of which native readers check what the map is
+//! for ([`MapCategory`]).
 //! `map.json` stores each building as its template and frame; the resolver
 //! materializes it from the physical library `SOURCES.json` names.
 //! The browser's adapter fetches the same documents and calls the same
@@ -9,7 +11,7 @@
 use std::path::{Path, PathBuf};
 
 use contract::maps::{
-    resolve, MapAdmission, MapId, MapSources, ResolveCode, ResolveError, ResolvedMap,
+    resolve, MapAdmission, MapCategory, MapId, MapSources, ResolveCode, ResolveError, ResolvedMap,
 };
 use contract::scenario::EncounterDefinition;
 
@@ -88,6 +90,24 @@ impl Catalogue {
             location,
             message: e.to_string(),
         })
+    }
+
+    /// What the map `id` is for: its listing's (`meta.json`) `category`,
+    /// refused when it is not a [`MapCategory`].
+    pub fn category(&self, id: &str) -> Result<MapCategory, ResolveError> {
+        #[derive(serde::Deserialize)]
+        struct Listing {
+            category: MapCategory,
+        }
+        let location = format!("{id}/meta.json");
+        let text = document(&self.folder(id)?.join("meta.json"), &location)?;
+        serde_json::from_str::<Listing>(&text)
+            .map(|listing| listing.category)
+            .map_err(|e| ResolveError {
+                code: ResolveCode::InvalidListing,
+                location,
+                message: e.to_string(),
+            })
     }
 
     fn folder(&self, id: &str) -> Result<PathBuf, ResolveError> {

@@ -145,7 +145,7 @@ export async function run(ctx) {
   await saved.setViewportSize({ width: 360, height: 800 });
   await snapshot(ctx, saved, "catalogue-river-360x800.png");
   const large = await ctx.newPage();
-  await ctx.openLab(large, `${ctx.url}?map=market-town`);
+  await ctx.openLab(large, `${ctx.url}?map=market-town-test`);
   const centre = await large.evaluate(() => {
     const [w, h] = window.__lab.route.mapSize;
     return [w / 2, h / 2, window.__lab.route.heightAt(w / 2, h / 2)];
@@ -163,10 +163,10 @@ export async function run(ctx) {
     "the large-map overview click reports a hit",
     /Hit/.test(await large.getByTestId("probe").textContent()),
   );
-  const overview = await snapshot(ctx, large, "catalogue-market-town-1280x800.png");
+  const overview = await snapshot(ctx, large, "catalogue-market-town-test-1280x800.png");
   await writeCrop(
     decode(overview),
-    ctx.evidencePath("catalogue-market-town-panel-2x.png"),
+    ctx.evidencePath("catalogue-market-town-test-panel-2x.png"),
     204,
     160,
     400,
@@ -174,5 +174,5 @@ export async function run(ctx) {
     2,
   );
   await large.setViewportSize({ width: 360, height: 800 });
-  await snapshot(ctx, large, "catalogue-market-town-360x800.png");
+  await snapshot(ctx, large, "catalogue-market-town-test-360x800.png");
 }

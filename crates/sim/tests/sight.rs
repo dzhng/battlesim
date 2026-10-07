@@ -174,7 +174,9 @@ fn sight_shape_consumers_agree() {
     let rules = rules();
     let yaw = 0.4;
     let centre = [1300.0, 1300.0];
-    let cell = common::game()["map"]["fog_cell_m"].as_f64().unwrap();
+    let cell = serde_json::from_str::<serde_json::Value>(FLAT).unwrap()["fog_cell_m"]
+        .as_f64()
+        .unwrap();
     let observer = battle(
         FLAT,
         json!([{ "side": "blue", "kind": "test_tank", "position": centre, "yaw": yaw }]),

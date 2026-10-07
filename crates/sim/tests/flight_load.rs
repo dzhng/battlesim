@@ -1,4 +1,4 @@
-//! 200-unit-equivalent emitter load on the village map: 100 eight-soldier rifle
+//! 200-unit-equivalent emitter load on the endurance test map: 100 eight-soldier rifle
 //! squads and 100 tanks, every one firing at its weapons' cycle rate through
 //! the same launch path weapons use, with no projectile cap, and hulls judged
 //! by the battle's armour policy (so rounds glance off them). Prints measured
@@ -32,7 +32,7 @@ fn percentile(sorted: &[f64], p: f64) -> f64 {
 
 /// `rate_scale` multiplies every weapon's fire rate (1 = authored cycles).
 fn run(rate_scale: f64, seconds: f64) {
-    let game = game();
+    let game = sim::fixtures::with_map("endurance");
     let map: MapDefinition = serde_json::from_value(game["map"].clone()).unwrap();
     let world = WorldGeometry::new(&map, &common::rules());
     let config = config();

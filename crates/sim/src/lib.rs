@@ -35,7 +35,6 @@ pub mod skirmish_ai;
 pub mod structures;
 pub mod supply;
 pub mod units;
-pub mod village;
 pub mod visibility;
 pub mod weapons;
 pub mod world;

@@ -1,110 +1,12 @@
 {
   "status": "provisional-tuning; runtime owner (moved from the spec in slice 01)",
   "seed": 20260925,
-  "repeatability_seeds": [
-    1,
-    2,
-    3,
-    5,
-    8,
-    13,
-    21,
-    34,
-    55,
-    89
-  ],
   "units": "metres-seconds-radians",
   "tick_hz": 30,
   "commands": { "orders_per_s": 30 },
   "buildings": {
     "capacity_soldiers": 32,
     "cover_strength": 1
-  },
-  "spawn": {
-    "blue": [
-      [
-        "test_recon",
-        180,
-        750
-      ],
-      [
-        "test_rifle",
-        180,
-        790
-      ],
-      [
-        "test_rifle",
-        150,
-        825
-      ],
-      [
-        "test_rifle",
-        150,
-        865
-      ],
-      [
-        "test_tank",
-        220,
-        780
-      ],
-      [
-        "test_tank",
-        220,
-        840
-      ],
-      [
-        "test_at",
-        130,
-        740
-      ],
-      [
-        "test_supply",
-        100,
-        800
-      ],
-      [
-        "test_jeep",
-        125,
-        905
-      ]
-    ],
-    "red": [
-      [
-        "test_rifle",
-        975,
-        750
-      ],
-      [
-        "test_rifle",
-        1045,
-        815
-      ],
-      [
-        "test_rifle",
-        985,
-        875
-      ],
-      [
-        "test_at",
-        760,
-        886
-      ],
-      [
-        "test_at",
-        1120,
-        650
-      ],
-      [
-        "test_tank",
-        1080,
-        850
-      ],
-      [
-        "test_jeep",
-        1175,
-        800
-      ]
-    ]
   },
   "infantry_movement": {
     "path_clearance_m": 0.5,
@@ -561,16 +463,6 @@
     "window_swap_s": 1,
     "window_hold_s": 4
   },
-  "encounter": {
-    "success_zone_center": [
-      1000,
-      800
-    ],
-    "success_zone_radius_m": 100,
-    "hold_s": 30,
-    "max_assessment_s": 900,
-    "completion_is_full_match_victory": false
-  },
   "physics": {
     "gravity_mps2": 9.81,
     "miss_fall_max_s": 1.5,
@@ -604,46 +496,6 @@
     "log": "log",
     "boulder": "boulder",
     "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.25, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2, "logs_per_ha": 0, "boulders_per_ha": 0, "log_half_extents_m": [2.2, 0.35, 0.35], "boulder_half_extents_m": [1, 0.8, 0.75] }
-  },
-  "variants": {
-    "ordinary": {
-      "disabled_red_spawn_indices": [
-        4
-      ]
-    },
-    "prepared_crossfire": {
-      "disabled_red_spawn_indices": []
-    }
-  },
-  "defender_policy": {
-    "initial_garrisons": [
-      [
-        0,
-        0
-      ],
-      [
-        1,
-        1
-      ],
-      [
-        2,
-        2
-      ]
-    ],
-    "at_initial_policy": "return_fire_only",
-    "at_attack_trigger": "own optical identification of tank within 900 m",
-    "at_attack_range_m": 900,
-    "tank_retreat_hp_fraction": 0.35,
-    "tank_fallback": [
-      1250,
-      850
-    ],
-    "infantry_retreat_survivor_fraction": 0.5,
-    "infantry_fallback": [
-      1200,
-      950
-    ],
-    "retreat_once": true
   },
   "presentation": {
     "audio": {

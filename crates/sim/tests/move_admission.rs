@@ -356,8 +356,8 @@ fn opposing_groups_keep_their_markers_when_traffic_requires_a_detour() {
 /// `assault` at the south edge and no defender: nothing fights, so a move
 /// is refused or fails only for the ground's reasons.
 fn market_town_column() -> ScenarioDefinition {
-    let map = sim::maps::load("market-town").unwrap().definition;
-    let mut assault = sim::maps::encounter("market-town", "assault").unwrap();
+    let map = sim::maps::load("market-town-test").unwrap().definition;
+    let mut assault = sim::maps::encounter("market-town-test", "assault").unwrap();
     assault.units.retain(|u| u.side == Side::Blue);
     ScenarioDefinition {
         skirmish: None,

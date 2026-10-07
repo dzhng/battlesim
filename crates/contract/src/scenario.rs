@@ -1168,10 +1168,10 @@ pub struct ScenarioDefinition {
     pub events: Vec<ScenarioEvent>,
     #[serde(default)]
     pub scripts: Vec<ScriptedOrder>,
-    /// An observation-bound opponent playing one side (the village defender).
+    /// An observation-bound opponent playing one side (the encounter defender).
     #[serde(default)]
     pub opponent: Option<Opponent>,
-    /// A fixture's local completion condition (the village hold).
+    /// An encounter's local completion condition (holding its objective).
     #[serde(default)]
     pub encounter: Option<EncounterRules>,
 }

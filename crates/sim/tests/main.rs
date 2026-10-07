@@ -1,6 +1,6 @@
 //! The simulation's integration tests, one module per file, linked as one
 //! binary so every test runs on one pool (Cargo runs test binaries one at a
-//! time). One file: `cargo test -p sim --test sim village::`.
+//! time). One file: `cargo test -p sim --test sim maps::`.
 mod common;
 
 mod animation_feed;
@@ -49,7 +49,6 @@ mod skirmish;
 mod soldier_bodies;
 mod supply;
 mod suppression;
-mod village;
 mod weapons;
 mod world_geometry;
 
