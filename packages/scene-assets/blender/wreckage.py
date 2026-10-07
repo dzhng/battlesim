@@ -27,6 +27,7 @@ coarser tiers are the same wreck. Deterministic: fixed seeds, no randomness
 from the clock.
 """
 import math
+import os
 import random
 
 import bmesh
@@ -295,6 +296,10 @@ WRECK_ARG = "--wreck"
 TURRET = "turret"
 BARRELS = ("gun", "hmg_gun")
 SAG_DEG = 7.0
+# The cook-off heaved the turret off its ring: it sits askew across the deck,
+# where its thrown piece lands (`tank.py`'s wreck sits the same way).
+HEAVE_DEG = (-5.0, 3.0, 24.0)  # roll, pitch, yaw
+HEAVE_M = (-0.25, 0.3, 0.08)
 # What was rubber, glass, canvas or a black opening burns to char; the rest is
 # steel, its paint burnt off.
 CHARRED = ("rubber", "glass", "fabric")
@@ -311,7 +316,8 @@ def burn():
     """The built live vehicle as its interim wreck, before `finish()`: every
     surface burnt (smoke-blackened steel, char where rubber, glass and canvas
     were), its dressing (antennas, masts) and crew gone, its barrels sagging on
-    broken trunnions, and the fire vented through the turret ring."""
+    broken trunnions, its turret heaved askew off the ring, and the fire vented
+    through the ring."""
     from parts import SCORCH, textured
     shell = textured("wreck_steel", "burnt_metal", chip=0.6, dirt=0.3, soot=0.6, ash=0.3, seed=7.0)
     char = textured("wreck_char", "burnt_metal", colour=(0.02, 0.019, 0.018), chip=0.2, dirt=0.2, seed=9.0)
@@ -337,10 +343,13 @@ def burn():
         pitch = bpy.data.objects.get(name)
         if pitch is not None:
             pitch.rotation_euler.y += math.radians(SAG_DEG)
-    bpy.context.view_layer.update()
     turret = bpy.data.objects.get(TURRET)
     if turret is not None:
         SCORCH.append((turret.matrix_world.translation.copy(), 2.4))
+        for k in range(3):
+            turret.rotation_euler[k] += math.radians(HEAVE_DEG[k])
+            turret.location[k] += HEAVE_M[k]
+    bpy.context.view_layer.update()
 
 
 def _ancestors(o):
@@ -353,29 +362,31 @@ def export_wreck(out, **export_kw):
     """Export the burnt vehicle beside `out` (`wreck_paths`): whole, then, if
     it has a turret, its hull without it and its turret alone, unparented
     where it lies in the whole. Returns the states written, by name."""
+    import tempfile
     from parts import export
     paths = wreck_paths(out)
     export(paths["default"], **export_kw)
-    turret = bpy.data.objects.get(TURRET)
-    if turret is None:
+    if bpy.data.objects.get(TURRET) is None:
         return {"default": paths["default"]}
-    thrown = {turret, *turret.children_recursive}
-    homes = {o: list(o.users_collection) for o in thrown}
-    for o, collections in homes.items():
-        for c in collections:
-            c.objects.unlink(o)
-    export(paths["hull"], **export_kw)
-    for o, collections in homes.items():
-        for c in collections:
-            c.objects.link(o)
-    bpy.context.view_layer.update()
-    lies = turret.matrix_world.copy()
-    turret.parent = None
-    turret.matrix_world = lies
-    for o in list(bpy.data.objects):
-        if o not in thrown and o.type not in ("CAMERA", "LIGHT"):
-            bpy.data.objects.remove(o, do_unlink=True)
-    export(paths["turret"], **export_kw)
+    # Each piece deletes the other: cut the hull from the scene, then the
+    # turret from a copy of it (the exporter follows parents, not collections).
+    whole = os.path.join(tempfile.mkdtemp(), "wreck.blend")
+    bpy.ops.wm.save_as_mainfile(filepath=whole, copy=True)
+    for keep_turret in (False, True):
+        if keep_turret:
+            bpy.ops.wm.open_mainfile(filepath=whole)
+        turret = bpy.data.objects[TURRET]
+        thrown = {turret, *turret.children_recursive}
+        if keep_turret:
+            lies = turret.matrix_world.copy()
+            turret.parent = None
+            turret.matrix_world = lies
+        for o in list(bpy.data.objects):
+            if (o in thrown) != keep_turret:
+                bpy.data.objects.remove(o, do_unlink=True)
+        bpy.context.view_layer.update()
+        export(paths["turret" if keep_turret else "hull"], **export_kw)
+    os.remove(whole)
     return paths
 
 

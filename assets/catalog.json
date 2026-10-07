@@ -2067,7 +2067,7 @@
         1.4
       ],
       "tolerances": {
-        "footprint_m": 0.4
+        "footprint_m": 0.7
       }
     },
     "us_lav_lav_25a2": {
@@ -2094,7 +2094,7 @@
         1.345
       ],
       "tolerances": {
-        "footprint_m": 0.6
+        "footprint_m": 0.8
       }
     },
     "us_lav_lav_at": {
@@ -2147,7 +2147,7 @@
         1.49
       ],
       "tolerances": {
-        "footprint_m": 0.5
+        "footprint_m": 0.4
       }
     },
     "us_m3_bradley_cfv_m3a3": {
@@ -2175,7 +2175,7 @@
         1.49
       ],
       "tolerances": {
-        "footprint_m": 0.5
+        "footprint_m": 0.4
       }
     },
     "europe_leclerc_xlr": {
@@ -2203,7 +2203,7 @@
         1.265
       ],
       "tolerances": {
-        "footprint_m": 3.1
+        "footprint_m": 2.3
       }
     },
     "europe_fennek_reconnaissance_vehicle": {
@@ -2253,7 +2253,10 @@
         3.81,
         1.675,
         1.5
-      ]
+      ],
+      "tolerances": {
+        "footprint_m": 0.3
+      }
     },
     "eastern_ural_4320_general_resupply": {
       "unit": "vehicle",
@@ -2325,7 +2328,7 @@
         1.5
       ],
       "tolerances": {
-        "footprint_m": 3.4
+        "footprint_m": 2.5
       }
     },
     "europe_leopard_2_2a7v": {
@@ -2353,7 +2356,7 @@
         1.5
       ],
       "tolerances": {
-        "footprint_m": 3.4
+        "footprint_m": 2.5
       }
     },
     "europe_leopard_2_2a8": {
@@ -2381,7 +2384,7 @@
         1.5
       ],
       "tolerances": {
-        "footprint_m": 3.4
+        "footprint_m": 2.5
       }
     },
     "europe_challenger_challenger_2_tes": {
@@ -2409,7 +2412,7 @@
         1.245
       ],
       "tolerances": {
-        "footprint_m": 1.5
+        "footprint_m": 0.8
       }
     },
     "us_m1_abrams_sep_v2": {
@@ -2437,7 +2440,7 @@
         1.22
       ],
       "tolerances": {
-        "footprint_m": 2.0
+        "footprint_m": 1.2
       }
     },
     "us_m1_abrams_sep_v2_trophy": {
@@ -2465,7 +2468,7 @@
         1.22
       ],
       "tolerances": {
-        "footprint_m": 2.0
+        "footprint_m": 1.2
       }
     },
     "us_m1_abrams_sep_v3_trophy": {
@@ -2493,7 +2496,7 @@
         1.22
       ],
       "tolerances": {
-        "footprint_m": 2.0
+        "footprint_m": 1.2
       }
     },
     "europe_cv90_cv9040c": {
@@ -2520,7 +2523,7 @@
         1.4
       ],
       "tolerances": {
-        "footprint_m": 0.6
+        "footprint_m": 0.5
       }
     },
     "europe_cv90_mk_iv": {
@@ -2547,7 +2550,7 @@
         1.4
       ],
       "tolerances": {
-        "footprint_m": 0.6
+        "footprint_m": 0.5
       }
     },
     "eastern_btr_btr_82a": {
@@ -2574,7 +2577,7 @@
         1.205
       ],
       "tolerances": {
-        "footprint_m": 0.3
+        "footprint_m": 0.7
       }
     },
     "eastern_tigr_tigr_m": {
@@ -2627,7 +2630,7 @@
         1.101
       ],
       "tolerances": {
-        "footprint_m": 2.6
+        "footprint_m": 1.9
       }
     },
     "us_m977_hemtt_general_resupply": {
@@ -2675,7 +2678,7 @@
         1.175
       ],
       "tolerances": {
-        "footprint_m": 3.5
+        "footprint_m": 2.7
       }
     },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
@@ -2775,7 +2778,10 @@
         3.475,
         1.36,
         1.32
-      ]
+      ],
+      "tolerances": {
+        "footprint_m": 0.4
+      }
     },
     "europe_puma_level_c": {
       "unit": "vehicle",
@@ -2802,7 +2808,7 @@
         1.8
       ],
       "tolerances": {
-        "footprint_m": 0.5
+        "footprint_m": 0.3
       }
     },
     "us_acv_acv_p": {
@@ -2878,7 +2884,10 @@
         3.3675,
         1.575,
         1.225
-      ]
+      ],
+      "tolerances": {
+        "footprint_m": 0.3
+      }
     },
     "eastern_bmp_ifv_family_bmp_3": {
       "unit": "vehicle",
@@ -2905,7 +2914,7 @@
         1.2
       ],
       "tolerances": {
-        "footprint_m": 0.4
+        "footprint_m": 0.5
       }
     },
     "europe_vbci_infantry_fighting_vehicle": {
@@ -2977,7 +2986,7 @@
         1.11
       ],
       "tolerances": {
-        "footprint_m": 2.9
+        "footprint_m": 2.1
       }
     },
     "europe_boxer_apc": {
@@ -3027,7 +3036,10 @@
         3.965,
         1.495,
         1.815
-      ]
+      ],
+      "tolerances": {
+        "footprint_m": 0.4
+      }
     },
     "europe_kf51_panther_prototype_main_battle_tank": {
       "unit": "vehicle",
@@ -3054,7 +3066,7 @@
         1.25
       ],
       "tolerances": {
-        "footprint_m": 2.3
+        "footprint_m": 1.6
       }
     },
     "eastern_t_72_t_72b3_2016": {
@@ -3082,7 +3094,7 @@
         1.115
       ],
       "tolerances": {
-        "footprint_m": 3.0
+        "footprint_m": 2.2
       }
     },
     "eastern_atgm_team_kornet_active_a": {
