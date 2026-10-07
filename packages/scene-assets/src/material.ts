@@ -81,60 +81,63 @@ export function sourceRole(m: GltfJson, name: string, add: AddFinding): Material
 /** Linear luminance (Rec. 709). */
 const luminance = ([r, g, b]: readonly number[]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
-/** What each material draws on average over the area every mesh draws it
- *  on, as the model shader does: its albedo texture's mean times the vertex
+/** What material `i` draws on average over the area every mesh draws it on,
+ *  as the model shader does: its albedo texture's mean times the vertex
  *  colour times `colour_scale` times its base colour, except where the vertex's
  *  wear (its colour's alpha) passes the albedo texture's wear threshold (its
  *  alpha; a half without one), where the wear colour shows; and its roughness,
  *  the factor times the ORM texture's mean green. */
-function drawnSurfaces(bundle: Exclude<Bundle, SkeletonClips>) {
-  return bundle.materials.map((m, i) => {
-    const albedo = m.textures?.albedo === undefined ? undefined : bundle.textures[m.textures.albedo];
-    const orm = m.textures?.orm;
-    const mean = albedo ? textureMean(albedo) : [1, 1, 1];
-    const scale = m.colour_scale ?? 1;
-    // How much of the surface is worn at each wear alpha byte: the share of
-    // texels whose threshold is under it.
-    const worn = new Float64Array(256);
-    if (m.wear) {
-      const texels = albedo?.levels[0];
-      const below = new Float64Array(256);
-      if (texels) for (let t = 3; t < texels.length; t += 4) below[texels[t]]++;
-      else below[128] = 1;
-      const total = below.reduce((a, b) => a + b, 0);
-      for (let a = 1, sum = 0; a < 256; a++) worn[a] = (sum += below[a - 1]) / total;
-    }
-    // Each triangle weighs by its area, its colour the mean of its corners'.
-    const rgb = [0, 0, 0];
-    let area = 0;
-    for (const [, mesh] of bundleMeshes(bundle))
-      for (const draw of mesh.draws) {
-        if (draw.material !== i) continue;
-        const { positions: p, colors, indices } = mesh;
-        const drawn = (v: number, c: number) => {
-          const own = (colors[v * 4 + c] / 255) * scale * m.base_color[c] * mean[c];
-          return own + worn[colors[v * 4 + 3]] * ((m.wear?.[c] ?? 0) - own);
-        };
-        for (let k = draw.first; k + 2 < draw.first + draw.count; k += 3) {
-          const [a, b, c] = [indices[k], indices[k + 1], indices[k + 2]];
-          const e = [0, 1, 2].map((j) => p[b * 3 + j] - p[a * 3 + j]);
-          const f = [0, 1, 2].map((j) => p[c * 3 + j] - p[a * 3 + j]);
-          const size = Math.hypot(
-            e[1] * f[2] - e[2] * f[1],
-            e[2] * f[0] - e[0] * f[2],
-            e[0] * f[1] - e[1] * f[0],
-          );
-          for (let ch = 0; ch < 3; ch++)
-            rgb[ch] += (size * (drawn(a, ch) + drawn(b, ch) + drawn(c, ch))) / 3;
-          area += size;
-        }
+function drawnSurface(bundle: Exclude<Bundle, SkeletonClips>, i: number) {
+  const m = bundle.materials[i];
+  const albedo = m.textures?.albedo === undefined ? undefined : bundle.textures[m.textures.albedo];
+  const orm = m.textures?.orm;
+  const mean = albedo ? textureMean(albedo) : [1, 1, 1];
+  const scale = m.colour_scale ?? 1;
+  // How much of the surface is worn at each wear alpha byte: the share of
+  // texels whose threshold is under it.
+  const worn = new Float64Array(256);
+  if (m.wear) {
+    const texels = albedo?.levels[0];
+    const below = new Float64Array(256);
+    if (texels) for (let t = 3; t < texels.length; t += 4) below[texels[t]]++;
+    else below[128] = 1;
+    const total = below.reduce((a, b) => a + b, 0);
+    for (let a = 1, sum = 0; a < 256; a++) worn[a] = (sum += below[a - 1]) / total;
+  }
+  // Each triangle weighs by its area, its colour the mean of its corners'.
+  const rgb = [0, 0, 0];
+  let area = 0;
+  for (const [, mesh] of bundleMeshes(bundle))
+    for (const draw of mesh.draws) {
+      if (draw.material !== i) continue;
+      const { positions: p, colors, indices } = mesh;
+      const drawn = (v: number, c: number) => {
+        const own = (colors[v * 4 + c] / 255) * scale * m.base_color[c] * mean[c];
+        return own + worn[colors[v * 4 + 3]] * ((m.wear?.[c] ?? 0) - own);
+      };
+      for (let k = draw.first; k + 2 < draw.first + draw.count; k += 3) {
+        const [a, b, c] = [indices[k], indices[k + 1], indices[k + 2]];
+        const e = [0, 1, 2].map((j) => p[b * 3 + j] - p[a * 3 + j]);
+        const f = [0, 1, 2].map((j) => p[c * 3 + j] - p[a * 3 + j]);
+        const size = Math.hypot(
+          e[1] * f[2] - e[2] * f[1],
+          e[2] * f[0] - e[0] * f[2],
+          e[0] * f[1] - e[1] * f[0],
+        );
+        for (let ch = 0; ch < 3; ch++)
+          rgb[ch] += (size * (drawn(a, ch) + drawn(b, ch) + drawn(c, ch))) / 3;
+        area += size;
       }
-    return {
-      albedo: area > 0 ? rgb.map((x) => x / area) : [0, 1, 2].map((c) => scale * m.base_color[c] * mean[c]),
-      roughness: m.roughness * (orm === undefined ? 1 : textureMean(bundle.textures[orm])[1]),
-    };
-  });
+    }
+  return {
+    albedo:
+      area > 0 ? rgb.map((x) => x / area) : [0, 1, 2].map((c) => scale * m.base_color[c] * mean[c]),
+    roughness: m.roughness * (orm === undefined ? 1 : textureMean(bundle.textures[orm])[1]),
+  };
 }
+
+/** Rubber and glass are held to what they draw. */
+const judgedDark = (m: Material) => m.role === "rubber" || m.role === "glass";
 
 /** The least and the most a material's coverage value is, over its surface:
  *  the base colour's alpha times its normal texture's alpha. */
@@ -165,7 +168,6 @@ function coverageRange(material: Material, textures: Texture[]): [number, number
  */
 export function materialFindings(label: string, bundle: Exclude<Bundle, SkeletonClips>): Finding[] {
   const out: Finding[] = [];
-  const drawn = drawnSurfaces(bundle);
   bundle.materials.forEach((m, i) => {
     const add: AddFinding = (code, message, fix) =>
       out.push({
@@ -201,7 +203,9 @@ export function materialFindings(label: string, bundle: Exclude<Bundle, Skeleton
           "make it a cutout or opaque, or export it without wear",
         );
     }
-    const { albedo, roughness } = drawn[i];
+    const { albedo, roughness } = judgedDark(m)
+      ? drawnSurface(bundle, i)
+      : { albedo: [0, 0, 0], roughness: 0 };
     const lit = luminance(albedo);
     const tone = `draws at luminance ${lit.toFixed(3)} (albedo ${albedo.map((x) => x.toFixed(3)).join(", ")})`;
     if (m.role === "rubber" && lit > RUBBER_MAX_LUMINANCE)
@@ -251,16 +255,12 @@ export function assertMaterial(m: Material) {
 /** One line per material for a person, `glass: opaque; role glass, draws
  *  luminance 0.012 at roughness 0.080`: rubber and glass say what they draw. */
 export function describeMaterials(bundle: Exclude<Bundle, SkeletonClips>): string[] {
-  const drawn = drawnSurfaces(bundle);
-  return bundle.materials.map((m, i) =>
-    describeMaterial(
-      m,
-      bundle.textures,
-      m.role === "rubber" || m.role === "glass"
-        ? `draws luminance ${luminance(drawn[i].albedo).toFixed(3)} at roughness ${drawn[i].roughness.toFixed(3)}`
-        : undefined,
-    ),
-  );
+  return bundle.materials.map((m, i) => {
+    if (!judgedDark(m)) return describeMaterial(m, bundle.textures);
+    const { albedo, roughness } = drawnSurface(bundle, i);
+    const drawn = `draws luminance ${luminance(albedo).toFixed(3)} at roughness ${roughness.toFixed(3)}`;
+    return describeMaterial(m, bundle.textures, drawn);
+  });
 }
 
 function describeMaterial(material: Material, textures: Texture[], drawn?: string): string {

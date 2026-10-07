@@ -235,30 +235,35 @@ const DUST = [0.15, 0.13, 0.1] as const;
  *  albedo, factors 1, and a vertex colour at a third of its film's colour
  *  relative to the recipe's mean (`textures.macro`). `film` is how far the
  *  dust film carries it toward `DUST`. */
-const tyre = (film: number, wear = 0) => (m: GltfJson, b: GltfBuilder) => {
-  m.extras = { role: "rubber", wear: [0.12, 0.105, 0.085, 1], colour_scale: 3 };
-  m.pbrMetallicRoughness = {
-    baseColorFactor: [1, 1, 1, 1],
-    metallicFactor: 1,
-    roughnessFactor: 1,
+const tyre =
+  (film: number, wear = 0) =>
+  (m: GltfJson, b: GltfBuilder) => {
+    m.extras = { role: "rubber", wear: [0.12, 0.105, 0.085, 1], colour_scale: 3 };
+    m.pbrMetallicRoughness = {
+      baseColorFactor: [1, 1, 1, 1],
+      metallicFactor: 1,
+      roughnessFactor: 1,
+    };
+    const byte = srgbByte(RUBBER);
+    m.pbrMetallicRoughness.baseColorTexture = {
+      index: b.texture(4, () => [byte, byte, byte, 128]),
+    };
+    const [r, g, bl] = DUST.map((d) => lerp(RUBBER, d, film) / RUBBER / 3);
+    b.colour = [r, g, bl, wear];
   };
-  const byte = srgbByte(RUBBER);
-  m.pbrMetallicRoughness.baseColorTexture = { index: b.texture(4, () => [byte, byte, byte, 128]) };
-  const [r, g, bl] = DUST.map((d) => lerp(RUBBER, d, film) / RUBBER / 3);
-  b.colour = [r, g, bl, wear];
-};
 
 /** Glass as the exporters wrote optics (`parts.flat_paint`): a base colour of
  *  a half and the colour, over it, in the vertex colour. */
-const optic = (colour: [number, number, number], roughness: number) => (m: GltfJson, b: GltfBuilder) => {
-  m.extras = { role: "glass" };
-  m.pbrMetallicRoughness = {
-    baseColorFactor: [0.5, 0.5, 0.5, 1],
-    metallicFactor: 0,
-    roughnessFactor: roughness,
+const optic =
+  (colour: [number, number, number], roughness: number) => (m: GltfJson, b: GltfBuilder) => {
+    m.extras = { role: "glass" };
+    m.pbrMetallicRoughness = {
+      baseColorFactor: [0.5, 0.5, 0.5, 1],
+      metallicFactor: 0,
+      roughnessFactor: roughness,
+    };
+    b.colour = [colour[0] / 0.5, colour[1] / 0.5, colour[2] / 0.5, 1];
   };
-  b.colour = [colour[0] / 0.5, colour[1] / 0.5, colour[2] / 0.5, 1];
-};
 
 test("a tyre in black rubber, and dark smooth glass, ship their roles", async () => {
   const rubber = await shipped(tyre(0));
