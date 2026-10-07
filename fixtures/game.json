@@ -757,8 +757,8 @@
           "running": "wheels",
           "running_gain": 0.3,
           "full_speed_mps": 12,
-          "turret": null,
-          "turret_gain": 0,
+          "turret": "turret",
+          "turret_gain": 0.08,
           "full_traverse_rps": 0.5,
           "reverse": "reverse_whine",
           "reverse_gain": 0.08
