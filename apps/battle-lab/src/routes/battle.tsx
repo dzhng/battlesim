@@ -312,12 +312,7 @@ function PreparedBattleView({
     () =>
       prepared && {
         camera: {
-          ...gameCamera.opening(),
-          target: [prepared.report.start.at[0], prepared.report.start.at[1], 0] as [
-            number,
-            number,
-            number,
-          ],
+          ...gameCamera.fromStart(prepared.report.start.at, prepared.report.size),
         },
         cameraConfig: gameCamera.forMap(prepared.report.size, prepared.report.extents.rendered),
       },

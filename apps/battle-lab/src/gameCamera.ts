@@ -31,6 +31,26 @@ export const gameCamera = {
       ...gameCamera.lens,
     };
   },
+  /** Opening battle framing: put the eye on the player's entry edge and look
+   *  across the map so that own reinforcements are always in the foreground. */
+  fromStart(start: readonly [number, number], size: readonly [number, number]): Camera3DParams {
+    const center: [number, number] = [size[0] / 2, size[1] / 2];
+    const dx = start[0] - center[0];
+    const dy = start[1] - center[1];
+    const radial = Math.hypot(dx, dy);
+    const pitch = rig.pitchAt(Math.max(presentation.default.distance, radial));
+    const distance = Math.max(
+      presentation.default.distance,
+      Math.max(1, radial) / Math.max(0.01, Math.cos(pitch)),
+    );
+    return {
+      target: [center[0], center[1], 0],
+      distance,
+      pitch: rig.pitchAt(distance),
+      yaw: Math.atan2(dy, dx),
+      ...gameCamera.lens,
+    };
+  },
   /** The rig for a map `size` metres across: the game's, with the wheel
    *  reaching far enough out, and tilting far enough down, to take the whole
    *  map in. */
