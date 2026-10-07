@@ -95,6 +95,22 @@ fn the_browsers_catalog_view_is_current() {
     );
 }
 
+/// The roster is admitted without the stand-in units: no roster kind
+/// inherits from a generic one, so editing a stand-in changes no roster
+/// squad.
+#[test]
+fn the_roster_resolves_without_the_stand_in_units() {
+    let game: Value = serde_json::from_str(
+        &std::fs::read_to_string(sim::fixtures::dir().join("game.json")).unwrap(),
+    )
+    .unwrap();
+    let documents =
+        sim::fixtures::documents(&["units/roster", "units/ground", "units/roles.json", "props"]);
+    if let Err(e) = sim::fixtures::admit(game, documents) {
+        panic!("the roster leans on documents outside it: {e}");
+    }
+}
+
 #[test]
 fn the_m1_family_resolves_its_variants_from_one_base() {
     let rules: Rules = serde_json::from_value(with_m1_family()).unwrap();
