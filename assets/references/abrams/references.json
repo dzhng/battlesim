@@ -1,0 +1,177 @@
+{
+  "entries": [
+    {
+      "file": "us_m1_abrams_sep_v3_trophy-three_quarter_front.jpg",
+      "variant": "us_m1_abrams_sep_v3_trophy",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:U.S._Army_Units_Host_Abrams_Logistical_Summit_in_Drawsko_Pomorskie_-_221026-Z-OV580-1106.jpg",
+      "author": "Kevin Brown",
+      "licence": "public-domain",
+      "sha256": "8ef931df32337bc82a72960e04d856ff53319c623bde200372f4b95d1b2b30ee",
+      "note": "M1A2 SEPv3 without Trophy fitted (1-12 CAV, Poland 2022), left front: hull, turret envelope, CROWS, gun. Trophy itself: see the sep_v2_trophy entries."
+    },
+    {
+      "file": "us_m1_abrams_sep_v3_trophy-side.jpg",
+      "variant": "us_m1_abrams_sep_v3_trophy",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Cav._M1A2_SEPv3.jpg",
+      "author": "U.S. Army",
+      "licence": "public-domain",
+      "sha256": "05061e5ee1065a8d2537ec950e7f4ecb1adb169170db9caceb2927ee27cbd50a",
+      "note": "M1A2 SEPv3 without Trophy, left side, Fort Hood: road wheels, skirts, turret side, bustle rack, CROWS-LP, UAPU box at the rear left. Bushes hide the lower run."
+    },
+    {
+      "file": "us_m1_abrams_sep_v3_trophy-side-2.jpg",
+      "variant": "us_m1_abrams_sep_v3_trophy",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:BRIGHT_STAR_25-_Range_maneuvers_(9293781).jpg",
+      "author": "U.S. Army USARCENT by Joseph Kumzak",
+      "licence": "public-domain",
+      "sha256": "dd8ef0585ba400985fa30c23d6bcf29f40ec82022c5711b2422c547a45dca9f7",
+      "note": "M1A2 SEPv3 (caption) with ARAT reactive tiles on skirts and turret, right side, moving; motion blur. No CROWS, pintle M2. ARAT is an add-on, not the base look."
+    },
+    {
+      "file": "us_m1_abrams_sep_v3_trophy-front.jpg",
+      "variant": "us_m1_abrams_sep_v3_trophy",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:U.S._Army_Units_Host_Abrams_Logistical_Summit_in_Drawsko_Pomorskie_-_221026-Z-OV580-1015.jpg",
+      "author": "Kevin Brown",
+      "licence": "public-domain",
+      "sha256": "0a0446a8803f2388aea6b8a87355712342ac8fbcc3b0bd26e44ca6928958f53e",
+      "note": "M1A2 SEPv3 without Trophy, head-on with slight right offset: hull front, glacis, mantlet, turret cheeks, CROWS, sights."
+    },
+    {
+      "file": "us_m1_abrams_sep_v3_trophy-detail.jpg",
+      "variant": "us_m1_abrams_sep_v3_trophy",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M1A2_SEP_V3_Abrams_-_200721-A-BT735-120.jpg",
+      "author": "Sgt. Calab Franklin",
+      "licence": "public-domain",
+      "sha256": "53660fc0d09cb5835a6ed54e6fc3046e3745c839d781eb0fc16ab7ce10e644a8",
+      "note": "Turret roof: CROWS-LP on the commander's station being fitted, loader's hatch, gun barrel. SEPv3, Fort Hood 2020."
+    },
+    {
+      "file": "us_m1_abrams_sep_v2-side.jpg",
+      "variant": "us_m1_abrams_sep_v2",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:1-1_CD_draws_European_Activity_Set_(14085401522).jpg",
+      "author": "7th Army  Joint Multinational Training Command from Grafenwoehr, Germany",
+      "licence": "CC-BY-2.0",
+      "sha256": "a8f4e7bd620e807ecc60d45934580aff520ef8b4eaf8c460891e6f87873bf525",
+      "note": "M1A2 SEPv2 with CROWS II, left side, woodland camo; fitted with a mine plow (not part of the model)."
+    },
+    {
+      "file": "us_m1_abrams_sep_v2-three_quarter_front.jpg",
+      "variant": "us_m1_abrams_sep_v2",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:116th_Cavalry_Brigade_Combat_Team_NTC_rotation_force-on-force_day_one_150822-Z-YI240-310.jpg",
+      "author": "Spc. Michael Germundson",
+      "licence": "public-domain",
+      "sha256": "6fef090e6af59a69002202a625252b6c4b8283f4c03aba28d6444adb1f52e4a5",
+      "note": "M1A2 SEP with CROWS II (Commons: SEP V2), left front, tan, NTC 2015; low light."
+    },
+    {
+      "file": "us_m1_abrams_sep_v2-front.jpg",
+      "variant": "us_m1_abrams_sep_v2",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Combined_Resolve_II_140616-A-BS310-139.jpg",
+      "author": "Markus Rauchenberger",
+      "licence": "public-domain",
+      "sha256": "3c3be23632fee9951794964cd222ac6a37272a2354f668bff4a6728637233bb6",
+      "note": "M1A2 SEPv2, close head-on: glacis, mantlet, CPS/sights, CROWS II, loader's hatch."
+    },
+    {
+      "file": "us_m1_abrams_sep_v2-rear.jpg",
+      "variant": "us_m1_abrams_sep_v2",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Allied_port_ops_in_Riga_reinforce_Atlantic_Resolve_(4).jpg",
+      "author": "1st Lt. Henry Chan, 16th Sustainment Brigade, 21st Theater Sustainment Command",
+      "licence": "public-domain",
+      "sha256": "30d41f9898595d478bd76e032e53dd8daf8b7d5485f4da4a815405cab1afd341",
+      "note": "M1A2 SEPv2 from directly behind on a port apron: hull rear, exhaust grille, bustle rack; ground guide partly blocks the centre."
+    },
+    {
+      "file": "us_m1_abrams_sep_v2-three_quarter_rear.jpg",
+      "variant": "us_m1_abrams_sep_v2",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Combined_Resolve_V_151119-A-BS310-038.jpg",
+      "author": "Visual Information Specialist Markus Rauchenberger, U.S. Army",
+      "licence": "public-domain",
+      "sha256": "de6f51d87c92fbeb2170701b3db5ebbd2472900bb6b6d8f20f9c53a110c56630",
+      "note": "M1A2 SEPv2, left rear: engine deck, rear grille, turret bustle and stowage, crew on the roof."
+    },
+    {
+      "file": "us_m1_abrams_sep_v2-detail.jpg",
+      "variant": "us_m1_abrams_sep_v2",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Decisive_Action_Rotation_15-02_at_the_National_Training_Center_in_Fort_Irwin_141117-A-FG114-162.jpg",
+      "author": "Spc. Charles Probst",
+      "licence": "public-domain",
+      "sha256": "1e8ff47dddfadf2466e506522a362d0d3d31e5345fcad138eaaff613c5019fbc",
+      "note": "CROWS II on the commander's station with its armour shield, commander's and loader's hatches."
+    },
+    {
+      "file": "us_m1_abrams_sep_v2_trophy-three_quarter_front.jpg",
+      "variant": "us_m1_abrams_sep_v2_trophy",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:18th_MP_Brigade_Installs_ARAT_Tiles_(6278418).jpg",
+      "author": "U.S. Army USArmyEURAF by Sgt. Evan Ruchotzke",
+      "licence": "public-domain",
+      "sha256": "b82d7af732faf537393dd812f224645f43a951b1af5df0330a37a64aadfda9d4",
+      "note": "Abrams with Trophy (launcher and radar box on the turret side) and ARAT tiles on the right skirt, Germany 2020. Commons files it as SEPv3, but the full-height CROWS II and SEPv2-style headlights point to SEPv2 with Trophy; inferred."
+    },
+    {
+      "file": "us_m1_abrams_sep_v2_trophy-detail.jpg",
+      "variant": "us_m1_abrams_sep_v2_trophy",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:18th_MP_Brigade_Installs_ARAT_Tiles_(6278420).jpg",
+      "author": "U.S. Army USArmyEURAF by Sgt. Evan Ruchotzke",
+      "licence": "public-domain",
+      "sha256": "fb5b8789e6b519654943f302af9a01d52b391501fd5c4b523bfbfe1ebd15215a",
+      "note": "Turret side close-up of the same tank: armour boxes on the turret side and bustle, ARAT tile mounting on the skirt, crew for scale."
+    },
+    {
+      "file": "us_m1_abrams_sep_v2_trophy-three_quarter_rear.jpg",
+      "variant": "us_m1_abrams_sep_v2_trophy",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:18th_MP_Brigade_Installs_ARAT_Tiles_(6278421).jpg",
+      "author": "U.S. Army photo by Sgt. Evan Ruchotzke",
+      "licence": "public-domain",
+      "sha256": "766f4fa6278f4bfaf94eaf268d64110090be7af08a3302cd2a95d842bd768bb7",
+      "note": "Same Trophy-fitted tank on a transporter, seen from a rear quarter with the gun traversed forward: hull rear, tail lights, bustle, Trophy launchers, rear deck. The trailer hides the lower run."
+    },
+    {
+      "file": "us_m1_abrams_sep_v2_trophy-side.jpg",
+      "variant": "us_m1_abrams_sep_v2_trophy",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M1A2_SEPv2_Abrams_Obi-Wan_Kenobi_with_Trophy_launcher_mock-ups_at_International_Defence_Industry_Exhibition_2021.jpg",
+      "author": "Michał Derela",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "fa396c4317d97a5235fcb2c419c95061bd6ebdda1e8975648dffae1e9cbb3cd7",
+      "note": "M1A2 SEPv2 at MSPO 2021 with Trophy launcher mock-ups, right side: whole hull and turret. Mock-up launchers; positions match the service fit."
+    }
+  ],
+  "gaps": [
+    "us_m1_abrams_sep_v3_trophy: no licensable photo of a SEPv3 with Trophy fitted; the SEPv3 entries show the tank without it, and the Trophy launcher and radar come from the sep_v2_trophy entries.",
+    "us_m1_abrams_sep_v3_trophy: no three_quarter_rear or rear photo of a SEPv3; the hull rear is shared with SEPv2 except the UAPU box on the left rear (visible in the side view).",
+    "us_m1_abrams_sep_v3_trophy: no top view; turret roof from the detail (CROWS-LP) and the front view.",
+    "us_m1_abrams_sep_v2: no top view; turret roof from the detail and the three-quarter rear.",
+    "us_m1_abrams_sep_v2_trophy: no front, rear or top view; hull matches us_m1_abrams_sep_v2.",
+    "all variants: no running-gear close-up; road wheels, sprocket and idler read from the side views."
+  ]
+}
