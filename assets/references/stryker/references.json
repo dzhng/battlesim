@@ -1,0 +1,178 @@
+{
+  "entries": [
+    {
+      "file": "us_stryker_m1126_icv-three_quarter_front.jpg",
+      "variant": "us_stryker_m1126_icv",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Stryker_ICV_front_q.jpg",
+      "author": "U.S. Army",
+      "licence": "public-domain",
+      "sha256": "24bdffdd044795b14051988ec0ac088bc28176f646eee7dbfa2a594f0b5ec1f9",
+      "note": "Clean factory-finish M1126 ICV, left front quarter, Protector RWS with M2, no slat; uncluttered background. Low resolution (800px)."
+    },
+    {
+      "file": "us_stryker_m1126_icv-side.jpg",
+      "variant": "us_stryker_m1126_icv",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Battle_Group_Poland_conducts_Bull_Run_12_(6251963).jpg",
+      "author": "U.S. Army photo by Spc. Justin Stafford",
+      "licence": "public-domain",
+      "sha256": "19068464b0b5c2c1ae3137402d17cde07c6fcd78f5934380f583a407ee42aec4",
+      "note": "Near-profile left side on a bridge, RWS fitted, no slat; vehicle small in frame. Variant from Commons category M1126."
+    },
+    {
+      "file": "us_stryker_m1126_icv-side-2.jpg",
+      "variant": "us_stryker_m1126_icv",
+      "view": "side",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:M1126_STRYKER_IFV.png",
+      "author": "A proietti",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "5ab4b62da5dbd9748da3779769aa8aadb72772a35f76d7c665c152758f16e63d",
+      "note": "Flat orthographic right-side profile drawing; good for hull proportions and wheel spacing. Small (623px)."
+    },
+    {
+      "file": "us_stryker_m1126_icv-front.jpg",
+      "variant": "us_stryker_m1126_icv",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M1126_Stryker_crew_near_Tapa,_Estonia,_30_October_2014.png",
+      "author": "1st Lt. Jeffrey Rivard",
+      "licence": "public-domain",
+      "sha256": "e0cd9dbb466ab9b587d707e944d5b6220c17c7a6819ce34a5b8b5963630e16fd",
+      "note": "Front-on, close; slat armour cage fitted, crew in hatches, spare wheel on front; cluttered."
+    },
+    {
+      "file": "us_stryker_m1126_icv-rear.jpg",
+      "variant": "us_stryker_m1126_icv",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Stryker_rear_view.jpg",
+      "author": "Pfc. Phillip Adam Turner",
+      "licence": "public-domain",
+      "sha256": "4848b9892ffce6b29758efc39e162991e524f9afb26bb137206343f16c98d5e0",
+      "note": "Rear plate and ramp with RWS M2 and gunners; ICV inferred from RWS and squad hatches, not stated in title."
+    },
+    {
+      "file": "us_stryker_m1126_icv-detail.jpg",
+      "variant": "us_stryker_m1126_icv",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Kongsberg_Protector_RWS_on_M1126.jpg",
+      "author": "TSGT MIKE BUYTAS, USAF",
+      "licence": "public-domain",
+      "sha256": "3f273236bc28e93e248d8e361ed4706e3ba0a996bd06d22ac61bab28dfb16aeb",
+      "note": "Protector RWS with M2 and smoke dischargers, close up."
+    },
+    {
+      "file": "us_stryker_m1126_icv-detail-2.jpg",
+      "variant": "us_stryker_m1126_icv",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M1126_Stryker_top_close.jpg",
+      "author": "TSGT MIKE BUYTAS, USAF",
+      "licence": "public-domain",
+      "sha256": "8b40adcbbaaf130778c9fefbfca669d58408ca1914e1c071f538853ae5f35eee",
+      "note": "Roof detail: RWS, commander's hatch, spare wheel, sandbags; slat visible at edges."
+    },
+    {
+      "file": "us_m1127_stryker_rv_reconnaissance_vehicle-three_quarter_front.jpg",
+      "variant": "us_m1127_stryker_rv_reconnaissance_vehicle",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Stryker_RV_front_q.jpg",
+      "author": "Not listed on the Army web site",
+      "licence": "public-domain",
+      "sha256": "f74f38a81167758b50836e5a2afe48a69cdb6fbcf004e84ef051fdea59bd3bab",
+      "note": "M1127 RV, right front quarter, RWS with M2, slat armour fitted, low resolution (800px). Variant from title."
+    },
+    {
+      "file": "us_m1127_stryker_rv_reconnaissance_vehicle-side.jpg",
+      "variant": "us_m1127_stryker_rv_reconnaissance_vehicle",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:3-2_CAV_conducts_reconnaissance_training_in_Latvia_160127-A-RS950-003.jpg",
+      "author": "Capt. Jennifer Cruz, U.S. Army",
+      "licence": "public-domain",
+      "sha256": "870ff7597803a9177b9441963a4da32574087e07e971109798a040a0cca4139a",
+      "note": "Left side from slightly ahead of the beam, in snow: hull side, eight wheels, side stowage and jerry cans, RWS. RV inferred from Commons category and cavalry unit, not stated in title."
+    },
+    {
+      "file": "us_stryker_m1134_atgm-three_quarter_front.jpg",
+      "variant": "us_stryker_m1134_atgm",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:121025-A-BS310-254_(8135318726).jpg",
+      "author": "U.S. Department of Defense Current Photos",
+      "licence": "public-domain",
+      "sha256": "bc6aebf369de99dded585b83160185cb9683c15d31ba2ba772474dc8a1394079",
+      "note": "M1134 (AT 22 bumper marking), left front quarter, TOW ITAS launcher turret raised; crew in hatches."
+    },
+    {
+      "file": "us_stryker_m1134_atgm-side.jpg",
+      "variant": "us_stryker_m1134_atgm",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Stryker_M1134_ATGM.jpg",
+      "author": "Dfutrell at English Wikipedia",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "c935a3c590d99aa8d9cc84645883d54e3aedcb31e888e969aad01d4e5a1c4e0a",
+      "note": "Left side profile with slat armour cage fitted, TOW launcher stowed; slat hides the hull side."
+    },
+    {
+      "file": "us_stryker_m1134_atgm-side-2.jpg",
+      "variant": "us_stryker_m1134_atgm",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2nd_Cavalry_are_Dragoon_Ready.jpg",
+      "author": "The U.S. Army",
+      "licence": "public-domain",
+      "sha256": "3db818211cbaf51838db4bcaf7ea47b111a63fdd054b1e686c80d5ddad3dc61e",
+      "note": "Right side at range, TOW launcher raised, camouflage net over the hull; an M1126 ICV behind for comparison. M1134 identified from the launcher."
+    },
+    {
+      "file": "us_stryker_m1296_dragoon-three_quarter_front.jpg",
+      "variant": "us_stryker_m1296_dragoon",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M1296_ICV-D_Dragoon.jpg",
+      "author": "Markus Rauchenberger",
+      "licence": "public-domain",
+      "sha256": "4e1d33c001ffd4198e264637723bfedc1239e50384a0216c3e19a54acd77aea4",
+      "note": "M1296 with Kongsberg MCT-30 30mm turret, left front quarter, heavy side stowage."
+    },
+    {
+      "file": "us_stryker_m1296_dragoon-side.jpg",
+      "variant": "us_stryker_m1296_dragoon",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2nd_Cavalry_Regiment_Stryker_Vehicle_at_Saber_Junction_25_(9299304).jpg",
+      "author": "U.S. Army photo by Maj. Brian Sutherland",
+      "licence": "public-domain",
+      "sha256": "4b4b5963098f15bda82044f584f31c2d4f874e1945f8a2e66dd1afc7dbb77c77",
+      "note": "Clean left-side profile with MCT-30 30mm turret (M1296 identified from turret; title just says Stryker), rear stowage and jerry cans."
+    },
+    {
+      "file": "us_stryker_m1296_dragoon-three_quarter_rear.jpg",
+      "variant": "us_stryker_m1296_dragoon",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M1296_Stryker_Dragoon_190426-A-HE359-0111.jpg",
+      "author": "Gertrud Zach",
+      "licence": "public-domain",
+      "sha256": "083c5b3d42b4b94276c3980d7f356d7739dd0b4a5b060e49a99aac8e6e6b9520",
+      "note": "Right rear quarter, rear stowage rack and ramp, MCT-30 turret visible."
+    }
+  ],
+  "gaps": [
+    "us_stryker_m1126_icv: no clean three_quarter_rear found (only partial ramp-dismount shots)",
+    "us_stryker_m1126_icv: no top (overhead) view found; roof covered by a close detail only",
+    "us_stryker_m1134_atgm: no three_quarter_rear, front or rear found",
+    "us_stryker_m1296_dragoon: no top found; front/rear not picked (several front-quarter shots exist in Category:M1296 Stryker Dragoon)",
+    "all variants: no orthographic top view found",
+    "us_m1127_stryker_rv_reconnaissance_vehicle: no three_quarter_rear, front or rear found; the side photo is from slightly ahead of the beam",
+    "us_stryker_m1134_atgm: no close-up of the TOW launcher head found"
+  ]
+}
