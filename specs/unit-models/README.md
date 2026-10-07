@@ -18,7 +18,7 @@ they look like the real vehicles and soldiers.
 
 ## Next Agent Prompt
 
-**Status, 2026-10-06:** planned, nothing implemented. The earlier pass of this
+**Status, 2026-10-07:** in progress. Done and merged: 01, 02, 03 (see choices.md per slice). In flight in parallel worktrees (`um/slice-NN` branches): 04 (steps 1–2; step 3 waits for 10), 09, 10, 12. The earlier pass of this
 spec (every disabled card has a source GLB, see [History](#history)) is
 finished. The plan was walked with the user quadrant by quadrant
 ([the map](visualizations/unknowns-map.html)), then redrafted by four
@@ -105,9 +105,9 @@ Warnings:
 
 TODO:
 
-- [ ] [01 Presentation by property](slices/01-presentation-by-property.md): vehicle class from physics, weapon base key; roster vehicles and weapons get their sounds and effects.
-- [ ] [02 Roster stands alone](slices/02-roster-stands-alone.md): abstract roster base soldiers; no roster soldier inherits a generic kind.
-- [ ] [03 Encounter owner](slices/03-encounter-owner.md): Defender/Referee move to `sim::encounter`, unchanged.
+- [x] [01 Presentation by property](slices/01-presentation-by-property.md): vehicle class from physics, weapon base key; roster vehicles and weapons get their sounds and effects.
+- [x] [02 Roster stands alone](slices/02-roster-stands-alone.md): abstract roster base soldiers; no roster soldier inherits a generic kind.
+- [x] [03 Encounter owner](slices/03-encounter-owner.md): Defender/Referee move to `sim::encounter`, unchanged.
 - [ ] [04 Session catalog](slices/04-session-catalog.md): one resolver, three document sets (game, test, menu); the battle session owns its catalog and loads only its bindings.
 - [ ] [05 Test units](slices/05-test-units-explicit.md): `test_*` units, out of the game catalog, test art labelled.
 - [ ] [06 Village retired, maps labelled](slices/06-retire-village-label-maps.md): map-free rules, village deleted, live art renamed, every map `test` or `menu`, market-town-test.
