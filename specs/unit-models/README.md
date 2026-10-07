@@ -18,7 +18,7 @@ they look like the real vehicles and soldiers.
 
 ## Next Agent Prompt
 
-**Status, 2026-10-07:** in progress. Done and merged: 01–05, 07, 09, 10, 12, 13; references for the pilot and tracked families (`assets/references/`). Game page load 112 MiB (was ~1.2 GB). In flight: 06, 08, 11 and the wheeled references. Next: 14 (pilot) after 11.
+**Status, 2026-10-07:** in progress. Done and merged: 01–05, 07–13; reference libraries for every runtime vehicle family and the rifle squad (`assets/references/`). Every vehicle now dies into its own (interim) wreck. In flight: 06; the pilot (14) in two worktrees, `um/pilot-vehicles` (Abrams, Stryker, HMMWV) and `um/pilot-infantry` (rifle squad). Next: after the pilot's checkpoint, the lanes 15–18.
 
 **Pick up at [slice 01](slices/01-presentation-by-property.md):** every roster
 vehicle and weapon plays default sounds today, a bug players hear.
@@ -110,7 +110,7 @@ TODO:
 - [x] [08 Menu reel](slices/08-menu-reel.md): `menu_*` units in roster looks; exact-shot test against the recorded reel.
 - [x] [09 Pipeline](slices/09-pipeline.md): exporters read the fixture catalog; shared detail parts; crew module fixed; references schema and sheet; baselines.
 - [x] [10 Shared textures and download](slices/10-shared-textures-and-download.md): textures as shared files, gzip bundles, catalog-load limit, real texture-layer limit.
-- [ ] [11 Wrecks](slices/11-wrecks.md): `wreck_of` on the published prop; every vehicle names its own wreck; interim wrecks.
+- [x] [11 Wrecks](slices/11-wrecks.md): `wreck_of` on the published prop; every vehicle names its own wreck; interim wrecks.
 - [x] [12 Art rules](slices/12-art-rules.md): strict tiers, dressing allowance, unit budget rules (numbers from 14).
 - [x] [13 Materials](slices/13-materials.md): material roles, black tyres, dark glass, real-nation paint on every current model.
 - [ ] [14 Pilot](slices/14-pilot.md): Abrams, Stryker, HMMWV (real frame), rifle squad; class budgets measured and fixed.
