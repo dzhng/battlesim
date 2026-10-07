@@ -5,6 +5,7 @@ sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
 import parts as P
 from catalog_frames import requested_variant
+from wreckage import WRECK_ARG, burn, export_wreck
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
 SCHEME={'fennek':'german_three_tone','puma':'german_three_tone','vbl':'french_three_tone','vbci':'french_three_tone','jaguar':'french_three_tone','tigr':'russian_green','brm':'russian_green'}
@@ -117,9 +118,11 @@ def build(family):
             box('hmg_receiver',(.61,.18,.19),(.43,0,0),dark,pitch);cyl('hmg_barrel',.038,mu.x-.70,((mu.x+.70)/2,0,0),'X',steel,pitch,seg=12);box('hmg_ammo_box',(.31,.29,.28),(.22,.27,-.06),paint,pitch)
             if family=='tigr':box('kord_muzzle_brake',(.17,.071,.065),(mu.x-.085,0,0),dark,pitch)
             if family in ('vbl','tigr'):box('gunner_front_shield',(.065,.69,.31),(.77,0,.03),paint,yaw,bevel=.015)
-    finish(ao_distance=.65,ao_rays=4);print('ROSTER_REMAINING_GROUND',json.dumps({'id':ident,'tris':triangles_by_tier()}));os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True);export(out,texture_px=256)
+    wreck=WRECK_ARG in args
+    if wreck:burn()
+    finish(ao_distance=.65,ao_rays=4);print('ROSTER_REMAINING_GROUND',json.dumps({'id':ident,'tris':triangles_by_tier()}));os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True);(export_wreck if wreck else export)(out,texture_px=256)
     preview=next((a.split('=',1)[1] for a in args if a.startswith('--preview=')),None)
-    if preview:
+    if preview and not wreck:
         bpy.ops.wm.read_factory_settings(use_empty=True);bpy.ops.import_scene.gltf(filepath=os.path.abspath(out));os.makedirs(preview,exist_ok=True)
         for o in bpy.data.objects:
             if o.type=='MESH':o.hide_render=('_LOD' in o.name and not o.name.endswith('_LOD0'))

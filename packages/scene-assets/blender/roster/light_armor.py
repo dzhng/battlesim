@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
 import parts as P
 from catalog_frames import requested_variant
+from wreckage import WRECK_ARG, burn, export_wreck
 
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
@@ -187,11 +188,13 @@ def build(family):
                 cyl('recon_sensor_pedestal',.10,.43,(-.54,.49,.12),'Z',paint,yaw,seg=12)
                 box('recon_sensor_head',(.31,.36,.23),(-.54,.49,.42),glass,yaw)
     # Track bottom is already within ground tolerance; preserve all frozen pivot heights.
+    wreck=WRECK_ARG in args
+    if wreck:burn()
     finish(ao_distance=.65,ao_rays=4)
     print('ROSTER_LIGHT_ARMOR',json.dumps({'family':family,'id':ident,'tris':triangles_by_tier()}))
-    os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True);export(out,texture_px=256)
+    os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True);(export_wreck if wreck else export)(out,texture_px=256)
     preview=next((a.split('=',1)[1] for a in args if a.startswith('--preview=')),None)
-    if preview:
+    if preview and not wreck:
         bpy.ops.wm.read_factory_settings(use_empty=True);bpy.ops.import_scene.gltf(filepath=os.path.abspath(out))
         os.makedirs(preview,exist_ok=True)
         for o in bpy.data.objects:

@@ -382,7 +382,7 @@ fn exports_follow_their_published_layout() {
     use sim::world::export;
     let w = lab();
     let layout: serde_json::Value =
-        serde_json::from_str(&export::layout_json(crate::common::props())).unwrap();
+        serde_json::from_str(&export::layout_json(&crate::common::rules().catalog)).unwrap();
     let stride = layout["propStride"].as_u64().unwrap() as usize;
     assert_eq!(layout["propFields"].as_array().unwrap().len(), stride);
     let props = w.export_props();
@@ -415,7 +415,7 @@ fn road_segments_export_the_road_rule() {
     use sim::world::export;
     let w = lab();
     let layout: serde_json::Value =
-        serde_json::from_str(&export::layout_json(crate::common::props())).unwrap();
+        serde_json::from_str(&export::layout_json(&crate::common::rules().catalog)).unwrap();
     let stride = layout["surfaceStrokeStride"].as_u64().unwrap() as usize;
     let fields: Vec<&str> = layout["surfaceStrokeFields"]
         .as_array()
@@ -484,7 +484,7 @@ fn surface_exports_name_each_areas_own_kind() {
     ]"#,
     );
     let layout: serde_json::Value =
-        serde_json::from_str(&export::layout_json(crate::common::props())).unwrap();
+        serde_json::from_str(&export::layout_json(&crate::common::rules().catalog)).unwrap();
     let named = |tag: f32| {
         layout["surfaceAreaKinds"][tag as usize]
             .as_str()

@@ -248,6 +248,7 @@ impl WorldGeometry {
                         yaw,
                         half_extents: half,
                         base_z: None,
+                        wreck_of: None,
                     };
                     if nav.admit_floor_body(self, self.placed_prop(&def), movers) {
                         self.add_prop(&def);

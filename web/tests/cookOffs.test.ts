@@ -15,9 +15,10 @@ import type {
 } from "@packages/battle-renderer/src/models/modelInstances";
 import { UNITS } from "./catalog";
 import type { ObservationView } from "@web/battle/sim/observation";
-import type { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
+import { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { landedAfter } from "@packages/battle-renderer/src/effects/cookOff";
+import { effectCookOff } from "@apps/battle-lab/src/cookOffs";
 
 const WRECK = UNITS.hull("test_tank")!.wreck;
 
@@ -33,6 +34,7 @@ test("a whole vehicle wreck keeps the live hull until the blast, then jolts and 
   const c = {
     prop: 3,
     kind: UNITS.hull("test_jeep")!.wreck,
+    wreckOf: "test_jeep",
     center: [40, 30] as const,
     yaw: 0.5,
     half: [2.2, 1, 0.95] as const,
@@ -121,6 +123,7 @@ function seen(
       replaces: null,
       authoredProp: null,
       destroyed: false,
+      wreckOf: "test_tank",
     })),
   } as unknown as ObservationView;
 }
@@ -175,7 +178,7 @@ const tankPose = (at: readonly [number, number], turret: number) => ({
 });
 
 test("a Jeep death retains its own hull when another vehicle disappeared nearby", () => {
-  const hulls = new LastSeenHulls(UNITS, () => 2);
+  const hulls = new LastSeenHulls(() => 2);
   hulls.note(
     [tankPose([40.5, 30], 1.2), { ...tankPose([40, 30], 0), unit: 8, kind: "test_jeep" }],
     10,
@@ -184,6 +187,7 @@ test("a Jeep death retains its own hull when another vehicle disappeared nearby"
   const c = {
     prop: 3,
     kind: UNITS.hull("test_jeep")!.wreck,
+    wreckOf: "test_jeep",
     center: [40.5, 30] as const,
     yaw: 0.5,
     half: [2.2, 1, 0.95] as const,
@@ -198,7 +202,7 @@ test("a hull that brews up is drawn whole, as last seen, until its ammunition go
   // A beat between the hit and the ammunition going, whatever the shipped feel has.
   const feel = { ...gameEffects.cook_off, delay_s: 0.35 };
   const resolve: ResolveAppearance = (kind) => ({ appearance: kind, tint: [1, 0, 0] });
-  const hulls = new LastSeenHulls(UNITS, () => 2);
+  const hulls = new LastSeenHulls(() => 2);
   hulls.note([tankPose([40, 30], 1.2)], 10);
   hulls.note([], 10.03);
   const wreck: ModelInstance = {
@@ -213,6 +217,7 @@ test("a hull that brews up is drawn whole, as last seen, until its ammunition go
     cookOff: {
       prop: 3,
       kind: WRECK,
+      wreckOf: "test_tank",
       center: [40.3, 30],
       yaw: 0.5,
       half: [3.5, 1.8, 1.2],
@@ -244,7 +249,7 @@ test("a hull that brews up is drawn whole, as last seen, until its ammunition go
 test("a hull killed on the move glides on to its wreck, slowing as it brakes, and its pieces follow", () => {
   const feel = gameEffects.cook_off;
   const resolve: ResolveAppearance = (kind) => ({ appearance: kind, tint: [1, 0, 0] });
-  const hulls = new LastSeenHulls(UNITS, () => 2);
+  const hulls = new LastSeenHulls(() => 2);
   // Last seen 4 m short of where its wreck came to rest.
   hulls.note([tankPose([36, 30], 0)], 10);
   hulls.note([], 10.03);
@@ -260,6 +265,7 @@ test("a hull killed on the move glides on to its wreck, slowing as it brakes, an
     cookOff: {
       prop: 3,
       kind: WRECK,
+      wreckOf: "test_tank",
       center: [40, 30],
       yaw: 0,
       half: [3.5, 1.8, 1.2],
@@ -283,4 +289,78 @@ test("a hull killed on the move glides on to its wreck, slowing as it brakes, an
   // The wreck's pieces, once the ammunition goes, are where the hull has rolled to.
   const pieces = cookOffModels(transition, hull, feel, 11);
   expect(pieces.every((m) => Math.abs(m.x - 39) < 1e-9)).toBe(true);
+});
+
+test("a cook-off throws a turret only from a wreck with a turret piece: never a wheeled one's", () => {
+  // The tank's wreck is cut into a hull and a turret; the jeep's is whole.
+  const states = (...names: string[]) =>
+    names.map((name) => ({ name, bounds: { min: [-2, -1, 0], max: [2, 1, 2] }, tiers: [] }));
+  const appearance = (
+    scenery: string | null,
+    footprint: number[] | null,
+    wreck: string | null,
+    ...names: string[]
+  ) => ({
+    unit: scenery ? "scenery" : "vehicle",
+    scenery,
+    footprint,
+    mounts: null,
+    regionalFamily: null,
+    paints: null,
+    wreck,
+    bundle: { kind: "static", states: states(...names), materials: [], textures: [] },
+  });
+  const installed = {
+    appearances: new Map([
+      ["test_tank", appearance(null, null, "test_tank_wreck")],
+      ["test_jeep", appearance(null, null, "test_jeep_wreck")],
+      ["test_tank_wreck", appearance("wreck", [3.5, 1.8, 1.2], null, "default", "hull", "turret")],
+      ["test_jeep_wreck", appearance("wreck", [2.2, 1, 0.95], null, "default")],
+    ]),
+  } as unknown as InstalledAppearances;
+  const fit = new PropAppearances(
+    installed,
+    {
+      propAppearance: Object.fromEntries(
+        Object.entries(UNITS.view.props).map(([id, t]) => [id, t.appearance]),
+      ),
+      blockingPropKinds: {},
+      unitAppearance: { test_tank: "test_tank", test_jeep: "test_jeep" },
+    },
+    null,
+  );
+  const died = (unit: string, half: readonly [number, number, number]) => ({
+    prop: 3,
+    kind: UNITS.hull(unit)!.wreck,
+    wreckOf: unit,
+    center: [40, 30] as const,
+    yaw: 0.5,
+    half,
+    baseZ: 0,
+    tick: 301,
+  });
+  const jeep = died("test_jeep", [2.2, 1, 0.95]);
+  const whole = transitionOf(jeep, fit, installed, 30);
+  expect(whole?.wreck.appearance).toBe("test_jeep_wreck");
+  expect(whole?.lies).toBeNull();
+  expect(effectCookOff(jeep, whole).landing).toBeNull();
+  // The tank's own wreck has the piece: its turret is thrown and lands.
+  const tank = died("test_tank", [3.5, 1.8, 1.2]);
+  const thrown = transitionOf(tank, fit, installed, 30);
+  expect(thrown?.wreck.appearance).toBe("test_tank_wreck");
+  expect(effectCookOff(tank, thrown).landing).not.toBeNull();
+});
+
+test("a hull brews up into its own unit's wreck, not another unit's lying beside it", () => {
+  // The side loses its jeep beside a tank's fresh wreck: no brew-up there.
+  const watch = new CookOffWatch(UNITS, 30);
+  const jeepAt = (tick: number, alive: boolean): ObservationView =>
+    ({
+      ...seen(tick, null, alive ? [] : [{ id: 3, at: [40.3, 30] }]),
+      identified: alive
+        ? [{ id: 8, kind: "test_jeep", position: [40, 30, 0], yaw: 0.5, weaponPoses: [] }]
+        : [],
+    }) as unknown as ObservationView;
+  watch.note(jeepAt(10, true));
+  expect(watch.note(jeepAt(11, false))).toEqual([]);
 });

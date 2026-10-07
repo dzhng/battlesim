@@ -34,6 +34,11 @@ fn prop(kind: &str, center: [f64; 2], half: [f64; 3]) -> Value {
     json!({ "kind": kind, "center": center, "yaw": 0, "half_extents": half })
 }
 
+/// A wreck a map places: the remains of a test tank.
+fn wreck(kind: &str, center: [f64; 2], half: [f64; 3]) -> Value {
+    json!({ "kind": kind, "center": center, "yaw": 0, "half_extents": half, "wreck_of": "test_tank" })
+}
+
 fn burst(tick: u64, at: [f64; 2]) -> Value {
     json!({ "tick": tick, "burst": { "point": at, "weapon": "tank_he" } })
 }
@@ -93,7 +98,7 @@ fn a_direct_round_wears_the_struck_prop_by_its_armour() {
     let armor = row("light_wreck").armor;
     assert!(armor < 1.0, "the wreck is armoured");
     let mut b = battle(
-        json!([prop("light_wreck", [300.0, 300.0], [2.0, 1.0, 1.0])]),
+        json!([wreck("light_wreck", [300.0, 300.0], [2.0, 1.0, 1.0])]),
         json!([]),
         json!([
             { "side": "blue", "kind": "test_tank", "position": [100, 300] },
@@ -175,7 +180,7 @@ fn destroyed_props_become_their_rows_state() {
         json!([
             prop("crate", at(300.0), [0.5, 0.5, 0.5]),
             prop("sandbags", at(400.0), [2.0, 0.4, 0.5]),
-            prop("heavy_wreck", at(500.0), [3.5, 1.8, 1.2]),
+            wreck("heavy_wreck", at(500.0), [3.5, 1.8, 1.2]),
             prop("tooth", at(600.0), [0.6, 0.6, 0.6]),
         ]),
         json!([{ "shape":{"kind":"polygon","ring":[[680.0,280.0],[720.0,280.0],[720.0,320.0],[680.0,320.0]]}}]),
@@ -220,6 +225,8 @@ fn destroyed_props_become_their_rows_state() {
         .expect("a lighter wreck");
     assert_eq!(lighter.kind, common::kind("medium_wreck"));
     assert!(lighter.half.z < 1.2);
+    // Still the same tank's wreck, only lower.
+    assert_eq!(lighter.wreck_of, Some(common::unit_kind("test_tank")));
     // The tooth stands: ordinary fire never destroys it (Q18).
     assert!(w.prop(3).is_some());
     // The trees are down and their spot is open ground.
@@ -398,4 +405,23 @@ fn destruction_enters_the_digest_and_replays_exactly() {
     let mut again = Battle::from_replay(&setup, &replay).unwrap();
     run(&mut again, 60);
     assert_eq!(again.digest(), d1);
+}
+
+#[test]
+#[should_panic(expected = "a wreck names the unit it was")]
+fn a_map_wreck_without_its_unit_is_refused() {
+    battle(
+        json!([prop("heavy_wreck", [300.0, 300.0], [3.5, 1.8, 1.2])]),
+        json!([]),
+        far(),
+        json!([]),
+    );
+}
+
+#[test]
+#[should_panic(expected = "only a wreck names a unit")]
+fn a_prop_that_is_no_wreck_names_no_unit() {
+    let mut crate_of = prop("crate", [300.0, 300.0], [0.5, 0.5, 0.5]);
+    crate_of["wreck_of"] = json!("test_tank");
+    battle(json!([crate_of]), json!([]), far(), json!([]));
 }

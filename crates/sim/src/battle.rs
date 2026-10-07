@@ -1537,6 +1537,8 @@ impl Battle {
                         yaw: prop.yaw,
                         half_extents: [prop.half.x, prop.half.y, height_m / 2.0],
                         base_z: Some(prop.base_z),
+                        // A lighter wreck is still the same unit's.
+                        wreck_of: prop.wreck_of.map(|t| self.rules.catalog.id(t).to_string()),
                     },
                     id,
                 );
@@ -1986,6 +1988,7 @@ impl Battle {
                     yaw: unit.yaw,
                     half_extents: [half.x, half.y, half.z],
                     base_z: Some(unit.position.z),
+                    wreck_of: Some(self.rules.catalog.id(unit.kind).to_string()),
                 })),
                 _ => None,
             };
@@ -3110,6 +3113,7 @@ impl Battle {
                         .filter(|_| !destroyed)
                         .map(|_| self.world.remembered_structure_owner(p.id)),
                     authored_prop: self.world.authored_prop(p.id),
+                    wreck_of: p.wreck_of,
                 });
             }
             frame.projectiles.clear();
@@ -3471,7 +3475,8 @@ mod tests {
     fn each_sides_grid_stays_the_whole_build_of_what_it_believes() {
         let burst = |tick: u64, at: [f64; 2]| serde_json::json!({ "tick": tick, "burst": { "point": at, "weapon": "tank_he" } });
         let mut events = vec![serde_json::json!({ "tick": 60, "add_prop": {
-            "kind": "light_wreck", "center": [150, 30], "yaw": 0.4, "half_extents": [2.2, 1.0, 0.9] } })];
+            "kind": "light_wreck", "center": [150, 30], "yaw": 0.4, "half_extents": [2.2, 1.0, 0.9],
+            "wreck_of": "test_jeep" } })];
         for round in 0..12 {
             let tick = 20 + 25 * round;
             events.push(burst(tick, [150.0 + 4.0 * round as f64, 80.0]));
@@ -3493,7 +3498,7 @@ mod tests {
         );
         props.push(
             serde_json::json!({ "kind": "heavy_wreck", "center": [236, 140], "yaw": 0.3,
-            "half_extents": [3, 1.5, 1] }),
+            "half_extents": [3, 1.5, 1], "wreck_of": "test_tank" }),
         );
         let (wall, wreck) = (13, 14);
         let drive = |side: &str, unit: u32, goal: [f64; 2]| {

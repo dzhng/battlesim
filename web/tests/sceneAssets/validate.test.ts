@@ -21,6 +21,7 @@ import {
   paintFindings,
   regionalFindings,
   typeAppearanceFindings,
+  wreckFindings,
   validateAppearance,
   validateSkeleton,
 } from "@packages/scene-assets/src/validate.ts";
@@ -344,6 +345,10 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     const { tank: _, ...appearances } = testCatalog().appearances;
     return typeAppearanceFindings(appearances, AUTHORITY.units);
   },
+  "fit.wreck": async () => {
+    const { tank, ...rest } = testCatalog().appearances;
+    return wreckFindings({ ...rest, tank: { ...tank, wreck: undefined } }, AUTHORITY.units);
+  },
   "fit.canopy": async () => (await scenery("tree", { summer: treeGlb(12.5) })).findings,
   "fit.tree_size": async () =>
     (await scenery("tree", { summer: treeGlb(11, 0, { bole: 0.2 }) })).findings,
@@ -625,4 +630,25 @@ test("a wreck's pieces lie within the whole wreck, off the ground and short of i
   const proud = (await pieces(blockGlb(2, 5))).findings;
   expect(proud.map((f) => f.code)).toEqual(["fit.piece"]);
   expect(proud[0].message).toMatch(/turret/);
+});
+
+test("every vehicle names its own wreck, a wreck of its unit's hull", () => {
+  const appearances = testCatalog().appearances;
+  const codes = (over: Record<string, AppearanceEntry>) =>
+    wreckFindings({ ...appearances, ...over }, AUTHORITY.units).map((f) => f.message);
+  expect(codes({})).toEqual([]);
+  // None named, one the catalog lacks, one that is no wreck, one another
+  // unit's size: each refused, by name.
+  expect(codes({ tank: { ...appearances.tank, wreck: undefined } })).toEqual([
+    expect.stringContaining("tank: names no wreck"),
+  ]);
+  expect(codes({ tank: { ...appearances.tank, wreck: "nothing" } })).toEqual([
+    expect.stringContaining('"nothing", which the catalog lacks'),
+  ]);
+  expect(codes({ tank: { ...appearances.tank, wreck: "crate" } })).toEqual([
+    expect.stringContaining('"crate" is a crate, not a wreck'),
+  ]);
+  expect(codes({ tank: { ...appearances.tank, wreck: "truck_wreck" } })).toEqual([
+    expect.stringContaining("unit type tank's hull [3.5, 1.8, 1.2]"),
+  ]);
 });

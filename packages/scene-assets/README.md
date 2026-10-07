@@ -46,8 +46,10 @@ ground contact; the validator does not invent a mast or outriggers.
 [Scenery kinds](src/scenery.ts) define art roles, states and per-tier budgets. A kind may also take pieces: states cut
 from its whole where they lie in it (a tank wreck's hull and turret, for the
 turret's throw), held inside the whole rather than to the ground or the box.
-Prop bindings belong to the resolved simulation catalog; the renderer does not
-maintain a second prop roster. Art fits boxes the simulation actually places,
+Every vehicle appearance names its own wreck (`wreck`): a `wreck` scenery
+appearance on its unit's hull, cut into those pieces where it has a turret to
+throw, so you can tell which unit died by looking. Prop bindings belong to the
+resolved simulation catalog; the renderer does not maintain a second prop roster. Art fits boxes the simulation actually places,
 including a wreck's hull or a building's physical remains. Nonphysical dressing
 must not look tall enough to grant cover or concealment the simulation lacks.
 Trees share a physical size reference so species variation cannot change gameplay fit.

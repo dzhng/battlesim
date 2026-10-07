@@ -28,7 +28,14 @@ test("a catalog installs as one generation with every appearance and skeleton", 
   const { library } = await served();
   const installed = await library.load("/assets/");
   expect(installed.generation).toBe(1);
-  expect([...installed.appearances.keys()].sort()).toEqual(["crate", "rifleman", "tank", "truck"]);
+  expect([...installed.appearances.keys()].sort()).toEqual([
+    "crate",
+    "rifleman",
+    "tank",
+    "tank_wreck",
+    "truck",
+    "truck_wreck",
+  ]);
   expect(installed.appearances.get("tank")?.bundle.kind).toBe("articulated");
   expect(installed.skeletons.get("test-rig")?.clips.map((c) => c.name)).toContain("walk");
 });
@@ -49,7 +56,7 @@ test("a bundle whose bytes do not match its hash fails the load and keeps the in
   files.set(tankFile, corrupt);
   await expect(library.load("/assets/")).rejects.toThrow(/content hash/);
   expect(library.installed).toBe(first);
-  expect(library.installed?.appearances.size).toBe(4);
+  expect(library.installed?.appearances.size).toBe(6);
 });
 
 test("an LFS pointer served in place of a bundle names the exact pull", async () => {

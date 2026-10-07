@@ -460,32 +460,32 @@ fn public_geometry_ids_use_one_exact_limb_pair_and_keep_physical_columns() {
     let setup = compound_setup(json!([]));
     let b = Battle::new(&setup, 11);
     let layout: Value =
-        serde_json::from_str(&sim::world::export::layout_json(b.world().types())).unwrap();
+        serde_json::from_str(&sim::world::export::layout_json(&setup.rules.catalog)).unwrap();
     assert_eq!(
         layout["propFields"],
-        json!(["idLo", "idHi", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"])
+        json!(["idLo", "idHi", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ", "wreckOf"])
     );
     let building = setup.rules.catalog.props().kind("building").0 as f32;
     let tooth = setup.rules.catalog.props().kind("tooth").0 as f32;
     assert_eq!(
         b.world()
             .export_props()
-            .as_chunks::<10>()
+            .as_chunks::<11>()
             .0
             .iter()
             .map(|p| p.to_vec())
             .collect::<Vec<_>>(),
         vec![
-            vec![0., 0., building, 400., 300., 0., 4., 3., 4., 0.],
-            vec![1., 0., building, 406., 301., 0., 2., 2., 4., 0.],
-            vec![2., 0., tooth, 700., 550., 0., 0.6, 0.6, 0.6, 0.]
+            vec![0., 0., building, 400., 300., 0., 4., 3., 4., 0., -1.],
+            vec![1., 0., building, 406., 301., 0., 2., 2., 4., 0., -1.],
+            vec![2., 0., tooth, 700., 550., 0., 0.6, 0.6, 0.6, 0., -1.]
         ]
     );
     let mut wide = b.world().prop(1).unwrap().clone();
     wide.id = u32::MAX;
     assert_eq!(
         sim::world::export::prop_record(&wide),
-        [65535., 65535., building, 406., 301., 0., 2., 2., 4., 0.]
+        [65535., 65535., building, 406., 301., 0., 2., 2., 4., 0., -1.]
     );
     let metadata: Value = serde_json::from_str(&b.world().export_buildings()).unwrap();
     assert_eq!(

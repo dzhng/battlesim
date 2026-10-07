@@ -24,6 +24,8 @@ pub struct Prop {
     /// Every side plans with it, seen or not: remains that close an
     /// authored body's footprint as the body did (a building's ruin).
     pub known_to_all: bool,
+    /// A wreck's unit type (`PropDefinition::wreck_of`); none for any other prop.
+    pub wreck_of: Option<contract::catalog::TypeIndex>,
 }
 
 impl Prop {
@@ -808,6 +810,7 @@ mod query_tests {
             yaw: 0.0,
             half_extents: [1.0, 1.0, 1.0],
             base_z: None,
+            wreck_of: None,
         };
         // The truth moves on: 1 is shoved, 2 destroyed, 4 added.
         let unshoved = world.prop(1).unwrap().clone();

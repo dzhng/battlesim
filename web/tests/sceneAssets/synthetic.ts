@@ -9,6 +9,7 @@ import { quat, type Mat4, type Quat, type Vec3 } from "math";
 import { inverse, mul, trsMatrix } from "@packages/scene-assets/src/trs.ts";
 import { readBundle } from "@packages/scene-assets/src/gzip.ts";
 import type {
+  AppearanceEntry,
   Authority,
   Bundle,
   Catalog,
@@ -954,8 +955,17 @@ export function testCatalog(): Catalog {
         source: "assets/source/test-tank.glb",
         basis_yaw_deg: 0,
         mounts: TANK_DRAWS,
+        wreck: "tank_wreck",
       },
-      truck: { unit: "vehicle", source: "assets/source/test-truck.glb", basis_yaw_deg: 0 },
+      truck: {
+        unit: "vehicle",
+        source: "assets/source/test-truck.glb",
+        basis_yaw_deg: 0,
+        wreck: "truck_wreck",
+      },
+      // Each vehicle's own wreck, on its unit's hull (the block art overhangs it).
+      tank_wreck: wreckEntry([3.5, 1.8, 1.2]),
+      truck_wreck: wreckEntry([3, 1.4, 1.8]),
       crate: {
         unit: "scenery",
         scenery: "crate",
@@ -967,8 +977,21 @@ export function testCatalog(): Catalog {
   };
 }
 
+/** A vehicle's wreck on a hull of `half`, drawn by the block. */
+function wreckEntry(half: Vec3): AppearanceEntry {
+  return {
+    unit: "scenery",
+    scenery: "wreck",
+    states: { default: "assets/source/test-wreck.glb" },
+    basis_yaw_deg: 0,
+    footprint_half_m: half,
+    tolerances: { footprint_m: 6 },
+  };
+}
+
 export function testSources(): Record<string, Uint8Array> {
   return {
+    "assets/source/test-wreck.glb": blockGlb(2),
     "assets/source/test-rig.glb": soldierGlb(),
     "assets/source/test-rifleman.glb": soldierGlb({ animated: false, tint: 1 }),
     "assets/source/test-tank.glb": tankGlb(),

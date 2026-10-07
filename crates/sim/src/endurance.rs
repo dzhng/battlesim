@@ -135,7 +135,7 @@ fn scenario_in_arena(
                 bottom + 100.0 + remains.unit() * 1800.0,
             );
             let wreck = json!({ "id": first_wreck + wreck_index, "kind": "heavy_wreck", "center": [x, y], "yaw": remains.unit() * std::f64::consts::TAU,
-                "half_extents": [3.5, 1.8, 1.2] });
+                "half_extents": [3.5, 1.8, 1.2], "wreck_of": "test_tank" });
             map.props
                 .push(serde_json::from_value(wreck).map_err(|e| e.to_string())?);
         }

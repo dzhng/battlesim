@@ -392,6 +392,8 @@ export interface KnownPropView {
   /** The side saw `replaces` destroyed with nothing in its place (a crate
    *  blown away): the entry draws nothing and only removes that prop. */
   destroyed: boolean;
+  /** A wreck's unit type: drawn as that unit's own wreck. Null for any other prop. */
+  wreckOf: string | null;
 }
 
 /** Ground cells this side can see, one bit each (row-major). */
@@ -1122,6 +1124,7 @@ function decodeFrame(
           structureOwner: limbs(f, "structureOwner"),
           authoredProp: limbs(f, "authoredProp"),
           destroyed: f("destroyed") === 1,
+          wreckOf: f("wreckOf") < 0 ? null : layout.unitKinds[f("wreckOf")],
         }),
       );
   const bounce = reader("projectiles", "ricochets");

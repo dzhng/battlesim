@@ -34,6 +34,7 @@ import {
   paintFindings,
   regionalFindings,
   typeAppearanceFindings,
+  wreckFindings,
   validateAppearance,
   validateSkeleton,
   type Stats,
@@ -210,6 +211,7 @@ export async function bakeCatalog(
         ...(entry.mounts ? { mounts: entry.mounts } : {}),
         ...(entry.regional_family ? { regional_family: entry.regional_family } : {}),
         ...(entry.paints ? { paints: entry.paints } : {}),
+        ...(entry.wreck ? { wreck: entry.wreck } : {}),
       };
     reports.push({
       name,
@@ -276,8 +278,11 @@ export async function bakeCatalog(
       hash: null,
       bytes: 0,
     });
-  // Every unit type draws appearances the catalog has.
-  const types = typeAppearanceFindings(catalog.appearances, context.authority.units);
+  // Every unit type draws appearances the catalog has, and every vehicle its own wreck.
+  const types = [
+    ...typeAppearanceFindings(catalog.appearances, context.authority.units),
+    ...wreckFindings(catalog.appearances, context.authority.units),
+  ];
   if (types.length)
     reports.push({
       name: "units",

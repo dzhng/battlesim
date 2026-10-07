@@ -145,6 +145,8 @@ fn a_destroyed_tank_leaves_a_wreck_that_reroutes_the_side_that_sees_it() {
         .cloned()
         .expect("blue saw the wreck");
     assert!((wreck.center[0] - 300.0).abs() < 1.0);
+    // The wreck says whose it is: the renderer draws that unit's own wreck.
+    assert_eq!(wreck.wreck_of, Some(common::unit_kind("test_tank")));
     // A death blue watched: the attack is complete and leaves no last-seen area.
     assert_eq!(own(&b, Side::Blue, 0).unwrap().goal, None);
     assert!(

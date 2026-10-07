@@ -5,6 +5,7 @@ sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
 import parts as P
 from catalog_frames import requested_variant
+from wreckage import WRECK_ARG, burn, export_wreck
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
 SCHEME={'acv':'us_desert_tan','ajax':'british_green','boxer':'german_three_tone','cv90':'swedish_splinter'}
@@ -121,9 +122,11 @@ def build(family):
             cyl('hmg_barrel',.038,mu.x-.70,((mu.x+.70)/2,0,0),'X',steel,pitch,seg=12)
             box('ammo_box',(.33,.32,.29),(.26,.31,-.07),paint,pitch)
             box('remote_optics',(.26,.26,.22),(.30,-.26,.16),glass,pitch)
-    finish(ao_distance=.7,ao_rays=4);print('ROSTER_CARRIER',json.dumps({'id':ident,'tris':triangles_by_tier()}));os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True);export(out,texture_px=256)
+    wreck=WRECK_ARG in args
+    if wreck:burn()
+    finish(ao_distance=.7,ao_rays=4);print('ROSTER_CARRIER',json.dumps({'id':ident,'tris':triangles_by_tier()}));os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True);(export_wreck if wreck else export)(out,texture_px=256)
     preview=next((a.split('=',1)[1] for a in args if a.startswith('--preview=')),None)
-    if preview:
+    if preview and not wreck:
         bpy.ops.wm.read_factory_settings(use_empty=True);bpy.ops.import_scene.gltf(filepath=os.path.abspath(out));os.makedirs(preview,exist_ok=True)
         for o in bpy.data.objects:
             if o.type=='MESH':o.hide_render=('_LOD' in o.name and not o.name.endswith('_LOD0'))

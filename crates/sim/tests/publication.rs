@@ -705,9 +705,10 @@ fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
             building: Some(big + 2),
             structure_owner: Some(big + 4),
             authored_prop: Some(big + 8),
+            wreck_of: None,
         },
         contract::observation::KnownProp {
-            kind: common::kind("crate"),
+            kind: common::kind("heavy_wreck"),
             center: [400.0, 300.0],
             yaw: 0.0,
             half_extents: [1.0; 3],
@@ -718,6 +719,7 @@ fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
             building: None,
             structure_owner: None,
             authored_prop: None,
+            wreck_of: Some(common::unit_kind("test_tank")),
         },
     ];
     frame.own[0].garrison = Some(contract::observation::GarrisonState {
@@ -755,6 +757,12 @@ fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
     );
     let dynamic = &groups["knownProps"][1].fields;
     assert_eq!(integer(bits, dynamic, "id"), big + 10);
+    // A wreck names its unit type by its index in `unitKinds`; nothing else does.
+    assert_eq!(p["wreckOf"], -1.0);
+    assert_eq!(
+        dynamic["wreckOf"],
+        f32::from(common::unit_kind("test_tank").0)
+    );
     for name in ["building", "structureOwner", "authoredProp", "replaces"] {
         assert_eq!(
             [dynamic[&format!("{name}Lo")], dynamic[&format!("{name}Hi")]],

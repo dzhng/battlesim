@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
 import parts as P
 from catalog_frames import requested_variant
+from wreckage import WRECK_ARG, burn, export_wreck
 
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
@@ -176,10 +177,12 @@ def build(FAMILY, AXLES, CAB_STYLE):
      # Small uncovered top supplies at the rear make logistics purpose clear.
 
     rest_on_ground()
+    wreck=WRECK_ARG in ARGS
+    if wreck:burn()
     finish(ao_distance=.8,ao_rays=8)
     print('ROSTER_TRUCK',json.dumps({'family':FAMILY,'type':TYPE_ID,'dimensions':[L,W,H],'axles':len(AXLES),'tris':triangles_by_tier(),'nodes':sorted(o.name for o in bpy.data.objects if o.type=='EMPTY')}))
-    export(OUT,texture_px=256)
-    if PREVIEW:
+    (export_wreck if wreck else export)(OUT,texture_px=256)
+    if PREVIEW and not wreck:
      # Review the exported material/vertex-color path, rather than an unconnected source shader.
      bpy.ops.wm.read_factory_settings(use_empty=True)
      bpy.ops.import_scene.gltf(filepath=os.path.abspath(OUT))

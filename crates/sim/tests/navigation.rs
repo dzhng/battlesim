@@ -529,7 +529,7 @@ fn a_line_of_wrecks_stops_squads_and_tanks_alike() {
     let wrecks: Vec<String> = (0..17)
         .map(|k| {
             format!(
-                r#"{{"kind":"heavy_wreck","center":[200,{}],"yaw":1.5708,"half_extents":[5,2,1.2]}}"#,
+                r#"{{"kind":"heavy_wreck","center":[200,{}],"yaw":1.5708,"half_extents":[5,2,1.2],"wreck_of":"test_tank"}}"#,
                 5 + k * 10
             )
         })
@@ -601,6 +601,7 @@ fn only_known_props_shape_the_plan() {
         yaw: 0.0,
         half_extents: [0.5, 80.0, 2.0],
         base_z: None,
+        wreck_of: None,
     });
     let (from, to) = (v2(150.0, 100.0), v2(250.0, 100.0));
     let unknown = Known::of(NavGrid::new(Arc::clone(&map)), &w);

@@ -50,6 +50,11 @@ in its folder. Nothing else supplies a frame, so an appearance no unit draws
 cannot be exported, and its tests run without Blender:
 `python3 -m unittest discover -s packages/scene-assets/blender -p 'catalog_frames_test.py'`.
 
+Every vehicle has its own wreck. A roster exporter given `--wreck` writes its
+vehicle's interim wreck beside the live one (`<appearance>_wreck.glb`, and
+`_hull`/`_turret` pieces where it has a turret to throw), burnt through
+[one helper](wreckage.py) until its family is rebuilt with a modelled wreck.
+
 Subject exporters build vehicles, wrecks, props, trees and forest-floor material.
 Shared part, masonry, texture and damage helpers keep frame conventions and seeded
 source identity consistent across those subjects. [The batch script](build_sources.sh)

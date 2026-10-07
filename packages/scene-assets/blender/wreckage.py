@@ -15,11 +15,19 @@ with these helpers before `finish()` bakes paint and occlusion onto the result:
   booleans), so every opening shows an interior with depth, not a painted patch;
 - `plate` makes a torn sheet (a jagged outline with thickness) for debris.
 
+A roster vehicle not yet rebuilt has an interim wreck (`--wreck` on its
+exporter): `burn` turns its live parts to burnt steel and char before
+`finish()`, and `export_wreck` writes the wreck and, where it has a turret to
+throw, its `hull` and `turret` pieces, each where it lies in the whole, as
+`tank.py --wreck --piece=` does. The rebuilt families replace each with a
+modelled one.
+
 Every helper applies to all four tiers alike, with the same field, so the
 coarser tiers are the same wreck. Deterministic: fixed seeds, no randomness
 from the clock.
 """
 import math
+import os
 import random
 
 import bmesh
@@ -281,5 +289,106 @@ def remove(*prefixes):
         bpy.data.objects.remove(o, do_unlink=True)
 
 
+# ------------------------------------------------------------- interim wrecks
+WRECK_ARG = "--wreck"
+# The articulated rig a wreck keeps from its live vehicle: the turret it throws
+# (`MOUNT_NODES.gun.yaw`), and the pitch nodes whose barrels sag.
+TURRET = "turret"
+BARRELS = ("gun", "hmg_gun")
+SAG_DEG = 7.0
+# The cook-off heaved the turret off its ring: it sits askew across the deck,
+# where its thrown piece lands (`tank.py`'s wreck sits the same way).
+HEAVE_DEG = (-5.0, 3.0, 24.0)  # roll, pitch, yaw
+HEAVE_M = (-0.25, 0.3, 0.08)
+# What was rubber, glass, canvas or a black opening burns to char; the rest is
+# steel, its paint burnt off.
+CHARRED = ("rubber", "glass", "fabric")
+
+
+def wreck_paths(out):
+    """The interim wreck's files beside the live vehicle's `out`: its whole
+    (`default`) and its `hull` and `turret` pieces."""
+    stem = out[:-4] if out.endswith(".glb") else out
+    return {"default": f"{stem}_wreck.glb", "hull": f"{stem}_wreck_hull.glb", "turret": f"{stem}_wreck_turret.glb"}
+
+
+def burn():
+    """The built live vehicle as its interim wreck, before `finish()`: every
+    surface burnt (smoke-blackened steel, char where rubber, glass and canvas
+    were), its dressing (antennas, masts) and crew gone, its barrels sagging on
+    broken trunnions, its turret heaved askew off the ring, and the fire vented
+    through the ring."""
+    from parts import SCORCH, textured
+    shell = textured("wreck_steel", "burnt_metal", chip=0.6, dirt=0.3, soot=0.6, ash=0.3, seed=7.0)
+    char = textured("wreck_char", "burnt_metal", colour=(0.02, 0.019, 0.018), chip=0.2, dirt=0.2, seed=9.0)
+    for o in list(bpy.data.objects):
+        dressing = any(a.name.startswith("dressing_") for a in (o, *_ancestors(o)))
+        crew = o.type == "MESH" and any(m and m.name.startswith("crew_") for m in o.data.materials)
+        if dressing or crew:
+            bpy.data.objects.remove(o, do_unlink=True)
+    for o in bpy.data.objects:
+        if o.type != "MESH":
+            continue
+        was = o.data.materials[0] if o.data.materials else None
+        burnt = char if was is not None and (was.get("role") in CHARRED or was.name.startswith("black")) else shell
+        for k in range(len(o.data.materials)):
+            o.data.materials[k] = burnt
+        if not o.data.materials:
+            o.data.materials.append(burnt)
+        # UVs made for another texture (a track's links) would sample the
+        # burnt one at their scale: let the export box-project it in metres.
+        while o.data.uv_layers:
+            o.data.uv_layers.remove(o.data.uv_layers[0])
+    for name in BARRELS:
+        pitch = bpy.data.objects.get(name)
+        if pitch is not None:
+            pitch.rotation_euler.y += math.radians(SAG_DEG)
+    turret = bpy.data.objects.get(TURRET)
+    if turret is not None:
+        SCORCH.append((turret.matrix_world.translation.copy(), 2.4))
+        for k in range(3):
+            turret.rotation_euler[k] += math.radians(HEAVE_DEG[k])
+            turret.location[k] += HEAVE_M[k]
+    bpy.context.view_layer.update()
+
+
+def _ancestors(o):
+    while o.parent is not None:
+        o = o.parent
+        yield o
+
+
+def export_wreck(out, **export_kw):
+    """Export the burnt vehicle beside `out` (`wreck_paths`): whole, then, if
+    it has a turret, its hull without it and its turret alone, unparented
+    where it lies in the whole. Returns the states written, by name."""
+    import tempfile
+    from parts import export
+    paths = wreck_paths(out)
+    export(paths["default"], **export_kw)
+    if bpy.data.objects.get(TURRET) is None:
+        return {"default": paths["default"]}
+    # Each piece deletes the other: cut the hull from the scene, then the
+    # turret from a copy of it (the exporter follows parents, not collections).
+    whole = os.path.join(tempfile.mkdtemp(), "wreck.blend")
+    bpy.ops.wm.save_as_mainfile(filepath=whole, copy=True)
+    for keep_turret in (False, True):
+        if keep_turret:
+            bpy.ops.wm.open_mainfile(filepath=whole)
+        turret = bpy.data.objects[TURRET]
+        thrown = {turret, *turret.children_recursive}
+        if keep_turret:
+            lies = turret.matrix_world.copy()
+            turret.parent = None
+            turret.matrix_world = lies
+        for o in list(bpy.data.objects):
+            if (o in thrown) != keep_turret:
+                bpy.data.objects.remove(o, do_unlink=True)
+        bpy.context.view_layer.update()
+        export(paths["turret" if keep_turret else "hull"], **export_kw)
+    os.remove(whole)
+    return paths
+
+
 __all__ = ["parts", "densify", "warp", "heat", "dent", "sag", "bend", "ragged", "ragged_outline", "frame", "cut", "hollow",
-           "plate", "remove"]
+           "plate", "remove", "WRECK_ARG", "burn", "export_wreck", "wreck_paths"]

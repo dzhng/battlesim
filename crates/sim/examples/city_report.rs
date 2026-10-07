@@ -135,7 +135,7 @@ fn main() {
             let hull = rules.catalog.by_id(kind).hull().expect("a vehicle");
             events.push(json!({ "tick": hz * 3 / 2, "add_prop": {
                 "kind": "heavy_wreck", "center": [at[0] + ahead, at[1]], "yaw": 0.0,
-                "half_extents": hull.half_extents_m } }));
+                "half_extents": hull.half_extents_m, "wreck_of": kind } }));
         }
         // The trees nearest each unit, nearest first; the unit whose
         // furthest of them is nearest is the one beside a wood.

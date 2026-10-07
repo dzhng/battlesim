@@ -152,7 +152,7 @@ pub fn materialize_template(descriptor_json: &str, frame_json: &str) -> Result<S
 #[wasm_bindgen]
 pub fn world_layout(rules_json: &str) -> Result<String, JsError> {
     let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
-    Ok(export::layout_json(rules.catalog.props()))
+    Ok(export::layout_json(&rules.catalog))
 }
 
 /// The page's view of a map's static geometry, built by the simulation's own

@@ -88,7 +88,9 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
                 "props": [
                     { "kind": "wall", "center": [55, 12.6], "yaw": 0, "half_extents": [5, 12.6, 1.5] },
                     { "kind": "wall", "center": [55, 47.4], "yaw": 0, "half_extents": [5, 12.6, 1.5] },
-                    { "kind": body, "center": at, "yaw": 0, "half_extents": [0.8, 3.5, 0.6] },
+                    // A wreck names the unit it was; any test tank's will do.
+                    { "kind": body, "center": at, "yaw": 0, "half_extents": [0.8, 3.5, 0.6],
+                      "wreck_of": (["light_wreck", "heavy_wreck"].contains(&body)).then_some("test_tank") },
                 ],
             })
             .to_string();

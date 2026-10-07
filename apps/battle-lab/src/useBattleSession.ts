@@ -233,7 +233,7 @@ export function useBattleSession({
   // its ammunition goes, and only then as its moving wreck.
   const lastHulls = useMemo(
     () =>
-      new LastSeenHulls(units, (kind) => {
+      new LastSeenHulls((kind) => {
         const m = units.type(kind).mobility;
         const road = "tracked" in m ? m.tracked : "wheeled" in m ? m.wheeled : m.foot;
         // As the simulation stops a dead hull: full road speed lost in `wreck_stop_s`.

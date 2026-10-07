@@ -5,6 +5,7 @@ sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
 import parts as P
 from catalog_frames import requested_variant
+from wreckage import WRECK_ARG, burn, export_wreck
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
 SCHEME={'leclerc':'french_three_tone','challenger':'british_green','kf51':'german_three_tone','type99':'chinese_digital','type15':'chinese_digital','t14':'russian_green','t15':'russian_green'}
@@ -109,9 +110,11 @@ def build(family):
             box('roof_weapon_ammo',(.32,.27,.26),(.24,.27,-.055),paint,pitch)
             if family in ('leclerc','kf51'):box('remote_weapon_optics',(.24,.22,.22),(.24,-.24,.14),glass,pitch)
             if family=='type99':box('qjc88_receiver_top',(.34,.20,.08),(.28,0,.13),dark,pitch)
-    finish(ao_distance=.7,ao_rays=4);print('ROSTER_REMAINING_TANK',json.dumps({'id':ident,'tris':triangles_by_tier()}));os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True);export(out,texture_px=256)
+    wreck=WRECK_ARG in args
+    if wreck:burn()
+    finish(ao_distance=.7,ao_rays=4);print('ROSTER_REMAINING_TANK',json.dumps({'id':ident,'tris':triangles_by_tier()}));os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True);(export_wreck if wreck else export)(out,texture_px=256)
     preview=next((a.split('=',1)[1] for a in args if a.startswith('--preview=')),None)
-    if preview:
+    if preview and not wreck:
         bpy.ops.wm.read_factory_settings(use_empty=True);bpy.ops.import_scene.gltf(filepath=os.path.abspath(out));os.makedirs(preview,exist_ok=True)
         for o in bpy.data.objects:
             if o.type=='MESH':o.hide_render=('_LOD' in o.name and not o.name.endswith('_LOD0'))

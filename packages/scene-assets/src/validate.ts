@@ -230,18 +230,20 @@ export async function validateAppearance(
       if (!built.tiers) continue;
       const bounds = positionsBounds(built.tiers[0].positions);
       states.push({ name: state, tiers: built.tiers, bounds });
+      const rule = SCENERY_KINDS[entry.scenery ?? ""];
       // A wreck's tiers are a unit's: it is drawn where its vehicle was. It
-      // takes the default row, since nothing yet says whose wreck it is.
+      // takes the default row (no vehicle class sets a ratio of its own yet).
+      // A piece is part of its whole's tiers, so only the whole is held to
+      // the ratio: a thrown turret's far tier is a few boxes either way.
       if (entry.scenery === "wreck")
         findings.push(
           ...tierFindings(
             path,
             imported.scene,
             built.tiers.map(triangleCount),
-            unitArtRule(null).tier_ratio,
+            rule?.pieces?.includes(state) ? 1 : unitArtRule(null).tier_ratio,
           ),
         );
-      const rule = SCENERY_KINDS[entry.scenery ?? ""];
       // A piece is held to its whole (`pieceFindings`), not to the ground or the box.
       if (rule?.pieces?.includes(state)) continue;
       if (rule?.blades) findings.push(...grassStripFindings(path, built.tiers));
@@ -1446,6 +1448,58 @@ export function paintFindings(
         ),
       ]
     : [];
+}
+
+/** Every vehicle appearance names its own wreck (`wreck`): a scenery
+ *  appearance of kind `wreck` whose footprint is the hull of each unit type
+ *  drawing the vehicle, so a wreck is its unit's size and no vehicle dies
+ *  into another's. */
+export function wreckFindings(
+  appearances: Record<
+    string,
+    Pick<AppearanceEntry, "unit" | "scenery" | "wreck" | "footprint_half_m">
+  >,
+  units: UnitCatalog,
+): Finding[] {
+  const out: Finding[] = [];
+  const wrong = (name: string, problem: string, fix: string) =>
+    out.push(finding("fit.wreck", `${name}: ${problem}`, fix));
+  for (const [name, entry] of Object.entries(appearances)) {
+    if (entry.unit !== "vehicle") continue;
+    const wreck = entry.wreck;
+    const of = wreck === undefined ? undefined : appearances[wreck];
+    if (wreck === undefined)
+      wrong(
+        name,
+        "names no wreck",
+        `export its wreck from its own hull and name it: "wreck": "${name}_wreck"`,
+      );
+    else if (!of)
+      wrong(
+        name,
+        `names wreck "${wreck}", which the catalog lacks`,
+        `add the scenery appearance "${wreck}" of kind wreck to assets/catalog.json`,
+      );
+    else if (of.unit !== "scenery" || of.scenery !== "wreck")
+      wrong(
+        name,
+        `its wreck "${wreck}" is a ${of.scenery ?? of.unit}, not a wreck`,
+        "name a scenery appearance of kind wreck",
+      );
+    else
+      for (const id of units.ids) {
+        const hull = units.hull(id);
+        if (!hull || units.type(id).appearance !== name) continue;
+        const half = of.footprint_half_m;
+        if (half && half.every((h, k) => Math.abs(h - hull.half_extents_m[k]) < 1e-6)) continue;
+        wrong(
+          name,
+          `its wreck "${wreck}" has footprint_half_m [${half?.join(", ") ?? "none"}], not unit type ${id}'s hull [${hull.half_extents_m.join(", ")}]`,
+          "set the wreck's footprint_half_m to its unit's hull half extents: a wreck is its unit's size",
+        );
+      }
+  }
+  return out;
 }
 
 /** Every unit type draws appearances the catalog has, of the right kind: a

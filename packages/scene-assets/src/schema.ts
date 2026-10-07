@@ -79,6 +79,8 @@ export const FINDING_CODES = [
   "fit.mount_draw",
   /** A unit type names an appearance the catalog lacks, or of the wrong kind. */
   "fit.type_appearance",
+  /** A vehicle names no wreck of its own, or one not its unit's hull. */
+  "fit.wreck",
   // frame cost
   /** A tier draws more triangles than its scenery kind or unit class allows. */
   "budget.tier_triangles",
@@ -144,19 +146,26 @@ export const fetchedOnRequest = (entry: { unit: AppearanceUnit; regional_family?
 
 /** The appearances a catalog load takes: every one not fetched on request
  *  that is scenery, and of soldiers' and vehicles' art only what `wearing`
- *  names, the appearances a page's units wear (`UnitCatalog.appearances`).
- *  Without `wearing`, every unit's art: a tool judging all baked art. So a
- *  game page never fetches art only test or menu units wear. */
+ *  names, the appearances a page's units wear (`UnitCatalog.appearances`),
+ *  with each worn vehicle's own wreck. Without `wearing`, every unit's art: a
+ *  tool judging all baked art. So a game page never fetches art only test
+ *  or menu units wear. */
 export const catalogLoadNames = (
   catalog: Pick<RuntimeCatalog, "appearances">,
   wearing?: ReadonlySet<string>,
-): string[] =>
-  Object.entries(catalog.appearances ?? {})
-    .filter(
-      ([name, entry]) =>
-        !fetchedOnRequest(entry) && (entry.unit === "scenery" || !wearing || wearing.has(name)),
-    )
+): string[] => {
+  const entries = Object.entries(catalog.appearances ?? {});
+  const worn = (name: string) => !wearing || wearing.has(name);
+  const wrecks = new Set(entries.flatMap(([name, e]) => (e.wreck && worn(name) ? [e.wreck] : [])));
+  const wrecked = new Set(entries.flatMap(([, e]) => (e.wreck ? [e.wreck] : [])));
+  return entries
+    .filter(([name, entry]) => {
+      if (fetchedOnRequest(entry)) return false;
+      if (wrecked.has(name)) return wrecks.has(name);
+      return entry.unit === "scenery" || worn(name);
+    })
     .map(([name]) => name);
+};
 
 /** Every appearance of `catalog` fetched on request, by name: the regional
  *  family it is a look of, or null for a kit. */
@@ -534,6 +543,10 @@ export interface AppearanceEntry {
    *  surfaces (materials marked `tint`), chosen by which body it is. Absent:
    *  every body as authored. */
   paints?: Vec3[];
+  /** A vehicle's own wreck: a scenery appearance of kind `wreck` built from
+   *  its own hull, footprint its unit's hull, with `hull` and `turret` pieces
+   *  where it has a turret to throw. Every vehicle names one (`fit.wreck`). */
+  wreck?: string;
   /** A generated grass kind's spec: `asset grass` writes its one state's
    *  GLB from it (`grass.ts`). The bake reads the GLB, never the spec. */
   grass?: GrassSpec;
@@ -640,6 +653,7 @@ export interface RuntimeCatalog {
       mounts?: MountDraws;
       regional_family?: string;
       paints?: Vec3[];
+      wreck?: string;
     }
   >;
   /** The template art library (`templateLibrary.ts`), when the catalog has

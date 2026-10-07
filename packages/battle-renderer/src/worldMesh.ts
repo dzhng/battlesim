@@ -32,6 +32,11 @@ export interface WorldLayout {
   surfaceAreaKinds: string[];
   roadAreaKinds: string[];
   propKinds: string[];
+  /** The unit types, in index order: a map wreck's `wreckOf` field indexes it. */
+  unitKinds: string[];
+  /** A hull's model, by unit type: a wreck of that type is drawn as that
+   *  model's own wreck (its asset catalog `wreck`). */
+  unitAppearance: Record<string, string>;
   /** Per mover class ("infantry", "vehicle"), the prop kinds that stop it. */
   blockingPropKinds: Record<string, string[]>;
   /** The prop kinds that hide what lies behind them from sight. */

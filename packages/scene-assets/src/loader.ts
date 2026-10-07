@@ -58,6 +58,8 @@ export interface InstalledAppearance {
   /** The sRGB tints its paintable surfaces take, one per body (catalog
    *  `paints`); null for an appearance drawn as authored. */
   paints: Vec3[] | null;
+  /** A vehicle's own wreck appearance (catalog `wreck`); null for anything else. */
+  wreck: string | null;
   bundle: Exclude<Bundle, SkeletonClips>;
 }
 
@@ -320,6 +322,7 @@ export class AppearanceLibrary {
       mounts: entry.mounts ?? null,
       regionalFamily: entry.regional_family ?? null,
       paints: entry.paints ?? null,
+      wreck: entry.wreck ?? null,
       bundle,
     };
   }
