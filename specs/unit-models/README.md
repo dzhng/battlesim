@@ -18,11 +18,7 @@ they look like the real vehicles and soldiers.
 
 ## Next Agent Prompt
 
-**Status, 2026-10-07:** in progress. Done and merged: 01, 02, 03, 09, 10 (catalog load now ~130 MiB, was ~1.2 GB). In flight in parallel worktrees (`um/slice-NN` branches): 04 (steps 1–2; step 3, session-scoped loading, now unblocked by 10), 12, 13. The earlier pass of this
-spec (every disabled card has a source GLB, see [History](#history)) is
-finished. The plan was walked with the user quadrant by quadrant
-([the map](visualizations/unknowns-map.html)), then redrafted by four
-independently biased drafters and synthesized (see [choices](choices.md)).
+**Status, 2026-10-07:** in progress. Done and merged: 01, 02, 03, 04 (steps 1–2), 09, 10 (catalog load ~130 MiB, was ~1.2 GB), 12. In flight in parallel worktrees (`um/slice-NN`): 04 step 3 (`um/slice-04b`), 05, 07, 13. Next: 11 after 05; 06 and 08 after 05; 14 after 11 and 13.
 
 **Pick up at [slice 01](slices/01-presentation-by-property.md):** every roster
 vehicle and weapon plays default sounds today, a bug players hear.
@@ -108,7 +104,7 @@ TODO:
 - [x] [01 Presentation by property](slices/01-presentation-by-property.md): vehicle class from physics, weapon base key; roster vehicles and weapons get their sounds and effects.
 - [x] [02 Roster stands alone](slices/02-roster-stands-alone.md): abstract roster base soldiers; no roster soldier inherits a generic kind.
 - [x] [03 Encounter owner](slices/03-encounter-owner.md): Defender/Referee move to `sim::encounter`, unchanged.
-- [ ] [04 Session catalog](slices/04-session-catalog.md): one resolver, three document sets (game, test, menu); the battle session owns its catalog and loads only its bindings.
+- [x] [04 Session catalog](slices/04-session-catalog.md): one resolver, three document sets (game, test, menu); the battle session owns its catalog and loads only its bindings.
 - [ ] [05 Test units](slices/05-test-units-explicit.md): `test_*` units, out of the game catalog, test art labelled.
 - [ ] [06 Village retired, maps labelled](slices/06-retire-village-label-maps.md): map-free rules, village deleted, live art renamed, every map `test` or `menu`, market-town-test.
 - [ ] [07 Request contract](slices/07-request-contract.md): factions required, unknown parameters refused, recipe fields gone.
@@ -116,7 +112,7 @@ TODO:
 - [x] [09 Pipeline](slices/09-pipeline.md): exporters read the fixture catalog; shared detail parts; crew module fixed; references schema and sheet; baselines.
 - [x] [10 Shared textures and download](slices/10-shared-textures-and-download.md): textures as shared files, gzip bundles, catalog-load limit, real texture-layer limit.
 - [ ] [11 Wrecks](slices/11-wrecks.md): `wreck_of` on the published prop; every vehicle names its own wreck; interim wrecks.
-- [ ] [12 Art rules](slices/12-art-rules.md): strict tiers, dressing allowance, unit budget rules (numbers from 14).
+- [x] [12 Art rules](slices/12-art-rules.md): strict tiers, dressing allowance, unit budget rules (numbers from 14).
 - [ ] [13 Materials](slices/13-materials.md): material roles, black tyres, dark glass, real-nation paint on every current model.
 - [ ] [14 Pilot](slices/14-pilot.md): Abrams, Stryker, HMMWV (real frame), rifle squad; class budgets measured and fixed.
 - [ ] [15 Tracked lane](slices/15-tracked.md)
