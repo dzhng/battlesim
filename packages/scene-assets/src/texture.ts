@@ -114,6 +114,15 @@ const SRGB_TO_LINEAR = Float64Array.from({ length: 256 }, (_, i) => {
   const c = i / 255;
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 });
+/** A texture's mean, from its 1×1 level: linear rgb (an sRGB texture's
+ *  colour decoded) and alpha, each 0..1. */
+export function textureMean(texture: Texture): [number, number, number, number] {
+  const texel = texture.levels[texture.levels.length - 1];
+  const srgb = texture.format === "rgba8unorm-srgb";
+  const channel = (c: number) => (srgb && c < 3 ? SRGB_TO_LINEAR[texel[c]] : texel[c] / 255);
+  return [channel(0), channel(1), channel(2), channel(3)];
+}
+
 const linearToSrgbByte = (x: number) => {
   const c = x <= 0.0031308 ? x * 12.92 : 1.055 * x ** (1 / 2.4) - 0.055;
   return Math.round(Math.min(1, Math.max(0, c)) * 255);
@@ -262,7 +271,7 @@ const finding = (code: Finding["code"], message: string, fix: string): Finding =
 });
 
 /** Every mesh of a (non-clips) bundle, labelled. */
-function bundleMeshes(bundle: Exclude<Bundle, SkeletonClips>): [string, MeshData][] {
+export function bundleMeshes(bundle: Exclude<Bundle, SkeletonClips>): [string, MeshData][] {
   if (bundle.kind === "skinned") return bundle.tiers.map((m, t) => [`tier ${t}`, m]);
   if (bundle.kind === "articulated")
     return bundle.nodes.flatMap((n) =>
