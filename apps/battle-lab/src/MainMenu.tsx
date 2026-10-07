@@ -13,7 +13,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
 import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/source";
-import { askedChoice, battleHref, playHref, REGIONS, FACTIONS, spoken } from "./battleLinks";
+import { FACTIONS } from "@packages/scene-assets/src/units";
+import { askedChoice, battleHref, playHref, REGIONS, spoken } from "./battleLinks";
 import { ReplayImport, useSavedReplay, replayRoute, type ReplayFile } from "./replayFile";
 import { SoundControls } from "./SoundControls";
 import { MenuBackdrop } from "./MenuBackdrop";

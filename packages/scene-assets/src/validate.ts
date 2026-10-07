@@ -17,6 +17,7 @@ import { pointAt } from "./trs.ts";
 import { encodeBundle } from "./codec.ts";
 import { mountMuzzles, muzzleOffset, type MountMuzzle } from "./mountMuzzle.ts";
 import {
+  FACTIONS,
   MOUNT_NODES,
   isArticulation,
   mountRoles,
@@ -50,7 +51,6 @@ import { materialFindings } from "./material.ts";
 import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
 import {
-  FACTIONS,
   INFANTRY_CLIPS,
   INFANTRY_SOCKETS,
   UNIT_BUNDLE_KIND,

@@ -6,7 +6,6 @@
 // owner on the TypeScript side, answered from a type's components.
 
 import type { Vec3 } from "math";
-import type { FACTIONS } from "./schema.ts";
 
 export type WeightClass = "light" | "medium" | "heavy" | "immovable";
 
@@ -70,6 +69,8 @@ export interface MountRow {
   muzzle_m: Vec3 | null;
 }
 
+/** The factions a battle fields. */
+export const FACTIONS = ["us", "europe", "eastern"] as const;
 export type Faction = (typeof FACTIONS)[number];
 export type UnitCategory = "rec" | "inf" | "veh" | "sup" | "hel" | "air";
 

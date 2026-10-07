@@ -4,7 +4,7 @@
 
 import type { Mat4, Vec3 } from "math";
 import type { Trs } from "./trs.ts";
-import type { MountDraws, UnitCatalog } from "./units.ts";
+import type { Faction, MountDraws, UnitCatalog } from "./units.ts";
 
 export type Severity = "error" | "warning";
 
@@ -515,10 +515,8 @@ export interface SkeletonEntry {
   clips: Record<string, ClipDeclaration>;
 }
 
-/** The factions a battle fields (`units.ts` `Faction`, the contract's). */
-export const FACTIONS = ["us", "europe", "eastern"] as const;
 /** A soldier appearance's look per faction (`AppearanceEntry.factions`). */
-export type FactionLooks = Partial<Record<(typeof FACTIONS)[number], string>>;
+export type FactionLooks = Partial<Record<Faction, string>>;
 
 export interface AppearanceEntry {
   unit: AppearanceUnit;
