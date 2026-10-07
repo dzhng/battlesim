@@ -1,0 +1,53 @@
+{
+  "entries": [
+    {
+      "file": "europe_ajax_tracked_reconnaissance_vehicle-three_quarter_front.jpg",
+      "variant": "europe_ajax_tracked_reconnaissance_vehicle",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Ajax_(54086955827).jpg",
+      "author": "Airwolfhound from Hertfordshire, UK",
+      "licence": "CC-BY-SA-2.0",
+      "sha256": "f78177593f0b613a4c2d8e91f8e1635e89ece93d885968e82fa8f4e9f07bc9ab",
+      "note": "Ajax with 40 mm CTA turret, front left, Bovington area"
+    },
+    {
+      "file": "europe_ajax_tracked_reconnaissance_vehicle-side.jpg",
+      "variant": "europe_ajax_tracked_reconnaissance_vehicle",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Ajax_(54088288435).jpg",
+      "author": "Airwolfhound from Hertfordshire, UK",
+      "licence": "CC-BY-SA-2.0",
+      "sha256": "4069e554a6901ebd3886b62fe0461a9a4edce7929418b95e53d66738c99b032c",
+      "note": "Ajax left side, turret traversed"
+    },
+    {
+      "file": "ares-front.jpg",
+      "variant": "ares",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Ares_(54086955772).jpg",
+      "author": "Airwolfhound from Hertfordshire, UK",
+      "licence": "CC-BY-SA-2.0",
+      "sha256": "f2f559ab2e048df1d7b0df7830b5e605bc9856cf825c4ae77dfb0655a938d723",
+      "note": "Ares (turretless Ajax-family APC) head-on: hull front shared with Ajax"
+    },
+    {
+      "file": "ajax_family-three_quarter_rear.jpg",
+      "variant": "ajax_family",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:AFV_(52932416535).jpg",
+      "author": "Airwolfhound from Hertfordshire, UK",
+      "licence": "CC-BY-SA-2.0",
+      "sha256": "0edd4cc405141fb4a0a7522428ef28bdeace0633d796c647b361161a78c63804",
+      "note": "Ajax-family vehicle (file titled AFV), rear right: hull rear shared"
+    }
+  ],
+  "gaps": [
+    "Ajax: only two licensable photos of the turreted Ajax itself (three-quarter front, side); no Ajax rear, top or turret detail.",
+    "Front and rear come from the turretless Ares and an unnamed Ajax-family vehicle; they share the hull, not the 40 mm CTA turret.",
+    "No close detail of the running gear, sights or stowage."
+  ]
+}
