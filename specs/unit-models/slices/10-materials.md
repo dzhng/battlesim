@@ -1,9 +1,9 @@
-# 08 Materials
+# 10 Materials
 
 **Unlocks:** black tyres, dark glass and each nation's paint on every current
 model, before any geometry changes, with a guard so they stay that way.
 
-**Slice variable:** surface colour and finish only, toward the [look target](../assets/look-target.png): moderate weathering and painted edge highlights (wear chips on convex edges in a lighter tone of the scheme), not heavy grime. Shape is slices 10–13.
+**Slice variable:** surface colour and finish only, toward the [look target](../assets/look-target.png): moderate weathering and painted edge highlights (wear chips on convex edges in a lighter tone of the scheme), not heavy grime. Shape is slices 12–15.
 
 ## Work
 
@@ -21,6 +21,11 @@ model, before any geometry changes, with a guard so they stay that way.
    tread, not a grey one), `glass()` (near-black, low roughness, faint blue-green
    only at grazing angles via roughness, not albedo), `track_steel()`,
    `bare_steel()`, `paint(scheme)`.
+   A string `extras.role` does not reach the validator today: material extras
+   are read by key in `material.ts`, and node extras keep numbers only
+   (`build.ts:697-699`). Carry the role through the build. Glass stays
+   **opaque** with `chip=0`: `material.wear` refuses a blended surface that
+   wears, and `textured()` defaults to `chip=0.8`.
 3. **Schemes** (user chose, 2026-10-06): each vehicle wears its real
    nation's scheme, US in desert tan. One recipe per scheme in `textures.py`,
    each a seamless tile at metre scale:
@@ -37,7 +42,7 @@ model, before any geometry changes, with a guard so they stay that way.
 
    Leopard 2 and Leclerc already carry a camo print: keep it if their
    references agree. The scheme is data: a `scheme` field in each family's
-   exporter table. Disabled cards (slice 15) follow the same rule. Side tint
+   exporter table. Disabled cards (slice 17) follow the same rule. Side tint
    keeps working through the ORM alpha mask on paint only, never on rubber,
    glass or steel; red's warm multiplier applies on top of the real scheme.
 4. **Apply** to every runtime vehicle exporter as it stands (one-liner branches

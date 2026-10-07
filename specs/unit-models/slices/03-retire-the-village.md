@@ -13,17 +13,23 @@ behaviour it owned lives under its real name.
    the village map. Tests that need ground load a named test map or build
    their own; tests that relied on village geometry move to `geometry`,
    `movement` or another existing test map, or to a generated map by seed.
-   Native tests are the bulk of this slice; work crate by crate, running each
-   crate's tests.
+   Native tests are the bulk of this slice (`common::game()`/`common::rules()`
+   have 148 uses in 33 files; `stand_in_game()` is `game()` with the catalog
+   swapped, so test-unit tests carry the village map too; direct map reads in
+   `sight.rs:177`, `flight_load.rs:36`, `examples/ground_resources.rs:59`);
+   work crate by crate, running each crate's tests.
 3. **Delete** `crates/sim/src/village/` (scenario, scripted blue, scripts,
    trials), `crates/sim/tests/village.rs`, `examples/village_report.rs`, the
    wasm exports `village_scenario` and `Battle::scripted`, the worker
    protocol's `script` field (`web/src/battle/sim/protocol.ts`, `module.ts`),
    `routes/village*.tsx` and their router entries and menu link, the village
    replay format (`replayFile.tsx` `VillageReplayFile`, `/replay/village`;
-   rename the IndexedDB key, no migration), `fixtures/game.json`'s village-only
+   rename the IndexedDB key `village-last-replay`; the last saved replay is dropped, accepted, no migration), `fixtures/game.json`'s village-only
    sections (`spawn`, `variants`, `defender_policy`, `encounter`), `"village"`
-   in `MAP_CHARACTERS`, `fixtures/maps/village/`, `scenes/village.mjs`,
+   in `MAP_CHARACTERS`, `fixtures/maps/village/`, `scenes/village.mjs`, `web/scenes/_units.mjs`
+   `villageMap`, the benchmark's `villageScenario` path, the app-journey scene's
+   village run (its digest was re-pinned in `5531eb3c`; it moves to a generated
+   battle),
    `blender/city/village.py` and `house.py` if nothing else exports through them.
 4. **Labs that drew on the village map** (`/lab/fog`, `/lab/projectiles`,
    `/lab/fog-look`, `/lab/ground?village`, `/workbench` sources, the street
@@ -33,9 +39,9 @@ behaviour it owned lives under its real name.
 6. **Rename live art off the name:** `village_ruin` → `ruin`;
    `assets/source/village/*` → `assets/source/props/`; city set `village` →
    `lab_boxes` (its `authored` catalogue serves only test maps, labelled in
-   slice 06); `tank_wreck*`, `jeep_wreck`, `supply_truck_wreck` →
-   `wreck_heavy_tracked*`, `wreck_light_wheeled`, `wreck_truck`. Renames change
-   art identity, not physics: map hashes unchanged.
+   slice 06). Renames change art names, not physics or content hashes: map
+   and replay hashes unchanged. (Wrecks are not renamed here: every vehicle
+   gets its own, slice 09.)
 7. Docs: root README ("the village remains a developer test arena", menu
    description), `apps/battle-lab/README.md`, `web/README.md`,
    `crates/sim/README.md`, examples README, `fixtures/README.md`. Use

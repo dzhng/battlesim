@@ -1,4 +1,4 @@
-# 09 References
+# 11 References
 
 **Unlocks:** photos for every family, committed, so modelling copies what the
 vehicle looks like rather than what a spec table says.
@@ -6,7 +6,7 @@ vehicle looks like rather than what a spec table says.
 ## Work
 
 For every family in the README's [scope table](../README.md#scope), including
-the disabled cards (slice 15 uses them):
+the disabled cards (slice 17 uses them):
 
 1. Find photos of the exact variant (SEPv3 is not SEPv2; BMP-3 is not BMP-2M).
    Coverage per variant: `three_quarter_front`, `side`, `three_quarter_rear`,
