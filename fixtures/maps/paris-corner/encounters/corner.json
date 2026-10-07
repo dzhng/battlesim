@@ -1,10 +1,10 @@
 {
   "units": [
-    {"side": "blue", "kind": "test_recon", "position": [244.0, 166.5], "yaw": 0.0, "condition": {"soldier_hp": 8000.0}},
-    {"side": "blue", "kind": "test_rifle", "position": [228.0, 166.5], "yaw": 0.0, "condition": {"soldier_hp": 2500.0}},
-    {"side": "blue", "kind": "test_tank", "position": [185.0, 160.0], "yaw": 0.0},
-    {"side": "red", "kind": "test_rifle", "position": [280.0, 262.0], "yaw": -1.571, "condition": {"soldier_hp": 250.0}},
-    {"side": "red", "kind": "test_rifle", "position": [274.2, 213.0], "yaw": -1.571, "condition": {"soldier_hp": 250.0}}
+    {"side": "blue", "kind": "menu_us_recon", "position": [244.0, 166.5], "yaw": 0.0, "condition": {"soldier_hp": 8000.0}},
+    {"side": "blue", "kind": "menu_rifle", "position": [228.0, 166.5], "yaw": 0.0, "condition": {"soldier_hp": 2500.0}},
+    {"side": "blue", "kind": "menu_us_tank", "position": [185.0, 160.0], "yaw": 0.0},
+    {"side": "red", "kind": "menu_rifle", "position": [280.0, 262.0], "yaw": -1.571, "condition": {"soldier_hp": 250.0}},
+    {"side": "red", "kind": "menu_rifle", "position": [274.2, 213.0], "yaw": -1.571, "condition": {"soldier_hp": 250.0}}
   ],
   "scripts": [
     {"tick": 0, "side": "blue", "order": {"kind": "move", "units": [0], "gesture": 1, "route": "shortest", "goal": [273.8, 173.0]}},
