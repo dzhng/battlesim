@@ -1,0 +1,108 @@
+{
+  "entries": [
+    {
+      "file": "europe_fennek_reconnaissance_vehicle-three_quarter_front-2.jpg",
+      "variant": "europe_fennek_reconnaissance_vehicle",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Fennek_reconnaissance_vehicle_-_Berlin_2011.jpg",
+      "author": "Thomas Quine",
+      "licence": "CC-BY-2.0",
+      "sha256": "750a966f77ff8612a68e6f8950ddf180a6f7af28861e4ea5753a4d9a7ae33d75",
+      "note": "Close left front: remote weapon station, mirrors, bow, tow hooks."
+    },
+    {
+      "file": "europe_fennek_reconnaissance_vehicle-three_quarter_front.jpg",
+      "variant": "europe_fennek_reconnaissance_vehicle",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Fennek_1.jpg",
+      "author": "funky1opti from Wolfsburg, Deutschland",
+      "licence": "CC-BY-2.0",
+      "sha256": "3455955b996871b0751822151972c5bb76f34e1c1b8745a541ba98e132601725",
+      "note": "German Army Fennek, left front three-quarter, sensor mast raised, weapon station on the roof."
+    },
+    {
+      "file": "europe_fennek_reconnaissance_vehicle-side-2.jpg",
+      "variant": "europe_fennek_reconnaissance_vehicle",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2026-06-05_104224_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "f1dff5c54a3cef22a4b08fb7ab0ad96784569937966ca8f222a40077df86812f",
+      "note": "Right side on the move, 2026."
+    },
+    {
+      "file": "europe_fennek_reconnaissance_vehicle-side-3.jpg",
+      "variant": "europe_fennek_reconnaissance_vehicle",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Fennek_Sp%C3%A4hfahrzeug_durchf%C3%A4hrt_Amelinghausen.jpg",
+      "author": "Oxfordian Kissuth",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "cf4fe91391a41fa62cd4806b8869f7946cecc8a842420c4d35bc3284d99bb367",
+      "note": "Left side on a street, slightly from the rear: hull side, wheel arches, rear stowage."
+    },
+    {
+      "file": "europe_fennek_reconnaissance_vehicle-side.jpg",
+      "variant": "europe_fennek_reconnaissance_vehicle",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Fennek_2.jpg",
+      "author": "funky1opti from Wolfsburg, Deutschland",
+      "licence": "CC-BY-2.0",
+      "sha256": "32ce9a3623ebf9b9223e5ad39176cbf92d1c43ebc2b05f169ce8438d80f82702",
+      "note": "Left side: four wheels, side door, sensor mast up."
+    },
+    {
+      "file": "europe_fennek_reconnaissance_vehicle-front.jpg",
+      "variant": "europe_fennek_reconnaissance_vehicle",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Meppen_-_WTD91_(TdBW)_049_ies.jpg",
+      "author": "Frank Vincentz",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "b84e9d4faf0d9c91debaf0514a66de14b723fa21a6fc470ea76aeaa9b728bac2",
+      "note": "Head-on on display: bow, windscreens, mirrors, headlights."
+    },
+    {
+      "file": "europe_fennek_reconnaissance_vehicle-rear.jpg",
+      "variant": "europe_fennek_reconnaissance_vehicle",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Fennek-hinten_(hell).jpg",
+      "author": "Khyperpass, reworked by WerWil at de.wikipedia",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "987188056ced51d83b2841b983488ed419729a8140e8a31bd7d41383b57f5642",
+      "note": "ISAF Fennek from behind: rear plate, lights, stowage, antennas."
+    },
+    {
+      "file": "europe_fennek_reconnaissance_vehicle-detail-2.jpg",
+      "variant": "europe_fennek_reconnaissance_vehicle",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Fennek_Sp%C3%A4hfahrzeug_-_offene_T%C3%BCr.jpg",
+      "author": "Oxfordian Kissuth",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "79f172ea2b82146a4f9204a39cf15d0e9cfd826fd951a988a8e8015c6fc9213b",
+      "note": "Side door open: door thickness, crew seat, wheel and hub."
+    },
+    {
+      "file": "europe_fennek_reconnaissance_vehicle-detail.jpg",
+      "variant": "europe_fennek_reconnaissance_vehicle",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Fennek_Sichtger%C3%A4t_Detail_Flensburg_2018.jpg",
+      "author": "Marseille77",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "17b77b17d24ff2d2a4fdfea7456230b27a1945954346646cc6c31015dd46f85f",
+      "note": "BAA sensor head on the extended mast."
+    }
+  ],
+  "gaps": [
+    "europe_fennek_reconnaissance_vehicle: no three_quarter_rear or top photo; the rear is the straight-on ISAF photo only.",
+    "europe_fennek_reconnaissance_vehicle: photos mix weapon fits (12.7 mm HMG, 40 mm GMG, unarmed with sensor mast); the roster variant's fit should be chosen from the catalog.",
+    "europe_fennek_reconnaissance_vehicle: manufacturer (KMW) images on Commons were excluded even though CC BY 4.0; CC BY 3.0 DE images (tyre and cockpit close-ups) were excluded because that licence port is not on the allowed list."
+  ]
+}
