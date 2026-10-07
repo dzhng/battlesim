@@ -14,11 +14,13 @@ import {
 } from "./build.ts";
 import { quat, vec3, type Vec3 } from "math";
 import { pointAt } from "./trs.ts";
+import { encodeBundle } from "./codec.ts";
 import { mountMuzzles, muzzleOffset, type MountMuzzle } from "./mountMuzzle.ts";
 import {
   MOUNT_NODES,
   isArticulation,
   mountRoles,
+  vehicleClass,
   type Articulation,
   type MountDraws,
   type MountRow,
@@ -42,7 +44,8 @@ import {
   skinPositions,
   worldTransforms,
 } from "./pose.ts";
-import { bindTextures, importScene } from "./scene.ts";
+import { bindTextures, importScene, type Scene } from "./scene.ts";
+import { SOLDIER_CLASS, tierFindings, unitArtRule, type DressingAllowance } from "./unitArt.ts";
 import { materialFindings } from "./material.ts";
 import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
@@ -55,6 +58,7 @@ import {
   type ArticulatedNode,
   type Authority,
   type Bounds,
+  type Budget,
   type Bundle,
   type Finding,
   type Joint,
@@ -226,6 +230,17 @@ export async function validateAppearance(
       if (!built.tiers) continue;
       const bounds = positionsBounds(built.tiers[0].positions);
       states.push({ name: state, tiers: built.tiers, bounds });
+      // A wreck's tiers are a unit's: it is drawn where its vehicle was. It
+      // takes the default row, since nothing yet says whose wreck it is.
+      if (entry.scenery === "wreck")
+        findings.push(
+          ...tierFindings(
+            path,
+            imported.scene,
+            built.tiers.map(triangleCount),
+            unitArtRule(null).tier_ratio,
+          ),
+        );
       const rule = SCENERY_KINDS[entry.scenery ?? ""];
       // A piece is held to its whole (`pieceFindings`), not to the ground or the box.
       if (rule?.pieces?.includes(state)) continue;
@@ -234,7 +249,14 @@ export async function validateAppearance(
       if (rule?.footprint.kind === "tree")
         findings.push(...canopyFindings(path, built.tiers, context.authority, tolerances));
       if (rule?.tier_triangles)
-        findings.push(...budgetFindings(path, built.tiers, rule.tier_triangles));
+        findings.push(
+          ...budgetFindings(
+            path,
+            built.tiers.map(triangleCount),
+            rule,
+            "the kind's row (packages/scene-assets/src/scenery.ts), with a paired frame-cost row,",
+          ),
+        );
       if (rule?.size) findings.push(...sizeFindings(path, built.tiers[0], rule.size));
       if (rule?.top_m !== undefined && bounds.max[2] > rule.top_m + tolerances.ground_m)
         findings.push(
@@ -299,12 +321,23 @@ export async function validateAppearance(
     );
     const bounds = posedBounds(nodes);
     const bundle: ArticulatedBundle = { kind: "articulated", nodes, materials, textures, bounds };
-    findings.push(...surfaceFindings(path, bundle));
+    const tiers = sumTiers(nodes.map((n) => n.tiers));
+    findings.push(
+      ...surfaceFindings(path, bundle),
+      ...unitArtFindings(
+        path,
+        imported.scene,
+        bundle,
+        tiers.map((t) => t.triangles),
+        // A vehicle no type draws has no class, and takes the default rules.
+        types.length ? [...new Set(types.map((id) => vehicleClass(units.type(id))))] : [null],
+      ),
+    );
     return {
       findings,
       stats: {
         kind,
-        tiers: sumTiers(nodes.map((n) => n.tiers)),
+        tiers,
         nodes: nodes.length,
         source_bytes: sourceBytes,
         bounds,
@@ -367,7 +400,10 @@ export async function validateAppearance(
     corpse_pose: corpsePose,
     sockets,
   };
-  findings.push(...surfaceFindings(path, bundle));
+  findings.push(
+    ...surfaceFindings(path, bundle),
+    ...unitArtFindings(path, imported.scene, bundle, tiers.map(triangleCount), [SOLDIER_CLASS]),
+  );
   return {
     findings,
     stats: {
@@ -622,6 +658,32 @@ function infantryFindings(
   return out;
 }
 
+/** A unit's model against the art rules of each class it draws as
+ *  (`unitArt.ts`): its tiers and the class's budget. Two classes alike
+ *  report a finding once. */
+function unitArtFindings(
+  label: string,
+  scene: Scene,
+  bundle: ArticulatedBundle | SkinnedBundle,
+  triangles: readonly number[],
+  classes: readonly (string | null)[],
+): Finding[] {
+  const out = classes.flatMap((cls) => {
+    const rule = unitArtRule(cls);
+    return [
+      ...tierFindings(label, scene, triangles, rule.tier_ratio),
+      ...budgetFindings(
+        label,
+        triangles,
+        rule,
+        `the ${cls ?? "default"} row of UNIT_ART (packages/scene-assets/src/unitArt.ts)`,
+        bundle,
+      ),
+    ];
+  });
+  return out.filter((f, i) => out.findIndex((g) => g.message === f.message) === i);
+}
+
 // ---------------------------------------------------------------- vehicles
 
 const MAST_CHAIN = ["deploy_mast", "deploy_mast_2", "deploy_mast_3", "deploy_mast_head"];
@@ -633,6 +695,60 @@ const OFF_HULL: Record<Articulation, string> = {
   gun: MOUNT_NODES.gun.pitch,
   hmg: MOUNT_NODES.hmg.yaw,
 };
+
+/** A node whose parts are dressing (antennas, stowage, crew): measured
+ *  against its class's dressing allowance (`unitArt.ts`), not the hull's
+ *  tolerance. Node extras keep numbers only, so the name is the mark. */
+const DRESSING = "dressing_";
+const isDressing = (name: string) => name.startsWith(DRESSING);
+
+/**
+ * One dressing node's parts, at rest, against the hull box of half extents
+ * `half` standing on the ground: within `bulky_m` of every face, and above
+ * that only thin (no wider than `thin_m` either way, as an antenna is) and
+ * no higher than `thin_top_m` over the box's top, so dressing never reads
+ * as cover the simulation lacks.
+ */
+function dressingFindings(
+  label: string,
+  positions: Float32Array,
+  half: Vec3,
+  { bulky_m, thin_m, thin_top_m }: DressingAllowance,
+): Finding[] {
+  if (!positions.length) return [];
+  const b = positionsBounds(positions);
+  const top = 2 * half[2];
+  const faces: [string, number, number][] = [
+    ["-x", -b.min[0], half[0]],
+    ["+x", b.max[0], half[0]],
+    ["-y", -b.min[1], half[1]],
+    ["+y", b.max[1], half[1]],
+  ];
+  const over = faces
+    .filter(([, reach, box]) => reach > box + bulky_m)
+    .map(([face, reach, box]) => `${face} ${fmt(reach - box)} m past the box`);
+  // What rises above the bulky allowance must be thin, and not too tall.
+  const high = { min: [Infinity, Infinity], max: [-Infinity, -Infinity] };
+  for (let i = 0; i < positions.length; i += 3)
+    if (positions[i + 2] > top + bulky_m)
+      for (const k of [0, 1]) {
+        high.min[k] = Math.min(high.min[k], positions[i + k]);
+        high.max[k] = Math.max(high.max[k], positions[i + k]);
+      }
+  const across = Math.max(high.max[0] - high.min[0], high.max[1] - high.min[1]);
+  if (across > thin_m)
+    over.push(`+z ${fmt(b.max[2] - top)} m over the box's top, ${fmt(across)} m across`);
+  else if (b.max[2] > top + thin_top_m) over.push(`+z ${fmt(b.max[2] - top)} m over the box's top`);
+  return over.length
+    ? [
+        finding(
+          "fit.dressing",
+          `${label} reaches ${over.join("; ")} (dressing: ${bulky_m} m past any face, and above that only parts at most ${thin_m} m across, up to ${thin_top_m} m)`,
+          "bring bulky dressing (stowage, crew, tarps) within its allowance of the hull box, and give each tall thin part (an antenna) its own dressing node",
+        ),
+      ]
+    : [];
+}
 
 /** What every articulated appearance must be, whatever type draws it: on
  *  the ground, with wheels. */
@@ -815,10 +931,15 @@ export function typeFindings(
     out.push(...deployFindings(label, nodes, index, tolerances));
   }
 
-  // The hull box, without what its mounts carry beyond it.
+  // The hull box, without what its mounts carry beyond it or its dressing.
+  // Dressing nested in dressing is measured with the outer node.
+  const dressing = nodes.flatMap((n, i) =>
+    isDressing(n.name) && !nodes.some((d, j) => isDressing(d.name) && isUnder(i, j)) ? [i] : [],
+  );
   const excluded = roles
     .flatMap((role) => (role === "hand" ? [] : [index.get(OFF_HULL[role])]))
-    .filter((i): i is number => i !== undefined);
+    .filter((i): i is number => i !== undefined)
+    .concat(dressing);
   const hullPositions = articulatedPositions(
     nodes,
     worlds,
@@ -829,11 +950,20 @@ export function typeFindings(
     ...extentFindings(label, hullPositions, hull.half_extents_m, {
       code: "fit.hull_extents",
       rule: `units.${id}.body.hull.half_extents_m [${hull.half_extents_m.join(", ")}]`,
-      side: tolerances.hull_extent_m,
-      top: tolerances.hull_top_m,
-      fix: "fit the hull to the simulation's box, or widen hull_extent_m (sides) or hull_top_m (antennas, cupola) for this appearance in the catalog",
+      tolerance: tolerances.hull_extent_m,
+      fix: `fit the hull to the simulation's box; parts that stand outside it (antennas, stowage, crew) go under a "${DRESSING}*" node, held to its class's dressing allowance`,
     }),
   );
+  const allowance = unitArtRule(vehicleClass(type)).dressing;
+  for (const d of dressing)
+    out.push(
+      ...dressingFindings(
+        `${label}: "${nodes[d].name}"`,
+        articulatedPositions(nodes, worlds, 0, (i) => i === d || isUnder(i, d)),
+        hull.half_extents_m,
+        allowance,
+      ),
+    );
 
   // Each part's hardware.
   for (const part of type.parts ?? []) {
@@ -1121,29 +1251,59 @@ function sizeFindings(
   return out;
 }
 
-/** Each tier of a kind instanced by the hundred draws no more triangles
- *  than its `SCENERY_KINDS` row allows. */
-function budgetFindings(label: string, tiers: MeshData[], budget: readonly number[]): Finding[] {
-  return tiers.flatMap((mesh, t) => {
-    const triangles = triangleCount(mesh);
-    return triangles > budget[t]
-      ? [
-          finding(
-            "budget.tier_triangles",
-            `${label}: tier ${t} draws ${triangles} triangles, over its budget of ${budget[t]}`,
-            "simplify the tier, or change the kind's tier_triangles (packages/scene-assets/src/scenery.ts) with a paired frame-cost row",
-          ),
-        ]
-      : [];
+/** Each tier's triangles, and the bundle they are built into when its
+ *  bytes and textures are budgeted too, against a budget; `owner` names where the budget lives,
+ *  for the fix. */
+export function budgetFindings(
+  label: string,
+  triangles: readonly number[],
+  budget: Budget,
+  owner: string,
+  bundle?: Exclude<Bundle, SkeletonClips>,
+): Finding[] {
+  const out: Finding[] = [];
+  const raise = (field: string) => `, or raise ${field} in ${owner} if nothing visibly suffers`;
+  triangles.forEach((count, t) => {
+    if (budget.tier_triangles && count > budget.tier_triangles[t])
+      out.push(
+        finding(
+          "budget.tier_triangles",
+          `${label}: tier ${t} draws ${count} triangles, over its budget of ${budget.tier_triangles[t]}`,
+          `simplify the tier${raise("tier_triangles")}`,
+        ),
+      );
   });
+  if (bundle && budget.bundle_bytes !== undefined) {
+    const bytes = encodeBundle(bundle).byteLength;
+    if (bytes > budget.bundle_bytes)
+      out.push(
+        finding(
+          "budget.bundle_bytes",
+          `${label}: the bundle is ${bytes} bytes, over its budget of ${budget.bundle_bytes}`,
+          `thin the tiers, or shrink or share textures${raise("bundle_bytes")}`,
+        ),
+      );
+  }
+  if (
+    bundle &&
+    budget.textures !== undefined &&
+    bundle.textures.length > budget.textures
+  )
+    out.push(
+      finding(
+        "budget.unit_textures",
+        `${label}: the bundle carries ${bundle.textures.length} textures, over its budget of ${budget.textures}`,
+        `share textures between materials${raise("textures")}`,
+      ),
+    );
+  return out;
 }
 
 interface ExtentRule {
   code: "fit.hull_extents" | "fit.footprint";
   /** What the box is, for the message: `units.tank.body.hull.half_extents_m [..]`. */
   rule: string;
-  side: number;
-  top: number;
+  tolerance: number;
   fix: string;
 }
 
@@ -1153,22 +1313,22 @@ function extentFindings(
   label: string,
   positions: Float32Array,
   half: Vec3,
-  { code, rule, side, top, fix }: ExtentRule,
+  { code, rule, tolerance, fix }: ExtentRule,
 ): Finding[] {
   const b = positionsBounds(positions);
-  const faces: [string, number, number, number][] = [
-    ["-x", b.min[0], -half[0], side],
-    ["+x", b.max[0], half[0], side],
-    ["-y", b.min[1], -half[1], side],
-    ["+y", b.max[1], half[1], side],
-    ["+z", b.max[2], 2 * half[2], top],
+  const faces: [string, number, number][] = [
+    ["-x", b.min[0], -half[0]],
+    ["+x", b.max[0], half[0]],
+    ["-y", b.min[1], -half[1]],
+    ["+y", b.max[1], half[1]],
+    ["+z", b.max[2], 2 * half[2]],
   ];
-  const off = faces.filter(([, model, box, tolerance]) => Math.abs(model - box) > tolerance);
+  const off = faces.filter(([, model, box]) => Math.abs(model - box) > tolerance);
   return off.length
     ? [
         finding(
           code,
-          `${label}: ${off.map(([face, model, box]) => `${face} face at ${fmt(model)} m vs ${fmt(box)} m`).join("; ")} (${rule}, tolerance ${side === top ? side : `${side}, top ${top}`})`,
+          `${label}: ${off.map(([face, model, box]) => `${face} face at ${fmt(model)} m vs ${fmt(box)} m`).join("; ")} (${rule}, tolerance ${tolerance})`,
           fix,
         ),
       ]
@@ -1227,8 +1387,7 @@ function footprintFindings(
     extentFindings(`${label} (${state.name})`, state.tiers[0].positions, half, {
       code: "fit.footprint",
       rule: `footprint_half_m [${half.join(", ")}]`,
-      side: tolerances.footprint_m,
-      top: tolerances.footprint_m,
+      tolerance: tolerances.footprint_m,
       fix: "fit the art to the simulation's box, or widen footprint_m for this appearance in the catalog (overhangs, rubble)",
     }),
   );

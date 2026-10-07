@@ -14,13 +14,19 @@ The [appearance rationale](../../specs/done/battle-look/README.md) records the i
 - **Clips once per skeleton.** Skinned bodies carry joints, binds and meshes. Animation lives in one `SkeletonClips` bundle per skeleton, shared by every body on that rig.
 - **Engine space is decided at bake.** Z up, +X forward, +Y left, metres, origin on the ground. The bake applies glTF's Y-up conversion plus the catalog's `basis_yaw_deg` (90 for the Quaternius rig) as one transform above the roots. The loader never converts.
 - **References are review inputs, held to their provenance.** A family's reference library ([`references.ts`](src/references.ts)) is read by `check` and the review sheet only. Every image names a licence we may redistribute, or is labelled generated with how it was made, and no view rests on a generated image alone.
-- **The simulation is the authority on fit.** The soldier frame every squad shares (height, eye, muzzle) comes from the fixture's `physics` block; each unit type's hull extents, mounts, pivots and muzzles from its resolved catalog type (`src/authority.ts`). How far art may sit from them is a catalog tolerance, not a rule: widen a tolerance, per appearance if needed, rather than weakening a check.
+- **The simulation is the authority on fit.** The soldier frame every squad shares (height, eye, muzzle) comes from the fixture's `physics` block; each unit type's hull extents, mounts, pivots and muzzles from its resolved catalog type (`src/authority.ts`). How far art may sit from them is a catalog tolerance, not a rule. A vehicle's parts that stand outside its hull (antennas, stowage, crew) are not a wider tolerance but dressing: nodes named `dressing_*`, held to their class's own allowance so they never read as cover the simulation lacks.
 
 ## Source conventions (what the validator expects of a GLB)
 
 [Validation](src/validate.ts) owns structural, fit and budget findings; [schema](src/schema.ts)
 owns bundle roles and limits. Source exporters carry explicit detail tiers, so a
 coarser representation changes geometry rather than merely hiding a large mesh.
+A unit or wreck must really switch with zoom: every mesh names its tier, and
+each tier draws a recorded fraction of the one before. Those rules, the
+dressing allowance and the budgets are kept per unit class (a vehicle's
+physical class, or soldier) in [unit art](src/unitArt.ts), as scenery's are
+per kind; each number there is a loose tripwire, raised when real art
+outgrows it and nothing visibly suffers.
 
 Skinned bodies share one skeleton's clip library. Bone-attached kit is baked into
 that skin, and sockets locate observed effects on the drawn weapon. The fallen

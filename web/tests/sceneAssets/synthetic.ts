@@ -138,7 +138,6 @@ export const TOLERANCES: Tolerances = {
   eye_m: 0.08,
   muzzle_m: 0.1,
   hull_extent_m: 0.1,
-  hull_top_m: 0.1,
   footprint_m: 0.1,
   vehicle_muzzle_m: 0.05,
   muzzle_arc_m: 0.01,
@@ -439,7 +438,11 @@ export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
   const head = g.node({ name: "Head", t: [0, 0.3 * k, 0], children: [eye] });
   const muzzle = g.node({ name: "muzzle", t: [0, (muzzleY - 1.4) * k, 0.6 * k] });
   const rifleMesh = g.box([-0.02 * k, -0.03 * k, -0.2 * k], [0.02 * k, 0.03 * k, 0.6 * k]);
-  const rifle = g.node({ name: "rifle", mesh: rifleMesh, children: [muzzle] });
+  // Boxes per tier, 12 triangles each: 4, 3, 2, 1. The body is in every
+  // tier, the rifle in the finest three, the pack in the finest two and the
+  // pouch in the finest alone.
+  const lods = o.noLods ? [""] : LODS;
+  const rifle = tieredPart(g, "rifle", rifleMesh, 3, lods, [muzzle]);
   const hand = g.node({ name: "hand_r", t: [-0.2 * k, 0.2 * k, 0.1 * k], children: [leaf, rifle] });
   const extra = o.extraJoint ? g.node({ name: "pouch_joint", t: [0.1 * k, 0, 0] }) : -1;
   const spine = g.node({
@@ -469,7 +472,6 @@ export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
     ];
   };
   const bodyNodes: number[] = [];
-  const lods = o.noLods ? [""] : ["_LOD0", "_LOD1", "_LOD2", "_LOD3"];
   lods.forEach((suffix, tier) => {
     const extraAttrs: GltfJson = {};
     if (o.fiveWeights) {
@@ -479,13 +481,19 @@ export function soldierGlb(o: SoldierOptions = {}): Uint8Array {
     const mesh = g.box([-0.2, lift, -0.15], [0.2, top + lift, 0.15], influence, extraAttrs);
     if (o.noNormals) delete g.json.meshes[mesh].primitives[0].attributes.NORMAL;
     bodyNodes.push(g.node({ name: `body${suffix}`, mesh, skin }));
-    if (tier === 0 && !o.noLods) {
-      // LOD0 carries a pack the coarser tiers drop.
+    if (tier < 2 && !o.noLods) {
       const pack = g.box([-0.15, 1.0 + lift, -0.3], [0.15, 1.4 + lift, -0.15], () => [
         [slot(spine), 0, 0, 0],
         [1, 0, 0, 0],
       ]);
       bodyNodes.push(g.node({ name: `pack${suffix}`, mesh: pack, skin }));
+    }
+    if (tier === 0 && !o.noLods) {
+      const pouch = g.box([-0.1, 0.85 + lift, 0.15], [0.1, 1.0 + lift, 0.2], () => [
+        [slot(pelvis), 0, 0, 0],
+        [1, 0, 0, 0],
+      ]);
+      bodyNodes.push(g.node({ name: `pouch${suffix}`, mesh: pouch, skin }));
     }
   });
   const loose = o.looseMesh
@@ -545,6 +553,29 @@ export const gBox = (b: GltfBuilder, min: Vec3, max: Vec3) => {
   );
 };
 
+/** Mesh tier suffixes, finest first; `UNSUFFIXED` names a mesh no tier owns. */
+export const LODS = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"];
+const UNSUFFIXED = [""];
+
+/** One part drawn in its finest `tiers` tiers: a `<name>_LOD0` node with
+ *  the coarser tiers' nodes (the same mesh) under it. With `UNSUFFIXED`
+ *  suffixes, one node named `name`. */
+export function tieredPart(
+  b: GltfBuilder,
+  name: string,
+  mesh: number,
+  tiers: number,
+  suffixes: readonly string[] = LODS,
+  children: number[] = [],
+): number {
+  const [first, ...rest] = suffixes.slice(0, tiers);
+  return b.node({
+    name: `${name}${first}`,
+    mesh,
+    children: [...rest.map((s) => b.node({ name: `${name}${s}`, mesh })), ...children],
+  });
+}
+
 export interface TankOptions {
   muzzleX?: number; // world x of the muzzle (the realistic gun is 5.9)
   /** Where the model draws its cannon and roof HMG: `tankMounts(muzzleX)`
@@ -565,6 +596,14 @@ export interface TankOptions {
   flip?: boolean; // upside down (breaks up)
   /** Top of a whip antenna on the turret roof, world z (the hit box's top is 2.4). */
   antenna?: number;
+  /** Parts under `dressing_*` nodes: the antenna, and a load on the rear
+   *  deck `size` (x, y, z) metres, its rear `overhang` past the hull's. */
+  dressing?: { antenna?: boolean; stowage?: { size: Vec3; overhang: number } };
+  /** Leave this part's mesh unsuffixed, so it would be in every tier. */
+  unsuffixed?: string;
+  /** Draw these parts (by mesh name, before its tier suffix) in their
+   *  finest n tiers instead. */
+  partTiers?: Record<string, number>;
   /** Texture the paint (albedo, normal, ORM) at this size, with UVs and, unless
    *  `tangents` is false, tangents. */
   textures?: { size: number; tangents?: boolean };
@@ -595,10 +634,21 @@ export function tankGlb(o: TankOptions = {}): Uint8Array {
     extras?: Record<string, unknown>,
   ) =>
     skip(name) ? -1 : b.node({ name, t: g3(t), children: children.filter((c) => c >= 0), extras });
-  const part = (name: string, min: Vec3, max: Vec3) => b.node({ name, mesh: gBox(b, min, max) });
+  const lodNames = o.lods === "none" ? UNSUFFIXED : LODS;
+  const part = (name: string, min: Vec3, max: Vec3, tiers = LODS.length) =>
+    tieredPart(
+      b,
+      name,
+      gBox(b, min, max),
+      o.partTiers?.[name] ?? tiers,
+      o.unsuffixed === name ? UNSUFFIXED : lodNames,
+    );
 
+  // Boxes per tier, 12 triangles each: 10, 8, 5, 4. The hull, turret and
+  // tracks are in every tier, the barrel in the finest three, road wheels in
+  // the finest two, and the HMG's barrel and the stowage in the finest alone.
   const muzzle = empty("muzzle", [reach - 1, 0, 0]);
-  const barrel = part("barrel", [0, -0.08, -0.08], [reach - 1, 0.08, 0.08]);
+  const barrel = part("barrel", [0, -0.08, -0.08], [reach - 1, 0.08, 0.08], 3);
   const gun = empty("gun", [1 - turretX, 0, gunZ], [barrel, o.muzzleUnderTurret ? -1 : muzzle]);
   // The HMG's ring on the turret roof, its gun 0.1 m up and forward.
   const [hx, hy, hz] = roofGun.muzzle_m!;
@@ -606,7 +656,7 @@ export function tankGlb(o: TankOptions = {}): Uint8Array {
   const hmgGun = empty(
     "hmg_gun",
     [0.1, 0, 0.1],
-    [part("hmg_barrel", [0, -0.03, -0.03], [hx - 0.1, 0.03, 0.03]), hmgMuzzle],
+    [part("hmg_barrel", [0, -0.03, -0.03], [hx - 0.1, 0.03, 0.03], 1), hmgMuzzle],
   );
   const [px, py, pz] = roofGun.pivot_m;
   const hmg = empty("hmg", [px - cannonX - turretX, py, pz - turretZ], [hmgGun]);
@@ -615,12 +665,38 @@ export function tankGlb(o: TankOptions = {}): Uint8Array {
   const turretMuzzle = o.muzzleUnderTurret
     ? b.node({ name: "muzzle", t: g3([reach - turretX, 0, gunZ]) })
     : -1;
+  // A whip antenna on the turret roof, its own `dressing_antenna` node when
+  // it is marked as dressing.
+  const whip = () => part("antenna", [-1.2, 0.8, 0.8], [-1.19, 0.81, o.antenna! - turretZ], 1);
   const antenna =
-    o.antenna !== undefined
-      ? part("antenna", [-1.2, 0.8, 0.8], [-1.19, 0.81, o.antenna - turretZ])
-      : -1;
+    o.antenna === undefined
+      ? -1
+      : o.dressing?.antenna
+        ? empty("dressing_antenna", [0, 0, 0], [whip()])
+        : whip();
+  // Dressing on the hull's rear deck: a box `size` (x, y, z) standing on the
+  // roof at z 1.6, reaching from x -3.5 + `overhang` forward.
+  const stowage = o.dressing?.stowage;
+  const load = stowage
+    ? empty(
+        "dressing_stowage",
+        [0, 0, 0],
+        [
+          part(
+            "stowage_load",
+            [-3.5 - stowage.overhang, -stowage.size[1] / 2, 1.6],
+            [-3.5 - stowage.overhang + stowage.size[0], stowage.size[1] / 2, 1.6 + stowage.size[2]],
+            1,
+          ),
+        ],
+      )
+    : -1;
   const tile = (side: string, y: number) =>
-    empty(`era_${side}`, [0, y, 0.6], [part(`era_${side}_tiles`, [-2, -0.05, 0], [2, 0.05, 0.8])]);
+    empty(
+      `era_${side}`,
+      [0, y, 0.6],
+      [part(`era_${side}_tiles`, [-2, -0.05, 0], [2, 0.05, 0.8], 1)],
+    );
   const era = o.era ? [tile("L", 1.75), tile("R", -1.75)] : [];
   const turret = empty(
     "turret",
@@ -638,24 +714,28 @@ export function tankGlb(o: TankOptions = {}): Uint8Array {
       trackExtras,
     );
   const wheel = (name: string, x: number, y: number) =>
-    empty(name, [x, y, 0.4], [part(`${name}_disc`, [-0.35, -0.15, -0.35], [0.35, 0.15, 0.35])]);
+    empty(name, [x, y, 0.4], [part(`${name}_disc`, [-0.35, -0.15, -0.35], [0.35, 0.15, 0.35], 2)]);
   const wheels = [
     wheel("wheel_L_1", 2, 1.4),
     wheel("wheel_R_1", 2, -1.4),
     wheel(o.duplicateWheel ? "wheel_L_1" : "wheel_L_2", -2, 1.4),
   ];
-  const hullParts: number[] = [];
-  const lodNames = o.lods === "none" ? [""] : ["_LOD0", "_LOD1", "_LOD2", "_LOD3"];
-  lodNames.forEach((suffix, tier) => {
-    const detailed = o.lods === "inverted" ? tier === 1 : tier === 0;
-    hullParts.push(part(`hull_body${suffix}`, [-3.5, -halfY, 0.2], [3.5, halfY, 1.6]));
-    if (detailed && suffix)
-      hullParts.push(part(`hull_stowage${suffix}`, [-3.2, -0.5, 1.6], [-2.6, 0.5, 1.8]));
-  });
+  const hullParts = [part("hull_body", [-3.5, -halfY, 0.2], [3.5, halfY, 1.6])];
+  const stowageBox = () => gBox(b, [-3.2, -0.5, 1.6], [-2.6, 0.5, 1.8]);
+  if (o.lods === "inverted")
+    // Tier 1 carries more than tier 0: the stowage, twice over.
+    hullParts.push(
+      b.node({ name: "hull_stowage_LOD1", mesh: stowageBox() }),
+      b.node({ name: "hull_crates_LOD1", mesh: stowageBox() }),
+    );
+  else if (o.lods !== "none")
+    hullParts.push(b.node({ name: "hull_stowage_LOD0", mesh: stowageBox() }));
   const hull = empty(
     "hull",
     [0, 0, lift],
-    [...hullParts, ...era, turret, track("L", 1.5), track("R", -1.5), ...wheels],
+    [...hullParts, ...era, turret, load, track("L", 1.5), track("R", -1.5), ...wheels].filter(
+      (c) => c >= 0,
+    ),
   );
   const root = b.node({ name: "tank", children: [hull], r: o.flip ? qx(180) : undefined });
   if (o.skinned) b.skin([hull]);
@@ -686,14 +766,19 @@ export function truckGlb(o: TruckOptions = {}): Uint8Array {
   const motion = (extras: Record<string, number>) => (o.noDeployMotion ? undefined : extras);
   const empty = (name: string, t: Vec3, children: number[] = [], extras?: Record<string, number>) =>
     skip(name) ? -1 : b.node({ name, t: g3(t), children: children.filter((c) => c >= 0), extras });
-  const part = (name: string, min: Vec3, max: Vec3) => b.node({ name, mesh: gBox(b, min, max) });
+  const part = (name: string, min: Vec3, max: Vec3, tiers = LODS.length) =>
+    tieredPart(b, name, gBox(b, min, max), tiers);
+  // Boxes per tier, 12 triangles each: 18, 10, 7, 5 (stationary, without the
+  // legs and mast: 11, 7, 6, 5). The shelter and tyres are in every tier, the
+  // cab and mast tube in the finest three, the toolbox and the mast's upper
+  // stages in the finest two, and the hubs and leg pads in the finest alone.
   const legs = ["FL", "FR", "RL", "RR"].map((id) => {
     const x = id[0] === "F" ? 1.5 : -1.5;
     const y = id[1] === "L" ? 1.2 : -1.2;
     const pad = empty(
       `deploy_leg_${id}_pad`,
       [0, 0, -0.5],
-      [part(`leg_${id}_pad`, [-0.15, -0.15, 0], [0.15, 0.15, 0.05])],
+      [part(`leg_${id}_pad`, [-0.15, -0.15, 0], [0.15, 0.15, 0.05], 1)],
     );
     const jack = empty(
       `deploy_leg_${id}_jack`,
@@ -713,20 +798,20 @@ export function truckGlb(o: TruckOptions = {}): Uint8Array {
   const m3 = empty(
     "deploy_mast_3",
     [0.8, 0, 0],
-    [part("mast_stage_3", [0, -0.05, 0], [0.8, 0.05, 0.1]), head],
+    [part("mast_stage_3", [0, -0.05, 0], [0.8, 0.05, 0.1], 2), head],
     telescope,
   );
   const m2 = empty(
     "deploy_mast_2",
     [0.8, 0, 0],
-    [part("mast_stage_2", [0, -0.07, 0], [0.8, 0.07, 0.14]), m3],
+    [part("mast_stage_2", [0, -0.07, 0], [0.8, 0.07, 0.14], 2), m3],
     telescope,
   );
   // Stowed: the mast lies along the roof, and swings up about its hinge.
   const mast = empty(
     "deploy_mast",
     [-2.5, 0, 3.4],
-    [part("mast_tube", [-0.1, -0.1, 0], [0.8, 0.1, 0.2]), m2],
+    [part("mast_tube", [-0.1, -0.1, 0], [0.8, 0.1, 0.2], 3), m2],
     motion({ deploy_start: 0.35, deploy_end: 0.65, deploy_turn_y: -90 }),
   );
   const sign = o.reversed ? -1 : 1;
@@ -734,12 +819,17 @@ export function truckGlb(o: TruckOptions = {}): Uint8Array {
     empty(
       `wheel_${id}`,
       [sign * (id[0] === "F" ? 2 : -2), id[1] === "L" ? 1.2 : -1.2, 0.55],
-      [part(`wheel_${id}_tyre`, [-0.55, -0.2, -0.55], [0.55, 0.2, 0.55])],
+      [
+        part(`wheel_${id}_tyre`, [-0.55, -0.2, -0.55], [0.55, 0.2, 0.55]),
+        part(`wheel_${id}_hub`, [-0.2, -0.2, -0.2], [0.2, 0.2, 0.2], 1),
+      ],
     ),
   );
-  const bodyParts = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"].map((suffix) =>
-    part(`shelter${suffix}`, [-3, -1.4, 0.5], [3, 1.4, o.stationary ? 3.6 : 3.4]),
-  );
+  const bodyParts = [
+    part("shelter", [-3, -1.4, 0.5], [3, 1.4, o.stationary ? 3.6 : 3.4]),
+    part("cab", [2, -1.3, 0.5], [2.9, 1.3, 3], 3),
+    part("toolbox", [-2.5, -1.3, 0.5], [-2, 1.3, 1], 2),
+  ];
   const body = empty("body", [0, 0, 0], [...bodyParts, ...legs, mast, ...wheels]);
   b.roots(b.node({ name: "truck", children: [body] }));
   return b.glb();
@@ -748,8 +838,11 @@ export function truckGlb(o: TruckOptions = {}): Uint8Array {
 /** A static state: a 10 × 8 m block, 6 m tall unless told otherwise. */
 export function blockGlb(height = 6, lift = 0): Uint8Array {
   const b = new GltfBuilder();
-  const parts = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"].map((suffix) =>
-    b.node({ name: `walls${suffix}`, mesh: gBox(b, [-5, -4, lift], [5, 4, height + lift]) }),
+  // Coarser tiers draw fewer copies of the walls (4, 3, 2, 1), as a wreck's
+  // tiers must draw fewer triangles each.
+  const walls = gBox(b, [-5, -4, lift], [5, 4, height + lift]);
+  const parts = LODS.map((_, copies) =>
+    tieredPart(b, `walls${copies}`, walls, LODS.length - copies),
   );
   b.roots(b.node({ name: "block", children: parts }));
   return b.glb();
