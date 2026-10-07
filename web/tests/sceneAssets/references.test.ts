@@ -119,6 +119,20 @@ test("a listed file that is not there, or whose bytes are not its sha256, is ref
   );
 });
 
+test("a country port of an allowed Creative Commons licence is allowed; a port of any other is not", async () => {
+  const files = {
+    "a-side.jpg": jpeg(800, 600),
+    "a-front.jpg": jpeg(800, 600),
+    "a-rear.jpg": jpeg(800, 600),
+  };
+  const text = await library(files, [
+    photo("a-side.jpg", "side", { licence: "CC-BY-SA-3.0-DE" }),
+    photo("a-front.jpg", "front", { licence: "CC-BY-2.0-FR" }),
+    photo("a-rear.jpg", "rear", { licence: "CC-BY-NC-3.0-DE" }),
+  ]);
+  expect(codes(await check(text, files))).toEqual(["references.licence"]);
+});
+
 test("a licence we may not redistribute, or ours on a real photo, is refused", async () => {
   const files = { "a-side.jpg": jpeg(800, 600), "a-front.jpg": jpeg(800, 600) };
   const text = await library(files, [

@@ -44,6 +44,14 @@ export const REFERENCE_LICENCES = [
 ] as const;
 export const GENERATED_LICENCE = "ours";
 
+/** Whether `licence` is allowed: one of `REFERENCE_LICENCES`, or a country port
+ *  of an allowed Creative Commons licence (`CC-BY-SA-3.0-DE`), which grants
+ *  the same redistribution. */
+export const allowedLicence = (licence: string) =>
+  (REFERENCE_LICENCES as readonly string[]).includes(licence) ||
+  (/^CC-.*-[A-Z]{2,3}$/.test(licence) &&
+    (REFERENCE_LICENCES as readonly string[]).includes(licence.replace(/-[A-Z]{2,3}$/, "")));
+
 /** A reference's longest edge, in pixels: larger originals are resized. */
 export const REFERENCE_MAX_EDGE_PX = 1600;
 
@@ -228,10 +236,10 @@ export async function checkReferences(
           `${label} is generated but its name lacks the -generated suffix`,
         );
     } else {
-      if (!(REFERENCE_LICENCES as readonly string[]).includes(entry.licence))
+      if (!allowedLicence(entry.licence))
         error(
           "references.licence",
-          `${label} licence ${JSON.stringify(entry.licence)} is none of ${REFERENCE_LICENCES.join(", ")}`,
+          `${label} licence ${JSON.stringify(entry.licence)} is none of ${REFERENCE_LICENCES.join(", ")} or a country port of one`,
         );
       const lacks = (["page", "author"] as const).filter((k) => !isFilled(entry[k]));
       if (lacks.length) error("references.entry", `${label} lacks ${lacks.join(", ")}`);

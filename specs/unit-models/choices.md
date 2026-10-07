@@ -247,3 +247,4 @@ Triangles per tier 0 / 1 / 2 / 3, from `asset validate` on each committed source
   - **Glass tops reflect sky teal:** intended grazing reflection, not emission.
   - **Tan vehicles blend into the tan review ground:** the ground, not the scheme.
 - **Preview.** The shots were opened for the user, non-blocking; there was no response, so the slice proceeded on the evidence and the window was closed.
+- **Country-ported CC licences are allowed for references** (coordinator, 2026-10-07; reversible): `CC-BY-SA-3.0-DE` and the like grant the same redistribution as the unported ids, and the tracked lane skipped several good Leopard 2A7V photos for lack of them. `allowedLicence` accepts an allowed CC id plus a country code; a port of a disallowed licence (e.g. NC) stays refused.
