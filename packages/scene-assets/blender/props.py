@@ -1,4 +1,4 @@
-"""Village props, each authored to one simulation box (the catalog's `footprint_half_m`).
+"""Props, each authored to one simulation box (the catalog's `footprint_half_m`).
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/props.py <kind> <out.glb>
 

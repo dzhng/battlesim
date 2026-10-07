@@ -5,7 +5,7 @@ set -e
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../../.." && pwd)
 v="$root/assets/source/test"
-b="$root/assets/source/village"
+b="$root/assets/source/props"
 mkdir -p "$v" "$b"
 blender() {
   script=$1; shift
@@ -28,7 +28,7 @@ blender supply_truck.py "$v/supply_truck.glb"
 blender supply_truck.py "$v/supply_truck_wreck.glb" --wreck
 blender jeep.py "$v/jeep.glb"
 blender jeep.py "$v/jeep_wreck.glb" --wreck
-# the ruin a loose ruin or rubble prop is drawn as (buildings are a city set: city/village.py)
+# the ruin a loose ruin or rubble prop is drawn as (buildings are a city set: city/lab_boxes.py)
 blender house.py "$b/ruin.glb" 15 12 4 0 --ruin 2
 blender props.py wall "$b/wall.glb"
 blender props.py crate "$b/crate.glb"

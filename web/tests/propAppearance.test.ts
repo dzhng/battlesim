@@ -65,7 +65,7 @@ const installed: InstalledAppearances = {
   appearances: new Map([
     ["test_tank_wreck", entry("scenery", "wreck", [3.5, 1.8, 1.2], "default")],
     ["truck_wreck", entry("scenery", "wreck", [3, 1.4, 1.8], "default")],
-    ["village_ruin", entry("scenery", "ruin", [15, 12, 1], "default")],
+    ["ruin", entry("scenery", "ruin", [15, 12, 1], "default")],
     ["field_wall", entry("scenery", "wall", [2, 0.3, 0.8], "default")],
     ["bridge_deck", entry("scenery", "bridge_deck", [18, 5, 0.4], "default")],
   ]),
@@ -120,7 +120,7 @@ test("known rubble replaces its wall atomically, in its place", () => {
   const drawn = drawnModels(walls, [rubbleOf(walls[1])], appearances);
   expect(drawnAt(drawn)).toEqual([
     ["field_wall", 100],
-    ["village_ruin", 200],
+    ["ruin", 200],
   ]);
   const rubble = drawn[1];
   expect([rubble.x, rubble.y, rubble.z, rubble.yaw]).toEqual([200, 50, 2, 0.3]);
@@ -175,7 +175,7 @@ test("a placed prop takes the appearance nearest its box, scaled to fit it", () 
     ],
     appearances,
   );
-  expect(loose.appearance).toBe("village_ruin");
+  expect(loose.appearance).toBe("ruin");
   expect(loose.scale).toEqual([0.5, 0.5, 1]);
 });
 
@@ -294,7 +294,7 @@ test("each body a side draws owns its own models, a repeated wall several", () =
         expect.closeTo(300 + (k * 4 - 8) * Math.cos(0.3), 9),
       ]),
     ],
-    [200, [["village_ruin", 200]]],
+    [200, [["ruin", 200]]],
   ]);
 });
 
@@ -307,7 +307,7 @@ test("what a side learns hides only the props it replaced, over the map fitted o
   expect(drawnAt(drawnStructures(aware))).toEqual([
     ["field_wall", 100],
     ["field_wall", 200],
-    ["village_ruin", 300],
+    ["ruin", 300],
   ]);
   expect(drawnStructures(unaware)).toHaveLength(7);
   // Both draw from the one fitted list: learning changes no map model.
@@ -319,7 +319,7 @@ test("what a side learns hides only the props it replaced, over the map fitted o
 test("a map prop a route draws from the world is left to it", () => {
   const drawn = drawnModels(walls, [rubbleOf(walls[0])], appearances, () => false);
   // Only the known rubble: the standing walls are the world's.
-  expect(drawnAt(drawn)).toEqual([["village_ruin", 100]]);
+  expect(drawnAt(drawn)).toEqual([["ruin", 100]]);
 });
 
 test("the battle installs the map's props and every body a battle can leave or place", () => {
@@ -334,9 +334,9 @@ test("the battle installs the map's props and every body a battle can leave or p
   // A deck is only ever a map's: it is installed for a map that has one.
   expect([...appearances.drawnFor([])].sort()).toEqual([
     "field_wall",
+    "ruin",
     "test_tank_wreck",
     "truck_wreck",
-    "village_ruin",
   ]);
   expect(appearances.drawnFor([deck]).has("bridge_deck")).toBe(true);
 });
@@ -344,7 +344,7 @@ test("the battle installs the map's props and every body a battle can leave or p
 test("a second replacement never resurrects the static body", () => {
   const source = walls[0];
   const current: KnownProp = { ...rubbleOf(source), replaces: 41, authoredProp: source.id };
-  expect(drawnAt(drawnModels([source], [current], appearances))).toEqual([["village_ruin", 100]]);
+  expect(drawnAt(drawnModels([source], [current], appearances))).toEqual([["ruin", 100]]);
 });
 
 // A prop kind with no art fitted is drawn as the stand-in kit's unit box (a

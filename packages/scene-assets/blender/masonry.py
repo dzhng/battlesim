@@ -1,5 +1,5 @@
-"""Village masonry: plaster, brick, stone, roof tiles and timber paints, and the
-wall, roof and rubble builders the houses and village props share."""
+"""Masonry: plaster, brick, stone, roof tiles and timber paints, and the
+wall, roof and rubble builders the houses and props share."""
 import bmesh, math, random
 from mathutils import Vector, Matrix
 from parts import *

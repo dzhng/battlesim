@@ -1,15 +1,15 @@
-"""The authored maps' buildings: the village farm, built on every box their catalogue has.
+"""The test maps' buildings (the `lab_boxes` set): a farm built on every box their catalogue has.
 
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/city/village.py
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/city/lab_boxes.py
 
-writes `assets/source/city/village/kit.glb` and `templates.json` (the format is in
-this folder's readme). The village and the labs place the solid boxes of
+writes `assets/source/city/lab_boxes/kit.glb` and `templates.json` (the format is in
+this folder's readme). The authored test maps place the solid boxes of
 `fixtures/building-templates.json`, which no set derives: this one dresses each of
 them as it is written. Every box is the courtyard farm of `house.py`, built at the
 box's own size, never stretched to it: one module for the farm standing and one for
 its ruin, each the whole building in the template's frame.
 
-The farm has three looks. Each belongs to the village house it was first drawn for,
+The farm has three looks. Each belongs to the street test map's house it was first drawn for,
 and any other box (a lab's) takes the look of the house nearest it in size, a tier
 coarser: its finest tier is the farm's second, painted as that tier is. Twelve farms
 at the houses' own detail are more than a kit's bundle may weigh.
@@ -31,7 +31,7 @@ LOOKS = {(15.0, 12.0, 4.0): 0, (17.0, 14.0, 4.0): 1, (13.0, 11.0, 4.0): 2}
 BORROWED = BAKE | dict(paint_scale=2 * BAKE["paint_scale"])
 
 # (The farm's ruin is older than the rule that a ruin draws no more than its building: its heaps outdraw the farm at two tiers.)
-kit = Kit("village", "village.py", fit_side_m=0.5, fit_top_m=0.5, fit_ruin_top_m=0.6, damage_budget=False)
+kit = Kit("lab_boxes", "lab_boxes.py", fit_side_m=0.5, fit_top_m=0.5, fit_ruin_top_m=0.6, damage_budget=False)
 
 with open(os.path.join(REPO, "fixtures", "building-templates.json")) as f:
     ROWS = json.load(f)["templates"]

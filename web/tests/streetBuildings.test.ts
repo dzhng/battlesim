@@ -1,5 +1,5 @@
 // @vitest-environment node
-// The village's houses on the one building path, from what ships: the saved
+// The street test map's houses on the one building path, from what ships: the saved
 // map's buildings, as references into the baked template art library, drawn
 // as their farms until a side has seen one fall and as its ruin after.
 import { readFileSync } from "node:fs";
@@ -51,8 +51,8 @@ const art: BuildingArt = {
   bounds: library.modules.map(() => ({ min: [-1, -1, 0], max: [1, 1, 1] })),
 };
 
-// The village as the simulation builds it (loading the map starts the WebAssembly).
-const map = loadMap("village").definition;
+// The street test map as the simulation builds it (loading the map starts the WebAssembly).
+const map = loadMap("street").definition;
 const rules = JSON.stringify(TEST_RULES);
 const view = new WorldView(JSON.stringify(map), rules);
 afterAll(() => view.free());
@@ -60,7 +60,7 @@ const exports = readWorldExports(view);
 const props = mapProps(exports, JSON.parse(world_layout(rules)) as WorldLayout);
 const index = indexBuildings(exports.buildings, props);
 
-/** The modules the village draws from far off when its buildings are known in
+/** The modules the street draws from far off when its buildings are known in
  *  `states`, a building each: every row of its template's state that draws at
  *  the coarsest tier. */
 function modulesIn(states: readonly TemplateState[]): string[] {
@@ -76,7 +76,7 @@ function modulesIn(states: readonly TemplateState[]): string[] {
     .sort();
 }
 
-/** The whole village from far above, then every module drawn, by name. A
+/** The whole street from far above, then every module drawn, by name. A
  *  record hidden in place is drawn as nothing. */
 function drawn(scene: BuildingScene): string[] {
   const camera = {
@@ -103,7 +103,7 @@ function drawn(scene: BuildingScene): string[] {
   return out.sort();
 }
 
-test("a village house stands as its farm until the side has seen it fall, then lies as its ruin", () => {
+test("a street house stands as its farm until the side has seen it fall, then lies as its ruin", () => {
   const scene = createBuildingScene(index.placed, art, gameBuildingStyle);
   const houses = index.parts.map((): TemplateState => "intact");
   const standing = modulesIn(houses);

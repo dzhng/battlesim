@@ -4,7 +4,7 @@
 // `buildingPlacements.ts` expands the references near the camera.
 //
 // Every building of every map is drawn this way, from its template's rows in
-// the installed template art library: a generated town's, the village's
+// the installed template art library: a generated town's, a test map's
 // houses, a lab's one box. Nothing else draws a building, and a template the
 // library lacks is refused by name when the scene is built.
 //

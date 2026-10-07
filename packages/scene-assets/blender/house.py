@@ -1,8 +1,8 @@
-"""A village farmstead sized to a building's box: intact, or its ruin.
+"""A farmstead sized to a building's box: intact, or its ruin.
 
 The simulation's building is one box (a template's part), which blocks movers
 and sight and holds a garrison. The art fills that box as a courtyard farm, the
-common village house of the region: a two-storey dwelling along one long side,
+common farmhouse of the region: a two-storey dwelling along one long side,
 a barn along the other, a stable wing joining them, and a yard wall with a gate
 closing the square. Every outer wall stands on a face of the box, so what hides
 a unit in the simulation is what hides it on screen. Roofs ridge just under the
@@ -13,7 +13,7 @@ no higher than about that height, rubble mounds, charred beams. Origin at the
 box's centre on the ground, +X along `hx`.
 
 `farmstead` builds one under a root, for a set that places it on a template
-(`city/village.py`). Run as a script it writes one alone, the ruin a loose
+(`city/lab_boxes.py`). Run as a script it writes one alone, the ruin a loose
 `ruin` or rubble prop is drawn as:
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/house.py -- <out.glb> <hx> <hy> <hz> <variant> [--ruin RUIN_HEIGHT]
