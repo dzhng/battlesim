@@ -564,6 +564,7 @@ test("every frozen animation field and ground value decodes, integers exact past
       building: 0,
       structureOwner: big + 12,
       authoredProp: 0,
+      wreckOf: null,
     });
   }
   const wide = decodeVector("wide");

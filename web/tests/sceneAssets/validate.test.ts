@@ -634,7 +634,7 @@ test("a wreck's pieces lie within the whole wreck, off the ground and short of i
 
 test("every vehicle names its own wreck, a wreck of its unit's hull", () => {
   const appearances = testCatalog().appearances;
-  const codes = (over: Record<string, object>) =>
+  const codes = (over: Record<string, AppearanceEntry>) =>
     wreckFindings({ ...appearances, ...over }, AUTHORITY.units).map((f) => f.message);
   expect(codes({})).toEqual([]);
   // None named, one the catalog lacks, one that is no wreck, one another

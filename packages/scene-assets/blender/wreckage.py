@@ -329,6 +329,10 @@ def burn():
             o.data.materials[k] = burnt
         if not o.data.materials:
             o.data.materials.append(burnt)
+        # UVs made for another texture (a track's links) would sample the
+        # burnt one at their scale: let the export box-project it in metres.
+        while o.data.uv_layers:
+            o.data.uv_layers.remove(o.data.uv_layers[0])
     for name in BARRELS:
         pitch = bpy.data.objects.get(name)
         if pitch is not None:
