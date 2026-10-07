@@ -1,0 +1,98 @@
+{
+  "entries": [
+    {
+      "file": "europe_vbci_infantry_fighting_vehicle-three_quarter_front-2.jpg",
+      "variant": "europe_vbci_infantry_fighting_vehicle",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VBCI_14juillet_Metz.jpg",
+      "author": "Velinkiboris",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "df7500f2fc821cd01e3c36c124ed5f0ba1e0eea4563ba69eb5af3795ae36bd1e",
+      "note": "VBCI on parade in Metz."
+    },
+    {
+      "file": "europe_vbci_infantry_fighting_vehicle-three_quarter_front.jpg",
+      "variant": "europe_vbci_infantry_fighting_vehicle",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VBCI,_(V%C3%A9hicule_Blind%C3%A9_de_Combat_de_l%27Infanterie),_French_army_licence_registration_%276094_0048%27,_OURCQ_1918_photo-6.JPG",
+      "author": "AlfvanBeem",
+      "licence": "CC0-1.0",
+      "sha256": "f3ff3d50a2b3d96c164ea2989060212604523a3b8ea7eba8d15f3f38edada2b1",
+      "note": "'OURCQ 1918', left front three-quarter, low: bow plate, driver's hatch, turret, wheels and hubs."
+    },
+    {
+      "file": "europe_vbci_infantry_fighting_vehicle-side-2.jpg",
+      "variant": "europe_vbci_infantry_fighting_vehicle",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VBCI,_(V%C3%A9hicule_Blind%C3%A9_de_Combat_de_l%27Infanterie),_French_army_licence_registration_%276094_0048%27,_OURCQ_1918_photo-2.JPG",
+      "author": "AlfvanBeem",
+      "licence": "CC0-1.0",
+      "sha256": "2ec0bd1acbb9ac771421064b96ff4ac5dfd98d387d74caf31fdac719b1cc693c",
+      "note": "Same vehicle, opposite side."
+    },
+    {
+      "file": "europe_vbci_infantry_fighting_vehicle-side-3.jpg",
+      "variant": "europe_vbci_infantry_fighting_vehicle",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VBCI,_(V%C3%A9hicule_Blind%C3%A9_de_Combat_de_l%27Infanterie),_YPRES_1914.JPG",
+      "author": "AlfvanBeem",
+      "licence": "CC0-1.0",
+      "sha256": "f5f85ab6b4b9247d4e59e575a395931ddfa9c2a101e0179556af939000ffce3f",
+      "note": "VBCI 'YPRES 1914', side on parade."
+    },
+    {
+      "file": "europe_vbci_infantry_fighting_vehicle-side.jpg",
+      "variant": "europe_vbci_infantry_fighting_vehicle",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VBCI,_(V%C3%A9hicule_Blind%C3%A9_de_Combat_de_l%27Infanterie),_French_army_licence_registration_%276094_0048%27,_OURCQ_1918_photo-1.JPG",
+      "author": "AlfvanBeem",
+      "licence": "CC0-1.0",
+      "sha256": "c811d480d726dac3d42def76cd38a938b782da623d3f28e49c923ecfe7370322",
+      "note": "French Army VBCI 'OURCQ 1918', Bastille Day display: side elevation, eight wheels, DRAGAR turret with 25 mm M811."
+    },
+    {
+      "file": "europe_vbci_infantry_fighting_vehicle-three_quarter_rear.jpg",
+      "variant": "europe_vbci_infantry_fighting_vehicle",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VBCI,_(V%C3%A9hicule_Blind%C3%A9_de_Combat_de_l%27Infanterie),_French_army_licence_registration_%276094_0048%27,_OURCQ_1918_photo-5.JPG",
+      "author": "AlfvanBeem",
+      "licence": "CC0-1.0",
+      "sha256": "b14e456e07ddd4e18a1452701abe13fa6408ae58db1a267d974ce616ecd09a26",
+      "note": "'OURCQ 1918', rear three-quarter: rear door, stowage cage, tail lights."
+    },
+    {
+      "file": "europe_vbci_infantry_fighting_vehicle-rear-2.jpg",
+      "variant": "europe_vbci_infantry_fighting_vehicle",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VBCI_in_the_Mus%C3%A9e_des_Blind%C3%A9s,_France.JPG",
+      "author": "Alf van Beem",
+      "licence": "CC0-1.0",
+      "sha256": "4d2d72e95253fe769b71fdfa2c48e39b7ba1cb3d0e7129d720d6f856bb82bb9f",
+      "note": "Straight rear at the Musée des Blindés, Saumur, door closed: rear plate, lights, stowage boxes, wheel stations."
+    },
+    {
+      "file": "europe_vbci_infantry_fighting_vehicle-rear.jpg",
+      "variant": "europe_vbci_infantry_fighting_vehicle",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VBCI_06592.JPG",
+      "author": "G.Garitan",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "d457ff0aec3d0d7d13cfc8d99bcfb3a44f4a680f8acec8f414a8838094a591e4",
+      "note": "Rear door open: troop compartment, rear plates and lights."
+    }
+  ],
+  "gaps": [
+    "europe_vbci_infantry_fighting_vehicle: no head-on front photo; the bow is read from the three-quarter front photos.",
+    "europe_vbci_infantry_fighting_vehicle: no top view; the roof hatches and turret ring show only obliquely.",
+    "europe_vbci_infantry_fighting_vehicle: no running-gear or turret close-up (DRAGAR sights, 25 mm mantlet); details are read from the side and three-quarter photos.",
+    "europe_vbci_infantry_fighting_vehicle: photos are parade and museum vehicles in the older three-tone scheme; the 2021 single-colour scheme is not covered."
+  ]
+}

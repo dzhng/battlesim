@@ -1,0 +1,97 @@
+{
+  "entries": [
+    {
+      "file": "eastern_tigr_tigr_m-three_quarter_front-2.jpg",
+      "variant": "eastern_tigr_tigr_m",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VPK-233136-14.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "b65cf2264252d679bb58c22743169a3e631d94246c4181caea83155e06f873ed",
+      "note": "Tigr-M at an exhibition, right front three-quarter: brush guard, grille, roof rails."
+    },
+    {
+      "file": "eastern_tigr_tigr_m-three_quarter_front.jpg",
+      "variant": "eastern_tigr_tigr_m",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VPK-233136_(546-02).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "61d322b78b240a2f283eeabd3a9ae6fd4fd8e1a27e0b9b728eeffd946186ad1d",
+      "note": "VPK-233136 Tigr-M walk-around: left front three-quarter, brush guard, grille, armoured glass, roof hatch."
+    },
+    {
+      "file": "eastern_tigr_tigr_m-side.jpg",
+      "variant": "eastern_tigr_tigr_m",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VPK-233136_(546-06).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "72e71146ff887c4471ea05d7cd7374a7e31395c8f754776c9cd038e271e74b77",
+      "note": "Tigr-M right side, near-orthographic: doors, firing ports, wheel arches, roof line."
+    },
+    {
+      "file": "eastern_tigr_tigr_m-three_quarter_rear.jpg",
+      "variant": "eastern_tigr_tigr_m",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VPK-233136_(546-10).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "e1fe70cb28b841fc54d4feeecade65f1eb550eeb184f0b70ab27dc4f62517625",
+      "note": "Tigr-M left rear three-quarter: rear-mounted spare wheel, rear door."
+    },
+    {
+      "file": "eastern_tigr_tigr_m-rear.jpg",
+      "variant": "eastern_tigr_tigr_m",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VPK-233136_(546-08).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "14d9f18e38978a6a6f97729a1636f85ed7199041e721d98ec369cc2e6d322570",
+      "note": "Tigr-M rear, right door open: spare wheel carrier, lights, tow hook."
+    },
+    {
+      "file": "eastern_tigr_tigr_m-top-2.jpg",
+      "variant": "eastern_tigr_tigr_m",
+      "view": "top",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VPK-233136-16.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "3f7e59ac4469d2faef4e13aaf2515e2b7772bd329bab940b6ec7cb3325051727",
+      "note": "Tigr-M from above and behind: roof, hatch, spare wheel."
+    },
+    {
+      "file": "eastern_tigr_tigr_m-top.jpg",
+      "variant": "eastern_tigr_tigr_m",
+      "view": "top",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VPK-233136_(546-14).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "cca3fcae2d0d2a5cae50a2d7dd95db404135f1a03f6d2b301b9b013ea3ce9637",
+      "note": "Tigr-M from above the left side: roof hatches and roof rails."
+    },
+    {
+      "file": "eastern_tigr_tigr_m-detail.jpg",
+      "variant": "eastern_tigr_tigr_m",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Tigr-M_-_InnovationDay2013part1-03.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "f840ac51ff5469d7cd11b77871518b4d4e4580285ddb86015f920a1d7550572a",
+      "note": "Rear doors open: troop compartment, door armour thickness, roof weapon mount."
+    }
+  ],
+  "gaps": [
+    "eastern_tigr_tigr_m: no head-on front photo; the grille and brush guard are read from the three-quarter front photos.",
+    "eastern_tigr_tigr_m: the walk-around vehicle (VPK-233136) is unarmed; no photo shows a roof weapon fitted, so any roof machine gun is unreferenced here.",
+    "eastern_tigr_tigr_m: no underside or running-gear close-up; wheels and hubs are read from the side and three-quarter photos."
+  ]
+}
