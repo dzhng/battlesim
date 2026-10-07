@@ -23,10 +23,9 @@ from infantry_rig import Rig, SCALE
 from mesh_lods import canonical, make_tiers, triangle_count
 import weapons
 
-_manifest = os.path.join(REPO, 'specs/unit-roster/manifests/infantry.json')
-if not os.path.exists(_manifest):
-    _manifest = os.path.join(REPO, 'specs/done/unit-roster/manifests/infantry.json')
-MANIFEST = json.load(open(_manifest))
+# Equipment lengths and each unit's appearance sources, not a physical frame:
+# the soldier frame is the fixture's. Slice 17 of specs/unit-models replaces it.
+MANIFEST = json.load(open(os.path.join(REPO, 'specs/done/unit-roster/manifests/infantry.json')))
 
 
 def rifle_equipment(mats, model):

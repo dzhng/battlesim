@@ -5,9 +5,15 @@ import bpy, bmesh
 from mathutils import Vector
 sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
 from parts import *
+from catalog_frames import family_variants
 from armor import rig, preview, palette as western_palette
 REPO=Path(__file__).resolve().parents[4]
 REFERENCE_PHOTOS=[{'family': 't72', 'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Alabino05042017-40.jpg/960px-Alabino05042017-40.jpg', 'sha256': '8165f13648a6c2d3c000bc38b0ba3bbff97c65c91d3e65411a4870c1c1ac3547'}, {'family': 't80', 'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/T-80BVM.jpg/960px-T-80BVM.jpg', 'sha256': 'ba29c5dd0d9f53f747d4b253667a25c06d9eb1a3103966ffdbe8a278977df88f'}, {'family': 't90', 'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d9/T-90M.jpg/960px-T-90M.jpg', 'sha256': 'a6a58e43ed972944db823af7ea606e0ca7ba94fa326541019c75015e70fe2b5f'}]
+REFERENCE_LIMITS={
+    't72':'Base-family range; selected maximum hull/width gives conservative art envelope. B3 2016 equipment must match reference.',
+    't80':'Family infobox mixes B/U values; chosen envelope is delegated approximation, not a BVM measurement.',
+    't90':'Base family hull dimensions; T-90M bustle changes silhouette and cannot be generic rounded T-72 turret.',
+}
 
 def running_gear(parent, length, width, mats, turbine=False):
     radius=.325 if turbine else .36; center_z=.44; track_y=width/2-.38; track_width=.60
@@ -162,15 +168,15 @@ def weapons(frame,gun,hmg,hmg_gun,trunnion,m,remote=False):
 
 def export_family(family,build):
     args=script_args();review=next((a.split('=',1)[1] for a in args if a.startswith('--preview=')),None)
-    manifest_path=REPO/'specs/unit-roster/manifests'/f'{family}.json';manifest=json.loads(manifest_path.read_text());rows=[]
-    for v in manifest['variants']:
-        frame=v['physical_authoring'];reset();root=empty(v['id']);root['unit_id']=v['id'];hull=empty('hull',parent=root);m=palette()
+    rows=[]
+    for v in family_variants(family):
+        frame=v['frame'];reset();root=empty(v['id']);root['unit_id']=v['id'];hull=empty('hull',parent=root);m=palette()
         running_gear(hull,*frame['body_dimensions_m'][:2],m,family=='t80');turret,gun,hmg,hmg_gun,trunnion=rig(frame,root)
         build(v,frame,hull,turret,m);weapons(frame,gun,hmg,hmg_gun,trunnion,m,family=='t90')
         finish(ao_distance=1.0,ao_rays=8);counts=triangles_by_tier();assert all(counts[k]>counts[k+1]>0 for k in range(3))
         out=REPO/v['export'];export(str(out));rows.append({'id':v['id'],'sha256':hashlib.sha256(out.read_bytes()).hexdigest(),'triangles_by_tier':counts,'mounts':frame['mounts']})
         print('VARIANT',v['id'],counts,flush=True)
         if review:preview(out,Path(review)/v['id'],frame['body_dimensions_m'][0],frame['body_dimensions_m'][2])
-    paths=[Path(__file__),Path(__file__).with_name(family+'.py'),Path(__file__).with_name('armor.py')]+[Path(__file__).parent.parent/n for n in ('parts.py','common.py','textures.py')]
-    data={'authoring':'Original procedural geometry; reference photos only, no third-party mesh/texture extraction','blender_version':bpy.app.version_string,'source_sha256':{str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths},'manifest_sha256':hashlib.sha256(manifest_path.read_bytes()).hexdigest(),'reference_photos':[r for r in REFERENCE_PHOTOS if r['family']==family],'reference_limits':manifest['reference_limits'],'variants':rows}
+    paths=[Path(__file__),Path(__file__).with_name(family+'.py'),Path(__file__).with_name('armor.py')]+[Path(__file__).parent.parent/n for n in ('parts.py','catalog_frames.py','common.py','textures.py')]
+    data={'authoring':'Original procedural geometry; reference photos only, no third-party mesh/texture extraction','blender_version':bpy.app.version_string,'source_sha256':{str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths},'frames':'fixtures/catalog.json','reference_photos':[r for r in REFERENCE_PHOTOS if r['family']==family],'reference_limits':REFERENCE_LIMITS[family],'variants':rows}
     (REPO/'assets/source/roster'/family/'source-receipt.json').write_text(json.dumps(data,indent=2)+'\n')

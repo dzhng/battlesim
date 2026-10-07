@@ -3,10 +3,10 @@ import bpy,bmesh,os,sys,json,math
 from mathutils import Vector
 sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
-ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'../../../..'))
+from catalog_frames import requested_variant
 
 def build(family):
-    args=script_args();out=next(a for a in args if not a.startswith('--'));ident=os.path.basename(out).removesuffix('.glb');mp=os.path.join(ROOT,'specs/unit-roster/manifests',family+'.json');mp=mp if os.path.exists(mp) else os.path.join(ROOT,'specs/done/unit-roster/manifests',family+'.json');m=json.load(open(mp));v=next(v for v in m['variants'] if v['id']==ident);frame=v['physical_authoring'];L,W,H=frame['body_dimensions_m']
+    args=script_args();v,out=requested_variant(family,args);ident=v['id'];frame=v['frame'];L,W,H=frame['body_dimensions_m']
     reset();paint=textured('ground_olive','olive_paint',tint=1,chip=.25,dirt=.45,rise=.9);dark=textured('dark_steel','olive_paint',colour=(.045,.055,.035),chip=.18,dirt=.4);rubber=textured('rubber','rubber',chip=0,dirt=.3);steel=textured('gun_steel','bare_steel',chip=.12,dirt=.2);glass=flat_paint('armor_glass',(.018,.055,.063),rough=.15,grime=.1)
     root=empty(family);body=empty('body',parent=root)
     scout=family in ('fennek','vbl','tigr');deck={'fennek':1.86,'vbl':1.64,'tigr':1.94,'puma':2.56,'vbci':2.36,'brm':1.85,'jaguar':2.36}[family]

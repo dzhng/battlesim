@@ -1,14 +1,13 @@
-"""Named BMP, BTR and ZBL authoring; frozen manifests own every mount frame."""
+"""Named BMP, BTR and ZBL authoring; the resolved catalog owns every mount frame."""
 import bpy,bmesh,os,sys,json,math
 from mathutils import Vector
 sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
-ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'../../../..'))
+from catalog_frames import requested_variant
 
 def build(family):
-    args=script_args();out=next(a for a in args if not a.startswith('--'));ident=os.path.basename(out).removesuffix('.glb')
-    manifest=json.load(open(os.path.join(ROOT,'specs/unit-roster/manifests',family+'.json')));v=next(v for v in manifest['variants'] if v['id']==ident)
-    frame=v['physical_authoring'];L,W,H=frame['body_dimensions_m'];bmp3=ident.endswith('_bmp_3')
+    args=script_args();v,out=requested_variant(family,args);ident=v['id']
+    frame=v['frame'];L,W,H=frame['body_dimensions_m'];bmp3=ident.endswith('_bmp_3')
     reset();paint=textured('named_olive','olive_paint',tint=1,chip=.28,dirt=.4,rise=.9);dark=textured('dark_steel','olive_paint',colour=(.045,.055,.035),chip=.2,dirt=.4);rubber=textured('rubber','rubber',chip=0,dirt=.3);steel=textured('barrel_steel','bare_steel',chip=.12,dirt=.25);glass=flat_paint('optics',(.018,.06,.065),rough=.13,grime=.1)
     root=empty(family);body=empty('body',parent=root)
     if family=='bmp':

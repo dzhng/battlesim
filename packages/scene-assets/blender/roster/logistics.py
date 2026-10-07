@@ -8,13 +8,14 @@ import bpy, bmesh, sys, os, math, json
 from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
+from catalog_frames import requested_variant
 
 
-def build(FAMILY, TYPE_ID, dimensions, AXLES, CAB_STYLE):
-    L, W, H = dimensions
+def build(FAMILY, AXLES, CAB_STYLE):
     ARGS = script_args()
-    POSITIONALS = [a for a in ARGS if not a.startswith('--')]
-    OUT = POSITIONALS[0] if POSITIONALS else os.path.abspath(f'assets/source/roster/{FAMILY}/{TYPE_ID}.glb')
+    VARIANT, OUT = requested_variant(FAMILY, ARGS)
+    TYPE_ID = VARIANT['id']
+    L, W, H = VARIANT['frame']['body_dimensions_m']
     PREVIEW = next((a.split('=', 1)[1] for a in ARGS if a.startswith('--preview=')), None)
     reset()
     paint_m = textured('cargo_olive', 'olive_paint', tint=1.0, chip=.35, dirt=.65, rise=1.25)

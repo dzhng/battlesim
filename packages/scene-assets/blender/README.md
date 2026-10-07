@@ -30,6 +30,13 @@ They belong to the vehicle's appearance and mount hierarchy, rather than adding
 simulation soldiers. Re-export their vehicles after changing the infantry source;
 the crew exporter preserves that source's exact textures and material masks.
 
+Roster vehicle exporters build to the physical frame of the unit type that
+draws their appearance, read from the resolved catalogs by
+[one helper](catalog_frames.py); a family is the appearances whose sources lie
+in its folder. Nothing else supplies a frame, so an appearance no unit draws
+cannot be exported, and its tests run without Blender:
+`python3 -m unittest discover -s packages/scene-assets/blender -p 'catalog_frames_test.py'`.
+
 Subject exporters build vehicles, wrecks, props, trees and forest-floor material.
 Shared part, masonry, texture and damage helpers keep frame conventions and seeded
 source identity consistent across those subjects. [The batch script](build_sources.sh)

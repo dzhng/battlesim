@@ -3,14 +3,11 @@ import bpy,bmesh,os,sys,json,math
 from mathutils import Vector
 sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
-ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'../../../..'))
+from catalog_frames import requested_variant
 
 def build(family):
-    args=script_args();out=next(a for a in args if not a.startswith('--'));ident=os.path.basename(out).removesuffix('.glb');manifest_path=os.path.join(ROOT,'specs/unit-roster/manifests',family+'.json')
-    if not os.path.exists(manifest_path): manifest_path=os.path.join(ROOT,'specs/done/unit-roster/manifests',family+'.json')
-    manifest=json.load(open(manifest_path));v=next(v for v in manifest['variants'] if v['id']==ident)
-    if v.get('dispatch_gate') and os.environ.get('ALLOW_RESEARCH_MODELS') != '1':raise ValueError('Variant retains a research dispatch gate: '+ident)
-    frame=v['physical_authoring'];L,W,H=frame['body_dimensions_m'];reset()
+    args=script_args();v,out=requested_variant(family,args);ident=v['id']
+    frame=v['frame'];L,W,H=frame['body_dimensions_m'];reset()
     paint=textured('tank_olive','olive_paint',tint=1,chip=.3,dirt=.4,rise=1.1);dark=textured('chassis_dark','olive_paint',colour=(.045,.055,.035),chip=.22,dirt=.5);rubber=textured('rubber','rubber',chip=0,dirt=.3);steel=textured('barrel_steel','bare_steel',chip=.15,dirt=.2);glass=flat_paint('optic_glass',(.018,.06,.065),rough=.13,grime=.1)
     root=empty(family);body=empty('body',parent=root);count=7 if family in ('kf51','t14','t15') else 6;r=.43 if family in ('challenger','kf51','t14','t15') else .40;half=L/2-.60;track_y=W/2-(.46 if family=='challenger' else .35);deck={'leclerc':1.49,'challenger':1.47,'kf51':1.48,'type99':1.39,'t14':1.78,'t15':1.72,'type15':1.46}[family]
     for side in (-1,1):
