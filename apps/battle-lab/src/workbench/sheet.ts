@@ -7,6 +7,8 @@
 // - Strips (spike 03's shape): eight phases per clip for a body; for a
 //   vehicle, articulation (turret, gun, HMG), running gear and deploy.
 // - Stats: tiers, joints or nodes, clips, bounds, findings, frame numbers.
+// - On request, the reference sheet: each studio view beside the family's
+//   reference of the same view (`renderReferenceSheet`).
 
 import { vec3, type Vec3 } from "math";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
@@ -14,6 +16,7 @@ import type { BattleFrame } from "@packages/battle-renderer/src/scene";
 import type { ModelInstance, ModelPose } from "@packages/battle-renderer/src/models/modelInstances";
 import type { ImpostorAtlas } from "@packages/battle-renderer/src/models/impostor";
 import { REST_ARTICULATION, type Articulation } from "@packages/scene-assets/src/articulation";
+import type { ReferenceView } from "@packages/scene-assets/src/references";
 import { farPoseBounds } from "@packages/scene-assets/src/pose";
 import {
   TEXTURE_CHANNELS,
@@ -29,7 +32,13 @@ import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from ".
 import { gameBuildingStyle, gameGlass, gameModelDetail } from "../gameModels";
 import { benchOverlay, benchWorld, posedSockets } from "./benchWorld";
 import { sideTint, type LoadedModel } from "./sources";
-import { SURFACE_VIEWS, WORKBENCH_VIEWS, viewCamera, type SheetView } from "./views";
+import {
+  REFERENCE_CAMERAS,
+  SURFACE_VIEWS,
+  WORKBENCH_VIEWS,
+  viewCamera,
+  type SheetView,
+} from "./views";
 
 /** Tile size in pixels; a multiple of 64 so a row of texels is 256-aligned. */
 export const TILE = 512;
@@ -463,6 +472,89 @@ async function renderSurface(
     renderer.frame.setTextureChannels(ALL_CHANNELS);
   }
   return c;
+}
+
+/** One row of the reference sheet: a reference view, and the image that shows
+ *  it (a data URL), or null where the library has none. */
+export interface ReferenceRow {
+  view: ReferenceView;
+  image: string | null;
+  /** The file, its source, author and licence, and how many more show the
+   *  view; with no image, why it is missing. */
+  label: string;
+  generated: boolean;
+}
+
+/** The reference sheet: each reference view's studio view of the model, with
+ *  no marks, beside the reference that shows it. A view no reference shows is
+ *  marked missing, a generated one generated. */
+export async function renderReferenceSheet(
+  device: GPUDevice,
+  format: GPUTextureFormat,
+  model: LoadedModel,
+  rows: ReferenceRow[],
+  title: string,
+  side: Side = "blue",
+): Promise<HTMLCanvasElement> {
+  const wide = Math.round(TILE * 1.5);
+  const { c, g } = canvas(TILE + wide, HEADER + rows.length * TILE);
+  g.fillStyle = "#e8ebef";
+  g.font = "bold 22px system-ui, sans-serif";
+  g.fillText(`${model.name} · ${title}`, 12, 30);
+  g.font = "15px system-ui, sans-serif";
+  g.fillText("left: the model, no marks · right: the reference of the same view", 12, 56);
+  const renderer = await SheetRenderer.create(device, format, model);
+  try {
+    const bundle = model.installed.appearances.get(model.name)!.bundle;
+    const skeleton =
+      bundle.kind === "skinned" ? (model.installed.skeletons.get(bundle.skeleton) ?? null) : null;
+    const pose = sheetPose(bundle, skeleton);
+    const framing = framingBounds(model);
+    const tint = sideTint(model, side);
+    for (const [i, row] of rows.entries()) {
+      const y = HEADER + i * TILE;
+      const camera = REFERENCE_CAMERAS[row.view];
+      if (camera) {
+        const marks = { hitBox: false, sockets: false };
+        const image = await renderer.tile(model, pose, camera, framing, marks, tint);
+        paste(g, image, 0, y, TILE, `${row.view} · ${camera}`);
+      } else banner(g, 0, y, TILE, `${row.view} · no model view`, "#8a9099");
+      if (row.image) {
+        const picture = await createImageBitmap(await (await fetch(row.image)).blob());
+        const scale = Math.min(wide / picture.width, TILE / picture.height);
+        const w = picture.width * scale;
+        const h = picture.height * scale;
+        g.drawImage(picture, TILE + (wide - w) / 2, y + (TILE - h) / 2, w, h);
+        picture.close();
+        g.fillStyle = "rgba(16, 18, 22, 0.72)";
+        g.fillRect(TILE, y + TILE - LABEL, wide, LABEL);
+        g.fillStyle = "#e8ebef";
+        g.font = "13px system-ui, sans-serif";
+        g.fillText(row.label, TILE + 6, y + TILE - 6, wide - 12);
+        if (row.generated)
+          banner(g, TILE, y, wide, "GENERATED: layout and proportions only", "#f2b84b");
+      } else banner(g, TILE, y, wide, row.label, "#ff9d8f");
+    }
+  } finally {
+    renderer.dispose();
+  }
+  return c;
+}
+
+/** A label strip across the top of a cell, in `colour`. */
+function banner(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  text: string,
+  colour: string,
+) {
+  g.fillStyle = "rgba(16, 18, 22, 0.85)";
+  g.fillRect(x, y, width, LABEL + 6);
+  g.fillStyle = colour;
+  g.font = "bold 15px system-ui, sans-serif";
+  g.fillText(text, x + 6, y + 18);
 }
 
 const ALL_CHANNELS = { albedo: true, normal: true, orm: true };

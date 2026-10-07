@@ -4,15 +4,18 @@
 //                          stats, materials and findings for one GLB (catalog settings when it is a catalog source;
 //                          a vehicle fitted to unit type T, or to every type that draws it)
 //   bake                   bake the catalog into assets/runtime/<hash>/bundle.bin and assets/runtime/catalog.json
-//   check                  re-bake in memory; fail if anything on disk is stale, missing or orphaned
+//   check                  re-bake in memory; fail if anything on disk is stale, missing or orphaned,
+//                          or a reference library (assets/references/<family>/) breaks its contract
 //   pull [name...] [--sources]
 //                          git lfs pull exactly the runtime bundles (and sources) of the named entries
 //   blender <script.py> [args...]
 //                          run a Blender script headless on the pinned Blender
-//   sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--side blue|red]
+//   sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--side blue|red] [--references]
 //                          the workbench's contact sheet, strips, surface (close views
 //                          and each texture channel's part), texture preview, stats and impostor
 //                          atlas, rendered headless by the production renderer;
+//                          --references adds reference.png, each view beside its roster family's
+//                          reference of the same view (missing and generated marked);
 //                          --accept copies them to assets/review/<name>/
 //   icons                  write the generated icons (assets/icons/): every weapon row's,
 //                          every role's symbol and every unit type's silhouette
@@ -83,12 +86,15 @@ const { UnitCatalog } = await import("../packages/scene-assets/src/units.ts");
 const { grassClumpGlb } = await import("../packages/scene-assets/src/grass.ts");
 const { iconFiles } = await import("../packages/scene-assets/src/icons.ts");
 const { runtimeLookup, unitSolids } = await import("../packages/scene-assets/src/silhouette.ts");
+const { checkReferences, sheetReferences } =
+  await import("../packages/scene-assets/src/references.ts");
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const CATALOG = join(ROOT, "assets/catalog.json");
 const RUNTIME = join(ROOT, "assets/runtime");
 const FIXTURE = join(ROOT, "fixtures/game.json");
 const ICONS = join(ROOT, "assets/icons");
+const REFERENCES = join(ROOT, "assets/references");
 const UNIT_CATALOG = join(ROOT, "fixtures/catalog.json");
 const PRESETS = join(ROOT, "fixtures/map-presets.json");
 /** The physical template catalogues the city sets dress, by the name a set
@@ -357,6 +363,20 @@ async function check() {
   }
   for (const path of iconsOnDisk())
     if (!icons.has(path)) problems.push(`orphan assets/icons/${path}; run icons`);
+  for (const family of referenceFamilies()) {
+    const json = join(REFERENCES, family, "references.json");
+    if (!existsSync(json)) {
+      problems.push(`assets/references/${family} has no references.json`);
+      continue;
+    }
+    const findings = await checkReferences(family, readFileSync(json, "utf8"), (file) => {
+      const path = join(REFERENCES, family, file);
+      return existsSync(path) ? new Uint8Array(readFileSync(path)) : null;
+    });
+    for (const f of findings)
+      if (f.severity === "error") problems.push(`${f.code}: ${f.message}`);
+      else console.log(`warn ${f.code}: ${f.message}`);
+  }
   for (const p of problems) console.log(p);
   console.log(
     problems.length
@@ -508,12 +528,13 @@ async function sheet(args) {
       type: { type: "string" },
       yaw: { type: "string" },
       side: { type: "string" },
+      references: { type: "boolean" },
     },
   });
   const [target] = positionals;
   if (!target)
     throw new Error(
-      "sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--side blue|red]",
+      "sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--side blue|red] [--references]",
     );
   const file = target.endsWith(".glb") && existsSync(target) ? target : null;
   const side = values.side ?? "blue";
@@ -583,6 +604,21 @@ async function sheet(args) {
     console.log(
       `wrote ${out} (contact, ${result.strips.length} strips, stats, impostor ${impostor.hash.slice(0, 12)})`,
     );
+    if (values.references) {
+      const panel = referenceRows(
+        file ? repoPath(file) : catalog().appearances[target]?.source,
+        file ? basename(file, ".glb") : target,
+      );
+      if (typeof panel === "string") console.log(panel);
+      else {
+        const sheet = await page.evaluate(
+          ([rows, title]) => window.__workbench.referenceSheet(rows, title),
+          [panel.rows, panel.title],
+        );
+        writeFileSync(join(out, "reference.png"), png(sheet));
+        console.log(`wrote ${join(out, "reference.png")} (${panel.title})`);
+      }
+    }
     const findings = await page.evaluate(() => window.__workbench.state().findings);
     for (const f of findings)
       console.log(`  ${f.severity === "error" ? "ERROR" : "warn "} ${f.code}: ${f.message}`);
@@ -597,6 +633,49 @@ async function sheet(args) {
     await browser.close();
     await server.close();
   }
+}
+
+/** The reference sheet's rows for `variant`, whose source is at `source`:
+ *  the library of the roster family the source is in
+ *  (`assets/source/roster/<family>/`), or why there is no panel. */
+function referenceRows(source, variant) {
+  const family = source?.match(/^assets\/source\/roster\/([^/]+)\//)?.[1];
+  if (!family) return `no reference panel: ${source ?? variant} is not in a roster family`;
+  const folder = join(REFERENCES, family);
+  const json = join(folder, "references.json");
+  if (!existsSync(json))
+    return `no reference panel: assets/references/${family}/references.json does not exist`;
+  const library = readJson(json);
+  const mime = (file) => (/\.png$/i.test(file) ? "image/png" : "image/jpeg");
+  const rows = sheetReferences(library, variant).map(({ view, entry, count }) => {
+    if (!entry)
+      return {
+        view,
+        image: null,
+        label: `${view}: MISSING, no reference shows it`,
+        generated: false,
+      };
+    const path = join(folder, entry.file);
+    const bytes = existsSync(path) ? readFileSync(path) : null;
+    if (!bytes || lfsPointerOid(new Uint8Array(bytes)) !== null)
+      return {
+        view,
+        image: null,
+        label: `${entry.file}: ${bytes ? `not pulled (${lfsPullCommand(`assets/references/${family}/${entry.file}`)})` : "not in the folder"}`,
+        generated: false,
+      };
+    const credit =
+      entry.source === "generated"
+        ? `generated by ${entry.model}, seed ${entry.seed}`
+        : `${entry.source}, ${entry.author}, ${entry.licence}`;
+    return {
+      view,
+      image: `data:${mime(entry.file)};base64,${bytes.toString("base64")}`,
+      label: `${entry.file} · ${credit}${count > 1 ? ` · ${count - 1} more` : ""}`,
+      generated: entry.source === "generated",
+    };
+  });
+  return { rows, title: `references: assets/references/${family}, variant ${variant}` };
 }
 
 /** Generated grass kinds: each catalog entry with a `grass` spec gets its
@@ -692,6 +771,15 @@ function generatedIcons() {
   );
   return iconFiles(view.weapons, units, (id) => unitSolids(units, id, lookup));
 }
+
+/** Every family folder under assets/references/; none is fine. */
+const referenceFamilies = () =>
+  existsSync(REFERENCES)
+    ? readdirSync(REFERENCES, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name)
+        .sort()
+    : [];
 
 /** Every .svg under assets/icons/, by its path there. */
 function iconsOnDisk() {

@@ -8,6 +8,7 @@ import { vec3 } from "math";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
 import { CameraController } from "@packages/renderer-core/src/cameraController";
+import type { ReferenceView } from "@packages/scene-assets/src/references";
 import type { Bounds } from "@packages/scene-assets/src/schema";
 import { gameCamera } from "../gameCamera";
 
@@ -26,7 +27,20 @@ export type WorkbenchView = (typeof WORKBENCH_VIEWS)[number];
 /** The surface sheet's close views: front and rear three-quarters, nearer
  *  than the studio views so a texture's grain reads. */
 export const SURFACE_VIEWS = ["surface-front", "surface-rear"] as const;
-export type SheetView = WorkbenchView | (typeof SURFACE_VIEWS)[number];
+/** A rear three-quarter studio view, which only the reference sheet needs. */
+export type SheetView = WorkbenchView | (typeof SURFACE_VIEWS)[number] | "q-rear";
+
+/** The studio view each reference view (`references.ts`) is set beside on the
+ *  reference sheet; a close-up has none. `left` is the vehicle's left side. */
+export const REFERENCE_CAMERAS: Record<ReferenceView, SheetView | null> = {
+  three_quarter_front: "q-front",
+  side: "left",
+  three_quarter_rear: "q-rear",
+  front: "front",
+  rear: "rear",
+  top: "top",
+  detail: null,
+};
 
 /** Studio views: eye azimuth (the model faces +X), elevation (radians), and
  *  how near, as a share of the distance that frames the whole model. */
@@ -35,6 +49,7 @@ const STUDIO: Record<string, { yaw: number; pitch: number; near?: number }> = {
   front: { yaw: 0, pitch: 0.12 },
   left: { yaw: Math.PI / 2, pitch: 0.12 },
   rear: { yaw: Math.PI, pitch: 0.12 },
+  "q-rear": { yaw: (Math.PI * 3) / 4, pitch: 0.38 },
   top: { yaw: -Math.PI / 2, pitch: Math.PI / 2 - 0.02 },
   "surface-front": { yaw: Math.PI / 5, pitch: 0.3, near: 0.62 },
   "surface-rear": { yaw: -Math.PI * 0.7, pitch: 0.3, near: 0.62 },

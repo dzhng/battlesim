@@ -34,8 +34,10 @@ import {
   atlasCanvas,
   figureSpot,
   framingBounds,
+  renderReferenceSheet,
   renderSheet,
   sheetPose,
+  type ReferenceRow,
   textureSheet,
 } from "../workbench/sheet";
 import {
@@ -109,6 +111,8 @@ interface WorkbenchHandle {
     textures: string | null;
     stats: unknown;
   }>;
+  /** The reference sheet (`renderReferenceSheet`) as a PNG data URL. */
+  referenceSheet(rows: ReferenceRow[], title: string): Promise<string>;
   reloadCatalog(): Promise<string[]>;
   models(): readonly ModelInstance[];
 }
@@ -530,8 +534,8 @@ export default function Workbench() {
   }, [showTextures, model]);
 
   // The scene harness's and the sheet CLI's hold on the workbench.
-  const latest = useRef({ model, models, bake, sheet, catalog, skeleton });
-  latest.current = { model, models, bake, sheet, catalog, skeleton };
+  const latest = useRef({ model, models, bake, sheet, catalog, skeleton, side });
+  latest.current = { model, models, bake, sheet, catalog, skeleton, side };
   useEffect(() => {
     const drawn = () => window.__lab?.frame?.() ?? Promise.resolve();
     /** Resolve once `name` is installed on the GPU and drawn. */
@@ -637,6 +641,19 @@ export default function Workbench() {
           textures: result.textures?.toDataURL("image/png") ?? null,
           stats: result.stats,
         };
+      },
+      async referenceSheet(rows, title) {
+        const { model, side } = latest.current;
+        if (!model || !gpu.current) throw new Error("no model");
+        const sheet = await renderReferenceSheet(
+          gpu.current.device,
+          gpu.current.format,
+          model,
+          rows,
+          title,
+          side,
+        );
+        return sheet.toDataURL("image/png");
       },
       async reloadCatalog() {
         return catalogNames(await reloadCatalog(true));
