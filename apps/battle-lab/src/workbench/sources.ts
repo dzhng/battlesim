@@ -93,11 +93,15 @@ export async function loadPropClasses(rules: GameRules): Promise<PropClasses> {
   return propClasses;
 }
 
-/** The baked runtime catalog as the page loads it, every appearance but the
- *  kits installed at once: the page's load, or `fresh` after a re-bake. */
-export async function loadCatalog(rules: GameRules, fresh = false): Promise<InstalledAppearances> {
+/** The baked runtime catalog as the page loads it for `units` (the
+ *  scenery and their art installed at once): the page's load, or `fresh`
+ *  after a re-bake. */
+export async function loadCatalog(
+  { units, rules }: { units: UnitCatalog; rules: GameRules },
+  fresh = false,
+): Promise<InstalledAppearances> {
   await loadPropClasses(rules);
-  return fresh ? reloadGameAppearances() : gameAppearances();
+  return fresh ? reloadGameAppearances(units) : gameAppearances(units);
 }
 
 /** Every appearance the catalog names: those installed, and those fetched on request. */
@@ -114,7 +118,7 @@ export async function catalogModel(
   catalog: InstalledAppearances,
   name: string,
 ): Promise<LoadedModel | null> {
-  const installed = catalog.onRequest.has(name) ? await gameAppearances([name]) : catalog;
+  const installed = catalog.onRequest.has(name) ? await gameAppearances(units, [name]) : catalog;
   const entry = installed.appearances.get(name);
   if (!entry) return null;
   const type = typeDrawing(units, name);

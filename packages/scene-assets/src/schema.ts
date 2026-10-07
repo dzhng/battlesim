@@ -137,6 +137,22 @@ export type AppearanceUnit = "soldier" | "vehicle" | "scenery" | "kit";
 export const fetchedOnRequest = (entry: { unit: AppearanceUnit; regional_family?: string }) =>
   entry.unit === "kit" || entry.regional_family !== undefined;
 
+/** The appearances a catalog load takes: every one not fetched on request
+ *  that is scenery, and of soldiers' and vehicles' art only what `wearing`
+ *  names, the appearances a page's units wear (`UnitCatalog.appearances`).
+ *  Without `wearing`, every unit's art: a tool judging all baked art. So a
+ *  game page never fetches art only test or menu units wear. */
+export const catalogLoadNames = (
+  catalog: Pick<RuntimeCatalog, "appearances">,
+  wearing?: ReadonlySet<string>,
+): string[] =>
+  Object.entries(catalog.appearances ?? {})
+    .filter(
+      ([name, entry]) =>
+        !fetchedOnRequest(entry) && (entry.unit === "scenery" || !wearing || wearing.has(name)),
+    )
+    .map(([name]) => name);
+
 /** Every appearance of `catalog` fetched on request, by name: the regional
  *  family it is a look of, or null for a kit. */
 export const onRequestOf = (catalog: Pick<RuntimeCatalog, "appearances">) =>

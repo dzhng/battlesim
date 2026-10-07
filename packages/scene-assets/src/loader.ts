@@ -1,6 +1,8 @@
 // The one appearance loader, for the workbench and the battle alike. It reads
-// the runtime catalog and fetches, by content hash, every appearance that is
-// not fetched on request, and the template art library. A kit (a building
+// the runtime catalog and fetches, by content hash, the appearances its load
+// takes (`catalogLoadNames`: the scenery, and the art the page's units wear),
+// the skeleton clips and the template art library. A later session's units
+// widen it (`withUnits`). A kit (a building
 // set's modules: tens of megabytes) and a regional look are fetched on
 // request (`fetchedOnRequest`): when something that draws them asks. A
 // texture is fetched once however many bundles name it. Every file's hash is
@@ -36,6 +38,7 @@ import {
 } from "./gzip.ts";
 import {
   CATALOG_LOAD_MAX_BYTES,
+  catalogLoadNames,
   fetchedOnRequest,
   KIT_BUNDLE_MAX_BYTES,
   MAP_DOWNLOAD_MAX_BYTES,
@@ -62,8 +65,8 @@ export interface InstalledAppearances {
   generation: number;
   sides: SideTints;
   skeletons: Map<string, SkeletonClips>;
-  /** Every appearance of the catalog not fetched on request, and those asked
-   *  for so far (`AppearanceLibrary.withAppearances`). */
+  /** The appearances the catalog load took (`catalogLoadNames`), and those
+   *  added since (`AppearanceLibrary.withUnits`, `withAppearances`). */
   appearances: Map<string, InstalledAppearance>;
   /** Every appearance the catalog fetches on request, by name: the regional
    *  family it is a look of, or null for a kit. One is among `appearances`
@@ -89,11 +92,13 @@ export type Fetch = (url: string) => Promise<{
   json(): Promise<unknown>;
 }>;
 
-/** A loaded catalog, how its files are read, and its textures fetched so
- *  far, by address: two bundles naming one share its one fetch. */
+/** A loaded catalog, how its files are read, the unit art its load takes
+ *  (`catalogLoadNames`'s `wearing`; undefined, every one), and its textures
+ *  fetched so far, by address: two bundles naming one share its one fetch. */
 interface Source {
   catalog: RuntimeCatalog;
   read: ReadRuntime;
+  wearing: ReadonlySet<string> | undefined;
   textures: Map<string, Promise<Texture>>;
 }
 
@@ -102,7 +107,8 @@ export class AppearanceLibrary {
   private current: InstalledAppearances | null = null;
   /** What the installed generation was loaded from: where its kits are. */
   private source: Source | null = null;
-  /** Kits on their way, by bundle hash: two askers share one fetch. */
+  /** Appearances on their way after the load, by bundle hash: two askers
+   *  share one fetch. */
   private readonly arriving = new Map<string, Promise<InstalledAppearance>>();
 
   constructor(fetcher: Fetch = (url) => fetch(url)) {
@@ -113,17 +119,22 @@ export class AppearanceLibrary {
     return this.current;
   }
 
-  /** Load the catalog under `baseUrl` (ending in "/"): every appearance not
-   *  fetched on request, and the template art library. Installs only if all
+  /** Load the catalog under `baseUrl` (ending in "/") for a page whose units
+   *  wear `wearing` (`UnitCatalog.appearances`; every unit's art when
+   *  absent): the appearances its load takes (`catalogLoadNames`), the
+   *  skeleton clips and the template art library. Installs only if all
    *  succeed. */
-  async load(baseUrl: string): Promise<InstalledAppearances> {
+  async load(baseUrl: string, wearing?: ReadonlySet<string>): Promise<InstalledAppearances> {
     const response = await this.fetcher(`${baseUrl}catalog.json`);
     if (!response.ok) throw new Error(`appearance catalog: HTTP ${response.status}`);
     const catalog = (await response.json()) as RuntimeCatalog;
-    const bytes = catalogLoadBytes(catalog);
-    if (bytes > CATALOG_LOAD_MAX_BYTES)
-      throw new Error(`catalog load ${bytes} bytes is over ${CATALOG_LOAD_MAX_BYTES}`);
-    const source: Source = { catalog, read: this.reader(baseUrl), textures: new Map() };
+    admitLoad(catalog, wearing);
+    const source: Source = {
+      catalog,
+      read: this.reader(baseUrl),
+      wearing,
+      textures: new Map(),
+    };
     const skeletons = new Map<string, SkeletonClips>();
     await Promise.all(
       Object.entries(catalog.skeletons ?? {}).map(async ([id, hash]) => {
@@ -134,13 +145,54 @@ export class AppearanceLibrary {
       }),
     );
     const appearances = await Promise.all(
-      Object.entries(catalog.appearances ?? {})
-        .filter(([, entry]) => !fetchedOnRequest(entry))
-        .map(async ([name]) => [name, await this.appearance(source, name, skeletons)] as const),
+      catalogLoadNames(catalog, wearing).map(
+        async (name) => [name, await this.appearance(source, name, skeletons)] as const,
+      ),
     );
     if (!catalog.sides) throw new Error("appearance catalog has no side tints; re-bake");
     const library = catalog.templates && (await this.templateLibrary(source, catalog.templates));
     return this.install(source, catalog.sides, skeletons, new Map(appearances), library);
+  }
+
+  /**
+   * The installed generation with the art units wearing `wearing` draw too
+   * (`UnitCatalog.appearances`): a page's next session runs other units than
+   * its first (a lab after the game). The catalog load widens to take them,
+   * held to `CATALOG_LOAD_MAX_BYTES`; what the installed generation lacks is
+   * fetched, its textures the load already has are not, and when it lacks
+   * nothing it is returned as it is.
+   */
+  async withUnits(wearing: ReadonlySet<string>): Promise<InstalledAppearances> {
+    const source = this.source;
+    if (!source || !this.current)
+      throw new Error("unit art was asked for before a catalog was loaded");
+    if (!source.wearing) return this.current;
+    const wider = new Set([...source.wearing, ...wearing]);
+    const held = this.current.appearances;
+    const absent = catalogLoadNames(source.catalog, wider).filter((name) => !held.has(name));
+    if (absent.length === 0) return this.current;
+    admitLoad(source.catalog, wider);
+    const { sides, skeletons } = this.current;
+    const arrived = await Promise.all(
+      absent.map(
+        async (name) =>
+          [
+            name,
+            await this.arrive(source, name, () => this.appearance(source, name, skeletons)),
+          ] as const,
+      ),
+    );
+    // The catalog was loaded again meanwhile: these are the new one's to answer for.
+    if (this.source !== source) return this.withUnits(wearing);
+    source.wearing = new Set([...(source.wearing ?? []), ...wearing]);
+    const { appearances, templates } = this.current;
+    return this.install(
+      source,
+      sides,
+      skeletons,
+      new Map([...appearances, ...arrived]),
+      templates?.library,
+    );
   }
 
   /**
@@ -163,6 +215,7 @@ export class AppearanceLibrary {
         const entry = source.catalog.appearances[name];
         return entry && fetchedOnRequest(entry);
       }),
+      source.wearing,
     );
     if (bytes > MAP_DOWNLOAD_MAX_BYTES)
       throw new Error(`map download ${bytes} bytes is over ${MAP_DOWNLOAD_MAX_BYTES}`);
@@ -278,14 +331,27 @@ export class AppearanceLibrary {
     const what = `${onRequestLabel(entry)} "${name}"`;
     if (!entry || !fetchedOnRequest(entry))
       return Promise.reject(new Error(`${what} is not in the appearance catalog`));
-    let arriving = this.arriving.get(entry.bundle);
-    if (!arriving) {
-      arriving = this.appearance(source, name, this.current!.skeletons).catch((error: unknown) => {
+    return this.arrive(source, name, () =>
+      this.appearance(source, name, this.current!.skeletons).catch((error: unknown) => {
         const why = error instanceof Error ? error.message : String(error);
         throw new Error(`${what}: ${why}`, { cause: error });
-      });
-      const settled = () => this.arriving.delete(entry.bundle);
-      this.arriving.set(entry.bundle, arriving);
+      }),
+    );
+  }
+
+  /** The appearance `name` fetched by `fetch`, or the fetch of its bundle
+   *  already on its way. */
+  private arrive(
+    source: Source,
+    name: string,
+    fetch: () => Promise<InstalledAppearance>,
+  ): Promise<InstalledAppearance> {
+    const bundle = source.catalog.appearances[name].bundle;
+    let arriving = this.arriving.get(bundle);
+    if (!arriving) {
+      arriving = fetch();
+      const settled = () => this.arriving.delete(bundle);
+      this.arriving.set(bundle, arriving);
       arriving.then(settled, settled);
     }
     return arriving;
@@ -326,6 +392,14 @@ export class AppearanceLibrary {
     }
     return library;
   }
+}
+
+/** Refuse a catalog load of the art units wearing `wearing` draw that is
+ *  over `CATALOG_LOAD_MAX_BYTES`, before anything of it is fetched. */
+function admitLoad(catalog: RuntimeCatalog, wearing: ReadonlySet<string> | undefined): void {
+  const bytes = catalogLoadBytes(catalog, wearing);
+  if (bytes > CATALOG_LOAD_MAX_BYTES)
+    throw new Error(`catalog load ${bytes} bytes is over ${CATALOG_LOAD_MAX_BYTES}`);
 }
 
 /** A fetch over runtime files held in memory, keyed by their path under `baseUrl`. */

@@ -262,6 +262,7 @@ export function vehicleClass(type: Pick<UnitType, "body" | "mobility" | "roles">
 
 export class UnitCatalog {
   private readonly byId: Map<string, UnitType>;
+  private worn: ReadonlySet<string> | undefined;
 
   // A plain field, not a parameter property: the asset CLI runs this file
   // under Node's type stripping, which has no parameter properties.
@@ -279,6 +280,23 @@ export class UnitCatalog {
 
   get documents(): unknown[] {
     return this.view.documents;
+  }
+
+  /** Every appearance its units wear: each hull's model, each soldier kind's
+   *  set, and the equipment sets their weapons' operators wear. What a page
+   *  running these units loads of unit art (`catalogLoadNames`). */
+  get appearances(): ReadonlySet<string> {
+    if (!this.worn) {
+      const worn = new Set<string>();
+      const rows = [...this.view.units, ...Object.values(this.view.soldiers)];
+      for (const row of rows) {
+        for (const name of [row.appearance ?? []].flat()) worn.add(name);
+        for (const { operator_appearance: kit } of row.mounts)
+          for (const name of [...(kit?.active ?? []), ...(kit?.carried ?? [])]) worn.add(name);
+      }
+      this.worn = worn;
+    }
+    return this.worn;
   }
 
   get cards(): readonly UnitCard[] {

@@ -14,7 +14,7 @@ export async function modelGhostAgreement(ctx) {
       const file = (p) => `/@fs/${repo}${p}`;
       const [frames, assets, poses, bench, views, light, fog, overlay, models] = await Promise.all([
         import(file("packages/battle-renderer/src/frame/battleFrame.ts")),
-        import(file("apps/battle-lab/src/gameAppearances.ts")),
+        import(file("packages/scene-assets/src/loader.ts")),
         import(file("packages/battle-renderer/src/models/modelInstances.ts")),
         import(file("apps/battle-lab/src/workbench/benchWorld.ts")),
         import(file("apps/battle-lab/src/workbench/views.ts")),
@@ -23,7 +23,8 @@ export async function modelGhostAgreement(ctx) {
         import(file("apps/battle-lab/src/gameOverlay.ts")),
         import(file("apps/battle-lab/src/gameModels.ts")),
       ]);
-      const installed = await assets.gameAppearances();
+      // Every unit's art: the probe draws one model of each kind, whoever wears it.
+      const installed = await new assets.AppearanceLibrary().load("/");
       const chosen = ["skinned", "articulated", "static"].map((kind) =>
         [...installed.appearances].find(([, entry]) => entry.bundle.kind === kind),
       );

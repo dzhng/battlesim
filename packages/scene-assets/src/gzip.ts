@@ -8,6 +8,7 @@ import { encodeBundle, joinTextures, splitTextures } from "./codec.ts";
 import { lfsPointerOid, lfsPullCommand, sha256Hex } from "./glb.ts";
 import {
   bundlePath,
+  catalogLoadNames,
   fetchedOnRequest,
   KIT_BUNDLE_MAX_BYTES,
   RUNTIME_DIR,
@@ -193,28 +194,36 @@ function wireBytes(
   return bytes;
 }
 
-/** What a page downloads with the catalog, before its first frame: the
- *  template library, the skeleton clips and every appearance not fetched on
- *  request, with their textures, each file once. `held` collects what it
- *  counted. The loader's admission and the native check share this count. */
-export function catalogLoadBytes(catalog: RuntimeCatalog, held = new Set<string>()): number {
+/** What a page whose units wear `wearing` downloads with the catalog, before
+ *  its first frame: the template library, the skeleton clips and the
+ *  appearances its load takes (`catalogLoadNames`), with their textures, each
+ *  file once. `held` collects what it counted. The loader's admission and the
+ *  native check share this count. */
+export function catalogLoadBytes(
+  catalog: RuntimeCatalog,
+  wearing?: ReadonlySet<string>,
+  held = new Set<string>(),
+): number {
   const eager = [
     ...(catalog.templates ? [catalog.templates.library] : []),
     ...Object.values(catalog.skeletons ?? {}),
-    ...Object.values(catalog.appearances ?? {})
-      .filter((entry) => !fetchedOnRequest(entry))
-      .map((entry) => entry.bundle),
+    ...catalogLoadNames(catalog, wearing).map((name) => catalog.appearances[name].bundle),
   ];
   return wireBytes(catalog, eager, held);
 }
 
 /** What fetching the appearances fetched on request `names` (a kit with its
- *  full damage art, a regional look) downloads beyond the catalog load: each
- *  once, with the textures of theirs the load did not fetch. Map selection,
- *  loader admission and the native CLI share this count. */
-export function downloadBytes(catalog: RuntimeCatalog, names: Iterable<string>): number {
+ *  full damage art, a regional look) downloads beyond the catalog load of a
+ *  page whose units wear `wearing`: each once, with the textures of theirs
+ *  the load did not fetch. Map selection, loader admission and the native CLI
+ *  share this count. */
+export function downloadBytes(
+  catalog: RuntimeCatalog,
+  names: Iterable<string>,
+  wearing?: ReadonlySet<string>,
+): number {
   const held = new Set<string>();
-  catalogLoadBytes(catalog, held);
+  catalogLoadBytes(catalog, wearing, held);
   let bytes = 0;
   for (const name of names) {
     const entry = catalog.appearances[name];
