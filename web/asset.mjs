@@ -12,12 +12,13 @@
 //                          git lfs pull exactly the runtime bundles (and sources) of the named entries
 //   blender <script.py> [args...]
 //                          run a Blender script headless on the pinned Blender
-//   sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--side blue|red] [--references]
+//   sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--side blue|red] [--references [--variant V]]
 //                          the workbench's contact sheet, strips, surface (close views
 //                          and each texture channel's part), texture preview, stats and impostor
 //                          atlas, rendered headless by the production renderer;
 //                          --references adds reference.png, each view beside its roster family's
-//                          reference of the same view (missing and generated marked);
+//                          reference of the same view (missing and generated marked), for the
+//                          reference variant V (default: the appearance's name; a kit's army look);
 //                          --accept copies them to assets/review/<name>/
 //   icons                  write the generated icons (assets/icons/): every weapon row's,
 //                          every role's symbol and every unit type's silhouette
@@ -557,12 +558,13 @@ async function sheet(args) {
       yaw: { type: "string" },
       side: { type: "string" },
       references: { type: "boolean" },
+      variant: { type: "string" },
     },
   });
   const [target] = positionals;
   if (!target)
     throw new Error(
-      "sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--side blue|red] [--references]",
+      "sheet <appearance|glb> [--out DIR] [--accept] [--unit U] [--type T] [--yaw DEG] [--side blue|red] [--references [--variant V]]",
     );
   const file = target.endsWith(".glb") && existsSync(target) ? target : null;
   const side = values.side ?? "blue";
@@ -635,7 +637,7 @@ async function sheet(args) {
     if (values.references) {
       const panel = referenceRows(
         file ? repoPath(file) : catalog().appearances[target]?.source,
-        file ? basename(file, ".glb") : target,
+        values.variant ?? (file ? basename(file, ".glb") : target),
       );
       if (typeof panel === "string") console.log(panel);
       else {
@@ -665,9 +667,10 @@ async function sheet(args) {
 
 /** The reference sheet's rows for `variant`, whose source is at `source`:
  *  the library of the roster family the source is in
- *  (`assets/source/roster/<family>/`), or why there is no panel. */
+ *  (`assets/source/roster/<family>/`, or a kit's
+ *  `assets/source/roster/infantry/<kit>/`), or why there is no panel. */
 function referenceRows(source, variant) {
-  const family = source?.match(/^assets\/source\/roster\/([^/]+)\//)?.[1];
+  const family = source?.match(/^assets\/source\/roster\/(?:infantry\/)?([^/]+)\//)?.[1];
   if (!family) return `no reference panel: ${source ?? variant} is not in a roster family`;
   const folder = join(REFERENCES, family);
   const json = join(folder, "references.json");
