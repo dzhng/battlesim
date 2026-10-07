@@ -46,8 +46,10 @@ coordinator builds it; it is the go/no-go for the fan-out.
    wheeled light, wheeled medium, logistics, soldier; the classes of slice 01):
    triangles per tier, the minimum tier reduction ratio (slice 12), bundle
    bytes within slice 10's limit, and texture layers a family may add. Record
-   them in choices.md and fill them into slice 12's budget rules. Detail over
-   budget comes out of tier 0 first. Vehicles have no impostor
+   them in choices.md and fill them into slice 12's budget rules. They are
+   loose tripwires with plenty of room above what the pilot measured, not
+   targets: don't spend effort trimming the pilot to a number. The real bar is
+   that it looks right close up and a busy battle runs well on the Mac mini. Vehicles have no impostor
    (`modelLayer.ts:1591`): judge tier 3 at the widest battle view. If tier 3
    at that view costs too much, a vehicle impostor is the named alternative;
    don't build one otherwise.

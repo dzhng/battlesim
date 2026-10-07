@@ -68,6 +68,17 @@ pinned 5.2.1.
 
 Warnings:
 
+- **No number in this spec is a requirement** (user, 2026-10-06). Every
+  number here (byte limits, triangle budgets, tier ratios, dressing
+  allowances, the 1600 px reference size, worker counts, the 50 MiB map
+  download limit already in code) was chosen by an agent, not the user. Budgets
+  and limits are tripwires against gross regressions, set loosely from what
+  was measured with plenty of room, never targets to optimise toward. The
+  only real bars are the user's: the look, black tyres, recognisable units
+  and wrecks, detail that holds up close, levels of detail that switch with
+  zoom, and a battle that runs well on the Mac mini. When something exceeds a
+  number and nothing visibly suffers, raise the number and note it in
+  choices.md; don't spend effort squeezing under it.
 - **Disk.** The machine ran out of disk on 2026-10-06 (every shell command
   failed). Pull LFS sources only for the families you touch and drop them
   (back to pointers) when done; keep scratch small.
@@ -327,8 +338,8 @@ hull or turret envelope: physical frames don't move.
   close-up must hold up; tiers 1–3 keep the silhouette and colour that read
   at battle distance.
 - **Target machine: the Mac mini this work runs on** (Apple silicon, its
-  integrated GPU). Slice 14's budgets is set so a busy battle stays within the
-  frame budget there.
+  integrated GPU). Slice 14's budgets are loose tripwires set so a busy battle
+  runs well there.
 - **One look per variant for now.** Two of the same vehicle look identical.
   Per-unit variation (stowage, dirt, numbers) is a later feature; build no
   machinery for it now.

@@ -34,9 +34,9 @@ that catches growth before a player does.
   extended to the eager set: what a game page downloads before its first frame
   (the bundles its session catalog binds, slice 04, their textures, skeleton
   clips, the template library). Test art never counts toward a game page. A
-  test fails above it; `asset check` prints the total. Set the limit from the
-  measured total after this slice with room for Part B's growth, recorded in
-  choices.md.
+  test fails above it; `asset check` prints the total. Set it loosely from the
+  measured total after this slice, with generous room for Part B's growth; it
+  is a tripwire, not a target (README warnings), recorded in choices.md.
 - **The device requests the adapter's `maxTextureArrayLayers`**, and
   `asset check` counts distinct texture layers per array against the lower of
   that and a recorded floor for the target machine (the Mac mini), so a new
