@@ -1,0 +1,107 @@
+{
+  "entries": [
+    {
+      "file": "eastern_t_80_t_80bvm-three_quarter_front.jpg",
+      "variant": "eastern_t_80_t_80bvm",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Rehearsals-NF-1200-29.jpg",
+      "author": "Ministry of Defence of the Russian Federation",
+      "licence": "CC-BY-4.0",
+      "sha256": "99716fc604afb80887ef4c8aabb4bc83a274d7a5fe3dee886dae3f9211d700b0",
+      "note": "T-80BVM, Murmansk rehearsal, front left"
+    },
+    {
+      "file": "eastern_t_80_t_80bvm-three_quarter_front-2.jpg",
+      "variant": "eastern_t_80_t_80bvm",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:T-80BVM_MBT_Army-2022_2022-08-20_2609.jpg",
+      "author": "Mike1979 Russia",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "c729e31fb2ba99b0de102bd52447014acbcc0ad6e8c2c70c4742a386a3dc70df",
+      "note": "T-80BVM from above the front right, Army-2022"
+    },
+    {
+      "file": "eastern_t_80_t_80bvm-side.jpg",
+      "variant": "eastern_t_80_t_80bvm",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Murmansk_Victory_Day_Parade_(2019)_12.jpg",
+      "author": "Минобороны России",
+      "licence": "CC-BY-4.0",
+      "sha256": "8b942506ea56dfc4b83d65e6be778eb0e07d73a716bf31cca7417af307afc342",
+      "note": "T-80BVM left side, Murmansk"
+    },
+    {
+      "file": "eastern_t_80_t_80bvm-side-2.jpg",
+      "variant": "eastern_t_80_t_80bvm",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:T-80BVM_MBT_Army-2022_2022-08-20_2400.jpg",
+      "author": "Mike1979 Russia",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "b5db3b01353111177dbc004b0479c2698debecae5cd755396ca4f4221d2e5141",
+      "note": "T-80BVM left side with slat armour, Army-2022"
+    },
+    {
+      "file": "eastern_t_80_t_80bvm-three_quarter_rear.jpg",
+      "variant": "eastern_t_80_t_80bvm",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:T-80BVM_MBT_Army-2022_2022-08-20_2606.jpg",
+      "author": "Mike1979 Russia",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "a195e4e710a034fa4ae464fafb865491cf3413fe3164775d4d19447c6036abba",
+      "note": "T-80BVM rear left, slat cage on hull rear, Army-2022"
+    },
+    {
+      "file": "eastern_t_80_t_80bvm-front.jpg",
+      "variant": "eastern_t_80_t_80bvm",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:T-80BVM_frontal_view_Army-2022.jpg",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "76e922409a3c9af5b3d2e1239171129dc54faff0312b9aa0c9ae115cfc933be7",
+      "note": "T-80BVM head-on, Army-2022"
+    },
+    {
+      "file": "eastern_t_80_t_80bvm-detail.jpg",
+      "variant": "eastern_t_80_t_80bvm",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:T-80BVM_MBT_Army-2022_2022-08-20_2611.jpg",
+      "author": "Mike1979 Russia",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "d06da28f865dac386f1beba3ced301db27c0fdec963baeccc4ad3f4c3cbb8fa9",
+      "note": "Glacis, driver's hatch and Relikt turret front"
+    },
+    {
+      "file": "eastern_t_80_t_80bvm-detail-2.jpg",
+      "variant": "eastern_t_80_t_80bvm",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Army-2020-060.JPG",
+      "author": "Nickel nitride",
+      "licence": "CC0-1.0",
+      "sha256": "ce6ffdfb30de5f0e59274a2ff95740c5a3c6d1a6f75e89c271469bbddc21e48c",
+      "note": "Turret roof: commander's sight and machine gun, Army-2020"
+    },
+    {
+      "file": "eastern_t_80_t_80bvm-detail-3.jpg",
+      "variant": "eastern_t_80_t_80bvm",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Army-2020-059.JPG",
+      "author": "Nickel nitride",
+      "licence": "CC0-1.0",
+      "sha256": "c032cb2d14f034dd25d1e28f79aba52393ce21ac8c23089cd081136bdfa02174",
+      "note": "Turret rear: stowage boxes and slat cage, Army-2020"
+    }
+  ],
+  "gaps": [
+    "No true rear or top view.",
+    "No close running-gear detail."
+  ]
+}
