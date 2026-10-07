@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Unit models: the four-quadrant map</title>
+<style>
+  :root { --bg:#0f1316; --panel:#161c21; --ink:#d7dee3; --dim:#8a979f; --line:#26313a; --accent:#5fb3c9; --warn:#e0a446; --ok:#6fbf73; --user:#c792ea; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui, -apple-system, sans-serif; }
+  header { padding:24px 32px 8px; }
+  h1 { margin:0 0 4px; font-size:20px; letter-spacing:.02em; }
+  header p { margin:0; color:var(--dim); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px 32px; }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:16px 18px; }
+  section h2 { margin:0 0 2px; font-size:15px; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); }
+  section .sub { color:var(--dim); margin:0 0 10px; font-size:12px; }
+  ul { margin:0; padding-left:18px; } li { margin:3px 0; }
+  code { font:12px ui-monospace, SFMono-Regular, Menlo, monospace; color:#b8d4de; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; vertical-align:top; padding:5px 6px; border-top:1px solid var(--line); }
+  th { color:var(--dim); font-weight:600; border-top:none; }
+  .tag { display:inline-block; font-size:11px; padding:0 6px; border-radius:9px; border:1px solid; white-space:nowrap; }
+  .user { color:var(--user); border-color:var(--user); }
+  .terr { color:var(--ok); border-color:var(--ok); }
+  .rec { color:var(--accent); border-color:var(--accent); }
+  .edge { color:var(--warn); border-color:var(--warn); }
+  .wide { grid-column:1 / -1; }
+  .card { border-left:3px solid var(--warn); padding:6px 10px; margin:8px 0; background:#1b2228; }
+  .card b { color:var(--ink); }
+  .card .ev { color:var(--dim); font-size:12px; }
+  pre { white-space:pre-wrap; background:#0b0f12; border:1px solid var(--line); border-radius:4px; padding:12px; font:12px/1.5 ui-monospace, Menlo, monospace; color:#cfe3ea; margin:8px 0 0; }
+  button { background:var(--accent); color:#06222b; border:0; border-radius:4px; padding:5px 12px; font-weight:600; cursor:pointer; }
+  details summary { cursor:pointer; color:var(--dim); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Units: roster-only content and reference-built models — the map</h1>
+  <p>Walked 2026-10-06. Spec: <code>specs/unit-models/README.md</code> (15+2 slices). Decision ledger: <code>specs/unit-models/choices.md</code>. Delegation: offered, not taken — every decision below was the user's or shown to them.</p>
+</header>
+
+<div class="grid">
+
+<section>
+  <h2>1 · Known knowns</h2>
+  <p class="sub">Settled ground, cited.</p>
+  <ul>
+    <li>Purchases already admit only roster cards of the side's faction (<code>crates/sim/src/battle.rs</code> ~2770); the AI filters the same way (<code>skirmish_ai.rs:40-45</code>).</li>
+    <li>Tests on fake units already landed on main: <code>stand_in_game</code>, <code>stand_in_documents</code> (<code>847c813c</code>).</li>
+    <li>The game catalog still ships the generic units (<code>fixtures.rs</code> <code>catalog_documents()</code>); one file, <code>fixtures/catalog.json</code>, kept by <code>crates/sim/tests/catalog.rs:86</code>.</li>
+    <li>Vehicle sound and gauge keyed by <code>tank</code>/<code>jeep</code>/<code>supply</code> (<code>soundFrame.ts:695</code>, <code>poseDriver.ts:434</code>): roster vehicles get defaults.</li>
+    <li>The village Defender/Referee run every encounter battle, menu included.</li>
+    <li>Ordinary Play always sends factions; only typed/shared links hit the generic recipe.</li>
+    <li>Exporters read a moved manifest path; tyres brightened by a dust film (<code>textures.py</code> <code>rubber</code>, <code>parts.py</code> <code>DUST</code>).</li>
+    <li>Detail tiers already switch by projected height (<code>modelDetail.ts</code>, <code>lod_px</code>).</li>
+    <li>"Village" as a generator settlement class is real map content (<code>fixtures/map-presets.json</code>): kept.</li>
+    <li>Developer menu stays visible in production builds.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>3 · Unknown knowns</h2>
+  <p class="sub">Taste and context extracted, and what each reshaped.</p>
+  <ul>
+    <li><b>Look: D, stylised readability</b> (WARNO / Broken Arrow), chosen from four generated directions → <code>assets/look-target.png</code>; bevels and edge highlights, never bigger envelopes.</li>
+    <li><b>Players zoom in to admire units</b> → tier 0 must hold up close; tiers judged at each zoom.</li>
+    <li><b>Target machine: the Mac mini</b> → budgets measured there.</li>
+    <li><b>Identical units for now</b>, variation later → no variation machinery.</li>
+    <li><b>Reuse what's good</b>: generic sounds seed vehicle classes, the generic tank seeds the Abrams, the jeep's crew module crews roster vehicles.</li>
+    <li><b>The menu reel is a film</b>: any units, any stats, anything may change; every approved shot exactly the same (user had said so before → documented in slice 04, memory, and <code>fixtures/README.md</code> to come).</li>
+    <li><b>Tests never break on roster changes</b> (the roster changes all the time) → test units everywhere a test runs.</li>
+  </ul>
+</section>
+
+<section class="wide">
+  <h2>2 · Known unknowns — decision ledger</h2>
+  <p class="sub">Every named question, its answer, and who closed it.</p>
+  <table>
+    <tr><th>Question</th><th>Answer</th><th>Closed by</th><th>Slice</th></tr>
+    <tr><td>Keep fake units out of the game</td><td>Two catalogs: the game's (roster only) and a test catalog — refined: test catalog resolved at run time, session owns its catalog</td><td><span class="tag user">user · A</span> <span class="tag rec">+ sweep 5</span></td><td>05</td></tr>
+    <tr><td>Reference photo size</td><td>Resized, long edge ≤ 1600 px</td><td><span class="tag user">user</span></td><td>11</td></tr>
+    <tr><td>Menu reel units</td><td>Blue looks US, red looks Eastern (Abrams SEPv2, HMMWV, rifle squad, TOW, scouts / rifle squad, Kornet, T-72B3); menu-only <code>menu_*</code> units with any stats</td><td><span class="tag user">user</span></td><td>04</td></tr>
+    <tr><td>Paint</td><td>Real nation's scheme; US desert tan</td><td><span class="tag user">user · C</span></td><td>10</td></tr>
+    <tr><td>86 disabled cards</td><td>Remodel all, with icons on unavailable cards, and wrecks</td><td><span class="tag user">user · B</span></td><td>17</td></tr>
+    <tr><td>Scarce references</td><td>Use what's licensable; fill gaps with gpt-image via <code>duet model</code>, labelled generated</td><td><span class="tag user">user · A+</span></td><td>11</td></tr>
+    <tr><td>Staffing</td><td>Coordinator + wide worker pool (6 to start, more while the machine keeps up)</td><td><span class="tag user">user · A+</span></td><td>README</td></tr>
+    <tr><td>Faction-less <code>/battle</code></td><td>Refused by name; unknown params refused; request fields removed</td><td><span class="tag user">user</span></td><td>04</td></tr>
+  </table>
+</section>
+
+<section class="wide">
+  <h2>4 · Unknown unknowns — landmine cards</h2>
+  <p class="sub">The sweep covered scene-assets (schema, loader, codec, validate, build, icons, silhouette), Blender exporters and crew module, renderer model/texture/impostor layers, battle-audio, the catalog and its readers, the mechanics editor and fixture publication, the menu backdrop, prepare/battleLinks, replays, saved maps.</p>
+
+  <div class="card"><b>Every page downloads ~1.3 GB</b> <span class="tag rec">decided · A</span><div class="ev">215 raw bundles in <code>assets/runtime/</code> (measured); textures embedded per bundle (765 MB of copies of 18 MB); no catalog-load limit; texture layers capped at 256 default, 234 used. → slice 08.</div></div>
+  <div class="card"><b>Wrecks by nearest size: wheeled APCs die as tanks</b> <span class="tag user">user · own wreck per unit</span><div class="ev"><code>propAppearance.ts:175-187</code>. Every vehicle gets its own wreck, its own size, turret piece only if it has a turret. → slice 09.</div></div>
+  <div class="card"><b>The HMMWV is the JLTV</b> <span class="tag rec">decided · A</span><div class="ev">Same Git blob <code>ccf5f60f</code>; JLTV frame. Real HMMWV frame, digests move. → slice 07.</div></div>
+  <div class="card"><b>Hull fit ±0.1 m catches antennas, stowage, crew</b> <span class="tag rec">decided · A</span><div class="ev"><code>validate.ts:816-836</code>. <code>dressing_*</code> nodes get their own allowance. → slice 09.</div></div>
+  <div class="card"><b>One module-level catalog: lab test units would silently not draw</b> <span class="tag rec">decided · A</span><div class="ev"><code>shippedUnits.ts</code> <code>UNITS</code> in ~25 modules; <code>appearanceCatalog.ts:87</code> returns null. Session-owned catalog. → slice 05.</div></div>
+  <div class="card"><b>Roster weapons miss every presentation table; a new field moves the engine id</b> <span class="tag rec">decided · A</span><div class="ev"><code>kindTable.ts</code> exact lookup; derived weapon ids. Class from physics, key by base weapon. → slice 01.</div></div>
+  <div class="card"><b>Menu stats would break the shots</b> <span class="tag user">user · film rule</span><div class="ev">RPG-7 vs guided ATGM; Abrams hp/armour/size. Menu-only units, exact-shot event-log test + keyframe compare. → slice 04.</div></div>
+  <div class="card"><b>Slice 02's proof was vacuous; 13 roster intermediates ship</b> <span class="tag rec">decided · A</span><div class="ev">Parity file carries its own catalog. Abstract bases, diff resolved cards. → slice 02.</div></div>
+  <div class="card"><b>Request contract requires recipe fields</b> <span class="tag rec">decided · A</span><div class="ev"><code>preparation.rs</code> <code>deny_unknown_fields</code>. Remove, refuse unknown params. → slice 04.</div></div>
+  <div class="card"><b>"Stand-in" already names prop placeholder boxes</b> <span class="tag rec">decided · A</span><div class="ev">Renamed "test unit", <code>test_*</code>. → slice 05.</div></div>
+  <div class="card"><b>market-town's <code>assault</code> is test content</b> <span class="tag rec">decided · A</span><div class="ev">Four callers. market-town-test. → slice 06.</div></div>
+  <div class="card"><b>Tiers can silently be copies</b> <span class="tag user">user · every unit switches</span><div class="ev"><code>build.ts:203,224</code>. Strict reduction ratio. → slice 09.</div></div>
+  <details><summary>Sharp edges (decided on evidence, no input needed)</summary>
+    <ul>
+      <li>Vehicles have no impostor: tier 3 is the widest view (<code>modelLayer.ts:1591</code>).</li>
+      <li>Crew: soldier tier 1, per-faction source, hide weapon by role, vanish at the wreck (<code>vehicle_crew.py</code>).</li>
+      <li>Track UVs scroll: link relief in texture (<code>modelLayer.ts:308-330</code>).</li>
+      <li>Workers export and validate; the coordinator bakes and commits runtime output (one <code>assets/runtime/catalog.json</code>).</li>
+      <li>Five exporters point at the moved manifests; 13 receipts already stale; set <code>BLENDER</code>.</li>
+      <li>Disabled cards share 52 files; authored T-14/T-15/Type 15/BRM/Jaguar/Challenger 3 unreferenced; gate checks only strings.</li>
+      <li>Soldier impostors bake on the GPU at every battle start from tier 0.</li>
+      <li>Disk filled on 2026-10-06: pull only what you touch.</li>
+    </ul>
+  </details>
+</section>
+
+<section class="wide">
+  <h2>Confirm before coding</h2>
+  <ul>
+    <li>The current gpt-image model id on the duet gateway (<code>duet model --help</code>, catalog).</li>
+    <li>The HMMWV M1151's real dimensions against its references before changing its frame.</li>
+    <li>That the WebAssembly <code>resolve_catalog</code> export accepts the documents a session needs.</li>
+    <li>Free disk space before LFS pulls or Blender batches.</li>
+  </ul>
+</section>
+
+<section class="wide">
+  <h2>Tweakable plan</h2>
+  <p class="sub">Judgment calls first; mechanical work last.</p>
+  <ul>
+    <li><b>Pilot look and budgets</b> (slice 12): the bar for ~150 models. Human checkpoint, non-blocking.</li>
+    <li><b>Menu reel</b> (slice 04): the exact-shot gate; menu-unit stats are free.</li>
+    <li><b>Download limit and texture policy</b> (slice 08): the number, and when a recipe may exceed 256 px.</li>
+    <li><b>Dressing allowance</b> (slice 09): how far stowage and crew may sit outside the hull.</li>
+    <li><b>Collisions in shot sounds</b> (slice 01): HMG → <code>hmg-combat</code>, rifle → <code>rifle-combat</code>.</li>
+  </ul>
+  <details><summary>Mechanical (trust the spec)</summary>
+    <p>Village deletion, test-unit renames, map labels, exporter paths, references collection, family rebuilds, icons, closeout.</p>
+  </details>
+</section>
+
+<section class="wide">
+  <h2>Kick off the build</h2>
+  <pre id="prompt">Implement specs/unit-models with the implement-spec skill. Read its README's Next Agent Prompt and choices.md first. You are the coordinator: run Part A (slices 01–06) and slices 07–10 and the pilot (12) yourself; once 07 lands, fan out reference collection (11) to parallel workers, and after the pilot's checkpoint fan out families (13–15) and disabled cards (17), six workers to start, more while the Mac mini keeps up. Workers export and validate only; you bake, check and commit runtime output. Tests use test units; the menu reel's approved shots must stay exactly the same. Free disk first and pull LFS only for what you touch. Update the Next Agent Prompt before ending each pass.</pre>
+  <p><button onclick="navigator.clipboard.writeText(document.getElementById('prompt').textContent)">Copy prompt</button></p>
+</section>
+
+</div>
+</body>
+</html>

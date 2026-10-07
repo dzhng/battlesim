@@ -18,7 +18,7 @@ they look like the real vehicles and soldiers.
 
 **Status, 2026-10-06:** planned, nothing implemented. The earlier pass of this
 spec (every disabled card has a source GLB, see [History](#history)) is
-finished. The plan was walked with the user quadrant by quadrant; the
+finished. The plan was walked with the user quadrant by quadrant ([the map](visualizations/unknowns-map.html)); the
 [decision ledger](choices.md) holds every answer.
 
 **Pick up at [slice 01](slices/01-presentation-by-property.md):** every roster
