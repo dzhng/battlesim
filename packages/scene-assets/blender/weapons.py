@@ -49,6 +49,98 @@ def rifle(mats, name="rifle"):
     return root
 
 
+def _rifle_parts(mats, name, parts):
+    """A squad rifle on the carbine's frame: the same grip, support and muzzle
+    points (so the same clips hold it and its muzzle socket fits), its own
+    silhouette. Parts are (name, builder, kwargs, material key)."""
+    root = empty(name, (0, 0, 0), size=0.05)
+    _parts(root, name, [(n, fn, {**kw, "mat_": mats[key]}) for n, fn, kw, key in parts])
+    empty("muzzle", (0, -0.67, 0.045), root, 0.02)
+    return root
+
+
+def m4a1(mats, name="m4a1"):
+    """The US Army's M4A1 (PEO Soldier reference): flat-top upper with an M68
+    close-combat optic, quad-rail handguard with a vertical grip, light and
+    PEQ box, A-frame front sight, curved 30-round magazine, buffer tube and
+    collapsible stock. About 0.84 m; small parts chunky, after the look."""
+    g, p, glass = "gun_black", "gun_fde", "lens"
+    deg = math.radians
+    return _rifle_parts(mats, name, [
+        ("lower", box, dict(size=(0.030, 0.20, 0.050), loc=(0, -0.005, 0.0), bevel_=0.004), g),
+        ("magwell", box, dict(size=(0.034, 0.075, 0.055), loc=(0, -0.085, -0.03), bevel_=0.004), g),
+        ("mag_upper", box, dict(size=(0.026, 0.074, 0.11), loc=(0, -0.09, -0.095), bevel_=0.004, rot=(deg(-8), 0, 0)), g),
+        ("mag_lower", box, dict(size=(0.026, 0.07, 0.085), loc=(0, -0.073, -0.185), bevel_=0.004, rot=(deg(-20), 0, 0)), g),
+        ("trigger_guard", box, dict(size=(0.026, 0.065, 0.012), loc=(0, 0.015, -0.042)), g),
+        ("grip", box, dict(size=(0.030, 0.040, 0.105), loc=(0, 0.06, -0.05), bevel_=0.006, rot=(deg(22), 0, 0)), g),
+        ("upper", box, dict(size=(0.034, 0.23, 0.052), loc=(0, -0.04, 0.047), bevel_=0.004), g),
+        ("top_rail", box, dict(size=(0.026, 0.23, 0.014), loc=(0, -0.04, 0.079)), g),
+        ("charging_handle", box, dict(size=(0.05, 0.03, 0.014), loc=(0, 0.078, 0.07), bevel_=0.003), g),
+        ("forward_assist", cyl, dict(r=0.011, depth=0.035, loc=(-0.022, 0.035, 0.055), axis="Y", seg=8), g),
+        ("handguard", box, dict(size=(0.056, 0.25, 0.058), loc=(0, -0.28, 0.045), bevel_=0.008), g),
+        ("handguard_rail_top", box, dict(size=(0.024, 0.25, 0.012), loc=(0, -0.28, 0.079)), g),
+        ("handguard_rail_l", box, dict(size=(0.012, 0.22, 0.024), loc=(0.033, -0.28, 0.045)), g),
+        ("handguard_rail_r", box, dict(size=(0.012, 0.22, 0.024), loc=(-0.033, -0.28, 0.045)), g),
+        ("front_sight_base", box, dict(size=(0.026, 0.035, 0.03), loc=(0, -0.43, 0.06), bevel_=0.004), g),
+        ("front_sight_post", box, dict(size=(0.012, 0.022, 0.055), loc=(0, -0.43, 0.1), bevel_=0.003), g),
+        ("barrel", cyl, dict(r=0.0105, depth=0.24, loc=(0, -0.52, 0.045), axis="Y", seg=10), g),
+        ("flash_hider", cyl, dict(r=0.015, depth=0.055, loc=(0, -0.6425, 0.045), axis="Y", seg=10), g),
+        ("buffer_tube", cyl, dict(r=0.016, depth=0.22, loc=(0, 0.19, 0.045), axis="Y", seg=10), g),
+        ("stock", box, dict(size=(0.042, 0.17, 0.07), loc=(0, 0.29, 0.032), bevel_=0.01), g),
+        ("stock_heel", box, dict(size=(0.036, 0.09, 0.05), loc=(0, 0.32, -0.02), bevel_=0.008, rot=(deg(-25), 0, 0)), g),
+        ("butt_pad", box, dict(size=(0.046, 0.022, 0.115), loc=(0, 0.369, 0.02), bevel_=0.006), g),
+        ("optic_mount", box, dict(size=(0.03, 0.06, 0.025), loc=(0, -0.04, 0.094), bevel_=0.003), g),
+        ("optic", cyl, dict(r=0.024, depth=0.12, loc=(0, -0.04, 0.125), axis="Y", seg=14, bevel_=0.003), g),
+        ("optic_turret", cyl, dict(r=0.011, depth=0.022, loc=(-0.028, -0.04, 0.125), axis="X", seg=8), g),
+        ("optic_lens", cyl, dict(r=0.02, depth=0.004, loc=(0, -0.1015, 0.125), axis="Y", seg=14), glass),
+        ("peq", box, dict(size=(0.04, 0.075, 0.038), loc=(0, -0.22, 0.104), bevel_=0.005), p),
+        ("vertical_grip", cyl, dict(r=0.015, depth=0.08, loc=(0, -0.3, -0.017), axis="Z", seg=10, bevel_=0.003), g),
+        ("light", cyl, dict(r=0.014, depth=0.08, loc=(-0.05, -0.36, 0.045), axis="Y", seg=10), g),
+        ("light_lens", cyl, dict(r=0.012, depth=0.004, loc=(-0.05, -0.402, 0.045), axis="Y", seg=10), glass),
+    ])
+
+
+def ak74m(mats, name="ak74m"):
+    """The Russian squad's AK-74M (the reference; it stands for the AK-12 too):
+    a long slab receiver with its ribbed dust cover, gas tube over the barrel,
+    slotted front-sight block, the AK-74's cylindrical muzzle brake, a deeply
+    curved magazine, black polymer furniture and solid folding stock, and a
+    collimator on the side rail."""
+    g, poly, glass = "gun_black", "gun_polymer", "lens"
+    deg = math.radians
+    return _rifle_parts(mats, name, [
+        ("receiver", box, dict(size=(0.036, 0.29, 0.058), loc=(0, -0.03, 0.018), bevel_=0.004), g),
+        ("dust_cover", box, dict(size=(0.032, 0.25, 0.026), loc=(0, -0.01, 0.058), bevel_=0.009), g),
+        ("rear_sight_block", box, dict(size=(0.03, 0.05, 0.03), loc=(0, -0.175, 0.062), bevel_=0.004), g),
+        ("charging_handle", cyl, dict(r=0.009, depth=0.035, loc=(-0.032, -0.07, 0.04), axis="X", seg=8), g),
+        ("safety_lever", box, dict(size=(0.004, 0.11, 0.018), loc=(-0.02, 0.02, 0.025)), g),
+        ("trigger_guard", box, dict(size=(0.026, 0.07, 0.01), loc=(0, 0.015, -0.035)), g),
+        ("grip", box, dict(size=(0.03, 0.042, 0.1), loc=(0, 0.06, -0.05), bevel_=0.006, rot=(deg(18), 0, 0)), poly),
+        ("mag_1", box, dict(size=(0.028, 0.072, 0.075), loc=(0, -0.115, -0.045), bevel_=0.004, rot=(deg(-10), 0, 0)), poly),
+        ("mag_2", box, dict(size=(0.028, 0.07, 0.07), loc=(0, -0.1, -0.11), bevel_=0.004, rot=(deg(-25), 0, 0)), poly),
+        ("mag_3", box, dict(size=(0.028, 0.068, 0.07), loc=(0, -0.068, -0.17), bevel_=0.004, rot=(deg(-42), 0, 0)), poly),
+        ("lower_handguard", box, dict(size=(0.05, 0.2, 0.05), loc=(0, -0.29, 0.03), bevel_=0.01), poly),
+        ("gas_tube", cyl, dict(r=0.012, depth=0.32, loc=(0, -0.36, 0.08), axis="Y", seg=10), g),
+        ("upper_handguard", box, dict(size=(0.04, 0.15, 0.03), loc=(0, -0.27, 0.08), bevel_=0.01), poly),
+        ("gas_block", box, dict(size=(0.026, 0.04, 0.06), loc=(0, -0.52, 0.065), bevel_=0.005), g),
+        ("front_sight", box, dict(size=(0.024, 0.03, 0.05), loc=(0, -0.565, 0.08), bevel_=0.004), g),
+        ("barrel", cyl, dict(r=0.0105, depth=0.22, loc=(0, -0.48, 0.045), axis="Y", seg=10), g),
+        ("muzzle_brake", cyl, dict(r=0.017, depth=0.085, loc=(0, -0.6275, 0.045), axis="Y", seg=12), g),
+        ("brake_port", box, dict(size=(0.036, 0.02, 0.014), loc=(0, -0.635, 0.045)), g),
+        ("stock", box, dict(size=(0.04, 0.24, 0.058), loc=(0, 0.24, 0.012), bevel_=0.01, rot=(deg(4), 0, 0)), poly),
+        ("stock_web", box, dict(size=(0.03, 0.12, 0.04), loc=(0, 0.3, -0.035), bevel_=0.008, rot=(deg(-12), 0, 0)), poly),
+        ("butt_plate", box, dict(size=(0.044, 0.022, 0.12), loc=(0, 0.369, -0.005), bevel_=0.006), g),
+        ("side_rail", box, dict(size=(0.008, 0.11, 0.035), loc=(0.022, -0.06, 0.03)), g),
+        ("sight_bracket", box, dict(size=(0.03, 0.06, 0.035), loc=(0.02, -0.05, 0.07), bevel_=0.005), g),
+        ("collimator", box, dict(size=(0.034, 0.06, 0.036), loc=(0, -0.05, 0.1), bevel_=0.008), g),
+        ("collimator_lens", box, dict(size=(0.026, 0.004, 0.026), loc=(0, -0.0815, 0.1)), glass),
+    ])
+
+
+# A squad rifle per army (`roster/infantry_equipment.py` ARMIES).
+RIFLES = {"m4a1": m4a1, "ak74m": ak74m}
+
+
 def dmr(mats, name="dmr"):
     """The recon team's designated marksman rifle: a long barrel and handguard, a
     magnified scope and a folded bipod, on the carbine's grip-to-handguard geometry."""

@@ -3,7 +3,10 @@
 // model, a soldier's own member of his slot's soldier kind's set, recoloured
 // per side by the tint mask its materials carry.
 import { expect, test } from "vitest";
-import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog.ts";
+import {
+  AppearanceCatalog,
+  type SideFactions,
+} from "@packages/scene-assets/src/appearanceCatalog.ts";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
 import { importScene } from "@packages/scene-assets/src/scene.ts";
@@ -20,7 +23,7 @@ import {
   testSources,
 } from "./synthetic";
 
-async function install(catalog: Catalog = testCatalog()) {
+async function install(catalog: Catalog = testCatalog(), wearing?: ReadonlySet<string>) {
   const sources = testSources();
   const result = await bakeCatalog(catalog, async (path) => sources[path], {
     authority: AUTHORITY,
@@ -30,7 +33,7 @@ async function install(catalog: Catalog = testCatalog()) {
     ["catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime))],
     ...result.files,
   ]);
-  return new AppearanceLibrary(memoryFetch(files, "/assets/")).load("/assets/");
+  return new AppearanceLibrary(memoryFetch(files, "/assets/")).load("/assets/", wearing);
 }
 
 /** The synthetic units with the rifleman soldier kind wearing `set`, and a
@@ -91,6 +94,42 @@ test("a soldier kind's set is picked by soldier id, so consecutive soldiers diff
   });
   // The second slot is a different soldier kind, with his own set.
   expect(catalog.resolve("rifle", "blue", 4, 1)?.appearance).toBe("rifleman_c");
+});
+
+test("a soldier wears his faction's look of his appearance, on whichever side it fights", async () => {
+  const base = testCatalog();
+  const installed = await install(
+    {
+      ...base,
+      appearances: {
+        ...base.appearances,
+        rifleman: { ...base.appearances.rifleman, factions: { eastern: "rifleman_eastern" } },
+        rifleman_eastern: { ...base.appearances.rifleman },
+        rifleman_unworn: { ...base.appearances.rifleman },
+      },
+    },
+    syntheticUnits().appearances,
+  );
+  // A page loading only what its units wear takes their faction looks too.
+  expect(installed.appearances.has("rifleman_eastern")).toBe(true);
+  expect(installed.appearances.has("rifleman_unworn")).toBe(false);
+  const drawn = (factions?: SideFactions) =>
+    new AppearanceCatalog(installed, syntheticUnits(), factions);
+  const usVsEastern = drawn({ blue: "us", red: "eastern" });
+  expect(usVsEastern.resolve("rifle", "blue")?.appearance).toBe("rifleman");
+  expect(usVsEastern.resolve("rifle", "red")).toEqual({
+    appearance: "rifleman_eastern",
+    tint: base.sides.red,
+  });
+  // The faction's look, not the side's: an Eastern player sees his own in it.
+  expect(drawn({ blue: "eastern", red: "us" }).resolve("rifle", "blue")?.appearance).toBe(
+    "rifleman_eastern",
+  );
+  // A faction with no look of its own, and a battle of no factions, wear the appearance.
+  expect(drawn({ blue: "europe", red: "us" }).resolve("rifle", "blue")?.appearance).toBe(
+    "rifleman",
+  );
+  expect(drawn().resolve("rifle", "red")?.appearance).toBe("rifleman");
 });
 
 test("an operated weapon selects its carrier's appearance without changing other soldiers", async () => {

@@ -55,6 +55,7 @@ const entry = (
   regionalFamily: null,
   paints: null,
   wreck: null as string | null,
+  factions: null,
   bundle: bundle(...states),
 });
 /** A vehicle appearance and the wreck appearance it names. */

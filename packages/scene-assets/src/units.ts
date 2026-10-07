@@ -69,7 +69,9 @@ export interface MountRow {
   muzzle_m: Vec3 | null;
 }
 
-export type Faction = "us" | "europe" | "eastern";
+/** The factions a battle fields. */
+export const FACTIONS = ["us", "europe", "eastern"] as const;
+export type Faction = (typeof FACTIONS)[number];
 export type UnitCategory = "rec" | "inf" | "veh" | "sup" | "hel" | "air";
 
 export interface RosterMembership {

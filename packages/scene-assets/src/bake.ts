@@ -35,6 +35,7 @@ import {
   regionalFindings,
   typeAppearanceFindings,
   wreckFindings,
+  factionLookFindings,
   validateAppearance,
   validateSkeleton,
   type Stats,
@@ -212,6 +213,7 @@ export async function bakeCatalog(
         ...(entry.regional_family ? { regional_family: entry.regional_family } : {}),
         ...(entry.paints ? { paints: entry.paints } : {}),
         ...(entry.wreck ? { wreck: entry.wreck } : {}),
+        ...(entry.factions ? { factions: entry.factions } : {}),
       };
     reports.push({
       name,
@@ -278,10 +280,12 @@ export async function bakeCatalog(
       hash: null,
       bytes: 0,
     });
-  // Every unit type draws appearances the catalog has, and every vehicle its own wreck.
+  // Every unit type draws appearances the catalog has, every vehicle its own
+  // wreck, and every soldier's faction looks are soldiers on its rig.
   const types = [
     ...typeAppearanceFindings(catalog.appearances, context.authority.units),
     ...wreckFindings(catalog.appearances, context.authority.units),
+    ...factionLookFindings(catalog.appearances),
   ];
   if (types.length)
     reports.push({

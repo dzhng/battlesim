@@ -17,6 +17,7 @@ import { pointAt } from "./trs.ts";
 import { encodeBundle } from "./codec.ts";
 import { mountMuzzles, muzzleOffset, type MountMuzzle } from "./mountMuzzle.ts";
 import {
+  FACTIONS,
   MOUNT_NODES,
   isArticulation,
   mountRoles,
@@ -1448,6 +1449,33 @@ export function paintFindings(
         ),
       ]
     : [];
+}
+
+/** A soldier's faction looks (`factions`): each a faction a battle fields,
+ *  naming another soldier appearance on the same skeleton (so it poses with
+ *  the same clips) that has no faction looks of its own. */
+export function factionLookFindings(
+  appearances: Record<string, Pick<AppearanceEntry, "unit" | "skeleton" | "factions">>,
+): Finding[] {
+  const out: Finding[] = [];
+  const fix = "name, per faction, a soldier appearance on this one's skeleton";
+  for (const [name, entry] of Object.entries(appearances))
+    for (const [faction, look] of Object.entries(entry.factions ?? {})) {
+      const of = appearances[look];
+      const problem = !(FACTIONS as readonly string[]).includes(faction)
+        ? `${faction} is no faction (${FACTIONS.join(", ")})`
+        : !of
+          ? `${faction} look "${look}", which the catalog lacks`
+          : entry.unit !== "soldier" || of.unit !== "soldier"
+            ? `faction looks are soldiers'; "${entry.unit === "soldier" ? look : name}" is a ${entry.unit === "soldier" ? of.unit : entry.unit}, not a soldier`
+            : of.skeleton !== entry.skeleton
+              ? `${faction} look "${look}" has skeleton ${of.skeleton}, not ${entry.skeleton}`
+              : of.factions
+                ? `${faction} look "${look}" has faction looks of its own`
+                : null;
+      if (problem) out.push(finding("structure.faction_look", `${name}: ${problem}`, fix));
+    }
+  return out;
 }
 
 /** Every vehicle appearance names its own wreck (`wreck`): a scenery

@@ -516,16 +516,59 @@ def multicam_ripstop():
                        ((0.105, 0.075, 0.047), 0.6), ((0.042, 0.034, 0.026), 0.68)], 701, 7)
     branch = np.abs(warp(fbm(6, 711, 4), 8, 712) - 0.5)
     col = mix(col, (0.05, 0.045, 0.034), smoothstep(0.02, 0.01, branch) * 0.5)
-    fade = fbm(4, 713, 4)
+    return _ripstop(col, 713)
+
+
+def _ripstop(col, seed):
+    """Finish a printed camouflage as nylon-cotton ripstop: faded print, the
+    ripstop grid, weave and seam folds in the normal. -> Baked."""
+    fade = fbm(4, seed, 4)
     col = col * (0.9 + 0.2 * fade)[..., None]
     yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float)
     grid = np.maximum(smoothstep(0.8, 1.0, np.cos(xx / SIZE * 64 * math.pi * 2)),
                       smoothstep(0.8, 1.0, np.cos(yy / SIZE * 64 * math.pi * 2)))
-    w = weave(128, 715, 0.4)
-    h = w * 0.08 + grid * 0.1 + folds(717, 2) * 2.5
+    w = weave(128, seed + 2, 0.4)
+    h = w * 0.08 + grid * 0.1 + folds(seed + 4, 2) * 2.5
     col = col * (0.97 + 0.05 * grid)[..., None]
     # cloth is matte: its folds and weave occlude the sky, so it takes little sheen
-    return Baked(col, 0.25 + 0.75 * fbm(8, 719, 4), normals_from_height(h, 1.0), 0.72 + 0.1 * folds(717, 2), 0.97)
+    return Baked(col, 0.25 + 0.75 * fbm(8, seed + 6, 4), normals_from_height(h, 1.0), 0.72 + 0.1 * folds(seed + 4, 2), 0.97)
+
+
+# An army's uniform print (`UNIFORMS`): the recipe its uniform, carrier,
+# pouches and helmet cover are printed in. Prints stay in the dark,
+# desaturated range the battle's sun needs, and each reads by its mean at
+# battle distance: OCP sandy khaki (it matches the US tan vehicles), EMR green.
+UNIFORMS = {
+    "us_army_ocp": "ocp_ripstop",
+    "eastern_emr": "emr_ripstop",
+}
+
+
+@recipe("ocp_ripstop", tile=0.42, wear=(0.2, 0.17, 0.12, 1.0))
+def ocp_ripstop():
+    """US Army OCP (Scorpion W2) on ripstop: a sandy khaki ground under
+    smaller, softer blotches than multicam's of pale sand, olive, brown and a
+    little dark brown, with no branches."""
+    return _ripstop(_camo_print([(0.165, 0.145, 0.1), ((0.235, 0.21, 0.15), 0.68), ((0.08, 0.088, 0.052), 0.6),
+                                 ((0.12, 0.088, 0.055), 0.64), ((0.06, 0.048, 0.034), 0.77)], 2701, 8), 2713)
+
+
+@recipe("emr_ripstop", tile=0.42, wear=(0.15, 0.16, 0.11, 1.0))
+def emr_ripstop():
+    """Russian EMR (Digital Flora) on ripstop: square pixels about 7 mm
+    across, a pale grey-green ground under clustered light-olive, dark-green
+    and brown pixels and a few near-black ones."""
+    block = 4  # texels: 64 pixels across the 0.42 m tile
+    cell = lambda x: x[::block, ::block].repeat(block, 0).repeat(block, 1)
+    jitter = cell(np.random.default_rng(2801).random((SIZE, SIZE)))
+    f = cell(fbm(9, 2803, 4)) + 0.1 * (jitter - 0.5)
+    g = cell(fbm(13, 2805, 3)) + 0.1 * (jitter - 0.5)
+    tones = np.array(((0.13, 0.14, 0.088), (0.078, 0.098, 0.052), (0.036, 0.052, 0.03), (0.07, 0.052, 0.034),
+                      (0.02, 0.022, 0.017)))
+    tone = np.where(f < 0.42, 0, np.where(f < 0.55, 1, 2))
+    tone = np.where((g > 0.6) & (tone > 0), 3, tone)
+    tone = np.where((g < 0.3) & (f > 0.6), 4, tone)
+    return _ripstop(tones[tone], 2813)
 
 
 @recipe("cordura", tile=0.3, wear=(0.2, 0.18, 0.14, 1.0))

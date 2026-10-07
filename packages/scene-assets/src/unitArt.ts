@@ -41,6 +41,13 @@ export const UNIT_ART: { default: UnitArtRule } & Record<string, Partial<UnitArt
     tier_ratio: 0.9,
     dressing: { bulky_m: 0.3, thin_m: 0.15, thin_top_m: 4 },
   },
+  // About twice the rifle squad measured in the pilot (slice 14, 2026-10-07):
+  // at most 29149 / 6987 / 2486 / 763 triangles, a 12.4 MB bundle, 24 textures.
+  [SOLDIER_CLASS]: {
+    tier_triangles: [60000, 15000, 5000, 1600],
+    bundle_bytes: 24 * 1024 * 1024,
+    textures: 48,
+  },
 };
 
 export const unitArtRule = (cls: string | null): UnitArtRule => ({

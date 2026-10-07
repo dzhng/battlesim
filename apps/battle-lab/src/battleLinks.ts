@@ -11,7 +11,7 @@
 // or U.S. against Eastern. A generated map's address may add
 // `&region=<family>`; without it the seed draws the region. A missing faction
 // or any other parameter is refused by name, never defaulted or ignored.
-import type { Faction } from "@packages/scene-assets/src/units";
+import { FACTIONS, type Faction } from "@packages/scene-assets/src/units";
 import type { PrepareBattleRequest } from "@web/battle/prepare/protocol";
 import game from "@fixtures/game.json";
 import presets from "@fixtures/map-presets.json";
@@ -64,7 +64,6 @@ const SAID: Readonly<Record<string, string>> = {
   europe: "European",
   eastern: "Eastern",
 };
-export const FACTIONS = ["us", "europe", "eastern"] as const;
 type BattleChoice = MapChoice & { faction?: Faction };
 
 /** A data name as the player reads it: `new_york` is "new york", `china` "taiwan". */
