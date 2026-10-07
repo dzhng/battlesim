@@ -18,7 +18,7 @@ they look like the real vehicles and soldiers.
 
 ## Next Agent Prompt
 
-**Status, 2026-10-07:** in progress. Done and merged: 01–04, 07, 09, 10, 12, 13 (catalog load ~129 MiB, was ~1.2 GB; real-nation paint, dark glass on all 40 vehicles). In flight: 05 (test units), reference collection for the pilot, tracked and wheeled families (lanes' step 0, started early). Next: 11 after 05; 06 and 08 after 05; 14 after 11. Slice 13 found the tyres were already black by albedo: the grey read is the oversized painted rims, fixed by the lanes' wheel geometry.
+**Status, 2026-10-07:** in progress. Done and merged: 01–05, 07, 09, 10, 12, 13; references for the pilot and tracked families (`assets/references/`). Game page load 112 MiB (was ~1.2 GB). In flight: 06, 08, 11 and the wheeled references. Next: 14 (pilot) after 11.
 
 **Pick up at [slice 01](slices/01-presentation-by-property.md):** every roster
 vehicle and weapon plays default sounds today, a bug players hear.
@@ -80,8 +80,7 @@ Warnings:
   failed). Pull LFS sources only for the families you touch and drop them
   (back to pointers) when done; keep scratch small.
 - **Tests use test units.** A roster add, remove or edit must not break a
-  test. Tests run on test or fake units (`sim::fixtures::stand_in_game` on
-  main since `847c813c`, `test_game` after slice 05) unless a test says why it
+  test. Tests run on test or fake units (`sim::fixtures::test_game`, `fixtures/units/test/`) unless a test says why it
   needs the roster. Don't move a test onto roster units.
 - **The menu reel is a film.** It may use any units with any stats, and
   anything in it may change, but every approved shot must stay exactly the
@@ -105,7 +104,7 @@ TODO:
 - [x] [02 Roster stands alone](slices/02-roster-stands-alone.md): abstract roster base soldiers; no roster soldier inherits a generic kind.
 - [x] [03 Encounter owner](slices/03-encounter-owner.md): Defender/Referee move to `sim::encounter`, unchanged.
 - [x] [04 Session catalog](slices/04-session-catalog.md): one resolver, three document sets (game, test, menu); the battle session owns its catalog and loads only its bindings.
-- [ ] [05 Test units](slices/05-test-units-explicit.md): `test_*` units, out of the game catalog, test art labelled.
+- [x] [05 Test units](slices/05-test-units-explicit.md): `test_*` units, out of the game catalog, test art labelled.
 - [ ] [06 Village retired, maps labelled](slices/06-retire-village-label-maps.md): map-free rules, village deleted, live art renamed, every map `test` or `menu`, market-town-test.
 - [x] [07 Request contract](slices/07-request-contract.md): factions required, unknown parameters refused, recipe fields gone.
 - [ ] [08 Menu reel](slices/08-menu-reel.md): `menu_*` units in roster looks; exact-shot test against the recorded reel.
