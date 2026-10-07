@@ -21,7 +21,9 @@ test("a valid catalog bakes every entry with no error findings", async () => {
     "crate",
     "rifleman",
     "tank",
+    "tank_wreck",
     "truck",
+    "truck_wreck",
   ]);
   expect(Object.keys(result.runtime.skeletons)).toEqual(["test-rig"]);
 });

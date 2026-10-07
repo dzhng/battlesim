@@ -79,6 +79,8 @@ export const FINDING_CODES = [
   "fit.mount_draw",
   /** A unit type names an appearance the catalog lacks, or of the wrong kind. */
   "fit.type_appearance",
+  /** A vehicle names no wreck of its own, or one not its unit's hull. */
+  "fit.wreck",
   // frame cost
   /** A tier draws more triangles than its scenery kind or unit class allows. */
   "budget.tier_triangles",
@@ -144,19 +146,26 @@ export const fetchedOnRequest = (entry: { unit: AppearanceUnit; regional_family?
 
 /** The appearances a catalog load takes: every one not fetched on request
  *  that is scenery, and of soldiers' and vehicles' art only what `wearing`
- *  names, the appearances a page's units wear (`UnitCatalog.appearances`).
- *  Without `wearing`, every unit's art: a tool judging all baked art. So a
- *  game page never fetches art only test or menu units wear. */
+ *  names, the appearances a page's units wear (`UnitCatalog.appearances`),
+ *  with each worn vehicle's own wreck. Without `wearing`, every unit's art: a
+ *  tool judging all baked art. So a game page never fetches art only test
+ *  or menu units wear. */
 export const catalogLoadNames = (
   catalog: Pick<RuntimeCatalog, "appearances">,
   wearing?: ReadonlySet<string>,
-): string[] =>
-  Object.entries(catalog.appearances ?? {})
-    .filter(
-      ([name, entry]) =>
-        !fetchedOnRequest(entry) && (entry.unit === "scenery" || !wearing || wearing.has(name)),
-    )
+): string[] => {
+  const entries = Object.entries(catalog.appearances ?? {});
+  const worn = (name: string) => !wearing || wearing.has(name);
+  const wrecks = new Set(entries.flatMap(([name, e]) => (e.wreck && worn(name) ? [e.wreck] : [])));
+  const wrecked = new Set(entries.flatMap(([, e]) => (e.wreck ? [e.wreck] : [])));
+  return entries
+    .filter(([name, entry]) => {
+      if (fetchedOnRequest(entry)) return false;
+      if (wrecked.has(name)) return wrecks.has(name);
+      return entry.unit === "scenery" || worn(name);
+    })
     .map(([name]) => name);
+};
 
 /** Every appearance of `catalog` fetched on request, by name: the regional
  *  family it is a look of, or null for a kit. */

@@ -93,6 +93,8 @@ test("a game page's catalog load leaves out the art only test units wear, and co
   expect(installed.appearances.has("crate")).toBe(true);
   expect(installed.appearances.has("lab_tank")).toBe(false);
   expect(installed.appearances.has("truck")).toBe(false);
+  // A wreck is its vehicle's art: no unit here wears the tank, so no tank wreck.
+  expect(installed.appearances.has("tank_wreck")).toBe(false);
   const fetched = (name: string) =>
     requests.includes(`/assets/${bundleFiles(runtime, runtime.appearances[name].bundle)[0]}`);
   expect(fetched("tank")).toBe(false);
@@ -113,6 +115,9 @@ test("a lab page after a game page adds its test units' art, fetching nothing tw
   const installed = await library.withUnits(lab.units.appearances);
   expect(installed.appearances.has("lab_tank")).toBe(true);
   expect(installed.appearances.has("truck")).toBe(false);
+  // The lab tank's wreck comes with it; the truck's, worn by none, does not.
+  expect(installed.appearances.has("tank_wreck")).toBe(true);
+  expect(installed.appearances.has("truck_wreck")).toBe(false);
   const units = admitScenario(scenario("lab_only_tank"), lab);
   expect(new AppearanceCatalog(installed, units).resolve("lab_only_tank", "blue")?.appearance).toBe(
     "lab_tank",
