@@ -38,7 +38,6 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
       "Mechanics editor": "/mechanics",
       "Map workbench": "/map-workbench",
       "Sound workbench": "/sound-workbench",
-      Village: "/battle/village",
       Benchmark: "/benchmark",
       Labs: "/labs",
     },

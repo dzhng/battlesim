@@ -19,8 +19,8 @@ const game = read("../../../fixtures/game.json");
 const same = (a: readonly number[], b: readonly number[]) =>
   a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) < 1e-9);
 
-const villageMap = loadMap("village").definition;
-const buildings = villageMap.buildings!.flatMap((b) => b.geometry.parts.map((p) => p.half_extents));
+const streetMap = loadMap("street").definition;
+const buildings = streetMap.buildings!.flatMap((b) => b.geometry.parts.map((p) => p.half_extents));
 /** Every unit type with a hull leaves a wreck on its hull box: the test set's
  *  (the game's units and the test units), whose art the catalog ships. */
 const units = UNITS;
@@ -175,8 +175,8 @@ test("systems-only bodies have no accepted appearance binding", () => {
 
 test("the playable village's authored props and their remains have accepted bindings", () => {
   const placed = [
-    ...villageMap.props.map((p: { kind: string }) => p.kind),
-    ...villageMap.buildings!.map((b: { kind: string }) => b.kind),
+    ...streetMap.props.map((p: { kind: string }) => p.kind),
+    ...streetMap.buildings!.map((b: { kind: string }) => b.kind),
   ];
   for (let i = 0; i < placed.length; i++) {
     const id = placed[i];

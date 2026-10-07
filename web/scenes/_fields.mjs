@@ -1,5 +1,5 @@
 // The plots' own ground texture (grain, broken rows, wheelings), checked at
-// the ground rig's stations on the village with the texture on and off in
+// the ground rig's stations on the street with the texture on and off in
 // one page: every kind of field in view carries texture inside it, its mean
 // colour stays where its palette put it, nothing broad is darker than its
 // plot, and from the strategic height it has faded to its mean.
@@ -10,7 +10,7 @@ import { lab } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { BIOME, classAt, openStations, pairedCost, shoot } from "./_groundStations.mjs";
 
-const MAP = "village";
+const MAP = "street";
 /** A plot's interior is judged in blocks this many pixels a side: about a
  *  metre and a half from the play camera, nine metres from 250 m. */
 const BLOCK = { fine: 32, broad: 48 };

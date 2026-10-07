@@ -1,4 +1,4 @@
-// Opt-in (`WATCH_TOURS=rounds`): rounds in flight, in the watched village
+// Opt-in (`WATCH_TOURS=rounds`): rounds in flight, in the watched street battle
 // battle. The battle runs from ROUNDS_TICK (default 30); each round kind the
 // fixture's weapons fire (rifle, HMG, grenade, tank AP and HE, ATGM) is
 // framed the first time one of them has flown on for a short lead: at the

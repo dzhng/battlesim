@@ -1,5 +1,5 @@
 // Opt-in (`WATCH_TOURS=cover`): how cover shows with Space held, in the
-// watched village battle. From BATTLE_TICK the battle steps on, half a second
+// watched street battle. From BATTLE_TICK the battle steps on, half a second
 // at a time and within SEARCH_TICKS, until its own state has shown each case:
 // an own squad holding with soldiers in a tier of cover, one holding in the
 // open, one moving with "cover there" at its destination spots, and one

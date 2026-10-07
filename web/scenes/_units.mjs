@@ -1,10 +1,10 @@
 // The fixtures as the scenes read them: the game's rules and presentation
-// (`fixtures/game.json`), its map, resolved from the saved catalogue, and
+// (`fixtures/game.json`), the street test map, resolved from the saved catalogue, and
 // the test catalog (the game's units and the test units labs field), the
 // simulation's resolved view, unit and prop types by id. The derived questions mirror
 // `packages/scene-assets/src/units.ts`, answered from a type's components.
 import { readFile } from "node:fs/promises";
-import { loadMap } from "../src/maps/node.ts";
+import { loadEncounter, loadMap } from "../src/maps/node.ts";
 import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
 
 /** `fixtures/game.json`. */
@@ -12,8 +12,11 @@ export const game = JSON.parse(
   await readFile(new URL("../../fixtures/game.json", import.meta.url), "utf8"),
 );
 
-/** The village's physical map (`fixtures/maps/village`), resolved. */
-export const villageMap = loadMap("village").definition;
+/** The street test map (`fixtures/maps/street`), resolved: the ground of
+ *  the battle scenes (`/lab/street`). */
+export const streetMap = loadMap("street").definition;
+/** The street's battle (`/lab/street`): its saved encounter `attack`. */
+export const streetAttack = loadEncounter("street", "attack");
 
 /** The camera curve's pitch at `distance` (the controller's own rule). */
 export function curvePitch(distance) {

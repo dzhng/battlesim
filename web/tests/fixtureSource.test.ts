@@ -1,7 +1,7 @@
 import { expect, test, vi } from "vitest";
 import { TEST_RULES } from "./catalog";
 import * as fixtures from "@apps/battle-lab/src/fixtures";
-import { villageScenario } from "@apps/battle-lab/src/savedMaps";
+import { enduranceScenario } from "@apps/battle-lab/src/savedMaps";
 
 vi.mock("@web/maps/browser", () => ({
   loadMap: async (id: string) => ({
@@ -10,17 +10,19 @@ vi.mock("@web/maps/browser", () => ({
 }));
 
 test("a shared scenario factory builds on its calling fixture's declared source", async () => {
-  const fixture = fixtures.LAB_FIXTURES.find((fixture) => fixture.id === "fog")!;
+  const fixture = fixtures.LAB_FIXTURES.find((fixture) => fixture.id === "endurance")!;
   const original = fixture.map;
   fixture.map = "river";
   try {
     const authority = {
-      village_scenario: (rules: string, variant: string) =>
-        JSON.stringify({ map: JSON.parse(rules).map, variant }),
+      endurance_scenario: (map: string, _rules: string, seed: bigint, late: boolean) =>
+        JSON.stringify({ map: JSON.parse(map), seed: Number(seed), late }),
     };
-    const scenario = JSON.parse(await villageScenario(authority, "fog", "ordinary", TEST_RULES));
+    const scenario = JSON.parse(
+      await enduranceScenario(authority, "endurance", 7, false, TEST_RULES),
+    );
     expect(scenario.map.size).toEqual([640, 480]);
-    expect(scenario.variant).toBe("ordinary");
+    expect(scenario.seed).toBe(7);
   } finally {
     fixture.map = original;
   }

@@ -9,7 +9,7 @@ afterEach(() => vi.restoreAllMocks());
 
 const entry = (id: string, status: catalogue.MapStatus): catalogue.MapEntry => ({
   id,
-  category: "playable",
+  category: "menu",
   status,
   label: `Battlefield ${id}`,
   character: "mixed",
@@ -27,7 +27,7 @@ test("active catalogue maps are inspectable in labs by name", () => {
     entry("released-field", "released"),
     entry("draft-field", "draft"),
     entry("retired-field", "retired"),
-    { ...entry("released-arena", "released"), category: "lab" as const },
+    { ...entry("released-arena", "released"), category: "test" as const },
     { ...entry("other-encounter", "released"), encounters: ["duel"] },
   ];
   vi.spyOn(catalogue, "listMaps").mockImplementation((filter) =>

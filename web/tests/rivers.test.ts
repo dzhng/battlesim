@@ -24,7 +24,7 @@ import { loadMap } from "@web/maps/node";
 
 const riverLab = loadMap("river").definition;
 const river = riverLab.rivers![0];
-const villageMap = loadMap("village").definition;
+const streetMap = loadMap("street").definition;
 
 const biome = validateBiome(summer as unknown as Biome);
 /** How near the map's edge a field may still span a river that ends there. */
@@ -80,7 +80,7 @@ test("the river export follows its published layout", () => {
     }
   }
   // A map without water exports none.
-  const dry = exportsOf(villageMap);
+  const dry = exportsOf(streetMap);
   expect(dry.rivers.length + dry.riverRuns.length).toBe(0);
 });
 

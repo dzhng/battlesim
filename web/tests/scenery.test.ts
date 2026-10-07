@@ -35,7 +35,7 @@ import game from "@fixtures/game.json";
 import { loadMap } from "@web/maps/node";
 import { WHOLE_MAP_MS } from "./support/wholeMap";
 
-const villageMap = loadMap("village").definition;
+const streetMap = loadMap("street").definition;
 
 const biome = validateBiome(summer as unknown as Biome);
 /** Unscaled appearance sizes: the loader reads them from the bundles. */
@@ -69,7 +69,7 @@ let placement: SceneryPlacement;
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
   layout = JSON.parse(world_layout(JSON.stringify(TEST_RULES))) as WorldLayout;
-  view = new WorldView(JSON.stringify(villageMap), JSON.stringify(TEST_RULES));
+  view = new WorldView(JSON.stringify(streetMap), JSON.stringify(TEST_RULES));
   exports = readWorldExports(view);
   const site = scenerySite(exports, layout, buildTerrainSurface(exports, layout, biome));
   placement = placeScenery(site, biome, PLACED);
@@ -101,7 +101,7 @@ function trees(data: Float32Array): Tree[] {
 }
 const ground = (x: number, y: number) => view.surface_at(x, y)[0];
 const forests = () =>
-  villageMap.forests.map(({ shape }) => {
+  streetMap.forests.map(({ shape }) => {
     if (shape.kind !== "polygon") throw new Error("the village's forests are rings");
     const { ring } = shape;
     return {
@@ -246,7 +246,7 @@ test("scenery past the map stays clear of it and within reach, as hedgerows and 
 
 test("map-owned surrounding scenery keeps each complete crown inside the rendered extent", () => {
   const surrounded = new WorldView(
-    JSON.stringify({ ...villageMap, render_margin_m: 200 }),
+    JSON.stringify({ ...streetMap, render_margin_m: 200 }),
     JSON.stringify(TEST_RULES),
   );
   try {
@@ -561,7 +561,7 @@ test("dressing keeps clear of every trunk and of every body on the floor", () =>
   const rules = structuredClone(TEST_RULES) as typeof TEST_RULES;
   rules.forests.rule.logs_per_ha = 5;
   rules.forests.rule.boulders_per_ha = 3;
-  const world = new WorldView(JSON.stringify(villageMap), JSON.stringify(rules));
+  const world = new WorldView(JSON.stringify(streetMap), JSON.stringify(rules));
   try {
     const { worldExports, site } = siteOf(world);
     const dressed = pieces(placeScenery(site, biome, PLACED));

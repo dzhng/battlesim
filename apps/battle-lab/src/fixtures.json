@@ -145,6 +145,18 @@
     "map": null
   },
   {
+    "id": "street",
+    "route": "/lab/street",
+    "describe": "A battle on the street test map through the production controls, readouts and pause menu: blue starts west of the street, red holds it under the encounter's defender policy (its rifle squads garrison the three buildings). ?watch plays the encounter where blue's start is ordered onto the street at once, under a free camera; ?seed= sets the seed. The browser scenes judge the battle view here.",
+    "map": "street"
+  },
+  {
+    "id": "street-watch",
+    "route": "/lab/street?watch",
+    "describe": "The street battle watched: blue's start ordered onto the street at once, the camera free. The scene takes the whole-battle frames at a fixed tick (BATTLE_TICK), and checks fog running on past the map edge and the red border that marks the playable area.",
+    "map": "street"
+  },
+  {
     "id": "generated",
     "route": "/battle",
     "describe": "A prepared battle: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?faction= the player's faction (required) and ?enemy= the enemy's; ?battle= the battle's seed. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet.",

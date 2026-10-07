@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { GroundView } from "@web/battle/sim/ground";

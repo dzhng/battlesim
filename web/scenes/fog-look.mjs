@@ -1,4 +1,4 @@
-// How unseen looks. On the village street under a 16:00
+// How unseen looks. On the street test map under a 16:00
 // sun, with the street recon's sight alone (ARMAPHRACT's wedge, the most
 // fog beside the most shadow):
 // - seen pixels are identical with fog on and off, outside the rim band;
@@ -16,12 +16,12 @@
 // - nothing seen reads as fog: under every style, the darkest
 //   seen ground is lighter than the darkest unseen ground, or apart in hue;
 // and the frames the visual verdict reads: default and ground framings (with
-// grass, as the village draws), each fixture style side by side, fog off, and
+// grass, as the street draws), each fixture style side by side, fog off, and
 // the seen/unseen and ground masks.
 import { decode } from "./_png.mjs";
 import { advance, lab, snapshot } from "./_lab.mjs";
 
-/** The camera framings the verdict reads (the village's default and ground
+/** The camera framings the verdict reads (the street's default and ground
  *  zoom, pitched by its curve): beside the recon's sight shadows, and, with
  *  every blue eye on (`eyes: "all"`), the wedge one wall of the building at
  *  (1047, 814) casts, the frames on which the fog look first failed its gate. */
@@ -346,7 +346,7 @@ export async function run(ctx) {
     identical[name] = { seen: seen.length, unseen: unseen.length, moved: moved.length };
   }
   await rebuild(page, () => window.__lab.route.setBloom(true));
-  // The gate frames, with the grass the village draws.
+  // The gate frames, with the grass the street draws.
   await grass(page, true);
   for (const [name, framing] of Object.entries(FRAMINGS)) {
     await setCamera(page, framing);
@@ -677,7 +677,7 @@ export async function run(ctx) {
   // Nothing seen reads as fog: at every gate framing, under every
   // fixture style, the darkest 1% of seen ground is lighter than the darkest
   // 1% of unseen ground, or differs from it in hue by HUE_MARGIN. Each style's
-  // frames also make the A/B sheet. With grass, as the village draws.
+  // frames also make the A/B sheet. With grass, as the street draws.
   await grass(page, true);
   const sides = {};
   for (const [name, framing] of Object.entries(FRAMINGS)) {

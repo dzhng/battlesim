@@ -5,7 +5,9 @@ import {
   CITY_CONTACT,
   benchmarkFingerprint,
   benchmarkPreset,
+  type BenchmarkScenario,
 } from "../src/battle/benchmark/presets";
+import { cityContactTour } from "../src/battle/benchmark/camera";
 
 // Each released version's workload. A change to a scenario or its camera tour
 // fails here until the scenario gets a new version and a new line.
@@ -26,7 +28,7 @@ test("a scenario's workload is pinned to its version", () => {
 
 test("the fingerprint sees the tour and the start, not the version", () => {
   const moved = { ...CITY_CONTACT, startTick: CITY_CONTACT.startTick + 1 };
-  const reanchored = { ...CITY_CONTACT, tour: "another-tour" };
+  const reanchored: BenchmarkScenario = { ...CITY_CONTACT, tour: cityContactTour([1000, 1000]) };
   const renumbered = { ...CITY_CONTACT, version: 99 };
   const base = benchmarkFingerprint(CITY_CONTACT);
   expect(benchmarkFingerprint(moved)).not.toBe(base);

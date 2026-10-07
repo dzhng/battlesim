@@ -1,5 +1,5 @@
-// Slice 15: the village battle. Blue plays through the production controls;
-// the encounter status, variant, seed, pause/reset and replay export work.
+// The battle view on the street test map (`/lab/street`). Blue plays through
+// the production controls; the clock, seed and pause/reset work.
 // The camera tour, from the opening framing out to the
 // strategic height and in to the ground, through the real wheel.
 // The tree-line tour, the forests drawn as trees, and
@@ -11,7 +11,7 @@
 // consequences scene owns the death-to-static-corpse lifecycle.
 // Vehicles and wrecks as their appearances, buildings as their templates' art:
 // every vehicle a posed model following its published weapon poses, the
-// village's houses on their boxes, and a tank firing (recoil).
+// street's houses on their boxes, and a tank firing (recoil).
 // Order markers and the Space overlay (a real
 // right-drag's facing, a reverse move's marker, Space held at the default and
 // ground cameras over the fog), and no enemy plan in the observation.
@@ -30,8 +30,7 @@ import {
   openMenu,
   closeMenu,
   restart,
-  chooseVariant,
-  chosenVariant,
+  pauseMenuText,
   openBattle,
   aim,
   groundCss,
@@ -52,11 +51,11 @@ import {
   unitType,
   vehicleAppearances,
   game,
-  villageMap,
+  streetMap,
 } from "./_units.mjs";
 
 const CAMERA = game.presentation.camera;
-const roadStrokes = villageMap.surfaces
+const roadStrokes = streetMap.surfaces
   .filter((s) => game.surfaces[s.kind]?.speed_factor > 0 && s.shape.kind === "stroke")
   .map((s) => s.shape);
 /** Every mark, paint or overlay, lies on the ground itself (the ground and
@@ -170,11 +169,11 @@ function offRoad(p) {
 
 const insideForest = (point, forest) => {
   const [a, , c] = forest.shape.ring;
-  // These are the fixed rectangular Village stimuli, not renderer geometry.
+  // These are the fixed rectangular street map stimuli, not renderer geometry.
   return point[0] > a[0] && point[0] < c[0] && point[1] > a[1] && point[1] < c[1];
 };
 const underProp = (p) =>
-  [...villageMap.props, ...villageMap.buildings.flatMap((b) => b.geometry.parts)].some(
+  [...streetMap.props, ...streetMap.buildings.flatMap((b) => b.geometry.parts)].some(
     ({ center: [cx, cy], yaw, half_extents: [hx, hy] }) => {
       const [dx, dy] = [p[0] - cx, p[1] - cy];
       const [c, s] = [Math.cos(yaw), Math.sin(yaw)];
@@ -199,7 +198,7 @@ async function checkGrass(ctx, page, name, minRelief = 0) {
     (c) =>
       offRoad(c.root) < 0 ||
       underProp(c.root) ||
-      villageMap.forests.some((f) => insideForest(c.root, f)),
+      streetMap.forests.some((f) => insideForest(c.root, f)),
   );
   const tiers = [0, 1].map((t) => clumps.filter((c) => c.tier === t).length);
   const relief = clumps.reduce((m, c) => Math.max(m, c.root[2]), 0);
@@ -551,7 +550,7 @@ async function treeTour(ctx) {
   });
   const top = decode(await snapshot(ctx, page, "trees-top-check-1920x1080.png"));
   await hud.evaluate((e) => e.remove());
-  const [x0, y0] = villageMap.forests[0].shape.ring[0];
+  const [x0, y0] = streetMap.forests[0].shape.ring[0];
   const luminance = async (x, y) => {
     const css = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), [
       x,
@@ -751,14 +750,14 @@ async function vehicleTour(ctx) {
   );
   // The houses are buildings like any town's: each its template's rows in the
   // art library, on its own box, and no fitted appearance stands for one.
-  const houses = villageMap.buildings.flatMap((b) => b.geometry.parts);
+  const houses = streetMap.buildings.flatMap((b) => b.geometry.parts);
   const buildings = await lab(page, () => window.__lab.route.buildings());
   const fitted = (await lab(page, () => window.__lab.route.structures())).filter((s) =>
     houses.some((h) => s.position[0] === h.center[0] && s.position[1] === h.center[1]),
   );
   const drawn = await lab(page, () => window.__lab.stats().buildings);
   ctx.check(
-    "the village's houses stand as their templates' art, each on its box",
+    "the street's houses stand as their templates' art, each on its box",
     buildings.length === houses.length &&
       buildings.every(
         (b, i) =>
@@ -779,11 +778,11 @@ async function vehicleTour(ctx) {
   await snapshot(ctx, page, "vehicles-tank-1920x1080.png");
   await aim(page, tank.position, { distance: 65, pitch: 0.85, yaw: -1.57 });
   await snapshot(ctx, page, "vehicles-default-1920x1080.png");
-  // The village's farms from the western approach.
+  // The street's farms from the western approach.
   await aim(page, [1000, 812], { distance: 150, pitch: 0.55, yaw: 0 });
-  await snapshot(ctx, page, "vehicles-village-1920x1080.png");
+  await snapshot(ctx, page, "vehicles-street-1920x1080.png");
 
-  // Drive and fire: the tanks attack-move on the village; run on until an own
+  // Drive and fire: the tanks attack-move on the street; run on until an own
   // tank's cannon fires, then look at it on the tick of the shot.
   await lab(
     page,
@@ -2296,7 +2295,7 @@ async function glowSheet(ctx, page, squadId, vehicleId) {
   await ctx.writeEvidence("glow-sheet.json", { centre, options });
 }
 
-/** The village's field works (teeth, sandbags, fences)
+/** The street's field works (teeth, sandbags, fences)
  *  at the opening framing's distance, pitch and yaw, and every one drawn
  *  standing on the ground. */
 const WORKS = {
@@ -2323,7 +2322,7 @@ async function worksTour(ctx) {
   // Modular kinds draw one model per module along the box, so a body is
   // drawn when a model of its appearance stands inside its footprint.
   const look = { tooth: "dragon_tooth", fence: "fence", sandbags: "sandbags" };
-  const works = villageMap.props.filter((p) => look[p.kind]);
+  const works = streetMap.props.filter((p) => look[p.kind]);
   const drawn = works.map((p) =>
     apart.some(
       (s) =>
@@ -2361,7 +2360,7 @@ const TRACER_M = 1;
 /** A scene journey is ready only after every destination was admitted and
  *  the authority published through the acknowledged application tick. Its
  *  caller still observes the travel or sighting the picture requires. */
-async function stageVillageMoves(ctx, page, orders, name) {
+async function stageStreetMoves(ctx, page, orders, name) {
   const before = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
   await lab(
     page,
@@ -2397,7 +2396,7 @@ async function stageVillageMoves(ctx, page, orders, name) {
  *  driving and standing, its cupola HMG while driving, the jeep's HMG and a
  *  rifleman's rifle. The cannon, jeep and rifle share a road approach; a fresh southern
  *  approach supplies the moving tank HMG. One tank holds throughout; a jeep
- *  and rifle squad approach the village on separately admitted moves. At each
+ *  and rifle squad approach the street on separately admitted moves. At each
  *  kind's first shot the default camera frames the shooter, and the flash's
  *  core and the drawn muzzle socket (posed from the model instance, apart
  *  from the flashes' own muzzles) must project within `MUZZLE_PX`, with the
@@ -2409,7 +2408,7 @@ async function muzzleTour(ctx) {
     const driver = o.own.find((u) => u.kind === "test_tank");
     const jeep = o.own.find((u) => u.kind === "test_jeep");
     const rifle = o.own.find((u) => u.kind === "test_rifle");
-    await stageVillageMoves(
+    await stageStreetMoves(
       ctx,
       page,
       [
@@ -2590,14 +2589,14 @@ async function muzzleTour(ctx) {
     }
   }
   ctx.check(
-    "every kind of shot fired in the staged village fights: tank cannon driving and standing, tank HMG driving, jeep HMG, rifle",
+    "every kind of shot fired in the staged street fights: tank cannon driving and standing, tank HMG driving, jeep HMG, rifle",
     wanted.size === 0,
     JSON.stringify({ missing: [...wanted], found: Object.keys(found) }),
   );
   await page.close();
 }
 
-/** The tours, by name: `VILLAGE_TOURS=effects,smoke` runs only those. */
+/** The tours, by name: `STREET_TOURS=effects,smoke` runs only those. */
 /** Select similar (double-click a unit for its
  *  type, again or with Ctrl for its role), a mixed selection's command bar
  *  (the union of its capabilities, each order to the units that can), and
@@ -2851,7 +2850,7 @@ async function rulerTour(ctx) {
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   // Toward the map's middle, so the far points stay on the map.
-  const [mx, my] = villageMap.size.map((v) => v / 2);
+  const [mx, my] = streetMap.size.map((v) => v / 2);
   const inward = (u) => Math.atan2(my - u.position[1], mx - u.position[0]);
   const far = [
     rifle.position[0] + Math.cos(inward(rifle)) * 750,
@@ -2919,7 +2918,7 @@ async function rulerTour(ctx) {
   // then withdraw beyond that sight. Admission alone proves neither journey.
   o = await obs(page);
   const scoutId = o.own.find((u) => u.kind === "test_recon").id;
-  await stageVillageMoves(
+  await stageStreetMoves(
     ctx,
     page,
     [
@@ -2958,7 +2957,7 @@ async function rulerTour(ctx) {
     }),
   );
   if (!farthest) throw new Error("ruler scouts never identified an enemy");
-  await stageVillageMoves(
+  await stageStreetMoves(
     ctx,
     page,
     [
@@ -3242,7 +3241,7 @@ async function panelTour(ctx) {
     if (!admitted) throw new Error(`${name}: refused staging command`);
     await advance(page, Math.max(0, command.ack.applied_tick - (await obs(page)).tick));
   };
-  // Close to the forest edge on an admitted approach. The village itself
+  // Close to the forest edge on an admitted approach. The street itself
   // needs further orders; it is not a legal destination for this whole group.
   await stage(
     {
@@ -3669,17 +3668,12 @@ const TOURS = {
 async function playTour(ctx) {
   const page = await openBattle(ctx);
   await shot(ctx, page, "start-1280x800");
-  const opened = await chosenVariant(page);
+  const opened = await pauseMenuText(page);
+  ctx.check("the pause menu shows no seed", !/seed|\d{3,}/i.test(opened), opened);
   ctx.check(
-    "the pause menu offers the variant, and shows no seed",
-    opened.variant === "Ordinary ambush" && !/seed|\d{3,}/i.test(opened.text),
-    JSON.stringify(opened),
-  );
-  ctx.check(
-    "the top bar holds the objective and the clock alone",
-    /^HOLD 0\/\d+ s$/.test(await text(page, "encounter")) &&
-      /^\d+:\d\d$/.test(await text(page, "clock")) &&
-      (await page.locator("header.hud-top").innerText()).split("\n").length === 2,
+    "the top bar holds the clock alone",
+    /^\d+:\d\d$/.test(await text(page, "clock")) &&
+      (await page.locator("header.hud-top").innerText()).split("\n").length === 1,
     await page.locator("header.hud-top").innerText(),
   );
   // Esc opens the pause menu over a running battle and pauses it; Esc again
@@ -3858,14 +3852,6 @@ async function playTour(ctx) {
     JSON.stringify(rows),
   );
 
-  // Export: the file names its variant and carries the accepted commands.
-  const file = await lab(page, () => window.__lab.route.exportReplay());
-  ctx.check(
-    "the replay export records its variant and commands",
-    file?.variant === "ordinary" && JSON.parse(file.replay).accepted?.length >= 1,
-    file && file.replay.slice(0, 120),
-  );
-
   // Pause holds the tick; resume continues.
   const held = await lab(page, () => window.__lab.route.tick());
   await page.waitForTimeout(400);
@@ -3881,19 +3867,10 @@ async function playTour(ctx) {
     return !!route && route.acks().length === 0 && route.tick() < 60;
   });
   ctx.check("restart empties the command log and restarts the clock", true);
-
-  // The variant is the player's to change.
-  await chooseVariant(page, "Prepared crossfire");
-  const crossfire = await chosenVariant(page);
-  ctx.check(
-    "the variant choice loads the crossfire battle",
-    crossfire.variant === "Prepared crossfire",
-    JSON.stringify(crossfire),
-  );
 }
 
 export async function run(ctx) {
-  const only = process.env.VILLAGE_TOURS?.split(",");
+  const only = process.env.STREET_TOURS?.split(",");
   if (only) {
     for (const name of only) await TOURS[name](ctx);
     return;
