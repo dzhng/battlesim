@@ -374,7 +374,7 @@ def swedish_splinter():
 @recipe("russian_green", tile=2.0, wear=(0.17, 0.18, 0.12, 0.95))
 def russian_green():
     """Russian protective green (4BO): one yellowish mid green, faded and dusty."""
-    base = np.broadcast_to(np.array((0.075, 0.092, 0.04)), (SIZE, SIZE, 3))
+    base = np.broadcast_to(np.array((0.058, 0.068, 0.043)), (SIZE, SIZE, 3))
     return _sprayed(base * (0.92 + 0.16 * fbm(6, 1501, 3))[..., None], 1503)
 
 
