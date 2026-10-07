@@ -16,7 +16,8 @@ import {
   type ScarTarget,
   type ScarRegion,
 } from "@packages/battle-renderer/src/frame/scarTexture";
-import { labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
+import { labScenario } from "./catalog";
+import { type LabEvent } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
 
 const groundMap = loadMap("ground").definition;

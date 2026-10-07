@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { vec2, type Vec2, type Vec3 } from "math";
-import { WEAPONS } from "@packages/scene-assets/src/shippedUnits";
+import type { SessionCatalog } from "@web/battle/catalog/compose";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { BattleView } from "../BattleView";
 import type { BattleSession } from "../useBattleSession";
 import { useBuiltScenario } from "../useBuiltScenario";
@@ -15,13 +16,15 @@ function near(position: Vec3, at: Vec2) {
 }
 
 export default function Projectiles() {
-  const built = useBuiltScenario({}, buildProjectileReview);
+  const catalog = useSessionCatalog();
+  const built = useBuiltScenario({}, (wasm) => buildProjectileReview(wasm, catalog));
   if (built && typeof built !== "string")
     return <main className="lab-rejected">{built.error}</main>;
   return built ? <Review scenario={built} /> : null;
 }
 
 function Review({ scenario }: { scenario: string }) {
+  const { weapons } = useSessionCatalog();
   return (
     <BattleView
       fixture="projectiles"
@@ -30,14 +33,14 @@ function Review({ scenario }: { scenario: string }) {
       camera={STREET_CAMERA}
       status={(session) => <ReviewControls session={session} />}
       diagnostics={(session) => ({
-        show: showLane,
+        show: (index: number) => showLane(weapons, index),
         lanes: () =>
           REVIEW_LANES.map((lane, index) => {
             const glow = gameEffects.tracers[lane.weapon].glow;
             return {
               ...lane,
-              ...reviewLanePositions(index),
-              ...WEAPONS[lane.weapon],
+              ...reviewLanePositions(weapons, index),
+              ...weapons[lane.weapon],
               tick_hz: session.rules.tick_hz,
               tracerRGB: glow.color.map((c) => c * glow.intensity),
             };
@@ -47,10 +50,10 @@ function Review({ scenario }: { scenario: string }) {
   );
 }
 
-function showLane(index: number) {
+function showLane(weapons: SessionCatalog["weapons"], index: number) {
   if (index < 0) window.__lab?.setCamera?.(STREET_CAMERA);
   else {
-    const { from, to } = reviewLanePositions(index);
+    const { from, to } = reviewLanePositions(weapons, index);
     window.__lab?.setCamera?.({
       ...STREET_CAMERA,
       target: [(from[0] + to[0]) / 2, from[1], 0],
@@ -65,7 +68,8 @@ function ReviewControls({ session }: { session: BattleSession }) {
   const { observation } = session.sim;
   const ordered = useRef(new Set<number>());
   const [view, setView] = useState(-1);
-  const weapon = view >= 0 ? WEAPONS[REVIEW_LANES[view].weapon] : null;
+  const { weapons } = useSessionCatalog();
+  const weapon = view >= 0 ? weapons[REVIEW_LANES[view].weapon] : null;
   useEffect(() => {
     ordered.current.clear();
   }, [session.sim.client]);
@@ -74,7 +78,7 @@ function ReviewControls({ session }: { session: BattleSession }) {
     if (!observation) return;
     for (let i = 0; i < REVIEW_LANES.length; i++) {
       if (ordered.current.has(i)) continue;
-      const { from, to } = reviewLanePositions(i);
+      const { from, to } = reviewLanePositions(weapons, i);
       const own = observation.own.find((u) => near(u.position, from));
       const target = observation.identified.find((u) => near(u.position, to));
       if (!own || !target) continue;
@@ -85,10 +89,10 @@ function ReviewControls({ session }: { session: BattleSession }) {
           if (ack?.error) ordered.current.delete(i);
         });
     }
-  }, [observation, session.control]);
+  }, [observation, session.control, weapons]);
   const show = (index: number) => {
     setView(index);
-    showLane(index);
+    showLane(weapons, index);
   };
   return (
     <div data-testid="projectiles-panel">
@@ -113,7 +117,7 @@ function ReviewControls({ session }: { session: BattleSession }) {
             aria-pressed={view === index}
             onClick={() => show(index)}
           >
-            {lane.name} · {reviewLanePositions(index).to[0] - 100} m
+            {lane.name} · {reviewLanePositions(weapons, index).to[0] - 100} m
           </button>
         ))}
       </div>

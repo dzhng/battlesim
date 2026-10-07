@@ -16,7 +16,7 @@ import {
   type PanelRules,
 } from "../src/battle/present/panelRows";
 import type { MountView, OwnUnitView, SuppressionTier } from "../src/battle/sim/observation";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 
 // Fixed names and numbers, so the tests don't move when the fixture is
 // tuned; the unit types (their mounts) are the shipped catalog's.
@@ -51,7 +51,7 @@ const unit = (u: Partial<OwnUnitView>): OwnUnitView =>
     ...u,
   }) as OwnUnitView;
 const words = (u: OwnUnitView, own: OwnUnitView[] = [u]) =>
-  ownStateRows(u, own, RULES).map((r) => [r.word, r.progress]);
+  ownStateRows(UNITS, u, own, RULES).map((r) => [r.word, r.progress]);
 
 test("any unit that deploys shows the row from its published deployment, never its kind", () => {
   // A type the catalog doesn't know: the row reads the deployment alone.
@@ -99,14 +99,14 @@ test("a truck shows its stock, and supplying while set up with a unit in reach b
   const setting = { ...truck, deployment: { progress: 0.5, target: "deployed" } };
   expect(words(setting, [setting, served]).map(([w]) => w)).toEqual(["SUPPLY 400", "DEPLOYING"]);
   // An empty truck's stock is a warning of its own.
-  expect(ownStateRows({ ...truck, stock: 0 }, [], RULES).map((r) => r.state)).toContain(
+  expect(ownStateRows(UNITS, { ...truck, stock: 0 }, [], RULES).map((r) => r.state)).toContain(
     "stock_empty",
   );
 });
 
 test("suppression is the published tier's word alone: SUPPRESSED, and PINNED in its own hotter tone", () => {
   const rows = (s: SuppressionTier) =>
-    ownStateRows(unit({ suppression: s }), [], RULES).map((r) => [
+    ownStateRows(UNITS, unit({ suppression: s }), [], RULES).map((r) => [
       r.word,
       r.progress,
       r.fill,
@@ -133,7 +133,7 @@ test("an amount lights its share of five pips: any at all one, none none", () =>
 test("a truck's stock and a weapon's loaded kind fill against their full amounts; unlimited has none", () => {
   const truck = unit({ kind: "supply", stock: 150 });
   const full = UNITS.type("supply").capabilities.supply!.stock;
-  expect(ownStateRows(truck, [], RULES).find((r) => r.state === "stock")?.fill).toBeCloseTo(
+  expect(ownStateRows(UNITS, truck, [], RULES).find((r) => r.state === "stock")?.fill).toBeCloseTo(
     150 / full,
     9,
   );
@@ -144,17 +144,18 @@ test("a truck's stock and a weapon's loaded kind fill against their full amounts
       mount({ mount: 1, ammo: [null] }),
     ],
   });
-  const [cannon, hmg] = ownPanel(tank, [], RULES).weapons;
+  const [cannon, hmg] = ownPanel(UNITS, tank, [], RULES).weapons;
   // The kind being loaded: HE, 5 of 10.
   expect(cannon.fill).toBe(0.5);
   expect(hmg.fill).toBeNull();
   const empty = ownPanel(
+    UNITS,
     unit({ kind: "rifle", mounts: [mount({}), mount({ mount: 1, ammo: [0], loaded: null })] }),
     [],
     RULES,
   ).weapons[1];
   expect(empty.fill).toBe(0);
-  expect(enemyPanel("tank", RULES).weapons.every((w) => w.fill === null)).toBe(true);
+  expect(enemyPanel(UNITS, "tank", RULES).weapons.every((w) => w.fill === null)).toBe(true);
 });
 
 test("a building's phases and waiting for the way ahead are rows", () => {
@@ -166,30 +167,30 @@ test("a building's phases and waiting for the way ahead are rows", () => {
   expect(words(unit({ state: "waiting" }))).toEqual([["WAITING", null]]);
   // No known route is its own warning, apart from waiting on traffic.
   expect(
-    ownStateRows(unit({ state: "route_blocked" }), [], RULES).map((r) => [r.word, r.tone]),
+    ownStateRows(UNITS, unit({ state: "route_blocked" }), [], RULES).map((r) => [r.word, r.tone]),
   ).toEqual([["ROUTE BLOCKED", "warn"]]);
 });
 
 test("strength counts a squad's losses as well as its wounds, and an enemy's is unknown", () => {
   // A full squad at full health, then half of it left at half.
   const hp = UNITS.slots("rifle").map((kind) => UNITS.soldier(kind).hp);
-  expect(unitStrength(unit({ memberHp: hp }))).toBe(1);
+  expect(unitStrength(UNITS, unit({ memberHp: hp }))).toBe(1);
   const half = unit({ memberHp: hp.slice(0, hp.length / 2).map((h) => h / 2) });
-  expect(unitStrength(half)).toBe(0.25);
+  expect(unitStrength(UNITS, half)).toBe(0.25);
   // A squad a battle started tougher than its type reads full, never past it.
-  expect(unitStrength(unit({ memberHp: hp.map((h) => 3 * h) }))).toBe(1);
+  expect(unitStrength(UNITS, unit({ memberHp: hp.map((h) => 3 * h) }))).toBe(1);
   const full = UNITS.hull("tank")!.hp;
   const tank = unit({ kind: "tank", hp: 0.4 * full, mounts: [] });
   // The panel carries it for its name line's pips.
-  expect(ownPanel(tank, [], RULES).strength).toBeCloseTo(0.4, 9);
-  expect(enemyPanel("tank", RULES).strength).toBeNull();
+  expect(ownPanel(UNITS, tank, [], RULES).strength).toBeCloseTo(0.4, 9);
+  expect(enemyPanel(UNITS, "tank", RULES).strength).toBeNull();
 });
 
 test("an identified enemy's panel names its type and weapon types, never a count", () => {
-  const tank = enemyPanel("tank", RULES);
+  const tank = enemyPanel(UNITS, "tank", RULES);
   expect(tank.name).toBe("TANK");
   expect(tank.weapons.map(weaponLabel)).toEqual(["CANNON AP · HE", "HMG"]);
-  const squad = enemyPanel("rifle", RULES);
+  const squad = enemyPanel(UNITS, "rifle", RULES);
   expect(squad.weapons.map(weaponLabel)).toEqual(["RIFLE", "GRENADE"]);
   // Nothing numeric: no ammunition, health or strength.
   for (const p of [tank, squad])
@@ -198,7 +199,7 @@ test("an identified enemy's panel names its type and weapon types, never a count
 
 test("a last sighting keeps its identified name and weapons and counts up since", () => {
   const c = { source: "last_seen", kind: "tank", heard: [], evidenceTick: 300 };
-  const p = contactPanel(c, 300 + 12 * 30 + 7, RULES);
+  const p = contactPanel(UNITS, c, 300 + 12 * 30 + 7, RULES);
   expect(p.name).toBe("TANK");
   expect(p.weapons.map(weaponLabel)).toEqual(["CANNON AP · HE", "HMG"]);
   expect(p.states.at(-1)?.word).toBe("LAST SEEN 12 s AGO");
@@ -208,12 +209,12 @@ test("a last sighting keeps its identified name and weapons and counts up since"
 
 test("a firing report is UNKNOWN, names what was heard by weapon type, and counts up since", () => {
   const c = { source: "firing", kind: null, heard: ["tank_ap", "tank_he"], evidenceTick: 90 };
-  const p = contactPanel(c, 90 + 5 * 30, RULES);
+  const p = contactPanel(UNITS, c, 90 + 5 * 30, RULES);
   expect(p.name).toBe("UNKNOWN");
   expect(p.weapons.map(weaponLabel)).toEqual(["CANNON AP · HE"]);
   expect(p.states.at(-1)?.word).toBe("HEARD 5 s AGO");
-  expect(heardWeapons(["hmg", "rifle"], RULES).map(weaponLabel)).toEqual(["HMG", "RIFLE"]);
-  expect(contactPanel({ ...c, heard: [] }, 90, RULES).weapons).toEqual([]);
+  expect(heardWeapons(UNITS, ["hmg", "rifle"], RULES).map(weaponLabel)).toEqual(["HMG", "RIFLE"]);
+  expect(contactPanel(UNITS, { ...c, heard: [] }, 90, RULES).weapons).toEqual([]);
 });
 
 const mount = (m: Partial<MountView>): MountView => ({
@@ -230,12 +231,12 @@ const mount = (m: Partial<MountView>): MountView => ({
 });
 
 test("every panel is titled with its unit's name, own or enemy, and UNKNOWN for an unknown type", () => {
-  const truck = ownPanel(unit({ kind: "supply", mounts: [], stock: 600 }), [], RULES);
+  const truck = ownPanel(UNITS, unit({ kind: "supply", mounts: [], stock: 600 }), [], RULES);
   expect(truck.name).toBe("SUPPLY TRUCK");
-  expect(ownPanel(unit({ kind: "rifle", mounts: [] }), [], RULES).name).toBe("RIFLE SQUAD");
-  expect(enemyPanel("jeep", RULES).name).toBe("JEEP");
+  expect(ownPanel(UNITS, unit({ kind: "rifle", mounts: [] }), [], RULES).name).toBe("RIFLE SQUAD");
+  expect(enemyPanel(UNITS, "jeep", RULES).name).toBe("JEEP");
   const report = { source: "firing", kind: null, heard: [], evidenceTick: 0 };
-  expect(contactPanel(report, 0, RULES).name).toBe("UNKNOWN");
+  expect(contactPanel(UNITS, report, 0, RULES).name).toBe("UNKNOWN");
 });
 
 test("an own weapon row is the enemy's row with its rounds left: unlimited, a count, each kind of a cannon", () => {
@@ -243,7 +244,10 @@ test("an own weapon row is the enemy's row with its rounds left: unlimited, a co
     kind: "rifle",
     mounts: [mount({ mount: 0, ammo: [null] }), mount({ mount: 1, ammo: [0], loaded: null })],
   });
-  expect(ownPanel(squad, [], RULES).weapons.map(weaponLabel)).toEqual(["RIFLE ∞", "GRENADE 0"]);
+  expect(ownPanel(UNITS, squad, [], RULES).weapons.map(weaponLabel)).toEqual([
+    "RIFLE ∞",
+    "GRENADE 0",
+  ]);
   const tank = unit({
     kind: "tank",
     mounts: [
@@ -251,13 +255,13 @@ test("an own weapon row is the enemy's row with its rounds left: unlimited, a co
       mount({ mount: 1, ammo: [null] }),
     ],
   });
-  const rows = ownPanel(tank, [], RULES).weapons;
+  const rows = ownPanel(UNITS, tank, [], RULES).weapons;
   expect(rows.map(weaponLabel)).toEqual(["CANNON AP 20 · HE 15", "HMG ∞"]);
   // The kind being loaded is the one marked, and its icon the row's.
   expect(rows[0].kinds.map((k) => k.loaded)).toEqual([false, true]);
   expect(rows[0].icon).toBe("weapons/he_shell.svg");
   // The enemy's rows are the same words without a count or a loaded kind.
-  const enemy = enemyPanel("tank", RULES).weapons;
+  const enemy = enemyPanel(UNITS, "tank", RULES).weapons;
   expect(enemy.map(weaponLabel)).toEqual(["CANNON AP · HE", "HMG"]);
   expect(enemy.flatMap((w) => w.kinds).some((k) => k.loaded || k.count !== undefined)).toBe(false);
   expect(enemy.every((w) => w.live === null)).toBe(true);
@@ -270,6 +274,7 @@ test("physical launchers retain their names, ammo and timers across own, enemy a
     .mockReturnValue({ ...at, mounts: [...at.mounts, at.mounts[1]] });
   try {
     const own = ownPanel(
+      UNITS,
       unit({
         kind: "at",
         mounts: [
@@ -301,11 +306,12 @@ test("physical launchers retain their names, ammo and timers across own, enemy a
       ["2", 0.75],
     ]);
     const seen = contactPanel(
+      UNITS,
       { source: "last_seen", kind: "at", heard: [], evidenceTick: 0 },
       30,
       RULES,
     ).weapons;
-    for (const rows of [enemyPanel("at", RULES).weapons, seen]) {
+    for (const rows of [enemyPanel(UNITS, "at", RULES).weapons, seen]) {
       expect(rows.map(weaponLabel)).toEqual(["RIFLE", "ATGM 1", "ATGM 2"]);
       expect(
         rows.every(
@@ -313,7 +319,7 @@ test("physical launchers retain their names, ammo and timers across own, enemy a
         ),
       ).toBe(true);
     }
-    expect(heardWeapons(["atgm", "atgm"], RULES).map(weaponLabel)).toEqual(["ATGM"]);
+    expect(heardWeapons(UNITS, ["atgm", "atgm"], RULES).map(weaponLabel)).toEqual(["ATGM"]);
   } finally {
     catalog.mockRestore();
   }
@@ -339,6 +345,7 @@ test("vehicle guns use meaningful mounting names, keep separate timers and retai
 test("an own weapon row carries its running timers and why it can't fire", () => {
   const t = { kind: "identified" as const, id: 1 };
   const [w] = ownPanel(
+    UNITS,
     unit({
       kind: "rifle",
       mounts: [mount({ target: t, aim: 0.4, loaded: null, reload: 0.25, reason: "reloading" })],
@@ -348,6 +355,7 @@ test("an own weapon row carries its running timers and why it can't fire", () =>
   ).weapons;
   expect(w.live).toMatchObject({ aim: 0.4, reload: 0.25, reason: "reloading" });
   const [out] = ownPanel(
+    UNITS,
     unit({ kind: "rifle", mounts: [mount({ reason: "out_of_range" })] }),
     [],
     RULES,
@@ -371,6 +379,7 @@ test("concealment bonuses earn a HIDDEN row without replacing the building state
 
 test("fresh firing keeps a previously identified name and labels its evidence honestly", () => {
   const p = contactPanel(
+    UNITS,
     { source: "firing", kind: "tank", heard: ["tank_he"], evidenceTick: 90 },
     240,
     RULES,
@@ -396,11 +405,11 @@ test("Trophy shares weapon rows with charges and cooldown while enemy readiness 
   });
   try {
     const own = unit({ kind: "tank", mounts: [], protection: { charges: 2, cooldown: 0.5 } });
-    const ready = ownPanel(own, [own], RULES).weapons.find((row) => row.name === "TROPHY");
+    const ready = ownPanel(UNITS, own, [own], RULES).weapons.find((row) => row.name === "TROPHY");
     expect(ready?.kinds).toEqual([{ label: null, count: 2, loaded: true }]);
     expect(ready?.fill).toBe(0.5);
     expect(ready?.live?.cooldown).toBe(0.5);
-    const enemy = enemyPanel("tank", RULES).weapons.find((row) => row.name === "TROPHY");
+    const enemy = enemyPanel(UNITS, "tank", RULES).weapons.find((row) => row.name === "TROPHY");
     expect(enemy?.kinds).toEqual([{ label: null, loaded: false }]);
     expect(enemy?.live).toBeNull();
     expect(enemy?.fill).toBeNull();

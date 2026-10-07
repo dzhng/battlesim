@@ -39,10 +39,16 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const orders = orderLayer(observation, control.selected, session.revealed, surfaceZ);
+    const orders = orderLayer(
+      session.units,
+      observation,
+      control.selected,
+      session.revealed,
+      surfaceZ,
+    );
     const tracers = tracerLayer(observation);
     return combineWorldMeshes([orders, tracers]);
-  }, [world, observation, surfaceZ, control.selected, session.revealed]);
+  }, [world, observation, surfaceZ, control.selected, session.revealed, session.units]);
   const overlayFeed = useFeed(overlay);
 
   // Lab-only probes for the scene harness; rebuilt each render.

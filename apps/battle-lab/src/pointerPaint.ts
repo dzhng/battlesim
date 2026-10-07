@@ -12,7 +12,7 @@ import {
   type DestinationMarker,
 } from "@packages/battle-renderer/src/orderOverlay";
 import { buildRangeRuler, type RulerLine } from "@packages/battle-renderer/src/rangeRulerOverlay";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import {
   closestUnit,
   rangeRuler,
@@ -77,6 +77,7 @@ export function rulerAt(
   selected: readonly OwnUnitView[],
   drawnAt: ReadonlyMap<number, Readonly<Vec3>>,
   rules: RulerRules,
+  units: UnitCatalog,
   z: SurfaceHeight,
 ): ShownRuler | null {
   if (!ray || selected.length === 0) return null;
@@ -92,8 +93,8 @@ export function rulerAt(
   if (!unit || !own) return null;
   // Space is held: the orders draw every unit's circle, shown in full.
   return {
-    ruler: rangeRuler(unit, cursor, rules, UNITS),
-    circle: unitCircle(orderView(own, true, 1), gameOrderStyle),
+    ruler: rangeRuler(unit, cursor, rules, units),
+    circle: unitCircle(orderView(units, own, true, 1), gameOrderStyle),
   };
 }
 
@@ -117,6 +118,8 @@ export function rulerLine(ruler: RangeRuler, circle: UnitCircle | null): RulerLi
  *  cursor must redraw even while the simulation is paused. */
 export class PointerPaint {
   readonly feed = new Feed<Mesh>(EMPTY_MESH);
+  /** The session's unit catalog: a hull's size sizes its marks. */
+  private readonly units: UnitCatalog;
   private key = "";
   /** The ruler last shown, for the lab's probes. */
   shown: RangeRuler | null = null;
@@ -130,6 +133,10 @@ export class PointerPaint {
   private destinations: MoveDestination[] = [];
   building: BuildingPlacement | null = null;
   state: "idle" | "pending" | "ready" | "blocked" = "idle";
+
+  constructor(units: UnitCatalog) {
+    this.units = units;
+  }
 
   /** At most one placement query is in flight; intermediate pointer updates
    *  are coalesced, and a reply cannot restore a cancelled gesture. */
@@ -199,12 +206,12 @@ export class PointerPaint {
     opacity: ReadonlyMap<number, number> | null = null,
   ) {
     if (destinations.length === 0) return [];
-    const units = new Map(own.map((u) => [u.id, u]));
+    const byId = new Map(own.map((u) => [u.id, u]));
     return destinations.flatMap((mark) => {
-      const u = units.get(mark.unit);
+      const u = byId.get(mark.unit);
       const alpha = opacity?.get(mark.unit) ?? (opacity ? 0 : 1);
       if (!mark.placed || !u || alpha <= 0) return [];
-      const view = orderView(u, true, 1);
+      const view = orderView(this.units, u, true, 1);
       return [
         {
           unit: u.id,

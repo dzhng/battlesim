@@ -3,29 +3,23 @@
 // the derivation (`panelRows.ts`) can produce appears in its specimens, so a
 // new state row, unit type, weapon row or reason can't slip past review.
 import game from "@fixtures/game.json";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
-import { expect, test, vi } from "vitest";
+import { UnitCatalog } from "@packages/scene-assets/src/units";
+import { TEST_CATALOG } from "./catalog";
+import { expect, test } from "vitest";
 import { panelSpecimens } from "@apps/battle-lab/src/panelSpecimens";
 import { REASON_MARK } from "../src/battle/present/infoPanel";
 import { STATE_ROWS, type PanelRules } from "../src/battle/present/panelRows";
 
 // The specimens are built from the stand-in types alone: a panel that reads
 // right for them reads right for any type of the roster.
-vi.mock("@packages/scene-assets/src/shippedUnits", async (original) => {
-  const shipped = await original<typeof import("@packages/scene-assets/src/shippedUnits")>();
-  const { UnitCatalog } = await import("@packages/scene-assets/src/units");
-  const standIns = ["rifle", "recon", "at", "tank", "supply", "jeep"];
-  return {
-    ...shipped,
-    UNITS: new UnitCatalog({
-      ...shipped.UNITS.view,
-      units: shipped.UNITS.view.units.filter((type) => standIns.includes(type.id)),
-    }),
-  };
+const standIns = ["rifle", "recon", "at", "tank", "supply", "jeep"];
+const UNITS = new UnitCatalog({
+  ...TEST_CATALOG.units.view,
+  units: TEST_CATALOG.units.view.units.filter((type) => standIns.includes(type.id)),
 });
 
 const RULES = game as unknown as PanelRules;
-const specimens = panelSpecimens(RULES);
+const specimens = panelSpecimens({ ...TEST_CATALOG, units: UNITS }, RULES);
 const rows = specimens.flatMap((s) => s.panel.weapons);
 const kinds = rows.flatMap((w) => w.kinds);
 

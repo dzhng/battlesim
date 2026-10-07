@@ -48,7 +48,7 @@ test("development Restart recreates the authority with the page's captured scena
 test("ticks published within one frame render once, the latest, while each is still decoded", async () => {
   const { readFileSync } = await import("node:fs");
   const { initSync, Battle } = await import("@wasm/game_wasm.js");
-  const { labScenario } = await import("@apps/battle-lab/src/scenarios");
+  const { labScenario } = await import("./catalog");
   const { loadMap } = await import("@web/maps/node");
   type Reply = import("@web/battle/sim/protocol").SimReply;
   const memory = initSync({

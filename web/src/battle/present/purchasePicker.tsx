@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Faction, UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { useSessionCatalog } from "../catalog/context";
 import { unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import type { SkirmishView } from "../sim/observation";
@@ -22,6 +22,7 @@ export function PurchasePicker({
   onReady,
   onCancelPending,
 }: PickerProps) {
+  const { units } = useSessionCatalog();
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<UnitCategory>("rec");
   const [family, setFamily] = useState<string | null>(null);
@@ -91,8 +92,8 @@ export function PurchasePicker({
             aria-label={category.toUpperCase()}
           >
             {[...families].map(([id, variants]) => {
-              const named = variants.find((c) => UNITS.has(c.id));
-              const silhouette = named && unitIcons(UNITS.type(named.id)).silhouette;
+              const named = variants.find((c) => units.has(c.id));
+              const silhouette = named && unitIcons(units.type(named.id)).silhouette;
               const firstAvailable = variants.find(
                 (v) =>
                   finished === false &&

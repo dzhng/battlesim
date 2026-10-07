@@ -17,7 +17,7 @@ import {
   type PoseFrame,
 } from "@packages/battle-renderer/src/models/poseDriver";
 import { gamePose as FEEL } from "@apps/battle-lab/src/poseFeed";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 import { UnitCatalog, vehicleClass } from "@packages/scene-assets/src/units";
 import { shippedMounts } from "./shippedMounts";
 

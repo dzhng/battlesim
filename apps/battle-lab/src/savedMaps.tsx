@@ -8,13 +8,9 @@ import type { ReactNode } from "react";
 import { loadEncounter, loadMap } from "@web/maps/browser";
 import type { Encounter, MapDefinition } from "@web/maps/resolve";
 import type { Wasm } from "@web/battle/sim/module";
-import {
-  GAME_RULES,
-  type LabEncounter,
-  type LabEvent,
-  type LabScript,
-  type LabUnit,
-} from "./scenarios";
+import type { GameRules } from "@web/battle/catalog/compose";
+import { useSessionCatalog } from "@web/battle/catalog/context";
+import type { LabEncounter, LabEvent, LabScript, LabUnit } from "./scenarios";
 import { buildFailed, useBuiltScenario } from "./useBuiltScenario";
 
 /** A battle a route plays: its map (what is drawn and picked), the saved
@@ -30,7 +26,7 @@ export async function villageScenario(
   wasm: Pick<Wasm, "village_scenario">,
   fixture: string,
   variant: string,
-  rules = GAME_RULES,
+  rules: GameRules,
 ): Promise<string> {
   const { definition } = await loadMap(fixtureMap(fixture));
   return wasm.village_scenario(JSON.stringify({ ...rules, map: definition }), variant);
@@ -43,11 +39,12 @@ export async function enduranceScenario(
   fixture: string,
   seed: number,
   late: boolean,
+  rules: GameRules,
 ): Promise<string> {
   const { definition } = await loadMap(fixtureMap(fixture));
   return wasm.endurance_scenario(
     JSON.stringify(definition),
-    JSON.stringify(GAME_RULES),
+    JSON.stringify(rules),
     BigInt(seed),
     late,
   );
@@ -73,7 +70,7 @@ export function savedScenario(map: unknown, saved: Encounter, rules: unknown): s
 export async function savedBattle(
   id: string,
   name: string,
-  rules = GAME_RULES,
+  rules: GameRules,
 ): Promise<SavedBattle> {
   const [{ definition }, saved] = await Promise.all([loadMap(id), loadEncounter(id, name)]);
   const encounter: LabEncounter = {
@@ -119,19 +116,21 @@ export function SavedMap({
 }
 
 /** The fixture's saved map with its encounters `encounters`, each as a
- *  battle. `rules` are the shared ones unless a lab pins an experiment
- *  control; they are fixed for the route. */
+ *  battle. `rules` are the session catalog's unless a lab pins an
+ *  experiment control; they are fixed for the route. */
 export function SavedEncounters<Name extends string>({
   fixture,
   encounters,
-  rules = GAME_RULES,
+  rules: pinned,
   children,
 }: {
   fixture: string;
   encounters: readonly Name[];
-  rules?: typeof GAME_RULES;
+  rules?: GameRules;
   children: (battles: Record<Name, SavedBattle>) => ReactNode;
 }) {
+  const catalog = useSessionCatalog();
+  const rules = pinned ?? catalog.rules;
   const map = fixtureMap(fixture);
   const battles = useBuiltScenario({ map, encounters }, async (_, o) => {
     const loaded = await Promise.all(o.encounters.map((name) => savedBattle(o.map, name, rules)));
@@ -152,7 +151,7 @@ export function SavedEncounter({
 }: {
   fixture: string;
   encounter: string;
-  rules?: typeof GAME_RULES;
+  rules?: GameRules;
   children: (battle: SavedBattle) => ReactNode;
 }) {
   return (

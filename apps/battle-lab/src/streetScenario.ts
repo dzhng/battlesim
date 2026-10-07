@@ -4,7 +4,8 @@
 // village, so red's ids and garrisons are unchanged.
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { villageScenario } from "./savedMaps";
-import { GAME_RULES } from "./scenarios";
+import type { GameRules } from "@web/battle/catalog/compose";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { useBuiltScenario } from "./useBuiltScenario";
 import { gameCamera } from "./gameCamera";
 import type { Wasm } from "@web/battle/sim/module";
@@ -36,10 +37,11 @@ type UnitSetup = { side: string; kind: string; position: [number, number]; yaw: 
 
 /** The street's scenario JSON, as `useBuiltScenario` reports it. */
 export function useStreetScenario(fixture: string) {
-  return useBuiltScenario(fixture, (wasm, fixture) => buildStreetScenario(wasm, fixture));
+  const { rules } = useSessionCatalog();
+  return useBuiltScenario(fixture, (wasm, fixture) => buildStreetScenario(wasm, fixture, rules));
 }
 
-export async function buildStreetScenario(wasm: Wasm, fixture: string, rules = GAME_RULES) {
+export async function buildStreetScenario(wasm: Wasm, fixture: string, rules: GameRules) {
   const s = JSON.parse(await villageScenario(wasm, fixture, "ordinary", rules)) as {
     units: UnitSetup[];
   };

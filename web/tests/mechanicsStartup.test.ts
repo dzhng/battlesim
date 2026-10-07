@@ -31,19 +31,17 @@ test("page startup captures one accepted rules and presentation generation", asy
   await startWithMechanics(
     true,
     async () => {
-      const { UNITS, WEAPONS } = await import("@packages/scene-assets/src/shippedUnits");
-      const { GAME_RULES } = await import("@apps/battle-lab/src/scenarios");
-      expect(GAME_RULES.weapons.grenade.speed_mps).toBe(123);
-      expect(WEAPONS.grenade.speed_mps).toBe(123);
-      expect(UNITS.type("tank").name).toBe("Snapshot tank");
-      expect(JSON.parse(JSON.stringify(GAME_RULES)).catalog[0].units.tank.name).toBe(
-        "Snapshot tank",
-      );
+      const { catalogSet } = await import("@web/battle/catalog/sets");
+      const { units, weapons, rules } = await catalogSet("game");
+      expect(rules.weapons.grenade.speed_mps).toBe(123);
+      expect(weapons.grenade.speed_mps).toBe(123);
+      expect(units.type("tank").name).toBe("Snapshot tank");
+      expect(JSON.parse(JSON.stringify(rules)).catalog[0].units.tank.name).toBe("Snapshot tank");
       // Saving elsewhere changes the next response, never this page's values.
       game.weapons.grenade.speed_mps = 456;
       catalog.weapons.grenade.speed_mps = 456;
-      expect(GAME_RULES.weapons.grenade.speed_mps).toBe(123);
-      expect(WEAPONS.grenade.speed_mps).toBe(123);
+      expect(rules.weapons.grenade.speed_mps).toBe(123);
+      expect(weapons.grenade.speed_mps).toBe(123);
     },
     fetcher,
   );
@@ -54,10 +52,10 @@ test("page startup captures one accepted rules and presentation generation", asy
   await nextPage.startWithMechanics(
     true,
     async () => {
-      const { WEAPONS } = await import("@packages/scene-assets/src/shippedUnits");
-      const { GAME_RULES } = await import("@apps/battle-lab/src/scenarios");
-      expect(GAME_RULES.weapons.grenade.speed_mps).toBe(456);
-      expect(WEAPONS.grenade.speed_mps).toBe(456);
+      const { catalogSet } = await import("@web/battle/catalog/sets");
+      const { weapons, rules } = await catalogSet("game");
+      expect(rules.weapons.grenade.speed_mps).toBe(456);
+      expect(weapons.grenade.speed_mps).toBe(456);
     },
     fetcher,
   );
@@ -72,9 +70,10 @@ test("production startup uses shipped rules without the development backend", as
     false,
     async () => {
       const { default: game } = await import("@fixtures/game.json");
-      const { WEAPONS } = await import("@packages/scene-assets/src/shippedUnits");
+      const { catalogSet } = await import("@web/battle/catalog/sets");
+      const { weapons } = await catalogSet("game");
       expect(game.weapons.grenade.speed_mps).toBe(baselineGame.weapons.grenade.speed_mps);
-      expect(WEAPONS.grenade.speed_mps).toBe(baselineCatalog.weapons.grenade.speed_mps);
+      expect(weapons.grenade.speed_mps).toBe(baselineCatalog.weapons.grenade.speed_mps);
     },
     fetcher,
   );

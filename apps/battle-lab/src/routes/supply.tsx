@@ -4,7 +4,8 @@ import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
-import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
+import type { SessionCatalog } from "@web/battle/catalog/compose";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { AckLog } from "../AckLog";
 import { orderLayer, supplyLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
@@ -38,6 +39,8 @@ export default function Supply() {
 
 function SupplyLab({ battle }: { battle: SavedBattle }) {
   const session = useBattleSession({ ...battle, seed: SEED });
+  const catalog = useSessionCatalog();
+  const capabilities = (u: OwnUnitView) => catalog.units.type(u.kind).capabilities;
   const { world, meshes, rules, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
@@ -52,10 +55,25 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
       undefined,
       control.showOrders,
     );
-    const orders = orderLayer(observation, control.selected, session.revealed, surfaceZ);
+    const orders = orderLayer(
+      session.units,
+      observation,
+      control.selected,
+      session.revealed,
+      surfaceZ,
+    );
     const tracers = tracerLayer(observation);
     return combineWorldMeshes([supply, orders, tracers]);
-  }, [world, observation, surfaceZ, control.selected, control.showOrders, session.revealed, rules]);
+  }, [
+    world,
+    observation,
+    surfaceZ,
+    control.selected,
+    control.showOrders,
+    session.revealed,
+    rules,
+    session.units,
+  ]);
   const overlayFeed = useFeed(overlay);
 
   const command = useCallback(
@@ -147,7 +165,7 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
             .filter((u) => u.stock === null)
             .map((u) => (
               <li key={u.id}>
-                {describe(u)} — {serviceText(u)}
+                {describe(catalog, u)} — {serviceText(u)}
               </li>
             ))}
         </ul>
@@ -193,13 +211,11 @@ function setup(u: OwnUnitView, setupS: number): string {
   return d.target === "deployed" ? `setting up ${s}/${setupS} s` : `packing up (${s} s set up)`;
 }
 
-const capabilities = (u: OwnUnitView) => UNITS.type(u.kind).capabilities;
-
-function describe(u: OwnUnitView): string {
+function describe({ units, weapons }: SessionCatalog, u: OwnUnitView): string {
   const who = `${u.kind} #${u.id}`;
-  const hull = UNITS.hull(u.kind);
+  const hull = units.hull(u.kind);
   if (hull) return `${who}: ${u.hp.toFixed(0)}/${hull.hp} hp`;
-  const mounts = UNITS.type(u.kind).mounts;
+  const mounts = units.type(u.kind).mounts;
   // Finite rounds only, named by weapon row (unlimited rifles are left out).
   const ammo = u.mounts
     .flatMap((m) =>
@@ -207,10 +223,10 @@ function describe(u: OwnUnitView): string {
         n === null
           ? []
           : [
-              `${n}/${WEAPONS[mounts[m.mount].weapons[k]].ammo} ${mounts[m.mount].weapons[k].replace("_", " ")}`,
+              `${n}/${weapons[mounts[m.mount].weapons[k]].ammo} ${mounts[m.mount].weapons[k].replace("_", " ")}`,
             ],
       ),
     )
     .join(", ");
-  return `${who}: ${u.members.length}/${UNITS.slots(u.kind).length} soldiers${ammo ? `, ${ammo}` : ""}`;
+  return `${who}: ${u.members.length}/${units.slots(u.kind).length} soldiers${ammo ? `, ${ammo}` : ""}`;
 }

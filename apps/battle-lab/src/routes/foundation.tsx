@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import game from "@fixtures/game.json";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { MeshBuilder, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { SceneInstance, WorldLayers } from "@packages/battle-renderer/src/scene";
@@ -121,14 +122,15 @@ const FOUNDATION: Placed[] = [
   onPatch({ kind: "supply", x: 10, y: -12, yaw: Math.PI * 0.8 }),
 ];
 /** A placed unit type's hull; none for the soldier and the crate. */
-const hullOf = (kind: string) => (UNITS.has(kind) ? UNITS.hull(kind) : null);
+const hullOf = (units: UnitCatalog, kind: string) => (units.has(kind) ? units.hull(kind) : null);
 
 /** Soldiers and vehicles are picked by the simulation's boxes; the crate by its own. */
-const FOUNDATION_TARGETS: PickBox[] = FOUNDATION.map((p) =>
-  p.kind === "box"
-    ? proxyPickBox({ ...p, kind: "box", color: [1, 1, 1] })
-    : { x: p.x, y: p.y, z: p.z, yaw: p.yaw, ...bodyBox(game.physics, hullOf(p.kind)) },
-);
+const targetsOf = (units: UnitCatalog): PickBox[] =>
+  FOUNDATION.map((p) =>
+    p.kind === "box"
+      ? proxyPickBox({ ...p, kind: "box", color: [1, 1, 1] })
+      : { x: p.x, y: p.y, z: p.z, yaw: p.yaw, ...bodyBox(game.physics, hullOf(units, p.kind)) },
+  );
 
 const FOUNDATION_CAMERA: Camera3DParams = {
   target: [-2, 1, 0.5],
@@ -140,6 +142,8 @@ const FOUNDATION_CAMERA: Camera3DParams = {
 };
 
 export default function Foundation() {
+  const { units } = useSessionCatalog();
+  const targets = useMemo(() => targetsOf(units), [units]);
   const world = useMemo(groundPatch, []);
   const worldFeed = useFeed(world);
   const appearances = useGameAppearances();
@@ -162,9 +166,9 @@ export default function Foundation() {
   );
   const models = useMemo<ModelInstance[]>(() => {
     if (!appearances) return [];
-    const catalog = new AppearanceCatalog(appearances, UNITS);
+    const catalog = new AppearanceCatalog(appearances, units);
     return FOUNDATION.flatMap((p, i) => {
-      const resolved = hullOf(p.kind) ? catalog.resolve(p.kind, "blue") : null;
+      const resolved = hullOf(units, p.kind) ? catalog.resolve(p.kind, "blue") : null;
       return resolved
         ? [
             {
@@ -180,7 +184,7 @@ export default function Foundation() {
           ]
         : [];
     });
-  }, [appearances, selected]);
+  }, [appearances, selected, units]);
   const diagnostics = useMemo(() => ({ placed: FOUNDATION }), []);
   if (!appearances) return null;
   return (
@@ -191,7 +195,7 @@ export default function Foundation() {
         instances={instances}
         appearances={appearances}
         models={models}
-        picks={FOUNDATION_TARGETS}
+        picks={targets}
         initialCamera={FOUNDATION_CAMERA}
         onPick={(pick) => pick.button === "left" && setSelected(pick.instance)}
         diagnostics={diagnostics}

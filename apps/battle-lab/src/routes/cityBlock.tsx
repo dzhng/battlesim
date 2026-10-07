@@ -9,7 +9,7 @@
 // it is tall); a probe replaces the map's buildings with every other one,
 // as a new map would; `?tier=0..3` draws every building at one detail tier.
 import { useCallback, useMemo, useRef, useState } from "react";
-import { GAME_RULES } from "../scenarios";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
@@ -47,8 +47,6 @@ import { askedTier, tierBoundaries, useBuildingTier } from "../buildingTier";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useMapBuildings, useStaticWorld, type StaticWorld } from "../useStaticWorld";
 
-// The same explicit rule record a battle carries, including forest geometry.
-const GENERATOR = { presets, templates, rules: JSON.stringify(GAME_RULES) };
 /** The map the lab opens on: a town with houses and apartment blocks. */
 const DEFAULT: MapChoice = { type: "mixed", size: "medium", seed: "1" };
 /** A house this near an apartment building makes the two a block, metres. */
@@ -176,13 +174,16 @@ function everyOther(placed: PlacedBuildings): PlacedBuildings {
 
 export default function CityBlock() {
   const [choice] = useState(() => askedMap(window.location.search));
+  const { rules } = useSessionCatalog();
   const generated = useBuiltScenario(choice, async (wasm, asked): Promise<GeneratedTown> => {
-    const request = generationRequest(wasm, asked, GENERATOR, config.limits);
+    // The same explicit rule record a battle carries, including forest geometry.
+    const documents = { presets, templates, rules: JSON.stringify(rules) };
+    const request = generationRequest(wasm, asked, documents, config.limits);
     const map = await resolveMap(
       { kind: "generated", request },
       {
         generator: wasm,
-        documents: GENERATOR,
+        documents,
         loadMap: () => {
           throw new Error("the city block lab draws generated maps only");
         },
@@ -203,7 +204,8 @@ export default function CityBlock() {
 }
 
 function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedTown }) {
-  const world = useStaticWorld(generated.map, GAME_RULES);
+  const { rules, units } = useSessionCatalog();
+  const world = useStaticWorld(generated.map, rules);
   // The map's buildings: every one a template reference.
   const drawn = useMapBuildings(world);
   // The catalog, and the kits this town's buildings draw from.
@@ -259,12 +261,12 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
     const { props, index } = drawn;
     const known =
       fallen && !halved && block.apartment !== null
-        ? seenDestroyed(index, block.apartment, library)
+        ? seenDestroyed(units, index, block.apartment, library)
         : [];
     return {
       buildings: {
         placed: halved ? half : index.placed,
-        fallen: knownFallen(index, known),
+        fallen: knownFallen(units, index, known),
       },
       obstacles: buildingObstacles(
         props,
@@ -273,7 +275,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
         surfaceZ,
       ),
     };
-  }, [world, drawn, block, half, fallen, halved, surfaceZ, appearances]);
+  }, [world, drawn, block, half, fallen, halved, surfaceZ, appearances, units]);
   const buildingsFeed = useFeed(standing?.buildings ?? null);
   const obstaclesFeed = useFeed(standing?.obstacles ?? null);
   const { style, drawAt } = useBuildingTier(askedTier(window.location.search));

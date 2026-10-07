@@ -12,7 +12,6 @@ import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import type { MapDefinition } from "@web/maps/resolve";
 import { SavedMap } from "../savedMaps";
 import game from "@fixtures/game.json";
-import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
 import type { WeaponRow } from "@packages/scene-assets/src/units";
 import { LabViewport, type ViewportFrame } from "../LabViewport";
 import {
@@ -23,7 +22,8 @@ import {
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import { createEffectFrame, gameEffects } from "../effectFeed";
 import { useStandingBuildings, useStaticWorld, type WorldView } from "../useStaticWorld";
-import { GAME_RULES } from "../scenarios";
+import type { GameRules, SessionCatalog } from "@web/battle/catalog/compose";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { gameBiome } from "../gameBiome";
 import { useMapAppearances } from "../gameAppearances";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
@@ -41,29 +41,7 @@ import { gameCamera } from "../gameCamera";
 
 const SEED = 20260925;
 const TICK_HZ = game.tick_hz;
-// Resolved weapon rows, with speed divided by sqrt(gravity_scale) and gravity
-// normalized to one: the same stationary arc at a diagnostic flight speed.
-// Scripted bodies isolate swept collision from gameplay's flight timing.
-const W: Record<string, WeaponRow> = Object.fromEntries(
-  Object.entries(WEAPONS).map(([name, row]) => {
-    const g = typeof row.gravity_scale === "number" ? row.gravity_scale : 1;
-    return [name, { ...row, speed_mps: row.speed_mps / Math.sqrt(g), gravity_scale: 1 }];
-  }),
-);
 const P = game.physics;
-// No game weapon has indirect-fire capability yet; this lab-only row
-// exercises the opt-in high arc with a slow round whose apex fits the frame.
-const LAB_MORTAR = {
-  speed_mps: 45,
-  range_m: 500,
-  scatter_mrad: 10,
-  suppression_radius_m: 10,
-  trajectory: "indirect",
-};
-// The oblique-AP preset: game AP pierces every face of the tank, so this
-// lab-only row is a spent AP round (penetration below the front plate) whose
-// failed penetrations may glance off.
-const LAB_SPENT_AP = { ...W.tank_ap, penetration: 120 };
 
 type Xyz = [number, number, number];
 
@@ -92,160 +70,196 @@ interface Shot {
   aim: { body: number; height: number } | { ground: [number, number] };
 }
 
-const SOLDIER = [P.soldier_radius_m, P.soldier_height_m];
-const PRESET_TANK: [number, number] = [238, 262];
-const TANK = UNITS.hull("tank")!.half_extents_m;
-const NORTH = Math.PI / 2;
+/** The bench's scripted bodies and emitters, from its session's catalog:
+ *  the test set's tank and the game's weapon rows. */
+interface Bench {
+  movers: Mover[];
+  shots: Shot[];
+  rules: GameRules;
+  tankArmor: unknown;
+}
 
-const MOVERS: Mover[] = [
-  // Fast bullet vs a 0.3 m thick board sliding across the line.
-  {
-    id: 1,
-    unit: 1,
-    shape: "box",
-    dims: [0.15, 0.6, 0.9],
-    start: [150, 134],
-    yaw: 0,
-    velocity: [0, 4],
-  },
-  // Dodge: both walk north; the second reverses ten ticks after launch.
-  {
-    id: 2,
-    unit: 2,
-    shape: "capsule",
-    dims: SOLDIER,
-    start: [150, 96],
-    yaw: NORTH,
-    velocity: [0, 3],
-  },
-  {
-    id: 3,
-    unit: 3,
-    shape: "capsule",
-    dims: SOLDIER,
-    start: [150, 112],
-    yaw: NORTH,
-    velocity: [0, 3],
-    reverseAtTick: 10,
-  },
-  // Crossing bodies: a soldier crosses the grenade's line early, a tank late.
-  {
-    id: 4,
-    unit: 4,
-    shape: "capsule",
-    dims: SOLDIER,
-    start: [360, 140],
-    yaw: NORTH,
-    velocity: [0, 3],
-  },
-  {
-    id: 5,
-    unit: 5,
-    shape: "box",
-    dims: TANK,
-    start: [380, 140],
-    yaw: NORTH,
-    velocity: [0, 8],
-    armored: true,
-  },
-  // The oblique-AP preset's target: a standing tank, its front turned 25° off
-  // the line of fire from the west.
-  {
-    id: 6,
-    unit: 6,
-    shape: "box",
-    dims: TANK,
-    start: PRESET_TANK,
-    yaw: Math.PI + (25 * Math.PI) / 180,
-    velocity: [0, 0],
-    armored: true,
-  },
-];
+function benchOf(catalog: SessionCatalog): Bench {
+  const units = catalog.units;
+  // Resolved weapon rows, with speed divided by sqrt(gravity_scale) and gravity
+  // normalized to one: the same stationary arc at a diagnostic flight speed.
+  // Scripted bodies isolate swept collision from gameplay's flight timing.
+  const W: Record<string, WeaponRow> = Object.fromEntries(
+    Object.entries(catalog.weapons).map(([name, row]) => {
+      const g = typeof row.gravity_scale === "number" ? row.gravity_scale : 1;
+      return [name, { ...row, speed_mps: row.speed_mps / Math.sqrt(g), gravity_scale: 1 }];
+    }),
+  );
+  // No game weapon has indirect-fire capability yet; this lab-only row
+  // exercises the opt-in high arc with a slow round whose apex fits the frame.
+  const LAB_MORTAR = {
+    speed_mps: 45,
+    range_m: 500,
+    scatter_mrad: 10,
+    suppression_radius_m: 10,
+    trajectory: "indirect",
+  };
+  // The oblique-AP preset: game AP pierces every face of the tank, so this
+  // lab-only row is a spent AP round (penetration below the front plate) whose
+  // failed penetrations may glance off.
+  const LAB_SPENT_AP = { ...W.tank_ap, penetration: 120 };
 
-const SHOTS: Shot[] = [
-  ...[60, 120, 180].map(
-    (range, i): Shot => ({
-      label: `grenade arc ${range} m`,
-      weapon: W.grenade,
-      kind: "grenade",
-      from: [20, 14 + 6 * i],
-      muzzle: P.infantry_muzzle_m,
-      aim: { ground: [20 + range, 14 + 6 * i] },
-    }),
-  ),
-  {
-    label: "hmg at sliding board",
-    weapon: W.hmg,
-    kind: "hmg",
-    from: [20, 140],
-    muzzle: 2,
-    aim: { body: 1, height: 0.9 },
-  },
-  {
-    label: "grenade at walker",
-    weapon: W.grenade,
-    kind: "grenade",
-    from: [20, 96],
-    muzzle: P.infantry_muzzle_m,
-    aim: { body: 2, height: 0.85 },
-  },
-  {
-    label: "grenade at dodger",
-    weapon: W.grenade,
-    kind: "grenade",
-    from: [20, 112],
-    muzzle: P.infantry_muzzle_m,
-    aim: { body: 3, height: 0.85 },
-  },
-  {
-    label: "direct grenade over crest",
-    weapon: W.grenade,
-    kind: "grenade",
-    from: [100, 150],
-    muzzle: P.infantry_muzzle_m,
-    aim: { ground: [100, 292] },
-  },
-  {
-    label: "indirect lab mortar over crest",
-    weapon: LAB_MORTAR,
-    kind: "grenade",
-    from: [92, 118],
-    muzzle: P.infantry_muzzle_m,
-    aim: { ground: [92, 292] },
-  },
-  {
-    label: "grenade across crossing bodies",
-    weapon: W.grenade,
-    kind: "grenade",
-    from: [250, 140],
-    muzzle: P.infantry_muzzle_m,
-    aim: { ground: [380, 140] },
-  },
-  // Oblique AP: spent AP onto the tank's front 25° off its normal, and HMG
-  // onto its side about 37° off its normal from the south-east, each round
-  // rolling its face's chance.
-  ...[0, 1, 2, 3].map(
-    (k): Shot => ({
-      label: `oblique AP ${k + 1}`,
-      weapon: LAB_SPENT_AP,
-      kind: "tank_ap",
-      from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
-      muzzle: 2,
-      // Spread up the plate so each round's mark stands apart.
-      aim: { body: 6, height: 0.5 + 0.45 * k },
-    }),
-  ),
-  ...[0, 1, 2, 3].map(
-    (k): Shot => ({
-      label: `hmg at tank side ${k + 1}`,
+  const SOLDIER = [P.soldier_radius_m, P.soldier_height_m];
+  const PRESET_TANK: [number, number] = [238, 262];
+  const TANK = units.hull("tank")!.half_extents_m;
+  const NORTH = Math.PI / 2;
+
+  const movers: Mover[] = [
+    // Fast bullet vs a 0.3 m thick board sliding across the line.
+    {
+      id: 1,
+      unit: 1,
+      shape: "box",
+      dims: [0.15, 0.6, 0.9],
+      start: [150, 134],
+      yaw: 0,
+      velocity: [0, 4],
+    },
+    // Dodge: both walk north; the second reverses ten ticks after launch.
+    {
+      id: 2,
+      unit: 2,
+      shape: "capsule",
+      dims: SOLDIER,
+      start: [150, 96],
+      yaw: NORTH,
+      velocity: [0, 3],
+    },
+    {
+      id: 3,
+      unit: 3,
+      shape: "capsule",
+      dims: SOLDIER,
+      start: [150, 112],
+      yaw: NORTH,
+      velocity: [0, 3],
+      reverseAtTick: 10,
+    },
+    // Crossing bodies: a soldier crosses the grenade's line early, a tank late.
+    {
+      id: 4,
+      unit: 4,
+      shape: "capsule",
+      dims: SOLDIER,
+      start: [360, 140],
+      yaw: NORTH,
+      velocity: [0, 3],
+    },
+    {
+      id: 5,
+      unit: 5,
+      shape: "box",
+      dims: TANK,
+      start: [380, 140],
+      yaw: NORTH,
+      velocity: [0, 8],
+      armored: true,
+    },
+    // The oblique-AP preset's target: a standing tank, its front turned 25° off
+    // the line of fire from the west.
+    {
+      id: 6,
+      unit: 6,
+      shape: "box",
+      dims: TANK,
+      start: PRESET_TANK,
+      yaw: Math.PI + (25 * Math.PI) / 180,
+      velocity: [0, 0],
+      armored: true,
+    },
+  ];
+
+  const shots: Shot[] = [
+    ...[60, 120, 180].map(
+      (range, i): Shot => ({
+        label: `grenade arc ${range} m`,
+        weapon: W.grenade,
+        kind: "grenade",
+        from: [20, 14 + 6 * i],
+        muzzle: P.infantry_muzzle_m,
+        aim: { ground: [20 + range, 14 + 6 * i] },
+      }),
+    ),
+    {
+      label: "hmg at sliding board",
       weapon: W.hmg,
       kind: "hmg",
-      from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
+      from: [20, 140],
       muzzle: 2,
-      aim: { body: 6, height: 0.5 + 0.45 * k },
-    }),
-  ),
-];
+      aim: { body: 1, height: 0.9 },
+    },
+    {
+      label: "grenade at walker",
+      weapon: W.grenade,
+      kind: "grenade",
+      from: [20, 96],
+      muzzle: P.infantry_muzzle_m,
+      aim: { body: 2, height: 0.85 },
+    },
+    {
+      label: "grenade at dodger",
+      weapon: W.grenade,
+      kind: "grenade",
+      from: [20, 112],
+      muzzle: P.infantry_muzzle_m,
+      aim: { body: 3, height: 0.85 },
+    },
+    {
+      label: "direct grenade over crest",
+      weapon: W.grenade,
+      kind: "grenade",
+      from: [100, 150],
+      muzzle: P.infantry_muzzle_m,
+      aim: { ground: [100, 292] },
+    },
+    {
+      label: "indirect lab mortar over crest",
+      weapon: LAB_MORTAR,
+      kind: "grenade",
+      from: [92, 118],
+      muzzle: P.infantry_muzzle_m,
+      aim: { ground: [92, 292] },
+    },
+    {
+      label: "grenade across crossing bodies",
+      weapon: W.grenade,
+      kind: "grenade",
+      from: [250, 140],
+      muzzle: P.infantry_muzzle_m,
+      aim: { ground: [380, 140] },
+    },
+    // Oblique AP: spent AP onto the tank's front 25° off its normal, and HMG
+    // onto its side about 37° off its normal from the south-east, each round
+    // rolling its face's chance.
+    ...[0, 1, 2, 3].map(
+      (k): Shot => ({
+        label: `oblique AP ${k + 1}`,
+        weapon: LAB_SPENT_AP,
+        kind: "tank_ap",
+        from: [PRESET_TANK[0] - 26, PRESET_TANK[1] - 2 + k],
+        muzzle: 2,
+        // Spread up the plate so each round's mark stands apart.
+        aim: { body: 6, height: 0.5 + 0.45 * k },
+      }),
+    ),
+    ...[0, 1, 2, 3].map(
+      (k): Shot => ({
+        label: `hmg at tank side ${k + 1}`,
+        weapon: W.hmg,
+        kind: "hmg",
+        from: [PRESET_TANK[0] + 16, PRESET_TANK[1] - 9 + 0.6 * k],
+        muzzle: 2,
+        aim: { body: 6, height: 0.5 + 0.45 * k },
+      }),
+    ),
+  ];
+  return { movers, shots, rules: catalog.rules, tankArmor: units.hull("tank")!.armor };
+}
 
 const BALLISTICS_CAMERA: Camera3DParams = {
   target: [160, 150, 10],
@@ -297,6 +311,7 @@ interface Run {
   events: LabEvent[];
   paths: Map<number, Xyz[]>;
   movers: Mover[];
+  bench: Bench;
 }
 
 function poseAt(view: WorldView, m: Mover, tick: number) {
@@ -329,11 +344,17 @@ function packBodies(view: WorldView, movers: Mover[], k: number): Float64Array {
   return Float64Array.from(out);
 }
 
-function startRun(wasm: Wasm, map: MapDefinition, view: WorldView, spread: boolean): Run {
+function startRun(
+  wasm: Wasm,
+  bench: Bench,
+  map: MapDefinition,
+  view: WorldView,
+  spread: boolean,
+): Run {
   const lab = new wasm.FlightLab(
     JSON.stringify(map),
-    JSON.stringify(GAME_RULES),
-    JSON.stringify(UNITS.hull("tank")!.armor),
+    JSON.stringify(bench.rules),
+    JSON.stringify(bench.tankArmor),
     SEED,
   );
   const ground = (xy: [number, number], lift: number): Xyz => [
@@ -342,13 +363,13 @@ function startRun(wasm: Wasm, map: MapDefinition, view: WorldView, spread: boole
     (view.height_at(xy[0], xy[1]) ?? 0) + lift,
   ];
   const paths = new Map<number, Xyz[]>();
-  const shots = SHOTS.map((shot): ShotResult => {
+  const shots = bench.shots.map((shot): ShotResult => {
     const origin = ground(shot.from, shot.muzzle);
     let target: Xyz;
     let velocity: Xyz = [0, 0, 0];
     if ("body" in shot.aim) {
       const { body, height } = shot.aim;
-      const m = MOVERS.find((b) => b.id === body)!;
+      const m = bench.movers.find((b) => b.id === body)!;
       const p = poseAt(view, m, 0);
       target = [p.base[0], p.base[1], p.base[2] + height];
       // Observed now: the launch never learns of a later reversal.
@@ -369,7 +390,7 @@ function startRun(wasm: Wasm, map: MapDefinition, view: WorldView, spread: boole
     if (result.fired) paths.set(result.projectile, [origin]);
     return { label: shot.label, ...result };
   });
-  const crossingShot = SHOTS.find((s) => s.label === "grenade across crossing bodies")!;
+  const crossingShot = bench.shots.find((s) => s.label === "grenade across crossing bodies")!;
   const crossing = shots.find((s) => s.label === crossingShot.label)!;
   if (!crossing.fired || crossing.time_of_flight === undefined)
     throw new Error("the crossing demonstration needs a solved launch");
@@ -380,20 +401,20 @@ function startRun(wasm: Wasm, map: MapDefinition, view: WorldView, spread: boole
   // The tank reaches the aim on arrival. The soldier crosses the descending
   // segment one body diameter early, outside collision but inside near-miss reach.
   // Nominal flight time keeps the body script fixed when spread is toggled.
-  const movers = MOVERS.map((m) => {
+  const movers = bench.movers.map((m) => {
     if (m.id !== 4 && m.id !== 5) return m;
     const x = m.id === 5 ? aimX : m.start[0];
     const time = arrival * ((x - crossingShot.from[0]) / reach);
     const passed = m.id === 4 ? 2 * P.soldier_radius_m : 0;
     return { ...m, start: [x, aimY - m.velocity[1] * time + passed] as [number, number] };
   });
-  return { lab, tick: 0, shots, events: [], paths, movers };
+  return { lab, tick: 0, shots, events: [], paths, movers, bench };
 }
 
 /** What a struck label hit, as the battle publishes it. */
-function hitKind(struck: string | undefined): string {
+function hitKind(movers: readonly Mover[], struck: string | undefined): string {
   if (!struck?.startsWith("body")) return struck?.startsWith("prop") ? "prop" : "ground";
-  const m = MOVERS.find((b) => b.id === Number(struck.slice(5)));
+  const m = movers.find((b) => b.id === Number(struck.slice(5)));
   return m?.armored ? "hull" : m?.shape === "capsule" ? "soldier" : "prop";
 }
 
@@ -401,13 +422,13 @@ function hitKind(struck: string | undefined): string {
 const EMITTER_BASE = 1000;
 
 /** The publication of tick 0: every emitter seen, nothing fired yet. */
-function launchPublication(): EffectPublication {
+function launchPublication({ shots }: Bench): EffectPublication {
   return {
     tick: 0,
     segments: [],
     blasts: [],
     smokes: [],
-    shooters: SHOTS.map((s, i) => ({
+    shooters: shots.map((s, i) => ({
       key: i,
       half: null,
       yaw: 0,
@@ -448,14 +469,14 @@ function stepRun(run: Run, view: WorldView): EffectPublication {
   for (const [id, path] of run.paths) {
     const start = from.get(id)!;
     if (path.length - start < 2) continue;
-    const shot = SHOTS[run.shots.findIndex((s) => s.projectile === id)];
+    const shot = run.bench.shots[run.shots.findIndex((s) => s.projectile === id)];
     const end = ended.get(id);
-    const hit = end?.kind === "impact" ? hitKind(end.struck) : "none";
+    const hit = end?.kind === "impact" ? hitKind(run.movers, end.struck) : "none";
     segments.push({
       path: path.slice(start),
       ricochets: glances.get(id) ?? [],
       kind: shot.kind,
-      shooter: EMITTER_BASE + SHOTS.indexOf(shot),
+      shooter: EMITTER_BASE + run.bench.shots.indexOf(shot),
       hit,
       normal: hit === "none" ? null : (end?.normal ?? [0, 0, 1]),
     });
@@ -469,7 +490,7 @@ function stepRun(run: Run, view: WorldView): EffectPublication {
     blasts,
     smokes: [],
     // Each emitter fired its one round at tick 0: counted from tick 1 on.
-    shooters: SHOTS.map((s, i) => ({
+    shooters: run.bench.shots.map((s, i) => ({
       key: i,
       half: null,
       yaw: 0,
@@ -518,7 +539,7 @@ function overlayOf(run: Run, view: WorldView, half: number) {
       marks.push({ at, kind: "blocked" });
     }
   }
-  for (const s of SHOTS) {
+  for (const s of run.bench.shots) {
     if ("ground" in s.aim) {
       const [x, y] = s.aim.ground;
       marks.push({ at: [x, y, view.height_at(x, y) ?? 0], kind: "aim" });
@@ -552,7 +573,9 @@ export default function Ballistics() {
 }
 
 function BallisticsLab({ map }: { map: MapDefinition }) {
-  const world = useStaticWorld(map, GAME_RULES);
+  const catalog = useSessionCatalog();
+  const bench = useMemo(() => benchOf(catalog), [catalog]);
+  const world = useStaticWorld(map, catalog.rules);
   const buildings = useStandingBuildings(world);
   const buildingsFeed = useFeed(buildings);
   const appearances = useMapAppearances(
@@ -588,11 +611,11 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
     (withSpread: boolean) => {
       if (!wasm || !world) return;
       runRef.current?.lab.free();
-      runRef.current = startRun(wasm, map, world.view, withSpread);
-      effects.note(launchPublication());
+      runRef.current = startRun(wasm, bench, map, world.view, withSpread);
+      effects.note(launchPublication(bench));
       setShown({ run: runRef.current });
     },
-    [wasm, map, world, effects],
+    [wasm, bench, map, world, effects],
   );
   useEffect(() => restart(false), [restart]);
   useEffect(() => () => runRef.current?.lab.free(), []);
@@ -629,7 +652,7 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
   const instances = useMemo<SceneInstance[]>(
     () =>
       world
-        ? SHOTS.map((s) => ({
+        ? bench.shots.map((s) => ({
             kind: "infantry" as const,
             x: s.from[0],
             y: s.from[1],
@@ -638,7 +661,7 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
             color: [0.9, 0.9, 0.85] as const,
           }))
         : [],
-    [world],
+    [world, bench],
   );
 
   const diagnostics = useMemo(

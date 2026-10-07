@@ -4,7 +4,7 @@
 // as their farms until a side has seen one fall and as its ruin after.
 import { readFileSync } from "node:fs";
 import { afterAll, expect, test } from "vitest";
-import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES, UNITS } from "./catalog";
 import { gameBuildingStyle } from "@apps/battle-lab/src/gameModels";
 import { knownFallen } from "@apps/battle-lab/src/destroyedBuildings";
 import { WorldView, world_layout } from "@wasm/game_wasm.js";
@@ -53,7 +53,7 @@ const art: BuildingArt = {
 
 // The village as the simulation builds it (loading the map starts the WebAssembly).
 const map = loadMap("village").definition;
-const rules = JSON.stringify(GAME_RULES);
+const rules = JSON.stringify(TEST_RULES);
 const view = new WorldView(JSON.stringify(map), rules);
 afterAll(() => view.free());
 const exports = readWorldExports(view);
@@ -119,7 +119,7 @@ test("a village house stands as its farm until the side has seen it fall, then l
     replaces: null,
     authoredProp: null,
   };
-  expect(knownFallen(index, [wreck])).toEqual([]);
+  expect(knownFallen(UNITS, index, [wreck])).toEqual([]);
   expect(drawn(scene)).toEqual(standing);
 
   // It has seen the first house come down: that house's ruin, and the others
@@ -132,13 +132,13 @@ test("a village house stands as its farm until the side has seen it fall, then l
     replaces: house.id,
     authoredProp: house.id,
   };
-  setFallenBuildings(scene, knownFallen(index, [ruin]));
+  setFallenBuildings(scene, knownFallen(UNITS, index, [ruin]));
   const fallen = modulesIn(houses.map((state, b) => (b === 0 ? "ruin" : state)));
   expect(fallen).not.toEqual(standing);
   expect(drawn(scene)).toEqual(fallen);
 
   // And forgetting is not a thing a side does, but a new battle is: none known, all stand.
-  setFallenBuildings(scene, knownFallen(index, []));
+  setFallenBuildings(scene, knownFallen(UNITS, index, []));
   expect(drawn(scene)).toEqual(standing);
 });
 

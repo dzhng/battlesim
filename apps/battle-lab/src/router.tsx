@@ -5,6 +5,7 @@ import { LAB_FIXTURES } from "./fixtures";
 import { listMaps } from "@web/maps/catalogue";
 import { LabLoading } from "./LabLoading";
 import { MainMenu } from "./MainMenu";
+import { SessionCatalogScope } from "@web/battle/catalog/context";
 
 const MechanicsEditor = lazy(() => import("../../mechanics-editor/src/MechanicsEditor"));
 const MapWorkbench = lazy(() => import("../../map-workbench/src/MapWorkbench"));
@@ -125,13 +126,18 @@ function LabPage({ path: requestedPath }: { path: string }) {
       </main>
     );
   }
-  return fixture.id === "generated" || fixture.id === "sound" ? (
-    <Suspense fallback={null}>
+  // Player battles and replays run the game's catalog; labs run the test
+  // set, which adds the test units their fixtures field.
+  const page = (
+    <SessionCatalogScope set={fixture.id === "generated" ? "game" : "test"}>
       <Route />
-    </Suspense>
+    </SessionCatalogScope>
+  );
+  return fixture.id === "generated" || fixture.id === "sound" ? (
+    <Suspense fallback={null}>{page}</Suspense>
   ) : (
     <LabLoading key={path} subject={fixture.id.toUpperCase()}>
-      <Route />
+      {page}
     </LabLoading>
   );
 }

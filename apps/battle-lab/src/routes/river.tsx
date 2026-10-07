@@ -93,8 +93,8 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
 
   const orders = useMemo(() => {
     if (!world || !observation) return undefined;
-    return orderLayer(observation, control.selected, session.revealed, surfaceZ);
-  }, [world, observation, control.selected, session.revealed, surfaceZ]);
+    return orderLayer(session.units, observation, control.selected, session.revealed, surfaceZ);
+  }, [world, observation, control.selected, session.revealed, surfaceZ, session.units]);
   const overlayFeed = useFeed(orders);
 
   const runDemo = useCallback(

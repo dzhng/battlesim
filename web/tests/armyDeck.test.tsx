@@ -1,4 +1,6 @@
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent, render as renderView } from "@testing-library/react";
+import { WithTestCatalog } from "./catalog";
+import { TEST_CATALOG } from "./catalog";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 import { useState } from "react";
 import game from "@fixtures/game.json";
@@ -6,6 +8,9 @@ import { specimenUnit } from "@apps/battle-lab/src/panelSpecimens";
 import type { PanelRules } from "../src/battle/present/panelRows";
 import { CommandBar } from "../src/battle/present/readouts";
 import { ArmyDeck } from "../src/battle/present/armyDeck";
+
+/** Views render under the test set, as a lab page provides it. */
+const render = (ui: Parameters<typeof renderView>[0]) => renderView(ui, { wrapper: WithTestCatalog });
 
 beforeAll(() => {
   HTMLElement.prototype.scrollIntoView = vi.fn();
@@ -16,7 +21,10 @@ afterAll(() => {
 afterEach(cleanup);
 
 test("the army row includes unselected own units and stays visible without a selection", () => {
-  const own = [specimenUnit("tank", { id: 11 }), specimenUnit("rifle", { id: 22 })];
+  const own = [
+    specimenUnit(TEST_CATALOG, "tank", { id: 11 }),
+    specimenUnit(TEST_CATALOG, "rifle", { id: 22 }),
+  ];
   const view = render(
     <ArmyDeck
       own={own}
@@ -39,7 +47,10 @@ test("card selection replaces the current selection and Shift toggles individual
     const [selected, setSelected] = useState([11]);
     return (
       <ArmyDeck
-        own={[specimenUnit("tank", { id: 11 }), specimenUnit("rifle", { id: 22 })]}
+        own={[
+          specimenUnit(TEST_CATALOG, "tank", { id: 11 }),
+          specimenUnit(TEST_CATALOG, "rifle", { id: 22 }),
+        ]}
         selected={selected}
         onSelect={setSelected}
         rules={game as unknown as PanelRules}
@@ -62,8 +73,12 @@ test("card selection replaces the current selection and Shift toggles individual
 });
 
 test("hover and focus expose live unit facts, health and casualty removal without claiming Escape", () => {
-  const tank = specimenUnit("tank", { id: 11 });
-  const rifle = specimenUnit("rifle", { id: 22, suppression: "suppressed", service: "serving" });
+  const tank = specimenUnit(TEST_CATALOG, "tank", { id: 11 });
+  const rifle = specimenUnit(TEST_CATALOG, "rifle", {
+    id: 22,
+    suppression: "suppressed",
+    service: "serving",
+  });
   const props = {
     selected: [],
     onSelect: vi.fn(),
@@ -109,7 +124,10 @@ test("hover and focus expose live unit facts, health and casualty removal withou
 });
 
 test("the army remains in replay and empty selection while commands follow only selected units", () => {
-  const own = [specimenUnit("tank", { id: 11 }), specimenUnit("supply", { id: 22 })];
+  const own = [
+    specimenUnit(TEST_CATALOG, "tank", { id: 11 }),
+    specimenUnit(TEST_CATALOG, "supply", { id: 22 }),
+  ];
   function Harness({ replay = false }: { replay?: boolean }) {
     const [selected, setSelected] = useState<number[]>([]);
     const control: Parameters<typeof CommandBar>[0]["control"] = {
@@ -151,7 +169,10 @@ test("the army remains in replay and empty selection while commands follow only 
 test("keyboard focus takes ownership from an old hover and mouse leave restores focused facts", () => {
   const view = render(
     <ArmyDeck
-      own={[specimenUnit("tank", { id: 11 }), specimenUnit("rifle", { id: 22 })]}
+      own={[
+        specimenUnit(TEST_CATALOG, "tank", { id: 11 }),
+        specimenUnit(TEST_CATALOG, "rifle", { id: 22 }),
+      ]}
       selected={[]}
       onSelect={vi.fn()}
       rules={game as unknown as PanelRules}
@@ -187,7 +208,7 @@ test("reinforcements remain available before the first unit enters", () => {
 
 test("the command row exposes refund for a selected skirmish unit", () => {
   const refund = vi.fn();
-  const unit = specimenUnit("tank", { id: 11 });
+  const unit = specimenUnit(TEST_CATALOG, "tank", { id: 11 });
   const control = {
     selectedUnits: [unit],
     mode: "move" as const,

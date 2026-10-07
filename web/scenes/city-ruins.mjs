@@ -31,6 +31,7 @@ import {
   route,
   until,
 } from "./_lab.mjs";
+import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
 import { eyeOf, gap } from "./_cameraClearance.mjs";
 import { rec709 } from "./_colour.mjs";
 import { crop, decode, pixel } from "./_png.mjs";
@@ -143,7 +144,7 @@ export async function run(ctx) {
 
   // The simulation's rule for a collapsed building's remains, from the
   // catalog's building row, and each set's fit.
-  const catalog = JSON.parse(await readFile(new URL("fixtures/catalog.json", REPO), "utf8"));
+  const catalog = (await nodeCatalogSet("test")).units.view;
   const { fit, setOf } = await setFits();
   const boundaries = await route(page, "boundaries");
   const overview = await route(page, "overview");

@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { fixtureAuthority } from "@packages/scene-assets/src/authority.ts";
 import { SCENERY_KINDS, propsDrawnBy } from "@packages/scene-assets/src/scenery.ts";
-import { WEAPONS } from "@packages/scene-assets/src/shippedUnits.ts";
+import { WEAPONS } from "../catalog";
 import type { Catalog } from "@packages/scene-assets/src/schema.ts";
 import { UnitCatalog, type CatalogView } from "@packages/scene-assets/src/units.ts";
 import { loadMap } from "@web/maps/node";

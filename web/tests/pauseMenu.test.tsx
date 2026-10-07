@@ -8,6 +8,7 @@ import type { ObservationView } from "../src/battle/sim/observation";
 import type { Order } from "../src/battle/sim/protocol";
 
 import type { SimClient } from "../src/battle/sim/client";
+import { WithTestCatalog } from "./catalog";
 
 test("the paused battle offers a return to the game's main menu", () => {
   const view = render(<PauseMenu onClose={() => {}} />);
@@ -82,7 +83,11 @@ test("pause controls own shortcuts while armed Escape cancels before opening pau
       </>
     );
   }
-  const view = render(<Battle />);
+  const view = render(
+    <WithTestCatalog>
+      <Battle />
+    </WithTestCatalog>,
+  );
   fireEvent.click(view.getByRole("button", { name: "Select" }));
   fireEvent.keyDown(window, { code: "KeyG", cancelable: true });
   expect(view.getByTestId("mode").textContent).toBe("attack_ground");

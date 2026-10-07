@@ -4,7 +4,7 @@
 // camera sees the eye path asked for and the eye path drawn; riding, the
 // viewport's own camera flies the trajectory, placed and cleared as the
 // benchmark's tour is.
-import { GAME_RULES } from "../scenarios";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { fixtureMap } from "../fixtures";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Vec3 } from "math";
@@ -106,7 +106,8 @@ export default function CameraLab() {
 }
 
 function Arena({ map }: { map: MapDefinition }) {
-  const world = useStaticWorld(map, GAME_RULES);
+  const { rules, units } = useSessionCatalog();
+  const world = useStaticWorld(map, rules);
   // The lab's buildings are the generator's catalogue's, drawn as a
   // generated town's are.
   const drawn = useMapBuildings(world);
@@ -155,18 +156,18 @@ function Arena({ map }: { map: MapDefinition }) {
     if (!world || !drawn || !library) return null;
     const { props, index } = drawn;
     const known = fallen
-      ? seenDestroyed(index, index.placed.owners.indexOf(COLLAPSING_OWNER), library)
+      ? seenDestroyed(units, index, index.placed.owners.indexOf(COLLAPSING_OWNER), library)
       : [];
     const parts = buildingPartProps(world.exports.buildings);
     return {
       boxes: knownStanding(props, known, parts),
       buildings: {
         placed: index.placed,
-        fallen: knownFallen(index, known),
+        fallen: knownFallen(units, index, known),
       },
       obstacles: buildingObstacles(props, known, parts, surfaceZ),
     };
-  }, [world, drawn, fallen, surfaceZ, appearances]);
+  }, [world, drawn, fallen, surfaceZ, appearances, units]);
   const buildingsFeed = useFeed(standing?.buildings ?? null);
   const obstaclesFeed = useFeed(standing?.obstacles ?? null);
 

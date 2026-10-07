@@ -1,3 +1,4 @@
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
@@ -96,8 +97,9 @@ function LabField({ battle }: { battle: SavedBattle }) {
 }
 
 function VillageGround() {
+  const { rules } = useSessionCatalog();
   const built = useBuiltScenario("ordinary", (wasm, variant) =>
-    villageScenario(wasm, "village", variant),
+    villageScenario(wasm, "village", variant, rules),
   );
   if (!built) return null;
   if (typeof built !== "string")
@@ -206,11 +208,26 @@ function GroundInspector({ scenario, seed, camera, legend, script, extra }: Insp
     if (!world || !observation) return undefined;
     const tracers = tracerLayer(observation);
     const remains = remainsLayer(observation, memory.current, surfaceZ);
-    const orders = orderLayer(observation, control.selected, session.revealed, surfaceZ);
+    const orders = orderLayer(
+      session.units,
+      observation,
+      control.selected,
+      session.revealed,
+      surfaceZ,
+    );
     const parts = [tracers, remains, orders];
     const view = cells ? buildGroundCellOverlay(cells, shown, surfaceZ) : new Float32Array();
     return combineWorldMeshes([{ translucent: view }, ...parts]);
-  }, [world, observation, surfaceZ, control.selected, session.revealed, cells, shown]);
+  }, [
+    world,
+    observation,
+    surfaceZ,
+    control.selected,
+    session.revealed,
+    cells,
+    shown,
+    session.units,
+  ]);
   const overlayFeed = useFeed(overlay);
 
   const toggle = (c: GroundChannel) =>

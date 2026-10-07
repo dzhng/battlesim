@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { TEST_CATALOG, UNITS } from "./catalog";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { InfoPanel } from "../src/battle/present/infoPanel";
@@ -108,20 +109,20 @@ test("one progress ring shows aiming first, then reload, then disappears", () =>
 });
 
 test("own squad names count living soldiers including wounded members, without exposing enemy personnel", () => {
-  const squad = specimenUnit("rifle", { memberHp: [10, 0, 3] });
-  const own = render(<InfoPanel panel={ownPanel(squad, [squad], fixtureRules)} />);
+  const squad = specimenUnit(TEST_CATALOG, "rifle", { memberHp: [10, 0, 3] });
+  const own = render(<InfoPanel panel={ownPanel(UNITS, squad, [squad], fixtureRules)} />);
   expect(own.getByText("2 soldiers")).toBeTruthy();
   own.unmount();
-  const enemy = render(<InfoPanel panel={enemyPanel("rifle", fixtureRules)} />);
+  const enemy = render(<InfoPanel panel={enemyPanel(UNITS, "rifle", fixtureRules)} />);
   expect(enemy.queryByText(/soldiers/)).toBeNull();
   enemy.unmount();
-  const tank = specimenUnit("tank");
-  const vehicle = render(<InfoPanel panel={ownPanel(tank, [tank], fixtureRules)} />);
+  const tank = specimenUnit(TEST_CATALOG, "tank");
+  const vehicle = render(<InfoPanel panel={ownPanel(UNITS, tank, [tank], fixtureRules)} />);
   expect(vehicle.queryByText(/soldiers/)).toBeNull();
 });
 
 test("numbered launchers separate their equipment index from rounds remaining", () => {
-  const panel = panelSpecimens(fixtureRules).find(
+  const panel = panelSpecimens(TEST_CATALOG, fixtureRules).find(
     (s) => s.id === "key cases/two launchers, separate reloads",
   )!.panel;
   const view = render(<InfoPanel panel={panel} />);

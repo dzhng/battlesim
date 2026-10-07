@@ -2,7 +2,7 @@
 // Picking by the simulation's boxes: a vehicle is picked by its hull box and a
 // soldier by his body's, whatever the drawn model's overhang (the tank's gun,
 // its antenna), so a click selects what the rules say is there.
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 import type { Vec3 } from "math";
 import { expect, test } from "vitest";
 import game from "@fixtures/game.json";

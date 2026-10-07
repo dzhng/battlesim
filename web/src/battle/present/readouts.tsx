@@ -5,6 +5,8 @@
  *    contact's in the enemy red, only what the side knows of it;
  *  - developer selection cards: the same facts component at any zoom;
  *  - the command bar: the selection's commands and its fire policy. */
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
+import { useSessionCatalog } from "../catalog/context";
 import {
   useCallback,
   useId,
@@ -21,7 +23,6 @@ import type { useUnitControl } from "../input/useUnitControl";
 import type { CommandMode, PointerPick } from "../input/pointerIntent";
 import { CommandBindings } from "../input/commandBindings";
 import { reach, type ReachCommand } from "../input/commandReach";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { hudIcon, stateIcon, unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { gameHud } from "./hudTheme";
@@ -41,8 +42,8 @@ const _readout_eye = vec3.create(),
 
 /** The name a unit goes by in the panel, the log and on the map: its
  *  type's name, never a callsign. */
-export function unitName(u: Pick<OwnUnitView, "kind">): string {
-  return UNITS.type(u.kind).name;
+export function unitName(units: UnitCatalog, u: Pick<OwnUnitView, "kind">): string {
+  return units.type(u.kind).name;
 }
 
 /** Page-pixel box. */
@@ -153,6 +154,7 @@ export function ReadoutLayer({
   selected: readonly number[];
   handle: Ref<ReadoutLayerHandle>;
 }) {
+  const { units } = useSessionCatalog();
   const layer = useRef<HTMLDivElement>(null);
   const nodes = useRef(new Map<string, HTMLDivElement>());
   const leaders = useRef(new Map<string, SVGPathElement>());
@@ -172,7 +174,7 @@ export function ReadoutLayer({
         id: u.id,
         at: u.position,
         selected: picked,
-        content: <InfoPanel panel={ownPanel(u, own, rules)} />,
+        content: <InfoPanel panel={ownPanel(units, u, own, rules)} />,
       };
     }),
     ...identified.map(
@@ -182,7 +184,7 @@ export function ReadoutLayer({
         id: e.id,
         at: e.position,
         selected: false,
-        content: <InfoPanel panel={enemyPanel(e.kind, rules)} />,
+        content: <InfoPanel panel={enemyPanel(units, e.kind, rules)} />,
       }),
     ),
     ...contacts.map(
@@ -194,7 +196,7 @@ export function ReadoutLayer({
         id: c.id,
         at: [c.center[0], c.center[1], 0],
         selected: false,
-        content: <InfoPanel panel={contactPanel(c, tick, rules)} />,
+        content: <InfoPanel panel={contactPanel(units, c, tick, rules)} />,
       }),
     ),
   ];
@@ -563,7 +565,7 @@ export function ReadoutLayer({
  *  panel. A group: each unit's complete panel. No selection, no card.
  *  `own` is the side's own units (a truck's supplying reads them). */
 export function SelectionCard({
-  units,
+  units: selected,
   own,
   rules,
 }: {
@@ -571,26 +573,27 @@ export function SelectionCard({
   own: readonly OwnUnitView[];
   rules: PanelRules;
 }) {
-  if (units.length === 0) return null;
-  if (units.length > 1)
+  const { units } = useSessionCatalog();
+  if (selected.length === 0) return null;
+  if (selected.length > 1)
     return (
       <div className="hud-card hud-group" data-testid="selection-card">
-        {units.map((u) => (
+        {selected.map((u) => (
           <div key={u.id} data-unit={u.id}>
-            <InfoPanel panel={ownPanel(u, own, rules)} />
+            <InfoPanel panel={ownPanel(units, u, own, rules)} />
           </div>
         ))}
       </div>
     );
-  const [u] = units;
-  const { silhouette, role } = unitIcons(UNITS.type(u.kind));
+  const [u] = selected;
+  const { silhouette, role } = unitIcons(units.type(u.kind));
   return (
     <div className="hud-card" data-testid="selection-card" data-unit={u.id}>
       <span className="hud-portrait">
         <Icon path={role} className="hud-role" />
         <Icon path={silhouette} className="hud-silhouette" />
       </span>
-      <InfoPanel panel={ownPanel(u, own, rules)} />
+      <InfoPanel panel={ownPanel(units, u, own, rules)} />
     </div>
   );
 }
@@ -684,13 +687,14 @@ export function CommandBar({
     | "exitBuilding"
   > & { refund?: () => void };
 }) {
+  const { units } = useSessionCatalog();
   const selected = control.selectedUnits;
   const n = selected.length;
   const command = (c: CommandProps) => <CommandButton {...c} hintHost={hintHost} />;
   const key = (command: keyof typeof CommandBindings) => `(${CommandBindings[command].label})`;
   // Capability actions apply to eligible units; movement applies to everyone.
   const [armed, deployers, inside] = (["attack", "deploy", "exit_building"] as ReachCommand[]).map(
-    (c) => reach(c, selected, UNITS),
+    (c) => reach(c, selected, units),
   );
   const hold = n > 0 && selected.every((u) => u.engagement === "return_fire_only");
   const packing = deployers.every((u) => u.deployment?.target === "deployed");

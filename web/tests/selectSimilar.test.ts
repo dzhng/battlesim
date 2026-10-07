@@ -3,7 +3,7 @@
 // a command is lit when any selected unit can carry it out, and reaches only
 // those that can.
 import { expect, test } from "vitest";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 import { reach } from "@web/battle/input/commandReach";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import { SelectClicks, similarUnits } from "@web/battle/input/selectSimilar";

@@ -1,7 +1,8 @@
 import { Link } from "react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import game from "@fixtures/game.json";
-import { durableSoldiers, GAME_RULES } from "../scenarios";
+import { useSessionCatalog } from "@web/battle/catalog/context";
+import { durableSoldiers } from "../scenarios";
 import { SavedEncounter, villageScenario } from "../savedMaps";
 import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
@@ -55,8 +56,9 @@ function watchedScript(fallback: string): string {
 
 /** The village scenario JSON for `variant`, built by the simulation. */
 function useVillageScenario(fixture: string, variant: Variant): string | { error: string } | null {
+  const { rules } = useSessionCatalog();
   const built = useBuiltScenario({ fixture, variant }, (wasm, o) =>
-    villageScenario(wasm, o.fixture, o.variant),
+    villageScenario(wasm, o.fixture, o.variant, rules),
   );
   return built && typeof built !== "string"
     ? { error: `the village scenario could not be built: ${built.error}` }
@@ -116,13 +118,13 @@ export function VillageWatch() {
  *  encounter `lean` (`fixtures/maps/village/encounters/lean.json`): a
  *  blue squad at rest just inside the west wood trades fire with a red
  *  squad in the open 45 m east; soldiers too tough to fall, so the fight
- *  holds. Men lean out from their trees, fire and tuck back in. */
-const LEAN_RULES = durableSoldiers(GAME_RULES);
-
-/** /battle/village/lean: the lean-out firefight, watched. */
+ *  holds. Men lean out from their trees, fire and tuck back in.
+ *  /battle/village/lean: the lean-out firefight, watched. */
 export function VillageLean() {
+  const { rules } = useSessionCatalog();
+  const durable = useMemo(() => durableSoldiers(rules), [rules]);
   return (
-    <SavedEncounter fixture="village-lean" encounter="lean" rules={LEAN_RULES}>
+    <SavedEncounter fixture="village-lean" encounter="lean" rules={durable}>
       {(battle) => (
         <BattleView
           fixture="village-lean"

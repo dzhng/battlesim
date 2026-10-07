@@ -14,7 +14,7 @@ import type { CommandEnvelope, SimReply, SimRequest } from "../src/battle/sim/pr
 import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 import game from "@fixtures/game.json";
 import { loadMap } from "@web/maps/node";
-import { labScenario, GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { labScenario, TEST_RULES } from "./catalog";
 
 const geometry = loadMap("geometry").definition;
 
@@ -390,7 +390,7 @@ test("the ground streams as deltas, and a side switch reopens it with a full sna
 
 test("a scripted blue commands like a player: recorded, replayable, timed per step", async () => {
   const setup = village_scenario(
-    JSON.stringify({ ...GAME_RULES, map: loadMap("village").definition }),
+    JSON.stringify({ ...TEST_RULES, map: loadMap("village").definition }),
     "ordinary",
   );
   const run = async (init: SimRequest) => {

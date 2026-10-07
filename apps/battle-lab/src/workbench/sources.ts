@@ -7,7 +7,7 @@
 //   its preview bundle encoded and served from memory, so it installs exactly
 //   as a baked bundle would, findings and all.
 
-import { GAME_RULES } from "../scenarios";
+import type { GameRules } from "@web/battle/catalog/compose";
 import catalogJson from "../../../../assets/catalog.json";
 import type { Vec3 } from "math";
 import { previewRuntime } from "@packages/scene-assets/src/bake";
@@ -20,9 +20,9 @@ import { validateLoose, type LooseOptions } from "@packages/scene-assets/src/loo
 import { INFANTRY_CLIPS } from "@packages/scene-assets/src/schema";
 import { reloadGameAppearances, gameAppearances } from "../gameAppearances";
 import type { AppearanceUnit, Catalog, Finding, Side } from "@packages/scene-assets/src/schema";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { Stats } from "@packages/scene-assets/src/validate";
-import { AUTHORITY, footprint, type Footprint, type PropClasses } from "./benchWorld";
+import { benchAuthority, footprint, type Footprint, type PropClasses } from "./benchWorld";
 import { loadWasm } from "@web/battle/sim/module";
 import { loadMap } from "@web/maps/browser";
 
@@ -38,18 +38,20 @@ export function sideTint(model: LoadedModel, side: Side): Vec3 | undefined {
 
 /** The unit type a catalog appearance shows on the bench: the first hull
  *  type it draws, or the first squad type whose soldier or equipment set wears it. */
-function typeDrawing(name: string): string | null {
+function typeDrawing(units: UnitCatalog, name: string): string | null {
   return (
-    UNITS.ids.find((id) => UNITS.type(id).appearance === name) ??
-    UNITS.ids.find(
+    units.ids.find((id) => units.type(id).appearance === name) ??
+    units.ids.find(
       (id) =>
-        UNITS.slots(id).some((kind) => UNITS.soldier(kind).appearance.includes(name)) ||
-        UNITS.type(id).mounts.some((mount) =>
-          [
-            ...(mount.operator_appearance?.active ?? []),
-            ...(mount.operator_appearance?.carried ?? []),
-          ].includes(name),
-        ),
+        units.slots(id).some((kind) => units.soldier(kind).appearance.includes(name)) ||
+        units
+          .type(id)
+          .mounts.some((mount) =>
+            [
+              ...(mount.operator_appearance?.active ?? []),
+              ...(mount.operator_appearance?.carried ?? []),
+            ].includes(name),
+          ),
     ) ??
     null
   );
@@ -77,14 +79,14 @@ export interface LoadedModel {
 
 let propClasses: PropClasses | null = null;
 
-/** The simulation's prop classes (what blocks whom, what hides sight), read
- *  once from `world_layout()`, with the boxes the village's resolved map
- *  places. */
-export async function loadPropClasses(): Promise<PropClasses> {
+/** The simulation's prop classes (what blocks whom, what hides sight) under
+ *  the page's `rules`, read once from `world_layout()`, with the boxes the
+ *  village's resolved map places. */
+export async function loadPropClasses(rules: GameRules): Promise<PropClasses> {
   if (!propClasses) {
     const [wasm, village] = await Promise.all([loadWasm(), loadMap("village")]);
     propClasses = {
-      ...(JSON.parse(wasm.world_layout(JSON.stringify(GAME_RULES))) as PropClasses),
+      ...(JSON.parse(wasm.world_layout(JSON.stringify(rules))) as PropClasses),
       placed: village.definition.props,
     };
   }
@@ -93,8 +95,8 @@ export async function loadPropClasses(): Promise<PropClasses> {
 
 /** The baked runtime catalog as the page loads it, every appearance but the
  *  kits installed at once: the page's load, or `fresh` after a re-bake. */
-export async function loadCatalog(fresh = false): Promise<InstalledAppearances> {
-  await loadPropClasses();
+export async function loadCatalog(rules: GameRules, fresh = false): Promise<InstalledAppearances> {
+  await loadPropClasses(rules);
   return fresh ? reloadGameAppearances() : gameAppearances();
 }
 
@@ -108,19 +110,20 @@ export const INFANTRY_LOOPS: string[] = INFANTRY_CLIPS.filter((clip) => clip !==
 /** The catalog's appearance `name` as a bench model, or null when it names
  *  none. One fetched on request (a kit, a regional look) is fetched to be shown. */
 export async function catalogModel(
+  units: UnitCatalog,
   catalog: InstalledAppearances,
   name: string,
 ): Promise<LoadedModel | null> {
   const installed = catalog.onRequest.has(name) ? await gameAppearances([name]) : catalog;
   const entry = installed.appearances.get(name);
   if (!entry) return null;
-  const type = typeDrawing(name);
+  const type = typeDrawing(units, name);
   return {
     name,
     unit: entry.unit,
     type,
     scenery: entry.scenery,
-    body: footprint(entry.unit, entry.scenery, propClasses, entry.footprint, type),
+    body: footprint(units, entry.unit, entry.scenery, propClasses, entry.footprint, type),
     installed,
     source: "catalog",
     findings: [],
@@ -134,6 +137,7 @@ const MEMORY = "memory:/";
 
 /** Validate a dropped GLB and install its preview through the loader. */
 export async function loadDropped(
+  { units, rules }: { units: UnitCatalog; rules: GameRules },
   file: string,
   bytes: Uint8Array,
   options: LooseOptions,
@@ -143,7 +147,7 @@ export async function loadDropped(
     file,
     bytes,
     CATALOG,
-    { authority: AUTHORITY, tolerances: CATALOG.tolerances },
+    { authority: benchAuthority(units), tolerances: CATALOG.tolerances },
     options,
   );
   const findings: LoadedModel["findings"] = [];
@@ -177,13 +181,20 @@ export async function loadDropped(
   await library.load(MEMORY);
   // A dropped kit is asked for, like any kit that is to be drawn.
   const installed = await library.withAppearances(drawn.map((entry) => entry.name));
-  const type = options.type ?? (result.entryName ? typeDrawing(result.entryName) : null);
+  const type = options.type ?? (result.entryName ? typeDrawing(units, result.entryName) : null);
   return {
     name: file,
     unit: result.unit,
     type,
     scenery: options.scenery ?? null,
-    body: footprint(result.unit, options.scenery ?? null, await loadPropClasses(), null, type),
+    body: footprint(
+      units,
+      result.unit,
+      options.scenery ?? null,
+      await loadPropClasses(rules),
+      null,
+      type,
+    ),
     installed,
     source: file,
     findings,

@@ -1,4 +1,5 @@
 import { expect, test, vi } from "vitest";
+import { TEST_RULES } from "./catalog";
 import * as fixtures from "@apps/battle-lab/src/fixtures";
 import { villageScenario } from "@apps/battle-lab/src/savedMaps";
 
@@ -17,7 +18,7 @@ test("a shared scenario factory builds on its calling fixture's declared source"
       village_scenario: (rules: string, variant: string) =>
         JSON.stringify({ map: JSON.parse(rules).map, variant }),
     };
-    const scenario = JSON.parse(await villageScenario(authority, "fog", "ordinary"));
+    const scenario = JSON.parse(await villageScenario(authority, "fog", "ordinary", TEST_RULES));
     expect(scenario.map.size).toEqual([640, 480]);
     expect(scenario.variant).toBe("ordinary");
   } finally {

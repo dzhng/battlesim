@@ -1,8 +1,12 @@
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent, render as renderView } from "@testing-library/react";
+import { WithTestCatalog } from "./catalog";
 import { afterEach, expect, test, vi } from "vitest";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import type { UnitCard } from "@packages/scene-assets/src/units";
 import type { SkirmishView } from "@web/battle/sim/observation";
+
+/** Views render under the test set, as a lab page provides it. */
+const render = (ui: Parameters<typeof renderView>[0]) => renderView(ui, { wrapper: WithTestCatalog });
 afterEach(cleanup);
 const card = (id: string, variant: string, reason: string | null = null): UnitCard => ({
   id,

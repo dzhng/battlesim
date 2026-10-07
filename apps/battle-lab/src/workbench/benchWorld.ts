@@ -32,12 +32,12 @@ import type {
 } from "@packages/scene-assets/src/schema";
 import { GRASS_MAX_HEIGHT_M } from "@packages/scene-assets/src/grass";
 import { fixtureAuthority } from "@packages/scene-assets/src/authority";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import type { UnitCatalog } from "@packages/scene-assets/src/units";
 
 export const physics = game.physics;
 
-/** The simulation's bodies and unit types: the fit authority the validator reads too. */
-export const AUTHORITY: Authority = fixtureAuthority(game, UNITS);
+/** The simulation's bodies and `units`' types: the fit authority the validator reads too. */
+export const benchAuthority = (units: UnitCatalog): Authority => fixtureAuthority(game, units);
 
 /** Height of the scale figure: the rules' soldier. */
 export const FIGURE_HEIGHT_M = physics.soldier_height_m;
@@ -228,6 +228,7 @@ function propLabel(kind: string, classes: PropClasses | null): string {
 /** What the simulation knows of the thing an appearance draws; a vehicle's
  *  hit box is its unit type's (`type`) hull. */
 export function footprint(
+  units: UnitCatalog,
   unit: AppearanceUnit,
   scenery: string | null,
   classes: PropClasses | null,
@@ -243,7 +244,7 @@ export function footprint(
     };
   }
   if (unit === "vehicle") {
-    const hull = type ? UNITS.hull(type) : null;
+    const hull = type ? units.hull(type) : null;
     if (!hull) return { edges, label: "a vehicle of no unit type: no hit box" };
     box(edges, hull.half_extents_m);
     return {
@@ -255,7 +256,7 @@ export function footprint(
   // The prop types it draws, by the prop catalog's `drawn_by`: the first the
   // map places stands for them.
   const drawn =
-    scenery && rule?.footprint.kind === "prop" ? propsDrawnBy(UNITS.view.props, scenery) : [];
+    scenery && rule?.footprint.kind === "prop" ? propsDrawnBy(units.view.props, scenery) : [];
   const prop = drawn.find((p) => placedProp(p, classes)) ?? drawn[0] ?? null;
   if (prop) {
     // The box the art is authored to (the catalog's footprint), else the

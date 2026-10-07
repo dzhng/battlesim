@@ -3,7 +3,7 @@
 // is WorldView's ground (heights and normals, at triangle edges and where
 // props stand), and the material's road, forest and water masks are the
 // simulation's surface rules.
-import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES } from "./catalog";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { polygon2 } from "math/shapes";
@@ -63,11 +63,11 @@ afterEach(() => {
 
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
-  layout = JSON.parse(world_layout(JSON.stringify(GAME_RULES))) as WorldLayout;
+  layout = JSON.parse(world_layout(JSON.stringify(TEST_RULES))) as WorldLayout;
 });
 
 function world(map: unknown): { view: WorldView; exports: WorldExports } {
-  const view = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  const view = new WorldView(JSON.stringify(map), JSON.stringify(TEST_RULES));
   views.push(view);
   return {
     view,
@@ -633,7 +633,7 @@ function generatedTown() {
   const documents = {
     presets: fixture("map-presets.json"),
     templates: fixture("prototype-building-templates.json"),
-    rules: JSON.stringify(GAME_RULES),
+    rules: JSON.stringify(TEST_RULES),
   };
   const request = generationRequest(
     generator,
@@ -1184,7 +1184,7 @@ test("a rotated prop ray preserves the portable world normal bits", () => {
       slope_cutoff_deg: 35,
       props: [{ kind: "wall", center: [50, 50], yaw: -1.785965, half_extents: [3, 5, 4.225] }],
     }),
-    JSON.stringify(GAME_RULES),
+    JSON.stringify(TEST_RULES),
   );
   try {
     const hit = view.raycast(50, 30, 1, 0, 1, 0, 100);

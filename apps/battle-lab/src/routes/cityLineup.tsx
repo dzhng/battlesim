@@ -18,7 +18,7 @@
 //   `transition-1..3` stand where it changes to that tier, so the tier before
 //   and the tier after can be drawn from one pose;
 // - `?labels=0`: no labels.
-import { GAME_RULES } from "../scenarios";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { useCallback, useMemo, useRef, useState } from "react";
 import catalogue from "@fixtures/prototype-building-templates.json";
 import type { SideBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
@@ -219,9 +219,10 @@ function Rows({
   lineup: Lineup;
   missing: string[];
 }) {
+  const { rules } = useSessionCatalog();
   const world = useStaticWorld(
     useMemo(() => flatMap(lineup.size), [lineup]),
-    GAME_RULES,
+    rules,
   );
   const surfaceZ = useCallback(
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,

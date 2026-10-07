@@ -2,7 +2,7 @@
 // Renderer fog's CPU seam: the mirrors of Rust's sight
 // shape, the map word, the static world fog reads, and what reaches the GPU
 // from a side's knowledge. The GPU half runs in the `fog` scene.
-import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES } from "./catalog";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import {
@@ -37,7 +37,8 @@ import {
   type WorldExports,
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh";
-import { labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
+import { labScenario } from "./catalog";
+import { type LabEvent } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
 import game from "@fixtures/game.json";
 
@@ -52,12 +53,12 @@ beforeAll(() => {
 });
 
 function staticWorld(map: unknown): { exports: WorldExports; layout: WorldLayout } {
-  const view = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  const view = new WorldView(JSON.stringify(map), JSON.stringify(TEST_RULES));
   const exports = readWorldExports(view);
   view.free();
   return {
     exports,
-    layout: JSON.parse(world_layout(JSON.stringify(GAME_RULES))) as WorldLayout,
+    layout: JSON.parse(world_layout(JSON.stringify(TEST_RULES))) as WorldLayout,
   };
 }
 

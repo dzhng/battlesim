@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { loadMap } from "@web/maps/node";
-import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES } from "./catalog";
 import { gameCamera } from "@apps/battle-lab/src/gameCamera";
 import {
   buildingObstacles,
@@ -31,7 +31,7 @@ beforeAll(() => {
   wasm.initSync({
     module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
   });
-  const rules = JSON.stringify(GAME_RULES);
+  const rules = JSON.stringify(TEST_RULES);
   const world = new wasm.WorldView(JSON.stringify(villageMap), rules);
   const exports = readWorldExports(world);
   const ground = (x: number, y: number) => world.surface_at(x, y)[0] ?? 0;
@@ -72,7 +72,7 @@ test("the village's opening framing is drawn as authored", () => {
 test(
   "the city benchmark tour is drawn as flown over the generated buildings",
   () => {
-    const rules = JSON.stringify(GAME_RULES);
+    const rules = JSON.stringify(TEST_RULES);
     const documents = {
       presets: readFileSync(new URL("../../fixtures/map-presets.json", import.meta.url), "utf8"),
       templates: readFileSync(

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, Battle, resolve_catalog, village_scenario } from "@wasm/game_wasm.js";
@@ -14,7 +14,7 @@ import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/ob
 import { packedGroundRuns } from "./groundRuns";
 import { GroundView } from "../src/battle/sim/ground";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
-import { labScenario, GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { labScenario, TEST_RULES } from "./catalog";
 import { loadMap } from "@web/maps/node";
 import game from "@fixtures/game.json";
 import type { Order } from "../src/battle/sim/protocol";
@@ -44,7 +44,7 @@ function published(battle: Battle, layout: ObservationLayout, side: "blue" | "re
 }
 
 test("packed twin launchers keep separate readiness through to the panel rows", () => {
-  const rules = structuredClone(GAME_RULES);
+  const rules = structuredClone(TEST_RULES);
   const docs = rules.catalog as Array<{ units?: Record<string, Record<string, unknown>> }>;
   const at = docs.find((d) => d.units?.at)?.units?.at;
   if (!at) throw new Error("no authored AT team");
@@ -366,7 +366,7 @@ test("the encounter status decodes, and is absent outside an encounter", () => {
   lab.free();
   const battle = new Battle(
     village_scenario(
-      JSON.stringify({ ...GAME_RULES, map: loadMap("village").definition }),
+      JSON.stringify({ ...TEST_RULES, map: loadMap("village").definition }),
       "ordinary",
     ),
     1,
@@ -626,12 +626,12 @@ test("packed forest concealment reaches the shared info panel and clears in the 
     const frame = published(battle, layout);
     expect(frame.own.map((u) => u.concealed)).toEqual([true, false]);
     expect(
-      ownPanel(frame.own[0], frame.own, GAME_RULES as unknown as PanelRules).states.map(
+      ownPanel(UNITS, frame.own[0], frame.own, TEST_RULES as unknown as PanelRules).states.map(
         (r) => r.word,
       ),
     ).toContain("HIDDEN");
     expect(
-      ownPanel(frame.own[1], frame.own, GAME_RULES as unknown as PanelRules).states.map(
+      ownPanel(UNITS, frame.own[1], frame.own, TEST_RULES as unknown as PanelRules).states.map(
         (r) => r.word,
       ),
     ).not.toContain("HIDDEN");

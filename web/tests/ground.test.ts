@@ -9,7 +9,8 @@ import {
   type GroundLayout,
   type ObservationLayout,
 } from "../src/battle/sim/observation";
-import { GAME_RULES, labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES, labScenario } from "./catalog";
+import { type LabEvent } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
 
 const groundMap = loadMap("ground").definition;
@@ -418,7 +419,7 @@ test("foliage thins exactly where the side's cleared ground runs say", () => {
         },
       ],
     }),
-    JSON.stringify(GAME_RULES),
+    JSON.stringify(TEST_RULES),
   );
   try {
     const cells = (f: Float32Array) =>
@@ -451,7 +452,7 @@ test("foliage thins exactly where the side's cleared ground runs say", () => {
     );
     const known = cells(world.foliage_cleared(ground.clearedRuns(), size, 1));
     // A fallen crown reaches no further than this past the block's edge.
-    const reach = GAME_RULES.forests.rule.canopy_radius_m + 2 * cellM;
+    const reach = TEST_RULES.forests.rule.canopy_radius_m + 2 * cellM;
     let opened = 0;
     let untouched = 0;
     for (const [key, cell] of standing) {

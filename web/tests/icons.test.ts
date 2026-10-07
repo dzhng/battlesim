@@ -8,7 +8,7 @@ import { expect, test } from "vitest";
 import { iconFiles, unitIcons } from "@packages/scene-assets/src/icons";
 import { inkBounds } from "@packages/scene-assets/src/inkBounds";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
-import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS, WEAPONS } from "./catalog";
 import {
   runtimeLookup,
   silhouetteSvg,

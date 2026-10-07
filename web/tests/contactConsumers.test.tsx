@@ -1,6 +1,8 @@
 import { createRef } from "react";
+import { UNITS } from "./catalog";
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render as renderView } from "@testing-library/react";
+import { WithTestCatalog } from "./catalog";
 import game from "@fixtures/game.json";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import type { ReadoutLayerHandle } from "@web/battle/present/readouts";
@@ -9,6 +11,9 @@ import type { ContactView } from "@web/battle/sim/observation";
 import Weapons from "@apps/battle-lab/src/routes/weapons";
 import FogLook from "@apps/battle-lab/src/routes/fogLook";
 import { PointerPaint } from "@apps/battle-lab/src/pointerPaint";
+
+/** Views render under the test set, as a lab page provides it. */
+const render = (ui: Parameters<typeof renderView>[0]) => renderView(ui, { wrapper: WithTestCatalog });
 
 let session: ReturnType<typeof makeSession>;
 vi.mock("@apps/battle-lab/src/useBattleSession", () => ({ useBattleSession: () => session }));
@@ -39,7 +44,8 @@ function makeSession() {
   return {
     world: {},
     meshes: {},
-    pointerPaint: new PointerPaint(),
+    pointerPaint: new PointerPaint(UNITS),
+    units: UNITS,
     fog: null,
     surfaceZ: () => 0,
     rules: game as unknown as PanelRules,

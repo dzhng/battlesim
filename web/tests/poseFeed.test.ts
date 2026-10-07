@@ -7,7 +7,7 @@ import game from "@fixtures/game.json";
 import { expect, test } from "vitest";
 import { ObservationFeed, gamePose } from "@apps/battle-lab/src/poseFeed";
 import { drawnMuzzleSource, effectPublication } from "@apps/battle-lab/src/effectFeed";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 import { UnitCatalog } from "@packages/scene-assets/src/units";
 import { shippedMounts } from "./shippedMounts";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";

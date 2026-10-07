@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, generate_map, plan_encounter } from "@wasm/game_wasm.js";
-import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { TEST_RULES } from "./catalog";
 import { mapAndSites } from "../src/maps/source";
 
 const fixture = (path: string) =>
@@ -17,7 +17,7 @@ const recipes = JSON.parse(fixture("encounters.json")).recipes as Record<
   string,
   Record<string, Record<string, unknown>>
 >;
-const rules = JSON.stringify(GAME_RULES);
+const rules = JSON.stringify(TEST_RULES);
 
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
@@ -49,7 +49,7 @@ test.each(cases)(
       record.request_json,
       presets,
       templates,
-      JSON.stringify(GAME_RULES),
+      JSON.stringify(TEST_RULES),
     );
     // The generator's own bytes, as preparation hands them on.
     const { map, sites } = mapAndSites(generated);

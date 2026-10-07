@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { UNITS } from "./catalog";
 import { expect, test } from "vitest";
 import { VERTEX_FLOATS, type Mesh, type Rgba } from "../../packages/battle-renderer/src/mesh";
 import {

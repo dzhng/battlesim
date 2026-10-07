@@ -5,7 +5,7 @@ import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import { REASON_TEXT } from "../reasonText";
 import type { Order } from "@web/battle/sim/protocol";
-import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { AckLog } from "../AckLog";
 import { FeedInspector } from "../FeedInspector";
 import { contactLayer, tracerLayer } from "../battleOverlay";
@@ -197,8 +197,9 @@ function MountRow({
   mount: MountView;
   observation: ObservationView;
 }) {
-  const spec = UNITS.type(kind).mounts[mount.mount];
-  const weapon = WEAPONS[spec.weapons[mount.loaded ?? 0]];
+  const { units, weapons } = useSessionCatalog();
+  const spec = units.type(kind).mounts[mount.mount];
+  const weapon = weapons[spec.weapons[mount.loaded ?? 0]];
   const ammo = mount.ammo.map((n, k) => `${spec.weapons[k]} ${n === null ? "∞" : n}`).join(" · ");
   return (
     <div className="lab-mount" data-reason={mount.reason}>

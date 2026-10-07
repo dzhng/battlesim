@@ -1,7 +1,11 @@
 // The player's pointer input at the input seam: `useUnitControl.onPointer`
 // with a pick, and the orders it sends to a recording client.
 import { act, fireEvent, renderHook } from "@testing-library/react";
-import { expect, test, vi } from "vitest";
+import type { ReactNode } from "react";
+import { expect, test } from "vitest";
+import { UnitCatalog } from "@packages/scene-assets/src/units";
+import { SessionCatalogProvider } from "@web/battle/catalog/context";
+import { TEST_CATALOG } from "./catalog";
 import { contactUnder } from "../src/battle/input/contactPick";
 import { useUnitControl } from "../src/battle/input/useUnitControl";
 import type { PointerPick } from "../src/battle/input/pointerIntent";
@@ -10,18 +14,18 @@ import type { ContactView, ObservationView, OwnUnitView } from "../src/battle/si
 import type { Order } from "../src/battle/sim/protocol";
 
 // Distinct types sharing a role make type selection distinguishable from role selection.
-vi.mock("@packages/scene-assets/src/shippedUnits", async (original) => {
-  const { UNITS } = await original<typeof import("@packages/scene-assets/src/shippedUnits")>();
-  const { UnitCatalog } = await import("@packages/scene-assets/src/units");
-  return {
-    UNITS: new UnitCatalog({
-      ...UNITS.view,
-      units: UNITS.view.units.map((type) =>
-        type.id === "recon" ? { ...type, roles: UNITS.type("rifle").roles } : type,
-      ),
-    }),
-  };
-});
+const catalog = {
+  ...TEST_CATALOG,
+  units: new UnitCatalog({
+    ...TEST_CATALOG.units.view,
+    units: TEST_CATALOG.units.view.units.map((type) =>
+      type.id === "recon" ? { ...type, roles: TEST_CATALOG.units.type("rifle").roles } : type,
+    ),
+  }),
+};
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <SessionCatalogProvider catalog={catalog}>{children}</SessionCatalogProvider>
+);
 
 /** A client that records what it is sent and accepts all of it. */
 function recordingClient() {
@@ -55,7 +59,7 @@ async function control(contacts: ContactView[] = []) {
     contacts,
   } as unknown as ObservationView;
   const { client, sent } = recordingClient();
-  const hook = renderHook(() => useUnitControl(client, observation));
+  const hook = renderHook(() => useUnitControl(client, observation), { wrapper });
   act(() => hook.result.current.setSelected([1, 2]));
   const click = async (pick: Partial<PointerPick>) => {
     await act(async () =>
@@ -182,8 +186,9 @@ test("every order sent is heard as it goes, a queued (Shift) one too", async () 
   const observation = { own: [own(1, "rifle")], contacts: [] } as unknown as ObservationView;
   const { client, sent } = recordingClient();
   const heard: { order: Order; queued: boolean }[] = [];
-  const hook = renderHook(() =>
-    useUnitControl(client, observation, (order, queued) => heard.push({ order, queued })),
+  const hook = renderHook(
+    () => useUnitControl(client, observation, (order, queued) => heard.push({ order, queued })),
+    { wrapper },
   );
   act(() => hook.result.current.setSelected([1]));
   const pick = { unit: null, button: "right" as const, ctrl: false, x: 0, y: 0 };
@@ -202,6 +207,7 @@ test("losing a selected unit leaves survivors commandable without reselecting", 
   const observation = (ids: number[]) =>
     ({ own: ids.map((id) => own(id, "rifle")), contacts: [] }) as unknown as ObservationView;
   const hook = renderHook(({ ids }) => useUnitControl(client, observation(ids)), {
+    wrapper,
     initialProps: { ids: [1, 2] },
   });
   act(() => hook.result.current.setSelected([1, 2]));
@@ -240,7 +246,7 @@ test("successive double-clicks widen type to role; external selection and timeou
     contacts: [],
   } as unknown as ObservationView;
   const { client } = recordingClient();
-  const hook = renderHook(() => useUnitControl(client, observation));
+  const hook = renderHook(() => useUnitControl(client, observation), { wrapper });
   const pair = (time: number, ctrl = false, unit = 1) => {
     for (const t of [time, time + 100])
       act(() =>
@@ -300,6 +306,7 @@ test("a casualty during a captured press leaves the surviving original selection
   const observation = (ids: number[]) =>
     ({ own: ids.map((id) => own(id, "rifle")), contacts: [] }) as unknown as ObservationView;
   const hook = renderHook(({ ids }) => useUnitControl(client, observation(ids)), {
+    wrapper,
     initialProps: { ids: [1, 2, 3] },
   });
   act(() => hook.result.current.setSelected([1, 2]));
@@ -332,6 +339,7 @@ test("a captured contact that expires is refused locally instead of repicking th
       contacts: contact ? [{ id: 7 }] : [],
     }) as unknown as ObservationView;
   const hook = renderHook(({ contact }) => useUnitControl(client, observation(contact)), {
+    wrapper,
     initialProps: { contact: true },
   });
   act(() => hook.result.current.setSelected([1]));
@@ -365,6 +373,7 @@ test("an old client's delayed acknowledgement cannot repopulate a reset log", as
   const fresh = recordingClient().client;
   const observation = { own: [own(1, "rifle")], contacts: [] } as unknown as ObservationView;
   const hook = renderHook(({ client }) => useUnitControl(client, observation), {
+    wrapper,
     initialProps: { client: old },
   });
   let pending!: Promise<unknown>;
@@ -389,6 +398,7 @@ test("blocked battle input preserves selection and armed mode without issuing sh
   const hook = renderHook(
     ({ enabled }) => useUnitControl(client, observation, undefined, enabled),
     {
+      wrapper,
       initialProps: { enabled: true },
     },
   );

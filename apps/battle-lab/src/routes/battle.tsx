@@ -36,7 +36,7 @@ import {
   saveReplay,
   type PreparedReplayFile,
 } from "../replayFile";
-import { GAME_RULES } from "../scenarios";
+import { useSessionCatalog } from "@web/battle/catalog/context";
 import { gameCamera } from "../gameCamera";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
@@ -218,6 +218,7 @@ function PreparedBattleView({
 }) {
   const publishAddress = usePublishBattleAddress();
   const visitActive = usePageVisitActive();
+  const { rules } = useSessionCatalog();
   const [stage, setStage] = useState<Stage>("map");
   const [prepared, setPrepared] = useState<PreparedSession | null>(null);
   const [loadingRequest, setLoadingRequest] = useState(request);
@@ -233,7 +234,7 @@ function PreparedBattleView({
     setFailure(null);
     setStage("map");
     marks.current = {};
-    const documents = { rules: JSON.stringify(GAME_RULES), presets, templates, recipes };
+    const documents = { rules: JSON.stringify(rules), presets, templates, recipes };
     const selection = play
       ? admitBattle(
           {
@@ -290,7 +291,7 @@ function PreparedBattleView({
       live = false;
       preparation.cancel();
     };
-  }, [request, replay, play, publishAddress, visitActive]);
+  }, [request, replay, play, publishAddress, visitActive, rules]);
 
   const activeRequest = prepared?.report.request ?? loadingRequest;
   const subject = subjectOf(activeRequest);
