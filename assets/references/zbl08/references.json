@@ -1,0 +1,98 @@
+{
+  "entries": [
+    {
+      "file": "eastern_zbl_08_wheeled_ifv-three_quarter_front-2.jpg",
+      "variant": "eastern_zbl_08_wheeled_ifv",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Xibu_zbl08_5.jpg",
+      "author": "Mil.ru",
+      "licence": "CC-BY-4.0",
+      "sha256": "5b281b31e1aa63199708fc02e2957dd1aab91614d4eef5086a9f3005bb8b8c35",
+      "note": "ZBL-08 driving, left front three-quarter (small original)."
+    },
+    {
+      "file": "eastern_zbl_08_wheeled_ifv-three_quarter_front-3.jpg",
+      "variant": "eastern_zbl_08_wheeled_ifv",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Shiyang_Road,Nanjing,20150727,01.jpg",
+      "author": "Berthe",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "39d759fee8698ec9536b363715f6b188adf6b6e65eafd5b9bb6484a6ff6fdf96",
+      "note": "ZBL-08 on a street in Nanjing, 2015 (small original)."
+    },
+    {
+      "file": "eastern_zbl_08_wheeled_ifv-three_quarter_front.jpg",
+      "variant": "eastern_zbl_08_wheeled_ifv",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ZBL-08.jpg",
+      "author": "Ministry of Defence of the Russian Federation",
+      "licence": "CC-BY-4.0",
+      "sha256": "65d3b1561d5fa92ce7a0b1d354d3682a3bc7b3d819846db7966fd01956ece74c",
+      "note": "PLA ZBL-08 at Vostok-2018, front three-quarter: bow, headlights, 30 mm turret, eight wheels and hubs, tactical numbers."
+    },
+    {
+      "file": "eastern_zbl_08_wheeled_ifv-side-2.jpg",
+      "variant": "eastern_zbl_08_wheeled_ifv",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ZBL-08A_4131.jpg",
+      "author": "Key-Needleworker-702 on reddit",
+      "licence": "CC-BY-4.0",
+      "sha256": "749c9fdcecf73472485fccc24052d9972c64f5bf471359d2a8eca1c0cca33435",
+      "note": "ZBL-08A on display, right side and front quarter."
+    },
+    {
+      "file": "eastern_zbl_08_wheeled_ifv-side.jpg",
+      "variant": "eastern_zbl_08_wheeled_ifv",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ZBL08A_4131_02.jpg",
+      "author": "Key-Needleworker-702 on reddit",
+      "licence": "CC-BY-4.0",
+      "sha256": "10ecde44ec71a8921ee56e946ce116d92f925481df1e4cd5eb076290e3c4858c",
+      "note": "ZBL-08A (later model) on public display, left side: wheel stations, hull side, turret profile."
+    },
+    {
+      "file": "eastern_zbl_08_wheeled_ifv-three_quarter_rear-2.jpg",
+      "variant": "eastern_zbl_08_wheeled_ifv",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Xibu_zbl08_camo.jpg",
+      "author": "Mil.ru",
+      "licence": "CC-BY-4.0",
+      "sha256": "8c190c1fa0f73cea2fed09ac2c901467d4dfe7af0ef7c20617f00862998fcf66",
+      "note": "ZBL-08 under camouflage netting at Vostok-2018, distant rear three-quarter: overall proportions only."
+    },
+    {
+      "file": "eastern_zbl_08_wheeled_ifv-three_quarter_rear.jpg",
+      "variant": "eastern_zbl_08_wheeled_ifv",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ZBL08A_4131_03.jpg",
+      "author": "Key-Needleworker-702 on reddit",
+      "licence": "CC-BY-4.0",
+      "sha256": "bff721973c77043081aa55325b311bcb4498eb5ebee7109aab7236053dd4ea98",
+      "note": "ZBL-08A on display, right rear three-quarter: rear door, rear lights, stowage."
+    },
+    {
+      "file": "eastern_zbl_08_wheeled_ifv-detail.jpg",
+      "variant": "eastern_zbl_08_wheeled_ifv",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ZPT-99_ZBL-08A_4131.jpg",
+      "author": "Key-Needleworker-702 on reddit",
+      "licence": "CC-BY-4.0",
+      "sha256": "5678ab257b448f332ab1da5e3eb5eee58236134427fd89a26540c5a5d26f2d1a",
+      "note": "ZBL-08A turret side, close: 30 mm cannon barrel, smoke dischargers, hull grab rail, bolted plates."
+    }
+  ],
+  "gaps": [
+    "eastern_zbl_08_wheeled_ifv: photos are scarce. The only close, complete views (side, side-2, three_quarter_rear, detail) show the ZBL-08A of the Hong Kong garrison (2026 open day); differences from the original ZBL-08 were not checked.",
+    "eastern_zbl_08_wheeled_ifv: the ZBL-08A photos are CC BY 4.0 as stated on Commons by a reddit photographer, without a VRT permission ticket; worth a second look before relying on them.",
+    "eastern_zbl_08_wheeled_ifv: no front, rear or top photo; no clear rear photo of the plain ZBL-08 (the Vostok rear view is distant and netted).",
+    "eastern_zbl_08_wheeled_ifv: no running-gear or sight close-up; the gap is a candidate for generated views conditioned on the side and three-quarter photos."
+  ]
+}
