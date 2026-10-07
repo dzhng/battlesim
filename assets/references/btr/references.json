@@ -1,0 +1,107 @@
+{
+  "entries": [
+    {
+      "file": "eastern_btr_btr_82a-three_quarter_front-2.jpg",
+      "variant": "eastern_btr_btr_82a",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Interpolitex2016part2-50.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "a19f7b33d76e2267257c0ea905cf22cd8f60367a8bb865f18ef9baeef8fa8383",
+      "note": "Three-tone camouflage, 2016, left front."
+    },
+    {
+      "file": "eastern_btr_btr_82a-three_quarter_front.jpg",
+      "variant": "eastern_btr_btr_82a",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:BTR-82A_(1).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "3becbb3f63f90ffe8d81345384490d1555b956043af97cae23cb7dd03fca6d50",
+      "note": "Arzamas plant display: left front, BPPU turret with 2A72 30 mm, smoke dischargers, bow trim vane."
+    },
+    {
+      "file": "eastern_btr_btr_82a-side-2.jpg",
+      "variant": "eastern_btr_btr_82a",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Interpolitex2016part2-55.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "2690e8f25c427d84960e5f9c1e0ac46502bdbc416890ef013e1c7c470fd11444",
+      "note": "Side in camouflage, 2016."
+    },
+    {
+      "file": "eastern_btr_btr_82a-side.jpg",
+      "variant": "eastern_btr_btr_82a",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:BTR-82A_(4).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "4e8102cace446db95d8a95693f29dce50fa16b844f5418ab1bed8010d4d0304f",
+      "note": "Plant display, near-orthographic side: four axles, side door between axles 2 and 3, firing ports."
+    },
+    {
+      "file": "eastern_btr_btr_82a-three_quarter_rear.jpg",
+      "variant": "eastern_btr_btr_82a",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:BTR-82A_(2).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "800b0a5cb290eb8da700978ef3e6c78eb8be22317459cb3c6ef4a8819a500fdf",
+      "note": "Right rear three-quarter at the plant: side door and step open, stowage tubes on the engine deck, rear hull plates, tyres and hubs."
+    },
+    {
+      "file": "eastern_btr_btr_82a-front.jpg",
+      "variant": "eastern_btr_btr_82a",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:BTR-82A_(3).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "dfc75984f48150c0337aca4eb945b12c68c119ff28bb8d5479f3edea686d3012",
+      "note": "Head-on at the plant: bow, trim vane, headlights, turret front."
+    },
+    {
+      "file": "eastern_btr_btr_82a-rear.jpg",
+      "variant": "eastern_btr_btr_82a",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:BTR-82A_(5).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "109bd70f6661d49609f157c32c291bbf445b042784b77e6b67c17db1ca357cae",
+      "note": "Straight rear: engine deck, rear lights, tow points."
+    },
+    {
+      "file": "eastern_btr_btr_82a-detail-2.jpg",
+      "variant": "eastern_btr_btr_82a",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:BTR-82A_turret_-_June_2023.jpg",
+      "author": "Ministry of Defence of the Russian Federation",
+      "licence": "CC-BY-4.0",
+      "sha256": "22e720af917c6aaee53cc9f0aabb21c28539dc4e90d272e93c1d39dda5cec2eb",
+      "note": "Turret close-up, 2023: 2A72 cannon, coaxial PKTM, sight, smoke dischargers."
+    },
+    {
+      "file": "eastern_btr_btr_82a-detail.jpg",
+      "variant": "eastern_btr_btr_82a",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:BTR-82A_(6).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "8df86c109c63adcd635ae0dd7c7daa71ab60af7f4f23702a5c8e694c58262bb6",
+      "note": "Unpainted hull on the assembly line: suspension arms, hubs and drivetrain behind the wheel stations."
+    }
+  ],
+  "gaps": [
+    "eastern_btr_btr_82a: no top view; the roof hatches and turret ring show only obliquely.",
+    "eastern_btr_btr_82a: most photos are factory or parade vehicles in clean paint; field stowage and weathering are not shown."
+  ]
+}
