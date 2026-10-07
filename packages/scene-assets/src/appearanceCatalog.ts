@@ -113,7 +113,8 @@ export class AppearanceCatalog {
     const names = set.filter((n) => this.installed.appearances.has(n));
     if (!names.length) return null;
     const picked = names[((id % names.length) + names.length) % names.length];
-    const look = this.factions && this.installed.appearances.get(picked)?.factions?.[this.factions[side]];
+    const look =
+      this.factions && this.installed.appearances.get(picked)?.factions?.[this.factions[side]];
     const appearance = look && this.installed.appearances.has(look) ? look : picked;
     return { appearance, tint: this.sides[side] };
   }

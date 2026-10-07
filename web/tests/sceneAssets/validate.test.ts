@@ -352,7 +352,10 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   },
   "structure.faction_look": async () => {
     const { rifleman, ...rest } = testCatalog().appearances;
-    return factionLookFindings({ ...rest, rifleman: { ...rifleman, factions: { eastern: "nothing" } } });
+    return factionLookFindings({
+      ...rest,
+      rifleman: { ...rifleman, factions: { eastern: "nothing" } },
+    });
   },
   "fit.canopy": async () => (await scenery("tree", { summer: treeGlb(12.5) })).findings,
   "fit.tree_size": async () =>
@@ -678,14 +681,20 @@ test("a soldier's faction look is another soldier on its skeleton, with no look 
     expect.stringContaining('"tank" is a vehicle, not a soldier'),
   ]);
   expect(
-    messages({ eastern: "rifleman_eastern" }, {
-      rifleman_eastern: { ...rifleman, skeleton: "other-rig" },
-    }),
+    messages(
+      { eastern: "rifleman_eastern" },
+      {
+        rifleman_eastern: { ...rifleman, skeleton: "other-rig" },
+      },
+    ),
   ).toEqual([expect.stringContaining("skeleton other-rig, not test-rig")]);
   expect(
-    messages({ eastern: "rifleman_eastern" }, {
-      rifleman_eastern: { ...rifleman, factions: { us: "rifleman" } },
-    }),
+    messages(
+      { eastern: "rifleman_eastern" },
+      {
+        rifleman_eastern: { ...rifleman, factions: { us: "rifleman" } },
+      },
+    ),
   ).toEqual([
     expect.stringContaining('"rifleman_eastern" has faction looks of its own'),
     expect.stringContaining('us look "rifleman" has faction looks of its own'),

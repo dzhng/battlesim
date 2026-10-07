@@ -149,9 +149,9 @@ export const fetchedOnRequest = (entry: { unit: AppearanceUnit; regional_family?
 /** The appearances a catalog load takes: every one not fetched on request
  *  that is scenery, and of soldiers' and vehicles' art only what `wearing`
  *  names, the appearances a page's units wear (`UnitCatalog.appearances`),
- *  with each worn vehicle's own wreck and each worn soldier's faction looks. Without `wearing`, every unit's art: a
- *  tool judging all baked art. So a game page never fetches art only test
- *  or menu units wear. */
+ *  with each worn vehicle's own wreck and each worn soldier's faction
+ *  looks. Without `wearing`, every unit's art: a tool judging all baked art.
+ *  So a game page never fetches art only test or menu units wear. */
 export const catalogLoadNames = (
   catalog: Pick<RuntimeCatalog, "appearances">,
   wearing?: ReadonlySet<string>,
