@@ -16,7 +16,7 @@ export async function groundFilterAdmission(ctx) {
         import(file("apps/battle-lab/src/gameFog.ts")),
         import(file("apps/battle-lab/src/gameOverlay.ts")),
         import(file("apps/battle-lab/src/gameModels.ts")),
-        import(file("apps/battle-lab/src/scenarios.ts")),
+        import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("test")),
         import(file("fixtures/biomes/summer.json")),
         import("/src/wasm/game_wasm.js"),
         import(file("packages/renderer-core/src/gpuAllocations.ts")),
@@ -24,7 +24,7 @@ export async function groundFilterAdmission(ctx) {
     await wasm.default();
     const view = new wasm.WorldView(
       JSON.stringify({ size: [32, 32], height_grid_m: 4, fog_cell_m: 8, slope_cutoff_deg: 35 }),
-      JSON.stringify(rules.GAME_RULES),
+      JSON.stringify(rules.rules),
     );
     const adapter = await navigator.gpu.requestAdapter();
     const device = await adapter.requestDevice();
@@ -42,7 +42,7 @@ export async function groundFilterAdmission(ctx) {
       buildings: models.gameBuildingStyle,
       world: mesh.buildWorldLayers(
         mesh.readWorldExports(view),
-        JSON.parse(wasm.world_layout(JSON.stringify(rules.GAME_RULES))),
+        JSON.parse(wasm.world_layout(JSON.stringify(rules.rules))),
         biome.default,
         "surface",
       ),

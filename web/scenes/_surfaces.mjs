@@ -18,7 +18,7 @@ export async function surfaceExportAgreement(ctx) {
         import(terrainPath),
         import(file("packages/battle-renderer/src/terrain/surfaceField.ts")),
         import(file("packages/battle-renderer/src/worldMesh.ts")),
-        import(file("apps/battle-lab/src/scenarios.ts")),
+        import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("test")),
         import(file("fixtures/biomes/summer.json")),
         import("/src/wasm/game_wasm.js"),
         import(file("packages/renderer-core/src/gpuAllocations.ts")),
@@ -63,7 +63,7 @@ export async function surfaceExportAgreement(ctx) {
         ]),
       ],
     };
-    const view = new wasm.WorldView(JSON.stringify(map), JSON.stringify(rules.GAME_RULES));
+    const view = new wasm.WorldView(JSON.stringify(map), JSON.stringify(rules.rules));
     const adapter = await navigator.gpu.requestAdapter();
     const device = await adapter.requestDevice();
     const live = allocations.trackGpuAllocations(device);
@@ -102,7 +102,7 @@ export async function surfaceExportAgreement(ctx) {
     let rows;
     try {
       const exported = mesh.readWorldExports(view);
-      const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules.GAME_RULES)));
+      const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules.rules)));
       const interiorRow = terrain.roadLooks(biome.default)[layout.surfaceAreaKinds.indexOf("road")]
         .join.y;
       const world = mesh.buildWorldLayers(exported, layout, biome.default, "surface");

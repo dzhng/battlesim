@@ -35,7 +35,7 @@ export async function surfaceFieldAgreement(ctx) {
       import(file("packages/battle-renderer/src/terrain/terrainSurface.ts")),
       import(file("packages/battle-renderer/src/worldMesh.ts")),
       import(file("web/tests/surfaceGrounds.ts")),
-      import(file("apps/battle-lab/src/scenarios.ts")),
+      import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("test")),
       import(file("fixtures/biomes/summer.json")),
       import("/src/wasm/game_wasm.js"),
       import(file("packages/renderer-core/src/gpuAllocations.ts")),
@@ -55,11 +55,11 @@ export async function surfaceFieldAgreement(ctx) {
     const POINTS = 4000;
     const view = new wasm.WorldView(
       JSON.stringify(grounds.CURATED_GROUND),
-      JSON.stringify(rules.GAME_RULES),
+      JSON.stringify(rules.rules),
     );
     const grown = [];
     try {
-      const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules.GAME_RULES)));
+      const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules.rules)));
       const cases = [
         [
           "every shape",

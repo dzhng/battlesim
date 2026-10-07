@@ -379,9 +379,9 @@ const generatedGround = (page) =>
     async (repo) => {
       if (window.__generatedGround) return;
       const file = (p) => `/@fs/${repo}${p}`;
-      const [wasm, { GAME_RULES }, mesh, biome, presets, templates] = await Promise.all([
+      const [wasm, { rules: labRules }, mesh, biome, presets, templates] = await Promise.all([
         import("/src/wasm/game_wasm.js"),
-        import(file("apps/battle-lab/src/scenarios.ts")),
+        import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("test")),
         import(file("packages/battle-renderer/src/worldMesh.ts")),
         import(file("fixtures/biomes/summer.json")),
         import(file("fixtures/map-presets.json?raw")),
@@ -394,11 +394,11 @@ const generatedGround = (page) =>
           JSON.stringify(request),
           presets.default,
           templates.default,
-          JSON.stringify(GAME_RULES),
+          JSON.stringify(labRules),
         ),
       );
       if (outcome.status !== "ok") throw new Error(JSON.stringify(outcome.diagnostics));
-      const rules = JSON.stringify(GAME_RULES);
+      const rules = JSON.stringify(labRules);
       const view = new wasm.WorldView(JSON.stringify(outcome.result.map), rules);
       try {
         window.__generatedGround = {
