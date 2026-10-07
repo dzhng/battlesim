@@ -152,7 +152,6 @@ function setup() {
       ]),
     ),
     defaults: {},
-    units: {},
     impacts: {},
     effects: {},
   };

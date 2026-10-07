@@ -200,14 +200,12 @@ export function firefightScript(): Script {
     const shooters: EffectShooter[] = [
       {
         key: BLUE_SQUAD.key,
-        kind: "rifle",
         position: squadAt[0],
         half: null,
         yaw: 0,
         members: BLUE_SQUAD.members,
         mounts: [
           {
-            name: "rifles",
             bearing: 0.5,
             elevation: 0,
             shots: rifleShots[0],
@@ -218,14 +216,12 @@ export function firefightScript(): Script {
       },
       {
         key: RED_TANK.key,
-        kind: "tank",
         position: RED_TANK.at,
         half: [3.5, 1.8, 1.2],
         yaw: Math.PI,
         members: [],
         mounts: [
           {
-            name: "cannon",
             bearing: Math.PI + 0.55,
             elevation: 0,
             shots: tankShots[0],
@@ -233,7 +229,6 @@ export function firefightScript(): Script {
             muzzle: CANNON,
           },
           {
-            name: "HMG",
             bearing: Math.PI + 0.6,
             elevation: 0,
             shots: tankShots[1],
@@ -244,14 +239,12 @@ export function firefightScript(): Script {
       },
       {
         key: BLUE_TANK.key,
-        kind: "tank",
         position: blueTankAt(s),
         half: [3.5, 1.8, 1.2],
         yaw: 0,
         members: [],
         mounts: [
           {
-            name: "guided",
             bearing: 0.55,
             elevation: 0.05,
             shots: blueTankShots[0],
@@ -293,7 +286,7 @@ export function firefightMotion(s: number): SoundMotion {
     vehicles: [
       {
         key: BLUE_TANK.key,
-        kind: "tank",
+        vehicleClass: "tracked_heavy",
         position: at,
         travelL: rolled,
         travelR: rolled,
@@ -301,7 +294,7 @@ export function firefightMotion(s: number): SoundMotion {
       },
       {
         key: RED_TANK.key,
-        kind: "tank",
+        vehicleClass: "tracked_heavy",
         position: RED_TANK.at,
         travelL: 0,
         travelR: 0,
@@ -436,7 +429,7 @@ export async function battleScaleCost(
   }));
   const vehicles = Array.from({ length: 40 }, (_, i) => ({
     key: 1000 + i,
-    kind: ["tank", "supply", "jeep"][i % 3],
+    vehicleClass: ["tracked_heavy", "wheeled_medium_logistics", "wheeled_light"][i % 3],
     position: [i * 10 - 200, 80, 0],
     travelL: 0,
     travelR: 0,
@@ -460,14 +453,12 @@ export async function battleScaleCost(
         smokes: [],
         shooters: soldiers.map((x) => ({
           key: sideKey(x.id, "blue", "blue"),
-          kind: "rifle",
           position: x.position,
           half: null,
           yaw: 0,
           members: [x.id],
           mounts: [
             {
-              name: "rifles",
               bearing: 0,
               elevation: 0,
               shots: Math.floor((tick + x.id) / 15),
@@ -510,12 +501,11 @@ async function renderShot(
   const key = sideKey(1, "blue", "blue");
   const shooter = (shots: number): EffectShooter => ({
     key,
-    kind: "rifle",
     position: at,
     half: null,
     yaw: 0,
     members: [20],
-    mounts: [{ name: "rifles", bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
+    mounts: [{ bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
   });
   const fireTick = tickAt(0.2);
   for (let tick = 1; tick <= tickAt(seconds); tick++) {

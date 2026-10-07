@@ -42,32 +42,15 @@ async function fixture() {
       ]),
     ),
     defaults: {},
-    units: {},
     impacts: {},
     effects: {},
   };
   const text = JSON.stringify(baseline); // Preserve unformatted bytes on no-op.
   await writeFile(join(root, "fixtures/sounds.json"), text);
   await writeFile(
-    join(root, "fixtures/catalog.json"),
-    JSON.stringify({
-      units: [
-        {
-          id: "alpha",
-          name: "Alpha",
-          mounts: [
-            { name: "rifle", weapons: ["rifle"] },
-            { name: "rifle", weapons: ["rifle"] },
-          ],
-        },
-        { id: "bravo", name: "Bravo", mounts: [{ name: "rifle", weapons: ["rifle"] }] },
-      ],
-    }),
-  );
-  await writeFile(
     join(root, "fixtures/game.json"),
     JSON.stringify({
-      weapons: { rifle: {} },
+      weapons: { rifle: { speed_mps: 900 }, carbine: { extends: "rifle", speed_mps: 850 } },
       presentation: {
         audio: {
           shots: {
@@ -78,6 +61,7 @@ async function fixture() {
             ground: { sound: "impact_ground", gain: 0.2 },
             hull: { sound: "impact_hull", gain: 0.4 },
           },
+          vehicles: {},
         },
       },
     }),
@@ -112,23 +96,24 @@ async function fixture() {
   return { root, text, store, request };
 }
 
-test("HTTP preview is read-only; reviewed save keeps same-weapon unit assignments independent", async () => {
+test("HTTP preview is read-only; a reviewed save gives a derived weapon row its own choice", async () => {
   const { root, text, request } = await fixture();
   const initial = (await request("snapshot")).body;
-  expect(initial.units[0].mounts).toEqual([{ name: "rifle", weapons: ["rifle"], count: 2 }]);
+  // The snapshot carries each row's lineage, not the rest of its row.
+  expect(initial.weapons).toEqual({ rifle: {}, carbine: { extends: "rifle" } });
   const catalog: SoundCatalog = structuredClone(initial.catalog);
-  catalog.units.alpha = { rifle: { near: "hmg", far: "hmg_far", gain: 0.7 } };
+  catalog.defaults.carbine = { near: "hmg", far: "hmg_far", gain: 0.7 };
   const preview = await request("preview", { revision: initial.revision, catalog });
   expect(preview.status).toBe(200);
   expect(await readFile(join(root, "fixtures/sounds.json"), "utf8")).toBe(text);
-  expect(preview.body.files[0].after).toContain('"alpha"');
+  expect(preview.body.files[0].after).toContain('"carbine"');
   expect(
     (await request("save", { candidateId: preview.body.candidateId, revision: initial.revision }))
       .status,
   ).toBe(200);
   const saved = (await request("snapshot")).body;
-  expect(saved.catalog.units.alpha.rifle.near).toBe("hmg");
-  expect(saved.catalog.units.bravo).toBeUndefined();
+  expect(saved.catalog.defaults.carbine.near).toBe("hmg");
+  expect(saved.catalog.defaults.rifle).toBeUndefined();
   expect(
     (await request("save", { candidateId: preview.body.candidateId, revision: initial.revision }))
       .status,
@@ -161,10 +146,10 @@ test("HTTP refuses invalid identity, malformed clips, changed baselines and clie
   const snapshot = (await request("snapshot")).body;
   for (const mutate of [
     (c: SoundCatalog) => {
-      c.units.unknown = { rifle: { near: "rifle", far: "rifle_far", gain: 1 } };
-    },
-    (c: SoundCatalog) => {
-      c.units.alpha = { unknown: { near: "rifle", far: "rifle_far", gain: 1 } };
+      // A per-unit override the game no longer reads.
+      Object.assign(c, {
+        units: { alpha: { rifle: { near: "rifle", far: "rifle_far", gain: 1 } } },
+      });
     },
     (c: SoundCatalog) => {
       c.defaults.unknown = { near: "rifle", far: "rifle_far", gain: 1 };
@@ -293,7 +278,7 @@ test("unused clean media is admitted, firing rejects reloads, and changed clip b
   const initial = (await request("snapshot")).body;
   expect(initial.catalog.clips.reload.label).toBe("Unused reload");
   const invalid = structuredClone(initial.catalog);
-  invalid.units.alpha = { rifle: { near: "reload", far: "reload", gain: 1 } };
+  invalid.defaults.rifle = { near: "reload", far: "reload", gain: 1 };
   expect((await request("preview", { revision: initial.revision, catalog: invalid })).status).toBe(
     400,
   );

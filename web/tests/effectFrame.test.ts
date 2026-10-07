@@ -250,24 +250,20 @@ const segment = (path: [number, number, number][], s: Partial<EffectSegment> = {
 
 const squad = (key: number, members: number[], shots: number): EffectShooter => ({
   key,
-  kind: "rifle",
   position: [0, 0, 0],
   half: null,
   yaw: 0,
   members,
-  mounts: [{ name: "rifle", bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
+  mounts: [{ bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
 });
 
 const tank = (key: number, shots: number): EffectShooter => ({
   key,
-  kind: "tank",
   position: [100, 50, 0],
   half: [3.5, 1.8, 1.2],
   yaw: 0,
   members: [],
-  mounts: [
-    { name: "cannon", bearing: Math.PI / 2, elevation: 0, shots, kind: "tank_ap", muzzle: CANNON },
-  ],
+  mounts: [{ bearing: Math.PI / 2, elevation: 0, shots, kind: "tank_ap", muzzle: CANNON }],
 });
 
 /** The instances drawn at `clock`, one record each. */
@@ -391,14 +387,13 @@ test("a tank's roof HMG flashes at its own muzzle, turned away from the cannon",
   const [yaw, back] = [0.3, 0.3 + Math.PI];
   const hmgTank = (shots: number): EffectShooter => ({
     key: 2,
-    kind: "tank",
     position: [100, 50, 0],
     half: [3.5, 1.8, 1.2],
     yaw,
     members: [],
     mounts: [
-      { name: "cannon", bearing: yaw, elevation: 0, shots: 0, kind: "tank_ap", muzzle: CANNON },
-      { name: "HMG", bearing: back, elevation: 0, shots, kind: "hmg", muzzle: HMG },
+      { bearing: yaw, elevation: 0, shots: 0, kind: "tank_ap", muzzle: CANNON },
+      { bearing: back, elevation: 0, shots, kind: "hmg", muzzle: HMG },
     ],
   });
   const f = frame();

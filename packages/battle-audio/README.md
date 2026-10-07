@@ -41,10 +41,13 @@ volume adjustments. Silence stays silent.
 Mixed loops repeat each layer at its own period and crossfade the resulting seam;
 a shorter layer never creates a silent gap in the longer loop.
 
-Assignments identify an exact unit type and an authored mount name. Equivalent
-physical mounts share their named equipment choice. The unit catalog owns the
-roster; the audio catalog does not resolve inheritance. Hull launch evidence
-identifies the mount rather than its currently selected ammunition.
+Firing choices are keyed by weapon row, never by unit. The audio catalog does not
+resolve inheritance: the battle lab gives a derived row without a choice of its own
+its nearest ancestor's (`inheritRows`, as for every weapon-keyed presentation table),
+else the `default` row's. A hull's launch is heard as its mount's first weapon row,
+not its currently selected ammunition. Vehicle loops are keyed by vehicle class
+(`vehicleClass` in `scene-assets/src/units.ts`), derived from mobility, hull
+weight and the logistics role.
 
 The [sound workbench](../../apps/sound-workbench/README.md) auditions the complete
 library, including unused reloads and mechanical actions. Storing a clip does not

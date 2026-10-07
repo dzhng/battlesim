@@ -81,13 +81,11 @@ function shooter(
   const half = units.hull(kind)?.half_extents_m ?? null;
   return {
     key,
-    kind,
     position,
     half,
     yaw,
     members,
     mounts: poses.map((p) => ({
-      name: mounts[p.mount].name,
       bearing: p.bearing,
       elevation: p.elevation,
       shots: p.shots,

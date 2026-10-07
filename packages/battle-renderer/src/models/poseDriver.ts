@@ -30,7 +30,7 @@ import {
   type Articulation,
 } from "@packages/scene-assets/src/articulation";
 import type { Side } from "@packages/scene-assets/src/schema";
-import type { MountRole, UnitCatalog } from "@packages/scene-assets/src/units";
+import { vehicleClass, type MountRole, type UnitCatalog } from "@packages/scene-assets/src/units";
 import { sideKey } from "../sideKey";
 
 export type Posture = "stand" | "kneel" | "prone";
@@ -224,8 +224,8 @@ export interface PoseFeel {
     recoil_m: number;
     recoil_return_s: number;
   };
-  /** Each vehicle type's running-gear half gauge, as a share of its hull's
-   *  half width; 1 when absent. */
+  /** Each vehicle class's (`vehicleClass`) running-gear half gauge, as a
+   *  share of its hull's half width; 1 when absent. */
   gauge: Partial<Record<string, number>>;
   /** How many of the fallen lie drawn at once. Past `max` the oldest sinks
    *  `sink_m` into the ground over `fade_s` seconds, easing in, and is then
@@ -428,10 +428,12 @@ export class PoseDriver {
   constructor(private readonly options: PoseDriverOptions) {}
 
   /** Half the distance between a vehicle type's tracks or wheel rows: its
-   *  hull's half width by its `presentation.pose.gauge` share. */
+   *  hull's half width by its class's `presentation.pose.gauge` share. */
   private halfTrack(kind: string): number {
     const hull = this.options.units.hull(kind);
-    return hull ? hull.half_extents_m[1] * (this.options.feel.gauge[kind] ?? 1) : 0;
+    if (!hull) return 0;
+    const cls = vehicleClass(this.options.units.type(kind));
+    return hull.half_extents_m[1] * ((cls ? this.options.feel.gauge[cls] : undefined) ?? 1);
   }
 
   /** Forget everything: the next frame starts fresh, as if first seen. */

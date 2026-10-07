@@ -18,7 +18,7 @@ import {
 } from "@packages/battle-renderer/src/models/poseDriver";
 import { gamePose as FEEL } from "@apps/battle-lab/src/poseFeed";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
-import { UnitCatalog } from "@packages/scene-assets/src/units";
+import { UnitCatalog, vehicleClass } from "@packages/scene-assets/src/units";
 import { shippedMounts } from "./shippedMounts";
 
 const REST = FEEL.rest;
@@ -36,8 +36,9 @@ const CLIPS: Record<string, { duration: number; loop: boolean; stride_m: number 
   death: { duration: 2, loop: false, stride_m: null },
 };
 
-/** Half the tank's track gauge: its hull's half width by its gauge share. */
-const HALF_TRACK = UNITS.hull("tank")!.half_extents_m[1] * (FEEL.gauge.tank ?? 1);
+/** Half the tank's track gauge: its hull's half width by its class's gauge share. */
+const HALF_TRACK =
+  UNITS.hull("tank")!.half_extents_m[1] * (FEEL.gauge[vehicleClass(UNITS.type("tank"))!] ?? 1);
 
 const driver = () =>
   new PoseDriver({
@@ -369,7 +370,9 @@ test("presentation.pose is checked: a run no faster than a walk, or a gauge past
   expect(() =>
     validatePoseFeel({ ...FEEL, gait: { ...FEEL.gait, run_mps: FEEL.gait.walk_mps } }),
   ).toThrow(/gait\.run_mps/);
-  expect(() => validatePoseFeel({ ...FEEL, gauge: { tank: 1.2 } })).toThrow(/gauge\.tank/);
+  expect(() => validatePoseFeel({ ...FEEL, gauge: { tracked_heavy: 1.2 } })).toThrow(
+    /gauge\.tracked_heavy/,
+  );
   expect(() =>
     validatePoseFeel({ ...FEEL, stance: { fire_prone: 0.6, fire_stand: 0.5, pinned_kneel: 0 } }),
   ).toThrow(/stance/);

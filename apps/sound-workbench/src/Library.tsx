@@ -25,12 +25,8 @@ export function Library({
     activeRow.current?.scrollIntoView({ block: "nearest" });
   }, [selected, filter]);
   const matches = (text: string) => text.toLowerCase().includes(search.toLowerCase());
-  const firing = [
-    ...Object.values(draft.defaults),
-    ...Object.values(draft.units).flatMap((mounts) => Object.values(mounts)),
-  ];
   const assigned = new Set([
-    ...firing.flatMap((choice) => [choice.near, choice.far]),
+    ...Object.values(draft.defaults).flatMap((choice) => [choice.near, choice.far]),
     ...Object.values(draft.impacts).flatMap((rounds) => Object.values(rounds)),
     ...Object.values(draft.effects),
   ]);

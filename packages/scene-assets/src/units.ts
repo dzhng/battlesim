@@ -249,6 +249,17 @@ export function mountRoles(
   return type.mounts.map((m) => (hull && draws?.[m.name]) || "hand");
 }
 
+/** A vehicle's presentation class, derived from its physics: how it moves,
+ *  its hull's weight class, and `_logistics` for a supply hauler (a truck),
+ *  as `tracked_heavy` or `wheeled_medium_logistics`. Vehicle sound and
+ *  track gauge are keyed by it, never by unit id. Null for a squad. */
+export function vehicleClass(type: Pick<UnitType, "body" | "mobility" | "roles">): string | null {
+  if (!("hull" in type.body) || "foot" in type.mobility) return null;
+  const moves = "tracked" in type.mobility ? "tracked" : "wheeled";
+  const hauls = type.roles.includes("logistics") ? "_logistics" : "";
+  return `${moves}_${type.body.hull.weight_class}${hauls}`;
+}
+
 export class UnitCatalog {
   private readonly byId: Map<string, UnitType>;
 

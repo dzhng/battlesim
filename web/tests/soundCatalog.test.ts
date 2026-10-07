@@ -19,37 +19,30 @@ const catalog = (): SoundCatalog => ({
     hmg: { label: "Synth HMG", clips: [], synth: "hmg", synth_gain: 1, gain: 1, loop: false },
   },
   defaults: {},
-  units: {},
   impacts: {},
   effects: {},
 });
 
-test("two unit types sharing one weapon can select different firing sounds", () => {
+test("a weapon row's own firing choice wins over the global default", () => {
   const c = catalog();
-  c.units.tank = { HMG: { near: "hmg", far: "hmg", gain: 0.8 } };
-  c.units.jeep = { HMG: { near: "rifle", far: "rifle", gain: 0.7 } };
+  c.defaults.default = { near: "rifle", far: "rifle", gain: 0.7 };
+  c.defaults.hmg = { near: "hmg", far: "hmg", gain: 0.8 };
   const base = { near: "rifle", far: "rifle", gain: 0.5, far_m: 350 };
-  expect(resolveShot(c, base, "tank", "HMG", "hmg")).toEqual({
-    near: "hmg",
-    far: "hmg",
-    gain: 0.4,
-    far_m: 350,
-  });
-  expect(resolveShot(c, base, "jeep", "HMG", "hmg")).toEqual({
-    near: "rifle",
-    far: "rifle",
-    gain: 0.35,
-    far_m: 350,
-  });
+  expect(resolveShot(c, base, "hmg")).toEqual({ near: "hmg", far: "hmg", gain: 0.4, far_m: 350 });
   expect(validateSoundCatalog(c)).toBe(c);
+});
+
+test("a catalog with a section the game no longer reads is refused, not ignored", () => {
+  const c = { ...catalog(), units: { jeep: { HMG: { near: "hmg", far: "hmg", gain: 1 } } } };
+  expect(() => validateSoundCatalog(c)).toThrow(/units/);
 });
 
 test("an unassigned weapon follows the editable global default before the synth baseline", () => {
   const c = catalog();
   const base = { near: "hmg", far: "hmg", gain: 0.5, far_m: 350 };
-  expect(resolveShot(c, base, "new-unit", "new-mount", "new-kind")).toEqual(base);
+  expect(resolveShot(c, base, "new-kind")).toEqual(base);
   c.defaults.default = { near: "rifle", far: "rifle", gain: 0.6 };
-  expect(resolveShot(c, base, "new-unit", "new-mount", "new-kind")).toEqual({
+  expect(resolveShot(c, base, "new-kind")).toEqual({
     near: "rifle",
     far: "rifle",
     gain: 0.3,
@@ -147,14 +140,14 @@ test("a firing sound's alternatives and near/far pair cover the same rounds", ()
   });
   c.sounds.burst = recipe(["three", "alt"]);
   c.sounds.single = recipe(["one"]);
-  c.units.gunner = { rifle: { near: "burst", far: "burst", gain: 1 } };
+  c.defaults.rifle = { near: "burst", far: "burst", gain: 1 };
   expect(validateSoundCatalog(c)).toBe(c);
   expect(firingCadence(c, "burst")).toEqual({ shots: 3, interval_s: 0.1 });
   expect(firingCadence(c, "single").shots).toBe(1);
 
-  c.units.gunner.rifle.far = "single";
+  c.defaults.rifle.far = "single";
   expect(() => validateSoundCatalog(c)).toThrow(/near and far/);
-  c.units.gunner.rifle.far = "burst";
+  c.defaults.rifle.far = "burst";
   c.sounds.burst.clips = ["three", "one"];
   expect(() => validateSoundCatalog(c)).toThrow(/different bursts/);
   c.sounds.burst.clips = ["three"];
@@ -168,27 +161,16 @@ test("every shipped burst recording fires at its gun's cadence and divides its b
     string,
     { magazine: { shot_interval_s: number; burst: { rounds: number } | null } | null }
   >;
-  const assigned = [
-    // `default` names no weapon: it is the fallback for a kind without a row.
-    ...Object.entries(sounds.defaults)
-      .filter(([kind]) => kind !== "default")
-      .map(([kind, choice]) => ({ kinds: [kind], choice })),
-    ...units.units.flatMap((unit) =>
-      unit.mounts
-        .filter((mount) => sounds.units[unit.id]?.[mount.name])
-        .map((mount) => ({ kinds: mount.weapons, choice: sounds.units[unit.id][mount.name] })),
-    ),
-  ];
   let bursts = 0;
-  for (const { kinds, choice } of assigned) {
+  for (const [kind, choice] of Object.entries(sounds.defaults)) {
+    // `default` names no weapon: it is the fallback for a kind without a row.
+    if (kind === "default") continue;
     const burst = firingCadence(sounds, choice.near);
     if (burst.shots === 1) continue;
     bursts++;
-    for (const kind of kinds) {
-      const magazine = weapons[kind]?.magazine;
-      expect(magazine?.shot_interval_s, `${choice.near} on ${kind}`).toBe(burst.interval_s);
-      expect((magazine?.burst?.rounds ?? 1) % burst.shots, `${choice.near} on ${kind}`).toBe(0);
-    }
+    const magazine = weapons[kind]?.magazine;
+    expect(magazine?.shot_interval_s, `${choice.near} on ${kind}`).toBe(burst.interval_s);
+    expect((magazine?.burst?.rounds ?? 1) % burst.shots, `${choice.near} on ${kind}`).toBe(0);
   }
   expect(bursts).toBeGreaterThan(0);
 });
@@ -255,7 +237,7 @@ test("a battle prepares the baselines and what is assigned, not the audition-onl
   const recipe = { label: "r", clips: [], synth: "rifle", synth_gain: 0.5, gain: 1, loop: false };
   for (const name of ["near", "far", "fallback", "hit", "glance", "replacement", "unused"])
     c.sounds[name] = { ...recipe };
-  c.units.scout = { rifle: { near: "near", far: "far", gain: 1 } };
+  c.defaults.rifle = { near: "near", far: "far", gain: 1 };
   c.defaults.default = { near: "fallback", far: "fallback", gain: 1 };
   c.impacts = { hull: { rifle: "hit" }, ricochet: { tank_ap: "glance" } };
   c.effects = { ricochet: "replacement" };

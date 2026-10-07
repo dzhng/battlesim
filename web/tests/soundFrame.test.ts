@@ -79,7 +79,6 @@ function setup() {
         clips: {},
         sounds: {},
         defaults: {},
-        units: {},
         impacts: {},
         effects: {},
       },
@@ -93,12 +92,11 @@ function setup() {
 
 const squad = (key: number, member: number, at: number[], shots: number): EffectShooter => ({
   key,
-  kind: "rifle",
   position: at,
   half: null,
   yaw: 0,
   members: [member],
-  mounts: [{ name: "rifle", bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
+  mounts: [{ bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
 });
 
 /** A publication where each shooter's one soldier fires a new round at tick `tick`. */
@@ -200,7 +198,7 @@ test("the voice budget holds in a 100-a-side firefight, loudest first", () => {
   }));
   const vehicles = Array.from({ length: 40 }, (_, i) => ({
     key: 1000 + i,
-    kind: i % 3 === 0 ? "tank" : i % 3 === 1 ? "supply" : "jeep",
+    vehicleClass: ["tracked_heavy", "wheeled_medium_logistics", "wheeled_light"][i % 3],
     position: [i * 8 - 160, 60, 1],
     travelL: 0,
     travelR: 0,
@@ -234,7 +232,7 @@ test("a standing clock silences transients and holds loops; it plays on after", 
   const { sink, frame } = setup();
   const tank = {
     key: 1,
-    kind: "tank",
+    vehicleClass: "tracked_heavy",
     position: [20, 20, 1],
     travelL: 0,
     travelR: 0,
@@ -368,18 +366,17 @@ test("distance never takes a heard sound below the floor, and falls steadily to 
   expect(distanceGain(AUDIO, 0)).toBe(1);
 });
 
-test("unit and named mount choices change reports without changing observed cadence or hidden cues", () => {
+test("weapon row choices change reports without changing observed cadence or hidden cues", () => {
   const catalog = {
     sources: {},
     clips: {},
     sounds: {},
-    defaults: {},
+    defaults: {
+      carbine: { near: "crisp", far: "crisp_far", gain: 0.8 },
+      battle_rifle: { near: "heavy", far: "heavy_far", gain: 1 },
+    },
     impacts: {},
     effects: {},
-    units: {
-      scout: { rifle: { near: "crisp", far: "crisp_far", gain: 0.8 } },
-      assault: { rifle: { near: "heavy", far: "heavy_far", gain: 1 } },
-    },
   };
   const sink = new FakeSink();
   const frame = new SoundFrame(
@@ -397,13 +394,13 @@ test("unit and named mount choices change reports without changing observed cade
     4,
     (tick) => {
       const pub = firefight(tick, shooters);
+      const weapon = (i: number) => (i ? "battle_rifle" : "carbine");
       return {
         ...pub,
-        segments: pub.segments.map((s) => ({ ...s, hit: "none" })),
+        segments: pub.segments.map((s, i) => ({ ...s, kind: weapon(i), hit: "none" })),
         shooters: pub.shooters.map((s, i) => ({
           ...s,
-          kind: i ? "assault" : "scout",
-          mounts: s.mounts.map((m) => ({ ...m, name: "rifle" })),
+          mounts: s.mounts.map((m) => ({ ...m, kind: weapon(i) })),
         })),
       };
     },
@@ -419,7 +416,7 @@ test("unit and named mount choices change reports without changing observed cade
   );
 });
 
-/** One rifleman of `kind` at the origin, firing a round on each of `ticks`. */
+/** One rifleman with weapon row `kind` at the origin, firing a round on each of `ticks`. */
 function rifleman(kind: string, ticks: readonly number[]) {
   return (tick: number): EffectPublication => {
     const pub = firefight(tick, [{ key: 2, at: [0, 0, 1] }]);
@@ -427,11 +424,14 @@ function rifleman(kind: string, ticks: readonly number[]) {
       ...pub,
       shooters: pub.shooters.map((s) => ({
         ...s,
-        kind,
-        mounts: s.mounts.map((m) => ({ ...m, shots: ticks.filter((t) => t <= tick).length })),
+        mounts: s.mounts.map((m) => ({
+          ...m,
+          kind,
+          shots: ticks.filter((t) => t <= tick).length,
+        })),
       })),
       // A squad's round leaves its muzzle on the tick after the one that fired it.
-      segments: ticks.includes(tick - 1) ? pub.segments : [],
+      segments: ticks.includes(tick - 1) ? pub.segments.map((s) => ({ ...s, kind })) : [],
     };
   };
 }
@@ -448,13 +448,12 @@ test("a burst recording sounds once per burst, its shots on the gun's launches",
     sources: {},
     clips: { three: clip(3) },
     sounds: { burst: recipe("three"), burst_far: recipe("three") },
-    defaults: {},
+    defaults: {
+      gunner: { near: "burst", far: "burst_far", gain: 1 },
+      marksman: { near: "single", far: "single_far", gain: 1 },
+    },
     impacts: {},
     effects: {},
-    units: {
-      gunner: { rifle: { near: "burst", far: "burst_far", gain: 1 } },
-      marksman: { rifle: { near: "single", far: "single_far", gain: 1 } },
-    },
   } as unknown as SoundCatalog;
   const heard = (kind: string, ticks: number[]) => {
     const sink = new FakeSink();
@@ -479,17 +478,14 @@ test("a burst recording sounds once per burst, its shots on the gun's launches",
   expect(heard("gunner", [10, 13, 18])).toEqual([11, 19]);
 });
 
-test("separate named mounts preserve explicit recipes while implicit impacts follow shared replacements", () => {
+test("a hull's mounts keep their weapons' explicit recipes while implicit impacts follow shared replacements", () => {
   const catalog = {
     sources: {},
     clips: {},
     sounds: {},
-    defaults: {},
-    units: {
-      tank: {
-        cannon: { near: "cannon", far: "cannon_far", gain: 1 },
-        HMG: { near: "roof_report", far: "roof_far", gain: 1 },
-      },
+    defaults: {
+      tank_ap: { near: "cannon", far: "cannon_far", gain: 1 },
+      hmg: { near: "roof_report", far: "roof_far", gain: 1 },
     },
     impacts: { ground: { hmg: "dirt_hit" } },
     effects: { cannon: "recorded_cannon", rifle: "recorded_rifle", impact_hull: "hard_hit" },
@@ -504,21 +500,19 @@ test("separate named mounts preserve explicit recipes while implicit impacts fol
     shooters: [
       {
         key: 2,
-        kind: "tank",
         half: [3, 1, 1],
         position: [0, 0, 1],
         yaw: 0,
         members: [],
         mounts: [
           {
-            name: "cannon",
             bearing: 0,
             elevation: 0,
             shots: tick - 1,
             kind: "tank_ap",
             muzzle: null,
           },
-          { name: "HMG", bearing: 0, elevation: 0, shots: tick - 1, kind: "hmg", muzzle: null },
+          { bearing: 0, elevation: 0, shots: tick - 1, kind: "hmg", muzzle: null },
         ],
       },
     ],
@@ -567,7 +561,6 @@ test("a glancing round's ricochet follows its kind, heavier rounds louder", () =
     clips: {},
     sounds: {},
     defaults: {},
-    units: {},
     impacts: { ricochet: { tank_ap: "shell_glance" } },
     effects: { ricochet: "bullet_glance" },
   } as unknown as SoundCatalog;

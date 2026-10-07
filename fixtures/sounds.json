@@ -4948,58 +4948,6 @@
       "gain": 1
     }
   },
-  "units": {
-    "at": {
-      "rifles": {
-        "near": "rifle-combat",
-        "far": "rifle-combat-distant",
-        "gain": 1
-      },
-      "ATGM launcher": {
-        "near": "recorded-launch",
-        "far": "recorded-launch-distant",
-        "gain": 1
-      }
-    },
-    "jeep": {
-      "HMG": {
-        "near": "hmg-combat",
-        "far": "hmg-combat-distant",
-        "gain": 1
-      }
-    },
-    "recon": {
-      "rifles": {
-        "near": "recon-rifle",
-        "far": "recon-rifle-distant",
-        "gain": 1
-      }
-    },
-    "rifle": {
-      "rifles": {
-        "near": "rifle-combat",
-        "far": "rifle-combat-distant",
-        "gain": 1
-      },
-      "grenade launcher": {
-        "near": "grenade-combat",
-        "far": "grenade-combat-distant",
-        "gain": 1
-      }
-    },
-    "tank": {
-      "cannon": {
-        "near": "recorded-cannon",
-        "far": "recorded-cannon-distant",
-        "gain": 1
-      },
-      "HMG": {
-        "near": "hmg-bass",
-        "far": "hmg-bass-distant",
-        "gain": 1
-      }
-    }
-  },
   "impacts": {
     "ground": {
       "default": "recorded-ground-small",
