@@ -44,6 +44,7 @@ mod road_journeys;
 mod route_planning;
 mod sensing;
 mod sight;
+mod sight_gaps;
 mod skirmish;
 mod soldier_bodies;
 mod supply;

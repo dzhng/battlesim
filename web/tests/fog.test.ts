@@ -178,6 +178,39 @@ test("a fallen building leaves fog's occluders and its known ruin takes its plac
   );
 });
 
+test("a crack between two walls is fog's as it is sight's, until either wall falls", () => {
+  // Two walls 0.6 m apart across x = 45: the gap between them is filled.
+  const wallAt = (x: number) => ({
+    kind: "wall",
+    center: [x, 50],
+    yaw: 0,
+    half_extents: [4.7, 5, 3],
+  });
+  const map = {
+    size: [120, 120],
+    fog_cell_m: 8,
+    height_grid_m: 4,
+    slope_cutoff_deg: 35,
+    props: [wallAt(45 - 0.3 - 4.7), wallAt(45 + 0.3 + 4.7)],
+  };
+  const { exports, layout } = staticWorld(map);
+  const all = knownOccluders(mapOccluders(exports, layout), []);
+  expect(all).toHaveLength(3);
+  expect(all.find((o) => Math.abs(o.x - 45) < 1e-3)).toMatchObject({ y: 50, base: 0, top: 6 });
+  // The side has seen the first wall fall: the crack is open again.
+  const fallen = {
+    kind: "ruin",
+    center: [40, 50] as const,
+    yaw: 0,
+    half: [4.7, 5, 1] as const,
+    baseZ: 0,
+    replaces: 0,
+    authoredProp: 0,
+  };
+  const after = knownOccluders(mapOccluders(exports, layout), [fallen]);
+  expect(after.some((o) => Math.abs(o.x - 45) < 1e-3 && o.top === 6)).toBe(false);
+});
+
 test("every eye of a garrison is its own fog eye, keyed by unit and eye index", () => {
   const eyes = fogEyes([
     {

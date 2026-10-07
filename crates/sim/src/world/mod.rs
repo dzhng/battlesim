@@ -6,6 +6,7 @@ mod carve;
 pub mod export;
 mod forest;
 mod props;
+mod sight_gaps;
 mod surfaces;
 mod terrain;
 
@@ -13,6 +14,7 @@ pub use forest::Foliage;
 use props::PropStore;
 pub(crate) use props::{ray_box, PropIndex};
 pub use props::{Prop, PropId, Slot};
+pub use sight_gaps::SightGap;
 use terrain::HeightField;
 
 use crate::math::{v2, v3, Obb2, V2, V3};
@@ -114,6 +116,8 @@ pub struct WorldGeometry {
     /// Props added, moved, removed or made known to all since
     /// [`Self::take_touched`] last emptied it.
     touched: Vec<PropId>,
+    /// The map's gaps too narrow to see through ([`sight_gaps`]).
+    sight_gaps: Arc<sight_gaps::SightGaps>,
 }
 
 impl WorldGeometry {
@@ -148,6 +152,7 @@ impl WorldGeometry {
             types: self.types.clone(),
             moved: Default::default(),
             touched: Vec::new(),
+            sight_gaps: Arc::clone(&self.sight_gaps),
         };
         snapshot.forest.reset_cleared();
         snapshot
@@ -244,6 +249,7 @@ impl WorldGeometry {
             types: rules.catalog.props().clone(),
             moved: Default::default(),
             touched: Vec::new(),
+            sight_gaps: Default::default(),
             field,
         };
         for (id, def) in &authored {
@@ -353,6 +359,12 @@ impl WorldGeometry {
         let mut authored = crate::digest::Digest::default();
         world.props().for_each(|p| digest_pose(&mut authored, p));
         world.authored_digest = authored.finish();
+        world.sight_gaps = Arc::new(sight_gaps::SightGaps::find(
+            world.props().filter(|p| p.body.occludes),
+            |center, radius| world.props_near(center, radius),
+            rules.sensors.min_sight_gap_m,
+            v2(world.width(), world.depth()),
+        ));
         world
     }
 
@@ -697,7 +709,16 @@ impl WorldGeometry {
     pub fn sight_clear(&self, a: V3, b: V3) -> bool {
         let d = b - a;
         let len = d.length();
-        len == 0.0 || !self.blocked_by(a, d * (1.0 / len), len, None, |b| b.occludes)
+        len == 0.0
+            || !(self.blocked_by(a, d * (1.0 / len), len, None, |b| b.occludes)
+                || self
+                    .sight_gaps
+                    .close(a, b, |id| self.prop(id).is_some_and(|p| p.body.occludes)))
+    }
+
+    /// The map's gaps too narrow to see through ([`sight_gaps::SightGaps`]).
+    pub fn sight_gaps(&self) -> impl Iterator<Item = &sight_gaps::SightGap> {
+        self.sight_gaps.iter()
     }
 
     /// Whether [`raycast_by`](Self::raycast_by) would hit anything, without

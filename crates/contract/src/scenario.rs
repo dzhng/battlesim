@@ -508,6 +508,10 @@ pub struct SensorRules {
     pub sound_bucket_s: f64,
     /// Height above ground tested for ground visibility.
     pub fog_target_height_m: f64,
+    /// Sight passes between two bodies that hide what lies behind them only
+    /// through a gap at least this wide: no one is seen through the crack
+    /// between two houses (`world::SightGaps`).
+    pub min_sight_gap_m: f64,
 }
 
 fn squad_identification_fraction() -> f64 {

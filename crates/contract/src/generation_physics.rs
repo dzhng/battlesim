@@ -1,7 +1,7 @@
 //! Physical inputs needed to construct a generated battlefield. The battle's
 //! existing rules supply them; generation never owns a second settings file.
 use crate::catalog::{Catalog, Mobility};
-use crate::scenario::{BodyRules, ForestRules, SensorRules};
+use crate::scenario::{BodyRules, ForestRules};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize)]
@@ -17,7 +17,14 @@ struct RuleFields {
     catalog: Catalog,
     forests: ForestRules,
     physics: BodyRules,
-    sensors: SensorRules,
+    sensors: GenerationSensors,
+}
+
+/// The one sensor field generation reads: the rest of the section (how
+/// units see) does not shape a battlefield.
+#[derive(Deserialize)]
+struct GenerationSensors {
+    fog_target_height_m: f64,
 }
 
 impl GenerationPhysics {

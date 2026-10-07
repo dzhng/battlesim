@@ -120,6 +120,9 @@ export interface FogOccluder {
 export interface MapOccluders {
   boxes: readonly FogOccluder[];
   ids: readonly number[];
+  /** The gaps too narrow to see through, each with the map prop ids of the
+   *  two bodies it lies between (`sim::world::SightGap`). */
+  gaps: readonly { box: FogOccluder; between: readonly [number, number] }[];
   /** The occluding prop kinds, for what a side learns. */
   occludes: ReadonlySet<string>;
 }
@@ -143,15 +146,35 @@ export function mapOccluders(exports: WorldExports, layout: WorldLayout): MapOcc
       top: props[r + at.baseZ] + 2 * props[r + at.hz],
     });
   }
-  return { boxes, ids, occludes };
+  const g = Object.fromEntries(layout.sightGapFields.map((f, i) => [f, i]));
+  const id = (lo: number, hi: number) => lo + hi * 2 ** layout.limbBits;
+  const rows = exports.sightGaps;
+  const gaps: { box: FogOccluder; between: [number, number] }[] = [];
+  for (let r = 0; r < rows.length; r += layout.sightGapStride) {
+    gaps.push({
+      box: {
+        x: rows[r + g.x],
+        y: rows[r + g.y],
+        yaw: rows[r + g.yaw],
+        hx: rows[r + g.hx],
+        hy: rows[r + g.hy],
+        base: rows[r + g.base],
+        top: rows[r + g.top],
+      },
+      between: [id(rows[r + g.aLo], rows[r + g.aHi]), id(rows[r + g.bLo], rows[r + g.bHi])],
+    });
+  }
+  return { boxes, ids, occludes, gaps };
 }
 
 /** The occluders a side knows stand: the static map's occluding props less
  *  the ones it has seen fall (the same box objects, so a change is found by
- *  identity: `fogAffectedEyes`), plus the learned props that occlude. */
+ *  identity: `fogAffectedEyes`), the gaps too narrow to see through while it
+ *  knows both their bodies stand, plus the learned props that occlude. */
 export function knownOccluders(map: MapOccluders, known: readonly KnownProp[]): FogOccluder[] {
   const fallen = new Set(known.flatMap((p) => (p.authoredProp === null ? [] : [p.authoredProp])));
   const out = fallen.size ? map.boxes.filter((_, i) => !fallen.has(map.ids[i])) : [...map.boxes];
+  for (const gap of map.gaps) if (!gap.between.some((id) => fallen.has(id))) out.push(gap.box);
   for (const p of known) {
     if (!map.occludes.has(p.kind) || p.destroyed) continue;
     out.push({
