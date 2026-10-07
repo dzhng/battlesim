@@ -13,7 +13,8 @@ import FogLook from "@apps/battle-lab/src/routes/fogLook";
 import { PointerPaint } from "@apps/battle-lab/src/pointerPaint";
 
 /** Views render under the test set, as a lab page provides it. */
-const render = (ui: Parameters<typeof renderView>[0]) => renderView(ui, { wrapper: WithTestCatalog });
+const render = (ui: Parameters<typeof renderView>[0]) =>
+  renderView(ui, { wrapper: WithTestCatalog });
 
 let session: ReturnType<typeof makeSession>;
 vi.mock("@apps/battle-lab/src/useBattleSession", () => ({ useBattleSession: () => session }));

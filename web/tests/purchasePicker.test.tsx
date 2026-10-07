@@ -6,7 +6,8 @@ import type { UnitCard } from "@packages/scene-assets/src/units";
 import type { SkirmishView } from "@web/battle/sim/observation";
 
 /** Views render under the test set, as a lab page provides it. */
-const render = (ui: Parameters<typeof renderView>[0]) => renderView(ui, { wrapper: WithTestCatalog });
+const render = (ui: Parameters<typeof renderView>[0]) =>
+  renderView(ui, { wrapper: WithTestCatalog });
 afterEach(cleanup);
 const card = (id: string, variant: string, reason: string | null = null): UnitCard => ({
   id,

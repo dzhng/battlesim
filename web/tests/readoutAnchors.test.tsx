@@ -9,7 +9,8 @@ import type { ContactView } from "../src/battle/sim/observation";
 import type { PanelRules } from "../src/battle/present/panelRows";
 
 /** Views render under the test set, as a lab page provides it. */
-const render = (ui: Parameters<typeof renderView>[0]) => renderView(ui, { wrapper: WithTestCatalog });
+const render = (ui: Parameters<typeof renderView>[0]) =>
+  renderView(ui, { wrapper: WithTestCatalog });
 
 afterEach(cleanup);
 const camera: import("@packages/renderer-core/src/camera3d").Camera3DParams = {

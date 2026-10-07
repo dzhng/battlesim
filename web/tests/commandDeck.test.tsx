@@ -5,7 +5,8 @@ import { CommandBar } from "../src/battle/present/readouts";
 import type { OwnUnitView } from "../src/battle/sim/observation";
 
 /** Views render under the test set, as a lab page provides it. */
-const render = (ui: Parameters<typeof renderView>[0]) => renderView(ui, { wrapper: WithTestCatalog });
+const render = (ui: Parameters<typeof renderView>[0]) =>
+  renderView(ui, { wrapper: WithTestCatalog });
 
 const unit = (kind: string, patch: Partial<OwnUnitView> = {}) =>
   ({ kind, engagement: "fire_at_will", garrison: null, deployment: null, ...patch }) as OwnUnitView;
