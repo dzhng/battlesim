@@ -80,6 +80,26 @@ which existing tests can go, use [audit-tests](../audit-tests/SKILL.md).
   showed up against a real environment, the harness skipped an input production
   always sets — fix the harness, don't just fix the bug.
 
+## Content is not a test subject
+
+Game content (a unit roster, a weapon table, a building library) grows every
+day; a test that walks it or names its entries breaks on every addition and
+gets slower with each one, while proving nothing a fake could not.
+
+- **Test a mechanic on stand-ins and fakes.** Use the fixed stand-in content,
+  and build a fake entry in the test for a shape it lacks. If the mechanic
+  holds for the fake, it holds for the real entry of that shape.
+- **Make the extremes data, and test at them.** Where a mechanic depends on
+  how big, fast or extreme an entry can be, put the bound in the rules, build
+  fakes at exactly that bound, and prove the mechanic there. Every entry
+  inside the bound is then covered without being named.
+- **Validate content where it loads, not in a test.** What every entry must
+  satisfy (within the limits, internally consistent, admissible) is refused by
+  the loader, with the entry and the rule named. Loading the shipped content
+  is then its whole check.
+- **Never pin content values.** A test asserting that a named entry costs 250
+  or that a faction has 50 entries pins tuning, not behaviour.
+
 ## Control variables and probes
 
 - **One variable per comparison.** Pin everything else — same seed, same

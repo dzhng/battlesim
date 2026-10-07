@@ -420,20 +420,16 @@ fn stops_short_of_the_wreck(ratio: Option<f64>) {
         .unwrap()
         .push(json!({ "kind": "parked_car",
         "center": wreck, "yaw": bearing + 0.45, "half_extents": [CAR[0], CAR[1], 0.75] }));
-    // A truck as wide as the widest wheeled hull, which turns no tighter
-    // than the stand-in's six metres.
+    // A truck at the wheeled limits: as wide, as long and as wide-turning as
+    // any wheeled hull a battle may field.
     let mut rules = common::scenario_rules();
-    sim::fixtures::patch_catalog(
-        &mut rules,
-        "units",
-        "supply",
-        json!({ "body": { "hull": { "half_extents_m": [3.6, 1.55, 1.5] } } }),
-    );
+    sim::fixtures::with_units_at_limits(&mut rules);
     if let Some(ratio) = ratio {
         rules["navigation"]["stop_short_detour_ratio"] = json!(ratio);
     }
     let from = at(bearing, -200.0, 0.0);
-    let units = json!([{ "side": "blue", "kind": "supply", "position": from, "yaw": bearing }]);
+    let units =
+        json!([{ "side": "blue", "kind": "limit_wheeled", "position": from, "yaw": bearing }]);
     let setup = serde_json::from_value(json!({
         "map": map, "rules": rules, "units": units, "events": [], "scripts": [],
     }))
@@ -461,8 +457,11 @@ fn stops_short_of_the_wreck(ratio: Option<f64>) {
         "it drove past the car, {:.1} m down the street, and came back",
         furthest
     );
+    // Short of the car, by the way straight down the street to wherever it
+    // found room: how far short is the standing-room rule's to say.
+    let straight = 220.0 - short;
     assert!(
-        (0.0..=15.0).contains(&short) && driven < 220.0 + 5.0,
-        "it stopped {short:.1} m short of the car after {driven:.0} m"
+        short >= 0.0 && driven < straight + 5.0,
+        "it stopped {short:.1} m short of the car after {driven:.0} m ({straight:.0} m straight)"
     );
 }

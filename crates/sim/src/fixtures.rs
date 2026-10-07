@@ -41,6 +41,37 @@ pub fn stand_in_game() -> Value {
     fixture
 }
 
+/// Add to `fixture`'s catalog a hull at each drive's absolute limits
+/// (`hull_limits`): `limit_tracked`, the stand-in tank grown to the tracked
+/// limits, and `limit_wheeled`, the stand-in truck grown to the wheeled
+/// limits and turning as wide as they allow. What is proven for them holds
+/// for every unit the limits admit.
+pub fn with_units_at_limits(fixture: &mut Value) {
+    let limits = fixture["hull_limits"].clone();
+    let hull = |base: &str, drive: &str| {
+        let height = fixture["catalog"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find_map(|d| d["units"][base]["body"]["hull"]["half_extents_m"][2].as_f64())
+            .unwrap_or_else(|| panic!("the stand-in {base} has a hull"));
+        serde_json::json!({ "hull": { "half_extents_m": [
+            limits[drive]["half_length_m"], limits[drive]["half_width_m"], height
+        ] } })
+    };
+    let units = serde_json::json!({
+        "limit_tracked": { "extends": "tank", "name": "Tracked hull at the limits", "body": hull("tank", "tracked") },
+        "limit_wheeled": {
+            "extends": "supply", "name": "Wheeled hull at the limits", "body": hull("supply", "wheeled"),
+            "mobility": { "wheeled": { "turning_radius_m": limits["wheeled"]["turning_radius_m"] } }
+        },
+    });
+    fixture["catalog"]
+        .as_array_mut()
+        .expect("a fixture with its catalog")
+        .push(serde_json::json!({ "units": units }));
+}
+
 /// Lift `fixture`'s hull limits, for a test that needs a hull no battle may
 /// field (a truck too long to turn a corner, a tank wider than any street)
 /// to show how a mechanic fails.

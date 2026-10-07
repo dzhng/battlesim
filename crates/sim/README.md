@@ -88,8 +88,16 @@ to run them are defined by the root [checking policy](../../README.md#checks).
 A test of a mechanic runs on the stand-in units (`fixtures/units/generic`),
 loaded by `fixtures::stand_in_game`, and adds a fake unit when it needs a shape
 they lack; it never names or walks the faction roster, which grows every day.
-What the roster must satisfy is refused where the catalog loads
-([catalog resolution](../contract/src/catalog.rs)), so loading it is its check.
+What the roster must satisfy is refused where the rules load
+([catalog resolution](../contract/src/catalog.rs) and the rules' cross-section
+checks), so loading it is its check.
+
+Where a mechanic depends on how big or how extreme a unit can be, the extreme
+is data: the rules' `hull_limits` bound every hull a battle may field, loading
+refuses a unit past them, and the mechanic is proven against fake units built
+at the limits (`fixtures::with_units_at_limits`). What holds at the limit holds
+for every unit inside it. A test that needs a shape past the limits, to show
+how a mechanic fails, lifts them explicitly (`fixtures::lift_hull_limits`).
 
 ## Reports and cost
 
