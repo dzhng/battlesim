@@ -1,5 +1,5 @@
 // @vitest-environment node
-// The camera paths the game ships, against the village's real buildings and
+// The camera paths the game ships, against the street test map's real buildings and
 // ground under the fixture's own camera numbers.
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";

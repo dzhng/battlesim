@@ -115,7 +115,7 @@ test("metadata a listing could not show is refused, naming the file and the fiel
   for (const category of ["playable", "lab", "benchmark", undefined])
     expect(refused({ category })).toMatch(/^fixtures\/maps\/a-lab\/meta\.json\.category: /);
   expect(refused({ category: "menu" })).toBe("accepted");
-  expect(refused({ character: "village" })).toMatch(/meta\.json\.character: /);
+  expect(refused({ character: "farmland" })).toMatch(/meta\.json\.character: /);
   expect(refused({ status: undefined })).toBe("fixtures/maps/a-lab/meta.json.status: missing");
   expect(refused({ colour: "red" })).toBe("fixtures/maps/a-lab/meta.json.colour: unknown field");
   expect(refused({ size_m: [640, 0] })).toMatch(/meta\.json\.size_m: /);

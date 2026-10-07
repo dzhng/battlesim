@@ -8,8 +8,8 @@ inventory, while shared helpers under `common/` are not standalone commands.
 
 ## Choose the claim being measured
 
-Tactical reports compare completed battles and digests. [Village comparison](village_report.rs)
-provides quick iteration and full balance workloads; [cover calibration](cover_report.rs)
+Tactical reports compare completed battles and digests. Battle sweeps on generated maps
+(`crates/mapgen/examples/battle_sweep.rs`) provide quick iteration and full balance workloads; [cover calibration](cover_report.rs)
 separates incoming scatter from physical interception. A changed workload or
 configuration cannot stand in for an outcome-preserving comparison.
 

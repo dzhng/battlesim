@@ -88,7 +88,9 @@ to run them are defined by the root [checking policy](../../README.md#checks).
 A test of a mechanic runs on the test units (`test_*`, `fixtures/units/test`,
 never game content), loaded by `fixtures::test_game`, and adds a fake unit when
 it needs a shape they lack; it never names or walks the faction roster, which
-grows every day. A test that needs the roster says why (the roster's own
+grows every day. The rules fixture carries no ground: a test that needs a map
+asks for a saved `test` map by name (`fixtures::with_map`, which refuses the
+menu's), builds an analytic one, or generates one from a seed. A test that needs the roster says why (the roster's own
 resolution, a roster model's fit, the menu reel).
 What the roster must satisfy is refused where the rules load
 ([catalog resolution](../contract/src/catalog.rs) and the rules' cross-section

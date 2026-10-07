@@ -22,7 +22,7 @@ test("the advertised city-contact address and the plain benchmark both select th
 });
 
 test("an unknown preset refuses", () => {
-  window.history.replaceState(null, "", "/benchmark?preset=village-contact");
+  window.history.replaceState(null, "", "/benchmark?preset=missing");
   render(<BenchmarkPage />);
   expect(screen.getByTestId("error").textContent).toBe("Unknown benchmark preset.");
   expect(screen.queryByRole("button", { name: /Short run/ })).toBeNull();

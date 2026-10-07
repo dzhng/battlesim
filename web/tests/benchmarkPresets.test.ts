@@ -39,5 +39,5 @@ test("the fingerprint sees the tour and the start, not the version", () => {
 test("the default benchmark is city contact, and an unknown preset is refused", () => {
   expect(benchmarkPreset(null)).toBe(CITY_CONTACT);
   expect(benchmarkPreset("city-contact")).toBe(CITY_CONTACT);
-  expect(benchmarkPreset("village-contact")).toBeUndefined();
+  expect(benchmarkPreset("nowhere")).toBeUndefined();
 });

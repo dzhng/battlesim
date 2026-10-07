@@ -173,7 +173,7 @@ test("systems-only bodies have no accepted appearance binding", () => {
   }
 });
 
-test("the playable village's authored props and their remains have accepted bindings", () => {
+test("the street test map's authored props and their remains have accepted bindings", () => {
   const placed = [
     ...streetMap.props.map((p: { kind: string }) => p.kind),
     ...streetMap.buildings!.map((b: { kind: string }) => b.kind),
@@ -187,7 +187,7 @@ test("the playable village's authored props and their remains have accepted bind
   }
 });
 
-test("the playable village enables generated floor blockers only with accepted drawing", () => {
+test("the street test map enables generated floor blockers only with accepted drawing", () => {
   for (const [kindField, densityField] of [
     ["log", "logs_per_ha"],
     ["boulder", "boulders_per_ha"],

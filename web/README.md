@@ -7,8 +7,8 @@ which owns routes and composes the battle view.
 
 ## Authority and preparation
 
-[Preparation](src/battle/prepare/) admits a saved-map source or a generation request,
-fields the request's two factions on the map's admitted skirmish sites and hands the
+[Preparation](src/battle/prepare/) admits a generation request (a battle never names a
+saved map: those are tests' and the menu's), fields the request's two factions on the map's admitted skirmish sites and hands the
 prepared world to its battle authority. Expensive preparation stays off the page thread. The page
 builds a plain geometry world from the same map for drawing, picking and camera
 clearance; it does not run a second battle.
@@ -17,8 +17,8 @@ clearance; it does not run a second battle.
 bounded publications and packed observation decoding. [Input](src/battle/input/)
 produces commands, and [presentation](src/battle/present/) reads admitted observations.
 [Map adapters](src/maps/) fetch saved documents or resolve a generation request
-through Rust's one admission path. Their listing policy and saved-map identity are
-explained in [fixtures](../fixtures/README.md#saved-maps).
+through Rust's one admission path. Their listing policy, saved-map identity and
+categories are explained in [fixtures](../fixtures/README.md#saved-maps).
 
 The [benchmark](src/battle/benchmark/README.md) measures the actual simulation and
 renderer with a declared workload and camera tour. A route selection or successful

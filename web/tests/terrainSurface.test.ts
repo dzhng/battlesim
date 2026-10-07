@@ -52,7 +52,7 @@ import { WHOLE_MAP_MS } from "./support/wholeMap";
 
 const geometry = loadMap("geometry").definition;
 const riverLab = loadMap("river").definition;
-const villageMap = loadMap("village").definition;
+const streetMap = loadMap("street").definition;
 
 const biome = validateBiome(summer as unknown as Biome);
 let layout: WorldLayout;
@@ -243,7 +243,7 @@ test("empty full-extent height uploads stay independent of area", () => {
 });
 
 test("heights and normals where props stand are WorldView's", () => {
-  const { view, exports } = world(villageMap);
+  const { view, exports } = world(streetMap);
   const surface = buildTerrainSurface(exports, layout, biome);
   const at = (f: string) => layout.propFields.indexOf(f);
   let checked = 0;
@@ -289,7 +289,7 @@ test("the material's road, forest and water masks are the simulation's surface r
   // Samples round stroke ends that lie on a map (a road that runs off the
   // map's edge has none to show).
   let ends = 0;
-  for (const map of [geometry, villageMap, riverLab]) {
+  for (const map of [geometry, streetMap, riverLab]) {
     const { view, exports } = world(map);
     const { site } = buildTerrainSurface(exports, layout, biome);
     const inRect = (rects: Float32Array, x: number, y: number) => {
@@ -427,7 +427,7 @@ test("rounded strokes are the native samples, bit for bit", () => {
 });
 
 test("roads split the patchwork: fields meet a road edge-on, never across it", () => {
-  const { exports } = world(villageMap);
+  const { exports } = world(streetMap);
   const { site, plots } = buildTerrainSurface(exports, layout, biome);
   for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
     const [ax, ay, bx, by, half] = site.surfaceStrokes.subarray(r, r + 5);
@@ -480,7 +480,7 @@ test("open country keeps one grain: no tract turns further than the rules say, h
 });
 
 test("a field at a road's edge lies along a road beside it: its rows run with it or square to it", () => {
-  const { exports } = world(villageMap);
+  const { exports } = world(streetMap);
   const { site, plots } = buildTerrainSurface(exports, layout, biome);
   const roads = plotGuideEdges(site);
   /** Whether road `r` runs through `outline` or beside it, nearer than a plot is wide. */
@@ -525,7 +525,7 @@ test("a field at a road's edge lies along a road beside it: its rows run with it
 });
 
 test("each point lies in the plot the split walks to, and its edge distance is that plot's", () => {
-  const { exports } = world(villageMap);
+  const { exports } = world(streetMap);
   const { plots } = buildTerrainSurface(exports, layout, biome);
   const [x0, y0, x1, y1] = plots.region;
   for (let k = 0; k < 400; k++) {
@@ -597,7 +597,7 @@ test.each([
 
 test("the ground round a building is the settlement's yard; the land round that is its surround, never a crop", () => {
   // Radial settlement reach, without a road separating house and plot.
-  const { exports } = world({ ...villageMap, surfaces: [] });
+  const { exports } = world({ ...streetMap, surfaces: [] });
   const { plots, site } = buildTerrainSurface(exports, layout, biome);
   const rules = biome.field_rules;
   const yard = biome.plots.findIndex((p) => p.name === rules.settlement_kind);
@@ -814,14 +814,14 @@ test("a country road draws a street between actual houses and keeps its paving i
   for (const x of [200, 500]) for (const y of [95, 105]) expect(pavingAt(built, x, y)).toEqual([]);
 });
 
-test("the village's roads, streets by name and country roads by look, are drawn as exported", () => {
-  const { exports } = world(villageMap);
+test("the street test map's roads, streets by name and country roads by look, are drawn as exported", () => {
+  const { exports } = world(streetMap);
   const surface = buildTerrainSurface(exports, layout, biome);
   expect(surface.strokes).toBe(surface.site.surfaceStrokes);
 });
 
 test("the patchwork is the same for the same seed and moves with it", () => {
-  const { exports } = world(villageMap);
+  const { exports } = world(streetMap);
   const a = buildTerrainSurface(exports, layout, biome).plots;
   const b = buildTerrainSurface(exports, layout, biome).plots;
   const c = buildTerrainSurface(exports, layout, { ...biome, seed: biome.seed + 1 }).plots;

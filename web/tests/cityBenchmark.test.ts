@@ -16,7 +16,7 @@ const memory = wasm.initSync({
 }).memory;
 
 test(
-  "city-contact prepares the pinned full generated world and the existing central contact script, unlike the village control",
+  "city-contact prepares the pinned full generated world and the existing central contact script",
   async () => {
     let asked: PrepareMessage | null = null;
     class Worker {

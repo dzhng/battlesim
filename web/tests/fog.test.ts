@@ -234,7 +234,7 @@ test("every eye of a garrison is its own fog eye, keyed by unit and eye index", 
 });
 
 test("every point inside a structure's box finds that structure through the whole-fog grid", () => {
-  // Turned, touching and far-apart boxes, as a village's buildings, ruins and walls.
+  // Turned, touching and far-apart boxes, as a town's buildings, ruins and walls.
   const boxes: FogOccluder[] = [
     { x: 975, y: 752, yaw: 0, hx: 15, hy: 12, base: 10, top: 18 },
     { x: 1047, y: 814, yaw: 0.6, hx: 18, hy: 9, base: 11, top: 21 },

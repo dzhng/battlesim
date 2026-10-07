@@ -102,7 +102,7 @@ function trees(data: Float32Array): Tree[] {
 const ground = (x: number, y: number) => view.surface_at(x, y)[0];
 const forests = () =>
   streetMap.forests.map(({ shape }) => {
-    if (shape.kind !== "polygon") throw new Error("the village's forests are rings");
+    if (shape.kind !== "polygon") throw new Error("the street test map's forests are rings");
     const { ring } = shape;
     return {
       rect: [ring[0][0], ring[0][1], ring[1][0] - ring[0][0], ring[2][1] - ring[1][1]] as [
@@ -284,7 +284,7 @@ function named(placed: SceneryPlacement, data: Float32Array) {
 }
 
 test("a wood is stands, each mostly one family's species, with the odd tree of no family", () => {
-  // Stands small enough that the village's two woods hold many.
+  // Stands small enough that the street test map's two woods hold many.
   const stands = { size_m: 50, purity: 0.9 };
   const small = { ...biome, trees: { ...biome.trees, stands } };
   const site = scenerySite(exports, layout, buildTerrainSurface(exports, layout, biome));
@@ -557,7 +557,7 @@ test("dressing lies only on the simulation's forest ground, on the ground, off i
 
 test("dressing keeps clear of every trunk and of every body on the floor", () => {
   // The floor's own cover (logs and boulders) at the densities its systems
-  // tests use: the village's default may hold none.
+  // tests use: the street test map's default may hold none.
   const rules = structuredClone(TEST_RULES) as typeof TEST_RULES;
   rules.forests.rule.logs_per_ha = 5;
   rules.forests.rule.boulders_per_ha = 3;
@@ -917,7 +917,7 @@ test("a tree line carries shrubs along its whole length, inside the strip and it
   }
 });
 
-test("the village, which has no tree line, has no understorey", () => {
+test("the street test map, which has no tree line, has no understorey", () => {
   expect(placement.understorey.length).toBe(0);
 });
 

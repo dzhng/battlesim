@@ -262,7 +262,7 @@ test("drawing a road as a street through a town moves no edge of it", () => {
 test("a road no kind draws differently is the site's own strokes", () => {
   const none = SURFACE_AREA_KINDS.map(() => null);
   expect(drawnStrokes(throughRoad, none, builtBeside)).toBe(throughRoad.surfaceStrokes);
-  // A kind drawn as itself: the village's roads, which are streets by name.
+  // A kind drawn as itself: the street test map's roads, which are streets by name.
   const itself = SURFACE_AREA_KINDS.map((_, tag) => ({ ...asStreet[COUNTRY]!, as: tag }));
   expect(drawnStrokes(throughRoad, itself, builtBeside)).toBe(throughRoad.surfaceStrokes);
   expect(drawnStrokes(throughRoad, asStreet, () => false)).toEqual(throughRoad.surfaceStrokes);
