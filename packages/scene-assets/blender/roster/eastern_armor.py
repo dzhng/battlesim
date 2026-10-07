@@ -5,6 +5,7 @@ sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
 import parts as P
 from catalog_frames import requested_variant
+from wreckage import WRECK_ARG, burn, export_wreck
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
 SCHEME={'bmp':'russian_green','btr':'russian_green','zbl08':'chinese_digital'}
@@ -123,9 +124,11 @@ def build(family):
             cyl('gun_barrel' if main else 'distinct_30mm_barrel',rad,mu.x-start,((mu.x+start)/2,0,0),'X',steel,pitch,seg=16)
             cyl('barrel_sleeve' if main else '30mm_sleeve',rad*1.48,.62,(1.01,0,0),'X',paint,pitch,seg=16)
             cyl('muzzle_brake' if main else '30mm_muzzle_brake',rad*1.35,.13,(mu.x-.065,0,0),'X',dark,pitch,seg=12)
-    finish(ao_distance=.65,ao_rays=4);print('ROSTER_EAST_ARMOR',json.dumps({'id':ident,'tris':triangles_by_tier()}));os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True);export(out,texture_px=256)
+    wreck=WRECK_ARG in args
+    if wreck:burn()
+    finish(ao_distance=.65,ao_rays=4);print('ROSTER_EAST_ARMOR',json.dumps({'id':ident,'tris':triangles_by_tier()}));os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True);(export_wreck if wreck else export)(out,texture_px=256)
     preview=next((a.split('=',1)[1] for a in args if a.startswith('--preview=')),None)
-    if preview:
+    if preview and not wreck:
         bpy.ops.wm.read_factory_settings(use_empty=True);bpy.ops.import_scene.gltf(filepath=os.path.abspath(out));os.makedirs(preview,exist_ok=True)
         for o in bpy.data.objects:
             if o.type=='MESH':o.hide_render=('_LOD' in o.name and not o.name.endswith('_LOD0'))

@@ -128,7 +128,10 @@ export async function validateLoose(
     mounts: entry.mounts ?? null,
     appearance: null,
   };
-  const files = { [path]: bytes };
+  const files: Record<string, Uint8Array> = { [path]: bytes };
+  // A catalog entry of several states (a wreck and its pieces) is judged whole.
+  for (const state of Object.values(entry.states ?? {}))
+    if (!(state in files)) files[state] = await readSource(state);
   let skeleton;
   if (kind === "skinned") {
     const skeletonEntry = named?.[1].skeleton ? catalog.skeletons[named[1].skeleton] : null;

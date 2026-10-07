@@ -230,18 +230,20 @@ export async function validateAppearance(
       if (!built.tiers) continue;
       const bounds = positionsBounds(built.tiers[0].positions);
       states.push({ name: state, tiers: built.tiers, bounds });
+      const rule = SCENERY_KINDS[entry.scenery ?? ""];
       // A wreck's tiers are a unit's: it is drawn where its vehicle was. It
-      // takes the default row, since nothing yet says whose wreck it is.
+      // takes the default row (no vehicle class sets a ratio of its own yet).
+      // A piece is part of its whole's tiers, so only the whole is held to
+      // the ratio: a thrown turret's far tier is a few boxes either way.
       if (entry.scenery === "wreck")
         findings.push(
           ...tierFindings(
             path,
             imported.scene,
             built.tiers.map(triangleCount),
-            unitArtRule(null).tier_ratio,
+            rule?.pieces?.includes(state) ? 1 : unitArtRule(null).tier_ratio,
           ),
         );
-      const rule = SCENERY_KINDS[entry.scenery ?? ""];
       // A piece is held to its whole (`pieceFindings`), not to the ground or the box.
       if (rule?.pieces?.includes(state)) continue;
       if (rule?.blades) findings.push(...grassStripFindings(path, built.tiers));

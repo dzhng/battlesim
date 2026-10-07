@@ -27,7 +27,8 @@ that the simulation does not provide: a tree the side has seen felled falls on t
 clock and lies pressed under cover height by its stump ([felled trees](src/scenery/felled.ts)),
 since the simulation gives it no body. A hull the side watched die cooks off
 ([cook-off](src/effects/cookOff.ts)): fireballs from its ring, its hull jolted and
-its turret thrown, both its wreck's own pieces, until they lie where the wreck has
+its turret thrown, both pieces of its own unit's wreck (a wreck is drawn as the
+unit it names, never by the nearest footprint), until they lie where the wreck has
 them and the whole wreck takes over without a seam. A wreck without detachable
 pieces jolts as one body. Every watched vehicle keeps its last live appearance
 until the blast and follows its roll to the resting wreck; a wreck found
