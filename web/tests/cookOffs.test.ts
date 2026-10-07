@@ -295,7 +295,12 @@ test("a cook-off throws a turret only from a wreck with a turret piece: never a 
   // The tank's wreck is cut into a hull and a turret; the jeep's is whole.
   const states = (...names: string[]) =>
     names.map((name) => ({ name, bounds: { min: [-2, -1, 0], max: [2, 1, 2] }, tiers: [] }));
-  const appearance = (scenery: string | null, footprint: number[] | null, wreck: string | null, ...names: string[]) => ({
+  const appearance = (
+    scenery: string | null,
+    footprint: number[] | null,
+    wreck: string | null,
+    ...names: string[]
+  ) => ({
     unit: scenery ? "scenery" : "vehicle",
     scenery,
     footprint,

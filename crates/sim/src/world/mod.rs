@@ -851,10 +851,7 @@ impl WorldGeometry {
                 "a wreck names the unit it was: a {:?} at {:?} names none",
                 def.kind, def.center
             ),
-            Some(unit) => panic!(
-                "only a wreck names a unit: a {:?} names {unit:?}",
-                def.kind
-            ),
+            Some(unit) => panic!("only a wreck names a unit: a {:?} names {unit:?}", def.kind),
             None => None,
         }
     }

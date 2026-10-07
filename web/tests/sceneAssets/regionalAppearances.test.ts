@@ -122,12 +122,14 @@ test("a map of one family fetches its family's looks and no other family's", asy
     half: [5, 4, 3] as const,
     baseZ: 0,
   };
-  expect(new PropAppearances(paris, layout, "paris").choose({ kind: "crate", half: box.half })?.name).toBe(
-    "crate_paris",
-  );
+  expect(
+    new PropAppearances(paris, layout, "paris").choose({ kind: "crate", half: box.half })?.name,
+  ).toBe("crate_paris");
   // A map of no family fetches no regional look, and draws the shared one.
   fetched.length = 0;
   const none = await loader.withAppearances(mapDownloads(catalog, NO_BUILDINGS, null));
   expect(fetched).toEqual([]);
-  expect(new PropAppearances(none, layout, null).choose({ kind: "crate", half: box.half })?.name).toBe("crate");
+  expect(
+    new PropAppearances(none, layout, null).choose({ kind: "crate", half: box.half })?.name,
+  ).toBe("crate");
 });

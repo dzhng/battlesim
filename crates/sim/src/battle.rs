@@ -1538,9 +1538,7 @@ impl Battle {
                         half_extents: [prop.half.x, prop.half.y, height_m / 2.0],
                         base_z: Some(prop.base_z),
                         // A lighter wreck is still the same unit's.
-                        wreck_of: prop
-                            .wreck_of
-                            .map(|t| self.rules.catalog.id(t).to_string()),
+                        wreck_of: prop.wreck_of.map(|t| self.rules.catalog.id(t).to_string()),
                     },
                     id,
                 );

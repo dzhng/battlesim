@@ -304,12 +304,7 @@ export class LastSeenHulls {
     for (const { pose, at } of this.hulls.values()) {
       const gone = at < this.clock && clock - at <= REMEMBERED_S;
       const d = Math.hypot(pose.position[0] - c.center[0], pose.position[1] - c.center[1]);
-      if (
-        gone &&
-        pose.kind === c.wreckOf &&
-        d <= c.half[0] + ROLL_REACH_M &&
-        (!best || d < best.d)
-      )
+      if (gone && pose.kind === c.wreckOf && d <= c.half[0] + ROLL_REACH_M && (!best || d < best.d))
         best = { pose, d };
     }
     if (best) {
