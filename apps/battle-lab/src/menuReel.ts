@@ -3,6 +3,7 @@
 // Sampled by elapsed time, so a slow frame never bends a move.
 import { clamp } from "math";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
+import { categoryMap, type MapEntry } from "@web/maps/catalogue";
 
 /** One move: the camera drifts at a steady pace from `from` to `to`. A
  *  tracking shot follows one unit: its targets are offsets from that unit. */
@@ -126,21 +127,31 @@ export interface Backdrop {
 }
 
 /** `json` as a backdrop, or a refusal naming the field at fault. */
-export function validateBackdrop(json: {
-  scenes: {
-    map: string;
-    encounter: string;
-    seed: number;
-    warm_s: number;
-    reel: Parameters<typeof validateReel>[0];
-  }[];
-}): Backdrop {
+/** `json` as the menu's backdrop; every scene's map must be one of `maps`'
+ *  `menu` maps (the backdrop films no test's ground). */
+export function validateBackdrop(
+  json: {
+    scenes: {
+      map: string;
+      encounter: string;
+      seed: number;
+      warm_s: number;
+      reel: Parameters<typeof validateReel>[0];
+    }[];
+  },
+  maps: readonly MapEntry[],
+): Backdrop {
   if (!json.scenes?.length) throw new Error("menu backdrop scenes: none");
   return {
     scenes: json.scenes.map((s, i) => {
       for (const k of ["map", "encounter"] as const)
         if (typeof s[k] !== "string" || !s[k])
           throw new Error(`menu backdrop scenes[${i}].${k}: a saved map's name`);
+      try {
+        categoryMap(maps, s.map, "menu");
+      } catch (e) {
+        throw new Error(`menu backdrop scenes[${i}].map: ${(e as Error).message}`);
+      }
       if (!Number.isInteger(s.seed)) throw new Error(`menu backdrop scenes[${i}].seed: an integer`);
       if (!(s.warm_s >= 0)) throw new Error(`menu backdrop scenes[${i}].warm_s: not a duration`);
       return {

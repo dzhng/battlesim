@@ -6,6 +6,26 @@ import {
   validateReel,
   type MenuReel,
 } from "@apps/battle-lab/src/menuReel";
+import type { MapEntry } from "@web/maps/catalogue";
+
+/** A catalogue listing of `menu` maps and `test` maps, by id. */
+const listing = (menu: string[], test: string[] = []): MapEntry[] =>
+  [...menu.map((id) => [id, "menu"] as const), ...test.map((id) => [id, "test"] as const)].map(
+    ([id, category]) => ({
+      id,
+      category,
+      status: "released",
+      label: id,
+      character: "arena",
+      biome: "summer",
+      size_m: [100, 100],
+      tags: [],
+      source: "authored",
+      seed: null,
+      encounters: ["e"],
+      benchmarks: [],
+    }),
+  );
 
 const at = (x: number, y: number, distance = 100, yaw = 0, pitch = 0.5) => ({
   target: [x, y] as [number, number],
@@ -85,14 +105,32 @@ test("a backdrop is scenes in order, each a saved battle and its own reel; none 
     warm_s: 2,
     reel: { fade_s: 0.5, shots: [{ seconds: 4, from: at(0, 0), to: at(1, 1) }] },
   });
-  const backdrop = validateBackdrop({ scenes: [scene("town"), scene("city")] });
+  const maps = listing(["town", "city", "x"]);
+  const backdrop = validateBackdrop({ scenes: [scene("town"), scene("city")] }, maps);
   expect(backdrop.scenes.map((s) => [s.map, s.reel.shots.length])).toEqual([
     ["town", 1],
     ["city", 1],
   ]);
-  expect(() => validateBackdrop({ scenes: [] })).toThrow(/scenes/);
-  expect(() => validateBackdrop({ scenes: [{ ...scene("x"), map: "" }] })).toThrow(
+  expect(() => validateBackdrop({ scenes: [] }, maps)).toThrow(/scenes/);
+  expect(() => validateBackdrop({ scenes: [{ ...scene("x"), map: "" }] }, maps)).toThrow(
     /scenes\[0\]\.map/,
+  );
+});
+
+test("the menu films only menu maps: a test map is refused by name", () => {
+  const scene = (map: string) => ({
+    map,
+    encounter: "e",
+    seed: 1,
+    warm_s: 2,
+    reel: { fade_s: 0.5, shots: [{ seconds: 4, from: at(0, 0), to: at(1, 1) }] },
+  });
+  const maps = listing(["town"], ["range"]);
+  expect(() => validateBackdrop({ scenes: [scene("town"), scene("range")] }, maps)).toThrow(
+    'menu backdrop scenes[1].map: the saved map "range" is a test map, not a menu map',
+  );
+  expect(() => validateBackdrop({ scenes: [scene("nowhere")] }, maps)).toThrow(
+    /scenes\[0\]\.map: no saved map "nowhere"/,
   );
 });
 

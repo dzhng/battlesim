@@ -1,7 +1,13 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { BrowserRouter, Link, Route, Routes } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
-import { ReplayImport, type VillageReplayFile } from "@apps/battle-lab/src/replayFile";
+import { ReplayImport, type ReplayFile } from "@apps/battle-lab/src/replayFile";
+
+/** A saved battle as the viewer reads it: its prepared battle and commands. */
+const SAVED = JSON.stringify({
+  battle: { scenario: "{}", report: { request: {} } },
+  replay: "{}",
+});
 import { PageVisit } from "@apps/battle-lab/src/navigation";
 
 // Complete browser storage at its transaction boundary without real user state.
@@ -48,7 +54,6 @@ afterEach(() => {
 
 test("an imported replay opens its viewer through the live router", async () => {
   storage();
-  const loaded: unknown[] = [];
   render(
     <BrowserRouter unstable_useTransitions={false}>
       <PageVisit>
@@ -56,28 +61,25 @@ test("an imported replay opens its viewer through the live router", async () => 
           <Route
             path="/"
             element={
-              <ReplayImport
-                plays={(_file): _file is never => false}
-                onLoad={(file) => loaded.push(file)}
-              />
+              <ReplayImport />
             }
           />
-          <Route path="/replay/village" element={<p>Imported village viewer</p>} />
+          <Route path="/battle" element={<p>Imported battle viewer</p>} />
         </Routes>
       </PageVisit>
     </BrowserRouter>,
   );
-  const file = { text: async () => JSON.stringify({ variant: "ordinary", replay: "{}" }) };
+  const file = { text: async () => SAVED };
   await act(async () => {
     fireEvent.change(screen.getByTestId("replay-file"), { target: { files: [file] } });
   });
-  expect(window.location.pathname).toBe("/replay/village");
-  expect(loaded).toEqual([]);
+  expect(window.location.pathname + window.location.search).toBe("/battle?replay=saved");
+  expect(screen.getByText("Imported battle viewer")).toBeDefined();
 });
 
 test("departing while a file read is pending discards its viewer continuation", async () => {
   storage();
-  const loaded: VillageReplayFile[] = [];
+  const loaded: ReplayFile[] = [];
   let finish!: (text: string) => void;
   const file = {
     text: () =>
@@ -93,10 +95,7 @@ test("departing while a file read is pending discards its viewer continuation", 
             path="/"
             element={
               <>
-                <ReplayImport
-                  plays={(file): file is VillageReplayFile => "variant" in file}
-                  onLoad={(file) => loaded.push(file)}
-                />
+                <ReplayImport onLoad={(file) => loaded.push(file)} />
                 <Link to="/elsewhere">Leave</Link>
               </>
             }
@@ -109,7 +108,7 @@ test("departing while a file read is pending discards its viewer continuation", 
   fireEvent.change(screen.getByTestId("replay-file"), { target: { files: [file] } });
   fireEvent.click(screen.getByRole("link", { name: "Leave" }));
   await act(async () => {
-    finish(JSON.stringify({ variant: "ordinary", replay: "{}" }));
+    finish(SAVED);
   });
   expect(screen.getByText("Another screen")).toBeDefined();
   expect(window.location.pathname).toBe("/elsewhere");
@@ -118,7 +117,7 @@ test("departing while a file read is pending discards its viewer continuation", 
 
 test("a completed storage write cannot navigate after departure", async () => {
   const finishWrite = storage(true);
-  const file = { text: async () => JSON.stringify({ variant: "ordinary", replay: "{}" }) };
+  const file = { text: async () => SAVED };
   render(
     <BrowserRouter unstable_useTransitions={false}>
       <PageVisit>
@@ -127,13 +126,13 @@ test("a completed storage write cannot navigate after departure", async () => {
             path="/"
             element={
               <>
-                <ReplayImport plays={(_file): _file is never => false} onLoad={() => {}} />
+                <ReplayImport />
                 <Link to="/elsewhere">Leave</Link>
               </>
             }
           />
           <Route path="/elsewhere" element={<p>Another screen</p>} />
-          <Route path="/replay/village" element={<p>Imported village viewer</p>} />
+          <Route path="/battle" element={<p>Imported battle viewer</p>} />
         </Routes>
       </PageVisit>
     </BrowserRouter>,

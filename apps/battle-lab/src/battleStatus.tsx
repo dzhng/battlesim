@@ -1,10 +1,9 @@
-// The top bar of a battle with an objective: how the hold stands and the
-// clock. One readout for every such battle, the village's and a prepared one.
+// The top bar of a battle: the clock, and a skirmish's scores and
+// objectives.
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
 import game from "@fixtures/game.json";
 import type { ObservationView } from "@web/battle/sim/observation";
-import type { BattleSession } from "./useBattleSession";
 
 /** The battle's clock, from the published tick. */
 export function BattleClock({ tick }: { tick: number }) {
@@ -13,50 +12,6 @@ export function BattleClock({ tick }: { tick: number }) {
     <span className="hud-clock" data-testid="clock">
       {Math.floor(s / 60)}:{String(Math.floor(s % 60)).padStart(2, "0")}
     </span>
-  );
-}
-
-/** The objective's readout and the clock, as a battle view's `status`: the
- *  hold's count (of `holdS` seconds) while the battle runs, its result once
- *  it is decided, a win called `captured` ("VILLAGE CAPTURED"). */
-export const objectiveStatus =
-  (holdS: number, captured: string) =>
-  ({ sim }: BattleSession) => (
-    <ObjectiveStatus
-      encounter={sim.observation?.encounter ?? null}
-      tick={sim.observation?.tick ?? 0}
-      holdS={holdS}
-      captured={captured}
-    />
-  );
-
-function ObjectiveStatus({
-  encounter: enc,
-  tick,
-  holdS,
-  captured,
-}: {
-  encounter: ObservationView["encounter"];
-  tick: number;
-  holdS: number;
-  captured: string;
-}) {
-  const result: Record<string, string> = {
-    captured,
-    defeated: "DEFEATED",
-    inconclusive: "INCONCLUSIVE: PLAY ON",
-  };
-  return (
-    <>
-      <span className="hud-objective" data-testid="encounter">
-        {!enc
-          ? "—"
-          : enc.result === "running"
-            ? `HOLD ${enc.heldS.toFixed(0)}/${holdS} s`
-            : result[enc.result]}
-      </span>
-      <BattleClock tick={tick} />
-    </>
   );
 }
 

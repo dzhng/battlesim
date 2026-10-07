@@ -152,12 +152,12 @@ const AXES: [Vec3, Rgba][] = [
 ];
 
 /** What the simulation's `world_layout()` says of prop kinds, and the boxes
- *  the village's resolved map places. */
+ *  the street test map places. */
 export interface PropClasses {
   /** Per mover class ("infantry", "vehicle"), the prop kinds that stop it. */
   blockingPropKinds: Record<string, string[]>;
   occludingPropKinds: string[];
-  /** Every prop the village's map places, in its order. */
+  /** Every prop the street test map places, in its order. */
   placed: { kind: string; half_extents: number[] }[];
 }
 

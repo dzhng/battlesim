@@ -1,8 +1,8 @@
 // Battles on saved maps. Every route gets its map from the catalogue
 // (`fixtures/maps/<id>/`) through the one resolver (`@web/maps/browser`),
 // and lays an encounter on it under the shared rules: a saved encounter
-// (`encounters/<name>.json`) for a lab, the simulation's own factory for the
-// village and the endurance battle.
+// (`encounters/<name>.json`) for a lab or the menu, the simulation's own
+// factory for the endurance battle.
 import { fixtureMap } from "./fixtures";
 import type { ReactNode } from "react";
 import { loadEncounter, loadMap } from "@web/maps/browser";
@@ -19,17 +19,6 @@ export interface SavedBattle {
   map: MapDefinition;
   encounter: LabEncounter;
   scenario: string;
-}
-
-/** The village encounter factory on the fixture's saved map. */
-export async function villageScenario(
-  wasm: Pick<Wasm, "village_scenario">,
-  fixture: string,
-  variant: string,
-  rules: GameRules,
-): Promise<string> {
-  const { definition } = await loadMap(fixtureMap(fixture));
-  return wasm.village_scenario(JSON.stringify({ ...rules, map: definition }), variant);
 }
 
 /** The endurance factory on the fixture's saved field, with the late state's

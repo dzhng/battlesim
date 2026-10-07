@@ -9,10 +9,7 @@ export type Wasm = typeof wasm;
 export function simModule(memory: WebAssembly.Memory): SimModule {
   return {
     memory,
-    createBattle: (scenario, seed, script) =>
-      script === undefined
-        ? new wasm.Battle(scenario, seed)
-        : wasm.Battle.scripted(scenario, seed, script),
+    createBattle: (scenario, seed) => new wasm.Battle(scenario, seed),
     replayBattle: (scenario, replay) => wasm.Battle.from_replay(scenario, replay),
   };
 }

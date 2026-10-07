@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "44b71c1c5a3c17920c6cbce6c7f5d661678421d67951797ffdcd3ce06b03eff0",
+    "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"
+  },
+  "catalogue": {
+    "library": "building-templates.json",
+    "template_ids": null
+  },
+  "inputs": [
+    {
+      "kind": "supplied",
+      "label": "map.json, authored by hand as the first test arena's ground",
+      "sha256": "0775753649c97ae6199511db73b24859a11d5f4e70e2d03e74f90da7d6c602fd"
+    }
+  ]
+}

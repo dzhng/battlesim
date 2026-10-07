@@ -1,5 +1,4 @@
-import { useSessionCatalog } from "@web/battle/catalog/context";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { GroundView } from "@web/battle/sim/ground";
@@ -17,9 +16,9 @@ import { GROUND_CHANNELS, type GroundChannel } from "@web/battle/sim/ground";
 import { channels } from "@web/battle/present/hudTheme";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { useBuiltScenario } from "../useBuiltScenario";
 import { gameCamera } from "../gameCamera";
-import { SavedEncounter, villageScenario, type SavedBattle } from "../savedMaps";
+import { SavedEncounter, type SavedBattle } from "../savedMaps";
+import { useStreetScenario } from "../streetScenario";
 import { useFeed } from "../feed";
 
 // The ground layer, as each side learns it. The lab field is the ground
@@ -28,8 +27,9 @@ import { useFeed } from "../feed";
 // passes of HE bursts at tick 1, each thrown off its grid point as a barrage
 // falls, so the field's craters are full); two
 // tanks shell a red squad standing in craters and one in the open; a blue
-// squad walks the field. `?village` inspects the village encounter instead,
-// paused after the supported attack's opening bombardment. The flat cell view
+// squad walks the field. `?street` inspects the street test map's encounter
+// instead (`streetScenario.ts`), where the two sides fight among buildings
+// and each learns its own ground. The flat cell view
 // draws the observed side's learned cells, rebuilt from the ground patches
 // its publications carry; switching side reopens the stream with that side's
 // full snapshot.
@@ -43,16 +43,38 @@ const GROUND_CAMERA: Camera3DParams = {
   yaw: -1.57,
   ...gameCamera.lens,
 };
-/** The village inspector: the supported attack two minutes in, paused. */
-const VILLAGE_SCRIPT = "scout-suppress-flank";
-const VILLAGE_WARM_TICKS = 120 * game.tick_hz;
-const VILLAGE_INSPECT_CAMERA: Camera3DParams = { ...gameCamera.opening(), distance: 900 };
 /** Ticks between rebuilds of the cell view while the battle runs. */
 const REFRESH_TICKS = 10;
 
+/** The street inspector's camera: over the street, wide. */
+const STREET_INSPECT_CAMERA: Camera3DParams = {
+  ...gameCamera.opening(),
+  target: [980, 800, 0],
+  distance: 600,
+};
+
 export default function Ground() {
-  const inspectVillage = new URLSearchParams(window.location.search).has("village");
-  return inspectVillage ? <VillageGround /> : <LabFieldGround />;
+  const street = new URLSearchParams(window.location.search).has("street");
+  return street ? <StreetGround /> : <LabFieldGround />;
+}
+
+function StreetGround() {
+  const built = useStreetScenario();
+  if (!built) return null;
+  if (typeof built !== "string")
+    return (
+      <main style={{ padding: 24 }} className="lab-rejected" data-testid="error">
+        the street scenario could not be built: {built.error}
+      </main>
+    );
+  return (
+    <GroundInspector
+      scenario={built}
+      seed={game.seed}
+      camera={STREET_INSPECT_CAMERA}
+      legend="the street test map's encounter"
+    />
+  );
 }
 
 function LabFieldGround() {
@@ -96,45 +118,17 @@ function LabField({ battle }: { battle: SavedBattle }) {
   );
 }
 
-function VillageGround() {
-  const { rules } = useSessionCatalog();
-  const built = useBuiltScenario("ordinary", (wasm, variant) =>
-    villageScenario(wasm, "village", variant, rules),
-  );
-  if (!built) return null;
-  if (typeof built !== "string")
-    return (
-      <main style={{ padding: 24 }} className="lab-rejected" data-testid="error">
-        the village scenario could not be built: {built.error}
-      </main>
-    );
-  return (
-    <GroundInspector
-      scenario={built}
-      seed={game.seed}
-      camera={VILLAGE_INSPECT_CAMERA}
-      script={VILLAGE_SCRIPT}
-      legend={`the village, ${VILLAGE_SCRIPT} from tick ${VILLAGE_WARM_TICKS}, paused`}
-    />
-  );
-}
-
 interface InspectorProps {
   scenario: string;
   seed: number;
   camera: Camera3DParams;
   legend: string;
-  /** Blue is played by this comparison script, warmed and then paused. */
-  script?: string;
   extra?: (observation: ObservationView | null) => ReactNode;
 }
 
-function GroundInspector({ scenario, seed, camera, legend, script, extra }: InspectorProps) {
+function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorProps) {
   const memory = useRef(new BattleMemory());
   const [side, setSide] = useState<SideName>("blue");
-  const [warm, setWarm] = useState(!script);
-  const warmRef = useRef(warm);
-  warmRef.current = warm;
   const [cells, setCells] = useState<GroundCells | null>(null);
   const [shown, setShown] = useState<ReadonlySet<GroundChannel>>(new Set(GROUND_CHANNELS));
   // The cell view was built from this tick and stream revision.
@@ -163,7 +157,7 @@ function GroundInspector({ scenario, seed, camera, legend, script, extra }: Insp
       const patch = o.groundPatch;
       if (!patch.full) maxDelta.current = Math.max(maxDelta.current, patchCells(patch));
       const view = groundRef.current?.current;
-      if (!view || !warmRef.current) return;
+      if (!view) return;
       const b = built.current;
       if (
         view.epoch !== b.epoch ||
@@ -173,29 +167,10 @@ function GroundInspector({ scenario, seed, camera, legend, script, extra }: Insp
     },
     [refreshGround],
   );
-  const clientRef = useRef<{ pause(): void } | null>(null);
-  const scripted = useMemo(
-    () =>
-      script
-        ? {
-            script,
-            warmTo: VILLAGE_WARM_TICKS,
-            onWarm: () => {
-              clientRef.current?.pause();
-              warmRef.current = true;
-              setWarm(true);
-              refreshGround();
-            },
-            onTick: () => {},
-          }
-        : undefined,
-    [script, refreshGround],
-  );
-  const session = useBattleSession({ scenario, seed, onDecoded, scripted, side });
+  const session = useBattleSession({ scenario, seed, onDecoded, side });
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation, client } = sim;
-  clientRef.current = client;
   groundRef.current = sim.ground;
   useEffect(() => {
     memory.current.clear();
@@ -248,7 +223,6 @@ function GroundInspector({ scenario, seed, camera, legend, script, extra }: Insp
     cells: () => cells,
     show: (channels: GroundChannel[]) => setShown(new Set(channels)),
     observeAs,
-    warm: () => warm,
     /** Start measuring the largest delta afresh. */
     resetLargestDelta: () => (maxDelta.current = 0),
     /** The view's stream and the latest patch, as the side received them. */
@@ -298,7 +272,7 @@ function GroundInspector({ scenario, seed, camera, legend, script, extra }: Insp
       <aside className="hud-panel lab-panel" data-testid="ground-panel">
         <strong>Ground layer</strong>
         <div>
-          Tick {observation?.tick ?? "—"} · {warm ? sim.status.status : "warming up"}
+          Tick {observation?.tick ?? "—"} · {sim.status.status}
         </div>
         <div className="lab-row">
           <button type="button" onClick={sim.restart}>

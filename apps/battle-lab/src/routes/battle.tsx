@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { usePageVisitActive, usePublishBattleAddress } from "../navigation";
-// /battle: a prepared battle, in the same battle view the village plays in.
+// /battle: a prepared battle, in the battle view every battle plays in.
 // Exact addresses retain one requested battle. Ordinary Play selects an admitted
 // preparation before publishing its exact address and starting its worker.
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -27,13 +27,12 @@ import { BattleClock } from "../battleStatus";
 import { BattleView, type BattleLoadStage } from "../BattleView";
 import { LoadingScreen, type LoadingFailure, type LoadingStage } from "../LoadingScreen";
 import {
-  isPreparedReplay,
   useSavedReplay,
-  PREPARED_REPLAY_ROUTE,
+  REPLAY_ROUTE,
   ReplayImport,
   ReplayLoading,
   saveReplay,
-  type PreparedReplayFile,
+  type ReplayFile,
 } from "../replayFile";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { gameCamera } from "../gameCamera";
@@ -167,13 +166,13 @@ function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "repla
 function SavedReplay() {
   const [loaded, setFile] = useSavedReplay();
   if (loaded.file === undefined) return <ReplayLoading />;
-  const file = loaded.file && isPreparedReplay(loaded.file) ? loaded.file : null;
+  const file = loaded.file;
   if (!file)
     return (
       <main className="menu">
         <div className="hud-panel menu-body">
           <h1>Replay</h1>
-          <ReplayImport plays={isPreparedReplay} onLoad={setFile} />
+          <ReplayImport onLoad={setFile} />
           <Link className="hud-menu-item" to="/">
             Main menu
           </Link>
@@ -199,8 +198,8 @@ function PreparedBattleView({
   request: PrepareBattleRequest;
   play?: boolean;
   /** A saved battle on this request, to watch. */
-  replay?: PreparedReplayFile;
-  onLoadReplay?: (file: PreparedReplayFile) => void;
+  replay?: ReplayFile;
+  onLoadReplay?: (file: ReplayFile) => void;
 }) {
   const publishAddress = usePublishBattleAddress();
   const visitActive = usePageVisitActive();
@@ -309,7 +308,7 @@ function PreparedBattleView({
 
   const exportReplay = async ({ sim }: BattleSession) => {
     if (!sim.client) return null;
-    const file: PreparedReplayFile = {
+    const file: ReplayFile = {
       battle: { scenario: prepared.scenario, report: prepared.report },
       replay: await sim.client.replay(),
     };
@@ -349,12 +348,12 @@ function PreparedBattleView({
             </button>
           )}
           {!replay && (
-            <Link className="hud-menu-item" to={PREPARED_REPLAY_ROUTE}>
+            <Link className="hud-menu-item" to={REPLAY_ROUTE}>
               Watch saved replay
             </Link>
           )}
           {replay && onLoadReplay && (
-            <ReplayImport plays={isPreparedReplay} onLoad={onLoadReplay} />
+            <ReplayImport onLoad={onLoadReplay} />
           )}
         </>
       )}

@@ -5,7 +5,7 @@ import * as wasm from "@wasm/game_wasm.js";
 import config from "@fixtures/generated-battle.json";
 import { TEST_RULES } from "./catalog";
 import { PreparationRefused, prepare, prepareReplay } from "../src/battle/prepare/prepare";
-import { parseReplayFile, isPreparedReplay } from "@apps/battle-lab/src/replayFile";
+import { parseReplayFile } from "@apps/battle-lab/src/replayFile";
 import type { PrepareBattleRequest, PrepareDocuments } from "../src/battle/prepare/protocol";
 import { loadMap } from "../src/maps/node";
 import { generationRequest, type MapChoice } from "../src/maps/source";
@@ -53,7 +53,6 @@ test("a saved prepared battle replays its captured map, forces and rules after f
   try {
     for (let tick = 0; tick < 30; tick++) live.step();
     const file = parseReplayFile(JSON.stringify({ battle: captured, replay: live.replay_json() }));
-    if (!isPreparedReplay(file)) throw new Error("not a prepared replay");
     const changed = JSON.parse(documents.rules);
     changed.tick_hz *= 2;
     const edited = await prepared(captured.report.request, {

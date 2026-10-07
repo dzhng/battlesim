@@ -44,8 +44,6 @@ export interface SimClientOptions {
   connect?: SimConnection;
   /** Replay a recorded battle instead of accepting input. */
   replay?: string;
-  /** Blue is played by this comparison script; blue input is refused. */
-  script?: string;
 }
 
 export interface SimClient {
@@ -303,7 +301,6 @@ export function createSimClient(options: SimClientOptions): SimClient {
     seed: options.seed,
     side: options.side,
     replay: options.replay,
-    script: options.script,
   });
 
   const send = (request: SimRequest) => {

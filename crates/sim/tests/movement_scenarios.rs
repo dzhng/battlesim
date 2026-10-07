@@ -298,13 +298,11 @@ fn forest(rect: [f64; 4]) -> Value {
     json!({ "shape": {"kind":"polygon","ring":[[x,y],[x+w,y],[x+w,y+h],[x,y+h]]}})
 }
 
-/// The crossroads field (`fixtures/crossroads.json`, this suite's own): two
-/// country roads meeting by three buildings, with a road block of dragon's
-/// teeth, sandbagged works and garden fences, on flat ground beside a ridge
-/// and two woods. Only its props whose centre lies inside `window`
-/// (`[x0, y0, x1, y1]`) are kept, so the drawing frames that corner.
-fn crossroads(window: [f64; 4]) -> Value {
-    let mut map: Value = serde_json::from_str(include_str!("fixtures/crossroads.json")).unwrap();
+/// The street test map (`fixtures/maps/street`: its ground, roads and
+/// forests) with only its props whose centre lies inside `window`
+/// (`[x0, y0, x1, y1]`), so the drawing frames that corner of it.
+fn street(window: [f64; 4]) -> Value {
+    let mut map = serde_json::to_value(sim::maps::load("street").unwrap().definition).unwrap();
     let props: Vec<Value> = map["props"]
         .as_array()
         .unwrap()
@@ -315,7 +313,54 @@ fn crossroads(window: [f64; 4]) -> Value {
         })
         .cloned()
         .collect();
+    let buildings: Vec<Value> = map["buildings"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|b| {
+            b["geometry"]["parts"].as_array().unwrap().iter().any(|p| {
+                let c = &p["center"];
+                inside(&window, v2(c[0].as_f64().unwrap(), c[1].as_f64().unwrap()))
+            })
+        })
+        .cloned()
+        .collect();
+    let mut ids: Vec<u64> = props
+        .iter()
+        .map(|p| p["id"].as_u64().unwrap())
+        .chain(buildings.iter().flat_map(|b| {
+            b["parts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|p| p["prop"].as_u64().unwrap())
+        }))
+        .collect();
+    ids.sort_unstable();
+    let ids: std::collections::BTreeMap<_, _> = ids
+        .into_iter()
+        .enumerate()
+        .map(|(new, old)| (old, new))
+        .collect();
+    let props: Vec<_> = props
+        .into_iter()
+        .map(|mut p| {
+            p["id"] = json!(ids[&p["id"].as_u64().unwrap()]);
+            p
+        })
+        .collect();
+    let buildings: Vec<_> = buildings
+        .into_iter()
+        .map(|mut b| {
+            b["owner"] = json!(ids[&b["owner"].as_u64().unwrap()]);
+            for p in b["parts"].as_array_mut().unwrap() {
+                p["prop"] = json!(ids[&p["prop"].as_u64().unwrap()]);
+            }
+            b
+        })
+        .collect();
     map["props"] = Value::Array(props);
+    map["buildings"] = Value::Array(buildings);
     map
 }
 
@@ -1680,11 +1725,11 @@ fn authored() -> Vec<Scenario> {
                 check(SoldiersClearOfProps),
             ],
         },
-        // --- field works at a crossroads ---------------------------------------
+        // --- field works on the street test map --------------------------------
         Scenario {
-            name: "x-teeth-roadblock",
-            caption: "crossroads road block: the tank leaves the road round the teeth, the squad threads their gaps",
-            map: crossroads([860.0, 760.0, 960.0, 850.0]),
+            name: "s-teeth-roadblock",
+            caption: "street road block: the tank leaves the road round the teeth, the squad threads their gaps",
+            map: street([860.0, 760.0, 960.0, 850.0]),
             units: json!([
                 vehicle("blue", "test_tank", [835.0, 791.0], 0.0),
                 rifle("blue", [850.0, 812.0]),
@@ -1713,9 +1758,9 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
-            name: "x-works-by-the-buildings",
+            name: "s-works-by-the-buildings",
             caption: "defenders out of their building take the sandbags against a squad beyond the teeth",
-            map: crossroads([880.0, 725.0, 1000.0, 890.0]),
+            map: street([880.0, 725.0, 1000.0, 890.0]),
             units: json!([
                 { "side": "blue", "kind": "test_rifle", "position": [870, 812] },
                 { "side": "red", "kind": "test_rifle", "position": [953, 743] },
@@ -1736,9 +1781,9 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
-            name: "x-works-lean-by-a-corner",
+            name: "s-works-lean-by-a-corner",
             caption: "the works by the buildings with blue listed second: a defender's lean point sits off the north house's corner, and he walks to it without jamming",
-            map: crossroads([880.0, 725.0, 1000.0, 890.0]),
+            map: street([880.0, 725.0, 1000.0, 890.0]),
             units: json!([
                 { "side": "red", "kind": "test_rifle", "position": [953, 743] },
                 { "side": "blue", "kind": "test_rifle", "position": [870, 812] },
@@ -1758,9 +1803,9 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
-            name: "x-square-sandbags",
-            caption: "defenders on the crossroads square take the sandbags facing the road",
-            map: crossroads([940.0, 768.0, 1070.0, 823.0]),
+            name: "s-square-sandbags",
+            caption: "defenders on the street's square take the sandbags facing the road",
+            map: street([940.0, 768.0, 1070.0, 823.0]),
             units: json!([
                 { "side": "red", "kind": "test_rifle", "position": [1018, 797] },
                 { "side": "blue", "kind": "test_rifle", "position": [955, 788] },
@@ -1780,9 +1825,9 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
-            name: "x-jeep-at-the-garden-fence",
+            name: "s-jeep-at-the-garden-fence",
             caption: "a jeep cannot shove the garden fence and drives round it or through its gate",
-            map: crossroads([925.0, 895.0, 990.0, 915.0]),
+            map: street([925.0, 895.0, 990.0, 915.0]),
             units: json!([vehicle("blue", "test_jeep", [952.6, 925.0], -std::f64::consts::FRAC_PI_2)]),
             events: none.clone(),
             scripts: json!([go(0, [952.6, 890.0])]),
@@ -1802,9 +1847,9 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
-            name: "x-tank-shoves-garden-fence",
+            name: "s-tank-shoves-garden-fence",
             caption: "a tank drives through the garden fence, shoving a panel aside",
-            map: crossroads([925.0, 895.0, 990.0, 915.0]),
+            map: street([925.0, 895.0, 990.0, 915.0]),
             units: json!([vehicle("blue", "test_tank", [946.4, 927.0], -std::f64::consts::FRAC_PI_2)]),
             events: none.clone(),
             scripts: json!([go(0, [946.4, 889.0])]),
@@ -1827,7 +1872,7 @@ fn authored() -> Vec<Scenario> {
             name: "t2-round-a-fence-end-by-a-road",
             caption: "a squad rounds the end of a fence that crosses a road bend: one man must not twitch at the end",
             map: {
-                let mut map = crossroads([0.0, 0.0, 0.0, 0.0]);
+                let mut map = street([0.0, 0.0, 0.0, 0.0]);
                 map["props"] = (0..10)
                     .map(|k| prop("fence", [103.0 + 6.2 * k as f64, 768.0], 0.0, [3.0, 0.1, 0.6]))
                     .collect();
@@ -1849,9 +1894,9 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
-            name: "x-farm-start",
+            name: "s-farm-start",
             caption: "by the farm: a squad walks round the farm fence, the truck and the jeep drive off",
-            map: crossroads([60.0, 730.0, 240.0, 910.0]),
+            map: street([60.0, 730.0, 240.0, 910.0]),
             units: json!([
                 rifle("blue", [180.0, 790.0]),
                 vehicle("blue", "test_supply", [100.0, 800.0], 0.0),

@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, vi } from "vitest";
 import * as wasm from "@wasm/game_wasm.js";
-import { CITY_CONTACT, VILLAGE_CONTACT } from "@web/battle/benchmark/presets";
+import { CITY_CONTACT } from "@web/battle/benchmark/presets";
 import { prepareBenchmark } from "@apps/battle-lab/src/benchmark/prepare";
 import { createBenchmarkRun } from "@apps/battle-lab/src/benchmark/run";
 import { TEST_RULES } from "./catalog";
@@ -70,17 +70,9 @@ test(
         livingUnits: { blue: 100, red: 100 },
       });
       const city = JSON.parse(built.scenario);
-      const village = JSON.parse(
-        wasm.village_scenario(
-          JSON.stringify({ ...TEST_RULES, map: loadMap("village").definition }),
-          VILLAGE_CONTACT.variant,
-        ),
-      );
       expect(city.units[4].position[0]).toBeLessThan(report.size[0] / 2 - 1000);
       expect(city.units[104].position[0]).toBeGreaterThan(report.size[0] / 2 + 1000);
       expect(city.map.size).toEqual(report.size);
-      expect(city.map.size[0]).toBeGreaterThan(village.map.size[0]);
-      expect(city.map.buildings.length).toBeGreaterThan(village.map.buildings.length);
       expect(city.units.filter((u: { side: string }) => u.side === "blue")).toHaveLength(100);
       expect(
         city.scripts.some(
@@ -91,7 +83,6 @@ test(
       expect(built.workload.tour.keyframes[0].slice(1, 3)).toEqual(report.size.map((n) => n / 2));
       const reports: BenchmarkReport[] = [];
       const run = createBenchmarkRun(built.workload, "short", 30, (r) => reports.push(r), report);
-      expect(run.scripted.script).toBeUndefined();
       expect(run.scripted.warmTo).toBe(150);
       run.cancel();
       expect(reports[0].scenario.fingerprint).toBe("4b6a0d2d");
