@@ -205,7 +205,7 @@ def textured(name, recipe, rough=None, metal=None, tint=0.0, colour=None, dirt=0
 # What every vehicle exporter draws its surfaces with, each carrying its role. The
 # dust film (`dirt`) skips rubber and glass: a tyre takes only a little dust low
 # down, where the tread meets the ground, so it stays black; glass takes none.
-TYRE_DUST = 0.12  # how far the dust film carries a tyre's lowest rim toward `DUST`
+TYRE_DUST = 0.12  # a tyre's `dirt`: its lowest rim goes this × 0.7 of the way to `DUST`
 TYRE_DUST_RISE = 0.35  # metres: the dust's reach up the tyre
 
 

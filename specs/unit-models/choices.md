@@ -189,3 +189,12 @@ Triangles per tier 0 / 1 / 2 / 3, from `asset validate` on each committed source
 - **Side tint.** Paint takes `tint` 1 everywhere, including the eastern tanks, which had 0.3. Red's warm multiplier lands on the real scheme; nothing else is tinted.
 - **HMMWV keeps the geometry its committed source has.** `humvee.py` builds light_armor's `humvee` branch, which fails the catalog frame (the JLTV's, until slice 14). The committed GLB was the `jltv` branch, so it was re-exported through that branch for the HMMWV appearance (a scratch driver, not committed). Triangles per tier match the committed file exactly.
 - **Geometry unchanged.** All 40 re-exported vehicles have the triangles per tier of slice 09's baseline, and all validate with no findings.
+- **Critique (unprimed, twice).** Tyres and tracks read dark and nothing glows. Fixed from the first pass: tracks drew pale under the dust film (now `track_steel()`, dust 0.15, plain steel on belts without link UVs), and the French print was brown-led. Left, each with its owner:
+  - **Wheels and hubs show light chips and dust splotches.** The shared chip rule treats a small part as all edge. The wheel parts are rebuilt in 14–16.
+  - **Lofted turret faces wash out under ORM specular**, as they already did in the before images.
+  - **The T-90's canvas mantlet cover is pale**; it uses the existing canvas recipe.
+  - **ZBL-08 glacis blocks look larger than the sides'** (box-UV projection on a slope).
+  - **Track wrap at the idler is lighter** (belt end faces).
+  - **Glass tops reflect sky teal:** intended grazing reflection, not emission.
+  - **Tan vehicles blend into the tan review ground:** the ground, not the scheme.
+- **Preview.** The shots were opened for the user, non-blocking; there was no response, so the slice proceeded on the evidence and the window was closed.

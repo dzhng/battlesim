@@ -115,7 +115,7 @@ are committed source; rebaking them does not rerun their source generators. The
 A material may carry baked textures, in three channels (`TEXTURE_CHANNELS`, `schema.ts`):
 
 - **albedo**, sRGB; its alpha is the wear threshold;
-- **normal**, tangent space; its alpha is coverage (see "Coverage and rooms");
+- **normal**, tangent space; its alpha is coverage (see "Coverage, rooms and roles");
 - **ORM**: occlusion, roughness and metalness, with the side-tint mask in alpha.
 
 A source embeds them as a standard glTF material's PNG textures, with a `TANGENT` attribute on its meshes. The bake (`texture.ts`) decodes each image, builds every mip level and addresses the texture by the sha256 of its content. A bundle names its textures by that address; each travels as its own runtime file, stored and fetched once however many bundles share it ("Transport and budgets"). The renderer keys textures by the address too, so a texture two bundles share is one layer on the GPU.
@@ -126,7 +126,7 @@ A textured material's vertex colour means something different. It is relative to
 
 The textures are procedural recipes in `blender/textures.py`: camouflage prints, weaves, rubber, steel, burnt metal, wood, stone, concrete and markings. Each is evaluated on a periodic lattice, so it tiles seamlessly, and baked with fixed seeds. The scripts give a textured part UVs in metres by box projection (`box_uv`), so every part and every tier samples the recipe at its own scale. `attach` then writes the images into the exported GLB, at the recipe's size or, for a piece under a byte cap (the garden and court pieces), box-filtered down to a smaller power of two that keeps its tile. Painted markings (tactical numbers, crate stencils, launcher nomenclature) are modelled as thin lettering (`parts.stencil`).
 
-## Coverage and rooms
+## Coverage, rooms and roles
 
 Every alpha has one meaning, and a material says the rest in words. Wear lives in the albedo texture's alpha and the vertex colour's, and the tint mask in the ORM texture's, on every material. How much of a surface is there is a separate statement, the material's **coverage** (`Coverage`, `schema.ts`):
 
@@ -140,9 +140,9 @@ A source says it the standard glTF way, `alphaMode` with `alphaCutoff`. The Blen
 
 A material may also be a **room**: a wall of the open box behind a window, which shows a cell of an interior atlas sheet (the atlas contract, and the UVs a room box carries, are in the [city readme](blender/city/README.md), "Interiors"). The material names the sheet (extras `interior`), and that is all it says: which cell, and its mirroring, is the drawer's choice per window. The bake gives the bundle the sheet itself (`interior.ts`): the catalog names each sheet's source picture under `interiors`, and a room's material comes out of the bake with that picture as its albedo texture, square, mipped and content-addressed like any other, so every kit that shows a sheet shares one layer of it on the GPU.
 
-The bundle only carries these statements. What draws them is the renderer's (`battle-renderer` `models/surfaceParts.ts`, which orders a mesh's triangles by kind, and `models/surfaceFragments.ts`, the stage each kind is drawn by), and a bundle of another format is refused, never read as if it were opaque.
+A material may also say what it **is**, its **role** (extras `role`, `MATERIAL_ROLES` in `schema.ts`): a vehicle's tyres are rubber, its optics and windows glass, its scheme paint, and the rest steel, track, fabric, skin or marking. A role is a statement about the real surface, so the validator can hold the surfaces players judge a model by to what they look like: rubber reads black and glass dark and smooth, whatever dust or paint a script lays on. It judges what the surface draws on average over its area, as the model shader does (albedo texture, vertex colour and its scale, base colour, and the wear colour where wear passes its threshold), against bounds in `schema.ts`. A vehicle's sight glass is opaque: it shows what it reflects, not what lies behind it.
 
-A material may also say what it **is**, its **role** (extras `role`, `MATERIAL_ROLES` in `schema.ts`): a vehicle's tyres are rubber, its optics and windows glass, its scheme paint, and the rest steel, track, fabric, skin or marking. A role is a statement about the real surface, so the validator can hold the surfaces players judge a model by to what they look like: rubber reads black and glass dark and smooth, whatever dust or paint a script lays on. It judges what the surface draws on average over its area, as the model shader does (albedo texture, vertex colour and its scale, base colour, and the wear colour where wear passes its threshold), against bounds in `schema.ts`.
+The bundle only carries these statements. What draws them is the renderer's (`battle-renderer` `models/surfaceParts.ts`, which orders a mesh's triangles by kind, and `models/surfaceFragments.ts`, the stage each kind is drawn by), and a bundle of another format is refused, never read as if it were opaque.
 
 The validator's `material.*` findings (`material.ts`) refuse what would be drawn wrong without anyone noticing. A cutout or blended material whose coverage value never crosses its own threshold has lost its coverage on the way (authored in the albedo's alpha, say). A blended surface cannot wear, since a worn patch has no coverage of its own. A room is opaque, has no textures or wear of its own in its source, and is on a static appearance; one whose sheet the catalog has no picture for does not bake. Rubber that draws lighter than black rubber (`material.role_rubber`), and glass that draws lighter or rougher than sight glass (`material.role_glass`), are refused.
 

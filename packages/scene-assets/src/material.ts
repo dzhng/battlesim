@@ -203,23 +203,23 @@ export function materialFindings(label: string, bundle: Exclude<Bundle, Skeleton
           "make it a cutout or opaque, or export it without wear",
         );
     }
-    const { albedo, roughness } = judgedDark(m)
-      ? drawnSurface(bundle, i)
-      : { albedo: [0, 0, 0], roughness: 0 };
-    const lit = luminance(albedo);
-    const tone = `draws at luminance ${lit.toFixed(3)} (albedo ${albedo.map((x) => x.toFixed(3)).join(", ")})`;
-    if (m.role === "rubber" && lit > RUBBER_MAX_LUMINANCE)
-      add(
-        "material.role_rubber",
-        `is rubber and ${tone}, over ${RUBBER_MAX_LUMINANCE}: it reads grey, not black`,
-        "keep dust and paint off the rubber (`parts.tyre`); a dusty tread is dust low down, not a film",
-      );
-    if (m.role === "glass" && (lit > GLASS_MAX_LUMINANCE || roughness > GLASS_MAX_ROUGHNESS))
-      add(
-        "material.role_glass",
-        `is glass and ${tone} at roughness ${roughness.toFixed(3)}, over ${GLASS_MAX_LUMINANCE} or ${GLASS_MAX_ROUGHNESS}: it reads as a coloured block, not glass`,
-        "draw glass near black and smooth (`parts.glass`): what it shows is what it reflects",
-      );
+    if (judgedDark(m)) {
+      const { albedo, roughness } = drawnSurface(bundle, i);
+      const lit = luminance(albedo);
+      const tone = `draws at luminance ${lit.toFixed(3)} (albedo ${albedo.map((x) => x.toFixed(3)).join(", ")})`;
+      if (m.role === "rubber" && lit > RUBBER_MAX_LUMINANCE)
+        add(
+          "material.role_rubber",
+          `is rubber and ${tone}, over ${RUBBER_MAX_LUMINANCE}: it reads grey, not black`,
+          "keep dust and paint off the rubber (`parts.tyre`); a dusty tread is dust low down, not a film",
+        );
+      if (m.role === "glass" && (lit > GLASS_MAX_LUMINANCE || roughness > GLASS_MAX_ROUGHNESS))
+        add(
+          "material.role_glass",
+          `is glass and ${tone} at roughness ${roughness.toFixed(3)}, over ${GLASS_MAX_LUMINANCE} or ${GLASS_MAX_ROUGHNESS}: it reads as a coloured block, not glass`,
+          "draw glass near black and smooth (`parts.glass`): what it shows is what it reflects",
+        );
+    }
     if (m.interior === undefined) return;
     const fix =
       "an interior material is opaque and untextured, on a static appearance: it shows its atlas cell and nothing else";
