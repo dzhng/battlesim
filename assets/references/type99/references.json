@@ -1,0 +1,75 @@
+{
+  "entries": [
+    {
+      "file": "eastern_type_99_ztz_99a-three_quarter_front.jpg",
+      "variant": "eastern_type_99_ztz_99a",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ZTZ-99A_MBT_20170902.jpg",
+      "author": "Tyg728",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "805f95af7872eb6d75a23453a70b498454c7507e7a7f17bc50f0064350702392",
+      "note": "ZTZ-99A, Military Museum Beijing 2017, front left"
+    },
+    {
+      "file": "eastern_type_99_ztz_99a-three_quarter_front-2.jpg",
+      "variant": "eastern_type_99_ztz_99a",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ZTZ-99A_tank_front_right_20170902.jpg",
+      "author": "Tyg728",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "a74cf734afe33d0be1dd84798bcb9336aaf18e92914211db8cbecd2bfa8b8907",
+      "note": "ZTZ-99A front right"
+    },
+    {
+      "file": "eastern_type_99_ztz_99a-side.jpg",
+      "variant": "eastern_type_99_ztz_99a",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ZTZ-99A_MBT_20170716.jpg",
+      "author": "Tyg728",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "03c06c56bd43da209867f38234b6b0e15178fed6220fc7a4b60ea99eb74bac10",
+      "note": "ZTZ-99A left side"
+    },
+    {
+      "file": "eastern_type_99_ztz_99a-front.jpg",
+      "variant": "eastern_type_99_ztz_99a",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ZTZ-99A_tank_front_20170902.jpg",
+      "author": "Tyg728",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "438d0c69d22eb75b553043fde188dce1a1aafbe3ddc220c9805c48f981632961",
+      "note": "ZTZ-99A head-on"
+    },
+    {
+      "file": "eastern_type_99_ztz_99a-top.jpg",
+      "variant": "eastern_type_99_ztz_99a",
+      "view": "top",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:China_Announces_Troop_Cuts_at_WWII_Parade_(screenshot)_20159180119.JPG",
+      "author": "William Ide",
+      "licence": "public-domain",
+      "sha256": "139f76ffd45c768cb7f968b8a9c82323efc24758600a447accaea1a79fc4da90",
+      "note": "2015 Beijing parade from above, ZTZ-99A columns in digital camouflage"
+    },
+    {
+      "file": "type_99-three_quarter_rear.jpg",
+      "variant": "type_99",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Type_99_MBT_rear.jpg",
+      "author": "Max Smith",
+      "licence": "public-domain",
+      "sha256": "198be3de7ea6382863e3a8f3825755163af176e75e4e72b4ae6243a33586d311",
+      "note": "Earlier Type 99 (not 99A), rear right, Beijing"
+    }
+  ],
+  "gaps": [
+    "ZTZ-99A: no rear or three_quarter_rear photo; the rear is from the earlier Type 99 (variant type_99), whose hull rear is assumed similar.",
+    "Top is a 2015 parade screenshot from above at distance; turret roof detail is not legible.",
+    "No close detail of the 99A's sights, ERA or running gear."
+  ]
+}
