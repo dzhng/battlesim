@@ -1,0 +1,188 @@
+{
+  "entries": [
+    {
+      "file": "us_lav_lav_25a2-three_quarter_front-2.jpg",
+      "variant": "us_lav_lav_25a2",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Light_Armored_Vehicle_-_1.jpg",
+      "author": "mark6mauno",
+      "licence": "CC-BY-2.0",
+      "sha256": "3df98d4bbefa6fab958ee59ad0f5cbe5eef818bb62552cca460476e6f596112a",
+      "note": "USMC LAV-25 in parade, c. 2015 (A2 by date); left side and turret clear."
+    },
+    {
+      "file": "us_lav_lav_25a2-three_quarter_front.jpg",
+      "variant": "us_lav_lav_25a2",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:LAV-25A2.jpg",
+      "author": "Cpl. Nayelly Nieves-Nieves",
+      "licence": "public-domain",
+      "sha256": "2f3354ddc80e736fc3af9c9111c1ac5c55e01364ac325a480102af8c3ac5b82e",
+      "note": "Captioned LAV-25A2; left front three-quarter, MERDC woodland."
+    },
+    {
+      "file": "us_lav_lav_25a2-side-2.jpg",
+      "variant": "us_lav_lav_25a2",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:3d_LAR_Gunnery_Range_(8616404).jpg",
+      "author": "U.S. Marine Corps photo by Staff Sgt. Samuel Ruiz",
+      "licence": "public-domain",
+      "sha256": "5418785b7e0598b617c9228bf22a28a8fd116da868941c09c633e8a2bc7c0e83",
+      "note": "Right side while firing, Okinawa range c. 2024 (A2 by date): jerrycan racks, exhaust, wheels and hubs, turret profile."
+    },
+    {
+      "file": "us_lav_lav_25a2-side.jpg",
+      "variant": "us_lav_lav_25a2",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Light_Armored_Vehicle.JPG",
+      "author": "Alvaro Aro, U. S. Marine Corps",
+      "licence": "public-domain",
+      "sha256": "88d5d8bea49b066de56eef6d26259df7ca0476c0df9790573ed6e436f7b95d1c",
+      "note": "Right side, near-orthographic."
+    },
+    {
+      "file": "us_lav_lav_25a2-three_quarter_rear.jpg",
+      "variant": "us_lav_lav_25a2",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:24th_MEU%27s_LAR_Detachment_Shoots_for_Mission_Readiness_141107-M-QZ288-656.jpg",
+      "author": "Lance Cpl. Austin Lewis",
+      "licence": "public-domain",
+      "sha256": "15b4790f3e44c6f476ddb980f55b6aaf68ee6a5623ce65db10640041fd6e4b13",
+      "note": "Right rear quarter, close crop (2014): rear-mounted spare wheel, jerrycan racks, tyre tread and hubs, turret rear and vision blocks."
+    },
+    {
+      "file": "us_lav_lav_25a2-front.jpg",
+      "variant": "us_lav_lav_25a2",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Combat_Center_supports_car_show,_street_fair_150425-M-FZ867-862.jpg",
+      "author": "Lance Cpl. Julio McGraw",
+      "licence": "public-domain",
+      "sha256": "c495a73d9df63857d726ce8bb7d11c6953cb3487d599acc88cd3549789546c8d",
+      "note": "Head-on, 2015 (A2 by date): bow, lights, turret front."
+    },
+    {
+      "file": "us_lav_lav_25a2-rear.jpg",
+      "variant": "us_lav_lav_25a2",
+      "view": "rear",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:United_States_Marine_Corps,_Light_Armored_Vehicle_LAV-25_-_LAV-AT,_LAV-R,_LAV-C2,_LAV-M.png",
+      "author": "Mick Bell",
+      "licence": "CC-BY-4.0",
+      "sha256": "40dd15001ea1a17479d08cb87a0563ae5f2f7194455689161bbe6866e3bebf2e",
+      "note": "Same 1987 sheet, cropped and rotated: front and rear elevations (twin rear doors) and right side elevation."
+    },
+    {
+      "file": "us_lav_lav_25a2-top.jpg",
+      "variant": "us_lav_lav_25a2",
+      "view": "top",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:United_States_Marine_Corps,_Light_Armored_Vehicle_LAV-25_-_LAV-AT,_LAV-R,_LAV-C2,_LAV-M.png",
+      "author": "Mick Bell",
+      "licence": "CC-BY-4.0",
+      "sha256": "c826cfe2b51a3f254d890bda9bb7880a3ffd3b708a15bf76da3ae78824a3c347",
+      "note": "1/76 line drawing (1987, base LAV-25, before A2 armour), cropped and rotated from sheet 1 (the Commons title names the other sheet): top plan and left side elevation."
+    },
+    {
+      "file": "us_lav_lav_25a2-detail-2.jpg",
+      "variant": "us_lav_lav_25a2",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Finnish_Defense_Force_Fuels_Marines_for_Arrow_19_(5332576).jpg",
+      "author": "U.S. Marine Corps photo by Lance Cpl. Scott Jenkins",
+      "licence": "public-domain",
+      "sha256": "a106b5d93648568c580ed37317a4e3aa7da882781aa3d02ec0b331a8461d6d4d",
+      "note": "Rear deck and stowage, jerrycans, 2019."
+    },
+    {
+      "file": "us_lav_lav_25a2-detail.jpg",
+      "variant": "us_lav_lav_25a2",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Light_Armored_Vehicle_-_17942286995.jpg",
+      "author": "mark6mauno",
+      "licence": "CC-BY-2.0",
+      "sha256": "a155bec4eeb24201711b5576d834d69c96f6de5de43dd23b4414c521a312846f",
+      "note": "Turret: 25 mm M242 and mantlet, sight head, smoke dischargers."
+    },
+    {
+      "file": "us_lav_lav_at-three_quarter_front-2.jpg",
+      "variant": "us_lav_lav_at",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:LAV-AT_On_Static_Display_at_the_MCAS_Miramar_Airshow_2024.jpg",
+      "author": "Gumgumboy12032004",
+      "licence": "CC0-1.0",
+      "sha256": "11ca21c9b383db43f0897ebdf43ab41a88fb95ad28dd29f045b080daaf3a98ef",
+      "note": "Static display 2024, right front, launcher raised."
+    },
+    {
+      "file": "us_lav_lav_at-three_quarter_front.jpg",
+      "variant": "us_lav_lav_at",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:LAV-AT.jpg",
+      "author": "US Department of Defense (photographer not named)",
+      "licence": "public-domain",
+      "sha256": "3f6184cd65241a28ecce3757b23e484ce2beaef80224e07a8e15519718c970d8",
+      "note": "Camp Lejeune, 1997: Emerson TOW hammerhead raised, left front three-quarter."
+    },
+    {
+      "file": "us_lav_lav_at-side.jpg",
+      "variant": "us_lav_lav_at",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Early_LAV-AT_vehicle_during_a_demonstration_in_1990.jpg",
+      "author": "Beard",
+      "licence": "public-domain",
+      "sha256": "8b1f3f2b35c96a83f873cdb792ab1ea1b25da1cffedad501cd7e23e691dd75bd",
+      "note": "Early LAV-AT, 1990, black and white; hull and turret profile."
+    },
+    {
+      "file": "us_lav_lav_at-front.jpg",
+      "variant": "us_lav_lav_at",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:DF-ST-90-03214.jpg",
+      "author": "STAFF Sergeant Scott Stewart",
+      "licence": "public-domain",
+      "sha256": "fca091b8aa328d30a707bbee261b515820a7309ddd619831bd74ecb8a04e82fe",
+      "note": "Bow head-on, 1990, backlit: lights, trim vane, hammerhead stowed behind the crew."
+    },
+    {
+      "file": "us_lav_lav_at-top.jpg",
+      "variant": "us_lav_lav_at",
+      "view": "top",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:United_States_Marine_Corps,_Light_Armored_Vehicle,_LAV-25_and_LAV-L.png",
+      "author": "Mick Bell",
+      "licence": "CC-BY-4.0",
+      "sha256": "430d1228ac0a6aaf00ec95aa4c662055f8725157c2e7f53c3070b31c2ad2a896",
+      "note": "1/76 line drawing (1987), cropped and rotated from sheet 2 (the Commons title names the other sheet): top plan of the rear hull with the Emerson TOW turret, upper side elevation with launcher travel, front and rear elevations."
+    },
+    {
+      "file": "us_lav_lav_at-detail.jpg",
+      "variant": "us_lav_lav_at",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Gunner_Up,_2nd_LAR_conducts_combined_weapons_training_160922-M-PK622-003.jpg",
+      "author": "Cpl. Melodie Snarr",
+      "licence": "public-domain",
+      "sha256": "b38aa33c4ba41047bf8e4c02102bfd5b148ba2cc79bb024941cd12645de80a52",
+      "note": "Right front close-up, 2016: hammerhead launcher stowed over the hull, exhaust, jerrycan rack, tyres and hubs."
+    }
+  ],
+  "gaps": [
+    "us_lav_lav_25a2: no photo straight from the rear or above; the rear and top views are Mick Bell's 1987 drawings of the base LAV-25, before the A2's applique armour, raised suspension and newer sight.",
+    "us_lav_lav_25a2: A2 identification is by date (USMC photos after about 2010), not by a visible marker.",
+    "us_lav_lav_at: no three_quarter_rear or rear photo; the rear elevation and top plan come from Mick Bell's 1987 drawing.",
+    "us_lav_lav_at: the side photo is a black-and-white 1990 early vehicle; colour hull side shown only in the right front detail.",
+    "us_lav_lav_at: the LAV-ATM (2010s replacement turret) is a different vehicle and was excluded.",
+    "us_lav_lav_at: no close-up of the Emerson hammerhead launcher or its sight; photos of the 2014 modernised turret (ATWS) were excluded as a different launcher."
+  ]
+}
