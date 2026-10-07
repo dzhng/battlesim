@@ -105,6 +105,15 @@ const CELLS_PER_WORK: usize = 32;
 pub const LARGEST_STEP: u64 = 9 * TILE_WORK;
 
 /// How a unit class moves: its speeds on each surface and how wide it is.
+/// A hull to park: half its length and half its width, and the facing it
+/// was ordered to keep, if it can turn on the spot to keep it. Without one
+/// it parks facing the way it drives in.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Parking {
+    pub half: V2,
+    pub facing: Option<f64>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Mobility {
     pub off_road_mps: f64,
@@ -680,32 +689,33 @@ impl NavGrid {
         self.nearest_standing(p, 1, |q| self.placement_fits(q, m))
     }
 
-    /// Where a unit may end a move near `p`. A hull parks where all of it
-    /// stands clear whichever way it comes to face: the circle of
-    /// `hull_radius_m` round it meets no known body, not even one it could
-    /// shove in passing, and no bank or map edge. A shove is made on the
-    /// way; a car pinned against a wall is not standing room. It must also
-    /// be ground the vehicle can drive to from `from`, not a pocket its side
-    /// knows to be closed off ([`Pockets`]), across water or up a cliff.
-    /// Where the hull does not fit, it parks on the nearest ground it does
-    /// within a hull's length; where that ground cannot be reached, on the
-    /// nearest that can within [`pockets::POCKET_REACH_M`], and with none
-    /// that near, it is sent where it was, and placement leaves it
-    /// unplaced ([`Self::reaches`]). A squad (no hull) stands as it fits.
-    /// Where the room found is a long way round, the unit may stop short of
-    /// it on its way ([`Self::room_on_the_way`]).
+    /// Where a unit may end a move near `p`. A hull parks where its box,
+    /// facing the way it parks ([`Parking`]), stands clear of every known
+    /// body, not even one it could shove in passing, and of every bank and
+    /// map edge: a shove is made on the way, and a car pinned against a
+    /// wall is not standing room. It needs no room to turn round there; it
+    /// backs out the way it came. It must also be ground the vehicle can
+    /// drive to from `from`, not a pocket its side knows to be closed off
+    /// ([`Pockets`]), across water or up a cliff. Where the hull does not
+    /// fit, it parks on the nearest ground it does within a hull's length;
+    /// where that ground cannot be reached, on the nearest that can within
+    /// [`pockets::POCKET_REACH_M`], and with none that near, it is sent
+    /// where it was, and placement leaves it unplaced ([`Self::reaches`]).
+    /// A squad (no hull) stands as it fits. Where the room found is a long
+    /// way round, the unit may stop short of it on its way
+    /// ([`Self::room_on_the_way`]).
     pub fn destination_point(
         &self,
         p: V2,
         m: &Mobility,
-        hull_radius_m: Option<f64>,
+        hull: Option<Parking>,
         from: V2,
         pockets: &Pockets,
     ) -> Option<V2> {
-        let Some(radius) = hull_radius_m else {
+        let Some(hull) = hull else {
             return self.placement_point(p, m);
         };
-        let stands = |q: V2| self.hull_stands(q, m, radius);
+        let stands = |q: V2| self.hull_stands(q, m, hull, from);
         let pocketed = std::cell::Cell::new(false);
         let parks = |q: V2| {
             stands(q)
@@ -714,7 +724,7 @@ impl NavGrid {
                     false
                 })
         };
-        let reach = (2.0 * radius / NAV_CELL_M).ceil() as isize;
+        let reach = (2.0 * hull.half.length() / NAV_CELL_M).ceil() as isize;
         self.nearest_standing(p, reach, parks).or_else(|| {
             if !pocketed.get() {
                 return None;
@@ -727,16 +737,37 @@ impl NavGrid {
         })
     }
 
-    /// Whether a hull of `radius` parks at `q`: all of it clear, whichever
-    /// way it faces, of every known body, bank and map edge.
-    fn hull_stands(&self, q: V2, m: &Mobility, radius: f64) -> bool {
-        self.placement_fits(q, m)
-            && self.ground_clear(q, radius, false)
-            && self.bodies_clear(q, radius, PushClass::None)
+    /// Whether `hull` parks at `q`, come from `from`: its box clear of every
+    /// known body, bank and map edge. The box is covered by a row of discs
+    /// along its heading, each as wide as the hull and a little over, so
+    /// the disc tests the grid answers decide it, a little on the safe side.
+    fn hull_stands(&self, q: V2, m: &Mobility, hull: Parking, from: V2) -> bool {
+        if !self.placement_fits(q, m) {
+            return false;
+        }
+        let yaw = hull.facing.unwrap_or_else(|| {
+            let d = q - from;
+            if d.length() > 1e-6 {
+                libm::atan2(d.y, d.x)
+            } else {
+                0.0
+            }
+        });
+        let (length, width) = (hull.half.x, hull.half.y.max(1e-3));
+        let along = v2(libm::cos(yaw), libm::sin(yaw));
+        // Discs about `width` apart, each covering its stretch of the box's
+        // full width.
+        let discs = ((2.0 * length / width).ceil() as usize).max(1);
+        let step = 2.0 * length / discs as f64;
+        let radius = width.hypot(step / 2.0);
+        (0..discs).all(|k| {
+            let c = q + along * (-length + step * (k as f64 + 0.5));
+            self.ground_clear(c, radius, false) && self.bodies_clear(c, radius, PushClass::None)
+        })
     }
 
-    /// Room on the way from `from` to `p` for a hull of `hull_radius_m`:
-    /// stepping back from `p` toward `from` a cell at a time, within
+    /// Room on the way from `from` to `p` for `hull`: stepping back from
+    /// `p` toward `from` a cell at a time, within
     /// [`pockets::POCKET_REACH_M`], the first point where it parks and that
     /// it can drive to. Where a unit stops short of ground it could not
     /// stand on, if the room nearest that ground is a long way round.
@@ -744,7 +775,7 @@ impl NavGrid {
         &self,
         p: V2,
         m: &Mobility,
-        hull_radius_m: f64,
+        hull: Parking,
         from: V2,
         pockets: &Pockets,
     ) -> Option<V2> {
@@ -753,7 +784,7 @@ impl NavGrid {
         let steps = (reach / NAV_CELL_M) as usize;
         (1..=steps)
             .map(|k| p + back * (k as f64 * NAV_CELL_M / back.length()))
-            .find(|&q| self.hull_stands(q, m, hull_radius_m) && self.reaches(from, q, m, pockets))
+            .find(|&q| self.hull_stands(q, m, hull, from) && self.reaches(from, q, m, pockets))
     }
 
     /// `p` if it `fits`, else the nearest cell centre within `reach` cells

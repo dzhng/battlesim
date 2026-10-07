@@ -465,3 +465,49 @@ fn stops_short_of_the_wreck(ratio: Option<f64>) {
         "it stopped {short:.1} m short of the car after {driven:.0} m ({straight:.0} m straight)"
     );
 }
+
+/// The moment: a truck as long as any wheeled hull may be is sent to the
+/// middle of the street, between parked cars on both kerbs. Its box, nose to tail
+/// along the street, stands clear of them: it pulls up where it was sent, as
+/// a driver would, rather than looking for a square wide enough to turn
+/// round in. It can back out the way it came.
+#[test]
+fn a_long_truck_pulls_up_beside_parked_cars_where_it_was_sent() {
+    let bearing = 0.0;
+    let mut rules = common::scenario_rules();
+    sim::fixtures::with_units_at_limits(&mut rules);
+    let from = at(bearing, -200.0, 0.0);
+    let units =
+        json!([{ "side": "blue", "kind": "limit_wheeled", "position": from, "yaw": bearing }]);
+    // Cars along both kerbs: the street is narrower than the truck is long.
+    let mut map = street(bearing, true);
+    for k in 0..4 {
+        map["props"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({ "kind": "parked_car",
+            "center": at(bearing, -50.0 + 4.7 * k as f64, -(PARKED_M + CAR[1])),
+            "yaw": bearing, "half_extents": [CAR[0], CAR[1], 0.75] }));
+    }
+    let setup = serde_json::from_value(json!({
+        "map": map, "rules": rules, "units": units, "events": [], "scripts": [],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    // Between the third run of parked cars and the cars across the street.
+    let goal = at(bearing, -50.0 + 7.0, 0.0);
+    send(&mut b, 1, 0, goal);
+    let hz = b.rules().tick_hz as u64;
+    for _ in 0..120 * hz {
+        b.step();
+        if own(&b, 0).state == MoveState::Idle {
+            break;
+        }
+    }
+    let p = own(&b, 0).position;
+    let off = (v2(p[0], p[1]) - v2(goal[0], goal[1])).length();
+    assert!(
+        off < 2.0,
+        "it stopped {off:.1} m from where it was sent, at {p:?}"
+    );
+}

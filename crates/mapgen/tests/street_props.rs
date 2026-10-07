@@ -73,8 +73,13 @@ fn catalogue() -> TemplateGeometryCatalog {
     TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap()).unwrap()
 }
 
+/// The stand-in units: what streets are dressed for and driven by.
+fn game() -> serde_json::Value {
+    sim::fixtures::stand_in_game()
+}
+
 fn rules() -> Rules {
-    serde_json::from_value(sim::fixtures::stand_in_game()).unwrap()
+    serde_json::from_value(game()).unwrap()
 }
 
 fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
@@ -269,8 +274,8 @@ fn compiled(
     .map
 }
 
-/// The stand-ins' hulls (a tank, a truck, a jeep: tracked and wheeled,
-/// heavy to light) as movers, the widest first.
+/// The hulls of [`rules`] (the stand-ins' tank, truck and jeep) as movers,
+/// the widest first.
 fn vehicles(rules: &Rules) -> Vec<(String, Mobility)> {
     let catalog = &rules.catalog;
     let mut hulls: Vec<(String, Mobility)> = catalog
@@ -464,7 +469,7 @@ fn nothing_stands_at_a_junctions_corner() {
 fn the_driven_lane_stays_clear_and_a_narrow_street_parks_one_side() {
     let presets = presets_with(cars_only);
     let catalog = rules().catalog;
-    let mut fixture = sim::fixtures::stand_in_game();
+    let mut fixture = game();
     let wide = catalog
         .indices()
         .filter_map(|unit| catalog.get(unit).hull())
@@ -490,6 +495,8 @@ fn the_driven_lane_stays_clear_and_a_narrow_street_parks_one_side() {
             catalog.id(widest),
             json!({ "body": { "hull": { "half_extents_m": [3.5, wide, 1.2] } } }),
         );
+        // A hull wider than any the game admits.
+        sim::fixtures::lift_hull_limits(&mut fixture);
         serde_json::from_value::<Rules>(fixture).unwrap().catalog
     };
     assert!(widest_hull(&wider) > widest_hull(&catalog) + 1.0);
@@ -1327,7 +1334,7 @@ fn a_body_cut_to_fit_without_a_modular_appearance_is_refused() {
         dress(&rules().catalog).is_ok(),
         "the shipped hedge appearance is modular"
     );
-    let mut fixture = sim::fixtures::stand_in_game();
+    let mut fixture = game();
     sim::fixtures::patch_catalog(
         &mut fixture,
         "props",
@@ -1390,7 +1397,7 @@ fn a_city_with_its_courts_and_gardens_stays_within_the_part_limit() {
         &serde_json::to_string(&request).unwrap(),
         PRESETS,
         include_str!("../../../fixtures/prototype-building-templates.json"),
-        &sim::fixtures::stand_in_game().to_string(),
+        &game().to_string(),
     ) {
         mapgen::CompileOutcome::Ok { result } => result,
         mapgen::CompileOutcome::Error { diagnostics } => panic!("{diagnostics:?}"),
@@ -1433,7 +1440,7 @@ fn courts_and_gardens_keep_off_the_woods_that_certify_sight() {
         &serde_json::to_string(&request).unwrap(),
         PRESETS,
         TEMPLATES,
-        &sim::fixtures::stand_in_game().to_string(),
+        &game().to_string(),
     )
     .unwrap_or_else(|failure| panic!("{:?}", failure.diagnostics));
     let (mut gardens, mut court) = (0, 0);
@@ -1629,7 +1636,7 @@ fn courts_are_structured_and_lawns_dressed_rather_than_left_open() {
             &serde_json::to_string(&request).unwrap(),
             PRESETS,
             TEMPLATES,
-            &sim::fixtures::stand_in_game().to_string(),
+            &game().to_string(),
         )
         .unwrap_or_else(|failure| panic!("{:?}", failure.diagnostics));
         let mut near = Raster::new(plan.size);
@@ -3109,7 +3116,10 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                         after.grid.destination_point(
                             v2(e[0], e[1]),
                             m,
-                            Some(hull[0].hypot(hull[1])),
+                            Some(navigation::Parking {
+                                half: v2(hull[0], hull[1]),
+                                facing: None,
+                            }),
                             start,
                             &pockets,
                         )

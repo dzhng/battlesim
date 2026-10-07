@@ -2872,13 +2872,16 @@ impl Battle {
             libm::hypot(self.world.width(), self.world.depth()),
             |id, p| {
                 let u = &self.units[id.0 as usize];
-                let hull = u.hull.map(|h| h.xy().length());
+                // A hull that turns on the spot parks facing as ordered.
+                let pivots = u.mobility.drive.is_some_and(|d| d.tracked);
+                let hull = u.hull.map(|h| crate::navigation::Parking {
+                    half: h.xy(),
+                    facing: request.facing.filter(|_| pivots),
+                });
                 let placed = grid.destination_point(p, &u.mobility, hull, from(u), &pockets)?;
                 let short = hull
                     .filter(|_| placed != p)
-                    .and_then(|radius| {
-                        grid.room_on_the_way(p, &u.mobility, radius, from(u), &pockets)
-                    })
+                    .and_then(|hull| grid.room_on_the_way(p, &u.mobility, hull, from(u), &pockets))
                     .filter(|&at| at != placed)
                     .map(|at| crate::units::StopShort {
                         at,

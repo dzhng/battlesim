@@ -550,7 +550,10 @@ fn gather(
             let point = grid.destination_point(
                 point,
                 &u.mobility,
-                u.hull.map(|h| h.xy().length()),
+                u.hull.map(|h| crate::navigation::Parking {
+                    half: h.xy(),
+                    facing: None,
+                }),
                 u.position.xy(),
                 &pockets,
             )?;

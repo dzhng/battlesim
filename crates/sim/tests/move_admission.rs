@@ -687,20 +687,22 @@ fn parked_court(units: serde_json::Value) -> Battle {
     )
 }
 
-/// Every vehicle-stopping body whose footprint comes within `radius` of `p`.
-fn bodies_within(battle: &Battle, p: [f64; 2], radius: f64) -> Vec<String> {
+/// Every vehicle-stopping body under `unit`'s hull parked at `at`, facing the way
+/// it drives in from where it stands.
+fn bodies_under(battle: &Battle, unit: UnitId, at: [f64; 2]) -> Vec<String> {
+    let u = battle.unit(unit).unwrap();
+    let to = sim::math::v2(at[0], at[1]);
+    let way = to - u.position.xy();
+    let parked = sim::math::Obb2 {
+        center: to,
+        half: u.hull.unwrap().xy(),
+        yaw: libm::atan2(way.y, way.x),
+    };
     battle
         .world()
         .props()
         .filter(|b| b.blocks(contract::map::MoverClass::Vehicle))
-        .filter(|b| {
-            let d = b.footprint().to_local(sim::math::v2(p[0], p[1]));
-            let out = sim::math::v2(
-                (d.x.abs() - b.half.x).max(0.0),
-                (d.y.abs() - b.half.y).max(0.0),
-            );
-            out.length() < radius
-        })
+        .filter(|b| b.footprint().overlaps(&parked))
         .map(|b| format!("{:?} at {:?}", b.kind, b.center))
         .collect()
 }
@@ -708,14 +710,12 @@ fn bodies_within(battle: &Battle, p: [f64; 2], radius: f64) -> Vec<String> {
 /// The moment: a tank is sent to a point among cars parked nose in against
 /// a wall. It cannot stand on a car (shoving it into the wall is not
 /// parking), so it is sent to the nearest paving its whole hull stands clear
-/// on, whichever way it comes to face, a few metres short of the bays.
+/// on, facing the way it drives in, a few metres short of the bays.
 #[test]
 fn a_vehicle_sent_onto_cars_parked_against_a_wall_parks_on_the_clear_ground_beside_them() {
     let mut battle = parked_court(json!([
         {"side": "blue", "kind": "tank", "position": [60, 20], "yaw": std::f64::consts::FRAC_PI_2}
     ]));
-    let hull = battle.unit(UnitId(0)).unwrap().hull.unwrap();
-    let radius = hull.x.hypot(hull.y);
     let goal = [60.0, 79.0];
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
@@ -728,9 +728,9 @@ fn a_vehicle_sent_onto_cars_parked_against_a_wall_parks_on_the_clear_ground_besi
     assert!(destination.placed, "{destination:?}");
     let at = destination.goal;
     assert_eq!(
-        bodies_within(&battle, at, radius),
+        bodies_under(&battle, UnitId(0), at),
         Vec::<String>::new(),
-        "the tank's hull at {at:?} must stand clear in any heading"
+        "the tank's hull at {at:?}, facing the way it drives in, must stand clear"
     );
     let off = (at[0] - goal[0]).hypot(at[1] - goal[1]);
     assert!(
@@ -795,9 +795,9 @@ fn a_vehicle_sent_into_a_walled_lawn_with_no_way_in_parks_outside_its_nearest_wa
         "a tank cannot get into the lawn, yet was sent to {at:?}"
     );
     assert_eq!(
-        bodies_within(&battle, at, radius),
+        bodies_under(&battle, UnitId(0), at),
         Vec::<String>::new(),
-        "the tank's hull at {at:?} must stand clear in any heading"
+        "the tank's hull at {at:?}, facing the way it drives in, must stand clear"
     );
     // The lawn's nearest edge is 13 m from the click; past the wall and a
     // hull's radius, it stands within a few metres of that.
@@ -832,7 +832,7 @@ fn a_vehicle_sent_into_a_walled_lawn_through_its_gate_parks_where_it_was_sent() 
 /// The moment: a column of vehicles comes into a court along its row of
 /// bays and is sent to the far end of the row: its formation lays every
 /// member on a parked car. Every member gets a destination it can reach and
-/// stand on, each hull clear of every car and wall whichever way it faces.
+/// stand on, each hull clear of every car and wall facing the way it drives in.
 #[test]
 fn a_group_sent_into_a_court_lined_with_parked_cars_is_placed_whole() {
     let west = std::f64::consts::PI;
@@ -850,9 +850,8 @@ fn a_group_sent_into_a_court_lined_with_parked_cars_is_placed_whole() {
     assert_eq!(ack.error, None, "{ack:?}");
     for destination in ack.placement.unwrap().destinations {
         assert!(destination.placed, "{destination:?}");
-        let hull = battle.unit(destination.unit).unwrap().hull.unwrap();
         assert_eq!(
-            bodies_within(&battle, destination.goal, hull.x.hypot(hull.y)),
+            bodies_under(&battle, destination.unit, destination.goal),
             Vec::<String>::new(),
             "{destination:?}"
         );
