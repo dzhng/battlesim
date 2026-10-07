@@ -15,7 +15,9 @@ import {
   type FindingCode,
   type SkeletonEntry,
 } from "@packages/scene-assets/src/schema.ts";
+import { PENDING_ART_RULES } from "@packages/scene-assets/src/unitArt.ts";
 import {
+  budgetFindings,
   paintFindings,
   regionalFindings,
   typeAppearanceFindings,
@@ -203,6 +205,19 @@ async function skeleton(entry: Partial<SkeletonEntry>, bytes = soldierGlb()) {
   return (await validateSkeleton("test-rig", { ...SKELETON_ENTRY, ...entry }, bytes)).findings;
 }
 
+/** The synthetic tank's bundle, textured. */
+async function builtTank() {
+  const built = await validateAppearance(
+    {
+      name: "tank",
+      entry: { unit: "vehicle", source: "tank.glb", basis_yaw_deg: 0, mounts: TANK_DRAWS },
+      files: { "tank.glb": tankGlb({ textures: { size: 4 } }) },
+    },
+    context,
+  );
+  return built.bundle as Exclude<Bundle, SkeletonClips>;
+}
+
 const LFS_POINTER = new TextEncoder().encode(
   "version https://git-lfs.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 12345\n",
 );
@@ -230,6 +245,8 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "structure.scale": () => soldier({ stretch: true }),
   "structure.tier_count": () => tank({ lods: "none" }),
   "structure.tier_order": () => tank({ lods: "inverted" }),
+  "structure.tier_unsuffixed": () => tank({ unsuffixed: "turret_shell" }),
+  "structure.tier_ratio": () => tank({ partTiers: { barrel: 4 } }),
   "structure.skeleton": () => soldier({ extraJoint: true }),
   "structure.loop_flags": () =>
     skeleton({ clips: { ...SKELETON_ENTRY.clips, walk: {} as { loop: boolean } } }),
@@ -329,6 +346,10 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.dressing": async () => (await scenery("dressing", { summer: blockGlb(1.2) })).findings,
   "budget.tier_triangles": async () =>
     (await scenery("tree", { summer: treeGlb(11, 0, { crowns: overBudget(3) }) })).findings,
+  "budget.bundle_bytes": async () =>
+    budgetFindings("tank", [], { bundle_bytes: 1 }, "a test budget", await builtTank()),
+  "budget.texture_layers": async () =>
+    budgetFindings("tank", [], { texture_layers: 0 }, "a test budget", await builtTank()),
   "nodes.missing": () => tank({ omit: "hmg_muzzle" }),
   "nodes.hierarchy": () => tank({ muzzleUnderTurret: true }),
   "nodes.duplicate": () => tank({ duplicateWheel: true }),
@@ -372,7 +393,8 @@ for (const code of FINDING_CODES)
     const hit = findings.find((f) => f.code === code);
     expect(hit, JSON.stringify(findings, null, 1)).toBeDefined();
     expect(hit!.fix.length).toBeGreaterThan(0);
-    expect(hit!.severity).toBe("error");
+    // The rules today's art still fails warn until the closeout.
+    expect(hit!.severity).toBe(PENDING_ART_RULES.includes(code) ? "warning" : "error");
   });
 
 test("a tree must stand inside the simulation's canopy; a hedgerow need not", async () => {
@@ -595,12 +617,4 @@ test("a wreck's pieces lie within the whole wreck, off the ground and short of i
   const proud = (await pieces(blockGlb(2, 5))).findings;
   expect(proud.map((f) => f.code)).toEqual(["fit.piece"]);
   expect(proud[0].message).toMatch(/turret/);
-});
-
-test("the hull top has its own tolerance, so an antenna does not loosen the sides", async () => {
-  const tall = await tank({ antenna: 3.4 });
-  expect(tall.map((f) => f.message).join("\n")).toMatch(/\+z face at 3\.400 m vs 2\.400/);
-  expect(await tank({ antenna: 3.4 }, { tolerances: { hull_top_m: 1.1 } })).toEqual([]);
-  const wide = await tank({ antenna: 3.4, hullHalfY: 2.2 }, { tolerances: { hull_top_m: 1.1 } });
-  expect(wide.map((f) => f.code)).toEqual(["fit.hull_extents"]);
 });

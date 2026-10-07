@@ -30,6 +30,10 @@ export const FINDING_CODES = [
   "structure.scale",
   "structure.tier_count",
   "structure.tier_order",
+  /** A unit's or wreck's mesh names no tier (`unitArt.ts`). */
+  "structure.tier_unsuffixed",
+  /** A unit's or wreck's tier draws more than its class's ratio of the one before. */
+  "structure.tier_ratio",
   "structure.skeleton",
   "structure.loop_flags",
   "structure.clips",
@@ -71,8 +75,12 @@ export const FINDING_CODES = [
   /** A unit type names an appearance the catalog lacks, or of the wrong kind. */
   "fit.type_appearance",
   // frame cost
-  /** A scenery kind's tier draws more triangles than its row allows. */
+  /** A tier draws more triangles than its scenery kind or unit class allows. */
   "budget.tier_triangles",
+  /** A unit's encoded bundle is over its class's bytes. */
+  "budget.bundle_bytes",
+  /** A unit's bundle carries more textures than its class's layers. */
+  "budget.texture_layers",
   // required nodes
   "nodes.missing",
   "nodes.hierarchy",
@@ -377,9 +385,9 @@ export interface Tolerances {
   soldier_height_m: number;
   eye_m: number;
   muzzle_m: number;
+  /** Every face of a vehicle's hull box, its top too. What may stand
+   *  outside it is dressing, with its own allowance (`unitArt.ts`). */
   hull_extent_m: number;
-  /** The hull's +z face: antennas, cupolas and pintle guns stand above the hit box. */
-  hull_top_m: number;
   /** A static appearance against its simulation box (roof overhangs, rubble). */
   footprint_m: number;
   /** A vehicle mount's muzzle at rest against its `mounts` row (pivot plus muzzle). */
