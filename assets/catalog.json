@@ -2780,7 +2780,7 @@
         1.32
       ],
       "tolerances": {
-        "footprint_m": 0.4
+        "footprint_m": 0.7
       }
     },
     "europe_puma_level_c": {
