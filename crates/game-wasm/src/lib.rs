@@ -226,6 +226,10 @@ impl WorldView {
         self.world.export_river_runs()
     }
 
+    pub fn sight_gaps(&self) -> Vec<f32> {
+        self.world.export_sight_gaps()
+    }
+
     pub fn forests(&self) -> Vec<f32> {
         self.world.export_forests()
     }
