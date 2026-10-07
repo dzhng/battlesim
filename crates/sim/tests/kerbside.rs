@@ -408,9 +408,47 @@ fn with_no_detour_worth_its_ground_a_truck_stops_short() {
     stops_short_of_the_wreck(Some(0.0));
 }
 
+/// The other side of the same rule: where the drive round the block is
+/// worth the ground it gains (a ratio that pays for it), the truck takes it
+/// and stands beyond the car, where it was sent.
+#[test]
+fn with_the_detour_worth_its_ground_a_truck_drives_round_the_block() {
+    let (last, _, driven) = drive_onto_the_wreck(Some(1000.0));
+    // Past the cars' far ends (2.3 m beyond their middle), wherever beyond
+    // them it found room: how near the goal is the standing-room rule's to say.
+    let beyond = last.x - MIDDLE[0];
+    assert!(
+        beyond > 22.3,
+        "it stood {beyond:.1} m down the street after {driven:.0} m, short of the cars' far end"
+    );
+    // Round the block: the street itself stays closed to it.
+    assert!(driven > 400.0, "it drove {driven:.0} m");
+}
+
 /// The wide truck sent onto the abandoned car, the detour ratio `ratio`
 /// (the shipped one by default), pulls up short of the car on its way.
 fn stops_short_of_the_wreck(ratio: Option<f64>) {
+    let (last, furthest, driven) = drive_onto_the_wreck(ratio);
+    let short = 20.0 - (last.x - MIDDLE[0]);
+    assert!(
+        furthest < 20.0,
+        "it drove past the car, {:.1} m down the street, and came back",
+        furthest
+    );
+    // Short of the car, by the way straight down the street to wherever it
+    // found room: how far short is the standing-room rule's to say.
+    let straight = 220.0 - short;
+    assert!(
+        short >= 0.0 && driven < straight + 5.0,
+        "it stopped {short:.1} m short of the car after {driven:.0} m ({straight:.0} m straight)"
+    );
+}
+
+/// A truck at the wheeled limits sent down the street onto two cars
+/// abandoned across it, the detour ratio `ratio` (the shipped one by
+/// default): where it came to rest, how far down the street it got, and how
+/// far it drove.
+fn drive_onto_the_wreck(ratio: Option<f64>) -> (V2, f64, f64) {
     let bearing = 0.0;
     // Two cars abandoned side by side, turned off the street, one half
     // across the middle: with the cars parked at the kerb they close it to a
@@ -455,19 +493,7 @@ fn stops_short_of_the_wreck(ratio: Option<f64>) {
             break;
         }
     }
-    let short = 20.0 - (last.x - MIDDLE[0]);
-    assert!(
-        furthest < 20.0,
-        "it drove past the car, {:.1} m down the street, and came back",
-        furthest
-    );
-    // Short of the car, by the way straight down the street to wherever it
-    // found room: how far short is the standing-room rule's to say.
-    let straight = 220.0 - short;
-    assert!(
-        short >= 0.0 && driven < straight + 5.0,
-        "it stopped {short:.1} m short of the car after {driven:.0} m ({straight:.0} m straight)"
-    );
+    (last, furthest, driven)
 }
 
 /// The moment: a truck as long as any wheeled hull may be is sent to the
