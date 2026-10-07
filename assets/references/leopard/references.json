@@ -1,0 +1,219 @@
+{
+  "entries": [
+    {
+      "file": "europe_leopard_2_2a6-three_quarter_front.jpg",
+      "variant": "europe_leopard_2_2a6",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Leopard_2A6_Tank,_Nationaal_Militair_Museum,_Soesterberg.JPG",
+      "author": "Alf van Beem",
+      "licence": "CC0-1.0",
+      "sha256": "c639eaa4e072633685a55dfb0a2b7d82a14fd4d3d6e53c9a6a027775a878f693",
+      "note": "Dutch 2A6, Nationaal Militair Museum"
+    },
+    {
+      "file": "europe_leopard_2_2a6-side.jpg",
+      "variant": "europe_leopard_2_2a6",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Leopard_2a6_(tankevent).jpg",
+      "author": "Pat boen",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "d3eb75d07e1d22aac997a781fbb82eda15f7c492856cf465b6d9e91c62c98600",
+      "note": "Dutch 2A6, right side, running gear clear"
+    },
+    {
+      "file": "europe_leopard_2_2a6-side-2.jpg",
+      "variant": "europe_leopard_2_2a6",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Leo2A6M_li.jpg",
+      "author": "powidl",
+      "licence": "public-domain",
+      "sha256": "ea1709d425e695bd86c6c2c54c8d531a88f9e727f35f81e252c0a203f2f081e2",
+      "note": "2A6M left side; 2A6M adds belly mine plate, otherwise 2A6"
+    },
+    {
+      "file": "europe_leopard_2_2a6-three_quarter_rear.jpg",
+      "variant": "europe_leopard_2_2a6",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Leopard_2A6_battle_tank_in_Oulu_20231206_001.jpg",
+      "author": "Mikko J. Putkonen (Methem)",
+      "licence": "CC-BY-4.0",
+      "sha256": "942953d0b16ffe9fedae465ef8b9ae74293f5c473bdacb217c9216641d095f6b",
+      "note": "Finnish 2A6, rear left, engine deck and rear plate"
+    },
+    {
+      "file": "europe_leopard_2_2a6-front.jpg",
+      "variant": "europe_leopard_2_2a6",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Leopard_2A6_tank_-_IL%C3%9C_2012.jpg",
+      "author": "synaxonag",
+      "licence": "CC-BY-2.0",
+      "sha256": "9b2cc089d2850f44671715465a9201f130142e12482c85f75c63efd9c5976d22",
+      "note": "German 2A6 head-on, wedge turret and mantlet"
+    },
+    {
+      "file": "europe_leopard_2_2a6-detail.jpg",
+      "variant": "europe_leopard_2_2a6",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Leopard_2A6_Kokonaisturvallisuus_2015_03_smoke_grenade_launchers.JPG",
+      "author": "MKFI",
+      "licence": "public-domain",
+      "sha256": "0334402cfc3ec2479b4d54cf5467b351cc14e2a520cd0fdbf5003c5ef114b368",
+      "note": "Finnish 2A6 smoke grenade launchers on turret"
+    },
+    {
+      "file": "europe_leopard_2_2a7v-three_quarter_front.jpg",
+      "variant": "europe_leopard_2_2a7v",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Noble_Jump_23_(7769553).jpg",
+      "author": "OR-4 Martin Glinker",
+      "licence": "public-domain",
+      "sha256": "62335a3754a3d4e77f65df971214b21921f70127e69b5c601f257941462f9c6d",
+      "note": "German 2A7V, Noble Jump 23"
+    },
+    {
+      "file": "europe_leopard_2_2a7v-side.jpg",
+      "variant": "europe_leopard_2_2a7v",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Bundeswehr_Priority_Window-_Tank_Qualification_Range_(8333866).jpg",
+      "author": "U.S. Army photo by Spc. Adrian Greenwood",
+      "licence": "public-domain",
+      "sha256": "9da5b0d08d8cbaa012f09e93256dcbc2ade9717dddbc5490b47acf9f05a7970b",
+      "note": "German 2A7V left side at distance, Grafenwoehr"
+    },
+    {
+      "file": "europe_leopard_2_2a7v-front.jpg",
+      "variant": "europe_leopard_2_2a7v",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Leopard_2_A7V_001_Wettin_Sword_2022.jpg",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "2008dc795d7106e00ac0527f9de63c35c354f61bf644ce68197391f00b53a203",
+      "note": "German 2A7V nearly head-on, 37 PzGrenBrig"
+    },
+    {
+      "file": "europe_leopard_2_2a7v-detail.jpg",
+      "variant": "europe_leopard_2_2a7v",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Leopard_2_A7V_PzBtl_393_front_detail_at_NATO_Days_2023.jpg",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "b41cffb5d9908db31cc5b0e38b8593933effdd857cc326c5bd5e2ce266384963",
+      "note": "2A7V front hull, lights and tow fittings"
+    },
+    {
+      "file": "europe_leopard_2_2a7v-detail-2.jpg",
+      "variant": "europe_leopard_2_2a7v",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Leopard_2_A7V_PzBtl_393_front_detail2_at_NATO_Days_2023.jpg",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "aa8d6707944530212692fae395b0d49a396f7b4acc964c748fc810fa7a0f9958",
+      "note": "2A7V side skirt and road wheels"
+    },
+    {
+      "file": "europe_leopard_2_2a7v-detail-3.jpg",
+      "variant": "europe_leopard_2_2a7v",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Hensoldt_Spectus_Leopard2A7V_2022.jpg",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "11482dc1f8783b115972033bb7e7ffa3362ddc0f2c0606763f30e8775d2f47d3",
+      "note": "2A7V rear-mounted Spectus driver's sight and engine grille"
+    },
+    {
+      "file": "europe_leopard_2_2a7v-detail-4.jpg",
+      "variant": "europe_leopard_2_2a7v",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Bundeswehr_Priority_Window-_Tank_Qualification_Range_(8333861).jpg",
+      "author": "U.S. Army photo by Spc. Adrian Greenwood",
+      "licence": "public-domain",
+      "sha256": "185a682239ebb1bbc47f2051bb27771f0f0af844fd4876ea2f5032c4bd3426e2",
+      "note": "2A7V turret front and crew hatches"
+    },
+    {
+      "file": "europe_leopard_2_2a8-three_quarter_front.jpg",
+      "variant": "europe_leopard_2_2a8",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:LEOPARD_2A8_(Edited).png",
+      "author": "Meumeu03",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "8d525a911a4d4a30c5d87f7a96ef38a385a2839da8d964a66cf1fec6150efb0e",
+      "note": "Leopard 2A8 demonstrator, Eurosatory 2022 (edited background)"
+    },
+    {
+      "file": "europe_leopard_2_2a8-side.jpg",
+      "variant": "europe_leopard_2_2a8",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Leopard_2A8.jpg",
+      "author": "Wikimedilea",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "a893e86f067bc92c9293b4e65a7c8abca7e77ab0c9e560699a3a8b1e6cde6f4b",
+      "note": "Series 2A8 left side on trailer, Zagreb 2025"
+    },
+    {
+      "file": "europe_leopard_2_2a8-side-2.jpg",
+      "variant": "europe_leopard_2_2a8",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Leopard_2A8_prototype_(cropped).jpg",
+      "author": "Defensie Nederlands",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "87a95b4f847e01f969f3f29e2baa4c1086a0b55491a7a4a7df98b066fd3f9c22",
+      "note": "Leopard 2A8 prototype, left side"
+    },
+    {
+      "file": "europe_leopard_2_2a8-detail.jpg",
+      "variant": "europe_leopard_2_2a8",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:LEOPARD_2A13.jpg",
+      "author": "Meumeu03",
+      "licence": "CC-BY-4.0",
+      "sha256": "e45e8f03a1e9b8ce69fa3337ac97b14f052ff0831f304f7bd3db753e09ab5c73",
+      "note": "2A8 demonstrator hull side, skirts and road wheels"
+    },
+    {
+      "file": "europe_leopard_2_2a8-detail-2.jpg",
+      "variant": "europe_leopard_2_2a8",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:LEOPARD_2A12.jpg",
+      "author": "Meumeu03",
+      "licence": "CC-BY-4.0",
+      "sha256": "9eb3a5654314eb9e493f12b6688481e5225c573565ae46f74357466d4cac9b1c",
+      "note": "2A8 demonstrator front hull"
+    },
+    {
+      "file": "europe_leopard_2_2a8-detail-3.jpg",
+      "variant": "europe_leopard_2_2a8",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:LEOPARD_2A10.jpg",
+      "author": "Meumeu03",
+      "licence": "CC-BY-4.0",
+      "sha256": "da0279ee64d6a772c7b531f32d8707a5699daacf4758b04bf9fb7d8a14d6b785",
+      "note": "2A8 demonstrator turret roof: RWS, Trophy, sights"
+    }
+  ],
+  "gaps": [
+    "2A6: no true rear or top view; three_quarter_rear covered by Finnish 2A6 photos.",
+    "2A6 side-2 is a 2A6M (mine-protected belly plate); hull side and turret match the 2A6.",
+    "2A7V: no licensable side, rear or three_quarter_rear view found (unported CC/PD); side is a distant PD shot. Several Boevaya mashina 2A7V photos are CC BY-SA 3.0 DE, a ported licence outside the allowed list, and were skipped.",
+    "2A8: series 2A8 only side-on (Zagreb 2025, on a trailer); three-quarter and details are the Eurosatory 2022 KMW demonstrator. No rear, top or three_quarter_rear."
+  ]
+}
