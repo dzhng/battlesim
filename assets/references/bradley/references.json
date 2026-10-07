@@ -1,0 +1,119 @@
+{
+  "entries": [
+    {
+      "file": "us_m2_bradley_ifv_m2a4-three_quarter_front.jpg",
+      "variant": "us_m2_bradley_ifv_m2a4",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M2A4_Bradley_5-7th_CAV.jpg",
+      "author": "U.S. Army photo by Pfc. Nathan Arellano Tlaczani",
+      "licence": "public-domain",
+      "sha256": "7d52d9e8b69e3aa32254373a87c3a02df0c8886bf79d5218a44042174fc01889",
+      "note": "M2A4, 5-7 CAV, Estonia, front left"
+    },
+    {
+      "file": "us_m2_bradley_ifv_m2a4-three_quarter_front-2.jpg",
+      "variant": "us_m2_bradley_ifv_m2a4",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M2A4_Bradley_(1).jpg",
+      "author": "Calab Franklin",
+      "licence": "public-domain",
+      "sha256": "90de0d3cd081b156aab2baf348f07d7b7baa6510b5a40b93881baf542db6c0fa",
+      "note": "M2A4, 1-12 CAV, from above the front"
+    },
+    {
+      "file": "us_m2_bradley_ifv_m2a4-side.jpg",
+      "variant": "us_m2_bradley_ifv_m2a4",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:U_S_Soldiers_participate_in_the_Estonian_Independence_Day_Parade_(8883298).jpg",
+      "author": "U.S. Army 105MPAD by Sgt. Kourtney Nunnery",
+      "licence": "public-domain",
+      "sha256": "db394b6681e1f4bed99bf9e56650f67fd170d394aa0c8a9ac2e31133289fddc1",
+      "note": "M2A4 left side from the rear quarter, Estonian Independence Day parade"
+    },
+    {
+      "file": "us_m2_bradley_ifv_m2a4-front.jpg",
+      "variant": "us_m2_bradley_ifv_m2a4",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M2A4_Bradley_(4).jpg",
+      "author": "Calab Franklin",
+      "licence": "public-domain",
+      "sha256": "eefed5df9e24289d2c01ff4af59eb7174aa7a8dfa1185c0d2f107155ef133754",
+      "note": "M2A4 head-on, 1-12 CAV"
+    },
+    {
+      "file": "us_m2_bradley_ifv_m2a4-detail.jpg",
+      "variant": "us_m2_bradley_ifv_m2a4",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M2A4_Bradley_(2).jpg",
+      "author": "Calab Franklin",
+      "licence": "public-domain",
+      "sha256": "517333b833eeee67065dee7421440f18bd863a3ce4dc26a7480730cfb843f563",
+      "note": "M2A4 turret roof: CIV sight, TOW launcher, hatches"
+    },
+    {
+      "file": "us_m2_bradley_ifv_m2a4-detail-2.jpg",
+      "variant": "us_m2_bradley_ifv_m2a4",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M2A4_Bradley_(6).jpg",
+      "author": "Calab Franklin",
+      "licence": "public-domain",
+      "sha256": "de111fc1d3c9e4d8721ad9d544e0357960a4511e5fcce2aa70dad3ba38426f68",
+      "note": "M2A4 turret and hull roof from above"
+    },
+    {
+      "file": "us_m3_bradley_cfv_m3a3-three_quarter_front.jpg",
+      "variant": "us_m3_bradley_cfv_m3a3",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:1st_Armored_Division_performs_Bradley_qualification_in_Poland_(9729789).jpg",
+      "author": "U.S. Army Reserve photo by Pfc. Luis Torres",
+      "licence": "public-domain",
+      "sha256": "98ee3e00505ac40001d8ab5bab36f99019a0bbec0f6e0d0798d12d16c1804d90",
+      "note": "M3A3, 6-1 CAV, Drawsko Poland"
+    },
+    {
+      "file": "us_m3_bradley_cfv_m3a3-side.jpg",
+      "variant": "us_m3_bradley_cfv_m3a3",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Defense.gov_News_Photo_041117-F-2034C-030.jpg",
+      "author": "Staff Sgt. Shane A. Cuomo, U.S. Air Force",
+      "licence": "public-domain",
+      "sha256": "d238f802adacf305a48edd39721c097174a268f0fed49133ca4c63843a373d40",
+      "note": "M3A3 right side firing, Iraq 2004"
+    },
+    {
+      "file": "us_m3_bradley_cfv_m3a3-three_quarter_rear.jpg",
+      "variant": "us_m3_bradley_cfv_m3a3",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Ironhorse_soldiers_certify_on_call-for-fire_130225-A-EO505-103.jpg",
+      "author": "Sgt. John Couffer",
+      "licence": "public-domain",
+      "sha256": "508eb70966023765e1717b93051ebffbac493e32f7bbc288c01e85623dc27f32",
+      "note": "M3A3 rear left, 1-7 CAV"
+    },
+    {
+      "file": "us_m3_bradley_cfv_m3a3-front.jpg",
+      "variant": "us_m3_bradley_cfv_m3a3",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M3A3_Bradley,_Forward_Operating_Base_Wilson_in_Iraq,_Nov._16,_2004._Charlie_Troop,_1st_Battalion,_4th_Cavalry_Regiment,_1st_Infantry_Div.jpg",
+      "author": "Staff Sgt. Shane A. Cuomo, U.S. Air Force",
+      "licence": "public-domain",
+      "sha256": "91d904d8f2ca5a599a503c54e2ee191aa1bd62f19417903b149743ba92e10b21",
+      "note": "M3A3 head-on, FOB Wilson, Iraq 2004"
+    }
+  ],
+  "gaps": [
+    "M2A4: no clean side-on, rear or top view; the side is from the left rear quarter at a parade.",
+    "M3A3: no top view; few close details.",
+    "M2A4 and M3A3 differ little outside (M3A3 has no firing ports, scout stowage inside); detail photos of one stand for the other only with care."
+  ]
+}

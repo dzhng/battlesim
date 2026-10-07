@@ -1,0 +1,64 @@
+{
+  "entries": [
+    {
+      "file": "europe_leclerc_xlr-three_quarter_front.jpg",
+      "variant": "europe_leclerc_xlr",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Leclerc_XLR_expos%C3%A9_%C3%A0_l%27Eurosatory_de_2022.jpg",
+      "author": "Robinsauveur",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "abb8c8f09cc517ce8c247bb2192323126b502f8715db11c7ea4c1bbcce48754e",
+      "note": "Leclerc XLR at Eurosatory 2022, front left; the only licensable XLR photo found"
+    },
+    {
+      "file": "leclerc_pre_xlr-side.jpg",
+      "variant": "leclerc_pre_xlr",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:French_Leclerc_main_battle_tank_during_Strong_Europe_Tank_Challenge_exercise,_2017.jpg",
+      "author": "Staff Sgt. Kathleen Polanco; 7th Army Training Command",
+      "licence": "public-domain",
+      "sha256": "aaf53cf2b102dc7daa6cdeeafa371bb9d3f49e8c62389e8b121ed113e9b36e9e",
+      "note": "Pre-XLR Leclerc, left side, SETC 2017: hull and running gear"
+    },
+    {
+      "file": "leclerc_pre_xlr-side-2.jpg",
+      "variant": "leclerc_pre_xlr",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Char_Leclerc.jpg",
+      "author": "This illustration was made by (User:Royonx) and released under the license(s) stated above. You are free to use it for a",
+      "licence": "CC0-1.0",
+      "sha256": "202cadeae3032ac62da8040753ac8466c2c7c4368425797f0ba80f1c7081cb44",
+      "note": "Pre-XLR Leclerc, Canjuers: hull and running gear"
+    },
+    {
+      "file": "leclerc_pre_xlr-three_quarter_rear.jpg",
+      "variant": "leclerc_pre_xlr",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Char_Leclerc_Riv%C3%A9toile_Strasbourg_2010_-_3.JPG",
+      "author": "Kevin.B",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "4a948e9d8a987caea96bd148f82dcbc9d4bf65f5e9e7e0bc3d7e5c3bdb3886b5",
+      "note": "Pre-XLR Leclerc 'Montcobert', rear left, turret bustle"
+    },
+    {
+      "file": "leclerc_pre_xlr-detail.jpg",
+      "variant": "leclerc_pre_xlr",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:AMX-56_Leclerc.jpg",
+      "author": "Dsgn",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "509cd86a568310bcb592dac9c72931aff2645270b8485931e18a1b02211a11a6",
+      "note": "Pre-XLR Leclerc from above the front: turret roof and sights"
+    }
+  ],
+  "gaps": [
+    "Leclerc XLR: one licensable photo on Commons (three-quarter front, Eurosatory 2022). No XLR side, rear, three_quarter_rear, front, top or detail.",
+    "Pre-XLR Leclerc photos (variant leclerc_pre_xlr) show the shared hull, running gear and turret core only; the XLR's bar armour at the rear, side armour modules, PL1 remote weapon station and new sights are not in them.",
+    "Every XLR-specific part beyond the one photo must be judged from that photo or a generated view in a later pass."
+  ]
+}

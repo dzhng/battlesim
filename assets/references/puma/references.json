@@ -1,0 +1,97 @@
+{
+  "entries": [
+    {
+      "file": "europe_puma_level_c-three_quarter_front.jpg",
+      "variant": "europe_puma_level_c",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2026-06-05_120628_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "30d79caa256328ca760c0bdad9269672ad1ca29cf3984186369e7c6f6d730132",
+      "note": "Puma with side armour modules, Tag der Bundeswehr 2026, front left"
+    },
+    {
+      "file": "europe_puma_level_c-side.jpg",
+      "variant": "europe_puma_level_c",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2026-06-05_121326_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "98da0995769ba93256f4e20256da520f370d77403f252231da20bccdea5af9d3",
+      "note": "Puma left side from the front quarter, 2026"
+    },
+    {
+      "file": "europe_puma_level_c-side-2.jpg",
+      "variant": "europe_puma_level_c",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2026-06-05_103241_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "031291061ded261e50e10b6e800adac8ce2c342af6a97cd2eb61a7f4d08cf705",
+      "note": "Puma left side in smoke, 2026"
+    },
+    {
+      "file": "europe_puma_level_c-three_quarter_rear.jpg",
+      "variant": "europe_puma_level_c",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Puma_(48072708986).jpg",
+      "author": "Thomas Vogt from Paderborn, Deutschland",
+      "licence": "CC-BY-SA-2.0",
+      "sha256": "6a559c86e3729707090acbe00f8fecd0c476f2b6ae4b45bc519d6b31f0dcadde",
+      "note": "Puma rear right, stowage baskets, Augustdorf 2019"
+    },
+    {
+      "file": "europe_puma_level_c-front.jpg",
+      "variant": "europe_puma_level_c",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2026-06-05_120413_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "caf147b79b958273b06a8a44d7e7fff9f157db63857bf75c757302956385a521",
+      "note": "Puma nearly head-on, 2026"
+    },
+    {
+      "file": "europe_puma_level_c-detail.jpg",
+      "variant": "europe_puma_level_c",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:PERI_Puma.JPG",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "5247a7fc16da13ccd3f9ad31feb95a35036e546a6d10404b053d3c641947573d",
+      "note": "PERI commander's sight"
+    },
+    {
+      "file": "europe_puma_level_c-detail-2.jpg",
+      "variant": "europe_puma_level_c",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:MELLS_launcher_on_PUMA_1.jpg",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "bf473cff1ba0558fb746b7a993df44582affe1a54935743541764aa72738bab9",
+      "note": "MELLS Spike launcher on the turret"
+    },
+    {
+      "file": "europe_puma_level_c-detail-3.jpg",
+      "variant": "europe_puma_level_c",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:MUSS_sensor_Puma_IFV.jpg",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "6fca3713fc3db39928a3dae5b3de5d05858e94c2ac9c25099317636ca932cdac",
+      "note": "MUSS active protection sensor on the turret"
+    }
+  ],
+  "gaps": [
+    "Level C (side armour modules fitted) is assumed from the 2026 Tag der Bundeswehr photos, whose file pages do not name the protection level.",
+    "No clean rear or top view; the rear quarter is a 2019 parade-ground photo in poor light.",
+    "No running-gear close-up."
+  ]
+}

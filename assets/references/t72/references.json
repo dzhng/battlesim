@@ -1,0 +1,107 @@
+{
+  "entries": [
+    {
+      "file": "eastern_t_72_t_72b3_2016-three_quarter_front.jpg",
+      "variant": "eastern_t_72_t_72b3_2016",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Alabino05042017-40.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "de8fb4e3f05ea7923c928216808f5491a7d7945795b5e0b9e8b4a4db4e0fdf44",
+      "note": "T-72B3 mod. 2016 with added protection, Alabino 2017"
+    },
+    {
+      "file": "eastern_t_72_t_72b3_2016-three_quarter_front-2.jpg",
+      "variant": "eastern_t_72_t_72b3_2016",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:NightRehearsal03052017-16.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "c494ea1a0b49688ba50fdc3b32b518d8453c66da5cd90a3c1f14b6e2f3c9b4c8",
+      "note": "T-72B3 mod. 2016, parade rehearsal 2017"
+    },
+    {
+      "file": "eastern_t_72_t_72b3_2016-side.jpg",
+      "variant": "eastern_t_72_t_72b3_2016",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:T-72B3_(41072270245).jpg",
+      "author": "Dmitriy Fomin from Moscow, Russia",
+      "licence": "CC-BY-2.0",
+      "sha256": "c4f041225b4bd3d81773699923d1b94c7acafdbc5616284bfa3776157fc59870",
+      "note": "T-72B3 mod. 2016, Moscow 2018 rehearsal, left side"
+    },
+    {
+      "file": "eastern_t_72_t_72b3_2016-side-2.jpg",
+      "variant": "eastern_t_72_t_72b3_2016",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Alabino21042017-22.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "251baed3d22fc0751cc0af2869dca7ecf2a303c4761f69ca1b6ff956c73c23ed",
+      "note": "T-72B3 mod. 2016, Alabino 2017, left side"
+    },
+    {
+      "file": "eastern_t_72_t_72b3_2016-side-3.jpg",
+      "variant": "eastern_t_72_t_72b3_2016",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:T-72_B3_(41072272335).jpg",
+      "author": "Dmitriy Fomin from Moscow, Russia",
+      "licence": "CC-BY-2.0",
+      "sha256": "48a5c96cb9b2488f83c2fcf8cada4d8d0edfa1cf26266a9421bac4394d339221",
+      "note": "T-72B3 mod. 2016, Moscow 2018, right side; rear slat cage visible"
+    },
+    {
+      "file": "eastern_t_72_t_72b3_2016-front.jpg",
+      "variant": "eastern_t_72_t_72b3_2016",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:NightRehearsal270417-20.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "106f7f3dc132f2ce72c832dc62a5edd2743e9e93e69d39b898e1aad25a2d47d5",
+      "note": "T-72B3 mod. 2016 head-on, night rehearsal 2017"
+    },
+    {
+      "file": "eastern_t_72_t_72b3_2016-detail.jpg",
+      "variant": "eastern_t_72_t_72b3_2016",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Alabino05042017-42.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "9fbdd64e746ab00532fd47feb1c8f53a862369a43896368d8013311db4c06671",
+      "note": "Turret: Relikt ERA, Sosna-U sight, commander's cupola"
+    },
+    {
+      "file": "eastern_t_72_t_72b3_2016-detail-2.jpg",
+      "variant": "eastern_t_72_t_72b3_2016",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Alabino05042017-43.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "5d78a6460923ae101fb164cb3572240728d24d4c79d2816b5bdf10b060cae401",
+      "note": "Engine deck grilles and rear slat armour"
+    },
+    {
+      "file": "eastern_t_72_t_72b3_2016-detail-3.jpg",
+      "variant": "eastern_t_72_t_72b3_2016",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Alabino05042017-44.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "d0a5079f618b557369f5a6fc55dac993a21f8cf8eaf224df8a515ef9e2f995d5",
+      "note": "Hull side: rubber skirt, slat panels, road wheels"
+    }
+  ],
+  "gaps": [
+    "No three_quarter_rear, true rear or top view of the mod. 2016; the right-side photo shows the rear slat cage edge-on.",
+    "No close running-gear detail."
+  ]
+}

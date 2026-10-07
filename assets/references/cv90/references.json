@@ -1,0 +1,110 @@
+{
+  "entries": [
+    {
+      "file": "europe_cv90_cv9040c-three_quarter_front.jpg",
+      "variant": "europe_cv90_cv9040c",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:A_captured_CV9040_IFV_on_display_at_Army-2023_05.jpg",
+      "author": "Ministry of Defence of the Russian Federation",
+      "licence": "CC-BY-4.0",
+      "sha256": "7f76793827183052a9b6140f0121d0307afc074f3b8b6ce5ce670b67ec2fefc5",
+      "note": "Captured Ukrainian CV9040C, Army-2023, front left"
+    },
+    {
+      "file": "europe_cv90_cv9040c-three_quarter_front-2.jpg",
+      "variant": "europe_cv90_cv9040c",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:CV_9040_on_captured_equipment_exhibition_in_Moscow_(front_view).jpg",
+      "author": "Kirill Borisenko",
+      "licence": "CC0-1.0",
+      "sha256": "7b28e2ddb9d2a0d3c1e54dc2ab18a3164b4855a0e3ad86619b42a6f53b809297",
+      "note": "Captured Ukrainian CV9040C, Moscow exhibition, front left"
+    },
+    {
+      "file": "europe_cv90_cv9040c-side.jpg",
+      "variant": "europe_cv90_cv9040c",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:UA_21st_Mechanized_Brigade_CV-90.jpg",
+      "author": "21st Mechanized Brigade",
+      "licence": "CC-BY-4.0",
+      "sha256": "78699fe28491a3ffff40fd3097ce234fcd4a977a14e26e8a0d2de0d9eeecfdcd",
+      "note": "Ukrainian CV9040C left side, 21st Mechanized Brigade"
+    },
+    {
+      "file": "europe_cv90_cv9040c-side-2.jpg",
+      "variant": "europe_cv90_cv9040c",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Stridsfordon_90_Gotlands_regemente_03.jpg",
+      "author": "Bene Riobó",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "d99a60b09af8443388bce78f0e816c9b674488415a7ddbf739658d03cfdeb70e",
+      "note": "Swedish Strf 9040, Gotland regiment 2023, left side"
+    },
+    {
+      "file": "europe_cv90_cv9040c-rear.jpg",
+      "variant": "europe_cv90_cv9040c",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Stridsfordon_90_Gotlands_regemente_11.jpg",
+      "author": "Bene Riobó",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "b7adf1edc0807833bd6fe17283aa0f4ca04499eb0d72283dc5d6309cc726a352",
+      "note": "Swedish Strf 9040 rear door and stowage, Gotland 2023"
+    },
+    {
+      "file": "europe_cv90_cv9040c-detail.jpg",
+      "variant": "europe_cv90_cv9040c",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Stridsfordon_90_Gotlands_regemente_04.jpg",
+      "author": "Bene Riobó",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "6882e1ff2350a15c3f31f7114fd6ffe7cb28bef22cba841a1b1d2b65de7a0660",
+      "note": "Strf 9040 turret: 40 mm gun, commander's sight"
+    },
+    {
+      "file": "europe_cv90_mk_iv-three_quarter_front.jpg",
+      "variant": "europe_cv90_mk_iv",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:CV_90_Mk_IV_SIAF-2022.jpg",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "18268c8505657cfc7352c69d841ed3bdd792913fface0f8c049f57d899d02a77",
+      "note": "CV90 Mk IV, SIAF 2022, front left"
+    },
+    {
+      "file": "europe_cv90_mk_iv-three_quarter_front-2.jpg",
+      "variant": "europe_cv90_mk_iv",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:CV-90CZ_(cropped).jpg",
+      "author": "ZEONar5469",
+      "licence": "CC0-1.0",
+      "sha256": "e58af8a058b0ab62045287410cd51e79f57f914fbb530cbbcb21b2353cd36d8f",
+      "note": "CV90 Mk IV (Czech CV90CZ), IDET 2025, front left"
+    },
+    {
+      "file": "europe_cv90_mk_iv-side.jpg",
+      "variant": "europe_cv90_mk_iv",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:CV90CZ_(cropped).jpg",
+      "author": "ZEONar5469",
+      "licence": "CC0-1.0",
+      "sha256": "6b5622e18e2b77bd61f3ec2953095869e205b297702771f81af2a5f58f7861c1",
+      "note": "CV90 Mk IV (Czech), IDET 2025, left side from the front quarter"
+    }
+  ],
+  "gaps": [
+    "CV9040C: Gotland Strf 9040 photos are assumed to be C standard from their add-on armour; their file pages do not say so.",
+    "CV9040C: no three_quarter_rear photo.",
+    "CV9040C: no top view or close running-gear detail.",
+    "CV90 Mk IV: only three-quarter front and side photos (Slovak and Czech vehicles); no rear, three_quarter_rear, top or detail.",
+    "Ukrainian CV9040C command vehicles (Stripbv 90) were left out: different turret."
+  ]
+}
