@@ -4,7 +4,7 @@
 set -e
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../../.." && pwd)
-v="$root/assets/source/vehicles"
+v="$root/assets/source/test"
 b="$root/assets/source/village"
 mkdir -p "$v" "$b"
 blender() {
@@ -18,6 +18,7 @@ blender() {
     return "$status"
   fi
 }
+# the test units' art (fixtures/units/test), never game content
 for variant in a b c; do blender infantry_kit.py at_carried "$variant"; done
 blender tank.py "$v/tank.glb"
 blender tank.py "$v/tank_wreck.glb" --wreck

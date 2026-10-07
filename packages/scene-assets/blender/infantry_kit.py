@@ -1,9 +1,10 @@
-"""Build one infantry kind's body and kit on the rig, and export it as its
-appearance source.
+"""Build one test infantry kind's body and kit on the rig, and export it as its
+appearance source (test unit art, never game content; the roster's kits reuse
+`Kit` from `roster/infantry_equipment.py`).
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/infantry_kit.py rifle|recon|at|at_carried [a|b|c]
 
-Writes assets/source/infantry/<kind>.glb (variant a) or <kind>_<variant>.glb:
+Writes assets/source/test/<kind>.glb (variant a) or <kind>_<variant>.glb:
 the rig (scaled to the simulation's soldier height, not turned) and one skinned
 mesh in four tiers (`soldier_LOD0..3`), plus the `eye` socket under `Head` and
 the weapon's `muzzle` socket under `hand_r`.
@@ -1037,7 +1038,7 @@ def main():
         if o.type == "EMPTY" and o.name not in ("eye", "muzzle"):
             bpy.data.objects.remove(o, do_unlink=True)
     sockets = [bpy.data.objects["eye"], bpy.data.objects["muzzle"]]
-    rel = f"assets/source/infantry/{kind if variant == 'a' else f'{kind}_{variant}'}.glb"
+    rel = f"assets/source/test/{kind if variant == 'a' else f'{kind}_{variant}'}.glb"
     export_glb(os.path.join(REPO, rel), [rig.arm, *tiers, *sockets])
     print(f"wrote {rel}")
 

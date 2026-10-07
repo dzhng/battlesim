@@ -18,42 +18,6 @@
       "skeleton": "quaternius-ubc-rifle",
       "unit": "soldier"
     },
-    "at": {
-      "bundle": "0cfb10f022c39c12c6c0cf9f657e627045f10681cfe4bde283280701ec1de0d3",
-      "kind": "skinned",
-      "skeleton": "quaternius-ubc-launcher",
-      "unit": "soldier"
-    },
-    "at_b": {
-      "bundle": "1f5e73ac0f7687f6e49f4219a3c0c3cbb4610bfa43bfeb4c0496fd4cd1503b68",
-      "kind": "skinned",
-      "skeleton": "quaternius-ubc-launcher",
-      "unit": "soldier"
-    },
-    "at_c": {
-      "bundle": "529083eb4788dbd9932747ee01a2d00044a3ae84b30b5dd3e6ab16e38e3a6423",
-      "kind": "skinned",
-      "skeleton": "quaternius-ubc-launcher",
-      "unit": "soldier"
-    },
-    "at_carried": {
-      "bundle": "9bcaf8f3a6de44e96e2099308601c7ec0c0d420a04e4193e6ddf10f2deb5c18c",
-      "kind": "skinned",
-      "skeleton": "quaternius-ubc-rifle",
-      "unit": "soldier"
-    },
-    "at_carried_b": {
-      "bundle": "5f5f5426354aebeab85629164e1a6976ecaed558dfda24bc4bf9c1a0b2707e48",
-      "kind": "skinned",
-      "skeleton": "quaternius-ubc-rifle",
-      "unit": "soldier"
-    },
-    "at_carried_c": {
-      "bundle": "3b2e2a7d0748613a9ca40de8bb332a23dd719ebf12816833be10fbcd96a70867",
-      "kind": "skinned",
-      "skeleton": "quaternius-ubc-rifle",
-      "unit": "soldier"
-    },
     "basketball_court": {
       "bundle": "c5ae3401333292c909697575eabc85caf847495a9bdf2b5a13f32f968b502f43",
       "footprint_half_m": [
@@ -1078,25 +1042,6 @@
       "scenery": "iron_railing",
       "unit": "scenery"
     },
-    "jeep": {
-      "bundle": "124c78794623e85886295daf90536781a081b7dccffa4bba7807176e75c2abd9",
-      "kind": "articulated",
-      "mounts": {
-        "HMG": "hmg"
-      },
-      "unit": "vehicle"
-    },
-    "jeep_wreck": {
-      "bundle": "6309232aceca60e03edd6f06cb0216a5133db8d7614fbc6e40648054272429fe",
-      "footprint_half_m": [
-        2.2,
-        1,
-        0.95
-      ],
-      "kind": "static",
-      "scenery": "wreck",
-      "unit": "scenery"
-    },
     "jersey_barrier": {
       "bundle": "10fb8d9ccb22491536aa1c8ea321c585f44126af0af630f031a40bca3a0b1066",
       "footprint_half_m": [
@@ -1291,42 +1236,6 @@
       "scenery": "plinth_railing",
       "unit": "scenery"
     },
-    "recon": {
-      "bundle": "247ccde9afb81daa8ed4748ad2e93f223dd78c81c2c0809e5016b907d20781df",
-      "kind": "skinned",
-      "skeleton": "quaternius-ubc-rifle",
-      "unit": "soldier"
-    },
-    "recon_b": {
-      "bundle": "4e01df5782455750fc4edcc7734d02ca05f159b6752d86d982d080f442eb8809",
-      "kind": "skinned",
-      "skeleton": "quaternius-ubc-rifle",
-      "unit": "soldier"
-    },
-    "recon_c": {
-      "bundle": "b052a1f28428ff0d62ac99b1c9d7263dbddcd6193169b7c72942f04f7ae04f6c",
-      "kind": "skinned",
-      "skeleton": "quaternius-ubc-rifle",
-      "unit": "soldier"
-    },
-    "rifle": {
-      "bundle": "24049d0fb54af7d533fa6b142ebef1c9064432916f3df04203e6d7a94c3fd0a0",
-      "kind": "skinned",
-      "skeleton": "quaternius-ubc-rifle",
-      "unit": "soldier"
-    },
-    "rifle_b": {
-      "bundle": "85566a71818c75dab3afb2cdad80f368b73204c9aa5cc419c7931500c6aa4838",
-      "kind": "skinned",
-      "skeleton": "quaternius-ubc-rifle",
-      "unit": "soldier"
-    },
-    "rifle_c": {
-      "bundle": "7be9b1c78921ccdf33566974a362a6076416a4869bbe19ad87cfd839671699ac",
-      "kind": "skinned",
-      "skeleton": "quaternius-ubc-rifle",
-      "unit": "soldier"
-    },
     "rifle_squad_active_a": {
       "bundle": "4f06e1b2a1f757de7dfd5a6235acbfba2843785ab6e9e68ecb90c8ff0ea540e5",
       "kind": "skinned",
@@ -1411,22 +1320,6 @@
       "scenery": "skip_bin",
       "unit": "scenery"
     },
-    "supply_truck": {
-      "bundle": "88f1d64f1cbde4affc669d29650d7cc1d539735c7697e34f149c74f3a642d1de",
-      "kind": "articulated",
-      "unit": "vehicle"
-    },
-    "supply_truck_wreck": {
-      "bundle": "ba6ddcb590ad99b22c36ea3810b52023bf1fc3d17223e97b19f6ca07c34d3593",
-      "footprint_half_m": [
-        3,
-        1.4,
-        1.8
-      ],
-      "kind": "static",
-      "scenery": "wreck",
-      "unit": "scenery"
-    },
     "swing": {
       "bundle": "ccd7b9a0563c6ae534e24c9d6bb07370117727112c150a9aeecb2e1223eff82e",
       "footprint_half_m": [
@@ -1438,7 +1331,114 @@
       "scenery": "swing",
       "unit": "scenery"
     },
-    "tank": {
+    "test_at": {
+      "bundle": "0cfb10f022c39c12c6c0cf9f657e627045f10681cfe4bde283280701ec1de0d3",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "test_at_b": {
+      "bundle": "1f5e73ac0f7687f6e49f4219a3c0c3cbb4610bfa43bfeb4c0496fd4cd1503b68",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "test_at_c": {
+      "bundle": "529083eb4788dbd9932747ee01a2d00044a3ae84b30b5dd3e6ab16e38e3a6423",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-launcher",
+      "unit": "soldier"
+    },
+    "test_at_carried": {
+      "bundle": "9bcaf8f3a6de44e96e2099308601c7ec0c0d420a04e4193e6ddf10f2deb5c18c",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "test_at_carried_b": {
+      "bundle": "5f5f5426354aebeab85629164e1a6976ecaed558dfda24bc4bf9c1a0b2707e48",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "test_at_carried_c": {
+      "bundle": "3b2e2a7d0748613a9ca40de8bb332a23dd719ebf12816833be10fbcd96a70867",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "test_jeep": {
+      "bundle": "124c78794623e85886295daf90536781a081b7dccffa4bba7807176e75c2abd9",
+      "kind": "articulated",
+      "mounts": {
+        "HMG": "hmg"
+      },
+      "unit": "vehicle"
+    },
+    "test_jeep_wreck": {
+      "bundle": "6309232aceca60e03edd6f06cb0216a5133db8d7614fbc6e40648054272429fe",
+      "footprint_half_m": [
+        2.2,
+        1,
+        0.95
+      ],
+      "kind": "static",
+      "scenery": "wreck",
+      "unit": "scenery"
+    },
+    "test_recon": {
+      "bundle": "247ccde9afb81daa8ed4748ad2e93f223dd78c81c2c0809e5016b907d20781df",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "test_recon_b": {
+      "bundle": "4e01df5782455750fc4edcc7734d02ca05f159b6752d86d982d080f442eb8809",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "test_recon_c": {
+      "bundle": "b052a1f28428ff0d62ac99b1c9d7263dbddcd6193169b7c72942f04f7ae04f6c",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "test_rifle": {
+      "bundle": "24049d0fb54af7d533fa6b142ebef1c9064432916f3df04203e6d7a94c3fd0a0",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "test_rifle_b": {
+      "bundle": "85566a71818c75dab3afb2cdad80f368b73204c9aa5cc419c7931500c6aa4838",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "test_rifle_c": {
+      "bundle": "7be9b1c78921ccdf33566974a362a6076416a4869bbe19ad87cfd839671699ac",
+      "kind": "skinned",
+      "skeleton": "quaternius-ubc-rifle",
+      "unit": "soldier"
+    },
+    "test_supply_truck": {
+      "bundle": "88f1d64f1cbde4affc669d29650d7cc1d539735c7697e34f149c74f3a642d1de",
+      "kind": "articulated",
+      "unit": "vehicle"
+    },
+    "test_supply_truck_wreck": {
+      "bundle": "ba6ddcb590ad99b22c36ea3810b52023bf1fc3d17223e97b19f6ca07c34d3593",
+      "footprint_half_m": [
+        3,
+        1.4,
+        1.8
+      ],
+      "kind": "static",
+      "scenery": "wreck",
+      "unit": "scenery"
+    },
+    "test_tank": {
       "bundle": "b3adecf0a3feec90bf7919324701d8a2b7d0bcdf726278f92552b31071194e04",
       "kind": "articulated",
       "mounts": {
@@ -1447,7 +1447,7 @@
       },
       "unit": "vehicle"
     },
-    "tank_wreck": {
+    "test_tank_wreck": {
       "bundle": "06ca0b2f22ce31ad849cbbc98dc30527cea431d145992ad6ab2ebd62b74a48bc",
       "footprint_half_m": [
         3.5,
