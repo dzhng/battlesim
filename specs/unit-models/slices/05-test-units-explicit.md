@@ -59,7 +59,11 @@ placeholder box a prop without art is drawn as (`presentation.stand_ins`,
    unit list if slice 04 kept any, endurance (`crates/sim/src/endurance.rs`
    army and `by_id("rifle")`) and `map_analysis.rs` `INFANTRY` (both read
    through the test catalog by the tools that call them), map workbench and
-   `crates/mapgen/examples/map_workbench_report.rs`, `crates/mapgen/tests/layout_cli.rs`.
+   `crates/mapgen/examples/map_workbench_report.rs`, `crates/mapgen/tests/layout_cli.rs`,
+   and the words: `crates/sim/README.md`'s checks section and the
+   `write-tests` skill (both say "stand-ins" since `0281e694`). The limit
+   fakes from that commit (`fixtures::with_units_at_limits`: `limit_tracked`,
+   `limit_wheeled`) are test units too and follow the same naming.
    Digests move only because type ids sort differently; regenerate and name
    it in choices.md.
 5. **Test-unit art is labelled, not remodelled.** Appearances `tank`, `jeep`,
