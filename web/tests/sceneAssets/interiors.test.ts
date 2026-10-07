@@ -4,14 +4,12 @@
 // cell of the atlas whole at every mip a lookup reads.
 import { expect, test } from "vitest";
 import { bakeCatalog } from "@packages/scene-assets/src/bake.ts";
-import { decodeBundle } from "@packages/scene-assets/src/codec.ts";
 import {
   INTERIOR_ATLAS,
-  bundlePath,
   type Catalog,
   type StaticBundle,
 } from "@packages/scene-assets/src/schema.ts";
-import { AUTHORITY, TOLERANCES, encodePng, panelGlb } from "./synthetic";
+import { AUTHORITY, TOLERANCES, bakedBundle, encodePng, panelGlb } from "./synthetic";
 
 const { cells, cell_px, source_columns, columns } = INTERIOR_ATLAS;
 /** Cell `i`'s colour in the test sheets: every cell its own. */
@@ -58,10 +56,8 @@ const bake = (interiors: Catalog["interiors"]) =>
 
 async function baked(interiors: Catalog["interiors"]) {
   const result = await bake(interiors);
-  const bundle = (name: string) =>
-    decodeBundle(
-      result.files.get(bundlePath(result.runtime.appearances[name].bundle))!,
-    ) as StaticBundle;
+  const bundle = async (name: string) =>
+    (await bakedBundle(result, result.runtime.appearances[name].bundle)) as StaticBundle;
   return { result, bundle };
 }
 
@@ -73,7 +69,7 @@ test("a room's bundle carries its sheet as a texture: each cell whole, at every 
     ["flat", 0],
     ["shop", 1],
   ] as const) {
-    const { materials, textures } = bundle(name);
+    const { materials, textures } = await bundle(name);
     const texture = textures[materials[0].textures!.albedo!];
     expect(texture.format).toBe("rgba8unorm-srgb");
     expect(texture.width).toBe(columns * cell_px);
@@ -103,12 +99,12 @@ test("a room's bundle carries its sheet as a texture: each cell whole, at every 
 
 test("bundles that show one sheet share one texture", async () => {
   const { bundle } = await baked({ rooms: "rooms.png", shops: "shops.png" });
-  const id = (name: string) => {
-    const b = bundle(name);
+  const id = async (name: string) => {
+    const b = await bundle(name);
     return b.textures[b.materials[0].textures!.albedo!].id;
   };
-  expect(id("house")).toBe(id("flat"));
-  expect(id("shop")).not.toBe(id("flat"));
+  expect(await id("house")).toBe(await id("flat"));
+  expect(await id("shop")).not.toBe(await id("flat"));
 });
 
 test("a room whose sheet the catalog has no source for is refused, by name", async () => {

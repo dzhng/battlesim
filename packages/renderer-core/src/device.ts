@@ -36,8 +36,13 @@ interface RequestGpuDeviceOptions {
 
 // Bindings the renderer relies on above the spec's conservative device
 // defaults. We request them up to the adapter's ceiling so the granted device
-// has the headroom (e.g. animation and pose storage buffers); caps reports what landed.
-const REQUESTED_LIMIT_KEYS = ["maxStorageBufferBindingSize", "maxBufferSize"] as const;
+// has the headroom (e.g. animation and pose storage buffers, and model texture
+// arrays with a layer per distinct texture); caps reports what landed.
+const REQUESTED_LIMIT_KEYS = [
+  "maxStorageBufferBindingSize",
+  "maxBufferSize",
+  "maxTextureArrayLayers",
+] as const;
 
 export async function requestGpuDevice(
   options: RequestGpuDeviceOptions = {},

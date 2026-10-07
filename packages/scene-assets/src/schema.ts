@@ -73,6 +73,8 @@ export const FINDING_CODES = [
   // frame cost
   /** A scenery kind's tier draws more triangles than its row allows. */
   "budget.tier_triangles",
+  /** A GPU texture array would hold more distinct layers than the device allows. */
+  "budget.texture_layers",
   // required nodes
   "nodes.missing",
   "nodes.hierarchy",
@@ -548,9 +550,16 @@ export interface Catalog {
 /** `assets/runtime/catalog.json`, written by the bake: names to content hashes. */
 export interface RuntimeCatalog {
   sides: SideTints;
-  /** Kits and the template library travel as gzip. Keys remain their raw
-   * content hashes; encoded hashes name the immutable files actually served. */
+  /** Every bundle, texture and the template library travels as gzip (`gzip.ts`).
+   * Keys are their original content hashes, the art identity; encoded hashes
+   * name the immutable files actually served. A bundle's gzip holds it with
+   * its textures' pixels left out, so its `raw_bytes` is that content's. */
   gzip?: Record<string, GzipTransport>;
+  /** The runtime texture table: each bundle with textures (by its hash), its
+   *  textures' addresses in its own order. A texture is its own file, the
+   *  gzip of its address's preimage (`texture.ts`), stored once however many
+   *  bundles name it. */
+  textures?: Record<string, string[]>;
   skeletons: Record<string, string>;
   appearances: Record<
     string,
@@ -584,6 +593,11 @@ export const bundlePath = (hash: string) => `${hash}/${BUNDLE_FILE}`;
 /** The file the template art library lives in, under its content hash's directory. */
 export const TEMPLATE_LIBRARY_FILE = "templates.bin";
 export const templateLibraryPath = (hash: string) => `${hash}/${TEMPLATE_LIBRARY_FILE}`;
+/** The file a texture lives in, under its encoded hash's directory. */
+export const TEXTURE_FILE = "texture.bin";
+export const texturePath = (hash: string) => `${hash}/${TEXTURE_FILE}`;
+/** Where the runtime directory lives in the repo, for LFS pull hints. */
+export const RUNTIME_DIR = "assets/runtime";
 
 /** A kit bundle's byte budget: every module's four tiers and its textures.
  * A loose tripwire against a runaway bundle, not a target: raise it when real
@@ -591,7 +605,18 @@ export const templateLibraryPath = (hash: string) => `${hash}/${TEMPLATE_LIBRARY
 export const KIT_BUNDLE_MAX_BYTES = 256 * 1024 * 1024;
 /** Aggregate wire bytes of what a map fetches on request (`fetchedOnRequest`):
  * the kits its buildings place and its family's regional looks, plus the
- * template library. Separate from decoded per-kit and resident/GPU-memory
- * budgets; the looks of no region load with the catalog and are not counted.
- * Like the kit budget, a loose tripwire, not a target. */
+ * textures of theirs the catalog load did not fetch. Separate from decoded
+ * per-kit and resident/GPU-memory budgets. Like the kit budget, a loose
+ * tripwire, not a target. */
 export const MAP_DOWNLOAD_MAX_BYTES = 256 * 1024 * 1024;
+/** Aggregate wire bytes of what a page downloads with the catalog, before its
+ * first frame (`catalogLoadBytes`): every appearance not fetched on request,
+ * the skeleton clips, their textures once each, and the template library. A
+ * loose tripwire against gross growth, set from the measured load with room
+ * for the rebuilt models (specs/unit-models/choices.md), not a target. */
+export const CATALOG_LOAD_MAX_BYTES = 512 * 1024 * 1024;
+/** The fewest texture array layers the target machine's adapter grants (the
+ * Mac mini, `maxTextureArrayLayers`). The device requests the adapter's own
+ * limit; the bake holds each array's distinct layers to this floor, so a new
+ * recipe cannot push a page over on the machine the game is judged on. */
+export const TEXTURE_ARRAY_LAYERS_FLOOR = 2048;

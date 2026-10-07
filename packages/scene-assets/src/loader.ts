@@ -2,21 +2,20 @@
 // the runtime catalog and fetches, by content hash, every appearance that is
 // not fetched on request, and the template art library. A kit (a building
 // set's modules: tens of megabytes) and a regional look are fetched on
-// request (`fetchedOnRequest`): when something that draws them asks. Every
-// file's hash is verified, and a load or a request installs one whole
+// request (`fetchedOnRequest`): when something that draws them asks. A
+// texture is fetched once however many bundles name it. Every file's hash is
+// verified (`gzip.ts`), and a load or a request installs one whole
 // generation: a failure anywhere leaves the installed generation in place.
 
 import type { Vec3 } from "math";
-import { decodeBundle } from "./codec.ts";
-import { lfsPointerOid, lfsPullCommand, sha256Hex } from "./glb.ts";
 import {
-  bundlePath,
   templateLibraryPath,
   type Bundle,
   type RuntimeCatalog,
   type SideTints,
   type SkeletonClips,
   type AppearanceUnit,
+  type Texture,
 } from "./schema.ts";
 import {
   bindModules,
@@ -26,17 +25,22 @@ import {
   type TemplateArtLibrary,
 } from "./templateLibrary.ts";
 import type { MountDraws } from "./units.ts";
-import { gzipTransport, downloadBytes, onRequestLabel, unpackGzip } from "./gzip.ts";
 import {
+  catalogLoadBytes,
+  downloadBytes,
+  onRequestLabel,
+  readBundle,
+  readGzip,
+  readTexture,
+  type ReadRuntime,
+} from "./gzip.ts";
+import {
+  CATALOG_LOAD_MAX_BYTES,
   fetchedOnRequest,
   KIT_BUNDLE_MAX_BYTES,
   MAP_DOWNLOAD_MAX_BYTES,
   onRequestOf,
-  type GzipTransport,
 } from "./schema.ts";
-
-/** Where the runtime directory lives in the repo, for LFS pull hints. */
-export const RUNTIME_DIR = "assets/runtime";
 
 export interface InstalledAppearance {
   unit: AppearanceUnit;
@@ -85,10 +89,12 @@ export type Fetch = (url: string) => Promise<{
   json(): Promise<unknown>;
 }>;
 
-/** A loaded catalog and where its files are served (ending in "/"). */
+/** A loaded catalog, how its files are read, and its textures fetched so
+ *  far, by address: two bundles naming one share its one fetch. */
 interface Source {
-  baseUrl: string;
   catalog: RuntimeCatalog;
+  read: ReadRuntime;
+  textures: Map<string, Promise<Texture>>;
 }
 
 export class AppearanceLibrary {
@@ -114,10 +120,10 @@ export class AppearanceLibrary {
     const response = await this.fetcher(`${baseUrl}catalog.json`);
     if (!response.ok) throw new Error(`appearance catalog: HTTP ${response.status}`);
     const catalog = (await response.json()) as RuntimeCatalog;
-    const bytes = downloadBytes(catalog, []);
-    if (bytes > MAP_DOWNLOAD_MAX_BYTES)
-      throw new Error(`map download ${bytes} bytes is over ${MAP_DOWNLOAD_MAX_BYTES}`);
-    const source = { baseUrl, catalog };
+    const bytes = catalogLoadBytes(catalog);
+    if (bytes > CATALOG_LOAD_MAX_BYTES)
+      throw new Error(`catalog load ${bytes} bytes is over ${CATALOG_LOAD_MAX_BYTES}`);
+    const source: Source = { catalog, read: this.reader(baseUrl), textures: new Map() };
     const skeletons = new Map<string, SkeletonClips>();
     await Promise.all(
       Object.entries(catalog.skeletons ?? {}).map(async ([id, hash]) => {
@@ -207,32 +213,29 @@ export class AppearanceLibrary {
     return this.current;
   }
 
-  /** The file at `path`, which the catalog says has content hash `hash`. */
-  private async verified(
-    { baseUrl }: Source,
-    what: string,
-    hash: string,
-    path: string,
-    gzip?: GzipTransport,
-  ): Promise<Uint8Array> {
-    const res = await this.fetcher(`${baseUrl}${path}`);
-    if (!res.ok) throw new Error(`${what} ${hash}: HTTP ${res.status}`);
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    if (lfsPointerOid(bytes) !== null)
-      throw new Error(
-        `${what} ${hash} is a Git LFS pointer; run: ${lfsPullCommand(`${RUNTIME_DIR}/${path}`)}`,
-      );
-    if (gzip) return unpackGzip(bytes, gzip, hash);
-    const actual = await sha256Hex(bytes);
-    if (actual !== hash) throw new Error(`${what} ${hash}: content hash is ${actual}`);
-    return bytes;
+  /** Runtime files under `baseUrl`, by their path there. */
+  private reader(baseUrl: string): ReadRuntime {
+    return async (path) => {
+      const res = await this.fetcher(`${baseUrl}${path}`);
+      if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+      return new Uint8Array(await res.arrayBuffer());
+    };
   }
 
-  private async bundle(source: Source, hash: string, onRequest = false): Promise<Bundle> {
-    const gzip = onRequest ? gzipTransport(source.catalog, hash, KIT_BUNDLE_MAX_BYTES) : undefined;
-    return decodeBundle(
-      await this.verified(source, "bundle", hash, bundlePath(gzip?.hash ?? hash), gzip),
-    );
+  /** The bundle `hash`, each of its textures fetched once for the source. */
+  private bundle(source: Source, hash: string, onRequest = false): Promise<Bundle> {
+    const texture = (id: string) => {
+      let arriving = source.textures.get(id);
+      if (!arriving) {
+        arriving = readTexture(source.catalog, id, source.read);
+        source.textures.set(id, arriving);
+        // A failed fetch is not kept: the next request tries again.
+        arriving.catch(() => source.textures.delete(id));
+      }
+      return arriving;
+    };
+    const max = onRequest ? KIT_BUNDLE_MAX_BYTES : Infinity;
+    return readBundle(source.catalog, hash, source.read, texture, max);
   }
 
   /** The catalog's appearance `name`: its bundle, held to what its entry says. */
@@ -295,10 +298,14 @@ export class AppearanceLibrary {
     source: Source,
     named: NonNullable<RuntimeCatalog["templates"]>,
   ): Promise<TemplateArtLibrary> {
-    const gzip = gzipTransport(source.catalog, named.library);
-    const path = templateLibraryPath(gzip.hash);
     const library = decodeTemplateLibrary(
-      await this.verified(source, "template library", named.library, path, gzip),
+      await readGzip(
+        source.catalog,
+        "template library",
+        named.library,
+        templateLibraryPath,
+        source.read,
+      ),
     );
     if (library.art_hash !== named.art_hash || library.covers.join() !== named.covers.join())
       throw new Error(

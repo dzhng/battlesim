@@ -8,6 +8,7 @@ import { importScene } from "@packages/scene-assets/src/scene.ts";
 import {
   FINDING_CODES,
   KIT_BUNDLE_MAX_BYTES,
+  TEXTURE_ARRAY_LAYERS_FLOOR,
   type AppearanceEntry,
   type Bundle,
   type SkeletonClips,
@@ -22,7 +23,7 @@ import {
   validateAppearance,
   validateSkeleton,
 } from "@packages/scene-assets/src/validate.ts";
-import { textureFindings } from "@packages/scene-assets/src/texture.ts";
+import { textureFindings, textureLayerFindings } from "@packages/scene-assets/src/texture.ts";
 import { UnitCatalog } from "@packages/scene-assets/src/units.ts";
 import { bakeCatalog, kitBytesFindings } from "@packages/scene-assets/src/bake.ts";
 import {
@@ -329,6 +330,11 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.dressing": async () => (await scenery("dressing", { summer: blockGlb(1.2) })).findings,
   "budget.tier_triangles": async () =>
     (await scenery("tree", { summer: treeGlb(11, 0, { crowns: overBudget(3) }) })).findings,
+  "budget.texture_layers": async () =>
+    textureLayerFindings(
+      { albedo: TEXTURE_ARRAY_LAYERS_FLOOR + 1, surface: 0 },
+      TEXTURE_ARRAY_LAYERS_FLOOR,
+    ),
   "nodes.missing": () => tank({ omit: "hmg_muzzle" }),
   "nodes.hierarchy": () => tank({ muzzleUnderTurret: true }),
   "nodes.duplicate": () => tank({ duplicateWheel: true }),

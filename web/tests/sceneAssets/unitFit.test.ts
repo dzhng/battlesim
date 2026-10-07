@@ -9,10 +9,8 @@ import { readFileSync } from "node:fs";
 import type { Vec3 } from "math";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, resolve_catalog } from "@wasm/game_wasm.js";
-import { decodeBundle } from "@packages/scene-assets/src/codec.ts";
-import { lfsPointerOid } from "@packages/scene-assets/src/glb.ts";
+import { readBundle } from "@packages/scene-assets/src/gzip.ts";
 import {
-  bundlePath,
   type ArticulatedBundle,
   type Catalog,
   type RuntimeCatalog,
@@ -86,7 +84,7 @@ test("a model without the part's hardware does not fit a type listing the part",
   expect(findings[0].message).toMatch(/\(as m1a2\).*part era.*"era_\*"/);
 });
 
-test("every shipped unit type draws appearances the catalog has, and its model fits it", () => {
+test("every shipped unit type draws appearances the catalog has, and its model fits it", async () => {
   const units = new UnitCatalog(shipped);
   const catalog = json("../../../assets/catalog.json") as Catalog;
   expect(typeAppearanceFindings(catalog.appearances, units)).toEqual([]);
@@ -95,15 +93,12 @@ test("every shipped unit type draws appearances the catalog has, and its model f
   expect(hulls.length).toBeGreaterThan(0);
   for (const id of hulls) {
     const name = units.type(id).appearance!;
-    const bytes = new Uint8Array(
-      read(`../../../assets/runtime/${bundlePath(runtime.appearances[name].bundle)}`),
-    );
-    const pointer = lfsPointerOid(bytes);
-    expect(
-      pointer,
-      `assets/runtime is LFS pointers: git lfs pull --include="assets/runtime/**"`,
-    ).toBeNull();
-    const bundle = decodeBundle(bytes) as ArticulatedBundle;
+    // An LFS pointer is refused with the pull that fetches it.
+    const bundle = (await readBundle(
+      runtime,
+      runtime.appearances[name].bundle,
+      async (path) => new Uint8Array(read(`../../../assets/runtime/${path}`)),
+    )) as ArticulatedBundle;
     const tolerances = { ...catalog.tolerances, ...catalog.appearances[name].tolerances };
     const draws = catalog.appearances[name].mounts ?? null;
     expect(typeFindings(name, bundle.nodes, units, id, tolerances, draws), id).toEqual([]);

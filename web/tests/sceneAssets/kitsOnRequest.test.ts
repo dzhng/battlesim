@@ -175,7 +175,7 @@ test("a kit that fails to arrive is named, and the installed generation stays", 
   files.delete(kitFile[YARD_KIT]);
   await expect(
     loader.withAppearances(mapKits(catalog, placedOf(HOUSE.id, YARD.id))),
-  ).rejects.toThrow(/kit "city_kit_yard": bundle [0-9a-f]{64}: HTTP 404/);
+  ).rejects.toThrow(/kit "city_kit_yard": [0-9a-f]{64}\/bundle\.bin: HTTP 404/);
   expect(loader.installed).toBe(first);
   const corrupt = yard.slice();
   corrupt[corrupt.length - 1] ^= 0xff;

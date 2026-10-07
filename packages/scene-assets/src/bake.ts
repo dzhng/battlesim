@@ -2,13 +2,13 @@
 // the outputs. Skeleton clips bake first, since skinned bodies are laid out
 // on their skeleton's joint order and bounded by its clips.
 
-import { bundleHash, encodeBundle } from "./codec.ts";
-import { packGzip } from "./gzip.ts";
+import { bundleHash } from "./codec.ts";
+import { publishBundle, publishGzip } from "./gzip.ts";
+import { textureLayerCounts, textureLayerFindings, type TextureLayerCounts } from "./texture.ts";
 import {
-  fetchedOnRequest,
   KIT_BUNDLE_MAX_BYTES,
+  TEXTURE_ARRAY_LAYERS_FLOOR,
   UNIT_BUNDLE_KIND,
-  bundlePath,
   templateLibraryPath,
   type Bundle,
   type Catalog,
@@ -18,6 +18,7 @@ import {
   type AppearanceUnit,
   type SkeletonClips,
   type StaticBundle,
+  type Texture,
 } from "./schema.ts";
 import { bindInteriors, interiorTexture, type InteriorSheets } from "./interior.ts";
 import { encodeTemplateLibrary, sealTemplateLibrary } from "./templateLibrary.ts";
@@ -42,9 +43,9 @@ import type { MountDraws } from "./units.ts";
 
 export interface BakeReport {
   name: string;
-  /** A skeleton, an appearance, the unit types' appearance names, or the
-   *  template art library packed from the city sets. */
-  what: "skeleton" | "appearance" | "types" | "library";
+  /** A skeleton, an appearance, the unit types' appearance names, the
+   *  template art library packed from the city sets, or the texture arrays. */
+  what: "skeleton" | "appearance" | "types" | "library" | "textures";
   findings: Finding[];
   stats: Stats | null;
   /** The template art library: what each template draws. */
@@ -58,6 +59,9 @@ export interface BakeResult {
   /** Runtime files by path under the runtime directory. */
   files: Map<string, Uint8Array>;
   reports: BakeReport[];
+  /** Distinct texture layers each GPU array holds when every baked
+   *  appearance is installed: the most any page can ask of it. */
+  textureLayers: TextureLayerCounts;
   ok: boolean;
 }
 
@@ -85,22 +89,6 @@ export function kitBytesFindings(name: string, bytes: number): Finding[] {
         },
       ]
     : [];
-}
-
-/** One publication owner for baked art and in-memory workbench previews. */
-async function publishContent(
-  output: Pick<BakeResult, "runtime" | "files">,
-  bytes: Uint8Array,
-  path: (hash: string) => string,
-  gzip: boolean,
-) {
-  const hash = await bundleHash(bytes);
-  if (gzip) {
-    const packed = await packGzip(bytes);
-    (output.runtime.gzip ??= {})[hash] = packed.transport;
-    output.files.set(path(packed.transport.hash), packed.bytes);
-  } else output.files.set(path(hash), bytes);
-  return { hash, bytes: bytes.byteLength };
 }
 
 /** The template art library's name in a bake report. */
@@ -140,8 +128,11 @@ export async function bakeCatalog(
     return texture;
   };
   const output = { runtime, files };
-  const emit = (bundle: Parameters<typeof encodeBundle>[0], gzip = false) =>
-    publishContent(output, encodeBundle(bundle), bundlePath, gzip);
+  const textures: Texture[] = [];
+  const emit = (bundle: Bundle) => {
+    if (bundle.kind !== "clips") textures.push(...bundle.textures);
+    return publishBundle(output, bundle);
+  };
 
   for (const id of Object.keys(catalog.skeletons).sort()) {
     if (!wanted(id) && !neededSkeletons.has(id)) continue;
@@ -204,10 +195,7 @@ export async function bakeCatalog(
     result.findings.push(...regionalFindings(name, entry, context.regionalFamilies ?? []));
     if (result.bundle && result.bundle.kind !== "clips")
       result.findings.push(...paintFindings(name, entry, result.bundle.materials));
-    const out =
-      result.bundle && !hasErrors(result.findings)
-        ? await emit(result.bundle, fetchedOnRequest(entry))
-        : null;
+    const out = result.bundle && !hasErrors(result.findings) ? await emit(result.bundle) : null;
     if (entry.unit === "kit" && out) result.findings.push(...kitBytesFindings(name, out.bytes));
     if (entry.unit === "kit" && result.bundle?.kind === "static" && out)
       kits.set(name, { bundle: result.bundle, hash: out.hash });
@@ -262,7 +250,8 @@ export async function bakeCatalog(
     if (packed.library) {
       const library = await sealTemplateLibrary(packed.library);
       const bytes = encodeTemplateLibrary(library);
-      out = await publishContent(output, bytes, templateLibraryPath, true);
+      out = { hash: await bundleHash(bytes), bytes: bytes.byteLength };
+      await publishGzip(output, out.hash, bytes, templateLibraryPath);
       runtime.templates = { library: out.hash, art_hash: library.art_hash, covers: library.covers };
     }
     reports.push({
@@ -275,6 +264,18 @@ export async function bakeCatalog(
       bytes: out?.bytes ?? 0,
     });
   }
+  // Every array holds what every page could install, on the target machine.
+  const textureLayers = textureLayerCounts(textures);
+  const layerFindings = textureLayerFindings(textureLayers, TEXTURE_ARRAY_LAYERS_FLOOR);
+  if (layerFindings.length)
+    reports.push({
+      name: "texture arrays",
+      what: "textures",
+      findings: layerFindings,
+      stats: null,
+      hash: null,
+      bytes: 0,
+    });
   // Every unit type draws appearances the catalog has.
   const types = typeAppearanceFindings(catalog.appearances, context.authority.units);
   if (types.length)
@@ -290,7 +291,10 @@ export async function bakeCatalog(
     runtime,
     files,
     reports,
-    ok: reports.every((r) => !hasErrors(r.findings) && (r.hash || r.what === "types")),
+    textureLayers,
+    ok: reports.every(
+      (r) => !hasErrors(r.findings) && (r.hash || r.what === "types" || r.what === "textures"),
+    ),
   };
 }
 
@@ -331,15 +335,14 @@ export async function previewRuntime(
   const runtime: RuntimeCatalog = { sides, skeletons: {}, appearances: {} };
   const files = new Map<string, Uint8Array>();
   const output = { runtime, files };
-  const emit = async (bundle: Bundle, gzip = false) =>
-    (await publishContent(output, encodeBundle(bundle), bundlePath, gzip)).hash;
+  const emit = async (bundle: Bundle) => (await publishBundle(output, bundle)).hash;
 
   for (const entry of entries) {
     if (entry.clips) runtime.skeletons[entry.clips.id] = await emit(entry.clips);
     runtime.appearances[entry.name] = {
       unit: entry.unit,
       kind: entry.bundle.kind,
-      bundle: await emit(entry.bundle, entry.unit === "kit"),
+      bundle: await emit(entry.bundle),
       ...(entry.bundle.kind === "skinned" ? { skeleton: entry.bundle.skeleton } : {}),
       ...(entry.scenery ? { scenery: entry.scenery } : {}),
       ...(entry.mounts ? { mounts: entry.mounts } : {}),

@@ -9,14 +9,14 @@
 
 import { vec3, type Mat4 } from "math";
 import { articulatedWorlds, poseWorlds, skinPositions } from "./pose.ts";
-import { decodeBundle } from "./codec.ts";
-import { lfsPointerOid, lfsPullCommand } from "./glb.ts";
+import { readBundle, readTexture, type ReadRuntime } from "./gzip.ts";
 import {
-  bundlePath,
   type ArticulatedBundle,
+  type Bundle,
   type RuntimeCatalog,
   type SkeletonClips,
   type SkinnedBundle,
+  type Texture,
 } from "./schema.ts";
 import type { UnitCatalog } from "./units.ts";
 
@@ -32,31 +32,34 @@ export type AppearanceLookup = (
 ) => { bundle: ArticulatedBundle | SkinnedBundle; skeleton: SkeletonClips | null } | null;
 
 /** An appearance lookup over a baked runtime (`assets/runtime/`): `read`
- *  gives a file's bytes by its path under the runtime directory. An LFS
- *  pointer is refused with the pull command. */
-export function runtimeLookup(
+ *  gives a file's bytes by its path under the runtime directory. Every
+ *  vehicle and soldier is read up front, through the one transport
+ *  (`gzip.ts`); an LFS pointer is refused with the pull command. */
+export async function runtimeLookup(
   runtime: RuntimeCatalog,
-  read: (path: string) => Uint8Array,
-): AppearanceLookup {
-  const decode = (hash: string) => {
-    const path = bundlePath(hash);
-    const bytes = read(path);
-    if (lfsPointerOid(bytes) !== null)
-      throw new Error(
-        `${path} is a Git LFS pointer; run: ${lfsPullCommand(`assets/runtime/${path}`)}`,
-      );
-    return decodeBundle(bytes);
+  read: ReadRuntime,
+): Promise<AppearanceLookup> {
+  // Each texture and bundle once, however many appearances name it.
+  const once = <T>(memo: Map<string, Promise<T>>, key: string, get: () => Promise<T>) => {
+    if (!memo.has(key)) memo.set(key, get());
+    return memo.get(key)!;
   };
-  return (name) => {
-    const entry = runtime.appearances[name];
-    if (!entry || (entry.kind !== "articulated" && entry.kind !== "skinned")) return null;
-    const bundle = decode(entry.bundle) as ArticulatedBundle | SkinnedBundle;
+  const textures = new Map<string, Promise<Texture>>();
+  const bundles = new Map<string, Promise<Bundle>>();
+  const texture = (id: string) => once(textures, id, () => readTexture(runtime, id, read));
+  const decode = (hash: string) =>
+    once(bundles, hash, () => readBundle(runtime, hash, read, texture));
+  const found = new Map<string, NonNullable<ReturnType<AppearanceLookup>>>();
+  for (const [name, entry] of Object.entries(runtime.appearances)) {
+    if (entry.kind !== "articulated" && entry.kind !== "skinned") continue;
+    const bundle = (await decode(entry.bundle)) as ArticulatedBundle | SkinnedBundle;
     const skeleton =
       bundle.kind === "skinned" && runtime.skeletons[bundle.skeleton]
-        ? (decode(runtime.skeletons[bundle.skeleton]) as SkeletonClips)
+        ? ((await decode(runtime.skeletons[bundle.skeleton])) as SkeletonClips)
         : null;
-    return { bundle, skeleton };
-  };
+    found.set(name, { bundle, skeleton });
+  }
+  return (name) => found.get(name) ?? null;
 }
 
 /** Soldiers a squad's silhouette shows, and their spacing along the view. */
