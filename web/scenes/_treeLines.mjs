@@ -2,8 +2,10 @@
 // the generated map's longest one at the ground rig's station across it. The
 // simulation lets no far sight through a strip, so the picture must not show
 // the field beyond between bare boles: with its shrubs the line hides most
-// of the framed forest ground from the play camera. A strip has the plots'
-// verge under it, with the verge's grass, rather than a forest floor.
+// of the strip's framed ground from the play camera. A strip has the plots'
+// verge under it, with the verge's grass, rather than a forest floor. Both
+// are judged on the strip's own ground: a wood further off in the frame is
+// forest ground too, with its own floor.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel } from "./_png.mjs";
 import { lab } from "./_lab.mjs";
@@ -11,6 +13,7 @@ import { chroma, linear, meanColour } from "./_colour.mjs";
 import {
   classPixels,
   classAt,
+  groundUnder,
   openStations,
   pairedCost,
   shoot,
@@ -19,8 +22,7 @@ import {
 
 const MAP = "generated";
 const STATION = "tree-line-65";
-/** Minimum coverage of forest ground in this tree-line framing. The class
- *  mask identifies forest ground, not an individual forest. */
+/** Minimum coverage of the strip's ground in this tree-line framing. */
 const HIDDEN = 0.6;
 /** A pixel of ground the grass has changed differs by this much in a channel. */
 const GRASS_STEP = 12;
@@ -28,6 +30,22 @@ const GRASS_STEP = 12;
  *  least: it is the ground's own colour, so most of it changes little. A
  *  wood's floor has none. */
 const GRASSED = 0.05;
+
+/** Of `pixels` (forest ground), those whose ground lies on `strip` (its
+ *  strokes, `[ax, ay, bx, by, half width]`), give or take a pixel's
+ *  footprint. */
+async function stripPixels(page, pixels, strip) {
+  const under = await groundUnder(page, pixels);
+  const outside = ([x, y], [ax, ay, bx, by, half]) => {
+    const [dx, dy] = [bx - ax, by - ay];
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(x - ax - dx * t, y - ay - dy * t) - half;
+  };
+  return pixels.filter((_, i) => {
+    const { xy, footprint } = under[i];
+    return strip.some((stroke) => outside(xy, stroke) <= footprint);
+  });
+}
 
 const understorey = (page, on) => lab(page, (off) => window.__lab.suppressUnderstorey(off), !on);
 
@@ -39,7 +57,11 @@ export async function treeLines(ctx) {
     return decode(png);
   };
   const mask = await capture("mask-bare", { view: "ground-classes", grass: false, trees: false });
-  const forest = [...classPixels(mask, (c) => c.forest === "inside")];
+  const forest = await stripPixels(
+    page,
+    [...classPixels(mask, (c) => c.forest === "inside")],
+    stationReport(page).line.strip,
+  );
   const state = () =>
     lab(page, () => ({ tick: window.__lab.route.tick(), camera: window.__lab.camera() }));
   const controls = [];
@@ -58,7 +80,7 @@ export async function treeLines(ctx) {
   const additionalPixels = crowns.filter((visible, i) => visible && !line[i]).length;
   const stats = await lab(page, () => window.__lab.stats().scenery.understorey);
   ctx.check(
-    `a tree line hides at least ${HIDDEN} of the framed forest ground; drawn shrubs hide additional ground beyond its crowns`,
+    `a tree line hides at least ${HIDDEN} of its framed ground; drawn shrubs hide additional ground beyond its crowns`,
     forest.length > 20000 &&
       stats.tiers.some((n) => n > 0) &&
       hidden.line >= HIDDEN &&

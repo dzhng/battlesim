@@ -208,20 +208,24 @@ const woodEdge = (page, size, near) =>
     { size, near, deep: DEEP_M },
   );
 
-/** A tree line runs straight this far at least, with open ground these
- *  distances beside it, and stands this far inside the map. */
+/** A tree line runs straight this far at least, with open ground (a field)
+ *  this far beside it and no wood out to this far (a strip, not a wood's
+ *  edge), and stands this far inside the map. */
 const TREE_LINE_M = 80;
-const BESIDE_LINE_M = [4, 30];
+const FIELD_BESIDE_M = 4;
+const CLEAR_BESIDE_M = 30;
 const LINE_INSET_M = 400;
 
 /** The longest tree line of a generated map: `at`, the middle of the longest
  *  straight stretch of a strip of forest that a unit finds wooded along its
- *  middle and open ground on both sides of; `yaw`, looking across it from
- *  its southern side. Undefined on a map with none. */
+ *  middle, open ground right beside on both sides, and no wood further out
+ *  on either (a road or a river may run there); `yaw`, looking across it
+ *  from its southern side; `strip`, the whole strip's strokes, each
+ *  `[ax, ay, bx, by, half width]`. Undefined on a map with none. */
 async function treeLine(page, size) {
   await generatedGround(page);
   return page.evaluate(
-    async ({ size: [width, height], repo, run, beside, inset }) => {
+    async ({ size: [width, height], repo, run, field, clear, inset }) => {
       const { FOREST_STROKE_FLOATS } = await import(
         `/@fs/${repo}packages/battle-renderer/src/terrain/forestShapes.ts`
       );
@@ -245,25 +249,31 @@ async function treeLine(page, size) {
           const across = along[0] > 0 ? [along[1], -along[0]] : [-along[1], along[0]];
           const between = [0.25, 0.5, 0.75].every((t) => {
             const [x, y] = [ax + (bx - ax) * t, ay + (by - ay) * t];
+            const beside = (d) =>
+              [-half - d, half + d].map((side) => [x + across[0] * side, y + across[1] * side]);
             return (
               wooded(x, y) &&
-              beside.every((d) =>
-                [-half - d, half + d].every((side) =>
-                  open(x + across[0] * side, y + across[1] * side),
-                ),
-              )
+              beside(field).every((p) => open(...p)) &&
+              beside(clear).every((p) => !wooded(...p))
             );
           });
-          if (between) best = { length, at: [mx, my], yaw: Math.atan2(across[1], across[0]) };
+          if (between)
+            best = { length, at: [mx, my], yaw: Math.atan2(across[1], across[0]), shape };
         }
       }
-      return best && { at: best.at, yaw: best.yaw };
+      if (!best) return undefined;
+      const { strokes } = best.shape;
+      const strip = [];
+      for (let o = 0; o < strokes.length; o += FOREST_STROKE_FLOATS)
+        strip.push(Array.from(strokes.subarray(o, o + 5)));
+      return { at: best.at, yaw: best.yaw, strip };
     },
     {
       size,
       repo: new URL("../../", import.meta.url).pathname,
       run: TREE_LINE_M,
-      beside: BESIDE_LINE_M,
+      field: FIELD_BESIDE_M,
+      clear: CLEAR_BESIDE_M,
       inset: LINE_INSET_M,
     },
   );
@@ -525,6 +535,9 @@ export async function openStations(ctx, map) {
     undefined,
     { timeout: 300000 },
   );
+  // A refusal's details name its cause (a missing asset, a refused map).
+  const details = page.getByRole("button", { name: "Details", exact: true });
+  if (await details.isVisible()) await details.click();
   const error = await page.evaluate(
     () => document.querySelector("[data-testid=error]")?.textContent ?? window.__lab?.error,
   );

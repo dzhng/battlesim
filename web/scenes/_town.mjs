@@ -20,6 +20,9 @@ import { lab } from "./_lab.mjs";
 import { pixel } from "./_png.mjs";
 
 const YARD = BIOME.field_rules.settlement_kind;
+/** The commons round a settlement's yards (`field_rules.surround_kind`);
+ *  out in the plain the same kind is a wild meadow. */
+const COMMONS = BIOME.field_rules.surround_kind;
 const street = BIOME.roads[BIOME.roads.default.town.kind];
 
 /** Open ground: this far from any paving, clear of its shoulder or walk. */
@@ -51,6 +54,7 @@ function plotShares(mask) {
   return {
     ground,
     yard: +share((name) => name === YARD).toFixed(4),
+    commons: +share((name) => name === COMMONS).toFixed(4),
     drilled: +share(drilled).toFixed(4),
     crops: Object.keys(counts).filter(drilled).sort(),
   };
@@ -79,13 +83,16 @@ export async function townGround(ctx) {
   for (const station of ["town-250", "town-edge-250", "country-250"])
     masks[station] = plotShares((await stationFrame(page, "generated", station)).mask);
   // A dense block's courts are paved, so the open ground judged here is the
-  // lawns and gardens between them: a smaller share of the frame.
+  // lawns and gardens between them: a smaller share of the frame. A town's
+  // centre may hold a green: a commons, open ground no crop is drilled on.
+  const town = masks["town-250"];
   ctx.check(
     "between a town's buildings the open ground is its yards and commons: no crop is drilled there",
-    masks["town-250"].ground > 10000 &&
-      masks["town-250"].yard > 0.8 &&
-      masks["town-250"].drilled < 0.005,
-    JSON.stringify(masks["town-250"]),
+    town.ground > 10000 &&
+      town.yard + town.commons > 0.99 &&
+      town.yard > town.commons &&
+      town.drilled < 0.005,
+    JSON.stringify(town),
   );
   ctx.check(
     "the plain beyond the town keeps its drilled fields, and no yard lies out in it",
