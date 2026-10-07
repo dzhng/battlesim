@@ -375,8 +375,10 @@ for side in (-1, 1):
         cyl(f"smoke_{s}_{k}", 0.042, 0.22,
             (0.93 + col * 0.075 + 0.09, side * (yl + 0.13 + 0.02 * col), 0.45 + row * 0.1),
             "X", dark, turret, seg=10, rot=(0, math.radians(-25), side * math.radians(20)), lods=(0, 1))
-    cyl(f"antenna_base_{s}", 0.05, 0.1, (-1.7, side * 1.0, 0.75), "Z", dark, turret, seg=10, lods=(0, 1))
-    cyl(f"antenna_{s}", 0.007, 1.2, (-1.7, side * 1.0, 1.4), "Z", dark, turret, seg=6, lods=(0, 1))
+    # dressing: the whip rises above the hull box, held to the dressing allowance
+    antenna = empty(f"dressing_antenna_{s}", (0, 0, 0), turret)
+    cyl(f"antenna_base_{s}", 0.05, 0.1, (-1.7, side * 1.0, 0.75), "Z", dark, antenna, seg=10, lods=(0, 1))
+    cyl(f"antenna_{s}", 0.007, 1.2, (-1.7, side * 1.0, 1.4), "Z", dark, antenna, seg=6, lods=(0, 1))
     box(f"lift_eye_turret_{s}", (0.1, 0.03, 0.08), (0.4, side * turret_half_width(0.4, 0.7), 0.72), steel, turret, lods=(0,))
 # tactical numbers stencilled on both turret sides, leaning with the armour
 if not WRECK:
@@ -390,9 +392,11 @@ if not WRECK:
 for k, y in enumerate((-0.45, 0.45)):
     box(f"blowout_panel_{k}", (0.9, 0.7, 0.02), (-1.65, y, 0.71), camo, turret, bevel=0.006, lods=(0, 1))
 # the commander's independent sight on its pedestal
-cyl("citv_pedestal", 0.12, 0.2, (0.2, -0.05, 0.8), "Z", dark, turret, seg=12, lods=(0, 1))
-box("citv_head", (0.34, 0.3, 0.26), (0.22, -0.05, 1.0), camo, turret, bevel=0.03, lods=(0, 1, 2))
-box("citv_glass", (0.02, 0.2, 0.12), (0.4, -0.05, 1.0), glass, turret, lods=(0,))
+# dressing: the viewer's head stands above the hull box, held to the dressing allowance
+citv = empty("dressing_citv", (0, 0, 0), turret)
+cyl("citv_pedestal", 0.12, 0.2, (0.2, -0.05, 0.8), "Z", dark, citv, seg=12, lods=(0, 1))
+box("citv_head", (0.34, 0.3, 0.26), (0.22, -0.05, 1.0), camo, citv, bevel=0.03, lods=(0, 1, 2))
+box("citv_glass", (0.02, 0.2, 0.12), (0.4, -0.05, 1.0), glass, citv, lods=(0,))
 # the bustle rack's load: a bedroll and jerrycans
 cyl("rack_bedroll", 0.14, 1.0, (-2.6, 0.0, 0.52), "Y", canvas, turret, seg=12, lods=(0, 1))
 for k in range(2):
@@ -400,7 +404,9 @@ for k in range(2):
 box("gps_sight", (0.5, 0.4, 0.28), (0.95, 0.62, 0.82), camo, turret, bevel=0.03, lods=(0, 1, 2))
 box("gps_glass", (0.02, 0.3, 0.16), (1.2, 0.62, 0.84), glass, turret, lods=(0, 1))
 cyl("loader_hatch", 0.3, 0.06, (-0.2, 0.55, 0.71), "Z", camo, turret, bevel=0.01, lods=(0, 1, 2))
-box("wind_sensor", (0.04, 0.04, 0.3), (-0.8, 0.2, 0.9), dark, turret, lods=(0,))
+# dressing: a thin mast on the roof, held to the dressing allowance
+box("wind_sensor", (0.04, 0.04, 0.3), (-0.8, 0.2, 0.9), dark, empty("dressing_wind_sensor", (0, 0, 0), turret),
+    lods=(0,))
 cup_xy = (-0.25, -0.58)
 cyl("cupola", 0.38, 0.2, (cup_xy[0], cup_xy[1], 0.8), "Z", camo, turret, seg=24, bevel=0.02, lods=(0, 1, 2))
 for k in range(8):
@@ -459,8 +465,8 @@ if WRECK:
     # burnt away or blown off: antennas, the bustle's load, the canvas boot, a mudguard,
     # mudflaps, lamps, the hatch lids, a blow-out panel, the engine deck's grilles and
     # plates, two skirt panels, the left track and two of its road wheels
-    remove("antenna_", "rack_bag", "rack_bedroll", "rack_jerrycan", "mantlet_boot", "mudflap_", "headlight_",
-           "blowout_panel_0", "loader_hatch", "driver_hatch", "turret_box_R", "citv_", "fender_L", "tow_cable_L",
+    remove("dressing_antenna_", "antenna_", "rack_bag", "rack_bedroll", "rack_jerrycan", "mantlet_boot", "mudflap_", "headlight_",
+           "blowout_panel_0", "loader_hatch", "driver_hatch", "turret_box_R", "dressing_citv", "citv_", "fender_L", "tow_cable_L",
            "skirt_front_L", "gps_glass", "smoke_L", "deck_slat_", "deck_panel_0", "deck_bolt_0_", "deck_access",
            "rear_stowage", "skirt_L_1", "skirt_bolt_L_1_", "skirt_hanger_L_1", "skirt_R_4", "skirt_bolt_R_4_",
            "skirt_hanger_R_4", "wheel_L_2_", "wheel_L_5_", "wheel_L_return_1_", "track_L_band")

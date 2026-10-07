@@ -161,8 +161,11 @@ for s in (-1, 1):
     cyl(f"rollbar_stay_{'L' if s > 0 else 'R'}", 0.022, 0.95, (-1.25, s * 0.6, 1.47), "X", dark, body,
         rot=(0, math.radians(-40), 0), seg=8, lods=(0, 1))
 # the whip antenna at the rear corner, bowed back
-cyl("antenna_base", 0.035, 0.14, (-1.95, -0.52, SIDE_Z + 0.07), "Z", dark, body, seg=8, lods=(0, 1))
-cyl("antenna", 0.008, 1.7, (-2.03, -0.52, 2.0), "Z", dark, body, rot=(0, math.radians(-6), 0), seg=6, lods=(0, 1))
+# (dressing: it rises above the hull box, held to the dressing allowance)
+antenna = empty("dressing_antenna", (0, 0, 0), body)
+cyl("antenna_base", 0.035, 0.14, (-1.95, -0.52, SIDE_Z + 0.07), "Z", dark, antenna, seg=8, lods=(0, 1))
+cyl("antenna", 0.008, 1.7, (-2.03, -0.52, 2.0), "Z", dark, antenna, rot=(0, math.radians(-6), 0), seg=6,
+    lods=(0, 1))
 
 # the spare wheel and a jerrycan on the tailboard
 cyl("spare_tyre", 0.4, 0.2, (-2.1, 0.3, 0.9), "X", rubber, body, seg=24, bevel=0.03, lods=(0, 1, 2))
@@ -219,7 +222,7 @@ if WRECK:
     # burnt out: the tyres, canvas, glass, seats' cushions and stowage are gone; it settles on
     # its rims; the gun hangs off its pedestal; the bonnet sprang open
     remove("windscreen_cover", "mirror_", "headlamp_", "tail_light_", "blackout_lamp_", "kit_bag", "bedroll",
-           "seat_L", "seat_R", "seat_back_", "rear_bench_LOD", "antenna", "radio_knob_", "gauge_", "spare_tyre",
+           "seat_L", "seat_R", "seat_back_", "rear_bench_LOD", "dressing_antenna", "antenna", "radio_knob_", "gauge_", "spare_tyre",
            "hmg_brass_bag", "jerrycan_LOD")
     for o in list(bpy.data.objects):
         if o.type == "MESH" and o.name.startswith("wheel_") and ("_tyre_LOD" in o.name or "_lug_" in o.name):
