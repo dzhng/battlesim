@@ -55,7 +55,7 @@ const CROPS = ["pasture", "wheat", "barley", "rapeseed", "hay", "stubble", "plou
 const SETTLEMENT = "yard";
 
 /** Each map's route (from the site root) and its named poses. A generated
- *  map's stations stand on what its preparation reports (the objective town,
+ *  map's stations stand on what its preparation reports (its main town,
  *  blue's start), so they follow the generator when its layouts change. */
 export const STATION_MAPS = {
   street: {
@@ -113,11 +113,11 @@ export const STATION_MAPS = {
     },
   },
   generated: {
-    route: "/battle?type=mixed&size=medium&seed=2",
+    route: "/battle?type=mixed&size=medium&seed=2&profile=skirmish&faction=us",
     stations: {
       "overview-2500": ({ size }) => at([size[0] / 2, size[1] / 2], 2500, 1.1),
-      "town-250": ({ objective }) => at(objective.center, 250),
-      "town-65": ({ objective }) => at(objective.center, 65),
+      "town-250": ({ town }) => at(town, 250),
+      "town-65": ({ town }) => at(town, 65),
       // The town's streets nearest its centre (`townStreets`): where three
       // ways or more meet, and low along the edge of a plain street.
       "junction-65": ({ streets }) => at(streets.junction, 65),
@@ -536,12 +536,12 @@ export async function openStations(ctx, map) {
       ? { plots: await streetPlots(page), floor: await streetFloor(page) }
       : report && {
           ...report,
-          edges: await townEdges(page, report.objective.center),
+          edges: await townEdges(page, report.town),
           river: await riverBank(page, report.size),
           wood: await woodEdge(page, report.size, report.start.at),
           line: await treeLine(page, report.size),
-          streets: await townStreets(page, report.objective.center),
-          streetTree: await streetTrees(page, report.objective.center),
+          streets: await townStreets(page, report.town),
+          streetTree: await streetTrees(page, report.town),
         },
   );
   await lab(page, () => window.__lab.route.pause());

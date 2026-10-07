@@ -50,10 +50,9 @@ pub enum MapCategory {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MapSource {
-    /// A saved map of the catalogue, `fixtures/maps/<id>/`.
-    Catalogue { id: MapId },
     /// A map the generator makes from `request`. It needs no catalogue
-    /// folder: the request, with the build that reads it, is the map.
+    /// folder: the request, with the build that reads it, is the map. A
+    /// battle never names a saved map: those are tests' and the menu's.
     Generated { request: GenerationRequest },
 }
 

@@ -1,12 +1,10 @@
 /** Preparing a battle: the request is checked by the simulation, its map is
- *  resolved through the one map owner (a saved map by id, or the generator's
- *  for a request), both factions are fielded on the map's admitted skirmish
+ *  generated through the one map owner, both factions are fielded on the map's admitted skirmish
  *  sites (a map without them is refused), and the result is the scenario
  *  JSON any battle authority runs. This module only carries text between those: every generation and
  *  placement rule is the Wasm module's. Pure over the module and the map
  *  adapter it is given, so the worker and a test share it. */
 import type { SimBattle } from "../sim/authority";
-import type { ResolvedMap } from "../../maps/resolve.ts";
 import { between, MapRefused, resolveMap, type MapGenerator } from "../../maps/source.ts";
 import type {
   PrepareBattleRequest,
@@ -50,11 +48,6 @@ export function prepareReplay(wasm: PreparationModule, battle: PreparedBattle): 
   return { ...battle, world: wasm.PreparedWorld.from_scenario(battle.scenario) };
 }
 
-/** The saved catalogue, as an adapter reaches it (`browser.ts`, `node.ts`). */
-export interface SavedMaps {
-  loadMap(id: string): ResolvedMap | Promise<ResolvedMap>;
-}
-
 type Outcome<T> = ({ status: "ok" } & T) | { status: "error"; diagnostics: PrepareDiagnostic[] };
 
 /** A request the simulation's check refused (`request`), a map its owner
@@ -96,7 +89,6 @@ export async function prepare(
   memory: WebAssembly.Memory,
   request: PrepareBattleRequest,
   documents: PrepareDocuments,
-  saved: SavedMaps,
   onStage: (stage: PrepareStage) => void = () => {},
   now: () => number = () => performance.now(),
   stress?: StressPreparation,
@@ -108,24 +100,20 @@ export async function prepare(
   const source = checked.map_source;
   if (
     stress !== undefined &&
-    (!stress ||
-      stress.kind !== "city-arena-2" ||
-      typeof stress.late !== "boolean" ||
-      source.kind !== "generated")
+    (!stress || stress.kind !== "city-arena-2" || typeof stress.late !== "boolean")
   )
     throw new PreparationRefused("request", [
       {
         code: "invalid_request",
         feature: null,
         location: "$.stress",
-        message: "city-arena-2 stress requires a generated map and a boolean late state",
+        message: "city-arena-2 stress requires a boolean late state",
       },
     ]);
   const started = now();
 
   onStage("map");
   const map = await resolveMap(source, {
-    loadMap: saved.loadMap,
     generator: wasm,
     documents: {
       presets: documents.presets,
@@ -163,17 +151,14 @@ export async function prepare(
     : new wasm.PreparedWorld(map.json, documents.rules);
   const worldBuiltAt = now();
   try {
-    let skirmish =
-      map.sites === null
-        ? null
-        : (
-            JSON.parse(map.sites) as {
-              skirmish?: { entries: { side: string; center: [number, number]; yaw: number }[] };
-            }
-          ).skirmish;
+    const sites = JSON.parse(map.sites) as {
+      settlements?: { center: [number, number] }[];
+      skirmish?: { entries: { side: string; center: [number, number]; yaw: number }[] };
+    };
+    let skirmish = sites.skirmish;
     if (skirmish) {
       try {
-        const admitted = JSON.parse(world.admit_skirmish(map.sites!)) as {
+        const admitted = JSON.parse(world.admit_skirmish(map.sites)) as {
           sites: { skirmish: NonNullable<typeof skirmish> };
         };
         map.sites = JSON.stringify(admitted.sites);
@@ -196,7 +181,7 @@ export async function prepare(
       start = metadata.start;
     } else {
       const base = skirmish?.entries.find((e) => e.side === "blue");
-      if (!base || map.sites === null)
+      if (!base)
         throw new PreparationRefused("encounter", [
           {
             code: "invalid_request",
@@ -233,6 +218,7 @@ export async function prepare(
           forests: map.definition.forests.length,
         },
         start,
+        town: sites.settlements?.[0]?.center ?? null,
         timings: { map: resolvedAt - started, encounter: now() - resolvedAt },
         wasmBytes: memory.buffer.byteLength,
         worldBuildMs: worldBuiltAt - resolvedAt,

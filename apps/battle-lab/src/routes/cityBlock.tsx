@@ -179,17 +179,8 @@ export default function CityBlock() {
     // The same explicit rule record a battle carries, including forest geometry.
     const documents = { presets, templates, rules: JSON.stringify(rules) };
     const request = generationRequest(wasm, asked, documents, config.limits);
-    const map = await resolveMap(
-      { kind: "generated", request },
-      {
-        generator: wasm,
-        documents,
-        loadMap: () => {
-          throw new Error("the city block lab draws generated maps only");
-        },
-      },
-    );
-    const sites = JSON.parse(map.sites!) as { settlements: { center: [number, number] }[] };
+    const map = await resolveMap({ kind: "generated", request }, { generator: wasm, documents });
+    const sites = JSON.parse(map.sites) as { settlements: { center: [number, number] }[] };
     const { size } = map.definition as { size: [number, number] };
     return { map: map.definition, size, town: sites.settlements[0]?.center ?? [0, 0] };
   });

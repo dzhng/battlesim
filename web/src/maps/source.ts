@@ -1,11 +1,11 @@
-// Where a map comes from, and the one way a battle gets it
-// (`contract::maps::MapSource`): a saved map of the catalogue, read by id
-// through an adapter (`browser.ts`, `node.ts`), or a map the simulation's
-// generator makes from a request. Either way the answer is a resolved map:
-// its physical definition and what it is. The battle never learns which.
+// Where a battle's map comes from, and the one way a battle gets it
+// (`contract::maps::MapSource`): a map the simulation's generator makes from
+// a request. The answer is a resolved map: its physical definition and what
+// it is. A battle never names a saved map; those are tests' and the menu's,
+// read by id through an adapter (`browser.ts`, `node.ts`).
 //
 // Plain TypeScript with no bundler features, so Node tools import it too.
-import { MapResolveError, type MapIdentity, type ResolvedMap } from "./resolve.ts";
+import type { MapIdentity, ResolvedMap } from "./resolve.ts";
 
 export type MapType = "open" | "mixed" | "metro";
 export type MapSize = "small" | "medium" | "large" | "xl";
@@ -43,12 +43,9 @@ export interface GenerationRequest extends MapChoice {
 }
 
 /** Mirrors `contract::maps::MapSource`. */
-export type MapSource =
-  | { kind: "catalogue"; id: string }
-  | { kind: "generated"; request: GenerationRequest };
+export type MapSource = { kind: "generated"; request: GenerationRequest };
 
-/** A refusal's row: the generator's `mapgen::Diagnostic`, or a catalogue
- *  refusal in the same shape. */
+/** A refusal's row: the generator's `mapgen::Diagnostic`. */
 export interface MapDiagnostic {
   code: string;
   feature: string | null;
@@ -67,9 +64,8 @@ export class MapRefused extends Error {
 
 /** A resolved map as preparation hands it on. */
 export interface SourcedMap extends ResolvedMap {
-  /** `contract::encounter::EncounterSites` as the generator wrote them, for
-   *  the encounter planner; a saved map has none. */
-  sites: string | null;
+  /** `contract::encounter::EncounterSites` as the generator wrote them. */
+  sites: string;
 }
 
 /** The generator's documents, as text: `fixtures/map-presets.json`, the
@@ -90,8 +86,6 @@ export interface MapGenerator {
 
 /** What `resolveMap` reaches a map through. */
 export interface MapAccess {
-  /** The catalogue's adapter (`loadMap` of `browser.ts` or `node.ts`). */
-  loadMap(id: string): ResolvedMap | Promise<ResolvedMap>;
   generator: MapGenerator;
   documents: GeneratorDocuments;
 }
@@ -168,18 +162,9 @@ type GenerateOutcome =
     }
   | { status: "error"; diagnostics: MapDiagnostic[] };
 
-/** The map `source` names, resolved, or `MapRefused` with the catalogue's or
- *  the generator's diagnostics. */
+/** The map `source` names, generated, or `MapRefused` with the generator's
+ *  diagnostics. */
 export async function resolveMap(source: MapSource, access: MapAccess): Promise<SourcedMap> {
-  if (source.kind === "catalogue") {
-    try {
-      return { ...(await access.loadMap(source.id)), sites: null };
-    } catch (error) {
-      if (!(error instanceof MapResolveError)) throw error;
-      const { code, location, message } = error;
-      throw new MapRefused([{ code, feature: null, location, message }]);
-    }
-  }
   const generated = access.generator.generate_map(
     JSON.stringify(source.request),
     access.documents.presets,

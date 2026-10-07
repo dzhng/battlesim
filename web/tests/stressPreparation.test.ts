@@ -71,11 +71,6 @@ const module = {
     return `{"scenario":${scenario},"report":${JSON.stringify({ start: { at: [1200, 1000], yaw: 0 }, livingUnits: { blue: 1, red: 1 } })}}`;
   },
 } as unknown as PreparationModule;
-const saved = {
-  loadMap: () => {
-    throw new Error("no substituted saved map");
-  },
-};
 
 test("generated stress preparation retains the resolved full map and authoritative fixture", async () => {
   const stages: string[] = [];
@@ -84,7 +79,6 @@ test("generated stress preparation retains the resolved full map and authoritati
     new WebAssembly.Memory({ initial: 1 }),
     request,
     documents,
-    saved,
     (s) => stages.push(s),
     () => 0,
     { kind: "city-arena-2", late: true },
@@ -108,7 +102,6 @@ test("a malformed stress selector refuses before another encounter can be substi
       new WebAssembly.Memory({ initial: 1 }),
       request,
       documents,
-      saved,
       undefined,
       undefined,
       null as never,

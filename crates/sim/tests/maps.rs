@@ -58,7 +58,10 @@ fn a_listing_that_does_not_say_test_or_menu_is_refused() {
         assert_eq!(error.location, "geometry/meta.json");
     }
     std::fs::write(dir.file("meta.json"), r#"{"category": "test"}"#).unwrap();
-    assert_eq!(dir.catalogue().category("geometry").unwrap(), MapCategory::Test);
+    assert_eq!(
+        dir.catalogue().category("geometry").unwrap(),
+        MapCategory::Test
+    );
     std::fs::remove_file(dir.file("meta.json")).unwrap();
     let missing = dir.catalogue().category("geometry").unwrap_err();
     assert_eq!(missing.code, ResolveCode::MissingDocument);

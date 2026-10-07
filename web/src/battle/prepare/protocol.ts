@@ -89,6 +89,9 @@ export interface PreparationReport {
   /** Where blue starts, for the camera: its admitted base (a stress
    *  scene's first unit) and its heading. */
   start: { at: [number, number]; yaw: number };
+  /** The centre of the map's main settlement (the generator's first), or
+   *  null on a map with none: where a view of the town looks. */
+  town: [number, number] | null;
   /** Worker wall time per stage, milliseconds. */
   timings: Record<PrepareStage, number>;
   /** The preparation module's Wasm memory when it finished, bytes. */

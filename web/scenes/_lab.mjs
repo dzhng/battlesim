@@ -138,7 +138,8 @@ export async function remount(page) {
   const next = (await lab(page, () => window.__lab.route.mount())) + 1;
   await lab(page, () => window.__lab.route.remount());
   await page.waitForFunction(
-    (n) => window.__lab?.ready && window.__lab.route?.mount?.() === n && window.__lab.route.tick() > 3,
+    (n) =>
+      window.__lab?.ready && window.__lab.route?.mount?.() === n && window.__lab.route.tick() > 3,
     next,
     { timeout: 60000 },
   );

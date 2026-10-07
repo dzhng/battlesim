@@ -69,17 +69,11 @@ test("faction preparation fields both factions on the admitted sites", async () 
       free() {}
     },
   } as unknown as PreparationModule;
-  const prepared = await prepare(
-    module,
-    new WebAssembly.Memory({ initial: 1 }),
-    request,
-    { rules: "{}", presets: "{}", templates: "[]" },
-    {
-      loadMap: () => {
-        throw new Error("no saved map");
-      },
-    },
-  );
+  const prepared = await prepare(module, new WebAssembly.Memory({ initial: 1 }), request, {
+    rules: "{}",
+    presets: "{}",
+    templates: "[]",
+  });
   try {
     expect(fieldInputs).toEqual([selected, ["europe", "eastern"]]);
     expect(JSON.parse(prepared.scenario)).toMatchObject({

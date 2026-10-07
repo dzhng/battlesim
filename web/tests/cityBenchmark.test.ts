@@ -9,7 +9,6 @@ import { TEST_RULES } from "./catalog";
 import { prepare } from "@web/battle/prepare/prepare";
 import type { PrepareMessage } from "@web/battle/prepare/protocol";
 import type { BenchmarkReport } from "@web/battle/benchmark/report";
-import { loadMap } from "@web/maps/node";
 import { WHOLE_MAP_MS } from "./support/wholeMap";
 
 const memory = wasm.initSync({
@@ -31,7 +30,6 @@ test(
           memory,
           message.request,
           message.documents,
-          { loadMap },
           undefined,
           undefined,
           message.stress,

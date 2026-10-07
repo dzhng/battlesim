@@ -40,7 +40,7 @@ test("ordinary Play admits a fresh candidate after refusal and retains its worke
       if (message.type !== "prepare") throw new Error("unexpected replay");
       requests.push(message.request);
       const source = message.request.map_source;
-      const seed = source.kind === "generated" ? source.request.seed : source.id;
+      const seed = source.request.seed;
       return {
         battle:
           seed === "11"
@@ -161,11 +161,7 @@ test("the second candidate inherits the remaining total deadline instead of anot
             refuse = reject;
           }),
           cancel: () => {
-            closed.push(
-              message.request.map_source.kind === "generated"
-                ? message.request.map_source.request.seed
-                : "unexpected saved map",
-            );
+            closed.push(message.request.map_source.request.seed);
           },
         };
       },

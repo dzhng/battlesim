@@ -1,7 +1,7 @@
 // A battle the player starts from the main menu on a generated map: the
 // menu's type, size and seed are the map the preparation worker makes, a
-// loading screen covers the wait, the battle on it runs in the village's
-// battle view, and its buildings (their templates' rows), trees and roads
+// loading screen covers the wait, the battle on it runs in the battle view,
+// and its buildings (their templates' rows), trees and roads
 // are drawn where the static map says they are, with fog over what blue does
 // not see. The camera flown through its main town never enters a building.
 //
@@ -11,13 +11,11 @@
 import { startupResources } from "./_startupResources.mjs";
 import { writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { advance, buildingsSettled, lab, obs, openMenu, openMenuPage, presented } from "./_lab.mjs";
+import { advance, buildingsSettled, lab, obs, openMenu, openMenuPage } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { flyTown } from "./_cameraClearance.mjs";
 import { bareClassMask, classAt } from "./_groundStations.mjs";
 
-const game = JSON.parse(readFileSync(new URL("../../fixtures/game.json", import.meta.url)));
-const TICK_HZ = game.tick_hz;
 const MAP = { type: "mixed", size: "medium", seed: "1" };
 const HIDE_HUD = "[data-testid=battle-panel], .ro-layer { display: none !important; }";
 /** The ground mask's two values: a pixel that is mostly ground, and one that is not. */
@@ -57,14 +55,14 @@ export async function playable(page, timeout = 120000, minimumTick = 4) {
 }
 
 /** What the preparation worker made, as the scene reads it: the report, with
- *  the generated map's request and identity and the objective's centre. */
+ *  the generated map's request and identity and its main town's centre. */
 async function preparedBattle(page) {
   const report = await lab(page, () => window.__lab.route.prepared());
   return {
     ...report,
     map: report.request.map_source.request,
     generation: report.identity.generation,
-    town: report.objective.center,
+    town: report.town,
   };
 }
 
@@ -180,14 +178,11 @@ async function frame(ctx, page, view, file, clear = false) {
   return decode(shot);
 }
 
-export async function roadAlignment(ctx, page) {
-  // A road: between two units of blue's column, which stands on it, against
-  // the field off to its side.
-  const column = (await obs(page)).own;
-  const [a, b] = [column[2].position, column[3].position];
-  const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-  const along = Math.hypot(b[0] - a[0], b[1] - a[1]);
-  const side = [(-(b[1] - a[1]) / along) * 25, ((b[0] - a[0]) / along) * 25];
+export async function roadAlignment(ctx, page, start) {
+  // A road: under blue's entry, which stands on the road it arrives by
+  // (`start`, facing along it), against the field off to its side.
+  const mid = start.at;
+  const side = [-Math.sin(start.yaw) * 25, Math.cos(start.yaw) * 25];
   const field = [mid[0] + side[0], mid[1] + side[1]];
   const surfaces = await lab(
     page,
@@ -204,7 +199,7 @@ export async function roadAlignment(ctx, page) {
   const roadMask = await bareClassMask(ctx, page, "road-classes.png");
   const classes = [roadPx, fieldPx].map((p) => classAt(roadMask, ...p.map(Math.round)));
   ctx.check(
-    "a road is drawn where the map has one: paving under the column, ground outside its edge",
+    "a road is drawn where the map has one: paving under blue's entry, ground outside its edge",
     surfaces[0] === "road" &&
       surfaces[1] !== "road" &&
       classes[0]?.roadSd < 0 &&
@@ -223,7 +218,7 @@ export async function roadAlignment(ctx, page) {
       historicalTargetMet: road[0] > road[1] && road[1] > road[2] && delta(road, beside) > 30,
     },
   });
-  return { mid, column };
+  return { mid };
 }
 
 /** Straight down, so nothing standing hides the ground beside it. */
@@ -313,11 +308,15 @@ export async function run(ctx) {
 
   // The player's way in: the main menu's type and size, then Deploy.
   const { menu, loading } = await deployFromMenu(ctx, page, MAP, true);
+  const asked = new URL(menu.href, ctx.url);
   ctx.check(
     "ordinary Play is unpinned, and an explicit seeded menu address deploys its exact chosen map",
-    menu.drawn === "/battle?play=1&type=mixed&size=small" &&
+    menu.drawn === "/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us" &&
       !menu.seedShown &&
-      menu.href === `/battle?type=${MAP.type}&size=${MAP.size}&seed=${MAP.seed}` &&
+      asked.pathname === "/battle" &&
+      !asked.searchParams.has("play") &&
+      ["type", "size", "seed", "faction"].map((k) => asked.searchParams.get(k)).join() ===
+        `${MAP.type},${MAP.size},${MAP.seed},us` &&
       menu.checked.join() === `${MAP.type},${MAP.size}` &&
       menu.region === "random",
     JSON.stringify(menu),
@@ -326,7 +325,10 @@ export async function run(ctx) {
     "a loading screen names the map and the stage while it is prepared, and can be cancelled back to the menu's choice",
     loading.subject === "MIXED · MEDIUM" &&
       !!loading.stage &&
-      loading.cancel === `/?type=${MAP.type}&size=${MAP.size}&seed=${MAP.seed}`,
+      new URL(loading.cancel, ctx.url).pathname === "/" &&
+      ["type", "size", "seed"]
+        .map((k) => new URL(loading.cancel, ctx.url).searchParams.get(k))
+        .join() === `${MAP.type},${MAP.size},${MAP.seed}`,
     JSON.stringify(loading),
   );
 
@@ -482,65 +484,23 @@ export async function run(ctx) {
     JSON.stringify({ trunk: trunk.center, crownPx, mask: pixel(treeMask, ...crownPx), crown }),
   );
 
-  const { mid, column } = await roadAlignment(ctx, page);
-  // Fog: red stands in the town, unseen, and is neither drawn nor known;
-  // blue's own ground is seen.
+  await roadAlignment(ctx, page, generated.start);
+  // Fog: in preparation blue has no unit on the map, so it sees none of the
+  // town and knows no enemy.
   const o = await obs(page);
   await look(page, generated.town, 400);
   const townMask = await frame(ctx, page, "fog-mask", "town-fog-mask.png");
   await writeFile(ctx.evidencePath("town-fogged-1920x1080.png"), await page.screenshot());
   const townPx = await project(page, [...building.ground, 0]);
-  await look(page, mid, 65);
-  const blueMask = await frame(ctx, page, "fog-mask", "blue-fog-mask.png");
   ctx.check(
-    "fog hides the town blue cannot see and none of its defenders are known; blue's own ground is seen",
-    o.identified.length === 0 &&
-      o.contacts.length === 0 &&
-      pixel(townMask, ...townPx)[0] < 55 &&
-      pixel(blueMask, ...(await project(page, [...mid, 0])))[0] > 200,
+    "fog hides the town blue cannot see, and no enemy is known",
+    o.identified.length === 0 && o.contacts.length === 0 && pixel(townMask, ...townPx)[0] < 55,
     JSON.stringify({
       identified: o.identified.length,
       contacts: o.contacts.length,
       town: pixel(townMask, ...townPx),
-      blue: pixel(blueMask, ...(await project(page, [...mid, 0]))),
     }),
   );
-
-  // An order: the jeep at the head of the column drives for the town along
-  // the road it stands on.
-  const jeep = column[0];
-  const ack = await lab(
-    page,
-    ({ id, goal }) =>
-      window.__lab.route.command({ kind: "move", units: [id], gesture: 1, goal, route: "fastest" }),
-    { id: jeep.id, goal: generated.town },
-  );
-  const path = [];
-  for (let s = 0; s < 12; s++) {
-    await advance(page, TICK_HZ);
-    const at = (await obs(page)).own.find((u) => u.id === jeep.id).position;
-    path.push({
-      at: [at[0], at[1]],
-      kind: await lab(page, (p) => window.__lab.route.surfaceAt(p[0], p[1])?.kind, at),
-    });
-  }
-  const toTown = (p) => Math.hypot(p[0] - generated.town[0], p[1] - generated.town[1]);
-  const driven = Math.hypot(
-    path.at(-1).at[0] - jeep.position[0],
-    path.at(-1).at[1] - jeep.position[1],
-  );
-  ctx.check(
-    "an ordered jeep drives toward the town along the road",
-    ack.error === null &&
-      driven > 100 &&
-      toTown(path.at(-1).at) < toTown(jeep.position) - 100 &&
-      path.every((p) => p.kind === "road"),
-    JSON.stringify({ ack, driven, path }),
-  );
-  await presented(page);
-  await look(page, path.at(-1).at, 65);
-  await lab(page, () => window.__lab.frame());
-  await writeFile(ctx.evidencePath("jeep-on-road-1920x1080.png"), await page.screenshot());
 
   // The whole map in one view: the overview keeps the ground's contrast
   // (haze stretches with the camera) and every static chunk draws.
@@ -733,7 +693,8 @@ async function playRefusal(ctx, deadline = false) {
   const deploy = page.getByRole("link", { name: "Deploy" });
   ctx.check(
     "ordinary menu Play carries preferences without a promised seed",
-    (await deploy.getAttribute("href")) === "/battle?play=1&type=mixed&size=small",
+    (await deploy.getAttribute("href")) ===
+      "/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us",
   );
   await deploy.click();
   await page.getByTestId("error").waitFor({ timeout: 30000 });

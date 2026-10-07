@@ -58,12 +58,7 @@ test("an imported replay opens its viewer through the live router", async () => 
     <BrowserRouter unstable_useTransitions={false}>
       <PageVisit>
         <Routes>
-          <Route
-            path="/"
-            element={
-              <ReplayImport />
-            }
-          />
+          <Route path="/" element={<ReplayImport />} />
           <Route path="/battle" element={<p>Imported battle viewer</p>} />
         </Routes>
       </PageVisit>

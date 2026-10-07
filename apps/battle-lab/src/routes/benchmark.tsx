@@ -84,12 +84,11 @@ export default function BenchmarkPage() {
         <p className="bench-eyebrow">Battle</p>
         <h1>Benchmark</h1>
         <p className="menu-lede">
-          Local-contact stress on the complete generated world: Metro Large seed 4, with 100 units
-          a side in the simulation&apos;s central city arena and both sides on its seeded orders.
-          Player transit is a separate workload.{" "}
-          Timing starts at tick {scenario.startTick.toLocaleString("en-US")}. The camera then flies
-          a fixed tour: strategic, pan, zoom, ground, combined and return. Input is off while it
-          runs.
+          Local-contact stress on the complete generated world: Metro Large seed 4, with 100 units a
+          side in the simulation&apos;s central city arena and both sides on its seeded orders.
+          Player transit is a separate workload. Timing starts at tick{" "}
+          {scenario.startTick.toLocaleString("en-US")}. The camera then flies a fixed tour:
+          strategic, pan, zoom, ground, combined and return. Input is off while it runs.
         </p>
         <div className="menu-choices">
           <button type="button" onClick={() => start("full")}>
@@ -100,8 +99,7 @@ export default function BenchmarkPage() {
           </button>
         </div>
         <p className="menu-foot">
-          {scenario.id} v{scenario.version} · seed {scenario.seed} · tour{" "}
-          {scenario.tour} ·{" "}
+          {scenario.id} v{scenario.version} · seed {scenario.seed} · tour {scenario.tour} ·{" "}
           <Link to="/">Main menu</Link>
         </p>
       </div>

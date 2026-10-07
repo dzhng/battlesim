@@ -10,11 +10,11 @@ import {
 } from "../src/battle/sim/authority";
 import { simModule } from "../src/battle/sim/module";
 import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "../src/battle/sim/timing";
-import type { CommandEnvelope, SimReply, SimRequest } from "../src/battle/sim/protocol";
+import type { CommandEnvelope, SimReply } from "../src/battle/sim/protocol";
 import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 import game from "@fixtures/game.json";
 import { loadMap } from "@web/maps/node";
-import { labScenario, TEST_RULES } from "./catalog";
+import { labScenario } from "./catalog";
 
 const geometry = loadMap("geometry").definition;
 

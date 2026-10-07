@@ -440,11 +440,8 @@ fn catalogue_references_refuse_paths_before_source_io() {
         "Geometry",
         "",
     ] {
-        let source = json!({"kind": "catalogue", "id": id});
-        assert!(
-            serde_json::from_value::<contract::maps::MapSource>(source).is_err(),
-            "{id:?}"
-        );
+        assert!(contract::maps::MapId::new(id).is_err(), "{id:?}");
+        assert!(serde_json::from_value::<contract::maps::MapId>(json!(id)).is_err());
     }
 }
 

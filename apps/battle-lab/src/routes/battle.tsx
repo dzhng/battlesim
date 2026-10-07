@@ -14,7 +14,6 @@ import type {
   PrepareStage,
   RefusalStage,
 } from "@web/battle/prepare/protocol";
-import { listMaps } from "@web/maps/catalogue";
 import { generationRequest, type MapChoice } from "@web/maps/source";
 import {
   askedBattle,
@@ -41,28 +40,19 @@ import type { BattleSession } from "../useBattleSession";
 
 const GENERATOR = { presets, templates };
 
-/** The generated map a request asks for, if it asks for one. */
-const generatedChoice = (request: PrepareBattleRequest): MapChoice | null =>
-  request.map_source.kind === "generated" ? request.map_source.request : null;
+/** The generated map a request asks for. */
+const generatedChoice = (request: PrepareBattleRequest): MapChoice => request.map_source.request;
 
-/** What the loading screen and the top bar call the battle's map: a
- *  generated map's choice, or a saved map's listed name. */
+/** What the loading screen and the top bar call the battle's map: its
+ *  generated map's choice. */
 function subjectOf(request: PrepareBattleRequest): string {
-  const source = request.map_source;
-  if (source.kind === "generated") {
-    const { type, size, region } = source.request;
-    return [type, size, region && spoken(region)].filter(Boolean).join(" · ").toUpperCase();
-  }
-  const listed = listMaps().find((map) => map.id === source.id);
-  return (listed?.label ?? source.id).toUpperCase();
+  const { type, size, region } = request.map_source.request;
+  return [type, size, region && spoken(region)].filter(Boolean).join(" · ").toUpperCase();
 }
 
 type Stage = PrepareStage | "world" | "renderer";
-const stagesOf = (request: PrepareBattleRequest): (LoadingStage & { id: Stage })[] => [
-  {
-    id: "map",
-    label: request.map_source.kind === "generated" ? "Generating the map" : "Loading the map",
-  },
+const STAGES: (LoadingStage & { id: Stage })[] = [
+  { id: "map", label: "Generating the map" },
   { id: "encounter", label: "Placing forces" },
   { id: "world", label: "Building the battlefield" },
   { id: "renderer", label: "Starting the battle" },
@@ -84,21 +74,18 @@ function failureOf(request: PrepareBattleRequest, error: unknown, replay: boolea
       advice: "It was saved by another version of the game, which made its map differently.",
       details,
     };
-  const choice = generatedChoice(request);
   const message =
     stage === "request"
       ? "This battle cannot be requested."
       : stage === "map"
-        ? choice
-          ? "This map could not be built."
-          : "This map could not be loaded."
+        ? "This map could not be built."
         : stage === "encounter"
           ? "No battle could be placed on this map."
           : "The battle could not be prepared.";
   return {
     message,
     advice:
-      choice && (stage === "map" || stage === "encounter")
+      stage === "map" || stage === "encounter"
         ? "This exact seed remains in the link. Start a new battle from the main menu."
         : undefined,
     details,
@@ -223,14 +210,10 @@ function PreparedBattleView({
     const selection = play
       ? admitBattle(
           {
-            candidate: (seed) => {
-              if (request.map_source.kind !== "generated")
-                throw new Error("Play requires generated preferences");
-              return {
-                ...request,
-                map_source: { kind: "generated", request: { ...request.map_source.request, seed } },
-              };
-            },
+            candidate: (seed) => ({
+              ...request,
+              map_source: { kind: "generated", request: { ...request.map_source.request, seed } },
+            }),
             documents,
             policy: config.admission,
             onRequest: setLoadingRequest,
@@ -284,11 +267,11 @@ function PreparedBattleView({
     <LoadingScreen
       title={replay ? "Loading replay" : "Deploying"}
       subject={subject}
-      stages={stagesOf(activeRequest)}
+      stages={STAGES}
       current={stage}
       failure={failure}
       back={menuHref(
-        play && !prepared && request.map_source.kind === "generated"
+        play && !prepared
           ? (({ type, size, region }) => ({ type, size, region }))(request.map_source.request)
           : generatedChoice(activeRequest),
       )}
@@ -352,9 +335,7 @@ function PreparedBattleView({
               Watch saved replay
             </Link>
           )}
-          {replay && onLoadReplay && (
-            <ReplayImport onLoad={onLoadReplay} />
-          )}
+          {replay && onLoadReplay && <ReplayImport onLoad={onLoadReplay} />}
         </>
       )}
       diagnostics={(session) => ({
