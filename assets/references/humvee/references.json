@@ -1,0 +1,141 @@
+{
+  "entries": [
+    {
+      "file": "us_m1151_hmmwv_hmg-three_quarter_front.jpg",
+      "variant": "us_m1151_hmmwv_hmg",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2015_MCAS_Beaufort_Air_Show_041215-M-CG676-161.jpg",
+      "author": "U.S. Marine Corps photo by Lance Cpl. Olivia G. Ortiz/Released",
+      "licence": "public-domain",
+      "sha256": "96d63749ed50b508e93626a738710308f7daf59ba2737231197717e01bed5873",
+      "note": "USMC M1151 front-left three-quarter on tarmac, clean daylight; tall O-GPK turret with upper armour, no weapon mounted"
+    },
+    {
+      "file": "us_m1151_hmmwv_hmg-three_quarter_front-2.jpg",
+      "variant": "us_m1151_hmmwv_hmg",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:856th_MP_Company_conducts_live_fire_exercise_150307-Z-LW032-009.jpg",
+      "author": "Staff Sgt. Brian Barbour",
+      "licence": "public-domain",
+      "sha256": "eef9e0099047373e246a8c8c711561dd97bb34f51ab460cbedf14e252cd56bd3",
+      "note": "M1151 front-right three-quarter with M2 .50 in O-GPK turret; crew standing on roof, brass on ground"
+    },
+    {
+      "file": "us_m1151_hmmwv_hmg-three_quarter_front-3.jpg",
+      "variant": "us_m1151_hmmwv_hmg",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M1151.jpg",
+      "author": "Mr. Todd Spencer",
+      "licence": "public-domain",
+      "sha256": "18fcefe3021b30a63712858d63bedaccf2868ce79b7c195ee7f21b5aac9658e7",
+      "note": "Afghan-service M1151 front-left three-quarter, O-GPK turret with upper armour; body as US, no weapon visible"
+    },
+    {
+      "file": "us_m1151_hmmwv_hmg-side.jpg",
+      "variant": "us_m1151_hmmwv_hmg",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:856th_MP_Company_conducts_live_fire_exercise_150603-Z-LW032-010.jpg",
+      "author": "Staff Sgt. Brian Barbour",
+      "licence": "public-domain",
+      "sha256": "ddb0b259ac46965e8c1d56a05f7a652775562a046d023f1db4b52ae1502194ef",
+      "note": "Left side profile with M2 in turret; crew standing on roof partly hides roofline, second vehicle behind"
+    },
+    {
+      "file": "us_m1151_hmmwv_hmg-side-2.jpg",
+      "variant": "us_m1151_hmmwv_hmg",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:170323-A-QM442-501_-_50th_Infantry_Brigade_Combat_Team_trains_with_TOW_missile_system_(Image_7_of_15).jpg",
+      "author": "Staff Sgt. Nicholas Young",
+      "licence": "public-domain",
+      "sha256": "6b9722226cc1a48ea3933b39aed1c4626d786e1d4e23d5d465d2c1048519f6c3",
+      "note": "Cleanest right-side profile of the M1151 body; turret carries a TOW (ITAS) launcher instead of M2, use for body/wheelbase only"
+    },
+    {
+      "file": "us_m1151_hmmwv_hmg-side-3.jpg",
+      "variant": "us_m1151_hmmwv_hmg",
+      "view": "side",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:M1151_CAL50.png",
+      "author": "A proietti",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "07b558c973a73e395cda8b7f5ac863bde8a72d48318e4a6a5fd1ed8618e8429f",
+      "note": "Orthographic side drawing of M1151 with .50 cal in turret; small (540px) but undistorted profile"
+    },
+    {
+      "file": "us_m1151_hmmwv_hmg-three_quarter_rear.jpg",
+      "variant": "us_m1151_hmmwv_hmg",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:USMC-070919-M-8583E-014.jpg",
+      "author": "U.S. Marine Corps (photographer not named; ID 070919-M-8583E-014)",
+      "licence": "public-domain",
+      "sha256": "13f331dd8bad3de7746f5ce16a9b83d2352c019d87a1fba30423676499a2fbd7",
+      "note": "Left side from slightly behind, driving in sand; shows rear-mounted spare tyre, armoured doors, O-GPK turret with M240-class MG; mostly side-on"
+    },
+    {
+      "file": "us_m1151_hmmwv_hmg-three_quarter_rear-2.jpg",
+      "variant": "us_m1151_hmmwv_hmg",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:1151_with_DSHK.JPG",
+      "author": "MSgt Aschinger",
+      "licence": "public-domain",
+      "sha256": "f4bb2805b7b0e0ff03513e62d0d820db9a44eb82192c7049c88b941cf7ca0a98",
+      "note": "Afghan M1151 rear-right three-quarter in snow: spare tyre on rear, rear deck, exhaust; camo paint and a DShK replaces the M2"
+    },
+    {
+      "file": "us_m1151_hmmwv_hmg-rear.jpg",
+      "variant": "us_m1151_hmmwv_hmg",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:170323-A-QM442-144_-_50th_Infantry_Brigade_Combat_Team_trains_with_TOW_missile_system_(Image_4_of_15).jpg",
+      "author": "Staff Sgt. Nicholas Young",
+      "licence": "public-domain",
+      "sha256": "aee298c3aac756cc94e5fec3bf5abac71f33d191fc23059626bdafa35e72c71e",
+      "note": "Straight rear: tail lights, rear deck/cargo lid with stowage straps, bumper; TOW turret, crew on roof, no spare tyre fitted"
+    },
+    {
+      "file": "us_m1151_hmmwv_hmg-front.jpg",
+      "variant": "us_m1151_hmmwv_hmg",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:856th_MP_Company_conducts_live_fire_exercise_150307-Z-LW032-013.jpg",
+      "author": "Staff Sgt. Brian Barbour",
+      "licence": "public-domain",
+      "sha256": "34347c9f5ac77b8fe5b96d894caa33579d2c41bc016f4aedc596f9b1ed208da4",
+      "note": "Head-on front on dirt road: grille, headlights, mirrors, windscreen, O-GPK turret shield with gunner and MG"
+    },
+    {
+      "file": "us_m1151_hmmwv_hmg-detail.jpg",
+      "variant": "us_m1151_hmmwv_hmg",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Humvee_turret_showing_fifty_caliber_MG.jpg",
+      "author": "Todd Huffman from Phoenix, AZ",
+      "licence": "CC-BY-2.0",
+      "sha256": "1be91334a5d95a4d709f8c148e89d02b30b9676a770681bf12a5bebe0931ce7a",
+      "note": "High-angle look into the gunner's turret: O-GPK shields, M2 .50 on ring mount, roof armour; closest thing to a top view"
+    },
+    {
+      "file": "us_m1151_hmmwv_hmg-detail-2.jpg",
+      "variant": "us_m1151_hmmwv_hmg",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Weapon_121113-A-EN604-024.jpg",
+      "author": "Staff Sgt. Andrew Porch",
+      "licence": "public-domain",
+      "sha256": "1be1bf5b930fab8c4dc822cb185da4cb3df6406bc019bd582f06ffaa58a7d4bf",
+      "note": "Close-up of O-GPK turret shield with transparent armour window and gun barrel"
+    }
+  ],
+  "gaps": [
+    "us_m1151_hmmwv_hmg: no top view found (only the high-angle turret detail)",
+    "us_m1151_hmmwv_hmg: no clean straight rear with M2 fit (rear shot has TOW turret)",
+    "us_m1151_hmmwv_hmg: no dedicated wheel/hub or cab-door detail"
+  ]
+}
