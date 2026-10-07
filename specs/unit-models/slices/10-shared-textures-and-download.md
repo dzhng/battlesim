@@ -12,7 +12,7 @@ that catches growth before a player does.
 - Unit bundles carry 765 MB of texture bytes but only 51 distinct textures
   (17.8 MB): each bundle embeds its own copy (`texture.ts`); only the GPU
   shares them by address (`modelTextures.ts:20-29`).
-- A 50 MiB limit exists (`MAP_DOWNLOAD_MAX_BYTES`, `schema.ts:589-594`,
+- A map download limit exists (`MAP_DOWNLOAD_MAX_BYTES`, `schema.ts`, now 256 MiB,
   enforced at `loader.ts:117-119`), but `downloadBytes(catalog, [])`
   (`gzip.ts:48-65`) counts only on-request content; the eagerly loaded unit
   and scenery bundles escape every gate.

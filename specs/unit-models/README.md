@@ -70,8 +70,9 @@ Warnings:
 
 - **No number in this spec is a requirement** (user, 2026-10-06). Every
   number here (byte limits, triangle budgets, tier ratios, dressing
-  allowances, the 1600 px reference size, worker counts, the 50 MiB map
-  download limit already in code) was chosen by an agent, not the user. Budgets
+  allowances, the 1600 px reference size, worker counts, and the map and kit
+  download limits in `schema.ts`, raised from an earlier session's 50 MiB to
+  256 MiB for that reason) was chosen by an agent, not the user. Budgets
   and limits are tripwires against gross regressions, set loosely from what
   was measured with plenty of room, never targets to optimise toward. The
   only real bars are the user's: the look, black tyres, recognisable units

@@ -585,10 +585,13 @@ export const bundlePath = (hash: string) => `${hash}/${BUNDLE_FILE}`;
 export const TEMPLATE_LIBRARY_FILE = "templates.bin";
 export const templateLibraryPath = (hash: string) => `${hash}/${TEMPLATE_LIBRARY_FILE}`;
 
-/** A kit bundle's byte budget: every module's four tiers and its textures. */
-export const KIT_BUNDLE_MAX_BYTES = 50 * 1024 * 1024;
+/** A kit bundle's byte budget: every module's four tiers and its textures.
+ * A loose tripwire against a runaway bundle, not a target: raise it when real
+ * art outgrows it and nothing visibly suffers. */
+export const KIT_BUNDLE_MAX_BYTES = 256 * 1024 * 1024;
 /** Aggregate wire bytes of what a map fetches on request (`fetchedOnRequest`):
  * the kits its buildings place and its family's regional looks, plus the
  * template library. Separate from decoded per-kit and resident/GPU-memory
- * budgets; the looks of no region load with the catalog and are not counted. */
-export const MAP_DOWNLOAD_MAX_BYTES = 50 * 1024 * 1024;
+ * budgets; the looks of no region load with the catalog and are not counted.
+ * Like the kit budget, a loose tripwire, not a target. */
+export const MAP_DOWNLOAD_MAX_BYTES = 256 * 1024 * 1024;

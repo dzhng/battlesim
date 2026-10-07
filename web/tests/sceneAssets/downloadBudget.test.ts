@@ -35,7 +35,7 @@ const root = new URL("../../../", import.meta.url);
 const read = (path: string) => new Uint8Array(readFileSync(new URL(path, root)));
 const json = (path: string) => JSON.parse(new TextDecoder().decode(read(path)));
 
-test("the native asset reader admits the real Market Town shared-art download within 50 MiB", () => {
+test("the native asset reader admits the real Market Town shared-art download within the map limit", () => {
   const run = spawnSync(
     process.execPath,
     ["web/asset.mjs", "download", "fixtures/maps/market-town/map.json"],
