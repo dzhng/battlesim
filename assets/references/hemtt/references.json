@@ -1,0 +1,65 @@
+{
+  "entries": [
+    {
+      "file": "us_m977_hemtt_general_resupply-three_quarter_front.jpg",
+      "variant": "us_m977_hemtt_general_resupply",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Army_vehicle.jpg",
+      "author": "mark6mauno",
+      "licence": "CC-BY-2.0",
+      "sha256": "5bfa522d76b916f5683922ec3e44f7586776a720288603b2185f1d53e2d3dac3",
+      "note": "M977 HEMTT cargo in a parade, left front three-quarter: 8x8, cab, cargo bed with drop sides, materials-handling crane at the rear."
+    },
+    {
+      "file": "us_m977_hemtt_general_resupply-side-2.jpg",
+      "variant": "us_m977_hemtt_general_resupply",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Fort_Irwin_National_Training_Center_-_HEMTT_-_1.jpg",
+      "author": "Jarek Tuszyński",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "190c80a0d976647fc5f4f94bd26ce37b8092926fb539cee0608f61d747f8e830",
+      "note": "HEMTT cargo trucks at Fort Irwin, side elevation at distance."
+    },
+    {
+      "file": "us_m977_hemtt_general_resupply-side.jpg",
+      "variant": "us_m977_hemtt_general_resupply",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M977_heavy_expanded_mobility_tactical_truck_(HEMTT).JPEG",
+      "author": "LCpl. Contreras",
+      "licence": "public-domain",
+      "sha256": "4434e390eee857448afe92703353e720a998e3f5dc642f3b80f07714cbcd0bcc",
+      "note": "M977 cargo, right side: four axles, cargo bed, folded rear crane."
+    },
+    {
+      "file": "us_m977_hemtt_general_resupply-front.jpg",
+      "variant": "us_m977_hemtt_general_resupply",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Heavy_expanded_mobility_tactical_truck_HEMTT-M977-front_ID_DA-ST-92-06905.JPEG",
+      "author": "SPEC HENRY, USA",
+      "licence": "public-domain",
+      "sha256": "6aebbeb29fe9627c6b2f04ffcd9dc4a252c3a5c671e29f3a9ba7d9cf99e0b1fd",
+      "note": "M977 front three-quarter in sand, 1992: grille, cab, bumper, headlights, tarped load."
+    },
+    {
+      "file": "us_m977_hemtt_general_resupply-detail.jpg",
+      "variant": "us_m977_hemtt_general_resupply",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:6x6_HEMTT_equipped_with_a_cargo-handling_crane.JPEG",
+      "author": "CPL Linda M. Olson",
+      "licence": "public-domain",
+      "sha256": "7a55aee237fc9ef2017bcfd9bf11b84ac73900282f6bd0dadde6a7a6d14ed64e",
+      "note": "HEMTT cargo truck with the rear-mounted crane raised and loading a container."
+    }
+  ],
+  "gaps": [
+    "us_m977_hemtt_general_resupply: no rear, three_quarter_rear or top photo is licensable on Commons; the crane, tailgate and rear lights are read from the side and crane photos.",
+    "us_m977_hemtt_general_resupply: no head-on front; the front photo is a near-front three-quarter.",
+    "us_m977_hemtt_general_resupply: photos are the original M977 (1980s-2000s, flat cab); the A4 cab is not covered. Oshkosh press images on Commons were excluded as manufacturer images.",
+    "us_m977_hemtt_general_resupply: no tyre, hub or cab close-up."
+  ]
+}
