@@ -109,7 +109,7 @@ test("a game page's catalog load leaves out the art only test units wear, and co
 test("a lab page after a game page adds its test units' art, fetching nothing twice", async () => {
   const { runtime, library, requests } = await sharedArt();
   await library.load("/assets/", (await catalogSet("game")).units.appearances);
-  const lab = await resolveCatalogSet("test", [LAB_TANK]);
+  const lab = await resolveCatalogSet("test", [...ownDocuments("test"), LAB_TANK]);
   const installed = await library.withUnits(lab.units.appearances);
   expect(installed.appearances.has("lab_tank")).toBe(true);
   expect(installed.appearances.has("truck")).toBe(false);
