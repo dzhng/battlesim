@@ -1,10 +1,10 @@
 /** Preparation worker entry: one request, its stages, one answer, and then
- *  the battle. Map resolution, generation and encounter planning never run on
- *  the page's thread. The world the planner used stays here and the battle
+ *  the battle. Map resolution, generation and fielding the forces never run
+ *  on the page's thread. The world preparation built stays here and the battle
  *  starts from it, so after its answer this worker is the battle's authority.
  *  The page closes it to cancel, which frees everything it allocated. */
 import init, * as wasm from "@wasm/game_wasm.js";
-import { loadEncounter, loadMap } from "../../maps/browser";
+import { loadMap } from "../../maps/browser";
 import { workerAuthority, type WorkerScope } from "../sim/workerAuthority";
 import type { Authority } from "../sim/authority";
 import { PreparationRefused, prepare, prepareReplay } from "./prepare";
@@ -28,7 +28,7 @@ self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => 
               memory,
               message.request,
               message.documents,
-              { loadMap, loadEncounter },
+              { loadMap },
               (stage) => self.postMessage({ type: "stage", stage }),
               undefined,
               message.stress,

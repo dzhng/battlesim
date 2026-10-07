@@ -8,8 +8,8 @@ which owns routes and composes the battle view.
 ## Authority and preparation
 
 [Preparation](src/battle/prepare/) admits a saved-map source or a generation request,
-places an encounter through the simulation's planner and hands the prepared world
-to its battle authority. Expensive preparation stays off the page thread. The page
+fields the request's two factions on the map's admitted skirmish sites and hands the
+prepared world to its battle authority. Expensive preparation stays off the page thread. The page
 builds a plain geometry world from the same map for drawing, picking and camera
 clearance; it does not run a second battle.
 

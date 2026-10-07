@@ -13,8 +13,9 @@ silently regenerated from art.
 
 [Encounter recipes](encounters.json) describe rosters, objectives and placement
 policy without coordinates; [the simulation planner](../crates/sim/src/encounter/)
-places them on admitted geometry. [Generated-battle settings](generated-battle.json)
-own preparation policy and default encounter selection. [Camera lab settings](camera-lab.json)
+places them on admitted geometry. Players never field a recipe: the map workbench
+and native reports plan one on a generated map to judge it, and tests use them.
+[Generated-battle settings](generated-battle.json) own preparation policy. [Camera lab settings](camera-lab.json)
 belong to the isolated camera experiment, not a second gameplay camera policy.
 [The menu backdrop](menu-backdrop.json) lists the scenes the main menu films, in order:
 each a saved battle (an ordinary saved encounter, scripted orders and all, on its own

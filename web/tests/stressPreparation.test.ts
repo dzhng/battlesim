@@ -17,15 +17,13 @@ const request: PrepareBattleRequest = {
       limits: { max_authored_parts: 10, max_bay_positions: 10, max_ground_points: 10 },
     },
   },
-  recipe_id: "assault",
-  encounter_seed: "1",
+  factions: ["us", "eastern"],
   battle_seed: 7,
 };
 const documents: PrepareDocuments = {
   rules: "{}",
   presets: "{}",
   templates: "[]",
-  recipes: '{"recipes":{"assault":{}}}',
 };
 const map = { size: [3000, 2000], buildings: [], surfaces: [], forests: [], props: [] };
 const identity = { seed: "4", map_hash: "b".repeat(64) };
@@ -65,9 +63,6 @@ const module = {
     JSON.stringify({ status: "ok", result: { map, identity, report: {}, sites: {} } }),
   map_generator_version: () => "test",
   template_catalogue_json: () => "{}",
-  plan_encounter: () => {
-    throw new Error("ordinary assault planner must not replace the stress fixture");
-  },
   city_stress_preparation: (json: string, rules: string, seed: bigint, late: boolean) => {
     expect(JSON.parse(json)).toEqual(map);
     expect(rules).toBe(documents.rules);
@@ -79,9 +74,6 @@ const module = {
 const saved = {
   loadMap: () => {
     throw new Error("no substituted saved map");
-  },
-  loadEncounter: () => {
-    throw new Error("no substituted encounter");
   },
 };
 
@@ -101,7 +93,6 @@ test("generated stress preparation retains the resolved full map and authoritati
   expect(fromScenario).toHaveBeenCalledOnce();
   expect(result.report.identity).toEqual({ kind: "generated", generation: identity });
   expect(result.report.size).toEqual([3000, 2000]);
-  expect(result.report.planned).toBeNull();
   expect(result.report.stress).toEqual({
     kind: "city-arena-2",
     late: true,

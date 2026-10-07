@@ -11,18 +11,17 @@ const candidate = (seed: string): PrepareBattleRequest => ({
       type: "mixed",
       size: "small",
       seed,
-      profile: "standard",
+      profile: "skirmish",
       generator_version: "test",
       preset_revision: "test",
       template_catalog_hash: "test",
       limits: { max_authored_parts: 1, max_bay_positions: 1, max_ground_points: 1 },
     },
   },
-  recipe_id: "assault",
-  encounter_seed: "3",
+  factions: ["us", "eastern"],
   battle_seed: 7,
 });
-const documents = { rules: "{}", presets: "{}", templates: "[]", recipes: "{}" };
+const documents = { rules: "{}", presets: "{}", templates: "[]" };
 const policy = { max_generated_attempts: 2, generated_deadline_ms: 8000 };
 const session = (request: PrepareBattleRequest): PreparedSession => ({
   scenario: "winner",
@@ -175,8 +174,8 @@ test("the second candidate inherits the remaining total deadline instead of anot
     refuse(
       new PreparationFailed(
         "cannot place",
-        [{ code: "no_objective", feature: null, location: "$", message: "cannot place" }],
-        "encounter",
+        [{ code: "generation_failed", feature: null, location: "$", message: "cannot place" }],
+        "map",
       ),
     );
     await vi.advanceTimersByTimeAsync(0);

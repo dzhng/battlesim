@@ -14,6 +14,11 @@ use sim::map_analysis::{self as sight, AnalysisPolicy};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+/// The encounter the workbench plans on a generated map to judge it, and the
+/// planner's seed. A tool's choice: players field factions, never a recipe.
+const JUDGED_RECIPE: &str = "assault";
+const JUDGED_SEED: u64 = 1;
+
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Inputs {
@@ -63,7 +68,6 @@ struct Checked {
     rules: Rules,
     resolved_rules: String,
     recipes: EncounterRecipes,
-    defaults: Value,
     limits: CompileLimits,
     analysis: AnalysisPolicy,
 }
@@ -139,27 +143,18 @@ fn checked(inputs: &Inputs) -> Result<Checked, Vec<Diagnostic>> {
     let rules: Rules = parse(&resolved_rules, "$.rules")?;
     let recipes = EncounterRecipes::from_json(&inputs.recipes)
         .map_err(|error| vec![diagnostic("$.recipes", error.to_string())])?;
-    let recipe = defaults["encounter"]["recipe"].as_str().ok_or_else(|| {
-        vec![diagnostic(
-            "$.defaults.encounter.recipe",
-            "Encounter recipe must be text",
-        )]
-    })?;
-    if !recipes.recipes.contains_key(recipe) {
+    if !recipes.recipes.contains_key(JUDGED_RECIPE) {
         return Err(vec![diagnostic(
-            "$.defaults.encounter.recipe",
-            "Default recipe is missing",
+            "$.recipes",
+            format!("The judged recipe {JUDGED_RECIPE} is missing"),
         )]);
     }
-    let _: Seed = serde_json::from_value(defaults["encounter"]["seed"].clone())
-        .map_err(|error| vec![diagnostic("$.defaults.encounter.seed", error.to_string())])?;
     Ok(Checked {
         presets,
         catalogue,
         rules,
         resolved_rules,
         recipes,
-        defaults,
         limits,
         analysis,
     })
@@ -257,16 +252,11 @@ fn generated(inputs: Inputs, choice: Choice, directory: PathBuf) -> Result<Value
     let counts = json!({"buildings":result.map.buildings.len(),"parts":result.report.authored_parts,"bay_positions":result.report.bay_positions,"ground_points":result.report.ground_points,"props":result.map.props.len(),"surfaces":result.map.surfaces.len(),"forests":result.map.forests.len()});
     let encounter_started = Instant::now();
     let world = sim::encounter::PreparedMap::new(&result.map, &c.rules);
-    let recipe = c.defaults["encounter"]["recipe"]
-        .as_str()
-        .ok_or("Default recipe is missing")?;
-    let encounter_seed = serde_json::from_value(c.defaults["encounter"]["seed"].clone())
-        .map_err(|e| e.to_string())?;
     let encounter = match sim::encounter::plan_encounter(
         &world.queries(&result.map, &result.sites),
         &c.rules,
-        &c.recipes.recipes[recipe],
-        encounter_seed,
+        &c.recipes.recipes[JUDGED_RECIPE],
+        JUDGED_SEED.into(),
     ) {
         Ok(encounter) => json!({"status":"ok","placement":encounter.placement}),
         Err(diagnostics) => json!({"status":"refused","diagnostics":diagnostics}),

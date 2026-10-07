@@ -1,17 +1,14 @@
 /** Preparing a battle: the request is checked by the simulation, its map is
  *  resolved through the one map owner (a saved map by id, or the generator's
- *  for a request), the encounter is laid on it (the simulation's planner
- *  places a recipe on a generated map; a saved map plays its saved
- *  encounter), and the result is the scenario JSON any battle authority
- *  runs. This module only carries text between those: every generation and
+ *  for a request), both factions are fielded on the map's admitted skirmish
+ *  sites (a map without them is refused), and the result is the scenario
+ *  JSON any battle authority runs. This module only carries text between those: every generation and
  *  placement rule is the Wasm module's. Pure over the module and the map
  *  adapter it is given, so the worker and a test share it. */
 import type { SimBattle } from "../sim/authority";
-import type { Encounter, ResolvedMap } from "../../maps/resolve.ts";
-import { MapResolveError } from "../../maps/resolve.ts";
+import type { ResolvedMap } from "../../maps/resolve.ts";
 import { between, MapRefused, resolveMap, type MapGenerator } from "../../maps/source.ts";
 import type {
-  EncounterPlacement,
   PrepareBattleRequest,
   PrepareDiagnostic,
   PrepareDocuments,
@@ -31,13 +28,12 @@ export interface PreparationModule extends MapGenerator {
   };
 }
 
-/** The simulation's world of one map, built once: the planner places the
- *  encounter on it and the battle then takes it. */
+/** The simulation's world of one map, built once: the skirmish sites are
+ *  admitted on it and the battle then takes it. */
 export interface PreparedWorld {
   admit_skirmish(sites: string): string;
   skirmish_fields(sites: string, factions: string): string;
   extents(): string;
-  plan_encounter(sites: string, recipe: string, encounterSeed: string): string;
   into_battle(scenario: string, seed: number): SimBattle;
   into_replay(scenario: string, replay: string): SimBattle;
   free(): void;
@@ -57,36 +53,13 @@ export function prepareReplay(wasm: PreparationModule, battle: PreparedBattle): 
 /** The saved catalogue, as an adapter reaches it (`browser.ts`, `node.ts`). */
 export interface SavedMaps {
   loadMap(id: string): ResolvedMap | Promise<ResolvedMap>;
-  loadEncounter(id: string, name: string): Encounter | Promise<Encounter>;
-}
-
-/** One unit of a scenario, as far as preparation reads it. */
-interface PlacedUnit {
-  side: "blue" | "red";
-  position: [number, number];
-  yaw?: number;
-}
-
-/** `contract::encounter::EncounterDefinition`, as far as preparation reads it. */
-interface PlannedEncounter {
-  recipe_hash: string;
-  encounter_seed: string;
-  setup: { units: PlacedUnit[]; encounter?: CompletionRule | null };
-  placement: EncounterPlacement;
-}
-
-/** `contract::scenario::EncounterRules`, as far as preparation reads it. */
-interface CompletionRule {
-  success_zone_center: [number, number];
-  success_zone_radius_m: number;
-  hold_s: number;
 }
 
 type Outcome<T> = ({ status: "ok" } & T) | { status: "error"; diagnostics: PrepareDiagnostic[] };
 
 /** A request the simulation's check refused (`request`), a map its owner
- *  refused (`map`) or an encounter the planner refused (`encounter`), with
- *  the diagnostics. */
+ *  refused (`map`) or a map that cannot field the factions (`encounter`),
+ *  with the diagnostics. */
 export class PreparationRefused extends Error {
   constructor(
     readonly stage: RefusalStage,
@@ -102,9 +75,10 @@ function accepted<T>(stage: RefusalStage, json: string): { status: "ok" } & T {
   return outcome;
 }
 
-/** The encounter laid on the map: its scenario fields as text (everything
- *  after the map and the rules), its units, and the plan if it was planned. */
-type LaidEncounter = (
+/** The forces laid on the map: a stress scene's whole scenario, or the
+ *  skirmish's scenario fields as text (everything after the map and the
+ *  rules). */
+type LaidEncounter =
   | {
       scenario: string;
       metadata: {
@@ -113,11 +87,7 @@ type LaidEncounter = (
       };
       stress: StressPreparation;
     }
-  | { fields: string; units: PlacedUnit[] }
-) & {
-  rule: CompletionRule | null;
-  planned: PreparedBattle["report"]["planned"];
-};
+  | { fields: string };
 
 /** Throws `PreparationRefused` when the request, the map or the encounter
  *  is refused. */
@@ -220,72 +190,25 @@ export async function prepare(
       }
     }
     let laid: LaidEncounter;
+    let start: PreparedBattle["report"]["start"];
     if (stress && stressScenario && metadata) {
-      laid = { scenario: stressScenario, metadata, stress, rule: null, planned: null };
-    } else if (checked.skirmish) {
-      if (!skirmish || map.sites === null) throw new Error("the skirmish has no admitted sites");
-      laid = {
-        fields: world.skirmish_fields(map.sites, JSON.stringify(checked.skirmish)).slice(1),
-        units: [],
-        rule: null,
-        planned: null,
-      };
-    } else if (source.kind === "generated") {
-      const recipe = (JSON.parse(documents.recipes) as { recipes: Record<string, unknown> })
-        .recipes[checked.recipe_id];
-      if (recipe === undefined || map.sites === null)
+      laid = { scenario: stressScenario, metadata, stress };
+      start = metadata.start;
+    } else {
+      const base = skirmish?.entries.find((e) => e.side === "blue");
+      if (!base || map.sites === null)
         throw new PreparationRefused("encounter", [
           {
             code: "invalid_request",
-            feature: null,
-            location: "$.recipe_id",
-            message: `there is no encounter recipe "${checked.recipe_id}"`,
+            feature: "skirmish_sites",
+            location: "$.map_source",
+            message: "the map has no skirmish base to field the factions on",
           },
         ]);
-      const outcome = world.plan_encounter(
-        map.sites,
-        JSON.stringify(recipe),
-        checked.encounter_seed,
-      );
-      const { encounter } = accepted<{ encounter: PlannedEncounter }>("encounter", outcome);
       laid = {
-        // `EncounterDefinition`'s fields in order: …, setup, placement. The
-        // setup is the scenario's own fields after its map and rules, kept as
-        // the planner's bytes.
-        fields: between(outcome, ',"setup":{', ',"placement":{', "the encounter"),
-        units: encounter.setup.units,
-        rule: encounter.setup.encounter ?? null,
-        planned: {
-          recipe_hash: encounter.recipe_hash,
-          encounter_seed: encounter.encounter_seed,
-          placement: encounter.placement,
-        },
+        fields: world.skirmish_fields(map.sites, JSON.stringify(checked.factions)).slice(1),
       };
-    } else {
-      const encounter = await (async () =>
-        saved.loadEncounter(source.id, checked.recipe_id))().catch((error: unknown) => {
-        if (!(error instanceof MapResolveError)) throw error;
-        const { code, location, message } = error;
-        throw new PreparationRefused("encounter", [{ code, feature: null, location, message }]);
-      });
-      laid = {
-        fields: JSON.stringify(encounter).slice(1),
-        units: encounter.units as PlacedUnit[],
-        rule: (encounter.encounter as CompletionRule | null | undefined) ?? null,
-        planned: null,
-      };
-    }
-    let start: PreparedBattle["report"]["start"];
-    if ("metadata" in laid) start = laid.metadata.start;
-    else {
-      const first = laid.units.find((u) => u.side === "blue");
-      const base = skirmish?.entries.find((e) => e.side === "blue");
-      if (!first && !base) throw new Error("the encounter has no blue unit or admitted base");
-      const column = laid.planned?.placement.deployments.find((d) => d.side === "blue");
-      start = {
-        at: column?.head ?? base?.center ?? first!.position,
-        yaw: column?.yaw ?? base?.yaw ?? first?.yaw ?? 0,
-      };
+      start = { at: base.center, yaw: base.yaw };
     }
     const buildings = map.definition.buildings ?? [];
     return {
@@ -308,12 +231,6 @@ export async function prepare(
           props: map.definition.props.length,
           surfaces: map.definition.surfaces.length,
           forests: map.definition.forests.length,
-        },
-        planned: laid.planned,
-        objective: laid.rule && {
-          center: laid.rule.success_zone_center,
-          radius_m: laid.rule.success_zone_radius_m,
-          hold_s: laid.rule.hold_s,
         },
         start,
         timings: { map: resolvedAt - started, encounter: now() - resolvedAt },

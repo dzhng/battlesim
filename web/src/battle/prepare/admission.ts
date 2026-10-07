@@ -37,26 +37,13 @@ const edges: AdmissionEdges = {
   },
 };
 
-/** Only search/placement exhaustion can improve by changing a map seed.
- * Invalid inputs and runtime faults cannot improve with another seed. */
+/** Only generation exhaustion can improve by changing a map seed. Invalid
+ * inputs, unusable sites and runtime faults cannot improve with another seed. */
 function canRetry(error: unknown): boolean {
   if (!(error instanceof PreparationFailed) || !error.diagnostics.length) return false;
-  if (error.stage === "map")
-    return error.diagnostics.every((d) =>
-      ["generation_failed", "complexity_limit"].includes(d.code),
-    );
-  if (error.stage !== "encounter") return false;
-  return error.diagnostics.every((d) =>
-    [
-      "no_objective",
-      "no_open_approach",
-      "no_edge_road",
-      "no_deployment",
-      "unreachable_objective",
-      "unfair_deployment",
-      "no_garrison_building",
-      "no_overwatch_post",
-    ].includes(d.code),
+  return (
+    error.stage === "map" &&
+    error.diagnostics.every((d) => ["generation_failed", "complexity_limit"].includes(d.code))
   );
 }
 

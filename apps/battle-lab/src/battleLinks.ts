@@ -3,16 +3,17 @@
 // identity: an exact address prepares the same battle on the same build.
 // Ordinary Play publishes that exact address only after admission.
 //
-//   /battle?play=1&type=mixed&size=small      ordinary unpinned Play
-//   /battle?type=mixed&size=small&seed=<u64>   an exact generated map
-//       [&recipe=<name>] [&encounter=<u64>] [&battle=<n>]
-//   /battle?replay=saved                       the saved replay of either
-// A generated map's address may add `&region=<family>`; without it the seed
-// draws the region.
+//   /battle?play=1&type=mixed&size=small&faction=us     ordinary unpinned Play
+//   /battle?type=mixed&size=small&seed=<u64>&faction=us  an exact generated map
+//       [&enemy=<faction>] [&battle=<n>]
+//   /battle?replay=saved                                 the saved replay of either
+// A battle names the player's faction; without `enemy` the enemy is Eastern,
+// or U.S. against Eastern. A generated map's address may add
+// `&region=<family>`; without it the seed draws the region. A missing faction
+// or any other parameter is refused by name, never defaulted or ignored.
 import type { Faction } from "@packages/scene-assets/src/units";
 import type { PrepareBattleRequest } from "@web/battle/prepare/protocol";
 import game from "@fixtures/game.json";
-import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json";
 import {
   canonicalSeed,
@@ -27,23 +28,32 @@ import {
 export type AskedBattle =
   | {
       kind: "generated";
-      faction?: Faction;
-      enemy?: Faction;
+      /** The player's faction, then the enemy's. */
+      factions: [Faction, Faction];
       map: MapChoice;
-      recipe: string;
-      encounterSeed: string;
       battleSeed: number;
     }
   | {
       kind: "play";
-      faction?: Faction;
-      enemy?: Faction;
+      factions: [Faction, Faction];
       map: Omit<MapChoice, "seed">;
-      recipe: string;
-      encounterSeed: string;
       battleSeed: number;
     }
   | { kind: "replay" };
+
+/** Every parameter a battle address may hold. */
+const PARAMETERS = new Set([
+  "play",
+  "type",
+  "size",
+  "seed",
+  "region",
+  "profile",
+  "faction",
+  "enemy",
+  "battle",
+  "replay",
+]);
 
 /** The regions a player may ask for: the presets' regional families. */
 export const REGIONS: readonly string[] = presets.parcels.regional_families;
@@ -97,15 +107,11 @@ export const playHref = (choice: Omit<BattleChoice, "seed">) => `/battle?play=1&
 /** The exact address of the battle preparation actually admitted. */
 export function preparedBattleHref(request: PrepareBattleRequest): string {
   const source = request.map_source;
-  const params = new URLSearchParams(
-    source.kind === "generated" ? query(source.request) : { map: source.id },
-  );
-  if (request.skirmish) {
-    params.set("faction", request.skirmish[0]);
-    params.set("enemy", request.skirmish[1]);
-  }
-  params.set("recipe", request.recipe_id);
-  params.set("encounter", request.encounter_seed);
+  // Only generated battles are admitted; a saved map has no battle address.
+  if (source.kind !== "generated") throw new Error("a saved map has no battle address");
+  const params = new URLSearchParams(query(source.request));
+  params.set("faction", request.factions[0]);
+  params.set("enemy", request.factions[1]);
   params.set("battle", String(request.battle_seed));
   return `/battle?${params}`;
 }
@@ -115,31 +121,29 @@ export const menuHref = (choice: MapChoice | Omit<MapChoice, "seed"> | null) =>
   choice ? `/?${query(choice)}` : "/";
 
 /** The battle `search` asks for, or which parameter it gets wrong. Nothing
- *  is guessed for a parameter that is present and wrong. */
+ *  is guessed for a parameter that is missing or wrong, and a parameter the
+ *  battle does not read is refused, so a stale link cannot pass as another
+ *  battle. */
 export function askedBattle(search: string): AskedBattle | { error: string } {
   const params = new URLSearchParams(search);
+  const unknown = [...params.keys()].find((name) => !PARAMETERS.has(name));
+  if (unknown !== undefined) return { error: `${unknown} is not a battle parameter` };
   if (params.has("replay")) return { kind: "replay" };
-  if (params.has("play") && (params.get("play") !== "1" || params.has("seed") || params.has("map")))
-    return { error: "play must be 1 and cannot name an exact seed or saved map" };
+  if (params.has("play") && (params.get("play") !== "1" || params.has("seed")))
+    return { error: "play must be 1 and cannot name an exact seed" };
   const seed = (name: string, fallback: string) => canonicalSeed(params.get(name) ?? fallback);
-  const encounterSeed = seed("encounter", config.encounter.seed);
-  if (encounterSeed === null)
-    return { error: "encounter must be a whole number from 0 to 18446744073709551615" };
   const battleSeed = Number(params.get("battle") ?? game.seed);
   if (!Number.isSafeInteger(battleSeed) || battleSeed < 0)
     return { error: `battle must be a whole number from 0 to ${Number.MAX_SAFE_INTEGER}` };
   const faction = params.get("faction");
   const enemy = params.get("enemy");
-  if (faction !== null && !one(faction, FACTIONS))
-    return { error: "faction must be us, europe or eastern" };
+  if (!one(faction, FACTIONS)) return { error: "faction must be us, europe or eastern" };
   if (enemy !== null && !one(enemy, FACTIONS))
     return { error: "enemy must be us, europe or eastern" };
-  const factions = {
-    ...(faction !== null && { faction: faction as Faction }),
-    ...(enemy !== null && { enemy: enemy as Faction }),
-  };
-  const recipe = params.get("recipe");
-  if (params.has("map")) return { error: "map is not supported; start a generated skirmish" };
+  const factions: [Faction, Faction] = [
+    faction,
+    enemy ?? (faction === "eastern" ? "us" : "eastern"),
+  ];
   const type = params.get("type") ?? ("mixed" satisfies MapType);
   const size = params.get("size") ?? ("small" satisfies MapSize);
   const mapSeed = seed("seed", "1");
@@ -149,29 +153,15 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   if (region !== null && !one(region, REGIONS))
     return { error: `region must be one of ${REGIONS.join(", ")}` };
   const profile = params.get("profile");
-  if (profile !== null && profile !== "standard" && profile !== "skirmish")
-    return { error: "profile must be standard or skirmish" };
+  // Both factions are fielded on skirmish geography: no other profile plays.
+  if (profile !== null && profile !== "skirmish") return { error: "profile must be skirmish" };
   const chosen = {
     ...(region === null ? {} : { region }),
-    ...(profile !== null && { profile }),
+    ...(profile !== null && { profile: "skirmish" }),
   } as Pick<MapChoice, "region" | "profile">;
   if (params.has("play"))
-    return {
-      kind: "play",
-      ...factions,
-      map: { type, size, ...chosen },
-      recipe: recipe ?? config.encounter.recipe,
-      encounterSeed,
-      battleSeed,
-    };
+    return { kind: "play", factions, map: { type, size, ...chosen }, battleSeed };
   if (mapSeed === null)
     return { error: "seed must be a whole number from 0 to 18446744073709551615" };
-  return {
-    kind: "generated",
-    ...factions,
-    map: { type, size, seed: mapSeed, ...chosen },
-    recipe: recipe ?? config.encounter.recipe,
-    encounterSeed,
-    battleSeed,
-  };
+  return { kind: "generated", factions, map: { type, size, seed: mapSeed, ...chosen }, battleSeed };
 }
