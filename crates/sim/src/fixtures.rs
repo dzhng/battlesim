@@ -83,7 +83,7 @@ pub fn lift_hull_limits(fixture: &mut Value) {
 
 /// The catalog documents at `roots` under `fixtures/` (a directory, walked,
 /// or one file), in path order.
-fn documents(roots: &[&str]) -> Vec<Value> {
+pub fn documents(roots: &[&str]) -> Vec<Value> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         for entry in std::fs::read_dir(dir).expect("a catalog directory is readable") {
             let path = entry.expect("a directory entry").path();

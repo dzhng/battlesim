@@ -194,5 +194,49 @@
         }
       }
     }
+  },
+  "soldiers": {
+    "roster_rifleman": {
+      "abstract": true,
+      "name": "Rifleman",
+      "description": "A soldier with a rifle.",
+      "hp": 100,
+      "mounts": [
+        {
+          "name": "rifles",
+          "weapons": [
+            "rifle"
+          ],
+          "squad": true
+        }
+      ]
+    },
+    "roster_grenadier": {
+      "abstract": true,
+      "extends": "roster_rifleman",
+      "name": "Grenadier",
+      "description": "A rifleman who also carries the squad's grenade launcher.",
+      "mounts": [
+        {
+          "name": "grenade launcher",
+          "weapons": [
+            "grenade"
+          ],
+          "special": true
+        }
+      ]
+    },
+    "roster_scout": {
+      "abstract": true,
+      "extends": "roster_rifleman",
+      "name": "Scout",
+      "description": "A lightly equipped rifleman who spots for the rest."
+    },
+    "roster_at_rifleman": {
+      "abstract": true,
+      "extends": "roster_rifleman",
+      "name": "AT rifleman",
+      "description": "A rifleman of an anti-tank team."
+    }
   }
 }

@@ -430,7 +430,8 @@
   },
   "soldiers": {
     "roster_assault_rifle": {
-      "extends": "rifleman",
+      "abstract": true,
+      "extends": "roster_rifleman",
       "name": "Assault Rifle",
       "description": "Ground weapon profile; named equipment art pending.",
       "mounts": [
@@ -444,7 +445,8 @@
       ]
     },
     "roster_tow_gunner": {
-      "extends": "at_rifleman",
+      "abstract": true,
+      "extends": "roster_at_rifleman",
       "name": "Tow gunner",
       "description": "One carried launcher with ordinary guards; named launcher art pending.",
       "mounts": [
@@ -455,16 +457,6 @@
           ],
           "special": true,
           "operator_appearance": {
-            "active": [
-              "at",
-              "at_b",
-              "at_c"
-            ],
-            "carried": [
-              "at_carried",
-              "at_carried_b",
-              "at_carried_c"
-            ],
             "active_pose": {
               "clip": "kneel_fire",
               "phase": 0
@@ -484,7 +476,8 @@
       ]
     },
     "roster_kornet_gunner": {
-      "extends": "at_rifleman",
+      "abstract": true,
+      "extends": "roster_at_rifleman",
       "name": "Kornet gunner",
       "description": "One carried launcher with ordinary guards; named launcher art pending.",
       "mounts": [
@@ -495,16 +488,6 @@
           ],
           "special": true,
           "operator_appearance": {
-            "active": [
-              "at",
-              "at_b",
-              "at_c"
-            ],
-            "carried": [
-              "at_carried",
-              "at_carried_b",
-              "at_carried_c"
-            ],
             "active_pose": {
               "clip": "kneel_fire",
               "phase": 0
@@ -524,7 +507,8 @@
       ]
     },
     "roster_rpg_light_gunner": {
-      "extends": "at_rifleman",
+      "abstract": true,
+      "extends": "roster_at_rifleman",
       "name": "Rpg Light gunner",
       "description": "One carried launcher with ordinary guards; named launcher art pending.",
       "mounts": [
@@ -535,16 +519,6 @@
           ],
           "special": true,
           "operator_appearance": {
-            "active": [
-              "at",
-              "at_b",
-              "at_c"
-            ],
-            "carried": [
-              "at_carried",
-              "at_carried_b",
-              "at_carried_c"
-            ],
             "active_pose": {
               "clip": "stand_aim",
               "phase": 0
@@ -554,7 +528,8 @@
       ]
     },
     "roster_rpg_heavy_gunner": {
-      "extends": "at_rifleman",
+      "abstract": true,
+      "extends": "roster_at_rifleman",
       "name": "Rpg Heavy gunner",
       "description": "One carried launcher with ordinary guards; named launcher art pending.",
       "mounts": [
@@ -565,16 +540,6 @@
           ],
           "special": true,
           "operator_appearance": {
-            "active": [
-              "at",
-              "at_b",
-              "at_c"
-            ],
-            "carried": [
-              "at_carried",
-              "at_carried_b",
-              "at_carried_c"
-            ],
             "active_pose": {
               "clip": "stand_aim",
               "phase": 0
@@ -585,14 +550,10 @@
     },
     "roster_marksman_rifle_body": {
       "abstract": true,
-      "hp": 100,
-      "appearance": [
-        "rifle",
-        "rifle_b",
-        "rifle_c"
-      ]
+      "hp": 100
     },
     "roster_marksman_rifle_1": {
+      "abstract": true,
       "extends": "roster_marksman_rifle_body",
       "name": "Marksman Rifle",
       "description": "One finite physical gun; named equipment appearance pending.",
@@ -607,6 +568,7 @@
       ]
     },
     "roster_marksman_rifle_2": {
+      "abstract": true,
       "extends": "roster_marksman_rifle_body",
       "name": "Marksman Rifle",
       "description": "One finite physical gun; named equipment appearance pending.",
@@ -621,6 +583,7 @@
       ]
     },
     "roster_marksman_rifle_3": {
+      "abstract": true,
       "extends": "roster_marksman_rifle_body",
       "name": "Marksman Rifle",
       "description": "One finite physical gun; named equipment appearance pending.",
@@ -635,6 +598,7 @@
       ]
     },
     "roster_marksman_rifle_4": {
+      "abstract": true,
       "extends": "roster_marksman_rifle_body",
       "name": "Marksman Rifle",
       "description": "One finite physical gun; named equipment appearance pending.",
@@ -649,6 +613,7 @@
       ]
     },
     "roster_marksman_rifle_5": {
+      "abstract": true,
       "extends": "roster_marksman_rifle_body",
       "name": "Marksman Rifle",
       "description": "One finite physical gun; named equipment appearance pending.",
@@ -663,6 +628,7 @@
       ]
     },
     "roster_marksman_rifle_6": {
+      "abstract": true,
       "extends": "roster_marksman_rifle_body",
       "name": "Marksman Rifle",
       "description": "One finite physical gun; named equipment appearance pending.",
@@ -678,14 +644,10 @@
     },
     "roster_heavy_sniper_body": {
       "abstract": true,
-      "hp": 100,
-      "appearance": [
-        "rifle",
-        "rifle_b",
-        "rifle_c"
-      ]
+      "hp": 100
     },
     "roster_heavy_sniper_1": {
+      "abstract": true,
       "extends": "roster_heavy_sniper_body",
       "name": "Heavy Sniper",
       "description": "One finite physical gun; named equipment appearance pending.",
@@ -700,6 +662,7 @@
       ]
     },
     "roster_heavy_sniper_2": {
+      "abstract": true,
       "extends": "roster_heavy_sniper_body",
       "name": "Heavy Sniper",
       "description": "One finite physical gun; named equipment appearance pending.",
