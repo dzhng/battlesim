@@ -24,6 +24,7 @@ use crate::cover;
 use crate::damage::{self, DamageContext, HullResolver};
 use crate::deployment;
 use crate::digest::{self, Digest};
+use crate::encounter::{Defender, Referee};
 use crate::flight::{
     self, Body, BodyId, FlightEvent, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
@@ -40,7 +41,6 @@ use crate::sight;
 use crate::structures::Structures;
 use crate::supply;
 use crate::units::{self, MoveOrder, Pursuit, Soldier, Unit, UnitOrder};
-use crate::village::{Defender, Referee};
 use crate::visibility::OcclusionGrid;
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};

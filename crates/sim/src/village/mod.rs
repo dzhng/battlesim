@@ -1,17 +1,14 @@
-//! The village encounter: the authored scenario built from the
-//! one fixture, the red defender policy, and the local completion referee.
-//! The defender reads only its own side's observation and acts only through
-//! ordinary commands; the referee reads authoritative state, as a referee must.
-use std::collections::{BTreeMap, BTreeSet};
+//! The village encounter: the authored scenario built from the one fixture,
+//! and blue's comparison scripts played against the encounter's defender and
+//! referee ([`crate::encounter::Defender`], [`crate::encounter::Referee`]).
+use std::collections::BTreeMap;
 
-use contract::command::{Engagement, Order, RoutePolicy, TargetRef};
+use contract::command::{Engagement, Order};
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
-use contract::observation::{EncounterResult, EncounterStatus, ObservationFrame};
+use contract::observation::EncounterResult;
 use contract::scenario::{EncounterRules, Opponent, Rules, ScenarioDefinition, UnitSetup};
 use serde::Deserialize;
-
-use crate::units::Unit;
 
 pub mod scripts;
 
@@ -177,137 +174,6 @@ pub fn scenario(fixture: &serde_json::Value, variant: &str) -> Result<ScenarioDe
             max_assessment_s: f.encounter.max_assessment_s,
         }),
     })
-}
-
-/// What the defender remembers between its decisions (its own choices only).
-#[derive(Clone, Debug, Default)]
-pub struct Defender {
-    started: bool,
-    /// AT teams that have made their one explicit attack.
-    attacked: BTreeSet<u32>,
-    /// Units that have already fallen back (once each).
-    retreated: BTreeSet<u32>,
-}
-
-impl Defender {
-    /// This tick's orders from the side's own observation.
-    pub fn decide(&mut self, op: &Opponent, frame: &ObservationFrame, rules: &Rules) -> Vec<Order> {
-        let mut orders = Vec::new();
-        if !self.started {
-            self.started = true;
-            for &[unit, building] in &op.garrisons {
-                orders.push(Order::Garrison {
-                    units: vec![UnitId(unit)],
-                    building,
-                });
-            }
-        }
-        for u in &frame.own {
-            let id = u.id.0;
-            // An AT team makes one explicit attack, on the costliest tank its
-            // own optics identify in range; after it, the team fires at will.
-            let t = rules.catalog.get(u.kind);
-            if t.has_role("at") && !self.attacked.contains(&id) {
-                let best = frame
-                    .identified
-                    .iter()
-                    .filter(|e| rules.catalog.get(e.kind).has_role("mbt") && u.sees.contains(&e.id))
-                    .filter(|e| {
-                        let d = [e.position[0] - u.position[0], e.position[1] - u.position[1]];
-                        libm::hypot(d[0], d[1]) <= op.at_attack_range_m
-                    })
-                    .max_by(|a, b| a.cost.cmp(&b.cost).then(b.id.cmp(&a.id)));
-                if let Some(tank) = best {
-                    self.attacked.insert(id);
-                    orders.push(Order::Attack {
-                        units: vec![u.id],
-                        target: TargetRef::Identified { id: tank.id },
-                    });
-                }
-            }
-            if self.retreated.contains(&id) {
-                continue;
-            }
-            // Fall back once when badly hurt, judged from own state only.
-            let fallback = match t.hull() {
-                Some(hull) => (t.has_role("mbt") && u.hp < op.tank_retreat_hp_fraction * hull.hp)
-                    .then_some(op.tank_fallback),
-                None => {
-                    let original = t.squad_size() as f64;
-                    ((u.members.len() as f64) < op.infantry_retreat_survivor_fraction * original)
-                        .then_some(op.infantry_fallback)
-                }
-            };
-            if let Some(goal) = fallback {
-                self.retreated.insert(id);
-                orders.push(Order::Move {
-                    units: vec![u.id],
-                    gesture: 1_000_000 + id as u64,
-                    goal,
-                    route: RoutePolicy::Shortest,
-                    direction: contract::command::MoveDirection::Forward,
-                    facing: None,
-                });
-            }
-        }
-        orders
-    }
-}
-
-/// The referee: blue succeeds after an eligible ground combat unit of the
-/// attacker holds the zone with no living defender in it for the hold time;
-/// fails when the attacker has no combat unit left; past the assessment time,
-/// inconclusive (play continues and may still succeed).
-#[derive(Clone, Debug, Default)]
-pub struct Referee {
-    held_ticks: u64,
-    result: Option<EncounterResult>,
-}
-
-impl Referee {
-    pub fn judge(
-        &mut self,
-        rules: &EncounterRules,
-        catalog: &contract::catalog::Catalog,
-        units: &[Unit],
-        tick: u64,
-        tick_hz: u32,
-    ) -> EncounterStatus {
-        let hz = tick_hz as f64;
-        let c = rules.success_zone_center;
-        let inside = |u: &Unit| {
-            libm::hypot(u.position.x - c[0], u.position.y - c[1]) <= rules.success_zone_radius_m
-        };
-        // A combat unit carries a weapon: its components say so, not its role.
-        let combat = |u: &Unit| u.alive() && !catalog.mounts(u.kind).is_empty();
-        let attackers: Vec<&Unit> = units
-            .iter()
-            .filter(|u| u.side == rules.attacker && combat(u))
-            .collect();
-        let held = attackers.iter().any(|u| inside(u))
-            && !units
-                .iter()
-                .any(|u| u.side != rules.attacker && u.alive() && inside(u));
-        self.held_ticks = if held { self.held_ticks + 1 } else { 0 };
-        if matches!(self.result, None | Some(EncounterResult::Inconclusive)) {
-            if self.held_ticks as f64 >= rules.hold_s * hz {
-                self.result = Some(EncounterResult::Captured);
-            } else if attackers.is_empty() {
-                self.result = Some(EncounterResult::Defeated);
-            } else if tick as f64 >= rules.max_assessment_s * hz {
-                self.result = Some(EncounterResult::Inconclusive);
-            }
-        }
-        EncounterStatus {
-            held_s: self.held_ticks as f64 / hz,
-            result: self.result.unwrap_or(EncounterResult::Running),
-        }
-    }
-
-    pub fn digest(&self, d: &mut crate::digest::Digest) {
-        d.u64(self.held_ticks)
-            .u64(self.result.map_or(u64::MAX, |r| r as u64));
-    }
 }
 
 /// Blue commanded by a comparison script, as a player would: before each

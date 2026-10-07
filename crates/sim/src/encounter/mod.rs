@@ -26,6 +26,9 @@
 //! ([`contract::encounter::EncounterSetup`]): the same units, opponent
 //! policy, objective and scripted orders an authored scenario carries
 //! ([`crate::village::scenario`]).
+//!
+//! Every battle with an encounter runs its opponent policy as the
+//! [`Defender`] and judges it with the [`Referee`], whoever authored it.
 use std::sync::Arc;
 
 use contract::catalog::{TypeIndex, UnitType};
@@ -46,7 +49,12 @@ use crate::navigation::{self, Leg, Mobility, NavBase, NavGrid, Plan, RoadNet};
 use crate::world::WorldGeometry;
 use contract::random::Rng;
 
+mod defender;
 pub mod legality;
+mod referee;
+
+pub use defender::Defender;
+pub use referee::Referee;
 
 use legality::{apart, distance, footprint, stands, Footprint, Illegal};
 
