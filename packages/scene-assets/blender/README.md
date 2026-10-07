@@ -25,10 +25,23 @@ Clips and meshes must retain the shared skeleton contract: regenerating one does
 not regenerate the other. Shared rig, weapon and mesh-tier helpers concentrate
 that policy rather than defining extra standalone asset commands.
 
-Visible vehicle crew reuse the exported infantry art in fixed operating poses.
-They belong to the vehicle's appearance and mount hierarchy, rather than adding
-simulation soldiers. Re-export their vehicles after changing the infantry source;
-the crew exporter preserves that source's exact textures and material masks.
+Visible vehicle crew ([crew module](vehicle_crew.py)) reuse their faction's
+exported soldier art in fixed operating poses, from the soldier's tier 1 down
+and without the weapon. They belong to the vehicle's appearance and mount
+hierarchy, rather than adding simulation soldiers. Re-export their vehicles
+after changing the infantry source; the crew exporter preserves that source's
+exact textures and material masks on the crew's own materials only.
+
+Reusable vehicle detail (wheels, running gear, hatches, sights, lights, tow
+points, stowage, grilles, exhausts) has [one owner](vehicle_parts.py); a family
+script places those parts rather than redefining them.
+
+Roster vehicle exporters build to the physical frame of the unit type that
+draws their appearance, read from the resolved catalogs by
+[one helper](catalog_frames.py); a family is the appearances whose sources lie
+in its folder. Nothing else supplies a frame, so an appearance no unit draws
+cannot be exported, and its tests run without Blender:
+`python3 -m unittest discover -s packages/scene-assets/blender -p 'catalog_frames_test.py'`.
 
 Subject exporters build vehicles, wrecks, props, trees and forest-floor material.
 Shared part, masonry, texture and damage helpers keep frame conventions and seeded

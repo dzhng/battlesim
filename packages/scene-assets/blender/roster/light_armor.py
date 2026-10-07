@@ -3,15 +3,13 @@ import bpy, bmesh, sys, os, math, json
 from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from parts import *
+from catalog_frames import requested_variant
 
-ROOT=os.path.abspath(os.path.join(os.path.dirname(__file__),'../../../..'))
 
 def build(family):
-    args=script_args(); out=next(a for a in args if not a.startswith('--'))
-    ident=os.path.basename(out).removesuffix('.glb')
-    manifest=json.load(open(os.path.join(ROOT,'specs/unit-roster/manifests',family+'.json')))
-    variant=next(v for v in manifest['variants'] if v['id']==ident)
-    frame=variant['physical_authoring']; L,W,H=frame['body_dimensions_m']
+    args=script_args(); variant,out=requested_variant(family,args)
+    ident=variant['id']
+    frame=variant['frame']; L,W,H=frame['body_dimensions_m']
     reset()
     paint=textured('armor_olive','olive_paint',tint=1,chip=.25,dirt=.45,rise=1.1)
     dark=textured('dark_steel','olive_paint',colour=(.045,.055,.035),chip=.2,dirt=.5)

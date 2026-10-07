@@ -8,6 +8,7 @@ import bpy, bmesh
 from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from parts import *
+from catalog_frames import family_variants
 
 REPO = Path(__file__).resolve().parents[4]
 REFERENCE_PHOTOS = [{'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/M1A2_SEP_v3.jpg/960px-M1A2_SEP_v3.jpg', 'sha256': 'd453561e2b47a9399f8380a8d67f049f9fba6e69d7da95adff8f6aa4caf5deea'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/M1A1_Trophy_Technology_Demonstrator.jpg/960px-M1A1_Trophy_Technology_Demonstrator.jpg', 'sha256': '4c3261b6f0e50ce553a079b56638723d48463996787d3f2b6fddc7d97d6cd5bb', 'limitation': 'M1A1 demonstrator: hardware layout only, not SEP v2/v3 subtype proof'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/M1A2_Sep_v3.jpg/960px-M1A2_Sep_v3.jpg', 'sha256': '1fbc8a413841948b4f5b0f136fd5eef3e623d4797eba4e76d68873138270e775'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/Leopard_2_A7V_313_Bad_Frankenhausen_2024.JPG/960px-Leopard_2_A7V_313_Bad_Frankenhausen_2024.JPG', 'sha256': '0674f7147d27ecf1e16ab1a4f5c4e63da36726708b1f9388bb7df698a5959ea6'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/German_Army_Leopard_2A6_tank_in_Oct._2012.jpg/960px-German_Army_Leopard_2A6_tank_in_Oct._2012.jpg', 'sha256': 'ca93b972d63f2d4b4707908c621e2156bfe0ab4b5cb5059aff925b93a50315e6'}, {'url': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6c/LEOPARD_2A9.jpg/960px-LEOPARD_2A9.jpg', 'sha256': '24a4b45810e13bbcf15a90b1085f5f914dbbf14c7f0d0170e1da76f1e68093c0', 'limitation': 'Leopard2 article labels this as2A8 demonstrator; file says2A9. Trophy layout evidence only, not verified production2A8.'}]
@@ -174,11 +175,10 @@ def preview(path,outdir,length,height):
 def export_family(family,build):
     args=script_args();selected=next((a.split('=',1)[1] for a in args if a.startswith('--variant=')),None)
     review=next((a.split('=',1)[1] for a in args if a.startswith('--preview=')),None)
-    manifest_path=REPO/'specs/unit-roster/manifests'/f'{family}.json'
-    manifest=json.loads(manifest_path.read_text());receipt=[]
-    for variant in manifest['variants']:
+    receipt=[]
+    for variant in family_variants(family):
         if selected and variant['id']!=selected:continue
-        reset();frame=variant['physical_authoring'];root=empty(variant['id']);root['unit_id']=variant['id']
+        reset();frame=variant['frame'];root=empty(variant['id']);root['unit_id']=variant['id']
         mats=palette(family=='abrams');hull=empty('hull',parent=root)
         running_gear(hull,*frame['body_dimensions_m'][:2],mats)
         turret,gun,hmg,hmg_gun,trunnion=rig(frame,root)
@@ -192,6 +192,6 @@ def export_family(family,build):
         if review:preview(out,Path(review)/variant['id'],frame['body_dimensions_m'][0],frame['body_dimensions_m'][2])
     receipt_path=REPO/'assets/source/roster'/family/'source-receipt.json'
     references=[r for r in REFERENCE_PHOTOS if ('M1' in r['url'])==(family=='abrams')]
-    source_paths=[Path(__file__),Path(__file__).with_name(family+'.py'),Path(__file__).parent.parent/'parts.py',Path(__file__).parent.parent/'common.py',Path(__file__).parent.parent/'textures.py']
+    source_paths=[Path(__file__),Path(__file__).with_name(family+'.py'),Path(__file__).parent.parent/'parts.py',Path(__file__).parent.parent/'catalog_frames.py',Path(__file__).parent.parent/'common.py',Path(__file__).parent.parent/'textures.py']
     sources={str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest() for p in source_paths}
-    receipt_path.write_text(json.dumps({'blender_version':bpy.app.version_string,'source_sha256':sources,'references':references,'reference_limits':['Procedural visual approximation against frozen authoring frame, not factory drawings','M1A1 Trophy demonstrator informs hardware layout only, not SEP subtype proof'] if family=='abrams' else ['A8 hardware based on demonstrator photo with conflicting filename; production layout not verified'],'authoring':'Original procedural geometry; photos used as visual reference only, no source mesh/texture extraction','manifest_sha256':hashlib.sha256(manifest_path.read_bytes()).hexdigest(),'variants':receipt},indent=2)+'\n')
+    receipt_path.write_text(json.dumps({'blender_version':bpy.app.version_string,'source_sha256':sources,'references':references,'reference_limits':['Procedural visual approximation against frozen authoring frame, not factory drawings','M1A1 Trophy demonstrator informs hardware layout only, not SEP subtype proof'] if family=='abrams' else ['A8 hardware based on demonstrator photo with conflicting filename; production layout not verified'],'authoring':'Original procedural geometry; photos used as visual reference only, no source mesh/texture extraction','frames':'fixtures/catalog.json','variants':receipt},indent=2)+'\n')
