@@ -65,6 +65,12 @@ so this slice only moves tests off the village map and deletes.
    `lab_boxes` (its `authored` catalogue serves only `test` maps). Art names
    change, not physics or content hashes: map and replay hashes unchanged.
 7. **Relabel every `meta.json`**, create market-town-test.
+7b. **Scenes after slice 07:** `web/scenes/generated.mjs` was already stale,
+   and the `generated` stations in `web/scenes/_groundStations.mjs` use a
+   faction-less `/battle` address and read the planned town; both now hit the
+   refusal. Move them to a faction battle on a skirmish map with a new anchor.
+   Also remove `saved` as a `map_source` from `PrepareBattleRequest` if nothing
+   but tests uses it (preparation refuses it for lack of a skirmish base).
 8. **Docs** (`write-docs`): root README (drop "the village remains a developer
    test arena"; say game battles are generated, game units are the roster,
    test units and `test` maps are tests' own, menu units and `menu` maps the
