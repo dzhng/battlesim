@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { MechanicsStore, nativeValidator } from "../../apps/mechanics-editor/server";
 import { mechanicsSourcePaths } from "../../apps/fixture-publication/publication";
+import { isGameDocument } from "../src/battle/catalog/compose";
 import type { JsonObject } from "../../apps/mechanics-editor/src/protocol";
 
 vi.mock("node:fs/promises", async (importOriginal) => ({
@@ -202,9 +203,11 @@ test("a shared weapon preview names all users and invalid flight settings never 
     ],
   });
   // Every type carrying the rifle is affected, and one that carries none is
-  // not: the stand-ins answer for the roster.
-  expect(preview.affectedUnits).toEqual(expect.arrayContaining(["rifle", "recon", "at"]));
-  expect(preview.affectedUnits).not.toContain("tank");
+  // not: the test units answer for the roster.
+  expect(preview.affectedUnits).toEqual(
+    expect.arrayContaining(["test_rifle", "test_recon", "test_at"]),
+  );
+  expect(preview.affectedUnits).not.toContain("test_tank");
   await expect(
     editor.save({
       revision: initial.revision,
@@ -216,9 +219,9 @@ test("a shared weapon preview names all users and invalid flight settings never 
 
 test("an inherited named mount edits and restores without copying sibling mounts", async () => {
   const { root, editor } = await nativeStore();
-  const source = join(root, "fixtures/units/generic/tanks.json");
+  const source = join(root, "fixtures/units/test/tanks.json");
   const authored = JSON.parse(await readFile(source, "utf8"));
-  authored.units.variant = { extends: "tank", name: "Variant tank" };
+  authored.units.variant = { extends: "test_tank", name: "Variant tank" };
   await writeFile(source, JSON.stringify(authored));
   let snapshot = await editor.snapshot();
   snapshot = await editor.save({
@@ -244,7 +247,7 @@ test("an inherited named mount edits and restores without copying sibling mounts
 
 test("an upgrade-masked edit is refused instead of saving an ineffective value", async () => {
   const { root, editor } = await nativeStore();
-  const source = join(root, "fixtures/units/generic/infantry.json");
+  const source = join(root, "fixtures/units/test/infantry.json");
   const authored = JSON.parse(await readFile(source, "utf8"));
   authored.parts = {
     fixed_cost: {
@@ -254,13 +257,13 @@ test("an upgrade-masked edit is refused instead of saving an ineffective value",
       patch: { cost: 150 },
     },
   };
-  authored.units.rifle.parts = ["fixed_cost"];
+  authored.units.test_rifle.parts = ["fixed_cost"];
   await writeFile(source, JSON.stringify(authored));
   const initial = await editor.snapshot();
   await expect(
     editor.save({
       revision: initial.revision,
-      changes: [{ section: "units", id: "rifle", path: ["cost"], value: 200 }],
+      changes: [{ section: "units", id: "test_rifle", path: ["cost"], value: 200 }],
     }),
   ).rejects.toThrow("would not take effect");
   expect(await editor.snapshot()).toEqual(initial);
@@ -276,7 +279,7 @@ test("decimal gameplay values survive native admission and publication without r
       { section: "weapons", id: "grenade", path: ["scatter_mrad"], value: scatter },
       {
         section: "units",
-        id: "rifle",
+        id: "test_rifle",
         path: ["mobility", "foot", "offroad_kmh"],
         value: 12.3456789,
       },
@@ -288,11 +291,11 @@ test("decimal gameplay values survive native admission and publication without r
       .scatter_mrad,
   ).toBe(scatter);
   expect((saved.catalog.documents as JsonObject[])[0].units).toMatchObject({
-    rifle: { mobility: { foot: { offroad_kmh: 12.3456789 } } },
+    test_rifle: { mobility: { foot: { offroad_kmh: 12.3456789 } } },
   });
 }, 30000);
 
-test("save publishes the Rust catalog generator’s exact canonical bytes", async () => {
+test("save publishes the Rust catalog generator’s exact canonical bytes of the game's documents", async () => {
   const { root, editor } = await nativeStore();
   const snapshot = await editor.snapshot();
   await editor.save({
@@ -300,8 +303,9 @@ test("save publishes the Rust catalog generator’s exact canonical bytes", asyn
     changes: [{ section: "weapons", id: "rifle", path: ["damage"], value: 40 }],
   });
   const texts: string[] = [];
+  // The committed catalog is the game's documents alone: never a test unit.
   for (const path of (await mechanicsSourcePaths(root)).filter(
-    (path) => path !== "fixtures/game.json",
+    (path) => path !== "fixtures/game.json" && isGameDocument(path),
   ))
     texts.push(await readFile(join(root, path), "utf8"));
   const game = await readFile(join(root, "fixtures/game.json"), "utf8");
@@ -323,31 +327,39 @@ test("editing an existing local soldier variant still lists its unit in the prev
   let snapshot = await editor.snapshot();
   snapshot = await editor.save({
     revision: snapshot.revision,
-    changes: [{ section: "soldiers", id: "rifleman", unit: "rifle", path: ["hp"], value: 120 }],
+    changes: [
+      { section: "soldiers", id: "test_rifleman", unit: "test_rifle", path: ["hp"], value: 120 },
+    ],
   });
   const preview = await editor.preview({
     revision: snapshot.revision,
     changes: [
-      { section: "soldiers", id: "rifle__rifleman", unit: "rifle", path: ["hp"], value: 140 },
+      {
+        section: "soldiers",
+        id: "test_rifle__test_rifleman",
+        unit: "test_rifle",
+        path: ["hp"],
+        value: 140,
+      },
     ],
   });
-  expect(preview.affectedUnits).toEqual(["rifle"]);
+  expect(preview.affectedUnits).toEqual(["test_rifle"]);
 }, 30000);
 
 test("restoring multiple soldier overrides removes the local variant and restores inherited slots", async () => {
   const { root, editor } = await nativeStore();
-  const source = join(root, "fixtures/units/generic/infantry.json");
+  const source = join(root, "fixtures/units/test/infantry.json");
   const authored = JSON.parse(await readFile(source, "utf8"));
-  authored.units.veteran = { extends: "rifle", name: "Veteran squad" };
+  authored.units.veteran = { extends: "test_rifle", name: "Veteran squad" };
   await writeFile(source, JSON.stringify(authored));
   let snapshot = await editor.snapshot();
   snapshot = await editor.save({
     revision: snapshot.revision,
     changes: [
-      { section: "soldiers", id: "rifleman", unit: "veteran", path: ["hp"], value: 120 },
+      { section: "soldiers", id: "test_rifleman", unit: "veteran", path: ["hp"], value: 120 },
       {
         section: "soldiers",
-        id: "rifleman",
+        id: "test_rifleman",
         unit: "veteran",
         path: ["mounts", "rifles", "squad"],
         value: false,
@@ -355,21 +367,21 @@ test("restoring multiple soldier overrides removes the local variant and restore
     ],
   });
   const resolved = snapshot.catalog.documents as JsonObject[];
-  expect((resolved[0].soldiers as JsonObject).rifleman).toMatchObject({ hp: 100 });
-  expect((resolved[0].soldiers as JsonObject).veteran__rifleman).toMatchObject({ hp: 120 });
+  expect((resolved[0].soldiers as JsonObject).test_rifleman).toMatchObject({ hp: 100 });
+  expect((resolved[0].soldiers as JsonObject).veteran__test_rifleman).toMatchObject({ hp: 120 });
   snapshot = await editor.save({
     revision: snapshot.revision,
     changes: [
       {
         section: "soldiers",
-        id: "veteran__rifleman",
+        id: "veteran__test_rifleman",
         unit: "veteran",
         path: ["hp"],
         restore: true,
       },
       {
         section: "soldiers",
-        id: "veteran__rifleman",
+        id: "veteran__test_rifleman",
         unit: "veteran",
         path: ["mounts", "rifles", "squad"],
         restore: true,
@@ -380,7 +392,7 @@ test("restoring multiple soldier overrides removes the local variant and restore
   expect(saved.units.veteran).toEqual(authored.units.veteran);
   expect(saved.soldiers).toBeUndefined();
   expect((snapshot.catalog.documents as JsonObject[])[0].soldiers).not.toHaveProperty(
-    "veteran__rifleman",
+    "veteran__test_rifleman",
   );
 }, 30000);
 
@@ -389,42 +401,48 @@ test("accepted soldier identities follow clone creation and cleanup across reord
   const initial = await editor.snapshot();
   const creation = await editor.preview({
     revision: initial.revision,
-    changes: [{ section: "soldiers", id: "rifleman", unit: "rifle", path: ["hp"], value: 120 }],
+    changes: [
+      { section: "soldiers", id: "test_rifleman", unit: "test_rifle", path: ["hp"], value: 120 },
+    ],
   });
-  expect(creation.soldierIds).toEqual({ '["soldiers","rifleman","rifle"]': "rifle__rifleman" });
+  expect(creation.soldierIds).toEqual({
+    '["soldiers","test_rifleman","test_rifle"]': "test_rifle__test_rifleman",
+  });
   const saved = await editor.save({
     revision: initial.revision,
     changes: [
       {
         section: "soldiers",
-        id: "rifleman",
-        unit: "rifle",
+        id: "test_rifleman",
+        unit: "test_rifle",
         path: ["mounts", "rifles", "squad"],
         value: false,
       },
       {
         section: "soldiers",
-        id: "rifleman",
-        unit: "rifle",
+        id: "test_rifleman",
+        unit: "test_rifle",
         path: ["mounts", "rifles", "special"],
         value: true,
       },
       {
         section: "soldiers",
-        id: "grenadier",
-        unit: "rifle",
+        id: "test_grenadier",
+        unit: "test_rifle",
         path: ["mounts", "grenade launcher", "special"],
         value: false,
       },
     ],
   });
   const before = (saved.catalog.documents as JsonObject[])[0];
-  expect((before.soldiers as JsonObject).rifleman).toMatchObject({ mounts: [{ special: false }] });
-  const reordered = ["rifle__rifleman", "rifle__grenadier"];
+  expect((before.soldiers as JsonObject).test_rifleman).toMatchObject({
+    mounts: [{ special: false }],
+  });
+  const reordered = ["test_rifle__test_rifleman", "test_rifle__test_grenadier"];
   const reorderedSnapshot = await editor.save({
     revision: saved.revision,
     changes: [
-      { section: "units", id: "rifle", path: ["body", "squad", "slots"], value: reordered },
+      { section: "units", id: "test_rifle", path: ["body", "squad", "slots"], value: reordered },
     ],
   });
   const preview = await editor.preview({
@@ -432,31 +450,31 @@ test("accepted soldier identities follow clone creation and cleanup across reord
     changes: [
       {
         section: "soldiers",
-        id: "rifle__rifleman",
-        unit: "rifle",
+        id: "test_rifle__test_rifleman",
+        unit: "test_rifle",
         path: ["mounts"],
         restore: true,
       },
       {
         section: "soldiers",
-        id: "rifle__grenadier",
-        unit: "rifle",
+        id: "test_rifle__test_grenadier",
+        unit: "test_rifle",
         path: ["mounts"],
         restore: true,
       },
     ],
   });
   expect(preview.soldierIds).toEqual({
-    '["soldiers","rifle__rifleman","rifle"]': "rifleman",
-    '["soldiers","rifle__grenadier","rifle"]': "grenadier",
+    '["soldiers","test_rifle__test_rifleman","test_rifle"]': "test_rifleman",
+    '["soldiers","test_rifle__test_grenadier","test_rifle"]': "test_grenadier",
   });
   const document = (preview.catalog.documents as JsonObject[])[0];
-  expect((document.units as JsonObject).rifle).toMatchObject({
-    body: { squad: { slots: ["rifleman", "grenadier"] } },
+  expect((document.units as JsonObject).test_rifle).toMatchObject({
+    body: { squad: { slots: ["test_rifleman", "test_grenadier"] } },
   });
-  expect((document.soldiers as JsonObject).rifle__rifleman).toBeUndefined();
-  expect((document.soldiers as JsonObject).rifle__grenadier).toBeUndefined();
-  expect((document.soldiers as JsonObject).grenadier).toMatchObject({
+  expect((document.soldiers as JsonObject).test_rifle__test_rifleman).toBeUndefined();
+  expect((document.soldiers as JsonObject).test_rifle__test_grenadier).toBeUndefined();
+  expect((document.soldiers as JsonObject).test_grenadier).toMatchObject({
     mounts: [
       { name: "rifles", weapons: ["rifle"], squad: true, special: false },
       { name: "grenade launcher", weapons: ["grenade"], special: true },

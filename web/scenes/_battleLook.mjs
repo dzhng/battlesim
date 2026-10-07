@@ -178,10 +178,10 @@ export async function woodsTour(ctx) {
   const wood = [x0, y0, x1 - x0, y1 - y0];
   const goal = [wood[0] + 40, wood[1] + wood[3] - 20];
   let o = await obs(page);
-  const squads = o.own.filter((u) => u.members.length > 0 && u.kind === "rifle");
+  const squads = o.own.filter((u) => u.members.length > 0 && u.kind === "test_rifle");
   // The squad spawned furthest south walks in along the map's south, out of
   // the village's fire; the one spawned furthest north stays in the open.
-  const spawns = game.spawn.blue.filter((r) => r[0] === "rifle").map((r) => [r[1], r[2]]);
+  const spawns = game.spawn.blue.filter((r) => r[0] === "test_rifle").map((r) => [r[1], r[2]]);
   const nearest = (p) =>
     squads.reduce((a, b) => (dist(a.position, p) <= dist(b.position, p) ? a : b));
   const walker = nearest(spawns.reduce((a, b) => (a[1] >= b[1] ? a : b)));
@@ -375,12 +375,12 @@ export async function cleanupTour(ctx) {
   await page.mouse.click(1300, 900);
   const fight = async () => {
     const squad = await lab(page, () =>
-      window.__lab.route.observation().own.find((u) => u.kind === "rifle"),
+      window.__lab.route.observation().own.find((u) => u.kind === "test_rifle"),
     );
     const ack = await lab(
       page,
       (point) => {
-        const tank = window.__lab.route.observation().own.find((u) => u.kind === "tank");
+        const tank = window.__lab.route.observation().own.find((u) => u.kind === "test_tank");
         return window.__lab.route.command({
           kind: "attack",
           units: [tank.id],

@@ -61,12 +61,12 @@ function contactRadius(units: UnitCatalog, kind: string): number {
 const specimensOf = (units: UnitCatalog): ContactShape[] => [
   {
     center: [1120, 930],
-    radius: contactRadius(units, "rifle"),
+    radius: contactRadius(units, "test_rifle"),
     opacity: 1,
   },
   {
     center: [1260, 700],
-    radius: contactRadius(units, "tank"),
+    radius: contactRadius(units, "test_tank"),
     opacity: 0.6,
   },
 ];
@@ -146,7 +146,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
     if (!fogOn || !session.fog) return null;
     if (eyes) return { ...session.fog, sight: { ...session.fog.sight, eyes } };
     if (!reconOnly) return session.fog;
-    const recon = observation?.own.find((u) => u.kind === "recon");
+    const recon = observation?.own.find((u) => u.kind === "test_recon");
     const reconEyes = session.fog.sight.eyes.filter((e) => e.key.startsWith(`${recon?.id}:`));
     return { ...session.fog, sight: { ...session.fog.sight, eyes: reconEyes } };
   }, [fogOn, reconOnly, eyes, session.fog, observation]);

@@ -257,7 +257,7 @@ fn parked_cars() -> Vec<Value> {
 }
 
 fn rifle(side: &str, at: [f64; 2]) -> Value {
-    json!({ "side": side, "kind": "rifle", "position": at, "engagement": "return_fire_only" })
+    json!({ "side": side, "kind": "test_rifle", "position": at, "engagement": "return_fire_only" })
 }
 
 fn vehicle(side: &str, kind: &str, at: [f64; 2], yaw: f64) -> Value {
@@ -456,7 +456,7 @@ fn authored() -> Vec<Scenario> {
                 [120.0, 80.0],
                 json!({ "props": [wreck("heavy_wreck", [57.0, 40.0], 0.3)] }),
             ),
-            units: json!([{ "side": "blue", "kind": "tank", "position": [15, 40], "engagement": "return_fire_only" }]),
+            units: json!([{ "side": "blue", "kind": "test_tank", "position": [15, 40], "engagement": "return_fire_only" }]),
             events: none.clone(),
             scripts: json!([go(0, [100.0, 40.0])]),
             rules: json!({}),
@@ -599,7 +599,7 @@ fn authored() -> Vec<Scenario> {
                 ] }),
             ),
             units: json!([
-                { "side": "blue", "kind": "rifle", "position": [20, 50] },
+                { "side": "blue", "kind": "test_rifle", "position": [20, 50] },
                 rifle("red", [120.0, 50.0]),
             ]),
             events: none.clone(),
@@ -608,7 +608,7 @@ fn authored() -> Vec<Scenario> {
             )]),
             // Short sight so the halt lands on a map small enough to read; soldiers
             // too tough to fall, so the halt lasts and nobody resumes the advance.
-            rules: json!({ "catalog": { "units": { "squad": { "sensors": { "ground_m": 40 } } }, "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "catalog": { "units": { "test_squad": { "sensors": { "ground_m": 40 } } }, "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 40.0,
             seed: 1,
             checks: vec![
@@ -635,14 +635,14 @@ fn authored() -> Vec<Scenario> {
                 ] }),
             ),
             units: json!([
-                { "side": "blue", "kind": "rifle", "position": [58, 45] },
-                { "side": "red", "kind": "rifle", "position": [110, 45] },
+                { "side": "blue", "kind": "test_rifle", "position": [58, 45] },
+                { "side": "red", "kind": "test_rifle", "position": [110, 45] },
             ]),
             // Three ATGM bursts on its middle bring the wall down to rubble.
             events: json!([{ "tick": 300, "burst": { "point": [64.0, 45.0], "weapon": "atgm" } }, { "tick": 300, "burst": { "point": [64.0, 45.0], "weapon": "atgm" } }, { "tick": 300, "burst": { "point": [64.0, 45.0], "weapon": "atgm" } }]),
             scripts: none.clone(),
             // Soldiers too tough to fall, so the fight lasts.
-            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "catalog": { "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -668,14 +668,14 @@ fn authored() -> Vec<Scenario> {
                 ] }),
             ),
             units: json!([
-                { "side": "blue", "kind": "rifle", "position": [60, 45] },
-                { "side": "red", "kind": "jeep", "position": [110, 45], "yaw": std::f64::consts::PI },
+                { "side": "blue", "kind": "test_rifle", "position": [60, 45] },
+                { "side": "red", "kind": "test_jeep", "position": [110, 45], "yaw": std::f64::consts::PI },
             ]),
             events: none.clone(),
             scripts: none.clone(),
             // Soldiers and the jeep too tough to fall, so the fight lasts: the
             // squad firing back past its cover would kill the jeep otherwise.
-            rules: json!({ "catalog": { "units": { "jeep": { "body": { "hull": { "hp": 1.0e6 } } } }, "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "catalog": { "units": { "test_jeep": { "body": { "hull": { "hp": 1.0e6 } } } }, "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 60.0,
             seed: 1,
             checks: vec![
@@ -696,7 +696,7 @@ fn authored() -> Vec<Scenario> {
             caption: "a squad sent beside a parked tank, enemy beyond it: they take cover behind the hull",
             map: flat([140.0, 80.0], json!({})),
             units: json!([
-                { "side": "blue", "kind": "tank", "position": [64, 40], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_tank", "position": [64, 40], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
                 rifle("blue", [20.0, 40.0]),
                 rifle("red", [115.0, 42.0]),
             ]),
@@ -722,13 +722,13 @@ fn authored() -> Vec<Scenario> {
                 json!({ "props": [wall([62.0, 45.0], 0.0, [0.4, 5.0, 1.5])] }),
             ),
             units: json!([
-                { "side": "blue", "kind": "rifle", "position": [57, 47] },
-                { "side": "red", "kind": "rifle", "position": [100, 72] },
+                { "side": "blue", "kind": "test_rifle", "position": [57, 47] },
+                { "side": "red", "kind": "test_rifle", "position": [100, 72] },
             ]),
             events: none.clone(),
             scripts: none.clone(),
             // Pin acquisition so this experiment judges stepping out, not squad spotting thresholds.
-            rules: json!({ "sensors": { "squad_identification_fraction": 0.125 }, "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "sensors": { "squad_identification_fraction": 0.125 }, "catalog": { "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -751,14 +751,14 @@ fn authored() -> Vec<Scenario> {
                 json!({ "props": [wall([62.0, 45.0], 0.0, [0.4, 5.0, 1.5])] }),
             ),
             units: json!([
-                { "side": "blue", "kind": "rifle", "position": [57, 47] },
-                { "side": "red", "kind": "rifle", "position": [100, 72] },
+                { "side": "blue", "kind": "test_rifle", "position": [57, 47] },
+                { "side": "red", "kind": "test_rifle", "position": [100, 72] },
             ]),
             events: none.clone(),
             // Ten seconds in, the enemy moves 12 m along the wall's far side.
             scripts: json!([{ "tick": 300, "side": "red", "order":
                 { "kind": "move", "units": [1], "gesture": 2, "goal": [100.0, 60.0], "route": "shortest" } }]),
-            rules: json!({ "sensors": { "squad_identification_fraction": 0.125 }, "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "sensors": { "squad_identification_fraction": 0.125 }, "catalog": { "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 40.0,
             seed: 1,
             checks: vec![
@@ -784,12 +784,12 @@ fn authored() -> Vec<Scenario> {
                     .collect::<Vec<_>>() }),
             ),
             units: json!([
-                { "side": "blue", "kind": "rifle", "position": [58, 44] },
-                { "side": "red", "kind": "rifle", "position": [108, 46] },
+                { "side": "blue", "kind": "test_rifle", "position": [58, 44] },
+                { "side": "red", "kind": "test_rifle", "position": [108, 46] },
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "catalog": { "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -810,12 +810,12 @@ fn authored() -> Vec<Scenario> {
                 json!({ "props": [prop("building", [60.0, 40.0], 0.0, [6.0, 6.0, 4.0])] }),
             ),
             units: json!([
-                { "side": "blue", "kind": "rifle", "position": [49, 42] },
-                { "side": "red", "kind": "rifle", "position": [95, 85] },
+                { "side": "blue", "kind": "test_rifle", "position": [49, 42] },
+                { "side": "red", "kind": "test_rifle", "position": [95, 85] },
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "catalog": { "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             // Seeds 2–8 each lean one man; on seed 1, since rounds slowed,
             // the squad settles a metre over where every man has a line.
@@ -835,13 +835,13 @@ fn authored() -> Vec<Scenario> {
             caption: "a squad at rest behind its parked tank trades fire with a squad beyond it: men lean out past the hull's ends",
             map: flat([140.0, 90.0], json!({})),
             units: json!([
-                { "side": "blue", "kind": "rifle", "position": [59, 45] },
-                { "side": "red", "kind": "rifle", "position": [110, 45] },
-                vehicle("blue", "tank", [64.0, 45.0], std::f64::consts::FRAC_PI_2),
+                { "side": "blue", "kind": "test_rifle", "position": [59, 45] },
+                { "side": "red", "kind": "test_rifle", "position": [110, 45] },
+                vehicle("blue", "test_tank", [64.0, 45.0], std::f64::consts::FRAC_PI_2),
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "catalog": { "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -862,12 +862,12 @@ fn authored() -> Vec<Scenario> {
                 json!({ "props": [prop("building", [60.0, 40.0], 0.0, [6.0, 6.0, 4.0])] }),
             ),
             units: json!([
-                { "side": "blue", "kind": "rifle", "position": [51.5, 45.0] },
-                { "side": "red", "kind": "rifle", "position": [95, 85] },
+                { "side": "blue", "kind": "test_rifle", "position": [51.5, 45.0] },
+                { "side": "red", "kind": "test_rifle", "position": [95, 85] },
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "catalog": { "units": { "rifle": { "body": { "squad": { "slots": ["grenadier", "rifleman", "rifleman"] } } } }, "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "catalog": { "units": { "test_rifle": { "body": { "squad": { "slots": ["test_grenadier", "test_rifleman", "test_rifleman"] } } } }, "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -1037,7 +1037,7 @@ fn authored() -> Vec<Scenario> {
             caption: "a parked tank stands on the squad's corridor: they walk round it",
             map: flat([140.0, 60.0], json!({})),
             units: json!([
-                { "side": "blue", "kind": "tank", "position": [70, 30], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_tank", "position": [70, 30], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
                 rifle("blue", [30.0, 30.0]),
             ]),
             events: none.clone(),
@@ -1060,7 +1060,7 @@ fn authored() -> Vec<Scenario> {
             map: flat([140.0, 70.0], json!({})),
             units: json!([
                 rifle("blue", [70.0, 35.0]),
-                { "side": "blue", "kind": "tank", "position": [15, 36], "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_tank", "position": [15, 36], "engagement": "return_fire_only" },
             ]),
             events: none.clone(),
             scripts: json!([go(1, [125.0, 35.0])]),
@@ -1109,7 +1109,7 @@ fn authored() -> Vec<Scenario> {
                     "props": [wreck("light_wreck", [70.0, 31.0], 1.4)],
                 }),
             ),
-            units: json!([vehicle("blue", "tank", [10.0, 30.0], 0.0)]),
+            units: json!([vehicle("blue", "test_tank", [10.0, 30.0], 0.0)]),
             events: none.clone(),
             scripts: json!([drive("blue", 0, [130.0, 30.0])]),
             rules: json!({}),
@@ -1135,7 +1135,7 @@ fn authored() -> Vec<Scenario> {
                 [120.0, 70.0],
                 json!({ "props": [prop("fence", [60.0, 30.0], 0.0, [0.1, 20.0, 0.6])] }),
             ),
-            units: json!([vehicle("blue", "jeep", [20.0, 30.0], 0.0)]),
+            units: json!([vehicle("blue", "test_jeep", [20.0, 30.0], 0.0)]),
             events: none.clone(),
             scripts: json!([go(0, [100.0, 30.0])]),
             rules: json!({}),
@@ -1162,7 +1162,7 @@ fn authored() -> Vec<Scenario> {
                     prop("crate", [55.0, 30.0], 0.0, [0.8, 0.8, 0.6]),
                 ] }),
             ),
-            units: json!([vehicle("blue", "supply", [15.0, 30.0], 0.0)]),
+            units: json!([vehicle("blue", "test_supply", [15.0, 30.0], 0.0)]),
             events: none.clone(),
             scripts: json!([go(0, [125.0, 30.0])]),
             rules: json!({}),
@@ -1187,7 +1187,7 @@ fn authored() -> Vec<Scenario> {
             map: flat([120.0, 90.0], json!({ "props": teeth_at(60.0, 1.0, 66.0) })),
             units: json!([
                 rifle("blue", [20.0, 35.0]),
-                vehicle("blue", "tank", [20.0, 50.0], 0.0),
+                vehicle("blue", "test_tank", [20.0, 50.0], 0.0),
             ]),
             events: none.clone(),
             scripts: json!([go(0, [100.0, 35.0]), go(1, [100.0, 50.0])]),
@@ -1236,8 +1236,8 @@ fn authored() -> Vec<Scenario> {
             // (`road_journeys`), so the wait and the detour are met here.
             map: flat([160.0, 60.0], json!({})),
             units: json!([
-                vehicle("blue", "tank", [15.0, 30.0], 0.0),
-                vehicle("red", "tank", [145.0, 30.0], std::f64::consts::PI),
+                vehicle("blue", "test_tank", [15.0, 30.0], 0.0),
+                vehicle("red", "test_tank", [145.0, 30.0], std::f64::consts::PI),
             ]),
             events: none.clone(),
             scripts: json!([drive("blue", 0, [155.0, 30.0]), drive("red", 1, [5.0, 30.0])]),
@@ -1264,9 +1264,9 @@ fn authored() -> Vec<Scenario> {
             caption: "three tanks cross a field of wrecks that appears ahead: each learns them and drives round, touching nothing",
             map: flat([160.0, 80.0], json!({})),
             units: json!([
-                vehicle("blue", "tank", [12.0, 40.0], 0.0),
-                vehicle("blue", "tank", [12.0, 28.0], 0.0),
-                vehicle("blue", "tank", [12.0, 52.0], 0.0),
+                vehicle("blue", "test_tank", [12.0, 40.0], 0.0),
+                vehicle("blue", "test_tank", [12.0, 28.0], 0.0),
+                vehicle("blue", "test_tank", [12.0, 52.0], 0.0),
             ]),
             events: json!([
                 { "tick": 1, "add_prop": wreck("heavy_wreck", [70.0, 40.0], 0.4) },
@@ -1304,7 +1304,7 @@ fn authored() -> Vec<Scenario> {
             name: "t4-tank-pivots",
             caption: "a tank ordered to a point behind it pivots on the spot, then drives",
             map: flat([120.0, 80.0], json!({})),
-            units: json!([vehicle("blue", "tank", [80.0, 40.0], 0.0)]),
+            units: json!([vehicle("blue", "test_tank", [80.0, 40.0], 0.0)]),
             events: none.clone(),
             scripts: json!([go(0, [30.0, 40.0])]),
             rules: json!({}),
@@ -1324,7 +1324,7 @@ fn authored() -> Vec<Scenario> {
             name: "t4-truck-u-turn",
             caption: "a truck ordered to a point behind it U-turns on its radius in the open",
             map: flat([120.0, 80.0], json!({})),
-            units: json!([vehicle("blue", "supply", [80.0, 40.0], 0.0)]),
+            units: json!([vehicle("blue", "test_supply", [80.0, 40.0], 0.0)]),
             events: none.clone(),
             scripts: json!([go(0, [30.0, 40.0])]),
             rules: json!({}),
@@ -1351,7 +1351,7 @@ fn authored() -> Vec<Scenario> {
                     wall([70.0, 35.5], 0.0, [40.0, 0.5, 1.5]),
                 ] }),
             ),
-            units: json!([vehicle("blue", "supply", [70.0, 30.0], 0.0)]),
+            units: json!([vehicle("blue", "test_supply", [70.0, 30.0], 0.0)]),
             events: none.clone(),
             scripts: json!([go(0, [40.0, 30.0])]),
             rules: json!({}),
@@ -1379,7 +1379,7 @@ fn authored() -> Vec<Scenario> {
                     wall([68.4, 30.0], 0.0, [0.4, 5.0, 1.5]),
                 ] }),
             ),
-            units: json!([vehicle("blue", "tank", [62.0, 30.0], 0.0)]),
+            units: json!([vehicle("blue", "test_tank", [62.0, 30.0], 0.0)]),
             events: none.clone(),
             scripts: json!([back(0, [30.0, 30.0])]),
             rules: json!({}),
@@ -1402,8 +1402,8 @@ fn authored() -> Vec<Scenario> {
             map: flat([120.0, 100.0], json!({})),
             units: json!([
                 rifle("blue", [20.0, 20.0]),
-                vehicle("blue", "tank", [20.0, 50.0], 0.0),
-                vehicle("blue", "jeep", [20.0, 80.0], 0.0),
+                vehicle("blue", "test_tank", [20.0, 50.0], 0.0),
+                vehicle("blue", "test_jeep", [20.0, 80.0], 0.0),
             ]),
             events: none.clone(),
             scripts: json!([
@@ -1445,8 +1445,8 @@ fn authored() -> Vec<Scenario> {
             caption: "two tanks drive 60 m east: the upper forwards, the lower in reverse",
             map: flat([120.0, 80.0], json!({})),
             units: json!([
-                vehicle("blue", "tank", [20.0, 55.0], 0.0),
-                vehicle("blue", "tank", [20.0, 25.0], std::f64::consts::PI),
+                vehicle("blue", "test_tank", [20.0, 55.0], 0.0),
+                vehicle("blue", "test_tank", [20.0, 25.0], std::f64::consts::PI),
             ]),
             events: none.clone(),
             scripts: json!([go(0, [80.0, 55.0]), back(1, [80.0, 25.0])]),
@@ -1466,8 +1466,8 @@ fn authored() -> Vec<Scenario> {
             caption: "a tank knocks a lane through the forest; a jeep follows it at open-ground speed and the red squad down the lane spots it",
             map: flat([220.0, 80.0], json!({ "forests": [forest([70.0, 0.0, 60.0, 80.0])] })),
             units: json!([
-                vehicle("blue", "tank", [15.0, 40.0], 0.0),
-                vehicle("blue", "jeep", [12.0, 20.0], 0.0),
+                vehicle("blue", "test_tank", [15.0, 40.0], 0.0),
+                vehicle("blue", "test_jeep", [12.0, 20.0], 0.0),
                 rifle("red", [210.0, 40.0]),
             ]),
             events: none.clone(),
@@ -1477,7 +1477,7 @@ fn authored() -> Vec<Scenario> {
                     { "kind": "move", "units": [1], "gesture": 2, "goal": [165.0, 40.0], "route": "fastest" } },
             ]),
             // Red's eyes reach 150 m: down the open lane, not through the trees.
-            rules: json!({ "catalog": { "units": { "squad": { "sensors": { "ground_m": 150 } } } } }),
+            rules: json!({ "catalog": { "units": { "test_squad": { "sensors": { "ground_m": 150 } } } } }),
             seconds: 80.0,
             seed: 1,
             checks: vec![
@@ -1509,7 +1509,7 @@ fn authored() -> Vec<Scenario> {
             name: "t3-jeep-through-forest",
             caption: "a jeep threads the forest between the trunks, knocking none",
             map: flat([200.0, 80.0], json!({ "forests": [forest([60.0, 0.0, 80.0, 80.0])] })),
-            units: json!([vehicle("blue", "jeep", [15.0, 40.0], 0.0)]),
+            units: json!([vehicle("blue", "test_jeep", [15.0, 40.0], 0.0)]),
             events: none.clone(),
             scripts: json!([go(0, [185.0, 40.0])]),
             rules: json!({}),
@@ -1536,8 +1536,8 @@ fn authored() -> Vec<Scenario> {
                 ] }),
             ),
             units: json!([
-                vehicle("blue", "jeep", [20.0, 30.0], 0.0),
-                vehicle("blue", "jeep", [20.0, 90.0], 0.0),
+                vehicle("blue", "test_jeep", [20.0, 30.0], 0.0),
+                vehicle("blue", "test_jeep", [20.0, 90.0], 0.0),
             ]),
             events: none.clone(),
             scripts: json!([go(0, [580.0, 30.0]), go(1, [580.0, 90.0])]),
@@ -1576,7 +1576,7 @@ fn authored() -> Vec<Scenario> {
                     { "kind": "country_road", "shape": { "kind": "stroke", "points": [[0, 30], [300, 30], [300, 260]], "width_m": 8 } },
                 ] }),
             ),
-            units: json!([vehicle("blue", "jeep", [20.0, 30.0], 0.0)]),
+            units: json!([vehicle("blue", "test_jeep", [20.0, 30.0], 0.0)]),
             events: none.clone(),
             scripts: json!([drive("blue", 0, [300.0, 240.0])]),
             rules: json!({}),
@@ -1648,7 +1648,7 @@ fn authored() -> Vec<Scenario> {
                     prop("building", [230.0, 40.0], 0.0, [10.0, 10.0, 4.0]),
                 ] }),
             ),
-            units: json!([vehicle("blue", "tank", [20.0, 40.0], 0.0)]),
+            units: json!([vehicle("blue", "test_tank", [20.0, 40.0], 0.0)]),
             events: none.clone(),
             scripts: json!([order(
                 json!({ "kind": "attack", "units": [0], "target": { "kind": "ground", "point": [230, 40, 0] } })
@@ -1678,8 +1678,8 @@ fn authored() -> Vec<Scenario> {
                 ] }),
             ),
             units: json!([
-                { "side": "blue", "kind": "rifle", "position": [58, 45] },
-                { "side": "red", "kind": "rifle", "position": [110, 45] },
+                { "side": "blue", "kind": "test_rifle", "position": [58, 45] },
+                { "side": "red", "kind": "test_rifle", "position": [110, 45] },
             ]),
             // ATGM bursts on the sandbags' far face: a 4 m blast that spares the crates.
             events: json!([
@@ -1690,7 +1690,7 @@ fn authored() -> Vec<Scenario> {
             ]),
             scripts: none.clone(),
             // Soldiers too tough to fall, so the fight lasts.
-            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "catalog": { "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -1731,7 +1731,7 @@ fn authored() -> Vec<Scenario> {
             caption: "village road block: the tank leaves the road round the teeth, the squad threads their gaps",
             map: village([860.0, 760.0, 960.0, 850.0]),
             units: json!([
-                vehicle("blue", "tank", [835.0, 791.0], 0.0),
+                vehicle("blue", "test_tank", [835.0, 791.0], 0.0),
                 rifle("blue", [850.0, 812.0]),
             ]),
             events: none.clone(),
@@ -1762,13 +1762,13 @@ fn authored() -> Vec<Scenario> {
             caption: "defenders out of their building take the sandbags against a squad beyond the teeth",
             map: village([880.0, 725.0, 1000.0, 890.0]),
             units: json!([
-                { "side": "blue", "kind": "rifle", "position": [870, 812] },
-                { "side": "red", "kind": "rifle", "position": [953, 743] },
+                { "side": "blue", "kind": "test_rifle", "position": [870, 812] },
+                { "side": "red", "kind": "test_rifle", "position": [953, 743] },
             ]),
             events: none.clone(),
             scripts: none.clone(),
             // Soldiers too tough to fall, so the fight lasts.
-            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "catalog": { "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -1785,12 +1785,12 @@ fn authored() -> Vec<Scenario> {
             caption: "the works by the buildings with blue listed second: a defender's lean point sits off the north house's corner, and he walks to it without jamming",
             map: village([880.0, 725.0, 1000.0, 890.0]),
             units: json!([
-                { "side": "red", "kind": "rifle", "position": [953, 743] },
-                { "side": "blue", "kind": "rifle", "position": [870, 812] },
+                { "side": "red", "kind": "test_rifle", "position": [953, 743] },
+                { "side": "blue", "kind": "test_rifle", "position": [870, 812] },
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "catalog": { "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 40.0,
             seed: 1,
             checks: vec![
@@ -1807,12 +1807,12 @@ fn authored() -> Vec<Scenario> {
             caption: "defenders on the village square take the sandbags facing the road",
             map: village([940.0, 768.0, 1070.0, 823.0]),
             units: json!([
-                { "side": "red", "kind": "rifle", "position": [1018, 797] },
-                { "side": "blue", "kind": "rifle", "position": [955, 788] },
+                { "side": "red", "kind": "test_rifle", "position": [1018, 797] },
+                { "side": "blue", "kind": "test_rifle", "position": [955, 788] },
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            rules: json!({ "catalog": { "soldiers": { "test_rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -1828,7 +1828,7 @@ fn authored() -> Vec<Scenario> {
             name: "v-jeep-at-the-garden-fence",
             caption: "a jeep cannot shove the garden fence and drives round it or through its gate",
             map: village([925.0, 895.0, 990.0, 915.0]),
-            units: json!([vehicle("blue", "jeep", [952.6, 925.0], -std::f64::consts::FRAC_PI_2)]),
+            units: json!([vehicle("blue", "test_jeep", [952.6, 925.0], -std::f64::consts::FRAC_PI_2)]),
             events: none.clone(),
             scripts: json!([go(0, [952.6, 890.0])]),
             rules: json!({}),
@@ -1850,7 +1850,7 @@ fn authored() -> Vec<Scenario> {
             name: "v-tank-shoves-garden-fence",
             caption: "a tank drives through the garden fence, shoving a panel aside",
             map: village([925.0, 895.0, 990.0, 915.0]),
-            units: json!([vehicle("blue", "tank", [946.4, 927.0], -std::f64::consts::FRAC_PI_2)]),
+            units: json!([vehicle("blue", "test_tank", [946.4, 927.0], -std::f64::consts::FRAC_PI_2)]),
             events: none.clone(),
             scripts: json!([go(0, [946.4, 889.0])]),
             rules: json!({}),
@@ -1899,8 +1899,8 @@ fn authored() -> Vec<Scenario> {
             map: village([60.0, 730.0, 240.0, 910.0]),
             units: json!([
                 rifle("blue", [180.0, 790.0]),
-                vehicle("blue", "supply", [100.0, 800.0], 0.0),
-                vehicle("blue", "jeep", [125.0, 905.0], 0.0),
+                vehicle("blue", "test_supply", [100.0, 800.0], 0.0),
+                vehicle("blue", "test_jeep", [125.0, 905.0], 0.0),
             ]),
             events: none.clone(),
             scripts: json!([go(0, [100.0, 748.0]), go(1, [230.0, 800.0]), go(2, [230.0, 880.0])]),
@@ -1934,7 +1934,7 @@ fn authored() -> Vec<Scenario> {
             caption: "opposing columns pass on the road through a river bridge",
             map: serde_json::to_value(sim::maps::load("river").unwrap().definition).unwrap(),
             units: json!((0..8).map(|i| vehicle(if i < 4 { "blue" } else { "red" },
-                if i % 2 == 0 { "jeep" } else { "tank" },
+                if i % 2 == 0 { "test_jeep" } else { "test_tank" },
                 [60.0, if i < 4 { 100.0 + i as f64 * 20.0 } else { 380.0 - (i-4) as f64 * 20.0 }],
                 if i < 4 { std::f64::consts::FRAC_PI_2 } else { -std::f64::consts::FRAC_PI_2 })).collect::<Vec<_>>()),
             events: none.clone(),
@@ -1955,7 +1955,7 @@ fn authored() -> Vec<Scenario> {
             map: flat([3000.0, 6000.0], json!({ "rivers": [{ "points": [
                 {"xy":[1500,0],"width_m":20,"depth_m":1.5},
                 {"xy":[1500,6000],"width_m":20,"depth_m":1.5}],"surface_z":-0.5 }] })),
-            units: json!([vehicle("blue","jeep",[100.0,5600.0],0.0)]),
+            units: json!([vehicle("blue","test_jeep",[100.0,5600.0],0.0)]),
             events: none.clone(), scripts: json!([go(0,[2900.0,5600.0])]),
             rules: json!({}), seconds: 10.0, seed: 1,
             checks: vec![check(Refused { unit:0, by_s:0.5 }),check(NeverInWater)],
@@ -1970,7 +1970,7 @@ fn authored() -> Vec<Scenario> {
                 "surfaces": [{"kind":"road","shape":{"kind":"stroke","points":[[100,5800],[100,200],[2900,200],[2900,5800]],"width_m":8}}] })),
             // Start along the road; an initial cross-road turn spends the
             // narrow road's speed advantage before this long crossing.
-            units: json!([vehicle("blue","jeep",[100.0,5600.0],-std::f64::consts::FRAC_PI_2)]),
+            units: json!([vehicle("blue","test_jeep",[100.0,5600.0],-std::f64::consts::FRAC_PI_2)]),
             events: none.clone(), scripts: json!([go(0,[2900.0,5600.0])]),
             rules: json!({}), seconds: 600.0, seed: 1,
             checks: vec![check(Arrive { unit:0,at:[2900.0,5600.0],within_m:1.5 }),check(NeverInWater),check(WithinRadius {unit:0}),check(HullsOverWater {max_m:0.5})],
@@ -1982,7 +1982,7 @@ fn authored() -> Vec<Scenario> {
                 "surfaces": [{ "kind": "road", "shape": { "kind": "stroke", "points": [[10,40],[110,40]], "width_m": 8 } }],
                 "props": [wreck("heavy_wreck", [57.0,40.0], 0.0)]
             })),
-            units: json!([vehicle("blue", "jeep", [15.0,40.0], 0.0)]),
+            units: json!([vehicle("blue", "test_jeep", [15.0,40.0], 0.0)]),
             events: none.clone(), scripts: json!([drive("blue", 0, [100.0,40.0])]),
             rules: json!({}), seconds: 60.0, seed: 1,
             checks: vec![check(Arrive { unit: 0, at: [100.0,40.0], within_m: 1.5 }),
@@ -1994,7 +1994,7 @@ fn authored() -> Vec<Scenario> {
             map: serde_json::to_value(sim::maps::load("river").unwrap().definition).unwrap(),
             units: json!([
                 rifle("blue", [60.0, 185.0]),
-                vehicle("blue", "tank", [60.0, 150.0], 1.57),
+                vehicle("blue", "test_tank", [60.0, 150.0], 1.57),
             ]),
             events: none.clone(),
             scripts: json!([go(0, [60.0, 300.0]), go(1, [60.0, 335.0])]),
@@ -2027,7 +2027,7 @@ fn authored() -> Vec<Scenario> {
             map: serde_json::to_value(sim::maps::load("river").unwrap().definition).unwrap(),
             units: json!([
                 rifle("blue", [125.0, 195.0]),
-                vehicle("blue", "tank", [150.0, 180.0], 1.57),
+                vehicle("blue", "test_tank", [150.0, 180.0], 1.57),
             ]),
             events: none.clone(),
             scripts: json!([go(0, [125.0, 300.0]), go(1, [150.0, 320.0])]),
@@ -2076,7 +2076,7 @@ fn merge(base: &mut Value, patch: &Value) {
 }
 
 pub fn definition(s: &Scenario) -> ScenarioDefinition {
-    let mut rules = sim::fixtures::game();
+    let mut rules = sim::fixtures::test_game();
     let mut patch = s.rules.clone();
     if let Some(Value::Object(sections)) = patch.as_object_mut().and_then(|p| p.remove("catalog")) {
         for (section, entries) in sections {

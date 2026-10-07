@@ -1,9 +1,9 @@
 {
   "units": [
-    {"side":"red","kind":"tank","position":[600,248],"yaw":1.5707963267948966,"engagement":"return_fire_only"},
-    {"side":"red","kind":"tank","position":[620,60],"yaw":-1.5707963267948966,"engagement":"return_fire_only"},
-    {"side":"blue","kind":"at","position":[60,340]},
-    {"side":"blue","kind":"recon","position":[350,120],"engagement":"return_fire_only"}
+    {"side":"red","kind":"test_tank","position":[600,248],"yaw":1.5707963267948966,"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_tank","position":[620,60],"yaw":-1.5707963267948966,"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_at","position":[60,340]},
+    {"side":"blue","kind":"test_recon","position":[350,120],"engagement":"return_fire_only"}
   ],
   "scripts": [
     {"tick":92,"side":"red","order":{"kind":"move","units":[0],"gesture":1,"goal":[600,305],"route":"shortest"}}

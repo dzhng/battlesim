@@ -9,6 +9,7 @@ import { spawnSync } from "node:child_process";
 import { afterEach, expect, test, vi } from "vitest";
 import {
   WorkbenchStore,
+  workbenchCatalog,
   nativeReporter,
   mapWorkbenchPlugin,
   type NativeReporter,
@@ -102,7 +103,7 @@ async function fixture(run: NativeReporter = reporter) {
     "generated-battle.json": { analysis: { target: 0.5 } },
     "prototype-building-templates.json": [],
     "game.json": { seed: 1 },
-    "catalog.json": { units: [], props: [] },
+    "catalog.json": { documents: [], units: [], props: [] },
     "encounters.json": { recipes: {} },
   };
   for (const [name, value] of Object.entries(files))
@@ -429,8 +430,8 @@ test("a workbench snapshot recovers an interrupted mechanics publication", async
     { path: "fixtures/game.json", before: '{"seed":1}', after: '{"seed":2}' },
     {
       path: "fixtures/catalog.json",
-      before: '{"units":[],"props":[]}',
-      after: '{"units":[{"id":"edited"}],"props":[]}',
+      before: '{"documents":[],"units":[],"props":[]}',
+      after: '{"documents":[],"units":[{"id":"edited"}],"props":[]}',
     },
   ];
   const departed = spawnSync(process.execPath, ["-e", ""]);
@@ -504,7 +505,9 @@ test("a workbench snapshot waits for the complete mechanics source and catalog p
     rules: createHash("sha256")
       .update(await readFile(join(root, "fixtures/game.json"), "utf8"))
       .digest("hex"),
-    catalog: createHash("sha256").update(catalog(40)).digest("hex"),
+    catalog: createHash("sha256")
+      .update(workbenchCatalog(root, catalog(40)))
+      .digest("hex"),
   });
 });
 

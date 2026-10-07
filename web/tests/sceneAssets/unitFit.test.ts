@@ -1,14 +1,16 @@
 // @vitest-environment node
 // Each unit type's model fits its own resolved numbers. The worked example
-// (test only, never shipped): an M1 family off the shipped tank, resolved by
+// (test only, never shipped): an M1 family off the test tank, resolved by
 // the simulation's one resolver, where the M1A2 has its own model, inherits
 // the tank's turret and gun geometry, and lists a part whose hardware its
-// model must draw. And the generated check: every shipped type's appearance
-// exists and its installed model fits the type.
+// model must draw. And the generated check: every type of the test set (the
+// game's units and the test units) draws an appearance that exists, and its
+// installed model fits the type.
 import { readFileSync } from "node:fs";
 import type { Vec3 } from "math";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, resolve_catalog } from "@wasm/game_wasm.js";
+import { nodeCatalogSet, ownDocuments } from "@web/battle/catalog/node.ts";
 import { readBundle } from "@packages/scene-assets/src/gzip.ts";
 import {
   type ArticulatedBundle,
@@ -32,6 +34,7 @@ beforeAll(() => {
   initSync({ module: read("../../src/wasm/game_wasm_bg.wasm") });
   const documents = [
     ...shipped.documents,
+    ...ownDocuments("test").map((text) => JSON.parse(text)),
     json("../../../crates/sim/tests/fixtures/m1-family.json"),
   ];
   family = new UnitCatalog(JSON.parse(resolve_catalog(JSON.stringify(documents))) as CatalogView);
@@ -51,7 +54,7 @@ async function m1a2(options: Parameters<typeof tankGlb>[0]) {
 }
 
 test("the M1A2 inherits the tank's mount geometry and its part's hardware requirement", () => {
-  const [tank, m1a2] = [family.type("tank"), family.type("m1a2")];
+  const [tank, m1a2] = [family.type("test_tank"), family.type("m1a2")];
   expect(m1a2.appearance).toBe("m1a2");
   expect(m1a2.mounts.map((m) => [m.pivot_m, m.muzzle_m])).toEqual(
     tank.mounts.map((m) => [m.pivot_m, m.muzzle_m]),
@@ -84,8 +87,8 @@ test("a model without the part's hardware does not fit a type listing the part",
   expect(findings[0].message).toMatch(/\(as m1a2\).*part era.*"era_\*"/);
 });
 
-test("every shipped unit type draws appearances the catalog has, and its model fits it", async () => {
-  const units = new UnitCatalog(shipped);
+test("every unit type draws appearances the catalog has, and its model fits it", async () => {
+  const { units } = await nodeCatalogSet("test");
   const catalog = json("../../../assets/catalog.json") as Catalog;
   expect(typeAppearanceFindings(catalog.appearances, units)).toEqual([]);
   const runtime = json("../../../assets/runtime/catalog.json") as RuntimeCatalog;

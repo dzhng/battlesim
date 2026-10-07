@@ -1513,11 +1513,11 @@
         }
       },
       "soldiers": {
-        "at_rifleman": {
+        "test_at_rifleman": {
           "appearance": [
-            "rifle",
-            "rifle_b",
-            "rifle_c"
+            "test_rifle",
+            "test_rifle_b",
+            "test_rifle_c"
           ],
           "description": "A rifleman of an anti-tank team.",
           "hp": 100,
@@ -1541,11 +1541,11 @@
           ],
           "name": "AT rifleman"
         },
-        "atgm_gunner": {
+        "test_atgm_gunner": {
           "appearance": [
-            "rifle",
-            "rifle_b",
-            "rifle_c"
+            "test_rifle",
+            "test_rifle_b",
+            "test_rifle_c"
           ],
           "description": "Carries the team's guided anti-tank missile launcher.",
           "hp": 100,
@@ -1572,14 +1572,14 @@
               "on": null,
               "operator_appearance": {
                 "active": [
-                  "at",
-                  "at_b",
-                  "at_c"
+                  "test_at",
+                  "test_at_b",
+                  "test_at_c"
                 ],
                 "carried": [
-                  "at_carried",
-                  "at_carried_b",
-                  "at_carried_c"
+                  "test_at_carried",
+                  "test_at_carried_b",
+                  "test_at_carried_c"
                 ]
               },
               "pivot_m": [
@@ -1597,11 +1597,11 @@
           ],
           "name": "ATGM gunner"
         },
-        "grenadier": {
+        "test_grenadier": {
           "appearance": [
-            "rifle",
-            "rifle_b",
-            "rifle_c"
+            "test_rifle",
+            "test_rifle_b",
+            "test_rifle_c"
           ],
           "description": "A rifleman who also carries the squad's grenade launcher.",
           "hp": 100,
@@ -1641,11 +1641,11 @@
           ],
           "name": "Grenadier"
         },
-        "rifleman": {
+        "test_rifleman": {
           "appearance": [
-            "rifle",
-            "rifle_b",
-            "rifle_c"
+            "test_rifle",
+            "test_rifle_b",
+            "test_rifle_c"
           ],
           "description": "A soldier with a rifle.",
           "hp": 100,
@@ -1669,11 +1669,11 @@
           ],
           "name": "Rifleman"
         },
-        "scout": {
+        "test_scout": {
           "appearance": [
-            "recon",
-            "recon_b",
-            "recon_c"
+            "test_recon",
+            "test_recon_b",
+            "test_recon_c"
           ],
           "description": "A lightly equipped rifleman who spots for the rest.",
           "hp": 100,
@@ -1699,13 +1699,13 @@
         }
       },
       "units": {
-        "at": {
+        "test_at": {
           "body": {
             "squad": {
               "slots": [
-                "atgm_gunner",
-                "at_rifleman",
-                "at_rifleman"
+                "test_atgm_gunner",
+                "test_at_rifleman",
+                "test_at_rifleman"
               ]
             }
           },
@@ -1737,8 +1737,8 @@
             "profile": "infantry"
           }
         },
-        "jeep": {
-          "appearance": "jeep",
+        "test_jeep": {
+          "appearance": "test_jeep",
           "body": {
             "hull": {
               "armor": {
@@ -1818,14 +1818,14 @@
             "profile": "vehicle"
           }
         },
-        "recon": {
+        "test_recon": {
           "body": {
             "squad": {
               "slots": [
-                "scout",
-                "scout",
-                "scout",
-                "scout"
+                "test_scout",
+                "test_scout",
+                "test_scout",
+                "test_scout"
               ]
             }
           },
@@ -1858,18 +1858,18 @@
             "profile": "infantry"
           }
         },
-        "rifle": {
+        "test_rifle": {
           "body": {
             "squad": {
               "slots": [
-                "grenadier",
-                "rifleman",
-                "rifleman",
-                "rifleman",
-                "rifleman",
-                "rifleman",
-                "rifleman",
-                "rifleman"
+                "test_grenadier",
+                "test_rifleman",
+                "test_rifleman",
+                "test_rifleman",
+                "test_rifleman",
+                "test_rifleman",
+                "test_rifleman",
+                "test_rifleman"
               ]
             }
           },
@@ -1902,7 +1902,7 @@
           }
         },
         "supply": {
-          "appearance": "supply_truck",
+          "appearance": "test_supply_truck",
           "body": {
             "hull": {
               "armor": {
@@ -1968,8 +1968,8 @@
             "profile": "vehicle"
           }
         },
-        "tank": {
-          "appearance": "tank",
+        "test_tank": {
+          "appearance": "test_tank",
           "body": {
             "hull": {
               "armor": {

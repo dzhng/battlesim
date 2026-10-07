@@ -37,7 +37,7 @@ const WEAPONS_CAMERA: Camera3DParams = {
 /** Reference commands, exactly as a player would send them. */
 const DEMOS: Record<string, (o: ObservationView, units: number[]) => Order | null> = {
   "Attack red tank": (o, units) => {
-    const tank = o.identified.find((e) => e.kind === "tank");
+    const tank = o.identified.find((e) => e.kind === "test_tank");
     return tank ? { kind: "attack", units, target: { kind: "identified", id: tank.id } } : null;
   },
   "Attack firing area": (o, units) => {

@@ -106,7 +106,7 @@ function benchOf(catalog: SessionCatalog): Bench {
 
   const SOLDIER = [P.soldier_radius_m, P.soldier_height_m];
   const PRESET_TANK: [number, number] = [238, 262];
-  const TANK = units.hull("tank")!.half_extents_m;
+  const TANK = units.hull("test_tank")!.half_extents_m;
   const NORTH = Math.PI / 2;
 
   const movers: Mover[] = [
@@ -258,7 +258,7 @@ function benchOf(catalog: SessionCatalog): Bench {
       }),
     ),
   ];
-  return { movers, shots, rules: catalog.rules, tankArmor: units.hull("tank")!.armor };
+  return { movers, shots, rules: catalog.rules, tankArmor: units.hull("test_tank")!.armor };
 }
 
 const BALLISTICS_CAMERA: Camera3DParams = {

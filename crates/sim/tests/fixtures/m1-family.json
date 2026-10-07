@@ -2,7 +2,7 @@
   "units": {
     "m1": {
       "abstract": true,
-      "extends": "tank",
+      "extends": "test_tank",
       "name": "M1",
       "description": "Test only: the base of a tank family.",
       "faction": "test",

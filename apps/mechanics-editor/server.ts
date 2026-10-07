@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { join, relative, resolve as resolvePath } from "node:path";
 import { FixturePublication, mechanicsSourcePaths } from "../fixture-publication/publication";
 import type { Plugin } from "vite";
+import { isGameDocument } from "../../web/src/battle/catalog/compose";
 import { gameplayField, validateGameplayValue, valueAt } from "./src/fields";
 import {
   MECHANICS_API,
@@ -212,16 +213,35 @@ export class MechanicsStore {
     };
   }
 
+  /** Resolve every authored document, test units included, into the view
+   *  the editor shows and fits models against; and the game's documents
+   *  alone into `fixtures/catalog.json`'s text, which never holds a test
+   *  unit. */
+  private async resolve(
+    files: FileState[],
+    text: (file: FileState) => string,
+    changes?: MechanicsChange[],
+  ) {
+    const game = files.find((file) => file.path === "fixtures/game.json")!;
+    const run = (rows: FileState[], changes?: MechanicsChange[]) =>
+      this.validate(
+        game.value,
+        rows.map((file) => file.value),
+        [text(game), ...rows.map(text)],
+        changes,
+      );
+    const documents = files.filter((file) => file !== game);
+    const [all, generated] = await Promise.all([
+      run(documents, changes),
+      run(documents.filter((file) => isGameDocument(file.path))),
+    ]);
+    return { catalog: object(JSON.parse(all)), generated };
+  }
+
   private async loaded() {
     const state = await this.publication.capture(() => this.read());
-    const game = state.files.find((file) => file.path === "fixtures/game.json")!;
-    const documents = state.files.filter((file) => file !== game);
-    const text = await this.validate(
-      game.value,
-      documents.map((file) => file.value),
-      [game.text, ...documents.map((file) => file.text)],
-    );
-    return { ...state, catalog: object(JSON.parse(text)) };
+    const { catalog, generated } = await this.resolve(state.files, (file) => file.text);
+    return { ...state, catalog, game: object(JSON.parse(generated)) };
   }
 
   snapshot(): Promise<MechanicsSnapshot> {
@@ -231,6 +251,7 @@ export class MechanicsStore {
         revision: state.revision,
         documents: state.files.map(({ path, value }) => ({ path, value })),
         catalog: state.catalog,
+        game: state.game,
       };
     });
   }
@@ -350,21 +371,11 @@ export class MechanicsStore {
       if (!Object.keys(object(own.doc.value.soldiers)).length) delete own.doc.value.soldiers;
       restoredUnits.add(change.unit);
     }
-    const game = documents.find((file) => file.path === "fixtures/game.json")!;
     const originals = new Map(state.files.map((file) => [file.path, JSON.stringify(file.value)]));
     const sourceText = (file: FileState) =>
       JSON.stringify(file.value) === originals.get(file.path) ? file.text : pretty(file.value);
-    const validate = () => {
-      const rows = documents.filter((file) => file !== game);
-      return this.validate(
-        game.value,
-        rows.map((file) => file.value),
-        [sourceText(game), ...rows.map(sourceText)],
-        draft.changes,
-      );
-    };
-    let generated = await validate();
-    let catalog = object(JSON.parse(generated));
+    const validate = () => this.resolve(documents, sourceText, draft.changes);
+    let { catalog, generated } = await validate();
     // Ask the catalog owner whether the slot override is still needed. Removing
     // the last local soldier override should return an inherited unit to its
     // authored form, including inheritance rather than a copied slot list.
@@ -374,13 +385,11 @@ export class MechanicsStore {
       const original = structuredClone(unit);
       override(unit, entry(catalog, "units", id), ["body", "squad", "slots"], undefined, true);
       try {
-        const inheritedText = await validate();
-        const inherited = object(JSON.parse(inheritedText));
-        if (!matchesIntent(entry(inherited, "units", id), entry(catalog, "units", id))) {
+        const inherited = await validate();
+        if (!matchesIntent(entry(inherited.catalog, "units", id), entry(catalog, "units", id))) {
           Object.assign(unit, original);
         } else {
-          generated = inheritedText;
-          catalog = inherited;
+          ({ catalog, generated } = inherited);
         }
       } catch {
         Object.assign(unit, original);
@@ -480,6 +489,7 @@ export class MechanicsStore {
         revision: saved.revision,
         documents: saved.files.map(({ path, value }) => ({ path, value })),
         catalog: saved.catalog,
+        game: saved.game,
       };
     });
   }

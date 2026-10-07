@@ -28,7 +28,9 @@ function load() {
     const moduleOrPath =
       typeof process !== "undefined" && process.versions?.node
         ? await import("node:fs/promises").then(({ readFile }) =>
-            readFile(new URL("../../wasm/game_wasm_bg.wasm", import.meta.url)),
+            // A path, not a URL: under jsdom `URL` is the DOM's, which
+            // Node's file reader does not take.
+            readFile(`${import.meta.dirname}/../../wasm/game_wasm_bg.wasm`),
           )
         : countedFetch(wasmUrl);
     const out = await init({ module_or_path: moduleOrPath });

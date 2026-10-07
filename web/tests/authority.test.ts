@@ -31,8 +31,8 @@ beforeAll(() => {
 });
 
 const scenario = labScenario(geometry, [
-  { side: "blue", kind: "tank", position: [40, 150] },
-  { side: "red", kind: "rifle", position: [360, 150] },
+  { side: "blue", kind: "test_tank", position: [40, 150] },
+  { side: "red", kind: "test_rifle", position: [360, 150] },
 ]);
 const TICK_MS = 1000 / game.tick_hz;
 
@@ -162,8 +162,8 @@ test("a paused formation preview returns only own destinations without issuing a
 
 test("building previews preserve battle outcomes and an invalid query leaves the authority usable", async () => {
   const setup = labScenario(loadMap("garrison").definition, [
-    { side: "blue", kind: "recon", position: [325, 250] },
-    { side: "blue", kind: "tank", position: [290, 250] },
+    { side: "blue", kind: "test_recon", position: [325, 250] },
+    { side: "blue", kind: "test_tank", position: [290, 250] },
   ]);
   const queried = harness();
   const untouched = harness();
@@ -515,14 +515,14 @@ test("purchase preview resolves through the authority without spending or advanc
     type: "purchase_preview",
     id: 1,
     side: "blue",
-    variant: "tank",
+    variant: "test_tank",
     destination: [400, 250],
   });
   h.authority.handle({
     type: "purchase_preview",
     id: 2,
     side: "red",
-    variant: "tank",
+    variant: "test_tank",
     destination: [400, 250],
   });
   expect(h.replies.filter((r) => r.type === "purchase_preview")).toEqual([

@@ -3505,15 +3505,15 @@ mod tests {
                 "forests": [{ "shape": { "kind": "polygon",
                     "ring": [[100, 50], [200, 50], [200, 150], [100, 150]] } }],
                 "props": props },
-            "rules": crate::fixtures::game(),
+            "rules": crate::fixtures::test_game(),
             "units": [
-                { "side": "blue", "kind": "tank", "position": [40, 100], "yaw": 0.0,
+                { "side": "blue", "kind": "test_tank", "position": [40, 100], "yaw": 0.0,
                   "engagement": "return_fire_only" },
-                { "side": "blue", "kind": "jeep", "position": [40, 30], "yaw": 0.0,
+                { "side": "blue", "kind": "test_jeep", "position": [40, 30], "yaw": 0.0,
                   "engagement": "return_fire_only" },
-                { "side": "red", "kind": "rifle", "position": [860, 100],
+                { "side": "red", "kind": "test_rifle", "position": [860, 100],
                   "engagement": "return_fire_only" },
-                { "side": "red", "kind": "jeep", "position": [880, 180], "yaw": 3.1,
+                { "side": "red", "kind": "test_jeep", "position": [880, 180], "yaw": 3.1,
                   "engagement": "return_fire_only" }
             ],
             "events": events,
@@ -3621,18 +3621,18 @@ mod tests {
                 yaw: 0.0,
             })
             .unwrap();
-        let mut rules = crate::fixtures::game();
+        let mut rules = crate::fixtures::test_game();
         crate::fixtures::patch_catalog(
             &mut rules,
             "units",
-            "rifle",
+            "test_rifle",
             serde_json::json!({"sensors":{"ground_m":30}}),
         );
         let setup = serde_json::from_value(serde_json::json!({
             "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
                 "template_catalog_hash":catalogue.hash(),"regional_family":descriptor.regional_family,
                 "buildings":[{"owner":0,"kind":"building","category":descriptor.category,"regional_family":descriptor.regional_family,"parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":geometry}]},
-            "rules":rules,"units":[{"side":"blue","kind":"rifle","position":[250,100],"engagement":"return_fire_only"}],"events":[],"scripts":[]
+            "rules":rules,"units":[{"side":"blue","kind":"test_rifle","position":[250,100],"engagement":"return_fire_only"}],"events":[],"scripts":[]
         })).unwrap();
         let mut battle = Battle::new(&setup, 11);
         battle.destroy_prop(0, v2(1.0, 0.0));
@@ -3673,11 +3673,11 @@ mod tests {
                 })
                 .unwrap();
             geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
-            let mut rules = crate::fixtures::game();
+            let mut rules = crate::fixtures::test_game();
             crate::fixtures::patch_catalog(
                 &mut rules,
                 "units",
-                "rifle",
+                "test_rifle",
                 serde_json::json!({"sensors":{"ground_m":60}}),
             );
             rules["weapons"]["rifle"]["damage"] = serde_json::json!(1e6);
@@ -3688,8 +3688,8 @@ mod tests {
                     "buildings":[{"owner":0,"kind":"building","category":descriptor.category,"regional_family":descriptor.regional_family,
                         "parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":geometry}]},
                 "rules":rules,"units":[
-                    {"side":"red","kind":"rifle","position":[380,300],"engagement":"return_fire_only"},
-                    {"side":"blue","kind":"rifle","position":[350,300],"engagement":"return_fire_only"}
+                    {"side":"red","kind":"test_rifle","position":[380,300],"engagement":"return_fire_only"},
+                    {"side":"blue","kind":"test_rifle","position":[350,300],"engagement":"return_fire_only"}
                 ],"events":[],"scripts":[]
             })).unwrap();
             let mut battle = Battle::new(&setup, 11);
@@ -3850,8 +3850,8 @@ mod settlement_tests {
 
     #[test]
     fn hostile_collapse_uses_first_destructive_source_and_original_receipt() {
-        let mut rules = crate::fixtures::game();
-        for kind in ["tank", "rifle"] {
+        let mut rules = crate::fixtures::test_game();
+        for kind in ["test_tank", "test_rifle"] {
             crate::fixtures::patch_catalog(
                 &mut rules,
                 "units",
@@ -3859,12 +3859,12 @@ mod settlement_tests {
                 json!({"sensors":{"ground_m":1}}),
             );
         }
-        crate::fixtures::patch_catalog(&mut rules, "units", "rifle", json!({"cost":900}));
+        crate::fixtures::patch_catalog(&mut rules, "units", "test_rifle", json!({"cost":900}));
         rules["garrison"]["survival_probability_on_collapse"] = json!(0);
         let setup: ScenarioDefinition = serde_json::from_value(json!({
             "map":rules["map"],"rules":rules,"units":[
-                {"side":"blue","kind":"tank","position":[50,50]},
-                {"side":"red","kind":"rifle","position":[700,550]}
+                {"side":"blue","kind":"test_tank","position":[50,50]},
+                {"side":"red","kind":"test_rifle","position":[700,550]}
             ]
         }))
         .unwrap();

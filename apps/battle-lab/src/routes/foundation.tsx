@@ -98,7 +98,7 @@ const BLUE = [0.55, 0.7, 1.0] as const;
 
 /** One placed thing: a vehicle (a model) or a proxy (a soldier, the crate). */
 interface Placed {
-  kind: "tank" | "supply" | "box" | "infantry";
+  kind: "test_tank" | "test_supply" | "box" | "infantry";
   x: number;
   y: number;
   z: number;
@@ -108,7 +108,7 @@ interface Placed {
 const onPatch = (p: Omit<Placed, "z">): Placed => ({ ...p, z: patchHeight(p.x, p.y) });
 
 const FOUNDATION: Placed[] = [
-  onPatch({ kind: "tank", x: 0, y: 0, yaw: 0.35 }),
+  onPatch({ kind: "test_tank", x: 0, y: 0, yaw: 0.35 }),
   // A crate the tank's gun reaches over: the depth-overlap check.
   onPatch({ kind: "box", x: 6.4, y: 2.5, yaw: 0.2 }),
   ...[0, 1, 2, 3].map((i) =>
@@ -119,7 +119,7 @@ const FOUNDATION: Placed[] = [
       yaw: -Math.PI / 2 + i * 0.9,
     }),
   ),
-  onPatch({ kind: "supply", x: 10, y: -12, yaw: Math.PI * 0.8 }),
+  onPatch({ kind: "test_supply", x: 10, y: -12, yaw: Math.PI * 0.8 }),
 ];
 /** A placed unit type's hull; none for the soldier and the crate. */
 const hullOf = (units: UnitCatalog, kind: string) => (units.has(kind) ? units.hull(kind) : null);

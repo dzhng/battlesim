@@ -5,7 +5,7 @@ import type { ObservationView, OwnUnitView } from "../src/battle/sim/observation
 
 const unit = (id: number, x: number, yaw = 0): OwnUnitView => ({
   id,
-  kind: "tank",
+  kind: "test_tank",
   position: [x, 0, 0],
   yaw,
   goal: null,
@@ -87,7 +87,7 @@ test("deployment progress blends between ticks and stays null for units without 
   const i = new TickInterpolator(100);
   const supply = (progress: number): OwnUnitView => ({
     ...unit(1, 0),
-    kind: "supply",
+    kind: "test_supply",
     deployment: { progress, target: "deployed" },
   });
   i.push(frame(1, [supply(0.2), unit(0, 0)]), 0);

@@ -459,7 +459,7 @@ fn more_garrison_rows_than_buildings_in_reach_is_refused() {
     );
     for _ in 0..2 {
         recipe.forces.red.push(contract::encounter::RosterRow {
-            kind: "rifle".into(),
+            kind: "test_rifle".into(),
             post: Post::Garrison,
             engagement: None,
         });
@@ -512,7 +512,7 @@ fn a_map_without_a_settlement_or_its_open_approach_has_no_objective() {
 fn a_second_overwatch_post_covers_the_open_approach_on_the_attackers_side() {
     let (map, sites, mut recipe) = (town_map(800.0, json!({})), town_sites(800.0), recipe());
     recipe.forces.red.push(contract::encounter::RosterRow {
-        kind: "at".into(),
+        kind: "test_at".into(),
         post: Post::Overwatch,
         engagement: None,
     });
@@ -633,7 +633,7 @@ fn a_recipe_is_refused_for_what_it_asks_before_any_map_is_read() {
         why[0].message
     );
     // A vehicle garrisons nothing.
-    let why = refused(&|r| r.forces.red[0].kind = "tank".into());
+    let why = refused(&|r| r.forces.red[0].kind = "test_tank".into());
     assert_eq!(
         (why[0].code, why[0].feature.as_deref()),
         (Code::InvalidRecipe, Some("forces.red[0]"))

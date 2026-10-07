@@ -116,7 +116,7 @@ test("an authority failure returns held records once and rejects requests after 
   }).memory;
   const battle = new Battle(
     labScenario(loadMap("geometry").definition, [
-      { side: "blue", kind: "tank", position: [40, 150] },
+      { side: "blue", kind: "test_tank", position: [40, 150] },
     ]),
     9,
   );

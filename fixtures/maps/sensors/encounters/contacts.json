@@ -1,9 +1,9 @@
 {
   "units": [
-    {"side":"blue","kind":"recon","position":[560,400],"engagement":"return_fire_only"},
-    {"side":"blue","kind":"rifle","position":[560,560],"engagement":"return_fire_only"},
-    {"side":"red","kind":"tank","position":[840,470],"yaw":3.141592653589793,"engagement":"return_fire_only"},
-    {"side":"red","kind":"rifle","position":[860,500],"engagement":"return_fire_only"}
+    {"side":"blue","kind":"test_recon","position":[560,400],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_rifle","position":[560,560],"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_tank","position":[840,470],"yaw":3.141592653589793,"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_rifle","position":[860,500],"engagement":"return_fire_only"}
   ],
   "events": [
     {"tick":60,"fire":{"unit":3}},

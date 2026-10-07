@@ -109,14 +109,14 @@ test("one progress ring shows aiming first, then reload, then disappears", () =>
 });
 
 test("own squad names count living soldiers including wounded members, without exposing enemy personnel", () => {
-  const squad = specimenUnit(TEST_CATALOG, "rifle", { memberHp: [10, 0, 3] });
+  const squad = specimenUnit(TEST_CATALOG, "test_rifle", { memberHp: [10, 0, 3] });
   const own = render(<InfoPanel panel={ownPanel(UNITS, squad, [squad], fixtureRules)} />);
   expect(own.getByText("2 soldiers")).toBeTruthy();
   own.unmount();
-  const enemy = render(<InfoPanel panel={enemyPanel(UNITS, "rifle", fixtureRules)} />);
+  const enemy = render(<InfoPanel panel={enemyPanel(UNITS, "test_rifle", fixtureRules)} />);
   expect(enemy.queryByText(/soldiers/)).toBeNull();
   enemy.unmount();
-  const tank = specimenUnit(TEST_CATALOG, "tank");
+  const tank = specimenUnit(TEST_CATALOG, "test_tank");
   const vehicle = render(<InfoPanel panel={ownPanel(UNITS, tank, [tank], fixtureRules)} />);
   expect(vehicle.queryByText(/soldiers/)).toBeNull();
 });

@@ -6,23 +6,23 @@
       "attacker_edge": "bottom",
       "forces": {
         "blue": [
-          { "kind": "jeep", "post": "column" },
-          { "kind": "recon", "post": "column" },
-          { "kind": "tank", "post": "column" },
-          { "kind": "tank", "post": "column" },
-          { "kind": "rifle", "post": "column" },
-          { "kind": "rifle", "post": "column" },
-          { "kind": "rifle", "post": "column" },
-          { "kind": "at", "post": "column" },
-          { "kind": "supply", "post": "column" }
+          { "kind": "test_jeep", "post": "column" },
+          { "kind": "test_recon", "post": "column" },
+          { "kind": "test_tank", "post": "column" },
+          { "kind": "test_tank", "post": "column" },
+          { "kind": "test_rifle", "post": "column" },
+          { "kind": "test_rifle", "post": "column" },
+          { "kind": "test_rifle", "post": "column" },
+          { "kind": "test_at", "post": "column" },
+          { "kind": "test_supply", "post": "column" }
         ],
         "red": [
-          { "kind": "rifle", "post": "garrison" },
-          { "kind": "rifle", "post": "garrison" },
-          { "kind": "rifle", "post": "garrison" },
-          { "kind": "at", "post": "overwatch", "engagement": "return_fire_only" },
-          { "kind": "jeep", "post": "column" },
-          { "kind": "tank", "post": "column" }
+          { "kind": "test_rifle", "post": "garrison" },
+          { "kind": "test_rifle", "post": "garrison" },
+          { "kind": "test_rifle", "post": "garrison" },
+          { "kind": "test_at", "post": "overwatch", "engagement": "return_fire_only" },
+          { "kind": "test_jeep", "post": "column" },
+          { "kind": "test_tank", "post": "column" }
         ]
       },
       "objective": {
@@ -37,7 +37,7 @@
         "spacing_m": 30,
         "step_m": 50,
         "max_advance_m": 1500,
-        "pace": "jeep",
+        "pace": "test_jeep",
         "max_route_difference_s": 15,
         "defender_advances": true
       },

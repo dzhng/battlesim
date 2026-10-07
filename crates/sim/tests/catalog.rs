@@ -1,5 +1,5 @@
 //! The unit catalog as the battle uses it: the view the browser reads stays
-//! current, and every stand-in type (`fixtures/units/generic` and the
+//! current, and every test unit type (`fixtures/units/test` and the
 //! test-only M1 family) passes the same generated checks: it sets up, moves,
 //! and fires each of its mounts. The faction roster is data on the same
 //! rules: it is admitted where the view is written, and no test walks it.
@@ -70,10 +70,10 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
     assert_eq!(seen, disabled.keys().cloned().collect());
 }
 
-/// The stand-in fixture with the M1 family's catalog document and the
+/// The test fixture with the M1 family's catalog document and the
 /// weapon row its M1A1 swaps in (a row that `extends` the tank's sabot).
 fn with_m1_family() -> Value {
-    let mut fixture = sim::fixtures::stand_in_game();
+    let mut fixture = sim::fixtures::test_game();
     let family: Value = serde_json::from_str(include_str!("fixtures/m1-family.json")).unwrap();
     fixture["catalog"].as_array_mut().unwrap().push(family);
     fixture["weapons"]["m829"] = json!({
@@ -101,11 +101,17 @@ fn the_test_and_menu_sets_extend_the_games() {
             panic!("the {set:?} set does not resolve: {e}");
         }
     }
+    // The menu's units extend the test units, so the menu set holds them too.
     let test = catalog_documents(CatalogSet::Test);
-    for doc in sim::fixtures::documents(&["units/generic"]) {
+    let menu = catalog_documents(CatalogSet::Menu);
+    for doc in sim::fixtures::test_documents() {
         assert!(
             test.contains(&doc),
             "the test set lacks a test unit document"
+        );
+        assert!(
+            menu.contains(&doc),
+            "the menu set lacks a test unit document"
         );
     }
 }
@@ -124,17 +130,61 @@ fn the_browsers_catalog_view_is_current() {
     );
 }
 
-/// The roster is admitted without the stand-in units: no roster kind
-/// inherits from a generic one, so editing a stand-in changes no roster
+/// What players get is the roster: every concrete unit type in the committed
+/// catalog is a roster card, every soldier kind fills a slot of one, and no
+/// test or menu unit ships.
+#[test]
+fn the_game_catalog_holds_only_what_roster_cards_reach() {
+    let path = sim::fixtures::dir().join("catalog.json");
+    let view: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let cards: std::collections::BTreeSet<&str> = view["cards"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|c| c["disabled_reason"].is_null())
+        .map(|c| c["id"].as_str().unwrap())
+        .collect();
+    let mut stray = Vec::new();
+    let mut reached = std::collections::BTreeSet::new();
+    for unit in view["units"].as_array().unwrap() {
+        let id = unit["id"].as_str().unwrap();
+        if !cards.contains(id) {
+            stray.push(format!("unit {id} is on no card"));
+            continue;
+        }
+        for slot in unit["body"]["squad"]["slots"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            reached.insert(slot.as_str().unwrap());
+        }
+    }
+    for id in view["soldiers"].as_object().unwrap().keys() {
+        if !reached.contains(id.as_str()) {
+            stray.push(format!("soldier kind {id} fills no card's slot"));
+        }
+    }
+    for section in ["units", "soldiers", "props", "parts", "roles"] {
+        for (id, _) in view["documents"][section].as_object().into_iter().flatten() {
+            if id.starts_with("test_") || id.starts_with("menu_") {
+                stray.push(format!("{section}.{id} is test or menu content"));
+            }
+        }
+    }
+    assert!(stray.is_empty(), "the game catalog ships: {stray:#?}");
+}
+
+/// The roster is admitted without the test units: no roster kind
+/// inherits from a test one, so editing a test unit changes no roster
 /// squad.
 #[test]
-fn the_roster_resolves_without_the_stand_in_units() {
+fn the_roster_resolves_without_the_test_units() {
     let game: Value = serde_json::from_str(
         &std::fs::read_to_string(sim::fixtures::dir().join("game.json")).unwrap(),
     )
     .unwrap();
-    let documents =
-        sim::fixtures::documents(&["units/roster", "units/ground", "units/roles.json", "props"]);
+    let documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
     if let Err(e) = sim::fixtures::admit(game, documents) {
         panic!("the roster leans on documents outside it: {e}");
     }
@@ -144,13 +194,13 @@ fn the_roster_resolves_without_the_stand_in_units() {
 fn the_m1_family_resolves_its_variants_from_one_base() {
     let rules: Rules = serde_json::from_value(with_m1_family()).unwrap();
     let c = &rules.catalog;
-    let tank = c.by_id("tank").hull().unwrap();
+    let tank = c.by_id("test_tank").hull().unwrap();
     assert!(c.index("m1").is_none(), "the abstract base is not a type");
     // One differs in armour.
     let ip = c.by_id("m1ip").hull().unwrap();
     assert_eq!((ip.armor.front, ip.armor.side), (180.0, tank.armor.side));
     // One swaps a mount's weapon, keeping the mount's geometry.
-    let (a1, base) = (c.by_id("m1a1"), c.by_id("tank"));
+    let (a1, base) = (c.by_id("m1a1"), c.by_id("test_tank"));
     assert_eq!(a1.mounts[0].weapons, ["m829", "tank_he"]);
     assert_eq!(
         (a1.mounts[0].pivot_m, a1.mounts[0].muzzle_m),
@@ -182,16 +232,16 @@ fn a_mount_naming_no_weapon_row_fails_at_load() {
     };
     let e = load(
         "units",
-        "tank",
+        "test_tank",
         json!({ "mounts": [{ "name": "HMG", "weapons": ["railgun"] }] }),
     );
     assert!(
-        e.contains("units.tank: mount \"HMG\" names weapon row \"railgun\""),
+        e.contains("units.test_tank: mount \"HMG\" names weapon row \"railgun\""),
         "{e}"
     );
     let e = load(
         "soldiers",
-        "rifleman",
+        "test_rifleman",
         json!({ "mounts": [{ "name": "rifles", "weapons": ["musket"] }] }),
     );
     // Every kind extending the rifleman inherits it: the first is named.
@@ -219,20 +269,25 @@ fn a_fallen_carriers_weapon_is_lost_unless_it_is_special() {
         let patch = |f: &mut Value, section, id, p| sim::fixtures::patch_catalog(f, section, id, p);
         // The grenadier in the squad's last slot, so its one casualty is him.
         let slots = json!({ "body": { "squad": { "slots": [
-            "rifleman", "rifleman", "rifleman", "rifleman",
-            "rifleman", "rifleman", "rifleman", "grenadier"
+            "test_rifleman", "test_rifleman", "test_rifleman", "test_rifleman",
+            "test_rifleman", "test_rifleman", "test_rifleman", "test_grenadier"
         ] } } });
-        patch(&mut fixture, "units", "rifle", slots);
+        patch(&mut fixture, "units", "test_rifle", slots);
         let launcher = json!({ "mounts": [{ "name": "grenade launcher", "special": special }] });
-        patch(&mut fixture, "soldiers", "grenadier", launcher);
-        patch(&mut fixture, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
+        patch(&mut fixture, "soldiers", "test_grenadier", launcher);
+        patch(
+            &mut fixture,
+            "soldiers",
+            "test_rifleman",
+            json!({ "hp": 1.0e6 }),
+        );
         let range = fixture["weapons"]["grenade"]["range_m"].as_f64().unwrap();
         let setup = serde_json::from_value(json!({
             "map": { "size": [700, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
             "rules": fixture,
             "units": [
-                { "side": "blue", "kind": "rifle", "position": [200, 300], "condition": { "casualties": 1 } },
-                { "side": "red", "kind": "rifle", "position": [200.0 + range * 0.5, 300], "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_rifle", "position": [200, 300], "condition": { "casualties": 1 } },
+                { "side": "red", "kind": "test_rifle", "position": [200.0 + range * 0.5, 300], "engagement": "return_fire_only" },
             ],
             "events": [], "scripts": [],
         }))
@@ -254,8 +309,8 @@ fn a_fallen_carriers_weapon_is_lost_unless_it_is_special() {
 /// too tough to fall, and holding fire until fired on.
 fn targets(range: f64) -> Value {
     json!([
-        { "side": "red", "kind": "rifle", "position": [200.0 + range * 0.5, 300.0 - range * 0.3], "engagement": "return_fire_only" },
-        { "side": "red", "kind": "tank", "position": [200.0 + range * 0.5, 300.0 + range * 0.3], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_rifle", "position": [200.0 + range * 0.5, 300.0 - range * 0.3], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "test_tank", "position": [200.0 + range * 0.5, 300.0 + range * 0.3], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
     ])
 }
 
@@ -271,18 +326,23 @@ fn battle(fixture: &Value, id: &str, others: Value) -> Battle {
     Battle::new(&setup, 1)
 }
 
-/// Every stand-in type: it sets up, fires each mount within a minute at a
+/// Every test unit type: it sets up, fires each mount within a minute at a
 /// squad and a tank in reach, and on open ground drives or walks where it
 /// is ordered.
 #[test]
 fn every_unit_type_sets_up_fires_each_mount_and_moves() {
     let mut fixture = with_m1_family();
     grenade_firing_profile(&mut fixture);
-    sim::fixtures::patch_catalog(&mut fixture, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "soldiers",
+        "test_rifleman",
+        json!({ "hp": 1.0e6 }),
+    );
     sim::fixtures::patch_catalog(
         &mut fixture,
         "units",
-        "tank",
+        "test_tank",
         json!({ "body": { "hull": { "hp": 1.0e6 } } }),
     );
     let rules: Rules = serde_json::from_value(fixture.clone()).unwrap();
@@ -357,32 +417,32 @@ fn vehicle_wrecks_cannot_require_missing_building_facts() {
 fn a_hull_past_its_drives_limits_is_refused_at_load() {
     for (unit, patch, limit) in [
         (
-            "tank",
+            "test_tank",
             json!({ "body": { "hull": { "half_extents_m": [3.5, 2.2, 1.2] } } }),
             "tracked half width",
         ),
         (
-            "tank",
+            "test_tank",
             json!({ "body": { "hull": { "half_extents_m": [4.3, 1.8, 1.2] } } }),
             "tracked half length",
         ),
         (
-            "supply",
+            "test_supply",
             json!({ "body": { "hull": { "half_extents_m": [3.0, 1.7, 1.8] } } }),
             "wheeled half width",
         ),
         (
-            "supply",
+            "test_supply",
             json!({ "body": { "hull": { "half_extents_m": [5.3, 1.4, 1.8] } } }),
             "wheeled half length",
         ),
         (
-            "supply",
+            "test_supply",
             json!({ "mobility": { "wheeled": { "turning_radius_m": 6.5 } } }),
             "wheeled turning radius",
         ),
     ] {
-        let mut fixture = sim::fixtures::stand_in_game();
+        let mut fixture = sim::fixtures::test_game();
         sim::fixtures::patch_catalog(&mut fixture, "units", unit, patch);
         let error = serde_json::from_value::<Rules>(fixture)
             .expect_err(limit)

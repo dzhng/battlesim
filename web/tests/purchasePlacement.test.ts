@@ -14,9 +14,9 @@ test("a changed variant/destination cannot reuse an earlier valid preview", asyn
     previewPurchase: vi.fn(() => new Promise<PurchasePlacement>((r) => resolve.push(r))),
   } as unknown as SimClient;
   const control = new PurchasePlacementControl();
-  control.choose("tank");
+  control.choose("test_tank");
   expect(control.at([20, 30], client, "1")?.valid).toBeNull();
-  control.choose("scout");
+  control.choose("test_scout");
   expect(control.at([40, 50], client, "1")?.valid).toBeNull();
   resolve[0]({ Ok: 0 });
   await settle();
@@ -29,7 +29,7 @@ test("a changed variant/destination cannot reuse an earlier valid preview", asyn
   expect(await control.confirm(send)).toBe(true);
   expect(send).toHaveBeenCalledExactlyOnceWith({
     kind: "confirm_purchase",
-    variant: "scout",
+    variant: "test_scout",
     destination: [40, 50],
   });
   expect(control.variant).toBeNull();
@@ -44,7 +44,7 @@ test("a replaced authority cannot inherit a valid preview", async () => {
     previewPurchase: () => new Promise<PurchasePlacement>((r) => resolvers.push(r)),
   } as unknown as SimClient;
   const control = new PurchasePlacementControl();
-  control.choose("scout");
+  control.choose("test_scout");
   control.at([10, 20], first, "1");
   control.at([10, 20], second, "1");
   resolvers[0]({ Ok: 1 });
@@ -65,7 +65,7 @@ test("a completed preview can confirm without another pointer movement", async (
       }),
   } as unknown as SimClient;
   const control = new PurchasePlacementControl();
-  control.choose("scout");
+  control.choose("test_scout");
   control.at([10, 20], client, "1");
   reply({ Ok: 1 });
   await settle();
@@ -73,7 +73,7 @@ test("a completed preview can confirm without another pointer movement", async (
   expect(await control.confirm(send)).toBe(true);
   expect(send).toHaveBeenCalledExactlyOnceWith({
     kind: "confirm_purchase",
-    variant: "scout",
+    variant: "test_scout",
     destination: [10, 20],
   });
 });
@@ -81,7 +81,7 @@ test("a completed preview can confirm without another pointer movement", async (
 test("deployment ghosts face the opposing edge by default and track a drag bearing", () => {
   const client = { previewPurchase: vi.fn(async () => ({ Ok: 1 })) } as unknown as SimClient;
   const control = new PurchasePlacementControl();
-  control.choose("scout");
+  control.choose("test_scout");
   expect(control.at([10, 20], client, "1")?.facing).toBeCloseTo(-Math.PI / 2);
   expect(control.at([10, 20], client, "1", Math.PI / 2)?.facing).toBeCloseTo(Math.PI / 2);
 });

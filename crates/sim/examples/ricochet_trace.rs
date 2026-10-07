@@ -28,13 +28,13 @@ fn main() {
     let row = arg(1).unwrap_or_else(|| "hmg".into());
     let incidence: f64 = arg(2).and_then(|s| s.parse().ok()).unwrap_or(60.0);
     let rounds: usize = arg(3).and_then(|s| s.parse().ok()).unwrap_or(20);
-    let fixture = sim::fixtures::game();
+    let fixture = sim::fixtures::test_game();
     let section = |name: &str| fixture[name].clone();
     let flight: FlightRules = serde_json::from_value(section("physics")).unwrap();
     let rules: Rules = serde_json::from_value(fixture.clone()).unwrap();
     let tank = rules
         .catalog
-        .by_id("tank")
+        .by_id("test_tank")
         .hull()
         .expect("the tank has a hull");
     let ricochet: RicochetRules = serde_json::from_value(section("ricochet")).unwrap();

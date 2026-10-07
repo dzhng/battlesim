@@ -7,6 +7,7 @@ import { nativeReporter, type NativeReporter } from "./native";
 import { WorkbenchError } from "./error";
 import { workbenchMiddleware } from "./httpServer";
 import { canonicalSeed, MAP_TYPES, MAP_SIZES } from "../../web/src/maps/source";
+import { ownDocuments } from "../../web/src/battle/catalog/node";
 import type {
   Draft,
   Field,
@@ -34,6 +35,15 @@ const paths = {
   catalog: "fixtures/catalog.json",
   recipes: "fixtures/encounters.json",
 } as const;
+/** The catalog input generation and encounter planning run on: the game's
+ *  committed documents (`fixtures/catalog.json`) plus the test units, since
+ *  the workbench's encounter recipes field test units, never the roster. */
+export function workbenchCatalog(root: string, gameCatalog: string): string {
+  const documents = (JSON.parse(gameCatalog) as { documents: unknown[] }).documents;
+  return JSON.stringify({
+    documents: [...documents, ...ownDocuments("test", root).map((text) => JSON.parse(text))],
+  });
+}
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const pretty = (value: Json) => `${JSON.stringify(value, null, 2)}\n`;
 function canonical(value: Json): string {
@@ -110,9 +120,10 @@ export class WorkbenchStore {
   }
   private async read(): Promise<State> {
     const entries = await Promise.all(
-      Object.entries(paths).map(
-        async ([name, path]) => [name, await fs.readFile(join(this.root, path), "utf8")] as const,
-      ),
+      Object.entries(paths).map(async ([name, path]) => {
+        const text = await fs.readFile(join(this.root, path), "utf8");
+        return [name, name === "catalog" ? workbenchCatalog(this.root, text) : text] as const;
+      }),
     );
     const inputs = Object.fromEntries(entries) as unknown as NativeInputs;
     const receipts = Object.fromEntries(entries.map(([name, text]) => [name, hash(text)]));

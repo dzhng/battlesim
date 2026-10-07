@@ -227,7 +227,7 @@ fn first_meeting(events: &[(u64, FlightEvent)]) -> BTreeMap<ProjectileId, Flight
 
 #[test]
 fn each_face_glances_at_its_fixture_chance_within_the_scatter_cone() {
-    let chances = hull("tank").armor.ricochet;
+    let chances = hull("test_tank").armor.ricochet;
     let n = 3000;
     for (face, chance) in [
         ("front", chances.front),
@@ -353,8 +353,8 @@ fn rifle_fire_through_a_tank_glances_off_it_and_replays() {
     let setup = scenario_with(
         &map,
         json!([
-            { "side": "blue", "kind": "recon", "position": [180, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "tank", "position": [240, 300], "yaw": 2.0, "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_recon", "position": [180, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [240, 300], "yaw": 2.0, "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),

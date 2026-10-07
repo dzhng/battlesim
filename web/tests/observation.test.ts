@@ -46,16 +46,16 @@ function published(battle: Battle, layout: ObservationLayout, side: "blue" | "re
 test("packed twin launchers keep separate readiness through to the panel rows", () => {
   const rules = structuredClone(TEST_RULES);
   const docs = rules.catalog as Array<{ units?: Record<string, Record<string, unknown>> }>;
-  const at = docs.find((d) => d.units?.at)?.units?.at;
+  const at = docs.find((d) => d.units?.test_at)?.units?.test_at;
   if (!at) throw new Error("no authored AT team");
-  at.body = { squad: { slots: ["atgm_gunner", "atgm_gunner", "at_rifleman"] } };
+  at.body = { squad: { slots: ["test_atgm_gunner", "test_atgm_gunner", "test_at_rifleman"] } };
   rules.weapons.atgm.ammo = 2;
   rules.weapons.atgm.aim_s = 0.5;
   rules.weapons.atgm.reload_s = 2;
   const scenario = JSON.parse(
     labScenario(weaponsMap, [
-      { side: "blue", kind: "at", position: [200, 250] },
-      { side: "red", kind: "tank", position: [600, 250], engagement: "return_fire_only" },
+      { side: "blue", kind: "test_at", position: [200, 250] },
+      { side: "red", kind: "test_tank", position: [600, 250], engagement: "return_fire_only" },
     ]),
   );
   scenario.rules = rules;
@@ -77,7 +77,7 @@ test("packed twin launchers keep separate readiness through to the panel rows", 
     ]);
     expect(mounts.slice(1).every((m) => m.guiding && m.reloading === 0 && m.reload > 0)).toBe(true);
     const view = JSON.parse(resolve_catalog(JSON.stringify(rules.catalog))) as CatalogView;
-    const equipment = view.units.find((u) => u.id === "at")!.mounts;
+    const equipment = view.units.find((u) => u.id === "test_at")!.mounts;
     expect(weaponRows(equipment, rules as unknown as PanelRules, mounts).map(weaponLabel)).toEqual([
       "RIFLE ∞",
       "ATGM 1 1",
@@ -95,8 +95,8 @@ test(
     const scenario = labScenario(
       sensors,
       [
-        { side: "red", kind: "recon", position: [560, 480] },
-        { side: "blue", kind: "tank", position: [840, 480] },
+        { side: "red", kind: "test_recon", position: [560, 480] },
+        { side: "blue", kind: "test_tank", position: [840, 480] },
       ],
       [],
       [
@@ -131,10 +131,10 @@ test("a packed side frame decodes group by group through the published layout", 
   const scenario = labScenario(
     sensors,
     [
-      { side: "blue", kind: "recon", position: [560, 480] },
-      { side: "blue", kind: "rifle", position: [560, 430] },
-      { side: "red", kind: "rifle", position: [840, 480] },
-      { side: "red", kind: "tank", position: [700, 300] },
+      { side: "blue", kind: "test_recon", position: [560, 480] },
+      { side: "blue", kind: "test_rifle", position: [560, 430] },
+      { side: "red", kind: "test_rifle", position: [840, 480] },
+      { side: "red", kind: "test_tank", position: [700, 300] },
     ],
     [
       { tick: 5, fire: { unit: 2 } },
@@ -151,9 +151,9 @@ test("a packed side frame decodes group by group through the published layout", 
     JSON.parse(battle.observation_layout()) as ObservationLayout,
   ).decode(new Float32Array(memory.buffer, battle.publication_ptr(), length).slice())!;
   expect(frame.tick).toBe(15);
-  expect(frame.own.map((u) => u.kind)).toEqual(["recon", "rifle"]);
+  expect(frame.own.map((u) => u.kind)).toEqual(["test_recon", "test_rifle"]);
   expect(frame.own[1].members).toHaveLength(8);
-  expect(frame.identified.map((e) => e.kind)).toEqual(["tank"]);
+  expect(frame.identified.map((e) => e.kind)).toEqual(["test_tank"]);
   expect(frame.contacts).toHaveLength(1);
   const c = frame.contacts[0];
   expect(c.source).toBe("firing");
@@ -179,8 +179,8 @@ test("a packed side frame decodes group by group through the published layout", 
 
 test("each own unit's sight decodes: eyes, forward, shape and range", () => {
   const scenario = labScenario(weaponsMap, [
-    { side: "blue", kind: "tank", position: [200, 250], yaw: 0.5 },
-    { side: "blue", kind: "rifle", position: [200, 300], yaw: 1.5 },
+    { side: "blue", kind: "test_tank", position: [200, 250], yaw: 0.5 },
+    { side: "blue", kind: "test_rifle", position: [200, 300], yaw: 1.5 },
   ]);
   const battle = new Battle(scenario, 3);
   battle.step();
@@ -188,7 +188,7 @@ test("each own unit's sight decodes: eyes, forward, shape and range", () => {
     battle,
     JSON.parse(battle.observation_layout()) as ObservationLayout,
   ).own;
-  const s = UNITS.type("tank").sensors;
+  const s = UNITS.type("test_tank").sensors;
   // Float32 transport: values survive to single precision.
   expect(tank.sight.forward).toBeCloseTo(0.5, 6);
   for (const k of ["front", "side", "rear"] as const)
@@ -197,9 +197,9 @@ test("each own unit's sight decodes: eyes, forward, shape and range", () => {
   expect(tank.sight.eyes).toHaveLength(1);
   const [x, y, z] = tank.sight.eyes[0];
   expect([x, y]).toEqual([tank.position[0], tank.position[1]]);
-  expect(z).toBeCloseTo(tank.position[2] + UNITS.hull("tank")!.eye_m, 4);
+  expect(z).toBeCloseTo(tank.position[2] + UNITS.hull("test_tank")!.eye_m, 4);
   expect(rifle.sight.shape).toEqual({ front: 1, side: 1, rear: 1 });
-  expect(rifle.sight.range).toBe(UNITS.type("rifle").sensors.ground_m);
+  expect(rifle.sight.range).toBe(UNITS.type("test_rifle").sensors.ground_m);
   // The published reach matches the shape's anchors.
   const reach = (off: number) => tank.sight.range * sightMultiplier(tank.sight.shape, off);
   expect(reach(0)).toBeCloseTo(s.ground_m * s.sight_shape.front, 3);
@@ -210,8 +210,8 @@ test("each own unit's sight decodes: eyes, forward, shape and range", () => {
 
 test("mount readiness and visible projectile segments decode", () => {
   const scenario = labScenario(weaponsMap, [
-    { side: "blue", kind: "tank", position: [200, 250] },
-    { side: "red", kind: "tank", position: [400, 250] },
+    { side: "blue", kind: "test_tank", position: [200, 250] },
+    { side: "red", kind: "test_tank", position: [400, 250] },
   ]);
   const battle = new Battle(scenario, 3);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
@@ -237,15 +237,15 @@ test("mount readiness and visible projectile segments decode", () => {
 
 test("deployment progress, its target and the packing state decode", () => {
   const scenario = labScenario(deploymentMap, [
-    { side: "blue", kind: "supply", position: [100, 100] },
-    { side: "blue", kind: "tank", position: [100, 60] },
+    { side: "blue", kind: "test_supply", position: [100, 100] },
+    { side: "blue", kind: "test_tank", position: [100, 60] },
   ]);
   const battle = new Battle(scenario, 3);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decode = () => published(battle, layout);
   const send = (seq: number, order: Order) =>
     JSON.parse(battle.accept(JSON.stringify({ side: "blue", seq, order, queued: false })));
-  const timing = UNITS.type("supply").capabilities.deploy!;
+  const timing = UNITS.type("test_supply").capabilities.deploy!;
   const ticks = timing.seconds * game.tick_hz;
   const packTicks = (timing.pack_seconds ?? timing.seconds) * game.tick_hz;
   for (let t = 0; t < ticks / 2; t++) battle.step();
@@ -270,8 +270,8 @@ test("casualties, health and corpses decode", () => {
   const scenario = labScenario(
     weaponsMap,
     [
-      { side: "blue", kind: "tank", position: [200, 250] },
-      { side: "red", kind: "rifle", position: [320, 250], engagement: "return_fire_only" },
+      { side: "blue", kind: "test_tank", position: [200, 250] },
+      { side: "red", kind: "test_rifle", position: [320, 250], engagement: "return_fire_only" },
     ],
     [{ tick: 2, add_prop: { kind: "wall", center: [340, 280], yaw: 0, half_extents: [1, 1, 2] } }],
   );
@@ -299,7 +299,7 @@ test("casualties, health and corpses decode", () => {
   expect(red.knownProps.length).toBeGreaterThan(0);
   expect(retained.corpses).toEqual([]);
   expect(retained.own[0].members).toHaveLength(8);
-  const squad = red.own.find((u) => u.kind === "rifle");
+  const squad = red.own.find((u) => u.kind === "test_rifle");
   if (squad) {
     expect(squad.memberHp).toHaveLength(squad.members.length);
     expect(squad.members.length).toBe(8 - red.corpses.length);
@@ -311,8 +311,8 @@ test("casualties, health and corpses decode", () => {
 
 test("guided missiles and their launcher's support decode", () => {
   const scenario = labScenario(weaponsMap, [
-    { side: "blue", kind: "at", position: [200, 250] },
-    { side: "red", kind: "tank", position: [600, 250], engagement: "return_fire_only" },
+    { side: "blue", kind: "test_at", position: [200, 250] },
+    { side: "red", kind: "test_tank", position: [600, 250], engagement: "return_fire_only" },
   ]);
   const battle = new Battle(scenario, 4);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
@@ -330,10 +330,10 @@ test("guided missiles and their launcher's support decode", () => {
 
 test("supply stock and each unit's service status decode", () => {
   const scenario = labScenario(weaponsMap, [
-    { side: "blue", kind: "supply", position: [200, 250], stock: 55 },
+    { side: "blue", kind: "test_supply", position: [200, 250], stock: 55 },
     {
       side: "blue",
-      kind: "rifle",
+      kind: "test_rifle",
       position: [220, 250],
       engagement: "return_fire_only",
       condition: { casualties: 2 },
@@ -357,7 +357,7 @@ test("supply stock and each unit's service status decode", () => {
 
 test("the encounter status decodes, and is absent outside an encounter", () => {
   const lab = new Battle(
-    labScenario(weaponsMap, [{ side: "blue", kind: "rifle", position: [200, 250] }]),
+    labScenario(weaponsMap, [{ side: "blue", kind: "test_rifle", position: [200, 250] }]),
     1,
   );
   const layout = JSON.parse(lab.observation_layout()) as ObservationLayout;
@@ -460,7 +460,11 @@ test("every frozen animation field and ground value decodes, integers exact past
     return new ObservationDecoder(layout).decode(delivered)!;
   };
   const o = decodeVector("base");
-  expect([o.own[0].kind, o.identified[0].kind, o.corpses[0].kind]).toEqual(["rifle", "tank", "at"]);
+  expect([o.own[0].kind, o.identified[0].kind, o.corpses[0].kind]).toEqual([
+    "test_rifle",
+    "test_tank",
+    "test_at",
+  ]);
   expect(o.knownProps.map((p) => p.kind)).toEqual(["tank_wreck"]);
   // A prop id past 2^24 survives as two limbs.
   expect(o.fallenBodies).toEqual([
@@ -534,7 +538,7 @@ test("every frozen animation field and ground value decodes, integers exact past
   ]);
   expect(o.blasts).toEqual([{ point: [5, 6, 0.5], radius: 12, kind: layout.roundKinds[3] }]);
   expect(o.corpses).toEqual([
-    { position: [2, 3, 0], own: false, soldier: big + 10, kind: "at", slot: 2, yaw: -1.25 },
+    { position: [2, 3, 0], own: false, soldier: big + 10, kind: "test_at", slot: 2, yaw: -1.25 },
   ]);
   expect(o.own[0].garrison).toBeNull();
   expect(o.knownProps[0].replaces).toBeNull();
@@ -588,8 +592,8 @@ test("every frozen animation field and ground value decodes, integers exact past
 test("a live battle publishes poses, soldier ids, tracer kinds and blasts", () => {
   // Blue's tank shells red's squad; red shoots back.
   const scenario = labScenario(weaponsMap, [
-    { side: "blue", kind: "tank", position: [200, 250] },
-    { side: "red", kind: "rifle", position: [420, 250] },
+    { side: "blue", kind: "test_tank", position: [200, 250] },
+    { side: "red", kind: "test_rifle", position: [420, 250] },
   ]);
   const battle = new Battle(scenario, 7);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
@@ -616,8 +620,8 @@ test("a live battle publishes poses, soldier ids, tracer kinds and blasts", () =
 test("packed forest concealment reaches the shared info panel and clears in the open", () => {
   const battle = new Battle(
     labScenario(sensors, [
-      { side: "blue", kind: "rifle", position: [480, 300] },
-      { side: "blue", kind: "rifle", position: [240, 300] },
+      { side: "blue", kind: "test_rifle", position: [480, 300] },
+      { side: "blue", kind: "test_rifle", position: [240, 300] },
     ]),
     1,
   );

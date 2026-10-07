@@ -35,7 +35,7 @@ export async function run(ctx) {
   const shot = await page.screenshot();
   await writeFile(ctx.evidencePath("frame-1280x800.png"), shot);
   const png = decode(shot);
-  const tankIndex = info.placed.findIndex((i) => i.kind === "tank");
+  const tankIndex = info.placed.findIndex((i) => i.kind === "test_tank");
   const boxIndex = info.placed.findIndex((i) => i.kind === "box");
   const tank = info.placed[tankIndex];
   const box = info.placed[boxIndex];
@@ -63,7 +63,7 @@ export async function run(ctx) {
   await page.mouse.click(tankPx[0], tankPx[1]);
   await page.evaluate(() => window.__lab.frame());
   const selectedText = await page.getByTestId("foundation-panel").textContent();
-  ctx.check("selection reaches the panel", selectedText.includes("tank"), selectedText);
+  ctx.check("selection reaches the panel", selectedText.includes("test_tank"), selectedText);
   const sky = await page.evaluate(() => window.__lab.pickAt(640, 5));
   ctx.check("sky pick selects nothing", sky === -1, `picked ${sky}`);
 

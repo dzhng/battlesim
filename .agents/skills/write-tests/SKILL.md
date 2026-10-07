@@ -86,8 +86,9 @@ Game content (a unit roster, a weapon table, a building library) grows every
 day; a test that walks it or names its entries breaks on every addition and
 gets slower with each one, while proving nothing a fake could not.
 
-- **Test a mechanic on stand-ins and fakes.** Use the fixed stand-in content,
-  and build a fake entry in the test for a shape it lacks. If the mechanic
+- **Test a mechanic on test units and fakes.** Use the fixed test content
+  (in this repo the `test_*` units, never game content), and build a fake
+  entry in the test for a shape it lacks. If the mechanic
   holds for the fake, it holds for the real entry of that shape.
 - **Make the extremes data, and test at them.** Where a mechanic depends on
   how big, fast or extreme an entry can be, put the bound in the rules, build

@@ -101,7 +101,7 @@ const report: PresentedContact = {
   expiresTick: 390,
   opacity: 1,
   retiring: false,
-  kind: "tank",
+  kind: "test_tank",
   heard: [],
 };
 

@@ -1284,11 +1284,7 @@ export function budgetFindings(
         ),
       );
   }
-  if (
-    bundle &&
-    budget.textures !== undefined &&
-    bundle.textures.length > budget.textures
-  )
+  if (bundle && budget.textures !== undefined && bundle.textures.length > budget.textures)
     out.push(
       finding(
         "budget.unit_textures",

@@ -35,17 +35,17 @@ fn ground_range_bounds_identification_by_observer_class() {
         s.ground_m * s.sight_shape.front
     };
     for (kind, range) in [
-        ("recon", reach("recon")),
-        ("rifle", reach("rifle")),
-        ("tank", reach("tank")),
+        ("test_recon", reach("test_recon")),
+        ("test_rifle", reach("test_rifle")),
+        ("test_tank", reach("test_tank")),
     ] {
         let near = battle(json!([
             { "side": "blue", "kind": kind, "position": [20, 580] },
-            { "side": "red", "kind": "tank", "position": [20.0 + range - 5.0, 580] },
+            { "side": "red", "kind": "test_tank", "position": [20.0 + range - 5.0, 580] },
         ]));
         let far = battle(json!([
             { "side": "blue", "kind": kind, "position": [20, 580] },
-            { "side": "red", "kind": "tank", "position": [20.0 + range + 5.0, 580] },
+            { "side": "red", "kind": "test_tank", "position": [20.0 + range + 5.0, 580] },
         ]));
         assert_eq!(
             blue(&near).identified.len(),
@@ -68,7 +68,7 @@ fn recon_spots_concealed_infantry_at_twice_the_range_without_extending_open_sigh
         sim::fixtures::patch_catalog(
             &mut fixture,
             "units",
-            "recon",
+            "test_recon",
             json!({ "sensors": { "ground_m": 600 } }),
         );
         fixture["forests"]["rule"]["concealment_infantry"] = json!(0.25);
@@ -81,7 +81,7 @@ fn recon_spots_concealed_infantry_at_twice_the_range_without_extending_open_sigh
             "rules": fixture,
             "units": [
                 { "side": "blue", "kind": kind, "position": [800.0 - distance, 60] },
-                { "side": "red", "kind": "rifle", "position": [800, 60] }
+                { "side": "red", "kind": "test_rifle", "position": [800, 60] }
             ], "events": [], "scripts": []
         }))
         .unwrap();
@@ -90,16 +90,16 @@ fn recon_spots_concealed_infantry_at_twice_the_range_without_extending_open_sigh
             .identified
             .is_empty()
     };
-    assert!(identifies_at("rifle", 140.0, true));
-    assert!(!identifies_at("rifle", 160.0, true));
+    assert!(identifies_at("test_rifle", 140.0, true));
+    assert!(!identifies_at("test_rifle", 160.0, true));
     assert!(
-        identifies_at("recon", 290.0, true),
+        identifies_at("test_recon", 290.0, true),
         "scouts spot through concealment at twice the ordinary reach"
     );
-    assert!(!identifies_at("recon", 310.0, true));
-    assert!(identifies_at("recon", 590.0, false));
+    assert!(!identifies_at("test_recon", 310.0, true));
+    assert!(identifies_at("test_recon", 590.0, false));
     assert!(
-        !identifies_at("recon", 610.0, false),
+        !identifies_at("test_recon", 610.0, false),
         "the concealment bonus cannot extend open-ground sight"
     );
 }
@@ -107,14 +107,14 @@ fn recon_spots_concealed_infantry_at_twice_the_range_without_extending_open_sigh
 #[test]
 fn recon_open_sight_ends_at_650_metres() {
     for (kind, distance, seen) in [
-        ("rifle", 590, true),
-        ("rifle", 630, false),
-        ("recon", 630, true),
-        ("recon", 670, false),
+        ("test_rifle", 590, true),
+        ("test_rifle", 630, false),
+        ("test_recon", 630, true),
+        ("test_recon", 670, false),
     ] {
         let b = battle(json!([
             { "side": "blue", "kind": kind, "position": [20, 580] },
-            { "side": "red", "kind": "tank", "position": [20 + distance, 580] }
+            { "side": "red", "kind": "test_tank", "position": [20 + distance, 580] }
         ]));
         assert_eq!(
             !blue(&b).identified.is_empty(),
@@ -127,10 +127,10 @@ fn recon_open_sight_ends_at_650_metres() {
 #[test]
 fn thin_forest_lets_vehicles_be_seen_beyond_it_and_thick_forest_blocks() {
     let b = battle(json!([
-        { "side": "blue", "kind": "rifle", "position": [240, 100] },
-        { "side": "red", "kind": "tank", "position": [520, 100] },
-        { "side": "blue", "kind": "rifle", "position": [240, 300] },
-        { "side": "red", "kind": "tank", "position": [620, 300] },
+        { "side": "blue", "kind": "test_rifle", "position": [240, 100] },
+        { "side": "red", "kind": "test_tank", "position": [520, 100] },
+        { "side": "blue", "kind": "test_rifle", "position": [240, 300] },
+        { "side": "red", "kind": "test_tank", "position": [620, 300] },
     ]));
     assert!(
         identifies(&b, [520.0, 100.0]),
@@ -145,9 +145,9 @@ fn thin_forest_lets_vehicles_be_seen_beyond_it_and_thick_forest_blocks() {
 #[test]
 fn hills_and_buildings_block_sight() {
     let hill = battle(json!([
-        { "side": "blue", "kind": "recon", "position": [560, 480] },
-        { "side": "red", "kind": "tank", "position": [840, 480] },
-        { "side": "red", "kind": "tank", "position": [700, 200] },
+        { "side": "blue", "kind": "test_recon", "position": [560, 480] },
+        { "side": "red", "kind": "test_tank", "position": [840, 480] },
+        { "side": "red", "kind": "test_tank", "position": [700, 200] },
     ]));
     assert!(!identifies(&hill, [840.0, 480.0]), "behind the ridge");
     assert!(
@@ -155,9 +155,9 @@ fn hills_and_buildings_block_sight() {
         "clear of the ridge at a similar range"
     );
     let building = battle(json!([
-        { "side": "blue", "kind": "recon", "position": [900, 100] },
-        { "side": "red", "kind": "tank", "position": [1100, 100] },
-        { "side": "red", "kind": "tank", "position": [1100, 160] },
+        { "side": "blue", "kind": "test_recon", "position": [900, 100] },
+        { "side": "red", "kind": "test_tank", "position": [1100, 100] },
+        { "side": "red", "kind": "test_tank", "position": [1100, 160] },
     ]));
     assert!(
         !identifies(&building, [1100.0, 100.0]),
@@ -227,9 +227,9 @@ fn foliage_behind_a_wall_does_not_amplify_blocked_sight_work() {
 #[test]
 fn shared_identification_extends_a_tank_but_not_its_own_sensor() {
     let b = battle(json!([
-        { "side": "blue", "kind": "recon", "position": [200, 560] },
-        { "side": "blue", "kind": "tank", "position": [250, 560] },
-        { "side": "red", "kind": "tank", "position": [820, 560] },
+        { "side": "blue", "kind": "test_recon", "position": [200, 560] },
+        { "side": "blue", "kind": "test_tank", "position": [250, 560] },
+        { "side": "red", "kind": "test_tank", "position": [820, 560] },
     ]));
     let frame = blue(&b);
     assert_eq!(
@@ -241,12 +241,12 @@ fn shared_identification_extends_a_tank_but_not_its_own_sensor() {
     let scout = frame
         .own
         .iter()
-        .find(|u| u.kind == common::unit_kind("recon"))
+        .find(|u| u.kind == common::unit_kind("test_recon"))
         .unwrap();
     let tank = frame
         .own
         .iter()
-        .find(|u| u.kind == common::unit_kind("tank"))
+        .find(|u| u.kind == common::unit_kind("test_tank"))
         .unwrap();
     assert_eq!(scout.sees, vec![id]);
     assert!(
@@ -259,8 +259,8 @@ fn shared_identification_extends_a_tank_but_not_its_own_sensor() {
 fn a_partly_hidden_squad_exports_only_its_seen_soldiers() {
     // A squad straddling the building's shadow: some members are behind it.
     let b = battle(json!([
-        { "side": "blue", "kind": "recon", "position": [900, 104] },
-        { "side": "red", "kind": "rifle", "position": [1016, 112] },
+        { "side": "blue", "kind": "test_recon", "position": [900, 104] },
+        { "side": "red", "kind": "test_rifle", "position": [1016, 112] },
     ]));
     let frame = blue(&b);
     assert_eq!(frame.identified.len(), 1);
@@ -281,8 +281,8 @@ fn hidden_enemy_changes_leave_the_side_view_identical() {
     // Red's tank behind the ridge, beyond vehicle hearing range, moves; blue's
     // frame must not change. (Within hearing range the sound is evidence.)
     let units = json!([
-        { "side": "blue", "kind": "recon", "position": [100, 480] },
-        { "side": "red", "kind": "tank", "position": [840, 480] },
+        { "side": "blue", "kind": "test_recon", "position": [100, 480] },
+        { "side": "red", "kind": "test_tank", "position": [840, 480] },
     ]);
     let mut a = Battle::new(&common::scenario(map(), units.clone(), json!([])), 1);
     let scripts = json!([{ "tick": 1, "side": "red", "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [860, 470], "route": "shortest" } }]);
@@ -304,8 +304,8 @@ fn handles_along(
     path: &[[f64; 2]],
 ) -> Vec<Option<contract::observation::ObservedTargetId>> {
     let units = json!([
-        { "side": "blue", "kind": "recon", "position": scout },
-        { "side": "red", "kind": "tank", "position": start },
+        { "side": "blue", "kind": "test_recon", "position": scout },
+        { "side": "red", "kind": "test_tank", "position": start },
     ]);
     let scripts: Vec<_> = path
         .iter()
@@ -374,7 +374,7 @@ fn a_lapsed_identification_gets_a_new_handle() {
 
 #[test]
 fn the_ground_field_marks_open_ground_visible_and_hidden_ground_fogged() {
-    let b = battle(json!([{ "side": "blue", "kind": "recon", "position": [560, 480] }]));
+    let b = battle(json!([{ "side": "blue", "kind": "test_recon", "position": [560, 480] }]));
     let fog = &blue(&b).ground_visibility;
     assert!(fog.visible(620.0, 480.0), "open ground in front");
     assert!(!fog.visible(820.0, 480.0), "the far side of the ridge");
@@ -392,9 +392,9 @@ fn each_observer_identifies_on_alternate_ticks_and_never_more_than_one_tick_late
     for start_tick in [1, 2] {
         // Two scouts (staggered by id) watch a tank cross behind the wall.
         let units = json!([
-            { "side": "blue", "kind": "recon", "position": [900, 300], "engagement": "return_fire_only" },
-            { "side": "blue", "kind": "recon", "position": [900, 320], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "tank", "position": [1100, 270], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_recon", "position": [900, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_recon", "position": [900, 320], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [1100, 270], "engagement": "return_fire_only" },
         ]);
         let scripts = json!([{ "tick": start_tick, "side": "red",
         "order": { "kind": "move", "units": [2], "gesture": 1, "goal": [1100, 330], "route": "shortest" } }]);
@@ -445,10 +445,10 @@ fn each_observer_identifies_on_alternate_ticks_and_never_more_than_one_tick_late
 #[test]
 fn enemy_identification_removes_hidden_even_with_full_concealment() {
     let b = battle(json!([
-        { "side": "blue", "kind": "rifle", "position": [480, 300] },
-        { "side": "blue", "kind": "tank", "position": [480, 300] },
-        { "side": "blue", "kind": "rifle", "position": [240, 300] },
-        { "side": "red", "kind": "recon", "position": [480, 310] },
+        { "side": "blue", "kind": "test_rifle", "position": [480, 300] },
+        { "side": "blue", "kind": "test_tank", "position": [480, 300] },
+        { "side": "blue", "kind": "test_rifle", "position": [240, 300] },
+        { "side": "red", "kind": "test_recon", "position": [480, 310] },
     ]));
     let own = serde_json::to_value(&b.observe(Side::Blue).own).unwrap();
     assert_eq!(own[0]["concealed"], json!(false));
@@ -459,8 +459,8 @@ fn enemy_identification_removes_hidden_even_with_full_concealment() {
         "concealed units can still be identified up close"
     );
     let safe = battle(json!([
-        { "side": "blue", "kind": "rifle", "position": [480, 300] },
-        { "side": "blue", "kind": "tank", "position": [480, 300] }
+        { "side": "blue", "kind": "test_rifle", "position": [480, 300] },
+        { "side": "blue", "kind": "test_tank", "position": [480, 300] }
     ]));
     assert!(safe.observe(Side::Blue).own.iter().all(|u| u.concealed));
 }
@@ -468,8 +468,8 @@ fn enemy_identification_removes_hidden_even_with_full_concealment() {
 #[test]
 fn squad_identification_requires_twenty_percent_of_living_members() {
     let b = battle(json!([
-        { "side": "blue", "kind": "recon", "position": [20, 580] },
-        { "side": "red", "kind": "rifle", "position": [100, 580] },
+        { "side": "blue", "kind": "test_recon", "position": [20, 580] },
+        { "side": "red", "kind": "test_rifle", "position": [100, 580] },
     ]));
     let mut units: Vec<_> = (0..2).map(|i| b.unit(UnitId(i)).unwrap().clone()).collect();
     for member in &mut units[1].members {
@@ -541,7 +541,7 @@ fn forest_concealment_is_binary_even_between_tree_crowns() {
 
 #[test]
 fn squad_hidden_requires_more_than_eighty_percent_of_living_members() {
-    let b = battle(json!([{ "side": "blue", "kind": "rifle", "position": [480, 300] }]));
+    let b = battle(json!([{ "side": "blue", "kind": "test_rifle", "position": [480, 300] }]));
     let mut squad = b.unit(UnitId(0)).unwrap().clone();
     for m in &mut squad.members {
         m.position = sim::math::v3(480.0, 300.0, 0.0);
@@ -581,8 +581,8 @@ fn scout_watching_from_forest() -> contract::scenario::ScenarioDefinition {
     let mut scenario = common::scenario(
         map(),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100,580] },
-            { "side": "red", "kind": "recon", "position": [300,580] }
+            { "side": "blue", "kind": "test_rifle", "position": [100,580] },
+            { "side": "red", "kind": "test_recon", "position": [300,580] }
         ]),
         json!([]),
     );

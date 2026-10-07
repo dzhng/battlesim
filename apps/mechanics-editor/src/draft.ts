@@ -5,7 +5,7 @@ import {
   type JsonObject,
   type MechanicsChange,
   type MechanicsDraft,
-  type MechanicsSnapshot,
+  type EditableSources,
   type Section,
 } from "./protocol";
 
@@ -76,7 +76,7 @@ export function resetDraft(
   target: EditTarget,
   path: string[],
   entry: JsonObject,
-  snapshot: MechanicsSnapshot,
+  snapshot: EditableSources,
 ): MechanicsDraft {
   const origin = fieldOrigin(snapshot, target, path);
   const restore = origin.canRestore || origin.inherited;
@@ -126,7 +126,7 @@ export function draftEntry(
   original: JsonObject,
   draft: MechanicsDraft,
   target: EditTarget,
-  snapshot?: MechanicsSnapshot,
+  snapshot?: EditableSources,
 ): JsonObject {
   const entry = structuredClone(original);
   for (const change of draft.changes.filter((c) => sameTarget(c, target))) {
@@ -174,7 +174,7 @@ export interface FieldOrigin {
 
 /** Source provenance is a leaf lookup along authored parents, not a second merger. */
 export function fieldOrigin(
-  snapshot: MechanicsSnapshot,
+  snapshot: EditableSources,
   target: EditTarget,
   path: readonly string[],
 ): FieldOrigin {
@@ -229,7 +229,7 @@ export function fieldOrigin(
 }
 
 export function unitWeapons(
-  snapshot: MechanicsSnapshot,
+  snapshot: EditableSources,
   id: string,
   draft: MechanicsDraft,
 ): string[] {
@@ -265,7 +265,7 @@ export function unitWeapons(
 }
 
 export function weaponUsers(
-  snapshot: MechanicsSnapshot,
+  snapshot: EditableSources,
   weapon: string,
   draft: MechanicsDraft,
 ): string[] {

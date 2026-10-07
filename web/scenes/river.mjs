@@ -500,8 +500,8 @@ export async function run(ctx) {
   }
   // The far bank begins 6 m north of the 12 m stretch's centreline.
   const across = (p) => p[1] > 246;
-  const tank = own.find((u) => u.kind === "tank");
-  const squad = own.find((u) => u.kind === "rifle");
+  const tank = own.find((u) => u.kind === "test_tank");
+  const squad = own.find((u) => u.kind === "test_rifle");
   const crossing = {
     tank: { state: tank.state, at: tank.position.map((v) => +v.toFixed(1)) },
     squad: {

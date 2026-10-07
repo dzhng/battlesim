@@ -12,7 +12,7 @@ import { STATE_ROWS, type PanelRules } from "../src/battle/present/panelRows";
 
 // The specimens are built from the stand-in types alone: a panel that reads
 // right for them reads right for any type of the roster.
-const standIns = ["rifle", "recon", "at", "tank", "supply", "jeep"];
+const standIns = ["test_rifle", "test_recon", "test_at", "test_tank", "test_supply", "test_jeep"];
 const UNITS = new UnitCatalog({
   ...TEST_CATALOG.units.view,
   units: TEST_CATALOG.units.view.units.filter((type) => standIns.includes(type.id)),

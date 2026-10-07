@@ -20,11 +20,18 @@ fn duration() -> u32 {
 }
 
 fn setup() -> contract::scenario::ScenarioDefinition {
+    // The Kornet team is the roster's own: its setup time, read from its
+    // launcher's aim time, is what `kornet_uses_its_three_second_aim_time_for_setup`
+    // checks. So these battles run the test set (the game's units and the
+    // test units), not the test units alone.
     let mut fixture = common::game();
+    fixture["catalog"] = serde_json::Value::Array(sim::fixtures::catalog_documents(
+        sim::fixtures::CatalogSet::Test,
+    ));
     sim::fixtures::patch_catalog(
         &mut fixture,
         "units",
-        "supply",
+        "test_supply",
         json!({
             "capabilities": { "deploy": { "seconds": 15, "pack_seconds": 15 } }
         }),
@@ -32,7 +39,7 @@ fn setup() -> contract::scenario::ScenarioDefinition {
     serde_json::from_value(json!({
         "map": { "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": fixture,
-        "units": [{ "side": "blue", "kind": "supply", "position": [100, 200] }, { "side": "blue", "kind": "tank", "position": [100, 300] }, { "side": "blue", "kind": "eastern_atgm_team_kornet", "position": [140, 200] }],
+        "units": [{ "side": "blue", "kind": "test_supply", "position": [100, 200] }, { "side": "blue", "kind": "test_tank", "position": [100, 300] }, { "side": "blue", "kind": "eastern_atgm_team_kornet", "position": [140, 200] }],
         "events": []
     })).unwrap()
 }
@@ -468,18 +475,25 @@ fn deployment_replays_to_identical_digests_and_enters_the_digest() {
 
 #[test]
 fn asymmetric_setup_packs_in_one_second_and_reverses_from_remaining_progress() {
+    // The Kornet team is the roster's own: its setup time, read from its
+    // launcher's aim time, is what `kornet_uses_its_three_second_aim_time_for_setup`
+    // checks. So these battles run the test set (the game's units and the
+    // test units), not the test units alone.
     let mut fixture = common::game();
+    fixture["catalog"] = serde_json::Value::Array(sim::fixtures::catalog_documents(
+        sim::fixtures::CatalogSet::Test,
+    ));
     sim::fixtures::patch_catalog(
         &mut fixture,
         "units",
-        "supply",
+        "test_supply",
         json!({
             "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } }
         }),
     );
     let setup = serde_json::from_value(json!({
         "map": { "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-        "rules": fixture, "units": [{ "side": "blue", "kind": "supply", "position": [100, 200] }], "events": []
+        "rules": fixture, "units": [{ "side": "blue", "kind": "test_supply", "position": [100, 200] }], "events": []
     })).unwrap();
     let mut b = Battle::new(&setup, 12);
     run(&mut b, 90);

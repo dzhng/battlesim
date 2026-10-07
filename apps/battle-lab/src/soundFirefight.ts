@@ -88,7 +88,7 @@ interface Script {
 /** Every tick's publication and cues; the tanks fire from `units`' tank's
  *  muzzles, the cannon's and the roof HMG's. */
 export function firefightScript(units: UnitCatalog): Script {
-  const [CANNON, HMG] = mountMuzzles(units.type("tank").mounts);
+  const [CANNON, HMG] = mountMuzzles(units.type("test_tank").mounts);
   const ticks = tickAt(FIREFIGHT_S);
   const pubs: EffectPublication[] = [];
   const audible: SoundCue[][] = [];

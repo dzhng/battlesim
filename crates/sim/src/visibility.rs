@@ -247,7 +247,7 @@ mod cache_tests {
 
     fn world() -> (WorldGeometry, SensorRules) {
         let rules: contract::scenario::Rules =
-            serde_json::from_value(crate::fixtures::game()).unwrap();
+            serde_json::from_value(crate::fixtures::test_game()).unwrap();
         let map = serde_json::from_value(serde_json::json!({
             "size":[600,500],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
             "props":[{"kind":"wall","center":[240,200],"yaw":0,"half_extents":[10,20,8]}]
@@ -312,7 +312,7 @@ mod cache_tests {
     #[test]
     fn ground_clearing_invalidates_visibility_without_a_body_revision() {
         let mut rules: contract::scenario::Rules =
-            serde_json::from_value(crate::fixtures::game()).unwrap();
+            serde_json::from_value(crate::fixtures::test_game()).unwrap();
         rules.forests.rule.trunk_spacing_m = 8.0;
         rules.forests.rule.trunk_jitter = 0.0;
         rules.forests.rule.attenuation_per_m = 0.02;

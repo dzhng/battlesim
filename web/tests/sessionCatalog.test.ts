@@ -7,12 +7,13 @@ import { expect, test } from "vitest";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog.ts";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
+import { ownDocuments } from "@web/battle/catalog/node";
 import { admitScenario, catalogSet, resolveCatalogSet } from "@web/battle/catalog/sets";
 import { AUTHORITY, testCatalog, testSources } from "./sceneAssets/synthetic";
 
 /** A fake test-unit document: a tank only a lab's catalog holds. */
 const LAB_ONLY = JSON.stringify({
-  units: { lab_only_tank: { extends: "tank", name: "Lab-only tank", appearance: "tank" } },
+  units: { lab_only_tank: { extends: "test_tank", name: "Lab-only tank", appearance: "tank" } },
 });
 
 const scenario = (kind: string) => ({ units: [{ side: "blue", kind, position: [0, 0] }] });
@@ -31,7 +32,7 @@ async function installed() {
 }
 
 test("a lab session draws a unit only its test set holds", async () => {
-  const catalog = await resolveCatalogSet("test", [LAB_ONLY]);
+  const catalog = await resolveCatalogSet("test", [...ownDocuments("test"), LAB_ONLY]);
   const units = admitScenario(scenario("lab_only_tank"), catalog);
   const drawn = new AppearanceCatalog(await installed(), units).resolve("lab_only_tank", "blue");
   expect(drawn?.appearance).toBe("tank");
@@ -42,6 +43,9 @@ test("a lab session draws a unit only its test set holds", async () => {
 
 test("a game session refuses a unit outside its catalog by name", async () => {
   const game = await catalogSet("game");
+  expect(() => admitScenario(scenario("test_tank"), game)).toThrow(
+    /test_tank.*not in the game catalog/,
+  );
   expect(() => admitScenario(scenario("lab_only_tank"), game)).toThrow(
     /lab_only_tank.*not in the game catalog/,
   );

@@ -24,8 +24,8 @@ fn field() -> String {
 
 fn units() -> Value {
     json!([
-        { "side": "blue", "kind": "tank", "position": [100, 200] },
-        { "side": "red", "kind": "tank", "position": [1100, 200], "yaw": std::f64::consts::PI },
+        { "side": "blue", "kind": "test_tank", "position": [100, 200] },
+        { "side": "red", "kind": "test_tank", "position": [1100, 200], "yaw": std::f64::consts::PI },
     ])
 }
 

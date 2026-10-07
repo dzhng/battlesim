@@ -1,10 +1,10 @@
 {
   "units": [
-    {"side":"blue","kind":"supply","position":[200,200]},
-    {"side":"blue","kind":"tank","position":[240,175],"engagement":"return_fire_only","condition":{"hp":40}},
-    {"side":"blue","kind":"at","position":[245,235],"engagement":"return_fire_only","condition":{"spent":{"atgm":3}}},
-    {"side":"blue","kind":"rifle","position":[165,245],"engagement":"return_fire_only","condition":{"casualties":3}},
-    {"side":"blue","kind":"supply","position":[330,320],"stock":0},
-    {"side":"blue","kind":"recon","position":[360,330],"engagement":"return_fire_only","condition":{"casualties":1}}
+    {"side":"blue","kind":"test_supply","position":[200,200]},
+    {"side":"blue","kind":"test_tank","position":[240,175],"engagement":"return_fire_only","condition":{"hp":40}},
+    {"side":"blue","kind":"test_at","position":[245,235],"engagement":"return_fire_only","condition":{"spent":{"atgm":3}}},
+    {"side":"blue","kind":"test_rifle","position":[165,245],"engagement":"return_fire_only","condition":{"casualties":3}},
+    {"side":"blue","kind":"test_supply","position":[330,320],"stock":0},
+    {"side":"blue","kind":"test_recon","position":[360,330],"engagement":"return_fire_only","condition":{"casualties":1}}
   ]
 }

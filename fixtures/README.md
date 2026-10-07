@@ -69,7 +69,7 @@ and listing policy. Directory discovery requires no parallel index.
 
 Deployment preserves one reversible progress value. Setup and packing may have different durations; the integer progress lattice makes both directions and partial reversals deterministic. Movement waits for packing to finish, and supply waits for setup to finish.
 
-A unit type is **one catalog entry**, addressed by its string id (`"tank"`, later `"m1a2_sepv3"`). No code lists unit types. Scenarios, spawn rows and commands name types by id; the publication sends the id list (`unitKinds`) and each unit's index into it.
+A unit type is **one catalog entry**, addressed by its string id (`"us_m1_abrams_sep_v3_trophy"`, `"test_tank"`). No code lists unit types. Scenarios, spawn rows and commands name types by id; the publication sends the id list (`unitKinds`) and each unit's index into it.
 
 [The catalog parser](../crates/contract/src/catalog.rs) owns component schemas,
 validation and inheritance. Families contain unit, soldier, role and upgrade
@@ -92,9 +92,10 @@ for `catalog.json`; browser presentation reads that resolved view, including
 resolved weapons, rather than reinterpreting authored families.
 
 A battle runs one of three document sets (`sim::fixtures::CatalogSet`): the
-game's, the only one committed as `catalog.json`; the test set, which adds the
-test units labs, scenes and art checks field; and the menu set, which adds the
-menu reel's own units. The test and menu sets are resolved when asked for and
+game's, the only one committed as `catalog.json` and holding only what roster
+cards reach; the test set, which adds the [test units](units/test/) (`test_*`)
+that tests, labs, scenes and art checks field; and the menu set, which adds the
+test units and the menu reel's own units. The test and menu sets are resolved when asked for and
 never written, so one generated file stays the editors' and publication's. The
 browser's [session factory](../web/src/battle/catalog/) is the one reader of
 `catalog.json`, and each battle session owns the set its page runs. After a catalog

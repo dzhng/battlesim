@@ -687,7 +687,7 @@ async function soldierTour(ctx) {
   // infantry beside armour), with and without the HUD's marks.
   const besideTank = async (name) => {
     const o = await obs(page);
-    const tanks = o.own.filter((u) => u.kind === "tank");
+    const tanks = o.own.filter((u) => u.kind === "test_tank");
     const near = (u) =>
       Math.min(
         ...tanks.map((t) =>
@@ -734,7 +734,7 @@ async function vehicleTour(ctx) {
   );
   // Each own tank's turret is on its cannon's published bearing, relative to the hull.
   const turrets = own
-    .filter((u) => u.kind === "tank")
+    .filter((u) => u.kind === "test_tank")
     .map((u) => {
       const v = posed.find(
         (p) => Math.hypot(p.position[0] - u.position[0], p.position[1] - u.position[1]) < 1e-3,
@@ -773,7 +773,7 @@ async function vehicleTour(ctx) {
       drawn.fallen === 0,
     JSON.stringify({ buildings, fitted, drawn }),
   );
-  const tank = own.find((u) => u.kind === "tank");
+  const tank = own.find((u) => u.kind === "test_tank");
   // The nearest tank from its right front, as WARNO frames its nearest tank.
   await aim(page, tank.position, { distance: 20, pitch: 0.42, yaw: tank.yaw - Math.PI * 0.3 });
   await snapshot(ctx, page, "vehicles-tank-1920x1080.png");
@@ -789,22 +789,24 @@ async function vehicleTour(ctx) {
     page,
     (units) =>
       window.__lab.route.command({ kind: "attack_move", units, gesture: 1, goal: [900, 800] }),
-    own.filter((u) => u.kind === "tank").map((u) => u.id),
+    own.filter((u) => u.kind === "test_tank").map((u) => u.id),
   );
   const shots = (f) =>
     Object.fromEntries(
-      f.own.filter((u) => u.kind === "tank").map((u) => [u.id, u.weaponPoses[0]?.shots ?? 0]),
+      f.own.filter((u) => u.kind === "test_tank").map((u) => [u.id, u.weaponPoses[0]?.shots ?? 0]),
     );
   const start = shots(o);
   o = await until(
     page,
     (f) =>
-      f.own.some((u) => u.kind === "tank" && (u.weaponPoses[0]?.shots ?? 0) > (start[u.id] ?? 0)),
+      f.own.some(
+        (u) => u.kind === "test_tank" && (u.weaponPoses[0]?.shots ?? 0) > (start[u.id] ?? 0),
+      ),
     30 * 240,
     1,
   );
   const shooter = o?.own.find(
-    (u) => u.kind === "tank" && (u.weaponPoses[0]?.shots ?? 0) > (start[u.id] ?? 0),
+    (u) => u.kind === "test_tank" && (u.weaponPoses[0]?.shots ?? 0) > (start[u.id] ?? 0),
   );
   if (shooter) {
     await aim(page, shooter.position, {
@@ -832,7 +834,7 @@ async function vehicleTour(ctx) {
  *  drawn from the side's publications independently of assault balance. */
 async function effectTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
-  const tank = (await obs(page)).own.find((u) => u.kind === "tank");
+  const tank = (await obs(page)).own.find((u) => u.kind === "test_tank");
   const ack = await lab(
     page,
     (id) =>
@@ -945,7 +947,7 @@ async function smokeTour(ctx) {
     const o = window.__lab.route.observation();
     window.__lab.route.command({
       kind: "attack_move",
-      units: o.own.filter((u) => u.kind !== "tank").map((u) => u.id),
+      units: o.own.filter((u) => u.kind !== "test_tank").map((u) => u.id),
       gesture: 1,
       goal: [1000, 800],
     });
@@ -953,7 +955,7 @@ async function smokeTour(ctx) {
     // halts them at the first target, and the wood's AT is one from the start.
     window.__lab.route.command({
       kind: "move",
-      units: o.own.filter((u) => u.kind === "tank").map((u) => u.id),
+      units: o.own.filter((u) => u.kind === "test_tank").map((u) => u.id),
       gesture: 2,
       goal: [1000, 800],
       route: "shortest",
@@ -966,7 +968,7 @@ async function smokeTour(ctx) {
   const tank = moving.own.find((u) => {
     const was = before.own.find((b) => b.id === u.id);
     return (
-      u.kind === "tank" &&
+      u.kind === "test_tank" &&
       was &&
       Math.hypot(u.position[0] - was.position[0], u.position[1] - was.position[1]) > 3
     );
@@ -1116,7 +1118,7 @@ async function orderFlashTour(ctx) {
   const tickHz = game.tick_hz;
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const o = await obs(page);
-  const rifle = o.own.find((u) => u.kind === "rifle");
+  const rifle = o.own.find((u) => u.kind === "test_rifle");
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
   await page.waitForFunction((id) => window.__lab.route.selected()[0] === id, rifle.id);
   const goal = [rifle.position[0] + 30, rifle.position[1]];
@@ -1239,8 +1241,8 @@ async function orderFlashTour(ctx) {
 async function groupPreviewTour(ctx, rotate = true) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const before = await obs(page);
-  const tank = before.own.find((u) => u.kind === "tank");
-  const rifle = before.own.find((u) => u.kind === "rifle");
+  const tank = before.own.find((u) => u.kind === "test_tank");
+  const rifle = before.own.find((u) => u.kind === "test_rifle");
   const ids = [tank.id, rifle.id];
   await lab(page, (ids) => window.__lab.route.select(ids), ids);
   await page.waitForFunction(
@@ -1323,8 +1325,8 @@ async function groupPreviewTour(ctx, rotate = true) {
 async function orderTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   let o = await obs(page);
-  const rifle = o.own.find((u) => u.kind === "rifle");
-  const tank = o.own.find((u) => u.kind === "tank");
+  const rifle = o.own.find((u) => u.kind === "test_rifle");
+  const tank = o.own.find((u) => u.kind === "test_tank");
 
   // A real right-drag: press at the goal, release north-east of it.
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
@@ -1428,7 +1430,7 @@ async function orderTour(ctx) {
     await snapshot(ctx, page, `orders-space-${name}-1920x1080.png`);
   }
   // Into the fog: the other squad sent to ground blue cannot see.
-  const other = o.own.find((u) => u.kind === "rifle" && u.id !== rifle.id);
+  const other = o.own.find((u) => u.kind === "test_rifle" && u.id !== rifle.id);
   const fogged = await lab(
     page,
     (from) => {
@@ -2404,9 +2406,9 @@ async function muzzleTour(ctx) {
   let page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
   const approach = async (southern) => {
     const o = await obs(page);
-    const driver = o.own.find((u) => u.kind === "tank");
-    const jeep = o.own.find((u) => u.kind === "jeep");
-    const rifle = o.own.find((u) => u.kind === "rifle");
+    const driver = o.own.find((u) => u.kind === "test_tank");
+    const jeep = o.own.find((u) => u.kind === "test_jeep");
+    const rifle = o.own.find((u) => u.kind === "test_rifle");
     await stageVillageMoves(
       ctx,
       page,
@@ -2465,11 +2467,11 @@ async function muzzleTour(ctx) {
           const before = was.weaponPoses.find((x) => x.mount === w.mount)?.shots ?? w.shots;
           if (w.shots <= before) continue;
           const name =
-            u.kind === "tank"
+            u.kind === "test_tank"
               ? `tank ${w.mount === 0 ? "cannon" : "HMG"}, ${driving > 0.01 ? "driving" : "standing"}`
-              : u.kind === "jeep"
+              : u.kind === "test_jeep"
                 ? "jeep HMG"
-                : u.kind === "rifle" && w.mount === 0
+                : u.kind === "test_rifle" && w.mount === 0
                   ? "rifle"
                   : null;
           if (pending.has(name)) shot = { name, unit: u, mount: w.mount };
@@ -2483,14 +2485,14 @@ async function muzzleTour(ctx) {
       // the tick after it fires).
       let near = unit.position;
       let shooterAt = unit.position;
-      let socket = shot.mount === 0 && unit.kind === "tank" ? "muzzle" : "hmg_muzzle";
+      let socket = shot.mount === 0 && unit.kind === "test_tank" ? "muzzle" : "hmg_muzzle";
       if (name === "rifle") {
         await advance(page, 1);
         o = prev = await obs(page);
         const squad = o.own.find((u) => u.id === unit.id);
         const round = o.projectiles.find(
           (s) =>
-            s.kind === "rifle" &&
+            s.kind === "test_rifle" &&
             squad.memberIds.includes(s.shooterMember) &&
             Math.hypot(
               squad.members[squad.memberIds.indexOf(s.shooterMember)][0] - s.path[0][0],
@@ -2604,7 +2606,7 @@ async function selectionTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1600, height: 900 } });
   const o = await obs(page);
   const ids = (kind) => o.own.filter((u) => u.kind === kind).map((u) => u.id);
-  const [rifles, tanks, trucks] = [ids("rifle"), ids("tank"), ids("supply")];
+  const [rifles, tanks, trucks] = [ids("test_rifle"), ids("test_tank"), ids("test_supply")];
   const selected = () => lab(page, () => [...window.__lab.route.selected()].sort((a, b) => a - b));
   const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
   /** Double-click a unit where it is drawn: a soldier's torso, a hull's middle. */
@@ -2633,7 +2635,7 @@ async function selectionTour(ctx) {
   await doubleClick(rifle);
   const byRole = await selected();
   const infantry = o.own
-    .filter((u) => hasRole(u.kind, unitType("rifle").roles[0]))
+    .filter((u) => hasRole(u.kind, unitType("test_rifle").roles[0]))
     .map((u) => u.id)
     .sort((a, b) => a - b);
   ctx.check(
@@ -2721,7 +2723,7 @@ async function selectionTour(ctx) {
   ctx.check(
     "the toggle orders only the truck: it sets up (or packs), the tank carries on",
     ack.ack.error === null &&
-      ack.label === `${verb.toLowerCase()} supply #${trucks[0]}` &&
+      ack.label === `${verb.toLowerCase()} test_supply #${trucks[0]}` &&
       truck.deployment?.target === (verb === "Deploy" ? "deployed" : "packed") &&
       !tankAfter.deployment,
     JSON.stringify({ ack, truck: truck.deployment, tank: tankAfter.deployment }),
@@ -2735,8 +2737,8 @@ async function selectionTour(ctx) {
 async function rulerTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   let o = await obs(page);
-  const rifle = o.own.find((u) => u.kind === "rifle");
-  const tank = o.own.find((u) => u.kind === "tank");
+  const rifle = o.own.find((u) => u.kind === "test_rifle");
+  const tank = o.own.find((u) => u.kind === "test_tank");
   const surface = (p) => lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), p);
   const ruler = () => lab(page, () => window.__lab.route.ruler());
   /** The ruler's text as shown: the distance, and each tick's label. */
@@ -2916,7 +2918,7 @@ async function rulerTour(ctx) {
   // along the southern forest edge until their own sight identifies an enemy,
   // then withdraw beyond that sight. Admission alone proves neither journey.
   o = await obs(page);
-  const scoutId = o.own.find((u) => u.kind === "recon").id;
+  const scoutId = o.own.find((u) => u.kind === "test_recon").id;
   await stageVillageMoves(
     ctx,
     page,
@@ -2945,7 +2947,7 @@ async function rulerTour(ctx) {
     Math.hypot(e.position[0] - scouts.position[0], e.position[1] - scouts.position[1]);
   const seen = o?.identified.filter((e) => scouts.sees.includes(e.id)) ?? [];
   const farthest = seen.reduce((a, b) => (!a || from(b) > from(a) ? b : a), null);
-  const back = farthest ? unitType("recon").sensors.ground_m - from(farthest) + 40 : 0;
+  const back = farthest ? unitType("test_recon").sensors.ground_m - from(farthest) + 40 : 0;
   ctx.check(
     "staging: the scouts hold an enemy near the edge of their sight to lose",
     back > 0 && back < 120,
@@ -2985,7 +2987,8 @@ async function rulerTour(ctx) {
   );
   const contact = o?.contacts.find((c) => c.source === "last_seen");
   if (contact) {
-    const armed = o.own.find((u) => u.kind === "tank") ?? o.own.find((u) => u.kind === "rifle");
+    const armed =
+      o.own.find((u) => u.kind === "test_tank") ?? o.own.find((u) => u.kind === "test_rifle");
     await lab(page, (ids) => window.__lab.route.select(ids), [armed.id]);
     await page.waitForFunction(() => window.__lab.route.selected().length === 1);
     await aim(page, contact.center, { distance: 120, pitch: 0.85, yaw: CAMERA.default.yaw });
@@ -3142,7 +3145,7 @@ async function panelTour(ctx) {
 
   // The supply truck: its stock always; deploying, a filling ring; then
   // DEPLOYED. Nothing of it on the ground.
-  const truck = o.own.find((u) => u.kind === "supply");
+  const truck = o.own.find((u) => u.kind === "test_supply");
   await look(truck.position);
   let p = await panelOf(page, "unit", truck.id);
   ctx.check(
@@ -3218,10 +3221,10 @@ async function panelTour(ctx) {
   // A tank's and a squad's panels, with detail held open.
   await page.keyboard.down("Space");
   await page.waitForFunction(() => window.__lab.route.showOrders());
-  const tank = o.own.find((u) => u.kind === "tank");
+  const tank = o.own.find((u) => u.kind === "test_tank");
   await look(tank.position);
   await panelShot(ctx, page, "unit", tank.id, "panel-tank");
-  const squad = o.own.find((u) => u.kind === "rifle");
+  const squad = o.own.find((u) => u.kind === "test_rifle");
   await look(squad.position);
   await panelShot(ctx, page, "unit", squad.id, "panel-squad");
 
@@ -3244,7 +3247,7 @@ async function panelTour(ctx) {
   await stage(
     {
       kind: "attack_move",
-      units: (await obs(page)).own.filter((u) => u.kind !== "supply").map((u) => u.id),
+      units: (await obs(page)).own.filter((u) => u.kind !== "test_supply").map((u) => u.id),
       gesture: 1,
       goal: [680, 840],
     },
@@ -3325,7 +3328,7 @@ async function panelTour(ctx) {
       await stage(
         {
           kind: "move",
-          units: o.own.filter((u) => u.kind !== "supply").map((u) => u.id),
+          units: o.own.filter((u) => u.kind !== "test_supply").map((u) => u.id),
           gesture: 2,
           goal: [400, 800],
           route: "shortest",
@@ -3345,7 +3348,7 @@ async function panelTour(ctx) {
   await page.keyboard.up("Space");
   await page.waitForFunction(() => !window.__lab.route.showOrders());
   const pick = o.own
-    .filter((u) => u.kind !== "supply")
+    .filter((u) => u.kind !== "test_supply")
     .slice(0, 2)
     .map((u) => u.id);
   await lab(page, (ids) => window.__lab.route.select(ids), pick);
@@ -3578,7 +3581,7 @@ async function panelLayoutTour(ctx) {
       () => document.querySelector(".ro-layer").dataset.zoom === "compressed",
     );
   }
-  const tank = own.find((u) => u.kind === "tank");
+  const tank = own.find((u) => u.kind === "test_tank");
   await lab(page, () => window.__lab.route.select([]));
   await aim(page, tank.position, { distance: 900, pitch: 0.85, yaw: CAMERA.default.yaw });
   await lab(page, () => window.__lab.frame());
@@ -3681,7 +3684,7 @@ async function playTour(ctx) {
   );
   // Esc opens the pause menu over a running battle and pauses it; Esc again
   // closes it and the battle runs on. An armed command takes Esc first.
-  const armedUnit = (await obs(page)).own.find((u) => u.kind === "tank").id;
+  const armedUnit = (await obs(page)).own.find((u) => u.kind === "test_tank").id;
   await lab(page, (id) => window.__lab.route.select([id]), armedUnit);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   await lab(page, () => window.__lab.route.resume());
@@ -3708,7 +3711,7 @@ async function playTour(ctx) {
 
   // Select the tanks and right-click the ground: an accepted move.
   const o = await obs(page);
-  const tanks = o.own.filter((u) => u.kind === "tank").map((u) => u.id);
+  const tanks = o.own.filter((u) => u.kind === "test_tank").map((u) => u.id);
   await lab(page, (ids) => window.__lab.route.select(ids), tanks);
   await page.waitForFunction((n) => window.__lab.route.selected().length === n, tanks.length);
   await checkNoGlyphIcons(ctx, page, "tanks selected");

@@ -12,7 +12,7 @@ test("the production observed feed launches own and enemy rounds by shooter and 
       own: [
         {
           id: 1,
-          kind: "rifle",
+          kind: "test_rifle",
           position: [0, 0, 0],
           yaw: 0,
           memberIds: [20],
@@ -24,7 +24,7 @@ test("the production observed feed launches own and enemy rounds by shooter and 
       identified: [
         {
           id: 7,
-          kind: "tank",
+          kind: "test_tank",
           position: [100, 0, 0],
           yaw: Math.PI,
           memberIds: [],
@@ -60,7 +60,7 @@ test("the production observed feed launches own and enemy rounds by shooter and 
     ...launches.note(effectPublication(observation(3), "blue", UNITS), false),
   ];
   expect(shots.map((shot) => [shot.shooter, shot.kind])).toEqual([
-    [15, UNITS.type("tank").mounts[1].weapons[0]],
-    [2, UNITS.type("rifle").mounts[0].weapons[0]],
+    [15, UNITS.type("test_tank").mounts[1].weapons[0]],
+    [2, UNITS.type("test_rifle").mounts[0].weapons[0]],
   ]);
 });

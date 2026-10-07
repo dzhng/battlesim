@@ -50,7 +50,7 @@ fn main() {
     let reach = args.next().unwrap_or("0.92".into());
     let per_side: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(6).max(1);
     let probe_trees: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-    let fixture = sim::fixtures::game();
+    let fixture = sim::fixtures::test_game();
 
     println!("| stage | wall ms | instructions G | RSS MiB | note |");
     println!("|---|---|---|---|---|");
@@ -85,7 +85,7 @@ fn main() {
     if reach == "centre" {
         rows.push((
             "blue",
-            "jeep",
+            "test_jeep",
             [10.0, d / 2.0],
             [w / 2.0, d / 2.0],
             "shortest",
@@ -96,7 +96,7 @@ fn main() {
             .parse()
             .expect("reach: a share of the width, or `centre`");
         let (west, east) = (w * 0.04, w * 0.96);
-        let kinds = ["jeep", "tank", "rifle"];
+        let kinds = ["test_jeep", "test_tank", "test_rifle"];
         for (side, x, goal_x) in [
             ("blue", west, west + w * reach),
             ("red", east, east - w * reach),
@@ -130,7 +130,7 @@ fn main() {
     let hz = rules.tick_hz as u64;
     let mut events = Vec::new();
     if probe_trees > 0 {
-        for (_, kind, at, goal, _) in rows.iter().filter(|row| row.1 != "rifle") {
+        for (_, kind, at, goal, _) in rows.iter().filter(|row| row.1 != "test_rifle") {
             let ahead = (goal[0] - at[0]).signum() * 30.0;
             let hull = rules.catalog.by_id(kind).hull().expect("a vehicle");
             events.push(json!({ "tick": hz * 3 / 2, "add_prop": {

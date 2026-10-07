@@ -52,9 +52,9 @@ const GARRISON_CAMERA: Camera3DParams = {
 
 /** Blue's squads, listed even once eliminated. */
 const SQUADS = [
-  { id: 0, kind: "rifle" },
-  { id: 1, kind: "rifle" },
-  { id: 2, kind: "recon" },
+  { id: 0, kind: "test_rifle" },
+  { id: 1, kind: "test_rifle" },
+  { id: 2, kind: "test_recon" },
 ];
 
 /** Reference commands, exactly as a player would send them. */

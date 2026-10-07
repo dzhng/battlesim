@@ -207,7 +207,7 @@ fn args() -> Args {
 
 fn main() {
     let a = args();
-    let fixture = sim::fixtures::game();
+    let fixture = sim::fixtures::test_game();
     let seeds = a
         .seeds
         .clone()

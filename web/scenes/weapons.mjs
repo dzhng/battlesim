@@ -90,7 +90,7 @@ export async function run(ctx) {
   await advance(page, 75);
   let o = await obs(page);
   const cannon = own(o, 0).mounts[0];
-  const redTank = o.identified.find((e) => e.kind === "tank");
+  const redTank = o.identified.find((e) => e.kind === "test_tank");
   ctx.check(
     "the cannon locks the identified tank with armour-piercing rounds",
     !!redTank &&
@@ -117,7 +117,7 @@ export async function run(ctx) {
     const c = own(o, 0).mounts[0];
     const grenade = own(o, 1).mounts[1];
     const squad = own(o, 1);
-    const visible = o.identified.find((e) => e.kind === "tank");
+    const visible = o.identified.find((e) => e.kind === "test_tank");
     if (
       visible &&
       o.contacts.some((c) => c.source === "firing") &&
@@ -192,7 +192,7 @@ export async function run(ctx) {
   const cannonPose = own(await obs(page), 0).weaponPoses[0];
   ctx.check(
     "the feed inspector shows the cannon's pose and shot counter",
-    cannonPose.shots > 0 && /own tank #0:\s*m0 \S+ ↑\S+ · [1-9]\d* shots/.test(feed),
+    cannonPose.shots > 0 && /own test_tank #0:\s*m0 \S+ ↑\S+ · [1-9]\d* shots/.test(feed),
     JSON.stringify({ cannonPose, feed }),
   );
   await writeCrop(

@@ -65,9 +65,9 @@ fn idle_soldiers_yield_to_nearby_traffic_and_far_squads_keep_their_centroid() {
     let mut setup = common::scenario(
         r#"{"size":[400,300],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
         serde_json::json!([
-            {"side":"blue","kind":"jeep","position":[30,50]},
-            {"side":"blue","kind":"recon","position":[70,50]},
-            {"side":"blue","kind":"recon","position":[250,250]}
+            {"side":"blue","kind":"test_jeep","position":[30,50]},
+            {"side":"blue","kind":"test_recon","position":[70,50]},
+            {"side":"blue","kind":"test_recon","position":[250,250]}
         ]),
         serde_json::json!([]),
     );
@@ -178,8 +178,8 @@ fn a_truck_can_park_in_clear_space_behind_a_stationary_tank() {
         })
         .to_string(),
         serde_json::json!([
-            { "side": "blue", "kind": "supply", "position": [30, 60], "yaw": 0 },
-            { "side": "blue", "kind": "tank", "position": [70, 60], "yaw": 0 }
+            { "side": "blue", "kind": "test_supply", "position": [30, 60], "yaw": 0 },
+            { "side": "blue", "kind": "test_tank", "position": [70, 60], "yaw": 0 }
         ]),
         serde_json::json!([]),
     );
@@ -219,7 +219,7 @@ fn a_group_moves_a_truck_surrounded_by_its_other_members() {
                 .iter()
                 .map(|at| {
                     serde_json::json!({
-                        "side": "blue", "kind": "supply", "position": at, "yaw": 0
+                        "side": "blue", "kind": "test_supply", "position": at, "yaw": 0
                     })
                 })
                 .collect(),
@@ -283,7 +283,7 @@ fn a_group_moves_a_truck_surrounded_by_its_other_members() {
 fn a_tank_routes_around_walls_and_arrives() {
     let mut b = Battle::new(
         &scenario(
-            serde_json::json!([{ "side": "blue", "kind": "tank", "position": [60, 40] }]),
+            serde_json::json!([{ "side": "blue", "kind": "test_tank", "position": [60, 40] }]),
             serde_json::json!([]),
         ),
         1,
@@ -315,13 +315,13 @@ fn a_right_drag_rotates_the_group_layout_around_its_destination() {
             "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
         .to_string(),
         serde_json::json!([
-            { "side": "blue", "kind": "tank", "position": [30, 140], "yaw": 0 },
-            { "side": "blue", "kind": "tank", "position": [30, 160], "yaw": 0 }
+            { "side": "blue", "kind": "test_tank", "position": [30, 140], "yaw": 0 },
+            { "side": "blue", "kind": "test_tank", "position": [30, 160], "yaw": 0 }
         ]),
         serde_json::json!([]),
     );
     let mut b = Battle::new(&setup, 1);
-    let half = common::hull("tank").half_extents_m;
+    let half = common::hull("test_tank").half_extents_m;
     let front_y = 150.0 - half[0].hypot(half[1]);
     let digest = b.digest();
     let preview = b
@@ -403,9 +403,9 @@ fn a_right_drag_rotates_the_group_layout_around_its_destination() {
 #[test]
 fn a_group_keeps_its_arrangement_and_each_unit_its_own_speed() {
     let units = serde_json::json!([
-        { "side": "blue", "kind": "tank", "position": [30, 150] },
-        { "side": "blue", "kind": "rifle", "position": [30, 170] },
-        { "side": "blue", "kind": "supply", "position": [30, 130] },
+        { "side": "blue", "kind": "test_tank", "position": [30, 150] },
+        { "side": "blue", "kind": "test_rifle", "position": [30, 170] },
+        { "side": "blue", "kind": "test_supply", "position": [30, 130] },
     ]);
     let mut b = Battle::new(&scenario(units, serde_json::json!([])), 1);
     let mut o = Orders { seq: 0 };
@@ -450,8 +450,8 @@ fn a_group_keeps_its_arrangement_and_each_unit_its_own_speed() {
 fn a_new_obstacle_is_learned_on_contact_and_routed_around() {
     // A wall appears across the tank's straight path at tick 5; red is far away.
     let units = serde_json::json!([
-        { "side": "blue", "kind": "tank", "position": [230, 120] },
-        { "side": "red", "kind": "tank", "position": [370, 280] },
+        { "side": "blue", "kind": "test_tank", "position": [230, 120] },
+        { "side": "red", "kind": "test_tank", "position": [370, 280] },
     ]);
     let events = serde_json::json!([{ "tick": 5, "add_prop":
         { "kind": "wall", "center": [260, 120], "yaw": 0, "half_extents": [0.5, 15, 2] } }]);
@@ -489,7 +489,7 @@ fn a_new_obstacle_is_learned_on_contact_and_routed_around() {
 fn an_unreachable_destination_is_rejected_without_live_route_searches() {
     let mut b = Battle::new(
         &scenario(
-            serde_json::json!([{ "side": "blue", "kind": "rifle", "position": [300, 150] }]),
+            serde_json::json!([{ "side": "blue", "kind": "test_rifle", "position": [300, 150] }]),
             serde_json::json!([]),
         ),
         1,
@@ -538,7 +538,7 @@ fn an_unreachable_destination_is_rejected_without_live_route_searches() {
 fn double_click_upgrades_only_its_own_gesture_even_after_it_applied() {
     let mut b = Battle::new(
         &scenario(
-            serde_json::json!([{ "side": "blue", "kind": "tank", "position": [30, 150] }]),
+            serde_json::json!([{ "side": "blue", "kind": "test_tank", "position": [30, 150] }]),
             serde_json::json!([]),
         ),
         1,
@@ -592,8 +592,8 @@ fn double_click_upgrades_only_its_own_gesture_even_after_it_applied() {
 #[test]
 fn head_on_vehicles_pass_without_overlapping() {
     let units = serde_json::json!([
-        { "side": "blue", "kind": "tank", "position": [40, 25], "yaw": 0 },
-        { "side": "blue", "kind": "tank", "position": [100, 25], "yaw": std::f64::consts::PI },
+        { "side": "blue", "kind": "test_tank", "position": [40, 25], "yaw": 0 },
+        { "side": "blue", "kind": "test_tank", "position": [100, 25], "yaw": std::f64::consts::PI },
     ]);
     let mut b = Battle::new(&scenario(units, serde_json::json!([])), 1);
     let mut o = Orders { seq: 0 };
@@ -632,8 +632,8 @@ fn head_on_vehicles_pass_without_overlapping() {
 #[test]
 fn a_squad_walks_around_a_parked_tank() {
     let units = serde_json::json!([
-        { "side": "blue", "kind": "tank", "position": [100, 25], "yaw": std::f64::consts::FRAC_PI_2 },
-        { "side": "blue", "kind": "rifle", "position": [60, 25] },
+        { "side": "blue", "kind": "test_tank", "position": [100, 25], "yaw": std::f64::consts::FRAC_PI_2 },
+        { "side": "blue", "kind": "test_rifle", "position": [60, 25] },
     ]);
     let mut b = Battle::new(&scenario(units, serde_json::json!([])), 1);
     let mut o = Orders { seq: 0 };
@@ -654,7 +654,7 @@ fn a_squad_walks_around_a_parked_tank() {
 fn idle_units_never_search() {
     let mut b = Battle::new(
         &scenario(
-            serde_json::json!([{ "side": "blue", "kind": "rifle", "position": [60, 150] }]),
+            serde_json::json!([{ "side": "blue", "kind": "test_rifle", "position": [60, 150] }]),
             serde_json::json!([]),
         ),
         1,
@@ -671,7 +671,7 @@ fn one_squad_setup(props: serde_json::Value, from: [f64; 2], goal: [f64; 2]) -> 
     serde_json::from_value(serde_json::json!({
         "map": { "size": [120, 80], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props },
         "rules": common::game(),
-        "units": [{ "side": "blue", "kind": "rifle", "position": from, "engagement": "return_fire_only" }],
+        "units": [{ "side": "blue", "kind": "test_rifle", "position": from, "engagement": "return_fire_only" }],
         "events": [],
         "scripts": [{ "tick": 1, "side": "blue", "order": {
             "kind": "move", "units": [0], "gesture": 1, "goal": goal, "route": "shortest" } }],
@@ -759,7 +759,7 @@ fn a_supply_truck_builds_road_speed_instead_of_jumping_to_it() {
     let mut setup = common::scenario(
         &map,
         serde_json::json!([
-            { "side": "blue", "kind": "supply", "position": [40, 100], "yaw": 0 }
+            { "side": "blue", "kind": "test_supply", "position": [40, 100], "yaw": 0 }
         ]),
         serde_json::json!([]),
     );
@@ -772,7 +772,7 @@ fn a_supply_truck_builds_road_speed_instead_of_jumping_to_it() {
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "supply",
+        "test_supply",
         serde_json::json!({
             "mobility": { "wheeled": { "offroad_kmh": 25, "road_kmh": 76,
                 "turn_deg_s": 40, "turning_radius_m": 9, "reverse_fraction": 0.35 } },
@@ -844,7 +844,7 @@ fn a_jeep_accelerates_from_rest_and_brakes_before_a_road_bend() {
     let mut setup = common::scenario(
         &map,
         serde_json::json!([
-            { "side": "blue", "kind": "jeep", "position": [20, 50], "yaw": 0 }
+            { "side": "blue", "kind": "test_jeep", "position": [20, 50], "yaw": 0 }
         ]),
         serde_json::json!([]),
     );
@@ -855,7 +855,7 @@ fn a_jeep_accelerates_from_rest_and_brakes_before_a_road_bend() {
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "jeep",
+        "test_jeep",
         serde_json::json!({
             "body": { "hull": { "half_extents_m": [2.2, 1.0, 0.95] } },
             "mobility": { "wheeled": { "offroad_kmh": 32, "road_kmh": 110,

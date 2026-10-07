@@ -23,8 +23,8 @@ afterEach(cleanup);
 
 test("the army row includes unselected own units and stays visible without a selection", () => {
   const own = [
-    specimenUnit(TEST_CATALOG, "tank", { id: 11 }),
-    specimenUnit(TEST_CATALOG, "rifle", { id: 22 }),
+    specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
+    specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 }),
   ];
   const view = render(
     <ArmyDeck
@@ -49,8 +49,8 @@ test("card selection replaces the current selection and Shift toggles individual
     return (
       <ArmyDeck
         own={[
-          specimenUnit(TEST_CATALOG, "tank", { id: 11 }),
-          specimenUnit(TEST_CATALOG, "rifle", { id: 22 }),
+          specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
+          specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 }),
         ]}
         selected={selected}
         onSelect={setSelected}
@@ -74,8 +74,8 @@ test("card selection replaces the current selection and Shift toggles individual
 });
 
 test("hover and focus expose live unit facts, health and casualty removal without claiming Escape", () => {
-  const tank = specimenUnit(TEST_CATALOG, "tank", { id: 11 });
-  const rifle = specimenUnit(TEST_CATALOG, "rifle", {
+  const tank = specimenUnit(TEST_CATALOG, "test_tank", { id: 11 });
+  const rifle = specimenUnit(TEST_CATALOG, "test_rifle", {
     id: 22,
     suppression: "suppressed",
     service: "serving",
@@ -126,8 +126,8 @@ test("hover and focus expose live unit facts, health and casualty removal withou
 
 test("the army remains in replay and empty selection while commands follow only selected units", () => {
   const own = [
-    specimenUnit(TEST_CATALOG, "tank", { id: 11 }),
-    specimenUnit(TEST_CATALOG, "supply", { id: 22 }),
+    specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
+    specimenUnit(TEST_CATALOG, "test_supply", { id: 22 }),
   ];
   function Harness({ replay = false }: { replay?: boolean }) {
     const [selected, setSelected] = useState<number[]>([]);
@@ -171,8 +171,8 @@ test("keyboard focus takes ownership from an old hover and mouse leave restores 
   const view = render(
     <ArmyDeck
       own={[
-        specimenUnit(TEST_CATALOG, "tank", { id: 11 }),
-        specimenUnit(TEST_CATALOG, "rifle", { id: 22 }),
+        specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
+        specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 }),
       ]}
       selected={[]}
       onSelect={vi.fn()}
@@ -209,7 +209,7 @@ test("reinforcements remain available before the first unit enters", () => {
 
 test("the command row exposes refund for a selected skirmish unit", () => {
   const refund = vi.fn();
-  const unit = specimenUnit(TEST_CATALOG, "tank", { id: 11 });
+  const unit = specimenUnit(TEST_CATALOG, "test_tank", { id: 11 });
   const control = {
     selectedUnits: [unit],
     mode: "move" as const,

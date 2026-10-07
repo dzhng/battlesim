@@ -10,7 +10,7 @@ export async function cadenceTour(ctx) {
     grass: true,
   });
   const o = await obs(page);
-  const squad = o.own.find((u) => u.kind === "rifle" && u.mounts.some((m) => m.target));
+  const squad = o.own.find((u) => u.kind === "test_rifle" && u.mounts.some((m) => m.target));
   if (!squad) throw new Error("cadence framing needs an engaged rifle squad");
   await aim(page, [squad.position[0] + 25, squad.position[1], squad.position[2]], {
     distance: 65,

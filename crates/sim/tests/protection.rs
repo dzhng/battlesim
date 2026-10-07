@@ -183,18 +183,18 @@ fn production_resolver_prevents_hull_damage_but_keeps_ordinary_collateral_and_so
     use sim::battle::{Battle, Round};
     use sim::damage::{self, DamageContext, HullResolver};
     use std::collections::BTreeMap;
-    let mut rules = sim::fixtures::game();
+    let mut rules = sim::fixtures::test_game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "tank",
+        "test_tank",
         json!({"capabilities":{"active_protection":capability()}}),
     );
     rules["weapons"]["atgm"]["interceptable"] = json!(true);
     let setup=serde_json::from_value(json!({"rules":rules,"map":{"size":[1000,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},"units":[
-        {"side":"blue","kind":"tank","position":[50,200]},
-        {"side":"red","kind":"tank","position":[130,200]},
-        {"side":"red","kind":"jeep","position":[118,202.5]}
+        {"side":"blue","kind":"test_tank","position":[50,200]},
+        {"side":"red","kind":"test_tank","position":[130,200]},
+        {"side":"red","kind":"test_jeep","position":[118,202.5]}
     ]})).unwrap();
     let battle = Battle::new(&setup, 7);
     let mut units: Vec<_> = (0..3)
@@ -285,16 +285,16 @@ fn supply_restores_one_charge_per_ten_seconds_with_finite_stock_and_unchanged_co
     use serde_json::json;
     use sim::battle::Battle;
     use std::collections::BTreeSet;
-    let mut rules = sim::fixtures::game();
+    let mut rules = sim::fixtures::test_game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "tank",
+        "test_tank",
         json!({"capabilities":{"active_protection":capability()}}),
     );
     let setup=serde_json::from_value(json!({"rules":rules,"map":{"size":[1000,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},"units":[
-        {"side":"blue","kind":"supply","position":[100,200],"stock":40},
-        {"side":"blue","kind":"tank","position":[120,200]}
+        {"side":"blue","kind":"test_supply","position":[100,200],"stock":40},
+        {"side":"blue","kind":"test_tank","position":[120,200]}
     ]})).unwrap();
     let battle = Battle::new(&setup, 7);
     let mut units: Vec<_> = (0..2)
@@ -342,7 +342,7 @@ fn supply_restores_one_charge_per_ten_seconds_with_finite_stock_and_unchanged_co
 
 #[test]
 fn ordinary_tank_shell_metadata_bypasses_active_protection() {
-    let rules = sim::fixtures::game();
+    let rules = sim::fixtures::test_game();
     for id in [
         "rifle",
         "tank_ap",

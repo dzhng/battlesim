@@ -216,7 +216,7 @@ fn drive(kind: &str, bearing: f64, cars: bool, forward: bool) -> f64 {
 fn every_hull_drives_a_parked_street_end_to_end_without_shoving_a_car() {
     // A street along the grid, and two that cut across it.
     for bearing in [0.0f64, 30.0, 45.0].map(f64::to_radians) {
-        for kind in ["tank", "supply", "jeep"] {
+        for kind in ["test_tank", "test_supply", "test_jeep"] {
             let bare = drive(kind, bearing, false, true);
             for forward in [true, false] {
                 let took = drive(kind, bearing, true, forward);
@@ -236,7 +236,11 @@ fn every_hull_drives_a_parked_street_end_to_end_without_shoving_a_car() {
 #[test]
 fn two_vehicles_sent_through_a_parked_street_from_opposite_ends_both_arrive() {
     for bearing in [0.0f64, 30.0].map(f64::to_radians) {
-        for (east, west) in [("tank", "supply"), ("supply", "jeep"), ("tank", "tank")] {
+        for (east, west) in [
+            ("test_tank", "test_supply"),
+            ("test_supply", "test_jeep"),
+            ("test_tank", "test_tank"),
+        ] {
             let ends = [at(bearing, -END_M, 0.0), at(bearing, END_M, 0.0)];
             let units = json!([
                 { "side": "blue", "kind": east, "position": ends[0], "yaw": bearing },
@@ -311,7 +315,7 @@ fn lane_refinement_yields_without_changing_the_route() {
             setup.rules.physics.soldier_radius_m,
         ));
         let roads = RoadNet::build(&world);
-        let mobility = sim::units::mobility(setup.rules.catalog.by_id("tank"), &setup.rules);
+        let mobility = sim::units::mobility(setup.rules.catalog.by_id("test_tank"), &setup.rules);
         let from = at(bearing, -END_M, 0.0);
         let to = at(bearing, END_M, 0.0);
         let leg = Leg {
@@ -361,7 +365,7 @@ fn a_dense_roadside_body_query_yields_without_changing_the_route() {
         setup.rules.physics.soldier_radius_m,
     ));
     let roads = RoadNet::build(&world);
-    let mobility = sim::units::mobility(setup.rules.catalog.by_id("supply"), &setup.rules);
+    let mobility = sim::units::mobility(setup.rules.catalog.by_id("test_supply"), &setup.rules);
     let avoid = [sim::math::Obb2 {
         center: v2(200.0, 20.0),
         yaw: 0.0,
@@ -429,7 +433,7 @@ fn stops_short_of_the_wreck(ratio: Option<f64>) {
     }
     let from = at(bearing, -200.0, 0.0);
     let units =
-        json!([{ "side": "blue", "kind": "limit_wheeled", "position": from, "yaw": bearing }]);
+        json!([{ "side": "blue", "kind": "test_limit_wheeled", "position": from, "yaw": bearing }]);
     let setup = serde_json::from_value(json!({
         "map": map, "rules": rules, "units": units, "events": [], "scripts": [],
     }))
@@ -478,7 +482,7 @@ fn a_long_truck_pulls_up_beside_parked_cars_where_it_was_sent() {
     sim::fixtures::with_units_at_limits(&mut rules);
     let from = at(bearing, -200.0, 0.0);
     let units =
-        json!([{ "side": "blue", "kind": "limit_wheeled", "position": from, "yaw": bearing }]);
+        json!([{ "side": "blue", "kind": "test_limit_wheeled", "position": from, "yaw": bearing }]);
     // Cars along both kerbs: the street is narrower than the truck is long.
     let mut map = street(bearing, true);
     for k in 0..4 {

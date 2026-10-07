@@ -1,6 +1,6 @@
 {
   "units": {
-    "supply": {
+    "test_supply": {
       "name": "Supply truck",
       "description": "Deploys in place to rearm, repair and reinforce the units around it.",
       "faction": "generic",
@@ -30,9 +30,9 @@
       "sensors": { "ground_m": 300, "sight_shape": { "front": 1.0, "side": 0.5, "rear": 0.3 } },
       "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 }, "supply": { "stock": 250 } },
       "sound": { "profile": "vehicle", "loudness_m": 650 },
-      "appearance": "supply_truck"
+      "appearance": "test_supply_truck"
     },
-    "jeep": {
+    "test_jeep": {
       "name": "Jeep",
       "description": "A light, fast, open-topped recon vehicle with a pedestal HMG.",
       "faction": "generic",
@@ -64,7 +64,7 @@
         { "name": "HMG", "weapons": ["hmg"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }
       ],
       "sound": { "profile": "vehicle", "loudness_m": 500 },
-      "appearance": "jeep"
+      "appearance": "test_jeep"
     }
   }
 }

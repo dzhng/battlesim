@@ -50,13 +50,13 @@ fn penetrating_hits_take_fixed_damage_and_a_failed_one_takes_none() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [300, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [300, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
         ]),
         1,
     );
     let damage = rules()["weapons"]["tank_ap"]["damage"].as_f64().unwrap();
-    let full = crate::common::hull("tank").hp;
+    let full = crate::common::hull("test_tank").hp;
     let mut seen = vec![full];
     for _ in 0..400 {
         b.step();
@@ -79,13 +79,13 @@ fn rounds_that_cannot_penetrate_do_nothing() {
     let mut setup = common::scenario_with(
         &map(json!([]), json!([])),
         json!([
-            { "side": "blue", "kind": "recon", "position": [100, 300] },
-            { "side": "red", "kind": "supply", "position": [200, 300] }
+            { "side": "blue", "kind": "test_recon", "position": [100, 300] },
+            { "side": "red", "kind": "test_supply", "position": [200, 300] }
         ]),
         json!([]),
         json!([]),
     );
-    let hull = common::hull("supply");
+    let hull = common::hull("test_supply");
     let full = hull.hp;
     for penetrates in [false, true] {
         if penetrates {
@@ -122,9 +122,9 @@ fn a_destroyed_tank_leaves_a_wreck_that_reroutes_the_side_that_sees_it() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "blue", "kind": "supply", "position": [100, 340] },
-            { "side": "red", "kind": "tank", "position": [300, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "blue", "kind": "test_supply", "position": [100, 340] },
+            { "side": "red", "kind": "test_tank", "position": [300, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
         ]),
         // A seed on which blue's tank wins the even duel (on seed 3 red's
         // return fire now does).
@@ -220,8 +220,8 @@ fn a_round_suppresses_a_squad_once_however_long_it_takes_to_pass() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "recon", "position": [150, 300] },
-            { "side": "red", "kind": "rifle", "position": [200, 302], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_recon", "position": [150, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [200, 302], "engagement": "return_fire_only" },
         ]),
         4,
     );
@@ -264,8 +264,8 @@ fn near_misses_suppress_without_damage() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "recon", "position": [180, 300] },
-            { "side": "red", "kind": "rifle", "position": [200, 306.5], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_recon", "position": [180, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [200, 306.5], "engagement": "return_fire_only" },
         ]),
         4,
     );
@@ -304,9 +304,9 @@ fn blast_is_sampled_per_soldier_and_spares_no_team() {
         let mut setup = common::scenario_with(
             &map(json!([]), json!([])),
             json!([
-                { "side": "blue", "kind": "tank", "position": [100, 300] },
-                { "side": "red", "kind": "rifle", "position": [300, 303], "engagement": "return_fire_only" },
-                { "side": "blue", "kind": "rifle", "position": [300, 290], "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+                { "side": "red", "kind": "test_rifle", "position": [300, 303], "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_rifle", "position": [300, 290], "engagement": "return_fire_only" },
             ]),
             json!([]),
             json!([]),
@@ -356,8 +356,8 @@ fn the_fallen_stay_where_they_fell_and_block_nothing() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [250, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [250, 300], "engagement": "return_fire_only" },
         ]),
         6,
     );
@@ -418,8 +418,8 @@ fn damage_from_untargeted_fire_grants_return_fire() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "at", "position": [300, 303], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_at", "position": [300, 303], "engagement": "return_fire_only" },
         ]),
         7,
     );
@@ -452,10 +452,10 @@ fn damage_repeats_from_its_seed() {
         battle(
             json!([]),
             json!([
-                { "side": "blue", "kind": "tank", "position": [100, 300] },
-                { "side": "blue", "kind": "rifle", "position": [120, 330] },
-                { "side": "red", "kind": "rifle", "position": [300, 303] },
-                { "side": "red", "kind": "tank", "position": [320, 260] },
+                { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+                { "side": "blue", "kind": "test_rifle", "position": [120, 330] },
+                { "side": "red", "kind": "test_rifle", "position": [300, 303] },
+                { "side": "red", "kind": "test_tank", "position": [320, 260] },
             ]),
             9,
         )
@@ -497,8 +497,8 @@ fn a_wall_shields_soldiers_from_a_blast_beside_it() {
             let mut setup = common::scenario_with(
                 &map(props, json!([])),
                 json!([
-                    { "side": "blue", "kind": "tank", "position": [100, 300] },
-                    { "side": "red", "kind": "rifle", "position": [306, 300], "engagement": "return_fire_only" }
+                    { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+                    { "side": "red", "kind": "test_rifle", "position": [306, 300], "engagement": "return_fire_only" }
                 ]),
                 json!([]),
                 json!([]),
@@ -569,8 +569,8 @@ fn killed_driving(props: Value) -> ([f64; 2], f64, f64, [f64; 2]) {
     let mut b = battle(
         props,
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300], "condition": { "hp": 1 }, "engagement": "return_fire_only" },
-            { "side": "red", "kind": "tank", "position": [300, 420], "yaw": -1.2 },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300], "condition": { "hp": 1 }, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [300, 420], "yaw": -1.2 },
         ]),
         1,
     );
@@ -632,13 +632,13 @@ fn a_tank_killed_on_the_move_rolls_to_a_stop_its_tracks_locked() {
 /// The tick red's squad loses its first soldier to blue's rifles, its
 /// soldiers starting at `soldier_hp` when given.
 fn first_casualty(soldier_hp: Option<f64>) -> u64 {
-    let mut red = json!({ "side": "red", "kind": "rifle", "position": [260, 300], "engagement": "return_fire_only" });
+    let mut red = json!({ "side": "red", "kind": "test_rifle", "position": [260, 300], "engagement": "return_fire_only" });
     if let Some(hp) = soldier_hp {
         red["condition"] = json!({ "soldier_hp": hp });
     }
     let mut b = battle(
         json!([]),
-        json!([{ "side": "blue", "kind": "rifle", "position": [100, 300] }, red]),
+        json!([{ "side": "blue", "kind": "test_rifle", "position": [100, 300] }, red]),
         1,
     );
     let full = b.unit(UnitId(1)).unwrap().members.len();

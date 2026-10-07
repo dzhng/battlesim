@@ -107,8 +107,8 @@ fn a_launcher_operator_uses_one_gun_while_his_guards_keep_firing() {
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "at", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [550, 300], "engagement": "return_fire_only" }
+            { "side": "blue", "kind": "test_at", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [550, 300], "engagement": "return_fire_only" }
         ]),
         json!([]),
         json!([]),
@@ -147,10 +147,10 @@ fn switching_to_a_rifle_pauses_reload_and_resuming_a_useful_launcher_finishes_it
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "at", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [450, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "recon", "position": [250, 400], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "tank", "position": [650, 200], "engagement": "return_fire_only" }
+            { "side": "blue", "kind": "test_at", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [450, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_recon", "position": [250, 400], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [650, 200], "engagement": "return_fire_only" }
         ]),
         json!([]),
         json!([]),
@@ -255,8 +255,8 @@ fn a_depleted_single_gun_returns_to_the_rifle_without_resetting_its_guards_aim()
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "recon", "position": [220, 300], "engagement": "return_fire_only" }
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "red", "kind": "test_recon", "position": [220, 300], "engagement": "return_fire_only" }
         ]),
         json!([]),
         json!([]),
@@ -345,14 +345,19 @@ fn minimum_range_setup(
     game["weapons"][id]["damage"] = json!(0.0);
     let base = common::rules();
     let target_height = 2.0
-        * base.catalog.by_id("jeep").hull().unwrap().half_extents_m[2]
+        * base
+            .catalog
+            .by_id("test_jeep")
+            .hull()
+            .unwrap()
+            .half_extents_m[2]
         * base.physics.vehicle_aim_height_fraction;
     // A small hull avoids squad spacing and collision at the boundary.
     let launcher = if infantry {
-        json!({ "extends": "rifle", "body": { "squad": { "slots": ["grenadier"] } } })
+        json!({ "extends": "test_rifle", "body": { "squad": { "slots": ["test_grenadier"] } } })
     } else {
         json!({
-            "extends": "jeep",
+            "extends": "test_jeep",
             "body": { "hull": { "half_extents_m": [0.25, 0.25, 0.25] } },
             "mounts": [{ "name": "HMG", "weapons": [id],
                 "pivot_m": [0, 0, 0], "muzzle_m": [muzzle_forward, 0, target_height] }]
@@ -366,7 +371,7 @@ fn minimum_range_setup(
         "rules": game,
         "units": [
             { "side": "blue", "kind": "close_launcher", "position": [100, 300] },
-            { "side": "red", "kind": "jeep", "position": [100.0 + distance, 300], "engagement": "return_fire_only" }
+            { "side": "red", "kind": "test_jeep", "position": [100.0 + distance, 300], "engagement": "return_fire_only" }
         ], "events": [], "scripts": []
     })).unwrap()
 }
@@ -456,7 +461,7 @@ fn minimum_range_includes_the_boundary_and_is_measured_from_the_muzzle() {
 fn minimum_range_tries_a_farther_visible_soldier_when_the_nearest_is_too_close() {
     for infantry in [false, true] {
         let mut setup = minimum_range_setup("grenade", 6.0, 0.0, infantry);
-        setup.units[1].kind = "rifle".into();
+        setup.units[1].kind = "test_rifle".into();
         setup.rules.weapons.get_mut("rifle").unwrap().damage = 0.0;
         let mut b = Battle::new(&setup, 5);
         run(&mut b, 3);
@@ -472,7 +477,7 @@ fn minimum_range_tries_a_farther_visible_soldier_when_the_nearest_is_too_close()
                 2.0 * setup
                     .rules
                     .catalog
-                    .by_id("jeep")
+                    .by_id("test_jeep")
                     .hull()
                     .unwrap()
                     .half_extents_m[2]
@@ -508,8 +513,8 @@ fn every_mount_aims_and_reloads_independently_and_aims_once_per_target() {
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [100.0 + 0.8 * reach, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [100.0 + 0.8 * reach, 300], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -560,16 +565,16 @@ fn automatic_acquisition_prefers_a_damaging_threat_over_harmless_value() {
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            {"side":"blue","kind":"tank","position":[100,300]},
-            {"side":"red","kind":"rifle","position":[300,260],"engagement":"return_fire_only"},
-            {"side":"red","kind":"tank","position":[300,340],"engagement":"return_fire_only"}
+            {"side":"blue","kind":"test_tank","position":[100,300]},
+            {"side":"red","kind":"test_rifle","position":[300,260],"engagement":"return_fire_only"},
+            {"side":"red","kind":"test_tank","position":[300,340],"engagement":"return_fire_only"}
         ]),
         json!([]),
         json!([]),
     );
     let mut authored = rules();
-    sim::fixtures::patch_catalog(&mut authored, "units", "rifle", json!({"cost":1000}));
-    sim::fixtures::patch_catalog(&mut authored, "units", "tank", json!({"cost":100}));
+    sim::fixtures::patch_catalog(&mut authored, "units", "test_rifle", json!({"cost":1000}));
+    sim::fixtures::patch_catalog(&mut authored, "units", "test_tank", json!({"cost":100}));
     setup.rules = serde_json::from_value(authored).unwrap();
     let mut b = Battle::new(&setup, 5);
     run(&mut b, 3);
@@ -577,7 +582,7 @@ fn automatic_acquisition_prefers_a_damaging_threat_over_harmless_value() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == common::unit_kind("tank"))
+        .find(|e| e.kind == common::unit_kind("test_tank"))
         .unwrap()
         .id;
     assert_eq!(
@@ -588,20 +593,25 @@ fn automatic_acquisition_prefers_a_damaging_threat_over_harmless_value() {
 
 #[test]
 fn threatening_targets_use_authored_price_before_distance() {
-    for (tank_cost, at_cost, expected) in [(1000, 100, "tank"), (100, 1000, "at")] {
+    for (tank_cost, at_cost, expected) in [(1000, 100, "test_tank"), (100, 1000, "test_at")] {
         let mut setup = scenario_with(
             &map(json!([])),
             json!([
-                {"side":"blue","kind":"tank","position":[100,300]},
-                {"side":"red","kind":"tank","position":[400,260],"engagement":"return_fire_only"},
-                {"side":"red","kind":"at","position":[300,340],"engagement":"return_fire_only"}
+                {"side":"blue","kind":"test_tank","position":[100,300]},
+                {"side":"red","kind":"test_tank","position":[400,260],"engagement":"return_fire_only"},
+                {"side":"red","kind":"test_at","position":[300,340],"engagement":"return_fire_only"}
             ]),
             json!([]),
             json!([]),
         );
         let mut authored = rules();
-        sim::fixtures::patch_catalog(&mut authored, "units", "tank", json!({"cost":tank_cost}));
-        sim::fixtures::patch_catalog(&mut authored, "units", "at", json!({"cost":at_cost}));
+        sim::fixtures::patch_catalog(
+            &mut authored,
+            "units",
+            "test_tank",
+            json!({"cost":tank_cost}),
+        );
+        sim::fixtures::patch_catalog(&mut authored, "units", "test_at", json!({"cost":at_cost}));
         setup.rules = serde_json::from_value(authored).unwrap();
         let mut b = Battle::new(&setup, 5);
         run(&mut b, 3);
@@ -625,16 +635,16 @@ fn expensive_launcher_without_return_fire_reach_loses_threat_priority() {
         let mut setup = scenario_with(
             &map(json!([])),
             json!([
-                {"side":"blue","kind":"tank","position":[100,300]},
-                {"side":"red","kind":"at","position":[300,260],"engagement":"return_fire_only"},
-                {"side":"red","kind":"tank","position":[300,340],"engagement":"return_fire_only"}
+                {"side":"blue","kind":"test_tank","position":[100,300]},
+                {"side":"red","kind":"test_at","position":[300,260],"engagement":"return_fire_only"},
+                {"side":"red","kind":"test_tank","position":[300,340],"engagement":"return_fire_only"}
             ]),
             json!([]),
             json!([]),
         );
         let mut authored = rules();
-        sim::fixtures::patch_catalog(&mut authored, "units", "tank", json!({"cost":100}));
-        sim::fixtures::patch_catalog(&mut authored, "units", "at", json!({"cost":1000}));
+        sim::fixtures::patch_catalog(&mut authored, "units", "test_tank", json!({"cost":100}));
+        sim::fixtures::patch_catalog(&mut authored, "units", "test_at", json!({"cost":1000}));
         authored["weapons"]["atgm"]["min_range_m"] = json!(minimum);
         authored["weapons"]["atgm"]["range_m"] = json!(maximum);
         setup.rules = serde_json::from_value(authored).unwrap();
@@ -644,7 +654,7 @@ fn expensive_launcher_without_return_fire_reach_loses_threat_priority() {
             .observe(Side::Blue)
             .identified
             .iter()
-            .find(|e| e.kind == common::unit_kind("tank"))
+            .find(|e| e.kind == common::unit_kind("test_tank"))
             .unwrap()
             .id;
         assert_eq!(
@@ -660,9 +670,9 @@ fn equal_threat_and_price_use_distance_then_stable_observed_id() {
         let mut b = battle(
             json!([]),
             json!([
-                {"side":"blue","kind":"tank","position":[100,300]},
-                {"side":"red","kind":"tank","position":[300,260],"engagement":"return_fire_only"},
-                {"side":"red","kind":"tank","position":second,"engagement":"return_fire_only"}
+                {"side":"blue","kind":"test_tank","position":[100,300]},
+                {"side":"red","kind":"test_tank","position":[300,260],"engagement":"return_fire_only"},
+                {"side":"red","kind":"test_tank","position":second,"engagement":"return_fire_only"}
             ]),
             json!([]),
             json!([]),
@@ -684,9 +694,9 @@ fn each_weapon_takes_the_costliest_target_it_can_damage() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [300, 260] },
-            { "side": "red", "kind": "rifle", "position": [300, 340] },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [300, 260] },
+            { "side": "red", "kind": "test_rifle", "position": [300, 340] },
         ]),
         json!([]),
         json!([]),
@@ -700,12 +710,12 @@ fn each_weapon_takes_the_costliest_target_it_can_damage() {
         .collect();
     let tank_id = ids
         .iter()
-        .find(|(_, k)| *k == common::unit_kind("tank"))
+        .find(|(_, k)| *k == common::unit_kind("test_tank"))
         .unwrap()
         .0;
     let rifle_id = ids
         .iter()
-        .find(|(_, k)| *k == common::unit_kind("rifle"))
+        .find(|(_, k)| *k == common::unit_kind("test_rifle"))
         .unwrap()
         .0;
     assert_eq!(
@@ -725,9 +735,9 @@ fn an_explicit_attack_focuses_compatible_weapons_and_frees_the_rest() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [300, 260] },
-            { "side": "red", "kind": "rifle", "position": [300, 340] },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [300, 260] },
+            { "side": "red", "kind": "test_rifle", "position": [300, 340] },
         ]),
         json!([]),
         json!([]),
@@ -737,7 +747,7 @@ fn an_explicit_attack_focuses_compatible_weapons_and_frees_the_rest() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == common::unit_kind("rifle"))
+        .find(|e| e.kind == common::unit_kind("test_rifle"))
         .unwrap()
         .id;
     let mut c = Commander::new();
@@ -763,7 +773,7 @@ fn an_explicit_attack_focuses_compatible_weapons_and_frees_the_rest() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == common::unit_kind("tank"))
+        .find(|e| e.kind == common::unit_kind("test_tank"))
         .unwrap()
         .id;
     c.ok(
@@ -791,8 +801,8 @@ fn the_default_gun_fires_at_what_it_cannot_hurt_but_specialists_do_not() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [300, 300] },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [300, 300] },
         ]),
         json!([]),
         json!([]),
@@ -825,8 +835,8 @@ fn a_default_gun_with_a_finite_supply_keeps_it_for_what_it_can_hurt() {
         "map": map,
         "rules": rules,
         "units": [
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [300, 300] },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [300, 300] },
         ],
         "events": [],
         "scripts": [],
@@ -856,9 +866,9 @@ fn an_area_then_a_tank() -> Battle {
             json!([{ "kind": "building", "center": [330, 300], "yaw": 0, "half_extents": [8, 20, 2] }]),
         ),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [350, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "tank", "position": [760, 150], "yaw": std::f64::consts::PI,
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [350, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [760, 150], "yaw": std::f64::consts::PI,
               "engagement": "return_fire_only" },
         ]),
         json!(fire),
@@ -927,9 +937,9 @@ fn areas_draw_only_general_purpose_fire_and_never_ap() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [120, 300] },
-            { "side": "blue", "kind": "at", "position": [120, 250] },
-            { "side": "red", "kind": "rifle", "position": [820, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [120, 300] },
+            { "side": "blue", "kind": "test_at", "position": [120, 250] },
+            { "side": "red", "kind": "test_rifle", "position": [820, 300], "engagement": "return_fire_only" },
         ]),
         json!(fire),
         json!([]),
@@ -961,8 +971,8 @@ fn a_stationary_weapon_loses_aim_and_unfinished_reload_when_the_unit_moves() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "at", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [600, 300] },
+            { "side": "blue", "kind": "test_at", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [600, 300] },
         ]),
         json!([]),
         json!([]),
@@ -1004,8 +1014,8 @@ fn stop_clears_aim_and_unfinished_reload_once_and_fire_resumes() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [400, 300] },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [400, 300] },
         ]),
         json!([]),
         json!([]),
@@ -1049,8 +1059,8 @@ fn a_brief_loss_of_sight_keeps_the_acquisition_and_its_aim() {
     let mut b = battle(
         wall,
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [400, 250], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [400, 250], "engagement": "return_fire_only" },
         ]),
         json!([]),
         scripts,
@@ -1094,9 +1104,9 @@ fn return_fire_only_answers_only_its_own_attacker() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [250, 250], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "recon", "position": [250, 350] },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [250, 250], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_recon", "position": [250, 350] },
         ]),
         json!([]),
         json!([]),
@@ -1110,7 +1120,7 @@ fn return_fire_only_answers_only_its_own_attacker() {
                 .observe(Side::Blue)
                 .identified
                 .iter()
-                .filter(|e| e.kind == common::unit_kind("recon"))
+                .filter(|e| e.kind == common::unit_kind("test_recon"))
                 .map(|e| e.id)
                 .collect();
             assert!(
@@ -1137,8 +1147,8 @@ fn attack_orders_switch_to_fire_at_will_and_moves_keep_policy() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [250, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [250, 300], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -1185,9 +1195,9 @@ fn automatic_targets_never_move_a_unit_but_explicit_attacks_pursue() {
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "recon", "position": [100, 300] },
-            { "side": "blue", "kind": "rifle", "position": [100, 250] },
-            { "side": "red", "kind": "rifle", "position": [950, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_recon", "position": [100, 300] },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 250] },
+            { "side": "red", "kind": "test_rifle", "position": [950, 300], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -1196,7 +1206,7 @@ fn automatic_targets_never_move_a_unit_but_explicit_attacks_pursue() {
     sim::fixtures::patch_catalog(
         &mut optics,
         "units",
-        "recon",
+        "test_recon",
         json!({"sensors":{"ground_m":1000}}),
     );
     setup.rules.catalog = serde_json::from_value::<contract::scenario::Rules>(optics)
@@ -1256,10 +1266,10 @@ fn an_attack_order_prioritises_its_target_and_fights_others_until_it_can_shoot_i
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "recon", "position": [100, 300] },
-            { "side": "blue", "kind": "rifle", "position": [100, 250] },
-            { "side": "red", "kind": "rifle", "position": [950, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [400, 420], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_recon", "position": [100, 300] },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 250] },
+            { "side": "red", "kind": "test_rifle", "position": [950, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [400, 420], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -1268,7 +1278,7 @@ fn an_attack_order_prioritises_its_target_and_fights_others_until_it_can_shoot_i
     sim::fixtures::patch_catalog(
         &mut optics,
         "units",
-        "recon",
+        "test_recon",
         json!({"sensors":{"ground_m":1000}}),
     );
     setup.rules.catalog = serde_json::from_value::<contract::scenario::Rules>(optics)
@@ -1319,10 +1329,10 @@ fn an_attack_that_loses_its_target_fights_on_the_way_to_the_last_report() {
     let mut setup = scenario_with(
         &map(wall),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "blue", "kind": "recon", "position": [100, 340] },
-            { "side": "red", "kind": "rifle", "position": [720, 322], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [350, 120], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "test_recon", "position": [100, 340] },
+            { "side": "red", "kind": "test_rifle", "position": [720, 322], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [350, 120], "engagement": "return_fire_only" },
         ]),
         json!([]),
         scripts,
@@ -1376,8 +1386,8 @@ fn attack_move_halts_to_engage_and_resumes() {
     let mut b = battle(
         wall,
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [290, 480], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [290, 480], "engagement": "return_fire_only" },
         ]),
         json!([]),
         scripts,
@@ -1419,9 +1429,9 @@ fn friendly_vehicles_in_the_line_withhold_fire_but_infantry_do_not() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "blue", "kind": "tank", "position": [200, 300] },
-            { "side": "red", "kind": "tank", "position": [400, 300] },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "blue", "kind": "test_tank", "position": [200, 300] },
+            { "side": "red", "kind": "test_tank", "position": [400, 300] },
         ]),
         json!([]),
         json!([]),
@@ -1435,9 +1445,9 @@ fn friendly_vehicles_in_the_line_withhold_fire_but_infantry_do_not() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "blue", "kind": "rifle", "position": [200, 300] },
-            { "side": "red", "kind": "tank", "position": [400, 300] },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "blue", "kind": "test_rifle", "position": [200, 300] },
+            { "side": "red", "kind": "test_tank", "position": [400, 300] },
         ]),
         json!([]),
         json!([]),
@@ -1455,9 +1465,9 @@ fn rounds_hit_whatever_they_meet_including_friendly_soldiers() {
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "blue", "kind": "rifle", "position": [340, 300] },
-            { "side": "red", "kind": "rifle", "position": [400, 300] },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "blue", "kind": "test_rifle", "position": [340, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [400, 300] },
         ]),
         json!([]),
         json!([]),
@@ -1506,8 +1516,8 @@ fn cannon_rounds_swap_by_target_without_losing_any() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [400, 300] },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [400, 300] },
         ]),
         json!([]),
         json!([]),
@@ -1545,10 +1555,10 @@ fn combat_replays_to_identical_digests() {
     let setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "blue", "kind": "tank", "position": [100, 250] },
-            { "side": "red", "kind": "rifle", "position": [300, 300] },
-            { "side": "red", "kind": "at", "position": [320, 260] },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "test_tank", "position": [100, 250] },
+            { "side": "red", "kind": "test_rifle", "position": [300, 300] },
+            { "side": "red", "kind": "test_at", "position": [320, 260] },
         ]),
         json!([]),
         json!([]),
@@ -1574,8 +1584,8 @@ fn enemy_rounds_are_drawn_only_over_seen_ground_and_own_rounds_whole() {
     let mut b = battle(
         wall,
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "recon", "position": [320, 140] },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "red", "kind": "test_recon", "position": [320, 140] },
         ]),
         json!([]),
         json!([]),
@@ -1611,10 +1621,10 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "blue", "kind": "recon", "position": [100, 340] },
-            { "side": "red", "kind": "rifle", "position": [690, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "recon", "position": [400, 420], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "test_recon", "position": [100, 340] },
+            { "side": "red", "kind": "test_rifle", "position": [690, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_recon", "position": [400, 420], "engagement": "return_fire_only" },
         ]),
         json!([]),
         scripts,
@@ -1633,7 +1643,7 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
             .map(|e| e.id)
     };
     run(&mut b, 5);
-    let squad = handle(&b, "rifle").expect("the squad is identified");
+    let squad = handle(&b, "test_rifle").expect("the squad is identified");
     assert_eq!(
         mount(&b, Side::Blue, 0, 0).target,
         Some(TargetRef::Identified { id: squad })
@@ -1642,9 +1652,9 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
     for _ in 0..1200 {
         b.step();
         if mount(&b, Side::Blue, 0, 0).target
-            == handle(&b, "recon").map(|id| TargetRef::Identified { id })
+            == handle(&b, "test_recon").map(|id| TargetRef::Identified { id })
         {
-            switched = handle(&b, "rifle") == Some(squad);
+            switched = handle(&b, "test_rifle") == Some(squad);
             break;
         }
     }
@@ -1665,10 +1675,10 @@ fn a_weapon_keeps_its_target_while_it_can_still_shoot_it() {
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "blue", "kind": "recon", "position": [100, 340] },
-            { "side": "red", "kind": "rifle", "position": [300, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [340, 380], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "test_recon", "position": [100, 340] },
+            { "side": "red", "kind": "test_rifle", "position": [300, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [340, 380], "engagement": "return_fire_only" },
         ]),
         json!([]),
         scripts,
@@ -1705,8 +1715,8 @@ fn crossing(wall_half_y: f64) -> Battle {
     battle(
         wall,
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [400, 250], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [400, 250], "engagement": "return_fire_only" },
         ]),
         json!([]),
         scripts,
@@ -1786,8 +1796,8 @@ fn attack_on_a_hidden_shooter(approach: bool) -> Battle {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [715, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [715, 300], "engagement": "return_fire_only" },
         ]),
         json!([{ "tick": 5, "fire": { "unit": 1 } }]),
         scripts,
@@ -1879,8 +1889,8 @@ fn fresh_firing_after_expiry_cannot_revive_the_previous_contact_attack() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [715, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [715, 300], "engagement": "return_fire_only" },
         ]),
         json!([
             { "tick": 5, "fire": { "unit": 1 } },
@@ -1923,8 +1933,8 @@ fn fresh_firing_after_expiry_does_not_restore_old_return_fire_permission() {
         let mut b = battle(
             json!([]),
             json!([
-                { "side": "blue", "kind": "supply", "position": [100, 300], "engagement": "return_fire_only" },
-                { "side": "red", "kind": "rifle", "position": [600, 300], "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_supply", "position": [100, 300], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_rifle", "position": [600, 300], "engagement": "return_fire_only" },
             ]),
             events,
             json!([]),
@@ -1993,8 +2003,8 @@ fn a_short_contact_lifetime_preserves_return_fire_during_identification_grace() 
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "supply", "position": [100, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [250, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_supply", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [250, 300], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -2071,8 +2081,8 @@ fn renewed_contact_starts_a_new_acquisition_after_positive_aim() {
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [600, 300], "engagement": "return_fire_only" },
         ]),
         json!([
             { "tick": 5, "fire": { "unit": 1 } },
@@ -2109,8 +2119,8 @@ fn a_remembered_tank_type_does_not_authorize_ap_against_its_firing_area() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "tank", "position": [400, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [400, 300], "engagement": "return_fire_only" },
         ]),
         json!([{ "tick": 600, "fire": { "unit": 1 } }]),
         json!([
@@ -2125,7 +2135,7 @@ fn a_remembered_tank_type_does_not_authorize_ap_against_its_firing_area() {
     assert_eq!(report.source, contract::observation::ContactSource::Firing);
     assert_eq!(
         report.kind,
-        Some(common::unit_kind("tank")),
+        Some(common::unit_kind("test_tank")),
         "the label remembers the identified type"
     );
     let id = report.id;
@@ -2170,8 +2180,8 @@ fn area_fire_at_a_contact_comes_down_within_its_area() {
         "map": map,
         "rules": rules,
         "units": [
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [600, 300], "engagement": "return_fire_only" },
         ],
         "events": [{ "tick": 5, "fire": { "unit": 1 } }],
         "scripts": [],
@@ -2246,9 +2256,9 @@ fn the_engagement_policy_switches_per_unit() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "blue", "kind": "rifle", "position": [100, 340] },
-            { "side": "red", "kind": "rifle", "position": [300, 320], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 340] },
+            { "side": "red", "kind": "test_rifle", "position": [300, 320], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -2281,8 +2291,8 @@ fn attack_move_halts_for_what_only_a_stationary_weapon_reaches() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "at", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [650, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_at", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [650, 300], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -2311,8 +2321,8 @@ fn attack_move_never_halts_for_a_target_it_cannot_hurt() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [300, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [300, 300], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -2344,9 +2354,9 @@ fn an_attack_pursues_the_last_report_never_the_hidden_unit() {
     let mut b = battle(
         wall,
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "blue", "kind": "recon", "position": [100, 340] },
-            { "side": "red", "kind": "rifle", "position": [720, 322], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "blue", "kind": "test_recon", "position": [100, 340] },
+            { "side": "red", "kind": "test_rifle", "position": [720, 322], "engagement": "return_fire_only" },
         ]),
         json!([]),
         scripts,
@@ -2400,8 +2410,8 @@ fn a_cannon_loads_ap_against_armour_and_he_once_ap_is_spent() {
         let mut b = battle(
             json!([]),
             json!([
-                { "side": "blue", "kind": "tank", "position": [300, 300], "condition": condition },
-                { "side": "red", "kind": "tank", "position": [600, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_tank", "position": [300, 300], "condition": condition },
+                { "side": "red", "kind": "test_tank", "position": [600, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
             ]),
             json!([]),
             json!([]),
@@ -2447,13 +2457,13 @@ fn a_tank_round_leaves_the_muzzle_past_the_hull_front_on_the_turret_bearing() {
     let mut b = battle(
         json!([]),
         json!([
-            { "side": "blue", "kind": "tank", "position": [300, 300] },
-            { "side": "red", "kind": "tank", "position": [500, 450], "yaw": std::f64::consts::PI },
+            { "side": "blue", "kind": "test_tank", "position": [300, 300] },
+            { "side": "red", "kind": "test_tank", "position": [500, 450], "yaw": std::f64::consts::PI },
         ]),
         json!([]),
         json!([]),
     );
-    let hull_front = common::hull("tank").half_extents_m[0];
+    let hull_front = common::hull("test_tank").half_extents_m[0];
     let (origin, bearings) = first_launch(&mut b, 0, "tank_ap", 20.0, |_| true);
     let (dx, dy) = (origin[0] - 300.0, origin[1] - 300.0);
     let reach = dx.hypot(dy);
@@ -2486,16 +2496,16 @@ fn a_grounded_launcher_fires_from_its_operator_and_declared_bore() {
     let mut game = rules();
     game["weapons"]["atgm"]["damage"] = json!(0.0);
     game["catalog"].as_array_mut().unwrap().push(json!({
-        "soldiers":{"tripod_gunner":{"extends":"atgm_gunner", "mounts":[{
+        "soldiers":{"tripod_gunner":{"extends":"test_atgm_gunner", "mounts":[{
             "name":"ATGM launcher", "weapons":["atgm"], "special":true,
             "pivot_m":[0.2,-0.1,0.75], "muzzle_m":[0.6,0,0]
         }]}},
-        "units":{"tripod_team":{"extends":"at", "body":{"squad":{"slots":["at_rifleman","tripod_gunner","at_rifleman"]}}}}
+        "units":{"tripod_team":{"extends":"test_at", "body":{"squad":{"slots":["test_at_rifleman","tripod_gunner","test_at_rifleman"]}}}}
     }));
     let setup = serde_json::from_value(json!({
         "map":serde_json::from_str::<Value>(&map(json!([]))).unwrap(), "rules":game,
         "units":[{"side":"blue","kind":"tripod_team","position":[100,300]},
-            {"side":"red","kind":"tank","position":[500,450],"engagement":"return_fire_only"}],
+            {"side":"red","kind":"test_tank","position":[500,450],"engagement":"return_fire_only"}],
         "events":[], "scripts":[]
     }))
     .unwrap();
@@ -2575,7 +2585,7 @@ fn a_tank_roof_hmg_fires_from_its_own_muzzle_whatever_its_bearing_to_the_turret(
     // deck), never from the cannon's tip or a point in mid-air out to the
     // side. The cannon is ordered onto a tank ahead; the HMG, which can't
     // hurt it, takes a squad at the side or behind.
-    let half = common::hull("tank").half_extents_m;
+    let half = common::hull("test_tank").half_extents_m;
     let (hull_front, hull_top) = (half[0], 2.0 * half[2]);
     for deg in [90.0f64, 180.0, -90.0] {
         let a = deg.to_radians();
@@ -2584,9 +2594,9 @@ fn a_tank_roof_hmg_fires_from_its_own_muzzle_whatever_its_bearing_to_the_turret(
         let mut b = battle(
             json!([]),
             json!([
-                { "side": "blue", "kind": "tank", "position": [300, 300] },
-                { "side": "red", "kind": "tank", "position": [520, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
-                { "side": "red", "kind": "rifle", "position": squad, "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_tank", "position": [300, 300] },
+                { "side": "red", "kind": "test_tank", "position": [520, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_rifle", "position": squad, "engagement": "return_fire_only" },
             ]),
             json!([]),
             json!([]),
@@ -2596,7 +2606,7 @@ fn a_tank_roof_hmg_fires_from_its_own_muzzle_whatever_its_bearing_to_the_turret(
             .observe(Side::Blue)
             .identified
             .iter()
-            .find(|e| e.kind == common::unit_kind("tank"))
+            .find(|e| e.kind == common::unit_kind("test_tank"))
             .expect("the tank ahead is seen")
             .id;
         Commander::new().ok(
@@ -2674,11 +2684,11 @@ fn a_tank_roof_hmg_holds_fire_over_a_friendly_jeep_parked_alongside() {
     // not from a point out beyond the jeep. Without the jeep he fires.
     for jeep in [true, false] {
         let mut units = vec![
-            json!({ "side": "blue", "kind": "tank", "position": [300, 300] }),
-            json!({ "side": "red", "kind": "rifle", "position": [300, 380], "engagement": "return_fire_only" }),
+            json!({ "side": "blue", "kind": "test_tank", "position": [300, 300] }),
+            json!({ "side": "red", "kind": "test_rifle", "position": [300, 380], "engagement": "return_fire_only" }),
         ];
         if jeep {
-            units.push(json!({ "side": "blue", "kind": "jeep", "position": [300, 303.5], "engagement": "return_fire_only" }));
+            units.push(json!({ "side": "blue", "kind": "test_jeep", "position": [300, 303.5], "engagement": "return_fire_only" }));
         }
         let mut b = battle(json!([]), Value::Array(units), json!([]), json!([]));
         let mut held = false;
@@ -2709,9 +2719,9 @@ fn a_tank_firing_both_mounts_apart_replays_to_the_same_digests() {
     let setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "tank", "position": [300, 300] },
-            { "side": "red", "kind": "tank", "position": [520, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [220, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [300, 300] },
+            { "side": "red", "kind": "test_tank", "position": [520, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [220, 300], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -2722,7 +2732,7 @@ fn a_tank_firing_both_mounts_apart_replays_to_the_same_digests() {
         .observe(Side::Blue)
         .identified
         .iter()
-        .find(|e| e.kind == common::unit_kind("tank"))
+        .find(|e| e.kind == common::unit_kind("test_tank"))
         .expect("the tank ahead is seen")
         .id;
     Commander::new().ok(
@@ -2759,29 +2769,29 @@ fn a_tank_firing_both_mounts_apart_replays_to_the_same_digests() {
 
 /// The shipped tank's `n`th mount row, as JSON.
 fn tank_mount(n: usize) -> serde_json::Value {
-    serde_json::to_value(&common::rules().catalog.by_id("tank").mounts[n]).unwrap()
+    serde_json::to_value(&common::rules().catalog.by_id("test_tank").mounts[n]).unwrap()
 }
 
 #[test]
 fn engaged_rifles_and_hmgs_fire_bursts_then_reload_only_empty_magazines() {
     for (kind, weapon, seed) in [
-        ("rifle", "rifle", 1),
-        ("rifle", "rifle", 5),
-        ("rifle", "rifle", 19),
-        ("tank", "hmg", 1),
-        ("tank", "hmg", 5),
-        ("tank", "hmg", 19),
+        ("test_rifle", "rifle", 1),
+        ("test_rifle", "rifle", 5),
+        ("test_rifle", "rifle", 19),
+        ("test_tank", "hmg", 1),
+        ("test_tank", "hmg", 5),
+        ("test_tank", "hmg", 19),
     ] {
         let mut setup = scenario_with(
             &map(json!([])),
             json!([
                 { "side": "blue", "kind": kind, "position": [100, 300] },
-                { "side": "red", "kind": "tank", "position": [1100, 550], "engagement": "return_fire_only" }
+                { "side": "red", "kind": "test_tank", "position": [1100, 550], "engagement": "return_fire_only" }
             ]),
             json!([]),
             json!([]),
         );
-        let capacity = if kind == "rifle" { 30 } else { 8 };
+        let capacity = if kind == "test_rifle" { 30 } else { 8 };
         let def = setup.rules.weapons.get_mut(weapon).unwrap();
         def.magazine = Some(contract::weapons::Magazine {
             rounds: capacity,
@@ -2821,7 +2831,7 @@ fn engaged_rifles_and_hmgs_fire_bursts_then_reload_only_empty_magazines() {
             }
         }
         assert!(!by_soldier.is_empty(), "{weapon} fires");
-        if kind == "rifle" {
+        if kind == "test_rifle" {
             assert_eq!(by_soldier.len(), 8);
             let starts: BTreeSet<_> = by_soldier.values().map(|shots| shots[0]).collect();
             assert!(starts.len() > 1, "soldiers aim independently");
@@ -2874,12 +2884,12 @@ fn engaged_rifles_and_hmgs_fire_bursts_then_reload_only_empty_magazines() {
 
 #[test]
 fn orders_preserve_partial_magazines_and_finite_ammo_counts_actual_rounds() {
-    for (kind, weapon, index) in [("tank", "hmg", 1), ("rifle", "rifle", 0)] {
+    for (kind, weapon, index) in [("test_tank", "hmg", 1), ("test_rifle", "rifle", 0)] {
         let mut setup = scenario_with(
             &map(json!([])),
             json!([
                 { "side": "blue", "kind": kind, "position": [100, 300] },
-                { "side": "red", "kind": "tank", "position": [1100, 550], "engagement": "return_fire_only" }
+                { "side": "red", "kind": "test_tank", "position": [1100, 550], "engagement": "return_fire_only" }
             ]),
             json!([]),
             json!([]),
@@ -2948,8 +2958,8 @@ fn zero_reload_rifles_keep_loaded_readiness_across_magazines() {
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [1100, 550], "engagement": "return_fire_only" }
+            { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [1100, 550], "engagement": "return_fire_only" }
         ]),
         json!([]),
         json!([]),
@@ -3011,7 +3021,7 @@ fn zero_reload_rifles_keep_loaded_readiness_across_magazines() {
 fn an_idle_gun_tops_up_its_partial_magazine_without_spending_ammunition() {
     let mut setup = scenario_with(
         &map(json!([])),
-        json!([{ "side": "blue", "kind": "tank", "position": [100, 300] }]),
+        json!([{ "side": "blue", "kind": "test_tank", "position": [100, 300] }]),
         json!([]),
         json!([]),
     );
@@ -3095,8 +3105,8 @@ fn an_enemy_entering_range_cancels_a_top_up_but_not_an_empty_reload() {
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-            { "side": "red", "kind": "tank", "position": [430, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" }
+            { "side": "blue", "kind": "test_tank", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [430, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" }
         ]),
         json!([]),
         json!([]),

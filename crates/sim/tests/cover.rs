@@ -67,8 +67,8 @@ fn a_body_covers_a_soldier_only_from_its_far_side_and_within_reach() {
 fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
     let r = rules();
     let w = world(json!([
-        { "kind": "heavy_wreck", "center": [60, 60], "yaw": 0, "half_extents": common::hull("tank").half_extents_m },
-        { "kind": "medium_wreck", "center": [140, 60], "yaw": 0, "half_extents": common::hull("supply").half_extents_m },
+        { "kind": "heavy_wreck", "center": [60, 60], "yaw": 0, "half_extents": common::hull("test_tank").half_extents_m },
+        { "kind": "medium_wreck", "center": [140, 60], "yaw": 0, "half_extents": common::hull("test_supply").half_extents_m },
     ]));
     let ground = GroundLayer::new(w.width(), w.depth(), &r.ground);
     let east = v2(190.0, 60.0);
@@ -76,11 +76,11 @@ fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
     let medium_wreck = cover::at(&w, &ground, &[], &r, v2(136.5, 60.0), east);
     assert_eq!(
         heavy_wreck,
-        cover::weight_tier(common::hull("tank").weight_class)
+        cover::weight_tier(common::hull("test_tank").weight_class)
     );
     assert_eq!(
         medium_wreck,
-        cover::weight_tier(common::hull("supply").weight_class)
+        cover::weight_tier(common::hull("test_supply").weight_class)
     );
     assert!(
         heavy_wreck > medium_wreck,
@@ -89,8 +89,8 @@ fn a_vehicle_covers_by_its_weight_class_and_its_wreck_keeps_the_tier() {
     let setup = common::scenario(
         &map(json!([])),
         json!([
-            { "side": "blue", "kind": "tank", "position": [60, 60] },
-            { "side": "blue", "kind": "supply", "position": [140, 60] }
+            { "side": "blue", "kind": "test_tank", "position": [60, 60] },
+            { "side": "blue", "kind": "test_supply", "position": [140, 60] }
         ]),
         json!([]),
     );
@@ -378,18 +378,18 @@ fn firefight(cover: bool, blue: &str) -> Battle {
         &map(json!([wall([66.5, 60.0], [0.4, 12.0, 0.5])])),
         json!([
             { "side": "blue", "kind": blue, "position": [60, 60], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [125, 60] },
+            { "side": "red", "kind": "test_rifle", "position": [125, 60] },
         ]),
         json!([]),
         json!([]),
     );
     // Only rifles take part: launcher selection and its delayed first shot
     // must not let impacts enter the comparison before the full volley.
-    let mut documents = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game);
+    let mut documents = sim::fixtures::test_documents();
     for document in &mut documents {
         if let Some(grenadier) = document
             .get_mut("soldiers")
-            .and_then(|soldiers| soldiers.get_mut("grenadier"))
+            .and_then(|soldiers| soldiers.get_mut("test_grenadier"))
         {
             grenadier["mounts"] =
                 json!([{ "name": "rifles", "weapons": ["rifle"], "squad": true }]);
@@ -430,13 +430,13 @@ fn cover_widens_the_spread_of_rounds_at_soldiers_and_never_at_a_vehicle() {
     // The same wall and seed; only the tiers' multipliers differ.
     // Rifles on a tank behind it: nothing changes (Q20).
     assert_eq!(
-        first_volley(firefight(false, "tank")),
-        first_volley(firefight(true, "tank")),
+        first_volley(firefight(false, "test_tank")),
+        first_volley(firefight(true, "test_tank")),
         "no cover for a vehicle"
     );
     // Rifles on a squad sheltering behind it: wider rounds.
-    let bare = first_volley(firefight(false, "rifle"));
-    let covered = first_volley(firefight(true, "rifle"));
+    let bare = first_volley(firefight(false, "test_rifle"));
+    let covered = first_volley(firefight(true, "test_rifle"));
     assert_eq!(bare.len(), covered.len(), "the same volley");
     assert_ne!(bare, covered, "cover widens the spread");
 }
@@ -453,8 +453,8 @@ fn a_holding_squad_re_resolves_its_cover_at_most_once_a_second() {
     let setup = common::scenario_with(
         &map(json!([crate_at([64.0, 60.0])])),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [60, 60], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [140, 60], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [60, 60], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [140, 60], "engagement": "return_fire_only" },
         ]),
         Value::Array(events),
         json!([]),
@@ -483,8 +483,8 @@ fn resolves_after_a_crate_lands(at: [f64; 2]) -> Vec<u64> {
     let setup = common::scenario_with(
         &map(json!([crate_at([64.0, 60.0])])),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [60, 60], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [140, 60], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [60, 60], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [140, 60], "engagement": "return_fire_only" },
         ]),
         json!([{ "tick": 300, "add_prop": { "kind": "crate", "center": at, "yaw": 0, "half_extents": [0.8, 0.8, 0.6] } }]),
         json!([]),
@@ -556,9 +556,9 @@ fn a_fight_over_cover_replays_to_the_same_digest() {
             crate_at([57.0, 52.0])
         ])),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [58, 45] },
-            { "side": "red", "kind": "rifle", "position": [110, 45] },
-            { "side": "blue", "kind": "tank", "position": [50, 70], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [58, 45] },
+            { "side": "red", "kind": "test_rifle", "position": [110, 45] },
+            { "side": "blue", "kind": "test_tank", "position": [50, 70], "engagement": "return_fire_only" },
         ]),
         json!([{ "tick": 150, "burst": { "point": [64.0, 45.0], "weapon": "atgm" } }, { "tick": 150, "burst": { "point": [64.0, 45.0], "weapon": "atgm" } }, { "tick": 150, "burst": { "point": [64.0, 45.0], "weapon": "atgm" } }]),
         json!([{ "tick": 60, "side": "blue", "order": { "kind": "move", "units": [0], "gesture": 1,
@@ -589,8 +589,8 @@ fn an_attack_move_that_halted_on_the_way_holds_where_it_arrives() {
                  "props": [wall([100.0, 70.0], [90.0, 0.5, 3.0])] })
         .to_string(),
         json!([
-            { "side": "blue", "kind": "rifle", "position": [20, 30] },
-            { "side": "red", "kind": "rifle", "position": [70, 55], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_rifle", "position": [20, 30] },
+            { "side": "red", "kind": "test_rifle", "position": [70, 55], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([
@@ -636,11 +636,11 @@ fn an_attack_move_that_halted_on_the_way_holds_where_it_arrives() {
 /// (tick, unit, goal) a red move order.
 fn holding(props: Value, units: Value, moves: &[(u64, u32, [f64; 2])]) -> ScenarioDefinition {
     let mut all = vec![
-        json!({ "side": "blue", "kind": "rifle", "position": [100, 100], "engagement": "return_fire_only" }),
+        json!({ "side": "blue", "kind": "test_rifle", "position": [100, 100], "engagement": "return_fire_only" }),
     ];
     all.extend(units.as_array().unwrap().iter().map(|u| {
         let mut u = u.clone();
-        u["kind"] = json!("rifle");
+        u["kind"] = json!("test_rifle");
         u["engagement"] = json!("return_fire_only");
         u
     }));

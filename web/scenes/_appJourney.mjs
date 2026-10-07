@@ -279,8 +279,8 @@ export async function armyJourney(ctx) {
         )),
   );
   await snapshot(ctx, page, "army-player-unselected.png");
-  const rifle = own.find((unit) => unit.kind === "rifle");
-  const truck = own.find((unit) => unit.kind === "supply");
+  const rifle = own.find((unit) => unit.kind === "test_rifle");
+  const truck = own.find((unit) => unit.kind === "test_supply");
   const goal = [truck.position[0] + 50, truck.position[1]];
   await page.evaluate((ids) => window.__lab.route.select(ids), [rifle.id, truck.id]);
   await page.keyboard.press("x");

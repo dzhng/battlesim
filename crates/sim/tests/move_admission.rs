@@ -15,8 +15,8 @@ fn boxed() -> Battle {
             ]},
         "rules": crate::common::scenario_rules(),
         "units": [
-            {"side": "blue", "kind": "jeep", "position": [40, 41], "yaw": 0},
-            {"side": "blue", "kind": "supply", "position": [47, 41], "yaw": 0}
+            {"side": "blue", "kind": "test_jeep", "position": [40, 41], "yaw": 0},
+            {"side": "blue", "kind": "test_supply", "position": [47, 41], "yaw": 0}
         ], "events": [], "scripts": []
     }))
     .unwrap();
@@ -38,7 +38,7 @@ fn move_to(units: &[u32], goal: [f64; 2]) -> Order {
 fn hidden_enemy_hulls_do_not_change_preview_or_future_battle_state() {
     let setup = crate::common::scenario(
         r#"{"size":[800,120],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[]}"#,
-        json!([{"side":"blue","kind":"jeep","position":[30,61],"yaw":0}]),
+        json!([{"side":"blue","kind":"test_jeep","position":[30,61],"yaw":0}]),
         json!([]),
     );
     let mut hidden_setup = setup.clone();
@@ -101,7 +101,7 @@ fn hidden_enemy_hulls_do_not_change_preview_or_future_battle_state() {
 fn an_accepted_queued_destination_runs_after_its_pending_waypoint() {
     let setup = crate::common::scenario(
         r#"{"size":[160,120],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[]}"#,
-        json!([{"side":"blue","kind":"jeep","position":[25,61],"yaw":0}]),
+        json!([{"side":"blue","kind":"test_jeep","position":[25,61],"yaw":0}]),
         json!([]),
     );
     let mut battle = Battle::new(&setup, 1);
@@ -203,7 +203,7 @@ fn a_move_through_more_trees_is_valid_after_clearing_a_forest_lane() {
             {"shape":{"kind":"polygon","ring":[[220,0],[280,0],[280,80],[220,80]]}}
         ]})
         .to_string(),
-        json!([{"side":"blue","kind":"tank","position":[15,40],"yaw":0,
+        json!([{"side":"blue","kind":"test_tank","position":[15,40],"yaw":0,
             "engagement":"return_fire_only"}]),
         json!([]),
     );
@@ -435,8 +435,8 @@ fn cross_map_moves_on_a_generated_map_are_placed_and_then_arrive() {
 /// west end, and `extra` map sections (`,"key":...`) laid on it.
 fn strip(extra: &str, more_units: serde_json::Value) -> Battle {
     let mut units = vec![
-        json!({"side": "blue", "kind": "jeep", "position": [100, 120], "yaw": 0}),
-        json!({"side": "blue", "kind": "rifle", "position": [100, 90], "yaw": 0}),
+        json!({"side": "blue", "kind": "test_jeep", "position": [100, 120], "yaw": 0}),
+        json!({"side": "blue", "kind": "test_rifle", "position": [100, 90], "yaw": 0}),
     ];
     units.extend(more_units.as_array().unwrap().iter().cloned());
     let map = format!(
@@ -536,11 +536,11 @@ fn four_infantry_squads_and_a_supply_truck_can_move_across_open_ground() {
             "slope_cutoff_deg":35, "props":[]})
         .to_string(),
         json!([
-            {"side":"blue", "kind":"rifle", "position":[100,120]},
-            {"side":"blue", "kind":"rifle", "position":[100,160]},
-            {"side":"blue", "kind":"rifle", "position":[100,200]},
-            {"side":"blue", "kind":"rifle", "position":[100,240]},
-            {"side":"blue", "kind":"supply", "position":[100,280], "yaw":0}
+            {"side":"blue", "kind":"test_rifle", "position":[100,120]},
+            {"side":"blue", "kind":"test_rifle", "position":[100,160]},
+            {"side":"blue", "kind":"test_rifle", "position":[100,200]},
+            {"side":"blue", "kind":"test_rifle", "position":[100,240]},
+            {"side":"blue", "kind":"test_supply", "position":[100,280], "yaw":0}
         ]),
         json!([]),
     );
@@ -586,11 +586,11 @@ fn a_mixed_infantry_group_can_take_a_fast_road_move_and_upgrade_its_normal_move(
         ]})
         .to_string(),
         json!([
-            {"side":"blue", "kind":"rifle", "position":[100,120]},
-            {"side":"blue", "kind":"rifle", "position":[100,160]},
-            {"side":"blue", "kind":"rifle", "position":[100,200]},
-            {"side":"blue", "kind":"rifle", "position":[100,240]},
-            {"side":"blue", "kind":"supply", "position":[100,280], "yaw":0}
+            {"side":"blue", "kind":"test_rifle", "position":[100,120]},
+            {"side":"blue", "kind":"test_rifle", "position":[100,160]},
+            {"side":"blue", "kind":"test_rifle", "position":[100,200]},
+            {"side":"blue", "kind":"test_rifle", "position":[100,240]},
+            {"side":"blue", "kind":"test_supply", "position":[100,280], "yaw":0}
         ]),
         json!([]),
     );
@@ -714,7 +714,7 @@ fn bodies_under(battle: &Battle, unit: UnitId, at: [f64; 2]) -> Vec<String> {
 #[test]
 fn a_vehicle_sent_onto_cars_parked_against_a_wall_parks_on_the_clear_ground_beside_them() {
     let mut battle = parked_court(json!([
-        {"side": "blue", "kind": "tank", "position": [60, 20], "yaw": std::f64::consts::FRAC_PI_2}
+        {"side": "blue", "kind": "test_tank", "position": [60, 20], "yaw": std::f64::consts::FRAC_PI_2}
     ]));
     let goal = [60.0, 79.0];
     let ack = battle.accept(CommandEnvelope {
@@ -774,7 +774,7 @@ fn walled_lawn(gate_m: f64, units: serde_json::Value) -> Battle {
 fn a_vehicle_sent_into_a_walled_lawn_with_no_way_in_parks_outside_its_nearest_wall() {
     let mut battle = walled_lawn(
         0.0,
-        json!([{"side": "blue", "kind": "tank", "position": [60, 20], "yaw": std::f64::consts::FRAC_PI_2}]),
+        json!([{"side": "blue", "kind": "test_tank", "position": [60, 20], "yaw": std::f64::consts::FRAC_PI_2}]),
     );
     let hull = battle.unit(UnitId(0)).unwrap().hull.unwrap();
     let radius = hull.x.hypot(hull.y);
@@ -814,7 +814,7 @@ fn a_vehicle_sent_into_a_walled_lawn_with_no_way_in_parks_outside_its_nearest_wa
 fn a_vehicle_sent_into_a_walled_lawn_through_its_gate_parks_where_it_was_sent() {
     let mut battle = walled_lawn(
         12.0,
-        json!([{"side": "blue", "kind": "tank", "position": [60, 20], "yaw": std::f64::consts::FRAC_PI_2}]),
+        json!([{"side": "blue", "kind": "test_tank", "position": [60, 20], "yaw": std::f64::consts::FRAC_PI_2}]),
     );
     let goal = [60.0, 72.0];
     let ack = battle.accept(CommandEnvelope {
@@ -837,9 +837,9 @@ fn a_vehicle_sent_into_a_walled_lawn_through_its_gate_parks_where_it_was_sent() 
 fn a_group_sent_into_a_court_lined_with_parked_cars_is_placed_whole() {
     let west = std::f64::consts::PI;
     let mut battle = parked_court(json!([
-        {"side": "blue", "kind": "tank", "position": [100, 79], "yaw": west},
-        {"side": "blue", "kind": "supply", "position": [112, 79], "yaw": west},
-        {"side": "blue", "kind": "jeep", "position": [122, 79], "yaw": west}
+        {"side": "blue", "kind": "test_tank", "position": [100, 79], "yaw": west},
+        {"side": "blue", "kind": "test_supply", "position": [112, 79], "yaw": west},
+        {"side": "blue", "kind": "test_jeep", "position": [122, 79], "yaw": west}
     ]));
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
@@ -960,7 +960,7 @@ fn a_truck_gives_up_on_a_lane_its_shove_cannot_clear() {
         Battle::new(
             &crate::common::scenario(
                 &map.to_string(),
-                json!([{"side":"blue", "kind":"supply", "position":[100,120], "yaw":0}]),
+                json!([{"side":"blue", "kind":"test_supply", "position":[100,120], "yaw":0}]),
                 json!([]),
             ),
             1,
@@ -1003,7 +1003,7 @@ fn a_truck_gives_up_on_a_corner_too_tight_to_turn() {
                 {"kind":"mesa", "rect":[514,0,486,500], "height_m":100, "side_degrees":89}
         ]})
         .to_string(),
-        json!([{"side":"blue", "kind":"supply", "position":[100,12], "yaw":0}]),
+        json!([{"side":"blue", "kind":"test_supply", "position":[100,12], "yaw":0}]),
         json!([]),
     );
     let mut rules = crate::common::scenario_rules();
@@ -1012,7 +1012,7 @@ fn a_truck_gives_up_on_a_corner_too_tight_to_turn() {
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "supply",
+        "test_supply",
         json!({
             "mobility":{"wheeled":{"offroad_kmh":25, "road_kmh":76,
                 "turn_deg_s":40, "turning_radius_m":50, "reverse_fraction":0.35}}
@@ -1077,14 +1077,14 @@ fn a_squad_ringed_in_by_standing_soldiers_never_walks_through_them() {
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "rifle",
-        json!({"body":{"squad":{"slots":["rifleman"]}}}),
+        "test_rifle",
+        json!({"body":{"squad":{"slots":["test_rifleman"]}}}),
     );
-    let mut units = vec![json!({"side":"blue","kind":"rifle","position":[60,60],
+    let mut units = vec![json!({"side":"blue","kind":"test_rifle","position":[60,60],
         "yaw":0,"engagement":"return_fire_only"})];
     for i in 0..8 {
         let angle = i as f64 * std::f64::consts::TAU / 8.0;
-        units.push(json!({"side":"red","kind":"rifle",
+        units.push(json!({"side":"red","kind":"test_rifle",
             "position":[60.0 + 0.8 * angle.cos(),60.0 + 0.8 * angle.sin()],
             "yaw":0,"engagement":"return_fire_only"}));
     }

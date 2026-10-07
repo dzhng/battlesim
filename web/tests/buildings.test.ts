@@ -76,7 +76,7 @@ test("the public picker and delivered replacements share one physical building o
       map,
       rules,
       units: [
-        { side: "blue", kind: "rifle", position: [370, 300], engagement: "return_fire_only" },
+        { side: "blue", kind: "test_rifle", position: [370, 300], engagement: "return_fire_only" },
       ],
       events: Array.from({ length: 11 }, (_, i) => ({
         tick: i + 1,
@@ -140,7 +140,12 @@ test("the public picker and delivered replacements share one physical building o
         map,
         rules: seatedRules,
         units: [
-          { side: "blue", kind: "rifle", position: [410, 301], engagement: "return_fire_only" },
+          {
+            side: "blue",
+            kind: "test_rifle",
+            position: [410, 301],
+            engagement: "return_fire_only",
+          },
         ],
         events: [],
         scripts: [{ tick: 1, side: "blue", order: { kind: "garrison", units: [0], building: 1 } }],

@@ -37,8 +37,8 @@ const range = (row: keyof typeof WEAPONS) => rules.weapons[row].range_m;
 const at = (kind: string, position: [number, number, number], id = 1) => ({ id, kind, position });
 
 test("the ruler measures from the selected unit nearest the cursor across the ground", () => {
-  const near = at("rifle", [100, 0, 80], 1);
-  const far = at("rifle", [0, 0, 0], 2);
+  const near = at("test_rifle", [100, 0, 80], 1);
+  const far = at("test_rifle", [0, 0, 0], 2);
   // Nearer across the ground though higher up: height does not choose.
   expect(closestUnit([far, near], [120, 0])?.id).toBe(1);
   expect(closestUnit([far, near], [-5, 0])?.id).toBe(2);
@@ -46,34 +46,34 @@ test("the ruler measures from the selected unit nearest the cursor across the gr
 });
 
 test("the ruler estimates 3D reach from the first mount's height to the aim point", () => {
-  const squad = at("rifle", [0, 0, 10]);
+  const squad = at("test_rifle", [0, 0, 10]);
   const flat = rangeRuler(squad, [300, 400, 10], rules, UNITS);
   expect(flat.distance_m).toBeCloseTo(Math.hypot(500, muzzle - aim), 6);
   // Up a 120 m rise, the range grows with the height.
   const up = rangeRuler(squad, [300, 400, 130], rules, UNITS);
   expect(up.distance_m).toBeCloseTo(Math.hypot(500, 120 + aim - muzzle), 6);
   // A vehicle's muzzle stands at its gun's height.
-  const tank = UNITS.type("tank").mounts[0];
+  const tank = UNITS.type("test_tank").mounts[0];
   const gun = tank.pivot_m[2] + tank.muzzle_m![2];
-  expect(rangeRuler(at("tank", [0, 0, 0]), [0, 900, 0], rules, UNITS).distance_m).toBeCloseTo(
+  expect(rangeRuler(at("test_tank", [0, 0, 0]), [0, 900, 0], rules, UNITS).distance_m).toBeCloseTo(
     Math.hypot(900, gun - aim),
     6,
   );
 });
 
 test("each reach of the unit's weapons is one mark, nearest first; rows sharing a range share it", () => {
-  const ruler = rangeRuler(at("tank", [0, 0, 0]), [1000, 0, 0], rules, UNITS);
+  const ruler = rangeRuler(at("test_tank", [0, 0, 0]), [1000, 0, 0], rules, UNITS);
   expect(ruler.marks.map((m) => [m.names, m.range_m])).toEqual([
     [[WEAPONS.hmg.name], range("hmg")],
-    [[UNITS.type("tank").mounts[0].name], range("tank_ap")],
+    [[UNITS.type("test_tank").mounts[0].name], range("tank_ap")],
   ]);
-  expect(rangeRuler(at("supply", [0, 0, 0]), [10, 0, 0], rules, UNITS).marks).toEqual([]);
+  expect(rangeRuler(at("test_supply", [0, 0, 0]), [10, 0, 0], rules, UNITS).marks).toEqual([]);
 });
 
 test("a weapon the cursor is past ends on the line where its 3D range runs out; one that reaches it is in range", () => {
   const from: [number, number, number] = [0, 0, 20];
   const cursor: [number, number, number] = [700, 0, 60];
-  const ruler = rangeRuler(at("rifle", from), cursor, rules, UNITS);
+  const ruler = rangeRuler(at("test_rifle", from), cursor, rules, UNITS);
   const [grenade, rifle] = ruler.marks;
   expect(rifle.inRange && grenade.inRange).toBe(false);
   expect(ruler.distance_m).toBeGreaterThan(range("rifle"));
@@ -84,7 +84,7 @@ test("a weapon the cursor is past ends on the line where its 3D range runs out; 
     expect(Math.hypot(mark.along_m!, dz)).toBeCloseTo(mark.range_m, 6);
   }
   const between = (range("rifle") + range("grenade")) / 2;
-  const inside = rangeRuler(at("rifle", from), [between, 0, 20], rules, UNITS);
+  const inside = rangeRuler(at("test_rifle", from), [between, 0, 20], rules, UNITS);
   expect(inside.marks.map((m) => [m.inRange, m.along_m])).toEqual([
     [false, expect.closeTo((between * range("grenade")) / inside.distance_m, 6)],
     [true, null],
@@ -94,13 +94,16 @@ test("a weapon the cursor is past ends on the line where its 3D range runs out; 
 test("the painted line is lit up to the farthest reach short of the cursor, a tick where each ends", () => {
   // Between the two ranges, the cannon reaches and the HMG does not.
   const between = (range("hmg") + range("tank_ap")) / 2;
-  const tank = rulerLine(rangeRuler(at("tank", [0, 0, 0]), [between, 0, 0], rules, UNITS), null);
+  const tank = rulerLine(
+    rangeRuler(at("test_tank", [0, 0, 0]), [between, 0, 0], rules, UNITS),
+    null,
+  );
   expect(tank.reach_m).toBeCloseTo(between, 6);
   expect(tank.ticks).toHaveLength(1);
   expect(tank.ticks[0]).toBeGreaterThan(range("hmg") - 1);
   expect(tank.ticks[0]).toBeLessThan(range("hmg"));
   // No rifle reaches 700 m: lit to the rifle's tick, the rest beyond.
-  const squad = rangeRuler(at("rifle", [0, 0, 0]), [700, 0, 0], rules, UNITS);
+  const squad = rangeRuler(at("test_rifle", [0, 0, 0]), [700, 0, 0], rules, UNITS);
   expect(rulerLine(squad, null).reach_m).toBe(squad.marks[1].along_m);
 });
 
@@ -137,7 +140,7 @@ test("the ruler's paint lies on the ground, in the reach colour up to the reach 
 });
 
 test("the painted line leaves the unit's circle at its border, whatever the circle's centre", () => {
-  const tank = rangeRuler(at("tank", [0, 0, 0]), [1000, 0, 0], rules, UNITS);
+  const tank = rangeRuler(at("test_tank", [0, 0, 0]), [1000, 0, 0], rules, UNITS);
   // Leaving across its facing: at the rim; along it: at the arrowhead's tip.
   expect(rulerLine(tank, { c: [0, 0], r: 5, facing: Math.PI / 2 }).start_m).toBeCloseTo(5, 6);
   expect(rulerLine(tank, { c: [0, 0], r: 5, facing: 0 }).start_m).toBeCloseTo(
@@ -146,12 +149,12 @@ test("the painted line leaves the unit's circle at its border, whatever the circ
   );
   expect(circleReach({ r: 5, facing: 0 }, 0)).toBeGreaterThan(5);
   // A holding squad's area ring round its anchor, off the squad's centre.
-  const squad = rangeRuler(at("rifle", [0, 0, 0]), [0, 300, 0], rules, UNITS);
+  const squad = rangeRuler(at("test_rifle", [0, 0, 0]), [0, 300, 0], rules, UNITS);
   expect(rulerLine(squad, { c: [0, 2], r: 10, facing: null }).start_m).toBeCloseTo(12, 6);
   // No circle drawn round the unit: from the unit itself.
   expect(rulerLine(squad, null).start_m).toBe(0);
   // The cursor inside the circle: nothing of the line is left to draw.
-  const inside = rangeRuler(at("rifle", [0, 0, 0]), [4, 0, 0], rules, UNITS);
+  const inside = rangeRuler(at("test_rifle", [0, 0, 0]), [4, 0, 0], rules, UNITS);
   expect(rulerLine(inside, { c: [0, 0], r: 10, facing: null }).start_m).toBeGreaterThanOrEqual(4);
 });
 

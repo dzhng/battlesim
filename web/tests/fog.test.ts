@@ -117,9 +117,9 @@ function blueFog(events: LabEvent[]): FogSight {
   const scenario = labScenario(
     sensors,
     [
-      { side: "blue", kind: "recon", position: [300, 120] },
-      { side: "blue", kind: "tank", position: [300, 70] },
-      { side: "red", kind: "rifle", position: [1100, 110], yaw: Math.PI },
+      { side: "blue", kind: "test_recon", position: [300, 120] },
+      { side: "blue", kind: "test_tank", position: [300, 70] },
+      { side: "red", kind: "test_rifle", position: [1100, 110], yaw: Math.PI },
     ],
     events,
   );

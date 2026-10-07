@@ -2,20 +2,25 @@ import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router";
 import MechanicsEditor from "../../apps/mechanics-editor/src/MechanicsEditor";
-import catalog from "../../fixtures/catalog.json";
-import infantry from "../../fixtures/units/generic/infantry.json";
-import soldiers from "../../fixtures/units/generic/soldiers.json";
-import tanks from "../../fixtures/units/generic/tanks.json";
+import gameCatalog from "../../fixtures/catalog.json";
+import infantry from "../../fixtures/units/test/infantry.json";
+import soldiers from "../../fixtures/units/test/soldiers.json";
+import tanks from "../../fixtures/units/test/tanks.json";
 import game from "../../fixtures/game.json";
 import type { JsonObject, MechanicsSnapshot } from "../../apps/mechanics-editor/src/protocol";
+import { UNITS, WEAPONS } from "./catalog";
+
+/** Every editable unit, the test units included, as the editor resolves them. */
+const catalog = { ...UNITS.view, weapons: WEAPONS };
 
 const snapshot: MechanicsSnapshot = {
   revision: "test-one",
   catalog: catalog as unknown as JsonObject,
+  game: gameCatalog as unknown as JsonObject,
   documents: [
-    { path: "fixtures/units/generic/infantry.json", value: infantry },
-    { path: "fixtures/units/generic/soldiers.json", value: soldiers },
-    { path: "fixtures/units/generic/tanks.json", value: tanks as unknown as JsonObject },
+    { path: "fixtures/units/test/infantry.json", value: infantry },
+    { path: "fixtures/units/test/soldiers.json", value: soldiers },
+    { path: "fixtures/units/test/tanks.json", value: tanks as unknown as JsonObject },
     { path: "fixtures/game.json", value: game },
   ],
 };
@@ -23,12 +28,12 @@ const structuralSnapshot = (): MechanicsSnapshot => {
   const fixture = structuredClone(snapshot);
   delete fixture.catalog.documents;
   const units = fixture.catalog.units as JsonObject[];
-  units.find((unit) => unit.id === "rifle")!.body = {
-    squad: { slots: ["rifleman", "grenadier"] },
+  units.find((unit) => unit.id === "test_rifle")!.body = {
+    squad: { slots: ["test_rifleman", "test_grenadier"] },
   };
   fixture.catalog.soldiers = {
-    rifleman: { hp: 100, mounts: [{ name: "rifles", weapons: ["rifle"] }] },
-    grenadier: { hp: 100, mounts: [{ name: "launcher", weapons: ["grenade"] }] },
+    test_rifleman: { hp: 100, mounts: [{ name: "rifles", weapons: ["rifle"] }] },
+    test_grenadier: { hp: 100, mounts: [{ name: "launcher", weapons: ["grenade"] }] },
   };
   const weapons = fixture.catalog.weapons as Record<string, JsonObject>;
   weapons.rifle.magazine = { rounds: 30, shot_interval_s: 0.1, burst: null };
@@ -56,7 +61,7 @@ it("shows exact units by default and preserves an inline edit while filtering", 
   fireEvent.change(screen.getByLabelText("Rifle squad deployment cost"), {
     target: { value: "125" },
   });
-  fireEvent.change(screen.getByRole("searchbox"), { target: { value: "tank" } });
+  fireEvent.change(screen.getByRole("searchbox"), { target: { value: "test_tank" } });
   expect(screen.queryByRole("button", { name: "Expand Rifle squad" })).toBeNull();
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "" } });
   expect((screen.getByLabelText("Rifle squad deployment cost") as HTMLInputElement).value).toBe(
@@ -106,7 +111,7 @@ it("retains invalid text through filtering and refuses preview until it is corre
   const cost = await screen.findByLabelText("Rifle squad deployment cost");
   fireEvent.change(cost, { target: { value: "120" } });
   fireEvent.change(cost, { target: { value: "12e" } });
-  fireEvent.change(screen.getByRole("searchbox"), { target: { value: "tank" } });
+  fireEvent.change(screen.getByRole("searchbox"), { target: { value: "test_tank" } });
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "" } });
   expect((screen.getByLabelText("Rifle squad deployment cost") as HTMLInputElement).value).toBe(
     "12e",
@@ -131,7 +136,7 @@ it("requires a preview of the current draft before saving and resets only after 
       return respond({
         revision: snapshot.revision,
         catalog,
-        affectedUnits: ["rifle"],
+        affectedUnits: ["test_rifle"],
         warnings: [],
         files: [
           { path: "family.json", before: "{}\n", after: JSON.stringify(body.changes, null, 2) },
@@ -171,7 +176,7 @@ it("requires a preview of the current draft before saving and resets only after 
   );
   expect(body).toEqual({
     revision: "test-one",
-    changes: [{ section: "units", id: "rifle", path: ["cost"], value: 130 }],
+    changes: [{ section: "units", id: "test_rifle", path: ["cost"], value: 130 }],
   });
 });
 
@@ -309,8 +314,8 @@ it("discarding an optional parent clears its unfinished child text without clear
 it("removing the last slot of a soldier kind discards only that unit's removed soldier edits", async () => {
   const accepted = structuredClone(catalog) as unknown as JsonObject;
   const document = (accepted.documents as JsonObject[])[0];
-  (document.soldiers as JsonObject).rifle__rifleman = {
-    ...((document.soldiers as JsonObject).rifleman as JsonObject),
+  (document.soldiers as JsonObject).test_rifle__test_rifleman = {
+    ...((document.soldiers as JsonObject).test_rifleman as JsonObject),
     hp: 110,
   };
   const fetcher = vi.fn(async (url: string, init?: RequestInit) =>
@@ -318,8 +323,8 @@ it("removing the last slot of a soldier kind discards only that unit's removed s
       ? respond({
           revision: snapshot.revision,
           catalog: accepted,
-          soldierIds: { '["soldiers","rifleman","rifle"]': "rifle__rifleman" },
-          affectedUnits: ["rifle"],
+          soldierIds: { '["soldiers","test_rifleman","test_rifle"]': "test_rifle__test_rifleman" },
+          affectedUnits: ["test_rifle"],
           warnings: [],
           files: [{ path: "family.json", before: "{}", after: String(init?.body) }],
         })
@@ -328,26 +333,34 @@ it("removing the last slot of a soldier kind discards only that unit's removed s
   vi.stubGlobal("fetch", fetcher);
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
-  fireEvent.change(screen.getByLabelText("grenadier Soldier health"), { target: { value: "125" } });
-  fireEvent.change(screen.getByLabelText("grenadier Soldier health"), { target: { value: "-" } });
-  fireEvent.change(screen.getByLabelText("rifleman Soldier health"), { target: { value: "110" } });
-  fireEvent.change(screen.getByLabelText("rifle Soldier slots"), {
-    target: { value: "rifleman, rifleman" },
+  fireEvent.change(screen.getByLabelText("test_grenadier Soldier health"), {
+    target: { value: "125" },
   });
-  expect(screen.queryByLabelText("grenadier Soldier health")).toBeNull();
-  expect((screen.getByLabelText("rifleman Soldier health") as HTMLInputElement).value).toBe("110");
+  fireEvent.change(screen.getByLabelText("test_grenadier Soldier health"), {
+    target: { value: "-" },
+  });
+  fireEvent.change(screen.getByLabelText("test_rifleman Soldier health"), {
+    target: { value: "110" },
+  });
+  fireEvent.change(screen.getByLabelText("test_rifle Soldier slots"), {
+    target: { value: "test_rifleman, test_rifleman" },
+  });
+  expect(screen.queryByLabelText("test_grenadier Soldier health")).toBeNull();
+  expect((screen.getByLabelText("test_rifleman Soldier health") as HTMLInputElement).value).toBe(
+    "110",
+  );
   const preview = screen.getByRole("button", { name: "Preview changes" });
   expect(preview.hasAttribute("disabled")).toBe(false);
   fireEvent.click(preview);
   await screen.findByRole("heading", { name: "Preview authored changes" });
   const request = fetcher.mock.calls.find(([url]) => url.endsWith("/preview"));
   expect(JSON.parse(String(request?.[1]?.body)).changes).toEqual([
-    { section: "soldiers", id: "rifleman", unit: "rifle", path: ["hp"], value: 110 },
+    { section: "soldiers", id: "test_rifleman", unit: "test_rifle", path: ["hp"], value: 110 },
     {
       section: "units",
-      id: "rifle",
+      id: "test_rifle",
       path: ["body", "squad", "slots"],
-      value: ["rifleman", "rifleman"],
+      value: ["test_rifleman", "test_rifleman"],
     },
   ]);
 });
@@ -359,7 +372,7 @@ it("undoing a mount-list replacement clears unfinished edits on its discarded mo
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Tank" }));
-  const list = screen.getByLabelText("tank Weapon mounts") as HTMLTextAreaElement;
+  const list = screen.getByLabelText("test_tank Weapon mounts") as HTMLTextAreaElement;
   const initial = JSON.parse(list.value);
   fireEvent.change(list, {
     target: {
@@ -369,7 +382,7 @@ it("undoing a mount-list replacement clears unfinished edits on its discarded mo
       ]),
     },
   });
-  const pivot = screen.getAllByLabelText("tank Pivot position").at(-1)!;
+  const pivot = screen.getAllByLabelText("test_tank Pivot position").at(-1)!;
   fireEvent.change(pivot, { target: { value: "-" } });
   fireEvent.change(screen.getByLabelText("Tank deployment cost"), { target: { value: "125" } });
   fireEvent.click(list.closest(".me-field")!.querySelector("button")!);
@@ -435,7 +448,7 @@ it("previews old and new battlefield values with their raw units across coupled 
                 grenade: { ...weapons.grenade, range_m: 300, scatter_mrad: 20 },
               },
             },
-            affectedUnits: ["rifle"],
+            affectedUnits: ["test_rifle"],
             warnings: [],
             files: [],
           })
@@ -494,7 +507,7 @@ it("returns to the last connected gameplay edit after native rejection without g
     expect(document.activeElement).toBe(spread);
     expect(spread.closest("details")!.open).toBe(true);
     expect((spread as HTMLInputElement).value).toBe("1");
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "tank" } });
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "test_tank" } });
     expect(screen.queryByRole("button", { name: "Back to last edit" })).toBeNull();
   } finally {
     Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
@@ -507,13 +520,15 @@ it("returns to the last connected gameplay edit after native rejection without g
 it("restores a saved soldier override to the native default omitted by its parent", async () => {
   const fixture = structuralSnapshot();
   const units = fixture.catalog.units as JsonObject[];
-  units.find((unit) => unit.id === "rifle")!.body = { squad: { slots: ["rifle__rifleman"] } };
+  units.find((unit) => unit.id === "test_rifle")!.body = {
+    squad: { slots: ["test_rifle__test_rifleman"] },
+  };
   fixture.catalog.soldiers = {
-    rifleman: {
+    test_rifleman: {
       hp: 100,
       mounts: [{ name: "rifles", weapons: ["rifle"], squad: false, special: false }],
     },
-    rifle__rifleman: {
+    test_rifle__test_rifleman: {
       hp: 100,
       mounts: [{ name: "rifles", weapons: ["rifle"], squad: false, special: true }],
     },
@@ -523,8 +538,14 @@ it("restores a saved soldier override to the native default omitted by its paren
       path: "soldiers.json",
       value: {
         soldiers: {
-          rifleman: { hp: 100, mounts: [{ name: "rifles", weapons: ["rifle"], squad: false }] },
-          rifle__rifleman: { extends: "rifleman", mounts: [{ name: "rifles", special: true }] },
+          test_rifleman: {
+            hp: 100,
+            mounts: [{ name: "rifles", weapons: ["rifle"], squad: false }],
+          },
+          test_rifle__test_rifleman: {
+            extends: "test_rifleman",
+            mounts: [{ name: "rifles", special: true }],
+          },
         },
       },
     },
@@ -535,7 +556,7 @@ it("restores a saved soldier override to the native default omitted by its paren
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
-  const special = screen.getByLabelText("rifle__rifleman Transferable special weapon");
+  const special = screen.getByLabelText("test_rifle__test_rifleman Transferable special weapon");
   fireEvent.click(
     within(special.closest(".me-field") as HTMLElement).getByRole("button", {
       name: "Restore default value",
@@ -550,21 +571,21 @@ it("restores a saved soldier override to the native default omitted by its paren
 it("summarizes the admitted soldier clone instead of the unfinished projection", async () => {
   const fixture = structuralSnapshot();
   fixture.catalog.soldiers = {
-    rifleman: {
+    test_rifleman: {
       hp: 100,
       mounts: [{ name: "rifles", weapons: ["rifle"], squad: true, special: false }],
     },
   };
-  (fixture.catalog.units as JsonObject[]).find((unit) => unit.id === "rifle")!.body = {
-    squad: { slots: ["rifleman"] },
+  (fixture.catalog.units as JsonObject[]).find((unit) => unit.id === "test_rifle")!.body = {
+    squad: { slots: ["test_rifleman"] },
   };
   const accepted = structuredClone(fixture.catalog);
-  (accepted.soldiers as JsonObject).rifle__rifleman = {
+  (accepted.soldiers as JsonObject).test_rifle__test_rifleman = {
     hp: 100,
     mounts: [{ name: "rifles", weapons: ["rifle"], squad: false, special: false }],
   };
-  (accepted.units as JsonObject[]).find((unit) => unit.id === "rifle")!.body = {
-    squad: { slots: ["rifle__rifleman"] },
+  (accepted.units as JsonObject[]).find((unit) => unit.id === "test_rifle")!.body = {
+    squad: { slots: ["test_rifle__test_rifleman"] },
   };
   vi.stubGlobal(
     "fetch",
@@ -573,8 +594,10 @@ it("summarizes the admitted soldier clone instead of the unfinished projection",
         ? respond({
             revision: fixture.revision,
             catalog: accepted,
-            soldierIds: { '["soldiers","rifleman","rifle"]': "rifle__rifleman" },
-            affectedUnits: ["rifle"],
+            soldierIds: {
+              '["soldiers","test_rifleman","test_rifle"]': "test_rifle__test_rifleman",
+            },
+            affectedUnits: ["test_rifle"],
             warnings: [],
             files: [],
           })
@@ -583,7 +606,7 @@ it("summarizes the admitted soldier clone instead of the unfinished projection",
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
-  fireEvent.change(screen.getByLabelText("rifleman Weapon mounts"), {
+  fireEvent.change(screen.getByLabelText("test_rifleman Weapon mounts"), {
     target: { value: JSON.stringify([{ name: "rifles", weapons: ["rifle"] }]) },
   });
   fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
@@ -598,17 +621,17 @@ it("summarizes a whole-mount restore after the accepted catalog removes its sold
   const fixture = structuredClone(snapshot);
   const document = (fixture.catalog.documents as JsonObject[])[0];
   const soldierRows = document.soldiers as Record<string, JsonObject>;
-  soldierRows.rifle__grenadier = structuredClone(soldierRows.grenadier);
-  (soldierRows.rifle__grenadier.mounts as JsonObject[])[1].weapons = ["rifle"];
-  (document.units as Record<string, JsonObject>).rifle.body = {
-    squad: { slots: ["rifleman", "rifle__grenadier"] },
+  soldierRows.test_rifle__test_grenadier = structuredClone(soldierRows.test_grenadier);
+  (soldierRows.test_rifle__test_grenadier.mounts as JsonObject[])[1].weapons = ["rifle"];
+  (document.units as Record<string, JsonObject>).test_rifle.body = {
+    squad: { slots: ["test_rifleman", "test_rifle__test_grenadier"] },
   };
   fixture.documents.push({
     path: "local.json",
     value: {
       soldiers: {
-        rifle__grenadier: {
-          extends: "grenadier",
+        test_rifle__test_grenadier: {
+          extends: "test_grenadier",
           mounts: [{ name: "grenade launcher", weapons: ["rifle"] }],
         },
       },
@@ -616,9 +639,9 @@ it("summarizes a whole-mount restore after the accepted catalog removes its sold
   });
   const accepted = structuredClone(fixture.catalog);
   const acceptedDocument = (accepted.documents as JsonObject[])[0];
-  delete (acceptedDocument.soldiers as JsonObject).rifle__grenadier;
-  (acceptedDocument.units as Record<string, JsonObject>).rifle.body = {
-    squad: { slots: ["rifleman", "grenadier"] },
+  delete (acceptedDocument.soldiers as JsonObject).test_rifle__test_grenadier;
+  (acceptedDocument.units as Record<string, JsonObject>).test_rifle.body = {
+    squad: { slots: ["test_rifleman", "test_grenadier"] },
   };
   vi.stubGlobal(
     "fetch",
@@ -627,8 +650,10 @@ it("summarizes a whole-mount restore after the accepted catalog removes its sold
         ? respond({
             revision: fixture.revision,
             catalog: accepted,
-            soldierIds: { '["soldiers","rifle__grenadier","rifle"]': "grenadier" },
-            affectedUnits: ["rifle"],
+            soldierIds: {
+              '["soldiers","test_rifle__test_grenadier","test_rifle"]': "test_grenadier",
+            },
+            affectedUnits: ["test_rifle"],
             warnings: [],
             files: [],
           })
@@ -637,7 +662,7 @@ it("summarizes a whole-mount restore after the accepted catalog removes its sold
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
   fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
-  const mounts = screen.getByLabelText("rifle__grenadier Weapon mounts");
+  const mounts = screen.getByLabelText("test_rifle__test_grenadier Weapon mounts");
   fireEvent.click(
     within(mounts.closest(".me-field") as HTMLElement).getByRole("button", {
       name: "Restore inherited value",

@@ -46,7 +46,7 @@ fn shape(kind: &str) -> [f64; 3] {
 #[test]
 fn range_follows_the_vehicle_shape_at_front_side_rear_and_across_the_wrap() {
     let rules = rules();
-    for (kind, yaw) in [("tank", 0.7), ("supply", -2.9)] {
+    for (kind, yaw) in [("test_tank", 0.7), ("test_supply", -2.9)] {
         let b = battle(
             FLAT,
             json!([{ "side": "blue", "kind": kind, "position": [1300, 1300], "yaw": yaw }]),
@@ -81,7 +81,7 @@ fn range_follows_the_vehicle_shape_at_front_side_rear_and_across_the_wrap() {
 #[test]
 fn infantry_sight_is_isotropic_whatever_the_yaw() {
     let rules = rules();
-    for kind in ["rifle", "recon", "at"] {
+    for kind in ["test_rifle", "test_recon", "test_at"] {
         let b = battle(
             FLAT,
             json!([{ "side": "blue", "kind": kind, "position": [1300, 1300], "yaw": 1.1 }]),
@@ -98,13 +98,13 @@ fn infantry_sight_is_isotropic_whatever_the_yaw() {
         );
     }
     // A squad identifies a tank just inside its range behind it as well as ahead.
-    let r = base_range("rifle");
+    let r = base_range("test_rifle");
     for dx in [r - 5.0, -(r - 5.0)] {
         let b = battle(
             FLAT,
             json!([
-                { "side": "blue", "kind": "rifle", "position": [1300, 1300] },
-                { "side": "red", "kind": "tank", "position": [1300.0 + dx, 1300] },
+                { "side": "blue", "kind": "test_rifle", "position": [1300, 1300] },
+                { "side": "red", "kind": "test_tank", "position": [1300.0 + dx, 1300] },
             ]),
         );
         assert_eq!(b.observe(Side::Blue).identified.len(), 1, "dx {dx}");
@@ -116,15 +116,15 @@ fn a_vehicle_looks_along_its_turret_and_a_truck_along_its_hull() {
     // The tank faces east. A squad 120 m north is inside its side reach, so
     // it locks on and the turret swings north; a second tank 300 m north is
     // outside the side reach and inside the front reach.
-    let side_reach = base_range("tank") * shape("tank")[1];
-    let front_reach = base_range("tank") * shape("tank")[0];
+    let side_reach = base_range("test_tank") * shape("test_tank")[1];
+    let front_reach = base_range("test_tank") * shape("test_tank")[0];
     assert!(side_reach < 300.0 && 300.0 < front_reach - 20.0);
     let mut b = battle(
         FLAT,
         json!([
-            { "side": "blue", "kind": "tank", "position": [1300, 1300], "yaw": 0 },
-            { "side": "red", "kind": "rifle", "position": [1300, 1420], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "tank", "position": [1300, 1600], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [1300, 1300], "yaw": 0 },
+            { "side": "red", "kind": "test_rifle", "position": [1300, 1420], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [1300, 1600], "engagement": "return_fire_only" },
         ]),
     );
     let far_seen = |b: &Battle| own(b, Side::Blue, 0).sees.len() == 2;
@@ -153,7 +153,7 @@ fn a_vehicle_looks_along_its_turret_and_a_truck_along_its_hull() {
 
     let truck = battle(
         FLAT,
-        json!([{ "side": "blue", "kind": "supply", "position": [1300, 1300], "yaw": 2.0 }]),
+        json!([{ "side": "blue", "kind": "test_supply", "position": [1300, 1300], "yaw": 2.0 }]),
     );
     assert!((own(&truck, Side::Blue, 0).sight.forward - 2.0).abs() < 1e-9);
 }
@@ -177,13 +177,13 @@ fn sight_shape_consumers_agree() {
     let cell = common::game()["map"]["fog_cell_m"].as_f64().unwrap();
     let observer = battle(
         FLAT,
-        json!([{ "side": "blue", "kind": "tank", "position": centre, "yaw": yaw }]),
+        json!([{ "side": "blue", "kind": "test_tank", "position": centre, "yaw": yaw }]),
     );
     let unit = observer.unit(UnitId(0)).unwrap();
     let published = own(&observer, Side::Blue, 0).sight;
     assert_eq!(published.forward, yaw);
-    assert_eq!(published.range, base_range("tank"));
-    let [front, side, rear] = shape("tank");
+    assert_eq!(published.range, base_range("test_tank"));
+    let [front, side, rear] = shape("test_tank");
     assert_eq!(
         [
             published.shape.front,
@@ -200,8 +200,8 @@ fn sight_shape_consumers_agree() {
             let b = battle(
                 FLAT,
                 json!([
-                    { "side": "blue", "kind": "tank", "position": centre, "yaw": yaw },
-                    { "side": "red", "kind": "tank", "position": at },
+                    { "side": "blue", "kind": "test_tank", "position": centre, "yaw": yaw },
+                    { "side": "red", "kind": "test_tank", "position": at },
                 ]),
             );
             assert_eq!(
@@ -225,8 +225,8 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
     let mut b = battle(
         map,
         json!([
-            { "side": "blue", "kind": "rifle", "position": [300, 250], "engagement": "return_fire_only" },
-            { "side": "blue", "kind": "tank", "position": [200, 250] },
+            { "side": "blue", "kind": "test_rifle", "position": [300, 250], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_tank", "position": [200, 250] },
         ]),
     );
     let eye = |key: &str| common::game()["physics"][key].as_f64().unwrap();
@@ -236,7 +236,7 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
         vec![[
             tank.position[0],
             tank.position[1],
-            tank.position[2] + common::hull("tank").eye_m
+            tank.position[2] + common::hull("test_tank").eye_m
         ]]
     );
     let ack = b.accept(contract::command::CommandEnvelope {
@@ -300,7 +300,7 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
             "each exterior eye belongs to a living soldier inside its facade"
         );
     }
-    assert_eq!(squad.sight.range, base_range("rifle"));
+    assert_eq!(squad.sight.range, base_range("test_rifle"));
     // The side's fog is the union of those eyes: open ground 30 m straight
     // out from every facade is seen.
     let fog = &b.observe(Side::Blue).ground_visibility;
@@ -315,9 +315,9 @@ fn a_turning_turret_replays_to_identical_digests() {
     let setup = common::scenario(
         FLAT,
         json!([
-            { "side": "blue", "kind": "tank", "position": [1300, 1300] },
-            { "side": "red", "kind": "rifle", "position": [1300, 1420], "engagement": "return_fire_only" },
-            { "side": "blue", "kind": "supply", "position": [1200, 1200] },
+            { "side": "blue", "kind": "test_tank", "position": [1300, 1300] },
+            { "side": "red", "kind": "test_rifle", "position": [1300, 1420], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_supply", "position": [1200, 1200] },
         ]),
         json!([]),
     );
@@ -345,7 +345,7 @@ fn a_jeeps_sight_turns_with_its_hmg_only_when_its_sensors_sit_on_it() {
             sim::fixtures::patch_catalog(
                 &mut rules,
                 "units",
-                "jeep",
+                "test_jeep",
                 json!({ "sensors": { "on": on, "sight_shape": { "front": 1.0, "side": 0.6, "rear": 0.4 } } }),
             );
         }
@@ -353,8 +353,8 @@ fn a_jeeps_sight_turns_with_its_hmg_only_when_its_sensors_sit_on_it() {
         let setup = serde_json::from_value(json!({
             "map": map, "rules": rules, "events": [], "scripts": [],
             "units": [
-                { "side": "blue", "kind": "jeep", "position": [1300, 1300], "yaw": 0 },
-                { "side": "red", "kind": "rifle", "position": [1300, 1420], "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_jeep", "position": [1300, 1300], "yaw": 0 },
+                { "side": "red", "kind": "test_rifle", "position": [1300, 1420], "engagement": "return_fire_only" },
             ],
         }))
         .unwrap();
@@ -663,7 +663,7 @@ fn overlapping_observers_share_fog_candidate_collection_work() {
         "slope_cutoff_deg":35,"props":props});
     let units: Vec<_> = (0..12)
         .map(|i| {
-            json!({"side":"blue","kind":"rifle",
+            json!({"side":"blue","kind":"test_rifle",
         "position":[560+(i%3)*20,560+(i/3)*20],"engagement":"return_fire_only"})
         })
         .collect();
@@ -697,8 +697,8 @@ fn separate_observers_learn_bodies_without_leaking_between_views() {
     let setup = common::scenario(
         map,
         json!([
-            {"side":"blue","kind":"rifle","position":[200,400],"engagement":"return_fire_only"},
-            {"side":"blue","kind":"rifle","position":[1800,400],"engagement":"return_fire_only"}
+            {"side":"blue","kind":"test_rifle","position":[200,400],"engagement":"return_fire_only"},
+            {"side":"blue","kind":"test_rifle","position":[1800,400],"engagement":"return_fire_only"}
         ]),
         json!([
             {"tick":1,"add_prop":{"kind":"wall","center":[100,400],"yaw":0,"half_extents":[45,4,2]}},

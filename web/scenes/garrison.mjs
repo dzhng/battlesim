@@ -183,7 +183,7 @@ export async function run(ctx) {
   const standing = await drawnBuildings();
   ctx.check(
     "a red squad behind the building is not seen from outside it",
-    !o.identified.some((e) => e.kind === "rifle"),
+    !o.identified.some((e) => e.kind === "test_rifle"),
     JSON.stringify(o.identified.map((e) => e.kind)),
   );
   // Wide enough to hold blue's squads west of the building as well.
@@ -371,7 +371,7 @@ export async function run(ctx) {
   );
   ctx.check(
     "occupants on the far facade see the squad behind the building",
-    !!firstInside?.identified.some((e) => e.kind === "rifle"),
+    !!firstInside?.identified.some((e) => e.kind === "test_rifle"),
     JSON.stringify(firstInside?.identified.map((e) => e.kind)),
   );
 
@@ -427,7 +427,7 @@ export async function run(ctx) {
   ctx.check(
     "an enemy squad in view that sees the occupants removes HIDDEN and leaves IN BUILDING",
     !!spotted &&
-      spotted.identified.some((e) => e.kind === "rifle") &&
+      spotted.identified.some((e) => e.kind === "test_rifle") &&
       (await spottedCard.locator('[data-state="hidden"]').count()) === 0 &&
       (await spottedCard.locator('[data-state="in_building"]').isVisible()),
     JSON.stringify({ tick: spotted?.tick, identified: spotted?.identified.map((e) => e.kind) }),

@@ -10,9 +10,9 @@ fn scenario() -> ScenarioDefinition {
     common::scenario(
         common::saved_map("geometry"),
         serde_json::json!([
-            { "side": "blue", "kind": "tank", "position": [40, 150] },
-            { "side": "blue", "kind": "rifle", "position": [40, 170] },
-            { "side": "red", "kind": "rifle", "position": [360, 150] }
+            { "side": "blue", "kind": "test_tank", "position": [40, 150] },
+            { "side": "blue", "kind": "test_rifle", "position": [40, 170] },
+            { "side": "red", "kind": "test_rifle", "position": [360, 150] }
         ]),
         serde_json::json!([]),
     )
@@ -312,11 +312,11 @@ fn scripted_group(actors: &[u32]) -> ScenarioDefinition {
     common::scenario_with(
         r#"{"size":[400,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
         serde_json::json!([
-            {"side":"blue","kind":"rifle","position":[40,50],
-                "condition":{"casualties":common::rules().catalog.by_id("rifle").squad_size()}},
-            {"side":"blue","kind":"jeep","position":[40,100]},
-            {"side":"red","kind":"rifle","position":[300,50],
-                "condition":{"casualties":common::rules().catalog.by_id("rifle").squad_size()}}
+            {"side":"blue","kind":"test_rifle","position":[40,50],
+                "condition":{"casualties":common::rules().catalog.by_id("test_rifle").squad_size()}},
+            {"side":"blue","kind":"test_jeep","position":[40,100]},
+            {"side":"red","kind":"test_rifle","position":[300,50],
+                "condition":{"casualties":common::rules().catalog.by_id("test_rifle").squad_size()}}
         ]),
         serde_json::json!([]),
         serde_json::json!([{"tick":1,"side":"blue","order":{

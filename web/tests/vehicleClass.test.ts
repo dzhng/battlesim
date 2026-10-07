@@ -33,7 +33,7 @@ test("a vehicle's class is its mobility, its hull's weight and whether it hauls 
 
 test("a squad has no vehicle class", () => {
   const squad: Physics = {
-    body: { squad: { slots: ["rifleman"] } },
+    body: { squad: { slots: ["test_rifleman"] } },
     mobility: { foot: { offroad_kmh: 5, road_kmh: 6 } },
     roles: ["infantry"],
   };

@@ -286,7 +286,7 @@ export async function run(ctx) {
   const ordered = await lab(page, () =>
     window.__lab.route
       .observation()
-      .own.filter((u) => u.kind === "at" || u.kind === "tank")
+      .own.filter((u) => u.kind === "test_at" || u.kind === "test_tank")
       .map((u) => ({
         kind: u.kind,
         anchorY: window.__lab.projectToCss(...u.position)[1],
@@ -539,12 +539,12 @@ export async function run(ctx) {
   // An attack reaches only armed units (`reach("attack")`): with a tank and
   // the unarmed supply truck selected, attack-move and attack-ground go to
   // the tank alone, and the truck keeps the move it was given.
-  const truck = (await obs(page)).own.find((u) => u.kind === "supply");
+  const truck = (await obs(page)).own.find((u) => u.kind === "test_supply");
   await selectOnly([truck.id]);
   ack = await clickAt(truck.position[0] + 20, truck.position[1], null);
   await advance(page, 2);
   await selectOnly([0, truck.id]);
-  const truckName = `supply #${truck.id}`;
+  const truckName = `test_supply #${truck.id}`;
   const attackMove = await clickAt(330, 300, "x");
   await advance(page, 2);
   const truckGoal = (await obs(page)).own.find((u) => u.id === truck.id).goal;
@@ -650,7 +650,7 @@ async function vehicleMarker(ctx) {
     TANK,
   );
   const radius =
-    hull("tank").half_extents_m[0] + game.presentation.overlay.orders.vehicle_marker_margin_m;
+    hull("test_tank").half_extents_m[0] + game.presentation.overlay.orders.vehicle_marker_margin_m;
   // Ground paint lies on the ground itself.
   const place = (target, yaw) =>
     lab(

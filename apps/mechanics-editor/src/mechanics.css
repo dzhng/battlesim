@@ -215,6 +215,12 @@
   background: #26343a;
   border-color: var(--me-accent);
 }
+.me-sheet .me-group > th {
+  width: auto;
+  color: var(--me-accent);
+  background: #172023;
+  border-top: 1px solid var(--me-line);
+}
 .me-sheet .me-selected > td {
   background: #243134;
 }

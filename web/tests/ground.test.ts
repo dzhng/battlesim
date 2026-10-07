@@ -136,8 +136,8 @@ const SCENARIO = (() => {
   return labScenario(
     groundMap,
     [
-      { side: "blue", kind: "tank", position: [110, 110] },
-      { side: "red", kind: "tank", position: [540, 330], yaw: Math.PI },
+      { side: "blue", kind: "test_tank", position: [110, 110] },
+      { side: "red", kind: "test_tank", position: [540, 330], yaw: Math.PI },
     ],
     bursts,
     [

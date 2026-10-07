@@ -85,7 +85,7 @@ export async function run(ctx) {
   const started = Date.now();
   // The spike's stub gun (3 m) against the fixture's realistic muzzle.
   const bad = await synthetic(page, "tankGlb", { muzzleX: 3, lods: "none" });
-  await drop(page, "bad-tank.glb", bad, "tank");
+  await drop(page, "bad-tank.glb", bad, "test_tank");
   const badState = await wb(page, () => window.__workbench.state());
   const codes = new Set(badState.findings.map((f) => f.code));
   for (const code of ["fit.vehicle_muzzle", "structure.tier_count"])
@@ -111,7 +111,7 @@ export async function run(ctx) {
   );
 
   // ---- a valid tank: articulation moves pixels, and the palette is the CPU's.
-  await drop(page, "tank.glb", await synthetic(page, "tankGlb", { muzzleX: 5.9 }), "tank");
+  await drop(page, "tank.glb", await synthetic(page, "tankGlb", { muzzleX: 5.9 }), "test_tank");
   await wb(page, () => window.__workbench.show({ hitBox: false, sockets: false, figure: false }));
   await wb(page, () => window.__workbench.setView("q-front"));
   const rest = {
@@ -153,7 +153,7 @@ export async function run(ctx) {
   // ---- a skinned soldier: clips on the GPU equal the CPU pose. The
   // synthetic rig faces +Z in glTF, as the Quaternius rig does: basis yaw 90.
   await page.getByTestId("workbench-yaw").selectOption("90");
-  await drop(page, "rifleman.glb", await synthetic(page, "soldierGlb"), "rifle");
+  await drop(page, "rifleman.glb", await synthetic(page, "soldierGlb"), "test_rifle");
   const soldier = await wb(page, () => window.__workbench.state());
   ctx.check(
     "a valid synthetic rifleman validates clean",
@@ -255,7 +255,7 @@ export async function run(ctx) {
   );
 
   // ---- a sheet, produced headlessly.
-  await drop(page, "truck.glb", await synthetic(page, "truckGlb"), "supply");
+  await drop(page, "truck.glb", await synthetic(page, "truckGlb"), "test_supply");
   const sheet = await wb(page, () => window.__workbench.sheet());
   const png = (dataUrl) => Buffer.from(dataUrl.split(",")[1], "base64");
   await writeFile(ctx.evidencePath("sheet-truck-contact.png"), png(sheet.contact));
@@ -326,7 +326,7 @@ export async function run(ctx) {
   await page.getByTestId("workbench-yaw").selectOption("auto");
 
   // ---- the named views at 1920×1080, with the figure, hit box and sockets.
-  await drop(page, "rifleman.glb", await synthetic(page, "soldierGlb"), "rifle");
+  await drop(page, "rifleman.glb", await synthetic(page, "soldierGlb"), "test_rifle");
   await wb(page, () => window.__workbench.show({ hitBox: true, sockets: true, figure: true }));
   for (const view of [
     "q-front",
@@ -457,9 +457,9 @@ export async function run(ctx) {
       );
     };
   });
-  await drop(race, "older.glb", rifle, "rifle", false);
+  await drop(race, "older.glb", rifle, "test_rifle", false);
   await race.waitForFunction(() => window.releaseOlderAppearance);
-  await drop(race, "latest.glb", tank, "tank", false);
+  await drop(race, "latest.glb", tank, "test_tank", false);
   await race.waitForFunction(() => window.__workbench.state().model === "latest.glb");
   await race.evaluate(() => window.releaseOlderAppearance());
   await race.waitForFunction(() => window.releaseOlderCards);

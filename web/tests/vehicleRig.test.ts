@@ -38,7 +38,7 @@ import {
 const bundle = (async () => {
   const result = await validateAppearance(
     {
-      name: "tank",
+      name: "test_tank",
       entry: { unit: "vehicle", source: "a.glb", basis_yaw_deg: 0, mounts: TANK_DRAWS },
       files: { "a.glb": tankGlb({ muzzleX: 5.9 }) },
     },
@@ -63,7 +63,7 @@ const MOUNT_FEEL = gamePose.mount;
 
 const tank = (x: number, yaw: number, gun: FeedMount, hmg: FeedMount): FeedUnit => ({
   id: 7,
-  kind: "tank",
+  kind: "test_tank",
   side: "blue",
   position: [x, 0, 0],
   yaw,

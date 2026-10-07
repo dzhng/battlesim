@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { isGameDocument } from "../../../web/src/battle/catalog/compose";
 import {
   MECHANICS_API,
   targetKey,
@@ -563,7 +564,20 @@ export default function MechanicsEditor() {
     () => (snapshot ? resolvedEntries(snapshot.catalog, "weapons") : {}),
     [snapshot],
   );
-  const filtered = Object.entries(units).filter(([id, unit]) => {
+  // Test units (`fixtures/units/test`) are fakes tests and labs run on, never
+  // game content: listed after the roster, under their own heading.
+  const testUnits = useMemo(
+    () =>
+      new Set(
+        (snapshot?.documents ?? [])
+          .filter((document) => !isGameDocument(document.path))
+          .flatMap((document) =>
+            Object.keys(isObject(document.value.units) ? document.value.units : {}),
+          ),
+      ),
+    [snapshot],
+  );
+  const matching = Object.entries(units).filter(([id, unit]) => {
     const weapons = snapshot && draft ? unitWeapons(snapshot, id, draft) : [];
     return [
       id,
@@ -577,6 +591,11 @@ export default function MechanicsEditor() {
       .toLowerCase()
       .includes(search.toLowerCase().trim());
   });
+  const filtered = [
+    ...matching.filter(([id]) => !testUnits.has(id)),
+    ...matching.filter(([id]) => testUnits.has(id)),
+  ];
+  const firstTestUnit = filtered.find(([id]) => testUnits.has(id))?.[0];
   const handleFailure = (failure: unknown) => {
     setError(failure instanceof Error ? failure.message : String(failure));
     if (failure instanceof RequestError && failure.conflict) setConflict(true);
@@ -885,6 +904,11 @@ export default function MechanicsEditor() {
                   return (
                     <UnitRows
                       key={id}
+                      heading={
+                        id === firstTestUnit
+                          ? "Test units · fakes tests and labs run on, never in the game"
+                          : undefined
+                      }
                       expanded={expanded === id}
                       row={
                         <tr className={expanded === id ? "me-selected" : ""}>
@@ -998,16 +1022,25 @@ export default function MechanicsEditor() {
 }
 
 function UnitRows({
+  heading,
   row,
   detail,
   expanded,
 }: {
+  heading?: string;
   row: ReactNode;
   detail: ReactNode;
   expanded: boolean;
 }) {
   return (
     <>
+      {heading && (
+        <tr className="me-group">
+          <th colSpan={7} scope="rowgroup">
+            {heading}
+          </th>
+        </tr>
+      )}
       {row}
       {expanded && (
         <tr className="me-detail-row">

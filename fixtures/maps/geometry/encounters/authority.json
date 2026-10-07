@@ -1,10 +1,10 @@
 {
   "units": [
-    {"side":"blue","kind":"tank","position":[60,150]},
-    {"side":"blue","kind":"rifle","position":[50,170]},
-    {"side":"blue","kind":"rifle","position":[50,130]},
-    {"side":"blue","kind":"supply","position":[30,150]},
-    {"side":"blue","kind":"jeep","position":[72,172],"yaw":-0.4}
+    {"side":"blue","kind":"test_tank","position":[60,150]},
+    {"side":"blue","kind":"test_rifle","position":[50,170]},
+    {"side":"blue","kind":"test_rifle","position":[50,130]},
+    {"side":"blue","kind":"test_supply","position":[30,150]},
+    {"side":"blue","kind":"test_jeep","position":[72,172],"yaw":-0.4}
   ],
   "events": [
     {"tick":1,"add_prop":{"kind":"sandbags","center":[48,119],"yaw":0,"half_extents":[3,0.4,0.5]}},

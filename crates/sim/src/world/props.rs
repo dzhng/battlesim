@@ -692,7 +692,7 @@ mod query_tests {
 
     #[test]
     fn overlapping_queries_keep_exact_candidates_through_index_edits() {
-        let rules = serde_json::from_value(crate::fixtures::game()).unwrap();
+        let rules = serde_json::from_value(crate::fixtures::test_game()).unwrap();
         let map = serde_json::from_value(serde_json::json!({
             "size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
             "props":[
@@ -790,7 +790,7 @@ mod query_tests {
 
     #[test]
     fn a_planning_snapshot_answers_as_a_world_of_its_sides_bodies() {
-        let rules = serde_json::from_value(crate::fixtures::game()).unwrap();
+        let rules = serde_json::from_value(crate::fixtures::test_game()).unwrap();
         let map = serde_json::from_value(serde_json::json!({
             "size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
             "props":[

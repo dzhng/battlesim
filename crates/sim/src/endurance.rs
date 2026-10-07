@@ -17,11 +17,11 @@ use contract::random::Rng;
 
 /// Per side: (unit type, count). 100 units, 50 of them rifle squads.
 const ROSTER: [(&str, usize); 5] = [
-    ("rifle", 50),
-    ("tank", 20),
-    ("at", 12),
-    ("recon", 10),
-    ("supply", 8),
+    ("test_rifle", 50),
+    ("test_tank", 20),
+    ("test_at", 12),
+    ("test_recon", 10),
+    ("test_supply", 8),
 ];
 /// Every this many units of a side form one wave group.
 const GROUP: usize = 10;
@@ -254,7 +254,7 @@ fn scenario_in_arena(
     }
     if late {
         // Whole squads already fallen, their soldiers lying where they stood.
-        let squad = rules.catalog.by_id("rifle").squad_size();
+        let squad = rules.catalog.by_id("test_rifle").squad_size();
         for k in 0..LATE_CORPSES.div_ceil(squad) {
             let (x, y) = (
                 left + 400.0 + remains.unit() * 2200.0,
@@ -262,7 +262,7 @@ fn scenario_in_arena(
             );
             units.push(UnitSetup {
                 side: if k % 2 == 0 { Side::Blue } else { Side::Red },
-                kind: "rifle".to_string(),
+                kind: "test_rifle".to_string(),
                 position: [x, y],
                 yaw: remains.unit() * std::f64::consts::TAU,
                 engagement: None,

@@ -1,6 +1,6 @@
 {
   "units": [
-    {"side":"blue","kind":"rifle","position":[866,962],"yaw":0},
-    {"side":"red","kind":"rifle","position":[912,966],"yaw":3.141592653589793}
+    {"side":"blue","kind":"test_rifle","position":[866,962],"yaw":0},
+    {"side":"red","kind":"test_rifle","position":[912,966],"yaw":3.141592653589793}
   ]
 }

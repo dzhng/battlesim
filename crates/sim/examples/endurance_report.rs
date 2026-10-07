@@ -23,7 +23,7 @@ fn main() {
         .unwrap_or(60)
         .max(1);
     let late = std::env::args().nth(2).as_deref() == Some("late");
-    let fixture = sim::fixtures::game();
+    let fixture = sim::fixtures::test_game();
     let city = std::env::args().nth(3).is_some();
     let field = std::env::args().nth(3).map_or_else(
         || sim::maps::load("endurance").unwrap().definition,

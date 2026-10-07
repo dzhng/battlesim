@@ -20,7 +20,7 @@ async function begin(page, variant) {
 /** Red's first tank's health, read through the lab's diagnostic red view. */
 async function redTankHp(page) {
   await lab(page, () => window.__lab.route.observeAs("red"));
-  const o = await until(page, (f) => f.own.some((u) => u.kind === "tank"), 30, 1);
+  const o = await until(page, (f) => f.own.some((u) => u.kind === "test_tank"), 30, 1);
   const hp = o?.own.find((u) => u.id === 0)?.hp ?? 0;
   await lab(page, () => window.__lab.route.observeAs("blue"));
   await advance(page, 1);

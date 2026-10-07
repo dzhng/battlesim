@@ -5,7 +5,7 @@
       "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
       "recipe": "assault",
       "encounter_seed": "1",
-      "native_sha256": "bfe8699f28362603f969c93a13ed1030326c5c345d0729473c719c6a38c77627",
+      "native_sha256": "aa65fd40770d584009639f18be3812c3f5e61e0c17f7d3ffffc7fc593b7db267",
       "status": "ok"
     },
     {
@@ -13,7 +13,7 @@
       "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"2\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"open\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
       "recipe": "assault",
       "encounter_seed": "1",
-      "native_sha256": "df49f30ef08fb9ab0a848c2cd814fb9f9cc4bc2c03e2f174d58772ae9aa0f527",
+      "native_sha256": "053ea685428b640ec3094a7482f9e87fc5ff58a832494ba13346d4bce3ed16b6",
       "status": "ok"
     },
     {
@@ -21,7 +21,7 @@
       "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
       "recipe": "assault",
       "encounter_seed": "18446744073709551615",
-      "native_sha256": "2f7bba022e2a63325f942ec4d71d9b8922538ee7e1fc937a8f13c8ca4eb54d4c",
+      "native_sha256": "b431b082edbe8184d5910db0f6996e8f7f2e68602c44de8682fbbbbd12584f53",
       "status": "ok"
     },
     {
@@ -34,7 +34,7 @@
         }
       },
       "encounter_seed": "1",
-      "native_sha256": "5ea70e981cb046666e80762cd16b5c93296154e257c7ba5ff2c642de1ca7e870",
+      "native_sha256": "b7ddb788c9cd61e266915404dddfccdd85d8f552e6dd4dd2453d803102279663",
       "status": "error"
     },
     {
@@ -48,7 +48,7 @@
         }
       },
       "encounter_seed": "1",
-      "native_sha256": "c4cff21d499e42035522ff0f09af424950d086bc89a5f8da122523a4018c41ff",
+      "native_sha256": "a46ad44ee09204ca1067635590d94e49f7409441d2439e9208d2a2103c12d651",
       "status": "error"
     },
     {

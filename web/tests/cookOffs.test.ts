@@ -19,11 +19,11 @@ import type { PropAppearances } from "@packages/battle-renderer/src/models/propA
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { landedAfter } from "@packages/battle-renderer/src/effects/cookOff";
 
-const WRECK = UNITS.hull("tank")!.wreck;
+const WRECK = UNITS.hull("test_tank")!.wreck;
 
 test("a whole vehicle wreck keeps the live hull until the blast, then jolts and settles without a cut", () => {
   const wreck: ModelInstance = {
-    appearance: "jeep_wreck",
+    appearance: "test_jeep_wreck",
     x: 40,
     y: 30,
     z: 0,
@@ -32,7 +32,7 @@ test("a whole vehicle wreck keeps the live hull until the blast, then jolts and 
   };
   const c = {
     prop: 3,
-    kind: UNITS.hull("jeep")!.wreck,
+    kind: UNITS.hull("test_jeep")!.wreck,
     center: [40, 30] as const,
     yaw: 0.5,
     half: [2.2, 1, 0.95] as const,
@@ -43,7 +43,7 @@ test("a whole vehicle wreck keeps the live hull until the blast, then jolts and 
   const installed = {
     appearances: new Map([
       [
-        "jeep_wreck",
+        "test_jeep_wreck",
         {
           bundle: {
             kind: "static",
@@ -57,7 +57,7 @@ test("a whole vehicle wreck keeps the live hull until the blast, then jolts and 
   expect(transition).not.toBeNull();
   const hull: ModelInstance = {
     ...wreck,
-    appearance: "jeep",
+    appearance: "test_jeep",
     pose: { kind: "articulated", articulation: REST_ARTICULATION },
   };
   const feel = { ...gameEffects.cook_off, delay_s: 0.35 };
@@ -74,7 +74,7 @@ test("a whole vehicle wreck keeps the live hull until the blast, then jolts and 
     feel,
     10 + feel.delay_s + feel.settle_s / 8,
   );
-  expect(moving[0].appearance).toBe("jeep_wreck");
+  expect(moving[0].appearance).toBe("test_jeep_wreck");
   expect(moving[0].pose.kind).toBe("static");
   if (moving[0].pose.kind !== "static") throw new Error("expected moving wreck");
   expect(moving[0].pose.state).toBe("default");
@@ -109,7 +109,7 @@ function seen(
     tick,
     own: [],
     identified: tank
-      ? [{ id: 7, kind: "tank", position: [tank[0], tank[1], 0], yaw: 0.5, weaponPoses: [] }]
+      ? [{ id: 7, kind: "test_tank", position: [tank[0], tank[1], 0], yaw: 0.5, weaponPoses: [] }]
       : [],
     knownProps: wrecks.map((w) => ({
       id: w.id,
@@ -167,7 +167,7 @@ test("an earlier tick is a new battle: the watch starts over", () => {
 /** A red tank as the pose driver draws it, its turret trained `turret` off its hull. */
 const tankPose = (at: readonly [number, number], turret: number) => ({
   unit: 7,
-  kind: "tank",
+  kind: "test_tank",
   side: "red" as const,
   position: [at[0], at[1], 0] as [number, number, number],
   yaw: 0.5,
@@ -176,11 +176,14 @@ const tankPose = (at: readonly [number, number], turret: number) => ({
 
 test("a Jeep death retains its own hull when another vehicle disappeared nearby", () => {
   const hulls = new LastSeenHulls(UNITS, () => 2);
-  hulls.note([tankPose([40.5, 30], 1.2), { ...tankPose([40, 30], 0), unit: 8, kind: "jeep" }], 10);
+  hulls.note(
+    [tankPose([40.5, 30], 1.2), { ...tankPose([40, 30], 0), unit: 8, kind: "test_jeep" }],
+    10,
+  );
   hulls.note([], 10.03);
   const c = {
     prop: 3,
-    kind: UNITS.hull("jeep")!.wreck,
+    kind: UNITS.hull("test_jeep")!.wreck,
     center: [40.5, 30] as const,
     yaw: 0.5,
     half: [2.2, 1, 0.95] as const,
@@ -188,7 +191,7 @@ test("a Jeep death retains its own hull when another vehicle disappeared nearby"
     tick: 301,
   };
   const resolve: ResolveAppearance = (kind) => ({ appearance: kind, tint: [1, 0, 0] });
-  expect(hulls.at(c, 10.1, resolve)?.model.appearance).toBe("jeep");
+  expect(hulls.at(c, 10.1, resolve)?.model.appearance).toBe("test_jeep");
 });
 
 test("a hull that brews up is drawn whole, as last seen, until its ammunition goes; then as the wreck's pieces", () => {
@@ -225,7 +228,7 @@ test("a hull that brews up is drawn whole, as last seen, until its ammunition go
   const hull = hulls.at(transition.cookOff, 10.1, resolve);
   // Before the ammunition goes: the clean tank, turret where it was trained.
   const before = cookOffModels(transition, hull, feel, 10);
-  expect(before.map((m) => [m.appearance, m.x, m.y, m.yaw])).toEqual([["tank", 40, 30, 0.5]]);
+  expect(before.map((m) => [m.appearance, m.x, m.y, m.yaw])).toEqual([["test_tank", 40, 30, 0.5]]);
   expect(before[0].pose.kind === "articulated" && before[0].pose.articulation.turret_yaw).toBe(1.2);
   // Once it goes: the wreck's hull and its moving turret.
   const after = cookOffModels(transition, hull, feel, 10 + feel.delay_s + 0.05);

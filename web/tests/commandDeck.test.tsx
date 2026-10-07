@@ -23,8 +23,8 @@ afterEach(cleanup);
 
 test("commands omit redundant Move/Garrison while retaining mixed-selection capability actions", () => {
   const c = control([
-    unit("rifle", { garrison: { building: 1 } as OwnUnitView["garrison"] }),
-    unit("supply"),
+    unit("test_rifle", { garrison: { building: 1 } as OwnUnitView["garrison"] }),
+    unit("test_supply"),
   ]);
   const view = render(<CommandBar control={c} />);
   expect(view.queryByRole("button", { name: /^Move / })).toBeNull();
@@ -42,7 +42,7 @@ test("commands omit redundant Move/Garrison while retaining mixed-selection capa
 });
 
 test("icon commands expose the full shortcut on focus and hover, without capability fractions", () => {
-  const c = control([unit("tank"), unit("supply")]);
+  const c = control([unit("test_tank"), unit("test_supply")]);
   const view = render(<CommandBar control={c} />);
   const attack = view.getByRole("button", { name: /^Attack-move / });
   expect(view.queryByRole("tooltip")).toBeNull();
@@ -62,7 +62,7 @@ test("icon commands expose the full shortcut on focus and hover, without capabil
 });
 
 test("Escape dismisses a focused tooltip without claiming the battle's Escape event", () => {
-  const view = render(<CommandBar control={control([unit("tank")])} />);
+  const view = render(<CommandBar control={control([unit("test_tank")])} />);
   const attack = view.getByRole("button", { name: /^Attack-move / });
   fireEvent.focus(attack);
   expect(view.getByRole("tooltip")).toBeTruthy();
@@ -85,9 +85,9 @@ test("Escape dismisses a focused tooltip without claiming the battle's Escape ev
 });
 
 test("Deploy stays disabled when no selected unit can deploy, while attack-move remains available", () => {
-  const view = render(<CommandBar control={control([unit("rifle")])} />);
+  const view = render(<CommandBar control={control([unit("test_rifle")])} />);
   expect(view.getByRole("button", { name: /^Deploy / }).hasAttribute("disabled")).toBe(true);
-  view.rerender(<CommandBar control={control([unit("supply")])} />);
+  view.rerender(<CommandBar control={control([unit("test_supply")])} />);
   expect(view.getByRole("button", { name: /^Deploy / }).hasAttribute("disabled")).toBe(false);
   expect(view.getByRole("button", { name: /^Attack-move / }).hasAttribute("disabled")).toBe(false);
   expect(view.getByRole("button", { name: /^Attack ground / }).hasAttribute("disabled")).toBe(true);

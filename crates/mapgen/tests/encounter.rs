@@ -51,7 +51,13 @@ fn recipe_json(record: &Record) -> String {
 /// The outcome of planning `record`: the map its request generates, then
 /// the simulation's planner over the same JSON the Wasm boundary is given.
 fn outcome(record: &Record) -> String {
-    let physical_rules = serde_json::to_string(&sim::fixtures::game()).unwrap();
+    // The web half runs a lab's catalog, the test set (the game's units and
+    // the test units); the native half plans on the same one.
+    let mut rules = sim::fixtures::test_game();
+    rules["catalog"] = serde_json::Value::Array(sim::fixtures::catalog_documents(
+        sim::fixtures::CatalogSet::Test,
+    ));
+    let physical_rules = serde_json::to_string(&rules).unwrap();
     let mapgen::CompileOutcome::Ok { result } =
         mapgen::generate_map(&record.request_json, PRESETS, CATALOGUE, &physical_rules)
     else {
@@ -60,7 +66,7 @@ fn outcome(record: &Record) -> String {
     sim::encounter::plan_encounter_json(
         &serde_json::to_string(&result.map).unwrap(),
         &serde_json::to_string(&result.sites).unwrap(),
-        &sim::fixtures::game().to_string(),
+        &physical_rules,
         &recipe_json(record),
         &record.encounter_seed,
     )

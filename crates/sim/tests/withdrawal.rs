@@ -5,18 +5,18 @@ use sim::battle::Battle;
 
 #[test]
 fn finite_resources_are_an_unweighted_mean_and_unlimited_rows_do_not_dilute_it() {
-    let mut rules = sim::fixtures::stand_in_game();
+    let mut rules = sim::fixtures::test_game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
-        "tank",
+        "test_tank",
         json!({"roster":{"factions":["us"],"category":"veh","family_name":"Test","variant":"Tank"}}),
     );
     let setup = serde_json::from_value(json!({
         "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-        "rules":rules,"units":[{"side":"blue","kind":"tank","position":[100,100],
+        "rules":rules,"units":[{"side":"blue","kind":"test_tank","position":[100,100],
             "condition":{"spent":{"tank_ap":20,"tank_he":7}}},
-            {"side":"blue","kind":"rifle","position":[200,100]}]
+            {"side":"blue","kind":"test_rifle","position":[200,100]}]
     }))
     .unwrap();
     let battle = Battle::new(&setup, 1);

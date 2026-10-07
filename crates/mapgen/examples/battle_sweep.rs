@@ -46,7 +46,7 @@ impl Inputs {
         let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&templates)?)?;
         let config: Value = serde_json::from_str(&read("generated-battle.json")?)?;
         let recipes = EncounterRecipes::from_json(&read("encounters.json")?)?;
-        let rules: Rules = serde_json::from_value(sim::fixtures::game())?;
+        let rules: Rules = serde_json::from_value(sim::fixtures::test_game())?;
         let recipe = recipes
             .recipes
             .get("assault")
@@ -457,16 +457,16 @@ mod tests {
 
     #[test]
     fn short_battle_reports_each_acknowledged_goal_and_keeps_nonarrivals() {
-        let rules: Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
-        let casualties = rules.catalog.by_id("rifle").squad_size();
+        let rules: Rules = serde_json::from_value(sim::fixtures::test_game()).unwrap();
+        let casualties = rules.catalog.by_id("test_rifle").squad_size();
         let setup: ScenarioDefinition = serde_json::from_value(json!({
             "map": {"size": [512,512], "fog_cell_m": 8, "height_grid_m": 4,
                 "slope_cutoff_deg": 35},
             "rules": rules,
             "units": [
-                {"side": "blue", "kind": "jeep", "position": [20,40]},
-                {"side": "blue", "kind": "jeep", "position": [20,70]},
-                {"side": "red", "kind": "rifle", "position": [450,450], "condition": {"casualties": casualties}}
+                {"side": "blue", "kind": "test_jeep", "position": [20,40]},
+                {"side": "blue", "kind": "test_jeep", "position": [20,70]},
+                {"side": "red", "kind": "test_rifle", "position": [450,450], "condition": {"casualties": casualties}}
             ]
         }))
         .unwrap();
