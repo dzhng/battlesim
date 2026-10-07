@@ -541,3 +541,66 @@ fn a_long_truck_pulls_up_beside_parked_cars_where_it_was_sent() {
         "it stopped {off:.1} m from where it was sent, at {p:?}"
     );
 }
+
+/// The moment: a tank and a truck at the limits of their drives are sent
+/// down a lane between walls 1.2 m wider than each either side, laid across
+/// the grid at 30° (a court's lane). Each drives it end to end, its hull
+/// never touching a wall: a hull goes wherever it fits.
+#[test]
+fn a_hull_at_its_drives_limits_drives_a_lane_a_little_wider_than_itself() {
+    let mut rules = common::scenario_rules();
+    sim::fixtures::with_units_at_limits(&mut rules);
+    for (kind, drive) in [("limit_tracked", "tracked"), ("limit_wheeled", "wheeled")] {
+        let [half_width, half_length] = ["half_width_m", "half_length_m"]
+            .map(|k| rules["hull_limits"][drive][k].as_f64().unwrap());
+        let bearing = 30f64.to_radians();
+        let way = 2.0 * half_width + 2.4;
+        let wall = |side: f64| {
+            json!({ "kind": "wall", "center": at(bearing, 0.0, side * (way / 2.0 + 0.5)),
+                "yaw": bearing, "half_extents": [150, 0.5, 3] })
+        };
+        let map = json!({ "size": [800, 800], "fog_cell_m": 8, "height_grid_m": 4,
+            "slope_cutoff_deg": 35, "props": [wall(1.0), wall(-1.0)] });
+        let from = at(bearing, -60.0, 0.0);
+        let goal = at(bearing, 60.0, 0.0);
+        let units = json!([{ "side": "blue", "kind": kind, "position": from, "yaw": bearing }]);
+        let setup = serde_json::from_value(json!({
+            "map": map, "rules": rules, "units": units, "events": [], "scripts": [],
+        }))
+        .unwrap();
+        let mut b = Battle::new(&setup, 1);
+        send(&mut b, 1, 0, goal);
+        let hz = b.rules().tick_hz as u64;
+        let (mut driven, mut last, mut tightest) = (0.0, v2(from[0], from[1]), f64::INFINITY);
+        for _ in 0..120 * hz {
+            b.step();
+            let u = own(&b, 0);
+            let here = v2(u.position[0], u.position[1]);
+            driven += (here - last).length();
+            last = here;
+            // The hull's corners' room to the nearer wall.
+            let (sin, cos) = u.yaw.sin_cos();
+            for (l, w) in [(1.0, 1.0), (1.0, -1.0), (-1.0, 1.0), (-1.0, -1.0)] {
+                let corner = [
+                    here.x + cos * l * half_length - sin * w * half_width,
+                    here.y + sin * l * half_length + cos * w * half_width,
+                ];
+                tightest =
+                    tightest.min(way / 2.0 - across(bearing, [corner[0], corner[1], 0.0]).abs());
+            }
+            if u.state == MoveState::Idle {
+                break;
+            }
+        }
+        let missed = (last - v2(goal[0], goal[1])).length();
+        assert!(
+            missed < 3.0 && driven < 130.0,
+            "a {kind} stopped {missed:.1} m from the end of the lane after {driven:.0} m"
+        );
+        assert!(
+            tightest > -0.05,
+            "a {kind}'s hull reached {:.2} m into a wall",
+            -tightest
+        );
+    }
+}

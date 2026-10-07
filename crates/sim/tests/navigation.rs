@@ -501,12 +501,11 @@ fn routes_stay_on_the_map_and_never_cut_a_blocked_corner() {
 
 #[test]
 fn a_gap_admits_infantry_but_not_a_tank() {
-    // A wall across the map with a 5 m gap at y = 100 (y 97.5..102.5) and a wide
-    // opening at the top. At the 2 m planning resolution a gap needs about 4 m
-    // to be sure of a free cell; a tank's footprint needs about 6 m.
+    // A wall across the map with a 3 m gap at y = 100 (y 98.5..101.5) and a wide
+    // opening at the top: a squad fits the gap, a tank 3.6 m wide does not.
     let w = world(
-        r#","props":[{"kind":"wall","center":[200,48.75],"yaw":0,"half_extents":[0.5,48.75,2]},
-                     {"kind":"wall","center":[200,136.25],"yaw":0,"half_extents":[0.5,33.75,2]}]"#,
+        r#","props":[{"kind":"wall","center":[200,49.25],"yaw":0,"half_extents":[0.5,49.25,2]},
+                     {"kind":"wall","center":[200,135.75],"yaw":0,"half_extents":[0.5,34.25,2]}]"#,
     );
     let g = grid(&w);
     let (from, to) = (v2(150.0, 100.0), v2(250.0, 100.0));
@@ -753,7 +752,14 @@ fn a_nonfinite_cost_keeps_the_original_grid_winner() {
     let g = grid(&w);
     assert_eq!(
         g.plan(v2(5.0, 5.0), v2(59.0, 5.0), &m, RoutePolicy::Fastest),
-        Plan::Route(vec![v2(7.0, 3.0), v2(57.0, 3.0), v2(59.0, 5.0)])
+        Plan::Route(vec![
+            v2(3.0, 3.0),
+            // A tank's half width (and a hair) off the map's edge.
+            v2(5.0, 1.0 + (1.8 - 1.0 + 1e-3)),
+            v2(55.0, 1.0 + (1.8 - 1.0 + 1e-3)),
+            v2(57.0, 3.0),
+            v2(59.0, 5.0)
+        ])
     );
 }
 
@@ -1033,14 +1039,11 @@ fn vehicle_placement_keeps_its_footprint_on_traversable_ground() {
 }
 
 /// A hull at either drive's width limit finds its way between two walls
-/// standing two metres clear of it either side (the room a generated street
-/// leaves beside a body a hull cannot shove), whatever the way's heading and
-/// however it lies across the grid's cells: the planner judges room by the
-/// bodies themselves, not only by whole cells, so a truck is not turned back
-/// from a street it plainly fits. (On the cells alone it needs eight metres
-/// or more.)
+/// standing 1.2 m clear of it either side (a tank in a court's lane), and
+/// keeps its half width from them all the way, whatever the way's heading and
+/// however it lies across the grid's cells: a hull goes wherever it fits.
 #[test]
-fn a_hull_at_the_width_limit_fits_a_way_two_metres_wider_either_side() {
+fn a_hull_at_the_width_limit_fits_a_way_a_little_wider_than_itself() {
     let limits = crate::common::rules().hull_limits;
     for half_width_m in [limits.tracked.half_width_m, limits.wheeled.half_width_m] {
         let hull = Mobility {
@@ -1048,7 +1051,7 @@ fn a_hull_at_the_width_limit_fits_a_way_two_metres_wider_either_side() {
             push: PushClass::Medium,
             ..TANK
         };
-        let way = 2.0 * half_width_m + 4.0;
+        let way = 2.0 * half_width_m + 2.4;
         for deg in (0..=45).step_by(5) {
             let (s, c) = f64::from(deg).to_radians().sin_cos();
             // Across the cells in steps of a fifth of one.
@@ -1072,6 +1075,18 @@ fn a_hull_at_the_width_limit_fits_a_way_two_metres_wider_either_side() {
                     matches!(&plan, Plan::Route(r) if route_length(from, r) < 90.0),
                     "a hull {:.1} m wide is turned from a way {way:.1} m wide at {deg}°, \
                      {shift} m across: {plan:?}",
+                    2.0 * half_width_m
+                );
+                // How far a point stands from the nearer wall's face.
+                let room = |p: V2| {
+                    let across = (p.x - 200.0) * s - (p.y - 100.0) * c;
+                    way / 2.0 - (across - shift).abs()
+                };
+                let route = route(plan);
+                assert!(
+                    all_along(from, &route, |p| room(p) >= half_width_m - 1e-6),
+                    "a hull {:.1} m wide scrapes a wall of a way {way:.1} m wide at {deg}°, \
+                     {shift} m across: {route:?}",
                     2.0 * half_width_m
                 );
             }

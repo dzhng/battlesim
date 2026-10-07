@@ -36,6 +36,43 @@ impl Body {
             && self.footprint.contains(p, radius)
     }
 
+    /// How far `p` stands from it, if it stops a vehicle of class `push`,
+    /// as [`blocks_vehicle`](Self::blocks_vehicle) measures (the box grown
+    /// alike on every side, corners and all), and the way straight off its
+    /// nearer face.
+    pub(super) fn vehicle_gap(
+        &self,
+        p: crate::math::V2,
+        push: contract::scenario::PushClass,
+    ) -> Option<(f64, crate::math::V2)> {
+        (self.stops_vehicles && self.weight >= push.rank().max(1)).then(|| {
+            let f = &self.footprint;
+            let d = f.to_local(p);
+            let (gx, gy) = (d.x.abs() - f.half.x, d.y.abs() - f.half.y);
+            let away = if gx >= gy {
+                v2(d.x.signum(), 0.0)
+            } else {
+                v2(0.0, d.y.signum())
+            };
+            (gx.max(gy), away.rotated(f.yaw))
+        })
+    }
+
+    /// Whether the segment `a`→`b` passes within `radius` of it, as
+    /// [`blocks_vehicle`](Self::blocks_vehicle) measures, if it stops a
+    /// vehicle of class `push`.
+    pub(super) fn blocks_vehicle_along(
+        &self,
+        a: crate::math::V2,
+        b: crate::math::V2,
+        radius: f64,
+        push: contract::scenario::PushClass,
+    ) -> bool {
+        self.stops_vehicles
+            && self.weight >= push.rank().max(1)
+            && self.footprint.meets_segment(a, b, radius)
+    }
+
     /// `prop` as a grid lays it, if it stops any ground mover.
     pub fn of(prop: &Prop) -> Option<Body> {
         let body = Body {

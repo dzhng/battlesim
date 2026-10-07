@@ -571,7 +571,15 @@ fn request_route(
             };
             // A new body on the way replans a route it no longer fits, and
             // a pusher's route that now shoves one, so A* weighs the shove
-            // against a detour (Q13).
+            // against a detour (Q13): one it can still steer round, beyond
+            // its nose and, on wheels, its turning radius. Nearer, it is
+            // pushed through.
+            let swerve = unit.hull.map_or(0.0, |h| h.x)
+                + unit
+                    .mobility
+                    .drive
+                    .filter(|d| !d.tracked)
+                    .map_or(0.0, |d| d.radius_m);
             stalled
                 || (changed
                     && side.changed_along(
@@ -583,7 +591,7 @@ fn request_route(
                     && {
                         let grid = side.grid(ctx.world, ctx.authored);
                         !grid.route_fits(from, route, &unit.mobility)
-                            || grid.route_pushes(from, route, &unit.mobility)
+                            || grid.route_pushes_beyond(from, route, &unit.mobility, swerve)
                     })
         }
     };

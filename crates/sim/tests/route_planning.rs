@@ -434,8 +434,8 @@ fn an_enclosed_road_goal_finishes_its_counted_proof_and_the_tank_parks_outside_o
         *route = RoutePolicy::Fastest;
     }
     // One search of the 20,000-cell map plus local proof and road checks
-    // fits this allowance (about 131 advances); recertifying the goal from
-    // another outside start does not.
+    // fits this allowance (about 187 advances, the yard's walls judged
+    // closely); recertifying the goal from another outside start does not.
     // Admission refuses this command before it can schedule a live search.
     let world = WorldGeometry::new(&setup.map, &setup.rules);
     let grid = NavGrid::new(std::sync::Arc::new(NavBase::build(
@@ -458,7 +458,7 @@ fn an_enclosed_road_goal_finishes_its_counted_proof_and_the_tank_parks_outside_o
         },
         &setup.rules.navigation,
     );
-    for _ in 0..140 {
+    for _ in 0..200 {
         assert!(journey.advance(&grid, &roads, 200) <= 200 + sim::navigation::LARGEST_STEP);
         if journey.plan().is_some() {
             break;
