@@ -14,7 +14,13 @@
 
 import { sha256Hex } from "./glb.ts";
 import { assertMaterial } from "./material.ts";
-import { TIER_COUNT, type Bundle, type MeshData, type SkeletonClips } from "./schema.ts";
+import {
+  TIER_COUNT,
+  type Bundle,
+  type MeshData,
+  type SkeletonClips,
+  type Texture,
+} from "./schema.ts";
 
 const MAGIC = 0x42414742; // "BGAB" little-endian
 // 2: materials carry `tint`; 3: baked textures and tangents; 4: materials
@@ -146,6 +152,29 @@ export function decodeContainer(
     return value;
   };
   return revive(content);
+}
+
+// A bundle as it travels: the same content with each texture's levels left
+// out, under its own magic so it is never read as a bundle. Its textures
+// travel as their own files (`texture.ts`), and joining them back gives the
+// bundle whose encoding is its art identity.
+const TRANSPORT_MAGIC = 0x54414742; // "BGAT" little-endian
+
+/** `bundle` without its textures' pixels, and the textures it leaves out. */
+export function splitTextures(bundle: Bundle): { content: Uint8Array; textures: Texture[] } {
+  const textures = bundle.kind === "clips" ? [] : bundle.textures;
+  const refs = textures.map(({ id, format, width, height }) => ({ id, format, width, height }));
+  const content = bundle.kind === "clips" ? bundle : { ...bundle, textures: refs };
+  return { content: encodeContainer(TRANSPORT_MAGIC, FORMAT_VERSION, content), textures };
+}
+
+/** The bundle `content` (`splitTextures`) was split from, given its textures
+ *  in its own order. Whether they are its own is the art hash's to say. */
+export function joinTextures(content: Uint8Array, textures: readonly Texture[]): Bundle {
+  const bundle = decodeContainer(content, TRANSPORT_MAGIC, FORMAT_VERSION, "bundle") as Bundle;
+  if (bundle.kind !== "clips") bundle.textures = [...textures];
+  assertShape(bundle);
+  return bundle;
 }
 
 export async function bundleHash(bytes: Uint8Array): Promise<string> {

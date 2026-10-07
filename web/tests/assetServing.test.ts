@@ -7,12 +7,7 @@ import { join } from "node:path";
 import { build, preview, type PreviewServer } from "vite";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema.ts";
-import {
-  bundlePath,
-  fetchedOnRequest,
-  templateLibraryPath,
-} from "@packages/scene-assets/src/schema.ts";
-import { gzipTransport } from "@packages/scene-assets/src/gzip.ts";
+import { runtimeFiles } from "@packages/scene-assets/src/gzip.ts";
 
 const WEB = new URL("../", import.meta.url).pathname;
 const RUNTIME = new URL("../../assets/runtime/", import.meta.url).pathname;
@@ -51,16 +46,7 @@ afterAll(async () => {
 
 test("every runtime catalog file is in the build and served byte for byte, same-origin and isolated", async () => {
   const catalog = JSON.parse(readFileSync(join(RUNTIME, "catalog.json"), "utf8")) as RuntimeCatalog;
-  const files = [
-    "catalog.json",
-    ...Object.values(catalog.skeletons).map(bundlePath),
-    ...Object.values(catalog.appearances).map((a) =>
-      bundlePath(fetchedOnRequest(a) ? gzipTransport(catalog, a.bundle).hash : a.bundle),
-    ),
-    ...(catalog.templates
-      ? [templateLibraryPath(gzipTransport(catalog, catalog.templates.library).hash)]
-      : []),
-  ];
+  const files = ["catalog.json", ...runtimeFiles(catalog)];
   for (const file of files) {
     const response = await fetch(`${origin}/${file}`);
     expect(response.status, file).toBe(200);

@@ -17,15 +17,14 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { expect, test } from "vitest";
-import { gzipTransport, downloadBytes, unpackGzip } from "@packages/scene-assets/src/gzip.ts";
-import { decodeBundle } from "@packages/scene-assets/src/codec.ts";
+import { downloadBytes, readBundle, readGzip } from "@packages/scene-assets/src/gzip.ts";
 import { decodeTemplateLibrary, templateKits } from "@packages/scene-assets/src/templateLibrary.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
 import {
-  bundlePath,
   familyLooks,
   onRequestOf,
   templateLibraryPath,
+  CATALOG_LOAD_MAX_BYTES,
   MAP_DOWNLOAD_MAX_BYTES,
   KIT_BUNDLE_MAX_BYTES,
   type RuntimeCatalog,
@@ -34,6 +33,7 @@ import {
 const root = new URL("../../../", import.meta.url);
 const read = (path: string) => new Uint8Array(readFileSync(new URL(path, root)));
 const json = (path: string) => JSON.parse(new TextDecoder().decode(read(path)));
+const readRuntime = async (path: string) => read(`assets/runtime/${path}`);
 
 test("the native asset reader admits the real Market Town shared-art download within the map limit", () => {
   const run = spawnSync(
@@ -48,7 +48,7 @@ test("the native asset reader admits the real Market Town shared-art download wi
   expect(report.bytes).toBeLessThanOrEqual(MAP_DOWNLOAD_MAX_BYTES);
 });
 
-test("the native reader refuses an oversized library before opening its payload or map", () => {
+test("the native reader refuses an oversized catalog load before opening its payload or map", () => {
   const scratch = mkdtempSync(join(tmpdir(), "kit-download-"));
   try {
     mkdirSync(join(scratch, "web"));
@@ -68,7 +68,7 @@ test("the native reader refuses an oversized library before opening its payload 
         appearances: {},
         templates: { library: hash },
         gzip: {
-          [hash]: { hash: "b".repeat(64), bytes: MAP_DOWNLOAD_MAX_BYTES + 1, raw_bytes: 1 },
+          [hash]: { hash: "b".repeat(64), bytes: CATALOG_LOAD_MAX_BYTES + 1, raw_bytes: 1 },
         },
       }),
     );
@@ -77,7 +77,7 @@ test("the native reader refuses an oversized library before opening its payload 
       encoding: "utf8",
     });
     expect(run.status).not.toBe(0);
-    expect(run.stderr).toContain("map download");
+    expect(run.stderr).toContain("catalog load");
     expect(run.stderr).not.toContain("ENOENT");
   } finally {
     rmSync(scratch, { recursive: true, force: true });
@@ -89,10 +89,14 @@ test("the native reader refuses an oversized library before opening its payload 
 // regional looks, with the library. The looks of no region load with the
 // catalog for every map and are not this gate's.
 async function familyDownloads(catalog: RuntimeCatalog) {
-  const libraryHash = catalog.templates!.library;
-  const wire = gzipTransport(catalog, libraryHash);
   const library = decodeTemplateLibrary(
-    await unpackGzip(read(`assets/runtime/${templateLibraryPath(wire.hash)}`), wire, libraryHash),
+    await readGzip(
+      catalog,
+      "template library",
+      catalog.templates!.library,
+      templateLibraryPath,
+      readRuntime,
+    ),
   );
   const templates: { id: string; regional_family: string }[] = json(
     "fixtures/prototype-building-templates.json",
@@ -116,10 +120,7 @@ test("every regional family's full art and the library fit the shared download g
     templates.map((template) => template.id),
   )) {
     const hash = catalog.appearances[name].bundle;
-    const gzip = gzipTransport(catalog, hash, KIT_BUNDLE_MAX_BYTES);
-    const bundle = decodeBundle(
-      await unpackGzip(read(`assets/runtime/${bundlePath(gzip.hash)}`), gzip, hash),
-    );
+    const bundle = await readBundle(catalog, hash, readRuntime, undefined, KIT_BUNDLE_MAX_BYTES);
     expect(bundle.kind, name).toBe("static");
   }
   for (const family of families)
@@ -204,10 +205,11 @@ test("every court and garden piece's art is at most 1 MiB raw, in every region's
   );
   // Every piece has art: a missing look would pass a size check by absence.
   expect(new Set(looks.map(([, entry]) => entry.scenery))).toEqual(sceneries);
-  for (const [name, entry] of looks) {
-    const raw =
-      catalog.gzip?.[entry.bundle]?.raw_bytes ??
-      read(`assets/runtime/${bundlePath(entry.bundle)}`).byteLength;
-    expect(raw, name).toBeLessThanOrEqual(PIECE_MAX_RAW_BYTES);
-  }
+  // A bundle's raw art is its content and its textures (each with a header
+  // line the bundle does not carry, so a few bytes over: on the safe side).
+  const raw = (hash: string) =>
+    catalog.gzip![hash].raw_bytes +
+    (catalog.textures?.[hash] ?? []).reduce((n, id) => n + catalog.gzip![id].raw_bytes, 0);
+  for (const [name, entry] of looks)
+    expect(raw(entry.bundle), name).toBeLessThanOrEqual(PIECE_MAX_RAW_BYTES);
 });

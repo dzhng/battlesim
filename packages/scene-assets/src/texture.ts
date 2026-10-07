@@ -170,14 +170,69 @@ export function mipChain(image: Rgba8, channel: TextureChannel): Uint8Array[] {
   return levels;
 }
 
-/** The content address: sha256 of the format, the size and every level. */
+/** A texture's runtime file: a header line naming its format and size, then
+ *  every level, finest first. Its sha256 is the texture's content address. */
+function textureFile(format: TextureFormat, size: number, levels: Uint8Array[]): Uint8Array {
+  return concat([new TextEncoder().encode(`${format} ${size}x${size}\n`), ...levels]);
+}
+
+/** The content address: sha256 of the texture's runtime file. */
 export async function textureId(
   format: TextureFormat,
   size: number,
   levels: Uint8Array[],
 ): Promise<string> {
-  const header = new TextEncoder().encode(`${format} ${size}x${size}\n`);
-  return sha256Hex(concat([header, ...levels]));
+  return sha256Hex(textureFile(format, size, levels));
+}
+
+/** The runtime file of a baked texture (`textureFile`). */
+export const encodeTexture = (t: Texture) => textureFile(t.format, t.width, t.levels);
+
+/** A texture from its runtime file; `id` is the address it was verified at. */
+export function decodeTexture(id: string, bytes: Uint8Array): Texture {
+  const end = bytes.subarray(0, 64).indexOf(10);
+  const header = /^(rgba8unorm-srgb|rgba8unorm) (\d+)x(\d+)$/.exec(
+    new TextDecoder().decode(bytes.subarray(0, Math.max(0, end))),
+  );
+  const size = Number(header?.[2]);
+  if (!header || header[3] !== header[2] || !validTextureSize(size, size))
+    throw new Error(`texture ${id}: malformed header`);
+  const levels: Uint8Array[] = [];
+  let at = end + 1;
+  for (let edge = size; edge >= 1; edge >>= 1) {
+    levels.push(bytes.slice(at, at + edge * edge * 4));
+    at += edge * edge * 4;
+  }
+  if (at !== bytes.byteLength) throw new Error(`texture ${id}: length does not match its header`);
+  return { id, format: header[1] as TextureFormat, width: size, height: size, levels };
+}
+
+/** Distinct texture layers per GPU array: the renderer holds albedo (sRGB)
+ *  and surface (normal and ORM) textures in one array each, a layer per
+ *  content address (`battle-renderer` `models/modelTextures.ts`). */
+export interface TextureLayerCounts {
+  albedo: number;
+  surface: number;
+}
+
+/** Distinct layers of `textures` per array, a shared texture once. */
+export function textureLayerCounts(textures: Iterable<Texture>): TextureLayerCounts {
+  const ids = { albedo: new Set<string>(), surface: new Set<string>() };
+  for (const t of textures) ids[t.format === "rgba8unorm-srgb" ? "albedo" : "surface"].add(t.id);
+  return { albedo: ids.albedo.size, surface: ids.surface.size };
+}
+
+/** An array holding more distinct layers than `max` cannot be created. */
+export function textureLayerFindings(layers: TextureLayerCounts, max: number): Finding[] {
+  return (Object.keys(layers) as (keyof TextureLayerCounts)[])
+    .filter((array) => layers[array] > max)
+    .map((array) =>
+      finding(
+        "budget.texture_layers",
+        `the ${array} texture array would hold ${layers[array]} distinct layers, over its limit of ${max}`,
+        "share a recipe's textures between appearances, or raise the limit after checking the target machine's adapter",
+      ),
+    );
 }
 
 /** A channel's texture from a decoded image: its format, mips and address. */

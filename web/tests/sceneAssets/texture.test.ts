@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Baked textures ride the bundle. A textured source bakes to
+// Baked textures. A textured source bakes to
 // content-addressed textures with every mip level, the same source always to
 // the same bytes, and the PNG it embeds decodes to exactly its pixels.
 import { expect, test } from "vitest";
@@ -7,11 +7,20 @@ import { PNG } from "pngjs";
 import { mat4 } from "math";
 import { bakeCatalog } from "@packages/scene-assets/src/bake.ts";
 import { mergeParts } from "@packages/scene-assets/src/build.ts";
-import { decodeBundle, encodeBundle } from "@packages/scene-assets/src/codec.ts";
+import { encodeBundle } from "@packages/scene-assets/src/codec.ts";
+import { sha256Hex } from "@packages/scene-assets/src/glb.ts";
 import { decodePng, mipChain } from "@packages/scene-assets/src/texture.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
-import { bundlePath, type ArticulatedBundle } from "@packages/scene-assets/src/schema.ts";
-import { AUTHORITY, TANK_DRAWS, TOLERANCES, tankGlb, testCatalog, testSources } from "./synthetic";
+import type { ArticulatedBundle } from "@packages/scene-assets/src/schema.ts";
+import {
+  AUTHORITY,
+  TANK_DRAWS,
+  TOLERANCES,
+  bakedBundle,
+  tankGlb,
+  testCatalog,
+  testSources,
+} from "./synthetic";
 
 async function texturedTank(size = 8) {
   const result = await validateAppearance(
@@ -85,9 +94,9 @@ test("the same textured source gives the same bundle hash, and survives the code
     });
     expect(result.ok).toBe(true);
     const hash = result.runtime.appearances.tank.bundle;
-    const decoded = decodeBundle(result.files.get(bundlePath(hash))!) as ArticulatedBundle;
+    const decoded = (await bakedBundle(result, hash)) as ArticulatedBundle;
     expect(decoded.textures.length).toBe(3);
-    expect(encodeBundle(decoded)).toEqual(result.files.get(bundlePath(hash)));
+    expect(await sha256Hex(encodeBundle(decoded))).toBe(hash);
     hashes.push(hash);
   }
   expect(hashes[1]).toBe(hashes[0]);

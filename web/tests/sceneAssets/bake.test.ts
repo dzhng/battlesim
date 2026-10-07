@@ -3,10 +3,9 @@
 // deterministically, and the bundles decode to what the art says.
 import { expect, test } from "vitest";
 import { bakeCatalog } from "@packages/scene-assets/src/bake.ts";
-import { decodeBundle } from "@packages/scene-assets/src/codec.ts";
 import { sha256Hex } from "@packages/scene-assets/src/glb.ts";
-import { bundlePath, type Bundle } from "@packages/scene-assets/src/schema.ts";
-import { AUTHORITY, testCatalog, testSources } from "./synthetic";
+import { runtimeFiles } from "@packages/scene-assets/src/gzip.ts";
+import { AUTHORITY, bakedBundle, testCatalog, testSources } from "./synthetic";
 
 async function bake() {
   const sources = testSources();
@@ -27,14 +26,10 @@ test("a valid catalog bakes every entry with no error findings", async () => {
   expect(Object.keys(result.runtime.skeletons)).toEqual(["test-rig"]);
 });
 
-test("each bundle is named by the sha256 of its bytes", async () => {
+test("each runtime file is named by the sha256 of its bytes, and the catalog names every one", async () => {
   const result = await bake();
-  for (const [path, bytes] of result.files) expect(path).toBe(bundlePath(await sha256Hex(bytes)));
-  const hashes = [
-    ...Object.values(result.runtime.skeletons),
-    ...Object.values(result.runtime.appearances).map((a) => a.bundle),
-  ];
-  expect(hashes.map(bundlePath).sort()).toEqual([...result.files.keys()].sort());
+  for (const [path, bytes] of result.files) expect(path.split("/")[0]).toBe(await sha256Hex(bytes));
+  expect(runtimeFiles(result.runtime).sort()).toEqual([...result.files.keys()].sort());
 });
 
 test("baking twice gives the same hashes", async () => {
@@ -44,8 +39,8 @@ test("baking twice gives the same hashes", async () => {
 
 test("bundles decode to the kind, tiers and parts the catalog declared", async () => {
   const result = await bake();
-  const decoded = (hash: string): Bundle => decodeBundle(result.files.get(bundlePath(hash))!);
-  const rifleman = decoded(result.runtime.appearances.rifleman.bundle);
+  const decoded = (hash: string) => bakedBundle(result, hash);
+  const rifleman = await decoded(result.runtime.appearances.rifleman.bundle);
   if (rifleman.kind !== "skinned") throw new Error(rifleman.kind);
   expect(rifleman.skeleton).toBe("test-rig");
   // The unweighted leaf joint is dropped; the armature folds into the root.
@@ -59,13 +54,13 @@ test("bundles decode to the kind, tiers and parts the catalog declared", async (
   expect(rifleman.sockets.map((s) => s.name).sort()).toEqual(["eye", "muzzle"]);
   expect(rifleman.tiers).toHaveLength(4);
   expect(rifleman.tiers[0].indices.length).toBeGreaterThan(rifleman.tiers[1].indices.length);
-  const clips = decoded(result.runtime.skeletons["test-rig"]);
+  const clips = await decoded(result.runtime.skeletons["test-rig"]);
   if (clips.kind !== "clips") throw new Error(clips.kind);
   expect(clips.joints.map((j) => j.name)).toEqual(rifleman.joints.map((j) => j.name));
   expect(clips.clips.find((c) => c.name === "walk")?.loop).toBe(true);
   expect(clips.clips.find((c) => c.name === "death")?.loop).toBe(false);
 
-  const tank = decoded(result.runtime.appearances.tank.bundle);
+  const tank = await decoded(result.runtime.appearances.tank.bundle);
   if (tank.kind !== "articulated") throw new Error(tank.kind);
   const muzzle = tank.nodes.find((n) => n.name === "muzzle")!;
   expect(muzzle.pivot[0]).toBeCloseTo(3, 5);
@@ -78,7 +73,7 @@ test("bundles decode to the kind, tiers and parts the catalog declared", async (
     0, 0, 0, 1,
   ]);
 
-  const crate = decoded(result.runtime.appearances.crate.bundle);
+  const crate = await decoded(result.runtime.appearances.crate.bundle);
   if (crate.kind !== "static") throw new Error(crate.kind);
   expect(crate.states.map((s) => [s.name, s.bounds.max[2]])).toEqual([["default", 6]]);
 });

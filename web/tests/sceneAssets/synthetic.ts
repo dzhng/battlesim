@@ -7,10 +7,13 @@
 import { encodeGlb, type GltfJson } from "@packages/scene-assets/src/glb.ts";
 import { quat, type Mat4, type Quat, type Vec3 } from "math";
 import { inverse, mul, trsMatrix } from "@packages/scene-assets/src/trs.ts";
+import { readBundle } from "@packages/scene-assets/src/gzip.ts";
 import type {
   Authority,
+  Bundle,
   Catalog,
   GrassSpec,
+  RuntimeCatalog,
   SkeletonEntry,
   Tolerances,
 } from "@packages/scene-assets/src/schema.ts";
@@ -944,4 +947,16 @@ export function encodePng(width: number, height: number, rgba: Uint8Array): Uint
     o += p.length;
   }
   return png;
+}
+
+/** A baked bundle, read from the bake's files through the one transport. */
+export function bakedBundle(
+  result: { runtime: RuntimeCatalog; files: ReadonlyMap<string, Uint8Array> },
+  hash: string,
+): Promise<Bundle> {
+  return readBundle(result.runtime, hash, async (path) => {
+    const bytes = result.files.get(path);
+    if (!bytes) throw new Error(`${path}: not baked`);
+    return bytes;
+  });
 }

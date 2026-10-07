@@ -3,9 +3,11 @@
 //   validate <glb> [--unit U] [--type T] [--yaw DEG] [--clips GLB] [--loop a,b] [--json]
 //                          stats, materials and findings for one GLB (catalog settings when it is a catalog source;
 //                          a vehicle fitted to unit type T, or to every type that draws it)
-//   bake                   bake the catalog into assets/runtime/<hash>/bundle.bin and assets/runtime/catalog.json
+//   bake                   bake the catalog into assets/runtime/<hash>/{bundle,texture,templates}.bin
+//                          and assets/runtime/catalog.json
 //   check                  re-bake in memory; fail if anything on disk is stale, missing or orphaned,
-//                          or a reference library (assets/references/<family>/) breaks its contract
+//                          or a reference library (assets/references/<family>/) breaks its contract;
+//                          print the catalog load's wire bytes and each texture array's layers
 //   pull [name...] [--sources]
 //                          git lfs pull exactly the runtime bundles (and sources) of the named entries
 //   blender <script.py> [args...]
@@ -62,17 +64,16 @@ const { bakeCatalog, runtimeCatalogText } = await import("../packages/scene-asse
 const { contentSha256, lfsPointerOid, lfsPullCommand } =
   await import("../packages/scene-assets/src/glb.ts");
 const {
-  bundlePath,
   familyLooks,
-  fetchedOnRequest,
   onRequestOf,
   templateLibraryPath,
+  CATALOG_LOAD_MAX_BYTES,
   MAP_DOWNLOAD_MAX_BYTES,
   KIT_BUNDLE_MAX_BYTES,
+  TEXTURE_ARRAY_LAYERS_FLOOR,
 } = await import("../packages/scene-assets/src/schema.ts");
-const { gzipTransport, downloadBytes, unpackGzip } =
+const { bundleFiles, catalogLoadBytes, downloadBytes, gzipTransport, readBundle, readGzip } =
   await import("../packages/scene-assets/src/gzip.ts");
-const { decodeBundle } = await import("../packages/scene-assets/src/codec.ts");
 const { decodeTemplateLibrary, templateKits } =
   await import("../packages/scene-assets/src/templateLibrary.ts");
 const { TEMPLATE_TIER_TRIANGLES, catalogueRows, catalogueText, readTemplateSet } =
@@ -258,10 +259,7 @@ function report(result) {
       `${r.what} ${r.name}: ${r.hash ? `${r.hash} (${(r.bytes / 1024).toFixed(1)} KiB)` : "not baked"}`,
     );
     const gzip = r.hash && result.runtime.gzip?.[r.hash];
-    if (gzip)
-      console.log(
-        `  gzip transport ${gzip.hash} (${(gzip.bytes / 1024).toFixed(1)} KiB; raw art identity unchanged)`,
-      );
+    if (gzip) console.log(`  gzip transport ${gzip.hash} (${(gzip.bytes / 1024).toFixed(1)} KiB)`);
     printStats(r.stats);
     if (r.templates) {
       const { templates, rows, modules } = r.templates;
@@ -313,7 +311,22 @@ async function bake() {
     if (!live.has(dir)) rmSync(join(RUNTIME, dir), { recursive: true });
   writeFileSync(join(RUNTIME, "catalog.json"), runtimeCatalogText(result.runtime));
   console.log(`wrote ${result.files.size} runtime file(s) and assets/runtime/catalog.json`);
-  return 0;
+  return reportTransport(result) ? 0 : 1;
+}
+
+/** Print what a page downloads with the catalog and each texture array's
+ *  distinct layers against their limits; false when over either. */
+function reportTransport(result) {
+  const bytes = catalogLoadBytes(result.runtime);
+  const mib = (n) => `${(n / 2 ** 20).toFixed(1)} MiB`;
+  console.log(
+    `catalog load: ${mib(bytes)} on the wire (limit ${mib(CATALOG_LOAD_MAX_BYTES)})${bytes > CATALOG_LOAD_MAX_BYTES ? " — over its limit" : ""}`,
+  );
+  const { albedo, surface } = result.textureLayers;
+  console.log(
+    `texture layers: albedo ${albedo}, surface ${surface} (limit ${TEXTURE_ARRAY_LAYERS_FLOOR} each)`,
+  );
+  return bytes <= CATALOG_LOAD_MAX_BYTES;
 }
 
 async function check() {
@@ -355,7 +368,7 @@ async function check() {
         (await contentSha256(standInKitGlb()));
     if (stale) problems.push(`${standIn} is missing or stale; run stand-in, then bake`);
   }
-  const icons = generatedIcons();
+  const icons = await generatedIcons();
   for (const [path, svg] of icons) {
     const file = join(ICONS, path);
     if (!existsSync(file) || readFileSync(file, "utf8") !== svg)
@@ -377,6 +390,7 @@ async function check() {
       if (f.severity === "error") problems.push(`${f.code}: ${f.message}`);
       else console.log(`warn ${f.code}: ${f.message}`);
   }
+  if (!reportTransport(result)) problems.push("the catalog load is over its limit");
   for (const p of problems) console.log(p);
   console.log(
     problems.length
@@ -391,14 +405,13 @@ async function download(args) {
   const runtime = readJson(join(RUNTIME, "catalog.json"));
   const hash = runtime.templates?.library;
   if (!hash) throw new Error("runtime catalog has no template library");
-  const libraryBytes = downloadBytes(runtime, []);
-  if (libraryBytes > MAP_DOWNLOAD_MAX_BYTES)
-    throw new Error(`map download ${libraryBytes} bytes is over ${MAP_DOWNLOAD_MAX_BYTES}`);
-  const raw = async (hash, path, maxRaw = Infinity) => {
-    const gzip = gzipTransport(runtime, hash, maxRaw);
-    return unpackGzip(new Uint8Array(readFileSync(join(RUNTIME, path(gzip.hash)))), gzip, hash);
-  };
-  const library = decodeTemplateLibrary(await raw(hash, templateLibraryPath));
+  const loadBytes = catalogLoadBytes(runtime);
+  if (loadBytes > CATALOG_LOAD_MAX_BYTES)
+    throw new Error(`catalog load ${loadBytes} bytes is over ${CATALOG_LOAD_MAX_BYTES}`);
+  const read = async (path) => new Uint8Array(readFileSync(join(RUNTIME, path)));
+  const library = decodeTemplateLibrary(
+    await readGzip(runtime, "template library", hash, templateLibraryPath, read),
+  );
   const map = readJson(resolve(args[0]));
   const ids = map.buildings.map((building) => building.template_id);
   const kits = templateKits(library, ids);
@@ -407,7 +420,13 @@ async function download(args) {
   const bytes = downloadBytes(runtime, [...kits, ...looks]);
   if (bytes <= MAP_DOWNLOAD_MAX_BYTES)
     for (const name of [...kits, ...looks])
-      decodeBundle(await raw(runtime.appearances[name].bundle, bundlePath, KIT_BUNDLE_MAX_BYTES));
+      await readBundle(
+        runtime,
+        runtime.appearances[name].bundle,
+        read,
+        undefined,
+        KIT_BUNDLE_MAX_BYTES,
+      );
   console.log(
     JSON.stringify({
       kits: [...kits].sort(),
@@ -457,10 +476,8 @@ function pull(args) {
       runtime.appearances[name]?.bundle,
       skeleton && runtime.skeletons[skeleton],
     ].filter(Boolean);
-    for (const hash of hashes) {
-      const wireHash = entry && fetchedOnRequest(entry) ? gzipTransport(runtime, hash).hash : hash;
-      include.add(`assets/runtime/${bundlePath(wireHash)}`);
-    }
+    for (const hash of hashes)
+      for (const path of bundleFiles(runtime, hash)) include.add(`assets/runtime/${path}`);
     if (values.sources) {
       for (const path of [
         entry?.source,
@@ -762,12 +779,12 @@ async function catalogue() {
 
 /** Every generated icon for the fixture's weapon rows and the unit catalog,
  *  each type's silhouette rendered from its baked model in assets/runtime. */
-function generatedIcons() {
+async function generatedIcons() {
   const view = readJson(UNIT_CATALOG);
   const units = new UnitCatalog(view);
-  const lookup = runtimeLookup(
+  const lookup = await runtimeLookup(
     readJson(join(RUNTIME, "catalog.json")),
-    (path) => new Uint8Array(readFileSync(join(RUNTIME, path))),
+    async (path) => new Uint8Array(readFileSync(join(RUNTIME, path))),
   );
   return iconFiles(view.weapons, units, (id) => unitSolids(units, id, lookup));
 }
@@ -791,7 +808,7 @@ function iconsOnDisk() {
 }
 
 async function icons() {
-  const files = generatedIcons();
+  const files = await generatedIcons();
   for (const [path, svg] of files) {
     const file = join(ICONS, path);
     mkdirSync(dirname(file), { recursive: true });

@@ -11,7 +11,7 @@ import {
   type BakeResult,
 } from "@packages/scene-assets/src/bake.ts";
 import { gzipTransport, unpackGzip } from "@packages/scene-assets/src/gzip.ts";
-import { decodeBundle } from "@packages/scene-assets/src/codec.ts";
+import { encodeBundle } from "@packages/scene-assets/src/codec.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
 import {
   bundlePath,
@@ -39,7 +39,7 @@ import {
   standInKitGlb,
 } from "@packages/scene-assets/src/standInKit.ts";
 import { physicalTemplates } from "@web/maps/node";
-import { AUTHORITY, testCatalog, testSources } from "./synthetic";
+import { AUTHORITY, bakedBundle, testCatalog, testSources } from "./synthetic";
 import {
   CATALOGUE,
   HOUSE,
@@ -78,7 +78,7 @@ async function refusals(set: unknown, catalogue?: unknown[], kit?: Uint8Array) {
   return result.reports.flatMap((r) => r.findings).map((f) => `${f.code}: ${f.message}`);
 }
 
-async function rawContent(result: BakeResult, hash: string, path = bundlePath) {
+async function rawContent(result: BakeResult, hash: string, path: (hash: string) => string) {
   const gzip = gzipTransport(result.runtime, hash);
   return unpackGzip(result.files.get(path(gzip.hash))!, gzip, hash);
 }
@@ -100,7 +100,7 @@ test("a kit bakes to one static bundle whose states are its modules, each in its
   const result = await bake();
   const entry = result.runtime.appearances[KIT];
   expect(entry).toMatchObject({ unit: "kit", kind: "static" });
-  const kit = decodeBundle(await rawContent(result, entry.bundle)) as StaticBundle;
+  const kit = (await bakedBundle(result, entry.bundle)) as StaticBundle;
   expect(kit.states.map((s) => s.name)).toEqual(["shell", "sill"]);
   for (const state of kit.states) expect(state.tiers).toHaveLength(4);
   // The sill is laid out 40 m along in the file; its geometry is its own frame's.
@@ -112,7 +112,7 @@ test("a kit bakes to one static bundle whose states are its modules, each in its
     { name: "shell", triangles: [12, 12, 12, 12] },
     { name: "sill", triangles: [12, 12, 12, 12] },
   ]);
-  expect(report.bytes).toBe((await rawContent(result, entry.bundle)).byteLength);
+  expect(report.bytes).toBe(encodeBundle(kit).byteLength);
 });
 
 test("a module carries all four tiers, finest first", async () => {
@@ -137,7 +137,7 @@ test("the stand-in kit is one module, a metre cube standing on its base, the sam
   const result = await bakeCatalog(catalog, async () => standInKitGlb(), cityContext());
   expect(result.reports.flatMap((r) => r.findings)).toEqual([]);
   const entry = result.runtime.appearances[STAND_IN_KIT];
-  const kit = decodeBundle(await rawContent(result, entry.bundle)) as StaticBundle;
+  const kit = (await bakedBundle(result, entry.bundle)) as StaticBundle;
   expect(kit.states.map((s) => s.name)).toEqual([STAND_IN_MODULE]);
   // A prop's stand-in is this box scaled by the prop's own size.
   close(kit.states[0].bounds.min, [-0.5, -0.5, 0]);
@@ -235,9 +235,10 @@ test("a module its kit lacks is refused by name when the library is bound", asyn
   const lib = decodeTemplateLibrary(
     await rawContent(result, result.runtime.templates!.library, templateLibraryPath),
   );
-  const bundle = decodeBundle(
-    await rawContent(result, result.runtime.appearances[KIT].bundle),
-  ) as StaticBundle;
+  const bundle = (await bakedBundle(
+    result,
+    result.runtime.appearances[KIT].bundle,
+  )) as StaticBundle;
   const without = { ...bundle, states: bundle.states.filter((s) => s.name !== "sill") };
   const bind = (kitBundle: StaticBundle | undefined) => () => bindModules(lib, () => kitBundle);
   expect(bind(bundle)()).toEqual([

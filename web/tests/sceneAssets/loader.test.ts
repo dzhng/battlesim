@@ -4,7 +4,12 @@
 import { expect, test } from "vitest";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
-import { bundlePath } from "@packages/scene-assets/src/schema.ts";
+import {
+  bundlePath,
+  CATALOG_LOAD_MAX_BYTES,
+  KIT_BUNDLE_MAX_BYTES,
+  MAP_DOWNLOAD_MAX_BYTES,
+} from "@packages/scene-assets/src/schema.ts";
 import { AUTHORITY, testCatalog, testSources } from "./synthetic";
 
 async function served() {
@@ -38,7 +43,7 @@ test("a static appearance arrives with the simulation box its art is authored to
 test("a bundle whose bytes do not match its hash fails the load and keeps the installed generation", async () => {
   const { library, files, result } = await served();
   const first = await library.load("/assets/");
-  const tankFile = bundlePath(result.runtime.appearances.tank.bundle);
+  const tankFile = bundlePath(result.runtime.gzip![result.runtime.appearances.tank.bundle].hash);
   const corrupt = files.get(tankFile)!.slice();
   corrupt[corrupt.length - 1] ^= 0xff;
   files.set(tankFile, corrupt);
@@ -50,14 +55,15 @@ test("a bundle whose bytes do not match its hash fails the load and keeps the in
 test("an LFS pointer served in place of a bundle names the exact pull", async () => {
   const { library, files, result } = await served();
   const hash = result.runtime.appearances.truck.bundle;
+  const wire = result.runtime.gzip![hash].hash;
   files.set(
-    bundlePath(hash),
+    bundlePath(wire),
     new TextEncoder().encode(
       `version https://git-lfs.github.com/spec/v1\noid sha256:${hash}\nsize 999\n`,
     ),
   );
   await expect(library.load("/assets/")).rejects.toThrow(
-    `git lfs pull --include="assets/runtime/${hash}/bundle.bin"`,
+    `git lfs pull --include="assets/runtime/${wire}/bundle.bin"`,
   );
   expect(library.installed).toBeNull();
 });
@@ -82,6 +88,7 @@ async function servedCity() {
 test("gzip kit and library transport installs the exact original art through immutable encoded URLs", async () => {
   const { gunzipSync } = await import("node:zlib");
   const { encodeBundle } = await import("@packages/scene-assets/src/codec.ts");
+  const { sha256Hex } = await import("@packages/scene-assets/src/glb.ts");
   const { templateLibraryPath } = await import("@packages/scene-assets/src/schema.ts");
   const { encodeTemplateLibrary } = await import("@packages/scene-assets/src/templateLibrary.ts");
   const { KIT, result, files } = await servedCity();
@@ -100,9 +107,7 @@ test("gzip kit and library transport installs the exact original art through imm
     library.withAppearances([KIT]),
     library.withAppearances([KIT]),
   ]);
-  expect(encodeBundle(installed.appearances.get(KIT)!.bundle)).toEqual(
-    new Uint8Array(gunzipSync(files.get(kitPath)!)),
-  );
+  expect(await sha256Hex(encodeBundle(installed.appearances.get(KIT)!.bundle))).toBe(kitHash);
   expect(also.appearances.get(KIT)!.bundle).toEqual(installed.appearances.get(KIT)!.bundle);
   expect(requests.filter((url) => url === `/assets/${kitPath}`)).toHaveLength(1);
   expect(encodeTemplateLibrary(installed.templates!.library)).toEqual(
@@ -110,31 +115,32 @@ test("gzip kit and library transport installs the exact original art through imm
   );
 });
 
-test("the baker publishes one gzip object per kit and library while raw unit objects keep their identity", async () => {
+test("the baker publishes every bundle and the library as one gzip object, named apart from the art", async () => {
   const { gunzipSync } = await import("node:zlib");
   const { sha256Hex } = await import("@packages/scene-assets/src/glb.ts");
   const { templateLibraryPath } = await import("@packages/scene-assets/src/schema.ts");
   const { KIT, cityCatalog, cityContext, citySources, testSet, kitGlb } = await import("./city");
   const sources = citySources(testSet(), kitGlb());
   const result = await bakeCatalog(cityCatalog(), async (path) => sources[path], cityContext());
-  for (const [hash, path] of [
-    [result.runtime.appearances[KIT].bundle, bundlePath(result.runtime.appearances[KIT].bundle)],
-    [result.runtime.templates!.library, templateLibraryPath(result.runtime.templates!.library)],
-  ]) {
-    const wire = result.runtime.gzip?.[hash];
+  const unit = (await served()).result;
+  for (const [baked, hash, path] of [
+    [result, result.runtime.appearances[KIT].bundle, bundlePath],
+    [result, result.runtime.templates!.library, templateLibraryPath],
+    [unit, unit.runtime.appearances.tank.bundle, bundlePath],
+    [unit, unit.runtime.skeletons["test-rig"], bundlePath],
+  ] as const) {
+    const wire = baked.runtime.gzip?.[hash];
     expect(wire, hash).toBeDefined();
-    const encodedPath = path.replace(hash, wire!.hash);
-    expect(result.files.has(path)).toBe(false);
-    const encoded = result.files.get(encodedPath)!;
+    expect(baked.files.has(path(hash))).toBe(false);
+    const encoded = baked.files.get(path(wire!.hash))!;
     expect(await sha256Hex(encoded)).toBe(wire!.hash);
-    const raw = new Uint8Array(gunzipSync(encoded));
-    expect(raw.length).toBe(wire!.raw_bytes);
-    expect(await sha256Hex(raw)).toBe(hash);
+    expect(gunzipSync(encoded).length).toBe(wire!.raw_bytes);
   }
-  const raw = await served();
-  expect(raw.result.runtime.gzip).toBeUndefined();
-  for (const [path, bytes] of raw.result.files)
-    expect(path).toBe(bundlePath(await sha256Hex(bytes)));
+  // The library's content is its art; a bundle's is joined with its textures first.
+  const library = result.runtime.gzip![result.runtime.templates!.library];
+  expect(await sha256Hex(gunzipSync(result.files.get(templateLibraryPath(library.hash))!))).toBe(
+    result.runtime.templates!.library,
+  );
 });
 
 test("gzip inflation beyond the declared kit length is refused without consuming the installed generation", async () => {
@@ -175,7 +181,7 @@ test.each([
     }
     if (failure === "raw length") record.raw_bytes += 1;
     if (failure === "missing record") delete result.runtime.gzip![hash];
-    if (failure === "raw kit budget") record.raw_bytes = 50 * 1024 * 1024 + 1;
+    if (failure === "raw kit budget") record.raw_bytes = KIT_BUNDLE_MAX_BYTES + 1;
     if (failure === "truncated gzip") {
       const truncated = encoded.subarray(0, encoded.length - 8);
       record.hash = await sha256Hex(truncated);
@@ -201,7 +207,7 @@ test.each([
 test("a map's complete selected kit download is refused before any kit request when it exceeds the aggregate budget", async () => {
   const { KIT, result, files } = await servedCity();
   const hash = result.runtime.appearances[KIT].bundle;
-  result.runtime.gzip![hash].bytes = 50 * 1024 * 1024;
+  result.runtime.gzip![hash].bytes = MAP_DOWNLOAD_MAX_BYTES + 1;
   files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime)));
   const fetch = memoryFetch(files, "/assets/");
   const requested: string[] = [];
@@ -216,7 +222,7 @@ test("a map's complete selected kit download is refused before any kit request w
   expect(loader.installed).toBe(installed);
 });
 
-test("an oversized library download is refused before fetching it and preserves the installed generation", async () => {
+test("an oversized catalog load is refused before fetching it and preserves the installed generation", async () => {
   const { result, files } = await servedCity();
   const fetch = memoryFetch(files, "/assets/");
   const requests: string[] = [];
@@ -225,10 +231,10 @@ test("an oversized library download is refused before fetching it and preserves 
     return fetch(url);
   });
   const installed = await loader.load("/assets/");
-  result.runtime.gzip![result.runtime.templates!.library].bytes = 50 * 1024 * 1024 + 1;
+  result.runtime.gzip![result.runtime.templates!.library].bytes = CATALOG_LOAD_MAX_BYTES + 1;
   files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime)));
   requests.length = 0;
-  await expect(loader.load("/assets/")).rejects.toThrow(/map download .* over/);
+  await expect(loader.load("/assets/")).rejects.toThrow(/catalog load .* over/);
   expect(requests).toEqual(["/assets/catalog.json"]);
   expect(loader.installed).toBe(installed);
 });

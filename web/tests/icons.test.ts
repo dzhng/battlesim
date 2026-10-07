@@ -19,9 +19,9 @@ import {
 const ICONS = new URL("../../assets/icons/", import.meta.url);
 const RUNTIME = new URL("../../assets/runtime/", import.meta.url);
 
-const lookup = runtimeLookup(
+const lookup = await runtimeLookup(
   JSON.parse(readFileSync(new URL("catalog.json", RUNTIME), "utf8")) as RuntimeCatalog,
-  (path) => new Uint8Array(readFileSync(new URL(path, RUNTIME))),
+  async (path) => new Uint8Array(readFileSync(new URL(path, RUNTIME))),
 );
 const shipped = (id: string) => unitSolids(UNITS, id, lookup);
 

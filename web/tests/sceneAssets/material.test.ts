@@ -4,22 +4,24 @@
 // bundle carries exactly that. Wear and the tint mask keep their own channels.
 import { expect, test } from "vitest";
 import type { GltfJson } from "@packages/scene-assets/src/glb.ts";
-import { sha256Hex } from "@packages/scene-assets/src/glb.ts";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { buildClips } from "@packages/scene-assets/src/build.ts";
-import { decodeBundle, encodeBundle } from "@packages/scene-assets/src/codec.ts";
+import { decodeBundle, encodeBundle, splitTextures } from "@packages/scene-assets/src/codec.ts";
+import { publishGzip } from "@packages/scene-assets/src/gzip.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
 import { importScene } from "@packages/scene-assets/src/scene.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
 import {
   bundlePath,
   type ArticulatedBundle,
+  type Bundle,
   type FindingCode,
   type Material,
   type StaticBundle,
 } from "@packages/scene-assets/src/schema.ts";
 import {
   AUTHORITY,
+  bakedBundle,
   SKELETON_ENTRY,
   TANK_DRAWS,
   TOLERANCES,
@@ -249,28 +251,26 @@ test("a room on a body that moves is refused: a vehicle's and a soldier's", asyn
   expect(soldier.findings.map((f) => f.code)).toEqual(["material.interior"]);
 });
 
-/** A baked catalog as runtime files, with the tank's bundle replaced by `edit`'s. */
-async function runtimeWith(edit: (bytes: Uint8Array) => Promise<Uint8Array> | Uint8Array) {
+/** A baked catalog as runtime files, with the tank's bundle travelling as
+ *  `edit` encodes it. */
+async function runtimeWith(edit: (bundle: Bundle) => Uint8Array) {
   const sources = testSources();
   const result = await bakeCatalog(testCatalog(), async (p) => sources[p], {
     authority: AUTHORITY,
   });
-  const files = new Map(result.files);
-  const was = result.runtime.appearances.tank.bundle;
-  const bytes = await edit(files.get(bundlePath(was))!.slice());
-  const hash = await sha256Hex(bytes);
-  files.delete(bundlePath(was));
-  files.set(bundlePath(hash), bytes);
-  result.runtime.appearances.tank.bundle = hash;
-  files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime)));
-  return files;
+  const out = { runtime: result.runtime, files: new Map(result.files) };
+  const hash = result.runtime.appearances.tank.bundle;
+  await publishGzip(out, hash, edit(await bakedBundle(result, hash)), bundlePath);
+  out.files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime)));
+  return out.files;
 }
 
 test("a bundle in the format before coverage is refused, not read", async () => {
   // Format 3 is the last whose materials carried no coverage.
-  const files = await runtimeWith((bytes) => {
-    new DataView(bytes.buffer).setUint32(4, 3, true);
-    return bytes;
+  const files = await runtimeWith((bundle) => {
+    const { content } = splitTextures(bundle);
+    new DataView(content.buffer).setUint32(4, 3, true);
+    return content;
   });
   const library = new AppearanceLibrary(memoryFetch(files, "/a/"));
   await expect(library.load("/a/")).rejects.toThrow(/bundle format 3, .*re-bake/);
@@ -278,10 +278,9 @@ test("a bundle in the format before coverage is refused, not read", async () => 
 });
 
 test("a bundle whose material says nothing of its coverage is refused, not taken for opaque", async () => {
-  const files = await runtimeWith((bytes) => {
-    const bundle = decodeBundle(bytes) as ArticulatedBundle;
-    delete (bundle.materials[0] as Partial<Material>).coverage;
-    return encodeBundle(bundle);
+  const files = await runtimeWith((bundle) => {
+    delete ((bundle as ArticulatedBundle).materials[0] as Partial<Material>).coverage;
+    return splitTextures(bundle).content;
   });
   const library = new AppearanceLibrary(memoryFetch(files, "/a/"));
   await expect(library.load("/a/")).rejects.toThrow(/material paint: no coverage/);
