@@ -1,0 +1,119 @@
+{
+  "entries": [
+    {
+      "file": "europe_vbl_machine_gun_scout-three_quarter_front-2.jpg",
+      "variant": "europe_vbl_machine_gun_scout",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VBL_Strasbourg_2010_-2.jpg",
+      "author": "Kevin.B",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "d598c8f35c359449431aba2b23c67053cf39dc7054ff2a579871020de7469869",
+      "note": "VBL with machine gun, right front three-quarter, doors open."
+    },
+    {
+      "file": "europe_vbl_machine_gun_scout-three_quarter_front.jpg",
+      "variant": "europe_vbl_machine_gun_scout",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Panhard_VBL_(V%C3%A8hicule_Blind%C3%A9_Leg%C3%A9r),_French_army_licence_registration_%276924_0051%27_pic1.JPG",
+      "author": "AlfvanBeem",
+      "licence": "CC0-1.0",
+      "sha256": "7c26094011319b25dee0387733c47afdbdfc00b50101bd9cc5fc729e4e7dd23f",
+      "note": "French Army VBL '6924 0051' with roof machine-gun ring, left front three-quarter, Bastille Day display."
+    },
+    {
+      "file": "europe_vbl_machine_gun_scout-side-2.jpg",
+      "variant": "europe_vbl_machine_gun_scout",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VBL_p1040668.jpg",
+      "author": "David Monniaux",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "ae400b415dd2591045cb6033fbe042806213a4ce215f8e5c47e8d033156b45bf",
+      "note": "Same parade, side."
+    },
+    {
+      "file": "europe_vbl_machine_gun_scout-side.jpg",
+      "variant": "europe_vbl_machine_gun_scout",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VBL_p1040666.jpg",
+      "author": "David Monniaux",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "7c7f8cd31aa9d61a0820185c590af421070f38162ef1d264a8b38d3b36f19c4b",
+      "note": "VBL on parade, left side: four wheels, doors, machine gun on the roof ring."
+    },
+    {
+      "file": "europe_vbl_machine_gun_scout-three_quarter_rear-2.jpg",
+      "variant": "europe_vbl_machine_gun_scout",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Panhard_VBL_(V%C3%A8hicule_Blind%C3%A9_Leg%C3%A9r),_French_army_licence_registration_%276924_0057%27_pic3.JPG",
+      "author": "AlfvanBeem",
+      "licence": "CC0-1.0",
+      "sha256": "fbd04cb317f0bfa70f0d16cad87f3abefcf2bd1a11ffb78db60402d3a2d55396",
+      "note": "'6924 0057', left rear three-quarter."
+    },
+    {
+      "file": "europe_vbl_machine_gun_scout-three_quarter_rear.jpg",
+      "variant": "europe_vbl_machine_gun_scout",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Panhard_VBL_(V%C3%A8hicule_Blind%C3%A9_Leg%C3%A9r),_French_army_licence_registration_%276924_0051%27_pic2.JPG",
+      "author": "AlfvanBeem",
+      "licence": "CC0-1.0",
+      "sha256": "2edafaf7bbd8b6bbe0a18ea50c644c50b9674faf53a63ff4cb23a625d67ea542",
+      "note": "'6924 0051', right rear three-quarter: rear door with spare wheel, stowage, louvres."
+    },
+    {
+      "file": "europe_vbl_machine_gun_scout-front-2.jpg",
+      "variant": "europe_vbl_machine_gun_scout",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Panhard_VBL_(V%C3%A8hicule_Blind%C3%A9_Leg%C3%A9r),_French_army_licence_registration_%276924_0051%27_pic4.JPG",
+      "author": "AlfvanBeem",
+      "licence": "CC0-1.0",
+      "sha256": "7680164c3341ef6642c01795659ec7e78eed336960f4748c491db6104b262597",
+      "note": "Head-on from above: bonnet, windscreen, roof ring."
+    },
+    {
+      "file": "europe_vbl_machine_gun_scout-front.jpg",
+      "variant": "europe_vbl_machine_gun_scout",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Panhard_VBL_(V%C3%A8hicule_Blind%C3%A9_Leg%C3%A9r),_French_army_licence_registration_%276924_0051%27_pic5.JPG",
+      "author": "AlfvanBeem",
+      "licence": "CC0-1.0",
+      "sha256": "6df6cfb29401ad204a7605ae8d031c8cd2d9c7183ee43ed1f75ce994d0a6126e",
+      "note": "Head-on: headlights, grille, windscreen, bumper."
+    },
+    {
+      "file": "europe_vbl_machine_gun_scout-detail-2.jpg",
+      "variant": "europe_vbl_machine_gun_scout",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Machine_gun_p1040625.jpg",
+      "author": "David Monniaux",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "7209d45ba08285b9b8c31cf17bfc50e0a9860d21ed0c4489dba3f42aff4b401f",
+      "note": "Roof machine gun on its mount."
+    },
+    {
+      "file": "europe_vbl_machine_gun_scout-detail.jpg",
+      "variant": "europe_vbl_machine_gun_scout",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:VBL_p1040629.jpg",
+      "author": "David Monniaux",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "098eeaac28d708c9a261fb1098485d82b68975b3553bedee1bed15710e6333b2",
+      "note": "Rear quarter close-up: jerrycans, tools and tubes stowed on the rear."
+    }
+  ],
+  "gaps": [
+    "europe_vbl_machine_gun_scout: no straight rear or top photo; the rear is read from the two rear three-quarter photos.",
+    "europe_vbl_machine_gun_scout: the machine gun close-up is a soft parade shot; no clear photo of the roof ring and its shield.",
+    "europe_vbl_machine_gun_scout: no tyre or hub close-up."
+  ]
+}

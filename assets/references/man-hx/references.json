@@ -1,0 +1,86 @@
+{
+  "entries": [
+    {
+      "file": "europe_man_hx_general_resupply-three_quarter_front-2.jpg",
+      "variant": "europe_man_hx_general_resupply",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:DSC05676_Rheinmetall_MAN_HX,_Bundesheer,_Front_Left,_2023-10.jpg",
+      "author": "Aciarium",
+      "licence": "CC-BY-4.0",
+      "sha256": "c07e5e052e7775e9becf46070a130436e8d066901d4752f4e55b994ee91d88fb",
+      "note": "Austrian Bundesheer HX 6x6 cargo, left front three-quarter: cab steps, mirrors, front wheels and hubs, tarpaulined body."
+    },
+    {
+      "file": "europe_man_hx_general_resupply-three_quarter_front-3.jpg",
+      "variant": "europe_man_hx_general_resupply",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Truck_(51599189721).jpg",
+      "author": "Airwolfhound from Hertfordshire, UK",
+      "licence": "CC-BY-SA-2.0",
+      "sha256": "6ae53e5f330f1a5f1cfb02e4cc30536a3ac43ab698787c20d14b1a0659c8c577",
+      "note": "British HX 4x4 cargo in desert sand, right front three-quarter: cab, tarp body, wheels."
+    },
+    {
+      "file": "europe_man_hx_general_resupply-three_quarter_front-4.jpg",
+      "variant": "europe_man_hx_general_resupply",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Tuker_Lines_10_July_2022.jpg",
+      "author": "Pangalau",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "92187ac99ad00ecd8e9b19d27a94f117e05c89b95e6b0746d3c138f541de0480",
+      "note": "HX 4x4 cargo trucks with cage bodies, right front three-quarter."
+    },
+    {
+      "file": "europe_man_hx_general_resupply-three_quarter_front.jpg",
+      "variant": "europe_man_hx_general_resupply",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2008_MAN_HX.jpg",
+      "author": "Calreyn88",
+      "licence": "CC-BY-4.0",
+      "sha256": "143c684fef1ce3533e7844bf1de057bea174c921588caaedcb50f6dd32f7f10f",
+      "note": "British Army MAN HX60 4x4 cargo truck, left front three-quarter: tilt cab, tarpaulined cargo body, single rear axle."
+    },
+    {
+      "file": "europe_man_hx_general_resupply-side.jpg",
+      "variant": "europe_man_hx_general_resupply",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Brunei_Highway_24_January_2023_01.jpg",
+      "author": "Pangalau",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "cd72aa20fb0f7c61717b8d670d3d1835df19cf95a314b1153875187dd068b4ed",
+      "note": "HX cargo on a highway, side and front quarter: wheelbase, cargo body with tarp."
+    },
+    {
+      "file": "europe_man_hx_general_resupply-front.jpg",
+      "variant": "europe_man_hx_general_resupply",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Meppen_-_WTD91_(TdBW)_047_ies.jpg",
+      "author": "Frank Vincentz",
+      "licence": "CC-BY-SA-3.0",
+      "sha256": "46cb12e19a1d8016513ce602ac17477c4798238c7434748da21e30a369adacc5",
+      "note": "German HX head-on on display: cab front, grille, bumper, lights, mirrors."
+    },
+    {
+      "file": "europe_man_hx_general_resupply-rear.jpg",
+      "variant": "europe_man_hx_general_resupply",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:MAN_HX_1_December_2022.jpg",
+      "author": "Pangalau",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "c0793f3670acc435ccd4e8ead7e00f52f861bd845487c6d18d9a8dff4f514fb4",
+      "note": "HX cargo body from behind, through a vehicle window: tailgate, rear lights, under-run bar, tyres."
+    }
+  ],
+  "gaps": [
+    "europe_man_hx_general_resupply: the roster names no exact HX model; the photos mix 4x4 (HX60, British) and 6x6 (Austrian) cargo trucks with tarpaulin or cage bodies. Choose a wheel count before modelling.",
+    "europe_man_hx_general_resupply: no three_quarter_rear or top photo; the rear photo is taken through a vehicle window and is soft.",
+    "europe_man_hx_general_resupply: no close-up of tyres, hubs or the cab interior; no loading crane is shown on any cargo HX here."
+  ]
+}

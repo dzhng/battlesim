@@ -1,0 +1,142 @@
+{
+  "entries": [
+    {
+      "file": "europe_boxer_apc-three_quarter_front-2.jpg",
+      "variant": "europe_boxer_apc",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2024-06-08_155531_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "2864cece0dc8c4ff6f3eacd581871300f34ba05ee95d068bf3606d650925d268",
+      "note": "German Boxer APC, 2024, camouflage net over hull; RWS and antennas."
+    },
+    {
+      "file": "europe_boxer_apc-three_quarter_front.jpg",
+      "variant": "europe_boxer_apc",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:GTK_Boxer_side.jpg",
+      "author": "Heldt",
+      "licence": "public-domain",
+      "sha256": "bbd85b024f1b58134aca662dc97873a956c3b25b245ad8bade3452730c42b019",
+      "note": "German Bundeswehr Boxer A1 APC with FLW 100/200 remote weapon station, right front three-quarter."
+    },
+    {
+      "file": "europe_boxer_apc-side.jpg",
+      "variant": "europe_boxer_apc",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:GTK_Boxer_front.JPG",
+      "author": "Veppar",
+      "licence": "public-domain",
+      "sha256": "539319c6347ae16680df7181bc0df136f820040a75d1cae95219a17544c4c8be",
+      "note": "German Boxer APC on static display; left side, wheel stations and hull break between drive and mission module."
+    },
+    {
+      "file": "europe_boxer_apc-three_quarter_rear.jpg",
+      "variant": "europe_boxer_apc",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2024-06-08_153915_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "441418f0083336370656ed1624525ab75f8813a2501872ae43068ae1f267c843",
+      "note": "Left rear, ramp down, squad dismounting, 2024."
+    },
+    {
+      "file": "europe_boxer_apc-front.jpg",
+      "variant": "europe_boxer_apc",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Gepanzertes_Transportkraftfahrzeug_(GTK)_Boxer_-_Frontansicht.jpg",
+      "author": "Bundeswehr-Fotos Wir.Dienen.Deutschland.",
+      "licence": "CC-BY-2.0",
+      "sha256": "0c08fb236ef68fac50e990187c297d07c46a14992b94bcd5babd0ac6a07240c5",
+      "note": "Desert-tan German Boxer with RWS, head-on: bow, lights, mirrors."
+    },
+    {
+      "file": "europe_boxer_apc-rear.jpg",
+      "variant": "europe_boxer_apc",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Saber_Strike_15_Training_in_Drawsko_Pomorskie,_Poland_(18119829573).jpg",
+      "author": "U.S. Army Europe Images from Wiesbaden, Germany",
+      "licence": "CC-BY-2.0",
+      "sha256": "1d20ec2452fb30f02b4dd652c9aa993ad6be7dd373475d3f18fe613e08d12c7f",
+      "note": "German Boxer from behind: rear ramp and door, stowage, 2015."
+    },
+    {
+      "file": "europe_boxer_apc-detail-2.jpg",
+      "variant": "europe_boxer_apc",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:GTK_Boxer_Gun.jpg",
+      "author": "Heldt",
+      "licence": "public-domain",
+      "sha256": "2dba57fedb4c51ed461fc3c5cfb16588293601064cb4e3d8e687b111f70acb3c",
+      "note": "Remote weapon station with heavy machine gun and its sight."
+    },
+    {
+      "file": "europe_boxer_apc-detail.jpg",
+      "variant": "europe_boxer_apc",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:GTK_Boxer_Detail.jpg",
+      "author": "Heldt",
+      "licence": "public-domain",
+      "sha256": "7a8da751d186402e5f426c0e92dc701576fe4bd6e8ee5ac41ff48f82c497dfef",
+      "note": "Driver's station: raised driver's hood with vision blocks, bolted bow armour plates, mirror, front wheel and marker light (early camouflage Boxer)."
+    },
+    {
+      "file": "europe_boxer_rct30-three_quarter_front-2.jpg",
+      "variant": "europe_boxer_rct30",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:GTK_Boxer_Schakal_-_RCT-30_(4).jpg",
+      "author": "Netherlands Ministry of Defence (Defensie), photographer not named",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "d34d00ecde5dd423db06bc08f27ae3957bf72495ce4b58c28306e87ddbbb72ea",
+      "note": "Schakal, right front three-quarter."
+    },
+    {
+      "file": "europe_boxer_rct30-three_quarter_front-3.jpg",
+      "variant": "europe_boxer_rct30",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:GTK_Boxer_Schakal_-_RCT-30_(3).jpg",
+      "author": "Netherlands Ministry of Defence (Defensie), photographer not named",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "1c80aa0baf0ab671dbf4560c9e08340f1ca8789d4fa7109a819439421785b233",
+      "note": "Schakal firing, left front."
+    },
+    {
+      "file": "europe_boxer_rct30-three_quarter_front.jpg",
+      "variant": "europe_boxer_rct30",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:GTK_Boxer_Schakal_-_RCT-30_(1).jpg",
+      "author": "Netherlands Ministry of Defence (Defensie), photographer not named",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "ef84947f7ba282a89e6215092e4597d3391d797a56342676359692ea60ff87ff",
+      "note": "Boxer Schakal with unmanned RCT30 turret (30 mm, Spike launcher), left front."
+    },
+    {
+      "file": "europe_boxer_rct30-front.jpg",
+      "variant": "europe_boxer_rct30",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:GTK_Boxer_-_PuBo_-_RCT30_turret.jpg",
+      "author": "Defensie",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "c6e7d280fa56bd8a6fde4850d1a46b20e501b60feab33e623473493cc21f6368",
+      "note": "Boxer with RCT30 turret, near head-on from the right, 2025."
+    }
+  ],
+  "gaps": [
+    "europe_boxer_apc: no top view; the roof (hatches, RWS ring) shows only obliquely in the three-quarter photos.",
+    "europe_boxer_apc: photos mix early (2006-2011) and 2024 German Boxers; RWS fit and stowage differ between them.",
+    "europe_boxer_rct30: no side, rear, three_quarter_rear or top photo is licensable; only the Dutch Defensie Schakal photos exist on Commons. The drive module and rear are the APC's (same chassis), so the APC's side, rear and three-quarter rear photos stand in for the hull; the mission module and RCT30 turret behind it are unseen from those angles.",
+    "europe_boxer_rct30: no close-up of the RCT30 sights or Spike launcher; an exhibition video still on Commons was excluded for doubtful provenance."
+  ]
+}

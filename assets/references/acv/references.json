@@ -1,0 +1,108 @@
+{
+  "entries": [
+    {
+      "file": "us_acv_acv_p-three_quarter_front-2.jpg",
+      "variant": "us_acv_acv_p",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Amphibious_Combat_Vehicle_Route_Validation_(8618165).jpg",
+      "author": "U.S. Marine Corps photo by Lance Cpl. Kendrick Jackson",
+      "licence": "public-domain",
+      "sha256": "ebbe5377360fb661492f4f489585143ee949cb7873a1e486cd16d7c079da4251",
+      "note": "ACV-P on a road, left front three-quarter."
+    },
+    {
+      "file": "us_acv_acv_p-three_quarter_front-3.jpg",
+      "variant": "us_acv_acv_p",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Amphibious_Combat_Vehicle_Route_Verification_(8616384).jpg",
+      "author": "U.S. Marine Corps photo by Lance Cpl. Kendrick Jackson",
+      "licence": "public-domain",
+      "sha256": "6125564d3eae15ce187025ff1047f883e34e95e4ec4c21bb2a3507f4c950f552",
+      "note": "ACV-P crossing a bridge, front three-quarter."
+    },
+    {
+      "file": "us_acv_acv_p-three_quarter_front-4.jpg",
+      "variant": "us_acv_acv_p",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Amphibious_Combat_Vehicle_180828-M-VM836-800.jpg",
+      "author": "Sgt. Takoune Norasingh",
+      "licence": "public-domain",
+      "sha256": "49bed303677a2ee05e70e2ac063368da83a3315b73efe9da761d0521738e24c1",
+      "note": "ACV on display at a Marine Corps post, right front three-quarter: bow trim vane, wheels and hubs, RWS; an AAV behind."
+    },
+    {
+      "file": "us_acv_acv_p-three_quarter_front.jpg",
+      "variant": "us_acv_acv_p",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Amphibious_Combat_Vehicle_180619-M-ZZ999-201.jpg",
+      "author": "Kaitlin Kelly",
+      "licence": "public-domain",
+      "sha256": "1d631f827f06ab902a383f5b5907841e42678857c1f6ab9138c159992ff1704e",
+      "note": "ACV personnel variant in the desert, 2018: left front three-quarter, bow trim vane, eight wheels and hubs, remote weapon station."
+    },
+    {
+      "file": "us_acv_acv_p-side.jpg",
+      "variant": "us_acv_acv_p",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Amphibious_Combat_Vehicle_Tide_Training_(8777750).jpg",
+      "author": "U.S. Marine Corps photo by Lance Cpl. Kendrick Jackson",
+      "licence": "public-domain",
+      "sha256": "3519c674005d571ee957b22d086fb0e1a69340b00ae074ab915347e5a5d08f94",
+      "note": "Line of ACVs on a beach, side elevation at distance."
+    },
+    {
+      "file": "us_acv_acv_p-front.jpg",
+      "variant": "us_acv_acv_p",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ACV_at_Twentynine_Palms.jpg",
+      "author": "Cpl. Austin Gillam",
+      "licence": "public-domain",
+      "sha256": "e5c268fc8166efd9e03fba3acce73f70d32eb250bf330f3df8c2d865b64406ea",
+      "note": "Near head-on under camouflage netting at Twentynine Palms: bow, RWS, antennas."
+    },
+    {
+      "file": "us_acv_acv_p-rear.jpg",
+      "variant": "us_acv_acv_p",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Amphibious_Combat_Vehicle_Route_Verification_(8616382).jpg",
+      "author": "U.S. Marine Corps photo by Lance Cpl. Kendrick Jackson",
+      "licence": "public-domain",
+      "sha256": "1f895878290e4742de209c3a71ffecf4841b02e576e96e4d130674eae6b3d3aa",
+      "note": "Rear, ramp down with a Marine boarding: twin shrouded propellers, rear lights, ramp, rear hull plates."
+    },
+    {
+      "file": "us_acv_acv_p-detail-2.jpg",
+      "variant": "us_acv_acv_p",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Amphibious_Combat_Vehicle_thruster.jpg",
+      "author": "Mztourist",
+      "licence": "CC-BY-4.0",
+      "sha256": "25720c0b3568694f0b51ba7605881e3a0b68f0b7c06d0e78b82dbfde8a25612d",
+      "note": "Rear propeller and its shroud, low close-up on a display vehicle."
+    },
+    {
+      "file": "us_acv_acv_p-detail.jpg",
+      "variant": "us_acv_acv_p",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Amphibious_Combat_Vehicle_remote_weapons_station.jpg",
+      "author": "Mztourist",
+      "licence": "CC-BY-4.0",
+      "sha256": "814bfd48c97f499110aac63fcc1f36ba75b965e5af7846c25923e4b59f265f5d",
+      "note": "Remote weapon station and roof hatches on a display vehicle."
+    }
+  ],
+  "gaps": [
+    "us_acv_acv_p: no three_quarter_rear or top photo; the rear is the straight-on ramp-down view only.",
+    "us_acv_acv_p: the side photo is a distant beach line-up; hull side detail is read from the three-quarter photos.",
+    "us_acv_acv_p: no tyre or suspension close-up."
+  ]
+}

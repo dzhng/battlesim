@@ -1,0 +1,107 @@
+{
+  "entries": [
+    {
+      "file": "eastern_ural_4320_general_resupply-three_quarter_front-2.jpg",
+      "variant": "eastern_ural_4320_general_resupply",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Interpolitex_2011_(402-15).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "9d1ff8f7d7467473786d252213ae80b63cb9a8834efe4eac7b3f585adede10ca",
+      "note": "Ural-4320 cargo with tarpaulin, left front three-quarter, 2011."
+    },
+    {
+      "file": "eastern_ural_4320_general_resupply-three_quarter_front.jpg",
+      "variant": "eastern_ural_4320_general_resupply",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Ural-4320_-_ETIF-2010_(1).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "e066f5871be57f803e4c231cbbd6abf04983bdca7637e6d0ba3df36c33caf29e",
+      "note": "Ural-4320 6x6 cargo with tarpaulin, right front three-quarter: bonneted cab, spare wheel behind cab, single tyres, cargo body."
+    },
+    {
+      "file": "eastern_ural_4320_general_resupply-side.jpg",
+      "variant": "eastern_ural_4320_general_resupply",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Ural-4320_-_ETIF-2010_(3).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "beb9ba54c893938cb371f45f6b0c19374a1c615e6b859d070dc19d5782e2a0d8",
+      "note": "Right side, near-orthographic: wheelbase, bogie, cab, tarpaulined body."
+    },
+    {
+      "file": "eastern_ural_4320_general_resupply-three_quarter_rear-2.jpg",
+      "variant": "eastern_ural_4320_general_resupply",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Interpolitex_2011_(402-16).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "61cf2e31c3e151990cdc8b59b7c3aa3a48431e1805c91cd59975c9d6f443313c",
+      "note": "Cargo body with bows and no tarpaulin, rear three-quarter: drop sides, bench layout."
+    },
+    {
+      "file": "eastern_ural_4320_general_resupply-three_quarter_rear.jpg",
+      "variant": "eastern_ural_4320_general_resupply",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Ural-4320_-_ETIF-2010_(2).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "0ffa578f242ec5c2eb0cec3ee893d0dc7526df4046ac2c3b412df464c5c0dd84",
+      "note": "Right rear three-quarter: tarp and tailgate, rear bogie, tyres and hubs."
+    },
+    {
+      "file": "eastern_ural_4320_general_resupply-front.jpg",
+      "variant": "eastern_ural_4320_general_resupply",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Ural-4320_-_ETIF-2010_(4).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "123307071a4de4c03af374fe15c96dd1c8977a589850bbcea4b2eed1061ae730",
+      "note": "Near head-on: grille, bumper, headlights, cab, tarp above."
+    },
+    {
+      "file": "eastern_ural_4320_general_resupply-rear.jpg",
+      "variant": "eastern_ural_4320_general_resupply",
+      "view": "rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Interpolitex_2011_(402-17).jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "aa2222f818c844f09b9812c9c6bb1f45a60fe9b80e16a6ea6435ee367bf1b43b",
+      "note": "Straight rear of the cargo body: tailgate, steps, lights, tow hitch."
+    },
+    {
+      "file": "eastern_ural_4320_general_resupply-top.jpg",
+      "variant": "eastern_ural_4320_general_resupply",
+      "view": "top",
+      "source": "drawing",
+      "page": "https://commons.wikimedia.org/wiki/File:Ural-4320,_Truck,_Cargo,_4500_kg,_4.5_tonne,_6%C3%976.png",
+      "author": "Mick Bell",
+      "licence": "CC-BY-4.0",
+      "sha256": "52504515b796fb8e60b3014dbef7c02ade614e4f578a2744a7d8ee7530ea0dea",
+      "note": "Mick Bell's 1/76 drawing sheet (2001) of the Ural-4320 6x6 cargo: both side elevations (bows, and tarpaulin), top plan, front and rear elevations with and without tarp."
+    },
+    {
+      "file": "eastern_ural_4320_general_resupply-detail.jpg",
+      "variant": "eastern_ural_4320_general_resupply",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Ural-4320_Motorraum.jpg",
+      "author": "Druschba 4",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "fbd79c0beb224506877b9898bc9f0377b54bd372172015ff6548aeb63c665be7",
+      "note": "Engine bay under the bonnet."
+    }
+  ],
+  "gaps": [
+    "eastern_ural_4320_general_resupply: no tyre or hub close-up; wheels are read from the side and three-quarter photos and the drawing.",
+    "eastern_ural_4320_general_resupply: all photos are clean exhibition vehicles; field weathering and stowage are not shown."
+  ]
+}
