@@ -28,19 +28,21 @@ test("a rejected replay shows its refusal and draws no battlefield", async () =>
         const { loadWasm } = await importModule(`${root}/web/src/battle/sim/module.ts`);
         const { catalogSet } = await importModule(`${root}/web/src/battle/catalog/sets.ts`);
         const { rememberReplay } = await importModule(`${root}/apps/battle-lab/src/replayFile.tsx`);
-        const { loadEncounter, loadMap } = await importModule(`${root}/web/src/maps/browser.ts`);
+        const { loadMap } = await importModule(`${root}/web/src/maps/browser.ts`);
         const wasm = await loadWasm();
-        const { rules } = await catalogSet("test");
-        const { definition: map } = await loadMap("street");
-        const scenario = async (name: string) =>
-          JSON.stringify({ map, rules, ...(await loadEncounter("street", name)) });
+        const { rules } = await catalogSet("game");
+        // Battles with no units, so the game's catalog admits them; each on
+        // its own test map.
+        const scenario = async (id: string) =>
+          JSON.stringify({ map: (await loadMap(id)).definition, rules, units: [] });
+        const map = (await loadMap("street")).definition;
         // A saved battle whose commands were recorded on another scenario.
-        const other = new wasm.Battle(await scenario("lean"), 1);
+        const other = new wasm.Battle(await scenario("geometry"), 1);
         try {
           await rememberReplay(
             JSON.stringify({
               battle: {
-                scenario: await scenario("attack"),
+                scenario: await scenario("street"),
                 report: {
                   request: {
                     map_source: {
