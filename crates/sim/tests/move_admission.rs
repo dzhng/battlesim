@@ -1008,6 +1008,8 @@ fn a_truck_gives_up_on_a_corner_too_tight_to_turn() {
         json!([]),
     );
     let mut rules = crate::common::scenario_rules();
+    // Its hull is past what the game admits.
+    sim::fixtures::lift_hull_limits(&mut rules);
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

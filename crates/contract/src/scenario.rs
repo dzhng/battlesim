@@ -574,6 +574,65 @@ pub struct Rules {
     pub ground: GroundRules,
     pub buildings: BuildingRules,
     pub garrison: GarrisonRules,
+    pub hull_limits: HullLimits,
+}
+
+/// The largest hull each drive may have: what the map generator and the
+/// route planner are proven against, by tests that drive hulls built at
+/// these limits. A unit past them is refused where the rules load, so every
+/// admitted unit is covered by those tests.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HullLimits {
+    pub tracked: DriveLimits,
+    pub wheeled: DriveLimits,
+}
+
+/// One drive's largest hull; a tracked hull pivots and has no turn limit.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DriveLimits {
+    pub half_width_m: f64,
+    pub half_length_m: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub turning_radius_m: Option<f64>,
+}
+
+impl HullLimits {
+    /// The first unit of `catalog` whose hull passes its drive's limits.
+    fn check(&self, catalog: &crate::catalog::Catalog) -> Result<(), crate::catalog::CatalogError> {
+        use crate::catalog::Mobility;
+        for index in catalog.indices() {
+            let unit = catalog.get(index);
+            let Some(hull) = unit.hull() else { continue };
+            let (drive, limits, radius) = match unit.mobility {
+                Mobility::Tracked { .. } => ("tracked", &self.tracked, None),
+                Mobility::Wheeled {
+                    turning_radius_m, ..
+                } => ("wheeled", &self.wheeled, Some(turning_radius_m)),
+                _ => continue,
+            };
+            let [length, width, _] = hull.half_extents_m;
+            let past = [
+                ("half width", width, Some(limits.half_width_m)),
+                ("half length", length, Some(limits.half_length_m)),
+            ]
+            .into_iter()
+            .chain(radius.map(|r| ("turning radius", r, limits.turning_radius_m)))
+            .find(|(_, value, limit)| limit.is_some_and(|limit| *value > limit));
+            if let Some((what, value, limit)) = past {
+                return Err(crate::catalog::CatalogError::Invalid {
+                    section: "units",
+                    id: catalog.id(index).into(),
+                    error: format!(
+                        "its {drive} {what} {value} m is past the limit of {} m (hull_limits)",
+                        limit.unwrap()
+                    ),
+                });
+            }
+        }
+        Ok(())
+    }
 }
 
 /// [`Rules`] as read, before the checks across its sections.
@@ -603,12 +662,14 @@ struct UncheckedRules {
     ground: GroundRules,
     buildings: BuildingRules,
     garrison: GarrisonRules,
+    hull_limits: HullLimits,
 }
 
 impl TryFrom<UncheckedRules> for Rules {
     type Error = crate::catalog::CatalogError;
     fn try_from(r: UncheckedRules) -> Result<Self, Self::Error> {
         r.catalog.check_weapons(&r.weapons)?;
+        r.hull_limits.check(&r.catalog)?;
         for (id, checked) in [
             ("suppression", r.suppression.check()),
             ("navigation", r.navigation.check()),
@@ -644,6 +705,7 @@ impl TryFrom<UncheckedRules> for Rules {
             ground: r.ground,
             buildings: r.buildings,
             garrison: r.garrison,
+            hull_limits: r.hull_limits,
         })
     }
 }

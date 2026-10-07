@@ -41,6 +41,15 @@ pub fn stand_in_game() -> Value {
     fixture
 }
 
+/// Lift `fixture`'s hull limits, for a test that needs a hull no battle may
+/// field (a truck too long to turn a corner, a tank wider than any street)
+/// to show how a mechanic fails.
+pub fn lift_hull_limits(fixture: &mut Value) {
+    let far =
+        serde_json::json!({ "half_width_m": 1e6, "half_length_m": 1e6, "turning_radius_m": 1e6 });
+    fixture["hull_limits"] = serde_json::json!({ "tracked": far, "wheeled": far });
+}
+
 /// The catalog documents at `roots` under `fixtures/` (a directory, walked,
 /// or one file), in path order.
 fn documents(roots: &[&str]) -> Vec<Value> {

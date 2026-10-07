@@ -205,6 +205,8 @@ fn a_partial_order_moves_the_units_that_fit_and_holds_the_others() {
         serde_json::json!([]),
     );
     let mut rules = crate::common::scenario_rules();
+    // Its hull is past what the game admits.
+    sim::fixtures::lift_hull_limits(&mut rules);
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",

@@ -304,3 +304,49 @@ fn vehicle_wrecks_cannot_require_missing_building_facts() {
         .expect_err("vehicle wreck births have no placed aggregate");
     assert!(error.to_string().contains("wreck"), "{error}");
 }
+
+/// No hull is admitted past the absolute limits for its drive: what the map
+/// generator and the route planner are proven against (tests drive hulls
+/// built at the limits), so every unit within them is covered too.
+#[test]
+fn a_hull_past_its_drives_limits_is_refused_at_load() {
+    for (unit, patch, limit) in [
+        (
+            "tank",
+            json!({ "body": { "hull": { "half_extents_m": [3.5, 2.2, 1.2] } } }),
+            "tracked half width",
+        ),
+        (
+            "tank",
+            json!({ "body": { "hull": { "half_extents_m": [4.3, 1.8, 1.2] } } }),
+            "tracked half length",
+        ),
+        (
+            "supply",
+            json!({ "body": { "hull": { "half_extents_m": [3.0, 1.7, 1.8] } } }),
+            "wheeled half width",
+        ),
+        (
+            "supply",
+            json!({ "body": { "hull": { "half_extents_m": [5.3, 1.4, 1.8] } } }),
+            "wheeled half length",
+        ),
+        (
+            "supply",
+            json!({ "mobility": { "wheeled": { "turning_radius_m": 6.5 } } }),
+            "wheeled turning radius",
+        ),
+    ] {
+        let mut fixture = sim::fixtures::stand_in_game();
+        sim::fixtures::patch_catalog(&mut fixture, "units", unit, patch);
+        let error = serde_json::from_value::<Rules>(fixture)
+            .expect_err(limit)
+            .to_string();
+        assert!(
+            error.contains(unit) && error.contains(limit),
+            "{limit}: {error}"
+        );
+    }
+    // The shipped roster stands within them.
+    serde_json::from_value::<Rules>(common::game()).unwrap();
+}

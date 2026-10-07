@@ -764,6 +764,8 @@ fn a_supply_truck_builds_road_speed_instead_of_jumping_to_it() {
         serde_json::json!([]),
     );
     let mut rules = common::scenario_rules();
+    // Its hull is past what the game admits.
+    sim::fixtures::lift_hull_limits(&mut rules);
     rules["movement"]["drive"]["acceleration_s"] = serde_json::json!(4.5);
     rules["movement"]["drive"]["braking_s"] = serde_json::json!(1.5);
     rules["surfaces"]["road"]["speed_factor"] = serde_json::json!(1.0);
