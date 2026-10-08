@@ -29,8 +29,10 @@ from vehicle_parts import MID  # noqa: E402
 HAD, UHT = "europe_ec665_tiger_had", "europe_ec665_tiger_uht"
 CARDS = {HAD: (14.08, 4.32, 3.83), UHT: (14.08, 4.32, 4.32)}
 SPEC = dict(
-    fuselage=[(7.04, 0.0, 1.25, 1.25), (6.7, 0.38, 0.95, 1.56, 1.25, 2.2), (5.8, 0.5, 0.78, 1.96, 1.3, 3.0),
-              (4.3, 0.55, 0.78, 2.36, 1.4, 3.0), (2.6, 0.62, 0.8, 2.32, 1.45, 3.2), (0.5, 0.6, 0.9, 2.22, 1.5, 3.2),
+    # The side photo: the tandem glass deep and standing out of the body,
+    # the engines big and high beside the mast.
+    fuselage=[(7.04, 0.0, 1.25, 1.25), (6.7, 0.4, 0.95, 1.56, 1.25, 2.2), (5.8, 0.52, 0.78, 1.66, 1.3, 3.0),
+              (4.3, 0.57, 0.78, 1.95, 1.4, 3.0), (2.6, 0.64, 0.8, 2.22, 1.45, 3.2), (0.5, 0.6, 0.9, 2.22, 1.5, 3.2),
               (-1.0, 0.45, 1.1, 2.06, 1.6, 3.0), (-4.0, 0.22, 1.35, 1.86, 1.6, 2.4), (-6.4, 0.18, 1.4, 1.9, 1.65),
               (-7.04, 0.16, 1.45, 2.0, 1.7)],
     wing=[(1.6, 0.55, 1.5, 1.2, 0.16), (1.4, 2.05, 1.42, 1.0, 0.12)],
@@ -54,25 +56,25 @@ def build(variant, v):
                    [("pod", (1.2, 1.05, 1.0), 1.6, 0.22), ("missile", (1.1, 2.0, 1.0), 1.5, 0.13)])
     m = A.jet(v, s)
     hull = v.hull
-    A.canopy("canopy", 6.4, 5.0, 1.75, 2.18, 0.47, m, hull, bows=(5.6,), peak=0.6)
-    A.canopy("canopy_glass_rear", 4.95, 3.4, 2.1, 2.62, 0.5, m, hull, bows=(4.2,), peak=0.5)
+    A.canopy("canopy", 6.4, 4.95, 1.45, 2.32, 0.54, m, hull, bows=(6.0, 5.6), peak=0.6, tail=0.75)
+    A.canopy("canopy_glass_rear", 4.95, 3.3, 1.72, 2.78, 0.58, m, hull, bows=(4.4, 3.8), peak=0.5, tail=0.8)
     A.sensor_ball("nose_flir", (6.8, 0, 1.05), 0.22, m, hull)
     for side, k in ((1, "L"), (-1, "R")):
-        A.body(f"nacelle_{k}", [(1.9, 0.0, 2.25, 2.25), (1.6, 0.3, 1.98, 2.52, 2.25), (-0.9, 0.3, 1.98, 2.5, 2.25),
-                                (-1.4, 0.15, 2.1, 2.4, 2.25)], m["paint"], hull, seg=14, loc=(0, side * 0.6, 0))
-        box(f"exhaust_{k}", (0.6, 0.22, 0.3), (-1.2, side * 0.84, 2.42), m["nozzle"], hull,
+        A.body(f"nacelle_{k}", [(2.1, 0.0, 2.5, 2.5), (1.8, 0.38, 2.14, 2.86, 2.5), (-0.9, 0.38, 2.14, 2.84, 2.5),
+                                (-1.4, 0.2, 2.3, 2.7, 2.5)], m["paint"], hull, seg=14, loc=(0, side * 0.6, 0))
+        box(f"exhaust_{k}", (0.6, 0.22, 0.3), (-1.2, side * 0.9, 2.66), m["nozzle"], hull,
             rot=(side * -0.5, -0.4, 0), lods=MID)
         # Missile rails under the outer station.
         A.store(f"rail_missile_{k}", "missile", (1.1, side * 2.0, 1.22), 1.6, 0.09, m, hull)
-    A.body("mast_fairing", [(1.3, 0.0, 2.4, 2.4), (0.9, 0.42, 2.3, 2.75, 2.45), (-0.6, 0.42, 2.3, 2.7, 2.45),
-                            (-1.1, 0.0, 2.45, 2.45)], m["paint"], hull, seg=14)
-    cyl("mast", 0.14, 0.9, (0.3, 0, 3.05), "Z", m["dark"], hull, seg=12)
+    A.body("mast_fairing", [(1.3, 0.0, 2.6, 2.6), (0.9, 0.42, 2.4, 3.0, 2.65), (-0.6, 0.42, 2.4, 2.95, 2.65),
+                            (-1.1, 0.0, 2.65, 2.65)], m["paint"], hull, seg=14)
+    cyl("mast", 0.14, 0.6, (0.3, 0, 3.2), "Z", m["dark"], hull, seg=12)
     A.rotor("main", (0.3, 0, 3.52), 6.5, 4, 0.5, m, hull, hub=0.36, mast=0.0, droop=0.025, phase=0.5)
     A.rotor("tail", (-6.55, -0.24, 2.95), 1.35, 3, 0.24, m, hull, hub=0.13, mast=0.0, droop=0.0,
             rot=(math.pi / 2, 0, 0), thick=0.12)
     if had:
         # The roof sight over the cockpit and the 30 mm turret under the chin.
-        A.sensor_ball("roof_sight", (4.6, 0, 2.86), 0.24, m, hull)
+        A.sensor_ball("roof_sight", (4.7, 0, 2.74), 0.24, m, hull)
         cyl("gun_turret", 0.2, 0.3, (5.6, 0, 0.62), "Z", m["dark"], hull, seg=12)
         cyl("gun_barrel", 0.05, 1.3, (6.3, 0, 0.55), "X", m["steel"], hull, seg=8, lods=MID)
     else:
