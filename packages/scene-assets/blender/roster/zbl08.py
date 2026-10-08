@@ -37,6 +37,9 @@ SKIRT = 1.40
 ROOF = 2.20  # the photos put it near 2.3 m; lowered so the frame's 2.35 m gun axis clears it
 NOSE = 4.0
 NOSE_Z = 1.72
+# The slab sides over the bow's edge, leaning in a little to the roof, as
+# (y, z) at their foot and top (`vehicle_parts.on_side`).
+UPPER_SIDE = ((1.48, NOSE_Z + 0.06), (1.45, ROOF))
 GLACIS_TOP = 1.75
 
 
@@ -50,8 +53,8 @@ def build(variant, v):
          mat=m["dark"], parent=hull, bevel=0.04)
     loft("zbl_upper", [(SKIRT, VP.hull_plan(-3.98, 3.60, 1.48, 0.60)),
                        (NOSE_Z, VP.hull_plan(-4.0, NOSE, 1.48, 0.70)),
-                       (NOSE_Z + 0.06, VP.hull_plan(-4.0, NOSE - 0.10, 1.48, 0.70)),
-                       (ROOF, VP.hull_plan(-3.98, GLACIS_TOP, 1.45, 0.30))], mat=m["paint"], parent=hull, bevel=0.05)
+                       (NOSE_Z + 0.06, VP.hull_plan(-4.0, NOSE - 0.10, UPPER_SIDE[0][0], 0.70)),
+                       (ROOF, VP.hull_plan(-3.98, GLACIS_TOP, UPPER_SIDE[1][0], 0.30))], mat=m["paint"], parent=hull, bevel=0.05)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
@@ -105,10 +108,10 @@ def fittings(v):
             lods=MID)
         cyl(f"waterjet_mouth_{s}", 0.16, 0.01, (-4.03, side * 0.85, 0.95), "X", m["black"], hull, seg=18, lods=MID)
         # The slab side: bolted panels and a grab rail.
-        face = side * 1.48
         for k, x in enumerate((2.30, 0.95, -0.40, -1.75, -3.10)):
-            VP.bolted_panel(f"side_panel_{s}_{k}", (x, face, 1.85), (1.25, 0.72, 0.025), m, hull, bolts=(4, 3),
-                            rot=(-side * math.pi / 2, 0, 0), bevel=0.012)
+            loc, rot = VP.on_side(x, 1.85, side, *UPPER_SIDE)
+            VP.bolted_panel(f"side_panel_{s}_{k}", loc, (1.25, 0.72, 0.025), m, hull, bolts=(4, 3), rot=rot,
+                            bevel=0.012)
         box(f"grab_rail_{s}", (2.40, 0.04, 0.04), (-1.60, side * 1.38, ROOF + 0.10), m["steel"], hull, lods=NEAR)
     VP.exhaust("exhaust", (2.10, -1.52, 2.00), 0.07, 0.35, m, hull, rot=(0, 0, -math.pi / 2))
     for k, (x, y) in enumerate(((-1.95, 0.60), (-1.95, -0.60), (-3.05, 0.60), (-3.05, -0.60))):
