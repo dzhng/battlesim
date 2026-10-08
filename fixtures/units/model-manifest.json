@@ -440,7 +440,7 @@
       "id": "europe_eurofighter_typhoon_tranche_3",
       "family": "eurofighter_typhoon",
       "category": "air",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "eurofighter_typhoon",
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
