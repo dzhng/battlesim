@@ -40,23 +40,18 @@ NOSE_Z = 1.72
 GLACIS_TOP = 1.75
 
 
-def plan(rear, front, half, chamfer):
-    return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
-            (front - chamfer, half), (rear, half)]
-
-
 def glacis_z(x):
     return NOSE_Z + 0.06 + (ROOF - NOSE_Z - 0.06) * (NOSE - 0.10 - x) / (NOSE - 0.10 - GLACIS_TOP)
 
 
 def build(variant, v):
     m, hull = v.mats, v.hull
-    loft("zbl_lower", [(0.60, plan(-3.75, 3.15, 0.92, 0.35)), (SKIRT, plan(-3.95, 3.55, 1.00, 0.50))],
+    loft("zbl_lower", [(0.60, VP.hull_plan(-3.75, 3.15, 0.92, 0.35)), (SKIRT, VP.hull_plan(-3.95, 3.55, 1.00, 0.50))],
          mat=m["dark"], parent=hull, bevel=0.04)
-    loft("zbl_upper", [(SKIRT, plan(-3.98, 3.60, 1.48, 0.60)),
-                       (NOSE_Z, plan(-4.0, NOSE, 1.48, 0.70)),
-                       (NOSE_Z + 0.06, plan(-4.0, NOSE - 0.10, 1.48, 0.70)),
-                       (ROOF, plan(-3.98, GLACIS_TOP, 1.45, 0.30))], mat=m["paint"], parent=hull, bevel=0.05)
+    loft("zbl_upper", [(SKIRT, VP.hull_plan(-3.98, 3.60, 1.48, 0.60)),
+                       (NOSE_Z, VP.hull_plan(-4.0, NOSE, 1.48, 0.70)),
+                       (NOSE_Z + 0.06, VP.hull_plan(-4.0, NOSE - 0.10, 1.48, 0.70)),
+                       (ROOF, VP.hull_plan(-3.98, GLACIS_TOP, 1.45, 0.30))], mat=m["paint"], parent=hull, bevel=0.05)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
@@ -69,8 +64,9 @@ def build(variant, v):
         gaps = [(WHEEL_X[k] + WHEEL_X[k + 1]) / 2 for k in range(3)]
         for k, x in enumerate(gaps):
             half = 0.30 if k != 1 else 0.70
-            prism(f"skirt_{s}_{k}", [(x - half - 0.20, SKIRT), (x + half + 0.20, SKIRT), (x + half - 0.05, SKIRT - 0.28),
-                                     (x - half + 0.05, SKIRT - 0.28)], 0.06, loc=(0, side * 1.45, 0),
+            prism(f"skirt_{s}_{k}", [(x - half - 0.20, SKIRT), (x + half + 0.20, SKIRT),
+                                     (x + half - 0.05, SKIRT - 0.28), (x - half + 0.05, SKIRT - 0.28)], 0.06,
+                  loc=(0, side * 1.45, 0),
                   mat=m["paint"], parent=hull, bevel=0.015, lods=MID)
         VP.mudflap(f"mudflap_{s}", (-3.35, side * WHEEL_Y, SKIRT - 0.02), (0.40, 0.55), m, hull)
     fittings(v)

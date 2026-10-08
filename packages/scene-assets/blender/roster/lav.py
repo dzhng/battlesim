@@ -46,12 +46,6 @@ BOW = 3.195
 GLACIS_TOP = 1.74  # x where the upper glacis meets the roof
 
 
-def plan(rear, front, half, chamfer):
-    """A ring of the hull in plan: square at the rear, chamfered at the bow."""
-    return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
-            (front - chamfer, half), (rear, half)]
-
-
 def glacis_z(x):
     """Height of the upper glacis at x."""
     return CHINE + 0.05 + (ROOF - CHINE - 0.05) * (BOW - 0.05 - x) / (BOW - 0.05 - GLACIS_TOP)
@@ -59,10 +53,10 @@ def glacis_z(x):
 
 def build(variant, v):
     m, hull = v.mats, v.hull
-    loft("lav_hull", [(BELLY, plan(-2.95, 2.30, 0.92, 0.30)),
-                      (CHINE, plan(-3.195, BOW, 1.22, 0.55)),
-                      (CHINE + 0.05, plan(-3.18, BOW - 0.05, 1.21, 0.55)),
-                      (ROOF, plan(-2.98, GLACIS_TOP, 0.93, 0.30))], mat=m["paint"], parent=hull, bevel=0.05)
+    loft("lav_hull", [(BELLY, VP.hull_plan(-2.95, 2.30, 0.92, 0.30)),
+                      (CHINE, VP.hull_plan(-3.195, BOW, 1.22, 0.55)),
+                      (CHINE + 0.05, VP.hull_plan(-3.18, BOW - 0.05, 1.21, 0.55)),
+                      (ROOF, VP.hull_plan(-2.98, GLACIS_TOP, 0.93, 0.30))], mat=m["paint"], parent=hull, bevel=0.05)
     wheels(v)
     fittings(v)
     mounts = rig(v.frame, v.root)

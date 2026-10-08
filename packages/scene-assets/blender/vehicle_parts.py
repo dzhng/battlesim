@@ -375,6 +375,15 @@ def track_loop(name, wheels, y, width, pitch, mats, parent, thickness=0.08):
 
 
 # ---------------------------------------------------------------- hull and turret fittings
+def hull_plan(rear, front, half, chamfer):
+    """One horizontal ring of a lofted hull (`parts.loft`), in plan: square
+    at the rear (x `rear`), its bow at x `front` with both corners chamfered
+    back `chamfer`, `half` wide each side. Every ring a family lofts through
+    has these six points, so rings of different sizes loft into one hull."""
+    return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
+            (front - chamfer, half), (rear, half)]
+
+
 def cable(name, points, mats, parent, radius=0.02, eyes=True, loc=(0, 0, 0), rot=(0, 0, 0)):
     """A steel tow cable along `points` (in the part's frame), clipped down
     where it runs, with a loop eye at each end where `eyes`. Returns its

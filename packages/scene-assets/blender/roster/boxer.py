@@ -39,11 +39,6 @@ NOSE = 3.965
 GLACIS_TOP = 1.55
 
 
-def plan(rear, front, half, chamfer):
-    return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
-            (front - chamfer, half), (rear, half)]
-
-
 def glacis_z(x):
     return SHELF + 0.08 + (ROOF - SHELF - 0.08) * (NOSE - 0.08 - x) / (NOSE - 0.08 - GLACIS_TOP)
 
@@ -52,11 +47,11 @@ def build(variant, v):
     m, hull = v.mats, v.hull
     # The narrow lower hull between the wheels, the nose plate, then the
     # full-width upper hull on its fender shelf.
-    loft("boxer_lower", [(0.55, plan(-3.60, 3.30, 0.92, 0.25)), (SHELF - 0.02, plan(-3.90, NOSE, 0.95, 0.30))],
-         mat=m["paint"], parent=hull, bevel=0.04)
-    loft("boxer_upper", [(SHELF - 0.02, plan(-3.94, NOSE, 1.48, 0.45)),
-                         (SHELF + 0.08, plan(-3.94, NOSE - 0.04, 1.48, 0.45)),
-                         (ROOF, plan(-3.90, GLACIS_TOP, 1.42, 0.35))], mat=m["paint"], parent=hull, bevel=0.05)
+    loft("boxer_lower", [(0.55, VP.hull_plan(-3.60, 3.30, 0.92, 0.25)),
+                         (SHELF - 0.02, VP.hull_plan(-3.90, NOSE, 0.95, 0.30))], mat=m["paint"], parent=hull, bevel=0.04)
+    loft("boxer_upper", [(SHELF - 0.02, VP.hull_plan(-3.94, NOSE, 1.48, 0.45)),
+                         (SHELF + 0.08, VP.hull_plan(-3.94, NOSE - 0.04, 1.48, 0.45)),
+                         (ROOF, VP.hull_plan(-3.90, GLACIS_TOP, 1.42, 0.35))], mat=m["paint"], parent=hull, bevel=0.05)
     wheels(v)
     fittings(v)
     mounts = rig(v.frame, v.root)

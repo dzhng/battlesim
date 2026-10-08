@@ -36,19 +36,14 @@ ROOF = 1.60
 NOSE = 1.90
 
 
-def plan(rear, front, half, chamfer):
-    return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
-            (front - chamfer, half), (rear, half)]
-
-
 def build(variant, v):
     m, hull = v.mats, v.hull
     black = dict(m, paint=m["black"])
-    loft("vbl_body", [(BELLY, plan(-1.75, 1.75, 0.70, 0.25)),
-                      (WAIST, plan(-1.90, NOSE, 0.98, 0.35)),
-                      (1.05, plan(-1.88, NOSE - 0.05, 0.98, 0.35)),
-                      (1.25, plan(-1.82, 1.20, 0.92, 0.20)),
-                      (ROOF, plan(-1.55, 0.55, 0.80, 0.15))], mat=m["paint"], parent=hull, bevel=0.045)
+    loft("vbl_body", [(BELLY, VP.hull_plan(-1.75, 1.75, 0.70, 0.25)),
+                      (WAIST, VP.hull_plan(-1.90, NOSE, 0.98, 0.35)),
+                      (1.05, VP.hull_plan(-1.88, NOSE - 0.05, 0.98, 0.35)),
+                      (1.25, VP.hull_plan(-1.82, 1.20, 0.92, 0.20)),
+                      (ROOF, VP.hull_plan(-1.55, 0.55, 0.80, 0.15))], mat=m["paint"], parent=hull, bevel=0.045)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(AXLES):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, black, hull,

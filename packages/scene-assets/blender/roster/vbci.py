@@ -23,7 +23,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, loft, prism  # noqa: E402
+from parts import box, cyl, empty, loft  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -38,23 +38,18 @@ NOSE = 3.80
 NOSE_Z = 1.74
 
 
-def plan(rear, front, half, chamfer):
-    return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
-            (front - chamfer, half), (rear, half)]
-
-
 def build(variant, v):
     m, hull = v.mats, v.hull
     dark = dict(m, paint=m["dark"])
     # The recessed lower hull and its V bow, in the dark under-paint.
-    loft("vbci_lower", [(0.55, plan(-3.55, 3.00, 0.95, 0.35)), (SKIRT, plan(-3.72, 3.35, 1.02, 0.50))],
+    loft("vbci_lower", [(0.55, VP.hull_plan(-3.55, 3.00, 0.95, 0.35)), (SKIRT, VP.hull_plan(-3.72, 3.35, 1.02, 0.50))],
          mat=m["dark"], parent=hull, bevel=0.04)
     # The overhanging upper hull: the bow comes to its point at NOSE_Z, the
     # upper plate rises to the roof.
-    loft("vbci_upper", [(SKIRT, plan(-3.78, 3.45, 1.47, 0.70)),
-                        (NOSE_Z, plan(-3.80, NOSE, 1.49, 0.80)),
-                        (NOSE_Z + 0.06, plan(-3.80, NOSE - 0.12, 1.49, 0.80)),
-                        (ROOF, plan(-3.76, 2.55, 1.45, 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
+    loft("vbci_upper", [(SKIRT, VP.hull_plan(-3.78, 3.45, 1.47, 0.70)),
+                        (NOSE_Z, VP.hull_plan(-3.80, NOSE, 1.49, 0.80)),
+                        (NOSE_Z + 0.06, VP.hull_plan(-3.80, NOSE - 0.12, 1.49, 0.80)),
+                        (ROOF, VP.hull_plan(-3.76, 2.55, 1.45, 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, dark, hull,

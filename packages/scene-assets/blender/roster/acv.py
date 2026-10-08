@@ -22,7 +22,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, loft, prism  # noqa: E402
+from parts import box, cyl, empty, loft  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -40,23 +40,18 @@ EDGE_Z = 1.55
 GLACIS_TOP = 3.00
 
 
-def plan(rear, front, half, chamfer):
-    return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
-            (front - chamfer, half), (rear, half)]
-
-
 def glacis_z(x):
     return EDGE_Z + (ROOF - EDGE_Z) * (BOW - x) / (BOW - GLACIS_TOP)
 
 
 def build(variant, v):
     m, hull = v.mats, v.hull
-    loft("acv_lower", [(BELLY, plan(-4.35, 3.40, 0.95, 0.35)), (SHELF, plan(-4.50, 3.90, 1.00, 0.45))],
+    loft("acv_lower", [(BELLY, VP.hull_plan(-4.35, 3.40, 0.95, 0.35)), (SHELF, VP.hull_plan(-4.50, 3.90, 1.00, 0.45))],
          mat=m["dark"], parent=hull, bevel=0.04)
-    loft("acv_upper", [(SHELF, plan(-4.55, 4.05, 1.30, 0.70)),
-                       (EDGE_Z, plan(-4.60, BOW, 1.50, 0.85)),
-                       (FLARE, plan(-4.60, 4.35, 1.55, 0.80)),
-                       (ROOF, plan(-4.50, GLACIS_TOP, 1.32, 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
+    loft("acv_upper", [(SHELF, VP.hull_plan(-4.55, 4.05, 1.30, 0.70)),
+                       (EDGE_Z, VP.hull_plan(-4.60, BOW, 1.50, 0.85)),
+                       (FLARE, VP.hull_plan(-4.60, 4.35, 1.55, 0.80)),
+                       (ROOF, VP.hull_plan(-4.50, GLACIS_TOP, 1.32, 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,

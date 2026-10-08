@@ -43,23 +43,18 @@ BOW_Z = 1.40
 GLACIS_TOP = 2.65
 
 
-def plan(rear, front, half, chamfer):
-    return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
-            (front - chamfer, half), (rear, half)]
-
-
 def glacis_z(x):
     return BOW_Z + 0.05 + (ROOF - BOW_Z - 0.05) * (BOW - 0.05 - x) / (BOW - 0.05 - GLACIS_TOP)
 
 
 def build(variant, v):
     m, hull = v.mats, v.hull
-    loft("btr_hull", [(BELLY, plan(-3.55, 3.30, 0.85, 0.35)),
-                      (CHINE - 0.10, plan(-3.80, 3.70, 1.32, 0.60)),
-                      (CHINE, plan(-3.85, 3.78, 1.42, 0.65)),
-                      (BOW_Z, plan(-3.80, BOW, 1.38, 0.70)),
-                      (BOW_Z + 0.05, plan(-3.78, BOW - 0.05, 1.36, 0.70)),
-                      (ROOF, plan(-3.65, GLACIS_TOP, 1.02, 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
+    loft("btr_hull", [(BELLY, VP.hull_plan(-3.55, 3.30, 0.85, 0.35)),
+                      (CHINE - 0.10, VP.hull_plan(-3.80, 3.70, 1.32, 0.60)),
+                      (CHINE, VP.hull_plan(-3.85, 3.78, 1.42, 0.65)),
+                      (BOW_Z, VP.hull_plan(-3.80, BOW, 1.38, 0.70)),
+                      (BOW_Z + 0.05, VP.hull_plan(-3.78, BOW - 0.05, 1.36, 0.70)),
+                      (ROOF, VP.hull_plan(-3.65, GLACIS_TOP, 1.02, 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,

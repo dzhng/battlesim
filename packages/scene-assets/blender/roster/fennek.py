@@ -38,20 +38,15 @@ ROOF = 1.84
 NOSE = 2.79
 
 
-def plan(rear, front, half, chamfer):
-    return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
-            (front - chamfer, half), (rear, half)]
-
-
 def build(variant, v):
     m, hull = v.mats, v.hull
     # A low body: the narrow belly, the waist at its widest, the leaning
     # upper sides to the roof; the nose blunt, the windscreen raked, the
     # tail long.
-    loft("fennek_body", [(BELLY, plan(-2.60, 2.55, 0.85, 0.30)),
-                         (WAIST, plan(-2.79, NOSE, 1.20, 0.40)),
-                         (1.40, plan(-2.75, 2.70, 1.17, 0.40)),
-                         (ROOF, plan(-1.60, 1.25, 0.98, 0.25))], mat=m["paint"], parent=hull, bevel=0.05)
+    loft("fennek_body", [(BELLY, VP.hull_plan(-2.60, 2.55, 0.85, 0.30)),
+                         (WAIST, VP.hull_plan(-2.79, NOSE, 1.20, 0.40)),
+                         (1.40, VP.hull_plan(-2.75, 2.70, 1.17, 0.40)),
+                         (ROOF, VP.hull_plan(-1.60, 1.25, 0.98, 0.25))], mat=m["paint"], parent=hull, bevel=0.05)
     box("rear_deck", (1.20, 1.90, 0.10), (-2.15, 0, 1.55), m["paint"], hull, rot=(0, 0.20, 0), bevel=0.03)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(AXLES):
