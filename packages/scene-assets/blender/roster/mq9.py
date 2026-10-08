@@ -31,6 +31,8 @@ SPEC = dict(
               (3.0, 0.45, 0.9, 1.56, 1.25), (0.0, 0.42, 0.95, 1.52, 1.22), (-3.0, 0.32, 1.06, 1.46, 1.25),
               (-4.7, 0.18, 1.16, 1.4, 1.28)],
     wing=[(0.62, 0.4, WING_Z, 1.35, 0.2), (0.2, 10.05, WING_Z + 0.25, 0.55, 0.06)],
+    wing_hinge=(0.75,),
+    nav=dict(left=(0.0, 9.9, WING_Z + 0.25), right=(0.0, -9.9, WING_Z + 0.25)),
     fins=[dict(V_TAIL, y=0.12), dict(V_TAIL, y=-0.12),
           dict(root_x=-3.9, root_z=1.08, height=0.62, root_chord=1.0, tip_chord=0.6, sweep_m=0.35, cant=math.pi,
                rudder=False)],
@@ -59,6 +61,15 @@ def build(variant, v):
     A.mirrored(lambda side, k: cyl(f"exhaust_{k}", 0.06, 0.25, (-4.3, side * 0.24, 1.15), "Y", m["nozzle"], hull,
                                    seg=8, lods=MID))
     box("satcom_seam", (0.03, 0.7, 0.5), (4.6, 0, 1.45), m["dark"], hull, lods=MID)
+    # The low-visibility insignia on the body and the serial on the tail.
+    A.markings(v, [
+        ("insignia", dict(kind="us_lowvis", centre=(-1.6, 0.6, 1.26), normal=(0, 1, 0), up=(0, 0, 1), size=0.2,
+                          onto=("fuselage",))),
+        ("insignia", dict(kind="us_lowvis", centre=(0.0, 5.0, WING_Z + 0.25), normal=(0, 0, 1), up=(1, 0, 0),
+                          size=0.24, onto=("wing_L",), mirror=False)),
+        ("text", dict(text="AF 12-4207", height=0.08, centre=(-3.0, 0.4, 1.32), normal=(0, 1, 0), up=(0, 0, 1),
+                      onto=("fuselage",))),
+    ])
 
 
 def wreck(variant, v):
