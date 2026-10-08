@@ -2965,7 +2965,10 @@
         5.168,
         1.25,
         1.65
-      ]
+      ],
+      "tolerances": {
+        "footprint_m": 0.9
+      }
     },
     "eastern_t_90_t_90m_proryv": {
       "unit": "vehicle",
