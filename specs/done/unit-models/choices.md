@@ -12,7 +12,6 @@ How to read it:
   each is marked with its date.
 - **Open for the user** lists the calls that only the user can make. Each one
   has the provisional state the work ships with, and how to reverse it.
-- **Unsound** lists choices that should be redone, with the corrected decision.
 - **Sound** is the architecture the user now owns, least confident first.
 
 A few terms used throughout:
@@ -300,27 +299,6 @@ anything.
   `fixtures/sounds.json` `defaults`.
 - **Confidence:** medium.
 
-## Unsound
-
-### The M10's reference library gives dimensions its model doesn't use
-
-- **When:** prototypes and light tanks (slice 20).
-- **The choice:** `m10.py` states the M10's frame as 8.10 × 3.45 × 2.80 m.
-  The slice measured that off the side photo against the road wheels, with the
-  length including the towing lugs. But `assets/references/m10/references.json`
-  `gaps` says the dimensions are "the commonly published figures (about 7.6 m
-  hull length, 3.6 m wide, 2.9 m tall)". A reader checking the card against
-  its library finds two different sets of numbers, and the library's set is
-  the one the model doesn't use.
-- **The gap:** The closeout's dimension audit covered aircraft cards only.
-- **The reach:** A later mechanics spec will take the M10's frame from one of
-  these two places.
-- **Verdict:** unsound. Corrected decision: a card's library states where
-  its frame's numbers come from, and those numbers are the ones its script
-  builds to. Restate the gap (measured off the side photo, lugs included,
-  against the published 7.6 m hull), or rebuild to the published figures.
-- **Confidence:** high that it needs fixing.
-
 ## Sound
 
 Least confident first.
@@ -389,6 +367,32 @@ Least confident first.
 - **The reach:** Making a card playable includes bringing its model up to
   the roster bar.
 - **Verdict:** sound.
+- **Confidence:** medium.
+
+### The M10 is built to 7.0 × 3.4 × 2.9 m, the middle of sources that disagree
+
+- **When:** prototypes and light tanks (slice 20), corrected after closeout.
+- **The choice:** The M10 was first built 8.10 m long, measured off a photo
+  by guessing the size of its road wheels. That made it a metre too long, and
+  its library quoted a third set of numbers. Nobody publishes official
+  figures (GDLS never did, and the programme was cancelled in 2025). The
+  sources that do disagree: EDR Magazine and MilitaryFactory say 6.85 m long,
+  2.4 m wide and 3.65 m tall, and Overt Defense says about 9 m with the gun
+  forward, 3.2 m wide and 2.5 m tall. So `m10.py` now builds to 7.0 m long
+  (the 6.85 m hull plus its towing lugs), 3.4 m wide (over the skirts; 2.4 m
+  is narrower than the ASCOD hull it grew from, and the front photos show it
+  wider) and 2.9 m tall (to the top of the commander's sight). Everything
+  else is laid out in proportion to that length off the side photo, not
+  shrunk as a block. That gives six road wheels a side, each 0.60 m across at
+  a 0.82 m pitch, the turret amidships with its roof at 2.5 m (Overt's
+  height), the gun axis at 2.10 m and the muzzle 1.45 m past the nose. The
+  library's `gaps` cites every source and how they disagree.
+- **The gap:** No source is authoritative, so the frame is a judgement, not a
+  quote. 3.65 m only fits if the M2 and mast are counted.
+- **The reach:** When the card gets mechanics, its unit type's frame should
+  start from these numbers and from the reasons given in the library.
+- **Verdict:** sound. The script and its library now give the same numbers,
+  and the library says where each one comes from.
 - **Confidence:** medium.
 
 ### Disabled-card frames are stated per card and held to 6%
