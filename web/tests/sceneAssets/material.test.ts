@@ -2,6 +2,7 @@
 // Material transport: a source material says how much of its surface is there
 // (opaque, cutout, blended) and whether it is a room behind a window, and the
 // bundle carries exactly that. Wear and the tint mask keep their own channels.
+import { lerp } from "math";
 import { expect, test } from "vitest";
 import type { GltfJson } from "@packages/scene-assets/src/glb.ts";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
@@ -225,7 +226,6 @@ const UNSUPPORTED: [string, FindingCode, (m: GltfJson, b: GltfBuilder) => void][
 /** A linear value as a recipe's PNG stores it: an sRGB byte. */
 const srgbByte = (x: number) =>
   Math.round(255 * (x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055));
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 /** The rubber recipe's mean (`textures.py` `rubber`) and the exporters' summer
  *  dust (`parts.DUST`), linear. */
 const RUBBER = 0.024;
