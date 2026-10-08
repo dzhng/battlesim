@@ -438,6 +438,30 @@ def on_side(x, z, side, low, high, proud=0.0, standing=False, fall=0.0):
     return loc, tuple((Matrix.Rotation(-side * (math.pi / 2 - lean), 3, "X") @ turn).to_euler("XYZ"))
 
 
+def roof_fittings(name, crown, top, mats, parent, periscopes=(), rails=True):
+    """What a turret roof carries whatever its shape: a lifting eye at each
+    corner of its `crown` ring (plan points at height `top`), a grab rail
+    along each side's rear half, and a vision block at each (x, y, yaw) of
+    `periscopes`. Returns its meshes. Roles: steel, paint, glass."""
+    xs = [x for x, _ in crown]
+    half = max(abs(y) for _, y in crown)
+    front, rear = max(xs), min(xs)
+    made = []
+    for k, (x, y) in enumerate(((front - 0.30, half * 0.55), (front - 0.30, -half * 0.55),
+                                (rear + 0.18, half - 0.18), (rear + 0.18, -(half - 0.18)))):
+        made += box(f"{name}_eye_{k}", (0.12, 0.035, 0.09), (x, y, top + 0.045), mats["steel"], parent, lods=FINE)
+    if rails:
+        x0, x1 = rear + 0.30, (front + rear) / 2
+        for side in (-1, 1):
+            y = side * (half - 0.16)
+            made += tube_part(f"{name}_rail_{side}", lambda lod, y=y: [(x0, y, top), (x0, y, top + 0.08),
+                                                                       (x1, y, top + 0.08), (x1, y, top)],
+                              radius=0.014, mat=mats["steel"], parent=parent, lods=NEAR)
+    for k, (x, y, yaw) in enumerate(periscopes):
+        made += periscope(f"{name}_periscope_{k}", (x, y, top), mats, parent, rot=(0, 0, yaw))
+    return made
+
+
 def cable(name, points, mats, parent, radius=0.02, eyes=True, loc=(0, 0, 0), rot=(0, 0, 0)):
     """A steel tow cable along `points` (in the part's frame), clipped down
     where it runs, with a loop eye at each end where `eyes`. Returns its

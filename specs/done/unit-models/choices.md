@@ -1495,6 +1495,22 @@ family. No roster frame, mount or tolerance moved.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
+### Turret roofs share one set of fittings
+
+- **The choice:** `vehicle_parts.roof_fittings` is the owner of what any
+  turret roof carries: a lifting eye at each corner of the crown ring, a grab
+  rail along each side's rear half, and vision blocks where a family names
+  them. The BRM-3K, Jaguar, Centauro II, CV90120, Type 15 and Challenger 3
+  call it with their crown ring, so the fittings follow each turret's own
+  plan. Their hulls gained what was missing at the rear: tail lights in
+  guards (BRM-3K, Type 15, Challenger 3) and tow hooks (BRM-3K, Jaguar).
+  Each family already carried its own sights, hatches, smoke and stowage
+  from slices 18 and 20, and sloped-panel fixes from the sloped-panel pass.
+- **The gap:** The eyes and rails sit at proportions of the crown, not at
+  places measured off each photo.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

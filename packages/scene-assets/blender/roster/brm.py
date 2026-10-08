@@ -81,7 +81,12 @@ def hull(v):
                         bolts=(1, 2), bevel=0.015, lods=VP.ALL)
     for k, y in enumerate((0.55, -0.55)):
         VP.hatch(f"roof_hatch_{k}", (-1.65, y, DECK), m, h, size=(0.70, 0.55))
-
+    # The rear: its tail lights in their guards and tow hooks.
+    for side, sd in ((1, "L"), (-1, "R")):
+        VP.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.45), ROOF - 0.25), 0.05,
+                            dict(v.mats, lamp=v.mats["tail"]), v.hull, rot=(0, 0, math.pi))
+        VP.tow_hook(f"rear_tow_{sd}", (-v.length / 2 + 0.02, side * 0.75, 0.85), v.mats, v.hull, size=0.13,
+                    rot=(0, 0, math.pi))
 
 def running_gear(v):
     road_x = [2.30 - 0.90 * k for k in range(6)]
@@ -101,6 +106,7 @@ def turret(v, turret, gun):
              (0.75, -0.36)]
     cyl("turret_ring_guard", 0.95, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
     loft("turret_shell", [(base + 0.04, foot), (top, crown)], mat=m["paint"], parent=turret, bevel=0.035)
+    VP.roof_fittings("roof", crown, top, m, turret, periscopes=((0.30, 0.45, 0.3), (0.30, -0.45, -0.3)))
     for side, s in ((1, "L"), (-1, "R")):
         VP.sight_housing(f"sight_{s}", (0.45, side * 0.62, top - 0.02), m, turret, size=(0.38, 0.28, 0.30))
         VP.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 0.90, base + 0.30), m, turret, count=3,
