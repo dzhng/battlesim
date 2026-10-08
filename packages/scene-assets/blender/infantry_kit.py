@@ -82,6 +82,7 @@ KIND_LOOKS = {
 ARMY_DEFAULTS = dict(
     print="multicam_ripstop",  # the uniform's recipe (textures.UNIFORMS)
     printed_gear=False,  # the carrier, pouches, pack and helmet cover in the print, not plain nylon
+    printed_cover=None,  # the helmet cover in the print (None: as the gear)
     helmet="ach",  # "ach": a high-sided US shell; "6b47": the Russian, deeper over ears and nape
     rails=True,  # helmet side rails
     headset=True,  # comms headset cups
@@ -97,10 +98,11 @@ ARMY_DEFAULTS = dict(
 
 def look_of(kind, variant, army=None):
     """A variant's look; with an army's (`ARMY_DEFAULTS` keys and its own
-    variants), that army's."""
-    look = {**ARMY_DEFAULTS, **LOOKS[variant], **KIND_LOOKS.get(kind, {}).get(variant, {})}
+    variants), that army's. The kind's cue (`KIND_LOOKS`) wins over both."""
+    look = {**ARMY_DEFAULTS, **LOOKS[variant]}
     if army:
         look.update({k: v for k, v in army.items() if k != "variants"}, **army.get("variants", {}).get(variant, {}))
+    look.update(KIND_LOOKS.get(kind, {}).get(variant, {}))
     return look
 
 
@@ -650,8 +652,9 @@ class Kit:
         def hat_paint(p, n):  # the uniform's print, sun-faded
             return scale3(texture_mean(m["helmet"]), 1.05 + 0.2 * fbm(p, 40, 81)), 0.2
 
+        printed_cover = look["printed_gear"] if look["printed_cover"] is None else look["printed_cover"]
         painter = (bare_paint if head == "bare" else hat_paint if boonie
-                   else cover_paint if look["printed_gear"] else helmet_paint)
+                   else cover_paint if printed_cover else helmet_paint)
 
         def standoff(co, n):  # a soft hat hugs the brow and stands its crown up, as tall as a helmet
             return 0.012 + 0.024 * clamp01((co.z - 1.72) / 0.07) if boonie else 0.037 if deep else 0.03

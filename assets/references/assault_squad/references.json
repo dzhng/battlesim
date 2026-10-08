@@ -1,0 +1,173 @@
+{
+  "entries": [
+    {
+      "file": "eastern_emr-detail-2.jpg",
+      "variant": "eastern_emr",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Russian_6B47_Helmet_with_EMR_Cover_Front_Left.jpg",
+      "author": "Chris P. - bevarnow",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "3f2dbc303ba4589c2895fff687bf6af72cbc230697078144d4da1f31b1706ce1",
+      "note": "6B47 helmet with EMR cover on a display head, front-left: shell shape, cover, chinstrap. Display piece carries a St George ribbon band, not field issue."
+    },
+    {
+      "file": "eastern_emr-detail-3.jpg",
+      "variant": "eastern_emr",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Russian_6B47_Helmet_with_EMR_Cover_Rear.jpg",
+      "author": "Chris P. - bevarnow",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "ee68b0998406cf8ca6e5e15e474961df35ae765312909ea919efdc7c4f8d45cc",
+      "note": "6B47 helmet with EMR cover, rear: cover drawstring and shell profile."
+    },
+    {
+      "file": "eastern_emr-detail-4.jpg",
+      "variant": "eastern_emr",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:AK-74M_with_collimator_sight_PKM-Alpha.jpg",
+      "author": "Pkm-betta",
+      "licence": "CC0-1.0",
+      "sha256": "1929f1af5052bfa07a4375b18783c48fb30311b15cf8900326848f3b6b81e044",
+      "note": "AK-74M, right side, with a side-rail collimator sight, on a plain wall."
+    },
+    {
+      "file": "eastern_emr-detail.jpg",
+      "variant": "eastern_emr",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:6B45_body_armor.jpg",
+      "author": "User:VitalyKuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "16d1dab453709b367c92c4238431525e83ba742a2ff60cfd0d67a0f616091d86",
+      "note": "6B45 Ratnik body armour in EMR on a display mannequin, front: collar, groin protector, MOLLE pouches."
+    },
+    {
+      "file": "eastern_emr-front.jpg",
+      "variant": "eastern_emr",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ArcticBrigadeTacticalTraining-19.jpg",
+      "author": "Артём Финн (Artyom Finn)",
+      "licence": "CC-BY-4.0",
+      "sha256": "77eb0131fd95b7f13189aa4701e97dac2314c4e85b50f07f56f3ace6cc459ae6",
+      "note": "Group of Russian soldiers standing, front, full body: EMR (Digital Flora) uniforms, Ratnik 6B47 helmets and 6B45 vests, AK-74M rifles."
+    },
+    {
+      "file": "eastern_emr-three_quarter_front.jpg",
+      "variant": "eastern_emr",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:FinalCheck2018-13.jpg",
+      "author": "Igor Rudenko (Игорь Руденко).",
+      "licence": "CC-BY-4.0",
+      "sha256": "94bce2e0790a1a1a3e97d12cf7d8893ad4c24751193de2cb5d34a046f8554803",
+      "note": "Two Russian soldiers advancing up a slope, front quarter: EMR uniform, 6B47 helmet, 6B45 vest, AK-74M; boots and kneepads."
+    },
+    {
+      "file": "eastern_emr-three_quarter_rear.jpg",
+      "variant": "eastern_emr",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Rostov-on-Don_2014_Victory_Day_Parade_Rehearsal,_Russian_Army,_Infantry,_Russia.jpg",
+      "author": "Vyacheslav Argenberg",
+      "licence": "CC-BY-4.0",
+      "sha256": "1ed5cdd7d35e56b5cd2252ff0849b23a5f381c4bc2d661ce659a5e254e404d8b",
+      "note": "Infantry standing at a parade rehearsal (2014), several from the side and behind: EMR uniform, vest back, helmets, AKs carried. Older pre-Ratnik helmets and vests on some; parade dress, not field kit."
+    },
+    {
+      "file": "german_flecktarn-three_quarter_front.jpg",
+      "variant": "german_flecktarn",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2152841_A_German_soldier_of_6th_Company,_31st_Parachute_Infantry_Regiment_during_exercise_Swift_Response_15_in_2015.jpg",
+      "author": "US Army Photo by Sgt. Matthew Hulet, Viper Combat Camera USAREUR",
+      "licence": "public-domain",
+      "sha256": "e1f4ba83b4fad5f1cbb0c40dfb9820dcc9aa284810500ca0a4bd72498a792b7b",
+      "note": "German paratrooper standing in a field, front-left quarter, full body: Flecktarn uniform, olive plate carrier with pouches, covered helmet with NVG mount, G36 held low, face paint."
+    },
+    {
+      "file": "german_flecktarn-three_quarter_front-2.jpg",
+      "variant": "german_flecktarn",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2019-06-15_153305_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "955e6ad2d31ce59bc7f2807329f6455c061a5afa0107225bf92fbd41e89560af",
+      "note": "Three Bundeswehr soldiers walking, front quarter, full body: Flecktarn uniforms, Flecktarn plate carriers with pouches, covered helmets, gloves, G36 rifles at the ready, dark boots."
+    },
+    {
+      "file": "german_flecktarn-side.jpg",
+      "variant": "german_flecktarn",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2026-06-05_103345_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "3125dfb9850cc7468632991177da68c8f4166b6e748fc296debbbfaeea12fc40",
+      "note": "Bundeswehr soldier aiming round a wall, near side profile, full body: Flecktarn trousers and sleeves, coyote plate carrier, helmet with cover and NVG mount, knee pads, rifle shouldered."
+    },
+    {
+      "file": "german_flecktarn-front.jpg",
+      "variant": "german_flecktarn",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2026-06-05_121051_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "328cb368971e77fa28955cf59b0e63d80945a95243d07e18fc54c484ff575cca",
+      "note": "Two Bundeswehr soldiers running, front quarter, full body: Flecktarn uniforms and carriers, helmets with headsets, glasses, rifles at the ready."
+    },
+    {
+      "file": "german_flecktarn-three_quarter_rear.jpg",
+      "variant": "german_flecktarn",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2019-06-15_151808_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "692bf8ebfdfd36567c1df58330331a4e7be0e2b6f59ce0304017f1546e0ca3bd",
+      "note": "Bundeswehr soldiers clearing a house, several seen from behind: Flecktarn uniforms, carrier backs, helmet rears; small figures."
+    },
+    {
+      "file": "german_flecktarn-detail.jpg",
+      "variant": "german_flecktarn",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2581182_A_German_soldier_serving_with_the_Multinational_Battle_Group-East_and_KFOR_on_Orahovac_Range_in_Kosovo_2016.jpg",
+      "author": "U.S. Army photo by Staff Sgt. Thomas Duval, Multinational Battle Group-East Public Affairs",
+      "licence": "public-domain",
+      "sha256": "e34db6dbf591bbadb15f5d02a1be26bb116ab7977acf5b8e4904d4c6924c5702",
+      "note": "Bundeswehr soldier aiming a G36, close-up: Flecktarn helmet cover with NVG mount, face cover, carrier straps, the G36's carry-handle optic and slab sides."
+    },
+    {
+      "file": "german_flecktarn-detail-2.jpg",
+      "variant": "german_flecktarn",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2502619_A_German_soldier_of_12th_Armored_Brigade_during_exercise_Saber_Junction_16_.jpg",
+      "author": "U.S. Army photo by Spc. Lloyd Villanueva",
+      "licence": "public-domain",
+      "sha256": "53927ddd47f9d7af45a5d43cec672bbb2a8b41440609137629ae3e490be8bbc3",
+      "note": "German soldier aiming a G36 round a wall, close: the G36's side profile (carry-handle optic, skeleton folding stock, slim handguard, curved translucent magazine), Flecktarn jacket, helmet."
+    },
+    {
+      "file": "german_flecktarn-detail-3.jpg",
+      "variant": "german_flecktarn",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Heckler_&_Koch_G36A3_Prenzlau_2025.jpg",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-3.0-DE",
+      "sha256": "5cc30c075293f1f025b88ef60f1e748b6d90792ccaf6f23b96ba1dd473211730",
+      "note": "G36A3 on a table, side: rail handguard, folding stock, optic rail, drum and box magazines; the current Bundeswehr rifle."
+    }
+  ],
+  "gaps": [
+    "german_flecktarn and eastern_emr: shared army looks (rifle_squad, europe_recon_patrol_light_patrol); no close-quarters-specific photo.",
+    "no rear or top view (none expected for infantry)."
+  ]
+}

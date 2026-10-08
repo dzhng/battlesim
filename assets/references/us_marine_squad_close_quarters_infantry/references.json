@@ -1,0 +1,75 @@
+{
+  "entries": [
+    {
+      "file": "usmc_marpat-three_quarter_front.jpg",
+      "variant": "usmc_marpat",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:12th_LCT_Bravo_Company_Executes_Squad_Attacks_(9285117).jpg",
+      "author": "U.S. Marine Corps photo by Lance Cpl. Rodney Frye",
+      "licence": "public-domain",
+      "sha256": "98b9621aabdf3fb0a2131666ff99978125af2c414c92ccd5ada8c60312119f1e",
+      "note": "Marine kneeling and aiming an M27 with optic, front-left quarter: woodland MARPAT, coyote plate carrier with pouches and belt kit, covered helmet with NVG mount and headset."
+    },
+    {
+      "file": "usmc_marpat-front.jpg",
+      "variant": "usmc_marpat",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:1-6_MTX_5-15_Land_Navigation_and_rappelling_150916-M-OU200-101.jpg",
+      "author": "Cpl. Kelly Street",
+      "licence": "public-domain",
+      "sha256": "4756522f30e8e2b8bb30fe95889d6543be5f4813d29b92e49d5a075cab9a3053",
+      "note": "Marine walking downhill toward the camera, full body: woodland MARPAT, coyote pack and carrier, helmet, rifle at the ready."
+    },
+    {
+      "file": "usmc_marpat-side.jpg",
+      "variant": "usmc_marpat",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:1-3_JWTC.jpg",
+      "author": "U.S. Marine Corps photo by Cpl. Savannah Mesimer Uploader Mestillomo",
+      "licence": "public-domain",
+      "sha256": "fc1bb3763997d649166c5d390014fe44b5c24df050fa052655347fa1e1e18ca7",
+      "note": "Marines carrying a casualty in jungle, side and three-quarter views, full bodies: woodland MARPAT, coyote packs and carriers, covered helmets, tan boots."
+    },
+    {
+      "file": "usmc_marpat-detail.jpg",
+      "variant": "usmc_marpat",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:12th_LCT_Bravo_Company_Executes_Squad_Attacks_(9285111).jpg",
+      "author": "U.S. Marine Corps photo by Lance Cpl. Rodney Frye",
+      "licence": "public-domain",
+      "sha256": "1bee1ecbd6cc92a1151471924458779a72e56764569e739ae6ffc720c41aef47",
+      "note": "Marine aiming an M27 with a magnified optic, close: covered helmet with NVG mount and rails, headset, woodland MARPAT, gloves; the M27's rail handguard and stock."
+    },
+    {
+      "file": "usmc_marpat-detail-2.jpg",
+      "variant": "usmc_marpat",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2d_Recon_Marines_Train_with_Swedish_Coastal_Rangers_(8637345).jpg",
+      "author": "U.S. Marine Corps photo by Cpl. Eric Dmochowski",
+      "licence": "public-domain",
+      "sha256": "e2075e0bf5c6840650d7f305228339bc7965ce359ea639ff4803b4588390e983",
+      "note": "Recon Marine firing an M27 with suppressor and optic, front quarter: woodland MARPAT, coyote plate carrier and pack, glasses, no helmet."
+    },
+    {
+      "file": "usmc_marpat-three_quarter_rear.jpg",
+      "variant": "usmc_marpat",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:'America's_Battalion'_develops_infantry_fundamentals_160128-M-ZM882-362.jpg",
+      "author": "Cpl. Paul S. Martinez",
+      "licence": "public-domain",
+      "sha256": "17b0102fae2df2d35354b49847ee07d51392838c01940585a169c1b5afe98e96",
+      "note": "Marine prone with an M27 on its bipod, from the side and behind: woodland MARPAT trousers and boots, coyote plate carrier back with pouches and assault pack, covered helmet."
+    }
+  ],
+  "gaps": [
+    "usmc_marpat: no straight rear; the rear quarter is a prone Marine.",
+    "no photo of the M27 alone in profile; the details show it in the hands.",
+    "no top view (none expected)."
+  ]
+}
