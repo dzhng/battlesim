@@ -68,19 +68,30 @@ def shell_mats(v):
 # ---------------------------------------------------------------- parts
 def propeller(name, loc, radius, axis, mat, parent, blades=2, chord=None):
     """A still propeller about `axis` ('X' for a tractor or pusher, 'Z' for a
-    rotor): its hub and `blades` flat blades."""
+    rotor): its hub, a tractor's or pusher's spinner cap and `blades` blades, each wide at the root
+    and tapering to its tip (two pieces, the tip's pitch flatter)."""
     chord = chord or radius * 0.18
     cyl(f"{name}_hub", radius * 0.14, radius * 0.25, loc, axis, mat, parent, seg=10, lods=MID)
+    if axis == "X":
+        cyl(f"{name}_spinner", radius * 0.12, radius * 0.10, (loc[0] + radius * 0.14, loc[1], loc[2]), axis, mat,
+            parent, seg=10, r2=radius * 0.03, lods=NEAR)
     for k in range(blades):
         a = k * math.tau / blades + (math.pi / 4 if axis == "Z" else 0.4)
-        if axis == "Z":
-            off = (math.cos(a) * radius / 2, math.sin(a) * radius / 2, 0)
-            box(f"{name}_blade_{k}", (radius, chord, 0.006), (loc[0] + off[0], loc[1] + off[1], loc[2]), mat, parent,
-                rot=(0.12, 0, a), lods=NEAR)
-        else:
-            off = (0, math.cos(a) * radius / 2, math.sin(a) * radius / 2)
-            box(f"{name}_blade_{k}", (0.006, radius, chord), (loc[0], loc[1] + off[1], loc[2] + off[2]), mat, parent,
-                rot=(a, 0, 0), lods=NEAR)
+        for j, (start, end, width, pitch) in enumerate(((0.10, 0.62, 1.0, 0.22), (0.62, 1.0, 0.62, 0.10))):
+            at, span = radius * (start + end) / 2, radius * (end - start)
+            if axis == "Z":
+                box(f"{name}_blade_{k}_{j}", (span, chord * width, 0.006),
+                    (loc[0] + math.cos(a) * at, loc[1] + math.sin(a) * at, loc[2]), mat, parent,
+                    rot=(pitch, 0, a), lods=NEAR if j == 0 else FINE)
+            else:
+                box(f"{name}_blade_{k}_{j}", (0.006, span, chord * width),
+                    (loc[0], loc[1] + math.cos(a) * at, loc[2] + math.sin(a) * at), mat, parent,
+                    rot=(a, pitch, 0), lods=NEAR if j == 0 else FINE)
+        if axis != "Z":
+            # A tractor or pusher's blades read whole at mid range too.
+            box(f"{name}_disc_{k}", (0.006, radius * 0.9, chord * 0.8),
+                (loc[0], loc[1] + math.cos(a) * radius * 0.5, loc[2] + math.sin(a) * radius * 0.5), mat, parent,
+                rot=(a, 0, 0), lods=(2,))
 
 
 def gimbal(name, loc, size, m, parent, thermal=False):
@@ -116,6 +127,8 @@ def quad(v, kind):
         # The PG-7 warhead, nose forward, strapped under the frame.
         cyl("warhead_body", 0.042, L * 0.55, (0.02, 0, z - 0.05), "X", m["paint"], h, seg=14)
         cyl("warhead_cone", 0.042, 0.10, (0.02 + L * 0.275 + 0.05, 0, z - 0.05), "X", m["paint"], h, seg=14, r2=0.012)
+        cyl("warhead_tail", 0.020, 0.07, (0.02 - L * 0.275 - 0.035, 0, z - 0.05), "X", m["dark"], h, seg=10, lods=MID)
+        cyl("warhead_band", 0.044, 0.012, (0.02 + L * 0.20, 0, z - 0.05), "X", m["dark"], h, seg=14, lods=NEAR)
         for k, x in enumerate((-0.05, 0.08)):
             box(f"warhead_strap_{k}", (0.012, 0.09, 0.10), (x, 0, z - 0.03), m["carbon"], h, lods=NEAR)
         leg = z - 0.05 - 0.042
@@ -123,18 +136,49 @@ def quad(v, kind):
         loft("body", [(z - H * 0.12, _oval(L * 0.30, W * 0.16)), (z + H * 0.14, _oval(L * 0.26, W * 0.13))],
              mat=body_mat, parent=h, bevel=0.006)
         gimbal("gimbal", (L * 0.28, 0, z - H * 0.12), min(L, W) * 0.12, m, h, thermal=kind.endswith("thermal"))
+        # The battery's seam on the back, its latch, the obstacle cameras
+        # round the body, the status light and the GPS puck on top.
+        box("battery_seam", (L * 0.30, W * 0.22, 0.003), (-L * 0.10, 0, z + H * 0.14 + 0.001), m["dark"], h,
+            lods=NEAR)
+        box("battery_latch", (0.012, W * 0.10, 0.006), (-L * 0.25, 0, z + H * 0.12), m["dark"], h, lods=FINE)
+        cyl("gps_puck", W * 0.05, 0.006, (-L * 0.02, 0, z + H * 0.14 + 0.003), "Z", m["dark"], h, seg=12, lods=NEAR)
+        for k, (x, y, axis) in enumerate(((L * 0.29, W * 0.06, "X"), (L * 0.29, -W * 0.06, "X"),
+                                          (-L * 0.29, 0, "X"), (0, W * 0.155, "Y"), (0, -W * 0.155, "Y"))):
+            cyl(f"nav_camera_{k}", 0.006, 0.003, (x, y, z + H * 0.05), axis, m["glass"], h, seg=8, lods=FINE)
+        cyl("status_light", 0.005, 0.004, (-L * 0.30, 0, z), "X", m["tail"], h, seg=8, lods=FINE)
         for side, s in ((1, "L"), (-1, "R")):
             for k, x in enumerate((-L * 0.16, L * 0.12)):
                 box(f"leg_{s}_{k}", (0.008, 0.008, leg), (x, side * W * 0.08, leg / 2), m["carbon"], h, lods=MID)
+            box(f"skid_{s}", (L * 0.34, 0.010, 0.006), (-L * 0.02, side * W * 0.08, 0.003), m["carbon"], h, lods=MID)
     # Rotors at the corners, their tips reaching the stated length and span.
     rotor = min(L, W) * 0.27
+    # An FPV's props are three-bladed, so one blade always reaches further
+    # along the frame than a two-blade prop set at 45 degrees: shorter blades
+    # keep the tips where the two-blade ones were.
+    reach = rotor * (0.81 if fpv else 1.0)
     for k, (sx, sy) in enumerate(((1, 1), (-1, 1), (-1, -1), (1, -1))):
         ex, ey = sx * (L / 2 - rotor * 0.71), sy * (W / 2 - rotor * 0.71)
         mid = (ex / 2, ey / 2)
         box(f"arm_{k}", (math.hypot(ex, ey), 0.018 if fpv else 0.024, 0.014), (mid[0], mid[1], z), body_mat, h,
             rot=(0, 0, math.atan2(ey, ex)), bevel=0.003)
         cyl(f"motor_{k}", 0.016 if fpv else 0.018, 0.024, (ex, ey, z + 0.016), "Z", m["dark"], h, seg=12)
-        propeller(f"rotor_{k}", (ex, ey, z + 0.032), rotor, "Z", m["carbon"], h)
+        cyl(f"motor_bell_{k}", 0.012 if fpv else 0.014, 0.006, (ex, ey, z + 0.030), "Z", m["steel"], h, seg=12,
+            lods=NEAR)
+        if not fpv:
+            # The fold hinge at the arm's root and the arm-tip light (green
+            # starboard, red port, as the photos' lit arms show).
+            box(f"arm_hinge_{k}", (0.020, 0.020, 0.018), (ex * 0.30, ey * 0.30, z), m["dark"], h, lods=NEAR)
+            cyl(f"arm_light_{k}", 0.005, 0.004, (ex, ey, z - 0.010), "Z", m["tail"] if sy > 0 else m["lamp"], h,
+                seg=8, lods=FINE)
+        propeller(f"rotor_{k}", (ex, ey, z + 0.032), reach, "Z", m["carbon"], h, blades=3 if fpv else 2)
+    if fpv:
+        # The video antenna rising off the frame's rear, the receiver's two
+        # whiskers, and the zip ties holding the warhead.
+        cyl("vtx_antenna", 0.004, 0.05, (-L * 0.16, 0, z + 0.035), "Z", m["dark"], h, seg=6, lods=NEAR)
+        cyl("vtx_cap", 0.010, 0.012, (-L * 0.16, 0, z + 0.065), "Z", m["dark"], h, seg=10, lods=NEAR)
+        for side in (-1, 1):
+            box(f"rx_whisker_{side}", (0.05, 0.002, 0.002), (-L * 0.20, side * 0.02, z + 0.01), m["dark"], h,
+                rot=(0, 0, side * 0.6), lods=FINE)
 
 
 def _oval(rx, ry, n=12):
@@ -174,6 +218,10 @@ def loitering(v, kind):
                 span = W / 2 * (0.85 if j == 0 and tandem else 1.0)
                 box(f"wing_{j}_{side}", (L * 0.10, span - r, 0.008), (x, side * (r + (span - r) / 2), z + r * 0.5),
                     m["grey"], h, rot=(side * -0.06, 0, 0), bevel=0.002)
+                # The aileron along the outer trailing edge.
+                box(f"aileron_{j}_{side}", (L * 0.025, (span - r) * 0.45, 0.006),
+                    (x - L * 0.06, side * (r + (span - r) * 0.70), z + r * 0.5), m["dark"], h,
+                    rot=(side * -0.06, 0, 0), lods=NEAR)
         if kind == "hero_120":
             for k in range(4):
                 a = math.pi / 4 + k * math.pi / 2
@@ -185,6 +233,15 @@ def loitering(v, kind):
     if lancet:
         for side, s in ((1, "L"), (-1, "R")):
             box(f"skid_rail_{s}", (L * 0.30, 0.01, z - r), (0, side * r * 0.6, (z - r) / 2), m["carbon"], h, lods=MID)
+    # The seeker's bezel, the warhead section's seam and arming plug, the
+    # wings' hinge blocks, the datalink antennas on the spine.
+    cyl("seeker_bezel", r * 0.52, 0.010, (L * 0.497, 0, z), "X", m["dark"], h, seg=14, lods=NEAR)
+    cyl("warhead_seam", r * 1.02, 0.006, (L * 0.36, 0, z), "X", m["black"], h, seg=16, lods=FINE)
+    cyl("arming_plug", r * 0.12, 0.010, (L * 0.30, 0, z + r), "Z", m["steel"], h, seg=8, lods=FINE)
+    for k, x in enumerate((-L * 0.05, -L * 0.18)):
+        box(f"datalink_antenna_{k}", (0.012, 0.004, r * 0.30), (x, 0, z + r * 1.10), m["dark"], h, lods=NEAR)
+    for k, x in enumerate((L * 0.05, -L * 0.28) if not lancet else (L * 0.12, -L * 0.30)):
+        box(f"wing_hinge_{k}", (L * 0.06, r * 0.9, r * 0.20), (x, 0, z + r * 0.88), m["dark"], h, lods=NEAR)
 
 
 def orlan(v):
@@ -204,6 +261,19 @@ def orlan(v):
     cyl("tail_boom", 0.03, 0.40, (-0.80, 0, z + 0.06), "X", m["paint"], h, seg=10, lods=MID)
     gimbal("gimbal", (0.40, 0, z - 0.10), 0.09, m, h)
     box("antenna_fin", (0.06, 0.006, 0.08), (-0.20, 0, z + 0.18), m["dark"], h, lods=NEAR)
+    # The wing's pylon on the spine, its flaps and wing-tip lights, the
+    # engine's cylinder head and exhaust under the cowl, the parachute bay's
+    # lid, the pitot and the catapult's launch lug.
+    box("wing_pylon", (0.22, 0.10, 0.05), (0.15, 0, z + 0.14), m["paint"], h, bevel=0.01, lods=MID)
+    for side in (-1, 1):
+        box(f"flap_{side}", (0.06, W * 0.18, 0.012), (0.0, side * W * 0.12, z + 0.17), m["dark"], h, lods=NEAR)
+        cyl(f"tip_light_{side}", 0.012, 0.02, (0.20, side * (W / 2 - 0.01), z + 0.17), "Y",
+            m["tail"] if side > 0 else m["lamp"], h, seg=8, lods=FINE)
+    box("cylinder_head", (0.08, 0.16, 0.06), (0.58, 0, z - 0.08), m["dark"], h, bevel=0.01, lods=MID)
+    cyl("exhaust", 0.015, 0.14, (0.50, -0.07, z - 0.09), "X", m["steel"], h, seg=8, lods=NEAR)
+    box("parachute_lid", (0.30, 0.10, 0.004), (-0.30, 0, z + 0.12), m["dark"], h, lods=NEAR)
+    cyl("pitot", 0.004, 0.10, (0.27, W * 0.30, z + 0.15), "X", m["steel"], h, seg=6, lods=FINE)
+    box("launch_lug", (0.06, 0.04, 0.03), (0.10, 0, z - 0.11), m["steel"], h, lods=NEAR)
 
 
 def build(variant, v):
@@ -223,12 +293,14 @@ def build(variant, v):
 
 
 def wreck(variant, v):
-    """A downed drone: broken off wings or arms lying beside it, the body
-    cracked and scorched where its battery or warhead burned."""
+    """A downed drone: wings or arms broken off, the body cracked and
+    scorched where its battery or warhead burned; what it throws is
+    `wreckage.scatter`'s."""
     from parts import rest_on_ground
     from wreckage import densify, heat, parts, remove, warp
-    remove("arm_1", "motor_1", "rotor_1_", "wing_0_1", "x_wing_0_1", "aileron_1", "propeller_blade_1",
-           "pusher_blade_1", "gimbal_yoke", "warhead_strap_0")
+    remove("arm_1", "motor_1", "rotor_1_", "arm_hinge_1", "arm_light_1", "wing_0_1", "x_wing_0_1", "aileron_1",
+           "aileron_0_1", "propeller_blade_1", "propeller_disc_1", "pusher_blade_1", "pusher_disc_1", "gimbal_yoke",
+           "warhead_strap_0", "flap_1", "tip_light_1")
     shell = parts("body", "fuselage", "wing", "frame_plate", "x_wing_")
     densify(shell, scale=0.4)
     warp(shell, heat(0.004 * max(1.0, v.length), 0.3 * v.length, seed=99.0))

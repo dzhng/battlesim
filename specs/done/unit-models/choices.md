@@ -1354,6 +1354,26 @@ family. No roster frame, mount or tolerance moved.
 - **Verdict:** sound for the silhouette and detail; the two gaps are taste.
 - **Confidence:** medium.
 
+### Drones: what the closer look adds
+
+- **The choice:** Every propeller is a hub and tapering two-piece blades
+  (and a spinner on a tractor or pusher); an FPV's props are three-bladed,
+  shortened to 0.81 of a two-blade one so their tips stay where the frame's
+  stated length put them. Quadcopters carry the battery seam and latch, GPS
+  puck, obstacle cameras, a status light, arm hinges and arm-tip lights, motor
+  bells and skids; the FPV its video antenna and receiver whiskers and the
+  PG-7's band and tail. Loitering munitions have a seeker bezel, warhead seam,
+  arming plug, wing hinge blocks, datalink antennas and ailerons; the Orlan-10
+  a wing pylon, flaps, tip lights, cylinder head and exhaust, parachute lid,
+  pitot and launch lug. The FPV's PG-7 fuse was left off: it would reach past
+  the card's stated 0.45 m.
+- **The gap:** `asset validate` on a drone GLB alone reports
+  `structure.scenery_kind` (no wheel, track or mount nodes, so the loose
+  validator takes it for scenery). That was so before this pass; the drones
+  only meet the strict rules when their cards get unit types.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause
