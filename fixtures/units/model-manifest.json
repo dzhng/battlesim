@@ -540,7 +540,7 @@
       "id": "europe_rafale_c_f4",
       "family": "rafale",
       "category": "air",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "rafale",
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
