@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "europe_caesar_88-three_quarter_front.jpg",
+   "variant": "europe_caesar_88",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AArtillerisystemet_Caesar_8X8_155_mm_Haubits_ved_Danish_Air_Show.jpg",
+   "author": "Thomas Dahlstrøm Nielsen",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "814188b691cfdfb9910375c387f343b98662ec79964952acdc8f4b951521f736",
+   "note": "Danish CAESAR 8x8 on its Tatra chassis, front quarter: the armoured cab, the 52-calibre gun over the rear on its cradle, the spade at the rear."
+  },
+  {
+   "file": "europe_caesar_88-three_quarter_front-2.jpg",
+   "variant": "europe_caesar_88",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ANexter_caesar_8x8_ukraine_dshv_05.jpg",
+   "author": "Служба зв’язків з громадськістю 199 навчального центру Десантно-штурмових військ ЗС України",
+   "licence": "CC-BY-4.0",
+   "sha256": "31c1ccebb4bb24f63806edcb159cbc20580d68563324880a5b77aa989f87c395",
+   "note": "Ukrainian CAESAR 8x8 front quarter, gun stowed over the cab."
+  },
+  {
+   "file": "europe_caesar_88-side.jpg",
+   "variant": "europe_caesar_88",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ANexter_caesar_8x8_ukraine_dshv_01.jpg",
+   "author": "Служба зв’язків з громадськістю 199 навчального центру Десантно-штурмових військ ЗС України",
+   "licence": "CC-BY-4.0",
+   "sha256": "60f8967b00695acd5a4a0780de979a985e7390e2b4e34a540315f3df35e2dabf",
+   "note": "Profile: four axles, the cab, the gun travelling over it."
+  },
+  {
+   "file": "europe_caesar_88-three_quarter_rear.jpg",
+   "variant": "europe_caesar_88",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AUA_148th_bde_CAESAR_01.jpg",
+   "author": "ArmyInform",
+   "licence": "CC-BY-4.0",
+   "sha256": "81a6cd8236b28667786f6f68cfaae15dd40ec6f46b9ab04df0ca89dc23cc128e",
+   "note": "Rear quarter: the gun cradle and the recoil spade."
+  },
+  {
+   "file": "europe_caesar_88-front.jpg",
+   "variant": "europe_caesar_88",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ANexter_caesar_8x8_ukraine_dshv_04.jpg",
+   "author": "Служба зв’язків з громадськістю 199 навчального центру Десантно-штурмових військ ЗС України",
+   "licence": "CC-BY-4.0",
+   "sha256": "461bcd8ab9f7ff6426f9211cd3d57e92e430e8d75fa7dac0574890d973d3c417",
+   "note": "Front on: the cab's windscreen and grille."
+  }
+ ],
+ "gaps": [
+  "europe_caesar_88: no top view; the gun cradle and spade read from the rear quarter"
+ ]
+}

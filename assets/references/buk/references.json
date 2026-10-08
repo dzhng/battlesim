@@ -1,0 +1,41 @@
+{
+ "entries": [
+  {
+   "file": "eastern_buk_buk_m3_medium_range_air_defense-three_quarter_front.jpg",
+   "variant": "eastern_buk_buk_m3_medium_range_air_defense",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A9A317M_Armia2018_2.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "64fa74a71f71bc693182ff292934f49a5fffd9235c7b797493e6bbcc7431dbbf",
+   "note": "9A317M Buk-M3 TELAR, front quarter: the GM-569 tracked chassis (six road wheels), the cab at the front, the turret with six missile canisters raised behind the radar housing."
+  },
+  {
+   "file": "eastern_buk_buk_m3_medium_range_air_defense-side.jpg",
+   "variant": "eastern_buk_buk_m3_medium_range_air_defense",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A9A317M_Armia2018.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "a220b2140d621a71b3378c51f2e9b93547ac219c2fc38483c71264c832f17aee",
+   "note": "Side: the canister pack and radar on the turntable, the chassis length."
+  },
+  {
+   "file": "eastern_buk_buk_m3_medium_range_air_defense-three_quarter_rear.jpg",
+   "variant": "eastern_buk_buk_m3_medium_range_air_defense",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A9A317M_%22Buk-M3%22_during_the_%22Armiya_2021%22_exhibition.jpg",
+   "author": "Kirill Borisenko",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "6a256f6baf1c3447cf45d324d83bad363108fcfbce65aee49268c191b24d65de",
+   "note": "Rear quarter in desert finish: the canister pack's rear, the turntable."
+  }
+ ],
+ "gaps": [
+  "eastern_buk_buk_m3_medium_range_air_defense: every photo shows the canisters raised; the stowed pack is placed from the side view",
+  "eastern_buk_buk_m3_medium_range_air_defense: no front-on view of the cab"
+ ]
+}

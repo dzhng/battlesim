@@ -80,11 +80,11 @@
       "id": "eastern_buk_buk_m3_medium_range_air_defense",
       "family": "buk",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "buk",
       "source_kind": "support",
       "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/disabled/eastern_buk_buk_m3_medium_range_air_defense.glb"
+      "source_path": "assets/source/roster/buk/eastern_buk_buk_m3_medium_range_air_defense.glb"
     },
     {
       "id": "eastern_j_10_vigorous_dragon_j_10c",
@@ -200,11 +200,11 @@
       "id": "eastern_pantsir_pantsir_sm",
       "family": "pantsir",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "pantsir",
       "source_kind": "support",
       "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/disabled/eastern_pantsir_pantsir_sm.glb"
+      "source_path": "assets/source/roster/pantsir/eastern_pantsir_pantsir_sm.glb"
     },
     {
       "id": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
@@ -370,21 +370,21 @@
       "id": "europe_boxer_skyranger_30_gun_and_missile_air_defense",
       "family": "boxer_skyranger_30",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "boxer_skyranger_30",
       "source_kind": "support",
       "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/disabled/europe_boxer_skyranger_30_gun_and_missile_air_defense.glb"
+      "source_path": "assets/source/roster/boxer_skyranger_30/europe_boxer_skyranger_30_gun_and_missile_air_defense.glb"
     },
     {
       "id": "europe_caesar_88",
       "family": "caesar",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "caesar",
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_caesar_88.glb"
+      "source_path": "assets/source/roster/caesar/europe_caesar_88.glb"
     },
     {
       "id": "europe_ch_47_chinook_hc6",
@@ -450,11 +450,11 @@
       "id": "europe_gepard_1a2",
       "family": "gepard",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "gepard",
       "source_kind": "support",
       "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/disabled/europe_gepard_1a2.glb"
+      "source_path": "assets/source/roster/gepard/europe_gepard_1a2.glb"
     },
     {
       "id": "europe_jas_39_gripen_e",
@@ -510,11 +510,11 @@
       "id": "europe_nasams_nasams_3",
       "family": "nasams",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "nasams",
       "source_kind": "support",
       "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/disabled/europe_nasams_nasams_3.glb"
+      "source_path": "assets/source/roster/nasams/europe_nasams_nasams_3.glb"
     },
     {
       "id": "europe_nh90_tth",
@@ -770,11 +770,11 @@
       "id": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
       "family": "m1129_stryker_mortar",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "m1129_stryker_mortar",
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/disabled/us_m1129_stryker_mortar_120_mm_mortar_carrier.glb"
+      "source_path": "assets/source/roster/m1129_stryker_mortar/us_m1129_stryker_mortar_120_mm_mortar_carrier.glb"
     },
     {
       "id": "us_m142_himars_gmlrs",
@@ -840,11 +840,11 @@
       "id": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle",
       "family": "stryker_m_shorad",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "stryker_m_shorad",
       "source_kind": "support",
       "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/disabled/us_stryker_m_shorad_gun_and_missile_air_defense_vehicle.glb"
+      "source_path": "assets/source/roster/stryker_m_shorad/us_stryker_m_shorad_gun_and_missile_air_defense_vehicle.glb"
     },
     {
       "id": "us_uh_1y_venom_utility_transport",

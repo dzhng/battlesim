@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "europe_gepard_1a2-three_quarter_front.jpg",
+   "variant": "europe_gepard_1a2",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AGepard_1a2_overview.jpg",
+   "author": "Hans-Hermann Bühling",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "c3a358187bdf7556cf026d4dc7dc144a14ab6d807d381b8d2551bfba0569b5d1",
+   "note": "Gepard 1A2, right front quarter: the Leopard 1 hull with seven road wheels, the turret with a 35 mm Oerlikon gun on each side, the search radar dish folded on the rear, the tracking radar on the turret front."
+  },
+  {
+   "file": "europe_gepard_1a2-side.jpg",
+   "variant": "europe_gepard_1a2",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AFlakpanzer_Gepard_SPAAG.JPG",
+   "author": "Alf van Beem",
+   "licence": "CC0-1.0",
+   "sha256": "02c0806e50eee0d8350471856fcd99087c21de2f0074ac48746e17086bc33661",
+   "note": "Museum Gepard, side: hull length, turret and guns' length, radar."
+  },
+  {
+   "file": "europe_gepard_1a2-three_quarter_rear.jpg",
+   "variant": "europe_gepard_1a2",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AFlakpanzer_Gepard_%289394460358%29.jpg",
+   "author": "Stéphane Gaudry from Olne, Belgique",
+   "licence": "CC-BY-2.0",
+   "sha256": "17cfbeb46ce4f81e7b19398a6e6648658bb20ff070c884b79a182121a3bd3463",
+   "note": "Rear quarter: the engine deck, the turret rear and the search radar."
+  },
+  {
+   "file": "europe_gepard_1a2-three_quarter_front-2.jpg",
+   "variant": "europe_gepard_1a2",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AFlugabwehrkanonenpanzer_Gepard.jpg",
+   "author": "Rainer Lippert",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "cde6fac3181cbd831a163a728001e9873311ea68d746dba13247be670587b69a",
+   "note": "Driving, front quarter, German three-tone."
+  }
+ ],
+ "gaps": [
+  "europe_gepard_1a2: no top view; the search radar is drawn folded as on the museum cars"
+ ]
+}
