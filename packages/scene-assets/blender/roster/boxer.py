@@ -225,7 +225,7 @@ def rct30(v, turret, gun):
 def wreck(variant, v):
     """The Boxer after its fire: the front left wheel and the one behind it
     blown off and the hull down on that corner, a skirt plate torn away, the
-    ramp's door blown out and lying beside it, two glacis tiles gone, roof
+    ramp's door blown out and thrown onto the roof, two glacis tiles gone, roof
     stowage burnt off, plates warped and a dent in the side where it was hit,
     torn plate on the ground. The RCT30 throws its turret."""
     from parts import rest_on_ground
@@ -233,19 +233,19 @@ def wreck(variant, v):
     m = v.mats
     remove("wheel_L_1_", "wheel_L_2_", "skirt_L_0", "ramp_door", "glacis_tile_1_2", "glacis_tile_2_0",
            "roof_hatch_", "rear_jerrycan_")
-    plate("door_lying", [(-0.52, -0.31), (0.53, -0.32), (0.52, 0.31), (-0.53, 0.30)], 0.05, (-2.6, -1.72, 0.04),
+    plate("door_lying", [(-0.52, -0.31), (0.53, -0.32), (0.52, 0.31), (-0.53, 0.30)], 0.05, (-2.6, -0.45, ROOF + 0.06),
           (0.02, 0.03, 0.15), m["paint"], v.root, seed=91)
     bend(parts("mirror_"), (NOSE - 0.40, 1.47, ROOF - 0.70), (1, 0, 0), (0, 0, 1), -0.8)
     shell = parts("boxer_upper", "boxer_lower", "side_plate_")
     densify(shell, scale=2.0)
     warp(shell, heat(0.02, 0.8, seed=14.0), dent((0.0, 1.48, 1.80), 0.55, 0.13, (0, -1, -0.1)))
-    for k, (loc, rot, size) in enumerate((((2.2, 1.80, 0.03), (0.03, 0.04, 0.9), 0.24),
-                                          ((0.5, -1.82, 0.03), (-0.04, 0.02, 2.2), 0.24),
+    for k, (loc, rot, size) in enumerate((((1.62, 1.45, 0.03), (0.03, 0.04, 0.9), 0.22),
+                                          ((0.02, -1.62, 0.03), (-0.04, 0.02, 2.2), 0.22),
                                           ((-1.5, 0.3, ROOF + 0.04), (0.02, 0.04, 0.3), 0.36))):
         plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
                               (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.12,
               seed=101 + k)
-    v.root.rotation_euler = (-0.04, 0.03, 0)
+    v.root.rotation_euler = (0.0, 0.03, 0)
     v.root.location.z -= 0.07
     rest_on_ground(0.004)
 

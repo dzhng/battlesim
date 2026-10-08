@@ -2228,7 +2228,7 @@
         1.145
       ],
       "tolerances": {
-        "footprint_m": 0.9
+        "footprint_m": 0.3
       }
     },
     "europe_ajax_tracked_reconnaissance_vehicle": {
@@ -2276,10 +2276,7 @@
         3.683,
         1.25,
         1.5025
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "us_m1151_hmmwv_hmg": {
       "unit": "vehicle",
@@ -2605,7 +2602,7 @@
         1.0
       ],
       "tolerances": {
-        "footprint_m": 0.8
+        "footprint_m": 0.4
       }
     },
     "eastern_t_80_t_80bvm": {
@@ -2654,10 +2651,7 @@
         5.2,
         1.2,
         1.5
-      ],
-      "tolerances": {
-        "footprint_m": 0.9
-      }
+      ]
     },
     "eastern_type_99_ztz_99a": {
       "unit": "vehicle",
@@ -2864,7 +2858,7 @@
         0.85
       ],
       "tolerances": {
-        "footprint_m": 0.8
+        "footprint_m": 0.4
       }
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
@@ -2945,10 +2939,7 @@
         3.8,
         1.49,
         1.5
-      ],
-      "tolerances": {
-        "footprint_m": 0.8
-      }
+      ]
     },
     "europe_man_hx_general_resupply": {
       "unit": "vehicle",
@@ -2968,10 +2959,7 @@
         5.168,
         1.25,
         1.65
-      ],
-      "tolerances": {
-        "footprint_m": 0.9
-      }
+      ]
     },
     "eastern_t_90_t_90m_proryv": {
       "unit": "vehicle",
@@ -3050,7 +3038,7 @@
         1.815
       ],
       "tolerances": {
-        "footprint_m": 0.8
+        "footprint_m": 0.4
       }
     },
     "europe_kf51_panther_prototype_main_battle_tank": {

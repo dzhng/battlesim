@@ -157,25 +157,25 @@ def dragar(v, turret, gun):
 
 def wreck(variant, v):
     """The VBCI after its fire: the front right wheel pair blown off and the
-    bow down on that side, the rear door blown open and lying beside it, the
+    bow down on that side, the rear door blown open and thrown onto the roof, the
     stowage cage burnt away, troop hatches gone, the slab sides warped and
     holed by a dent, torn plate on the ground. It throws its turret."""
     from parts import rest_on_ground
     from wreckage import densify, dent, heat, parts, plate, remove, warp
     m = v.mats
     remove("wheel_R_1_", "wheel_R_2_", "rear_door", "troop_hatch_", "dressing_rear_cage", "cage_")
-    plate("door_lying", [(-0.66, -0.52), (0.67, -0.53), (0.66, 0.52), (-0.67, 0.51)], 0.05, (-2.9, 1.65, 0.04),
+    plate("door_lying", [(-0.66, -0.52), (0.67, -0.53), (0.66, 0.52), (-0.67, 0.51)], 0.05, (-2.0, 0.25, ROOF + 0.06),
           (0.03, 0.02, 0.1), m["paint"], v.root, seed=111)
     shell = parts("vbci_upper", "vbci_lower", "side_hatch_", "bow_plate_")
     densify(shell, scale=2.0)
     warp(shell, heat(0.02, 0.8, seed=16.0), dent((0.6, -1.49, 1.95), 0.55, 0.14, (0, 1, -0.1)))
-    for k, (loc, rot, size) in enumerate((((2.0, -1.85, 0.03), (0.03, 0.04, 0.9), 0.26),
-                                          ((-0.8, 1.85, 0.03), (-0.04, 0.02, 2.2), 0.24),
+    for k, (loc, rot, size) in enumerate((((-0.05, -1.30, 0.03), (0.03, 0.04, 0.9), 0.17),
+                                          ((-0.05, 1.30, 0.03), (-0.04, 0.02, 2.2), 0.16),
                                           ((-1.8, 0.3, ROOF + 0.04), (0.02, 0.04, 0.3), 0.34))):
         plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
                               (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.12,
               seed=121 + k)
-    v.root.rotation_euler = (0.04, 0.035, 0)
+    v.root.rotation_euler = (0.01, 0.02, 0)
     v.root.location.z -= 0.08
     rest_on_ground(0.004)
 

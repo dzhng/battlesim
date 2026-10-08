@@ -155,25 +155,25 @@ def kord(v, station, pitch, pivot):
 
 def wreck(variant, v):
     """The Tigr after its fire: the front right wheel blown off and the nose
-    down on it, the right front door torn off and lying beside it, the hood
+    down on it, the right front door torn off and thrown onto the roof, the hood
     buckled and the body warped, the bull bar bent, the spare burnt off,
     torn plate on the ground. Whole."""
     from parts import rest_on_ground
     from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
     m = v.mats
     remove("wheel_R_1_", "hub_R_0", "dressing_spare_wheel", "spare_", "mirror_R", "dressing_mirror_R")
-    plate("door_lying", [(-0.55, -0.45), (0.55, -0.47), (0.53, 0.45), (-0.55, 0.43)], 0.04, (0.6, -1.35, 0.04),
+    plate("door_lying", [(-0.55, -0.45), (0.55, -0.47), (0.53, 0.45), (-0.55, 0.43)], 0.04, (-1.2, 0.0, ROOF + 0.05),
           (0.02, 0.03, 0.0), m["paint"], v.root, seed=191)
     bend(parts("bull_"), (v.length / 2 - 0.06, 0, 0.50), (0, 1, 0), (1, 0, 0), 0.35)
     shell = parts("body", "hood")
     densify(shell, scale=1.5)
     warp(shell, heat(0.025, 0.7, seed=24.0), dent((2.0, 0.0, 1.30), 0.55, -0.12, (0, 0, 1)))
-    for k, (loc, rot, size) in enumerate((((1.6, 1.55, 0.03), (0.03, 0.04, 0.9), 0.24),
-                                          ((-1.6, -1.55, 0.03), (-0.04, 0.02, 2.2), 0.22))):
+    for k, (loc, rot, size) in enumerate((((0.0, 1.18, 0.03), (0.03, 0.04, 0.9), 0.19),
+                                          ((0.2, -1.30, 0.03), (-0.04, 0.02, 2.2), 0.18))):
         plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
                               (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.root, curl=0.12,
               seed=201 + k)
-    v.root.rotation_euler = (0.05, 0.05, 0)
+    v.root.rotation_euler = (0.03, 0.05, 0)
     v.root.location.z -= 0.05
     rest_on_ground(0.004)
 

@@ -125,22 +125,22 @@ def flw100(v, station, pitch, pivot):
 
 def wreck(variant, v):
     """The Fennek after its fire: the front left wheel blown off and the
-    nose down on it, the left door torn off and lying beside it, the sensor
-    head fallen, the rear stowage burnt away, the body warped and dented,
+    nose down on it, the left door torn off and thrown onto the roof, the
+    sensor head fallen onto the rear deck, the rear stowage burnt away, the body warped and dented,
     torn plate on the ground. Whole."""
     from parts import rest_on_ground
     from wreckage import densify, dent, heat, parts, plate, remove, warp
     m = v.mats
     remove("wheel_L_1_", "side_door_L", "sensor_", "dressing_rear_stowage", "rear_box", "rear_jerrycan")
-    plate("door_lying", [(-0.55, -0.31), (0.55, -0.32), (0.55, 0.31), (-0.55, 0.30)], 0.04, (0.3, 1.70, 0.04),
+    plate("door_lying", [(-0.55, -0.31), (0.55, -0.32), (0.55, 0.31), (-0.55, 0.30)], 0.04, (0.0, 0.3, ROOF + 0.06),
           (0.02, 0.03, 0.0), m["paint"], v.root, seed=211)
-    plate("sensor_lying", [(-0.18, -0.17), (0.18, -0.17), (0.18, 0.17), (-0.18, 0.17)], 0.25, (-1.6, -1.50, 0.13),
+    plate("sensor_lying", [(-0.18, -0.17), (0.18, -0.17), (0.18, 0.17), (-0.18, 0.17)], 0.25, (-2.25, -0.45, 1.75),
           (0.2, 0.1, 0.5), m["paint"], v.root, seed=212)
     shell = parts("fennek_body", "rear_deck")
     densify(shell, scale=1.5)
     warp(shell, heat(0.025, 0.7, seed=26.0), dent((0.8, -1.15, 1.40), 0.5, 0.12, (0, 1, -0.1)))
-    for k, (loc, rot, size) in enumerate((((1.8, -1.70, 0.03), (0.03, 0.04, 0.9), 0.24),
-                                          ((-1.4, 1.65, 0.03), (-0.04, 0.02, 2.2), 0.22))):
+    for k, (loc, rot, size) in enumerate((((0.35, -1.35, 0.03), (0.03, 0.04, 0.9), 0.19),
+                                          ((0.4, 1.35, 0.03), (-0.04, 0.02, 2.2), 0.18))):
         plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
                               (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.root, curl=0.12,
               seed=221 + k)

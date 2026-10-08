@@ -147,24 +147,24 @@ def bed(v):
 
 def wreck(variant, v):
     """The HEMTT after its fire: the front left wheel blown off and the cab
-    down on that corner, the tarp burnt off its load and two crates spilled
-    beside it, the crane's boom bent, the windscreen frame warped and the
+    down on that corner, the tarp burnt off its load and two crates tumbled
+    across the bed, the crane's boom bent, the windscreen frame warped and the
     cab dented, the spare burnt off. Whole."""
     from parts import rest_on_ground
     from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
     m = v.mats
     remove("wheel_L_1_", "spare_", "load_strap_", "ammo_crate_1", "ammo_crate_2", "dressing_mirror_L",
            "mirror_frame_L", "mirror_L")
-    for k, (x, y, yaw) in enumerate(((-3.2, 1.52, 0.4), (-2.5, 1.48, -0.3))):
-        VP.stowage_box(f"spilled_crate_{k}", (x, y, 0.0), (0.90, 0.50, 0.45), dict(m, paint=m["dark"]), v.root,
-                       rot=(0.05, 0.02, yaw))
+    for k, (x, y, yaw) in enumerate(((-3.3, 0.45, 0.4), (-2.4, -0.55, -0.3))):
+        VP.stowage_box(f"spilled_crate_{k}", (x, y, BED_FLOOR), (0.90, 0.50, 0.45), dict(m, paint=m["dark"]),
+                       v.hull, rot=(0.05, 0.02, yaw))
     bend(parts("crane_boom", "crane_jib", "crane_hook"), (-4.85, 0.75, BED_FLOOR + 1.45), (0, 1, 0), (0, 0, 1), 0.35)
     shell = parts("cab", "cargo_bed_side", "load_")
     densify(shell, scale=1.5)
     warp(shell, heat(0.025, 0.7, seed=30.0), dent((4.6, 0.6, 2.2), 0.6, 0.12, (-1, 0, 0)))
-    plate("debris_0", [(-0.3, -0.2), (0.27, -0.21), (0.3, 0.15), (-0.21, 0.24)], 0.03, (2.0, -1.45, 0.03),
+    plate("debris_0", [(-0.3, -0.2), (0.27, -0.21), (0.3, 0.15), (-0.21, 0.24)], 0.03, (3.8, 0.3, ROOF + 0.03),
           (0.03, 0.04, 0.9), m["paint"], v.root, curl=0.12, seed=251)
-    v.root.rotation_euler = (-0.04, 0.03, 0)
+    v.root.rotation_euler = (-0.02, 0.0, 0)
     v.root.location.z -= 0.06
     rest_on_ground(0.004)
 

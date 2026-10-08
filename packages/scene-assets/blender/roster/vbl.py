@@ -131,13 +131,13 @@ def wreck(variant, v):
     m = v.mats
     remove("wheel_L_1_", "door_L", "door_window_L", "door_handle_L", "dressing_flank_stowage", "canister",
            "shovel_", "flank_box", "rear_jerrycan_")
-    plate("door_lying", [(-0.35, -0.27), (0.35, -0.28), (0.35, 0.27), (-0.35, 0.26)], 0.03, (0.1, 1.40, 0.04),
+    plate("door_lying", [(-0.35, -0.27), (0.35, -0.28), (0.35, 0.27), (-0.35, 0.26)], 0.03, (0.1, 1.12, 0.04),
           (0.02, 0.03, 0.0), m["paint"], v.root, seed=231)
     shell = parts("vbl_body")
     densify(shell, scale=1.2)
     warp(shell, heat(0.02, 0.6, seed=28.0), dent((1.4, 0.0, 1.15), 0.4, -0.10, (0, 0, 1)))
-    for k, (loc, rot, size) in enumerate((((1.2, -1.30, 0.03), (0.03, 0.04, 0.9), 0.20),
-                                          ((-1.2, 1.30, 0.03), (-0.04, 0.02, 2.2), 0.18))):
+    for k, (loc, rot, size) in enumerate((((0.2, -1.15, 0.03), (0.03, 0.04, 0.9), 0.17),
+                                          ((2.08, 0.6, 0.03), (-0.04, 0.02, 2.2), 0.16))):
         plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
                               (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.root, curl=0.12,
               seed=241 + k)

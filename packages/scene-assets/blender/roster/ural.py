@@ -127,22 +127,22 @@ def body(v):
 def wreck(variant, v):
     """The Ural after its fire: the front right wheel blown off and the
     bonnet down on that corner, the tarp burnt off its bows, the bonnet
-    buckled up, the cab warped, the spare burnt and fallen, a mirror gone.
+    buckled up, the cab warped, the spare burnt and fallen into the bed, a mirror gone.
     Whole."""
     from parts import rest_on_ground
     from wreckage import densify, dent, heat, parts, plate, remove, warp
     m = v.mats
     remove("wheel_R_1_", "hub_R_0", "cargo_body_canvas", "cargo_body_tie_", "spare_", "dressing_mirror_R",
            "mirror_arm_R", "mirror_R")
-    plate("spare_lying", [(-0.55, -0.55), (0.55, -0.55), (0.55, 0.55), (-0.55, 0.55)], 0.30, (0.2, 1.35, 0.15),
+    plate("spare_lying", [(-0.55, -0.55), (0.55, -0.55), (0.55, 0.55), (-0.55, 0.55)], 0.30, (-1.6, 0.3, BED_FLOOR + 0.17),
           (0.0, 0.0, 0.0), m["rubber"], v.root, seed=271)
     shell = parts("cab", "bonnet", "wing_", "cargo_body_side")
     densify(shell, scale=1.5)
     warp(shell, heat(0.025, 0.7, seed=34.0), dent((3.0, 0.0, 1.95), 0.5, -0.12, (0, 0, 1)))
-    plate("debris_0", [(-0.3, -0.2), (0.27, -0.21), (0.3, 0.15), (-0.21, 0.24)], 0.03, (-1.5, -1.55, 0.03),
+    plate("debris_0", [(-0.3, -0.2), (0.27, -0.21), (0.3, 0.15), (-0.21, 0.24)], 0.03, (-2.5, -0.5, BED_FLOOR + 0.03),
           (0.03, 0.04, 0.9), m["paint"], v.root, curl=0.12, seed=281)
-    v.root.rotation_euler = (0.045, 0.035, 0)
-    v.root.location.z -= 0.06
+    v.root.rotation_euler = (0.03, 0.0, 0)
+    v.root.location.z -= 0.04
     rest_on_ground(0.004)
 
 
