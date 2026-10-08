@@ -532,6 +532,28 @@ def hatch(name, loc, mats, parent, radius=None, size=None, rot=(0, 0, 0)):
     return _place(made, loc, rot)
 
 
+def cupola(name, loc, mats, parent, radius=0.36, periscopes=6, lid_open=True, height=0.09, rot=(0, 0, 0)):
+    """A commander's or loader's cupola on the roof at `loc`: a raised ring
+    with `periscopes` vision blocks round its front, its lid thrown open to
+    the rear (local -X) where `lid_open`, else closed on the ring. Returns its
+    meshes. Roles: paint, glass, dark."""
+    made = cyl(f"{name}_ring", radius + 0.04, height, (0, 0, height / 2), "Z", mats["paint"], parent, seg=28,
+               bevel=0.015, lods=MID)
+    for k in range(periscopes):
+        a = -1.6 + k * 3.2 / max(1, periscopes - 1)
+        made += periscope(f"{name}_periscope_{k}", (radius * math.cos(a), radius * math.sin(a), height - 0.01),
+                          mats, parent, size=(0.10, 0.12, 0.07), rot=(0, 0, a))
+    if lid_open:
+        made += cyl(f"{name}_lid", radius * 0.92, 0.06, (-radius * 1.95, 0, height + 0.02), "Z", mats["paint"],
+                    parent, seg=28, bevel=0.015, rot=(0, -0.10, 0), lods=MID)
+        made += box(f"{name}_lid_stop", (0.06, radius * 0.8, 0.10), (-radius * 1.15, 0, height), mats["dark"], parent,
+                    lods=NEAR)
+    else:
+        made += cyl(f"{name}_lid", radius * 0.92, 0.06, (0, 0, height + 0.03), "Z", mats["paint"], parent, seg=28,
+                    bevel=0.015, lods=MID)
+    return _place(made, loc, rot)
+
+
 def periscope(name, loc, mats, parent, size=(0.15, 0.07, 0.08), rot=(0, 0, 0)):
     """A vision block standing on the roof at `loc`, looking along its local
     +X: an armoured head `size` (x, y, z), dark glass in its face and a brow

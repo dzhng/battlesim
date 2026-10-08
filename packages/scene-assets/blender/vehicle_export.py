@@ -19,6 +19,7 @@ does the rest, the same way for every family:
 """
 import hashlib
 import json
+import math
 import os
 import sys
 from pathlib import Path
@@ -94,6 +95,23 @@ class Vehicle:
         self.hull = empty("hull", parent=self.root)
         self.crew = []
         self.wreck = False
+
+    def head_out(self, name, parent, x, y, roof, facing=0.0):
+        """A crewman head and shoulders out of the hatch at (x, y) on a roof
+        `roof` metres up (world, at rest), facing `facing` radians from +X, his
+        hands on the hatch rim, posed under a `dressing_<name>` node of
+        `parent`. None on a wreck."""
+        if self.wreck:
+            return
+        seat = empty(f"dressing_{name}", parent=parent)
+        c, s = math.cos(facing), math.sin(facing)
+
+        def at(fx, fy, z):
+            return (x + fx * c - fy * s, y + fx * s + fy * c, z)
+
+        self.crew.append((name, seat, at(0.0, 0.0, roof - 0.43),
+                          (at(0.22, 0.22, roof + 0.06), at(0.22, -0.22, roof + 0.06)),
+                          (at(0.14, 0.11, roof - 1.25), at(0.14, -0.11, roof - 1.25))))
 
 
 def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8, chip=0.35):
