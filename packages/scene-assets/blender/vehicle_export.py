@@ -37,12 +37,13 @@ REPO = Path(__file__).resolve().parents[3]
 RIG_NODES = {"gun": ("turret", "gun", "muzzle"), "hmg": ("hmg", "hmg_gun", "hmg_muzzle")}
 
 
-def materials(scheme, fittings=(0.11, 0.095, 0.068), canvas=(0.105, 0.098, 0.062)):
+def materials(scheme, fittings=(0.11, 0.095, 0.068), canvas=(0.105, 0.098, 0.062), chip=0.35):
     """One material per role `vehicle_parts` reads, in `scheme`. `fittings` is
     the darker painted tone of hubs, brackets and running gear fittings;
-    `canvas` the stowage's cloth."""
+    `canvas` the stowage's cloth; `chip` how much of the paint's convex edges
+    wear to its lighter tone (the look's painted edge highlights)."""
     return {
-        "paint": P.paint(scheme, "armor_paint", chip=0.35, dirt=0.5, rise=1.1),
+        "paint": P.paint(scheme, "armor_paint", chip=chip, dirt=0.5, rise=1.1),
         "dark": textured("fittings", "olive_paint", colour=fittings, chip=0.3, dirt=0.55, role="paint"),
         "steel": bare_steel("steel", chip=0.3, dirt=0.3),
         "black": flat_paint("recesses", (0.014, 0.014, 0.013), rough=0.85, grime=0.15),
@@ -95,9 +96,10 @@ class Vehicle:
         self.wreck = False
 
 
-def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8):
+def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8, **looks):
     """Export every variant of `family` (or `--variant=<id>`), live or with
-    `--wreck` its wreck, through `build` and `wreck` (see the module doc)."""
+    `--wreck` its wreck, through `build` and `wreck` (see the module doc).
+    `looks` are `materials` keywords (a family's fittings, canvas or chip)."""
     args = script_args()
     selected = next((a.split("=", 1)[1] for a in args if a.startswith("--variant=")), None)
     wrecking = WRECK_ARG in args
@@ -110,7 +112,7 @@ def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8):
             continue
         reset()
         P.SCORCH.clear()
-        v = Vehicle(variant, materials(scheme))
+        v = Vehicle(variant, materials(scheme, **looks))
         v.wreck = wrecking
         build(variant, v)
         if wrecking:

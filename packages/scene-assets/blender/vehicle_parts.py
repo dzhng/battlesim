@@ -118,11 +118,15 @@ def _tube_part(name, path_for, radius, mat, parent, lods):
 
 
 # ---------------------------------------------------------------- running gear
-def tyre_wheel(name, loc, radius, width, side, mats, parent, rim_radius=None, ctis=False):
+def tyre_wheel(name, loc, radius, width, side, mats, parent, rim_radius=None, ctis=False, tread="road",
+               hub_bolts=0):
     """A wheeled vehicle's wheel: a black treaded tyre, a rim on its outer face
     (`side` +1 for the left, -1 for the right) and a hub, with a CTIS air line
     from hub to rim where fitted. `rim_radius` defaults to the lifted 0.56 of the
-    tyre. Node: `wheel_*` empty, returned. Roles: rubber, paint, dark, steel."""
+    tyre. `tread` is "road" (an armoured carrier's run-flat road tread: blocks
+    across the face) or "bar" (a truck's military bar tread: two staggered rows
+    of deep chevron bars). `hub_bolts` rings the hub with that many wheel nuts.
+    Node: `wheel_*` empty, returned. Roles: rubber, paint, dark, steel."""
     node = _wheel_node(name, loc, radius, parent)
     rim_r = radius * 0.56 if rim_radius is None else rim_radius
     face = side * width / 2
@@ -131,6 +135,22 @@ def tyre_wheel(name, loc, radius, width, side, mats, parent, rim_radius=None, ct
         mat=mats["paint"], parent=node, seg=20, bevel=0.01)
     cyl(name=f"{name}_hub", r=radius * 0.21, depth=0.09, loc=(0, face + side * 0.035, 0), axis="Y",
         mat=mats["dark"], parent=node, seg=12, lods=MID)
+    for j in range(hub_bolts):
+        angle = j * math.tau / hub_bolts
+        at = (radius * 0.21 + rim_r) / 2
+        cyl(name=f"{name}_nut_{j}", r=0.018, depth=0.03, loc=(at * math.cos(angle), face + side * 0.045,
+                                                             at * math.sin(angle)), axis="Y",
+            mat=mats["steel"], parent=node, seg=6, lods=FINE)
+    if tread == "bar":
+        treads = max(12, round(math.tau * radius / 0.17))
+        for j in range(treads):
+            for k, y in enumerate((-0.25, 0.25)):
+                angle = (j + 0.5 * k) * math.tau / treads
+                at = radius - 0.005
+                box(name=f"{name}_tread_{j}_{k}", size=(0.07, width * 0.46, 0.04),
+                    loc=(at * math.sin(angle), y * width, at * math.cos(angle)),
+                    rot=(0, angle, (0.45 if k else -0.45) * side), mat=mats["rubber"], parent=node, lods=NEAR)
+        return node
     treads = max(12, round(math.tau * radius / 0.21))
     for j in range(treads):
         angle = j * math.tau / treads
@@ -695,6 +715,30 @@ def mudflap(name, loc, size, mats, parent, rot=(0, 0, 0)):
                 lods=MID)
     made += box(name=f"{name}_bracket", size=(0.03, sy + 0.04, 0.04), loc=(0.02, 0, -0.02), mat=mats["steel"],
                 parent=parent, lods=NEAR)
+    return _place(made, loc, rot)
+
+
+def bolted_panel(name, loc, size, mats, parent, bolts=(3, 2), rot=(0, 0, 0), bevel=0.02, lods=MID):
+    """An applique armour plate bolted onto a face: a slab `size` (x, y, z
+    thickness) lying in its local XY plane on the face at `loc` (its back on
+    the face, facing local +Z), with chunky bolt heads in a ring `bolts`
+    (along x, along y) round its border. Turn it onto a side or a glacis with
+    `rot`. Returns its meshes. Roles: paint, steel."""
+    sx, sy, sz = size
+    made = []
+    made += box(name=f"{name}_plate", size=(sx, sy, sz), loc=(0, 0, sz / 2), mat=mats["paint"], parent=parent,
+                bevel=bevel, lods=lods)
+    nx, ny = bolts
+    spots = set()
+    for i in range(nx):
+        for j in range(ny):
+            if i in (0, nx - 1) or j in (0, ny - 1):
+                spots.add((i, j))
+    for i, j in sorted(spots):
+        x = -sx / 2 + 0.07 + (sx - 0.14) * (i / max(1, nx - 1))
+        y = -sy / 2 + 0.07 + (sy - 0.14) * (j / max(1, ny - 1))
+        made += cyl(name=f"{name}_bolt_{i}_{j}", r=0.026, depth=0.03, loc=(x, y, sz + 0.012), mat=mats["steel"],
+                    parent=parent, seg=6, bevel=0.006, lods=FINE)
     return _place(made, loc, rot)
 
 
