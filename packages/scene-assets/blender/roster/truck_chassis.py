@@ -23,11 +23,12 @@ from parts import box, cyl, empty, loft  # noqa: E402
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
 
-def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_h, deck_z=None):
+def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_h, deck_z=None, doors=1):
     """The truck under a load: `axles` (x of each), wheels of radius
     `wheel_r` and width `wheel_w` at ±`track`, frame rails at `rail_z`, a
     `cab` of its shape ahead of `cab_x` (its rear face) `cab_len` long and
-    `cab_h` tall. Returns the deck's height (the rails' top, or `deck_z`)."""
+    `cab_h` tall, with `doors` doors a side (an armoured crew cab's two).
+    Returns the deck's height (the rails' top, or `deck_z`)."""
     m, h = v.mats, v.hull
     half = v.length / 2
     for side, s in ((1, "L"), (-1, "R")):
@@ -52,11 +53,11 @@ def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_
     gap = (cab_x + axles[1]) / 2 if len(axles) > 1 else cab_x - 0.6
     VP.fuel_tank("fuel_tank", (gap, 0.85, rail_z - 0.05), 0.95, 0.24, m, h)
     VP.stowage_box("battery_box", (gap, -0.85, rail_z - 0.30), (0.60, 0.30, 0.40), m, h, rot=(0, 0, math.pi))
-    cab_shape(v, cab, cab_x, cab_len, cab_h, track, rail_z, wheel_r)
+    cab_shape(v, cab, cab_x, cab_len, cab_h, track, rail_z, wheel_r, doors)
     return deck_z if deck_z is not None else rail_z + 0.15
 
 
-def cab_shape(v, cab, x0, length, height, track, rail_z, wheel_r):
+def cab_shape(v, cab, x0, length, height, track, rail_z, wheel_r, doors=1):
     """The cab of shape `cab` (`armoured` or `maz_split`), its rear face at
     `x0`, `length` long and `height` tall, with its mirrors and antenna."""
     m, h = v.mats, v.hull
@@ -78,7 +79,7 @@ def cab_shape(v, cab, x0, length, height, track, rail_z, wheel_r):
                   rot=(0, -math.pi / 2, 0))
         box("front_bumper", (0.14, half_w * 2, 0.20), (front + 0.05, 0, floor - 0.05), m["dark"], h, bevel=0.01)
     else:  # armoured cab-over
-        armoured_cab(v, x0, length, height, floor, wheel_r)
+        armoured_cab(v, x0, length, height, floor, wheel_r, doors)
     # Mirrors at the windscreen's corners.
     mirror_x = front - 0.20
     for side, s in ((1, "L"), (-1, "R")):
@@ -95,7 +96,7 @@ def cab_shape(v, cab, x0, length, height, track, rail_z, wheel_r):
     VP.antenna("antenna_cab", (x0 + 0.20, -(half_w - 0.15), height), m, whip, height=2.2)
 
 
-def armoured_cab(v, x0, length, height, floor, wheel_r):
+def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1):
     """The flat-fronted armoured cab-over the references show on the FMTV
     (HIMARS), the Tatra (CAESAR) and the KamAZ (Pantsir): an upright lower
     box to the waist, upper sides leaning in to the roof, the raked front
@@ -137,24 +138,27 @@ def armoured_cab(v, x0, length, height, floor, wheel_r):
             lods=FINE)
         VP.shackle(f"front_shackle_{s}", (front + 0.17, side * 0.55, floor - 0.06), m, h, size=0.13,
                    rot=(0, 0, math.pi / 2))
-        # The door: its armour, a small thick window, handle, hinges, steps under it.
+        # Each door: its armour, a small thick window, handle, hinges, steps under it.
         y = side * (half_w + 0.005)
-        door_x = front - 0.70
-        VP.bolted_panel(f"door_{s}", (door_x, y, floor + 0.15), (0.95, waist - floor - 0.25, 0.035), m, h,
-                        bolts=(3, 3), rot=(-side * math.pi / 2, 0, 0), bevel=0.012)
-        loc, rot = VP.on_side(door_x - 0.05, waist + 0.30, side, *face, proud=0.015)
-        box(f"door_window_{s}", (0.48, 0.34, 0.03), loc, m["glass"], h, rot=rot, lods=MID)
-        loc, rot = VP.on_side(door_x - 0.05, waist + 0.30, side, *face, proud=0.005)
-        box(f"door_window_frame_{s}", (0.58, 0.44, 0.03), loc, m["paint"], h, rot=rot, bevel=0.01, lods=NEAR)
-        box(f"door_handle_{s}", (0.16, 0.04, 0.04), (door_x - 0.36, side * (half_w + 0.06), waist - 0.20),
-            m["steel"], h, lods=FINE)
-        for k, z in enumerate((floor + 0.05, waist - 0.35)):
-            box(f"door_hinge_{s}_{k}", (0.06, 0.05, 0.12), (door_x + 0.49, side * (half_w + 0.05), z + 0.2),
+        for d in range(doors):
+            door_x = front - 0.70 - d * 1.05
+            n = f"{s}_{d}" if d else s
+            VP.bolted_panel(f"door_{n}", (door_x, y, floor + 0.15), (0.95, waist - floor - 0.25, 0.035), m, h,
+                            bolts=(3, 3), rot=(-side * math.pi / 2, 0, 0), bevel=0.012)
+            loc, rot = VP.on_side(door_x - 0.05, waist + 0.30, side, *face, proud=0.015)
+            box(f"door_window_{n}", (0.48, 0.34, 0.03), loc, m["glass"], h, rot=rot, lods=MID)
+            loc, rot = VP.on_side(door_x - 0.05, waist + 0.30, side, *face, proud=0.005)
+            box(f"door_window_frame_{n}", (0.58, 0.44, 0.03), loc, m["paint"], h, rot=rot, bevel=0.01, lods=NEAR)
+            box(f"door_handle_{n}", (0.16, 0.04, 0.04), (door_x - 0.36, side * (half_w + 0.06), waist - 0.20),
                 m["steel"], h, lods=FINE)
-        for k, z in enumerate((wheel_r * 0.75, wheel_r * 0.75 + 0.32)):
-            box(f"step_{s}_{k}", (0.42, 0.24, 0.04), (door_x - 0.1, side * (half_w - 0.10), z), m["steel"], h, lods=MID)
-        box(f"grab_rail_{s}", (0.03, 0.03, 0.60), (door_x - 0.55, side * (half_w + 0.05), waist - 0.45),
-            m["steel"], h, lods=NEAR)
+            for k, z in enumerate((floor + 0.05, waist - 0.35)):
+                box(f"door_hinge_{n}_{k}", (0.06, 0.05, 0.12), (door_x + 0.49, side * (half_w + 0.05), z + 0.2),
+                    m["steel"], h, lods=FINE)
+            for k, z in enumerate((wheel_r * 0.75, wheel_r * 0.75 + 0.32)):
+                box(f"step_{n}_{k}", (0.42, 0.24, 0.04), (door_x - 0.1, side * (half_w - 0.10), z), m["steel"], h,
+                    lods=MID)
+            box(f"grab_rail_{n}", (0.03, 0.03, 0.60), (door_x - 0.55, side * (half_w + 0.05), waist - 0.45),
+                m["steel"], h, lods=NEAR)
         # The rear quarter window behind the door.
         loc, rot = VP.on_side(x0 + 0.30, waist + 0.30, side, *face, proud=0.012)
         box(f"rear_window_{s}", (0.30, 0.30, 0.03), loc, m["glass"], h, rot=rot, lods=MID)
