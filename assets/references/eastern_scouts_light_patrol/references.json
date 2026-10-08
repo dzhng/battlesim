@@ -1,0 +1,85 @@
+{
+  "entries": [
+    {
+      "file": "eastern_emr-detail-2.jpg",
+      "variant": "eastern_emr",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Russian_6B47_Helmet_with_EMR_Cover_Front_Left.jpg",
+      "author": "Chris P. - bevarnow",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "3f2dbc303ba4589c2895fff687bf6af72cbc230697078144d4da1f31b1706ce1",
+      "note": "6B47 helmet with EMR cover on a display head, front-left: shell shape, cover, chinstrap. Display piece carries a St George ribbon band, not field issue."
+    },
+    {
+      "file": "eastern_emr-detail-3.jpg",
+      "variant": "eastern_emr",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Russian_6B47_Helmet_with_EMR_Cover_Rear.jpg",
+      "author": "Chris P. - bevarnow",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "ee68b0998406cf8ca6e5e15e474961df35ae765312909ea919efdc7c4f8d45cc",
+      "note": "6B47 helmet with EMR cover, rear: cover drawstring and shell profile."
+    },
+    {
+      "file": "eastern_emr-detail-4.jpg",
+      "variant": "eastern_emr",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:AK-74M_with_collimator_sight_PKM-Alpha.jpg",
+      "author": "Pkm-betta",
+      "licence": "CC0-1.0",
+      "sha256": "1929f1af5052bfa07a4375b18783c48fb30311b15cf8900326848f3b6b81e044",
+      "note": "AK-74M, right side, with a side-rail collimator sight, on a plain wall."
+    },
+    {
+      "file": "eastern_emr-detail.jpg",
+      "variant": "eastern_emr",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:6B45_body_armor.jpg",
+      "author": "User:VitalyKuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "16d1dab453709b367c92c4238431525e83ba742a2ff60cfd0d67a0f616091d86",
+      "note": "6B45 Ratnik body armour in EMR on a display mannequin, front: collar, groin protector, MOLLE pouches."
+    },
+    {
+      "file": "eastern_emr-front.jpg",
+      "variant": "eastern_emr",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:ArcticBrigadeTacticalTraining-19.jpg",
+      "author": "Артём Финн (Artyom Finn)",
+      "licence": "CC-BY-4.0",
+      "sha256": "77eb0131fd95b7f13189aa4701e97dac2314c4e85b50f07f56f3ace6cc459ae6",
+      "note": "Group of Russian soldiers standing, front, full body: EMR (Digital Flora) uniforms, Ratnik 6B47 helmets and 6B45 vests, AK-74M rifles."
+    },
+    {
+      "file": "eastern_emr-three_quarter_front.jpg",
+      "variant": "eastern_emr",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:FinalCheck2018-13.jpg",
+      "author": "Igor Rudenko (Игорь Руденко).",
+      "licence": "CC-BY-4.0",
+      "sha256": "94bce2e0790a1a1a3e97d12cf7d8893ad4c24751193de2cb5d34a046f8554803",
+      "note": "Two Russian soldiers advancing up a slope, front quarter: EMR uniform, 6B47 helmet, 6B45 vest, AK-74M; boots and kneepads."
+    },
+    {
+      "file": "eastern_emr-three_quarter_rear.jpg",
+      "variant": "eastern_emr",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Rostov-on-Don_2014_Victory_Day_Parade_Rehearsal,_Russian_Army,_Infantry,_Russia.jpg",
+      "author": "Vyacheslav Argenberg",
+      "licence": "CC-BY-4.0",
+      "sha256": "1ed5cdd7d35e56b5cd2252ff0849b23a5f381c4bc2d661ce659a5e254e404d8b",
+      "note": "Infantry standing at a parade rehearsal (2014), several from the side and behind: EMR uniform, vest back, helmets, AKs carried. Older pre-Ratnik helmets and vests on some; parade dress, not field kit."
+    }
+  ],
+  "gaps": [
+    "eastern_emr: shared with rifle_squad; no Russian scout-specific photo (ruck, panama).",
+    "no top view (none expected)."
+  ]
+}

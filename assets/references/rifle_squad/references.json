@@ -164,13 +164,123 @@
       "licence": "CC0-1.0",
       "sha256": "1929f1af5052bfa07a4375b18783c48fb30311b15cf8900326848f3b6b81e044",
       "note": "AK-74M, right side, with a side-rail collimator sight, on a plain wall."
+    },
+    {
+      "file": "german_flecktarn-three_quarter_front.jpg",
+      "variant": "german_flecktarn",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2152841_A_German_soldier_of_6th_Company,_31st_Parachute_Infantry_Regiment_during_exercise_Swift_Response_15_in_2015.jpg",
+      "author": "US Army Photo by Sgt. Matthew Hulet, Viper Combat Camera USAREUR",
+      "licence": "public-domain",
+      "sha256": "e1f4ba83b4fad5f1cbb0c40dfb9820dcc9aa284810500ca0a4bd72498a792b7b",
+      "note": "German paratrooper standing in a field, front-left quarter, full body: Flecktarn uniform, olive plate carrier with pouches, covered helmet with NVG mount, G36 held low, face paint."
+    },
+    {
+      "file": "german_flecktarn-three_quarter_front-2.jpg",
+      "variant": "german_flecktarn",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2019-06-15_153305_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "955e6ad2d31ce59bc7f2807329f6455c061a5afa0107225bf92fbd41e89560af",
+      "note": "Three Bundeswehr soldiers walking, front quarter, full body: Flecktarn uniforms, Flecktarn plate carriers with pouches, covered helmets, gloves, G36 rifles at the ready, dark boots."
+    },
+    {
+      "file": "german_flecktarn-side.jpg",
+      "variant": "german_flecktarn",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2026-06-05_103345_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "3125dfb9850cc7468632991177da68c8f4166b6e748fc296debbbfaeea12fc40",
+      "note": "Bundeswehr soldier aiming round a wall, near side profile, full body: Flecktarn trousers and sleeves, coyote plate carrier, helmet with cover and NVG mount, knee pads, rifle shouldered."
+    },
+    {
+      "file": "german_flecktarn-front.jpg",
+      "variant": "german_flecktarn",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2026-06-05_121051_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "328cb368971e77fa28955cf59b0e63d80945a95243d07e18fc54c484ff575cca",
+      "note": "Two Bundeswehr soldiers running, front quarter, full body: Flecktarn uniforms and carriers, helmets with headsets, glasses, rifles at the ready."
+    },
+    {
+      "file": "german_flecktarn-three_quarter_rear.jpg",
+      "variant": "german_flecktarn",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2019-06-15_151808_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "692bf8ebfdfd36567c1df58330331a4e7be0e2b6f59ce0304017f1546e0ca3bd",
+      "note": "Bundeswehr soldiers clearing a house, several seen from behind: Flecktarn uniforms, carrier backs, helmet rears; small figures."
+    },
+    {
+      "file": "german_flecktarn-detail.jpg",
+      "variant": "german_flecktarn",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2581182_A_German_soldier_serving_with_the_Multinational_Battle_Group-East_and_KFOR_on_Orahovac_Range_in_Kosovo_2016.jpg",
+      "author": "U.S. Army photo by Staff Sgt. Thomas Duval, Multinational Battle Group-East Public Affairs",
+      "licence": "public-domain",
+      "sha256": "e34db6dbf591bbadb15f5d02a1be26bb116ab7977acf5b8e4904d4c6924c5702",
+      "note": "Bundeswehr soldier aiming a G36, close-up: Flecktarn helmet cover with NVG mount, face cover, carrier straps, the G36's carry-handle optic and slab sides."
+    },
+    {
+      "file": "german_flecktarn-detail-2.jpg",
+      "variant": "german_flecktarn",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2502619_A_German_soldier_of_12th_Armored_Brigade_during_exercise_Saber_Junction_16_.jpg",
+      "author": "U.S. Army photo by Spc. Lloyd Villanueva",
+      "licence": "public-domain",
+      "sha256": "53927ddd47f9d7af45a5d43cec672bbb2a8b41440609137629ae3e490be8bbc3",
+      "note": "German soldier aiming a G36 round a wall, close: the G36's side profile (carry-handle optic, skeleton folding stock, slim handguard, curved translucent magazine), Flecktarn jacket, helmet."
+    },
+    {
+      "file": "german_flecktarn-detail-3.jpg",
+      "variant": "german_flecktarn",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Heckler_&_Koch_G36A3_Prenzlau_2025.jpg",
+      "author": "Boevaya mashina",
+      "licence": "CC-BY-SA-3.0-DE",
+      "sha256": "5cc30c075293f1f025b88ef60f1e748b6d90792ccaf6f23b96ba1dd473211730",
+      "note": "G36A3 on a table, side: rail handguard, folding stock, optic rail, drum and box magazines; the current Bundeswehr rifle."
+    },
+    {
+      "file": "ak12-side.jpg",
+      "variant": "ak12",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:AK-12_-_Army-2023-12.jpg",
+      "author": "Nickel nitride",
+      "licence": "CC0-1.0",
+      "sha256": "8c4707a8e424a8f859b25d4836a8e7c5853a6a7613eeac53bb517c6e064574bd",
+      "note": "AK-12 (2023) on a display wall, side: black, skeleton folding and telescoping stock, ribbed dust cover with a rail, ribbed polymer magazine, rail-topped handguard over the gas tube, front sight and brake."
+    },
+    {
+      "file": "ak12-detail.jpg",
+      "variant": "ak12",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:5,45mm_AK-12_6P70_assault_rifle_at_Military-technical_forum_ARMY-2016_03.jpg",
+      "author": "Vitaly V. Kuzmin",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "6dd8e6e5b33fe816babc4c4b0cbb273dbe83b33b68273f5b32ac326fadc17180",
+      "note": "AK-12 6P70 (2016) in a digital camouflage finish, three-quarter: adjustable stock, collimator on the dust-cover rail, slotted handguard, muzzle device."
     }
   ],
   "gaps": [
     "us_army_ocp: no side profile or straight rear of a standing soldier found; the three-quarter rear and the details cover the carrier back and helmet.",
     "us_army_ocp: no top view (none expected for infantry).",
     "eastern_emr: no side profile or field photo from behind in Ratnik kit; the three-quarter rear is a 2014 parade rehearsal with older helmets and vests on some soldiers.",
-    "eastern_emr: no AK-12 photo picked; the AK-74M stands for the squad rifle.",
-    "both: team weapons (machine gun, AT launcher) deployed and carried are not covered in this pass."
+    "both: team weapons (machine gun, AT launcher) deployed and carried are not covered in this pass.",
+    "german_flecktarn: shared with europe_recon_patrol_light_patrol; no straight rear of a standing soldier; the side view is a 2026 open day, whose coyote carrier differs from the Flecktarn carriers of the other photos (the look takes Flecktarn)."
   ]
 }

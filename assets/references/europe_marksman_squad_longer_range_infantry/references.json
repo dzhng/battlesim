@@ -1,0 +1,96 @@
+{
+  "entries": [
+    {
+      "file": "g28-side.jpg",
+      "variant": "g28",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:European_Best_Sniper_Squad_Competition_-_2017_-_HK417_DMR_(G28)_-_Schmidt_&_Bender_3-20×50_PM_II_-_3.webp",
+      "author": "Markus Rauchenberger",
+      "licence": "public-domain",
+      "sha256": "4dc6175d719cb82db2b6a1f3bcd2c234b2a4523c943b5b3e08d6506bdd95edb2",
+      "note": "German marksman prone behind a G28, side profile of the rifle: sand (RAL 8000) receiver, stock and handguard, sand scope with large objective, black barrel and bipod, magazine."
+    },
+    {
+      "file": "german_flecktarn-three_quarter_front.jpg",
+      "variant": "german_flecktarn",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:DEU_Mountain_Infantry,_San_Gregorio,_Spain,_Trident_Juncture_15_(22333550108).jpg",
+      "author": "Allied Joint Force Command Brunssum",
+      "licence": "CC-BY-SA-2.0",
+      "sha256": "41bbafcdb8b3b3220103c6ca127e5c61c632bb6eb56e8e432bb5810ab9c8300b",
+      "note": "German mountain infantry in Flecktarn with packs and balaclavas, full body, front quarter; the right man carries a sand G28 with scope."
+    },
+    {
+      "file": "g28-three_quarter_front.jpg",
+      "variant": "g28",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:CIMIC_Joint_Training,_GER_and_ITA_Army,_Capo_Teulada,_Trident_Juncture_15_(22716158851).jpg",
+      "author": "Allied Joint Force Command Brunssum",
+      "licence": "CC-BY-SA-2.0",
+      "sha256": "fa111db7aa8a5ccf551ba57aab7acfcf53cdf04672cb37065b43a2cf47c95acb",
+      "note": "German soldiers in Flecktarn with covered helmets; a prone marksman with a sand G28, scope and bipod, front quarter."
+    },
+    {
+      "file": "g28-detail.jpg",
+      "variant": "g28",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:20131223_G28_Afghanistan.jpg",
+      "author": "Wiegold.de",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "0b2f9e46cc9de8b96a2ffc590e4a8de880f344f3c9fa57e1a2aa4f53721b1adc",
+      "note": "G28 carried at the shoulder, close: sand furniture and scope, rail handguard, black barrel; tropical Flecktarn uniform and carrier."
+    },
+    {
+      "file": "german_flecktarn-side.jpg",
+      "variant": "german_flecktarn",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2026-06-05_103345_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "3125dfb9850cc7468632991177da68c8f4166b6e748fc296debbbfaeea12fc40",
+      "note": "Bundeswehr soldier aiming round a wall, near side profile, full body: Flecktarn trousers and sleeves, coyote plate carrier, helmet with cover and NVG mount, knee pads, rifle shouldered."
+    },
+    {
+      "file": "german_flecktarn-front.jpg",
+      "variant": "german_flecktarn",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2026-06-05_121051_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "328cb368971e77fa28955cf59b0e63d80945a95243d07e18fc54c484ff575cca",
+      "note": "Two Bundeswehr soldiers running, front quarter, full body: Flecktarn uniforms and carriers, helmets with headsets, glasses, rifles at the ready."
+    },
+    {
+      "file": "german_flecktarn-three_quarter_rear.jpg",
+      "variant": "german_flecktarn",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2019-06-15_151808_Tag_der_Bundeswehr.jpg",
+      "author": "Tim Rademacher",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "692bf8ebfdfd36567c1df58330331a4e7be0e2b6f59ce0304017f1546e0ca3bd",
+      "note": "Bundeswehr soldiers clearing a house, several seen from behind: Flecktarn uniforms, carrier backs, helmet rears; small figures."
+    },
+    {
+      "file": "german_flecktarn-detail.jpg",
+      "variant": "german_flecktarn",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2581182_A_German_soldier_serving_with_the_Multinational_Battle_Group-East_and_KFOR_on_Orahovac_Range_in_Kosovo_2016.jpg",
+      "author": "U.S. Army photo by Staff Sgt. Thomas Duval, Multinational Battle Group-East Public Affairs",
+      "licence": "public-domain",
+      "sha256": "e34db6dbf591bbadb15f5d02a1be26bb116ab7977acf5b8e4904d4c6924c5702",
+      "note": "Bundeswehr soldier aiming a G36, close-up: Flecktarn helmet cover with NVG mount, face cover, carrier straps, the G36's carry-handle optic and slab sides."
+    }
+  ],
+  "gaps": [
+    "g28: no G28 at the low ready; the three-quarter front of the uniform is mountain infantry with balaclavas.",
+    "german_flecktarn: shared with europe_recon_patrol_light_patrol."
+  ]
+}

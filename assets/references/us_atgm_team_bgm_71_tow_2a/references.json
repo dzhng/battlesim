@@ -1,0 +1,140 @@
+{
+  "entries": [
+    {
+      "file": "tow-side.jpg",
+      "variant": "tow",
+      "view": "side",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:150926-A-VD071-006_(21810869885).jpg",
+      "author": "U.S. Department of Defense Current Photos",
+      "licence": "public-domain",
+      "sha256": "8c0578cae7d608b63460798b28906a3a2500997b567e669337a7073a1bdf7509",
+      "note": "US soldiers firing a ground-mounted TOW from its tripod, side: tube, sight and traversing unit on the M220 tripod, gunner kneeling behind, back-blast."
+    },
+    {
+      "file": "tow-three_quarter_front.jpg",
+      "variant": "tow",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:48th_Infantry_Brigade_XCTC_130919-A-AX030-953.jpg",
+      "author": "Sgt. Michael Uribe",
+      "licence": "public-domain",
+      "sha256": "3242574047564731f172e2252035bf7afd631dbb9d340c5de8dfe88f547fcf8b",
+      "note": "TOW launcher on a vehicle mount, front quarter: launch tube, the optical sight and thermal sight boxes beside it, traversing unit; gunner in ACU."
+    },
+    {
+      "file": "tow-detail.jpg",
+      "variant": "tow",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:161022-A-EM105-009_(29922952623).jpg",
+      "author": "U.S. Department of Defense Current Photos Sgt. William Tanner/24th Press Camp Headquarters",
+      "licence": "public-domain",
+      "sha256": "ef6635e81ca036816e3d3a6df34a3e14f98f7be0348c5dcccf5b1e058cc2aad3",
+      "note": "TOW missile tubes and traversing unit close, with stencilled sand-coloured missile container."
+    },
+    {
+      "file": "tow-detail-2.jpg",
+      "variant": "tow",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:170323-A-QM442-443_-_50th_Infantry_Brigade_Combat_Team_trains_with_TOW_missile_system_(Image_6_of_15).jpg",
+      "author": "Staff Sgt. Nicholas Young",
+      "licence": "public-domain",
+      "sha256": "169481fbf5f3338f45c8e424dfc15a7c9e109ea47e98b705fc74debc06bd223e",
+      "note": "Soldiers handling TOW missile containers on the ground: olive tubes with green end caps, their size against a kneeling man (the load a team carries)."
+    },
+    {
+      "file": "us_army_ocp-detail-2.jpg",
+      "variant": "us_army_ocp",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:IHPS_helmet.jpg",
+      "author": "US Army",
+      "licence": "public-domain",
+      "sha256": "5818a475fc7d5ac2e310bbbbb32fc33c017d265fdeaab77f267bd8b840f1281c",
+      "note": "IHPS helmet (coyote, no cover) with NVG shroud and rails, side view on a stand; small image."
+    },
+    {
+      "file": "us_army_ocp-detail-3.jpg",
+      "variant": "us_army_ocp",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:MSV_Kit.jpg",
+      "author": "Lawrence1215",
+      "licence": "CC-BY-SA-4.0",
+      "sha256": "5eae5eda95b5ded5e13d4a5733a241f5b5cb2ddefac237af19d29cd2af4df19c",
+      "note": "Modular Scalable Vest in OCP with pouches, front three-quarter on a table: carrier shape, cummerbund, pouch layout."
+    },
+    {
+      "file": "us_army_ocp-detail-4.jpg",
+      "variant": "us_army_ocp",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:M4A1-flattop.jpg",
+      "author": "Photo Courtesy of PEO Soldier, modified by User:MathKnight-at-TAU",
+      "licence": "public-domain",
+      "sha256": "8c4ab04735dcbb853c00503bd69a3fcef03a1125fb3681be497799f763aa109b",
+      "note": "M4A1 carbine, right side profile on white: rail handguard, collapsible stock, M68 CCO optic (PEO Soldier photo, edited)."
+    },
+    {
+      "file": "us_army_ocp-detail.jpg",
+      "variant": "us_army_ocp",
+      "view": "detail",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Combined_Resolve_26-07_3BEB_(9647663).jpg",
+      "author": "U.S. Army photo by Sgt. Collin Mackall",
+      "licence": "public-domain",
+      "sha256": "1b3e72afe66e4776c52559ad64e8fca4353ebc54d3cac85518178ea732746d0c",
+      "note": "Over-the-shoulder close-up: helmet cover, rear of the helmet and NVG mount, collar of the carrier, M4A1 with optic."
+    },
+    {
+      "file": "us_army_ocp-front.jpg",
+      "variant": "us_army_ocp",
+      "view": "front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Mass_Guard_Soldiers_conduct_joint_patrol_in_northeast_Syria_(8727618).jpg",
+      "author": "Staff Sgt. Emma Scearce",
+      "licence": "public-domain",
+      "sha256": "09f77d1802c72d90425360da3424f867a2591a9ff9d3ed2d35a421e893ba003f",
+      "note": "Two US Army soldiers standing, front, full body: OCP uniform, plate carriers, helmets, M4A1 carbines held low; dry light shows carrier shape clearly."
+    },
+    {
+      "file": "us_army_ocp-three_quarter_front-2.jpg",
+      "variant": "us_army_ocp",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:US_Soldier_in_Syria.jpg",
+      "author": "SPC Jensen Guillory",
+      "licence": "public-domain",
+      "sha256": "586636bac6a0ec3266ffd2779fd6e08ac6839184b2bb874dc0430fd36b3f32c1",
+      "note": "US Army soldier walking, near front-on, full body: OCP uniform, plate carrier, helmet with NVG mount, M4A1 slung forward, face mask."
+    },
+    {
+      "file": "us_army_ocp-three_quarter_front.jpg",
+      "variant": "us_army_ocp",
+      "view": "three_quarter_front",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:2nd_Brigade,_101st_Airborne_Conduct_Dismounted_Patrols_at_Combined_Resolve_26-1_(9366391).jpg",
+      "author": "U.S. Army photo by Maj. Brian Sutherland",
+      "licence": "public-domain",
+      "sha256": "67082d3304dc87cc644592a827ad2e62be58147fa1d52d0a7d62a3ce19e81c12",
+      "note": "US Army rifleman on patrol, front-left quarter, full body: OCP uniform, plate carrier with pouches, covered helmet with scrim, M4A1 at the ready; squad file behind."
+    },
+    {
+      "file": "us_army_ocp-three_quarter_rear.jpg",
+      "variant": "us_army_ocp",
+      "view": "three_quarter_rear",
+      "source": "photo",
+      "page": "https://commons.wikimedia.org/wiki/File:Combined_Resolve_26-07_3BEB_(9647666).jpg",
+      "author": "U.S. Army photo by Sgt. Collin Mackall",
+      "licence": "public-domain",
+      "sha256": "120bbab5dd26db84f2bdb1d84ab80896257273d66633d3bcb4501c691bed10f5",
+      "note": "Rifleman aiming, from behind and left: back panel of the plate carrier with name tape, side pouches, helmet rear with counterweight, M4A1."
+    }
+  ],
+  "gaps": [
+    "tow: no photo of a TOW team carrying the launcher and tripod (the carried load is the model's guess); the ground tripod is seen only in the firing side view, partly in back-blast.",
+    "us_army_ocp: shared with rifle_squad."
+  ]
+}

@@ -1,14 +1,14 @@
 """Named roster equipment on the unchanged Quaternius infantry rig.
 
-Usage: infantry_equipment.py <unit-id> [a|b|c] [active|carried] [--army=<army>] [--preview=<dir>]
+Usage: infantry_equipment.py <kit> [a|b|c] [active|carried] [--army=<army>] [--preview=<dir>]
 Add --preview-only to inspect the existing source without rebuilding it.
-Writes that manifest unit's exclusive directory. A kit with armies (`KIT_ARMIES`)
-is built in one army's look (its first by default): `<mode>_<look>.glb` for the
-first, `<faction>_<mode>_<look>.glb` for the others. Rifle-family grip, support and
-sight anchors stay identical to the shared clips. Lengths are world metres;
-geometry compensates for the shared hold and soldier scales, never the rig.
-Tripod ATGMs use a root-weighted kit and the coordinator's frozen active pose.
-Research-gated top-attack teams deliberately cannot dispatch.
+Writes into the kit's own directory, `assets/source/roster/infantry/<kit>/`.
+A kit is built in one of its armies' looks (`KITS`, its first by default):
+`<mode>_<look>.glb` for the first, `<faction>_<mode>_<look>.glb` for the
+others. Rifle-family grip, support and sight anchors stay identical to the
+shared clips. Lengths are world metres; geometry compensates for the shared
+hold and soldier scales, never the rig. Tripod ATGMs use a root-weighted kit
+and the coordinator's frozen active pose.
 """
 import json
 import math
@@ -20,16 +20,11 @@ import bpy
 import bmesh
 from mathutils import Matrix, Vector
 from common import REPO, box, cyl, empty, export_glb, script_args, texture_uvs, obj_from_bm
-from infantry_kit import COYOTE, Kit, look_of, bone_of
+from infantry_kit import COYOTE, RANGER, Kit, look_of, bone_of
 from textures import UNIFORMS
 from infantry_rig import Rig, SCALE
 from mesh_lods import canonical, make_tiers, triangle_count
 import weapons
-
-# Equipment lengths and each unit's appearance sources, not a physical frame:
-# the soldier frame is the fixture's. Slice 17 of specs/unit-models replaces it.
-MANIFEST = json.load(open(os.path.join(REPO, 'specs/done/unit-roster/manifests/infantry.json')))
-
 
 # An army's look of a kit, named as its reference variant
 # (assets/references/<kit>/): the uniform print (textures.UNIFORMS), whether
@@ -42,29 +37,84 @@ ARMIES = {
         rifle="m4a1",
         variants={"a": dict(head="nvg"), "b": dict(head="scrim", scarf=False), "c": dict(head="cover", pack="hydration")},
     ),
+    # Marines wear MARPAT woodland under coyote nylon (Plate Carrier Gen III,
+    # pouches and packs), a woodland helmet cover, coyote boots, and the M27.
+    "usmc_marpat": dict(
+        faction="us", print=UNIFORMS["usmc_marpat"], printed_gear=False, printed_cover=True, vest=COYOTE,
+        pouch=COYOTE, straps=COYOTE, accent=COYOTE, helmet="ach", boots=(0.075, 0.056, 0.036),
+        gloves=(0.06, 0.05, 0.036), rifle="m27",
+        variants={"a": dict(head="nvg"), "b": dict(head="cover", scarf=False, eyewear=True),
+                  "c": dict(head="cover", pack="hydration", vest=RANGER)},
+    ),
+    # Europe's shared kits wear the Bundeswehr's (specs/unit-models/choices.md,
+    # slice 17): Flecktarn, a Flecktarn carrier and pouches, a covered helmet,
+    # black boots, olive webbing, and the G36.
+    "german_flecktarn": dict(
+        faction="europe", print=UNIFORMS["german_flecktarn"], printed_gear=True, vest="print", pouch="print",
+        straps=(0.055, 0.062, 0.038), accent="print", helmet="ach", boots=(0.018, 0.017, 0.015),
+        gloves=(0.025, 0.025, 0.021), rifle="g36",
+        variants={"a": dict(head="nvg", eyewear=False), "b": dict(head="cover", scarf=False),
+                  "c": dict(head="cover", pack="hydration", accent=COYOTE)},
+    ),
     "eastern_emr": dict(
         faction="eastern", print=UNIFORMS["eastern_emr"], printed_gear=True, vest="print", pouch="print",
         straps=(0.07, 0.078, 0.048), accent="print", helmet="6b47", rails=False, headset=False, collar=True, groin=True,
-        boots=(0.018, 0.017, 0.015), gloves=(0.02, 0.02, 0.018), rifle="ak74m",
+        boots=(0.018, 0.017, 0.015), gloves=(0.02, 0.02, 0.018), rifle="ak12",
         variants={"a": dict(head="cover", eyewear=False, balaclava=True, knee_pads=False),
                   "b": dict(head="cover", eyewear=False, balaclava=True, scarf=False, pack="none"),
                   "c": dict(head="cover", eyewear=False, radio=False, pack="hydration")},
     ),
 }
-# The armies a kit is built in, its default first. Slice 17 names the rest.
-KIT_ARMIES = {"rifle_squad": ("us_army_ocp", "eastern_emr")}
+
+# Each roster kit (a directory of assets/source/roster/infantry/): its
+# weapon (the army's squad rifle, or a `LENGTHS` model), whether its men are
+# scouts (the recon ruck, `infantry_kit.KIND_LOOKS`) and carry grenades, and
+# the armies it is built in, its default first: the faction its roster card
+# names first, and a faction look for every other faction that fields it.
+# A US Marine card is the Marines' look, an Eastern card the Russian army's
+# (the roster's Eastern infantry are all Russian weapons).
+KITS = {
+    "rifle_squad": dict(weapon="rifle", grenades=True, armies=("us_army_ocp", "eastern_emr", "german_flecktarn")),
+    "assault_squad": dict(weapon="rifle", grenades=True, armies=("german_flecktarn", "eastern_emr")),
+    "us_marine_squad_close_quarters_infantry": dict(weapon="rifle", grenades=True, armies=("usmc_marpat",)),
+    "us_army_scouts_light_patrol": dict(weapon="rifle", scout=True, armies=("us_army_ocp",)),
+    "us_force_recon_recon_patrol": dict(weapon="rifle", scout=True, grenades=True, armies=("usmc_marpat",)),
+    "eastern_scouts_light_patrol": dict(weapon="rifle", scout=True, armies=("eastern_emr",)),
+    "europe_recon_patrol_light_patrol": dict(weapon="rifle", scout=True, armies=("german_flecktarn",)),
+    "us_marksman_squad_m110_equipped_longer_range_infantry": dict(weapon="m110", armies=("us_army_ocp",)),
+    "eastern_marksman_squad_svd_equipped_longer_range_infantry": dict(weapon="svd", armies=("eastern_emr",)),
+    "europe_marksman_squad_longer_range_infantry": dict(weapon="g28", armies=("german_flecktarn",)),
+    "us_scout_snipers_m107_heavy_sniper_team": dict(weapon="m107", scout=True, armies=("usmc_marpat",)),
+    "eastern_sniper_team_asvk_heavy_sniper_team": dict(weapon="asvk", scout=True, armies=("eastern_emr",)),
+    "us_atgm_team_bgm_71_tow_2a": dict(weapon="tow", armies=("us_army_ocp",)),
+    "eastern_atgm_team_kornet": dict(weapon="kornet", armies=("eastern_emr",)),
+    "eastern_rpg_team_rpg_7": dict(weapon="rpg7", armies=("eastern_emr",)),
+    "eastern_rpg_team_rpg_29": dict(weapon="rpg29", armies=("eastern_emr",)),
+}
+
+# Team weapons' lengths, world metres (the roster's equipment authoring):
+# complete unsuppressed rifles; launcher tubes loaded and packed; tripod
+# ATGMs' canister and bore height against the shared kneel_fire pose.
+LENGTHS = {
+    "m110": dict(length_m=1.029), "g28": dict(length_m=1.08), "svd": dict(length_m=1.225),
+    "m107": dict(length_m=1.448), "asvk": dict(length_m=1.42),
+    "rpg7": dict(length_m=0.95, packed_length_m=0.95), "rpg29": dict(length_m=1.85, packed_length_m=1.0),
+    "tow": dict(tube_length_m=1.28, bore_m=1.066), "kornet": dict(tube_length_m=1.32, bore_m=1.18),
+}
+LAUNCHERS = ("tow", "kornet", "rpg7", "rpg29")
 
 
 def rifle_equipment(mats, model):
-    """Distinct receiver/stock/optic layouts, with shared wrist anchors."""
-    if model == 'carbine':
-        return weapons.rifle(mats)
+    """A marksman's or sniper's rifle: distinct receiver, stock and optic
+    layouts on the shared wrist anchors. The M110 is flat dark earth, the
+    G28 its sand twin (references: both AR-10 pattern) with a sand scope."""
     root = empty(model, (0, 0, 0))
     black = mats['gun_black']
-    finish = mats['gun_fde'] if model == 'm110' else black
+    finish = mats['gun_fde'] if model in ('m110', 'g28') else black
+    optic = finish if model == 'g28' else black
     # Named references are complete unsuppressed weapon lengths. Fixed rear
     # anchor preserves shoulder fit; the barrel consumes the remaining length.
-    length = MANIFEST['equipment_authoring'][model]['length_m']
+    length = LENGTHS[model]['length_m']
     rear = .40
     front = rear - length / (SCALE * weapons.RIFLE_SCALE)
     bore = .045
@@ -78,15 +128,20 @@ def rifle_equipment(mats, model):
     b('pistol_grip', (.030, .038, .10), (0, .06, -.05), rot=(math.radians(22), 0, 0))
     b('trigger_guard', (.035, .06, .013), (0, .017, -.044))
     # The optic's eyepiece and the left wrist remain at the clip anchors.
-    c('scope', .022 if model in ('m110', 'svd') else .029, .29, (0, -.075, .11))
-    c('objective', .031 if model in ('m110', 'svd') else .038, .065, (0, -.23, .11))
+    slim = model in ('m110', 'g28', 'svd')
+    c('scope', .022 if slim else .029, .29, (0, -.075, .11), optic)
+    c('objective', .031 if slim else .038, .065, (0, -.23, .11), optic)
     b('optic_mount', (.022, .12, .028), (0, -.05, .080))
-    cyl(model+'_scope_turret', .015, .047, (0, -.08, .143), 'Z', black, root, seg=10)
-    if model == 'm110':
+    cyl(model+'_scope_turret', .015, .047, (0, -.08, .143), 'Z', optic, root, seg=10)
+    if model in ('m110', 'g28'):
         b('upper_receiver', (.039, .27, .06), (0, -.06, .043), finish)
         b('lower_receiver', (.036, .18, .05), (0, .0, -.005), finish)
         b('straight_magazine', (.032, .085, .12), (0, -.08, -.09))
-        b('fixed_stock', (.045, .23, .09), (0, .285, .031), finish)
+        if model == 'm110':
+            b('fixed_stock', (.045, .23, .09), (0, .285, .031), finish)
+        else:  # the G28's adjustable stock: a slim butt, a tall cheek riser
+            b('adjustable_stock', (.042, .2, .075), (0, .29, .022), finish)
+            b('cheek_riser', (.036, .13, .03), (0, .27, .075), finish)
         c('buffer', .018, .12, (0, .16, .045), finish)
         b('handguard', (.053, .34, .056), (0, -.335, .045), finish)
         for side in (-1, 1):
@@ -162,11 +217,12 @@ def rifle_equipment(mats, model):
 def rpg_equipment(mats, model, socket=True):
     root = empty(model, (0, 0, 0))
     black, tube = mats['gun_black'], mats['launcher']
-    frame = MANIFEST['equipment_authoring'][model]
+    frame = LENGTHS[model]
     length = frame['length_m' if socket else 'packed_length_m'] / SCALE
     rear = .42 if model == 'rpg7' else .69
     front = rear-length
-    cyl(model+'_tube', .025 if model=='rpg7' else .052, length, (0,(front+rear)/2,.10), 'Y', tube, root, seg=20)
+    # The RPG-7 is a blued steel tube; the RPG-29's is olive.
+    cyl(model+'_tube', .025 if model=='rpg7' else .052, length, (0,(front+rear)/2,.10), 'Y', black if model=='rpg7' else tube, root, seg=20)
     for y in (rear-.08, front+.10):
         cyl(model+'_band_'+str(y), .033 if model=='rpg7' else .061, .045, (0,y,.10), 'Y', black, root, seg=16)
     box(model+'_trigger_grip', (.032,.04,.15), (0,.06,.025), black, root, bevel_=.005)
@@ -213,7 +269,7 @@ def tripod_equipment(kit, model, carried=False):
     against the reimported shared kneel_fire phase0. Root weighting keeps the
     three feet grounded when the operator's pelvis/arms move into that pose.
     """
-    frame=MANIFEST['equipment_authoring'][model]
+    frame=LENGTHS[model]
     root=empty(model+'_packed' if carried else model+'_ground_launcher',(0,0,0))
     dark,tube=kit.m['gun_black'],kit.m['launcher']
     length=frame['tube_length_m'];bore=frame['bore_m']
@@ -279,31 +335,36 @@ def tripod_equipment(kit, model, carried=False):
     kit.rig.bone_parent(empty('muzzle',Vector((-.20,-.85-length/2,bore))/SCALE,size=.02),'root')
 
 
-def source_path(entry, variant, mode, army=None):
+def source_path(unit, variant, mode, army=None):
     """A kit's source: `<mode>_<look>.glb`, prefixed by the faction for an
     army other than its first."""
-    armies=KIT_ARMIES.get(entry['id'],())
+    armies=KITS[unit]['armies']
     prefix='' if army is None or army==armies[0] else ARMIES[army]['faction']+'_'
-    return os.path.join(REPO,entry['export_directory'],prefix+mode+'_'+variant+'.glb')
+    return os.path.join(REPO,'assets/source/roster/infantry',unit,prefix+mode+'_'+variant+'.glb')
+
+
+def hold_of(unit, mode):
+    """The clip family a kit's soldier is carried with: a launcher in the
+    hands (the shoulder RPG, the tripod ATGM's operator) or a rifle."""
+    return weapons.LAUNCHER_HOLD if KITS[unit]['weapon'] in LAUNCHERS and mode=='active' else weapons.RIFLE_HOLD
 
 
 def build(unit, variant, mode, army=None):
-    entry=next(v for v in MANIFEST['variants'] if v['id']==unit)
-    armies=KIT_ARMIES.get(unit,())
-    army=army or (armies[0] if armies else None)
-    if army is not None and army not in armies:
-        raise SystemExit(f'{unit} has no {army} look; its armies: {", ".join(armies) or "none"}')
+    if unit not in KITS:
+        raise SystemExit(f'{unit} is no roster kit; kits: {", ".join(KITS)}')
+    spec=KITS[unit];armies=spec['armies']
+    army=army or armies[0]
+    if army not in armies:
+        raise SystemExit(f'{unit} has no {army} look; its armies: {", ".join(armies)}')
     if variant not in ('a','b','c') or mode not in ('active','carried'):
         raise SystemExit('Use look a/b/c and mode active/carried')
-    if entry['equipment'][0] in ('Javelin','Akeron') and os.environ.get('ALLOW_RESEARCH_MODELS') != '1':
-        raise SystemExit('Unsupported launcher hold is gated: '+unit)
-    if mode=='carried' and entry['rig_family']!='launcher':
-        raise SystemExit('Only special launcher operators have a carried kit')
-    model=entry.get('equipment_model', {'Javelin': 'tow', 'Akeron': 'tow'}.get(entry['equipment'][0], 'rifle'))
+    model=spec['weapon']
+    if mode=='carried' and model not in LAUNCHERS:
+        raise SystemExit('Only launcher operators have a carried kit')
     ground=model in ('tow','kornet')
     shoulder=model.startswith('rpg') and mode=='active'
-    hold=weapons.LAUNCHER_HOLD if (shoulder or ground and mode=='active') else weapons.RIFLE_HOLD
-    kind='recon' if entry['profile'] in ('scout','elite-scout','sniper') else 'rifle'
+    hold=hold_of(unit,mode)
+    kind='recon' if spec.get('scout') else 'rifle'
     rig=Rig()
     for name in ('Eyes','Eyebrows'):
         if name in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects[name],do_unlink=True)
@@ -315,7 +376,7 @@ def build(unit, variant, mode, army=None):
     if kit.look['collar'] or kit.look['groin']:kit.armour_collar_and_groin()
     if kit.look['balaclava']:kit.balaclava()
     kit.skin()
-    if 'grenade' in entry['equipment']:
+    if spec.get('grenades'):
         for j,bearing in enumerate((-42,42)):
             at,out=kit.on_belt(bearing,.99);centre=at+out*.052
             grenade=cyl('fragmentation_grenade_'+str(j),.037,.070,centre,'Z',kit.m['launcher'],seg=12,bevel_=.014)
@@ -340,10 +401,10 @@ def build(unit, variant, mode, army=None):
             kit.rigid(strap,'spine_03')
     if ground:tripod_equipment(kit,model,mode=='carried')
     if not ground or mode=='carried':
-        rifle=kit.look.get('rifle')
+        # A launcher team's carrier holds his army's rifle, as a rifleman does.
         constructor=((lambda m:rpg_equipment(m,model)) if shoulder
-                     else (lambda m:weapons.RIFLES[rifle](m)) if rifle and model=='carbine'
-                     else (lambda m:rifle_equipment(m,'carbine' if mode=='carried' else model)))
+                     else (lambda m:weapons.RIFLES[kit.look['rifle']](m)) if model=='rifle' or mode=='carried'
+                     else (lambda m:rifle_equipment(m,model)))
         kit.weapon({'hold':hold,'build':constructor})
     kit.eye();kit.paint_all()
     soldier=kit.join();kit.bake_ao(soldier)
@@ -353,7 +414,7 @@ def build(unit, variant, mode, army=None):
     rig.arm.scale=(SCALE,)*3;bpy.context.view_layer.update();texture_uvs(tiers)
     for obj in list(bpy.data.objects):
         if obj.type=='EMPTY' and obj.name not in ('eye','muzzle'):bpy.data.objects.remove(obj,do_unlink=True)
-    path=source_path(entry,variant,mode,army)
+    path=source_path(unit,variant,mode,army)
     os.makedirs(os.path.dirname(path),exist_ok=True)
     export_glb(path,[rig.arm,*tiers,bpy.data.objects['eye'],bpy.data.objects['muzzle']])
     print('ROSTER_INFANTRY',json.dumps({'id':unit,'army':army,'equipment':model,'variant':variant,'mode':mode,'skeleton':'quaternius-ubc-'+hold['family'],'tris':[triangle_count(t) for t in tiers],'path':path}))
@@ -400,9 +461,8 @@ if __name__=='__main__':
     target=next((a.split('=',1)[1] for a in args if a.startswith('--preview=')),None)
     army=next((a.split('=',1)[1] for a in args if a.startswith('--army=')),None)
     if '--preview-only' in args:
-        entry=next(v for v in MANIFEST['variants'] if v['id']==unit)
-        path=source_path(entry,variant,mode,army)
-        hold=weapons.LAUNCHER_HOLD if entry['rig_family']=='launcher' and mode=='active' else weapons.RIFLE_HOLD
+        path=source_path(unit,variant,mode,army)
+        hold=hold_of(unit,mode)
     else:
         path,hold=build(unit,variant,mode,army)
     if target:preview(path,hold,os.path.abspath(target))
