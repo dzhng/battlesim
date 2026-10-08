@@ -1,5 +1,5 @@
-"""Named US light armor (Bradley, LAV): shared running gear, explicit family hulls and mount hardware.
-Stryker and HMMWV are rebuilt in their own scripts (roster/stryker.py, roster/humvee.py)."""
+"""Named US light armor (Bradley): its hull, running gear and mount hardware.
+Stryker, HMMWV and LAV are rebuilt in their own scripts (roster/stryker.py, roster/humvee.py, roster/lav.py)."""
 import bpy, bmesh, sys, os, math, json
 from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -10,7 +10,7 @@ from wreckage import WRECK_ARG, burn, export_wreck
 
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
-SCHEME={'bradley':'us_desert_tan','lav':'us_desert_tan'}
+SCHEME={'bradley':'us_desert_tan'}
 
 def build(family):
     args=script_args(); variant,out=requested_variant(family,args)
@@ -23,15 +23,6 @@ def build(family):
     steel=bare_steel('gun_steel',chip=.15,dirt=.2)
     glass=P.glass('optics')
     root=empty(family); body=empty('body',parent=root)
-
-    def wheel(row,x,side,r,y,depth):
-        node=empty('wheel_'+row+('L' if side>0 else 'R'),(x,side*y,r),body,props={'radius_m':r})
-        cyl('tire_'+row+str(side),r,depth,axis='Y',mat=rubber,parent=node,seg=28)
-        cyl('rim_'+row+str(side),r*.56,.06,(0,side*(depth/2+.005),0),'Y',paint,node,seg=20)
-        cyl('hub_'+row+str(side),r*.21,.09,(0,side*(depth/2+.035),0),'Y',dark,node,seg=12)
-        for j in range(16):
-            a=j*math.tau/16
-            box('tread_'+row+str(side)+'_'+str(j),(.15,depth*.88,.025),((r-.012)*math.sin(a),0,(r-.012)*math.cos(a)),rubber,node,rot=(0,a,.18*side),lods=(0,1))
 
     if family=='bradley':
         # Six exposed road wheels, continuous closed track belt and armored skirts.
@@ -69,20 +60,6 @@ def build(family):
                     box('armor_tile_'+str(side)+'_'+str(j)+'_'+str(k),(.73,.08,.28),(-2.60+j*.82,side*1.83,1.18+k*.33),paint,body,bevel=.008,lods=(0,1,2))
         for j in range(8):box('engine_deck_grille_'+str(j),(.055,.81,.025),(1.15+j*.10,-.71,2.00),dark,body,lods=(0,1))
         roof=2.06
-    else:
-        roof=1.94 if ident=='us_lav_lav_at' else 1.69
-        profile=[(-L/2,.78),(L/2-.18,.65),(L/2,1.02),(L/2-1.10,roof),(-L/2+.08,roof)]
-        prism(family+'_hull',profile,W-.48,mat=paint,parent=body,bevel=.035)
-        r=.49
-        for i,x in enumerate([2.19,1.02,-1.03,-2.19]):
-            row=['F0','F1','R0','R1'][i]
-            for side in (-1,1):
-                wheel(row,x,side,r,W/2-.20,.38)
-                box('wheel_brow_'+row+str(side),(1.15,.28,.095),(x,side*(W/2-.15),r*1.90),paint,body,bevel=.025)
-        box('rear_ramp',(.06,W-.65,roof-.81),(-L/2,0,(roof+.81)/2),dark,body)
-        for side in (-1,1):
-            box('upper_side_'+str(side),(L-1.55,.12,.25),(-.44,side*(W/2-.19),roof-.17),paint,body)
-            for j in range(4):box('stowage_'+str(side)+'_'+str(j),(.66,.16,.25),(-2.25+j*.92,side*(W/2-.08),roof-.17),dark,body,lods=(0,1,2))
     # Hatches/periscopes, stored equipment and rear lamps belong to each hull.
     for j,x in enumerate((.95,-1.48)):
         cyl('roof_hatch_'+str(j),.28,.07,(x,-.48,roof+.03),'Z',paint,body,seg=16)
@@ -101,16 +78,12 @@ def build(family):
             for side in (-1,1):
                 cyl('tow_tube_'+str(side),.165,1.50,(muzzle.x-.75,side*.20,0),'X',paint,pitch,seg=16)
                 cyl('tow_opening_'+str(side),.127,.035,(muzzle.x-.012,side*.20,0),'X',dark,pitch,seg=16)
-            if family in ('bradley','lav'):
+            if family=='bradley':
                 box('armored_tow_carrier',(1.54,.77,.10),(muzzle.x-.77,0,-.21),paint,pitch)
-                box('armored_tow_hood',(1.54,.77,.075),(muzzle.x-.77,0,.25 if family=='lav' else .21),paint,pitch)
+                box('armored_tow_hood',(1.54,.77,.075),(muzzle.x-.77,0,.21),paint,pitch)
                 for side in (-1,1):box('armored_tow_side_'+str(side),(1.54,.06,.43),(muzzle.x-.77,side*.37,0),paint,pitch)
             box('tow_optics',(.32,.22,.25),(.24,-.42,.06),glass,pitch)
-            if family=='lav':
-                base=roof-pivot.z;top=-.16
-                cyl('tow_pedestal',.23,top-base,(0,0,(base+top)/2),'Z',paint,yaw,seg=16)
-                box('tow_pedestal_support',(.42,.42,top-base),(-.07,0,(base+top)/2),paint,yaw,bevel=.02)
-            else:cyl('tow_pedestal',.23,.34,(0,0,-.28),'Z',paint,yaw,seg=16)
+            cyl('tow_pedestal',.23,.34,(0,0,-.28),'Z',paint,yaw,seg=16)
         elif gun:
             brad=family=='bradley'
             width=1.48 if brad else 1.35
@@ -121,7 +94,6 @@ def build(family):
             cyl('gun_sleeve',.098,.74,(1.17,0,0),'X',dark,pitch,seg=16)
             cyl('muzzle_brake',.087,.16,(muzzle.x-.08,0,0),'X',dark,pitch,seg=12)
             box('gunner_sight',(.31,.24,.21),(.23,-width*.35,.68),glass,yaw)
-            if family=='lav':box('lav_commander_periscope',(.21,.19,.18),(-.38,-.36,.83),glass,yaw)
             cyl('commander_hatch',.27,.07,(-.27,-.36,.75),'Z',paint,yaw,seg=16)
             if brad:
                 cyl('commander_viewer_base',.18,.20,(-.48,-.45,.88),'Z',paint,yaw,seg=16)

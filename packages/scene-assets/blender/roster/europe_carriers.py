@@ -1,4 +1,5 @@
-"""ACV, Ajax, Boxer and CV90: named hulls and hardware at their catalog frames."""
+"""Ajax and CV90: named hulls and hardware at their catalog frames. ACV and Boxer are rebuilt in
+their own scripts (roster/acv.py, roster/boxer.py)."""
 import bpy,bmesh,os,sys,json,math
 from mathutils import Vector
 sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -8,14 +9,14 @@ from catalog_frames import requested_variant
 from wreckage import WRECK_ARG, burn, export_wreck
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
-SCHEME={'acv':'us_desert_tan','ajax':'british_green','boxer':'german_three_tone','cv90':'swedish_splinter'}
+SCHEME={'ajax':'british_green','cv90':'swedish_splinter'}
 
 
 def build(family):
-    args=script_args();v,out=requested_variant(family,args);ident=v['id'];frame=v['frame'];L,W,H=frame['body_dimensions_m'];mkiv=ident.endswith('mk_iv');rct=ident.endswith('rct30')
+    args=script_args();v,out=requested_variant(family,args);ident=v['id'];frame=v['frame'];L,W,H=frame['body_dimensions_m'];mkiv=ident.endswith('mk_iv')
     reset();paint=P.paint(SCHEME[family],'carrier_paint',chip=.25,dirt=.4,rise=1.2);dark=textured('dark_armor','olive_paint',colour=(.045,.055,.035),chip=.2,dirt=.4,role='paint');rubber=tyre();steel=bare_steel('gun_steel',chip=.12,dirt=.2);glass=P.glass('optics')
     root=empty(family);body=empty('body',parent=root)
-    tracked=family in ('ajax','cv90');deck={'acv':2.82,'ajax':2.02,'boxer':2.31,'cv90':1.86}[family]
+    tracked=family in ('ajax','cv90');deck={'ajax':2.02,'cv90':1.86}[family]
     if tracked:
         r=.43 if family=='ajax' else .37;y=W/2-.31;half=L/2-.62
         for side in (-1,1):
@@ -41,39 +42,6 @@ def build(family):
             for j in range(count):box('armor_panel_'+str(side)+str(j),((L-.55)/count-.06,.055,.60),(-L/2+.42+j*(L-.55)/count,side*(W/2+.012),1.40 if family=='ajax' else 1.24),paint,body,bevel=.008,lods=(0,1,2))
         box('rear_exit',(.07,W-.72,1.02),(-L/2-.005,0,1.27),paint,body,bevel=.02)
         for j in range(8):box('engine_deck_grille_'+str(j),(.055,.73,.025),(1.28+j*.13,-.54,deck-.08),dark,body,lods=(0,1))
-    else:
-        r=.64 if family=='acv' else .59;xs=[L*.34,L*.115,-L*.12,-L*.34]
-        for i,x in enumerate(xs):
-            for side in (-1,1):
-                row=('F' if i<2 else 'R')+str(i);wn=empty('wheel_'+row+('L' if side>0 else 'R'),(x,side*(W/2-.23),r),body,props={'radius_m':r});cyl('tire_'+row+str(side),r,.43,axis='Y',mat=rubber,parent=wn,seg=28);cyl('rim_'+row+str(side),r*.62,.055,(0,side*.222,0),'Y',paint,wn,seg=20);cyl('hub_'+row+str(side),r*.20,.08,(0,side*.25,0),'Y',dark,wn,seg=12)
-                for j in range(16):
-                    a=j*math.tau/16;box('tread_'+row+str(side)+str(j),(.15,.38,.024),((r-.012)*math.sin(a),0,(r-.012)*math.cos(a)),rubber,wn,rot=(0,a,.16*side),lods=(0,1))
-        if family=='acv':
-            # High seaworthy-shaped exterior, ground combat only.
-            def acv_boat(bm,lod):
-                profile=[(-L/2,.91),(L/2-.12,.98),(L/2,1.71),(L/2-1.20,deck),(-L/2+.03,deck)];widths=[W*.29,W*.29,W*.35,W*.43,W*.43]
-                rings=[[bm.verts.new((x,side*w,z)) for (x,z),w in zip(profile,widths)] for side in (-1,1)]
-                bm.faces.new(rings[0][::-1]);bm.faces.new(rings[1])
-                for j in range(5):
-                    k=(j+1)%5;bm.faces.new((rings[0][j],rings[0][k],rings[1][k],rings[1][j]))
-                bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
-            mesh_part('acv_high_boat_hull',acv_boat,paint,body)
-            box('acv_bow_plate',(.075,W-.63,.79),(L/2-.52,0,2.13),paint,body,rot=(0,-.80,0),bevel=.02)
-            for side in (-1,1):
-                box('acv_upper_side_plate_'+str(side),(L-1.41,.12,.55),(-.59,side*(W/2-.11),2.33),paint,body,bevel=.02)
-                for j in range(5):box('acv_panel_seam_'+str(side)+str(j),(.035,.03,.54),(-3.38+j*1.18,side*(W/2-.038),2.33),dark,body,lods=(0,1))
-        else:
-            prism('boxer_drive_module',[(-L/2,.82),(L/2-.13,.87),(L/2,1.17),(L/2-1.25,2.20),(-L/2+.04,1.62)],W-.40,mat=paint,parent=body,bevel=.035)
-            # Distinct removable rear mission module and its seam.
-            box('boxer_mission_module',(5.17,W-.36,.71),(-1.25,0,deck-.355),paint,body,bevel=.045)
-            box('boxer_module_front_seam',(.055,W-.31,.64),(1.34,0,deck-.35),dark,body)
-            box('driver_cab',(.88,.81,.37),(2.08,.58,2.03),paint,body,bevel=.025)
-            for side in (-1,1):
-                for j in range(4):box('boxer_side_panel_'+str(side)+str(j),(1.04,.055,.55),(-3.09+j*1.25,side*(W/2-.14),deck-.30),paint,body,bevel=.014,lods=(0,1,2))
-        box('rear_ramp',(.07,W-.67,1.36),(-L/2-.006,0,1.63),paint,body,bevel=.02)
-        for side in (-1,1):
-            box('front_lamp_cluster_'+str(side),(.065,.25,.13),(L/2-.12,side*(W*.32),1.28),glass,body)
-            box('mirror_'+str(side),(.12,.14,.30),(L/2-1.26,side*(W/2-.07),2.08),dark,body,lods=(0,1,2))
     # Driver vision, forward lights and access handles survive silhouette tiers.
     box('driver_hatch',(.50,.53,.055),(L/2-1.56,.55,deck+.015),paint,body,bevel=.018)
     for j in range(3):box('driver_vision_'+str(j),(.10,.14,.06),(L/2-1.24,.36+j*.19,deck-.025),glass,body,lods=(0,1,2))
@@ -100,14 +68,6 @@ def build(family):
                     box('d_series_panorama_head',(.29,.27,.17),(-.47,-.51,.935),glass,yaw)
                     for side in (-1,1):box('d_series_cheek_'+str(side),(.72,.14,.38),(.17,side*.89,.31),paint,yaw,bevel=.025)
                 else:box('bofors_sight',(.30,.25,.21),(-.38,-.38,.81),glass,yaw)
-            else:
-                prism('rct30_unmanned_turret',[(-1.01,.02),(.90,.02),(.78,.43),(.14,.74),(-.83,.74)],1.86,mat=paint,parent=yaw,bevel=.035)
-                box('rct30_front_sight',(.32,.28,.24),(.63,-.50,.65),glass,yaw)
-                box('rct30_side_equipment',(.76,.42,.55),(-.58,-1.02,.43),paint,yaw,bevel=.025)
-                cyl('rct30_panorama_pedestal',.14,.33,(-.47,-.38,.83),'Z',paint,yaw,seg=16)
-                box('rct30_panorama_head',(.32,.34,.29),(-.47,-.38,1.10),glass,yaw,bevel=.018)
-                box('rct30_heat_shield',(mu.x-.92,.18,.14),((mu.x+.92)/2,0,mu.z-.11),paint,yaw)
-                for j in range(9):box('rct30_shroud_vent_'+str(j),(.11,.012,.07),(1.05+j*(mu.x-1.17)/9,-.10,mu.z-.10),dark,yaw,lods=(0,1))
             for side in (-1,1):
                 for j in range(3):cyl('smoke_tube_'+str(side)+str(j),.046,.20,(-.30+j*.15,side*.75,.41),'X',dark,yaw,seg=10,lods=(0,1,2))
             box('mantlet',(.42,.40,.37),(.78,0,0),paint,pitch,bevel=.035)
