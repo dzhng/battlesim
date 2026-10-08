@@ -810,7 +810,7 @@
       "id": "us_mq_9_reaper_mq_9a",
       "family": "mq_9_reaper",
       "category": "air",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "mq_9_reaper",
       "source_kind": "aircraft",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
