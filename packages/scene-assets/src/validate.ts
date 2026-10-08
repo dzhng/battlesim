@@ -785,7 +785,11 @@ function articulatedFindings(
       const role = materials[draw.material]?.role;
       if (!ROLLING_ROLES.includes(role)) continue;
       for (let k = draw.first; k < draw.first + draw.count; k++) {
-        const z = vec3.transformMat4(p, vec3.fromBuffer(p, mesh.positions, mesh.indices[k] * 3), worlds[i])[2];
+        const z = vec3.transformMat4(
+          p,
+          vec3.fromBuffer(p, mesh.positions, mesh.indices[k] * 3),
+          worlds[i],
+        )[2];
         if (z <= minZ + tolerances.ground_m) {
           loose.add(`${node.name} (${role})`);
           break;

@@ -1106,7 +1106,11 @@ export function cartGlb(spinning = true): Uint8Array {
   const b = new GltfBuilder();
   b.json.materials.push({
     name: "rubber",
-    pbrMetallicRoughness: { baseColorFactor: [0.02, 0.02, 0.02, 1], metallicFactor: 0, roughnessFactor: 0.9 },
+    pbrMetallicRoughness: {
+      baseColorFactor: [0.02, 0.02, 0.02, 1],
+      metallicFactor: 0,
+      roughnessFactor: 0.9,
+    },
     extras: { role: "rubber" },
   });
   const body = tieredPart(b, "body", gBox(b, [-2, -1, 0.5], [2, 1, 1.5]), LODS.length);

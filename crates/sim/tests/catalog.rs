@@ -100,7 +100,11 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
         );
         let library = format!("assets/references/{}/references.json", entry.source_family);
         assert!(
-            sim::fixtures::dir().parent().unwrap().join(&library).is_file(),
+            sim::fixtures::dir()
+                .parent()
+                .unwrap()
+                .join(&library)
+                .is_file(),
             "{}: source_family {:?} has no {library}",
             entry.id,
             entry.source_family
