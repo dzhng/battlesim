@@ -1,6 +1,6 @@
 """The test supply truck (test unit art, never game content): a 6×6 with four deploy legs and a telescoping mast (and, with --wreck, its burnt wreck).
 
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/supply_truck.py -- [out.glb] [--wreck]
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/supply_truck.py -- [out.glb] [--wreck [--piece=debris]]
 
 Ported from spike 03's frozen `truck.py`: the same node tree, pivots and
 deploy phases, driven by one progress value (`DeploymentState.progress`).
@@ -21,6 +21,9 @@ from parts import *
 
 ARGS = script_args()
 WRECK = "--wreck" in ARGS
+# --piece=debris (with --wreck): only the debris the wreck threw (`wreckage.cut_to`)
+PIECE = next((a.split("=", 1)[1] for a in ARGS if a.startswith("--piece=")), None)
+assert PIECE in (None, "debris") and (PIECE is None or WRECK), "--piece=debris needs --wreck"
 POS = [a for a in ARGS if not a.startswith("--")]
 OUT = POS[0] if POS else os.path.abspath("supply_truck.glb")
 
@@ -311,8 +314,16 @@ if WRECK:  # the fire vented through the windscreen, the doors, the walls and th
                         ((SX - 1.3, -0.35, 3.05), 1.8), ((SX + 0.95, 1.25, 2.35), 1.7), ((SX + 0.3, -1.25, 2.35), 1.8),
                         ((2.2, 1.25, 1.95), 1.5)):
         SCORCH.append((tw @ Vector(vent), reach))
+if WRECK:  # debris thrown clear, as every roster wreck's (sim hull half extents (3.0, 1.4))
+    import zlib
+    from wreckage import scatter
+    scatter((3.0, 1.4), {"paint": paint_m, "dark": dark, "steel": steel, "rubber": rubber, "track": steel,
+                         "canvas": canvas}, seed=zlib.crc32(b"test_supply_truck"))
 rest_on_ground(0.006 if WRECK else 0.0)
 finish(ao_distance=1.2)
 info = dict(tris=triangles_by_tier(), nodes=sorted(o.name for o in bpy.data.objects if o.type == "EMPTY"))
 print("TRUCK", json.dumps(info))
+if WRECK:  # the whole wreck without its debris, or the debris alone, where it lies
+    from wreckage import cut_to
+    cut_to(PIECE or "default")
 export(OUT)

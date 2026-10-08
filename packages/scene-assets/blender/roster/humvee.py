@@ -206,7 +206,7 @@ def wreck(variant, v):
     warp(shell, heat(0.025, 0.7, seed=8.0), dent((1.6, 0.0, 1.30), 0.6, -0.12, (0.0, 0.0, 1.0)))
     for k, (loc, rot, size) in enumerate((((1.9, 1.45, 0.03), (0.03, 0.04, 0.9), 0.26),
                                           ((-1.9, -1.35, 0.03), (-0.04, 0.02, 2.2), 0.24))):
-        plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
+        plate(f"litter_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
                               (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.root, curl=0.12, seed=61 + k)
     v.root.rotation_euler = (0.05, 0.05, 0)
     v.root.location.z -= 0.05

@@ -29,6 +29,12 @@ export interface SceneryRule {
    *  so the battle can move the pieces apart and then draw the whole. A piece
    *  stands off the ground and short of the box; it is held inside the whole. */
   pieces?: readonly string[];
+  /** A state an appearance may carry besides, of what the whole threw round
+   *  it as it died (a wreck's armour packs, doors, track runs): every mesh
+   *  under a `debris_*` node. The battle
+   *  draws it only where it watched the death, and lets it fade, so it is
+   *  held to this allowance, never to the box: it is presentation, not cover. */
+  debris?: DebrisAllowance;
   footprint: SceneryFootprint;
   /** The art is blade strips the grass field instances and bends in the
    *  wind: every tier the same blades in one layout (`grass.ts`). */
@@ -47,10 +53,24 @@ export interface SceneryRule {
   top_m?: number;
 }
 
+/** How far thrown debris may lie (`SceneryRule.debris`): its state's name,
+ *  how far past the box's sides any of it may reach (metres, across the
+ *  ground from the nearest point of the box), and how high it may stand.
+ *  Loose tripwires against a piece flung absurdly far or a heap tall enough
+ *  to read as cover, not targets. */
+export interface DebrisAllowance {
+  state: string;
+  reach_m: number;
+  top_m: number;
+}
+
 const prop: SceneryRule = { states: ["default"], footprint: { kind: "prop" } };
 
 /** A wreck's pieces: its burnt hull, and the turret a cook-off throws. */
 export const WRECK_PIECES = { hull: "hull", turret: "turret" } as const;
+
+/** The nodes a wreck's thrown debris lies under, in its `debris` state. */
+export const DEBRIS_NODE = "debris_";
 
 /** Every scenery kind. */
 export const SCENERY_KINDS: Record<string, SceneryRule> = {
@@ -59,7 +79,11 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   bridge_deck: prop,
   /** A tank's wreck may carry its pieces: a cook-off throws the turret clear
    *  of the hull before it lands where the wreck has it. */
-  wreck: { ...prop, pieces: [WRECK_PIECES.hull, WRECK_PIECES.turret] },
+  wreck: {
+    ...prop,
+    pieces: [WRECK_PIECES.hull, WRECK_PIECES.turret],
+    debris: { state: "debris", reach_m: 8, top_m: 1 },
+  },
   ruin: prop,
   fence: prop,
   sandbags: prop,

@@ -262,8 +262,9 @@ anything.
 - **Verdict:** decided by the user (2026-10-08): "yes, maybe debris that
   scattered can just disappear?" Debris may scatter wider than the hull, as
   presentation only, and fade out after it lands; the wreck's physical box
-  and cover don't grow. Not built yet: the next spec owns it (a debris
-  allowance outside the footprint check, and a fade for thrown pieces).
+  and cover don't grow. Built in [follow-up 02](#follow-up-02): a `debris`
+  state held to its own allowance, thrown by one helper, sinking away after a
+  hold.
 
 ### The NH90's width
 
@@ -1220,6 +1221,94 @@ family. No roster frame, mount or tolerance moved.
   stabiliser jacks, stowage, a ladder, tube rings and the firing cable.
 - **Verdict:** sound.
 - **Confidence:** medium.
+## Follow-up 02
+
+Wreck debris scatters and fades (2026-10-08). The user's decision: "yes,
+maybe debris that scattered can just disappear?" (see [the debris question](#may-a-wreck-scatter-debris-wider-than-its-hull)).
+Spec: [slice 02](../../unit-models-followup/slices/02-wreck-debris.md).
+
+### Debris is its own state of the wreck, not nodes inside the whole
+
+- **The choice:** A wreck appearance may carry a `debris` state
+  (`<appearance>_wreck_debris.glb`), every mesh of it under a `debris_*`
+  node (`SCENERY_KINDS.wreck.debris`, `DEBRIS_NODE`). The whole (`default`)
+  and the `hull`/`turret` pieces carry none, so the footprint check, which
+  measures whole states, leaves debris out by construction. The debris state
+  is held instead to its own allowance (`fit.debris`): no point more than
+  `reach_m` 8 m across the ground from the hull box, none above `top_m` 1 m,
+  and nothing that isn't under a `debris_*` node. Both numbers are tripwires
+  picked against the scatter (it lands 0.5-4 m clear, under 0.6 m tall), not
+  targets. The bundle keeps its kind's first state first, so a wreck's
+  impostor and sheet still show `default` although `debris` sorts before it.
+- **The gap:** The spec put `debris_*` nodes in the wreck and had the check
+  leave them out. A static state is merged into one mesh per tier, so the
+  renderer can't fade a node of it; only a state can be drawn apart.
+- **The reach:** A `debris_*` node left in the whole is simply part of the
+  whole: held to the footprint and never faded. That is safe (it can't read as
+  cover the box lacks), so it is not refused. The disabled cards' committed
+  wrecks still carry such in-footprint plates until their lanes re-export.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### One helper throws every family's debris, from what the vehicle carries
+
+- **The choice:** `wreckage.scatter(half, mats, seed)` throws pieces
+  0.5-4 m clear of the hull box (`THROW_GAP_M`), flat on the ground
+  (`LIFT_M` above it), never on each other, one per 3.5 m of the box's
+  perimeter within 3-7 (`PIECE_EVERY_M`, `PIECES`). What it throws comes
+  from the built scene: a run of track (as wide as the vehicle's own) off a
+  tracked hull, a wheel or two (its own radius) off a wheeled one, a blown
+  hatch or a door, armour packs, a stowage box, a jerrycan if it carries
+  any, torn plate; only torn plate off anything without running gear (an
+  airframe). Each piece hangs from its own root-level `debris_*` node, so a
+  wreck settled askew on its suspension doesn't lift it off the ground.
+  `vehicle_export` calls it for every family after the family's `wreck`
+  and before `burn`, seeded by the variant id, so no family places debris
+  and the disabled lanes get it by re-exporting. The test tank, jeep and
+  truck call it themselves (their scripts don't use `vehicle_export`) and
+  export the state with `--piece=debris`. `wreckage.cut_to(state)` is the
+  one owner of cutting the whole into `default`, `hull`, `turret` and
+  `debris`; `tank.py`'s own piece code went into it.
+- **The gap:** Families' own `debris_<k>` plates were litter beside or on
+  the hull, within the footprint ("pulled in" when tolerances couldn't
+  widen). They are renamed `litter_<k>` and stay as the wreck's own, so the
+  approved wrecks don't change; `debris_*` now means thrown. A plate left
+  named `debris_*` on a roof would be refused by the debris allowance (too
+  tall), which is how a disabled lane learns to rename it.
+- **Verdict:** sound.
+- **Confidence:** medium. The piece list is a first cut read from what a
+  film shows, not from each family's photos.
+
+### The cook-off owns the fade: debris lies, then sinks, as a corpse does
+
+- **The choice:** `effects/cookOff.ts` `debrisSink` is the one owner: no
+  debris before the ammunition goes, still through `hold_s` (20 s), then
+  sinking, easing in, over `fade_s` (4 s) until its top is under the ground,
+  then not drawn (`presentation.effects.cook_off.debris`). `cookOffs.ts`
+  `debrisModel` draws the `debris` state where the wreck lies, its top
+  sunk 0.15 m past the ground (`DEBRIS_BURIED_M`) so a slope still hides it;
+  the battle session keeps each watched cook-off's debris drawn after its
+  moving wreck hands over to the static wreck, until it is gone. The wreck
+  itself never fades. Sinking is how corpses already leave
+  (`corpses.sink_m`), so no translucent pass was added.
+- **The gap:** None in the contract; the hold and fade lengths are picks.
+- **The reach:** Only a death the side watched shows debris; a wreck found
+  later is bare, which is what a viewer arriving later would see after it
+  had "disappeared". A page restart or an earlier tick clears it.
+- **Verdict:** sound.
+- **Confidence:** medium. 20 s is long enough to read the scatter at the
+  moment and short enough not to be mistaken for cover in a firefight.
+
+### Merging with the other lanes
+
+- **The choice:** Every roster family's wreck was re-exported (40 wrecks,
+  byte-identical twice) with the test units' (also twice). The Stryker
+  Dragoon's wreck is among them, and slice 01 rebuilds the Dragoon: after
+  both merge, re-export `stryker.py --variant=us_stryker_m1296_dragoon
+  --wreck` and rebake. The disabled lanes re-export their wrecks through
+  `vehicle_export` and add each card's `debris` state to its catalog entry.
+- **Verdict:** sound.
+- **Confidence:** high.
 
 ## Not fixed here: failures that also happen on main
 

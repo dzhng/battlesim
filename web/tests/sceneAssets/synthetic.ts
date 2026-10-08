@@ -859,6 +859,15 @@ export function blockGlb(height = 6, lift = 0): Uint8Array {
   return b.glb();
 }
 
+/** A wreck's thrown debris: one slab from `min` to `max`, in every tier,
+ *  under a node named `node` (a `debris_*` node, unless told otherwise). */
+export function debrisGlb(min: Vec3, max: Vec3, node = "debris_pack"): Uint8Array {
+  const b = new GltfBuilder();
+  const slab = gBox(b, min, max);
+  b.roots(b.node({ name: node, children: [tieredPart(b, "slab", slab, 4)] }));
+  return b.glb();
+}
+
 /** A tree: a trunk and a crown whose top stands `height` metres up and
  *  reaches `radius` from the trunk's axis, four tiers. The trunk is a square
  *  post with the cross-section of a round bole of radius `bole`, standing at

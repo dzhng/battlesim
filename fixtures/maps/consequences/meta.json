@@ -8,6 +8,6 @@
   "tags": ["forest", "prop"],
   "source": "authored",
   "seed": null,
-  "encounters": ["consequences"],
+  "encounters": ["consequences", "cook-off"],
   "benchmarks": []
 }

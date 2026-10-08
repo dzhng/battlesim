@@ -72,6 +72,12 @@
     "map": "consequences"
   },
   {
+    "id": "cook-off",
+    "route": "/lab/cook-off",
+    "describe": "Cook-offs: a red tank and a red jeep destroyed by one order each; each brews up where it stood, its debris thrown wider than its wreck, lying for a while and then sinking away, while the wreck stays.",
+    "map": "consequences"
+  },
+  {
     "id": "deployment",
     "route": "/lab/deployment",
     "describe": "Reversible deployment: a supply truck sets up where it stands; deploy, pack, Stop and (queued) moves reverse one progress value with equal durations both ways; a ground ring and the panel show progress and the end state it heads to, and the folded pose follows progress.",

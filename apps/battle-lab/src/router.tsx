@@ -25,6 +25,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   contacts: lazy(() => import("./routes/contacts")),
   weapons: lazy(() => import("./routes/weapons")),
   consequences: lazy(() => import("./routes/consequences")),
+  "cook-off": lazy(() => import("./routes/cookOff")),
   deployment: lazy(() => import("./routes/deployment")),
   ambush: lazy(() => import("./routes/ambush")),
   garrison: lazy(() => import("./routes/garrison")),
