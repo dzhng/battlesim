@@ -320,7 +320,7 @@
       "id": "eastern_z_10_attack_helicopter",
       "family": "z_10",
       "category": "hel",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "z_10",
       "source_kind": "rotorcraft",
       "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
