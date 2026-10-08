@@ -59,6 +59,11 @@ def build(variant, v):
     A.rotor("tail", (-6.65, -0.24, 3.0), 1.4, 4, 0.24, m, hull, hub=0.13, mast=0.0, droop=0.0,
             rot=(math.pi / 2, 0, 0), thick=0.12)
 
+    # The PLA's star on the boom, a red number on the nose.
+    A.markings(v, [
+        ("insignia", dict(kind="cn_star", centre=(-3.5, 1.2, 1.68), normal=(0, 1, 0), up=(0, 0, 1), size=0.3, onto=("fuselage",))),
+        ("text", dict(text="07", height=0.36, centre=(4.2, 1.2, 1.4), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
+    ])
 
 def wreck(variant, v):
     A.crash(v, tail_x=-2.4, tail_yaw=-0.42, tail_drop=0.1, blades_broken=(("main", 3),), seed=10)
