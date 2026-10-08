@@ -766,12 +766,12 @@ def crash(v, tail_x, wing_y=None, wing_side=-1, tail_yaw=0.35, tail_drop=0.18, b
             k = int(o.name.split("_")[2])
             bend([o], hub + out * 0.6, axis, out, -(0.22 + 0.05 * (k % 3)))
     for k, (dx, dy, size) in enumerate(((0.2, 1.1, 0.6), (-0.35, -1.3, 0.5), (-0.1, 0.8, 0.45))):
-        plate(f"debris_{k}", [(-size, -size * 0.5), (size, -size * 0.6), (size * 0.8, size * 0.5),
+        plate(f"litter_{k}", [(-size, -size * 0.5), (size, -size * 0.6), (size * 0.8, size * 0.5),
                               (-size * 0.6, size * 0.7)], 0.03,
               (v.length * dx, v.width * 0.5 * dy, 0.03), (0.04 * k, -0.03, 0.7 + k * 1.3), m["paint"], v.root,
               curl=0.1, seed=seed + 71 + k)
     for rotor_name, k in blades_broken:
-        plate(f"blade_debris_{rotor_name}_{k}", [(-2.4, -0.12), (2.6, -0.1), (2.5, 0.14), (-2.3, 0.12)], 0.04,
+        plate(f"litter_blade_{rotor_name}_{k}", [(-2.4, -0.12), (2.6, -0.1), (2.5, 0.14), (-2.3, 0.12)], 0.04,
               (-v.length * 0.1 + k * 0.6, (1 if k % 2 else -1) * (v.width * 0.5 + 1.5 + k * 0.4), 0.04),
               (0, 0.02, 0.4 + k * 1.1), m["blade"], v.root, seed=seed + 91 + k)
     v.root.rotation_euler = (0.06 * (1 if seed % 2 else -1), 0.03, 0)
