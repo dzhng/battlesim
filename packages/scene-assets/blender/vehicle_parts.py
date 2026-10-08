@@ -149,16 +149,23 @@ def tyre_wheel(name, loc, radius, width, side, mats, parent, rim_radius=None, ct
     return node
 
 
-def road_wheel(name, loc, radius, width, side, mats, parent, bolts=6):
+def road_wheel(name, loc, radius, width, side, mats, parent, bolts=6, ribs=0):
     """A tracked vehicle's road wheel: a rubber tyre on a painted steel disc,
-    a hub and hub bolts on the outer face (`side` +1 left, -1 right). Node:
-    `wheel_*` empty, returned. Roles: rubber, paint, dark, steel."""
+    a hub and hub bolts on the outer face (`side` +1 left, -1 right), and
+    `ribs` radial stiffening ribs pressed into the disc (the Soviet pattern).
+    Node: `wheel_*` empty, returned. Roles: rubber, paint, dark, steel."""
     node = _wheel_node(name, loc, radius, parent)
     disc_width = width + 0.03
     cyl(name=f"{name}_tyre", r=radius, depth=width, axis="Y", mat=mats["rubber"], parent=node, seg=28)
     cyl(name=f"{name}_disc", r=radius * 0.82, depth=disc_width, axis="Y", mat=mats["paint"], parent=node, seg=24)
     cyl(name=f"{name}_hub", r=radius * 0.26, depth=width + 0.09, axis="Y", mat=mats["dark"], parent=node,
         seg=16, lods=MID)
+    for j in range(ribs):
+        angle = (j + 0.5) * math.tau / ribs
+        at = radius * 0.54
+        box(name=f"{name}_rib_{j}", size=(radius * 0.46, 0.03, 0.035),
+            loc=(at * math.cos(angle), side * (disc_width / 2 + 0.008), at * math.sin(angle)), rot=(0, -angle, 0),
+            mat=mats["paint"], parent=node, lods=NEAR)
     for j in range(bolts):
         angle = j * math.tau / bolts
         at = radius * 0.47
@@ -352,6 +359,107 @@ def track_loop(name, wheels, y, width, pitch, mats, parent, thickness=0.08):
 
     mesh_part(f"{name}_band", belt, mat=mats["track"], parent=node)
     return node
+
+
+def tracked_running_gear(mats, parent, track_y, track_w, road_x, road_z, road_r, road_w, sprocket_at,
+                         idler_at, returns=(), dual=True, bolts=8, ribs=0, teeth=12, arm=(0.48, 0.42), pitch=0.17,
+                         thickness=0.08):
+    """Both sides' running gear of a tracked vehicle, placed as the photos
+    show it: road wheels at `road_x` (centres at `road_z`, radius `road_r`,
+    `road_w` wide; `dual` adds the inner tyre on the same spinning node), each
+    on a trailing arm (`arm` = (length, droop in radians), or None), the drive
+    sprocket (`sprocket_at`) and the idler (`idler_at`) as (x, z, radius), the `returns` rollers as
+    (x, z, radius), and the belt wrapped round all of them (`track_loop`),
+    centred `track_y` out from the centre line and `track_w` wide. Nodes:
+    `wheel_{L,R}_{1..n}`, `wheel_{L,R}_sprocket`, `wheel_{L,R}_idler`,
+    `wheel_{L,R}_return_{k}` and `track_{L,R}`. Roles: rubber, paint, dark,
+    steel, track."""
+    for side, s in ((1, "L"), (-1, "R")):
+        wheels = []
+        out = side * (track_y + (road_w * 0.6 if dual else 0.0))
+        for k, x in enumerate(road_x):
+            node = road_wheel(f"wheel_{s}_{k + 1}", (x, out, road_z), road_r, road_w, side, mats, parent, bolts=bolts,
+                              ribs=ribs)
+            if dual:
+                cyl(f"wheel_{s}_{k + 1}_inner", road_r, road_w * 0.92, (0, -side * road_w * 1.2, 0), "Y",
+                    mats["rubber"], node, seg=24, lods=MID)
+            if arm is not None:
+                length, droop = arm
+                box(f"road_arm_{s}_{k}", (length, 0.10, 0.12),
+                    (x - length * 0.45, side * (track_y - track_w * 0.55), road_z + length * 0.25),
+                    mats["dark"], parent, rot=(0, droop, 0), lods=NEAR)
+            wheels.append((x, road_z, road_r))
+        x, z, r = sprocket_at
+        sprocket(f"wheel_{s}_sprocket", (x, side * track_y, z), r, track_w * 0.8, mats, parent, teeth=teeth)
+        x, z, r = idler_at
+        idler(f"wheel_{s}_idler", (x, side * track_y, z), r, track_w * 0.8, mats, parent)
+        wheels += [sprocket_at, idler_at]
+        for k, (x, z, r) in enumerate(returns):
+            return_roller(f"wheel_{s}_return_{k + 1}", (x, side * track_y, z), r, track_w * 0.6, mats, parent)
+            wheels.append((x, z, r))
+        track_loop(f"track_{s}", wheels, side * track_y, track_w, pitch, mats, parent, thickness=thickness)
+
+
+# ---------------------------------------------------------------- armour
+def armour_tiles(name, loc, size, grid, depth, mats, parent, gap=0.025, bolts=True, rot=(0, 0, 0), lods=ALL):
+    """A field of bolted armour tiles (explosive reactive armour, applique
+    modules) lying in the local XY plane on a face at `loc`, standing `depth`
+    proud along local +Z: `size` (x, y) of the whole field, `grid` (columns
+    along x, rows along y). Each tile is chunky and bevelled, with a bolt head
+    at each corner close up. Returns its meshes. Roles: paint, steel."""
+    cols, rows = grid
+    tx, ty = size[0] / cols, size[1] / rows
+    made = []
+    for i in range(cols):
+        for j in range(rows):
+            cx = -size[0] / 2 + tx * (i + 0.5)
+            cy = -size[1] / 2 + ty * (j + 0.5)
+            made += box(f"{name}_{i}_{j}", (tx - gap, ty - gap, depth), (cx, cy, depth / 2), mats["paint"], parent,
+                        bevel=min(0.02, depth * 0.3), lods=lods)
+            if bolts:
+                for k in range(4):
+                    bx = cx + (k % 2 - 0.5) * (tx - gap) * 0.7
+                    by = cy + (k // 2 - 0.5) * (ty - gap) * 0.7
+                    made += cyl(f"{name}_{i}_{j}_bolt_{k}", 0.018, 0.016, (bx, by, depth + 0.006), "Z", mats["steel"],
+                                parent, seg=6, lods=FINE)
+    return _place(made, loc, rot)
+
+
+def bolted_plate(name, loc, size, mats, parent, bolts=(3, 2), bevel=0.03, rot=(0, 0, 0), mat="paint", lods=ALL):
+    """An armour plate `size` (x, y, z) standing on its foot at `loc`, bolted
+    down by a `bolts` (along x, along y) grid of heads on its top face, the
+    plate's edges bevelled bold. Returns its meshes. Roles: paint (or `mat`),
+    steel."""
+    sx, sy, sz = size
+    made = box(f"{name}_plate", size, (0, 0, sz / 2), mats[mat], parent, bevel=bevel, lods=lods)
+    nx, ny = bolts
+    for i in range(nx):
+        for j in range(ny):
+            bx = (i + 0.5) / nx * sx * 0.86 - sx * 0.43
+            by = (j + 0.5) / ny * sy * 0.86 - sy * 0.43
+            made += cyl(f"{name}_bolt_{i}_{j}", 0.022, 0.018, (bx, by, sz + 0.007), "Z", mats["steel"], parent,
+                        seg=6, lods=FINE)
+    return _place(made, loc, rot)
+
+
+def slat_armour(name, loc, size, mats, parent, spacing=0.11, bar=0.022, rot=(0, 0, 0)):
+    """A bar (slat) armour panel standing in the local XZ plane at `loc` (its
+    foot's centre), `size` (x length, z height): a frame of two rails and two
+    end posts, vertical slats `spacing` apart between them. Returns its meshes.
+    Roles: paint, dark."""
+    sx, sz = size
+    made = []
+    for k, z in enumerate((bar, sz - bar)):
+        made += box(f"{name}_rail_{k}", (sx, bar * 2.2, bar * 2), (0, 0, z), mats["paint"], parent, bevel=0.006)
+    for k, x in enumerate((-sx / 2, sx / 2)):
+        made += box(f"{name}_post_{k}", (bar * 2.2, bar * 2.2, sz), (x, 0, sz / 2), mats["paint"], parent,
+                    bevel=0.006, lods=MID)
+    n = max(1, int(sx / spacing) - 1)
+    for j in range(n):
+        x = -sx / 2 + sx * (j + 1) / (n + 1)
+        made += box(f"{name}_slat_{j}", (bar, bar * 1.6, sz - bar * 3), (x, 0, sz / 2), mats["dark"], parent,
+                    lods=NEAR)
+    return _place(made, loc, rot)
 
 
 # ---------------------------------------------------------------- hull and turret fittings
