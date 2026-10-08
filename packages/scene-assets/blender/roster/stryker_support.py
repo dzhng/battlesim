@@ -87,18 +87,20 @@ def mortar_bay(v):
     120 mm's muzzle just under them, and the M2 ring on the commander's
     hatch instead of the remote station."""
     m, h = v.mats, v.hull
+    edge = S.side_face(S.ROOF)[1][0]
     for k, side in enumerate((1, -1)):
         VP.bolted_panel(f"bay_door_{k}", (-1.85, side * 0.55, S.ROOF), (2.6, 1.05, 0.06), m, h, bolts=(4, 2),
                         bevel=0.02, lods=VP.ALL)
-        cyl(f"bay_hinge_{k}", 0.035, 2.5, (-1.85, side * 1.10, S.ROOF + 0.04), "X", m["steel"], h, seg=10, lods=NEAR)
+        cyl(f"bay_hinge_{k}", 0.035, 2.5, (-1.85, side * (edge - 0.02), S.ROOF + 0.04), "X", m["steel"], h, seg=10,
+            lods=NEAR)
     box("bay_seam", (2.6, 0.04, 0.02), (-1.85, 0, S.ROOF + 0.07), m["black"], h, lods=NEAR)
     cyl("mortar_muzzle", 0.09, 0.30, (-1.0, 0, S.ROOF - 0.10), "Z", m["dark"], h, seg=16, rot=(0, -0.45, 0),
         lods=MID)
     ring = empty("dressing_commander_mg", parent=h)
-    cyl("mg_ring", 0.42, 0.06, (0.25, -0.72, S.ROOF + 0.08), "Z", m["dark"], ring, seg=24, lods=MID)
-    gun = empty("cupola_m2", loc=(0.45, -0.72, S.ROOF + 0.45), parent=ring)
+    cyl("mg_ring", 0.42, 0.06, (0.25, S.COMMANDER_Y, S.ROOF + 0.08), "Z", m["dark"], ring, seg=24, lods=MID)
+    gun = empty("cupola_m2", loc=(0.45, S.COMMANDER_Y, S.ROOF + 0.45), parent=ring)
     VP.browning_m2(gun, 1.30, m)
-    cyl("mg_post", 0.04, 0.35, (0.45, -0.72, S.ROOF + 0.25), "Z", m["steel"], ring, seg=10, lods=MID)
+    cyl("mg_post", 0.04, 0.35, (0.45, S.COMMANDER_Y, S.ROOF + 0.25), "Z", m["steel"], ring, seg=10, lods=MID)
 
 
 def build(variant, v):
@@ -113,9 +115,10 @@ def wreck(variant, v):
     doors blown open."""
     from wreckage import bend, parts, remove
     remove("hellfire_", "stinger_cap_")
+    edge = S.side_face(S.ROOF)[1][0]
     for k, side in enumerate((1, -1)):
         if parts(f"bay_door_{k}"):
-            bend(parts(f"bay_door_{k}"), (-1.85, side * 1.10, S.ROOF), (1, 0, 0), (0, 0, 1), side * 1.9)
+            bend(parts(f"bay_door_{k}"), (-1.85, side * edge, S.ROOF), (1, 0, 0), (0, 0, 1), side * 1.9)
     S.wreck(variant, v)
 
 
