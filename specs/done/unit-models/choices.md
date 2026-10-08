@@ -1552,6 +1552,10 @@ family. No roster frame, mount or tolerance moved.
   laser warners (`vehicle_parts.laser_warners`, now the one owner the
   Armatas use too), spare links across the nose, jerrycans and a deck box.
 
+  The Challenger 3: armour blocks over the front skirt sections, cheek
+  packs, two stowage bins down each turret flank, laser warners, spare
+  links across the nose and a jerrycan rack aft.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

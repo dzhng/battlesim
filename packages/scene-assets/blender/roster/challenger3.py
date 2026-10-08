@@ -77,6 +77,18 @@ def hull(v):
     VP.grille("engine_grille", (-2.95, 0, DECK), (1.40, 2.20), m, h, slats=12)
     VP.bolted_panel("engine_door", (-1.75, 0, DECK), (0.80, 2.20, 0.03), m, h, bolts=(2, 3), bevel=0.01, lods=MID)
     VP.slat_armour("rear_bars", (-half + 0.03, 0, 0.75), (3.30, 0.75), m, h, rot=(0, 0, math.pi / 2))
+    # The photos' armour and stowage beyond the hull: the front skirt
+    # sections' extra armour blocks, spare track links across the nose,
+    # jerrycans in their rack at the rear.
+    for side, s in ((1, "L"), (-1, "R")):
+        VP.armour_tiles(f"skirt_armour_{s}", (half - 1.75, side * SKIRT_Y, 0.78), (2.70, 0.62), (4, 2), 0.07, m, h,
+                        rot=(-side * math.pi / 2, 0, 0))
+        for k in range(2):
+            VP.jerrycan(f"jerrycan_{s}_{k}", (-half + 0.40, side * (0.95 + k * 0.38), DECK), dict(m, paint=m["dark"]), h,
+                        rot=(0, 0, math.pi / 2))
+    for k in range(5):
+        cyl(f"spare_link_{k}", 0.05, 0.55, (half - 0.20, -1.20 + k * 0.60, 1.02), "Y", m["track"], h, seg=8,
+            lods=NEAR)
     # The rear: its tail lights in their guards.
     for side, sd in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.7), DECK - 0.15), 0.05,
@@ -101,6 +113,14 @@ def turret(v, t, gun, hmg, hmg_gun):
     loft("turret_shell", [(base + 0.04, foot), (base + 0.40, [(x * 0.99, y) for x, y in foot]), (top, crown)],
          mat=m["paint"], parent=t, bevel=0.04)
     VP.roof_fittings("roof", crown, top, m, t, periscopes=((0.10, -1.05, -0.4),))
+    VP.laser_warners("laser_warner", crown, top, m, t)
+    for side, s in ((1, "L"), (-1, "R")):
+        # The cheeks' armour packs and the stowage bins down the flank's rear.
+        VP.armour_tiles(f"cheek_armour_{s}", (1.05, side * 1.10, base + 0.45), (0.50, 0.70), (1, 2), 0.07, m, t,
+                        rot=(0, math.pi / 2 - 0.20, side * -0.45))
+        for k in range(2):
+            VP.stowage_box(f"turret_bin_{s}_{k}", (-1.25 - k * 0.62, side * 1.56, base + 0.20), (0.58, 0.30, 0.48), m,
+                           t, rot=(0, 0, 0 if side > 0 else math.pi))
     for side, s in ((1, "L"), (-1, "R")):
         # Trophy: the radar panel and the launcher housing on each side.
         box(f"trophy_radar_{s}", (0.50, 0.08, 0.40), (0.20, side * 1.58, base + 0.55), m["dark"], t, bevel=0.02,
