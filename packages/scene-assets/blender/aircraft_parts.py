@@ -121,6 +121,8 @@ INSIGNIA = {
     "cn_star": [(_rect(-1.0, -0.24, 1.0, 0.24), 1.0, (0, 0), "yellow"), (_rect(-0.97, -0.2, 0.97, 0.2), 1.0,
                                                                          (0, 0), "red"),
                 (_star(), 0.58, (0, 0), "yellow"), (_star(), 0.52, (0, 0), "red")],
+    # The PLA's star alone, as on a fin.
+    "cn_fin": [(_star(), 1.0, (0, 0), "yellow"), (_star(), 0.88, (0, 0), "red")],
     # The roundels, outer ring first.
     "uk_lowvis": [(DISC, 1.0, (0, 0), "pale_blue"), (DISC, 0.45, (0, 0), "pale_red")],
     # The fin flash, red aft of blue.
