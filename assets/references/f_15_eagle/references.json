@@ -1,0 +1,85 @@
+{
+ "entries": [
+  {
+   "file": "us_f_15_eagle_f_15e_strike_eagle-side.jpg",
+   "variant": "us_f_15_eagle_f_15e_strike_eagle",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:88-1682_United_States_Air_Force_F-15E_Strike_Eagle_(7970309124).jpg",
+   "author": "Kurush Pawar from Dubai, United Arab Emirates",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "a5aa6d06c665c507add1f96f17f572f560ffb470690de7734a188f4bda687f92",
+   "note": "F-15E left side on the taxiway: two-seat canopy, conformal fuel tanks along the intakes, twin fins, gunship grey"
+  },
+  {
+   "file": "us_f_15_eagle_f_15e_strike_eagle-front.jpg",
+   "variant": "us_f_15_eagle_f_15e_strike_eagle",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:A_U.S._Air_Force_F-15E_Strike_Eagle,_assigned_to_the_335th_Expeditionary_Fighter_Squadron_taxis_during_a_routine_agile_combat_employment_exercise_at_an_undisclosed_location_in_Southwest_Asia,_Aug._15,_2022.jpg",
+   "author": "Staff Sgt. Christian Sullivan",
+   "licence": "public-domain",
+   "sha256": "4e2e4b42c979895513d6d113cac5c50b56a9df47069c3a073154ec0ffacebae1",
+   "note": "F-15E head-on: box intakes either side, wing tanks, twin fins, gear stance"
+  },
+  {
+   "file": "us_f_15_eagle_f_15e_strike_eagle-three_quarter_front.jpg",
+   "variant": "us_f_15_eagle_f_15e_strike_eagle",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:A_48th_Fighter_Wing_F-15E_Strike_Eagle,_RAF_Lakenheath,_lines_up_on_the_taxi_way_preparing_to_move_to_the_runway_for_takeoff_in_support_of_Operation_ENDURING_FREEDOM_-_DPLA_-_2d8ecb89cf236935ee2d709e6d4a8a6e.jpeg",
+   "author": "Department of Defense. American Forces Information Service. Defense Visual Information Center. 1994",
+   "licence": "public-domain",
+   "sha256": "80ea3eb97122172205d34ad95ad4cb6a7381a6ddc2a879f3b29fc0a7616b85d1",
+   "note": "F-15E front-right three-quarter at a shelter with crew: CFTs, intakes, gear"
+  },
+  {
+   "file": "us_f_15_eagle_f_15e_strike_eagle-three_quarter_rear.jpg",
+   "variant": "us_f_15_eagle_f_15e_strike_eagle",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:USAF_F-15E_taxis_along_the_flightline_at_the_Tinian_International_Airport.jpg",
+   "author": "U.S. Air Force photo by Tech. Sgt. Benjamin Sutton",
+   "licence": "public-domain",
+   "sha256": "e79ee6c611ff5f1ee9bab7c88c71130e082b4855ffd52c075da21b1c0b36b3da",
+   "note": "F-15E rear-left three-quarter taxiing: twin F100 nozzles between the tail booms, fins, stabilators"
+  },
+  {
+   "file": "us_f_15_eagle_f_15ex_eagle_ii-three_quarter_front.jpg",
+   "variant": "us_f_15_eagle_f_15ex_eagle_ii",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:142nd_Wing_F-15EX_Eagle_II_Unveiling_Ceremony_at_the_Portland_Air_National_Guard_Base,_Oregon_on_July_12,_2024_-_37.jpg",
+   "author": "Oregon National Guard",
+   "licence": "CC-BY-2.0",
+   "sha256": "82309fcd53a9949fe1d339e3d173ec2e30f65071703388e553f3d1f0df095058",
+   "note": "F-15EX Eagle II front-left three-quarter at its unveiling: two-tone grey, single-seat-style canopy with rear seat, CFTs"
+  },
+  {
+   "file": "us_f_15_eagle_f_15ex_eagle_ii-side.jpg",
+   "variant": "us_f_15_eagle_f_15ex_eagle_ii",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:142nd_Wing_F-15EX_Eagle_II_Unveiling_Ceremony_at_the_Portland_Air_National_Guard_Base,_Oregon_on_July_12,_2024_-_41.jpg",
+   "author": "Oregon National Guard",
+   "licence": "CC-BY-2.0",
+   "sha256": "e5f12b574f9044b86374f59bf64c77a3664ce2db7dbcff8b999f7c6456979ca3",
+   "note": "F-15EX Eagle II left side: twin fins, CFTs, nozzles; two-tone compass grey"
+  },
+  {
+   "file": "us_f_15_eagle_f_15ex_eagle_ii-top.jpg",
+   "variant": "us_f_15_eagle_f_15ex_eagle_ii",
+   "view": "top",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:F-15EX_Eagle_II.jpg",
+   "author": "Ethan Wagner",
+   "licence": "public-domain",
+   "sha256": "96f28dd56c47d005dfe2bed6da07b7d76dbff145240b3e9b82306b50ca1a56dc",
+   "note": "F-15EX Eagle II from above-right in flight: wing and stabilator planform, fins, CFTs"
+  }
+ ],
+ "gaps": [
+  "us_f_15_eagle_f_15e_strike_eagle: no top view or gear-bay detail; planform taken from the EX's top view (same airframe)",
+  "us_f_15_eagle_f_15ex_eagle_ii: no rear or three-quarter-rear view; nozzles from the E's"
+ ]
+}
