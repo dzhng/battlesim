@@ -169,7 +169,7 @@ def _lay(points, centre, normal, up, size, tree, lift):
     out = []
     for u, w in points:
         p = Vector(centre) + eu * (u * size) + ev * (w * size)
-        hit = tree.ray_cast(p + n * 1.5, -n, 3.0)[0] if tree else None
+        hit = tree.ray_cast(p + n * 1.5, -n, 8.0)[0] if tree else None
         out.append((hit if hit is not None else p) + n * lift)
     return out
 
