@@ -2,7 +2,6 @@
   "schema_version": 1,
   "description": "Model production registry for roster cards that are intentionally disabled. This manifest never admits a unit or supplies a runtime appearance; the resolved catalog remains authoritative for mechanics and disabled_reason.",
   "model_statuses": {
-    "source_authored": "A family blockout from roster/disabled_placeholders.py, not built from references.",
     "reference_built": "Rebuilt from its committed references (assets/references/<source_family>/) by its family exporter, with its own wreck and tiers."
   },
   "entries": [
