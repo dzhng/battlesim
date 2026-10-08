@@ -1,0 +1,52 @@
+{
+ "entries": [
+  {
+   "file": "europe_nasams_nasams_3-three_quarter_front.jpg",
+   "variant": "europe_nasams_nasams_3",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ADutch_NASAMS_launcher.jpg",
+   "author": "unknown (Commons file page)",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "ffbc4e265f4804c9b610f20fbb973efaeb3a36329326ff34d4ceef849578319d",
+   "note": "NASAMS canister launcher on its trailer, front quarter: six AMRAAM canisters in two rows raised on the turntable, the levelling legs out."
+  },
+  {
+   "file": "europe_nasams_nasams_3-side.jpg",
+   "variant": "europe_nasams_nasams_3",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ANASAMS_launcher_Mk2_in_Ductch_service_2.jpg",
+   "author": "Defencie Nederlands",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "4e0347c92695ac29cdb968869f0afbb8c4944e2df5a3f0347c60617cefe7a88b",
+   "note": "Side quarter in a forest emplacement."
+  },
+  {
+   "file": "europe_nasams_nasams_3-front.jpg",
+   "variant": "europe_nasams_nasams_3",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ANasams_launcher_vliegbasis_valkenburg_NSS.jpg",
+   "author": "Ministerie van Defensie",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "db4ac7e6f0f13da17067556a82f69b95607ececf43d1d4bb4151bb86bc29d8de",
+   "note": "Front on: the canister faces, the trailer's legs."
+  },
+  {
+   "file": "europe_nasams_nasams_3-three_quarter_rear.jpg",
+   "variant": "europe_nasams_nasams_3",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ASisu_E13TP_military_truck_and_NASAMS_II_missile_launcher_in_Oulu_20231206_001.jpg",
+   "author": "Mikko J. Putkonen (Methem)",
+   "licence": "CC-BY-4.0",
+   "sha256": "0232b0e2646bb77986b3164258782263c6fa50de86536ebd59cec6f9c5de50ec",
+   "note": "A Finnish NASAMS II launcher on its trailer behind its truck, rear quarter in snow."
+  }
+ ],
+ "gaps": [
+  "europe_nasams_nasams_3: the photos are NASAMS 2 launchers (Dutch, Finnish); the NASAMS 3 launcher keeps the six-canister layout",
+  "europe_nasams_nasams_3: every photo shows the canisters raised; the stowed pack is a guess"
+ ]
+}

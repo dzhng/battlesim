@@ -45,5 +45,7 @@
    "note": "The crew loading the 120 mm in the bay, hatches folded out."
   }
  ],
- "gaps": []
+ "gaps": [
+  "us_m1129_stryker_mortar_120_mm_mortar_carrier: no front quarter; the hull follows the Stryker references (assets/references/stryker/)"
+ ]
 }
