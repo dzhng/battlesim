@@ -65,6 +65,18 @@ export run](vehicle_export.py) does the rest the same way for every family:
 variants and frames, materials by role, mount rigs, crew, tiers, wreck and
 export.
 
+A disabled card has no unit type, so it has no catalog frame: its family
+script states each card's length, width and height from its references, and
+`vehicle_export.run_disabled` builds it to that frame
+(`catalog_frames.disabled_variant`), refuses a model that strays from it, and
+records the frame's source in the family's receipt beside the cards' GLBs in
+`assets/source/roster/disabled/`. Aircraft and rotorcraft parts (fuselages,
+flying surfaces, canopies, intakes, nozzles, gear, stores, rotors, skids) and
+the crash every airframe's wreck starts from have [their own
+owner](aircraft_parts.py) beside the vehicle parts. A rotorcraft's frame leaves
+its blades out (`blade_*`): length nose to tail, width over the widest fixed
+part, height to the top of the rotor head.
+
 Every vehicle has its own wreck. A roster exporter given `--wreck` writes its
 vehicle's wreck beside the live one (`<appearance>_wreck.glb`, and
 `_hull`/`_turret` pieces where it has a turret to throw), burnt through

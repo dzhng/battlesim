@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-three_quarter_front.jpg",
+   "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:A-10C_Thunderbolt_II.jpg",
+   "author": "Ryan Callaghan",
+   "licence": "public-domain",
+   "sha256": "e15509e7e89bb26935fc58ec6862e76cadeffcce3310cc356fd51d6648e1eb8a",
+   "note": "A-10C front-right three-quarter on the ramp, mountains behind: shark-mouth nose, GAU-8 muzzle, pod-mounted engines, twin fins, gear pods"
+  },
+  {
+   "file": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-side.jpg",
+   "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Fairchild_Republic_A-10C_Thunderbolt_II_Taxi_Out_06_TICO_13March2010_(14413025007).jpg",
+   "author": "Valder137",
+   "licence": "CC-BY-2.0",
+   "sha256": "50ea3a016f83890aba6801ed747300a08fcb8b3c53ad966bbc9b36ea836359b2",
+   "note": "A-10C left side taxiing: straight wing, engines high on the rear fuselage, twin fins on the tailplane"
+  },
+  {
+   "file": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-front.jpg",
+   "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:A-10C_Thunderbolt_II_Takes-off_to_Setermoen_Range_2.jpg",
+   "author": "Enjoli Saunders",
+   "licence": "public-domain",
+   "sha256": "5e805d3181900bcbd412557b0e300d601ad1e16078898c44205ad653e3a25d1a",
+   "note": "A-10C head-on in rain: straight wing with drooped tips, engine nacelles, gear in wing pods"
+  },
+  {
+   "file": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-three_quarter_rear.jpg",
+   "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:75th_EFGS_Launches_A-10_Thunderbolt_II_Aircraft_(9487325).jpg",
+   "author": "U.S. Air Force photo by Senior Airman Jonah Bliss",
+   "licence": "public-domain",
+   "sha256": "ab6cfc49d4ccbe1dcb1656dbb77527908e8d6794aa2df219020b4c0aa11051b7",
+   "note": "A-10C rear-left three-quarter: engines' exhausts, twin fins and tailplane"
+  },
+  {
+   "file": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed-detail.jpg",
+   "variant": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Additional_A-10s_enhance_operations_in_the_Middle_East_(8736978).jpg",
+   "author": "U.S. Air Force AFCENT by Airman 1st Class Zeeshan Naeem",
+   "licence": "public-domain",
+   "sha256": "cca4c65a0982056c46778106377d41cd11f27b2d86305742f16dbdfc3d47a0a3",
+   "note": "A-10C nose and cockpit detail: armoured tub, bubble canopy, gun bay"
+  }
+ ],
+ "gaps": [
+  "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed: no top view (planform from the head-on and side shots and published span); stores vary by sortie"
+ ]
+}

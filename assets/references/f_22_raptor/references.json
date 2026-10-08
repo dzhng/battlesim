@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "us_f_22_raptor_f_22a-side.jpg",
+   "variant": "us_f_22_raptor_f_22a",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:F-22_Raptor_taxis,_Nellis_AFB_-_070903-F-6911G-024.jpg",
+   "author": "U.S. Air Force photo by Tech. Sgt. Kevin J. Gruenwald",
+   "licence": "public-domain",
+   "sha256": "7ed6d0671897fea24aa3e46dd0c708aaf3fb3f38a78dd9835b0fc872b3396b46",
+   "note": "F-22A left side taxiing at Nellis: chined nose, canopy, canted fins, trapezoid wing, gear"
+  },
+  {
+   "file": "us_f_22_raptor_f_22a-front.jpg",
+   "variant": "us_f_22_raptor_f_22a",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Lockheed_Martin_F-22_Raptor_%2705-095_-_TY%27_%2795FS%27_(26507684472).jpg",
+   "author": "Alan Wilson from Stilton, Peterborough, Cambs, UK",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "d9eecf95f1891726ecb19061181c1c55da6837f522aa1b703cff0917b477120d",
+   "note": "F-22A head-on: diamond caret intakes, canted fins, gear stance"
+  },
+  {
+   "file": "us_f_22_raptor_f_22a-three_quarter_front.jpg",
+   "variant": "us_f_22_raptor_f_22a",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:F-22_Raptor_at_Red_Flag_Alaska_-_090727-F-9586T-102.JPG",
+   "author": "U.S. Air Force photo by Senior Airman Laura Turner",
+   "licence": "public-domain",
+   "sha256": "080d7fa36ff486d467d2d5a2ff8eeab67a2a879a07abadcc7c16ce1182e7b41a",
+   "note": "F-22A front-left three-quarter at Red Flag Alaska: intakes, canopy, fins, stabilators"
+  },
+  {
+   "file": "us_f_22_raptor_f_22a-three_quarter_rear.jpg",
+   "variant": "us_f_22_raptor_f_22a",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Lockheed-Martin_F-22A-30-LM_Raptor_05-099_LSideRear_Dawn_SNF_04April2014_(14399676690).jpg",
+   "author": "Valder137",
+   "licence": "CC-BY-2.0",
+   "sha256": "c1522782d403d9fc7a15c13cc296d5f824c01fce99a800eddf2c8224fd9ceee0",
+   "note": "F-22A rear-left three-quarter at dawn: two-dimensional thrust-vectoring nozzles, tail booms, fins"
+  },
+  {
+   "file": "us_f_22_raptor_f_22a-rear.jpg",
+   "variant": "us_f_22_raptor_f_22a",
+   "view": "rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:F22_Parked.jpg",
+   "author": "U.S. Air Force photo by Capt. Dale Greer",
+   "licence": "public-domain",
+   "sha256": "89bc995862bb72354e8f0795f69856a99087e7a3401a51185721b64f2ab99eb0",
+   "note": "F-22A straight rear, parked: 2D nozzles, fins, stabilators"
+  }
+ ],
+ "gaps": [
+  "us_f_22_raptor_f_22a: no top view (planform from published three-view proportions); no weapon-bay or gear-bay detail"
+ ]
+}

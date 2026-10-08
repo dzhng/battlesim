@@ -8,10 +8,14 @@
 // same bytes: `asset icons` writes it and `asset check` and a vitest compare.
 
 import { vec3, type Mat4 } from "math";
+import { buildArticulated } from "./build.ts";
+import { lfsPointerOid } from "./glb.ts";
 import { articulatedWorlds, poseWorlds, skinPositions } from "./pose.ts";
+import { importScene } from "./scene.ts";
 import { readBundle, readTexture, type ReadRuntime } from "./gzip.ts";
 import {
   type ArticulatedBundle,
+  type ArticulatedNode,
   type Bundle,
   type RuntimeCatalog,
   type SkeletonClips,
@@ -82,10 +86,7 @@ export function unitSolids(
   if (units.hull(id)) {
     const found = lookup(type.appearance ?? "");
     if (found?.bundle.kind !== "articulated") return null;
-    const worlds = articulatedWorlds(found.bundle.nodes);
-    return found.bundle.nodes.map((node, i) =>
-      placed(node.tiers[0].positions, worlds[i], 0, node.tiers[0].indices),
-    );
+    return articulatedSolids(found.bundle.nodes);
   }
   const solids: Solid[] = [];
   const slots = units.slots(id).slice(0, SQUAD_FIGURES);
@@ -105,6 +106,38 @@ export function unitSolids(
     solids.push(placed(skinned, null, shift, bundle.tiers[0].indices));
   }
   return solids;
+}
+
+/** A hull's finest tier, each node where its rest pose puts it. */
+function articulatedSolids(nodes: ArticulatedNode[]): Solid[] {
+  const worlds = articulatedWorlds(nodes);
+  return nodes.map((node, i) =>
+    placed(node.tiers[0].positions, worlds[i], 0, node.tiers[0].indices),
+  );
+}
+
+/** What `disabledLookup` reads of `fixtures/units/model-manifest.json`. */
+export interface DisabledManifest {
+  entries: { id: string; source_path: string }[];
+}
+
+/** Each disabled card's silhouette solids, by card id, from its source model
+ *  (`source_path`, read by `read` from the repository root): a disabled
+ *  card has no unit type and no baked bundle. A card whose source is an
+ *  unpulled LFS pointer, or doesn't build, has none. */
+export async function disabledLookup(
+  manifest: DisabledManifest,
+  read: (path: string) => Promise<Uint8Array>,
+): Promise<(id: string) => Solid[] | null> {
+  const found = new Map<string, Solid[]>();
+  for (const { id, source_path } of manifest.entries) {
+    const bytes = await read(source_path);
+    if (lfsPointerOid(bytes)) continue;
+    const { scene } = importScene(bytes, source_path, 0);
+    const built = scene && buildArticulated(scene, source_path).built;
+    if (built) found.set(id, articulatedSolids(built.nodes));
+  }
+  return (id) => found.get(id) ?? null;
 }
 
 function placed(

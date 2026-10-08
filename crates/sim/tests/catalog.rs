@@ -16,6 +16,7 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
     #[derive(serde::Deserialize)]
     struct Manifest {
         schema_version: u32,
+        model_statuses: std::collections::BTreeMap<String, String>,
         entries: Vec<Entry>,
     }
     #[derive(serde::Deserialize)]
@@ -27,6 +28,7 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
         source_family: String,
         source_kind: String,
         disabled_reason: String,
+        source_path: String,
     }
 
     let path = sim::fixtures::dir().join("units/model-manifest.json");
@@ -56,7 +58,15 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
             entry.category,
             format!("{:?}", card.roster.category).to_lowercase()
         );
-        assert!(!entry.model_status.is_empty());
+        assert!(
+            manifest.model_statuses.contains_key(&entry.model_status),
+            "{}: model_status {:?} is not one of the manifest's model_statuses",
+            entry.id,
+            entry.model_status
+        );
+        if let Err(why) = disabled_source(&entry.source_path) {
+            panic!("{}: {why}", entry.id);
+        }
         assert!(!entry.source_family.is_empty());
         assert!(!entry.source_kind.is_empty());
         assert_eq!(Some(entry.disabled_reason.as_str()), card.disabled_reason);
@@ -68,6 +78,50 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
     }
     assert_eq!(seen.len(), disabled.len());
     assert_eq!(seen, disabled.keys().cloned().collect());
+}
+
+/// A disabled card's source model: present at its `source_path`, and a
+/// binary glTF (version 2) whose JSON names meshes and a scene, or the Git
+/// LFS pointer to one in a checkout that has not pulled it. `asset validate`
+/// judges the model itself.
+fn disabled_source(source_path: &str) -> Result<(), String> {
+    let path = sim::fixtures::dir().parent().unwrap().join(source_path);
+    let bytes = std::fs::read(&path).map_err(|e| format!("{source_path}: {e}"))?;
+    if bytes.starts_with(b"version https://git-lfs.github.com/spec/v1") {
+        let text = String::from_utf8_lossy(&bytes);
+        return if text.lines().any(|l| l.starts_with("oid sha256:")) && text.contains("\nsize ") {
+            Ok(())
+        } else {
+            Err(format!("{source_path}: a malformed Git LFS pointer"))
+        };
+    }
+    let word = |at: usize| {
+        bytes
+            .get(at..at + 4)
+            .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+    };
+    if bytes.get(0..4) != Some(b"glTF") || word(4) != Some(2) || word(16) != Some(0x4E4F534A) {
+        return Err(format!(
+            "{source_path}: not a binary glTF 2.0 with its JSON chunk first"
+        ));
+    }
+    let length = word(12).unwrap() as usize;
+    let json: Value = bytes
+        .get(20..20 + length)
+        .and_then(|chunk| serde_json::from_slice(chunk).ok())
+        .ok_or_else(|| format!("{source_path}: its JSON chunk does not parse"))?;
+    let named = |key: &str| json[key].as_array().is_some_and(|a| !a.is_empty());
+    if named("meshes") && named("scenes") {
+        Ok(())
+    } else {
+        Err(format!("{source_path}: draws no mesh in a scene"))
+    }
+}
+
+#[test]
+fn a_disabled_source_that_is_missing_or_not_a_model_is_refused() {
+    assert!(disabled_source("assets/source/roster/disabled/no_such_card.glb").is_err());
+    assert!(disabled_source("fixtures/units/model-manifest.json").is_err());
 }
 
 /// The test fixture with the M1 family's catalog document and the

@@ -113,7 +113,9 @@ def build(e):
     os.makedirs(OUT,exist_ok=True); path=os.path.join(OUT,e['id']+'.glb'); bpy.ops.export_scene.gltf(filepath=path,export_format='GLB',export_apply=True)
     return path
 
+# Only the cards still on their blockout: a rebuilt card's family exporter owns its model.
 m=json.load(open(MANIFEST))
-for e in m['entries']:
+todo=[e for e in m['entries'] if e['model_status']=='source_authored']
+for e in todo:
     build(e)
-print('EXPORTED',len(m['entries']))
+print('EXPORTED',len(todo))

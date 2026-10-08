@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "europe_eurofighter_typhoon_tranche_3-side.jpg",
+   "variant": "europe_eurofighter_typhoon_tranche_3",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Eurofighter_Typhoon_FGR.4_%E2%80%98ZK313%E2%80%99_(30684520572).jpg",
+   "author": "Alan Wilson from Stilton, Peterborough, Cambs, UK",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "97626a6d615cb6b0a94f118416f57b3dcd75de0752730b83e97c5ad082dc01b7",
+   "note": "Typhoon left side taxiing: canards under the cockpit, chin intake, delta wing, single fin"
+  },
+  {
+   "file": "europe_eurofighter_typhoon_tranche_3-three_quarter_front.jpg",
+   "variant": "europe_eurofighter_typhoon_tranche_3",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Eurofighter_Typhoon_GAF_30%2B45_taxiing_at_Holzdorf_AB_2024.JPG",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0-DE",
+   "sha256": "c80367b5c7d0c7e104714453435f981a70786b5dbb4f129b6442431e40596900",
+   "note": "Typhoon front-left three-quarter (Luftwaffe): chin intake with its lip, canards, wing tanks"
+  },
+  {
+   "file": "europe_eurofighter_typhoon_tranche_3-front.jpg",
+   "variant": "europe_eurofighter_typhoon_tranche_3",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Triple_Nickel_conducts_training_with_Italian_Eurofighter_Typhoons_(8241122).jpg",
+   "author": "U.S. Air Force photo by Airman 1st Class Joseph Bartoszek",
+   "licence": "public-domain",
+   "sha256": "4ab9c8bb3dca29040874f1732aba24f9a8088db6b0047003ea5e9aa46d316b95",
+   "note": "Typhoon head-on at night with lights: intake, canards, delta wing, gear"
+  },
+  {
+   "file": "europe_eurofighter_typhoon_tranche_3-three_quarter_rear.jpg",
+   "variant": "europe_eurofighter_typhoon_tranche_3",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:601093_German_air_force_Eurofighter_Typhoon_at_Eielson_Air_Force_Base,_Alaska_(2012).jpg",
+   "author": "TSgt Michael Holzworth, USAF",
+   "licence": "public-domain",
+   "sha256": "13d1d448585902742710e5c25e598120c727c29dd24e57178b7991dd86b7ea4c",
+   "note": "Typhoon rear-left three-quarter: twin EJ200 nozzles, fin, delta trailing edge"
+  },
+  {
+   "file": "europe_eurofighter_typhoon_tranche_3-detail.jpg",
+   "variant": "europe_eurofighter_typhoon_tranche_3",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Eurofighter_Typhoon_FGR4_ZJ934_QO-T_(9418936354).jpg",
+   "author": "Alan Wilson",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "b67966a140b562af42c70934e39b708981cac216c42ceba9ed46d7f62acc6ffa",
+   "note": "Typhoon nose detail: canopy, canard, intake lip, nose gear"
+  }
+ ],
+ "gaps": [
+  "europe_eurofighter_typhoon_tranche_3: no top view (planform from published figures); Tranche 3 shares the earlier tranches' outline"
+ ]
+}

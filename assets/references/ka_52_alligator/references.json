@@ -1,0 +1,73 @@
+{
+ "entries": [
+  {
+   "file": "eastern_ka_52_alligator_ka_52m-three_quarter_front-2.jpg",
+   "variant": "eastern_ka_52_alligator_ka_52m",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Kamov_Ka-52,_MAKS-2009.jpg",
+   "author": "Newsted",
+   "licence": "CC-BY-2.0",
+   "sha256": "160cd30e2435af4ff68e5d9b0c773c8edcea1ac02da88ce1bd7223fcaab9e8a7",
+   "note": "Ka-52 front-left three-quarter static at MAKS 2009: side-by-side cockpit, coaxial rotors, wing stores"
+  },
+  {
+   "file": "eastern_ka_52_alligator_ka_52m-side.jpg",
+   "variant": "eastern_ka_52_alligator_ka_52m",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Ka-52_-_MAKS2013firstpix12.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "6bd92804f14063f2c223e90fc570d74bc24ad55800c9278ece103e49e4795ee3",
+   "note": "Ka-52 left side static at MAKS 2013: tail fins, wheels, cannon on the right flank side"
+  },
+  {
+   "file": "eastern_ka_52_alligator_ka_52m-front.jpg",
+   "variant": "eastern_ka_52_alligator_ka_52m",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Kamov_Ka-52_at_the_MAKS-2013_(02).jpg",
+   "author": "Doomych",
+   "licence": "public-domain",
+   "sha256": "d8e0fb5e98b2e95037e0c7f42c20cd3d2f5de4916328bb28a573e428ad21db29",
+   "note": "Ka-52 head-on static: nose radome, wings, gear"
+  },
+  {
+   "file": "eastern_ka_52_alligator_ka_52m-three_quarter_rear.jpg",
+   "variant": "eastern_ka_52_alligator_ka_52m",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Ka-52_Attack_Helicopter_(1).jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "8ffd7b554a7917109b598095344487c5aa35c4c2d625ada77092b6153ae82aa2",
+   "note": "Ka-52 rear three-quarter static: tail, stabiliser fins, exhausts"
+  },
+  {
+   "file": "eastern_ka_52_alligator_ka_52m-detail.jpg",
+   "variant": "eastern_ka_52_alligator_ka_52m",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Ka-52_Attack_Helicopter_(4).jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "5e8ff05e6e63bd5fbdcf65cc789bd6a6171cdb78118345432e9bd6256a9c436d",
+   "note": "Ka-52 nose and cockpit close up: sensor ball, canopy"
+  },
+  {
+   "file": "eastern_ka_52_alligator_ka_52m-side-2.jpg",
+   "variant": "eastern_ka_52_alligator_ka_52m",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Russian_Air_Force_Kamov_Ka-52_Maksimov.jpg",
+   "author": "Maxim Maksimov",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "73660fd77b013cb76e37900ee878cf30828009b690a4c1766a89c14468bd6cf5",
+   "note": "Ka-52 left side in flight with stores"
+  }
+ ],
+ "gaps": [
+  "eastern_ka_52_alligator_ka_52m: photos are Ka-52s of several standards; the M's nose radar drawn from published images; no top view"
+ ]
+}

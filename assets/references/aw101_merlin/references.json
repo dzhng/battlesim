@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "europe_aw101_merlin_hc4-side.jpg",
+   "variant": "europe_aw101_merlin_hc4",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:A2663-UnitedKingdom-Merlin-ZJ130-RIAT2013.JPG",
+   "author": "MilborneOne",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "80058bbe393e5ac11e9b2735248dc4457f9e0073d1ed0e51fd29a6cc80edb923",
+   "note": "Merlin left side static: long cabin, sponsons, three engines, tail pylon"
+  },
+  {
+   "file": "europe_aw101_merlin_hc4-three_quarter_front.jpg",
+   "variant": "europe_aw101_merlin_hc4",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:EGVA_-_AgustaWestland_Merlin_HC3_-_Royal_Air_Force_-_ZJ130_O_(43240420344).jpg",
+   "author": "Steve Lynes from Sandshurst, United Kingdom",
+   "licence": "CC-BY-2.0",
+   "sha256": "80058bbe393e5ac11e9b2735248dc4457f9e0073d1ed0e51fd29a6cc80edb923",
+   "note": "Merlin front-right three-quarter static on the apron"
+  },
+  {
+   "file": "europe_aw101_merlin_hc4-front.jpg",
+   "variant": "europe_aw101_merlin_hc4",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Agusta_Westland_AW101_Merlin_HC.3A.jpg",
+   "author": "Adrian ...",
+   "licence": "CC-BY-2.0",
+   "sha256": "80058bbe393e5ac11e9b2735248dc4457f9e0073d1ed0e51fd29a6cc80edb923",
+   "note": "Merlin head-on in flight"
+  },
+  {
+   "file": "europe_aw101_merlin_hc4-three_quarter_rear.jpg",
+   "variant": "europe_aw101_merlin_hc4",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Westland_Merlin_HC3_(7568960614).jpg",
+   "author": "Ronnie Macdonald from Chelmsford, United Kingdom",
+   "licence": "CC-BY-2.0",
+   "sha256": "80058bbe393e5ac11e9b2735248dc4457f9e0073d1ed0e51fd29a6cc80edb923",
+   "note": "Merlin rear-left three-quarter static: ramp, tail pylon"
+  }
+ ],
+ "gaps": [
+  "europe_aw101_merlin_hc4: photos are the HC3/HC3A the HC4 was converted from (the HC4 adds folding blades and tail, a new cockpit; outwardly alike); no top view"
+ ]
+}

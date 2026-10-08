@@ -105,3 +105,29 @@ test("clicking a unit family immediately arms its first available variant", () =
   fireEvent.click(view.getByRole("button", { name: "M1 Abrams" }));
   expect(choose).toHaveBeenCalledExactlyOnceWith("base");
 });
+
+test("an unavailable family shows its card's silhouette, marked unavailable and unpickable", () => {
+  const choose = vi.fn();
+  const jet: UnitCard = {
+    ...card("f_16c_block_50", "F-16C Block 50", "Aircraft mechanics deferred"),
+    family: "f_16_fighting_falcon",
+    roster: { factions: ["us"], family_name: "F-16", category: "air", variant: "F-16C Block 50" },
+  };
+  const view = render(
+    <PurchasePicker
+      cards={[jet]}
+      faction="us"
+      match={match}
+      onChoose={choose}
+      onReady={vi.fn()}
+      onCancelPending={vi.fn()}
+    />,
+  );
+  fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  fireEvent.click(view.getByRole("tab", { name: "AIR" }));
+  const family = view.getByRole("button", { name: "F-16" });
+  expect(family.querySelector(".ro-icon svg")).not.toBeNull();
+  expect(family.classList.contains("unavailable")).toBe(true);
+  fireEvent.click(family);
+  expect(choose).not.toHaveBeenCalled();
+});

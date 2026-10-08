@@ -1,0 +1,73 @@
+{
+ "entries": [
+  {
+   "file": "eastern_su_25_frogfoot_su_25sm3-three_quarter_front.jpg",
+   "variant": "eastern_su_25_frogfoot_su_25sm3",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Russian_Air_Force,_RF-91974,_Sukhoi_Su-25SM3_(51528658500).jpg",
+   "author": "Anna Zvereva",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "65b718620acc453f4db99b0639032bcfed047f3c3001f0ae3bad669ebfbc99d3",
+   "note": "Su-25SM3 front-left three-quarter static: armoured cockpit, engine nacelles at the wing roots, eight pylons, wing-tip ECM pods"
+  },
+  {
+   "file": "eastern_su_25_frogfoot_su_25sm3-side.jpg",
+   "variant": "eastern_su_25_frogfoot_su_25sm3",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Russian_Air_Force,_RF-95120,_Sukhoi_Su-25SM-3_(51524684538).jpg",
+   "author": "Anna Zvereva",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "264e3a560b0ec79eed99ff0d99a3b3907404ac8970f77078d3226e2fda41e082",
+   "note": "Su-25SM-3 left side in flight: green-brown camouflage, straight wing, stores"
+  },
+  {
+   "file": "eastern_su_25_frogfoot_su_25sm3-front.jpg",
+   "variant": "eastern_su_25_frogfoot_su_25sm3",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Su-25SM_MAKS-2009_(2).jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "fa05f2b64cccc8e605cc2cbfe6458d096ebf871b45dcd6134f48068167a99e2f",
+   "note": "Su-25SM head-on static: intakes, nacelles, gear, pylons"
+  },
+  {
+   "file": "eastern_su_25_frogfoot_su_25sm3-three_quarter_rear.jpg",
+   "variant": "eastern_su_25_frogfoot_su_25sm3",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Sukhoi_Su-25SM_%C2%ABRoman_Filipov%C2%BB_03.jpg",
+   "author": "\u041c\u0438\u043d\u043e\u0431\u043e\u0440\u043e\u043d\u044b \u0420\u043e\u0441\u0441\u0438\u0438",
+   "licence": "CC-BY-4.0",
+   "sha256": "25c2310c28b887ac0915de374872c016c952cdbc07beec9c5febd3ef99538e42",
+   "note": "Su-25SM rear three-quarter static: nozzles, fin, tailplane"
+  },
+  {
+   "file": "eastern_su_25_frogfoot_su_25sm3-top.jpg",
+   "variant": "eastern_su_25_frogfoot_su_25sm3",
+   "view": "top",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Russian_Air_Force,_RF-93025,_Sukhoi_Su-25SM-3_(51525162549).jpg",
+   "author": "Anna Zvereva",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "9137e120a034bf2b0bdeafd5e3c8898f2bf2000f393dbf9a61b731dcba407ca8",
+   "note": "Su-25SM-3 from below-side in flight: planform, stores"
+  },
+  {
+   "file": "eastern_su_25_frogfoot_su_25sm3-detail.jpg",
+   "variant": "eastern_su_25_frogfoot_su_25sm3",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:KRET_L-370-3S_ECM-pod_ARMY-2022.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "06ec53a54c4e4185e321f50c057311e1147c3177b7994642e1956ae9ee7b09fc",
+   "note": "Su-25SM3's L-370 ECM wing-tip pod"
+  }
+ ],
+ "gaps": [
+  "eastern_su_25_frogfoot_su_25sm3: the rear and front views are Su-25SMs (same airframe); no straight top view"
+ ]
+}

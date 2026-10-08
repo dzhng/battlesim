@@ -4,8 +4,9 @@
 //   - `weapons/<icon>.svg`: a weapon or ammunition row's `icon`;
 //   - `roles/<role>.svg`: a role's NATO-style symbol, its filled frame with
 //     the registry's modifiers drawn in order, bold enough to read at 20 px;
-//   - `units/<type>.svg`: a unit type's silhouette, rendered from its own
-//     model (`silhouette.ts`);
+//   - `units/<card>.svg`: a card's silhouette, rendered from its own model
+//     (`silhouette.ts`): a unit type's baked model, or a disabled card's
+//     source model (it has no type);
 //   - `states/<state>.svg`: a unit state's mark in an info panel row
 //     (`STATE_ICONS`), each told apart by its form;
 //   - `glyphs/<glyph>.svg`: a mark drawn where text would be ambiguous at
@@ -173,7 +174,8 @@ function roleSymbol(role: string, modifiers: readonly string[]): string {
 }
 
 /** Every generated icon file, by path under `assets/icons/`. `solids` gives
- *  a type's posed model (`unitSolids`), or null when it isn't installed. */
+ *  a type's posed model (`unitSolids`) or a disabled card's
+ *  (`disabledLookup`), by id, or null when it isn't installed. */
 export function iconFiles(
   weapons: Record<string, { icon: string }>,
   units: UnitCatalog,
@@ -200,10 +202,22 @@ export function iconFiles(
       );
     files.set(unitIcons(t).silhouette, silhouetteSvg(model));
   }
+  for (const card of units.cards) {
+    if (card.disabled_reason === null || units.has(card.id)) continue;
+    const model = solids(card.id);
+    if (!model?.length)
+      throw new Error(
+        `disabled card ${card.id}: its source model is not installed, so its silhouette can't be rendered (git lfs pull its source_path in fixtures/units/model-manifest.json)`,
+      );
+    files.set(cardIcon(card.id), silhouetteSvg(model));
+  }
   return files;
 }
 
+/** The silhouette icon of a card, by its id: a unit type's or a disabled card's. */
+export const cardIcon = (id: string) => `units/${id}.svg`;
+
 /** The icon files a unit type shows: its silhouette and its first role's symbol. */
 export function unitIcons(t: Pick<UnitType, "id" | "roles">): { silhouette: string; role: string } {
-  return { silhouette: `units/${t.id}.svg`, role: roleIcon(t.roles[0]) };
+  return { silhouette: cardIcon(t.id), role: roleIcon(t.roles[0]) };
 }

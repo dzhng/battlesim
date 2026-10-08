@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "eastern_su_57_felon_stealth_multirole_fighter-side.jpg",
+   "variant": "eastern_su_57_felon_stealth_multirole_fighter",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Su-57_054@TYN_(20241104112740).jpg",
+   "author": "N509FZ",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "c3fa44ca5225e5d187400302678747d7d396aa538346026bd9a80b8bf2721405",
+   "note": "Su-57 left side taking off (digital camouflage): chined nose, canopy, wide-spaced nacelles, all-moving fins, LEVCONs"
+  },
+  {
+   "file": "eastern_su_57_felon_stealth_multirole_fighter-three_quarter_front.jpg",
+   "variant": "eastern_su_57_felon_stealth_multirole_fighter",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Sukhoi_Su-57_RF-81775_Army-2022.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "bb7df5a3924ecd051cd31894f1f5afc9f182cc60afffeed3e68ed352c33dd91a",
+   "note": "Su-57 front-left three-quarter static: intakes under the LEVCONs, canopy, fins"
+  },
+  {
+   "file": "eastern_su_57_felon_stealth_multirole_fighter-three_quarter_rear.jpg",
+   "variant": "eastern_su_57_felon_stealth_multirole_fighter",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Su-57_054@TYN_(20241104112819).jpg",
+   "author": "N509FZ",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "22ef173620d77ed63eecec3776aef4460a9340b60d96729d37c5ad8e7b602e32",
+   "note": "Su-57 rear three-quarter on the runway in afterburner: separated nozzles, stinger, tails"
+  },
+  {
+   "file": "eastern_su_57_felon_stealth_multirole_fighter-top.jpg",
+   "variant": "eastern_su_57_felon_stealth_multirole_fighter",
+   "view": "top",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Sukhoi_Design_Bureau,_054,_Sukhoi_T-50_(Su-57_prototype)_(49581303977).jpg",
+   "author": "Anna Zvereva from Tallinn, Estonia",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "893c5665ca2c3192852a045af3591fbacf47a0ef6cd0edb65c88540a66e52a43",
+   "note": "Su-57 from above in flight: planform, LEVCONs, tails"
+  },
+  {
+   "file": "eastern_su_57_felon_stealth_multirole_fighter-detail.jpg",
+   "variant": "eastern_su_57_felon_stealth_multirole_fighter",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Su-57E_tail_at_Dubai_Airshow_2025.jpg",
+   "author": "Mztourist",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "11784827cfdc58c7d9f960c477d797958c8e6774cc97382081a62a702b8cd62e",
+   "note": "Su-57E tail and nozzle detail at Dubai"
+  }
+ ],
+ "gaps": [
+  "eastern_su_57_felon_stealth_multirole_fighter: no front view; the top view is the T-50 prototype (same outline)"
+ ]
+}

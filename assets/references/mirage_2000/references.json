@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "europe_mirage_2000_2000d_rmv-side.jpg",
+   "variant": "europe_mirage_2000_2000d_rmv",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mirage.2000d.3-im.arp.jpg",
+   "author": "Arpingstone",
+   "licence": "public-domain",
+   "sha256": "84a62f35304802a42b660118226f9cb0e4735aa19c5db64938123d0bb58b16ed",
+   "note": "Mirage 2000D left side on the ground: two-seat canopy, half-cone intakes, pure delta, single fin, probe"
+  },
+  {
+   "file": "europe_mirage_2000_2000d_rmv-three_quarter_front.jpg",
+   "variant": "europe_mirage_2000_2000d_rmv",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mirage_2000D_(cropped).jpg",
+   "author": "Rob Schleiffert from Holland",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "90bdc2de411981daf86f39232ff57c2d148aaafbce82a582389f7e430cc8dd6a",
+   "note": "Mirage 2000D front-left three-quarter in flight: grey-green camouflage, tanks, delta"
+  },
+  {
+   "file": "europe_mirage_2000_2000d_rmv-front.jpg",
+   "variant": "europe_mirage_2000_2000d_rmv",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mirage_2000-D_at_Kandahar_Airfield,_Afghanistan.JPG",
+   "author": "U.S. Air Force photo/Staff Sgt. Clay Lancaster",
+   "licence": "public-domain",
+   "sha256": "451c88e7e40875d4838aa09552b31b9f848b96bf83792da22a7d055a3e3360ce",
+   "note": "Mirage 2000D head-on taxiing at Kandahar: intake cones, gear, delta"
+  },
+  {
+   "file": "europe_mirage_2000_2000d_rmv-three_quarter_rear.jpg",
+   "variant": "europe_mirage_2000_2000d_rmv",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mirage_2000D_14_(53780762755).jpg",
+   "author": "Tony Hisgett from Birmingham, UK",
+   "licence": "CC-BY-2.0",
+   "sha256": "19f86238f4eadf482f0e375e1ace81ca18208fefb0f3cf86fd042275fde6036f",
+   "note": "Mirage 2000D rear-low three-quarter in flight: M53 nozzle, fin"
+  }
+ ],
+ "gaps": [
+  "europe_mirage_2000_2000d_rmv: no ground three-quarter of a 2000D; no top view; RMV upgrade is not outwardly distinct"
+ ]
+}

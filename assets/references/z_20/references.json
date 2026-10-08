@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "eastern_z_20_utility_transport-side.jpg",
+   "variant": "eastern_z_20_utility_transport",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Z-20_Airshow_China_2022_fly.jpg",
+   "author": "China News Service",
+   "licence": "CC-BY-4.0",
+   "sha256": "303b10c63f7438ce639f42a5eb984210f32776dff6a9b30554134ccaca491618",
+   "note": "Z-20 left side in low flight at Airshow China 2022: cabin, five-blade rotor, tail pylon and canted tail rotor, wheels"
+  },
+  {
+   "file": "eastern_z_20_utility_transport-three_quarter_front.jpg",
+   "variant": "eastern_z_20_utility_transport",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Z-20_Airshow_China_2022_ground.jpg",
+   "author": "\u4e2d\u56fd\u65b0\u95fb\u793e",
+   "licence": "CC-BY-4.0",
+   "sha256": "90f02f04d7f2bca1686e3ff4996a70fc442b8d09c1d2c66373b231354625d2e0",
+   "note": "Z-20 front-left three-quarter on the ground at Airshow China 2022"
+  },
+  {
+   "file": "eastern_z_20_utility_transport-three_quarter_front-2.jpg",
+   "variant": "eastern_z_20_utility_transport",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Z-20KA_at_China%27s_Air_Force_Aviation_Open_Activity_20250921.jpg",
+   "author": "\u9890\u56ed\u5c45",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "53cabe0b4b283e1d7da376689be5aa81e7f2921dca597768dfb1c5c088dae99b",
+   "note": "Z-20KA front-right three-quarter static (PLAAF grey)"
+  },
+  {
+   "file": "eastern_z_20_utility_transport-detail.jpg",
+   "variant": "eastern_z_20_utility_transport",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Z-20F_helicopter.jpg",
+   "author": "\u4e2d\u56fd\u65b0\u95fb\u793e",
+   "licence": "CC-BY-4.0",
+   "sha256": "7ecd2e0f380a21283ac17f9a653267f775b7cb488f888c781c984dc18b97756b",
+   "note": "Z-20F nose and cockpit detail (naval variant; same cockpit and nose)"
+  }
+ ],
+ "gaps": [
+  "eastern_z_20_utility_transport: no rear view; dimensions estimated from published figures and the Black Hawk-like layout; the KA and F photos are variants of the same airframe"
+ ]
+}

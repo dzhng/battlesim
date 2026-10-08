@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "ah_64e_guardian-side.jpg",
+   "variant": "ah_64e_guardian",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:AH-64E_Apache-Guardian-0006.jpg",
+   "author": "US Army",
+   "licence": "public-domain",
+   "sha256": "5ca63461139e036d5782b9fb94cab90994a1e3e84953c933ea30c34199f8d7e5",
+   "note": "AH-64E left side in flight: tandem stepped cockpit, nacelles, stub wings, Longbow dome, tail"
+  },
+  {
+   "file": "ah_64e_guardian-three_quarter_front.jpg",
+   "variant": "ah_64e_guardian",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Boeing_AH-64E_Apache_(30874933072).jpg",
+   "author": "Tom\u00e1s Del Coro from Las Vegas, Nevada, USA",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "c5be2d3e80c98d1ce136a30005019f84aeb1adcef0987f80e5932b9ad098f5ab",
+   "note": "AH-64E front-left three-quarter on the ground: TADS, chin gun, canopies, stub-wing stores"
+  },
+  {
+   "file": "ah_64e_guardian-front.jpg",
+   "variant": "ah_64e_guardian",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:IAF_AH-64E_Apache_in_Aero_India_2023_1.jpg",
+   "author": "Shanze1",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "ec9abab4675e7b660e906610c92ac452220656176bf20996671da02ddd299fb1",
+   "note": "AH-64E head-on on the ground: Longbow dome, rotor head, stub wings with Hellfires"
+  },
+  {
+   "file": "ah_64e_guardian-three_quarter_rear.jpg",
+   "variant": "ah_64e_guardian",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:ROCA_AH-64E_819_Display_at_Navy_Fleet_Command_Ground_20161112b.jpg",
+   "author": "\u7384\u53f2\u751f",
+   "licence": "CC0-1.0",
+   "sha256": "22a255ec07f6a140eaa5615ebf438a078daf507a2fe95254037edc9472ffd3fe",
+   "note": "AH-64E rear three-quarter on display: tail fin, scissor tail rotor, stabilator, tail wheel"
+  },
+  {
+   "file": "ah_64e_guardian-detail.jpg",
+   "variant": "ah_64e_guardian",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:ROCA_AH-64E_810_Display_at_ROCMA_Ground_Head_Close_up_20140531.jpg",
+   "author": "\u7384\u53f2\u751f",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "98291ea435eb7b59392c2491af77076ae3c59abe1bbeebf1534352585333451c",
+   "note": "AH-64E nose close-up: TADS/PNVS, canopy, chin gun"
+  }
+ ],
+ "gaps": [
+  "ah_64e_guardian: no top view; height to the Longbow dome from published figures; stores vary (one rocket pod and one Hellfire rack a side drawn)"
+ ]
+}
