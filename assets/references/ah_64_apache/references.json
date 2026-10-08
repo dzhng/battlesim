@@ -57,6 +57,7 @@
   }
  ],
  "gaps": [
-  "ah_64e_guardian: no top view; height to the Longbow dome from published figures; stores vary (one rocket pod and one Hellfire rack a side drawn)"
+  "ah_64e_guardian: no top view; height to the Longbow dome from published figures; stores vary (one rocket pod and one Hellfire rack a side drawn)",
+  "ah_64e_guardian: dimensions 14.7 x 5.23 x 4.72 m: length and height (to the Longbow dome) from Boeing's AH-64 page (https://www.boeing.com/defense/military-rotorcraft/ah-64-apache: 48.2 ft, 15.5 ft), width over the stub wings from Vertipedia's AH-64A (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/31: 5.23 m). Restated in slice 19 from 15.5 x 5.23 x 4.95 (5.4% and 5.3% over Boeing's); Jane's fuselage length is 15.06 m (https://en.wikipedia.org/wiki/Boeing_AH-64_Apache) and Vertipedia's WAH-64D overall height 4.95 m (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/140)"
  ]
 }

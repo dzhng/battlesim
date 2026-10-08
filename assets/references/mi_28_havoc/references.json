@@ -57,6 +57,7 @@
   }
  ],
  "gaps": [
-  "eastern_mi_28_havoc_mi_28nm: no rear or top view; the cannon detail is a Mi-28N (same mount)"
+  "eastern_mi_28_havoc_mi_28nm: no rear or top view; the cannon detail is a Mi-28N (same mount)",
+  "eastern_mi_28_havoc_mi_28nm: dimensions 17.01 x 4.88 x 4.7 m: length (excluding rotors) and stub-wing span from RIA Novosti, Russian Helicopters and Jane's as cited by https://en.wikipedia.org/wiki/Mil_Mi-28 (17.01, 4.88: match). Height: published 3.82 m is to the top of the rotor head; no source states the NM's height over its mast radar, so 4.7 m is the head plus the radar housing (about 0.73 m tall) on its post, as the photos show it; Vertipedia's Mi-28 airframe width is 5.50 m (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/476), 12% over RIA's 4.88, left with RIA's"
  ]
 }

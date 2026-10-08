@@ -58,6 +58,8 @@
  ],
  "gaps": [
   "us_ah_6_mh_6_little_bird_ah_6m: the side view is an AH-6J (four-blade, before the M's six-blade rotor); the armed three-quarter is captioned MH-6 but carries the attack planks",
-  "us_ah_6_mh_6_little_bird_mh_6m: no rear view"
+  "us_ah_6_mh_6_little_bird_mh_6m: no rear view",
+  "us_ah_6_mh_6_little_bird_ah_6m: dimensions 7.5 x 3.3 x 2.69 m: fuselage length and height against U.S. Army Aircraft and MD 530F data as cited by https://en.wikipedia.org/wiki/MD_Helicopters_MH-6_Little_Bird (24 ft 7.2 in = 7.50, 8 ft 9 in = 2.67): within 0.8%. The published width (4 ft 7.2 in = 1.40 m) is the fuselage's; no source gives the width over the AH-6's weapon pylons, measured off the front photo",
+  "us_ah_6_mh_6_little_bird_mh_6m: dimensions 7.5 x 3.0 x 2.69 m: fuselage length and height as the AH-6M's (https://en.wikipedia.org/wiki/MD_Helicopters_MH-6_Little_Bird); no source gives the width over the outboard benches, measured off the photos"
  ]
 }

@@ -69,6 +69,8 @@
  ],
  "gaps": [
   "europe_tornado_ids: no rear view (the ECR's serves)",
-  "europe_tornado_ecr: no top view; wings drawn at the 25-degree spread they park and taxi at"
+  "europe_tornado_ecr: no top view; wings drawn at the 25-degree spread they park and taxi at",
+  "europe_tornado_ids: dimensions 16.72 x 13.91 x 5.95 m (span at 25 degrees sweep) as cited by https://en.wikipedia.org/wiki/Panavia_Tornado (Frédriksen 2001; Richardson 1986): match",
+  "europe_tornado_ecr: dimensions 16.72 x 13.91 x 5.95 m (span at 25 degrees sweep) as cited by https://en.wikipedia.org/wiki/Panavia_Tornado (the ECR keeps the IDS airframe): match"
  ]
 }

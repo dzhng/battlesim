@@ -46,6 +46,7 @@
   }
  ],
  "gaps": [
-  "us_uh_1y_venom_utility_transport: no rear or top view; door guns drawn swung out, as in the in-flight shot"
+  "us_uh_1y_venom_utility_transport: no rear or top view; door guns drawn swung out, as in the in-flight shot",
+  "us_uh_1y_venom_utility_transport: dimensions 13.4 x 2.9 x 3.9 m: length is the UH-1N's fuselage (42 ft 4.75 in, https://www.uh-1.com/) plus the Y's 21 in stretch (https://en.wikipedia.org/wiki/Bell_UH-1Y_Venom); width and height to the top of the rotor head from the USAF UH-1N fact sheet (https://www.af.mil/About-Us/Fact-Sheets/Display/Article/104464/uh-1n-huey/: 9 ft 5 in, 12 ft 10 in); no source gives the Y's own head height. Restated in slice 19 from 13.4 x 2.9 x 4.5: NAVAIR's 14 ft 7 in (https://www.navair.navy.mil/product/UH-1Y-Venom) is the height to the tail rotor's top"
  ]
 }

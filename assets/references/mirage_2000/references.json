@@ -46,6 +46,7 @@
   }
  ],
  "gaps": [
-  "europe_mirage_2000_2000d_rmv: no ground three-quarter of a 2000D; no top view; RMV upgrade is not outwardly distinct"
+  "europe_mirage_2000_2000d_rmv: no ground three-quarter of a 2000D; no top view; RMV upgrade is not outwardly distinct",
+  "europe_mirage_2000_2000d_rmv: dimensions 14.36 x 9.13 x 5.2 m against https://en.wikipedia.org/wiki/Dassault_Mirage_2000N/2000D (14.55 x 9.13 x 5.15, uncited there): within 1.3%"
  ]
 }

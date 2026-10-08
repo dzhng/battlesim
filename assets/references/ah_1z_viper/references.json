@@ -46,6 +46,7 @@
   }
  ],
  "gaps": [
-  "us_ah_1z_viper_attack_helicopter: no rear or top view"
+  "us_ah_1z_viper_attack_helicopter: no rear or top view",
+  "us_ah_1z_viper_attack_helicopter: dimensions 13.67 x 4.06 x 3.76 m from Vertipedia's AH-1Z (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/153: airframe 13.67 x 4.06 x 3.76; overall height 4.37 m with the tail rotor), the fuselage length also NAVAIR's 44 ft 10 in (https://www.navair.navy.mil/product/AH-1Z-Viper). Restated in slice 19 from 14.68 x 4.6 x 4.37 (7.4%, 13% and 16% over: 4.37 m is the height to the tail rotor's top, not the rotor head)"
  ]
 }

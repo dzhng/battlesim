@@ -57,6 +57,7 @@
   }
  ],
  "gaps": [
-  "us_f_22_raptor_f_22a: no top view (planform from published three-view proportions); no weapon-bay or gear-bay detail"
+  "us_f_22_raptor_f_22a: no top view (planform from published three-view proportions); no weapon-bay or gear-bay detail",
+  "us_f_22_raptor_f_22a: dimensions 18.92 x 13.56 x 5.08 m from USAF and Lockheed Martin as cited by https://en.wikipedia.org/wiki/Lockheed_Martin_F-22_Raptor: match"
  ]
 }

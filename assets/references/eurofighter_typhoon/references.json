@@ -57,6 +57,7 @@
   }
  ],
  "gaps": [
-  "europe_eurofighter_typhoon_tranche_3: no top view (planform from published figures); Tranche 3 shares the earlier tranches' outline"
+  "europe_eurofighter_typhoon_tranche_3: no top view (planform from published figures); Tranche 3 shares the earlier tranches' outline",
+  "europe_eurofighter_typhoon_tranche_3: dimensions 15.96 x 10.95 x 5.28 m from RAF Typhoon data as cited by https://en.wikipedia.org/wiki/Eurofighter_Typhoon: match"
  ]
 }

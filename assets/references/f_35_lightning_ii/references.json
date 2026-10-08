@@ -69,6 +69,8 @@
  ],
  "gaps": [
   "f_35a: no rear or top view (planform and nozzle from published figures and the B's rear shots)",
-  "us_f_35_lightning_ii_f_35b: no top view; lift-fan and auxiliary inlet doors drawn closed from the in-flight side shot"
+  "us_f_35_lightning_ii_f_35b: no top view; lift-fan and auxiliary inlet doors drawn closed from the in-flight side shot",
+  "f_35a: dimensions 15.7 x 10.7 x 4.38 m against Lockheed Martin's F-35A page as cited by https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II (51.4 x 35 x 14.4 ft = 15.67 x 10.67 x 4.39): within 0.3%",
+  "us_f_35_lightning_ii_f_35b: dimensions 15.6 x 10.7 x 4.36 m from Lockheed Martin's F-35B sheet (https://www.lockheedmartin.com/content/dam/lockheed-martin/aero/documents/F-35/f35B.pdf: 15.6 m, 10.7 m) and the RAF (https://www.raf.mod.uk/aircraft/current-aircraft/lightning-f35b/: height 4.36 m): match"
  ]
 }

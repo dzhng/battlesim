@@ -80,6 +80,8 @@
  ],
  "gaps": [
   "us_f_15_eagle_f_15e_strike_eagle: no top view or gear-bay detail; planform taken from the EX's top view (same airframe)",
-  "us_f_15_eagle_f_15ex_eagle_ii: no rear or three-quarter-rear view; nozzles from the E's"
+  "us_f_15_eagle_f_15ex_eagle_ii: no rear or three-quarter-rear view; nozzles from the E's",
+  "us_f_15_eagle_f_15e_strike_eagle: dimensions 19.43 x 13.05 x 5.63 m from USAF flight manual TO 1F-15E-1 as cited by https://en.wikipedia.org/wiki/McDonnell_Douglas_F-15E_Strike_Eagle (63 ft 9.6 in x 42 ft 9.6 in x 18 ft 6 in = 19.45 x 13.05 x 5.64): within 0.2%",
+  "us_f_15_eagle_f_15ex_eagle_ii: dimensions 19.43 x 13.05 x 5.63 m against Air & Space Forces Magazine as cited by https://en.wikipedia.org/wiki/Boeing_F-15EX_Eagle_II (63 ft 9 in x 42 ft 10 in x 18 ft 8 in = 19.43 x 13.06 x 5.69): within 1.1%"
  ]
 }

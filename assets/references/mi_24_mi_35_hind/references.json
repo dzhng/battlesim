@@ -57,6 +57,7 @@
   }
  ],
  "gaps": [
-  "eastern_mi_24_mi_35_hind_mi_35m: no top view; stores vary (rocket pods inboard, ATGM rails at the tips drawn)"
+  "eastern_mi_24_mi_35_hind_mi_35m: no top view; stores vary (rocket pods inboard, ATGM rails at the tips drawn)",
+  "eastern_mi_24_mi_35_hind_mi_35m: dimensions 17.5 x 5.27 x 3.97 m from Vertipedia's Mi-24VM, the Mi-35M's home designation (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/479: airframe 17.50 x 5.27 x 3.97; the shortened wings). Restated in slice 19 from 17.5 x 6.5 x 4.4 (the full-span Mi-24's wing, 23% over, and 11% over the head height); https://en.wikipedia.org/wiki/Mil_Mi-24's 6.5 m height is with the rotors turning"
  ]
 }

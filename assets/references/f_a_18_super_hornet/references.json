@@ -57,6 +57,7 @@
   }
  ],
  "gaps": [
-  "us_f_a_18_super_hornet_f_a_18e: no gear-bay or cockpit detail; stores vary by sortie (tanks, AIM-120, AIM-9X modelled)"
+  "us_f_a_18_super_hornet_f_a_18e: no gear-bay or cockpit detail; stores vary by sortie (tanks, AIM-120, AIM-9X modelled)",
+  "us_f_a_18_super_hornet_f_a_18e: dimensions 18.31 x 13.62 x 4.88 m from the US Navy fact file as cited by https://en.wikipedia.org/wiki/Boeing_F/A-18E/F_Super_Hornet: match"
  ]
 }

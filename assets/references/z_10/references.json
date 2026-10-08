@@ -68,6 +68,7 @@
   }
  ],
  "gaps": [
-  "eastern_z_10_attack_helicopter: the front photos are Z-10K (the PLAAF's, same airframe); no rear or top view"
+  "eastern_z_10_attack_helicopter: the front photos are Z-10K (the PLAAF's, same airframe); no rear or top view",
+  "eastern_z_10_attack_helicopter: dimensions 14.15 x 4.32 x 3.85 m: length against https://en.wikipedia.org/wiki/Changhe_Z-10 (14.2, edr2024) and height against Vertipedia's WZ-10 (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/446: 3.85): within 0.4%; no source gives the stub-wing span, measured off the line drawing"
  ]
 }

@@ -57,6 +57,7 @@
   }
  ],
  "gaps": [
-  "europe_aw159_wildcat_ah1: no front or top view"
+  "europe_aw159_wildcat_ah1: no front or top view",
+  "europe_aw159_wildcat_ah1: dimensions 13.0 x 3.0 x 3.73 m: height from Leonardo's AW159 brochure (https://helicopters.leonardo.com/documents/16114711/0/BROCHURE+AW159-Mk-0922.pdf: 3.73 m overall); Leonardo gives no fuselage length (13.49 m is with the rotor folded) and secondary sources give 12.7 m (Forecast International) and 13.5 m (BlueSkyRotor), within 3.7% either way; width 3.05 m over the main gear from NamuWiki, a secondary source"
  ]
 }

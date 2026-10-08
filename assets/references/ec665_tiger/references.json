@@ -102,6 +102,8 @@
  ],
  "gaps": [
   "europe_ec665_tiger_had: the Spanish HAD's green-brown camouflage is drawn in the shared army green-grey; no top view",
-  "europe_ec665_tiger_uht: no front view; mast sight from the ILA static"
+  "europe_ec665_tiger_uht: no front view; mast sight from the ILA static",
+  "europe_ec665_tiger_had: dimensions 14.08 x 4.32 x 3.83 m against Airbus's Tiger HAD technical information as cited by https://en.wikipedia.org/wiki/Eurocopter_Tiger (13.85 fuselage, 3.84 without top sensors) and Vertipedia's HAD (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/319: airframe 13.85 x 4.53 x 3.84): length 1.7% over, width 4.6% under (within 5%, left), height match",
+  "europe_ec665_tiger_uht: dimensions 14.08 x 4.32 x 4.32 m: length and width as the HAD's (Vertipedia's UHT https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/163: 13.85 x 4.53); no source gives the height to the top of the Osiris mast sight (the published 4.32 m is the Tiger's height to the top of its tail rotor disc), so the sight's top is drawn from the photos"
  ]
 }

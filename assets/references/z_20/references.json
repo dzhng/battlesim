@@ -46,6 +46,7 @@
   }
  ],
  "gaps": [
-  "eastern_z_20_utility_transport: no rear view; dimensions estimated from published figures and the Black Hawk-like layout; the KA and F photos are variants of the same airframe"
+  "eastern_z_20_utility_transport: no rear view; dimensions estimated from published figures and the Black Hawk-like layout; the KA and F photos are variants of the same airframe",
+  "eastern_z_20_utility_transport: dimensions 15.4 x 4.4 x 3.9 m: the only published figures are the overall 20 m length and 5.3 m height (CN Defense, Popular Mechanics, Janes as cited by https://en.wikipedia.org/wiki/Harbin_Z-20), estimates; the stated ones scale them by the UH-60M's ratios (Vertipedia https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/68: fuselage 15.19 of 19.76 m overall, head 3.76 of 5.16 m) to 15.37 and 3.86 (within 1%), width the UH-60's stabilator"
  ]
 }

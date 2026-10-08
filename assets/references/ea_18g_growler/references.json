@@ -46,6 +46,7 @@
   }
  ],
  "gaps": [
-  "us_ea_18g_growler_electronic_warfare_aircraft: no top view (planform from the E's, same airframe); pod fit varies (three ALQ-99 and two tanks modelled as the common fit)"
+  "us_ea_18g_growler_electronic_warfare_aircraft: no top view (planform from the E's, same airframe); pod fit varies (three ALQ-99 and two tanks modelled as the common fit)",
+  "us_ea_18g_growler_electronic_warfare_aircraft: dimensions 18.31 x 13.62 x 4.88 m (span over the wing-tip pods) from Boeing as cited by https://en.wikipedia.org/wiki/Boeing_EA-18G_Growler: match"
  ]
 }

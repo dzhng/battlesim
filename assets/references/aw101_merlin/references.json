@@ -46,6 +46,7 @@
   }
  ],
  "gaps": [
-  "europe_aw101_merlin_hc4: photos are the HC3/HC3A the HC4 was converted from (the HC4 adds folding blades and tail, a new cockpit; outwardly alike); no top view"
+  "europe_aw101_merlin_hc4: photos are the HC3/HC3A the HC4 was converted from (the HC4 adds folding blades and tail, a new cockpit; outwardly alike); no top view",
+  "europe_aw101_merlin_hc4: dimensions 19.53 x 4.52 x 4.95 m: fuselage length from Jane's 2003-04 and Leonardo as cited by https://en.wikipedia.org/wiki/AgustaWestland_AW101 (19.53: match); width against Airforce Technology's width excluding the main rotor (https://www.airforce-technology.com/projects/aw101-helicopter/: 4.55, within 1%) where Vertipedia's Merlin HC.3 gives 5.06 (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/7: airframe 19.30 x 5.06 x 5.09; height 2.8% under); the two sources disagree on width, so it stays on Airforce Technology's"
  ]
 }

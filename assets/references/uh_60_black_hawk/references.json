@@ -58,6 +58,7 @@
  ],
  "gaps": [
   "us_uh_60_black_hawk_uh_60m: Taiwanese Army UH-60Ms on display (same airframe as the US Army's); no top view; door guns drawn from US Army fit",
-  "Rotorcraft dimensions follow one rule (fuselage length without blades, widest fixed part, height to the rotor head) from published figures"
+  "Rotorcraft dimensions follow one rule (fuselage length without blades, widest fixed part, height to the rotor head) from published figures",
+  "us_uh_60_black_hawk_uh_60m: dimensions 15.26 x 4.38 x 3.76 m against Vertipedia's UH-60M (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/68: airframe 15.19 x 4.37 x 3.76, the width the stabilator's): within 0.5%"
  ]
 }

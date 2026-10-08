@@ -181,6 +181,10 @@
   "eastern_sukhoi_flanker_family_su_27sm3: no straight top view; the planform is from an underside climb shot",
   "eastern_sukhoi_flanker_family_su_30sm2: no front or rear view (shared with the Su-27SM3's); SM2 upgrade outwardly as SM",
   "eastern_sukhoi_flanker_family_su_34: no rear or front view; nozzle and stinger from the Su-35's",
-  "Blender preview colours run darker than the game's shading (no colour_scale); the scheme is matched to the photos' blue-greys by value, not by these sheets"
+  "Blender preview colours run darker than the game's shading (no colour_scale); the scheme is matched to the photos' blue-greys by value, not by these sheets",
+  "eastern_sukhoi_flanker_family_su_27sm3: dimensions 21.9 x 14.7 x 5.92 m from Sukhoi's Su-27SK data as cited by https://en.wikipedia.org/wiki/Sukhoi_Su-27 (the SM3 keeps the airframe): match",
+  "eastern_sukhoi_flanker_family_su_30sm2: dimensions 21.935 x 14.7 x 6.36 m from KnAAPO's Su-30MK data as cited by https://en.wikipedia.org/wiki/Sukhoi_Su-30: match",
+  "eastern_sukhoi_flanker_family_su_35s: dimensions 21.9 x 15.3 x 5.9 m from KnAAPO's Su-35 brochure as cited by https://en.wikipedia.org/wiki/Sukhoi_Su-35: match",
+  "eastern_sukhoi_flanker_family_su_34: dimensions 23.34 x 14.7 x 6.09 m from Sukhoi as cited by https://en.wikipedia.org/wiki/Sukhoi_Su-34: match"
  ]
 }

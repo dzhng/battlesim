@@ -80,6 +80,8 @@
  ],
  "gaps": [
   "us_ch_47_chinook_ch_47f: no top view",
-  "europe_ch_47_chinook_hc6: in-flight and three-quarter shots only; drawn on the CH-47F's airframe, which the HC6 shares outwardly, in RAF dark green"
+  "europe_ch_47_chinook_hc6: in-flight and three-quarter shots only; drawn on the CH-47F's airframe, which the HC6 shares outwardly, in RAF dark green",
+  "us_ch_47_chinook_ch_47f: dimensions 15.87 x 3.78 x 5.68 m against Vertipedia's CH-47F (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/35: airframe 15.90 x 3.78 x 5.77) and Boeing's width and height as cited by https://en.wikipedia.org/wiki/Boeing_CH-47_Chinook (12 ft 5 in, 18 ft 7.8 in): within 1.6%",
+  "europe_ch_47_chinook_hc6: dimensions 15.87 x 3.78 x 5.68 m against Vertipedia's HC.6 (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/290: airframe 15.90 x 3.78 x 5.77): within 1.6%"
  ]
 }

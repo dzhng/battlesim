@@ -57,6 +57,7 @@
   }
  ],
  "gaps": [
-  "europe_nh90_tth: German, Italian and French TTHs (same airframe); no top view"
+  "europe_nh90_tth: German, Italian and French TTHs (same airframe); no top view",
+  "europe_nh90_tth: dimensions 16.13 x 3.6 x 4.33 m against Vertipedia's NH90 TTH (https://vertipedia.vtol.org/aircraft/getAircraft/aircraftID/177: airframe 16.13 x 4.62 x 4.23; NHIndustries via https://en.wikipedia.org/wiki/NHIndustries_NH90 for the length): length match, height 2.4% over. Width is 22% under Vertipedia's 4.62 m, which no source explains (Airbus publishes only rotors-turning figures); 3.6 m is over the sponsons, and this library's five files are one photo (see its entries' hashes), so the tail's stabiliser cannot be judged from it: open, not restated"
  ]
 }
