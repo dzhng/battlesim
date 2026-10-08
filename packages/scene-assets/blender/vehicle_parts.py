@@ -462,6 +462,20 @@ def roof_fittings(name, crown, top, mats, parent, periscopes=(), rails=True):
     return made
 
 
+def laser_warners(name, crown, top, mats, parent, inset=0.35):
+    """Laser-warning sensor heads on the four corners of a turret roof's
+    `crown` ring at height `top`: an armoured head with a dark-glass band.
+    Returns its meshes. Roles: dark, glass."""
+    xs = [x for x, _ in crown]
+    half = max(abs(y) for _, y in crown)
+    made = []
+    for k, (x, y) in enumerate(((max(xs) - inset, half - (inset - 0.05)), (max(xs) - inset, -(half - (inset - 0.05))),
+                                (min(xs) + inset, half - (inset - 0.05)), (min(xs) + inset, -(half - (inset - 0.05))))):
+        made += box(f"{name}_{k}", (0.12, 0.12, 0.10), (x, y, top + 0.05), mats["dark"], parent, bevel=0.015, lods=MID)
+        made += box(f"{name}_glass_{k}", (0.13, 0.08, 0.05), (x, y, top + 0.07), mats["glass"], parent, lods=NEAR)
+    return made
+
+
 def cable(name, points, mats, parent, radius=0.02, eyes=True, loc=(0, 0, 0), rot=(0, 0, 0)):
     """A steel tow cable along `points` (in the part's frame), clipped down
     where it runs, with a loop eye at each end where `eyes`. Returns its

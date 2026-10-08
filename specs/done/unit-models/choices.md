@@ -1547,6 +1547,11 @@ family. No roster frame, mount or tolerance moved.
   launcher box on the roof, and boxes and a tarp in its bustle cage.
   Edge wear was already the tracked lane's (`chip=1.0`) on all eight.
 
+  The Type 15: thick bolted modules over the skirts' front half, the
+  cheeks' front faces tiled, a stowage basket on each turret flank,
+  laser warners (`vehicle_parts.laser_warners`, now the one owner the
+  Armatas use too), spare links across the nose, jerrycans and a deck box.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

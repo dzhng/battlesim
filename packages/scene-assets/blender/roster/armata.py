@@ -273,12 +273,7 @@ def turret_kit(v, turret, crown, low, high, x0, x1, z0, z1):
         loc, rot = VP.on_side((x0 + x1) / 2, (z0 + z1) / 2, side, low, high)
         VP.armour_tiles(f"turret_era_{s}", loc, (x1 - x0, (z1 - z0) * 0.8), (max(2, round((x1 - x0) / 0.42)), 1), 0.06,
                         m, turret, rot=rot)
-    xs = [x for x, _ in crown]
-    half = max(abs(y) for _, y in crown)
-    for k, (x, y) in enumerate(((max(xs) - 0.35, half - 0.30), (max(xs) - 0.35, -(half - 0.30)),
-                                (min(xs) + 0.35, half - 0.30), (min(xs) + 0.35, -(half - 0.30)))):
-        box(f"laser_warner_{k}", (0.12, 0.12, 0.10), (x, y, high[1] + 0.05), m["dark"], turret, bevel=0.015, lods=MID)
-        box(f"laser_warner_glass_{k}", (0.13, 0.08, 0.05), (x, y, high[1] + 0.07), m["glass"], turret, lods=NEAR)
+    VP.laser_warners("laser_warner", crown, high[1], m, turret)
 
 
 def engine_deck(v, x0, x1):

@@ -69,6 +69,17 @@ def hull(v):
                                     (0.8, side * 1.42, DECK + 0.02)], m, h, radius=0.02)
     VP.grille("engine_grille", (-2.65, 0, DECK), (1.10, 1.90), m, h, slats=10)
     VP.exhaust("exhaust", (-half - 0.02, -1.05, 1.25), 0.09, 0.25, m, h, rot=(0, 0, math.pi))
+    # The photos' add-on armour: thick bolted modules over the skirts' front
+    # half, spare track links across the nose, jerrycans and a deck box aft.
+    for side, s in ((1, "L"), (-1, "R")):
+        VP.armour_tiles(f"skirt_armour_{s}", (half - 1.75, side * 1.62, 0.84), (2.60, 0.56), (4, 2), 0.07, m, h,
+                        rot=(-side * math.pi / 2, 0, 0))
+        VP.jerrycan(f"jerrycan_{s}", (-half + 0.35, side * 1.15, DECK), dict(m, paint=m["dark"]), h,
+                    rot=(0, 0, math.pi / 2))
+    for k in range(4):
+        cyl(f"spare_link_{k}", 0.045, 0.55, (half - 0.18, -0.85 + k * 0.57, 0.98), "Y", m["track"], h, seg=8,
+            lods=NEAR)
+    VP.stowage_box("deck_box", (-half + 0.40, 0, DECK), (0.35, 1.30, 0.38), m, h)
     # The rear: its tail lights in their guards.
     for side, sd in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.5), DECK - 0.20), 0.05,
@@ -92,6 +103,7 @@ def turret(v, turret, gun, hmg, hmg_gun):
     cyl("turret_ring_guard", 0.98, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
     loft("turret_shell", [(base + 0.04, foot), (top, crown)], mat=m["paint"], parent=turret, bevel=0.035)
     VP.roof_fittings("roof", crown, top, m, turret, periscopes=((-0.10, 0.80, 0.6),))
+    VP.laser_warners("laser_warner", crown, top, m, turret)
     # A wedge of armour blocks on each cheek, the bustle box behind.
     for side, s in ((1, "L"), (-1, "R")):
         for k in range(3):
@@ -102,6 +114,11 @@ def turret(v, turret, gun, hmg, hmg_gun):
         # from its foot ring to its crown ring.
         loc, rot = VP.on_side(-0.30, base + 0.38, side, (1.179, base + 0.04), (1.077, top))
         VP.armour_tiles(f"side_tiles_{s}", loc, (1.60, 0.50), (4, 1), 0.08, m, turret, rot=rot)
+        # A stowage basket on each flank's rear, the cheek's front face tiled.
+        VP.slat_armour(f"side_basket_{s}", (-0.95, side * 1.28, base + 0.20), (0.80, 0.42), m, turret, spacing=0.10,
+                       bar=0.014)
+        VP.armour_tiles(f"cheek_face_{s}", (1.24, side * 0.80, base + 0.40), (0.42, 0.62), (1, 2), 0.06, m, turret,
+                        rot=(0, math.pi / 2 - 0.25, side * -0.55))
         VP.smoke_discharger_bank(f"smoke_{s}", (0.10, side * 1.10, top - 0.05), m, turret, count=4, tube_radius=0.045,
                                  tube_length=0.20, elevation=0.4, spread=0.4, rot=(0, 0, side * 1.1))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
