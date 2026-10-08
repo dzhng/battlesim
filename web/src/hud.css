@@ -961,24 +961,33 @@
   min-height: 0;
   padding: 5px 5px 0;
 }
-.hud-army {
-  display: flex;
-  justify-content: safe center;
+.hud-bottom.hud-army-deck:has(.hud-army[data-unit-count="20"]) {
+  width: 100vw;
+  max-width: none;
+  padding-inline: 0;
+  border-inline: 0;
+}
+.hud-bottom.hud-army-deck:has(.hud-army[data-unit-count="20"]) .hud-reinforcements,
+.hud-bottom.hud-army-deck:has(.hud-army[data-unit-count="20"]) .hud-army,
+.hud-bottom.hud-army-deck:has(.hud-army[data-unit-count="20"]) .ro-commands {
+  width: 100%;
+}
+.hud-bottom.hud-army-deck:has(.hud-army[data-unit-count="20"]) .hud-army {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 64px);
+  justify-content: center;
   gap: 4px;
+  overflow: visible;
+}
+.hud-army {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 64px);
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
   max-width: 100%;
-  overflow-x: auto;
-  padding-bottom: 5px;
-  scrollbar-color: rgb(var(--hud-accent) / 0.7) rgb(var(--hud-accent) / 0.1);
-  scrollbar-width: thin;
-}
-.hud-army::-webkit-scrollbar {
-  height: 6px;
-}
-.hud-army::-webkit-scrollbar-track {
-  background: rgb(var(--hud-accent) / 0.1);
-}
-.hud-army::-webkit-scrollbar-thumb {
-  background: rgb(var(--hud-accent) / 0.7);
+  overflow: visible;
+  padding-bottom: 0;
 }
 .hud-panel button.hud-army-card {
   position: relative;
@@ -1001,15 +1010,6 @@
 .hud-panel button.hud-army-card:is([aria-pressed="true"], :hover) {
   box-shadow: inset 0 0 8px rgb(var(--hud-accent) / 0.16);
   text-shadow: none;
-}
-.hud-army-id {
-  position: absolute;
-  top: 2px;
-  left: 5px;
-  font: 12px/1.2 var(--hud-font);
-  color: rgb(var(--hud-text));
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
 }
 .hud-army-card .ro-icon {
   margin: 0;
@@ -1038,8 +1038,9 @@
   align-self: center;
   flex-wrap: nowrap;
   max-width: none;
-  padding-block: 3px;
-  border-top: 1px solid rgb(var(--hud-accent) / 0.22);
+  padding: 0;
+  margin: 0;
+  border: 0;
 }
 .hud-army-deck button.ro-cmd {
   width: 34px;
@@ -1159,6 +1160,27 @@
   position: relative;
   min-width: min(520px, 80vw);
   padding: 4px 8px;
+}
+.hud-army-deck .hud-reinforcements {
+  min-width: 0;
+  width: 100%;
+  padding: 4px 8px 6px;
+  box-sizing: border-box;
+}
+.hud-army-deck .hud-purchase-controls {
+  justify-content: center;
+}
+.hud-army-deck .hud-purchase-controls .hud-credits {
+  margin-left: 12px;
+}
+.hud-purchase-ready {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  min-width: 180px;
+  text-align: center;
 }
 .hud-purchase-controls,
 .hud-purchase-categories,

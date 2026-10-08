@@ -65,6 +65,7 @@ export function ArmyDeck({
           {reinforcements}
           <div
             className="hud-army"
+            data-unit-count={own.length}
             role="group"
             aria-label="Your units"
             onScroll={(event) => {
@@ -121,9 +122,6 @@ export function ArmyDeck({
                     if (event.key === "Escape") setDismissed(active);
                   }}
                 >
-                  <span className="hud-army-id" aria-hidden="true">
-                    {unit.id}
-                  </span>
                   <Icon path={role} className="hud-army-role" />
                   <Icon path={silhouette} className="hud-army-silhouette" />
                   <span

@@ -295,15 +295,6 @@ export function BattleView({
                   onReady={session.purchase.ready}
                   onCancelPending={session.purchase.cancelPending}
                 />
-                {session.purchase.placing && (
-                  <button
-                    type="button"
-                    className="hud-menu-choice hud-placement-cancel"
-                    onClick={session.purchase.cancel}
-                  >
-                    Cancel deployment · Esc
-                  </button>
-                )}
               </>
             ) : undefined
           }

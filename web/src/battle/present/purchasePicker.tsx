@@ -49,17 +49,14 @@ export function PurchasePicker({
         <span className="hud-credits" aria-label="Credits">
           {Math.floor(match.credits)} CR
         </span>
-        <span aria-label="Unit slots">
-          {match.occupiedSlots}/{match.maxUnits}
-        </span>
         {match.phase === "preparation" && (
           <button
             type="button"
-            className="hud-menu-choice"
+            className="hud-menu-choice hud-purchase-ready"
             disabled={match.ready[0]}
             onClick={onReady}
           >
-            {match.ready[0] ? "Ready" : "Ready for battle"}
+            {match.ready[0] ? "BATTLE STARTED" : "START BATTLE"}
           </button>
         )}
       </div>

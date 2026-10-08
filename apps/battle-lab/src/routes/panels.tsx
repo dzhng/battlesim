@@ -12,6 +12,7 @@ import { panelSpecimens, specimenUnit, type Specimen } from "../panelSpecimens";
 
 import { CommandBar } from "@web/battle/present/readouts";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
+import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { CaptionList } from "@web/battle/present/captions";
 
 const RULES = game as unknown as PanelRules;
@@ -168,6 +169,18 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     toggleDeployment: () => setAction("Deployment"),
     exitBuilding: () => setAction("Leave building"),
   };
+  const skirmish = {
+    phase: "preparation" as const,
+    ready: [false, false] as [boolean, boolean],
+    preparationRemainingS: 60,
+    credits: 769,
+    occupiedSlots: selection.units.length,
+    maxUnits: 30,
+    pending: [],
+    scores: [0, 0] as [number, number],
+    result: null,
+    objectives: [],
+  };
   return (
     <main
       style={{ height: "100%", background: "linear-gradient(#324227, #526441 65%, #62625d 65%)" }}
@@ -219,6 +232,16 @@ function DeckReview({ onBack }: { onBack: () => void }) {
                 note: () => {},
                 clear: () => {},
               }}
+            />
+          }
+          reinforcements={
+            <PurchasePicker
+              cards={[]}
+              faction="us"
+              match={skirmish}
+              onChoose={() => {}}
+              onReady={() => setAction("Ready for battle")}
+              onCancelPending={() => {}}
             />
           }
         />

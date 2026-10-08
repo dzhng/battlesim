@@ -49,6 +49,7 @@ test("an empty army can inspect one family and purchase its enabled concrete var
   expect(unavailable.hasAttribute("disabled")).toBe(true);
   fireEvent.click(unavailable);
   expect(choose).toHaveBeenCalledTimes(1);
+  expect(view.queryByLabelText("Unit slots")).toBeNull();
 });
 
 test("purchase availability follows observed credits and reserved slots", () => {
