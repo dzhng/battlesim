@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "us_ea_18g_growler_electronic_warfare_aircraft-side.jpg",
+   "variant": "us_ea_18g_growler_electronic_warfare_aircraft",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:U.S.NAVY_EA-18G_Growler(166895)_of_VAQ-209_left_side_view_at_MCAS_Iwakuni_May_5,_2018.jpg",
+   "author": "Hunini",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "0386b04653a463b5571f92289e2005ec80d46cb4672749eb265444651fe1acea",
+   "note": "EA-18G left side at Iwakuni: two-seat canopy, ALQ-99 jamming pods on the wing and centreline, wing-tip ALQ-218 pods"
+  },
+  {
+   "file": "us_ea_18g_growler_electronic_warfare_aircraft-three_quarter_front.jpg",
+   "variant": "us_ea_18g_growler_electronic_warfare_aircraft",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:An_EA-18G_Growler_as_it_taxis_off_the_flight_line._(8318419248).jpg",
+   "author": "Official U.S. Navy Page from United States of America",
+   "licence": "public-domain",
+   "sha256": "2d5063cfc32ba9b188ec432f09c0daf7d89648c3c13c33b359c05ff1c959d486",
+   "note": "EA-18G front-left three-quarter taxiing: wing-tip receiver pods, jamming pods, two seats"
+  },
+  {
+   "file": "us_ea_18g_growler_electronic_warfare_aircraft-three_quarter_rear.jpg",
+   "variant": "us_ea_18g_growler_electronic_warfare_aircraft",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:EA-18_Growlers_Refuel_at_MCAS_Iwakuni_(9401956).jpg",
+   "author": "U.S. Marine Corps photo by Lance Cpl. Siwan Lewis",
+   "licence": "public-domain",
+   "sha256": "ef445ef75d5fbddf4c1cc8fe798abcdd17c729a7569144acb9c3039c763ac0c2",
+   "note": "EA-18G rear-left three-quarter in flight: canted fins, nozzles, pods"
+  },
+  {
+   "file": "us_ea_18g_growler_electronic_warfare_aircraft-front.jpg",
+   "variant": "us_ea_18g_growler_electronic_warfare_aircraft",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:An_EA-18G_Growler_in_Misawa,_Japan.jpg",
+   "author": "US Navy",
+   "licence": "public-domain",
+   "sha256": "e035e5a88eeee9223d993eb5d37ee118ef2d002a67a6b68ef5c6542ea8ee5b96",
+   "note": "EA-18G head-on taxiing in snow: wing-tip pods, twin canted fins"
+  }
+ ],
+ "gaps": [
+  "us_ea_18g_growler_electronic_warfare_aircraft: no top view (planform from the E's, same airframe); pod fit varies (three ALQ-99 and two tanks modelled as the common fit)"
+ ]
+}

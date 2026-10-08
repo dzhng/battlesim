@@ -145,7 +145,7 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None):
     return None if wrecking or selected else receipt
 
 
-def _receipt(path, script, variants, frames):
+def _receipt(path, script, variants, frames, references=None):
     here = Path(__file__).resolve().parent
     sources = [here / "roster" / script, here / "vehicle_export.py", here / "vehicle_parts.py",
                here / "vehicle_crew.py", here / "parts.py", here / "textures.py", here / "wreckage.py",
@@ -156,7 +156,7 @@ def _receipt(path, script, variants, frames):
     (REPO / path).write_text(json.dumps({
         "blender_version": bpy.app.version_string,
         "source_sha256": {str(p.relative_to(REPO)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
-        "references": f"assets/references/{family}/references.json",
+        "references": references or f"assets/references/{family}/references.json",
         "authoring": "Original procedural geometry built from the committed references; photos are visual reference only.",
         "frames": frames,
         "variants": variants,
@@ -219,5 +219,7 @@ def run_disabled(family, cards, scheme, build, wreck=None, skip=("dressing_",), 
     variants = [disabled_variant(card, dims) for card, dims in cards.items()]
     receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, check)
     if receipt is not None:
+        entries = json.loads((REPO / "fixtures/units/model-manifest.json").read_text())["entries"]
+        families = sorted({e["source_family"] for e in entries if e["id"] in cards})
         _receipt(f"assets/source/roster/disabled/{family}.source-receipt.json", f"{family}.py", receipt,
-                 "catalog_frames.disabled_variant")
+                 "catalog_frames.disabled_variant", [f"assets/references/{f}/references.json" for f in families])
