@@ -140,7 +140,7 @@
       "id": "eastern_mi_24_mi_35_hind_mi_35m",
       "family": "mi_24_mi_35_hind",
       "category": "hel",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "mi_24_mi_35_hind",
       "source_kind": "rotorcraft",
       "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",

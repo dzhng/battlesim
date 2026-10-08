@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "eastern_mi_24_mi_35_hind_mi_35m-three_quarter_front.jpg",
+   "variant": "eastern_mi_24_mi_35_hind_mi_35m",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mi-35M_(1).jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "972b6116434df7aebb71f9e2b354e0748432b0f071ceb3f79fcd48c340400e64",
+   "note": "Mi-35M front-right three-quarter static: tandem bubbles, chin gun turret and sensor, stub wings, fixed gear"
+  },
+  {
+   "file": "eastern_mi_24_mi_35_hind_mi_35m-side.jpg",
+   "variant": "eastern_mi_24_mi_35_hind_mi_35m",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mil_Mi-35M_(51_yellow).jpg",
+   "author": "Yevgeny Volkov",
+   "licence": "CC-BY-3.0",
+   "sha256": "c238cef05c029204b7a3de007ea7a2f454f012c2b0e1ae62f45196e3b796ed62",
+   "note": "Mi-35M left side static: cabin, wings, tail"
+  },
+  {
+   "file": "eastern_mi_24_mi_35_hind_mi_35m-front.jpg",
+   "variant": "eastern_mi_24_mi_35_hind_mi_35m",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mi-35M_35102_-_U%C5%A1%C4%87e_-_04.jpg",
+   "author": "Sr\u0111an Popovi\u0107",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "ab8a2166d1297ebb9faba97274b0941e54f7776edd86ca6c8c07d550fdb5db82",
+   "note": "Mi-35M head-on static"
+  },
+  {
+   "file": "eastern_mi_24_mi_35_hind_mi_35m-three_quarter_rear.jpg",
+   "variant": "eastern_mi_24_mi_35_hind_mi_35m",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mi-35M_(2).jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "1596326395d8cbc14110570c7222548ad793294d4c7cf27ca1a18d799ad65d85",
+   "note": "Mi-35M rear-left three-quarter static: tail fin, tail rotor, exhausts"
+  },
+  {
+   "file": "eastern_mi_24_mi_35_hind_mi_35m-detail.jpg",
+   "variant": "eastern_mi_24_mi_35_hind_mi_35m",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mi-35M_35102_-_U%C5%A1%C4%87e_-_02.jpg",
+   "author": "Sr\u0111an Popovi\u0107",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "3b881281e6cac8deda1a732a08c57a74dc1ca92d6bb05b0a69d7dc73ece3b371",
+   "note": "Mi-35M nose close up: canopies, gun turret, sensor"
+  }
+ ],
+ "gaps": [
+  "eastern_mi_24_mi_35_hind_mi_35m: no top view; stores vary (rocket pods inboard, ATGM rails at the tips drawn)"
+ ]
+}
