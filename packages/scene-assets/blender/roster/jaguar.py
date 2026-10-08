@@ -78,7 +78,10 @@ def hull(v):
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=h)
         VP.antenna(f"antenna_{s}", (-3.20, side * 0.80, ROOF), m, whip, height=2.4)
-
+    # The rear tow hooks.
+    for side, sd in ((1, "L"), (-1, "R")):
+        VP.tow_hook(f"rear_tow_{sd}", (-v.length / 2 + 0.02, side * 0.75, 0.85), v.mats, v.hull, size=0.13,
+                    rot=(0, 0, math.pi))
 
 def turret(v, t, gun, launcher, launcher_pitch):
     m = v.mats
@@ -90,6 +93,7 @@ def turret(v, t, gun, launcher, launcher_pitch):
              (0.80, -0.36)]
     cyl("turret_ring", 0.95, 0.06, (0, 0, base + 0.03), "Z", m["dark"], t, seg=36, lods=MID)
     loft("t40_shell", [(base + 0.04, foot), (top, crown)], mat=m["paint"], parent=t, bevel=0.035)
+    VP.roof_fittings("roof", crown, top, m, t, periscopes=((0.20, 0.45, 0.3),))
     VP.sight_housing("gunner_sight", (0.35, -0.55, top - 0.02), m, t, size=(0.38, 0.28, 0.28))
     mast = empty("dressing_commander_sight", parent=t)
     cyl("commander_mast", 0.08, 0.30, (-0.50, -0.45, top + 0.15), "Z", m["dark"], mast, seg=12)
