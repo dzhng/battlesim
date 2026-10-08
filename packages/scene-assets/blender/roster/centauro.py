@@ -28,7 +28,7 @@ import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
 from vehicle_export import rig, run_disabled  # noqa: E402
 
-FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
+NEAR, MID = VP.NEAR, VP.MID
 
 CARD = "europe_centauro_ii"
 DIMENSIONS = (8.20, 3.12, 2.75)

@@ -153,11 +153,12 @@ def build(variant, v):
     A.hull_body(v, sep_v3=False)
     A.running_gear(v)
     skirts(v)
-    mounts = rig({"mounts": MOUNTS}, v.root, trunnion={"cannon": A.TRUNNION})
+    # The pilot's gun reads its reach from the frame's mount, as `rig` does.
+    v.frame = dict(v.frame, mounts=MOUNTS)
+    mounts = rig(v.frame, v.root, trunnion={"cannon": A.TRUNNION})
     turret, gun, _, _ = mounts["cannon"]
     rws, rws_gun, _, _ = mounts["RWS"]
     turret_body(v, turret)
-    v.frame = dict(v.frame, mounts=MOUNTS)  # the pilot's gun reads its reach from the mount
     A.main_gun(v, gun, sep_v3=True)
     remote_station(v, rws, rws_gun)
 
