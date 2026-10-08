@@ -80,6 +80,17 @@ def build(variant, v):
         cyl("mast_sight_post", 0.09, 0.3, (0.3, 0, 3.85), "Z", m["dark"], hull, seg=10)
         A.sensor_ball("mast_sight", (0.3, 0, 4.1), 0.22, m, hull)
 
+    # The ALAT's roundel on the HAD, the Heer's cross and serial on the UHT.
+    if variant["id"] == HAD:
+        A.markings(v, [
+            ("insignia", dict(kind="fr", centre=(-2.5, 1.2, 1.68), normal=(0, 1, 0), up=(0, 0, 1), size=0.22, onto=("fuselage",))),
+            ("text", dict(text="ALAT", height=0.16, centre=(-4.2, 1.2, 1.62), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="lowvis_dark")),
+        ])
+    else:
+        A.markings(v, [
+            ("insignia", dict(kind="de", centre=(-2.5, 1.2, 1.68), normal=(0, 1, 0), up=(0, 0, 1), size=0.22, onto=("fuselage",))),
+            ("text", dict(text="74+27", height=0.2, centre=(-4.3, 1.2, 1.62), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+        ])
 
 def wreck(variant, v):
     A.crash(v, tail_x=-2.4, tail_yaw=0.42, tail_drop=0.1, blades_broken=(("main", 1),), seed=66)
