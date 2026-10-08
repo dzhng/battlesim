@@ -88,6 +88,16 @@ def hull(v):
                     rot=(0, -math.pi / 2, 0), bevel=0.02, lods=VP.ALL)
     VP.cable("tow_cable", [(-half + 0.4, 1.05, DECK + 0.02), (-0.2, 1.10, DECK + 0.02), (1.2, 1.05, DECK + 0.02)],
              m, h, radius=0.02)
+    # The photos' add-on armour: bolted plates along the upper hull's band
+    # leaning in from the wheel arches' flare to the deck; jerrycans aft.
+    band = ((1.56, SKIRT + 0.30), (1.42, DECK))
+    for side, s in ((1, "L"), (-1, "R")):
+        for k, x in enumerate((2.55, 1.30, 0.05, -1.20, -2.45)):
+            loc, rot = VP.on_side(x, (SKIRT + 0.30 + DECK) / 2, side, *band)
+            VP.bolted_panel(f"band_plate_{s}_{k}", loc, (1.15, 0.30, 0.04), m, h, bolts=(3, 2), rot=rot, bevel=0.012,
+                            lods=VP.ALL)
+        VP.jerrycan(f"jerrycan_{s}", (-half + 0.30, side * 0.55, DECK), dict(m, paint=m["dark"]), h,
+                    rot=(0, 0, math.pi / 2))
 
 
 def turret_body(v, turret):
@@ -101,6 +111,13 @@ def turret_body(v, turret):
     loft("turret_shell", [(base + 0.03, foot), (base + 0.20, foot), (ROOF, crown)], mat=m["paint"], parent=turret,
          bevel=0.05)
     VP.roof_fittings("roof", crown, ROOF, m, turret, periscopes=((0.20, -0.95, -0.5), (0.20, 0.95, 0.5)))
+    VP.laser_warners("laser_warner", crown, ROOF, m, turret)
+    # Armour modules down each flank, a basket round the bustle.
+    for side, s in ((1, "L"), (-1, "R")):
+        loc, rot = VP.on_side(-0.55, (base + 0.20 + ROOF) / 2, side, (1.45, base + 0.20), (1.32, ROOF))
+        VP.armour_tiles(f"flank_armour_{s}", loc, (1.40, (ROOF - base - 0.20) * 0.8), (3, 1), 0.06, m, turret, rot=rot)
+    VP.slat_armour("bustle_basket", (-2.45, 0, base + 0.25), (2.10, 0.40), m, turret, spacing=0.10, bar=0.014,
+                   rot=(0, 0, math.pi / 2))
     for side, s in ((1, "L"), (-1, "R")):
         VP.weld_line(f"cheek_weld_{s}", [(1.60, side * 0.50, base + 0.20), (0.82, side * 1.38, base + 0.20)], m,
                      turret)

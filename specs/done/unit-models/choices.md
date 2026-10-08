@@ -1566,6 +1566,10 @@ family. No roster frame, mount or tolerance moved.
   `on_side` from its loft rings), a tow cable along the belt, a basket and
   jerrycans on the rear plate, laser warners on the turret.
 
+  The Centauro II: bolted plates along the upper hull's band leaning in
+  from the wheel arches' flare to the deck, armour modules down each
+  turret flank, a basket round the bustle, laser warners and jerrycans.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause
