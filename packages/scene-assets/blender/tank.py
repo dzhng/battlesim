@@ -1,9 +1,10 @@
 """The test tank (test unit art, never game content): an articulated appearance (and, with --wreck, its burnt wreck).
 
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/tank.py -- [out.glb] [--wreck [--piece=hull|turret]]
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/tank.py -- [out.glb] [--wreck [--piece=hull|turret|debris]]
 
 A wreck's pieces are the finished wreck split at the turret ring, each where it lies in the
 whole: the battle draws them while the turret is thrown, then the whole wreck once it lands.
+Its debris (`wreckage.scatter`) is its own state, which the battle lets sink away.
 
 Ported from spike 03's frozen `tank.py` (specs/done/battle-look/assets/spikes/03/scripts/):
 the same node tree, pivots and proportions, fitted to the tank's `mounts` rows:
@@ -25,9 +26,9 @@ from parts import *
 
 ARGS = script_args()
 WRECK = "--wreck" in ARGS
-# --piece=hull|turret (with --wreck): only that piece of the wreck, for the turret's throw
+# --piece=hull|turret|debris (with --wreck): only that piece of the wreck (`wreckage.cut_to`)
 PIECE = next((a.split("=", 1)[1] for a in ARGS if a.startswith("--piece=")), None)
-assert PIECE in (None, "hull", "turret") and (PIECE is None or WRECK), "--piece=hull|turret needs --wreck"
+assert PIECE in (None, "hull", "turret", "debris") and (PIECE is None or WRECK), "--piece=hull|turret|debris needs --wreck"
 POS = [a for a in ARGS if not a.startswith("--")]
 OUT = POS[0] if POS else os.path.abspath("tank.glb")
 GUN_REACH = 5.9  # the cannon row's muzzle_m[0]: muzzle distance from the turret axis
@@ -616,22 +617,20 @@ if WRECK:  # the fire vented through the open hatches, the holes and the engine 
     for vent, reach in ((Vector((2.25, 0, glacis_z(2.25))), 1.8), (hatch, 2.2), (hit_hull, 1.2), (cheek, 1.2),
                         (Vector((0, 0, 1.47)), 3.4), (Vector((-2.2, 0.15, 1.47)), 3.6)):
         SCORCH.append((vent.copy(), reach))
+if WRECK:  # debris thrown clear, as every roster wreck's (sim hull half extents [3.5, 1.8])
+    import zlib
+    from wreckage import scatter
+    scatter((3.5, 1.8), {"paint": camo, "dark": dark, "steel": steel, "rubber": rubber, "track": track_mat,
+                         "canvas": dark}, seed=zlib.crc32(b"test_tank"))
 rest_on_ground(0.006 if WRECK else 0.0)
 finish(ao_distance=1.2)
 bpy.context.view_layer.update()
-if PIECE:  # one piece of the finished wreck, where it lies in the whole: its burnt hull, or its thrown turret
-    thrown = {turret, *turret.children_recursive}
-    if PIECE == "turret":
-        lies = turret.matrix_world.copy()
-        turret.parent = None
-        turret.matrix_world = lies
-    for o in list(bpy.data.objects):
-        if (o in thrown) == (PIECE == "hull"):
-            bpy.data.objects.remove(o, do_unlink=True)
-    bpy.context.view_layer.update()
+if WRECK:  # the whole wreck without its debris, or one piece of it, where it lies in the whole
+    from wreckage import cut_to
+    cut_to(PIECE or "default")
 info = dict(
     tris=triangles_by_tier(),
-    muzzle=None if PIECE == "hull" else [round(v, 4) for v in muzzle.matrix_world.translation],
+    muzzle=None if PIECE in ("hull", "debris") else [round(v, 4) for v in muzzle.matrix_world.translation],
     track_length_m=[LEN_L, LEN_R],
     nodes=sorted(o.name for o in bpy.data.objects if o.type == "EMPTY"),
 )
