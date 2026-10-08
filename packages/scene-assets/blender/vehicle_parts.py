@@ -567,6 +567,30 @@ def antenna(name, loc, mats, parent, height=2.4, radius=0.008, rot=(0, 0, 0)):
     return _place(made, loc, rot)
 
 
+# ---------------------------------------------------------------- weapons
+def browning_m2(parent, reach, mats, receiver_x=0.06, grips=False):
+    """The M2 heavy machine gun on its mount's pitch node `parent`, firing
+    along +X to the muzzle `reach` metres out: receiver centred at
+    `receiver_x`, the barrel and its jacket, the flash hider, and with `grips`
+    the spade grips a standing gunner holds. Every piece is named `m2_*`.
+    Returns its meshes. Roles: dark, steel, black."""
+    barrel_from = receiver_x + 0.26
+    made = []
+    made += box(name="m2_receiver", size=(0.52, 0.13, 0.15), loc=(receiver_x, 0, 0), mat=mats["dark"], parent=parent,
+                bevel=0.012)
+    made += cyl(name="m2_barrel", r=0.024, depth=reach - barrel_from, loc=((reach + barrel_from) / 2, 0, 0), axis="X",
+                mat=mats["steel"], parent=parent, seg=10)
+    made += cyl(name="m2_jacket", r=0.040, depth=0.22, loc=(barrel_from + 0.11, 0, 0), axis="X", mat=mats["dark"],
+                parent=parent, seg=12, lods=MID)
+    made += cyl(name="m2_flash_hider", r=0.034, r2=0.026, depth=0.08, loc=(reach - 0.04, 0, 0), axis="X",
+                mat=mats["steel"], parent=parent, seg=10, lods=NEAR)
+    if grips:
+        for side in (-1, 1):
+            made += cyl(name=f"m2_grip_{side}", r=0.018, depth=0.12, loc=(receiver_x - 0.30, side * 0.07, -0.02),
+                        mat=mats["black"], parent=parent, seg=8, lods=NEAR)
+    return made
+
+
 # ---------------------------------------------------------------- stowage
 def jerrycan(name, loc, mats, parent, size=(0.165, 0.345, 0.47), rot=(0, 0, 0)):
     """A standing jerrycan, its foot's centre at `loc`: a can `size` (x

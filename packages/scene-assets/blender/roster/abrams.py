@@ -373,11 +373,7 @@ def crows(v, hmg, hmg_gun, sep_v3):
     box("crows_ammo", (0.30, 0.14, 0.26), (-0.05, 0.27, -0.08), m["paint"], hmg_gun, bevel=0.015, lods=MID)
     if not sep_v3:
         box("crows_shield", (0.06, 0.62, 0.34), (0.32, 0, -0.03), m["paint"], hmg_gun, bevel=0.012, lods=MID)
-    box("m2_receiver", (0.52, 0.13, 0.15), (0.06, 0, 0), m["dark"], hmg_gun, bevel=0.012)
-    reach = muzzle[0]
-    cyl("m2_barrel", 0.024, reach - 0.36, ((reach + 0.32) / 2, 0, 0), "X", m["steel"], hmg_gun, seg=10)
-    cyl("m2_jacket", 0.040, 0.22, (0.43, 0, 0), "X", m["dark"], hmg_gun, seg=12, lods=MID)
-    cyl("m2_flash_hider", 0.034, 0.08, (reach - 0.04, 0, 0), "X", m["steel"], hmg_gun, seg=10, r2=0.026, lods=NEAR)
+    VP.browning_m2(hmg_gun, muzzle[0], m)
 
 
 # ---------------------------------------------------------------- wreck

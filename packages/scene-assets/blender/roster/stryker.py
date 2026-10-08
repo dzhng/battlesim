@@ -40,6 +40,12 @@ ROOF = 2.30
 DRAGOON_ROOF = 1.95
 
 
+def glacis_top(roof):
+    """Where the glacis meets the roof (x): further forward on a lower roof,
+    so the glacis keeps its slope."""
+    return 1.10 + (ROOF - roof) * 1.6
+
+
 def hull_rings(roof):
     """The hull as horizontal rings: the tucked-in belly, the chine band over
     the wheels and the roof, its front edge where the glacis meets it."""
@@ -48,11 +54,10 @@ def hull_rings(roof):
         return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
                 (front - chamfer, half), (rear, half)]
 
-    glacis_top = 1.10 + (ROOF - roof) * 1.6
     return [(0.50, plan(-3.05, 2.75, 0.95, 0.15)),
             (CHINE, plan(-3.475, 3.475, 1.28, 0.35)),
             (CHINE + 0.12, plan(-3.475, 3.40, 1.28, 0.35)),
-            (roof, plan(-3.44, glacis_top, 1.20, 0.25))]
+            (roof, plan(-3.44, glacis_top(roof), 1.20, 0.25))]
 
 
 def build(variant, v):
@@ -105,18 +110,18 @@ def wheels(v):
 
 def fittings(v, roof, dragoon):
     m, hull = v.mats, v.hull
-    glacis_top = hull_rings(roof)[-1][1][2][0]
+    top = glacis_top(roof)
 
     def glacis_z(x):
-        return CHINE + 0.12 + (roof - CHINE - 0.12) * (3.40 - x) / (3.40 - glacis_top)
+        return CHINE + 0.12 + (roof - CHINE - 0.12) * (3.40 - x) / (3.40 - top)
 
-    slope = math.atan((roof - CHINE - 0.12) / (3.40 - glacis_top))
+    slope = math.atan((roof - CHINE - 0.12) / (3.40 - top))
     # The engine's grille on the right of the glacis, the driver's hatch and
     # periscopes on its left.
     VP.grille("engine_grille", (2.30, -0.55, glacis_z(2.30)), (0.80, 0.85), m, hull, slats=8, rot=(0, slope, 0))
-    VP.hatch("driver_hatch", (glacis_top - 0.35, 0.60, roof), m, hull, radius=0.30)
+    VP.hatch("driver_hatch", (top - 0.35, 0.60, roof), m, hull, radius=0.30)
     for k, y in enumerate((0.38, 0.60, 0.82)):
-        x = glacis_top + 0.12
+        x = top + 0.12
         VP.periscope(f"driver_periscope_{k}", (x, y, glacis_z(x) - 0.01), m, hull, size=(0.12, 0.17, 0.08),
                      rot=(0, slope, 0))
     # Headlights in guards at the glacis corners, tow eyes on the nose.
@@ -178,7 +183,7 @@ def fittings(v, roof, dragoon):
 
 
 # ---------------------------------------------------------------- weapons
-def station_base(v, carrier, pivot, height):
+def station_base(v, pivot, height):
     """The remote station's fixed adapter on the roof, up to `height` m
     (hull frame): part of the hull, under the turning station."""
     m = v.mats
@@ -193,7 +198,7 @@ def protector(v, station, pitch, pivot):
     sight block on its left, the ammunition box on its right and a smoke bank
     on each side."""
     m = v.mats
-    station_base(v, station, pivot, 2.56)
+    station_base(v, pivot, 2.56)
     below = 2.62 - pivot.z
     cyl("protector_base", 0.28, 0.10, (0, 0, below + 0.05), "Z", m["paint"], station, seg=20, bevel=0.01)
     box("protector_column", (0.30, 0.26, -below - 0.05), (-0.08, 0, below / 2 + 0.02), m["paint"], station,
@@ -206,15 +211,7 @@ def protector(v, station, pitch, pivot):
                                  rot=(0, 0, side * 0.6))
     VP.sight_housing("protector_sight", (0.08, 0.30, -0.10), m, pitch, size=(0.30, 0.18, 0.24))
     box("protector_ammo", (0.30, 0.14, 0.26), (-0.02, -0.28, -0.08), m["paint"], pitch, bevel=0.012, lods=MID)
-    m2(v, pitch, v.frame["mounts"][0]["muzzle_m"][0])
-
-
-def m2(v, pitch, reach):
-    m = v.mats
-    box("m2_receiver", (0.52, 0.13, 0.15), (0.06, 0, 0), m["dark"], pitch, bevel=0.012)
-    cyl("m2_barrel", 0.024, reach - 0.36, ((reach + 0.32) / 2, 0, 0), "X", m["steel"], pitch, seg=10)
-    cyl("m2_jacket", 0.040, 0.22, (0.43, 0, 0), "X", m["dark"], pitch, seg=12, lods=MID)
-    cyl("m2_flash_hider", 0.034, 0.08, (reach - 0.04, 0, 0), "X", m["steel"], pitch, seg=10, r2=0.026, lods=NEAR)
+    VP.browning_m2(pitch, v.frame["mounts"][0]["muzzle_m"][0], m)
 
 
 def tow_launcher(v, station, pitch, pivot):
@@ -222,7 +219,7 @@ def tow_launcher(v, station, pitch, pivot):
     the launcher, and the launcher box with its two tubes and the ITAS sight
     head beside them."""
     m = v.mats
-    station_base(v, station, pivot, 2.56)
+    station_base(v, pivot, 2.56)
     below = 2.62 - pivot.z
     cyl("tow_turntable", 0.32, 0.10, (0, 0, below + 0.05), "Z", m["paint"], station, seg=20, bevel=0.01)
     box("tow_arm", (0.34, 0.30, -below), (-0.30, 0, below / 2), m["paint"], station, bevel=0.02)

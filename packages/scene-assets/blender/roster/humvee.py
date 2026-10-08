@@ -185,12 +185,7 @@ def ogpk(v, turret, pitch, pivot):
     cyl("pintle_post", 0.04, lift - 0.05 - foot, (0.10, 0, (foot + lift - 0.05) / 2), "Z", m["dark"], turret, seg=10)
     box("pintle_cradle", (0.20, 0.14, 0.06), (0.10, 0, lift - 0.06), m["dark"], turret, lods=MID)
     reach = v.frame["mounts"][0]["muzzle_m"][0]
-    box("m2_receiver", (0.52, 0.13, 0.15), (0.10, 0, 0), m["dark"], pitch, bevel=0.012)
-    cyl("m2_barrel", 0.024, reach - 0.40, ((reach + 0.38) / 2, 0, 0), "X", m["steel"], pitch, seg=10)
-    cyl("m2_jacket", 0.040, 0.22, (0.47, 0, 0), "X", m["dark"], pitch, seg=12, lods=MID)
-    cyl("m2_flash_hider", 0.034, 0.08, (reach - 0.04, 0, 0), "X", m["steel"], pitch, seg=10, r2=0.026, lods=NEAR)
-    for side in (-1, 1):
-        cyl(f"m2_grip_{side}", 0.018, 0.12, (-0.20, side * 0.07, -0.02), "Z", m["black"], pitch, seg=8, lods=NEAR)
+    VP.browning_m2(pitch, reach, m, receiver_x=0.10, grips=True)
     box("m2_ammo_can", (0.28, 0.12, 0.20), (0.10, 0.17, -0.06), m["dark"], pitch, bevel=0.01, lods=MID)
 
 

@@ -57,7 +57,7 @@ def materials(scheme, fittings=(0.11, 0.095, 0.068), canvas=(0.105, 0.098, 0.062
     }
 
 
-def rig(frame, root, carriers=None, trunnion=None):
+def rig(frame, root, trunnion=None):
     """Each mount's yaw, pitch and muzzle nodes, by its role, at its frame's
     pivot (in the hull frame) and muzzle (from the pivot along the bore). A
     mount carried by another (`on`) yaws on that one's yaw node. `trunnion`
@@ -69,7 +69,7 @@ def rig(frame, root, carriers=None, trunnion=None):
         yaw_name, pitch_name, muzzle_name = RIG_NODES[mount["role"]]
         pivot = Vector(mount["pivot_m"])
         carrier, at = (root, Vector((0, 0, 0))) if mount["on"] is None else (made[mount["on"]][0], made[mount["on"]][3])
-        yaw = empty(yaw_name, tuple(pivot - at), (carriers or {}).get(mount["name"], carrier))
+        yaw = empty(yaw_name, tuple(pivot - at), carrier)
         muzzle = Vector(mount["muzzle_m"])
         ahead = (trunnion or {}).get(mount["name"], 0.0)
         pitch = empty(pitch_name, (ahead, 0, muzzle.z), yaw)
