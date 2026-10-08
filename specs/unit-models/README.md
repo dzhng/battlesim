@@ -116,7 +116,7 @@ TODO:
 - [x] [14 Pilot](slices/14-pilot.md): Abrams, Stryker, HMMWV (real frame), rifle squad; class budgets measured and fixed.
 - [ ] [15 Tracked lane](slices/15-tracked.md)
 - [ ] [16 Wheeled, light and trucks lane](slices/16-wheeled.md)
-- [ ] [17 Infantry lane](slices/17-infantry.md)
+- [x] [17 Infantry lane](slices/17-infantry.md)
 - [ ] [18 Disabled cards lanes](slices/18-disabled-cards.md): models, wrecks and icons, still unplayable.
 - [ ] [19 Closeout](slices/19-closeout.md): full check and verify once, balance report, close-spec.
 
