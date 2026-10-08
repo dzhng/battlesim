@@ -16,10 +16,19 @@ with these helpers before `finish()` bakes paint and occlusion onto the result:
 - `plate` makes a torn sheet (a jagged outline with thickness) for debris.
 
 Every roster wreck (`--wreck` on its exporter) ends the same way: after the
-family's own damage, `burn` turns what is left to burnt steel and char before
+family's own damage, `scatter` throws debris clear of the hull from what the
+vehicle carries, `burn` turns what is left to burnt steel and char before
 `finish()`, and `export_wreck` writes the wreck and, where it has a turret to
-throw, its `hull` and `turret` pieces, each where it lies in the whole, as
-`tank.py --wreck --piece=` does.
+throw, its `hull` and `turret` pieces, each where it lies in the whole, and
+its thrown `debris` apart (`cut_to`).
+
+Thrown debris is presentation, not cover: it lies past the box the simulation
+keeps, so the battle draws it only where it watched the death and lets it sink
+away (`effects/cookOff.ts`). Everything under a `debris_*` node is thrown
+debris, exported only in the wreck's `debris` state and held there to its own
+allowance (`SCENERY_KINDS.wreck.debris`); a family names nothing `debris_*`
+itself. What a wreck keeps on or beside its hull (a hatch on the deck, a panel
+in a wheel gap) is the wreck's own and stays inside its footprint.
 
 Every helper applies to all four tiers alike, with the same field, so the
 coarser tiers are the same wreck. Deterministic: fixed seeds, no randomness
@@ -33,7 +42,7 @@ import bmesh
 import bpy
 from mathutils import Matrix, Vector, noise
 
-from parts import _split_long_edges, mesh_part, smoothstep, tier_of
+from parts import _split_long_edges, empty, mesh_part, smoothstep, tier_of
 
 # Longest edge a deformed part keeps, per tier (finest first): 12 cm is enough
 # for a warped plate to read at the close view.
@@ -311,15 +320,16 @@ CHARRED = ("rubber", "glass", "fabric")
 
 def wreck_paths(out):
     """A wreck's files beside the live vehicle's `out`: its whole
-    (`default`) and its `hull` and `turret` pieces."""
+    (`default`), its `hull` and `turret` pieces and its thrown `debris`."""
     stem = out[:-4] if out.endswith(".glb") else out
-    return {"default": f"{stem}_wreck.glb", "hull": f"{stem}_wreck_hull.glb", "turret": f"{stem}_wreck_turret.glb"}
+    return {"default": f"{stem}_wreck.glb", "hull": f"{stem}_wreck_hull.glb", "turret": f"{stem}_wreck_turret.glb",
+            "debris": f"{stem}_wreck_debris.glb"}
 
 
 def burn():
     """The damaged vehicle burnt out, before `finish()`: every
     surface burnt (smoke-blackened steel, char where rubber, glass and canvas
-    were), its dressing (antennas, masts) and crew gone, its barrels sagging on
+    were), its thrown debris with it, its dressing (antennas, masts) and crew gone, its barrels sagging on
     broken trunnions, its turret heaved askew off the ring, and the fire vented
     through the ring."""
     from parts import SCORCH, textured
@@ -363,37 +373,226 @@ def _ancestors(o):
         yield o
 
 
+def cut_to(state):
+    """Cut the finished wreck in the scene down to one of its states, each
+    where it lies in the whole: `default` (the wreck without its thrown
+    debris), `hull` (that without its turret), `turret` (the turret alone)
+    or `debris` (the `debris_*` trees alone). A kept part whose parent goes
+    keeps its place in the world."""
+    bpy.context.view_layer.update()
+    turret = bpy.data.objects.get(TURRET)
+    thrown = {turret, *turret.children_recursive} if turret is not None else set()
+    debris = {o for o in bpy.data.objects if is_debris(o)}
+    keep = {"default": lambda o: o not in debris,
+            "hull": lambda o: o not in debris and o not in thrown,
+            "turret": lambda o: o in thrown,
+            "debris": lambda o: o in debris}[state]
+    kept = [o for o in bpy.data.objects if keep(o)]
+    for o in kept:
+        if o.parent is not None and not keep(o.parent):
+            lies = o.matrix_world.copy()
+            o.parent = None
+            o.matrix_world = lies
+    for o in [o for o in bpy.data.objects if not keep(o)]:
+        bpy.data.objects.remove(o, do_unlink=True)
+    bpy.context.view_layer.update()
+
+
 def export_wreck(out, **export_kw):
     """Export the burnt vehicle beside `out` (`wreck_paths`): whole, then, if
-    it has a turret, its hull without it and its turret alone, unparented
-    where it lies in the whole. Returns the states written, by name."""
+    it has a turret, its hull without it and its turret alone, and, if it
+    threw any, its debris (`cut_to`). Returns the states written, by name."""
     import tempfile
     from parts import export
     paths = wreck_paths(out)
-    export(paths["default"], **export_kw)
-    if bpy.data.objects.get(TURRET) is None:
-        return {"default": paths["default"]}
-    # Each piece deletes the other: cut the hull from the scene, then the
-    # turret from a copy of it (the exporter follows parents, not collections).
+    states = ["default"]
+    if bpy.data.objects.get(TURRET) is not None:
+        states += ["hull", "turret"]
+    if any(is_debris(o) for o in bpy.data.objects):
+        states.append("debris")
+    # Each state cuts the others from a copy of the whole (the exporter
+    # follows parents, not collections).
     whole = os.path.join(tempfile.mkdtemp(), "wreck.blend")
     bpy.ops.wm.save_as_mainfile(filepath=whole, copy=True)
-    for keep_turret in (False, True):
-        if keep_turret:
+    for k, state in enumerate(states):
+        if k:
             bpy.ops.wm.open_mainfile(filepath=whole)
-        turret = bpy.data.objects[TURRET]
-        thrown = {turret, *turret.children_recursive}
-        if keep_turret:
-            lies = turret.matrix_world.copy()
-            turret.parent = None
-            turret.matrix_world = lies
-        for o in list(bpy.data.objects):
-            if (o in thrown) != keep_turret:
-                bpy.data.objects.remove(o, do_unlink=True)
-        bpy.context.view_layer.update()
-        export(paths["turret" if keep_turret else "hull"], **export_kw)
+        cut_to(state)
+        export(paths[state], **export_kw)
     os.remove(whole)
-    return paths
+    return {state: paths[state] for state in states}
+
+
+# ------------------------------------------------------------- thrown debris
+DEBRIS = "debris_"
+# The gap from the hull's box to a thrown piece's nearest point, metres: at
+# least the first, and up to the first and the second.
+THROW_GAP_M = (0.5, 3.5)
+# A piece lying flat rests this far above the ground, so the two don't fight
+# for depth.
+LIFT_M = 0.006
+# How many pieces a hull throws: one per this many metres of its box's
+# perimeter, within the bounds.
+PIECE_EVERY_M = 3.5
+PIECES = (3, 7)
+
+
+def is_debris(o):
+    """Whether `o` is, or hangs under, a `debris_*` node: thrown debris."""
+    return any(a.name.startswith(DEBRIS) for a in (o, *_ancestors(o)))
+
+
+def _carried():
+    """What the built vehicle carries for the blast to throw: its tracks'
+    width (None without tracks), its road wheels' radius (None without
+    `wheel_*` nodes, or with tracks), and whether it carries jerrycans."""
+    bpy.context.view_layer.update()
+    track = None
+    for side in ("track_L", "track_R"):
+        node = bpy.data.objects.get(side)
+        if node is None:
+            continue
+        ys = [(o.matrix_world @ v.co).y for o in node.children_recursive
+              if o.type == "MESH" and tier_of(o) in (0, None) for v in o.data.vertices]
+        if ys:
+            track = max(track or 0.0, max(ys) - min(ys))
+    wheel = None
+    if track is None:
+        radii = [o["radius_m"] for o in sorted(bpy.data.objects, key=lambda o: o.name)
+                 if o.type == "EMPTY" and o.name.startswith("wheel_") and "radius_m" in o]
+        wheel = max(radii) if radii else None
+    cans = any("jerrycan" in o.name for o in bpy.data.objects)
+    return track, wheel, cans
+
+
+def _place_on(rng, half, t):
+    """A point `t` metres across the ground from the box of half extents
+    `half` (on the box grown by `t`, a rounded rectangle), chosen evenly
+    along its length by `rng`."""
+    hx, hy = half
+    sides = (2 * hy, 2 * hx, 2 * hy, 2 * hx)
+    arc = math.pi / 2 * t
+    s = rng.random() * (sum(sides) + 4 * arc)
+    # Walk the straight sides and corner arcs counter-clockwise from the
+    # front right corner: +x side, +y side, -x side, -y side.
+    corners = ((hx, -hy), (hx, hy), (-hx, hy), (-hx, -hy))
+    for k in range(4):
+        cx, cy = corners[k]
+        nx, ny = corners[(k + 1) % 4]
+        out = (math.pi / 2) * k  # the outward normal's angle along this side
+        if s < sides[k]:
+            u = s / sides[k]
+            return (cx + (nx - cx) * u + t * math.cos(out), cy + (ny - cy) * u + t * math.sin(out))
+        s -= sides[k]
+        if s < arc:
+            a = out + s / t if t > 0 else out
+            return (nx + t * math.cos(a), ny + t * math.sin(a))
+        s -= arc
+    return (hx + t, 0.0)
+
+
+def _meshes(e):
+    return [o for o in e.children_recursive if o.type == "MESH"]
+
+
+def _piece(kind, k, mats, rng, track, wheel):
+    """Build one thrown piece of `kind` lying at the origin under its own
+    `debris_<kind>_<k>` node; returns the node, how far the piece reaches from
+    it across the ground, and whether its plates warp in the fire."""
+    from parts import box, mesh_part
+    from vehicle_parts import ALL, bolted_panel, hatch, jerrycan, stowage_box, tyre_wheel
+    e = empty(f"{DEBRIS}{kind}_{k}")
+    name = f"thrown_{kind}_{k}"
+    if kind == "track":
+        length, width = rng.uniform(1.8, 2.6), track
+
+        def run(bm, lod):
+            cube = bmesh.ops.create_cube(bm, size=1.0)
+            bmesh.ops.transform(bm, matrix=Matrix.Diagonal((length, width, 0.05, 1.0)), verts=cube["verts"])
+            if lod < 2:  # the links' grousers across the run
+                for j in range(int(length / 0.17)):
+                    x = -length / 2 + 0.085 + j * 0.17
+                    g = bmesh.ops.create_cube(bm, size=1.0)
+                    bmesh.ops.transform(bm, matrix=Matrix.Translation((x, 0, 0.04))
+                                        @ Matrix.Diagonal((0.05, width, 0.035, 1.0)), verts=g["verts"])
+
+        mesh_part(name, run, mats["track"], e, lods=ALL)
+        return e, math.hypot(length, width) / 2, True
+    if kind == "wheel":
+        width = wheel * 0.7
+        node = tyre_wheel(f"wheel_{name}", (0, 0, width / 2), wheel, width, 1, mats, e)
+        node.rotation_euler = (math.pi / 2, 0, 0)
+        return e, wheel, False
+    if kind == "hatch":
+        hatch(name, (0, 0, 0), mats, e, radius=0.34, rot=(math.pi, 0, 0))
+        box(f"{name}_slab", (0.5, 0.5, 0.02), (0, 0, 0.01), mats["paint"], e, lods=(3,))
+        return e, 0.42, False
+    if kind in ("pack", "door"):
+        size = ((rng.uniform(0.7, 1.05), rng.uniform(0.45, 0.65), 0.09) if kind == "pack"
+                else (rng.uniform(0.9, 1.15), rng.uniform(0.75, 0.95), 0.05))
+        bolted_panel(name, (0, 0, 0), size, mats, e, bolts=(3, 2) if kind == "pack" else (2, 2), lods=ALL)
+        return e, math.hypot(size[0], size[1]) / 2, True
+    if kind == "crate":
+        size = (rng.uniform(0.7, 0.95), 0.45, 0.42)
+        # Tipped onto its back, centred on the node.
+        stowage_box(name, (0, size[2] / 2, size[1] / 2), size, mats, e, rot=(math.pi / 2, 0, 0))
+        box(f"{name}_far", (size[0], size[2], size[1]), (0, 0, size[1] / 2), mats["paint"], e, lods=(3,))
+        return e, math.hypot(size[0], size[2]) / 2, False
+    if kind == "can":
+        # Lying on its side, centred on the node.
+        jerrycan(name, (-0.235, 0, 0.0825), mats, e, rot=(0, math.pi / 2, 0))
+        return e, 0.3, False
+    plate(name, ragged_outline(rng.uniform(0.3, 0.5), 10, 0.25, rng.randrange(1 << 16)), 0.03, (0, 0, 0),
+          (0, 0, 0), mats["paint"], e, lods=ALL, curl=0.12, seed=rng.randrange(1 << 16))
+    return e, 0.6, True
+
+
+def scatter(half, mats, seed):
+    """Throw debris clear of a wreck whose hull box has half extents `half`
+    (x, y, about the origin), from what the built vehicle carries: a run of
+    track off a tracked hull, a wheel off a wheeled one, a blown hatch or a
+    door, armour packs, a stowage box, a jerrycan if it carries them, torn
+    plate; only torn plate off anything else (an airframe). More off a
+    larger hull. Each piece lies flat on the ground under its own `debris_*`
+    node at the scene's root, so the wreck's own tilt doesn't lift it,
+    between `THROW_GAP_M` of the box, and never on another. `mats` are the
+    vehicle's materials by role (`vehicle_export.materials`); `seed` picks
+    every throw, so the same seed throws the same debris.
+
+    Call it once the wreck lies as it will (after the family's damage and
+    its settling) and before `burn`, which burns the debris with the wreck.
+    `export_wreck` writes it as the wreck's `debris` state."""
+    rng = random.Random(seed)
+    track, wheel, cans = _carried()
+    if track:
+        kinds = ["track", "hatch", "pack", "crate", "pack"] + (["can"] if cans else []) + ["plate", "plate"]
+    elif wheel:
+        kinds = ["wheel", "door", "pack", "crate"] + (["can"] if cans else []) + ["wheel", "plate"]
+    else:
+        kinds = ["plate"] * PIECES[1]
+    count = min(max(round(4 * (half[0] + half[1]) / PIECE_EVERY_M), PIECES[0]), PIECES[1])
+    lying = []
+    for k, kind in enumerate(kinds[:count]):
+        e, reach, warps = _piece(kind, k, mats, rng, track, wheel)
+        # Clear of the hull and of every piece already down.
+        for _ in range(40):
+            gap = THROW_GAP_M[0] + rng.random() * THROW_GAP_M[1]
+            x, y = _place_on(rng, half, gap + reach)
+            if all(math.hypot(x - px, y - py) > reach + pr + 0.2 for px, py, pr in lying):
+                break
+        lying.append((x, y, reach))
+        e.location = (x, y, 0)
+        e.rotation_euler = (rng.uniform(-0.05, 0.05), rng.uniform(-0.05, 0.05), rng.uniform(0, math.tau))
+        bpy.context.view_layer.update()
+        meshes = _meshes(e)
+        if warps:
+            densify(meshes)
+            warp(meshes, heat(0.03, 0.5, seed=float(rng.randrange(1000))))
+        bpy.context.view_layer.update()
+        low = min((o.matrix_world @ v.co).z for o in meshes for v in o.data.vertices)
+        e.location.z += LIFT_M - low
+    bpy.context.view_layer.update()
 
 
 __all__ = ["parts", "densify", "warp", "heat", "dent", "sag", "bend", "ragged", "ragged_outline", "frame", "cut", "hollow",
-           "plate", "remove", "WRECK_ARG", "burn", "export_wreck", "wreck_paths"]
+           "plate", "remove", "WRECK_ARG", "burn", "export_wreck", "wreck_paths", "cut_to", "DEBRIS", "is_debris", "scatter"]
