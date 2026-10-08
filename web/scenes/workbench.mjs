@@ -343,23 +343,32 @@ export async function run(ctx) {
   }
 
   // ---- `?bundle=`: a baked catalog served at the site root, through the loader.
+  // The workbench loads the unit art its session's (test) units wear, so the
+  // synthetic bake is served under the test units' appearance names.
+  const WORN = { tank: "test_tank", rifleman: "test_rifle", truck: "test_supply_truck" };
   const bakeModule = `/@fs${new URL("../../packages/scene-assets/src/bake.ts", import.meta.url).pathname}`;
   const files = await wb(
     page,
-    async (bakeModule) => {
+    async ([bakeModule, worn]) => {
       const s = await import("/tests/sceneAssets/synthetic.ts");
       const { bakeCatalog, runtimeCatalogText } = await import(bakeModule);
       const sources = s.testSources();
       const result = await bakeCatalog(s.testCatalog(), async (path) => sources[path], {
         authority: s.AUTHORITY,
       });
+      result.runtime.appearances = Object.fromEntries(
+        Object.entries(result.runtime.appearances).map(([name, entry]) => [
+          worn[name] ?? name,
+          entry,
+        ]),
+      );
       const out = {
         "catalog.json": Array.from(new TextEncoder().encode(runtimeCatalogText(result.runtime))),
       };
       for (const [path, bytes] of result.files) out[path] = Array.from(bytes);
       return out;
     },
-    bakeModule,
+    [bakeModule, WORN],
   );
   const served = await ctx.newPage({ viewport: VIEWPORT });
   await served.route(/\/(catalog\.json|[0-9a-f]{64}\/bundle\.bin)$/, (route) => {
@@ -369,23 +378,23 @@ export async function run(ctx) {
       ? route.fulfill({ status: 200, body: Buffer.from(bytes) })
       : route.fulfill({ status: 404, body: "" });
   });
-  await ctx.openLab(served, `${ctx.url}?bundle=tank`);
-  await drawnOnBench(served, "tank");
+  await ctx.openLab(served, `${ctx.url}?bundle=${WORN.tank}`);
+  await drawnOnBench(served, WORN.tank);
   const fromCatalog = await served.evaluate(() => ({
     state: window.__workbench.state(),
     models: window.__lab.stats().models,
   }));
   ctx.check(
     "?bundle= installs a catalog appearance through the loader and draws it",
-    fromCatalog.state.catalog.includes("rifleman") && fromCatalog.models.instances === 1,
+    fromCatalog.state.catalog.includes(WORN.rifleman) && fromCatalog.models.instances === 1,
     JSON.stringify(fromCatalog),
   );
   await served.evaluate(() => window.__lab.frame());
   await writeFile(ctx.evidencePath("bundle-tank.png"), await served.screenshot());
 
   // ---- one mesh per kind, two armies: the side's tint recolours the masked cloth.
-  await served.evaluate(() => window.__workbench.select("rifleman"));
-  await served.waitForFunction(() => window.__workbench?.state().model === "rifleman");
+  await served.evaluate((name) => window.__workbench.select(name), WORN.rifleman);
+  await served.waitForFunction((name) => window.__workbench?.state().model === name, WORN.rifleman);
   await served.evaluate(() => window.__workbench.setSide("blue"));
   const blue = await shot(ctx, served, "bundle-rifleman-blue.png");
   await served.evaluate(() => window.__workbench.setSide("red"));
