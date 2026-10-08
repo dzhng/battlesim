@@ -1,6 +1,10 @@
 {
   "schema_version": 1,
   "description": "Model production registry for roster cards that are intentionally disabled. This manifest never admits a unit or supplies a runtime appearance; the resolved catalog remains authoritative for mechanics and disabled_reason.",
+  "model_statuses": {
+    "source_authored": "A family blockout from roster/disabled_placeholders.py, not built from references.",
+    "reference_built": "Rebuilt from its committed references (assets/references/<source_family>/) by its family exporter, with its own wreck and tiers."
+  },
   "entries": [
     {
       "id": "ah_64e_guardian",
@@ -586,7 +590,7 @@
       "id": "f_16c_block_50",
       "family": "f_16_fighting_falcon",
       "category": "air",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "f_16_fighting_falcon",
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",

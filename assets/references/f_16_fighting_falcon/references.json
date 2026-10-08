@@ -1,0 +1,63 @@
+{
+ "entries": [
+  {
+   "file": "f_16c_block_50-three_quarter_front.jpg",
+   "variant": "f_16c_block_50",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:77th_Fighter_Squadron_-_Lockheed_F-16C_Block_50_Fighting_Falcon_-_94-0046.jpg",
+   "author": "United States Air Force",
+   "licence": "public-domain",
+   "sha256": "c7a24351bd8f3319967af122d1fbc1fc23371f2d01e9db108a9ba2dbb37b22ea",
+   "note": "USAF F-16C Block 50 front-left three-quarter at a hardened shelter: chin intake, bubble canopy, wing-tip AIM-120 rails, fuel tanks, nose gear"
+  },
+  {
+   "file": "f_16c_block_50-side.jpg",
+   "variant": "f_16c_block_50",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:77th_Fighter_Squadron_-_General_Dynamics_F-16C_Block_50C_Fighting_Falcon_-_91-0359.jpg",
+   "author": "United States Air Force",
+   "licence": "public-domain",
+   "sha256": "98a780a0d8684fad63a94a44f28a37a9466643b6ab2c7273a2ccf9181443cf6a",
+   "note": "F-16C Block 50 left side taxiing: single fin, ventral fins, gear down, wing tanks and pylons, HTS pod on intake"
+  },
+  {
+   "file": "f_16c_block_50-three_quarter_rear.jpg",
+   "variant": "f_16c_block_50",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:78th_Fighter_Squadron_-_General_Dynamics_F-16C_Block_50D_Fighting_Falcon_-_91-0394.jpg",
+   "author": "United States Air Force",
+   "licence": "public-domain",
+   "sha256": "5b46ae3e6d40d8d2f4cea3650525d32022a38c118ba53357d72f0b90a6c338a1",
+   "note": "F-16C Block 50 rear-left three-quarter taxiing out of a shelter: GE F110 nozzle, speed brakes, ventral fins, stores"
+  },
+  {
+   "file": "f_16c_block_50-top.jpg",
+   "variant": "f_16c_block_50",
+   "view": "top",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:13th_Fighter_Squadron_-_Lockheed_F-16C_Block_50P_Fighting_Falcon_-_92-3913.jpg",
+   "author": "United States Air Force",
+   "licence": "public-domain",
+   "sha256": "014420ac675bff1d6402b300a003969db6188be09f1187db607cb57a9350635a",
+   "note": "F-16C Block 50 from above in a bank: cropped-delta wing planform with blended root strakes, tailplanes, stores"
+  },
+  {
+   "file": "f_16c_block_50-side-2.jpg",
+   "variant": "f_16c_block_50",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:55th_Fighter_Squadron_-_Lockheed_F-16C_Block_50P_Fighting_Falcon_-_92-3923.jpg",
+   "author": "United States Air Force",
+   "licence": "public-domain",
+   "sha256": "d80848f59dcfdaf0e81a823866a107bdcaf512d9a72fae6f1c94692d18883fa4",
+   "note": "F-16C Block 50 landing, left side: gear down, flaperons, stores"
+  }
+ ],
+ "gaps": [
+  "f_16c_block_50: no straight front, rear or detail view (gear bays, cockpit, nozzle petals are from the three-quarter shots)",
+  "f_16c_block_50: the photographed stores vary sortie to sortie; the model carries tanks, AIM-120s and the Block 50 HTS and targeting pods as a typical fit"
+ ]
+}

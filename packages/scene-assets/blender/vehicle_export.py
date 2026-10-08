@@ -95,16 +95,15 @@ class Vehicle:
         self.wreck = False
 
 
-def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8):
-    """Export every variant of `family` (or `--variant=<id>`), live or with
-    `--wreck` its wreck, through `build` and `wreck` (see the module doc)."""
+def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None):
+    """Build and export each of `variants` (or the one `--variant=<id>` names),
+    live or with `--wreck`; returns the receipt rows, or None for a partial run."""
     args = script_args()
     selected = next((a.split("=", 1)[1] for a in args if a.startswith("--variant=")), None)
     wrecking = WRECK_ARG in args
     receipt = []
-    variants = family_variants(family)
     if selected and selected not in {v["id"] for v in variants}:
-        raise SystemExit(f"{selected}: not one of {family}'s appearances")
+        raise SystemExit(f"{selected}: not one of {', '.join(v['id'] for v in variants)}")
     for variant in variants:
         if selected and variant["id"] != selected:
             continue
@@ -113,6 +112,8 @@ def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8):
         v = Vehicle(variant, materials(scheme))
         v.wreck = wrecking
         build(variant, v)
+        if check is not None and not wrecking:
+            check(variant)
         if wrecking:
             if wreck is not None:
                 wreck(variant, v)
@@ -135,20 +136,87 @@ def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8):
         if source is not None:
             from vehicle_crew import preserve_materials
             preserve_materials(out, source)
-        receipt.append({"id": variant["id"], "sha256": hashlib.sha256(Path(out).read_bytes()).hexdigest(),
-                        "triangles_by_tier": counts})
+        row = {"id": variant["id"], "sha256": hashlib.sha256(Path(out).read_bytes()).hexdigest(),
+               "triangles_by_tier": counts}
+        if "frame_source" in variant:
+            row.update(frame_source=variant["frame_source"], body_dimensions_m=variant["frame"]["body_dimensions_m"])
+        receipt.append(row)
         print("VARIANT", variant["id"], counts, flush=True)
-    if wrecking or selected:
-        return
+    return None if wrecking or selected else receipt
+
+
+def _receipt(path, script, variants, frames):
     here = Path(__file__).resolve().parent
-    sources = [here / "roster" / f"{family}.py", here / "vehicle_export.py", here / "vehicle_parts.py",
+    sources = [here / "roster" / script, here / "vehicle_export.py", here / "vehicle_parts.py",
                here / "vehicle_crew.py", here / "parts.py", here / "textures.py", here / "wreckage.py",
                here / "catalog_frames.py"]
-    (REPO / f"assets/source/roster/{family}/source-receipt.json").write_text(json.dumps({
+    if (here / "aircraft_parts.py").exists() and "aircraft_parts" in (here / "roster" / script).read_text():
+        sources.append(here / "aircraft_parts.py")
+    family = script.removesuffix(".py")
+    (REPO / path).write_text(json.dumps({
         "blender_version": bpy.app.version_string,
         "source_sha256": {str(p.relative_to(REPO)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
         "references": f"assets/references/{family}/references.json",
         "authoring": "Original procedural geometry built from the committed references; photos are visual reference only.",
-        "frames": "fixtures/catalog.json",
-        "variants": receipt,
+        "frames": frames,
+        "variants": variants,
     }, indent=2) + "\n")
+
+
+def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8):
+    """Export every variant of `family` (or `--variant=<id>`), live or with
+    `--wreck` its wreck, through `build` and `wreck` (see the module doc)."""
+    receipt = _export(family_variants(family), scheme, build, wreck, ao_distance, ao_rays)
+    if receipt is not None:
+        _receipt(f"assets/source/roster/{family}/source-receipt.json", f"{family}.py", receipt, "fixtures/catalog.json")
+
+
+# How far a disabled card's built model may stray from the dimensions its
+# script states from the references (its frame, `frame_source: references`).
+FRAME_TOLERANCE = 0.05
+
+
+def _measured(skip):
+    """The tier-0 extents (length, width, height) of what isn't under a node
+    named by `skip`, and its lowest point."""
+    bpy.context.view_layer.update()
+    lo, hi = Vector((1e9,) * 3), Vector((-1e9,) * 3)
+    for o in bpy.data.objects:
+        if o.type != "MESH" or P.tier_of(o) not in (0, None):
+            continue
+        chain, p = [o], o.parent
+        while p is not None:
+            chain.append(p)
+            p = p.parent
+        if any(c.name.startswith(skip) for c in chain):
+            continue
+        for vert in o.data.vertices:
+            w = o.matrix_world @ vert.co
+            lo = Vector(map(min, lo, w))
+            hi = Vector(map(max, hi, w))
+    return hi - lo, lo
+
+
+def run_disabled(family, cards, scheme, build, wreck=None, skip=("dressing_",), ao_distance=1.0, ao_rays=8):
+    """Export a disabled card family: `cards` maps each card id to the
+    (length, width, height) its script states from its references, its frame
+    (`catalog_frames.disabled_variant`). The built model must measure that
+    frame within `FRAME_TOLERANCE`, leaving out the nodes `skip` names (a
+    rotor disc, dressing). Each card writes its `source_path`; the family's
+    receipt, beside them, records each card's frame source."""
+    from catalog_frames import disabled_variant
+
+    def check(variant):
+        size, low = _measured(skip)
+        want = variant["frame"]["body_dimensions_m"]
+        off = [abs(s - w) / w for s, w in zip(size, want)]
+        print("FRAME", variant["id"], [round(s, 2) for s in size], "stated", want, flush=True)
+        if max(off) > FRAME_TOLERANCE or abs(low.z) > 0.02:
+            raise SystemExit(f"{variant['id']}: built {[round(s, 2) for s in size]} m, lowest {low.z:.2f} m; "
+                             f"its references state {want} m on the ground")
+
+    variants = [disabled_variant(card, dims) for card, dims in cards.items()]
+    receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, check)
+    if receipt is not None:
+        _receipt(f"assets/source/roster/disabled/{family}.source-receipt.json", f"{family}.py", receipt,
+                 "catalog_frames.disabled_variant")

@@ -754,18 +754,19 @@ function dressingFindings(
 }
 
 /** What every articulated appearance must be, whatever type draws it: on
- *  the ground, with wheels. */
+ *  the ground, on running gear: wheels (`wheel_*`, under a track too) or an
+ *  airframe's skids (`skid_*`). */
 function articulatedFindings(
   label: string,
   nodes: ArticulatedNode[],
   tolerances: Tolerances,
 ): Finding[] {
   const out: Finding[] = [];
-  if (!nodes.some((n) => n.name.startsWith("wheel_")))
+  if (!nodes.some((n) => n.name.startsWith("wheel_") || n.name.startsWith("skid_")))
     out.push(
       finding(
         "nodes.missing",
-        `${label}: no "wheel_*" node`,
+        `${label}: no "wheel_*" (or a skid airframe's "skid_*") node`,
         `add an empty named "wheel_*" at the part's pivot`,
       ),
     );

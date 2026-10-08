@@ -1,15 +1,17 @@
 // @vitest-environment node
-// The generated icons: every weapon row's icon, every role's symbol and every
-// unit type's silhouette, rendered from its own baked model, exists under
-// assets/icons/ exactly as the generator draws it. `bun run --cwd web asset
-// -- icons` rewrites them.
+// The generated icons: every weapon row's icon, every role's symbol, every
+// unit type's silhouette, rendered from its own baked model, and every
+// disabled card's, rendered from its source model (named by
+// fixtures/units/model-manifest.json), exists under assets/icons/ exactly as
+// the generator draws it. `bun run --cwd web asset -- icons` rewrites them.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { expect, test } from "vitest";
-import { iconFiles, unitIcons } from "@packages/scene-assets/src/icons";
+import { cardIcon, iconFiles, unitIcons } from "@packages/scene-assets/src/icons";
 import { inkBounds } from "@packages/scene-assets/src/inkBounds";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import { UNITS, WEAPONS } from "./catalog";
 import {
+  disabledLookup,
   runtimeLookup,
   silhouetteSvg,
   unitSolids,
@@ -23,7 +25,13 @@ const lookup = await runtimeLookup(
   JSON.parse(readFileSync(new URL("catalog.json", RUNTIME), "utf8")) as RuntimeCatalog,
   async (path) => new Uint8Array(readFileSync(new URL(path, RUNTIME))),
 );
-const shipped = (id: string) => unitSolids(UNITS, id, lookup);
+const REPO = new URL("../../", import.meta.url);
+const disabled = await disabledLookup(
+  JSON.parse(readFileSync(new URL("fixtures/units/model-manifest.json", REPO), "utf8")),
+  async (path) => new Uint8Array(readFileSync(new URL(path, REPO))),
+);
+const shipped = (id: string) => (UNITS.has(id) ? unitSolids(UNITS, id, lookup) : disabled(id));
+const disabledCards = UNITS.cards.filter((c) => c.disabled_reason !== null && !UNITS.has(c.id));
 
 test("every weapon, role and unit type has its generated icon, current, and nothing else", () => {
   const files = iconFiles(WEAPONS, UNITS, shipped);
@@ -33,6 +41,8 @@ test("every weapon, role and unit type has its generated icon, current, and noth
     const { silhouette, role } = unitIcons(t);
     expect(files.has(silhouette) && files.has(role), t.id).toBe(true);
   }
+  expect(disabledCards.length).toBeGreaterThan(0);
+  for (const c of disabledCards) expect(files.has(cardIcon(c.id)), c.id).toBe(true);
   const stale = [...files].filter(([path, svg]) => {
     const file = new URL(path, ICONS);
     return !existsSync(file) || readFileSync(file, "utf8") !== svg;
@@ -51,6 +61,10 @@ test("an icon the generator cannot draw is refused, naming it", () => {
   expect(() => iconFiles({ bayonet: { icon: "bayonet" } }, UNITS, shipped)).toThrow(/bayonet/);
   expect(() => iconFiles({}, UNITS, () => null)).toThrow(
     /unit type \w+: its model is not installed/,
+  );
+  // A disabled card has no unit type; its icon comes from its source model.
+  expect(() => iconFiles({}, UNITS, (id) => (UNITS.has(id) ? shipped(id) : null))).toThrow(
+    /disabled card \w+: its source model is not installed/,
   );
 });
 
