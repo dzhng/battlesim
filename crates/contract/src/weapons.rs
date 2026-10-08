@@ -25,7 +25,8 @@ pub enum UnlimitedTag {
 /// what differs, as unit types do; the rows are resolved flat at load.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WeaponDefinition {
-    /// What the player reads on the unit card.
+    /// What the player reads on the unit card: a concise label
+    /// (`crate::labels`), never the row's id.
     pub name: String,
     pub description: String,
     /// Its generated icon, `assets/icons/weapons/<icon>.svg`.
@@ -110,6 +111,11 @@ pub struct OperatorPose {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MountDefinition {
+    /// What other fields name it by (`sensors.on`, a mount's `on`, a model's
+    /// rig declarations) and what variants merge on; never shown.
+    pub id: String,
+    /// What the player reads on the unit card: a concise label
+    /// (`crate::labels`).
     pub name: String,
     /// Ammunition kinds available to the mount, by weapon row name.
     pub weapons: Vec<String>,
@@ -198,6 +204,9 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
         .map(|(id, row)| {
             serde_json::from_value::<WeaponDefinition>(row)
                 .and_then(|def| {
+                    crate::labels::check_label(&def.name)
+                        .and_then(|()| crate::labels::check_icon(&def.icon))
+                        .map_err(serde::de::Error::custom)?;
                     for (field, value) in [
                         ("damage", def.damage),
                         ("penetration", def.penetration),

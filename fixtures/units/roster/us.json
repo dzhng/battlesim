@@ -1,7 +1,7 @@
 {
   "units": {
     "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed": {
-      "name": "A-10 Warthog A-10C",
+      "name": "A-10C Warthog",
       "description": "A-10C",
       "faction": "us",
       "family": "a_10_warthog",
@@ -19,14 +19,23 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "attack-aircraft",
         "weapons": [
-          "attack-gun",
-          "air-AT",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AT Missile",
+            "icon": "atgm"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "us_acv_acv_p": {
-      "name": "ACV ACV-P",
+      "name": "ACV-P",
       "description": "ACV-P; ground combat platform, passenger carriage not implemented",
       "faction": "us",
       "family": "acv",
@@ -80,6 +89,7 @@
       },
       "mounts": [
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -109,7 +119,7 @@
       }
     },
     "us_ah_1z_viper_attack_helicopter": {
-      "name": "AH-1Z Viper Attack helicopter",
+      "name": "AH-1Z Viper",
       "description": "Attack helicopter",
       "faction": "us",
       "family": "ah_1z_viper",
@@ -127,13 +137,19 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "attack-helicopter",
         "weapons": [
-          "helicopter-gun",
-          "helicopter-AT"
+          {
+            "name": "Chain Gun",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AT Missile",
+            "icon": "atgm"
+          }
         ]
       }
     },
     "us_ah_6_mh_6_little_bird_ah_6m": {
-      "name": "AH-6/MH-6 Little Bird AH-6M",
+      "name": "AH-6M Little Bird",
       "description": "AH-6M",
       "faction": "us",
       "family": "ah_6_mh_6_little_bird",
@@ -145,19 +161,25 @@
         ],
         "category": "hel",
         "variant": "AH-6M",
-        "family_name": "AH-6/MH-6 Little Bird"
+        "family_name": "Little Bird"
       },
       "planned": {
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "light-helicopter",
         "weapons": [
-          "helicopter-gun",
-          "rocket-pod"
+          {
+            "name": "Chain Gun",
+            "icon": "autocannon"
+          },
+          {
+            "name": "Rocket Pods",
+            "icon": "rockets"
+          }
         ]
       }
     },
     "us_ah_6_mh_6_little_bird_mh_6m": {
-      "name": "AH-6/MH-6 Little Bird MH-6M",
+      "name": "MH-6M Little Bird",
       "description": "MH-6M",
       "faction": "us",
       "family": "ah_6_mh_6_little_bird",
@@ -169,13 +191,16 @@
         ],
         "category": "hel",
         "variant": "MH-6M",
-        "family_name": "AH-6/MH-6 Little Bird"
+        "family_name": "Little Bird"
       },
       "planned": {
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "light-helicopter",
         "weapons": [
-          "HMG"
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
@@ -209,7 +234,7 @@
       }
     },
     "us_atgm_team_bgm_71_tow_2a": {
-      "name": "BGM-71 TOW 2A Team",
+      "name": "TOW Team",
       "description": "BGM-71 TOW 2A; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "atgm_team",
@@ -237,7 +262,7 @@
       }
     },
     "us_ch_47_chinook_ch_47f": {
-      "name": "CH-47 Chinook CH-47F",
+      "name": "CH-47F Chinook",
       "description": "CH-47F",
       "faction": "us",
       "family": "ch_47_chinook",
@@ -255,12 +280,15 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "heavy-helicopter",
         "weapons": [
-          "HMG"
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
     "us_ea_18g_growler_electronic_warfare_aircraft": {
-      "name": "EA-18G Growler Electronic-warfare aircraft",
+      "name": "EA-18G Growler",
       "description": "Electronic-warfare aircraft",
       "faction": "us",
       "family": "ea_18g_growler",
@@ -278,12 +306,15 @@
         "reason": "Aircraft movement and electronic-warfare mechanics deferred",
         "profile": "ew-aircraft",
         "weapons": [
-          "AAM"
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
     "us_f_15_eagle_f_15e_strike_eagle": {
-      "name": "F-15 Eagle F-15E Strike Eagle",
+      "name": "F-15E Strike Eagle",
       "description": "F-15E Strike Eagle",
       "faction": "us",
       "family": "f_15_eagle",
@@ -301,14 +332,23 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "strike-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "us_f_15_eagle_f_15ex_eagle_ii": {
-      "name": "F-15 Eagle F-15EX Eagle II",
+      "name": "F-15EX Eagle II",
       "description": "F-15EX Eagle II",
       "faction": "us",
       "family": "f_15_eagle",
@@ -326,14 +366,23 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "heavy-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "us_f_22_raptor_f_22a": {
-      "name": "F-22 Raptor F-22A",
+      "name": "F-22A Raptor",
       "description": "F-22A",
       "faction": "us",
       "family": "f_22_raptor",
@@ -351,13 +400,19 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "stealth-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
     "us_f_35_lightning_ii_f_35b": {
-      "name": "F-35 Lightning II F-35B",
+      "name": "F-35B",
       "description": "F-35B",
       "faction": "us",
       "family": "f_35_lightning_ii",
@@ -375,14 +430,23 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "stealth-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "us_f_a_18_super_hornet_f_a_18e": {
-      "name": "F/A-18 Super Hornet F/A-18E",
+      "name": "F/A-18E",
       "description": "F/A-18E",
       "faction": "us",
       "family": "f_a_18_super_hornet",
@@ -394,15 +458,24 @@
         ],
         "category": "air",
         "variant": "F/A-18E",
-        "family_name": "F/A-18 Super Hornet"
+        "family_name": "Super Hornet"
       },
       "planned": {
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
@@ -436,7 +509,7 @@
       }
     },
     "us_kamikaze_drone_anti_armor": {
-      "name": "Kamikaze Drone Anti-armor",
+      "name": "Kamikaze Drone AT",
       "description": "Anti-armor",
       "faction": "us",
       "family": "kamikaze_drone",
@@ -454,12 +527,15 @@
         "reason": "Drone movement, sensing and mission mechanics deferred",
         "profile": "kamikaze-armor",
         "weapons": [
-          "drone-AT"
+          {
+            "name": "AT Warhead",
+            "icon": "ap_shell"
+          }
         ]
       }
     },
     "us_kamikaze_drone_anti_personnel": {
-      "name": "Kamikaze Drone Anti-personnel",
+      "name": "Kamikaze Drone HE",
       "description": "Anti-personnel",
       "faction": "us",
       "family": "kamikaze_drone",
@@ -477,12 +553,15 @@
         "reason": "Drone movement, sensing and mission mechanics deferred",
         "profile": "kamikaze-personnel",
         "weapons": [
-          "drone-HE"
+          {
+            "name": "HE Warhead",
+            "icon": "he_shell"
+          }
         ]
       }
     },
     "us_lav_lav_25a2": {
-      "name": "LAV LAV-25A2",
+      "name": "LAV-25A2",
       "description": "LAV-25A2; ground combat platform, passenger carriage not implemented",
       "faction": "us",
       "family": "lav",
@@ -536,7 +615,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -565,7 +645,7 @@
       }
     },
     "us_lav_lav_at": {
-      "name": "LAV LAV-AT",
+      "name": "LAV-AT",
       "description": "LAV-AT; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "lav",
@@ -619,7 +699,8 @@
       },
       "mounts": [
         {
-          "name": "launcher",
+          "id": "launcher",
+          "name": "TOW 2A",
           "weapons": [
             "tow"
           ],
@@ -648,7 +729,7 @@
       }
     },
     "us_m109_paladin_m109a7": {
-      "name": "M109 Paladin M109A7",
+      "name": "M109A7 Paladin",
       "description": "M109A7",
       "faction": "us",
       "family": "m109_paladin",
@@ -666,12 +747,15 @@
         "reason": "Artillery and indirect-support mechanics deferred",
         "profile": "tracked-howitzer",
         "weapons": [
-          "howitzer"
+          {
+            "name": "Howitzer",
+            "icon": "howitzer"
+          }
         ]
       }
     },
     "us_m10_booker": {
-      "name": "M10 Booker Light tank",
+      "name": "M10 Booker",
       "description": "Light tank",
       "faction": "us",
       "family": "m10_booker",
@@ -689,13 +773,19 @@
         "reason": "Ground profile and model admission pending",
         "profile": "light-tank",
         "weapons": [
-          "light-tank-gun",
-          "HMG"
+          {
+            "name": "Main Gun",
+            "icon": "ap_shell"
+          },
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
-      "name": "M1127 Stryker RV Reconnaissance vehicle",
+      "name": "Stryker RV",
       "description": "Reconnaissance vehicle",
       "faction": "us",
       "family": "m1127_stryker_rv",
@@ -749,6 +839,7 @@
       },
       "mounts": [
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -779,7 +870,7 @@
       }
     },
     "us_m1129_stryker_mortar_120_mm_mortar_carrier": {
-      "name": "M1129 Stryker Mortar 120 mm mortar carrier",
+      "name": "Stryker Mortar",
       "description": "120 mm mortar carrier",
       "faction": "us",
       "family": "m1129_stryker_mortar",
@@ -791,18 +882,21 @@
         ],
         "category": "sup",
         "variant": "120 mm mortar carrier",
-        "family_name": "M1129 Stryker Mortar"
+        "family_name": "Stryker Mortar"
       },
       "planned": {
         "reason": "Artillery and indirect-support mechanics deferred",
         "profile": "mortar-carrier",
         "weapons": [
-          "mortar"
+          {
+            "name": "Mortar",
+            "icon": "mortar"
+          }
         ]
       }
     },
     "us_m1151_hmmwv_hmg": {
-      "name": "M1151 HMMWV HMG",
+      "name": "M1151 HMMWV",
       "description": "HMG",
       "faction": "us",
       "family": "m1151_hmmwv",
@@ -856,6 +950,7 @@
       },
       "mounts": [
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -885,7 +980,7 @@
       }
     },
     "us_m142_himars_gmlrs": {
-      "name": "M142 HIMARS GMLRS",
+      "name": "HIMARS GMLRS",
       "description": "GMLRS",
       "faction": "us",
       "family": "m142_himars",
@@ -903,12 +998,15 @@
         "reason": "Artillery and indirect-support mechanics deferred",
         "profile": "light-rocket",
         "weapons": [
-          "rocket-battery"
+          {
+            "name": "Rockets",
+            "icon": "rockets"
+          }
         ]
       }
     },
     "us_m142_himars_prsm": {
-      "name": "M142 HIMARS PrSM",
+      "name": "HIMARS PrSM",
       "description": "PrSM",
       "faction": "us",
       "family": "m142_himars",
@@ -926,12 +1024,15 @@
         "reason": "Artillery and indirect-support mechanics deferred",
         "profile": "light-rocket",
         "weapons": [
-          "precision-missile"
+          {
+            "name": "Strike Missile",
+            "icon": "rockets"
+          }
         ]
       }
     },
     "us_m1_abrams_sep_v2": {
-      "name": "M1A2 Abrams SEP v2",
+      "name": "M1A2 SEP v2",
       "description": "SEP v2",
       "faction": "us",
       "family": "m1_abrams",
@@ -984,7 +1085,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "ground_tank_ap",
             "ground_tank_he"
@@ -1002,6 +1104,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1032,7 +1135,7 @@
       }
     },
     "us_m1_abrams_sep_v2_trophy": {
-      "name": "M1A2 Abrams SEP v2 Trophy",
+      "name": "M1A2 SEP v2 Trophy",
       "description": "SEP v2 Trophy",
       "faction": "us",
       "family": "m1_abrams",
@@ -1065,7 +1168,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "ground_tank_ap",
             "ground_tank_he"
@@ -1083,6 +1187,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1103,7 +1208,7 @@
       ]
     },
     "us_m1_abrams_sep_v3_trophy": {
-      "name": "M1A2 Abrams SEP v3 Trophy",
+      "name": "M1A2 SEP v3 Trophy",
       "description": "SEP v3 Trophy",
       "faction": "us",
       "family": "m1_abrams",
@@ -1136,7 +1241,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "advanced_tank_ap",
             "advanced_tank_he"
@@ -1154,6 +1260,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1177,7 +1284,7 @@
       }
     },
     "us_m1e3_abrams": {
-      "name": "M1 Abrams M1E3",
+      "name": "M1E3 Abrams",
       "description": "M1E3 prototype main battle tank",
       "faction": "us",
       "family": "m1_abrams",
@@ -1195,14 +1302,23 @@
         "reason": "Ground profile and model admission pending",
         "profile": "advanced-mbt",
         "weapons": [
-          "advanced-tank-gun",
-          "HMG",
-          "Trophy"
+          {
+            "name": "Main Gun",
+            "icon": "ap_shell"
+          },
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          },
+          {
+            "name": "Trophy",
+            "icon": "trophy"
+          }
         ]
       }
     },
     "us_m270_mlrs_m270a2": {
-      "name": "M270 MLRS M270A2",
+      "name": "M270A2 MLRS",
       "description": "M270A2",
       "faction": "us",
       "family": "m270_mlrs",
@@ -1220,12 +1336,15 @@
         "reason": "Artillery and indirect-support mechanics deferred",
         "profile": "heavy-rocket",
         "weapons": [
-          "rocket-battery"
+          {
+            "name": "Rockets",
+            "icon": "rockets"
+          }
         ]
       }
     },
     "us_m2_bradley_ifv_m2a4": {
-      "name": "M2 Bradley IFV M2A4",
+      "name": "M2A4 Bradley",
       "description": "M2A4; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "m2_bradley_ifv",
@@ -1278,7 +1397,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -1295,7 +1415,8 @@
           ]
         },
         {
-          "name": "launcher",
+          "id": "launcher",
+          "name": "TOW 2A",
           "weapons": [
             "tow"
           ],
@@ -1325,7 +1446,7 @@
       }
     },
     "us_m3_bradley_cfv_m3a3": {
-      "name": "M3 Bradley CFV M3A3",
+      "name": "M3A3 Bradley",
       "description": "M3A3; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "m3_bradley_cfv",
@@ -1378,7 +1499,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -1395,7 +1517,8 @@
           ]
         },
         {
-          "name": "launcher",
+          "id": "launcher",
+          "name": "TOW 2A",
           "weapons": [
             "tow"
           ],
@@ -1426,7 +1549,7 @@
       }
     },
     "us_m977_hemtt_general_resupply": {
-      "name": "M977 HEMTT General resupply",
+      "name": "M977 HEMTT",
       "description": "General resupply",
       "faction": "us",
       "family": "m977_hemtt",
@@ -1555,7 +1678,7 @@
       }
     },
     "us_mq_9_reaper_mq_9a": {
-      "name": "MQ-9 Reaper MQ-9A",
+      "name": "MQ-9A Reaper",
       "description": "MQ-9A",
       "faction": "us",
       "family": "mq_9_reaper",
@@ -1573,12 +1696,15 @@
         "reason": "Drone movement, sensing and mission mechanics deferred",
         "profile": "armed-drone",
         "weapons": [
-          "air-AT"
+          {
+            "name": "AT Missile",
+            "icon": "atgm"
+          }
         ]
       }
     },
     "us_scout_drone_standard": {
-      "name": "Scout Drone Standard",
+      "name": "Scout Drone",
       "description": "Standard",
       "faction": "us",
       "family": "scout_drone",
@@ -1599,7 +1725,7 @@
       }
     },
     "us_scout_drone_thermal": {
-      "name": "Scout Drone Thermal",
+      "name": "Thermal Drone",
       "description": "Thermal",
       "faction": "us",
       "family": "scout_drone",
@@ -1647,7 +1773,7 @@
       }
     },
     "us_stryker_m1126_icv": {
-      "name": "Stryker M1126 ICV",
+      "name": "Stryker ICV",
       "description": "M1126 ICV; ground combat platform, passenger carriage not implemented",
       "faction": "us",
       "family": "stryker",
@@ -1701,6 +1827,7 @@
       },
       "mounts": [
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1730,7 +1857,7 @@
       }
     },
     "us_stryker_m1134_atgm": {
-      "name": "Stryker M1134 ATGM",
+      "name": "Stryker ATGM",
       "description": "M1134 ATGM; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "stryker",
@@ -1784,7 +1911,8 @@
       },
       "mounts": [
         {
-          "name": "launcher",
+          "id": "launcher",
+          "name": "TOW 2A",
           "weapons": [
             "tow"
           ],
@@ -1813,7 +1941,7 @@
       }
     },
     "us_stryker_m1296_dragoon": {
-      "name": "Stryker M1296 Dragoon",
+      "name": "Stryker Dragoon",
       "description": "M1296 Dragoon; ground combat platform, passenger carriage not implemented",
       "faction": "us",
       "family": "stryker",
@@ -1867,7 +1995,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -1896,7 +2025,7 @@
       }
     },
     "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {
-      "name": "Stryker M-SHORAD Gun-and-missile air-defense vehicle",
+      "name": "Stryker M-SHORAD",
       "description": "Gun-and-missile air-defense vehicle; ground combat platform, passenger carriage not implemented",
       "faction": "us",
       "family": "stryker_m_shorad",
@@ -1914,13 +2043,19 @@
         "reason": "Air-defense targeting and airborne targets deferred",
         "profile": "wheeled-ifv",
         "weapons": [
-          "AA-gun",
-          "MANPADS"
+          {
+            "name": "AA Gun",
+            "icon": "autocannon"
+          },
+          {
+            "name": "MANPADS",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
     "us_uh_1y_venom_utility_transport": {
-      "name": "UH-1Y Venom Utility transport",
+      "name": "UH-1Y Venom",
       "description": "Utility transport",
       "faction": "us",
       "family": "uh_1y_venom",
@@ -1938,12 +2073,15 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "utility-helicopter",
         "weapons": [
-          "HMG"
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
     "us_uh_60_black_hawk_uh_60m": {
-      "name": "UH-60 Black Hawk UH-60M",
+      "name": "UH-60M Black Hawk",
       "description": "UH-60M",
       "faction": "us",
       "family": "uh_60_black_hawk",
@@ -1961,7 +2099,10 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "utility-helicopter",
         "weapons": [
-          "HMG"
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     }

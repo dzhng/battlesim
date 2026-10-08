@@ -68,7 +68,7 @@ fn finite_squad_guns_exhaust_independently() {
         json!({
             "name": "Marksman", "description": "Test only.", "hp": 1.0e6,
             "appearance": ["test_rifle"],
-            "mounts": [{ "name": format!("gun {k}"), "weapons": ["marksman_rifle"], "squad": true }]
+            "mounts": [{ "id": format!("gun {k}"), "name": "Marksman Rifle", "weapons": ["marksman_rifle"], "squad": true }]
         })
     };
     fixture["catalog"].as_array_mut().unwrap().push(json!({

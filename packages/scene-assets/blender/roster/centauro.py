@@ -100,6 +100,7 @@ def turret_body(v, turret):
     cyl("turret_ring_guard", 1.00, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
     loft("turret_shell", [(base + 0.03, foot), (base + 0.20, foot), (ROOF, crown)], mat=m["paint"], parent=turret,
          bevel=0.05)
+    VP.roof_fittings("roof", crown, ROOF, m, turret, periscopes=((0.20, -0.95, -0.5), (0.20, 0.95, 0.5)))
     for side, s in ((1, "L"), (-1, "R")):
         VP.weld_line(f"cheek_weld_{s}", [(1.60, side * 0.50, base + 0.20), (0.82, side * 1.38, base + 0.20)], m,
                      turret)
@@ -181,10 +182,6 @@ def wreck(variant, v):
     v.root.rotation_euler = (-0.04, 0.035, 0)
     plate("door_fallen", [(-0.45, -0.4), (0.45, -0.42), (0.47, 0.4), (-0.45, 0.42)], 0.04, (-4.6, 0.4, 0.05),
           (0.0, 1.2, 0.2), m["paint"], v.hull, seed=51)
-    for k, (loc, rot, size) in enumerate((((2.8, 2.1, 0.03), (0.04, 0.02, 0.5), 0.40),
-                                          ((-0.6, -2.2, 0.03), (-0.03, 0.05, 1.7), 0.32))):
-        plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
-                              (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.15, seed=161 + k)
     rest_on_ground(0.004)
 
 

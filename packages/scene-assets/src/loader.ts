@@ -51,7 +51,7 @@ export interface InstalledAppearance {
   scenery: string | null;
   /** The simulation box a static appearance is authored to (catalog `footprint_half_m`). */
   footprint: Vec3 | null;
-  /** A vehicle's rig per mount name (catalog `mounts`); null when it declares none. */
+  /** A vehicle's rig per mount id (catalog `mounts`); null when it declares none. */
   mounts: MountDraws | null;
   /** The regional family it is a look of (catalog `regional_family`); null
    *  for one of every region. */

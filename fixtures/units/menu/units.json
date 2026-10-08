@@ -2,25 +2,25 @@
   "units": {
     "menu_us_tank": {
       "extends": "test_tank",
-      "name": "Menu tank (Abrams look)",
+      "name": "M1A2 Abrams",
       "description": "The menu reel's blue tank: the test tank, hull and all, in an Abrams's look. Menu footage only.",
       "appearance": "us_m1_abrams_sep_v2"
     },
     "menu_eastern_tank": {
       "extends": "test_tank",
-      "name": "Menu tank (T-72B3 look)",
+      "name": "T-72B3",
       "description": "The menu reel's red tank: the test tank in a T-72B3's look, whose hull it already fits. Menu footage only.",
       "appearance": "eastern_t_72_t_72b3_2016"
     },
     "menu_us_jeep": {
       "extends": "test_jeep",
-      "name": "Menu jeep (HMMWV look)",
+      "name": "HMMWV",
       "description": "The menu reel's blue jeep: the test jeep, hull and all, in an HMMWV's look. Menu footage only.",
       "appearance": "us_m1151_hmmwv_hmg"
     },
     "menu_rifle": {
       "extends": "test_rifle",
-      "name": "Menu rifle squad",
+      "name": "Rifle Squad",
       "description": "The menu reel's rifle squad, either side: the test squad in the roster rifle squad's look. Menu footage only.",
       "body": {
         "squad": {
@@ -39,19 +39,19 @@
     },
     "menu_us_recon": {
       "extends": "test_recon",
-      "name": "Menu recon team (Army scouts look)",
+      "name": "Army Scouts",
       "description": "The menu reel's blue recon team in the Army scouts' look. Menu footage only.",
       "body": { "squad": { "slots": ["menu_us_scout", "menu_us_scout", "menu_us_scout", "menu_us_scout"] } }
     },
     "menu_us_at": {
       "extends": "test_at",
-      "name": "Menu AT team (TOW look)",
+      "name": "TOW Team",
       "description": "The menu reel's blue AT team: the test team's guided missile in the TOW team's look. Menu footage only.",
       "body": { "squad": { "slots": ["menu_us_atgm_gunner", "menu_us_at_rifleman", "menu_us_at_rifleman"] } }
     },
     "menu_eastern_at": {
       "extends": "test_at",
-      "name": "Menu AT team (Kornet look)",
+      "name": "Kornet Team",
       "description": "The menu reel's red AT team: the test team's guided missile in the Kornet team's look. Menu footage only.",
       "body": {
         "squad": { "slots": ["menu_eastern_atgm_gunner", "menu_eastern_at_rifleman", "menu_eastern_at_rifleman"] }
@@ -92,7 +92,7 @@
       ],
       "mounts": [
         {
-          "name": "ATGM launcher",
+          "id": "ATGM launcher",
           "operator_appearance": {
             "active": [
               "us_atgm_team_bgm_71_tow_2a_active_a",
@@ -126,7 +126,7 @@
       ],
       "mounts": [
         {
-          "name": "ATGM launcher",
+          "id": "ATGM launcher",
           "operator_appearance": {
             "active": [
               "eastern_atgm_team_kornet_active_a",

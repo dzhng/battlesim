@@ -10,7 +10,7 @@ import { vec3, type Vec3 } from "math";
 
 /** A `mounts` row, as far as the muzzle model reads it. */
 export interface MountRow {
-  name: string;
+  id: string;
   /** The earlier mount whose turret carries this one; null, the hull. */
   on: string | null;
   /** Where it turns, in its carrier's frame (forward, left, up). */
@@ -21,7 +21,7 @@ export interface MountRow {
 
 /** A mount's muzzle model: `on` indexes the type's mount list (null: the hull). */
 export interface MountMuzzle {
-  name: string;
+  id: string;
   on: number | null;
   pivot: Vec3;
   muzzle: Vec3;
@@ -31,11 +31,11 @@ export interface MountMuzzle {
 export function mountMuzzles(rows: readonly MountRow[]): (MountMuzzle | null)[] {
   return rows.map((row) => {
     if (!row.muzzle_m) return null;
-    const on = row.on === null ? -1 : rows.findIndex((c) => c.name === row.on);
+    const on = row.on === null ? -1 : rows.findIndex((c) => c.id === row.on);
     const [px, py, pz] = row.pivot_m;
     const [mx, my, mz] = row.muzzle_m;
     return {
-      name: row.name,
+      id: row.id,
       on: on < 0 ? null : on,
       pivot: vec3.fromValues(px, py, pz),
       muzzle: vec3.fromValues(mx, my, mz),

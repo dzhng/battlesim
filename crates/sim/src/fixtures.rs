@@ -97,9 +97,9 @@ pub fn with_units_at_limits(fixture: &mut Value) {
         ] } })
     };
     let units = serde_json::json!({
-        "test_limit_tracked": { "extends": "test_tank", "name": "Tracked hull at the limits", "body": hull("test_tank", "tracked") },
+        "test_limit_tracked": { "extends": "test_tank", "name": "Limit Tracked", "body": hull("test_tank", "tracked") },
         "test_limit_wheeled": {
-            "extends": "test_supply", "name": "Wheeled hull at the limits", "body": hull("test_supply", "wheeled"),
+            "extends": "test_supply", "name": "Limit Wheeled", "body": hull("test_supply", "wheeled"),
             "mobility": { "wheeled": { "turning_radius_m": limits["wheeled"]["turning_radius_m"] } }
         },
     });

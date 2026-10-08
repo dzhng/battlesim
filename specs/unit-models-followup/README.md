@@ -13,10 +13,10 @@ requirement, exports are byte-reproducible, tests use test units).
 
 TODO:
 
-- [ ] [01 Dragoon hull and M10 turret](slices/01-dragoon-m10.md): the user's
+- [x] [01 Dragoon hull and M10 turret](slices/01-dragoon-m10.md): the user's
   report that the Stryker Dragoon's sides don't follow its sloped hull; the
   M10 reads as a small Abrams.
-- [ ] [02 Wreck debris scatters and fades](slices/02-wreck-debris.md): "yes,
+- [x] [02 Wreck debris scatters and fades](slices/02-wreck-debris.md): "yes,
   maybe debris that scattered can just disappear?"
 - [x] [03 Disabled cards at the roster bar: air](slices/03-disabled-air.md):
   all 45 cards re-exported with markings and the shared detail; every jet

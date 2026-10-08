@@ -1359,6 +1359,361 @@ Spec: [slice 03](../../unit-models-followup/slices/03-disabled-air.md).
 - **Verdict:** sound.
 - **Confidence:** medium.
 
+## Follow-up 01
+
+The Dragoon's sides, the M10's turret and the Abrams' front and skirts
+(2026-10-08). Spec: [slice 01](../../unit-models-followup/slices/01-dragoon-m10.md).
+No frame, mount or tolerance moved, and every export repeats byte for byte.
+
+### The Stryker's chine is a low sharp knuckle under a tall leaning side
+
+- **The choice:** The hull is three rings (`BELLY`, `KNUCKLE`, roof). The
+  lower hull flares from the belly (0.52 m, 0.84 m half width) out to a sharp
+  knuckle at 1.16 m, just above the 1.12 m tyre tops and flush with their
+  outer faces (1.34 m). The 0.12 m upright chine band is gone. The upper side
+  leans in 14 degrees (`SIDE_LEAN`, was 16) from the knuckle to the roof, so
+  the leaning face is 1.14 m tall on the M1126 and 0.79 m on the Dragoon (it
+  was 0.86 m and 0.51 m), and from the front and rear the knuckle is the
+  widest line of the hull, as in the photos. The lean dropped two degrees so
+  that the roof, now further from the knuckle, keeps room for the M1134's
+  launcher base and the commander's hatch (moved 7 cm inboard). The nose
+  comes to a point at the knuckle, and the upper glacis keeps one slope
+  (`GLACIS`, 25 degrees) on either roof. The ramp, mudflaps, tow points,
+  antennas and the M1129's bay doors are placed from the same numbers.
+- **Tiles and plates:** Armour tiles lie on the leaning side through
+  `on_side`, in as many rows as the side is tall for (two on the 2.30 m roof,
+  one on the Dragoon's). Under the glacis' chamfered edge (`side_top`, the
+  rings' own corner) a tile is cut down to what fits, and it is left off below
+  0.24 m. That gives the stepped tiles the M1126 photo shows. The nose's
+  bolted plates, two rows of two, lie on the lower nose face. `on_side` only
+  knows side faces, so they take their position and tilt from the same ring
+  numbers (`nose_x`).
+- **The gap:** The knuckle sits a little lower than the photos put it (they
+  show about 1.25-1.3 m). The slice asked for a lower and stronger knuckle so
+  that the lean reads at sheet distance, and the Dragoon's roof is pinned low
+  by its gun axis. The rear half above the bins is a bare leaning face, where
+  the real vehicle carries racks and bags.
+- **Verdict:** sound.
+- **Confidence:** medium. Measured from photos, not drawings.
+
+### The M10's turret is tall and blunt, not a small Abrams
+
+- **The choice:** The turret's plan is a broad front of two flat cheeks
+  either side of the mantlet's slot, with chamfered outer corners and upright
+  slab sides 1.48 m out. The old plan was a wedge whose cheeks swept back 55
+  degrees, on sides leaning in 12 cm. In profile the cheeks come to a prow
+  just above the gun axis (`PROW`). Under it the front falls back to the
+  ring, and over it a long chamfer runs back to a flat roof. The roof is 6 cm
+  higher (`ROOF` 0.78 above the pivot, 2.56 m: the side photo gives about
+  2.53 m) and the sight dome's collar 2 cm shorter, so the dome's top stays at
+  the stated frame height (built 2.94 m against 2.90 m). The smoke clusters
+  sit on the cheeks firing forward, the cheek plates lie on the flank through
+  `on_side`, and the gunner's sight moved behind the chamfer. The mounts are
+  unchanged.
+- **Verdict:** sound.
+- **Confidence:** medium. Only side and front-quarter photos, no top view.
+
+### The Abrams' cheeks are broad and blunt, and its skirts sit flush
+
+- **The choice:** The turret's cheeks (`CHEEK`) now run from the gun's slot
+  at x 1.95 back 15 degrees to a cut corner. Before, they ran from a point
+  at 2.18 back 35 degrees, plus 0.30 m more at the roof, which made an
+  arrowhead in plan. The roof edge sits 0.22 m back of the face
+  (`CHEEK_CHAMFER`), the short top chamfer the photos show. The cheek's side
+  plate lies on the turret's leaning flank through `on_side`; it had stood
+  upright 5 cm off it. The skirts' outer faces did not move (1.80 m). The
+  hull's upper half widened from 3.40 m to 3.46 m (`SPONSON`), so the
+  sponson side is flush with the skirts' inner face and the thick front
+  panels sink into it. Before, there was a 3 cm gap and the deck stopped
+  short of the skirts. The Abrams' hull sides and skirts are upright, so the
+  skirts need no `on_side`.
+- **The reach:** The M1E3 builds on `abrams.hull_body`, so its hull widened
+  too and it was re-exported. Its own skirts already overlapped the wider
+  hull, and its turret is its own. The menu's tank keeps the test hull's
+  physics, and `menu_reel::` passes unchanged.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+## Follow-up 04: disabled ground cards at the roster bar (2026-10-08)
+
+The user overruled the lower detail of disabled cards. These are the calls
+made while raising the ground, support, drone and infantry cards, family by
+family. No roster frame, mount or tolerance moved.
+
+### A disabled card stands on the roster vehicle it is built on
+
+- **The choice:** Where a card's chassis is a roster vehicle, it uses that
+  vehicle's script instead of a look-alike. The BM-21 stands on the roster
+  Ural's `chassis` and `cab` (the Ural-375D and 4320 share the cab and frame),
+  so `ural.py` was split into `chassis`, `cab` and `body` and its export put
+  under `__main__`; the Ural's GLB re-exported byte-identical. The truck
+  chassis's `bonnet` cab, which only the BM-21 used, is gone. The armoured
+  cab-over (`truck_chassis.armoured_cab`, under the HIMARS, CAESAR and
+  Pantsir) was rebuilt to the bar: waist-high upright sides with the upper
+  sides leaning in, framed windscreens with wipers and a mullion, a bolted
+  door with its small armoured window placed with `on_side`, hinges, handle,
+  grab rail and two steps, the bolted front plate, grille, guarded lights and
+  shackles, roof hatch and marker lamps, and the dash and seats behind the
+  glass. It now spans the card's width, as the photos show, not its wheels'.
+- **Verdict:** sound. One owner per cab.
+- **Confidence:** medium.
+
+### The BM-21's width is the Ural-375D's
+
+- **The choice:** The card stated 2.40 m wide, the figure usually quoted for
+  the BM-21, but that is narrower than the truck's own axle hubs. The card now
+  states the Ural-375D's published 2.69 m; length and height stay the BM-21's.
+  The library's `gaps` records it.
+- **Verdict:** sound. A disabled card's frame is its script's statement from
+  cited sources, and this one was wrong.
+- **Confidence:** medium.
+
+### Rocket launchers travel as the photos show them
+
+- **The choice:** The M270's and HIMARS's pods stow with their capped faces
+  to the rear, inside a ribbed launcher-loader box open at the back
+  (`launcher_box`, `REAR_LIP`), with the loader boom on top and a cable run
+  down the side. They had faced forward, inside a closed box. The BM-21's
+  forty tubes also travel muzzles to the rear, rising slightly toward them, on
+  a cradle with sector gears, as all three of its photos show. The Tornado-S
+  keeps its muzzles forward (it elevates about a rear pivot) and gained rear
+  stabiliser jacks, stowage, a ladder, tube rings and the firing cable.
+- **Verdict:** sound.
+- **Confidence:** medium.
+### Disabled wrecks throw through `wreckage.scatter`, and lose their own throws
+
+- **The choice:** After slice 02 merged, these families' wrecks were
+  re-exported through `vehicle_export`, so each writes its
+  `_wreck_debris.glb` state from the shared `scatter`. The families' own
+  pieces beside the hull (torn plates, fallen rounds, the air defence
+  family's fallen canister) were deleted rather than renamed `litter_`,
+  because they lay outside the hull, which is exactly what `scatter` now
+  throws. A disabled card has no catalog wreck entry, so there is no
+  `debris` state to list; the debris GLB is written for when the card
+  becomes playable. `asset validate` on a debris GLB alone refuses it (a
+  state of several root `debris_*` nodes is only judged inside its catalog
+  entry), so those files are judged only by `scatter`'s own tests until then.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Air defence and the CAESAR: what changed
+
+- **The choice:** The tracked air defence hulls (`tracked_hull`, Gepard and
+  Buk) carry a bolted glacis plate, tow cables, hull bins, tail lights and
+  exhausts. The Gepard gained its gun yokes, ammunition feeds, muzzle
+  velocity radars, the tracking radar's feed and yoke, the search radar's
+  face, a second hatch, periscopes, rangefinder and rear basket. The Buk's
+  cab has shutters raised over its windscreens, hatches, periscopes and doors;
+  its radar a flat face and ribs, its canisters ribs. The Pantsir-SM stands on
+  a new `cabover` cab, the armoured cab's shape unarmoured, because its
+  photos show the KamAZ-6560's ordinary cab with a tall windscreen, not an
+  armoured one; it carries six missiles a side in two columns of three (it
+  had three), drawn narrower so the module stays within 6% of the card's
+  2.55 m. The Skyranger's turret has radar panel frames, a mantlet, sleeve,
+  a four-cell launcher on its arm, hatch, smoke dischargers. NASAMS's
+  trailer has bar-tread tyres, one mudguard per side, an A-frame drawbar,
+  a jockey wheel (under a `wheel_` node, since it is rubber), ribbed
+  canisters and a cable reel. The CAESAR's crew cab has two doors a side
+  (`chassis(doors=2)`), its gun a trunnioned cradle with equilibrators and
+  elevating sectors, a breech ring, collar and clamp on the rest, walkways,
+  rear jacks and the spade's rams.
+- **The gap:** Judged at the sheet's distance against one or two photos
+  each. The Gepard's search radar is drawn folded (its photos show it up)
+  and its turret is lower than the photos'; the Pantsir's module is still a
+  box where the photos show a busier one.
+- **Verdict:** sound for the silhouette and detail; the two gaps are taste.
+- **Confidence:** medium.
+
+### Drones: what the closer look adds
+
+- **The choice:** Every propeller is a hub and tapering two-piece blades
+  (and a spinner on a tractor or pusher); an FPV's props are three-bladed,
+  shortened to 0.81 of a two-blade one so their tips stay where the frame's
+  stated length put them. Quadcopters carry the battery seam and latch, GPS
+  puck, obstacle cameras, a status light, arm hinges and arm-tip lights, motor
+  bells and skids; the FPV its video antenna and receiver whiskers and the
+  PG-7's band and tail. Loitering munitions have a seeker bezel, warhead seam,
+  arming plug, wing hinge blocks, datalink antennas and ailerons; the Orlan-10
+  a wing pylon, flaps, tip lights, cylinder head and exhaust, parachute lid,
+  pitot and launch lug. The FPV's PG-7 fuse was left off: it would reach past
+  the card's stated 0.45 m.
+- **The gap:** `asset validate` on a drone GLB alone reports
+  `structure.scenery_kind` (no wheel, track or mount nodes, so the loose
+  validator takes it for scenery). That was so before this pass; the drones
+  only meet the strict rules when their cards get unit types.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The M1E3's remote station is drawn at a CROWS's size
+
+- **The choice:** The station on its pedestal now carries what a CROWS
+  carries: the flange and its bolts, a cable harness down the column, the
+  traverse and elevation drives, a three-window sensor block (thermal, day,
+  rangefinder) under its hood, the ammunition can with lid and latches, the
+  feed tray and charger. The block and can are drawn larger than the M2
+  alone suggests, because the one photo shows the station as a big block
+  beside the gun. The turret's cheeks carry sensor windows under hoods, the
+  gun shield its bolt rows, the rear corners cameras, and the independent
+  sight box a second window. The mounts did not move: the station's pivot is
+  still the photo's, and the frame check leaves the station out as before.
+- **The gap:** One photo, a left quarter. The station's right side and the
+  roof between the hatches are unseen and drawn from the CROWS.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Families not yet raised still throw through `scatter`
+
+- **The choice:** The SP howitzers, BRM-3K, T-14 and T-15, Jaguar,
+  Challenger 3, Type 15, Centauro II and CV90120 were not raised to the bar
+  in this pass. Their wrecks were re-exported through `vehicle_export` so
+  each has its `debris` state, and their three ground plates beside the hull
+  went, as above. Their live GLBs re-exported byte-identical to the
+  committed ones. The M-SHORAD and M1129 (`stryker_support.py`) were left
+  alone: they stand on the Stryker hull slice 01 is rebuilding, so their
+  wrecks are re-exported after that lands. A wreck's thrown turret piece
+  alone fails `asset validate` (`basis.ground`, `structure.scenery_kind`):
+  it is judged only as a state of its catalog wreck, as the M1E3's was before.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The SP howitzers share one set of turret fittings
+
+- **The choice:** The four turrets (M109A7, PzH 2000, 2S19M2, PLZ-05) differ
+  in shape and gun, so their shared fittings went into one
+  `turret_fittings`: the mantlet's bolt rows, recoil cylinders over and under
+  the barrel's root, roof ventilator domes and an access plate, a side
+  periscope and an ammunition loading hatch on each flank, roof grab rails,
+  the rear door's hinges and handle, and rungs beside it. Hulls were already
+  at the bar (skirts, cables, travel lock, lights) and were left alone.
+- **The gap:** Where a type differs (the 2S19's ventilators sit further
+  forward), the shared positions are an approximation.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Turret roofs share one set of fittings
+
+- **The choice:** `vehicle_parts.roof_fittings` is the owner of what any
+  turret roof carries: a lifting eye at each corner of the crown ring, a grab
+  rail along each side's rear half, and vision blocks where a family names
+  them. The BRM-3K, Jaguar, Centauro II, CV90120, Type 15 and Challenger 3
+  call it with their crown ring (and the T-14 and T-15, which also gained
+  tail lights), so the fittings follow each turret's own
+  plan. Their hulls gained what was missing at the rear: tail lights in
+  guards (BRM-3K, Type 15, Challenger 3) and tow hooks (BRM-3K, Jaguar).
+  Each family already carried its own sights, hatches, smoke and stowage
+  from slices 18 and 20, and sloped-panel fixes from the sloped-panel pass.
+- **The gap:** The eyes and rails sit at proportions of the crown, not at
+  places measured off each photo.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The five disabled infantry teams: their launchers at the bar
+
+- **The choice:** The soldiers already wore the roster infantry's uniforms,
+  carriers and rigs (slice 17), so only `shoulder_tube_equipment` changed,
+  and only these five cards use it. Every tube has its sling swivels and the
+  bands where its halves join. The Javelin's command launch unit has its two
+  handles, eyecup, day and thermal windows and switches, and the battery
+  coolant unit hangs under the tube. The Akeron's sight has a hood, a thermal
+  window, an eyecup and a shoulder rest. The MANPADS have a battery coolant
+  unit, front and rear sight frames and a sight arm; the Stinger has its IFF
+  grid's ribs, and the Igla and FN-6 the interrogator box on the gripstock.
+  The kits re-exported byte-identical twice. The Javelin's carried kit did
+  not change.
+- **The gap:** `asset sheet` can't draw a kit that isn't in the catalog, so
+  the kits were judged on the exporter's own Blender preview, not beside the
+  references. `asset validate` passes them only when given the launcher clips
+  and the skeleton's 90° basis.
+- **Verdict:** sound.
+- **Confidence:** medium.
+## Names and weapon icons (2026-10-08)
+
+The unit info-card workbench showed catalog identifiers on cards: unit
+names composed from family and variant ("BMP IFV Family BMP-3", "Tigr
+Tigr-M"), mount ids as labels (`MAIN_GUN`, `HEAVY_SNIPER_1`), terse or long
+weapon names ("AP", "Spike (direct guidance)") and blank icon slots. The
+user's request: every unit and weapon gets a short human-readable label from
+the catalog, display names separate from ids, every weapon a generated icon,
+and missing names or icons fail validation; no UI truncation, no automatic
+underscore replacement, no generic fallback icon.
+
+### A label is concise by one testable rule, checked where the catalog loads
+
+- **The choice:** `contract::labels::check_label` owns "concise": at most 18
+  characters, single-spaced, opening with a capital or a digit, only letters,
+  digits, spaces and `- / . ×`, and no word written twice (split at spaces,
+  hyphens and slashes, so a family repeated before its variant is refused).
+  `check_icon` holds an icon to a lowercase id. Catalog resolution applies
+  them to a unit's `name`, its `roster.family_name`, each mount's `name`, an
+  active protection's `name`/`icon` and a planned unit's weapons; weapon-row
+  resolution (`resolve_weapons`) to each row's `name`/`icon`. A refusal names
+  the entry and the field. Test and menu units are held to it too.
+- **The gap:** The user named examples, not a rule.
+- **The reach:** 18 is a tripwire picked against the longest label a card
+  needs ("M1A2 SEP v3 Trophy", "F-15E Strike Eagle"), not a target. The rule
+  cannot judge terseness ("AP" passes); the authored labels carry that.
+  `roster.variant` (the picker's variant buttons) is not held to it: several
+  read as short descriptions ("Close-quarters infantry"). Soldier kinds and
+  parts are not shown on a card and are not checked.
+- **Verdict:** sound.
+- **Confidence:** medium. The repeated-word clause is the one most likely to
+  refuse a real name some day; rename it rather than loosen the rule.
+
+### A mount's id moved to `id`; `name` is its label
+
+- **The choice:** `MountDefinition` gains `id` (what `sensors.on`, a mount's
+  `on`, a model's rig declarations and variant merges name) and keeps `name`
+  as the player label. Lists of objects now merge by `id`. The mechanics
+  editor addresses mounts by id. Old documents (and replays carrying them)
+  are refused, with no compatibility path; the user accepted that.
+- **The gap:** The spec has no mount label; mount names were slugs used both
+  ways.
+- **The reach:** A variant that changes a mount's weapons inherits its
+  parent's label; every shipped label matches its weapons, but nothing
+  checks that a label agrees with what it fires.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Active protection and planned weapons carry a label and an icon
+
+- **The choice:** `ActiveProtection` gains `name`/`icon` (the Trophy part says
+  "Trophy", `trophy`), replacing the panel's hard-coded `TROPHY` row, whose
+  icon file was never generated. A planned unit's `planned.weapons` become
+  `{ name, icon }` objects, and each card publishes them as
+  `planned_weapons` (empty for a unit type, whose weapons are its mounts), so
+  a disabled card can show its weapons like any other. `ActiveProtection` is
+  no longer `Copy`; the simulation reads it by reference, and a supply need
+  carries the three numbers it uses.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Eight new generated weapon icons
+
+- **The choice:** `WEAPON_ICONS` draws `sniper` (marksman and heavy sniper
+  rows), `autocannon`, `rpg` (RPG-7/29), and for planned weapons
+  `aa_missile`, `bomb`, `howitzer`, `rockets` and `mortar`; `trophy` was
+  already drawn. `iconFiles` now writes every weapon row's, every active
+  protection's and every planned weapon's icon, so `asset check` and the icon
+  test refuse any of them without a drawing. Drone warheads reuse
+  `ap_shell`/`he_shell`, aircraft and helicopter guns `autocannon`, tank
+  guns on planned cards `ap_shell`.
+- **Verdict:** sound.
+- **Confidence:** medium. Judged on a contact sheet at 64 and 16 px; no
+  unprimed critique was run (no helper agents in this lane).
+
+### Moved records
+
+- **The choice:** The frozen generation corpus's recorded catalog
+  (`fixtures/parity/map-layout/physical-rules.json`) was rewritten to the new
+  contract (mount ids and labels, test unit labels), since the old form no
+  longer loads. Its generated layouts are byte-identical (checked against the
+  base build); only each result's `identity.config_hash`, which hashes the
+  physical rules including that catalog, moved, so `paired-records.json` was
+  re-blessed (`BLESS_PARITY=1` on `layout_cli`). `fixtures/catalog.json` was
+  re-blessed (`BLESS_CATALOG=1`).
+- **Verdict:** sound.
+- **Confidence:** high.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

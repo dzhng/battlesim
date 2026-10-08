@@ -316,7 +316,7 @@ mod tests {
                 "units",
                 id,
                 json!({ "roster": { "factions": ["us"], "category": category,
-                    "family_name": id, "variant": "Test" } }),
+                    "family_name": "Test", "variant": "Test" } }),
             );
         }
         rules

@@ -56,11 +56,11 @@ export class AppearanceCatalog {
     for (const id of units.ids)
       for (const mount of units.type(id).mounts) {
         refuse(
-          `unit type ${id}'s ${mount.name} operator appearances`,
+          `unit type ${id}'s ${mount.id} operator appearances`,
           skeletonOf(mount.operator_appearance?.active ?? []),
         );
         refuse(
-          `unit type ${id}'s ${mount.name} carried appearances`,
+          `unit type ${id}'s ${mount.id} carried appearances`,
           skeletonOf(mount.operator_appearance?.carried ?? []),
         );
       }

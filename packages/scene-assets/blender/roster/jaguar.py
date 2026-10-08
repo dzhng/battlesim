@@ -78,7 +78,10 @@ def hull(v):
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=h)
         VP.antenna(f"antenna_{s}", (-3.20, side * 0.80, ROOF), m, whip, height=2.4)
-
+    # The rear tow hooks.
+    for side, sd in ((1, "L"), (-1, "R")):
+        VP.tow_hook(f"rear_tow_{sd}", (-v.length / 2 + 0.02, side * 0.75, 0.85), v.mats, v.hull, size=0.13,
+                    rot=(0, 0, math.pi))
 
 def turret(v, t, gun, launcher, launcher_pitch):
     m = v.mats
@@ -90,6 +93,7 @@ def turret(v, t, gun, launcher, launcher_pitch):
              (0.80, -0.36)]
     cyl("turret_ring", 0.95, 0.06, (0, 0, base + 0.03), "Z", m["dark"], t, seg=36, lods=MID)
     loft("t40_shell", [(base + 0.04, foot), (top, crown)], mat=m["paint"], parent=t, bevel=0.035)
+    VP.roof_fittings("roof", crown, top, m, t, periscopes=((0.20, 0.45, 0.3),))
     VP.sight_housing("gunner_sight", (0.35, -0.55, top - 0.02), m, t, size=(0.38, 0.28, 0.28))
     mast = empty("dressing_commander_sight", parent=t)
     cyl("commander_mast", 0.08, 0.30, (-0.50, -0.45, top + 0.15), "Z", m["dark"], mast, seg=12)
@@ -132,7 +136,7 @@ def wreck(variant, v):
     hanging open, the Akeron box blown off its arm, plates warped; the
     turret is thrown."""
     from parts import box as solid, rest_on_ground
-    from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
+    from wreckage import bend, densify, dent, heat, parts, remove, warp
     m = v.mats
     remove("wheel_R_1_", "side_bag_", "akeron_box", "akeron_mouth_", "mudflap_R")
     solid("fallen_akeron", (1.6, 0.42, 0.36), (1.4, -2.2, 0.18), m["paint"], v.hull, rot=(0.1, 0.05, 0.5),
@@ -141,10 +145,6 @@ def wreck(variant, v):
     shell = parts("jaguar_hull", "t40_shell")
     densify(shell, scale=2.0)
     warp(shell, heat(0.02, 0.8, seed=41.0), dent((2.6, -1.3, 1.2), 0.5, 0.12, (0, 1, -0.2)))
-    for k, (loc, rot, size) in enumerate((((3.4, -1.9, 0.03), (0.04, 0.02, 0.4), 0.32),
-                                          ((-2.4, 2.1, 0.03), (-0.03, 0.05, 1.8), 0.28))):
-        plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
-                              (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.12, seed=101 + k)
     v.root.rotation_euler = (0.035, 0.04, 0)
     v.root.location.z -= 0.06
     rest_on_ground(0.004)

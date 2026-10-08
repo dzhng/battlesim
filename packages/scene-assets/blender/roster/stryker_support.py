@@ -89,8 +89,8 @@ def mortar_bay(v):
     m, h = v.mats, v.hull
     edge = S.side_face(S.ROOF)[1][0]
     for k, side in enumerate((1, -1)):
-        VP.bolted_panel(f"bay_door_{k}", (-1.85, side * 0.55, S.ROOF), (2.6, 1.05, 0.06), m, h, bolts=(4, 2),
-                        bevel=0.02, lods=VP.ALL)
+        VP.bolted_panel(f"bay_door_{k}", (-1.85, side * edge / 2, S.ROOF), (2.6, edge - 0.06, 0.06), m, h,
+                        bolts=(4, 2), bevel=0.02, lods=VP.ALL)
         cyl(f"bay_hinge_{k}", 0.035, 2.5, (-1.85, side * (edge - 0.02), S.ROOF + 0.04), "X", m["steel"], h, seg=10,
             lods=NEAR)
     box("bay_seam", (2.6, 0.04, 0.02), (-1.85, 0, S.ROOF + 0.07), m["black"], h, lods=NEAR)

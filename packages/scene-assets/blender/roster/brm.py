@@ -81,7 +81,12 @@ def hull(v):
                         bolts=(1, 2), bevel=0.015, lods=VP.ALL)
     for k, y in enumerate((0.55, -0.55)):
         VP.hatch(f"roof_hatch_{k}", (-1.65, y, DECK), m, h, size=(0.70, 0.55))
-
+    # The rear: its tail lights in their guards and tow hooks.
+    for side, sd in ((1, "L"), (-1, "R")):
+        VP.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.45), ROOF - 0.25), 0.05,
+                            dict(v.mats, lamp=v.mats["tail"]), v.hull, rot=(0, 0, math.pi))
+        VP.tow_hook(f"rear_tow_{sd}", (-v.length / 2 + 0.02, side * 0.75, 0.85), v.mats, v.hull, size=0.13,
+                    rot=(0, 0, math.pi))
 
 def running_gear(v):
     road_x = [2.30 - 0.90 * k for k in range(6)]
@@ -101,6 +106,7 @@ def turret(v, turret, gun):
              (0.75, -0.36)]
     cyl("turret_ring_guard", 0.95, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
     loft("turret_shell", [(base + 0.04, foot), (top, crown)], mat=m["paint"], parent=turret, bevel=0.035)
+    VP.roof_fittings("roof", crown, top, m, turret, periscopes=((0.30, 0.45, 0.3), (0.30, -0.45, -0.3)))
     for side, s in ((1, "L"), (-1, "R")):
         VP.sight_housing(f"sight_{s}", (0.45, side * 0.62, top - 0.02), m, turret, size=(0.38, 0.28, 0.30))
         VP.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 0.90, base + 0.30), m, turret, count=3,
@@ -134,7 +140,7 @@ def wreck(variant, v):
     gone, the trim vane blown loose and hanging, rubber skirts burnt away, the
     rear doors open, the roof hatches gone; the turret is thrown."""
     from parts import box as solid, rest_on_ground
-    from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
+    from wreckage import bend, densify, dent, heat, parts, remove, warp
     m = v.mats
     remove("track_L_band", "wheel_L_1_", "rubber_skirt_", "roof_hatch_", "rear_box_L")
     thrown = solid("thrown_track", (3.0, TRACK_W, 0.05), (1.0, 1.95, 0.03), m["track"], v.hull, rot=(0, 0, -0.1))
@@ -145,10 +151,6 @@ def wreck(variant, v):
     shell = parts("hull_upper", "hull_lower", "turret_shell")
     densify(shell, scale=2.0)
     warp(shell, heat(0.02, 0.8, seed=31.0), dent((1.2, 1.4, 1.1), 0.45, 0.10, (0, -1, -0.2)))
-    for k, (loc, rot, size) in enumerate((((2.4, 2.2, 0.03), (0.04, 0.02, 0.4), 0.30),
-                                          ((-2.6, -2.0, 0.03), (-0.03, 0.05, 1.8), 0.26))):
-        plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
-                              (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.15, seed=95 + k)
     rest_on_ground(0.004)
 
 

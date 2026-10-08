@@ -359,7 +359,7 @@ fn a_mount_naming_no_weapon_row_fails_at_load() {
     let e = load(
         "units",
         "test_tank",
-        json!({ "mounts": [{ "name": "HMG", "weapons": ["railgun"] }] }),
+        json!({ "mounts": [{ "id": "HMG", "weapons": ["railgun"] }] }),
     );
     assert!(
         e.contains("units.test_tank: mount \"HMG\" names weapon row \"railgun\""),
@@ -368,7 +368,7 @@ fn a_mount_naming_no_weapon_row_fails_at_load() {
     let e = load(
         "soldiers",
         "test_rifleman",
-        json!({ "mounts": [{ "name": "rifles", "weapons": ["musket"] }] }),
+        json!({ "mounts": [{ "id": "rifles", "weapons": ["musket"] }] }),
     );
     // Every kind extending the rifleman inherits it: the first is named.
     assert!(
@@ -399,7 +399,7 @@ fn a_fallen_carriers_weapon_is_lost_unless_it_is_special() {
             "test_rifleman", "test_rifleman", "test_rifleman", "test_grenadier"
         ] } } });
         patch(&mut fixture, "units", "test_rifle", slots);
-        let launcher = json!({ "mounts": [{ "name": "grenade launcher", "special": special }] });
+        let launcher = json!({ "mounts": [{ "id": "grenade launcher", "special": special }] });
         patch(&mut fixture, "soldiers", "test_grenadier", launcher);
         patch(
             &mut fixture,

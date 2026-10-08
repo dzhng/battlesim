@@ -19,7 +19,7 @@
       "extends": "m1",
       "name": "M1A1",
       "description": "Test only: the cannon fires a better sabot round.",
-      "mounts": [{ "name": "cannon", "weapons": ["m829", "tank_he"] }]
+      "mounts": [{ "id": "cannon", "weapons": ["m829", "tank_he"] }]
     },
     "m1a2": {
       "extends": "m1a1",

@@ -50,6 +50,10 @@ export type Mobility =
 
 /** A mount row, as a hull lists it or a soldier kind carries it. */
 export interface MountRow {
+  /** What other fields name it by (`sensors.on`, `on`, a model's rig
+   *  declarations); never shown. */
+  id: string;
+  /** What the player reads: a concise label (`contract::labels`). */
   name: string;
   weapons: string[];
   squad: boolean;
@@ -89,6 +93,9 @@ export interface UnitCard {
   cost: number;
   roster: RosterMembership;
   disabled_reason: string | null;
+  /** A disabled card's planned weapons, each a label and its weapon icon;
+   *  empty for a unit type, whose weapons are its mounts. */
+  planned_weapons: { name: string; icon: string }[];
 }
 
 export interface UnitType {
@@ -112,6 +119,9 @@ export interface UnitType {
     deploy?: { seconds: number; pack_seconds?: number };
     supply?: { stock: number };
     active_protection?: {
+      /** What the card's protection row reads, and its weapon icon. */
+      name: string;
+      icon: string;
       capacity: number;
       cooldown_s: number;
       standoff_m: number;
@@ -227,7 +237,7 @@ export type Articulation = "gun" | "hmg";
  *  weapon, drawn with him). */
 export type MountRole = Articulation | "hand";
 
-/** An appearance's mount declarations: mount name to the rig that draws it. */
+/** An appearance's mount declarations: mount id to the rig that draws it. */
 export type MountDraws = Readonly<Record<string, Articulation>>;
 
 /** Each rig's nodes: the node it yaws on, the one it pitches on, and its muzzle. */
@@ -248,7 +258,7 @@ export function mountRoles(
   draws: MountDraws | null | undefined,
 ): MountRole[] {
   const hull = "hull" in type.body;
-  return type.mounts.map((m) => (hull && draws?.[m.name]) || "hand");
+  return type.mounts.map((m) => (hull && draws?.[m.id]) || "hand");
 }
 
 /** A vehicle's presentation class, derived from its physics: how it moves,

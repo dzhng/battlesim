@@ -113,6 +113,8 @@ export function panelSpecimens(catalog: SessionCatalog, rules: PanelRules): Spec
     "returning to base",
     panelOf(specimenUnit(catalog, "test_tank", { withdrawing: true })),
   );
+  // The Trophy part's protection, as its catalog row gives it.
+  const trophy = { name: "Trophy", icon: "trophy", capacity: 4 };
   for (const [label, charges, cooldown, service] of [
     ["ready", 4, null, "out_of_range"],
     ["cooling", 2, 0.5, "out_of_range"],
@@ -125,15 +127,18 @@ export function panelSpecimens(catalog: SessionCatalog, rules: PanelRules): Spec
       catalog.units.type(unit.kind).mounts,
       rules,
       unit.mounts,
-      { capacity: 4 },
+      trophy,
       unit.protection,
     );
     add("Trophy", label, panel);
   }
   const enemyTrophy = enemyPanel(catalog.units, "test_tank", rules);
-  enemyTrophy.weapons = weaponRows(catalog.units.type("test_tank").mounts, rules, undefined, {
-    capacity: 4,
-  });
+  enemyTrophy.weapons = weaponRows(
+    catalog.units.type("test_tank").mounts,
+    rules,
+    undefined,
+    trophy,
+  );
   add("Trophy", "enemy equipment only", enemyTrophy, "enemy");
 
   // The key cases first: a timer's ring beside an idle row's bare icon, and

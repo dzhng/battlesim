@@ -127,7 +127,7 @@
       "structural_damage": 10
     },
     "tank_ap": {
-      "name": "AP",
+      "name": "AP Shell",
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
       "icon": "ap_shell",
       "stationary": false,
@@ -147,7 +147,7 @@
       "armor_piercing": true
     },
     "tank_he": {
-      "name": "HE",
+      "name": "HE Shell",
       "description": "High-explosive shell for troops, cover and buildings.",
       "icon": "he_shell",
       "armor_fraction": 0.15,
@@ -214,13 +214,14 @@
     },
     "assault_rifle": {
       "extends": "rifle",
-      "name": "Assault rifle",
+      "name": "Assault Rifle",
       "range_m": 240,
       "scatter_mrad": 10
     },
     "marksman_rifle": {
       "extends": "rifle",
-      "name": "Marksman rifle",
+      "name": "Marksman Rifle",
+      "icon": "sniper",
       "range_m": 450,
       "damage": 45,
       "penetration": 8,
@@ -235,7 +236,8 @@
     },
     "heavy_sniper": {
       "extends": "rifle",
-      "name": "Heavy sniper rifle",
+      "name": "Heavy Sniper",
+      "icon": "sniper",
       "range_m": 700,
       "damage": 100,
       "penetration": 30,
@@ -247,6 +249,7 @@
     "autocannon": {
       "extends": "hmg",
       "name": "Autocannon",
+      "icon": "autocannon",
       "range_m": 650,
       "damage": 20,
       "penetration": 65,
@@ -263,40 +266,40 @@
     },
     "ground_tank_ap": {
       "extends": "tank_ap",
-      "name": "AP",
+      "name": "AP Shell",
       "range_m": 850,
       "damage": 45,
       "penetration": 250
     },
     "ground_tank_he": {
       "extends": "tank_he",
-      "name": "HE",
+      "name": "HE Shell",
       "range_m": 850,
       "damage": 80
     },
     "advanced_tank_ap": {
       "extends": "tank_ap",
-      "name": "AP",
+      "name": "AP Shell",
       "range_m": 900,
       "damage": 50,
       "penetration": 300
     },
     "advanced_tank_he": {
       "extends": "tank_he",
-      "name": "HE",
+      "name": "HE Shell",
       "range_m": 900,
       "damage": 80
     },
     "light_tank_ap": {
       "extends": "tank_ap",
-      "name": "AP",
+      "name": "AP Shell",
       "range_m": 750,
       "damage": 40,
       "penetration": 170
     },
     "light_tank_he": {
       "extends": "tank_he",
-      "name": "HE",
+      "name": "HE Shell",
       "range_m": 750,
       "damage": 65
     },
@@ -320,7 +323,7 @@
     "spike": {
       "interceptable": true,
       "extends": "atgm",
-      "name": "Spike (direct guidance)",
+      "name": "Spike",
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "range_m": 900,
       "damage": 55,
@@ -331,7 +334,7 @@
     "bastion": {
       "interceptable": true,
       "extends": "atgm",
-      "name": "Bastion (gun-launched)",
+      "name": "Bastion",
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
       "range_m": 650,
       "damage": 55,
@@ -341,7 +344,7 @@
     },
     "ifv_he": {
       "extends": "tank_he",
-      "name": "100 mm HE",
+      "name": "HE Shell",
       "range_m": 650,
       "damage": 65,
       "penetration": 25,
@@ -352,6 +355,7 @@
       "interceptable": true,
       "extends": "grenade",
       "name": "RPG-7",
+      "icon": "rpg",
       "description": "Unguided direct anti-tank rocket.",
       "range_m": 300,
       "damage": 45,
@@ -368,6 +372,7 @@
       "interceptable": true,
       "extends": "grenade",
       "name": "RPG-29",
+      "icon": "rpg",
       "description": "Unguided direct anti-tank rocket.",
       "range_m": 400,
       "damage": 55,

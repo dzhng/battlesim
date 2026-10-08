@@ -9,7 +9,7 @@
       ],
       "mounts": [
         {
-          "name": "launcher",
+          "id": "launcher",
           "operator_appearance": {
             "active": [
               "eastern_atgm_team_kornet_active_a",
@@ -90,7 +90,7 @@
       ],
       "mounts": [
         {
-          "name": "launcher",
+          "id": "launcher",
           "operator_appearance": {
             "active": [
               "eastern_rpg_team_rpg_29_active_a",
@@ -123,7 +123,7 @@
       ],
       "mounts": [
         {
-          "name": "launcher",
+          "id": "launcher",
           "operator_appearance": {
             "active": [
               "eastern_rpg_team_rpg_7_active_a",
@@ -188,7 +188,7 @@
       ],
       "mounts": [
         {
-          "name": "launcher",
+          "id": "launcher",
           "operator_appearance": {
             "active": [
               "us_atgm_team_bgm_71_tow_2a_active_a",

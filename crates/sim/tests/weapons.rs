@@ -359,7 +359,7 @@ fn minimum_range_setup(
         json!({
             "extends": "test_jeep",
             "body": { "hull": { "half_extents_m": [0.25, 0.25, 0.25] } },
-            "mounts": [{ "name": "HMG", "weapons": [id],
+            "mounts": [{ "id": "HMG", "weapons": [id],
                 "pivot_m": [0, 0, 0], "muzzle_m": [muzzle_forward, 0, target_height] }]
         })
     };
@@ -2497,7 +2497,7 @@ fn a_grounded_launcher_fires_from_its_operator_and_declared_bore() {
     game["weapons"]["atgm"]["damage"] = json!(0.0);
     game["catalog"].as_array_mut().unwrap().push(json!({
         "soldiers":{"tripod_gunner":{"extends":"test_atgm_gunner", "mounts":[{
-            "name":"ATGM launcher", "weapons":["atgm"], "special":true,
+            "id":"ATGM launcher", "weapons":["atgm"], "special":true,
             "pivot_m":[0.2,-0.1,0.75], "muzzle_m":[0.6,0,0]
         }]}},
         "units":{"tripod_team":{"extends":"test_at", "body":{"squad":{"slots":["test_at_rifleman","tripod_gunner","test_at_rifleman"]}}}}
