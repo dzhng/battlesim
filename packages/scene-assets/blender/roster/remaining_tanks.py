@@ -1,4 +1,4 @@
-"""ZTZ-99A, Type 15, T-14 and T-15 named-source authoring (legacy; rebuilt families leave it)."""
+"""Type 15, T-14 and T-15 named-source authoring (legacy; rebuilt families leave it)."""
 import bpy,bmesh,os,sys,json,math
 from mathutils import Vector
 sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -8,14 +8,14 @@ from catalog_frames import requested_variant
 from wreckage import WRECK_ARG, burn, export_wreck
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
-SCHEME={'type99':'chinese_digital','type15':'chinese_digital','t14':'russian_green','t15':'russian_green'}
+SCHEME={'type15':'chinese_digital','t14':'russian_green','t15':'russian_green'}
 
 
 def build(family):
     args=script_args();v,out=requested_variant(family,args);ident=v['id']
     frame=v['frame'];L,W,H=frame['body_dimensions_m'];reset()
     paint=P.paint(SCHEME[family],'tank_paint',chip=.3,dirt=.4,rise=1.1);dark=textured('chassis_dark','olive_paint',colour=(.045,.055,.035),chip=.22,dirt=.5,role='paint');rubber=tyre();steel=bare_steel('barrel_steel',chip=.15,dirt=.2);glass=P.glass('optic_glass')
-    root=empty(family);body=empty('body',parent=root);count=7 if family in ('t14','t15') else 6;r=.43 if family in ('t14','t15') else .40;half=L/2-.60;track_y=W/2-.35;deck={'type99':1.39,'t14':1.78,'t15':1.72,'type15':1.46}[family]
+    root=empty(family);body=empty('body',parent=root);count=7 if family in ('t14','t15') else 6;r=.43 if family in ('t14','t15') else .40;half=L/2-.60;track_y=W/2-.35;deck={'t14':1.78,'t15':1.72,'type15':1.46}[family]
     for side in (-1,1):
         for i in range(count):
             x=L*.34-i*(L*.68/(count-1));wn=empty('wheel_'+('F' if i<count/2 else 'R')+str(i)+('L' if side>0 else 'R'),(x,side*track_y,r+.075),body,props={'radius_m':r});cyl('roadwheel_'+str(side)+str(i),r,.50,axis='Y',mat=rubber,parent=wn,seg=24);cyl('wheel_disc_'+str(side)+str(i),r*.74,.055,(0,side*.27,0),'Y',paint,wn,seg=20);cyl('wheel_hub_'+str(side)+str(i),r*.22,.08,(0,side*.29,0),'Y',dark,wn,seg=12)
@@ -38,7 +38,6 @@ def build(family):
     profile=[(rear,.72),(nose,.78),(nose,1.10),(nose-1.24,deck),(rear+.04,deck)]
     if family in ('t14','t15'):profile=[(rear,.78),(nose,.82),(nose,1.20),(nose-1.58,deck),(rear+.03,deck)]
     elif family=='type15':profile=[(rear,.66),(nose,.72),(nose,1.04),(nose-1.32,deck),(rear+.04,deck)]
-    elif family=='type99':profile=[(rear,.64),(nose,.72),(nose,1.01),(nose-1.29,deck),(rear+.04,deck)]
     prism(family+'_hull',profile,W-.50,mat=paint,parent=body,bevel=.035)
     for side in (-1,1):
         skirt_h=.62;skirt_z=1.08
@@ -76,9 +75,8 @@ def build(family):
         else:
             base=-.14;top=mu.z-.095;cyl('roof_weapon_pedestal',.15,top-base,(0,0,(base+top)/2),'Z',paint,yaw,seg=16)
             box('roof_weapon_receiver',(.62,.19,.19),(.43,0,0),dark,pitch)
-            cyl('roof_weapon_barrel',.035 if family=='type99' else .028,mu.x-.70,((mu.x+.70)/2,0,0),'X',steel,pitch,seg=12)
+            cyl('roof_weapon_barrel',.028,mu.x-.70,((mu.x+.70)/2,0,0),'X',steel,pitch,seg=12)
             box('roof_weapon_ammo',(.32,.27,.26),(.24,.27,-.055),paint,pitch)
-            if family=='type99':box('qjc88_receiver_top',(.34,.20,.08),(.28,0,.13),dark,pitch)
     wreck=WRECK_ARG in args
     if wreck:burn()
     finish(ao_distance=.7,ao_rays=4);print('ROSTER_REMAINING_TANK',json.dumps({'id':ident,'tris':triangles_by_tier()}));os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True);(export_wreck if wreck else export)(out,texture_px=256)
