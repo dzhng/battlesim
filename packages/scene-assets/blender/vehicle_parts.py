@@ -718,6 +718,66 @@ def mudflap(name, loc, size, mats, parent, rot=(0, 0, 0)):
     return _place(made, loc, rot)
 
 
+def cargo_bed(name, loc, size, mats, parent, stakes=5, tarp=None, rot=(0, 0, 0)):
+    """A truck's drop-side cargo bed, its floor's centre at `loc`, `size`
+    (x length, y width, z side height): the floor on its cross members, the
+    side and end boards with their stake posts and hinges, and with `tarp`
+    (its height over the sides) the bows and the canvas over them, tied down
+    along its foot. Returns its meshes. Roles: paint, dark, steel, canvas."""
+    sx, sy, sz = size
+    made = []
+    made += box(name=f"{name}_floor", size=(sx, sy, 0.10), loc=(0, 0, -0.05), mat=mats["paint"], parent=parent,
+                bevel=0.02)
+    for k in range(max(2, round(sx / 0.9))):
+        x = -sx / 2 + 0.2 + (sx - 0.4) * k / max(1, round(sx / 0.9) - 1)
+        made += box(name=f"{name}_member_{k}", size=(0.10, sy - 0.10, 0.14), loc=(x, 0, -0.17), mat=mats["dark"],
+                    parent=parent, lods=NEAR)
+    for side in (-1, 1):
+        made += box(name=f"{name}_side_{side}", size=(sx, 0.05, sz), loc=(0, side * (sy / 2 - 0.025), sz / 2),
+                    mat=mats["paint"], parent=parent, bevel=0.015)
+        made += box(name=f"{name}_rail_{side}", size=(sx + 0.02, 0.08, 0.06), loc=(0, side * (sy / 2 - 0.03), sz),
+                    mat=mats["paint"], parent=parent, bevel=0.012, lods=MID)
+        for k in range(stakes):
+            x = -sx / 2 + 0.10 + (sx - 0.20) * k / max(1, stakes - 1)
+            made += box(name=f"{name}_stake_{side}_{k}", size=(0.08, 0.04, sz), loc=(x, side * (sy / 2 + 0.01), sz / 2),
+                        mat=mats["paint"], parent=parent, bevel=0.01, lods=MID)
+            made += box(name=f"{name}_hinge_{side}_{k}", size=(0.10, 0.03, 0.05), loc=(x + 0.2, side * (sy / 2 + 0.01),
+                                                                                     0.04),
+                        mat=mats["steel"], parent=parent, lods=FINE)
+    for end in (-1, 1):
+        made += box(name=f"{name}_end_{end}", size=(0.05, sy, sz), loc=(end * (sx / 2 - 0.025), 0, sz / 2),
+                    mat=mats["paint"], parent=parent, bevel=0.015)
+    if tarp:
+        for k in range(stakes):
+            x = -sx / 2 + 0.10 + (sx - 0.20) * k / max(1, stakes - 1)
+            made += box(name=f"{name}_bow_{k}", size=(0.05, sy - 0.04, 0.05), loc=(x, 0, sz + tarp - 0.05),
+                        mat=mats["dark"], parent=parent, lods=FINE)
+        made += box(name=f"{name}_canvas", size=(sx + 0.04, sy + 0.04, tarp + 0.12), loc=(0, 0, sz - 0.06 + tarp / 2),
+                    mat=mats["canvas"], parent=parent, bevel=0.09)
+        for k in range(stakes * 2 - 1):
+            x = -sx / 2 + 0.10 + (sx - 0.20) * k / max(1, stakes * 2 - 2)
+            for side in (-1, 1):
+                made += box(name=f"{name}_tie_{side}_{k}", size=(0.03, 0.02, 0.22), loc=(x, side * (sy / 2 + 0.035),
+                                                                                       sz - 0.02),
+                            mat=mats["dark"], parent=parent, lods=FINE)
+    return _place(made, loc, rot)
+
+
+def fuel_tank(name, loc, length, radius, mats, parent, rot=(0, 0, 0)):
+    """A truck's side fuel tank lying along local X, its axis at `loc`: the
+    tank, two straps over it and its filler cap. Returns its meshes. Roles:
+    paint, dark, steel."""
+    made = []
+    made += cyl(name=f"{name}_tank", r=radius, depth=length, axis="X", mat=mats["paint"], parent=parent, seg=20,
+                bevel=0.03)
+    for k, x in enumerate((-length * 0.3, length * 0.3)):
+        made += cyl(name=f"{name}_strap_{k}", r=radius * 1.04, depth=0.05, loc=(x, 0, 0), axis="X", mat=mats["dark"],
+                    parent=parent, seg=20, lods=NEAR)
+    made += cyl(name=f"{name}_cap", r=0.05, depth=0.05, loc=(length * 0.1, 0, radius + 0.02), mat=mats["steel"],
+                parent=parent, seg=10, lods=FINE)
+    return _place(made, loc, rot)
+
+
 def bolted_panel(name, loc, size, mats, parent, bolts=(3, 2), rot=(0, 0, 0), bevel=0.02, lods=MID):
     """An applique armour plate bolted onto a face: a slab `size` (x, y, z
     thickness) lying in its local XY plane on the face at `loc` (its back on

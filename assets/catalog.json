@@ -2651,7 +2651,10 @@
         5.2,
         1.2,
         1.5
-      ]
+      ],
+      "tolerances": {
+        "footprint_m": 0.9
+      }
     },
     "eastern_type_99_ztz_99a": {
       "unit": "vehicle",
