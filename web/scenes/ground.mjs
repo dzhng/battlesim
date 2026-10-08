@@ -3,8 +3,9 @@
 // tank slowed (never stopped) by a crater field, tracks, trampling and scorch,
 // all drawn from blue's learned cells (the ground patches its publications
 // carry); a side switch reopens the stream with red's full snapshot. Then the
-// paused street inspector: two minutes into the street test map's fight,
-// each side holds its own ground.
+// paused street inspector: two minutes into the street test map's advance
+// (blue's start ordered onto the street), each side holds ground the other
+// never saw.
 // The learned ground drawn as scars on the terrain and
 // the grass (crater bowls and rims, scorch, tracks, trampling), only where the
 // observed side has learned it, at fixed framings of the lab field
@@ -69,6 +70,7 @@ export async function run(ctx) {
   if (process.env.FLOOR_COST) return forestFloorCost(ctx);
   if (process.env.TREE_LINES_ONLY) return treeLines(ctx);
   if (process.env.TREE_LINE_COST) return treeLineCost(ctx);
+  if (process.env.SCARS_ONLY) return scarFramings(ctx).then(() => streetInspector(ctx));
   await surfaceExportAgreement(ctx);
   await forestExportAgreement(ctx);
   await surfaceFieldAgreement(ctx);
@@ -83,7 +85,6 @@ export async function run(ctx) {
   await forestFloor(ctx);
   await townGround(ctx);
   await treeLines(ctx);
-  if (process.env.SCARS_ONLY) return scarFramings(ctx).then(() => streetInspector(ctx));
   const page = await openBattle(ctx);
   // Past blue's first fog sweep since the bursts (every 6 ticks).
   await advance(page, 6);
@@ -266,8 +267,8 @@ async function scarFramings(ctx) {
   await page.close();
 }
 
-/** Two minutes into the street's fight, paused: each side's learned ground
- *  is its own. */
+/** Two minutes into the street's advance, paused: blue has crossed ground red
+ *  cannot see, red holds the street, and each side's learned ground is its own. */
 async function streetInspector(ctx) {
   const page = await openBattle(ctx, {
     viewport: { width: 1920, height: 1080 },
@@ -343,6 +344,7 @@ async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   const strength = (m) => 2 * (m.crater + m.scorch) + m.tracks + m.trampled;
   const blueKeys = new Set(blue.cells.map(key));
   // Baked map buildings need not appear in knowledge or dynamic model lists.
+  // The map's props are every encounter's; the street encounter's build gives them.
   const props = await page.evaluate(
     async (repo) => {
       const file = (p) => `/@fs/${repo}${p}`;

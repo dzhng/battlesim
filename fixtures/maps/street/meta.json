@@ -8,6 +8,6 @@
   "tags": ["relief", "road", "forest", "prop", "building"],
   "source": "authored",
   "seed": null,
-  "encounters": ["advance", "attack", "lean", "street"],
+  "encounters": ["advance", "attack", "lean", "rear", "street"],
   "benchmarks": []
 }

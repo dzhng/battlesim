@@ -18,7 +18,6 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { gameCamera } from "../gameCamera";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
-import { useStreetScenario } from "../streetScenario";
 import { useFeed } from "../feed";
 
 // The ground layer, as each side learns it. The lab field is the ground
@@ -27,9 +26,10 @@ import { useFeed } from "../feed";
 // passes of HE bursts at tick 1, each thrown off its grid point as a barrage
 // falls, so the field's craters are full); two
 // tanks shell a red squad standing in craters and one in the open; a blue
-// squad walks the field. `?street` inspects the street test map's encounter
-// instead (`streetScenario.ts`), where the two sides fight among buildings
-// and each learns its own ground. The flat cell view
+// squad walks the field. `?street` inspects the street test map's `rear`
+// encounter instead (`fixtures/maps/street/encounters/rear.json`): the street
+// fight, with blue's supply truck and jeep pulled back west out of red's
+// sight, so each side learns ground the other never saw. The flat cell view
 // draws the observed side's learned cells, rebuilt from the ground patches
 // its publications carry; switching side reopens the stream with that side's
 // full snapshot.
@@ -59,21 +59,17 @@ export default function Ground() {
 }
 
 function StreetGround() {
-  const built = useStreetScenario();
-  if (!built) return null;
-  if (typeof built !== "string")
-    return (
-      <main style={{ padding: 24 }} className="lab-rejected" data-testid="error">
-        the street scenario could not be built: {built.error}
-      </main>
-    );
   return (
-    <GroundInspector
-      scenario={built}
-      seed={game.seed}
-      camera={STREET_INSPECT_CAMERA}
-      legend="the street test map's encounter"
-    />
+    <SavedEncounter fixture="street" encounter="rear">
+      {(battle) => (
+        <GroundInspector
+          scenario={battle.scenario}
+          seed={game.seed}
+          camera={STREET_INSPECT_CAMERA}
+          legend="the street test map's rear"
+        />
+      )}
+    </SavedEncounter>
   );
 }
 
