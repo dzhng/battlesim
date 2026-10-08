@@ -1573,6 +1573,17 @@ family. No roster frame, mount or tolerance moved.
   The CV90120 (its hull is the roster CV90's): tile packs on the turret's
   cheek faces and flank rears, a basket round the bustle box, laser warners.
 
+  The M-SHORAD's and M1129's mission parts (the Stryker hull is slice
+  01's): the RIwP turret's XM914 ammunition can and feed, cradle cheeks,
+  thermal window, smoke banks, the Stinger pod's ribs and rear cover, the
+  Hellfire rails' shoes and a cable harness; the mortar bay doors' handles
+  and stops, and the mortar's ring and bipod under the seam. The launchers
+  are drawn stowed level, where the photos show them raised.
+- **Verdict:** sound. Each family's density was checked on its reference
+  sheet beside its photos and against the roster T-90M's contact sheet.
+- **Confidence:** medium. The fields are placed from the photos'
+  proportions, and several turrets have only generated views.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

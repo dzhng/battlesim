@@ -21,6 +21,7 @@ published dimensions (6.95 x 2.72 m; 3.2 m to the M-SHORAD turret's top,
 recorded as `references`. The turret and
 the mortar are drawn at rest.
 """
+import math
 import os
 import sys
 
@@ -75,6 +76,32 @@ def rwip_turret(v):
             bevel=0.01)
         cyl(f"hellfire_nose_{k}", 0.09, 0.14, (x + 1.23, y - 0.82, z + zz + 0.11), "X", m["dark"], h, seg=14,
             r2=0.03, lods=MID)
+    # The turret's own fittings, as the M-SHORAD photos show them: the
+    # XM914's ammunition can and feed chute, the gun's cradle cheeks, the
+    # sensor's second (thermal) window, the Stinger pod's ribs and hinged
+    # rear cover, the Hellfire rails' launcher shoes, smoke banks on the
+    # body's rear corners, a cable harness off the base.
+    box("xm914_ammo", (0.40, 0.22, 0.30), (x - 0.10, y + 0.30, z + 0.50), m["paint"], h, bevel=0.02, lods=MID)
+    VP.cable("xm914_feed", [(x - 0.10, y + 0.30, z + 0.67), (x + 0.10, y + 0.20, z + 0.78), (x + 0.30, y + 0.10,
+                                                                                          z + 0.70)], m, h,
+             radius=0.03, eyes=False)
+    for side in (-1, 1):
+        box(f"xm914_cheek_{side}", (0.40, 0.04, 0.30), (x + 0.40, y + side * 0.14, z + 0.56), m["paint"], h,
+            bevel=0.01, lods=NEAR)
+        VP.smoke_discharger_bank(f"rwip_smoke_{side}", (x - 0.40, y + side * 0.36, z + 0.68), m, h, count=3,
+                                 tube_radius=0.04, tube_length=0.18, elevation=0.4, spread=0.3,
+                                 rot=(0, 0, math.pi + side * 0.6))
+    box("rwip_thermal_window", (0.012, 0.10, 0.10), (x + 0.285, y - 0.18, z + 0.80), m["glass"], h, lods=NEAR)
+    for k in range(3):
+        box(f"stinger_pod_rib_{k}", (0.05, 0.45, 0.45), (x - 0.25 + k * 0.50, y + 0.85, z + 0.62), m["paint"], h,
+            lods=NEAR)
+    box("stinger_rear_cover", (0.03, 0.40, 0.40), (x - 0.41, y + 0.85, z + 0.62), m["dark"], h, lods=MID)
+    for k, zz in enumerate((0.50, 0.78)):
+        for j, dx in enumerate((-0.30, 0.60)):
+            box(f"hellfire_shoe_{k}_{j}", (0.12, 0.08, 0.06), (x + dx, y - 0.82, z + zz + 0.05), m["steel"], h,
+                lods=FINE)
+    VP.cable("rwip_harness", [(x - 0.50, y + 0.10, z + 0.12), (x - 0.75, y + 0.15, z + 0.05),
+                              (x - 1.10, y + 0.20, z + 0.03)], m, h, radius=0.022, eyes=False)
     # Radar panels on the hull's four corners.
     for k, (px, py, yaw) in enumerate(((0.95, 1.05, 0.6), (0.95, -1.05, -0.6), (-3.25, 1.05, 2.5),
                                        (-3.25, -1.05, -2.5))):
@@ -94,6 +121,17 @@ def mortar_bay(v):
         cyl(f"bay_hinge_{k}", 0.035, 2.5, (-1.85, side * (edge - 0.02), S.ROOF + 0.04), "X", m["steel"], h, seg=10,
             lods=NEAR)
     box("bay_seam", (2.6, 0.04, 0.02), (-1.85, 0, S.ROOF + 0.07), m["black"], h, lods=NEAR)
+    # The bay doors' grab handles and stops, the mortar's baseplate ring and
+    # bipod under the open seam, and the ammunition racks' lids beside it.
+    for k, side in enumerate((1, -1)):
+        for j, dx in enumerate((-0.80, 0.80)):
+            VP.tow_hook(f"bay_handle_{k}_{j}", (-1.85 + dx, side * edge / 2, S.ROOF + 0.06), m, h, size=0.07,
+                        rot=(0, -math.pi / 2, 0))
+        box(f"bay_stop_{k}", (0.10, 0.06, 0.10), (-3.10, side * (edge - 0.10), S.ROOF + 0.05), m["dark"], h, lods=NEAR)
+    cyl("mortar_ring", 0.16, 0.05, (-1.12, 0, S.ROOF - 0.02), "Z", m["dark"], h, seg=16, lods=NEAR)
+    for side in (-1, 1):
+        cyl(f"mortar_bipod_{side}", 0.02, 0.40, (-0.92, side * 0.10, S.ROOF - 0.10), "Z", m["dark"], h, seg=8,
+            rot=(side * 0.4, 0.3, 0), lods=FINE)
     cyl("mortar_muzzle", 0.09, 0.30, (-1.0, 0, S.ROOF - 0.10), "Z", m["dark"], h, seg=16, rot=(0, -0.45, 0),
         lods=MID)
     ring = empty("dressing_commander_mg", parent=h)
