@@ -278,7 +278,7 @@ async function cameraKeepsOut(ctx, page, town, options) {
 async function cameraOnMap(ctx, spec) {
   const [type, size, seed] = spec.split(":");
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await page.goto(`${ctx.url}?type=${type}&size=${size}&seed=${seed}`);
+  await page.goto(`${ctx.url}?type=${type}&size=${size}&seed=${seed}&faction=us`);
   await playable(page, 300000);
   await lab(page, () => window.__lab.route.pause());
   await page.waitForFunction(() => window.__lab.route.status().status === "paused");
@@ -340,8 +340,10 @@ export async function run(ctx) {
     generated.map.type === MAP.type &&
       generated.map.size === MAP.size &&
       generated.map.seed === MAP.seed &&
+      generated.map.profile === "skirmish" &&
       generated.generation.seed === MAP.seed &&
-      generated.size.join() === "6000,6000",
+      // A skirmish's medium playable area (`GenerationRequest::extent_m`).
+      generated.size.join() === "2400,2400",
     JSON.stringify({ map: generated.map, identity: generated.generation, size: generated.size }),
   );
   console.log(
@@ -385,7 +387,8 @@ export async function run(ctx) {
       counts.parts === generated.counts.parts &&
       // The whole map can draw at the coarsest tier: a row or more a building.
       counts.coarse >= counts.buildings &&
-      counts.buildings > 1000 &&
+      // A skirmish medium map's towns: hundreds of buildings.
+      counts.buildings > 500 &&
       counts.trees === counts.trunks + counts.streetTrees &&
       counts.trunks > 1000 &&
       counts.streetTrees > 0 &&
@@ -640,9 +643,11 @@ export async function run(ctx) {
     staleMessage,
   );
 
-  // A request for no such map says so, and starts no battle.
+  // A request for no such map says so, and starts no battle. It names a
+  // faction (slice 07 refuses a link without one first), so the size is its
+  // one fault.
   const refused = await ctx.newPage({ allowErrors: true });
-  await refused.goto(`${ctx.url}?type=metro&size=tiny`);
+  await refused.goto(`${ctx.url}?type=metro&size=tiny&faction=us`);
   await refused.getByTestId("error").waitFor();
   const message = await refused.getByTestId("error").textContent();
   await refused.getByRole("button", { name: "Details" }).click();

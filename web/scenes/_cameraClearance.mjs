@@ -117,18 +117,24 @@ export async function film(ctx, page, name, poses, from, to, step) {
  * measured. The battle must be paused; the camera is left as it was.
  */
 export async function flyTown(ctx, page, town, boxes, { shots = 4, reps = 20 } = {}) {
-  const box = boxes.reduce((a, b) =>
-    Math.hypot(a.center[0] - town[0], a.center[1] - town[1]) <=
-    Math.hypot(b.center[0] - town[0], b.center[1] - town[1])
-      ? a
-      : b,
-  );
   const before = await lab(page, () => window.__lab.camera());
   const aspect = await lab(page, () => {
     const canvas = document.querySelector("canvas");
     return canvas.width / canvas.height;
   });
   const envelope = nearEnvelope(before, aspect);
+  // The spiral turns round the building nearest the town's centre among
+  // those it would ask an eye inside a neighbour of (on ground at the
+  // building's base): one standing alone on a square tests nothing.
+  const fromTown = (b) => Math.hypot(b.center[0] - town[0], b.center[1] - town[1]);
+  const box =
+    [...boxes]
+      .sort((a, b) => fromTown(a) - fromTown(b))
+      .find((b) =>
+        townMoves(town, b).spiral.some(
+          (p) => gap(eyeOf({ ...p, target: [...p.target, b.baseZ] }), boxes) < envelope,
+        ),
+      ) ?? boxes.reduce((a, b) => (fromTown(a) <= fromTown(b) ? a : b));
   await lab(page, () => window.__lab.suppressFog(true));
   const moves = townMoves(town, box);
   const out = { envelope, boxes: boxes.length, moves: {} };
@@ -180,9 +186,10 @@ export async function flyTown(ctx, page, town, boxes, { shots = 4, reps = 20 } =
     // building: the pose drawn, then the pose asked for, raw (where the
     // camera stood before clearance).
     const marks = inside.map((is, k) => (is ? k : -1)).filter((k) => k >= 0);
+    // None asked inside: no shots, and the caller's check says so.
     const pick = new Set(
       Array.from(
-        { length: shots },
+        { length: marks.length ? shots : 0 },
         (_, n) => marks[Math.floor(((n + 0.5) * marks.length) / shots)],
       ),
     );
