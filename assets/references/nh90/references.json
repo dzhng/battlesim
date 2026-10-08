@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "europe_nh90_tth-three_quarter_front.jpg",
+   "variant": "europe_nh90_tth",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:NHIndustries_NH90_TTH_Italian_Army_MM81540_EI-223_PAS_2013_01.jpg",
+   "author": "Julian Herzog (Website)",
+   "licence": "CC-BY-4.0",
+   "sha256": "ecdb3fffa31ba5512a70ba8d3de0e179cfc2dac42e0844b853a57d04d1f5a2d6",
+   "note": "NH90 TTH front-left three-quarter static (Italian Army): cabin door open, sponsons, nose gear"
+  },
+  {
+   "file": "europe_nh90_tth-front.jpg",
+   "variant": "europe_nh90_tth",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:NH90_TTH_-_Me_and_my_NH90_TTH_5D4_8825_(52256667614).jpg",
+   "author": "Ronnie Macdonald from Chelmsford, United Kingdom",
+   "licence": "CC-BY-2.0",
+   "sha256": "ecdb3fffa31ba5512a70ba8d3de0e179cfc2dac42e0844b853a57d04d1f5a2d6",
+   "note": "NH90 TTH head-on static"
+  },
+  {
+   "file": "europe_nh90_tth-side.jpg",
+   "variant": "europe_nh90_tth",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:78%2B31_German_Army_NHIndustries_NH90_TTH_ILA_Berlin_2016_11.jpg",
+   "author": "Julian Herzog (Website)",
+   "licence": "CC-BY-4.0",
+   "sha256": "ecdb3fffa31ba5512a70ba8d3de0e179cfc2dac42e0844b853a57d04d1f5a2d6",
+   "note": "NH90 TTH right side in flight: cabin, tail, ramp line"
+  },
+  {
+   "file": "europe_nh90_tth-three_quarter_rear.jpg",
+   "variant": "europe_nh90_tth",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:NH90-TTH_79%2B15_static_display_ILA-2022.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "ecdb3fffa31ba5512a70ba8d3de0e179cfc2dac42e0844b853a57d04d1f5a2d6",
+   "note": "NH90 TTH rear three-quarter static: ramp, tail, tail rotor"
+  },
+  {
+   "file": "europe_nh90_tth-detail.jpg",
+   "variant": "europe_nh90_tth",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:NHIndustries_NH90_TTH_French_Army_Air_Corps_EAD_PAS_2013_01.jpg",
+   "author": "Julian Herzog (Website)",
+   "licence": "CC-BY-4.0",
+   "sha256": "ecdb3fffa31ba5512a70ba8d3de0e179cfc2dac42e0844b853a57d04d1f5a2d6",
+   "note": "NH90 nose close up: radome, cockpit glazing, nose gear"
+  }
+ ],
+ "gaps": [
+  "europe_nh90_tth: German, Italian and French TTHs (same airframe); no top view"
+ ]
+}
