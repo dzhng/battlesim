@@ -50,6 +50,7 @@ def turret_body(v, turret):
     loft("turret_shell", [(FOOT, foot), (FOOT + 0.14, foot), (ROOF, crown)], mat=m["paint"], parent=turret,
          bevel=0.05)
     VP.roof_fittings("roof", crown, ROOF, m, turret, periscopes=((-0.10, 0.95, 0.5),))
+    VP.laser_warners("laser_warner", crown, ROOF, m, turret)
     for side, s in ((1, "L"), (-1, "R")):
         VP.weld_line(f"cheek_weld_{s}", [(1.45, side * 0.46, FOOT + 0.14), (0.70, side * 1.40, FOOT + 0.14)], m,
                      turret)
@@ -72,6 +73,15 @@ def turret_body(v, turret):
     VP.hatch("gunner_hatch", (-0.55, -0.55, ROOF), m, turret, radius=0.26)
     VP.stowage_box("bustle_box", (-1.95, 0, FOOT + 0.08), (0.45, 2.20, 0.42), m, turret)
     VP.tarp_roll("bustle_tarp", (-1.60, 0.0, ROOF + 0.10), 1.70, 0.14, m, turret, straps=3)
+    # The photos' add-on armour and stowage: tile packs on the cheeks' faces
+    # and the flanks' rear, a basket round the bustle box.
+    for side, s in ((1, "L"), (-1, "R")):
+        VP.armour_tiles(f"cheek_armour_{s}", (1.12, side * 0.93, FOOT + 0.30), (0.62, 0.32), (2, 1), 0.06, m, turret,
+                        rot=(0, math.pi / 2 - 0.15, side * -0.88))
+        loc, rot = VP.on_side(-1.65, FOOT + 0.32, side, (1.459, FOOT + 0.14), (1.291, ROOF))
+        VP.armour_tiles(f"flank_armour_{s}", loc, (0.80, 0.36), (2, 1), 0.06, m, turret, rot=rot)
+    VP.slat_armour("bustle_basket", (-2.28, 0, FOOT + 0.05), (2.30, 0.50), m, turret, spacing=0.10, bar=0.014,
+                   rot=(0, 0, math.pi / 2))
 
 
 def gun_120(v, gun):

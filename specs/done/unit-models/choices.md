@@ -1570,6 +1570,9 @@ family. No roster frame, mount or tolerance moved.
   from the wheel arches' flare to the deck, armour modules down each
   turret flank, a basket round the bustle, laser warners and jerrycans.
 
+  The CV90120 (its hull is the roster CV90's): tile packs on the turret's
+  cheek faces and flank rears, a basket round the bustle box, laser warners.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause
