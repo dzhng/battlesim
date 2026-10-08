@@ -750,6 +750,12 @@ Least confident first.
   That is the point: it means re-approving the reel.
 - **Verdict:** sound.
 - **Confidence:** high.
+- **Re-approved:** user, 2026-10-08: main's sight-gap rule closes the gate
+  tank 1 watched squad 36 through; the reel stays exact through shot 12 (the
+  missile scene included), squad 10 shifted 0.5 m E / 2 m N and tank 1's
+  planning paced by scripted moves; shots 13 onward re-approved as they now
+  play. The Market Town log is unchanged through line 13150; it first differs
+  at tick 2625 (`2625 fire 3 hmg`).
 
 ### Faction looks on one soldier appearance
 
