@@ -314,6 +314,7 @@ SCHEMES = {
     "chinese_air_grey": "chinese_air_grey",
     "nato_air_grey": "nato_air_grey",
     "nato_helicopter_green": "nato_helicopter_green",
+    "french_air_camo": "french_air_camo",
 }
 
 
@@ -465,6 +466,13 @@ def nato_air_grey():
     """European air force greys: the Typhoon's and Gripen's light greys, the
     Rafale's, Mirage 2000D's and Tornado's mid greys."""
     return _air(((0.16, 0.17, 0.18), (0.11, 0.12, 0.13)), (0.62,), 1771)
+
+
+@recipe("french_air_camo", tile=6.0, wear=(0.2, 0.21, 0.19, 0.8))
+def french_air_camo():
+    """French strike camouflage (Mirage 2000D): a mid grey with dark grey-green
+    patches."""
+    return _air(((0.12, 0.125, 0.12), (0.06, 0.07, 0.055)), (0.56,), 1791)
 
 
 @recipe("nato_helicopter_green", tile=4.0, wear=(0.1, 0.11, 0.09, 0.85))
