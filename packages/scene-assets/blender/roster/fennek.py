@@ -36,6 +36,9 @@ BELLY = 0.42
 WAIST = 1.20
 ROOF = 1.84
 NOSE = 2.79
+# The upper sides, leaning in from over the waist to the roof, as (y, z) at
+# their foot and top (`vehicle_parts.on_side`).
+UPPER_SIDE = ((1.17, 1.40), (0.98, ROOF))
 
 
 def build(variant, v):
@@ -45,8 +48,8 @@ def build(variant, v):
     # tail long.
     loft("fennek_body", [(BELLY, VP.hull_plan(-2.60, 2.55, 0.85, 0.30)),
                          (WAIST, VP.hull_plan(-2.79, NOSE, 1.20, 0.40)),
-                         (1.40, VP.hull_plan(-2.75, 2.70, 1.17, 0.40)),
-                         (ROOF, VP.hull_plan(-1.60, 1.25, 0.98, 0.25))], mat=m["paint"], parent=hull, bevel=0.05)
+                         (1.40, VP.hull_plan(-2.75, 2.70, UPPER_SIDE[0][0], 0.40)),
+                         (ROOF, VP.hull_plan(-1.60, 1.25, UPPER_SIDE[1][0], 0.25))], mat=m["paint"], parent=hull, bevel=0.05)
     box("rear_deck", (1.20, 1.90, 0.10), (-2.15, 0, 1.55), m["paint"], hull, rot=(0, 0.20, 0), bevel=0.03)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(AXLES):
@@ -65,7 +68,6 @@ def build(variant, v):
 
 def fittings(v):
     m, hull = v.mats, v.hull
-    lean = math.atan((1.17 - 0.98) / (ROOF - 1.40))
     rake = math.atan((2.70 - 1.25) / (ROOF - 1.40))
     # Windscreens, the nose's lamp boxes and tow points.
     for k, y in enumerate((0.48, -0.48)):
@@ -80,12 +82,13 @@ def fittings(v):
         mirror = empty(f"dressing_mirror_{s}", parent=hull)
         box(f"mirror_frame_{s}", (0.04, 0.28, 0.04), (1.95, side * 1.25, 1.55), m["black"], mirror, lods=NEAR)
         box(f"mirror_{s}", (0.06, 0.14, 0.26), (1.95, side * 1.38, 1.55), m["black"], mirror, bevel=0.01, lods=MID)
-        y = side * 1.10
-        VP.bolted_panel(f"side_door_{s}", (0.45, y, 1.38), (1.10, 0.62, 0.025), m, hull, bolts=(4, 3),
-                        rot=(-side * (math.pi / 2 - lean), 0, 0), bevel=0.012)
-        box(f"side_window_{s}", (1.25, 0.02, 0.10), (0.30, side * 1.04, 1.70), m["glass"], hull,
-            rot=(-side * lean, 0, 0), lods=MID)
-        box(f"door_handle_{s}", (0.14, 0.04, 0.04), (0.10, side * 1.14, 1.25), m["steel"], hull, lods=FINE)
+        # The door on the leaning upper side, the window strip over it.
+        loc, rot = VP.on_side(0.45, 1.52, side, *UPPER_SIDE)
+        VP.bolted_panel(f"side_door_{s}", loc, (1.10, 0.62, 0.025), m, hull, bolts=(4, 3), rot=rot, bevel=0.012)
+        loc, rot = VP.on_side(0.30, 1.70, side, *UPPER_SIDE, proud=0.035, standing=True)
+        box(f"side_window_{s}", (1.25, 0.02, 0.10), loc, m["glass"], hull, rot=rot, lods=MID)
+        loc, rot = VP.on_side(0.10, 1.36, side, *UPPER_SIDE, proud=0.045, standing=True)
+        box(f"door_handle_{s}", (0.14, 0.04, 0.04), loc, m["steel"], hull, rot=rot, lods=FINE)
         for k in range(10):
             x = 2.30 - k * 0.48
             cyl(f"waist_bolt_{s}_{k}", 0.024, 0.03, (x, side * 1.19, 1.30), "Y", m["steel"], hull, seg=6, lods=FINE)
