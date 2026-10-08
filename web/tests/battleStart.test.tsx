@@ -1,4 +1,4 @@
-import { renderInRouter as render } from "./support/router";
+import { renderInRouter as render, visitInRouter as visit } from "./support/router";
 // @vitest-environment jsdom
 // Starting a battle from the menu: the seed stays exact text from the address
 // to the address and back, the address says what it gets wrong, and a
@@ -111,8 +111,8 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
   }
 });
 
-test("ordinary menu Play asks for the chosen type and size without pinning a seed", () => {
-  const menu = render(createElement(MainMenu));
+test("ordinary menu Play asks for the chosen type and size without pinning a seed", async () => {
+  const menu = await visit(createElement(MainMenu));
   fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   const deploy = () => menu.getByTestId("menu-deploy").getAttribute("href")!;
   expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us");
@@ -130,8 +130,8 @@ test("ordinary menu Play asks for the chosen type and size without pinning a see
   expect(menu.getByRole("radio", { name: "mixed" }).getAttribute("aria-checked")).toBe("false");
 });
 
-test("the menu leaves the region to the seed unless the player picks one of the presets' regions", () => {
-  const menu = render(createElement(MainMenu));
+test("the menu leaves the region to the seed unless the player picks one of the presets' regions", async () => {
+  const menu = await visit(createElement(MainMenu));
   fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   const deploy = () => menu.getByTestId("menu-deploy").getAttribute("href")!;
   expect(menu.getByRole("radio", { name: "random" }).getAttribute("aria-checked")).toBe("true");
@@ -155,22 +155,22 @@ test("the menu leaves the region to the seed unless the player picks one of the 
   expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us");
 });
 
-test("the menu opens on the battle a cancelled or refused request asked for", () => {
+test("the menu opens on the battle a cancelled or refused request asked for", async () => {
   window.history.replaceState(null, "", `/?type=open&size=medium&seed=${ABOVE_NUMBER}`);
-  const menu = render(createElement(MainMenu));
+  const menu = await visit(createElement(MainMenu));
   expect(menu.getByTestId("menu-deploy").getAttribute("href")).toBe(
     `/battle?type=open&size=medium&seed=${ABOVE_NUMBER}&profile=skirmish&faction=us`,
   );
   cleanup();
   window.history.replaceState(null, "", `/?type=open&size=medium&region=paris`);
-  const again = render(createElement(MainMenu));
+  const again = await visit(createElement(MainMenu));
   expect(again.getByTestId("menu-deploy").getAttribute("href")).toBe(
     `/battle?play=1&type=open&size=medium&region=paris&profile=skirmish&faction=us`,
   );
 });
 
-test("the menu offers fresh skirmishes without prebuilt battlefields", () => {
-  const menu = render(createElement(MainMenu));
+test("the menu offers fresh skirmishes without prebuilt battlefields", async () => {
+  const menu = await visit(createElement(MainMenu));
   expect(menu.queryByRole("button", { name: "Battlefields" })).toBeNull();
   fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   expect(menu.getByRole("link", { name: "Deploy" }).getAttribute("href")).toBe(
@@ -328,8 +328,8 @@ test("ordinary admission closes refused workers, and exact winner identity keeps
   expect(winner.terminated).toBe(true);
 });
 
-test("skirmish controls and Deploy stand alone without explanatory subtitles", () => {
-  const menu = render(createElement(MainMenu));
+test("skirmish controls and Deploy stand alone without explanatory subtitles", async () => {
+  const menu = await visit(createElement(MainMenu));
   fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   expect(menu.container.textContent).not.toMatch(/fields and woods|defended town|as blue/i);
   expect(menu.getByRole("link", { name: "Deploy" }).textContent).toBe("Deploy");

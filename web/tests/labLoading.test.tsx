@@ -1,4 +1,4 @@
-import { renderInRouter as render } from "./support/router";
+import { renderInRouter as render, visitInRouter as visit } from "./support/router";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { LabRouter } from "@apps/battle-lab/src/router";
@@ -82,7 +82,7 @@ test("startup failures replace loading with the shared refusal and diagnostics",
 
 test("the router covers a lab while its route prepares", async () => {
   window.history.replaceState(null, "", "/lab/contacts");
-  render(<LabRouter />);
+  await visit(<LabRouter />);
   expect(screen.getByTestId("loading-subject").textContent).toBe("CONTACTS");
   await screen.findByText("Contact battle preparation");
   expect(screen.getByTestId("loading")).toBeDefined();
@@ -94,7 +94,7 @@ test.each([
   { path: "/benchmark", label: "Benchmark" },
 ])("non-battle view $path becomes usable", async ({ path, label }) => {
   window.history.replaceState(null, "", path);
-  render(<LabRouter />);
+  await visit(<LabRouter />);
   // Cold lazy imports share the runner's hang guard, not a one-second UI deadline.
   await waitFor(() => expect(screen.queryByTestId("loading")).toBeNull(), { timeout: 30_000 });
   expect(screen.getByText(label)).toBeDefined();

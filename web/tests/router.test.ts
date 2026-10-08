@@ -1,4 +1,4 @@
-import { renderInRouter as render } from "./support/router";
+import { visitInRouter as visit } from "./support/router";
 // @vitest-environment jsdom
 import { LAB_FIXTURES } from "@apps/battle-lab/src/fixtures";
 import { createElement } from "react";
@@ -16,7 +16,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   vi.stubEnv("DEV", true);
   vi.resetModules();
   const { LabRouter: DevelopmentRouter } = await import("@apps/battle-lab/src/router");
-  const menu = render(createElement(DevelopmentRouter));
+  const menu = await visit(createElement(DevelopmentRouter));
   const links = () => menu.queryAllByRole("link").map((a) => a.getAttribute("href"));
   const pages = ["Skirmish", "Watch replay", "Settings", "Developer"];
   expect(links()).toEqual([]);
@@ -61,7 +61,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   expect(menu.getByRole("button", { name: "Settings" })).toBeTruthy();
   menu.unmount();
   window.history.replaceState(null, "", "/labs");
-  const index = render(createElement(LabRouter));
+  const index = await visit(createElement(LabRouter));
   const hrefs = index.getAllByRole("link").map((a) => a.getAttribute("href"));
   for (const f of LAB_FIXTURES) expect(hrefs).toContain(f.route);
   index.unmount();
@@ -71,7 +71,7 @@ test("the production menu does not offer source editing", async () => {
   vi.stubEnv("DEV", false);
   vi.resetModules();
   const { MainMenu } = await import("@apps/battle-lab/src/MainMenu");
-  const menu = render(createElement(MainMenu));
+  const menu = await visit(createElement(MainMenu));
   fireEvent.click(menu.getByRole("button", { name: "Developer" }));
   expect(menu.queryByRole("link", { name: "Mechanics editor" })).toBeNull();
   expect(menu.queryByRole("link", { name: "Map workbench" })).toBeNull();

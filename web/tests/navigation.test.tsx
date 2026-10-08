@@ -1,9 +1,10 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { BrowserRouter, Link, useLocation, useNavigate } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
 import { usePublishBattleAddress } from "@apps/battle-lab/src/navigation";
 import { LabRouter, screenForPath } from "@apps/battle-lab/src/router";
+import { renderSettled } from "./support/router";
 
 const delayed = vi.hoisted(() => ({ resume: null as null | (() => void) }));
 
@@ -52,14 +53,15 @@ afterEach(() => {
 });
 
 test("Deploy changes the actual route without replacing the document", async () => {
-  const view = render(
+  const view = await renderSettled(
     <BrowserRouter unstable_useTransitions={false}>
       <LabRouter />
     </BrowserRouter>,
   );
   const documentElement = document.documentElement;
   fireEvent.click(screen.getByRole("button", { name: "Skirmish" }));
-  fireEvent.click(screen.getByTestId("menu-deploy"));
+  // Deploy enters the game set's scope, which suspends (see `renderSettled`).
+  await act(async () => fireEvent.click(screen.getByTestId("menu-deploy")));
   expect(
     await screen.findByText(
       "Battle requested: ?play=1&type=mixed&size=small&profile=skirmish&faction=us",
@@ -78,7 +80,7 @@ test("publishing the admitted address preserves progress and unrelated history s
     "",
     "/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us",
   );
-  render(
+  await renderSettled(
     <BrowserRouter unstable_useTransitions={false}>
       <LabRouter />
     </BrowserRouter>,
@@ -94,13 +96,13 @@ test("publishing the admitted address preserves progress and unrelated history s
 });
 
 test("same-path navigation and Back/Forward prepare fresh requested visits", async () => {
-  render(
+  await renderSettled(
     <BrowserRouter unstable_useTransitions={false}>
       <LabRouter />
     </BrowserRouter>,
   );
   fireEvent.click(screen.getByRole("button", { name: "Skirmish" }));
-  fireEvent.click(screen.getByTestId("menu-deploy"));
+  await act(async () => fireEvent.click(screen.getByTestId("menu-deploy")));
   fireEvent.click(await screen.findByRole("button", { name: "Advance" }));
   fireEvent.click(screen.getByRole("button", { name: "Publish admitted battle" }));
   fireEvent.click(screen.getByRole("link", { name: "Next battle" }));
@@ -134,13 +136,13 @@ test("menu sound policy follows real page resolution, including fallback and pla
 });
 
 test("a rapid history round trip discards progress before the intermediate screen commits", async () => {
-  render(
+  await renderSettled(
     <BrowserRouter unstable_useTransitions={false}>
       <LabRouter />
     </BrowserRouter>,
   );
   fireEvent.click(screen.getByRole("button", { name: "Skirmish" }));
-  fireEvent.click(screen.getByTestId("menu-deploy"));
+  await act(async () => fireEvent.click(screen.getByTestId("menu-deploy")));
   fireEvent.click(await screen.findByRole("button", { name: "Advance" }));
   fireEvent.click(screen.getByRole("button", { name: "Queue publication" }));
   await act(async () => {

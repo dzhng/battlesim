@@ -1,21 +1,16 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { BrowserRouter } from "react-router";
 import { preparedBattleHref } from "@apps/battle-lab/src/battleLinks";
 import { afterEach, expect, test, vi } from "vitest";
 import { LabRouter } from "@apps/battle-lab/src/router";
 import type { PreparedSession } from "../src/battle/prepare/client";
 import type { AdmissionInputs } from "../src/battle/prepare/admission";
+import { renderSettled } from "./support/router";
 
 const pending = vi.hoisted(() => ({
   finish: null as null | ((battle: PreparedSession) => void),
   input: null as null | AdmissionInputs,
   cancelled: false,
-}));
-vi.mock("@web/battle/sim/module", () => ({
-  loadWasm: async () => ({
-    map_generator_version: () => "test",
-    template_catalogue_json: () => '{"hash":"test"}',
-  }),
 }));
 // Control admission completion at its async boundary; routing, parsing,
 // the scenario builder and the loading/cancel surface stay real.
@@ -46,7 +41,7 @@ afterEach(() => {
 
 test("Cancel discards admission even when its resolved continuation is already queued", async () => {
   window.history.replaceState(null, "", "/battle?play=1&type=mixed&size=small&faction=us");
-  render(
+  await renderSettled(
     <BrowserRouter unstable_useTransitions={false}>
       <LabRouter />
     </BrowserRouter>,
@@ -74,7 +69,7 @@ test("successful ordinary admission publishes the exact address without returnin
     "",
     "/battle?play=1&type=mixed&size=small&faction=us",
   );
-  render(
+  await renderSettled(
     <BrowserRouter unstable_useTransitions={false}>
       <LabRouter />
     </BrowserRouter>,
