@@ -11,15 +11,15 @@ already exists (the KF51 Panther, playable). Light tanks: Eastern has the
 Type 15 (disabled card); the US gets the M10 Booker here; Europe gets the
 **CV90120** (BAE Hägglunds' tracked CV90 hull with a 120 mm gun), the closest
 match to the Type 15 and M10 and a relative of the roster's CV90 family.
-(Rejected: Centauro II, a fielded wheeled 120 mm tank destroyer, not a light
-tank; swap if the user prefers it.)
+Europe also gets the **Centauro II** (Italy's fielded wheeled 120 mm tank
+destroyer; user: "just add Centauro II as well, doesn't hurt to have more").
 
 ## Contract
 
 - Two roster cards in `fixtures/units/roster/us.json`, shaped like the T-14's:
   `us_m1e3_abrams` and `us_m10_booker` in `us.json`, factions `us`, and
-  `europe_cv90120_light_tank` in `europe.json`, factions `europe` (all
-  category `veh`), each with a `disabled_reason` matching the Eastern
+  `europe_cv90120_light_tank` and `europe_centauro_ii` in `europe.json`,
+  factions `europe` (all category `veh`), each with a `disabled_reason` matching the Eastern
   prototypes' ("Ground profile and model admission pending"). Card stats
   follow the roster's existing conventions for their class (`tweak-mechanics`
   for anything new); the resolved catalog is re-blessed; no playable card
@@ -39,8 +39,10 @@ tank; swap if the user prefers it.)
 3. Models through `vehicle_parts.py`/`vehicle_export.py` (`run_disabled`):
    M1E3 seeded from the pilot Abrams with its references' differences; M10
    Booker from its own references (tracked, 105 mm), US desert tan; CV90120
-   from the CV90 lane's hull with its 120 mm turret, Swedish scheme. Real
-   tiers; own wrecks. References also under `assets/references/cv90120/`.
+   from the CV90 lane's hull with its 120 mm turret, Swedish scheme; Centauro II
+   from its own references (8x8, 120 mm turret, Italian scheme). Real tiers;
+   own wrecks. References also under `assets/references/cv90120/` and
+   `assets/references/centauro/`.
 
 ## Verify
 
