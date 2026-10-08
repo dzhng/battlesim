@@ -241,7 +241,6 @@ function DeckReview({ onBack }: { onBack: () => void }) {
               match={skirmish}
               onChoose={() => {}}
               onReady={() => setAction("Ready for battle")}
-              onCancelPending={() => {}}
             />
           }
         />

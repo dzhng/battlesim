@@ -20,11 +20,14 @@ applies to capable units and remains visible but disabled when none can deploy.
 Capability fractions add arithmetic where familiar behavior already explains the
 action, so the controls omit them.
 
-Large armies scroll horizontally instead of covering more of the battlefield.
-Keyboard focus reveals the whole focused card. The existing facts panel serves
-both card details and battlefield callouts; no second unit-information vocabulary
-or selection authority is needed. Captions and hints share normal layout with
-the deck because guessed footer heights become wrong as content changes.
+Large armies keep their vertical card size and wrap into balanced rows that use
+the full viewport; the deck never becomes a horizontal scroller. Pending
+reinforcements reuse the same cards in a dimmed, non-interactive state, with
+their deployment state available on hover. Keyboard focus
+reveals the whole focused card. The existing facts panel serves both card
+details and battlefield callouts; no second unit-information vocabulary or
+selection authority is needed. Captions and hints share normal layout with the
+deck because guessed footer heights become wrong as content changes.
 
 Leaving for the menu means leaving the battle. Keeping a discarded battle would
 create a second Resume mechanism and retain workers, maps and combat evidence.
@@ -72,8 +75,8 @@ actually starts, rather than when a route merely changes.
   and health are different facts; enemy personnel remains unknown. UI and sound
   use admitted observations, never hidden battle state.
 - Captions clear the actual deck, hints clear captions, and the deck keeps the
-  existing readout-occlusion hooks. Overflow preserves complete facts and
-  keyboard/pointer reachability.
+  existing readout-occlusion hooks. Wrapping preserves complete facts and
+  keyboard/pointer reachability without horizontal scrolling.
 - Existing screens and developer links remain available. Labs keep their
   developer interfaces. Desktop mouse/keyboard is the target; no touch controls,
   lobby, results screen, battle cache or departure confirmation is introduced.
@@ -103,7 +106,8 @@ transition and graph cleanup. Source attribution and preparation remain in
 [the sound catalog](../../../fixtures/sounds.json); personal-project use does
 not change the recording's rights receipt.
 
-[ArmyDeck](../../../web/src/battle/present/armyDeck.tsx) owns the roster layout;
+[ArmyDeck](../../../web/src/battle/present/armyDeck.tsx) owns the roster layout,
+including balanced wrapping for pending and owned cards;
 [CommandBar](../../../web/src/battle/present/readouts.tsx) owns command interactions, using
 [InfoPanel](../../../web/src/battle/present/infoPanel.tsx).
 [Army tests](../../../web/tests/armyDeck.test.tsx),

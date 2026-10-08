@@ -1,8 +1,7 @@
-import { useId, useRef, useState, type ReactNode } from "react";
-import type { OwnUnitView } from "../sim/observation";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import type { SkirmishView, OwnUnitView } from "../sim/observation";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
-import { unitIcons } from "@packages/scene-assets/src/icons";
-import { Icon } from "./icons";
+import { ArmyCard } from "./armyCard";
 import { InfoPanel } from "./infoPanel";
 import { ownPanel, unitStrength, type PanelRules } from "./panelRows";
 import { CommandBar, unitName } from "./readouts";
@@ -16,6 +15,7 @@ export function ArmyDeck({
   control,
   captions,
   reinforcements,
+  pending = [],
 }: {
   own: readonly OwnUnitView[];
   selected: readonly number[];
@@ -24,6 +24,7 @@ export function ArmyDeck({
   control?: Parameters<typeof CommandBar>[0]["control"];
   captions: ReactNode;
   reinforcements?: ReactNode;
+  pending?: SkirmishView["pending"];
 }) {
   const lower = useRef<HTMLDivElement>(null);
   const [hintHost, setHintHost] = useState<HTMLDivElement | null>(null);
@@ -32,6 +33,26 @@ export function ArmyDeck({
   const [dismissed, setDismissed] = useState<number | null>(null);
   const [detailX, setDetailX] = useState(0);
   const tooltipId = useId();
+  const count = own.length + pending.length;
+  const [availableWidth, setAvailableWidth] = useState(() =>
+    typeof window === "undefined" ? 1280 : window.innerWidth,
+  );
+  useLayoutEffect(() => {
+    if (typeof ResizeObserver === "undefined") return;
+    const node = lower.current;
+    if (!node) return;
+    const observer = new ResizeObserver(([entry]) => setAvailableWidth(entry.contentRect.width));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  const capacity = Math.max(1, Math.floor((availableWidth - 10 + 4) / 68));
+  const rows = Math.max(1, Math.ceil(count / capacity));
+  const columns = Math.max(1, Math.ceil(count / rows));
+  const lastRow = count % columns;
+  const cardOffset = (index: number) =>
+    lastRow && index >= count - lastRow
+      ? { transform: `translateX(${(columns - lastRow) * 34}px)` }
+      : undefined;
   const active = hovered ?? focused;
   const detail = active === dismissed ? undefined : own.find((unit) => unit.id === active);
   const alignDetail = (button: HTMLButtonElement) => {
@@ -60,24 +81,17 @@ export function ArmyDeck({
         </div>
       )}
       <div className="hud-command-hint" ref={setHintHost} />
-      {(own.length > 0 || reinforcements) && (
+      {(own.length > 0 || pending.length > 0 || reinforcements) && (
         <footer className="hud-panel hud-bar hud-bottom hud-army-deck" data-occludes-readouts>
           {reinforcements}
           <div
             className="hud-army"
-            data-unit-count={own.length}
+            data-unit-count={count}
+            style={{ gridTemplateColumns: `repeat(${columns}, 64px)` }}
             role="group"
             aria-label="Your units"
-            onScroll={(event) => {
-              setHovered(null);
-              const button = event.currentTarget.querySelector<HTMLButtonElement>(
-                `button[data-unit="${focused}"]`,
-              );
-              if (button) alignDetail(button);
-            }}
           >
-            {own.map((unit) => {
-              const { role, silhouette } = unitIcons(UNITS.type(unit.kind));
+            {own.map((unit, index) => {
               const name = `${unitName(unit)} #${unit.id}`;
               const strength = unitStrength(unit);
               return (
@@ -85,6 +99,7 @@ export function ArmyDeck({
                   type="button"
                   key={unit.id}
                   className="hud-army-card"
+                  style={cardOffset(index)}
                   data-unit={unit.id}
                   aria-label={name}
                   aria-pressed={selected.includes(unit.id)}
@@ -122,18 +137,23 @@ export function ArmyDeck({
                     if (event.key === "Escape") setDismissed(active);
                   }}
                 >
-                  <Icon path={role} className="hud-army-role" />
-                  <Icon path={silhouette} className="hud-army-silhouette" />
-                  <span
-                    className="hud-army-health"
-                    role="meter"
-                    aria-label={`${name} health`}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={Math.round(strength * 100)}
-                  >
-                    <span style={{ width: `${strength * 100}%` }} />
-                  </span>
+                  <ArmyCard kind={unit.kind} name={name} strength={strength} />
+                </button>
+              );
+            })}
+            {pending.map((unit, index) => {
+              const name = UNITS.type(unit.kind).name;
+              return (
+                <button
+                  key={`pending-${unit.id}`}
+                  type="button"
+                  className="hud-army-card hud-army-pending"
+                  style={cardOffset(own.length + index)}
+                  disabled
+                  aria-label={`${name} — Will be deployed`}
+                  title={`${name} — ${unit.blocked ? "Entry blocked" : "Will be deployed"}`}
+                >
+                  <ArmyCard kind={unit.kind} name={name} strength={1} />
                 </button>
               );
             })}

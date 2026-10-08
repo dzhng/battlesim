@@ -162,7 +162,11 @@ export function BattleView({
             observation,
             control.selected,
             surfaceZ,
-            parsed.drawn,
+            {
+              ...parsed.drawn,
+              deployment:
+                observation.skirmish?.phase === "preparation" ? parsed.drawn.deployment : null,
+            },
             { showOrders: control.showOrders, reveal: session.revealed, contacts },
             border,
             metresPerPx,
@@ -284,6 +288,7 @@ export function BattleView({
           selected={control.selected}
           onSelect={control.setSelected}
           rules={session.rules}
+          pending={observation?.skirmish?.pending}
           control={input ? control : undefined}
           captions={<CaptionList captions={cues} />}
           reinforcements={
@@ -295,7 +300,6 @@ export function BattleView({
                   match={observation.skirmish}
                   onChoose={session.purchase.choose}
                   onReady={session.purchase.ready}
-                  onCancelPending={session.purchase.cancelPending}
                 />
               </>
             ) : undefined
