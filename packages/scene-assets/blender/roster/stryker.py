@@ -9,7 +9,8 @@ leaning in a little to the roof; a long sloped glacis, the engine's grille on
 its right and the driver's hatch with three periscopes on its left; the
 commander's hatch with its vision blocks on the right beside the remote
 station; two squad hatches on the rear roof and the ramp in the rear plate;
-bolted armour tiles along the upper sides, stowage bins on their rear half,
+bolted armour tiles along the upper sides, bolted applique over the nose and
+glacis, stowage bins on their rear half,
 jerrycans on the rear; the M151 Protector remote station with its M2 and two
 smoke banks; the M1134's TOW launcher on its raised arm; the Dragoon's MCT-30
 turret. The M1127 carries more radios. Crew stand in the hatches in the
@@ -66,7 +67,7 @@ def build(variant, v):
     roof = DRAGOON_ROOF if dragoon else ROOF
     v.roof = roof
     m, hull = v.mats, v.hull
-    loft("stryker_hull", hull_rings(roof), mat=m["paint"], parent=hull, bevel=0.035)
+    loft("stryker_hull", hull_rings(roof), mat=m["paint"], parent=hull, bevel=0.05)
     wheels(v)
     fittings(v, roof, dragoon)
     if dragoon:
@@ -124,6 +125,14 @@ def fittings(v, roof, dragoon):
         x = top + 0.12
         VP.periscope(f"driver_periscope_{k}", (x, y, glacis_z(x) - 0.01), m, hull, size=(0.12, 0.17, 0.08),
                      rot=(0, slope, 0))
+    # The bolted applique: big plates over the lower nose (photos: front,
+    # three-quarter front) and beside the grille on the upper glacis.
+    lower = math.pi - math.atan2(CHINE - 0.50, 3.475 - 2.75)
+    for k, y in enumerate((0.48, -0.48)):
+        VP.bolted_panel(f"nose_applique_{k}", (3.10, y, 0.90), (1.00, 0.86, 0.045), m, hull, bolts=(5, 4),
+                        rot=(0, lower, 0))
+    VP.bolted_panel("glacis_applique", (2.45, 0.55, glacis_z(2.45)), (0.95, 0.80, 0.04), m, hull, bolts=(4, 3),
+                    rot=(0, slope, 0))
     # Headlights in guards at the glacis corners, tow eyes on the nose.
     for side, s in ((1, "L"), (-1, "R")):
         x = 3.05
@@ -136,15 +145,11 @@ def fittings(v, roof, dragoon):
                             hull, rot=(0, 0, math.pi))
         VP.tow_hook(f"rear_tow_{s}", (-3.36, side * 0.80, CHINE - 0.10), m, hull, size=0.12, rot=(0, 0, math.pi))
         # Bolted armour tiles along the upper side, ahead of the stowage.
-        face = side * 1.29
+        face = side * 1.27
         for k in range(4):
             x = 2.45 - k * 0.72
-            box(f"armour_tile_{s}_{k}", (0.68, 0.05, 0.42), (x, face, CHINE + 0.38), m["paint"], hull, bevel=0.012,
-                lods=MID)
-            for j in range(4):
-                cyl(f"tile_bolt_{s}_{k}_{j}", 0.02, 0.02, (x + (j % 2 - 0.5) * 0.52, face + side * 0.03,
-                                                         CHINE + 0.38 + (j // 2 - 0.5) * 0.30), "Y", m["steel"], hull,
-                    seg=6, lods=FINE)
+            VP.bolted_panel(f"armour_tile_{s}_{k}", (x, face, CHINE + 0.38), (0.68, 0.42, 0.04), m, hull,
+                            bolts=(3, 2), rot=(-side * math.pi / 2, 0, 0), bevel=0.015)
         # Stowage bins on the rear half of the upper sides.
         for k in range(4):
             VP.stowage_box(f"side_bin_{s}_{k}", (-0.55 - k * 0.72, side * 1.31, CHINE + 0.16), (0.68, 0.10, 0.48), m,
@@ -280,7 +285,7 @@ def wreck(variant, v):
     remove("wheel_L_1_", "wheel_L_2_", "side_bin_R_1", "side_bin_R_2", "squad_hatch_", "roof_tarp",
            "rear_jerrycan_", "ramp_door")
     bend(parts("side_bin_L_2"), (0, 1.36, CHINE + 0.64), (1, 0, 0), (0, 0, -1), 0.5)
-    shell = parts("stryker_hull", "armour_tile_")
+    shell = parts("stryker_hull", "armour_tile_", "nose_applique_", "glacis_applique")
     densify(shell, scale=2.0)
     warp(shell, heat(0.02, 0.8, seed=6.0), dent((1.6, 1.28, 1.70), 0.5, 0.12, (0, -1, -0.2)))
     for k, (loc, rot, size) in enumerate((((1.4, 1.62, 0.03), (0.03, 0.04, 0.9), 0.30),
@@ -294,4 +299,4 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-run("stryker", "us_desert_tan", build, wreck)
+run("stryker", "us_desert_tan", build, wreck, chip=0.6)
