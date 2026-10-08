@@ -18,7 +18,7 @@ they look like the real vehicles and soldiers.
 
 ## Next Agent Prompt
 
-**Status, 2026-10-07:** in progress. Done and merged: 01–05, 07–13; reference libraries for every runtime vehicle family and the rifle squad (`assets/references/`). Every vehicle now dies into its own (interim) wreck. In flight: 06; the pilot (14) in two worktrees, `um/pilot-vehicles` (Abrams, Stryker, HMMWV) and `um/pilot-infantry` (rifle squad). Next: after the pilot's checkpoint, the lanes 15–18.
+**Status, 2026-10-07:** in progress. Done and merged: 01–14 (pilot: Abrams, Stryker family, HMMWV on its real 4.9 × 2.2 × 2.0 m frame, rifle squad in US OCP and Eastern EMR; class budgets in `UNIT_ART`). In flight, one worktree each: infantry lane (17), tracked lane (15), wheeled lane (16). Next: disabled cards (18), then closeout (19). Open for the user: the Dragoon's gun pivot (choices.md, pilot checkpoint).
 
 **Pick up at [slice 01](slices/01-presentation-by-property.md):** every roster
 vehicle and weapon plays default sounds today, a bug players hear.
@@ -113,7 +113,7 @@ TODO:
 - [x] [11 Wrecks](slices/11-wrecks.md): `wreck_of` on the published prop; every vehicle names its own wreck; interim wrecks.
 - [x] [12 Art rules](slices/12-art-rules.md): strict tiers, dressing allowance, unit budget rules (numbers from 14).
 - [x] [13 Materials](slices/13-materials.md): material roles, black tyres, dark glass, real-nation paint on every current model.
-- [ ] [14 Pilot](slices/14-pilot.md): Abrams, Stryker, HMMWV (real frame), rifle squad; class budgets measured and fixed.
+- [x] [14 Pilot](slices/14-pilot.md): Abrams, Stryker, HMMWV (real frame), rifle squad; class budgets measured and fixed.
 - [ ] [15 Tracked lane](slices/15-tracked.md)
 - [ ] [16 Wheeled, light and trucks lane](slices/16-wheeled.md)
 - [ ] [17 Infantry lane](slices/17-infantry.md)
