@@ -123,6 +123,9 @@ INSIGNIA = {
                 (_star(), 0.58, (0, 0), "yellow"), (_star(), 0.52, (0, 0), "red")],
     # The roundels, outer ring first.
     "uk_lowvis": [(DISC, 1.0, (0, 0), "pale_blue"), (DISC, 0.45, (0, 0), "pale_red")],
+    # The fin flash, red aft of blue.
+    "uk_flash": [(_rect(-1.0, -0.6, 1.0, 0.6), 1.0, (0, 0), "pale_blue"),
+                 (_rect(-0.5, -0.6, 0.5, 0.6), 1.0, (0.5, 0), "pale_red")],
     "uk": [(DISC, 1.0, (0, 0), "blue"), (DISC, 0.66, (0, 0), "white"), (DISC, 0.33, (0, 0), "red")],
     "fr": [(DISC, 1.0, (0, 0), "red"), (DISC, 0.66, (0, 0), "white"), (DISC, 0.33, (0, 0), "blue")],
     "it": [(DISC, 1.0, (0, 0), "red"), (DISC, 0.66, (0, 0), "white"), (DISC, 0.33, (0, 0), "green")],
