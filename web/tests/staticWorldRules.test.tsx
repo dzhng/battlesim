@@ -1,16 +1,9 @@
 // @vitest-environment jsdom
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, beforeAll, expect, test, vi } from "vitest";
-import * as wasm from "@wasm/game_wasm.js";
+import { afterEach, expect, test } from "vitest";
 import { TEST_RULES } from "./catalog";
 import { useStaticWorld } from "@apps/battle-lab/src/useStaticWorld";
 
-vi.mock("@web/battle/sim/module", () => ({ loadWasm: async () => wasm }));
-beforeAll(() => {
-  wasm.initSync({ module: readFileSync(join(process.cwd(), "src/wasm/game_wasm_bg.wasm")) });
-});
 afterEach(cleanup);
 
 test("the page's physical world uses its scenario's captured rules", async () => {

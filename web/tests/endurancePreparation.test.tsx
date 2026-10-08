@@ -6,6 +6,7 @@ import type { BattleView } from "@apps/battle-lab/src/BattleView";
 import { useSimSession } from "@apps/battle-lab/src/useSimSession";
 import Endurance from "@apps/battle-lab/src/routes/endurance";
 import type { PrepareReply } from "@web/battle/prepare/protocol";
+import { WithTestCatalog } from "./catalog";
 
 // Replace the drawing edge, retaining the real session/adoption consumer.
 vi.mock("@apps/battle-lab/src/BattleView", () => ({
@@ -13,12 +14,6 @@ vi.mock("@apps/battle-lab/src/BattleView", () => ({
     useSimSession(props);
     return null;
   },
-}));
-vi.mock("@web/battle/sim/module", () => ({
-  loadWasm: async () => ({
-    template_catalogue_json: () => JSON.stringify({ hash: "catalogue" }),
-    map_generator_version: () => "generator",
-  }),
 }));
 
 afterEach(() => {
@@ -46,7 +41,12 @@ test("generated endurance adopts its prepared authority instead of starting a se
   }
   vi.stubGlobal("Worker", Worker);
   window.history.replaceState(null, "", "/lab/endurance?generated=1&seed=7");
-  const page = render(<Endurance />);
+  // The router scopes every lab to the test set.
+  const page = render(
+    <WithTestCatalog>
+      <Endurance />
+    </WithTestCatalog>,
+  );
   await waitFor(() => expect(workers[0]?.requests[0].type).toBe("prepare"));
   const authority = workers[0];
   const scenario = "prepared endurance scenario";
