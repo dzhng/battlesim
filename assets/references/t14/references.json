@@ -67,5 +67,8 @@
    "note": "Turret corner: AESA radar panel and the sensor housing."
   }
  ],
- "gaps": []
+ "gaps": [
+  "eastern_t_14_armata_main_battle_tank: no rear or front-on view; the rear screen and engine deck come from the quarter and top views",
+  "eastern_t_14_armata_main_battle_tank: every photo is a parade car; the field kit (stowage, crew) is not shown"
+ ]
 }

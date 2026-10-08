@@ -1,0 +1,30 @@
+{
+ "entries": [
+  {
+   "file": "eastern_brm_brm_3k-three_quarter_front.jpg",
+   "variant": "eastern_brm_brm_3k",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ABRM-3K_RAE-2013%D0%90.jpg",
+   "author": "А",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "6b5dc50301856dc90660c59349e99beb3cab92c517d4b9f556d5ad17ddd308b2",
+   "note": "BRM-3K Rys, front quarter in desert camouflage: BMP-3 hull, the two-man turret with 30 mm 2A72, the radar dome housing at the turret rear, commander up."
+  },
+  {
+   "file": "eastern_brm_brm_3k-side.jpg",
+   "variant": "eastern_brm_brm_3k",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ABRM-3K_in_Rubtsovsk_-_2024-08-23.jpg",
+   "author": "Dinamik",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "b516487491d82b308b279eb36c8b652824634c95cc60290dd81bd70a401786ac",
+   "note": "Monument at the Rubtsovsk plant, side quarter: hull, six road wheels, turret and its sensor mast."
+  }
+ ],
+ "gaps": [
+  "eastern_brm_brm_3k: two photos (front quarter, monument quarter); the rear, the radar deployed and the roof are not shown",
+  "eastern_brm_brm_3k: the hull, running gear and rear doors follow the BMP-3 it is built on"
+ ]
+}

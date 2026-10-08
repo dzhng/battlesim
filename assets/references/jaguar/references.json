@@ -1,0 +1,73 @@
+{
+ "entries": [
+  {
+   "file": "europe_ebrc_jaguar_armed_reconnaissance_vehicle-three_quarter_front.jpg",
+   "variant": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AEBRC_JAGUAR4.jpg",
+   "author": "Domenjod",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "5461692140a7530319c879229ae8f12492fb1dff3f2a166bafa817cfc80288cf",
+   "note": "Left front quarter: 6x6 on large tyres, angular hull with a sloped nose, the T40 turret with its 40 mm CTA gun, the raised twin Akeron MP launcher box on the turret's left, RWS on the roof."
+  },
+  {
+   "file": "europe_ebrc_jaguar_armed_reconnaissance_vehicle-three_quarter_rear.jpg",
+   "variant": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AEBRC_JAGUAR2.jpg",
+   "author": "Domenjod",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "1a76b4b86966409281bdb5acf8761bee85a98ccc71f8baeb95c7ea280635bac4",
+   "note": "Right rear quarter: rear door with its red-lit bar, exhausts, the turret bustle and the Galix launchers."
+  },
+  {
+   "file": "europe_ebrc_jaguar_armed_reconnaissance_vehicle-side.jpg",
+   "variant": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AEBRC_JAGUAR1.jpg",
+   "author": "Domenjod",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "375280ba410868af25be5c8900b37c40413a3376ddec85401d23b946dc5a6919",
+   "note": "Right side: three axles, the first set forward, the side bulge with its stowage bags, the turret set behind the cab."
+  },
+  {
+   "file": "europe_ebrc_jaguar_armed_reconnaissance_vehicle-front.jpg",
+   "variant": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AEBRC_JAGUAR3.jpg",
+   "author": "Domenjod",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "9ff5828aa5544539a9329343d1eb94dc263666a351339dd2c9fb987418235602",
+   "note": "Front on: nose, headlights, the turret front with the launcher box raised."
+  },
+  {
+   "file": "europe_ebrc_jaguar_armed_reconnaissance_vehicle-three_quarter_front-2.jpg",
+   "variant": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AArm%C3%A9e_de_terre_-_EBRC_Jaguar_-_1_%2814_juillet_2023%29.jpg",
+   "author": "Kevin.B",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "632ad76ae36739ac5ec12d0ebc458de96c26d9cb9cfd08db6cf5720e5a9de7ff",
+   "note": "Bastille Day 2023, in the French three-tone camouflage the model is painted in."
+  },
+  {
+   "file": "europe_ebrc_jaguar_armed_reconnaissance_vehicle-detail.jpg",
+   "variant": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ACORE26_-_Multi-National_Capability_Demonstration_in_Norway_%289563807%29.jpg",
+   "author": "U.S. Marine Corps photo by Cpl. Garrett Gillespie",
+   "licence": "public-domain",
+   "sha256": "d43a39b00fb46392989b544a30c7fc268c4b659ba4cfc7a4a2195f5bbaff3b1a",
+   "note": "Turret roof close up: the RWS with its machine gun and the commander's sight."
+  }
+ ],
+ "gaps": [
+  "europe_ebrc_jaguar_armed_reconnaissance_vehicle: no top view; the roof layout is read from the quarters"
+ ]
+}

@@ -56,5 +56,8 @@
    "note": "Rehearsal, rear quarter: rear door/ramp, rear slat screens."
   }
  ],
- "gaps": []
+ "gaps": [
+  "eastern_t_15_armata_heavy_ifv: no top view; the roof hatches are placed from the quarters",
+  "eastern_t_15_armata_heavy_ifv: the side view has the module under a cover"
+ ]
 }
