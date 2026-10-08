@@ -23,6 +23,9 @@ cargo beds and tarps; HEMTT keeps its folded crane.
 commander (HMMWV M1151 turret gunner, Tigr-M and VBL gunners, open hatches),
 through the crew module as fixed in slice 09.
 
+**Crew faction.** Re-exporting an Eastern vehicle picks up the EMR crew soldier
+(the crew module reads the faction's soldier look since the pilot).
+
 **Own wreck.** Each variant exports its own wreck (slice 11): the burnt hull
 at the unit's size, plus a turret piece where it has a turret, replacing its
 interim wreck.

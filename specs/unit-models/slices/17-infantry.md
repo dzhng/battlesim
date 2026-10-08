@@ -15,6 +15,13 @@ Collect each kit's references first (README [References](../README.md#references
 The `rifle_squad` kit was built in the pilot (14) and sets the bar and the
 soldier budget.
 
+From the pilot (2026-10-07): a soldier appearance names a look per faction
+(`factions` in `assets/catalog.json`, validated by `structure.faction_look`);
+the US OCP and Eastern EMR rifle-squad looks exist. Still to do here: a Europe
+look (it wears OCP until then), the other 16 kits' faction looks, colour that
+survives at impostor-card range (both armies read as dark marks at ~250 m), and
+red's side tint pushing EMR toward olive.
+
 ## Bar
 
 - **Uniform** pattern per army as a texture recipe: US OCP (matches the tan vehicles), USMC MARPAT

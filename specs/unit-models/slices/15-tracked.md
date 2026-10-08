@@ -27,6 +27,9 @@ Mk IV), Puma, Ajax, BMP-2M and BMP-3.
    `vehicle_crew.py` as fixed in [slice 09](09-pipeline.md).
 6. Delete the family's branch from its legacy helper; delete a helper when empty.
 
+**Crew faction.** Re-exporting an Eastern vehicle picks up the EMR crew soldier
+(the crew module reads the faction's soldier look since the pilot).
+
 **Own wreck.** Each variant exports its own wreck (slice 11): the burnt hull
 at the unit's size, plus a turret piece where it has a turret, replacing its
 interim wreck.
