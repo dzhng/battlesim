@@ -3,9 +3,8 @@
 // tank slowed (never stopped) by a crater field, tracks, trampling and scorch,
 // all drawn from blue's learned cells (the ground patches its publications
 // carry); a side switch reopens the stream with red's full snapshot. Then the
-// paused street inspector: two minutes into the street test map's advance
-// (blue's start ordered onto the street), each side holds ground the other
-// never saw.
+// paused street inspector: two minutes into the street test map's `rear`
+// encounter, each side holds ground the other never saw.
 // The learned ground drawn as scars on the terrain and
 // the grass (crater bowls and rims, scorch, tracks, trampling), only where the
 // observed side has learned it, at fixed framings of the lab field
@@ -267,8 +266,8 @@ async function scarFramings(ctx) {
   await page.close();
 }
 
-/** Two minutes into the street's advance, paused: blue has crossed ground red
- *  cannot see, red holds the street, and each side's learned ground is its own. */
+/** Two minutes into the street's `rear` fight, paused: each side's soft
+ *  vehicles drove where the other cannot see, so its learned ground is its own. */
 async function streetInspector(ctx) {
   const page = await openBattle(ctx, {
     viewport: { width: 1920, height: 1080 },
