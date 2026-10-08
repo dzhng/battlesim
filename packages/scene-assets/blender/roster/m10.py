@@ -141,8 +141,11 @@ def turret_body(v, turret):
         VP.smoke_discharger_bank(f"smoke_{s}", (0.63, side * 1.25, ROOF - 0.30), m, turret, count=4,
                                  tube_radius=0.055, tube_length=0.22, elevation=0.25, spread=0.25,
                                  rot=(0, 0, side * 0.75))
-        VP.bolted_panel(f"cheek_plate_{s}", (-0.36, side * 1.44, ROOF - 0.40), (1.26, 0.46, 0.05), m, turret,
-                        bolts=(4, 2), bevel=0.02, lods=VP.ALL, rot=(-side * math.pi / 2, 0, 0))
+        # On the turret's leaning flank: the shell's side at x -0.36, from
+        # the top of its upright foot to its crown.
+        loc, rot = VP.on_side(-0.36, ROOF - 0.40, side, (1.454, base + 0.18), (1.33, ROOF))
+        VP.bolted_panel(f"cheek_plate_{s}", loc, (1.26, 0.46, 0.05), m, turret, bolts=(4, 2), bevel=0.02,
+                        lods=VP.ALL, rot=rot)
         VP.stowage_box(f"bustle_bin_{s}", (-1.76, side * 1.38, base + 0.28), (0.85, 0.24, 0.40), m, turret,
                        rot=(0, 0, 0 if side > 0 else math.pi))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
