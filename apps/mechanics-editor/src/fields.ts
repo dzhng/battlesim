@@ -644,8 +644,7 @@ export function validateGameplayValue(
       if (!isObject(row) || typeof row.id !== "string" || !row.id.trim() || ids.has(row.id))
         return "Every mount needs a unique id.";
       ids.add(row.id);
-      // Its label's wording is the catalog's to judge (`contract::labels`).
-      if ("name" in row && typeof row.name !== "string") return `${row.id}.name: Enter a label.`;
+      // Its label is the catalog's to judge (`contract::labels`), on preview.
       for (const [key, child] of Object.entries(row)) {
         if (key === "id" || key === "name") continue;
         const error = validateGameplayValue(section, [...path, row.id, key], child);

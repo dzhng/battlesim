@@ -1735,7 +1735,7 @@ fn carried(
                     return Err(CatalogError::Rule {
                         id: id.to_string(),
                         error: format!(
-                            "slot {k} ({slot}) carries a different mount named {:?}",
+                            "slot {k} ({slot}) carries a different mount with id {:?}",
                             m.id
                         ),
                     })

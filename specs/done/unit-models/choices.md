@@ -1264,6 +1264,94 @@ Spec: [slice 02](../../unit-models-followup/slices/02-wreck-debris.md).
 - **Verdict:** sound.
 - **Confidence:** high.
 
+## Names and weapon icons (2026-10-08)
+
+The unit info-card workbench showed catalog identifiers on cards: unit
+names composed from family and variant ("BMP IFV Family BMP-3", "Tigr
+Tigr-M"), mount ids as labels (`MAIN_GUN`, `HEAVY_SNIPER_1`), terse or long
+weapon names ("AP", "Spike (direct guidance)") and blank icon slots. The
+user's request: every unit and weapon gets a short human-readable label from
+the catalog, display names separate from ids, every weapon a generated icon,
+and missing names or icons fail validation; no UI truncation, no automatic
+underscore replacement, no generic fallback icon.
+
+### A label is concise by one testable rule, checked where the catalog loads
+
+- **The choice:** `contract::labels::check_label` owns "concise": at most 18
+  characters, single-spaced, opening with a capital or a digit, only letters,
+  digits, spaces and `- / . ×`, and no word written twice (split at spaces,
+  hyphens and slashes, so a family repeated before its variant is refused).
+  `check_icon` holds an icon to a lowercase id. Catalog resolution applies
+  them to a unit's `name`, its `roster.family_name`, each mount's `name`, an
+  active protection's `name`/`icon` and a planned unit's weapons; weapon-row
+  resolution (`resolve_weapons`) to each row's `name`/`icon`. A refusal names
+  the entry and the field. Test and menu units are held to it too.
+- **The gap:** The user named examples, not a rule.
+- **The reach:** 18 is a tripwire picked against the longest label a card
+  needs ("M1A2 SEP v3 Trophy", "F-15E Strike Eagle"), not a target. The rule
+  cannot judge terseness ("AP" passes); the authored labels carry that.
+  `roster.variant` (the picker's variant buttons) is not held to it: several
+  read as short descriptions ("Close-quarters infantry"). Soldier kinds and
+  parts are not shown on a card and are not checked.
+- **Verdict:** sound.
+- **Confidence:** medium. The repeated-word clause is the one most likely to
+  refuse a real name some day; rename it rather than loosen the rule.
+
+### A mount's id moved to `id`; `name` is its label
+
+- **The choice:** `MountDefinition` gains `id` (what `sensors.on`, a mount's
+  `on`, a model's rig declarations and variant merges name) and keeps `name`
+  as the player label. Lists of objects now merge by `id`. The mechanics
+  editor addresses mounts by id. Old documents (and replays carrying them)
+  are refused, with no compatibility path; the user accepted that.
+- **The gap:** The spec has no mount label; mount names were slugs used both
+  ways.
+- **The reach:** A variant that changes a mount's weapons inherits its
+  parent's label; every shipped label matches its weapons, but nothing
+  checks that a label agrees with what it fires.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Active protection and planned weapons carry a label and an icon
+
+- **The choice:** `ActiveProtection` gains `name`/`icon` (the Trophy part says
+  "Trophy", `trophy`), replacing the panel's hard-coded `TROPHY` row, whose
+  icon file was never generated. A planned unit's `planned.weapons` become
+  `{ name, icon }` objects, and each card publishes them as
+  `planned_weapons` (empty for a unit type, whose weapons are its mounts), so
+  a disabled card can show its weapons like any other. `ActiveProtection` is
+  no longer `Copy`; the simulation reads it by reference, and a supply need
+  carries the three numbers it uses.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Eight new generated weapon icons
+
+- **The choice:** `WEAPON_ICONS` draws `sniper` (marksman and heavy sniper
+  rows), `autocannon`, `rpg` (RPG-7/29), and for planned weapons
+  `aa_missile`, `bomb`, `howitzer`, `rockets` and `mortar`; `trophy` was
+  already drawn. `iconFiles` now writes every weapon row's, every active
+  protection's and every planned weapon's icon, so `asset check` and the icon
+  test refuse any of them without a drawing. Drone warheads reuse
+  `ap_shell`/`he_shell`, aircraft and helicopter guns `autocannon`, tank
+  guns on planned cards `ap_shell`.
+- **Verdict:** sound.
+- **Confidence:** medium. Judged on a contact sheet at 64 and 16 px; no
+  unprimed critique was run (no helper agents in this lane).
+
+### Moved records
+
+- **The choice:** The frozen generation corpus's recorded catalog
+  (`fixtures/parity/map-layout/physical-rules.json`) was rewritten to the new
+  contract (mount ids and labels, test unit labels), since the old form no
+  longer loads. Its generated layouts are byte-identical (checked against the
+  base build); only each result's `identity.config_hash`, which hashes the
+  physical rules including that catalog, moved, so `paired-records.json` was
+  re-blessed (`BLESS_PARITY=1` on `layout_cli`). `fixtures/catalog.json` was
+  re-blessed (`BLESS_CATALOG=1`).
+- **Verdict:** sound.
+- **Confidence:** high.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

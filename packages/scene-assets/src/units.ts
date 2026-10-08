@@ -237,7 +237,7 @@ export type Articulation = "gun" | "hmg";
  *  weapon, drawn with him). */
 export type MountRole = Articulation | "hand";
 
-/** An appearance's mount declarations: mount name to the rig that draws it. */
+/** An appearance's mount declarations: mount id to the rig that draws it. */
 export type MountDraws = Readonly<Record<string, Articulation>>;
 
 /** Each rig's nodes: the node it yaws on, the one it pitches on, and its muzzle. */

@@ -217,7 +217,7 @@ test("a shared weapon preview names all users and invalid flight settings never 
   expect(await editor.snapshot()).toEqual(initial);
 }, 30000);
 
-test("an inherited named mount edits and restores without copying sibling mounts", async () => {
+test("an inherited mount edits by id and restores without copying sibling mounts", async () => {
   const { root, editor } = await nativeStore();
   const source = join(root, "fixtures/units/test/tanks.json");
   const authored = JSON.parse(await readFile(source, "utf8"));

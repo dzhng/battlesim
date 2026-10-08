@@ -97,7 +97,7 @@ mobility, sensors, mounts and capabilities rather than the type's name.
   - a unit's one-key variant component (`body`, `mobility`) written as another variant replaces the parent's: `"mobility": { "wheeled": … }` over a tracked parent is wheeled;
   - a unit's `parts` gather along the chain, the parent's first;
   - anything else is replaced, a list of strings (`roles`, `slots`) whole.
-  - What a variant can't do: drop a key or a named mount it inherits. A type that loses a mount extends a common parent instead.
+  - What a variant can't do: drop a key or a mount (by id) it inherits. A type that loses a mount extends a common parent instead.
 - **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance, by the same rules. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
 
 Resolution happens once through the contract owner. Invalid inheritance,

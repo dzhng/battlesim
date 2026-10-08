@@ -180,7 +180,7 @@ export function ownStateRows(
 
 /** One ammunition kind a weapon fires, as its row names it. */
 interface AmmoKind {
-  /** The kind's name on a mount of several kinds ("AP"); null on a mount
+  /** The kind's label on a mount of several kinds ("AP SHELL"); null on a mount
    *  of one, whose row's name is the kind's. */
   label: string | null;
   /** Rounds left: a number, null for unlimited; undefined where the side
@@ -209,7 +209,7 @@ export interface WeaponRow {
   key: string;
   /** Under `assets/icons/`: the loaded (or first) kind's. */
   icon: string | null;
-  /** Its one kind's name, or the mount's name for a mount of several. */
+  /** Its one kind's label, or the mount's label for a mount of several. */
   name: string;
   kinds: AmmoKind[];
   live: WeaponLive | null;
@@ -229,7 +229,7 @@ export function mountTimers(mount: MountView): { aim: number | null; reload: num
 const rowIcon = (rules: PanelRules, row: string | undefined) =>
   row === undefined ? null : weaponIcon(rules.weapons[row].icon);
 
-/** A mount's row: one kind's name, or the mount's name over each kind.
+/** A mount's row: one kind's label, or the mount's label over each kind.
  *  `loaded` is the kind the next shot fires; -1 where the side can't know. */
 function mountRow(
   key: string,
@@ -353,8 +353,8 @@ export function weaponCounts(w: Pick<WeaponRow, "kinds">): string {
   return w.kinds.map((k) => [k.label, count(k)].filter(Boolean).join(" ")).join(" · ");
 }
 
-/** A row's words as one line: "CANNON AP · HE", or with counts "CANNON AP
- *  20 · HE 15", "RIFLE ∞". */
+/** A row's words as one line: "MAIN GUN AP SHELL · HE SHELL", or with
+ *  counts "MAIN GUN AP SHELL 20 · HE SHELL 15", "RIFLE ∞". */
 export function weaponLabel(w: Pick<WeaponRow, "name" | "kinds">): string {
   return [w.name, weaponCounts(w)].filter(Boolean).join(" ");
 }

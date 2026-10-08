@@ -534,7 +534,7 @@ export interface AppearanceEntry {
   corpse_pose?: PoseRef;
   tolerances?: Partial<Tolerances>;
   /** A vehicle: which of its rigs draws each of its unit type's mounts, by
-   *  mount name (`{ "cannon": "gun", "HMG": "hmg" }`). The validator checks
+   *  mount id (`{ "cannon": "gun", "HMG": "hmg" }`). The validator checks
    *  every mount is declared and its rig's nodes exist; the battle poses
    *  and places muzzles by it. */
   mounts?: MountDraws;

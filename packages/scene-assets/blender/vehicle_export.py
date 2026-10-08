@@ -69,9 +69,9 @@ def rig(frame, root, trunnion=None):
     """Each mount's yaw, pitch and muzzle nodes, by its role, at its frame's
     pivot (in the hull frame) and muzzle (from the pivot along the bore). A
     mount carried by another (`on`) yaws on that one's yaw node. `trunnion`
-    (by mount name) puts the pitch node that far ahead of the pivot, along the
+    (by mount id) puts the pitch node that far ahead of the pivot, along the
     bore, as a tank gun's trunnions are; else it is at the pivot. Returns, by
-    mount name, (yaw, pitch, muzzle, pivot)."""
+    mount id, (yaw, pitch, muzzle, pivot)."""
     made = {}
     for mount in frame["mounts"]:
         yaw_name, pitch_name, muzzle_name = RIG_NODES[mount["role"]]

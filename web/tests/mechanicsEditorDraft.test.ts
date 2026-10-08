@@ -29,7 +29,7 @@ it("isolates matching soldier-kind edits to a selected unit and replaces earlier
   expect(draft.changes).toEqual([{ ...rifleTarget, path: ["hp"], restore: true }]);
 });
 
-it("reads source provenance and restores only the named mount override", async () => {
+it("reads source provenance and restores only the addressed mount override", async () => {
   const { fieldOrigin } = await import("../../apps/mechanics-editor/src/draft");
   const snapshot = {
     revision: "one",
