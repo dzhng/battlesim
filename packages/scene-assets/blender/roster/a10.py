@@ -95,6 +95,9 @@ def build(variant, v):
                       onto=("tail_fin_",), colour="black")),
         ("text", dict(text="AF 80 223", height=0.16, centre=(-6.9, 3.1, 3.2), normal=(0, 1, 0), up=(0, 0, 1),
                       onto=("tail_fin_",), colour="black")),
+        # The 23rd Wing's Flying Tiger shark mouth under the nose (the photo).
+        ("insignia", dict(kind="shark_mouth", centre=(6.9, 1.0, 1.95), normal=(0, 1, 0), up=(0, 0, 1), size=0.85,
+                          onto=("fuselage", "gun_fairing"), ahead=(1, 0, 0))),
         ("text", dict(text="0223", height=0.18, centre=(-0.3, 0.9, 1.75), normal=(0, 1, 0), up=(0, 0, 1),
                       onto=("fuselage",), colour="black")),
     ])
