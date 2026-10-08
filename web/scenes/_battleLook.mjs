@@ -3,7 +3,8 @@
 // On `/lab/street?watch` (scene `street-watch`: blue's start ordered onto
 // the street at once):
 // - `battle`: the whole-battle frames the composed look is judged on, the
-//   battle stepped to BATTLE_TICK (default 9900, 5:30) and on to the first
+//   battle stepped to BATTLE_TICK (default 3600, 2:00, as blue's
+//   advance nears the street) and on to the first
 //   tick of a fight, and each named frame
 //   posed from the battle's own state: blue's
 //   front, any known wreck, the densest known craters. 1920×1080, DPR 1,
@@ -39,7 +40,7 @@ import { orderPaint, paintOnly } from "./_overlays.mjs";
 import { hasRole, game, streetMap, streetAttack, curvePitch } from "./_units.mjs";
 
 const CAMERA = game.presentation.camera;
-const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 9900);
+const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 3600);
 const VIEWPORT = { width: 1920, height: 1080 };
 // The callout layer: each unit's panel and the leader line joining it to
 // the unit. A leader is DOM, in the HUD's cyan, so it survives every canvas
@@ -137,7 +138,7 @@ export async function battleTour(ctx) {
   await ctx.writeEvidence("battle-frames.json", {
     tick: o.tick,
     seed: game.seed,
-    script: "scout-suppress-flank",
+    encounter: "advance",
     frames,
     craters,
     wreck,

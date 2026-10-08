@@ -139,12 +139,9 @@ def running_gear(v):
     for side, s in ((1, "L"), (-1, "R")):
         wheels = []
         for k, x in enumerate(ROAD_X):
-            # A dual road wheel: the outer half carries the part, the inner
-            # half's tyre is on the same spinning node.
-            node = VP.road_wheel(f"wheel_{s}_{k + 1}", (x, side * (TRACK_Y + 0.15), ROAD_Z), ROAD_R, 0.26, side, m,
-                                 hull, bolts=8)
-            cyl(f"wheel_{s}_{k + 1}_inner", ROAD_R, 0.24, (0, -side * 0.30, 0), "Y", m["rubber"], node, seg=24,
-                lods=MID)
+            # A dual road wheel.
+            VP.road_wheel(f"wheel_{s}_{k + 1}", (x, side * (TRACK_Y + 0.15), ROAD_Z), ROAD_R, 0.26, side, m, hull,
+                          bolts=8, inner=(0.24, 0.30))
             # The torsion arm trailing back to the hull.
             box(f"road_arm_{s}_{k}", (0.50, 0.10, 0.12), (x - 0.22, side * (TRACK_Y - 0.36), ROAD_Z + 0.12),
                 m["dark"], hull, rot=(0, 0.42, 0), lods=NEAR)
@@ -415,4 +412,5 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-run("abrams", "us_desert_tan", build, wreck)
+if __name__ == "__main__":
+    run("abrams", "us_desert_tan", build, wreck)

@@ -1510,6 +1510,22 @@
     },
     {
       "cost": 240,
+      "description": "Wheeled 120 mm tank destroyer",
+      "disabled_reason": "Ground profile and model admission pending",
+      "family": "centauro_ii",
+      "id": "europe_centauro_ii",
+      "name": "Centauro II Tank destroyer",
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Centauro II",
+        "variant": "Tank destroyer"
+      }
+    },
+    {
+      "cost": 240,
       "description": "HC6",
       "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
       "family": "ch_47_chinook",
@@ -1538,6 +1554,22 @@
         ],
         "family_name": "Challenger",
         "variant": "Challenger 3"
+      }
+    },
+    {
+      "cost": 250,
+      "description": "Light tank",
+      "disabled_reason": "Ground profile and model admission pending",
+      "family": "cv90120",
+      "id": "europe_cv90120_light_tank",
+      "name": "CV90120 Light tank",
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "CV90120",
+        "variant": "Light tank"
       }
     },
     {
@@ -2121,6 +2153,22 @@
       }
     },
     {
+      "cost": 240,
+      "description": "Light tank",
+      "disabled_reason": "Ground profile and model admission pending",
+      "family": "m10_booker",
+      "id": "us_m10_booker",
+      "name": "M10 Booker Light tank",
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "us"
+        ],
+        "family_name": "M10 Booker",
+        "variant": "Light tank"
+      }
+    },
+    {
       "cost": 180,
       "description": "120 mm mortar carrier",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
@@ -2166,6 +2214,22 @@
         ],
         "family_name": "M142 HIMARS",
         "variant": "PrSM"
+      }
+    },
+    {
+      "cost": 460,
+      "description": "M1E3 prototype main battle tank",
+      "disabled_reason": "Ground profile and model admission pending",
+      "family": "m1_abrams",
+      "id": "us_m1e3_abrams",
+      "name": "M1 Abrams M1E3",
+      "roster": {
+        "category": "veh",
+        "factions": [
+          "us"
+        ],
+        "family_name": "M1 Abrams",
+        "variant": "M1E3"
       }
     },
     {
@@ -7504,6 +7568,30 @@
             "variant": "8×8"
           }
         },
+        "europe_centauro_ii": {
+          "cost": 240,
+          "description": "Wheeled 120 mm tank destroyer",
+          "faction": "europe",
+          "family": "centauro_ii",
+          "name": "Centauro II Tank destroyer",
+          "planned": {
+            "profile": "wheeled-tank-destroyer",
+            "reason": "Ground profile and model admission pending",
+            "weapons": [
+              "tank-gun",
+              "HMG"
+            ]
+          },
+          "roles": [],
+          "roster": {
+            "category": "veh",
+            "factions": [
+              "europe"
+            ],
+            "family_name": "Centauro II",
+            "variant": "Tank destroyer"
+          }
+        },
         "europe_ch_47_chinook_hc6": {
           "cost": 240,
           "description": "HC6",
@@ -7660,6 +7748,30 @@
             ],
             "family_name": "Challenger",
             "variant": "Challenger 3"
+          }
+        },
+        "europe_cv90120_light_tank": {
+          "cost": 250,
+          "description": "Light tank",
+          "faction": "europe",
+          "family": "cv90120",
+          "name": "CV90120 Light tank",
+          "planned": {
+            "profile": "light-tank",
+            "reason": "Ground profile and model admission pending",
+            "weapons": [
+              "tank-gun",
+              "HMG"
+            ]
+          },
+          "roles": [],
+          "roster": {
+            "category": "veh",
+            "factions": [
+              "europe"
+            ],
+            "family_name": "CV90120",
+            "variant": "Light tank"
           }
         },
         "europe_cv90_cv9040c": {
@@ -10276,6 +10388,30 @@
             "variant": "M109A7"
           }
         },
+        "us_m10_booker": {
+          "cost": 240,
+          "description": "Light tank",
+          "faction": "us",
+          "family": "m10_booker",
+          "name": "M10 Booker Light tank",
+          "planned": {
+            "profile": "light-tank",
+            "reason": "Ground profile and model admission pending",
+            "weapons": [
+              "light-tank-gun",
+              "HMG"
+            ]
+          },
+          "roles": [],
+          "roster": {
+            "category": "veh",
+            "factions": [
+              "us"
+            ],
+            "family_name": "M10 Booker",
+            "variant": "Light tank"
+          }
+        },
         "us_m1127_stryker_rv_reconnaissance_vehicle": {
           "appearance": "us_m1127_stryker_rv_reconnaissance_vehicle",
           "body": {
@@ -10876,6 +11012,31 @@
           "sound": {
             "loudness_m": 650.0,
             "profile": "vehicle"
+          }
+        },
+        "us_m1e3_abrams": {
+          "cost": 460,
+          "description": "M1E3 prototype main battle tank",
+          "faction": "us",
+          "family": "m1_abrams",
+          "name": "M1 Abrams M1E3",
+          "planned": {
+            "profile": "advanced-mbt",
+            "reason": "Ground profile and model admission pending",
+            "weapons": [
+              "advanced-tank-gun",
+              "HMG",
+              "Trophy"
+            ]
+          },
+          "roles": [],
+          "roster": {
+            "category": "veh",
+            "factions": [
+              "us"
+            ],
+            "family_name": "M1 Abrams",
+            "variant": "M1E3"
           }
         },
         "us_m270_mlrs_m270a2": {

@@ -1,0 +1,59 @@
+{
+ "entries": [
+  {
+   "file": "europe_cv90120_light_tank-three_quarter_front.jpg",
+   "variant": "europe_cv90120_light_tank",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:CV90120.jpg",
+   "author": "Swadim",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "a5a1409d44b77d5edd8c21e0d2e084dc62fe5eb18f7612056dcb6ee257e9586b",
+   "note": "CV90120-T at IDET (Brno), right front quarter: the CV90 hull, a low wedge turret over the hull centre, the long 120 mm gun with thermal sleeve and perforated muzzle brake, the commander's sight ball on the roof. Exhibition camouflage, not followed."
+  },
+  {
+   "file": "europe_cv90120_light_tank-side.jpg",
+   "variant": "europe_cv90120_light_tank",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:UA_21st_Mechanized_Brigade_CV-90.jpg",
+   "author": "21st Mechanized Brigade",
+   "licence": "CC-BY-4.0",
+   "sha256": "78699fe28491a3ffff40fd3097ce234fcd4a977a14e26e8a0d2de0d9eeecfdcd",
+   "note": "CV9040C left side: the CV90 hull and its seven road wheels, the hull the CV90120 keeps (same bytes as assets/references/cv90/europe_cv90_cv9040c-side.jpg); the turret is not the CV90120's."
+  },
+  {
+   "file": "europe_cv90120_light_tank-rear.jpg",
+   "variant": "europe_cv90120_light_tank",
+   "view": "rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Stridsfordon_90_Gotlands_regemente_11.jpg",
+   "author": "Bene Rioó",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "b7adf1edc0807833bd6fe17283aa0f4ca04499eb0d72283dc5d6309cc726a352",
+   "note": "Swedish Strf 9040 rear: the CV90 hull's rear door and stowage, kept by the CV90120 (same bytes as assets/references/cv90/europe_cv90_cv9040c-rear.jpg)."
+  },
+  {
+   "file": "europe_cv90120_light_tank-three_quarter_front-2-generated.jpg",
+   "variant": "europe_cv90120_light_tank",
+   "view": "three_quarter_front",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "sha256": "1cdcb4bbbc8a8ebf4bbb57644756ab6c3e8bb6c5471d4d491fef743d2545a9c9",
+   "note": "Generated: proportions of the turret over the hull in the Swedish splinter scheme (asked for a side view, it drew a right front quarter). Layout only.",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "BAE Systems Hägglunds CV90120 light tank, straight left side view at eye level, on open ground in daylight, photographic reference. Same vehicle as the input photo: CV90 tracked hull with seven road wheels a side and front drive sprocket, a low angular two-man turret set over the hull centre with a long 120 mm smoothbore gun with a perforated muzzle, the commander's sight on the roof, a turret bustle. Swedish green and black splinter camouflage instead of the exhibition finish. Whole vehicle in frame, no people, no text.",
+   "inputs": [
+    "europe_cv90120_light_tank-three_quarter_front.jpg"
+   ],
+   "seed": 2003
+  }
+ ],
+ "gaps": [
+  "europe_cv90120_light_tank: one licensable photo of the vehicle itself (right front quarter, exhibition camouflage); its side and rear are the CV9040C hull's photos and the turret's sides and rear are guessed",
+  "europe_cv90120_light_tank: Swedish splinter scheme though no CV90120 serves; the scheme of the CV90 family's home army",
+  "europe_cv90120_light_tank: dimensions are the CV90 hull's (about 6.6 m long, 3.2 m wide) and a turret roof about 2.5 m up, measured off the photo; not published figures"
+ ]
+}

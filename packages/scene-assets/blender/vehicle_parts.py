@@ -169,10 +169,12 @@ def tyre_wheel(name, loc, radius, width, side, mats, parent, rim_radius=None, ct
     return node
 
 
-def road_wheel(name, loc, radius, width, side, mats, parent, bolts=6, ribs=0):
+def road_wheel(name, loc, radius, width, side, mats, parent, bolts=6, ribs=0, inner=None):
     """A tracked vehicle's road wheel: a rubber tyre on a painted steel disc,
     a hub and hub bolts on the outer face (`side` +1 left, -1 right), and
     `ribs` radial stiffening ribs pressed into the disc (the Soviet pattern).
+    `inner` = (width, offset) makes it a dual wheel: the inner half's tyre,
+    that wide and that far inboard, on the same spinning node.
     Node: `wheel_*` empty, returned. Roles: rubber, paint, dark, steel."""
     node = wheel_node(name, loc, radius, parent)
     disc_width = width + 0.03
@@ -192,6 +194,9 @@ def road_wheel(name, loc, radius, width, side, mats, parent, bolts=6, ribs=0):
         cyl(name=f"{name}_bolt_{j}", r=0.022, depth=0.045,
             loc=(at * math.cos(angle), side * (disc_width / 2 + 0.015), at * math.sin(angle)), axis="Y",
             mat=mats["steel"], parent=node, seg=6, lods=FINE)
+    if inner is not None:
+        inner_width, offset = inner
+        cyl(f"{name}_inner", radius, inner_width, (0, -side * offset, 0), "Y", mats["rubber"], node, seg=24, lods=MID)
     return node
 
 
@@ -398,11 +403,8 @@ def tracked_running_gear(mats, parent, track_y, track_w, road_x, road_z, road_r,
         wheels = []
         out = side * (track_y + (road_w * 0.6 if dual else 0.0))
         for k, x in enumerate(road_x):
-            node = road_wheel(f"wheel_{s}_{k + 1}", (x, out, road_z), road_r, road_w, side, mats, parent, bolts=bolts,
-                              ribs=ribs)
-            if dual:
-                cyl(f"wheel_{s}_{k + 1}_inner", road_r, road_w * 0.92, (0, -side * road_w * 1.2, 0), "Y",
-                    mats["rubber"], node, seg=24, lods=MID)
+            road_wheel(f"wheel_{s}_{k + 1}", (x, out, road_z), road_r, road_w, side, mats, parent, bolts=bolts,
+                       ribs=ribs, inner=(road_w * 0.92, road_w * 1.2) if dual else None)
             if arm is not None:
                 length, droop = arm
                 box(f"road_arm_{s}_{k}", (length, 0.10, 0.12),

@@ -670,6 +670,30 @@
         ]
       }
     },
+    "us_m10_booker": {
+      "name": "M10 Booker Light tank",
+      "description": "Light tank",
+      "faction": "us",
+      "family": "m10_booker",
+      "roles": [],
+      "cost": 240,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "Light tank",
+        "family_name": "M10 Booker"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "light-tank",
+        "weapons": [
+          "light-tank-gun",
+          "HMG"
+        ]
+      }
+    },
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
       "name": "M1127 Stryker RV Reconnaissance vehicle",
       "description": "Reconnaissance vehicle",
@@ -1150,6 +1174,31 @@
       ],
       "sensors": {
         "ground_m": 600
+      }
+    },
+    "us_m1e3_abrams": {
+      "name": "M1 Abrams M1E3",
+      "description": "M1E3 prototype main battle tank",
+      "faction": "us",
+      "family": "m1_abrams",
+      "roles": [],
+      "cost": 460,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "veh",
+        "variant": "M1E3",
+        "family_name": "M1 Abrams"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "advanced-mbt",
+        "weapons": [
+          "advanced-tank-gun",
+          "HMG",
+          "Trophy"
+        ]
       }
     },
     "us_m270_mlrs_m270a2": {

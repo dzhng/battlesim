@@ -12,7 +12,8 @@ export async function modelGhostAgreement(ctx) {
     await page.goto(new URL(`/@fs/${repo}assets/runtime/catalog.json`, ctx.url).href);
     const result = await page.evaluate(async (repo) => {
       const file = (p) => `/@fs/${repo}${p}`;
-      const [frames, assets, poses, bench, views, light, fog, overlay, models] = await Promise.all([
+      const [gpu, frames, assets, poses, bench, views, light, fog, overlay, models] = await Promise.all([
+        import(file("packages/renderer-core/src/device.ts")),
         import(file("packages/battle-renderer/src/frame/battleFrame.ts")),
         import(file("packages/scene-assets/src/loader.ts")),
         import(file("packages/battle-renderer/src/models/modelInstances.ts")),
@@ -29,8 +30,12 @@ export async function modelGhostAgreement(ctx) {
         [...installed.appearances].find(([, entry]) => entry.bundle.kind === kind),
       );
       if (chosen.some((entry) => !entry)) throw new Error("missing placement model kind");
-      const adapter = await navigator.gpu.requestAdapter();
-      const device = await adapter.requestDevice();
+      // The page's device admission, as every page that draws models gets it.
+      const { adapter, device } = await gpu.requestGpuDevice();
+      const layers = {
+        adapter: adapter.limits.maxTextureArrayLayers,
+        device: device.limits.maxTextureArrayLayers,
+      };
       const validation = [];
       device.addEventListener("uncapturederror", (event) => validation.push(event.error.message));
       const width = 256;
@@ -139,7 +144,7 @@ export async function modelGhostAgreement(ctx) {
           });
         }
         await device.queue.onSubmittedWorkDone();
-        return { cases, validation, width };
+        return { cases, validation, width, layers };
       } finally {
         frame.dispose();
         target.destroy();
@@ -147,6 +152,11 @@ export async function modelGhostAgreement(ctx) {
         device.destroy();
       }
     }, repo);
+    ctx.check(
+      "the model page's device holds the adapter's texture-layer limit",
+      result.layers.device === result.layers.adapter,
+      JSON.stringify(result.layers),
+    );
     for (const item of result.cases) {
       ctx.check(
         `${item.kind} named ghost alpha and depth`,

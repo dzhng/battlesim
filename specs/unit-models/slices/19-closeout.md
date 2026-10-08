@@ -53,7 +53,10 @@ saves for a spec's end.
     Boxer hull into `boxer.py`'s; make `roster/truck_chassis.py` the one truck
     owner if the wheeled trucks can stand on it; one receipt convention for
     disabled cards (beside the family's first GLB).
-14. Close the spec with close-spec.
+14. From slice 20: the Type 15 and Challenger 3 manifest entries point at
+    reference folders that don't exist; collect them (or point at the right
+    ones). Family receipts don't record the script they import; add it.
+15. Close the spec with close-spec.
 
 ## Delegated
 

@@ -303,6 +303,7 @@ SCHEMES = {
     "french_three_tone": "french_three_tone",
     "british_green": "british_green",
     "swedish_splinter": "swedish_splinter",
+    "italian_vegetata": "italian_vegetata",
     "russian_green": "russian_green",
     "chinese_digital": "chinese_digital",
     "us_compass_grey": "us_compass_grey",
@@ -356,6 +357,15 @@ def french_three_tone():
     green, brown, black = (0.07, 0.078, 0.042), (0.082, 0.06, 0.037), (0.014, 0.014, 0.013)
     col = _bands((green, brown, black), (0.62, 0.74), 1201, (2, 3), edge=0.02, warp_px=16)
     return _sprayed(col, 1203)
+
+
+@recipe("italian_vegetata", tile=4.0, wear=(0.15, 0.14, 0.1, 0.95))
+def italian_vegetata():
+    """Italian Army vegetata: an olive green ground under rounded brown and
+    sand patches edged in black, smaller and busier than the French bands."""
+    green, brown, sand, black = (0.06, 0.07, 0.04), (0.09, 0.06, 0.034), (0.16, 0.13, 0.085), (0.014, 0.014, 0.013)
+    col = _bands((green, brown, sand, black), (0.64, 0.72, 0.78), 1401, (3, 4), edge=0.016, warp_px=14)
+    return _sprayed(col, 1403)
 
 
 @recipe("british_green", tile=4.0, wear=(0.13, 0.14, 0.1, 0.95))
