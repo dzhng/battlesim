@@ -1,4 +1,5 @@
-"""Named BMP, BTR and ZBL authoring; the resolved catalog owns every mount frame."""
+"""Named BMP authoring; the resolved catalog owns every mount frame. BTR and ZBL-08 are
+rebuilt in their own scripts (roster/btr.py, roster/zbl08.py)."""
 import bpy,bmesh,os,sys,json,math
 from mathutils import Vector
 sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -8,7 +9,7 @@ from catalog_frames import requested_variant
 from wreckage import WRECK_ARG, burn, export_wreck
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
-SCHEME={'bmp':'russian_green','btr':'russian_green','zbl08':'chinese_digital'}
+SCHEME={'bmp':'russian_green'}
 
 
 def build(family):
@@ -52,43 +53,6 @@ def build(family):
             for side in (-1,1):
                 box('rear_exit_door_'+str(side),(.085,1.13,.87),(-L/2+.015,side*.60,1.04),paint,body,bevel=.045)
                 cyl('door_port_'+str(side),.12,.025,(-L/2-.04,side*.60,1.27),'X',dark,body,seg=12)
-    else:
-        zbl=family=='zbl08';deck=2.10 if zbl else 1.61;r=.56 if zbl else .52
-        # ZBL's upright wide aft hull differs from BTR's pointed, pinched boat hull.
-        profile=[(-L/2,.89),(L/2-.14,.67),(L/2,1.08),(L/2-(1.18 if zbl else 1.63),deck),(-L/2+.11,deck)]
-        def boat_hull(bm,lod):
-            widths=[W*.33,W*.38,W*.42,W*.34,W*.34] if not zbl else [W*.35,W*.38,W*.42,W*.39,W*.39]
-            rings=[[bm.verts.new((x,side*w,z)) for (x,z),w in zip(profile,widths)] for side in (-1,1)]
-            bm.faces.new(rings[0][::-1]);bm.faces.new(rings[1])
-            for j in range(len(profile)):
-                k=(j+1)%len(profile);bm.faces.new((rings[0][j],rings[0][k],rings[1][k],rings[1][j]))
-            bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
-        mesh_part('zbl08_high_hull' if zbl else 'btr82_boat_hull',boat_hull,paint,body)
-        axles=[L*.33,L*.115,-L*.12,-L*.34]
-        for i,x in enumerate(axles):
-            for side in (-1,1):
-                row=('F' if i<2 else 'R')+str(i);wn=empty('wheel_'+row+('L' if side>0 else 'R'),(x,side*(W/2-.21),r),body,props={'radius_m':r})
-                cyl('tire_'+row+str(side),r,.40,axis='Y',mat=rubber,parent=wn,seg=28)
-                cyl('rim_'+row+str(side),r*.60,.045,(0,side*.207,0),'Y',paint,wn,seg=20)
-                cyl('hub_'+row+str(side),r*.20,.08,(0,side*.235,0),'Y',dark,wn,seg=12)
-                for j in range(16):
-                    a=j*math.tau/16;box('tread_'+row+str(side)+str(j),(.14,.35,.024),((r-.012)*math.sin(a),0,(r-.012)*math.cos(a)),rubber,wn,rot=(0,a,.16*side),lods=(0,1))
-                box('wheel_brow_'+row+str(side),(1.15,.22,.075),(x,side*(W/2-.13),r*1.94),paint,body,bevel=.02)
-        for side in (-1,1):
-            if not zbl:
-                box('central_side_door_'+str(side),(.76,.05,.73),(-.03,side*(W/2-.23),1.10),paint,body,bevel=.025)
-                cyl('rear_exhaust_'+str(side),.11,.64,(-2.59,side*1.20,1.70),'X',dark,body,seg=12)
-            box('forward_window_'+str(side),(.035,.40,.19),(L/2-1.37,side*.51,deck-.13),glass,body,rot=(0,-.4,0))
-            cyl('headlamp_'+str(side),.105,.055,(L/2-.20,side*(W*.33),1.13),'X',glass,body,seg=16)
-        if zbl:
-            box('rear_ramp',(.07,W-.71,1.17),(-L/2+.01,0,1.42),paint,body)
-            for side in (-1,1):
-                for j in range(5):box('zbl_upper_side_panel_'+str(side)+str(j),(.83,.06,.40),(-2.45+j*.94,side*(W*.394),1.85),paint,body,bevel=.014,lods=(0,1,2))
-                box('zbl_lamp_cluster_'+str(side),(.065,.26,.15),(L/2-.11,side*.91,1.21),glass,body)
-        else:
-            box('btr_trim_vane',(.055,1.73,.49),(L/2-.53,0,1.27),paint,body,rot=(0,-.91,0),bevel=.014)
-            for side in (-1,1):
-                for j in range(4):box('btr_driver_periscope_'+str(side)+str(j),(.13,.10,.05),(2.09-j*.18,side*.55,deck+.034),glass,body,lods=(0,1,2))
     for j,x in enumerate((1.11,-1.43)):
         cyl('deck_hatch_'+str(j),.27,.065,(x,.45,deck+.022),'Z',paint,body,seg=16)
     rigs={};pivots={}
@@ -112,11 +76,6 @@ def build(family):
                     cyl('bmp_turret_roof',.69,.075,(0,0,.615),'Z',paint,yaw,seg=24)
                     cyl('commander_hatch',.235,.06,(-.29,-.32,.68),'Z',paint,yaw,seg=16)
                     box('commander_viewer',(.22,.22,.17),(-.29,-.32,.77),glass,yaw)
-                else:
-                    tw=1.27 if family=='zbl08' else .78;th=.62 if family=='zbl08' else .63
-                    prism('zbl08_two_man_turret' if family=='zbl08' else 'btr82_high_angle_turret',[(-.71,0),(.62,0),(.56,.29),(.14,th),(-.50,th)],tw,mat=paint,parent=yaw,bevel=.025)
-                    cyl('commander_hatch',.23,.07,(-.28,-.20,th+.03),'Z',paint,yaw,seg=16)
-                    box('turret_sight',(.25,.21,.18),(-.28,-.20,th+.11),glass,yaw)
                 for side in (-1,1):
                     for j in range(3):cyl('smoke_tube_'+str(side)+str(j),.047,.20,(-.41+j*.14,side*.69,.48),'X',dark,yaw,seg=10,lods=(0,1,2))
             large=bmp3 and main;start=.68;rad=.095 if large else .047
