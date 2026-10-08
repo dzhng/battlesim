@@ -630,7 +630,7 @@
       "id": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
       "family": "a_10_warthog",
       "category": "air",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "a_10_warthog",
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
