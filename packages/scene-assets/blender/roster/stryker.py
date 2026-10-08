@@ -3,14 +3,14 @@
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/stryker.py -- [--variant=<id>] [--wreck]
 
 What the photos settle: eight black treaded tyres on true-size rims with CTIS
-air lines, axles in two pairs with the wide gap amidships; the hull's chine
-along the wheel tops, the lower hull tucked in under it, the upper sides
-leaning in a little to the roof; a long sloped glacis, the engine's grille on
-its right and the driver's hatch with three periscopes on its left; the
+air lines, axles in two pairs with the wide gap amidships; the hull's
+pronounced chine, a lower hull flaring out over the wheels to a sharp knuckle
+just above the tyres, then upper sides leaning well in to the roof; a nose of
+bolted applique plates coming to a point at the knuckle; a long sloped
+glacis, the engine's grille on its right and the driver's hatch with three periscopes on its left; the
 commander's hatch with its vision blocks on the right beside the remote
 station; two squad hatches on the rear roof and the ramp in the rear plate;
-bolted armour tiles along the upper sides, bolted applique over the nose and
-glacis, stowage bins on their rear half,
+bolted armour tiles in rows up the upper sides, stowage bins on their rear half,
 jerrycans on the rear; the M151 Protector remote station with its M2 and two
 smoke banks; the M1134's TOW launcher on its raised arm; the Dragoon's MCT-30
 turret. The M1127 carries more radios. Crew stand in the hatches in the
@@ -36,38 +36,56 @@ WHEEL_X = [2.00, 0.76, -0.89, -2.13]
 WHEEL_R = 0.56
 WHEEL_W = 0.38
 WHEEL_Y = 1.15
-CHINE = 1.32
+# The chine: the lower hull flares out from the belly over the wheels to a
+# sharp knuckle just above the tyres, flush with their outer faces, and the
+# upper side leans in from there to the roof (photos: M1126 three-quarter
+# front and rear, the Dragoon's side). The leaning side is most of the hull's
+# visible height, so it reads at a distance.
+BELLY = (0.52, 0.84)  # (z, half width)
+KNUCKLE = (1.16, 1.34)
+NOSE = 3.475  # the nose's point, at the knuckle
 ROOF = 2.30
 DRAGOON_ROOF = 1.95
-# The upper sides lean in from the chine band's top to the roof (photos:
-# rear, three-quarter front), the same on the Dragoon's lower roof.
-SIDE_LEAN = math.radians(16)
-COMMANDER_Y = -0.62
+SIDE_LEAN = math.radians(14)
+GLACIS = math.radians(25)  # the upper glacis, from the nose's point up to the roof
+COMMANDER_Y = -0.55
 
 
 def side_face(roof):
-    """The upper side face, as (y, z) at the chine band's top and at the
-    roof (`vehicle_parts.on_side`)."""
-    return (1.28, CHINE + 0.12), (1.28 - (roof - CHINE - 0.12) * math.tan(SIDE_LEAN), roof)
+    """The upper side face, as (y, z) at the knuckle and at the roof
+    (`vehicle_parts.on_side`)."""
+    z, y = KNUCKLE
+    return (y, z), (y - (roof - z) * math.tan(SIDE_LEAN), roof)
 
 
 def glacis_top(roof):
     """Where the glacis meets the roof (x): further forward on a lower roof,
     so the glacis keeps its slope."""
-    return 1.10 + (ROOF - roof) * 1.6
+    return NOSE - (roof - KNUCKLE[0]) / math.tan(GLACIS)
+
+
+def glacis_z(x, roof):
+    """The upper glacis' height at `x`, from the nose's point to the roof."""
+    return KNUCKLE[0] + (NOSE - x) * math.tan(GLACIS) if x > glacis_top(roof) else roof
+
+
+def nose_x(z):
+    """Where the lower nose, from the belly's front up to the nose's point,
+    is at height `z`."""
+    (z0, _), (z1, _) = BELLY, KNUCKLE
+    return 2.75 + (NOSE - 2.75) * (z - z0) / (z1 - z0)
 
 
 def hull_rings(roof):
-    """The hull as horizontal rings: the tucked-in belly, the chine band over
+    """The hull as horizontal rings: the tucked-in belly, the knuckle over
     the wheels and the roof, its front edge where the glacis meets it."""
 
     def plan(rear, front, half, chamfer):
         return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
                 (front - chamfer, half), (rear, half)]
 
-    return [(0.50, plan(-3.05, 2.75, 0.95, 0.15)),
-            (CHINE, plan(-3.475, 3.475, 1.28, 0.35)),
-            (CHINE + 0.12, plan(-3.475, 3.40, 1.28, 0.35)),
+    return [(BELLY[0], plan(-3.22, 2.75, BELLY[1], 0.15)),
+            (KNUCKLE[0], plan(-3.475, NOSE, KNUCKLE[1], 0.40)),
             (roof, plan(-3.44, glacis_top(roof), side_face(roof)[1][0], 0.25))]
 
 
@@ -116,60 +134,97 @@ def wheels(v):
                 m["dark"], hull, lods=NEAR)
             cyl(f"spring_{s}_{k}", 0.07, 0.38, (x - 0.18, side * (WHEEL_Y - 0.42), WHEEL_R + 0.30), "Z", m["dark"],
                 hull, seg=10, lods=FINE)
-        VP.mudflap(f"mudflap_{s}", (-2.75, side * WHEEL_Y, 1.20), (0.40, 0.55), m, hull)
+        # Mudflaps hang behind the rear wheels from under the lower hull.
+        VP.mudflap(f"mudflap_{s}", (-2.75, side * WHEEL_Y, 0.95), (0.40, 0.50), m, hull)
+
+
+def side_top(x, roof):
+    """The top of the upper side at `x`: the roof, or forward of it the edge
+    the side shares with the glacis' chamfered corner (the rings' corners)."""
+    front, back = NOSE - 0.40, glacis_top(roof) - 0.25
+    if x <= back:
+        return roof
+    return KNUCKLE[0] + (roof - KNUCKLE[0]) * max(0.0, front - x) / (front - back)
+
+
+def side_tiles(v, roof, side, s):
+    """Bolted armour tiles in rows up the leaning side, ahead of the stowage:
+    as many rows as the side is tall for, each tile lying on the face
+    (`on_side`). Under the glacis' edge a tile is cut down to what fits, as
+    the photos' tiles step down toward the nose, and left off below a
+    useful height."""
+    m = v.mats
+    face = side_face(roof)
+    cos = math.cos(SIDE_LEAN)
+    foot, band = KNUCKLE[0] + 0.08, roof - KNUCKLE[0] - 0.14
+    rows = max(1, int(band / 0.46))
+    pitch = band / rows
+    for r in range(rows):
+        low = foot + r * pitch
+        for k in range(3):
+            x = 1.83 - k * 0.72
+            high = min(low + (pitch - 0.04), side_top(x + 0.34, roof) - 0.05)
+            if high - low < 0.24:
+                continue
+            tall = (high - low) / cos
+            loc, rot = VP.on_side(x, (low + high) / 2, side, *face)
+            VP.bolted_panel(f"armour_tile_{s}_{r}_{k}", loc, (0.68, tall, 0.04), m, v.hull,
+                            bolts=(3, 3 if tall > 0.5 else 2), rot=rot, bevel=0.015)
 
 
 def fittings(v, roof, dragoon):
     m, hull = v.mats, v.hull
     top = glacis_top(roof)
     face = side_face(roof)
+    knuckle = KNUCKLE[0]
 
-    def glacis_z(x):
-        return CHINE + 0.12 + (roof - CHINE - 0.12) * (3.40 - x) / (3.40 - top)
+    def glacis(x):
+        return glacis_z(x, roof)
 
-    slope = math.atan((roof - CHINE - 0.12) / (3.40 - top))
+    slope = GLACIS
     # The engine's grille on the right of the glacis, the driver's hatch and
     # periscopes on its left.
-    VP.grille("engine_grille", (2.30, -0.55, glacis_z(2.30)), (0.80, 0.85), m, hull, slats=8, rot=(0, slope, 0))
+    VP.grille("engine_grille", (2.30, -0.55, glacis(2.30)), (0.80, 0.85), m, hull, slats=8, rot=(0, slope, 0))
     VP.hatch("driver_hatch", (top - 0.35, 0.60, roof), m, hull, radius=0.30)
     for k, y in enumerate((0.38, 0.60, 0.82)):
         x = top + 0.12
-        VP.periscope(f"driver_periscope_{k}", (x, y, glacis_z(x) - 0.01), m, hull, size=(0.12, 0.17, 0.08),
+        VP.periscope(f"driver_periscope_{k}", (x, y, glacis(x) - 0.01), m, hull, size=(0.12, 0.17, 0.08),
                      rot=(0, slope, 0))
-    # The bolted applique: big plates over the lower nose (photos: front,
-    # three-quarter front) and beside the grille on the upper glacis.
-    lower = math.pi - math.atan2(CHINE - 0.50, 3.475 - 2.75)
-    for k, y in enumerate((0.48, -0.48)):
-        VP.bolted_panel(f"nose_applique_{k}", (3.10, y, 0.90), (1.00, 0.86, 0.045), m, hull, bolts=(5, 4),
-                        rot=(0, lower, 0))
-    VP.bolted_panel("glacis_applique", (2.45, 0.55, glacis_z(2.45)), (0.95, 0.80, 0.04), m, hull, bolts=(4, 3),
+    # The bolted applique: the lower nose covered in two rows of plates, each
+    # row as wide as the nose is where it starts (photos: front,
+    # three-quarter front), and a plate beside the grille on the upper glacis.
+    (z0, half0), (z1, half1) = BELLY, KNUCKLE
+    run = math.hypot(NOSE - 2.75, z1 - z0)
+    lower = math.pi - math.atan2(z1 - z0, NOSE - 2.75)
+    for r, t in enumerate((0.25, 0.75)):
+        z = z0 + t * (z1 - z0)
+        half = (half0 - 0.15) + (half1 - 0.40 - half0 + 0.15) * (t - 0.25)
+        for k, side in enumerate((1, -1)):
+            VP.bolted_panel(f"nose_applique_{r}_{k}", (nose_x(z), side * (half / 2 + 0.01), z),
+                            (run / 2 - 0.04, half - 0.05, 0.045), m, hull, bolts=(3, 4), rot=(0, lower, 0))
+    VP.bolted_panel("glacis_applique", (2.45, 0.55, glacis(2.45)), (0.95, 0.80, 0.04), m, hull, bolts=(4, 3),
                     rot=(0, slope, 0))
     # Headlights in guards at the glacis corners, tow eyes on the nose.
+    rear_half = face[0][0] - 0.45 * math.tan(SIDE_LEAN)
     for side, s in ((1, "L"), (-1, "R")):
         x = 3.05
-        VP.light_with_guard(f"headlight_{s}", (x, side * 1.00, glacis_z(x) + 0.10), 0.07, m, hull,
+        VP.light_with_guard(f"headlight_{s}", (x, side * 1.00, glacis(x) + 0.10), 0.07, m, hull,
                             rot=(0, 0, side * 0.15))
-        VP.tow_hook(f"front_tow_{s}", (3.36, side * 0.80, CHINE - 0.05), m, hull, size=0.13)
-        VP.shackle(f"front_shackle_{s}", (3.46, side * 0.80, CHINE - 0.09), m, hull, size=0.11,
+        z = knuckle - 0.08
+        VP.tow_hook(f"front_tow_{s}", (nose_x(z) - 0.02, side * 0.80, z), m, hull, size=0.13)
+        VP.shackle(f"front_shackle_{s}", (nose_x(z) + 0.08, side * 0.80, z - 0.04), m, hull, size=0.11,
                    rot=(0, 0, math.pi / 2))
-        VP.light_with_guard(f"tail_light_{s}", (-3.41, side * 1.05, CHINE + 0.45), 0.05, dict(m, lamp=m["tail"]),
-                            hull, rot=(0, 0, math.pi))
-        VP.tow_hook(f"rear_tow_{s}", (-3.36, side * 0.80, CHINE - 0.10), m, hull, size=0.12, rot=(0, 0, math.pi))
-        # Bolted armour tiles along the upper side, ahead of the stowage,
-        # where the side under the glacis is tall enough for a whole tile,
-        # and stowage bins on its rear half: both lean with the side.
-        for k in range(3):
-            x = 1.83 - k * 0.72
-            loc, rot = VP.on_side(x, CHINE + 0.38, side, *face)
-            if glacis_z(x + 0.34) < loc[2] + 0.21 * math.cos(SIDE_LEAN):
-                continue
-            VP.bolted_panel(f"armour_tile_{s}_{k}", loc, (0.68, 0.42, 0.04), m, hull, bolts=(3, 2), rot=rot,
-                            bevel=0.015)
+        VP.light_with_guard(f"tail_light_{s}", (-3.41, side * (rear_half - 0.18), knuckle + 0.45), 0.05,
+                            dict(m, lamp=m["tail"]), hull, rot=(0, 0, math.pi))
+        VP.tow_hook(f"rear_tow_{s}", (-3.40, side * 0.80, knuckle - 0.10), m, hull, size=0.12, rot=(0, 0, math.pi))
+        # Armour tiles on the side's front half and stowage bins on its rear
+        # half: both lean with the side.
+        side_tiles(v, roof, side, s)
         for k in range(4):
-            loc, rot = VP.on_side(-0.55 - k * 0.72, CHINE + 0.16, side, *face, proud=0.05, standing=True)
+            loc, rot = VP.on_side(-0.55 - k * 0.72, knuckle + 0.16, side, *face, proud=0.05, standing=True)
             VP.stowage_box(f"side_bin_{s}_{k}", loc, (0.68, 0.10, 0.48), m, hull, rot=rot)
     # The exhaust on the right, between the tiles and the bins, out of the side.
-    loc, _ = VP.on_side(-0.08, CHINE + 0.30, -1, *face, proud=0.08)
+    loc, _ = VP.on_side(-0.08, knuckle + 0.30, -1, *face, proud=0.08)
     VP.exhaust("exhaust", loc, 0.07, 0.40, m, hull, rot=(0, 0, -math.pi / 2))
     # The commander's hatch and vision blocks, beside the remote station.
     if not dragoon:
@@ -183,24 +238,27 @@ def fittings(v, roof, dragoon):
         cyl("commander_lid", 0.32, 0.05, (-0.42, COMMANDER_Y, roof + 0.06), "Z", m["paint"], hull, seg=24, bevel=0.01,
             rot=(0, -0.08, 0), lods=MID)
     # Squad hatches on the rear roof.
-    for k, y in enumerate((0.55, -0.55)):
+    for k, y in enumerate((0.50, -0.50)):
         VP.hatch(f"squad_hatch_{k}", (-2.10, y, roof), m, hull, size=(1.00, 0.72))
     # The rear plate: the ramp with its door, hinged along its foot, and
     # jerrycans in racks either side of it.
-    VP.weld_line("ramp_seam", [(-3.475, -0.80, CHINE - 0.30), (-3.475, -0.80, roof - 0.30),
-                               (-3.475, 0.80, roof - 0.30), (-3.475, 0.80, CHINE - 0.30)], m, hull, radius=0.012)
-    box("rear_ramp", (0.06, 1.56, roof - CHINE), (-3.475, 0, (roof + CHINE) / 2 - 0.15), m["paint"], hull,
-        bevel=0.012)
-    box("ramp_door", (0.03, 0.60, 0.95), (-3.51, 0.35, CHINE + 0.30), m["paint"], hull, bevel=0.01, lods=NEAR)
-    cyl("ramp_hinge", 0.04, 1.50, (-3.50, 0, CHINE - 0.33), "Y", m["steel"], hull, seg=10, lods=NEAR)
+    foot, head = knuckle - 0.12, roof - 0.15
+    VP.weld_line("ramp_seam", [(-3.475, -0.80, foot), (-3.475, -0.80, head - 0.15),
+                               (-3.475, 0.80, head - 0.15), (-3.475, 0.80, foot)], m, hull, radius=0.012)
+    box("rear_ramp", (0.06, 1.56, head - foot), (-3.475, 0, (head + foot) / 2), m["paint"], hull, bevel=0.012)
+    door = min(0.95, head - foot - 0.20)
+    box("ramp_door", (0.03, 0.60, door), (-3.51, 0.35, foot + 0.10 + door / 2), m["paint"], hull, bevel=0.01,
+        lods=NEAR)
+    cyl("ramp_hinge", 0.04, 1.50, (-3.50, 0, foot - 0.03), "Y", m["steel"], hull, seg=10, lods=NEAR)
     for side in (-1, 1):
-        VP.jerrycan(f"rear_jerrycan_{side}", (-3.39, side * 1.07, CHINE + 0.15), dict(m, paint=m["dark"]), hull,
+        VP.jerrycan(f"rear_jerrycan_{side}", (-3.39, side * 1.07, knuckle + 0.15), dict(m, paint=m["dark"]), hull,
                     rot=(0, 0, math.pi / 2))
     # The squad's rolled tarp across the rear roof.
     VP.tarp_roll("roof_tarp", (-3.10, 0, roof + 0.13), 1.60, 0.13, m, hull, straps=3)
+    edge = face[1][0]
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=hull)
-        VP.antenna(f"antenna_{s}", (-3.25, side * 1.05, roof), m, whip, height=2.8)
+        VP.antenna(f"antenna_{s}", (-3.25, side * (edge - 0.08), roof), m, whip, height=2.8)
 
 
 # ---------------------------------------------------------------- weapons
@@ -300,10 +358,12 @@ def wreck(variant, v):
     m = v.mats
     remove("wheel_L_1_", "wheel_L_2_", "side_bin_R_1", "side_bin_R_2", "squad_hatch_", "roof_tarp",
            "rear_jerrycan_", "ramp_door")
-    bend(parts("side_bin_L_2"), (0, 1.36, CHINE + 0.64), (1, 0, 0), (0, 0, -1), 0.5)
+    face = side_face(v.roof)
+    hinge, _ = VP.on_side(0, KNUCKLE[0] + 0.64, 1, *face, proud=0.08)
+    bend(parts("side_bin_L_2"), hinge, (1, 0, 0), (0, 0, -1), 0.5)
     shell = parts("stryker_hull", "armour_tile_", "nose_applique_", "glacis_applique")
     densify(shell, scale=2.0)
-    warp(shell, heat(0.02, 0.8, seed=6.0), dent((1.6, 1.28, 1.70), 0.5, 0.12, (0, -1, -0.2)))
+    warp(shell, heat(0.02, 0.8, seed=6.0), dent(VP.on_side(1.1, KNUCKLE[0] + 0.50, 1, *face)[0], 0.5, 0.12, (0, -1, -0.2)))
     for k, (loc, rot, size) in enumerate((((1.4, 1.62, 0.03), (0.03, 0.04, 0.9), 0.30),
                                           ((1.0, -1.62, 0.03), (-0.04, 0.02, 2.2), 0.28),
                                           ((-2.0, 0.55, v.roof + 0.04), (0.02, 0.04, 0.3), 0.36))):
