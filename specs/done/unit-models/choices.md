@@ -1481,6 +1481,20 @@ family. No roster frame, mount or tolerance moved.
 - **Verdict:** sound.
 - **Confidence:** high.
 
+### The SP howitzers share one set of turret fittings
+
+- **The choice:** The four turrets (M109A7, PzH 2000, 2S19M2, PLZ-05) differ
+  in shape and gun, so their shared fittings went into one
+  `turret_fittings`: the mantlet's bolt rows, recoil cylinders over and under
+  the barrel's root, roof ventilator domes and an access plate, a side
+  periscope and an ammunition loading hatch on each flank, roof grab rails,
+  the rear door's hinges and handle, and rungs beside it. Hulls were already
+  at the bar (skirts, cables, travel lock, lights) and were left alone.
+- **The gap:** Where a type differs (the 2S19's ventilators sit further
+  forward), the shared positions are an approximation.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

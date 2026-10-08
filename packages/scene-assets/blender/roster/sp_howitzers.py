@@ -189,6 +189,45 @@ def turret(v):
     VP.bolted_panel("turret_rear_door", (rear - 0.02, 0, deck + 0.35), (0.05, 0.95, 0.85), m, h, bolts=(1, 3),
                     bevel=0.015, lods=VP.ALL)
     VP.tarp_roll("turret_roll", (rear + 0.45, 0, top + 0.12), 1.5, 0.13, m, h, straps=3)
+    turret_fittings(v, rear, front, half_w, deck, top, gun_z, start, bore_r)
+
+
+def turret_fittings(v, rear, front, half_w, deck, top, gun_z, start, bore_r):
+    """What every one of these turrets carries beyond its shape, as the
+    photos show: the mantlet's bolts and the cradle's recoil cylinders over
+    and under the barrel's root, the roof's ventilator domes and access
+    plates, a side periscope and the ammunition loading hatch low on each
+    flank toward the rear, grab rails along the roof's edges, the rear
+    door's hinges and handle, and the climbing rungs beside it."""
+    m, h = v.mats, v.hull
+    for k in range(4):
+        for side in (-1, 1):
+            cyl(f"mantlet_bolt_{side}_{k}", 0.025, 0.03, (front + 0.385, side * 0.28, gun_z - 0.20 + k * 0.13), "X",
+                m["steel"], h, seg=6, lods=FINE)
+    for k, dz in enumerate((bore_r * 2.6, -bore_r * 2.6)):
+        cyl(f"recoil_cylinder_{k}", bore_r * 0.85, 0.80, (start + 0.40, 0, gun_z + dz), "X", m["dark"], h, seg=14,
+            lods=MID)
+    for k, (x, y) in enumerate(((rear + 0.55, -0.30), (rear + 0.95, 0.35))):
+        cyl(f"ventilator_{k}", 0.16, 0.10, (x, y, top + 0.05), "Z", m["paint"], h, seg=16, r2=0.12, bevel=0.02,
+            lods=MID)
+        cyl(f"ventilator_cap_{k}", 0.10, 0.03, (x, y, top + 0.115), "Z", m["dark"], h, seg=14, lods=NEAR)
+    box("roof_access_plate", (0.70, 0.60, 0.03), ((rear + front) / 2 - 0.2, 0.0, top + 0.015), m["paint"], h,
+        bevel=0.01, lods=MID)
+    for side, sd in ((1, "L"), (-1, "R")):
+        VP.periscope(f"side_periscope_{sd}", (front - 1.10, side * (half_w - 0.20), top), m, h,
+                     rot=(0, 0, side * math.pi / 2))
+        VP.bolted_panel(f"loading_hatch_{sd}", (rear + 0.55, side * (half_w + 0.004), deck + 0.50),
+                        (0.55, 0.45, 0.03), m, h, bolts=(2, 2), rot=(-side * math.pi / 2, 0, 0), bevel=0.01)
+        box(f"grab_rail_{sd}", (1.6, 0.03, 0.03), ((rear + front) / 2 - 0.3, side * (half_w - 0.12), top + 0.07),
+            m["steel"], h, lods=NEAR)
+        for k, x in enumerate(((rear + front) / 2 - 1.0, (rear + front) / 2 + 0.4)):
+            box(f"grab_post_{sd}_{k}", (0.03, 0.03, 0.07), (x, side * (half_w - 0.12), top + 0.035), m["steel"], h,
+                lods=FINE)
+        box(f"door_hinge_{sd}", (0.06, 0.06, 0.16), (rear - 0.05, side * 0.50, deck + 0.55), m["steel"], h, lods=FINE)
+        for k in range(3):
+            box(f"rear_rung_{sd}_{k}", (0.04, 0.30, 0.03), (rear - 0.06, side * (half_w - 0.35),
+                                                            deck + 0.30 + k * 0.30), m["steel"], h, lods=FINE)
+    box("door_handle", (0.05, 0.16, 0.04), (rear - 0.06, -0.30, deck + 0.70), m["steel"], h, lods=FINE)
 
 
 def build(variant, v):
