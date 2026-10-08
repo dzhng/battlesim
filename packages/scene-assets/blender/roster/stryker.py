@@ -39,6 +39,16 @@ WHEEL_Y = 1.15
 CHINE = 1.32
 ROOF = 2.30
 DRAGOON_ROOF = 1.95
+# The upper sides lean in from the chine band's top to the roof (photos:
+# rear, three-quarter front), the same on the Dragoon's lower roof.
+SIDE_LEAN = math.radians(16)
+COMMANDER_Y = -0.62
+
+
+def side_face(roof):
+    """The upper side face, as (y, z) at the chine band's top and at the
+    roof (`vehicle_parts.on_side`)."""
+    return (1.28, CHINE + 0.12), (1.28 - (roof - CHINE - 0.12) * math.tan(SIDE_LEAN), roof)
 
 
 def glacis_top(roof):
@@ -58,7 +68,7 @@ def hull_rings(roof):
     return [(0.50, plan(-3.05, 2.75, 0.95, 0.15)),
             (CHINE, plan(-3.475, 3.475, 1.28, 0.35)),
             (CHINE + 0.12, plan(-3.475, 3.40, 1.28, 0.35)),
-            (roof, plan(-3.44, glacis_top(roof), 1.20, 0.25))]
+            (roof, plan(-3.44, glacis_top(roof), side_face(roof)[1][0], 0.25))]
 
 
 def build(variant, v):
@@ -89,7 +99,7 @@ def build(variant, v):
     # Crew stand in the hatches (M1126 front, M1134 three-quarter front).
     if not v.wreck and not dragoon:
         seat = empty("dressing_commander", parent=hull)
-        x, y, z = 0.25, -0.72, roof
+        x, y, z = 0.25, COMMANDER_Y, roof
         v.crew.append(("commander", seat, (x, y, z - 0.30),
                        ((x + 0.25, y + 0.22, z + 0.08), (x + 0.25, y - 0.22, z + 0.08)),
                        ((x + 0.05, y + 0.12, z - 1.10), (x + 0.05, y - 0.12, z - 1.10))))
@@ -112,6 +122,7 @@ def wheels(v):
 def fittings(v, roof, dragoon):
     m, hull = v.mats, v.hull
     top = glacis_top(roof)
+    face = side_face(roof)
 
     def glacis_z(x):
         return CHINE + 0.12 + (roof - CHINE - 0.12) * (3.40 - x) / (3.40 - top)
@@ -144,27 +155,32 @@ def fittings(v, roof, dragoon):
         VP.light_with_guard(f"tail_light_{s}", (-3.41, side * 1.05, CHINE + 0.45), 0.05, dict(m, lamp=m["tail"]),
                             hull, rot=(0, 0, math.pi))
         VP.tow_hook(f"rear_tow_{s}", (-3.36, side * 0.80, CHINE - 0.10), m, hull, size=0.12, rot=(0, 0, math.pi))
-        # Bolted armour tiles along the upper side, ahead of the stowage.
-        face = side * 1.27
+        # Bolted armour tiles along the upper side, ahead of the stowage,
+        # where the side under the glacis is tall enough for a whole tile,
+        # and stowage bins on its rear half: both lean with the side.
+        for k in range(3):
+            x = 1.83 - k * 0.72
+            loc, rot = VP.on_side(x, CHINE + 0.38, side, *face)
+            if glacis_z(x + 0.34) < loc[2] + 0.21 * math.cos(SIDE_LEAN):
+                continue
+            VP.bolted_panel(f"armour_tile_{s}_{k}", loc, (0.68, 0.42, 0.04), m, hull, bolts=(3, 2), rot=rot,
+                            bevel=0.015)
         for k in range(4):
-            x = 2.45 - k * 0.72
-            VP.bolted_panel(f"armour_tile_{s}_{k}", (x, face, CHINE + 0.38), (0.68, 0.42, 0.04), m, hull,
-                            bolts=(3, 2), rot=(-side * math.pi / 2, 0, 0), bevel=0.015)
-        # Stowage bins on the rear half of the upper sides.
-        for k in range(4):
-            VP.stowage_box(f"side_bin_{s}_{k}", (-0.55 - k * 0.72, side * 1.31, CHINE + 0.16), (0.68, 0.10, 0.48), m,
-                           hull, rot=(0, 0, 0 if side > 0 else math.pi))
-    # The exhaust on the right, ahead of the bins.
-    VP.exhaust("exhaust", (1.20, -1.36, CHINE + 0.30), 0.07, 0.40, m, hull, rot=(0, 0, -math.pi / 2))
+            loc, rot = VP.on_side(-0.55 - k * 0.72, CHINE + 0.16, side, *face, proud=0.05, standing=True)
+            VP.stowage_box(f"side_bin_{s}_{k}", loc, (0.68, 0.10, 0.48), m, hull, rot=rot)
+    # The exhaust on the right, between the tiles and the bins, out of the side.
+    loc, _ = VP.on_side(-0.08, CHINE + 0.30, -1, *face, proud=0.08)
+    VP.exhaust("exhaust", loc, 0.07, 0.40, m, hull, rot=(0, 0, -math.pi / 2))
     # The commander's hatch and vision blocks, beside the remote station.
     if not dragoon:
-        cyl("commander_ring", 0.40, 0.10, (0.25, -0.72, roof + 0.05), "Z", m["paint"], hull, seg=24, bevel=0.01,
+        cyl("commander_ring", 0.40, 0.10, (0.25, COMMANDER_Y, roof + 0.05), "Z", m["paint"], hull, seg=24, bevel=0.01,
             lods=MID)
         for k in range(6):
             a = -0.9 + k * 0.6
-            VP.periscope(f"commander_vision_{k}", (0.25 + 0.36 * math.cos(a), -0.72 + 0.36 * math.sin(a), roof + 0.09),
+            VP.periscope(f"commander_vision_{k}", (0.25 + 0.36 * math.cos(a), COMMANDER_Y + 0.36 * math.sin(a),
+                                                   roof + 0.09),
                          m, hull, size=(0.10, 0.13, 0.07), rot=(0, 0, a))
-        cyl("commander_lid", 0.32, 0.05, (-0.42, -0.72, roof + 0.06), "Z", m["paint"], hull, seg=24, bevel=0.01,
+        cyl("commander_lid", 0.32, 0.05, (-0.42, COMMANDER_Y, roof + 0.06), "Z", m["paint"], hull, seg=24, bevel=0.01,
             rot=(0, -0.08, 0), lods=MID)
     # Squad hatches on the rear roof.
     for k, y in enumerate((0.55, -0.55)):
