@@ -27,6 +27,7 @@ CARDS = {F: (15.87, 3.78, 5.68), HC6: (15.87, 3.78, 5.68)}
 SCHEME = {F: "us_desert_tan", HC6: "nato_helicopter_green"}
 SPEC = dict(
     fuselage=[(7.93, 0.0, 1.4, 1.4), (7.65, 0.8, 0.75, 2.3, 1.5, 2.4), (6.7, 1.15, 0.6, 2.9, 1.6, 3.0),
+              # The side photos: a box cabin, its belly flat from the cockpit aft.
               (5.0, 1.2, 0.55, 3.0, 1.6, 4.0), (-5.5, 1.2, 0.6, 3.0, 1.6, 4.0), (-7.0, 1.1, 1.05, 3.0, 1.85, 3.5),
               (-7.93, 1.0, 1.6, 3.0, 2.15, 3.0)],
     bodies=[("fuselage_pylon_front", [(6.6, 0.0, 3.0, 3.0), (6.2, 0.55, 2.9, 3.7, 3.1, 3.0),
@@ -54,7 +55,9 @@ def build(variant, v):
         cyl(f"nacelle_{k}_intake", 0.34, 0.04, (-3.72, side * 1.12, 3.55), "X", m["black"], hull, seg=14, lods=MID)
         cyl(f"exhaust_{k}", 0.3, 0.2, (-7.0, side * 1.12, 3.55), "X", m["nozzle"], hull, seg=12, lods=MID)
         for j in range(6):
-            box(f"window_{k}_{j}", (0.35, 0.03, 0.4), (4.4 - j * 1.6, side * 1.21, 2.05), m["glass"], hull, lods=MID)
+            # The round cabin windows of the side photos.
+            cyl(f"window_{k}_{j}", 0.2, 0.03, (4.4 - j * 1.6, side * 1.215, 2.1), "Y", m["glass"], hull, seg=14,
+                lods=MID)
         box(f"cabin_door_{k}", (0.9, 0.03, 1.6), (5.4, side * 1.21, 1.6), m["dark"], hull, lods=MID)
     # The loading ramp under the tail, closed.
     box("ramp", (0.08, 2.1, 1.6), (-7.96, 0, 1.75), m["dark"], hull, rot=(0, -0.45, 0), lods=MID)
