@@ -669,8 +669,11 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
     node = empty(f"rotor_{name}", loc=loc, parent=parent, rot=rot)
     if mast:
         cyl(f"rotor_{name}_mast", hub * 0.42, mast, (0, 0, -mast / 2), "Z", mats["dark"], node, seg=12, lods=MID)
-        # The swashplate on the mast, its pitch links up to each blade's horn.
-        swash_z = -min(mast * 0.55, hub * 1.3)
+    # A main rotor's swashplate under the hub (on its own mast, or the one
+    # the airframe draws), its pitch links up to each blade's horn.
+    swash = radius > 2.5
+    if swash:
+        swash_z = -min(mast * 0.55, hub * 1.3) if mast else -hub * 1.3
         cyl(f"rotor_{name}_swash", hub * 0.75, hub * 0.14, (0, 0, swash_z), "Z", mats["steel"], node, seg=16,
             lods=NEAR)
     cyl(f"rotor_{name}_hub", hub, hub * 0.55, (0, 0, 0), "Z", mats["dark"], node, seg=14, bevel=0.02)
@@ -700,7 +703,7 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
             lods=NEAR)
         box(f"rotor_{name}_grip_{k}", (hub * 1.1, chord * 0.7, hub * 0.4),
             (ca * hub * 1.2, sa * hub * 1.2, 0), mats["dark"], node, rot=(0, 0, a), bevel=0.01, lods=MID)
-        if mast:
+        if swash:
             # The pitch link from the swashplate's rim up to the blade's horn,
             # just ahead of the grip.
             ha = a + 0.35
