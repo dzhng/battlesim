@@ -90,6 +90,14 @@ KITS = {
     "eastern_atgm_team_kornet": dict(weapon="kornet", armies=("eastern_emr",)),
     "eastern_rpg_team_rpg_7": dict(weapon="rpg7", armies=("eastern_emr",)),
     "eastern_rpg_team_rpg_29": dict(weapon="rpg29", armies=("eastern_emr",)),
+    # Disabled cards (slice 18): one look each, their army's. The FN-6 team
+    # wears the Eastern army's EMR, as every Eastern kit does; there is no
+    # Chinese uniform print yet.
+    "fgm_148_javelin_team": dict(weapon="javelin", armies=("us_army_ocp",)),
+    "fim_92_stinger_team": dict(weapon="stinger", armies=("us_army_ocp",)),
+    "eastern_air_defense_team_igla_s": dict(weapon="igla", armies=("eastern_emr",)),
+    "eastern_air_defense_team_fn_6": dict(weapon="fn6", armies=("eastern_emr",)),
+    "europe_atgm_team_akeron_mp": dict(weapon="akeron", armies=("german_flecktarn",)),
 }
 
 # Team weapons' lengths, world metres (the roster's equipment authoring):
@@ -100,8 +108,14 @@ LENGTHS = {
     "m107": dict(length_m=1.448), "asvk": dict(length_m=1.42),
     "rpg7": dict(length_m=0.95, packed_length_m=0.95), "rpg29": dict(length_m=1.85, packed_length_m=1.0),
     "tow": dict(tube_length_m=1.28, bore_m=1.066), "kornet": dict(tube_length_m=1.32, bore_m=1.18),
+    # Shoulder-fired launch tubes (references: assets/references/<kit>/).
+    "javelin": dict(length_m=1.20, radius_m=0.071), "stinger": dict(length_m=1.52, radius_m=0.035),
+    "igla": dict(length_m=1.70, radius_m=0.036), "fn6": dict(length_m=1.49, radius_m=0.036),
+    "akeron": dict(length_m=1.25, radius_m=0.075),
 }
-LAUNCHERS = ("tow", "kornet", "rpg7", "rpg29")
+# Launchers fired from the shoulder (the launcher hold), and those on a tripod.
+SHOULDER = ("rpg7", "rpg29", "javelin", "stinger", "igla", "fn6", "akeron")
+LAUNCHERS = ("tow", "kornet", *SHOULDER)
 
 
 def rifle_equipment(mats, model):
@@ -262,6 +276,51 @@ def rpg_equipment(mats, model, socket=True):
     return root
 
 
+def shoulder_tube_equipment(mats, model):
+    """A shoulder-fired missile on the launcher hold's grip and support
+    points: its launch tube, end caps, the grip under it and its sight on the
+    left (the hold's sight side) -- the Javelin's command launch unit, the
+    Akeron's sight block, a MANPADS' gripstock, folding sight frame and IFF
+    antenna. Each is drawn after its references' silhouette."""
+    root = empty(model, (0, 0, 0))
+    black, tube, fde = mats['gun_black'], mats['launcher'], mats['gun_fde']
+    frame = LENGTHS[model]
+    length = frame['length_m'] / SCALE
+    r = frame['radius_m']
+    heavy = model in ('javelin', 'akeron')
+    rear = .55 if heavy else .45
+    front = rear-length
+    axis = .10  # the bore on the hold's aim line, as the RPG's is
+    cyl(model+'_tube', r, length, (0,(front+rear)/2,axis), 'Y', tube, root, seg=20)
+    for k,y in enumerate((rear-.05, front+.05)):
+        cyl(model+'_end_cap_'+str(k), r*(1.25 if heavy else 1.15), .10 if heavy else .06, (0,y,axis), 'Y', black, root, seg=20)
+    box(model+'_trigger_grip', (.032,.04,.15), (0,.06,.025), black, root, bevel_=.005)
+    box(model+'_support_grip', (.035,.045,.11), (.0,-.25,.0), black, root, bevel_=.005)
+    if model == 'javelin':
+        # The command launch unit clamped to the tube's left, its two handles.
+        box('javelin_clu', (.20,.26,.20), (.14,.0,axis+.02), fde, root, bevel_=.02)
+        box('javelin_clu_eyepiece', (.07,.06,.06), (.14,.15,axis+.06), black, root, bevel_=.01)
+        cyl('javelin_clu_lens', .045, .02, (.14,-.14,axis+.03), 'Y', mats['lens'], root, seg=16)
+        muzzle = front
+    elif model == 'akeron':
+        box('akeron_sight', (.16,.22,.16), (.13,-.05,axis+.02), black, root, bevel_=.015)
+        cyl('akeron_sight_lens', .04, .02, (.13,-.17,axis+.04), 'Y', mats['lens'], root, seg=14)
+        muzzle = front
+    else:
+        # MANPADS: gripstock under the tube, sight frame on its left, the
+        # IFF antenna folded over the front, the seeker's nose cap.
+        box(model+'_gripstock', (.05,.30,.07), (0,-.05,axis-.06), black, root, bevel_=.006)
+        box(model+'_battery', (.05,.05,.10), (0,-.20,axis-.12), black, root, bevel_=.006)
+        box(model+'_sight_frame', (.012,.10,.08), (.07,-.10,axis+.03), black, root)
+        if model == 'stinger':
+            box('stinger_iff_antenna', (.006,.16,.12), (0,front+.40,axis+.10), black, root)
+        cap = .07 if model == 'igla' else .05
+        cyl(model+'_nose_cap', r*1.2, cap, (0,front-cap/2,axis), 'Y', black, root, seg=16)
+        muzzle = front-cap
+    empty('muzzle',(0,muzzle,axis),root,.02)
+    return root
+
+
 def tripod_equipment(kit, model, carried=False):
     """Actual tube, optics and tripod on root; packed tube/legs ride the back.
 
@@ -362,7 +421,7 @@ def build(unit, variant, mode, army=None):
     if mode=='carried' and model not in LAUNCHERS:
         raise SystemExit('Only launcher operators have a carried kit')
     ground=model in ('tow','kornet')
-    shoulder=model.startswith('rpg') and mode=='active'
+    shoulder=model in SHOULDER and mode=='active'
     hold=hold_of(unit,mode)
     kind='recon' if spec.get('scout') else 'rifle'
     rig=Rig()
@@ -402,7 +461,8 @@ def build(unit, variant, mode, army=None):
     if ground:tripod_equipment(kit,model,mode=='carried')
     if not ground or mode=='carried':
         # A launcher team's carrier holds his army's rifle, as a rifleman does.
-        constructor=((lambda m:rpg_equipment(m,model)) if shoulder
+        constructor=((lambda m:rpg_equipment(m,model)) if shoulder and model.startswith('rpg')
+                     else (lambda m:shoulder_tube_equipment(m,model)) if shoulder
                      else (lambda m:weapons.RIFLES[kit.look['rifle']](m)) if model=='rifle' or mode=='carried'
                      else (lambda m:rifle_equipment(m,model)))
         kit.weapon({'hold':hold,'build':constructor})
