@@ -89,6 +89,17 @@ def build(variant, v):
     if z20:
         A.sensor_ball("nose_sensor", (length / 2 - 0.7, 0, 0.62), 0.18, m, hull)
 
+    # The Army's black lettering on the UH-60; the PLA's star on the Z-20.
+    if variant["id"] == UH60:
+        A.markings(v, [
+            ("text", dict(text="U.S. ARMY", height=0.25, centre=(-3.2, 1.2, 1.72), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+            ("text", dict(text="20-21000", height=0.12, centre=(-1.2, 1.2, 1.3), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+        ])
+    else:
+        A.markings(v, [
+            ("insignia", dict(kind="cn_star", centre=(-3.0, 1.2, 1.72), normal=(0, 1, 0), up=(0, 0, 1), size=0.3, onto=("fuselage",))),
+            ("text", dict(text="20", height=0.4, centre=(3.0, 1.2, 1.5), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
+        ])
 
 def wreck(variant, v):
     A.crash(v, tail_x=-3.0, tail_yaw=0.45, tail_drop=0.1, blades_broken=(("main", 1), ("main", 3)), seed=60)
