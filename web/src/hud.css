@@ -705,6 +705,32 @@
   padding: 5px 18px;
   white-space: nowrap;
 }
+.hud-ready-layer {
+  position: fixed;
+  top: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  pointer-events: none;
+}
+.hud-ready-layer .hud-purchase-ready {
+  min-width: 180px;
+  box-sizing: border-box;
+  padding: 7px 16px;
+  color: rgb(var(--hud-text));
+  font: 700 11px/1.2 var(--hud-font);
+  letter-spacing: 0.12em;
+  text-align: center;
+  background: rgb(var(--hud-glass) / 0.88);
+  border: 1px solid rgb(var(--hud-accent) / 0.7);
+  box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.28);
+  pointer-events: auto;
+}
+.hud-ready-layer .hud-purchase-ready:hover:not(:disabled),
+.hud-ready-layer .hud-purchase-ready:focus-visible {
+  color: rgb(var(--hud-accent));
+  background: rgb(var(--hud-accent) / 0.16);
+}
 .hud-objective,
 .hud-clock {
   font-size: 12px;
@@ -1185,10 +1211,6 @@
 }
 .hud-army-deck .hud-purchase-controls .hud-credits {
   margin-left: 12px;
-}
-.hud-top .hud-purchase-ready {
-  min-width: 180px;
-  text-align: center;
 }
 .hud-purchase-controls,
 .hud-purchase-categories,

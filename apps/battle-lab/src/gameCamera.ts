@@ -39,15 +39,21 @@ export const gameCamera = {
     const dy = start[1] - center[1];
     const radial = Math.hypot(dx, dy);
     const pitch = rig.pitchAt(Math.max(presentation.default.distance, radial));
-    const distance = Math.max(
+    const baseDistance = Math.max(
       presentation.default.distance,
       Math.max(1, radial) / Math.max(0.01, Math.cos(pitch)),
     );
+    // Keep the player's entry edge in the opening frame so the deployment
+    // marker answers "where do I enter?" before the first camera pan.
+    const target: [number, number] = [center[0] + dx * 0.7, center[1] + dy * 0.7];
+    const distance = baseDistance * 1.45;
     return {
-      target: [center[0], center[1], 0],
+      target: [target[0], target[1], 0],
       distance,
       pitch: rig.pitchAt(distance),
-      yaw: Math.atan2(dy, dx),
+      // Keep the entry lane slightly oblique so its inward chevrons read as
+      // ground marks instead of collapsing into a line toward the horizon.
+      yaw: Math.atan2(dy, dx) + 0.35,
       ...gameCamera.lens,
     };
   },

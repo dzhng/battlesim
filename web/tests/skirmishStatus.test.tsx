@@ -44,5 +44,5 @@ test("contested objective flags expose a flashing state", () => {
       }}
     />,
   );
-  expect(view.getByLabelText("Objective 1: contested")).toHaveAttribute("data-contested", "true");
+  expect(view.getByLabelText("Objective 1: contested").getAttribute("data-contested")).toBe("true");
 });

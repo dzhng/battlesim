@@ -278,7 +278,14 @@ export function BattleView({
             ) : (
               status(session)
             ))}
-          {input && observation?.skirmish?.phase === "preparation" && session.purchase && (
+          {sim.error && (
+            <div className="hud-error" data-testid="error">
+              {sim.error}
+            </div>
+          )}
+        </header>
+        {input && observation?.skirmish?.phase === "preparation" && session.purchase && (
+          <div className="hud-ready-layer" data-occludes-readouts>
             <button
               type="button"
               className="hud-menu-choice hud-purchase-ready"
@@ -287,13 +294,8 @@ export function BattleView({
             >
               {observation.skirmish.ready[0] ? "READY" : "START BATTLE"}
             </button>
-          )}
-          {sim.error && (
-            <div className="hud-error" data-testid="error">
-              {sim.error}
-            </div>
-          )}
-        </header>
+          </div>
+        )}
         <MenuButton onOpen={() => pause.show(true)} />
         <ArmyDeck
           own={observation?.own ?? []}

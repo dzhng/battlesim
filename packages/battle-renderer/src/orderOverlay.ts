@@ -186,7 +186,8 @@ const markerHead = (r: number) => Math.min(r * MARKER_HEAD, MARKER_HEAD_MAX_M);
 const QUEUED_R = 2.8;
 const BLOCKED_R = 4.5;
 /** A travel chevron: length along the travel and spread across it. */
-const CHEVRON_M = [0.9, 1.7] as const;
+const CHEVRON_M: readonly [number, number] = [0.9, 1.7];
+const DEPLOYMENT_CHEVRON_M: readonly [number, number] = [4, 7];
 
 type P2 = readonly [number, number];
 
@@ -415,8 +416,9 @@ function marchChevron(
   bearing: number,
   color: Rgba,
   normal: readonly [number, number, number],
+  size = CHEVRON_M,
 ) {
-  const [length, spread] = CHEVRON_M;
+  const [length, spread] = size;
   const width = pen.line;
   const at = (p: P2) => [p[0], p[1], pen.z(p[0], p[1])] as const;
   const fx = Math.cos(bearing),
@@ -589,12 +591,17 @@ export function buildDeploymentMarker(
   const pen = orderPen(z, style, stroke);
   const color = glowing(style.color, style.glow.selected);
   const { cycles_per_s, amplitude } = style.march;
+  ring(mesh, pen, destination, 10, color, { width: pen.stroke });
   for (let i = 0; i < 3; i++) {
-    marchChevron(mesh, pen, along(destination, facing + Math.PI, 1.2 + i * 1.1), facing, color, [
-      i * 0.25,
-      cycles_per_s,
-      amplitude,
-    ]);
+    marchChevron(
+      mesh,
+      pen,
+      along(destination, facing + Math.PI, 4 + i * 5.5),
+      facing,
+      color,
+      [i * 0.25, cycles_per_s, amplitude],
+      DEPLOYMENT_CHEVRON_M,
+    );
   }
   return mesh.build();
 }
