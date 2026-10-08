@@ -256,9 +256,9 @@ export function wreckModels(
   ];
 }
 
-/** How far below its own top thrown debris sinks before it is gone, in the
- *  wreck's frame (metres, as fitted near enough):
- *  ground that falls away under a piece still hides it. */
+/** How much further than its own top thrown debris sinks before it is
+ *  gone, metres in the wreck's frame: ground falling away under a piece
+ *  still hides it. */
 const DEBRIS_BURIED_M = 0.15;
 
 /** The debris cook-off `f` threw, at presentation second `clock`: lying
