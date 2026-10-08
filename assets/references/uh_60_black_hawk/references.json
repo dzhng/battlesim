@@ -1,0 +1,63 @@
+{
+ "entries": [
+  {
+   "file": "us_uh_60_black_hawk_uh_60m-side.jpg",
+   "variant": "us_uh_60_black_hawk_uh_60m",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:ROCA_UH-60M_908_Display_at_Zuoying_Naval_Base_Ground_Rear_Left_View_20151024.jpg",
+   "author": "\u7384\u53f2\u751f",
+   "licence": "CC0-1.0",
+   "sha256": "1569179242feca7ba56a0019814833bbf3121fe8693320e0a27879531217eaae",
+   "note": "UH-60M left side static: cabin, doors, engines on the roof, tail pylon and canted tail rotor, stabilator, wheels"
+  },
+  {
+   "file": "us_uh_60_black_hawk_uh_60m-three_quarter_front.jpg",
+   "variant": "us_uh_60_black_hawk_uh_60m",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:ROCA_UH-60M_918_Display_at_Navy_Fleet_Command_Ground_20161112a.jpg",
+   "author": "\u7384\u53f2\u751f",
+   "licence": "CC0-1.0",
+   "sha256": "19bea9d6beea481759e54369e4af996308d8bc31353c515c5ba16ea004a01076",
+   "note": "UH-60M front-right three-quarter static: cockpit glazing, nose, gear"
+  },
+  {
+   "file": "us_uh_60_black_hawk_uh_60m-front.jpg",
+   "variant": "us_uh_60_black_hawk_uh_60m",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Front_View_of_ROCA_UH-60M_908_Display_at_Zuoying_Naval_Base_Ground_20151024.jpg",
+   "author": "\u7384\u53f2\u751f",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "88582eae387285882a14c8b8fc37914f4e23816702e89fad5cdde7b1c9b7259a",
+   "note": "UH-60M head-on static: wide cabin, engines, main gear"
+  },
+  {
+   "file": "us_uh_60_black_hawk_uh_60m-three_quarter_rear.jpg",
+   "variant": "us_uh_60_black_hawk_uh_60m",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Rear_View_of_ROCA_UH-60M_908_Display_at_Zuoying_Naval_Base_Ground_20151024.jpg",
+   "author": "\u7384\u53f2\u751f",
+   "licence": "CC0-1.0",
+   "sha256": "fecc85d994462d00949ae18d862ad5ff9fa63c30ea8d10c581e599da5d82c364",
+   "note": "UH-60M rear three-quarter static: tail cone, pylon, tail rotor"
+  },
+  {
+   "file": "us_uh_60_black_hawk_uh_60m-detail.jpg",
+   "variant": "us_uh_60_black_hawk_uh_60m",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Cabin_Door_of_ROCA_UH-60M_908_Display_at_Zuoying_Naval_Base_Ground_20151024.jpg",
+   "author": "\u7384\u53f2\u751f",
+   "licence": "CC0-1.0",
+   "sha256": "0375baf866845b971b63c72c6e8247ee59b5645ebafe41d83c767b362981f33b",
+   "note": "UH-60M cabin door and main gear detail"
+  }
+ ],
+ "gaps": [
+  "us_uh_60_black_hawk_uh_60m: Taiwanese Army UH-60Ms on display (same airframe as the US Army's); no top view; door guns drawn from US Army fit",
+  "Rotorcraft dimensions follow one rule (fuselage length without blades, widest fixed part, height to the rotor head) from published figures"
+ ]
+}
