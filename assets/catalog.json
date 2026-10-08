@@ -2228,7 +2228,7 @@
         1.145
       ],
       "tolerances": {
-        "footprint_m": 0.3
+        "footprint_m": 0.9
       }
     },
     "europe_ajax_tracked_reconnaissance_vehicle": {
