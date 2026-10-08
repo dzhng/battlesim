@@ -1,0 +1,12 @@
+.frame-rate {
+  position: absolute;
+  left: 10px;
+  bottom: 7px;
+  z-index: 20;
+  pointer-events: none;
+  user-select: none;
+  font: 10px/1 var(--hud-font);
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--hud-dim) / 0.55);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.65);
+}

@@ -1,3 +1,4 @@
+import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { useLabLoading } from "./LabLoading";
 import {
   GameCursor,
@@ -414,6 +415,7 @@ export function LabViewport({
   const groundNow = () => (scarsSuppressed.current ? null : groundRef.current);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursor = useRef<GameCursorHandle>(null);
+  const frameRate = useRef<FrameRateHandle>(null);
   const onCursorRef = useRef(onCursor);
   onCursorRef.current = onCursor;
   const onRightPressRef = useRef(onRightPress);
@@ -781,7 +783,9 @@ export function LabViewport({
             }
             dirty = true;
           }
-          if (dirty) draw();
+          const drawn = dirty;
+          if (drawn) draw();
+          frameRate.current?.frame(now, drawn);
           const surface = pointer
             ? interactionSurface(document.elementFromPoint(pointer.x, pointer.y))
             : null;
@@ -1038,6 +1042,7 @@ export function LabViewport({
           } else if (e.button === 1) {
             e.preventDefault();
             orbit = { x: e.clientX, y: e.clientY };
+            showCursor(null, null, null);
             canvas.setPointerCapture(e.pointerId);
           }
         };
@@ -1049,6 +1054,8 @@ export function LabViewport({
             target === canvas ||
             (target instanceof Element && target.closest(".ro-layer .ro-unit"));
           pointer = over || rightPress || press || orbit ? { x: e.clientX, y: e.clientY } : null;
+          if (!pointer || orbit) showCursor(null, null, null);
+          else cursor.current?.move(pointer);
           if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > CLICK_SLOP_PX) {
             setBox({ x0: press.x, y0: press.y, x1: e.clientX, y1: e.clientY });
           }
@@ -1100,8 +1107,10 @@ export function LabViewport({
         };
         const onLeave = (e: PointerEvent) => {
           const to = e.relatedTarget;
-          if (!rightPress && !(to instanceof Element && to.closest(".ro-layer .ro-unit")))
+          if (!rightPress && !(to instanceof Element && to.closest(".ro-layer .ro-unit"))) {
             pointer = null;
+            showCursor(null, null, null);
+          }
         };
         const cancelGesture = () => {
           pointer = null;
@@ -1201,6 +1210,7 @@ export function LabViewport({
     <div style={{ position: "absolute", inset: 0 }}>
       <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />
       <GameCursor handle={cursor} />
+      {!pilot && <FrameRate handle={frameRate} />}
       {box && (
         <div
           className="lab-box"
