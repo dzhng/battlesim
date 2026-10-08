@@ -2412,7 +2412,7 @@
         1.245
       ],
       "tolerances": {
-        "footprint_m": 1.0
+        "footprint_m": 0.8
       }
     },
     "us_m1_abrams_sep_v2": {

@@ -230,11 +230,11 @@ def wreck(variant, v):
     m = v.mats
     remove("track_R_band", "wheel_R_3_", "wheel_R_4_", "side_pack_R_2", "side_pack_R_3", "side_pack_handle_R_2",
            "side_pack_handle_R_3", "loader_cupola_lid", "side_net_", "rear_jerrycan_", "pack_number_R")
-    thrown = solid("thrown_track", (4.6, TRACK_W, 0.05), (0.2, -2.55, 0.03), m["track"], v.hull, rot=(0, 0, 0.05),
+    thrown = solid("thrown_track", (4.6, TRACK_W, 0.05), (0.2, -2.40, 0.03), m["track"], v.hull, rot=(0, 0, 0.05),
                    lods=(0, 1, 2, 3))
     densify(thrown)
     warp(thrown, heat(0.035, 0.6, seed=4.0))
-    for k, (loc, rot) in enumerate((((3.1, -2.35, 0.14), (1.45, 0.1, 0.4)), ((-2.9, -2.40, 0.14), (1.5, -0.2, -0.3)))):
+    for k, (loc, rot) in enumerate((((3.1, -2.35, 0.14), (1.45, 0.1, 0.2)), ((-2.9, -2.35, 0.14), (1.5, -0.2, -0.15)))):
         solid(f"fallen_pack_{k}", (0.82, 0.26, 0.86), loc, m["paint"], v.hull, rot=rot, bevel=0.04)
     bend(parts("side_bars_L"), (-2.42, 2.03, 1.52), (1, 0, 0), (0, 0, -1), 0.5)
     shell = parts("hull_upper", "hull_lower", "side_pack_", "turret_shell", "nose_box_")
