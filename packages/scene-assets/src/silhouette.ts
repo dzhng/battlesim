@@ -148,7 +148,9 @@ export async function disabledLookup(
     }
     const entry = skeletons[skeleton];
     if (!entry)
-      throw new Error(`disabled card ${id}: skeleton ${skeleton} is not in the catalog's skeletons`);
+      throw new Error(
+        `disabled card ${id}: skeleton ${skeleton} is not in the catalog's skeletons`,
+      );
     if (!libraries.has(skeleton)) {
       const source = await read(entry.source);
       const clips = lfsPointerOid(source)
