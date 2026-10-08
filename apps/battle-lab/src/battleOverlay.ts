@@ -21,6 +21,7 @@ import { buildGuidanceOverlay } from "@packages/battle-renderer/src/guidanceOver
 import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay";
 import {
   buildOrderOverlay,
+  buildDeploymentMarker,
   type OrderView,
   type SurfaceHeight,
 } from "@packages/battle-renderer/src/orderOverlay";
@@ -50,6 +51,7 @@ const IMPACT = [1.0, 0.86, 0.35, 1] as const;
 export interface BattleOverlayScenario {
   supplyRadius: number;
   zone: { center: readonly [number, number]; radius: number } | null;
+  deployment: { center: readonly [number, number]; facing: number } | null;
 }
 
 /** What the view remembers between frames: recent strikes and missile paths. */
@@ -218,6 +220,15 @@ export function buildBattleOverlay(
   const contactMarks = contactLayer(contacts, z);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
   const orders = orderLayer(o, selected, reveal, z, metresPerPx);
+  const deployment = scenario.deployment
+    ? buildDeploymentMarker(
+        scenario.deployment.center,
+        scenario.deployment.facing,
+        z,
+        gameOrderStyle,
+        { stroke: gameStroke(metresPerPx) },
+      )
+    : null;
   // The hold zone, a line of the orders' weight: dashed while blue is not
   // holding it. The zone and the border are paint, like the orders.
   const line = gameStroke(metresPerPx)(gameOrderStyle.line_px);
@@ -252,5 +263,6 @@ export function buildBattleOverlay(
     contactMarks,
     supply,
     orders,
+    ...(deployment ? [{ paintedMarching: deployment }] : []),
   ]);
 }

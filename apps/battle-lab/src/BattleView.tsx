@@ -32,7 +32,6 @@ import {
   RangeRulerLabels,
   type RangeRulerLabelsHandle,
 } from "@web/battle/present/rangeRulerLabels";
-import { SpawnMarker, type SpawnMarkerHandle } from "@web/battle/present/spawnMarker";
 
 /** What has finished loading: the static world's meshes are built
  *  (`world`), the viewport has drawn its first frame (`renderer`), and the
@@ -99,9 +98,15 @@ export function BattleView({
       zone: s.encounter
         ? { center: s.encounter.success_zone_center, radius: s.encounter.success_zone_radius_m }
         : null,
+      deployment: spawn
+        ? {
+            center: spawn,
+            facing: Math.atan2(s.map.size[1] / 2 - spawn[1], s.map.size[0] / 2 - spawn[0]),
+          }
+        : null,
     };
     return { map: s.map, size: s.map.size, drawn };
-  }, [scenario]);
+  }, [scenario, spawn]);
   // The border and the orders are rebuilt only when the zoom crosses a step
   // (×1.25), so their widths hold near their `_px` widths on screen.
   const [zoom, setZoom] = useState(() => zoomStep(camera.distance));
@@ -130,7 +135,6 @@ export function BattleView({
   const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
-  const spawnMarker = useRef<SpawnMarkerHandle>(null);
   const { clear: clearCues } = cues;
   const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
   const { audio } = session;
@@ -237,7 +241,6 @@ export function BattleView({
             }
             session.placePanels(project, view, pointer);
             objectiveMarkers.current?.place(project, surfaceZ);
-            spawnMarker.current?.place(project, surfaceZ);
           }}
           diagnostics={{
             ...session.probes,
@@ -250,7 +253,6 @@ export function BattleView({
         objectives={observation?.skirmish?.objectives ?? []}
         handle={objectiveMarkers}
       />
-      <SpawnMarker at={spawn ?? null} handle={spawnMarker} />
       <ReadoutLayer
         own={observation?.own ?? []}
         identified={observation?.identified}
