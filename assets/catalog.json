@@ -3038,7 +3038,7 @@
         1.815
       ],
       "tolerances": {
-        "footprint_m": 0.4
+        "footprint_m": 0.8
       }
     },
     "europe_kf51_panther_prototype_main_battle_tank": {
