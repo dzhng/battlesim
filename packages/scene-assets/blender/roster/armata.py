@@ -240,6 +240,47 @@ def skirts(v, slab=False):
                 m["marking"], h)
 
 
+def armour_kit(v):
+    """What the photos show bolted onto both Armatas beyond their hull and
+    skirts: the Malachit tile field over the upper glacis, the heavier boxes
+    on the skirts' front sections, stowage
+    and jerrycans on the rear deck, track links carried on the glacis' foot."""
+    m, h = v.mats, v.hull
+    half = v.length / 2
+    top = glacis_top(v)
+    run, rise = half - top, DECK - NOSE_Z
+    slope = math.atan2(rise, run)
+    x = top + run * 0.52
+    VP.armour_tiles("glacis_era", (x, 0, glacis_z(v, x) + 0.005), (math.hypot(run, rise) * 0.72, 2.50),
+                    (3 if front_engine(v) else 2, 6), 0.08, m, h, rot=(0, slope, 0))
+    for k in range(4):
+        cyl(f"spare_link_{k}", 0.05, 0.62, (half - 0.30, -0.95 + k * 0.63, NOSE_Z + 0.05), "Y", m["track"], h, seg=8,
+            lods=NEAR)
+    for side, s in ((1, "L"), (-1, "R")):
+        VP.armour_tiles(f"skirt_era_{s}", (half - 1.75, side * (SKIRT_Y - 0.01), 0.95), (2.40, 0.62), (4, 2), 0.07,
+                        m, h, rot=(-side * math.pi / 2, 0, 0))
+        VP.jerrycan(f"jerrycan_{s}", (-half + 0.45, side * 1.25, DECK), dict(m, paint=m["dark"]), h,
+                    rot=(0, 0, math.pi / 2))
+    VP.stowage_box("deck_box", (-half + 0.45, 0, DECK), (0.40, 1.40, 0.40), m, h)
+
+
+def turret_kit(v, turret, crown, low, high, x0, x1, z0, z1):
+    """The turret's own armour and kit, from the photos: a band of armour
+    modules along each leaning flank (`low`, `high` its face), laser-warning
+    sensors on the roof's corners, and the stowage in the bustle cage."""
+    m = v.mats
+    for side, s in ((1, "L"), (-1, "R")):
+        loc, rot = VP.on_side((x0 + x1) / 2, (z0 + z1) / 2, side, low, high)
+        VP.armour_tiles(f"turret_era_{s}", loc, (x1 - x0, (z1 - z0) * 0.8), (max(2, round((x1 - x0) / 0.42)), 1), 0.06,
+                        m, turret, rot=rot)
+    xs = [x for x, _ in crown]
+    half = max(abs(y) for _, y in crown)
+    for k, (x, y) in enumerate(((max(xs) - 0.35, half - 0.30), (max(xs) - 0.35, -(half - 0.30)),
+                                (min(xs) + 0.35, half - 0.30), (min(xs) + 0.35, -(half - 0.30)))):
+        box(f"laser_warner_{k}", (0.12, 0.12, 0.10), (x, y, high[1] + 0.05), m["dark"], turret, bevel=0.015, lods=MID)
+        box(f"laser_warner_glass_{k}", (0.13, 0.08, 0.05), (x, y, high[1] + 0.07), m["glass"], turret, lods=NEAR)
+
+
 def engine_deck(v, x0, x1):
     m, h = v.mats, v.hull
     mid = (x0 + x1) / 2
@@ -260,6 +301,7 @@ def t14(v):
     top = hull(v)
     running_gear(v)
     skirts(v)
+    armour_kit(v)
     engine_deck(v, -half + 0.4, -2.0)
     # The crew capsule's three hatches across the deck ahead of the turret,
     # each with its periscope block.
@@ -289,6 +331,13 @@ def t14_turret(v, turret, base):
     loft("turret_shell", [(z0, foot), (z0 + 0.45, [(x * 0.98, y) for x, y in foot]), (z1, crown)], mat=m["paint"],
          parent=turret, bevel=0.04)
     VP.roof_fittings("roof", crown, z1, m, turret, rails=True)
+    turret_kit(v, turret, crown, (1.48, z0 + 0.45), (1.29, z1), -1.35, 0.55, z0 + 0.50, z1 - 0.05)
+    # The soft-kill launcher's rotating box on the roof's rear.
+    cyl("softkill_base", 0.30, 0.08, (-1.05, 0, z1 + 0.04), "Z", m["dark"], turret, seg=20, lods=MID)
+    box("softkill_box", (0.45, 0.70, 0.28), (-1.05, 0, z1 + 0.22), m["paint"], turret, bevel=0.03)
+    for k in range(4):
+        cyl(f"softkill_tube_{k}", 0.05, 0.02, (-0.82, -0.24 + k * 0.16, z1 + 0.22), "X", m["black"], turret, seg=10,
+            lods=NEAR)
     # The gun's slot and the gunner's sight box on the right front.
     box("gun_slot", (0.30, 0.36, 0.40), (1.45, 0, base + 0.55), m["black"], turret, lods=MID)
     # The raised sensor brow across the front of the roof.
@@ -317,6 +366,9 @@ def t14_turret(v, turret, base):
     VP.sight_housing("panorama_head", (-0.30, 0.55, z1 + 0.12), m, turret, size=(0.38, 0.34, 0.30))
     # The bustle cage of slats round the rear.
     VP.slat_armour("bustle_cage", (-2.20, 0, base + 0.10), (2.20, 0.60), m, turret, rot=(0, 0, math.pi / 2))
+    VP.tarp_roll("bustle_tarp", (-2.00, 0, base + 0.45), 1.8, 0.14, m, turret, straps=3)
+    for side in (-1, 1):
+        VP.stowage_box(f"bustle_box_{side}", (-1.85, side * 0.70, base + 0.10), (0.30, 0.55, 0.40), m, turret)
     for side, s in ((1, "L"), (-1, "R")):
         VP.slat_armour(f"bustle_cage_{s}", (-1.80, side * 1.20, base + 0.10), (0.75, 0.60), m, turret)
 
@@ -354,6 +406,7 @@ def t15(v):
     top = hull(v)
     running_gear(v)
     skirts(v, slab=True)
+    armour_kit(v)
     # The engine is under the long glacis: its grilles at the glacis' head.
     engine_deck(v, top - 0.2, top + 1.3)
     VP.hatch("driver_hatch", (top - 0.45, 0.65, DECK), m, h, radius=0.28)
@@ -385,6 +438,7 @@ def bumerang_module(v, turret, gun, base):
     cyl("module_ring", 1.05, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=40, lods=MID)
     loft("module_shell", [(z0, foot), (z1, crown)], mat=m["paint"], parent=turret, bevel=0.035)
     VP.roof_fittings("roof", crown, z1, m, turret, periscopes=((-0.60, 0.55, 0.4),))
+    turret_kit(v, turret, crown, (1.00, z0), (0.90, z1), -0.95, 0.75, z0 + 0.05, z1 - 0.05)
     VP.sight_housing("gunner_sight", (0.20, -0.55, z1 - 0.02), m, turret, size=(0.42, 0.32, 0.30))
     # The commander's panoramic sight stands on its pedestal over the
     # module: the top of the frame.

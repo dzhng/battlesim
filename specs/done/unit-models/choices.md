@@ -1532,6 +1532,21 @@ family. No roster frame, mount or tolerance moved.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
+### The eight tank and IFV cards at the T-90M's density (second pass)
+
+- **The choice:** After the first pass the coordinator compared the T-14
+  with the roster T-90M (`throwaway/bar-t90-roster.png`): flat skirts, a
+  bare turret, little stowage. Each of the eight gained armour fields,
+  screens, sensors and stowage from its own photos, through
+  `armour_tiles`, `slat_armour`, `on_side`, `bolted_panel` and
+  `roof_fittings`. The Armatas: a Malachit tile field over the upper
+  glacis, tile boxes on the skirts' front sections, spare track links on
+  the glacis' foot, a deck box and jerrycans at the rear (`armour_kit`); a
+  band of modules down each leaning turret or module flank, laser-warning
+  sensors on the roof's corners (`turret_kit`); the T-14's soft-kill
+  launcher box on the roof, and boxes and a tarp in its bustle cage.
+  Edge wear was already the tracked lane's (`chip=1.0`) on all eight.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause
