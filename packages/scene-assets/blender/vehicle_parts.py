@@ -721,6 +721,18 @@ def browning_m2(parent, reach, mats, receiver_x=0.06, grips=False):
     return made
 
 
+def kord(parent, reach, mats):
+    """The 12.7 mm Kord on its mount's pitch node `parent`, firing along +X to
+    the muzzle `reach` metres out: a long receiver, the barrel, its muzzle
+    brake and the ammunition box. Pieces are named `kord_*`. Returns its
+    meshes. Roles: dark, steel, paint."""
+    made = box("kord_receiver", (0.62, 0.10, 0.14), (0.02, 0, 0), mats["dark"], parent, bevel=0.012)
+    made += cyl("kord_barrel", 0.028, reach - 0.40, ((reach + 0.30) / 2, 0, 0), "X", mats["dark"], parent, seg=10)
+    made += cyl("kord_brake", 0.040, 0.10, (reach - 0.05, 0, 0), "X", mats["steel"], parent, seg=10, lods=NEAR)
+    made += box("kord_ammo", (0.26, 0.12, 0.20), (0.0, 0.13, -0.06), mats["paint"], parent, bevel=0.015, lods=MID)
+    return made
+
+
 # ---------------------------------------------------------------- stowage
 def jerrycan(name, loc, mats, parent, size=(0.165, 0.345, 0.47), rot=(0, 0, 0)):
     """A standing jerrycan, its foot's centre at `loc`: a can `size` (x

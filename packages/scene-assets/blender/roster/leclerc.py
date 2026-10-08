@@ -73,7 +73,6 @@ def hull_body(v):
           3.30, mat=m["paint"], parent=hull, bevel=0.05)
     prism("hull_lower", [(-3.20, 0.48), (2.85, 0.48), (3.40, 1.02), (-half, 1.02), (-half, 0.84)], 2.20,
           mat=m["paint"], parent=hull, bevel=0.04)
-    slope = math.atan(0.28 / 0.74)
     VP.hatch("driver_hatch", (2.30, 0.55, DECK), m, hull, size=(0.56, 0.50))
     for k, y in enumerate((0.35, 0.55, 0.75)):
         VP.periscope(f"driver_periscope_{k}", (2.66, y, DECK), m, hull, size=(0.14, 0.16, 0.08))

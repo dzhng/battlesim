@@ -36,9 +36,12 @@ hierarchy, rather than adding simulation soldiers. Re-export their vehicles
 after changing the infantry source; the crew exporter preserves that source's
 exact textures and material masks on the crew's own materials only.
 
-Reusable vehicle detail (wheels, running gear, hatches, sights, lights, tow
-points, stowage, grilles, exhausts) has [one owner](vehicle_parts.py); a family
-script places those parts rather than redefining them.
+Reusable vehicle detail (wheels and whole tracked running gear, hatches,
+cupolas, sights, lights, tow points, stowage, grilles, exhausts, armour tiles,
+bolted plates, slat armour, machine guns) has [one owner](vehicle_parts.py); a
+family script places those parts rather than redefining them. A family derived
+from another (the T-90M and T-80BVM from the T-72) imports that family's
+script for what they share.
 
 A vehicle's surfaces come from the named helpers in [`parts.py`](parts.py),
 each carrying its material role: `tyre()`, `glass()`, `track_steel()`,

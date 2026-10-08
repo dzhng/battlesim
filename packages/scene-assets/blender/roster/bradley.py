@@ -108,7 +108,7 @@ def hull_sides(v, m3):
                 (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], hull)
 
 
-def turret_body(v, turret, m3):
+def turret_body(v, turret):
     m = v.mats
     half = [(1.05, 0.30), (0.95, 0.95), (-1.10, 0.98), (-1.30, 0.85)]
 
@@ -182,7 +182,7 @@ def build(variant, v):
     mounts = rig(v.frame, v.root)
     turret, gun, _, _ = mounts["autocannon"]
     launcher, launcher_tube, _, _ = mounts["launcher"]
-    turret_body(v, turret, m3)
+    turret_body(v, turret)
     autocannon(v, gun)
     tow_launcher(v, launcher, launcher_tube)
 

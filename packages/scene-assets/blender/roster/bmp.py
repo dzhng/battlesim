@@ -147,7 +147,6 @@ def bmp3_hull(v):
           mat=m["paint"], parent=hull, bevel=0.05)
     prism("hull_lower", [(-3.30, 0.42), (2.85, 0.42), (half, 1.04), (-half, 0.92), (-half, 0.72)], 2.24,
           mat=m["paint"], parent=hull, bevel=0.04)
-    slope = math.atan((g.ROOF_Z - 1.04) / (half - 2.30))
     prism("splash_board", [(2.90, 1.20), (3.02, 1.20), (2.96, 1.40), (2.84, 1.40)], 2.80, mat=m["paint"], parent=hull,
           bevel=0.015)
     for k, y in enumerate((-1.0, 0.0, 1.0)):
@@ -176,7 +175,7 @@ def bmp3_hull(v):
                         bolts=(1, 1), bevel=0.02)
 
 
-def bmp3_turret(v, turret, gun, coax, coax_gun):
+def bmp3_turret(v, turret, gun, coax_gun):
     m = v.mats
 
     def ring(r, n=18, shift=0.0, stretch=1.15):
@@ -216,8 +215,8 @@ def build(variant, v):
     mounts = rig(v.frame, v.root)
     if three:
         turret, gun, _, _ = mounts["main_gun"]
-        coax, coax_gun, _, _ = mounts["autocannon"]
-        bmp3_turret(v, turret, gun, coax, coax_gun)
+        _, coax_gun, _, _ = mounts["autocannon"]
+        bmp3_turret(v, turret, gun, coax_gun)
         v.head_out("commander", turret, -0.20, 0.45, 1.6 + 0.50 + 0.06)
     else:
         turret, gun, _, _ = mounts["autocannon"]

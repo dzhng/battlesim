@@ -18,10 +18,9 @@ with its heavy machine gun, and the turret front plates (from the Eurosatory
 2022 demonstrator; no licensable photo of a series 2A8's turret roof).
 
 Built to the catalog frame (hull 7.7 x 3.75 x 3.0 m, turret pivot 1.8 m,
-cannon muzzle 7.12 m ahead and 0.54 m up): the frame's gun axis (2.34 m) is
-higher than the photos' (about 1.9 m), so the turret is drawn about 0.2 m
-taller than the real one to carry the gun at the frame's height (choices.md).
-The wreck is cut into hull and turret pieces (wreckage.export_wreck).
+cannon muzzle 7.12 m ahead and 0.54 m up): nothing here moves it. The frame's
+3.0 m box is taller than the hull and turret roof the photos show (about
+2.6 m); the art stands at its real height inside it (choices.md). The wreck is cut into hull and turret pieces (wreckage.export_wreck).
 """
 import math
 import os
@@ -74,12 +73,8 @@ def build(variant, v):
     main_gun(v, gun)
     weapon_station(v, hmg, hmg_gun, a7v, a8)
     # The 2A6's commander rides head and shoulders out (photos: side).
-    if not v.wreck and not a7v:
-        seat = empty("dressing_commander", parent=turret)
-        z = 1.8 + ROOF
-        v.crew.append(("commander", seat, (-0.95, -0.78, z - 0.43),
-                       ((-0.72, -0.56, z + 0.06), (-0.72, -1.00, z + 0.06)),
-                       ((-0.82, -0.68, z - 1.25), (-0.82, -0.88, z - 1.25))))
+    if not a7v:
+        v.head_out("commander", turret, -0.95, -0.78, 1.8 + ROOF)
 
 
 # ---------------------------------------------------------------- hull
@@ -180,10 +175,10 @@ def core_rings():
     right = [(x, -y) for x, y in reversed(CORE) if y > 0]
     outline = left + right
 
-    def ring(z, lean):
+    def ring(lean):
         return [(x, math.copysign(max(0.0, abs(y) - lean), y) if y else 0.0) for x, y in outline]
 
-    return [(FOOT, ring(FOOT, 0.04)), (FOOT + 0.10, ring(FOOT + 0.10, 0.0)), (ROOF, ring(ROOF, 0.07))]
+    return [(FOOT, ring(0.04)), (FOOT + 0.10, ring(0.0)), (ROOF, ring(0.07))]
 
 
 def wedge(v, turret, side, s, a8):

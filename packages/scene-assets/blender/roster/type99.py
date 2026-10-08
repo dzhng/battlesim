@@ -21,11 +21,9 @@ import math
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
-from t72 import kord  # noqa: E402
 from vehicle_export import rig, run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -172,7 +170,7 @@ def roof_gun(v, hmg, hmg_gun):
     cyl("mg_post", 0.04, lift + 0.10, (0.10, 0, (lift + 0.10) / 2 - 0.10), "Z", m["steel"], hmg, seg=10)
     box("mg_cradle", (0.24, 0.12, 0.10), (0.08, 0, lift - 0.07), m["dark"], hmg, lods=MID)
     box("mg_shield", (0.04, 0.34, 0.24), (0.42, 0, -0.04), m["paint"], hmg_gun, bevel=0.01, lods=MID)
-    kord(hmg_gun, muzzle[0], m)
+    VP.kord(hmg_gun, muzzle[0], m)
 
 
 def build(variant, v):

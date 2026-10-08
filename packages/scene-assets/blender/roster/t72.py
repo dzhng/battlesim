@@ -137,16 +137,6 @@ def gun_2a46(v, gun, sleeve_cover=True):
     cyl("muzzle_bore", 0.064, 0.012, (reach - 0.002, 0, 0), "X", m["black"], gun, seg=20, lods=MID)
 
 
-def kord(parent, reach, mats):
-    """The 12.7 mm Kord on its cradle: a long receiver, the ribbed barrel,
-    its muzzle brake and the ammunition box. Roles: dark, steel, paint."""
-    made = box("kord_receiver", (0.62, 0.10, 0.14), (0.02, 0, 0), mats["dark"], parent, bevel=0.012)
-    made += cyl("kord_barrel", 0.028, reach - 0.40, ((reach + 0.30) / 2, 0, 0), "X", mats["dark"], parent, seg=10)
-    made += cyl("kord_brake", 0.040, 0.10, (reach - 0.05, 0, 0), "X", mats["steel"], parent, seg=10, lods=NEAR)
-    made += box("kord_ammo", (0.26, 0.12, 0.20), (0.0, 0.13, -0.06), mats["paint"], parent, bevel=0.015, lods=MID)
-    return made
-
-
 def cupola_mg(v, hmg, hmg_gun, remote=False):
     """The commander's machine gun: on its cupola ring and post, or (the
     T-90M) in a small remote mount with its own sight."""
@@ -161,7 +151,7 @@ def cupola_mg(v, hmg, hmg_gun, remote=False):
         cyl("mg_post", 0.04, lift + 0.10, (0.15, 0, (lift + 0.10) / 2 - 0.10), "Z", m["steel"], hmg, seg=10)
         box("mg_cradle", (0.24, 0.12, 0.10), (0.12, 0, lift - 0.07), m["dark"], hmg, lods=MID)
         box("mg_shield", (0.04, 0.34, 0.24), (0.42, 0, -0.04), m["paint"], hmg_gun, bevel=0.01, lods=MID)
-    kord(hmg_gun, muzzle[0], m)
+    VP.kord(hmg_gun, muzzle[0], m)
 
 
 # ---------------------------------------------------------------- turret
