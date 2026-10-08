@@ -414,6 +414,30 @@ def hull_plan(rear, front, half, chamfer):
             (front - chamfer, half), (rear, half)]
 
 
+def on_side(x, z, side, low, high, proud=0.0, standing=False, fall=0.0):
+    """Where a part sits on a hull side face that leans in toward the roof.
+
+    The face is the line through `low` and `high`, two (y, z) points on the
+    left (+Y) side, such as the corners of the rings a hull lofts through.
+    Returns (loc, rot) for a part at `x` whose origin is at height `z` on the
+    `side` (+1 left, -1 right) face, `proud` out along the face's normal:
+    a part lying in its local XY plane and facing local +Z (`bolted_panel`,
+    `armour_tiles`) gets its back on the face with local x along the hull,
+    falling toward +X by `fall` (the slope of a line it follows, dz/dx);
+    with `standing`, a part standing upright in its own frame (`slat_armour`,
+    `stowage_box`) leans with the face, its local +Y facing out on both sides
+    (so the right side's is turned half round)."""
+    (y0, z0), (y1, z1) = low, high
+    lean = math.atan2(y0 - y1, z1 - z0)
+    y = y0 - (z - z0) * math.tan(lean)
+    loc = (x, side * (y + proud * math.cos(lean)), z + proud * math.sin(lean))
+    if standing:
+        return loc, (lean, 0, 0 if side > 0 else math.pi)
+    # In the face's own plane a fall of dz is dz / cos(lean) along its slope.
+    turn = Matrix.Rotation(side * math.atan(fall / math.cos(lean)), 3, "Z")
+    return loc, tuple((Matrix.Rotation(-side * (math.pi / 2 - lean), 3, "X") @ turn).to_euler("XYZ"))
+
+
 def cable(name, points, mats, parent, radius=0.02, eyes=True, loc=(0, 0, 0), rot=(0, 0, 0)):
     """A steel tow cable along `points` (in the part's frame), clipped down
     where it runs, with a loop eye at each end where `eyes`. Returns its

@@ -36,6 +36,10 @@ SKIRT = 1.54  # the upper hull's underside
 ROOF = 2.40
 NOSE = 3.80
 NOSE_Z = 1.74
+# The slab sides as (y, z) at foot and top (`vehicle_parts.on_side`): under
+# the bow's edge, and leaning in from over it to the roof.
+LOWER_SIDE = ((1.47, SKIRT), (1.49, NOSE_Z))
+UPPER_SIDE = ((1.49, NOSE_Z + 0.06), (1.45, ROOF))
 
 
 def build(variant, v):
@@ -48,8 +52,8 @@ def build(variant, v):
     # upper plate rises to the roof.
     loft("vbci_upper", [(SKIRT, VP.hull_plan(-3.78, 3.45, 1.47, 0.70)),
                         (NOSE_Z, VP.hull_plan(-3.80, NOSE, 1.49, 0.80)),
-                        (NOSE_Z + 0.06, VP.hull_plan(-3.80, NOSE - 0.12, 1.49, 0.80)),
-                        (ROOF, VP.hull_plan(-3.76, 2.55, 1.45, 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
+                        (NOSE_Z + 0.06, VP.hull_plan(-3.80, NOSE - 0.12, UPPER_SIDE[0][0], 0.80)),
+                        (ROOF, VP.hull_plan(-3.76, 2.55, UPPER_SIDE[1][0], 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, dark, hull,
@@ -87,15 +91,15 @@ def fittings(v):
                             rot=(0, 0, math.pi))
         VP.tow_hook(f"rear_tow_{s}", (-3.70, side * 0.70, 1.15), m, hull, size=0.10, rot=(0, 0, math.pi))
         # The slab side: outlined hatches and rows of bolts.
-        face = side * 1.49
         for k, x in enumerate((1.70, -0.30, -2.30)):
-            VP.bolted_panel(f"side_hatch_{s}_{k}", (x, face, 2.00), (0.70, 0.62, 0.025), m, hull, bolts=(3, 3),
-                            rot=(-side * math.pi / 2, 0, 0), bevel=0.012)
+            loc, rot = VP.on_side(x, 2.00, side, *UPPER_SIDE)
+            VP.bolted_panel(f"side_hatch_{s}_{k}", loc, (0.70, 0.62, 0.025), m, hull, bolts=(3, 3), rot=rot,
+                            bevel=0.012)
         for k in range(18):
             x = 3.10 - k * 0.38
-            for j, z in enumerate((1.62, 2.30)):
-                cyl(f"side_bolt_{s}_{k}_{j}", 0.026, 0.03, (x, face + side * 0.012, z), "Y", m["steel"], hull,
-                    seg=6, lods=FINE)
+            for j, (z, face) in enumerate(((1.62, LOWER_SIDE), (2.30, UPPER_SIDE))):
+                loc, rot = VP.on_side(x, z, side, *face, proud=0.012)
+                cyl(f"side_bolt_{s}_{k}_{j}", 0.026, 0.03, loc, "Z", m["steel"], hull, seg=6, rot=rot, lods=FINE)
         # The upper hull's lower edge, a darker strip over the wheels.
         box(f"side_rail_{s}", (6.90, 0.05, 0.06), (-0.10, side * 1.48, SKIRT + 0.03), m["dark"], hull, lods=MID)
     VP.exhaust("exhaust", (2.85, -1.50, 1.90), 0.07, 0.35, m, hull, rot=(0, 0, -math.pi / 2))

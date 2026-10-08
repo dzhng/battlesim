@@ -1100,6 +1100,80 @@ Least confident first.
 - **Verdict:** sound.
 - **Confidence:** high.
 
+## Sloped panels (2026-10-08)
+
+The user's report: on the Dragoon and the T-15 "the side panels seem to not
+be adapting to the sloped frame". Plates, tiles and skirts stood upright at a
+fixed distance from the centre line while the faces they are bolted to lean.
+
+### One helper places a part on a leaning side face
+
+- **The choice:** `vehicle_parts.on_side(x, z, side, low, high, proud,
+  standing, fall)` is the owner. A face is two (y, z) points on the left side,
+  normally the corners of the rings the hull or turret lofts through, so the
+  face a part sits on and the hull's own surface come from the same numbers
+  (each family names them once, e.g. `UPPER_SIDE`). It returns the part's
+  location and rotation: lying parts (`bolted_panel`, `armour_tiles`) get
+  their back on the face, standing parts (`stowage_box`, jerrycans, slats)
+  lean with it facing out, and `fall` turns a lying part within the face so
+  its edges follow a falling line (the T-15's band beside the glacis). The
+  per-family lean trig in the LAV, BTR, Fennek and VBL went into it.
+  Families that don't call it were not re-exported: their receipts still
+  name the `vehicle_parts.py` that built them, and the new function changes
+  nothing they build.
+- **Verdict:** sound. One rule, data per family.
+- **Confidence:** high.
+
+### Hull shapes changed inside the same frames
+
+- **The choice:** No frame, mount or tolerance moved. The Stryker's upper
+  sides lean 16° (`SIDE_LEAN`, was about 5°): the M1126 rear photo puts the
+  roof at about 85% of the chine's width, and 12° did not read at the sheet's
+  distance. The Dragoon's lower roof keeps the same lean. The commander's
+  hatch moved 0.10 m inboard to stay on the narrower roof. Its armour tiles
+  are hung only where the side under the glacis is tall enough for a whole
+  tile, so the front tile no longer pokes above the glacis (it did before),
+  and the exhaust moved into the gap between tiles and bins.
+  The Armata's upper hull is lofted, not a box: skirts up to a shoulder, then
+  a band leaning in to the deck's edge, and toward the nose the skirts' tops
+  follow the glacis down. The T-14's band is a narrow 45° strip over tall
+  skirts, which now carry the parade stripe and number they used to float
+  above. The T-15's is deep (40°) and carries its slab modules as one
+  continuous band falling with the glacis to the nose. Tall upright modules
+  stand on its rear half, as the three-quarter-rear photo shows, and its rear
+  stowage boxes moved inboard onto the narrower deck.
+- **The gap:** The shoulder is a ring, so it is level along the hull. Where
+  the T-15's band runs down to the nose, the slabs follow the glacis and the
+  hull behind them stays at the shoulder. That is hidden from the sheet's
+  views and is acceptable art.
+- **Verdict:** sound.
+- **Confidence:** medium. The leans are read from photos, not drawings.
+
+### The audit: what was checked and what changed
+
+- **Changed:** Stryker and its support cards (shared hull), T-14 and T-15,
+  LAV, BTR, Fennek and VBL (helper in place of hand trig; the Fennek's
+  window and the VBL's door and window leaned outward, against a body leaning
+  in), Boxer, VBCI, ZBL-08 and ACV (upright plates on 4-14° sides, up to
+  5 cm off at their tops), and the Type 15, M10, CV90120, M1E3 and KF51
+  turrets (upright plates 6-11 cm off sides leaning 8-38°; the M1E3's rose
+  above its roof, and the KF51's hatch straddled the chine).
+- **Checked, unchanged:** every tracked hull (Abrams, Leopard, Challenger 2
+  and 3, Leclerc, T-72/80/90, Type 99, Bradley, CV90, Puma, Ajax, BMP, BRM,
+  M10, M1E3, KF51, Type 15, howitzers, rocket and air-defence carriers): the
+  hull sides are upright prisms and the photos show upright skirts. The
+  Centauro and Jaguar hang nothing on their sides. Turrets with upright or
+  near-upright sides in model and photos (Leopard, Leclerc, Type 99, T-90,
+  Challenger 2 and 3, Boxer RCT30, Bradley), and the T-72/T-80 domes, whose
+  modules hang on the dome's near-upright foot. Trucks, cars and aircraft
+  have no leaning armoured sides.
+- **Left as is:** the CV90's and Ajax's turret add-ons are thick blocks
+  across both the upright foot and the leaning wall of their turrets, so no
+  single face fits them. They stand at most 5 cm and 2 cm off at the top, and
+  the photos (the CV90's are camouflaged) do not settle their shape.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

@@ -75,8 +75,9 @@ def turret_body(v, turret):
         # The cheek's facet lines and the flat side's bolted plates.
         VP.weld_line(f"cheek_weld_{s}", [(1.70, side * 0.50, ROOF + 0.002), (0.95, side * 1.44, ROOF + 0.002)], m,
                      turret)
-        VP.bolted_panel(f"side_plate_{s}", (-0.35, side * 1.60, 0.40), (1.90, 0.06, 0.50), m, turret, bolts=(4, 2),
-                        bevel=0.02, lods=VP.ALL)
+        loc, rot = VP.on_side(-0.35, 0.45, side, (1.588, 0.18), (1.468, ROOF))
+        VP.bolted_panel(f"side_plate_{s}", loc, (1.90, 0.46, 0.05), m, turret, bolts=(4, 2), bevel=0.02, rot=rot,
+                        lods=VP.ALL)
         # Four-tube smoke banks at the cheek's rear corner, fanned forward.
         VP.smoke_discharger_bank(f"smoke_{s}", (0.70, side * 1.50, ROOF - 0.10), m, turret, count=4,
                                  tube_radius=0.05, tube_length=0.26, elevation=0.35, spread=0.3,

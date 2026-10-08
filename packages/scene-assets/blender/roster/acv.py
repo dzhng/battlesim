@@ -37,6 +37,9 @@ FLARE = 1.80
 ROOF = 2.70
 BOW = 4.60
 EDGE_Z = 1.55
+# The flared upper side leaning back in to the roof, as (y, z) at its foot
+# and top (`vehicle_parts.on_side`).
+UPPER_SIDE = ((1.55, FLARE), (1.32, ROOF))
 GLACIS_TOP = 3.00
 
 
@@ -50,8 +53,8 @@ def build(variant, v):
          mat=m["dark"], parent=hull, bevel=0.04)
     loft("acv_upper", [(SHELF, VP.hull_plan(-4.55, 4.05, 1.30, 0.70)),
                        (EDGE_Z, VP.hull_plan(-4.60, BOW, 1.50, 0.85)),
-                       (FLARE, VP.hull_plan(-4.60, 4.35, 1.55, 0.80)),
-                       (ROOF, VP.hull_plan(-4.50, GLACIS_TOP, 1.32, 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
+                       (FLARE, VP.hull_plan(-4.60, 4.35, UPPER_SIDE[0][0], 0.80)),
+                       (ROOF, VP.hull_plan(-4.50, GLACIS_TOP, UPPER_SIDE[1][0], 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
@@ -82,8 +85,9 @@ def fittings(v):
                    rot=(0, 0, math.pi / 2))
         # Bolted panels along the flared upper side.
         for k, x in enumerate((2.70, 1.20, -0.30, -1.80, -3.30)):
-            VP.bolted_panel(f"side_panel_{s}_{k}", (x, side * 1.50, 2.15), (1.35, 0.62, 0.025), m, hull,
-                            bolts=(4, 3), rot=(-side * (math.pi / 2 - 0.22), 0, 0), bevel=0.012)
+            loc, rot = VP.on_side(x, 2.15, side, *UPPER_SIDE)
+            VP.bolted_panel(f"side_panel_{s}_{k}", loc, (1.35, 0.62, 0.025), m, hull, bolts=(4, 3), rot=rot,
+                            bevel=0.012)
         # The rear: a flared corner housing with its tail light, and under it
         # the propeller in its shroud.
         box(f"rear_housing_{s}", (0.40, 0.95, 1.10), (-4.42, side * 1.05, 2.05), m["paint"], hull, bevel=0.05)

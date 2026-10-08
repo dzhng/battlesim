@@ -52,8 +52,11 @@ def turret_body(v, turret):
     for side, s in ((1, "L"), (-1, "R")):
         VP.weld_line(f"cheek_weld_{s}", [(1.45, side * 0.46, FOOT + 0.14), (0.70, side * 1.40, FOOT + 0.14)], m,
                      turret)
-        VP.bolted_panel(f"turret_side_{s}", (-0.55, side * 1.46, FOOT + 0.32), (1.30, 0.36, 0.05), m, turret,
-                        bolts=(4, 2), bevel=0.02, lods=VP.ALL, rot=(-side * math.pi / 2, 0, 0))
+        # On the turret's leaning flank: the shell's side at x -0.55, from
+        # the top of its upright foot to its crown.
+        loc, rot = VP.on_side(-0.55, FOOT + 0.32, side, (1.459, FOOT + 0.14), (1.291, ROOF))
+        VP.bolted_panel(f"turret_side_{s}", loc, (1.30, 0.36, 0.05), m, turret, bolts=(4, 2), bevel=0.02,
+                        lods=VP.ALL, rot=rot)
         VP.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 1.30, ROOF - 0.10), m, turret, count=4,
                                  tube_radius=0.045, tube_length=0.20, elevation=0.3, spread=0.3,
                                  rot=(0, 0, side * 0.6))

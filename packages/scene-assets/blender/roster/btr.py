@@ -41,6 +41,9 @@ ROOF = 1.90
 BOW = 3.85
 BOW_Z = 1.40
 GLACIS_TOP = 2.65
+# The upper side face, leaning in from the bow's edge to the roof, as (y, z)
+# at its foot and top (`vehicle_parts.on_side`).
+UPPER_SIDE = ((1.36, BOW_Z + 0.05), (1.02, ROOF))
 
 
 def glacis_z(x):
@@ -53,8 +56,8 @@ def build(variant, v):
                       (CHINE - 0.10, VP.hull_plan(-3.80, 3.70, 1.32, 0.60)),
                       (CHINE, VP.hull_plan(-3.85, 3.78, 1.42, 0.65)),
                       (BOW_Z, VP.hull_plan(-3.80, BOW, 1.38, 0.70)),
-                      (BOW_Z + 0.05, VP.hull_plan(-3.78, BOW - 0.05, 1.36, 0.70)),
-                      (ROOF, VP.hull_plan(-3.65, GLACIS_TOP, 1.02, 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
+                      (BOW_Z + 0.05, VP.hull_plan(-3.78, BOW - 0.05, UPPER_SIDE[0][0], 0.70)),
+                      (ROOF, VP.hull_plan(-3.65, GLACIS_TOP, UPPER_SIDE[1][0], 0.45))], mat=m["paint"], parent=hull, bevel=0.05)
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(WHEEL_X):
             VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * WHEEL_Y, WHEEL_R), WHEEL_R, WHEEL_W, side, m, hull,
@@ -75,7 +78,6 @@ def build(variant, v):
 def fittings(v):
     m, hull = v.mats, v.hull
     slope = math.atan((ROOF - BOW_Z - 0.05) / (BOW - 0.05 - GLACIS_TOP))
-    lean = math.atan((1.36 - 1.02) / (ROOF - BOW_Z - 0.05))
     # The trim vane folded on the upper glacis, the windscreens' armoured
     # covers, lights in boxes, tow eyes on the bow.
     VP.bolted_panel("trim_vane", (3.30, 0, glacis_z(3.30)), (0.70, 1.90, 0.04), m, hull, bolts=(2, 5),
@@ -97,12 +99,11 @@ def fittings(v):
                             hull, rot=(0, 0, math.pi))
         VP.tow_hook(f"rear_tow_{s}", (-3.70, side * 0.60, CHINE - 0.10), m, hull, size=0.10, rot=(0, 0, math.pi))
         # The side door between the middle axles and the firing ports.
-        tilt = -side * (math.pi / 2 - lean)
-        y_side = side * 1.30
-        VP.bolted_panel(f"side_door_{s}", (0.02, y_side, 1.50), (0.80, 0.42, 0.03), m, hull, bolts=(3, 2),
-                        rot=(tilt, 0, 0), bevel=0.012)
+        loc, rot = VP.on_side(0.02, 1.58, side, *UPPER_SIDE)
+        VP.bolted_panel(f"side_door_{s}", loc, (0.80, 0.42, 0.03), m, hull, bolts=(3, 2), rot=rot, bevel=0.012)
         for k, x in enumerate((2.05, 1.35, -1.20, -1.90)):
-            cyl(f"firing_port_{s}_{k}", 0.07, 0.05, (x, side * 1.33, 1.50), "Y", m["dark"], hull, seg=12, lods=MID)
+            loc, rot = VP.on_side(x, 1.50, side, *UPPER_SIDE)
+            cyl(f"firing_port_{s}_{k}", 0.07, 0.05, loc, "Z", m["dark"], hull, seg=12, rot=rot, lods=MID)
         box(f"step_{s}", (0.50, 0.12, 0.04), (0.02, side * 1.40, CHINE - 0.06), m["steel"], hull, lods=NEAR)
     # The engine deck: louvres, the stowage tube on the right.
     for k, y in enumerate((0.45, -0.45)):

@@ -141,8 +141,11 @@ def turret_body(v, turret):
                 seg=14, rot=(side * 0.6, 0, 0), lods=MID)
             cyl(f"smoke_cap_{s}_{k}", 0.05, 0.02, (0.60 - k * 0.38, side * 1.64, 0.12), "Y", m["black"], turret,
                 seg=12, rot=(side * 0.6, 0, 0), lods=FINE)
-        VP.bolted_panel(f"side_hatch_{s}", (-0.70, side * 1.62, EDGE + 0.05), (0.70, 0.48, 0.02), m, turret,
-                        bolts=(2, 2), bevel=0.008, rot=(-side * math.pi / 2, 0, 0), lods=MID)
+        # The hatch on the flank's upper face, over the chine band (the
+        # shell's side at x -0.70, from the band's top to the roof ring).
+        loc, rot = VP.on_side(-0.70, EDGE + 0.34, side, (1.66, EDGE + 0.12), (1.33, ROOF))
+        VP.bolted_panel(f"side_hatch_{s}", loc, (0.70, 0.46, 0.02), m, turret, bolts=(2, 2), bevel=0.008, rot=rot,
+                        lods=MID)
         for k in range(2):
             cyl(f"warning_sensor_{s}_{k}", 0.04, 0.03, (1.40, side * (1.70 + 0.0), EDGE + 0.08 - k * 0.10), "Y",
                 m["glass"], turret, seg=12, lods=NEAR)

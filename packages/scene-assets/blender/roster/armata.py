@@ -6,7 +6,9 @@ What the photos settle (Moscow parades 2015-2016, Alabino, Army-2018): the
 one Armata platform under both. Seven large road wheels a side with dished
 discs, the drive sprocket at the engine end and the idler at the other; deep
 side skirts in bolted sections with a rubber lip, the Victory stripe on the
-parade cars; a long shallow glacis rising to a flat deck; headlights in boxes
+parade cars, their tops falling with the glacis toward the nose and a band
+leaning in from them to the deck's edge; a long shallow glacis rising to a
+flat deck; headlights in boxes
 at the nose corners; a slat screen round the tail.
 
 - T-14: engine at the rear. The crew capsule's three hatches sit in a row on
@@ -19,8 +21,9 @@ at the nose corners; a slat screen round the tail.
 - T-15: engine at the front, so the glacis is longer and the troop
   compartment is behind; the sprocket is at the front. The Bumerang-BM
   module: a low box turret with its 30 mm 2A42 on the centre line and a pair
-  of Kornet tubes on the left; big slab applique modules hang angled on the
-  hull sides; a rear door with stowage either side.
+  of Kornet tubes on the left; big slab applique modules lie on the deep
+  leaning band beside the glacis, tall upright modules stand on the rear
+  half; a rear door with stowage either side.
 
 Frames (`T14_DIMENSIONS`, `T15_DIMENSIONS` and their mounts):
 T-14 8.7 x 3.5 x 3.3 m, gun pivot 1.98 m; T-15 9.5 x 3.5 x 3.5 m, gun pivot
@@ -30,6 +33,7 @@ sits low on it (specs/done/unit-models/choices.md).
 """
 import math
 import os
+from functools import partial
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -59,6 +63,49 @@ ROAD_R = 0.37
 ROAD_Z = 0.44
 DECK = 1.92
 SKIRT_Y = 1.72
+NOSE_Z = 1.22
+# The upper hull's side: vertical skirts up to the shoulder, then a band
+# leaning in to the deck's edge (photos: three-quarter front, front). The
+# T-14's is a narrow steep strip; the T-15's is deep and carries the slab
+# modules on its front half.
+SHOULDER = {T14: 1.70, T15: 1.40}
+BAND_LEAN = {T14: math.radians(45), T15: math.radians(40)}
+SHOULDER_Y = 1.70
+# Toward the nose the skirts' tops follow the glacis down, this far under
+# it: the T-14's stand just proud of it, the T-15's leave the slab band
+# room above them.
+UNDER_GLACIS = {T14: -0.06, T15: 0.42}
+SLAB = 0.12
+
+
+def side_face(v):
+    """The leaning band as (y, z) at the shoulder and at the deck's edge
+    (`vehicle_parts.on_side`)."""
+    ident = v.variant["id"]
+    shoulder = SHOULDER[ident]
+    return (SHOULDER_Y, shoulder), (SHOULDER_Y - (DECK - shoulder) * math.tan(BAND_LEAN[ident]), DECK)
+
+
+def glacis_top(v):
+    return v.length / 2 - (3.20 if front_engine(v) else 2.40)
+
+
+def glacis_z(v, x):
+    """The glacis' height at `x`, from the nose to where it meets the deck."""
+    half = v.length / 2
+    return NOSE_Z + (DECK - NOSE_Z) * (half - x) / (half - glacis_top(v))
+
+
+def glacis_x(v, z):
+    """Where the glacis is at height `z` (x)."""
+    half = v.length / 2
+    return half - (z - NOSE_Z) * (half - glacis_top(v)) / (DECK - NOSE_Z)
+
+
+def skirt_top(v, x):
+    """The skirts' top at `x`: the shoulder, or under the glacis near the nose."""
+    ident = v.variant["id"]
+    return min(SHOULDER[ident], glacis_z(v, x) - UNDER_GLACIS[ident])
 
 
 def front_engine(v):
@@ -72,16 +119,30 @@ def hull(v):
     the rear slat screen. Returns the glacis' top (x)."""
     m, h = v.mats, v.hull
     half = v.length / 2
-    top = half - (3.20 if front_engine(v) else 2.40)
-    nose_z = 1.22
-    prism("hull_upper", [(-half, 1.00), (half - 0.20, 1.00), (half, nose_z), (top, DECK), (-half + 0.10, DECK),
-                         (-half, DECK - 0.12)], 3.24, mat=m["paint"], parent=h, bevel=0.06)
+    top = glacis_top(v)
+    nose_z = NOSE_Z
+    (_, shoulder), (edge, _) = side_face(v)
+    front = partial(glacis_x, v)
+
+    def band(z):
+        return SHOULDER_Y + (edge - SHOULDER_Y) * (z - shoulder) / (DECK - shoulder)
+
+    # In horizontal rings: the hull between the skirts, stepping out to the
+    # shoulder over them, then the band leaning in to the deck; the glacis
+    # cuts each ring's bow.
+    plan = VP.hull_plan
+    loft("hull_upper", [(1.00, plan(-half, half - 0.20, 1.62, 0.30)),
+                        (nose_z, plan(-half, half, 1.62, 0.30)),
+                        (shoulder - 0.05, plan(-half, front(shoulder - 0.05), 1.62, 0.30)),
+                        (shoulder, plan(-half, front(shoulder), SHOULDER_Y, 0.38)),
+                        (DECK - 0.12, plan(-half, front(DECK - 0.12), band(DECK - 0.12), 0.38)),
+                        (DECK, plan(-half + 0.10, top, edge, 0.38))], mat=m["paint"], parent=h, bevel=0.05)
     prism("hull_lower", [(-half + 0.40, 0.44), (half - 0.75, 0.44), (half - 0.10, 1.02), (-half, 1.02),
                          (-half, 0.76)], 2.20, mat=m["paint"], parent=h, bevel=0.04)
     slope = math.atan((DECK - nose_z) / (half - top))
 
     def glacis(x):
-        return nose_z + (DECK - nose_z) * (half - x) / (half - top)
+        return glacis_z(v, x)
 
     # A raised armour wedge down the glacis' centre, the T-14's "chin".
     prism("glacis_wedge", [(half - 0.05, nose_z + 0.04), (top + 0.30, glacis(top + 0.30) + 0.10),
@@ -98,9 +159,9 @@ def hull(v):
                                                        glacis(half - 0.40) + 0.13), 0.055, m, h)
         VP.tow_hook(f"front_tow_{s}", (half - 0.16, side * 0.70, 0.95), m, h, size=0.14)
         VP.tow_hook(f"rear_tow_{s}", (-half + 0.15, side * 0.80, 0.90), m, h, size=0.13, rot=(0, 0, math.pi))
-        VP.cable(f"tow_cable_{s}", [(-half + 0.5, side * 1.50, DECK + 0.02), (-1.5, side * 1.54, DECK + 0.02),
-                                    (0.4, side * 1.54, DECK + 0.02), (top - 0.2, side * 1.50, DECK + 0.02)], m, h,
-                 radius=0.022)
+        y = side * (edge - 0.12)
+        VP.cable(f"tow_cable_{s}", [(-half + 0.5, y, DECK + 0.02), (-1.5, y, DECK + 0.02), (0.4, y, DECK + 0.02),
+                                    (top - 0.2, y, DECK + 0.02)], m, h, radius=0.022)
     VP.slat_armour("rear_screen", (-half + 0.03, 0, 1.05), (3.10, 0.85), m, h, rot=(0, 0, math.pi / 2))
     return top
 
@@ -118,31 +179,62 @@ def running_gear(v):
 
 
 def skirts(v, slab=False):
-    """Deep skirts in bolted sections with a rubber lip over the road
-    wheels; the T-15's hang its angled slab modules on the front half."""
+    """Deep skirts in bolted sections up to the shoulder, their tops
+    following the glacis down to the nose, with a rubber lip over the road
+    wheels. The T-15 hangs its slab modules angled on the band beside the
+    glacis, and tall upright modules on its rear half."""
     m, h = v.mats, v.hull
     half = v.length / 2
+    face = side_face(v)
+    (_, shoulder), (edge, _) = face
+    ident = v.variant["id"]
     sections = 7
+    length = (v.length - 0.6) / sections
     for side, s in ((1, "L"), (-1, "R")):
         for k in range(sections):
-            length = (v.length - 0.6) / sections
-            x = half - 0.30 - length * (k + 0.5)
-            VP.bolted_panel(f"skirt_{s}_{k}", (x, side * (SKIRT_Y - 0.05), 0.90), (length - 0.03, 0.08, 0.98), m, h,
-                            bolts=(2, 1), bevel=0.025, lods=VP.ALL)
-            box(f"skirt_lip_{s}_{k}", (length - 0.05, 0.03, 0.18), (x, side * (SKIRT_Y - 0.08), 0.82), m["rubber"], h,
-                lods=MID)
+            x0, x1 = half - 0.30 - length * (k + 1) + 0.015, half - 0.30 - length * k - 0.015
+            # In side view: its top at the shoulder, breaking at the knee
+            # where it starts to follow the glacis down.
+            knee = glacis_x(v, shoulder + UNDER_GLACIS[ident])
+            tops = [x1] + ([knee] if x0 + 0.01 < knee < x1 - 0.01 else []) + [x0]
+            outline = [(x0, 0.41), (x1, 0.41)] + [(x, skirt_top(v, x)) for x in tops]
+            prism(f"skirt_{s}_{k}", outline, 0.08, loc=(0, side * (SKIRT_Y - 0.05), 0), mat=m["paint"], parent=h,
+                  bevel=0.025, lods=VP.ALL)
+            for j, x in enumerate((x0 + 0.10, x1 - 0.10)):
+                cyl(f"skirt_{s}_{k}_bolt_{j}", 0.026, 0.03, (x, side * (SKIRT_Y - 0.002), 0.52), "Y", m["steel"], h,
+                    seg=6, lods=FINE)
+            box(f"skirt_lip_{s}_{k}", (length - 0.05, 0.03, 0.18), ((x0 + x1) / 2, side * (SKIRT_Y - 0.08), 0.82),
+                m["rubber"], h, lods=MID)
         if slab:
-            for k in range(3):
-                x = half - 1.05 - k * 1.30
-                box(f"slab_module_{s}_{k}", (1.24, 0.14, 0.88), (x, side * (SKIRT_Y - 0.06), 1.42), m["paint"], h,
-                    bevel=0.04, rot=(side * 0.18, 0, 0))
-        else:
-            # The parade stripe on the skirts' front half.
-            for j, (colour, z) in enumerate(((m["tail"], 1.66), (m["marking"], 1.58), (m["tail"], 1.50))):
-                box(f"victory_stripe_{s}_{j}", (1.30, 0.008, 0.06), (0.9, side * (SKIRT_Y + 0.004), z), colour, h,
-                    lods=NEAR)
-        stencil(f"side_number_{s}", "112" if not slab else "203", 0.22, (-1.4, side * (SKIRT_Y + 0.004), 1.62),
-                (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], h)
+            # Each slab stands on the skirt's top, leaning in with the band up
+            # to the deck or the glacis; where the skirt's top follows the
+            # glacis down, the slab falls with both, so the band runs on down
+            # to the nose.
+            lean = BAND_LEAN[ident]
+            knee = glacis_x(v, shoulder + UNDER_GLACIS[ident])
+            fall = (DECK - NOSE_Z) / (half - glacis_top(v))
+            for k in range(5):
+                x = 3.60 - k * 0.66
+                sloped = x > knee
+                foot = skirt_top(v, x if sloped else x + 0.31)
+                rise = UNDER_GLACIS[ident] if sloped else min(DECK, glacis_z(v, x + 0.31)) - foot
+                low = (SHOULDER_Y, foot)
+                loc, rot = VP.on_side(x, foot + rise / 2, side, low, (SHOULDER_Y - math.tan(lean), foot + 1.0),
+                                      fall=fall if sloped else 0.0)
+                VP.bolted_panel(f"slab_module_{s}_{k}", loc, (0.62, rise / math.cos(lean) - 0.04, SLAB), m, h,
+                                bolts=(2, 2), rot=rot, bevel=0.03, lods=VP.ALL)
+            for k in range(4):
+                tall = DECK + 0.30 - shoulder
+                VP.bolted_panel(f"rear_module_{s}_{k}", (0.05 - k * 1.20, side * edge, shoulder + tall / 2),
+                                (1.16, tall, SKIRT_Y + 0.01 - edge), m, h, bolts=(3, 2),
+                                rot=(-side * math.pi / 2, 0, 0), bevel=0.03, lods=VP.ALL)
+        # The parade stripe on the skirts' front half, the number behind it.
+        for j, (colour, z) in enumerate(((m["tail"], 0.16), (m["marking"], 0.08), (m["tail"], 0.0))):
+            box(f"victory_stripe_{s}_{j}", (1.30, 0.008, 0.06), (0.9, side * (SKIRT_Y + 0.004), shoulder - 0.24 + z),
+                colour, h, lods=NEAR)
+        stencil(f"side_number_{s}", "112" if not slab else "203", 0.22,
+                (-1.4, side * (SKIRT_Y + 0.004), shoulder - 0.20), (math.pi / 2, 0, math.pi if side > 0 else 0),
+                m["marking"], h)
 
 
 def engine_deck(v, x0, x1):
@@ -152,7 +244,10 @@ def engine_deck(v, x0, x1):
     VP.grille("radiator_grille", (mid, -0.55, DECK), (x1 - x0, 1.0), m, h, slats=12)
     VP.bolted_panel("engine_access", (mid, 0, DECK), (x1 - x0 + 0.1, 0.12, 0.03), m, h, bolts=(4, 1), bevel=0.01,
                     lods=MID)
-    VP.exhaust("exhaust", (x0 - 0.10, -1.62, DECK - 0.25), 0.11, 0.30, m, h, rot=(0, 0, -math.pi / 2))
+    # The exhaust out of the right band (through the T-15's slab there).
+    face = side_face(v)
+    loc, _ = VP.on_side(x0 - 0.10, (face[0][1] + DECK) / 2, -1, *face, proud=(SLAB if front_engine(v) else 0) + 0.03)
+    VP.exhaust("exhaust", loc, 0.11, 0.30, m, h, rot=(0, 0, -math.pi / 2))
 
 
 # ---------------------------------------------------------------- T-14
@@ -265,7 +360,7 @@ def t15(v):
     VP.bolted_panel("rear_door", (-half - 0.03, 0, 1.05), (0.06, 1.10, 0.80), m, h, bolts=(1, 3), bevel=0.015,
                     rot=(0, 0, 0), lods=VP.ALL)
     for side in (-1, 1):
-        VP.stowage_box(f"rear_box_{side}", (-half + 0.14, side * 1.05, DECK), (0.25, 0.70, 0.45), m, h)
+        VP.stowage_box(f"rear_box_{side}", (-half + 0.14, side * 0.85, DECK), (0.25, 0.70, 0.45), m, h)
     mounts = rig(v.frame, v.root)
     turret, gun, _, _ = mounts["autocannon"]
     launcher, launcher_pitch, _, _ = mounts["launcher"]
@@ -342,7 +437,7 @@ def wreck(variant, v):
     warp(thrown, heat(0.035, 0.6, seed=1.5))
     for k, (loc, rot) in enumerate((((1.5, 2.75, 0.10), (1.45, 0.15, 0.4)), ((0.2, 2.95, 0.10), (1.5, -0.2, -0.3)))):
         solid(f"fallen_skirt_{k}", (1.10, 0.08, 0.95), loc, m["paint"], v.hull, rot=rot, bevel=0.02)
-    bend(parts("skirt_L_1_"), (half - 1.5, 1.70, 1.38), (1, 0, 0), (0, 0, -1), 0.6)
+    bend(parts("skirt_L_1_"), (half - 1.5, 1.70, skirt_top(v, half - 1.5)), (1, 0, 0), (0, 0, -1), 0.6)
     bend(parts("rear_screen"), (-half + 0.03, 0, 1.6), (0, 1, 0), (1, 0, 0), 0.35)
     shell = parts("hull_upper", "hull_lower", "glacis_wedge", "skirt_", "turret_shell", "module_shell")
     densify(shell, scale=2.0)

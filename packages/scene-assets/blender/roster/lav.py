@@ -43,6 +43,9 @@ CHINE = 1.20
 ROOF = 1.94
 BOW = 3.195
 GLACIS_TOP = 1.74  # x where the upper glacis meets the roof
+# The upper side face, leaning hard in from the chine band to the roof, as
+# (y, z) at its foot and top (`vehicle_parts.on_side`).
+UPPER_SIDE = ((1.21, CHINE + 0.05), (0.93, ROOF))
 
 
 def glacis_z(x):
@@ -54,8 +57,8 @@ def build(variant, v):
     m, hull = v.mats, v.hull
     loft("lav_hull", [(BELLY, VP.hull_plan(-2.95, 2.30, 0.92, 0.30)),
                       (CHINE, VP.hull_plan(-3.195, BOW, 1.22, 0.55)),
-                      (CHINE + 0.05, VP.hull_plan(-3.18, BOW - 0.05, 1.21, 0.55)),
-                      (ROOF, VP.hull_plan(-2.98, GLACIS_TOP, 0.93, 0.30))], mat=m["paint"], parent=hull, bevel=0.05)
+                      (CHINE + 0.05, VP.hull_plan(-3.18, BOW - 0.05, UPPER_SIDE[0][0], 0.55)),
+                      (ROOF, VP.hull_plan(-2.98, GLACIS_TOP, UPPER_SIDE[1][0], 0.30))], mat=m["paint"], parent=hull, bevel=0.05)
     wheels(v)
     fittings(v)
     mounts = rig(v.frame, v.root)
@@ -83,7 +86,6 @@ def wheels(v):
 def fittings(v):
     m, hull = v.mats, v.hull
     slope = math.atan((ROOF - CHINE - 0.05) / (BOW - 0.05 - GLACIS_TOP))
-    lean = math.atan((1.22 - 0.93) / (ROOF - CHINE))  # the upper sides' lean inward
     # The glacis: the engine's grille on the right, the driver's hatch and
     # periscopes on the left, the A2's bolted applique, lights in guards at
     # its corners and tow eyes on the bow.
@@ -112,15 +114,15 @@ def fittings(v):
         # stowage, outside the hull box.
         rack = empty(f"dressing_jerrycans_{s}", parent=hull)
         for k in range(3):
-            x = -1.55 - k * 0.42
-            VP.jerrycan(f"side_jerrycan_{s}_{k}", (x, side * 1.27, CHINE + 0.08), dict(m, paint=m["dark"]), rack,
-                        size=(0.345, 0.165, 0.47), rot=(side * lean, 0, 0))
-        box(f"jerrycan_rack_{s}", (1.40, 0.05, 0.05), (-1.97, side * 1.24, CHINE + 0.36), m["steel"], rack,
-            rot=(side * lean, 0, 0), lods=NEAR)
+            loc, rot = VP.on_side(-1.55 - k * 0.42, CHINE + 0.08, side, *UPPER_SIDE, proud=0.085, standing=True)
+            VP.jerrycan(f"side_jerrycan_{s}_{k}", loc, dict(m, paint=m["dark"]), rack, size=(0.345, 0.165, 0.47),
+                        rot=rot)
+        loc, rot = VP.on_side(-1.97, CHINE + 0.36, side, *UPPER_SIDE, proud=0.15, standing=True)
+        box(f"jerrycan_rack_{s}", (1.40, 0.05, 0.05), loc, m["steel"], rack, rot=rot, lods=NEAR)
         # Bolted applique on the upper side, ahead of the racks.
         for k, x in enumerate((1.15, 0.25) if side > 0 else (1.15,)):
-            VP.bolted_panel(f"side_applique_{s}_{k}", (x, side * 1.07, 1.55), (0.84, 0.48, 0.03), m, hull,
-                            bolts=(3, 2), rot=(-side * (math.pi / 2 - lean), 0, 0))
+            loc, rot = VP.on_side(x, 1.55, side, *UPPER_SIDE)
+            VP.bolted_panel(f"side_applique_{s}_{k}", loc, (0.84, 0.48, 0.03), m, hull, bolts=(3, 2), rot=rot)
     # The exhaust silencer on the right, a big can in its straps.
     cyl("silencer", 0.15, 0.95, (-0.45, -1.17, 1.42), "X", m["dark"], hull, seg=18, bevel=0.02)
     for k, x in enumerate((-0.80, -0.10)):

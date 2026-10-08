@@ -39,6 +39,9 @@ SHELF = 1.30
 ROOF = 2.30  # under the hatches, which reach the frame's 2.38 m top
 NOSE = 3.965
 GLACIS_TOP = 1.55
+# The upper sides, leaning in a little from the shelf to the roof, as (y, z)
+# at their foot and top (`vehicle_parts.on_side`).
+UPPER_SIDE = ((1.48, SHELF + 0.08), (1.42, ROOF))
 
 
 def glacis_z(x):
@@ -54,8 +57,8 @@ def drive(v):
     loft("boxer_lower", [(0.55, VP.hull_plan(-3.60, 3.30, 0.92, 0.25)),
                          (SHELF - 0.02, VP.hull_plan(-3.90, NOSE, 0.95, 0.30))], mat=m["paint"], parent=hull, bevel=0.04)
     loft("boxer_upper", [(SHELF - 0.02, VP.hull_plan(-3.94, NOSE, 1.48, 0.45)),
-                         (SHELF + 0.08, VP.hull_plan(-3.94, NOSE - 0.04, 1.48, 0.45)),
-                         (ROOF, VP.hull_plan(-3.90, GLACIS_TOP, 1.42, 0.35))], mat=m["paint"], parent=hull, bevel=0.05)
+                         (SHELF + 0.08, VP.hull_plan(-3.94, NOSE - 0.04, UPPER_SIDE[0][0], 0.45)),
+                         (ROOF, VP.hull_plan(-3.90, GLACIS_TOP, UPPER_SIDE[1][0], 0.35))], mat=m["paint"], parent=hull, bevel=0.05)
     wheels(v)
     fittings(v)
 
@@ -128,16 +131,15 @@ def fittings(v):
                             hull, rot=(0, 0, math.pi))
         VP.tow_hook(f"rear_tow_{s}", (-3.92, side * 0.65, SHELF - 0.25), m, hull, size=0.10, rot=(0, 0, math.pi))
         # Bolted plates along the mission module and its seam to the drive module.
-        face = side * 1.47
         for k in range(4):
-            x = 0.55 - k * 1.05
-            VP.bolted_panel(f"side_plate_{s}_{k}", (x, face, 1.86), (0.98, 0.86, 0.03), m, hull, bolts=(4, 3),
-                            rot=(-side * math.pi / 2, 0, 0), bevel=0.012)
-        VP.weld_line(f"module_seam_{s}", [(1.12, face, SHELF + 0.10), (1.12, face, ROOF - 0.05)], m, hull,
-                     radius=0.015)
+            loc, rot = VP.on_side(0.55 - k * 1.05, 1.86, side, *UPPER_SIDE)
+            VP.bolted_panel(f"side_plate_{s}_{k}", loc, (0.98, 0.86, 0.03), m, hull, bolts=(4, 3), rot=rot,
+                            bevel=0.012)
+        seam = [VP.on_side(1.12, z, side, *UPPER_SIDE)[0] for z in (SHELF + 0.10, ROOF - 0.05)]
+        VP.weld_line(f"module_seam_{s}", seam, m, hull, radius=0.015)
         for k, z in enumerate((1.55, 1.85, 2.15)):
-            cyl(f"seam_bolt_{s}_{k}", 0.03, 0.04, (1.12, face + side * 0.02, z), "Y", m["steel"], hull, seg=6,
-                lods=FINE)
+            loc, rot = VP.on_side(1.12, z, side, *UPPER_SIDE, proud=0.02)
+            cyl(f"seam_bolt_{s}_{k}", 0.03, 0.04, loc, "Z", m["steel"], hull, seg=6, rot=rot, lods=FINE)
         # Smoke dischargers on the upper hull's front cheeks.
         VP.smoke_discharger_bank(f"smoke_{s}", (GLACIS_TOP + 0.10, side * 1.30, ROOF - 0.32), m, hull, count=4,
                                  tube_radius=0.045, tube_length=0.22, elevation=0.4, spread=0.4,
