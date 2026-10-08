@@ -47,6 +47,7 @@ test("the compiled artifact reaches the existing public world without a plan int
         part.yaw,
         ...part.half_extents,
         part.base_z,
+        -1, // wreckOf: a building is no unit's wreck
       ],
     );
     expected.push(
@@ -60,6 +61,7 @@ test("the compiled artifact reaches the existing public world without a plan int
       0.6,
       0.6,
       0,
+      -1,
     );
     expect(Array.from(world.props())).toEqual(expected.map(Math.fround));
     expect(JSON.parse(world.buildings())).toEqual({

@@ -107,7 +107,7 @@ test("the public picker and delivered replacements share one physical building o
         },
       ],
     });
-    expect(Array.from(exports.props).slice(0, 20)).toEqual([
+    expect(Array.from(exports.props).slice(0, 2 * layout.propStride)).toEqual([
       0,
       0,
       layout.propKinds.indexOf("building"),
@@ -118,6 +118,7 @@ test("the public picker and delivered replacements share one physical building o
       3,
       4,
       0,
+      -1, // wreckOf: no unit's wreck
       1,
       0,
       layout.propKinds.indexOf("building"),
@@ -128,6 +129,7 @@ test("the public picker and delivered replacements share one physical building o
       2,
       4,
       0,
+      -1,
     ]);
     expect(view.raycast(420, 301, 2, -1, 0, 0, 30)[7]).toBe(1);
     expect(
