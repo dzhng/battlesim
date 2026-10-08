@@ -345,7 +345,7 @@ export async function run(ctx) {
   // ---- `?bundle=`: a baked catalog served at the site root, through the loader.
   // The workbench loads the unit art its session's (test) units wear, so the
   // synthetic bake is served under the test units' appearance names.
-  const WORN = { tank: "test_tank", rifleman: "test_rifle", truck: "test_supply_truck" };
+  const WORN = { tank: "test_tank", rifleman: "test_rifle" };
   const bakeModule = `/@fs${new URL("../../packages/scene-assets/src/bake.ts", import.meta.url).pathname}`;
   const files = await wb(
     page,

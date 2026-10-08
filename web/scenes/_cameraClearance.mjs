@@ -127,14 +127,13 @@ export async function flyTown(ctx, page, town, boxes, { shots = 4, reps = 20 } =
   // those it would ask an eye inside a neighbour of (on ground at the
   // building's base): one standing alone on a square tests nothing.
   const fromTown = (b) => Math.hypot(b.center[0] - town[0], b.center[1] - town[1]);
+  const nearest = [...boxes].sort((a, b) => fromTown(a) - fromTown(b));
   const box =
-    [...boxes]
-      .sort((a, b) => fromTown(a) - fromTown(b))
-      .find((b) =>
-        townMoves(town, b).spiral.some(
-          (p) => gap(eyeOf({ ...p, target: [...p.target, b.baseZ] }), boxes) < envelope,
-        ),
-      ) ?? boxes.reduce((a, b) => (fromTown(a) <= fromTown(b) ? a : b));
+    nearest.find((b) =>
+      townMoves(town, b).spiral.some(
+        (p) => gap(eyeOf({ ...p, target: [...p.target, b.baseZ] }), boxes) < envelope,
+      ),
+    ) ?? nearest[0];
   await lab(page, () => window.__lab.suppressFog(true));
   const moves = townMoves(town, box);
   const out = { envelope, boxes: boxes.length, moves: {} };

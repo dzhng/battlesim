@@ -644,8 +644,8 @@ export async function run(ctx) {
   );
 
   // A request for no such map says so, and starts no battle. It names a
-  // faction (slice 07 refuses a link without one first), so the size is its
-  // one fault.
+  // faction (a link without one is refused for that first), so the size is
+  // its one fault.
   const refused = await ctx.newPage({ allowErrors: true });
   await refused.goto(`${ctx.url}?type=metro&size=tiny&faction=us`);
   await refused.getByTestId("error").waitFor();
