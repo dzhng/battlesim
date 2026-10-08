@@ -54,10 +54,18 @@ in its folder. Nothing else supplies a frame, so an appearance no unit draws
 cannot be exported, and its tests run without Blender:
 `python3 -m unittest discover -s packages/scene-assets/blender -p 'catalog_frames_test.py'`.
 
+A rebuilt family's script (`roster/abrams.py`, `stryker.py`, `humvee.py`, …)
+says only what its vehicle looks like and how it is wrecked; [the shared
+export run](vehicle_export.py) does the rest the same way for every family:
+variants and frames, materials by role, mount rigs, crew, tiers, wreck and
+export.
+
 Every vehicle has its own wreck. A roster exporter given `--wreck` writes its
-vehicle's interim wreck beside the live one (`<appearance>_wreck.glb`, and
+vehicle's wreck beside the live one (`<appearance>_wreck.glb`, and
 `_hull`/`_turret` pieces where it has a turret to throw), burnt through
-[one helper](wreckage.py) until its family is rebuilt with a modelled wreck.
+[one helper](wreckage.py). A rebuilt family models its damage first (wheels
+and plates torn off, warped and dented hulls, debris); a family not yet
+rebuilt has only the interim burn.
 
 Subject exporters build vehicles, wrecks, props, trees and forest-floor material.
 Shared part, masonry, texture and damage helpers keep frame conventions and seeded

@@ -266,7 +266,127 @@ def track_run(name, loc, span, end_radius, width, pitch, mats, parent, thickness
     return node
 
 
+def _convex_hull_2d(points):
+    """The convex hull of 2D points, counter-clockwise (monotone chain)."""
+    pts = sorted(set(points))
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    lower, upper = [], []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
+
+
+def track_loop(name, wheels, y, width, pitch, mats, parent, thickness=0.08):
+    """A closed track belt wrapped round every wheel it touches, as a real run
+    is: `wheels` are (x, z, radius) circles in the side plane (road wheels,
+    sprocket, idler, return rollers), and the belt's centre line is their
+    convex hull grown by half its `thickness`, so the lower run lies under the
+    road wheels, the ends wrap the sprocket and idler and the upper run rests
+    on the rollers. Centred across on `y`, `width` wide. Links are the 'track'
+    texture only: u runs along the belt in links, v across it. Node: the empty
+    `name` (`track_L` or `track_R`) at the parent's origin, carrying
+    `track_length_m` and `link_pitch_m`, returned; its belt is its only mesh.
+    Roles: track."""
+    if name not in ("track_L", "track_R"):
+        raise ValueError(f"a track node is named track_L or track_R: {name}")
+    grown = []
+    for x, z, r in wheels:
+        for k in range(96):
+            a = k * math.tau / 96
+            grown.append((round(x + (r + thickness / 2) * math.cos(a), 5), round(z + (r + thickness / 2) * math.sin(a), 5)))
+    loop = _convex_hull_2d(grown)
+    segments = []
+    length = 0.0
+    for i, a in enumerate(loop):
+        b = loop[(i + 1) % len(loop)]
+        step = math.hypot(b[0] - a[0], b[1] - a[1])
+        segments.append((a, b, length, step))
+        length += step
+    node = empty(name, parent=parent, props={"track_length_m": length, "link_pitch_m": pitch})
+    spacing = (0.06, 0.14, 0.32, 0.7)
+
+    def at(d):
+        for a, b, start, step in segments:
+            if d <= start + step or (a, b) == segments[-1][:2]:
+                t = 0.0 if step == 0 else min(1.0, (d - start) / step)
+                return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
+        return segments[-1][1]
+
+    def belt(bm, lod):
+        n = max(12, int(length / spacing[lod]))
+        centre = [at(k * length / n) for k in range(n)]
+        uv = bm.loops.layers.uv.new("UVMap")
+        half = thickness / 2
+        # across the belt (w 0..1) and out from its centre line (r)
+        profile = ((0, -half), (0, half), (1, half), (1, -half))
+        rings = []
+        for i, p in enumerate(centre):
+            ahead = centre[(i + 1) % n]
+            behind = centre[i - 1]
+            tx, tz = ahead[0] - behind[0], ahead[1] - behind[1]
+            norm = math.hypot(tx, tz) or 1.0
+            nx, nz = tz / norm, -tx / norm  # outward for a counter-clockwise loop
+            rings.append([bm.verts.new((p[0] + nx * r, y - width / 2 + w * width, p[1] + nz * r)) for w, r in profile])
+        for i in range(n):
+            j = (i + 1) % n
+            u0 = i * length / n / pitch
+            u1 = (i + 1) * length / n / pitch
+            for k in range(4):
+                k2 = (k + 1) % 4
+                face = bm.faces.new((rings[i][k], rings[i][k2], rings[j][k2], rings[j][k]))
+                v0, v1 = profile[k][0], profile[k2][0]
+                if k in (0, 2):  # the belt's edge faces: v across its thickness
+                    v0, v1 = (0.0, thickness / pitch) if k == 0 else (thickness / pitch, 0.0)
+                for loop_, (uu, vv) in zip(face.loops, ((u0, v0), (u0, v1), (u1, v1), (u1, v0))):
+                    loop_[uv].uv = (uu, vv)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+
+    mesh_part(f"{name}_band", belt, mat=mats["track"], parent=node)
+    return node
+
+
 # ---------------------------------------------------------------- hull and turret fittings
+def cable(name, points, mats, parent, radius=0.02, eyes=True, loc=(0, 0, 0), rot=(0, 0, 0)):
+    """A steel tow cable along `points` (in the part's frame), clipped down
+    where it runs, with a loop eye at each end where `eyes`. Returns its
+    meshes. Roles: steel, dark."""
+    made = _tube_part(name=f"{name}_rope", path_for=lambda lod: points, radius=radius, mat=mats["steel"],
+                      parent=parent, lods=MID)
+    if eyes:
+        for k, (end, inner) in enumerate(((points[0], points[1]), (points[-1], points[-2]))):
+            d = Vector(end) - Vector(inner)
+            yaw = math.atan2(d.y, d.x)
+            ex, ey, ez = end
+            centre = (ex + math.cos(yaw) * radius * 4, ey + math.sin(yaw) * radius * 4, ez)
+
+            def eye(lod, centre=centre, yaw=yaw):
+                steps = (10, 6, 4, 4)[lod]
+                ring = []
+                for j in range(steps + 1):
+                    a = math.tau * j / steps
+                    ring.append((centre[0] + math.cos(yaw) * math.cos(a) * radius * 4 - math.sin(yaw) * math.sin(a) * radius * 3,
+                                 centre[1] + math.sin(yaw) * math.cos(a) * radius * 4 + math.cos(yaw) * math.sin(a) * radius * 3,
+                                 centre[2]))
+                return ring
+
+            made += _tube_part(name=f"{name}_eye_{k}", path_for=eye, radius=radius * 0.8, mat=mats["steel"],
+                               parent=parent, lods=NEAR)
+    for k, p in enumerate(points[1:-1]):
+        made += box(name=f"{name}_clip_{k}", size=(0.05, radius * 4, radius * 2.5), loc=p, mat=mats["dark"],
+                    parent=parent, lods=FINE)
+    return _place(made, loc, rot)
+
+
+
 def hatch(name, loc, mats, parent, radius=None, size=None, rot=(0, 0, 0)):
     """A closed hinged hatch lying in its local XY plane on the roof at `loc`:
     round (`radius`) or rectangular (`size` = (x, y)), exactly one of them. A
@@ -445,6 +565,30 @@ def antenna(name, loc, mats, parent, height=2.4, radius=0.008, rot=(0, 0, 0)):
     made += cyl(name=f"{name}_whip", r=radius, r2=radius * 0.5, depth=height, loc=(0, 0, 0.1 + height / 2),
                 mat=mats["dark"], parent=parent, seg=6, min_seg=4, lods=NEAR)
     return _place(made, loc, rot)
+
+
+# ---------------------------------------------------------------- weapons
+def browning_m2(parent, reach, mats, receiver_x=0.06, grips=False):
+    """The M2 heavy machine gun on its mount's pitch node `parent`, firing
+    along +X to the muzzle `reach` metres out: receiver centred at
+    `receiver_x`, the barrel and its jacket, the flash hider, and with `grips`
+    the spade grips a standing gunner holds. Every piece is named `m2_*`.
+    Returns its meshes. Roles: dark, steel, black."""
+    barrel_from = receiver_x + 0.26
+    made = []
+    made += box(name="m2_receiver", size=(0.52, 0.13, 0.15), loc=(receiver_x, 0, 0), mat=mats["dark"], parent=parent,
+                bevel=0.012)
+    made += cyl(name="m2_barrel", r=0.024, depth=reach - barrel_from, loc=((reach + barrel_from) / 2, 0, 0), axis="X",
+                mat=mats["steel"], parent=parent, seg=10)
+    made += cyl(name="m2_jacket", r=0.040, depth=0.22, loc=(barrel_from + 0.11, 0, 0), axis="X", mat=mats["dark"],
+                parent=parent, seg=12, lods=MID)
+    made += cyl(name="m2_flash_hider", r=0.034, r2=0.026, depth=0.08, loc=(reach - 0.04, 0, 0), axis="X",
+                mat=mats["steel"], parent=parent, seg=10, lods=NEAR)
+    if grips:
+        for side in (-1, 1):
+            made += cyl(name=f"m2_grip_{side}", r=0.018, depth=0.12, loc=(receiver_x - 0.30, side * 0.07, -0.02),
+                        mat=mats["black"], parent=parent, seg=8, lods=NEAR)
+    return made
 
 
 # ---------------------------------------------------------------- stowage

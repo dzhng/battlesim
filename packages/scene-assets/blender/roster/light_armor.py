@@ -1,4 +1,5 @@
-"""Named US light armor: shared running gear, explicit family hulls and mount hardware."""
+"""Named US light armor (Bradley, LAV): shared running gear, explicit family hulls and mount hardware.
+Stryker and HMMWV are rebuilt in their own scripts (roster/stryker.py, roster/humvee.py)."""
 import bpy, bmesh, sys, os, math, json
 from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -9,7 +10,7 @@ from wreckage import WRECK_ARG, burn, export_wreck
 
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
-SCHEME={'bradley':'us_desert_tan','stryker':'us_desert_tan','lav':'us_desert_tan','humvee':'us_desert_tan','jltv':'us_desert_tan'}
+SCHEME={'bradley':'us_desert_tan','lav':'us_desert_tan'}
 
 def build(family):
     args=script_args(); variant,out=requested_variant(family,args)
@@ -68,12 +69,12 @@ def build(family):
                     box('armor_tile_'+str(side)+'_'+str(j)+'_'+str(k),(.73,.08,.28),(-2.60+j*.82,side*1.83,1.18+k*.33),paint,body,bevel=.008,lods=(0,1,2))
         for j in range(8):box('engine_deck_grille_'+str(j),(.055,.81,.025),(1.15+j*.10,-.71,2.00),dark,body,lods=(0,1))
         roof=2.06
-    elif family in ('stryker','lav'):
-        islav=family=='lav'; roof=(1.94 if ident=='us_lav_lav_at' else 1.69) if islav else (1.69 if 'm1296' in ident else 2.545)
+    else:
+        roof=1.94 if ident=='us_lav_lav_at' else 1.69
         profile=[(-L/2,.78),(L/2-.18,.65),(L/2,1.02),(L/2-1.10,roof),(-L/2+.08,roof)]
         prism(family+'_hull',profile,W-.48,mat=paint,parent=body,bevel=.035)
-        r=.49 if islav else .56
-        for i,x in enumerate(([2.19,1.02,-1.03,-2.19] if islav else [2.35,1.16,-1.15,-2.33])):
+        r=.49
+        for i,x in enumerate([2.19,1.02,-1.03,-2.19]):
             row=['F0','F1','R0','R1'][i]
             for side in (-1,1):
                 wheel(row,x,side,r,W/2-.20,.38)
@@ -82,53 +83,8 @@ def build(family):
         for side in (-1,1):
             box('upper_side_'+str(side),(L-1.55,.12,.25),(-.44,side*(W/2-.19),roof-.17),paint,body)
             for j in range(4):box('stowage_'+str(side)+'_'+str(j),(.66,.16,.25),(-2.25+j*.92,side*(W/2-.08),roof-.17),dark,body,lods=(0,1,2))
-        if not islav:box('driver_periscope',(.40,.36,.13),(1.47,.57,roof+.03),glass,body)
-    elif family=='humvee':
-        # HMMWV silhouette: short hood, upright split windscreen, exposed
-        # wheel arches and a compact rear bed under the ring mount.
-        roof=2.18
-        for i,x in enumerate((1.65,-1.55)):
-            for side in (-1,1):
-                wheel('F' if i==0 else 'R',x,side,.54,1.04,.40)
-                box('humvee_fender_'+str(i)+str(side),(1.42,.38,.15),(x,side*1.01,1.13),paint,body,bevel=.05)
-        prism('humvee_cab',[(-1.42,.91),(1.18,.91),(1.08,1.66),(.70,roof),(-1.25,roof)],2.04,mat=paint,parent=body,bevel=.045)
-        prism('humvee_hood',[(1.00,1.00),(2.72,1.00),(2.62,1.38),(1.18,1.52)],1.90,mat=paint,parent=body,bevel=.045)
-        box('humvee_rear_bed',(1.65,2.02,.42),(-1.98,0,1.18),paint,body,bevel=.035)
-        box('humvee_bumper',(.18,2.30,.20),(2.75,0,.92),dark,body)
-        box('humvee_grille',(.035,1.06,.28),(2.82,0,1.29),dark,body)
-        for j in range(7): box('humvee_grille_bar_'+str(j),(.04,.035,.24),(2.84,-.43+j*.14,1.29),paint,body,lods=(0,1))
-        for side in (-1,1):
-            box('humvee_windscreen_'+str(side),(.035,.72,.48),(.88,side*.42,1.86),glass,body,rot=(0,-.57,0))
-            box('humvee_mirror_'+str(side),(.10,.16,.20),(.73,side*1.20,1.98),dark,body,lods=(0,1,2))
-            for j,x in enumerate((.25,-.72)):
-                box('humvee_door_'+str(side)+str(j),(.85,.032,.91),(x,side*1.03,1.48),paint,body,bevel=.02)
-                box('humvee_window_'+str(side)+str(j),(.68,.034,.39),(x,side*1.05,1.99),glass,body,bevel=.02)
-            box('humvee_bed_rail_'+str(side),(1.58,.08,.38),(-1.96,side*.98,1.56),paint,body)
-    else:
-        roof=2.535
-        for i,x in enumerate((2.13,-1.86)):
-            for side in (-1,1):
-                wheel('F' if i==0 else 'R',x,side,.60,1.03,.42)
-                box('fender_'+str(i)+str(side),(1.46,.46,.16),(x,side*.98,1.22),paint,body,bevel=.06)
-        prism('jltv_armored_cab',[(-1.16,.94),(1.35,.94),(1.24,1.90),(.70,roof),(-1.08,roof)],2.03,mat=paint,parent=body,bevel=.055)
-        prism('jltv_short_hood',[(1.10,1.03),(3.01,1.03),(2.91,1.47),(1.25,1.66)],1.85,mat=paint,parent=body,bevel=.055)
-        box('jltv_rear_bed',(1.80,2.02,.44),(-2.16,0,1.22),paint,body,bevel=.04)
-        box('front_bumper',(.18,2.35,.22),(3.02,0,.94),dark,body)
-        box('front_grille',(.03,1.18,.29),(3.08,0,1.36),dark,body)
-        for j in range(7):box('jltv_grille_bar_'+str(j),(.035,.035,.27),(3.101,-.48+j*.16,1.36),paint,body,lods=(0,1))
-        for side in (-1,1):
-            cyl('jltv_headlamp_'+str(side),.12,.055,(3.035,side*.77,1.39),'X',glass,body,seg=16)
-            box('jltv_step_'+str(side),(1.85,.22,.10),(-.12,side*1.08,.88),dark,body)
-            box('jltv_mirror_'+str(side),(.10,.17,.24),(.82,side*1.21,2.16),dark,body,lods=(0,1,2))
-        for side in (-1,1):
-            box('windscreen_'+str(side),(.035,.75,.54),(1.01,side*.43,2.14),glass,body,rot=(0,-.65,0))
-            for j,x in enumerate((.33,-.67)):
-                box('door_'+str(side)+str(j),(.89,.032,1.02),(x,side*1.033,1.525),paint,body,bevel=.025)
-                box('window_'+str(side)+str(j),(.74,.034,.47),(x,side*1.055,2.23),glass,body,bevel=.025)
-            box('bed_rail_'+str(side),(1.73,.085,.43),(-2.14,side*.97,1.62),paint,body)
-
     # Hatches/periscopes, stored equipment and rear lamps belong to each hull.
-    for j,x in enumerate((.20,-.70) if family=='jltv' else (.95,-1.48)):
+    for j,x in enumerate((.95,-1.48)):
         cyl('roof_hatch_'+str(j),.28,.07,(x,-.48,roof+.03),'Z',paint,body,seg=16)
     for side in (-1,1):
         box('rear_lamp_'+str(side),(.055,.16,.08),(-L/2-.012,side*(W*.32),1.12),steel,body,lods=(0,1,2))
@@ -145,7 +101,7 @@ def build(family):
             for side in (-1,1):
                 cyl('tow_tube_'+str(side),.165,1.50,(muzzle.x-.75,side*.20,0),'X',paint,pitch,seg=16)
                 cyl('tow_opening_'+str(side),.127,.035,(muzzle.x-.012,side*.20,0),'X',dark,pitch,seg=16)
-            if family in ('bradley','lav','stryker'):
+            if family in ('bradley','lav'):
                 box('armored_tow_carrier',(1.54,.77,.10),(muzzle.x-.77,0,-.21),paint,pitch)
                 box('armored_tow_hood',(1.54,.77,.075),(muzzle.x-.77,0,.25 if family=='lav' else .21),paint,pitch)
                 for side in (-1,1):box('armored_tow_side_'+str(side),(1.54,.06,.43),(muzzle.x-.77,side*.37,0),paint,pitch)
@@ -154,13 +110,10 @@ def build(family):
                 base=roof-pivot.z;top=-.16
                 cyl('tow_pedestal',.23,top-base,(0,0,(base+top)/2),'Z',paint,yaw,seg=16)
                 box('tow_pedestal_support',(.42,.42,top-base),(-.07,0,(base+top)/2),paint,yaw,bevel=.02)
-            elif family=='stryker':
-                base=roof-pivot.z;top=-.16
-                cyl('tow_pedestal',.23,top-base,(0,0,(base+top)/2),'Z',paint,yaw,seg=16)
             else:cyl('tow_pedestal',.23,.34,(0,0,-.28),'Z',paint,yaw,seg=16)
         elif gun:
-            brad=family=='bradley'; drag='m1296' in ident
-            width=1.48 if brad else (1.66 if drag else 1.35)
+            brad=family=='bradley'
+            width=1.48 if brad else 1.35
             prism('named_turret',[(-.85,0),(.79,0),(.87,.28),(.32,.72),(-.71,.70)],width,mat=paint,parent=yaw,bevel=.035)
             box('gun_mantlet',(.39,.46,.39),(.71,0,0),paint,pitch,bevel=.04)
             start=.76; length=muzzle.x-start
@@ -174,19 +127,13 @@ def build(family):
                 cyl('commander_viewer_base',.18,.20,(-.48,-.45,.88),'Z',paint,yaw,seg=16)
                 box('commander_viewer',(.29,.29,.24),(-.48,-.45,.99),glass,yaw)
                 if 'm3_' in ident:box('cfv_stowage_basket',(.45,1.28,.28),(-1.02,0,.44),dark,yaw)
-            if drag:box('dragoon_sensor_head',(.33,.32,.28),(-.32,-.49,.83),glass,yaw)
         else:
-            base=roof-pivot.z if family in ('stryker','jltv') else -.29;top=.22 if family in ('stryker','jltv') else -.07
+            base=-.29;top=-.07
             cyl('remote_weapon_pedestal',.19,top-base,(0,0,(base+top)/2),'Z',paint,yaw,seg=16)
             box('hmg_receiver',(.63,.18,.20),(.43,0,0),dark,pitch)
             cyl('hmg_barrel',.039,muzzle.x-.70,((muzzle.x+.70)/2,0,0),'X',steel,pitch,seg=12)
             box('ammo_box',(.35,.30,.30),(.25,.30,-.08),paint,pitch)
             box('remote_sight',(.27,.25,.22),(.33,-.24,.14),glass,pitch)
-            if family=='jltv':
-                for side in (-1,1):box('gunner_shield_'+str(side),(.90,.08,.40),(.15,side*.51,.10),paint,yaw,bevel=.025)
-            if 'm1127' in ident:
-                cyl('recon_sensor_pedestal',.10,.43,(-.54,.49,.12),'Z',paint,yaw,seg=12)
-                box('recon_sensor_head',(.31,.36,.23),(-.54,.49,.42),glass,yaw)
     # Track bottom is already within ground tolerance; preserve all frozen pivot heights.
     wreck=WRECK_ARG in args
     if wreck:burn()

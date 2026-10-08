@@ -321,11 +321,12 @@ def burn():
     from parts import SCORCH, textured
     shell = textured("wreck_steel", "burnt_metal", chip=0.6, dirt=0.3, soot=0.6, ash=0.3, seed=7.0)
     char = textured("wreck_char", "burnt_metal", colour=(0.02, 0.019, 0.018), chip=0.2, dirt=0.2, seed=9.0)
-    for o in list(bpy.data.objects):
-        dressing = any(a.name.startswith("dressing_") for a in (o, *_ancestors(o)))
-        crew = o.type == "MESH" and any(m and m.name.startswith("crew_") for m in o.data.materials)
-        if dressing or crew:
-            bpy.data.objects.remove(o, do_unlink=True)
+    # Decide everything first: removing a dressing node would orphan its parts.
+    gone = [o for o in bpy.data.objects
+            if any(a.name.startswith("dressing_") for a in (o, *_ancestors(o)))
+            or (o.type == "MESH" and any(m and m.name.startswith("crew_") for m in o.data.materials))]
+    for o in gone:
+        bpy.data.objects.remove(o, do_unlink=True)
     for o in bpy.data.objects:
         if o.type != "MESH":
             continue
