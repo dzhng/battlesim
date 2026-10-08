@@ -109,7 +109,7 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None):
             continue
         reset()
         P.SCORCH.clear()
-        v = Vehicle(variant, materials(scheme))
+        v = Vehicle(variant, materials(scheme[variant["id"]] if isinstance(scheme, dict) else scheme))
         v.wreck = wrecking
         build(variant, v)
         if check is not None and not wrecking:
@@ -200,7 +200,8 @@ def _measured(skip):
 def run_disabled(family, cards, scheme, build, wreck=None, skip=("dressing_",), ao_distance=1.0, ao_rays=8):
     """Export a disabled card family: `cards` maps each card id to the
     (length, width, height) its script states from its references, its frame
-    (`catalog_frames.disabled_variant`). The built model must measure that
+    (`catalog_frames.disabled_variant`); `scheme` is the family's, or one
+    per card id. The built model must measure that
     frame within `FRAME_TOLERANCE`, leaving out the nodes `skip` names (a
     rotor disc, dressing). Each card writes its `source_path`; the family's
     receipt, beside them, records each card's frame source."""
