@@ -593,14 +593,13 @@ export function buildDeploymentMarker(
   const { cycles_per_s, amplitude } = style.march;
   for (let i = 0; i < 3; i++) {
     // Keep the cue compact: three chevrons stacked along the entry lane.
-    const tip = along(along(destination, facing, 5), facing + Math.PI / 2, (i - 1) * 8);
-    const back = facing + Math.PI;
-    const left = along(along(tip, back, 5), facing + Math.PI / 2, 6);
-    const right = along(along(tip, back, 5), facing - Math.PI / 2, 6);
+    const tip = along(along(destination, facing, 4), facing + Math.PI / 2, (i - 1) * 18);
     const chevronColor = fadeAlpha(color, i === 1 ? 1 : 0.62);
-    const width = Math.max(pen.line * 1.6, 1.5);
-    groundStrip(mesh, left, tip, width, chevronColor, { z: pen.z, lift: 0.12 });
-    groundStrip(mesh, right, tip, width, chevronColor, { z: pen.z, lift: 0.12 });
+    const tail = along(tip, facing + Math.PI, 18);
+    const left = along(tail, facing + Math.PI / 2, 18);
+    const right = along(tail, facing - Math.PI / 2, 18);
+    groundStrip(mesh, left, tip, 4, chevronColor, { z: pen.z, lift: 0.8 });
+    groundStrip(mesh, right, tip, 4, chevronColor, { z: pen.z, lift: 0.8 });
     marchChevron(
       mesh,
       pen,
@@ -608,8 +607,13 @@ export function buildDeploymentMarker(
       facing,
       chevronColor,
       [i * 0.25, cycles_per_s, amplitude],
-      [5, 10],
+      [7, 12],
     );
+    // Keep the shape readable between animation peaks; the center chevron's
+    // second pass carries the marching pulse.
+    marchChevron(mesh, pen, tip, facing, chevronColor, [0, 0, 0], [7, 12]);
+    if (i === 1)
+      marchChevron(mesh, pen, tip, facing, color, [0, cycles_per_s, amplitude], [7, 12]);
   }
   return mesh.build();
 }
