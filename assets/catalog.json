@@ -2858,7 +2858,7 @@
         0.85
       ],
       "tolerances": {
-        "footprint_m": 0.4
+        "footprint_m": 0.8
       }
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
