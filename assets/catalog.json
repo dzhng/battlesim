@@ -2276,7 +2276,10 @@
         3.683,
         1.25,
         1.5025
-      ]
+      ],
+      "tolerances": {
+        "footprint_m": 0.8
+      }
     },
     "us_m1151_hmmwv_hmg": {
       "unit": "vehicle",
