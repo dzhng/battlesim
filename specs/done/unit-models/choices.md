@@ -1264,6 +1264,101 @@ Spec: [slice 02](../../unit-models-followup/slices/02-wreck-debris.md).
 - **Verdict:** sound.
 - **Confidence:** high.
 
+## Follow-up 03
+
+Disabled air and helicopter cards at the roster bar (2026-10-08), after the
+user overruled [the lower detail](#disabled-cards-were-accepted-at-a-lower-detail-than-roster-units).
+Spec: [slice 03](../../unit-models-followup/slices/03-disabled-air.md).
+
+### The old airframes put their cockpits and gear too far forward
+
+- **The choice:** Measuring each side photo (stations as a fraction of the
+  stated length, heights against the stated height where the camera allows)
+  showed the same fault in most jets: the canopy 0.5-2 m too far forward and
+  often too short, the nose gear and mains a metre or more forward, and in
+  several (F-35, A-10, Typhoon, Tornado, Gripen, Mirage) a body too shallow
+  or sitting too low. Each was rebuilt to its photo, and every canopy now
+  fairs into a dorsal spine instead of ending in a wall. Frames (length,
+  span, height) didn't move; where a raised body pushed a fin above the
+  stated height, the fin was shortened.
+- **The gap:** Some photos are three-quarter or in flight (Su-27, Su-34,
+  J-10, J-20, Su-25), so their stations are judged, not measured; their
+  layouts were kept where nothing contradicted them.
+- **The reach:** The disabled frames are art-only, so nothing in the
+  simulation moved.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Markings are paint pressed onto the skin, from the photo's air arm
+
+- **The choice:** `aircraft_parts.insignia` and `lettering` lay a national
+  insignia (layers of outlines, `INSIGNIA`) or letters on a plane and press
+  each vertex onto the near-tier skin of the parts named by `onto` along a
+  ray, standing 6 mm off it, so a decal follows a curved fuselage instead of
+  floating as a flat card. Each card wears the markings of the air arm in its
+  side photo (RAF Typhoon, Luftwaffe Tornado, Flygvapnet Gripen, Armée de
+  l'air Rafale and Mirage, US low-visibility greys, VKS red stars, PLA stars
+  and bars) with that photo's codes and numbers. The crash burns them off
+  (`marking_*` go with the canopy glass). Colours are one marking paint per
+  `MARK` key, role `marking`.
+- **The gap:** The Swedish crowns are three gold spots and the A-10's shark
+  mouth is left off: neither shape is a star-shaped outline the layers can
+  draw. Cyrillic titles use Blender's built-in font.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Shared detail lives in aircraft_parts, so every airframe gains it
+
+- **The choice:** Framed canopies (windscreen arch and bows in the
+  airframe's paint, sill frames), control-surface hinge lines (`hinges`),
+  nav lights, gear drag braces, torque links, hub caps and bolts, taxi
+  lights, pylon sway braces, missiles on launch rails with canards and live
+  bands, bomb fuzes, and on every main rotor (over 2.5 m) a swashplate,
+  pitch links and blade cuffs. Blade tips can take a paint (`tips`); no card
+  uses it, as no photo settled it.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Helicopters got the shared detail and markings, not a re-measure
+
+- **The choice:** The Apache was measured against its side photo and rebuilt
+  (the tandem glass standing out of the body, half a metre aft; the engines
+  higher; the mains under the gunner). The other fifteen rotorcraft cards took
+  the shared rotor, gear and store detail and their air arm's markings, and
+  were checked by eye against their photos, but their cabin cross-sections
+  were not re-measured station by station.
+- **The gap:** The slice asks for cabin depth and cross-sections from the
+  references for every family; this pass ran out of room for fifteen of
+  them.
+- **The reach:** The "slim cabins" the closeout named may remain on the
+  H-1s, Little Birds, Chinooks, Tigers, NH90, Merlin, Wildcat, UH-60, Z-20,
+  Mi-8, Mi-35, Mi-28, Ka-52 and Z-10.
+- **Verdict:** needs-user. Provisional: as shipped. To finish: measure each
+  side photo as the jets were and rebuild the cabins.
+- **Confidence:** medium.
+
+### The NH90 stays 3.6 m wide
+
+- **The choice:** A second source, [Army Technology](https://www.army-technology.com/projects/nh90-tactical-transport-helicopter/),
+  gives the same 4.62 m width as Vertipedia beside a 19.56 m length "rotors
+  turning" and a 5.2 m height that only the turning tail rotor reaches. The
+  4.62 m is the overall figure, not the fixed airframe, so the card keeps
+  3.6 m over its sponsons.
+- **Verdict:** sound. It closes [the NH90's width](#the-nh90s-width) unless a
+  drawing says otherwise.
+- **Confidence:** medium.
+
+### Disabled wrecks throw debris but have no catalog entry to name it
+
+- **The choice:** Every air wreck was re-exported through `vehicle_export`
+  after slice 02 merged, so each writes its `_wreck_debris.glb`, and the
+  crash's own plates beside the fuselage are `litter_*`. Disabled cards have
+  no catalog entry, so there is no `debris` state to add; a lone file can't
+  be held to `fit.debris` or count its tiers with its whole, so those two
+  checks were read past when validating the debris files.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause
