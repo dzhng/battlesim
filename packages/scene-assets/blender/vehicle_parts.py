@@ -19,7 +19,7 @@ Contracts every part keeps:
 - Spinning nodes: wheel-like parts make an empty named `name` (which must
   start with `wheel_`) at `loc`, unrotated, carrying `radius_m`; the renderer
   turns it about its local Y. Their meshes are its direct children and they
-  return that empty. `track_run` makes the empty `track_L` or `track_R`
+  return that empty. `track_loop` makes the empty `track_L` or `track_R`
   carrying `track_length_m` and `link_pitch_m`; every vertex under a track
   node scrolls its UVs with the links, so its belt is the only thing under it.
 - Static parts make no empty (every empty is an articulated node in the
@@ -232,69 +232,6 @@ def return_roller(name, loc, radius, width, mats, parent):
     returned. Roles: dark."""
     node = wheel_node(name, loc, radius, parent)
     cyl(name=f"{name}_roller", r=radius, depth=width, axis="Y", mat=mats["dark"], parent=node, seg=16, lods=NEAR)
-    return node
-
-
-def track_run(name, loc, span, end_radius, width, pitch, mats, parent, thickness=0.08):
-    """A closed track belt round two end wheels of radius `end_radius`, their
-    centres `span` apart along X, centred on `loc` (x, the track's centre line
-    y, the end wheels' z). Links, shoes and guide horns are the 'track'
-    texture and normal map only: u runs along the belt in links (metres /
-    `pitch`), v across it. Node: the empty `name` (`track_L` or `track_R`) at
-    the parent's origin, carrying `track_length_m` (the loop's centre line)
-    and `link_pitch_m`, returned; its belt is the only mesh under it. Roles:
-    track."""
-    if name not in ("track_L", "track_R"):
-        raise ValueError(f"a track node is named track_L or track_R: {name}")
-    half = span / 2
-    loop_length = 2 * span + math.tau * end_radius
-    node = empty(name, parent=parent, props={"track_length_m": loop_length, "link_pitch_m": pitch})
-    cx, cy, cz = loc
-
-    def belt(bm, lod):
-        steps = (24, 14, 8, 5)[lod]
-        outer = []
-        inner = []
-        for end_x, start in ((half, -math.pi / 2), (-half, math.pi / 2)):
-            for j in range(steps + 1):
-                theta = start + j * math.pi / steps
-                outer.append((cx + end_x + (end_radius + thickness / 2) * math.cos(theta),
-                              cz + (end_radius + thickness / 2) * math.sin(theta)))
-                inner.append((cx + end_x + (end_radius - thickness / 2) * math.cos(theta),
-                              cz + (end_radius - thickness / 2) * math.sin(theta)))
-        # rings[surface][edge][j]: surface 0 outer, 1 inner; edge 0 at -y, 1 at +y
-        rings = []
-        for profile in (outer, inner):
-            edges = []
-            for y in (-width / 2, width / 2):
-                edges.append([bm.verts.new((x, cy + y, z)) for x, z in profile])
-            rings.append(edges)
-        uv = bm.loops.layers.uv.new("UVMap")
-        count = len(outer)
-        along = 0.0
-        for j in range(count):
-            nxt = (j + 1) % count
-            step = math.hypot(outer[nxt][0] - outer[j][0], outer[nxt][1] - outer[j][1])
-            for surface, reverse in ((rings[0], False), (rings[1], True)):
-                verts = [surface[0][j], surface[0][nxt], surface[1][nxt], surface[1][j]]
-                face = bm.faces.new(verts[::-1] if reverse else verts)
-                for loop in face.loops:
-                    corner = verts.index(loop.vert)
-                    u = (along + (step if corner in (1, 2) else 0)) / pitch
-                    v = 0 if corner < 2 else 1
-                    loop[uv].uv = (u, v)
-            for edge in (0, 1):
-                verts = [rings[0][edge][j], rings[1][edge][j], rings[1][edge][nxt], rings[0][edge][nxt]]
-                face = bm.faces.new(verts)
-                for loop in face.loops:
-                    corner = verts.index(loop.vert)
-                    u = (along + (step if corner in (2, 3) else 0)) / pitch
-                    v = 0 if corner in (0, 3) else thickness / pitch
-                    loop[uv].uv = (u, v)
-            along += step
-        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-
-    mesh_part(f"{name}_band", belt, mat=mats["track"], parent=node)
     return node
 
 
