@@ -17,6 +17,13 @@ export async function run(ctx) {
     JSON.stringify({ contacts: o.contacts, identified: o.identified.map((e) => e.kind) }),
   );
   if (!firing) throw new Error("contact fixture did not publish firing evidence");
+  // React takes the observation on the next animation frame, so its callout
+  // can lag the observation just read: wait for it (a missing one still fails).
+  await page
+    .locator(`[data-contact="${firing.id}"]`)
+    .first()
+    .waitFor({ state: "attached", timeout: 5000 })
+    .catch(() => {});
   const labels = await page.locator(`[data-contact="${firing.id}"]`).allTextContents();
   ctx.check(
     "unidentified firing has a truthful info label",
