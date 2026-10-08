@@ -146,7 +146,7 @@ def tyre_wheel(name, loc, radius, width, side, mats, parent, rim_radius=None, ct
         for j in range(treads):
             for k, y in enumerate((-0.25, 0.25)):
                 angle = (j + 0.5 * k) * math.tau / treads
-                at = radius - 0.005
+                at = radius - 0.02
                 box(name=f"{name}_tread_{j}_{k}", size=(0.07, width * 0.46, 0.04),
                     loc=(at * math.sin(angle), y * width, at * math.cos(angle)),
                     rot=(0, angle, (0.45 if k else -0.45) * side), mat=mats["rubber"], parent=node, lods=NEAR)

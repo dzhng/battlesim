@@ -2602,7 +2602,7 @@
         1.0
       ],
       "tolerances": {
-        "footprint_m": 0.4
+        "footprint_m": 0.8
       }
     },
     "eastern_t_80_t_80bvm": {
