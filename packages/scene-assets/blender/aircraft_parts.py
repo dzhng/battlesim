@@ -28,10 +28,10 @@ import os
 import sys
 
 import bmesh
-from mathutils import Matrix, Vector
+from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from parts import SEG_SCALE, box, cyl, empty, flat_paint, mesh_part, textured  # noqa: E402
+from parts import SEG_SCALE, box, cyl, empty, mesh_part, textured  # noqa: E402
 from vehicle_parts import ALL, FINE, MID, NEAR, _tube_part, _wheel_node  # noqa: E402
 
 # Interpolated rings per station interval, per tier: a fuselage keeps its
@@ -446,7 +446,8 @@ def crash(v, tail_x, wing_y=None, wing_side=-1, tail_yaw=0.35, tail_drop=0.18, b
     gone += [c for o in gone for c in o.children_recursive]
     for rotor_name, k in blades_broken:
         gone += [o for o in bpy.data.objects if o.name.startswith(f"blade_{rotor_name}_{k}_")]
-    for o in set(gone):
+    # In order, once each: a set's order follows object addresses, which vary run to run.
+    for o in dict.fromkeys(gone):
         bpy.data.objects.remove(o, do_unlink=True)
     bpy.context.view_layer.update()
     meshes = [o for o in bpy.data.objects if o.type == "MESH"]
@@ -500,7 +501,8 @@ def _both(rows, at):
 def jet(v, spec):
     """A fixed-wing airframe from its family's `spec` (all optional but the
     fuselage), every part named so `crash` finds it: `fuselage` (stations,
-    `seg`), `spine` (more bodies: `(name, stations)`), `canopy` (the
+    `seg`), `bodies` (more bodies: `(name, stations[, y[, seg]])`, off the
+    centreline by `y`), `canopy` (the
     `canopy()` arguments), `wing`, `strake`, `canard`, `stab` (left-side
     sections, mirrored), `fins` (`fin()` keyword sets), `intakes`
     (`(kind, loc, size..)`), `nozzles` (`nozzle()` keyword sets), `gear`
@@ -509,14 +511,16 @@ def jet(v, spec):
     mirrored), `nose_probe` (`(loc, length)`)."""
     m, hull = fit(v), v.hull
     body("fuselage", spec["fuselage"], m["paint"], hull, seg=spec.get("seg", 28))
-    for name, stations in spec.get("bodies", ()):
-        body(name, stations, m["paint"], hull, seg=spec.get("body_seg", 18))
+    for name, stations, *at in spec.get("bodies", ()):
+        y, seg = (list(at) + [0.0, 18][len(at):])[:2]
+        body(name, stations, m["paint"], hull, seg=seg, loc=(0, y, 0))
     if "canopy" in spec:
         canopy("canopy", mats=m, parent=hull, **spec["canopy"])
-    for key, lods in (("wing", ALL), ("strake", ALL), ("canard", ALL), ("stab", ALL)):
+    # Wings and their strakes and canards are `wing*` (the crash folds them),
+    # the tailplane is `tail_stab` (it breaks off with the tail).
+    for key, name in (("wing", "wing"), ("strake", "wing_strake"), ("canard", "wing_canard"), ("stab", "tail_stab")):
         if key in spec:
-            paired_surface("wing" if key == "wing" else f"tail_{key}" if key == "stab" else f"wing_{key}",
-                           spec[key], m["paint"], hull, lods=lods)
+            paired_surface(name, spec[key], m["paint"], hull)
     for k, f in enumerate(spec.get("fins", ())):
         fin(f"tail_fin_{k}", mats=m, parent=hull, **f)
     for k, (kind, *args) in enumerate(spec.get("intakes", ())):

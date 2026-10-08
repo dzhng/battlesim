@@ -31,7 +31,7 @@ SPEC = dict(
               (4.6, 0.8, 0.94, 2.32, 1.6, 2.6), (2.5, 0.82, 0.95, 2.2, 1.6, 2.6), (0.0, 0.76, 1.0, 2.06, 1.55, 2.4),
               (-3.0, 0.56, 1.24, 1.96, 1.6, 2.2), (-6.0, 0.32, 1.55, 1.96, 1.75), (-7.6, 0.16, 1.72, 1.95, 1.84)],
     bodies=[(f"nacelle_gear_{s}", [(2.9, 0.0, 0.9, 0.9), (2.4, 0.34, 0.62, 1.14, 0.9), (0.2, 0.34, 0.62, 1.12, 0.88),
-                                   (-0.6, 0.0, 1.0, 1.0)]) for s in "LR"],
+                                   (-0.6, 0.0, 1.0, 1.0)], 2.1 if s == "L" else -2.1, 14) for s in "LR"],
     canopy=dict(x_front=5.4, x_back=3.6, sill=2.24, top=2.86, half_width=0.52, bows=(4.85,), peak=0.5),
     wing=[(1.48, 0.72, WING_Z, 3.1, 0.46), (1.42, 2.7, WING_Z, 3.0, 0.4), (0.92, 8.38, 1.52, 1.7, 0.16),
           (0.86, 8.76, 1.42, 1.6, 0.1)],
@@ -48,12 +48,8 @@ SPEC = dict(
 
 
 def build(variant, v):
-    s = dict(SPEC)
-    bodies = s.pop("bodies")
-    m = A.jet(v, s)
+    m = A.jet(v, SPEC)
     hull = v.hull
-    for name, stations in bodies:
-        A.body(name, stations, m["paint"], hull, seg=14, loc=(0, 2.1 if name.endswith("L") else -2.1, 0))
     # The GAU-8 under the nose: its muzzle fairing and seven barrels.
     cyl("gun_fairing", 0.24, 0.5, (7.6, 0.06, 1.3), "X", m["paint"], hull, seg=16, bevel=0.02)
     for k in range(7):

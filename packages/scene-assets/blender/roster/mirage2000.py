@@ -27,7 +27,7 @@ SPEC = dict(
               (4.0, 0.56, 1.44, 2.5, 1.86, 2.4), (2.5, 0.62, 1.42, 2.5, 1.85, 2.6), (0.0, 0.74, 1.4, 2.4, 1.85, 2.6),
               (-3.0, 0.72, 1.45, 2.3, 1.85, 2.6), (-5.4, 0.6, 1.55, 2.2, 1.86, 2.4), (-6.4, 0.52, 1.6, 2.12, 1.86)],
     bodies=[(f"fuselage_intake_{s}", [(2.75, 0.42, 1.42, 2.26, 1.84), (0.6, 0.44, 1.42, 2.28, 1.84),
-                                       (-1.2, 0.0, 1.84, 1.84)]) for s in "LR"],
+                                       (-1.2, 0.0, 1.84, 1.84)], 0.82 if s == "L" else -0.82, 16) for s in "LR"],
     canopy=dict(x_front=5.5, x_back=2.6, sill=2.42, top=2.96, half_width=0.42, bows=(4.0,), peak=0.4),
     wing=[(2.0, 0.72, WING_Z, 7.6, 0.4), (-4.3, 4.56, WING_Z, 0.9, 0.05)],
     fins=[dict(root_x=-2.6, root_z=2.3, height=2.9, root_chord=3.8, tip_chord=1.2, sweep_m=2.8)],
@@ -43,12 +43,8 @@ SPEC = dict(
 
 
 def build(variant, v):
-    s = dict(SPEC)
-    bodies = s.pop("bodies")
-    m = A.jet(v, s)
+    m = A.jet(v, SPEC)
     hull = v.hull
-    for name, stations in bodies:
-        A.body(name, stations, m["paint"], hull, seg=16, loc=(0, 0.82 if name.endswith("L") else -0.82, 0))
     # The intakes' shock cones.
     A.mirrored(lambda side, k: cyl(f"shock_cone_{k}", 0.2, 0.55, (3.0, side * 0.82, 1.84), "X", m["paint"], hull,
                                    seg=14, r2=0.02))

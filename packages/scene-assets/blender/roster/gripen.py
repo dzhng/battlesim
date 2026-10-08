@@ -27,7 +27,7 @@ SPEC = dict(
               (4.3, 0.56, 1.25, 2.32, 1.7, 2.4), (2.6, 0.62, 1.22, 2.3, 1.68, 2.6), (0.0, 0.7, 1.22, 2.25, 1.68, 2.8),
               (-3.0, 0.66, 1.3, 2.15, 1.7, 2.6), (-5.6, 0.52, 1.42, 2.0, 1.72, 2.2), (-6.6, 0.46, 1.48, 1.95, 1.72)],
     bodies=[(f"fuselage_intake_{s}", [(3.65, 0.3, 1.24, 2.0, 1.62, 3.0), (1.5, 0.32, 1.24, 2.02, 1.62, 3.0),
-                                       (-0.4, 0.0, 1.62, 1.62)]) for s in "LR"],
+                                       (-0.4, 0.0, 1.62, 1.62)], 0.8 if s == "L" else -0.8, 14) for s in "LR"],
     canopy=dict(x_front=5.6, x_back=3.5, sill=2.18, top=2.72, half_width=0.42, peak=0.45),
     canard=[(3.6, 0.95, 2.02, 1.5, 0.08), (2.45, 2.6, 2.02, 0.7, 0.03)],
     wing=[(1.2, 0.7, WING_Z, 5.0, 0.24), (-3.0, 4.06, WING_Z, 1.0, 0.04)],
@@ -44,12 +44,8 @@ SPEC = dict(
 
 
 def build(variant, v):
-    s = dict(SPEC)
-    bodies = s.pop("bodies")
-    m = A.jet(v, s)
+    m = A.jet(v, SPEC)
     hull = v.hull
-    for name, stations in bodies:
-        A.body(name, stations, m["paint"], hull, seg=14, loc=(0, 0.8 if name.endswith("L") else -0.8, 0))
     A.mirrored(lambda side, k: box(f"wing_tip_rail_{k}", (2.0, 0.07, 0.08), (-2.2, side * 4.1, WING_Z - 0.02),
                                    m["dark"], hull))
     box("antiglare", (0.9, 0.5, 0.03), (6.3, 0, 2.1), m["dark"], hull, rot=(0, 0.2, 0), lods=MID)

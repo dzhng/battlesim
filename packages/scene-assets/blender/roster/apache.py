@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
 from vehicle_export import run_disabled  # noqa: E402
-from vehicle_parts import MID, NEAR  # noqa: E402
+from vehicle_parts import MID  # noqa: E402
 
 CARDS = {"ah_64e_guardian": (15.5, 5.23, 4.95)}
 SPEC = dict(

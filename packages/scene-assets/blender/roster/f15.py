@@ -36,21 +36,16 @@ def spec(variant):
                   (2.6, 1.42, 1.46, 2.86, 2.1, 4.0), (-2.0, 1.52, 1.44, 2.8, 2.05, 4.5),
                   (-5.4, 1.42, 1.5, 2.66, 2.05, 4.0), (-8.0, 1.2, 1.6, 2.5, 2.02, 3.0), (-8.62, 1.16, 1.62, 2.42, 2.0)],
         bodies=[
-            # The two intake trunks, from their raked mouths back into the body.
-            ("fuselage_intake_L", [(5.62, 0.5, 1.42, 2.66, 2.0, 5.0), (4.0, 0.52, 1.42, 2.7, 2.0, 5.0),
-                                   (2.4, 0.5, 1.44, 2.72, 2.0, 4.0)]),
-            ("fuselage_intake_R", [(5.62, 0.5, 1.42, 2.66, 2.0, 5.0), (4.0, 0.52, 1.42, 2.7, 2.0, 5.0),
-                                   (2.4, 0.5, 1.44, 2.72, 2.0, 4.0)]),
-            # Conformal fuel tanks along the intakes' flanks below the wing.
-            ("fuselage_cft_L", [(4.4, 0.0, 1.9, 1.9), (3.6, 0.32, 1.5, 2.4, 1.95, 3.0), (-2.6, 0.34, 1.5, 2.44, 1.97, 3.0),
-                                (-3.6, 0.0, 2.0, 2.0)]),
-            ("fuselage_cft_R", [(4.4, 0.0, 1.9, 1.9), (3.6, 0.32, 1.5, 2.4, 1.95, 3.0), (-2.6, 0.34, 1.5, 2.44, 1.97, 3.0),
-                                (-3.6, 0.0, 2.0, 2.0)]),
+            # The two intake trunks, from their raked mouths back into the body,
+            # and the conformal fuel tanks along their flanks below the wing.
+            *[(f"fuselage_intake_{k}", [(5.62, 0.5, 1.42, 2.66, 2.0, 5.0), (4.0, 0.52, 1.42, 2.7, 2.0, 5.0),
+                                        (2.4, 0.5, 1.44, 2.72, 2.0, 4.0)], side * 1.16) for side, k in ((1, "L"), (-1, "R"))],
+            *[(f"fuselage_cft_{k}", [(4.4, 0.0, 1.9, 1.9), (3.6, 0.32, 1.5, 2.4, 1.95, 3.0),
+                                     (-2.6, 0.34, 1.5, 2.44, 1.97, 3.0), (-3.6, 0.0, 2.0, 2.0)], side * 1.62)
+              for side, k in ((1, "L"), (-1, "R"))],
             # The stinger between the nozzles.
             ("tail_stinger", [(-8.2, 0.3, 1.86, 2.3), (-9.4, 0.14, 1.96, 2.18)]),
         ],
-        body_offsets={"fuselage_intake_L": 1.16, "fuselage_intake_R": -1.16, "fuselage_cft_L": 1.62,
-                      "fuselage_cft_R": -1.62},
         canopy=dict(x_front=7.4, x_back=4.2, sill=2.9, top=3.5, half_width=0.5, bows=(5.75, 4.55), peak=0.42),
         wing=[(2.7, 1.4, WING_Z, 5.6, 0.32), (-2.35, 6.52, WING_Z - 0.08, 1.95, 0.08)],
         stab=[(-6.3, 1.3, 2.18, 2.95, 0.14), (-8.25, 4.3, 2.18, 1.35, 0.05)],
@@ -75,13 +70,8 @@ def spec(variant):
 
 
 def build(variant, v):
-    s = spec(variant)
-    offsets = s.pop("body_offsets")
-    bodies = s.pop("bodies")
-    m = A.jet(v, s)
+    m = A.jet(v, spec(variant))
     hull = v.hull
-    for name, stations in bodies:
-        A.body(name, stations, m["paint"], hull, seg=18, loc=(0, offsets.get(name, 0.0), 0))
     # Splitter plates and the ramp hinge line inside each intake mouth.
     A.mirrored(lambda side, k: box(f"intake_splitter_{k}", (1.6, 0.04, 1.1), (5.0, side * 0.62, 2.1), m["paint"], hull,
                                    lods=MID))

@@ -6,7 +6,9 @@ works the built vehicle over into its own wreck before it burns. This module
 does the rest, the same way for every family:
 
 - each variant's frame from the resolved catalogs (`catalog_frames`), one
-  appearance with `--variant=<appearance id>` or all of them;
+  appearance with `--variant=<appearance id>` or all of them; a disabled
+  card family (`run_disabled`) takes each card's frame from the dimensions
+  its script states from its references, and the built model must measure it;
 - the materials, one per role (`materials`), in the family's real scheme;
 - each mount's articulation nodes at its frame's pivot and muzzle (`rig`);
 - `--wreck`: the family's damage, then `wreckage.burn()`, written beside the
@@ -150,7 +152,7 @@ def _receipt(path, script, variants, frames, references=None):
     sources = [here / "roster" / script, here / "vehicle_export.py", here / "vehicle_parts.py",
                here / "vehicle_crew.py", here / "parts.py", here / "textures.py", here / "wreckage.py",
                here / "catalog_frames.py"]
-    if (here / "aircraft_parts.py").exists() and "aircraft_parts" in (here / "roster" / script).read_text():
+    if "aircraft_parts" in (here / "roster" / script).read_text():
         sources.append(here / "aircraft_parts.py")
     family = script.removesuffix(".py")
     (REPO / path).write_text(json.dumps({

@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
 from vehicle_export import run_disabled  # noqa: E402
-from vehicle_parts import MID, NEAR  # noqa: E402
+from vehicle_parts import MID  # noqa: E402
 
 NH90, MERLIN, WILDCAT = "europe_nh90_tth", "europe_aw101_merlin_hc4", "europe_aw159_wildcat_ah1"
 CARDS = {NH90: (16.13, 3.6, 4.33), MERLIN: (19.53, 4.52, 4.95), WILDCAT: (13.0, 3.0, 3.73)}

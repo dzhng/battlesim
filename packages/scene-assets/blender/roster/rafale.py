@@ -26,7 +26,7 @@ SPEC = dict(
               (4.3, 0.6, 1.5, 2.6, 1.92, 2.4), (2.5, 0.68, 1.46, 2.6, 1.9, 2.6), (0.0, 0.8, 1.46, 2.55, 1.9, 2.8),
               (-3.0, 0.82, 1.5, 2.45, 1.9, 2.8), (-5.6, 0.75, 1.6, 2.35, 1.92, 2.6), (-6.6, 0.7, 1.65, 2.28, 1.95)],
     bodies=[(f"fuselage_intake_{s}", [(3.25, 0.32, 1.12, 1.86, 1.5, 2.6), (1.5, 0.34, 1.12, 1.9, 1.52, 2.6),
-                                       (-0.6, 0.0, 1.6, 1.6)]) for s in "LR"],
+                                       (-0.6, 0.0, 1.6, 1.6)], 0.78 if s == "L" else -0.78, 14) for s in "LR"],
     canopy=dict(x_front=5.7, x_back=3.4, sill=2.46, top=3.02, half_width=0.46, peak=0.45),
     canard=[(3.4, 0.78, 2.06, 1.6, 0.08), (2.4, 2.3, 2.1, 0.7, 0.03)],
     wing=[(1.3, 0.8, WING_Z, 5.5, 0.28), (-3.2, 5.24, WING_Z, 1.2, 0.05)],
@@ -44,12 +44,8 @@ SPEC = dict(
 
 
 def build(variant, v):
-    s = dict(SPEC)
-    bodies = s.pop("bodies")
-    m = A.jet(v, s)
+    m = A.jet(v, SPEC)
     hull = v.hull
-    for name, stations in bodies:
-        A.body(name, stations, m["paint"], hull, seg=14, loc=(0, 0.78 if name.endswith("L") else -0.78, 0))
     # The fixed refuelling probe ahead of the windscreen, right of the nose.
     cyl("probe", 0.05, 1.3, (6.3, -0.32, 2.42), "X", m["steel"], hull, seg=8, lods=MID)
     cyl("probe_base", 0.09, 0.4, (5.6, -0.32, 2.38), "X", m["paint"], hull, seg=10, lods=MID)
