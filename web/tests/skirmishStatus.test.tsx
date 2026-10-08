@@ -24,3 +24,25 @@ test("the public match readout follows preparation, both scores and the terminal
   view.rerender(<SkirmishStatus match={{ ...match, phase: "finished", result: "red" }} />);
   expect(view.getByText("DEFEAT")).toBeTruthy();
 });
+
+test("contested objective flags expose a flashing state", () => {
+  const view = render(
+    <SkirmishStatus
+      match={{
+        ...match,
+        objectives: [
+          {
+            id: "alpha",
+            center: [0, 0],
+            radiusM: 50,
+            owner: "blue",
+            contested: true,
+            capturing: null,
+            captureProgress: 0,
+          },
+        ],
+      }}
+    />,
+  );
+  expect(view.getByLabelText("Objective 1: contested")).toHaveAttribute("data-contested", "true");
+});

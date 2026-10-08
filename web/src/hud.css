@@ -1282,6 +1282,20 @@
 .hud-objective-flags [data-contested="true"] {
   text-decoration: underline dashed;
 }
+.hud-objective-flags [data-contested="true"],
+.hud-objective-flags [data-contested="true"] .ro-icon path {
+  animation: objective-contested-flash 1s steps(1, end) infinite;
+}
+@keyframes objective-contested-flash {
+  0%,
+  49.999% {
+    color: currentColor;
+  }
+  50%,
+  100% {
+    color: rgb(var(--hud-warn));
+  }
+}
 
 .hud-purchase-faction {
   color: rgb(var(--hud-accent));

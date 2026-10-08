@@ -33,6 +33,8 @@ export function ObjectiveMarkers({
     }),
     [objectives],
   );
+  // Contested flags alternate their owner colour and warning yellow in CSS;
+  // the data attribute remains the state contract for styling and tests.
   return (
     <div className="hud-objective-flags skirmish-objective-layer" aria-label="Capture areas">
       {objectives.map((objective, index) => (
