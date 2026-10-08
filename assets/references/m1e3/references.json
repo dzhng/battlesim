@@ -1,0 +1,77 @@
+{
+ "entries": [
+  {
+   "file": "us_m1e3_abrams-three_quarter_front.jpg",
+   "variant": "us_m1e3_abrams",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:M1E3_Abrams_early_prototype.jpg",
+   "author": "U.S. Army",
+   "licence": "public-domain",
+   "sha256": "07416e389bf18adeb9758b6de69948a8e4e565a7b9ea942b0b09f3142122693a",
+   "note": "Early prototype at the Detroit auto show, January 2026, left side: Abrams hull and seven dual road wheels, new flat skirt panels in four long sections, a low faceted turret with no bustle rack, the 120 mm gun with bore evacuator, a remote station with its M2 high on the roof and a sight box at the right front. Green, not tan."
+  },
+  {
+   "file": "us_m1e3_abrams-three_quarter_rear-generated.jpg",
+   "variant": "us_m1e3_abrams",
+   "view": "three_quarter_rear",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "sha256": "96eeb160ca7b539cbad405f0be04edfc276536be7ecc51bf5e8c05185a10c4bf",
+   "note": "Generated: the one licensable photo shows the left front quarter only. Layout and proportions of the rear: the M1 rear plate with its exhaust grilles, the turret's short flat rear. The skirt panel count (six here) is the photo's (four) wrong; the photo wins.",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "US Army M1E3 Abrams main battle tank early prototype (2026), three-quarter rear view from the right, on open ground in daylight, photographic reference. Same vehicle as the input photo: Abrams-derived hull with seven road wheels a side, rear drive sprocket, new flat-sided side skirts in large panels, a low compact unmanned-style turret with flat angular faces and a short flat bustle, the 120 mm gun with bore evacuator, a remote weapon station with heavy machine gun on the turret roof, a sight box on the roof front, rear hull plate with engine grilles. Plain green paint as in the input. Whole vehicle in frame, no people, no text.",
+   "inputs": [
+    "us_m1e3_abrams-three_quarter_front.jpg"
+   ],
+   "seed": 2001
+  },
+  {
+   "file": "us_m1e3_abrams-front-generated.jpg",
+   "variant": "us_m1e3_abrams",
+   "view": "front",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "sha256": "1be5e3a690a692704cca6362c7a8397b9932f3a1ebe90046f02ce38551d97002",
+   "note": "Generated: front layout only, the turret's faceted cheeks either side of the gun, the remote station on the left of the roof and the sight box on the right (the photo puts the station centre-left).",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "US Army M1E3 Abrams main battle tank early prototype (2026), straight front view at eye level, on open ground in daylight, photographic reference. Same vehicle as the input photo: Abrams-derived hull and glacis, tracks either side, a low compact turret with flat angular faces centred on the 120 mm gun, a remote weapon station with heavy machine gun on the roof, a sight box on the roof. Plain green paint as in the input. Whole vehicle in frame, no people, no text.",
+   "inputs": [
+    "us_m1e3_abrams-three_quarter_front.jpg"
+   ],
+   "seed": 2002
+  },
+  {
+   "file": "us_m1e3_abrams-front.jpg",
+   "variant": "us_m1e3_abrams",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:U.S._Army_Units_Host_Abrams_Logistical_Summit_in_Drawsko_Pomorskie_-_221026-Z-OV580-1015.jpg",
+   "author": "Kevin Brown",
+   "licence": "public-domain",
+   "sha256": "0a0446a8803f2388aea6b8a87355712342ac8fbcc3b0bd26e44ca6928958f53e",
+   "note": "M1A2 SEPv3 head-on: the M1 hull front and glacis the M1E3 keeps (same bytes as assets/references/abrams/us_m1_abrams_sep_v3_trophy-front.jpg); its turret is not the M1E3's."
+  },
+  {
+   "file": "us_m1e3_abrams-three_quarter_rear.jpg",
+   "variant": "us_m1e3_abrams",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Combined_Resolve_V_151119-A-BS310-038.jpg",
+   "author": "Visual Information Specialist Markus Rauchenberger, U.S. Army",
+   "licence": "public-domain",
+   "sha256": "de6f51d87c92fbeb2170701b3db5ebbd2472900bb6b6d8f20f9c53a110c56630",
+   "note": "M1A2 SEPv2 left rear: the M1 hull's engine deck and rear plate with its grilles, which the M1E3 prototype keeps (same bytes as assets/references/abrams/us_m1_abrams_sep_v2-three_quarter_rear.jpg); its turret and bustle are not the M1E3's."
+  }
+ ],
+ "gaps": [
+  "us_m1e3_abrams: one licensable photo of the vehicle (left front quarter, early prototype shown in January 2026); its front and rear are the M1 hull's photos plus generated views of the new turret, which settle nothing the photo does not show",
+  "us_m1e3_abrams: no photo of the right side, rear plate, roof or running gear detail; the hull below the skirts is drawn as the pilot SEPv3's (the prototype keeps the M1 hull)",
+  "us_m1e3_abrams: the prototype is green; the model wears US desert tan like every US roster vehicle",
+  "us_m1e3_abrams: no published dimensions for the prototype; length, width and height are the SEPv3's hull, with the lower turret measured off the photo against the road wheels"
+ ]
+}

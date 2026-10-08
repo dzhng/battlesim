@@ -1,0 +1,74 @@
+{
+ "entries": [
+  {
+   "file": "us_m10_booker-three_quarter_front.jpg",
+   "variant": "us_m10_booker",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:M10_Booker_at_its_unveiling_June_2023_-_7.jpg",
+   "author": "Bernardo Fuller (U.S. Army)",
+   "licence": "public-domain",
+   "sha256": "1118f1d552e42a45e883e7b35b006581788c56c99b79f346ddcc256bd1212cd7",
+   "note": "Unveiling, June 2023, left front quarter: bolted front plate with its two hinged lugs, the front sprocket and six road wheels, headlights in boxes at the front corners, the turret's smoke banks of four, the commander's sight on the right rear, the M2 mount left."
+  },
+  {
+   "file": "us_m10_booker-three_quarter_front-2.jpg",
+   "variant": "us_m10_booker",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:M10_Booker_C-17.jpg",
+   "author": "Staff Sgt. Reanna Hartgrove (U.S. Air National Guard)",
+   "licence": "public-domain",
+   "sha256": "847a88c96db0337bdddeef590eab53ceba09e995555551144cb548fbff864895",
+   "note": "Loading onto a C-17, right front quarter: the turret's flat faces and cheek smoke banks, the commander's sight dome, a mast, the hull's front bolted panels and track guards."
+  },
+  {
+   "file": "us_m10_booker-three_quarter_front-3.jpg",
+   "variant": "us_m10_booker",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:M10_Booker.jpg",
+   "author": "U.S. Army",
+   "licence": "public-domain",
+   "sha256": "66d77d10f516dde0a47a60d5a8a948a4106523117b353e7d8024a1e58486e575",
+   "note": "Tan, on the move, left front quarter from above: deck, open hatches, roof stowage and the turret's bustle box, the commander's M2; six road wheels, the idler at the rear."
+  },
+  {
+   "file": "us_m10_booker-side.jpg",
+   "variant": "us_m10_booker",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mobile_Protected_Firepower_c._2023.jpg",
+   "author": "U.S. Army",
+   "licence": "public-domain",
+   "sha256": "cdb8d1238450935e134205f917cef6f9802cf9e2b03ac4ff67efc79e0e55fe21",
+   "note": "Tan, left side: six road wheels, the hull's side panels, the turret set well forward with a long bustle, the rear idler."
+  },
+  {
+   "file": "us_m10_booker-side-2.jpg",
+   "variant": "us_m10_booker",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:M10_Booker_firing.jpg",
+   "author": "Christopher Kaufmann (U.S. Army)",
+   "licence": "public-domain",
+   "sha256": "6a5c492720cfd5a67f43520a4b2064c49c03edee7e2d5ef5de3f40ddf2075d00",
+   "note": "Green, right side firing: the hull's length against the turret, the deck line."
+  },
+  {
+   "file": "us_m10_booker-front.jpg",
+   "variant": "us_m10_booker",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:US_Army_M10_Testing_at_ARTC.jpg",
+   "author": "U.S. Army",
+   "licence": "public-domain",
+   "sha256": "e25020cf8dad44fc4d2bc473824ef63257c7a7b3e69dda501ef5c64cd9074ca2",
+   "note": "Cold-weather testing, front: track widths, the bolted front plate, the headlights, the turret's frontal outline and the gun's height."
+  }
+ ],
+ "gaps": [
+  "us_m10_booker: no rear view; the rear plate and engine deck are guessed from the quarter views",
+  "us_m10_booker: dimensions are the commonly published figures (about 7.6 m hull length, 3.6 m wide, 2.9 m tall), not re-verified source by source"
+ ]
+}
