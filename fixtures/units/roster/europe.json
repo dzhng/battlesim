@@ -365,6 +365,30 @@
         ]
       }
     },
+    "europe_centauro_ii": {
+      "name": "Centauro II Tank destroyer",
+      "description": "Wheeled 120 mm tank destroyer",
+      "faction": "europe",
+      "family": "centauro_ii",
+      "roles": [],
+      "cost": 240,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "Tank destroyer",
+        "family_name": "Centauro II"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "wheeled-tank-destroyer",
+        "weapons": [
+          "tank-gun",
+          "HMG"
+        ]
+      }
+    },
     "europe_ch_47_chinook_hc6": {
       "name": "CH-47 Chinook HC6",
       "description": "HC6",
@@ -511,6 +535,30 @@
           "advanced-tank-gun",
           "HMG",
           "Trophy"
+        ]
+      }
+    },
+    "europe_cv90120_light_tank": {
+      "name": "CV90120 Light tank",
+      "description": "Light tank",
+      "faction": "europe",
+      "family": "cv90120",
+      "roles": [],
+      "cost": 250,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "veh",
+        "variant": "Light tank",
+        "family_name": "CV90120"
+      },
+      "planned": {
+        "reason": "Ground profile and model admission pending",
+        "profile": "light-tank",
+        "weapons": [
+          "tank-gun",
+          "HMG"
         ]
       }
     },
