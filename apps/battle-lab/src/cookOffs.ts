@@ -12,9 +12,12 @@
 // wreck is cut into pieces, the battle jolts the hull and throws the turret;
 // other wrecks jolt whole (`effects/cookOff.ts`), from the tick the wreck
 // appeared. Until the ammunition goes the hull is drawn whole, as the side
-// last saw it, so the fire turns the live vehicle into the wreck.
+// last saw it, so the fire turns the live vehicle into the wreck. What the
+// blast throws clear (the wreck's `debris` state) lies round it for a while
+// and then sinks away (`debrisModel`); a wreck found later has none.
 import { mat4, type Mat4, type Vec3 } from "math";
 import {
+  debrisSink,
   hullMotion,
   turretMotion,
   type CookOffFeel,
@@ -28,7 +31,7 @@ import type { VehiclePose } from "@packages/battle-renderer/src/models/poseDrive
 import type { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { Bounds } from "@packages/scene-assets/src/schema";
-import { WRECK_PIECES } from "@packages/scene-assets/src/scenery";
+import { SCENERY_KINDS, WRECK_PIECES } from "@packages/scene-assets/src/scenery";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
 
@@ -150,6 +153,9 @@ export interface CookOffTransition {
   lies: Vec3 | null;
   /** How high its underside lies on the deck, in the same frame. */
   underside: number;
+  /** How tall its thrown debris lies, metres, or null for a wreck that
+   *  throws none. */
+  debrisTop: number | null;
   /** The presentation second of the killing hit (its tick's start). */
   hitAt: number;
 }
@@ -180,6 +186,7 @@ export function transitionOf(
   const whole = states.find((s) => s.name === "default");
   if (!wreck || !whole) return null;
   const moving = turret && states.some((s) => s.name === WRECK_PIECES.hull) ? turret : null;
+  const debris = states.find((s) => s.name === SCENERY_KINDS.wreck.debris?.state);
   const min = moving?.bounds.min;
   const max = moving?.bounds.max;
   return {
@@ -188,6 +195,7 @@ export function transitionOf(
     bounds: whole.bounds,
     lies: min && max ? [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2] : null,
     underside: min?.[2] ?? 0,
+    debrisTop: debris ? debris.bounds.max[2] : null,
     hitAt: (c.tick - 1) / tickHz,
   };
 }
@@ -246,6 +254,27 @@ export function wreckModels(
     piece(WRECK_PIECES.hull, hullMotion(mat4.create(), feel, age, seed)),
     piece(WRECK_PIECES.turret, turretMotion(mat4.create(), feel, age, f.lies, seed)),
   ];
+}
+
+/** How far below its own top thrown debris sinks before it is gone, in the
+ *  wreck's frame (metres, as fitted near enough):
+ *  ground that falls away under a piece still hides it. */
+const DEBRIS_BURIED_M = 0.15;
+
+/** The debris cook-off `f` threw, at presentation second `clock`: lying
+ *  where its wreck lies (not jolting with it) from the blast, then sinking
+ *  away (`effects/cookOff.ts` `debrisSink`); null when it is not drawn. */
+export function debrisModel(
+  f: CookOffTransition,
+  feel: CookOffFeel,
+  clock: number,
+): ModelInstance | null {
+  if (f.debrisTop === null) return null;
+  const sink = debrisSink(feel, clock - f.hitAt, f.debrisTop + DEBRIS_BURIED_M);
+  if (sink === null) return null;
+  const motion = mat4.fromTranslation(mat4.create(), [0, 0, -sink]);
+  const state = SCENERY_KINDS.wreck.debris!.state;
+  return { ...f.wreck, pose: { kind: "static", state, motion } };
 }
 
 /** Seconds a vehicle gone from the frame is still remembered as last drawn:

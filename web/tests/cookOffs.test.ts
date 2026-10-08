@@ -1,9 +1,11 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
+import { mat4 } from "math";
 import {
   CookOffWatch,
   LastSeenHulls,
   cookOffModels,
+  debrisModel,
   transitionOf,
   type CookOffTransition,
 } from "@apps/battle-lab/src/cookOffs";
@@ -17,7 +19,7 @@ import { UNITS } from "./catalog";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import { landedAfter } from "@packages/battle-renderer/src/effects/cookOff";
+import { debrisGoneAfter, landedAfter } from "@packages/battle-renderer/src/effects/cookOff";
 import { effectCookOff } from "@apps/battle-lab/src/cookOffs";
 
 const WRECK = UNITS.hull("test_tank")!.wreck;
@@ -98,6 +100,85 @@ test("a whole vehicle wreck keeps the live hull until the blast, then jolts and 
   expect(settled[0].pose.state).toBe("default");
   const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
   settled[0].pose.motion!.forEach((v, i) => expect(v).toBeCloseTo(identity[i], 12));
+});
+
+test("the debris a watched wreck threw sinks away and is gone; the wreck stays as it lies", () => {
+  const wreck: ModelInstance = {
+    appearance: "test_jeep_wreck",
+    x: 40,
+    y: 30,
+    z: 2,
+    yaw: 0.5,
+    pose: { kind: "static", state: "default" },
+  };
+  const c = {
+    prop: 3,
+    kind: UNITS.hull("test_jeep")!.wreck,
+    wreckOf: "test_jeep",
+    center: [40, 30] as const,
+    yaw: 0.5,
+    half: [2.2, 1, 0.95] as const,
+    baseZ: 2,
+    tick: 301,
+  };
+  const fit = { fit: () => [wreck] } as unknown as PropAppearances;
+  const installed = (states: { name: string; top: number }[]) =>
+    ({
+      appearances: new Map([
+        [
+          "test_jeep_wreck",
+          {
+            bundle: {
+              kind: "static",
+              states: states.map((s) => ({
+                name: s.name,
+                bounds: { min: [-6, -6, 0], max: [6, 6, s.top] },
+              })),
+            },
+          },
+        ],
+      ]),
+    }) as unknown as InstalledAppearances;
+  const feel = gameEffects.cook_off;
+  const f = transitionOf(
+    c,
+    fit,
+    installed([
+      { name: "default", top: 2.8 },
+      { name: "debris", top: 0.4 },
+    ]),
+    30,
+  )!;
+  const hitAt = f.hitAt;
+  /** The debris drawn `age` seconds after the hit: how far down it is moved, or null. */
+  const sunk = (age: number) => {
+    const m = debrisModel(f, feel, hitAt + age);
+    if (!m) return null;
+    expect(m.appearance).toBe("test_jeep_wreck");
+    expect([m.x, m.y, m.z, m.yaw]).toEqual([40, 30, 2, 0.5]);
+    if (m.pose.kind !== "static") throw new Error("expected the debris state");
+    expect(m.pose.state).toBe("debris");
+    return -m.pose.motion![14];
+  };
+  // It lies where the wreck has it from the blast, through its hold.
+  expect(sunk(feel.delay_s + 0.01)).toBeCloseTo(0, 9);
+  expect(sunk(feel.delay_s + feel.debris.hold_s - 0.01)).toBeCloseTo(0, 9);
+  // Then it sinks until all of it is under the ground, and is not drawn.
+  const end = debrisGoneAfter(feel);
+  expect(sunk(end - feel.debris.fade_s / 2)!).toBeGreaterThan(0);
+  expect(sunk(end - 1e-4)!).toBeGreaterThanOrEqual(0.4);
+  expect(sunk(end)).toBeNull();
+  // The wreck never moves as its debris fades: it lies exactly as the static wreck.
+  const identity = Array.from(mat4.create());
+  for (const age of [landedAfter(feel), end - feel.debris.fade_s / 2]) {
+    const [whole] = cookOffModels(f, null, feel, hitAt + age);
+    if (whole.pose.kind !== "static") throw new Error("expected the resting wreck");
+    expect(whole.pose.state).toBe("default");
+    expect(Array.from(whole.pose.motion!)).toEqual(identity.map((v) => expect.closeTo(v, 9)));
+  }
+  // A wreck without a debris state throws none.
+  const bare = transitionOf(c, fit, installed([{ name: "default", top: 2.8 }]), 30)!;
+  expect(debrisModel(bare, feel, hitAt + feel.delay_s + 1)).toBeNull();
 });
 
 /** A side's publication at `tick`: the enemy tank it identifies (if any), at
@@ -228,6 +309,7 @@ test("a hull that brews up is drawn whole, as last seen, until its ammunition go
     bounds: { min: [-2.2, -1, 0], max: [2.2, 1, 2.8] },
     lies: [0, 0, 1.6],
     underside: 1.2,
+    debrisTop: null,
     hitAt: 10,
   };
   const hull = hulls.at(transition.cookOff, 10.1, resolve);
@@ -276,6 +358,7 @@ test("a hull killed on the move glides on to its wreck, slowing as it brakes, an
     bounds: { min: [-2.2, -1, 0], max: [2.2, 1, 2.8] },
     lies: [0, 0, 1.6],
     underside: 1.2,
+    debrisTop: null,
     hitAt: 10,
   };
   // Braking at 2 m/s²: 4 m takes 2 s to roll.
