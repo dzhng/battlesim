@@ -7,6 +7,8 @@
       "patch": {
         "capabilities": {
           "active_protection": {
+            "name": "Trophy",
+            "icon": "trophy",
             "capacity": 4,
             "cooldown_s": 3,
             "standoff_m": 8,

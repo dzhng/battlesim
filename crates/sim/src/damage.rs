@@ -227,7 +227,12 @@ impl ImpactResolver for HullResolver<'_> {
         self.units
             .iter()
             .filter(|unit| unit.alive())
-            .filter_map(|unit| unit.unit_type(self.rules).capabilities.active_protection)
+            .filter_map(|unit| {
+                unit.unit_type(self.rules)
+                    .capabilities
+                    .active_protection
+                    .as_ref()
+            })
             .map(|cap| cap.standoff_m)
             .fold(0.0, f64::max)
     }
@@ -238,12 +243,22 @@ impl ImpactResolver for HullResolver<'_> {
         }
         let unit = self.units.get(body.unit.0 as usize)?;
         (unit.alive() && unit.hull.is_some())
-            .then(|| unit.unit_type(self.rules).capabilities.active_protection)?
+            .then(|| {
+                unit.unit_type(self.rules)
+                    .capabilities
+                    .active_protection
+                    .as_ref()
+            })?
             .map(|cap| cap.standoff_m)
     }
     fn intercept(&mut self, event: &crate::flight::Interception) -> bool {
         let unit = &mut self.units[event.unit.0 as usize];
-        let Some(cap) = unit.unit_type(self.rules).capabilities.active_protection else {
+        let Some(cap) = unit
+            .unit_type(self.rules)
+            .capabilities
+            .active_protection
+            .as_ref()
+        else {
             return false;
         };
         let time = self.tick.saturating_sub(1) as f64 + event.time;

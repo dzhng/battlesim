@@ -23,6 +23,13 @@ a live type index. Admitted variants supply validated physics and carried mounts
 developer scenario types may have no player membership. Shared equipment has one
 canonical variant and several memberships, so factions do not duplicate tuning.
 
+What a card shows is authored beside what code addresses: a unit, family, mount,
+weapon row, active protection or planned weapon carries a player-facing label
+apart from its id, and every weapon a card shows names its generated icon.
+[Labels](src/labels.rs) owns the rule that makes a label concise; resolution
+refuses a label that reads as an identifier or a sentence, or an icon that is not
+an icon id, naming the entry. No reader derives a label from an id.
+
 [Identity](src/identity.rs) defines canonical content and exact generation seeds.
 Its decimal-text seed contract must survive JSON without JavaScript number
 rounding. Typed serialization order and meaningful authored sequence order can

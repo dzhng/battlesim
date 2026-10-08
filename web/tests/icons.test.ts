@@ -9,6 +9,7 @@ import { expect, test } from "vitest";
 import { cardIcon, iconFiles, unitIcons } from "@packages/scene-assets/src/icons";
 import { inkBounds } from "@packages/scene-assets/src/inkBounds";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema";
+import type { UnitCard, UnitCatalog, UnitType } from "@packages/scene-assets/src/units";
 import { UNITS, WEAPONS } from "./catalog";
 import {
   disabledLookup,
@@ -33,12 +34,20 @@ const disabled = await disabledLookup(
   SKELETONS,
 );
 const shipped = (id: string) => (UNITS.has(id) ? unitSolids(UNITS, id, lookup) : disabled(id));
+const APS = { capacity: 4, cooldown_s: 3, standoff_m: 8, service_s: 10, stock_per_charge: 20 };
 const disabledCards = UNITS.cards.filter((c) => c.disabled_reason !== null && !UNITS.has(c.id));
 
 test("every weapon, role and unit type has its generated icon, current, and nothing else", () => {
   const files = iconFiles(WEAPONS, UNITS, shipped);
-  for (const w of Object.values(WEAPONS))
-    expect(files.has(`weapons/${w.icon}.svg`), `weapon icon ${w.icon}`).toBe(true);
+  // Every weapon a card can show: a row's, an active protection's and a
+  // disabled card's planned weapon's.
+  const shown = [
+    ...Object.values(WEAPONS).map((w) => w.icon),
+    ...UNITS.view.units.flatMap((t) => t.capabilities.active_protection?.icon ?? []),
+    ...UNITS.cards.flatMap((c) => c.planned_weapons.map((w) => w.icon)),
+  ];
+  for (const icon of shown)
+    expect(files.has(`weapons/${icon}.svg`), `weapon icon ${icon}`).toBe(true);
   for (const t of UNITS.view.units) {
     const { silhouette, role } = unitIcons(t);
     expect(files.has(silhouette) && files.has(role), t.id).toBe(true);
@@ -61,6 +70,18 @@ test("every weapon, role and unit type has its generated icon, current, and noth
 
 test("an icon the generator cannot draw is refused, naming it", () => {
   expect(() => iconFiles({ bayonet: { icon: "bayonet" } }, UNITS, shipped)).toThrow(/bayonet/);
+  // An active protection's icon and a disabled card's planned weapon's are
+  // drawn by the same generator, and refused the same way.
+  const tank = UNITS.type("test_tank");
+  const protectedTank = {
+    ...tank,
+    capabilities: { active_protection: { ...APS, name: "Shield", icon: "shield" } },
+  };
+  const card = { ...UNITS.cards[0], planned_weapons: [{ name: "Laser", icon: "laser" }] };
+  const only = (units: UnitType[], cards: UnitCard[]) =>
+    ({ view: { ...UNITS.view, units }, cards, has: () => true }) as unknown as UnitCatalog;
+  expect(() => iconFiles({}, only([protectedTank], []), shipped)).toThrow(/"shield"/);
+  expect(() => iconFiles({}, only([], [card]), shipped)).toThrow(/"laser"/);
   expect(() => iconFiles({}, UNITS, () => null)).toThrow(
     /unit type \w+: its model is not installed/,
   );

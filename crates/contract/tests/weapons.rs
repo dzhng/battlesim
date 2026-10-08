@@ -55,3 +55,51 @@ fn minimum_range_cannot_exceed_maximum_range() {
         "{error}"
     );
 }
+
+/// A weapon row's `name` is what the player reads on a card and its `icon`
+/// names a generated drawing: an identifier, a slug, a long description or
+/// a missing icon is refused at load, naming the row.
+#[test]
+fn a_weapon_row_needs_a_short_label_and_an_icon_id() {
+    let load = |field: &str, value: Value| {
+        let mut game: Value =
+            serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+        // A derived row: its own label and icon are checked, not only its parent's.
+        game["weapons"]["autocannon"][field] = value;
+        contract::weapons::resolve_weapons(game["weapons"].clone())
+    };
+    for name in [
+        "",
+        "MAIN_GUN",
+        "ground_tank_ap",
+        "heavy sniper",
+        "Spike (direct guidance)",
+        "Heavy sniper rifle, scoped",
+        "Autocannon Autocannon",
+        "A very long autocannon",
+    ] {
+        let error = load("name", json!(name))
+            .err()
+            .unwrap_or_else(|| panic!("accepted name {name:?}"))
+            .to_string();
+        assert!(
+            error.contains("weapons.autocannon") && error.contains("name"),
+            "{name:?}: {error}"
+        );
+    }
+    for name in ["Autocannon", "AP Shell", "RPG-29", "TOW 2A", "Heavy Sniper"] {
+        if let Err(error) = load("name", json!(name)) {
+            panic!("refused {name:?}: {error}");
+        }
+    }
+    for icon in ["", "Autocannon", "auto cannon", "../hmg"] {
+        let error = load("icon", json!(icon))
+            .err()
+            .unwrap_or_else(|| panic!("accepted icon {icon:?}"))
+            .to_string();
+        assert!(
+            error.contains("weapons.autocannon") && error.contains("icon"),
+            "{icon:?}: {error}"
+        );
+    }
+}

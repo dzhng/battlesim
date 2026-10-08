@@ -1,7 +1,7 @@
 {
   "units": {
     "europe_ajax_tracked_reconnaissance_vehicle": {
-      "name": "Ajax Tracked reconnaissance vehicle",
+      "name": "Ajax",
       "description": "Tracked reconnaissance vehicle",
       "faction": "europe",
       "family": "ajax",
@@ -54,7 +54,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -102,12 +103,15 @@
         "reason": "Ground profile and model admission pending",
         "profile": "at-team",
         "weapons": [
-          "Akeron"
+          {
+            "name": "Akeron MP",
+            "icon": "atgm"
+          }
         ]
       }
     },
     "europe_aw101_merlin_hc4": {
-      "name": "AW101 Merlin HC4",
+      "name": "Merlin HC4",
       "description": "HC4",
       "faction": "europe",
       "family": "aw101_merlin",
@@ -125,12 +129,15 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "heavy-helicopter",
         "weapons": [
-          "HMG"
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
     "europe_aw159_wildcat_ah1": {
-      "name": "AW159 Wildcat AH1",
+      "name": "Wildcat AH1",
       "description": "AH1",
       "faction": "europe",
       "family": "aw159_wildcat",
@@ -148,7 +155,10 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "light-helicopter",
         "weapons": [
-          "HMG"
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
@@ -207,6 +217,7 @@
       },
       "mounts": [
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -290,7 +301,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -319,7 +331,7 @@
       }
     },
     "europe_boxer_skyranger_30_gun_and_missile_air_defense": {
-      "name": "Boxer Skyranger 30 Gun-and-missile air defense",
+      "name": "Skyranger 30",
       "description": "Gun-and-missile air defense; ground combat platform, passenger carriage not implemented",
       "faction": "europe",
       "family": "boxer_skyranger_30",
@@ -337,8 +349,14 @@
         "reason": "Air-defense targeting and airborne targets deferred",
         "profile": "wheeled-ifv",
         "weapons": [
-          "AA-gun",
-          "MANPADS"
+          {
+            "name": "AA Gun",
+            "icon": "autocannon"
+          },
+          {
+            "name": "MANPADS",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
@@ -361,12 +379,15 @@
         "reason": "Artillery and indirect-support mechanics deferred",
         "profile": "wheeled-howitzer",
         "weapons": [
-          "howitzer"
+          {
+            "name": "Howitzer",
+            "icon": "howitzer"
+          }
         ]
       }
     },
     "europe_centauro_ii": {
-      "name": "Centauro II Tank destroyer",
+      "name": "Centauro II",
       "description": "Wheeled 120 mm tank destroyer",
       "faction": "europe",
       "family": "centauro_ii",
@@ -384,13 +405,19 @@
         "reason": "Ground profile and model admission pending",
         "profile": "wheeled-tank-destroyer",
         "weapons": [
-          "tank-gun",
-          "HMG"
+          {
+            "name": "Main Gun",
+            "icon": "ap_shell"
+          },
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
     "europe_ch_47_chinook_hc6": {
-      "name": "CH-47 Chinook HC6",
+      "name": "Chinook HC6",
       "description": "HC6",
       "faction": "europe",
       "family": "ch_47_chinook",
@@ -408,12 +435,15 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "heavy-helicopter",
         "weapons": [
-          "HMG"
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
     "europe_challenger_challenger_2_tes": {
-      "name": "Challenger Challenger 2 TES",
+      "name": "Challenger 2 TES",
       "description": "Challenger 2 TES",
       "faction": "europe",
       "family": "challenger",
@@ -466,7 +496,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "ground_tank_ap",
             "ground_tank_he"
@@ -484,6 +515,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -514,7 +546,7 @@
       }
     },
     "europe_challenger_challenger_3": {
-      "name": "Challenger Challenger 3",
+      "name": "Challenger 3",
       "description": "Challenger 3",
       "faction": "europe",
       "family": "challenger",
@@ -532,14 +564,23 @@
         "reason": "Ground profile and model admission pending",
         "profile": "advanced-mbt",
         "weapons": [
-          "advanced-tank-gun",
-          "HMG",
-          "Trophy"
+          {
+            "name": "Main Gun",
+            "icon": "ap_shell"
+          },
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          },
+          {
+            "name": "Trophy",
+            "icon": "trophy"
+          }
         ]
       }
     },
     "europe_cv90120_light_tank": {
-      "name": "CV90120 Light tank",
+      "name": "CV90120",
       "description": "Light tank",
       "faction": "europe",
       "family": "cv90120",
@@ -557,13 +598,19 @@
         "reason": "Ground profile and model admission pending",
         "profile": "light-tank",
         "weapons": [
-          "tank-gun",
-          "HMG"
+          {
+            "name": "Main Gun",
+            "icon": "ap_shell"
+          },
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
     "europe_cv90_cv9040c": {
-      "name": "CV90 CV9040C",
+      "name": "CV9040C",
       "description": "CV9040C; ground combat platform, passenger carriage not implemented",
       "faction": "europe",
       "family": "cv90",
@@ -616,7 +663,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -698,7 +746,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -727,7 +776,7 @@
       }
     },
     "europe_ebrc_jaguar_armed_reconnaissance_vehicle": {
-      "name": "EBRC Jaguar Armed reconnaissance vehicle",
+      "name": "Jaguar",
       "description": "Armed reconnaissance vehicle",
       "faction": "europe",
       "family": "ebrc_jaguar",
@@ -745,13 +794,19 @@
         "reason": "Ground profile and model admission pending",
         "profile": "wheeled-recon",
         "weapons": [
-          "autocannon",
-          "Akeron"
+          {
+            "name": "Autocannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "Akeron MP",
+            "icon": "atgm"
+          }
         ]
       }
     },
     "europe_ec665_tiger_had": {
-      "name": "EC665 Tiger HAD",
+      "name": "Tiger HAD",
       "description": "HAD",
       "faction": "europe",
       "family": "ec665_tiger",
@@ -769,13 +824,19 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "attack-helicopter",
         "weapons": [
-          "helicopter-gun",
-          "helicopter-AT"
+          {
+            "name": "Chain Gun",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AT Missile",
+            "icon": "atgm"
+          }
         ]
       }
     },
     "europe_ec665_tiger_uht": {
-      "name": "EC665 Tiger UHT",
+      "name": "Tiger UHT",
       "description": "UHT",
       "faction": "europe",
       "family": "ec665_tiger",
@@ -793,13 +854,19 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "attack-helicopter",
         "weapons": [
-          "helicopter-AT",
-          "rocket-pod"
+          {
+            "name": "AT Missile",
+            "icon": "atgm"
+          },
+          {
+            "name": "Rocket Pods",
+            "icon": "rockets"
+          }
         ]
       }
     },
     "europe_eurofighter_typhoon_tranche_3": {
-      "name": "Eurofighter Typhoon Tranche 3",
+      "name": "Typhoon Tranche 3",
       "description": "Tranche 3",
       "faction": "europe",
       "family": "eurofighter_typhoon",
@@ -811,20 +878,29 @@
         ],
         "category": "air",
         "variant": "Tranche 3",
-        "family_name": "Eurofighter Typhoon"
+        "family_name": "Typhoon"
       },
       "planned": {
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "europe_fennek_reconnaissance_vehicle": {
-      "name": "Fennek Reconnaissance vehicle",
+      "name": "Fennek",
       "description": "Reconnaissance vehicle",
       "faction": "europe",
       "family": "fennek",
@@ -878,6 +954,7 @@
       },
       "mounts": [
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -926,12 +1003,15 @@
         "reason": "Air-defense targeting and airborne targets deferred",
         "profile": "aa-tracked",
         "weapons": [
-          "AA-gun"
+          {
+            "name": "AA Gun",
+            "icon": "autocannon"
+          }
         ]
       }
     },
     "europe_jas_39_gripen_e": {
-      "name": "JAS 39 Gripen E",
+      "name": "Gripen E",
       "description": "E",
       "faction": "europe",
       "family": "jas_39_gripen",
@@ -949,14 +1029,23 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "europe_kamikaze_drone_anti_armor": {
-      "name": "Kamikaze Drone Anti-armor",
+      "name": "Kamikaze Drone AT",
       "description": "Anti-armor",
       "faction": "europe",
       "family": "kamikaze_drone",
@@ -974,12 +1063,15 @@
         "reason": "Drone movement, sensing and mission mechanics deferred",
         "profile": "kamikaze-armor",
         "weapons": [
-          "drone-AT"
+          {
+            "name": "AT Warhead",
+            "icon": "ap_shell"
+          }
         ]
       }
     },
     "europe_kamikaze_drone_anti_personnel": {
-      "name": "Kamikaze Drone Anti-personnel",
+      "name": "Kamikaze Drone HE",
       "description": "Anti-personnel",
       "faction": "europe",
       "family": "kamikaze_drone",
@@ -997,12 +1089,15 @@
         "reason": "Drone movement, sensing and mission mechanics deferred",
         "profile": "kamikaze-personnel",
         "weapons": [
-          "drone-HE"
+          {
+            "name": "HE Warhead",
+            "icon": "he_shell"
+          }
         ]
       }
     },
     "europe_kf51_panther_prototype_main_battle_tank": {
-      "name": "KF51 Panther Prototype main battle tank",
+      "name": "KF51 Panther",
       "description": "Prototype main battle tank",
       "faction": "europe",
       "family": "kf51_panther",
@@ -1055,7 +1150,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "advanced_tank_ap",
             "advanced_tank_he"
@@ -1073,6 +1169,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1156,7 +1253,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "ground_tank_ap",
             "ground_tank_he"
@@ -1174,6 +1272,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1204,7 +1303,7 @@
       }
     },
     "europe_leopard_2_2a6": {
-      "name": "Leopard 2 2A6",
+      "name": "Leopard 2A6",
       "description": "2A6",
       "faction": "europe",
       "family": "leopard_2",
@@ -1257,7 +1356,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "ground_tank_ap",
             "ground_tank_he"
@@ -1275,6 +1375,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1305,7 +1406,7 @@
       }
     },
     "europe_leopard_2_2a7v": {
-      "name": "Leopard 2 2A7V",
+      "name": "Leopard 2A7V",
       "description": "2A7V",
       "faction": "europe",
       "family": "leopard_2",
@@ -1358,7 +1459,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "ground_tank_ap",
             "ground_tank_he"
@@ -1376,6 +1478,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1406,7 +1509,7 @@
       }
     },
     "europe_leopard_2_2a8": {
-      "name": "Leopard 2 2A8",
+      "name": "Leopard 2A8",
       "description": "2A8",
       "faction": "europe",
       "family": "leopard_2",
@@ -1439,7 +1542,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "advanced_tank_ap",
             "advanced_tank_he"
@@ -1457,6 +1561,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1480,7 +1585,7 @@
       }
     },
     "europe_man_hx_general_resupply": {
-      "name": "MAN HX General resupply",
+      "name": "MAN HX",
       "description": "General resupply",
       "faction": "europe",
       "family": "man_hx",
@@ -1576,7 +1681,7 @@
       }
     },
     "europe_mars_ii_multiple_launch_rocket_system": {
-      "name": "MARS II Multiple-launch rocket system",
+      "name": "MARS II",
       "description": "Multiple-launch rocket system",
       "faction": "europe",
       "family": "mars_ii",
@@ -1594,12 +1699,15 @@
         "reason": "Artillery and indirect-support mechanics deferred",
         "profile": "heavy-rocket",
         "weapons": [
-          "rocket-battery"
+          {
+            "name": "Rockets",
+            "icon": "rockets"
+          }
         ]
       }
     },
     "europe_mirage_2000_2000d_rmv": {
-      "name": "Mirage 2000 2000D RMV",
+      "name": "Mirage 2000D RMV",
       "description": "2000D RMV",
       "faction": "europe",
       "family": "mirage_2000",
@@ -1617,14 +1725,23 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "strike-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "europe_nasams_nasams_3": {
-      "name": "NASAMS NASAMS 3",
+      "name": "NASAMS 3",
       "description": "NASAMS 3",
       "faction": "europe",
       "family": "nasams",
@@ -1642,7 +1759,10 @@
         "reason": "Air-defense targeting and airborne targets deferred",
         "profile": "aa-launcher",
         "weapons": [
-          "SAM"
+          {
+            "name": "SAM",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
@@ -1665,7 +1785,10 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "utility-helicopter",
         "weapons": [
-          "HMG"
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
@@ -1723,7 +1846,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -1740,7 +1864,8 @@
           ]
         },
         {
-          "name": "launcher",
+          "id": "launcher",
+          "name": "Spike",
           "weapons": [
             "spike"
           ],
@@ -1770,7 +1895,7 @@
       }
     },
     "europe_pzh_2000_tracked_155_mm_howitzer": {
-      "name": "PzH 2000 Tracked 155 mm howitzer",
+      "name": "PzH 2000",
       "description": "Tracked 155 mm howitzer",
       "faction": "europe",
       "family": "pzh_2000",
@@ -1788,12 +1913,15 @@
         "reason": "Artillery and indirect-support mechanics deferred",
         "profile": "tracked-howitzer",
         "weapons": [
-          "howitzer"
+          {
+            "name": "Howitzer",
+            "icon": "howitzer"
+          }
         ]
       }
     },
     "europe_rafale_c_f4": {
-      "name": "Rafale C F4",
+      "name": "Rafale F4",
       "description": "C F4",
       "faction": "europe",
       "family": "rafale",
@@ -1811,9 +1939,18 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
@@ -1847,7 +1984,7 @@
       }
     },
     "europe_scout_drone_standard": {
-      "name": "Scout Drone Standard",
+      "name": "Scout Drone",
       "description": "Standard",
       "faction": "europe",
       "family": "scout_drone",
@@ -1868,7 +2005,7 @@
       }
     },
     "europe_scout_drone_thermal": {
-      "name": "Scout Drone Thermal",
+      "name": "Thermal Drone",
       "description": "Thermal",
       "faction": "europe",
       "family": "scout_drone",
@@ -1907,7 +2044,10 @@
         "reason": "Aircraft movement and electronic-warfare mechanics deferred",
         "profile": "ew-aircraft",
         "weapons": [
-          "AAM"
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
@@ -1930,14 +2070,23 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "strike-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "europe_vbci_infantry_fighting_vehicle": {
-      "name": "VBCI Infantry fighting vehicle",
+      "name": "VBCI",
       "description": "Infantry fighting vehicle; ground combat platform, passenger carriage not implemented",
       "faction": "europe",
       "family": "vbci",
@@ -1991,7 +2140,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -2020,7 +2170,7 @@
       }
     },
     "europe_vbl_machine_gun_scout": {
-      "name": "VBL Machine-gun scout",
+      "name": "VBL",
       "description": "Machine-gun scout",
       "faction": "europe",
       "family": "vbl",
@@ -2074,6 +2224,7 @@
       },
       "mounts": [
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"

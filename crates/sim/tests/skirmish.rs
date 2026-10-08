@@ -478,7 +478,7 @@ fn the_basic_opponent_buys_from_zero_through_recorded_commands_and_replays_every
     ] {
         rules["catalog"].as_array_mut().unwrap().push(json!({ "units": { format!("red_{id}"): {
             "extends": id,
-            "roster": { "factions": ["eastern"], "category": category, "family_name": id, "variant": "Test" }
+            "roster": { "factions": ["eastern"], "category": category, "family_name": "Test", "variant": "Test" }
         } } }));
     }
     let mut setup = match_on(rules);
@@ -742,7 +742,7 @@ fn refund_condition_counts_casualties_lost_ammunition_carriers_and_empty_trucks(
         &mut rules,
         "soldiers",
         "test_grenadier",
-        json!({"mounts":[{"name":"grenade launcher","weapons":["grenade"],"special":false}]}),
+        json!({"mounts":[{"id":"grenade launcher","weapons":["grenade"],"special":false}]}),
     );
     setup.rules = serde_json::from_value(rules).unwrap();
     let battle = Battle::new(&setup, 1);

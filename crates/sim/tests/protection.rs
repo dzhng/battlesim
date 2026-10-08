@@ -74,6 +74,8 @@ fn swept_fast_moving_hull_threat_bursts_at_surface_standoff_without_direct_hit()
 
 fn capability() -> contract::catalog::ActiveProtection {
     contract::catalog::ActiveProtection {
+        name: "Trophy".into(),
+        icon: "trophy".into(),
         capacity: 4,
         cooldown_s: 3.0,
         standoff_m: 8.0,
@@ -84,17 +86,17 @@ fn capability() -> contract::catalog::ActiveProtection {
 #[test]
 fn finite_protection_obeys_fractional_exact_cooldown_and_exhaustion() {
     let cap = capability();
-    let mut state = sim::protection::State::new(cap);
-    assert!(state.intercept(cap, 10.25, 30));
+    let mut state = sim::protection::State::new(&cap);
+    assert!(state.intercept(&cap, 10.25, 30));
     assert_eq!(state.charges, 3);
     assert_eq!(state.ready_at_tick, 100.25);
-    assert!(!state.intercept(cap, 100.25 - 0.000001, 30));
+    assert!(!state.intercept(&cap, 100.25 - 0.000001, 30));
     assert_eq!(state.charges, 3);
     for time in [100.25, 190.25, 280.25] {
-        assert!(state.intercept(cap, time, 30));
+        assert!(state.intercept(&cap, time, 30));
     }
     assert_eq!(state.charges, 0);
-    assert!(!state.intercept(cap, 1000.0, 30));
+    assert!(!state.intercept(&cap, 1000.0, 30));
     assert_eq!(state.ready_at_tick, 370.25);
 }
 
@@ -147,7 +149,7 @@ impl ImpactResolver for LimitedShield {
     }
     fn intercept(&mut self, event: &Interception) -> bool {
         self.seen.push(event.projectile);
-        self.state.intercept(capability(), event.time, 30)
+        self.state.intercept(&capability(), event.time, 30)
     }
 }
 #[test]
@@ -159,7 +161,7 @@ fn simultaneous_threats_resolve_by_event_time_then_id_and_saturate_cooldown() {
         let second = store.launch(shot(if tied { 100.0 } else { 110.0 }, 1200.0));
         let mut events = Vec::new();
         let mut shield = LimitedShield {
-            state: sim::protection::State::new(capability()),
+            state: sim::protection::State::new(&capability()),
             seen: Vec::new(),
         };
         flight::advance_projectiles(&mut store, &world, &[hull()], &mut events, &mut shield);

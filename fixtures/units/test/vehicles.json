@@ -1,7 +1,7 @@
 {
   "units": {
     "test_supply": {
-      "name": "Supply truck",
+      "name": "Supply Truck",
       "description": "Deploys in place to rearm, repair and reinforce the units around it.",
       "faction": "generic",
       "family": "vehicles",
@@ -61,7 +61,7 @@
       },
       "sensors": { "ground_m": 450, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "mounts": [
-        { "name": "HMG", "weapons": ["hmg"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }
+        { "id": "HMG", "name": "HMG", "weapons": ["hmg"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }
       ],
       "sound": { "profile": "vehicle", "loudness_m": 500 },
       "appearance": "test_jeep"

@@ -18,8 +18,10 @@ import type { ContactView, MountView, OwnUnitView } from "../sim/observation";
 /** The rule blocks the panels read (the scenario's). */
 export interface PanelRules {
   tick_hz: number;
-  /** Each weapon row's display name, icon and full load. */
-  weapons: Record<string, { name: string; icon?: string; ammo?: number | "unlimited" }>;
+  /** Each weapon row's label, icon and full load. The catalog gives every
+   *  row its label and icon (`contract::labels`), so a row reads them as
+   *  they are and never stands its id in for either. */
+  weapons: Record<string, { name: string; icon: string; ammo?: number | "unlimited" }>;
   /** A supply vehicle's reach. */
   service: { radius_m: number };
 }
@@ -224,10 +226,8 @@ export function mountTimers(mount: MountView): { aim: number | null; reload: num
   };
 }
 
-const rowIcon = (rules: PanelRules, row: string | undefined) => {
-  const icon = row === undefined ? undefined : rules.weapons[row]?.icon;
-  return icon ? weaponIcon(icon) : null;
-};
+const rowIcon = (rules: PanelRules, row: string | undefined) =>
+  row === undefined ? null : weaponIcon(rules.weapons[row].icon);
 
 /** A mount's row: one kind's name, or the mount's name over each kind.
  *  `loaded` is the kind the next shot fires; -1 where the side can't know. */
@@ -239,7 +239,7 @@ function mountRow(
   loaded: number,
   counts?: readonly (number | null)[],
 ): Omit<WeaponRow, "live" | "fill"> {
-  const rowName = (r: string) => (rules.weapons[r]?.name ?? r).toUpperCase();
+  const rowName = (r: string) => rules.weapons[r].name.toUpperCase();
   const single = rows.length === 1;
   return {
     key,
@@ -257,7 +257,7 @@ function mountRow(
  *  and its live timers and reason. */
 function ownWeaponRow(mounts: readonly MountRow[], m: MountView, rules: PanelRules): WeaponRow {
   const mount = mounts[m.mount];
-  const rows = mount?.weapons ?? [];
+  const rows = mount.weapons;
   const loaded =
     m.loaded ??
     m.reloading ??
@@ -267,29 +267,21 @@ function ownWeaponRow(mounts: readonly MountRow[], m: MountView, rules: PanelRul
     );
   const { aim, reload } = mountTimers(m);
   return {
-    ...mountRow(
-      String(m.mount),
-      rows,
-      mount?.name ?? `weapon ${m.mount + 1}`,
-      rules,
-      loaded,
-      m.ammo,
-    ),
+    ...mountRow(String(m.mount), rows, mount.name, rules, loaded, m.ammo),
     name: equipmentName(mounts, m.mount, rules),
     live: { reason: m.reason, aim, reload, guiding: m.guiding },
     fill: ammoFill(m.ammo[loaded], rules.weapons[rows[loaded]]?.ammo),
   };
 }
 
-/** Distinguish physical guns without changing the authored mount/rig keys.
- *  A lone gun uses its short weapon name; twins use meaningful mount names,
- *  or stable ordinals when the mount names repeat. */
+/** Distinguish physical guns by their authored labels. A lone gun uses its
+ *  weapon's label; twins use their mounts' labels, or stable ordinals when
+ *  those repeat. */
 function equipmentName(mounts: readonly MountRow[], index: number, rules: PanelRules): string {
   const mount = mounts[index];
-  if (!mount) return `WEAPON ${index + 1}`;
   const short =
     mount.weapons.length === 1
-      ? (rules.weapons[mount.weapons[0]]?.name ?? mount.weapons[0]).toUpperCase()
+      ? rules.weapons[mount.weapons[0]].name.toUpperCase()
       : mount.name.toUpperCase();
   const peers = mounts.flatMap((m, i) =>
     m.weapons.length === mount.weapons.length && m.weapons.every((r, k) => r === mount.weapons[k])
@@ -308,7 +300,7 @@ export function weaponRows(
   mounts: readonly MountRow[],
   rules: PanelRules,
   readiness?: readonly MountView[],
-  protection?: { capacity: number },
+  protection?: { name: string; icon: string; capacity: number },
   protectionReadiness?: OwnUnitView["protection"],
 ): WeaponRow[] {
   const rows = readiness
@@ -322,8 +314,8 @@ export function weaponRows(
   if (protection)
     rows.push({
       key: "protection",
-      icon: weaponIcon("trophy"),
-      name: "TROPHY",
+      icon: weaponIcon(protection.icon),
+      name: protection.name.toUpperCase(),
       kinds: [
         {
           label: null,

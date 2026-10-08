@@ -37,7 +37,12 @@ pub struct Progress {
 enum Need {
     /// (mount, kind, weapon row).
     Round(usize, usize, usize),
-    Protection(contract::catalog::ActiveProtection),
+    /// A protection charge, up to its capacity, each taking its service time.
+    Protection {
+        capacity: u32,
+        service_s: f64,
+        stock_per_charge: u32,
+    },
     Health,
     Soldier,
 }
@@ -60,10 +65,14 @@ fn need(unit: &Unit, room: bool, arsenal: &Arsenal, rules: &Rules) -> Option<Nee
     }
     if let (Some(state), Some(cap)) = (
         unit.protection,
-        unit.unit_type(rules).capabilities.active_protection,
+        &unit.unit_type(rules).capabilities.active_protection,
     ) {
         if state.charges < cap.capacity {
-            return Some(Need::Protection(cap));
+            return Some(Need::Protection {
+                capacity: cap.capacity,
+                service_s: cap.service_s,
+                stock_per_charge: cap.stock_per_charge,
+            });
         }
     }
     if unit.hull.is_some() && unit.hp < unit.max_hp(rules) {
@@ -81,7 +90,9 @@ fn price(need: Need, arsenal: &Arsenal, rules: &Rules) -> u32 {
     let s = &rules.service;
     match need {
         Need::Round(_, _, row) => s.round_costs[&arsenal.weapons[row].id],
-        Need::Protection(cap) => cap.stock_per_charge,
+        Need::Protection {
+            stock_per_charge, ..
+        } => stock_per_charge,
         Need::Health => s.stock_per_hp,
         Need::Soldier => s.stock_per_soldier,
     }
@@ -183,7 +194,7 @@ fn serve(
     let progress = &mut units[r].progress_service;
     let (clock, period) = match need {
         Need::Round(..) => (&mut progress.ammo_s, 1.0 / s.ammo_rounds_per_s),
-        Need::Protection(cap) => (&mut progress.protection_s, cap.service_s),
+        Need::Protection { service_s, .. } => (&mut progress.protection_s, service_s),
         Need::Health => (&mut progress.hp_s, 1.0 / s.vehicle_hp_per_s),
         Need::Soldier => (&mut progress.soldier_s, s.soldier_replacement_s),
     };
@@ -201,9 +212,9 @@ fn serve(
                 *n += 1;
             }
         }
-        Need::Protection(cap) => {
+        Need::Protection { capacity, .. } => {
             let state = unit.protection.as_mut().expect("a protection recipient");
-            state.charges = (state.charges + 1).min(cap.capacity);
+            state.charges = (state.charges + 1).min(capacity);
         }
         Need::Health => unit.hp = (unit.hp + 1.0).min(unit.max_hp(rules)),
         Need::Soldier => {

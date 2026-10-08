@@ -531,8 +531,8 @@ test("the tank muzzle is measured against its type's mount row, not a built-in r
 test("a mount is drawn by the rig its model declares, whatever the mount is called", async () => {
   const [cannon, hmg] = tankMounts();
   const renamed = [
-    { ...cannon, name: "main gun" },
-    { ...hmg, name: "pintle MG", on: "main gun" },
+    { ...cannon, id: "main gun" },
+    { ...hmg, id: "pintle MG", on: "main gun" },
   ];
   const fit = (mounts: Record<string, "gun" | "hmg">) =>
     validateAppearance(

@@ -436,7 +436,8 @@
       "description": "Ground weapon profile; named equipment art pending.",
       "mounts": [
         {
-          "name": "rifles",
+          "id": "rifles",
+          "name": "Assault Rifle",
           "weapons": [
             "assault_rifle"
           ],
@@ -451,7 +452,8 @@
       "description": "One carried launcher with ordinary guards; named launcher art pending.",
       "mounts": [
         {
-          "name": "launcher",
+          "id": "launcher",
+          "name": "TOW 2A",
           "weapons": [
             "tow"
           ],
@@ -482,7 +484,8 @@
       "description": "One carried launcher with ordinary guards; named launcher art pending.",
       "mounts": [
         {
-          "name": "launcher",
+          "id": "launcher",
+          "name": "Kornet",
           "weapons": [
             "kornet"
           ],
@@ -513,7 +516,8 @@
       "description": "One carried launcher with ordinary guards; named launcher art pending.",
       "mounts": [
         {
-          "name": "launcher",
+          "id": "launcher",
+          "name": "RPG-7",
           "weapons": [
             "rpg_light"
           ],
@@ -534,7 +538,8 @@
       "description": "One carried launcher with ordinary guards; named launcher art pending.",
       "mounts": [
         {
-          "name": "launcher",
+          "id": "launcher",
+          "name": "RPG-29",
           "weapons": [
             "rpg_heavy"
           ],
@@ -559,7 +564,8 @@
       "description": "One finite physical gun; named equipment appearance pending.",
       "mounts": [
         {
-          "name": "marksman_rifle_1",
+          "id": "marksman_rifle_1",
+          "name": "Marksman Rifle",
           "weapons": [
             "marksman_rifle"
           ],
@@ -574,7 +580,8 @@
       "description": "One finite physical gun; named equipment appearance pending.",
       "mounts": [
         {
-          "name": "marksman_rifle_2",
+          "id": "marksman_rifle_2",
+          "name": "Marksman Rifle",
           "weapons": [
             "marksman_rifle"
           ],
@@ -589,7 +596,8 @@
       "description": "One finite physical gun; named equipment appearance pending.",
       "mounts": [
         {
-          "name": "marksman_rifle_3",
+          "id": "marksman_rifle_3",
+          "name": "Marksman Rifle",
           "weapons": [
             "marksman_rifle"
           ],
@@ -604,7 +612,8 @@
       "description": "One finite physical gun; named equipment appearance pending.",
       "mounts": [
         {
-          "name": "marksman_rifle_4",
+          "id": "marksman_rifle_4",
+          "name": "Marksman Rifle",
           "weapons": [
             "marksman_rifle"
           ],
@@ -619,7 +628,8 @@
       "description": "One finite physical gun; named equipment appearance pending.",
       "mounts": [
         {
-          "name": "marksman_rifle_5",
+          "id": "marksman_rifle_5",
+          "name": "Marksman Rifle",
           "weapons": [
             "marksman_rifle"
           ],
@@ -634,7 +644,8 @@
       "description": "One finite physical gun; named equipment appearance pending.",
       "mounts": [
         {
-          "name": "marksman_rifle_6",
+          "id": "marksman_rifle_6",
+          "name": "Marksman Rifle",
           "weapons": [
             "marksman_rifle"
           ],
@@ -653,7 +664,8 @@
       "description": "One finite physical gun; named equipment appearance pending.",
       "mounts": [
         {
-          "name": "heavy_sniper_1",
+          "id": "heavy_sniper_1",
+          "name": "Heavy Sniper",
           "weapons": [
             "heavy_sniper"
           ],
@@ -668,7 +680,8 @@
       "description": "One finite physical gun; named equipment appearance pending.",
       "mounts": [
         {
-          "name": "heavy_sniper_2",
+          "id": "heavy_sniper_2",
+          "name": "Heavy Sniper",
           "weapons": [
             "heavy_sniper"
           ],

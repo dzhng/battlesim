@@ -26,9 +26,10 @@ import {
 } from "@packages/scene-assets/src/units.ts";
 
 /** A turret mount row as the catalog view carries it. */
-const turretMount = (name: string, on: string | null, pivot: Vec3, muzzle: Vec3): MountRow => ({
-  name,
-  weapons: [name],
+const turretMount = (id: string, on: string | null, pivot: Vec3, muzzle: Vec3): MountRow => ({
+  id,
+  name: "Gun",
+  weapons: [id],
   squad: false,
   special: false,
   turret: true,

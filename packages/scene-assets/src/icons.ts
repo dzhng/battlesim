@@ -1,7 +1,8 @@
 // The generated icons under `assets/icons/`: never hand-drawn. Each is a
 // small SVG drawn in `currentColor`, so the UI tints it (the side colour
 // lives only in the UI and markers).
-//   - `weapons/<icon>.svg`: a weapon or ammunition row's `icon`;
+//   - `weapons/<icon>.svg`: the `icon` of a weapon or ammunition row, of an
+//     active protection, or of a disabled card's planned weapon;
 //   - `roles/<role>.svg`: a role's NATO-style symbol, its filled frame with
 //     the registry's modifiers drawn in order, bold enough to read at 20 px;
 //   - `units/<card>.svg`: a card's silhouette, rendered from its own model
@@ -37,7 +38,10 @@ const centred = (w: number, h: number, body: string, stroke = 1.5) => {
   return svg(w, h, body, stroke).replace(`viewBox="0 0 ${w} ${h}"`, `viewBox="${box}"`);
 };
 
-/** Each weapon icon's drawing on a 24 × 24 grid, the muzzle to the right. */
+/** Each weapon icon's drawing on a 24 × 24 grid, the muzzle to the right
+ *  (a falling bomb's nose and a launched missile's point where they fly).
+ *  Each differs from its neighbours by form: a scope makes the sniper, a
+ *  braked barrel on a block the autocannon, a cone the RPG's warhead. */
 const WEAPON_ICONS: Record<string, string> = {
   trophy: '<path d="M12 3l8 4v6c0 4-4 7-8 9-4-2-8-5-8-9V7z"/><path d="M7 12h10M12 8v8"/>',
   rifle: '<path d="M2 13h13l2-1.5h5"/><path d="M5 13l-1 4h3l1.5-4"/><path d="M11 13l1 3"/>',
@@ -46,6 +50,17 @@ const WEAPON_ICONS: Record<string, string> = {
   he_shell: '<path d="M3 9h11a4 3 0 0 1 0 6H3z"/><path d="M6 9v6"/><path d="M9 9v6"/>',
   hmg: '<path d="M2 11h16h4"/><path d="M4 9h9v5H4z"/><path d="M8 14l-1 5M8 14l3 5"/>',
   atgm: '<path d="M3 12h13l4-2v4l-4-2"/><path d="M6 12l-2-3M6 12l-2 3"/><path d="M3 12c-1 3 1 5 0 8"/>',
+  sniper:
+    '<path d="M2 14h14l2-1h4"/><path d="M5 14l-1 4h3l1.5-4"/><rect x="8" y="8.5" width="6" height="2.5" rx="1"/><path d="M11 11v3"/>',
+  autocannon:
+    '<path d="M3 9h9v6H3z"/><path d="M12 12h8"/><path d="M18 10v4M21 10v4"/><path d="M6 15v4h3v-4"/>',
+  rpg: '<path d="M2 11h11v2H2z"/><path d="M13 8.5h3l5 3.5-5 3.5h-3z"/><path d="M5 13v4M9 13v3"/>',
+  aa_missile: '<path d="M5 19L18 6"/><path d="M15 5h4v4"/><path d="M8 16l-4-1M8 16l1 4"/>',
+  bomb: '<path d="M9 8h6v7a3 3 0 0 1-6 0z"/><path d="M10 8L7 3M14 8l3-5M12 8V3"/>',
+  howitzer: '<path d="M5 16L20 5"/><circle cx="8" cy="17" r="3"/><path d="M8 17l-5 3"/>',
+  rockets:
+    '<path d="M3 7h14M3 12h14M3 17h14"/><path d="M17 5.5l3 1.5-3 1.5M17 10.5l3 1.5-3 1.5M17 15.5l3 1.5-3 1.5"/>',
+  mortar: '<path d="M7 19L16 4"/><path d="M3 20h8"/><path d="M12 11l4 9"/>',
 };
 
 /** An open eye on a 24 × 24 grid: a last sighting, and (struck through)
@@ -182,7 +197,13 @@ export function iconFiles(
   solids: (id: string) => Solid[] | null,
 ): Map<string, string> {
   const files = new Map<string, string>();
-  for (const { icon } of Object.values(weapons)) files.set(weaponIcon(icon), weaponSvg(icon));
+  const weapon = (icon: string) => files.set(weaponIcon(icon), weaponSvg(icon));
+  for (const { icon } of Object.values(weapons)) weapon(icon);
+  for (const t of units.view.units) {
+    const protection = t.capabilities.active_protection;
+    if (protection) weapon(protection.icon);
+  }
+  for (const card of units.cards) for (const { icon } of card.planned_weapons) weapon(icon);
   for (const [role, r] of Object.entries(units.view.roles))
     files.set(roleIcon(role), roleSymbol(role, r.symbol));
   for (const [state, body] of Object.entries(STATE_ICONS))

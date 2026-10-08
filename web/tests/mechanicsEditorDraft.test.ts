@@ -18,7 +18,7 @@ it("preserves landing spread when range changes, through subsequent spread and r
 });
 
 it("isolates matching soldier-kind edits to a selected unit and replaces earlier drafts by path", () => {
-  const original = { hp: 100, mounts: [{ name: "rifles", weapons: ["rifle"] }] };
+  const original = { hp: 100, mounts: [{ id: "rifles", weapons: ["rifle"] }] };
   const rifleTarget = { section: "soldiers" as const, id: "test_rifleman", unit: "test_rifle" };
   const atTarget = { ...rifleTarget, unit: "test_at" };
   let draft = editDraft({ revision: "one", changes: [] }, rifleTarget, ["hp"], 80, original);
@@ -40,10 +40,10 @@ it("reads source provenance and restores only the named mount override", async (
         value: {
           units: {
             base: {
-              mounts: [{ name: "cannon", weapons: ["ap"], turret: true }],
+              mounts: [{ id: "cannon", weapons: ["ap"], turret: true }],
               sensors: { ground_m: 600 },
             },
-            variant: { extends: "base", mounts: [{ name: "cannon", weapons: ["he"] }] },
+            variant: { extends: "base", mounts: [{ id: "cannon", weapons: ["he"] }] },
           },
         },
       },
@@ -68,16 +68,16 @@ it("reads source provenance and restores only the named mount override", async (
   ]);
   expect(
     draftEntry(
-      { mounts: [{ name: "cannon", weapons: ["he"], turret: true }] },
+      { mounts: [{ id: "cannon", weapons: ["he"], turret: true }] },
       draft,
       target,
       snapshot,
     ),
-  ).toEqual({ mounts: [{ name: "cannon", weapons: ["ap"], turret: true }] });
+  ).toEqual({ mounts: [{ id: "cannon", weapons: ["ap"], turret: true }] });
   const { unitWeapons, weaponUsers } = await import("../../apps/mechanics-editor/src/draft");
   snapshot.catalog = {
     documents: [
-      { units: { variant: { mounts: [{ name: "cannon", weapons: ["he"], turret: true }] } } },
+      { units: { variant: { mounts: [{ id: "cannon", weapons: ["he"], turret: true }] } } },
     ],
   };
   expect(unitWeapons(snapshot, "variant", draft)).toEqual(["ap"]);

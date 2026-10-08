@@ -25,8 +25,8 @@ fn base_tank() -> Value {
         "mobility": { "tracked": { "offroad_kmh": 22, "road_kmh": 43, "turn_deg_s": 45, "reverse_fraction": 0.4 } },
         "sensors": { "ground_m": 350, "sight_shape": { "front": 1, "side": 0.5, "rear": 0.3 }, "on": "cannon" },
         "mounts": [
-            { "name": "cannon", "weapons": ["ap", "he"], "turret": true, "pivot_m": [0, 0, 1.45], "muzzle_m": [5.9, 0, 0.55] },
-            { "name": "HMG", "weapons": ["hmg"], "turret": true, "on": "cannon", "pivot_m": [-0.25, -0.58, 2.35], "muzzle_m": [1.4, 0, 0.3] }
+            { "id": "cannon", "name": "Main Gun", "weapons": ["ap", "he"], "turret": true, "pivot_m": [0, 0, 1.45], "muzzle_m": [5.9, 0, 0.55] },
+            { "id": "HMG", "name": "HMG", "weapons": ["hmg"], "turret": true, "on": "cannon", "pivot_m": [-0.25, -0.58, 2.35], "muzzle_m": [1.4, 0, 0.3] }
         ],
         "sound": { "profile": "vehicle", "loudness_m": 650 },
         "appearance": "tank"
@@ -63,7 +63,7 @@ fn planned_aircraft_is_a_visible_card_but_not_a_physical_type() {
             "name": "F-22 Raptor", "description": "Air superiority fighter",
             "faction": "us", "family": "f22", "roles": [], "cost": 400,
             "roster": { "factions": ["us"], "family_name": "F-22 Raptor", "category": "air", "variant": "F-22A" },
-            "planned": { "reason": "Aircraft mechanics are not implemented", "profile": "stealth-fighter", "weapons": ["fighter-missiles"] }
+            "planned": { "reason": "Aircraft mechanics are not implemented", "profile": "stealth-fighter", "weapons": [{ "name": "AA Missile", "icon": "aa_missile" }] }
         }
     }))).unwrap();
     assert!(catalog.index("f22").is_none());
@@ -103,8 +103,9 @@ fn a_variant_gives_only_what_differs_and_inherits_the_rest() {
         "m1a1": {
             "extends": "m1", "name": "M1A1",
             "body": { "hull": { "armor": { "front": 180 } } },
-            // A mount merges by name: the cannon swaps its weapon, the HMG stays.
-            "mounts": [{ "name": "cannon", "weapons": ["ap_120"] }]
+            // A mount merges by id: the cannon swaps its weapon and keeps
+            // its label, the HMG stays.
+            "mounts": [{ "id": "cannon", "weapons": ["ap_120"] }]
         },
     })))
     .unwrap();
@@ -120,6 +121,7 @@ fn a_variant_gives_only_what_differs_and_inherits_the_rest() {
         Some([5.9, 0.0, 0.55]),
         "and so is its geometry"
     );
+    assert_eq!(m1a1.mounts[0].name, "Main Gun");
     assert_eq!(m1a1.mounts[1], m1.mounts[1]);
     assert_eq!(m1a1.name, "M1A1");
     assert!(matches!(m1a1.mobility, Mobility::Tracked { offroad_kmh, .. } if offroad_kmh == 22.0));
@@ -150,9 +152,9 @@ fn a_resolved_catalog_resolves_to_itself() {
 fn a_squad_carries_its_soldiers_mounts_by_slot() {
     let soldiers = json!({ "soldiers": {
         "rifleman": { "name": "Rifleman", "description": "", "hp": 100, "appearance": ["r"],
-            "mounts": [{ "name": "rifles", "weapons": ["rifle"], "squad": true }] },
+            "mounts": [{ "id": "rifles", "name": "Rifle", "weapons": ["rifle"], "squad": true }] },
         "gunner": { "extends": "rifleman", "name": "Gunner",
-            "mounts": [{ "name": "launcher", "weapons": ["atgm"], "special": true }] },
+            "mounts": [{ "id": "launcher", "name": "Launcher", "weapons": ["atgm"], "special": true }] },
     } });
     let mut docs = units(json!({ "team": {
         "name": "Team", "description": "", "faction": "test", "family": "infantry",
@@ -168,7 +170,7 @@ fn a_squad_carries_its_soldiers_mounts_by_slot() {
     let carried: Vec<(&str, &[usize])> = catalog
         .mounts(t)
         .iter()
-        .map(|m| (m.def.name.as_str(), m.carriers.as_slice()))
+        .map(|m| (m.def.id.as_str(), m.carriers.as_slice()))
         .collect();
     assert_eq!(
         carried,
@@ -389,7 +391,7 @@ fn a_broken_soldier_kind_fails_at_load_naming_it() {
     let soldier = |mount: Value| json!({ "name": "S", "description": "", "hp": 100, "appearance": ["s"], "mounts": [mount] });
     assert_eq!(
         with(soldier(
-            json!({ "name": "gun", "weapons": ["rifle"], "squad": true, "special": true })
+            json!({ "id": "gun", "name": "Gun", "weapons": ["rifle"], "squad": true, "special": true })
         )),
         invalid("mount \"gun\" is a squad weapon or a special one, not both")
     );
@@ -399,14 +401,14 @@ fn a_broken_soldier_kind_fails_at_load_naming_it() {
         json!({ "pivot_m": [0, 0, 1] }),
         json!({ "squad": true, "muzzle_m": [1, 0, 0] }),
     ] {
-        let mut mount = json!({ "name": "gun", "weapons": ["rifle"] });
+        let mut mount = json!({ "id": "gun", "name": "Gun", "weapons": ["rifle"] });
         contract::catalog::merge(&mut mount, &placed);
         assert_eq!(
             with(soldier(mount)),
             invalid("mount \"gun\": infantry cannot use turret/on, share bore offsets, or declare a pivot without a muzzle"),
         );
     }
-    let mut dead = soldier(json!({ "name": "gun", "weapons": ["rifle"] }));
+    let mut dead = soldier(json!({ "id": "gun", "name": "Gun", "weapons": ["rifle"] }));
     dead["hp"] = json!(0);
     assert_eq!(with(dead), invalid("hp must be positive"));
 }
@@ -503,7 +505,7 @@ fn a_single_operator_has_paired_active_and_carried_appearances() {
     let mut docs = units(json!({}));
     docs.push(json!({"soldiers":{"s":{
         "name":"S", "description":"", "hp":100, "appearance":["rifle"],
-        "mounts":[{"name":"launcher", "weapons":["atgm"],
+        "mounts":[{"id":"launcher", "name":"Launcher", "weapons":["atgm"],
             "operator_appearance":{"active":["launcher","launcher_b"],
                 "carried":["carried","carried_b"]}}]
     }}}));
@@ -520,7 +522,7 @@ fn a_single_operator_can_declare_a_grounded_bore_and_supported_pose() {
     let mut docs = units(json!({}));
     docs.push(json!({"soldiers":{"s":{
         "name":"S", "description":"", "hp":100, "appearance":["rifle"],
-        "mounts":[{"name":"launcher", "weapons":["atgm"],
+        "mounts":[{"id":"launcher", "name":"Launcher", "weapons":["atgm"],
             "pivot_m":[0.2,0,0.75], "muzzle_m":[0.6,0,0],
             "operator_appearance":{"active":["tripod"],"carried":["packed"],
                 "active_pose":{"clip":"kneel_fire","phase":0.25}}}]
@@ -544,7 +546,7 @@ fn supported_operator_poses_refuse_locomotion_and_out_of_clip_phases() {
         let mut docs = units(json!({}));
         docs.push(json!({"soldiers":{"s":{
             "name":"S", "description":"", "hp":100, "appearance":["rifle"],
-            "mounts":[{"name":"launcher", "weapons":["atgm"],
+            "mounts":[{"id":"launcher", "name":"Launcher", "weapons":["atgm"],
                 "operator_appearance":{"active":["active"],"carried":["packed"],"active_pose":pose}}]
         }}}));
         let error = resolve(&docs).unwrap_err().to_string();
@@ -561,7 +563,7 @@ fn operator_equipment_refuses_unpaired_variants_and_shared_operators() {
         let mut docs = units(json!({}));
         docs.push(json!({"soldiers":{"s":{
             "name":"S", "description":"", "hp":100, "appearance":["rifle"],
-            "mounts":[{"name":"launcher", "weapons":["atgm"], "squad":squad,
+            "mounts":[{"id":"launcher", "name":"Launcher", "weapons":["atgm"], "squad":squad,
                 "operator_appearance":appearance}]
         }}}));
         resolve(&docs)
@@ -591,7 +593,7 @@ fn operator_equipment_refuses_unpaired_variants_and_shared_operators() {
 fn card(family: &str, factions: &[&str]) -> Value {
     json!({
         "extends": "base", "family": family,
-        "roster": { "factions": factions, "family_name": family, "category": "veh", "variant": "A" }
+        "roster": { "factions": factions, "family_name": "Tank", "category": "veh", "variant": "A" }
     })
 }
 
@@ -631,4 +633,119 @@ fn a_faction_holds_at_most_ten_families_in_a_category() {
     entries["shared"] = card("shared", &["europe", "us"]);
     let error = resolve(&units(entries)).unwrap_err().to_string();
     assert!(error.contains("ten families"), "{error}");
+}
+
+/// Everything a card shows is a concise label authored beside its id
+/// (`contract::labels`): a type's name, its family's, each mount's, a
+/// planned unit's and its planned weapons', and an active protection's.
+/// One that reads as an identifier or a sentence is refused at load,
+/// naming the entry and the field.
+#[test]
+fn every_card_label_is_concise_and_separate_from_its_id() {
+    let tank = |patch: Value| {
+        let mut t = base_tank();
+        t.as_object_mut().unwrap().remove("abstract");
+        contract::catalog::merge(&mut t, &patch);
+        resolve(&units(json!({ "t": t })))
+    };
+    let refused = |patch: Value, field: &str| {
+        let error = tank(patch.clone())
+            .err()
+            .unwrap_or_else(|| panic!("accepted {patch}"));
+        assert!(
+            matches!(&error, CatalogError::Invalid { id, error, .. }
+                if id == "t" && error.contains(field)),
+            "{patch}: {error}"
+        );
+    };
+    for name in [
+        "",
+        "BMP IFV Family BMP-3",
+        "T-72 T-72B3",
+        "Tigr Tigr-M",
+        "Challenger Challenger 2 TES",
+        "Menu tank (Abrams look)",
+        "test_tank",
+        "tank",
+        "Tank ",
+    ] {
+        refused(json!({ "name": name }), "name");
+    }
+    for name in [
+        "BMP-3",
+        "T-72B3",
+        "Rifle Squad",
+        "CAESAR 8×8",
+        "F/A-18E",
+        "M1A2 SEP v3 Trophy",
+    ] {
+        if let Err(error) = tank(json!({ "name": name })) {
+            panic!("refused {name:?}: {error}");
+        }
+    }
+    let roster = |family: &str| {
+        json!({ "roster": { "factions": ["us"], "category": "veh",
+        "family_name": family, "variant": "A" } })
+    };
+    refused(roster("BMP IFV Family BMP"), "family_name");
+    tank(roster("BMP")).unwrap();
+
+    // A mount's label is its own field: its id is what other fields name.
+    let mounts = |cannon: Value| json!({ "mounts": [cannon] });
+    refused(
+        mounts(json!({ "id": "cannon", "name": "main_gun" })),
+        "mounts.cannon",
+    );
+    let mut unnamed = base_tank();
+    unnamed.as_object_mut().unwrap().remove("abstract");
+    unnamed["mounts"][1].as_object_mut().unwrap().remove("name");
+    let error = resolve(&units(json!({ "t": unnamed }))).unwrap_err();
+    assert!(error.to_string().contains("name"), "{error}");
+    let catalog = tank(json!({})).unwrap();
+    let cannon = &catalog.by_id("t").mounts[0];
+    assert_eq!(
+        (cannon.id.as_str(), cannon.name.as_str()),
+        ("cannon", "Main Gun")
+    );
+
+    // Active protection shows on the card as a weapon: a label and an icon.
+    let aps = |name: &str, icon: &str| {
+        json!({ "capabilities": { "active_protection": {
+        "name": name, "icon": icon, "capacity": 2, "cooldown_s": 1, "standoff_m": 10,
+        "service_s": 5, "stock_per_charge": 1 } } })
+    };
+    tank(aps("Trophy", "trophy")).unwrap();
+    refused(aps("trophy_aps", "trophy"), "active_protection");
+    refused(aps("Trophy", "Trophy APS"), "active_protection");
+
+    // A planned unit's card: its name and each weapon it will carry.
+    let planned = |name: &str, weapon: Value| {
+        resolve(&units(json!({ "t": {
+            "name": name, "description": "", "faction": "us", "family": "f22",
+            "roles": [], "cost": 400,
+            "roster": { "factions": ["us"], "family_name": "F-22 Raptor", "category": "air", "variant": "F-22A" },
+            "planned": { "reason": "Aircraft are not built", "profile": "fighter", "weapons": [weapon] }
+        } })))
+    };
+    let gun = json!({ "name": "Cannon", "icon": "autocannon" });
+    planned("F-22A Raptor", gun.clone()).unwrap();
+    for (name, weapon, field) in [
+        ("F-22 Raptor F-22A", gun.clone(), "name"),
+        (
+            "F-22A Raptor",
+            json!({ "name": "fighter-gun", "icon": "autocannon" }),
+            "planned.weapons",
+        ),
+        (
+            "F-22A Raptor",
+            json!({ "name": "Cannon", "icon": "" }),
+            "planned.weapons",
+        ),
+    ] {
+        let error = planned(name, weapon).unwrap_err();
+        assert!(
+            matches!(&error, CatalogError::Invalid { id, error, .. } if id == "t" && error.contains(field)),
+            "{error}"
+        );
+    }
 }
