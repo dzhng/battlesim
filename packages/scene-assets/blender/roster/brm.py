@@ -81,6 +81,24 @@ def hull(v):
                         bolts=(1, 2), bevel=0.015, lods=VP.ALL)
     for k, y in enumerate((0.55, -0.55)):
         VP.hatch(f"roof_hatch_{k}", (-1.65, y, DECK), m, h, size=(0.70, 0.55))
+    # What the photos show carried outside: stowage bins along both fenders,
+    # spare track links across the nose, the unditching log on the rear plate,
+    # an entrenching tool and crowbar clipped on the right fender.
+    for side, s in ((1, "L"), (-1, "R")):
+        for k, x in enumerate((0.55, -0.55, -1.65)):
+            VP.stowage_box(f"fender_bin_{s}_{k}", (x, side * 1.38, 1.01), (0.95, 0.34, 0.30), m, h,
+                           rot=(0, 0, 0 if side > 0 else math.pi))
+    for k in range(4):
+        cyl(f"spare_link_{k}", 0.045, 0.52, (half - 0.12, -0.85 + k * 0.57, 0.86), "Y", m["track"], h, seg=8,
+            lods=NEAR)
+    cyl("unditching_log", 0.11, 2.30, (-half - 0.12, 0, DECK - 0.18), "Y", m["canvas"], h,
+        seg=12, bevel=0.02)
+    for side in (-1, 1):
+        box(f"log_strap_{side}", (0.04, 0.05, 0.26), (-half - 0.12, side * 0.80, DECK - 0.18), m["dark"], h,
+            lods=NEAR)
+    box("shovel_blade", (0.24, 0.02, 0.18), (1.80, -1.53, 1.10), m["steel"], h, lods=NEAR)
+    box("shovel_handle", (0.60, 0.025, 0.035), (1.40, -1.53, 1.10), m["canvas"], h, lods=NEAR)
+    box("crowbar", (1.10, 0.03, 0.03), (1.20, -1.53, 1.20), m["steel"], h, lods=NEAR)
     # The rear: its tail lights in their guards and tow hooks.
     for side, sd in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.45), ROOF - 0.25), 0.05,
@@ -113,8 +131,12 @@ def turret(v, turret, gun):
                                  tube_radius=0.045, tube_length=0.20, elevation=0.4, spread=0.3,
                                  rot=(0, 0, side * 0.9))
         VP.hatch(f"turret_hatch_{s}", (-0.30, side * 0.45, top), m, turret, radius=0.24)
+        VP.stowage_box(f"turret_bin_{s}", (-0.55, side * 1.02, base + 0.12), (0.60, 0.22, 0.36), m, turret,
+                       rot=(0, 0, 0 if side > 0 else math.pi))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         VP.antenna(f"antenna_{s}", (-0.85, side * 0.62, top), m, whip, height=2.2)
+    # The IR searchlight in its guard on the turret's left front.
+    VP.light_with_guard("ir_searchlight", (0.75, 0.82, top + 0.10), 0.11, dict(m, lamp=m["glass"]), turret)
     # The 1RL-133 radar folded in its housing on the turret rear.
     radar = empty("dressing_radar", parent=turret)
     box("radar_housing", (0.45, 1.00, 0.30), (-1.10, 0, top - 0.05), m["paint"], radar, bevel=0.04)

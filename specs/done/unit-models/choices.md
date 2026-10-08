@@ -1556,6 +1556,11 @@ family. No roster frame, mount or tolerance moved.
   packs, two stowage bins down each turret flank, laser warners, spare
   links across the nose and a jerrycan rack aft.
 
+  The BRM-3K: three stowage bins along each fender (the photos' boxed
+  sides), spare links across the nose, the unditching log strapped on the
+  rear plate, an entrenching tool and crowbar on the right fender, a bin
+  on each turret flank and the IR searchlight in its guard.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause
