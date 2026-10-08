@@ -1,0 +1,97 @@
+{
+ "entries": [
+  {
+   "file": "europe_centauro_ii-three_quarter_front.jpg",
+   "variant": "europe_centauro_ii",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Centauro_2_(22-02-2024).jpg",
+   "author": "Italian Army (Esercito Italiano)",
+   "licence": "CC-BY-2.5",
+   "sha256": "ef494cb6d98c5774a925a1151867b7e6533e990991c051075bb82f4441f9c74e",
+   "note": "Cavalry School, left front quarter: eight wheels in four evenly spaced pairs, the boat-shaped nose with its trim vane, the long low turret with a slab-sided bustle, the 120 mm gun with thermal sleeve and fume extractor, the commander's panoramic sight and remote station on the right of the roof, Italian three-tone camouflage."
+  },
+  {
+   "file": "europe_centauro_ii-three_quarter_front-2.jpg",
+   "variant": "europe_centauro_ii",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Italian_Army_-_Cavalry_School_Centauro_II_tank_destroyers.jpg",
+   "author": "Italian Army (Esercito Italiano)",
+   "licence": "CC-BY-2.5",
+   "sha256": "6d484664ddfa0bb070c597ce40aee06f9ea79dae264f83895c3c3fcf60f9dcd5",
+   "note": "Front quarter, close: the nose's lights and tow points, the driver's hatch on the left, the turret's front faces and smoke banks, the sights and antennas on the roof."
+  },
+  {
+   "file": "europe_centauro_ii-three_quarter_front-3.jpg",
+   "variant": "europe_centauro_ii",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Italian_Army_-_Regiment_%22Lancieri_di_Aosta%22_(6th)_receives_its_first_Centauro_2_tank_destroyers_-_May_2025_01.jpg",
+   "author": "Italian Army (Esercito Italiano)",
+   "licence": "CC-BY-2.5",
+   "sha256": "fb2703e2befe71d3dff89bfcffdfab693e76787318ea9f5549e61683a4dd28dc",
+   "note": "Low right front quarter: the black treaded tyres and hubs, the turret's side stowage boxes, the remote station's shape."
+  },
+  {
+   "file": "europe_centauro_ii-side.jpg",
+   "variant": "europe_centauro_ii",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Italian_Army_-_Cavalry_School_Centauro_2_tank_destroyer_during_an_exercise.jpg",
+   "author": "Italian Army (Esercito Italiano)",
+   "licence": "CC-BY-2.5",
+   "sha256": "8f96e580635d6591d22571aaccba0743dd917c188472d18a78003e47a8ab72cd",
+   "note": "Left side in mud: hull length against the turret, the wheel spacing (a gap between the second and third axle), the gun's overhang."
+  },
+  {
+   "file": "europe_centauro_ii-side-2.jpg",
+   "variant": "europe_centauro_ii",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Italian_Army_-_Regiment_%22Lancieri_di_Aosta%22_(6th)_receives_its_first_Centauro_2_tank_destroyers_-_May_2025_05.jpg",
+   "author": "Italian Army (Esercito Italiano)",
+   "licence": "CC-BY-2.5",
+   "sha256": "e87a7a3667d02a3ab466a4f4a290aba14be81bf12aa61ace94a76d84132e60cf",
+   "note": "Right side, near level: the hull side's plates and grilles over the rear wheels, the turret bustle's boxes and the gun's sleeve sections."
+  },
+  {
+   "file": "europe_centauro_ii-front.jpg",
+   "variant": "europe_centauro_ii",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Italian_Army_-_Cavalry_School_Centauro_2_tank_destroyer_during_a_driver_training_exercise_2025_02.jpg",
+   "author": "Italian Army (Esercito Italiano)",
+   "licence": "CC-BY-2.5",
+   "sha256": "3b31e948873d3f329cd099572cc238c946cff9587294c13f6ae2b2c24525c04a",
+   "note": "Head-on at a distance: the track width of the wheels, the hull's flared sides, the turret's frontal outline and the remote station on the right."
+  },
+  {
+   "file": "europe_centauro_ii-three_quarter_rear.jpg",
+   "variant": "europe_centauro_ii",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Italian_Army_-_Regiment_%22Cavalleggeri_di_Lodi%22_(15th)_Centauro_2_tank_destroyer_during_an_exercise_in_Bulgaria_2024.jpg",
+   "author": "Italian Army (Esercito Italiano)",
+   "licence": "CC-BY-2.5",
+   "sha256": "634a851ba17f4fba0f492d1db4f3ae05977763d73bc29eb5968ca9704e5f5a7d",
+   "note": "From above at the right rear while firing: the engine deck, the turret roof's hatches and sights, the bustle."
+  },
+  {
+   "file": "europe_centauro_ii-detail.jpg",
+   "variant": "europe_centauro_ii",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Italian_Army_-_Cavalry_School_Centauro_2_tank_destroyer_during_a_driver_training_exercise_2025_01.jpg",
+   "author": "Italian Army (Esercito Italiano)",
+   "licence": "CC-BY-2.5",
+   "sha256": "d30b735390eab7b6d76577fb90c8068a1d475c8df258262edb5365e7ad0c6191",
+   "note": "From above at the front: the glacis' panels, the turret roof, the commander's sight and the remote station."
+  }
+ ],
+ "gaps": [
+  "europe_centauro_ii: no straight rear view; the rear plate and doors are read from the aerial rear quarter only",
+  "europe_centauro_ii: dimensions are the commonly published figures (hull about 8.0 m long, 3.05 m wide, about 2.75 m to the turret roof), not re-verified source by source",
+  "europe_centauro_ii: Italian three-tone camouflage as the photos show; the scheme is drawn as a printed recipe, not the photos' exact pattern"
+ ]
+}
