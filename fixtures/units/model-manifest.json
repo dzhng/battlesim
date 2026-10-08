@@ -710,7 +710,7 @@
       "id": "us_f_22_raptor_f_22a",
       "family": "f_22_raptor",
       "category": "air",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "f_22_raptor",
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
