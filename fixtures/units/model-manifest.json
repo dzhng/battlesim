@@ -500,7 +500,7 @@
       "id": "europe_mirage_2000_2000d_rmv",
       "family": "mirage_2000",
       "category": "air",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "mirage_2000",
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
