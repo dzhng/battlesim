@@ -460,7 +460,7 @@
       "id": "europe_jas_39_gripen_e",
       "family": "jas_39_gripen",
       "category": "air",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "jas_39_gripen",
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",

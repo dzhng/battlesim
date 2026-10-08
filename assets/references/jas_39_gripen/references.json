@@ -1,0 +1,63 @@
+{
+ "entries": [
+  {
+   "file": "europe_jas_39_gripen_e-side.jpg",
+   "variant": "europe_jas_39_gripen_e",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Saab_JAS39C_Gripen_39270_270_(8420556407).jpg",
+   "author": "Alan Wilson",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "1636a0d760fe10209328f18a2a76f5ea31937c13b7a45fb63022152de53526d0",
+   "note": "JAS 39C left side taxiing: close-coupled canards over the side intakes, delta wing, single fin (the E keeps the layout, longer body)"
+  },
+  {
+   "file": "europe_jas_39_gripen_e-three_quarter_front.jpg",
+   "variant": "europe_jas_39_gripen_e",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Saab_JAS-39_Gripen_(53079182499).jpg",
+   "author": "Airwolfhound from Hertfordshire, UK",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "4a7d3a8260ce27c447c162e05b4ce8a3b927137e4d1d60e60ca40fb86957d8a9",
+   "note": "JAS 39 front-left three-quarter taxiing: intakes, canards, canopy"
+  },
+  {
+   "file": "europe_jas_39_gripen_e-three_quarter_rear.jpg",
+   "variant": "europe_jas_39_gripen_e",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Saab_JAS_39_Gripen_NG.jpg",
+   "author": "Stefan Sundkvist",
+   "licence": "CC-BY-2.0",
+   "sha256": "b7256f4acb6c0221833f045f15773351a9b595dcdce68815967849397eee1751",
+   "note": "Gripen NG demonstrator (the E's prototype) rear three-quarter: single nozzle, fin, delta"
+  },
+  {
+   "file": "europe_jas_39_gripen_e-front.jpg",
+   "variant": "europe_jas_39_gripen_e",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:JAS_39_Gripen_39_(39178)_05.JPG",
+   "author": "Joshua06",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "095dd5ead96a4d43e0e3ef802cd3270fc972acc9d460948bc18152d70554133d",
+   "note": "JAS 39 head-on (museum): side intakes, canards, gear stance"
+  },
+  {
+   "file": "europe_jas_39_gripen_e-detail.jpg",
+   "variant": "europe_jas_39_gripen_e",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Saab_JAS_39_Gripen_Canard.jpg",
+   "author": "Stee",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "35c6e80895905854379139f3bf5e461f40cbebc02638597481ad45f471fcd106",
+   "note": "JAS 39 canard and intake lip detail"
+  }
+ ],
+ "gaps": [
+  "europe_jas_39_gripen_e: few licensable Gripen E photos; layout from the C and the NG demonstrator, dimensions the E's published ones (longer body, gear in the wing roots)",
+  "europe_jas_39_gripen_e: no top view"
+ ]
+}
