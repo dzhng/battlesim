@@ -170,7 +170,7 @@
       "id": "eastern_mig_29_fulcrum_mig_29smt",
       "family": "mig_29_fulcrum",
       "category": "air",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "mig_29_fulcrum",
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
