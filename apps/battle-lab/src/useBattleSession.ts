@@ -1036,6 +1036,15 @@ export function useBattleSession({
       drawnClock.current === null || drawnTick.current === null
         ? null
         : { tick: drawnTick.current, clock: drawnClock.current * rules.tick_hz },
+    /** The static pieces the last drawn frame drew beside the posed units (a
+     *  cook-off's moving wreck and its debris): each one's appearance, state
+     *  and how far its motion lowers it, metres. */
+    cookOffPieces: () =>
+      frameModels.current.flatMap((m) =>
+        m.pose.kind === "static"
+          ? [{ appearance: m.appearance, state: m.pose.state, sunk: -(m.pose.motion?.[14] ?? 0) }]
+          : [],
+      ),
     /** The soldiers the last drawn frame lays as static corpses. */
     lying: () => posing?.corpses.soldiers ?? [],
     digest: () => sim.digest.current,
