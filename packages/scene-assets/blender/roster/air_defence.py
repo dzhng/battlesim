@@ -12,13 +12,14 @@ What the photos settle:
   road wheels and the driver's cab at the front; the turntable behind with
   the fire-control radar's rounded housing at its front and six missile
   canisters in two rows, stowed flat to the rear.
-- Pantsir-SM (Russian green): the KamAZ-6560 8x8's armoured cab-over, the
-  combat module on the rear: the search radar's box on top, the tracking
-  radar on its front, a twin 30 mm gun each side and six missile tubes in
-  two packs of three outside them.
+- Pantsir-SM (Russian green): the KamAZ-6560 8x8's unarmoured cab-over with
+  its tall windscreen; the combat module on the rear: the search radar's
+  array on top, the tracking radar's flat array on its front, a twin 30 mm
+  gun each side and six missile tubes a side, two columns of three, outside
+  them.
 - Skyranger 30 on Boxer (German three-tone): the Boxer's own hull
-  (`boxer.drive`, the Boxer's own), the turret with its 30 mm KCE gun, the search radar panels round its top and
-  a missile launcher box on its side.
+  (`boxer.drive`), the turret with its 30 mm KCE gun, the four radar
+  panels round its top and a missile launcher box on its side.
 - NASAMS 3 (Norway's, NATO green): the canister launcher on its two-axle
   trailer, six AMRAAM canisters in two rows on the turntable, stowed flat,
   levelling legs at the corners.
@@ -219,7 +220,7 @@ def _round(x, y, rx, ry, n=16):
 
 def pantsir(v):
     m, h = v.mats, v.hull
-    deck = chassis(v, [3.55, 2.05, -1.55, -3.00], 0.62, 0.42, 1.00, 1.10, "armoured", 3.10, 1.95, 3.00)
+    deck = chassis(v, [3.55, 2.05, -1.55, -3.00], 0.62, 0.42, 1.00, 1.10, "cabover", 3.10, 1.95, 3.00)
     box("deck_plate", (6.5, 2.4, 0.10), (-1.75, 0, deck + 0.05), m["paint"], h, bevel=0.01)
     # The generator and crew compartment behind the cab: louvred, a door aft.
     VP.stowage_box("generator_box", (1.85, 0, deck), (1.40, 2.30, 1.20), m, h, rot=(0, 0, math.pi / 2))
@@ -380,11 +381,10 @@ def build(variant, v):
 def wreck(variant, v):
     """An air defence vehicle after its fire: the right side's running gear
     torn (a track off, or wheels gone and the hull down on that side), the
-    radar and canisters burst and lying beside it, plates and the module
-    warped."""
+    radar and canisters burst, plates and the module warped; what it
+    throws is `wreckage.scatter`'s."""
     from parts import rest_on_ground
-    from wreckage import densify, dent, heat, parts, plate, remove, warp
-    m = v.mats
+    from wreckage import densify, dent, heat, parts, remove, warp
     remove("track_R_band", "wheel_R_1_", "wheel_R_2_", "skirt_R", "search_radar", "canister_cap_", "missile_cap_",
            "missile_tube_R_1_2", "missile_tube_R_0_2", "canister_1_2", "canister_rib_1_2", "radar_dome", "side_bin_R_",
            "mudflap_R", "windscreen", "door_window_", "rear_window_", "dressing_mirror_R", "mirror_R", "mirror_arm_R",
@@ -393,12 +393,6 @@ def wreck(variant, v):
                   "radar_housing", "canister_")
     densify(shell, scale=2.0)
     warp(shell, heat(0.025, 0.8, seed=81.0), dent((0.0, -1.2, 1.6), 0.6, 0.12, (0, 1, -0.2)))
-    for k in range(3):
-        plate(f"debris_{k}", [(-0.4, -0.25), (0.35, -0.3), (0.4, 0.2), (-0.3, 0.32)], 0.03,
-              (-1.8 + k * 1.6, (-1) ** (k + 1) * (v.width / 2 + 0.8), 0.03), (0.04, 0.02, 0.4 + k), m["paint"],
-              v.hull, curl=0.12, seed=141 + k)
-    box("fallen_canister", (3.0, 0.56, 0.56), (0.5, -(v.width / 2 + 0.9), 0.28), m["paint"], v.hull,
-        rot=(0.05, 0, 0.35), bevel=0.03)
     v.root.rotation_euler = (0.03, 0.0, 0)
     v.root.location.z -= 0.05
     rest_on_ground(0.004)

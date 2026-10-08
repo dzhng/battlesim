@@ -305,11 +305,10 @@ def build(variant, v):
 
 def wreck(variant, v):
     """A launcher after its fire: tyres or a track burnt off, the cab's glass
-    gone and its roof warped, the pods or tubes split and some lying beside
-    it, the chassis settled onto its burnt corner."""
+    gone and its roof warped, the pods or tubes split (what it throws is
+    `wreckage.scatter`'s), the chassis settled onto its burnt corner."""
     from parts import rest_on_ground
-    from wreckage import densify, dent, heat, parts, plate, remove, warp
-    m = v.mats
+    from wreckage import densify, dent, heat, parts, remove, warp
     ident = variant["id"]
     if ident in ("us_m270_mlrs_m270a2", "europe_mars_ii_multiple_launch_rocket_system"):
         remove("track_R_band", "wheel_R_2_", "side_skirt_R", "pod_1_cap_", "cab_hatch")
@@ -324,13 +323,6 @@ def wreck(variant, v):
                   "pod_1_body", "launcher_shell", "deck_plate")
     densify(shell, scale=2.0)
     warp(shell, heat(0.025, 0.8, seed=71.0), dent((v.length / 2 - 0.6, -0.8, 2.3), 0.6, 0.12, (0, 0, -1)))
-    for k in range(3):
-        plate(f"debris_{k}", [(-0.35, -0.2), (0.30, -0.25), (0.35, 0.18), (-0.25, 0.28)], 0.03,
-              (-1.5 + k * 1.4, (-1) ** k * (v.width / 2 + 0.7), 0.03), (0.04, 0.02, 0.5 + k), m["paint"], v.hull,
-              curl=0.12, seed=131 + k)
-    for k in range(2):
-        cyl(f"fallen_round_{k}", 0.11, 2.2, (-0.6 + k * 1.5, -(v.width / 2 + 0.5 + k * 0.3), 0.11), "X", m["paint"],
-            v.hull, seg=12, rot=(0, 0, 0.3 + k * 0.5))
     rest_on_ground(0.004)
 
 

@@ -4,10 +4,12 @@ show, and the fittings every truck carries (fuel tank, battery box, spare
 wheel, lights, mirrors, mudflaps). A family script (`rocket_artillery.py`,
 `caesar.py`, `air_defence.py`) places its mission load on the deck.
 
-The two cab shapes, from the references (the BM-21's Ural cab is the roster
+The cab shapes, from the references (the BM-21's Ural cab is the roster
 Ural's own, `ural.cab`):
+- `cabover`: the same cab unarmoured, big windscreen and door windows (the
+  Pantsir-SM's KamAZ);
 - `armoured`: a flat-fronted armoured cab-over with small windows (the
-  HIMARS's FMTV, the CAESAR's Tatra, the Pantsir's KamAZ);
+  HIMARS's FMTV, the CAESAR's Tatra);
 - `maz_split`: the MAZ-543's two cabs either side of the engine (Tornado-S).
 
 Every part reads the roles `vehicle_parts` documents.
@@ -58,11 +60,11 @@ def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_
 
 
 def cab_shape(v, cab, x0, length, height, track, rail_z, wheel_r, doors=1):
-    """The cab of shape `cab` (`armoured` or `maz_split`), its rear face at
+    """The cab of shape `cab` (`armoured`, `cabover` or `maz_split`), its rear face at
     `x0`, `length` long and `height` tall, with its mirrors and antenna."""
     m, h = v.mats, v.hull
     # An armoured cab spans the vehicle's width; a soft cab its wheels'.
-    half_w = v.width / 2 - 0.08 if cab == "armoured" else track + 0.05
+    half_w = v.width / 2 - 0.08 if cab in ("armoured", "cabover") else track + 0.05
     front = x0 + length
     floor = rail_z + 0.10
     if cab == "maz_split":
@@ -78,8 +80,8 @@ def cab_shape(v, cab, x0, length, height, track, rail_z, wheel_r, doors=1):
         VP.grille("radiator_grille", (front + 0.01, 0, floor + 0.55), (0.75, 0.70), m, h, slats=9,
                   rot=(0, -math.pi / 2, 0))
         box("front_bumper", (0.14, half_w * 2, 0.20), (front + 0.05, 0, floor - 0.05), m["dark"], h, bevel=0.01)
-    else:  # armoured cab-over
-        armoured_cab(v, x0, length, height, floor, wheel_r, doors)
+    else:  # a cab-over, armoured or soft
+        armoured_cab(v, x0, length, height, floor, wheel_r, doors, soft=cab == "cabover")
     # Mirrors at the windscreen's corners.
     mirror_x = front - 0.20
     for side, s in ((1, "L"), (-1, "R")):
@@ -96,14 +98,16 @@ def cab_shape(v, cab, x0, length, height, track, rail_z, wheel_r, doors=1):
     VP.antenna("antenna_cab", (x0 + 0.20, -(half_w - 0.15), height), m, whip, height=2.2)
 
 
-def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1):
+def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1, soft=False):
     """The flat-fronted armoured cab-over the references show on the FMTV
-    (HIMARS), the Tatra (CAESAR) and the KamAZ (Pantsir): an upright lower
+    (HIMARS) and the Tatra (CAESAR): an upright lower
     box to the waist, upper sides leaning in to the roof, the raked front
     with two thick windscreens in frames and their wipers, the bolted door
     with its small armoured window, handle and steps, the grille and lights
     low on the front, the roof hatch, and the dash and seats behind the
-    glass."""
+    glass. A `soft` cab (the Pantsir-SM's KamAZ-6560) is the same shape
+    unarmoured: a tall two-pane windscreen and wide door windows, and no
+    bolted plates."""
     m, h = v.mats, v.hull
     half_w = v.width / 2 - 0.08
     front = x0 + length
@@ -119,16 +123,19 @@ def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1):
     # Windscreens: thick panes in raised frames on the raked front, a wiper on each.
     for k, y in enumerate((0.47, -0.47)):
         x, z = front - rake * 0.45, waist + (height - waist) * 0.48
-        box(f"windscreen_{k}", (0.03, 0.80, 0.50), (x + 0.01, y, z), m["glass"], h, rot=(0, -pitch, 0), lods=MID)
-        box(f"windscreen_frame_{k}", (0.05, 0.92, 0.62), (x - 0.01, y, z), m["paint"], h, rot=(0, -pitch, 0),
+        pane = (0.03, half_w - 0.12, 0.66) if soft else (0.03, 0.80, 0.50)
+        box(f"windscreen_{k}", pane, (x + 0.01, y, z), m["glass"], h, rot=(0, -pitch, 0), lods=MID)
+        box(f"windscreen_frame_{k}", (0.05, pane[1] + 0.12, pane[2] + 0.12), (x - 0.01, y, z), m["paint"], h,
+            rot=(0, -pitch, 0),
             bevel=0.015, lods=NEAR)
         box(f"wiper_{k}", (0.02, 0.03, 0.42), (x + 0.04, y - 0.18, z - 0.02), m["black"], h,
             rot=(-0.5, -pitch, 0), lods=FINE)
     box("windscreen_mullion", (0.06, 0.10, 0.56), (front - rake * 0.45 + 0.01, 0, waist + (height - waist) * 0.48),
         m["paint"], h, rot=(0, -pitch, 0), bevel=0.01, lods=MID)
     # Under the windscreens: the armoured front's bolted plate, grille, lights and bumper.
-    VP.bolted_panel("front_plate", (front + 0.005, 0, waist - 0.25), (0.45, half_w * 1.7, 0.03), m, h, bolts=(2, 6),
-                    rot=(0, math.pi / 2, 0), bevel=0.01)
+    if not soft:
+        VP.bolted_panel("front_plate", (front + 0.005, 0, waist - 0.25), (0.45, half_w * 1.7, 0.03), m, h,
+                        bolts=(2, 6), rot=(0, math.pi / 2, 0), bevel=0.01)
     VP.grille("radiator_grille", (front + 0.04, 0, floor + 0.32), (0.42, half_w * 1.1), m, h, slats=7,
               rot=(0, -math.pi / 2, 0))
     box("front_bumper", (0.18, half_w * 2 + 0.06, 0.22), (front + 0.07, 0, floor - 0.06), m["dark"], h, bevel=0.015)
@@ -143,12 +150,19 @@ def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1):
         for d in range(doors):
             door_x = front - 0.70 - d * 1.05
             n = f"{s}_{d}" if d else s
-            VP.bolted_panel(f"door_{n}", (door_x, y, floor + 0.15), (0.95, waist - floor - 0.25, 0.035), m, h,
-                            bolts=(3, 3), rot=(-side * math.pi / 2, 0, 0), bevel=0.012)
+            if soft:
+                VP.weld_line(f"door_seam_{n}", [(door_x + 0.48, y, floor + 0.10), (door_x + 0.48, y, waist),
+                                                (door_x - 0.48, y, waist), (door_x - 0.48, y, floor + 0.10)], m, h,
+                             radius=0.012)
+            else:
+                VP.bolted_panel(f"door_{n}", (door_x, y, floor + 0.15), (0.95, waist - floor - 0.25, 0.035), m, h,
+                                bolts=(3, 3), rot=(-side * math.pi / 2, 0, 0), bevel=0.012)
             loc, rot = VP.on_side(door_x - 0.05, waist + 0.30, side, *face, proud=0.015)
-            box(f"door_window_{n}", (0.48, 0.34, 0.03), loc, m["glass"], h, rot=rot, lods=MID)
+            window = (0.80, 0.55, 0.03) if soft else (0.48, 0.34, 0.03)
+            box(f"door_window_{n}", window, loc, m["glass"], h, rot=rot, lods=MID)
             loc, rot = VP.on_side(door_x - 0.05, waist + 0.30, side, *face, proud=0.005)
-            box(f"door_window_frame_{n}", (0.58, 0.44, 0.03), loc, m["paint"], h, rot=rot, bevel=0.01, lods=NEAR)
+            box(f"door_window_frame_{n}", (window[0] + 0.10, window[1] + 0.10, 0.03), loc, m["paint"], h, rot=rot,
+                bevel=0.01, lods=NEAR)
             box(f"door_handle_{n}", (0.16, 0.04, 0.04), (door_x - 0.36, side * (half_w + 0.06), waist - 0.20),
                 m["steel"], h, lods=FINE)
             for k, z in enumerate((floor + 0.05, waist - 0.35)):

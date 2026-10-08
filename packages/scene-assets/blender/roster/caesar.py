@@ -104,18 +104,13 @@ def wreck(variant, v):
     left front wheels off and the nose down on that corner, the lockers
     burst, the barrel drooping off its rest."""
     from parts import rest_on_ground
-    from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
-    m = v.mats
+    from wreckage import bend, densify, dent, heat, parts, remove, warp
     remove("wheel_L_1_", "wheel_L_2_", "windscreen", "door_window_", "rear_window_", "locker_L_1", "mudflap_L",
            "walkway_", "dressing_mirror_L", "mirror_L", "mirror_arm_L")
     bend(parts("gun_barrel", "gun_collar", "muzzle_", "brake_port_"), (-3.55, 0, 3.28), (0, 1, 0), (0, 0, 1), -0.06)
     shell = parts("cab_body", "locker_", "gun_carriage")
     densify(shell, scale=2.0)
     warp(shell, heat(0.025, 0.8, seed=91.0), dent((3.4, 1.0, 2.4), 0.6, 0.15, (0, 0, -1)))
-    for k in range(3):
-        plate(f"debris_{k}", [(-0.4, -0.25), (0.35, -0.3), (0.4, 0.2), (-0.3, 0.32)], 0.03,
-              (2.6 - k * 2.0, (-1) ** k * 2.1, 0.03), (0.04, 0.02, 0.6 + k), m["paint"], v.hull, curl=0.12,
-              seed=151 + k)
     v.root.rotation_euler = (-0.035, 0.035, 0)
     v.root.location.z -= 0.06
     rest_on_ground(0.004)
