@@ -118,6 +118,7 @@ TODO:
 - [x] [16 Wheeled, light and trucks lane](slices/16-wheeled.md)
 - [x] [17 Infantry lane](slices/17-infantry.md)
 - [x] [18 Disabled cards lanes](slices/18-disabled-cards.md): models, wrecks and icons, still unplayable.
+- [ ] [20 US prototype armour](slices/20-us-prototypes.md): M1E3 and M10 Booker as disabled cards with reference-built models, wrecks and icons (user, 2026-10-07).
 - [ ] [19 Closeout](slices/19-closeout.md): full check and verify once, balance report, close-spec.
 
 Update this section before you end a pass.
