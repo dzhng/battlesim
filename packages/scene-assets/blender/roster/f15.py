@@ -42,8 +42,10 @@ def spec(variant):
             # and the conformal fuel tanks along their flanks below the wing.
             *[(f"fuselage_intake_{k}", [(4.42, 0.5, 1.42, 2.66, 2.0, 5.0), (3.0, 0.52, 1.42, 2.72, 2.0, 5.0),
                                         (1.2, 0.5, 1.44, 2.76, 2.0, 4.0)], side * 1.16) for side, k in ((1, "L"), (-1, "R"))],
-            *[(f"fuselage_cft_{k}", [(3.6, 0.0, 1.9, 1.9), (2.9, 0.32, 1.5, 2.4, 1.95, 3.0),
-                                     (-2.6, 0.34, 1.5, 2.44, 1.97, 3.0), (-3.6, 0.0, 2.0, 2.0)], side * 1.62)
+            # The CFTs: slab-sided tanks hugging the intakes from their
+            # mouths to the wing's trailing edge, as every photo shows.
+            *[(f"fuselage_cft_{k}", [(3.7, 0.0, 1.95, 1.95), (3.1, 0.4, 1.42, 2.5, 1.96, 3.5),
+                                     (-2.8, 0.42, 1.42, 2.52, 1.97, 3.5), (-3.9, 0.0, 2.0, 2.0)], side * 1.74)
               for side, k in ((1, "L"), (-1, "R"))],
             # The dorsal spine the canopy fairs into, under the speed brake.
             ("fuselage_spine", [(2.3, 0.4, 2.9, 3.6, 3.0, 2.4), (0.6, 0.44, 2.9, 3.22, 3.0, 2.6),
@@ -54,7 +56,9 @@ def spec(variant):
         canopy=dict(x_front=6.3, x_back=2.15, sill=3.0, top=3.86, half_width=0.56, bows=(5.5, 3.8), peak=0.42,
                     tail=0.7),
         wing_hinge=(0.75,),
-        wing=[(2.7, 1.4, WING_Z, 5.6, 0.32), (-2.35, 6.52, WING_Z - 0.08, 1.95, 0.08)],
+        # A cropped delta (the top photo): the leading edge swept 45 degrees,
+        # the trailing edge straight across, the tip raked off.
+        wing=[(2.9, 1.4, WING_Z, 6.6, 0.32), (-2.2, 6.52, WING_Z - 0.08, 1.5, 0.08)],
         stab=[(-6.3, 1.3, 2.18, 2.95, 0.14), (-8.25, 4.3, 2.18, 1.35, 0.05)],
         fins=[dict(root_x=-5.7, root_z=2.62, height=3.01, root_chord=3.4, tip_chord=1.45, sweep_m=2.6, y=1.16),
               dict(root_x=-5.7, root_z=2.62, height=3.01, root_chord=3.4, tip_chord=1.45, sweep_m=2.6, y=-1.16)],
@@ -67,13 +71,18 @@ def spec(variant):
               dict(name="main_R", x=-2.3, y=-1.38, top=1.5, radius=0.52, width=0.26, door=(1.3, 0.6), rake=0.08)],
         nav=dict(left=(-2.3, 6.5, WING_Z - 0.06), right=(-2.3, -6.5, WING_Z - 0.06), tail=(-9.45, 0.0, 2.08)),
         pylons=[((-0.3, 3.1, WING_Z - 0.1), 1.3, 0.36)],
-        stores=[("tank", (-0.4, 3.1, 1.66), 5.0, 0.46), ("missile", (-0.3, 3.55, 1.95), 2.9, 0.08)],
+        # A 610-gallon tank on each wing and on the centreline.
+        stores=[("tank", (-0.4, 3.1, 1.66), 5.0, 0.46), ("missile", (-0.3, 3.55, 1.95), 2.9, 0.08),
+                ("tank", (-0.6, 0.0, 0.98), 5.0, 0.46)],
     )
     if variant["id"] == E:
-        # Bombs in tandem along the CFTs' undersides.
-        s["stores"] += [("bomb", (1.4, 1.62, 1.22), 2.3, 0.2), ("bomb", (-1.4, 1.62, 1.22), 2.3, 0.2)]
+        # GBU-31s in tandem on the CFTs' stub pylons, the Sniper and
+        # LANTIRN pods under the intakes.
+        s["stores"] += [("bomb", (1.3, 2.0, 1.12), 3.0, 0.23), ("bomb", (-1.6, 2.0, 1.12), 3.0, 0.23),
+                        ("pod", (3.0, 1.0, 1.18), 2.4, 0.18)]
+        s["pylons"] += [((1.3, 2.0, 1.45), 0.9, 0.08), ((-1.6, 2.0, 1.45), 0.9, 0.08)]
     else:
-        s["stores"] += [("missile", (1.4, 1.88, 1.42), 3.65, 0.09), ("missile", (-1.6, 1.88, 1.42), 3.65, 0.09)]
+        s["stores"] += [("missile", (1.4, 2.0, 1.32), 3.65, 0.09), ("missile", (-1.6, 2.0, 1.32), 3.65, 0.09)]
     return s
 
 
