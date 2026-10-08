@@ -203,7 +203,7 @@ def wreck(variant, v):
     track off with a road wheel gone, side boxes torn away, skirts bent,
     plates warped, the propellant's debris round it."""
     from parts import box as solid, rest_on_ground
-    from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
+    from wreckage import bend, densify, dent, heat, parts, remove, warp
     s = spec(v)
     m = v.mats
     half = v.length / 2
@@ -222,11 +222,6 @@ def wreck(variant, v):
     densify(shell, scale=2.0)
     top = s["deck"] + height
     warp(shell, heat(0.025, 0.9, seed=61.0), dent(((rear + front) / 2, 0, top + 0.3), 1.2, -0.18, (0, 0, 1)))
-    for k, (loc, rot, size) in enumerate((((rear - 0.8, 1.6, 0.03), (0.04, 0.02, 0.4), 0.45),
-                                          ((rear + 0.5, -2.4, 0.03), (-0.03, 0.05, 1.8), 0.35),
-                                          ((half + 0.5, -1.4, 0.03), (0.0, 0.06, 2.6), 0.30))):
-        plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
-                              (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.15, seed=121 + k)
     rest_on_ground(0.004)
 
 

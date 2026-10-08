@@ -181,10 +181,6 @@ def wreck(variant, v):
     v.root.rotation_euler = (-0.04, 0.035, 0)
     plate("door_fallen", [(-0.45, -0.4), (0.45, -0.42), (0.47, 0.4), (-0.45, 0.42)], 0.04, (-4.6, 0.4, 0.05),
           (0.0, 1.2, 0.2), m["paint"], v.hull, seed=51)
-    for k, (loc, rot, size) in enumerate((((2.8, 2.1, 0.03), (0.04, 0.02, 0.5), 0.40),
-                                          ((-0.6, -2.2, 0.03), (-0.03, 0.05, 1.7), 0.32))):
-        plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
-                              (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.15, seed=161 + k)
     rest_on_ground(0.004)
 
 

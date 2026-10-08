@@ -1391,6 +1391,21 @@ family. No roster frame, mount or tolerance moved.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
+### Families not yet raised still throw through `scatter`
+
+- **The choice:** The SP howitzers, BRM-3K, T-14 and T-15, Jaguar,
+  Challenger 3, Type 15, Centauro II and CV90120 were not raised to the bar
+  in this pass. Their wrecks were re-exported through `vehicle_export` so
+  each has its `debris` state, and their three ground plates beside the hull
+  went, as above. Their live GLBs re-exported byte-identical to the
+  committed ones. The M-SHORAD and M1129 (`stryker_support.py`) were left
+  alone: they stand on the Stryker hull slice 01 is rebuilding, so their
+  wrecks are re-exported after that lands. A wreck's thrown turret piece
+  alone fails `asset validate` (`basis.ground`, `structure.scenery_kind`):
+  it is judged only as a state of its catalog wreck, as the M1E3's was before.
+- **Verdict:** sound.
+- **Confidence:** high.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

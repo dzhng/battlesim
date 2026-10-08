@@ -421,12 +421,12 @@ def build(variant, v):
 # ---------------------------------------------------------------- wrecks
 def wreck(variant, v):
     """An Armata after its fire: the left track run off with two road wheels
-    gone, three skirt sections blown away and lying beside it, one bent out,
+    gone, three skirt sections blown away (thrown by `wreckage.scatter`), one bent out,
     the rear screen crushed, plates warped and the glacis dented by the hit.
     Each throws what rides its gun mount, the T-14's turret and the T-15's
     module (`wreckage.burn`)."""
     from parts import box as solid, rest_on_ground
-    from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
+    from wreckage import bend, densify, dent, heat, parts, remove, warp
     m = v.mats
     half = v.length / 2
     remove("track_L_band", "wheel_L_3_", "wheel_L_4_", "skirt_L_2_", "skirt_L_3_", "skirt_L_4_", "skirt_lip_L_2",
@@ -442,11 +442,6 @@ def wreck(variant, v):
     shell = parts("hull_upper", "hull_lower", "glacis_wedge", "skirt_", "turret_shell", "module_shell")
     densify(shell, scale=2.0)
     warp(shell, heat(0.022, 0.9, seed=13.0), dent((half - 1.0, 0.6, 1.45), 0.55, 0.12, (-0.6, 0, -1)))
-    for k, (loc, rot, size) in enumerate((((2.0, -2.3, 0.03), (0.04, 0.02, 0.4), 0.42),
-                                          ((-3.0, -2.2, 0.03), (-0.03, 0.05, 1.8), 0.34),
-                                          ((half + 0.6, 0.9, 0.03), (0.0, 0.06, 2.6), 0.28))):
-        plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
-                              (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.15, seed=81 + k)
     rest_on_ground(0.004)
 
 
