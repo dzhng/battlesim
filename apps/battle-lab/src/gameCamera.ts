@@ -37,6 +37,13 @@ export const gameCamera = {
     const center: [number, number] = [size[0] / 2, size[1] / 2];
     const dx = start[0] - center[0];
     const dy = start[1] - center[1];
+    // Spawn reports sit on one of the four map edges. Snap the opening view
+    // to that edge's axis so the map border stays parallel to the view.
+    const edgeX = Math.min(start[0], size[0] - start[0]);
+    const edgeY = Math.min(start[1], size[1] - start[1]);
+    const edgeDirection: [number, number] =
+      edgeX < edgeY ? [start[0] < center[0] ? -1 : 1, 0] : [0, start[1] < center[1] ? -1 : 1];
+    const heading = Math.atan2(edgeDirection[1], edgeDirection[0]);
     const radial = Math.hypot(dx, dy);
     // A slightly higher opening elevation keeps the entry chevrons legible on
     // the ground while preserving the direct spawn-to-enemy heading.
@@ -50,15 +57,15 @@ export const gameCamera = {
     );
     // Keep the player's entry edge in the opening frame so the deployment
     // marker answers "where do I enter?" before the first camera pan.
-    const target: [number, number] = [center[0] + dx * 0.7, center[1] + dy * 0.7];
-    const distance = baseDistance * 1.45;
+    const target: [number, number] = [center[0] + dx * 0.35, center[1] + dy * 0.35];
+    const distance = baseDistance * 0.95;
     return {
       target: [target[0], target[1], 0],
       distance,
       pitch,
       // Look directly down the entry lane toward the enemy so the map edges
       // stay parallel to the battle's direction of travel.
-      yaw: Math.atan2(dy, dx),
+      yaw: heading,
       ...gameCamera.lens,
     };
   },

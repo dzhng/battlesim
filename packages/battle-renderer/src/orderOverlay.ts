@@ -592,18 +592,15 @@ export function buildDeploymentMarker(
   const color = glowing([...markerColor, 1], style.glow.selected);
   const { cycles_per_s, amplitude } = style.march;
   for (let i = 0; i < 3; i++) {
-    // The entry point is on the player's edge; the chevrons sit across the
-    // entry lane so their inward-facing tips remain readable in the direct
-    // spawn-to-enemy camera view.
-    const lane = (i - 1) * 35;
-    const tip = along(along(destination, facing, 10), facing + Math.PI / 2, lane);
+    // Keep the cue compact: three chevrons stacked along the entry lane.
+    const tip = along(along(destination, facing, 5), facing + Math.PI / 2, (i - 1) * 8);
     const back = facing + Math.PI;
-    const left = along(along(tip, back, 30), facing + Math.PI / 2, 30);
-    const right = along(along(tip, back, 30), facing - Math.PI / 2, 30);
+    const left = along(along(tip, back, 5), facing + Math.PI / 2, 6);
+    const right = along(along(tip, back, 5), facing - Math.PI / 2, 6);
     const chevronColor = fadeAlpha(color, i === 1 ? 1 : 0.62);
-    const width = Math.max(pen.line * 1.6, 6);
-    groundStrip(mesh, left, tip, width, chevronColor, { z: pen.z, lift: 0.4 });
-    groundStrip(mesh, right, tip, width, chevronColor, { z: pen.z, lift: 0.4 });
+    const width = Math.max(pen.line * 1.6, 1.5);
+    groundStrip(mesh, left, tip, width, chevronColor, { z: pen.z, lift: 0.12 });
+    groundStrip(mesh, right, tip, width, chevronColor, { z: pen.z, lift: 0.12 });
     marchChevron(
       mesh,
       pen,
@@ -611,7 +608,7 @@ export function buildDeploymentMarker(
       facing,
       chevronColor,
       [i * 0.25, cycles_per_s, amplitude],
-      [18, 34],
+      [5, 10],
     );
   }
   return mesh.build();
