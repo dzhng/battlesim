@@ -57,12 +57,13 @@ import {
   CookOffWatch,
   LastSeenHulls,
   cookOffModels,
+  debrisModel,
   type LastHull,
   effectCookOff,
   transitionOf,
   type CookOffTransition,
 } from "./cookOffs";
-import { landedAfter } from "@packages/battle-renderer/src/effects/cookOff";
+import { debrisGoneAfter, landedAfter } from "@packages/battle-renderer/src/effects/cookOff";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
@@ -229,6 +230,9 @@ export function useBattleSession({
     installed: InstalledAppearances;
   } | null>(null);
   const [transitions, setTransitions] = useState<readonly CookOffTransition[]>([]);
+  // Cook-offs whose thrown debris is still drawn: it outlives the moving
+  // wreck (the static wreck takes over), sinking away on the clock.
+  const thrown = useRef<CookOffTransition[]>([]);
   // Each vehicle as last drawn: a hull that brews up is drawn whole until
   // its ammunition goes, and only then as its moving wreck.
   const lastHulls = useMemo(
@@ -246,7 +250,10 @@ export function useBattleSession({
   const lastDecoded = useRef(-1);
   const noteDecoded = useCallback(
     (o: ObservationView, digest: string) => {
-      if (o.tick < lastDecoded.current) setTransitions([]);
+      if (o.tick < lastDecoded.current) {
+        setTransitions([]);
+        thrown.current = [];
+      }
       lastDecoded.current = o.tick;
       const fitting = transitionFitting.current;
       const brewed = cookOffWatch.note(o).map((c) => ({
@@ -255,6 +262,7 @@ export function useBattleSession({
       }));
       const moving = brewed.flatMap(({ transition }) => (transition ? [transition] : []));
       if (moving.length) setTransitions((now) => [...now, ...moving]);
+      for (const f of moving) if (f.debrisTop !== null) thrown.current.push(f);
       const pub = {
         ...effectPublication(o, side, units),
         cookOffs: brewed.map(({ c, transition }) => effectCookOff(c, transition)),
@@ -685,6 +693,13 @@ export function useBattleSession({
       const composed = frameModels.current;
       composed.length = 0;
       for (const model of models) composed.push(model);
+      if (thrown.current.length) {
+        thrown.current = thrown.current.filter((f) => time - f.hitAt < debrisGoneAfter(feel));
+        for (const f of thrown.current) {
+          const debris = debrisModel(f, feel, time);
+          if (debris) composed.push(debris);
+        }
+      }
       if (placement && ghostModel && inputEnabled) {
         ghostModel.x = placement.destination[0];
         ghostModel.y = placement.destination[1];
@@ -1021,6 +1036,15 @@ export function useBattleSession({
       drawnClock.current === null || drawnTick.current === null
         ? null
         : { tick: drawnTick.current, clock: drawnClock.current * rules.tick_hz },
+    /** The static pieces the last drawn frame drew beside the posed units (a
+     *  cook-off's moving wreck and its debris): each one's appearance, state
+     *  and how far its motion lowers it, metres. */
+    cookOffPieces: () =>
+      frameModels.current.flatMap((m) =>
+        m.pose.kind === "static"
+          ? [{ appearance: m.appearance, state: m.pose.state, sunk: -(m.pose.motion?.[14] ?? 0) }]
+          : [],
+      ),
     /** The soldiers the last drawn frame lays as static corpses. */
     lying: () => posing?.corpses.soldiers ?? [],
     digest: () => sim.digest.current,

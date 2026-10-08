@@ -307,7 +307,7 @@ def wreck(variant, v):
     for k, (loc, rot, size) in enumerate((((1.4, 1.62, 0.03), (0.03, 0.04, 0.9), 0.30),
                                           ((1.0, -1.62, 0.03), (-0.04, 0.02, 2.2), 0.28),
                                           ((-2.0, 0.55, v.roof + 0.04), (0.02, 0.04, 0.3), 0.36))):
-        plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
+        plate(f"litter_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
                               (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.12, seed=31 + k)
     # With its front left wheels gone it settled onto that corner.
     v.root.rotation_euler = (-0.04, 0.035, 0)

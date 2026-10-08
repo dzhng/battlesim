@@ -1,6 +1,6 @@
 """The test jeep (test unit art, never game content): an open-topped 4×4 with a pedestal HMG (and, with --wreck, its burnt wreck).
 
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/jeep.py -- [out.glb] [--wreck]
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/jeep.py -- [out.glb] [--wreck [--piece=debris]]
 
 Built to the simulation's test jeep: hull `units.test_jeep.body.hull.half_extents_m` [2.2, 1.0, 0.95]
 and the HMG's `mounts` row: pivot [0, 0, 1.68], muzzle [1.43, 0, 0.32]. The HMG
@@ -18,6 +18,9 @@ from parts import *
 
 ARGS = script_args()
 WRECK = "--wreck" in ARGS
+# --piece=debris (with --wreck): only the debris the wreck threw (`wreckage.cut_to`)
+PIECE = next((a.split("=", 1)[1] for a in ARGS if a.startswith("--piece=")), None)
+assert PIECE in (None, "debris") and (PIECE is None or WRECK), "--piece=debris needs --wreck"
 POS = [a for a in ARGS if not a.startswith("--")]
 OUT = POS[0] if POS else os.path.abspath("jeep.glb")
 
@@ -268,6 +271,10 @@ if WRECK:
     for vent, reach in (((0.0, 0.0, 1.1), 1.8), ((-1.4, 0.0, 1.1), 1.8), ((1.3, 0.0, 1.2), 1.4)):
         SCORCH.append((jw @ Vector(vent), reach))
 
+if WRECK:  # debris thrown clear, as every roster wreck's (sim hull half extents (2.2, 1.0))
+    import zlib
+    from wreckage import scatter
+    scatter((2.2, 1.0), {"paint": paint, "dark": dark, "steel": steel, "rubber": rubber, "track": steel, "canvas": canvas}, seed=zlib.crc32(b"test_jeep"))
 rest_on_ground(0.006 if WRECK else 0.0)
 finish(ao_distance=1.0)
 if not WRECK:
@@ -284,6 +291,9 @@ bpy.context.view_layer.update()
 info = dict(tris=triangles_by_tier(), muzzle=[round(v, 4) for v in hmg_muzzle.matrix_world.translation],
             nodes=sorted(o.name for o in bpy.data.objects if o.type == "EMPTY"))
 print("JEEP", json.dumps(info))
+if WRECK:  # the whole wreck without its debris, or the debris alone, where it lies
+    from wreckage import cut_to
+    cut_to(PIECE or "default")
 export(OUT)
 if not WRECK:
     from vehicle_crew import preserve_materials
