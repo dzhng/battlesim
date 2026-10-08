@@ -4,13 +4,16 @@ Technique from ~/dev/game packages/soldier-assets/bake/blender-mesh-lods.py:
 split the mesh into its loose islands, drop
 islands smaller than the tier's extent cutoff, share the triangle budget over
 the rest with a per-island floor, decimate each in bind space (before the
-armature modifier), and join. Blender interpolates UVs, colours and deform
-weights during the collapse; materials travel with each surface.
+armature modifier), and join. Blender interpolates UVs and colours during the
+collapse; materials travel with each surface. Deform weights are not taken
+from the collapse, whose interpolation differs in the last float bit between
+runs: each kept vertex takes the weights of the island's nearest original vertex.
 """
 
 import bmesh
 import bpy
 from mathutils import Vector
+from mathutils.kdtree import KDTree
 
 # (triangle target or None for the full mesh, omitted extent m, island floor)
 TIERS = (
@@ -65,6 +68,7 @@ def reduced_copy(source, name, target, min_extent, floor):
     for obj, count in counts.items():
         if count <= 32 or ratio >= 1.0:
             continue
+        source = _weights_by_position(obj)
         mod = obj.modifiers.new("lod", "DECIMATE")
         mod.ratio = min(1.0, (floors[obj] + (count - floors[obj]) * ratio) / count)
         mod.use_collapse_triangulate = True
@@ -72,6 +76,7 @@ def reduced_copy(source, name, target, min_extent, floor):
         while obj.modifiers.find("lod") > 0:
             bpy.ops.object.modifier_move_up(modifier="lod")
         bpy.ops.object.modifier_apply(modifier="lod")
+        _take_weights(obj, source)
     for obj in pieces:
         canonical(obj)
     _select_only(pieces)
@@ -79,6 +84,31 @@ def reduced_copy(source, name, target, min_extent, floor):
     result = bpy.context.view_layer.objects.active
     result.name = name
     return result
+
+
+def _weights_by_position(obj):
+    """The island's vertices in a KD-tree, and each one's deform weights."""
+    tree = KDTree(len(obj.data.vertices))
+    for v in obj.data.vertices:
+        tree.insert(v.co, v.index)
+    tree.balance()
+    return tree, [[(g.group, g.weight) for g in v.groups] for v in obj.data.vertices]
+
+
+def _take_weights(obj, source):
+    """Give each vertex the weights of the nearest vertex `source` (from
+    `_weights_by_position`) holds."""
+    tree, weights = source
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    deform = bm.verts.layers.deform.verify()
+    for v in bm.verts:
+        dv = v[deform]
+        dv.clear()
+        for g, w in weights[tree.find(v.co)[1]]:
+            dv[g] = w
+    bm.to_mesh(obj.data)
+    bm.free()
 
 
 def make_tiers(source, base):
@@ -95,8 +125,8 @@ def make_tiers(source, base):
 def canonical(o):
     """Make the export hash-stable: snap positions to 0.1 mm (threaded modifier evaluation
     differs in the last float bit between runs), triangulate with a fixed diagonal, and
-    order vertices by position and weights, then faces by material and vertices, so the
-    order Blender joined or collapsed pieces in never reaches the bytes."""
+    order vertices by position and weights, then faces by material and vertices, and edges
+    by vertices, so the order Blender joined or collapsed pieces in never reaches the bytes."""
     for v in o.data.vertices:
         v.co = Vector(round(c, 4) for c in v.co)
     # custom split normals (from bevels) carry the same float noise; the export derives
@@ -122,5 +152,8 @@ def canonical(o):
     order = sorted(bm.faces, key=lambda f: (f.material_index, sorted(v.index for v in f.verts), [v.index for v in f.verts]))
     rank = {f: i for i, f in enumerate(order)}
     bm.faces.sort(key=lambda f: rank[f])
+    # Edges too: a decimate collapses equal-cost edges in edge order.
+    rank = {e: i for i, e in enumerate(sorted(bm.edges, key=lambda e: sorted(v.index for v in e.verts)))}
+    bm.edges.sort(key=lambda e: rank[e])
     bm.to_mesh(o.data)
     bm.free()
