@@ -1,6 +1,8 @@
-"""Reusable aircraft and rotorcraft parts: fuselages, flying surfaces, canopies,
-intakes, nozzles, landing gear, pylons and stores, rotors, skids, and the
-wreck every airframe comes down as.
+"""Reusable aircraft and rotorcraft parts: fuselages, flying surfaces and
+their hinge lines, framed canopies, intakes, nozzles, landing gear, pylons
+and stores, rotors, skids, navigation lights, the markings painted onto the
+skin (national insignia and lettering, pressed onto the parts they lie on,
+`marking_*`), and the wreck every airframe comes down as.
 
 The sibling of `vehicle_parts.py`, on the same contracts (read its doc): a
 part is a pure Blender function on `parts.py` primitives, takes a unique
@@ -31,7 +33,7 @@ import bmesh
 from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from parts import SEG_SCALE, box, cyl, empty, mesh_part, textured  # noqa: E402
+from parts import SEG_SCALE, box, cyl, empty, flat_paint, mesh_part, textured  # noqa: E402
 from vehicle_parts import ALL, FINE, MID, NEAR, tube_part, wheel_node  # noqa: E402
 
 # Interpolated rings per station interval, per tier: a fuselage keeps its
@@ -54,8 +56,206 @@ def fit(v, gear=(0.42, 0.42, 0.41), store=(0.3, 0.31, 0.3), fittings=(0.05, 0.05
         nozzle=textured("nozzle_metal", "bare_steel", colour=(0.07, 0.065, 0.06), chip=0.2, dirt=0.1, role="steel"),
         store=textured("store_paint", "enamel", colour=store, chip=0.3, dirt=0.2, role="paint"),
         blade=textured("blade_paint", "olive_paint", colour=(0.03, 0.032, 0.033), chip=0.2, dirt=0.1, role="paint"),
+        nav_red=flat_paint("nav_red", (0.42, 0.02, 0.015), rough=0.25, grime=0.05),
+        nav_green=flat_paint("nav_green", (0.02, 0.3, 0.06), rough=0.25, grime=0.05),
     )
     return v.mats
+
+
+# ---------------------------------------------------------------- markings
+# The marking paints, linear albedo: national colours and the low-visibility
+# greys a modern air arm paints its insignia in.
+MARK = {
+    "white": (0.62, 0.62, 0.6), "black": (0.018, 0.018, 0.018), "red": (0.4, 0.025, 0.02),
+    "blue": (0.018, 0.05, 0.24), "sky": (0.12, 0.3, 0.55), "yellow": (0.62, 0.42, 0.03),
+    "green": (0.03, 0.17, 0.05), "brown": (0.12, 0.06, 0.025), "orange": (0.6, 0.18, 0.02),
+    "lowvis_dark": (0.07, 0.075, 0.08), "lowvis_light": (0.3, 0.31, 0.32),
+    "pale_red": (0.32, 0.09, 0.08), "pale_blue": (0.1, 0.14, 0.24),
+}
+
+
+def mark(m, colour):
+    """The marking paint `colour` (a `MARK` key), made once into `m`."""
+    key = f"mark_{colour}"
+    if key not in m:
+        m[key] = textured(f"marking_{colour}", "marking_paint", colour=MARK[colour], chip=0.5, dirt=0.25,
+                          streak=0.0, role="marking")
+    return m[key]
+
+
+def _ngon(n, r=1.0, phase=0.0):
+    return [(r * math.cos(phase + math.tau * k / n), r * math.sin(phase + math.tau * k / n)) for k in range(n)]
+
+
+def _star(points=5, inner=0.382):
+    """A star's outline, a point up (+V)."""
+    return [((1.0 if k % 2 == 0 else inner) * math.cos(math.pi / 2 + math.pi * k / points),
+             (1.0 if k % 2 == 0 else inner) * math.sin(math.pi / 2 + math.pi * k / points)) for k in range(points * 2)]
+
+
+def _rect(u0, v0, u1, v1):
+    return [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
+
+
+def _cross(arm, foot):
+    """A Balkenkreuz's outline: arms `arm` long from the centre, `foot` the
+    half-width of each arm."""
+    a, f = arm, foot
+    return [(f, f), (f, a), (-f, a), (-f, f), (-a, f), (-a, -f), (-f, -f), (-f, -a), (f, -a), (f, -f), (a, -f),
+            (a, f)]
+
+
+# An insignia is layers, back first: (outline, scale, centre offset (u, v) in
+# its size, colour). An outline is star-shaped about its own centre.
+DISC = _ngon(32)
+INSIGNIA = {
+    # The US star-and-bar, low-visibility: one dark grey outline on the grey.
+    "us_lowvis": [(_rect(-1.0, -0.32, 1.0, 0.32), 1.0, (0, 0), "lowvis_dark"),
+                  (DISC, 0.5, (0, 0), "lowvis_dark"), (_star(), 0.46, (0, 0), "lowvis_light")],
+    # The full-colour star-and-bar (Army and Marine helicopters in black).
+    "us_black": [(_rect(-1.0, -0.32, 1.0, 0.32), 1.0, (0, 0), "black"), (DISC, 0.5, (0, 0), "black"),
+                 (_star(), 0.46, (0, 0), "lowvis_light")],
+    # Russia's VKS: a red star bordered white, then blue.
+    "ru_star": [(_star(), 1.0, (0, 0), "blue"), (_star(), 0.88, (0, 0), "white"), (_star(), 0.74, (0, 0), "red")],
+    # China's PLA: a red star bordered yellow with red bars.
+    "cn_star": [(_rect(-1.0, -0.24, 1.0, 0.24), 1.0, (0, 0), "yellow"), (_rect(-0.97, -0.2, 0.97, 0.2), 1.0,
+                                                                         (0, 0), "red"),
+                (_star(), 0.58, (0, 0), "yellow"), (_star(), 0.52, (0, 0), "red")],
+    # The roundels, outer ring first.
+    "uk_lowvis": [(DISC, 1.0, (0, 0), "pale_blue"), (DISC, 0.45, (0, 0), "pale_red")],
+    "uk": [(DISC, 1.0, (0, 0), "blue"), (DISC, 0.66, (0, 0), "white"), (DISC, 0.33, (0, 0), "red")],
+    "fr": [(DISC, 1.0, (0, 0), "red"), (DISC, 0.66, (0, 0), "white"), (DISC, 0.33, (0, 0), "blue")],
+    "it": [(DISC, 1.0, (0, 0), "red"), (DISC, 0.66, (0, 0), "white"), (DISC, 0.33, (0, 0), "green")],
+    "se": [(DISC, 1.0, (0, 0), "blue"), (_star(3, 0.3), 0.45, (0, 0.05), "yellow")],
+    "de": [(_cross(1.0, 0.45), 1.0, (0, 0), "black"), (_cross(0.82, 0.27), 1.0, (0, 0), "white"),
+           (_cross(0.64, 0.1), 1.0, (0, 0), "black")],
+}
+
+
+def _targets(prefixes):
+    """A BVH of the near tier of the parts `prefixes` names, in world space."""
+    import bpy
+    from mathutils.bvhtree import BVHTree
+    bpy.context.view_layer.update()
+    verts, polys = [], []
+    for o in bpy.data.objects:
+        if o.type != "MESH" or not o.name.endswith("_LOD0") or not o.name.startswith(tuple(prefixes)):
+            continue
+        base = len(verts)
+        verts += [o.matrix_world @ v.co for v in o.data.vertices]
+        polys += [[base + i for i in p.vertices] for p in o.data.polygons]
+    if not polys:
+        raise ValueError(f"no near-tier parts named {prefixes} to paint on")
+    return BVHTree.FromPolygons(verts, polys)
+
+
+def _lay(points, centre, normal, up, size, tree, lift):
+    """Each (u, v) of `points`, `size` metres to the unit, on the plane at
+    `centre` facing `normal` with +V toward `up`, then pressed onto the skin
+    `tree` along -`normal` and stood `lift` off it."""
+    n = Vector(normal).normalized()
+    ev = (Vector(up) - n * Vector(up).dot(n)).normalized()
+    eu = ev.cross(n)
+    out = []
+    for u, w in points:
+        p = Vector(centre) + eu * (u * size) + ev * (w * size)
+        hit = tree.ray_cast(p + n * 1.5, -n, 3.0)[0] if tree else None
+        out.append((hit if hit is not None else p) + n * lift)
+    return out
+
+
+def insignia(name, kind, centre, normal, up, size, mats, parent, onto, lods=NEAR):
+    """A national insignia `kind` (`INSIGNIA`), `size` metres from its centre
+    to its outer edge, painted on the skin of the parts named by `onto` at
+    `centre`, facing `normal`, its top toward `up` (a star's point)."""
+    import bpy
+    from parts import _obj
+    tree = _targets(onto)
+    inv = parent.matrix_world.inverted_safe()
+    for k, (outline, scale, (du, dv), colour) in enumerate(INSIGNIA[kind]):
+        def make(lod, n, outline=outline, scale=scale, du=du, dv=dv, k=k):
+            rings = 4 if lod == 0 else 2
+            # The outline split so no edge is long, then scaled ring by ring
+            # to its centre: every vertex has the skin under it.
+            dense = []
+            for a, b in zip(outline, outline[1:] + outline[:1]):
+                steps = max(1, int(math.dist(a, b) * scale * size / 0.12))
+                dense += [(a[0] + (b[0] - a[0]) * j / steps, a[1] + (b[1] - a[1]) * j / steps) for j in range(steps)]
+            pts = [(du, dv)] + [(du + x * scale * t, dv + y * scale * t) for t in
+                                 [(r + 1) / rings for r in range(rings)] for x, y in dense]
+            world = _lay(pts, centre, normal, up, size, tree, 0.006 + 0.004 * k)
+            bm = bmesh.new()
+            vs = [bm.verts.new(inv @ p) for p in world]
+            m_ = len(dense)
+            for j in range(m_):
+                bm.faces.new((vs[0], vs[1 + j], vs[1 + (j + 1) % m_]))
+            for r in range(rings - 1):
+                a0, b0 = 1 + r * m_, 1 + (r + 1) * m_
+                for j in range(m_):
+                    j1 = (j + 1) % m_
+                    bm.faces.new((vs[a0 + j], vs[b0 + j], vs[b0 + j1], vs[a0 + j1]))
+            bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+            # Face outward, along `normal`.
+            nn = inv.to_3x3() @ Vector(normal)
+            if sum(f.normal.dot(nn) for f in bm.faces) < 0:
+                bmesh.ops.reverse_faces(bm, faces=bm.faces)
+            return _obj(n, bm, mark(mats, colour), parent, (0, 0, 0), (0, 0, 0))
+        from parts import _each
+        _each(f"marking_{name}_{k}", lods, make)
+    bpy.context.view_layer.update()
+
+
+def lettering(name, text, height, centre, normal, up, mats, parent, onto, colour="lowvis_dark", lods=NEAR):
+    """Painted letters (a tail code, a serial, a modex): `text` `height`
+    metres tall on the skin of the parts named by `onto`, as `insignia`."""
+    import bpy
+    from parts import _each, _obj
+    tree = _targets(onto)
+    inv = parent.matrix_world.inverted_safe()
+
+    def make(lod, n):
+        cu = bpy.data.curves.new(n + "_text", "FONT")
+        cu.body = text
+        cu.size = height
+        cu.align_x = "CENTER"
+        cu.align_y = "CENTER"
+        cu.resolution_u = 2
+        tmp = bpy.data.objects.new(n + "_curve", cu)
+        bpy.context.scene.collection.objects.link(tmp)
+        bpy.context.view_layer.update()
+        me = bpy.data.meshes.new_from_object(tmp.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+        bpy.data.objects.remove(tmp, do_unlink=True)
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        bpy.data.meshes.remove(me)
+        world = _lay([(v.co.x, v.co.y) for v in bm.verts], centre, normal, up, 1.0, tree, 0.006)
+        for v, p in zip(bm.verts, world):
+            v.co = inv @ p
+        nn = inv.to_3x3() @ Vector(normal)
+        bm.normal_update()
+        if sum(f.normal.dot(nn) for f in bm.faces) < 0:
+            bmesh.ops.reverse_faces(bm, faces=bm.faces)
+        return _obj(n, bm, mark(mats, colour), parent, (0, 0, 0), (0, 0, 0))
+
+    _each(f"marking_{name}", lods, make)
+
+
+def nav_lights(mats, parent, left, right, tail=None, r=0.05):
+    """The navigation lights: red on the left (`left`), green on the right,
+    white at the tail."""
+    for nm, loc, mat in (("left", left, "nav_red"), ("right", right, "nav_green"), ("tail", tail, "lamp")):
+        if loc is not None:
+            body(f"nav_light_{nm}", [(loc[0] + r, 0.0, loc[2], loc[2]), (loc[0], r, loc[2] - r * 0.8, loc[2] + r * 0.8),
+                                     (loc[0] - r * 1.4, 0.0, loc[2], loc[2])], mats[mat], parent, seg=8,
+                 loc=(0, loc[1], 0), lods=NEAR, steps=(1, 1, 1, 1))
+
+
+def line(name, a, b, mat, parent, width=0.025, height=0.012, lods=NEAR):
+    """A thin strip from `a` to `b` (a hinge line, a panel seam, a rail)."""
+    a, b = Vector(a), Vector(b)
+    d = b - a
+    rot = Vector((1, 0, 0)).rotation_difference(d.normalized()).to_euler()
+    box(name, (d.length, width, height), tuple((a + b) / 2), mat, parent, rot=rot, lods=lods)
 
 
 def mirrored(make):
@@ -186,11 +386,35 @@ def surface(name, sections, mat, parent, lods=ALL, loc=(0, 0, 0), rot=(0, 0, 0))
     return mesh_part(name, build, mat, parent, lods=lods, loc=loc, rot=rot)
 
 
-def paired_surface(name, sections, mat, parent, lods=ALL):
+def hinges(name, sections, fracs, mat, parent, lods=NEAR):
+    """The control surfaces' hinge lines of a surface through `sections` (as
+    `surface`): a dark seam on both skins at each chord fraction of `fracs`
+    (a flap's or an aileron's line), section to section. A fraction may be
+    `(frac, first, last)` to run between those sections only."""
+    secs = [(Vector((x, y, z)), c, t) for x, y, z, c, t in sections]
+    normals = []
+    for i in range(len(secs)):
+        span = (secs[min(i + 1, len(secs) - 1)][0] - secs[max(i - 1, 0)][0]).normalized()
+        normals.append(Vector((1, 0, 0)).cross(span).normalized())
+    for j, f in enumerate(fracs):
+        f, first, last = f if isinstance(f, tuple) else (f, 0, len(secs) - 1)
+        for i in range(first, last):
+            for sk, sgn in (("top", 1), ("bot", -1)):
+                ends = [secs[k][0] + Vector((-secs[k][1] * f, 0, 0))
+                        + normals[k] * sgn * (secs[k][2] / 2 * _thickness(f) + 0.004) for k in (i, i + 1)]
+                line(f"{name}_hinge_{j}_{i}_{sk}", ends[0], ends[1], mat, parent, width=0.03, height=0.008, lods=lods)
+
+
+def paired_surface(name, sections, mat, parent, lods=ALL, hinge=(), hinge_mat=None):
     """A surface and its mirror across the centreline (`<name>_L`, `<name>_R`);
-    `sections` describe the left (+Y) one."""
-    return mirrored(lambda side, s: surface(f"{name}_{s}", [(x, side * y, z, c, t) for x, y, z, c, t in sections],
-                                            mat, parent, lods=lods))
+    `sections` describe the left (+Y) one; `hinge` its control surfaces'
+    chord fractions (`hinges`), drawn in `hinge_mat`."""
+    def make(side, s):
+        mirrored_secs = [(x, side * y, z, c, t) for x, y, z, c, t in sections]
+        if hinge:
+            hinges(f"{name}_{s}", mirrored_secs, hinge, hinge_mat, parent)
+        return surface(f"{name}_{s}", mirrored_secs, mat, parent, lods=lods)
+    return mirrored(make)
 
 
 def fin(name, root_x, root_z, height, root_chord, tip_chord, sweep_m, mats, parent, y=0.0, cant=0.0, thick=0.12,
@@ -215,14 +439,18 @@ def fin(name, root_x, root_z, height, root_chord, tip_chord, sweep_m, mats, pare
 
 
 # ---------------------------------------------------------------- canopy and fittings
-def canopy(name, x_front, x_back, sill, top, half_width, mats, parent, bows=(), peak=0.45, lods=ALL):
+def canopy(name, x_front, x_back, sill, top, half_width, mats, parent, bows=(), peak=0.45, lods=ALL, frame="paint",
+           tail=0.45, nose=0.05):
     """A bubble canopy on the sill line from `x_front` to `x_back`, highest
     (`top`) at `peak` of the way back, in dark glass, with frame bows (in the
-    paint) at the X positions `bows` and a sill rail along each side."""
+    `frame` role, the airframe's paint unless named) at the X positions
+    `bows` (the windscreen's arch and the canopy's bows) and a frame along
+    each sill. `nose` and `tail` are the glass's height at its ends, as
+    fractions of its rise: a canopy faired into a spine ends tall."""
     length = x_front - x_back
     rise = top - sill
-    prof = ((0.0, 0.05, 0.35), (0.12, 0.45, 0.7), (0.3, 0.85, 0.95), (peak, 1.0, 1.0), (0.75, 0.86, 0.94),
-            (1.0, 0.45, 0.7))
+    prof = ((0.0, nose, 0.35), (0.12, 0.45, 0.7), (0.3, 0.85, 0.95), (peak, 1.0, 1.0), (0.75, 0.86, 0.94),
+            (1.0, tail, 0.7))
     st = [(x_front - f * length, half_width * wf, sill - 0.04, sill + rise * hf, sill) for f, hf, wf in prof]
     made = body(f"{name}_glass", st, mats["glass"], parent, seg=20, lods=lods)
     for k, bx in enumerate(bows):
@@ -235,12 +463,12 @@ def canopy(name, x_front, x_back, sill, top, half_width, mats, parent, bows=(), 
                 break
         else:
             continue
-        body(f"{name}_bow_{k}", [(bx + 0.04, half_width * wf * 1.05, sill - 0.02, sill + rise * hf * 1.04, sill),
-                                 (bx - 0.04, half_width * wf * 1.05, sill - 0.02, sill + rise * hf * 1.04, sill)],
-             mats["dark"], parent, seg=16, lods=MID, steps=(1, 1, 1, 1))
-    mirrored(lambda side, s: box(f"{name}_sill_{s}", (length * 0.95, 0.05, 0.05),
-                                 (x_back + length / 2, side * half_width * 0.95, sill + 0.01), mats["dark"], parent,
-                                 lods=NEAR))
+        body(f"{name}_bow_{k}", [(bx + 0.05, half_width * wf * 1.06, sill - 0.02, sill + rise * hf * 1.05, sill),
+                                 (bx - 0.05, half_width * wf * 1.06, sill - 0.02, sill + rise * hf * 1.05, sill)],
+             mats[frame], parent, seg=16, lods=MID, steps=(1, 1, 1, 1))
+    mirrored(lambda side, s: box(f"{name}_sill_{s}", (length * 0.97, 0.07, 0.08),
+                                 (x_back + length / 2, side * half_width * 0.93, sill + 0.02), mats[frame], parent,
+                                 bevel=0.015, lods=MID))
     return made
 
 
@@ -310,20 +538,43 @@ def wheel(name, loc, radius, width, mats, parent, lods=ALL):
     cyl(f"{name}_tyre", radius, width, (0, 0, 0), "Y", mats["rubber"], node, seg=20, bevel=0.02, lods=lods)
     cyl(f"{name}_hub", radius * 0.55, width + 0.02, (0, 0, 0), "Y", mats["gear"], node, seg=14,
         lods=tuple(t for t in lods if t < 3))
+    # The hub's face: a cap and its bolt ring either side.
+    for s, side in (("L", 1), ("R", -1)):
+        cyl(f"{name}_cap_{s}", radius * 0.22, 0.03, (0, side * (width / 2 + 0.02), 0), "Y", mats["steel"], node,
+            seg=10, lods=NEAR)
+        for b in range(6):
+            a = math.tau * b / 6
+            cyl(f"{name}_bolt_{s}{b}", radius * 0.035, 0.02,
+                (math.cos(a) * radius * 0.36, side * (width / 2 + 0.015), math.sin(a) * radius * 0.36), "Y",
+                mats["steel"], node, seg=6, lods=FINE)
     return node
 
 
-def gear(name, x, y, top, radius, width, mats, parent, wheels=1, spread=None, tandem=0.0, door=None, rake=0.0):
+def gear(name, x, y, top, radius, width, mats, parent, wheels=1, spread=None, tandem=0.0, door=None, rake=0.0,
+         light=False):
     """A landing gear leg: the node `gear_<name>` at its top (`x`, `y`,
-    `top`), the strut down to wheels resting on the ground. `wheels` side by
-    side `spread` apart (2 for a twin nose wheel), or with `tandem` two axles
-    that far apart; `door` (length, height) a bay door beside the leg."""
+    `top`), the strut down to wheels resting on the ground, its drag brace
+    and torque links. `wheels` side by side `spread` apart (2 for a twin
+    nose wheel), or with `tandem` two axles that far apart; `door` (length,
+    height) a bay door beside the leg; `light` the taxi light a nose leg
+    carries."""
     node = empty(f"gear_{name}", loc=(x, y, top), parent=parent)
     drop = top - radius
-    cyl(f"gear_{name}_strut", 0.06 + radius * 0.12, drop, (0, 0, -drop / 2), "Z", mats["gear"], node, seg=10,
+    r_strut = 0.06 + radius * 0.12
+    cyl(f"gear_{name}_strut", r_strut, drop, (0, 0, -drop / 2), "Z", mats["gear"], node, seg=10,
         rot=(0, rake, 0), lods=MID)
     cyl(f"gear_{name}_oleo", 0.04 + radius * 0.08, drop * 0.4, (0, 0, -drop * 0.8), "Z", mats["steel"], node, seg=10,
         lods=NEAR)
+    # The drag brace, from the strut's middle up and back to the bay's roof.
+    tube_part(f"gear_{name}_brace", lambda lod: [(0, 0, -drop * 0.5), (-drop * 0.45, 0, -0.02)], r_strut * 0.45,
+              mats["gear"], node, NEAR)
+    # The torque links' scissor ahead of the oleo.
+    for k, (z0, z1) in enumerate(((-drop * 0.58, -drop * 0.72), (-drop * 0.72, -drop * 0.86))):
+        line(f"gear_{name}_link_{k}", (r_strut + 0.03, 0, z0), (r_strut + 0.07 - 0.04 * k, 0, z1), mats["gear"], node,
+             width=0.04, height=0.03, lods=FINE)
+    if light:
+        cyl(f"gear_{name}_light", 0.07, 0.06, (r_strut + 0.06, 0, -drop * 0.35), "X", mats["lamp"], node, seg=10,
+            lods=NEAR)
     spread = spread if spread is not None else width + 0.06
     axles = [0.0] if not tandem else [tandem / 2, -tandem / 2]
     for i, ax in enumerate(axles):
@@ -347,12 +598,16 @@ def pylon(name, loc, length, depth, mats, parent):
     x, y, z = loc
     box(name, (length, 0.1, depth), (x, y, z - depth / 2), mats["paint"], parent, bevel=0.02, taper=(1.15, 1.0),
         lods=MID)
+    # The sway braces either end of the ejector rack, under the pylon.
+    for k, dx in enumerate((length * 0.3, -length * 0.3)):
+        box(f"{name}_sway_{k}", (0.05, 0.16, 0.08), (x + dx, y, z - depth - 0.02), mats["dark"], parent, lods=FINE)
 
 
-def store(name, kind, loc, length, radius, mats, parent, fins=True):
+def store(name, kind, loc, length, radius, mats, parent, fins=True, rail=False):
     """A store hung with its nose at +X, centred on `loc`: `missile` (a slim
-    body, a pointed seeker and cruciform fins), `bomb` (a fat body and its
-    tail fins), `tank` (a drop tank) or `pod` (a sensor pod with its window)."""
+    body, a pointed seeker, canards and tail fins, its live bands), `bomb`
+    (a fat body, its fuze and tail fins), `tank` (a drop tank) or `pod` (a
+    sensor pod with its window). `rail` hangs it from a launch rail."""
     x, y, z = loc
     h = length / 2
     nose = {"missile": 0.12, "bomb": 0.25, "tank": 0.3, "pod": 0.15}[kind]
@@ -364,30 +619,50 @@ def store(name, kind, loc, length, radius, mats, parent, fins=True):
          loc=(0, y, 0), steps=(2, 1, 1, 1))
     if kind == "missile":
         cyl(f"{name}_seeker", radius * 0.7, 0.02, (x + h - 0.03, y, z), "X", mats["glass"], parent, seg=8, lods=FINE)
+        # The live bands: yellow behind the warhead, brown on the motor.
+        for k, (at, colour) in enumerate(((0.3, "yellow"), (0.55, "brown"))):
+            cyl(f"{name}_band_{k}", radius * 1.02, 0.06, (x + h - length * at, y, z), "X", mark(mats, colour), parent,
+                seg=12, lods=FINE)
+    if kind == "bomb":
+        cyl(f"{name}_fuze", radius * 0.18, 0.1, (x + h + 0.04, y, z), "X", mats["steel"], parent, seg=8, lods=NEAR)
+        cyl(f"{name}_band", radius * 1.02, 0.05, (x + h - length * 0.3, y, z), "X", mark(mats, "yellow"), parent,
+            seg=12, lods=FINE)
     if kind == "pod":
         box(f"{name}_window", (0.03, radius * 1.1, radius * 1.1), (x + h - length * nose * 0.4, y, z),
             mats["glass"], parent, lods=MID)
+    if rail:
+        box(f"{name}_rail", (length * 0.6, 0.07, radius + 0.06), (x - length * 0.05, y, z + radius + 0.01),
+            mats["dark"], parent, bevel=0.01, lods=MID)
     if fins and kind in ("missile", "bomb"):
         span = radius * (2.4 if kind == "missile" else 1.8)
-        for k in range(4):
-            a = math.pi / 4 + k * math.pi / 2
-            box(f"{name}_fin_{k}", (length * 0.12, 0.012, span),
-                (x - h + length * 0.08, y + math.cos(a) * span / 2, z + math.sin(a) * span / 2), mats["store"], parent,
-                rot=(a - math.pi / 2, 0, 0), lods=FINE)
+        rows = [(length * 0.08, length * 0.12, span, "fin")]
+        if kind == "missile":
+            rows.append((length * 0.78, length * 0.07, span * 0.75, "canard"))
+        for at, chord, sp, what in rows:
+            for k in range(4):
+                a = math.pi / 4 + k * math.pi / 2
+                box(f"{name}_{what}_{k}", (chord, 0.015, sp),
+                    (x - h + at, y + math.cos(a) * sp / 2, z + math.sin(a) * sp / 2), mats["store"], parent,
+                    rot=(a - math.pi / 2, 0, 0), lods=NEAR)
 
 
 # ---------------------------------------------------------------- rotors
 def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, droop=0.03, phase=0.0, rot=(0, 0, 0),
-          thick=0.1, tip_chord=None):
+          thick=0.1, tip_chord=None, tips=None):
     """A rotor: the node `rotor_<name>` at the hub's centre, turning about its
     local Z; the mast below it, the hub and its blade grips, and `blades`
     blades of `chord` out to `radius`, drooping `droop` radians (a rotor at
     rest sags), each `blade_<name>_<k>` (a frame measure leaves blades out:
     a rotor's disc is not its airframe's size). A tail rotor is the same
-    rotor turned on its side (`rot`)."""
+    rotor turned on its side (`rot`). `tips` paints the blade tips that
+    marking colour (a strike warning), where the photos show it."""
     node = empty(f"rotor_{name}", loc=loc, parent=parent, rot=rot)
     if mast:
         cyl(f"rotor_{name}_mast", hub * 0.42, mast, (0, 0, -mast / 2), "Z", mats["dark"], node, seg=12, lods=MID)
+        # The swashplate on the mast, its pitch links up to each blade's horn.
+        swash_z = -min(mast * 0.55, hub * 1.3)
+        cyl(f"rotor_{name}_swash", hub * 0.75, hub * 0.14, (0, 0, swash_z), "Z", mats["steel"], node, seg=16,
+            lods=NEAR)
     cyl(f"rotor_{name}_hub", hub, hub * 0.55, (0, 0, 0), "Z", mats["dark"], node, seg=14, bevel=0.02)
     cyl(f"rotor_{name}_cap", hub * 0.55, hub * 0.4, (0, 0, hub * 0.45), "Z", mats["steel"], node, seg=12, lods=MID)
     tip = tip_chord if tip_chord is not None else chord
@@ -403,8 +678,25 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
         # surface() sweeps chords along -X: lay the blade on Y, then turn it to its bearing.
         surface(f"blade_{name}_{k}", [(x, y, z, c, t) for x, y, z, c, t in sec], mats["blade"], node,
                 rot=(0, 0, a - math.pi / 2))
+        # The blade's root cuff and its painted tip (the strike warning).
+        tip_len = min(0.3, (out - root) * 0.06)
+        if tips:
+            surface(f"blade_{name}_{k}_tip", [(tip / 2 + 0.004, out - tip_len, dz * (1 - tip_len / (out - root)),
+                                               tip + 0.008, tip * thick * 0.9),
+                                              (tip / 2 + 0.004, out + 0.01, dz, tip + 0.008, tip * thick * 0.9)],
+                    mark(mats, tips), node, rot=(0, 0, a - math.pi / 2), lods=NEAR)
+        box(f"rotor_{name}_cuff_{k}", (hub * 1.4, chord * 0.85, chord * thick * 1.5),
+            (ca * (root + hub * 0.7), sa * (root + hub * 0.7), 0), mats["dark"], node, rot=(0, 0, a), bevel=0.01,
+            lods=NEAR)
         box(f"rotor_{name}_grip_{k}", (hub * 1.1, chord * 0.7, hub * 0.4),
             (ca * hub * 1.2, sa * hub * 1.2, 0), mats["dark"], node, rot=(0, 0, a), bevel=0.01, lods=MID)
+        if mast:
+            # The pitch link from the swashplate's rim up to the blade's horn,
+            # just ahead of the grip.
+            ha = a + 0.35
+            line(f"rotor_{name}_link_{k}", (math.cos(ha) * hub * 0.7, math.sin(ha) * hub * 0.7, swash_z),
+                 (math.cos(ha) * hub * 1.0, math.sin(ha) * hub * 1.0, -hub * 0.1), mats["steel"], node, width=0.04,
+                 height=0.04, lods=NEAR)
     return node
 
 
@@ -440,7 +732,8 @@ def crash(v, tail_x, wing_y=None, wing_side=-1, tail_yaw=0.35, tail_drop=0.18, b
     from parts import rest_on_ground
     from wreckage import bend, densify, dent, heat, parts, plate, warp
     m = v.mats
-    gone = [o for o in bpy.data.objects if o.name.startswith(("gear_", "canopy_glass"))]
+    # The gear torn away, the canopy's glass gone, the markings burnt off.
+    gone = [o for o in bpy.data.objects if o.name.startswith(("gear_", "canopy_glass", "marking_"))]
     gone += [c for o in gone for c in o.children_recursive]
     for rotor_name, k in blades_broken:
         gone += [o for o in bpy.data.objects if o.name.startswith(f"blade_{rotor_name}_{k}_")]
@@ -505,8 +798,12 @@ def jet(v, spec):
     sections, mirrored), `fins` (`fin()` keyword sets), `intakes`
     (`(kind, loc, size..)`), `nozzles` (`nozzle()` keyword sets), `gear`
     (`gear()` keyword sets), `pylons` (`(loc, length, depth)`), `stores`
-    (`(kind, loc, length, radius)`; an off-centre pylon or store is
-    mirrored), `nose_probe` (`(loc, length)`)."""
+    (`(kind, loc, length, radius[, rail])`, a missile on a launch rail
+    unless `rail` says not; an off-centre pylon or store is mirrored),
+    `nose_probe` (`(loc, length)`), `wing_hinge`/`stab_hinge`/
+    `canard_hinge` (their control surfaces' chord fractions, `hinges`) and
+    `nav` (`nav_lights` keywords). Markings go on afterwards (`markings`):
+    they are painted onto the skin, so the skin must be built first."""
     m, hull = fit(v), v.hull
     body("fuselage", spec["fuselage"], m["paint"], hull, seg=spec.get("seg", 28))
     for name, stations, *at in spec.get("bodies", ()):
@@ -518,7 +815,7 @@ def jet(v, spec):
     # the tailplane is `tail_stab` (it breaks off with the tail).
     for key, name in (("wing", "wing"), ("strake", "wing_strake"), ("canard", "wing_canard"), ("stab", "tail_stab")):
         if key in spec:
-            paired_surface(name, spec[key], m["paint"], hull)
+            paired_surface(name, spec[key], m["paint"], hull, hinge=spec.get(f"{key}_hinge", ()), hinge_mat=m["black"])
     for k, f in enumerate(spec.get("fins", ())):
         fin(f"tail_fin_{k}", mats=m, parent=hull, **f)
     for k, (kind, *args) in enumerate(spec.get("intakes", ())):
@@ -533,8 +830,31 @@ def jet(v, spec):
         gear(mats=m, parent=hull, **g)
     for k, (loc, length, depth) in enumerate(_both(spec.get("pylons", ()), 0)):
         pylon(f"pylon_{k}", loc, length, depth, m, hull)
-    for k, (kind, loc, length, radius) in enumerate(_both(spec.get("stores", ()), 1)):
-        store(f"store_{k}", kind, loc, length, radius, m, hull)
+    for k, (kind, loc, length, radius, *rail) in enumerate(_both(spec.get("stores", ()), 1)):
+        store(f"store_{k}", kind, loc, length, radius, m, hull, rail=rail[0] if rail else kind == "missile")
     if "nose_probe" in spec:
         pitot("nose_probe", *spec["nose_probe"], m, hull)
+    if "nav" in spec:
+        nav_lights(m, hull, **spec["nav"])
     return m
+
+
+def markings(v, rows):
+    """Paint `rows` on an airframe once it is built: each
+    `("insignia" | "text", keywords)` for `insignia` or `lettering`, and,
+    when its `centre` is off the centreline, its mirror on the other side
+    (the letters read the right way round from each side)."""
+    for k, (what, kw) in enumerate(rows):
+        kw = dict(kw)
+        mirror = kw.pop("mirror", abs(kw["centre"][1]) > 1e-6)
+        sides = [(kw["centre"], kw["normal"], "L" if kw["centre"][1] >= 0 else "R")]
+        if mirror:
+            c, n = kw["centre"], kw["normal"]
+            sides.append(((c[0], -c[1], c[2]), (n[0], -n[1], n[2]), "R" if c[1] >= 0 else "L"))
+        for centre, normal, s in sides:
+            args = dict(kw, centre=centre, normal=normal, mats=v.mats, parent=v.hull)
+            name = f"{what}_{k}_{s}"
+            if what == "insignia":
+                insignia(name, **args)
+            else:
+                lettering(name, **args)
