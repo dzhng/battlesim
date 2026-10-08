@@ -1374,6 +1374,23 @@ family. No roster frame, mount or tolerance moved.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
+### The M1E3's remote station is drawn at a CROWS's size
+
+- **The choice:** The station on its pedestal now carries what a CROWS
+  carries: the flange and its bolts, a cable harness down the column, the
+  traverse and elevation drives, a three-window sensor block (thermal, day,
+  rangefinder) under its hood, the ammunition can with lid and latches, the
+  feed tray and charger. The block and can are drawn larger than the M2
+  alone suggests, because the one photo shows the station as a big block
+  beside the gun. The turret's cheeks carry sensor windows under hoods, the
+  gun shield its bolt rows, the rear corners cameras, and the independent
+  sight box a second window. The mounts did not move: the station's pivot is
+  still the photo's, and the frame check leaves the station out as before.
+- **The gap:** One photo, a left quarter. The station's right side and the
+  roof between the hatches are unseen and drawn from the CROWS.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

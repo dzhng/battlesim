@@ -9,7 +9,9 @@ over the idler and four long flat panels, painted with the star and lettering; t
 turret is low, faceted and short, its cheeks a wedge either side of the gun
 shield and its sides flat, with no bustle rack and no loader's hatch (the
 crew rides in the hull); a remote weapon station stands high on a pedestal
-in the middle of the roof, its M2 over a sight block, and an independent
+in the middle of the roof (a CROWS-type: its M2 over a three-window
+sensor block, the ammunition can and feed chute on its left, drives and
+cable harness), and an independent
 sight box stands behind it on the left. The prototype is green; the model
 wears US desert tan like every US roster vehicle.
 
@@ -96,6 +98,18 @@ def turret_body(v, turret):
     mast = empty("dressing_sight_box", parent=turret)
     box("sight_box_post", (0.20, 0.20, 0.16), (-1.05, 0.62, ROOF + 0.08), m["dark"], mast, lods=MID)
     VP.sight_housing("sight_box", (-1.05, 0.62, ROOF + 0.16), m, mast, size=(0.40, 0.38, 0.30))
+    # The cheeks' sensor windows (the protection system's and the
+    # situational-awareness cameras), and the gun shield's bolt rows.
+    for side, s in ((1, "L"), (-1, "R")):
+        box(f"cheek_sensor_{s}", (0.03, 0.22, 0.12), (1.86, side * 0.66, ROOF - 0.32), m["glass"], turret,
+            rot=(0, 0, side * 0.70), lods=MID)
+        box(f"cheek_sensor_hood_{s}", (0.10, 0.28, 0.03), (1.84, side * 0.66, ROOF - 0.24), m["paint"], turret,
+            rot=(0, 0, side * 0.70), lods=NEAR)
+        for k in range(4):
+            cyl(f"shield_bolt_{s}_{k}", 0.022, 0.03, (1.415, side * 0.42, 0.12 + k * 0.17), "X", m["steel"], turret,
+                seg=6, lods=FINE)
+        cyl(f"camera_{s}", 0.03, 0.06, (-1.90, side * 0.9, ROOF - 0.12), "X", m["dark"], turret, seg=10, lods=NEAR)
+    box("sight_box_window_2", (0.01, 0.16, 0.10), (-0.84, 0.70, ROOF + 0.34), m["glass"], mast, lods=NEAR)
     for k, (x, y) in enumerate(((-0.30, -0.70), (-1.20, -0.55))):
         box(f"roof_plate_{k}", (0.70, 0.55, 0.025), (x, y, ROOF + 0.01), m["paint"], turret, bevel=0.008, lods=MID)
     for k, (x, y) in enumerate(((1.20, 0.95), (1.20, -0.95), (-1.80, 1.1), (-1.80, -1.1))):
@@ -103,22 +117,44 @@ def turret_body(v, turret):
 
 
 def remote_station(v, rws, rws_gun):
-    """The remote weapon station high on its pedestal: a column off the roof,
-    the bearing, the cradle with the sight block under the M2, the ammunition
-    box on the left and the feed belt's chute arcing over to the gun."""
+    """The remote weapon station high on its pedestal: a column off the roof
+    on its bolted flange with the cable harness running down it, the bearing
+    and the traverse drive's housing, the cradle with its elevation drive,
+    the sensor block under the M2 (its day camera, thermal and rangefinder
+    windows under an armoured hood), the ammunition can on the left with its
+    latches and the feed chute arcing over to the gun's tray."""
     m = v.mats
     lift = MOUNTS[1]["muzzle_m"][2]
     drop = MOUNTS[1]["pivot_m"][2] - (1.464 + ROOF)
     cyl("rws_pedestal", 0.16, drop, (0, 0, -drop / 2), "Z", m["dark"], rws, seg=20, lods=MID)
+    cyl("rws_flange", 0.26, 0.04, (0, 0, -drop + 0.02), "Z", m["dark"], rws, seg=20, bevel=0.01, lods=MID)
+    for k in range(6):
+        a = k * math.tau / 6
+        cyl(f"rws_flange_bolt_{k}", 0.022, 0.03, (0.21 * math.cos(a), 0.21 * math.sin(a), -drop + 0.05), "Z",
+            m["steel"], rws, seg=6, lods=FINE)
+    VP.cable("rws_harness", [(-0.17, 0.0, -0.10), (-0.19, 0.02, -drop / 2), (-0.24, 0.05, -drop + 0.06)], m, rws,
+             radius=0.022, eyes=False)
     cyl("rws_bearing", 0.26, 0.08, (0, 0, 0.02), "Z", m["dark"], rws, seg=24, bevel=0.01)
     box("rws_base", (0.46, 0.40, 0.10), (-0.02, 0, 0.10), m["paint"], rws, bevel=0.02)
+    box("rws_traverse_drive", (0.20, 0.16, 0.16), (-0.20, -0.20, 0.12), m["dark"], rws, bevel=0.015, lods=MID)
     for side in (-1, 1):
         box(f"rws_cradle_{side}", (0.30, 0.05, lift + 0.04), (0.02, side * 0.17, (lift + 0.04) / 2 + 0.10),
             m["paint"], rws, bevel=0.012)
-    VP.sight_housing("rws_sight", (0.12, -0.30, -0.12), m, rws_gun, size=(0.32, 0.18, 0.24))
-    box("rws_ammo", (0.34, 0.16, 0.28), (-0.08, 0.30, -0.08), m["paint"], rws_gun, bevel=0.02, lods=MID)
+    box("rws_elevation_drive", (0.16, 0.08, 0.16), (-0.04, 0.22, lift - 0.02), m["dark"], rws, bevel=0.012, lods=MID)
+    # The sensor block: three windows, the thermal's the largest, under a hood.
+    # The photo's station is a big block beside the gun, so the sensor block
+    # and the can are drawn at a CROWS's size, not the M2's.
+    VP.sight_housing("rws_sight", (0.12, -0.33, -0.16), m, rws_gun, size=(0.40, 0.24, 0.30))
+    for k, (y, z, r) in enumerate(((-0.37, 0.07, 0.045), (-0.28, 0.07, 0.032), (-0.33, -0.01, 0.022))):
+        cyl(f"rws_window_{k}", r, 0.006, (0.325, y, z - 0.16 + 0.12), "X", m["glass"], rws_gun, seg=12, lods=NEAR)
+    box("rws_ammo", (0.42, 0.20, 0.34), (-0.08, 0.33, -0.10), m["paint"], rws_gun, bevel=0.02, lods=MID)
+    for k, x in enumerate((-0.22, 0.06)):
+        box(f"rws_ammo_latch_{k}", (0.04, 0.012, 0.05), (x, 0.435, -0.02), m["steel"], rws_gun, lods=FINE)
+    box("rws_ammo_lid", (0.44, 0.22, 0.03), (-0.08, 0.33, 0.085), m["paint"], rws_gun, bevel=0.008, lods=NEAR)
     VP.cable("rws_feed", [(-0.08, 0.30, 0.08), (-0.05, 0.22, 0.20), (0.0, 0.08, 0.10)], m, rws_gun, radius=0.03,
              eyes=False)
+    box("rws_feed_tray", (0.14, 0.10, 0.03), (0.06, 0.07, 0.085), m["dark"], rws_gun, lods=NEAR)
+    box("rws_charger", (0.12, 0.05, 0.05), (-0.18, -0.08, 0.02), m["dark"], rws_gun, bevel=0.01, lods=NEAR)
     VP.browning_m2(rws_gun, MOUNTS[1]["muzzle_m"][0], m)
 
 
