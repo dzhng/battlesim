@@ -70,10 +70,21 @@ fn a_listing_that_does_not_say_test_or_menu_is_refused() {
 #[test]
 fn every_saved_encounter_makes_a_battle_on_its_map() {
     let catalogue = Catalogue::shipped();
-    let rules = common::rules();
+    // Each map's encounters run on its own catalog set: a test map's on the
+    // test units, the menu's on the menu's units.
+    let test_rules = common::rules();
+    let mut menu = sim::fixtures::game();
+    menu["catalog"] = serde_json::Value::Array(sim::fixtures::catalog_documents(
+        sim::fixtures::CatalogSet::Menu,
+    ));
+    let menu_rules: contract::scenario::Rules = serde_json::from_value(menu).unwrap();
     let mut encounters = 0;
     for id in catalogue.ids() {
         let map = catalogue.load(&id).unwrap().definition;
+        let rules = match catalogue.category(&id).unwrap() {
+            contract::maps::MapCategory::Test => &test_rules,
+            contract::maps::MapCategory::Menu => &menu_rules,
+        };
         for name in catalogue.encounters(&id).unwrap() {
             let encounter = catalogue
                 .encounter(&id, &name)
