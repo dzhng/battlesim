@@ -240,7 +240,7 @@
       "id": "eastern_su_57_felon_stealth_multirole_fighter",
       "family": "su_57_felon",
       "category": "air",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "su_57_felon",
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
