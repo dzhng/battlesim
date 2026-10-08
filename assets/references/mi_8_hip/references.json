@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "eastern_mi_8_hip_mi_8amtsh-three_quarter_front.jpg",
+   "variant": "eastern_mi_8_hip_mi_8amtsh",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mi-8AMTSh_1.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "5f559ce59196d4b23ed6c1efa91b4e22ce04955fb370fe7d70ebf60fd43b1043",
+   "note": "Mi-8AMTSh front-left three-quarter static: armoured nose, outriggers with pods, blister windows, camouflage"
+  },
+  {
+   "file": "eastern_mi_8_hip_mi_8amtsh-front.jpg",
+   "variant": "eastern_mi_8_hip_mi_8amtsh",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mi-8AMTSh_4.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "9e796889c5645d563bab47b076392b8f089beb09ece1718d45f974586e65867e",
+   "note": "Mi-8 head-on static: glazed nose, engine intakes, gear"
+  },
+  {
+   "file": "eastern_mi_8_hip_mi_8amtsh-three_quarter_rear.jpg",
+   "variant": "eastern_mi_8_hip_mi_8amtsh",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mi-8AMTSh_3.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "0252f637fa59c8877b42b9d7b48574545f773f484c6fbf5fced584a0bfb8f50d",
+   "note": "Mi-8AMTSh rear-left three-quarter static: clamshell doors, tail boom, tail rotor"
+  },
+  {
+   "file": "eastern_mi_8_hip_mi_8amtsh-side.jpg",
+   "variant": "eastern_mi_8_hip_mi_8amtsh",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Russian_Air_Force,_RF-04502,_Mil_Mi-8AMTSh_(49569830178).jpg",
+   "author": "Anna Zvereva from Tallinn, Estonia",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "a84b972f721017f90834f563fb14fc4d90fad9f2c8078e2311b4287a7cdff65f",
+   "note": "Mi-8AMTSh left side in flight: cabin, outriggers, tail"
+  },
+  {
+   "file": "eastern_mi_8_hip_mi_8amtsh-detail.jpg",
+   "variant": "eastern_mi_8_hip_mi_8amtsh",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mi-8AMTSh_2.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "f2ac2834baad4720fe950eb4126d4c0717d63147f8c6bb532bb714ef3f210515",
+   "note": "Mi-8AMTSh nose and cockpit armour close up"
+  }
+ ],
+ "gaps": [
+  "eastern_mi_8_hip_mi_8amtsh: no top view; the head-on is a grey Mi-8 variant (same nose)"
+ ]
+}

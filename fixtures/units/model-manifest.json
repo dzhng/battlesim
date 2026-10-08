@@ -160,7 +160,7 @@
       "id": "eastern_mi_8_hip_mi_8amtsh",
       "family": "mi_8_hip",
       "category": "hel",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "mi_8_hip",
       "source_kind": "rotorcraft",
       "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
