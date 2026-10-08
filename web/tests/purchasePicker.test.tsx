@@ -112,13 +112,7 @@ test("an unavailable family shows its card's silhouette, marked unavailable and 
     roster: { factions: ["us"], family_name: "F-16", category: "air", variant: "F-16C Block 50" },
   };
   const view = render(
-    <PurchasePicker
-      cards={[jet]}
-      faction="us"
-      match={match}
-      onChoose={choose}
-      onReady={vi.fn()}
-    />,
+    <PurchasePicker cards={[jet]} faction="us" match={match} onChoose={choose} onReady={vi.fn()} />,
   );
   fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
   fireEvent.click(view.getByRole("tab", { name: "AIR" }));
