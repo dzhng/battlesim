@@ -10,7 +10,7 @@
     { "side": "blue", "kind": "menu_us_recon", "position": [3420, 1640], "yaw": 1.676, "condition": {"soldier_hp": 300.0} },
     { "side": "red", "kind": "menu_rifle", "position": [3404, 2057], "yaw": -1.47 },
     { "side": "red", "kind": "menu_rifle", "position": [3346, 2065], "yaw": -1.47 },
-    { "side": "red", "kind": "menu_rifle", "position": [3276, 2091], "yaw": -1.47 },
+    { "side": "red", "kind": "menu_rifle", "position": [3276.5, 2093], "yaw": -1.47 },
     { "side": "red", "kind": "menu_eastern_at", "position": [3690, 1995], "yaw": -2.6, "engagement": "return_fire_only" },
     { "side": "red", "kind": "menu_rifle", "position": [3715, 2180], "yaw": -2.6 },
     { "side": "red", "kind": "menu_eastern_at", "position": [3695, 2075], "yaw": -2.57, "engagement": "return_fire_only" },
@@ -58,7 +58,7 @@
         "kind": "move",
         "units": [1],
         "gesture": 2,
-        "goal": [3445, 1985],
+        "goal": [3405, 1945],
         "route": "shortest"
       }
     },
@@ -149,6 +149,17 @@
       }
     },
     {
+      "tick": 4,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [1],
+        "gesture": 2,
+        "goal": [3461, 1603],
+        "route": "shortest"
+      }
+    },
+    {
       "tick": 30,
       "side": "blue",
       "order": {
@@ -170,6 +181,28 @@
           "kind": "ground",
           "point": [3360, 1995, 0.0]
         }
+      }
+    },
+    {
+      "tick": 846,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [1],
+        "gesture": 2,
+        "goal": [3457.5, 1611.25],
+        "route": "shortest"
+      }
+    },
+    {
+      "tick": 858,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [1],
+        "gesture": 2,
+        "goal": [3445, 1985],
+        "route": "shortest"
       }
     },
     {
