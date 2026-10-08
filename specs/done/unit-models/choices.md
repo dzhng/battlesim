@@ -1501,7 +1501,8 @@ family. No roster frame, mount or tolerance moved.
   turret roof carries: a lifting eye at each corner of the crown ring, a grab
   rail along each side's rear half, and vision blocks where a family names
   them. The BRM-3K, Jaguar, Centauro II, CV90120, Type 15 and Challenger 3
-  call it with their crown ring, so the fittings follow each turret's own
+  call it with their crown ring (and the T-14 and T-15, which also gained
+  tail lights), so the fittings follow each turret's own
   plan. Their hulls gained what was missing at the rear: tail lights in
   guards (BRM-3K, Type 15, Challenger 3) and tow hooks (BRM-3K, Jaguar).
   Each family already carried its own sights, hatches, smoke and stowage

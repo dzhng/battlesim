@@ -164,7 +164,10 @@ def hull(v):
                                     (top - 0.2, y, DECK + 0.02)], m, h, radius=0.022)
     VP.slat_armour("rear_screen", (-half + 0.03, 0, 1.05), (3.10, 0.85), m, h, rot=(0, 0, math.pi / 2))
     return top
-
+    # Tail lights in their guards on the rear plate.
+    for side, sd in ((1, "L"), (-1, "R")):
+        VP.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.55), 1.30), 0.05,
+                            dict(v.mats, lamp=v.mats["tail"]), v.hull, rot=(0, 0, math.pi))
 
 def running_gear(v):
     half = v.length / 2
@@ -285,6 +288,7 @@ def t14_turret(v, turret, base):
     cyl("turret_ring_guard", 1.15, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=40, lods=MID)
     loft("turret_shell", [(z0, foot), (z0 + 0.45, [(x * 0.98, y) for x, y in foot]), (z1, crown)], mat=m["paint"],
          parent=turret, bevel=0.04)
+    VP.roof_fittings("roof", crown, z1, m, turret, rails=True)
     # The gun's slot and the gunner's sight box on the right front.
     box("gun_slot", (0.30, 0.36, 0.40), (1.45, 0, base + 0.55), m["black"], turret, lods=MID)
     # The raised sensor brow across the front of the roof.
@@ -380,6 +384,7 @@ def bumerang_module(v, turret, gun, base):
              (0.65, -0.40)]
     cyl("module_ring", 1.05, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=40, lods=MID)
     loft("module_shell", [(z0, foot), (z1, crown)], mat=m["paint"], parent=turret, bevel=0.035)
+    VP.roof_fittings("roof", crown, z1, m, turret, periscopes=((-0.60, 0.55, 0.4),))
     VP.sight_housing("gunner_sight", (0.20, -0.55, z1 - 0.02), m, turret, size=(0.42, 0.32, 0.30))
     # The commander's panoramic sight stands on its pedestal over the
     # module: the top of the frame.
