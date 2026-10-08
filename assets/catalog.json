@@ -2939,7 +2939,10 @@
         3.8,
         1.49,
         1.5
-      ]
+      ],
+      "tolerances": {
+        "footprint_m": 0.8
+      }
     },
     "europe_man_hx_general_resupply": {
       "unit": "vehicle",
