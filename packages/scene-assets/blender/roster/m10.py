@@ -7,8 +7,10 @@ six road wheels a side, the drive sprocket raised at the front and the idler
 at the rear, side skirts in bolted panels over the top run; a tall blunt nose
 of one big bolted plate with two hinged towing lugs, headlights in boxes on
 the front corners, a short upper glacis to a long flat deck; the turret
-amidships, slab-sided like the Abrams' with flat swept cheeks and a long
-bustle box over the rear deck, two four-tube smoke clusters on the cheeks,
+amidships, tall and blunt: upright slab sides nearly the hull's width, a
+broad front of two flat cheeks with chamfered corners coming to a prow, a
+long chamfer from it back to the high flat roof, a long bustle box over the
+rear deck, two four-tube smoke clusters on the cheeks,
 the commander's panoramic sight dome on a short collar at the right, the M2
 on a pintle ahead of the commander's hatch on the left, a mast behind; the
 105 mm with a bore evacuator mid-barrel; a spare road wheel hung on the
@@ -58,7 +60,7 @@ RETURNS = [(1.2, 0.84, 0.08), (-0.2, 0.85, 0.08), (-1.6, 0.84, 0.08)]
 DECK = 1.62
 SKIRT_Y = 1.60
 SKIRT_TOP, SKIRT_FOOT = 1.24, 0.66
-ROOF = 0.72  # the turret roof above the pivot, 2.50 m up: low and squat, as the side photos show
+ROOF = 0.78  # the turret roof above the pivot, 2.56 m up: high and flat, as the side photos show
 CUPOLA = (-0.70, 0.62)  # the commander's hatch, behind the M2 (turret frame)
 
 
@@ -126,38 +128,55 @@ def skirts(v):
                 (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], h)
 
 
+# The turret's shape (turret frame, from the photos): upright slab sides
+# nearly the hull's width, a broad blunt front of two flat cheeks either side
+# of the mantlet's slot with chamfered outer corners, coming to a prow a
+# little above the gun axis; under it the front falls back to the ring, over
+# it a long chamfer runs back to the high flat roof.
+TURRET_SIDE = 1.48
+PROW = (1.40, 0.24)  # (x, z): the cheeks' most forward line
+UPPER_FRONT = 0.55  # where the upper chamfer meets the roof (x)
+
+
+def turret_plan(front, side):
+    """One ring of the turret: the mantlet's slot, the flat cheeks, their
+    chamfered corners, the upright sides and the bustle's back."""
+    left = [(front - 0.25, 0.38), (front, 0.50), (front, side - 0.30), (front - 0.26, side), (-1.30, side),
+            (-2.20, side - 0.10)]
+    return left + [(x, -y) for x, y in reversed(left)]
+
+
 def turret_body(v, turret):
     m = v.mats
-    foot = [(1.17, 0.40), (1.44, 0.52), (0.81, 1.42), (-1.26, 1.48), (-2.20, 1.30), (-2.20, -1.30), (-1.26, -1.48),
-            (0.81, -1.42), (1.44, -0.52), (1.17, -0.40)]
-    crown = [(1.08, 0.40), (1.17, 0.50), (0.54, 1.30), (-1.26, 1.36), (-2.16, 1.22), (-2.16, -1.22), (-1.26, -1.36),
-             (0.54, -1.30), (1.17, -0.50), (1.08, -0.40)]
     base = DECK - MOUNTS[0]["pivot_m"][2]
     cyl("turret_ring_guard", 1.00, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
-    loft("turret_shell", [(base + 0.03, foot), (base + 0.18, foot), (ROOF, crown)], mat=m["paint"], parent=turret,
-         bevel=0.05)
+    loft("turret_shell", [(base + 0.03, turret_plan(PROW[0] - 0.22, TURRET_SIDE - 0.02)),
+                          (PROW[1], turret_plan(PROW[0], TURRET_SIDE)),
+                          (ROOF, turret_plan(UPPER_FRONT, TURRET_SIDE - 0.03))],
+         mat=m["paint"], parent=turret, bevel=0.05)
+    side_face = ((TURRET_SIDE, PROW[1]), (TURRET_SIDE - 0.03, ROOF))
     for side, s in ((1, "L"), (-1, "R")):
-        # Two four-tube smoke clusters on the cheeks.
-        VP.smoke_discharger_bank(f"smoke_{s}", (0.63, side * 1.25, ROOF - 0.30), m, turret, count=4,
+        # A four-tube smoke cluster on each cheek, firing forward over the
+        # prow.
+        VP.smoke_discharger_bank(f"smoke_{s}", (PROW[0] - 0.14, side * 0.88, PROW[1] + 0.06), m, turret, count=4,
                                  tube_radius=0.055, tube_length=0.22, elevation=0.25, spread=0.25,
-                                 rot=(0, 0, side * 0.75))
-        # On the turret's leaning flank: the shell's side at x -0.36, from
-        # the top of its upright foot to its crown.
-        loc, rot = VP.on_side(-0.36, ROOF - 0.40, side, (1.454, base + 0.18), (1.33, ROOF))
-        VP.bolted_panel(f"cheek_plate_{s}", loc, (1.26, 0.46, 0.05), m, turret, bolts=(4, 2), bevel=0.02,
-                        lods=VP.ALL, rot=rot)
-        VP.stowage_box(f"bustle_bin_{s}", (-1.76, side * 1.38, base + 0.28), (0.85, 0.24, 0.40), m, turret,
-                       rot=(0, 0, 0 if side > 0 else math.pi))
+                                 rot=(0, 0, side * 0.2))
+        # The cheek module's bolted side plate, on the turret's flank.
+        loc, rot = VP.on_side(0.30, (PROW[1] + ROOF) / 2, side, *side_face)
+        VP.bolted_panel(f"cheek_plate_{s}", loc, (1.30, ROOF - PROW[1] - 0.12, 0.05), m, turret, bolts=(4, 2),
+                        bevel=0.02, lods=VP.ALL, rot=rot)
+        VP.stowage_box(f"bustle_bin_{s}", (-1.76, side * (TURRET_SIDE - 0.08), base + 0.28), (0.85, 0.24, 0.40), m,
+                       turret, rot=(0, 0, 0 if side > 0 else math.pi))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         VP.antenna(f"antenna_{s}", (-1.98, side * 0.95, ROOF), m, whip, height=2.2)
-    # Roof: the gunner's sight ahead on the right, the commander's dome on a
-    # short collar at the right, top of the frame (fixed armour, not
-    # dressing), the loader's hatch and the mast.
-    VP.sight_housing("gunner_sight", (0.68, -0.62, ROOF - 0.04), m, turret, size=(0.46, 0.38, 0.26))
+    # Roof: the gunner's sight behind the chamfer on the right, the
+    # commander's dome on a short collar at the right, top of the frame
+    # (fixed armour, not dressing), the loader's hatch and the mast.
+    VP.sight_housing("gunner_sight", (UPPER_FRONT - 0.10, -0.62, ROOF - 0.04), m, turret, size=(0.46, 0.38, 0.26))
     dome = empty("commander_sight", parent=turret)
-    cyl("dome_post", 0.14, 0.10, (-0.25, -0.70, ROOF + 0.05), "Z", m["dark"], dome, seg=16, lods=MID)
-    cyl("dome_head", 0.22, 0.34, (-0.25, -0.70, ROOF + 0.26), "Z", m["paint"], dome, seg=24, bevel=0.07)
-    box("dome_window", (0.03, 0.22, 0.12), (-0.03, -0.70, ROOF + 0.26), m["glass"], dome, lods=MID)
+    cyl("dome_post", 0.14, 0.08, (-0.25, -0.70, ROOF + 0.04), "Z", m["dark"], dome, seg=16, lods=MID)
+    cyl("dome_head", 0.22, 0.30, (-0.25, -0.70, ROOF + 0.23), "Z", m["paint"], dome, seg=24, bevel=0.07)
+    box("dome_window", (0.03, 0.22, 0.12), (-0.03, -0.70, ROOF + 0.23), m["glass"], dome, lods=MID)
     VP.cupola("commander_cupola", (*CUPOLA, ROOF), m, turret, radius=0.34, periscopes=5)
     VP.hatch("loader_hatch", (-0.95, -0.15, ROOF), m, turret, radius=0.26)
     mast = empty("dressing_mast", parent=turret)
