@@ -217,7 +217,7 @@ test("a shared weapon preview names all users and invalid flight settings never 
   expect(await editor.snapshot()).toEqual(initial);
 }, 30000);
 
-test("an inherited named mount edits and restores without copying sibling mounts", async () => {
+test("an inherited mount edits by id and restores without copying sibling mounts", async () => {
   const { root, editor } = await nativeStore();
   const source = join(root, "fixtures/units/test/tanks.json");
   const authored = JSON.parse(await readFile(source, "utf8"));
@@ -231,7 +231,7 @@ test("an inherited named mount edits and restores without copying sibling mounts
     ],
   });
   expect(JSON.parse(await readFile(source, "utf8")).units.variant.mounts).toEqual([
-    { name: "HMG", weapons: ["rifle"] },
+    { id: "HMG", weapons: ["rifle"] },
   ]);
   snapshot = await editor.save({
     revision: snapshot.revision,
@@ -241,7 +241,7 @@ test("an inherited named mount edits and restores without copying sibling mounts
   });
   expect(JSON.parse(await readFile(source, "utf8")).units.variant).toEqual(authored.units.variant);
   expect((snapshot.catalog.documents as JsonObject[])[0].units).toMatchObject({
-    variant: { mounts: [{ name: "cannon" }, { name: "HMG", weapons: ["hmg"] }] },
+    variant: { mounts: [{ id: "cannon" }, { id: "HMG", weapons: ["hmg"] }] },
   });
 }, 30000);
 
@@ -476,8 +476,8 @@ test("accepted soldier identities follow clone creation and cleanup across reord
   expect((document.soldiers as JsonObject).test_rifle__test_grenadier).toBeUndefined();
   expect((document.soldiers as JsonObject).test_grenadier).toMatchObject({
     mounts: [
-      { name: "rifles", weapons: ["rifle"], squad: true, special: false },
-      { name: "grenade launcher", weapons: ["grenade"], special: true },
+      { id: "rifles", weapons: ["rifle"], squad: true, special: false },
+      { id: "grenade launcher", weapons: ["grenade"], special: true },
     ],
   });
 }, 30000);

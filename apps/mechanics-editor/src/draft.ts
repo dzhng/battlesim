@@ -107,10 +107,10 @@ function setAt(object: JsonObject, path: readonly string[], value: Json): void {
     const key = path[i];
     const existing = cursor[key];
     if (Array.isArray(existing)) {
-      const name = path[++i];
-      let row = existing.find((v) => isObject(v) && v.name === name);
+      const id = path[++i];
+      let row = existing.find((v) => isObject(v) && v.id === id);
       if (!isObject(row)) {
-        row = { name };
+        row = { id };
         existing.push(row);
       }
       cursor = row;
@@ -210,7 +210,7 @@ export function fieldOrigin(
       ? resolvedEntries(snapshot.catalog, target.section)[parentId]
       : undefined;
   if (resolvedParent) parentValue = valueAt(resolvedParent, path);
-  // Native rows include parser defaults and inherited named mounts. Abstract
+  // Native rows include parser defaults and inherited mounts (by id). Abstract
   // parents may be absent; optional leaves can still be removed for admission.
   const restoresDefault =
     authoredParent === undefined && (parentValue !== undefined || Boolean(descriptor?.optional));

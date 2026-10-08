@@ -185,8 +185,9 @@ function mountValue(target: EditTarget, value: Json | undefined): Json | undefin
       : Object.fromEntries(
           Object.entries(row).filter(
             ([key]) =>
+              key === "id" ||
               key === "name" ||
-              gameplayField(target.section, ["mounts", String(row.name), key]) !== null,
+              gameplayField(target.section, ["mounts", String(row.id), key]) !== null,
           ),
         ),
   );
@@ -196,7 +197,7 @@ function referenceChoices(field: GameplayField, editor: EditorState, entry: Json
   if (!field.references) return [];
   if (field.references === "mounts")
     return Array.isArray(entry.mounts)
-      ? entry.mounts.flatMap((m) => (isObject(m) && typeof m.name === "string" ? [m.name] : []))
+      ? entry.mounts.flatMap((m) => (isObject(m) && typeof m.id === "string" ? [m.id] : []))
       : [];
   const rows = editor.snapshot.catalog[field.references];
   if (isObject(rows)) return Object.keys(rows);

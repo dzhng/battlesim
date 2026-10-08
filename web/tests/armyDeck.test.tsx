@@ -36,7 +36,7 @@ test("the army row includes unselected own units and stays visible without a sel
     />,
   );
   expect(view.getByRole("button", { name: "Tank #11" }).getAttribute("aria-pressed")).toBe("false");
-  expect(view.getByRole("button", { name: "Rifle squad #22" }).getAttribute("aria-pressed")).toBe(
+  expect(view.getByRole("button", { name: "Rifle Section #22" }).getAttribute("aria-pressed")).toBe(
     "false",
   );
   expect(view.queryByRole("toolbar", { name: "Commands" })).toBeNull();
@@ -61,7 +61,7 @@ test("card selection replaces the current selection and Shift toggles individual
   }
   const view = render(<Harness />);
   const tank = view.getByRole("button", { name: "Tank #11" });
-  const rifle = view.getByRole("button", { name: "Rifle squad #22" });
+  const rifle = view.getByRole("button", { name: "Rifle Section #22" });
   fireEvent.click(rifle);
   expect(tank.getAttribute("aria-pressed")).toBe("false");
   expect(rifle.getAttribute("aria-pressed")).toBe("true");
@@ -87,16 +87,16 @@ test("hover and focus expose live unit facts, health and casualty removal withou
     captions: null,
   };
   const view = render(<ArmyDeck {...props} own={[tank, rifle]} />);
-  const card = view.getByRole("button", { name: "Rifle squad #22" });
+  const card = view.getByRole("button", { name: "Rifle Section #22" });
   fireEvent.mouseEnter(card);
   const hint = view.getByRole("tooltip");
-  expect(hint.textContent).toContain("Rifle squad #22");
+  expect(hint.textContent).toContain("Rifle Section #22");
   expect(hint.textContent).toContain("SUPPRESSED");
   expect(card.getAttribute("aria-describedby")).toBe(hint.id);
   fireEvent.mouseLeave(card);
   expect(view.queryByRole("tooltip")).toBeNull();
   fireEvent.focus(view.getByRole("button", { name: "Tank #11" }));
-  expect(view.getByRole("tooltip").textContent).toContain("CANNON");
+  expect(view.getByRole("tooltip").textContent).toContain("MAIN GUN");
   expect(view.getByRole("tooltip").textContent).toContain("HMG");
   const battleEscape = vi.fn();
   window.addEventListener("keydown", battleEscape);
@@ -117,10 +117,10 @@ test("hover and focus expose live unit facts, health and casualty removal withou
     />,
   );
   expect(
-    view.getByRole("meter", { name: "Rifle squad #22 health" }).getAttribute("aria-valuenow"),
+    view.getByRole("meter", { name: "Rifle Section #22 health" }).getAttribute("aria-valuenow"),
   ).toBe("50");
   view.rerender(<ArmyDeck {...props} own={[tank]} />);
-  expect(view.queryByRole("button", { name: "Rifle squad #22" })).toBeNull();
+  expect(view.queryByRole("button", { name: "Rifle Section #22" })).toBeNull();
   expect(view.queryByRole("tooltip")).toBeNull();
 });
 
@@ -157,14 +157,14 @@ test("the army remains in replay and empty selection while commands follow only 
   fireEvent.click(view.getByRole("button", { name: "Tank #11" }));
   expect(view.getByRole("toolbar", { name: "Commands" })).toBeTruthy();
   expect(view.getByRole("button", { name: /^Deploy / }).hasAttribute("disabled")).toBe(true);
-  fireEvent.click(view.getByRole("button", { name: "Supply truck #22" }));
+  fireEvent.click(view.getByRole("button", { name: "Supply Truck #22" }));
   expect(view.getByRole("button", { name: /^Deploy / })).toBeTruthy();
   expect(view.getByRole("button", { name: /^Attack-move / }).hasAttribute("disabled")).toBe(false);
   expect(view.queryByText(/\d+ selected/i)).toBeNull();
   view.rerender(<Harness replay />);
   expect(view.queryByRole("toolbar")).toBeNull();
   fireEvent.focus(view.getByRole("button", { name: "Tank #11" }));
-  expect(view.getByRole("tooltip").textContent).toContain("CANNON");
+  expect(view.getByRole("tooltip").textContent).toContain("MAIN GUN");
 });
 
 test("keyboard focus takes ownership from an old hover and mouse leave restores focused facts", () => {
@@ -181,7 +181,7 @@ test("keyboard focus takes ownership from an old hover and mouse leave restores 
     />,
   );
   const tank = view.getByRole("button", { name: "Tank #11" });
-  const rifle = view.getByRole("button", { name: "Rifle squad #22" });
+  const rifle = view.getByRole("button", { name: "Rifle Section #22" });
   fireEvent.mouseEnter(tank);
   fireEvent.focus(rifle);
   expect(view.getByRole("tooltip").getAttribute("data-unit")).toBe("22");

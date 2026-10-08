@@ -17,6 +17,7 @@ const card = (id: string, variant: string, reason: string | null = null): UnitCa
   cost: 200,
   roster: { factions: ["us"], family_name: "M1 Abrams", category: "veh", variant },
   disabled_reason: reason,
+  planned_weapons: [],
 });
 const match: SkirmishView = {
   phase: "preparation",

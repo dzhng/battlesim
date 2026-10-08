@@ -51,7 +51,7 @@ export interface LooseResult {
   entryName: string | null;
   /** A skinned body's clips: the skeleton the body is laid out on. */
   clips: (Validation<SkeletonClips> & { path: string; id: string }) | null;
-  /** A vehicle's rig per mount name: its catalog entry's, or for another
+  /** A vehicle's rig per mount id: its catalog entry's, or for another
    *  file fitted to a type, the rigs that type's own model declares. */
   mounts: MountDraws | null;
   /** The file's own judgement; for a catalog skeleton source, its clips. */

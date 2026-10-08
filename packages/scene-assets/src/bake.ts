@@ -325,7 +325,7 @@ export interface PreviewEntry {
   name: string;
   unit: AppearanceUnit;
   scenery?: string;
-  /** A vehicle's rig per mount name, as its catalog entry declares. */
+  /** A vehicle's rig per mount id, as its catalog entry declares. */
   mounts?: MountDraws;
   bundle: Exclude<Bundle, SkeletonClips>;
   /** A skinned body's clips, installed under their own id. */

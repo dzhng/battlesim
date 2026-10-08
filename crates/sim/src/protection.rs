@@ -8,13 +8,13 @@ pub struct State {
     pub ready_at_tick: f64,
 }
 impl State {
-    pub fn new(capability: ActiveProtection) -> Self {
+    pub fn new(capability: &ActiveProtection) -> Self {
         Self {
             charges: capability.capacity,
             ready_at_tick: 0.0,
         }
     }
-    pub fn intercept(&mut self, capability: ActiveProtection, time: f64, hz: u32) -> bool {
+    pub fn intercept(&mut self, capability: &ActiveProtection, time: f64, hz: u32) -> bool {
         if self.charges == 0 || time < self.ready_at_tick {
             return false;
         }

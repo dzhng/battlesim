@@ -85,7 +85,7 @@ pub fn check_rules(rules: &Rules) -> Result<FlightConfig, String> {
                 return Err(format!(
                     "units.{}: mount {:?} has more than {} ammunition kinds, the publication limit",
                     rules.catalog.id(t),
-                    mount.def.name,
+                    mount.def.id,
                     crate::publication::MAX_AMMO_KINDS
                 ));
             }
@@ -128,7 +128,7 @@ impl Arsenal {
                         let on = m.on.as_ref().map(|carrier| {
                             list[..i]
                                 .iter()
-                                .position(|c| c.def.name == *carrier && c.def.turret)
+                                .position(|c| c.def.id == *carrier && c.def.turret)
                                 .expect("a mount rides an earlier turret (checked at load)")
                         });
                         let v = |[x, y, z]: [f64; 3]| v3(x, y, z);
@@ -150,7 +150,7 @@ impl Arsenal {
             .indices()
             .map(|t| {
                 let on = catalog.get(t).sensors.on.as_ref()?;
-                catalog.mounts(t).iter().position(|m| &m.def.name == on)
+                catalog.mounts(t).iter().position(|m| &m.def.id == on)
             })
             .collect();
         Arsenal {
@@ -2332,7 +2332,7 @@ mod target_priority_tests {
         game["weapons"]["atgm"]["min_range_m"] = json!(200.0);
         game["catalog"].as_array_mut().unwrap().push(json!({
             "soldiers":{"grounded":{"extends":"test_atgm_gunner", "mounts":[{
-                "name":"ATGM launcher","pivot_m":[20,0,0.75],"muzzle_m":[0,0,0]
+                "id":"ATGM launcher","pivot_m":[20,0,0.75],"muzzle_m":[0,0,0]
             }]}},
             "units":{"grounded":{"extends":"test_at","body":{"squad":{"slots":["grounded"]}}}}
         }));

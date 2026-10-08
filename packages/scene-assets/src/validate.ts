@@ -669,7 +669,7 @@ function infantryFindings(
       out.push(
         finding(
           "fit.muzzle",
-          `${label}: muzzle [${actual.map(fmt).join(", ")}] in active_pose "${hold.clip}" at ${hold.phase}, mount "${mount.name}" declares [${expected.map(fmt).join(", ")}] (${fmt(error)} m off, tolerance ${tolerances.muzzle_m})`,
+          `${label}: muzzle [${actual.map(fmt).join(", ")}] in active_pose "${hold.clip}" at ${hold.phase}, mount "${mount.id}" declares [${expected.map(fmt).join(", ")}] (${fmt(error)} m off, tolerance ${tolerances.muzzle_m})`,
           "fit the supported active kit's socket to its physical mount bore",
         ),
       );
@@ -1042,7 +1042,7 @@ function mountDrawFindings(label: string, type: UnitType, draws: MountDraws | nu
     `declare it in the appearance's catalog entry: "mounts": { "${m}": ${Object.keys(MOUNT_NODES)
       .map((a) => `"${a}"`)
       .join(" | ")} }`;
-  const names = new Set(type.mounts.map((m) => m.name));
+  const names = new Set(type.mounts.map((m) => m.id));
   const rigs = new Map<string, string>();
   for (const [mount, rig] of Object.entries(draws ?? {})) {
     if (!names.has(mount))
@@ -1050,7 +1050,7 @@ function mountDrawFindings(label: string, type: UnitType, draws: MountDraws | nu
         finding(
           "fit.mount_draw",
           `${label}: declares mount "${mount}", which ${type.id} does not have (${[...names].join(", ") || "none"})`,
-          "name the type's mount exactly as its catalog row does",
+          "name the type's mount by its catalog row's id",
         ),
       );
     if (!isArticulation(rig))
@@ -1072,13 +1072,9 @@ function mountDrawFindings(label: string, type: UnitType, draws: MountDraws | nu
     else rigs.set(rig, mount);
   }
   for (const m of type.mounts)
-    if (m.muzzle_m && !draws?.[m.name])
+    if (m.muzzle_m && !draws?.[m.id])
       out.push(
-        finding(
-          "fit.mount_draw",
-          `${label}: mount "${m.name}" is not drawn by any rig`,
-          fix(m.name),
-        ),
+        finding("fit.mount_draw", `${label}: mount "${m.id}" is not drawn by any rig`, fix(m.id)),
       );
   return out;
 }
@@ -1120,7 +1116,7 @@ function muzzleFindings(
     if (!mount) return;
     const [yaw, muzzle] = [index.get(mount.yaw), index.get(mount.muzzle)];
     if (!m || muzzle === undefined) return;
-    const what = `${rule.name}[${i}] (${m.name})`;
+    const what = `${rule.name}[${i}] (${m.id})`;
     const rest = pointAt(worlds[muzzle], [0, 0, 0]);
     muzzleOffset(expected, m, 0, 0);
     const error = vec3.distance(rest, expected);
@@ -1669,7 +1665,7 @@ export function typeAppearanceFindings(
         ...(mount.operator_appearance?.active ?? []),
         ...(mount.operator_appearance?.carried ?? []),
       ])
-        need(id, name, "soldier", `operator of ${mount.name}`);
+        need(id, name, "soldier", `operator of ${mount.id}`);
   }
   return out;
 }

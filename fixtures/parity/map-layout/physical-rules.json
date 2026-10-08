@@ -1523,8 +1523,9 @@
           "hp": 100,
           "mounts": [
             {
+              "id": "rifles",
+              "name": "Rifle",
               "muzzle_m": null,
-              "name": "rifles",
               "on": null,
               "pivot_m": [
                 0,
@@ -1551,8 +1552,9 @@
           "hp": 100,
           "mounts": [
             {
+              "id": "rifles",
+              "name": "Rifle",
               "muzzle_m": null,
-              "name": "rifles",
               "on": null,
               "pivot_m": [
                 0,
@@ -1567,8 +1569,9 @@
               ]
             },
             {
+              "id": "ATGM launcher",
+              "name": "ATGM Launcher",
               "muzzle_m": null,
-              "name": "ATGM launcher",
               "on": null,
               "operator_appearance": {
                 "active": [
@@ -1607,8 +1610,9 @@
           "hp": 100,
           "mounts": [
             {
+              "id": "rifles",
+              "name": "Rifle",
               "muzzle_m": null,
-              "name": "rifles",
               "on": null,
               "pivot_m": [
                 0,
@@ -1623,8 +1627,9 @@
               ]
             },
             {
+              "id": "grenade launcher",
+              "name": "Grenade Launcher",
               "muzzle_m": null,
-              "name": "grenade launcher",
               "on": null,
               "pivot_m": [
                 0,
@@ -1651,8 +1656,9 @@
           "hp": 100,
           "mounts": [
             {
+              "id": "rifles",
+              "name": "Rifle",
               "muzzle_m": null,
-              "name": "rifles",
               "on": null,
               "pivot_m": [
                 0,
@@ -1679,8 +1685,9 @@
           "hp": 100,
           "mounts": [
             {
+              "id": "rifles",
+              "name": "Rifle",
               "muzzle_m": null,
-              "name": "rifles",
               "on": null,
               "pivot_m": [
                 0,
@@ -1720,7 +1727,7 @@
               "road_kmh": 14
             }
           },
-          "name": "AT team",
+          "name": "AT Team",
           "roles": [
             "at"
           ],
@@ -1781,12 +1788,13 @@
           },
           "mounts": [
             {
+              "id": "HMG",
+              "name": "HMG",
               "muzzle_m": [
                 1.43,
                 0,
                 0.32
               ],
-              "name": "HMG",
               "on": null,
               "pivot_m": [
                 0,
@@ -1840,7 +1848,7 @@
               "road_kmh": 14
             }
           },
-          "name": "Recon team",
+          "name": "Recon Team",
           "roles": [
             "recon"
           ],
@@ -1884,7 +1892,7 @@
               "road_kmh": 14
             }
           },
-          "name": "Rifle squad",
+          "name": "Rifle Squad",
           "roles": [
             "infantry"
           ],
@@ -2011,12 +2019,13 @@
           },
           "mounts": [
             {
+              "id": "cannon",
+              "name": "Main Gun",
               "muzzle_m": [
                 5.9,
                 0,
                 0.55
               ],
-              "name": "cannon",
               "on": null,
               "pivot_m": [
                 0,
@@ -2032,12 +2041,13 @@
               ]
             },
             {
+              "id": "HMG",
+              "name": "HMG",
               "muzzle_m": [
                 1.43,
                 0,
                 0.32
               ],
-              "name": "HMG",
               "on": "cannon",
               "pivot_m": [
                 -0.25,
