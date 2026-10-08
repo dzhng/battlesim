@@ -1,7 +1,7 @@
 {
   "units": [
     {"side":"blue","kind":"test_tank","position":[250,420],"yaw":0,"engagement":"return_fire_only"},
-    {"side":"red","kind":"test_tank","position":[420,445],"yaw":1.5707963267948966,"engagement":"return_fire_only","condition":{"hp":20}},
+    {"side":"red","kind":"test_tank","position":[455,392],"yaw":1.5707963267948966,"engagement":"return_fire_only","condition":{"hp":20}},
     {"side":"red","kind":"test_jeep","position":[425,395],"yaw":1.5707963267948966,"engagement":"return_fire_only","condition":{"hp":1}}
   ]
 }

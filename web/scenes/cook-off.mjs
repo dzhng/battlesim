@@ -14,10 +14,19 @@ export async function run(ctx) {
   const { delay_s, debris } = game.presentation.effects.cook_off;
   const perS = game.tick_hz;
   const page = await openBattle(ctx);
-  await aim(page, [424, 420], { distance: 62, pitch: 0.72, yaw: -2.3 });
+  /** Both wrecks framed close, each its own shot, as evidence `stage`. */
+  const close = async (stage) => {
+    for (const [name, where, distance] of [
+      ["tank", [455, 392], 26],
+      ["jeep", [425, 395], 20],
+    ]) {
+      await aim(page, where, { distance, pitch: 0.7, yaw: -2.3 });
+      await presented(page);
+      await snapshot(ctx, page, `cook-off-${stage}-${name}.png`);
+    }
+  };
   await advance(page, 2);
-  await presented(page);
-  await snapshot(ctx, page, "cook-off-before.png");
+  await close("before");
 
   // Each order kills one hull: the tank, then the jeep.
   await demo(page, "Destroy the red tank");
@@ -47,7 +56,7 @@ export async function run(ctx) {
   // The death: the jeep's fire still burning, both debris fields down.
   await at(jeepDied + Math.round((delay_s + 1.5) * perS));
   const death = await debrisNow();
-  await snapshot(ctx, page, "cook-off-death.png");
+  await close("death");
   ctx.check(
     "each watched death throws its debris, lying on the ground",
     death.test_tank_wreck === 0 && death.test_jeep_wreck === 0,
@@ -57,7 +66,7 @@ export async function run(ctx) {
   // Late in the hold: still lying there.
   await at(tankDied + Math.round((delay_s + debris.hold_s - 1) * perS));
   const held = await debrisNow();
-  await snapshot(ctx, page, "cook-off-hold.png");
+  await close("hold");
   ctx.check(
     "debris lies still through its hold",
     held.test_tank_wreck === 0 && held.test_jeep_wreck === 0,
@@ -67,14 +76,14 @@ export async function run(ctx) {
   // Midway through the tank's fade: sinking, never rising.
   await at(tankDied + Math.round((delay_s + debris.hold_s + debris.fade_s / 2) * perS));
   const fading = await debrisNow();
-  await snapshot(ctx, page, "cook-off-fading.png");
+  await close("fading");
   ctx.check("then it sinks into the ground", fading.test_tank_wreck > 0, JSON.stringify(fading));
 
   // After both fades: no debris drawn, both wrecks still there.
   await at(jeepDied + Math.round((delay_s + debris.hold_s + debris.fade_s + 1) * perS));
   const gone = await debrisNow();
   o = await obs(page);
-  await snapshot(ctx, page, "cook-off-after.png");
+  await close("after");
   ctx.check(
     "after the fade the debris is gone and the wrecks stay",
     Object.keys(gone).length === 0 && !!wreckOf(o, "test_tank") && !!wreckOf(o, "test_jeep"),

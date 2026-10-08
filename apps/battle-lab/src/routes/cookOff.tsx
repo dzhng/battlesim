@@ -17,7 +17,7 @@ import { TickStatus } from "../TickStatus";
 const SEED = 9;
 
 const COOK_OFF_CAMERA: Camera3DParams = {
-  target: [422, 420, 0],
+  target: [440, 393, 0],
   distance: 60,
   pitch: 0.8,
   yaw: -2.2,
