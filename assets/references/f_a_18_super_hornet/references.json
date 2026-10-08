@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "us_f_a_18_super_hornet_f_a_18e-three_quarter_front.jpg",
+   "variant": "us_f_a_18_super_hornet_f_a_18e",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:FA-18E_Super_Hornet_of_VFA-115_at_MCAS_Iwakuni_on_28_November_2017_(171128-M-NE059-0122).JPG",
+   "author": "U.S. Marine Corps photo by Lance Cpl. Gabriela Garcia-Herrera",
+   "licence": "public-domain",
+   "sha256": "f41c5665ec962fee20422faa4653960114fbfbabf1180b8cff13a98bebe2b095",
+   "note": "F/A-18E front-left three-quarter taxiing at Iwakuni: caret intakes under the LEX, single-seat canopy, wing-tip missiles, tanks"
+  },
+  {
+   "file": "us_f_a_18_super_hornet_f_a_18e-front.jpg",
+   "variant": "us_f_a_18_super_hornet_f_a_18e",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:US_Navy_090604-N-5251G-148_An_F-A-18E_Super_Hornet_assigned_to_the.jpg",
+   "author": "U.S. Navy photo by Mass Communication Specialist 2nd Class Rosalie Garcia",
+   "licence": "public-domain",
+   "sha256": "10fe06c60f039a41d8c13876e423c82e4b22689daf4729e35d3051b686667f58",
+   "note": "F/A-18E head-on on the deck: canted twin fins, rectangular-caret intakes, gear stance, wing stores"
+  },
+  {
+   "file": "us_f_a_18_super_hornet_f_a_18e-three_quarter_rear.jpg",
+   "variant": "us_f_a_18_super_hornet_f_a_18e",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:US_Navy_060608-N-5549O-104_A_plane_director_signals_to_an_F-A-18E_Super_Hornet,_assigned_to_the_Eagles_of_Strike_Fighter_Squadron_One_One_Five_(VFA-115),_as_it_taxis_for_refueling_aboard_USS_Ronald_Reagan_(CVN_76).jpg",
+   "author": "U.S. Navy photo by Photographer's Mate 3rd Class Kevin S. O'Brien",
+   "licence": "public-domain",
+   "sha256": "067c2f7f4794620779acb8f4b4535287d6c92024ed00038503ad5da499cbe6ea",
+   "note": "F/A-18E rear-right three-quarter on the catapult: nozzles, canted fins, stabilators"
+  },
+  {
+   "file": "us_f_a_18_super_hornet_f_a_18e-top.jpg",
+   "variant": "us_f_a_18_super_hornet_f_a_18e",
+   "view": "top",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:US_Navy_101209-N-9693M-009_Two_F-A-18E_Super_Hornets_prepare_for_a_catapult_assisted_launch_as_an_F-A-18E_Super_Hornet_taxis_toward_the_aft_of_USS.jpg",
+   "author": "U.S. Navy photo by Damon J. Moritz",
+   "licence": "public-domain",
+   "sha256": "67d8db50df10f98b8a5fa7da183e745503d35ada42b813fe9ac7637ce64831d5",
+   "note": "F/A-18E from above on the flight deck: LEX, wing and stabilator planform"
+  },
+  {
+   "file": "us_f_a_18_super_hornet_f_a_18e-side.jpg",
+   "variant": "us_f_a_18_super_hornet_f_a_18e",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Sailors_direct_an_F-A-18E_Super_Hornet._(15032577227).jpg",
+   "author": "Official U.S. Navy Page from United States of America",
+   "licence": "public-domain",
+   "sha256": "b11e1428bc6384758a9c3886052d5df4a95552f31dbe3822330f6d7cedac1e7b",
+   "note": "F/A-18E left side taxiing on the deck: LEX, canopy, gear, stores"
+  }
+ ],
+ "gaps": [
+  "us_f_a_18_super_hornet_f_a_18e: no gear-bay or cockpit detail; stores vary by sortie (tanks, AIM-120, AIM-9X modelled)"
+ ]
+}

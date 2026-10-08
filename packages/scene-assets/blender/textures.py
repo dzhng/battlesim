@@ -305,6 +305,16 @@ SCHEMES = {
     "swedish_splinter": "swedish_splinter",
     "russian_green": "russian_green",
     "chinese_digital": "chinese_digital",
+    "us_compass_grey": "us_compass_grey",
+    "us_gunship_grey": "us_gunship_grey",
+    "us_army_aviation": "us_army_aviation",
+    "russian_air_blue": "russian_air_blue",
+    "russian_air_grey": "russian_air_grey",
+    "russian_helicopter_camo": "russian_helicopter_camo",
+    "chinese_air_grey": "chinese_air_grey",
+    "nato_air_grey": "nato_air_grey",
+    "nato_helicopter_green": "nato_helicopter_green",
+    "french_air_camo": "french_air_camo",
 }
 
 
@@ -392,6 +402,84 @@ def chinese_digital():
     tone = np.where(f < 0.42, 0, np.where(f < 0.6, 1, 2))
     tone = np.where((g > 0.64) & (f > 0.48), 3, tone)
     return _sprayed(tones[tone], 1607)
+
+
+# Aircraft and rotorcraft schemes: the air arms' greys and the army aviation
+# greens, from each family's references. Lighter than ground paint (a grey jet
+# is a light thing on screen) but kept off white so the battle's sun can't
+# blow them out; chipped edges in a paler tone of the same grey.
+def _air(colours, levels, seed, cells=(2, 3)):
+    return _sprayed(_bands(colours, levels, seed, cells, edge=0.03, warp_px=18), seed + 2)
+
+
+@recipe("us_compass_grey", tile=6.0, wear=(0.3, 0.31, 0.32, 0.8))
+def us_compass_grey():
+    """US Navy, Marine and Air Force tactical greys (FS 36375 over 36320): two
+    close greys in broad soft patches."""
+    return _air(((0.24, 0.25, 0.26), (0.16, 0.17, 0.18)), (0.6,), 1701)
+
+
+@recipe("us_gunship_grey", tile=6.0, wear=(0.2, 0.2, 0.21, 0.8))
+def us_gunship_grey():
+    """US dark greys: the Strike Eagle's gunship grey (FS 36118), the F-35's
+    and the A-10's darker tones; one grey, a little mottled."""
+    return _air(((0.085, 0.09, 0.096), (0.1, 0.105, 0.11)), (0.66,), 1711)
+
+
+@recipe("us_army_aviation", tile=4.0, wear=(0.08, 0.085, 0.07, 0.85))
+def us_army_aviation():
+    """US Army aviation green (FS 34031, near black green): Apache, Black Hawk,
+    Chinook; the special-operations Little Birds are as dark."""
+    return _air(((0.03, 0.035, 0.027), (0.038, 0.042, 0.032)), (0.62,), 1721)
+
+
+@recipe("russian_air_blue", tile=6.0, wear=(0.28, 0.3, 0.32, 0.8))
+def russian_air_blue():
+    """Russian Flanker blue-greys: a pale blue-grey ground under darker
+    grey-blue patches (the Su-27/30/35 and Su-34 schemes)."""
+    return _air(((0.19, 0.21, 0.23), (0.11, 0.14, 0.18), (0.15, 0.17, 0.19)), (0.56, 0.7), 1731)
+
+
+@recipe("russian_air_grey", tile=6.0, wear=(0.24, 0.25, 0.26, 0.8))
+def russian_air_grey():
+    """Russian greys: the MiG-29SMT's and MiG-31BM's light greys, the Su-57's
+    splinter greys and the gunships' dark grey, as two greys in patches."""
+    return _air(((0.14, 0.15, 0.16), (0.085, 0.092, 0.1)), (0.6,), 1741)
+
+
+@recipe("russian_helicopter_camo", tile=6.0, wear=(0.17, 0.17, 0.13, 0.85))
+def russian_helicopter_camo():
+    """Russian army aviation camouflage: green and brown bands over a sand
+    ground (the Mi-8AMTSh, the Su-25's older green-brown)."""
+    return _air(((0.13, 0.12, 0.085), (0.055, 0.065, 0.04), (0.07, 0.05, 0.032)), (0.42, 0.66), 1751)
+
+
+@recipe("chinese_air_grey", tile=6.0, wear=(0.22, 0.23, 0.24, 0.8))
+def chinese_air_grey():
+    """PLA air and army aviation greys: the J-10C's and Z-20's light grey, the
+    J-20's and Z-10's darker grey, as two greys in patches."""
+    return _air(((0.12, 0.13, 0.14), (0.08, 0.087, 0.095)), (0.62,), 1761)
+
+
+@recipe("nato_air_grey", tile=6.0, wear=(0.27, 0.28, 0.29, 0.8))
+def nato_air_grey():
+    """European air force greys: the Typhoon's and Gripen's light greys, the
+    Rafale's, Mirage 2000D's and Tornado's mid greys."""
+    return _air(((0.16, 0.17, 0.18), (0.11, 0.12, 0.13)), (0.62,), 1771)
+
+
+@recipe("french_air_camo", tile=6.0, wear=(0.2, 0.21, 0.19, 0.8))
+def french_air_camo():
+    """French strike camouflage (Mirage 2000D): a mid grey with dark grey-green
+    patches."""
+    return _air(((0.12, 0.125, 0.12), (0.06, 0.07, 0.055)), (0.56,), 1791)
+
+
+@recipe("nato_helicopter_green", tile=4.0, wear=(0.1, 0.11, 0.09, 0.85))
+def nato_helicopter_green():
+    """European army aviation: the British and French dark green-greys
+    (Wildcat, Merlin, Chinook HC6, Tiger, NH90)."""
+    return _air(((0.042, 0.05, 0.038), (0.05, 0.055, 0.046)), (0.6,), 1781)
 
 
 @recipe("rubber", tile=0.6, wear=(0.12, 0.105, 0.085, 1.0))

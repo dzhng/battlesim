@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "us_ah_1z_viper_attack_helicopter-three_quarter_front.jpg",
+   "variant": "us_ah_1z_viper_attack_helicopter",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Bell_AH-1Z_169611_of_USMC_HMLA-773_FDK_MD5.jpg",
+   "author": "Acroterion",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "17068928c4543c7d0f0a1e213fa7b110008a535c428268b4590a82b3fe8877a6",
+   "note": "AH-1Z front-left three-quarter static: TSS nose turret, chin gun, stub wings with Hellfires and rocket pods, skids"
+  },
+  {
+   "file": "us_ah_1z_viper_attack_helicopter-front.jpg",
+   "variant": "us_ah_1z_viper_attack_helicopter",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Bell_AH-1Z_169611_of_USMC_HMLA-773_FDK_MD4.jpg",
+   "author": "Acroterion",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "a5e6481aa3f6bd3cd560edd9125ddb3b426fe7403e4859fd27734332dd4d796d",
+   "note": "AH-1Z head-on static: narrow fuselage, engine pods, stub wings, skids"
+  },
+  {
+   "file": "us_ah_1z_viper_attack_helicopter-side.jpg",
+   "variant": "us_ah_1z_viper_attack_helicopter",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Bell_AH-1Z_168964_of_USMC_HMLA-773_FDK_MD2.jpg",
+   "author": "Acroterion",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "4ba80ec4638b22d88f6d9b4f5fc6f08f9a89dbb4e7fd8d5f3751dcade3324daa",
+   "note": "AH-1Z left side in flight: tandem cockpit, four-blade rotor, tail rotor on the left of the fin"
+  },
+  {
+   "file": "us_ah_1z_viper_attack_helicopter-detail.jpg",
+   "variant": "us_ah_1z_viper_attack_helicopter",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:AH-1Z_Viper_Armament.jpg",
+   "author": "Mass Communication Specialist 1st Class Tom Tonthat",
+   "licence": "public-domain",
+   "sha256": "64b974b1e62c158ba8d2c77270be939aa3781a8b0e0c91395e153d9a7696d9db",
+   "note": "AH-1Z armament close up: Hellfire rack, rocket pod, wing-tip station"
+  }
+ ],
+ "gaps": [
+  "us_ah_1z_viper_attack_helicopter: no rear or top view"
+ ]
+}

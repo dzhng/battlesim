@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "eastern_mig_29_fulcrum_mig_29smt-side.jpg",
+   "variant": "eastern_mig_29_fulcrum_mig_29smt",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MiG-29SMT_(3861084379).jpg",
+   "author": "Carlos Menendez San Juan",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "50d65fe4eacbaa1074ec9c5f298e6cc6a817373afc87c24b75d8beda84ac7a1b",
+   "note": "MiG-29SMT left side taking off: humped spine (SMT fuel), canopy, intakes under the LERX, twin fins"
+  },
+  {
+   "file": "eastern_mig_29_fulcrum_mig_29smt-three_quarter_front.jpg",
+   "variant": "eastern_mig_29_fulcrum_mig_29smt",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MiG-29SMT_MAKS-2009_(2).jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "2e01db0e1adeaf9a268cb061bd2284bfefd65e3cea5a03b4f28ffdcb8468c9c9",
+   "note": "MiG-29SMT front-left three-quarter static at MAKS"
+  },
+  {
+   "file": "eastern_mig_29_fulcrum_mig_29smt-three_quarter_rear.jpg",
+   "variant": "eastern_mig_29_fulcrum_mig_29smt",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MiG-29SMT_at_the_MAKS-2011_(03).jpg",
+   "author": "Doomych",
+   "licence": "public-domain",
+   "sha256": "181a7f6de7646af0b8ef544a12ecaf752daa702e25887d18baafe1929186f162",
+   "note": "MiG-29SMT rear three-quarter static: nozzles, fins, stabilators"
+  },
+  {
+   "file": "eastern_mig_29_fulcrum_mig_29smt-front.jpg",
+   "variant": "eastern_mig_29_fulcrum_mig_29smt",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MiG-29_(12155171553).jpg",
+   "author": "Rob Schleiffert",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "8039d08d5b1801862f8fc3a39c405be6079d668c8d133a22c7a98769d8113cbd",
+   "note": "MiG-29 head-on taxiing: separated intakes, fins, gear"
+  },
+  {
+   "file": "eastern_mig_29_fulcrum_mig_29smt-top.jpg",
+   "variant": "eastern_mig_29_fulcrum_mig_29smt",
+   "view": "top",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MiG-29SMT_(3861866270).jpg",
+   "author": "Carlos Menendez San Juan",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "a13648450bfb457bb8e53e43f4420637aba2e6c77a3122bbcd672e15c1d60f0b",
+   "note": "MiG-29SMT banking, seen from above: planform"
+  }
+ ],
+ "gaps": [
+  "eastern_mig_29_fulcrum_mig_29smt: the front view is an earlier MiG-29 (same intakes and gear; no SMT spine)"
+ ]
+}

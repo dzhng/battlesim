@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "us_uh_1y_venom_utility_transport-three_quarter_front.jpg",
+   "variant": "us_uh_1y_venom_utility_transport",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Bell_UH-1Y_169283_of_USMC_HMLA-773_FDK_MD3.jpg",
+   "author": "Acroterion",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "3ffacb089de173b140415222ea46d269d10d8cee16d101e8c0920eb999d1191e",
+   "note": "UH-1Y front-left three-quarter static: cabin doors, FLIR ball, skids, roof engines"
+  },
+  {
+   "file": "us_uh_1y_venom_utility_transport-front.jpg",
+   "variant": "us_uh_1y_venom_utility_transport",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Bell_UH-1Y_169283_of_USMC_HMLA-773_FDK_MD2.jpg",
+   "author": "Acroterion",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "8147bac6cc6a7894732d2709c9c4a0d3e3e3bc879d2368ce7c2d554d05836af0",
+   "note": "UH-1Y head-on static"
+  },
+  {
+   "file": "us_uh_1y_venom_utility_transport-side.jpg",
+   "variant": "us_uh_1y_venom_utility_transport",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:UH-1Y_Venom_Okinawa.jpg",
+   "author": "Cpl. Hailey D. Clay/U.S. Marine Corps",
+   "licence": "public-domain",
+   "sha256": "4051bc3f6baad237c317466d5cd623b6addc95191c288a79a88147f8ad6b4f73",
+   "note": "UH-1Y right side in flight over the sea: cabin, door gunner, tail rotor"
+  },
+  {
+   "file": "us_uh_1y_venom_utility_transport-detail.jpg",
+   "variant": "us_uh_1y_venom_utility_transport",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:UH-1Y_with_the_ALQ-231_Intrepid_Tiger_Pod.jpg",
+   "author": "Lance Cpl. Koby I. Saunders",
+   "licence": "public-domain",
+   "sha256": "4e3e6ff520f08acd94c556a25f29985160759b3def6badca22ddf9b6939d8a56",
+   "note": "UH-1Y with the ALQ-231 pod on its weapon station (side detail)"
+  }
+ ],
+ "gaps": [
+  "us_uh_1y_venom_utility_transport: no rear or top view; door guns drawn swung out, as in the in-flight shot"
+ ]
+}

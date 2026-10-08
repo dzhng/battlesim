@@ -8,13 +8,18 @@
 // same bytes: `asset icons` writes it and `asset check` and a vitest compare.
 
 import { vec3, type Mat4 } from "math";
+import { buildArticulated, buildClips, buildSkinned } from "./build.ts";
+import { lfsPointerOid } from "./glb.ts";
 import { articulatedWorlds, poseWorlds, skinPositions } from "./pose.ts";
+import { importScene } from "./scene.ts";
 import { readBundle, readTexture, type ReadRuntime } from "./gzip.ts";
 import {
   type ArticulatedBundle,
+  type ArticulatedNode,
   type Bundle,
   type RuntimeCatalog,
   type SkeletonClips,
+  type SkeletonEntry,
   type SkinnedBundle,
   type Texture,
 } from "./schema.ts";
@@ -82,10 +87,7 @@ export function unitSolids(
   if (units.hull(id)) {
     const found = lookup(type.appearance ?? "");
     if (found?.bundle.kind !== "articulated") return null;
-    const worlds = articulatedWorlds(found.bundle.nodes);
-    return found.bundle.nodes.map((node, i) =>
-      placed(node.tiers[0].positions, worlds[i], 0, node.tiers[0].indices),
-    );
+    return articulatedSolids(found.bundle.nodes);
   }
   const solids: Solid[] = [];
   const slots = units.slots(id).slice(0, SQUAD_FIGURES);
@@ -105,6 +107,67 @@ export function unitSolids(
     solids.push(placed(skinned, null, shift, bundle.tiers[0].indices));
   }
   return solids;
+}
+
+/** A hull's finest tier, each node where its rest pose puts it. */
+function articulatedSolids(nodes: ArticulatedNode[]): Solid[] {
+  const worlds = articulatedWorlds(nodes);
+  return nodes.map((node, i) =>
+    placed(node.tiers[0].positions, worlds[i], 0, node.tiers[0].indices),
+  );
+}
+
+/** What `disabledLookup` reads of `fixtures/units/model-manifest.json`: a
+ *  soldier card's source is skinned, and names the `skeleton` (an
+ *  `assets/catalog.json` skeleton) whose clips pose it. */
+export interface DisabledManifest {
+  entries: { id: string; source_path: string; skeleton?: string }[];
+}
+
+/** Each disabled card's silhouette solids, by card id, from its source model
+ *  (`source_path`, read by `read` from the repository root): a disabled
+ *  card has no unit type and no baked bundle. A vehicle's is its model at
+ *  rest; a soldier's is the soldier posed at his skeleton's aim reference
+ *  (`skeletons`, the catalog's), as a squad's figures are posed. A card
+ *  whose source is an unpulled LFS pointer, or doesn't build, has none. */
+export async function disabledLookup(
+  manifest: DisabledManifest,
+  read: (path: string) => Promise<Uint8Array>,
+  skeletons: Record<string, SkeletonEntry> = {},
+): Promise<(id: string) => Solid[] | null> {
+  const found = new Map<string, Solid[]>();
+  const libraries = new Map<string, SkeletonClips | null>();
+  for (const { id, source_path, skeleton } of manifest.entries) {
+    const bytes = await read(source_path);
+    if (lfsPointerOid(bytes)) continue;
+    if (skeleton === undefined) {
+      const { scene } = importScene(bytes, source_path, 0);
+      const built = scene && buildArticulated(scene, source_path).built;
+      if (built) found.set(id, articulatedSolids(built.nodes));
+      continue;
+    }
+    const entry = skeletons[skeleton];
+    if (!entry)
+      throw new Error(`disabled card ${id}: skeleton ${skeleton} is not in the catalog's skeletons`);
+    if (!libraries.has(skeleton)) {
+      const source = await read(entry.source);
+      const clips = lfsPointerOid(source)
+        ? null
+        : importScene(source, entry.source, entry.basis_yaw_deg).scene;
+      libraries.set(
+        skeleton,
+        clips && buildClips(clips, entry.source, skeleton, entry.sample_hz, entry.clips).built,
+      );
+    }
+    const library = libraries.get(skeleton);
+    const { scene } = importScene(bytes, source_path, entry.basis_yaw_deg);
+    const body = library && scene && buildSkinned(scene, source_path, library.joints).built;
+    if (!library || !body) continue;
+    const tier = body.tiers[0];
+    const worlds = poseWorlds(body, library, entry.aim_reference);
+    found.set(id, [placed(skinPositions(tier, body.joints, worlds), null, 0, tier.indices)]);
+  }
+  return (id) => found.get(id) ?? null;
 }
 
 function placed(

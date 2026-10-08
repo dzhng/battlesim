@@ -1,0 +1,63 @@
+{
+ "entries": [
+  {
+   "file": "us_ah_6_mh_6_little_bird_ah_6m-side.jpg",
+   "variant": "us_ah_6_mh_6_little_bird_ah_6m",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:2_AH-6J_Little_Bird_de_l%27US_Army,_31_mars_2003,_Irak.jpg",
+   "author": "unknown (see file page)",
+   "licence": "public-domain",
+   "sha256": "765c8381fb796f2b1b09419b5709523b9b8b553d2280fc7e8e7e872015a191e2",
+   "note": "AH-6J Little Bird left side in flight over Iraq (the M's airframe before its six-blade rotor): egg cabin, weapon planks, T-tail"
+  },
+  {
+   "file": "us_ah_6_mh_6_little_bird_ah_6m-three_quarter_front.jpg",
+   "variant": "us_ah_6_mh_6_little_bird_ah_6m",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MH-6_Little_Bird.jpg",
+   "author": "unknown (see file page)",
+   "licence": "public-domain",
+   "sha256": "a297d86c6a33374e09ec0cfe78fb5d26dca564cd1b93ea464e225d171125e4dd",
+   "note": "Armed Little Bird front three-quarter on the hangar floor: weapon planks with rocket pods and miniguns"
+  },
+  {
+   "file": "us_ah_6_mh_6_little_bird_mh_6m-front.jpg",
+   "variant": "us_ah_6_mh_6_little_bird_mh_6m",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:US_Army_160th_SOAR_MH-6.jpg",
+   "author": "U.S. Army",
+   "licence": "public-domain",
+   "sha256": "e1e594c25b3647819f7ca677354929dfb5c60670eea4c2a34ae39035807b59ad",
+   "note": "MH-6 head-on with assaulters on the outboard benches"
+  },
+  {
+   "file": "us_ah_6_mh_6_little_bird_mh_6m-side.jpg",
+   "variant": "us_ah_6_mh_6_little_bird_mh_6m",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:230502-F-LD209-1432_-_Highway,_turned_runway_-_U.S._Air_Force_crews_land_on_Wyoming_highways.jpg",
+   "author": "Senior Airman Natalie Fiorilli",
+   "licence": "public-domain",
+   "sha256": "faa03c53c17b8e1e1f656dc63d5fe9daa8ff0c7fa00d73f8316e2cc70efb43bd",
+   "note": "MH-6M left side landed on a highway: benches, six-blade rotor, T-tail, skids"
+  },
+  {
+   "file": "us_ah_6_mh_6_little_bird_mh_6m-detail.jpg",
+   "variant": "us_ah_6_mh_6_little_bird_mh_6m",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:230502-F-UB655-0271_-_AFSOC,_Total_Force_landed_MC-130J,_MQ-9,_A-10s,_MH-6s_on_Wyoming_Highways.jpg",
+   "author": "Tech. Sgt. Carly Kavish",
+   "licence": "public-domain",
+   "sha256": "b5f0db93990f2912a71cf0333801c7d74b60676c378aca457f7389bad560751b",
+   "note": "MH-6M cabin and benches close up with assaulters"
+  }
+ ],
+ "gaps": [
+  "us_ah_6_mh_6_little_bird_ah_6m: the side view is an AH-6J (four-blade, before the M's six-blade rotor); the armed three-quarter is captioned MH-6 but carries the attack planks",
+  "us_ah_6_mh_6_little_bird_mh_6m: no rear view"
+ ]
+}

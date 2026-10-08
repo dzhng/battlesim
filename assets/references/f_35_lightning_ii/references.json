@@ -1,0 +1,74 @@
+{
+ "entries": [
+  {
+   "file": "f_35a-side.jpg",
+   "variant": "f_35a",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:F-35A_Lightning_II_taxis_during_exercise_Cope_North_22_at_the_Tinian_International_Airport.jpg",
+   "author": "U.S. Air Force photo by Senior Airman Joseph P. LeVeille",
+   "licence": "public-domain",
+   "sha256": "b2bc914482f6593d661dbad64af2f4c502166024ee2adc498cb0c047ae9b7bb6",
+   "note": "F-35A left side taxiing at Tinian: chined nose, single fin pair canted, bulged body, gear"
+  },
+  {
+   "file": "f_35a-front.jpg",
+   "variant": "f_35a",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:F-35A_Lightning_II.jpg",
+   "author": "Staff Sgt. Peter Thompson",
+   "licence": "public-domain",
+   "sha256": "40d3a6d728eb805a404f5f17c76a1eb8dae5efd242c8ea366ab89b283d904369",
+   "note": "F-35A head-on: caret intakes, canted fins, wing planform edge, gear"
+  },
+  {
+   "file": "f_35a-three_quarter_front.jpg",
+   "variant": "f_35a",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:A_U.S._Air_Force_F-35A_Lightning_II_aircraft_assigned_to_the_422nd_Test_and_Evaluation_Squadron_taxis_before_its_first_operational_training_mission_April_4,_2013,_at_Nellis_Air_Force_Base,_Nev_130404-F-KX404-161.jpg",
+   "author": "SrA Brett Clashman",
+   "licence": "public-domain",
+   "sha256": "8d3a9fc5f6487f5a3b248b882f54813435ba421bbfa5bef016eb548e390692b0",
+   "note": "F-35A front-left three-quarter: canopy, intake, DAS window, fins"
+  },
+  {
+   "file": "us_f_35_lightning_ii_f_35b-three_quarter_front.jpg",
+   "variant": "us_f_35_lightning_ii_f_35b",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:F-35B_Lighting_II_training_flights_170203-M-ON157-0435.jpg",
+   "author": "Lance Cpl. Joseph Abrego",
+   "licence": "public-domain",
+   "sha256": "2779715c0b4d04426932820635b1e2e1fda8bb4f3f8462ca6afd2c09cd9205f4",
+   "note": "F-35B front-right three-quarter taxiing (USMC, Iwakuni): caret intakes, canopy, lift-fan door line behind it"
+  },
+  {
+   "file": "us_f_35_lightning_ii_f_35b-side-2.jpg",
+   "variant": "us_f_35_lightning_ii_f_35b",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:F-35B_Lighting_II_training_flights_170203-M-VF398-0014.jpg",
+   "author": "Cpl. Donato Maffin",
+   "licence": "public-domain",
+   "sha256": "66214ceb2bb6033abfa5dce04585f97904ab771a2c3833a481eebbf55d1ef1a5",
+   "note": "F-35B left side in the hover/landing, gear down: lift-fan and auxiliary doors open behind the canopy"
+  },
+  {
+   "file": "us_f_35_lightning_ii_f_35b-side.jpg",
+   "variant": "us_f_35_lightning_ii_f_35b",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:F-35B_Lighting_II_training_flights_170202-M-RP664-0289.jpg",
+   "author": "Cpl. Aaron Henson",
+   "licence": "public-domain",
+   "sha256": "a8151d3fc1994919a81feb7520e5506912d134aa2c1949947439a74d3f2d5b10",
+   "note": "F-35B left side taxiing (USMC): chined nose, shorter canopy, canted fins, gear"
+  }
+ ],
+ "gaps": [
+  "f_35a: no rear or top view (planform and nozzle from published figures and the B's rear shots)",
+  "us_f_35_lightning_ii_f_35b: no top view; lift-fan and auxiliary inlet doors drawn closed from the in-flight side shot"
+ ]
+}

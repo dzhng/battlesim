@@ -6,7 +6,9 @@ works the built vehicle over into its own wreck before it burns. This module
 does the rest, the same way for every family:
 
 - each variant's frame from the resolved catalogs (`catalog_frames`), one
-  appearance with `--variant=<appearance id>` or all of them;
+  appearance with `--variant=<appearance id>` or all of them; a disabled
+  card family (`run_disabled`) takes each card's frame from the dimensions
+  its script states from its references, and the built model must measure it;
 - the materials, one per role (`materials`), in the family's real scheme;
 - each mount's articulation nodes at its frame's pivot and muzzle (`rig`);
 - `--wreck`: the family's damage, then `wreckage.burn()`, written beside the
@@ -29,7 +31,7 @@ from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import parts as P  # noqa: E402
-from catalog_frames import disabled_variant, family_variants  # noqa: E402
+from catalog_frames import family_variants  # noqa: E402
 from parts import bare_steel, empty, finish, flat_paint, glass, reset, script_args, textured, track_steel, tyre, triangles_by_tier  # noqa: E402
 from wreckage import WRECK_ARG, burn, export_wreck  # noqa: E402
 
@@ -41,11 +43,11 @@ RIG_NODES = {"gun": ("turret", "gun", "muzzle"), "hmg": ("hmg", "hmg_gun", "hmg_
 def materials(scheme, fittings=(0.11, 0.095, 0.068), canvas=(0.105, 0.098, 0.062), chip=0.35):
     """One material per role `vehicle_parts` reads, in `scheme`. `fittings` is
     the darker painted tone of hubs, brackets and running gear fittings;
-    `canvas` the stowage's cloth; `chip` how far the paint's edges wear to
-    its lighter tone (the edge highlight)."""
+    `canvas` the stowage's cloth; `chip` how much of the paint's convex edges
+    wear to its lighter tone (the look's painted edge highlights)."""
     return {
         "paint": P.paint(scheme, "armor_paint", chip=chip, dirt=0.5, rise=1.1),
-        "dark": textured("fittings", "olive_paint", colour=fittings, chip=min(0.3, chip), dirt=0.55, role="paint"),
+        "dark": textured("fittings", "olive_paint", colour=fittings, chip=0.3, dirt=0.55, role="paint"),
         "steel": bare_steel("steel", chip=0.3, dirt=0.3),
         "black": flat_paint("recesses", (0.014, 0.014, 0.013), rough=0.85, grime=0.15),
         "rubber": tyre("rubber"),
@@ -114,30 +116,28 @@ class Vehicle:
                           (at(0.14, 0.11, roof - 1.25), at(0.14, -0.11, roof - 1.25))))
 
 
-def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8, chip=0.35, cards=None):
-    """Export every variant of `family` (or `--variant=<id>`), live or with
-    `--wreck` its wreck, through `build` and `wreck` (see the module doc).
-    `chip` is the paint's edge wear (`materials`). A disabled family names
-    its `cards` instead, {card id: dimensions or None}: no unit draws them,
-    so each takes its frame from `catalog_frames.disabled_variant` and its
-    receipt names that source."""
+def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, looks=None):
+    """Build and export each of `variants` (or the one `--variant=<id>` names),
+    live or with `--wreck`; returns the receipt rows, or None for a partial run.
+    `scheme` is one scheme or a scheme per variant id; `looks` are `materials`
+    keywords (a family's fittings, canvas or chip)."""
     args = script_args()
     selected = next((a.split("=", 1)[1] for a in args if a.startswith("--variant=")), None)
     wrecking = WRECK_ARG in args
     receipt = []
-    variants = family_variants(family) if cards is None else [disabled_variant(c, d) for c, d in cards.items()]
     if selected and selected not in {v["id"] for v in variants}:
-        if cards is not None:
-            return  # a script of several disabled families: another run has it
-        raise SystemExit(f"{selected}: not one of {family}'s appearances")
+        raise SystemExit(f"{selected}: not one of {', '.join(v['id'] for v in variants)}")
     for variant in variants:
         if selected and variant["id"] != selected:
             continue
         reset()
         P.SCORCH.clear()
-        v = Vehicle(variant, materials(scheme, chip=chip))
+        own = scheme[variant["id"]] if isinstance(scheme, dict) else scheme
+        v = Vehicle(variant, materials(own, **(looks or {})))
         v.wreck = wrecking
         build(variant, v)
+        if check is not None and not wrecking:
+            check(variant)
         if wrecking:
             if wreck is not None:
                 wreck(variant, v)
@@ -160,22 +160,96 @@ def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8, chip=0.35
         if source is not None:
             from vehicle_crew import preserve_materials
             preserve_materials(out, source)
-        receipt.append({"id": variant["id"], "sha256": hashlib.sha256(Path(out).read_bytes()).hexdigest(),
-                        "triangles_by_tier": counts,
-                        **({"frame_source": variant["frame_source"]} if "frame_source" in variant else {})})
+        row = {"id": variant["id"], "sha256": hashlib.sha256(Path(out).read_bytes()).hexdigest(),
+               "triangles_by_tier": counts}
+        if "frame_source" in variant:
+            row.update(frame_source=variant["frame_source"], body_dimensions_m=variant["frame"]["body_dimensions_m"])
+        receipt.append(row)
         print("VARIANT", variant["id"], counts, flush=True)
-    if wrecking or selected:
-        return
+    return None if wrecking or selected else receipt
+
+
+def _receipt(path, script, variants, frames, references=None):
     here = Path(__file__).resolve().parent
-    script = here / "roster" / f"{family}.py" if cards is None else Path(sys.modules["__main__"].__file__).resolve()
-    sources = [script, here / "vehicle_export.py", here / "vehicle_parts.py",
+    sources = [here / "roster" / script, here / "vehicle_export.py", here / "vehicle_parts.py",
                here / "vehicle_crew.py", here / "parts.py", here / "textures.py", here / "wreckage.py",
                here / "catalog_frames.py"]
-    (REPO / f"assets/source/roster/{family}/source-receipt.json").write_text(json.dumps({
+    if "aircraft_parts" in (here / "roster" / script).read_text():
+        sources.append(here / "aircraft_parts.py")
+    family = script.removesuffix(".py")
+    (REPO / path).write_text(json.dumps({
         "blender_version": bpy.app.version_string,
         "source_sha256": {str(p.relative_to(REPO)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
-        "references": f"assets/references/{family}/references.json",
+        "references": references or f"assets/references/{family}/references.json",
         "authoring": "Original procedural geometry built from the committed references; photos are visual reference only.",
-        "frames": "fixtures/catalog.json" if cards is None else "each variant's frame_source",
-        "variants": receipt,
+        "frames": frames,
+        "variants": variants,
     }, indent=2) + "\n")
+
+
+def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8, **looks):
+    """Export every variant of `family` (or `--variant=<id>`), live or with
+    `--wreck` its wreck, through `build` and `wreck` (see the module doc).
+    `looks` are `materials` keywords (a family's fittings, canvas or chip)."""
+    receipt = _export(family_variants(family), scheme, build, wreck, ao_distance, ao_rays, looks=looks)
+    if receipt is not None:
+        _receipt(f"assets/source/roster/{family}/source-receipt.json", f"{family}.py", receipt, "fixtures/catalog.json")
+
+
+# How far a disabled card's built model may stray from the dimensions its
+# script states from the references (its frame, `frame_source: references`).
+# A tripwire against a gross mismatch: 0.06, raised from 0.05 when the
+# pilot's Stryker body (its stowage bins 7 cm proud a side, inside the
+# catalog's own 0.1 m hull fit) measured 5.1% over its 2.72 m width.
+FRAME_TOLERANCE = 0.06
+
+
+def _measured(skip):
+    """The tier-0 extents (length, width, height) of what isn't under a node
+    named by `skip`, and its lowest point."""
+    bpy.context.view_layer.update()
+    lo, hi = Vector((1e9,) * 3), Vector((-1e9,) * 3)
+    for o in bpy.data.objects:
+        if o.type != "MESH" or P.tier_of(o) not in (0, None):
+            continue
+        chain, p = [o], o.parent
+        while p is not None:
+            chain.append(p)
+            p = p.parent
+        if any(c.name.startswith(skip) for c in chain):
+            continue
+        for vert in o.data.vertices:
+            w = o.matrix_world @ vert.co
+            lo = Vector(map(min, lo, w))
+            hi = Vector(map(max, hi, w))
+    return hi - lo, lo
+
+
+def run_disabled(family, cards, scheme, build, wreck=None, skip=("dressing_",), ao_distance=1.0, ao_rays=8, **looks):
+    """Export a disabled card family: `cards` maps each card id to the
+    (length, width, height) its script states from its references, its frame
+    (`catalog_frames.disabled_variant`); `scheme` is the family's, or one
+    per card id. The built model must measure that
+    frame within `FRAME_TOLERANCE`, leaving out the nodes `skip` names (a
+    rotor disc, dressing). Each card writes its `source_path`; the family's
+    receipt, beside them, records each card's frame source. `looks` are
+    `materials` keywords, as for `run`."""
+    from catalog_frames import disabled_variant
+
+    def check(variant):
+        size, low = _measured(skip)
+        want = variant["frame"]["body_dimensions_m"]
+        off = [abs(s - w) / w for s, w in zip(size, want)]
+        print("FRAME", variant["id"], [round(s, 2) for s in size], "stated", want, flush=True)
+        if max(off) > FRAME_TOLERANCE or abs(low.z) > 0.02:
+            raise SystemExit(f"{variant['id']}: built {[round(s, 2) for s in size]} m, lowest {low.z:.2f} m; "
+                             f"its references state {want} m on the ground")
+
+    variants = [disabled_variant(card, dims) for card, dims in cards.items()]
+    receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, check, looks)
+    if receipt is not None:
+        entries = json.loads((REPO / "fixtures/units/model-manifest.json").read_text())["entries"]
+        families = sorted({e["source_family"] for e in entries if e["id"] in cards})
+        beside = Path(variants[0]["export"]).parent
+        _receipt(f"{beside}/{family}.source-receipt.json", f"{family}.py", receipt,
+                 "catalog_frames.disabled_variant", [f"assets/references/{f}/references.json" for f in families])

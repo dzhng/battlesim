@@ -1,0 +1,73 @@
+{
+ "entries": [
+  {
+   "file": "eastern_z_10_attack_helicopter-three_quarter_front.jpg",
+   "variant": "eastern_z_10_attack_helicopter",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Z-10K_at_Changchun_Air_Show_20250921.jpg",
+   "author": "\u9890\u56ed\u5c45",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "937d0bf99adad7dc20c62f5c9681ac082e28d819d56c13a38b68d05799e37c74",
+   "note": "Z-10K front-right three-quarter static at Changchun: tandem angular canopies, nose sensor, chin cannon, stub wings"
+  },
+  {
+   "file": "eastern_z_10_attack_helicopter-front.jpg",
+   "variant": "eastern_z_10_attack_helicopter",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Z-10K_at_China%27s_Air_Force_Aviation_Open_Activity_20250921.jpg",
+   "author": "\u9890\u56ed\u5c45",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "937d0bf99adad7dc20c62f5c9681ac082e28d819d56c13a38b68d05799e37c74",
+   "note": "Z-10K head-on static"
+  },
+  {
+   "file": "eastern_z_10_attack_helicopter-side.jpg",
+   "variant": "eastern_z_10_attack_helicopter",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:PLAAF_Changhe_WZ-10_-_Jordan.jpg",
+   "author": "3GO*CHN-405/mjordan_6",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "937d0bf99adad7dc20c62f5c9681ac082e28d819d56c13a38b68d05799e37c74",
+   "note": "Z-10 left side in flight: stepped cockpit, engines, tail, wheels"
+  },
+  {
+   "file": "eastern_z_10_attack_helicopter-side-2.jpg",
+   "variant": "eastern_z_10_attack_helicopter",
+   "view": "side",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:WZ-10_helicopter.png",
+   "author": "Stingray, the Helicopter Guy (talk)",
+   "licence": "public-domain",
+   "sha256": "df59f949ef60078feceb469dd5bbcea505a1e61279c02a597c77392501de1f99",
+   "note": "Z-10 side profile line drawing (left and right): fuselage, canopies, stub wing, tail and gear layout"
+  },
+  {
+   "file": "eastern_z_10_attack_helicopter-three_quarter_front-2.jpg",
+   "variant": "eastern_z_10_attack_helicopter",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Z-10_at_ZhuHai_Air_Show_2018.jpg",
+   "author": "\u4e58\u53f7\u540c\u5b66",
+   "licence": "CC0-1.0",
+   "sha256": "df59f949ef60078feceb469dd5bbcea505a1e61279c02a597c77392501de1f99",
+   "note": "Z-10 front-left three-quarter on display at Zhuhai 2018"
+  },
+  {
+   "file": "eastern_z_10_attack_helicopter-detail.jpg",
+   "variant": "eastern_z_10_attack_helicopter",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:23_mm_(0.906_in)_PX-10A_revolver_cannon.jpg",
+   "author": "Z3144228",
+   "licence": "CC0-1.0",
+   "sha256": "937d0bf99adad7dc20c62f5c9681ac082e28d819d56c13a38b68d05799e37c74",
+   "note": "Z-10's 23 mm cannon under the chin"
+  }
+ ],
+ "gaps": [
+  "eastern_z_10_attack_helicopter: the front photos are Z-10K (the PLAAF's, same airframe); no rear or top view"
+ ]
+}

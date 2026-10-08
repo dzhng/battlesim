@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { Faction, UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
-import { useSessionCatalog } from "../catalog/context";
-import { unitIcons } from "@packages/scene-assets/src/icons";
+import { cardIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import type { SkirmishView } from "../sim/observation";
 interface PickerProps {
@@ -22,7 +21,6 @@ export function PurchasePicker({
   onReady,
   onCancelPending,
 }: PickerProps) {
-  const { units } = useSessionCatalog();
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<UnitCategory>("rec");
   const [family, setFamily] = useState<string | null>(null);
@@ -92,8 +90,10 @@ export function PurchasePicker({
             aria-label={category.toUpperCase()}
           >
             {[...families].map(([id, variants]) => {
-              const named = variants.find((c) => units.has(c.id));
-              const silhouette = named && unitIcons(units.type(named.id)).silhouette;
+              // Every card has its generated silhouette, keyed by card id: a
+              // unit type's from its model, a disabled card's from its source.
+              const unavailable = variants.every((v) => v.disabled_reason !== null);
+              const shown = variants.find((v) => v.disabled_reason === null) ?? variants[0];
               const firstAvailable = variants.find(
                 (v) =>
                   finished === false &&
@@ -105,7 +105,9 @@ export function PurchasePicker({
                 <button
                   key={id}
                   type="button"
-                  className="hud-purchase-family"
+                  className={
+                    unavailable ? "hud-purchase-family unavailable" : "hud-purchase-family"
+                  }
                   aria-label={variants[0].roster.family_name}
                   aria-pressed={id === family}
                   onMouseEnter={variants.length > 1 ? () => setFamily(id) : undefined}
@@ -118,12 +120,12 @@ export function PurchasePicker({
                     }
                   }}
                 >
-                  {silhouette && <Icon path={silhouette} />}
+                  <Icon path={cardIcon(shown.id)} />
                   <span>{variants[0].roster.family_name}</span>
                   <span className="hud-purchase-price">
                     {Math.min(...variants.map((v) => v.cost))} CR
                   </span>
-                  {variants.every((v) => v.disabled_reason !== null) && <small>Unavailable</small>}
+                  {unavailable && <small>Unavailable</small>}
                 </button>
               );
             })}

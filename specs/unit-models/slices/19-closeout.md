@@ -33,7 +33,14 @@ saves for a spec's end.
    - `street-watch` (frame tick untuned for the self-playing encounter) and the
      22 `street` tours slice 06 didn't run.
    - Scenes need `bun run build:mechanics` and `assets/third-party` from LFS.
-10. Close the spec with close-spec.
+10. **Sources match their scripts.** Shared parts changed under families
+    exported earlier (the VBL re-exports with 187 more tier-0 triangles after
+    the tracked lane's `vehicle_parts.py` changes). Re-export every roster and
+    disabled family, live and wreck, from the final shared code; then export
+    each a second time and require byte-identical files (wreck noise was fixed
+    in `wreckage.heat()`; the air lane's crash wrecks predate that fix). Bake,
+    icons, check, commit.
+11. Close the spec with close-spec.
 
 ## Delegated
 

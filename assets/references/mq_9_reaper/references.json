@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "us_mq_9_reaper_mq_9a-side.jpg",
+   "variant": "us_mq_9_reaper_mq_9a",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MQ-9_Reaper_Arrives_at_Kunsan_Air_Base_for_Freedom_Flag_24-1_(8722947).jpg",
+   "author": "U.S. Air Force photo by Senior Airman James Johnson",
+   "licence": "public-domain",
+   "sha256": "b50795602c96f92cde6f27ef5ee0c465ef49df6305a0e9d92d1cab41c6f5ee07",
+   "note": "MQ-9A left side taxiing at dusk: bulbous satcom nose, ventral sensor ball, long straight wing, V tail and ventral fin, pusher prop"
+  },
+  {
+   "file": "us_mq_9_reaper_mq_9a-front.jpg",
+   "variant": "us_mq_9_reaper_mq_9a",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MQ-9_Reaper_taxis.jpg",
+   "author": "U.S. Air Force photo/Staff Sgt. Brian Ferguson",
+   "licence": "public-domain",
+   "sha256": "ffe5bad0389e7ea87ebeeca6649fe56ddb8ad7a4631d3bef745259cbe3050aab",
+   "note": "MQ-9A head-on: long wing, Hellfires and pods on pylons, sensor ball, tricycle gear"
+  },
+  {
+   "file": "us_mq_9_reaper_mq_9a-three_quarter_front.jpg",
+   "variant": "us_mq_9_reaper_mq_9a",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:174th_ATKW_MQ-9_Reaper.jpg",
+   "author": "Senior Airman Duane Morgan",
+   "licence": "public-domain",
+   "sha256": "897cea459eec20bc1b33ffa9f4bf0925f1c974fdc785a0713fbf4843a8868156",
+   "note": "MQ-9A front-left three-quarter: V-tail, prop, gear legs"
+  },
+  {
+   "file": "us_mq_9_reaper_mq_9a-three_quarter_rear.jpg",
+   "variant": "us_mq_9_reaper_mq_9a",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:General_Atomics_MQ-9A_Reaper_%E2%80%9812-213%E2%80%99_(12-4213)_(50860114523).jpg",
+   "author": "Alan Wilson from Peterborough, Cambs, UK",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "e88bf75f5b3033ed68bcf60e17bf5431da36fdb070ce4802011c1ca784b0813c",
+   "note": "MQ-9A rear-left three-quarter in a hangar: four-blade pusher prop, V-tail, ventral fin"
+  },
+  {
+   "file": "us_mq_9_reaper_mq_9a-detail.jpg",
+   "variant": "us_mq_9_reaper_mq_9a",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:USMC_refuels_California_Air_Guard_MQ-9_at_Gwangju_for_the_first_time_(9267708).jpg",
+   "author": "U.S. Air Force 163DAW by Maj. Eve Derfelt",
+   "licence": "public-domain",
+   "sha256": "bd57167068b72258eda7cdb3868ac814f87953d80e57e1184a095edd49ebdd1b",
+   "note": "MQ-9A nose detail on the apron while refuelling: nose gear, sensor ball, prop and wing root"
+  }
+ ],
+ "gaps": [
+  "us_mq_9_reaper_mq_9a: no top view; the stated 3.81 m height (published) is taken as the V-tail's tip, which the side photos show lower; left as stated"
+ ]
+}

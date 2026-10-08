@@ -25,7 +25,8 @@ What the photos settle:
   levelling legs at the corners.
 
 No archived frame exists for these cards: each frame is the published
-length, width and travelling height, recorded as `references`; turrets,
+length, width and travelling height (the Buk's measured off its side photo
+against its road wheels), recorded as `references`; turrets,
 guns and launchers are drawn stowed and do not articulate yet.
 """
 import math
@@ -37,13 +38,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
-from vehicle_export import run  # noqa: E402
+from vehicle_export import run_disabled  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
 CARDS = {
     "europe_gepard_1a2": ("gepard", "german_three_tone", (6.85, 3.37, 3.29)),
-    "eastern_buk_buk_m3_medium_range_air_defense": ("buk", "russian_green", (9.30, 3.25, 3.80)),
+    "eastern_buk_buk_m3_medium_range_air_defense": ("buk", "russian_green", (9.30, 3.25, 3.55)),
     "eastern_pantsir_pantsir_sm": ("pantsir", "russian_green", (10.40, 2.55, 4.20)),
     "europe_boxer_skyranger_30_gun_and_missile_air_defense": ("boxer_skyranger_30", "german_three_tone",
                                                              (7.93, 2.99, 3.50)),
@@ -106,9 +107,10 @@ def gepard(v):
     # The tracking radar dish on the front, the search radar folded on the rear.
     cyl("tracking_radar", 0.42, 0.18, (1.05, 0, z0 + 0.65), "X", m["dark"], h, seg=24, bevel=0.03)
     cyl("tracking_radar_face", 0.36, 0.02, (1.15, 0, z0 + 0.65), "X", m["paint"], h, seg=24, lods=MID)
-    radar = empty("dressing_search_radar", parent=h)
-    box("search_radar_mast", (0.25, 0.25, 0.25), (-1.05, 0, z1 + 0.12), m["dark"], radar)
-    box("search_radar", (0.30, 1.90, 0.55), (-1.05, 0, z1 + 0.35), m["paint"], radar, bevel=0.05,
+    # The search radar folded on its mast over the turret's rear: the top of
+    # the travelling height.
+    box("search_radar_mast", (0.25, 0.25, 0.45), (-1.05, 0, z1 + 0.22), m["dark"], h)
+    box("search_radar", (0.30, 1.90, 0.55), (-1.05, 0, z1 + 0.62), m["paint"], h, bevel=0.05,
         rot=(0, -1.25, 0))
     VP.sight_housing("periscope_sight", (0.40, -0.55, z1 - 0.02), m, h, size=(0.36, 0.30, 0.30))
     VP.hatch("commander_hatch", (-0.15, 0.50, z1), m, h, radius=0.27)
@@ -130,17 +132,17 @@ def buk(v):
     cyl("turntable", 1.20, 0.25, (tx, 0, deck + 0.12), "Z", m["dark"], h, seg=32)
     # The fire-control radar's housing at the turntable's front.
     loft("radar_housing", [(deck + 0.25, _round(tx + 1.05, 0, 0.55, 1.05)),
-                           (deck + 1.40, _round(tx + 1.05, 0, 0.45, 0.95))], mat=m["paint"], parent=h, bevel=0.05)
-    cyl("radar_dome", 0.95, 0.30, (tx + 1.05, 0, deck + 1.55), "Z", m["paint"], h, seg=28, r2=0.70, bevel=0.03)
+                           (deck + 1.70, _round(tx + 1.05, 0, 0.45, 0.95))], mat=m["paint"], parent=h, bevel=0.05)
+    cyl("radar_dome", 0.95, 0.30, (tx + 1.05, 0, deck + 1.85), "Z", m["paint"], h, seg=28, r2=0.70, bevel=0.03)
     # Six canisters in two rows of three, stowed flat to the rear.
     for j in range(2):
         for i in range(3):
             y = (i - 1) * 0.62
-            z = deck + 0.85 + j * 0.62
+            z = deck + 1.10 + j * 0.62
             box(f"canister_{j}_{i}", (5.0, 0.56, 0.56), (tx - 1.55, y, z), m["paint"], h, bevel=0.03)
             box(f"canister_cap_{j}_{i}", (0.03, 0.48, 0.48), (tx - 4.06, y, z), m["dark"], h, lods=MID)
-    box("canister_cradle", (1.0, 2.0, 0.30), (tx + 0.10, 0, deck + 0.42), m["paint"], h, bevel=0.03)
-    box("canister_rest", (0.20, 1.80, 0.70), (-half + 0.30, 0, deck + 0.35), m["dark"], h, lods=MID)
+    box("canister_cradle", (1.0, 2.0, 0.55), (tx + 0.10, 0, deck + 0.52), m["paint"], h, bevel=0.03)
+    box("canister_rest", (0.20, 1.80, 0.95), (-half + 0.30, 0, deck + 0.48), m["dark"], h, lods=MID)
 
 
 def _round(x, y, rx, ry, n=16):
@@ -149,7 +151,7 @@ def _round(x, y, rx, ry, n=16):
 
 def pantsir(v):
     m, h = v.mats, v.hull
-    deck = chassis(v, [3.55, 2.05, -1.55, -3.00], 0.62, 0.45, 1.05, 1.10, "armoured", 3.10, 1.95, 3.00)
+    deck = chassis(v, [3.55, 2.05, -1.55, -3.00], 0.62, 0.42, 1.00, 1.10, "armoured", 3.10, 1.95, 3.00)
     box("deck_plate", (6.5, 2.4, 0.10), (-1.75, 0, deck + 0.05), m["paint"], h, bevel=0.01)
     VP.stowage_box("generator_box", (1.85, 0, deck), (1.40, 2.30, 1.20), m, h, rot=(0, 0, math.pi / 2))
     mx = -1.6
@@ -168,9 +170,9 @@ def pantsir(v):
                 seg=10)
         # Three missile tubes a side, outside the guns.
         for i in range(3):
-            cyl(f"missile_tube_{s}_{i}", 0.12, 3.20, (mx + 0.10, side * (1.18 + 0.0), deck + 0.95 + i * 0.26), "X",
+            cyl(f"missile_tube_{s}_{i}", 0.12, 3.20, (mx + 0.10, side * 1.12, deck + 0.95 + i * 0.26), "X",
                 m["paint"], h, seg=14, bevel=0.01)
-            cyl(f"missile_cap_{s}_{i}", 0.10, 0.01, (mx + 1.71, side * 1.18, deck + 0.95 + i * 0.26), "X",
+            cyl(f"missile_cap_{s}_{i}", 0.10, 0.01, (mx + 1.71, side * 1.12, deck + 0.95 + i * 0.26), "X",
                 m["dark"], h, seg=12, lods=MID)
     VP.slat_armour("module_ladder", (mx - 1.05, 0.0, deck + 0.10), (0.6, 1.4), m, h, spacing=0.25,
                    rot=(0, 0, math.pi / 2))
@@ -181,11 +183,7 @@ def boxer_drive(v, roof):
     mission module's high flat sides."""
     m, h = v.mats, v.hull
     belt = 1.15
-
-    def plan(rear, front, half, chamfer):
-        return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
-                (front - chamfer, half), (rear, half)]
-
+    plan = VP.hull_plan
     loft("boxer_hull", [(0.55, plan(-3.75, 3.30, 1.05, 0.25)), (belt, plan(-3.95, 3.95, 1.45, 0.45)),
                         (belt + 0.20, plan(-3.95, 3.55, 1.48, 0.40)), (roof, plan(-3.90, 2.20, 1.40, 0.30))],
          mat=m["paint"], parent=h, bevel=0.04)
@@ -201,7 +199,7 @@ def boxer_drive(v, roof):
         VP.mudflap(f"mudflap_{s}", (-3.50, side * 1.20, 1.05), (0.42, 0.45), m, h)
     VP.hatch("driver_hatch", (2.55, 0.55, roof - 0.15), m, h, radius=0.26, rot=(0, 0.30, 0))
     VP.grille("engine_grille", (2.95, -0.50, belt + 0.45), (0.80, 0.70), m, h, slats=8, rot=(0, 0.45, 0))
-    VP.bolted_plate("rear_door", (-3.97, 0, 0.95), (0.05, 1.0, 1.05), m, h, bolts=(1, 3), bevel=0.015)
+    VP.bolted_panel("rear_door", (-3.97, 0, 0.95), (0.05, 1.0, 1.05), m, h, bolts=(1, 3), bevel=0.015, lods=VP.ALL)
 
 
 def skyranger(v):
@@ -291,5 +289,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    for card, (family, scheme, dims) in CARDS.items():
-        run(family, scheme, build, wreck, chip=1.0, cards={card: dims})
+    run_disabled("air_defence", {c: dims for c, (_, _, dims) in CARDS.items()},
+                 {c: scheme for c, (_, scheme, _) in CARDS.items()}, build, wreck, skip=("dressing_", "gun_", "fume_", "muzzle_", "brake_"), chip=1.0)

@@ -50,6 +50,7 @@ import {
   TOLERANCES,
   blockGlb,
   panelGlb,
+  skidGlb,
   soldierGlb,
   syntheticUnits,
   tankGlb,
@@ -702,4 +703,20 @@ test("a soldier's faction look is another soldier on its skeleton, with no look 
   expect(messages({ martian: "rifleman_eastern" })).toEqual([
     expect.stringContaining("martian is no faction"),
   ]);
+});
+
+test("an airframe on skids stands as a vehicle on wheels does; with neither it has no running gear", async () => {
+  const judged = async (skids: boolean) =>
+    (
+      await validateAppearance(
+        {
+          name: "heli",
+          entry: { unit: "vehicle", source: "heli.glb", basis_yaw_deg: 0 },
+          files: { "heli.glb": skidGlb(skids) },
+        },
+        context,
+      )
+    ).findings.map((f) => f.code);
+  expect(await judged(true)).not.toContain("nodes.missing");
+  expect(await judged(false)).toContain("nodes.missing");
 });

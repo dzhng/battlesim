@@ -17,10 +17,10 @@ What the photos settle:
 
 No archived frame exists for these cards: the frames are the Stryker's
 published dimensions (6.95 x 2.72 m; 3.2 m to the M-SHORAD turret's top,
-2.64 m for the mortar carrier), recorded as `references`. The turret and
+2.5 m for the mortar carrier, whose roof carries no remote station),
+recorded as `references`. The turret and
 the mortar are drawn at rest.
 """
-import math
 import os
 import sys
 
@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import stryker as S  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
-from vehicle_export import run  # noqa: E402
+from vehicle_export import run_disabled  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -38,11 +38,10 @@ MORTAR = "us_m1129_stryker_mortar_120_mm_mortar_carrier"
 
 
 def stryker_hull(v):
-    from parts import loft as lofted
     from wreckage import remove
     m, h = v.mats, v.hull
     v.roof = S.ROOF
-    lofted("stryker_hull", S.hull_rings(S.ROOF), mat=m["paint"], parent=h, bevel=0.035)
+    loft("stryker_hull", S.hull_rings(S.ROOF), mat=m["paint"], parent=h, bevel=0.035)
     S.wheels(v)
     S.fittings(v, S.ROOF, dragoon=False)
     # Neither carries the squad's roof hatches or the rear tarp.
@@ -89,8 +88,8 @@ def mortar_bay(v):
     hatch instead of the remote station."""
     m, h = v.mats, v.hull
     for k, side in enumerate((1, -1)):
-        VP.bolted_plate(f"bay_door_{k}", (-1.85, side * 0.55, S.ROOF), (2.6, 1.05, 0.06), m, h, bolts=(4, 2),
-                        bevel=0.02)
+        VP.bolted_panel(f"bay_door_{k}", (-1.85, side * 0.55, S.ROOF), (2.6, 1.05, 0.06), m, h, bolts=(4, 2),
+                        bevel=0.02, lods=VP.ALL)
         cyl(f"bay_hinge_{k}", 0.035, 2.5, (-1.85, side * 1.10, S.ROOF + 0.04), "X", m["steel"], h, seg=10, lods=NEAR)
     box("bay_seam", (2.6, 0.04, 0.02), (-1.85, 0, S.ROOF + 0.07), m["black"], h, lods=NEAR)
     cyl("mortar_muzzle", 0.09, 0.30, (-1.0, 0, S.ROOF - 0.10), "Z", m["dark"], h, seg=16, rot=(0, -0.45, 0),
@@ -121,5 +120,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run("stryker_m_shorad", "us_desert_tan", build, wreck, cards={SHORAD: (6.95, 2.72, 3.20)})
-    run("m1129_stryker_mortar", "us_desert_tan", build, wreck, cards={MORTAR: (6.95, 2.72, 2.64)})
+    run_disabled("stryker_support", {SHORAD: (6.95, 2.72, 3.20), MORTAR: (6.95, 2.72, 2.50)}, "us_desert_tan", build,
+                 wreck, chip=0.6)

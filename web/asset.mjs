@@ -1,6 +1,6 @@
 // The appearance asset CLI: `bun run --cwd web asset -- <command>`.
 //
-//   validate <glb> [--unit U] [--type T] [--scenery K] [--yaw DEG] [--clips GLB] [--loop a,b] [--json]
+//   validate <glb> [--unit U] [--type T] [--scenery KIND] [--yaw DEG] [--clips GLB] [--loop a,b] [--json]
 //                          stats, materials and findings for one GLB (catalog settings when it is a catalog source;
 //                          a vehicle fitted to unit type T, or to every type that draws it)
 //   bake                   bake the catalog into assets/runtime/<hash>/{bundle,texture,templates}.bin
@@ -21,7 +21,7 @@
 //                          reference variant V (default: the appearance's name; a kit's army look);
 //                          --accept copies them to assets/review/<name>/
 //   icons                  write the generated icons (assets/icons/): every weapon row's,
-//                          every role's symbol and every unit type's silhouette
+//                          every role's symbol, every unit type's and every disabled card's silhouette
 //   grass [name...]        write each generated grass kind's GLB from its catalog spec (then bake)
 //   stand-in               write the stand-in kit's GLB: the unit box a prop with no art of its own
 //                          is drawn as (then bake)
@@ -87,7 +87,8 @@ const { fixtureAuthority } = await import("../packages/scene-assets/src/authorit
 const { nodeCatalogSet } = await import("./src/battle/catalog/node.ts");
 const { grassClumpGlb } = await import("../packages/scene-assets/src/grass.ts");
 const { iconFiles } = await import("../packages/scene-assets/src/icons.ts");
-const { runtimeLookup, unitSolids } = await import("../packages/scene-assets/src/silhouette.ts");
+const { disabledLookup, runtimeLookup, unitSolids } =
+  await import("../packages/scene-assets/src/silhouette.ts");
 const { checkReferences, sheetReferences } =
   await import("../packages/scene-assets/src/references.ts");
 
@@ -671,8 +672,18 @@ async function sheet(args) {
  *  the library of the roster family the source is in
  *  (`assets/source/roster/<family>/`, or a kit's
  *  `assets/source/roster/infantry/<kit>/`), or why there is no panel. */
+/** A source's reference family: its roster folder, or for a disabled card
+ *  (`assets/source/roster/disabled/`) its manifest entry's `source_family`. */
+function referenceFamily(source) {
+  const folder = source?.match(/^assets\/source\/roster\/(?:infantry\/)?([^/]+)\//)?.[1];
+  if (folder !== "disabled") return folder;
+  const manifest = readJson(join(ROOT, "fixtures/units/model-manifest.json"));
+  return manifest.entries.find((e) => e.source_path === source.replace(/_wreck\.glb$/, ".glb"))
+    ?.source_family;
+}
+
 function referenceRows(source, variant) {
-  const family = source?.match(/^assets\/source\/roster\/(?:infantry\/)?([^/]+)\//)?.[1];
+  const family = referenceFamily(source);
   if (!family) return `no reference panel: ${source ?? variant} is not in a roster family`;
   const folder = join(REFERENCES, family);
   const json = join(folder, "references.json");
@@ -794,14 +805,22 @@ async function catalogue() {
 }
 
 /** Every generated icon for the fixture's weapon rows and the test set's
- *  units, each type's silhouette rendered from its baked model in assets/runtime. */
+ *  units, each type's silhouette rendered from its baked model in
+ *  assets/runtime, each disabled card's from its source model. */
 async function generatedIcons() {
   const { units, weapons } = await nodeCatalogSet("test", ROOT);
   const lookup = await runtimeLookup(
     readJson(join(RUNTIME, "catalog.json")),
     async (path) => new Uint8Array(readFileSync(join(RUNTIME, path))),
   );
-  return iconFiles(weapons, units, (id) => unitSolids(units, id, lookup));
+  const disabled = await disabledLookup(
+    readJson(join(ROOT, "fixtures/units/model-manifest.json")),
+    async (path) => new Uint8Array(readFileSync(join(ROOT, path))),
+    catalog().skeletons,
+  );
+  return iconFiles(weapons, units, (id) =>
+    units.has(id) ? unitSolids(units, id, lookup) : disabled(id),
+  );
 }
 
 /** Every family folder under assets/references/; none is fine. */

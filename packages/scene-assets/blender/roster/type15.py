@@ -21,7 +21,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
-from vehicle_export import rig, run  # noqa: E402
+from vehicle_export import rig, run_disabled  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -54,8 +54,8 @@ def hull(v):
         for k in range(6):
             length = (v.length - 0.6) / 6
             x = half - 0.35 - length * (k + 0.5)
-            VP.bolted_plate(f"skirt_{s}_{k}", (x, side * 1.58, 0.84), (length - 0.03, 0.08, 0.62), m, h, bolts=(2, 1),
-                            bevel=0.02)
+            VP.bolted_panel(f"skirt_{s}_{k}", (x, side * 1.58, 0.84), (length - 0.03, 0.08, 0.62), m, h, bolts=(2, 1),
+                            bevel=0.02, lods=VP.ALL)
         VP.stowage_box(f"fender_box_{s}", (-1.6, side * 1.40, DECK), (0.90, 0.32, 0.30), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
         VP.cable(f"tow_cable_{s}", [(-half + 0.3, side * 1.42, DECK + 0.02), (-0.6, side * 1.45, DECK + 0.02),
@@ -154,4 +154,4 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run("type15", "chinese_digital", build, wreck, chip=1.0, cards={CARD: None})
+    run_disabled("type15", {CARD: None}, "chinese_digital", build, wreck, skip=("dressing_", "gun", "hmg"), chip=1.0)

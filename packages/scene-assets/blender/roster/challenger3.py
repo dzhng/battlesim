@@ -23,7 +23,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
-from vehicle_export import rig, run  # noqa: E402
+from vehicle_export import rig, run_disabled  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -45,8 +45,8 @@ def hull(v):
     prism("hull_lower", [(-half + 0.35, 0.44), (half - 0.85, 0.44), (half - 0.10, 0.90), (-half, 0.90),
                          (-half, 0.72)], 2.40, mat=m["paint"], parent=h, bevel=0.04)
     slope = math.atan((DECK - 1.12) / 1.30)
-    VP.bolted_plate("glacis_plate", (half - 0.65, 0, 1.12 + (DECK - 1.12) * 0.5 - 0.02), (1.10, 3.0, 0.06), m, h,
-                    bolts=(2, 5), bevel=0.02, rot=(0, slope, 0))
+    VP.bolted_panel("glacis_plate", (half - 0.65, 0, 1.12 + (DECK - 1.12) * 0.5 - 0.02), (1.10, 3.0, 0.06), m, h,
+                    bolts=(2, 5), bevel=0.02, rot=(0, slope, 0), lods=VP.ALL)
     VP.hatch("driver_hatch", (half - 1.55, 0, DECK), m, h, radius=0.28)
     VP.periscope("driver_periscope", (half - 1.25, 0, DECK), m, h, size=(0.12, 0.28, 0.09))
     for side, s in ((1, "L"), (-1, "R")):
@@ -57,8 +57,8 @@ def hull(v):
         for k in range(6):
             length = (v.length - 0.5) / 6
             x = half - 0.30 - length * (k + 0.5)
-            VP.bolted_plate(f"skirt_{s}_{k}", (x, side * (SKIRT_Y - 0.07), 0.70), (length - 0.04, 0.14, 0.86), m, h,
-                            bolts=(2, 2), bevel=0.03)
+            VP.bolted_panel(f"skirt_{s}_{k}", (x, side * (SKIRT_Y - 0.07), 0.70), (length - 0.04, 0.14, 0.86), m, h,
+                            bolts=(2, 2), bevel=0.03, lods=VP.ALL)
         box(f"skirt_rail_{s}", (v.length - 0.3, 0.10, 0.06), (0, side * (SKIRT_Y - 0.12), DECK - 0.02), m["paint"], h,
             bevel=0.02, lods=MID)
         VP.stowage_box(f"fender_box_{s}", (-2.6, side * 1.70, DECK), (1.20, 0.40, 0.35), m, h,
@@ -68,10 +68,8 @@ def hull(v):
         stencil(f"side_marking_{s}", "C3", 0.20, (half - 0.9, side * (SKIRT_Y + 0.004), 1.0),
                 (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], h)
     VP.grille("engine_grille", (-2.95, 0, DECK), (1.40, 2.20), m, h, slats=12)
-    VP.bolted_plate("engine_door", (-1.75, 0, DECK), (0.80, 2.20, 0.03), m, h, bolts=(2, 3), bevel=0.01, lods=MID)
-    VP.slat_armour("rear_bars", (-half - 0.06, 0, 0.75), (3.30, 0.75), m, h, rot=(0, 0, math.pi / 2))
-    for k, y in enumerate((-1.0, 1.0)):
-        cyl(f"fuel_drum_{k}", 0.29, 0.85, (-half - 0.32, y, 1.15), "Y", m["dark"], h, seg=20, bevel=0.02)
+    VP.bolted_panel("engine_door", (-1.75, 0, DECK), (0.80, 2.20, 0.03), m, h, bolts=(2, 3), bevel=0.01, lods=MID)
+    VP.slat_armour("rear_bars", (-half + 0.03, 0, 0.75), (3.30, 0.75), m, h, rot=(0, 0, math.pi / 2))
 
 
 def running_gear(v):
@@ -97,8 +95,8 @@ def turret(v, t, gun, hmg, hmg_gun):
         box(f"trophy_radar_{s}", (0.50, 0.08, 0.40), (0.20, side * 1.58, base + 0.55), m["dark"], t, bevel=0.02,
             rot=(0, 0, side * -0.25))
         box(f"trophy_launcher_{s}", (0.40, 0.36, 0.30), (-0.70, side * 1.48, top + 0.10), m["paint"], t, bevel=0.04)
-        VP.bolted_plate(f"side_applique_{s}", (-0.60, side * 1.58, base + 0.15), (1.60, 0.10, 0.55), m, t,
-                        bolts=(4, 1), bevel=0.02)
+        VP.bolted_panel(f"side_applique_{s}", (-0.60, side * 1.58, base + 0.15), (1.60, 0.10, 0.55), m, t,
+                        bolts=(4, 1), bevel=0.02, lods=VP.ALL)
         VP.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 1.30, top - 0.08), m, t, count=5, tube_radius=0.045,
                                  tube_length=0.20, elevation=0.35, spread=0.5, rot=(0, 0, side * 0.9))
         whip = empty(f"dressing_antenna_{s}", parent=t)
@@ -148,7 +146,7 @@ def wreck(variant, v):
     from parts import box as solid, rest_on_ground
     from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
     m = v.mats
-    remove("track_R_band", "wheel_R_3_", "wheel_R_4_", "skirt_R_2_", "skirt_R_3_", "fuel_drum_", "fender_box_R",
+    remove("track_R_band", "wheel_R_3_", "wheel_R_4_", "skirt_R_2_", "skirt_R_3_", "fender_box_R",
            "side_marking_R", "bustle_roll", "loader_hatch")
     thrown = solid("thrown_track", (4.0, TRACK_W, 0.05), (-0.3, -2.45, 0.03), m["track"], v.hull, rot=(0, 0, 0.06))
     densify(thrown)
@@ -168,4 +166,4 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run("challenger_3", "british_green", build, wreck, chip=1.0, cards={CARD: None})
+    run_disabled("challenger3", {CARD: None}, "british_green", build, wreck, skip=("dressing_", "gun", "hmg"), chip=1.0)

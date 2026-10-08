@@ -35,7 +35,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
-from vehicle_export import rig, run  # noqa: E402
+from vehicle_export import rig, run_disabled  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -76,20 +76,20 @@ def hull(v):
                            (top + 0.30, glacis(top + 0.30) - 0.05), (half - 0.05, nose_z - 0.06)], 1.6,
           mat=m["paint"], parent=h, bevel=0.03)
     for k, y in enumerate((-1.05, 1.05)):
-        VP.bolted_plate(f"glacis_plate_{k}", (half - 1.10, y, glacis(half - 1.10) - 0.01), (1.70, 0.95, 0.06), m, h,
-                        bolts=(3, 2), bevel=0.02, rot=(0, slope, 0))
+        VP.bolted_panel(f"glacis_plate_{k}", (half - 1.10, y, glacis(half - 1.10) - 0.01), (1.70, 0.95, 0.06), m, h,
+                        bolts=(3, 2), bevel=0.02, rot=(0, slope, 0), lods=VP.ALL)
     for side, s in ((1, "L"), (-1, "R")):
         box(f"headlight_box_{s}", (0.28, 0.42, 0.24), (half - 0.55, side * 1.30, glacis(half - 0.55) + 0.10),
             m["paint"], h, bevel=0.03, rot=(0, slope, 0))
         for j in range(2):
             VP.light_with_guard(f"headlight_{s}_{j}", (half - 0.40, side * (1.20 + 0.18 * j),
                                                        glacis(half - 0.40) + 0.13), 0.055, m, h)
-        VP.tow_hook(f"front_tow_{s}", (half - 0.02, side * 0.70, 0.95), m, h, size=0.14)
-        VP.tow_hook(f"rear_tow_{s}", (-half + 0.02, side * 0.80, 0.90), m, h, size=0.13, rot=(0, 0, math.pi))
+        VP.tow_hook(f"front_tow_{s}", (half - 0.16, side * 0.70, 0.95), m, h, size=0.14)
+        VP.tow_hook(f"rear_tow_{s}", (-half + 0.15, side * 0.80, 0.90), m, h, size=0.13, rot=(0, 0, math.pi))
         VP.cable(f"tow_cable_{s}", [(-half + 0.5, side * 1.50, DECK + 0.02), (-1.5, side * 1.54, DECK + 0.02),
                                     (0.4, side * 1.54, DECK + 0.02), (top - 0.2, side * 1.50, DECK + 0.02)], m, h,
                  radius=0.022)
-    VP.slat_armour("rear_screen", (-half - 0.10, 0, 1.05), (3.10, 0.85), m, h, rot=(0, 0, math.pi / 2))
+    VP.slat_armour("rear_screen", (-half + 0.03, 0, 1.05), (3.10, 0.85), m, h, rot=(0, 0, math.pi / 2))
     return top
 
 
@@ -115,15 +115,15 @@ def skirts(v, slab=False):
         for k in range(sections):
             length = (v.length - 0.6) / sections
             x = half - 0.30 - length * (k + 0.5)
-            VP.bolted_plate(f"skirt_{s}_{k}", (x, side * (SKIRT_Y - 0.05), 0.90), (length - 0.03, 0.08, 0.98), m, h,
-                            bolts=(2, 1), bevel=0.025)
+            VP.bolted_panel(f"skirt_{s}_{k}", (x, side * (SKIRT_Y - 0.05), 0.90), (length - 0.03, 0.08, 0.98), m, h,
+                            bolts=(2, 1), bevel=0.025, lods=VP.ALL)
             box(f"skirt_lip_{s}_{k}", (length - 0.05, 0.03, 0.18), (x, side * (SKIRT_Y - 0.08), 0.82), m["rubber"], h,
                 lods=MID)
         if slab:
             for k in range(3):
                 x = half - 1.05 - k * 1.30
-                box(f"slab_module_{s}_{k}", (1.24, 0.20, 0.88), (x, side * (SKIRT_Y + 0.07), 1.42), m["paint"], h,
-                    bevel=0.04, rot=(side * 0.22, 0, 0))
+                box(f"slab_module_{s}_{k}", (1.24, 0.14, 0.88), (x, side * (SKIRT_Y - 0.06), 1.42), m["paint"], h,
+                    bevel=0.04, rot=(side * 0.18, 0, 0))
         else:
             # The parade stripe on the skirts' front half.
             for j, (colour, z) in enumerate(((m["tail"], 1.66), (m["marking"], 1.58), (m["tail"], 1.50))):
@@ -138,7 +138,7 @@ def engine_deck(v, x0, x1):
     mid = (x0 + x1) / 2
     VP.grille("engine_grille", (mid, 0.55, DECK), (x1 - x0, 1.0), m, h, slats=12)
     VP.grille("radiator_grille", (mid, -0.55, DECK), (x1 - x0, 1.0), m, h, slats=12)
-    VP.bolted_plate("engine_access", (mid, 0, DECK), (x1 - x0 + 0.1, 0.12, 0.03), m, h, bolts=(4, 1), bevel=0.01,
+    VP.bolted_panel("engine_access", (mid, 0, DECK), (x1 - x0 + 0.1, 0.12, 0.03), m, h, bolts=(4, 1), bevel=0.01,
                     lods=MID)
     VP.exhaust("exhaust", (x0 - 0.10, -1.62, DECK - 0.25), 0.11, 0.30, m, h, rot=(0, 0, -math.pi / 2))
 
@@ -200,10 +200,10 @@ def t14_turret(v, turret, base):
                                  tube_length=0.20, elevation=0.35, spread=0.4, rot=(0, 0, side * 0.9))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         VP.antenna(f"antenna_{s}", (-1.75, side * 0.85, z1), m, whip, height=2.0)
-    # The commander's panoramic sight on its mast, over the left.
-    mast = empty("dressing_commander_sight", parent=turret)
-    cyl("panorama_mast", 0.09, 0.38, (-0.30, 0.55, z1 + 0.19), "Z", m["dark"], mast, seg=12)
-    VP.sight_housing("panorama_head", (-0.30, 0.55, z1 + 0.36), m, mast, size=(0.38, 0.34, 0.32))
+    # The commander's panoramic sight on its mast, over the left: the top of
+    # the frame (its eye, 3.10 m).
+    cyl("panorama_mast", 0.09, 0.14, (-0.30, 0.55, z1 + 0.07), "Z", m["dark"], turret, seg=12)
+    VP.sight_housing("panorama_head", (-0.30, 0.55, z1 + 0.12), m, turret, size=(0.38, 0.34, 0.30))
     # The bustle cage of slats round the rear.
     VP.slat_armour("bustle_cage", (-2.20, 0, base + 0.10), (2.20, 0.60), m, turret, rot=(0, 0, math.pi / 2))
     for side, s in ((1, "L"), (-1, "R")):
@@ -226,13 +226,6 @@ def gun_2a82(v, gun):
     cyl("muzzle_bore", 0.063, 0.012, (reach - 0.002, 0, 0), "X", m["black"], gun, seg=20, lods=MID)
 
 
-def kord(parent, reach, mats, prefix="kord"):
-    """The 12.7 mm Kord: a long receiver, the barrel and its muzzle brake."""
-    box(f"{prefix}_receiver", (0.62, 0.10, 0.14), (0.02, 0, 0), mats["dark"], parent, bevel=0.012)
-    cyl(f"{prefix}_barrel", 0.028, reach - 0.40, ((reach + 0.30) / 2, 0, 0), "X", mats["dark"], parent, seg=10)
-    cyl(f"{prefix}_brake", 0.040, 0.10, (reach - 0.05, 0, 0), "X", mats["steel"], parent, seg=10, lods=NEAR)
-
-
 def kord_station(v, hmg, hmg_gun):
     """The roof's remote Kord station: its bearing, body, sight and gun."""
     m = v.mats
@@ -240,8 +233,7 @@ def kord_station(v, hmg, hmg_gun):
     cyl("rws_bearing", 0.22, 0.08, (0, 0, -0.04), "Z", m["dark"], hmg, seg=20, bevel=0.01)
     box("rws_body", (0.46, 0.36, lift), (-0.05, 0, lift / 2), m["paint"], hmg, bevel=0.03)
     VP.sight_housing("rws_sight", (0.05, -0.26, -0.10), m, hmg_gun, size=(0.26, 0.14, 0.20))
-    box("rws_ammo", (0.28, 0.14, 0.22), (-0.02, 0.24, -0.08), m["paint"], hmg_gun, bevel=0.015, lods=MID)
-    kord(hmg_gun, v.frame["mounts"][1]["muzzle_m"][0], m)
+    VP.kord(hmg_gun, v.frame["mounts"][1]["muzzle_m"][0], m)
 
 
 # ---------------------------------------------------------------- T-15
@@ -258,10 +250,10 @@ def t15(v):
     # Troop hatches on the rear deck, the rear door between stowage boxes.
     for k, y in enumerate((0.62, -0.62)):
         VP.hatch(f"troop_hatch_{k}", (-2.95, y, DECK), m, h, size=(0.90, 0.62))
-    VP.bolted_plate("rear_door", (-half - 0.03, 0, 1.05), (0.06, 1.10, 0.80), m, h, bolts=(1, 3), bevel=0.015,
-                    rot=(0, 0, 0))
+    VP.bolted_panel("rear_door", (-half - 0.03, 0, 1.05), (0.06, 1.10, 0.80), m, h, bolts=(1, 3), bevel=0.015,
+                    rot=(0, 0, 0), lods=VP.ALL)
     for side in (-1, 1):
-        VP.stowage_box(f"rear_box_{side}", (-half - 0.14, side * 1.05, 1.10), (0.25, 0.70, 0.55), m, h)
+        VP.stowage_box(f"rear_box_{side}", (-half + 0.14, side * 1.05, DECK), (0.25, 0.70, 0.45), m, h)
     mounts = rig(v.frame, v.root)
     turret, gun, _, _ = mounts["autocannon"]
     launcher, launcher_pitch, _, _ = mounts["launcher"]
@@ -282,9 +274,10 @@ def bumerang_module(v, turret, gun, base):
     cyl("module_ring", 1.05, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=40, lods=MID)
     loft("module_shell", [(z0, foot), (z1, crown)], mat=m["paint"], parent=turret, bevel=0.035)
     VP.sight_housing("gunner_sight", (0.20, -0.55, z1 - 0.02), m, turret, size=(0.42, 0.32, 0.30))
-    sight = empty("dressing_commander_sight", parent=turret)
-    cyl("panorama_post", 0.08, 0.20, (-0.55, -0.30, z1 + 0.10), "Z", m["dark"], sight, seg=12)
-    VP.sight_housing("panorama_head", (-0.55, -0.30, z1 + 0.18), m, sight, size=(0.32, 0.30, 0.26))
+    # The commander's panoramic sight stands on its pedestal over the
+    # module: the top of the frame.
+    cyl("panorama_post", 0.08, 0.62, (-0.55, -0.30, z1 + 0.31), "Z", m["dark"], turret, seg=12)
+    VP.sight_housing("panorama_head", (-0.55, -0.30, z1 + 0.60), m, turret, size=(0.34, 0.32, 0.30))
     for side, s in ((1, "L"), (-1, "R")):
         VP.smoke_discharger_bank(f"smoke_{s}", (-0.55, side * 0.95, z0 + 0.30), m, turret, count=3,
                                  tube_radius=0.045, tube_length=0.20, elevation=0.4, spread=0.3,
@@ -323,8 +316,8 @@ def wreck(variant, v):
     """An Armata after its fire: the left track run off with two road wheels
     gone, three skirt sections blown away and lying beside it, one bent out,
     the rear screen crushed, plates warped and the glacis dented by the hit.
-    The T-14's ammunition under the turret throws it (`wreckage.burn`); the
-    T-15's module stays on, burnt."""
+    Each throws what rides its gun mount, the T-14's turret and the T-15's
+    module (`wreckage.burn`)."""
     from parts import box as solid, rest_on_ground
     from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
     m = v.mats
@@ -338,7 +331,7 @@ def wreck(variant, v):
     for k, (loc, rot) in enumerate((((1.5, 2.75, 0.10), (1.45, 0.15, 0.4)), ((0.2, 2.95, 0.10), (1.5, -0.2, -0.3)))):
         solid(f"fallen_skirt_{k}", (1.10, 0.08, 0.95), loc, m["paint"], v.hull, rot=rot, bevel=0.02)
     bend(parts("skirt_L_1_"), (half - 1.5, 1.70, 1.38), (1, 0, 0), (0, 0, -1), 0.6)
-    bend(parts("rear_screen"), (-half - 0.10, 0, 1.6), (0, 1, 0), (1, 0, 0), 0.35)
+    bend(parts("rear_screen"), (-half + 0.03, 0, 1.6), (0, 1, 0), (1, 0, 0), 0.35)
     shell = parts("hull_upper", "hull_lower", "glacis_wedge", "skirt_", "turret_shell", "module_shell")
     densify(shell, scale=2.0)
     warp(shell, heat(0.022, 0.9, seed=13.0), dent((half - 1.0, 0.6, 1.45), 0.55, 0.12, (-0.6, 0, -1)))
@@ -351,5 +344,4 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run("t14", "russian_green", build, wreck, chip=1.0, cards={T14: None})
-    run("t15", "russian_green", build, wreck, chip=1.0, cards={T15: None})
+    run_disabled("armata", {T14: None, T15: None}, "russian_green", build, wreck, skip=("dressing_", "gun", "hmg"), chip=1.0)

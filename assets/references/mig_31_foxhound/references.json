@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "eastern_mig_31_foxhound_mig_31bm-side.jpg",
+   "variant": "eastern_mig_31_foxhound_mig_31bm",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mikoyan-Gurevich_MiG-31BM_%E2%80%98RF-92369_-_86_blue%E2%80%99_(36316541623).jpg",
+   "author": "Alan Wilson from Stilton, Peterborough, Cambs, UK",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "8b455925425d61ecd05fd5a30b93903da97e4cdc273a2b111e3a7f243d02f743",
+   "note": "MiG-31BM left side static: long body, tandem canopy, big box intakes, twin fins, twin-wheel offset main gear"
+  },
+  {
+   "file": "eastern_mig_31_foxhound_mig_31bm-three_quarter_front.jpg",
+   "variant": "eastern_mig_31_foxhound_mig_31bm",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MiG-31BM_MAKS-2009_(1).jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "053716af113833873b66718cad081f3f9b5b8a82fce27c4ee67176e1f7cfd4e3",
+   "note": "MiG-31BM front-right three-quarter static"
+  },
+  {
+   "file": "eastern_mig_31_foxhound_mig_31bm-front.jpg",
+   "variant": "eastern_mig_31_foxhound_mig_31bm",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MiG-31BM_at_the_MAKS-2013_(02).jpg",
+   "author": "Doomych",
+   "licence": "public-domain",
+   "sha256": "656db46e417296cd66106af8dfa9480600fe8c630cfee0d0effe265122d07399",
+   "note": "MiG-31BM head-on: intakes, gear, wing"
+  },
+  {
+   "file": "eastern_mig_31_foxhound_mig_31bm-three_quarter_rear.jpg",
+   "variant": "eastern_mig_31_foxhound_mig_31bm",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MiG-31BM_MAKS-2009_(3).jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "9eda7a252181ef7c45a21ff009c8aeae2717d7aee6f1332eaff5824650cca616",
+   "note": "MiG-31BM rear three-quarter: nozzles (covered), fins"
+  },
+  {
+   "file": "eastern_mig_31_foxhound_mig_31bm-top.jpg",
+   "variant": "eastern_mig_31_foxhound_mig_31bm",
+   "view": "top",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mikoyan-Gurevich_MiG-31BM_bn99_2020.jpg",
+   "author": "Andrei Shmatko",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "36ff7550f258437a938a117ba73ac7414cf57bf8668faa6ae80e798f4b746460",
+   "note": "MiG-31BM from below in flight: planform, missiles under the body"
+  }
+ ],
+ "gaps": [
+  "eastern_mig_31_foxhound_mig_31bm: the top view is an underside in flight; no detail of the offset tandem main gear (drawn as tandem pairs)"
+ ]
+}

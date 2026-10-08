@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "europe_aw159_wildcat_ah1-three_quarter_front.jpg",
+   "variant": "europe_aw159_wildcat_ah1",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:ZZ406_Wildcat_AH1_of_the_AAC.jpeg",
+   "author": "Helmut Visorcover",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "344a074bd2e9c1b5e896173894bf6559a7a7ad8df000f8a0094b45f1d1d1852d",
+   "note": "Wildcat AH1 front-right three-quarter landing: roof sight, cabin, wheels"
+  },
+  {
+   "file": "europe_aw159_wildcat_ah1-three_quarter_rear.jpg",
+   "variant": "europe_aw159_wildcat_ah1",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Army_Air_Corps,_ZZ386,_AgustaWestland_AW159_Wildcat_AH1.jpg",
+   "author": "Anna Zvereva from Tallinn, Estonia",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "344a074bd2e9c1b5e896173894bf6559a7a7ad8df000f8a0094b45f1d1d1852d",
+   "note": "Wildcat AH1 rear-left three-quarter static: tail boom and pylon, stabiliser, tail rotor"
+  },
+  {
+   "file": "europe_aw159_wildcat_ah1-side.jpg",
+   "variant": "europe_aw159_wildcat_ah1",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:ZZ384_Wildcat_AH1_AAC_RAF_Northolt_5.3.26_(55134103204).jpg",
+   "author": "Colin Cooke Photo",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "344a074bd2e9c1b5e896173894bf6559a7a7ad8df000f8a0094b45f1d1d1852d",
+   "note": "Wildcat AH1 left side static at night"
+  },
+  {
+   "file": "europe_aw159_wildcat_ah1-side-2.jpg",
+   "variant": "europe_aw159_wildcat_ah1",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:ZZ511_WILDCAT_ARMY_AIR_CORP.jpg",
+   "author": "Jonathan Payne",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "24c4c726481d6957600b38a5896f0206f97df5dea94e609e068b561656899fed",
+   "note": "Wildcat AH1 in flight, left side"
+  },
+  {
+   "file": "europe_aw159_wildcat_ah1-detail.jpg",
+   "variant": "europe_aw159_wildcat_ah1",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:AgustaWestland_AW159_LHTEC_CTS800_installation.jpg",
+   "author": "Lutz Blohm from Schifferstadt, Germany",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "344a074bd2e9c1b5e896173894bf6559a7a7ad8df000f8a0094b45f1d1d1852d",
+   "note": "AW159 engine installation and fuselage detail"
+  }
+ ],
+ "gaps": [
+  "europe_aw159_wildcat_ah1: no front or top view"
+ ]
+}

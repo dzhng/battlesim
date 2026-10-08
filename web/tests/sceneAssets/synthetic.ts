@@ -1084,3 +1084,23 @@ export function bakedBundle(
     return bytes;
   });
 }
+
+/** A skid helicopter's stand-in: a fuselage block on two skid rails, each
+ *  under its own `skid_L` / `skid_R` node (none with `skids` false); no
+ *  wheels. */
+export function skidGlb(skids = true): Uint8Array {
+  const b = new GltfBuilder();
+  const body = tieredPart(b, "fuselage", gBox(b, [-4, -0.8, 0.3], [4, 0.8, 2.2]), LODS.length);
+  const rails = ["L", "R"].map((s, k) => {
+    const y = k === 0 ? 1 : -1;
+    const rail = tieredPart(
+      b,
+      `rail_${s}`,
+      gBox(b, [-2, y - 0.05, 0], [2, y + 0.05, 0.1]),
+      LODS.length,
+    );
+    return skids ? b.node({ name: `skid_${s}`, children: [rail] }) : rail;
+  });
+  b.roots(b.node({ name: "heli", children: [body, ...rails] }));
+  return b.glb();
+}

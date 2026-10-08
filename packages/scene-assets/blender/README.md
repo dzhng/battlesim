@@ -37,9 +37,13 @@ hierarchy, rather than adding simulation soldiers. Re-export their vehicles
 after changing the infantry source; the crew exporter preserves that source's
 exact textures and material masks on the crew's own materials only.
 
-Reusable vehicle detail (wheels, running gear, hatches, sights, lights, tow
-points, stowage, grilles, exhausts) has [one owner](vehicle_parts.py); a family
-script places those parts rather than redefining them.
+Reusable vehicle detail (wheels and their treads, whole tracked running gear, a
+lofted hull's plan rings, bolted applique and armour tiles, slat armour,
+hatches, cupolas, sights, lights, tow points, stowage, cargo beds, grilles,
+exhausts, machine guns) has [one owner](vehicle_parts.py); a family script
+places those parts rather than redefining them. A family derived from another
+(the T-90M and T-80BVM from the T-72) imports that family's script for what
+they share.
 
 A vehicle's surfaces come from the named helpers in [`parts.py`](parts.py),
 each carrying its material role: `tyre()`, `glass()`, `track_steel()`,
@@ -60,6 +64,23 @@ says only what its vehicle looks like and how it is wrecked; [the shared
 export run](vehicle_export.py) does the rest the same way for every family:
 variants and frames, materials by role, mount rigs, crew, tiers, wreck and
 export.
+
+A disabled card has no unit type, so it has no catalog frame: its archived
+roster frame where one exists (T-14, T-15, Type 15, BRM-3K, Jaguar,
+Challenger 3), else the length, width and height its family script states
+from its references. `vehicle_export.run_disabled` builds it to that frame
+(`catalog_frames.disabled_variant`), refuses a model that strays from it
+(leaving out what `skip` names: dressing, guns, rotor blades), and records the
+frame's source in the family's receipt beside the cards' GLBs (in
+`assets/source/roster/disabled/`, or the ground cards' own family folders).
+The support cards' trucks stand on [one chassis](roster/truck_chassis.py)
+(rails, axles, fenders and the cab shapes their references show). A disabled
+infantry card is a kit in `KITS` like any roster kit. Aircraft and rotorcraft parts (fuselages,
+flying surfaces, canopies, intakes, nozzles, gear, stores, rotors, skids) and
+the crash every airframe's wreck starts from have [their own
+owner](aircraft_parts.py) beside the vehicle parts. A rotorcraft's frame leaves
+its blades out (`blade_*`): length nose to tail, width over the widest fixed
+part, height to the top of the rotor head.
 
 Every vehicle has its own wreck. A roster exporter given `--wreck` writes its
 vehicle's wreck beside the live one (`<appearance>_wreck.glb`, and

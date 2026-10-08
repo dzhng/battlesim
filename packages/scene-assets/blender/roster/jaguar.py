@@ -21,7 +21,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
-from vehicle_export import rig, run  # noqa: E402
+from vehicle_export import rig, run_disabled  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -35,10 +35,7 @@ ROOF = 1.86
 
 
 def hull_rings():
-    def plan(rear, front, half, chamfer):
-        return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
-                (front - chamfer, half), (rear, half)]
-
+    plan = VP.hull_plan
     return [(0.55, plan(-3.20, 2.90, 0.85, 0.20)),
             (BELT - 0.25, plan(-3.50, 3.55, 1.20, 0.35)),
             (BELT, plan(-3.55, 3.40, 1.49, 0.45)),
@@ -57,14 +54,14 @@ def hull(v):
                 m["dark"], h, lods=NEAR)
         # Stowage bags on the bulge, a light under the brow at each corner.
         for k, x in enumerate((1.0, -0.2, -1.4)):
-            box(f"side_bag_{s}_{k}", (0.42, 0.14, 0.36), (x, side * 1.50, BELT + 0.05), m["canvas"], h, bevel=0.05,
+            box(f"side_bag_{s}_{k}", (0.42, 0.14, 0.36), (x, side * 1.43, BELT + 0.05), m["canvas"], h, bevel=0.05,
                 lods=MID)
         VP.light_with_guard(f"headlight_{s}", (3.32, side * 0.95, BELT - 0.12), 0.06, m, h)
         VP.light_with_guard(f"tail_light_{s}", (-3.52, side * 0.95, BELT + 0.15), 0.05, dict(m, lamp=m["tail"]), h,
                             rot=(0, 0, math.pi))
         VP.tow_hook(f"front_tow_{s}", (3.40, side * 0.55, 0.95), m, h, size=0.12)
         VP.mudflap(f"mudflap_{s}", (-2.80, side * WHEEL_Y, 1.05), (0.42, 0.45), m, h)
-    VP.bolted_plate("rear_door", (-3.58, 0, 0.95), (0.05, 0.85, 0.85), m, h, bolts=(1, 3), bevel=0.015)
+    VP.bolted_panel("rear_door", (-3.58, 0, 0.95), (0.05, 0.85, 0.85), m, h, bolts=(1, 3), bevel=0.015, lods=VP.ALL)
     VP.hatch("driver_hatch", (2.10, 0, ROOF - 0.20), m, h, radius=0.26, rot=(0, 0.35, 0))
     for k in range(3):
         VP.periscope(f"driver_periscope_{k}", (2.45, -0.22 + k * 0.22, ROOF - 0.32), m, h, size=(0.11, 0.16, 0.08),
@@ -147,4 +144,4 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run("jaguar", "french_three_tone", build, wreck, chip=1.0, cards={CARD: None})
+    run_disabled("jaguar", {CARD: None}, "french_three_tone", build, wreck, skip=("dressing_", "gun", "hmg"), chip=1.0)

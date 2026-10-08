@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "europe_rafale_c_f4-side.jpg",
+   "variant": "europe_rafale_c_f4",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Dassault_Rafale_C_%E2%80%98141_30-GT%E2%80%99_(49358510998).jpg",
+   "author": "Alan Wilson from Peterborough, Cambs, UK",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "1f3a03ac4f8a118c4f102136c1c799ea8a2e248a2384cbc11fc0cef863d17e29",
+   "note": "Rafale C left side taxiing: canards above the intakes, crescent intakes under the cockpit, delta wing, single fin, refuelling probe"
+  },
+  {
+   "file": "europe_rafale_c_f4-three_quarter_front.jpg",
+   "variant": "europe_rafale_c_f4",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Dassault_Rafale_C_4_(7567928696).jpg",
+   "author": "Ronnie Macdonald from Chelmsford, United Kingdom",
+   "licence": "CC-BY-2.0",
+   "sha256": "51a1bad1fc9f98becec7df60c722c604c268112b41c236d5264bcaf586e955fc",
+   "note": "Rafale C front-left three-quarter on the runway"
+  },
+  {
+   "file": "europe_rafale_c_f4-front.jpg",
+   "variant": "europe_rafale_c_f4",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Spangdahlem_Air_Base_hosts_French_Air_and_Space_Force_(8774584).jpg",
+   "author": "U.S. Air Force photo by Airman 1st Class Albert Morel",
+   "licence": "public-domain",
+   "sha256": "f9f269b000a46f39859d9e7d408fe4b99292176ea290dc90c79f62a118b92c46",
+   "note": "Rafale head-on at a shelter: intakes, canards, gear, tanks"
+  },
+  {
+   "file": "europe_rafale_c_f4-three_quarter_rear.jpg",
+   "variant": "europe_rafale_c_f4",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Dassault_Rafale_B_02.jpg",
+   "author": "Dmitry A. Mottl",
+   "licence": "public-domain",
+   "sha256": "d81ef724dc8dcb0a2f7c73f8b700587703239c7dbf402f2b46c5851b22707a19",
+   "note": "Rafale (B) rear three-quarter: two M88 nozzles, fin, delta trailing edge"
+  },
+  {
+   "file": "europe_rafale_c_f4-detail.jpg",
+   "variant": "europe_rafale_c_f4",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Rafale_(3861866950).jpg",
+   "author": "Carlos Menendez San Juan",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "769b02da49a9e63f50909e1536d9f17bd6f4b9a92ad03683323686ea02cc63ab",
+   "note": "Rafale nose detail: canopy, probe, canard root"
+  }
+ ],
+ "gaps": [
+  "europe_rafale_c_f4: rear three-quarter is a two-seat Rafale B (same tail and nozzles); no top view; F4 standard is outwardly the same as F3R"
+ ]
+}

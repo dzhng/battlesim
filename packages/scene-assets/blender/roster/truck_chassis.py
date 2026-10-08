@@ -4,7 +4,7 @@ show, and the fittings every truck carries (fuel tank, battery box, spare
 wheel, lights, mirrors, mudflaps). A family script (`rocket_artillery.py`,
 `caesar.py`, `air_defence.py`) places its mission load on the deck.
 
-Cab shapes, from the references:
+The three cab shapes, from the references:
 - `bonnet`: a Ural-375D/4320 style cab behind a long bonnet (BM-21);
 - `armoured`: a flat-fronted armoured cab-over with small windows (the
   HIMARS's FMTV, the CAESAR's Tatra, the Pantsir's KamAZ);
@@ -18,7 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, loft, prism  # noqa: E402
+from parts import box, cyl, empty, loft  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -50,7 +50,7 @@ def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_
     VP.tow_hook("rear_tow", (-half + 0.02, 0, rail_z - 0.05), m, h, size=0.13, rot=(0, 0, math.pi))
     # Fuel tank and battery box between the cab and the first rear axle.
     gap = (cab_x + axles[1]) / 2 if len(axles) > 1 else cab_x - 0.6
-    cyl("fuel_tank", 0.24, 0.95, (gap, 0.85, rail_z - 0.05), "X", m["paint"], h, seg=18, bevel=0.02)
+    VP.fuel_tank("fuel_tank", (gap, 0.85, rail_z - 0.05), 0.95, 0.24, m, h)
     VP.stowage_box("battery_box", (gap, -0.85, rail_z - 0.30), (0.60, 0.30, 0.40), m, h, rot=(0, 0, math.pi))
     cab_shape(v, cab, cab_x, cab_len, cab_h, track, rail_z, wheel_r)
     return deck_z if deck_z is not None else rail_z + 0.15
@@ -107,8 +107,8 @@ def cab_shape(v, cab, x0, length, height, track, rail_z, wheel_r):
             VP.light_with_guard(f"headlight_{s}", (front + 0.02, side * (half_w - 0.30), floor + 0.25), 0.07, m, h)
             box(f"side_window_{s}", (0.45, 0.02, 0.32), (front - 0.55, side * (half_w + 0.005), height - 0.40),
                 m["glass"], h, lods=MID)
-            VP.bolted_plate(f"cab_door_armour_{s}", (front - 0.75, side * (half_w + 0.02), floor + 0.35),
-                            (0.85, 0.04, 0.70), m, h, bolts=(2, 1), bevel=0.01)
+            VP.bolted_panel(f"cab_door_armour_{s}", (front - 0.75, side * (half_w + 0.02), floor + 0.35),
+                            (0.85, 0.04, 0.70), m, h, bolts=(2, 1), bevel=0.01, lods=VP.ALL)
         box("front_bumper", (0.16, half_w * 2, 0.20), (front + 0.05, 0, floor - 0.05), m["dark"], h, bevel=0.01)
         VP.hatch("cab_roof_hatch", (front - 0.80, 0.35, height), m, h, radius=0.28)
     # Mirrors at the windscreen's corners: on a bonneted cab that is behind the bonnet.
@@ -125,8 +125,8 @@ def cab_shape(v, cab, x0, length, height, track, rail_z, wheel_r):
 
 
 def _plan(rear, front, half, chamfer, y=0.0):
-    return [(rear, y - half), (front - chamfer, y - half), (front, y - half + chamfer), (front, y + half - chamfer),
-            (front - chamfer, y + half), (rear, y + half)]
+    """`vehicle_parts.hull_plan`, centred `y` off the centre line (a split cab's half)."""
+    return [(x, py + y) for x, py in VP.hull_plan(rear, front, half, chamfer)]
 
 
 def spare_wheel(v, loc, radius, width, rot=(0, 0, 0)):

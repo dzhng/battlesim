@@ -1,0 +1,74 @@
+{
+ "entries": [
+  {
+   "file": "europe_tornado_ids-side.jpg",
+   "variant": "europe_tornado_ids",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Panavia_Tornado_GAF_46%2B07_taxiing_at_ILA-2024.JPG",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0-DE",
+   "sha256": "ab45b2693466fbd51a4960e0b2ee2fcc5fbd26cea3a903d75126723c59ba537b",
+   "note": "Tornado IDS left side taxiing (GAF): tall fin, swing wing spread, twin seats, rectangular intakes"
+  },
+  {
+   "file": "europe_tornado_ids-three_quarter_front.jpg",
+   "variant": "europe_tornado_ids",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:NATO_Allies_celebrate_50_year_anniversary_of_F-16_and_Tornado_(8434856).jpg",
+   "author": "U.S. Air Force photo by Airman 1st Class Albert Morel",
+   "licence": "public-domain",
+   "sha256": "f9ad203bfac90a53a04775f4cd6e962ccca87f3ac984b72b2a1041196cd0e321",
+   "note": "Tornado IDS front-left three-quarter on the apron: nose, intakes, wing pylons, gear"
+  },
+  {
+   "file": "europe_tornado_ids-detail.jpg",
+   "variant": "europe_tornado_ids",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:German_Luftwaffe_Panavia_Tornado_taxis_at_Nellis_Air_Force_Base,_Nevada_(USA),_5_September_2013_(130905-F-NK166-317).JPG",
+   "author": "U.S. Air Force Photo by Lorenz Crespo",
+   "licence": "public-domain",
+   "sha256": "f3508d83c1379b7f5a2a984bb6d8b6904a2d518346880d66752f998cf866aab6",
+   "note": "Tornado IDS nose and cockpit with ground crew: radome, canopy, intake, tank"
+  },
+  {
+   "file": "europe_tornado_ecr-three_quarter_front.jpg",
+   "variant": "europe_tornado_ecr",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Panavia_Tornado_ECR_IMG_2982_(35852569630).jpg",
+   "author": "Ronnie Macdonald from Chelmsford and Largs, United Kingdom",
+   "licence": "CC-BY-2.0",
+   "sha256": "3be10dbcf9c9970118be8a2cb382eaf18535429f78715d9708e68030b613a609",
+   "note": "Tornado ECR front-left three-quarter: no gun, HARM pylons, emitter-locator fairings"
+  },
+  {
+   "file": "europe_tornado_ecr-side.jpg",
+   "variant": "europe_tornado_ecr",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Panavia_Tornado_ECR_5D3_2170_(36078357842).jpg",
+   "author": "Ronnie Macdonald from Chelmsford and Largs, United Kingdom",
+   "licence": "CC-BY-2.0",
+   "sha256": "b7d711e17cf0d822c0a0b4a757762d08daafa57919b0e84e9f16e5ed18fe69e2",
+   "note": "Tornado ECR left side taxiing: tall fin, stores"
+  },
+  {
+   "file": "europe_tornado_ecr-three_quarter_rear.jpg",
+   "variant": "europe_tornado_ecr",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Panavia_Tornado_ECR_5D3_3362_(36204155756).jpg",
+   "author": "Ronnie Macdonald from Chelmsford and Largs, United Kingdom",
+   "licence": "CC-BY-2.0",
+   "sha256": "c12b9352626131ba2a2946d7e32ddc79ef661ee39414cc30e6248708f32e2a23",
+   "note": "Tornado ECR rear three-quarter taking off: twin RB199 nozzles, thrust-reverser buckets, tailerons"
+  }
+ ],
+ "gaps": [
+  "europe_tornado_ids: no rear view (the ECR's serves)",
+  "europe_tornado_ecr: no top view; wings drawn at the 25-degree spread they park and taxi at"
+ ]
+}

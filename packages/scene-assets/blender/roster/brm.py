@@ -22,7 +22,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
-from vehicle_export import rig, run  # noqa: E402
+from vehicle_export import rig, run_disabled  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -46,8 +46,8 @@ def hull(v):
                          (-half, 0.65)], 2.30, mat=m["paint"], parent=h, bevel=0.04)
     slope = math.atan((ROOF - nose) / 1.90)
     # The folded trim vane across the nose, its ribbed face up.
-    VP.bolted_plate("trim_vane", (half - 0.45, 0, nose + (ROOF - nose) * 0.2), (0.60, 2.70, 0.06), m, h, bolts=(2, 6),
-                    bevel=0.02, rot=(0, slope, 0))
+    VP.bolted_panel("trim_vane", (half - 0.45, 0, nose + (ROOF - nose) * 0.2), (0.60, 2.70, 0.06), m, h, bolts=(2, 6),
+                    bevel=0.02, rot=(0, slope, 0), lods=VP.ALL)
     for k in range(5):
         box(f"vane_rib_{k}", (0.55, 0.04, 0.05), (half - 0.45, -1.1 + k * 0.55, nose + (ROOF - nose) * 0.2 + 0.08),
             m["paint"], h, rot=(0, slope, 0), lods=NEAR)
@@ -71,8 +71,8 @@ def hull(v):
     VP.grille("engine_grille", (-2.30, 0.45, DECK), (1.0, 0.75), m, h, slats=8)
     VP.grille("radiator_grille", (-2.30, -0.45, DECK), (1.0, 0.75), m, h, slats=8)
     for side in (-1, 1):
-        VP.bolted_plate(f"rear_door_{side}", (-half - 0.03, side * 0.40, 0.95), (0.05, 0.62, 0.70), m, h,
-                        bolts=(1, 2), bevel=0.015)
+        VP.bolted_panel(f"rear_door_{side}", (-half - 0.03, side * 0.40, 0.95), (0.05, 0.62, 0.70), m, h,
+                        bolts=(1, 2), bevel=0.015, lods=VP.ALL)
     for k, y in enumerate((0.55, -0.55)):
         VP.hatch(f"roof_hatch_{k}", (-1.65, y, DECK), m, h, size=(0.70, 0.55))
 
@@ -147,4 +147,4 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run("brm", "russian_green", build, wreck, chip=1.0, cards={CARD: None})
+    run_disabled("brm", {CARD: None}, "russian_green", build, wreck, skip=("dressing_", "gun", "hmg"), chip=1.0)

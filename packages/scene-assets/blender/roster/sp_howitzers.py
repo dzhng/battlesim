@@ -35,7 +35,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
-from vehicle_export import run  # noqa: E402
+from vehicle_export import run_disabled  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -52,7 +52,7 @@ SPECS = {
         brake="pepperpot", evacuator=None, cupola=(-1.6, -0.85), mg="mg3", label="241"),
     "eastern_2s19_msta_s_2s19m2": dict(
         family="2s19_msta_s", scheme="russian_green", dims=(7.15, 3.58, 2.99), wheels=6, road_r=0.37,
-        front_engine=False, deck=1.40, turret=(-2.60, 1.20, 3.25, 1.45), gun=(1.25, 2.20, 7.15, 0.080),
+        front_engine=False, deck=1.40, turret=(-2.60, 1.20, 3.25, 1.30), gun=(1.25, 2.20, 7.15, 0.080),
         brake="baffle", evacuator=0.40, cupola=(-1.0, -0.90), mg="kord", label="312"),
     "eastern_plz_05_chinese_tracked_155_mm_howitzer": dict(
         family="plz_05", scheme="chinese_digital", dims=(7.30, 3.40, 3.10), wheels=7, road_r=0.33,
@@ -86,8 +86,8 @@ def hull(v):
                    rot=(0, 0, -math.pi / 2))
     else:
         VP.grille("engine_grille", (-half + 0.90, 0, deck), (1.20, v.width - 1.0), m, h, slats=12)
-        VP.bolted_plate("dozer_blade", (half + 0.05, 0, 0.50), (0.10, v.width - 1.0, 0.45), m, h, bolts=(1, 4),
-                        bevel=0.02)
+        VP.bolted_panel("dozer_blade", (half + 0.05, 0, 0.50), (0.10, v.width - 1.0, 0.45), m, h, bolts=(1, 4),
+                        bevel=0.02, lods=VP.ALL)
     # The travel lock folded up on the glacis, its cradle under the barrel.
     lock_x = half - 0.55
     for side in (-1, 1):
@@ -103,8 +103,8 @@ def hull(v):
         for k in range(skirts):
             length = (v.length - 0.5) / skirts
             x = half - 0.30 - length * (k + 0.5)
-            VP.bolted_plate(f"skirt_{sd}_{k}", (x, side * (v.width / 2 - 0.05), 0.82), (length - 0.03, 0.06, 0.55), m,
-                            h, bolts=(2, 1), bevel=0.02)
+            VP.bolted_panel(f"skirt_{sd}_{k}", (x, side * (v.width / 2 - 0.05), 0.82), (length - 0.03, 0.06, 0.55), m,
+                            h, bolts=(2, 1), bevel=0.02, lods=VP.ALL)
         VP.cable(f"tow_cable_{sd}", [(-half + 0.4, side * (v.width / 2 - 0.18), deck + 0.02),
                                      (0.5, side * (v.width / 2 - 0.18), deck + 0.02)], m, h, radius=0.02)
 
@@ -186,8 +186,8 @@ def turret(v):
         VP.antenna(f"antenna_{sd}", (rear + 0.35, side * (half_w - 0.30), top), m, whip, height=2.2)
         stencil(f"turret_number_{sd}", s["label"], 0.24, (rear + 1.6, side * (half_w + 0.004), deck + height * 0.75),
                 (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], h)
-    VP.bolted_plate("turret_rear_door", (rear - 0.02, 0, deck + 0.35), (0.05, 0.95, 0.85), m, h, bolts=(1, 3),
-                    bevel=0.015)
+    VP.bolted_panel("turret_rear_door", (rear - 0.02, 0, deck + 0.35), (0.05, 0.95, 0.85), m, h, bolts=(1, 3),
+                    bevel=0.015, lods=VP.ALL)
     VP.tarp_roll("turret_roll", (rear + 0.45, 0, top + 0.12), 1.5, 0.13, m, h, straps=3)
 
 
@@ -231,5 +231,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    for card, s in SPECS.items():
-        run(s["family"], s["scheme"], build, wreck, chip=1.0, cards={card: s["dims"]})
+    run_disabled("sp_howitzers", {c: s["dims"] for c, s in SPECS.items()},
+                 {c: s["scheme"] for c, s in SPECS.items()}, build, wreck, skip=("dressing_", "gun_", "fume_", "muzzle_", "brake_"), chip=1.0)

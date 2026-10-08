@@ -1,0 +1,85 @@
+{
+ "entries": [
+  {
+   "file": "us_ch_47_chinook_ch_47f-side.jpg",
+   "variant": "us_ch_47_chinook_ch_47f",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:U.S._Army_Boeing_CH-47F_Chinook_11-08097_FDK_MD1.jpg",
+   "author": "Acroterion",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "c31f8f5ad70e68225fc902f29487b982c548ca0e24048e2f92b6c40917fa80e1",
+   "note": "CH-47F left side: box fuselage, tandem rotors, aft pylon with engines, sponsons, four wheels"
+  },
+  {
+   "file": "us_ch_47_chinook_ch_47f-three_quarter_front.jpg",
+   "variant": "us_ch_47_chinook_ch_47f",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Boeing_CH-47F_Chinook_ILA_2018.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "3caf284795ed06529193626984ec233a5eb7288f8c794b7e7fd208cf9666dfee",
+   "note": "CH-47F front-left three-quarter static at ILA 2018"
+  },
+  {
+   "file": "us_ch_47_chinook_ch_47f-three_quarter_rear.jpg",
+   "variant": "us_ch_47_chinook_ch_47f",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Boeing_CH-47F_Chinook_back_side_ILA_2018.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "2a062b5ae0620f88bb342e5f72131bea842fed0e3f9e30989b2da02ca9cf9907",
+   "note": "CH-47F rear three-quarter at ILA 2018: ramp open, aft pylon, engines"
+  },
+  {
+   "file": "us_ch_47_chinook_ch_47f-front.jpg",
+   "variant": "us_ch_47_chinook_ch_47f",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Boeing_CH-47Fs_landing_FDK_MD1.jpg",
+   "author": "Acroterion",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "f5e0e5dbeecd3cd2ffd92e58f5f83bca2f840a2f49546227f96472c8d0889681",
+   "note": "CH-47Fs landing head-on"
+  },
+  {
+   "file": "europe_ch_47_chinook_hc6-side.jpg",
+   "variant": "europe_ch_47_chinook_hc6",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Chinook_HC6_ZA881_5D4_8786_(52256462328).jpg",
+   "author": "Ronnie Macdonald from Chelmsford, United Kingdom",
+   "licence": "CC-BY-2.0",
+   "sha256": "f8989932c0b0da8d9fd9242aa1804ea8f5fc6029b793c09703de956e2e3b63af",
+   "note": "RAF Chinook HC6 left side in flight: dark green, sponsons, wheels"
+  },
+  {
+   "file": "europe_ch_47_chinook_hc6-three_quarter_front.jpg",
+   "variant": "europe_ch_47_chinook_hc6",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Chinook_HC6_ZA881_5D4_8791_(52256461403).jpg",
+   "author": "Ronnie Macdonald from Chelmsford, United Kingdom",
+   "licence": "CC-BY-2.0",
+   "sha256": "d935ab1af23badc1cb97318f69a0ab9239338278964d4094a798b5c015314f9c",
+   "note": "RAF Chinook HC6 front-left three-quarter"
+  },
+  {
+   "file": "europe_ch_47_chinook_hc6-three_quarter_front-2.jpg",
+   "variant": "europe_ch_47_chinook_hc6",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:EGVO_-_Boeing_Chinook_HC6_-_Royal_Air_Force_-_ZK558_(44302864742).jpg",
+   "author": "Steve Lynes from Sandshurst, United Kingdom",
+   "licence": "CC-BY-2.0",
+   "sha256": "bbf2c9f3e50170d9b551fe7dfc57e64701428dac94c8b9f68735ceb69b90c4ba",
+   "note": "RAF Chinook HC6 front-left three-quarter in flight"
+  }
+ ],
+ "gaps": [
+  "us_ch_47_chinook_ch_47f: no top view",
+  "europe_ch_47_chinook_hc6: in-flight and three-quarter shots only; drawn on the CH-47F's airframe, which the HC6 shares outwardly, in RAF dark green"
+ ]
+}

@@ -30,9 +30,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, loft, stencil  # noqa: E402
+from parts import box, cyl, empty, loft, prism, stencil  # noqa: E402
 from truck_chassis import chassis, spare_wheel  # noqa: E402
-from vehicle_export import run  # noqa: E402
+from vehicle_export import run_disabled  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -73,7 +73,6 @@ def m270(v):
     m, h = v.mats, v.hull
     half = v.length / 2
     deck = 1.30
-    from parts import prism
     prism("hull_upper", [(-half, 0.80), (half - 0.30, 0.80), (half, 1.05), (half - 0.40, deck), (-half, deck)],
           v.width - 0.60, mat=m["paint"], parent=h, bevel=0.04)
     prism("hull_lower", [(-half + 0.30, 0.42), (half - 0.55, 0.42), (half - 0.05, 0.82), (-half, 0.82),
@@ -86,21 +85,21 @@ def m270(v):
     # The armoured cab across the front.
     cab_rear, cab_front = 1.55, half - 0.10
     loft("cab_body", [(deck, [(cab_rear, -1.40), (cab_front, -1.40), (cab_front, 1.40), (cab_rear, 1.40)]),
-                      (2.62, [(cab_rear + 0.05, -1.30), (cab_front - 0.45, -1.30), (cab_front - 0.45, 1.30),
+                      (2.52, [(cab_rear + 0.05, -1.30), (cab_front - 0.45, -1.30), (cab_front - 0.45, 1.30),
                               (cab_rear + 0.05, 1.30)])], mat=m["paint"], parent=h, bevel=0.04)
     for k, y in enumerate((-0.85, 0.0, 0.85)):
         box(f"windscreen_{k}", (0.03, 0.62, 0.42), (cab_front - 0.22, y, 2.15), m["glass"], h, rot=(0, -0.55, 0),
             lods=MID)
         box(f"windscreen_shutter_{k}", (0.04, 0.66, 0.10), (cab_front - 0.12, y, 2.42), m["paint"], h,
             rot=(0, -0.55, 0), bevel=0.01, lods=NEAR)
-    VP.hatch("cab_hatch", (cab_rear + 0.40, -0.70, 2.62), m, h, radius=0.26)
+    VP.hatch("cab_hatch", (cab_rear + 0.40, -0.70, 2.52), m, h, radius=0.26)
     for side, s in ((1, "L"), (-1, "R")):
         VP.light_with_guard(f"headlight_{s}", (half - 0.05, side * 1.10, 1.30), 0.07, m, h)
         VP.tow_hook(f"front_tow_{s}", (half - 0.02, side * 0.70, 0.85), m, h, size=0.12)
         box(f"side_skirt_{s}", (v.length - 0.40, 0.05, 0.40), (0, side * (v.width / 2 - 0.03), 1.05), m["paint"], h,
             bevel=0.01, lods=MID)
         whip = empty(f"dressing_antenna_{s}", parent=h)
-        VP.antenna(f"antenna_{s}", (cab_rear + 0.15, side * 1.20, 2.62), m, whip, height=2.2)
+        VP.antenna(f"antenna_{s}", (cab_rear + 0.15, side * 1.20, 2.52), m, whip, height=2.2)
     # The launcher box stowed flat over the rear, two pods in it.
     lx = (-half + cab_rear) / 2 - 0.10
     length = cab_rear - (-half) - 0.25
@@ -108,7 +107,7 @@ def m270(v):
     box("launcher_cage", (length, 2.60, 0.18), (lx, 0, deck + 0.38), m["paint"], h, bevel=0.02)
     for k, y in enumerate((-0.65, 0.65)):
         pod(v, f"pod_{k}", (lx, y, deck + 0.85), (length - 0.10, 1.20, 0.80), (3, 2), h)
-    VP.stowage_box("rear_box", (-half + 0.20, 0, deck), (0.35, 1.60, 0.30), m, h, rot=(0, 0, math.pi / 2))
+    VP.stowage_box("rear_box", (-half + 0.20, 0, deck), (0.35, 1.60, 0.30), m, h)
     stencil("rear_number", "A2", 0.20, (cab_front - 1.0, 1.405, 1.8), (math.pi / 2, 0, math.pi), m["marking"], h)
 
 
@@ -116,25 +115,25 @@ def m270(v):
 def himars(v, prsm):
     m, h = v.mats, v.hull
     half = v.length / 2
-    deck = chassis(v, [2.25, -1.05, -2.45], 0.55, 0.40, 1.00, 0.95, "armoured", 1.20, 2.10, 2.75)
+    deck = chassis(v, [2.25, -1.05, -2.45], 0.55, 0.38, 0.95, 0.95, "armoured", 1.20, 2.10, 3.00)
     box("deck_plate", (3.4, 2.2, 0.08), (-1.55, 0, deck + 0.04), m["paint"], h, bevel=0.01)
     cyl("launcher_turntable", 0.75, 0.25, (-1.0, 0, deck + 0.20), "Z", m["dark"], h, seg=28)
-    box("launcher_frame", (3.0, 1.10, 0.30), (-1.75, 0, deck + 0.45), m["paint"], h, bevel=0.02)
-    pod(v, "pod", (-1.65, 0, deck + 1.10), (3.30, 1.05, 0.95), (3, 2), h, caps=2 if prsm else None)
-    VP.stowage_box("side_box_L", (-1.0, 1.05, deck), (1.20, 0.25, 0.40), m, h)
-    VP.stowage_box("side_box_R", (-1.0, -1.05, deck), (1.20, 0.25, 0.40), m, h, rot=(0, 0, math.pi))
+    box("launcher_frame", (3.0, 1.10, 0.50), (-1.75, 0, deck + 0.55), m["paint"], h, bevel=0.02)
+    pod(v, "pod", (-1.65, 0, deck + 1.32), (3.30, 1.05, 0.95), (3, 2), h, caps=2 if prsm else None)
+    VP.stowage_box("side_box_L", (-1.0, 0.98, deck), (1.20, 0.22, 0.40), m, h)
+    VP.stowage_box("side_box_R", (-1.0, -0.98, deck), (1.20, 0.22, 0.40), m, h, rot=(0, 0, math.pi))
 
 
 def bm21(v):
     m, h = v.mats, v.hull
-    deck = chassis(v, [2.30, -0.95, -2.35], 0.55, 0.38, 1.00, 0.98, "bonnet", 0.55, 3.05, 2.55)
+    deck = chassis(v, [2.30, -0.95, -2.35], 0.55, 0.36, 0.98, 0.98, "bonnet", 0.55, 3.05, 2.55)
     spare_wheel(v, (0.30, 0, deck + 0.45), 0.55, 0.36, rot=(0, 0, math.pi / 2))
     cyl("launcher_turntable", 0.65, 0.22, (-1.6, 0, deck + 0.15), "Z", m["dark"], h, seg=24)
-    box("launcher_cradle", (1.4, 1.30, 0.30), (-1.6, 0, deck + 0.40), m["paint"], h, bevel=0.02)
+    box("launcher_cradle", (1.4, 1.30, 0.75), (-1.6, 0, deck + 0.62), m["paint"], h, bevel=0.02)
     # Forty tubes, four rows of ten, travelling forward over the cab.
     tube_len, rows, cols, r = 3.0, 4, 10, 0.075
     pitch = math.radians(4)
-    cx, cz = -0.9, deck + 0.90
+    cx, cz = -0.9, deck + 1.25
     for j in range(rows):
         for i in range(cols):
             y = (i - (cols - 1) / 2) * (2 * r + 0.012)
@@ -158,9 +157,9 @@ def tornado_s(v):
     box("deck_plate", (7.0, 2.6, 0.10), (-1.6, 0, deck + 0.05), m["paint"], h, bevel=0.01)
     VP.stowage_box("crane_box", (2.6, 0, deck), (0.70, 1.80, 0.65), m, h, rot=(0, 0, math.pi / 2))
     cyl("launcher_turntable", 0.85, 0.25, (-3.4, 0, deck + 0.20), "Z", m["dark"], h, seg=28)
-    box("launcher_cradle", (1.8, 1.8, 0.35), (-3.6, 0, deck + 0.45), m["paint"], h, bevel=0.02)
+    box("launcher_cradle", (1.8, 1.8, 0.25), (-3.6, 0, deck + 0.30), m["paint"], h, bevel=0.02)
     tube_len, rows, cols, r = 7.6, 3, 4, 0.20
-    cx, cz = -1.15, deck + 0.85
+    cx, cz = -1.15, deck + 0.55
     for j in range(rows):
         for i in range(cols):
             y = (i - (cols - 1) / 2) * (2 * r + 0.03)
@@ -171,7 +170,7 @@ def tornado_s(v):
     for k, x in enumerate((-3.0, -0.8, 1.4)):
         box(f"tube_band_{k}", (0.10, cols * (2 * r + 0.03) + 0.08, rows * (2 * r + 0.03) + 0.08),
             (cx + x, 0, cz + (rows - 1) * (r + 0.015)), m["dark"], h, lods=MID)
-    box("travel_rest", (0.20, 1.20, deck + 0.70 - 1.25), (2.0, 0, (deck + 0.70 + 1.25) / 2), m["dark"], h, lods=MID)
+    box("travel_rest", (0.20, 1.20, deck + 0.35 - 1.25), (2.0, 0, (deck + 0.35 + 1.25) / 2), m["dark"], h, lods=MID)
 
 
 def build(variant, v):
@@ -217,6 +216,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    for family in dict.fromkeys(f for f, _, _ in CARDS.values()):
-        cards = {c: dims for c, (f, _, dims) in CARDS.items() if f == family}
-        run(family, next(s for f, s, _ in CARDS.values() if f == family), build, wreck, chip=1.0, cards=cards)
+    run_disabled("rocket_artillery", {c: dims for c, (_, _, dims) in CARDS.items()},
+                 {c: scheme for c, (_, scheme, _) in CARDS.items()}, build, wreck, chip=1.0)

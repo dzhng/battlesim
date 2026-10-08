@@ -118,11 +118,15 @@ def _tube_part(name, path_for, radius, mat, parent, lods):
 
 
 # ---------------------------------------------------------------- running gear
-def tyre_wheel(name, loc, radius, width, side, mats, parent, rim_radius=None, ctis=False):
+def tyre_wheel(name, loc, radius, width, side, mats, parent, rim_radius=None, ctis=False, tread="road",
+               hub_bolts=0):
     """A wheeled vehicle's wheel: a black treaded tyre, a rim on its outer face
     (`side` +1 for the left, -1 for the right) and a hub, with a CTIS air line
     from hub to rim where fitted. `rim_radius` defaults to the lifted 0.56 of the
-    tyre. Node: `wheel_*` empty, returned. Roles: rubber, paint, dark, steel."""
+    tyre. `tread` is "road" (an armoured carrier's run-flat road tread: blocks
+    across the face) or "bar" (a truck's military bar tread: two staggered rows
+    of deep chevron bars). `hub_bolts` rings the hub with that many wheel nuts.
+    Node: `wheel_*` empty, returned. Roles: rubber, paint, dark, steel."""
     node = _wheel_node(name, loc, radius, parent)
     rim_r = radius * 0.56 if rim_radius is None else rim_radius
     face = side * width / 2
@@ -131,6 +135,22 @@ def tyre_wheel(name, loc, radius, width, side, mats, parent, rim_radius=None, ct
         mat=mats["paint"], parent=node, seg=20, bevel=0.01)
     cyl(name=f"{name}_hub", r=radius * 0.21, depth=0.09, loc=(0, face + side * 0.035, 0), axis="Y",
         mat=mats["dark"], parent=node, seg=12, lods=MID)
+    for j in range(hub_bolts):
+        angle = j * math.tau / hub_bolts
+        at = (radius * 0.21 + rim_r) / 2
+        cyl(name=f"{name}_nut_{j}", r=0.018, depth=0.03, loc=(at * math.cos(angle), face + side * 0.045,
+                                                             at * math.sin(angle)), axis="Y",
+            mat=mats["steel"], parent=node, seg=6, lods=FINE)
+    if tread == "bar":
+        treads = max(12, round(math.tau * radius / 0.17))
+        for j in range(treads):
+            for k, y in enumerate((-0.25, 0.25)):
+                angle = (j + 0.5 * k) * math.tau / treads
+                at = radius - 0.02
+                box(name=f"{name}_tread_{j}_{k}", size=(0.07, width * 0.46, 0.04),
+                    loc=(at * math.sin(angle), y * width, at * math.cos(angle)),
+                    rot=(0, angle, (0.45 if k else -0.45) * side), mat=mats["rubber"], parent=node, lods=NEAR)
+        return node
     treads = max(12, round(math.tau * radius / 0.21))
     for j in range(treads):
         angle = j * math.tau / treads
@@ -425,23 +445,6 @@ def armour_tiles(name, loc, size, grid, depth, mats, parent, gap=0.025, bolts=Tr
     return _place(made, loc, rot)
 
 
-def bolted_plate(name, loc, size, mats, parent, bolts=(3, 2), bevel=0.03, rot=(0, 0, 0), mat="paint", lods=ALL):
-    """An armour plate `size` (x, y, z) standing on its foot at `loc`, bolted
-    down by a `bolts` (along x, along y) grid of heads on its top face, the
-    plate's edges bevelled bold. Returns its meshes. Roles: paint (or `mat`),
-    steel."""
-    sx, sy, sz = size
-    made = box(f"{name}_plate", size, (0, 0, sz / 2), mats[mat], parent, bevel=bevel, lods=lods)
-    nx, ny = bolts
-    for i in range(nx):
-        for j in range(ny):
-            bx = (i + 0.5) / nx * sx * 0.86 - sx * 0.43
-            by = (j + 0.5) / ny * sy * 0.86 - sy * 0.43
-            made += cyl(f"{name}_bolt_{i}_{j}", 0.022, 0.018, (bx, by, sz + 0.007), "Z", mats["steel"], parent,
-                        seg=6, lods=FINE)
-    return _place(made, loc, rot)
-
-
 def slat_armour(name, loc, size, mats, parent, spacing=0.11, bar=0.022, rot=(0, 0, 0)):
     """A bar (slat) armour panel standing in the local XZ plane at `loc` (its
     foot's centre), `size` (x length, z height): a frame of two rails and two
@@ -463,6 +466,15 @@ def slat_armour(name, loc, size, mats, parent, spacing=0.11, bar=0.022, rot=(0, 
 
 
 # ---------------------------------------------------------------- hull and turret fittings
+def hull_plan(rear, front, half, chamfer):
+    """One horizontal ring of a lofted hull (`parts.loft`), in plan: square
+    at the rear (x `rear`), its bow at x `front` with both corners chamfered
+    back `chamfer`, `half` wide each side. Every ring a family lofts through
+    has these six points, so rings of different sizes loft into one hull."""
+    return [(rear, -half), (front - chamfer, -half), (front, -half + chamfer), (front, half - chamfer),
+            (front - chamfer, half), (rear, half)]
+
+
 def cable(name, points, mats, parent, radius=0.02, eyes=True, loc=(0, 0, 0), rot=(0, 0, 0)):
     """A steel tow cable along `points` (in the part's frame), clipped down
     where it runs, with a loop eye at each end where `eyes`. Returns its
@@ -721,6 +733,18 @@ def browning_m2(parent, reach, mats, receiver_x=0.06, grips=False):
     return made
 
 
+def kord(parent, reach, mats):
+    """The 12.7 mm Kord on its mount's pitch node `parent`, firing along +X to
+    the muzzle `reach` metres out: a long receiver, the barrel, its muzzle
+    brake and the ammunition box. Pieces are named `kord_*`. Returns its
+    meshes. Roles: dark, steel, paint."""
+    made = box("kord_receiver", (0.62, 0.10, 0.14), (0.02, 0, 0), mats["dark"], parent, bevel=0.012)
+    made += cyl("kord_barrel", 0.028, reach - 0.40, ((reach + 0.30) / 2, 0, 0), "X", mats["dark"], parent, seg=10)
+    made += cyl("kord_brake", 0.040, 0.10, (reach - 0.05, 0, 0), "X", mats["steel"], parent, seg=10, lods=NEAR)
+    made += box("kord_ammo", (0.26, 0.12, 0.20), (0.0, 0.13, -0.06), mats["paint"], parent, bevel=0.015, lods=MID)
+    return made
+
+
 # ---------------------------------------------------------------- stowage
 def jerrycan(name, loc, mats, parent, size=(0.165, 0.345, 0.47), rot=(0, 0, 0)):
     """A standing jerrycan, its foot's centre at `loc`: a can `size` (x
@@ -825,6 +849,90 @@ def mudflap(name, loc, size, mats, parent, rot=(0, 0, 0)):
                 lods=MID)
     made += box(name=f"{name}_bracket", size=(0.03, sy + 0.04, 0.04), loc=(0.02, 0, -0.02), mat=mats["steel"],
                 parent=parent, lods=NEAR)
+    return _place(made, loc, rot)
+
+
+def cargo_bed(name, loc, size, mats, parent, stakes=5, tarp=None, rot=(0, 0, 0)):
+    """A truck's drop-side cargo bed, its floor's centre at `loc`, `size`
+    (x length, y width, z side height): the floor on its cross members, the
+    side and end boards with their stake posts and hinges, and with `tarp`
+    (its height over the sides) the bows and the canvas over them, tied down
+    along its foot. Returns its meshes. Roles: paint, dark, steel, canvas."""
+    sx, sy, sz = size
+    made = []
+    made += box(name=f"{name}_floor", size=(sx, sy, 0.10), loc=(0, 0, -0.05), mat=mats["paint"], parent=parent,
+                bevel=0.02)
+    for k in range(max(2, round(sx / 0.9))):
+        x = -sx / 2 + 0.2 + (sx - 0.4) * k / max(1, round(sx / 0.9) - 1)
+        made += box(name=f"{name}_member_{k}", size=(0.10, sy - 0.10, 0.14), loc=(x, 0, -0.17), mat=mats["dark"],
+                    parent=parent, lods=NEAR)
+    for side in (-1, 1):
+        made += box(name=f"{name}_side_{side}", size=(sx, 0.05, sz), loc=(0, side * (sy / 2 - 0.025), sz / 2),
+                    mat=mats["paint"], parent=parent, bevel=0.015)
+        made += box(name=f"{name}_rail_{side}", size=(sx + 0.02, 0.08, 0.06), loc=(0, side * (sy / 2 - 0.03), sz),
+                    mat=mats["paint"], parent=parent, bevel=0.012, lods=MID)
+        for k in range(stakes):
+            x = -sx / 2 + 0.10 + (sx - 0.20) * k / max(1, stakes - 1)
+            made += box(name=f"{name}_stake_{side}_{k}", size=(0.08, 0.04, sz), loc=(x, side * (sy / 2 + 0.01), sz / 2),
+                        mat=mats["paint"], parent=parent, bevel=0.01, lods=MID)
+            made += box(name=f"{name}_hinge_{side}_{k}", size=(0.10, 0.03, 0.05), loc=(x + 0.2, side * (sy / 2 + 0.01),
+                                                                                     0.04),
+                        mat=mats["steel"], parent=parent, lods=FINE)
+    for end in (-1, 1):
+        made += box(name=f"{name}_end_{end}", size=(0.05, sy, sz), loc=(end * (sx / 2 - 0.025), 0, sz / 2),
+                    mat=mats["paint"], parent=parent, bevel=0.015)
+    if tarp:
+        for k in range(stakes):
+            x = -sx / 2 + 0.10 + (sx - 0.20) * k / max(1, stakes - 1)
+            made += box(name=f"{name}_bow_{k}", size=(0.05, sy - 0.04, 0.05), loc=(x, 0, sz + tarp - 0.05),
+                        mat=mats["dark"], parent=parent, lods=FINE)
+        made += box(name=f"{name}_canvas", size=(sx + 0.04, sy + 0.04, tarp + 0.12), loc=(0, 0, sz - 0.06 + tarp / 2),
+                    mat=mats["canvas"], parent=parent, bevel=0.09)
+        for k in range(stakes * 2 - 1):
+            x = -sx / 2 + 0.10 + (sx - 0.20) * k / max(1, stakes * 2 - 2)
+            for side in (-1, 1):
+                made += box(name=f"{name}_tie_{side}_{k}", size=(0.03, 0.02, 0.22), loc=(x, side * (sy / 2 + 0.035),
+                                                                                       sz - 0.02),
+                            mat=mats["dark"], parent=parent, lods=FINE)
+    return _place(made, loc, rot)
+
+
+def fuel_tank(name, loc, length, radius, mats, parent, rot=(0, 0, 0)):
+    """A truck's side fuel tank lying along local X, its axis at `loc`: the
+    tank, two straps over it and its filler cap. Returns its meshes. Roles:
+    paint, dark, steel."""
+    made = []
+    made += cyl(name=f"{name}_tank", r=radius, depth=length, axis="X", mat=mats["paint"], parent=parent, seg=20,
+                bevel=0.03)
+    for k, x in enumerate((-length * 0.3, length * 0.3)):
+        made += cyl(name=f"{name}_strap_{k}", r=radius * 1.04, depth=0.05, loc=(x, 0, 0), axis="X", mat=mats["dark"],
+                    parent=parent, seg=20, lods=NEAR)
+    made += cyl(name=f"{name}_cap", r=0.05, depth=0.05, loc=(length * 0.1, 0, radius + 0.02), mat=mats["steel"],
+                parent=parent, seg=10, lods=FINE)
+    return _place(made, loc, rot)
+
+
+def bolted_panel(name, loc, size, mats, parent, bolts=(3, 2), rot=(0, 0, 0), bevel=0.02, lods=MID):
+    """An applique armour plate bolted onto a face: a slab `size` (x, y, z
+    thickness) lying in its local XY plane on the face at `loc` (its back on
+    the face, facing local +Z), with chunky bolt heads in a ring `bolts`
+    (along x, along y) round its border. Turn it onto a side or a glacis with
+    `rot`. Returns its meshes. Roles: paint, steel."""
+    sx, sy, sz = size
+    made = []
+    made += box(name=f"{name}_plate", size=(sx, sy, sz), loc=(0, 0, sz / 2), mat=mats["paint"], parent=parent,
+                bevel=bevel, lods=lods)
+    nx, ny = bolts
+    spots = set()
+    for i in range(nx):
+        for j in range(ny):
+            if i in (0, nx - 1) or j in (0, ny - 1):
+                spots.add((i, j))
+    for i, j in sorted(spots):
+        x = -sx / 2 + 0.07 + (sx - 0.14) * (i / max(1, nx - 1))
+        y = -sy / 2 + 0.07 + (sy - 0.14) * (j / max(1, ny - 1))
+        made += cyl(name=f"{name}_bolt_{i}_{j}", r=0.026, depth=0.03, loc=(x, y, sz + 0.012), mat=mats["steel"],
+                    parent=parent, seg=6, bevel=0.006, lods=FINE)
     return _place(made, loc, rot)
 
 
