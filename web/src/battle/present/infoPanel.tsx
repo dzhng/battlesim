@@ -159,6 +159,24 @@ function WeaponRowView({ w }: { w: WeaponRow }) {
   );
 }
 
+/** The compact card's one active progress track. When several things are
+ * waiting, the largest fraction finishes first, so the bar moves straight to
+ * the next item as each one completes. */
+function loadingProgress(panel: Panel): number | null {
+  const values = [
+    ...panel.states
+      .filter((row) => row.state === "deploying" || row.state === "packing")
+      .map((row) => row.progress),
+    ...panel.weapons.flatMap((weapon) => {
+      if (!weapon.live) return [];
+      if (weapon.live.reason === "aiming") return [weapon.live.aim];
+      if (weapon.live.reason === "reloading") return [weapon.live.reload];
+      return [];
+    }),
+  ].filter((value): value is number => value !== null && value !== undefined);
+  return values.length ? Math.max(...values) : null;
+}
+
 function StateRowView({ row }: { row: StateRow }) {
   const timer: Timer | null =
     row.progress !== null && row.progress > 0 ? { kind: "progress", value: row.progress } : null;
@@ -180,17 +198,33 @@ function StateRowView({ row }: { row: StateRow }) {
  *  section only when it has rows.
  *  `zoom` is the workbench's; the battle sets it on the layer round it. */
 export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
+  const loading = zoom === "compressed" ? loadingProgress(panel) : null;
+  const statusIcons = [
+    panel.weapons.some((weapon) => weapon.kinds.some((kind) => kind.count === 0))
+      ? { path: hudIcon("no_ammo"), title: "Out of ammo", negative: true }
+      : null,
+    panel.states.some((row) => row.state === "pinned")
+      ? { path: stateIcon("pinned"), title: "Pinned", negative: true }
+      : null,
+    panel.states.some((row) => row.state === "hidden")
+      ? { path: stateIcon("hidden"), title: "Hidden", negative: false }
+      : null,
+  ].filter((icon): icon is { path: string; title: string; negative: boolean } => icon !== null);
   return (
     <div className="ro-body" data-zoom={zoom}>
       <span className="ro-name">
         {panel.mark && <Icon path={panel.mark} className="ro-name-icon" />}
         <span className="ro-name-word">{panel.name}</span>
-        {panel.states.some((row) => row.state === "hidden") && (
-          <Icon path={stateIcon("hidden")} className="ro-hidden-icon" title="Hidden" />
-        )}
-        {panel.personnel !== undefined && (
-          <span className="ro-personnel">
-            {panel.personnel} {panel.personnel === 1 ? "soldier" : "soldiers"}
+        {statusIcons.length > 0 && (
+          <span className="ro-status-icons" aria-label="unit status">
+            {statusIcons.map((icon, index) => (
+              <Icon
+                key={`${icon.path}-${index}`}
+                path={icon.path}
+                className={`ro-status-icon${icon.negative ? " ro-status-negative" : ""}`}
+                title={icon.title}
+              />
+            ))}
           </span>
         )}
         <Pips fill={panel.strength} />
@@ -212,6 +246,17 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
           {panel.states.map((r) => (
             <StateRowView key={r.state} row={r} />
           ))}
+        </div>
+      )}
+      {loading !== null && (
+        <div
+          className="ro-loading"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={1}
+          aria-valuenow={loading}
+        >
+          <span style={{ width: `${Math.round(loading * 100)}%` }} />
         </div>
       )}
     </div>

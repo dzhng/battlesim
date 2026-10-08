@@ -437,10 +437,6 @@
   --tone: var(--hud-warn);
   --ink: var(--hud-warn);
 }
-.ro-row[data-tone="pinned"] {
-  --tone: var(--hud-pinned);
-  --ink: var(--hud-pinned);
-}
 .ro-body {
   user-select: none;
   display: flex;
@@ -460,26 +456,35 @@
     0 0 2px rgb(0 0 0 / 0.95),
     0 0 6px rgb(var(--tone) / calc(0.7 * var(--hud-callout-glow)));
 }
-.ro-personnel {
-  margin-left: 8px;
-  font-size: 10px;
-  letter-spacing: 0;
-  font-weight: normal;
-  color: rgb(var(--ink));
-}
 .ro-name-icon svg {
   width: 10px;
   height: 10px;
   margin-right: 3px;
   vertical-align: -1px;
 }
-.ro-hidden-icon {
-  display: flex;
+.ro-status-icons {
+  display: inline-flex;
+  flex-direction: row;
+  gap: 3px;
   margin-left: 5px;
+  align-items: center;
 }
-.ro-hidden-icon svg {
+.ro-status-icon {
+  display: flex;
+}
+.ro-status-icon svg {
   width: 12px;
   height: 12px;
+}
+.ro-status-negative {
+  color: rgb(var(--hud-warn)) !important;
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.95))
+    drop-shadow(0 0 3px rgb(var(--hud-warn) / calc(0.5 * var(--hud-callout-glow))));
+}
+.ro-row[data-state="pinned"] .ro-state-mark {
+  color: rgb(var(--hud-warn)) !important;
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.95))
+    drop-shadow(0 0 3px rgb(var(--hud-warn) / calc(0.5 * var(--hud-callout-glow))));
 }
 /* The weapons, then the states, a little apart. */
 .ro-section {
@@ -660,6 +665,9 @@
 .ro-pips i[data-on] {
   background: rgb(var(--tone));
   border-color: rgb(var(--tone));
+}
+.ro-loading {
+  display: none;
 }
 /* Far out, distinct icons and counts can compact to one line. Repeated
    icons keep their named rows so each physical gun's timer is identifiable. */
@@ -909,9 +917,6 @@
 .hud-group::-webkit-scrollbar-thumb {
   background: rgb(var(--hud-accent) / 0.75);
 }
-.hud-card .ro-personnel {
-  font-size: 11.5px;
-}
 .hud-card .ro-body {
   min-width: 230px;
 }
@@ -1139,6 +1144,20 @@
 [data-zoom="compressed"] > .ro-body .ro-section,
 .ro-body[data-zoom="compressed"] .ro-section {
   display: none;
+}
+.ro-body[data-zoom="compressed"] .ro-loading {
+  display: block;
+  width: 100%;
+  height: 1px;
+  margin-top: 4px;
+  background: rgb(var(--tone) / 0.18);
+  overflow: hidden;
+}
+.ro-body[data-zoom="compressed"] .ro-loading > span {
+  display: block;
+  height: 100%;
+  background: rgb(var(--tone));
+  box-shadow: 0 0 5px rgb(var(--tone) / 0.8);
 }
 
 .ro-layer .ro-unit {

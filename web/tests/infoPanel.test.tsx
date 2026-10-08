@@ -108,10 +108,10 @@ test("one progress ring shows aiming first, then reload, then disappears", () =>
   expect(view.container.querySelector(".ro-ring")).toBeNull();
 });
 
-test("own squad names count living soldiers including wounded members, without exposing enemy personnel", () => {
+test("unit cards omit personnel counts, including for own squads", () => {
   const squad = specimenUnit(TEST_CATALOG, "test_rifle", { memberHp: [10, 0, 3] });
   const own = render(<InfoPanel panel={ownPanel(UNITS, squad, [squad], fixtureRules)} />);
-  expect(own.getByText("2 soldiers")).toBeTruthy();
+  expect(own.queryByText("2 soldiers")).toBeNull();
   own.unmount();
   const enemy = render(<InfoPanel panel={enemyPanel(UNITS, "test_rifle", fixtureRules)} />);
   expect(enemy.queryByText(/soldiers/)).toBeNull();
