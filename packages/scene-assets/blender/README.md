@@ -74,8 +74,7 @@ from its references. `vehicle_export.run_disabled` builds it to that frame
 frame's source in the family's receipt beside the cards' GLBs (in
 `assets/source/roster/disabled/`, or the ground cards' own family folders).
 A stated frame has no mounts; a turreted card whose script states its own
-pivots and muzzles from the photos (the M1E3, M10, CV90120, Centauro II)
-rigs them for the art alone, so its turret traverses and its wreck throws
+pivots and muzzles from the photos rigs them for the art alone, so its turret traverses and its wreck throws
 it, while nothing in the simulation reads them until the card's mechanics
 land.
 The support cards' trucks stand on [one chassis](roster/truck_chassis.py)
