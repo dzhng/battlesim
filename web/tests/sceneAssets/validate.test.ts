@@ -49,6 +49,7 @@ import {
   SOLDIER_CLIPS,
   TOLERANCES,
   blockGlb,
+  debrisGlb,
   panelGlb,
   skidGlb,
   cartGlb,
@@ -328,6 +329,14 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
       await scenery(
         "wreck",
         { default: blockGlb(6), hull: blockGlb(2), turret: blockGlb(2, 5) },
+        [5, 4, 3],
+      )
+    ).findings,
+  "fit.debris": async () =>
+    (
+      await scenery(
+        "wreck",
+        { default: blockGlb(6), debris: debrisGlb([5, -1, 0], [30, 1, 0.3]) },
         [5, 4, 3],
       )
     ).findings,
@@ -646,6 +655,27 @@ test("a wreck's pieces lie within the whole wreck, off the ground and short of i
   const proud = (await pieces(blockGlb(2, 5))).findings;
   expect(proud.map((f) => f.code)).toEqual(["fit.piece"]);
   expect(proud[0].message).toMatch(/turret/);
+});
+
+test("a wreck's thrown debris may lie past its box, low, up to its own allowance", async () => {
+  const { reach_m, top_m } = SCENERY_KINDS.wreck.debris!;
+  const wreck = (debris: Uint8Array) =>
+    scenery("wreck", { default: blockGlb(6), debris }, [5, 4, 3]);
+  // A pack thrown 4 m off the bow, outside the footprint and its tolerance:
+  // the debris is no part of the box, so nothing is found.
+  expect((await wreck(debrisGlb([8, -1, 0], [9, 1, 0.3]))).findings).toEqual([]);
+  // At the allowance's edge, diagonally off a corner: still debris.
+  const r = reach_m / Math.SQRT2 - 0.01;
+  expect((await wreck(debrisGlb([5, 4, 0], [5 + r, 4 + r, 0.2]))).findings).toEqual([]);
+  // Past it, or standing taller than debris lies, it is refused by name.
+  const far = (await wreck(debrisGlb([5, -1, 0], [5 + reach_m + 0.5, 1, 0.3]))).findings;
+  expect(far.map((f) => f.code)).toEqual(["fit.debris"]);
+  expect(far[0].message).toMatch(/debris_pack/);
+  const tall = (await wreck(debrisGlb([6, -1, 0], [7, 1, top_m + 0.5]))).findings;
+  expect(tall.map((f) => f.code)).toEqual(["fit.debris"]);
+  // The debris state carries only debris.
+  const loose = (await wreck(debrisGlb([6, -1, 0], [7, 1, 0.3], "pack"))).findings;
+  expect(loose.map((f) => f.code)).toEqual(["fit.debris"]);
 });
 
 test("every vehicle names its own wreck, a wreck of its unit's hull", () => {

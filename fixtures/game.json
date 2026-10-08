@@ -1091,7 +1091,8 @@
           { "after_s": 0.3, "up_m": 1, "radius_m": 5, "sparks": 0 }
         ],
         "landing_dust": 2.2,
-        "landing_sparks": 14
+        "landing_sparks": 14,
+        "debris": { "hold_s": 20, "fade_s": 4 }
       },
       "dust": {
         "albedo": [0.74, 0.63, 0.48],

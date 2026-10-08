@@ -15,6 +15,12 @@
 // `presentation.effects.cook_off`; the effects take the fireballs, sparks
 // and dust (`EffectFrame`), the battle draws the pieces with `turretMotion`
 // and `hullMotion`.
+//
+// What the blast throws clear (armour packs, doors, track runs: the wreck's
+// `debris` state) lies round the wreck as it lands, wider than the box the
+// simulation keeps as cover. So it does not stay: after `debris.hold_s` it
+// sinks into the ground over `debris.fade_s`, as a corpse does, and is gone
+// (`debrisSink`). The wreck itself never fades.
 import { mat4, quat, type Mat4, type Quat, type Vec3 } from "math";
 import { mulberry32 } from "math/random";
 
@@ -50,6 +56,9 @@ export interface CookOffFeel {
   landing_dust: number;
   /** Sparks off the deck as the turret lands. */
   landing_sparks: number;
+  /** The thrown debris: seconds it lies still from the blast, then seconds
+   *  it takes to sink out of sight. */
+  debris: { hold_s: number; fade_s: number };
 }
 
 export function validateCookOff(f: CookOffFeel): CookOffFeel {
@@ -73,6 +82,9 @@ export function validateCookOff(f: CookOffFeel): CookOffFeel {
   if (!(f.landing_dust >= 0)) fail("landing_dust", "must be ≥ 0");
   if (!(Number.isInteger(f.landing_sparks) && f.landing_sparks >= 0))
     fail("landing_sparks", "must be a whole number ≥ 0");
+  if (!(f.debris?.hold_s >= 0)) fail("debris.hold_s", "must be ≥ 0");
+  if (!(f.debris.fade_s > 0))
+    fail("debris.fade_s", "must be positive, so debris sinks, never pops");
   return f;
 }
 
@@ -94,6 +106,24 @@ export function impactAfter(f: CookOffFeel): number {
 /** Seconds after the killing hit that every piece lies still as the wreck has it. */
 export function landedAfter(f: CookOffFeel): number {
   return impactAfter(f) + Math.max(airborne(f.bounce_m), f.settle_s);
+}
+
+/** Seconds after the killing hit that the thrown debris is gone. */
+export function debrisGoneAfter(f: CookOffFeel): number {
+  return f.delay_s + f.debris.hold_s + f.debris.fade_s;
+}
+
+/**
+ * How far the thrown debris has sunk into the ground `age` seconds after the
+ * killing hit, metres, or null when it is not drawn: before the ammunition
+ * throws it, and once it is gone. It lies still (0) through its hold, then
+ * sinks, easing in, until its top (`top`, metres above the ground) is under
+ * the ground. The one owner of the debris's fade; the wreck never fades.
+ */
+export function debrisSink(f: CookOffFeel, age: number, top: number): number | null {
+  if (!(age >= f.delay_s && age < debrisGoneAfter(f))) return null;
+  const u = Math.max(0, age - f.delay_s - f.debris.hold_s) / f.debris.fade_s;
+  return top * u * u;
 }
 
 /** Height on a hop's parabola `h` high, at `u` of its way (0 outside it). */

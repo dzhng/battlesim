@@ -28,7 +28,7 @@ import {
   type UnitCatalog,
   type UnitType,
 } from "./units.ts";
-import { SCENERY_KINDS, type SceneryRule } from "./scenery.ts";
+import { DEBRIS_NODE, SCENERY_KINDS, type DebrisAllowance, type SceneryRule } from "./scenery.ts";
 import {
   DEPLOY_EXTRAS,
   REST_ARTICULATION,
@@ -234,19 +234,27 @@ export async function validateAppearance(
       const bounds = positionsBounds(built.tiers[0].positions);
       states.push({ name: state, tiers: built.tiers, bounds });
       const rule = SCENERY_KINDS[entry.scenery ?? ""];
+      const debris = rule?.debris?.state === state ? rule.debris : null;
       // A wreck's tiers are a unit's: it is drawn where its vehicle was. It
       // takes the default row (no vehicle class sets a ratio of its own yet).
-      // A piece is part of its whole's tiers, so only the whole is held to
-      // the ratio: a thrown turret's far tier is a few boxes either way.
+      // A piece or its debris is part of its whole's tiers, so only the whole
+      // is held to the ratio: a thrown turret's far tier is a few boxes either way.
       if (entry.scenery === "wreck")
         findings.push(
           ...tierFindings(
             path,
             imported.scene,
             built.tiers.map(triangleCount),
-            rule?.pieces?.includes(state) ? 1 : unitArtRule(null).tier_ratio,
+            rule?.pieces?.includes(state) || debris ? 1 : unitArtRule(null).tier_ratio,
           ),
         );
+      // Debris is held to its own allowance, not to the ground or the box.
+      if (debris) {
+        findings.push(
+          ...debrisFindings(path, imported.scene, built.tiers[0], entry.footprint_half_m, debris),
+        );
+        continue;
+      }
       // A piece is held to its whole (`pieceFindings`), not to the ground or the box.
       if (rule?.pieces?.includes(state)) continue;
       if (rule?.blades) findings.push(...grassStripFindings(path, built.tiers));
@@ -272,10 +280,16 @@ export async function validateAppearance(
           ),
         );
     }
-    states.sort((a, b) => a.name.localeCompare(b.name));
+    // The kind's first state leads (what an impostor and a sheet show, even
+    // where a wreck's `debris` sorts before its `default`), the rest by name.
+    const lead = required?.[0];
+    states.sort(
+      (a, b) => Number(b.name === lead) - Number(a.name === lead) || a.name.localeCompare(b.name),
+    );
     const pieces = SCENERY_KINDS[entry.scenery ?? ""]?.pieces ?? [];
+    const debrisState = SCENERY_KINDS[entry.scenery ?? ""]?.debris?.state;
     if (required) {
-      const whole = states.filter((s) => !pieces.includes(s.name));
+      const whole = states.filter((s) => !pieces.includes(s.name) && s.name !== debrisState);
       findings.push(...footprintFindings(entry, whole, tolerances, input.name));
       findings.push(...pieceFindings(input.name, states, required[0], pieces));
     }
@@ -1367,6 +1381,66 @@ function extentFindings(
         ),
       ]
     : [];
+}
+
+/** The `debris_*` node scene node `i` is or lies under, or null. */
+function debrisNode(scene: Scene, i: number): string | null {
+  for (let n = i; n >= 0; n = scene.nodes[n].parent)
+    if (scene.nodes[n].name.startsWith(DEBRIS_NODE)) return scene.nodes[n].name;
+  return null;
+}
+
+/** A wreck's debris state (`SceneryRule.debris`): every mesh under a
+ *  `debris_*` node, and every point of its finest tier within `reach_m`
+ *  across the ground of the box of half extents `half`, and no higher than
+ *  `top_m`. */
+function debrisFindings(
+  label: string,
+  scene: Scene,
+  finest: MeshData,
+  half: AppearanceEntry["footprint_half_m"],
+  allowance: DebrisAllowance,
+): Finding[] {
+  const out: Finding[] = [];
+  const meshes = scene.nodes.filter((n) => n.live && n.mesh !== null);
+  const loose = meshes.filter((n) => debrisNode(scene, n.index) === null);
+  if (loose.length)
+    out.push(
+      finding(
+        "fit.debris",
+        `${label}: mesh ${loose
+          .slice(0, 3)
+          .map((n) => `"${n.name}"`)
+          .join(", ")} lies under no ${DEBRIS_NODE}* node; the debris state carries only debris`,
+        `put each thrown piece under a ${DEBRIS_NODE}* node (wreckage.scatter), and leave the wreck's own parts in its other states`,
+      ),
+    );
+  if (!half) return out;
+  const p = finest.positions;
+  let reach = 0;
+  let top = -Infinity;
+  for (let k = 0; k < p.length; k += 3) {
+    const dx = Math.max(0, Math.abs(p[k]) - half[0]);
+    const dy = Math.max(0, Math.abs(p[k + 1]) - half[1]);
+    reach = Math.max(reach, Math.hypot(dx, dy));
+    top = Math.max(top, p[k + 2]);
+  }
+  const over = [
+    ...(reach > allowance.reach_m
+      ? [`${fmt(reach)} m past the box, over its ${allowance.reach_m} m`]
+      : []),
+    ...(top > allowance.top_m ? [`${fmt(top)} m tall, over its ${allowance.top_m} m`] : []),
+  ];
+  const names = [...new Set(meshes.map((n) => debrisNode(scene, n.index) ?? n.name))];
+  if (over.length)
+    out.push(
+      finding(
+        "fit.debris",
+        `${label}: debris (${names.slice(0, 5).join(", ")}) lies ${over.join(" and ")}`,
+        "throw the debris nearer and lay it flat; the allowance is SCENERY_KINDS.wreck.debris (packages/scene-assets/src/scenery.ts)",
+      ),
+    );
+  return out;
 }
 
 /** Each of a scenery appearance's pieces (`SceneryRule.pieces`) against the

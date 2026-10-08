@@ -48,7 +48,10 @@ from its whole where they lie in it (a tank wreck's hull and turret, for the
 turret's throw), held inside the whole rather than to the ground or the box.
 Every vehicle appearance names its own wreck (`wreck`): a `wreck` scenery
 appearance on its unit's hull, cut into those pieces where it has a turret to
-throw, so you can tell which unit died by looking. Prop bindings belong to the
+throw, so you can tell which unit died by looking. What the blast threw clear
+(armour packs, doors, track runs) is the wreck's `debris` state, held to its
+own allowance instead of the box: it is presentation, drawn only where the
+side watched the death and sunk away after a while, never cover. Prop bindings belong to the
 resolved simulation catalog; the renderer does not maintain a second prop roster. Art fits boxes the simulation actually places,
 including a wreck's hull or a building's physical remains. Nonphysical dressing
 must not look tall enough to grant cover or concealment the simulation lacks.

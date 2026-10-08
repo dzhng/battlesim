@@ -2,6 +2,8 @@
 import { expect, test } from "vitest";
 import { mat4, vec3, type Vec3 } from "math";
 import {
+  debrisGoneAfter,
+  debrisSink,
   flightSeconds,
   hullMotion,
   impactAfter,
@@ -25,6 +27,7 @@ const FEEL: CookOffFeel = validateCookOff({
   settle_s: 0.8,
   landing_dust: 1.5,
   landing_sparks: 8,
+  debris: { hold_s: 10, fade_s: 3 },
 });
 /** Where the thrown turret lies on the wreck: aft of and beside its ring. */
 const LIES: Vec3 = [-0.3, 0.45, 2.1];
@@ -97,4 +100,31 @@ test("the hull heaves as the ammunition goes, dips as the turret strikes it, and
     const m = hullMotion(mat4.create(), FEEL, age, 17);
     expect(Array.from(m)).toEqual(Array.from(mat4.create()).map((v) => expect.closeTo(v, 6)));
   }
+});
+
+test("thrown debris lies still through its hold, then sinks out of sight and is gone", () => {
+  /** How tall the debris lies: sunk this far, all of it is under the ground. */
+  const top = 0.4;
+  const { hold_s, fade_s } = FEEL.debris;
+  const lands = FEEL.delay_s;
+  // Nothing before the ammunition throws it; then it lies as the wreck has it.
+  expect(debrisSink(FEEL, lands - 0.01, top)).toBeNull();
+  for (const age of [lands, lands + hold_s / 2, lands + hold_s])
+    expect(debrisSink(FEEL, age, top)).toBe(0);
+  // Through the fade it only goes down, and ends wholly below the ground.
+  const fading = [0.1, 0.4, 0.7, 0.99].map(
+    (u) => debrisSink(FEEL, lands + hold_s + u * fade_s, top)!,
+  );
+  for (let k = 1; k < fading.length; k++) expect(fading[k]).toBeGreaterThan(fading[k - 1]);
+  expect(fading[0]).toBeGreaterThan(0);
+  expect(debrisSink(FEEL, debrisGoneAfter(FEEL) - 1e-6, top)!).toBeGreaterThanOrEqual(top - 1e-3);
+  // Then it is not drawn at all.
+  expect(debrisGoneAfter(FEEL)).toBeCloseTo(lands + hold_s + fade_s, 9);
+  expect(debrisSink(FEEL, debrisGoneAfter(FEEL), top)).toBeNull();
+  expect(debrisSink(FEEL, 600, top)).toBeNull();
+});
+
+test("debris that never fades, or fades in no time, is refused", () => {
+  expect(() => validateCookOff({ ...FEEL, debris: { hold_s: -1, fade_s: 3 } })).toThrow(/hold_s/);
+  expect(() => validateCookOff({ ...FEEL, debris: { hold_s: 10, fade_s: 0 } })).toThrow(/fade_s/);
 });

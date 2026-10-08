@@ -12,8 +12,10 @@ does the rest, the same way for every family:
   measure it;
 - the materials, one per role (`materials`), in the family's real scheme;
 - each mount's articulation nodes at its frame's pivot and muzzle (`rig`);
-- `--wreck`: the family's damage, then `wreckage.burn()`, written beside the
-  live vehicle with its hull and turret pieces where it has a turret;
+- `--wreck`: the family's damage, then debris thrown clear from what it
+  carries (`wreckage.scatter`, seeded by the variant's id) and
+  `wreckage.burn()`, written beside the live vehicle with its hull and turret
+  pieces where it has a turret, and its debris;
 - visible crew after the paint is baked (they keep the soldier's own), and
   their materials carried through the export;
 - tiers checked to reduce, the GLB exported, and the family's receipt.
@@ -21,6 +23,7 @@ does the rest, the same way for every family:
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/<family>.py -- [--variant=<id>] [--wreck]
 """
 import hashlib
+import zlib
 import json
 import math
 import os
@@ -34,7 +37,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import parts as P  # noqa: E402
 from catalog_frames import family_variants  # noqa: E402
 from parts import bare_steel, empty, finish, flat_paint, glass, reset, script_args, textured, track_steel, tyre, triangles_by_tier  # noqa: E402
-from wreckage import WRECK_ARG, burn, export_wreck  # noqa: E402
+from wreckage import WRECK_ARG, burn, export_wreck, scatter  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
 # Each articulation's nodes (MOUNT_NODES in packages/scene-assets/src/validate.ts).
@@ -141,6 +144,7 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
             check(variant)
         if wrecking:
             wreck(variant, v)
+            scatter((v.length / 2, v.width / 2), v.mats, seed=zlib.crc32(variant["id"].encode()))
             burn()
         finish(ao_distance=ao_distance, ao_rays=ao_rays)
         source = None
