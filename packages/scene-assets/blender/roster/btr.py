@@ -18,7 +18,7 @@ Built to the catalog frame (hull 7.7 x 2.9 x 2.41 m, gun axis 2.0 m): the
 photos put the roof near 2.1 m and the turret's top near 2.6 m, and the
 frame's turret ring 1.0 m behind where the photos show it. Nothing here moves
 it: the roof is drawn at 1.90 m under a low turret, and the turret on the
-frame's pivot (choices.md, slice 16).
+frame's pivot (specs/done/unit-models/choices.md).
 """
 import math
 import os

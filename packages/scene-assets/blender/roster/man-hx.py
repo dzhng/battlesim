@@ -12,7 +12,7 @@ under a tarp, tied down along its foot, with the tool lockers and fuel
 tank under it. Cab interior as the dark glass shows it: the dash and seat
 backs.
 
-The photos mix 4x4, 6x6 and 8x8 HX trucks (choices.md, slice 08): the
+The photos mix 4x4, 6x6 and 8x8 HX trucks (specs/done/unit-models/choices.md): the
 catalog frame (hull 10.34 x 2.5 x 3.3 m) is the HX77 8x8's length, so this
 draws eight wheels, two axles under the cab and two under the body.
 Nothing here moves the frame.

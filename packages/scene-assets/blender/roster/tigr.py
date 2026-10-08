@@ -15,8 +15,8 @@ standing in the hatch (reference gap noted).
 
 Built to the catalog frame (hull 5.67 x 2.2 x 2.0 m, HMG pivot 1.82 m): the
 photos put the roof near 2.45 m. Nothing here moves the frame: the wheels
-are drawn true and the cab lower, so the body reads squat (choices.md,
-slice 16).
+are drawn true and the cab lower, so the body reads squat
+(specs/done/unit-models/choices.md).
 """
 import math
 import os

@@ -381,7 +381,9 @@ Least confident first.
   the rebuilt roster units: jets have shallow fuselages and small canopies,
   truck cabs are boxes with windows, drones are simple primitives, and there
   are no markings or insignia. The first things to raise when a family becomes
-  playable are recorded in each family's script.
+  playable: fuselage depth and canopy size for jets, hull detail and truck cabs
+  for ground support, and the M10's nose and turret and the M1E3's remote
+  station.
 - **The gap:** The detail bar was written for roster vehicles that players
   zoom in on, but disabled cards only show in the picker and the icons.
 - **The reach:** Making a card playable includes bringing its model up to

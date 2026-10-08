@@ -16,7 +16,7 @@ Built to the catalog frame (hull 8.0 x 3.0 x 2.8 m): the photos put the
 turret ring about 1 m behind amidships and its muzzle about 2.5 m ahead of
 it; the frame puts the ring amidships and the muzzle 4.25 m out (past the
 bow). Nothing here moves it: the turret is drawn on the frame's pivot and
-the barrel to its muzzle (choices.md, slice 16).
+the barrel to its muzzle (specs/done/unit-models/choices.md).
 """
 import math
 import os

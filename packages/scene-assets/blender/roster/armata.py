@@ -26,7 +26,7 @@ Frames (`T14_DIMENSIONS`, `T15_DIMENSIONS` and their mounts):
 T-14 8.7 x 3.5 x 3.3 m, gun pivot 1.98 m; T-15 9.5 x 3.5 x 3.5 m, gun pivot
 1.82 m. The T-15's frame puts the 30 mm's axis at 2.32 m, about 0.4 m under
 the real module's; the deck is drawn at the T-14's height and the module
-sits low on it (choices.md, slice 18 ground).
+sits low on it (specs/done/unit-models/choices.md).
 """
 import math
 import os

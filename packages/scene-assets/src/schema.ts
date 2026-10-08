@@ -278,7 +278,7 @@ export type MaterialRole = (typeof MATERIAL_ROLES)[number];
 /** The most a rubber surface's drawn albedo may be, as linear luminance (its
  *  mean over its area, `material.ts`): black rubber is about 0.025, a little dust
  *  low on a tread lifts it slightly, and a tyre filmed with dust all over (about
- *  0.04) reads grey. Calibration: specs/unit-models/choices.md, slice 13. */
+ *  0.04) reads grey. Calibration: specs/done/unit-models/choices.md. */
 export const RUBBER_MAX_LUMINANCE = 0.035;
 /** The most a glass surface's drawn albedo may be, as linear luminance, and the
  *  roughest it may be: sight glass is near black and shows what it reflects, so a
@@ -709,7 +709,7 @@ export const MAP_DOWNLOAD_MAX_BYTES = 256 * 1024 * 1024;
  * first frame (`catalogLoadBytes`): every appearance not fetched on request,
  * the skeleton clips, their textures once each, and the template library. A
  * loose tripwire against gross growth, set from the measured load with room
- * for the rebuilt models (specs/unit-models/choices.md), not a target. */
+ * for the rebuilt models (specs/done/unit-models/choices.md), not a target. */
 export const CATALOG_LOAD_MAX_BYTES = 512 * 1024 * 1024;
 /** The fewest texture array layers the target machine's adapter grants (the
  * Mac mini, `maxTextureArrayLayers`). The device requests the adapter's own

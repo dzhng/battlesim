@@ -20,7 +20,7 @@ with its heavy machine gun, and the turret front plates (from the Eurosatory
 Built to the catalog frame (hull 7.7 x 3.75 x 3.0 m, turret pivot 1.8 m,
 cannon muzzle 7.12 m ahead and 0.54 m up): nothing here moves it. The frame's
 3.0 m box is taller than the hull and turret roof the photos show (about
-2.6 m); the art stands at its real height inside it (choices.md). The wreck is cut into hull and turret pieces (wreckage.export_wreck).
+2.6 m); the art stands at its real height inside it (specs/done/unit-models/choices.md). The wreck is cut into hull and turret pieces (wreckage.export_wreck).
 """
 import math
 import os

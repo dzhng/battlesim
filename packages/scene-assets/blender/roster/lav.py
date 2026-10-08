@@ -21,8 +21,7 @@ Built to the catalog frames (hull 6.39 x 2.5 m; 2.69 m for the LAV-25 with
 its turret, 2.0 m for the LAV-AT): nothing here moves them. The LAV-25's
 frame puts the turret ring amidships (x 0) and the muzzle 3.65 m ahead of
 it; the drawings put the ring about 0.85 m further back and the muzzle 1.5 m
-behind the bow. The turret is drawn on the frame's pivot (choices.md, slice
-16).
+behind the bow. The turret is drawn on the frame's pivot (specs/done/unit-models/choices.md).
 """
 import math
 import os

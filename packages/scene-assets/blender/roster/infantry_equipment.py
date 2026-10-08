@@ -46,9 +46,9 @@ ARMIES = {
         variants={"a": dict(head="nvg"), "b": dict(head="cover", scarf=False, eyewear=True),
                   "c": dict(head="cover", pack="hydration", vest=RANGER)},
     ),
-    # Europe's shared kits wear the Bundeswehr's (specs/unit-models/choices.md,
-    # slice 17): Flecktarn, a Flecktarn carrier and pouches, a covered helmet,
-    # black boots, olive webbing, and the G36.
+    # Europe's shared kits wear the Bundeswehr's
+    # (specs/done/unit-models/choices.md): Flecktarn, a Flecktarn carrier and
+    # pouches, a covered helmet, black boots, olive webbing, and the G36.
     "german_flecktarn": dict(
         faction="europe", print=UNIFORMS["german_flecktarn"], printed_gear=True, vest="print", pouch="print",
         straps=(0.055, 0.062, 0.038), accent="print", helmet="ach", boots=(0.018, 0.017, 0.015),

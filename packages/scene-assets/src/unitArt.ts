@@ -4,7 +4,7 @@
 // Like `scenery.ts` for scenery kinds, this table is the art side's, keyed by
 // the class a unit draws as: its vehicle class, or soldier. Every number in it is a loose
 // tripwire against gross regressions, not a target: when real art exceeds one
-// and nothing visibly suffers, raise it (specs/unit-models/choices.md).
+// and nothing visibly suffers, raise it (specs/done/unit-models/choices.md).
 
 import { meshTier, type Scene } from "./scene.ts";
 import type { Budget, Finding } from "./schema.ts";

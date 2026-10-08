@@ -19,7 +19,7 @@ M1126 and M1134 photos.
 Built to the catalog frame (hull 6.95 x 2.72 x 2.64 m): nothing here moves
 it. The roof is drawn at its real 2.30 m; the remote station's fixed base
 rises to the frame's top. The Dragoon's frame puts its gun axis at 2.19 m,
-below the real hull roof, so its hull is drawn lower (choices.md, slice 14).
+below the real hull roof, so its hull is drawn lower (specs/done/unit-models/choices.md).
 """
 import math
 import os

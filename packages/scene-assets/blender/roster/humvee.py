@@ -14,7 +14,7 @@ the gun's slot, angled wing shields with armoured glass, side and rear
 shields, the gunner standing in it behind the M2.
 
 Built to the HMMWV's own frame (hull 4.9 x 2.2 x 2.0 m, eye 2.42 m, HMG
-pivot 2.28 m; choices.md, slice 14).
+pivot 2.28 m; specs/done/unit-models/choices.md).
 """
 import math
 import os

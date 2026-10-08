@@ -2,7 +2,7 @@
 
 The one owner of appearance bundles: schema, validation, baking and loading. The workbench and the battle load through the same `AppearanceLibrary` (`src/loader.ts`). The CLI (`web/asset.mjs`) is only file IO around this package.
 
-The [appearance rationale](../../specs/done/battle-look/README.md) records the imported techniques and their provenance. [Schema](src/schema.ts), [validation](src/validate.ts) and [encoding](src/codec.ts) own the current contract.
+The [appearance rationale](../../specs/done/battle-look/README.md) records the imported techniques and their provenance. The [unit models rationale](../../specs/done/unit-models/README.md) records why units are built from references to their frames, with their own wrecks, strict tiers, material roles and loose budgets. [Schema](src/schema.ts), [validation](src/validate.ts) and [encoding](src/codec.ts) own the current contract.
 
 ## Principles
 
