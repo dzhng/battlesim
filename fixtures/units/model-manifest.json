@@ -180,7 +180,7 @@
       "id": "eastern_mig_31_foxhound_mig_31bm",
       "family": "mig_31_foxhound",
       "category": "air",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "mig_31_foxhound",
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
