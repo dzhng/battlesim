@@ -26,7 +26,7 @@ export const gameCamera = {
     return {
       target: [target[0], target[1], 0],
       distance,
-      pitch: rig.pitchAt(distance),
+      pitch: Math.min(Math.PI / 2 - 0.08, rig.pitchAt(distance) + 0.18),
       yaw,
       ...gameCamera.lens,
     };
@@ -38,7 +38,12 @@ export const gameCamera = {
     const dx = start[0] - center[0];
     const dy = start[1] - center[1];
     const radial = Math.hypot(dx, dy);
-    const pitch = rig.pitchAt(Math.max(presentation.default.distance, radial));
+    // A slightly higher opening elevation keeps the entry chevrons legible on
+    // the ground while preserving the direct spawn-to-enemy heading.
+    const pitch = Math.min(
+      Math.PI / 2 - 0.08,
+      rig.pitchAt(Math.max(presentation.default.distance, radial)) + 0.28,
+    );
     const baseDistance = Math.max(
       presentation.default.distance,
       Math.max(1, radial) / Math.max(0.01, Math.cos(pitch)),
@@ -50,10 +55,10 @@ export const gameCamera = {
     return {
       target: [target[0], target[1], 0],
       distance,
-      pitch: rig.pitchAt(distance),
-      // Keep the entry lane slightly oblique so its inward chevrons read as
-      // ground marks instead of collapsing into a line toward the horizon.
-      yaw: Math.atan2(dy, dx) + 0.35,
+      pitch,
+      // Look directly down the entry lane toward the enemy so the map edges
+      // stay parallel to the battle's direction of travel.
+      yaw: Math.atan2(dy, dx),
       ...gameCamera.lens,
     };
   },

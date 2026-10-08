@@ -234,6 +234,7 @@ export function buildBattleOverlay(
         scenario.deployment.facing,
         z,
         gameOrderStyle,
+        gameHud.accent,
         { stroke: gameStroke(metresPerPx) },
       )
     : null;

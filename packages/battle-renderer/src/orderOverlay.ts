@@ -187,7 +187,6 @@ const QUEUED_R = 2.8;
 const BLOCKED_R = 4.5;
 /** A travel chevron: length along the travel and spread across it. */
 const CHEVRON_M: readonly [number, number] = [0.9, 1.7];
-const DEPLOYMENT_CHEVRON_M: readonly [number, number] = [4, 7];
 
 type P2 = readonly [number, number];
 
@@ -585,22 +584,34 @@ export function buildDeploymentMarker(
   facing: number,
   z: SurfaceHeight,
   style: OrderStyle,
+  markerColor: readonly [number, number, number],
   { stroke }: OrderOverlayOptions,
 ): Mesh {
   const mesh = new MeshBuilder();
   const pen = orderPen(z, style, stroke);
-  const color = glowing(style.color, style.glow.selected);
+  const color = glowing([...markerColor, 1], style.glow.selected);
   const { cycles_per_s, amplitude } = style.march;
-  ring(mesh, pen, destination, 10, color, { width: pen.stroke });
   for (let i = 0; i < 3; i++) {
+    // The entry point is on the player's edge; the chevrons sit across the
+    // entry lane so their inward-facing tips remain readable in the direct
+    // spawn-to-enemy camera view.
+    const lane = (i - 1) * 35;
+    const tip = along(along(destination, facing, 10), facing + Math.PI / 2, lane);
+    const back = facing + Math.PI;
+    const left = along(along(tip, back, 30), facing + Math.PI / 2, 30);
+    const right = along(along(tip, back, 30), facing - Math.PI / 2, 30);
+    const chevronColor = fadeAlpha(color, i === 1 ? 1 : 0.62);
+    const width = Math.max(pen.line * 1.6, 6);
+    groundStrip(mesh, left, tip, width, chevronColor, { z: pen.z, lift: 0.4 });
+    groundStrip(mesh, right, tip, width, chevronColor, { z: pen.z, lift: 0.4 });
     marchChevron(
       mesh,
       pen,
-      along(destination, facing + Math.PI, 4 + i * 5.5),
+      tip,
       facing,
-      color,
+      chevronColor,
       [i * 0.25, cycles_per_s, amplitude],
-      DEPLOYMENT_CHEVRON_M,
+      [18, 34],
     );
   }
   return mesh.build();
