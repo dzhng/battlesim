@@ -69,7 +69,10 @@ def hull(v):
                                     (0.8, side * 1.42, DECK + 0.02)], m, h, radius=0.02)
     VP.grille("engine_grille", (-2.65, 0, DECK), (1.10, 1.90), m, h, slats=10)
     VP.exhaust("exhaust", (-half - 0.02, -1.05, 1.25), 0.09, 0.25, m, h, rot=(0, 0, math.pi))
-
+    # The rear: its tail lights in their guards.
+    for side, sd in ((1, "L"), (-1, "R")):
+        VP.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.5), DECK - 0.20), 0.05,
+                            dict(v.mats, lamp=v.mats["tail"]), v.hull, rot=(0, 0, math.pi))
 
 def running_gear(v):
     road_x = [2.25 - 0.86 * k for k in range(6)]
@@ -88,6 +91,7 @@ def turret(v, turret, gun, hmg, hmg_gun):
              (1.00, -0.42)]
     cyl("turret_ring_guard", 0.98, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=36, lods=MID)
     loft("turret_shell", [(base + 0.04, foot), (top, crown)], mat=m["paint"], parent=turret, bevel=0.035)
+    VP.roof_fittings("roof", crown, top, m, turret, periscopes=((-0.10, 0.80, 0.6),))
     # A wedge of armour blocks on each cheek, the bustle box behind.
     for side, s in ((1, "L"), (-1, "R")):
         for k in range(3):
