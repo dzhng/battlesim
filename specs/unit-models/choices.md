@@ -1,532 +1,1101 @@
-# Choices
-
-- **Deferred mechanics stay disabled.** Source art is tracked separately from `assets/catalog.json`; a model file never makes a unit selectable. This preserves the existing card/catalog contract.
-- **Every disabled card receives source coverage.** The first art pass uses one explicit GLB per card, including deferred aircraft, rotorcraft, support, drones, infantry kits, and ground cards. This gives UI and future mechanics work a stable asset identity.
-- **Deferred-family silhouettes are provisional.** The disabled-family generator provides faction-colored, role-readable source placeholders. Family-specific meshes replace them as movement, weapons, mounts, and animation contracts are implemented.
-- **Family branches are authored in one deterministic exporter.** Aircraft, rotorcraft, support, drones, ground vehicles, and infantry kits use ID-driven silhouette branches so regeneration is repeatable and does not create a second disabled-card asset catalog.
-- **Challenger 3 keeps a family-authored model.** It is stored beside the Challenger family source and remains unbound while its mechanics are deferred.
-
-## Part B: reference-built models (2026-10-06)
-
-- **Scope is every unit, playable first.** The user asked for every unit. The roster's 40 runtime vehicles and 17 infantry kits come first because players see them; the 86 disabled cards follow in slice 18 and stay unbound.
-- **Materials before geometry.** Slice 13 fixes tyres, glass and paint on the existing models before any are rebuilt, so the reported defect (tyres not black) is gone early and every later rebuild inherits the material helpers.
-- **Tyre cause, as found.** The rubber recipe is near black; the exporters' dust film (`dirt=.3`, `DUST` 0.15, tyre wholly below `rise`) brightens it two to three times, to about the dark-olive body's tone, and an oversized painted rim covers most of the face. Fixed by a `tyre()` helper and guarded by a validator role check, not by per-family colour tweaks.
-- **References are committed, licensable only.** Public domain, CC0, CC BY, CC BY-SA, with file page, author and licence recorded; downscaled to 1600 px; under `assets/references/`, never read by runtime or bake. Rejected: keeping them in scratch (the previous pass did, and they are gone) or in the spec folder (they outlive the spec).
-- **Frames come from the fixture catalog.** The exporters read the archived manifests by a path that no longer exists. The resolved catalog is already the authority on fit, so exporters read it rather than restoring the old path.
-- **Budget is measured, then fixed.** The previous pass forbade inventing unit budgets; slice 14 sets one from the pilot's measured triangle counts and frame cost, then validation holds later families to it.
-- **Blender before-sheets are evidence, not a gate.** `specs/unit-models/assets/before/` keeps the 2026-10-06 renders as the comparison baseline; the review gate is `asset sheet` in the production renderer.
-- **Not drafted in parallel at first.** Superseded the same day: the user ran `/write-spec`, and four biased drafts were synthesized (see Synthesis below).
-- **Generic pre-roster units are not remodelled** (user, 2026-10-06). `tank`, `jeep`, `supply` are not on the roster (the US light vehicle is the M1151 HMMWV); they become labelled test units in Part A.
-
-## Part A: roster-only content (2026-10-06)
-
-- **Generic units are kept as explicit test units** (user, 2026-10-06: tests use fake units unless there is an explicit reason to use the roster; the roster changes all the time). This was already practice on main (`847c813c`); Part A renames them `test_*`, moves them to `fixtures/units/test/` and fences them out of the game's catalog. (Named "stand-in" in earlier drafts; renamed, see decision 10 below.)
-- **Test-unit art is kept, labelled and not remodelled.** Scenes, labs and the benchmark draw test units, so they need art; it becomes `test_*` under `assets/source/test/`. Its wrecks become the test units' own wrecks. (Superseded: renaming the generic wrecks by class; every vehicle now gets its own wreck.)
-- **Tests, scenes, labs serving them, the benchmark and the endurance lab use test units**, so a roster change moves none of their verdicts or baselines. Superseded: an earlier draft of this plan moved labs and scenes onto roster units. Model cost is measured in a dedicated roster lab scene instead (slices 09, 14, 19).
-- **A battle without factions is refused** (user, 2026-10-06: "obviously invalid"). `/battle` without a faction errors by name; the recipe-planned player battle and its address parameters are deleted. Recipes survive only as inputs to developer tools (the map workbench) and tests, naming test units. Rejected: defaulting to US against Eastern (a silent default hides a broken link).
-- **Convert or delete, never leave** (user, 2026-10-06). Every place a generic unit or the village reaches the game becomes roster units or is deleted.
-- **Encounter opponent and referee move to `sim::encounter`.** They are production behaviour (every encounter battle and the menu reel), so they are kept and renamed, not deleted.
-- **No compatibility.** No id aliases, no village replay reader, no storage migration (the user's default).
-- **The generator's `village` settlement class stays.** The user suggested `internal_test`, believing it was test-only. It isn't: `fixtures/map-presets.json` places it in ordinary Play maps, as the centre of small and medium maps of some types and as a secondary settlement on most, between `hamlet` and `small_town`, with its own district mix and street plan. Renaming it `internal_test` would mislabel game content. The user confirmed (2026-10-06): "if the word village is used in this context it's perfectly ok".
-- **Developer menu stays in production builds** (user, 2026-10-06: the audience is technical). Its tools are labelled as tools, not game content.
-- **One spec, not two** (user, 2026-10-06). Roster-only content and model work were briefly a separate `specs/roster-only-content/`; merged here as Part A.
-- **Two catalogs** (user chose option A, 2026-10-06): `fixtures/catalog.json` is the game's, roster only; a test catalog adds test units for labs, scenes, the benchmark and the endurance lab. Refined by decision 5 below: the test catalog is resolved at run time, not committed. Rejected: one catalog with a `test` flag (fakes still ship, one missed check leaks them); labs on roster units (roster changes would move scene verdicts).
-- **Reuse what the generic units earned** (user, 2026-10-06: "the generic tank is basically an Abrams with nice death animations"). Their tuned sounds seed the vehicle presentation classes (slice 01), the generic tank's model seeds the Abrams pilot (slice 14), the jeep's crew module puts crew on roster vehicles (slices 09, 15, 16), and their wrecks become the test units' own (slice 05).
-- **Reference photos are resized**, long edge at most 1600 px (user: "resize them into something reasonable").
-- **Paint is the vehicle's real nation's, US in desert tan** (user chose option C, 2026-10-06). Rejected: one scheme per faction (reads as three armies at a glance, but no longer looks like the real vehicles); US green.
-- **All 86 disabled cards are remodelled in this spec, with icons** (user chose B, 2026-10-06). Rejected: deferring each family to its mechanics spec (A), or ground-only (C). Their icons come from their models like every other unit's, and the picker shows them on unavailable cards.
-- **Scarce references: use what exists, generate the rest** (user chose A, 2026-10-06, adding image generation). Licensable photos and line drawings first; missing views generated with the latest gpt-image through the duet CLI, conditioned on real references, labelled as generated with their prompt and inputs, and never trusted over a real photo. Rejected: viewing non-licensable photos uncommitted (B); blocking a family on missing views (C).
-- **Coordinator plus a wide worker pool** (user chose A and said to parallelise even more, 2026-10-06). Six workers to start, more while the machine keeps up; shared helpers stay coordinator-owned. Rejected: one serial session (B); Codex workers (C).
-- **Look: stylised strategy-game readability** (user chose D of four generated directions, 2026-10-06). Real layouts from references, bold bevels, simplified shapes, painted edge highlights, moderate weathering. Rejected: clean factory (A), field-worn realism (B), war-film clutter (C). Exaggeration never changes physical envelopes.
-- **Players zoom in to admire units; target machine is the Mac mini** (user, 2026-10-06). Tier 0 must hold up close; the triangle budget is set against that machine.
-- **No per-unit variation yet** (user: "can look same for now, but in future we can build in variations"). No variation machinery in this spec.
-
-## Unknown-unknowns sweep (2026-10-06)
-
-Two read-only sweeps (art pipeline; content and catalog) found the cards below. The user agreed with every recommendation except 2 and 7, which they decided otherwise.
-
-1. **Shared textures and a download limit** (slice 10). Every page downloads ~1.3 GB (215 raw bundles, measured); unit bundles embed copies of 18 MB of distinct textures 765 MB over; nothing limits it; the device never requests its texture-layer limit (256 default, 234 used). Rejected: only adding a byte limit.
-2. **Every vehicle has its own unique wreck** (user, overriding the recommendation): "you should be able to tell which unit died by looking at the wreck", and it is the unit's size. The wreck prop records its unit type; footprint matching goes (slice 11). Rejected: wreck by mobility class then size (recommended); renaming the three generic wrecks by size.
-3. **The HMMWV gets its real frame** (slice 14). Its model is the JLTV's file and its frame the JLTV's; a real-size HMMWV fails fit. Digests move; HMMWV-only balance sample. Rejected: switching the card back to the JLTV.
-4. **Dressing has its own allowance** (slice 12). `dressing_*` nodes are excluded from ±0.1 m hull fit and held to a per-class allowance so they can't read as cover. Rejected: keeping all detail inside the hull box.
-5. **The battle session owns its unit catalog; the test catalog resolves at run time** (slice 04). 76 files read the module-level catalog (11 import it directly), so a lab's test units would silently not draw, and the editor, publication and asset pipeline know one file. Rejected: committing two catalog files.
-6. **Presentation from physics and base weapons** (slice 01). A new catalog field would change the engine id; roster weapons (derived rows) already miss every weapon-keyed table. Rejected: a `presentation.vehicle` field.
-7. **The menu reel is a film** (user, overriding the recommendation, and noting they had said so before): it may use any units, including menu-only units with any stats, and anything may change, but every approved shot must stay **exactly** the same. Units wear roster looks (blue US, red Eastern; red AT looks like the Kornet team); an event-log test and per-shot keyframe comparison against a recording of the approved reel are the gate (slice 08). Rejected: real roster stats with re-staging.
-8. **Roster base soldiers and intermediates are abstract**; "no change" is proven by diffing resolved cards, not by a parity file that carries its own catalog; the digest move is accepted (slice 02).
-9. **`recipe_id`/`encounter_seed` leave the request contract**, unknown parameters are refused; engine id moves (slice 07). Rejected: keeping them as fixed values.
-10. **"Test unit", not "stand-in"**, which already names the prop placeholder box (slice 05).
-11. **market-town-test holds `assault`**; market-town keeps only the menu encounter (slice 06).
-12. **Every unit switches detail with zoom** (user, 2026-10-06): the renderer already picks tiers by projected height; the art contract now requires each tier to draw strictly fewer triangles by a recorded ratio and refuses a mesh copied to every tier (slice 12).
-
-Sharp edges, decided on evidence and shown to the user: vehicles have no impostor (tier 3 is the far view); crew from soldier tier 1, per-faction source, weapon hidden by role, vanish at the wreck; track links in texture (UVs scroll); workers export and validate, the coordinator bakes and commits runtime output; five exporters point at the moved manifests and 13 receipts are already stale; disabled cards share 52 files and the authored ground models are unreferenced; the disk filled on 2026-10-06.
-
-## Synthesis of four drafts (2026-10-06, `/write-spec`)
-
-Four drafters got the same neutral brief (the interview's decisions and measured facts, not this ladder), each with a lens: A fewest slices (Claude), B risk first (Codex), C seam quality (Claude), D parallel throughput (Codex). The canonical ladder takes:
-
-- **Session-owned catalog before everything that depends on it** (B, C, D agreed): slice 04 now precedes test units, the menu and the village removal. The earlier ladder had the menu ahead of the session catalog, which would have needed a temporary path for menu units.
-- **One resolver, three document sets** (C): game, test, menu; only the game's committed. Pages load only the appearances their session binds (C), so game pages stop fetching test art.
-- **Weapon base key published by the one resolver** (`sim::fixtures::admit`), not derived in TypeScript; **`vehicleClass` owned by `units.ts`** and reused by budgets (C).
-- **Pilot covers every budget class** (A, B, C): Abrams, Stryker, HMMWV, rifle squad; references for those families come first, testing reference scarcity early (B). Rejected: pilot including an aircraft and a rotorcraft (A); their budgets come from the first disabled lane family, with the tracked-heavy budget as a ceiling.
-- **References inside each lane** (A, D), with only the schema and check up front (C's B7). Rejected: a separate references slice for every family before modelling.
-- **Lanes in parallel after the pilot, closeout once at the end** (B, D). The earlier ladder closed out before the disabled cards, which would have run the full suite twice.
-- **Coordinator batch integration** (D): workers export and validate only; the coordinator merges lanes in batches and bakes.
-- **Wreck physics stays on `Hull.wreck`; the published prop gains `wreck_of`** (C); map-placed wrecks name their unit (A). **Wreck art is a linked scenery appearance** with pieces. Rejected: wreck as a state of the vehicle appearance (C), which changes unit bundle roles while scenery wrecks with pieces already exist and validate.
-- **Crew module fixed in the pipeline slice, frozen before the pilot** (D), since the pilot's HMMWV and Abrams use crew.
-- **Wrecks and art rules split** (fog audit): the wreck contract (sim, publication, renderer) and the validator's art rules are judged differently.
-- **Menu units take the roster hull** (C found the Abrams and HMMWV don't fit the test hulls at ±0.1 m). Rejected: scaling roster art to the test hull (distorts the look).
-- **Dressing replaces the existing `hull_top_m: 1.1` overrides** (A, C): one owner for dressing.
-- **Corrections to the brief adopted:** material string extras already survive (`material.ts:51`); only node extras are numeric, so dressing is marked by name (A, C); track UVs scroll on track-material vertices only (A); a map download limit exists but covers only on-request content (B, D); missing factions aren't refused today (B); eight exporters read the archived path (B).
-- **Not adopted:** a vehicle impostor (A, C). Vehicles draw tier 3 far away; the pilot measures whether that costs too much, and an impostor is the named alternative only if it does. Merging village removal with test units into one slice (A): kept separate (05 then 06) so each has one verdict, with 06 after 05 so the renames land once.
-- **Weapon presentation shipped another way** (main `6c258b3d`, 2026-10-06): `kindTable.inheritRows` walks `extends` client-side for weapons without a row. Slice 01 keeps only the vehicle class and the unit-keyed overrides; the synthesis's published `base` field is dropped so weapon presentation keeps one owner.
-- **No number is a requirement** (user, 2026-10-06): "numbers like the 50 MB download limit are arbitrary... I don't want you to spend too much time over-optimizing for some random number that you came up with yourself." Budgets, limits, ratios and allowances are loose tripwires set from measurement with room to spare; when one is exceeded and nothing visibly suffers, raise it. An earlier session had set the map download and kit bundle limits (`schema.ts`) to 50 MiB; both were raised to 256 MiB on 2026-10-06 and marked as tripwires.
-
-## Slice 03 (implementation)
-
-- **One file per moved type**: `crates/sim/src/encounter/defender.rs` and `referee.rs`, private modules re-exported as `sim::encounter::{Defender, Referee}`. Rejected: one shared `opponent.rs`, which would put the referee under the opponent's name. The moved bodies are byte-identical to the village originals.
-- **Spec records left as written**: the unit-models README's problem statement and `visualizations/unknowns-map.html` still say "village Defender/Referee"; they describe the state the plan started from. The battle-foundation README's ownership line was updated, since it states current ownership.
-## Slice 02 (implementation)
-
-- **Base kinds live in `fixtures/units/roster/shared.json`** (`roster_rifleman`, `roster_grenadier`, `roster_scout`, `roster_at_rifleman`); the other three extend `roster_rifleman`, as the generic kinds extend `rifleman`, so `rifles` stays the first mount and the grenadier's launcher second.
-- **Base kinds carry no appearance**: every concrete roster soldier names its own, so the generic `rifle*`/`recon*` sets would only be dead inheritance.
-- **"Generic appearances" dropped from the intermediates** means the gunners' `operator_appearance` `active`/`carried` (`at*`) and the `rifle*` sets on the abstract `roster_marksman_rifle_body` and `roster_heavy_sniper_body`; the gunners keep `active_pose`, which every team member inherits.
-- **The test reads documents by root**: `sim::fixtures::documents` became public so the test admits `units/roster`, `units/ground`, `units/roles.json` and `props` through `fixtures::admit`; slice 04 replaces it with the named game set.
-- **Card diff identical** (2026-10-06): resolved `fixtures/catalog.json` before and after, restricted to the 142 cards, their 56 units, the 39 soldier kinds their squad slots name, and the weapons: identical. The only change is the 13 intermediates leaving `soldiers` (and the view's `documents` copy); the file diff is 1000 deletions.
-- **No parity fixture moved.** The parity-reading suites (sim publication, skirmish, objectives, endurance, world_geometry, buildings; mapgen encounter, skirmish, compiler, layout_cli; contract maps, templates, catalog) pass unchanged: none pins a digest of a full-catalog battle. `config_digest` of a battle whose rules hold the full catalog does move (13 fewer soldier kinds); no committed file records one.
-## Slice 01 (implementation)
-
-- **Class names compose, not enumerate:** `vehicleClass` returns `<tracked|wheeled>_<weight_class>`, plus `_logistics` for a hull with the `logistics` role (`tracked_heavy`, `wheeled_medium_logistics`). A combination no hull fields yet takes the `default` row until it gets one.
-- **HMG collision → `hmg-combat`** (the jeep's); the tank's `hmg-bass` override goes. **Rifle collision → `rifle-combat`**; recon's `recon-rifle` goes. Both dropped recipes stay in the library for audition. Every other unit override already equalled its weapon's default, so folding deleted `sounds.json` `units` and left `defaults` unchanged.
-- **`sounds.json` `defaults` inherit too** (`inheritWeaponChoices` in `battle-lab/src/soundFeed.ts`, the battle's `gameSoundCatalog`): without it every derived weapon fell to `defaults.default`, so a roster tank cannon fired the rifle recording. Same `inheritRows` owner as the presentation tables.
-- **Unit and mount identity leave the effect publication** (`EffectShooter.kind`, `EffectMount.name`, `Launch.unitKind`/`mountName`): per-unit sound choices were their only reader.
-- **The sound catalog refuses an unknown section** (a stale `units` is an error, not silently ignored).
-- **The sound workbench lists vehicle classes read-only, for audition.** Their loops and levels live in `game.json` `presentation.audio.vehicles`, which the workbench does not publish; a loop is replaced for every class through its effect slot. The firing editor lists every weapon row, derived ones included, showing which ancestor a row inherits from.
-- **`wheeled_medium` takes `supply`'s row as the slice says, so it has no turret loop** although most of its hulls (Stryker, BTR, Boxer) carry turrets. Left for a sound pass; a turret loop driven by whether the hull has a turret mount would be the physical rule.
-- **Found, not fixed: burst cadence mismatch on inherited choices.** `marksman_rifle` and `heavy_sniper` (single shots) inherit `rifle-combat` (3 rounds, 0.1 s), and `autocannon` (0.2 s) inherits `hmg-combat` (0.1 s), so each round plays a whole burst. Not new: before this slice all three fell to `defaults.default`, which is also `rifle-combat`. The shipped-cadence test checks only rows a weapon owns. Fixing it means choosing recordings, which is a call to make by ear.
-- **Wheeled medium class gets a turret loop** (coordinator, slice 01 integration): the class copied the supply truck's row, so Strykers, BTRs and Boxers turned turrets silently. It now plays the shared `turret` loop at gain 0.08, between the light (0.05) and tracked (0.12) classes; a by-ear pass may retune it.
-## Slice 09 (implementation)
-
-- **Frame helper is a sibling of `parts.py`** (`blender/catalog_frames.py`), plain Python with no Blender, so it is unit-tested on fake catalogs (`catalog_frames_test.py`). A variant is the one unit type whose `appearance` names it; its frame is that type's `body.hull` extents and eye and its `mounts`, each mount's role from the appearance's `mounts`; body dimensions are `2 × half_extents_m`; a family is every appearance whose source is in `assets/source/roster/<family>/`, ordered by id. A per-variant exporter takes an appearance id (written to its catalog source) or an output `.glb` named after one, refuses another family's, and a family of one needs no argument (this also fixes the trucks' default path, which resolved against the CLI's `web/` working directory).
-- **Re-exports are byte-identical.** Before switching, Bradley re-exported through the old script (archive path) matched its committed blob; after switching, every variant of Abrams (armor.py), Bradley (light_armor), BMP (eastern_armor), Boxer (europe_carriers), Fennek (remaining_ground), Leclerc (remaining_tanks), T-90 (eastern_tanks) and HEMTT (logistics), 13 GLBs, hashes to its committed LFS oid. So art hashes are unchanged and no GLB is committed. Every bound family's archived manifest frame equals its catalog frame exactly (extents, eye, mount order, pivots, muzzles, roles, names), except the HMMWV, whose manifest frame was never exported (slice 14). The stale receipts of Bradley and Leclerc did not change output: their scripts changed only in ways that move no bytes.
-- **Appearances no unit draws have no frame.** The disabled families' exporters (T-14, T-15, Type 15, BRM, Jaguar, JLTV, Challenger 3) now refuse by name; their models come from slice 18. The research `dispatch_gate` check in `remaining_tanks.py` went with the manifest.
-- **Receipts** (`source-receipt.json`, written by armor.py and eastern_tanks.py) record `frames: fixtures/catalog.json` instead of a manifest hash, and the eastern tanks' reference limits are inlined. Nothing reads receipts; regenerated ones were not committed since no GLB changed.
-- **Infantry keeps reading the archived infantry manifest** (`specs/done/...` directly, no dead path): it reads equipment lengths and appearance sources, not a physical frame. Slice 17 replaces it.
-- **Parts library** (`vehicle_parts.py`, nothing imports it yet): static parts make no empty (every empty is an articulated bundle node); wheel parts make a `wheel_*` empty with `radius_m`; `track_run` reproduces armor.py's belt exactly and drops its rubber pads, which hung under the track node and so scrolled; a `black` material role covers bores and openings; tiers per piece are fixed inside each part; sprocket teeth scale with radius.
-- **Crew module.** Faction soldier: `CREW_SOLDIER` maps each faction to an appearance (`rifle_squad_active_a` for all three, since the roster rifle squads share one look until slice 17). Tiers: vehicle tier t carries the soldier's tier t + 1, and tier 3 carries no crew. Weapon: every connected piece skinned wholly to the `hand_r` joint is cut; the soldiers carry no separate weapon node (the weapon is joined into the one skinned mesh), so the joint it rides is the node used; on both `rifle.glb` and `rifle_squad/active_a.glb` this cuts exactly the faces the old material rule cut, at every tier. Materials: crew materials are renamed `crew_<name>` (shared between crewmen), and only those are restored after export. The jeep (test art) passes `assets/source/infantry/rifle.glb` explicitly and was not re-exported; a scratch re-export validates clean under its catalog settings and drops from 64512 / 17314 / 5616 / 1798 to 26114 / 8554 / 2538 / 364 triangles, the crew having been most of the jeep.
-- **References.** `references.json` is `{entries, gaps}`; licences are SPDX ids (`CC0-1.0`, `CC-BY-*`, `CC-BY-SA-*`) or `public-domain`, and `ours` for generated views only; an unpulled LFS image is hash-checked by its pointer oid and its size skipped with a warning; a family folder without `references.json` fails `check`. The sheet's family is the source's roster folder and its variant the appearance id; `side` pairs with the vehicle's left view, a new `q-rear` studio view serves `three_quarter_rear`, and `detail` has no model view. Verified with a stub library for `us_m1_abrams_sep_v3_trophy`, then deleted.
-
-### Triangle baseline (2026-10-06)
-
-Triangles per tier 0 / 1 / 2 / 3, from `asset validate` on each committed source (the sheet's `stats.json` has no tiers for a catalog appearance). All 43 vehicle sources validate.
-
-| Appearance | Triangles |
-|---|---|
-| us_m1_abrams_sep_v2 | 25942 / 10186 / 3284 / 1296 |
-| us_m1_abrams_sep_v2_trophy | 26774 / 10522 / 3428 / 1392 |
-| us_m1_abrams_sep_v3_trophy | 27346 / 10710 / 3484 / 1392 |
-| europe_leopard_2_2a6 | 26942 / 10298 / 3408 / 1362 |
-| europe_leopard_2_2a7v | 28062 / 10642 / 3464 / 1362 |
-| europe_leopard_2_2a8 | 28894 / 10978 / 3608 / 1458 |
-| europe_challenger_challenger_2_tes | 18382 / 6360 / 2338 / 1292 |
-| europe_leclerc_xlr | 16834 / 5368 / 2282 / 1328 |
-| europe_kf51_panther_prototype_main_battle_tank | 19122 / 6080 / 2500 / 1472 |
-| eastern_t_72_t_72b3_2016 | 25816 / 10566 / 3520 / 1468 |
-| eastern_t_80_t_80bvm | 25688 / 10718 / 3408 / 1372 |
-| eastern_t_90_t_90m_proryv | 27096 / 10910 / 3278 / 1228 |
-| eastern_type_99_ztz_99a | 17586 / 5614 / 2388 / 1324 |
-| us_m2_bradley_ifv_m2a4 | 13828 / 5134 / 2208 / 1244 |
-| us_m3_bradley_cfv_m3a3 | 13884 / 5154 / 2220 / 1256 |
-| europe_cv90_cv9040c | 11688 / 4260 / 1830 / 1040 |
-| europe_cv90_mk_iv | 12072 / 4386 / 1870 / 1076 |
-| europe_puma_level_c | 13158 / 4726 / 1574 / 992 |
-| europe_ajax_tracked_reconnaissance_vehicle | 13600 / 4820 / 1858 / 1052 |
-| eastern_bmp_ifv_family_bmp_2m_berezhok | 9804 / 3888 / 1918 / 1224 |
-| eastern_bmp_ifv_family_bmp_3 | 9756 / 4056 / 1778 / 1072 |
-| us_stryker_m1126_icv | 8278 / 4136 / 1162 / 784 |
-| us_m1127_stryker_rv_reconnaissance_vehicle | 8354 / 4172 / 1194 / 816 |
-| us_stryker_m1134_atgm | 8906 / 4396 / 1258 / 880 |
-| us_stryker_m1296_dragoon | 8640 / 4270 / 1218 / 840 |
-| us_lav_lav_25a2 | 8364 / 4210 / 1198 / 828 |
-| us_lav_lav_at | 8558 / 4308 / 1238 / 880 |
-| europe_boxer_apc | 10530 / 4502 / 1218 / 716 |
-| europe_boxer_rct30 | 12172 / 5180 / 1438 / 796 |
-| europe_vbci_infantry_fighting_vehicle | 10166 / 4396 / 1054 / 708 |
-| eastern_btr_btr_82a | 9002 / 4472 / 1358 / 904 |
-| eastern_zbl_08_wheeled_ifv | 9878 / 4836 / 1354 / 864 |
-| us_acv_acv_p | 11128 / 4694 / 1270 / 724 |
-| us_m1151_hmmwv_hmg | 7502 / 3162 / 868 / 700 |
-| eastern_tigr_tigr_m | 7064 / 3096 / 878 / 660 |
-| europe_fennek_reconnaissance_vehicle | 5308 / 2432 / 660 / 524 |
-| europe_vbl_machine_gun_scout | 4170 / 2116 / 588 / 492 |
-| us_m977_hemtt_general_resupply | 21304 / 8682 / 2404 / 848 |
-| europe_man_hx_general_resupply | 19954 / 8422 / 2290 / 706 |
-| eastern_ural_4320_general_resupply | 15978 / 7440 / 2048 / 690 |
-| tank (test) | 56670 / 17858 / 3398 / 976 |
-| jeep (test) | 64512 / 17314 / 5616 / 1798 |
-| supply_truck (test) | 25340 / 8222 / 1526 / 264 |
-
-**Frame-cost baseline: pending for the coordinator.** The GPU browser runs here (a sheet takes about 14 s), but no lab scene holds roster vehicles, and the slice's column-of-roster-vehicles scene is new lab code; it was not built in this slice.
-## Slice 10 (implementation)
-
-- **One transport for every bundle.** Skeleton clips, unit, scenery and kit bundles all travel the same way (texture pixels out, gzip), not only unit and scenery bundles: one reader path instead of raw and gzip branches. The catalog keys stay the original content hashes; every bundle, texture and library hash in `assets/runtime/catalog.json` is unchanged (checked against the previous catalog: 227 appearances, skeletons, library).
-- **Texture table layout.** A texture's file is the preimage of its existing content address (the header line `textureId` already hashed, then every level), gzipped at `<encoded hash>/texture.bin`; its gzip record lives in the catalog's one `gzip` table under the texture id, so the raw-hash check of `unpackGzip` is the texture-id check. The texture table proper is `textures`: bundle hash → its texture ids in the bundle's order, so the download can be counted from the catalog alone.
-- **A bundle's travelling content** is its encoding with each texture's `levels` left out, under its own magic (`BGAT`), so it can never be read as a bundle. The art identity is verified on every read by joining the textures back and hashing the whole encoding (`gzip.ts` `readBundle`): the same browser hashing cost as before (it hashed every raw bundle), traded for keeping one identity rule. Rejected: recording a second hash for the stripped content.
-- **The library counts toward the catalog load, not a map's download.** The loader fetches it with the catalog, so the map download is now what a map fetches on request beyond the load (kits, family looks, and their textures the load did not already fetch).
-- **Catalog-load limit: 512 MiB** (`CATALOG_LOAD_MAX_BYTES`). Measured 2026-10-06: 129.6 MiB on the wire after this slice, against 1188.5 MiB before (eager raw bundles plus the library). About four times the measured load, room for Part B's detailed models and wrecks; a tripwire, not a target.
-- **Texture-layer floor: 2048** (`TEXTURE_ARRAY_LAYERS_FLOOR`), what the Mac mini's adapter reports for `maxTextureArrayLayers` (queried 2026-10-06 in the scene runner's Chromium: apple, metal-3, 2048). Counted at bake over every baked appearance (an upper bound on any page): albedo 131, surface 234 today. Over the floor is a bake error, `budget.texture_layers`.
-- **Stale test numbers fixed in passing.** Three loader tests still set kit and map sizes at the old 50 MiB limits (raised to 256 MiB in `78603b18`); they now use the constants.
-## Slice 12 (implementation)
-
-- **One owner for unit art rules: `packages/scene-assets/src/unitArt.ts` `UNIT_ART`**, a table keyed by `vehicleClass` or `soldier`, with a `default` row every class and missing field falls back to (as `scenery.ts` is per kind). Slice 14 adds class rows. Wrecks take the default ratio until slice 11 says whose wreck each is.
-- **Recorded numbers, all loose tripwires** (not measured; raise when real art exceeds them and nothing visibly suffers): `tier_ratio` 0.9 (each tier draws at most 0.9 of the triangles of the one before). Today's least-reducing catalog unit is the VBL at 0.84. Dressing: `bulky_m` 0.3 (any dressing at most 0.3 m past any hull face), `thin_m` 0.15 (above that, only parts at most 0.15 m across), `thin_top_m` 4 (up to 4 m over the hull's top). Thin parts get no extra reach sideways. The class budgets (`tier_triangles`, `bundle_bytes`, `textures`) are empty and unenforced until slice 14.
-- **Every new rule is an error from the start; no warning tier, no expected-failure list in code.** `asset validate` over all 130 catalog unit and wreck appearances (84 soldiers, 43 vehicles, 3 wrecks; 2026-10-07) finds no tier finding: every mesh names its tier, and the least-reducing step is 0.84. Severity therefore never has to let a bake through, and lanes can't drift. Rejected: warnings that the closeout requires empty (the coordinator's suggestion). Nothing would have used them, and they would have let a lane's new art slip through until slice 19.
-- **Expected failures: the 86 disabled-card placeholders** (`assets/source/roster/disabled/*.glb`, judged `--unit vehicle`). Every one fails `structure.tier_unsuffixed` (all its meshes are unsuffixed), and they add 258 `structure.tier_ratio` findings, three tier steps each, all tiers equal. They already fail the older errors too (`structure.tier_count` and `nodes.missing` on all 86, `basis.ground` on 81). They are not catalog appearances and never bake. Slice 18 rebuilds them and slice 19 requires the list empty.
-- **Unsuffixed unit meshes are refused, not copied.** `build.ts` still copies an unsuffixed mesh into every tier for scenery and kits, where that is the documented convention (`blender/city/README.md`). For units and wrecks `structure.tier_unsuffixed` is an error, so such a bundle never bakes. The tier rules live in `unitArt.ts` (`tierFindings`), not in `build.ts`, which stays about building.
-- **Dressing is marked by name on an empty: `dressing_*`, whose meshes hang under it.** The articulated bundle keeps empties as nodes, and mesh names are lost to the merge. Nested dressing is measured with its outermost node. It is measured at rest on tier 0, as hull fit is. It is an error from the start (`fit.dressing`, the scenery dressing code reused: same concept, so dressing can't read as cover). Thin versus bulky is judged by geometry, not by a name: whatever rises above the bulky margin must be at most `thin_m` across. So one antenna per dressing node.
-- **`hull_top_m` removed entirely**, not just its two overrides. It existed only as the antenna and cupola allowance; dressing owns that now, so hull fit uses one tolerance (`hull_extent_m`) on every face. The fit hint no longer invites widening.
-- **The generic tank and jeep mark their roof parts as dressing.** The parts are the antennas, plus the tank's CITV sight (0.18 m over the box) and wind-sensor mast (exactly at the tolerance edge). This is done in `tank.py`/`jeep.py` with identity `dressing_*` empties; the wreck states remove the new empties with their antennas. Blender isn't installed here, so the committed GLBs were edited to the same hierarchy (JSON only, binary chunk byte-identical). Triangle counts and bounds are unchanged, and both validate clean with no override. Their runtime bundles are stale until the coordinator's next bake: the bundles gain the empties, `asset check` reports them stale, and no outcome moves.
-- **`budgetFindings` generalised.** It now takes a `Budget` (`schema.ts`: tier triangles, bundle bytes, texture layers; each enforced where set). Scenery kinds and unit classes share it. Unit bundle bytes are the encoded bundle, encoded only when a class sets the budget. Texture layers are the bundle's distinct textures. The new codes are `structure.tier_unsuffixed`, `structure.tier_ratio`, `budget.bundle_bytes` and `budget.unit_textures` (renamed at integration from `budget.texture_layers`, which slice 10 uses for the GPU array layer count).
-- **An appearance drawn by types of several classes is held to each class's rules**, with identical findings reported once. A vehicle no type draws takes the default row.
-- **Synthetic test art now meets the rules.** Every part names its tiers, and each tier drops parts so it reduces. The block's coarser tiers draw fewer copies of the walls. The valid-assets test still requires zero findings.
-- **Engine sounds reported again from another session** (2026-10-07): roster vehicles play the default engine sound because rows are keyed `tank`/`supply`/`jeep`. That is slice 01's fix, merged on this branch (vehicle class from physics, generic rows reused), and reaches main when this branch is pushed.
-## Slice 04 (implementation)
-
-- **Scope: Work steps 1 and 2 only.** Step 3 (a page loads only the appearances its session's catalog binds) is **pending integration with slice 10**, which is rewriting the appearance loader in parallel. Every page still loads every appearance.
-- **Contract.** `sim::fixtures::catalog_documents(CatalogSet)` with `CatalogSet::{Game, Test, Menu}`: the test and menu sets are the game's roots plus `units/generic` and `units/menu` (absent: no documents), each file once. In the browser, `web/src/battle/catalog/sets.ts` (`catalogSet(set)`) is the session factory and the only module importing `fixtures/catalog.json`; `node.ts` (`nodeCatalogSet`) is its Node twin for the asset CLI and scenes; `compose.ts` composes both (`SessionCatalog`: `set`, `units`, `weapons`, `rules` = `game.json` with the set's documents). UI reads it with `useSessionCatalog()` under `SessionCatalogScope`; renderer, overlay, pointer, audio and helper code take `UnitCatalog` (or the `SessionCatalog`) as an argument.
-- **Who runs which set.** The router scopes `/battle` and `/replay` (fixture `generated`) to the game set and every lab, the workbench and the sound lab to the test set; the menu backdrop scopes itself to the menu set. Rejected: each route declaring its own set (30 routes, one decision).
-- **The session admits its scenario.** `useBattleSession` calls `admitScenario`: a unit kind its catalog lacks throws `unit type <id> is not in the <set> catalog` during render, instead of `AppearanceCatalog.resolve` drawing nothing. `panelRows` now reads the stock row with `units.type`, so an unknown kind throws there too instead of dropping the stock bar.
-- **Weapons are the game's in every set.** `resolve_catalog` returns no `weapons`; weapon rows live in `game.json`, so a set's `weapons` are the committed view's. Rejected: a wasm export of `sim::fixtures::admit` (a second browser resolver entry point for rows no set changes).
-- **Transitional dedupe until slice 05.** The game set still holds `fixtures/units/generic`, so the test set adds nothing yet. Natively, roots are deduplicated by path. In TypeScript the committed view's `documents` is one resolved document (abstract bases folded away), so `newDocuments` drops an own document whose every concrete entry the game already defines; a document adding anything goes to the resolver whole, which refuses a duplicate id by name. Slice 05 removes the generic folder from the game roots and this rule with it. The own-folder list is written three times (Rust `CatalogSet::own_root`, the Vite glob literals in `sets.ts`, `node.ts`), because Vite globs must be literal; each names the others.
-- **No wasm unless a set adds documents.** Both factories load the WebAssembly only when `newDocuments` is non-empty, so the asset CLI and game pages need no wasm today. After slice 05 the asset CLI's `validate`, `bake`, `check` and `icons` need `bun run build:wasm` (they resolve the test set).
-- **Art readers take the test set.** Asset CLI fit authority and icons, the model workbench (its card rows now come from the session catalog's `cards`, not a `catalog.json` import), `web/scenes/_units.mjs` and `city-ruins.mjs`. The mechanics editor's model fit validates the view of the editor's documents, every file under `fixtures/units/`, which today is the test set; slice 05 must keep the test folder in what `modelFit.ts` sees.
-- **Mechanics hot reload** goes through `editGameView` in the factory (install the editor's accepted generation, then freeze), which refuses an edit after any set was resolved.
-- **`labScenario` moved to the tests' helper** (`web/tests/catalog.tsx`): only tests called it. Tests read the test set through that helper (`UNITS`, `WEAPONS`, `TEST_RULES`, `WithTestCatalog`); the two module mocks of `shippedUnits` became catalogs passed in.
-- **`sim::fixtures::documents` stays public** for slice 02's roster-alone test: the named game set still holds the generic units, so it cannot yet prove the roster resolves without them. Slice 05 can switch that test to `CatalogSet::Game`. `CatalogSet::Test`/`Menu` have no native consumer yet besides their test; slices 05 and 08 are theirs.
-- **No digest moved.** Presentation only; the game set's documents are byte-identical (`fixtures/catalog.json` unchanged, `catalog::` tests green).
-- **Verified:** `sim` `catalog::` and `cover::` tests; the three slice tests (`web/tests/sessionCatalog.test.ts`, `catalogImports.test.ts`, `crates/sim/tests/catalog.rs` `the_test_and_menu_sets_extend_the_games`), each falsified once; 56 touched web test files, 52 green, the other 4 (`icons`, `villageBuildings`, `preparationWorker`, `battleFailure`) fail identically on the base commit (LFS pointers, browser harness). Scenes: `weapons` (lab, test set) all pass; `panels` (lab) and `unit-roster` (game route) give verdicts identical to the base commit, including the same pre-existing failures (panels centre-line/ring checks, a 404 on unit-roster). `mechanics_validate`'s `rejects_launch_profiles_tighter_than_the_games_accuracy_ceiling` fails on the base commit too (the error names `heavy_sniper`, not `rifle`).
-
-## Slice 04 step 3 (implementation)
-
-- **Contract.** `schema.ts` `catalogLoadNames(catalog, wearing?)` is the one selection of what a catalog load takes: scenery not fetched on request, and soldier and vehicle art only where `wearing` names it; skeleton clips and the template library always. `wearing` is `UnitCatalog.appearances` (new): every hull's `appearance`, every soldier kind's set, and every mount's operator `active`/`carried` sets, on types and soldier kinds. `AppearanceLibrary.load(baseUrl, wearing?)` and `catalogLoadBytes(catalog, wearing?, held?)` / `downloadBytes(catalog, names, wearing?)` all go through it. Absent `wearing` means every unit's art; its one production consumer is the workbench's dropped-GLB preview (a memory catalog of the dropped file, worn by no unit), plus the model-ghost scene probe and the loader tests.
-- **A page widens, never reloads.** `AppearanceLibrary.withUnits(wearing)` adds the art a later session's units wear (a lab after the game on one page) to the installed generation: held to `CATALOG_LOAD_MAX_BYTES` for the widened load, fetching only bundles it lacks, sharing the source's texture fetches and the in-flight table (`arriving`, now keyed by bundle for unit art as well as kits). Rejected: a library per set (scenery, clips, library and shared textures fetched twice) and a reload per set.
-- **Who passes what.** `gameAppearances(units, asked)` is the page's one owner: it loads with the first session's `units.appearances`, then `withUnits`, then `withAppearances`. `useGameAppearances` reads the units from `useSessionCatalog()`, so the routes did not change. The menu's warm-up loads the game set's (Play leads there). The workbench passes its session's (test set) units; unit art no test unit wears no longer appears in its catalog list (none today).
-- **Names the runtime catalog lacks are ignored**, as before: a worn appearance not baked is not drawn (`AppearanceCatalog.resolve` returns null). Not changed here.
-- **CLI report.** `asset bake`/`check` print the game page's load and every unit's art, and gate the latter (the largest any page can take, no WebAssembly needed). `asset download` gates the catalog load on every unit's art before opening anything, and counts a map's download beyond the game page's load (the smallest any page takes).
-- **Measured (2026-10-07, `assets/runtime/catalog.json` as committed):** every unit's art 127.7 MiB (133,872,739 B); game set 127.7 MiB, identical, because the game set still holds `fixtures/units/generic` until slice 05 and so wears all 127 unit appearances. Projected with only roster types' art (56 of 62 types, 112 of 127 appearances): 110.6 MiB (115,978,324 B). Scenery, clips and library alone: 30.2 MiB.
-- **Harness fixes in passing.** `_modelGhost.mjs` loaded through `gameAppearances.ts`, which now imports the session context (a `.tsx` the plain probe document cannot transform); it uses the loader directly with every unit's art. `downloadBudget.test.ts`'s scratch copy of `asset.mjs` lacked `web/src` (failing since slice 04 added the `node.ts` import); it symlinks it now.
-- **Verified:** the two new `sessionCatalog.test.ts` tests (falsified once by making the selection ignore `wearing`), `gameAppearances`, `transport`, `downloadBudget` (with runtime LFS art), `poseFeed`, `catalogImports`, the scene-assets suites (253 tests); `tsc`; `asset download` on the endurance map. Scenes: `unit-roster` (game route) and `weapons` (lab) pass every check; the one remaining page error is unit-roster's 404, recorded on the base by slice 04. No digest can move (presentation only).
-## Slice 07 (implementation)
-
-- **Contract.** `PrepareBattleRequest` is `{ map_source, factions: [Faction; 2], battle_seed }` (`deny_unknown_fields`): a request without `factions`, or naming `recipe_id`/`encounter_seed`, is refused at `$` with the field named in serde's message. The field was `skirmish` (optional); it is now `factions` (required), player's first. The engine id moves with the contract source; saved replays from before are refused.
-- **"Factions need skirmish geography" moved from the contract to preparation.** The benchmark's `city-contact` and the endurance lab prepare the `city-arena-2` stress scene on *standard* geography (metro xl); with factions required the contract's profile check would have refused them, and changing their map would move the benchmark's workload identity. So the check is now a property of the resolved map: preparation refuses a map with no admitted blue skirmish base at stage `encounter`, `feature: skirmish_sites`, `location: $.map_source` (standard geography and saved maps alike). Player links can't reach it: `/battle` always asks for skirmish geography. Rejected: a separate stress message without a battle request (larger change to worker, client, report and scenes). Consequence: stress requests carry `factions: ["us", "eastern"]` the stress scene ignores, as they previously carried an unused recipe.
-- **Preparation lost the recipe and saved-encounter branches.** Both faction-less paths in `prepare.ts` are gone, with `PrepareDocuments.recipes`, `SavedMaps.loadEncounter`, `PreparedWorld.plan_encounter` (TS interface), and the report's `planned` and `objective` (always null now; the battle route's objective status bar went with them). Play admission's retry list of planner codes went too: only `map`-stage generation exhaustion retries.
-- **Links.** `askedBattle` refuses any parameter outside `play type size seed region profile faction enemy battle replay` (`<name> is not a battle parameter`), a missing `faction`, and `profile` other than `skirmish`. `enemy` stays optional (Eastern, or U.S. against Eastern), resolved in `askedBattle` so `AskedBattle.factions` is always a pair; `preparedBattleHref` writes both and throws for a saved-map source.
-- **Tools name their own judged recipe.** `generated-battle.json` lost its `encounter` block (recipe and seed). The map workbench (`examples/common/workbench.rs`, `JUDGED_RECIPE = "assault"`, seed 1) and `battle_sweep`/`sight_report` (already hard-coding `assault`) name their seed themselves.
-- **Left for the closeout / scene owners.** `web/scenes/generated.mjs` (already stale before this slice: it expects a faction-less Deploy href) and `_groundStations.mjs`'s `generated` station set (`/battle?type=mixed&size=medium&seed=2`, reading `report.objective.center`) assume the recipe-planned battle; both now meet a refusal. They need a skirmish map and a new anchor in place of the planned town.
-- **Verified:** `contract` `preparation` tests (red before: no `factions`); web `battleStart` (new link tests red on the base commit, green here), `prepareBattle` (rewritten around faction battles on real wasm), `skirmishPreparation`, `stressPreparation`, `battleAdmission`, `cityBenchmark`, `mapWorkbenchServer`; `map_workbench_report` example tests; clippy on contract/mapgen/game-wasm; scene `unit-roster` (the Play scene: preparation → purchase → active, all checks pass) with the one 404 page error slice 04 also recorded. Pre-existing failures identical on the base commit: `router`, `navigation` Deploy, `battleVisit` and `battleStart`'s menu test (the menu/route stays suspended in jsdom); `preparationWorker` fails later, at its ReplayImport step, as slice 04 recorded.
-
-## Slice 13 (implementation)
-
-- **Contract.** A glTF material's `extras.role` (`rubber`, `glass`, `paint`, `steel`, `track`, `fabric`, `skin`, `marking`; `MATERIAL_ROLES`, `schema.ts`) ships on the bundle's `Material.role`; an unknown role is `material.role`. No format bump: the field is optional and every bundle was rebaked.
-- **What the guard measures.** What the surface draws on average over its triangles' area, as the model shader does: albedo texture mean × vertex colour × `colour_scale` × base colour, and the wear colour where a vertex's wear alpha passes the albedo's threshold. Rubber fails above luminance 0.035 (`material.role_rubber`); glass above 0.025 or roughness 0.3 (`material.role_glass`). A vertex mean was tried first and rejected: the small tread boxes outnumber a tyre's face in vertices but not in area.
-- **Today's tyres were already black by that measure** (finding, contrary to the README's diagnosis). Measured on committed sources: Stryker 0.022, Abrams 0.015, HEMTT 0.017, BMP-3 0.017. The dust film reaches only the lowest rim, so it adds little on average. What reads grey on screen is the painted rim covering 55–70% of the wheel face (geometry, slices 14–16) and the spatter on the lower tyre. The bound is set from black rubber (about 0.025, a little dust allowed) and refuses a tyre filmed with dust all over (about 0.042, the test fixture). It is not tightened to fail the old Stryker: that would sit at the new tyres' own value (up to 0.018). The old optics measured 0.021–0.043 at roughness 0.10–0.15; the cyan ones fail.
-- **New values.** Rubber 0.008–0.018 and glass 0.004–0.008 at roughness 0.08 over the 40 vehicles. `asset validate` prints them.
-- **Helpers** (`parts.py`): `tyre()` (rubber recipe, no chips or streaks, dust 0.12 rising 0.35 m: the film skips rubber except low on the tread); `glass()` (flat near-black (0.008, 0.010, 0.011), roughness 0.08, opaque, unworn); `track_steel()`, `bare_steel()`, `paint(scheme)` (tint 1, the only tinted vehicle surface). The old `paint` decorator is renamed `vertex_paint` (masonry used it), freeing the name.
-- **Dark running gear stays dark olive with role `paint` and no tint**, on every scheme. Hubs, louvres, sleeves and stowage read as shaded detail; scheme-coloured gear arrives with the rebuilt families. Recesses, lamps, wood and the red tail lamp take no role.
-- **Track belts without link UVs keep the dark paint.** The legacy helpers' belts (light_armor, eastern_armor, europe_carriers, remaining_*) have no per-link UVs, so `track_steel()`'s link texture would land at one link per metre. Only armor.py and eastern_tanks.py, whose belts carry link UVs, use `track_steel()`. `vehicle_parts.track_run` replaces them in slices 14–16.
-- **Schemes as data.** `textures.SCHEMES` maps scheme to recipe; each legacy helper has a `SCHEME` table by family (disabled families included, since they refuse by name anyway). German three-tone is the existing `nato_camo` print (Leopard's references agree: German NATO three-tone). Leclerc had no camo print and takes the new French three-tone. Russian green is single-tone for every Russian family; no three-tone variant was made. Colours are dark and desaturated like the old olive (means 0.05–0.09), except tan (0.285, 0.24, 0.17). Russian green was first a yellower (0.075, 0.092, 0.04); under the warm sun in the production sheet it read lime, so it moved to (0.058, 0.068, 0.043), an olive-green. Its blue at about 0.63 of its green is what keeps it off lime, not its value.
-- **Side tint.** Paint takes `tint` 1 everywhere, including the eastern tanks, which had 0.3. Red's warm multiplier lands on the real scheme; nothing else is tinted.
-- **HMMWV keeps the geometry its committed source has.** `humvee.py` builds light_armor's `humvee` branch, which fails the catalog frame (the JLTV's, until slice 14). The committed GLB was the `jltv` branch, so it was re-exported through that branch for the HMMWV appearance (a scratch driver, not committed). Triangles per tier match the committed file exactly.
-- **Geometry unchanged.** All 40 re-exported vehicles have the triangles per tier of slice 09's baseline, and all validate with no findings.
-- **Critique (unprimed, twice).** Tyres and tracks read dark and nothing glows. Fixed from the first pass: tracks drew pale under the dust film (now `track_steel()`, dust 0.15, plain steel on belts without link UVs), and the French print was brown-led. Left, each with its owner:
-  - **Wheels and hubs show light chips and dust splotches.** The shared chip rule treats a small part as all edge. The wheel parts are rebuilt in 14–16.
-  - **Lofted turret faces wash out under ORM specular**, as they already did in the before images.
-  - **The T-90's canvas mantlet cover is pale**; it uses the existing canvas recipe.
-  - **ZBL-08 glacis blocks look larger than the sides'** (box-UV projection on a slope).
-  - **Track wrap at the idler is lighter** (belt end faces).
-  - **Glass tops reflect sky teal:** intended grazing reflection, not emission.
-  - **Tan vehicles blend into the tan review ground:** the ground, not the scheme.
-- **Preview.** The shots were opened for the user, non-blocking; there was no response, so the slice proceeded on the evidence and the window was closed.
-- **Country-ported CC licences are allowed for references** (coordinator, 2026-10-07; reversible): `CC-BY-SA-3.0-DE` and the like grant the same redistribution as the unported ids, and the tracked lane skipped several good Leopard 2A7V photos for lack of them. `allowedLicence` accepts an allowed CC id plus a country code; a port of a disallowed licence (e.g. NC) stays refused.
-## Slice 05 (implementation)
-
-- **Contract.** `fixtures/units/generic/` is `fixtures/units/test/` (with a README header: test units, never game content). Ids: units `test_tank`, `test_jeep`, `test_supply`, `test_rifle`, `test_recon`, `test_at` and the abstract `test_squad`; soldier kinds `test_rifleman`, `test_grenadier`, `test_scout`, `test_at_rifleman`, `test_atgm_gunner`; the limit fakes `test_limit_tracked`/`test_limit_wheeled`. `sim::fixtures::stand_in_game`/`stand_in_documents` are `test_game`/`test_documents`. `CatalogSet::Game` no longer holds the folder; `Test` adds it. The `faction: "generic"` value is unchanged (the roster's abstract bases use it too).
-- **The game catalog holds only what roster cards reach** (`catalog::the_game_catalog_holds_only_what_roster_cards_reach`): every concrete unit is an enabled card, every soldier kind fills one's slot, no `test_`/`menu_` id. Red before the move (6 units, 5 soldier kinds), green after. `fixtures/catalog.json` regenerated: the generic units and kinds leave.
-- **`newDocuments` removed.** A set's own documents go to the resolver whole. One owner of the set folders in TypeScript: `compose.ts` `SET_FOLDERS` (with `isGameDocument`); `node.ts` reads it (`ownDocuments`), `sets.ts` keeps the literal Vite glob. The browser's test set now always loads the WebAssembly; `module.ts` reads the `.wasm` by `import.meta.dirname` in Node, because under jsdom `URL` is the DOM's and Node's file reader refuses it.
-- **Native fixtures.** `fixtures::game()` keeps the game set; every native caller of it (tests, examples, map tools; none in production) now calls `test_game()` (test units, roles, props). `fixtures::documents` became private. Two exceptions, each stated in the test: `deployment.rs` runs the test set (game + test) because it checks the roster Kornet's setup time; parity tests whose other half is a browser lab (publication streams, mapgen encounter records) resolve the test set, since the web half runs `TEST_RULES` and the published type table must match.
-- **Parity regenerated; no battle digest moved.** Only hashes over output that names type ids: `publication/{stream,combat,arrangement,cover-facing,contact-lifecycle}.json` (67 `publication_sha256` rows; `digest`/`initial_digest` identical), `encounter/paired-records.json` (all 5 `native_sha256`: recipes name test units and the type table holds the roster), `map-layout/paired-records.json` (7 cases that compile into a map: `physical-rules.json`, a recorded rules input, renamed its generic units). Skirmish records changed only by the rename. `codec-vectors.json` keeps its historical prop kinds `tank_wreck`/`jeep_wreck` (prop ids of a frozen vector, not test art); its unit kinds are renamed.
-- **Mechanics editor.** It still edits every file under `fixtures/units/`, test units included, and fits models against that view; but `fixtures/catalog.json` is resolved from the game's documents alone (two validator runs per resolve). `MechanicsSnapshot` gains `game` (what a page installs as its game view; `mechanicsStartup` reads it); `catalog` stays the editable view. The sheet lists test units after the roster under the heading "Test units · fakes tests and labs run on, never in the game". Draft helpers take `EditableSources`.
-- **Map workbench** captures its catalog input as the game's documents plus the test units (`workbenchCatalog`), since its recipe (`assault`) fields test units; `map_workbench_report`'s tests do the same natively. `map_analysis::INFANTRY` is `test_rifle`.
-- **`fixtures/encounters.json` `assault` and `game.json`'s village spawn name test units.** A `/battle` without factions (the recipe path slice 07 deletes) runs the game set, so it is now refused by name ("unit type test_jeep is not in the game catalog") instead of fielding generic units.
-- **Menu encounters** (`market-town/menu`, `paris-corner/corner`): only the unit ids were renamed; nothing else touched (slice 08). To keep them resolving, the menu set is the game's plus the test units plus `units/menu` (`CatalogSet::own_roots`, `SET_FOLDERS.menu`), which slice 08 needs anyway (its menu units extend test units). Rejected: scoping the backdrop to the test set (a change slice 08 would undo).
-- **Test art.** Appearances `test_tank`, `test_jeep`, `test_supply_truck`, their wrecks `test_tank_wreck` (with hull/turret pieces), `test_jeep_wreck`, `test_supply_truck_wreck`, and the twelve soldier sets `test_rifle*`, `test_recon*`, `test_at*`, `test_at_carried*`; sources moved to `assets/source/test/` (file names kept), exporters write there and say test art; the jeep's crew reads `assets/source/test/rifle.glb`. Rebaked: every bundle hash identical, only the runtime catalog's keys move; `check` passes. Wreck selection is still nearest footprint until slice 11. Icons regenerated (`assets/icons/units/test_*.svg`; the asset CLI draws the test set).
-- **Synthetic fakes keep their own names.** `web/tests/sceneAssets/synthetic.ts`'s `tank`/`rifleman`/`truck`, contract tests' fake catalogs, Blender node names and exporter kind arguments are not test units and were not renamed. Quoted `rifle` survives as the weapon id, `at`/`recon` as roles.
-- **Found, fixed in passing:** `downloadBudget.test.ts` scratch copy lacked `web/src` since slice 04 (the asset CLI imports `node.ts`).
-
-## Slice 08 (implementation)
-
-- **Contract.** `fixtures/units/menu/units.json` holds the menu's own units, resolved only into the menu set: `menu_us_tank` (Abrams SEPv2 look), `menu_eastern_tank` (T-72B3), `menu_us_jeep` (M1151 HMMWV HMG), `menu_rifle` (roster rifle squad, both sides), `menu_us_recon` (Army scouts), `menu_us_at` (TOW team), `menu_eastern_at` (Kornet team), and their soldier kinds `menu_rifleman`, `menu_grenadier`, `menu_us_scout`, `menu_us_at_rifleman`, `menu_us_atgm_gunner`, `menu_eastern_at_rifleman`, `menu_eastern_atgm_gunner`. Each extends the test unit or soldier it replaces and overrides only its appearance (an AT gunner's `operator_appearance`, with the roster's `kneel_fire` pose, too). Both menu encounters changed only their unit kinds; `menu-backdrop.json` is untouched.
-- **Menu units keep the test hulls, not the roster's** (overrides the slice's "hulls take the roster size"; reversible). With the Abrams and HMMWV hulls, Paris Corner's log stayed identical, but Market Town's diverged at tick 219 (an HMG round from red tank 25 struck the longer blue hull 22) and 13,820 of its 18,187 events then differed: the battle draws every shot's scatter from one shared random stream, so any changed draw retimes everything after it, and red rifles put hundreds of rounds on the blue tanks' hulls, where 0.47 m of length decides hit or miss. No tuning of health, fire windows or positions can bring a shared-stream battle back to the same ticks. Kept: the test hull, so the battle is the approved one bit for bit. Cost: the art overhangs its hull (Abrams 0.47 m per end, 0.03 m per side; HMMWV 0.9 m per end, 0.25 m per side, 0.7 m above), and the HMMWV's drawn HMG stands about 1 m above the test jeep's mount (the slice's design kept test mounts too, so that was never going to fit). The menu set is not fit-checked (`asset validate` reads the test set). The T-72B3 already fits the test hull (±0.1 m).
-- **The exact-shot test** (`crates/sim/tests/menu_reel.rs`): each backdrop scene replays natively (game.json + `CatalogSet::Menu`, its seed, to the reel's last tick) and its event log (`fire`, `hit` with ground/prop/hull/soldier and unit, `fell`, `died`, by tick, cast first) must equal `crates/sim/tests/fixtures/menu-reel/<map>-<encounter>.log` line for line after recasting the filmed `test_*` cast to the menu units (`CAST`). A followed unit must be alive when its shot opens; the approved reel itself has unit 0 cook off inside shot 6, so "alive throughout" would fail the approved cut. `BLESS_MENU_REEL=1` re-records, for an approved reel only. Red first on the filmed cast (event 0: `test_tank` played where `menu_us_tank` was recorded), red with roster hulls (market event 962, tick 219), red with a follow moved to a unit dead at tick 87; green on the menu cast. ~10 s at the test profile.
-- **The native harness is the browser's battle.** The recorded reel's digests every 300 ticks, read from the menu worker's publications in the browser, equal the native battle's at the same ticks (11 for Market Town, 4 for Paris Corner). After the switch the digests differ (type indices move), the event log does not.
-- **Keyframes** (`throwaway/menu-target/{before,after}`, 121 each: every shot's start, each cannon/missile/grenade/death in it, its end, captured at the logged tick ±1 with the menu plate hidden): framing and action identical in all 121; only the units' look changed. Pair distance median 0.020, max 0.117 (Market Town shot 14, the Abrams nearest the camera). Wrecks still look like the test tank's (slice 11).
-- **Critique.** The coordinator asked for no helper agents, so the unprimed critique was argued against myself (screenshot-critique's fallback). Strongest cases: an Abrams round strike lands up to 0.47 m inside the drawn front (the two missile hits on unit 0 read as at the hull in both frames); the HMMWV reads larger than the jeep it replaces (it is the real vehicle's size); an Abrams cooks off into the test tank's wreck (slice 11). Paris Corner shot 4 opens framed on a balcony wall in the approved reel and still does.
-- **Preview.** The side-by-sides were opened for the user, non-blocking; no response, so the slice proceeded on the evidence and Preview was closed.
-- **MAN HX wheel count is open for the wheeled lane** (references, 2026-10-07): the licensable photos mix 4x4 and 6x6 trucks. The lane takes the count from the unit's fixture frame (hull length and the roster card's role), not from the photos, and records it in its receipt.
-## Slice 11 (implementation)
-
-- **Contract.** `PropDefinition.wreck_of: Option<String>` (a unit type id; omitted when none) and `KnownProp.wreck_of: Option<TypeIndex>`. The publication's `knownProps` gains `wreckOf` (its index in `unitKinds`, -1 for none). The world export's prop record gains `wreckOf` (stride 10 → 11), and the world layout gains `unitKinds` and `unitAppearance` (each hull type's model). That is how a map's own wrecks (the endurance lab's) reach the renderer. `world::export::layout_json` takes the unit `Catalog`, not the `PropCatalog`. `Hull.wreck` still names the physics row.
-- **What is a wreck: a prop whose type is drawn by `wreck`.** The world refuses one without `wreck_of`, one naming a unit type without a hull, and any other prop naming one, with a panic like every other map admission check in `WorldGeometry::new`. One rule in `placed_prop` covers map props, `add_prop` events and deaths. Rejected: "a prop type some hull names as its wreck" (a lighter remains row is no hull's wreck). The sim reads `appearance.drawn_by` here, which the rules otherwise never do. That is acceptable because this is the presentation contract's own precondition, not a rule. `car_wreck` (drawn by `car_wreck`) is unaffected.
-- **Remains keep their unit.** A heavy wreck destroyed into a medium one is still the same tank's (`destroy_prop` copies `wreck_of`).
-- **Wreck art is one link per vehicle.** The vehicle appearance names its wreck (`wreck`). The runtime catalog carries it, and so does `InstalledAppearance.wreck`. `PropAppearances` resolves `wreckOf` → `unitAppearance` → that vehicle's `wreck`, and fits it to the box (a lighter remains is the same art, lower). Nearest-footprint choice is gone for wrecks. A wreck whose unit has no installed wreck art borrows none: it draws the stand-in where a style gives one, else nothing. Known leftover: `standsIn` treats every wreck kind as artless, so a page with stand-in styles also installs the (tiny) stand-in kit. Left as is.
-- **Wreck art loads with its vehicle.** `catalogLoadNames` takes a wreck only when a worn vehicle names it, so a game page fetches no test unit's wreck. Measured (2026-10-07): game page 121.2 MiB (was 110.6 MiB projected for roster art alone), every unit's art 155.5 MiB (was 127.7 MiB); limit 512 MiB.
-- **Cook-offs match by unit type.** `CookOffWatch` and `LastSeenHulls` match a lost hull to a wreck by `wreckOf === kind`, not by physics row. `LastSeenHulls` lost its unit catalog. A cook-off throws a turret only when the unit's own wreck has both pieces. The Tigr's wreck has none, so it jolts whole.
-- **Validator (`fit.wreck`, in the bake's `units` report).** Every vehicle appearance names a wreck that exists and is a `wreck` scenery appearance, with `footprint_half_m` equal (1e-6) to the hull of every unit type drawing it. A wreck piece (`hull`, `turret`) is no longer held to the tier ratio: it is part of its whole's tiers, and a thrown turret's far tier is a few boxes either way. The whole still is. Loose `asset validate` of a multi-state entry now reads all its states, so the test wrecks validate loose too.
-- **Interim wrecks (the seam), 40 roster vehicles.** `wreckage.burn()` turns the built live vehicle into burnt steel, with char where rubber, glass or canvas was. It removes dressing and crew, sags barrels 7°, heaves the turret askew (yaw 24°, small roll and pitch, lifted and shifted) and vents scorch at the ring. It drops the meshes' own UVs so the burnt texture is box-projected in metres. `export_wreck()` writes `<appearance>_wreck.glb`, plus `_hull`/`_turret` pieces where a `turret` node exists, cut from a scratch copy of the scene: the glTF exporter follows parents, so unlinking from collections did not drop the turret from the hull piece. All 8 roster exporters take `--wreck`. 27 wrecks have pieces; 13 are whole (HMG-only or no mount).
-- **Wreck footprint tolerances are measured overhangs.** Barrels and roof weapons overhang the hull box, which the live vehicle's fit excludes and a static footprint does not. Each wreck's `tolerances.footprint_m` is its measured worst face beyond the hull, rounded up to 0.1 m, plus 0.1 m (none up to 2.7 m; the test tank's wreck uses 3.0). The HMMWV's wreck is 0.24 m short of its hull: the JLTV-frame art, slice 14.
-- **Test units keep their wrecks.** `test_tank` → `test_tank_wreck`, `test_jeep` → `test_jeep_wreck`, `test_supply_truck` → `test_supply_truck_wreck`. Map-placed wrecks in tests and labs name the test unit whose hull they are (`heavy_wreck` → `test_tank`, `medium_wreck` → `test_supply`, `light_wreck` → `test_jeep`). The endurance lab's late wrecks name `test_tank`.
-- **Digests and engine id.** The engine id moves: it is the build fingerprint of `crates/contract` and `crates/sim/src`, and nothing commits it. No battle digest moved: `wreck_of` derives from the dead unit's kind, already in the digest, and is not hashed again. The one parity record regenerated is `publication/codec-vectors.json` (layout: `knownProps` gains `wreckOf`, `copyAlignments` 19 → 20). Every other parity record blessed unchanged.
-- **Evidence (scratch, `throwaway/cookoff/`).** The consequences lab with its encounter swapped, uncommitted, for a red T-90M (tracked) and Tigr-M (wheeled). Before (base commit): both died into the test tank's and test jeep's wrecks. After: each its own, the T-90's turret thrown and landing askew, the Tigr whole. The blue hatch on part of the T-90 wreck is the fog's unseen-cell hatch; a fog-suppressed shot is clean. No unprimed sub-agent (this run spawned none); the adversarial pass caught the seated turret and the duplicated turret in the hull piece, both fixed. Left for slices 14–18: interim wrecks are intact burnt hulls with no holes or debris, less dramatic than the test tank's modelled wreck.
-## Slice 06 (implementation)
-
-- **Contract.** `contract::maps::MapCategory { Test, Menu }` (`"test"`/`"menu"`), read natively by `sim::maps::Catalogue::category(id)` (refusal code `invalid_listing`, located at `<id>/meta.json`) and in TypeScript by `validateMapMeta` (`MAP_CATEGORIES = ["test", "menu"]`). `categoryMap(entries, id, category)` (`web/src/maps/catalogue.ts`) is the one check: the menu backdrop's `validateBackdrop(json, maps)` takes only `menu` maps, `fixtureMap` only `test` maps, and native `sim::fixtures::with_map(id)` only `test` maps. `MAP_CHARACTERS` lost `village`. `contract::maps::MapSource` lost `Catalogue`: a `PrepareBattleRequest` naming a saved map is refused at `$` (`unknown variant \`catalogue\``); `prepare()` lost its saved-maps argument and `SourcedMap.sites` is always present. The engine id moves (contract sources).
-- **Map-free rules.** `fixtures::game()`/`test_game()` carry no `map`; `with_map(id)` is `test_game()` plus that test map. Native moves: `sight.rs` reads its own flat map's fog cell; `flight_load.rs` stands on `endurance`; `ground_resources.rs` reads `ground`'s fog cell; `battle.rs`'s settlement test stands on `sensors` (it needs a garrisonable building inside 700 × 550 m); the contract template tests take the library's `api-box-*` boxes by id. No digest pinned by any of them.
-- **The street test map** (`fixtures/maps/street`) is the village's ground (`map.json` byte-identical, so the same map hash) under a test label, with a `supplied` input receipt in place of the old repository path. Its encounters: `street` (the fog labs' street: blue's nine at the old street positions, red and its defender policy as the old `ordinary` variant built them), `attack` (the old `ordinary` variant as data: blue at its spawn, red defending), `advance` (`attack` plus one tick-1 attack-move of blue's start onto the objective, so the battle plays itself) and `lean` (moved). Rejected: moving these to `movement`/`geometry` or a generated map, which would re-stage every coordinate-anchored browser check (the 26 tours of the former village scene, the ground station rig, the fog labs' camera) and every `s-*` movement scenario's window. The cost is that the old arena survives as test content under a test name; nothing of it reaches the game.
-- **Routes.** `/battle/village`, `/battle/village/watch`, `/battle/village/lean`, `/replay/village` are gone. `/lab/street` plays `attack` through the production controls (`?watch` plays `advance`; `?seed=`; a `remount()` probe replaces the variant picker's remount for the cleanup tour); `/lab/lean` plays `lean`. The former village scene is `web/scenes/street.mjs` (`STREET_TOURS`), the watch scene `street-watch.mjs` (registry `"/lab/street?watch"`), `village-lean.mjs` is `lean.mjs`. Dropped with the variant and replay format: the variant checks, the objective top bar (`objectiveStatus`, no other reader), the village replay-export check. The ground lab's `?village` inspector (a scripted attack two minutes in) is `?street`: the street encounter, stepped two minutes by the scene.
-- **Scripted blue is gone** (`sim::village::{scripts, ScriptedBlue, trial}`, `Battle::scripted`, the worker's `script` field, `ScriptedSim.script`, `authority.test`'s scripted-commander test). `examples/village_report.rs` was the balance report; balance now runs through `crates/mapgen/examples/battle_sweep.rs` on generated maps (examples README updated). Slice 19's "run the balance report once" means that sweep.
-- **Replay format.** One kind, `ReplayFile = { battle, replay }`; `ReplayImport` takes an optional `onLoad` (the viewer plays the file; elsewhere it opens `REPLAY_ROUTE`). IndexedDB key `village-last-replay` → `last-replay` (same database); the last village-era saved replay is dropped, no migration.
-- **`game.json`** lost `spawn`, `variants`, `defender_policy`, `encounter` and `repeatability_seeds` (the last only `village_report` read). Scenes that read `game.spawn`/`game.encounter` read the street `attack` encounter (`_units.mjs` `streetAttack`).
-- **Benchmark.** `/benchmark` defaults to `city-contact`; `VILLAGE_CONTACT`, `BENCHMARK_TOUR` and the village camera anchors are gone. The `city-contact` preset keeps its `variant` and `blue` fields though they now have one value each, so its fingerprint (`0d8e57f5`) and comparability with earlier reports hold. The benchmark scene runs the same workload from the menu (`benchmark`) and by address (`city-contact`).
-- **App journey** enters a generated battle (`/?type=open&size=small&seed=1&faction=us` → Skirmish → Deploy). A skirmish starts empty, so the journey buys one unit through the real picker (the roster's M1 Abrams SEP v2, as `unit-roster` does: the player's game has only roster units) after the tick-90 digest, saved replay and pause checks, then checks the toolbar and the fire-policy key on it. The army journey stays on a test battle (`/lab/street?seed=1`), keeping its digest pin `a03ed47451db67b4`: the `attack` encounter is the old ordinary variant on the same map, and the scene run reproduced the pin exactly.
-- **7b.** The `generated` station set and `generated.mjs` ask for `profile=skirmish&faction=us`; their town anchor is the preparation report's new `town` (the generator's first settlement's centre, `null` on a map with none; TypeScript only). Checks that assumed the planned assault's units were removed with that battle: red defenders in the town, the jeep driving the column's road, and blue's own ground being seen (a skirmish fields nothing in preparation). The road check now stands on blue's entry (`report.start`). Not run (a medium generated map; scene cost).
-- **7b, run (ground scene).** Two checks met the skirmish map's ground, not a regression. The main town's centre is a green: `town-250` frames yards 0.63 and meadow (the surround kind, the town's commons) 0.37, no crop. The check already said "yards and commons"; its `yard > 0.8` was the old frame's make-up. It is now: yards and commons are all the open ground (> 0.99), yards outnumber commons, nothing drilled. The skirmish map's tree lines run near roads, so none had open ground 30 m out on both sides; a tree line now needs open ground 4 m out and no wood 30 m out (a strip, not a wood's edge). The tree-line checks now judge only the strip's own ground (pixels whose ground lies on the chosen strip's strokes, `treeLine().strip`): the frame also holds a wood's floor, which has no grass and diluted the verge check (0.048 against 0.053 on the strip alone). The closed `city-maps` note that the mask "cannot identify one particular strip" no longer holds.
-- **Live art.** `village_ruin` → `ruin`; `assets/source/village/` → `assets/source/props/`; city set `village` → `lab_boxes` (kit `city_kit_lab_boxes`, script `blender/city/lab_boxes.py`; `house.py` kept, since the set and the ruin export through it). Rebaked: every bundle hash identical; only the template art library moved (`65bbc359…` → `5ce5098a…`, its set and kit names), so map and replay hashes are unchanged. `asset check` passes.
-- **Kept, as history:** `design/unknowns-map.html` (the earliest planning map) still says "village"; `git grep -i village` otherwise lists only the generator's settlement class (`fixtures/map-presets.json`, mapgen) and specs.
-- **Found, not fixed:** `web/tests/battleFailure.test.ts` (ported to a prepared replay) fails as it did on the base (slice 04's record): a replay refused by the simulation shows its message in the battle's top bar over the battle panel, not the loading screen's Aborted page the test expects. `web/tests/router`, `navigation` (Deploy) and `battleStart` menu tests fail identically on the base commit (the menu suspends in jsdom).
-- **No digest moved; no parity fixture regenerated.** Verified: `cargo test -p sim -p contract -p mapgen -p game-wasm` (all green, final state), clippy; web tests touched by the slice (map catalogue, menu reel, benchmark, replay, preparation, camera, terrain, scenery, light, fog, rivers, footprints, street buildings, prop appearance, observation, authority) on the rebuilt wasm; `asset bake`/`check`. Scenes: `fog`, `fog-look`, `projectiles`, `lean`, `benchmark` all pass; `street` tours `play`, `army`, `cleanup`, `appflow` pass. Not run: the other 22 `street` tours, `street-watch` (its `advance` encounter's BATTLE_TICK frames are untuned), `generated`, and the ground scene's street inspector (`ground` stops first on `_surfaces.mjs` and four other helpers importing the `GAME_RULES` that slice 04 removed from `scenarios.ts`; pre-existing). No screenshot critique: the fog labs and `lean` draw the same map and units as before, so no look was meant to change.
-
-## Slice 14 infantry (implementation)
-
-- **Contract: a soldier appearance's look per faction** (`assets/catalog.json` appearance `factions`, e.g. `"factions": { "eastern": "rifle_squad_eastern_active_a" }`). All three factions' rifle squads draw one soldier set, `rifle_squad_active_a/b/c` (one roster card, `fixtures/units/roster/shared.json`), and the renderer picked by side only, so a US and an Eastern squad looked alike. The battle now draws the look of the faction a side fights for: `AppearanceCatalog` takes the session's `SideFactions` (from the scenario's `skirmish.factions`), and a battle with no factions (labs, the menu reel) draws the base look. A faction look loads with the appearance it is a look of (`catalogLoadNames`), travels through bake and the runtime catalog like `wreck`, and is held by `structure.faction_look` (a soldier on the same skeleton, a known faction, no looks of its own). Presentation only: no fixture, simulation or digest moves. Rejected: per-faction roster cards (moves the roster and digests), and leaving the Eastern look unworn art. Europe names no look and wears the default, US OCP, until slice 17 picks Europe's shared-kit uniform. `vehicle_crew.CREW_SOLDIER` now gives Eastern crew `rifle_squad_eastern_active_a`; Eastern vehicles pick it up when next re-exported.
-- **Two armies, one kit script.** `roster/infantry_equipment.py` `ARMIES` holds each army's look by its reference variant (`us_army_ocp`, `eastern_emr`): uniform print, printed carrier, pouches and helmet cover, helmet, boots, gloves, webbing and rifle, plus what looks a, b and c change. `KIT_ARMIES` lists a kit's armies, default first. `--army=` selects one, and a non-default army writes `<faction>_<mode>_<look>.glb`. `infantry_kit.Kit` reads these keys from `ARMY_DEFAULTS`, whose values are the test art's, so the test exporter is unchanged. The test rifle re-exports with no findings. Two small shifts land on the test art's next export: its hip pouches take its pouch colour, and its lenses become dark glass.
-- **Prints as recipes** (`textures.py`): `ocp_ripstop` (sandy khaki ground, pale sand, olive, brown and a little dark brown, softer and less contrasted than multicam) and `emr_ripstop` (about 7 mm square pixels, clustered). Both use `_ripstop`, the ripstop finish factored out of `multicam_ripstop`; multicam's bytes are unchanged (checked). `textures.UNIFORMS` maps army to print. Carrier, pouches, pack and helmet cover take the print as is: the references show printed MSV and 6B45 carriers.
-- **Russian kit after the references:** a deeper 6B47 shell over ears and nape, with no rails or headset; a 6B45 soft collar and groin protector; a balaclava on looks a and b; black boots and gloves; olive webbing. US boots are dark coyote, darker than the photos' tan, following slice 17's "boots and gloves dark".
-- **Rifles at their silhouettes** (`weapons.RIFLES`): an M4A1 (flat-top with M68, quad rail, vertical grip, PEQ box, A-frame front sight, curved magazine, buffer tube and stock) and an AK-74M (slab receiver, ribbed dust cover, gas tube, front-sight block, the AK-74 brake, deep curved magazine, black polymer furniture, side-rail collimator). The AK-74M stands for the AK-12 the bar names, because the reference library has no AK-12 photo (its gap). Both are built on the carbine's grip, support and muzzle points, so the shared clips and the muzzle socket fit unchanged. Weapons stay joined into the skin and wholly on `hand_r`, the node the crew module cuts by. Checked: the cut removes the whole rifle at every tier crew use.
-- **Material roles on soldiers** (`common.mat(role=)`): cloth `fabric`, skin `skin`, gun steel `steel`, lenses `glass` (dark, roughness 0.08; validated at 0.010), markings `marking`, a bare helmet `paint`. Leather, hard plastic and polymer take none (no role fits).
-- **Soldier budget (`UNIT_ART.soldier`), about twice what the pilot measured.** Measured over the six looks (2026-10-07): triangles per tier at most 29149 / 6987 / 2486 / 763 (old kit 27455 / 7010 / 2466 / 757). Tiers 1–3 hold `mesh_lods`' fixed targets, so detail landed in tier 0 only. Encoded bundle with textures 9.4–11.8 MiB (wire: bundle 1.14–1.21 MB plus textures 1.6–2.3 MB). Distinct textures 18–24 (old 24–27: printed gear dropped cordura and nylon). Set: `tier_triangles` [60000, 15000, 5000, 1600], `bundle_bytes` 24 MiB, `textures` 48. Falsified once by tightening it. Game page catalog load 121.5 → 125.3 MiB (limit 512); texture array layers albedo 139, surface 250 (floor 2048).
-- **Impostor cards at battle start** (`stats.models.atlasBakeMs` and `atlasLayers`, a game battle, three fresh pages per faction, this Mac mini). Before: 144 card layers in 628–694 ms. After: 150 layers (the three Eastern looks add six) in 723–846 ms, about 5 ms a card. Wall time, so a tripwire reading, not a measure: no card-bake budget is set.
-- **In battle** (`throwaway/infantry/battle/`): one rifle-squad purchase on `/battle?type=open&size=small&seed=1&faction=us|eastern` draws tan OCP soldiers for the US player and green EMR for the Eastern. At 90 m (tier 3 mesh) a squad still shows the difference. Below `impostor_px` (about 250 m) the cards are 4–6 px dark marks for both armies: they read as men on the ground, but uniform colour does not survive at that size. That was true before too, and is left for slice 17's battle-distance check.
-- **Red's side tint warms EMR toward olive.** The uniform is tint-masked (weight 1), so a red Eastern squad reads olive-khaki rather than green. Left: the side tint is the battle's rule, not the kit's.
-- **Sheet reference panel for kits.** `asset sheet --references` found no family for an infantry source (it took `infantry` as the family) and matched the appearance id as variant. It now takes the kit folder under `roster/infantry/`, and `--variant` names the reference variant (the army look).
-- **Critique: adversarial self-pass** (no sub-agent, at the coordinator's instruction). Caught and fixed: the 6B45 collar traced onto the T-posed arms (a flat ring past the shoulders), and the AK's collimator stood tall enough to read as the M4. Left: colour lost at card range, red's olive tint on EMR, a dark rear view (sheet lighting, as before), and the reference library lacking side and rear views.
-- **Preview.** The shots were opened for the user, non-blocking. There was no response, so the slice proceeded on the evidence and Preview was closed.
-
-## Slice 14 vehicles (implementation)
-
-Steps 1–3, 5–8 for the vehicles (Abrams ×3, Stryker ×4, HMMWV); the rifle squad and soldier budget are the infantry worktree's.
-
-- **Contract: the HMMWV's frame** (decision 3; `fixtures/units/roster/us.json`, `fixtures/catalog.json` re-blessed). Hull half extents [3.1, 1.25, 1.3] → **[2.45, 1.1, 1.0]** (4.9 × 2.2 × 2.0 m), eye 2.885 → **2.42**, HMG pivot z 2.665 → **2.28**, muzzle [1.43, 0, 0.32] → **[1.35, 0, 0.32]**; its wreck's `footprint_half_m` follows. Eye, pivot and muzzle are the archived manifest's. The extents are not: the references settle 4.9 × 2.2 m (the orthographic side drawing scaled by the 37-inch tyre gives 4.75 m body, the M1151's published 193 in / 87 in agree), and the hull box's top is the cab roof plus the turret ring (2.0 m): the O-GPK shields turn with the gun, so they are the mount, outside hull fit, as every other turret is. The manifest's 5.2 m counted the rear spare wheel, which is drawn as `dressing_spare_wheel` (0.28 m past the tail, inside the 0.3 m allowance); its 2.2 m height, a weapon-station height, would have left the art 0.2 m short of its own box. Digests of any battle holding an HMMWV move; no committed record holds one: the whole `sim` suite passes (one failure, `maps::every_saved_encounter_makes_a_battle_on_its_map`, names `menu_us_tank` in the market-town menu encounter, which this work does not touch). The menu exact-shot test passes (the menu jeep keeps the test hull).
-- **HMMWV balance sample (quick, HMMWV only).** A throwaway native harness (`throwaway/pilot-vehicles/balance/hmmwv_sample.rs`, not committed) ran static duels on open ground, 12 seeds each, old frame (patched in) against new: against Eastern scouts, Tigr-M and BTR-82A at 250 m the HMMWV wins 12/12 both ways, same times; against an RPG-7 team at 250 m 5–7 → 6–6 (mean end 15.3 → 19.1 s); nothing engages at 450 m either way. The smaller box is hit slightly less; no balance concern at this sample size. The full balance report stays with slice 19.
-- **Contract: class budgets** (`packages/scene-assets/src/unitArt.ts` `UNIT_ART`), about twice what the pilot and the test units of each class measured; loose tripwires, raise when exceeded and nothing suffers:
-
-  | Class | tier_triangles | bundle_bytes | textures | Measured (largest) |
-  |---|---|---|---|---|
-  | tracked_heavy | 120000 / 45000 / 13000 / 4000 | 48 000 000 | 64 | Abrams SEPv3 T 57744 / 20640 / 5989 / 1852; 21.4 MB; 45 |
-  | tracked_medium | 90000 / 34000 / 10000 / 3000 | 40 000 000 | 64 | no pilot; set below tracked_heavy |
-  | wheeled_medium | 70000 / 27000 / 7000 / 2000 | 40 000 000 | 64 | Stryker M1127 34336 / 13400 / 2807 / 664; 17.4 MB; 39 |
-  | wheeled_light | 80000 / 24000 / 7000 / 2500 | 36 000 000 | 64 | HMMWV 21416 / 8450 / 2175 / 524; 15.1 MB; 36 (the test jeep, 64512 / 17314 / 5616 / 1798, holds the row up) |
-  | wheeled_medium_logistics | 70000 / 27000 / 7000 / 2000 | 40 000 000 | 64 | no pilot; set as wheeled_medium |
-
-  `tier_ratio` stays 0.9 for every class: the pilots reduce to at most 0.41 of the tier before, but a tighter class ratio would fail legacy art (the VBL steps at 0.84) and break the bake. `bundle_bytes` is the whole encoded bundle with its textures, though textures travel shared: on the wire an Abrams is 1.6 MB gzip, a Stryker 1.2, the HMMWV 0.8. Each budget was falsified once (tracked_heavy tier 0 at 50000 fails the Abrams by name).
-- **Texture layers a family adds: none.** The pilots reuse existing recipes at the existing size; the baked catalog's distinct textures are 383 before and after, albedo/surface layers 137/246 of 2048. A bundle's 36–45 textures are 21 of its own surfaces' plus the crew soldier's, shared with the soldier's bundle.
-- **Download.** Game page 121.2 → 138.0 MiB, every unit's art 155.5 → 172.3 MiB (limit 512).
-- **Frame cost** (the consequences lab with its encounter swapped, uncommitted, for a column of the 8 pilots twice plus 4 squads; 1600 × 900; GPU frame time from `timestamp-query`, mean of 3 windows; Mac mini, apple metal-3). Before is the base commit's runtime art, same scene. Close (3 models, tier 0) 3.66 → 4.14 ms; near (tiers 1–3) 3.45 → 3.84 ms, 154k → 216k triangles; battle view 3.11 → 3.07 ms, 32k → 46k; widest 2.22 → 2.24 ms, 19.8k → 20.8k. Tier 3 at the widest view costs nothing measurable: **no vehicle impostor**. Run with a `sim` test build in the background, so only GPU time is quoted. Evidence `throwaway/pilot-vehicles/framecost/`.
-- **One export run for rebuilt families** (`blender/vehicle_export.py`): variants and frames, materials by role (`materials`), mount rigs by role (`rig`, with a tank gun's trunnion), crew after the paint bake, `--wreck` through the family's own damage then `wreckage.burn`, tiers checked, export and receipt. A family script is its `build` and `wreck`. Rejected: extending `armor.py`'s `export_family` (Abrams/Leopard-specific rig and palette).
-- **Parts lifted into `vehicle_parts.py`:** `track_loop` (a belt round any wheel set, the convex-hull run of the test tank, with link UVs: ends wrap a raised sprocket and idler and the top run rests on the rollers; `track_run`'s stadium can't), `cable` (tow cable with eyes and clips), `browning_m2` (the M2, which the three families drew three times).
-- **Legacy branches deleted:** the Abrams from `armor.py` (Leopard 2A8 re-exports byte-identical), the Stryker, HMMWV and JLTV branches from `light_armor.py` (LAV-AT and Bradley M2A4 byte-identical), and `roster/jltv.py` (it refused by name; slice 18 writes the JLTV).
-- **Dressing.** CITV, wind mast, antennas, Trophy stations, the commander, the HMMWV mirrors and spare wheel are `dressing_*`. The 0.3 m bulky allowance sets how far the Abrams commander stands out (head and shoulders, hatch thrown back flat; a standing commander or an upright lid would break it); not raised, since it reads right. The HMMWV gunner rides the HMG yaw node (he turns with the turret), outside hull fit.
-- **Frame disagreements (left alone, for the user).** Stryker: the box is 2.64 m tall, the real roof 2.30 m; the roof is drawn at 2.30 and the remote station's fixed adapter stands to 2.56 so the hull fits. **Dragoon:** its frame puts the 30 mm's axis at 2.19 m and the eye at 2.48 m, about 0.4 m below a real MCT-30 on a 2.30 m roof; its hull is drawn 0.35 m lower (roof 1.95) so the gun leaves the turret, not the roof. Proposed: raise the Dragoon's pivot to about 2.10 m (gun axis ~2.6) and draw it on the common hull.
-- **Wrecks (modelled, replacing the interim seam for these 8).** Abrams: right track thrown flat beside it, three road wheels and two skirt panels gone, one bent out, fire-warped plates, a glacis dent, loader's hatch on the deck, bustle load burnt, Trophy housings kept (dressing renamed so they survive: the Trophy tanks' wrecks are their own), hull and turret pieces. Strykers: front-left wheels gone and the hull settled onto that corner, ramp door blown out, bins torn and hanging, squad hatches gone, whole; the Dragoon throws its turret. HMMWV: front-right wheel gone, nose down on it, a rear door lying beside it, hood buckled, turret shield bent back. M1126 and M1127 wrecks differ only by burnt-off radios, so they bake to one bundle. Footprint tolerances re-measured (worst face + 0.1): Dragoon 0.4 → 0.7 m; the rest unchanged (Abrams 1.2, Strykers 0.9, HMMWV 0.8).
-- **Found and fixed in `wreckage.burn`:** it removed a `dressing_*` node before its children, orphaning them so they survived into the wreck (antennas standing on the Stryker wrecks). It now decides everything before removing anything; every roster wreck exported before this is affected the same way and is fixed on its family's next re-export.
-- **Verified:** `asset validate` on all 8 vehicles and 8 wrecks (no findings), `bake`, `icons`, `check` (passes); `asset sheet --references` for every appearance and wreck (`throwaway/pilot-vehicles/final/<appearance>/`); compare-screenshots after vs before contact sheets (`throwaway/pilot-vehicles/cmp/out/`, distance 0.09–0.11, diagnostic only) and vs references (reference.png per appearance); battle shots at each tier zoom (`framecost/after/{close,near,battle,wide}.png`); menu reel exact-shot test; `sim` suite; scene-assets art-rule, fit, footprint and reference tests; `catalog_frames_test.py`.
-- **Critique (adversarial self-pass; this run was asked to spawn no agents).** Strongest cases against: the Stryker's hull reads tall and plain above its wheels next to the green photos (the glacis lacks the photos' bolted applique; the chine gap shows dark); edge highlights are subtle at sheet distance, short of the look target's bold chipping; the Abrams' smoke banks read as louvres from the side; the Dragoon sits low (frame, above). Recognisable, black tyres, dark glass, real detail tiers, wrecks each their own: accepted for the pilot, with the Stryker glacis and edge treatment the first things for slice 16 to raise.
-- **Preview.** Sheets and battle shots opened for the user, non-blocking, about six minutes; no response, so this proceeded on the evidence and Preview was closed.
-
-## Pilot checkpoint (2026-10-07)
-
-- **Bar accepted, with a push toward the look target** (coordinator; shots opened for the user, non-blocking): the rebuilt Abrams, Stryker family and HMMWV read as the right vehicles from their references, but plainer than `assets/look-target.png`. The lanes keep the pilot's structure and budgets and push the look further: bolder bevels and lighter painted edge highlights, chunkier stowage and small parts, and front armour/bolted panels where photos show them (the Stryker's front). Reversible: the user can still steer the look.
-- **Dragoon pivot left alone**: the frame puts its gun 0.4 m below the photos; the agent drew the hull lower instead of moving the pivot. Frames don't move to fit art (README warnings); raising the pivot to ~2.10 m is the user's call, open.
-
-## Slice 15 (implementation)
-
-Tracked lane, one worktree (`um/lane-tracked`): Leopard 2 (2A6, 2A7V, 2A8), Challenger 2 TES, Leclerc XLR, KF51, T-72B3, T-80BVM, T-90M, ZTZ-99A, Bradley (M2A4, M3A3), CV90 (9040C, Mk IV), Puma, Ajax, BMP-2M and BMP-3: 18 appearances and 18 modelled wrecks.
-
-- **Contract: none moved.** No frame, mount, pivot, muzzle, eye or catalog tolerance changed. Every family is a `build`/`wreck` pair through `vehicle_export.run`, in its nation's slice 13 scheme.
-- **Shared parts added (lane worker editing shared helpers, for the coordinator to accept or move).** `vehicle_parts`: `tracked_running_gear` (both sides' road wheels on trailing arms, sprocket, idler, return rollers and the `track_loop` belt from one call; every family used to place these by hand), `armour_tiles` (bolted ERA and applique fields), `slat_armour`, `cupola`, `kord` (the T-72, T-80, T-90 and ZTZ-99A machine gun, beside `browning_m2`), and `road_wheel(ribs=)` for Soviet pressed discs. `vehicle_export`: `run(chip=)` (now the wheeled lane's `run(**looks)`) passes the paint's edge wear into `materials`, and `Vehicle.head_out` poses a crewman head and shoulders out of a hatch (the Abrams keeps its inline pose). Rejected: per-family copies (the README's one-owner rule).
-- **One bolted plate.** The lane drew plates through its own `bolted_plate` while the wheeled lane added `bolted_panel`, the same part; on merging, the tracked families moved onto `bolted_panel` (passing `lods=ALL` where a plate is structural and must survive to tier 3) and `bolted_plate` is gone. Every lane appearance and wreck was re-exported through the merged code, including the wheeled lane's repeatable `wreckage.heat`, and rebaked; a second wreck export hashes identical (T-72B3, all three pieces). Europe's crew now wear the Europe soldier look the infantry lane added.
-- **The look push (pilot checkpoint).** Every lane family runs `chip=1.0` (pilot 0.35): edges wear to the scheme's lighter tone far more, the painted highlight the look target shows. Hull and turret bevels 0.05–0.06 m (pilot 0.03), skirts and armour modules 0.035–0.05 m; ERA and applique are chunky bolted tiles, side skirts are panels with handles and bolt heads. Not raised: the shared `materials` default, so the pilot's art is unchanged.
-- **Family to family.** `roster/t72.py` owns the T-72 hull, running gear, Relikt skirts, 2A46 gun and commander's gun; `t90.py` imports them (the T-90 is a T-72 derivative) and `t80.py` the gun, skirts and turret dome (its own longer hull and running gear). `t72.py` runs its export under `__main__` so importing it exports nothing.
-- **Running gear from the photos.** Leopard 2/KF51 seven dual road wheels and four return rollers; Challenger six with three; Leclerc six with three; T-72/T-90 six ribbed with three; T-80 six with five; ZTZ-99A six with three; Bradley six, front sprocket, three rollers; CV90 seven, front sprocket, no rollers (the track rides the wheels); Puma six, front sprocket; Ajax seven, front sprocket; BMP-2M six, front sprocket; BMP-3 six, rear sprocket, four rollers.
-- **Crew.** Head out where the photos show it: Leopard 2A6 commander, Challenger commander and loader, Leclerc, T-72B3 and T-80BVM commanders (EMR, through the faction's crew soldier), CV9040C commander, Ajax commander and gunner, BMP-3 commander. The dressing allowance (0.3 m) caps how far a head rises; the T-72's sits at the limit.
-- **Wrecks.** Each a modelled wreck: a track run off and lying beside the hull, road wheels and armour panels gone (some lying at its foot), a bent skirt or cage, heat-warped and dented plates, hatches blown off, then `wreckage.burn`. Turreted wrecks give hull and turret pieces.
-- **Wreck debris stays inside the catalog tolerance** (coordinator, 2026-10-07). Batch 1 widened the Challenger wreck's `footprint_m` 0.8 → 1.0 for its fallen armour packs; that was reverted (b3fff847) and the packs pulled in. The dressing allowance does not apply to wrecks: `footprintFindings` (`validate.ts`) measures every tier-0 position of each wreck state, and `wreckage.burn` deletes `dressing_*` nodes anyway, so naming debris `dressing_*` is not an option. Every lane wreck fits its existing tolerance; the IFVs' (0.3–0.5 m) keep their debris close to the hull. If wrecks should scatter debris wider, that is a validator decision for the coordinator.
-- **Legacy branches deleted.** `armor.py` and `eastern_tanks.py` emptied and are gone; with the wheeled lane's deletions merged, so are `light_armor.py`, `europe_carriers.py` and `eastern_armor.py`. Challenger, Leclerc, KF51 and ZTZ-99A left `remaining_tanks.py` (Type 15, T-14 and T-15 remain), Puma `remaining_ground.py` (the disabled BRM and Jaguar remain). Before the merge, the LAVs, Boxers, ACV-P, Fennek, VBCI, BTR-82A and ZBL-08 re-exported byte-identical through the trimmed helpers. Left: `remaining_ground.py`'s BRM branch still draws `puma_*` nodes, but `roster/brm.py` cannot export (no appearance in `assets/catalog.json` names `roster/brm/`); it is slice 18's or dead.
-- **Budgets: all under `UNIT_ART`.** Largest tier 0: Challenger 64,058 (tracked_heavy 120,000), Ajax 49,664 (tracked_medium 90,000); the tier ratio holds everywhere. Bundles 10–21 MB with textures (Challenger 20.7 MB, on the wire 2.0 MB gzip). No new textures or recipes. Game page catalog load 138.0 (pilot) → 197.6 MiB, every unit's art 232.0 MiB (limit 512); with the wheeled and infantry lanes merged, 239.4 and 273.7 MiB: the legacy art travelled at `texture_px=256`, the rebuilt families at the full recipe size.
-- **Paint choices.** Bradley stays US desert tan (the M3A3 photos; the M2A4's European photos are green, a scheme slice 13 lacks). CV90 Swedish splinter for both variants (Czech/Slovak Mk IVs wear their own; one look per variant).
-- **Frame disagreements (left alone, for the user).** Leopard 2: the 3.0 m box is taller than the photos' roof (about 2.6 m); the art stands at its real height inside it. Ajax: the frame gives the turret one mount, so its remote weapon station is drawn fixed to the turret and does not traverse on its own. Puma: the MELLS launcher is a mount at 1.08 m left, on the turret's edge; drawn there, it overhangs the side slightly. No pivot or muzzle disagreed visibly at sheet distance.
-- **References and gaps.** No views generated: each family had enough licensable photos for layout. What the models guessed: Leclerc XLR's sides and rear (one XLR photo; pre-XLR hull), KF51's turret roof and rear, ZTZ-99A's rear (earlier Type 99), Ajax's rear and turret detail (Ares and an Ajax-family vehicle), CV90 Mk IV's rear, Puma's running gear.
-- **Verified.** `asset validate` on all 18 vehicles and 18 wrecks (no findings); `bake`, `icons`, `check` per batch (passes, 647 runtime files). `asset sheet --references` for every appearance and wreck (`throwaway/tracked/final/<appearance>/`). Production-renderer close-ups per family (`throwaway/tracked/close/`). Compare-screenshots, after against before in the same renderer and camera (`throwaway/tracked/cmp/out/`, 36 pairs, distance 0.04–0.12, diagnostic only): every pair reads closer to its references: real wheel counts, ERA and applique, sights, stowage and crew where the before art had a box turret and plain skirts. Battle zooms of a mixed column, 9 Western and 6 Eastern tracked vehicles, in the consequences lab with its encounter swapped, uncommitted (`throwaway/tracked/column/{close,near,battle,wide}.png`): each type reads apart at battle distance; tans and greens separate. Review cleanups (Kord moved into `vehicle_parts`, Leopard crew through `head_out`, unused names) re-exported byte-identical except the Leopard 2A6 (its commander's pose).
-- **Critique: adversarial self-pass** (no helper agents, at the coordinator's instruction). Strongest cases against: the T-72/T-80 turret domes are low-poly lofts whose facets show at the close view; the T-90M's net screens read as slat bars, and its fuel drums barely show from the rear quarter; the BMP-2M's glacis ribs read as grille slats; the Puma's PERI stands at the left rear where the photos put it left front; the Ajax's side modules' chamfer steps between panels; KF51's turret slot is a black box. Recognisable at every zoom, black tyres and track, dark glass, real tiers, wrecks each their own: accepted for the lane, with the dome facets and the T-90M screens the first things to raise.
-- **Preview.** Column shots and before/after pairs opened for the user in Preview, non-blocking; no response, so the lane proceeded on the evidence.
-## Slice 17 (implementation)
-
-- **Contract: a kit's armies, the first its default look** (`roster/infantry_equipment.py` `KITS`). Each roster kit names its weapon (its army's squad rifle, or a team weapon in `LENGTHS`), whether its men are scouts (the recon ruck) and carry grenades, and its armies. The first army is the appearance's own look; every other is a faction look (`factions` in `assets/catalog.json`, slice 14's contract, unchanged). New faction looks: `rifle_squad_europe_active_a/b/c` and `assault_squad_eastern_active_a/b/c`; the assault squad's default is Europe's, the first faction its card names. `KITS` and `LENGTHS` replace the archived infantry manifest (slice 09 kept it): lengths are copied as they were, plus the G28's 1.08 m. Presentation only; no fixture or digest moves.
-- **Europe wears the Bundeswehr's uniform** (`german_flecktarn`): Flecktarn, a Flecktarn carrier and pouches, covered helmet, black boots, olive webbing, the G36. Europe's cards come mostly from Germany (Leopard 2 ×3, Puma, Boxer ×3, Fennek, PzH 2000, Gepard, KF51, MARS II, MAN HX, Tornado ECR, Skyranger), then France (Leclerc, VBCI, VBL, Caesar, Jaguar, Akeron, Rafale, Mirage), Britain and Sweden; the Leopards' three-tone green agrees. The Europe marksman carries the G28 (sand, sand scope), the recon patrol the G36 with the ruck. The Akeron (French) kit was not built (below).
-- **US cards split by service.** Marine squad, Force Recon and the M107 scout snipers wear the Marines' look (`usmc_marpat`: MARPAT woodland under coyote nylon, a woodland helmet cover, the M27); Army scouts, the TOW team and the M110 squad wear OCP with the M4A1. Every Eastern infantry card is a Russian weapon (Kornet, RPG-7, RPG-29, SVD, ASVK), so all wear EMR; the bar's Chinese Type 07 has no infantry card to wear it.
-- **AK-12 replaces the AK-74M** (`weapons.ak12`, 2023 reference: ribbed railed dust cover, railed handguard, skeleton folding stock, centred collimator); the rifle squad's Eastern looks were re-exported with it. New rifles on the carbine's grip, support and muzzle points: `m27` (long free-float rail, no front-sight base, squat day optic, bipod grip) and `g36` (tall carry handle with optic, skeleton stock, slim tapered handguard). Launcher teams' carriers now hold their army's rifle, not the generic test carbine. The RPG-7's tube is black steel (it was olive).
-- **Prints:** `marpat_ripstop` (3 mm pixels, khaki ground, green and brown blotches, black cores) and `flecktarn_ripstop` (round 1–2 cm dots in drifts on a yellow-green ground). EMR now shares `_pixels` with MARPAT; its bytes are unchanged (hash checked), as are OCP's and multicam's.
-- **A scout's ruck wins over its army's look** (`infantry_kit.look_of`): `KIND_LOOKS` now applies after the army's variants, so a recon look c keeps its ruck and boonie instead of the army's hydration pack. The rifle squad and the test art are unchanged by it (no kind looks). `printed_cover` lets an army print the helmet cover without printing the gear (the Marines).
-- **Team weapons kept, not rebuilt.** The TOW, Kornet, RPG-29, M110, SVD, M107 and ASVK geometry already matched their new references in silhouette (tube over a tall sight on a tripod; Kornet's sight under the canister; the bullpup ASVK's big brake); only colours and the carriers' rifles changed. No roster slot carries a machine gun, so no MG was built.
-- **Javelin and Akeron are not built.** No unit draws them (disabled cards, slice 18); their research gate went with the manifest, and their old sources stay untouched.
-- **Budget held.** 64 exports measure at most 29953 / 7200 / 2704 / 944 triangles per tier (budget 60000 / 15000 / 5000 / 1600). Catalog load 125.7 → 133.7 MiB (limit 512); texture layers albedo 141, surface 254. No number moved.
-- **References** for all 16 kits (`assets/references/<kit>/`): army looks shared between kits (same bytes; LFS stores them once), team weapons per kit. Gaps per library; the main ones: no carried TOW, Kornet or packed RPG load, exhibition-only Kornet and ASVK, no Russian marksman with an SVD under a free licence. No generated views.
-- **Europe's crew** (`vehicle_crew.CREW_SOLDIER`) is now `rifle_squad_europe_active_a`; Europe's vehicles pick it up when next exported (none was re-exported here).
-- **Faction colour at card range: recorded, not fixed.** In a game battle (`/battle?type=open&size=small&seed=1&faction=us|europe|eastern`, one Marine, assault or rifle squad; `throwaway/infantry17/battle/`) a soldier at the opening camera is 1–2 px: a dark dot whatever he wears. Cards bake unlit albedo and the battle relights and tints them like the mesh, so they already carry the uniform's mean; no bake or tint change makes a 2 px mark carry a camouflage, and brightening prints past their real albedo would break the close-up. At the mid zoom (about 25 px, mesh tiers) the Marines' coyote carriers read warmer than the green Flecktarn and EMR squads, which stay close to each other. Who a mark belongs to at range is the side tint and the callout's job.
-- **Verified:** every export validates with no findings; `bake` and `check` pass (icons re-derived for the three US cards whose silhouettes changed); `asset sheet --references` for one look of every kit, both new faction looks and the carried kits (`throwaway/infantry17/after/`), against before sheets of the old art (`throwaway/infantry17/before/`; the kits had no accepted sheets in `assets/review/`, so none were accepted over). Not run: the card bake time at battle start (six more faction looks, twelve card layers), and any vehicle re-export.
-- **Critique: adversarial self-pass** (no sub-agent, at the coordinator's instruction). Four armies read apart close up (OCP tan, MARPAT with coyote gear, dotted Flecktarn, EMR with the 6B47). Left: weapons were judged at sheet-strip scale only (the G36's handle and the G28's sand show, finer parts don't); Flecktarn reads denser and greener than the photos at a distance; at mid zoom the Flecktarn and EMR squads are hard to tell apart; carried team-weapon loads are guesses (no photos).
-- **Preview.** The shots were opened for the user, non-blocking, and closed when the lane moved on without a response.
-
-## Slice 16 (implementation)
-
-Wheeled lane: LAV (25A2, AT), Boxer (APC, RCT30), VBCI, BTR-82A, ZBL-08, ACV-P, Tigr-M, Fennek, VBL, HEMTT M977, MAN HX, Ural-4320, plus the pilot checkpoint's Stryker front-armour pass.
-
-- **Contract: no frame, mount, pivot, muzzle or tolerance moved** (`assets/catalog.json` equals the lane's base). The first pass widened eight wreck footprint tolerances to fit doors and debris lying beside the hull; the coordinator had them reverted (the spec forbids widening a tolerance to fit art; wrecks get no dressing allowance, since `footprintFindings` excludes no dressing and `burn()` drops it). Instead each wreck keeps its pieces inside its own footprint: doors thrown onto the roof (Boxer, VBCI, Tigr, Fennek), crates, lockers and a spare tumbled into the bed (HEMTT, MAN HX, Ural), debris tucked beside the hull in the wheel gaps, and smaller settle tilts where a tall body or a heaved turret leaned past the edge (RCT30 no roll, VBCI, Tigr, HEMTT, MAN HX, Ural). No digest can move.
-- **One script per family through `vehicle_export.run`**, each with its own modelled wreck: wheels blown off and the hull settled onto that corner, a door or locker thrown onto the roof or into the bed, stowage burnt off, warped and dented plates, debris; turreted variants (LAV-25, RCT30, VBCI, BTR, ZBL) throw their turret. Legacy branches deleted: LAV from `light_armor.py` (both Bradleys re-export byte-identical), Boxer and ACV from `europe_carriers.py` (Ajax, both CV90s identical), BTR and ZBL from `eastern_armor.py` (both BMPs identical), VBCI, Tigr, Fennek and VBL from `remaining_ground.py` (Puma identical; Jaguar and BRM now refuse there by name until slice 18), and `logistics.py` whole.
-- **Shared parts added to `vehicle_parts.py`** (defaults unchanged, so pilot art doesn't move): `tyre_wheel(tread="bar", hub_bolts=n)` (trucks and light vehicles get the bar tread, armoured carriers keep the road tread; wheel nuts at true size), `bolted_panel` (applique with chunky bolt heads), `cargo_bed` (drop sides, stakes, bows and lashed tarp), `fuel_tank`, `hull_plan` (the six-point ring every lofted hull uses; was copied into eight scripts). `vehicle_export.run(..., **looks)` passes `materials` keywords; every lane family and the Stryker use `chip=0.6` (pilot 0.35) for lighter painted edges.
-- **Look push (pilot checkpoint).** Hull bevels 0.05 m (pilot 0.035), bolted applique where photos show it (LAV-25A2 glacis and sides, Boxer's tiled glacis, VBCI and ZBL slab sides, ACV prow, Stryker nose and glacis), chunkier stowage (jerrycan racks, bins, tarps, crates). **Stryker front armour:** bolted plates over the lower nose and beside the grille, the side tiles as bolted panels; all four variants and wrecks re-exported.
-- **Crew** where photos show them: LAV-25 commander in his turret hatch, VBCI commander beside the turret, VBL gunner in the roof ring, Tigr-M gunner (EMR) on the Kord ring. The Tigr's references are an unarmed walk-around vehicle; its Kord and gunner follow the slice's rule and the roster card, not a photo. Turret crew are dressing under the turret; ring gunners ride the HMG yaw node.
-- **MAN HX wheel count:** eight. The frame's 10.34 m is the HX77 8x8's length; the photos (4x4, 6x6) only settle the cab and body. **Ural axles** are the side photo's (2.53, -0.95, -2.30), not the legacy helper's (2.48, -1.30, -2.54).
-- **Frame disagreements (left alone, for the user):**
-  - **LAV-25A2:** the drawings put the turret ring about 0.85 m behind amidships and the muzzle 1.5 m behind the bow; the frame puts the ring at x 0 and the muzzle 3.65 m ahead of it (0.46 m past the bow). Drawn on the frame.
-  - **BTR-82A:** total height 2.41 m with the gun axis at 2.0 m, where the photos show a roof near 2.1 m and a turret top near 2.6 m; the turret ring also sits about 1 m behind where the photos put it. Roof drawn at 1.90 m under a low turret.
-  - **ZBL-08:** ring about 1 m ahead of the photos', muzzle 4.25 m out (0.25 m past the bow), gun axis 2.35 m; roof lowered from the photos' ~2.3 m to 2.20 m so the gun clears it.
-  - **Tigr-M:** hull 2.0 m tall against a roof near 2.45 m in the photos; wheels drawn true, cab compressed, so it reads squat.
-  - **Fennek:** hull 2.29 m tall against a roof near 1.85 m; the roof is drawn true and the folded BAA sensor head reaches the frame's top. VBCI's ring is about 0.4 m ahead of the photos' (drawn on the frame).
-- **Budgets held, none raised.** Largest tier 0 per class: wheeled_medium Boxer RCT30 60 044 / 11 864 / 2 470 / 720 (row 70 000), wheeled_light Tigr-M 22 199, wheeled_medium_logistics HEMTT 34 200. Bake passes every class budget. Download after the lane's last bake: game page 171.9 MiB, every unit's art 206.2 MiB (limit 512); texture layers unchanged (albedo 139, surface 250 of 2048): no new texture.
-- **Wreck export is now repeatable** (coordinator follow-up). Cause: `wreckage.heat()` sampled `mathutils.noise.noise_vector`, whose offsets differ between Blender processes; `noise.seed_set` does not pin them, while scalar `noise.noise` is stable (checked in five fresh processes each). `heat()` now builds its vector from three scalar `noise.noise` samples at fixed offsets; nothing else in `blender/` used `noise_vector`. Proof: the HEMTT (whole) and both LAV wrecks (with the LAV-25's hull and turret pieces, through the save-and-reopen path) exported twice are byte-identical (`throwaway/wheeled/repeat/run1`, `run2`). Every lane wreck (and the Stryker's) was re-exported through it. **Wrecks other lanes and the pilot committed (Abrams, HMMWV, tracked families) will change bytes once, on their next export**, because their heat field changes; nothing else about them moves.
-- **Verified:** `asset validate` on every live vehicle and wreck (no findings), `bake`, `icons`, `check` (passes) per batch; `asset sheet --references` per appearance and wreck (`throwaway/wheeled/after/<appearance>/`, before in `throwaway/wheeled/before/`); compare-screenshots on 28 before/after contact sheets (`throwaway/wheeled/cmp/out/`, distance 0.04 for the Stryker pass, 0.08–0.14 for rebuilds, diagnostic only); a mixed wheeled column of 15 vehicles in the consequences lab at battle, near and close zoom (`throwaway/wheeled/column/`, encounter and camera swapped uncommitted, restored).
-- **Critique (adversarial self-pass; this run was asked to spawn no agents).** Strongest cases against: the Tigr reads squat and its gunner barely clears the roof (frame); edge highlights are still gentle at battle distance, short of the look target's bold chipping; sloped bolted tiles (Boxer glacis, BTR trim vane, Fennek windscreen frame before its fix) wash pale from above under box-projected camo and sky specular; US tan vehicles sink into tan and brown ground; truck tarps draw the shared tan canvas where the Ural's photo shows an olive tarp; forward-placed turrets (LAV-25, ZBL) put long barrels past the bow. Fixed from the pass: Fennek windscreen guards hid the glass (removed). Every vehicle is recognisable from its references, tyres black, glass dark, tiers real, wrecks its own: accepted for the lane.
-- **Preview.** Sheets, the column shots and a before/after pair were opened for the user in Preview, non-blocking; the lane continued on the evidence.
-## Slice 18 air (implementation)
-
-The 26 `air` and 19 `hel` cards, in 31 family scripts (one per airframe, variants as branches; `hawk.py` draws the UH-60M and Z-20, `super_hornet.py` the F/A-18E and EA-18G, `h1.py` the AH-1Z and UH-1Y, `utility_helis.py` the NH90, Merlin and Wildcat). Every card has its own GLB at its `source_path` and its own `_wreck.glb` beside it.
-
-- **Contract: `model-manifest.json` gains a registry**, `model_statuses` (`source_authored`: the blockout; `reference_built`: rebuilt from `assets/references/<source_family>/` with wreck and tiers). The 45 air cards are `reference_built`. The disabled gate (`crates/sim/tests/catalog.rs`) now checks each `model_status` is in the registry and each `source_path` exists and is a binary glTF 2.0 naming meshes and a scene, or the LFS pointer to one (an unpulled checkout can't judge more; `asset validate` judges the model). `disabled_placeholders.py` builds only `source_authored` cards, so it can no longer overwrite a rebuilt one. The ground lane should reuse the registry and the gate as they are.
-- **Contract: icons are keyed by card id** (`icons.ts` `cardIcon`; `unitIcons(t).silhouette` is `cardIcon(t.id)`, unchanged paths). Every disabled card's silhouette is rendered from its source model through the manifest (`silhouette.ts` `disabledLookup`, by the same `silhouetteSvg`), so `asset icons` writes all 86 and `asset check` and `icons.test.ts` fail a missing or stale one (tested: a disabled card without a model is refused by name). The ground lane's 41 icons are drawn from their placeholders today and are re-derived when they rebuild. The purchase picker shows `cardIcon` for every family (the first available card's, else the first), and an all-unavailable family dashed and dimmed; the old `.hud-purchase-family > .icon` size rule never matched (the class is `ro-icon`), so family silhouettes were drawn at text height; they now fill the 76 x 38 slot. Not shot in the browser (no GPU scene was run); verified by the component test only.
-- **Contract: validator.** An articulated model stands on wheels or on an airframe's skids (`skid_*` nodes, the Little Birds' and H-1s'); tested both ways. `asset validate` takes `--scenery <kind>` so a wreck outside the catalog is judged as a wreck. Every disabled wreck reports one expected `fit.footprint` (no `footprint_half_m`: a disabled card has no simulation box until its mechanics land).
-- **Frames: stated from published figures, recorded per card** (`frame_source: references`, `body_dimensions_m` in `assets/source/roster/disabled/<family>.source-receipt.json`). `vehicle_export.run_disabled` builds each card to `catalog_frames.disabled_variant(card, dimensions)` and refuses a model more than 5% off its stated length, width or height (`FRAME_TOLERANCE`, a tripwire), or not on the ground. Aircraft: overall length, span and height. Rotorcraft (one rule): fuselage length without blades, width over the widest fixed part, height to the top of the rotor head or what stands on it (Longbow, mast sight, radar); rotor blades are `blade_*` and left out. The numbers are the commonly published ones as known to the agent; they were **not re-verified source by source** in this pass, and the Commons photos do not state dimensions. J-20 and Z-20 figures are published estimates. No card's figures were changed to fit a model (four first exports failed the check and were fixed in the geometry).
-- **Shared parts: `blender/aircraft_parts.py`** beside `vehicle_parts.py`, on its contracts: superellipse `body` lofts (fuselages, nacelles, stores), aerofoil `surface`s (wings, fins, canards, blades; the thickness axis follows the section's plane, so canted fins and anhedral are the same call), `canopy` (dark `glass()` with bows), intakes, nozzles, gear (wheels are spinning `wheel_*` nodes under a `gear_*` leg node), pylons and stores, `rotor` (`rotor_*` node), `skids`, and `jet(v, spec)`, an airframe from data. `fit()` adds the aircraft roles (`gear` enamel, `nozzle` metal, `store`, `blade`) and makes fittings dark grey. `crash()` is every airframe's wreck: gear torn away, belly on the ground, fuselage warped and dented, tail broken and slewed, one wing folded, canopy glass gone, rotor blades drooped and two thrown, debris; then `wreckage.burn`.
-- **Schemes** (`textures.SCHEMES`): `us_compass_grey`, `us_gunship_grey`, `us_army_aviation`, `russian_air_blue`, `russian_air_grey`, `russian_helicopter_camo`, `chinese_air_grey`, `nato_air_grey`, `nato_helicopter_green`, `french_air_camo`; one helper (`_air`) on the existing `_bands`/`_sprayed`. A family may give a scheme per card (`run_disabled` takes a dict): F-15E gunship grey, F-15EX compass grey; CH-47F tan (its photos), HC6 RAF green; Wildcat grey. Choices the photos contradict are named in each library's `gaps`: the Spanish Tiger HAD's green-brown camouflage drawn in the shared green-grey.
-- **Budgets.** Aircraft are held to the MBT row as a ceiling (120000 / 45000 / 13000 / 4000): the largest live model is 27422 / 7828 / 2332 / 848 (Su-34). Validation applies no class to a card without a type, so this was checked from the validate output, not enforced. Every tier draws at most 0.9 of the one before.
-- **References.** 36 libraries under `assets/references/`, 3–7 Commons images each (public domain, CC0, CC BY, CC BY-SA, ports), one line drawing (Z-10); no generated views. Gaps are recorded per library; where a variant's own photos are scarce the library says which sibling stands in (Gripen C/NG for the E, Ka-52s of several standards for the M, Merlin HC3 for the HC4, AH-6J for the AH-6M, earlier J-10 for the C's side).
-- **Verified:** `asset validate` on all 45 models (no findings) and 45 wrecks (only the expected footprint finding); `icons.test.ts`, `purchasePicker.test.tsx`, `validate.test.ts`; the sim crate's disabled gate tests; web typecheck. Contact sheets per family, placeholder above rebuilt above wreck above references, rendered in Blender (`throwaway/evidence/sheets/`); Blender's shading is darker than the game's (no `colour_scale`), so colour is judged from the scheme values, not these sheets. No browser/workbench shot was taken: the workbench needs the runtime pulled and a free GPU scene slot, which other lanes held.
-- **Compare (before vs after vs references).** The placeholders were 5 m family boxes (a fighter, a transport, a gunship) shared across many cards; every rebuilt card has its real size and its own layout, and reads as its type beside its photos at sheet distance (twin vs single fins, canards, intakes, tandem vs side-by-side cockpits, coaxial and tandem rotors, skids vs wheels). Distance metrics were not computed: the baseline is wrong by construction, so a distance would only say "everything moved".
-- **Critique: adversarial self-pass** (no sub-agent, at the coordinator's instruction). Against: fuselages read shallow and canopies small next to the photos on most jets (the F-15's and Flanker's big bubble canopies especially); helicopter cabins and pylons are slimmer than their photos (Chinook, Mi-8); stub-wing stores are undersized; fine detail is sparse next to the ground pilots (panel lines, markings and national insignia are not drawn); the CH-47F and HC6 differ only by paint; wrecks read as a burnt airframe on its belly more than a broken one (the tail break is modest). For: every card is distinct, at its real size, with real tiers, its own wreck, black tyres and dark glass, recognisable by silhouette (the icons show it). Accepted for disabled cards; the first things to raise if they become playable are fuselage depth and canopy size.
-- **Determinism.** After the last refactor every family was re-exported: all 45 live GLBs are byte-identical to the committed ones. **Wreck exports are not deterministic**: two runs of the same wreck differ in vertex positions and embedded images, and so does the pilot's HMMWV wreck (`humvee.py --wreck`) on this branch, so the cause is in the shared wreck path, not the aircraft crash (one real source fixed here: the crash removed parts in set order). Left for the coordinator, who owns `wreckage.py`; the committed wrecks are the first exports.
-- **Preview.** Evidence sheets opened for the user in Preview, non-blocking.
-
-## Slice 18 ground (implementation)
-
-The 24 `sup`, 8 `rec`, 4 `veh` and 5 `inf` cards, in eleven scripts (`armata.py` T-14 and T-15, `type15.py`, `brm.py`, `jaguar.py`, `challenger3.py`, `sp_howitzers.py`, `rocket_artillery.py`, `caesar.py`, `air_defence.py`, `stryker_support.py`, `drones.py`) and five `KITS` rows. Every card has its own GLB at its `source_path` in its family's folder (`assets/source/roster/<family>/`, `roster/infantry/<kit>/active_a.glb`), and every vehicle and drone its own `_wreck.glb` (with `_hull`/`_turret` pieces where a turret rides a frame mount). The old placeholders and the authored-but-unreferenced files (`remaining_tanks.py`'s T-14, T-15 and Type 15; `roster/challenger/…challenger_3.glb`, a byte copy of the Challenger 2) are deleted.
-
-- **Contract: the lane takes the air lane's** registry, gate, `run_disabled` and icon path (merged from `t3code/improve-unit-models`), and adds three things. (1) The gate (`catalog.rs`) also holds a `reference_built` card to its own model: no other card's `source_path`, and no byte-identical file (an LFS pointer compares by its oid). Tested red by pointing the T-15 at the T-14's file. (2) `run_disabled` passes a family's material `looks` (`chip`), as `run` does, and writes its receipt beside the first card's GLB, so a ground family's receipt sits in its own folder. (3) A soldier card's manifest entry names its `skeleton`; `disabledLookup` poses that soldier at the skeleton's aim reference (`assets/catalog.json` skeletons), as a squad's figures are posed, instead of building a vehicle from a skinned file. Tested red with the bind pose (arms across the view, 1.98 m deep).
-- **Frames.** T-14, T-15, Type 15, BRM-3K, Jaguar and Challenger 3 take their archived manifest frames (`frame_source` names the file); every other card states its length, width and height from its references (`references`). `run_disabled` measures each model against its frame, leaving out dressing and guns (`skip`): **`FRAME_TOLERANCE` raised 0.05 → 0.06** (a tripwire): the pilot Stryker body the M-SHORAD and M1129 stand on measures 5.1% over its 2.72 m width, its stowage bins 7 cm proud a side, inside the catalog's own 0.1 m hull fit. Stated dimensions where the published figure was unknown or did not fit the model's meaning, each said in its script: the M1129's height is its hull's (2.5 m, no remote station), the CAESAR's to its cab roof (its gun travels over the cab, a mount outside the frame), the Buk-M3's travelling height measured off its side photo (3.55 m), the Lancet's X wings' 1.0 m span across the diagonal (0.72 m box), the FPV's 0.17 m. About twenty first exports failed the check; each was fixed in the geometry or, where the stated figure was ours, restated as above (tow hooks, rear screens and stowage past the hull; the T-14's sight mast was dressing).
-- **Frame disagreement (left for the user, as the Dragoon's).** The T-15's archived frame puts its gun pivot at 1.82 m (axis 2.32 m) on a 3.5 m-tall box: the Bumerang-BM module sits low on the deck, and the commander's sight on its pedestal reaches the frame's top.
-- **Cards that name a class are drawn as the type each army fields:** scout drones as the Skydio X2D (US), Parrot ANAFI USA (Europe) and DJI Mavic 3T class (Eastern), a thermal card's gimbal the dual-sensor head; anti-armour kamikaze drones as the Switchblade 600, Hero-120 and Lancet; anti-personnel as the Switchblade 300 and, for Europe and the East, an FPV quadcopter with an RPG warhead. Reversible: a later mechanics spec may pick other types.
-- **Drones stand on the ground** (lowest point at z = 0), rotors and propellers drawn still. The quadcopters and the Lancet stand on `skid_*` nodes (the air lane's airframe-gear rule); the Orlan-10, Switchblades, Hero and FPVs land on their bellies and have no gear, so `asset validate --unit vehicle` reports one `nodes.missing` on each of those six. Left for the flight mechanic to decide how a belly-landing drone is drawn and judged.
-- **Infantry: the shared rig, one look each.** Javelin and Stinger teams wear the US Army's OCP, the Igla-S and FN-6 teams the Eastern EMR (no Chinese uniform print exists; the FN-6 team wears EMR like every Eastern kit), the Akeron MP team Europe's Flecktarn. One `shoulder_tube_equipment` builder draws all five on the launcher hold: tube, end caps, grip, and the Javelin's CLU, the Akeron's sight block, or a MANPADS' gripstock, sight frame and (Stinger) IFF antenna. The bore sits on the hold's aim line, as the RPG's does; with it higher, each muzzle measured 1.50–1.54 m against `infantry_muzzle_m` 1.4 ± 0.1 (the RPG-7 kit's catalog entry allows 0.2). Only the active look `a` is built: no carried kit, since nothing draws one yet.
-- **Shared parts used, not redefined:** tracked running gear, armour tiles, slat armour, cupolas, `bolted_panel` (the tracked lane's `bolted_plate` merged into it), `kord`, `fuel_tank`, `hull_plan`. **New lane module `roster/truck_chassis.py`:** the support trucks' chassis (rails, axles, fenders, a bonneted, armoured cab-over or MAZ split cab, fittings). The wheeled lane's trucks (HEMTT, MAN HX, Ural) each place their own; a truck chassis in `vehicle_parts` would be its one owner (for the coordinator). `stryker_support.py` builds on `stryker.py`'s hull, wheels and fittings, so `stryker.py` exports only when run as a script. The Skyranger's Boxer drive module is drawn in `air_defence.py`; `boxer.py` (wheeled lane) has its own, a second owner to fold.
-- **Schemes.** The card's real nation's: Russian green, Chinese digital, German three-tone (PzH 2000, Gepard, MARS II, Skyranger, NASAMS, Europe's drones), French three-tone (CAESAR, Jaguar), British green (Challenger 3), US tan. Exhibition finishes in the photos (the BRM-3K's and 2S19's desert camouflage, the Skyranger's digital demonstrator scheme) are not followed; each library's gaps say so. Drone airframes are composite grey and black, the paint only on painted parts (warheads, Orlan, Lancet, Switchblade 600).
-- **References.** 33 libraries (`assets/references/<family>/`), Commons public domain, CC0, CC BY and CC BY-SA (country ports), each with its gaps. The Challenger 3 has no photo under an allowed licence (its three are OGL), so its library is two Challenger 2 TES photos of the hull it keeps and two **generated** views of the new turret (`openai/gpt-image-2.5-flare` through `duet`, conditioned on the Challenger 2 photos; the gateway ignored the seed). The infantry kits carry their army's look entries (same bytes as the slice 17 libraries) beside their weapon's. Commons rate-limited the fetches (HTTP 429 at non-standard thumbnail widths); fetching standard 1920 px thumbnails and resizing them to 1600 px fixed it.
-- **Icons.** `asset icons` re-derived exactly the lane's 41 card icons (the air lane's and every unit type's are byte-identical); `icons.test.ts` passes, with the new skinned-card test. A disabled team's icon is one posed soldier, where a squad's shows three: a disabled card has no slots to count.
-- **Verified:** `asset validate` on all 41 sources: the 24 ground and support vehicles, the five scout quadcopters and the Lancet with no findings, the 5 soldiers (`--unit soldier --clips clips_launcher.glb --yaw 90`) with none, the six belly-landing drones with only `nodes.missing` (above); every wreck with only the expected `fit.footprint`. `run_disabled`'s frame check on every card; the disabled gate (`cargo test -p sim --test sim catalog::disabled`, 1 s with LFS pulled) and its two falsifications (a shared path, a byte copy at another path); `catalog_frames_test.py`; `icons.test.ts`, `purchasePicker.test.tsx`; web typecheck; the reference contract (`checkReferences`) on all 31 lane libraries, no errors. `asset check` as a whole was not run green: it needs every scenery source pulled, which this worktree has not.
-- **Compare (placeholder vs rebuilt vs wreck vs reference)**: six grouped contact sheets rendered in Blender (`throwaway/evidence/sheet_*.png`; per family in `throwaway/evidence/<family>.png`). The placeholders were family blocks (a box with a gun, a box with a mast, a T-pose post); every card now has its own type's layout at its real size beside its photo. Distance metrics were not computed (the baseline is wrong by construction). No `/workbench` drop or browser shot was taken: GPU scene time stayed with other lanes, so colour is judged from scheme values, not these darker Blender renders.
-- **Critique: adversarial self-pass** (no sub-agent, at the coordinator's instruction). Against: detail is moderate next to the tracked and wheeled lanes' rebuilds (fewer weld lines, bolts and stowage; flat track sides); the Jaguar's faceted hull and the T-15's module read plainer and smaller than their photos; the Buk's radar housing and the Pantsir's module are blocky; truck cabs are boxes with windows rather than the photos' shaped cabs; drone airframes are simple primitives and the scout quads' arms read thin; two infantry weapons (FN-6, Igla) are long thin tubes that differ mostly by their nose caps. For: every card is distinct, at its frame's size, recognisable by silhouette (the icons show it), on black tyres and dark glass, with real tiers and its own wreck; nothing floats or sinks. Accepted for disabled cards; when a family becomes playable, its first raises are the hull detail and the truck cabs.
-- **Preview.** The six sheets were opened for the user in Preview, non-blocking.
-- **Disabled-card frame tolerance 0.06** (ground lane, accepted by the coordinator): the 5% check of disabled art against dimensions the lane stated is an agent-picked tripwire, not a physics tolerance; the pilot Stryker body under M-SHORAD and M1129 is 5.1% over its width.
-- **T-15 turret module 0.4 m low** in its archived frame, like the Dragoon: frames left alone; the user's call (open).
-
-## Slice 19 scenes (implementation)
-
-- **Item 8: one device admission.** Every app page already took its device through `AppResources` → `renderer-core` `requestGpuDevice()`. The one model-drawing page that did not was the `unit-roster` scene's model-check probe (`web/scenes/_modelGhost.mjs`); it now calls `requestGpuDevice()` and checks "the model page's device holds the adapter's texture-layer limit" (measured: adapter 2048, device 2048). The other bare `requestDevice()` callers (`_forests`, `_surfaces`, `_surfaceField`, `_groundFilter`) probe the terrain material and the frame factory and draw no models; left on the default limits. `_appJourney`, `_leaks` and `foundation` wrap `requestDevice` to observe it, not to request one.
-- **Item 9, ground: re-staged, not re-anchored.** The check's contract is that each side's published ground is its own: both sides must hold marked cells the other never saw. The static `street` encounter gave blue nothing red had not seen (`onlyBlue` 0); `advance` (blue marching from its spawn) gave `onlyBlue` 3204 but no exclusive crater clear of props for the next check; a truck pulled back west in the open was still seen by red (`onlyBlue` 9, and any other battle on the shared random stream flipped `onlyRed` to 0). New encounter `fixtures/maps/street/encounters/rear.json`: the `street` fight plus three tick-1 moves, blue's supply truck and jeep withdrawn behind the ridge (to about (560, 470) and (610, 450)) and red's jeep into the east wood ((1170, 670)): soft vehicles pulled out of the fight, out of the enemy's sight. Result: `onlyBlue` 483, `onlyRed` 398, the exclusive crater 162 deep, its scar drawn on one side only (81 against 0). `street.json` is untouched, so the fog labs and projectiles keep their battle. `SCARS_ONLY=1` returns before the ground rig again, as its comment always said (it had drifted below the rig, agreement and town passes).
-- **Item 9, street-watch.** `BATTLE_TICK` 9900 (5:30) was the scripted flank's moment; in the self-playing `advance` one fighter and no squad remain by then, and the x-ray probe threw on an empty squad list. Default now 3600 (2:00); the first fire lands at 2:07, frames looked at (`battle-line`: blue's tanks, squads and recon nearing the street under fire). Evidence names `encounter: "advance"`, not the deleted script.
-- **Item 9, street tours.** All 22 tours slice 06 did not run were run one at a time. One failure, rename fallout from slice 05: the muzzle tour looked for the rifleman's round as `s.kind === "test_rifle"`, but a round's kind is its weapon id, still `rifle`. Fixed.
-- **Item 7, sweeps.** `git grep -i village` outside specs lists only mapgen and `fixtures/map-presets.json` (the settlement class) and `design/unknowns-map.html`, kept as history (slice 06). Quoted `tank`/`jeep`/`supply`/`recon`/`at`/`rifle` outside specs: no unit-id use remains. What is left is the weapon `rifle`, the roles `at`/`recon`, synthetic test fakes and exporter kind arguments (slice 05 kept them), JSON keys `at`, drop tanks and water tanks in Blender, the `supply` capability and lab, and the test-art Blender kit keys. Wheels and tracks: the Abrams built its dual road wheels' inner tyre itself, as `tracked_running_gear` did; both now call `vehicle_parts.road_wheel(..., inner=(width, offset))`. The Abrams' three GLBs re-exported byte-identical before and after (art restored; item 10 re-exports everything). Spare tyres (HEMTT, HMMWV, `truck_chassis.spare_wheel`) are static stowage, not running gear. The test art's own `tank.py` wheels are test content, not a family. No legacy family helper module remains.
-- **Pre-existing, recorded:** `unit-roster` still reports one 404 page error (slice 04's record), and every check passes. Scenes must run with the checkout's `CARGO_TARGET_DIR` exported: the mechanics endpoint looks for the validator there (else `throwaway/target`) and returns a 500 that stalls the lab startup.
-- **Scene results (final state):** `unit-roster` 5/5 checks (plus the 404); `ground` with `SCARS_ONLY=1` 5/5; `street-watch` 17/17; `street` tours: cursor 8, menu 3, captions 3, panels 15, panel-layout 11, ruler 15, selection 6, orders 19, group-preview 4, group-preview-plain 4, orderFlash 5, muzzle 14, works 1, camera 16, trees 3, soldiers 3, vehicles 4, effects 3, smoke 5, woods 5, xray 2, concealment 2, all passing. The full `ground` scene and the four tours slice 06 ran were not rerun; this change cannot move them.
-- **No full balance run at closeout** (coordinator, 2026-10-07): the roster's only physics change is the HMMWV frame, sampled in slice 14 (static duels, 12 seeds: only the RPG-7 at 250 m moved, 5–7 to 6–6). The repo's remaining balance workload (`battle_sweep`) plays test units, which this spec renamed but did not change, and AGENTS.md runs only what a change can move.
-- **US prototype armour added** (user, 2026-10-07: "We did include T14/T15, so we need prototype US"): M1E3 and M10 Booker as disabled cards like the T-14/T-15 (slice 20), run before closeout's final full runs. Europe already has its equivalent (KF51 Panther, playable), so nothing is added for Europe.
-- **A light tank per faction** (user, 2026-10-07): Eastern has the Type 15; the US gets the M10 Booker; Europe gets the CV90120 (tracked CV90 hull, 120 mm), chosen by the coordinator as the closest match to the other two. The user then asked for the Centauro II as well, so Europe gets both.
-
-## Slice 20 (implementation)
-
-Four disabled cards, worktree `um/us-prototypes`: `us_m1e3_abrams`, `us_m10_booker`, `europe_cv90120_light_tank`, `europe_centauro_ii`.
-
-- **Contract: cards.** Shaped like the T-14's (`planned` with the Eastern prototypes' reason, no unit type), no playable card changed, `fixtures/catalog.json` re-blessed (`BLESS_CATALOG=1`, adds only the four). Costs and planned rows sit in the roster's ladder (`tweak-mechanics`: a disabled card fights no battle, so the only moments to picture are the purchase picker's dimmed card and the AI skipping it; the planned profile and weapons are labels for a later mechanics spec, read by nothing): **M1E3** family `m1_abrams` (an unavailable variant in the Abrams family, as the Challenger 3 is in the Challenger's), cost **460** (SEPv3 Trophy 450, KF51 460), `advanced-mbt`, advanced-tank-gun, HMG, Trophy. **M10 Booker** own family, **240** (Type 15 230; more armour), `light-tank`, light-tank-gun (105 mm), HMG. **CV90120** own family `cv90120` (so the picker shows Europe's light tank as its own family, not inside the CV90 IFVs), **250** (a 120 mm gun on a lighter hull), `light-tank`, **tank-gun**, HMG. **Centauro II** own family, **240** (wheeled, lighter protection than the tracked tanks), `wheeled-tank-destroyer`, **tank-gun**, HMG. `tank-gun` is a new planned label for a 120 mm gun on a light chassis; `light-tank-gun` stays the 105 mm's.
-- **Contract: manifest.** Sources under `assets/source/roster/disabled/` as the slice says (not per-family folders as the ground lane chose); `source_family` is the reference folder (`m1e3`, `m10`, `cv90120`, `centauro`), which is what `asset sheet` reads for a `disabled/` source. Receipts `disabled/<family>.source-receipt.json`. Found in passing: the ground lane's Type 15 and Challenger 3 entries name `source_family` `type_15`/`challenger`, whose libraries are `type15`/`challenger_3`, so their receipts point at missing folders (sheets are unaffected: their sources live in family folders). Left for the coordinator.
-- **Frames stated, mounts stated for the art.** No archived frame exists, so each is `frame_source: references`: M1E3 7.93 × 3.66 × 2.30 m (the pilot's hull box; roof level with the SEPv3's off the photo), M10 8.10 × 3.45 × 2.80 (no published figures; measured off the side photo against its road wheels; the length counts the towing lugs), CV90120 6.95 × 3.30 × 2.75 (the CV90 hull; roof and hatches off the photo), Centauro II 8.20 × 3.12 × 2.75 (published hull length and width). Built models measure within 5% (`FRAME_TOLERANCE` untouched). Stated frames have no mounts (the howitzers' guns are static); these four are tanks, so each script states the photo's gun pivot, muzzle and machine-gun station and rigs them (`rig({"mounts": …})`), giving a traversing turret and a turret-throwing wreck with `_hull`/`_turret` pieces. Nothing in the simulation reads them. The M1E3 takes the SEPv3's pivot and muzzle. Reversible; when the cards get mechanics, their frames come from the catalog like any unit's.
-- **Family scripts.** `m1e3.py` imports `abrams.py` (hull, running gear, gun, wreck) and draws its own skirts (a wedge and four long panels, the star and lettering), the low faceted turret without loader's hatch or bustle rack, the remote station on its pedestal and the rear sight box. `cv90120.py` imports `cv90.py` (hull, running gear, side armour, wreck) and draws the low wedge turret, the 120 mm with its perforated brake and the commander's sight ball. `abrams.py` and `cv90.py` now export only when run as scripts (as `t72.py` and `stryker.py`); their output is unchanged (no re-export). `m10.py` and `centauro.py` stand alone. Not done: a family receipt does not hash the family script it imports (the T-90's of `t72.py` neither); `vehicle_export._receipt` is the place, for the coordinator.
-- **New scheme `italian_vegetata`** (`textures.SCHEMES`): olive ground, brown and sand patches, black edges, from the Centauro II photos; one more 4 m recipe. Paint: M1E3 and M10 US desert tan (the prototype M1E3 and the unveiling M10s are green; one look per nation), CV90120 Swedish splinter (no army fields it; the CV90 family's home scheme).
-- **References.** M1E3: one licensable photo exists (the January 2026 Detroit prototype, public domain), plus the pilot's SEPv2 rear quarter and SEPv3 front (the hull it keeps, same bytes) and **two generated views** (rear quarter, front) through `openai/gpt-image-2.5-flare`, conditioned on the photo; the gateway ignored the seed. The generated rear quarter drew six skirt panels where the photo shows four; the photo wins. M10: six public-domain US Army/ANG photos, none generated. CV90120: one CC BY-SA photo of the CV90120-T, the CV9040C's side and rear (same bytes as `cv90/`), and **one generated** quarter view in Swedish splinter (asked for a side, it drew a quarter). Centauro II: eight Italian Army photos (CC BY 2.5), none generated. Rejected: the CC0 "M1E3 Abrams-X" upload (it is the AbramsX demonstrator, not the M1E3). The reference contract refuses a view with only generated images, which is why the M1 hull photos stand in.
-- **Verified.** `cargo test -p sim --test sim catalog::` 13/13 (red first: the gate refused the three cards whose sources did not exist yet); `icons.test.ts`, `purchasePicker.test.tsx` 10/10; `asset icons` wrote exactly the four new icons, every other byte-identical; `asset validate --unit vehicle` on the four with no findings (rubber 0.008–0.013, glass 0.003–0.005), each whole wreck with none; the `_turret` pieces report `basis.ground` and `fit.footprint` judged alone, as the T-14's does (they lie where they fell on the hull). Triangles per tier: M1E3 45488 / 16100 / 4692 / 1632, M10 53809 / 16788 / 4973 / 1540, CV90120 49080 / 15722 / 4997 / 1596, Centauro II 38250 / 13636 / 2873 / 788. A second live export of the M1E3 and Centauro II is byte-identical. `checkReferences` clean on all four libraries.
-- **Sheets and compare.** Production-renderer sheets with references for each card and wreck (`throwaway/s20/sheets/<card>[_wreck]/`; the workbench needed the runtime, the effect flipbooks and `build:mechanics` in this worktree). No before exists (new cards), so the comparison is against references only, by eye per view; single-image metrics on the contact sheets flag nothing empty (entropy 3.9–4.1 bits, edge density 0.24–0.26; `throwaway/s20/cmp/out/`).
-- **Critique: adversarial self-pass** (no sub-agent, at the coordinator's instruction). Against: the M10 reads as a small Abrams; its photos' squat turret with the long bustle box and the tall blunt bolted nose are there but less pronounced, and the commander's head barely shows. The M1E3's remote station is smaller and lower than the photo's tall pedestal, and its turret, though lower and faceted, still reads close to the SEPv3's at battle distance. The CV90120's turret front ramps into a bright lofted face. The Centauro's turret sits a little high and long next to the photos, and its tyres read slightly small. For: each is its type by silhouette (wheel and road-wheel counts, sprocket position, turret placement, gun length), black tyres and track, dark glass, real tiers, its own wreck with a thrown turret. Accepted for disabled cards; first raises if they become playable: the M10's nose and turret proportions, the M1E3's station.
-- **Preview.** Reference and contact sheets opened in Preview for the user, non-blocking.
-
-## Slice 19 art (implementation)
-
-Items 10–14 of the closeout, on `um/close-art`.
-
-- **Aircraft dimensions (item 11).** Every air and rotorcraft card's `references.json` `gaps` now holds one `<card>: dimensions …` line: the stated length, width and height, the published source (the manufacturer or official figure, a Wikipedia infobox and the source it cites, or Vertipedia's airframe figures, which measure a rotorcraft as the frame rule does: no rotors, height to the head) and how far the card is from it. Jets all within 5% (J-10C and MiG-31BM heights 4.7% under, left). **Four rotorcraft were more than 5% off and are restated and rebuilt:** AH-64E 15.5 × 5.23 × 4.95 → 14.7 × 5.23 × 4.72 (Boeing's length and Longbow height); AH-1Z 14.68 × 4.6 × 4.37 → 13.67 × 4.06 × 3.76 (Vertipedia; 4.37 m is to the tail rotor's top); UH-1Y height 4.5 → 3.9 (the UH-1N's rotor-head height, USAF; NAVAIR's 14 ft 7 in is to the tail rotor); Mi-35M 6.5 wide × 4.4 → 5.27 × 3.97 (Vertipedia's Mi-24VM, the shortened wings). Geometry was compressed to the new figures (x positions scaled, rotor heads and the Longbow dome lowered, the Hind's wings shortened); no tolerance moved. **Open, not restated:** the NH90's width (3.6 m over its sponsons against Vertipedia's unexplained 4.62 m, and **all five files in `assets/references/nh90/` are the same photo** under five Commons pages, so the tail can't be judged); the Mi-8AMTSh's 5.6 m over its outriggers (no published figure for that variant); the Merlin's width (Airforce Technology 4.55 m, matched, against Vertipedia's 5.06 m). Unsourced measures are said so per card (the Little Birds' and Z-10's widths, the Tiger UHT's mast-sight height, the Mi-28NM's height over its radar, the Z-20's estimates).
-- **Helpers (item 12).** `vehicle_parts.wheel_node` and `tube_part` are public; `aircraft_parts` imports them by those names.
-- **Contract: the running-gear rule reads a physical property (item 13).** `articulatedFindings` no longer asks for a `wheel_*` or `skid_*` node. It finds what touches the ground (tier 0, within `ground_m` of the lowest point) and requires every part whose material role rolls (`rubber`, `track`) to be under a `wheel_*` or `track_*` node, which the renderer turns; skids, legs, rails and a belly only rest, so the six belly-landing drones pass by their make-up. A wheeled type's art must still have `wheel_*` nodes (`typeFindings`). Nothing read `skid_*` at runtime, so the convention is gone from `aircraft_parts.skids` and `drones.py`. Tested both ways (`cartGlb` with tyres fixed to the body fails; a skid airframe passes; a truck without wheel nodes fails), and falsified on real art (renaming the running-gear prefixes flags the HMMWV's tyres and the Abrams' tracks).
-- **Skyranger on `boxer.py` (item 13).** `boxer.drive(v)` is the one Boxer hull (lower and upper hull, wheels, fittings); `boxer.py` exports only as a script. The Skyranger stands its turret on it at `boxer.ROOF` and `air_defence.boxer_drive` is deleted; Boxer APC and RCT30 re-export byte-identical. The Skyranger is now the wheeled lane's detailed hull (tier 0 51 852, was 16 616) and measures 8.05 × 3.12 × 3.38 m against its stated 7.93 × 2.99 × 3.50.
-- **Trucks stay on their own (item 13).** `truck_chassis.chassis` draws a fender over every wheel, springs, CTIS tyres at a 0.55 rim, a fuel tank and battery box at fixed places and one of three generic cabs; the HEMTT, MAN HX and Ural have reference-built prism cabs, bar treads with wheel nuts and their own rails, axles and stowage. Only the wheel-axle-rail loop is common, and it differs in every dimension, so standing them on the chassis would change their art; a shared four-line loop with a parameter per dimension would not be simpler. `truck_chassis.py` stays the support cards' chassis.
-- **One receipt convention (item 13).** Every disabled family's receipt is `run_disabled`'s, beside its first card's GLB (the air families' in `disabled/`, the ground families' in their own folder); that was already so for both lanes. The second convention was `disabled/source-receipt.json`, still claiming all 86 cards for the blockout generator: deleted, with `roster/disabled_placeholders.py` (it built only `source_authored` cards, of which none remain) and the `source_authored` registry status. **Contract change:** `model-manifest.json`'s `model_statuses` has only `reference_built`.
-- **Reference libraries and receipts (item 14, from the coordinator).** Ten manifest entries named a `source_family` with no library (`type_15`, `t_14_armata`, `t_15_armata`, `ebrc_jaguar`, `atgm_team`, `air_defense_team`) or another vehicle's (the Challenger 3 named the Challenger 2's `challenger`); each now names its source's folder, where its library is. The disabled gate (`crates/sim/tests/catalog.rs`) now holds every card to a library that exists and, outside `disabled/`, to its source's folder (red on the old manifest). A receipt's `source_sha256` lists every script of the Blender directory the export loaded (a family script it builds on, `truck_chassis`, `aircraft_parts`, the crew module when crew were drawn) instead of a fixed list.
-- **Repeatable exports (item 10).** Every family script and every infantry kit (75 sources, through `infantry_equipment.py`), live and `--wreck`, exported twice from the final code: **399 of 399 GLBs byte-identical** (`throwaway/close-art/cmpAB.txt`). Getting there needed three fixes, each at its cause in shared code: (1) `mesh_lods.canonical` now orders edges too (a decimate collapses equal-cost edges in edge order, and Blender's separate/join left it varying); (2) a decimated tier's vertices and face corners take the deform weights and colours of their island's nearest original vertex and corner, because the collapse's interpolation differs in the last float bit between runs (a byte colour then rounds either way); (3) `asset blender` runs Blender with `--threads 1`, because the threaded tangent computation still left a few LOD0 tangents either side of the glTF exporter's 4-digit rounding (an Abrams wreck takes 50 s single-threaded). Vehicle and wreck exports were already repeatable. The test infantry art (`assets/source/test/`) uses the same tiers and was not re-exported: it will change bytes once on its next export.
-- **What changed bytes, against the committed sources:** 168 GLBs. The 75 infantry kits (infantry code changed after slice 17's export, and the repeatable tiers); the 22 vehicles whose crews are drawn from those kits; the ten skid and belly airframes that lost their `skid_*` nodes (AH-1Z, UH-1Y, AH-6M, MH-6M, five scout quadcopters, the Lancet); 61 wrecks exported before `wreckage.heat()` was made repeatable (the air lane's 45, the drones' 6, the Abrams' 9, the HMMWV's). Earlier in the slice: the four restated rotorcraft and the Skyranger. The orphan `assets/source/roster/jltv/` (no script, no appearance, no card since the HMMWV stopped borrowing it) is deleted.
-- **Validated:** `asset validate` on all 329 non-catalog-kit sources (vehicles and drones as vehicles, wrecks as wreck scenery, the five disabled soldiers on the launcher clips): 224 with no findings, 105 with only the expected `fit.footprint` (a wreck outside the catalog), and 10 `basis.ground` on the disabled cards' thrown `_wreck_turret` pieces, judged standalone because no catalog entry names them as a piece (the catalog's own turret pieces pass in the bake). `bake` (which validates every catalog appearance), `icons` (12 re-derived), `check` pass: catalog load 233.8 MiB game page, 268.5 MiB every unit's art (limit 512), texture layers 141 / 254. Tests: `validate.test.ts`, `references.test.ts`, `icons.test.ts`, the disabled gate, `catalog_frames_test.py`.
-- **Looked at:** side and three-quarter renders of the four restated rotorcraft and the Skyranger (`throwaway/close-art/shots/`): proportions read as their types, nothing floats; no sub-agent critique or Preview this pass (art-only, disabled cards, run unattended).
-
-## Closeout test fixes
-
-Twenty web tests passed on main and failed here; every fix is in a test, because each pinned something a slice changed on purpose or rendered a page without what slice 04 made it need. No product code changed. The 2026-10 slice notes recorded the routing tests as "fail identically on the base commit (the menu suspends in jsdom)": the base there was this branch, and on main they pass.
-
-- **Pages suspend on their catalog set; tests now render them settled.** Slice 04's `SessionCatalogScope` reads its set with `use()`, and every route and the menu backdrop sit under one. Under a synchronous `act` (testing-library's `render` and `fireEvent`), React never retries a `use()` that suspended: the suspended part stays uncommitted, and so does every later update that re-renders it, so the menu ignored clicks and labs stayed covered. In the browser the fallback commits and the set's arrival retries. `web/tests/support/router.tsx` `renderSettled` (and `visitInRouter`, with the router's wrapper) renders inside an awaited `act` that also awaits the three sets; `navigation.test.tsx` awaits the Deploy click, which enters the game set's scope. Rejected: marking the set's promise `status: "fulfilled"` in `sets.ts` so `use()` reads it without suspending (product machinery for a test-environment property; a set the page has not resolved still suspends).
-- **Fake WebAssembly modules went.** `battleVisit`, `endurancePreparation` and `staticWorldRules` mocked `loadWasm` with stubs or an uninitialised module; a set with own documents now resolves through the real `resolve_catalog`, so they use the real loader (it reads the `.wasm` in Node since slice 05). `endurancePreparation` renders the route under `WithTestCatalog`, the set the router gives every lab.
-- **Prop records carry `wreckOf`.** `mapCompiler` and `buildings` pinned the ten-field prop record; slice 11 made it eleven (`wreckOf`, -1 for none). Each expected record gains the field; nothing else loosened.
-- **`lerp` from `math`** in `sceneAssets/material.test.ts` (slice 13's hand-rolled one; `mathOwner.test.ts`).
-- **Left:** `battleFailure` "a rejected replay shows its refusal" fails on main too (slice 06's record). In this worktree the full web suite also fails tests that need LFS runtime art (`icons`, `streetBuildings`, `downloadBudget`, `unitFit`), the real-browser `preparationWorker` (slice 04's record) and `navigationBrowser` (times out at the menu; not investigated, presumably the backdrop's unpulled art); none imports a file this pass changed. `mechanicsServer` and `mapWorkbenchNative` pass with `CARGO_TARGET_DIR` set to where the binaries were built.
-
-## Whole-spec review
-
-`review` over `git diff origin/main...HEAD` as one feature, on `um/review`. No art bytes changed.
-
-- **One frame source for disabled cards.** Six cards (T-14, T-15, Type 15, BRM-3K, Jaguar, Challenger 3) took their frame from `specs/done/unit-roster/manifests/` through `catalog_frames._archived_frame`, while every other card's script stated its own: two owners, one of them a live tool input inside a closed spec. Each script now states `DIMENSIONS` and `MOUNTS` (the archived values, copied), and `run_disabled(..., mounts={card: MOUNTS})` carries them into `disabled_variant`, which reads nothing under `specs/`. The four slice-20 tanks used two ad hoc ways to rig stated mounts (`v.frame = dict(v.frame, mounts=…)`, `rig({"mounts": …})`); they take the same path. Proof: the old and new frames are equal for all ten turreted cards (Python, no Blender); the BRM-3K live model re-exports byte-identical (its wreck was not re-run). **Receipt contract:** those six cards' rows will say `frame_source: "references"` on their next export (receipts were not rewritten here; every receipt's script hashes go stale with any shared-code edit anyway).
-- **Every wreck is modelled, so `wreck` is required** in `vehicle_export.run`/`run_disabled`; the `if wreck is not None` branch and the "interim wreck" wording in `wreckage.py` and the Blender README are gone. `burn()` stays: it is the last step of every wreck, not a stopgap.
-- **Dead code:** `vehicle_parts.track_run` (no caller since every tracked family wraps its belt with `track_loop`); the `model-manifest.json` skip in `sim::fixtures::documents` (no walked root holds it since the sets name their roots).
-- **Catalog sets stay declared twice, Rust and TypeScript** (`CatalogSet::own_roots`, `SET_FOLDERS`), each naming the other: one data file would still leave the browser's literal Vite globs. New test (`sessionCatalog.test.ts`): a page and a native tool resolve the test and menu sets to the same units (red when `SET_FOLDERS.menu` drops `units/menu`).
-- **Comments say what is, not how it came:** slice numbers, "the pilot", "the lane", "archived frame", "not the JLTV's it wore before" left code comments where they carried no reason; pointers to a decision in choices.md stay (close-spec repoints them).
-- **Left, deliberately (each would re-export art):** family-local helpers that share a name but differ in every number (`glacis_z` ×12, `wheels`, `trophy_station`, `gun_120`, `remote_station`); six hand-drawn spare wheels beside `truck_chassis.spare_wheel` (rim sizes, offsets and segment counts differ); `aircraft_parts.fit`'s own `dark` material beside `materials(fittings=…)` (another name and dirt); the trucks off `truck_chassis` (slice 19 art's reasoning holds). `wreckage.TURRET`/`BARRELS` restate `vehicle_export.RIG_NODES`' names (wreckage cannot import the exporter); small, left.
-## Closeout scene fixes
-
-Seven browser-scene checks failed here and passed on main (`sensors`, `contacts`, `workbench`, three in `generated`, plus `generated`'s refusal once it ran that far). Every fix is in a scene; no product code changed. Each scene now passes alone.
-
-- **`sensors`.** Red's own units are `test_rifle,test_tank` (slice 05's rename); the check still pins exactly that pair.
-- **`contacts`: a race, not a regression.** `useSimSession` hands React each observation one animation frame after it is published; the scene read the firing contact's callout straight after reading the observation, so a late frame gave `[]`. It did not reproduce (five runs, three under full CPU load). The scene now waits up to 5 s for the callout before reading it; a missing callout still fails the check. Main has the same race.
-- **`workbench`: slice 04's catalog contract.** The workbench runs the test set and loads only the unit art its units wear (slice 04 step 3 above). The scene's synthetic bake names `tank` and `rifleman`, which no test unit wears, so `?bundle=tank` never loaded. The scene serves that bake under `test_tank`/`test_rifle` (the runtime catalog's keys only; bundles unchanged). Rejected: loading every unit's art in the workbench (reverses a recorded decision; the real catalog has no unworn unit art).
-- **`generated`: stale against contracts main already had.** The menu asks for the `skirmish` profile, whose medium map is 2400 m (`GenerationRequest::extent_m`, on main since 2026-10-06), not the standard 6000 m; the check now also pins `profile`. The building floor that keeps the "every building drawn" equalities non-vacuous is 500 (this map has 634), was 1000 for the 6 km map. The camera spiral circled the building nearest the town centre, which on the town-square layout stands alone, so no pose asked for an eye inside and the shot loop indexed an empty list: `flyTown` now circles the nearest building whose spiral asks for an eye inside a neighbour (judged on flat ground at its base), and an empty list takes no shots so the check reports instead of throwing. The bad-size link carries `faction=us`, since slice 07 refuses a link without a faction first (so does `CAMERA_MAP`'s).
-- **Pre-existing, left (fail on main too):** `foundation` (scene timeout), `consequences` (soldier death), all six `panels` checks. `generated` on main fails five other checks (menu link and loading-screen pins, then a crash on the removed `objective`), already fixed on this branch.
-- Scenes need `CARGO_TARGET_DIR` set to where `build:mechanics` built: without it the dev server's `/__mechanics` answers 500 and labs time out at load.
+# Choices: unit models (final ledger)
+
+The decisions in the shipped work, re-audited against the final code at
+closeout. Earlier per-pass entries were consolidated: a provisional call is
+shown at its end state, and anything a later pass replaced or reverted is gone.
+These are choices only. Test results, measurements and review evidence live in
+the commits, not here.
+
+How to read it:
+
+- **The user's decisions** come first. They are inputs, not audit items, and
+  each is marked with its date.
+- **Open for the user** lists the calls that only the user can make. Each one
+  has the provisional state the work ships with, and how to reverse it.
+- **Unsound** lists choices that should be redone, with the corrected decision.
+- **Sound** is the architecture the user now owns, least confident first.
+
+A few terms used throughout:
+
+- **Frame**: a unit's physical box in the simulation. It is made of the hull's
+  half extents, its eye height, and each mount's pivot and muzzle. It lives in
+  the unit fixtures (`fixtures/units/roster/*.json`), and the simulation shoots
+  and sees by it.
+- **Art**: the GLB model the renderer draws over the frame. The validator
+  (`asset validate`) checks that art fits its frame to within
+  `tolerances.hull_extent_m` (0.1 m).
+- **Dressing**: small parts named `dressing_*` (antennas, a commander's head,
+  a spare wheel). They may stand outside the hull box by a set allowance, so
+  they can't read as cover.
+- **Tier**: one of four levels of detail. Tier 0 is close up and tier 3 the
+  far view. The renderer picks a tier by how tall the unit is on screen.
+- **Disabled card**: a roster card that can't be bought yet (aircraft,
+  helicopters, support, drones, prototypes). It has a model and an icon, but
+  no unit type in the simulation.
+
+**Review these first.** These are the three least confident calls:
+[edge wear differs by lane](#edge-wear-strength-differs-by-lane),
+[wreck footprint tolerances](#each-wreck-carries-its-own-footprint-tolerance-measured-from-its-art),
+and [menu units on test hulls](#menu-units-keep-the-test-hulls-so-their-art-overhangs).
+
+## The user's decisions
+
+These are the user's own calls, as they were given. They are listed so that a
+reader knows they were chosen, not inferred.
+
+- **Roster-only game content** (2026-10-06). The units a player sees are the
+  official roster. The pre-roster generic units (`tank`, `jeep`, `supply`,
+  `rifle`, `recon`, `at`) stay only as test units: "tests use fake units
+  unless there is an explicit reason to use the roster; the roster changes all
+  the time." They are not remodelled. The US light vehicle is the M1151
+  HMMWV.
+- **Convert or delete, never leave** (2026-10-06). Every place a generic unit
+  or the village reached the game was turned into roster units or deleted.
+- **A battle without factions is refused** (2026-10-06: "obviously invalid").
+  `/battle` without a faction is an error that names the problem. It never
+  silently defaults to US against Eastern.
+- **No compatibility** (the user's standing default). There are no id
+  aliases, no village replay reader and no storage migration. Saved replays
+  from before are refused.
+- **The word "village" stays as the generator's settlement class**
+  (2026-10-06: "if the word village is used in this context it's perfectly
+  ok"). `fixtures/map-presets.json` places villages in ordinary Play maps, so
+  the class is game content and keeps its name.
+- **The developer menu ships in production builds** (2026-10-06; the audience
+  is technical). Its tools are labelled as tools.
+- **One spec, not two** (2026-10-06). Roster-only content was briefly its
+  own spec, then merged into this one.
+- **Two catalogs** (option A, 2026-10-06). The game's catalog holds only the
+  roster, and a separate test catalog adds test units. The user rejected one
+  catalog with a `test` flag, because one missed check would leak fakes into
+  the game.
+- **Reuse what the generic units earned** (2026-10-06: "the generic tank is
+  basically an Abrams with nice death animations"). Their tuned sounds seed
+  the vehicle sound classes, and their crew idea puts crew on roster vehicles.
+- **Reference photos are resized** (2026-10-06: "resize them into something
+  reasonable").
+- **Paint is the vehicle's real nation's, and the US is desert tan** (option
+  C, 2026-10-06). The user rejected one colour scheme per faction.
+- **All 86 disabled cards are remodelled, with icons** (option B,
+  2026-10-06).
+- **Scarce references: use what exists and generate the rest** (option A,
+  2026-10-06). Missing views are generated with the latest gpt-image through
+  the duet CLI, conditioned on real photos, labelled as generated, and never
+  trusted over a real photo.
+- **A coordinator plus a wide worker pool** (option A, 2026-10-06, "and
+  parallelise even more").
+- **The look is stylised strategy-game readability** (direction D of four
+  generated directions, 2026-10-06). That means real layouts, bold bevels,
+  simplified shapes, painted edge highlights and moderate weathering.
+  Exaggeration never changes a frame.
+- **Players zoom in to admire units, and the target machine is the Mac mini**
+  (2026-10-06).
+- **No per-unit variation yet** (2026-10-06: "can look same for now").
+- **Every vehicle has its own wreck** (2026-10-06, overriding the
+  recommendation of a wreck per size class): "you should be able to tell which
+  unit died by looking at the wreck."
+- **The menu reel is a film** (2026-10-06, overriding the recommendation). It
+  may use any units with any stats, and anything may change, but every
+  approved shot must stay exactly the same.
+- **Every unit switches detail with zoom** (2026-10-06).
+- **No number is a requirement** (2026-10-06): "numbers like the 50 MB
+  download limit are arbitrary... I don't want you to spend too much time
+  over-optimizing for some random number that you came up with yourself."
+  Budgets, limits, ratios and allowances are loose tripwires. When one is
+  exceeded and nothing visibly suffers, raise it.
+- **The unknown-unknowns sweep's recommendations** (2026-10-06). The user
+  agreed with these: shared texture files and a download limit; the HMMWV gets
+  its real frame; dressing gets its own allowance; the battle session owns
+  its catalog and the test catalog is resolved at run time; presentation is
+  derived from physics and base weapons, with no new catalog field; roster
+  base soldiers are abstract; `recipe_id`/`encounter_seed` leave the request;
+  the name is "test unit", not "stand-in"; `market-town-test` holds the
+  `assault` encounter.
+- **US prototype armour** (2026-10-07: "We did include T14/T15, so we need
+  prototype US"). M1E3 and M10 Booker were added as disabled cards.
+- **A light tank per faction** (2026-10-07). Eastern has the Type 15 and the
+  US the M10 Booker. Europe gets the CV90120, which was the coordinator's pick.
+  The user then asked for the Centauro II as well.
+
+## Open for the user
+
+Each entry ships in the provisional state described. Nothing here blocks
+anything.
+
+### Edge wear strength differs by lane
+
+- **When:** the pilot, then the tracked and wheeled lanes (slices 14–16).
+- **The choice:** After the pilot, the coordinator asked the lanes to push
+  toward the look target's painted edge highlights. Each lane picked its own
+  strength for `materials(chip=)`, which sets how much of the paint's convex
+  edges wear to a lighter tone. Tracked and tracked-like families use 1.0,
+  wheeled families and the Strykers 0.6, and the Abrams ×3 and the HMMWV keep
+  the default 0.35. Park an Abrams beside a Leopard 2 and the Leopard's
+  edges read much brighter. That is a lane difference, not a real one.
+- **The gap:** The look was given as an image and a word ("gentle painted
+  edge highlights"), not a number, and no one owned the cross-lane value.
+- **The reach:** Every future family copies one of three values.
+- **Verdict:** needs-user. Provisional: as shipped. To reverse: pick one
+  value, make it the `materials` default, drop the per-family overrides, and
+  re-export every family (exports are repeatable, so only the art moves).
+- **Confidence:** low.
+
+### The M10 Booker reads as a small Abrams
+
+- **When:** prototypes and light tanks (slice 20).
+- **The choice:** The M10's photos show a squat turret with a long bustle box
+  and a tall, blunt, bolted nose. The model has these features, but they are
+  less pronounced, so at battle distance it reads as a shrunken Abrams. Its
+  commander's head barely shows.
+- **The gap:** Taste. The detail bar asks for "recognisable", and this
+  vehicle really does resemble the Abrams.
+- **The reach:** The card is disabled. If it becomes playable, players will
+  need to tell an M10 from an Abrams at a glance.
+- **Verdict:** needs-user. Provisional: accepted for a disabled card. To
+  reverse: exaggerate the nose height and the turret's length-to-height ratio
+  in `m10.py` (bevels and proportions only, inside its frame).
+- **Confidence:** low.
+
+### The Stryker Dragoon's gun sits 0.4 m low
+
+- **When:** pilot (slice 14). Left alone at the pilot checkpoint.
+- **The choice:** The Dragoon's frame puts its 30 mm gun axis at 2.19 m and
+  its eye at 2.48 m (mount `autocannon`, `pivot_m` z 1.716 in
+  `fixtures/units/roster/us.json`). On the real vehicle the MCT-30 turret sits
+  on a 2.30 m roof, so the gun is about 0.4 m higher. Picture the model drawn
+  on the common Stryker hull: the gun would come out of the roof, not out of
+  the turret. So `stryker.py` draws the Dragoon's hull 0.35 m lower
+  (`DRAGOON_ROOF` 1.95 against `ROOF` 2.30), and the gun leaves the turret
+  correctly. The cost is that the Dragoon squats next to its sister vehicles.
+  The other Stryker variants have the opposite problem: their box is 2.64 m
+  tall against a real 2.30 m roof, so their roof is drawn true and the remote
+  station's fixed adapter rises to fill the box.
+- **The gap:** The spec forbids moving any frame to fit art, but the frame
+  itself disagrees with the photos.
+- **The reach:** Raising the pivot changes where the Dragoon shoots from and
+  what it can see over. That moves battle outcomes and digests, so it needs a
+  balance sample.
+- **Verdict:** needs-user. Provisional: the frame stays and the hull is drawn
+  low. To reverse: raise the pivot to about 2.10 m (gun axis about 2.6 m),
+  draw the Dragoon on `ROOF`, and run a quick balance sample.
+- **Confidence:** medium.
+
+### The T-15's turret module sits 0.4 m low
+
+- **When:** disabled ground cards (slice 18).
+- **The choice:** The T-15's frame (`armata.py` `T15_DIMENSIONS`,
+  `T15_MOUNTS`, copied from the old roster manifest) puts the gun pivot at
+  1.82 m on a 3.5 m box. The photos show the Bumerang-BM module standing
+  higher. The model is drawn on the frame, so the module sits low on the deck,
+  and the commander's sight on its pedestal reaches the top of the box.
+- **The gap:** The same as the Dragoon's: frames don't move to fit art.
+- **The reach:** The card is disabled, so nothing in the simulation reads
+  this yet. It matters only when the T-15 gets mechanics.
+- **Verdict:** needs-user. Provisional: the frame stays. To reverse: restate
+  the mounts in `armata.py` and re-export.
+- **Confidence:** medium.
+
+### Wheeled frames disagree with their photos
+
+- **When:** the wheeled lane (slice 16).
+- **The choice:** Each of these vehicles is drawn on its frame, not on its
+  photos:
+  - **LAV-25A2:** the frame's turret ring is at amidships and its muzzle sits
+    0.46 m past the bow. The drawings put the ring about 0.85 m further back.
+  - **ZBL-08:** the ring is about 1 m ahead of the photos' and the muzzle
+    0.25 m past the bow. The roof is lowered from about 2.3 to 2.20 m so the
+    gun clears it.
+  - **VBCI:** the ring is about 0.4 m ahead of the photos'.
+  - **BTR-82A:** the frame is 2.41 m tall with the gun axis at 2.0 m. The
+    photos show a roof near 2.1 m and a turret top near 2.6 m, and put the
+    ring about 1 m further back. The roof is drawn at 1.90 m under a low
+    turret.
+  - **Tigr-M:** the hull is 2.0 m tall against a roof near 2.45 m. The wheels
+    are drawn true and the cab compressed, so it reads squat, and the gunner
+    barely clears the roof.
+  - **Fennek:** the hull is 2.29 m tall against a roof near 1.85 m. The roof
+    is drawn true, and the folded sensor head reaches the top of the box.
+- **The gap:** The same: frames don't move to fit art.
+- **The reach:** Each fix is a frame change. That changes sight lines and
+  hit boxes, so it moves digests and needs a balance sample.
+- **Verdict:** needs-user. Provisional: every frame stays. Comments in each
+  family script (`lav.py`, `zbl08.py`, `btr.py`, `tigr.py`, `fennek.py`) say
+  where the art bends. To reverse: correct the frame per vehicle, re-export it,
+  and sample.
+- **Confidence:** medium.
+
+### Tracked frames disagree with their photos
+
+- **When:** the tracked lane (slice 15).
+- **The choice:**
+  - **Leopard 2:** the box is 3.0 m tall, but the real roof is about 2.6 m.
+    The art stands at its real height inside the box, so the box is taller
+    than what you see. A shot can therefore hit air above the turret.
+  - **Ajax:** the frame gives the turret one mount, so the remote weapon
+    station is drawn fixed to the turret and does not turn on its own.
+  - **Puma:** the MELLS (Spike) launcher is a mount at 1.08 m to the left, on
+    the turret's edge. Drawn there, it overhangs the side a little.
+- **The gap:** The same: frames don't move to fit art.
+- **The reach:** A shorter Leopard box changes what hits it. A second Ajax
+  mount is a mechanics change, because it lets the vehicle fire two weapons
+  on separate aims.
+- **Verdict:** needs-user. Provisional: the frames stay. To reverse: change
+  each frame or mount, then re-export and sample.
+- **Confidence:** medium.
+
+### May a wreck scatter debris wider than its hull?
+
+- **When:** wrecks (slice 11). Tightened in the tracked and wheeled lanes.
+- **The choice:** Picture a Challenger brewing up. In a film its armour packs
+  and a track lie a few metres off. Here every wreck must stay within its
+  hull's footprint plus its own measured tolerance (see
+  [the wreck tolerances entry](#each-wreck-carries-its-own-footprint-tolerance-measured-from-its-art)).
+  Two lane passes widened tolerances to fit thrown doors and packs. Both were
+  reverted, and the debris was pulled in instead: doors land on the roof,
+  crates fall into the cargo bed, and panels are tucked into the wheel gaps.
+  Dressing can't carry debris either, because `wreckage.burn()` deletes every
+  `dressing_*` node and the wreck footprint check measures every part.
+- **The gap:** The spec says never widen a tolerance. It doesn't say whether
+  a wreck's scatter is part of the physical box.
+- **The reach:** A wreck is a prop the simulation can use as cover. Debris
+  drawn wider than its box would show cover that isn't there, or the box
+  would have to grow, which changes cover.
+- **Verdict:** needs-user. Provisional: the debris stays inside. To reverse:
+  give wrecks a debris allowance in the validator (like dressing, flat
+  pieces only), or let the wreck footprint grow and accept the cover change.
+- **Confidence:** medium.
+
+### The NH90's width
+
+- **When:** closeout, aircraft dimensions (slice 19).
+- **The choice:** Every aircraft and helicopter card's stated length, width
+  and height was checked against a published source, and four helicopters
+  were rebuilt. The NH90 was left at 3.6 m wide over its sponsons. Vertipedia
+  gives 4.62 m without saying what that measures. All five photos in
+  `assets/references/nh90/` are the same image, so the tail can't be judged.
+  The library's `gaps` records this.
+- **The gap:** No source explains the number, and the references can't settle
+  it.
+- **The reach:** The card is disabled, so nothing reads the width yet.
+- **Verdict:** needs-user. Provisional: 3.6 m. To reverse: find a second
+  photo or drawing, restate the card's dimensions and re-export.
+- **Confidence:** medium.
+
+### Inherited sound choices play a burst for every round
+
+- **When:** presentation by property (slice 01).
+- **The choice:** Weapons without their own sound row now inherit their
+  ancestor's (`inheritRows`, `inheritWeaponChoices`). The marksman rifle and
+  heavy sniper fire single shots but inherit `rifle-combat`, a three-round
+  recording. The autocannon (one round every 0.2 s) inherits `hmg-combat`
+  (one every 0.1 s). So each single shot plays a whole burst. This is not
+  new, because before slice 01 all three fell back to `defaults.default`,
+  which is also `rifle-combat`.
+- **The gap:** A fix means picking recordings, which is a call to make by
+  ear.
+- **The reach:** Every roster sniper and autocannon sounds wrong until this
+  is fixed.
+- **Verdict:** needs-user. Provisional: as is. To reverse: give
+  `marksman_rifle`, `heavy_sniper` and `autocannon` their own rows in
+  `fixtures/sounds.json` `defaults`.
+- **Confidence:** medium.
+
+## Unsound
+
+### The M10's reference library gives dimensions its model doesn't use
+
+- **When:** prototypes and light tanks (slice 20).
+- **The choice:** `m10.py` states the M10's frame as 8.10 × 3.45 × 2.80 m.
+  The slice measured that off the side photo against the road wheels, with the
+  length including the towing lugs. But `assets/references/m10/references.json`
+  `gaps` says the dimensions are "the commonly published figures (about 7.6 m
+  hull length, 3.6 m wide, 2.9 m tall)". A reader checking the card against
+  its library finds two different sets of numbers, and the library's set is
+  the one the model doesn't use.
+- **The gap:** The closeout's dimension audit covered aircraft cards only.
+- **The reach:** A later mechanics spec will take the M10's frame from one of
+  these two places.
+- **Verdict:** unsound. Corrected decision: a card's library states where
+  its frame's numbers come from, and those numbers are the ones its script
+  builds to. Restate the gap (measured off the side photo, lugs included,
+  against the published 7.6 m hull), or rebuild to the published figures.
+- **Confidence:** high that it needs fixing.
+
+## Sound
+
+Least confident first.
+
+### Menu units keep the test hulls, so their art overhangs
+
+- **When:** the menu reel (slice 08).
+- **The choice:** The menu films the old generic armies in roster looks
+  (`fixtures/units/menu/units.json`). For example, `menu_us_tank` is
+  `test_tank` wearing the Abrams. The plan said menu units take the roster
+  hull. That was tried: the Paris Corner log stayed identical, but on Market
+  Town, at tick 219, an HMG round struck the Abrams' longer hull instead of
+  missing the test tank's. The battle draws every shot's scatter from one
+  shared random stream, so one changed draw retimes everything after it, and
+  13,820 of 18,187 events differed. So the menu units keep the test hulls, and
+  the reel is the approved one bit for bit. The cost is that the drawn Abrams
+  overhangs its box by 0.47 m at each end. The HMMWV overhangs by 0.9 m at each
+  end, 0.25 m per side and 0.7 m above, and its drawn HMG stands about 1 m
+  above the jeep's mount. The menu set is not fit-checked. The gate is
+  `crates/sim/tests/menu_reel.rs` (see
+  [the exact-shot test](#the-menu-reel-is-pinned-by-its-event-log)).
+- **The gap:** "Every shot exactly the same" and "the roster hull" could not
+  both hold.
+- **The reach:** Any later change to the menu's units must keep the test
+  hulls, or the reel must be re-recorded and approved again.
+- **Verdict:** sound. The user's film rule outranks the plan's hull rule.
+- **Confidence:** medium.
+
+### Each wreck carries its own footprint tolerance, measured from its art
+
+- **When:** wrecks (slice 11). Re-measured in the pilot.
+- **The choice:** The live vehicle's fit check leaves out barrels and roof
+  weapons, because they are mounts. A wreck is one static prop, and its
+  footprint check (`footprintFindings`) measures every part. A burnt tank with
+  its gun over the bow is therefore wider than its hull. So each wreck
+  appearance in `assets/catalog.json` has a `tolerances.footprint_m` set at
+  creation to its measured worst overhang, rounded up to 0.1 m, plus 0.1 m.
+  For roster wrecks this runs from 0.3 m (IFVs) to 2.7 m. The test tank's wreck
+  uses 3.0 m. The lanes then added debris, and every lane wreck was held to
+  the tolerance it already had; widenings were reverted.
+- **The gap:** The rule "never widen a catalog tolerance" was written for
+  live vehicles. Wrecks had no tolerance until this spec made one per wreck.
+- **The reach:** A wreck's tolerance is how far its art may stand outside the
+  box the simulation uses as cover. A long-barrelled wreck draws metres of
+  barrel that blocks nothing, which reads right because a barrel isn't cover.
+  This is the base the [debris question](#may-a-wreck-scatter-debris-wider-than-its-hull)
+  sits on.
+- **Verdict:** sound. It measures a real property (the barrel), and it is
+  fixed at creation, not raised to fit later art.
+- **Confidence:** medium.
+
+### Disabled cards were accepted at a lower detail than roster units
+
+- **When:** disabled cards (slice 18), prototypes (slice 20).
+- **The choice:** The 86 disabled cards and the four new ones each have their
+  own model at their real size, their own wreck, real tiers, black tyres and
+  dark glass. They are recognisable by silhouette. They carry less detail than
+  the rebuilt roster units: jets have shallow fuselages and small canopies,
+  truck cabs are boxes with windows, drones are simple primitives, and there
+  are no markings or insignia. The first things to raise when a family becomes
+  playable are recorded in each family's script.
+- **The gap:** The detail bar was written for roster vehicles that players
+  zoom in on, but disabled cards only show in the picker and the icons.
+- **The reach:** Making a card playable includes bringing its model up to
+  the roster bar.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Disabled-card frames are stated per card and held to 6%
+
+- **When:** disabled cards (slice 18), closeout (slice 19), review.
+- **The choice:** A disabled card has no unit type, so it has no frame in the
+  fixtures. Each family script states its card's length, width and height as
+  `DIMENSIONS` (and `MOUNTS` for turreted cards).
+  `vehicle_export.run_disabled` refuses a model more than `FRAME_TOLERANCE`
+  (0.06) off any dimension. Six cards (T-14, T-15, Type 15, BRM-3K, Jaguar,
+  Challenger 3) copied their values from the old roster manifest. The rest
+  took them from published figures or measured them off a photo. The aircraft
+  were checked one by one against published sources at closeout, and four
+  helicopters more than 5% off were rebuilt (AH-64E, AH-1Z, UH-1Y, Mi-35M).
+  Each card's library `gaps` names its source. The tolerance was 0.05 and was
+  raised to 0.06 because the M-SHORAD and M1129 stand on the pilot Stryker
+  body, which is 5.1% over its stated width. Rotorcraft are measured without
+  blades, to the top of the rotor head.
+- **The gap:** Disabled cards had no physical source of truth.
+- **The reach:** When a card gets mechanics, its frame comes from the catalog
+  like any unit's. Then these numbers become a first draft, not an authority.
+  The six copied cards' receipts still say the frame came from the archived
+  manifest until they are next exported.
+- **Verdict:** sound. One owner per card (its script), checked against a
+  cited source.
+- **Confidence:** medium.
+
+### Drones are drawn as the type each army fields
+
+- **When:** disabled ground cards (slice 18).
+- **The choice:** Drone cards name a class, not a type. Scout drones are
+  drawn as the Skydio X2D (US), Parrot ANAFI USA (Europe) and a DJI Mavic 3T
+  class (Eastern). Anti-armour loitering munitions are the Switchblade 600,
+  Hero-120 and Lancet. Anti-personnel ones are the Switchblade 300 and, for
+  Europe and the East, an FPV quadcopter with an RPG warhead. Drones stand on
+  the ground with their rotors still.
+- **The gap:** The cards don't say which airframe.
+- **The reach:** A later mechanics spec may pick other types and re-model
+  them.
+- **Verdict:** sound. Reversible.
+- **Confidence:** medium.
+
+### The four new cards' costs, families and labels
+
+- **When:** prototypes and light tanks (slice 20).
+- **The choice:** The M1E3 sits in the Abrams family as an unavailable
+  variant, like the Challenger 3 in the Challenger's, at cost 460 (the SEPv3
+  Trophy is 450). The M10 Booker is its own family at 240 (the Type 15 is 230).
+  The CV90120 is its own family `cv90120` at 250, so the picker shows Europe's
+  light tank apart from the CV90 IFVs. The Centauro II is its own family at
+  240. A new planned label `tank-gun` covers a 120 mm gun on a light chassis,
+  beside `light-tank-gun` for 105 mm. The paint is US tan for both US cards
+  (the photos show green prototypes), Swedish splinter for the CV90120, and a
+  new `italian_vegetata` scheme for the Centauro. Each card's mounts are stated
+  from its photo, so the turret traverses and the wreck can throw it.
+- **The gap:** The user named the vehicles, not their place in the ladder.
+- **The reach:** A disabled card fights no battle, so the costs and labels are
+  read only by the picker's dimmed card and by a later mechanics spec.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Which army wears which uniform and rifle
+
+- **When:** the infantry pilot (slice 14) and lane (slice 17).
+- **The choice:** Europe wears the Bundeswehr's look: Flecktarn, G36, and the
+  G28 for marksmen. Europe's cards come mostly from Germany, and the Leopards'
+  three-tone green agrees. US cards split by service. The Marine squad, Force
+  Recon and the M107 snipers wear MARPAT with the M27. Army scouts, the TOW team
+  and the M110 squad wear OCP with the M4A1. Every Eastern kit wears Russian
+  EMR with the AK-12, including the FN-6 team, because no Chinese print exists.
+  Team weapons were kept, because their silhouettes already matched the
+  references.
+- **The gap:** The roster names cards, not uniforms.
+- **The reach:** A new army or card picks a row in
+  `infantry_equipment.py` `ARMIES`/`KITS`.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Paint where the photos disagree with "the real nation"
+
+- **When:** materials (slice 13) and the lanes.
+- **The choice:** One look per variant, in its nation's scheme. Some calls
+  were needed. The Bradley is US tan, though the M2A4's European photos show
+  green. Both CV90s are Swedish splinter. Exhibition finishes are not followed
+  (the BRM-3K's and 2S19's desert camouflage, the Skyranger's digital
+  demonstrator scheme). Russian green was darkened to an olive
+  (0.058, 0.068, 0.043) because the first value read lime under the game's
+  warm sun. Running gear (hubs, louvres, stowage) stays dark olive and
+  untinted on every scheme. Each library's `gaps` names what the photos
+  contradict.
+- **The gap:** "The real nation's" doesn't pick between a nation's several
+  schemes.
+- **The reach:** Schemes are data (`textures.SCHEMES`), so a new one is one
+  recipe.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Generated views stand in where no licensable photo exists
+
+- **When:** the Challenger 3 (slice 18) and the M1E3 and CV90120 (slice 20).
+- **The choice:** The Challenger 3 has no photo under an allowed licence, so
+  its library holds two Challenger 2 TES photos of the hull it keeps, plus two
+  generated views of the new turret. The M1E3 has one public-domain photo,
+  plus the SEPv2/SEPv3 hull photos and two generated views. Where a generated
+  view disagreed with the photo (six skirt panels against four), the photo
+  won. The CV90120 has one photo and one generated quarter view. The
+  reference contract refuses a view that has only generated images, which is
+  why the real hull photos stand beside them.
+- **The gap:** Which views to generate, and from what.
+- **The reach:** The pattern for any future family with scarce photos.
+- **Verdict:** sound. It follows the user's option A.
+- **Confidence:** medium.
+
+### The wheeled medium class gets a turret loop
+
+- **When:** presentation by property (slice 01).
+- **The choice:** The plan said `wheeled_medium` takes the supply truck's
+  sound row, which has no turret loop. But most of its hulls (Stryker, BTR,
+  Boxer) have turrets, and they would traverse in silence. The row in
+  `fixtures/game.json` `presentation.audio.vehicles.wheeled_medium` plays the
+  shared `turret` loop at gain 0.08, between the light (0.05) and tracked
+  (0.12) classes.
+- **The gap:** The plan's row choice missed the turrets.
+- **The reach:** The physical rule would be a turret loop whenever the hull
+  has a turret mount. That is a later sound pass, retuned by ear.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Stress battles carry factions they ignore
+
+- **When:** the request contract (slice 07).
+- **The choice:** Every `PrepareBattleRequest` now needs `factions`. The
+  benchmark's `city-contact` and the endurance lab prepare a stress scene on
+  standard (non-skirmish) geography. The old contract check "factions need
+  skirmish geography" would have refused them, and changing their map would
+  change the benchmark's workload. So the check moved to preparation and
+  became a property of the resolved map: a map with no admitted blue skirmish
+  base is refused at stage `encounter`. Stress requests carry
+  `factions: ["us", "eastern"]`, which the stress scene ignores.
+- **The gap:** Stress runs aren't battles, but they used the battle request.
+- **The reach:** The alternative was a separate stress message (a larger
+  change to the worker, client, report and scenes). If stress gets its own
+  message later, the dummy factions go.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The street test map is the old village ground under a test name
+
+- **When:** retiring the village (slice 06). Extended at closeout.
+- **The choice:** `fixtures/maps/street` is the village's ground, byte for
+  byte, labelled `category: "test"`. Its encounters are `street` (the fog
+  labs' fight), `attack` (the old "ordinary" variant as data), `advance`
+  (`attack` plus one opening move, so it plays itself), `lean`, and `rear`
+  (`street` with soft vehicles pulled out of sight, so each side holds ground
+  the other never saw, for the `ground` scene's check). Moving these checks to
+  another map would have re-staged every coordinate-anchored scene (26 tours,
+  the ground rig, the fog labs' camera).
+- **The gap:** The plan said delete the village, but its ground anchored most
+  browser checks.
+- **The reach:** The old arena survives as test content. Nothing of it
+  reaches the game, and `git grep -i village` lists only the settlement class
+  and history.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Scenes and tests were fixed in the scene, not in product code
+
+- **When:** closeout test and scene fixes.
+- **The choice:** Web tests that render a page now await its catalog set
+  (`web/tests/support/router.tsx` `renderSettled`), because a synchronous
+  `act` never retries a `use()` that suspended. The alternative was marking
+  the set's promise fulfilled in `sets.ts`, which would put product machinery
+  in for a test-environment property. Tests that faked WebAssembly use the
+  real loader. The `contacts` scene waits up to 5 s for a callout that
+  arrives one animation frame after its observation; a missing one still
+  fails. The `workbench` scene serves its synthetic bake under `test_tank` and
+  `test_rifle`, because the workbench loads only art its test units wear. The
+  `generated` scene asks for the skirmish profile, and its town spiral circles
+  a building that has a neighbour.
+- **The gap:** Each check pinned something a slice changed on purpose.
+- **The reach:** None in product code.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Trucks stay off the support-truck chassis
+
+- **When:** closeout (slice 19).
+- **The choice:** `roster/truck_chassis.py` draws the support cards' trucks:
+  rails, axles, a fender over every wheel, and one of three generic cabs. The
+  HEMTT, MAN HX and Ural have reference-built cabs, their own rails and axles,
+  and bar treads. Only the wheel-axle-rail loop is common, and it differs in
+  every dimension. Standing them on the chassis would change their art, and a
+  shared loop with a parameter per dimension would not be simpler.
+- **The gap:** The closeout asked for one truck owner "if the wheeled trucks
+  can stand on it".
+- **The reach:** Two owners of truck geometry remain, on purpose.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Look-alike helpers in family scripts were left
+
+- **When:** whole-spec review.
+- **The choice:** `glacis_z` (×12), `wheels`, `trophy_station`, `gun_120` and
+  `remote_station` share names across family scripts but differ in every
+  number. Six hand-drawn spare wheels sit beside `truck_chassis.spare_wheel`.
+  `aircraft_parts.fit` has its own `dark` material. `wreckage.TURRET`/`BARRELS`
+  restate `vehicle_export.RIG_NODES`' names, because wreckage cannot import the
+  exporter. Folding any of them would re-export art for no visible change.
+- **The gap:** The one-owner rule versus "don't move art for no reason".
+- **The reach:** A future family copies whichever local helper is nearest.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Catalog sets are declared twice, in Rust and TypeScript
+
+- **When:** session catalog (slice 04), test units (slice 05), review.
+- **The choice:** Which folders each set adds is written in
+  `crates/sim/src/fixtures.rs` `CatalogSet::own_roots` and in
+  `web/src/battle/catalog/compose.ts` `SET_FOLDERS` (test: `units/test`; menu:
+  `units/test`, `units/menu`). Each names the other. The browser's Vite globs
+  in `sets.ts` must be literal, so a shared data file would still leave a
+  third copy. `sessionCatalog.test.ts` checks that a page and a native tool
+  resolve the test and menu sets to the same units.
+- **The gap:** Vite can't glob from data.
+- **The reach:** Adding a set means touching three places, and the test
+  catches a mismatch.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Faction colour at long range is the side tint's job, not the uniform's
+
+- **When:** infantry pilot and lane (slices 14, 17).
+- **The choice:** At the opening camera a soldier is 1–2 px. Beyond about
+  250 m, soldiers draw as impostor cards (flat pictures baked from the model),
+  and those already carry the uniform's average colour. No bake or tint change
+  makes a 2 px mark show a camouflage, and brightening prints past their real
+  colour would break the close-up. So the work does nothing at that range. Red's
+  side tint also warms EMR toward olive. That is left, because the tint is the
+  battle's rule.
+- **The gap:** The bar said armies read apart, without saying at what range.
+- **The reach:** Telling who a far mark belongs to stays with the side tint
+  and the callouts.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Black rubber and dark glass are held by measured brightness
+
+- **When:** materials (slice 13).
+- **The choice:** Every material names a role in glTF `extras.role` (`rubber`,
+  `glass`, `paint`, `steel`, `track`, `fabric`, `skin`, `marking`;
+  `MATERIAL_ROLES` in `schema.ts`). The validator computes what a surface
+  draws, averaged over its triangles' area, the way the model shader does.
+  Rubber fails above luminance 0.035 (`RUBBER_MAX_LUMINANCE`), and glass above
+  0.025 or above roughness 0.3. Measuring showed the old tyres were already
+  near black on average. What read grey on screen was the painted rim
+  covering 55–70% of the wheel face, which is geometry, and the rebuilds fixed
+  it. The bound allows a little dust and refuses a tyre filmed with dust all
+  over. Leather and polymer take no role.
+- **The gap:** "Tyres are black" needed a measurable rule.
+- **The reach:** Every future model is held to it, and an unknown role is an
+  error.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Dressing allowances
+
+- **When:** art rules (slice 12).
+- **The choice:** Dressing is an empty node named `dressing_*` with its meshes
+  under it. Bulky dressing may reach 0.3 m past any hull face (`bulky_m`). Only
+  thin parts (at most 0.15 m across, `thin_m`) may rise further, up to 4 m over
+  the roof (`thin_top_m`), so there is one antenna per dressing node. It is
+  measured at rest on tier 0, like hull fit. The 0.3 m sets how far a
+  commander stands out of a hatch (head and shoulders), and that reads right.
+  The old `hull_top_m` override is gone, so hull fit has one tolerance on
+  every face.
+- **The gap:** The numbers.
+- **The reach:** Tripwires (the user's rule). Raise one if a real part needs
+  it and still can't read as cover.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The HMMWV's new frame numbers
+
+- **When:** the pilot (slice 14). The frame change itself was agreed by the
+  user in the sweep.
+- **The choice:** The HMMWV wore the JLTV's model and frame. Its hull is now
+  4.9 × 2.2 × 2.0 m (half extents [2.45, 1.1, 1.0]), eye 2.42 m, HMG pivot
+  2.28 m, muzzle [1.35, 0, 0.32]. The eye, pivot and muzzle are the old
+  manifest's. The size comes from the references (a side drawing scaled by
+  the 37-inch tyre, and the published 193 × 87 in). The box top is the cab roof
+  plus the turret ring. The gun shields turn with the gun, so they belong to
+  the mount, outside hull fit. The manifest's 5.2 m length counted the rear
+  spare wheel, which is now dressing. A quick sample of static duels showed no
+  balance concern.
+- **The gap:** Which sources to trust for the numbers.
+- **The reach:** The digest of any battle with an HMMWV moved. No committed
+  record held one.
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### No full balance run at closeout
+
+- **When:** closeout (slice 19).
+- **The choice:** The only roster physics change is the HMMWV frame, which
+  was sampled in the pilot. The repo's balance workload (`battle_sweep`) plays
+  test units, which were renamed but not changed. AGENTS.md runs only what a
+  change can move, so the full report was skipped.
+- **The gap:** The closeout listed "run the balance report once".
+- **The reach:** If a later change moves roster physics, the report runs then.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Kits: one table, scouts keep their ruck, disabled teams get one look
+
+- **When:** the infantry lane (slice 17) and disabled infantry (slice 18).
+- **The choice:** `infantry_equipment.py` `KITS` and `LENGTHS` replace the old
+  infantry manifest. Each kit names its weapon, whether its men are scouts or
+  carry grenades, and its armies (the first is the default look, the rest are
+  faction looks). A scout's ruck and boonie win over his army's hydration pack
+  (`infantry_kit.look_of`). The five disabled launcher teams share one
+  `shoulder_tube_equipment` builder and get only active look `a`, with no
+  carried kit, because nothing draws one yet.
+- **The gap:** How to structure the kit data once the manifest went.
+- **The reach:** A new kit is one `KITS` row.
+- **Verdict:** sound.
+- **Confidence:** medium-high.
+
+### Truck wheel counts come from the frame, not the photos
+
+- **When:** the wheeled lane (slice 16).
+- **The choice:** The MAN HX's licensable photos mix 4x4 and 6x6 trucks. The
+  frame's 10.34 m length is the HX77 8x8's, so it has eight wheels, and the
+  photos settle only the cab and body. The Ural's axle positions are the side
+  photo's, not the old helper's.
+- **The gap:** The photos disagreed with each other.
+- **The reach:** None beyond these two models.
+- **Verdict:** sound. The frame is the authority.
+- **Confidence:** medium-high.
+
+### The menu reel is pinned by its event log
+
+- **When:** the menu reel (slice 08).
+- **The choice:** `crates/sim/tests/menu_reel.rs` replays each backdrop scene
+  natively, using the menu set, its seed, and the reel's last tick. Its event
+  log (fire, hit and what was hit, fell, died, by tick) must equal
+  `crates/sim/tests/fixtures/menu-reel/<map>-<encounter>.log` line for line,
+  after recasting the filmed `test_*` cast to the menu units. A followed unit
+  must be alive when its shot opens. "Alive throughout" would fail the
+  approved cut, which has unit 0 cook off mid-shot. `BLESS_MENU_REEL=1`
+  re-records, for an approved reel only.
+- **The gap:** How to prove "every shot exactly the same" cheaply.
+- **The reach:** Any change to rules the menu battle uses fails this test.
+  That is the point: it means re-approving the reel.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Faction looks on one soldier appearance
+
+- **When:** the infantry pilot (slice 14). Used by the lane.
+- **The choice:** All three factions' rifle squads are one roster card and
+  draw one soldier set. A soldier appearance in `assets/catalog.json` may name
+  a look per faction (`"factions": {"eastern": "rifle_squad_eastern_active_a"}`).
+  The renderer's `AppearanceCatalog` takes the session's side factions and
+  draws the look of the faction each side fights for. A battle without
+  factions (labs, the menu) draws the base look. A faction look loads with its
+  base and is validated as a soldier on the same skeleton. The alternative,
+  per-faction roster cards, would move the roster and digests.
+- **The gap:** The plan assumed a card's look was per card.
+- **The reach:** Presentation only. Any shared card can wear a look per
+  faction.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Crew come from the faction's soldier, one tier coarser
+
+- **When:** pipeline (slice 09). Faction looks added later.
+- **The choice:** `vehicle_crew.CREW_SOLDIER` maps each faction to a rifle
+  squad look. Vehicle tier t carries the soldier's tier t + 1, and tier 3
+  carries no crew. The soldier's weapon is cut away: every piece skinned
+  wholly to the `hand_r` joint goes, because the rifle is joined into the one
+  skinned mesh. Crew vanish at the wreck. A family's crew pick up a new look on
+  its next export.
+- **The gap:** How to put soldiers on vehicles without a second soldier
+  model.
+- **The reach:** A soldier kit change re-exports every crewed vehicle. That
+  happened at closeout: 22 vehicles changed bytes.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Exports are repeatable, and Blender runs single-threaded
+
+- **When:** wheeled lane, closeout (slice 19).
+- **The choice:** Every family and kit, live and wreck, exports to
+  byte-identical files twice from the same code. Three causes were fixed in
+  shared code. `wreckage.heat()` builds its noise from three scalar
+  `noise.noise` samples, because `noise_vector` differs between Blender
+  processes. `mesh_lods` orders edges and copies weights and colours from the
+  nearest original vertex, because decimation's last-bit float noise flipped
+  rounding. `asset blender` runs with `--threads 1`, because threaded tangents
+  straddled the glTF exporter's rounding. The cost is time: an Abrams wreck
+  takes about 50 s.
+- **The gap:** None. Repeatability was a closeout item, and these were the
+  causes.
+- **The reach:** A re-export that changes bytes now means the code changed.
+  The test art under `assets/source/test/` uses the same tiers but wasn't
+  re-exported, so it will change bytes once on its next export.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Running gear is judged by material, not by node name
+
+- **When:** closeout (slice 19).
+- **The choice:** The validator (`articulatedFindings`) finds what touches the
+  ground (tier 0, within `ground_m` of the lowest point). It requires every
+  part whose material role rolls (`rubber`, `track`) to sit under a `wheel_*`
+  or `track_*` node, which the renderer turns. Skids, legs, rails and a belly
+  only rest, so they need no node. This replaced a rule that demanded a
+  `wheel_*` or `skid_*` node, which six belly-landing drones failed. A wheeled
+  type must still have `wheel_*` nodes. Nothing reads `skid_*` any more, though
+  some airframes still name parts that way.
+- **The gap:** A body that lands on its belly.
+- **The reach:** One physical rule for every vehicle, aircraft and drone.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Budgets are about twice what was measured
+
+- **When:** art rules (slice 12), pilot (slice 14).
+- **The choice:** `packages/scene-assets/src/unitArt.ts` `UNIT_ART` holds one
+  row per vehicle class and one for soldiers: triangles per tier, encoded
+  bundle bytes, and distinct textures. Each row is about twice the largest
+  measured unit of its class. Each tier draws at most 0.9 of the one before
+  (`tier_ratio`, for every class). A mesh copied to every tier is refused.
+  Aircraft have no class, so they were checked by hand against the
+  tracked-heavy row as a ceiling. The pilot measured that a vehicle's far tier
+  costs nothing noticeable on the GPU, so vehicles have no impostor.
+- **The gap:** The numbers.
+- **The reach:** Tripwires (the user's rule). Raise one when real art exceeds
+  it and nothing suffers.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Download and texture limits
+
+- **When:** transport (slice 10).
+- **The choice:** The catalog load is held to 512 MiB
+  (`CATALOG_LOAD_MAX_BYTES`), about four times the measured load when it was
+  set. A map's on-request download is held to 256 MiB
+  (`MAP_DOWNLOAD_MAX_BYTES`). Texture layers are held to 2048
+  (`TEXTURE_ARRAY_LAYERS_FLOOR`), which is what the Mac mini's adapter
+  reports. Each page's GPU device requests the adapter's limit through
+  `renderer-core` `requestGpuDevice()`, because the default 256 layers would
+  break as textures grow. The bake counts layers over every appearance, an
+  upper bound on any page.
+- **The gap:** The numbers.
+- **The reach:** Tripwires. A page that grows past one is refused at bake or
+  load.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### One transport: shared texture files and gzipped bundles
+
+- **When:** transport (slice 10).
+- **The choice:** Every bundle (skeleton clips, units, scenery, kits) travels
+  gzipped with its textures taken out. Each texture is its own
+  content-addressed file, fetched once and shared. A bundle's travelling form
+  has its own magic (`BGAT`), so it can never be read as a bundle. On every
+  read the textures are joined back and the whole encoding is hashed, so the
+  art's identity is the same hash as before. The catalog's `textures` table
+  lists each bundle's texture ids, so a page's download can be counted from
+  the catalog alone.
+- **The gap:** How to split textures out without a second identity.
+- **The reach:** Every bundle and texture hash stayed the same. A new bundle
+  kind travels the same way.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### A page loads only the art its units wear, and widens rather than reloads
+
+- **When:** session catalog (slice 04), wrecks (slice 11).
+- **The choice:** `schema.ts` `catalogLoadNames(catalog, wearing)` is the one
+  selection of what a page fetches. It takes scenery, clips, the template
+  library, and only the unit art the session's units wear (`UnitCatalog.appearances`),
+  with each worn vehicle's wreck and each worn soldier's faction looks. A game
+  page fetches no test art. When a second session on the same page needs more
+  (a lab after the game), `AppearanceLibrary.withUnits` adds only what's
+  missing. The alternatives were a library per set (everything fetched twice)
+  and a reload per set.
+- **The gap:** How a page with two sessions shares art.
+- **The reach:** A worn appearance that isn't baked draws nothing, as before.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The battle session owns its catalog
+
+- **When:** session catalog (slice 04), test units (slice 05).
+- **The choice:** There is one resolver (`sim::fixtures::catalog_documents`)
+  over three document sets: game (committed as `fixtures/catalog.json`),
+  test (`+ fixtures/units/test/`) and menu (`+ units/test`, `units/menu`). The
+  last two are resolved at run time. In the browser, only
+  `web/src/battle/catalog/` imports `fixtures/catalog.json`. The router scopes
+  `/battle` and `/replay` to the game set, every lab and workbench to the test
+  set, and the menu backdrop to the menu set. UI reads `useSessionCatalog()`,
+  and renderer and audio code take the catalog as an argument. A scenario
+  naming a unit its set lacks throws by name instead of drawing nothing.
+  Weapons are the game's in every set. The mechanics editor still edits every
+  file under `fixtures/units/`, test units included, and lists them under
+  "Test units".
+- **The gap:** Where the set is chosen, and what happens on a mismatch.
+- **The reach:** Every page and tool names its set. A test-set page always
+  loads the WebAssembly resolver.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Test units are named, fenced and kept
+
+- **When:** test units (slice 05).
+- **The choice:** `fixtures/units/test/` holds `test_tank`, `test_jeep`,
+  `test_supply`, `test_rifle`, `test_recon`, `test_at` and their soldier kinds,
+  with art under `assets/source/test/`. A test
+  (`catalog::the_game_catalog_holds_only_what_roster_cards_reach`) holds the
+  game catalog to units an enabled card reaches. Native tests call
+  `fixtures::test_game()`. Two exceptions are stated in the tests: deployment
+  checks the roster Kornet, and parity tests whose browser half runs a lab use
+  the test set. Parity records that hash type ids were regenerated, and no
+  battle digest moved. Synthetic fakes inside tests keep their own names.
+- **The gap:** Naming and the exceptions.
+- **The reach:** A roster edit moves no test, scene or benchmark.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Roster soldiers stand on their own abstract base kinds
+
+- **When:** roster stands alone (slice 02).
+- **The choice:** `fixtures/units/roster/shared.json` holds `roster_rifleman`,
+  `roster_grenadier`, `roster_scout` and `roster_at_rifleman`. The last three
+  extend the first, as the generic kinds did, so mount order is unchanged.
+  Base kinds carry no appearance. "No change" was proven by diffing the
+  resolved cards, not by a parity file.
+- **The gap:** Where the bases live and what they carry.
+- **The reach:** A test unit edit no longer reaches a roster squad.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Vehicle presentation class is composed from physics
+
+- **When:** presentation by property (slice 01).
+- **The choice:** `packages/scene-assets/src/units.ts` `vehicleClass` returns
+  `<tracked|wheeled>_<weight_class>`, plus `_logistics` for a hull with the
+  `logistics` role (`tracked_heavy`, `wheeled_medium_logistics`). Sound loops
+  and art budgets are keyed by it, and a class with no row takes `default`.
+  Weapon sound and effect rows inherit along `extends` (`kindTable.inheritRows`),
+  so derived roster weapons find their base's row. Per-unit sound overrides
+  went, and with them the unit and mount identity in the effect publication,
+  which only they read. The sound catalog refuses an unknown section.
+- **The gap:** Names and the fallback.
+- **The reach:** A new vehicle gets sounds and budgets from its physics with
+  no table edit.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### What a wreck is, and how it finds its art
+
+- **When:** wrecks (slice 11). Finished in the review.
+- **The choice:** A prop definition carries `wreck_of`, a unit type id. The
+  published prop carries `wreckOf`, an index into `unitKinds` (-1 for none),
+  and the world export carries the same. A prop is a wreck when its type is
+  drawn by `wreck`. The world refuses a wreck without `wreck_of` and any other
+  prop with one. The simulation reads `appearance.drawn_by` only for that
+  admission check, which belongs to the presentation contract. A heavy wreck
+  burnt down to remains keeps its unit. The renderer resolves `wreckOf` to
+  the unit's appearance and then to that appearance's `wreck`. Nearest-size
+  matching is gone. Cook-offs match a lost hull to its wreck by unit type, and
+  throw a turret only when the unit's own wreck has hull and turret pieces.
+  Every vehicle's wreck is modelled from its own build (`wreck` is required in
+  `vehicle_export.run`), and `wreckage.burn()` is its last step. Test units keep
+  their own wrecks, and map-placed wrecks in tests name the test unit.
+- **The gap:** How the simulation and renderer agree on whose wreck it is.
+- **The reach:** `wreck_of` derives from the dead unit's kind, which is
+  already in the digest, so no digest moved. A leftover: `standsIn` treats
+  every wreck kind as artless, so a page with stand-in styles also loads the
+  tiny stand-in kit.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### New art rules are errors from the start
+
+- **When:** art rules (slice 12).
+- **The choice:** Every new validator rule (`structure.tier_unsuffixed`,
+  `structure.tier_ratio`, `fit.dressing`, `budget.*`, `material.role_*`) is an
+  error, with no warning tier and no expected-failure list. For units and
+  wrecks, a mesh not named for its tier is refused rather than copied to every
+  tier. Scenery and kits keep that convention. Tier rules live in `unitArt.ts`,
+  not in the build. An appearance drawn by types of several classes is held to
+  each class's rules.
+- **The gap:** How strict to be while lanes were still rebuilding.
+- **The reach:** A bake can't let a regression through.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### One export path and one parts library
+
+- **When:** pipeline (slice 09), pilot (slice 14), lanes.
+- **The choice:** Exporters read each variant's frame from the resolved
+  fixture catalog (`blender/catalog_frames.py`), never from the archived
+  manifests. Disabled cards state their own (see above). Every family is a
+  `build`/`wreck` pair through `vehicle_export.run` or `run_disabled`.
+  Reusable parts live in `vehicle_parts.py` (`tracked_running_gear`,
+  `track_loop`, `road_wheel`, `tyre_wheel`, `bolted_panel`, `browning_m2`,
+  `kord`, `hull_plan`, …) and `aircraft_parts.py`. A family derived from
+  another imports it (`t90.py` from `t72.py`, `m1e3.py` from `abrams.py`,
+  Skyranger on `boxer.drive`), and the imported script exports only when run
+  directly. Every legacy family helper (`armor.py`, `light_armor.py`,
+  `europe_carriers.py`, `eastern_armor.py`, `remaining_*`, `logistics.py`) is
+  deleted. A receipt lists every script the export loaded.
+- **The gap:** The structure of the scripts.
+- **The reach:** A new family is one script.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Reference libraries are committed and licensable only
+
+- **When:** pipeline (slice 09). Licences widened in materials (slice 13).
+- **The choice:** Each family has `assets/references/<family>/` photos plus a
+  `references.json` with `{entries, gaps}`. Licences are SPDX ids (CC0, CC BY,
+  CC BY-SA, including country ports such as `CC-BY-SA-3.0-DE`) or
+  `public-domain`, plus `ours` for generated views. A port of a disallowed
+  licence (NC) stays refused. Images are 1600 px on the long edge. They are
+  review inputs only (`asset sheet --references`), read by no runtime, bake or
+  test, and `asset check` holds each library to its contract. A family without
+  a library fails.
+- **The gap:** Schema and licence ids.
+- **The reach:** Every future family collects its own.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Disabled cards are held to their own model and library
+
+- **When:** disabled cards (slice 18), closeout (slice 19).
+- **The choice:** `fixtures/units/model-manifest.json` has a `model_statuses`
+  registry, which today holds only `reference_built`. The disabled gate in
+  `crates/sim/tests/catalog.rs` checks each card's status. It checks that its
+  `source_path` is a real binary glTF (or an LFS pointer to one), that no
+  other card shares the path or the bytes, and that its reference library
+  exists in its source's folder. The placeholder generator and its status are
+  deleted. A model never makes a card available. Only the resolved catalog
+  decides that.
+- **The gap:** How to stop a rebuilt card being overwritten or shared.
+- **The reach:** A new disabled card needs its own model and library.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Icons are keyed by card and drawn from models
+
+- **When:** disabled cards (slice 18).
+- **The choice:** `icons.ts` `cardIcon(id)` names every card's icon. Each
+  disabled card's silhouette is rendered from its model, and a team is one
+  posed soldier at its skeleton's aim pose, because a disabled card has no
+  slots to count. `asset check` fails a missing or stale icon. The purchase
+  picker shows a family's icon (from its first available card, else its first
+  card), and shows an all-unavailable family dashed and dimmed.
+- **The gap:** Disabled cards had placeholder icons.
+- **The reach:** Icons are derived. Re-derive them, never hand-edit.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### The request contract and links refuse what they don't know
+
+- **When:** request contract (slice 07), retiring the village (slice 06).
+- **The choice:** `PrepareBattleRequest` is
+  `{ map_source, factions: [Faction; 2], battle_seed }` with unknown fields
+  refused. A saved-map source (`MapSource::Catalogue`) is gone. A `/battle`
+  link refuses any parameter outside its list, a missing `faction`, and a
+  profile other than `skirmish`. `enemy` stays optional and is resolved in
+  `askedBattle`. Tools that judged the `assault` recipe name it themselves.
+  Each fixed map's `meta.json` has `category` `test` or `menu`, and every
+  reader takes only its category. Replays are one format, and the IndexedDB
+  key became `last-replay` with no migration.
+- **The gap:** The exact refusals.
+- **The reach:** The engine id moved, and saved replays from before are
+  refused (the user's no-compatibility rule).
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Small calls with one obvious answer
+
+- **When:** various.
+- **The choice:** The encounter opponent and referee are
+  `crates/sim/src/encounter/defender.rs` and `referee.rs`, moved unchanged. The
+  benchmark defaults to `city-contact`, and its preset keeps its one-valued
+  `variant`/`blue` fields so its fingerprint holds. The app journey buys a
+  roster Abrams in a generated skirmish, and the army journey stays on the
+  street test map with its digest pin. Live art lost its village names (`ruin`,
+  `assets/source/props/`, city set `lab_boxes`). `street-watch` frames tick
+  3600. The `unit-roster` scene's model page takes its device through
+  `requestGpuDevice()`.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+## Not fixed here: failures that also happen on main
+
+These checks fail on main as well as on this branch. This spec did not cause
+them and did not fix them.
+
+- **Web test `battleFailure`** ("a rejected replay shows its refusal"). A
+  replay the simulation refuses shows its message in the battle's top bar,
+  not on the loading screen's Aborted page the test expects.
+- **Scene `foundation`** times out.
+- **Scene `consequences`** fails its soldier-death check.
+- **Scene `panels`** fails all six of its checks.
+- The `unit-roster` scene also reports one 404 page error, seen since the
+  session catalog slice. Its checks pass.
