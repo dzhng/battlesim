@@ -1,0 +1,29 @@
+{
+ "entries": [
+  {
+   "file": "eastern_9k515_tornado_s_heavy_rocket_artillery-three_quarter_front.jpg",
+   "variant": "eastern_9k515_tornado_s_heavy_rocket_artillery",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ATornado-S_%282%29.png",
+   "author": "Ministry of Defence of the Russian Federation",
+   "licence": "CC-BY-4.0",
+   "sha256": "05850ff8729f7543716e13cab2c9fe38dcfb87949c357a04e4173e51f3986ad6",
+   "note": "Tornado-S on the MAZ-543M 8x8 in snow, launcher raised: the split cab either side of the engine, the twelve 300 mm tubes."
+  },
+  {
+   "file": "eastern_9k515_tornado_s_heavy_rocket_artillery-side.jpg",
+   "variant": "eastern_9k515_tornado_s_heavy_rocket_artillery",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ATornado-S.png",
+   "author": "Ministry of Defence of the Russian Federation",
+   "licence": "CC-BY-4.0",
+   "sha256": "730847af93243fd13373686d82e80916892143db897691e733d35f37c2e9b425",
+   "note": "Dusk profile, launcher stowed: the long 8x8, the tube pack's length over the chassis. Low light."
+  }
+ ],
+ "gaps": [
+  "eastern_9k515_tornado_s_heavy_rocket_artillery: two low-quality ministry stills; cab details and the rear are guesses after the MAZ-543 family"
+ ]
+}

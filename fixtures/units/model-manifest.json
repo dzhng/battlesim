@@ -30,11 +30,11 @@
       "id": "eastern_9k515_tornado_s_heavy_rocket_artillery",
       "family": "9k515_tornado_s",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "9k515_tornado_s",
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_9k515_tornado_s_heavy_rocket_artillery.glb"
+      "source_path": "assets/source/roster/9k515_tornado_s/eastern_9k515_tornado_s_heavy_rocket_artillery.glb"
     },
     {
       "id": "eastern_air_defense_team_fn_6",
@@ -60,11 +60,11 @@
       "id": "eastern_bm_21_grad_bm_21_rocket_artillery",
       "family": "bm_21_grad",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "bm_21_grad",
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_bm_21_grad_bm_21_rocket_artillery.glb"
+      "source_path": "assets/source/roster/bm_21_grad/eastern_bm_21_grad_bm_21_rocket_artillery.glb"
     },
     {
       "id": "eastern_brm_brm_3k",
@@ -490,11 +490,11 @@
       "id": "europe_mars_ii_multiple_launch_rocket_system",
       "family": "mars_ii",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "mars_ii",
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_mars_ii_multiple_launch_rocket_system.glb"
+      "source_path": "assets/source/roster/mars_ii/europe_mars_ii_multiple_launch_rocket_system.glb"
     },
     {
       "id": "europe_mirage_2000_2000d_rmv",
@@ -780,31 +780,31 @@
       "id": "us_m142_himars_gmlrs",
       "family": "m142_himars",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "m142_himars",
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/disabled/us_m142_himars_gmlrs.glb"
+      "source_path": "assets/source/roster/m142_himars/us_m142_himars_gmlrs.glb"
     },
     {
       "id": "us_m142_himars_prsm",
       "family": "m142_himars",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "m142_himars",
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/disabled/us_m142_himars_prsm.glb"
+      "source_path": "assets/source/roster/m142_himars/us_m142_himars_prsm.glb"
     },
     {
       "id": "us_m270_mlrs_m270a2",
       "family": "m270_mlrs",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "m270_mlrs",
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/disabled/us_m270_mlrs_m270a2.glb"
+      "source_path": "assets/source/roster/m270_mlrs/us_m270_mlrs_m270a2.glb"
     },
     {
       "id": "us_mq_9_reaper_mq_9a",
