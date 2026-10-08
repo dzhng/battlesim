@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle-three_quarter_front.jpg",
+   "variant": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM-SHORAD_Stryker.jpg",
+   "author": "Christopher Kaufmann",
+   "licence": "public-domain",
+   "sha256": "aa34b6b4c896cbbd43f9b728f5e2300e6ff7b28e14a2e861fe75045ae39582fc",
+   "note": "M-SHORAD Inc 1, right front quarter: the Stryker with the RIwP turret, its 30 mm XM914, the Stinger pod on the left and the Hellfire rails on the right, radar panels on the hull corners."
+  },
+  {
+   "file": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle-three_quarter_front-2.jpg",
+   "variant": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM-SHORAD_Stryker_2023_Oberdachstetten_Range.jpg",
+   "author": "Capt. Jordan Allen",
+   "licence": "public-domain",
+   "sha256": "4c696a07aad53722967eeeffbcfb3e483aea978497f07fa7a5a27de9e4370b3e",
+   "note": "Left front quarter, turret detail."
+  },
+  {
+   "file": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle-side.jpg",
+   "variant": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM-Shorad_Live_Fire-_U_S_air_defenders_complete_M-SHORAD_certification_in_Grafenwoehr_%287627015%29.jpg",
+   "author": "U.S. Army 10AAMDC by Pfc. Yesenia Cadavid",
+   "licence": "public-domain",
+   "sha256": "a53d56bf79c8223e21dd77029f586cdf5c3ccd31d0444c8457e6da81f00d1ed0",
+   "note": "Side in snow: eight wheels, the turret on the hull roof."
+  },
+  {
+   "file": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle-three_quarter_rear.jpg",
+   "variant": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AStryker_DE_M-SHORAD.jpg",
+   "author": "Venetia Gonzales",
+   "licence": "public-domain",
+   "sha256": "788355e677694fa2de0cf308df3c12ebf3887235d9b88da04aa320264718b980",
+   "note": "The directed-energy prototype from the rear quarter: the Stryker's ramp and roof (the turret differs)."
+  }
+ ],
+ "gaps": [
+  "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle: the rear quarter is the directed-energy prototype, whose turret differs"
+ ]
+}

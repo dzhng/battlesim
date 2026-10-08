@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "eastern_plz_05_chinese_tracked_155_mm_howitzer-three_quarter_front.jpg",
+   "variant": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3APLZ-05_Self-Propelled_Artillery_20170902.jpg",
+   "author": "Tyg728",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "c4ef5e3ea2368a764e5d49aeb8a10e6b2cf373663aeb34fd119172b9009e1196",
+   "note": "PLZ-05 at the Beijing military museum, front quarter in woodland digital camouflage: seven road wheels, the slab-sided turret with the long 155 mm gun and muzzle brake."
+  },
+  {
+   "file": "eastern_plz_05_chinese_tracked_155_mm_howitzer-three_quarter_front-2.jpg",
+   "variant": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3APLZ_05_self_propelled_gun.jpg",
+   "author": "Max Smith (Megapixie (talk))",
+   "licence": "public-domain",
+   "sha256": "732df32f8f1c64ae37ae3bde170f3dd2ee941134ac8ad9146e6e4ca58a302b38",
+   "note": "Display, front quarter: turret front, travel lock, hull front."
+  },
+  {
+   "file": "eastern_plz_05_chinese_tracked_155_mm_howitzer-side.jpg",
+   "variant": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3APLZ-05_Self-Propelled_Artillery_20170919.jpg",
+   "author": "Tyg728",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "f23dd40e529b76f5efcfc8ef4a72fb27d5a9a291acca40bc0f8b1679e962aeb5",
+   "note": "Side quarter: hull length, the turret set at the rear, its side stowage boxes."
+  },
+  {
+   "file": "eastern_plz_05_chinese_tracked_155_mm_howitzer-side-2.jpg",
+   "variant": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ASelf-propelled_howitzer_in_front_of_Gucci.jpg",
+   "author": "Dan from Beijing, China",
+   "licence": "CC-BY-2.0",
+   "sha256": "655086962674d96b0c82fcc443a31c099936d7aed39bacbda25de99a393e64d4",
+   "note": "Parade profile with the crew up: road wheels, skirts, turret profile."
+  }
+ ],
+ "gaps": [
+  "eastern_plz_05_chinese_tracked_155_mm_howitzer: no rear or top view; museum and parade cars only"
+ ]
+}

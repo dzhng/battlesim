@@ -1,0 +1,95 @@
+{
+ "entries": [
+  {
+   "file": "us_m142_himars_gmlrs-three_quarter_front.jpg",
+   "variant": "us_m142_himars_gmlrs",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A180614-A-IY962-108_-_M142_High_Mobility_Artillery_Rocket_System_%28HIMARS%29_firing_during_Saber_Strike_18_%28Image_7_of_7%29.jpg",
+   "author": "Charles Rosemond",
+   "licence": "public-domain",
+   "sha256": "1dacef95c0a89fd8a9c2aa4719da189a86be6bc25260eb7f9fe2da7ec5131d7d",
+   "note": "HIMARS right front quarter: the FMTV 6x6 with its armoured cab, the launcher with one pod at the rear."
+  },
+  {
+   "file": "us_m142_himars_gmlrs-three_quarter_front-2.jpg",
+   "variant": "us_m142_himars_gmlrs",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A180614-A-IY962-102_-_M142_High_Mobility_Artillery_Rocket_System_%28HIMARS%29_firing_during_Saber_Strike_18_%28Image_4_of_7%29.jpg",
+   "author": "Charles Rosemond",
+   "licence": "public-domain",
+   "sha256": "8d8729987c1b5d63e58868f77f7bd932af471b3c5bae9f2d70d4ad8ff9e8e2ec",
+   "note": "Front quarter, launcher stowed."
+  },
+  {
+   "file": "us_m142_himars_gmlrs-three_quarter_rear.jpg",
+   "variant": "us_m142_himars_gmlrs",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A180614-A-IY962-101_-_M142_High_Mobility_Artillery_Rocket_System_%28HIMARS%29_firing_during_Saber_Strike_18_%28Image_3_of_7%29.jpg",
+   "author": "Charles Rosemond",
+   "licence": "public-domain",
+   "sha256": "b97ea59d657c7fb77af0089e547295365a563fa9c7bbba6a3d414b2264540446",
+   "note": "Rear quarter: the six-round GMLRS pod's face."
+  },
+  {
+   "file": "us_m142_himars_gmlrs-front.jpg",
+   "variant": "us_m142_himars_gmlrs",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A180614-A-IY962-120_-_M142_High_Mobility_Artillery_Rocket_System_%28HIMARS%29_firing_during_Saber_Strike_18_%28Image_2_of_7%29.jpg",
+   "author": "Charles Rosemond",
+   "licence": "public-domain",
+   "sha256": "fb8ec8db9481c4202ba21ece3c87eee74452c41c383323966124f8d3f5c7a595",
+   "note": "Front on: the cab's flat armoured windscreen, grille and bumper."
+  },
+  {
+   "file": "us_m142_himars_gmlrs-side.jpg",
+   "variant": "us_m142_himars_gmlrs",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM142_High_Mobility_Artillery_Rocket_System_%28HIMARS%29_668579_EMILY_ROSE_%2814992404654%29.jpg",
+   "author": "Tomás Del Coro from Las Vegas, Nevada, USA",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "cf3755833c24e56cb0801e68781c7d253160bbfef2d13fb17d1ca1ced0c208c9",
+   "note": "Display, side quarter with the launcher raised."
+  },
+  {
+   "file": "us_m142_himars_prsm-three_quarter_rear.jpg",
+   "variant": "us_m142_himars_prsm",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AHIMARS_-_missile_launched.jpg",
+   "author": "U.S. Army photo",
+   "licence": "public-domain",
+   "sha256": "9d1d55654dcd33187ff429d3e6bdeb6c4d76803dd9da024eb2e9e9790197cf42",
+   "note": "HIMARS launching a single large missile (an ATACMS pod; PrSM pods carry two in the same pod envelope)."
+  },
+  {
+   "file": "us_m142_himars_prsm-three_quarter_front.jpg",
+   "variant": "us_m142_himars_prsm",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A180614-A-IY962-108_-_M142_High_Mobility_Artillery_Rocket_System_%28HIMARS%29_firing_during_Saber_Strike_18_%28Image_7_of_7%29.jpg",
+   "author": "Charles Rosemond",
+   "licence": "public-domain",
+   "sha256": "1dacef95c0a89fd8a9c2aa4719da189a86be6bc25260eb7f9fe2da7ec5131d7d",
+   "note": "The same HIMARS (same bytes as the GMLRS entry): the PrSM card is the same truck and launcher; only the pod face differs."
+  },
+  {
+   "file": "us_m142_himars_prsm-side.jpg",
+   "variant": "us_m142_himars_prsm",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM142_High_Mobility_Artillery_Rocket_System_%28HIMARS%29_668579_EMILY_ROSE_%2814992404654%29.jpg",
+   "author": "Tomás Del Coro from Las Vegas, Nevada, USA",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "cf3755833c24e56cb0801e68781c7d253160bbfef2d13fb17d1ca1ced0c208c9",
+   "note": "The same HIMARS (same bytes as the GMLRS entry): the PrSM card is the same truck and launcher; only the pod face differs."
+  }
+ ],
+ "gaps": [
+  "us_m142_himars_prsm: no photo of a PrSM pod; its face (two large caps) follows the published two-missile pod, drawn in the GMLRS pod envelope"
+ ]
+}

@@ -158,7 +158,7 @@ export function farPoseBounds(
 
 /** A body's joint worlds in `pose` (its bind where the clip is missing). */
 export function poseWorlds(
-  bundle: SkinnedBundle,
+  bundle: Pick<SkinnedBundle, "joints">,
   skeleton: SkeletonClips | null,
   pose: PoseRef,
 ): Mat4[] {

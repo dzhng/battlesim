@@ -1,0 +1,63 @@
+{
+ "entries": [
+  {
+   "file": "eastern_t_15_armata_heavy_ifv-three_quarter_front.jpg",
+   "variant": "eastern_t_15_armata_heavy_ifv",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AT-15_Armia2018.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "aa325e282b89a426b0c04b80e03b3971ba3683ecd7f0a11665f7fd6c993e5139",
+   "note": "Static display, left front quarter: Epokha/Bumerang-BM style unmanned module with 30 mm gun and Kornet launchers each side, engine at the front, long glacis, seven road wheels."
+  },
+  {
+   "file": "eastern_t_15_armata_heavy_ifv-side.jpg",
+   "variant": "eastern_t_15_armata_heavy_ifv",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AT-15_in_Alabino_sideview.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "b618d4f48301c0a121333006620d0528b57af50db08a1d8a0eb1a4338e0503a9",
+   "note": "Profile with the module under a cover: hull length, high rear troop compartment, skirt line."
+  },
+  {
+   "file": "eastern_t_15_armata_heavy_ifv-front.jpg",
+   "variant": "eastern_t_15_armata_heavy_ifv",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AT-15_in_Alabino_frontview.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "ab7f40057a5acb79d6fa7c263a42f87de73bba09645a6fab23f5ab111b0b33d5",
+   "note": "Front: driver offset left, glacis slope, headlights, covered module."
+  },
+  {
+   "file": "eastern_t_15_armata_heavy_ifv-three_quarter_front-2.jpg",
+   "variant": "eastern_t_15_armata_heavy_ifv",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A9may2015Moscow-10.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "9ca6c1e94062f615e08da7025ac7fb5b8021ec687a4c97df6cc9bf4ff8db4fc0",
+   "note": "Parade 2015, right front quarter: module with 30 mm and twin Kornet launchers."
+  },
+  {
+   "file": "eastern_t_15_armata_heavy_ifv-three_quarter_rear.jpg",
+   "variant": "eastern_t_15_armata_heavy_ifv",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A4mayrehearsal_04.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "9db867bebf8459136a638b99d3b5a47a7b17e6ddd57125cb4d36d65f3698187c",
+   "note": "Rehearsal, rear quarter: rear door/ramp, rear slat screens."
+  }
+ ],
+ "gaps": [
+  "eastern_t_15_armata_heavy_ifv: no top view; the roof hatches are placed from the quarters",
+  "eastern_t_15_armata_heavy_ifv: the side view has the module under a cover"
+ ]
+}

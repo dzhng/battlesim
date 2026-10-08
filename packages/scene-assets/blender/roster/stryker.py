@@ -299,4 +299,5 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-run("stryker", "us_desert_tan", build, wreck, chip=0.6)
+if __name__ == "__main__":
+    run("stryker", "us_desert_tan", build, wreck, chip=0.6)

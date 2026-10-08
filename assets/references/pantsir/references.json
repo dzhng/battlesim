@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "eastern_pantsir_pantsir_sm-three_quarter_front.jpg",
+   "variant": "eastern_pantsir_pantsir_sm",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ABronnitsy_-_01_-_Pantsir-S1_SAM.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "a5a9ddb68d7a8932a96152a3ce34eaa974640d01e4e1a4060aa5edcbefd0afb1",
+   "note": "Pantsir-S1 on the KamAZ-6560 8x8, front quarter: the cab-over, the combat module with two twin 30 mm guns and six missile tubes a side, the search radar on top. The SM keeps this layout with a new search radar."
+  },
+  {
+   "file": "eastern_pantsir_pantsir_sm-side.jpg",
+   "variant": "eastern_pantsir_pantsir_sm",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AAstrakhan_Victory_Day_Parade_%28May_9_2015%29_Pantsir-S1_P5090721_2185.jpg",
+   "author": "Alexxx1979",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "5a8224bfb18d5d2b41120f33f25254b134d56e86d38da2d0d695a967b899db27",
+   "note": "Parade profile: the 8x8's axles, cab and module."
+  },
+  {
+   "file": "eastern_pantsir_pantsir_sm-three_quarter_rear.jpg",
+   "variant": "eastern_pantsir_pantsir_sm",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3APantsir-S1_SAM_on_KamAZ-6560-chassis.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "ca9d045223483d8b2f1161f50679e8ec06b2e261e92c26df0d6c24b7600796ca",
+   "note": "Rear quarter: the module's rear, the tracking radar, the ladder."
+  },
+  {
+   "file": "eastern_pantsir_pantsir_sm-three_quarter_front-2.jpg",
+   "variant": "eastern_pantsir_pantsir_sm",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3APantsir-S1_vehicle.jpg",
+   "author": "Vitaliy Ragulin",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "ad80474219e4dbaf1af18eaf4bca0b25da004470ccd4c25dcdbfe35233b306ce",
+   "note": "Front quarter in three-tone camouflage."
+  }
+ ],
+ "gaps": [
+  "eastern_pantsir_pantsir_sm: the photos are Pantsir-S1s on the same KamAZ-6560; the SM's new search radar is not shown and is drawn in the S1's box"
+ ]
+}

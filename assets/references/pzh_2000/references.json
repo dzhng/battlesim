@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "europe_pzh_2000_tracked_155_mm_howitzer-three_quarter_front.jpg",
+   "variant": "europe_pzh_2000_tracked_155_mm_howitzer",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3APzH_2000_of_the_Hungarian_Armed_Forces_%284%29.jpg",
+   "author": "Admiralis-generalis-Aladeen",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "c6f95b21032efc2da3c36dc514f3fb12661b805ade6bd5b0e6e10a9eb959e410",
+   "note": "Left front quarter: Leopard-derived seven road wheels, the long 52-calibre L52 with its pepperpot brake and the travel lock, the large slab-sided turret set at the rear, smoke banks."
+  },
+  {
+   "file": "europe_pzh_2000_tracked_155_mm_howitzer-side.jpg",
+   "variant": "europe_pzh_2000_tracked_155_mm_howitzer",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3APanzerhaubitze_2000_of_the_Croatian_Army.jpg",
+   "author": "12. HRVCON/ J. Bobinac",
+   "licence": "CC-BY-4.0",
+   "sha256": "2f8358d1b9183b48ac9eb2e9da98a70d4c909038ceed731fea4323e89bad26ee",
+   "note": "Side: turret at the rear, the engine at the front, skirts."
+  },
+  {
+   "file": "europe_pzh_2000_tracked_155_mm_howitzer-front.jpg",
+   "variant": "europe_pzh_2000_tracked_155_mm_howitzer",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AKMW_Panzerhaubitze_2000_Munster_2015.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "c07792ce7fd6fae2474e2a9dcc27990ec31208355f6b3e2939c4d655f29e47d5",
+   "note": "Front on with the gun raised: glacis, headlight boxes, turret front."
+  },
+  {
+   "file": "europe_pzh_2000_tracked_155_mm_howitzer-three_quarter_rear.jpg",
+   "variant": "europe_pzh_2000_tracked_155_mm_howitzer",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3APzH_2000_of_the_Hungarian_Armed_Forces.jpg",
+   "author": "Admiralis-generalis-Aladeen",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "daa880557c69b9b89e0c64208ecad73fc77886a1f306d3cf0b0ae1abcb77084d",
+   "note": "Rear quarter: turret rear door, rear plate, warning stripes, tow points."
+  },
+  {
+   "file": "europe_pzh_2000_tracked_155_mm_howitzer-detail.jpg",
+   "variant": "europe_pzh_2000_tracked_155_mm_howitzer",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3APzH_2000%2C_Laufwerk_links.jpg",
+   "author": "Suit",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "fff23f035a58e31a434e1e5ffd4c08ef04a6c5609580f9762b344d75e73d82b2",
+   "note": "Left running gear: road wheels, return rollers, skirt."
+  }
+ ],
+ "gaps": [
+  "europe_pzh_2000_tracked_155_mm_howitzer: no top view; roof hatches and sights placed from the quarters"
+ ]
+}

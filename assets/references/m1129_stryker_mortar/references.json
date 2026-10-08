@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "us_m1129_stryker_mortar_120_mm_mortar_carrier-side.jpg",
+   "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM1129_Stryker_Mortar_Carrier_170606-A-ZS809-0039.jpg",
+   "author": "Samuel W Brooks",
+   "licence": "public-domain",
+   "sha256": "3e9096f944a72d4466b07af9d71ee7ac9a2bedd998314935aa1ca4c6362b9d6c",
+   "note": "M1129 in the field, side quarter: the Stryker hull with the split roof hatches over the mortar bay, antennas."
+  },
+  {
+   "file": "us_m1129_stryker_mortar_120_mm_mortar_carrier-top.jpg",
+   "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
+   "view": "top",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM1129_Stryker_Mortar_Carrier_170606-A-ZS809-0126.jpg",
+   "author": "Samuel W Brooks",
+   "licence": "public-domain",
+   "sha256": "459464a301f141b138ef2a04429a0f99dc97b76cdd140e862fc1c6678c4cbbb3",
+   "note": "The mortar bay from above with its hatches open and the 120 mm firing."
+  },
+  {
+   "file": "us_m1129_stryker_mortar_120_mm_mortar_carrier-three_quarter_rear.jpg",
+   "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM1129_Stryker_Mortar_Carrier_170606-A-ZS809-0114.jpg",
+   "author": "Samuel W Brooks",
+   "licence": "public-domain",
+   "sha256": "0d437728ece9998dcb40f049bf24312f70ba120ff54970e19b16fece58fa6a89",
+   "note": "The rear of the vehicle in a firing line."
+  },
+  {
+   "file": "us_m1129_stryker_mortar_120_mm_mortar_carrier-detail.jpg",
+   "variant": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM1129_Stryker_Mortar_Carrier_170919-N-HS500-096.jpg",
+   "author": "Petty Officer 2nd Class Christopher Lange",
+   "licence": "public-domain",
+   "sha256": "84d8fdbf6b1e006a05c339f38275d183722ce666ddf25b5193dd858495f86126",
+   "note": "The crew loading the 120 mm in the bay, hatches folded out."
+  }
+ ],
+ "gaps": [
+  "us_m1129_stryker_mortar_120_mm_mortar_carrier: no front quarter; the hull follows the Stryker references (assets/references/stryker/)"
+ ]
+}

@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "europe_mars_ii_multiple_launch_rocket_system-three_quarter_front.jpg",
+   "variant": "europe_mars_ii_multiple_launch_rocket_system",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AMARS_%28MLRS%29_Bundeswehr.jpg",
+   "author": "Sonaz",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "815ba4ec71ef65bc8bbd45e6498188e5f0d8556034b1bf6c207305e23f0f29ea",
+   "note": "Bundeswehr MARS with the launcher raised, front quarter in German three-tone: the M270 hull and cab, the launcher box."
+  },
+  {
+   "file": "europe_mars_ii_multiple_launch_rocket_system-three_quarter_front-2.jpg",
+   "variant": "europe_mars_ii_multiple_launch_rocket_system",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AUA_LRU_01.jpg",
+   "author": "Олексій Мазепа / АрміяInform",
+   "licence": "CC-BY-4.0",
+   "sha256": "f9d004ee051bdeca3303da787cde836acc4e65b04f23bb51e6ce90a8d3de4915",
+   "note": "MARS II (LRU) in Ukrainian service, launcher raised, cab front."
+  },
+  {
+   "file": "europe_mars_ii_multiple_launch_rocket_system-side.jpg",
+   "variant": "europe_mars_ii_multiple_launch_rocket_system",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ABundeswehr_%287572753316%29.jpg",
+   "author": "Tobias Nordhausen from Sondershausen, Deutschland",
+   "licence": "CC-BY-2.0",
+   "sha256": "0ee7c05318c2c709b4d0e8ce63364ad4cbde7f440df13645380c31e395d2dbfa",
+   "note": "MARS on a rail car, launcher stowed: profile of hull, cab and launcher box."
+  },
+  {
+   "file": "europe_mars_ii_multiple_launch_rocket_system-three_quarter_rear.jpg",
+   "variant": "europe_mars_ii_multiple_launch_rocket_system",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM270_MLRS_Danish.jpg",
+   "author": "Værnsfælles Forsvarskommando",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "7d4c674a9c4ea07d90eac5480c6fb10df53ef1f725766d99d2ccd705279a30ce",
+   "note": "A European M270 (the MARS II's base) from the rear quarter, launcher raised."
+  }
+ ],
+ "gaps": [
+  "europe_mars_ii_multiple_launch_rocket_system: one MARS photo in Bundeswehr service, one in Ukrainian; the rear quarter is a Danish M270"
+ ]
+}

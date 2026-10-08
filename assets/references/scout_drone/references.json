@@ -1,0 +1,96 @@
+{
+ "entries": [
+  {
+   "file": "us_scout_drone_standard-three_quarter_front.jpg",
+   "variant": "us_scout_drone_standard",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ASkydio_X2D_unpacking.jpg",
+   "author": "Mauricio Campino",
+   "licence": "public-domain",
+   "sha256": "026643d23c3aaec54fec66f7135f586479452201c66f3fba563bcf129ed43aed",
+   "note": "Skydio X2D (the US scout drone): folding arms, the sensor head on the nose."
+  },
+  {
+   "file": "us_scout_drone_standard-side.jpg",
+   "variant": "us_scout_drone_standard",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ASkydio_X2D_Training_%289720962%29.jpg",
+   "author": "U.S. Marines MARCENT by [null Courtesy]",
+   "licence": "public-domain",
+   "sha256": "274c0d79356d87071f6dad5259cb736c540a5949bcd550766b0c2e1fc4ace1fc",
+   "note": "X2D in flight in training."
+  },
+  {
+   "file": "us_scout_drone_thermal-three_quarter_front.jpg",
+   "variant": "us_scout_drone_thermal",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ASkydio_X2D_inspecting_aircraft.jpg",
+   "author": "Mauricio Campino",
+   "licence": "public-domain",
+   "sha256": "0c7d1b96e1552d1f92bbd4981d6f80f3af08d560ba951ed22ec1ad55e6c9902a",
+   "note": "X2D, whose gimbal carries the thermal camera the thermal card adds."
+  },
+  {
+   "file": "europe_scout_drone_standard-three_quarter_front.jpg",
+   "variant": "europe_scout_drone_standard",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AParrot_Anafi_USA_drone_Parow_2024.JPG",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0-DE",
+   "sha256": "4efd9140166f43d5f87a8ffd3656b633f9b3069201b9633b9ce336f7c983e86c",
+   "note": "Parrot ANAFI USA (the European scout drone) in Bundeswehr use."
+  },
+  {
+   "file": "europe_scout_drone_standard-side.jpg",
+   "variant": "europe_scout_drone_standard",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AParrot_Anafi_USA_drone_Viereck_2024.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0-DE",
+   "sha256": "1bededf1793d550a2dc2ba8a5be963100f92eebb388e10e040c11c9b1477272a",
+   "note": "ANAFI USA, side."
+  },
+  {
+   "file": "eastern_scout_drone_thermal-side.jpg",
+   "variant": "eastern_scout_drone_thermal",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ADJI_-_Drohne_Mavic_3.JPG",
+   "author": "C.Stadler/Bwag",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "3403351d2f6131e4338d3a5c98d8bc82e4339e84335108786481331b60758a7a",
+   "note": "Mavic 3, unfolded: folding arms, the gimbal camera under the nose."
+  },
+  {
+   "file": "europe_scout_drone_thermal-three_quarter_front.jpg",
+   "variant": "europe_scout_drone_thermal",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AParrot_Anafi_USA_drone_Torgelow_2024.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0-DE",
+   "sha256": "8bfc87c8a48c26586cb0df7e48fbe020154ddae6143d872e803dd7d60215ddd4",
+   "note": "ANAFI USA with its tri-sensor (thermal) gimbal."
+  },
+  {
+   "file": "eastern_scout_drone_thermal-three_quarter_front.jpg",
+   "variant": "eastern_scout_drone_thermal",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AUA_army_DJI_Mavic_3_%282%29.jpg",
+   "author": "Territorial Defence Forces of Ukraine",
+   "licence": "CC-BY-4.0",
+   "sha256": "f259fe3028d0981f21d4d02d8f73b99aa6077fbead15a33d04f4181ac7d2afc8",
+   "note": "A DJI Mavic 3 in military use (the Eastern scout drone is the Mavic 3T class)."
+  }
+ ],
+ "gaps": [
+  "the scout cards name a class: each is drawn as its army's type (Skydio X2D, Parrot ANAFI USA, DJI Mavic 3T class)",
+  "europe_scout_drone_thermal and us_scout_drone_thermal: the thermal head is told apart only by a larger gimbal; no close photo of either thermal sensor"
+ ]
+}

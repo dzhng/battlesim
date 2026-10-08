@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "us_m270_mlrs_m270a2-three_quarter_front.jpg",
+   "variant": "us_m270_mlrs_m270a2",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM270_MLRS_%281984%29.JPEG",
+   "author": "SSG Richard Hart",
+   "licence": "public-domain",
+   "sha256": "9647d6e1de7fbf4e64c5433a68a11c8976964f22df15d726f64a5f7a634120c8",
+   "note": "M270 with the launcher raised: the Bradley-family running gear (six road wheels), the armoured three-man cab at the front, the launcher box with two six-round pods. The A2 keeps this layout with a new cab armour kit."
+  },
+  {
+   "file": "us_m270_mlrs_m270a2-side.jpg",
+   "variant": "us_m270_mlrs_m270a2",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM270_MLRS_-_190911-A-HE359-0210.jpg",
+   "author": "Gertrud Zach",
+   "licence": "public-domain",
+   "sha256": "30687db5c142329610d0408a6ace3330b8c897b7c074e12715ca5f86938725ff",
+   "note": "Profile on the road, launcher stowed flat over the rear hull."
+  },
+  {
+   "file": "us_m270_mlrs_m270a2-front.jpg",
+   "variant": "us_m270_mlrs_m270a2",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM270_MLRS_-_190911-A-HE359-0107.jpg",
+   "author": "Gertrud Zach",
+   "licence": "public-domain",
+   "sha256": "51dbcf0a8d7d65b4de352b190f66cce3e04af45e5ac582ed7c5cf4fa595179f6",
+   "note": "Front on: the cab's flat windscreens under armoured shutters, headlights, tow points."
+  },
+  {
+   "file": "us_m270_mlrs_m270a2-three_quarter_rear.jpg",
+   "variant": "us_m270_mlrs_m270a2",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM270_MLRS_rocket_launcher_in_Oulu_20231206_001.jpg",
+   "author": "Mikko J. Putkonen (Methem)",
+   "licence": "CC-BY-4.0",
+   "sha256": "99a55eecdcfc5f48c0e525ab90c34c11ac055abf755d19457141af7a757e8012",
+   "note": "Finnish M270, rear quarter with the launcher raised: the pod faces and the launcher's base."
+  }
+ ],
+ "gaps": [
+  "us_m270_mlrs_m270a2: the photos are earlier M270s; the A2 cab armour kit is not shown closely"
+ ]
+}

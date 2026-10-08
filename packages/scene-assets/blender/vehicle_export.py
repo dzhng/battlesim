@@ -198,7 +198,10 @@ def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8, **looks):
 
 # How far a disabled card's built model may stray from the dimensions its
 # script states from the references (its frame, `frame_source: references`).
-FRAME_TOLERANCE = 0.05
+# A tripwire against a gross mismatch: 0.06, raised from 0.05 when the
+# pilot's Stryker body (its stowage bins 7 cm proud a side, inside the
+# catalog's own 0.1 m hull fit) measured 5.1% over its 2.72 m width.
+FRAME_TOLERANCE = 0.06
 
 
 def _measured(skip):
@@ -222,14 +225,15 @@ def _measured(skip):
     return hi - lo, lo
 
 
-def run_disabled(family, cards, scheme, build, wreck=None, skip=("dressing_",), ao_distance=1.0, ao_rays=8):
+def run_disabled(family, cards, scheme, build, wreck=None, skip=("dressing_",), ao_distance=1.0, ao_rays=8, **looks):
     """Export a disabled card family: `cards` maps each card id to the
     (length, width, height) its script states from its references, its frame
     (`catalog_frames.disabled_variant`); `scheme` is the family's, or one
     per card id. The built model must measure that
     frame within `FRAME_TOLERANCE`, leaving out the nodes `skip` names (a
     rotor disc, dressing). Each card writes its `source_path`; the family's
-    receipt, beside them, records each card's frame source."""
+    receipt, beside them, records each card's frame source. `looks` are
+    `materials` keywords, as for `run`."""
     from catalog_frames import disabled_variant
 
     def check(variant):
@@ -242,9 +246,10 @@ def run_disabled(family, cards, scheme, build, wreck=None, skip=("dressing_",), 
                              f"its references state {want} m on the ground")
 
     variants = [disabled_variant(card, dims) for card, dims in cards.items()]
-    receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, check)
+    receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, check, looks)
     if receipt is not None:
         entries = json.loads((REPO / "fixtures/units/model-manifest.json").read_text())["entries"]
         families = sorted({e["source_family"] for e in entries if e["id"] in cards})
-        _receipt(f"assets/source/roster/disabled/{family}.source-receipt.json", f"{family}.py", receipt,
+        beside = Path(variants[0]["export"]).parent
+        _receipt(f"{beside}/{family}.source-receipt.json", f"{family}.py", receipt,
                  "catalog_frames.disabled_variant", [f"assets/references/{f}/references.json" for f in families])

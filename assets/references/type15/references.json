@@ -1,0 +1,41 @@
+{
+ "entries": [
+  {
+   "file": "eastern_type_15_ztq_15_light_tank-three_quarter_front.jpg",
+   "variant": "eastern_type_15_ztq_15_light_tank",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AVT-5_Light_Tank_2018.png",
+   "author": "emperornie",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "7edab39cb20530b72aa2460284b8440f63bfe4e57bf9f57821eef86fa77f2f1e",
+   "note": "VT-5 (Type 15 export) right front quarter: wedge turret with add-on armour, 105 mm gun with thermal sleeve, six road wheels."
+  },
+  {
+   "file": "eastern_type_15_ztq_15_light_tank-three_quarter_front-2.jpg",
+   "variant": "eastern_type_15_ztq_15_light_tank",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AType_15_tank_20221020.jpg",
+   "author": "颐园居",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "430171292cb926268f14ec7550dfab0724f3bd480780f423bac1925ed05a9078",
+   "note": "Display, front quarter: turret bustle box armour, RWS on the roof, hull glacis."
+  },
+  {
+   "file": "eastern_type_15_ztq_15_light_tank-front.jpg",
+   "variant": "eastern_type_15_ztq_15_light_tank",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AVT-5_light_tank_of_Bangladesh_Army.jpg",
+   "author": "Nafis Fuad Ayon",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "7f7ce60414c8b51fd8a51d5026eda6e9ab1107dbc7558613f76c20dc5e9df995",
+   "note": "VT-5 front on: glacis, turret cheeks, driver hatch, gun centre."
+  }
+ ],
+ "gaps": [
+  "eastern_type_15_ztq_15_light_tank: no side, rear or top view; two photos are the VT-5 export model, whose turret armour matches the Type 15 display car",
+  "eastern_type_15_ztq_15_light_tank: return rollers and the bustle rack read from one quarter view only"
+ ]
+}

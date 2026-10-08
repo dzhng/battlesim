@@ -1,0 +1,119 @@
+{
+ "entries": [
+  {
+   "file": "us_kamikaze_drone_anti_armor-three_quarter_front.jpg",
+   "variant": "us_kamikaze_drone_anti_armor",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ASwitchblade_600_Loitering_Munitions_Training_%288767609%29.jpg",
+   "author": "U.S. Army TSAE by Sgt. Cody Nelson",
+   "licence": "public-domain",
+   "sha256": "7035b9ef08192bd5d449f46154c73b5766f7077b7dc9c447932710a6afe431fe",
+   "note": "Switchblade 600 (the US anti-armour card's munition) with its wings deployed, in training."
+  },
+  {
+   "file": "us_kamikaze_drone_anti_armor-side.jpg",
+   "variant": "us_kamikaze_drone_anti_armor",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ALow_Altitude_Stalking_and_Strike_Ordnance_%28LASSO%29_%28Switchblade_600%29.jpg",
+   "author": "Kevin Sterling Payne",
+   "licence": "public-domain",
+   "sha256": "2ea27d6ee8b7b4311437553d3f4edbb725b1a8199325ef580ba1085e13fec289",
+   "note": "Switchblade 600 on display: the tube body, folding forward and rear wings, the pusher propeller."
+  },
+  {
+   "file": "us_kamikaze_drone_anti_personnel-side.jpg",
+   "variant": "us_kamikaze_drone_anti_personnel",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ASwitchblade_300_unit.jpg",
+   "author": "U.S. Marine Corps/Lance Cpl. Tyler Forti",
+   "licence": "public-domain",
+   "sha256": "32be221652ff30532b849e2e3b130b8ba0ab9905a4d054d9804dd3af4ab29378",
+   "note": "Switchblade 300 (the US anti-personnel card's munition) with its launch tube."
+  },
+  {
+   "file": "us_kamikaze_drone_anti_personnel-three_quarter_front.jpg",
+   "variant": "us_kamikaze_drone_anti_personnel",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ASwitchblade_300_in_flight_%28200902-M-EU630-1102%29.jpg",
+   "author": "U.S. Marine Corps/Lance Cpl. Tyler Forti",
+   "licence": "public-domain",
+   "sha256": "78ec92679bb98de027a36a71d6392955e3e6ada583e5807216a98c552582e08f",
+   "note": "Switchblade 300 in flight, wings out."
+  },
+  {
+   "file": "eastern_kamikaze_drone_anti_armor-three_quarter_front.jpg",
+   "variant": "eastern_kamikaze_drone_anti_armor",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AZALA_Lancet_at_IDEX_2025.jpg",
+   "author": "Mztourist",
+   "licence": "CC-BY-4.0",
+   "sha256": "4732c4f3ae2bb8af39fdf9bbe92ab32d704ee120945c343571788d24a06231c1",
+   "note": "ZALA Lancet (the Eastern anti-armour card's munition): the cylindrical body with two sets of X wings, the pusher propeller."
+  },
+  {
+   "file": "eastern_kamikaze_drone_anti_armor-side.jpg",
+   "variant": "eastern_kamikaze_drone_anti_armor",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AZALA_Lancet_1.jpg",
+   "author": "Nickel nitride",
+   "licence": "CC0-1.0",
+   "sha256": "d82aea35137ee5fddb3aebdd54d4578f7da45d13d02ba5e83cd038c37e9b0e56",
+   "note": "Lancet on display, side."
+  },
+  {
+   "file": "eastern_kamikaze_drone_anti_personnel-three_quarter_front.jpg",
+   "variant": "eastern_kamikaze_drone_anti_personnel",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AUA_military_FPV_drones_08.jpg",
+   "author": "АрміяInform",
+   "licence": "CC-BY-4.0",
+   "sha256": "ab8a9a833d35e9ee6d1147bf70d4600f22e1e45627167c9245feed3e4a572716",
+   "note": "A military FPV quadcopter with its warhead slung under it: the class the Eastern and European anti-personnel cards field."
+  },
+  {
+   "file": "eastern_kamikaze_drone_anti_personnel-side.jpg",
+   "variant": "eastern_kamikaze_drone_anti_personnel",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AUA_FPV_strike_drones_02.jpg",
+   "author": "АрміяInform",
+   "licence": "CC-BY-4.0",
+   "sha256": "fe465607f7931b01a930b9438b00d5011709a0594b8c2ebdeca4607108ea9968",
+   "note": "FPV strike drones with RPG warheads."
+  },
+  {
+   "file": "europe_kamikaze_drone_anti_personnel-three_quarter_front.jpg",
+   "variant": "europe_kamikaze_drone_anti_personnel",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AUA_military_FPV_drones_05.jpg",
+   "author": "АрміяInform",
+   "licence": "CC-BY-4.0",
+   "sha256": "3aec6714c46fd8398008e8656f577918c8344b35c29b7588e3d422adda46d77f",
+   "note": "A military FPV quadcopter with its warhead (European anti-personnel card)."
+  },
+  {
+   "file": "europe_kamikaze_drone_anti_armor-side.jpg",
+   "variant": "europe_kamikaze_drone_anti_armor",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AParis_Air_Show_2019_-_Le_Bourget_%2848114068402%29.jpg",
+   "author": "Olivier CABARET from PARIS, FRANCE",
+   "licence": "CC-BY-2.0",
+   "sha256": "85e7c18635e32d5490dea024c78aaa7f4e4efadffe24a511aac2a7254b4ff383",
+   "note": "UVision Hero loitering munitions at the Paris Air Show (the European anti-armour card is drawn as the Hero-120): cylindrical body, cruciform tail."
+  }
+ ],
+ "gaps": [
+  "the kamikaze cards name a class: each is drawn as its army's type (Switchblade 600/300, Hero-120, Lancet, FPV with an RPG warhead)",
+  "europe_kamikaze_drone_anti_armor: one display photo of the Hero family; its tail fins and wing fold are a guess",
+  "us_kamikaze_drone_anti_personnel: the side photo shows its launch tube more than the munition"
+ ]
+}

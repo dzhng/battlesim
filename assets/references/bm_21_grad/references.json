@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "eastern_bm_21_grad_bm_21_rocket_artillery-three_quarter_front.jpg",
+   "variant": "eastern_bm_21_grad_bm_21_rocket_artillery",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ABM-21_Grad_%282%29.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "bd856a658d1d339bb3d39f6712b5311d4293c24d00dedb04629feb03dbae795c",
+   "note": "BM-21 on the Ural-375D 6x6, left front quarter: the bonneted cab, the forty-tube launcher in four rows over the rear axles."
+  },
+  {
+   "file": "eastern_bm_21_grad_bm_21_rocket_artillery-side.jpg",
+   "variant": "eastern_bm_21_grad_bm_21_rocket_artillery",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ABM-21_Grad_on_Ural-375D_chassis_%28438%29.jpg",
+   "author": "Fotoafdrukken Koninklijke Landmacht",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "f063beb78da52bcb43ca9603cd8757aa3a52ed68b356287bdd273da956f7cafb",
+   "note": "Side quarter: cab, spare wheel behind it, launcher base, the tube pack's length."
+  },
+  {
+   "file": "eastern_bm_21_grad_bm_21_rocket_artillery-three_quarter_front-2.jpg",
+   "variant": "eastern_bm_21_grad_bm_21_rocket_artillery",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ARussian_BM-21_Grad_in_Saint_Petersburg.JPG",
+   "author": "Robert Wray",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "40aa6ecdff3f3f759db7c311e2f00f52f890e753efc152b472105fc36cd136d1",
+   "note": "Museum car, right front quarter."
+  },
+  {
+   "file": "eastern_bm_21_grad_bm_21_rocket_artillery-three_quarter_rear.jpg",
+   "variant": "eastern_bm_21_grad_bm_21_rocket_artillery",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ARussian_origin_military_BM-21_Grad_captured_by_Ukrainian_army_1.jpg",
+   "author": "Maksym Kozlenko",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "29e96923ea70f5019ef4dc6018f3fcb508ed3c27a71b726c24125487e2d98a83",
+   "note": "Rear quarter, launcher raised: the tube mouths and the elevating gear."
+  }
+ ],
+ "gaps": [
+  "eastern_bm_21_grad_bm_21_rocket_artillery: no top view; the tube pack is counted from the quarters (forty in four rows)"
+ ]
+}

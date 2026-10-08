@@ -65,12 +65,17 @@ export run](vehicle_export.py) does the rest the same way for every family:
 variants and frames, materials by role, mount rigs, crew, tiers, wreck and
 export.
 
-A disabled card has no unit type, so it has no catalog frame: its family
-script states each card's length, width and height from its references, and
-`vehicle_export.run_disabled` builds it to that frame
-(`catalog_frames.disabled_variant`), refuses a model that strays from it, and
-records the frame's source in the family's receipt beside the cards' GLBs in
-`assets/source/roster/disabled/`. Aircraft and rotorcraft parts (fuselages,
+A disabled card has no unit type, so it has no catalog frame: its archived
+roster frame where one exists (T-14, T-15, Type 15, BRM-3K, Jaguar,
+Challenger 3), else the length, width and height its family script states
+from its references. `vehicle_export.run_disabled` builds it to that frame
+(`catalog_frames.disabled_variant`), refuses a model that strays from it
+(leaving out what `skip` names: dressing, guns, rotor blades), and records the
+frame's source in the family's receipt beside the cards' GLBs (in
+`assets/source/roster/disabled/`, or the ground cards' own family folders).
+The support cards' trucks stand on [one chassis](roster/truck_chassis.py)
+(rails, axles, fenders and the cab shapes their references show). A disabled
+infantry card is a kit in `KITS` like any roster kit. Aircraft and rotorcraft parts (fuselages,
 flying surfaces, canopies, intakes, nozzles, gear, stores, rotors, skids) and
 the crash every airframe's wreck starts from have [their own
 owner](aircraft_parts.py) beside the vehicle parts. A rotorcraft's frame leaves

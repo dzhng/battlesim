@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "eastern_orlan_10_reconnaissance_drone-three_quarter_front.jpg",
+   "variant": "eastern_orlan_10_reconnaissance_drone",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AOrlan-10_at_Army-2018.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "5f3b019147305653b64c60b0b0c234f2e2c6a03cfe5639928c2cbe99c34bc3c6",
+   "note": "Orlan-10 on display: the high straight wing, the nose engine and propeller, the twin-boom-less tail on a slim fuselage, the camera gimbal under the belly."
+  },
+  {
+   "file": "eastern_orlan_10_reconnaissance_drone-side.jpg",
+   "variant": "eastern_orlan_10_reconnaissance_drone",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AOrlan-10_UAV_Army-2022_2022-08-20_2287.jpg",
+   "author": "Mike1979 Russia",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "1c0d5b46a1b5afab2f6f4f2f516485cb5818ff9ee12e89751ab0f674e8f47822",
+   "note": "Army-2022, side quarter: fuselage length, wing position, the inverted-V tail."
+  },
+  {
+   "file": "eastern_orlan_10_reconnaissance_drone-three_quarter_rear.jpg",
+   "variant": "eastern_orlan_10_reconnaissance_drone",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AOrlan-10_on_the_launch_catapult.jpg",
+   "author": "Ministry of Defense of Russia",
+   "licence": "CC-BY-4.0",
+   "sha256": "62007ff0e42680d86e00d078f4e488fdb8c2ed73c4e0135f46fb065a98e996bf",
+   "note": "On its launch catapult, rear quarter."
+  },
+  {
+   "file": "eastern_orlan_10_reconnaissance_drone-detail.jpg",
+   "variant": "eastern_orlan_10_reconnaissance_drone",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AOrlan-10_UAV_Army-2022_2022-08-20_2475.jpg",
+   "author": "Mike1979 Russia",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "dfea87c90ba84854ec0dcf6c1ad2e40a7d5e4e20ce9ffd3421f7542031a0d039",
+   "note": "Close up of the fuselage and gimbal."
+  }
+ ],
+ "gaps": [
+  "eastern_orlan_10_reconnaissance_drone: no top view; the wing planform reads from the quarters"
+ ]
+}

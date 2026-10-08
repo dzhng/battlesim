@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "europe_boxer_skyranger_30_gun_and_missile_air_defense-three_quarter_front.jpg",
+   "variant": "europe_boxer_skyranger_30_gun_and_missile_air_defense",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ABoxer_Skyranger_30_ILA-2022.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "0c714bcd6eaa1df648d03278ae081e64d69b1f76d76c6596ee377e5a4618c684",
+   "note": "Boxer 8x8 with the Skyranger 30 turret, front quarter: the 30 mm KCE gun, the search radar panels, the missile launcher boxes on the turret sides."
+  },
+  {
+   "file": "europe_boxer_skyranger_30_gun_and_missile_air_defense-side.jpg",
+   "variant": "europe_boxer_skyranger_30_gun_and_missile_air_defense",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ABoxer_Skyranger_30_left_side_at_ILA-2024.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0-DE",
+   "sha256": "e2c42b32d84907248f0adb8234dc3ccd0d420f594ef2f1248817def3f9ce496f",
+   "note": "Left side: the Boxer drive module's eight wheels, the mission module, the turret."
+  },
+  {
+   "file": "europe_boxer_skyranger_30_gun_and_missile_air_defense-three_quarter_front-2.jpg",
+   "variant": "europe_boxer_skyranger_30_gun_and_missile_air_defense",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ABoxer_Skyranger_30_right_side_at_ILA-2024.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0-DE",
+   "sha256": "88ce97d39b90a92afc78a3ba18d4b3b1004446ec656f6666cc82c2e7d5594f53",
+   "note": "Right front quarter at ILA 2024."
+  },
+  {
+   "file": "europe_boxer_skyranger_30_gun_and_missile_air_defense-side-2.jpg",
+   "variant": "europe_boxer_skyranger_30_gun_and_missile_air_defense",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AGTK_Boxer_-_Skyranger_30_demonstration.jpg",
+   "author": "Defensie Nederlands",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "ba1a2ba666706fed4f9c2e1c8e9adbdb5f8e439d53b57b9da31680ca0d104b93",
+   "note": "Firing demonstration in Bundeswehr green, profile."
+  },
+  {
+   "file": "europe_boxer_skyranger_30_gun_and_missile_air_defense-detail.jpg",
+   "variant": "europe_boxer_skyranger_30_gun_and_missile_air_defense",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ABoxer_Skyranger_30%2C_ILA_2024%2C_Schoenefeld_%28ILA45458%29_%28cropped%29.jpg",
+   "author": "Matti Blume",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "7eb86f7d36b3be90fbf9c5a9c0df34b7294e38da9bce7d946720b58ff8908522",
+   "note": "The turret close up: gun, sensors, launcher."
+  }
+ ],
+ "gaps": [
+  "europe_boxer_skyranger_30_gun_and_missile_air_defense: exhibition cars in a digital demonstrator scheme; the model wears German three-tone"
+ ]
+}

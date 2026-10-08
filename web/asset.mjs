@@ -816,6 +816,7 @@ async function generatedIcons() {
   const disabled = await disabledLookup(
     readJson(join(ROOT, "fixtures/units/model-manifest.json")),
     async (path) => new Uint8Array(readFileSync(join(ROOT, path))),
+    catalog().skeletons,
   );
   return iconFiles(weapons, units, (id) =>
     units.has(id) ? unitSolids(units, id, lookup) : disabled(id),

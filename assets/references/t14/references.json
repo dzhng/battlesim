@@ -1,0 +1,74 @@
+{
+ "entries": [
+  {
+   "file": "eastern_t_14_armata_main_battle_tank-three_quarter_front.jpg",
+   "variant": "eastern_t_14_armata_main_battle_tank",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AT-14_Armata_%2827053434067%29.jpg",
+   "author": "Dmitriy Fomin from Moscow, Russia",
+   "licence": "CC-BY-2.0",
+   "sha256": "c0193691256116b1fc0b5019e2cf6201b1728c30d6234c8e92f627be6d34d709",
+   "note": "Parade, left front quarter: unmanned turret, 125 mm gun, Afganit launchers on the turret sides, seven road wheels, side skirts with the Victory stripe."
+  },
+  {
+   "file": "eastern_t_14_armata_main_battle_tank-side.jpg",
+   "variant": "eastern_t_14_armata_main_battle_tank",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AMain_battle_tank_T-14_-_0-03.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "42a92b5992f34b7843651e55dc2d99d682cdb586e73cfa67657d8a631758e3e3",
+   "note": "Right side at rehearsal: long hull, seven road wheels, high flat deck, turret set back."
+  },
+  {
+   "file": "eastern_t_14_armata_main_battle_tank-side-2.jpg",
+   "variant": "eastern_t_14_armata_main_battle_tank",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AT-14_Armata_%2841072270525%29.jpg",
+   "author": "Dmitriy Fomin from Moscow, Russia",
+   "licence": "CC-BY-2.0",
+   "sha256": "ffba97e0ca4efd52a394e94c2aca5238a19ca5fc1654308829ea20319fd83616",
+   "note": "Profile on the street: turret profile and the bustle, gun overhang."
+  },
+  {
+   "file": "eastern_t_14_armata_main_battle_tank-three_quarter_rear.jpg",
+   "variant": "eastern_t_14_armata_main_battle_tank",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AT-14_Armata_%2841072270835%29.jpg",
+   "author": "Dmitriy Fomin from Moscow, Russia",
+   "licence": "CC-BY-2.0",
+   "sha256": "5c9d7f333b067457087368ea07518eff26fb9f3dd4252cc28829ee08c841c271",
+   "note": "Rear quarter: engine deck, rear slat screen, turret bustle rack."
+  },
+  {
+   "file": "eastern_t_14_armata_main_battle_tank-top.jpg",
+   "variant": "eastern_t_14_armata_main_battle_tank",
+   "view": "top",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AT-14_prototype_from_above.JPG",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "7e436d381491bab8fc8f79fda7e3085d1a61491f7c1acc0a8119af92d8c5ad7c",
+   "note": "From above: crew capsule hatches at the hull front, turret roof sensors, engine deck grilles."
+  },
+  {
+   "file": "eastern_t_14_armata_main_battle_tank-detail.jpg",
+   "variant": "eastern_t_14_armata_main_battle_tank",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AArmata_radar_and_shell.jpg",
+   "author": "Vitaly Kuzmin (photo) and EPC2016 (schema and crop)",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "910f4d43840248b18803580206c6fca70975729dd5dda73f75ced550d221bbb0",
+   "note": "Turret corner: AESA radar panel and the sensor housing."
+  }
+ ],
+ "gaps": [
+  "eastern_t_14_armata_main_battle_tank: no rear or front-on view; the rear screen and engine deck come from the quarter and top views",
+  "eastern_t_14_armata_main_battle_tank: every photo is a parade car; the field kit (stowage, crew) is not shown"
+ ]
+}

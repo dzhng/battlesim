@@ -1,0 +1,64 @@
+{
+ "entries": [
+  {
+   "file": "europe_challenger_challenger_3-side.jpg",
+   "variant": "europe_challenger_challenger_3",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Challenger_2_FV4034_-_Megatron_(7527727526).jpg",
+   "author": "Simon Q from United Kingdom",
+   "licence": "CC-BY-2.0",
+   "sha256": "6df243444221759c3c87a7fe2738666f11f054df9f50d0bc3daa11f73910ee81",
+   "note": "Challenger 2 TES (same bytes as assets/references/challenger/): the hull, skirts and six-wheel running gear the Challenger 3 keeps. Its turret is the old one; the Challenger 3 turret comes from the generated view only. TES 'Megatron' right side, King's Royal Hussars"
+  },
+  {
+   "file": "europe_challenger_challenger_3-three_quarter_front.jpg",
+   "variant": "europe_challenger_challenger_3",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Challenger_2_MBT_(52088985178).jpg",
+   "author": "Airwolfhound from Hertfordshire, UK",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "2618b5ddcacdf2107e2159f6ce5dbae1d21012079e4479a4bed1b22cf2a639e3",
+   "note": "Challenger 2 TES (same bytes as assets/references/challenger/): the hull, skirts and six-wheel running gear the Challenger 3 keeps. Its turret is the old one; the Challenger 3 turret comes from the generated view only. UK TES with bar armour and side packs, front right"
+  },
+  {
+   "file": "europe_challenger_challenger_3-three_quarter_front-generated.jpg",
+   "variant": "europe_challenger_challenger_3",
+   "view": "three_quarter_front",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "sha256": "3c559e9c335a5e7109fe4cd2b59cafa781d818dcc460ff55395d126c4ae88e36",
+   "note": "Generated: no Challenger 3 photo on Commons is under an allowed licence (the three are OGL). Layout and proportions only: Challenger 2 hull and running gear with the new angular turret, L55A1 gun without fume extractor, Trophy panels on the turret sides, bustle cage. Its input is the Challenger 2 TES photo beside it (the same bytes as assets/references/challenger/europe_challenger_challenger_2_tes-three_quarter_front.jpg).",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "British Army Challenger 3 main battle tank (Rheinmetall BAE Systems Land upgrade of Challenger 2), three-quarter front view from the left, on open ground in daylight, photographic reference. Challenger 2 hull and running gear (six road wheels, side skirts, dozer-free glacis) in British NATO green; the new angular welded Challenger 3 turret with a long L55A1 120 mm smoothbore gun without fume extractor, a thermal sleeve, two Trophy active protection radar panels and launchers on the turret sides, the commander's panoramic sight on the right roof, a remote weapon station, smoke grenade dischargers, bustle stowage. Whole vehicle in frame, no people, no text.",
+   "inputs": [
+    "europe_challenger_challenger_3-three_quarter_front.jpg"
+   ],
+   "seed": 1801
+  },
+  {
+   "file": "europe_challenger_challenger_3-side-generated.jpg",
+   "variant": "europe_challenger_challenger_3",
+   "view": "side",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "sha256": "14f8b60f01739650c2deaa2c0d652a3b90468cf2e6d61047233385426d1d176e",
+   "note": "Generated profile: six road wheels, the turret set ahead of the engine deck, the gun's length against the hull; the gateway ignored the seed, so it does not reproduce. Its input is the Challenger 2 TES photo beside it (the same bytes as assets/references/challenger/europe_challenger_challenger_2_tes-side.jpg).",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "British Army Challenger 3 main battle tank, exact side profile (left side) orthographic-like view, on open ground in daylight, photographic reference. Challenger 2 hull: six road wheels per side, skirts, long low hull; new angular Challenger 3 turret set slightly forward of centre with the L55A1 120 mm smoothbore gun (no fume extractor), Trophy launcher housings on the turret sides, commander's panoramic sight, remote weapon station, bustle racks. British NATO green paint. Whole vehicle in frame, no people, no text.",
+   "inputs": [
+    "europe_challenger_challenger_3-side.jpg"
+   ],
+   "seed": 1802
+  }
+ ],
+ "gaps": [
+  "europe_challenger_challenger_3: no licensable photo exists (Commons holds three, all OGL); every view is generated from the Challenger 2 references and the published description, so turret details (Trophy placement, sight heads, RWS) are guesses",
+  "europe_challenger_challenger_3: the hull and running gear are the Challenger 2 references' (assets/references/challenger/)"
+ ]
+}

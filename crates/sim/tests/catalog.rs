@@ -44,7 +44,12 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
         .map(|card| (card.id.to_owned(), card))
         .collect();
     let mut seen = std::collections::BTreeSet::new();
-    for entry in &manifest.entries {
+    let identity: Vec<String> = manifest
+        .entries
+        .iter()
+        .map(|e| source_identity(&e.source_path))
+        .collect();
+    for (k, entry) in manifest.entries.iter().enumerate() {
         assert!(
             seen.insert(entry.id.clone()),
             "duplicate model manifest entry: {}",
@@ -66,6 +71,17 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
         );
         if let Err(why) = disabled_source(&entry.source_path) {
             panic!("{}: {why}", entry.id);
+        }
+        // A rebuilt card has its own model: no other card's file, by path or content.
+        if entry.model_status == "reference_built" {
+            for (j, other) in manifest.entries.iter().enumerate().filter(|(j, _)| *j != k) {
+                assert!(
+                    other.source_path != entry.source_path && identity[j] != identity[k],
+                    "{} shares its model with {}",
+                    entry.id,
+                    other.id
+                );
+            }
         }
         assert!(!entry.source_family.is_empty());
         assert!(!entry.source_kind.is_empty());
@@ -115,6 +131,23 @@ fn disabled_source(source_path: &str) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!("{source_path}: draws no mesh in a scene"))
+    }
+}
+
+/// What two source files compare by: an LFS pointer's oid (the content's
+/// sha256), else a hash of the bytes; a pulled file and another's pointer are
+/// not compared (pull both to compare them).
+fn source_identity(source_path: &str) -> String {
+    use std::hash::{Hash, Hasher};
+    let bytes = std::fs::read(sim::fixtures::dir().parent().unwrap().join(source_path)).unwrap();
+    let text = String::from_utf8_lossy(&bytes);
+    match text.lines().find_map(|l| l.strip_prefix("oid sha256:")) {
+        Some(oid) if bytes.starts_with(b"version https://git-lfs") => oid.to_owned(),
+        _ => {
+            let mut h = std::collections::hash_map::DefaultHasher::new();
+            bytes.hash(&mut h);
+            format!("bytes {:x} {}", h.finish(), bytes.len())
+        }
     }
 }
 

@@ -26,9 +26,11 @@ const lookup = await runtimeLookup(
   async (path) => new Uint8Array(readFileSync(new URL(path, RUNTIME))),
 );
 const REPO = new URL("../../", import.meta.url);
+const SKELETONS = JSON.parse(readFileSync(new URL("assets/catalog.json", REPO), "utf8")).skeletons;
 const disabled = await disabledLookup(
   JSON.parse(readFileSync(new URL("fixtures/units/model-manifest.json", REPO), "utf8")),
   async (path) => new Uint8Array(readFileSync(new URL(path, REPO))),
+  SKELETONS,
 );
 const shipped = (id: string) => (UNITS.has(id) ? unitSolids(UNITS, id, lookup) : disabled(id));
 const disabledCards = UNITS.cards.filter((c) => c.disabled_reason !== null && !UNITS.has(c.id));
@@ -66,6 +68,26 @@ test("an icon the generator cannot draw is refused, naming it", () => {
   expect(() => iconFiles({}, UNITS, (id) => (UNITS.has(id) ? shipped(id) : null))).toThrow(
     /disabled card \w+: its source model is not installed/,
   );
+});
+
+test("a disabled soldier card's silhouette is its soldier posed aiming, not its bind pose", () => {
+  // The Javelin team's source is a skinned soldier on the launcher clips
+  // (its manifest entry names the skeleton): posed at the clips' aim
+  // reference he stands a man's height, the launcher out ahead of him.
+  const solids = disabled("fgm_148_javelin_team");
+  expect(solids?.length).toBeGreaterThan(0);
+  let [x0, x1, y0, y1, z0, z1] = [Infinity, -Infinity, Infinity, -Infinity, Infinity, -Infinity];
+  for (const s of solids!)
+    for (let v = 0; v < s.positions.length; v += 3) {
+      [x0, x1] = [Math.min(x0, s.positions[v]), Math.max(x1, s.positions[v])];
+      [y0, y1] = [Math.min(y0, s.positions[v + 1]), Math.max(y1, s.positions[v + 1])];
+      [z0, z1] = [Math.min(z0, s.positions[v + 2]), Math.max(z1, s.positions[v + 2])];
+    }
+  expect(z1 - z0).toBeGreaterThan(1.5);
+  expect(z1 - z0).toBeLessThan(2.1);
+  // A bind (T) pose spreads the arms across the view's depth; aiming does not.
+  expect(y1 - y0).toBeLessThan(1.2);
+  expect(x1 - x0).toBeGreaterThan(1.0);
 });
 
 test("a silhouette is the model's side view: its outline, front to the right", () => {

@@ -1,0 +1,128 @@
+{
+ "entries": [
+  {
+   "file": "fim_92_stinger-three_quarter_front.jpg",
+   "variant": "fim_92_stinger",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AFIM-92_Stinger_%287783422%29.jpg",
+   "author": "U.S. Army photo by Cpl. Eric Perez",
+   "licence": "public-domain",
+   "sha256": "0b74d5f8097f3e924f92b94ba1ec00082196af22a6fd32e470a2551a9f5e6026",
+   "note": "Stinger on the shoulder: the slim tube, the gripstock, the folding sight frame on the left, the IFF antenna."
+  },
+  {
+   "file": "fim_92_stinger-side.jpg",
+   "variant": "fim_92_stinger",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AFlickr_-_The_U.S._Army_-_FIM-92_Stinger_missile.jpg",
+   "author": "The U.S. Army",
+   "licence": "public-domain",
+   "sha256": "1e25602b4e237b23ad283c497daa0d027527e6ccdfcae7c60f8f4ff3691dce26",
+   "note": "Gunner aiming, side."
+  },
+  {
+   "file": "fim_92_stinger-three_quarter_rear.jpg",
+   "variant": "fim_92_stinger",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ALaunch_of_a_FIM-92_Stinger_missile%2C_2012.jpg",
+   "author": "Casey Slusser, U.S. Army",
+   "licence": "public-domain",
+   "sha256": "3bc9a6d80bf18d06ec01f5ab98c67c45c26cc376bb81992f925db97f08e28ef0",
+   "note": "Launch, rear quarter."
+  },
+  {
+   "file": "us_army_ocp-detail-2.jpg",
+   "variant": "us_army_ocp",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:IHPS_helmet.jpg",
+   "author": "US Army",
+   "licence": "public-domain",
+   "sha256": "5818a475fc7d5ac2e310bbbbb32fc33c017d265fdeaab77f267bd8b840f1281c",
+   "note": "IHPS helmet (coyote, no cover) with NVG shroud and rails, side view on a stand; small image."
+  },
+  {
+   "file": "us_army_ocp-detail-3.jpg",
+   "variant": "us_army_ocp",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MSV_Kit.jpg",
+   "author": "Lawrence1215",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "5eae5eda95b5ded5e13d4a5733a241f5b5cb2ddefac237af19d29cd2af4df19c",
+   "note": "Modular Scalable Vest in OCP with pouches, front three-quarter on a table: carrier shape, cummerbund, pouch layout."
+  },
+  {
+   "file": "us_army_ocp-detail-4.jpg",
+   "variant": "us_army_ocp",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:M4A1-flattop.jpg",
+   "author": "Photo Courtesy of PEO Soldier, modified by User:MathKnight-at-TAU",
+   "licence": "public-domain",
+   "sha256": "8c4ab04735dcbb853c00503bd69a3fcef03a1125fb3681be497799f763aa109b",
+   "note": "M4A1 carbine, right side profile on white: rail handguard, collapsible stock, M68 CCO optic (PEO Soldier photo, edited)."
+  },
+  {
+   "file": "us_army_ocp-detail.jpg",
+   "variant": "us_army_ocp",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Combined_Resolve_26-07_3BEB_(9647663).jpg",
+   "author": "U.S. Army photo by Sgt. Collin Mackall",
+   "licence": "public-domain",
+   "sha256": "1b3e72afe66e4776c52559ad64e8fca4353ebc54d3cac85518178ea732746d0c",
+   "note": "Over-the-shoulder close-up: helmet cover, rear of the helmet and NVG mount, collar of the carrier, M4A1 with optic."
+  },
+  {
+   "file": "us_army_ocp-front.jpg",
+   "variant": "us_army_ocp",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mass_Guard_Soldiers_conduct_joint_patrol_in_northeast_Syria_(8727618).jpg",
+   "author": "Staff Sgt. Emma Scearce",
+   "licence": "public-domain",
+   "sha256": "09f77d1802c72d90425360da3424f867a2591a9ff9d3ed2d35a421e893ba003f",
+   "note": "Two US Army soldiers standing, front, full body: OCP uniform, plate carriers, helmets, M4A1 carbines held low; dry light shows carrier shape clearly."
+  },
+  {
+   "file": "us_army_ocp-three_quarter_front-2.jpg",
+   "variant": "us_army_ocp",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:US_Soldier_in_Syria.jpg",
+   "author": "SPC Jensen Guillory",
+   "licence": "public-domain",
+   "sha256": "586636bac6a0ec3266ffd2779fd6e08ac6839184b2bb874dc0430fd36b3f32c1",
+   "note": "US Army soldier walking, near front-on, full body: OCP uniform, plate carrier, helmet with NVG mount, M4A1 slung forward, face mask."
+  },
+  {
+   "file": "us_army_ocp-three_quarter_front.jpg",
+   "variant": "us_army_ocp",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:2nd_Brigade,_101st_Airborne_Conduct_Dismounted_Patrols_at_Combined_Resolve_26-1_(9366391).jpg",
+   "author": "U.S. Army photo by Maj. Brian Sutherland",
+   "licence": "public-domain",
+   "sha256": "67082d3304dc87cc644592a827ad2e62be58147fa1d52d0a7d62a3ce19e81c12",
+   "note": "US Army rifleman on patrol, front-left quarter, full body: OCP uniform, plate carrier with pouches, covered helmet with scrim, M4A1 at the ready; squad file behind."
+  },
+  {
+   "file": "us_army_ocp-three_quarter_rear.jpg",
+   "variant": "us_army_ocp",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Combined_Resolve_26-07_3BEB_(9647666).jpg",
+   "author": "U.S. Army photo by Sgt. Collin Mackall",
+   "licence": "public-domain",
+   "sha256": "120bbab5dd26db84f2bdb1d84ab80896257273d66633d3bcb4501c691bed10f5",
+   "note": "Rifleman aiming, from behind and left: back panel of the plate carrier with name tape, side pouches, helmet rear with counterweight, M4A1."
+  }
+ ],
+ "gaps": [
+  "fim_92_stinger: the IFF antenna and sight frame read from the shoulder photos only"
+ ]
+}
