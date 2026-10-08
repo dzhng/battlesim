@@ -177,7 +177,7 @@ export async function run(ctx) {
   );
   ctx.check(
     "the side switch is labelled and shows red's own units",
-    /Viewing as RED/.test(label) && redOwn.join() === "rifle,tank",
+    /Viewing as RED/.test(label) && redOwn.join() === "test_rifle,test_tank",
     `${label} ${redOwn}`,
   );
   await lab(page, () => window.__lab.route.setSide("blue"));
