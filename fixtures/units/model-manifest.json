@@ -10,7 +10,7 @@
       "id": "ah_64e_guardian",
       "family": "ah_64_apache",
       "category": "hel",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "ah_64_apache",
       "source_kind": "rotorcraft",
       "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",

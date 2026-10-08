@@ -382,7 +382,9 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
     """A rotor: the node `rotor_<name>` at the hub's centre, turning about its
     local Z; the mast below it, the hub and its blade grips, and `blades`
     blades of `chord` out to `radius`, drooping `droop` radians (a rotor at
-    rest sags). A tail rotor is the same rotor turned on its side (`rot`)."""
+    rest sags), each `blade_<name>_<k>` (a frame measure leaves blades out:
+    a rotor's disc is not its airframe's size). A tail rotor is the same
+    rotor turned on its side (`rot`)."""
     node = empty(f"rotor_{name}", loc=loc, parent=parent, rot=rot)
     if mast:
         cyl(f"rotor_{name}_mast", hub * 0.42, mast, (0, 0, -mast / 2), "Z", mats["dark"], node, seg=12, lods=MID)
@@ -399,7 +401,7 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
                                                               chord * thick * 0.9),
                (tip / 2, out, dz, tip, tip * thick * 0.8)]
         # surface() sweeps chords along -X: lay the blade on Y, then turn it to its bearing.
-        surface(f"rotor_{name}_blade_{k}", [(x, y, z, c, t) for x, y, z, c, t in sec], mats["blade"], node,
+        surface(f"blade_{name}_{k}", [(x, y, z, c, t) for x, y, z, c, t in sec], mats["blade"], node,
                 rot=(0, 0, a - math.pi / 2))
         box(f"rotor_{name}_grip_{k}", (hub * 1.1, chord * 0.7, hub * 0.4),
             (ca * hub * 1.2, sa * hub * 1.2, 0), mats["dark"], node, rot=(0, 0, a), bevel=0.01, lods=MID)
@@ -443,7 +445,7 @@ def crash(v, tail_x, wing_y=None, wing_side=-1, tail_yaw=0.35, tail_drop=0.18, b
     gone = [o for o in bpy.data.objects if o.name.startswith(("gear_", "canopy_glass"))]
     gone += [c for o in gone for c in o.children_recursive]
     for rotor_name, k in blades_broken:
-        gone += [o for o in bpy.data.objects if o.name.startswith(f"rotor_{rotor_name}_blade_{k}_")]
+        gone += [o for o in bpy.data.objects if o.name.startswith(f"blade_{rotor_name}_{k}_")]
     for o in set(gone):
         bpy.data.objects.remove(o, do_unlink=True)
     bpy.context.view_layer.update()
@@ -465,12 +467,12 @@ def crash(v, tail_x, wing_y=None, wing_side=-1, tail_yaw=0.35, tail_drop=0.18, b
              -wing_side * 0.5)
     # Rotor blades sag to the ground.
     for o in everything:
-        if "_blade_" in o.name and o.name.startswith("rotor_main"):
+        if o.name.startswith(("blade_main_", "blade_upper_", "blade_lower_", "blade_front_", "blade_rear_")):
             hub = o.parent.matrix_world.translation
             out = (o.matrix_world @ Vector((0, 1, 0)) - o.matrix_world.translation).normalized()
             axis = out.cross(Vector((0, 0, 1)))
-            k = int(o.name.split("_blade_")[1].split("_")[0])
-            bend([o], hub + out * 0.6, axis, out, 0.22 + 0.05 * (k % 3))
+            k = int(o.name.split("_")[2])
+            bend([o], hub + out * 0.6, axis, out, -(0.22 + 0.05 * (k % 3)))
     for k, (dx, dy, size) in enumerate(((0.2, 1.1, 0.6), (-0.35, -1.3, 0.5), (-0.1, 0.8, 0.45))):
         plate(f"debris_{k}", [(-size, -size * 0.5), (size, -size * 0.6), (size * 0.8, size * 0.5),
                               (-size * 0.6, size * 0.7)], 0.03,
