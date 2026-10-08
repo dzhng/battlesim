@@ -46,7 +46,14 @@ saves for a spec's end.
     `references.json` notes or gaps; fix any family more than 5% off.
 12. Make `vehicle_parts.py`'s two helpers that `aircraft_parts.py` borrows
     public.
-13. Close the spec with close-spec.
+13. From the ground disabled lane: six belly-landing drones (Orlan-10, both
+    Switchblades, Hero, both FPVs) fail `nodes.missing` for lack of landing
+    gear: make the rule fit a body that lands on its belly (a property, not a
+    named exception) or give them the node it asks for; fold the Skyranger's
+    Boxer hull into `boxer.py`'s; make `roster/truck_chassis.py` the one truck
+    owner if the wheeled trucks can stand on it; one receipt convention for
+    disabled cards (beside the family's first GLB).
+14. Close the spec with close-spec.
 
 ## Delegated
 

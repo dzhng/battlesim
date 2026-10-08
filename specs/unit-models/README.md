@@ -18,7 +18,7 @@ they look like the real vehicles and soldiers.
 
 ## Next Agent Prompt
 
-**Status, 2026-10-07:** in progress. Done and merged: 01–14 (pilot: Abrams, Stryker family, HMMWV on its real 4.9 × 2.2 × 2.0 m frame, rifle squad in US OCP and Eastern EMR; class budgets in `UNIT_ART`). In flight, one worktree each: infantry lane (17), tracked lane (15), wheeled lane (16). Next: disabled cards (18), then closeout (19). Open for the user: the Dragoon's gun pivot (choices.md, pilot checkpoint).
+**Status, 2026-10-07:** slices 01–18 done and merged on `t3code/improve-unit-models` (not yet on main). Every roster unit (40 vehicles, 17 kits) and all 86 disabled cards are rebuilt from committed references, each vehicle with its own wreck. Pick up at slice 19 (closeout): its numbered list holds every leftover found during the lanes. Open for the user: the Dragoon's and T-15's turret pivots (choices.md).
 
 **Pick up at [slice 01](slices/01-presentation-by-property.md):** every roster
 vehicle and weapon plays default sounds today, a bug players hear.
@@ -117,7 +117,7 @@ TODO:
 - [x] [15 Tracked lane](slices/15-tracked.md)
 - [x] [16 Wheeled, light and trucks lane](slices/16-wheeled.md)
 - [x] [17 Infantry lane](slices/17-infantry.md)
-- [ ] [18 Disabled cards lanes](slices/18-disabled-cards.md): models, wrecks and icons, still unplayable.
+- [x] [18 Disabled cards lanes](slices/18-disabled-cards.md): models, wrecks and icons, still unplayable.
 - [ ] [19 Closeout](slices/19-closeout.md): full check and verify once, balance report, close-spec.
 
 Update this section before you end a pass.
