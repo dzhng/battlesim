@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "eastern_j_10_vigorous_dragon_j_10c-three_quarter_front.jpg",
+   "variant": "eastern_j_10_vigorous_dragon_j_10c",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:J-10C_20250921.jpg",
+   "author": "\u9890\u56ed\u5c45",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "8373b8cc0c9ddce19b6382ecca7c0d0109edab9836cc4f752d4f65fad9b173c9",
+   "note": "J-10C front-left three-quarter static with weapons: DSI chin intake, canards, delta, single fin"
+  },
+  {
+   "file": "eastern_j_10_vigorous_dragon_j_10c-three_quarter_front-2.jpg",
+   "variant": "eastern_j_10_vigorous_dragon_j_10c",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:J-10C_at_Changchun_Air_Show_20250921.jpg",
+   "author": "\u9890\u56ed\u5c45",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "a07c96247458ae8180980469ae192b7e814c7ee4a8a2a3eb13256dd369601528",
+   "note": "J-10C front-left three-quarter at Changchun: canards, ventral fins"
+  },
+  {
+   "file": "eastern_j_10_vigorous_dragon_j_10c-side.jpg",
+   "variant": "eastern_j_10_vigorous_dragon_j_10c",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Chengdu_10.jpg",
+   "author": "mxiong",
+   "licence": "CC-BY-2.0",
+   "sha256": "d65036c20002d437188fbd41a2bdc55bd04acfb902764cb848d18b96f43da826",
+   "note": "J-10 (earlier A with intake splitter) left side landing: canards, delta, fin, ventral fins"
+  },
+  {
+   "file": "eastern_j_10_vigorous_dragon_j_10c-three_quarter_rear.jpg",
+   "variant": "eastern_j_10_vigorous_dragon_j_10c",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:J-10_AUG01_09_taking_off_at_CCAS2023_(20230724104603).jpg",
+   "author": "N509FZ",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "482869e5e666573c68f313f69264b1d15f60d9167f0be5804bca59e6fb234004",
+   "note": "J-10 (August 1st team) from below-rear in a climb: nozzle, fin, ventral fins"
+  }
+ ],
+ "gaps": [
+  "eastern_j_10_vigorous_dragon_j_10c: the side view is an earlier J-10 with the intake splitter (the C has the diverterless bump); no top or front view"
+ ]
+}
