@@ -42,7 +42,10 @@ Reusable vehicle detail (wheels and their treads, whole tracked running gear, a
 lofted hull's plan rings, bolted applique and armour tiles, slat armour,
 hatches, cupolas, sights, lights, tow points, stowage, cargo beds, grilles,
 exhausts, machine guns) has [one owner](vehicle_parts.py); a family script
-places those parts rather than redefining them. A family derived from another
+places those parts rather than redefining them. A part hung on a hull or
+turret side that leans takes its position and tilt from that face
+(`on_side`), so plates, tiles, skirts and racks lie on the slope the photos
+show instead of standing upright beside it. A family derived from another
 (the T-90M and T-80BVM from the T-72) imports that family's script for what
 they share.
 
