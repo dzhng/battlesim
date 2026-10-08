@@ -110,7 +110,7 @@
       "id": "eastern_ka_52_alligator_ka_52m",
       "family": "ka_52_alligator",
       "category": "hel",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "ka_52_alligator",
       "source_kind": "rotorcraft",
       "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
