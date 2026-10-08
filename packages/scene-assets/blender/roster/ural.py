@@ -41,6 +41,13 @@ NOSE = 3.683
 
 
 def build(variant, v):
+    chassis(v)
+    cab(v)
+    body(v)
+
+
+def chassis(v):
+    """The wheels, axles, rails and mudflaps (the BM-21 stands on them too)."""
     m, hull = v.mats, v.hull
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(AXLES):
@@ -52,11 +59,11 @@ def build(variant, v):
         box(f"chassis_rail_{s}", (6.90, 0.14, 0.24), (0.0, side * 0.45, RAIL_Z), m["dark"], hull, bevel=0.01,
             lods=MID)
         VP.mudflap(f"mudflap_{s}", (-3.00, side * WHEEL_Y, BED_FLOOR - 0.10), (0.40, 0.50), m, hull)
-    cab(v)
-    body(v)
 
 
 def cab(v):
+    """The cab, bonnet and wings, and behind the cab its stacks, spare wheel,
+    fuel tank and battery box (the BM-21's Ural-375D shares them)."""
     m, hull = v.mats, v.hull
     width = 2.10
     # The rounded cab and the long bonnet.
@@ -146,4 +153,5 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-run("ural", "russian_green", build, wreck, chip=0.6)
+if __name__ == "__main__":
+    run("ural", "russian_green", build, wreck, chip=0.6)

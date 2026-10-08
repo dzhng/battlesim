@@ -1339,6 +1339,148 @@ No frame, mount or tolerance moved, and every export repeats byte for byte.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
+## Follow-up 04: disabled ground cards at the roster bar (2026-10-08)
+
+The user overruled the lower detail of disabled cards. These are the calls
+made while raising the ground, support, drone and infantry cards, family by
+family. No roster frame, mount or tolerance moved.
+
+### A disabled card stands on the roster vehicle it is built on
+
+- **The choice:** Where a card's chassis is a roster vehicle, it uses that
+  vehicle's script instead of a look-alike. The BM-21 stands on the roster
+  Ural's `chassis` and `cab` (the Ural-375D and 4320 share the cab and frame),
+  so `ural.py` was split into `chassis`, `cab` and `body` and its export put
+  under `__main__`; the Ural's GLB re-exported byte-identical. The truck
+  chassis's `bonnet` cab, which only the BM-21 used, is gone. The armoured
+  cab-over (`truck_chassis.armoured_cab`, under the HIMARS, CAESAR and
+  Pantsir) was rebuilt to the bar: waist-high upright sides with the upper
+  sides leaning in, framed windscreens with wipers and a mullion, a bolted
+  door with its small armoured window placed with `on_side`, hinges, handle,
+  grab rail and two steps, the bolted front plate, grille, guarded lights and
+  shackles, roof hatch and marker lamps, and the dash and seats behind the
+  glass. It now spans the card's width, as the photos show, not its wheels'.
+- **Verdict:** sound. One owner per cab.
+- **Confidence:** medium.
+
+### The BM-21's width is the Ural-375D's
+
+- **The choice:** The card stated 2.40 m wide, the figure usually quoted for
+  the BM-21, but that is narrower than the truck's own axle hubs. The card now
+  states the Ural-375D's published 2.69 m; length and height stay the BM-21's.
+  The library's `gaps` records it.
+- **Verdict:** sound. A disabled card's frame is its script's statement from
+  cited sources, and this one was wrong.
+- **Confidence:** medium.
+
+### Rocket launchers travel as the photos show them
+
+- **The choice:** The M270's and HIMARS's pods stow with their capped faces
+  to the rear, inside a ribbed launcher-loader box open at the back
+  (`launcher_box`, `REAR_LIP`), with the loader boom on top and a cable run
+  down the side. They had faced forward, inside a closed box. The BM-21's
+  forty tubes also travel muzzles to the rear, rising slightly toward them, on
+  a cradle with sector gears, as all three of its photos show. The Tornado-S
+  keeps its muzzles forward (it elevates about a rear pivot) and gained rear
+  stabiliser jacks, stowage, a ladder, tube rings and the firing cable.
+- **Verdict:** sound.
+- **Confidence:** medium.
+### Disabled wrecks throw through `wreckage.scatter`, and lose their own throws
+
+- **The choice:** After slice 02 merged, these families' wrecks were
+  re-exported through `vehicle_export`, so each writes its
+  `_wreck_debris.glb` state from the shared `scatter`. The families' own
+  pieces beside the hull (torn plates, fallen rounds, the air defence
+  family's fallen canister) were deleted rather than renamed `litter_`,
+  because they lay outside the hull, which is exactly what `scatter` now
+  throws. A disabled card has no catalog wreck entry, so there is no
+  `debris` state to list; the debris GLB is written for when the card
+  becomes playable. `asset validate` on a debris GLB alone refuses it (a
+  state of several root `debris_*` nodes is only judged inside its catalog
+  entry), so those files are judged only by `scatter`'s own tests until then.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Air defence and the CAESAR: what changed
+
+- **The choice:** The tracked air defence hulls (`tracked_hull`, Gepard and
+  Buk) carry a bolted glacis plate, tow cables, hull bins, tail lights and
+  exhausts. The Gepard gained its gun yokes, ammunition feeds, muzzle
+  velocity radars, the tracking radar's feed and yoke, the search radar's
+  face, a second hatch, periscopes, rangefinder and rear basket. The Buk's
+  cab has shutters raised over its windscreens, hatches, periscopes and doors;
+  its radar a flat face and ribs, its canisters ribs. The Pantsir-SM stands on
+  a new `cabover` cab, the armoured cab's shape unarmoured, because its
+  photos show the KamAZ-6560's ordinary cab with a tall windscreen, not an
+  armoured one; it carries six missiles a side in two columns of three (it
+  had three), drawn narrower so the module stays within 6% of the card's
+  2.55 m. The Skyranger's turret has radar panel frames, a mantlet, sleeve,
+  a four-cell launcher on its arm, hatch, smoke dischargers. NASAMS's
+  trailer has bar-tread tyres, one mudguard per side, an A-frame drawbar,
+  a jockey wheel (under a `wheel_` node, since it is rubber), ribbed
+  canisters and a cable reel. The CAESAR's crew cab has two doors a side
+  (`chassis(doors=2)`), its gun a trunnioned cradle with equilibrators and
+  elevating sectors, a breech ring, collar and clamp on the rest, walkways,
+  rear jacks and the spade's rams.
+- **The gap:** Judged at the sheet's distance against one or two photos
+  each. The Gepard's search radar is drawn folded (its photos show it up)
+  and its turret is lower than the photos'; the Pantsir's module is still a
+  box where the photos show a busier one.
+- **Verdict:** sound for the silhouette and detail; the two gaps are taste.
+- **Confidence:** medium.
+
+### Drones: what the closer look adds
+
+- **The choice:** Every propeller is a hub and tapering two-piece blades
+  (and a spinner on a tractor or pusher); an FPV's props are three-bladed,
+  shortened to 0.81 of a two-blade one so their tips stay where the frame's
+  stated length put them. Quadcopters carry the battery seam and latch, GPS
+  puck, obstacle cameras, a status light, arm hinges and arm-tip lights, motor
+  bells and skids; the FPV its video antenna and receiver whiskers and the
+  PG-7's band and tail. Loitering munitions have a seeker bezel, warhead seam,
+  arming plug, wing hinge blocks, datalink antennas and ailerons; the Orlan-10
+  a wing pylon, flaps, tip lights, cylinder head and exhaust, parachute lid,
+  pitot and launch lug. The FPV's PG-7 fuse was left off: it would reach past
+  the card's stated 0.45 m.
+- **The gap:** `asset validate` on a drone GLB alone reports
+  `structure.scenery_kind` (no wheel, track or mount nodes, so the loose
+  validator takes it for scenery). That was so before this pass; the drones
+  only meet the strict rules when their cards get unit types.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### The M1E3's remote station is drawn at a CROWS's size
+
+- **The choice:** The station on its pedestal now carries what a CROWS
+  carries: the flange and its bolts, a cable harness down the column, the
+  traverse and elevation drives, a three-window sensor block (thermal, day,
+  rangefinder) under its hood, the ammunition can with lid and latches, the
+  feed tray and charger. The block and can are drawn larger than the M2
+  alone suggests, because the one photo shows the station as a big block
+  beside the gun. The turret's cheeks carry sensor windows under hoods, the
+  gun shield its bolt rows, the rear corners cameras, and the independent
+  sight box a second window. The mounts did not move: the station's pivot is
+  still the photo's, and the frame check leaves the station out as before.
+- **The gap:** One photo, a left quarter. The station's right side and the
+  roof between the hatches are unseen and drawn from the CROWS.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Families not yet raised still throw through `scatter`
+
+- **The choice:** The SP howitzers, BRM-3K, T-14 and T-15, Jaguar,
+  Challenger 3, Type 15, Centauro II and CV90120 were not raised to the bar
+  in this pass. Their wrecks were re-exported through `vehicle_export` so
+  each has its `debris` state, and their three ground plates beside the hull
+  went, as above. Their live GLBs re-exported byte-identical to the
+  committed ones. The M-SHORAD and M1129 (`stryker_support.py`) were left
+  alone: they stand on the Stryker hull slice 01 is rebuilding, so their
+  wrecks are re-exported after that lands. A wreck's thrown turret piece
+  alone fails `asset validate` (`basis.ground`, `structure.scenery_kind`):
+  it is judged only as a state of its catalog wreck, as the M1E3's was before.
+- **Verdict:** sound.
+- **Confidence:** high.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

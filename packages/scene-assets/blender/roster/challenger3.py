@@ -151,7 +151,7 @@ def wreck(variant, v):
     gone, the bustle cage crushed, plates warped and the glacis dented; the
     turret is thrown."""
     from parts import box as solid, rest_on_ground
-    from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
+    from wreckage import bend, densify, dent, heat, parts, remove, warp
     m = v.mats
     remove("track_R_band", "wheel_R_3_", "wheel_R_4_", "skirt_R_2_", "skirt_R_3_", "fender_box_R",
            "side_marking_R", "bustle_roll", "loader_hatch")
@@ -165,10 +165,6 @@ def wreck(variant, v):
     shell = parts("hull_upper", "hull_lower", "skirt_", "turret_shell")
     densify(shell, scale=2.0)
     warp(shell, heat(0.022, 0.9, seed=51.0), dent((3.6, 0.5, 1.2), 0.5, 0.10, (-0.6, 0, -1)))
-    for k, (loc, rot, size) in enumerate((((2.6, 2.4, 0.03), (0.04, 0.02, 0.4), 0.40),
-                                          ((-3.2, 2.3, 0.03), (-0.03, 0.05, 1.8), 0.30))):
-        plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
-                              (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.15, seed=111 + k)
     rest_on_ground(0.004)
 
 

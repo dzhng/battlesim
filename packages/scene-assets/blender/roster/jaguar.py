@@ -132,7 +132,7 @@ def wreck(variant, v):
     hanging open, the Akeron box blown off its arm, plates warped; the
     turret is thrown."""
     from parts import box as solid, rest_on_ground
-    from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
+    from wreckage import bend, densify, dent, heat, parts, remove, warp
     m = v.mats
     remove("wheel_R_1_", "side_bag_", "akeron_box", "akeron_mouth_", "mudflap_R")
     solid("fallen_akeron", (1.6, 0.42, 0.36), (1.4, -2.2, 0.18), m["paint"], v.hull, rot=(0.1, 0.05, 0.5),
@@ -141,10 +141,6 @@ def wreck(variant, v):
     shell = parts("jaguar_hull", "t40_shell")
     densify(shell, scale=2.0)
     warp(shell, heat(0.02, 0.8, seed=41.0), dent((2.6, -1.3, 1.2), 0.5, 0.12, (0, 1, -0.2)))
-    for k, (loc, rot, size) in enumerate((((3.4, -1.9, 0.03), (0.04, 0.02, 0.4), 0.32),
-                                          ((-2.4, 2.1, 0.03), (-0.03, 0.05, 1.8), 0.28))):
-        plate(f"debris_{k}", [(-size, -size * 0.6), (size * 0.9, -size * 0.7), (size, size * 0.5),
-                              (-size * 0.7, size * 0.8)], 0.03, loc, rot, m["paint"], v.hull, curl=0.12, seed=101 + k)
     v.root.rotation_euler = (0.035, 0.04, 0)
     v.root.location.z -= 0.06
     rest_on_ground(0.004)
