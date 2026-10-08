@@ -73,7 +73,8 @@ def hull_body(v):
         # Stowage cages either side of the ramp.
         VP.slat_armour(f"rear_cage_{s}", (-half - 0.04, side * 1.25, 1.10), (1.00, 0.90), m, hull, spacing=0.10,
                        bar=0.014, rot=(0, 0, math.pi / 2))
-    VP.bolted_plate("rear_ramp", (-half + 0.02, 0, 0.80), (0.06, 1.40, 1.40), m, hull, bolts=(1, 1), bevel=0.02)
+    VP.bolted_panel("rear_ramp", (-half + 0.02, 0, 0.80), (0.06, 1.40, 1.40), m, hull, bolts=(0, 0),
+        bevel=0.02, lods=VP.ALL)
     VP.grille("engine_grille", (1.10, -0.95, ROOF_Z), (0.80, 1.10), m, hull, slats=8)
     VP.hatch("roof_hatch", (-2.60, 0.0, ROOF_Z), m, hull, size=(1.00, 1.30))
 

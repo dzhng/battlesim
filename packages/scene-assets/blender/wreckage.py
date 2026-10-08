@@ -72,9 +72,14 @@ def warp(objs, *fields):
 def heat(amp, scale, seed=0.0):
     """Plates warped by the fire: a smooth vector field about `scale` metres across."""
     off = Vector((seed, seed * 1.7, seed * 2.3))
+    # One scalar noise per axis, at fixed offsets: `noise.noise_vector` is not
+    # repeatable between Blender processes (its offsets are drawn per run, and
+    # `noise.seed_set` does not fix them), so a wreck would differ every export.
+    axes = (Vector((0.0, 0.0, 0.0)), Vector((31.4, 0.0, 0.0)), Vector((0.0, 47.1, 0.0)))
 
     def f(p):
-        return noise.noise_vector(p / scale + off, noise_basis="PERLIN_ORIGINAL") * amp
+        q = p / scale + off
+        return Vector([noise.noise(q + a, noise_basis="PERLIN_ORIGINAL") for a in axes]) * amp
 
     return f
 

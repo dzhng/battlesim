@@ -69,10 +69,10 @@ def hull_body(v):
         VP.cable(f"tow_cable_{s}", [(-3.4, side * 1.48, DECK + 0.02), (-1.8, side * 1.50, DECK + 0.02),
                                     (-0.2, side * 1.50, DECK + 0.02), (1.6, side * 1.48, DECK + 0.02)], m, hull,
                  radius=0.022)
-    VP.bolted_plate("lamp_box", (3.00, 1.05, 1.20), (0.26, 0.30, 0.22), m, hull, bolts=(1, 1), bevel=0.03)
+    VP.bolted_panel("lamp_box", (3.00, 1.05, 1.20), (0.26, 0.30, 0.22), m, hull, bolts=(1, 1), bevel=0.03, lods=VP.ALL)
     box("lamp", (0.012, 0.18, 0.12), (3.135, 1.05, 1.32), m["lamp"], hull, lods=MID)
     VP.grille("engine_grille", (-2.70, 0, DECK), (1.50, 1.80), m, hull, slats=12)
-    VP.bolted_plate("engine_door", (-1.55, 0.0, DECK), (0.70, 1.90, 0.03), m, hull, bolts=(2, 3), bevel=0.01,
+    VP.bolted_panel("engine_door", (-1.55, 0.0, DECK), (0.70, 1.90, 0.03), m, hull, bolts=(2, 3), bevel=0.01,
                     lods=MID)
     VP.grille("rear_louvre", (-half, 0, 1.10), (0.30, 2.30), m, hull, slats=7, rot=(0, -math.pi / 2, 0))
 
@@ -125,7 +125,7 @@ def turret_body(v, turret):
                         rot=(0, 0.30, 0))
         VP.smoke_discharger_bank(f"smoke_{s}", (0.05, side * 1.46, 0.40), m, turret, count=5, tube_radius=0.05,
                                  tube_length=0.26, elevation=0.35, spread=0.4, rot=(0, 0, side * 0.6))
-        VP.bolted_plate(f"side_plate_{s}", (-0.90, side * 1.40, 0.30), (1.40, 0.56, 0.05), m, turret, bolts=(4, 2),
+        VP.bolted_panel(f"side_plate_{s}", (-0.90, side * 1.40, 0.30), (1.40, 0.56, 0.05), m, turret, bolts=(4, 2),
                         bevel=0.015, rot=(-side * math.pi / 2, 0, 0), lods=MID)
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         VP.antenna(f"antenna_{s}", (-2.20, side * 0.95, ROOF), m, whip, height=2.4)
@@ -140,7 +140,7 @@ def turret_body(v, turret):
     VP.sight_housing("commander_sight", (-1.40, -0.85, ROOF + 0.18), m, sight, size=(0.36, 0.34, 0.26))
     VP.cupola("commander_cupola", (-0.80, -0.62, ROOF), m, turret, radius=0.34, periscopes=4, lid_open=False)
     VP.hatch("gunner_hatch", (-0.60, 0.62, ROOF), m, turret, radius=0.30)
-    VP.bolted_plate("roof_plate", (-1.70, 0.30, ROOF), (0.80, 0.70, 0.03), m, turret, bolts=(2, 2), bevel=0.01,
+    VP.bolted_panel("roof_plate", (-1.70, 0.30, ROOF), (0.80, 0.70, 0.03), m, turret, bolts=(2, 2), bevel=0.01,
                     lods=MID)
 
 

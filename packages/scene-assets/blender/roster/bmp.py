@@ -159,20 +159,21 @@ def bmp3_hull(v):
         VP.tow_hook(f"front_tow_{s}", (3.40, side * 0.60, 0.86), m, hull, size=0.12)
         VP.tow_hook(f"rear_tow_{s}", (-3.50, side * 0.80, 0.82), m, hull, size=0.12, rot=(0, 0, math.pi))
         # The skirt over the tracks with its long bolted rail.
-        VP.bolted_plate(f"skirt_{s}", (-0.15, side * 1.48, 0.85), (6.40, 0.30, 0.08), m, hull, bolts=(10, 1),
-                        bevel=0.03, rot=(-side * math.pi / 2, 0, 0))
+        VP.bolted_panel(f"skirt_{s}", (-0.15, side * 1.48, 0.85), (6.40, 0.30, 0.08), m, hull, bolts=(10, 1),
+                        bevel=0.03, rot=(-side * math.pi / 2, 0, 0), lods=VP.ALL)
         box(f"skirt_rail_{s}", (6.60, 0.06, 0.06), (-0.10, side * 1.57, 0.96), m["paint"], hull, bevel=0.02,
             lods=MID)
         VP.light_with_guard(f"tail_light_{s}", (-half + 0.08, side * 1.30, 1.40), 0.05, dict(m, lamp=m["tail"]),
                             hull, rot=(0, 0, math.pi))
-        stencil(f"side_number_{s}", "811", 0.28, (0.40, side * 1.524, 1.32), (math.pi / 2, 0, math.pi if side > 0 else 0),
+        stencil(f"side_number_{s}", "811", 0.28, (0.40, side * 1.524, 1.32),
+                (math.pi / 2, 0, math.pi if side > 0 else 0),
                 m["marking"], hull)
     # The engine deck at the rear, its long side grille, the rear doors.
     VP.grille("engine_grille", (-2.55, 0, g.ROOF_Z), (1.30, 2.00), m, hull, slats=10)
     VP.grille("side_grille", (-2.70, 1.522, 1.30), (1.40, 0.12), m, hull, slats=3, rot=(-math.pi / 2, 0, 0))
     for side in (-1, 1):
-        VP.bolted_plate(f"rear_door_{side}", (-half - 0.01, side * 0.42, 0.62), (0.04, 0.70, 0.70), m, hull,
-                        bolts=(1, 1), bevel=0.02)
+        VP.bolted_panel(f"rear_door_{side}", (-half - 0.01, side * 0.42, 0.62), (0.04, 0.70, 0.70), m, hull,
+                        bolts=(1, 1), bevel=0.02, lods=VP.ALL)
 
 
 def bmp3_turret(v, turret, gun, coax_gun):

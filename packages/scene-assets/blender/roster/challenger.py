@@ -81,8 +81,8 @@ def hull_body(v):
                     rot=(0, slope, 0))
     for side, s in ((1, "L"), (-1, "R")):
         # The armoured boxes on the nose corners over the tracks, lamps in them.
-        VP.bolted_plate(f"nose_box_{s}", (3.82, side * 1.52, 0.86), (0.62, 0.80, 0.52), m, hull, bolts=(2, 2),
-                        bevel=0.05)
+        VP.bolted_panel(f"nose_box_{s}", (3.82, side * 1.52, 0.86), (0.62, 0.80, 0.52), m, hull, bolts=(2, 2),
+                        bevel=0.05, lods=VP.ALL)
         box(f"nose_lamp_{s}", (0.03, 0.22, 0.12), (4.14, side * 1.70, 1.20), m["lamp"], hull, lods=MID)
         box(f"nose_lamp_hood_{s}", (0.10, 0.28, 0.03), (4.11, side * 1.70, 1.28), m["paint"], hull, lods=NEAR)
         VP.tow_hook(f"front_tow_{s}", (4.02, side * 0.62, 0.82), m, hull, size=0.14)
@@ -95,7 +95,7 @@ def hull_body(v):
     # Engine deck: grilles and access doors; the rear plate under bar armour.
     for k, y in enumerate((0.75, -0.75)):
         VP.grille(f"engine_grille_{k}", (-3.15, y, DECK), (1.30, 1.20), m, hull, slats=10)
-        VP.bolted_plate(f"engine_door_{k}", (-1.95, y, DECK), (0.90, 1.15, 0.03), m, hull, bolts=(3, 2), bevel=0.01,
+        VP.bolted_panel(f"engine_door_{k}", (-1.95, y, DECK), (0.90, 1.15, 0.03), m, hull, bolts=(3, 2), bevel=0.01,
                         lods=MID)
     VP.grille("rear_louvre", (-half, 0, 1.20), (0.36, 2.40), m, hull, slats=7, rot=(0, -math.pi / 2, 0))
     VP.slat_armour("rear_bars", (-half - 0.06, 0, 0.72), (3.20, 0.78), m, hull, rot=(0, 0, math.pi / 2))
@@ -110,8 +110,8 @@ def side_armour(v):
     for side, s in ((1, "L"), (-1, "R")):
         for k in range(5):
             x = 3.20 - k * 0.86
-            VP.bolted_plate(f"side_pack_{s}_{k}", (x, side * (PACK_Y - 0.13), 0.66), (0.82, 0.26, 0.86), m, hull,
-                            bolts=(2, 1), bevel=0.05, rot=(0, 0, 0))
+            VP.bolted_panel(f"side_pack_{s}_{k}", (x, side * (PACK_Y - 0.13), 0.66), (0.82, 0.26, 0.86), m, hull,
+                            bolts=(2, 1), bevel=0.05, rot=(0, 0, 0), lods=VP.ALL)
             box(f"side_pack_handle_{s}_{k}", (0.16, 0.04, 0.05), (x, side * (PACK_Y + 0.01), 1.30), m["dark"], hull,
                 lods=NEAR)
         # The front pack's sloped nose.
@@ -147,7 +147,7 @@ def turret_body(v, turret):
     cyl("turret_ring_guard", 1.15, 0.10, (0, 0, FOOT - 0.03), "Z", m["dark"], turret, seg=40, lods=MID)
     for side, s in ((1, "L"), (-1, "R")):
         # Cheek armour plates, bolted.
-        VP.bolted_plate(f"cheek_plate_{s}", (0.95, side * 1.30, 0.70), (0.80, 0.50, 0.05), m, turret, bolts=(3, 2),
+        VP.bolted_panel(f"cheek_plate_{s}", (0.95, side * 1.30, 0.70), (0.80, 0.50, 0.05), m, turret, bolts=(3, 2),
                         bevel=0.015, rot=(0, -0.55, side * -0.30), lods=MID)
         VP.smoke_discharger_bank(f"smoke_{s}", (1.05, side * 1.10, 0.66), m, turret, count=5, tube_radius=0.05,
                                  tube_length=0.26, elevation=0.45, spread=0.45, rot=(0, 0, side * 0.35))

@@ -113,7 +113,7 @@ def hull_body(v, a7v):
     # Engine deck: grilles over the radiators, access doors ahead of them.
     for k, y in enumerate((0.80, -0.80)):
         VP.grille(f"engine_grille_{k}", (-2.95, y, DECK), (1.35, 1.25), m, hull, slats=11)
-        VP.bolted_plate(f"engine_door_{k}", (-1.65, y, DECK), (0.95, 1.20, 0.03), m, hull, bolts=(3, 2),
+        VP.bolted_panel(f"engine_door_{k}", (-1.65, y, DECK), (0.95, 1.20, 0.03), m, hull, bolts=(3, 2),
                         bevel=0.01, lods=MID)
     # The rear plate is one full-width louvre, two lamps under it.
     face = (0, -math.pi / 2, 0)
@@ -210,7 +210,7 @@ def turret_body(v, turret, a7v, a8):
         wedge(v, turret, side, s, a8)
         # Bolted side plates along the turret flank.
         for k, x in enumerate((-0.05, -0.95)):
-            VP.bolted_plate(f"side_plate_{s}_{k}", (x, side * 1.42, 0.30), (0.82, 0.60, 0.04), m, turret,
+            VP.bolted_panel(f"side_plate_{s}_{k}", (x, side * 1.42, 0.30), (0.82, 0.60, 0.04), m, turret,
                             bolts=(3, 2), bevel=0.012, rot=(-side * math.pi / 2, 0, 0), lods=MID)
         # Eight smoke tubes a side behind the wedge, two rows of four.
         for row in range(2):
@@ -225,8 +225,8 @@ def turret_body(v, turret, a7v, a8):
         if a8:
             trophy_station(v, turret, side, s)
         elif a7v:
-            VP.bolted_plate(f"side_module_{s}", (0.70, side * 1.48, 0.30), (0.62, 0.62, 0.10), m, turret,
-                            bolts=(2, 2), bevel=0.03, rot=(-side * math.pi / 2, 0, 0))
+            VP.bolted_panel(f"side_module_{s}", (0.70, side * 1.48, 0.30), (0.62, 0.62, 0.10), m, turret,
+                            bolts=(2, 2), bevel=0.03, rot=(-side * math.pi / 2, 0, 0), lods=VP.ALL)
     # Roof: the gunner's sight box at the front right, the PERI behind it,
     # the commander's and loader's hatches.
     VP.sight_housing("emes_sight", (1.00, -0.82, ROOF - 0.04), m, turret, size=(0.52, 0.48, 0.30))
@@ -242,10 +242,11 @@ def turret_body(v, turret, a7v, a8):
         VP.periscope(f"loader_periscope_{k}", (-0.05, 0.40 + k * 0.20, ROOF), m, turret, size=(0.10, 0.14, 0.07))
     if a7v:
         for k, (x, y) in enumerate(((0.55, 0.62), (-1.45, 0.50), (-1.45, -0.55))):
-            VP.bolted_plate(f"roof_armour_{k}", (x, y, ROOF), (0.80, 0.62, 0.05), m, turret, bolts=(2, 2),
-                            bevel=0.015)
+            VP.bolted_panel(f"roof_armour_{k}", (x, y, ROOF), (0.80, 0.62, 0.05), m, turret, bolts=(2, 2),
+                            bevel=0.015, lods=VP.ALL)
         # The bustle's auxiliary power and cooling unit.
-        VP.bolted_plate("bustle_unit", (-2.55, 0, 0.12), (0.46, 1.50, 0.50), m, turret, bolts=(1, 3), bevel=0.04)
+        VP.bolted_panel("bustle_unit", (-2.55, 0, 0.12), (0.46, 1.50, 0.50), m, turret, bolts=(1, 3),
+            bevel=0.04, lods=VP.ALL)
         VP.grille("bustle_unit_grille", (-2.785, 0, 0.40), (0.30, 1.10), m, turret, slats=5, rot=(0, -math.pi / 2, 0))
     else:
         bustle_basket(v, turret)

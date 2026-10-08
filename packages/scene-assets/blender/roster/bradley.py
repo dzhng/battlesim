@@ -56,8 +56,8 @@ def hull_body(v, m3):
           mat=m["paint"], parent=hull, bevel=0.04)
     slope = math.atan((ROOF_Z - 1.20) / (half - 2.05))
     # The folded trim vane across the glacis, the driver's hatch at its head.
-    VP.bolted_plate("trim_vane", (2.66, 0.0, 1.56), (0.80, 2.20, 0.05), m, hull, bolts=(2, 4), bevel=0.02,
-                    rot=(0, slope, 0))
+    VP.bolted_panel("trim_vane", (2.66, 0.0, 1.56), (0.80, 2.20, 0.05), m, hull, bolts=(2, 4), bevel=0.02,
+                    rot=(0, slope, 0), lods=VP.ALL)
     VP.hatch("driver_hatch", (1.75, 0.62, ROOF_Z), m, hull, radius=0.30)
     for k, a in enumerate((-0.6, 0.0, 0.6)):
         VP.periscope(f"driver_periscope_{k}", (2.02, 0.62 + a * 0.30, ROOF_Z), m, hull, size=(0.12, 0.16, 0.08),
@@ -72,7 +72,8 @@ def hull_body(v, m3):
         box(f"front_fender_{s}", (0.40, 0.56, 0.04), (3.05, side * TRACK_Y, 0.98), m["paint"], hull, bevel=0.012,
             rot=(0, 0.30, 0), lods=MID)
     # The rear ramp, its door and the cable coiled round it.
-    VP.bolted_plate("rear_ramp", (-half + 0.0, 0, 0.70), (0.08, 1.80, 1.10), m, hull, bolts=(1, 1), bevel=0.03)
+    VP.bolted_panel("rear_ramp", (-half + 0.0, 0, 0.70), (0.08, 1.80, 1.10), m, hull, bolts=(0, 0),
+        bevel=0.03, lods=VP.ALL)
     cyl("ramp_door", 0.42, 0.04, (-half - 0.05, 0.35, 1.30), "X", m["paint"], hull, seg=24, bevel=0.012, lods=MID)
     VP.cable("ramp_cable", [(-half - 0.055, 0.80, 1.60), (-half - 0.055, 0.80, 0.92), (-half - 0.055, -0.40, 0.84),
                             (-half - 0.055, -0.75, 1.40)], m, hull, radius=0.018, eyes=False)
@@ -96,8 +97,8 @@ def hull_sides(v, m3):
                         rot=(-side * math.pi / 2, 0, 0))
         for k in range(6):
             x = 2.55 - k * 1.02
-            VP.bolted_plate(f"lower_skirt_{s}_{k}", (x, side * (SIDE_Y - 0.06), 0.50), (0.98, 0.06, 0.52), m, hull,
-                            bolts=(2, 1), bevel=0.02)
+            VP.bolted_panel(f"lower_skirt_{s}_{k}", (x, side * (SIDE_Y - 0.06), 0.50), (0.98, 0.06, 0.52), m, hull,
+                            bolts=(2, 1), bevel=0.02, lods=VP.ALL)
             box(f"skirt_handle_{s}_{k}", (0.14, 0.04, 0.05), (x, side * (SIDE_Y - 0.01), 0.64), m["dark"], hull,
                 lods=NEAR)
         if not m3:

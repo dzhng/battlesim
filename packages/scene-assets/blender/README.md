@@ -21,10 +21,11 @@ subject-owned default, so inspect its usage before replacing committed art.
 
 [Infantry clip export](clips_infantry.py) builds a hold family's animation library;
 [infantry kit export](infantry_kit.py) builds bodies and equipment using that rig.
-A roster kit several factions field is built once per army
-([roster equipment](roster/infantry_equipment.py) `ARMIES`, named as its reference
-variants): each army's uniform print ([`textures.py`](textures.py) `UNIFORMS`),
-helmet, carrier and rifle on the same rig, the appearance's faction looks.
+Each roster kit ([roster equipment](roster/infantry_equipment.py) `KITS`) names its
+weapon and the armies it is built in (`ARMIES`, named as its reference variants):
+each army's uniform print ([`textures.py`](textures.py) `UNIFORMS`), helmet,
+carrier and rifle on the same rig. A kit's first army is its default look; the
+others are the appearance's faction looks.
 Clips and meshes must retain the shared skeleton contract: regenerating one does
 not regenerate the other. Shared rig, weapon and mesh-tier helpers concentrate
 that policy rather than defining extra standalone asset commands.
@@ -36,12 +37,13 @@ hierarchy, rather than adding simulation soldiers. Re-export their vehicles
 after changing the infantry source; the crew exporter preserves that source's
 exact textures and material masks on the crew's own materials only.
 
-Reusable vehicle detail (wheels and whole tracked running gear, hatches,
-cupolas, sights, lights, tow points, stowage, grilles, exhausts, armour tiles,
-bolted plates, slat armour, machine guns) has [one owner](vehicle_parts.py); a
-family script places those parts rather than redefining them. A family derived
-from another (the T-90M and T-80BVM from the T-72) imports that family's
-script for what they share.
+Reusable vehicle detail (wheels and their treads, whole tracked running gear, a
+lofted hull's plan rings, bolted applique and armour tiles, slat armour,
+hatches, cupolas, sights, lights, tow points, stowage, cargo beds, grilles,
+exhausts, machine guns) has [one owner](vehicle_parts.py); a family script
+places those parts rather than redefining them. A family derived from another
+(the T-90M and T-80BVM from the T-72) imports that family's script for what
+they share.
 
 A vehicle's surfaces come from the named helpers in [`parts.py`](parts.py),
 each carrying its material role: `tyre()`, `glass()`, `track_steel()`,

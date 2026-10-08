@@ -54,8 +54,8 @@ def hull_body(v):
         return 1.34 + (half - x) * math.tan(slope)
 
     VP.hatch("driver_hatch", (2.50, 0.70, glacis(2.50)), m, hull, radius=0.28, rot=(0, slope, 0))
-    VP.bolted_plate("periscope_block", (3.05, 0.0, glacis(3.05)), (0.36, 0.40, 0.12), m, hull, bolts=(1, 2),
-                    bevel=0.02, rot=(0, slope, 0))
+    VP.bolted_panel("periscope_block", (3.05, 0.0, glacis(3.05)), (0.36, 0.40, 0.12), m, hull, bolts=(1, 2),
+                    bevel=0.02, rot=(0, slope, 0), lods=VP.ALL)
     VP.armour_tiles("glacis_plates", (3.10, -0.80, glacis(3.10) + 0.01), (0.90, 1.00), (2, 2), 0.04, m, hull,
                     rot=(0, slope, 0))
     for side, s in ((1, "L"), (-1, "R")):
@@ -68,7 +68,8 @@ def hull_body(v):
         VP.tow_hook(f"rear_tow_{s}", (-3.68, side * 0.80, 0.84), m, hull, size=0.12, rot=(0, 0, math.pi))
         VP.light_with_guard(f"tail_light_{s}", (-half + 0.08, side * 1.30, 1.70), 0.05, dict(m, lamp=m["tail"]),
                             hull, rot=(0, 0, math.pi))
-    VP.bolted_plate("rear_door", (-half - 0.01, 0, 0.82), (0.04, 1.10, 0.95), m, hull, bolts=(1, 1), bevel=0.02)
+    VP.bolted_panel("rear_door", (-half - 0.01, 0, 0.82), (0.04, 1.10, 0.95), m, hull, bolts=(0, 0),
+        bevel=0.02, lods=VP.ALL)
     VP.grille("engine_grille", (1.55, 0.75, ROOF_Z), (0.80, 0.90), m, hull, slats=8)
     VP.hatch("roof_hatch", (-2.70, 0.0, ROOF_Z), m, hull, size=(0.90, 0.90))
     cyl("fire_extinguisher", 0.05, 0.30, (3.40, 1.20, glacis(3.40) + 0.06), "Y", m["tail"], hull, seg=12, lods=NEAR)
@@ -108,8 +109,8 @@ def turret_body(v, turret):
     for side, s in ((1, "L"), (-1, "R")):
         VP.smoke_discharger_bank(f"smoke_{s}", (0.90, side * 0.90, 0.35), m, turret, count=3, tube_radius=0.05,
                                  tube_length=0.22, elevation=0.30, spread=0.3, rot=(0, 0, side * 0.5))
-        VP.bolted_plate(f"turret_cheek_{s}", (0.10, side * 1.08, 0.05), (1.20, 0.08, 0.44), m, turret, bolts=(3, 1),
-                        bevel=0.03)
+        VP.bolted_panel(f"turret_cheek_{s}", (0.10, side * 1.08, 0.05), (1.20, 0.08, 0.44), m, turret, bolts=(3, 1),
+                        bevel=0.03, lods=VP.ALL)
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         VP.antenna(f"antenna_{s}", (-1.05, side * 0.70, ROOF), m, whip, height=2.2)
     # The remote weapon station on the right front, fixed to the turret.

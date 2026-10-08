@@ -26,11 +26,11 @@ from mathutils import Matrix, Vector
 
 REPO = Path(__file__).resolve().parents[3]
 # Each faction's crew soldier, an appearance in assets/catalog.json: its army's
-# rifleman (the rifle squad's faction look). Europe has none of its own yet
-# (slice 17) and wears the squad's default, US Army OCP.
+# rifleman (the rifle squad's faction look). Vehicles pick up a changed
+# look when they are next exported.
 CREW_SOLDIER = {
     "us": "rifle_squad_active_a",
-    "europe": "rifle_squad_active_a",
+    "europe": "rifle_squad_europe_active_a",
     "eastern": "rifle_squad_eastern_active_a",
 }
 CREW_TIERS = 3

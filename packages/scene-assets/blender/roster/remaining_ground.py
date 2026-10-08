@@ -1,4 +1,5 @@
-"""Named scouts and IFVs, exclusive to the remaining-ground model worker."""
+"""The disabled BRM and Jaguar, refused until slice 18 (the Puma is rebuilt in roster/puma.py). VBCI, Tigr-M, Fennek and VBL
+are rebuilt in their own scripts (roster/vbci.py, tigr.py, fennek.py, vbl.py)."""
 import bpy,bmesh,os,sys,json,math
 from mathutils import Vector
 sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -8,14 +9,14 @@ from catalog_frames import requested_variant
 from wreckage import WRECK_ARG, burn, export_wreck
 
 # Each family's paint scheme (`textures.SCHEMES`): its real nation's.
-SCHEME={'fennek':'german_three_tone','vbl':'french_three_tone','vbci':'french_three_tone','jaguar':'french_three_tone','tigr':'russian_green','brm':'russian_green'}
+SCHEME={'jaguar':'french_three_tone','brm':'russian_green'}
 
 
 def build(family):
     args=script_args();v,out=requested_variant(family,args);ident=v['id'];frame=v['frame'];L,W,H=frame['body_dimensions_m']
     reset();paint=P.paint(SCHEME[family],'ground_paint',chip=.25,dirt=.45,rise=.9);dark=textured('dark_steel','olive_paint',colour=(.045,.055,.035),chip=.18,dirt=.4,role='paint');rubber=tyre();steel=bare_steel('gun_steel',chip=.12,dirt=.2);glass=P.glass('armor_glass')
     root=empty(family);body=empty('body',parent=root)
-    scout=family in ('fennek','vbl','tigr');deck={'fennek':1.86,'vbl':1.64,'tigr':1.94,'vbci':2.36,'brm':1.85,'jaguar':2.36}[family]
+    deck={'brm':1.85,'jaguar':2.36}[family]
     if family=='brm':
         r=.43;y=1.53;half=L/2-.63
         for side in (-1,1):
@@ -40,54 +41,7 @@ def build(family):
         for j in range(8):box('engine_deck_grille_'+str(j),(.055,.91,.025),(1.15+j*.13,-.63,deck-.055),dark,body,lods=(0,1))
         box('rear_ramp',(.075,2.73,1.42),(-L/2-.004,0,1.63),paint,body)
     else:
-        r={'fennek':.49,'vbl':.36,'tigr':.52,'vbci':.59,'jaguar':.56}[family];depth=.36 if family=='vbl' else .43;axles=[L*.31,-L*.31] if scout else ([L*.33,L*.0,-L*.33] if family=='jaguar' else [L*.33,L*.112,-L*.115,-L*.33])
-        for i,x in enumerate(axles):
-            for side in (-1,1):
-                row=('F' if i<len(axles)/2 else 'R')+str(i);wn=empty('wheel_'+row+('L' if side>0 else 'R'),(x,side*(W/2-depth/2-.025),r),body,props={'radius_m':r});cyl('tire_'+row+str(side),r,depth,axis='Y',mat=rubber,parent=wn,seg=28);cyl('rim_'+row+str(side),r*.61,.055,(0,side*(depth/2+.015),0),'Y',paint,wn,seg=20);cyl('hub_'+row+str(side),r*.20,.08,(0,side*(depth/2+.041),0),'Y',dark,wn,seg=12)
-                for j in range(16):
-                    a=j*math.tau/16;box('tread_'+row+str(side)+str(j),(.12,depth*.87,.024),((r-.012)*math.sin(a),0,(r-.012)*math.cos(a)),rubber,wn,rot=(0,a,.16*side),lods=(0,1))
-        if family=='fennek':
-            prism('fennek_low_wedge',[(-L/2,.76),(L/2,.73),(L/2,1.02),(1.48,1.24),(.92,deck),(-1.12,deck),(-1.53,1.57),(-L/2,1.57)],W-.23,mat=paint,parent=body,bevel=.035)
-            for side in (-1,1):
-                box('fennek_windscreen_'+str(side),(.03,.89,.47),(1.15,side*.49,1.60),glass,body,rot=(0,-.68,0))
-                box('fennek_side_window_'+str(side),(.65,.033,.31),(.34,side*(W/2-.10),1.58),glass,body,bevel=.015)
-                box('fennek_door_'+str(side),(.88,.028,.49),(.27,side*(W/2-.085),1.18),paint,body,bevel=.015)
-            cyl('packed_sensor_base',.15,.26,(-.76,.57,1.91),'Z',paint,body,seg=16)
-            box('packed_sensor_head',(.31,.28,.26),(-.76,.57,2.16),glass,body,bevel=.018)
-            for j in range(6):box('rear_engine_vent_'+str(j),(.04,1.18,.02),(-2.41+j*.15,0,1.582),dark,body,lods=(0,1))
-        elif family=='vbl':
-            prism('vbl_short_hull',[(-L/2,.49),(L/2,.48),(L/2,.81),(.81,1.11),(.39,deck),(-L/2+.13,deck)],W-.26,mat=paint,parent=body,bevel=.025)
-            for side in (-1,1):
-                box('vbl_windscreen_'+str(side),(.024,.60,.30),(.622,side*.33,1.37),glass,body,rot=(0,-.67,0))
-                box('vbl_door_'+str(side),(1.09,.025,.55),(-.43,side*(W/2-.12),.94),paint,body,bevel=.015)
-                box('vbl_side_window_'+str(side),(.39,.027,.23),(-.29,side*(W/2-.10),1.39),glass,body,bevel=.013)
-                for j in (-1,1):box('vbl_hood_louver_'+str(side)+str(j),(.38,.16,.027),(1.14,side*.43+j*.055,1.012),dark,body,lods=(0,1))
-        elif family=='tigr':
-            prism('tigr_m_armored_cab',[(-L/2+.08,.68),(1.05,.68),(1.01,1.62),(.76,deck),(-L/2+.12,deck)],W-.24,mat=paint,parent=body,bevel=.035)
-            prism('tigr_squared_hood',[(.89,.84),(L/2-.03,.84),(L/2-.03,1.28),(.93,1.40)],W-.39,mat=paint,parent=body,bevel=.055)
-            for side in (-1,1):
-                box('tigr_windscreen_'+str(side),(.032,.76,.36),(.958,side*.42,1.73),glass,body,rot=(0,-.66,0))
-                for j,x in enumerate((.12,-1.04)):
-                    box('tigr_door_'+str(side)+str(j),(1.08,.03,.68),(x,side*(W/2-.10),1.08),paint,body,bevel=.02)
-                    box('tigr_side_window_'+str(side)+str(j),(.65,.03,.29),(x,side*(W/2-.08),1.66),glass,body,bevel=.02)
-                box('tigr_mirror_'+str(side),(.10,.15,.25),(.80,side*(W/2+.015),1.64),dark,body,lods=(0,1,2))
-                box('tigr_step_'+str(side),(2.28,.18,.085),(-.49,side*(W/2-.025),.70),dark,body)
-            # Tigr-M bonnet shoulders and front brush guard are distinct from the VBL.
-            for side in (-1,1):
-                box('tigr_front_fender_'+str(side),(1.40,.32,.10),(L*.31,side*(W/2-.09),1.20),paint,body,bevel=.03)
-                cyl('brush_guard_upright_'+str(side),.047,.66,(L/2+.026,side*.79,1.04),'Z',dark,body,seg=12,lods=(0,1,2))
-            cyl('brush_guard_crossbar',.047,1.65,(L/2+.026,0,1.35),'Y',dark,body,seg=12,lods=(0,1,2))
-            spare=empty('rear_spare',(-L/2+.14,-.38,1.30),body);cyl('spare_tire',.48,.25,axis='X',mat=rubber,parent=spare,seg=24);cyl('spare_hub',.24,.28,axis='X',mat=paint,parent=spare,seg=16)
-            box('tigr_grille',(.035,1.00,.30),(L/2,0,1.12),dark,body)
-            for j in range(7):box('tigr_grille_bar_'+str(j),(.045,.035,.28),(L/2+.016,-.42+j*.14,1.12),paint,body,lods=(0,1))
-        else:
-            prism('vbci_tall_hull',[(-L/2,.84),(L/2-.13,.76),(L/2,1.19),(L/2-1.16,deck),(-L/2+.04,deck)],W-.38,mat=paint,parent=body,bevel=.035)
-            for side in (-1,1):
-                for j in range(5):box('vbci_side_armor_'+str(side)+str(j),(1.00,.065,.48),(-2.74+j*1.14,side*(W/2-.155),2.06),paint,body,bevel=.015,lods=(0,1,2))
-            box('rear_ramp',(.07,W-.66,1.35),(-L/2-.004,0,1.60),paint,body)
-        for side in (-1,1):
-            box('front_bumper_'+str(side),(.13,.71,.12),(L/2-.026,side*(W*.27),.72),dark,body)
-            cyl('headlamp_'+str(side),.09,.04,(L/2-.022,side*(W*.34),.95 if scout else 1.26),'X',glass,body,seg=16)
+        raise SystemExit(f"{family}: not drawn here (its own script, or slice 18)")
     cyl('roof_hatch',.25,.065,(-.55,-.38,deck+.025),'Z',paint,body,seg=16)
     rigs={};pivots={}
     for mount in frame['mounts']:
@@ -103,11 +57,6 @@ def build(family):
                 cyl('puma_muss_pedestal',.13,.24,(-.50,-.45,3.29-p.z),'Z',paint,yaw,seg=16)
                 box('puma_muss_head',(.30,.32,.26),(-.50,-.45,3.48-p.z),glass,yaw,bevel=.015)
                 box('puma_primary_sight',(.30,.26,.23),(.69,-.52,2.91-p.z),glass,yaw)
-            else:
-                low=deck-p.z
-                cyl('vbci_one_man_turret',.61,.48,(0,0,low+.27),'Z',paint,yaw,seg=24,r2=.45,bevel=.025)
-                box('vbci_sight',(.27,.22,.19),(.05,-.31,2.88-p.z),glass,yaw)
-                cyl('vbci_commander_hatch',.235,.07,(-.18,-.12,2.87-p.z),'Z',paint,yaw,seg=16)
             box('gun_mantlet',(.40,.39,.32),(.69,0,0),paint,pitch,bevel=.035)
             start=.80;cyl('cannon_barrel',.048,mu.x-start,((mu.x+start)/2,0,0),'X',steel,pitch,seg=16);cyl('cannon_muzzle',.085,.14,(mu.x-.07,0,0),'X',dark,pitch,seg=12)
             if family=='brm':
@@ -116,8 +65,6 @@ def build(family):
         else:
             base=deck-p.z;top=mu.z-.10;cyl('hmg_pedestal',.13,max(.10,top-base),(0,0,(base+top)/2),'Z',paint,yaw,seg=16)
             box('hmg_receiver',(.61,.18,.19),(.43,0,0),dark,pitch);cyl('hmg_barrel',.038,mu.x-.70,((mu.x+.70)/2,0,0),'X',steel,pitch,seg=12);box('hmg_ammo_box',(.31,.29,.28),(.22,.27,-.06),paint,pitch)
-            if family=='tigr':box('kord_muzzle_brake',(.17,.071,.065),(mu.x-.085,0,0),dark,pitch)
-            if family in ('vbl','tigr'):box('gunner_front_shield',(.065,.69,.31),(.77,0,.03),paint,yaw,bevel=.015)
     wreck=WRECK_ARG in args
     if wreck:burn()
     finish(ao_distance=.65,ao_rays=4);print('ROSTER_REMAINING_GROUND',json.dumps({'id':ident,'tris':triangles_by_tier()}));os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True);(export_wreck if wreck else export)(out,texture_px=256)

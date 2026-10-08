@@ -66,7 +66,8 @@ def hull_body(v):
         VP.tow_hook(f"rear_tow_{s}", (-half + 0.12, side * 0.95, 0.80), m, hull, size=0.12, rot=(0, 0, math.pi))
         box(f"front_fender_{s}", (0.40, 0.52, 0.04), (3.10, side * TRACK_Y, 0.98), m["paint"], hull, bevel=0.012,
             rot=(0, 0.30, 0), lods=MID)
-    VP.bolted_plate("rear_door", (-half - 0.01, 0, 0.80), (0.04, 1.10, 0.90), m, hull, bolts=(1, 1), bevel=0.02)
+    VP.bolted_panel("rear_door", (-half - 0.01, 0, 0.80), (0.04, 1.10, 0.90), m, hull, bolts=(0, 0),
+        bevel=0.02, lods=VP.ALL)
     box("rear_door_handle", (0.04, 0.20, 0.04), (-half - 0.04, 0.30, 1.30), m["steel"], hull, lods=NEAR)
     VP.grille("engine_grille", (2.00, -0.75, 1.28 + (half - 2.00) * math.tan(slope) - 0.01), (0.70, 0.90), m, hull,
               slats=7, rot=(0, slope, 0))
@@ -109,8 +110,8 @@ def turret_body(v, turret, mk4):
                              tube_length=0.18, elevation=0.25, spread=0.3, rot=(0, 0, -0.35))
     for side, s in ((1, "L"), (-1, "R")):
         if not mk4:
-            VP.bolted_plate(f"turret_addon_{s}", (-0.10, side * 1.02, 0.08), (1.40, 0.10, 0.56), m, turret,
-                            bolts=(4, 1), bevel=0.03)
+            VP.bolted_panel(f"turret_addon_{s}", (-0.10, side * 1.02, 0.08), (1.40, 0.10, 0.56), m, turret,
+                            bolts=(4, 1), bevel=0.03, lods=VP.ALL)
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         VP.antenna(f"antenna_{s}", (-1.10, side * 0.70, ROOF), m, whip, height=2.0)
     VP.sight_housing("gunner_sight", (0.55, 0.55, ROOF - 0.04), m, turret, size=(0.40, 0.32, 0.22))

@@ -82,7 +82,7 @@ def soviet_hull(v, rear_cage=True):
         VP.stowage_box(f"fender_box_{s}", (0.35, side * 1.50, DECK), (0.80, 0.36, 0.30), m, hull,
                        rot=(0, 0, 0 if side > 0 else math.pi))
     VP.grille("engine_grille", (-2.30, 0, DECK), (1.40, 1.70), m, hull, slats=12)
-    VP.bolted_plate("engine_door", (-1.20, 0.0, DECK), (0.65, 1.90, 0.03), m, hull, bolts=(2, 3), bevel=0.01,
+    VP.bolted_panel("engine_door", (-1.20, 0.0, DECK), (0.65, 1.90, 0.03), m, hull, bolts=(2, 3), bevel=0.01,
                     lods=MID)
     VP.exhaust("exhaust_L", (-1.70, 1.66, 1.10), 0.10, 0.30, m, hull, rot=(0, 0, math.pi / 2))
     if rear_cage:
@@ -105,14 +105,15 @@ def soviet_skirts(v, label="21", outer=SKIRT_Y, front=2.95, bars=(-2.28, 2.20)):
         for r, (z, h) in enumerate(rows):
             for k in range(6):
                 x = front - k * 0.70
-                VP.bolted_plate(f"side_era_{s}_{r}_{k}", (x, side * (outer - 0.06), z), (0.66, 0.12, h), m, hull,
-                                bolts=(2, 1), bevel=0.03)
+                VP.bolted_panel(f"side_era_{s}_{r}_{k}", (x, side * (outer - 0.06), z), (0.66, 0.12, h), m, hull,
+                                bolts=(2, 1), bevel=0.03, lods=VP.ALL)
         for k in range(7):
             x = front + 0.10 - k * 0.70
             box(f"rubber_skirt_{s}_{k}", (0.64, 0.03, 0.22), (x, side * (outer - 0.08), 0.70), m["rubber"], hull,
                 taper=(0.8, 1.0), rot=(math.pi, 0, 0), lods=MID)
         VP.slat_armour(f"side_bars_{s}", (bars[0], side * (outer - 0.02), 0.70), (bars[1], 0.64), m, hull)
-        box(f"side_rail_{s}", (v.length - 0.16, 0.10, 0.06), (0.0, side * (outer - 0.10), DECK - 0.02), m["paint"], hull,
+        box(f"side_rail_{s}", (v.length - 0.16, 0.10, 0.06), (0.0, side * (outer - 0.10), DECK - 0.02), m["paint"],
+            hull,
             bevel=0.02, lods=MID)
         stencil(f"side_number_{s}", label, 0.22, (0.90, side * (outer + 0.003), 1.20),
                 (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], hull)
@@ -191,8 +192,8 @@ def side_modules(v, turret, side, s, count=5, start=1.20, radius=1.36):
     for k in range(count):
         a = side * (start + k * 0.26)
         x, y = 0.05 + radius * math.cos(a), radius * math.sin(a)
-        VP.bolted_plate(f"side_module_{s}_{k}", (x, y, 0.08), (0.34, 0.24, 0.42), m, turret, bolts=(1, 2),
-                        bevel=0.06, rot=(0, 0, a))
+        VP.bolted_panel(f"side_module_{s}_{k}", (x, y, 0.08), (0.34, 0.24, 0.42), m, turret, bolts=(1, 2),
+                        bevel=0.06, rot=(0, 0, a), lods=VP.ALL)
 
 
 def turret_body(v, turret):

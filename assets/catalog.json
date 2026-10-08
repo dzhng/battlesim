@@ -3985,6 +3985,23 @@
       "corpse_pose": {
         "clip": "death",
         "phase": 1
+      },
+      "factions": {
+        "eastern": "assault_squad_eastern_active_a"
+      }
+    },
+    "assault_squad_eastern_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/assault_squad/eastern_active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
       }
     },
     "assault_squad_active_b": {
@@ -3999,11 +4016,45 @@
       "corpse_pose": {
         "clip": "death",
         "phase": 1
+      },
+      "factions": {
+        "eastern": "assault_squad_eastern_active_b"
+      }
+    },
+    "assault_squad_eastern_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/assault_squad/eastern_active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
       }
     },
     "assault_squad_active_c": {
       "unit": "soldier",
       "source": "assets/source/roster/infantry/assault_squad/active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      },
+      "factions": {
+        "eastern": "assault_squad_eastern_active_c"
+      }
+    },
+    "assault_squad_eastern_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/assault_squad/eastern_active_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -4029,12 +4080,27 @@
         "phase": 1
       },
       "factions": {
-        "eastern": "rifle_squad_eastern_active_a"
+        "eastern": "rifle_squad_eastern_active_a",
+        "europe": "rifle_squad_europe_active_a"
       }
     },
     "rifle_squad_eastern_active_a": {
       "unit": "soldier",
       "source": "assets/source/roster/infantry/rifle_squad/eastern_active_a.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "rifle_squad_europe_active_a": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/rifle_squad/europe_active_a.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -4060,12 +4126,27 @@
         "phase": 1
       },
       "factions": {
-        "eastern": "rifle_squad_eastern_active_b"
+        "eastern": "rifle_squad_eastern_active_b",
+        "europe": "rifle_squad_europe_active_b"
       }
     },
     "rifle_squad_eastern_active_b": {
       "unit": "soldier",
       "source": "assets/source/roster/infantry/rifle_squad/eastern_active_b.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "rifle_squad_europe_active_b": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/rifle_squad/europe_active_b.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {
@@ -4091,12 +4172,27 @@
         "phase": 1
       },
       "factions": {
-        "eastern": "rifle_squad_eastern_active_c"
+        "eastern": "rifle_squad_eastern_active_c",
+        "europe": "rifle_squad_europe_active_c"
       }
     },
     "rifle_squad_eastern_active_c": {
       "unit": "soldier",
       "source": "assets/source/roster/infantry/rifle_squad/eastern_active_c.glb",
+      "basis_yaw_deg": 90,
+      "skeleton": "quaternius-ubc-rifle",
+      "far_pose": {
+        "clip": "idle",
+        "phase": 0
+      },
+      "corpse_pose": {
+        "clip": "death",
+        "phase": 1
+      }
+    },
+    "rifle_squad_europe_active_c": {
+      "unit": "soldier",
+      "source": "assets/source/roster/infantry/rifle_squad/europe_active_c.glb",
       "basis_yaw_deg": 90,
       "skeleton": "quaternius-ubc-rifle",
       "far_pose": {

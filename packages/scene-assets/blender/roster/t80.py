@@ -77,7 +77,7 @@ def hull_body(v):
                        rot=(0, 0, 0 if side > 0 else math.pi))
     # The turbine deck: one broad grille, the exhaust louvre in the rear plate.
     VP.grille("engine_grille", (-2.55, 0, DECK), (1.60, 2.10), m, hull, slats=14)
-    VP.bolted_plate("engine_door", (-1.35, 0.0, DECK), (0.70, 2.00, 0.03), m, hull, bolts=(2, 3), bevel=0.01,
+    VP.bolted_panel("engine_door", (-1.35, 0.0, DECK), (0.70, 2.00, 0.03), m, hull, bolts=(2, 3), bevel=0.01,
                     lods=MID)
     VP.grille("exhaust_louvre", (-half, 0, 1.06), (0.26, 1.90), m, hull, slats=6, rot=(0, -math.pi / 2, 0))
     VP.slat_armour("rear_cage", (-half - 0.05, 0, 0.62), (3.20, 0.46), m, hull, rot=(0, 0, math.pi / 2))
@@ -96,8 +96,8 @@ def turret_body(v, turret):
         for k in range(4):
             a = side * (0.30 + k * 0.26)
             x, y = 0.05 + 1.50 * math.cos(a), 1.50 * math.sin(a)
-            VP.bolted_plate(f"cheek_panel_{s}_{k}", (x, y, 0.02), (0.26, 0.40, 0.52), m, turret, bolts=(1, 2),
-                            bevel=0.04, rot=(0, 0, a))
+            VP.bolted_panel(f"cheek_panel_{s}_{k}", (x, y, 0.02), (0.26, 0.40, 0.52), m, turret, bolts=(1, 2),
+                            bevel=0.04, rot=(0, 0, a), lods=VP.ALL)
         side_modules(v, turret, side, s, count=4, start=1.36, radius=1.40)
         VP.smoke_discharger_bank(f"smoke_{s}", (0.55, side * 1.06, 0.64), m, turret, count=4, tube_radius=0.05,
                                  tube_length=0.22, elevation=0.30, spread=0.5, rot=(0, 0, side * 0.9))

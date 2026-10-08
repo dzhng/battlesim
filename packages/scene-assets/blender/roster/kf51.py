@@ -141,7 +141,7 @@ def turret_body(v, turret):
                 seg=14, rot=(side * 0.6, 0, 0), lods=MID)
             cyl(f"smoke_cap_{s}_{k}", 0.05, 0.02, (0.60 - k * 0.38, side * 1.64, 0.12), "Y", m["black"], turret,
                 seg=12, rot=(side * 0.6, 0, 0), lods=FINE)
-        VP.bolted_plate(f"side_hatch_{s}", (-0.70, side * 1.62, EDGE + 0.05), (0.70, 0.48, 0.02), m, turret,
+        VP.bolted_panel(f"side_hatch_{s}", (-0.70, side * 1.62, EDGE + 0.05), (0.70, 0.48, 0.02), m, turret,
                         bolts=(2, 2), bevel=0.008, rot=(-side * math.pi / 2, 0, 0), lods=MID)
         for k in range(2):
             cyl(f"warning_sensor_{s}_{k}", 0.04, 0.03, (1.40, side * (1.70 + 0.0), EDGE + 0.08 - k * 0.10), "Y",
@@ -155,8 +155,8 @@ def turret_body(v, turret):
     VP.sight_housing("gunner_sight", (1.05, -0.80, ROOF - 0.10), m, turret, size=(0.50, 0.40, 0.22))
     VP.cupola("commander_cupola", (-0.30, 0.62, ROOF), m, turret, radius=0.34, lid_open=False)
     VP.hatch("loader_hatch", (-0.90, -0.70, ROOF), m, turret, radius=0.30)
-    VP.bolted_plate("hero_launcher", (-2.10, 0.30, ROOF - 0.02), (0.90, 0.80, 0.12), m, turret, bolts=(3, 2),
-                    bevel=0.03)
+    VP.bolted_panel("hero_launcher", (-2.10, 0.30, ROOF - 0.02), (0.90, 0.80, 0.12), m, turret, bolts=(3, 2),
+                    bevel=0.03, lods=VP.ALL)
     for k in range(4):
         cyl(f"hero_cell_{k}", 0.08, 0.02, (-2.30 + (k % 2) * 0.40, 0.12 + (k // 2) * 0.36, ROOF + 0.11), "Z",
             m["black"], turret, seg=12, lods=NEAR)

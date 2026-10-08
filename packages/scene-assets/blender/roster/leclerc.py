@@ -80,7 +80,7 @@ def hull_body(v):
     for side, s in ((1, "L"), (-1, "R")):
         # The lamp clusters in their boxes on the glacis corners.
         lamp = (3.05, side * 1.30, glacis_z(3.05))
-        VP.bolted_plate(f"lamp_box_{s}", lamp, (0.30, 0.42, 0.18), m, hull, bolts=(1, 2), bevel=0.03)
+        VP.bolted_panel(f"lamp_box_{s}", lamp, (0.30, 0.42, 0.18), m, hull, bolts=(1, 2), bevel=0.03, lods=VP.ALL)
         for k, dy in enumerate((-0.10, 0.10)):
             cyl(f"lamp_{s}_{k}", 0.065, 0.03, (lamp[0] + 0.16, lamp[1] + dy, lamp[2] + 0.10), "X", m["lamp"], hull,
                 seg=14, lods=MID)
@@ -94,7 +94,7 @@ def hull_body(v):
     stencil("nose_number", "6044-0116", 0.09, (3.441, 0.0, 1.10), (math.pi / 2, 0, math.pi / 2), m["marking"], hull)
     for k, y in enumerate((0.72, -0.72)):
         VP.grille(f"engine_grille_{k}", (-2.70, y, DECK), (1.10, 1.15), m, hull, slats=9)
-        VP.bolted_plate(f"engine_door_{k}", (-1.75, y, DECK), (0.70, 1.10, 0.03), m, hull, bolts=(2, 2), bevel=0.01,
+        VP.bolted_panel(f"engine_door_{k}", (-1.75, y, DECK), (0.70, 1.10, 0.03), m, hull, bolts=(2, 2), bevel=0.01,
                         lods=MID)
     VP.grille("rear_louvre", (-half, 0, 1.18), (0.34, 2.40), m, hull, slats=7, rot=(0, -math.pi / 2, 0))
     VP.slat_armour("rear_bars", (-half - 0.06, 0, 0.66), (3.10, 0.70), m, hull, rot=(0, 0, math.pi / 2))
@@ -135,8 +135,8 @@ def turret_body(v, turret):
     cyl("turret_ring_guard", 1.08, 0.10, (0, 0, FOOT - 0.04), "Z", m["dark"], turret, seg=40, lods=MID)
     for side, s in ((1, "L"), (-1, "R")):
         # The front armour modules either side of the mantlet.
-        VP.bolted_plate(f"front_module_{s}", (1.82, side * 0.80, 0.05), (0.22, 0.66, 0.52), m, turret,
-                        bolts=(1, 2), bevel=0.04)
+        VP.bolted_panel(f"front_module_{s}", (1.82, side * 0.80, 0.05), (0.22, 0.66, 0.52), m, turret,
+                        bolts=(1, 2), bevel=0.04, lods=VP.ALL)
         # Armour blocks on the turret sides.
         VP.armour_tiles(f"turret_blocks_{s}", (0.30, side * 1.36, 0.30), (1.80, 0.44), (3, 1), 0.12, m, turret,
                         rot=(-side * math.pi / 2, 0, 0))
@@ -158,7 +158,7 @@ def turret_body(v, turret):
     VP.cupola("commander_cupola", (-0.30, 0.70, ROOF), m, turret, radius=0.36)
     VP.sight_housing("gunner_sight", (1.08, -0.72, ROOF - 0.06), m, turret, size=(0.50, 0.42, 0.26))
     VP.hatch("bustle_hatch", (-1.60, 0.0, ROOF), m, turret, size=(0.70, 0.60))
-    VP.bolted_plate("roof_plate", (0.55, -0.20, ROOF), (0.70, 0.55, 0.03), m, turret, bolts=(2, 2), bevel=0.01,
+    VP.bolted_panel("roof_plate", (0.55, -0.20, ROOF), (0.70, 0.55, 0.03), m, turret, bolts=(2, 2), bevel=0.01,
                     lods=MID)
 
 
