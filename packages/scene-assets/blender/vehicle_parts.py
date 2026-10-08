@@ -58,7 +58,7 @@ def _place(objects, loc, rot):
     return objects
 
 
-def _wheel_node(name, loc, radius, parent):
+def wheel_node(name, loc, radius, parent):
     """The empty the renderer spins: named `wheel_*`, unrotated, with its radius."""
     if not name.startswith("wheel_"):
         raise ValueError(f"a spinning part's node must be named wheel_*: {name}")
@@ -108,7 +108,7 @@ def _arc(centre, radius, start, end, steps):
     return points
 
 
-def _tube_part(name, path_for, radius, mat, parent, lods):
+def tube_part(name, path_for, radius, mat, parent, lods):
     """A swept tube as a tiered part; `path_for(lod)` gives its points."""
 
     def build(bm, lod):
@@ -127,7 +127,7 @@ def tyre_wheel(name, loc, radius, width, side, mats, parent, rim_radius=None, ct
     across the face) or "bar" (a truck's military bar tread: two staggered rows
     of deep chevron bars). `hub_bolts` rings the hub with that many wheel nuts.
     Node: `wheel_*` empty, returned. Roles: rubber, paint, dark, steel."""
-    node = _wheel_node(name, loc, radius, parent)
+    node = wheel_node(name, loc, radius, parent)
     rim_r = radius * 0.56 if rim_radius is None else rim_radius
     face = side * width / 2
     cyl(name=f"{name}_tyre", r=radius, depth=width, axis="Y", mat=mats["rubber"], parent=node, seg=28)
@@ -165,7 +165,7 @@ def tyre_wheel(name, loc, radius, width, side, mats, parent, rim_radius=None, ct
         def air_line(lod):
             return [(0, hub_face, radius * 0.12), (0, rim_face, rim_r * 0.85)]
 
-        _tube_part(name=f"{name}_ctis", path_for=air_line, radius=0.008, mat=mats["steel"], parent=node, lods=FINE)
+        tube_part(name=f"{name}_ctis", path_for=air_line, radius=0.008, mat=mats["steel"], parent=node, lods=FINE)
     return node
 
 
@@ -174,7 +174,7 @@ def road_wheel(name, loc, radius, width, side, mats, parent, bolts=6, ribs=0):
     a hub and hub bolts on the outer face (`side` +1 left, -1 right), and
     `ribs` radial stiffening ribs pressed into the disc (the Soviet pattern).
     Node: `wheel_*` empty, returned. Roles: rubber, paint, dark, steel."""
-    node = _wheel_node(name, loc, radius, parent)
+    node = wheel_node(name, loc, radius, parent)
     disc_width = width + 0.03
     cyl(name=f"{name}_tyre", r=radius, depth=width, axis="Y", mat=mats["rubber"], parent=node, seg=28)
     cyl(name=f"{name}_disc", r=radius * 0.82, depth=disc_width, axis="Y", mat=mats["paint"], parent=node, seg=24)
@@ -198,7 +198,7 @@ def road_wheel(name, loc, radius, width, side, mats, parent, bolts=6, ribs=0):
 def sprocket(name, loc, radius, width, mats, parent, teeth=12):
     """The toothed drive sprocket: a dark wheel, a painted hub and steel teeth
     round its rim. Node: `wheel_*` empty, returned. Roles: dark, paint, steel."""
-    node = _wheel_node(name, loc, radius, parent)
+    node = wheel_node(name, loc, radius, parent)
     cyl(name=f"{name}_body", r=radius, depth=width, axis="Y", mat=mats["dark"], parent=node, seg=24)
     cyl(name=f"{name}_hub", r=radius * 0.54, depth=width + 0.05, axis="Y", mat=mats["paint"], parent=node,
         seg=16, lods=MID)
@@ -215,7 +215,7 @@ def sprocket(name, loc, radius, width, mats, parent, teeth=12):
 def idler(name, loc, radius, width, mats, parent):
     """The idler wheel at the track's far end: a dark wheel and a painted hub.
     Node: `wheel_*` empty, returned. Roles: dark, paint."""
-    node = _wheel_node(name, loc, radius, parent)
+    node = wheel_node(name, loc, radius, parent)
     cyl(name=f"{name}_body", r=radius, depth=width, axis="Y", mat=mats["dark"], parent=node, seg=24)
     cyl(name=f"{name}_hub", r=radius * 0.54, depth=width + 0.05, axis="Y", mat=mats["paint"], parent=node,
         seg=16, lods=MID)
@@ -225,7 +225,7 @@ def idler(name, loc, radius, width, mats, parent):
 def return_roller(name, loc, radius, width, mats, parent):
     """A small roller carrying the track's upper run. Node: `wheel_*` empty,
     returned. Roles: dark."""
-    node = _wheel_node(name, loc, radius, parent)
+    node = wheel_node(name, loc, radius, parent)
     cyl(name=f"{name}_roller", r=radius, depth=width, axis="Y", mat=mats["dark"], parent=node, seg=16, lods=NEAR)
     return node
 
@@ -479,7 +479,7 @@ def cable(name, points, mats, parent, radius=0.02, eyes=True, loc=(0, 0, 0), rot
     """A steel tow cable along `points` (in the part's frame), clipped down
     where it runs, with a loop eye at each end where `eyes`. Returns its
     meshes. Roles: steel, dark."""
-    made = _tube_part(name=f"{name}_rope", path_for=lambda lod: points, radius=radius, mat=mats["steel"],
+    made = tube_part(name=f"{name}_rope", path_for=lambda lod: points, radius=radius, mat=mats["steel"],
                       parent=parent, lods=MID)
     if eyes:
         for k, (end, inner) in enumerate(((points[0], points[1]), (points[-1], points[-2]))):
@@ -498,7 +498,7 @@ def cable(name, points, mats, parent, radius=0.02, eyes=True, loc=(0, 0, 0), rot
                                  centre[2]))
                 return ring
 
-            made += _tube_part(name=f"{name}_eye_{k}", path_for=eye, radius=radius * 0.8, mat=mats["steel"],
+            made += tube_part(name=f"{name}_eye_{k}", path_for=eye, radius=radius * 0.8, mat=mats["steel"],
                                parent=parent, lods=NEAR)
     for k, p in enumerate(points[1:-1]):
         made += box(name=f"{name}_clip_{k}", size=(0.05, radius * 4, radius * 2.5), loc=p, mat=mats["dark"],
@@ -539,7 +539,7 @@ def hatch(name, loc, mats, parent, radius=None, size=None, rot=(0, 0, 0)):
         return [(handle_x, -0.07, top - 0.005), (handle_x, -0.07, top + 0.035),
                 (handle_x, 0.07, top + 0.035), (handle_x, 0.07, top - 0.005)]
 
-    made += _tube_part(name=f"{name}_handle", path_for=handle, radius=0.01, mat=mats["steel"], parent=parent,
+    made += tube_part(name=f"{name}_handle", path_for=handle, radius=0.01, mat=mats["steel"], parent=parent,
                        lods=FINE)
     return _place(made, loc, rot)
 
@@ -622,7 +622,7 @@ def light_with_guard(name, loc, radius, mats, parent, rot=(0, 0, 0)):
                 points.append((x, -reach * math.cos(angle), -radius * 1.2 + (reach + radius * 1.2) * math.sin(angle)))
             return points
 
-        made += _tube_part(name=f"{name}_guard_{k}", path_for=hoop, radius=0.009, mat=mats["paint"],
+        made += tube_part(name=f"{name}_guard_{k}", path_for=hoop, radius=0.009, mat=mats["paint"],
                            parent=parent, lods=NEAR)
     return _place(made, loc, rot)
 
@@ -643,7 +643,7 @@ def tow_hook(name, loc, mats, parent, size=0.12, rot=(0, 0, 0)):
                        steps=steps)
         return points
 
-    made += _tube_part(name=f"{name}_hook", path_for=hook, radius=size * 0.13, mat=mats["steel"], parent=parent,
+    made += tube_part(name=f"{name}_hook", path_for=hook, radius=size * 0.13, mat=mats["steel"], parent=parent,
                        lods=NEAR)
     return _place(made, loc, rot)
 
@@ -663,7 +663,7 @@ def shackle(name, loc, mats, parent, size=0.1, rot=(0, 0, 0)):
         points.append((half, 0, 0))
         return points
 
-    made += _tube_part(name=f"{name}_bow", path_for=bow, radius=bar, mat=mats["paint"], parent=parent,
+    made += tube_part(name=f"{name}_bow", path_for=bow, radius=bar, mat=mats["paint"], parent=parent,
                        lods=NEAR)
     made += cyl(name=f"{name}_pin", r=bar * 0.9, depth=half * 2 + bar * 4, axis="X", mat=mats["steel"],
                 parent=parent, seg=8, lods=FINE)
@@ -763,7 +763,7 @@ def jerrycan(name, loc, mats, parent, size=(0.165, 0.345, 0.47), rot=(0, 0, 0)):
             return [(0, y - 0.03, sz - 0.005), (0, y - 0.03, sz + 0.03), (0, y + 0.03, sz + 0.03),
                     (0, y + 0.03, sz - 0.005)]
 
-        made += _tube_part(name=f"{name}_handle_{k}", path_for=grip, radius=0.007, mat=mats["steel"],
+        made += tube_part(name=f"{name}_handle_{k}", path_for=grip, radius=0.007, mat=mats["steel"],
                            parent=parent, lods=FINE)
     return _place(made, loc, rot)
 
@@ -943,5 +943,5 @@ def weld_line(name, points, mats, parent, radius=0.007, loc=(0, 0, 0), rot=(0, 0
     def seam(lod):
         return points
 
-    made = _tube_part(name=name, path_for=seam, radius=radius, mat=mats["paint"], parent=parent, lods=FINE)
+    made = tube_part(name=name, path_for=seam, radius=radius, mat=mats["paint"], parent=parent, lods=FINE)
     return _place(made, loc, rot)

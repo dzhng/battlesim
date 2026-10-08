@@ -32,7 +32,7 @@ from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from parts import SEG_SCALE, box, cyl, empty, mesh_part, textured  # noqa: E402
-from vehicle_parts import ALL, FINE, MID, NEAR, _tube_part, _wheel_node  # noqa: E402
+from vehicle_parts import ALL, FINE, MID, NEAR, tube_part, wheel_node  # noqa: E402
 
 # Interpolated rings per station interval, per tier: a fuselage keeps its
 # curves at the near tiers and its stations alone at the far ones.
@@ -306,7 +306,7 @@ def sensor_ball(name, loc, radius, mats, parent, window=0.55):
 def wheel(name, loc, radius, width, mats, parent, lods=ALL):
     """A gear wheel, the spinning node `name` (`wheel_*`, as `vehicle_parts`'
     wheels): a black tyre on a hub in the gear's enamel."""
-    node = _wheel_node(name, loc, radius, parent)
+    node = wheel_node(name, loc, radius, parent)
     cyl(f"{name}_tyre", radius, width, (0, 0, 0), "Y", mats["rubber"], node, seg=20, bevel=0.02, lods=lods)
     cyl(f"{name}_hub", radius * 0.55, width + 0.02, (0, 0, 0), "Y", mats["gear"], node, seg=14,
         lods=tuple(t for t in lods if t < 3))
@@ -421,13 +421,13 @@ def skids(x_front, x_back, y, cross, top, mats, parent, radius=0.045):
 
     for side, s in ((1, "L"), (-1, "R")):
         node = empty(f"skid_{s}", parent=parent)
-        _tube_part(f"skid_{s}_tube", lambda lod, side=side: path(lod, side), radius, mats["dark"], node, ALL)
+        tube_part(f"skid_{s}_tube", lambda lod, side=side: path(lod, side), radius, mats["dark"], node, ALL)
     for k, x in enumerate(cross):
         def arch(lod, x=x):
             steps = (6, 4, 2, 2)[lod]
             return [(x, y * math.cos(math.pi * j / steps), radius + (top - radius) * math.sin(math.pi * j / steps) ** 0.6)
                     for j in range(steps + 1)]
-        _tube_part(f"skid_cross_{k}", arch, radius * 1.1, mats["dark"], parent, MID)
+        tube_part(f"skid_cross_{k}", arch, radius * 1.1, mats["dark"], parent, MID)
 
 
 # ---------------------------------------------------------------- wreck
