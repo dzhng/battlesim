@@ -1,0 +1,107 @@
+{
+ "entries": [
+  {
+   "file": "europe_ec665_tiger_uht-three_quarter_front.jpg",
+   "variant": "europe_ec665_tiger_uht",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Eurocopter_Tiger_UHT_German_Bundeswehr_74%2B11_at_ILA-2018.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "1245b37bdecaba69c38f9524f4d5440034689195aa646de049b5ee0ea0160682",
+   "note": "Tiger UHT front-right three-quarter static at ILA 2018: mast-mounted sight, tandem cockpit, stub wings"
+  },
+  {
+   "file": "europe_ec665_tiger_uht-side.jpg",
+   "variant": "europe_ec665_tiger_uht",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Eurocopter_EC-665_Tiger_UHT_(crooped).jpg",
+   "author": "Gunnar Ries",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "8ca42605d9fea9870d80fca7d140ae73d2647df006d7e109c91bb92c77cf975f",
+   "note": "Tiger UHT left side in flight: tail, end-plate fins, tail rotor, wheels"
+  },
+  {
+   "file": "europe_ec665_tiger_uht-three_quarter_rear.jpg",
+   "variant": "europe_ec665_tiger_uht",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:German_Army_Eurocopter_EC_665_Tiger_UHT_98-18_1.jpg",
+   "author": "Julian Herzog (Website)",
+   "licence": "CC-BY-4.0",
+   "sha256": "93189d4d5dcaf76a6554bef01a619f6a926efe69265fc78b8d33cb9c332ad3ec",
+   "note": "Tiger UHT rear-left three-quarter in flight"
+  },
+  {
+   "file": "europe_ec665_tiger_uht-side-2.jpg",
+   "variant": "europe_ec665_tiger_uht",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:German_Army_Eurocopter_EC_665_Tiger_UHT_98-18_2.jpg",
+   "author": "Julian Herzog (Website)",
+   "licence": "CC-BY-4.0",
+   "sha256": "ecdac0aafea2c072b041219216996dec9b76ef12e4a395dfda8f5ade4012d29d",
+   "note": "Tiger UHT in flight, left side, gear down"
+  },
+  {
+   "file": "europe_ec665_tiger_had-front.jpg",
+   "variant": "europe_ec665_tiger_had",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Salon_du_Bourget_20090619_125.jpg",
+   "author": "Georges Seguin (Okki)",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "e47f4c33243d74bf8d990e52a7c541ef34c71acd86a4242f65606e11d126bf22",
+   "note": "Tiger HAD head-on at the Paris Air Show 2009: roof sight, chin 30 mm turret, stub wings"
+  },
+  {
+   "file": "europe_ec665_tiger_had-three_quarter_front.jpg",
+   "variant": "europe_ec665_tiger_had",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:75_Aniversario_de_la_Academia_General_del_Aire_Helic%C3%B3ptero_Airbus_EC665_Tigre_de_FAMET_(28825352878).jpg",
+   "author": "Enrique Freire from Cartagena, Murcia, Espa\u00f1a",
+   "licence": "CC-BY-2.0",
+   "sha256": "484b37a15e0b66b41aa1d3ae9efaa157e1ef9cf7c77d60f913e2b1625d4122a0",
+   "note": "Spanish Army Tigre HAD front-right three-quarter static: camouflage, cockpit, stub stores"
+  },
+  {
+   "file": "europe_ec665_tiger_had-front-2.jpg",
+   "variant": "europe_ec665_tiger_had",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:75_Aniversario_de_la_Academia_General_del_Aire_Helic%C3%B3ptero_Airbus_EC665_Tigre_de_FAMET_(42650238222).jpg",
+   "author": "Enrique Freire from Cartagena, Murcia, Espa\u00f1a",
+   "licence": "CC-BY-2.0",
+   "sha256": "b0b169e68f132e00cb82c6e27024ca25ae101f6e9c8103f846e9563ae3079481",
+   "note": "Tigre HAD head-on close: 30 mm turret under the chin, roof sight, nose FLIR"
+  },
+  {
+   "file": "europe_ec665_tiger_had-side.jpg",
+   "variant": "europe_ec665_tiger_had",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:75_Aniversario_de_la_Academia_General_del_Aire_Helic%C3%B3ptero_Airbus_EC665_Tigre_de_FAMET_(42699507641).jpg",
+   "author": "Enrique Freire from Cartagena, Murcia, Espa\u00f1a",
+   "licence": "CC-BY-2.0",
+   "sha256": "277df93478916dc981179afb848d543ec56e07a29e778f0c52be411a37b93760",
+   "note": "Tigre HAD right-side three-quarter static: tail, tail rotor, end-plate fins, wheels"
+  },
+  {
+   "file": "europe_ec665_tiger_had-detail.jpg",
+   "variant": "europe_ec665_tiger_had",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Eurocopter_EC_655_Tigre._Festival_A%C3%A9reo_Internacional_De_Gij%C3%B3n._Gij%C3%B3n_2016._(28618421036).jpg",
+   "author": "David \u00c1lvarez L\u00f3pez",
+   "licence": "CC-BY-2.0",
+   "sha256": "8528f5886122e4f26ce70643501901e5df287f3dca26ea6b1bc23d41508a68ac",
+   "note": "Tigre HAD cockpit glazing and flank detail"
+  }
+ ],
+ "gaps": [
+  "europe_ec665_tiger_had: the Spanish HAD's green-brown camouflage is drawn in the shared army green-grey; no top view",
+  "europe_ec665_tiger_uht: no front view; mast sight from the ILA static"
+ ]
+}
