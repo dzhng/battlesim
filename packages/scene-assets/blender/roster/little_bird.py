@@ -25,10 +25,12 @@ from vehicle_parts import MID, NEAR  # noqa: E402
 AH6, MH6 = "us_ah_6_mh_6_little_bird_ah_6m", "us_ah_6_mh_6_little_bird_mh_6m"
 CARDS = {AH6: (7.5, 3.3, 2.69), MH6: (7.5, 3.0, 2.69)}
 SPEC = dict(
-    fuselage=[(2.6, 0.0, 1.0, 1.0), (2.4, 0.55, 0.56, 1.6, 1.05, 2.2), (1.6, 0.72, 0.42, 1.86, 1.05, 2.4),
-              (0.4, 0.72, 0.44, 1.96, 1.1, 2.4), (-0.8, 0.55, 0.6, 1.86, 1.2, 2.2), (-1.4, 0.2, 1.08, 1.56, 1.3),
-              (-4.6, 0.1, 1.22, 1.4, 1.3), (-4.9, 0.08, 1.24, 1.38, 1.3)],
-    canopy=dict(x_front=2.56, x_back=0.9, sill=0.86, top=1.8, half_width=0.72, peak=0.65),
+    # The side photo's egg: as deep as 1.8 m, peaking behind the cabin where
+    # the engine sits, the slim boom leaving it high up.
+    fuselage=[(2.6, 0.0, 1.05, 1.05), (2.4, 0.56, 0.55, 1.68, 1.08, 2.2), (1.6, 0.76, 0.4, 2.02, 1.12, 2.4),
+              (0.4, 0.78, 0.4, 2.22, 1.22, 2.4), (-0.8, 0.64, 0.56, 2.2, 1.38, 2.2), (-1.5, 0.32, 1.12, 1.98, 1.6),
+              (-1.9, 0.12, 1.46, 1.74, 1.6), (-4.6, 0.09, 1.5, 1.66, 1.58), (-4.9, 0.08, 1.5, 1.64, 1.57)],
+    canopy=dict(x_front=2.56, x_back=0.85, sill=0.8, top=2.0, half_width=0.74, peak=0.6, bows=(1.9,), tail=0.8),
     stab=[(-4.2, 0.08, 1.95, 0.45, 0.05), (-4.3, 0.75, 1.95, 0.35, 0.04)],
     fins=[dict(root_x=-4.0, root_z=1.38, height=0.62, root_chord=0.6, tip_chord=0.45, sweep_m=0.3, rudder=False),
           dict(root_x=-4.2, root_z=1.95, height=0.3, root_chord=0.35, tip_chord=0.3, sweep_m=0.1, y=0.75,
@@ -46,7 +48,7 @@ def build(variant, v):
     A.rotor("tail", (-4.7, 0.16, 1.55), 0.7, 4, 0.1, m, hull, hub=0.08, mast=0.0, droop=0.0,
             rot=(-math.pi / 2, 0, 0), thick=0.12)
     A.skids(1.6, -1.3, 0.95, (1.0, -0.6), 0.5, m, hull, radius=0.035)
-    cyl("exhaust", 0.12, 0.3, (-1.2, 0, 1.55), "X", m["nozzle"], hull, seg=10, lods=MID)
+    cyl("exhaust", 0.12, 0.3, (-1.4, 0, 1.85), "X", m["nozzle"], hull, seg=10, lods=MID)
     for side, k in ((1, "L"), (-1, "R")):
         box(f"door_frame_{k}", (0.9, 0.03, 0.9), (1.2, side * 0.71, 1.15), m["dark"], hull, lods=MID)
         if variant["id"] == AH6:
@@ -61,7 +63,7 @@ def build(variant, v):
 
     # The 160th's near-bare black: U.S. ARMY on the boom.
     A.markings(v, [
-        ("text", dict(text="U.S. ARMY", height=0.12, centre=(-2.6, 1.2, 1.32), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+        ("text", dict(text="U.S. ARMY", height=0.1, centre=(-2.6, 1.2, 1.58), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
     ])
 
 def wreck(variant, v):
