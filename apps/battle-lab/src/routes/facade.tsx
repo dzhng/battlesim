@@ -152,6 +152,7 @@ function fogInput(): FogInput {
     foliage: Float32Array.of(n, n, 8),
     targetHeightM: game.sensors.fog_target_height_m,
     foliageFullBlock: game.sensors.foliage_full_block,
+    minSightGapM: game.sensors.min_sight_gap_m,
   };
   const eyes = (Object.keys(STATIONS) as Station[]).map((id) => {
     const { at, yaw } = STATIONS[id];

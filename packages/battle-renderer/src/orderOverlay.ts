@@ -36,6 +36,7 @@ import {
   isRgba,
   MeshBuilder,
   paintOnly,
+  type Mesh,
   type Rgba,
 } from "./mesh";
 import type { WorldMeshes } from "./scene";
@@ -571,6 +572,29 @@ export function buildDestinationPreview(
     if (!mark.placed) continue;
     const color = glowing(style.color, style.glow.order);
     circleMarker(mesh, pen, mark, fadeAlpha(color, mark.opacity));
+  }
+  return mesh.build();
+}
+
+/** The reinforcement entry marker: three painted inward chevrons whose glow
+ *  marches toward the destination. */
+export function buildDeploymentMarker(
+  destination: readonly [number, number],
+  facing: number,
+  z: SurfaceHeight,
+  style: OrderStyle,
+  { stroke }: OrderOverlayOptions,
+): Mesh {
+  const mesh = new MeshBuilder();
+  const pen = orderPen(z, style, stroke);
+  const color = glowing(style.color, style.glow.selected);
+  const { cycles_per_s, amplitude } = style.march;
+  for (let i = 0; i < 3; i++) {
+    marchChevron(mesh, pen, along(destination, facing + Math.PI, 1.2 + i * 1.1), facing, color, [
+      i * 0.25,
+      cycles_per_s,
+      amplitude,
+    ]);
   }
   return mesh.build();
 }

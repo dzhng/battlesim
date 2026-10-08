@@ -39,7 +39,6 @@ test("an empty army can inspect one family and purchase its enabled concrete var
       match={match}
       onChoose={choose}
       onReady={vi.fn()}
-      onCancelPending={vi.fn()}
     />,
   );
   fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
@@ -54,6 +53,7 @@ test("an empty army can inspect one family and purchase its enabled concrete var
   expect(unavailable.hasAttribute("disabled")).toBe(true);
   fireEvent.click(unavailable);
   expect(choose).toHaveBeenCalledTimes(1);
+  expect(view.queryByLabelText("Unit slots")).toBeNull();
 });
 
 test("purchase availability follows observed credits and reserved slots", () => {
@@ -63,7 +63,6 @@ test("purchase availability follows observed credits and reserved slots", () => 
     faction: "us" as const,
     onChoose: choose,
     onReady: vi.fn(),
-    onCancelPending: vi.fn(),
   };
   // A one-variant family is bought by clicking it, once it is affordable
   // and a slot is free.
@@ -97,7 +96,6 @@ test("clicking a unit family immediately arms its first available variant", () =
       match={match}
       onChoose={choose}
       onReady={vi.fn()}
-      onCancelPending={vi.fn()}
     />,
   );
   fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));

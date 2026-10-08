@@ -46,6 +46,10 @@ struct Component {
 pub struct Scratch {
     nx: usize,
     tiles: HashMap<usize, Box<SearchTile>>,
+    /// Each vehicle cell's seat as this search found it: a cell is asked
+    /// about from each of its neighbours. A route found on knowledge that
+    /// has since changed is checked again before it is driven.
+    seats: HashMap<usize, Option<(V2, bool)>>,
     generation: u32,
     visited: usize,
     component: Option<Component>,
@@ -56,6 +60,7 @@ impl Scratch {
         Self {
             nx,
             tiles: HashMap::new(),
+            seats: HashMap::new(),
             generation: 0,
             visited: 0,
             component: None,
@@ -79,6 +84,15 @@ impl Scratch {
         }
         self.visited = 0;
         self.component = None;
+        self.seats.clear();
+    }
+
+    /// [`NavGrid::seat`], once a search.
+    fn seat(&mut self, grid: &NavGrid, k: usize, who: Mover) -> Option<(V2, bool)> {
+        *self
+            .seats
+            .entry(k)
+            .or_insert_with(|| grid.seat(k, who, true))
     }
     fn get(&self, k: usize) -> Option<Reached> {
         let (key, at) = self.location(k);
@@ -422,7 +436,7 @@ impl RouteSearch {
             return Stage::Done(Plan::Blocked(BlockReason::NoRoute));
         }
         if !grid.stands(self.goal, who) {
-            self.goal = grid.waypoint(target, m);
+            self.goal = grid.waypoint(target, who);
         }
         (self.start, self.target) = (start, target);
         let implicit = &grid.cells.implicit[3];
@@ -464,7 +478,13 @@ impl RouteSearch {
             NAV_CELL_M * 3.0,
         )?;
         let reverse = Leg {
-            from: grid.waypoint(target, leg.m),
+            from: grid.waypoint(
+                target,
+                Mover {
+                    m: leg.m,
+                    avoid: leg.avoid,
+                },
+            ),
             goal: leg.from,
             policy: RoutePolicy::Shortest,
             ..leg
@@ -655,6 +675,9 @@ impl RouteSearch {
     }
 }
 
+/// What a step through a tight cell costs, as a share of one with room.
+const TIGHT_STEP_COST: f64 = 2.0;
+
 /// Relax the neighbours of a cell that has come off the queue.
 fn expand(
     grid: &NavGrid,
@@ -678,7 +701,18 @@ fn expand(
     // diagonal moves reuse the same orthogonal fit/crossing answers.
     let nexts = STEPS.map(|(di, dj)| grid.index(ci + di, cj + dj));
     let uniform = grid.uniform_stencil(cell, who);
-    let fits = nexts.map(|next| next.is_some_and(|k| uniform || grid.fits(k, who)));
+    // A vehicle stands in each cell at its seat; a step to or from a seat
+    // judged against the bodies is checked along its length.
+    let vehicle = m.class == MoverClass::Vehicle && !uniform;
+    let seats = nexts.map(|next| {
+        next.filter(|_| vehicle)
+            .and_then(|k| scratch.seat(grid, k, who))
+    });
+    let here = vehicle.then(|| scratch.seat(grid, cell, who)).flatten();
+    let fits: [bool; 8] = std::array::from_fn(|k| {
+        nexts[k]
+            .is_some_and(|next| uniform || seats[k].is_some() || (!vehicle && grid.fits(next, who)))
+    });
     let crosses: [bool; 4] =
         std::array::from_fn(|k| fits[k] && (uniform || grid.crosses(cell, nexts[k].unwrap(), m)));
     let costs = if uniform {
@@ -709,6 +743,18 @@ fn expand(
         } else if !crosses[direction] {
             continue;
         }
+        // A step through a tight cell is checked along its length and
+        // counts more, so a route squeezes only where the room is short, and
+        // keeps to the middle of a way.
+        let tight = match (here, seats[direction]) {
+            (Some((a, a_exact)), Some((b, b_exact))) if a_exact || b_exact => {
+                if !grid.step_clear(a, b, m, true) {
+                    continue;
+                }
+                true
+            }
+            _ => false,
+        };
         let length = if diagonal {
             NAV_CELL_M * std::f64::consts::SQRT_2
         } else {
@@ -721,7 +767,8 @@ fn expand(
         } else {
             grid.cost(next, m, policy, length)
         };
-        let step = (costs[usize::from(diagonal)] + next_cost) / 2.0;
+        let step = (costs[usize::from(diagonal)] + next_cost) / 2.0
+            * if tight { TIGHT_STEP_COST } else { 1.0 };
         let tentative = g + step;
         let reached = Reached {
             g: tentative,
@@ -750,7 +797,7 @@ fn vehicle_trace(
     let cells = trace_cells(grid, scratch, start, target);
     let mut points: Vec<V2> = vec![from];
     for w in cells.windows(2) {
-        points.push(grid.waypoint(w[1], who.m));
+        points.push(grid.waypoint(w[1], who));
     }
     *points.last_mut().unwrap() = goal;
     points

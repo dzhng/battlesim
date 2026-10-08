@@ -794,7 +794,7 @@ fn a_truck_moves_over_round_a_car_abandoned_in_its_lane_wherever_it_stands() {
                 dist(from, goal)
             );
             assert!(
-                !prepared.grid.route_pushes(leg.from, &points, &m),
+                !prepared.grid.route_pushes(leg.from, &points, &m, 0.0),
                 "a truck's way past {what} runs into a body"
             );
         }

@@ -5,7 +5,7 @@
       "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"1\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"mixed\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
       "recipe": "assault",
       "encounter_seed": "1",
-      "native_sha256": "aa65fd40770d584009639f18be3812c3f5e61e0c17f7d3ffffc7fc593b7db267",
+      "native_sha256": "5ded6ca82e77adaa69a7e6961c44e1539b88b70a2539674ee6d8f7f6d78e1e4d",
       "status": "ok"
     },
     {
@@ -21,7 +21,7 @@
       "request_json": "{\"generator_version\":\"layout-16\",\"preset_revision\":\"layout-presets-19\",\"seed\":\"3\",\"template_catalog_hash\":\"9af8fb1279fe26d83ce33f24180655f4f1f1115caa455c0b1cad57cccd99bea7\",\"type\":\"metro\",\"size\":\"medium\",\"limits\":{\"max_authored_parts\":250000,\"max_bay_positions\":600000,\"max_ground_points\":200000},\"profile\":\"skirmish\"}",
       "recipe": "assault",
       "encounter_seed": "18446744073709551615",
-      "native_sha256": "b431b082edbe8184d5910db0f6996e8f7f2e68602c44de8682fbbbbd12584f53",
+      "native_sha256": "7f38298e846a7a9ae9740f21de84335bf29eaa39539daaefa389f4bc1e02fd24",
       "status": "ok"
     },
     {

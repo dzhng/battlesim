@@ -82,6 +82,12 @@ pub fn plan(
 }
 
 pub const NAV_CELL_M: f64 = 2.0;
+/// How many times a tight cell's seat moves away from what stands nearest.
+const SEAT_TRIES: usize = 3;
+/// The hair a seat keeps beyond the footprint's half width when it moves.
+const SEAT_SLACK_M: f64 = 1e-3;
+/// A step through a tight cell is checked at this spacing.
+const STEP_CHECK_M: f64 = 0.4;
 /// Clearance is a distance transform capped here; wider footprints do not exist.
 const MAX_CLEARANCE_M: f64 = 16.0;
 const TILE_SIDE: usize = 32;
@@ -584,22 +590,105 @@ impl NavGrid {
             .then(|| j as usize * self.nx + i as usize)
     }
 
-    /// Whether a footprint fits with its centre in this cell.
+    /// Whether a footprint fits somewhere in this cell: for a vehicle, it
+    /// has a [`seat`](Self::seat).
     fn fits(&self, cell: usize, who: Mover) -> bool {
-        self.fits_off_centre(cell, who, 0.0, true)
+        self.fits_paid(cell, who, true)
+    }
+
+    /// [`fits`](Self::fits), counting its reads as planning work when `paid`.
+    fn fits_paid(&self, cell: usize, who: Mover, paid: bool) -> bool {
+        match who.m.class {
+            MoverClass::Infantry => self.fits_off_centre(cell, who, 0.0, paid),
+            MoverClass::Vehicle => self.seat(cell, who, paid).is_some(),
+        }
+    }
+
+    /// Where a vehicle's route through `cell` stands its centre, and whether
+    /// that was judged against the bodies and ground themselves (a step to or
+    /// from it is then checked along its length, [`step_clear`](Self::step_clear)):
+    /// the cell's centre where the cell's room clears the footprint; in a
+    /// tight cell, a point in it where the footprint clears what stands there,
+    /// found by moving off what stands nearest. A hull goes wherever it fits,
+    /// not only where a cell's centre does.
+    fn seat(&self, cell: usize, who: Mover, paid: bool) -> Option<(V2, bool)> {
+        let m = who.m;
+        let c = &self.cells[cell];
+        let center = cell_center(cell % self.nx, cell / self.nx);
+        if !Self::vehicle_enters(c, m.push) {
+            return None;
+        }
+        // The nearest blocked cell's centre is `clearance` away; its near
+        // edge half a cell closer.
+        let room = self.clearance_at(m.push, cell, paid) - NAV_CELL_M / 2.0;
+        if room >= m.half_width_m {
+            return who.clears(center).then_some((center, false));
+        }
+        // A body blocks a cell it comes within half a cell of, so the bodies
+        // stand up to a cell farther than that room, and farther again from a
+        // point off the centre: short by more, nowhere in the cell fits.
+        if room + NAV_CELL_M * (1.0 + std::f64::consts::FRAC_1_SQRT_2) < m.half_width_m {
+            return None;
+        }
+        // Short of room, it moves straight away from what stands nearest
+        // by what it lacks, and again if that brings it short of something
+        // else (the far side of a lane), while it stays in the cell.
+        let h = m.half_width_m;
+        let mut p = center;
+        for _ in 0..SEAT_TRIES {
+            let Some((at, away)) = self.nearest_obstacle(p, m.push, h, paid) else {
+                return who.clears(p).then_some((p, true));
+            };
+            if at <= 0.0 {
+                return None;
+            }
+            p = p + away * (h - at + SEAT_SLACK_M);
+            if (p.x - center.x).abs() > NAV_CELL_M / 2.0
+                || (p.y - center.y).abs() > NAV_CELL_M / 2.0
+            {
+                return None;
+            }
+        }
+        None
+    }
+
+    /// Whether a vehicle's footprint, centred at `p` in `cell`, clears the
+    /// bodies and ground themselves. A body blocks a cell it comes within
+    /// half a cell of, so the bodies stand up to a cell farther than the
+    /// cell's room, and farther again from a point off the centre: a cell
+    /// short of room by more than that is answered from the room alone.
+    fn seats_at(&self, cell: usize, p: V2, m: &Mobility, paid: bool) -> bool {
+        let center = cell_center(cell % self.nx, cell / self.nx);
+        let room = self.clearance_at(m.push, cell, paid) - NAV_CELL_M / 2.0;
+        Self::vehicle_enters(&self.cells[cell], m.push)
+            && room + NAV_CELL_M + (p - center).length() >= m.half_width_m
+            && self.clears_at(p, m, paid)
+    }
+
+    /// Whether a vehicle's footprint centred at `p` keeps its half width from
+    /// every body that stops it, ground it cannot cross and the map's edge.
+    fn clears_at(&self, p: V2, m: &Mobility, paid: bool) -> bool {
+        self.nearest_obstacle(p, m.push, m.half_width_m, paid)
+            .is_none_or(|(at, _)| at > m.half_width_m)
+    }
+
+    /// Whether a vehicle's footprint clears the bodies and ground all along
+    /// the step from `a` to `b`.
+    fn step_clear(&self, a: V2, b: V2, m: &Mobility, paid: bool) -> bool {
+        self.sweep_clear((a, b), m.push, m.half_width_m, STEP_CHECK_M, paid)
     }
 
     /// Whether a footprint fits passing `off` metres from this cell's
-    /// centre. A cell's room is measured from its centre, so a vehicle
-    /// passing to one side of it has that much less.
+    /// centre, by the cell's room alone. A cell's room is measured from its
+    /// centre, so a vehicle passing to one side of it has that much less.
     fn fits_off_centre(&self, cell: usize, who: Mover, off: f64, paid: bool) -> bool {
         let m = who.m;
         let c = &self.cells[cell];
-        // The nearest blocked cell's centre is `clearance` away; its near edge
-        // half a cell closer.
         let enters = match m.class {
             // Infantry's room is its sub-cell gap, judged at build.
             MoverClass::Infantry => c.infantry,
+            // The nearest blocked cell's centre is `clearance` away; its near
+            // edge half a cell closer.
             MoverClass::Vehicle => {
                 Self::vehicle_enters(c, m.push)
                     && self.clearance_at(m.push, cell, paid) - NAV_CELL_M / 2.0 - off
@@ -642,7 +731,7 @@ impl NavGrid {
                 if let Some(k) = self.index(ci + di, cj + dj) {
                     let d = (cell_center(k % self.nx, k / self.nx) - p).length();
                     if d <= radius
-                        && self.fits_off_centre(k, who, 0.0, paid)
+                        && self.fits_paid(k, who, paid)
                         && best.is_none_or(|(bd, bk)| (d, k) < (bd, bk))
                     {
                         best = Some((d, k));
@@ -656,19 +745,22 @@ impl NavGrid {
     /// Whether any part of the remaining route crosses a known body this
     /// footprint would shove aside: a pusher weighs every such body against
     /// a detour when it learns of it (Q13).
-    pub fn route_pushes(&self, from: V2, route: &[V2], m: &Mobility) -> bool {
+    /// Only bodies more than `reach` metres along it count: one nearer than a
+    /// vehicle can steer round is pushed through, not weighed again.
+    pub fn route_pushes(&self, from: V2, route: &[V2], m: &Mobility, reach: f64) -> bool {
         if m.class == MoverClass::Infantry {
             return false;
         }
-        let mut a = from;
+        let (mut a, mut along) = (from, 0.0);
         route.iter().any(|&b| {
             let length = (b - a).length();
             let samples = ((length / (NAV_CELL_M / 4.0)).ceil() as usize).max(1);
             let pushes = (0..samples).any(|k| {
-                let p = a + (b - a) * ((k as f64 + 0.5) / samples as f64);
-                !self.bodies_clear(p, m.half_width_m, PushClass::None)
+                let t = (k as f64 + 0.5) / samples as f64;
+                along + length * t > reach
+                    && !self.bodies_clear(a + (b - a) * t, m.half_width_m, PushClass::None)
             });
-            a = b;
+            (a, along) = (b, along + length);
             pushes
         })
     }
@@ -856,7 +948,9 @@ impl NavGrid {
             // A vehicle standing off the middle of its cell has that much
             // less of the cell's room.
             let off = (cell_center(k % self.nx, k / self.nx) - p).length();
-            self.fits_off_centre(k, Mover::free(who.m), off, paid)
+            let m = who.m;
+            (self.fits_off_centre(k, Mover::free(m), off, paid)
+                || m.class == MoverClass::Vehicle && self.seats_at(k, p, m, paid))
                 && who.clears(p)
                 && (who.m.class != MoverClass::Infantry
                     || self.cells[k].free & (1 << sub_of(p)) != 0)
@@ -921,13 +1015,17 @@ impl NavGrid {
         })
     }
 
-    /// Where a route through cell `k` passes: its centre, or for infantry
-    /// the free sub-cell nearest the centre.
-    fn waypoint(&self, k: usize, m: &Mobility) -> V2 {
+    /// Where a route through cell `k` passes: for a vehicle its
+    /// [`seat`](Self::seat), for infantry the free sub-cell nearest the
+    /// centre; else the centre.
+    fn waypoint(&self, k: usize, who: Mover) -> V2 {
         let (i, j) = (k % self.nx, k / self.nx);
         let center = cell_center(i, j);
+        if who.m.class == MoverClass::Vehicle {
+            return self.seat(k, who, false).map_or(center, |(p, _)| p);
+        }
         let free = self.cells[k].free;
-        if m.class != MoverClass::Infantry || free == ALL_FREE {
+        if free == ALL_FREE {
             return center;
         }
         (0..SUB * SUB)
@@ -943,7 +1041,7 @@ impl NavGrid {
             return Some(p);
         }
         self.nearest_fit(p, Mover::free(m), radius, true)
-            .map(|k| self.waypoint(k, m))
+            .map(|k| self.waypoint(k, Mover::free(m)))
     }
 
     /// Certify the entire nine-cell stencil from conservative source reach.

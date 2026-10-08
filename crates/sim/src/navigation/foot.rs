@@ -72,7 +72,7 @@ impl FootTrace {
                 return Some(Err(BlockReason::NoRoute));
             }
         } else {
-            let next = grid.waypoint(b, who.m);
+            let next = grid.waypoint(b, who);
             if grid
                 .segment_cost(
                     *self.points.last().unwrap(),

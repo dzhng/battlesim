@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use super::base::{body_bucket, body_buckets, settle, Body, Stamp};
 use super::cells::{cell_center, cell_of, Cell, NO_BODY};
-use super::{NavBase, NavGrid};
+use super::{NavBase, NavGrid, NAV_CELL_M};
 use crate::math::{v2, V2};
 use crate::world::{Prop, PropId, WorldGeometry};
 
@@ -266,6 +266,121 @@ impl NavGrid {
                 return clear;
             }
         }
+    }
+
+    /// How far `p` stands from the nearest body that stops a vehicle of
+    /// class `push` (as [`bodies_clear`](Self::bodies_clear) measures), from
+    /// ground no vehicle crosses and from the map's edge, if within `cap`,
+    /// and the way straight off it.
+    pub(super) fn nearest_obstacle(
+        &self,
+        p: V2,
+        push: contract::scenario::PushClass,
+        cap: f64,
+        paid: bool,
+    ) -> Option<(f64, V2)> {
+        let (w, d) = (self.nx as f64 * NAV_CELL_M, self.ny as f64 * NAV_CELL_M);
+        let mut best: Option<(f64, V2)> = None;
+        let mut offer = |at: f64, away: V2| {
+            if at <= cap && best.is_none_or(|(b, _)| at < b) {
+                best = Some((at, away));
+            }
+        };
+        offer(p.x, v2(1.0, 0.0));
+        offer(w - p.x, v2(-1.0, 0.0));
+        offer(p.y, v2(0.0, 1.0));
+        offer(d - p.y, v2(0.0, -1.0));
+        let (buckets, mut reads, _) = self.scan(p - v2(cap, cap), p + v2(cap, cap), |c, cell| {
+            if !cell.ground {
+                let half = NAV_CELL_M / 2.0;
+                let q = v2(
+                    p.x.clamp(c.x - half, c.x + half),
+                    p.y.clamp(c.y - half, c.y + half),
+                );
+                let at = (p - q).length();
+                offer(
+                    at,
+                    if at > 0.0 {
+                        (p - q) * (1.0 / at)
+                    } else {
+                        v2(0.0, 0.0)
+                    },
+                );
+            }
+        });
+        for bucket in buckets {
+            for body in self.bodies_in(bucket) {
+                reads += 1;
+                if let Some((at, away)) = body.vehicle_gap(p, push) {
+                    offer(at, away);
+                }
+            }
+        }
+        if paid {
+            self.spend(reads.div_ceil(super::READS_PER_WORK) as u64);
+        }
+        best
+    }
+
+    /// Whether a vehicle of class `push` and half width `radius` passes from
+    /// `a` to `b` clear of every body that stops it, and of ground it cannot
+    /// cross (that judged at `step` spacing).
+    pub(super) fn sweep_clear(
+        &self,
+        (a, b): (V2, V2),
+        push: contract::scenario::PushClass,
+        radius: f64,
+        step: f64,
+        paid: bool,
+    ) -> bool {
+        let lo = v2(a.x.min(b.x), a.y.min(b.y)) - v2(radius, radius);
+        let hi = v2(a.x.max(b.x), a.y.max(b.y)) + v2(radius, radius);
+        let mut banks = false;
+        let (buckets, mut reads, on_map) = self.scan(lo, hi, |_, cell| banks |= !cell.ground);
+        if !on_map {
+            return false;
+        }
+        let mut clear = true;
+        'bodies: for bucket in buckets {
+            for body in self.bodies_in(bucket) {
+                reads += 1;
+                if body.blocks_vehicle_along(a, b, radius, push) {
+                    clear = false;
+                    break 'bodies;
+                }
+            }
+        }
+        if paid {
+            self.spend(reads.div_ceil(super::READS_PER_WORK) as u64);
+        }
+        let n = ((b - a).length() / step).ceil() as usize;
+        clear
+            && (!banks
+                || (1..n)
+                    .all(|k| self.ground_clear(a + (b - a) * (k as f64 / n as f64), radius, paid)))
+    }
+
+    /// Visit each cell of the box from `lo` to `hi` on the map with its
+    /// centre: the body buckets they lie in, how many cells there were, and
+    /// whether the whole box is on the map.
+    fn scan(&self, lo: V2, hi: V2, mut visit: impl FnMut(V2, &Cell)) -> (Vec<usize>, usize, bool) {
+        let ((i0, j0), (i1, j1)) = (cell_of(lo), cell_of(hi));
+        let (mut buckets, mut cells, mut on_map) = (Vec::new(), 0, true);
+        for j in j0..=j1 {
+            for i in i0..=i1 {
+                let Some(k) = self.index(i, j) else {
+                    on_map = false;
+                    continue;
+                };
+                cells += 1;
+                visit(cell_center(i as usize, j as usize), &self.cells[k]);
+                let bucket = body_bucket(i as usize, j as usize, self.nx);
+                if !buckets.contains(&bucket) {
+                    buckets.push(bucket);
+                }
+            }
+        }
+        (buckets, cells, on_map)
     }
 
     /// The bodies in a bucket after this side's replacements and removals.

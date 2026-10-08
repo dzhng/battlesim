@@ -23,4 +23,19 @@ test("placing and changing an action keeps the arrow anchored, default removes i
   expect(cursor.querySelector<HTMLElement>(".game-cursor-badge")!.hidden).toBe(true);
   act(() => handle.current!.place(null, "default"));
   expect(cursor.hidden).toBe(true);
+  view.unmount();
+});
+
+test("pointer movement updates the visible cursor before another battle frame and cannot revive a hidden cursor", () => {
+  const handle = createRef<GameCursorHandle>();
+  const view = render(<GameCursor handle={handle} />);
+  const cursor = view.container.querySelector<HTMLElement>('[data-testid="game-cursor"]')!;
+  act(() => handle.current!.place({ x: 120, y: 85 }, "garrison"));
+  act(() => handle.current!.move({ x: 280, y: 190 }));
+  expect(cursor.style.transform).toBe("translate(280px, 190px) scale(0.7)");
+  expect(cursor.dataset.action).toBe("garrison");
+  act(() => handle.current!.place(null, "default"));
+  act(() => handle.current!.move({ x: 310, y: 210 }));
+  expect(cursor.hidden).toBe(true);
+  view.unmount();
 });

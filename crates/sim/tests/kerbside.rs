@@ -412,18 +412,60 @@ fn with_no_detour_worth_its_ground_a_truck_stops_short() {
     stops_short_of_the_wreck(Some(0.0));
 }
 
+/// The other side of the same rule: where the drive round the block is
+/// worth the ground it gains (a ratio that pays for it), the truck takes it
+/// and stands beyond the car, where it was sent.
+#[test]
+fn with_the_detour_worth_its_ground_a_truck_drives_round_the_block() {
+    let (last, _, driven) = drive_onto_the_wreck(Some(1000.0));
+    // Past the cars' far ends (2.3 m beyond their middle), wherever beyond
+    // them it found room: how near the goal is the standing-room rule's to say.
+    let beyond = last.x - MIDDLE[0];
+    assert!(
+        beyond > 22.3,
+        "it stood {beyond:.1} m down the street after {driven:.0} m, short of the cars' far end"
+    );
+    // Round the block: the street itself stays closed to it.
+    assert!(driven > 400.0, "it drove {driven:.0} m");
+}
+
 /// The wide truck sent onto the abandoned car, the detour ratio `ratio`
 /// (the shipped one by default), pulls up short of the car on its way.
 fn stops_short_of_the_wreck(ratio: Option<f64>) {
+    let (last, furthest, driven) = drive_onto_the_wreck(ratio);
+    let short = 20.0 - (last.x - MIDDLE[0]);
+    assert!(
+        furthest < 20.0,
+        "it drove past the car, {:.1} m down the street, and came back",
+        furthest
+    );
+    // Short of the car, by the way straight down the street to wherever it
+    // found room: how far short is the standing-room rule's to say.
+    let straight = 220.0 - short;
+    assert!(
+        short >= 0.0 && driven < straight + 5.0,
+        "it stopped {short:.1} m short of the car after {driven:.0} m ({straight:.0} m straight)"
+    );
+}
+
+/// A truck at the wheeled limits sent down the street onto two cars
+/// abandoned across it, the detour ratio `ratio` (the shipped one by
+/// default): where it came to rest, how far down the street it got, and how
+/// far it drove.
+fn drive_onto_the_wreck(ratio: Option<f64>) -> (V2, f64, f64) {
     let bearing = 0.0;
-    // The abandoned car, half across the middle and turned off the street.
-    let wreck = at(bearing, 20.0, 0.3);
+    // Two cars abandoned side by side, turned off the street, one half
+    // across the middle: with the cars parked at the kerb they close it to a
+    // truck, leaving under its width between any two.
     let mut map = street(bearing, true);
-    map["props"]
-        .as_array_mut()
-        .unwrap()
-        .push(json!({ "kind": "parked_car",
-        "center": wreck, "yaw": bearing + 0.45, "half_extents": [CAR[0], CAR[1], 0.75] }));
+    for right in [0.3, -3.5] {
+        map["props"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({ "kind": "parked_car",
+            "center": at(bearing, 20.0, right), "yaw": bearing + 0.45,
+            "half_extents": [CAR[0], CAR[1], 0.75] }));
+    }
     // A truck at the wheeled limits: as wide, as long and as wide-turning as
     // any wheeled hull a battle may field.
     let mut rules = common::scenario_rules();
@@ -455,19 +497,7 @@ fn stops_short_of_the_wreck(ratio: Option<f64>) {
             break;
         }
     }
-    let short = 20.0 - (last.x - MIDDLE[0]);
-    assert!(
-        furthest < 20.0,
-        "it drove past the car, {:.1} m down the street, and came back",
-        furthest
-    );
-    // Short of the car, by the way straight down the street to wherever it
-    // found room: how far short is the standing-room rule's to say.
-    let straight = 220.0 - short;
-    assert!(
-        short >= 0.0 && driven < straight + 5.0,
-        "it stopped {short:.1} m short of the car after {driven:.0} m ({straight:.0} m straight)"
-    );
+    (last, furthest, driven)
 }
 
 /// The moment: a truck as long as any wheeled hull may be is sent to the
@@ -514,4 +544,67 @@ fn a_long_truck_pulls_up_beside_parked_cars_where_it_was_sent() {
         off < 2.0,
         "it stopped {off:.1} m from where it was sent, at {p:?}"
     );
+}
+
+/// The moment: a tank and a truck at the limits of their drives are sent
+/// down a lane between walls 1.2 m wider than each either side, laid across
+/// the grid at 30° (a court's lane). Each drives it end to end, its hull
+/// never touching a wall: a hull goes wherever it fits.
+#[test]
+fn a_hull_at_its_drives_limits_drives_a_lane_a_little_wider_than_itself() {
+    let mut rules = common::scenario_rules();
+    sim::fixtures::with_units_at_limits(&mut rules);
+    for (kind, drive) in [("test_limit_tracked", "tracked"), ("test_limit_wheeled", "wheeled")] {
+        let [half_width, half_length] = ["half_width_m", "half_length_m"]
+            .map(|k| rules["hull_limits"][drive][k].as_f64().unwrap());
+        let bearing = 30f64.to_radians();
+        let way = 2.0 * half_width + 2.4;
+        let wall = |side: f64| {
+            json!({ "kind": "wall", "center": at(bearing, 0.0, side * (way / 2.0 + 0.5)),
+                "yaw": bearing, "half_extents": [150, 0.5, 3] })
+        };
+        let map = json!({ "size": [800, 800], "fog_cell_m": 8, "height_grid_m": 4,
+            "slope_cutoff_deg": 35, "props": [wall(1.0), wall(-1.0)] });
+        let from = at(bearing, -60.0, 0.0);
+        let goal = at(bearing, 60.0, 0.0);
+        let units = json!([{ "side": "blue", "kind": kind, "position": from, "yaw": bearing }]);
+        let setup = serde_json::from_value(json!({
+            "map": map, "rules": rules, "units": units, "events": [], "scripts": [],
+        }))
+        .unwrap();
+        let mut b = Battle::new(&setup, 1);
+        send(&mut b, 1, 0, goal);
+        let hz = b.rules().tick_hz as u64;
+        let (mut driven, mut last, mut tightest) = (0.0, v2(from[0], from[1]), f64::INFINITY);
+        for _ in 0..120 * hz {
+            b.step();
+            let u = own(&b, 0);
+            let here = v2(u.position[0], u.position[1]);
+            driven += (here - last).length();
+            last = here;
+            // The hull's corners' room to the nearer wall.
+            let (sin, cos) = u.yaw.sin_cos();
+            for (l, w) in [(1.0, 1.0), (1.0, -1.0), (-1.0, 1.0), (-1.0, -1.0)] {
+                let corner = [
+                    here.x + cos * l * half_length - sin * w * half_width,
+                    here.y + sin * l * half_length + cos * w * half_width,
+                ];
+                tightest =
+                    tightest.min(way / 2.0 - across(bearing, [corner[0], corner[1], 0.0]).abs());
+            }
+            if u.state == MoveState::Idle {
+                break;
+            }
+        }
+        let missed = (last - v2(goal[0], goal[1])).length();
+        assert!(
+            missed < 3.0 && driven < 130.0,
+            "a {kind} stopped {missed:.1} m from the end of the lane after {driven:.0} m"
+        );
+        assert!(
+            tightest > -0.05,
+            "a {kind}'s hull reached {:.2} m into a wall",
+            -tightest
+        );
+    }
 }

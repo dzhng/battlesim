@@ -68,6 +68,9 @@ export const FogParams = d
     foliageCellM: d.f32,
     /** Foliage depth that blocks a ground ray outright (`sensors.foliage_full_block`). */
     foliageFullBlock: d.f32,
+    /** Least room a ray needs between occluders it squeezes past, its two
+     *  sides together (`sensors.min_sight_gap_m`); 0: none. */
+    minSightGapM: d.f32,
     heightSpacing: d.f32,
     faceProbeM: d.f32,
     width: d.f32,

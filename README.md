@@ -43,7 +43,7 @@ The simulation builds behaviour from low-level physical properties, never from n
 
 The rules then follow from those properties alone:
 
-- **Can go here:** the footprint fits, judged by navigation's clearance field and then per-tick collision.
+- **Can go here:** the footprint fits, judged by navigation's clearance field (in a tight spot, by the bodies and ground themselves, anywhere the hull fits) and then per-tick collision.
 - **Can clear it:** the mover's push class exceeds the body's weight class.
 - **Is cover:** a body stands between the soldier and the threat.
 - **Breaks:** its integrity runs out.

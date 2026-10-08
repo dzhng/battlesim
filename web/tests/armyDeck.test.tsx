@@ -207,6 +207,31 @@ test("reinforcements remain available before the first unit enters", () => {
   expect(view.getByRole("group", { name: "Your units" }).children.length).toBe(0);
 });
 
+test("pending reinforcements reuse dimmed vertical cards with deployment hover text", () => {
+  const view = render(
+    <ArmyDeck
+      own={[]}
+      selected={[]}
+      onSelect={vi.fn()}
+      rules={game as unknown as PanelRules}
+      captions={null}
+      pending={[
+        {
+          id: 41,
+          kind: "tank",
+          destination: [10, 12],
+          confirmedTick: 0,
+          blocked: false,
+        },
+      ]}
+    />,
+  );
+  const card = view.getByRole("button", { name: "Tank — Will be deployed" });
+  expect(card.className).toContain("hud-army-pending");
+  expect(card.getAttribute("title")).toContain("Will be deployed");
+  expect(card.hasAttribute("disabled")).toBe(true);
+});
+
 test("the command row exposes refund for a selected skirmish unit", () => {
   const refund = vi.fn();
   const unit = specimenUnit(TEST_CATALOG, "test_tank", { id: 11 });

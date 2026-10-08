@@ -4,6 +4,7 @@ import { expect, test } from "vitest";
 import { VERTEX_FLOATS, type Mesh, type Rgba } from "../../packages/battle-renderer/src/mesh";
 import {
   buildOrderOverlay as build,
+  buildDeploymentMarker,
   validateOrderStyle,
   type OrderStyle,
   type OrderView,
@@ -92,6 +93,14 @@ const squad = (over: Partial<OrderView> = {}): OrderView => ({
 /** A tank's view: no soldiers, no area, its type's hull. */
 const TANK_HALF = UNITS.hull("test_tank")!.half_extents_m[0];
 const vehicle = { members: [], memberOrders: [], area: null, hullHalfLength: TANK_HALF };
+
+test("deployment marker paints three inward marching chevrons", () => {
+  const marker = buildDeploymentMarker([20, 10], 0, flat, STYLE, at(0.05));
+  expect(marker.length).toBeGreaterThan(0);
+  const phases = new Set<number>();
+  for (let i = 0; i < marker.length; i += VERTEX_FLOATS) phases.add(marker[i + 3]);
+  expect(phases.size).toBeGreaterThan(1);
+});
 
 test("cover icons appear only with the order marks, one per tier present, none for no cover", () => {
   // A pip is a filled disc in the middle of a soldier's marker: a vertex of

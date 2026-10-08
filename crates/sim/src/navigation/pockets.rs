@@ -87,7 +87,7 @@ impl NavGrid {
                     open |= other != id;
                     continue;
                 }
-                if !self.fits_off_centre(next, Mover::free(m), 0.0, false) {
+                if !self.fits_paid(next, Mover::free(m), false) {
                     continue;
                 }
                 flooded.flood.insert(next, id);

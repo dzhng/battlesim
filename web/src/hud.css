@@ -856,6 +856,10 @@
   gap: 10px;
   pointer-events: none;
 }
+.hud-lower:has(.hud-army-deck) {
+  inset-inline: 0;
+  bottom: 0;
+}
 .hud-panel.hud-bar {
   position: relative;
   box-sizing: border-box;
@@ -951,34 +955,26 @@
   max-width: 384px;
   align-content: center;
 }
-/* All owned units above one compact command row. Large armies scroll, never wrap. */
+/* Fixed-size cards wrap upward in balanced rows while the command row stays centered. */
 .hud-bottom.hud-army-deck {
   flex-direction: column;
   align-items: stretch;
   gap: 0;
-  width: max-content;
-  max-width: min(1220px, 100%);
+  width: 100%;
+  max-width: none;
   min-height: 0;
-  padding: 5px 5px 0;
+  padding: 5px 5px 6px;
+  border-inline: 0;
 }
 .hud-army {
-  display: flex;
-  justify-content: safe center;
+  display: grid;
+  justify-content: center;
   gap: 4px;
-  max-width: 100%;
-  overflow-x: auto;
-  padding-bottom: 5px;
-  scrollbar-color: rgb(var(--hud-accent) / 0.7) rgb(var(--hud-accent) / 0.1);
-  scrollbar-width: thin;
+  width: 100%;
+  overflow: visible;
 }
-.hud-army::-webkit-scrollbar {
-  height: 6px;
-}
-.hud-army::-webkit-scrollbar-track {
-  background: rgb(var(--hud-accent) / 0.1);
-}
-.hud-army::-webkit-scrollbar-thumb {
-  background: rgb(var(--hud-accent) / 0.7);
+.hud-panel button.hud-army-pending {
+  opacity: 0.45;
 }
 .hud-panel button.hud-army-card {
   position: relative;
@@ -1001,15 +997,6 @@
 .hud-panel button.hud-army-card:is([aria-pressed="true"], :hover) {
   box-shadow: inset 0 0 8px rgb(var(--hud-accent) / 0.16);
   text-shadow: none;
-}
-.hud-army-id {
-  position: absolute;
-  top: 2px;
-  left: 5px;
-  font: 12px/1.2 var(--hud-font);
-  color: rgb(var(--hud-text));
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
 }
 .hud-army-card .ro-icon {
   margin: 0;
@@ -1038,8 +1025,9 @@
   align-self: center;
   flex-wrap: nowrap;
   max-width: none;
-  padding-block: 3px;
-  border-top: 1px solid rgb(var(--hud-accent) / 0.22);
+  padding: 0;
+  margin: 0;
+  border: 0;
 }
 .hud-army-deck button.ro-cmd {
   width: 34px;
@@ -1160,6 +1148,38 @@
   min-width: min(520px, 80vw);
   padding: 4px 8px;
 }
+.hud-army-deck .hud-reinforcements {
+  min-width: 0;
+  width: 100%;
+  padding: 4px 8px 6px;
+  box-sizing: border-box;
+}
+.hud-army-deck .hud-purchase-controls {
+  justify-content: center;
+}
+.hud-army-deck .hud-purchase-controls .hud-credits {
+  margin-left: 12px;
+}
+.hud.hud-ready-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+.hud-ready-panel {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  min-width: 180px;
+  text-align: center;
+  pointer-events: auto;
+}
+.hud-ready-panel button.hud-purchase-ready {
+  text-align: center;
+  min-width: 180px;
+}
 .hud-purchase-controls,
 .hud-purchase-categories,
 .hud-purchase-variants,
@@ -1247,9 +1267,6 @@
   overflow-x: auto;
   padding-block: 6px;
 }
-.hud-placement-cancel {
-  align-self: center;
-}
 .hud-score {
   color: rgb(var(--hud-accent));
   font-variant-numeric: tabular-nums;
@@ -1315,30 +1332,4 @@
   padding: 3px 5px;
   background: rgb(var(--hud-glass) / 0.8);
   text-shadow: 0 0 4px rgb(var(--hud-glass));
-}
-.hud-spawn-layer {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-.hud-spawn-mark {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 7px;
-  color: rgb(var(--hud-accent));
-  background: rgb(var(--hud-glass) / 0.82);
-  border: 1px solid rgb(var(--hud-accent) / 0.6);
-  box-shadow: 0 0 14px rgb(var(--hud-accent) / 0.35);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-shadow: 0 0 5px rgb(var(--hud-glass));
-}
-.hud-spawn-mark .ro-icon {
-  width: 15px;
-  height: 15px;
 }

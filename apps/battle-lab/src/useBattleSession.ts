@@ -1232,8 +1232,6 @@ export function useBattleSession({
           choose: choosePurchase,
           cancel: cancelPurchase,
           ready: () => void control.issue({ kind: "ready" }),
-          cancelPending: (id: number) =>
-            void control.issue({ kind: "cancel_pending", purchase: id }),
         }
       : null,
     /** Which own units' order marks show, at what opacity (`OrderReveal`):

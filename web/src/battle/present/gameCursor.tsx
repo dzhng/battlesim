@@ -23,8 +23,14 @@ export const GAME_CURSOR_SIZE = {
 } as const;
 
 export interface GameCursorHandle {
+  /** Move an already active cursor without recomputing its action. */
+  move(position: { x: number; y: number }): void;
   /** Viewport client coordinates; null hides the complete cursor. */
   place(position: { x: number; y: number } | null, action: CursorAction): void;
+}
+
+function positionCursor(root: HTMLDivElement, x: number, y: number) {
+  root.style.transform = `translate(${x}px, ${y}px) scale(${CURSOR_SCALE})`;
 }
 
 /** Screen-space feedback only: the caller owns picking and accepted action. */
@@ -33,12 +39,16 @@ export function GameCursor({ handle }: { handle: Ref<GameCursorHandle> }) {
   const badge = useRef<HTMLSpanElement>(null);
   const shown = useRef<CursorAction>("default");
   useImperativeHandle(handle, () => ({
+    move(position) {
+      const root = layer.current;
+      if (root && !root.hidden) positionCursor(root, position.x, position.y);
+    },
     place(position, action) {
       const root = layer.current;
       if (!root) return;
       root.hidden = position === null;
       if (!position) return;
-      root.style.transform = `translate(${position.x}px, ${position.y}px) scale(${CURSOR_SCALE})`;
+      positionCursor(root, position.x, position.y);
       if (action !== shown.current) {
         shown.current = action;
         root.dataset.action = action;

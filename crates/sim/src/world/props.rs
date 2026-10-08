@@ -315,11 +315,18 @@ impl PropIndex {
     }
 
     /// Whether `hit` holds for some prop whose footprint circle the XY
-    /// segment `a`→`b` passes within a millimetre of, stopping at the first.
-    /// Every prop a segment's hit could lie in is offered (a hit lies on the
-    /// segment inside the footprint, so inside its circle). Ids are not
-    /// deduplicated: one in several buckets may be offered more than once.
-    pub fn any_along(&self, a: V2, b: V2, mut hit: impl FnMut(PropId) -> bool) -> bool {
+    /// segment `a`→`b` passes within `margin` (and a millimetre) of,
+    /// stopping at the first. Every prop a segment's hit could lie in is
+    /// offered (a hit lies on the segment inside the footprint, so inside its
+    /// circle). Ids are not deduplicated: one in several buckets may be
+    /// offered more than once.
+    pub fn any_along(
+        &self,
+        a: V2,
+        b: V2,
+        margin: f64,
+        mut hit: impl FnMut(PropId) -> bool,
+    ) -> bool {
         let ab = b - a;
         let len2 = ab.dot(ab);
         let meets = |e: &Entry| {
@@ -328,19 +335,25 @@ impl PropIndex {
             } else {
                 0.0
             };
-            (a + ab * t - e.center).within_radius(e.radius + 1e-3)
+            (a + ab * t - e.center).within_radius(e.radius + margin + 1e-3)
         };
-        self.buckets_crossed(a, b, |entries| {
+        self.buckets_crossed(a, b, margin, |entries| {
             entries.iter().any(|e| meets(e) && hit(e.id))
         })
     }
 
     /// Visit, until `visit` returns true, every bucket holding a point
-    /// within a centimetre of the XY segment `a`→`b`: column by column,
-    /// only the rows the segment spans there (a strip of buckets, not the
-    /// segment's bounding box).
-    fn buckets_crossed(&self, a: V2, b: V2, mut visit: impl FnMut(&[Entry]) -> bool) -> bool {
-        const EPS: f64 = 1e-2;
+    /// within `margin` and a centimetre of the XY segment `a`→`b`: column by
+    /// column, only the rows the segment spans there (a strip of buckets,
+    /// not the segment's bounding box).
+    fn buckets_crossed(
+        &self,
+        a: V2,
+        b: V2,
+        margin: f64,
+        mut visit: impl FnMut(&[Entry]) -> bool,
+    ) -> bool {
+        let eps = 1e-2 + margin;
         let cell = |v: f64, n: usize| ((v / self.bucket).floor().max(0.0) as usize).min(n - 1);
         // The segment's y over x ∈ [lo, hi] (clamped to its ends).
         let dx = b.x - a.x;
@@ -352,7 +365,7 @@ impl PropIndex {
             }
         };
         let (x0, x1) = (a.x.min(b.x), a.x.max(b.x));
-        for i in cell(x0 - EPS, self.nx)..=cell(x1 + EPS, self.nx) {
+        for i in cell(x0 - eps, self.nx)..=cell(x1 + eps, self.nx) {
             // The column's span, the edge columns open to the map's outside
             // (the index clamps there too), widened by the margin.
             let lo = if i == 0 {
@@ -365,13 +378,13 @@ impl PropIndex {
             } else {
                 (i + 1) as f64 * self.bucket
             };
-            let (lo, hi) = ((lo - EPS).max(x0), (hi + EPS).min(x1));
+            let (lo, hi) = ((lo - eps).max(x0), (hi + eps).min(x1));
             let (ya, yb) = if dx.abs() < 1e-12 {
                 (a.y, b.y)
             } else {
                 (y_at(lo), y_at(hi))
             };
-            for j in cell(ya.min(yb) - EPS, self.ny)..=cell(ya.max(yb) + EPS, self.ny) {
+            for j in cell(ya.min(yb) - eps, self.ny)..=cell(ya.max(yb) + eps, self.ny) {
                 if visit(&self.cells[j * self.nx + i]) {
                     return true;
                 }
@@ -383,7 +396,7 @@ impl PropIndex {
     /// Candidate ids in the buckets the XY projection of the segment crosses
     /// (every prop a segment's hit could lie in), ascending.
     pub fn along(&self, a: V2, b: V2, out: &mut Vec<PropId>) {
-        self.buckets_crossed(a, b, |entries| {
+        self.buckets_crossed(a, b, 0.0, |entries| {
             out.extend(entries.iter().map(|e| e.id));
             false
         });
@@ -612,14 +625,20 @@ impl PropStore {
         self.ids(out, |index, out| index.along(a, b, out));
     }
 
-    pub fn any_along(&self, a: V2, b: V2, mut hit: impl FnMut(PropId) -> bool) -> bool {
+    pub fn any_along(
+        &self,
+        a: V2,
+        b: V2,
+        margin: f64,
+        mut hit: impl FnMut(PropId) -> bool,
+    ) -> bool {
         match &self.own {
-            None => self.shared.index.any_along(a, b, hit),
+            None => self.shared.index.any_along(a, b, margin, hit),
             Some(own) => {
                 self.shared
                     .index
-                    .any_along(a, b, |id| !own.props.contains_key(&id) && hit(id))
-                    || own.index.any_along(a, b, hit)
+                    .any_along(a, b, margin, |id| !own.props.contains_key(&id) && hit(id))
+                    || own.index.any_along(a, b, margin, hit)
             }
         }
     }
@@ -775,8 +794,8 @@ mod query_tests {
                 assert_eq!(got, want, "along {p:?} {q:?}");
                 for id in 0..8 {
                     assert_eq!(
-                        store.any_along(p, q, |i| i == id),
-                        whole.any_along(p, q, |i| i == id),
+                        store.any_along(p, q, 0.0, |i| i == id),
+                        whole.any_along(p, q, 0.0, |i| i == id),
                         "any along {p:?} {q:?} meeting {id}"
                     );
                 }

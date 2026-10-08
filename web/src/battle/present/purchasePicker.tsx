@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import type { Faction, UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
 import { cardIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
@@ -9,18 +10,10 @@ interface PickerProps {
   match: SkirmishView;
   onChoose: (variant: string) => void;
   onReady: () => void;
-  onCancelPending: (id: number) => void;
 }
 const CATEGORIES: readonly UnitCategory[] = ["rec", "inf", "veh", "sup", "hel", "air"];
 /** Catalog families organize browsing; only a concrete available variant starts placement. */
-export function PurchasePicker({
-  cards,
-  faction,
-  match,
-  onChoose,
-  onReady,
-  onCancelPending,
-}: PickerProps) {
+export function PurchasePicker({ cards, faction, match, onChoose, onReady }: PickerProps) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<UnitCategory>("rec");
   const [family, setFamily] = useState<string | null>(null);
@@ -48,19 +41,22 @@ export function PurchasePicker({
         <span className="hud-credits" aria-label="Credits">
           {Math.floor(match.credits)} CR
         </span>
-        <span aria-label="Unit slots">
-          {match.occupiedSlots}/{match.maxUnits}
-        </span>
-        {match.phase === "preparation" && (
-          <button
-            type="button"
-            className="hud-menu-choice"
-            disabled={match.ready[0]}
-            onClick={onReady}
-          >
-            {match.ready[0] ? "Ready" : "Ready for battle"}
-          </button>
-        )}
+        {match.phase === "preparation" &&
+          createPortal(
+            <div className="hud hud-ready-layer">
+              <div className="hud-panel hud-ready-panel">
+                <button
+                  type="button"
+                  className="hud-menu-choice hud-purchase-ready"
+                  disabled={match.ready[0]}
+                  onClick={onReady}
+                >
+                  {match.ready[0] ? "READY" : "START BATTLE"}
+                </button>
+              </div>
+            </div>,
+            document.body,
+          )}
       </div>
       {open && (
         <section className="hud-panel hud-purchase-picker" aria-label="Faction units">
@@ -161,23 +157,6 @@ export function PurchasePicker({
             </div>
           )}
         </section>
-      )}
-      {match.pending.length > 0 && (
-        <div className="hud-purchase-pending" role="group" aria-label="Incoming units">
-          {match.pending.map((p) => (
-            <button
-              type="button"
-              key={p.id}
-              className="hud-menu-choice"
-              disabled={finished}
-              onClick={() => onCancelPending(p.id)}
-              aria-label={`Cancel incoming ${available.find((c) => c.id === p.kind)?.name ?? p.kind}`}
-            >
-              <span>{available.find((c) => c.id === p.kind)?.name ?? p.kind}</span>
-              <small>{p.blocked ? "Entry blocked" : "Incoming"} · Cancel</small>
-            </button>
-          ))}
-        </div>
       )}
     </div>
   );
