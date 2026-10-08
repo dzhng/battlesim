@@ -115,7 +115,7 @@ TODO:
 - [x] [13 Materials](slices/13-materials.md): material roles, black tyres, dark glass, real-nation paint on every current model.
 - [x] [14 Pilot](slices/14-pilot.md): Abrams, Stryker, HMMWV (real frame), rifle squad; class budgets measured and fixed.
 - [ ] [15 Tracked lane](slices/15-tracked.md)
-- [ ] [16 Wheeled, light and trucks lane](slices/16-wheeled.md)
+- [x] [16 Wheeled, light and trucks lane](slices/16-wheeled.md)
 - [x] [17 Infantry lane](slices/17-infantry.md)
 - [ ] [18 Disabled cards lanes](slices/18-disabled-cards.md): models, wrecks and icons, still unplayable.
 - [ ] [19 Closeout](slices/19-closeout.md): full check and verify once, balance report, close-spec.
