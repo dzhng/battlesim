@@ -94,8 +94,10 @@ def turret(v, turret, gun, hmg, hmg_gun):
             box(f"cheek_block_{s}_{k}", (0.70 - k * 0.12, 0.32, 0.40), (1.15 - k * 0.20, side * (0.55 + k * 0.30),
                                                                         base + 0.42), m["paint"], turret, bevel=0.04,
                 rot=(0, 0.25, side * (0.35 + k * 0.10)))
-        VP.armour_tiles(f"side_tiles_{s}", (-0.30, side * 1.21, base + 0.38), (1.60, 0.50), (4, 1), 0.08, m, turret,
-                        rot=(-side * math.pi / 2, 0, 0))
+        # Tiles on the turret's leaning flank: the shell's side at x -0.30,
+        # from its foot ring to its crown ring.
+        loc, rot = VP.on_side(-0.30, base + 0.38, side, (1.179, base + 0.04), (1.077, top))
+        VP.armour_tiles(f"side_tiles_{s}", loc, (1.60, 0.50), (4, 1), 0.08, m, turret, rot=rot)
         VP.smoke_discharger_bank(f"smoke_{s}", (0.10, side * 1.10, top - 0.05), m, turret, count=4, tube_radius=0.045,
                                  tube_length=0.20, elevation=0.4, spread=0.4, rot=(0, 0, side * 1.1))
         whip = empty(f"dressing_antenna_{s}", parent=turret)
