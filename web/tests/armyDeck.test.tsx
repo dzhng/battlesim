@@ -218,7 +218,7 @@ test("pending reinforcements reuse dimmed vertical cards with deployment hover t
       pending={[
         {
           id: 41,
-          kind: "tank",
+          kind: "test_tank",
           destination: [10, 12],
           confirmedTick: 0,
           blocked: false,
