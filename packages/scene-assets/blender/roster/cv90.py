@@ -188,4 +188,5 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-run("cv90", "swedish_splinter", build, wreck, chip=1.0)
+if __name__ == "__main__":
+    run("cv90", "swedish_splinter", build, wreck, chip=1.0)
