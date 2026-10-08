@@ -28,14 +28,19 @@ SPEC = dict(
     fuselage=[(7.77, 0.0, 1.95, 1.95), (7.3, 0.32, 1.68, 2.2, 1.95), (6.2, 0.52, 1.5, 2.42, 1.95, 2.2),
               (5.0, 0.6, 1.45, 2.62, 1.98, 2.4), (3.5, 0.65, 1.45, 2.64, 2.0, 2.6), (1.0, 0.65, 1.5, 2.52, 2.0, 2.6),
               (-2.0, 0.55, 1.6, 2.42, 2.0, 2.4), (-5.0, 0.4, 1.75, 2.32, 2.02, 2.2), (-7.4, 0.2, 1.9, 2.22, 2.05)],
-    canopy=dict(x_front=5.6, x_back=4.0, sill=2.6, top=3.06, half_width=0.4, bows=(4.4,), peak=0.5),
+    canopy=dict(x_front=5.6, x_back=4.0, sill=2.6, top=3.06, half_width=0.4, bows=(4.4,), peak=0.5, tail=0.75),
+    # The spine the canopy fairs into, back to the fin.
+    bodies=[("fuselage_spine", [(4.1, 0.34, 2.55, 2.96, 2.65, 2.4), (1.0, 0.4, 2.45, 2.7, 2.55, 2.6),
+                                (-3.8, 0.0, 2.35, 2.35)])],
+    wing_hinge=((0.75, 0, 1), 0.1),
+    nav=dict(left=(-0.9, 6.9, WING_Z), right=(-0.9, -6.9, WING_Z), tail=(-7.75, 0.0, 2.2)),
     wing=[(1.6, 1.4, WING_Z, 3.6, 0.42), (-0.6, 7.0, WING_Z - 0.2, 1.4, 0.12)],
     stab=[(-5.6, 0.3, 2.36, 1.9, 0.1), (-6.6, 2.6, 2.6, 1.0, 0.05)],
     fins=[dict(root_x=-4.2, root_z=2.3, height=2.5, root_chord=2.6, tip_chord=0.9, sweep_m=1.7)],
     intakes=[("rect", (3.08, 1.0, 1.85), 0.66, 0.78, 0.22), ("rect", (3.08, -1.0, 1.85), 0.66, 0.78, 0.22)],
     nozzles=[dict(loc=(-3.4, 1.0, 1.8), r_front=0.42, r_exit=0.38, length=0.8, petals=0),
              dict(loc=(-3.4, -1.0, 1.8), r_front=0.42, r_exit=0.38, length=0.8, petals=0)],
-    gear=[dict(name="nose", x=5.0, y=0.25, top=1.4, radius=0.33, width=0.2, door=(0.8, 0.4)),
+    gear=[dict(name="nose", x=5.0, y=0.25, top=1.4, radius=0.33, width=0.2, door=(0.8, 0.4), light=True),
           dict(name="main_L", x=0.2, y=1.25, top=1.3, radius=0.42, width=0.26),
           dict(name="main_R", x=0.2, y=-1.25, top=1.3, radius=0.42, width=0.26)],
     pylons=[((1.0, 2.4, WING_Z - 0.2), 1.0, 0.3), ((0.8, 3.3, WING_Z - 0.18), 1.0, 0.28),
@@ -59,6 +64,20 @@ def build(variant, v):
     A.mirrored(lambda side, k: box(f"wing_tip_brake_{k}", (1.4, 0.06, 0.18), (-0.9, side * 6.95, WING_Z - 0.2),
                                    m["paint"], hull, lods=MID))
     A.pitot("air_data_probe", (7.6, 0.3, 2.1), 0.8, m, hull)
+    # The photo's markings: the red star, VKS ROSSII and the serial on the
+    # fin, red stars under the wings, the red 10 on the nose.
+    A.markings(v, [
+        ("insignia", dict(kind="ru_star", centre=(-6.0, 0.4, 4.0), normal=(0, 1, 0), up=(0, 0, 1), size=0.36,
+                          onto=("tail_fin_0",))),
+        ("text", dict(text="ВКС РОССИИ", height=0.16, centre=(-5.7, 0.4, 3.45), normal=(0, 1, 0), up=(0, 0, 1),
+                      onto=("tail_fin_0",), colour="white")),
+        ("text", dict(text="RF-95120", height=0.12, centre=(-5.9, 0.4, 3.7), normal=(0, 1, 0), up=(0, 0, 1),
+                      onto=("tail_fin_0",), colour="white")),
+        *[("insignia", dict(kind="ru_star", centre=(0.0, y, WING_Z - 0.5), normal=(0, 0, -1), up=(1, 0, 0),
+                            size=0.6, onto=("wing_",), mirror=False)) for y in (4.6, -4.6)],
+        ("text", dict(text="10", height=0.5, centre=(4.8, 1.0, 2.05), normal=(0, 1, 0), up=(0, 0, 1),
+                      onto=("fuselage",), colour="red")),
+    ])
 
 
 def wreck(variant, v):
