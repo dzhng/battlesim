@@ -48,9 +48,16 @@ DECK = 1.48
 ROOF = 0.86
 TRUNNION = 1.55
 # The turret's foot, front to rear, left half: the gun shield's recess, the
-# swept cheek face, the side and the bustle.
-TURRET_PLAN = [(1.45, 0.0), (1.45, 0.40), (2.18, 0.44), (1.40, 1.55), (0.55, 1.60), (-1.80, 1.60), (-2.05, 1.48),
-               (-2.62, 1.36), (-2.62, 0.0)]
+# cheek's broad flat face angled back 15 degrees (photos: front, three-quarter
+# front), its outer corner cut, the side and the bustle.
+CHEEK = [(1.95, 0.44), (1.70, 1.38), (1.48, 1.58)]
+TURRET_PLAN = [(1.45, 0.0), (1.45, 0.40), *CHEEK, (0.55, 1.60), (-1.80, 1.60), (-2.05, 1.48), (-2.62, 1.36),
+               (-2.62, 0.0)]
+CHEEK_CHAMFER = 0.22  # how far the cheeks' top edge sits back of their face
+# The skirts hang flush with the sponsons' sides: the hull's upper half is as
+# wide as their inner faces (the thicker front panels sink into it).
+SKIRT_FACE = SKIRT_Y + 0.035  # their outer face
+SPONSON = SKIRT_FACE - 0.07
 
 
 def glacis_z(x):
@@ -89,7 +96,7 @@ def hull_body(v, sep_v3):
     m, hull = v.mats, v.hull
     half = v.length / 2
     prism("hull_upper", [(-half, 0.98), (3.60, 0.98), (half, 1.08), (2.25, 1.44), (-3.80, DECK), (-half, 1.40)],
-          3.40, mat=m["paint"], parent=hull, bevel=0.035)
+          2 * SPONSON, mat=m["paint"], parent=hull, bevel=0.035)
     prism("hull_lower", [(-3.80, 0.46), (2.85, 0.46), (3.92, 1.0), (-3.95, 1.0)], 2.10, mat=m["paint"], parent=hull,
           bevel=0.03)
     # Glacis: the driver's hatch at its head, three periscopes in a row ahead.
@@ -174,11 +181,11 @@ def skirts(v):
     for side, s in ((1, "L"), (-1, "R")):
         for k, outline in enumerate(panels):
             thick = 0.10 if k < 2 else 0.07
-            y = side * (SKIRT_Y + 0.035 - thick / 2)
+            y = side * (SKIRT_FACE - thick / 2)
             prism(f"skirt_{s}_{k}", outline, thick, loc=(0, y, 0), mat=m["paint"], parent=hull, bevel=0.018)
             xs = [p[0] for p in outline]
             mid = (min(xs) + max(xs)) / 2
-            face = side * (SKIRT_Y + 0.035)
+            face = side * SKIRT_FACE
             box(f"skirt_handle_{s}_{k}", (0.12, 0.03, 0.035), (mid, face + side * 0.012, SKIRT_TOP - 0.10), m["dark"],
                 hull, lods=FINE)
             for j in range(3):
@@ -186,7 +193,7 @@ def skirts(v):
                 cyl(f"skirt_bolt_{s}_{k}_{j}", 0.02, 0.02, (bx, face + side * 0.006, SKIRT_TOP - 0.04), "Y", m["steel"],
                     hull, seg=6, lods=FINE)
         # The tactical chevron and number on the third panel.
-        stencil(f"skirt_number_{s}", "< 32" if side > 0 else "32 >", 0.30, (1.07, side * (SKIRT_Y + 0.037), 1.02),
+        stencil(f"skirt_number_{s}", "< 32" if side > 0 else "32 >", 0.30, (1.07, side * (SKIRT_FACE + 0.002), 1.02),
                 (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], hull)
 
 
@@ -205,7 +212,7 @@ def turret_shell():
                 yy = y * 0.93 if a > 0.6 else y
                 xx = x - 0.04 if x > 1.0 and a > 0.42 else x
             elif z == ROOF:  # the roof: cheeks swept back, sides leaning in
-                xx = x - (0.30 if x > 1.0 and a > 0.42 else 0.05 if x > -2.0 else -0.02)
+                xx = x - (CHEEK_CHAMFER if x > 1.0 and a > 0.42 else 0.05 if x > -2.0 else -0.02)
                 yy = y if a <= 0.44 else math.copysign(a - 0.10, y)
                 if x < -2.5:
                     xx = x + 0.06
@@ -241,16 +248,13 @@ def turret_body(v, turret, trophy):
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=turret)
         VP.antenna(f"antenna_{s}", (-2.05, side * 1.18, ROOF), m, whip, height=2.2)
-        VP.weld_line(f"cheek_weld_{s}", [(1.88, side * 0.46, ROOF + 0.002), (1.10, side * 1.43, ROOF + 0.002)], m,
-                     turret)
-        # The cheek's side face in two bolted armour plates, chunky edges.
-        for k, (x, length) in enumerate(((0.99, 0.72),)):
-            box(f"cheek_plate_{s}_{k}", (length, 0.04, 0.48), (x, side * 1.585, 0.42), m["paint"], turret,
-                bevel=0.015, lods=MID)
-            for j in range(4):
-                cyl(f"cheek_bolt_{s}_{k}_{j}", 0.022, 0.02, (x + (j % 2 - 0.5) * (length - 0.12), side * 1.61,
-                                                             0.42 + (j // 2 - 0.5) * 0.36), "Y", m["steel"],
-                    turret, seg=6, lods=FINE)
+        (x0, y0), (x1, y1) = CHEEK[0], CHEEK[1]
+        VP.weld_line(f"cheek_weld_{s}", [(x0 - CHEEK_CHAMFER, side * (y0 + 0.02), ROOF + 0.002),
+                                         (x1 - CHEEK_CHAMFER, side * (y1 - 0.06), ROOF + 0.002)], m, turret)
+        # The cheek's side face: a bolted armour plate lying on the side,
+        # which leans in from the foot's top to the roof.
+        loc, rot = VP.on_side(0.99, 0.42, side, (1.60, 0.16), (1.50, ROOF))
+        VP.bolted_panel(f"cheek_plate_{s}", loc, (0.72, 0.48, 0.04), m, turret, bolts=(2, 2), rot=rot, bevel=0.015)
         # Side stowage along the bustle sides, a rail over it.
         box_y = side * 1.71
         VP.stowage_box(f"side_bin_{s}", (-1.15, box_y, 0.26), (1.55, 0.22, 0.42), m, turret,
