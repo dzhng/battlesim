@@ -16,7 +16,9 @@ turret with its 30 mm, the Spike launcher on its left cheek and the
 commander's panoramic sight on a mast.
 
 Built to the catalog frames (hull 7.93 x 2.99 m; 2.38 m for the APC, 3.63 m
-for the RCT30 with its turret): nothing here moves them.
+for the RCT30 with its turret): nothing here moves them. `drive` is the one
+Boxer hull: the Skyranger 30 (`air_defence.py`) stands its turret on it, so
+this script exports only when run as one.
 """
 import math
 import os
@@ -43,10 +45,12 @@ def glacis_z(x):
     return SHELF + 0.08 + (ROOF - SHELF - 0.08) * (NOSE - 0.08 - x) / (NOSE - 0.08 - GLACIS_TOP)
 
 
-def build(variant, v):
+def drive(v):
+    """The Boxer up to its roof (`ROOF`): the narrow lower hull between the
+    wheels, the nose plate, the full-width upper hull on its fender shelf,
+    the running gear and the hull's fittings; no roof hatches, which differ
+    by mission module."""
     m, hull = v.mats, v.hull
-    # The narrow lower hull between the wheels, the nose plate, then the
-    # full-width upper hull on its fender shelf.
     loft("boxer_lower", [(0.55, VP.hull_plan(-3.60, 3.30, 0.92, 0.25)),
                          (SHELF - 0.02, VP.hull_plan(-3.90, NOSE, 0.95, 0.30))], mat=m["paint"], parent=hull, bevel=0.04)
     loft("boxer_upper", [(SHELF - 0.02, VP.hull_plan(-3.94, NOSE, 1.48, 0.45)),
@@ -54,6 +58,10 @@ def build(variant, v):
                          (ROOF, VP.hull_plan(-3.90, GLACIS_TOP, 1.42, 0.35))], mat=m["paint"], parent=hull, bevel=0.05)
     wheels(v)
     fittings(v)
+
+
+def build(variant, v):
+    drive(v)
     mounts = rig(v.frame, v.root)
     if "rct30" in variant["id"]:
         turret, gun, _, _ = mounts["autocannon"]
@@ -250,4 +258,5 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-run("boxer", "german_three_tone", build, wreck, chip=0.6)
+if __name__ == "__main__":
+    run("boxer", "german_three_tone", build, wreck, chip=0.6)

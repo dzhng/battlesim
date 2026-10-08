@@ -16,9 +16,8 @@ What the photos settle:
   combat module on the rear: the search radar's box on top, the tracking
   radar on its front, a twin 30 mm gun each side and six missile tubes in
   two packs of three outside them.
-- Skyranger 30 on Boxer (German three-tone): the Boxer drive module's eight
-  big wheels and sloped nose, the mission module's high flat sides, the
-  turret with its 30 mm KCE gun, the search radar panels round its top and
+- Skyranger 30 on Boxer (German three-tone): the Boxer's own hull
+  (`boxer.drive`, the wheeled lane's), the turret with its 30 mm KCE gun, the search radar panels round its top and
   a missile launcher box on its side.
 - NASAMS 3 (Norway's, NATO green): the canister launcher on its two-axle
   trailer, six AMRAAM canisters in two rows on the turntable, stowed flat,
@@ -35,8 +34,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import boxer  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, loft, prism  # noqa: E402
+from parts import box, cyl, loft, prism  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
 from vehicle_export import run_disabled  # noqa: E402
 
@@ -178,34 +178,10 @@ def pantsir(v):
                    rot=(0, 0, math.pi / 2))
 
 
-def boxer_drive(v, roof):
-    """The Boxer: eight big wheels in two pairs, the sloped nose, the
-    mission module's high flat sides."""
-    m, h = v.mats, v.hull
-    belt = 1.15
-    plan = VP.hull_plan
-    loft("boxer_hull", [(0.55, plan(-3.75, 3.30, 1.05, 0.25)), (belt, plan(-3.95, 3.95, 1.45, 0.45)),
-                        (belt + 0.20, plan(-3.95, 3.55, 1.48, 0.40)), (roof, plan(-3.90, 2.20, 1.40, 0.30))],
-         mat=m["paint"], parent=h, bevel=0.04)
-    for side, s in ((1, "L"), (-1, "R")):
-        for k, x in enumerate((2.65, 1.20, -1.30, -2.75)):
-            VP.tyre_wheel(f"wheel_{s}_{k + 1}", (x, side * 1.20, 0.62), 0.62, 0.42, side, m, h, rim_radius=0.34,
-                          ctis=True)
-        VP.light_with_guard(f"headlight_{s}", (3.65, side * 1.10, belt - 0.05), 0.06, m, h)
-        VP.tow_hook(f"front_tow_{s}", (3.92, side * 0.55, 0.95), m, h, size=0.12)
-        for k in range(3):
-            VP.stowage_box(f"side_bin_{s}_{k}", (-0.6 - k * 0.95, side * 1.50, belt + 0.20), (0.85, 0.10, 0.55), m, h,
-                           rot=(0, 0, 0 if side > 0 else math.pi))
-        VP.mudflap(f"mudflap_{s}", (-3.50, side * 1.20, 1.05), (0.42, 0.45), m, h)
-    VP.hatch("driver_hatch", (2.55, 0.55, roof - 0.15), m, h, radius=0.26, rot=(0, 0.30, 0))
-    VP.grille("engine_grille", (2.95, -0.50, belt + 0.45), (0.80, 0.70), m, h, slats=8, rot=(0, 0.45, 0))
-    VP.bolted_panel("rear_door", (-3.97, 0, 0.95), (0.05, 1.0, 1.05), m, h, bolts=(1, 3), bevel=0.015, lods=VP.ALL)
-
-
 def skyranger(v):
     m, h = v.mats, v.hull
-    roof = 2.37
-    boxer_drive(v, roof)
+    roof = boxer.ROOF
+    boxer.drive(v)
     x = -0.80
     cyl("turret_ring", 0.95, 0.10, (x, 0, roof + 0.05), "Z", m["dark"], h, seg=32, lods=MID)
     loft("turret_shell", [(roof + 0.08, _round(x, 0, 1.00, 0.95, 8)), (roof + 0.75, _round(x - 0.10, 0, 0.80, 0.78, 8))],
@@ -222,8 +198,6 @@ def skyranger(v):
         cyl(f"missile_cap_{i}", 0.09, 0.01, (x + 0.66, -1.05 + (i - 0.5) * 0.20, roof + 0.55), "X", m["dark"], h,
             seg=12, lods=MID)
     VP.sight_housing("eo_sensor", (x - 0.20, 0.45, roof + 0.75), m, h, size=(0.34, 0.30, 0.30))
-    whip = empty("dressing_antenna", parent=h)
-    VP.antenna("antenna", (-3.6, 1.0, roof), m, whip, height=2.4)
 
 
 def nasams(v):
@@ -273,7 +247,7 @@ def wreck(variant, v):
     m = v.mats
     remove("track_R_band", "wheel_R_1_", "wheel_R_2_", "skirt_R", "search_radar", "canister_cap_", "missile_cap_",
            "missile_tube_R_2", "canister_1_2", "radar_dome", "side_bin_R_", "mudflap_R", "windscreen")
-    shell = parts("hull_upper", "hull_lower", "turret_shell", "boxer_hull", "module_body", "cab_body",
+    shell = parts("hull_upper", "hull_lower", "turret_shell", "boxer_upper", "boxer_lower", "module_body", "cab_body",
                   "radar_housing", "canister_")
     densify(shell, scale=2.0)
     warp(shell, heat(0.025, 0.8, seed=81.0), dent((0.0, -1.2, 1.6), 0.6, 0.12, (0, 1, -0.2)))
