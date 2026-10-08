@@ -532,11 +532,15 @@ function blender(args) {
     return 1;
   }
   const [script, ...rest] = args;
+  // One thread: Blender's threaded evaluation (tangents among it) differs in the
+  // last float bit between runs, and a source must export byte for byte the same.
   const run = spawnSync(
     BLENDER,
     [
       "-b",
       "--factory-startup",
+      "--threads",
+      "1",
       "--python-exit-code",
       "1",
       "--python",
