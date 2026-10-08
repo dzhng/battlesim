@@ -59,6 +59,10 @@ def build(variant, v):
             box(f"bench_{k}", (1.4, 0.55, 0.06), (0.6, side * 1.2, 0.68), m["dark"], hull, bevel=0.01)
             box(f"bench_strut_{k}", (0.06, 0.5, 0.06), (1.1, side * 1.05, 0.6), m["dark"], hull, lods=NEAR)
 
+    # The 160th's near-bare black: U.S. ARMY on the boom.
+    A.markings(v, [
+        ("text", dict(text="U.S. ARMY", height=0.12, centre=(-2.6, 1.2, 1.32), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+    ])
 
 def wreck(variant, v):
     A.crash(v, tail_x=-1.6, tail_yaw=0.5, tail_drop=0.12, blades_broken=(("main", 2),), seed=6)
