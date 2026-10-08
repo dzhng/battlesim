@@ -1,0 +1,62 @@
+{
+ "entries": [
+  {
+   "file": "eastern_mi_28_havoc_mi_28nm-three_quarter_front.jpg",
+   "variant": "eastern_mi_28_havoc_mi_28nm",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mi-28NM_at_Dubai_Airshow_2021.jpg",
+   "author": "Mztourist",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "d59b57ae7072cd4580fbbdd7c2a41ef67e596714028b2da7ad47460e12aebf34",
+   "note": "Mi-28NM front three-quarter static: mast radar dome, nose sensors, chin cannon, stub wing stores"
+  },
+  {
+   "file": "eastern_mi_28_havoc_mi_28nm-side.jpg",
+   "variant": "eastern_mi_28_havoc_mi_28nm",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Russian_Air_Force,_731,_Mil_Mi-28NM_(51528336135).jpg",
+   "author": "Anna Zvereva",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "4cd3c926bbe27b6ecd8be3d49b2791d829299a5f13d0eafe17ed56e822af2ed4",
+   "note": "Mi-28NM left side in flight: mast radar, stepped cockpits, X tail rotor"
+  },
+  {
+   "file": "eastern_mi_28_havoc_mi_28nm-front.jpg",
+   "variant": "eastern_mi_28_havoc_mi_28nm",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MAKS2015part5-38.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "71e73a22ecf2a2f087df35a140c577d54155dcd376c6a2979b9cf7a1bfb601d1",
+   "note": "Mi-28NM head-on static at Army forum"
+  },
+  {
+   "file": "eastern_mi_28_havoc_mi_28nm-side-2.jpg",
+   "variant": "eastern_mi_28_havoc_mi_28nm",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MAKS2015part5-37.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "19c4627034ae77ee3edb999bdc86e3b4f21001bb14551b782c927e43e431ca65",
+   "note": "Mi-28NM left side static"
+  },
+  {
+   "file": "eastern_mi_28_havoc_mi_28nm-detail.jpg",
+   "variant": "eastern_mi_28_havoc_mi_28nm",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Mil_Mi-28N_Havoc_(c_n_34012843262)_(8585416502).jpg",
+   "author": "Alan Wilson",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "c2be186c6afb1dd10ac5ade4e2d4b08f33bb3fc4192e249289bf263c3a3f4371",
+   "note": "Mi-28 chin cannon and wheel close up"
+  }
+ ],
+ "gaps": [
+  "eastern_mi_28_havoc_mi_28nm: no rear or top view; the cannon detail is a Mi-28N (same mount)"
+ ]
+}

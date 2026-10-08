@@ -150,7 +150,7 @@
       "id": "eastern_mi_28_havoc_mi_28nm",
       "family": "mi_28_havoc",
       "category": "hel",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "mi_28_havoc",
       "source_kind": "rotorcraft",
       "disabled_reason": "Helicopter movement, combat and transport mechanics deferred",
