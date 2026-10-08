@@ -2,7 +2,8 @@
 
 These scripts make committed source art; they are not part of game startup or
 ordinary bundle baking. [The asset CLI](../../../web/asset.mjs) launches headless
-Blender and checks the pinned version. Set `BLENDER` to another installation path
+Blender on one thread and checks the pinned version: an export must repeat byte
+for byte, and Blender's threaded evaluation does not. Set `BLENDER` to another installation path
 when needed; that changes the executable location, not the accepted version.
 Exporter arguments are the source script's own usage text and follow Blender's
 argument separator through the CLI.
@@ -73,6 +74,8 @@ from its references. `vehicle_export.run_disabled` builds it to that frame
 (leaving out what `skip` names: dressing, guns, rotor blades), and records the
 frame's source in the family's receipt beside the cards' GLBs (in
 `assets/source/roster/disabled/`, or the ground cards' own family folders).
+Every receipt hashes each script the export loaded and names the reference
+library of its source's folder (a manifest entry's `source_family`).
 A stated frame has no mounts; a turreted card whose script states its own
 pivots and muzzles from the photos rigs them for the art alone, so its turret traverses and its wreck throws
 it, while nothing in the simulation reads them until the card's mechanics
