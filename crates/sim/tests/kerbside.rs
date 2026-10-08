@@ -554,7 +554,10 @@ fn a_long_truck_pulls_up_beside_parked_cars_where_it_was_sent() {
 fn a_hull_at_its_drives_limits_drives_a_lane_a_little_wider_than_itself() {
     let mut rules = common::scenario_rules();
     sim::fixtures::with_units_at_limits(&mut rules);
-    for (kind, drive) in [("test_limit_tracked", "tracked"), ("test_limit_wheeled", "wheeled")] {
+    for (kind, drive) in [
+        ("test_limit_tracked", "tracked"),
+        ("test_limit_wheeled", "wheeled"),
+    ] {
         let [half_width, half_length] = ["half_width_m", "half_length_m"]
             .map(|k| rules["hull_limits"][drive][k].as_f64().unwrap());
         let bearing = 30f64.to_radians();

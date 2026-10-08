@@ -118,7 +118,6 @@ test("an unavailable family shows its card's silhouette, marked unavailable and 
       match={match}
       onChoose={choose}
       onReady={vi.fn()}
-      onCancelPending={vi.fn()}
     />,
   );
   fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
