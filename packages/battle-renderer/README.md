@@ -30,7 +30,10 @@ since the simulation gives it no body. A hull the side watched die cooks off
 its turret thrown, both pieces of its own unit's wreck (a wreck is drawn as the
 unit it names, never by the nearest footprint), until they lie where the wreck has
 them and the whole wreck takes over without a seam. A wreck without detachable
-pieces jolts as one body. Every watched vehicle keeps its last live appearance
+pieces jolts as one body. What the blast throws clear (the wreck's `debris`
+state) lies wider than the box the simulation keeps as cover, so it does not
+stay: it lies still for a while, then sinks into the ground and is gone, while
+the wreck never fades; a wreck found later has none. Every watched vehicle keeps its last live appearance
 until the blast and follows its roll to the resting wreck; a wreck found
 later is simply there. A map's region (its `regional_family`) is a
 look, never physics: the biome's paved rows take that region's own finish through

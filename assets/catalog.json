@@ -460,7 +460,8 @@
       "states": {
         "default": "assets/source/test/tank_wreck.glb",
         "hull": "assets/source/test/tank_wreck_hull.glb",
-        "turret": "assets/source/test/tank_wreck_turret.glb"
+        "turret": "assets/source/test/tank_wreck_turret.glb",
+        "debris": "assets/source/test/tank_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -476,7 +477,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/test/supply_truck_wreck.glb"
+        "default": "assets/source/test/supply_truck_wreck.glb",
+        "debris": "assets/source/test/supply_truck_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -492,7 +494,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/test/jeep_wreck.glb"
+        "default": "assets/source/test/jeep_wreck.glb",
+        "debris": "assets/source/test/jeep_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2058,7 +2061,8 @@
       "states": {
         "default": "assets/source/roster/zbl08/eastern_zbl_08_wheeled_ifv_wreck.glb",
         "hull": "assets/source/roster/zbl08/eastern_zbl_08_wheeled_ifv_wreck_hull.glb",
-        "turret": "assets/source/roster/zbl08/eastern_zbl_08_wheeled_ifv_wreck_turret.glb"
+        "turret": "assets/source/roster/zbl08/eastern_zbl_08_wheeled_ifv_wreck_turret.glb",
+        "debris": "assets/source/roster/zbl08/eastern_zbl_08_wheeled_ifv_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2085,7 +2089,8 @@
       "states": {
         "default": "assets/source/roster/lav/us_lav_lav_25a2_wreck.glb",
         "hull": "assets/source/roster/lav/us_lav_lav_25a2_wreck_hull.glb",
-        "turret": "assets/source/roster/lav/us_lav_lav_25a2_wreck_turret.glb"
+        "turret": "assets/source/roster/lav/us_lav_lav_25a2_wreck_turret.glb",
+        "debris": "assets/source/roster/lav/us_lav_lav_25a2_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2110,7 +2115,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/lav/us_lav_lav_at_wreck.glb"
+        "default": "assets/source/roster/lav/us_lav_lav_at_wreck.glb",
+        "debris": "assets/source/roster/lav/us_lav_lav_at_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2138,7 +2144,8 @@
       "states": {
         "default": "assets/source/roster/bradley/us_m2_bradley_ifv_m2a4_wreck.glb",
         "hull": "assets/source/roster/bradley/us_m2_bradley_ifv_m2a4_wreck_hull.glb",
-        "turret": "assets/source/roster/bradley/us_m2_bradley_ifv_m2a4_wreck_turret.glb"
+        "turret": "assets/source/roster/bradley/us_m2_bradley_ifv_m2a4_wreck_turret.glb",
+        "debris": "assets/source/roster/bradley/us_m2_bradley_ifv_m2a4_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2166,7 +2173,8 @@
       "states": {
         "default": "assets/source/roster/bradley/us_m3_bradley_cfv_m3a3_wreck.glb",
         "hull": "assets/source/roster/bradley/us_m3_bradley_cfv_m3a3_wreck_hull.glb",
-        "turret": "assets/source/roster/bradley/us_m3_bradley_cfv_m3a3_wreck_turret.glb"
+        "turret": "assets/source/roster/bradley/us_m3_bradley_cfv_m3a3_wreck_turret.glb",
+        "debris": "assets/source/roster/bradley/us_m3_bradley_cfv_m3a3_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2194,7 +2202,8 @@
       "states": {
         "default": "assets/source/roster/leclerc/europe_leclerc_xlr_wreck.glb",
         "hull": "assets/source/roster/leclerc/europe_leclerc_xlr_wreck_hull.glb",
-        "turret": "assets/source/roster/leclerc/europe_leclerc_xlr_wreck_turret.glb"
+        "turret": "assets/source/roster/leclerc/europe_leclerc_xlr_wreck_turret.glb",
+        "debris": "assets/source/roster/leclerc/europe_leclerc_xlr_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2219,7 +2228,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/fennek/europe_fennek_reconnaissance_vehicle_wreck.glb"
+        "default": "assets/source/roster/fennek/europe_fennek_reconnaissance_vehicle_wreck.glb",
+        "debris": "assets/source/roster/fennek/europe_fennek_reconnaissance_vehicle_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2246,7 +2256,8 @@
       "states": {
         "default": "assets/source/roster/ajax/europe_ajax_tracked_reconnaissance_vehicle_wreck.glb",
         "hull": "assets/source/roster/ajax/europe_ajax_tracked_reconnaissance_vehicle_wreck_hull.glb",
-        "turret": "assets/source/roster/ajax/europe_ajax_tracked_reconnaissance_vehicle_wreck_turret.glb"
+        "turret": "assets/source/roster/ajax/europe_ajax_tracked_reconnaissance_vehicle_wreck_turret.glb",
+        "debris": "assets/source/roster/ajax/europe_ajax_tracked_reconnaissance_vehicle_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2269,7 +2280,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/ural/eastern_ural_4320_general_resupply_wreck.glb"
+        "default": "assets/source/roster/ural/eastern_ural_4320_general_resupply_wreck.glb",
+        "debris": "assets/source/roster/ural/eastern_ural_4320_general_resupply_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2291,7 +2303,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/humvee/us_m1151_hmmwv_hmg_wreck.glb"
+        "default": "assets/source/roster/humvee/us_m1151_hmmwv_hmg_wreck.glb",
+        "debris": "assets/source/roster/humvee/us_m1151_hmmwv_hmg_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2319,7 +2332,8 @@
       "states": {
         "default": "assets/source/roster/leopard/europe_leopard_2_2a6_wreck.glb",
         "hull": "assets/source/roster/leopard/europe_leopard_2_2a6_wreck_hull.glb",
-        "turret": "assets/source/roster/leopard/europe_leopard_2_2a6_wreck_turret.glb"
+        "turret": "assets/source/roster/leopard/europe_leopard_2_2a6_wreck_turret.glb",
+        "debris": "assets/source/roster/leopard/europe_leopard_2_2a6_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2347,7 +2361,8 @@
       "states": {
         "default": "assets/source/roster/leopard/europe_leopard_2_2a7v_wreck.glb",
         "hull": "assets/source/roster/leopard/europe_leopard_2_2a7v_wreck_hull.glb",
-        "turret": "assets/source/roster/leopard/europe_leopard_2_2a7v_wreck_turret.glb"
+        "turret": "assets/source/roster/leopard/europe_leopard_2_2a7v_wreck_turret.glb",
+        "debris": "assets/source/roster/leopard/europe_leopard_2_2a7v_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2375,7 +2390,8 @@
       "states": {
         "default": "assets/source/roster/leopard/europe_leopard_2_2a8_wreck.glb",
         "hull": "assets/source/roster/leopard/europe_leopard_2_2a8_wreck_hull.glb",
-        "turret": "assets/source/roster/leopard/europe_leopard_2_2a8_wreck_turret.glb"
+        "turret": "assets/source/roster/leopard/europe_leopard_2_2a8_wreck_turret.glb",
+        "debris": "assets/source/roster/leopard/europe_leopard_2_2a8_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2403,7 +2419,8 @@
       "states": {
         "default": "assets/source/roster/challenger/europe_challenger_challenger_2_tes_wreck.glb",
         "hull": "assets/source/roster/challenger/europe_challenger_challenger_2_tes_wreck_hull.glb",
-        "turret": "assets/source/roster/challenger/europe_challenger_challenger_2_tes_wreck_turret.glb"
+        "turret": "assets/source/roster/challenger/europe_challenger_challenger_2_tes_wreck_turret.glb",
+        "debris": "assets/source/roster/challenger/europe_challenger_challenger_2_tes_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2431,7 +2448,8 @@
       "states": {
         "default": "assets/source/roster/abrams/us_m1_abrams_sep_v2_wreck.glb",
         "hull": "assets/source/roster/abrams/us_m1_abrams_sep_v2_wreck_hull.glb",
-        "turret": "assets/source/roster/abrams/us_m1_abrams_sep_v2_wreck_turret.glb"
+        "turret": "assets/source/roster/abrams/us_m1_abrams_sep_v2_wreck_turret.glb",
+        "debris": "assets/source/roster/abrams/us_m1_abrams_sep_v2_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2459,7 +2477,8 @@
       "states": {
         "default": "assets/source/roster/abrams/us_m1_abrams_sep_v2_trophy_wreck.glb",
         "hull": "assets/source/roster/abrams/us_m1_abrams_sep_v2_trophy_wreck_hull.glb",
-        "turret": "assets/source/roster/abrams/us_m1_abrams_sep_v2_trophy_wreck_turret.glb"
+        "turret": "assets/source/roster/abrams/us_m1_abrams_sep_v2_trophy_wreck_turret.glb",
+        "debris": "assets/source/roster/abrams/us_m1_abrams_sep_v2_trophy_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2487,7 +2506,8 @@
       "states": {
         "default": "assets/source/roster/abrams/us_m1_abrams_sep_v3_trophy_wreck.glb",
         "hull": "assets/source/roster/abrams/us_m1_abrams_sep_v3_trophy_wreck_hull.glb",
-        "turret": "assets/source/roster/abrams/us_m1_abrams_sep_v3_trophy_wreck_turret.glb"
+        "turret": "assets/source/roster/abrams/us_m1_abrams_sep_v3_trophy_wreck_turret.glb",
+        "debris": "assets/source/roster/abrams/us_m1_abrams_sep_v3_trophy_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2514,7 +2534,8 @@
       "states": {
         "default": "assets/source/roster/cv90/europe_cv90_cv9040c_wreck.glb",
         "hull": "assets/source/roster/cv90/europe_cv90_cv9040c_wreck_hull.glb",
-        "turret": "assets/source/roster/cv90/europe_cv90_cv9040c_wreck_turret.glb"
+        "turret": "assets/source/roster/cv90/europe_cv90_cv9040c_wreck_turret.glb",
+        "debris": "assets/source/roster/cv90/europe_cv90_cv9040c_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2541,7 +2562,8 @@
       "states": {
         "default": "assets/source/roster/cv90/europe_cv90_mk_iv_wreck.glb",
         "hull": "assets/source/roster/cv90/europe_cv90_mk_iv_wreck_hull.glb",
-        "turret": "assets/source/roster/cv90/europe_cv90_mk_iv_wreck_turret.glb"
+        "turret": "assets/source/roster/cv90/europe_cv90_mk_iv_wreck_turret.glb",
+        "debris": "assets/source/roster/cv90/europe_cv90_mk_iv_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2568,7 +2590,8 @@
       "states": {
         "default": "assets/source/roster/btr/eastern_btr_btr_82a_wreck.glb",
         "hull": "assets/source/roster/btr/eastern_btr_btr_82a_wreck_hull.glb",
-        "turret": "assets/source/roster/btr/eastern_btr_btr_82a_wreck_turret.glb"
+        "turret": "assets/source/roster/btr/eastern_btr_btr_82a_wreck_turret.glb",
+        "debris": "assets/source/roster/btr/eastern_btr_btr_82a_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2593,7 +2616,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/tigr/eastern_tigr_tigr_m_wreck.glb"
+        "default": "assets/source/roster/tigr/eastern_tigr_tigr_m_wreck.glb",
+        "debris": "assets/source/roster/tigr/eastern_tigr_tigr_m_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2621,7 +2645,8 @@
       "states": {
         "default": "assets/source/roster/t80/eastern_t_80_t_80bvm_wreck.glb",
         "hull": "assets/source/roster/t80/eastern_t_80_t_80bvm_wreck_hull.glb",
-        "turret": "assets/source/roster/t80/eastern_t_80_t_80bvm_wreck_turret.glb"
+        "turret": "assets/source/roster/t80/eastern_t_80_t_80bvm_wreck_turret.glb",
+        "debris": "assets/source/roster/t80/eastern_t_80_t_80bvm_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2644,7 +2669,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/hemtt/us_m977_hemtt_general_resupply_wreck.glb"
+        "default": "assets/source/roster/hemtt/us_m977_hemtt_general_resupply_wreck.glb",
+        "debris": "assets/source/roster/hemtt/us_m977_hemtt_general_resupply_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2669,7 +2695,8 @@
       "states": {
         "default": "assets/source/roster/type99/eastern_type_99_ztz_99a_wreck.glb",
         "hull": "assets/source/roster/type99/eastern_type_99_ztz_99a_wreck_hull.glb",
-        "turret": "assets/source/roster/type99/eastern_type_99_ztz_99a_wreck_turret.glb"
+        "turret": "assets/source/roster/type99/eastern_type_99_ztz_99a_wreck_turret.glb",
+        "debris": "assets/source/roster/type99/eastern_type_99_ztz_99a_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2694,7 +2721,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/stryker/us_m1127_stryker_rv_reconnaissance_vehicle_wreck.glb"
+        "default": "assets/source/roster/stryker/us_m1127_stryker_rv_reconnaissance_vehicle_wreck.glb",
+        "debris": "assets/source/roster/stryker/us_m1127_stryker_rv_reconnaissance_vehicle_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2719,7 +2747,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/stryker/us_stryker_m1126_icv_wreck.glb"
+        "default": "assets/source/roster/stryker/us_stryker_m1126_icv_wreck.glb",
+        "debris": "assets/source/roster/stryker/us_stryker_m1126_icv_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2744,7 +2773,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/stryker/us_stryker_m1134_atgm_wreck.glb"
+        "default": "assets/source/roster/stryker/us_stryker_m1134_atgm_wreck.glb",
+        "debris": "assets/source/roster/stryker/us_stryker_m1134_atgm_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2771,7 +2801,8 @@
       "states": {
         "default": "assets/source/roster/stryker/us_stryker_m1296_dragoon_wreck.glb",
         "hull": "assets/source/roster/stryker/us_stryker_m1296_dragoon_wreck_hull.glb",
-        "turret": "assets/source/roster/stryker/us_stryker_m1296_dragoon_wreck_turret.glb"
+        "turret": "assets/source/roster/stryker/us_stryker_m1296_dragoon_wreck_turret.glb",
+        "debris": "assets/source/roster/stryker/us_stryker_m1296_dragoon_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2799,7 +2830,8 @@
       "states": {
         "default": "assets/source/roster/puma/europe_puma_level_c_wreck.glb",
         "hull": "assets/source/roster/puma/europe_puma_level_c_wreck_hull.glb",
-        "turret": "assets/source/roster/puma/europe_puma_level_c_wreck_turret.glb"
+        "turret": "assets/source/roster/puma/europe_puma_level_c_wreck_turret.glb",
+        "debris": "assets/source/roster/puma/europe_puma_level_c_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2824,7 +2856,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/acv/us_acv_acv_p_wreck.glb"
+        "default": "assets/source/roster/acv/us_acv_acv_p_wreck.glb",
+        "debris": "assets/source/roster/acv/us_acv_acv_p_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2849,7 +2882,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/vbl/europe_vbl_machine_gun_scout_wreck.glb"
+        "default": "assets/source/roster/vbl/europe_vbl_machine_gun_scout_wreck.glb",
+        "debris": "assets/source/roster/vbl/europe_vbl_machine_gun_scout_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2877,7 +2911,8 @@
       "states": {
         "default": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok_wreck.glb",
         "hull": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok_wreck_hull.glb",
-        "turret": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok_wreck_turret.glb"
+        "turret": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok_wreck_turret.glb",
+        "debris": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_2m_berezhok_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2905,7 +2940,8 @@
       "states": {
         "default": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_3_wreck.glb",
         "hull": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_3_wreck_hull.glb",
-        "turret": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_3_wreck_turret.glb"
+        "turret": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_3_wreck_turret.glb",
+        "debris": "assets/source/roster/bmp/eastern_bmp_ifv_family_bmp_3_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2932,7 +2968,8 @@
       "states": {
         "default": "assets/source/roster/vbci/europe_vbci_infantry_fighting_vehicle_wreck.glb",
         "hull": "assets/source/roster/vbci/europe_vbci_infantry_fighting_vehicle_wreck_hull.glb",
-        "turret": "assets/source/roster/vbci/europe_vbci_infantry_fighting_vehicle_wreck_turret.glb"
+        "turret": "assets/source/roster/vbci/europe_vbci_infantry_fighting_vehicle_wreck_turret.glb",
+        "debris": "assets/source/roster/vbci/europe_vbci_infantry_fighting_vehicle_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2952,7 +2989,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/man-hx/europe_man_hx_general_resupply_wreck.glb"
+        "default": "assets/source/roster/man-hx/europe_man_hx_general_resupply_wreck.glb",
+        "debris": "assets/source/roster/man-hx/europe_man_hx_general_resupply_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -2977,7 +3015,8 @@
       "states": {
         "default": "assets/source/roster/t90/eastern_t_90_t_90m_proryv_wreck.glb",
         "hull": "assets/source/roster/t90/eastern_t_90_t_90m_proryv_wreck_hull.glb",
-        "turret": "assets/source/roster/t90/eastern_t_90_t_90m_proryv_wreck_turret.glb"
+        "turret": "assets/source/roster/t90/eastern_t_90_t_90m_proryv_wreck_turret.glb",
+        "debris": "assets/source/roster/t90/eastern_t_90_t_90m_proryv_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -3002,7 +3041,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/boxer/europe_boxer_apc_wreck.glb"
+        "default": "assets/source/roster/boxer/europe_boxer_apc_wreck.glb",
+        "debris": "assets/source/roster/boxer/europe_boxer_apc_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -3029,7 +3069,8 @@
       "states": {
         "default": "assets/source/roster/boxer/europe_boxer_rct30_wreck.glb",
         "hull": "assets/source/roster/boxer/europe_boxer_rct30_wreck_hull.glb",
-        "turret": "assets/source/roster/boxer/europe_boxer_rct30_wreck_turret.glb"
+        "turret": "assets/source/roster/boxer/europe_boxer_rct30_wreck_turret.glb",
+        "debris": "assets/source/roster/boxer/europe_boxer_rct30_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -3057,7 +3098,8 @@
       "states": {
         "default": "assets/source/roster/kf51/europe_kf51_panther_prototype_main_battle_tank_wreck.glb",
         "hull": "assets/source/roster/kf51/europe_kf51_panther_prototype_main_battle_tank_wreck_hull.glb",
-        "turret": "assets/source/roster/kf51/europe_kf51_panther_prototype_main_battle_tank_wreck_turret.glb"
+        "turret": "assets/source/roster/kf51/europe_kf51_panther_prototype_main_battle_tank_wreck_turret.glb",
+        "debris": "assets/source/roster/kf51/europe_kf51_panther_prototype_main_battle_tank_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -3085,7 +3127,8 @@
       "states": {
         "default": "assets/source/roster/t72/eastern_t_72_t_72b3_2016_wreck.glb",
         "hull": "assets/source/roster/t72/eastern_t_72_t_72b3_2016_wreck_hull.glb",
-        "turret": "assets/source/roster/t72/eastern_t_72_t_72b3_2016_wreck_turret.glb"
+        "turret": "assets/source/roster/t72/eastern_t_72_t_72b3_2016_wreck_turret.glb",
+        "debris": "assets/source/roster/t72/eastern_t_72_t_72b3_2016_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [

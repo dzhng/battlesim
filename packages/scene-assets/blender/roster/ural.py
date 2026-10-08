@@ -139,7 +139,7 @@ def wreck(variant, v):
     shell = parts("cab", "bonnet", "wing_", "cargo_body_side")
     densify(shell, scale=1.5)
     warp(shell, heat(0.025, 0.7, seed=34.0), dent((3.0, 0.0, 1.95), 0.5, -0.12, (0, 0, 1)))
-    plate("debris_0", [(-0.3, -0.2), (0.27, -0.21), (0.3, 0.15), (-0.21, 0.24)], 0.03, (-2.5, -0.5, BED_FLOOR + 0.03),
+    plate("litter_0", [(-0.3, -0.2), (0.27, -0.21), (0.3, 0.15), (-0.21, 0.24)], 0.03, (-2.5, -0.5, BED_FLOOR + 0.03),
           (0.03, 0.04, 0.9), m["paint"], v.root, curl=0.12, seed=281)
     v.root.rotation_euler = (0.03, 0.0, 0)
     v.root.location.z -= 0.04

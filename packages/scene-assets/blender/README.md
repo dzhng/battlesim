@@ -92,7 +92,12 @@ Every vehicle has its own wreck. A roster exporter given `--wreck` writes its
 vehicle's wreck beside the live one (`<appearance>_wreck.glb`, and
 `_hull`/`_turret` pieces where it has a turret to throw), burnt through
 [one helper](wreckage.py) after the family models its own damage (wheels and
-plates torn off, warped and dented hulls, debris).
+plates torn off, warped and dented hulls, litter beside the hull). The same
+helper throws debris clear of the hull from what the vehicle carries (track
+runs, wheels, hatches, doors, armour packs, stowage: `wreckage.scatter`), and
+writes it as the wreck's `debris` state (`_wreck_debris.glb`): it lies past the
+box the simulation keeps as cover, so the battle lets it sink away. A family
+names nothing `debris_*` itself.
 
 Subject exporters build vehicles, wrecks, props, trees and forest-floor material.
 Shared part, masonry, texture and damage helpers keep frame conventions and seeded
