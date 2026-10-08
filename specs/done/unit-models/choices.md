@@ -259,10 +259,11 @@ anything.
 - **The reach:** A wreck is a prop the simulation can use as cover. Debris
   drawn wider than its box would show cover that isn't there, or the box
   would have to grow, which changes cover.
-- **Verdict:** needs-user. Provisional: the debris stays inside. To reverse:
-  give wrecks a debris allowance in the validator (like dressing, flat
-  pieces only), or let the wreck footprint grow and accept the cover change.
-- **Confidence:** medium.
+- **Verdict:** decided by the user (2026-10-08): "yes, maybe debris that
+  scattered can just disappear?" Debris may scatter wider than the hull, as
+  presentation only, and fade out after it lands; the wreck's physical box
+  and cover don't grow. Not built yet: the next spec owns it (a debris
+  allowance outside the footprint check, and a fade for thrown pieces).
 
 ### The NH90's width
 
@@ -366,8 +367,9 @@ Least confident first.
   zoom in on, but disabled cards only show in the picker and the icons.
 - **The reach:** Making a card playable includes bringing its model up to
   the roster bar.
-- **Verdict:** sound.
-- **Confidence:** medium.
+- **Verdict:** overruled by the user (2026-10-08): "Disable cards needs to be
+  same detail bar - they will be implemented next". Every disabled card is to
+  be raised to the roster bar; the next spec owns that work.
 
 ### The M10 is built to 7.0 × 3.4 × 2.9 m, the middle of sources that disagree
 
