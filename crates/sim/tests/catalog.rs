@@ -83,7 +83,28 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
                 );
             }
         }
-        assert!(!entry.source_family.is_empty());
+        // Its reference library, which its receipt and review sheet name: the
+        // folder its source is in, unless that is the shared `disabled/`.
+        let folder = entry
+            .source_path
+            .trim_start_matches("assets/source/roster/")
+            .trim_start_matches("infantry/")
+            .split('/')
+            .next()
+            .unwrap_or_default();
+        assert!(
+            folder == "disabled" || folder == entry.source_family,
+            "{}: source_family {:?} is not its source's folder {folder:?}",
+            entry.id,
+            entry.source_family
+        );
+        let library = format!("assets/references/{}/references.json", entry.source_family);
+        assert!(
+            sim::fixtures::dir().parent().unwrap().join(&library).is_file(),
+            "{}: source_family {:?} has no {library}",
+            entry.id,
+            entry.source_family
+        );
         assert!(!entry.source_kind.is_empty());
         assert_eq!(Some(entry.disabled_reason.as_str()), card.disabled_reason);
         assert!(

@@ -171,11 +171,10 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
 
 def _receipt(path, script, variants, frames, references=None):
     here = Path(__file__).resolve().parent
-    sources = [here / "roster" / script, here / "vehicle_export.py", here / "vehicle_parts.py",
-               here / "vehicle_crew.py", here / "parts.py", here / "textures.py", here / "wreckage.py",
-               here / "catalog_frames.py"]
-    if "aircraft_parts" in (here / "roster" / script).read_text():
-        sources.append(here / "aircraft_parts.py")
+    # Every script of this directory the export ran: the family's own, any
+    # family script it builds on (the T-90 on the T-72's), and the shared code.
+    loaded = (Path(m.__file__).resolve() for m in list(sys.modules.values()) if getattr(m, "__file__", None))
+    sources = sorted({p for p in loaded if p.is_relative_to(here)} | {here / "roster" / script})
     family = script.removesuffix(".py")
     (REPO / path).write_text(json.dumps({
         "blender_version": bpy.app.version_string,
