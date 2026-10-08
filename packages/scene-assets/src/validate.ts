@@ -63,6 +63,8 @@ import {
   type Bundle,
   type Finding,
   type Joint,
+  type Material,
+  type MaterialRole,
   type MeshData,
   type PoseRef,
   type SkeletonClips,
@@ -317,7 +319,7 @@ export async function validateAppearance(
     const units = context.authority.units;
     const types = input.types ?? units.ids.filter((id) => units.type(id).appearance === input.name);
     findings.push(
-      ...articulatedFindings(path, nodes, tolerances),
+      ...articulatedFindings(path, nodes, materials, tolerances),
       ...types.flatMap((id) =>
         typeFindings(path, nodes, units, id, tolerances, entry.mounts ?? null),
       ),
@@ -753,25 +755,52 @@ function dressingFindings(
     : [];
 }
 
+/** Material roles that roll on the ground: a tyre turns, a track runs. */
+const ROLLING_ROLES: readonly (MaterialRole | undefined)[] = ["rubber", "track"];
+/** Nodes the renderer turns: a wheel spins, a track's belt scrolls. */
+const isRunningGear = (name: string) => name.startsWith("wheel_") || name.startsWith("track_");
+
 /** What every articulated appearance must be, whatever type draws it: on
- *  the ground, on running gear: wheels (`wheel_*`, under a track too) or an
- *  airframe's skids (`skid_*`). */
+ *  the ground, and what it rolls on there (a tyre or a track, by material
+ *  role) under running gear the renderer turns (`wheel_*`, `track_*`). What
+ *  only rests on the ground (skids, a belly, legs) needs no node. */
 function articulatedFindings(
   label: string,
   nodes: ArticulatedNode[],
+  materials: Material[],
   tolerances: Tolerances,
 ): Finding[] {
   const out: Finding[] = [];
-  if (!nodes.some((n) => n.name.startsWith("wheel_") || n.name.startsWith("skid_")))
+  const worlds = articulatedWorlds(nodes);
+  const minZ = positionsBounds(articulatedPositions(nodes, worlds, 0)).min[2];
+  out.push(...groundFindings(label, minZ, tolerances));
+  const turned = (i: number): boolean =>
+    i >= 0 && (isRunningGear(nodes[i].name) || turned(nodes[i].parent));
+  const p = vec3.create();
+  const loose = new Set<string>();
+  nodes.forEach((node, i) => {
+    if (turned(i)) return;
+    const mesh = node.tiers[0];
+    for (const draw of mesh?.draws ?? []) {
+      const role = materials[draw.material]?.role;
+      if (!ROLLING_ROLES.includes(role)) continue;
+      for (let k = draw.first; k < draw.first + draw.count; k++) {
+        const z = vec3.transformMat4(p, vec3.fromBuffer(p, mesh.positions, mesh.indices[k] * 3), worlds[i])[2];
+        if (z <= minZ + tolerances.ground_m) {
+          loose.add(`${node.name} (${role})`);
+          break;
+        }
+      }
+    }
+  });
+  if (loose.size)
     out.push(
       finding(
         "nodes.missing",
-        `${label}: no "wheel_*" (or a skid airframe's "skid_*") node`,
-        `add an empty named "wheel_*" at the part's pivot`,
+        `${label}: ${[...loose].join(", ")} rolls on the ground outside any "wheel_*" or "track_*" node`,
+        `put each tyre under an empty named "wheel_*" at its axle, and each track under its "track_*" node`,
       ),
     );
-  const minZ = positionsBounds(articulatedPositions(nodes, articulatedWorlds(nodes), 0)).min[2];
-  out.push(...groundFindings(label, minZ, tolerances));
   return out;
 }
 
@@ -862,6 +891,7 @@ export function typeFindings(
         );
     }
   } else if ("wheeled" in type.mobility) {
+    if (!nodes.some((n) => n.name.startsWith("wheel_"))) missing("wheel_*");
     // Front wheels (wheel_F*) ahead of the rear ones (wheel_R*): the hull faces +X.
     const wheelX = (row: string) =>
       nodes.filter((n) => n.name.startsWith(`wheel_${row}`)).map((n) => n.pivot[0]);

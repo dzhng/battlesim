@@ -17,10 +17,9 @@ the type its army fields, from the references:
 - Orlan-10: the high straight wing, a tractor propeller on the nose, the
   inverted-V tail, the gimbal under the belly.
 
-Each rests on the ground (on its legs, or its belly and wing tips), so the
-tier-0 contact sits at z = 0 as every appearance's does. A quadcopter's legs
-and the Lancet's rails hang from `skid_*` nodes, an airframe's gear; the
-belly-landers (Orlan-10, Switchblades, Hero, FPV) have none. No archived frame
+Each rests on the ground (on its legs or rails, or its belly and wing tips),
+so the tier-0 contact sits at z = 0 as every appearance's does; nothing it
+rests on rolls, so none of it needs a node. No archived frame
 exists: each frame is the type's published length, span and height,
 recorded as `references`. Rotors and propellers are drawn still: nothing
 here spins until a flight mechanic says how.
@@ -34,7 +33,7 @@ from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
-from parts import box, cyl, empty, loft, textured  # noqa: E402
+from parts import box, cyl, loft, textured  # noqa: E402
 from vehicle_export import run_disabled  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -125,11 +124,9 @@ def quad(v, kind):
         loft("body", [(z - H * 0.12, _oval(L * 0.30, W * 0.16)), (z + H * 0.14, _oval(L * 0.26, W * 0.13))],
              mat=body_mat, parent=h, bevel=0.006)
         gimbal("gimbal", (L * 0.28, 0, z - H * 0.12), min(L, W) * 0.12, m, h, thermal=kind.endswith("thermal"))
-        # The landing legs stand on two skid nodes (the validator's airframe gear).
         for side, s in ((1, "L"), (-1, "R")):
-            skid = empty(f"skid_{s}", parent=h)
             for k, x in enumerate((-L * 0.16, L * 0.12)):
-                box(f"leg_{s}_{k}", (0.008, 0.008, leg), (x, side * W * 0.08, leg / 2), m["carbon"], skid, lods=MID)
+                box(f"leg_{s}_{k}", (0.008, 0.008, leg), (x, side * W * 0.08, leg / 2), m["carbon"], h, lods=MID)
     # Rotors at the corners, their tips reaching the stated length and span.
     rotor = min(L, W) * 0.27
     for k, (sx, sy) in enumerate(((1, 1), (-1, 1), (-1, -1), (1, -1))):
@@ -188,8 +185,7 @@ def loitering(v, kind):
             box("tail_fin", (L * 0.08, 0.006, r * 0.9), (-L * 0.38, 0, z + r * 0.9), m["grey"], h, lods=MID)
     if lancet:
         for side, s in ((1, "L"), (-1, "R")):
-            skid = empty(f"skid_{s}", parent=h)
-            box(f"skid_rail_{s}", (L * 0.30, 0.01, z - r), (0, side * r * 0.6, (z - r) / 2), m["carbon"], skid, lods=MID)
+            box(f"skid_rail_{s}", (L * 0.30, 0.01, z - r), (0, side * r * 0.6, (z - r) / 2), m["carbon"], h, lods=MID)
 
 
 def orlan(v):

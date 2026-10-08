@@ -13,9 +13,9 @@ airframe's centre. An airframe stands on its gear (or skids) on the ground.
 
 Nodes an airframe makes, for the mechanics that will move them (deferred):
 `gear_*` (each landing gear leg, retractable) carrying its `wheel_*`
-(spinning, as a vehicle's), `skid_L`/`skid_R` (what a skid airframe stands
-on), `rotor_*` (a rotor head and its blades, turning about its local Z).
-Static parts make no empty.
+(spinning, as a vehicle's), `rotor_*` (a rotor head and its blades, turning
+about its local Z). Static parts make no empty: skids, like a belly, only
+rest on the ground; nothing rolls on them.
 
 Roles the parts read, beyond `vehicle_parts`' ('paint', 'dark', 'steel',
 'black', 'rubber', 'glass', 'lamp'), which `fit` adds to a vehicle's set:
@@ -409,10 +409,9 @@ def rotor(name, loc, radius, blades, chord, mats, parent, hub=0.3, mast=0.4, dro
 
 
 def skids(x_front, x_back, y, cross, top, mats, parent, radius=0.045):
-    """Landing skids, the nodes `skid_L` and `skid_R` (what a skid airframe
-    stands on, as a wheel is): a tube each side at `y` from `x_back` to
-    `x_front` (its toe turned up), on the ground, and the cross tubes at the
-    X positions `cross` arching up to the belly at `top`."""
+    """Landing skids, static parts: a tube each side at `y` from `x_back`
+    to `x_front` (its toe turned up), on the ground, and the cross tubes at
+    the X positions `cross` arching up to the belly at `top`."""
     def path(lod, side):
         steps = (5, 3, 2, 1)[lod]
         toe = [(x_front + 0.25 * math.sin(math.pi / 2 * j / steps), side * y,
@@ -420,8 +419,7 @@ def skids(x_front, x_back, y, cross, top, mats, parent, radius=0.045):
         return [(x_back, side * y, radius), (x_front, side * y, radius)] + toe
 
     for side, s in ((1, "L"), (-1, "R")):
-        node = empty(f"skid_{s}", parent=parent)
-        tube_part(f"skid_{s}_tube", lambda lod, side=side: path(lod, side), radius, mats["dark"], node, ALL)
+        tube_part(f"skid_{s}_tube", lambda lod, side=side: path(lod, side), radius, mats["dark"], parent, ALL)
     for k, x in enumerate(cross):
         def arch(lod, x=x):
             steps = (6, 4, 2, 2)[lod]

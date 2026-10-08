@@ -761,6 +761,8 @@ export interface TruckOptions {
   noDeployMotion?: boolean;
   /** Jack travel in metres; 0.1 puts the pads on the ground. */
   jackDrop?: number;
+  /** Tyres fixed to the body, under no `wheel_*` node. */
+  fixedWheels?: boolean;
 }
 
 /**
@@ -826,7 +828,7 @@ export function truckGlb(o: TruckOptions = {}): Uint8Array {
   const sign = o.reversed ? -1 : 1;
   const wheels = ["FL", "FR", "RL", "RR"].map((id) =>
     empty(
-      `wheel_${id}`,
+      `${o.fixedWheels ? "hub" : "wheel"}_${id}`,
       [sign * (id[0] === "F" ? 2 : -2), id[1] === "L" ? 1.2 : -1.2, 0.55],
       [
         part(`wheel_${id}_tyre`, [-0.55, -0.2, -0.55], [0.55, 0.2, 0.55]),
@@ -1085,22 +1087,43 @@ export function bakedBundle(
   });
 }
 
-/** A skid helicopter's stand-in: a fuselage block on two skid rails, each
- *  under its own `skid_L` / `skid_R` node (none with `skids` false); no
- *  wheels. */
-export function skidGlb(skids = true): Uint8Array {
+/** A skid helicopter's stand-in: a fuselage block resting on two skid rails
+ *  of painted metal; no wheels. */
+export function skidGlb(): Uint8Array {
   const b = new GltfBuilder();
   const body = tieredPart(b, "fuselage", gBox(b, [-4, -0.8, 0.3], [4, 0.8, 2.2]), LODS.length);
   const rails = ["L", "R"].map((s, k) => {
     const y = k === 0 ? 1 : -1;
-    const rail = tieredPart(
-      b,
-      `rail_${s}`,
-      gBox(b, [-2, y - 0.05, 0], [2, y + 0.05, 0.1]),
-      LODS.length,
-    );
-    return skids ? b.node({ name: `skid_${s}`, children: [rail] }) : rail;
+    return tieredPart(b, `rail_${s}`, gBox(b, [-2, y - 0.05, 0], [2, y + 0.05, 0.1]), LODS.length);
   });
   b.roots(b.node({ name: "heli", children: [body, ...rails] }));
+  return b.glb();
+}
+
+/** A cart on four rubber tyres (material role `rubber`), each tyre under
+ *  its own `wheel_*` node, or, with `spinning` false, fixed to the body. */
+export function cartGlb(spinning = true): Uint8Array {
+  const b = new GltfBuilder();
+  b.json.materials.push({
+    name: "rubber",
+    pbrMetallicRoughness: { baseColorFactor: [0.02, 0.02, 0.02, 1], metallicFactor: 0, roughnessFactor: 0.9 },
+    extras: { role: "rubber" },
+  });
+  const body = tieredPart(b, "body", gBox(b, [-2, -1, 0.5], [2, 1, 1.5]), LODS.length);
+  const tyres = [
+    ["FL", 1.5, 1],
+    ["FR", 1.5, -1],
+    ["RL", -1.5, 1],
+    ["RR", -1.5, -1],
+  ].map(([name, x, y]) => {
+    const mesh = gBox(b, [-0.4, -0.15, -0.4], [0.4, 0.15, 0.4]);
+    b.json.meshes[mesh].primitives[0].material = 1;
+    const tyre = tieredPart(b, `tyre_${name}`, mesh, LODS.length);
+    const at = g3([x as number, y as number, 0.4]);
+    return spinning
+      ? b.node({ name: `wheel_${name}`, t: at, children: [tyre] })
+      : b.node({ name: `hub_${name}`, t: at, children: [tyre] });
+  });
+  b.roots(b.node({ name: "cart", children: [body, ...tyres] }));
   return b.glb();
 }

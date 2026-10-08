@@ -51,6 +51,7 @@ import {
   blockGlb,
   panelGlb,
   skidGlb,
+  cartGlb,
   soldierGlb,
   syntheticUnits,
   tankGlb,
@@ -591,6 +592,12 @@ test("a supply truck facing backwards and missing a mast stage is caught", async
   expect(noPad.map((f) => f.message).join("\n")).toContain('no "deploy_leg_RL_pad" node');
 });
 
+test("a wheeled type's art has wheels the renderer spins", async () => {
+  expect((await truck({ fixedWheels: true })).map((f) => f.message).join("\n")).toContain(
+    'no "wheel_*" node',
+  );
+});
+
 test("a deployed pad that stops short of the ground is caught, by name", async () => {
   const short = await truck({ jackDrop: 0.05 });
   const found = short.filter((f) => f.code === "nodes.deploy_motion");
@@ -705,18 +712,19 @@ test("a soldier's faction look is another soldier on its skeleton, with no look 
   ]);
 });
 
-test("an airframe on skids stands as a vehicle on wheels does; with neither it has no running gear", async () => {
-  const judged = async (skids: boolean) =>
+test("what rolls on the ground must spin: tyres under wheel nodes; skids or a belly rest as they are", async () => {
+  const judged = async (glb: Uint8Array) =>
     (
       await validateAppearance(
         {
-          name: "heli",
-          entry: { unit: "vehicle", source: "heli.glb", basis_yaw_deg: 0 },
-          files: { "heli.glb": skidGlb(skids) },
+          name: "model",
+          entry: { unit: "vehicle", source: "model.glb", basis_yaw_deg: 0 },
+          files: { "model.glb": glb },
         },
         context,
       )
     ).findings.map((f) => f.code);
-  expect(await judged(true)).not.toContain("nodes.missing");
-  expect(await judged(false)).toContain("nodes.missing");
+  expect(await judged(skidGlb())).not.toContain("nodes.missing");
+  expect(await judged(cartGlb(true))).not.toContain("nodes.missing");
+  expect(await judged(cartGlb(false))).toContain("nodes.missing");
 });
