@@ -77,7 +77,10 @@ def hull(v):
     VP.grille("engine_grille", (-2.95, 0, DECK), (1.40, 2.20), m, h, slats=12)
     VP.bolted_panel("engine_door", (-1.75, 0, DECK), (0.80, 2.20, 0.03), m, h, bolts=(2, 3), bevel=0.01, lods=MID)
     VP.slat_armour("rear_bars", (-half + 0.03, 0, 0.75), (3.30, 0.75), m, h, rot=(0, 0, math.pi / 2))
-
+    # The rear: its tail lights in their guards.
+    for side, sd in ((1, "L"), (-1, "R")):
+        VP.light_with_guard(f"tail_light_{sd}", (-v.length / 2 - 0.02, side * (v.width / 2 - 0.7), DECK - 0.15), 0.05,
+                            dict(v.mats, lamp=v.mats["tail"]), v.hull, rot=(0, 0, math.pi))
 
 def running_gear(v):
     road_x = [2.55 - 0.98 * k for k in range(6)]
@@ -97,6 +100,7 @@ def turret(v, t, gun, hmg, hmg_gun):
     cyl("turret_ring_guard", 1.15, 0.08, (0, 0, base + 0.02), "Z", m["dark"], t, seg=40, lods=MID)
     loft("turret_shell", [(base + 0.04, foot), (base + 0.40, [(x * 0.99, y) for x, y in foot]), (top, crown)],
          mat=m["paint"], parent=t, bevel=0.04)
+    VP.roof_fittings("roof", crown, top, m, t, periscopes=((0.10, -1.05, -0.4),))
     for side, s in ((1, "L"), (-1, "R")):
         # Trophy: the radar panel and the launcher housing on each side.
         box(f"trophy_radar_{s}", (0.50, 0.08, 0.40), (0.20, side * 1.58, base + 0.55), m["dark"], t, bevel=0.02,
