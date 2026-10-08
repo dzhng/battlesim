@@ -1561,6 +1561,11 @@ family. No roster frame, mount or tolerance moved.
   rear plate, an entrenching tool and crowbar on the right fender, a bin
   on each turret flank and the IR searchlight in its guard.
 
+  The Jaguar: bolted plates down its upper hull band leaning in to the
+  roof and along the lower band leaning out under the belt (both by
+  `on_side` from its loft rings), a tow cable along the belt, a basket and
+  jerrycans on the rear plate, laser warners on the turret.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

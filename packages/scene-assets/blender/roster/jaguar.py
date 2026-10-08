@@ -78,6 +78,24 @@ def hull(v):
     for side, s in ((1, "L"), (-1, "R")):
         whip = empty(f"dressing_antenna_{s}", parent=h)
         VP.antenna(f"antenna_{s}", (-3.20, side * 0.80, ROOF), m, whip, height=2.4)
+    # The photos' bolted armour: plates down the upper band leaning in from
+    # the belt to the roof, and on the lower band leaning out under it; a
+    # tow cable along the belt, a basket and jerrycans on the rear plate.
+    upper = ((1.45, BELT + 0.25), (1.10, ROOF))
+    lower = ((1.20, BELT - 0.25), (1.49, BELT))
+    for side, s in ((1, "L"), (-1, "R")):
+        for k, x in enumerate((1.75, 0.55, -0.65, -1.85)):
+            loc, rot = VP.on_side(x, (BELT + 0.25 + ROOF) / 2, side, *upper)
+            VP.bolted_panel(f"upper_plate_{s}_{k}", loc, (1.10, 0.48, 0.04), m, h, bolts=(3, 2), rot=rot, bevel=0.015,
+                            lods=VP.ALL)
+        for k, x in enumerate((1.35, -1.35)):
+            loc, rot = VP.on_side(x, BELT - 0.13, side, *lower)
+            VP.bolted_panel(f"lower_plate_{s}_{k}", loc, (1.30, 0.20, 0.03), m, h, bolts=(4, 1), rot=rot, bevel=0.01)
+        VP.cable(f"tow_cable_{s}", [(-2.90, side * 1.47, BELT + 0.02), (-0.4, side * 1.50, BELT + 0.02),
+                                    (2.10, side * 1.47, BELT + 0.02)], m, h, radius=0.018)
+        VP.jerrycan(f"jerrycan_{s}", (-3.62, side * 0.62, 0.55), dict(m, paint=m["dark"]), h, rot=(0, 0, math.pi))
+    VP.slat_armour("rear_basket", (-3.66, 0, 1.45), (0.60, 0.35), m, h, spacing=0.10, bar=0.014,
+                   rot=(0, 0, math.pi / 2))
     # The rear tow hooks.
     for side, sd in ((1, "L"), (-1, "R")):
         VP.tow_hook(f"rear_tow_{sd}", (-v.length / 2 + 0.02, side * 0.75, 0.85), v.mats, v.hull, size=0.13,
@@ -94,6 +112,7 @@ def turret(v, t, gun, launcher, launcher_pitch):
     cyl("turret_ring", 0.95, 0.06, (0, 0, base + 0.03), "Z", m["dark"], t, seg=36, lods=MID)
     loft("t40_shell", [(base + 0.04, foot), (top, crown)], mat=m["paint"], parent=t, bevel=0.035)
     VP.roof_fittings("roof", crown, top, m, t, periscopes=((0.20, 0.45, 0.3),))
+    VP.laser_warners("laser_warner", crown, top, m, t)
     VP.sight_housing("gunner_sight", (0.35, -0.55, top - 0.02), m, t, size=(0.38, 0.28, 0.28))
     mast = empty("dressing_commander_sight", parent=t)
     cyl("commander_mast", 0.08, 0.30, (-0.50, -0.45, top + 0.15), "Z", m["dark"], mast, seg=12)
