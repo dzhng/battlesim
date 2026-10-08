@@ -1174,6 +1174,53 @@ fixed distance from the centre line while the faces they are bolted to lean.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
+## Follow-up 04: disabled ground cards at the roster bar (2026-10-08)
+
+The user overruled the lower detail of disabled cards. These are the calls
+made while raising the ground, support, drone and infantry cards, family by
+family. No roster frame, mount or tolerance moved.
+
+### A disabled card stands on the roster vehicle it is built on
+
+- **The choice:** Where a card's chassis is a roster vehicle, it uses that
+  vehicle's script instead of a look-alike. The BM-21 stands on the roster
+  Ural's `chassis` and `cab` (the Ural-375D and 4320 share the cab and frame),
+  so `ural.py` was split into `chassis`, `cab` and `body` and its export put
+  under `__main__`; the Ural's GLB re-exported byte-identical. The truck
+  chassis's `bonnet` cab, which only the BM-21 used, is gone. The armoured
+  cab-over (`truck_chassis.armoured_cab`, under the HIMARS, CAESAR and
+  Pantsir) was rebuilt to the bar: waist-high upright sides with the upper
+  sides leaning in, framed windscreens with wipers and a mullion, a bolted
+  door with its small armoured window placed with `on_side`, hinges, handle,
+  grab rail and two steps, the bolted front plate, grille, guarded lights and
+  shackles, roof hatch and marker lamps, and the dash and seats behind the
+  glass. It now spans the card's width, as the photos show, not its wheels'.
+- **Verdict:** sound. One owner per cab.
+- **Confidence:** medium.
+
+### The BM-21's width is the Ural-375D's
+
+- **The choice:** The card stated 2.40 m wide, the figure usually quoted for
+  the BM-21, but that is narrower than the truck's own axle hubs. The card now
+  states the Ural-375D's published 2.69 m; length and height stay the BM-21's.
+  The library's `gaps` records it.
+- **Verdict:** sound. A disabled card's frame is its script's statement from
+  cited sources, and this one was wrong.
+- **Confidence:** medium.
+
+### Rocket launchers travel as the photos show them
+
+- **The choice:** The M270's and HIMARS's pods stow with their capped faces
+  to the rear, inside a ribbed launcher-loader box open at the back
+  (`launcher_box`, `REAR_LIP`), with the loader boom on top and a cable run
+  down the side. They had faced forward, inside a closed box. The BM-21's
+  forty tubes also travel muzzles to the rear, rising slightly toward them, on
+  a cradle with sector gears, as all three of its photos show. The Tornado-S
+  keeps its muzzles forward (it elevates about a rear pivot) and gained rear
+  stabiliser jacks, stowage, a ladder, tube rings and the firing cable.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause
