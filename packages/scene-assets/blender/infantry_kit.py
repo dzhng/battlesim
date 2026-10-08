@@ -140,7 +140,7 @@ class Kit:
         self.painters = {}  # object name -> colour_at(p, n)
         pr = look["print"]
         printed = look["printed_gear"]
-        # Material roles (slice 13): cloth is fabric, the weapon's steel steel,
+        # Material roles: cloth is fabric, the weapon's steel steel,
         # lenses dark glass; leather, plastics and polymer take none.
         m = self.mats = {
             "uniform": mat("uniform", (1, 1, 1), rough=1.0, tint=1.0, texture=pr, role="fabric"),

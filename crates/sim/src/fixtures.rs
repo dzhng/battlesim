@@ -39,8 +39,8 @@ const GAME_ROOTS: [&str; 4] = ["units/ground", "units/roles.json", "units/roster
 
 impl CatalogSet {
     /// The folders under `fixtures/` a set adds to the game's; an absent one
-    /// is empty. The menu's units extend the test units (unit-models slice
-    /// 08), so the menu set holds both. The browser names the same folders
+    /// is empty. The menu's units extend the test units, so the menu set
+    /// holds both. The browser names the same folders
     /// (`web/src/battle/catalog/compose.ts` `SET_FOLDERS`).
     fn own_roots(self) -> &'static [&'static str] {
         match self {

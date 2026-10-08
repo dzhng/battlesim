@@ -15,12 +15,11 @@ with these helpers before `finish()` bakes paint and occlusion onto the result:
   booleans), so every opening shows an interior with depth, not a painted patch;
 - `plate` makes a torn sheet (a jagged outline with thickness) for debris.
 
-A roster vehicle not yet rebuilt has an interim wreck (`--wreck` on its
-exporter): `burn` turns its live parts to burnt steel and char before
+Every roster wreck (`--wreck` on its exporter) ends the same way: after the
+family's own damage, `burn` turns what is left to burnt steel and char before
 `finish()`, and `export_wreck` writes the wreck and, where it has a turret to
 throw, its `hull` and `turret` pieces, each where it lies in the whole, as
-`tank.py --wreck --piece=` does. The rebuilt families replace each with a
-modelled one.
+`tank.py --wreck --piece=` does.
 
 Every helper applies to all four tiers alike, with the same field, so the
 coarser tiers are the same wreck. Deterministic: fixed seeds, no randomness
@@ -294,7 +293,7 @@ def remove(*prefixes):
         bpy.data.objects.remove(o, do_unlink=True)
 
 
-# ------------------------------------------------------------- interim wrecks
+# ------------------------------------------------------------- the burn and the pieces
 WRECK_ARG = "--wreck"
 # The articulated rig a wreck keeps from its live vehicle: the turret it throws
 # (`MOUNT_NODES.gun.yaw`), and the pitch nodes whose barrels sag.
@@ -311,14 +310,14 @@ CHARRED = ("rubber", "glass", "fabric")
 
 
 def wreck_paths(out):
-    """The interim wreck's files beside the live vehicle's `out`: its whole
+    """A wreck's files beside the live vehicle's `out`: its whole
     (`default`) and its `hull` and `turret` pieces."""
     stem = out[:-4] if out.endswith(".glb") else out
     return {"default": f"{stem}_wreck.glb", "hull": f"{stem}_wreck_hull.glb", "turret": f"{stem}_wreck_turret.glb"}
 
 
 def burn():
-    """The built live vehicle as its interim wreck, before `finish()`: every
+    """The damaged vehicle burnt out, before `finish()`: every
     surface burnt (smoke-blackened steel, char where rubber, glass and canvas
     were), its dressing (antennas, masts) and crew gone, its barrels sagging on
     broken trunnions, its turret heaved askew off the ring, and the fire vented

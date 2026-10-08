@@ -1,5 +1,5 @@
 // @vitest-environment node
-// The unit art rules (specs/unit-models slice 12): tiers that really reduce,
+// The unit art rules (`unitArt.ts`): tiers that really reduce,
 // dressing held to its own allowance outside the hull, and class budgets.
 import { expect, test } from "vitest";
 import type { AppearanceEntry } from "@packages/scene-assets/src/schema.ts";

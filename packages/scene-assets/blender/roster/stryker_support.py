@@ -15,7 +15,7 @@ What the photos settle:
   no remote weapon station, a ring mount for the M2 on the commander's
   hatch.
 
-No archived frame exists for these cards: the frames are the Stryker's
+The frames are the Stryker's
 published dimensions (6.95 x 2.72 m; 3.2 m to the M-SHORAD turret's top,
 2.5 m for the mortar carrier, whose roof carries no remote station),
 recorded as `references`. The turret and

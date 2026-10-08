@@ -22,7 +22,7 @@ at the nose corners; a slat screen round the tail.
   of Kornet tubes on the left; big slab applique modules hang angled on the
   hull sides; a rear door with stowage either side.
 
-Frames come from the archived manifests (`catalog_frames.disabled_variant`):
+Frames (`T14_DIMENSIONS`, `T15_DIMENSIONS` and their mounts):
 T-14 8.7 x 3.5 x 3.3 m, gun pivot 1.98 m; T-15 9.5 x 3.5 x 3.5 m, gun pivot
 1.82 m. The T-15's frame puts the 30 mm's axis at 2.32 m, about 0.4 m under
 the real module's; the deck is drawn at the T-14's height and the module
@@ -41,6 +41,18 @@ FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
 T14 = "eastern_t_14_armata_main_battle_tank"
 T15 = "eastern_t_15_armata_heavy_ifv"
+# The frame its references give (a disabled card has no unit type): the
+# hull box, and the mounts its turret and guns are rigged on for the art.
+T14_DIMENSIONS = (8.7, 3.5, 3.3)
+T14_MOUNTS = [
+    dict(name="cannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.98], muzzle_m=[5.36, 0.0, 0.594]),
+    dict(name="HMG", role="hmg", on="cannon", pivot_m=[-0.25, -0.58, 3.102], muzzle_m=[1.43, 0.0, 0.32]),
+]
+T15_DIMENSIONS = (9.5, 3.5, 3.5)
+T15_MOUNTS = [
+    dict(name="autocannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.82], muzzle_m=[2.94, 0.0, 0.504]),
+    dict(name="launcher", role="hmg", on="autocannon", pivot_m=[0.0, 0.81, 2.296], muzzle_m=[1.05, 0.0, 0.0]),
+]
 TRACK_Y = 1.36
 TRACK_W = 0.58
 ROAD_R = 0.37
@@ -344,4 +356,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("armata", {T14: None, T15: None}, "russian_green", build, wreck, skip=("dressing_", "gun", "hmg"), chip=1.0)
+    run_disabled("armata", {T14: T14_DIMENSIONS, T15: T15_DIMENSIONS}, "russian_green", build, wreck,
+                 mounts={T14: T14_MOUNTS, T15: T15_MOUNTS}, skip=("dressing_", "gun", "hmg"), chip=1.0)

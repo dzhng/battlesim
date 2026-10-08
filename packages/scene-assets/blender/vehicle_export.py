@@ -1,14 +1,15 @@
 """The export run every rebuilt roster vehicle family shares.
 
 A family script (`roster/<family>.py`) supplies only what its vehicle looks
-like: `build(variant, v)` places its parts, and `wreck(variant, v)`, given,
-works the built vehicle over into its own wreck before it burns. This module
+like: `build(variant, v)` places its parts, and `wreck(variant, v)` works
+the built vehicle over into its own wreck before it burns. This module
 does the rest, the same way for every family:
 
 - each variant's frame from the resolved catalogs (`catalog_frames`), one
   appearance with `--variant=<appearance id>` or all of them; a disabled
   card family (`run_disabled`) takes each card's frame from the dimensions
-  its script states from its references, and the built model must measure it;
+  and mounts its script states from its references, and the built model must
+  measure it;
 - the materials, one per role (`materials`), in the family's real scheme;
 - each mount's articulation nodes at its frame's pivot and muzzle (`rig`);
 - `--wreck`: the family's damage, then `wreckage.burn()`, written beside the
@@ -139,8 +140,7 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
         if check is not None and not wrecking:
             check(variant)
         if wrecking:
-            if wreck is not None:
-                wreck(variant, v)
+            wreck(variant, v)
             burn()
         finish(ao_distance=ao_distance, ao_rays=ao_rays)
         source = None
@@ -186,7 +186,7 @@ def _receipt(path, script, variants, frames, references=None):
     }, indent=2) + "\n")
 
 
-def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8, **looks):
+def run(family, scheme, build, wreck, ao_distance=1.0, ao_rays=8, **looks):
     """Export every variant of `family` (or `--variant=<id>`), live or with
     `--wreck` its wreck, through `build` and `wreck` (see the module doc).
     `looks` are `materials` keywords (a family's fittings, canvas or chip)."""
@@ -196,10 +196,9 @@ def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8, **looks):
 
 
 # How far a disabled card's built model may stray from the dimensions its
-# script states from the references (its frame, `frame_source: references`).
-# A tripwire against a gross mismatch: 0.06, raised from 0.05 when the
-# pilot's Stryker body (its stowage bins 7 cm proud a side, inside the
-# catalog's own 0.1 m hull fit) measured 5.1% over its 2.72 m width.
+# script states from the references: a tripwire against a gross mismatch,
+# with room for stowage bins a few centimetres proud of a side (as the
+# catalog's own hull fit allows a roster vehicle).
 FRAME_TOLERANCE = 0.06
 
 
@@ -224,10 +223,13 @@ def _measured(skip):
     return hi - lo, lo
 
 
-def run_disabled(family, cards, scheme, build, wreck=None, skip=("dressing_",), ao_distance=1.0, ao_rays=8, **looks):
+def run_disabled(family, cards, scheme, build, wreck, mounts=None, skip=("dressing_",), ao_distance=1.0, ao_rays=8,
+                 **looks):
     """Export a disabled card family: `cards` maps each card id to the
-    (length, width, height) its script states from its references, its frame
-    (`catalog_frames.disabled_variant`); `scheme` is the family's, or one
+    (length, width, height) its script states from its references, and
+    `mounts` a turreted card's id to the mounts it rigs for its art (nothing
+    in the simulation reads them); together its frame
+    (`catalog_frames.disabled_variant`). `scheme` is the family's, or one
     per card id. The built model must measure that
     frame within `FRAME_TOLERANCE`, leaving out the nodes `skip` names (a
     rotor disc, dressing). Each card writes its `source_path`; the family's
@@ -244,7 +246,7 @@ def run_disabled(family, cards, scheme, build, wreck=None, skip=("dressing_",), 
             raise SystemExit(f"{variant['id']}: built {[round(s, 2) for s in size]} m, lowest {low.z:.2f} m; "
                              f"its references state {want} m on the ground")
 
-    variants = [disabled_variant(card, dims) for card, dims in cards.items()]
+    variants = [disabled_variant(card, dims, (mounts or {}).get(card, ())) for card, dims in cards.items()]
     receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, check, looks)
     if receipt is not None:
         entries = json.loads((REPO / "fixtures/units/model-manifest.json").read_text())["entries"]

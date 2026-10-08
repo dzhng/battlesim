@@ -110,46 +110,32 @@ class CatalogFramesTest(unittest.TestCase):
         self.assertEqual([m["role"] for m in mounts], ["gun", None])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class DisabledFramesTest(unittest.TestCase):
-    """A disabled card has no unit type, so its frame comes from one of two
-    named sources: its archived manifest frame, or dimensions its exporter
-    states from references. Neither is guessed."""
+    """A disabled card has no unit type, so its frame is the one its exporter
+    states from its references: dimensions, and the mounts it rigs."""
 
     def setUp(self):
         self.repo = Path(tempfile.mkdtemp())
         (self.repo / "fixtures/units/roster").mkdir(parents=True)
-        (self.repo / "specs/done/unit-roster/manifests").mkdir(parents=True)
-        entries = [
-            dict(id="tank_x", category="veh", source_path="assets/source/roster/disabled/tank_x.glb"),
-            dict(id="jet_y", category="air", source_path="assets/source/roster/disabled/jet_y.glb"),
-        ]
+        entries = [dict(id="tank_x", category="veh", source_path="assets/source/roster/disabled/tank_x.glb")]
         (self.repo / "fixtures/units/model-manifest.json").write_text(json.dumps(dict(entries=entries)))
-        cards = dict(units=dict(tank_x=dict(name="Tank X", faction="eastern"), jet_y=dict(name="Jet Y", faction="us")))
+        cards = dict(units=dict(tank_x=dict(name="Tank X", faction="eastern")))
         (self.repo / "fixtures/units/roster/cards.json").write_text(json.dumps(cards))
-        archived = dict(variants=[dict(id="tank_x", physical_authoring=dict(
-            body_dimensions_m=[8.0, 3.4, 3.0], half_extents_m=[4.0, 1.7, 1.5], eye_m=3.0,
-            mounts=[dict(name="cannon", role="gun", on=None, pivot_m=[0, 0, 2], muzzle_m=[5, 0, 0.5])]))])
-        (self.repo / "specs/done/unit-roster/manifests/tank.json").write_text(json.dumps(archived))
 
-    def test_a_card_with_an_archived_frame_takes_it_and_names_it(self):
-        v = disabled_variant("tank_x", repo=self.repo)
+    def test_a_card_takes_the_frame_its_exporter_states(self):
+        cannon = dict(name="cannon", role="gun", on=None, pivot_m=[0, 0, 2], muzzle_m=[5, 0, 0.5])
+        v = disabled_variant("tank_x", [8.0, 3.4, 3.0], [cannon], repo=self.repo)
+        self.assertEqual(v["frame"]["body_dimensions_m"], [8.0, 3.4, 3.0])
         self.assertEqual(v["frame"]["half_extents_m"], [4.0, 1.7, 1.5])
-        self.assertEqual(v["frame"]["mounts"][0]["role"], "gun")
-        self.assertEqual(v["frame_source"], "specs/done/unit-roster/manifests/tank.json")
+        self.assertEqual(v["frame"]["mounts"], [cannon])
+        self.assertEqual(v["frame_source"], "references")
         self.assertEqual((v["faction"], v["export"]), ("eastern", "assets/source/roster/disabled/tank_x.glb"))
 
-    def test_a_card_without_one_takes_the_dimensions_its_exporter_states(self):
-        v = disabled_variant("jet_y", dimensions=[19.0, 13.0, 4.8], repo=self.repo)
-        self.assertEqual(v["frame"]["body_dimensions_m"], [19.0, 13.0, 4.8])
-        self.assertEqual(v["frame"]["half_extents_m"], [9.5, 6.5, 2.4])
-        self.assertEqual(v["frame_source"], "references")
-
-    def test_a_card_with_neither_is_refused_by_name(self):
-        with self.assertRaisesRegex(LookupError, "jet_y"):
-            disabled_variant("jet_y", repo=self.repo)
+    def test_a_card_the_manifest_lacks_is_refused_by_name(self):
         with self.assertRaisesRegex(LookupError, "nope"):
-            disabled_variant("nope", repo=self.repo)
+            disabled_variant("nope", [1.0, 1.0, 1.0], repo=self.repo)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -12,7 +12,7 @@ has a thermal sleeve and a fume extractor; the commander's panoramic sight
 on the right rear roof, the remote heavy machine gun station beside it, four
 smoke tubes a side. Its paint is the PLA's digital desert pattern.
 
-Frame from the archived manifest (7.3 x 3.35 x 2.5 m, gun pivot 1.68 m).
+Frame 7.3 x 3.35 x 2.5 m, gun pivot 1.68 m (`DIMENSIONS`, `MOUNTS`).
 """
 import math
 import os
@@ -26,6 +26,13 @@ from vehicle_export import rig, run_disabled  # noqa: E402
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
 CARD = "eastern_type_15_ztq_15_light_tank"
+# The frame its references give (a disabled card has no unit type): the
+# hull box, and the mounts its turret and guns are rigged on for the art.
+DIMENSIONS = (7.3, 3.35, 2.5)
+MOUNTS = [
+    dict(name="cannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.68], muzzle_m=[5.36, 0.0, 0.504]),
+    dict(name="HMG", role="hmg", on="cannon", pivot_m=[-0.25, -0.58, 2.632], muzzle_m=[1.43, 0.0, 0.32]),
+]
 TRACK_Y = 1.30
 TRACK_W = 0.48
 ROAD_R = 0.33
@@ -154,4 +161,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("type15", {CARD: None}, "chinese_digital", build, wreck, skip=("dressing_", "gun", "hmg"), chip=1.0)
+    run_disabled("type15", {CARD: DIMENSIONS}, "chinese_digital", build, wreck, mounts={CARD: MOUNTS},
+                 skip=("dressing_", "gun", "hmg"), chip=1.0)

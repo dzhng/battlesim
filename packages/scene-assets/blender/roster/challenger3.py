@@ -13,7 +13,7 @@ extractor, a Trophy radar panel and launcher on each side, the commander's
 panoramic sight on its right, a remote machine gun station, a slatted
 bustle cage. British green.
 
-Frame from the archived manifest (8.3 x 4.2 x 2.49 m, gun pivot 1.494 m), the
+Frame 8.3 x 4.2 x 2.49 m, gun pivot 1.494 m (`DIMENSIONS`, `MOUNTS`), the
 Challenger 2's: the generated views put the turret roof near 2.5 m too.
 """
 import math
@@ -28,6 +28,13 @@ from vehicle_export import rig, run_disabled  # noqa: E402
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
 CARD = "europe_challenger_challenger_3"
+# The frame its references give (a disabled card has no unit type): the
+# hull box, and the mounts its turret and guns are rigged on for the art.
+DIMENSIONS = (8.3, 4.2, 2.49)
+MOUNTS = [
+    dict(name="cannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.494], muzzle_m=[5.561, 0.0, 0.448]),
+    dict(name="HMG", role="hmg", on="cannon", pivot_m=[-0.25, -0.58, 2.341], muzzle_m=[1.43, 0.0, 0.32]),
+]
 TRACK_Y = 1.55
 TRACK_W = 0.62
 ROAD_R = 0.39
@@ -166,4 +173,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("challenger3", {CARD: None}, "british_green", build, wreck, skip=("dressing_", "gun", "hmg"), chip=1.0)
+    run_disabled("challenger3", {CARD: DIMENSIONS}, "british_green", build, wreck, mounts={CARD: MOUNTS},
+                 skip=("dressing_", "gun", "hmg"), chip=1.0)

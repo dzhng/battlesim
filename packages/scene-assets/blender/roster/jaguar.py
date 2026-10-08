@@ -12,7 +12,7 @@ on the turret's left that raises to fire, the remote machine gun station on
 its roof, Galix smoke launchers on its rear corners, the commander's sight
 mast. French three-tone paint, as on the 2023 parade car.
 
-Frame from the archived manifest (7.1 x 2.99 x 2.8 m, gun pivot 1.82 m).
+Frame 7.1 x 2.99 x 2.8 m, gun pivot 1.82 m (`DIMENSIONS`, `MOUNTS`).
 """
 import math
 import os
@@ -26,6 +26,13 @@ from vehicle_export import rig, run_disabled  # noqa: E402
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
 CARD = "europe_ebrc_jaguar_armed_reconnaissance_vehicle"
+# The frame its references give (a disabled card has no unit type): the
+# hull box, and the mounts its turret and guns are rigged on for the art.
+DIMENSIONS = (7.1, 2.99, 2.8)
+MOUNTS = [
+    dict(name="autocannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.82], muzzle_m=[2.982, 0.0, 0.504]),
+    dict(name="launcher", role="hmg", on="autocannon", pivot_m=[0.0, 0.807, 2.296], muzzle_m=[1.05, 0.0, 0.0]),
+]
 WHEEL_X = [2.35, -0.55, -2.10]
 WHEEL_R = 0.62
 WHEEL_W = 0.42
@@ -144,4 +151,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("jaguar", {CARD: None}, "french_three_tone", build, wreck, skip=("dressing_", "gun", "hmg"), chip=1.0)
+    run_disabled("jaguar", {CARD: DIMENSIONS}, "french_three_tone", build, wreck, mounts={CARD: MOUNTS},
+                 skip=("dressing_", "gun", "hmg"), chip=1.0)

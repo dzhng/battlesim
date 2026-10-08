@@ -2,7 +2,7 @@
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/m1e3.py -- [--wreck]
 
-Seeded from the pilot Abrams (`abrams.py`): the M1 hull, its running gear,
+Built on the Abrams (`abrams.py`): the M1 hull, its running gear,
 fittings, gun and wreck damage are that script's. What the one photo of the
 early prototype (Detroit, January 2026) changes: the skirts are a long wedge
 over the idler and four long flat panels, painted with the star and lettering; the
@@ -13,12 +13,11 @@ in the middle of the roof, its M2 over a sight block, and an independent
 sight box stands behind it on the left. The prototype is green; the model
 wears US desert tan like every US roster vehicle.
 
-No archived frame exists: the frame is the M1 hull's length and width (the
-pilot's catalog box) and the turret roof's height, measured off the photo
-level with the SEPv3's. With no mount in a disabled frame, the turret and
-gun articulate on nodes stated here from the photo (the SEPv3's pivot and
-muzzle), so its wreck throws the turret; nothing in the simulation reads
-them until the card's mechanics land.
+The frame is the M1 hull's length and width (the SEPv3's catalog box) and
+the turret roof's height, measured off the photo level with the SEPv3's. The
+turret and gun articulate on mounts stated here from the photo (the SEPv3's
+pivot and muzzle), so its wreck throws the turret; nothing in the simulation
+reads them until the card's mechanics land.
 """
 import math
 import os
@@ -153,8 +152,6 @@ def build(variant, v):
     A.hull_body(v, sep_v3=False)
     A.running_gear(v)
     skirts(v)
-    # The pilot's gun reads its reach from the frame's mount, as `rig` does.
-    v.frame = dict(v.frame, mounts=MOUNTS)
     mounts = rig(v.frame, v.root, trunnion={"cannon": A.TRUNNION})
     turret, gun, _, _ = mounts["cannon"]
     rws, rws_gun, _, _ = mounts["RWS"]
@@ -164,7 +161,7 @@ def build(variant, v):
 
 
 def wreck(variant, v):
-    """The pilot's damage on this hull (`abrams.wreck`): the right track
+    """The Abrams' damage on this hull (`abrams.wreck`): the right track
     thrown with road wheels gone, two long skirt panels torn away, warped
     plates, a dented glacis and debris; the sensor panels burn off with the
     dressing, and `wreckage.burn` heaves the turret."""
@@ -172,5 +169,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("m1e3", {CARD: DIMENSIONS}, "us_desert_tan", build, wreck,
+    run_disabled("m1e3", {CARD: DIMENSIONS}, "us_desert_tan", build, wreck, mounts={CARD: MOUNTS},
                  skip=("dressing_", "gun", "hmg", "muzzle"), chip=1.0)

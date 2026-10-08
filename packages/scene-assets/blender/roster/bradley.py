@@ -17,7 +17,7 @@ its firing port plates on the rear hull sides, the M3A3 carries more
 stowage on the rear sponsons.
 
 Paint: US desert tan (`us_desert_tan`), as the M3A3 photos and the Abrams;
-the M2A4 photos in Europe show green, a scheme slice 13 does not have.
+the M2A4 photos in Europe show green, a scheme `textures.SCHEMES` lacks.
 
 Built to the catalog frame (hull 6.55 x 3.6 x 2.98 m, turret pivot 1.937 m,
 autocannon muzzle 3.6 m ahead, launcher on the left at 0.972 m): nothing here

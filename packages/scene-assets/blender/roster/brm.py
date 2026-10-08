@@ -13,7 +13,7 @@ box each side of the gun, smoke tubes on the cheeks and the 1RL-133 radar's
 folded housing on the turret's rear. The model wears Russian green (the 2013
 car's desert scheme was an exhibition finish).
 
-Frame from the archived manifest (7.14 x 3.2 x 2.4 m, gun pivot 1.56 m).
+Frame 7.14 x 3.2 x 2.4 m, gun pivot 1.56 m (`DIMENSIONS`, `MOUNTS`).
 """
 import math
 import os
@@ -27,6 +27,12 @@ from vehicle_export import rig, run_disabled  # noqa: E402
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
 CARD = "eastern_brm_brm_3k"
+# The frame its references give (a disabled card has no unit type): the
+# hull box, and the mounts its turret and guns are rigged on for the art.
+DIMENSIONS = (7.14, 3.2, 2.4)
+MOUNTS = [
+    dict(name="autocannon", role="gun", on=None, pivot_m=[0.0, 0.0, 1.56], muzzle_m=[2.999, 0.0, 0.432]),
+]
 TRACK_Y = 1.30
 TRACK_W = 0.38
 ROAD_R = 0.34
@@ -147,4 +153,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("brm", {CARD: None}, "russian_green", build, wreck, skip=("dressing_", "gun", "hmg"), chip=1.0)
+    run_disabled("brm", {CARD: DIMENSIONS}, "russian_green", build, wreck, mounts={CARD: MOUNTS},
+                 skip=("dressing_", "gun", "hmg"), chip=1.0)

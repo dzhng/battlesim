@@ -10,7 +10,7 @@ forward over the cab on a rest, with its pepperpot muzzle brake; the recoil
 spade folded up under the tail. French three-tone (the card is Europe's
 CAESAR, French-built; the Danish car is green).
 
-No archived frame exists for this card: its frame is the chassis's length,
+Its frame is the chassis's length,
 width and height to its cab roof (10.0 x 2.55 x 3.2 m), measured off the side
 photo against its 1.16 m tyres, recorded as `references`; the gun travelling
 over the cab is its mount, outside the frame as a tank's gun is. The gun is drawn travelling and does not articulate yet.

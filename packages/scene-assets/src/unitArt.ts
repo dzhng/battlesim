@@ -35,16 +35,16 @@ export interface UnitArtRule extends Budget {
 
 /** The rules by class: a vehicle class (`vehicleClass`) or `SOLDIER_CLASS`.
  *  A class without a row, and a field a row leaves out, take `default`'s.
- *  The vehicle budgets were set from the pilot (slice 14: Abrams, Stryker,
- *  HMMWV, and the test units that share their classes) with about twice
- *  their room; `bundle_bytes` is the whole encoded bundle, its shared
+ *  The vehicle budgets were set from the first rebuilt vehicles (Abrams,
+ *  Stryker, HMMWV, and the test units that share their classes) with about
+ *  twice their room; `bundle_bytes` is the whole encoded bundle, its shared
  *  textures included. The classes without a pilot take its nearest one's. */
 export const UNIT_ART: { default: UnitArtRule } & Record<string, Partial<UnitArtRule>> = {
   default: {
     tier_ratio: 0.9,
     dressing: { bulky_m: 0.3, thin_m: 0.15, thin_top_m: 4 },
   },
-  // About twice the rifle squad measured in the pilot (slice 14, 2026-10-07):
+  // About twice the first rebuilt rifle squad, which measured
   // at most 29149 / 6987 / 2486 / 763 triangles, a 12.4 MB bundle, 24 textures.
   [SOLDIER_CLASS]: {
     tier_triangles: [60000, 15000, 5000, 1600],

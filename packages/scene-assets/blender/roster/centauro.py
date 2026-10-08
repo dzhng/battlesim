@@ -14,10 +14,10 @@ on its mast at the right rear of the roof, the remote weapon station on the
 left, smoke banks on the cheeks, antennas behind. Italian vegetata
 camouflage.
 
-No archived frame exists: the frame is the published hull length and width
-and the height to the turret roof (references gaps). With no mount in a
-disabled frame, the turret and gun articulate on nodes stated here from the
-photos, so its wreck throws the turret; nothing in the simulation reads them.
+The frame is the published hull length and width and the height to the
+turret roof (references gaps). The turret and gun articulate on mounts stated
+here from the photos, so its wreck throws the turret; nothing in the
+simulation reads them.
 """
 import math
 import os
@@ -149,7 +149,7 @@ def remote_station(v, rws, rws_gun):
 
 def build(variant, v):
     hull(v)
-    mounts = rig({"mounts": MOUNTS}, v.root, trunnion={"cannon": TRUNNION})
+    mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
     turret, gun, _, _ = mounts["cannon"]
     rws, rws_gun, _, _ = mounts["RWS"]
     turret_body(v, turret)
@@ -189,5 +189,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("centauro", {CARD: DIMENSIONS}, "italian_vegetata", build, wreck,
+    run_disabled("centauro", {CARD: DIMENSIONS}, "italian_vegetata", build, wreck, mounts={CARD: MOUNTS},
                  skip=("dressing_", "gun", "hmg", "muzzle"), chip=1.0)

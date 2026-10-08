@@ -17,13 +17,13 @@ What the photos settle:
   radar on its front, a twin 30 mm gun each side and six missile tubes in
   two packs of three outside them.
 - Skyranger 30 on Boxer (German three-tone): the Boxer's own hull
-  (`boxer.drive`, the wheeled lane's), the turret with its 30 mm KCE gun, the search radar panels round its top and
+  (`boxer.drive`, the Boxer's own), the turret with its 30 mm KCE gun, the search radar panels round its top and
   a missile launcher box on its side.
 - NASAMS 3 (Norway's, NATO green): the canister launcher on its two-axle
   trailer, six AMRAAM canisters in two rows on the turntable, stowed flat,
   levelling legs at the corners.
 
-No archived frame exists for these cards: each frame is the published
+Each card's frame is the published
 length, width and travelling height (the Buk's measured off its side photo
 against its road wheels), recorded as `references`; turrets,
 guns and launchers are drawn stowed and do not articulate yet.

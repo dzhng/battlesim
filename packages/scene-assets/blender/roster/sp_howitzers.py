@@ -23,7 +23,7 @@ on the turret's flanks and a rear door into the turret.
   turret long and low at the rear, the 52-calibre gun with fume extractor
   and multi-baffle brake.
 
-No archived frame exists for these cards: each frame is the hull's length,
+Each card's frame is the hull's length,
 width and height stated from its published dimensions (the gun excluded),
 recorded in its receipt as `references`. With no mount in the frame the gun
 is drawn at rest and does not articulate until the card's mechanics land.

@@ -60,26 +60,22 @@ in its folder. Nothing else supplies a frame, so an appearance no unit draws
 cannot be exported, and its tests run without Blender:
 `python3 -m unittest discover -s packages/scene-assets/blender -p 'catalog_frames_test.py'`.
 
-A rebuilt family's script (`roster/abrams.py`, `stryker.py`, `humvee.py`, …)
-says only what its vehicle looks like and how it is wrecked; [the shared
+A family's script (`roster/<family>.py`) says only what its vehicle looks like and how it is wrecked; [the shared
 export run](vehicle_export.py) does the rest the same way for every family:
 variants and frames, materials by role, mount rigs, crew, tiers, wreck and
 export.
 
-A disabled card has no unit type, so it has no catalog frame: its archived
-roster frame where one exists (T-14, T-15, Type 15, BRM-3K, Jaguar,
-Challenger 3), else the length, width and height its family script states
-from its references. `vehicle_export.run_disabled` builds it to that frame
-(`catalog_frames.disabled_variant`), refuses a model that strays from it
-(leaving out what `skip` names: dressing, guns, rotor blades), and records the
-frame's source in the family's receipt beside the cards' GLBs (in
-`assets/source/roster/disabled/`, or the ground cards' own family folders).
-Every receipt hashes each script the export loaded and names the reference
-library of its source's folder (a manifest entry's `source_family`).
-A stated frame has no mounts; a turreted card whose script states its own
-pivots and muzzles from the photos rigs them for the art alone, so its turret traverses and its wreck throws
-it, while nothing in the simulation reads them until the card's mechanics
-land.
+A disabled card has no unit type, so it has no catalog frame: its family
+script states one from its references, the length, width and height and, for
+a turreted card, the pivots and muzzles it rigs for the art alone (its turret
+traverses and its wreck throws it; nothing in the simulation reads them until
+the card's mechanics land). `vehicle_export.run_disabled` builds it to that
+frame (`catalog_frames.disabled_variant`), refuses a model that strays from it
+(leaving out what `skip` names: dressing, guns, rotor blades), and writes the
+family's receipt beside the cards' GLBs (in `assets/source/roster/disabled/`,
+or the ground cards' own family folders). Every receipt hashes each script the
+export loaded and names the reference library of its source's folder (a
+manifest entry's `source_family`).
 The support cards' trucks stand on [one chassis](roster/truck_chassis.py)
 (rails, axles, fenders and the cab shapes their references show). A disabled
 infantry card is a kit in `KITS` like any roster kit. Aircraft and rotorcraft parts (fuselages,
@@ -92,9 +88,8 @@ part, height to the top of the rotor head.
 Every vehicle has its own wreck. A roster exporter given `--wreck` writes its
 vehicle's wreck beside the live one (`<appearance>_wreck.glb`, and
 `_hull`/`_turret` pieces where it has a turret to throw), burnt through
-[one helper](wreckage.py). A rebuilt family models its damage first (wheels
-and plates torn off, warped and dented hulls, debris); a family not yet
-rebuilt has only the interim burn.
+[one helper](wreckage.py) after the family models its own damage (wheels and
+plates torn off, warped and dented hulls, debris).
 
 Subject exporters build vehicles, wrecks, props, trees and forest-floor material.
 Shared part, masonry, texture and damage helpers keep frame conventions and seeded

@@ -14,11 +14,10 @@ gunner's sight box on the right, smoke tubes on the cheeks. Swedish splinter
 scheme (the CV90 family's home army; the photo's exhibition finish is not
 followed).
 
-No archived frame exists: the frame is the CV90 hull's (its catalog box's
-length and width) and the turret roof's height, measured off the photo
-against the road wheels. With no mount in a disabled frame, the turret and
-gun articulate on nodes stated here from the photo, so its wreck throws the
-turret; nothing in the simulation reads them.
+The frame is the CV90 hull's (its catalog box's length and width) and the
+turret roof's height, measured off the photo against the road wheels. The
+turret and gun articulate on mounts stated here from the photo, so its wreck
+throws the turret; nothing in the simulation reads them.
 """
 import math
 import os
@@ -95,7 +94,7 @@ def build(variant, v):
     VP.tracked_running_gear(v.mats, v.hull, C.TRACK_Y, C.TRACK_W, C.ROAD_X, C.ROAD_Z, C.ROAD_R, 0.20, C.SPROCKET,
                             C.IDLER, (), bolts=6, teeth=11, arm=(0.40, 0.40), pitch=0.15)
     C.hull_sides(v, mk4=False)
-    mounts = rig({"mounts": MOUNTS}, v.root, trunnion={"cannon": TRUNNION})
+    mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
     turret, gun, _, _ = mounts["cannon"]
     turret_body(v, turret)
     gun_120(v, gun)
@@ -113,5 +112,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("cv90120", {CARD: DIMENSIONS}, "swedish_splinter", build, wreck,
+    run_disabled("cv90120", {CARD: DIMENSIONS}, "swedish_splinter", build, wreck, mounts={CARD: MOUNTS},
                  skip=("dressing_", "gun", "muzzle"), chip=1.0)

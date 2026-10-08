@@ -1,5 +1,5 @@
 //! The menu reel is a film: its battles may field any units with any stats,
-//! but every approved shot stays exactly the same (unit-models slice 08).
+//! but every approved shot stays exactly the same.
 //! Each scene of `fixtures/menu-backdrop.json` is replayed natively, as the
 //! menu's worker runs it (same rules, catalog set, seed and ticks), and its
 //! event log (who fires which round, what each round strikes, who falls, by

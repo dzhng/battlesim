@@ -18,7 +18,7 @@ What the photos settle:
 - Tornado-S: the MAZ-543M 8x8, its two cabs either side of the engine, the
   twelve 300 mm tubes in three rows lying along the chassis.
 
-No archived frame exists for these cards: each frame is the vehicle's
+Each card's frame is the vehicle's
 published length, width and height (launcher stowed), recorded in its
 receipt as `references`. The launchers are drawn stowed and do not
 articulate until the cards' mechanics land.

@@ -14,11 +14,11 @@ pintle at the commander's hatch on the left, a mast behind; the 105 mm with a
 bore evacuator mid-barrel; a spare road wheel hung on the hull's right rear.
 US desert tan (the Yuma photos; the unveiling vehicles are green).
 
-No archived frame exists: the frame is the hull's length, width and height
-to the turret roof, measured off the left-side photo with its road wheels
-(no published dimensions; references gaps). With no mount in a disabled
-frame, the turret and gun articulate on nodes stated here from the photos,
-so its wreck throws the turret; nothing in the simulation reads them.
+The frame is the hull's length, width and height to the turret roof,
+measured off the left-side photo with its road wheels (no published
+dimensions; references gaps). The turret and gun articulate on mounts stated
+here from the photos, so its wreck throws the turret; nothing in the
+simulation reads them.
 """
 import math
 import os
@@ -171,7 +171,7 @@ def build(variant, v):
     VP.tracked_running_gear(v.mats, v.hull, TRACK_Y, TRACK_W, ROAD_X, ROAD_Z, ROAD_R, 0.22, SPROCKET, IDLER, RETURNS,
                             bolts=8, teeth=11, arm=(0.44, 0.40), pitch=0.16)
     skirts(v)
-    mounts = rig({"mounts": MOUNTS}, v.root, trunnion={"cannon": TRUNNION})
+    mounts = rig(v.frame, v.root, trunnion={"cannon": TRUNNION})
     turret, gun, _, _ = mounts["cannon"]
     hmg, hmg_gun, _, _ = mounts["HMG"]
     turret_body(v, turret)
@@ -208,5 +208,5 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("m10", {CARD: DIMENSIONS}, "us_desert_tan", build, wreck,
+    run_disabled("m10", {CARD: DIMENSIONS}, "us_desert_tan", build, wreck, mounts={CARD: MOUNTS},
                  skip=("dressing_", "gun", "hmg", "muzzle"), chip=1.0)

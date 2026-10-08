@@ -11,7 +11,7 @@ flared arches; a split, near-upright windscreen, door windows and small
 side windows each with a round gun-port cover; mirrors on arms; the rear
 door carrying the spare wheel; the roof hatch. The walk-around vehicle is
 unarmed; the roster's Tigr carries a Kord on the roof hatch ring, its gunner
-standing in the hatch (slice 16 crew rule; reference gap noted).
+standing in the hatch (reference gap noted).
 
 Built to the catalog frame (hull 5.67 x 2.2 x 2.0 m, HMG pivot 1.82 m): the
 photos put the roof near 2.45 m. Nothing here moves the frame: the wheels

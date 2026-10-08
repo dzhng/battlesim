@@ -19,8 +19,7 @@ the type its army fields, from the references:
 
 Each rests on the ground (on its legs or rails, or its belly and wing tips),
 so the tier-0 contact sits at z = 0 as every appearance's does; nothing it
-rests on rolls, so none of it needs a node. No archived frame
-exists: each frame is the type's published length, span and height,
+rests on rolls, so none of it needs a node. Each frame is the type's published length, span and height,
 recorded as `references`. Rotors and propellers are drawn still: nothing
 here spins until a flight mechanic says how.
 """
