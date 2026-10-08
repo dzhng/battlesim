@@ -7,8 +7,10 @@ the appearance's `mounts` in `assets/catalog.json`. A family is every
 appearance whose source lies in `assets/source/roster/<family>/`.
 
 Plain Python, no Blender: exporters import it, and it is tested on its own.
-An appearance no unit draws (a disabled card) has no frame and is refused by
-name rather than given one from anywhere else.
+An appearance no unit draws is refused by name. A disabled card has no unit
+type, so `disabled_variant` takes its frame from one of two named sources: the
+archived roster manifest's frame for that card, or dimensions its exporter
+states from the card's references. It never guesses one.
 """
 import json
 import os
@@ -98,3 +100,62 @@ def family_variants(family, repo=REPO):
     if not ids:
         raise LookupError(f"{family}: no appearance in assets/catalog.json has a source in {folder}")
     return [_variant(i, appearances[i], units) for i in ids]
+
+
+ARCHIVED_MANIFESTS = "specs/done/unit-roster/manifests"
+
+
+def _archived_frame(card_id, repo):
+    for path in sorted((Path(repo) / ARCHIVED_MANIFESTS).glob("*.json")):
+        for variant in json.loads(path.read_text()).get("variants", []):
+            if variant.get("id") == card_id and "physical_authoring" in variant:
+                return variant["physical_authoring"], f"{ARCHIVED_MANIFESTS}/{path.name}"
+    return None, None
+
+
+def disabled_variant(card_id, dimensions=None, repo=REPO):
+    """A disabled card's export path, names, faction and frame, with where the
+    frame came from (`frame_source`): its archived manifest frame, or else
+    `dimensions` (length, width, height in metres) from its references."""
+    entries = json.loads((Path(repo) / "fixtures/units/model-manifest.json").read_text())["entries"]
+    entry = next((e for e in entries if e["id"] == card_id), None)
+    if entry is None:
+        raise LookupError(f"{card_id}: no card in fixtures/units/model-manifest.json")
+    card = next(
+        doc["units"][card_id]
+        for path in sorted((Path(repo) / "fixtures/units/roster").glob("*.json"))
+        for doc in [json.loads(path.read_text())]
+        if card_id in doc.get("units", {})
+    )
+    authored, source = _archived_frame(card_id, repo)
+    if authored is not None:
+        frame = dict(
+            half_extents_m=authored["half_extents_m"],
+            body_dimensions_m=authored["body_dimensions_m"],
+            eye_m=authored["eye_m"],
+            mounts=[
+                dict(name=m["name"], role=m.get("role"), on=m["on"], pivot_m=m["pivot_m"], muzzle_m=m["muzzle_m"])
+                for m in authored.get("mounts", [])
+            ],
+        )
+    elif dimensions is not None:
+        frame = dict(
+            half_extents_m=[d / 2 for d in dimensions],
+            body_dimensions_m=list(dimensions),
+            eye_m=None,
+            mounts=[],
+        )
+        source = "references"
+    else:
+        raise LookupError(
+            f"{card_id}: no archived frame in {ARCHIVED_MANIFESTS}; state its dimensions from its references"
+        )
+    return dict(
+        id=card_id,
+        name=card["name"],
+        faction=card["faction"],
+        category=entry["category"],
+        export=entry["source_path"],
+        frame=frame,
+        frame_source=source,
+    )
