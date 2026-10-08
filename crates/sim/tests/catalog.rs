@@ -16,6 +16,7 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
     #[derive(serde::Deserialize)]
     struct Manifest {
         schema_version: u32,
+        model_statuses: Vec<String>,
         entries: Vec<Entry>,
     }
     #[derive(serde::Deserialize)]
@@ -27,6 +28,7 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
         source_family: String,
         source_kind: String,
         disabled_reason: String,
+        source_path: String,
     }
 
     let path = sim::fixtures::dir().join("units/model-manifest.json");
@@ -56,7 +58,32 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
             entry.category,
             format!("{:?}", card.roster.category).to_lowercase()
         );
-        assert!(!entry.model_status.is_empty());
+        assert!(
+            manifest.model_statuses.contains(&entry.model_status),
+            "{}: model_status {} is not one of the manifest's model_statuses",
+            entry.id,
+            entry.model_status
+        );
+        let source = disabled_source(&entry.source_path);
+        if entry.model_status == "reference_built" {
+            if let DisabledSource::Glb(json, _) = &source {
+                tiered_meshes(&entry.id, json);
+            }
+            // Its own model: no other card's file, by path or by content.
+            for other in manifest.entries.iter().filter(|o| o.id != entry.id) {
+                assert_ne!(
+                    other.source_path, entry.source_path,
+                    "{} shares {}'s file",
+                    entry.id, other.id
+                );
+                assert!(
+                    disabled_source(&other.source_path).identity() != source.identity(),
+                    "{}'s model is byte-identical to {}'s",
+                    entry.id,
+                    other.id
+                );
+            }
+        }
         assert!(!entry.source_family.is_empty());
         assert!(!entry.source_kind.is_empty());
         assert_eq!(Some(entry.disabled_reason.as_str()), card.disabled_reason);
@@ -68,6 +95,80 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
     }
     assert_eq!(seen.len(), disabled.len());
     assert_eq!(seen, disabled.keys().cloned().collect());
+}
+
+/// A disabled card's source file, which must exist: an unpulled Git LFS
+/// pointer (checkouts get pointers; its oid is the content's sha256) or a
+/// pulled GLB, read to its JSON chunk.
+enum DisabledSource {
+    Pointer(String),
+    Glb(Value, Vec<u8>),
+}
+
+impl DisabledSource {
+    /// What two files compare by: the pointer's oid, else the bytes.
+    fn identity(&self) -> String {
+        use std::hash::{Hash, Hasher};
+        match self {
+            DisabledSource::Pointer(oid) => oid.clone(),
+            DisabledSource::Glb(_, bytes) => {
+                let mut h = std::collections::hash_map::DefaultHasher::new();
+                bytes.hash(&mut h);
+                format!("bytes:{:x}:{}", h.finish(), bytes.len())
+            }
+        }
+    }
+}
+
+fn disabled_source(path: &str) -> DisabledSource {
+    let file = sim::fixtures::dir().parent().unwrap().join(path);
+    let bytes = std::fs::read(&file).unwrap_or_else(|e| panic!("{path}: {e}"));
+    if let Some(text) = bytes
+        .starts_with(b"version https://git-lfs")
+        .then(|| String::from_utf8_lossy(&bytes).into_owned())
+    {
+        let oid = text.lines().find_map(|l| l.strip_prefix("oid sha256:"));
+        return DisabledSource::Pointer(
+            oid.unwrap_or_else(|| panic!("{path}: LFS pointer without an oid"))
+                .to_owned(),
+        );
+    }
+    assert!(
+        bytes.len() > 20 && &bytes[0..4] == b"glTF",
+        "{path}: not a GLB"
+    );
+    assert_eq!(
+        u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
+        2,
+        "{path}: not glTF 2"
+    );
+    let length = u32::from_le_bytes(bytes[12..16].try_into().unwrap()) as usize;
+    assert_eq!(&bytes[16..20], b"JSON", "{path}: first chunk is not JSON");
+    let json =
+        serde_json::from_slice(&bytes[20..20 + length]).unwrap_or_else(|e| panic!("{path}: {e}"));
+    DisabledSource::Glb(json, bytes)
+}
+
+/// A reference-built model draws in tiers: every mesh node is named for
+/// its tier (`*_LOD0`..`*_LOD3`), and every tier has meshes.
+fn tiered_meshes(id: &str, json: &Value) {
+    let mut tiers = [0usize; 4];
+    for node in json["nodes"].as_array().into_iter().flatten() {
+        if node.get("mesh").is_none() {
+            continue;
+        }
+        let name = node["name"].as_str().unwrap_or("");
+        let tier = name
+            .rsplit_once("_LOD")
+            .and_then(|(_, t)| t.parse::<usize>().ok())
+            .filter(|t| *t < 4)
+            .unwrap_or_else(|| panic!("{id}: mesh node {name:?} names no tier (_LOD0.._LOD3)"));
+        tiers[tier] += 1;
+    }
+    assert!(
+        tiers.iter().all(|&n| n > 0),
+        "{id}: meshes per tier {tiers:?}, every tier needs some"
+    );
 }
 
 /// The test fixture with the M1 family's catalog document and the

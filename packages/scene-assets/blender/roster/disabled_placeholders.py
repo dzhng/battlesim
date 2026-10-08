@@ -113,7 +113,10 @@ def build(e):
     os.makedirs(OUT,exist_ok=True); path=os.path.join(OUT,e['id']+'.glb'); bpy.ops.export_scene.gltf(filepath=path,export_format='GLB',export_apply=True)
     return path
 
+# Only cards still at their placeholder: a reference-built card has its own
+# family script (specs/unit-models slice 18).
 m=json.load(open(MANIFEST))
-for e in m['entries']:
+placeholders=[e for e in m['entries'] if e['model_status']=='source_authored']
+for e in placeholders:
     build(e)
-print('EXPORTED',len(m['entries']))
+print('EXPORTED',len(placeholders))

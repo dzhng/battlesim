@@ -19,6 +19,7 @@ does the rest, the same way for every family:
 """
 import hashlib
 import json
+import math
 import os
 import sys
 from pathlib import Path
@@ -28,7 +29,7 @@ from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import parts as P  # noqa: E402
-from catalog_frames import family_variants  # noqa: E402
+from catalog_frames import disabled_variant, family_variants  # noqa: E402
 from parts import bare_steel, empty, finish, flat_paint, glass, reset, script_args, textured, track_steel, tyre, triangles_by_tier  # noqa: E402
 from wreckage import WRECK_ARG, burn, export_wreck  # noqa: E402
 
@@ -37,13 +38,14 @@ REPO = Path(__file__).resolve().parents[3]
 RIG_NODES = {"gun": ("turret", "gun", "muzzle"), "hmg": ("hmg", "hmg_gun", "hmg_muzzle")}
 
 
-def materials(scheme, fittings=(0.11, 0.095, 0.068), canvas=(0.105, 0.098, 0.062)):
+def materials(scheme, fittings=(0.11, 0.095, 0.068), canvas=(0.105, 0.098, 0.062), chip=0.35):
     """One material per role `vehicle_parts` reads, in `scheme`. `fittings` is
     the darker painted tone of hubs, brackets and running gear fittings;
-    `canvas` the stowage's cloth."""
+    `canvas` the stowage's cloth; `chip` how far the paint's edges wear to
+    its lighter tone (the edge highlight)."""
     return {
-        "paint": P.paint(scheme, "armor_paint", chip=0.35, dirt=0.5, rise=1.1),
-        "dark": textured("fittings", "olive_paint", colour=fittings, chip=0.3, dirt=0.55, role="paint"),
+        "paint": P.paint(scheme, "armor_paint", chip=chip, dirt=0.5, rise=1.1),
+        "dark": textured("fittings", "olive_paint", colour=fittings, chip=min(0.3, chip), dirt=0.55, role="paint"),
         "steel": bare_steel("steel", chip=0.3, dirt=0.3),
         "black": flat_paint("recesses", (0.014, 0.014, 0.013), rough=0.85, grime=0.15),
         "rubber": tyre("rubber"),
@@ -94,23 +96,46 @@ class Vehicle:
         self.crew = []
         self.wreck = False
 
+    def head_out(self, name, parent, x, y, roof, facing=0.0):
+        """A crewman head and shoulders out of the hatch at (x, y) on a roof
+        `roof` metres up (world, at rest), facing `facing` radians from +X, his
+        hands on the hatch rim, posed under a `dressing_<name>` node of
+        `parent`. None on a wreck."""
+        if self.wreck:
+            return
+        seat = empty(f"dressing_{name}", parent=parent)
+        c, s = math.cos(facing), math.sin(facing)
 
-def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8):
+        def at(fx, fy, z):
+            return (x + fx * c - fy * s, y + fx * s + fy * c, z)
+
+        self.crew.append((name, seat, at(0.0, 0.0, roof - 0.43),
+                          (at(0.22, 0.22, roof + 0.06), at(0.22, -0.22, roof + 0.06)),
+                          (at(0.14, 0.11, roof - 1.25), at(0.14, -0.11, roof - 1.25))))
+
+
+def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8, chip=0.35, cards=None):
     """Export every variant of `family` (or `--variant=<id>`), live or with
-    `--wreck` its wreck, through `build` and `wreck` (see the module doc)."""
+    `--wreck` its wreck, through `build` and `wreck` (see the module doc).
+    `chip` is the paint's edge wear (`materials`). A disabled family names
+    its `cards` instead, {card id: dimensions or None}: no unit draws them,
+    so each takes its frame from `catalog_frames.disabled_variant` and its
+    receipt names that source."""
     args = script_args()
     selected = next((a.split("=", 1)[1] for a in args if a.startswith("--variant=")), None)
     wrecking = WRECK_ARG in args
     receipt = []
-    variants = family_variants(family)
+    variants = family_variants(family) if cards is None else [disabled_variant(c, d) for c, d in cards.items()]
     if selected and selected not in {v["id"] for v in variants}:
+        if cards is not None:
+            return  # a script of several disabled families: another run has it
         raise SystemExit(f"{selected}: not one of {family}'s appearances")
     for variant in variants:
         if selected and variant["id"] != selected:
             continue
         reset()
         P.SCORCH.clear()
-        v = Vehicle(variant, materials(scheme))
+        v = Vehicle(variant, materials(scheme, chip=chip))
         v.wreck = wrecking
         build(variant, v)
         if wrecking:
@@ -136,12 +161,14 @@ def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8):
             from vehicle_crew import preserve_materials
             preserve_materials(out, source)
         receipt.append({"id": variant["id"], "sha256": hashlib.sha256(Path(out).read_bytes()).hexdigest(),
-                        "triangles_by_tier": counts})
+                        "triangles_by_tier": counts,
+                        **({"frame_source": variant["frame_source"]} if "frame_source" in variant else {})})
         print("VARIANT", variant["id"], counts, flush=True)
     if wrecking or selected:
         return
     here = Path(__file__).resolve().parent
-    sources = [here / "roster" / f"{family}.py", here / "vehicle_export.py", here / "vehicle_parts.py",
+    script = here / "roster" / f"{family}.py" if cards is None else Path(sys.modules["__main__"].__file__).resolve()
+    sources = [script, here / "vehicle_export.py", here / "vehicle_parts.py",
                here / "vehicle_crew.py", here / "parts.py", here / "textures.py", here / "wreckage.py",
                here / "catalog_frames.py"]
     (REPO / f"assets/source/roster/{family}/source-receipt.json").write_text(json.dumps({
@@ -149,6 +176,6 @@ def run(family, scheme, build, wreck=None, ao_distance=1.0, ao_rays=8):
         "source_sha256": {str(p.relative_to(REPO)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
         "references": f"assets/references/{family}/references.json",
         "authoring": "Original procedural geometry built from the committed references; photos are visual reference only.",
-        "frames": "fixtures/catalog.json",
+        "frames": "fixtures/catalog.json" if cards is None else "each variant's frame_source",
         "variants": receipt,
     }, indent=2) + "\n")

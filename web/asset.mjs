@@ -1,6 +1,6 @@
 // The appearance asset CLI: `bun run --cwd web asset -- <command>`.
 //
-//   validate <glb> [--unit U] [--type T] [--yaw DEG] [--clips GLB] [--loop a,b] [--json]
+//   validate <glb> [--unit U] [--type T] [--scenery K] [--yaw DEG] [--clips GLB] [--loop a,b] [--json]
 //                          stats, materials and findings for one GLB (catalog settings when it is a catalog source;
 //                          a vehicle fitted to unit type T, or to every type that draws it)
 //   bake                   bake the catalog into assets/runtime/<hash>/{bundle,texture,templates}.bin
@@ -166,6 +166,7 @@ async function validate(args) {
     options: {
       unit: { type: "string" },
       type: { type: "string" },
+      scenery: { type: "string" },
       yaw: { type: "string" },
       clips: { type: "string" },
       loop: { type: "string" },
@@ -174,7 +175,7 @@ async function validate(args) {
   });
   if (!positionals.length)
     throw new Error(
-      "validate <glb> [--unit soldier|vehicle|scenery|kit] [--type <unit type id>] [--yaw deg] [--clips glb] [--loop a,b]",
+      "validate <glb> [--unit soldier|vehicle|scenery|kit] [--type <unit type id>] [--scenery <kind>] [--yaw deg] [--clips glb] [--loop a,b]",
     );
   const context = { authority: await authority(), tolerances: catalog().tolerances };
   let failed = false;
@@ -195,6 +196,7 @@ async function validate(args) {
       {
         unit: values.unit,
         type: values.type,
+        scenery: values.scenery,
         yaw: values.yaw !== undefined ? Number(values.yaw) : undefined,
         loops: values.loop?.split(","),
         clips: values.clips
