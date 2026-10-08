@@ -1481,6 +1481,56 @@ family. No roster frame, mount or tolerance moved.
 - **Verdict:** sound.
 - **Confidence:** high.
 
+## Abrams glacis (2026-10-08)
+
+The user's report, on a close front-left view: "Why is it sloped down like
+that? I saw Abrams has a smooth hull on top." The upper glacis fell 0.36 m
+over the front 1.7 m (12°, nose top at 1.08 m) while the skirts' tops stayed
+level at 1.38 m to the nose, so the glacis sank 0.3 m between two boxes.
+
+### The hull's roof line is data, and the skirts follow it
+
+- **The choice:** `abrams.py` names the roof line as points: the deck
+  (`DECK_REAR`), the glacis' head (`GLACIS_HEAD`, 2.25 m, 1.44 m) and the nose
+  (`NOSE`, the hull's front edge at its half length, 1.22 m). The upper
+  glacis is one flat plate of about 7° between them, the angle the real one
+  has; the photos (SEPv3 side, three-quarter fronts) show the skirts' top
+  line falling about 0.2 m over the front panel, which puts the hull's edge
+  there. Under the nose a steep front plate leans back 0.55 m per metre down
+  (`NOSE_LEAN`, `nose_x`) to the belly; it was a long 27° lower glacis, where
+  the photos show a tall, steep plate with the tow eyes on it. The tow hooks
+  and shackles now sit on that plate (they hung 0.2 m in front of the old
+  one), the headlights and fenders follow the glacis (`glacis_z`). The skirts'
+  tops are one rule, `skirt_top(x) = min(SKIRT_TOP, glacis_z(x) - 0.06)`,
+  the Armata's: level along the sponsons, falling with the glacis over the
+  front panel (`front_skirt`), never above the hull's edge. The M1E3 uses
+  both, so its skirts follow the same hull. No frame, mount or tolerance
+  moved; the wreck's glacis dent moved up onto the new surface.
+- **The gap:** The skirts' front end over the idler is 0.13 m tall; the
+  photos show a taller fender cap there and black rubber flaps at the front
+  corners, neither modelled. The second panel's top falls 1 cm, the price
+  of one rule instead of a special case. The fender plate pokes 7 cm past
+  the nose as a thin lip.
+- **Verdict:** sound.
+- **Confidence:** medium. The angle is the published one and the skirt line
+  is read off one side photo, corrected for the tank's pitch; no drawing.
+
+### What was re-exported and checked
+
+- **Changed:** the three Abrams appearances, their wrecks and pieces, and the
+  M1E3 and its wreck, each exported twice byte for byte. The debris states
+  came out unchanged (nothing thrown is on the changed hull). Bake, icons
+  (four Abrams silhouettes) and `asset check` pass;
+  `menu_reel::` passes. The M1E3's thrown turret and debris fail standalone
+  `asset validate` as they did before (judged only as catalog states).
+- **Review:** the game's sheet at its distance hardly shows the nose, so the
+  before/after was judged on close Blender renders (front-left like the
+  user's shot, side, three-quarter) beside the reference crops, by an
+  adversarial self-critique, not an unprimed second agent (none was to be
+  spawned).
+- **Verdict:** sound.
+- **Confidence:** high.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause
