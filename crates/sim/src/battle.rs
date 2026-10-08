@@ -468,6 +468,7 @@ fn spawn_unit(
         protection: t
             .capabilities
             .active_protection
+            .as_ref()
             .map(crate::protection::State::new),
         progress_service: Default::default(),
         service: ServiceStatus::OutOfRange,

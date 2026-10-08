@@ -123,6 +123,25 @@ def build(variant, v):
     A.rotor("tail", at, r, 4, 0.26, m, hull, hub=0.15, mast=0.0, droop=0.0, rot=(-math.pi / 2, 0, 0), thick=0.12)
     A.blade_antenna("antenna_belly", (-0.8, 0, 0.5), 0.25, m, hull, down=True)
 
+    # The Heer's cross and serial on the NH90; the Royal Navy's roundel and
+    # title on the Merlin; the Army Air Corps' on the Wildcat.
+    if vid == NH90:
+        A.markings(v, [
+            ("insignia", dict(kind="de", centre=(-4.5, 1.2, 2.12), normal=(0, 1, 0), up=(0, 0, 1), size=0.25, onto=("fuselage",))),
+            ("text", dict(text="79+24", height=0.24, centre=(-2.4, 1.2, 1.9), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+        ])
+    elif vid == MERLIN:
+        A.markings(v, [
+            ("insignia", dict(kind="uk", centre=(-6.5, 1.2, 2.42), normal=(0, 1, 0), up=(0, 0, 1), size=0.24, onto=("fuselage",))),
+            ("text", dict(text="ROYAL NAVY", height=0.3, centre=(-1.0, 1.2, 2.2), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+            ("text", dict(text="ZJ123", height=0.22, centre=(-4.6, 1.2, 2.2), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+        ])
+    else:
+        A.markings(v, [
+            ("insignia", dict(kind="uk_lowvis", centre=(-3.0, 1.2, 1.62), normal=(0, 1, 0), up=(0, 0, 1), size=0.22, onto=("fuselage",))),
+            ("text", dict(text="ARMY", height=0.22, centre=(-4.6, 1.2, 1.55), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+            ("text", dict(text="ZZ387", height=0.18, centre=(-1.0, 1.2, 1.4), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+        ])
 
 def wreck(variant, v):
     A.crash(v, tail_x=-3.6 if variant["id"] != WILDCAT else -2.2, tail_yaw=0.4, tail_drop=0.08,

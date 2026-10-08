@@ -1264,6 +1264,101 @@ Spec: [slice 02](../../unit-models-followup/slices/02-wreck-debris.md).
 - **Verdict:** sound.
 - **Confidence:** high.
 
+## Follow-up 03
+
+Disabled air and helicopter cards at the roster bar (2026-10-08), after the
+user overruled [the lower detail](#disabled-cards-were-accepted-at-a-lower-detail-than-roster-units).
+Spec: [slice 03](../../unit-models-followup/slices/03-disabled-air.md).
+
+### The old airframes put their cockpits and gear too far forward
+
+- **The choice:** Measuring each side photo (stations as a fraction of the
+  stated length, heights against the stated height where the camera allows)
+  showed the same fault in most jets: the canopy 0.5-2 m too far forward and
+  often too short, the nose gear and mains a metre or more forward, and in
+  several (F-35, A-10, Typhoon, Tornado, Gripen, Mirage) a body too shallow
+  or sitting too low. Each was rebuilt to its photo, and every canopy now
+  fairs into a dorsal spine instead of ending in a wall. Frames (length,
+  span, height) didn't move; where a raised body pushed a fin above the
+  stated height, the fin was shortened.
+- **The gap:** Some photos are three-quarter or in flight (Su-27, Su-34,
+  J-10, J-20, Su-25), so their stations are judged, not measured; their
+  layouts were kept where nothing contradicted them.
+- **The reach:** The disabled frames are art-only, so nothing in the
+  simulation moved.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Markings are paint pressed onto the skin, from the photo's air arm
+
+- **The choice:** `aircraft_parts.insignia` and `lettering` lay a national
+  insignia (layers of outlines, `INSIGNIA`) or letters on a plane and press
+  each vertex onto the near-tier skin of the parts named by `onto` along a
+  ray, standing 6 mm off it, so a decal follows a curved fuselage instead of
+  floating as a flat card. Each card wears the markings of the air arm in its
+  side photo (RAF Typhoon, Luftwaffe Tornado, Flygvapnet Gripen, Armée de
+  l'air Rafale and Mirage, US low-visibility greys, VKS red stars, PLA stars
+  and bars) with that photo's codes and numbers. The crash burns them off
+  (`marking_*` go with the canopy glass). Colours are one marking paint per
+  `MARK` key, role `marking`.
+- **The gap:** The Swedish crowns are three gold spots and the A-10's shark
+  mouth is left off: neither shape is a star-shaped outline the layers can
+  draw. Cyrillic titles use Blender's built-in font.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
+### Shared detail lives in aircraft_parts, so every airframe gains it
+
+- **The choice:** Framed canopies (windscreen arch and bows in the
+  airframe's paint, sill frames), control-surface hinge lines (`hinges`),
+  nav lights, gear drag braces, torque links, hub caps and bolts, taxi
+  lights, pylon sway braces, missiles on launch rails with canards and live
+  bands, bomb fuzes, and on every main rotor (over 2.5 m) a swashplate,
+  pitch links and blade cuffs. Blade tips can take a paint (`tips`); no card
+  uses it, as no photo settled it.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Helicopters got the shared detail and markings, not a re-measure
+
+- **The choice:** The Apache was measured against its side photo and rebuilt
+  (the tandem glass standing out of the body, half a metre aft; the engines
+  higher; the mains under the gunner). The other fifteen rotorcraft cards took
+  the shared rotor, gear and store detail and their air arm's markings, and
+  were checked by eye against their photos, but their cabin cross-sections
+  were not re-measured station by station.
+- **The gap:** The slice asks for cabin depth and cross-sections from the
+  references for every family; this pass ran out of room for fifteen of
+  them.
+- **The reach:** The "slim cabins" the closeout named may remain on the
+  H-1s, Little Birds, Chinooks, Tigers, NH90, Merlin, Wildcat, UH-60, Z-20,
+  Mi-8, Mi-35, Mi-28, Ka-52 and Z-10.
+- **Verdict:** needs-user. Provisional: as shipped. To finish: measure each
+  side photo as the jets were and rebuild the cabins.
+- **Confidence:** medium.
+
+### The NH90 stays 3.6 m wide
+
+- **The choice:** A second source, [Army Technology](https://www.army-technology.com/projects/nh90-tactical-transport-helicopter/),
+  gives the same 4.62 m width as Vertipedia beside a 19.56 m length "rotors
+  turning" and a 5.2 m height that only the turning tail rotor reaches. The
+  4.62 m is the overall figure, not the fixed airframe, so the card keeps
+  3.6 m over its sponsons.
+- **Verdict:** sound. It closes [the NH90's width](#the-nh90s-width) unless a
+  drawing says otherwise.
+- **Confidence:** medium.
+
+### Disabled wrecks throw debris but have no catalog entry to name it
+
+- **The choice:** Every air wreck was re-exported through `vehicle_export`
+  after slice 02 merged, so each writes its `_wreck_debris.glb`, and the
+  crash's own plates beside the fuselage are `litter_*`. Disabled cards have
+  no catalog entry, so there is no `debris` state to add; a lone file can't
+  be held to `fit.debris` or count its tiers with its whole, so those two
+  checks were read past when validating the debris files.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
 ## Follow-up 01
 
 The Dragoon's sides, the M10's turret and the Abrams' front and skirts
@@ -1531,6 +1626,140 @@ family. No roster frame, mount or tolerance moved.
   and the skeleton's 90° basis.
 - **Verdict:** sound.
 - **Confidence:** medium.
+## Names and weapon icons (2026-10-08)
+
+The unit info-card workbench showed catalog identifiers on cards: unit
+names composed from family and variant ("BMP IFV Family BMP-3", "Tigr
+Tigr-M"), mount ids as labels (`MAIN_GUN`, `HEAVY_SNIPER_1`), terse or long
+weapon names ("AP", "Spike (direct guidance)") and blank icon slots. The
+user's request: every unit and weapon gets a short human-readable label from
+the catalog, display names separate from ids, every weapon a generated icon,
+and missing names or icons fail validation; no UI truncation, no automatic
+underscore replacement, no generic fallback icon.
+
+### A label is concise by one testable rule, checked where the catalog loads
+
+- **The choice:** `contract::labels::check_label` owns "concise": at most 18
+  characters, single-spaced, opening with a capital or a digit, only letters,
+  digits, spaces and `- / . ×`, and no word written twice (split at spaces,
+  hyphens and slashes, so a family repeated before its variant is refused).
+  `check_icon` holds an icon to a lowercase id. Catalog resolution applies
+  them to a unit's `name`, its `roster.family_name`, each mount's `name`, an
+  active protection's `name`/`icon` and a planned unit's weapons; weapon-row
+  resolution (`resolve_weapons`) to each row's `name`/`icon`. A refusal names
+  the entry and the field. Test and menu units are held to it too.
+- **The gap:** The user named examples, not a rule.
+- **The reach:** 18 is a tripwire picked against the longest label a card
+  needs ("M1A2 SEP v3 Trophy", "F-15E Strike Eagle"), not a target. The rule
+  cannot judge terseness ("AP" passes); the authored labels carry that.
+  `roster.variant` (the picker's variant buttons) is not held to it: several
+  read as short descriptions ("Close-quarters infantry"). Soldier kinds and
+  parts are not shown on a card and are not checked.
+- **Verdict:** sound.
+- **Confidence:** medium. The repeated-word clause is the one most likely to
+  refuse a real name some day; rename it rather than loosen the rule.
+
+### A mount's id moved to `id`; `name` is its label
+
+- **The choice:** `MountDefinition` gains `id` (what `sensors.on`, a mount's
+  `on`, a model's rig declarations and variant merges name) and keeps `name`
+  as the player label. Lists of objects now merge by `id`. The mechanics
+  editor addresses mounts by id. Old documents (and replays carrying them)
+  are refused, with no compatibility path; the user accepted that.
+- **The gap:** The spec has no mount label; mount names were slugs used both
+  ways.
+- **The reach:** A variant that changes a mount's weapons inherits its
+  parent's label; every shipped label matches its weapons, but nothing
+  checks that a label agrees with what it fires.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Active protection and planned weapons carry a label and an icon
+
+- **The choice:** `ActiveProtection` gains `name`/`icon` (the Trophy part says
+  "Trophy", `trophy`), replacing the panel's hard-coded `TROPHY` row, whose
+  icon file was never generated. A planned unit's `planned.weapons` become
+  `{ name, icon }` objects, and each card publishes them as
+  `planned_weapons` (empty for a unit type, whose weapons are its mounts), so
+  a disabled card can show its weapons like any other. `ActiveProtection` is
+  no longer `Copy`; the simulation reads it by reference, and a supply need
+  carries the three numbers it uses.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### Eight new generated weapon icons
+
+- **The choice:** `WEAPON_ICONS` draws `sniper` (marksman and heavy sniper
+  rows), `autocannon`, `rpg` (RPG-7/29), and for planned weapons
+  `aa_missile`, `bomb`, `howitzer`, `rockets` and `mortar`; `trophy` was
+  already drawn. `iconFiles` now writes every weapon row's, every active
+  protection's and every planned weapon's icon, so `asset check` and the icon
+  test refuse any of them without a drawing. Drone warheads reuse
+  `ap_shell`/`he_shell`, aircraft and helicopter guns `autocannon`, tank
+  guns on planned cards `ap_shell`.
+- **Verdict:** sound.
+- **Confidence:** medium. Judged on a contact sheet at 64 and 16 px; no
+  unprimed critique was run (no helper agents in this lane).
+
+### Moved records
+
+- **The choice:** The frozen generation corpus's recorded catalog
+  (`fixtures/parity/map-layout/physical-rules.json`) was rewritten to the new
+  contract (mount ids and labels, test unit labels), since the old form no
+  longer loads. Its generated layouts are byte-identical (checked against the
+  base build); only each result's `identity.config_hash`, which hashes the
+  physical rules including that catalog, moved, so `paired-records.json` was
+  re-blessed (`BLESS_PARITY=1` on `layout_cli`). `fixtures/catalog.json` was
+  re-blessed (`BLESS_CATALOG=1`).
+## Abrams glacis (2026-10-08)
+
+The user's report, on a close front-left view: "Why is it sloped down like
+that? I saw Abrams has a smooth hull on top." The upper glacis fell 0.36 m
+over the front 1.7 m (12°, nose top at 1.08 m) while the skirts' tops stayed
+level at 1.38 m to the nose, so the glacis sank 0.3 m between two boxes.
+
+### The hull's roof line is data, and the skirts follow it
+
+- **The choice:** `abrams.py` names the roof line as points: the deck
+  (`DECK_REAR`), the glacis' head (`GLACIS_HEAD`, 2.25 m, 1.44 m) and the nose
+  (`NOSE`, the hull's front edge at its half length, 1.22 m). The upper
+  glacis is one flat plate of about 7° between them, the angle the real one
+  has; the photos (SEPv3 side, three-quarter fronts) show the skirts' top
+  line falling about 0.2 m over the front panel, which puts the hull's edge
+  there. Under the nose a steep front plate leans back 0.55 m per metre down
+  (`NOSE_LEAN`, `nose_x`) to the belly; it was a long 27° lower glacis, where
+  the photos show a tall, steep plate with the tow eyes on it. The tow hooks
+  and shackles now sit on that plate (they hung 0.2 m in front of the old
+  one), the headlights and fenders follow the glacis (`glacis_z`). The skirts'
+  tops are one rule, `skirt_top(x) = min(SKIRT_TOP, glacis_z(x) - 0.06)`,
+  the Armata's: level along the sponsons, falling with the glacis over the
+  front panel (`front_skirt`), never above the hull's edge. The M1E3 uses
+  both, so its skirts follow the same hull. No frame, mount or tolerance
+  moved; the wreck's glacis dent moved up onto the new surface.
+- **The gap:** The skirts' front end over the idler is 0.13 m tall; the
+  photos show a taller fender cap there and black rubber flaps at the front
+  corners, neither modelled. The second panel's top falls 1 cm, the price
+  of one rule instead of a special case. The fender plate pokes 7 cm past
+  the nose as a thin lip.
+- **Verdict:** sound.
+- **Confidence:** medium. The angle is the published one and the skirt line
+  is read off one side photo, corrected for the tank's pitch; no drawing.
+
+### What was re-exported and checked
+
+- **Changed:** the three Abrams appearances, their wrecks and pieces, and the
+  M1E3 and its wreck, each exported twice byte for byte. The debris states
+  came out unchanged (nothing thrown is on the changed hull). Bake, icons
+  (four Abrams silhouettes) and `asset check` pass;
+  `menu_reel::` passes. The M1E3's thrown turret and debris fail standalone
+  `asset validate` as they did before (judged only as catalog states).
+- **Review:** the game's sheet at its distance hardly shows the nose, so the
+  before/after was judged on close Blender renders (front-left like the
+  user's shot, side, three-quarter) beside the reference crops, by an
+  adversarial self-critique, not an unprimed second agent (none was to be
+  spawned).
+- **Verdict:** sound.
+- **Confidence:** high.
 
 ### The eight tank and IFV cards at the T-90M's density (second pass)
 

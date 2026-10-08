@@ -1322,7 +1322,7 @@ fn a_grounded_launcher_leaves_its_occupied_window_at_the_declared_bore() {
         "soldiers",
         "test_atgm_gunner",
         json!({"mounts":[{
-            "name":"ATGM launcher","pivot_m":[0.2,-0.1,0.75],"muzzle_m":[0.6,0,0]
+            "id":"ATGM launcher","pivot_m":[0.2,-0.1,0.75],"muzzle_m":[0.6,0,0]
         }]}),
     );
     let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({

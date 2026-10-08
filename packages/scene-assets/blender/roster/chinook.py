@@ -65,6 +65,19 @@ def build(variant, v):
     A.mirrored(lambda side, k: box(f"step_{k}", (0.4, 0.2, 0.04), (6.2, side * 1.25, 0.7), m["dark"], hull,
                                    lods=NEAR))
 
+    # The Army's black lettering on the F; the RAF's roundel, title and
+    # serial on the HC6.
+    if variant["id"] == F:
+        A.markings(v, [
+            ("text", dict(text="U.S. ARMY", height=0.35, centre=(-3.0, 1.2, 2.2), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+            ("text", dict(text="08-08034", height=0.14, centre=(-6.6, 1.2, 2.6), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+        ])
+    else:
+        A.markings(v, [
+            ("insignia", dict(kind="uk_lowvis", centre=(-1.5, 1.2, 1.9), normal=(0, 1, 0), up=(0, 0, 1), size=0.4, onto=("fuselage",))),
+            ("text", dict(text="ROYAL AIR FORCE", height=0.22, centre=(2.0, 1.2, 2.5), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+            ("text", dict(text="ZK558", height=0.3, centre=(-6.0, 1.2, 2.0), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+        ])
 
 def wreck(variant, v):
     A.crash(v, tail_x=-4.6, tail_yaw=0.12, tail_drop=0.05, blades_broken=(("front", 0), ("rear", 1)), seed=47)

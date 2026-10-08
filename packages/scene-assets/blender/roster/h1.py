@@ -95,6 +95,21 @@ def build(variant, v):
     A.skids(2.79 if ah else 3.6, -1.21 if ah else -1.0, 1.05 if ah else 1.25, (2.14, -0.47) if ah else (2.7, -0.2),
             0.95, m, hull)
 
+    # The Marines' low-visibility markings: the star on the boom, MARINES
+    # behind it, the serial on the fin.
+    ah = variant["id"] == AH1Z
+    if ah:
+        A.markings(v, [
+            ("insignia", dict(kind="us_lowvis", centre=(-2.4, 1.2, 1.9), normal=(0, 1, 0), up=(0, 0, 1), size=0.3, onto=("fuselage",))),
+            ("text", dict(text="MARINES", height=0.18, centre=(-4.4, 1.2, 1.72), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="lowvis_dark")),
+            ("text", dict(text="168012", height=0.12, centre=(-5.9, 1.2, 2.55), normal=(0, 1, 0), up=(0, 0, 1), onto=("tail_fin_0",), colour="lowvis_dark")),
+        ])
+    else:
+        A.markings(v, [
+            ("insignia", dict(kind="us_lowvis", centre=(-3.0, 1.2, 1.82), normal=(0, 1, 0), up=(0, 0, 1), size=0.28, onto=("fuselage",))),
+            ("text", dict(text="MARINES", height=0.18, centre=(-4.6, 1.2, 1.76), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="lowvis_dark")),
+            ("text", dict(text="168781", height=0.12, centre=(-5.85, 1.2, 2.6), normal=(0, 1, 0), up=(0, 0, 1), onto=("tail_fin_0",), colour="lowvis_dark")),
+        ])
 
 def wreck(variant, v):
     A.crash(v, tail_x=-2.2, tail_yaw=-0.45, tail_drop=0.1, blades_broken=(("main", 0),), seed=11)

@@ -5,13 +5,13 @@
       "description": "A soldier with a rifle.",
       "hp": 100,
       "appearance": ["test_rifle", "test_rifle_b", "test_rifle_c"],
-      "mounts": [{ "name": "rifles", "weapons": ["rifle"], "squad": true }]
+      "mounts": [{ "id": "rifles", "name": "Rifle", "weapons": ["rifle"], "squad": true }]
     },
     "test_grenadier": {
       "extends": "test_rifleman",
       "name": "Grenadier",
       "description": "A rifleman who also carries the squad's grenade launcher.",
-      "mounts": [{ "name": "grenade launcher", "weapons": ["grenade"], "special": true }]
+      "mounts": [{ "id": "grenade launcher", "name": "Grenade Launcher", "weapons": ["grenade"], "special": true }]
     },
     "test_scout": {
       "extends": "test_rifleman",
@@ -29,7 +29,7 @@
       "extends": "test_at_rifleman",
       "name": "ATGM gunner",
       "description": "Carries the team's guided anti-tank missile launcher.",
-      "mounts": [{ "name": "ATGM launcher", "weapons": ["atgm"], "special": true, "operator_appearance": { "active": ["test_at", "test_at_b", "test_at_c"], "carried": ["test_at_carried", "test_at_carried_b", "test_at_carried_c"] } }]
+      "mounts": [{ "id": "ATGM launcher", "name": "ATGM Launcher", "weapons": ["atgm"], "special": true, "operator_appearance": { "active": ["test_at", "test_at_b", "test_at_c"], "carried": ["test_at_carried", "test_at_carried_b", "test_at_carried_c"] } }]
     }
   }
 }

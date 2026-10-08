@@ -160,14 +160,15 @@ def remote_station(v, rws, rws_gun):
 
 def skirts(v):
     """A long wedge over the idler and four long flat panels a side, the flag
-    and star stencilled on them; bolts along their tops."""
+    and star stencilled on them; bolts along their tops, which run along the
+    hull's side (`abrams.skirt_top`)."""
     m, hull = v.mats, v.hull
-    top, foot, sy = A.SKIRT_TOP, A.SKIRT_FOOT, A.SKIRT_Y
-    panels = [[(2.30, foot), (3.22, foot), (3.86, 1.04), (3.86, top), (2.30, top)]]
+    top, foot, sy = A.skirt_top, A.SKIRT_FOOT, A.SKIRT_Y
+    panels = [A.front_skirt(2.30)]
     for front, rear in ((2.28, 0.92), (0.90, -0.46), (-0.48, -1.84)):
-        panels.append([(rear, foot), (front, foot), (front, top), (rear, top)])
-    panels.append([(-3.62, 1.06), (-3.30, 0.94), (-3.02, 0.72), (-2.68, foot), (-1.86, foot), (-1.86, top),
-                   (-3.62, top)])
+        panels.append([(rear, foot), (front, foot), (front, top(front)), (rear, top(rear))])
+    panels.append([(-3.62, 1.06), (-3.30, 0.94), (-3.02, 0.72), (-2.68, foot), (-1.86, foot), (-1.86, top(-1.86)),
+                   (-3.62, top(-3.62))])
     for side, s in ((1, "L"), (-1, "R")):
         face = side * (sy + 0.045)
         for k, outline in enumerate(panels):
@@ -176,7 +177,7 @@ def skirts(v):
             xs = [p[0] for p in outline]
             for j in range(4):
                 bx = min(xs) + (max(xs) - min(xs)) * (j + 0.5) / 4
-                cyl(f"skirt_bolt_{s}_{k}_{j}", 0.022, 0.02, (bx, face + side * 0.006, top - 0.05), "Y", m["steel"],
+                cyl(f"skirt_bolt_{s}_{k}_{j}", 0.022, 0.02, (bx, face + side * 0.006, top(bx) - 0.05), "Y", m["steel"],
                     hull, seg=6, lods=FINE)
         turn = (math.pi / 2, 0, math.pi if side > 0 else 0)
         star = [(1.60 + 0.30 * math.sin(k * math.pi / 5) * (1 if k % 2 == 0 else 0.4),

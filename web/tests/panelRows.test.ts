@@ -189,7 +189,7 @@ test("strength counts a squad's losses as well as its wounds, and an enemy's is 
 test("an identified enemy's panel names its type and weapon types, never a count", () => {
   const tank = enemyPanel(UNITS, "test_tank", RULES);
   expect(tank.name).toBe("TANK");
-  expect(tank.weapons.map(weaponLabel)).toEqual(["CANNON AP · HE", "HMG"]);
+  expect(tank.weapons.map(weaponLabel)).toEqual(["MAIN GUN AP · HE", "HMG"]);
   const squad = enemyPanel(UNITS, "test_rifle", RULES);
   expect(squad.weapons.map(weaponLabel)).toEqual(["RIFLE", "GRENADE"]);
   // Nothing numeric: no ammunition, health or strength.
@@ -201,7 +201,7 @@ test("a last sighting keeps its identified name and weapons and counts up since"
   const c = { source: "last_seen", kind: "test_tank", heard: [], evidenceTick: 300 };
   const p = contactPanel(UNITS, c, 300 + 12 * 30 + 7, RULES);
   expect(p.name).toBe("TANK");
-  expect(p.weapons.map(weaponLabel)).toEqual(["CANNON AP · HE", "HMG"]);
+  expect(p.weapons.map(weaponLabel)).toEqual(["MAIN GUN AP · HE", "HMG"]);
   expect(p.states.at(-1)?.word).toBe("LAST SEEN 12 s AGO");
   // The only number on it is the seconds.
   expect(JSON.stringify([p.name, p.weapons.map(weaponLabel)])).not.toMatch(/\d/);
@@ -211,7 +211,7 @@ test("a firing report is UNKNOWN, names what was heard by weapon type, and count
   const c = { source: "firing", kind: null, heard: ["tank_ap", "tank_he"], evidenceTick: 90 };
   const p = contactPanel(UNITS, c, 90 + 5 * 30, RULES);
   expect(p.name).toBe("UNKNOWN");
-  expect(p.weapons.map(weaponLabel)).toEqual(["CANNON AP · HE"]);
+  expect(p.weapons.map(weaponLabel)).toEqual(["MAIN GUN AP · HE"]);
   expect(p.states.at(-1)?.word).toBe("HEARD 5 s AGO");
   expect(heardWeapons(UNITS, ["hmg", "rifle"], RULES).map(weaponLabel)).toEqual(["HMG", "RIFLE"]);
   expect(contactPanel(UNITS, { ...c, heard: [] }, 90, RULES).weapons).toEqual([]);
@@ -234,7 +234,7 @@ test("every panel is titled with its unit's name, own or enemy, and UNKNOWN for 
   const truck = ownPanel(UNITS, unit({ kind: "test_supply", mounts: [], stock: 600 }), [], RULES);
   expect(truck.name).toBe("SUPPLY TRUCK");
   expect(ownPanel(UNITS, unit({ kind: "test_rifle", mounts: [] }), [], RULES).name).toBe(
-    "RIFLE SQUAD",
+    "RIFLE SECTION",
   );
   expect(enemyPanel(UNITS, "test_jeep", RULES).name).toBe("JEEP");
   const report = { source: "firing", kind: null, heard: [], evidenceTick: 0 };
@@ -258,13 +258,13 @@ test("an own weapon row is the enemy's row with its rounds left: unlimited, a co
     ],
   });
   const rows = ownPanel(UNITS, tank, [], RULES).weapons;
-  expect(rows.map(weaponLabel)).toEqual(["CANNON AP 20 · HE 15", "HMG ∞"]);
+  expect(rows.map(weaponLabel)).toEqual(["MAIN GUN AP 20 · HE 15", "HMG ∞"]);
   // The kind being loaded is the one marked, and its icon the row's.
   expect(rows[0].kinds.map((k) => k.loaded)).toEqual([false, true]);
   expect(rows[0].icon).toBe("weapons/he_shell.svg");
   // The enemy's rows are the same words without a count or a loaded kind.
   const enemy = enemyPanel(UNITS, "test_tank", RULES).weapons;
-  expect(enemy.map(weaponLabel)).toEqual(["CANNON AP · HE", "HMG"]);
+  expect(enemy.map(weaponLabel)).toEqual(["MAIN GUN AP · HE", "HMG"]);
   expect(enemy.flatMap((w) => w.kinds).some((k) => k.loaded || k.count !== undefined)).toBe(false);
   expect(enemy.every((w) => w.live === null)).toBe(true);
 });
@@ -391,12 +391,15 @@ test("fresh firing keeps a previously identified name and labels its evidence ho
   expect(p.weapons.every((w) => w.live === null && w.fill === null)).toBe(true);
 });
 
-test("Trophy shares weapon rows with charges and cooldown while enemy readiness stays private", () => {
+test("active protection shares weapon rows with charges and cooldown while enemy readiness stays private", () => {
   const tank = UNITS.type("test_tank");
   const lookup = vi.spyOn(UNITS, "type").mockReturnValue({
     ...tank,
     capabilities: {
       active_protection: {
+        // The row reads the catalog's label and icon, whatever they are.
+        name: "Iron Fist",
+        icon: "aps_test",
         capacity: 4,
         cooldown_s: 3,
         standoff_m: 8,
@@ -407,12 +410,15 @@ test("Trophy shares weapon rows with charges and cooldown while enemy readiness 
   });
   try {
     const own = unit({ kind: "test_tank", mounts: [], protection: { charges: 2, cooldown: 0.5 } });
-    const ready = ownPanel(UNITS, own, [own], RULES).weapons.find((row) => row.name === "TROPHY");
+    const ready = ownPanel(UNITS, own, [own], RULES).weapons.find(
+      (row) => row.name === "IRON FIST",
+    );
+    expect(ready?.icon).toBe("weapons/aps_test.svg");
     expect(ready?.kinds).toEqual([{ label: null, count: 2, loaded: true }]);
     expect(ready?.fill).toBe(0.5);
     expect(ready?.live?.cooldown).toBe(0.5);
     const enemy = enemyPanel(UNITS, "test_tank", RULES).weapons.find(
-      (row) => row.name === "TROPHY",
+      (row) => row.name === "IRON FIST",
     );
     expect(enemy?.kinds).toEqual([{ label: null, loaded: false }]);
     expect(enemy?.live).toBeNull();

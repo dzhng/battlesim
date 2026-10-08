@@ -32,8 +32,8 @@ const structuralSnapshot = (): MechanicsSnapshot => {
     squad: { slots: ["test_rifleman", "test_grenadier"] },
   };
   fixture.catalog.soldiers = {
-    test_rifleman: { hp: 100, mounts: [{ name: "rifles", weapons: ["rifle"] }] },
-    test_grenadier: { hp: 100, mounts: [{ name: "launcher", weapons: ["grenade"] }] },
+    test_rifleman: { hp: 100, mounts: [{ id: "rifles", weapons: ["rifle"] }] },
+    test_grenadier: { hp: 100, mounts: [{ id: "launcher", weapons: ["grenade"] }] },
   };
   const weapons = fixture.catalog.weapons as Record<string, JsonObject>;
   weapons.rifle.magazine = { rounds: 30, shot_interval_s: 0.1, burst: null };
@@ -57,14 +57,14 @@ it("shows exact units by default and preserves an inline edit while filtering", 
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
   await screen.findByRole("heading", { name: "Mechanics" });
-  expect(await screen.findByRole("button", { name: "Expand Rifle squad" })).toBeTruthy();
-  fireEvent.change(screen.getByLabelText("Rifle squad deployment cost"), {
+  expect(await screen.findByRole("button", { name: "Expand Rifle Section" })).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Rifle Section deployment cost"), {
     target: { value: "125" },
   });
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "test_tank" } });
-  expect(screen.queryByRole("button", { name: "Expand Rifle squad" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Expand Rifle Section" })).toBeNull();
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "" } });
-  expect((screen.getByLabelText("Rifle squad deployment cost") as HTMLInputElement).value).toBe(
+  expect((screen.getByLabelText("Rifle Section deployment cost") as HTMLInputElement).value).toBe(
     "125",
   );
   expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
@@ -82,7 +82,7 @@ it("links editable landing spread and angular scatter and keeps range edits in b
     vi.fn(async () => respond(fixture)),
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
   fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
   const spread = screen.getByLabelText(
     "grenade Landing spread at maximum range",
@@ -108,19 +108,19 @@ it("retains invalid text through filtering and refuses preview until it is corre
   const fetcher = vi.fn(async () => respond(snapshot));
   vi.stubGlobal("fetch", fetcher);
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  const cost = await screen.findByLabelText("Rifle squad deployment cost");
+  const cost = await screen.findByLabelText("Rifle Section deployment cost");
   fireEvent.change(cost, { target: { value: "120" } });
   fireEvent.change(cost, { target: { value: "12e" } });
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "test_tank" } });
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "" } });
-  expect((screen.getByLabelText("Rifle squad deployment cost") as HTMLInputElement).value).toBe(
+  expect((screen.getByLabelText("Rifle Section deployment cost") as HTMLInputElement).value).toBe(
     "12e",
   );
   expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
     true,
   );
   expect(fetcher.mock.calls.length).toBe(1);
-  fireEvent.change(screen.getByLabelText("Rifle squad deployment cost"), {
+  fireEvent.change(screen.getByLabelText("Rifle Section deployment cost"), {
     target: { value: "130" },
   });
   expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
@@ -151,7 +151,7 @@ it("requires a preview of the current draft before saving and resets only after 
   });
   vi.stubGlobal("fetch", fetcher);
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.change(await screen.findByLabelText("Rifle squad deployment cost"), {
+  fireEvent.change(await screen.findByLabelText("Rifle Section deployment cost"), {
     target: { value: "125" },
   });
   const save = screen.getByRole("button", { name: "Save authored JSON" });
@@ -159,7 +159,7 @@ it("requires a preview of the current draft before saving and resets only after 
   fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
   await screen.findByRole("heading", { name: "Preview authored changes" });
   expect(save.hasAttribute("disabled")).toBe(false);
-  fireEvent.change(screen.getByLabelText("Rifle squad deployment cost"), {
+  fireEvent.change(screen.getByLabelText("Rifle Section deployment cost"), {
     target: { value: "130" },
   });
   expect(save.hasAttribute("disabled")).toBe(true);
@@ -168,7 +168,7 @@ it("requires a preview of the current draft before saving and resets only after 
   fireEvent.click(save);
   await screen.findByRole("status");
   expect(published).toBe(true);
-  expect((screen.getByLabelText("Rifle squad deployment cost") as HTMLInputElement).value).toBe(
+  expect((screen.getByLabelText("Rifle Section deployment cost") as HTMLInputElement).value).toBe(
     "100",
   );
   const body = JSON.parse(
@@ -190,16 +190,16 @@ it("keeps a conflicted draft until explicit discard and reload", async () => {
     ),
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.change(await screen.findByLabelText("Rifle squad deployment cost"), {
+  fireEvent.change(await screen.findByLabelText("Rifle Section deployment cost"), {
     target: { value: "125" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
   await screen.findByText("Sources changed outside this editor");
-  expect((screen.getByLabelText("Rifle squad deployment cost") as HTMLInputElement).value).toBe(
+  expect((screen.getByLabelText("Rifle Section deployment cost") as HTMLInputElement).value).toBe(
     "125",
   );
   fireEvent.click(screen.getByRole("button", { name: "Reload sources" }));
-  expect((screen.getByLabelText("Rifle squad deployment cost") as HTMLInputElement).value).toBe(
+  expect((screen.getByLabelText("Rifle Section deployment cost") as HTMLInputElement).value).toBe(
     "125",
   );
   fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
@@ -207,7 +207,7 @@ it("keeps a conflicted draft until explicit discard and reload", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Reload sources" }));
   fireEvent.click(screen.getByRole("button", { name: "Discard draft and reload" }));
   await waitFor(() =>
-    expect((screen.getByLabelText("Rifle squad deployment cost") as HTMLInputElement).value).toBe(
+    expect((screen.getByLabelText("Rifle Section deployment cost") as HTMLInputElement).value).toBe(
       "100",
     ),
   );
@@ -223,7 +223,7 @@ it("undoing a range edit preserves landing spread and clears the coupled draft",
     vi.fn(async () => respond(fixture)),
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
   fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
   const range = screen.getByLabelText("grenade Maximum engagement range");
   fireEvent.change(range, { target: { value: "300" } });
@@ -265,7 +265,7 @@ it("restoring inherited range keeps the currently edited landing spread", async 
     vi.fn(async () => respond(fixture)),
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
   fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
   fireEvent.change(screen.getByLabelText("grenade Landing spread at maximum range"), {
     target: { value: "6" },
@@ -289,10 +289,10 @@ it("discarding an optional parent clears its unfinished child text without clear
   const fetcher = vi.fn(async () => respond(structuralSnapshot()));
   vi.stubGlobal("fetch", fetcher);
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
   fireEvent.click(screen.getByText("Rifle", { selector: "summary" }));
   fireEvent.change(screen.getByLabelText("rifle Cyclic firing rate"), { target: { value: "-" } });
-  fireEvent.change(screen.getByLabelText("Rifle squad deployment cost"), {
+  fireEvent.change(screen.getByLabelText("Rifle Section deployment cost"), {
     target: { value: "12e" },
   });
   fireEvent.change(screen.getByLabelText("rifle Magazine / belt"), { target: { value: "" } });
@@ -300,10 +300,10 @@ it("discarding an optional parent clears its unfinished child text without clear
   expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
     true,
   );
-  expect((screen.getByLabelText("Rifle squad deployment cost") as HTMLInputElement).value).toBe(
+  expect((screen.getByLabelText("Rifle Section deployment cost") as HTMLInputElement).value).toBe(
     "12e",
   );
-  fireEvent.change(screen.getByLabelText("Rifle squad deployment cost"), {
+  fireEvent.change(screen.getByLabelText("Rifle Section deployment cost"), {
     target: { value: "125" },
   });
   expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
@@ -332,7 +332,7 @@ it("removing the last slot of a soldier kind discards only that unit's removed s
   );
   vi.stubGlobal("fetch", fetcher);
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
   fireEvent.change(screen.getByLabelText("test_grenadier Soldier health"), {
     target: { value: "125" },
   });
@@ -378,7 +378,7 @@ it("undoing a mount-list replacement clears unfinished edits on its discarded mo
     target: {
       value: JSON.stringify([
         ...initial,
-        { name: "temporary", weapons: ["rifle"], pivot_m: [0, 0, 0] },
+        { id: "temporary", name: "Temporary", weapons: ["rifle"], pivot_m: [0, 0, 0] },
       ]),
     },
   });
@@ -409,7 +409,7 @@ it("restoring an inherited optional object clears unfinished child text", async 
     vi.fn(async () => respond(fixture)),
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
   fireEvent.change(screen.getByLabelText("rifle Cyclic firing rate"), { target: { value: "-" } });
   const magazine = screen.getByLabelText("rifle Magazine / belt");
   fireEvent.click(magazine.closest(".me-field")!.querySelector("button")!);
@@ -456,7 +456,7 @@ it("previews old and new battlefield values with their raw units across coupled 
     ),
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
   fireEvent.change(screen.getByLabelText("grenade Landing spread at maximum range"), {
     target: { value: "6" },
   });
@@ -496,7 +496,7 @@ it("returns to the last connected gameplay edit after native rejection without g
   });
   try {
     render(<MechanicsEditor />, { wrapper: MemoryRouter });
-    fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
     const spread = screen.getByLabelText("grenade Landing spread at maximum range");
     fireEvent.change(spread, { target: { value: "1" } });
     fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
@@ -526,11 +526,11 @@ it("restores a saved soldier override to the native default omitted by its paren
   fixture.catalog.soldiers = {
     test_rifleman: {
       hp: 100,
-      mounts: [{ name: "rifles", weapons: ["rifle"], squad: false, special: false }],
+      mounts: [{ id: "rifles", weapons: ["rifle"], squad: false, special: false }],
     },
     test_rifle__test_rifleman: {
       hp: 100,
-      mounts: [{ name: "rifles", weapons: ["rifle"], squad: false, special: true }],
+      mounts: [{ id: "rifles", weapons: ["rifle"], squad: false, special: true }],
     },
   };
   fixture.documents = [
@@ -540,11 +540,11 @@ it("restores a saved soldier override to the native default omitted by its paren
         soldiers: {
           test_rifleman: {
             hp: 100,
-            mounts: [{ name: "rifles", weapons: ["rifle"], squad: false }],
+            mounts: [{ id: "rifles", weapons: ["rifle"], squad: false }],
           },
           test_rifle__test_rifleman: {
             extends: "test_rifleman",
-            mounts: [{ name: "rifles", special: true }],
+            mounts: [{ id: "rifles", special: true }],
           },
         },
       },
@@ -555,7 +555,7 @@ it("restores a saved soldier override to the native default omitted by its paren
     vi.fn(async () => respond(fixture)),
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
   const special = screen.getByLabelText("test_rifle__test_rifleman Transferable special weapon");
   fireEvent.click(
     within(special.closest(".me-field") as HTMLElement).getByRole("button", {
@@ -573,7 +573,7 @@ it("summarizes the admitted soldier clone instead of the unfinished projection",
   fixture.catalog.soldiers = {
     test_rifleman: {
       hp: 100,
-      mounts: [{ name: "rifles", weapons: ["rifle"], squad: true, special: false }],
+      mounts: [{ id: "rifles", weapons: ["rifle"], squad: true, special: false }],
     },
   };
   (fixture.catalog.units as JsonObject[]).find((unit) => unit.id === "test_rifle")!.body = {
@@ -582,7 +582,7 @@ it("summarizes the admitted soldier clone instead of the unfinished projection",
   const accepted = structuredClone(fixture.catalog);
   (accepted.soldiers as JsonObject).test_rifle__test_rifleman = {
     hp: 100,
-    mounts: [{ name: "rifles", weapons: ["rifle"], squad: false, special: false }],
+    mounts: [{ id: "rifles", weapons: ["rifle"], squad: false, special: false }],
   };
   (accepted.units as JsonObject[]).find((unit) => unit.id === "test_rifle")!.body = {
     squad: { slots: ["test_rifle__test_rifleman"] },
@@ -605,9 +605,9 @@ it("summarizes the admitted soldier clone instead of the unfinished projection",
     ),
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
   fireEvent.change(screen.getByLabelText("test_rifleman Weapon mounts"), {
-    target: { value: JSON.stringify([{ name: "rifles", weapons: ["rifle"] }]) },
+    target: { value: JSON.stringify([{ id: "rifles", weapons: ["rifle"] }]) },
   });
   fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
   const summary = within(await screen.findByRole("region", { name: "Save preview" })).getByRole(
@@ -632,7 +632,7 @@ it("summarizes a whole-mount restore after the accepted catalog removes its sold
       soldiers: {
         test_rifle__test_grenadier: {
           extends: "test_grenadier",
-          mounts: [{ name: "grenade launcher", weapons: ["rifle"] }],
+          mounts: [{ id: "grenade launcher", weapons: ["rifle"] }],
         },
       },
     },
@@ -661,7 +661,7 @@ it("summarizes a whole-mount restore after the accepted catalog removes its sold
     ),
   );
   render(<MechanicsEditor />, { wrapper: MemoryRouter });
-  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle Section" }));
   const mounts = screen.getByLabelText("test_rifle__test_grenadier Weapon mounts");
   fireEvent.click(
     within(mounts.closest(".me-field") as HTMLElement).getByRole("button", {
@@ -674,8 +674,8 @@ it("summarizes a whole-mount restore after the accepted catalog removes its sold
   );
   const after = summary.querySelector(".me-change-values strong")!.textContent!.split(" → ")[1];
   expect(JSON.parse(after!)).toMatchObject([
-    { name: "rifles", weapons: ["rifle"] },
-    { name: "grenade launcher", weapons: ["grenade"] },
+    { id: "rifles", weapons: ["rifle"] },
+    { id: "grenade launcher", weapons: ["grenade"] },
   ]);
 });
 

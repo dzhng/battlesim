@@ -52,9 +52,18 @@ def spec(variant):
         fuselage=front + [(2.5, 1.6, 2.05, 2.96, 2.4, 3.5), (0.0, 2.0, 2.05, 2.9, 2.4, 4.0),
                           (-3.0, 1.9, 2.1, 2.85, 2.4, 4.0), (-6.0, 1.3, 2.15, 2.75, 2.42, 3.5),
                           (-8.5, 0.5, 2.25, 2.62, 2.42, 2.4), (tail + 0.05, 0.22, 2.35, 2.52, 2.42)],
-        canopy=(dict(x_front=7.4, x_back=4.6, sill=3.12, top=3.7, half_width=0.95, bows=(6.4,), peak=0.4) if su34
-                else dict(x_front=7.8, x_back=3.9 if vid == SU30 else 5.0, sill=3.05, top=3.75, half_width=0.55,
-                          bows=(5.2,) if vid == SU30 else (), peak=0.4)),
+        # The single seat's long bubble sits a fifth of the way back, behind
+        # the IRST ball (three-quarter photos); the two-seater's runs on.
+        canopy=(dict(x_front=7.4, x_back=4.6, sill=3.12, top=3.7, half_width=0.95, bows=(6.4,), peak=0.4, tail=0.7)
+                if su34 else dict(x_front=6.6, x_back=2.6 if vid == SU30 else 3.6, sill=3.02, top=3.78,
+                                  half_width=0.58, bows=(6.0, 4.4) if vid == SU30 else (6.0,), peak=0.4, tail=0.7)),
+        # The Flanker's hump: the spine from the canopy back to the stinger.
+        bodies=[("fuselage_spine", [((4.6 if su34 else 2.6 if vid == SU30 else 3.6), 0.5, 2.9, 3.56, 3.0, 2.4),
+                                    (0.0, 0.62, 2.85, 3.22, 3.0, 2.6), (-6.0, 0.45, 2.6, 2.92, 2.7, 2.4),
+                                    (tail + 0.6, 0.2, 2.42, 2.6)])],
+        wing_hinge=(0.12, (0.78, 0, 1)),
+        nav=dict(left=(-3.4, span / 2 - 0.35, WING_Z), right=(-3.4, -span / 2 + 0.35, WING_Z),
+                 tail=(tail + 0.3, 0.0, 2.6)),
         strake=[(6.0, 0.85, 2.86, 5.4, 0.12), (1.5, 1.95, WING_Z + 0.05, 0.4, 0.08)],
         wing=[(1.5, 1.9, WING_Z, 5.8, 0.36), (-3.6, 7.15, WING_Z - 0.1, 1.8, 0.07)],
         stab=[(-6.6, 1.6, 2.3, 3.0, 0.14), (-8.7, 4.6, 2.28, 1.3, 0.05)],
@@ -97,6 +106,7 @@ def build(variant, v):
     m = A.jet(v, s)
     hull = v.hull
     vid = variant["id"]
+    su34 = vid == SU34
     # The engine nacelles slung apart under the centre body.
     for side, k in ((1, "L"), (-1, "R")):
         A.body(f"nacelle_{k}", [(3.0, 0.56, 1.16, 2.24, 1.66, 4.5), (0.0, 0.62, 1.12, 2.3, 1.68, 4.0),
@@ -106,13 +116,26 @@ def build(variant, v):
     A.mirrored(lambda side, k: box(f"wing_tip_rail_{k}", (2.4, 0.08, 0.1), (-3.0, side * tip_y, WING_Z - 0.08),
                                    m["dark"], hull))
     if vid != SU35:
-        box("spine_brake", (2.2, 1.0, 0.05), (2.0, 0, 3.0), m["paint"], hull, bevel=0.02, lods=MID)
+        box("spine_brake", (2.0, 0.9, 0.05), (0.6, 0, 3.24), m["paint"], hull, bevel=0.02, lods=MID)
     # The infrared search sensor ahead of the windscreen.
-    A.sensor_ball("irst", (8.15 if vid != SU34 else 7.6, 0.25 if vid != SU34 else 0.6, 2.98), 0.15, m, hull)
-    box("antiglare", (1.2, 0.7 if vid != SU34 else 1.4, 0.03), (8.6 if vid != SU34 else 8.2, 0, 2.86), m["dark"],
-        hull, rot=(0, 0.22, 0), lods=MID)
+    A.sensor_ball("irst", (7.05 if vid != SU34 else 7.6, 0.25 if vid != SU34 else 0.6, 3.06), 0.15, m, hull)
+    box("antiglare", (1.0, 0.7 if vid != SU34 else 1.4, 0.03), (7.6 if vid != SU34 else 8.2, 0, 2.98), m["dark"],
+        hull, rot=(0, 0.18, 0), lods=MID)
     A.blade_antenna("antenna_spine", (-1.5, 0, 2.9), 0.25, m, hull)
     box("gun_port", (0.4, 0.1, 0.12), (3.8, -1.0, 2.7), m["black"], hull, lods=NEAR)
+    # The VKS's red star on the fins (out and in) and under the wings; the
+    # red bort number on the nose (52 and 01 in the side photos).
+    fin_x = -4.6 - 2.4 * 0.72 - 1.0
+    fin_z = 2.85 + (CARDS[vid][2] - 2.85) * 0.72
+    rows = [("insignia", dict(kind="ru_star", centre=(fin_x, y, fin_z), normal=(0, n, 0), up=(0, 0, 1), size=0.36,
+                              onto=("tail_fin_0", "tail_fin_1"), mirror=False))
+            for y, n in ((1.8, 1), (1.3, -1), (-1.8, -1), (-1.3, 1))]
+    rows += [("insignia", dict(kind="ru_star", centre=(-1.6, y, WING_Z - 0.3), normal=(0, 0, -1), up=(1, 0, 0),
+                               size=0.7, onto=("wing_",), mirror=False)) for y in (4.6, -4.6)]
+    bort = {SU27: "52", SU30: "27", SU35: "04", SU34: "01"}[vid]
+    rows.append(("text", dict(text=bort, height=0.62, centre=((5.2 if su34 else 7.6), 1.4, 2.45), normal=(0, 1, 0),
+                              up=(0, 0, 1), onto=("fuselage",), colour="red")))
+    A.markings(v, rows)
 
 
 def wreck(variant, v):

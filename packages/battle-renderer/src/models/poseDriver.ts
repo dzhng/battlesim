@@ -856,7 +856,7 @@ export class PoseDriver {
     // (they change only on a shot); a new cannon round recoils the gun.
     const rows = this.options.units.type(unit.kind).mounts;
     const on = hmg >= 0 ? rows[hmg]?.on : null;
-    const carrier = on ? unit.mounts[rows.findIndex((m) => m.name === on)] : undefined;
+    const carrier = on ? unit.mounts[rows.findIndex((m) => m.id === on)] : undefined;
     const carrierBearing = carrier ? carrier.bearing : unit.yaw;
     a.turret_yaw = gunMount ? deltaAngle(unit.yaw, gunMount.bearing) : 0;
     const feel = this.options.feel.mount;

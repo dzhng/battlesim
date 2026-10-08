@@ -64,6 +64,11 @@ def build(variant, v):
     box("tail_pylon", (0.9, 0.36, 1.4), (-8.55, 0, 2.95), m["paint"], hull, bevel=0.04, rot=(0, -0.3, 0))
     A.blade_antenna("antenna_belly", (-1.0, 0, 0.55), 0.3, m, hull, down=True)
 
+    # The VVS's red star on the boom, a red bort number on the nose.
+    A.markings(v, [
+        ("insignia", dict(kind="ru_star", centre=(-5.0, 1.2, 2.25), normal=(0, 1, 0), up=(0, 0, 1), size=0.3, onto=("fuselage",))),
+        ("text", dict(text="52", height=0.5, centre=(6.0, 1.2, 1.8), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
+    ])
 
 def wreck(variant, v):
     A.crash(v, tail_x=-3.4, tail_yaw=0.35, tail_drop=0.08, blades_broken=(("main", 1), ("main", 4)), seed=8)

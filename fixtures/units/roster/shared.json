@@ -1,7 +1,7 @@
 {
   "units": {
     "ah_64e_guardian": {
-      "name": "AH-64 Apache AH-64E Guardian",
+      "name": "AH-64E Apache",
       "description": "AH-64E Guardian",
       "faction": "us",
       "family": "ah_64_apache",
@@ -20,8 +20,14 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "attack-helicopter",
         "weapons": [
-          "helicopter-gun",
-          "helicopter-AT"
+          {
+            "name": "Chain Gun",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AT Missile",
+            "icon": "atgm"
+          }
         ]
       }
     },
@@ -60,7 +66,7 @@
       }
     },
     "f_16c_block_50": {
-      "name": "F-16 Fighting Falcon F-16C Block 50",
+      "name": "F-16C Block 50",
       "description": "F-16C Block 50",
       "faction": "us",
       "family": "f_16_fighting_falcon",
@@ -73,20 +79,29 @@
         ],
         "category": "air",
         "variant": "F-16C Block 50",
-        "family_name": "F-16 Fighting Falcon"
+        "family_name": "F-16"
       },
       "planned": {
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "f_35a": {
-      "name": "F-35 Lightning II F-35A",
+      "name": "F-35A",
       "description": "F-35A",
       "faction": "us",
       "family": "f_35_lightning_ii",
@@ -105,14 +120,23 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "stealth-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "fgm_148_javelin_team": {
-      "name": "FGM-148 Javelin Team",
+      "name": "Javelin Team",
       "description": "FGM-148 Javelin",
       "faction": "us",
       "family": "atgm_team",
@@ -131,12 +155,15 @@
         "reason": "Ground profile and model admission pending",
         "profile": "at-team",
         "weapons": [
-          "Javelin"
+          {
+            "name": "Javelin",
+            "icon": "atgm"
+          }
         ]
       }
     },
     "fim_92_stinger_team": {
-      "name": "FIM-92 Stinger Team",
+      "name": "Stinger Team",
       "description": "FIM-92 Stinger",
       "faction": "us",
       "family": "air_defense_team",
@@ -155,7 +182,10 @@
         "reason": "Air-defense targeting and airborne targets deferred",
         "profile": "aa-team",
         "weapons": [
-          "MANPADS"
+          {
+            "name": "MANPADS",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
@@ -203,7 +233,8 @@
       "hp": 100,
       "mounts": [
         {
-          "name": "rifles",
+          "id": "rifles",
+          "name": "Rifle",
           "weapons": [
             "rifle"
           ],
@@ -218,7 +249,8 @@
       "description": "A rifleman who also carries the squad's grenade launcher.",
       "mounts": [
         {
-          "name": "grenade launcher",
+          "id": "grenade launcher",
+          "name": "Grenade Launcher",
           "weapons": [
             "grenade"
           ],

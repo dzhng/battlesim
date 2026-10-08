@@ -85,26 +85,25 @@ function override(
   }
   const effective = resolved[key];
   if (Array.isArray(effective)) {
-    const [name, ...tail] = rest;
+    const [id, ...tail] = rest;
     const inherited =
       effective.find(
-        (item) => item && typeof item === "object" && !Array.isArray(item) && item.name === name,
+        (item) => item && typeof item === "object" && !Array.isArray(item) && item.id === id,
       ) ??
       (Array.isArray(target[key])
         ? target[key].find(
-            (item) =>
-              item && typeof item === "object" && !Array.isArray(item) && item.name === name,
+            (item) => item && typeof item === "object" && !Array.isArray(item) && item.id === id,
           )
         : undefined);
     if (!inherited || !tail.length)
-      throw new MechanicsError("Edit lists as a whole value; mounts are addressed by name");
+      throw new MechanicsError("Edit lists as a whole value; mounts are addressed by id");
     const rows = (target[key] ??= []) as Json[];
     let row = rows.find(
-      (item) => item && typeof item === "object" && !Array.isArray(item) && item.name === name,
+      (item) => item && typeof item === "object" && !Array.isArray(item) && item.id === id,
     );
     if (!row) {
       if (restore) return;
-      row = { name };
+      row = { id };
       rows.push(row);
     }
     override(object(row), object(inherited), tail, value, restore);

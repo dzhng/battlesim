@@ -27,15 +27,15 @@ from vehicle_parts import MID  # noqa: E402
 
 CARDS = {"ah_64e_guardian": (14.7, 5.23, 4.72)}
 SPEC = dict(
-    fuselage=[(6.65, 0.0, 1.42, 1.42), (6.38, 0.44, 1.05, 1.86, 1.4, 2.4), (5.36, 0.56, 0.95, 2.3, 1.45, 3.0),
-              (3.7, 0.62, 0.95, 2.72, 1.6, 3.0), (1.85, 0.75, 0.95, 2.62, 1.6, 3.5), (0.0, 0.7, 1.0, 2.52, 1.65, 3.5),
+    fuselage=[(6.65, 0.0, 1.42, 1.42), (6.38, 0.44, 1.05, 1.86, 1.4, 2.4), (5.36, 0.56, 0.95, 2.04, 1.45, 3.0),
+              (3.7, 0.62, 0.95, 2.3, 1.55, 3.0), (1.85, 0.75, 0.95, 2.62, 1.6, 3.5), (0.0, 0.7, 1.0, 2.52, 1.65, 3.5),
               (-1.39, 0.5, 1.2, 2.36, 1.75, 3.0), (-3.7, 0.25, 1.55, 2.16, 1.85, 2.4), (-6.28, 0.2, 1.7, 2.2, 1.95),
               (-7.02, 0.18, 1.75, 2.42, 2.0)],
     wing=[(1.62, 0.65, 1.95, 1.29, 0.18), (1.34, 2.42, 1.86, 1.02, 0.12)],
     stab=[(-6.1, 0.2, 1.95, 0.92, 0.1), (-6.24, 1.7, 1.95, 0.74, 0.06)],
     fins=[dict(root_x=-5.82, root_z=2.15, height=1.8, root_chord=1.48, tip_chord=1.02, sweep_m=0.83, thick=0.16)],
-    gear=[dict(name="main_L", x=2.4, y=1.0, top=1.1, radius=0.4, width=0.22),
-          dict(name="main_R", x=2.4, y=-1.0, top=1.1, radius=0.4, width=0.22),
+    gear=[dict(name="main_L", x=3.1, y=1.0, top=1.1, radius=0.4, width=0.22),
+          dict(name="main_R", x=3.1, y=-1.0, top=1.1, radius=0.4, width=0.22),
           dict(name="tail", x=-5.64, y=0.0, top=1.7, radius=0.2, width=0.12)],
     pylons=[((1.29, 1.35, 1.86), 0.83, 0.3), ((1.2, 2.15, 1.82), 0.83, 0.3)],
     stores=[("pod", (1.2, 1.35, 1.32), 1.57, 0.27)],
@@ -45,8 +45,10 @@ SPEC = dict(
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
-    A.canopy("canopy", 6.24, 4.9, 1.92, 2.42, 0.5, m, hull, bows=(5.54,), peak=0.6)
-    A.canopy("canopy_glass_rear", 4.85, 3.51, 2.3, 2.86, 0.52, m, hull, bows=(4.16,), peak=0.5)
+    # The side photo: the gunner's glass from 1.3 m behind the sensor
+    # turret, the pilot's stepped up behind it, the mains under the gunner.
+    A.canopy("canopy", 5.74, 4.4, 1.9, 2.62, 0.56, m, hull, bows=(5.6, 5.0), peak=0.6, tail=0.7)
+    A.canopy("canopy_glass_rear", 4.4, 3.0, 2.14, 3.0, 0.6, m, hull, bows=(4.32, 3.65), peak=0.5, tail=0.75)
     # TADS/PNVS on the nose: the turret and its sensor windows.
     A.sensor_ball("tads", (6.7, 0, 1.25), 0.36, m, hull)
     box("pnvs", (0.4, 0.3, 0.3), (6.51, 0, 1.78), m["dark"], hull, bevel=0.03, lods=MID)
@@ -56,9 +58,9 @@ def build(variant, v):
     # Engines on the flanks with their exhaust suppressors, and the rotor
     # mast's fairing.
     for side, k in ((1, "L"), (-1, "R")):
-        A.body(f"nacelle_{k}", [(1.94, 0.0, 2.2, 2.2), (1.66, 0.32, 1.88, 2.5, 2.2), (-0.55, 0.32, 1.88, 2.5, 2.2),
-                                (-1.11, 0.2, 2.0, 2.4, 2.2)], m["paint"], hull, seg=14, loc=(0, side * 0.92, 0))
-        box(f"exhaust_{k}", (0.65, 0.2, 0.3), (-1.02, side * 1.15, 2.22), m["nozzle"], hull, rot=(0, 0, side * 0.5),
+        A.body(f"nacelle_{k}", [(1.94, 0.0, 2.4, 2.4), (1.66, 0.34, 2.06, 2.74, 2.4), (-0.55, 0.34, 2.06, 2.74, 2.4),
+                                (-1.11, 0.22, 2.2, 2.6, 2.4)], m["paint"], hull, seg=14, loc=(0, side * 0.92, 0))
+        box(f"exhaust_{k}", (0.65, 0.2, 0.3), (-1.02, side * 1.15, 2.42), m["nozzle"], hull, rot=(0, 0, side * 0.5),
             lods=MID)
         # Hellfire rack on the outer pylon: four rails.
         for j, (dy, dz) in enumerate(((0.16, 0.18), (-0.16, 0.18), (0.16, -0.12), (-0.16, -0.12))):
@@ -76,6 +78,17 @@ def build(variant, v):
     A.rotor("tail", (-6.61, 0.3, 3.5), 1.4, 4, 0.25, m, hull, hub=0.14, mast=0.0, droop=0.0,
             rot=(-math.pi / 2, 0, 0), thick=0.12, phase=0.35)
     A.blade_antenna("antenna_belly", (0.0, 0, 1.0), 0.25, m, hull, down=True)
+    A.nav_lights(m, hull, left=(1.11, 2.56, 1.98), right=(1.11, -2.56, 1.98), tail=(-6.4, 0.0, 3.9))
+    # The Army's black lettering on the boom, the serial on the fin and the
+    # photo's 53 on the engines.
+    A.markings(v, [
+        ("text", dict(text="U.S. ARMY", height=0.24, centre=(-3.2, 0.6, 1.88), normal=(0, 1, 0), up=(0, 0, 1),
+                      onto=("fuselage",), colour="black")),
+        ("text", dict(text="18-03053", height=0.12, centre=(-6.3, 0.4, 2.75), normal=(0, 1, 0), up=(0, 0, 1),
+                      onto=("tail_fin_0",), colour="black")),
+        ("text", dict(text="53", height=0.32, centre=(0.6, 1.5, 2.4), normal=(0, 1, 0), up=(0, 0, 1),
+                      onto=("nacelle_",), colour="lowvis_light")),
+    ])
 
 
 def wreck(variant, v):

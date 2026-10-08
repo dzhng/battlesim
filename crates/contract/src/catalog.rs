@@ -12,7 +12,7 @@
 //! `parts`, `soldiers`, `units` or `props` may `extends` another of its
 //! section and give only what differs, and an `abstract` one exists only to
 //! be extended. [`resolve`] flattens everything once, at load: objects
-//! deep-merge, lists of named objects (mounts) merge by name, a unit's
+//! deep-merge, lists of objects with ids (mounts) merge by id, a unit's
 //! variant component written as another variant replaces its parent's, a
 //! unit's `parts` gather along the chain, any other value is replaced
 //! ([`merge_entry`]); then a type's `parts` apply in order, merged the same
@@ -67,7 +67,17 @@ pub struct RosterMembership {
 pub struct PlannedCapability {
     pub reason: String,
     pub profile: String,
-    pub weapons: Vec<String>,
+    pub weapons: Vec<PlannedWeapon>,
+}
+
+/// A planned unit's weapon as its card shows it; it has no row to fire.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlannedWeapon {
+    /// A concise label (`crate::labels`).
+    pub name: String,
+    /// Its generated icon, `assets/icons/weapons/<icon>.svg`.
+    pub icon: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -93,6 +103,9 @@ pub struct UnitCard<'a> {
     pub cost: u32,
     pub roster: &'a RosterMembership,
     pub disabled_reason: Option<&'a str>,
+    /// A disabled card's planned weapons, as its card shows them; empty for
+    /// a unit type, whose weapons are its mounts.
+    pub planned_weapons: &'a [PlannedWeapon],
 }
 
 /// One unit type, fully specified.
@@ -260,9 +273,14 @@ pub struct Capabilities {
     pub active_protection: Option<ActiveProtection>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ActiveProtection {
+    /// What the card's protection row reads: a concise label
+    /// (`crate::labels`).
+    pub name: String,
+    /// Its generated icon, `assets/icons/weapons/<icon>.svg`.
+    pub icon: String,
     pub capacity: u32,
     pub cooldown_s: f64,
     pub standoff_m: f64,
@@ -590,6 +608,7 @@ impl Catalog {
                 cost: unit.cost,
                 roster: &unit.roster,
                 disabled_reason: Some(&unit.planned.reason),
+                planned_weapons: &unit.planned.weapons,
             });
         }
         let index = self.index(id)?;
@@ -602,6 +621,7 @@ impl Catalog {
             cost: unit.cost,
             roster: unit.roster.as_ref()?,
             disabled_reason: None,
+            planned_weapons: &[],
         })
     }
 
@@ -672,7 +692,7 @@ impl Catalog {
                 let w = m.weapons.iter().find(|w| !weapons.contains_key(*w))?;
                 Some(format!(
                     "mount {:?} names weapon row {w:?}, which does not exist",
-                    m.name
+                    m.id
                 ))
             })
         };
@@ -957,6 +977,7 @@ pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
         parse("soldiers", inherit("soldiers", &section("soldiers"))?)?;
     for (id, s) in &soldiers {
         check_soldier(id, s)?;
+        check_card_labels("soldiers", id, &mount_labels(&s.mounts), &[])?;
     }
     let mut units = inherit("units", &section("units"))?;
     for (id, unit) in &mut units {
@@ -989,6 +1010,20 @@ pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
     let types: BTreeMap<String, UnitType> = parse("units", physical)?;
     for (id, unit) in &planned {
         check_roster(id, &unit.roster)?;
+        let weapons = unit.planned.weapons.iter().enumerate();
+        let mut labels = vec![
+            (String::new(), unit.name.as_str()),
+            ("roster.family_name".into(), &unit.roster.family_name),
+        ];
+        labels.extend(
+            weapons
+                .clone()
+                .map(|(i, w)| (format!("planned.weapons[{i}]"), w.name.as_str())),
+        );
+        let icons: Vec<_> = weapons
+            .map(|(i, w)| (format!("planned.weapons[{i}]"), w.icon.as_str()))
+            .collect();
+        check_card_labels("units", id, &labels, &icons)?;
         if unit.planned.reason.trim().is_empty()
             || unit.planned.profile.trim().is_empty()
             || unit.cost == 0
@@ -1015,6 +1050,21 @@ pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {
         if let Some(roster) = &t.roster {
             check_roster(id, roster)?;
         }
+        let mut labels = vec![(String::new(), t.name.as_str())];
+        labels.extend(
+            t.roster
+                .iter()
+                .map(|r| ("roster.family_name".into(), r.family_name.as_str())),
+        );
+        labels.extend(mount_labels(&t.mounts));
+        let protection = t.capabilities.active_protection.as_ref();
+        let field = || "capabilities.active_protection".to_string();
+        labels.extend(protection.map(|p| (field(), p.name.as_str())));
+        let icons: Vec<_> = protection
+            .map(|p| (field(), p.icon.as_str()))
+            .into_iter()
+            .collect();
+        check_card_labels("units", id, &labels, &icons)?;
         check(id, t, &roles, &soldiers, &props)?;
         mounts.push(carried(id, t, &soldiers)?);
     }
@@ -1072,6 +1122,41 @@ fn check_roster(id: &str, roster: &RosterMembership) -> Result<(), CatalogError>
             id: id.into(),
             error: "roster needs distinct factions, a family name and a variant name".into(),
         });
+    }
+    Ok(())
+}
+
+/// Each mount's label, by the field that holds it.
+fn mount_labels(mounts: &[MountDefinition]) -> Vec<(String, &str)> {
+    mounts
+        .iter()
+        .map(|m| (format!("mounts.{}", m.id), m.name.as_str()))
+        .collect()
+}
+
+/// What an entry's card shows: each label concise and each icon an icon id
+/// (`crate::labels`), or the entry is refused naming the field (an empty
+/// field is the entry's own `name`).
+fn check_card_labels(
+    section: &'static str,
+    id: &str,
+    labels: &[(String, &str)],
+    icons: &[(String, &str)],
+) -> Result<(), CatalogError> {
+    let refuse = |field: &str, error: String| CatalogError::Invalid {
+        section,
+        id: id.to_string(),
+        error: if field.is_empty() {
+            error
+        } else {
+            format!("{field}: {error}")
+        },
+    };
+    for (field, label) in labels {
+        crate::labels::check_label(label).map_err(|e| refuse(field, e))?;
+    }
+    for (field, icon) in icons {
+        crate::labels::check_icon(icon).map_err(|e| refuse(field, e))?;
     }
     Ok(())
 }
@@ -1213,8 +1298,8 @@ fn variant(v: &Value) -> Option<&str> {
     (o.len() == 1).then(|| o.keys().next().map(String::as_str))?
 }
 
-/// Merge `over` into `base`: objects key by key, lists of named objects by
-/// name (a new name is appended), anything else replaced. Idempotent.
+/// Merge `over` into `base`: objects key by key, lists of objects with ids
+/// by id (a new id is appended), anything else replaced. Idempotent.
 pub fn merge(base: &mut Value, over: &Value) {
     match (base, over) {
         (Value::Object(b), Value::Object(o)) => {
@@ -1227,10 +1312,10 @@ pub fn merge(base: &mut Value, over: &Value) {
                 }
             }
         }
-        (Value::Array(b), Value::Array(o)) if named(b) && named(o) => {
+        (Value::Array(b), Value::Array(o)) if keyed(b) && keyed(o) => {
             for item in o {
-                let name = &item["name"];
-                match b.iter_mut().find(|x| &x["name"] == name) {
+                let id = &item["id"];
+                match b.iter_mut().find(|x| &x["id"] == id) {
                     Some(slot) => merge(slot, item),
                     None => b.push(item.clone()),
                 }
@@ -1240,12 +1325,12 @@ pub fn merge(base: &mut Value, over: &Value) {
     }
 }
 
-/// A non-empty list whose every item is an object with a string `name`.
-fn named(list: &[Value]) -> bool {
+/// A non-empty list whose every item is an object with a string `id`.
+fn keyed(list: &[Value]) -> bool {
     !list.is_empty()
         && list
             .iter()
-            .all(|x| x.get("name").is_some_and(Value::is_string))
+            .all(|x| x.get("id").is_some_and(Value::is_string))
 }
 
 /// The component rules one type must keep: known roles and soldier kinds,
@@ -1309,7 +1394,7 @@ fn check(
         }
     }
     if let Some(on) = &t.sensors.on {
-        if !t.mounts.iter().any(|m| &m.name == on && m.turret) {
+        if !t.mounts.iter().any(|m| &m.id == on && m.turret) {
             return rule(&format!(
                 "sensors.on names {on:?}, which is not a turret mount"
             ));
@@ -1322,26 +1407,26 @@ fn check(
     // its own muzzle, and neither a squad's weapon nor a soldier's.
     for (i, m) in t.mounts.iter().enumerate() {
         if let Some(on) = &m.on {
-            if !t.mounts[..i].iter().any(|c| &c.name == on && c.turret) {
+            if !t.mounts[..i].iter().any(|c| &c.id == on && c.turret) {
                 return rule(&format!(
                     "mount {:?} is on {on:?}, which is not an earlier turret mount",
-                    m.name
+                    m.id
                 ));
             }
         }
         if m.muzzle_m.is_none() {
-            return rule(&format!("mount {:?} on a hull needs muzzle_m", m.name));
+            return rule(&format!("mount {:?} on a hull needs muzzle_m", m.id));
         }
         if m.operator_appearance.is_some() {
             return rule(&format!(
                 "mount {:?} on a hull cannot name operator_appearance",
-                m.name
+                m.id
             ));
         }
         if m.squad || m.special {
             return rule(&format!(
                 "mount {:?} on a hull is neither squad nor special",
-                m.name
+                m.id
             ));
         }
     }
@@ -1377,7 +1462,7 @@ fn check(
             return rule("body.hull.armor.ricochet needs probabilities in [0, 1] on every face");
         }
     }
-    if let Some(p) = t.capabilities.active_protection {
+    if let Some(p) = &t.capabilities.active_protection {
         if t.hull().is_none() {
             return rule("active protection requires a hull");
         }
@@ -1486,7 +1571,7 @@ fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
         if m.squad && m.operator_appearance.is_some() {
             return invalid(format!(
                 "mount {:?}: operator_appearance needs a single operator",
-                m.name
+                m.id
             ));
         }
         if let Some(appearance) = &m.operator_appearance {
@@ -1496,7 +1581,7 @@ fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
             {
                 return invalid(format!(
                     "mount {:?}: operator_appearance needs nonempty active and carried sets with equal variant counts",
-                    m.name
+                    m.id
                 ));
             }
             if appearance.active_pose.as_ref().is_some_and(|p| {
@@ -1504,13 +1589,13 @@ fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
                     || !p.phase.is_finite()
                     || !(0.0..=1.0).contains(&p.phase)
             }) {
-                return invalid(format!("mount {:?}: active_pose needs stand_aim or kneel_fire and a finite phase in [0, 1]", m.name));
+                return invalid(format!("mount {:?}: active_pose needs stand_aim or kneel_fire and a finite phase in [0, 1]", m.id));
             }
         }
         if m.squad && m.special {
             return invalid(format!(
                 "mount {:?} is a squad weapon or a special one, not both",
-                m.name
+                m.id
             ));
         }
         if m.turret
@@ -1520,7 +1605,7 @@ fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
         {
             return invalid(format!(
                 "mount {:?}: infantry cannot use turret/on, share bore offsets, or declare a pivot without a muzzle",
-                m.name
+                m.id
             ));
         }
         if m.pivot_m
@@ -1530,7 +1615,7 @@ fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
         {
             return invalid(format!(
                 "mount {:?}: pivot_m and muzzle_m must be finite",
-                m.name
+                m.id
             ));
         }
     }
@@ -1644,14 +1729,14 @@ fn carried(
                 });
                 continue;
             }
-            match out.iter_mut().find(|c| c.def.squad && c.def.name == m.name) {
+            match out.iter_mut().find(|c| c.def.squad && c.def.id == m.id) {
                 Some(c) if c.def == *m => c.carriers.push(k),
                 Some(_) => {
                     return Err(CatalogError::Rule {
                         id: id.to_string(),
                         error: format!(
-                            "slot {k} ({slot}) carries a different mount named {:?}",
-                            m.name
+                            "slot {k} ({slot}) carries a different mount with id {:?}",
+                            m.id
                         ),
                     })
                 }

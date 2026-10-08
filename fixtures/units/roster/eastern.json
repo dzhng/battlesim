@@ -1,7 +1,7 @@
 {
   "units": {
     "eastern_2s19_msta_s_2s19m2": {
-      "name": "2S19 Msta-S 2S19M2",
+      "name": "2S19M2 Msta-S",
       "description": "2S19M2",
       "faction": "eastern",
       "family": "2s19_msta_s",
@@ -19,12 +19,15 @@
         "reason": "Artillery and indirect-support mechanics deferred",
         "profile": "tracked-howitzer",
         "weapons": [
-          "howitzer"
+          {
+            "name": "Howitzer",
+            "icon": "howitzer"
+          }
         ]
       }
     },
     "eastern_9k515_tornado_s_heavy_rocket_artillery": {
-      "name": "9K515 Tornado-S Heavy rocket artillery",
+      "name": "Tornado-S",
       "description": "Heavy rocket artillery",
       "faction": "eastern",
       "family": "9k515_tornado_s",
@@ -42,7 +45,10 @@
         "reason": "Artillery and indirect-support mechanics deferred",
         "profile": "heavy-rocket",
         "weapons": [
-          "rocket-battery"
+          {
+            "name": "Rockets",
+            "icon": "rockets"
+          }
         ]
       }
     },
@@ -65,7 +71,10 @@
         "reason": "Air-defense targeting and airborne targets deferred",
         "profile": "aa-team",
         "weapons": [
-          "MANPADS"
+          {
+            "name": "MANPADS",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
@@ -88,7 +97,10 @@
         "reason": "Air-defense targeting and airborne targets deferred",
         "profile": "aa-team",
         "weapons": [
-          "MANPADS"
+          {
+            "name": "MANPADS",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
@@ -127,7 +139,7 @@
       }
     },
     "eastern_bm_21_grad_bm_21_rocket_artillery": {
-      "name": "BM-21 Grad BM-21 rocket artillery",
+      "name": "BM-21 Grad",
       "description": "BM-21 rocket artillery",
       "faction": "eastern",
       "family": "bm_21_grad",
@@ -145,12 +157,15 @@
         "reason": "Artillery and indirect-support mechanics deferred",
         "profile": "light-rocket",
         "weapons": [
-          "rocket-battery"
+          {
+            "name": "Rockets",
+            "icon": "rockets"
+          }
         ]
       }
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
-      "name": "BMP IFV Family BMP-2M Berezhok",
+      "name": "BMP-2M Berezhok",
       "description": "BMP-2M Berezhok; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
       "family": "bmp_ifv_family",
@@ -164,7 +179,7 @@
         ],
         "category": "veh",
         "variant": "BMP-2M Berezhok",
-        "family_name": "BMP IFV Family"
+        "family_name": "BMP"
       },
       "extends": "roster_profile_light_ifv",
       "body": {
@@ -203,7 +218,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -220,7 +236,8 @@
           ]
         },
         {
-          "name": "launcher",
+          "id": "launcher",
+          "name": "Kornet",
           "weapons": [
             "kornet"
           ],
@@ -250,7 +267,7 @@
       }
     },
     "eastern_bmp_ifv_family_bmp_3": {
-      "name": "BMP IFV Family BMP-3",
+      "name": "BMP-3",
       "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
       "family": "bmp_ifv_family",
@@ -264,7 +281,7 @@
         ],
         "category": "veh",
         "variant": "BMP-3",
-        "family_name": "BMP IFV Family"
+        "family_name": "BMP"
       },
       "extends": "roster_profile_ifv",
       "body": {
@@ -303,7 +320,8 @@
       },
       "mounts": [
         {
-          "name": "main_gun",
+          "id": "main_gun",
+          "name": "Main Gun",
           "weapons": [
             "ifv_he",
             "bastion"
@@ -321,7 +339,8 @@
           ]
         },
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -351,7 +370,7 @@
       }
     },
     "eastern_brm_brm_3k": {
-      "name": "BRM BRM-3K",
+      "name": "BRM-3K",
       "description": "BRM-3K",
       "faction": "eastern",
       "family": "brm",
@@ -369,12 +388,15 @@
         "reason": "Ground profile and model admission pending",
         "profile": "tracked-recon",
         "weapons": [
-          "autocannon"
+          {
+            "name": "Autocannon",
+            "icon": "autocannon"
+          }
         ]
       }
     },
     "eastern_btr_btr_82a": {
-      "name": "BTR BTR-82A",
+      "name": "BTR-82A",
       "description": "BTR-82A; ground combat platform, passenger carriage not implemented",
       "faction": "eastern",
       "family": "btr",
@@ -428,7 +450,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],
@@ -457,7 +480,7 @@
       }
     },
     "eastern_buk_buk_m3_medium_range_air_defense": {
-      "name": "Buk Buk-M3 medium-range air defense",
+      "name": "Buk-M3",
       "description": "Buk-M3 medium-range air defense",
       "faction": "eastern",
       "family": "buk",
@@ -475,12 +498,15 @@
         "reason": "Air-defense targeting and airborne targets deferred",
         "profile": "aa-launcher",
         "weapons": [
-          "SAM"
+          {
+            "name": "SAM",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
     "eastern_j_10_vigorous_dragon_j_10c": {
-      "name": "J-10 Vigorous Dragon J-10C",
+      "name": "J-10C",
       "description": "J-10C",
       "faction": "eastern",
       "family": "j_10_vigorous_dragon",
@@ -492,20 +518,29 @@
         ],
         "category": "air",
         "variant": "J-10C",
-        "family_name": "J-10 Vigorous Dragon"
+        "family_name": "J-10"
       },
       "planned": {
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "eastern_j_20_mighty_dragon_stealth_fighter": {
-      "name": "J-20 Mighty Dragon Stealth fighter",
+      "name": "J-20",
       "description": "Stealth fighter",
       "faction": "eastern",
       "family": "j_20_mighty_dragon",
@@ -517,19 +552,25 @@
         ],
         "category": "air",
         "variant": "Stealth fighter",
-        "family_name": "J-20 Mighty Dragon"
+        "family_name": "J-20"
       },
       "planned": {
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "stealth-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
     "eastern_ka_52_alligator_ka_52m": {
-      "name": "Ka-52 Alligator Ka-52M",
+      "name": "Ka-52M",
       "description": "Ka-52M",
       "faction": "eastern",
       "family": "ka_52_alligator",
@@ -547,13 +588,19 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "attack-helicopter",
         "weapons": [
-          "helicopter-gun",
-          "helicopter-AT"
+          {
+            "name": "Chain Gun",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AT Missile",
+            "icon": "atgm"
+          }
         ]
       }
     },
     "eastern_kamikaze_drone_anti_armor": {
-      "name": "Kamikaze Drone Anti-armor",
+      "name": "Kamikaze Drone AT",
       "description": "Anti-armor",
       "faction": "eastern",
       "family": "kamikaze_drone",
@@ -571,12 +618,15 @@
         "reason": "Drone movement, sensing and mission mechanics deferred",
         "profile": "kamikaze-armor",
         "weapons": [
-          "drone-AT"
+          {
+            "name": "AT Warhead",
+            "icon": "ap_shell"
+          }
         ]
       }
     },
     "eastern_kamikaze_drone_anti_personnel": {
-      "name": "Kamikaze Drone Anti-personnel",
+      "name": "Kamikaze Drone HE",
       "description": "Anti-personnel",
       "faction": "eastern",
       "family": "kamikaze_drone",
@@ -594,7 +644,10 @@
         "reason": "Drone movement, sensing and mission mechanics deferred",
         "profile": "kamikaze-personnel",
         "weapons": [
-          "drone-HE"
+          {
+            "name": "HE Warhead",
+            "icon": "he_shell"
+          }
         ]
       }
     },
@@ -630,7 +683,7 @@
       }
     },
     "eastern_mi_24_mi_35_hind_mi_35m": {
-      "name": "Mi-24/Mi-35 Hind Mi-35M",
+      "name": "Mi-35M",
       "description": "Mi-35M",
       "faction": "eastern",
       "family": "mi_24_mi_35_hind",
@@ -642,19 +695,25 @@
         ],
         "category": "hel",
         "variant": "Mi-35M",
-        "family_name": "Mi-24/Mi-35 Hind"
+        "family_name": "Mi-24 Hind"
       },
       "planned": {
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "armored-helicopter",
         "weapons": [
-          "helicopter-gun",
-          "helicopter-AT"
+          {
+            "name": "Chain Gun",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AT Missile",
+            "icon": "atgm"
+          }
         ]
       }
     },
     "eastern_mi_28_havoc_mi_28nm": {
-      "name": "Mi-28 Havoc Mi-28NM",
+      "name": "Mi-28NM",
       "description": "Mi-28NM",
       "faction": "eastern",
       "family": "mi_28_havoc",
@@ -672,13 +731,19 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "armored-helicopter",
         "weapons": [
-          "helicopter-gun",
-          "helicopter-AT"
+          {
+            "name": "Chain Gun",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AT Missile",
+            "icon": "atgm"
+          }
         ]
       }
     },
     "eastern_mi_8_hip_mi_8amtsh": {
-      "name": "Mi-8 Hip Mi-8AMTSh",
+      "name": "Mi-8AMTSh",
       "description": "Mi-8AMTSh",
       "faction": "eastern",
       "family": "mi_8_hip",
@@ -696,12 +761,15 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "utility-helicopter",
         "weapons": [
-          "HMG"
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
     "eastern_mig_29_fulcrum_mig_29smt": {
-      "name": "MiG-29 Fulcrum MiG-29SMT",
+      "name": "MiG-29SMT",
       "description": "MiG-29SMT",
       "faction": "eastern",
       "family": "mig_29_fulcrum",
@@ -719,14 +787,23 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "eastern_mig_31_foxhound_mig_31bm": {
-      "name": "MiG-31 Foxhound MiG-31BM",
+      "name": "MiG-31BM",
       "description": "MiG-31BM",
       "faction": "eastern",
       "family": "mig_31_foxhound",
@@ -744,13 +821,19 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "heavy-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
     "eastern_orlan_10_reconnaissance_drone": {
-      "name": "Orlan-10 Reconnaissance drone",
+      "name": "Orlan-10",
       "description": "Reconnaissance drone",
       "faction": "eastern",
       "family": "orlan_10",
@@ -771,7 +854,7 @@
       }
     },
     "eastern_pantsir_pantsir_sm": {
-      "name": "Pantsir Pantsir-SM",
+      "name": "Pantsir-SM",
       "description": "Pantsir-SM",
       "faction": "eastern",
       "family": "pantsir",
@@ -789,13 +872,19 @@
         "reason": "Air-defense targeting and airborne targets deferred",
         "profile": "aa-launcher",
         "weapons": [
-          "AA-gun",
-          "SAM"
+          {
+            "name": "AA Gun",
+            "icon": "autocannon"
+          },
+          {
+            "name": "SAM",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
     "eastern_plz_05_chinese_tracked_155_mm_howitzer": {
-      "name": "PLZ-05 Chinese tracked 155 mm howitzer",
+      "name": "PLZ-05",
       "description": "Chinese tracked 155 mm howitzer",
       "faction": "eastern",
       "family": "plz_05",
@@ -813,7 +902,10 @@
         "reason": "Artillery and indirect-support mechanics deferred",
         "profile": "tracked-howitzer",
         "weapons": [
-          "howitzer"
+          {
+            "name": "Howitzer",
+            "icon": "howitzer"
+          }
         ]
       }
     },
@@ -874,7 +966,7 @@
       }
     },
     "eastern_scout_drone_thermal": {
-      "name": "Scout Drone Thermal",
+      "name": "Thermal Drone",
       "description": "Thermal",
       "faction": "eastern",
       "family": "scout_drone",
@@ -951,7 +1043,7 @@
       }
     },
     "eastern_su_25_frogfoot_su_25sm3": {
-      "name": "Su-25 Frogfoot Su-25SM3",
+      "name": "Su-25SM3",
       "description": "Su-25SM3",
       "faction": "eastern",
       "family": "su_25_frogfoot",
@@ -969,14 +1061,23 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "attack-aircraft",
         "weapons": [
-          "attack-gun",
-          "air-AT",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AT Missile",
+            "icon": "atgm"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "eastern_su_57_felon_stealth_multirole_fighter": {
-      "name": "Su-57 Felon Stealth multirole fighter",
+      "name": "Su-57",
       "description": "Stealth multirole fighter",
       "faction": "eastern",
       "family": "su_57_felon",
@@ -994,14 +1095,23 @@
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "stealth-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "eastern_sukhoi_flanker_family_su_27sm3": {
-      "name": "Sukhoi Flanker Family Su-27SM3",
+      "name": "Su-27SM3",
       "description": "Su-27SM3",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
@@ -1013,19 +1123,25 @@
         ],
         "category": "air",
         "variant": "Su-27SM3",
-        "family_name": "Sukhoi Flanker Family"
+        "family_name": "Flanker"
       },
       "planned": {
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
     "eastern_sukhoi_flanker_family_su_30sm2": {
-      "name": "Sukhoi Flanker Family Su-30SM2",
+      "name": "Su-30SM2",
       "description": "Su-30SM2",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
@@ -1037,20 +1153,29 @@
         ],
         "category": "air",
         "variant": "Su-30SM2",
-        "family_name": "Sukhoi Flanker Family"
+        "family_name": "Flanker"
       },
       "planned": {
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "strike-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "eastern_sukhoi_flanker_family_su_34": {
-      "name": "Sukhoi Flanker Family Su-34",
+      "name": "Su-34",
       "description": "Su-34",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
@@ -1062,20 +1187,29 @@
         ],
         "category": "air",
         "variant": "Su-34",
-        "family_name": "Sukhoi Flanker Family"
+        "family_name": "Flanker"
       },
       "planned": {
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "strike-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM",
-          "bomb"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          },
+          {
+            "name": "Bombs",
+            "icon": "bomb"
+          }
         ]
       }
     },
     "eastern_sukhoi_flanker_family_su_35s": {
-      "name": "Sukhoi Flanker Family Su-35S",
+      "name": "Su-35S",
       "description": "Su-35S",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
@@ -1087,19 +1221,25 @@
         ],
         "category": "air",
         "variant": "Su-35S",
-        "family_name": "Sukhoi Flanker Family"
+        "family_name": "Flanker"
       },
       "planned": {
         "reason": "Aircraft movement and air-combat mechanics deferred",
         "profile": "heavy-fighter",
         "weapons": [
-          "fighter-gun",
-          "AAM"
+          {
+            "name": "Cannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AA Missile",
+            "icon": "aa_missile"
+          }
         ]
       }
     },
     "eastern_t_14_armata_main_battle_tank": {
-      "name": "T-14 Armata Main battle tank",
+      "name": "T-14 Armata",
       "description": "Main battle tank",
       "faction": "eastern",
       "family": "t_14_armata",
@@ -1117,13 +1257,19 @@
         "reason": "Ground profile and model admission pending",
         "profile": "advanced-mbt",
         "weapons": [
-          "advanced-tank-gun",
-          "HMG"
+          {
+            "name": "Main Gun",
+            "icon": "ap_shell"
+          },
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
     "eastern_t_15_armata_heavy_ifv": {
-      "name": "T-15 Armata Heavy IFV",
+      "name": "T-15 Armata",
       "description": "Heavy IFV; ground combat platform, passenger carriage not implemented",
       "faction": "eastern",
       "family": "t_15_armata",
@@ -1141,13 +1287,19 @@
         "reason": "Ground profile and model admission pending",
         "profile": "heavy-ifv",
         "weapons": [
-          "autocannon",
-          "Kornet"
+          {
+            "name": "Autocannon",
+            "icon": "autocannon"
+          },
+          {
+            "name": "Kornet",
+            "icon": "atgm"
+          }
         ]
       }
     },
     "eastern_t_72_t_72b3_2016": {
-      "name": "T-72 T-72B3 (2016)",
+      "name": "T-72B3",
       "description": "T-72B3 (2016)",
       "faction": "eastern",
       "family": "t_72",
@@ -1200,7 +1352,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "ground_tank_ap",
             "ground_tank_he"
@@ -1218,6 +1371,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1248,7 +1402,7 @@
       }
     },
     "eastern_t_80_t_80bvm": {
-      "name": "T-80 T-80BVM",
+      "name": "T-80BVM",
       "description": "T-80BVM",
       "faction": "eastern",
       "family": "t_80",
@@ -1301,7 +1455,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "ground_tank_ap",
             "ground_tank_he"
@@ -1319,6 +1474,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1349,7 +1505,7 @@
       }
     },
     "eastern_t_90_t_90m_proryv": {
-      "name": "T-90 T-90M Proryv",
+      "name": "T-90M",
       "description": "T-90M Proryv",
       "faction": "eastern",
       "family": "t_90",
@@ -1402,7 +1558,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "ground_tank_ap",
             "ground_tank_he"
@@ -1420,6 +1577,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1450,7 +1608,7 @@
       }
     },
     "eastern_tigr_tigr_m": {
-      "name": "Tigr Tigr-M",
+      "name": "Tigr-M",
       "description": "Tigr-M",
       "faction": "eastern",
       "family": "tigr",
@@ -1504,6 +1662,7 @@
       },
       "mounts": [
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1533,7 +1692,7 @@
       }
     },
     "eastern_type_15_ztq_15_light_tank": {
-      "name": "Type 15 ZTQ-15 light tank",
+      "name": "ZTQ-15",
       "description": "ZTQ-15 light tank",
       "faction": "eastern",
       "family": "type_15",
@@ -1551,13 +1710,19 @@
         "reason": "Ground profile and model admission pending",
         "profile": "light-tank",
         "weapons": [
-          "light-tank-gun",
-          "HMG"
+          {
+            "name": "Main Gun",
+            "icon": "ap_shell"
+          },
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
     "eastern_type_99_ztz_99a": {
-      "name": "Type 99 ZTZ-99A",
+      "name": "ZTZ-99A",
       "description": "ZTZ-99A",
       "faction": "eastern",
       "family": "type_99",
@@ -1610,7 +1775,8 @@
       },
       "mounts": [
         {
-          "name": "cannon",
+          "id": "cannon",
+          "name": "Main Gun",
           "weapons": [
             "ground_tank_ap",
             "ground_tank_he"
@@ -1628,6 +1794,7 @@
           ]
         },
         {
+          "id": "HMG",
           "name": "HMG",
           "weapons": [
             "hmg"
@@ -1658,7 +1825,7 @@
       }
     },
     "eastern_ural_4320_general_resupply": {
-      "name": "Ural-4320 General resupply",
+      "name": "Ural-4320",
       "description": "General resupply",
       "faction": "eastern",
       "family": "ural_4320",
@@ -1723,7 +1890,7 @@
       }
     },
     "eastern_z_10_attack_helicopter": {
-      "name": "Z-10 Attack helicopter",
+      "name": "Z-10",
       "description": "Attack helicopter",
       "faction": "eastern",
       "family": "z_10",
@@ -1741,13 +1908,19 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "attack-helicopter",
         "weapons": [
-          "helicopter-gun",
-          "helicopter-AT"
+          {
+            "name": "Chain Gun",
+            "icon": "autocannon"
+          },
+          {
+            "name": "AT Missile",
+            "icon": "atgm"
+          }
         ]
       }
     },
     "eastern_z_20_utility_transport": {
-      "name": "Z-20 Utility transport",
+      "name": "Z-20",
       "description": "Utility transport",
       "faction": "eastern",
       "family": "z_20",
@@ -1765,12 +1938,15 @@
         "reason": "Helicopter movement, combat and transport mechanics deferred",
         "profile": "utility-helicopter",
         "weapons": [
-          "HMG"
+          {
+            "name": "HMG",
+            "icon": "hmg"
+          }
         ]
       }
     },
     "eastern_zbl_08_wheeled_ifv": {
-      "name": "ZBL-08 Wheeled IFV",
+      "name": "ZBL-08",
       "description": "Wheeled IFV; ground combat platform, passenger carriage not implemented",
       "faction": "eastern",
       "family": "zbl_08",
@@ -1824,7 +2000,8 @@
       },
       "mounts": [
         {
-          "name": "autocannon",
+          "id": "autocannon",
+          "name": "Autocannon",
           "weapons": [
             "autocannon"
           ],

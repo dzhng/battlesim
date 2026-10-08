@@ -56,7 +56,7 @@ const mounts = (soldier: boolean): GameplayField[] => [
     "mounts",
     "Weapon mounts",
     "Weapons",
-    "Named physical weapons. Adding a mount gives it its own firing cycle and ammunition. Inherited mounts cannot be removed; extend a common parent to omit one.",
+    "Physical weapons, each an id and the label its card shows. Adding a mount gives it its own firing cycle and ammunition. Inherited mounts cannot be removed; extend a common parent to omit one.",
     { kind: "mounts" },
   ),
   field(
@@ -566,12 +566,12 @@ export function isObject(value: Json | undefined): value is JsonObject {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-/** Read nested values; mounts use stable names, never inherited array indices. */
+/** Read nested values; mounts use stable ids, never inherited array indices. */
 export function valueAt(value: Json | undefined, path: readonly string[]): Json | undefined {
   let cursor = value;
   for (const part of path) {
     cursor = Array.isArray(cursor)
-      ? cursor.find((row) => isObject(row) && row.name === part)
+      ? cursor.find((row) => isObject(row) && row.id === part)
       : isObject(cursor)
         ? cursor[part]
         : undefined;
@@ -638,16 +638,17 @@ export function validateGameplayValue(
     return undefined;
   }
   if (f.kind === "mounts") {
-    if (!Array.isArray(value)) return "Expected a list of named mounts.";
-    const names = new Set<string>();
+    if (!Array.isArray(value)) return "Expected a list of mounts, each with an id.";
+    const ids = new Set<string>();
     for (const row of value) {
-      if (!isObject(row) || typeof row.name !== "string" || !row.name.trim() || names.has(row.name))
-        return "Every mount needs a unique name.";
-      names.add(row.name);
+      if (!isObject(row) || typeof row.id !== "string" || !row.id.trim() || ids.has(row.id))
+        return "Every mount needs a unique id.";
+      ids.add(row.id);
+      // Its label is the catalog's to judge (`contract::labels`), on preview.
       for (const [key, child] of Object.entries(row)) {
-        if (key === "name") continue;
-        const error = validateGameplayValue(section, [...path, row.name, key], child);
-        if (error) return `${row.name}.${key}: ${error}`;
+        if (key === "id" || key === "name") continue;
+        const error = validateGameplayValue(section, [...path, row.id, key], child);
+        if (error) return `${row.id}.${key}: ${error}`;
       }
     }
     return undefined;
@@ -734,8 +735,8 @@ export function entryFields(section: Section, entry: JsonObject): GameplayField[
       const rows = entry.mounts;
       return Array.isArray(rows)
         ? rows.flatMap((row) =>
-            isObject(row) && typeof row.name === "string"
-              ? [{ ...f, path: f.path.map((p) => (p === "*" ? String(row.name) : p)) }]
+            isObject(row) && typeof row.id === "string"
+              ? [{ ...f, path: f.path.map((p) => (p === "*" ? String(row.id) : p)) }]
               : [],
           )
         : [];

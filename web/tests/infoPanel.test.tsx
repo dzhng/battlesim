@@ -61,7 +61,8 @@ const panel = (aim: number, reload: number, loaded: number | null): Panel => ({
   weapons: weaponRows(
     [
       {
-        name: "launcher",
+        id: "launcher",
+        name: "Launcher",
         weapons: ["atgm"],
         squad: false,
         special: true,

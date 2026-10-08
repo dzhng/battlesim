@@ -62,6 +62,11 @@ def build(variant, v):
     A.rotor("lower", (0.3, 0, 3.5), 7.25, 3, 0.5, m, hull, hub=0.42, mast=0.0, droop=0.02, phase=0.0)
     A.rotor("upper", (0.3, 0, 4.7), 7.25, 3, 0.5, m, hull, hub=0.42, mast=0.0, droop=0.02, phase=1.047)
 
+    # The VVS's red star on the boom, a red bort number on the nose.
+    A.markings(v, [
+        ("insignia", dict(kind="ru_star", centre=(-4.5, 1.2, 1.92), normal=(0, 1, 0), up=(0, 0, 1), size=0.28, onto=("fuselage",))),
+        ("text", dict(text="12", height=0.42, centre=(4.0, 1.2, 1.55), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="red")),
+    ])
 
 def wreck(variant, v):
     A.crash(v, tail_x=-2.8, tail_yaw=0.35, tail_drop=0.1, blades_broken=(("upper", 1), ("lower", 2)), seed=52)

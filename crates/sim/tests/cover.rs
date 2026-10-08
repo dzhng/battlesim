@@ -392,7 +392,7 @@ fn firefight(cover: bool, blue: &str) -> Battle {
             .and_then(|soldiers| soldiers.get_mut("test_grenadier"))
         {
             grenadier["mounts"] =
-                json!([{ "name": "rifles", "weapons": ["rifle"], "squad": true }]);
+                json!([{ "id": "rifles", "name": "Rifle", "weapons": ["rifle"], "squad": true }]);
         }
     }
     setup.rules.catalog = contract::catalog::resolve(&documents).unwrap();

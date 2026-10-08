@@ -84,7 +84,7 @@ and listing policy. Directory discovery requires no parallel index.
 
 Deployment preserves one reversible progress value. Setup and packing may have different durations; the integer progress lattice makes both directions and partial reversals deterministic. Movement waits for packing to finish, and supply waits for setup to finish.
 
-A unit type is **one catalog entry**, addressed by its string id (`"us_m1_abrams_sep_v3_trophy"`, `"test_tank"`). No code lists unit types. Scenarios, spawn rows and commands name types by id; the publication sends the id list (`unitKinds`) and each unit's index into it.
+A unit type is **one catalog entry**, addressed by its string id (`"us_m1_abrams_sep_v3_trophy"`, `"test_tank"`). No code lists unit types. Its `name` is what the player reads (`"M1A2 SEP v3 Trophy"`), authored, never derived from the id; so are its family's, its mounts', its weapon rows', its protection's and its planned weapons' labels, each held to [the label rule](../crates/contract/src/labels.rs), and each weapon names its generated icon. Scenarios, spawn rows and commands name types by id; the publication sends the id list (`unitKinds`) and each unit's index into it.
 
 [The catalog parser](../crates/contract/src/catalog.rs) owns component schemas,
 validation and inheritance. Families contain unit, soldier, role and upgrade
@@ -93,11 +93,11 @@ mobility, sensors, mounts and capabilities rather than the type's name.
 
 - **Soldier kinds** are a catalog of their own: `hp`, the `appearance` set a soldier of the kind wears (one picked per soldier), and the `mounts` he carries. A `special` mount passes to the next living soldier when its carrier falls; any other is lost with him. A single-operator mount may name `operator_appearance` with paired active and carried appearance sets: the equipment worn by its current living carrier while using that weapon or his rifle, including after a handoff. Variant identity stays the same across both sets. The observation publishes the carrier and each soldier’s active weapon only when visible. A squad's slots name soldier kinds, so hundreds of squads reuse a few kinds.
 - **A variant is `extends` plus overrides.** `"m1a1": { "extends": "m1", "body": { "hull": { "armor": { "front": 180 } } } }` inherits everything else. An `abstract` entry only exists to be extended. Weapon rows in `game.json` extend the same way. The merge:
-  - objects merge key by key, and a list of named objects (mounts) merges by name, a new name appended;
+  - objects merge key by key, and a list of objects with ids (mounts) merges by id, a new id appended;
   - a unit's one-key variant component (`body`, `mobility`) written as another variant replaces the parent's: `"mobility": { "wheeled": … }` over a tracked parent is wheeled;
   - a unit's `parts` gather along the chain, the parent's first;
   - anything else is replaced, a list of strings (`roles`, `slots`) whole.
-  - What a variant can't do: drop a key or a named mount it inherits. A type that loses a mount extends a common parent instead.
+  - What a variant can't do: drop a key or a mount (by id) it inherits. A type that loses a mount extends a common parent instead.
 - **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance, by the same rules. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
 
 Resolution happens once through the contract owner. Invalid inheritance,
@@ -137,7 +137,7 @@ A replacement soldier brings a fresh default gun; a transferable special weapon 
 Add one entry. A variant is an `extends` and what differs. Code learns nothing about the type, and changes only where a genuinely new behaviour appears, as a new component or capability. Each rule has a guard; if you add a type that the guard doesn't cover, extend the guard.
 
 - **Never branch on a type's id or role for a rule.** If a function asks "is this a tank?" to pick an offset, a size or a speed, that value belongs in the type's components. Scripts and the AI may select units by role; rules never do.
-- **Every mount is its own weapon.** It has its own lock, bearing, pivot and muzzle. A mount on a turret pivots with the turret; a mount on its own ring (a roof HMG) turns on its own bearing about its pivot. Two mounts never share a muzzle point. A vehicle model declares which of its rigs draws each mount in its `assets/catalog.json` entry (`"mounts": { "cannon": "gun", "HMG": "hmg" }`); a mount's name decides nothing.
+- **Every mount is its own weapon.** It has an `id`, which other fields and models name it by, and a `name`, the label its card shows. It has its own lock, bearing, pivot and muzzle. A mount on a turret pivots with the turret; a mount on its own ring (a roof HMG) turns on its own bearing about its pivot. Two mounts never share a muzzle point. A vehicle model declares which of its rigs draws each mount in its `assets/catalog.json` entry (`"mounts": { "cannon": "gun", "HMG": "hmg" }`, by mount id); a mount's id decides nothing.
 - **The simulation's numbers are the authority, and art is fitted to them.** Hull extents, eye heights, mount pivots and muzzles, the canopy and the footprint are set in data. Each type's own model is fit-checked against its own resolved numbers (the `fit.*` checks in `packages/scene-assets/src/validate.ts`). A variant with a new model inherits its parent's mount geometry, so the new model must put its turret and gun where the inherited mounts say, or the variant overrides those numbers. When you add a number with a drawn counterpart, add its `fit.*` check in the same change.
 - **Presentation anchors to what is drawn, not to the simulation's points.**
   - Effects that belong to a model part (muzzle flashes, exhaust, dust at the tracks) sit on the drawn part's socket, and fall back to the published point only when nothing is drawn.

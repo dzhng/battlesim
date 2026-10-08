@@ -10,7 +10,7 @@
     },
     "test_rifle": {
       "extends": "test_squad",
-      "name": "Rifle squad",
+      "name": "Rifle Section",
       "description": "Eight riflemen, one with a grenade launcher.",
       "roles": ["infantry"],
       "cost": 100,
@@ -22,7 +22,7 @@
     },
     "test_recon": {
       "extends": "test_squad",
-      "name": "Recon team",
+      "name": "Recon Team",
       "description": "Four scouts with the longest vision and twice the spotting range against concealed enemies.",
       "roles": ["recon"],
       "cost": 80,
@@ -31,7 +31,7 @@
     },
     "test_at": {
       "extends": "test_squad",
-      "name": "AT team",
+      "name": "AT Team",
       "description": "A guided anti-tank missile and two riflemen to guard it.",
       "roles": ["at"],
       "cost": 120,

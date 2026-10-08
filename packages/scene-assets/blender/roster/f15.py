@@ -31,33 +31,41 @@ WING_Z = 2.62
 
 def spec(variant):
     s = dict(
-        fuselage=[(9.68, 0.0, 2.3, 2.3), (9.0, 0.36, 2.0, 2.6, 2.28), (7.8, 0.6, 1.76, 2.9, 2.25),
-                  (6.2, 0.72, 1.64, 3.02, 2.25, 2.4), (4.4, 0.8, 1.6, 3.0, 2.2, 2.6),
-                  (2.6, 1.42, 1.46, 2.86, 2.1, 4.0), (-2.0, 1.52, 1.44, 2.8, 2.05, 4.5),
+        # The long nose: the windscreen 3.4 m back from the tip, the cockpit
+        # over the nose gear, the intakes' mouths below its rear seat (side photo).
+        fuselage=[(9.68, 0.0, 2.3, 2.3), (9.0, 0.38, 2.0, 2.62, 2.28), (7.6, 0.62, 1.76, 2.92, 2.25),
+                  (6.0, 0.74, 1.64, 3.06, 2.25, 2.4), (4.4, 0.82, 1.6, 3.1, 2.2, 2.6),
+                  (2.4, 1.42, 1.46, 3.0, 2.1, 4.0), (-2.0, 1.52, 1.44, 2.86, 2.05, 4.5),
                   (-5.4, 1.42, 1.5, 2.66, 2.05, 4.0), (-8.0, 1.2, 1.6, 2.5, 2.02, 3.0), (-8.62, 1.16, 1.62, 2.42, 2.0)],
         bodies=[
             # The two intake trunks, from their raked mouths back into the body,
             # and the conformal fuel tanks along their flanks below the wing.
-            *[(f"fuselage_intake_{k}", [(5.62, 0.5, 1.42, 2.66, 2.0, 5.0), (4.0, 0.52, 1.42, 2.7, 2.0, 5.0),
-                                        (2.4, 0.5, 1.44, 2.72, 2.0, 4.0)], side * 1.16) for side, k in ((1, "L"), (-1, "R"))],
-            *[(f"fuselage_cft_{k}", [(4.4, 0.0, 1.9, 1.9), (3.6, 0.32, 1.5, 2.4, 1.95, 3.0),
+            *[(f"fuselage_intake_{k}", [(4.42, 0.5, 1.42, 2.66, 2.0, 5.0), (3.0, 0.52, 1.42, 2.72, 2.0, 5.0),
+                                        (1.2, 0.5, 1.44, 2.76, 2.0, 4.0)], side * 1.16) for side, k in ((1, "L"), (-1, "R"))],
+            *[(f"fuselage_cft_{k}", [(3.6, 0.0, 1.9, 1.9), (2.9, 0.32, 1.5, 2.4, 1.95, 3.0),
                                      (-2.6, 0.34, 1.5, 2.44, 1.97, 3.0), (-3.6, 0.0, 2.0, 2.0)], side * 1.62)
               for side, k in ((1, "L"), (-1, "R"))],
+            # The dorsal spine the canopy fairs into, under the speed brake.
+            ("fuselage_spine", [(2.3, 0.4, 2.9, 3.6, 3.0, 2.4), (0.6, 0.44, 2.9, 3.22, 3.0, 2.6),
+                                (-3.0, 0.32, 2.8, 2.98, 2.85, 2.4), (-4.6, 0.0, 2.8, 2.8)]),
             # The stinger between the nozzles.
             ("tail_stinger", [(-8.2, 0.3, 1.86, 2.3), (-9.4, 0.14, 1.96, 2.18)]),
         ],
-        canopy=dict(x_front=7.4, x_back=4.2, sill=2.9, top=3.5, half_width=0.5, bows=(5.75, 4.55), peak=0.42),
+        canopy=dict(x_front=6.3, x_back=2.15, sill=3.0, top=3.86, half_width=0.56, bows=(5.5, 3.8), peak=0.42,
+                    tail=0.7),
+        wing_hinge=(0.75,),
         wing=[(2.7, 1.4, WING_Z, 5.6, 0.32), (-2.35, 6.52, WING_Z - 0.08, 1.95, 0.08)],
         stab=[(-6.3, 1.3, 2.18, 2.95, 0.14), (-8.25, 4.3, 2.18, 1.35, 0.05)],
-        fins=[dict(root_x=-5.45, root_z=2.62, height=3.01, root_chord=3.45, tip_chord=1.35, sweep_m=2.35, y=1.16),
-              dict(root_x=-5.45, root_z=2.62, height=3.01, root_chord=3.45, tip_chord=1.35, sweep_m=2.35, y=-1.16)],
-        intakes=[("rect", (5.66, 1.16, 2.04), 0.86, 1.16, 0.2, (0, 0.22, 0)),
-                 ("rect", (5.66, -1.16, 2.04), 0.86, 1.16, 0.2, (0, 0.22, 0))],
+        fins=[dict(root_x=-5.7, root_z=2.62, height=3.01, root_chord=3.4, tip_chord=1.45, sweep_m=2.6, y=1.16),
+              dict(root_x=-5.7, root_z=2.62, height=3.01, root_chord=3.4, tip_chord=1.45, sweep_m=2.6, y=-1.16)],
+        intakes=[("rect", (4.46, 1.16, 2.04), 0.86, 1.16, 0.2, (0, 0.22, 0)),
+                 ("rect", (4.46, -1.16, 2.04), 0.86, 1.16, 0.2, (0, 0.22, 0))],
         nozzles=[dict(loc=(-8.6, 0.64, 2.0), r_front=0.58, r_exit=0.52, length=0.82, petals=16),
                  dict(loc=(-8.6, -0.64, 2.0), r_front=0.58, r_exit=0.52, length=0.82, petals=16)],
-        gear=[dict(name="nose", x=6.55, y=0.0, top=1.68, radius=0.33, width=0.19, door=(0.9, 0.5)),
-              dict(name="main_L", x=-0.4, y=1.38, top=1.5, radius=0.52, width=0.26, door=(1.3, 0.6), rake=0.08),
-              dict(name="main_R", x=-0.4, y=-1.38, top=1.5, radius=0.52, width=0.26, door=(1.3, 0.6), rake=0.08)],
+        gear=[dict(name="nose", x=3.3, y=0.0, top=1.64, radius=0.33, width=0.19, door=(0.9, 0.5), light=True),
+              dict(name="main_L", x=-2.3, y=1.38, top=1.5, radius=0.52, width=0.26, door=(1.3, 0.6), rake=0.08),
+              dict(name="main_R", x=-2.3, y=-1.38, top=1.5, radius=0.52, width=0.26, door=(1.3, 0.6), rake=0.08)],
+        nav=dict(left=(-2.3, 6.5, WING_Z - 0.06), right=(-2.3, -6.5, WING_Z - 0.06), tail=(-9.45, 0.0, 2.08)),
         pylons=[((-0.3, 3.1, WING_Z - 0.1), 1.3, 0.36)],
         stores=[("tank", (-0.4, 3.1, 1.66), 5.0, 0.46), ("missile", (-0.3, 3.55, 1.95), 2.9, 0.08)],
     )
@@ -73,16 +81,29 @@ def build(variant, v):
     m = A.jet(v, spec(variant))
     hull = v.hull
     # Splitter plates and the ramp hinge line inside each intake mouth.
-    A.mirrored(lambda side, k: box(f"intake_splitter_{k}", (1.6, 0.04, 1.1), (5.0, side * 0.62, 2.1), m["paint"], hull,
+    A.mirrored(lambda side, k: box(f"intake_splitter_{k}", (1.6, 0.04, 1.1), (3.8, side * 0.62, 2.1), m["paint"], hull,
                                    lods=MID))
-    box("antiglare", (1.4, 0.6, 0.03), (8.3, 0, 2.66), m["dark"], hull, rot=(0, 0.2, 0), lods=MID)
+    box("antiglare", (1.2, 0.6, 0.03), (7.0, 0, 2.98), m["dark"], hull, rot=(0, 0.12, 0), lods=MID)
     # The speed brake on the spine behind the canopy, closed; the gun's port in the right wing root.
-    box("speed_brake", (2.4, 1.2, 0.04), (2.6, 0, 2.99), m["paint"], hull, bevel=0.02, lods=MID)
-    box("gun_port", (0.3, 0.12, 0.1), (3.0, -1.55, 2.6), m["black"], hull, lods=NEAR)
-    A.blade_antenna("antenna_spine", (0.4, 0, 2.86), 0.25, m, hull)
+    box("speed_brake", (2.2, 0.8, 0.04), (0.4, 0, 3.2), m["paint"], hull, bevel=0.02, lods=MID)
+    box("gun_port", (0.3, 0.12, 0.1), (1.6, -1.55, 2.6), m["black"], hull, lods=NEAR)
+    A.blade_antenna("antenna_spine", (-1.0, 0, 2.86), 0.25, m, hull)
     A.blade_antenna("antenna_belly", (0.8, 0, 1.46), 0.2, m, hull, down=True)
-    A.mirrored(lambda side, k: box(f"wing_tip_light_{k}", (0.3, 0.05, 0.08), (-2.5, side * 6.5, WING_Z - 0.06),
-                                   m["lamp"], hull, lods=NEAR))
+    # Seymour Johnson's SJ in black on the E's gunship grey; Eglin's ET on the EX.
+    code, serial, ink = (("SJ", "AF 88 1682", "black") if variant["id"] == E else
+                         ("ET", "AF 20 0001", "lowvis_dark"))
+    A.markings(v, [
+        ("insignia", dict(kind="us_lowvis", centre=(0.4, 1.9, 2.05), normal=(0, 1, 0), up=(0, 0, 1), size=0.42,
+                          onto=("fuselage",))),
+        ("insignia", dict(kind="us_lowvis", centre=(-1.4, 4.6, WING_Z + 0.2), normal=(0, 0, 1), up=(1, 0, 0),
+                          size=0.6, onto=("wing_L",), mirror=False)),
+        ("insignia", dict(kind="us_lowvis", centre=(-1.4, -4.6, WING_Z - 0.2), normal=(0, 0, -1), up=(1, 0, 0),
+                          size=0.6, onto=("wing_R",), mirror=False)),
+        ("text", dict(text=code, height=0.75, centre=(-8.2, 1.4, 4.25), normal=(0, 1, 0), up=(0, 0, 1),
+                      onto=("tail_fin_",), colour=ink)),
+        ("text", dict(text=serial, height=0.2, centre=(-8.0, 1.4, 3.5), normal=(0, 1, 0), up=(0, 0, 1),
+                      onto=("tail_fin_",), colour=ink)),
+    ])
 
 
 def wreck(variant, v):
