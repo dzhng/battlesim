@@ -35,11 +35,40 @@ export interface UnitArtRule extends Budget {
 
 /** The rules by class: a vehicle class (`vehicleClass`) or `SOLDIER_CLASS`.
  *  A class without a row, and a field a row leaves out, take `default`'s.
- *  The budgets are measured on the pilot (slice 14) and empty until then. */
+ *  The vehicle budgets were set from the pilot (slice 14: Abrams, Stryker,
+ *  HMMWV, and the test units that share their classes) with about twice
+ *  their room; `bundle_bytes` is the whole encoded bundle, its shared
+ *  textures included. The classes without a pilot take its nearest one's. */
 export const UNIT_ART: { default: UnitArtRule } & Record<string, Partial<UnitArtRule>> = {
   default: {
     tier_ratio: 0.9,
     dressing: { bulky_m: 0.3, thin_m: 0.15, thin_top_m: 4 },
+  },
+  tracked_heavy: {
+    tier_triangles: [120000, 45000, 13000, 4000],
+    bundle_bytes: 48_000_000,
+    textures: 64,
+  },
+  tracked_medium: {
+    tier_triangles: [90000, 34000, 10000, 3000],
+    bundle_bytes: 40_000_000,
+    textures: 64,
+  },
+  wheeled_medium: {
+    tier_triangles: [70000, 27000, 7000, 2000],
+    bundle_bytes: 40_000_000,
+    textures: 64,
+  },
+  // Held up by the test jeep (64512 / 17314 / 5616 / 1798), not the HMMWV.
+  wheeled_light: {
+    tier_triangles: [80000, 24000, 7000, 2500],
+    bundle_bytes: 36_000_000,
+    textures: 64,
+  },
+  wheeled_medium_logistics: {
+    tier_triangles: [70000, 27000, 7000, 2000],
+    bundle_bytes: 40_000_000,
+    textures: 64,
   },
 };
 

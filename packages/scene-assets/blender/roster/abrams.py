@@ -390,7 +390,14 @@ def wreck(variant, v):
     turret, sags the guns and burns every surface."""
     from parts import box as solid, rest_on_ground
     from wreckage import bend, densify, dent, heat, parts, plate, remove, warp
+    import bpy
     m = v.mats
+    # Trophy's housings are dressing on the live tank, but they are steel
+    # boxes that survive the fire: they stay, so the Trophy tank's wreck is
+    # its own.
+    for o in bpy.data.objects:
+        if o.name.startswith("dressing_trophy_"):
+            o.name = o.name.replace("dressing_", "", 1)
     remove("track_R_band", "wheel_R_2_", "wheel_R_3_", "wheel_R_6_", "skirt_R_3", "skirt_R_4",
            "skirt_handle_R_3", "skirt_handle_R_4", "skirt_bolt_R_3", "skirt_bolt_R_4", "loader_hatch",
            "bustle_tarp", "bustle_bag", "bustle_jerrycan_", "skirt_number_R")
