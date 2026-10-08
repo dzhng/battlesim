@@ -58,13 +58,40 @@ CHEEK_CHAMFER = 0.22  # how far the cheeks' top edge sits back of their face
 # wide as their inner faces (the thicker front panels sink into it).
 SKIRT_FACE = SKIRT_Y + 0.035  # their outer face
 SPONSON = SKIRT_FACE - 0.07
+# The hull's roof line (x, z): the deck, its head under the turret's front,
+# and the nose. The upper glacis between the head and the nose is long and
+# shallow, about 7 degrees (photos: side, three-quarter front); the steep
+# lower plate under the nose leans back 0.55 m per metre down.
+DECK_REAR = (-3.80, DECK)
+GLACIS_HEAD = (2.25, 1.44)
+NOSE = (3.965, 1.22)  # the hull's front edge, at its half length
+NOSE_LEAN = 0.55
+SLOPE = math.atan2(GLACIS_HEAD[1] - NOSE[1], NOSE[0] - GLACIS_HEAD[0])
+# The skirts' tops run this far under the hull's top edge.
+SKIRT_UNDER = 0.06
 
 
 def glacis_z(x):
-    """The hull roof's height at x: the glacis from the nose, then the deck."""
-    if x >= 2.25:
-        return 1.44 - (x - 2.25) / 1.715 * 0.36
-    return 1.44 + (2.25 - x) / 6.05 * 0.04
+    """The hull roof's height at x: the deck, then the glacis to the nose."""
+    (x0, z0), (x1, z1) = (DECK_REAR, GLACIS_HEAD) if x < GLACIS_HEAD[0] else (GLACIS_HEAD, NOSE)
+    return z0 + (x - x0) / (x1 - x0) * (z1 - z0)
+
+
+def nose_x(z):
+    """The front plate's x at height z, from the nose down to the belly."""
+    return NOSE[0] - (NOSE[1] - z) * NOSE_LEAN
+
+
+def skirt_top(x):
+    """The skirts' top line: level along the sponsons, then falling with the
+    glacis over the front panel, always under the hull's top edge."""
+    return min(SKIRT_TOP, glacis_z(x) - SKIRT_UNDER)
+
+
+def front_skirt(rear):
+    """The long wedge over the idler, from `rear` to the nose: its foot rises
+    over the idler and its top follows the hull's side down."""
+    return [(rear, SKIRT_FOOT), (3.22, SKIRT_FOOT), (3.86, 1.04), (3.86, skirt_top(3.86)), (rear, skirt_top(rear))]
 
 
 def build(variant, v):
@@ -95,24 +122,27 @@ def build(variant, v):
 def hull_body(v, sep_v3):
     m, hull = v.mats, v.hull
     half = v.length / 2
-    prism("hull_upper", [(-half, 0.98), (3.60, 0.98), (half, 1.08), (2.25, 1.44), (-3.80, DECK), (-half, 1.40)],
+    assert abs(NOSE[0] - half) < 1e-6, "the nose is the hull's front edge"
+    prism("hull_upper", [(-half, 0.98), (nose_x(0.98), 0.98), NOSE, GLACIS_HEAD, DECK_REAR, (-half, 1.40)],
           2 * SPONSON, mat=m["paint"], parent=hull, bevel=0.035)
-    prism("hull_lower", [(-3.80, 0.46), (2.85, 0.46), (3.92, 1.0), (-3.95, 1.0)], 2.10, mat=m["paint"], parent=hull,
-          bevel=0.03)
+    prism("hull_lower", [(-3.80, 0.46), (nose_x(0.46), 0.46), (nose_x(1.0), 1.0), (-3.95, 1.0)], 2.10,
+          mat=m["paint"], parent=hull, bevel=0.03)
     # Glacis: the driver's hatch at its head, three periscopes in a row ahead.
     VP.hatch("driver_hatch", (2.02, 0, glacis_z(2.02)), m, hull, radius=0.30)
-    slope = math.atan(0.36 / 1.715)
     for k, y in enumerate((-0.24, 0.0, 0.24)):
         VP.periscope(f"driver_periscope_{k}", (2.40, y, glacis_z(2.40) - 0.01), m, hull, size=(0.14, 0.18, 0.08),
-                     rot=(0, slope, 0))
+                     rot=(0, SLOPE, 0))
     VP.weld_line("glacis_weld", [(3.6, -1.6, glacis_z(3.6) + 0.004), (3.6, 1.6, glacis_z(3.6) + 0.004)], m, hull)
     for side, s in ((1, "L"), (-1, "R")):
-        # Front fenders over the idlers, headlights in their guards behind them.
-        box(f"front_fender_{s}", (0.52, 0.68, 0.05), (3.78, side * TRACK_Y, 1.06), m["paint"], hull, bevel=0.012,
-            rot=(0, 0.25, 0), lods=MID)
-        VP.light_with_guard(f"headlight_{s}", (3.56, side * 1.50, 1.26), 0.065, m, hull)
-        VP.tow_hook(f"front_tow_{s}", (3.90, side * 1.05, 0.88), m, hull, size=0.14)
-        VP.shackle(f"front_shackle_{s}", (4.00, side * 1.05, 0.84), m, hull, size=0.12, rot=(0, 0, math.pi / 2))
+        # Front fenders over the idlers just under the glacis' edge, headlights
+        # in their guards behind them; tow hooks and shackles on the front plate.
+        box(f"front_fender_{s}", (0.52, 0.68, 0.05), (3.78, side * TRACK_Y, glacis_z(3.78) - 0.06), m["paint"], hull,
+            bevel=0.012, rot=(0, SLOPE + 0.04, 0), lods=MID)
+        VP.light_with_guard(f"headlight_{s}", (3.56, side * 1.50, glacis_z(3.56) + 0.095), 0.065, m, hull)
+        lean = math.atan(NOSE_LEAN)
+        VP.tow_hook(f"front_tow_{s}", (nose_x(0.88), side * 1.05, 0.88), m, hull, size=0.14, rot=(0, -lean, 0))
+        VP.shackle(f"front_shackle_{s}", (nose_x(0.84) + 0.10, side * 1.05, 0.84), m, hull, size=0.12,
+                   rot=(0, 0, math.pi / 2))
         VP.tow_hook(f"rear_tow_{s}", (-3.86, side * 0.95, 0.82), m, hull, size=0.13, rot=(0, 0, math.pi))
         VP.light_with_guard(f"tail_light_{s}", (-3.92, side * 1.52, 1.30), 0.05, dict(m, lamp=m["tail"]), hull,
                             rot=(0, 0, math.pi))
@@ -168,14 +198,11 @@ def skirts(v):
     """Eight panels a side with their real breaks: a long wedge over the idler,
     six plain panels and the last cut up over the sprocket; bolts along their
     tops, a lifting handle on each. The front two are the thicker ballistic
-    panels."""
+    panels. Their tops run along the hull's side (`skirt_top`)."""
     m, hull = v.mats, v.hull
-    panels = [
-        [(2.36, SKIRT_FOOT), (3.22, SKIRT_FOOT), (3.86, 1.04), (3.86, SKIRT_TOP), (2.36, SKIRT_TOP)],
-        [(1.50, SKIRT_FOOT), (2.34, SKIRT_FOOT), (2.34, SKIRT_TOP), (1.50, SKIRT_TOP)],
-    ]
-    for front, rear in ((1.48, 0.66), (0.64, -0.18), (-0.20, -1.02), (-1.04, -1.86), (-1.88, -2.66)):
-        panels.append([(rear, SKIRT_FOOT), (front, SKIRT_FOOT), (front, SKIRT_TOP), (rear, SKIRT_TOP)])
+    panels = [front_skirt(2.36)]
+    for front, rear in ((2.34, 1.50), (1.48, 0.66), (0.64, -0.18), (-0.20, -1.02), (-1.04, -1.86), (-1.88, -2.66)):
+        panels.append([(rear, SKIRT_FOOT), (front, SKIRT_FOOT), (front, skirt_top(front)), (rear, skirt_top(rear))])
     panels.append([(-3.62, 1.06), (-3.30, 0.94), (-3.02, 0.72), (-2.68, SKIRT_FOOT), (-2.68, SKIRT_TOP),
                    (-3.62, SKIRT_TOP)])
     for side, s in ((1, "L"), (-1, "R")):
@@ -186,12 +213,12 @@ def skirts(v):
             xs = [p[0] for p in outline]
             mid = (min(xs) + max(xs)) / 2
             face = side * SKIRT_FACE
-            box(f"skirt_handle_{s}_{k}", (0.12, 0.03, 0.035), (mid, face + side * 0.012, SKIRT_TOP - 0.10), m["dark"],
-                hull, lods=FINE)
+            box(f"skirt_handle_{s}_{k}", (0.12, 0.03, 0.035), (mid, face + side * 0.012, skirt_top(mid) - 0.10),
+                m["dark"], hull, lods=FINE)
             for j in range(3):
                 bx = min(xs) + (max(xs) - min(xs)) * (j + 0.5) / 3
-                cyl(f"skirt_bolt_{s}_{k}_{j}", 0.02, 0.02, (bx, face + side * 0.006, SKIRT_TOP - 0.04), "Y", m["steel"],
-                    hull, seg=6, lods=FINE)
+                cyl(f"skirt_bolt_{s}_{k}_{j}", 0.02, 0.02, (bx, face + side * 0.006, skirt_top(bx) - 0.04), "Y",
+                    m["steel"], hull, seg=6, lods=FINE)
         # The tactical chevron and number on the third panel.
         stencil(f"skirt_number_{s}", "< 32" if side > 0 else "32 >", 0.30, (1.07, side * (SKIRT_FACE + 0.002), 1.02),
                 (math.pi / 2, 0, math.pi if side > 0 else 0), m["marking"], hull)
@@ -405,7 +432,7 @@ def wreck(variant, v):
     bend(parts("skirt_L_5"), (0, SKIRT_Y, SKIRT_TOP - 0.05), (1, 0, 0), (0, 0, -1), 0.55)
     shell = parts("hull_upper", "hull_lower", "skirt_", "turret_shell")
     densify(shell, scale=2.0)
-    warp(shell, heat(0.022, 0.9, seed=5.0), dent((3.35, 0.55, 1.20), 0.55, 0.10, (-0.6, 0, -1)))
+    warp(shell, heat(0.022, 0.9, seed=5.0), dent((3.35, 0.55, glacis_z(3.35)), 0.55, 0.10, (-0.6, 0, -1)))
     plate("loader_lid", [(-0.3, -0.25), (0.3, -0.28), (0.32, 0.26), (-0.28, 0.3)], 0.05, (-2.5, 0.75, DECK + 0.05),
           (0.05, -0.1, 0.7), m["paint"], v.hull, seed=11)
     for k, (loc, rot, size) in enumerate((((2.2, -2.2, 0.03), (0.04, 0.02, 0.4), 0.45),
