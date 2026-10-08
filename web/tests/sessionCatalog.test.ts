@@ -8,7 +8,7 @@ import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog.
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { bundleFiles, catalogLoadBytes } from "@packages/scene-assets/src/gzip.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
-import { ownDocuments } from "@web/battle/catalog/node";
+import { nodeCatalogSet, ownDocuments } from "@web/battle/catalog/node";
 import { admitScenario, catalogSet, resolveCatalogSet } from "@web/battle/catalog/sets";
 import { AUTHORITY, tankGlb, testCatalog, testSources } from "./sceneAssets/synthetic";
 
@@ -142,4 +142,15 @@ test("a game session refuses a unit outside its catalog by name", async () => {
   expect(() => admitScenario(scenario("lab_only_tank"), game)).toThrow(
     /lab_only_tank.*not in the game catalog/,
   );
+});
+
+test("a page and a native tool resolve each set to the same units", async () => {
+  // The browser globs each set's folders by literal path; the native reader
+  // walks `SET_FOLDERS`. A folder one names and the other misses would field
+  // a unit in one and refuse it in the other.
+  for (const set of ["test", "menu"] as const) {
+    const [page, tool] = await Promise.all([resolveCatalogSet(set), nodeCatalogSet(set)]);
+    expect([...page.units.ids].sort()).toEqual([...tool.units.ids].sort());
+    expect(page.units.ids).toContain(set === "menu" ? "menu_us_tank" : "test_tank");
+  }
 });
