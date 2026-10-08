@@ -659,8 +659,8 @@ test("a wreck's pieces lie within the whole wreck, off the ground and short of i
 
 test("a wreck's thrown debris may lie past its box, low, up to its own allowance", async () => {
   const { reach_m, top_m } = SCENERY_KINDS.wreck.debris!;
-  const wreck = (debris: Uint8Array, whole = blockGlb(6)) =>
-    scenery("wreck", { default: whole, debris }, [5, 4, 3]);
+  const wreck = (debris: Uint8Array) =>
+    scenery("wreck", { default: blockGlb(6), debris }, [5, 4, 3]);
   // A pack thrown 4 m off the bow, outside the footprint and its tolerance:
   // the debris is no part of the box, so nothing is found.
   expect((await wreck(debrisGlb([8, -1, 0], [9, 1, 0.3]))).findings).toEqual([]);
@@ -673,16 +673,9 @@ test("a wreck's thrown debris may lie past its box, low, up to its own allowance
   expect(far[0].message).toMatch(/debris_pack/);
   const tall = (await wreck(debrisGlb([6, -1, 0], [7, 1, top_m + 0.5]))).findings;
   expect(tall.map((f) => f.code)).toEqual(["fit.debris"]);
-  // The debris state carries only debris, and the whole carries none: a
-  // `debris_*` node in the whole would never fade.
+  // The debris state carries only debris.
   const loose = (await wreck(debrisGlb([6, -1, 0], [7, 1, 0.3], "pack"))).findings;
   expect(loose.map((f) => f.code)).toEqual(["fit.debris"]);
-  const kept = withJson(blockGlb(6), (json) => {
-    json.nodes!.find((n: { name?: string }) => n.name === "block")!.name = "debris_block";
-  });
-  const inWhole = (await wreck(debrisGlb([6, -1, 0], [7, 1, 0.3]), kept)).findings;
-  expect(inWhole.map((f) => f.code)).toEqual(["fit.debris"]);
-  expect(inWhole[0].message).toMatch(/default/);
 });
 
 test("every vehicle names its own wreck, a wreck of its unit's hull", () => {

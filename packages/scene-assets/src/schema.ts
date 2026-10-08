@@ -76,8 +76,8 @@ export const FINDING_CODES = [
   "fit.footprint",
   /** A scenery piece (a wreck's thrown turret) reaches outside the whole it is part of. */
   "fit.piece",
-  /** A wreck's thrown debris lies past its allowance, carries a part that is
-   *  not debris, or debris sits in a state that never fades. */
+  /** A wreck's thrown debris lies past its allowance, or its state carries a
+   *  part that is not debris. */
   "fit.debris",
   /** A type listing a part must draw that part's hardware nodes. */
   "fit.part_nodes",

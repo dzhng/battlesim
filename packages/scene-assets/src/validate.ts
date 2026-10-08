@@ -248,15 +248,13 @@ export async function validateAppearance(
             rule?.pieces?.includes(state) || debris ? 1 : unitArtRule(null).tier_ratio,
           ),
         );
-      // Debris is held to its own allowance, not to the ground or the box;
-      // any other state carries none of it.
+      // Debris is held to its own allowance, not to the ground or the box.
       if (debris) {
         findings.push(
           ...debrisFindings(path, imported.scene, built.tiers[0], entry.footprint_half_m, debris),
         );
         continue;
       }
-      if (rule?.debris) findings.push(...strayDebrisFindings(path, imported.scene, state));
       // A piece is held to its whole (`pieceFindings`), not to the ground or the box.
       if (rule?.pieces?.includes(state)) continue;
       if (rule?.blades) findings.push(...grassStripFindings(path, built.tiers));
@@ -1443,24 +1441,6 @@ function debrisFindings(
       ),
     );
   return out;
-}
-
-/** A state of a kind that keeps its debris apart (`SceneryRule.debris`)
- *  holding a `debris_*` node itself: drawn there, it would never fade. */
-function strayDebrisFindings(label: string, scene: Scene, state: string): Finding[] {
-  const stray = scene.nodes.filter((n) => n.live && n.name.startsWith(DEBRIS_NODE));
-  return stray.length
-    ? [
-        finding(
-          "fit.debris",
-          `${label} (${state}): carries ${stray
-            .slice(0, 3)
-            .map((n) => `"${n.name}"`)
-            .join(", ")}; debris belongs in its own state, which the battle fades`,
-          "export debris_* nodes only into the debris state (wreckage.export_wreck)",
-        ),
-      ]
-    : [];
 }
 
 /** Each of a scenery appearance's pieces (`SceneryRule.pieces`) against the

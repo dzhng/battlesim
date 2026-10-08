@@ -31,7 +31,7 @@ export interface SceneryRule {
   pieces?: readonly string[];
   /** A state an appearance may carry besides, of what the whole threw round
    *  it as it died (a wreck's armour packs, doors, track runs): every mesh
-   *  under a `debris_*` node, and no such node in any other state. The battle
+   *  under a `debris_*` node. The battle
    *  draws it only where it watched the death, and lets it fade, so it is
    *  held to this allowance, never to the box: it is presentation, not cover. */
   debris?: DebrisAllowance;
