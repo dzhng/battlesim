@@ -2491,7 +2491,7 @@ async function muzzleTour(ctx) {
         const squad = o.own.find((u) => u.id === unit.id);
         const round = o.projectiles.find(
           (s) =>
-            s.kind === "test_rifle" &&
+            s.kind === "rifle" &&
             squad.memberIds.includes(s.shooterMember) &&
             Math.hypot(
               squad.members[squad.memberIds.indexOf(s.shooterMember)][0] - s.path[0][0],
