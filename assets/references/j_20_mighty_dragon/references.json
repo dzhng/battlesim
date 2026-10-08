@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "eastern_j_20_mighty_dragon_stealth_fighter-side.jpg",
+   "variant": "eastern_j_20_mighty_dragon_stealth_fighter",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:J-20_2011.jpg",
+   "author": "Baiweiflight",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "9f386b817f0343cc3af58d62ef0639ad23fd6f9718d3c3f547e0bc5fcad47d5e",
+   "note": "J-20 left side in flight: long chined body, canards, DSI intakes, canted all-moving fins, ventral fins"
+  },
+  {
+   "file": "eastern_j_20_mighty_dragon_stealth_fighter-three_quarter_front.jpg",
+   "variant": "eastern_j_20_mighty_dragon_stealth_fighter",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:J-20_at_CCAS2022_(20220827103424).jpg",
+   "author": "N509FZ",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "081f6c32dedc38bea43da98de34520608cd952ec32b5970af695e11bba4a01a4",
+   "note": "J-20 front-left three-quarter in flight: canards, LERX, intakes"
+  },
+  {
+   "file": "eastern_j_20_mighty_dragon_stealth_fighter-three_quarter_rear.jpg",
+   "variant": "eastern_j_20_mighty_dragon_stealth_fighter",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:J-20_(cropped).jpg",
+   "author": "Alert5",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "3fe2c86d3d8f3b96608a2309bf2d8a7eea2fc6fa0a526e7004eecc8b79ba9b75",
+   "note": "J-20 rear three-quarter from above: nozzles, fins, delta wing"
+  },
+  {
+   "file": "eastern_j_20_mighty_dragon_stealth_fighter-top.jpg",
+   "variant": "eastern_j_20_mighty_dragon_stealth_fighter",
+   "view": "top",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:J-20_fighter_(44040541250)_(cropped).jpg",
+   "author": "emperornie",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "ccf28faf83c909710e1161a5d8dfb7d44e4201270a1f23d2d9efbc2296ead4dc",
+   "note": "J-20 from below with bays open: planform, canards, ventral fins"
+  }
+ ],
+ "gaps": [
+  "eastern_j_20_mighty_dragon_stealth_fighter: in-flight photos only (no ground or gear view); dimensions are published estimates; gear placed from the F-22's proportions"
+ ]
+}

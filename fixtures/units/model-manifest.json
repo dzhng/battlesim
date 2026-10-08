@@ -100,7 +100,7 @@
       "id": "eastern_j_20_mighty_dragon_stealth_fighter",
       "family": "j_20_mighty_dragon",
       "category": "air",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "j_20_mighty_dragon",
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
