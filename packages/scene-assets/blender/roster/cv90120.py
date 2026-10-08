@@ -49,6 +49,7 @@ def turret_body(v, turret):
     cyl("turret_ring_guard", 1.05, 0.08, (0, 0, FOOT - 0.03), "Z", m["dark"], turret, seg=36, lods=MID)
     loft("turret_shell", [(FOOT, foot), (FOOT + 0.14, foot), (ROOF, crown)], mat=m["paint"], parent=turret,
          bevel=0.05)
+    VP.roof_fittings("roof", crown, ROOF, m, turret, periscopes=((-0.10, 0.95, 0.5),))
     for side, s in ((1, "L"), (-1, "R")):
         VP.weld_line(f"cheek_weld_{s}", [(1.45, side * 0.46, FOOT + 0.14), (0.70, side * 1.40, FOOT + 0.14)], m,
                      turret)
