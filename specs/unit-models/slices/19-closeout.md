@@ -40,7 +40,13 @@ saves for a spec's end.
     each a second time and require byte-identical files (wreck noise was fixed
     in `wreckage.heat()`; the air lane's crash wrecks predate that fix). Bake,
     icons, check, commit.
-11. Close the spec with close-spec.
+11. **Aircraft dimensions:** the air lane stated each card's length, width
+    and height from memory (J-20 and Z-20 estimated), held to 5% by its export.
+    Check each against a published source and record it in the card's
+    `references.json` notes or gaps; fix any family more than 5% off.
+12. Make `vehicle_parts.py`'s two helpers that `aircraft_parts.py` borrows
+    public.
+13. Close the spec with close-spec.
 
 ## Delegated
 
