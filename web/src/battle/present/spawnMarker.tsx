@@ -1,7 +1,5 @@
 import { useImperativeHandle, useRef, type Ref } from "react";
 import type { Project } from "./readouts";
-import { Icon } from "./icons";
-import { hudIcon } from "@packages/scene-assets/src/icons";
 
 export interface SpawnMarkerHandle {
   place(project: Project, elevation: (x: number, y: number) => number): void;
@@ -33,8 +31,15 @@ export function SpawnMarker({
   return (
     <div className="hud-spawn-layer" aria-label="Your deployment point">
       <span ref={node} className="hud-spawn-mark" style={{ display: "none" }}>
-        <Icon path={hudIcon("objective")} />
-        <span>DEPLOY</span>
+        <span className="hud-spawn-chevron" aria-hidden="true">
+          ⌃
+        </span>
+        <span className="hud-spawn-chevron" aria-hidden="true">
+          ⌃
+        </span>
+        <span className="hud-spawn-chevron" aria-hidden="true">
+          ⌃
+        </span>
       </span>
     </div>
   );
