@@ -11,7 +11,8 @@
 }
 /* Readout cards sit outside the viewport; hide their native cursor without a frame delay. */
 body:has(.game-cursor:not([hidden])) canvas,
-body:has(.game-cursor:not([hidden])) .ro-layer .ro-unit {
+body:has(.game-cursor:not([hidden])) .ro-layer .ro-unit,
+body:has(.game-cursor:not([hidden])) .hud {
   cursor: none;
 }
 .game-cursor[hidden],

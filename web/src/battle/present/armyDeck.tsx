@@ -32,6 +32,7 @@ export function ArmyDeck({
   const [focused, setFocused] = useState<number | null>(null);
   const [dismissed, setDismissed] = useState<number | null>(null);
   const [detailX, setDetailX] = useState(0);
+  const [detailY, setDetailY] = useState(0);
   const tooltipId = useId();
   const { units } = useSessionCatalog();
   const count = own.length + pending.length;
@@ -58,8 +59,8 @@ export function ArmyDeck({
   const detail = active === dismissed ? undefined : own.find((unit) => unit.id === active);
   const alignDetail = (button: HTMLButtonElement) => {
     const box = button.getBoundingClientRect();
-    const bounds = lower.current!.getBoundingClientRect();
-    setDetailX(Math.max(180, Math.min(bounds.width - 180, box.left + box.width / 2 - bounds.left)));
+    setDetailX(box.left + box.width / 2);
+    setDetailY(box.top - 8);
     setDismissed(null);
   };
   return (
@@ -73,7 +74,7 @@ export function ArmyDeck({
             id={tooltipId}
             data-unit={detail.id}
             data-occludes-readouts
-            style={{ left: detailX }}
+            style={{ left: detailX, top: detailY }}
           >
             <InfoPanel
               panel={{
@@ -91,6 +92,7 @@ export function ArmyDeck({
           <div
             className="hud-army"
             data-unit-count={count}
+            data-army-rows={rows}
             style={{ gridTemplateColumns: `repeat(${columns}, 64px)` }}
             role="group"
             aria-label="Your units"

@@ -1162,6 +1162,9 @@ export async function createFogVisibility(
       foliageCellM: world && world.foliage.length > 3 ? world.foliage[2] : 1,
       foliageFullBlock: world?.foliageFullBlock ?? 1,
       minSightGapM: world?.minSightGapM ?? 0,
+      playable: world
+        ? d.vec4f(...(world.playable ?? [0, 0, world.nx * world.spacing, world.ny * world.spacing]))
+        : d.vec4f(),
       heightSpacing: world?.spacing ?? 1,
       faceProbeM: g.face_probe_m,
       width: extra.width ?? 0,
@@ -1584,6 +1587,7 @@ const FOG_PARAMS_ZERO = {
   foliageCellM: 1,
   foliageFullBlock: 1,
   minSightGapM: 0,
+  playable: d.vec4f(),
   heightSpacing: 1,
   faceProbeM: 0,
   width: 0,

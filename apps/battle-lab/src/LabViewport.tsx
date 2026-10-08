@@ -570,7 +570,7 @@ export function LabViewport({
       target === canvas
         ? canvas
         : target instanceof Element
-          ? target.closest<HTMLElement>(".ro-layer .ro-unit")
+          ? target.closest<HTMLElement>(".ro-layer .ro-unit, .hud")
           : null;
     // The pose input and scripts ask for, and the pose drawn for it: the
     // same one unless camera clearance holds it off an obstacle.
@@ -1052,7 +1052,7 @@ export function LabViewport({
           const target = e.target;
           const over =
             target === canvas ||
-            (target instanceof Element && target.closest(".ro-layer .ro-unit"));
+            (target instanceof Element && target.closest(".ro-layer .ro-unit, .hud"));
           pointer = over || rightPress || press || orbit ? { x: e.clientX, y: e.clientY } : null;
           if (!pointer || orbit) showCursor(null, null, null);
           else cursor.current?.move(pointer);

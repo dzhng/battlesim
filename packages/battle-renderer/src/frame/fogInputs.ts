@@ -82,6 +82,8 @@ export const FOLIAGE_MAX = 255 * FOLIAGE_STEP;
 
 /** The public static map sight is cut by. */
 export interface FogWorld extends TerrainGrid {
+  /** The playable rectangle; the rendered margin outside it is always clear. */
+  playable?: readonly [number, number, number, number];
   /** Sparse simulation foliage: `nx, ny, cell_m`, then sorted
    * `[column, row, canopy_m, depth_per_m]` records. Missing cells are open. */
   foliage: Float32Array;
@@ -98,6 +100,7 @@ export function fogWorld(exports: WorldExports, sensors: FogSensorRules): FogWor
     throw new Error(`fog: foliage_full_block must be ≤ ${FOLIAGE_MAX}`);
   return {
     ...exports.terrain,
+    playable: exports.extents.playable,
     foliage: exports.foliage,
     targetHeightM: sensors.fog_target_height_m,
     foliageFullBlock: sensors.foliage_full_block,

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import type { Faction, UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
 import { cardIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
@@ -9,11 +8,10 @@ interface PickerProps {
   faction: Faction;
   match: SkirmishView;
   onChoose: (variant: string) => void;
-  onReady: () => void;
 }
 const CATEGORIES: readonly UnitCategory[] = ["rec", "inf", "veh", "sup", "hel", "air"];
 /** Catalog families organize browsing; only a concrete available variant starts placement. */
-export function PurchasePicker({ cards, faction, match, onChoose, onReady }: PickerProps) {
+export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<UnitCategory>("rec");
   const [family, setFamily] = useState<string | null>(null);
@@ -41,22 +39,6 @@ export function PurchasePicker({ cards, faction, match, onChoose, onReady }: Pic
         <span className="hud-credits" aria-label="Credits">
           {Math.floor(match.credits)} CR
         </span>
-        {match.phase === "preparation" &&
-          createPortal(
-            <div className="hud hud-ready-layer">
-              <div className="hud-panel hud-ready-panel">
-                <button
-                  type="button"
-                  className="hud-menu-choice hud-purchase-ready"
-                  disabled={match.ready[0]}
-                  onClick={onReady}
-                >
-                  {match.ready[0] ? "READY" : "START BATTLE"}
-                </button>
-              </div>
-            </div>,
-            document.body,
-          )}
       </div>
       {open && (
         <section className="hud-panel hud-purchase-picker" aria-label="Faction units">

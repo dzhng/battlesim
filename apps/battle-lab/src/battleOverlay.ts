@@ -270,6 +270,6 @@ export function buildBattleOverlay(
     contactMarks,
     supply,
     orders,
-    ...(deployment ? [{ paintedMarching: deployment }] : []),
+    ...(deployment ? [{ paintedMarching: deployment, translucent: deployment }] : []),
   ]);
 }

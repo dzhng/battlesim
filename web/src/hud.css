@@ -873,7 +873,7 @@
   width: max-content;
   max-width: min(922px, 100%);
   min-height: 80px;
-  background: rgb(var(--hud-glass) / 0.94);
+  background: rgb(var(--hud-glass) / 0.76);
   padding: 8px 10px;
   pointer-events: auto;
 }
@@ -960,11 +960,15 @@
   flex-direction: column;
   align-items: stretch;
   gap: 0;
-  width: 100%;
-  max-width: none;
+  width: max-content;
+  max-width: calc(100vw - 32px);
   min-height: 0;
   padding: 5px 5px 6px;
   border-inline: 0;
+}
+.hud-bottom.hud-army-deck:has(.hud-army[data-army-rows]:not([data-army-rows="1"])) {
+  width: 100%;
+  max-width: none;
 }
 .hud-army {
   display: grid;
@@ -1038,13 +1042,16 @@
   height: 24px;
 }
 .hud-army-detail-host {
-  position: relative;
-  width: 100%;
+  position: fixed;
+  inset: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 5;
 }
 .hud-army-detail {
-  position: relative;
-  bottom: 0;
-  transform: translateX(-50%);
+  position: absolute;
+  transform: translate(-50%, -100%);
   width: max-content;
   max-width: min(360px, 100%);
   padding: 10px 12px;
@@ -1160,25 +1167,9 @@
 .hud-army-deck .hud-purchase-controls .hud-credits {
   margin-left: 12px;
 }
-.hud.hud-ready-layer {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 4;
-}
-.hud-ready-panel {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 4;
+.hud-top .hud-purchase-ready {
   min-width: 180px;
   text-align: center;
-  pointer-events: auto;
-}
-.hud-ready-panel button.hud-purchase-ready {
-  text-align: center;
-  min-width: 180px;
 }
 .hud-purchase-controls,
 .hud-purchase-categories,
@@ -1196,7 +1187,8 @@
 .hud-panel.hud-purchase-picker {
   position: absolute;
   bottom: calc(100% + 10px);
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: min(720px, calc(100vw - 44px));
   padding: 12px;
   background: rgb(var(--hud-glass) / 0.96);
@@ -1207,7 +1199,9 @@
 .hud-purchase-categories [aria-selected="true"],
 .hud-purchase-family[aria-pressed="true"] {
   color: rgb(var(--hud-accent));
-  background: rgb(var(--hud-accent) / 0.08);
+  border-color: rgb(var(--hud-accent) / 0.7);
+  background: rgb(var(--hud-accent) / 0.16);
+  box-shadow: inset 0 -2px 0 rgb(var(--hud-accent));
 }
 .hud-purchase-families {
   display: grid;

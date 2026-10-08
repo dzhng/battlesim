@@ -1,7 +1,8 @@
 // Fog's presentation, from the one fixture owner's presentation block: the
 // sight lights' resolution and budgets, the unseen look (named styles, one
 // selected), the contact glyphs drawn over fog, and the border that marks
-// the playable area (drawn sight runs on past it). Every lab route draws
+// the playable area. The rendered margin outside that border stays clear.
+// Every lab route draws
 // with them.
 import game from "@fixtures/game.json";
 import {

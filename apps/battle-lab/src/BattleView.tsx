@@ -278,6 +278,16 @@ export function BattleView({
             ) : (
               status(session)
             ))}
+          {input && observation?.skirmish?.phase === "preparation" && session.purchase && (
+            <button
+              type="button"
+              className="hud-menu-choice hud-purchase-ready"
+              disabled={observation.skirmish.ready[0]}
+              onClick={session.purchase.ready}
+            >
+              {observation.skirmish.ready[0] ? "READY" : "START BATTLE"}
+            </button>
+          )}
           {sim.error && (
             <div className="hud-error" data-testid="error">
               {sim.error}
@@ -301,7 +311,6 @@ export function BattleView({
                   faction={session.purchase.faction}
                   match={observation.skirmish}
                   onChoose={session.purchase.choose}
-                  onReady={session.purchase.ready}
                 />
               </>
             ) : undefined

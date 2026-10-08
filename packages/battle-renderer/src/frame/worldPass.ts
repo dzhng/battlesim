@@ -293,8 +293,8 @@ export async function createWorldPass(
     const paint = groundPaint(v.world);
     const albedo = paintedAlbedo(surface.xyz, paint);
     const lit = environment.shade(albedo, d.vec3f(0), surface.w, 0, 0, 1, up, v.world, 1, eye);
-    // Fog runs on past the playable area: the sight maps continue over open
-    // ground (no occluders or foliage) beyond the edge.
+    // The rendered margin outside the playable rectangle stays clear; only
+    // ground inside the playable area participates in fog of war.
     const seen = fogTerm(v.world, up, v.clip.xy, fogIsGround());
     return {
       color: d.vec4f(std.add(lit.xyz, paintGlow(paint)), 1),
