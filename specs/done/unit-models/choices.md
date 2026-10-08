@@ -1512,6 +1512,26 @@ family. No roster frame, mount or tolerance moved.
 - **Verdict:** sound.
 - **Confidence:** medium.
 
+### The five disabled infantry teams: their launchers at the bar
+
+- **The choice:** The soldiers already wore the roster infantry's uniforms,
+  carriers and rigs (slice 17), so only `shoulder_tube_equipment` changed,
+  and only these five cards use it. Every tube has its sling swivels and the
+  bands where its halves join. The Javelin's command launch unit has its two
+  handles, eyecup, day and thermal windows and switches, and the battery
+  coolant unit hangs under the tube. The Akeron's sight has a hood, a thermal
+  window, an eyecup and a shoulder rest. The MANPADS have a battery coolant
+  unit, front and rear sight frames and a sight arm; the Stinger has its IFF
+  grid's ribs, and the Igla and FN-6 the interrogator box on the gripstock.
+  The kits re-exported byte-identical twice. The Javelin's carried kit did
+  not change.
+- **The gap:** `asset sheet` can't draw a kit that isn't in the catalog, so
+  the kits were judged on the exporter's own Blender preview, not beside the
+  references. `asset validate` passes them only when given the launcher clips
+  and the skeleton's 90° basis.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause

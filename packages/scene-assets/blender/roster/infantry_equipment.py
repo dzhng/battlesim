@@ -296,24 +296,56 @@ def shoulder_tube_equipment(mats, model):
         cyl(model+'_end_cap_'+str(k), r*(1.25 if heavy else 1.15), .10 if heavy else .06, (0,y,axis), 'Y', black, root, seg=20)
     box(model+'_trigger_grip', (.032,.04,.15), (0,.06,.025), black, root, bevel_=.005)
     box(model+'_support_grip', (.035,.045,.11), (.0,-.25,.0), black, root, bevel_=.005)
+    # Every tube: its carrying sling's two swivels, and the ribbed rings
+    # either side of the grip where the tube's halves join.
+    for k,y in enumerate((rear-.20, front+.20)):
+        box(model+'_sling_swivel_'+str(k), (.012,.03,.03), (-r-.01,y,axis), black, root)
+    for k,y in enumerate((.18, -.38)):
+        cyl(model+'_band_'+str(k), r*1.06, .025, (0,y,axis), 'Y', black, root, seg=20)
     if model == 'javelin':
-        # The command launch unit clamped to the tube's left, its two handles.
+        # The command launch unit clamped to the tube's left: its body, two
+        # handles, the eyepiece's rubber eyecup, the day sight's and the
+        # thermal sight's windows on its front, the display controls; the
+        # battery coolant unit under the tube's rear.
         box('javelin_clu', (.20,.26,.20), (.14,.0,axis+.02), fde, root, bevel_=.02)
+        for k,y in enumerate((.09,-.09)):
+            box('javelin_clu_handle_'+str(k), (.03,.03,.14), (.25,y,axis+.0), black, root, bevel_=.006)
         box('javelin_clu_eyepiece', (.07,.06,.06), (.14,.15,axis+.06), black, root, bevel_=.01)
+        cyl('javelin_clu_eyecup', .032, .03, (.14,.19,axis+.06), 'Y', black, root, seg=14)
         cyl('javelin_clu_lens', .045, .02, (.14,-.14,axis+.03), 'Y', mats['lens'], root, seg=16)
+        box('javelin_clu_day_window', (.05,.012,.04), (.20,-.135,axis+.08), mats['lens'], root)
+        for k in range(3):
+            box('javelin_clu_switch_'+str(k), (.02,.02,.012), (.10+k*.03,.06,axis+.125), black, root)
+        cyl('javelin_bcu', .045, .16, (0,rear-.20,axis-r-.04), 'Y', black, root, seg=14)
+        box('javelin_bcu_clamp', (.06,.04,.05), (0,rear-.20,axis-r-.01), black, root)
         muzzle = front
     elif model == 'akeron':
+        # The firing post's sight block on the left, its hood and the
+        # thermal channel's window, the shoulder rest under the rear.
         box('akeron_sight', (.16,.22,.16), (.13,-.05,axis+.02), black, root, bevel_=.015)
+        box('akeron_sight_hood', (.17,.06,.03), (.13,-.15,axis+.11), black, root)
         cyl('akeron_sight_lens', .04, .02, (.13,-.17,axis+.04), 'Y', mats['lens'], root, seg=14)
+        box('akeron_thermal_window', (.05,.012,.05), (.08,-.165,axis-.02), mats['lens'], root)
+        cyl('akeron_eyecup', .03, .04, (.13,.07,axis+.06), 'Y', black, root, seg=14)
+        box('akeron_shoulder_rest', (.05,.16,.09), (0,rear-.12,axis-r-.03), black, root, bevel_=.01)
         muzzle = front
     else:
-        # MANPADS: gripstock under the tube, sight frame on its left, the
-        # IFF antenna folded over the front, the seeker's nose cap.
+        # MANPADS: the gripstock under the tube with its battery/coolant
+        # unit, the sight's front and rear frames on its left, the seeker's
+        # nose cap; the Stinger's IFF antenna grid folded over the front,
+        # the Igla's and FN-6's interrogator box on the gripstock.
         box(model+'_gripstock', (.05,.30,.07), (0,-.05,axis-.06), black, root, bevel_=.006)
         box(model+'_battery', (.05,.05,.10), (0,-.20,axis-.12), black, root, bevel_=.006)
+        cyl(model+'_bcu', .025, .12, (0,-.26,axis-.10), 'Z', black, root, seg=12)
         box(model+'_sight_frame', (.012,.10,.08), (.07,-.10,axis+.03), black, root)
+        box(model+'_rear_sight', (.012,.03,.05), (.07,.10,axis+.04), black, root)
+        box(model+'_sight_arm', (.06,.02,.02), (.04,-.10,axis), black, root)
         if model == 'stinger':
             box('stinger_iff_antenna', (.006,.16,.12), (0,front+.40,axis+.10), black, root)
+            for k in range(3):
+                box('stinger_iff_rib_'+str(k), (.008,.006,.12), (0,front+.34+k*.06,axis+.10), black, root)
+        else:
+            box(model+'_interrogator', (.07,.10,.08), (.06,.0,axis-.06), black, root, bevel_=.008)
         cap = .07 if model == 'igla' else .05
         cyl(model+'_nose_cap', r*1.2, cap, (0,front-cap/2,axis), 'Y', black, root, seg=16)
         muzzle = front-cap
