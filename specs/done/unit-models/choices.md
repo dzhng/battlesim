@@ -1264,6 +1264,81 @@ Spec: [slice 02](../../unit-models-followup/slices/02-wreck-debris.md).
 - **Verdict:** sound.
 - **Confidence:** high.
 
+## Follow-up 01
+
+The Dragoon's sides, the M10's turret and the Abrams' front and skirts
+(2026-10-08). Spec: [slice 01](../../unit-models-followup/slices/01-dragoon-m10.md).
+No frame, mount or tolerance moved, and every export repeats byte for byte.
+
+### The Stryker's chine is a low sharp knuckle under a tall leaning side
+
+- **The choice:** The hull is three rings (`BELLY`, `KNUCKLE`, roof). The
+  lower hull flares from the belly (0.52 m, 0.84 m half width) out to a sharp
+  knuckle at 1.16 m, just above the 1.12 m tyre tops and flush with their
+  outer faces (1.34 m). The 0.12 m upright chine band is gone. The upper side
+  leans in 14 degrees (`SIDE_LEAN`, was 16) from the knuckle to the roof, so
+  the leaning face is 1.14 m tall on the M1126 and 0.79 m on the Dragoon (it
+  was 0.86 m and 0.51 m), and from the front and rear the knuckle is the
+  widest line of the hull, as in the photos. The lean dropped two degrees so
+  that the roof, now further from the knuckle, keeps room for the M1134's
+  launcher base and the commander's hatch (moved 7 cm inboard). The nose
+  comes to a point at the knuckle, and the upper glacis keeps one slope
+  (`GLACIS`, 25 degrees) on either roof. The ramp, mudflaps, tow points,
+  antennas and the M1129's bay doors are placed from the same numbers.
+- **Tiles and plates:** Armour tiles lie on the leaning side through
+  `on_side`, in as many rows as the side is tall for (two on the 2.30 m roof,
+  one on the Dragoon's). Under the glacis' chamfered edge (`side_top`, the
+  rings' own corner) a tile is cut down to what fits, and it is left off below
+  0.24 m. That gives the stepped tiles the M1126 photo shows. The nose's
+  bolted plates, two rows of two, lie on the lower nose face. `on_side` only
+  knows side faces, so they take their position and tilt from the same ring
+  numbers (`nose_x`).
+- **The gap:** The knuckle sits a little lower than the photos put it (they
+  show about 1.25-1.3 m). The slice asked for a lower and stronger knuckle so
+  that the lean reads at sheet distance, and the Dragoon's roof is pinned low
+  by its gun axis. The rear half above the bins is a bare leaning face, where
+  the real vehicle carries racks and bags.
+- **Verdict:** sound.
+- **Confidence:** medium. Measured from photos, not drawings.
+
+### The M10's turret is tall and blunt, not a small Abrams
+
+- **The choice:** The turret's plan is a broad front of two flat cheeks
+  either side of the mantlet's slot, with chamfered outer corners and upright
+  slab sides 1.48 m out. The old plan was a wedge whose cheeks swept back 55
+  degrees, on sides leaning in 12 cm. In profile the cheeks come to a prow
+  just above the gun axis (`PROW`). Under it the front falls back to the
+  ring, and over it a long chamfer runs back to a flat roof. The roof is 6 cm
+  higher (`ROOF` 0.78 above the pivot, 2.56 m: the side photo gives about
+  2.53 m) and the sight dome's collar 2 cm shorter, so the dome's top stays at
+  the stated frame height (built 2.94 m against 2.90 m). The smoke clusters
+  sit on the cheeks firing forward, the cheek plates lie on the flank through
+  `on_side`, and the gunner's sight moved behind the chamfer. The mounts are
+  unchanged.
+- **Verdict:** sound.
+- **Confidence:** medium. Only side and front-quarter photos, no top view.
+
+### The Abrams' cheeks are broad and blunt, and its skirts sit flush
+
+- **The choice:** The turret's cheeks (`CHEEK`) now run from the gun's slot
+  at x 1.95 back 15 degrees to a cut corner. Before, they ran from a point
+  at 2.18 back 35 degrees, plus 0.30 m more at the roof, which made an
+  arrowhead in plan. The roof edge sits 0.22 m back of the face
+  (`CHEEK_CHAMFER`), the short top chamfer the photos show. The cheek's side
+  plate lies on the turret's leaning flank through `on_side`; it had stood
+  upright 5 cm off it. The skirts' outer faces did not move (1.80 m). The
+  hull's upper half widened from 3.40 m to 3.46 m (`SPONSON`), so the
+  sponson side is flush with the skirts' inner face and the thick front
+  panels sink into it. Before, there was a 3 cm gap and the deck stopped
+  short of the skirts. The Abrams' hull sides and skirts are upright, so the
+  skirts need no `on_side`.
+- **The reach:** The M1E3 builds on `abrams.hull_body`, so its hull widened
+  too and it was re-exported. Its own skirts already overlapped the wider
+  hull, and its turret is its own. The menu's tank keeps the test hull's
+  physics, and `menu_reel::` passes unchanged.
+- **Verdict:** sound.
+- **Confidence:** medium.
+
 ## Not fixed here: failures that also happen on main
 
 These checks fail on main as well as on this branch. This spec did not cause
