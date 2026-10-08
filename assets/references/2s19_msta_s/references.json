@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "eastern_2s19_msta_s_2s19m2-three_quarter_front.jpg",
+   "variant": "eastern_2s19_msta_s_2s19m2",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ASPG_2S19M2_%22Msta-S%22_on_%22Oboronexpo%22_in_2014_%28front_view%29.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "933abeec696e32d633b5d54addfadbcdd458d161a13055ed9fd22a730825226e",
+   "note": "2S19M2 left front quarter: T-80/T-72 derived hull, six road wheels, the large turret with the 2A64 152 mm gun, its fume extractor and muzzle brake, the commander's cupola with the remote MG."
+  },
+  {
+   "file": "eastern_2s19_msta_s_2s19m2-three_quarter_rear.jpg",
+   "variant": "eastern_2s19_msta_s_2s19m2",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ASPG_2S19M2_%22Msta-S%22_on_%22Oboronexpo%22_in_2014_%28reart_view_1%29.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "0fd2139e94eae0b172727000066fe5b67dd4365fd9a3a4c55979d4279cccf452",
+   "note": "Rear quarter: the turret's rear ammunition door and crane, side stowage."
+  },
+  {
+   "file": "eastern_2s19_msta_s_2s19m2-rear.jpg",
+   "variant": "eastern_2s19_msta_s_2s19m2",
+   "view": "rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ASPG_2S19M2_%22Msta-S%22_on_%22Oboronexpo%22_in_2014_%28reart_view_2%29.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "221e7471dc16ff860ca8c385a940d4373fd5b6b0028d22f5546714c61571e808",
+   "note": "Rear: the turret rear, the conveyor hatch, the hull rear with its self-entrenching blade."
+  },
+  {
+   "file": "eastern_2s19_msta_s_2s19m2-three_quarter_front-2.jpg",
+   "variant": "eastern_2s19_msta_s_2s19m2",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A2S19M2_on_RAE-2013_2.jpg",
+   "author": "Алексей Китаев",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "3b99f1d97017d45780043ec5fe56739efed906fd52b2c2b395f90388d40462ea",
+   "note": "RAE 2013 car in desert finish, front quarter with the gun raised."
+  }
+ ],
+ "gaps": [
+  "eastern_2s19_msta_s_2s19m2: no side profile or top view"
+ ]
+}

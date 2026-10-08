@@ -1,0 +1,51 @@
+{
+ "entries": [
+  {
+   "file": "us_m109_paladin_m109a7-three_quarter_front.jpg",
+   "variant": "us_m109_paladin_m109a7",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM109A7_Paladin_self-propelled_howitzer.jpg",
+   "author": "Sebastian Saarloos",
+   "licence": "public-domain",
+   "sha256": "e1fc827cf318c2e5871fc2b1608949ce89d5cafa94984db89c5cf349986d526b",
+   "note": "M109A7 left front quarter in desert tan: the Bradley-derived running gear (six road wheels), the big box turret with the 155 mm M284 and its bore evacuator and muzzle brake, the travel lock folded on the glacis."
+  },
+  {
+   "file": "us_m109_paladin_m109a7-side.jpg",
+   "variant": "us_m109_paladin_m109a7",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ABull_Battery_M109A7_Paladin_Howitzers_take_to_the_field_%287510847%29.jpg",
+   "author": "U.S. Army National Guard photo by Sgt. Gavin Ching",
+   "licence": "public-domain",
+   "sha256": "3be98757bae7cf1f28cebe7dd2c69aa40dd835b3c44c97e03cf5bd263234592f",
+   "note": "Profile in the field: turret length against the hull, the gun's overhang, stowage on the turret sides."
+  },
+  {
+   "file": "us_m109_paladin_m109a7-three_quarter_front-2.jpg",
+   "variant": "us_m109_paladin_m109a7",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AM109A7_Paladin_Integrated_Management.jpg",
+   "author": "U.S. Army",
+   "licence": "public-domain",
+   "sha256": "8e970fd3e99ee4ecffa12f365836aabac01aebd78faeaa5c8ca1c17bfbeaa5d8",
+   "note": "PIM right front quarter in snow: hull front, headlights, turret front and cupola with its M2."
+  },
+  {
+   "file": "us_m109_paladin_m109a7-three_quarter_rear.jpg",
+   "variant": "us_m109_paladin_m109a7",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ACannon_fire_-_M109_self-propelled_howitzer.jpg",
+   "author": "Sir kiss",
+   "licence": "public-domain",
+   "sha256": "18f54a4155be4cee690590b36e436f719ebed0272daf9a6c4a3c56ba0eceecf0",
+   "note": "Firing, rear quarter: the turret's rear doors and racks, the spade-less hull rear."
+  }
+ ],
+ "gaps": [
+  "us_m109_paladin_m109a7: no top or rear-on view; the turret roof and rear door come from the quarters"
+ ]
+}

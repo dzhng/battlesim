@@ -20,11 +20,11 @@
       "id": "eastern_2s19_msta_s_2s19m2",
       "family": "2s19_msta_s",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "2s19_msta_s",
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_2s19_msta_s_2s19m2.glb"
+      "source_path": "assets/source/roster/2s19_msta_s/eastern_2s19_msta_s_2s19m2.glb"
     },
     {
       "id": "eastern_9k515_tornado_s_heavy_rocket_artillery",
@@ -210,11 +210,11 @@
       "id": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
       "family": "plz_05",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "plz_05",
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_plz_05_chinese_tracked_155_mm_howitzer.glb"
+      "source_path": "assets/source/roster/plz_05/eastern_plz_05_chinese_tracked_155_mm_howitzer.glb"
     },
     {
       "id": "eastern_scout_drone_thermal",
@@ -530,11 +530,11 @@
       "id": "europe_pzh_2000_tracked_155_mm_howitzer",
       "family": "pzh_2000",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "pzh_2000",
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_pzh_2000_tracked_155_mm_howitzer.glb"
+      "source_path": "assets/source/roster/pzh_2000/europe_pzh_2000_tracked_155_mm_howitzer.glb"
     },
     {
       "id": "europe_rafale_c_f4",
@@ -760,11 +760,11 @@
       "id": "us_m109_paladin_m109a7",
       "family": "m109_paladin",
       "category": "sup",
-      "model_status": "source_authored",
+      "model_status": "reference_built",
       "source_family": "m109_paladin",
       "source_kind": "support",
       "disabled_reason": "Artillery and indirect-support mechanics deferred",
-      "source_path": "assets/source/roster/disabled/us_m109_paladin_m109a7.glb"
+      "source_path": "assets/source/roster/m109_paladin/us_m109_paladin_m109a7.glb"
     },
     {
       "id": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
