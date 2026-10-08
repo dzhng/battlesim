@@ -134,6 +134,9 @@ INSIGNIA = {
     # Sweden's three crowns, as three gold spots on the blue.
     "se": [(DISC, 1.0, (0, 0), "blue"), *[(_ngon(12), 0.2, at, "yellow") for at in ((0, 0.3), (-0.27, -0.17),
                                                                                     (0.27, -0.17))]],
+    # Germany's flag, black over red over gold, as on a fin.
+    "de_flag": [(_rect(-1.0, -0.6, 1.0, 0.6), 1.0, (0, 0), "black"), (_rect(-1.0, -0.4, 1.0, 0.4), 1.0, (0, -0.2), "red"),
+                (_rect(-1.0, -0.2, 1.0, 0.2), 1.0, (0, -0.4), "yellow")],
     "de": [(_cross(1.0, 0.45), 1.0, (0, 0), "black"), (_cross(0.82, 0.27), 1.0, (0, 0), "white"),
            (_cross(0.64, 0.1), 1.0, (0, 0), "black")],
 }
