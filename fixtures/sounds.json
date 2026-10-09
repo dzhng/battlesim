@@ -476,6 +476,51 @@
       "path": "assets/third-party/audio/freesound-637551-sneakers-dirt-kyles.mp3",
       "sha256": "e651086f8735da217599a6bedb7fe2123e7a71161371ab0dff3ba064fe708318",
       "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-849062": {
+      "label": "tracks moving",
+      "author": "christerljung",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/christerljung/sounds/849062/",
+      "path": "assets/third-party/audio/freesound-849062-tracks-christerljung.mp3",
+      "sha256": "e3bcf56542892a0eb1f7097e394e7d3f9969d67097f2b3aa4d5d3bd06850a60b",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-121531": {
+      "label": "tracked vehicle.wav",
+      "author": "cognito perceptu",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/cognito%20perceptu/sounds/121531/",
+      "path": "assets/third-party/audio/freesound-121531-tracks-cognito-tracked.mp3",
+      "sha256": "1492475dd5b0d2f344126b48976aa16f69c4450aab38fe6eccccfc2a955b59d3",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-88422": {
+      "label": "construction equipment tracked.wav",
+      "author": "cognito perceptu",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/cognito%20perceptu/sounds/88422/",
+      "path": "assets/third-party/audio/freesound-88422-tracks-cognito-construction.mp3",
+      "sha256": "9c76adf93d6dd4988183d26a0d1c400a13b10019a365d5694c385ce9a1c91147",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-438122": {
+      "label": "G15-26-Tanks Close Up.wav",
+      "author": "craigsmith",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/craigsmith/sounds/438122/",
+      "path": "assets/third-party/audio/freesound-438122-tracks-craigsmith-tanks-close.mp3",
+      "sha256": "61a0bbe4bd25da53ff2d224428042fdaa29dd11f8913eeb78058045a2d910891",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
+    },
+    "freesound-438120": {
+      "label": "G15-24-M-4 Squeaky Pass By.wav",
+      "author": "craigsmith",
+      "license": "CC0-1.0",
+      "url": "https://freesound.org/people/craigsmith/sounds/438120/",
+      "path": "assets/third-party/audio/freesound-438120-tracks-craigsmith-m4-squeaky.mp3",
+      "sha256": "0b6df2f8b199a55153c744446f863754dff7194483cb66808d770865e7e62d30",
+      "notes": "Freesound HQ MP3 preview, retained as downloaded; the original requires login."
     }
   },
   "clips": {
@@ -4085,6 +4130,81 @@
       "frames": 15360,
       "loop": false,
       "notes": "Sneakers on gritty dirt, for comparison with boots. One footfall, cut before the next."
+    },
+    "tracks-christerljung": {
+      "label": "tracks moving \u00b7 running loop",
+      "category": "tracks",
+      "role": "loop",
+      "source": "freesound-849062",
+      "source_rate": 44100,
+      "source_frames": [0, 132300],
+      "processing": "running-gear",
+      "url": "/audio/clips/tracks-christerljung.wav",
+      "sha256": "0a7a811bf53e546632b864a4460bfd267b9116ea81672ff2a7ed79d6603cc538",
+      "sample_rate": 48000,
+      "frames": 139200,
+      "loop": true,
+      "notes": "Tracks moving, like a bulldozer or tank; no engine to speak of. Its steadiest 3 s, crossfaded into a loop."
+    },
+    "tracks-cognito-tracked": {
+      "label": "tracked vehicle.wav \u00b7 running loop",
+      "category": "tracks",
+      "role": "loop",
+      "source": "freesound-121531",
+      "source_rate": 44100,
+      "source_frames": [110250, 242550],
+      "processing": "running-gear",
+      "url": "/audio/clips/tracks-cognito-tracked.wav",
+      "sha256": "4a175cf2f6a520bc50b66f11464e6e5fbb818678a08ff84f4807a0ce83d499cf",
+      "sample_rate": 48000,
+      "frames": 139200,
+      "loop": true,
+      "notes": "A tracked construction vehicle moving. Its steadiest 3 s, crossfaded into a loop."
+    },
+    "tracks-cognito-construction": {
+      "label": "construction equipment tracked.wav \u00b7 running loop",
+      "category": "tracks",
+      "role": "loop",
+      "source": "freesound-88422",
+      "source_rate": 44100,
+      "source_frames": [1455300, 1587600],
+      "processing": "running-gear",
+      "url": "/audio/clips/tracks-cognito-construction.wav",
+      "sha256": "1f8c18800edc26bb637f6ab0d159ef67e748c9923d65e73e72d537803df3a03c",
+      "sample_rate": 48000,
+      "frames": 139200,
+      "loop": true,
+      "notes": "Tracked construction equipment; the clattering stretch near its end. Its steadiest 3 s, crossfaded into a loop."
+    },
+    "tracks-craigsmith-tanks-close": {
+      "label": "G15-26-Tanks Close Up.wav \u00b7 running loop",
+      "category": "tracks",
+      "role": "loop",
+      "source": "freesound-438122",
+      "source_rate": 48000,
+      "source_frames": [4008000, 4152000],
+      "processing": "running-gear",
+      "url": "/audio/clips/tracks-craigsmith-tanks-close.wav",
+      "sha256": "2345016294fe7fb0bc57cdb65fe11a3d2173e0209c9c50fa35c086915db3483a",
+      "sample_rate": 48000,
+      "frames": 139200,
+      "loop": true,
+      "notes": "Hollywood optical effect (1930s-60s, USC transfer): tanks close up, slow moving. Its steadiest 3 s, crossfaded into a loop."
+    },
+    "tracks-craigsmith-m4-squeaky": {
+      "label": "G15-24-M-4 Squeaky Pass By.wav \u00b7 running loop",
+      "category": "tracks",
+      "role": "loop",
+      "source": "freesound-438120",
+      "source_rate": 48000,
+      "source_frames": [2400000, 2544000],
+      "processing": "running-gear",
+      "url": "/audio/clips/tracks-craigsmith-m4-squeaky.wav",
+      "sha256": "34ca619fce3fdf8044d42df5ee36870069bec5d1d9918493b08d43504c7799f0",
+      "sample_rate": 48000,
+      "frames": 139200,
+      "loop": true,
+      "notes": "Hollywood optical effect (1930s-60s, USC transfer): M-4 pass by, squeaky clacking treads. Its steadiest 3 s, crossfaded into a loop."
     }
   },
   "sounds": {
@@ -4274,10 +4394,10 @@
       "gain": 1,
       "loop": true
     },
-    "reverse_whine": {
-      "label": "Synth \u00b7 reverse whine",
+    "reverse_beep": {
+      "label": "Synth \u00b7 reverse beeper",
       "clips": [],
-      "synth": "reverse_whine",
+      "synth": "reverse_beep",
       "synth_gain": 1,
       "gain": 1,
       "loop": true
@@ -5319,6 +5439,56 @@
       "synth_gain": 0,
       "gain": 1,
       "loop": false
+    },
+    "recorded-tracks-christerljung": {
+      "label": "Tracks \u00b7 tracks moving (christerljung)",
+      "clips": [
+        "tracks-christerljung"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
+    },
+    "recorded-tracks-cognito-tracked": {
+      "label": "Tracks \u00b7 tracked vehicle.wav (cognito perceptu)",
+      "clips": [
+        "tracks-cognito-tracked"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
+    },
+    "recorded-tracks-cognito-construction": {
+      "label": "Tracks \u00b7 construction equipment tracked.wav (cognito perceptu)",
+      "clips": [
+        "tracks-cognito-construction"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
+    },
+    "recorded-tracks-craigsmith-tanks-close": {
+      "label": "Tracks \u00b7 G15-26-Tanks Close Up.wav (craigsmith)",
+      "clips": [
+        "tracks-craigsmith-tanks-close"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
+    },
+    "recorded-tracks-craigsmith-m4-squeaky": {
+      "label": "Tracks \u00b7 G15-24-M-4 Squeaky Pass By.wav (craigsmith)",
+      "clips": [
+        "tracks-craigsmith-m4-squeaky"
+      ],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
     }
   },
   "defaults": {
@@ -5390,6 +5560,7 @@
     "explosion": "recorded-explosion",
     "explosion_far": "recorded-explosion",
     "motor": "recorded-motor",
-    "footstep": "recorded-footstep-boots-gravel-fission9"
+    "footstep": "recorded-footstep-boots-gravel-fission9",
+    "tracks": "recorded-tracks-craigsmith-tanks-close"
   }
 }

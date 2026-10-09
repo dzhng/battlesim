@@ -23,7 +23,7 @@ export interface OneShot {
 }
 
 /** A vehicle kind's loops: engine (idle to load), running gear (tracks or
- *  wheels, by speed), turret traverse, and reverse whine. A null sound is none. */
+ *  wheels, by speed), turret traverse, and reverse beeper. A null sound is none. */
 export interface VehicleSound {
   engine: string;
   /** Engine playback rate at idle and at full load. */

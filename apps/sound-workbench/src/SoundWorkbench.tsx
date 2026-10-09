@@ -102,23 +102,9 @@ export function SoundWorkbench({
     setMessage("");
     stopAudio();
   };
-  const play = async (kind: Selection["kind"], id: string, variant = 0, gain = 1) => {
-    if (!draft) return;
-    const generation = ++auditionGeneration.current;
-    setLoadingAudio(true);
-    setPlaying("");
-    setMessage("");
-    try {
-      await audition.play(draft, kind, id, variant, gain);
-      if (generation === auditionGeneration.current) setPlaying(id);
-    } catch (error) {
-      if (generation === auditionGeneration.current)
-        setMessage(error instanceof Error ? error.message : String(error));
-    } finally {
-      if (generation === auditionGeneration.current) setLoadingAudio(false);
-    }
-  };
-  const live = async (key: string, sounds: readonly string[]) => {
+  // One audition at a time: a later one, or a stop, supersedes an earlier
+  // still preparing, which then never sounds or reports.
+  const begin = async <T,>(key: string, open: (catalog: SoundCatalog) => Promise<T>) => {
     if (!draft) return null;
     const generation = ++auditionGeneration.current;
     setLoadingAudio(true);
@@ -126,10 +112,9 @@ export function SoundWorkbench({
     setMix(null);
     setMessage("");
     try {
-      const opened = await audition.live(draft, sounds);
+      const opened = await open(draft);
       if (generation !== auditionGeneration.current) return null;
       setPlaying(key);
-      setMix(opened);
       return opened;
     } catch (error) {
       if (generation === auditionGeneration.current)
@@ -138,6 +123,14 @@ export function SoundWorkbench({
     } finally {
       if (generation === auditionGeneration.current) setLoadingAudio(false);
     }
+  };
+  const play = async (kind: Selection["kind"], id: string, variant = 0, gain = 1) => {
+    await begin(id, (catalog) => audition.play(catalog, kind, id, variant, gain));
+  };
+  const live = async (key: string, sounds: readonly string[]) => {
+    const opened = await begin(key, (catalog) => audition.live(catalog, sounds));
+    if (opened) setMix(opened);
+    return opened;
   };
   const action = async (run: () => Promise<void>) => {
     setBusy(true);

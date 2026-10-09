@@ -10,8 +10,8 @@
 //   on a flying guided round; fire crackle and roar on every smoke source
 //   the side knows (a wreck), burning then smouldering;
 // - the pose driver's motion: each drawn vehicle's engine (idle to load),
-//   running gear (tracks or wheels by speed), turret traverse and reverse
-//   whine; each drawn soldier's footsteps by the distance he walks;
+//   running gear (tracks or wheels by speed), turret traverse and back-up
+//   beeper; each drawn soldier's footsteps by the distance he walks;
 // - the observation's hearing cues (`audible`): an unseen enemy is heard
 //   only as a vague sound from the cue's direction sector, louder in the
 //   near band and muffled in the far one, never at a position.
@@ -268,7 +268,8 @@ export interface VehicleLoop {
 /** The loops a vehicle of `row` sounds: its engine from idle to full `load`
  *  (a share of `full_speed_mps`), running gear rising with it, a turret's
  *  whine by `traverse` (a share of `full_traverse_rps`) and, `reversing`,
- *  the reverse whine. A layer below audibility is left out. */
+ *  the back-up beeper, steady whatever the speed, as an alarm is. A layer
+ *  below audibility is left out. */
 export function vehicleLoops(
   row: VehicleSound,
   load: number,
@@ -298,12 +299,7 @@ export function vehicleLoops(
       rate: 0.9 + 0.2 * traverse,
     });
   if (row.reverse && reversing && load > 0.02)
-    loops.push({
-      slot: "reverse",
-      sound: row.reverse,
-      gain: row.reverse_gain * load,
-      rate: 0.8 + 0.4 * load,
-    });
+    loops.push({ slot: "reverse", sound: row.reverse, gain: row.reverse_gain, rate: 1 });
   return loops;
 }
 

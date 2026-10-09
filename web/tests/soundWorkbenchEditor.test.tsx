@@ -20,7 +20,7 @@ const VEHICLE: Snapshot["vehicles"][string] = {
   turret: null,
   turret_gain: 0,
   full_traverse_rps: 0.5,
-  reverse: "reverse_whine",
+  reverse: "reverse_beep",
   reverse_gain: 0.1,
 };
 // jsdom has no layout; scrolling is checked on the real browser route.
@@ -320,6 +320,33 @@ test("the footstep is chosen among footstep recordings and walks with the choice
   await waitFor(() => expect(f.mix.hit).toHaveBeenCalled());
   expect(vi.mocked(f.audition.live).mock.lastCall![1]).toEqual(["boots"]);
   expect(vi.mocked(f.mix.hit).mock.calls[0][0]).toBe("boots");
+});
+
+test("a running-gear recording replaces the loop every class drives on", async () => {
+  const f = fixture();
+  f.snapshot.catalog.clips.clatter = {
+    ...f.snapshot.catalog.clips.reload,
+    label: "Track clatter",
+    category: "wheels",
+    role: "loop",
+    loop: true,
+  };
+  f.snapshot.catalog.sounds.treads = {
+    label: "Recorded treads",
+    clips: ["clatter"],
+    synth: null,
+    synth_gain: 0,
+    gain: 1,
+    loop: true,
+  };
+  render(<SoundWorkbench api={f.api} audition={f.audition} />, { wrapper: MemoryRouter });
+  fireEvent.click(await screen.findByRole("button", { name: "Movement" }));
+  fireEvent.change(screen.getByLabelText("Running gear · wheels sound"), {
+    target: { value: "treads" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Drive tracked_heavy" }));
+  await waitFor(() => expect(f.mix.loops).toHaveBeenCalled());
+  expect(vi.mocked(f.mix.loops).mock.lastCall![0].map((l) => l.sound)).toContain("treads");
 });
 
 test("footsteps fall once a stride at the chosen pace", async () => {
