@@ -6,7 +6,7 @@ Browser and future native clients consume one versioned workload and report shap
 
 ## Seam and ownership
 
-Extend the existing benchmark/report owners under `web/src/battle/benchmark/` and the Settings page in `apps/battle-lab/src/MainMenu.tsx`. Read scene identity from `apps/battle-lab/src/menuReel.ts` and `fixtures/menu-backdrop.json`; do not duplicate menu content. Canonical playback must not use `prefers-reduced-motion` or the live menu's simulation clock to decide elapsed benchmark time.
+Extend the existing benchmark/report owners under `web/src/battle/benchmark/` and the Settings page in `apps/battle-lab/src/MainMenu.tsx`. Read scene identity from `apps/battle-lab/src/menuReel.ts` and `fixtures/menu-backdrop.json`; do not duplicate menu content. The user-facing route records its explicit presentation contract, while cross-engine evidence must be exported as `battle-presentation-capture/v1`; neither may use `prefers-reduced-motion` or silently inherit the live menu's simulation-clock pacing.
 
 Derive FPS from displayed-frame intervals: mean from total elapsed time, 1% low as 1000 divided by the mean of the slowest ceil(N × 0.01) valid frame intervals (this is distinct from inverse p99), and absolute minimum/maximum from observed displayed frames. Preserve raw samples for the chart and label offscreen, submission and GPU timings separately.
 
