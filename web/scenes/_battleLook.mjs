@@ -22,6 +22,7 @@
 // (`BATTLE_TICK=<tick>` moves the frames); `STREET_TOURS=woods,cleanup bun
 // run --cwd web scene -- street`.
 import {
+  hideHud,
   lab,
   obs,
   advance,
@@ -42,10 +43,6 @@ import { hasRole, game, streetMap, streetAttack, curvePitch } from "./_units.mjs
 const CAMERA = game.presentation.camera;
 const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 3600);
 const VIEWPORT = { width: 1920, height: 1080 };
-// The callout layer: each unit's panel and the leader line joining it to
-// the unit. A leader is DOM, in the HUD's cyan, so it survives every canvas
-// frame view and would read as x-ray where it ends on a soldier.
-const HIDE_READOUTS = ".ro-layer { display: none !important; }";
 
 const inRect = (p, [x, y, w, h]) => p[0] > x && p[0] < x + w && p[1] > y && p[1] < y + h;
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -108,9 +105,7 @@ export async function battleTour(ctx) {
   }
   // The HUD goes from here on: the x-ray probe reads only what the canvas
   // draws, and the clean frames below show the world alone.
-  await page.addStyleTag({
-    content: `${HIDE_READOUTS} [data-testid=battle-panel] { display: none !important; }`,
-  });
+  await hideHud(page);
   // The x-ray draws only what the world hides: soldiers in the open (here
   // the squad nearest the zone, bodies touching the ground) show none of it.
   const squads = fighters.filter((u) => u.members.length > 0);
@@ -173,7 +168,9 @@ const xrayAt = (png, p) => anyNear(png, p, 3, ([r, g, b]) => b > 60 && b > r + 2
  *  drawn plainly. */
 export async function woodsTour(ctx) {
   const page = await openBattle(ctx, { viewport: VIEWPORT, tick: 60 });
-  await page.addStyleTag({ content: HIDE_READOUTS });
+  // A callout's leader line is DOM, in the HUD's cyan: it survives every
+  // canvas frame view and would read as x-ray where it ends on a soldier.
+  await hideHud(page);
   // The west wood is an axis-aligned ring: its rect is [x, y, w, h].
   const [[x0, y0], , [x1, y1]] = streetMap.forests[0].shape.ring;
   const wood = [x0, y0, x1 - x0, y1 - y0];
@@ -505,9 +502,7 @@ const pixelAt = (png, p) => {
  *  marks the area. Blue's start is near the map's west edge. */
 export async function edgeTour(ctx) {
   const page = await openBattle(ctx, { viewport: VIEWPORT });
-  await page.addStyleTag({
-    content: `${HIDE_READOUTS} [data-testid=battle-panel] { display: none !important; }`,
-  });
+  await hideHud(page);
   const o = await obs(page);
   const westmost = Math.min(...o.own.map((u) => u.position[0]));
   // Ground inside the map, 40 m past the west edge (within every eye's

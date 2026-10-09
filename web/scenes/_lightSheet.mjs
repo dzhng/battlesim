@@ -14,7 +14,7 @@
 // <on|off>.png`, `light.json` (ticks, cameras, the lights) and `sheet.png`.
 // LIGHT_LABEL names the set (default `current`, or `dusk` with LIGHT_SUN).
 import { mkdir, writeFile } from "node:fs/promises";
-import { lab, advance, aim } from "./_lab.mjs";
+import { lab, advance, aim, hideHud } from "./_lab.mjs";
 import { game, curvePitch } from "./_units.mjs";
 
 const CAMERA = game.presentation.camera;
@@ -174,9 +174,7 @@ async function openPaused(ctx, url) {
     timeout: 30000,
   });
   await lab(page, () => window.__lab.route.pause());
-  await page.addStyleTag({
-    content: ".ro-unit, .lab-panel, [data-testid=battle-panel] { display: none !important; }",
-  });
+  await hideHud(page);
   return page;
 }
 
