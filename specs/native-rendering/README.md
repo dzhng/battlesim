@@ -5,7 +5,7 @@
 
 ## Next Agent Prompt
 
-The first pass added the shared displayed-frame rate fields and tests. Finish slice 01 by freezing the menu-reel manifest and wiring Settings to the full reel. Then run slice 02's offline/native seam probes. Godot 4 is not installed on this Mac, so a live GDExtension window probe is blocked; offline replay and direct native Rust evidence can proceed now. Keep the existing synthetic `/benchmark` workload unchanged. Update this handoff, the choices ledger and the owning slice before ending each pass.
+The first pass added the shared displayed-frame rate fields and tests. Finish slice 01 by freezing the menu-reel manifest and wiring Settings to the full reel. Slice 02 can now use the verified Godot 4.7.2 headless binary in `throwaway/tools/godot-4.7.2` plus the offline native probe; keep the existing synthetic `/benchmark` workload unchanged. Update this handoff, the choices ledger and the owning slice before ending each pass.
 
 ## Goal
 
@@ -63,6 +63,7 @@ External measurements are context only; the frozen Mac runs are the evidence.
 - [~] Add displayed-frame rate summary fields and tests — slice 01 (landed).
 - [ ] Freeze menu-reel manifest, capture schema and browser control — slice 01.
 - [ ] Add Settings graphics test and report chart — slice 01.
+- [~] Verify offline native seam and Godot headless toolchain — slice 02 (probe compiles; live extension remains).
 - [ ] Spike binding candidates and select a seam — slice 02.
 - [ ] Render the full menu reel in Godot — slice 03.
 - [ ] Compare repeated distributions and reslice the chosen direction — slice 04.
