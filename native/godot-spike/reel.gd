@@ -508,6 +508,7 @@ func _update_observed_units() -> void:
 	var units: Array = chosen.units
 	_update_fog_layer(scene.map, chosen.get("fog", {}))
 	while unit_nodes.size() < units.size():
+		var holder := Node3D.new()
 		var mesh := MeshInstance3D.new()
 		var capsule := CapsuleMesh.new()
 		capsule.radius = 0.35
@@ -516,8 +517,23 @@ func _update_observed_units() -> void:
 		var material := StandardMaterial3D.new()
 		material.albedo_color = Color("4d9be6") if unit_nodes.size() % 2 == 0 else Color("d95c5c")
 		mesh.material_override = material
-		get_node("ObservedUnits").add_child(mesh)
-		unit_nodes.append(mesh)
+		mesh.position.y = 0.7
+		holder.add_child(mesh)
+		var contact := MeshInstance3D.new()
+		var contact_mesh := CylinderMesh.new()
+		contact_mesh.top_radius = 0.72
+		contact_mesh.bottom_radius = 0.72
+		contact_mesh.height = 0.05
+		contact.mesh = contact_mesh
+		var contact_material := StandardMaterial3D.new()
+		contact_material.albedo_color = material.albedo_color
+		contact_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		contact_material.albedo_color.a = 0.7
+		contact.material_override = contact_material
+		contact.position.y = 0.03
+		holder.add_child(contact)
+		get_node("ObservedUnits").add_child(holder)
+		unit_nodes.append(holder)
 	for i in unit_nodes.size():
 		var node := unit_nodes[i]
 		node.visible = i < units.size()
@@ -525,7 +541,7 @@ func _update_observed_units() -> void:
 			continue
 		var pose: Dictionary = units[i]
 		var position: Array = pose.position
-		node.position = Vector3(float(position[0]), max(0.7, float(position[2]) + 0.7), float(position[1]))
+		node.position = Vector3(float(position[0]), max(0.0, float(position[2])), float(position[1]))
 		node.rotation.y = float(pose.yaw)
 
 func _show_scene() -> void:
