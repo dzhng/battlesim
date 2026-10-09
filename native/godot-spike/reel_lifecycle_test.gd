@@ -36,6 +36,7 @@ func run() -> void:
 	var reel = Reel.new()
 	root.add_child(reel)
 	reel.set_process(false)
+	check(reel._authored_map_directory() == directory, "authored map override must be the shared map directory")
 	check(not reel.proxy_field_used, "map composition must not fall back to the synthetic cube field")
 	check(reel.map_geometry_counts["first"].building_limit == 0, "map geometry must default to the complete building export")
 	check(reel.map_geometry_counts["first"].prop_limit == 0, "map geometry must default to the complete prop export")
@@ -60,6 +61,7 @@ func run() -> void:
 	var fallback = Reel.new()
 	root.add_child(fallback)
 	fallback.set_process(false)
+	check(fallback._authored_map_directory() == ProjectSettings.globalize_path("res://../../fixtures/maps"), "authored maps must default to the checked-in fixtures directory")
 	check(fallback.proxy_field_used, "fallback report must disclose synthetic cube field")
 	fallback.free()
 	for id in ["first", "second"]:

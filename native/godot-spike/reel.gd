@@ -209,9 +209,7 @@ func _build_world() -> void:
 		_build_proxy_field()
 
 func _build_map_geometry() -> void:
-	var directory := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
-	if directory.is_empty():
-		directory = ProjectSettings.globalize_path("res://../../fixtures/maps")
+	var directory := _authored_map_directory()
 	var prop_limit := _map_limit("GODOT_MAP_PROP_LIMIT")
 	var building_limit := _map_limit("GODOT_MAP_BUILDING_LIMIT")
 	var road_limit := _map_limit("GODOT_MAP_ROAD_LIMIT")
@@ -342,6 +340,10 @@ func _map_limit(environment_name: String) -> int:
 	var value := OS.get_environment(environment_name)
 	return int(value) if not value.is_empty() else 0
 
+func _authored_map_directory() -> String:
+	var configured := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
+	return configured if not configured.is_empty() else ProjectSettings.globalize_path("res://../../fixtures/maps")
+
 func _map_render_center(map_name: String) -> Vector2:
 	var result: Dictionary = capture_results.get(map_name, {})
 	var frames: Array = result.get("capture", {}).get("frames", [])
@@ -448,9 +450,7 @@ func _update_fog_layer(scene_name: String, fog: Dictionary) -> void:
 		cell.visible = _fog_cell_hidden(bits, index)
 
 func _build_authored_maps(authored: PackedScene) -> bool:
-	var directory := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
-	if directory.is_empty():
-		return false
+	var directory := _authored_map_directory()
 	for scene in scenes:
 		var map_path := directory.path_join(String(scene.map)).path_join("map.json")
 		var map_file := FileAccess.open(map_path, FileAccess.READ)
