@@ -120,8 +120,8 @@ with explicitly private nonlethal review settings. [Guided fire](../../specs/bat
 separates shared spotting from the launcher's physical sight. [Benchmarking](../../web/src/battle/benchmark/README.md)
 retains exact workload identity so a convenient lab cannot replace a performance control.
 
-The [template line-up scene](../../web/scenes/city-lineup.mjs) visits every generated source set separately and holds
-its combined template identities to the complete generated catalogue. Each visit
+The [template line-up scene](../../web/scenes/city-lineup.mjs) visits every source set separately and holds
+its combined template identities to the complete catalogue. Each visit
 retains the state, tier and transition-picture checks while keeping the shared
 kit download within the same map budget. Use the line-up route's `?set=` selector
 for development: its unrestricted all-set view currently exceeds that budget and
