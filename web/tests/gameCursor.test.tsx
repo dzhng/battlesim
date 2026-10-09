@@ -1,7 +1,13 @@
 import { createRef } from "react";
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { GameCursor, type GameCursorHandle } from "../src/battle/present/gameCursor";
+import {
+  AppCursor,
+  GameCursor,
+  useCursorAction,
+  type CursorAction,
+  type GameCursorHandle,
+} from "../src/battle/present/gameCursor";
 
 test("placing and changing an action keeps the arrow anchored, default removes its badge, and exit hides it", () => {
   const handle = createRef<GameCursorHandle>();
@@ -26,16 +32,33 @@ test("placing and changing an action keeps the arrow anchored, default removes i
   view.unmount();
 });
 
-test("pointer movement updates the visible cursor before another battle frame and cannot revive a hidden cursor", () => {
-  const handle = createRef<GameCursorHandle>();
-  const view = render(<GameCursor handle={handle} />);
-  const cursor = view.container.querySelector<HTMLElement>('[data-testid="game-cursor"]')!;
-  act(() => handle.current!.place({ x: 120, y: 85 }, "garrison"));
-  act(() => handle.current!.move({ x: 280, y: 190 }));
-  expect(cursor.style.transform).toBe("translate(280px, 190px) scale(0.7)");
+// jsdom has no PointerEvent; a MouseEvent carries the same client coordinates.
+globalThis.PointerEvent ??= MouseEvent as typeof PointerEvent;
+
+test("the app cursor follows the pointer over every element, takes its action from the battle, and leaves only with the pointer", () => {
+  let setAction: (action: CursorAction) => void = () => {};
+  function Battle() {
+    setAction = useCursorAction();
+    return <button>Resume</button>;
+  }
+  const view = render(
+    <AppCursor>
+      <Battle />
+    </AppCursor>,
+  );
+  const cursor = view.getByTestId("game-cursor");
+  const menuButton = view.getByRole("button", { name: "Resume" });
+  fireEvent.pointerMove(menuButton, { clientX: 300, clientY: 200 });
+  expect(cursor.hidden).toBe(false);
+  expect(cursor.style.transform).toBe("translate(300px, 200px) scale(0.7)");
+  act(() => setAction("garrison"));
   expect(cursor.dataset.action).toBe("garrison");
-  act(() => handle.current!.place(null, "default"));
-  act(() => handle.current!.move({ x: 310, y: 210 }));
+  fireEvent.pointerMove(document.body, { clientX: 310, clientY: 210 });
+  expect(cursor.style.transform).toBe("translate(310px, 210px) scale(0.7)");
+  expect(cursor.dataset.action).toBe("garrison");
+  fireEvent.pointerOut(document.body, { relatedTarget: null });
   expect(cursor.hidden).toBe(true);
+  fireEvent.pointerMove(menuButton, { clientX: 5, clientY: 6 });
+  expect(cursor.hidden).toBe(false);
   view.unmount();
 });

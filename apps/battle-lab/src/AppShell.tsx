@@ -1,4 +1,5 @@
 import { useLocation } from "react-router";
+import { AppCursor } from "@web/battle/present/gameCursor";
 import { AppAudioProvider, AppAudioScreen } from "./AppAudio";
 import { AppResourceBoundary } from "./AppResourceBoundary";
 import { LabRouter, screenForPath } from "./router";
@@ -7,11 +8,13 @@ import { LabRouter, screenForPath } from "./router";
 export function AppShell() {
   const screen = screenForPath(useLocation().pathname);
   return (
-    <AppAudioProvider>
-      <AppAudioScreen screen={screen} />
-      <AppResourceBoundary menu={screen === "menu"}>
-        <LabRouter />
-      </AppResourceBoundary>
-    </AppAudioProvider>
+    <AppCursor>
+      <AppAudioProvider>
+        <AppAudioScreen screen={screen} />
+        <AppResourceBoundary menu={screen === "menu"}>
+          <LabRouter />
+        </AppResourceBoundary>
+      </AppAudioProvider>
+    </AppCursor>
   );
 }

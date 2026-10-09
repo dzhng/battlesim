@@ -2,23 +2,18 @@
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 100;
+  z-index: 2147483647;
   pointer-events: none;
   transform-origin: 0 0;
   will-change: transform;
   color: rgb(var(--hud-text));
   filter: drop-shadow(0 0 1px rgb(0 0 0)) drop-shadow(0 0 2px rgb(0 0 0 / 0.9));
 }
-/* Readout cards sit outside the viewport; hide their native cursor without a frame delay. */
-body:has(.game-cursor:not([hidden])) canvas,
-body:has(.game-cursor:not([hidden])) .ro-layer .ro-unit,
-body:has(.game-cursor:not([hidden])) .hud {
-  cursor: none;
-}
-/* Battle controls use the projected cursor; never let the OS cursor appear
- * when the pointer crosses a DOM HUD control. */
-body.battle-surface,
-body.battle-surface * {
+/* The app cursor is the only pointer: the native one is never drawn. */
+*,
+*::before,
+*::after,
+::file-selector-button {
   cursor: none !important;
 }
 .game-cursor[hidden],

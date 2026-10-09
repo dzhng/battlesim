@@ -7,7 +7,7 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: "jsdom",
-      include: ["tests/**/*.test.{ts,tsx}", "scene.test.mjs"],
+      include: ["tests/**/*.test.{ts,tsx}", "scene.test.mjs", "scenes/_*.test.mjs"],
       globals: false,
       // A test judges what happened, not how long this machine took: the
       // limit only catches a hang, and holds when every core is busy.

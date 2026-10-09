@@ -1,7 +1,8 @@
 import { useLabLoading } from "../LabLoading";
 // The panel workbench: every info panel the battle can draw (the specimens
 // in `panelSpecimens.ts`), through the battle's own `InfoPanel`, on a plain
-// ground and one row over grass; `?scale=` zooms the page. No 3D scene: the
+// ground and one row over grass; `?scale=` zooms the page, `?units=test`
+// draws the per-type groups for the test units only. No 3D scene: the
 // panels are DOM over the battlefield. The scene (`web/scenes/panels.mjs`)
 // shoots the contact sheet.
 import game from "@fixtures/game.json";
@@ -48,7 +49,9 @@ export default function Panels() {
   const params = new URLSearchParams(location.search);
   const scale = Number(params.get("scale") ?? 1) || 1;
   const catalog = useSessionCatalog();
-  const specimens = panelSpecimens(catalog, RULES);
+  const specimens = panelSpecimens(catalog, RULES, {
+    testUnitsOnly: params.get("units") === "test",
+  });
   const groups = [...new Set(specimens.map((s) => s.group))];
   useEffect(() => {
     window.__lab = { ready: true, fixture: "panels", error: null, frame: async () => {} };

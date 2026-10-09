@@ -1,10 +1,6 @@
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { useLabLoading } from "./LabLoading";
-import {
-  GameCursor,
-  type GameCursorHandle,
-  type CursorAction,
-} from "@web/battle/present/gameCursor";
+import { useCursorAction, type CursorAction } from "@web/battle/present/gameCursor";
 import { useEffect, useRef, useState } from "react";
 import { gpuFailureMessage } from "@packages/renderer-core/src/device";
 import { appResources } from "./appResources";
@@ -416,7 +412,7 @@ export function LabViewport({
   /** The ground the battle frame draws: none while suppressed. */
   const groundNow = () => (scarsSuppressed.current ? null : groundRef.current);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const cursor = useRef<GameCursorHandle>(null);
+  const setCursorActionRef = useRef(useCursorAction());
   const frameRate = useRef<FrameRateHandle>(null);
   const onCursorRef = useRef(onCursor);
   onCursorRef.current = onCursor;
@@ -560,14 +556,7 @@ export function LabViewport({
     let device: GPUDevice | null = null;
     let canvasContext: GPUCanvasContext | null = null;
     let raf = 0;
-    const showCursor = (
-      position: { x: number; y: number } | null,
-      action: CursorAction | null,
-      surface: HTMLElement | null,
-    ) => {
-      const active = position && action && surface;
-      cursor.current?.place(active ? position : null, action ?? "default");
-    };
+    const setCursorAction = setCursorActionRef.current;
     const interactionSurface = (target: EventTarget | null) =>
       target === canvas
         ? canvas
@@ -810,11 +799,9 @@ export function LabViewport({
           const project = projector();
           onFrameRef.current?.(project, camera, pointerState);
           const action = onCursorRef.current?.(pointerState, camera, project) ?? null;
-          showCursor(
-            pointerState.position,
-            pointerState.cameraDragging || pilot ? null : action,
-            surface,
-          );
+          // The app cursor always shows; the battle only chooses its action.
+          const active = pointerState.position && surface && !orbit && !pilot;
+          setCursorAction((active && action) || "default");
           pilot?.frame?.({ now, cpuMs: performance.now() - started, camera });
           raf = requestAnimationFrame(loop);
         };
@@ -1056,7 +1043,6 @@ export function LabViewport({
           } else if (e.button === 1) {
             e.preventDefault();
             orbit = { x: e.clientX, y: e.clientY };
-            showCursor(null, null, null);
             canvas.setPointerCapture(e.pointerId);
           }
         };
@@ -1068,10 +1054,6 @@ export function LabViewport({
             target === canvas ||
             (target instanceof Element && target.closest(".ro-layer .ro-unit, .hud"));
           pointer = over || rightPress || press || orbit ? { x: e.clientX, y: e.clientY } : null;
-          if (!pointer || orbit) showCursor(null, null, null);
-          else if (target instanceof Element && target.closest(".hud"))
-            cursor.current?.place(pointer, "default");
-          else cursor.current?.move(pointer);
           if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > CLICK_SLOP_PX) {
             press.dragged = true;
             // A drag that is an action (placing, then facing) draws no selection box.
@@ -1127,7 +1109,6 @@ export function LabViewport({
           const to = e.relatedTarget;
           if (!rightPress && !(to instanceof Element && to.closest(".ro-layer .ro-unit"))) {
             pointer = null;
-            showCursor(null, null, null);
           }
         };
         const cancelGesture = () => {
@@ -1138,7 +1119,6 @@ export function LabViewport({
           setBox(null);
           modifiers = { ctrl: false, shift: false };
           onRightPressRef.current?.(null);
-          showCursor(null, null, null);
         };
         cancelInputRef.current = cancelGesture;
         const onWheel = (e: WheelEvent) => {
@@ -1214,7 +1194,7 @@ export function LabViewport({
       cancelInputRef.current = null;
       cancelAnimationFrame(raf);
       keys.detach();
-      showCursor(null, null, null);
+      setCursorAction("default");
       onRightPressRef.current?.(null);
       sceneRef.current?.dispose();
       sceneRef.current = null;
@@ -1227,7 +1207,6 @@ export function LabViewport({
   return (
     <div style={{ position: "absolute", inset: 0 }}>
       <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />
-      <GameCursor handle={cursor} />
       {!pilot && <FrameRate handle={frameRate} />}
       {box && (
         <div

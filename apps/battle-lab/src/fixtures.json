@@ -114,6 +114,12 @@
     "map": null
   },
   {
+    "id": "ui",
+    "route": "/lab/ui",
+    "describe": "UI gallery: every interface piece the panel workbench and cursor lab do not draw (top status strip in each phase, battle clock, reinforcements picker, objective markers, range ruler, refused order, frame rate, captions, pause menu, loading and its failure), each in fixed states through the game's own components; ?shot= draws one. Its scene also pins every main-menu page.",
+    "map": null
+  },
+  {
     "id": "readouts",
     "route": "/lab/readouts",
     "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, \u221e unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the unit card (the selection's info panels) stays when zoomed out; the command bar exposes the selection's actions (X attack-move, G attack ground, Backspace stop, F fire policy).",

@@ -31,7 +31,6 @@
   font: inherit;
 }
 .mechanics-editor button {
-  cursor: pointer;
   border: 1px solid var(--me-line);
   border-radius: 3px;
   color: var(--me-ink);
@@ -44,7 +43,6 @@
 }
 .mechanics-editor button:disabled {
   opacity: 0.38;
-  cursor: default;
 }
 .mechanics-editor input,
 .mechanics-editor select,
@@ -394,7 +392,6 @@
 .me-linked-entry > summary {
   display: flex;
   justify-content: space-between;
-  cursor: pointer;
   font-size: 14px;
   padding: 12px 0;
   font-weight: 600;
@@ -536,7 +533,6 @@
   font:
     12px ui-monospace,
     monospace;
-  cursor: pointer;
   border-top: 1px solid var(--me-line);
 }
 .me-file > summary span {

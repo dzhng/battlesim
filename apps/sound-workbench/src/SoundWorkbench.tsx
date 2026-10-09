@@ -4,10 +4,11 @@ import {
   validateSoundCatalog,
   type SoundCatalog,
 } from "../../../packages/battle-audio/src/catalog";
-import { SoundAuditioner, type Auditioner } from "./audition";
+import { SoundAuditioner, type Auditioner, type LiveMix } from "./audition";
 import { workbenchAPI, type Review, type Snapshot, type WorkbenchAPI } from "./protocol";
 import { Library, type Selection } from "./Library";
-import { VehicleClasses, GlobalAssignments } from "./Assignments";
+import { GlobalAssignments } from "./Assignments";
+import { Movement } from "./Movement";
 import "./sound-workbench.css";
 
 function changedSettings(
@@ -38,18 +39,20 @@ export function SoundWorkbench({
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [draft, setDraft] = useState<SoundCatalog | null>(null);
   const [review, setReview] = useState<Review | null>(null);
-  const [tab, setTab] = useState<"library" | "vehicles" | "effects">("library");
+  const [tab, setTab] = useState<"library" | "movement" | "effects">("library");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Selection | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [playing, setPlaying] = useState("");
+  const [mix, setMix] = useState<LiveMix | null>(null);
   const [loadingAudio, setLoadingAudio] = useState(false);
   const auditionGeneration = useRef(0);
   const stopAudio = useCallback(() => {
     auditionGeneration.current++;
     audition.stop();
     setPlaying("");
+    setMix(null);
     setLoadingAudio(false);
   }, [audition]);
   const accept = useCallback(
@@ -99,21 +102,35 @@ export function SoundWorkbench({
     setMessage("");
     stopAudio();
   };
-  const play = async (kind: Selection["kind"], id: string, variant = 0, gain = 1) => {
-    if (!draft) return;
+  // One audition at a time: a later one, or a stop, supersedes an earlier
+  // still preparing, which then never sounds or reports.
+  const begin = async <T,>(key: string, open: (catalog: SoundCatalog) => Promise<T>) => {
+    if (!draft) return null;
     const generation = ++auditionGeneration.current;
     setLoadingAudio(true);
     setPlaying("");
+    setMix(null);
     setMessage("");
     try {
-      await audition.play(draft, kind, id, variant, gain);
-      if (generation === auditionGeneration.current) setPlaying(id);
+      const opened = await open(draft);
+      if (generation !== auditionGeneration.current) return null;
+      setPlaying(key);
+      return opened;
     } catch (error) {
       if (generation === auditionGeneration.current)
         setMessage(error instanceof Error ? error.message : String(error));
+      return null;
     } finally {
       if (generation === auditionGeneration.current) setLoadingAudio(false);
     }
+  };
+  const play = async (kind: Selection["kind"], id: string, variant = 0, gain = 1) => {
+    await begin(id, (catalog) => audition.play(catalog, kind, id, variant, gain));
+  };
+  const live = async (key: string, sounds: readonly string[]) => {
+    const opened = await begin(key, (catalog) => audition.live(catalog, sounds));
+    if (opened) setMix(opened);
+    return opened;
   };
   const action = async (run: () => Promise<void>) => {
     setBusy(true);
@@ -183,7 +200,7 @@ export function SoundWorkbench({
         {(
           [
             ["library", "Library & recipes"],
-            ["vehicles", "Vehicle classes"],
+            ["movement", "Movement"],
             ["effects", "Defaults & effects"],
           ] as const
         ).map(([value, label]) => (
@@ -214,7 +231,7 @@ export function SoundWorkbench({
       )}
       {playing && (
         <p className="sw-playing">
-          Audition · {draft?.sounds[playing]?.label ?? draft?.clips[playing]?.label}
+          Audition · {draft?.sounds[playing]?.label ?? draft?.clips[playing]?.label ?? playing}
         </p>
       )}
       {!snapshot || !draft ? (
@@ -234,8 +251,17 @@ export function SoundWorkbench({
                 clone={clone}
               />
             )}
-            {tab === "vehicles" && (
-              <VehicleClasses snapshot={snapshot} draft={draft} edit={edit} play={play} />
+            {tab === "movement" && (
+              <Movement
+                snapshot={snapshot}
+                draft={draft}
+                edit={edit}
+                play={play}
+                playing={playing}
+                mix={mix}
+                live={live}
+                stop={stopAudio}
+              />
             )}
             {tab === "effects" && (
               <GlobalAssignments snapshot={snapshot} draft={draft} edit={edit} play={play} />

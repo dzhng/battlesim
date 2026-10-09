@@ -101,6 +101,45 @@ gets slower with each one, while proving nothing a fake could not.
 - **Never pin content values.** A test asserting that a named entry costs 250
   or that a faction has 50 entries pins tuning, not behaviour.
 
+## What the player sees
+
+An interface regression is tested twice over, because each half misses what
+the other catches:
+
+- **A geometry contract** says what must hold whatever the look: the panel
+  holds its content, the element is on screen, it clears its neighbours, the
+  name reads on one line. A box that exists proves nothing. A card collapsed
+  to its padding still has a box on screen and every word in the DOM.
+- **An approved picture** catches what nobody thought to assert. A scene
+  matches its capture against it, and a mismatch fails with a diff. A picture
+  is approved by a person who has looked at it. Never re-approve one to turn a
+  red check green; re-approve only the scene whose look changed on purpose,
+  and review the new pictures in the diff.
+- **A picture only stops change.** It cannot say the first picture was right,
+  so judge it against the design it should match (the approved reference, the
+  spec), never against itself, and pin the design's own rules as geometry too
+  (the unit card is portrait, and the same card wherever it appears). A wrong
+  first picture is otherwise approved, and from then on defended.
+
+Every state a player can reach is a shot: hovered, focused, open, empty,
+failed, at the screen's edge, at each supported width. A defect lives in the
+state no shot covers. Keep captures deterministic: fixed test content, frozen
+animation, the pointer out of the page unless the shot is of what it points
+at, and nothing hidden except what can never be pinned (a live 3D backdrop, a
+build's identity). Then demand an exact match: an unchanged capture is
+identical to the pixel, so any allowance only hides a real change of its size.
+When a capture flickers between runs, find the state that leaked into it (a
+stray text selection, a hover the pointer left behind); it is often a product
+defect as well. Hiding a defect to make a picture stable is
+the same failure as loosening a threshold. A new component is not done until a
+pinned page draws it. In this repo the visual suite is the task runner's
+`visual`, and [browser checks](../../../web/README.md#checks-and-evidence) own
+the mechanism.
+
+A check that never runs passes silently. A scene that throws early drops every
+check after it, so a red scene is read to its first failure, not trusted for
+the checks it printed.
+
 ## Control variables and probes
 
 - **One variable per comparison.** Pin everything else — same seed, same
@@ -182,3 +221,6 @@ Walk this on any test diff, apply fixes in the same pass, re-run the suite:
 8. Does it take focus, move the pointer, play sound, or write the person's real
    config, library or applications? → drive the model and a scratch location
    instead, and capture windows offscreen.
+9. Does an interface change come with both a geometry contract and an approved
+   picture of every state it touched, and did a person look at the picture? →
+   add the missing half; never re-approve to pass.

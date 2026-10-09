@@ -86,10 +86,6 @@ export function BattleView({
   /** The authoritative blue entry, used for the deployment cue. */
   spawn?: [number, number] | null;
 }) {
-  useEffect(() => {
-    document.body.classList.add("battle-surface");
-    return () => document.body.classList.remove("battle-surface");
-  }, []);
   const parsed = useMemo(() => {
     const s = JSON.parse(scenario) as {
       map: { size: [number, number] };
@@ -167,11 +163,7 @@ export function BattleView({
             observation,
             control.selected,
             surfaceZ,
-            {
-              ...parsed.drawn,
-              deployment:
-                observation.skirmish?.phase === "preparation" ? parsed.drawn.deployment : null,
-            },
+            parsed.drawn,
             { showOrders: control.showOrders, reveal: session.revealed, contacts },
             border,
             metresPerPx,

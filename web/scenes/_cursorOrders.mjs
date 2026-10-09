@@ -22,6 +22,11 @@ async function expects(page, expected) {
     { timeout: 10000 },
   );
 }
+const shows = (page, expected) =>
+  expects(page, expected).then(
+    () => true,
+    () => false,
+  );
 async function capture(ctx, page, name, pointer, wide = false) {
   const size = page.viewportSize();
   const png = decode(await snapshot(ctx, page, `cursor-${name}-${size.width}x${size.height}.png`));
@@ -119,9 +124,7 @@ async function infoCardCursor(ctx, page) {
     await ctx.writeEvidence("cursor-info-card-hover.json", samples);
     await page.mouse.down({ button: "middle" });
     try {
-      await page.waitForFunction(
-        () => document.querySelector('[data-testid="game-cursor"]').hidden,
-      );
+      await expects(page, "default");
       const fallback = await page
         .locator('.ro-unit[data-unit="2"] .ro-name-word')
         .evaluate((card) => getComputedStyle(card).cursor);
@@ -135,12 +138,12 @@ async function infoCardCursor(ctx, page) {
     }
 
     await page.getByRole("button", { name: "Reset", exact: true }).hover();
-    await page.waitForFunction(() => document.querySelector('[data-testid="game-cursor"]').hidden);
+    await expects(page, "default");
     ctx.check(
-      "HUD buttons regain their native hand when the game cursor is hidden",
+      "HUD buttons show the plain game arrow and never the native hand",
       (await page
         .getByRole("button", { name: "Reset", exact: true })
-        .evaluate((button) => getComputedStyle(button).cursor)) === "pointer",
+        .evaluate((button) => getComputedStyle(button).cursor)) === "none",
     );
   } finally {
     await page.evaluate(() => {
@@ -524,38 +527,39 @@ export async function battleCursor(ctx) {
   await capture(ctx, page, "unarmed-attack-move", p);
   await page.keyboard.up("Control");
   await select(page, [squad.id]);
-  // Panels retain their own cursor even when a captured drag crosses them.
+  // Panels show the plain arrow even when a captured drag crosses them.
   await page.mouse.move(...p);
   await page.mouse.down({ button: "right" });
   await page.getByRole("button", { name: "Menu", exact: true }).hover();
   await page.evaluate(() => window.__lab.frame());
   ctx.check(
-    "a held drag over HUD controls suppresses the action overlay",
-    await page.locator('[data-testid="game-cursor"]').evaluate((e) => e.hidden),
+    "a held drag over HUD controls keeps the plain game arrow",
+    await shows(page, "default"),
   );
   await page.evaluate(() => window.dispatchEvent(new Event("blur")));
   await page.mouse.up({ button: "right" });
-  // Panels and the pause menu leave their native pointer intact.
+  // The pause menu shows the game arrow, never the native pointer.
   await page.getByRole("button", { name: "Menu", exact: true }).hover();
-  await page.waitForFunction(() => document.querySelector('[data-testid="game-cursor"]').hidden);
+  await expects(page, "default");
   await page.getByRole("button", { name: "Menu", exact: true }).click();
   await page.getByRole("dialog", { name: "Paused" }).waitFor();
-  await snapshot(ctx, page, "cursor-menu-hidden-1280x800.png");
+  await page.getByRole("button", { name: "Resume", exact: true }).hover();
+  await expects(page, "default");
+  await snapshot(ctx, page, "cursor-menu-1280x800.png");
   ctx.check(
-    "the cursor overlay is absent over the pause menu",
-    await page.locator('[data-testid="game-cursor"]').evaluate((e) => e.hidden),
+    "the pause menu shows the game arrow and no native pointer",
+    (await page
+      .getByRole("button", { name: "Resume", exact: true })
+      .evaluate((button) => getComputedStyle(button).cursor)) === "none",
   );
   await page.getByRole("button", { name: "Resume", exact: true }).click();
   await lab(page, () => window.__lab.route.pause());
   await page.mouse.move(...p);
   await page.mouse.down({ button: "middle" });
   await page.mouse.move(p[0] + 20, p[1] + 10);
-  await page.waitForFunction(() => document.querySelector('[data-testid="game-cursor"]').hidden);
-  await snapshot(ctx, page, "cursor-orbit-hidden-1280x800.png");
-  ctx.check(
-    "camera orbit suppresses the action overlay",
-    await page.locator('[data-testid="game-cursor"]').evaluate((e) => e.hidden),
-  );
+  const orbiting = await shows(page, "default");
+  await snapshot(ctx, page, "cursor-orbit-1280x800.png");
+  ctx.check("camera orbit keeps the plain game arrow", orbiting);
   await page.mouse.up({ button: "middle" });
   // A stale release after reset must not reinterpret itself as a fresh order.
   await page.mouse.move(...p);

@@ -78,7 +78,6 @@
 .cursor-playfield {
   position: relative;
   height: 200px;
-  cursor: none;
   background:
     linear-gradient(104deg, transparent 40%, #a4a08b 40%, #a4a08b 60%, transparent 60%),
     linear-gradient(180deg, #405139 65%, #182831 65%);

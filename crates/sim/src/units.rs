@@ -289,7 +289,7 @@ pub struct Unit {
     /// against its order's direction (Q29).
     pub manoeuvre: Option<crate::movement::Manoeuvre>,
     /// The vehicle drove backwards this tick: an ordered reverse move or a
-    /// three-point turn's reversing leg (the reverse whine's cue).
+    /// three-point turn's reversing leg (the reverse beeper's cue).
     pub reversing: bool,
     /// Actual accepted hull speed; negative while reversing.
     pub drive_speed_mps: f64,

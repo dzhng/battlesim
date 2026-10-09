@@ -1,4 +1,5 @@
 // Native-size presentation contract, using the component's real moving-pointer surface.
+import { pointerAway } from "./_baseline.mjs";
 import { decode, writeCrop, mostChanged } from "./_png.mjs";
 
 const geometry = (page) =>
@@ -49,9 +50,7 @@ export async function run(ctx) {
           s.icons.join() === s.action,
     ),
   );
-  const matrix = decode(
-    await page.screenshot({ path: ctx.evidencePath("matrix-native-1280x800.png") }),
-  );
+  const matrix = decode(await ctx.matchBaseline(page, "matrix-native-1280x800"));
   for (const s of desktop) {
     await writeCrop(
       matrix,
@@ -77,7 +76,8 @@ export async function run(ctx) {
   const at = { x: Math.round(box.x + 160), y: Math.round(box.y + 80) };
   const before = decode(await page.screenshot({ path: ctx.evidencePath("pointer-absent.png") }));
   await page.mouse.move(at.x, at.y);
-  const moving = playfield.locator(".game-cursor");
+  // The app cursor is mounted after the page, so it is the last one.
+  const moving = page.getByTestId("game-cursor").last();
   ctx.check(
     "pointer motion places the real default cursor",
     (await moving.isVisible()) && (await moving.locator(".game-cursor-badge").isHidden()),
@@ -93,9 +93,12 @@ export async function run(ctx) {
     "changing action and moving updates the one mounted cursor",
     await moving.locator('[data-action="garrison"]').isVisible(),
   );
-  await page.screenshot({ path: ctx.evidencePath("pointer-garrison.png") });
+  await ctx.matchBaseline(page, "pointer-garrison");
   await page.mouse.move(30, 25);
-  ctx.check("leaving the interaction surface hides the whole cursor", await moving.isHidden());
+  ctx.check(
+    "leaving the playfield keeps the arrow and drops its action",
+    (await moving.isVisible()) && (await moving.locator(".game-cursor-badge").isHidden()),
+  );
   await page.setViewportSize({ width: 430, height: 1000 });
   await page.evaluate(() => window.__lab.frame());
   const narrow = await geometry(page);
@@ -104,6 +107,7 @@ export async function run(ctx) {
     narrow.every((s) => s.tipError < 0.01 && s.arrowSize.every((v) => Math.abs(v - 22.4) < 0.01)) &&
       (await page.evaluate(() => document.querySelector(".cursor-lab").scrollWidth <= innerWidth)),
   );
-  await page.screenshot({ path: ctx.evidencePath("matrix-native-430x1000.png") });
+  await pointerAway(page);
+  await ctx.matchBaseline(page, "matrix-native-430x1000");
   await ctx.writeEvidence("geometry.json", { desktop, narrow, viewport: [1280, 800], dpr: 1 });
 }
