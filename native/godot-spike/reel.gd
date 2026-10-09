@@ -22,7 +22,9 @@ var capture_results: Dictionary = {}
 var authored_asset_loaded := false
 var authored_building_count := 0
 var authored_map_scene_count := 0
-var authored_building_limit := 256
+## A non-positive limit means the authored catalog is complete.  A positive
+## value is an explicit diagnostic cap, never an implicit production default.
+var authored_building_limit := 0
 var authored_scene_nodes: Dictionary = {}
 var authored_scene_by_family: Dictionary = {}
 var cut_dir := ""
@@ -182,15 +184,9 @@ func _build_map_geometry() -> void:
 	var directory := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
 	if directory.is_empty():
 		return
-	var prop_limit := int(OS.get_environment("GODOT_MAP_PROP_LIMIT"))
-	if prop_limit <= 0:
-		prop_limit = 512
-	var building_limit := int(OS.get_environment("GODOT_MAP_BUILDING_LIMIT"))
-	if building_limit <= 0:
-		building_limit = 512
-	var road_limit := int(OS.get_environment("GODOT_MAP_ROAD_LIMIT"))
-	if road_limit <= 0:
-		road_limit = 1000
+	var prop_limit := _map_limit("GODOT_MAP_PROP_LIMIT")
+	var building_limit := _map_limit("GODOT_MAP_BUILDING_LIMIT")
+	var road_limit := _map_limit("GODOT_MAP_ROAD_LIMIT")
 	for scene in scenes:
 		var map_name := String(scene.map)
 		var map_file := FileAccess.open(directory.path_join(map_name).path_join("map.json"), FileAccess.READ)
@@ -223,7 +219,8 @@ func _build_map_geometry() -> void:
 			if shape.get("kind") != "stroke" or typeof(shape.get("points")) != TYPE_ARRAY:
 				continue
 			var points: Array = shape.points
-			for i in range(min(max(0, points.size() - 1), road_limit - counts.roads)):
+			var remaining_roads := points.size() - 1 if road_limit <= 0 else mini(points.size() - 1, road_limit - counts.roads)
+			for i in range(max(0, remaining_roads)):
 				var a: Array = points[i]
 				var b: Array = points[i + 1]
 				var start := Vector2(float(a[0]), float(a[1]))
@@ -243,7 +240,7 @@ func _build_map_geometry() -> void:
 				holder.add_child(road)
 				counts.roads += 1
 		for building in map.get("buildings", []):
-			if counts.buildings >= building_limit:
+			if building_limit > 0 and counts.buildings >= building_limit:
 				break
 			if typeof(building) != TYPE_DICTIONARY:
 				continue
@@ -261,7 +258,7 @@ func _build_map_geometry() -> void:
 			holder.add_child(building_node)
 			counts.buildings += 1
 		for prop in map.get("props", []):
-			if counts.props >= prop_limit or typeof(prop) != TYPE_DICTIONARY:
+			if (prop_limit > 0 and counts.props >= prop_limit) or typeof(prop) != TYPE_DICTIONARY:
 				break
 			var center: Array = prop.get("center", [0.0, 0.0])
 			var half: Array = prop.get("half_extents", [1.0, 1.0, 0.5])
@@ -280,6 +277,10 @@ func _build_map_geometry() -> void:
 		counts["prop_limit"] = prop_limit
 		counts["road_limit"] = road_limit
 		map_geometry_counts[map_name] = counts
+
+func _map_limit(environment_name: String) -> int:
+	var value := OS.get_environment(environment_name)
+	return int(value) if not value.is_empty() else 0
 
 func _build_fog_layers() -> void:
 	for scene_name in semantic_results:

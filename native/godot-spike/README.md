@@ -53,14 +53,14 @@ committed spike. The report records `authored_asset_loaded`, the number of
 capture scenes consumed, the number of map placements and the authored scene
 path; `comparison_ready` remains false until the terrain, props and observed
 units are composed with the actual menu-world asset catalog. Set
-`GODOT_AUTHORED_BUILDING_LIMIT=0` only for a deliberate full placement run;
-the default probe cap keeps repeated GLB instances bounded.
+`GODOT_AUTHORED_BUILDING_LIMIT` to a positive value for a deliberately bounded
+diagnostic run; an unset value or `0` loads every admitted building.
 
 The reel can also consume the authoritative saved-map exports directly with
-`GODOT_AUTHORED_MAP_DIR=fixtures/maps`. The probe builds bounded terrain,
-road, building, and prop geometry from `map.json`, and decodes sampled unit
-poses from the presentation capture. `GODOT_MAP_BUILDING_LIMIT`,
-`GODOT_MAP_PROP_LIMIT`, and `GODOT_MAP_ROAD_LIMIT` keep this diagnostic path
-bounded; the report records those limits and whether the synthetic proxy field
-was used. These primitives are composition evidence, not authored-material or
-visual-parity evidence.
+`GODOT_AUTHORED_MAP_DIR=fixtures/maps`. It loads the complete terrain, road,
+building, and prop geometry from `map.json`, and decodes sampled unit poses
+from the presentation capture. `GODOT_MAP_BUILDING_LIMIT`,
+`GODOT_MAP_PROP_LIMIT`, and `GODOT_MAP_ROAD_LIMIT` are optional explicit
+diagnostic caps; an unset value or `0` means the full export. The report records
+those limits and whether the synthetic proxy field was used. These primitives
+are composition evidence, not authored-material or visual-parity evidence.
