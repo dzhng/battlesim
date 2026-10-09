@@ -28,6 +28,7 @@ export function createReelReport(results: readonly ReelResult[], interruption?: 
       build: APP_COMMIT,
       resolution: typeof window === "undefined" ? null : { width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio },
       quality: "current-client-settings" as const,
+      presentation: { clock: "wall_elapsed" as const, subjectTrackingLagSeconds: 0.5, plateComposition: "standalone_center" as const },
     },
     workload: MENU_REEL_WORKLOAD,
     fingerprint: menuReelFingerprint(),

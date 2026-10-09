@@ -25,6 +25,7 @@ test("the reel combines measured work without counting preparation gaps or losin
   expect(report.samples.frames.map((f) => f.elapsedMs)).toEqual([10, 30, 60]);
   expect(report.frameRate?.average).toBe(50);
   expect(report.recordedMs).toBe(60);
+  expect(report.capture.presentation).toEqual({ clock: "wall_elapsed", subjectTrackingLagSeconds: 0.5, plateComposition: "standalone_center" });
   expect(report.ticks).toMatchObject({ count: 2, stepMs: { mean: 2 }, publicationBytes: { mean: 128 } });
 });
 
