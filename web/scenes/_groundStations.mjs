@@ -129,7 +129,10 @@ export const STATION_MAPS = {
       "town-edge-65": ({ edges }) => at(edges.yards, 65),
       "road-join-65": ({ edges }) => at(edges.join, 65),
       "road-join-25": ({ edges }) => at(edges.join, 25, LOW, edges.joinYaw),
-      "country-250": ({ start }) => at(start.at, 250),
+      // The country road out in the plain, as far from every building as
+      // the map allows (`countryRoad`), and the open plain (`plainPoint`).
+      "country-250": ({ road }) => at(road, 250),
+      "plain-250": ({ plain }) => at(plain, 250),
       "country-65": ({ start }) => at(start.at, 65),
       "country-25": ({ start }) => at(start.at, 25, LOW),
       // The river's bank, on a map whose layout has a river (seed 2 has).
@@ -175,6 +178,45 @@ const riverBank = (page, size) =>
     },
     size,
   );
+
+/** The points of a generated map on a 10 m grid at least `PLAIN_INSET_M`
+ *  inside it whose ground is `kind` (open ground: no forest on it), farthest
+ *  from every building first, the nearest to `near` among those that tie. */
+const PLAIN_INSET_M = 300;
+const awayFromBuildings = (page, size, near, kind) =>
+  lab(
+    page,
+    ({ size: [width, height], near, inset, kind }) => {
+      const frames = window.__lab.route.buildings().map((b) => b.frame);
+      const out = [];
+      for (let y = inset; y <= height - inset; y += 10)
+        for (let x = inset; x <= width - inset; x += 10) {
+          const s = window.__lab.route.surfaceAt(x, y);
+          if (s?.kind !== kind || s.forest) continue;
+          const clear = Math.min(...frames.map((f) => Math.hypot(f[0] - x, f[1] - y)));
+          out.push({ clear, from: Math.hypot(x - near[0], y - near[1]), at: [x, y] });
+        }
+      return out.sort((a, b) => b.clear - a.clear || a.from - b.from);
+    },
+    { size, near, inset: PLAIN_INSET_M, kind },
+  );
+
+/** The open plain of a generated map: the open ground farthest from every
+ *  building. Undefined on a map with none. */
+const plainPoint = async (page, size, near) =>
+  (await awayFromBuildings(page, size, near, "ground"))[0]?.at;
+
+/** The country road out in the plain: of the points well inside a road drawn
+ *  as a country road (`drawnRoads`), the one farthest from every building.
+ *  Undefined on a map with none. */
+async function countryRoad(page, size, near) {
+  const roads = await awayFromBuildings(page, size, near, "road");
+  const drawn = await drawnRoads(
+    page,
+    roads.map((r) => r.at),
+  );
+  return roads.find((_, i) => drawn[i]?.kind === "country_road" && drawn[i].inside > 1)?.at;
+}
 
 /** The west edge of the wood nearest `near` on a generated map: the nearest
  *  point with forest `DEEP_M` round it, walked west to where the forest ends;
@@ -383,32 +425,38 @@ const streetTrees = (page, centre) =>
 
 /** The generated map's ground as the renderer builds it, in the page as
  *  `window.__generatedGround`: its terrain `surface` (its plots, its paved
- *  strokes as drawn). The map is made again from the page's own request. */
+ *  strokes as drawn). The map is made again from the page's own request,
+ *  under the rules a player's battle prepares it with (the game's catalog
+ *  set: the generator reads the units' rules), and must be the map the
+ *  page prepared. */
 const generatedGround = (page) =>
   page.evaluate(
     async (repo) => {
       if (window.__generatedGround) return;
       const file = (p) => `/@fs/${repo}${p}`;
-      const [wasm, { rules: labRules }, mesh, biome, presets, templates] = await Promise.all([
+      const [wasm, { rules: gameRules }, mesh, biome, presets, templates] = await Promise.all([
         import("/src/wasm/game_wasm.js"),
-        import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("test")),
+        import(file("web/src/battle/catalog/sets.ts")).then((m) => m.catalogSet("game")),
         import(file("packages/battle-renderer/src/worldMesh.ts")),
         import(file("fixtures/biomes/summer.json")),
         import(file("fixtures/map-presets.json?raw")),
         import(file("fixtures/prototype-building-templates.json?raw")),
       ]);
       await wasm.default();
-      const request = window.__lab.route.prepared().request.map_source.request;
+      const prepared = window.__lab.route.prepared();
+      const rules = JSON.stringify(gameRules);
       const outcome = JSON.parse(
         wasm.generate_map(
-          JSON.stringify(request),
+          JSON.stringify(prepared.request.map_source.request),
           presets.default,
           templates.default,
-          JSON.stringify(labRules),
+          rules,
         ),
       );
       if (outcome.status !== "ok") throw new Error(JSON.stringify(outcome.diagnostics));
-      const rules = JSON.stringify(labRules);
+      const [made, played] = [outcome.result.identity, prepared.identity.generation];
+      if (made.map_hash !== played.map_hash)
+        throw new Error(`the ground rig made map ${made.map_hash}; the page plays ${played.map_hash}`);
       const view = new wasm.WorldView(JSON.stringify(outcome.result.map), rules);
       try {
         window.__generatedGround = {
@@ -551,6 +599,8 @@ export async function openStations(ctx, map) {
           ...report,
           edges: await townEdges(page, report.town),
           river: await riverBank(page, report.size),
+          plain: await plainPoint(page, report.size, report.start.at),
+          road: await countryRoad(page, report.size, report.start.at),
           wood: await woodEdge(page, report.size, report.start.at),
           line: await treeLine(page, report.size),
           streets: await townStreets(page, report.town),

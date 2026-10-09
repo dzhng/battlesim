@@ -80,7 +80,7 @@ function lit(shot, pixels) {
 export async function townGround(ctx) {
   const page = await openStations(ctx, "generated");
   const masks = {};
-  for (const station of ["town-250", "town-edge-250", "country-250"])
+  for (const station of ["town-250", "town-edge-250", "plain-250"])
     masks[station] = plotShares((await stationFrame(page, "generated", station)).mask);
   // A dense block's courts are paved, so the open ground judged here is the
   // lawns and gardens between them: a smaller share of the frame. A town's
@@ -96,11 +96,11 @@ export async function townGround(ctx) {
   );
   ctx.check(
     "the plain beyond the town keeps its drilled fields, and no yard lies out in it",
-    masks["country-250"].ground > 50000 &&
-      masks["country-250"].drilled > 0.25 &&
-      masks["country-250"].crops.length >= 2 &&
-      masks["country-250"].yard === 0,
-    JSON.stringify(masks["country-250"]),
+    masks["plain-250"].ground > 50000 &&
+      masks["plain-250"].drilled > 0.25 &&
+      masks["plain-250"].crops.length >= 2 &&
+      masks["plain-250"].yard === 0,
+    JSON.stringify(masks["plain-250"]),
   );
   ctx.check(
     "the town's edge is in one frame: its last yards on one side, drilled fields on the other",
