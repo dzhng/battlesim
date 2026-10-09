@@ -13,7 +13,8 @@ use contract::ballistics::WeaponBallistics;
 use contract::map::MapDefinition;
 use contract::random::Rng;
 use sim::flight::{
-    advance_projectiles, Aim, Body, FlightEvent, NoSolution, Projectiles, Shape, Shooter,
+    advance_projectiles, fire_round, Aim, Body, FlightEvent, NoSolution, Projectiles, Shape,
+    Shooter,
 };
 use sim::math::v3;
 use sim::world::WorldGeometry;
@@ -134,7 +135,7 @@ fn run(rate_scale: f64, seconds: f64) {
                     body: bodies[i].id,
                     cover: None,
                 });
-                match launch_round(
+                match fire_round(
                     &world,
                     &config,
                     &profile,
@@ -142,8 +143,11 @@ fn run(rate_scale: f64, seconds: f64) {
                     profile.scatter_mrad,
                     &mut rng,
                     shooter,
+                    |_| false,
+                    |_| false,
                 ) {
-                    Ok((launch, _)) => {
+                    Ok(None) => unreachable!("nothing holds a round"),
+                    Ok(Some((launch, _))) => {
                         hulls.register(store.launch(launch), name);
                         launched += 1;
                     }

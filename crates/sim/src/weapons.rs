@@ -13,8 +13,8 @@ use cycle::Cycle;
 use crate::deployment;
 use crate::digest::Digest;
 use crate::flight::{
-    launch_along, predicted_path, solve_launch_past, Aim, BodyId, FiringSolution, FlightConfig,
-    Launch, LaunchProfile, NoSolution, ProjectileId, Shooter,
+    fire_round, predicted_path, solve_fire, solve_launch_past, Aim, BodyId, FiringSolution,
+    FlightConfig, Launch, LaunchProfile, NoSolution, ProjectileId, Shooter,
 };
 use crate::knowledge::SideKnowledge;
 use crate::lean;
@@ -654,27 +654,6 @@ fn fires_into(
     !prop.body.occludes && per_round > 0.0 && rounds.is_none_or(|n| per_round * n as f64 >= hp)
 }
 
-/// The arc a round would fly to `aim` and where it bursts: its intercept, or
-/// the body it is fired into.
-fn solve(
-    ctx: &FireContext,
-    weapon: &Weapon,
-    rounds: Option<u32>,
-    aim: &Aim,
-    target: Target,
-    past: Option<PropId>,
-) -> Result<(FiringSolution, V3), NoSolution> {
-    match solve_launch_past(ctx.world, &ctx.arsenal.config, &weapon.profile, aim, past) {
-        Ok(s) => Ok((s, s.intercept)),
-        Err(NoSolution::Blocked {
-            arc,
-            point,
-            by: Collider::Prop(id),
-        }) if fires_into(ctx, weapon, rounds, target, id) => Ok((arc, point)),
-        Err(e) => Err(e),
-    }
-}
-
 /// Can this mount fire the given kind at the resolved point from here? The
 /// solution, or why not.
 #[allow(clippy::too_many_arguments)]
@@ -708,7 +687,14 @@ fn engage(
             target: r.point,
             target_velocity: r.velocity,
         };
-        match solve(ctx, weapon, mount.ammo[k], &aim, target, past) {
+        match solve_fire(
+            ctx.world,
+            &ctx.arsenal.config,
+            &weapon.profile,
+            &aim,
+            past,
+            |id| fires_into(ctx, weapon, mount.ammo[k], target, id),
+        ) {
             Err(NoSolution::OutOfReach) => Err(ActionReason::OutOfRange),
             Err(NoSolution::Blocked { .. }) => Err(ActionReason::BlockedTrajectory),
             Ok((s, burst))
@@ -1809,43 +1795,46 @@ fn fire(
             1.0
         };
         let scatter = scatter * cover;
-        let cover = from.past;
         let shooter = Some(Shooter {
             unit: unit.id,
             body,
-            cover: cover.map(crate::flight::Struck::Prop).or_else(|| {
+            cover: from.past.map(crate::flight::Struck::Prop).or_else(|| {
                 from.hull
                     .map(|u| crate::flight::Struck::Body(BodyId(VEHICLE_BODY_BASE + u.0)))
             }),
         });
-        let Ok((intended, _)) = solve(ctx, weapon, mount.ammo[k], &aim, target, cover) else {
-            continue;
-        };
-        if !cycle.started {
+        let rounds = mount.ammo[k];
+        // A cycle's first round waits out its aiming pause (a burst) or its
+        // place in the squad's stagger once the arc is known.
+        let hold = |rng: &mut Rng| {
+            if cycle.started {
+                return false;
+            }
             cycle.started = true;
             if let Some(burst) = weapon.def.magazine.and_then(|m| m.burst) {
                 cycle.cooldown = rng.unit() * burst.aim_max_s;
-                if cycle.cooldown > 0.0 {
-                    continue;
-                }
+                cycle.cooldown > 0.0
             } else if spec.squad {
                 cycle.cooldown = weapon
                     .def
                     .magazine
                     .map_or(weapon.def.reload_s, |m| m.shot_interval_s)
                     * ((body.0.wrapping_mul(2654435761) >> 16) as f64 / 65536.0);
-                continue;
+                true
+            } else {
+                false
             }
-        }
-        if let Ok((launch, _)) = launch_along(
+        };
+        if let Ok(Some((launch, _))) = fire_round(
             ctx.world,
             &ctx.arsenal.config,
             &weapon.profile,
             &aim,
-            &intended,
             scatter,
             rng,
             shooter,
+            |id| fires_into(ctx, weapon, rounds, target, id),
+            hold,
         ) {
             launches.push(launch);
             if let Some(n) = mount.ammo[k].as_mut() {

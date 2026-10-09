@@ -18,8 +18,8 @@ mod solve;
 mod sweep;
 
 pub use solve::{
-    launch_along, predicted_path, scatter_aim, solve_launch_past, Aim, ArcKind, FiringSolution,
-    NoSolution,
+    fire_round, predicted_path, scatter_aim, solve_fire, solve_launch_past, Aim, ArcKind,
+    FiringSolution, NoSolution,
 };
 
 use contract::ballistics::{FlightRules, GuidedRules, Trajectory, WeaponBallistics};

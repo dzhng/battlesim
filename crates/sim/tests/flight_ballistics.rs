@@ -6,7 +6,7 @@ use crate::common::*;
 use contract::ballistics::{FlightRules, Trajectory, WeaponBallistics};
 use contract::random::Rng;
 use sim::flight::{
-    predicted_path, scatter_aim, solve_launch_past, Aim, ArcKind, Expiry, FlightConfig,
+    fire_round, predicted_path, scatter_aim, solve_launch_past, Aim, ArcKind, Expiry, FlightConfig,
     FlightConfigError, FlightEvent, Launch, LaunchProfile, NoSolution, Projectiles, Struck,
 };
 use sim::math::{v3, V3};
@@ -167,8 +167,19 @@ fn a_missile_leaves_at_its_launch_speed_and_speeds_up_striking_at_its_full_range
         target,
         target_velocity: V3::default(),
     };
-    let (launch, s) =
-        launch_round(&world, &config(), &atgm, &aim, 0.0, &mut Rng::new(1), None).unwrap();
+    let (launch, s) = fire_round(
+        &world,
+        &config(),
+        &atgm,
+        &aim,
+        0.0,
+        &mut Rng::new(1),
+        None,
+        |_| false,
+        |_| false,
+    )
+    .unwrap()
+    .expect("nothing holds the round");
     assert!(
         s.time_of_flight_s < atgm.lifetime_s,
         "{} s",
@@ -671,8 +682,19 @@ fn a_prepared_launch_is_the_scattered_solution_and_refuses_a_blocked_aim() {
         target_velocity: V3::default(),
     };
     let mut rng = Rng::new(3);
-    let (launch, fired) =
-        launch_round(&world, &config(), &grenade, &aim, 15.0, &mut rng, None).unwrap();
+    let (launch, fired) = fire_round(
+        &world,
+        &config(),
+        &grenade,
+        &aim,
+        15.0,
+        &mut rng,
+        None,
+        |_| false,
+        |_| false,
+    )
+    .unwrap()
+    .expect("nothing holds the round");
     assert_eq!(launch.origin, aim.origin);
     assert!(fired.intercept.z <= aim.target.z);
     assert!((launch.velocity.length() - grenade.speed_mps).abs() < 1e-9);
@@ -692,7 +714,17 @@ fn a_prepared_launch_is_the_scattered_solution_and_refuses_a_blocked_aim() {
         ..blocked
     };
     assert!(matches!(
-        launch_round(&world, &config(), &grenade, &blocked, 15.0, &mut rng, None),
+        fire_round(
+            &world,
+            &config(),
+            &grenade,
+            &blocked,
+            15.0,
+            &mut rng,
+            None,
+            |_| false,
+            |_| false
+        ),
         Err(NoSolution::Blocked { .. })
     ));
 }
@@ -708,8 +740,19 @@ fn missed_direct_rounds_reach_ground_within_the_post_target_fall_limit() {
     for name in ["rifle", "hmg", "tank_ap", "tank_he"] {
         for seed in 0..32 {
             let p = profile(name);
-            let (launch, solution) =
-                launch_round(&world, &config(), &p, &aim, 20.0, &mut Rng::new(seed), None).unwrap();
+            let (launch, solution) = fire_round(
+                &world,
+                &config(),
+                &p,
+                &aim,
+                20.0,
+                &mut Rng::new(seed),
+                None,
+                |_| false,
+                |_| false,
+            )
+            .unwrap()
+            .expect("nothing holds the round");
             assert!(
                 solution.intercept.z <= aim.target.z,
                 "scatter never aims above the target"
@@ -743,8 +786,19 @@ fn the_miss_tail_preserves_a_high_body_hit_before_the_aim_plane() {
     };
     for name in ["hmg", "tank_ap"] {
         let p = profile(name);
-        let (launch, _) =
-            launch_round(&world, &config(), &p, &aim, 0.0, &mut Rng::new(1), None).unwrap();
+        let (launch, _) = fire_round(
+            &world,
+            &config(),
+            &p,
+            &aim,
+            0.0,
+            &mut Rng::new(1),
+            None,
+            |_| false,
+            |_| false,
+        )
+        .unwrap()
+        .expect("nothing holds the round");
         let mut store = Projectiles::new(config());
         store.launch(launch);
         let body = Mover::standing(1, 1, tank_shape(), v3(700.0, 500.0, 0.0));
@@ -769,7 +823,7 @@ fn a_ricochet_keeps_its_deflected_flight_instead_of_the_post_target_fall() {
         target: v3(400.0, 500.0, 1.4),
         target_velocity: V3::default(),
     };
-    let (launch, _) = launch_round(
+    let (launch, _) = fire_round(
         &world,
         &config(),
         &profile("hmg"),
@@ -777,8 +831,11 @@ fn a_ricochet_keeps_its_deflected_flight_instead_of_the_post_target_fall() {
         0.0,
         &mut Rng::new(1),
         None,
+        |_| false,
+        |_| false,
     )
-    .unwrap();
+    .unwrap()
+    .expect("nothing holds the round");
     let mut store = Projectiles::new(config());
     store.launch(launch);
     let body = Mover::standing(1, 1, tank_shape(), v3(250.0, 500.0, 0.0));

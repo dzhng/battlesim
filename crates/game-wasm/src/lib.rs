@@ -9,9 +9,8 @@ use contract::templates::{BuildingTemplateDescriptor, TemplateGeometryCatalog};
 use sim::battle::{Battle, Replay};
 use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
-    advance_projectiles, launch_along, predicted_path, solve_launch_past, Aim, ArcKind, Body,
-    BodyId, FlightConfig, FlightEvent, ImpactContext, NoSolution, Pose, ProjectileId, Projectiles,
-    Shape, Struck,
+    advance_projectiles, fire_round, predicted_path, Aim, ArcKind, Body, BodyId, FlightConfig,
+    FlightEvent, ImpactContext, NoSolution, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use sim::math::{v3, V3};
 use sim::publication::{self, Publisher};
@@ -378,22 +377,21 @@ impl FlightLab {
             target_velocity: v3_of(target_velocity)?,
         };
         let arc_name = |a: ArcKind| format!("{a:?}").to_lowercase();
-        let launched = solve_launch_past(&self.world, &self.config, &profile, &aim, None).and_then(
-            |intended| {
-                launch_along(
-                    &self.world,
-                    &self.config,
-                    &profile,
-                    &aim,
-                    &intended,
-                    scatter_mrad,
-                    &mut self.rng,
-                    None,
-                )
-            },
+        // The lab fires into nothing and holds no round.
+        let launched = fire_round(
+            &self.world,
+            &self.config,
+            &profile,
+            &aim,
+            scatter_mrad,
+            &mut self.rng,
+            None,
+            |_| false,
+            |_| false,
         );
         let out = match launched {
-            Ok((launch, s)) => {
+            Ok(None) => unreachable!("the lab holds no round"),
+            Ok(Some((launch, s))) => {
                 let id = self.store.launch(launch);
                 self.rounds.insert(id, power);
                 serde_json::json!({

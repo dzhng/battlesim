@@ -14,9 +14,8 @@ use serde_json::Value;
 use sim::battle::Battle;
 use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
-    advance_projectiles, launch_along, solve_launch_past, Aim, Body, BodyId, FiringSolution,
-    FlightConfig, FlightEvent, ImpactContext, ImpactDecision, ImpactResolver, Launch,
-    LaunchProfile, NoSolution, Pose, ProjectileId, Projectiles, Shape, Shooter, Struck,
+    advance_projectiles, Body, BodyId, FlightConfig, FlightEvent, ImpactContext, ImpactDecision,
+    ImpactResolver, LaunchProfile, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use sim::math::{v3, V3};
 use sim::world::WorldGeometry;
@@ -460,29 +459,4 @@ pub fn isolated_cost_test(name: &str) -> bool {
         .unwrap();
     assert!(status.success(), "isolated {name} failed");
     false
-}
-
-/// Fire one round in the open the way a weapon does: solve the intended arc
-/// (a round that cannot reach or is blocked is not fired), then launch it
-/// with spread.
-pub fn launch_round(
-    world: &WorldGeometry,
-    config: &FlightConfig,
-    profile: &LaunchProfile,
-    aim: &Aim,
-    scatter_mrad: f64,
-    rng: &mut Rng,
-    shooter: Option<Shooter>,
-) -> Result<(Launch, FiringSolution), NoSolution> {
-    let intended = solve_launch_past(world, config, profile, aim, None)?;
-    launch_along(
-        world,
-        config,
-        profile,
-        aim,
-        &intended,
-        scatter_mrad,
-        rng,
-        shooter,
-    )
 }

@@ -509,12 +509,72 @@ pub fn scatter_aim(origin: V3, aim: V3, scatter_mrad: f64, rng: &mut Rng) -> V3 
     aim + right * (range * libm::tan(across)) + up * (range * libm::tan(vertical))
 }
 
+/// The arc a round fires on to `aim`, flying through `past`, and where it
+/// bursts: the preferred usable arc and its intercept, or, when a body
+/// blocks that arc and `wear_down(body)` says the round may fire into it,
+/// the blocked arc and the point it meets the body.
+pub fn solve_fire(
+    world: &WorldGeometry,
+    config: &FlightConfig,
+    profile: &LaunchProfile,
+    aim: &Aim,
+    past: Option<PropId>,
+    wear_down: impl FnOnce(PropId) -> bool,
+) -> Result<(FiringSolution, V3), NoSolution> {
+    match solve_launch_past(world, config, profile, aim, past) {
+        Ok(s) => Ok((s, s.intercept)),
+        Err(NoSolution::Blocked {
+            arc,
+            point,
+            by: Collider::Prop(id),
+        }) if wear_down(id) => Ok((arc, point)),
+        Err(e) => Err(e),
+    }
+}
+
+/// The one way a round is fired: solve its arc ([`solve_fire`], past the
+/// prop the shooter fires from behind), let `hold` keep it back once the arc
+/// is known (a battle's aiming and burst pauses draw from `rng` here), then
+/// launch it with spread on that arc. `Ok(None)` is a held round.
+#[allow(clippy::too_many_arguments)]
+pub fn fire_round(
+    world: &WorldGeometry,
+    config: &FlightConfig,
+    profile: &LaunchProfile,
+    aim: &Aim,
+    scatter_mrad: f64,
+    rng: &mut Rng,
+    shooter: Option<Shooter>,
+    wear_down: impl FnOnce(PropId) -> bool,
+    hold: impl FnOnce(&mut Rng) -> bool,
+) -> Result<Option<(Launch, FiringSolution)>, NoSolution> {
+    let past = shooter.and_then(|s| match s.cover {
+        Some(super::Struck::Prop(id)) => Some(id),
+        _ => None,
+    });
+    let (intended, _) = solve_fire(world, config, profile, aim, past, wear_down)?;
+    if hold(rng) {
+        return Ok(None);
+    }
+    launch_along(
+        world,
+        config,
+        profile,
+        aim,
+        &intended,
+        scatter_mrad,
+        rng,
+        shooter,
+    )
+    .map(Some)
+}
+
 /// Launch a round on an arc already solved for `aim` (clear, or blocked by a
 /// body the caller fires into): sample spread once, solve the scattered aim
 /// on the same arc, and build the launch. `scatter_mrad` is the effective
 /// one-axis σ after the caller's movement and cover multipliers.
 #[allow(clippy::too_many_arguments)]
-pub fn launch_along(
+fn launch_along(
     world: &WorldGeometry,
     config: &FlightConfig,
     profile: &LaunchProfile,
