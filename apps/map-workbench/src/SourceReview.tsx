@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { changedPaths, valueAtPath } from "../../fixture-publication/changes";
-import type { Replacement } from "./protocol";
+import type { Replacement } from "../../fixture-publication/publication";
 
 export function SourceReview({ file }: { file: Replacement }) {
   const before = JSON.parse(file.before);

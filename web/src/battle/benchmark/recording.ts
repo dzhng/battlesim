@@ -185,5 +185,3 @@ export class BenchmarkRecording {
     };
   }
 }
-
-export type RecordingReport = ReturnType<BenchmarkRecording["report"]>;
