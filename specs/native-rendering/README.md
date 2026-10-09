@@ -18,6 +18,7 @@ The current Godot cut metrics confirm that limitation: several shots are transpa
 The new foreground authored cuts improve this only partially: named shots are now opaque and show roads, map ground, authored silhouettes and colored unit markers, but edge density remains low (about 0.016–0.038) and the units are tiny at the captured framing. The adversarial read is that the scene still reads as sparse proxy geometry rather than the browser menu world; no browser counterpart was available for a matched crop, so the visual gate remains red.
 The fresh unprimed critique confirms the gate is still red: one cut is fully black, the remaining cuts are dominated by flat green ground and navy sky, authored silhouettes are aliased at the horizon, and unit capsules are too small to read. The saved-map and fog contracts are improving, but no visual-equivalence claim is warranted until authored materials, camera framing, and browser control cuts are captured together.
 The next foreground candidate set (23 of the 24 named shots) still fails that gate. A fresh reviewer found no visible authored buildings, road network, fog, shadows, or terrain relief; scene-01 shots repeat the same nearly empty frame, and the only visible units are tiny red/blue capsules. This evidence is retained as a candidate failure, not promoted to a comparison baseline.
+An uncapped foreground diagnostic then loaded both hydrated kits and all 3,153 authored building rows while consuming the complete 4,832-publication replay. It raised the scene edge-density ceiling to 0.107, but still used bounded map primitives and left the report `comparison_ready=false`; the remaining problem is composition/material fidelity, not catalog admission.
 
 ## Goal
 
@@ -77,7 +78,7 @@ External measurements are context only; the frozen Mac runs are the evidence.
 - [~] Add Settings graphics test and report chart — slice 01 (route exists; lifecycle, report identity and visual verification remain).
 - [~] Verify offline native seam and Godot headless toolchain — slice 02 (offline probe and live extension smoke load; real scenario transfer/parity remains).
 - [x] Spike binding candidates and select a seam — slice 02 (GDExtension for interactive authority; presentation capture for renderer comparison; IPC retained as measured fallback).
-- [~] Render the full menu reel in Godot — slice 03 (semantic unit decoding plus complete saved-map geometry and comparable report envelope added; authored materials, fog timeline updates, full catalog loading and visual comparison remain open).
+- [~] Render the full menu reel in Godot — slice 03 (semantic unit decoding, complete saved-map geometry, uncapped authored-kit loading, and comparable report envelope added; authored materials and visual comparison remain open).
 - [~] Compare repeated distributions and reslice the chosen direction — slice 04 (provisional verdict: keep Godot experimental; repeated equivalent display-backed distributions remain open).
 
 ## Human review surface
