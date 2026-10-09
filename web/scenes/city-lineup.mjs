@@ -351,11 +351,7 @@ export async function run(ctx) {
   const sets = process.env.CITY_SET
     ? [process.env.CITY_SET]
     : Object.entries(catalog.city_sets)
-        .filter(
-          ([set, source]) =>
-            source.catalogue === "generated" &&
-            expected.some((template) => setOf[template.id] === set),
-        )
+        .filter(([set]) => expected.some((template) => setOf[template.id] === set))
         .map(([set]) => set);
   const visited = [];
   const drawnStates = new Set();
