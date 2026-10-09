@@ -50,28 +50,6 @@ pub fn generate_map(
         .map_err(js_error)
 }
 
-/// Plan one encounter recipe on a compiled map: the map and the sites
-/// `generate_map` hands out beside it, the rules a battle on it runs under,
-/// one recipe of `fixtures/encounters.json` and the encounter seed as
-/// canonical decimal text. Answers with the native planner's own outcome
-/// record: the legal encounter, or the diagnostics that refuse it.
-#[wasm_bindgen]
-pub fn plan_encounter(
-    map_json: &str,
-    sites_json: &str,
-    rules_json: &str,
-    recipe_json: &str,
-    encounter_seed: &str,
-) -> String {
-    sim::encounter::plan_encounter_json(
-        map_json,
-        sites_json,
-        rules_json,
-        recipe_json,
-        encounter_seed,
-    )
-}
-
 /// Check a battle preparation request (`contract::preparation::
 /// PrepareBattleRequest`) before anything is resolved: answers `{ status:
 /// "ok", request }` with the request in canonical form, or `{ status:
@@ -911,46 +889,6 @@ impl PreparedWorld {
 
     pub fn extents(&self) -> String {
         serde_json::to_string(&self.map.extents()).expect("finite map extents")
-    }
-
-    pub fn plan_encounter(
-        &self,
-        sites_json: &str,
-        recipe_json: &str,
-        encounter_seed: &str,
-    ) -> String {
-        use contract::encounter::{
-            EncounterDiagnostic, EncounterDiagnosticCode as Code, EncounterOutcome,
-        };
-        let run = || {
-            let read = |error: serde_json::Error, code, location: &str| {
-                vec![EncounterDiagnostic {
-                    code,
-                    feature: None,
-                    location: location.into(),
-                    message: error.to_string(),
-                }]
-            };
-            let sites = serde_json::from_str(sites_json)
-                .map_err(|e| read(e, Code::InvalidSites, "$.sites"))?;
-            let recipe = serde_json::from_str(recipe_json)
-                .map_err(|e| read(e, Code::InvalidRecipe, "$.recipe"))?;
-            let seed = serde_json::from_value(serde_json::Value::String(encounter_seed.into()))
-                .map_err(|e| read(e, Code::InvalidRequest, "$.encounter_seed"))?;
-            sim::encounter::plan_encounter(
-                &self.prepared.queries(&self.map, &sites),
-                &self.rules,
-                &recipe,
-                seed,
-            )
-        };
-        let outcome = match run() {
-            Ok(encounter) => EncounterOutcome::Ok {
-                encounter: Box::new(encounter),
-            },
-            Err(diagnostics) => EncounterOutcome::Error { diagnostics },
-        };
-        serde_json::to_string(&outcome).expect("encounter outcome serializes")
     }
 
     pub fn into_battle(self, scenario_json: &str, seed: f64) -> Result<BattleHandle, JsError> {
