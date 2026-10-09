@@ -5,6 +5,14 @@ import { writeFile } from "node:fs/promises";
 /** Run `fn(arg)` in the page. */
 export const lab = (page, fn, arg) => page.evaluate(fn, arg);
 
+/** Hide everything drawn over the canvas (panels, callouts, the frame rate,
+ *  whose number changes shot to shot), so a capture is the world's pixels. */
+export const hideHud = (page) =>
+  page.addStyleTag({
+    content:
+      "[data-testid=battle-panel], .ro-layer, .lab-panel, .frame-rate { display: none !important; }",
+  });
+
 /** The newest decoded observation. */
 export const obs = (page) => lab(page, () => window.__lab.route.observation());
 

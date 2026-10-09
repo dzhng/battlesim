@@ -11,13 +11,12 @@
 import { startupResources } from "./_startupResources.mjs";
 import { writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { advance, buildingsSettled, lab, obs, openMenu, openMenuPage } from "./_lab.mjs";
+import { advance, buildingsSettled, hideHud, lab, obs, openMenu, openMenuPage } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { flyTown } from "./_cameraClearance.mjs";
 import { bareClassMask, classAt } from "./_groundStations.mjs";
 
 const MAP = { type: "mixed", size: "medium", seed: "1" };
-const HIDE_HUD = "[data-testid=battle-panel], .ro-layer { display: none !important; }";
 /** The ground mask's two values: a pixel that is mostly ground, and one that is not. */
 const isGround = ([r]) => r > 200;
 const isBody = ([r]) => r < 55;
@@ -282,7 +281,7 @@ async function cameraOnMap(ctx, spec) {
   await playable(page, 300000);
   await lab(page, () => window.__lab.route.pause());
   await page.waitForFunction(() => window.__lab.route.status().status === "paused");
-  await page.addStyleTag({ content: HIDE_HUD });
+  await hideHud(page);
   const generated = await preparedBattle(page);
   const flown = await cameraKeepsOut(ctx, page, generated.town, { reps: 200 });
   await ctx.writeEvidence(`camera-${type}-${size}-${seed}.json`, {
@@ -403,7 +402,7 @@ export async function run(ctx) {
     JSON.stringify({ ...counts, map: generated.counts }),
   );
 
-  await page.addStyleTag({ content: HIDE_HUD });
+  await hideHud(page);
 
   // A building: the one nearest the town's centre, and open ground beside it.
   const building = await lab(

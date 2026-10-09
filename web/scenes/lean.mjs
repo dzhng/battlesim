@@ -3,12 +3,11 @@
 // red squad in the open. The scene steps the fight until a blue soldier is
 // out on his lean, and shoots him at the ground camera (`lean-out`), then
 // again once he has tucked back in (`tucked`), each also HUD-free.
-import { lab, obs, advance, snapshot, openBattle } from "./_lab.mjs";
+import { hideHud, lab, obs, advance, snapshot, openBattle } from "./_lab.mjs";
 import { game, curvePitch } from "./_units.mjs";
 
 const CAMERA = game.presentation.camera;
 const VIEWPORT = { width: 1920, height: 1080 };
-const HIDE_HUD = ".ro-unit, [data-testid=battle-panel] { display: none !important; }";
 
 /** The first blue soldier out on his lean in `o`: his tucked-in place and lean. */
 function leaning(o) {
@@ -53,7 +52,7 @@ export async function run(ctx) {
     // Behind him, looking the way he fires: his sideways step past the tree.
     behind: { distance: 7, pitch: 0.18, yaw: facing + Math.PI },
   };
-  await page.addStyleTag({ content: HIDE_HUD });
+  await hideHud(page);
   const shots = async (moment) => {
     for (const [name, c] of Object.entries(cameras)) {
       await lab(

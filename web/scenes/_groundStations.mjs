@@ -16,7 +16,7 @@ import { readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
 import { median } from "./_colour.mjs";
-import { advance, aim, lab, presented, snapshot } from "./_lab.mjs";
+import { advance, aim, hideHud, lab, presented, snapshot } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
 
 /** A fixture, parsed: `path` under `fixtures/`. */
@@ -33,10 +33,6 @@ const PLAY = 0.85;
 const LOW = 0.32;
 /** The tick every station is shot at. */
 const TICK = 12;
-/** The HUD over the canvas: a station's pixels are the world's. The frame
- *  rate's number changes from shot to shot. */
-const HIDE_HUD =
-  "[data-testid=battle-panel], .ro-layer, .lab-panel, .frame-rate { display: none !important; }";
 
 const at = (target, distance, pitch = PLAY, yaw = YAW) => ({ target, distance, pitch, yaw });
 
@@ -615,7 +611,7 @@ export async function openStations(ctx, map) {
   await lab(page, () => window.__lab.route.pause());
   await advance(page, TICK - (await lab(page, () => window.__lab.route.tick())));
   await presented(page);
-  await page.addStyleTag({ content: HIDE_HUD });
+  await hideHud(page);
   await loadClassEncoding(page);
   await lab(page, async () => {
     const l = window.__lab;
