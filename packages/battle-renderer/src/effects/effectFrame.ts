@@ -244,9 +244,12 @@ export interface SparkStyle {
 }
 
 export interface BlastStyle {
-  /** The fireball's radius per metre of blast radius, and its least radius. */
+  /** The fireball's radius per metre of blast radius, and the fireball the
+   *  style's numbers describe: a smaller one burns, sparks, throws dirt and
+   *  smoke and lights its surroundings less, and a bigger one more, but
+   *  for its sparks, whose count is the style's at most. */
   size_per_radius: number;
-  min_size_m: number;
+  reference_size_m: number;
   duration_s: number;
   /** The flipbook's multiplier, its fire's extra glow early on, and opacity. */
   tint: Vec3;
@@ -263,11 +266,11 @@ export interface BlastStyle {
   sparks: number;
   /** The dirt thrown up in a column, and the smoke that follows it; their
    *  sizes and speeds scale with the square root of the fireball's size
-   *  over `min_size_m`. */
+   *  over `reference_size_m`. */
   plume: PuffBurst;
   smoke: PuffBurst;
   /** The burst's light on what is round it, within the blast's life; its
-   *  reach grows with the square root of the fireball's size over `min_size_m`. */
+   *  reach grows with the square root of the fireball's size over `reference_size_m`. */
   cast: TransientCast;
 }
 
@@ -338,6 +341,9 @@ export interface EffectPresentation {
   impacts: Record<string, ImpactStyle>;
   /** An impact puff's size by round kind. */
   impact_scale: Record<string, number>;
+  /** A burst's fireball by round kind, over its blast radius's: a small
+   *  cannon shell's burst is a flash and a puff of dirt, not a shell's. */
+  blast_scale: Record<string, number>;
   sparks: SparkStyle;
   ricochet_sparks: number;
   blast: BlastStyle;
@@ -361,7 +367,16 @@ export interface EffectPresentation {
  *  or an unbounded life. */
 export function validateEffects(p: EffectPresentation): EffectPresentation {
   if (!(p.capacity > 0)) throw new Error("presentation.effects.capacity must be positive");
-  requireDefaults("presentation.effects", p, ["tracers", "flashes", "impacts", "impact_scale"]);
+  requireDefaults("presentation.effects", p, [
+    "tracers",
+    "flashes",
+    "impacts",
+    "impact_scale",
+    "blast_scale",
+  ]);
+  for (const [kind, scale] of Object.entries(p.blast_scale))
+    if (!(Number.isFinite(scale) && scale > 0))
+      throw new Error(`presentation.effects.blast_scale.${kind} must be finite and positive`);
   for (const [kind, t] of Object.entries(p.tracers)) validateTracer(kind, t);
   if (!(p.cast_wrap >= 0 && p.cast_wrap <= 1))
     throw new Error("presentation.effects.cast_wrap must be in [0, 1]");
@@ -386,6 +401,10 @@ export function validateEffects(p: EffectPresentation): EffectPresentation {
       if (i.cast && i.cast.duration_s > i.duration_s * scale.duration)
         throw new Error(`${at}.duration ends before the impact's cast light`);
     }
+  if (!(p.blast.reference_size_m > 0 && p.blast.size_per_radius > 0))
+    throw new Error(
+      "presentation.effects.blast: reference_size_m and size_per_radius must be positive",
+    );
   if (p.blast.cast.duration_s > p.blast.duration_s)
     throw new Error("presentation.effects.blast.cast outlives its blast");
   validateCookOff(p.cook_off);
@@ -843,9 +862,10 @@ function offerBurningOut(
   at: Vec3,
   reach: number,
   cause: string,
+  strength = 1,
 ) {
   const f = age / c.duration_s;
-  const k = c.intensity * (1 - f * f);
+  const k = c.intensity * strength * (1 - f * f);
   offerCastLight(batch.lights, at[0], at[1], at[2], c.radius_m * reach, c.color, k, cause);
 }
 
@@ -1342,16 +1362,19 @@ export class EffectFrame {
     const style = this.p.blast;
     const e = this.push(BLAST, at, at + style.duration_s);
     vec3.set(e.p, b.point[0], b.point[1], b.point[2]);
-    e.size = Math.max(style.min_size_m, b.radius * style.size_per_radius);
+    e.size = b.radius * style.size_per_radius * pick(this.p.blast_scale, b.kind);
+    const share = e.size / style.reference_size_m;
     e.rotation = mulberry32.sample(rng) * Math.PI * 2;
     vec3.set(_note_dir, 0, 0, 1);
-    const count = Math.round(style.sparks * sparks);
+    // A burst below the style's throws fewer sparks and puffs, as well as smaller ones.
+    const fewer = Math.min(1, share);
+    const count = Math.round(style.sparks * sparks * fewer);
     if (count) this.addSparks(at, b.point, _note_dir, _note_dir, count, rng, style.spark_scale);
     // Dirt thrown up in a column, then smoke rising out of it; a bigger
-    // burst's by the square root of its fireball's size over the least.
-    const scale = Math.sqrt(e.size / style.min_size_m);
+    // burst's by the square root of its fireball's size over the style's.
+    const scale = Math.sqrt(share);
     for (const burst of [style.plume, style.smoke])
-      for (let k = 0; k < burst.count; k++) {
+      for (let k = 0, n = Math.round(burst.count * fewer); k < n; k++) {
         const r = e.size * 0.3 * Math.sqrt(mulberry32.sample(rng));
         const a = mulberry32.sample(rng) * Math.PI * 2;
         this.addPuff(
@@ -1790,7 +1813,9 @@ export class EffectFrame {
     const c = s.cast;
     if (age < c.duration_s) {
       const a = vec3.set(_build_b, e.p[0], e.p[1], e.p[2] + e.size * 0.5);
-      offerBurningOut(batch, c, age, a, Math.sqrt(e.size / s.min_size_m), "blast");
+      // A burst below the style's lights a smaller pool, and more dimly.
+      const share = e.size / s.reference_size_m;
+      offerBurningOut(batch, c, age, a, Math.sqrt(share), "blast", Math.min(1, share));
     }
     // The glow in the air round the burst, fading as the fire cools.
     if (heat > 0) {

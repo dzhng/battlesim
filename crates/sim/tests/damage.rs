@@ -354,6 +354,66 @@ fn blast_is_sampled_per_soldier_and_spares_no_team() {
 }
 
 #[test]
+fn a_bursting_round_costs_the_soldier_it_strikes_its_damage_once() {
+    // A gun firing small bursting rounds (an autocannon's HE) straight into a
+    // squad: the man a round strikes takes its damage, and its burst spares
+    // him (it sprays the men round him instead), so a direct hit never costs
+    // him a fragment as well.
+    let mut setup = common::scenario_with(
+        &map(json!([]), json!([])),
+        json!([
+            { "side": "blue", "kind": "test_jeep", "position": [100, 300] },
+            { "side": "red", "kind": "test_rifle", "position": [200, 300], "engagement": "return_fire_only" }
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let damage = 30.0;
+    let gun = setup.rules.weapons.get_mut("hmg").unwrap();
+    // Wide enough to reach his neighbours in the squad's spacing.
+    gun.blast_radius_m = 4.0;
+    gun.damage = damage;
+    gun.ballistics.scatter_mrad = 0.0;
+    setup.rules.physics.flight.min_spread_at_max_range_m = 0.0;
+    let mut b = Battle::new(&setup, 3);
+    let (mut direct, mut fragments) = (0, 0);
+    for _ in 0..900 {
+        let before: Vec<(u32, f64)> = b
+            .unit(UnitId(1))
+            .unwrap()
+            .members
+            .iter()
+            .map(|s| (s.id, s.hp))
+            .collect();
+        b.step();
+        let bursts: Vec<Struck> = b
+            .flight_events()
+            .iter()
+            .filter_map(|e| match e {
+                FlightEvent::Impact(i) if i.detonated => Some(i.struck),
+                _ => None,
+            })
+            .collect();
+        // One burst this tick, on a soldier: his loss is that round's alone.
+        let [Struck::Body(BodyId(struck))] = bursts[..] else {
+            continue;
+        };
+        let after = &b.unit(UnitId(1)).unwrap().members;
+        for (id, hp) in before {
+            let lost = hp - after.iter().find(|s| s.id == id).unwrap().hp;
+            if id == struck {
+                assert_eq!(lost, damage, "the struck man takes the round once");
+                direct += 1;
+            } else if lost > 0.0 {
+                fragments += 1;
+            }
+        }
+    }
+    assert!(direct >= 3, "rounds struck soldiers directly: {direct}");
+    assert!(fragments > 0, "the bursts reached the men round them");
+}
+
+#[test]
 fn the_fallen_stay_where_they_fell_and_block_nothing() {
     let mut b = battle(
         json!([]),

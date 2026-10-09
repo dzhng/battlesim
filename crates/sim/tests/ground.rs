@@ -343,6 +343,58 @@ fn the_endurance_battle_keeps_the_layer_within_its_bound() {
 }
 
 #[test]
+fn a_small_burst_leaves_a_pock_and_a_shell_its_full_crater_and_scorch() {
+    // One burst at the field's centre, of a round whose blast radius is
+    // `radius`: what it leaves in the cell it struck.
+    let mark = |radius: f64| {
+        let mut setup = common::scenario_with(
+            &field(),
+            json!([]),
+            Value::Array(barrage(300.0, 300.0, 200.0, 200.0, 1.0)),
+            json!([]),
+        );
+        setup
+            .rules
+            .weapons
+            .get_mut("tank_he")
+            .unwrap()
+            .blast_radius_m = radius;
+        let mut b = Battle::new(&setup, 1);
+        b.step();
+        b.ground().cell(300.0, 200.0)
+    };
+    let reference = rules().ground.mark_reference_blast_m;
+    let (small, full, big) = (
+        mark(reference / 2.0),
+        mark(reference),
+        mark(reference * 2.0),
+    );
+    assert!(
+        small.scorch > 0 && small.crater > 0,
+        "a small burst still marks the ground"
+    );
+    // Half the reference radius: half the scorch (burnt area, once per
+    // burst), and an eighth of the crater: half for its narrower crater, a
+    // quarter more for the share of ground it throws up. Bytes round.
+    assert!(
+        (2 * small.scorch as i32 - full.scorch as i32).abs() <= 1,
+        "a half-size burst scorches half a shell's: {small:?} against {full:?}"
+    );
+    assert!(
+        (8 * small.crater as i32 - full.crater as i32).abs() <= 8,
+        "a half-size burst digs an eighth of a shell's crater: {small:?} against {full:?}"
+    );
+    assert_eq!(
+        big.scorch, full.scorch,
+        "a burst at or past the reference scorches its centre fully"
+    );
+    assert!(
+        big.crater >= full.crater,
+        "a bigger shell digs no shallower"
+    );
+}
+
+#[test]
 fn craters_enter_the_digest_and_replay_to_it() {
     let units = json!([{ "side": "blue", "kind": "test_tank", "position": [100, 100] }]);
     let quiet = battle(units.clone(), vec![], json!([]), 1);

@@ -85,6 +85,23 @@ test("a derived weapon fires its ancestor's chosen recording, not the global def
   const rifle = { near: "rifle-near", far: "rifle-far", gain: 1 };
   const catalog = {
     defaults: { default: { near: "plain", far: "plain", gain: 1 }, rifle },
+    impacts: {},
   } as unknown as SoundCatalog;
   expect(inheritWeaponChoices(catalog, WEAPONS).defaults.carbine).toEqual(rifle);
+});
+
+test("a derived round strikes and glances as its ancestor's, else the contact's default", () => {
+  const catalog = {
+    defaults: {},
+    impacts: {
+      hull: { rifle: "rifle-on-steel" },
+      ground: { default: "dirt", missile: "dirt-thud" },
+    },
+  } as unknown as SoundCatalog;
+  const { impacts } = inheritWeaponChoices(catalog, WEAPONS);
+  expect(impacts.hull.carbine).toBe("rifle-on-steel");
+  expect(impacts.ground.heavy_wire_guided).toBe("dirt-thud");
+  // No styled ancestor on that contact: its default still decides.
+  expect(impacts.hull.heavy_wire_guided).toBeUndefined();
+  expect(impacts.ground.carbine).toBeUndefined();
 });

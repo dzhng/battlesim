@@ -113,6 +113,10 @@ pub fn validate(rules: &Rules) {
         "ground.track_gauge is a share of the half width, in [0, 1]"
     );
     assert!(
+        g.mark_reference_blast_m > 0.0,
+        "ground.mark_reference_blast_m must be positive"
+    );
+    assert!(
         g.lane_margin_m >= 0.0,
         "ground.lane_margin_m must not be negative"
     );
@@ -264,14 +268,20 @@ impl GroundLayer {
             return;
         }
         let height = at.z - ground.z;
+        // A burst smaller than the reference marks less. Its crater's depth
+        // already grows with its radius (`crater_depth_per_m`), and the ground
+        // it throws up goes as the area, so the depth takes the share squared;
+        // scorch is burnt area added once per burst, so it takes the share
+        // itself. A small shell leaves a scorched pock, not a soil ring.
+        let share = (blast_radius / rules.mark_reference_blast_m).min(1.0);
         let crater = blast_radius * rules.crater_radius_fraction;
         if height <= crater {
-            let depth = rules.crater_depth_per_m * crater;
+            let depth = rules.crater_depth_per_m * crater * share * share;
             self.stamp(at.xy(), crater, depth, |c, v| c.crater = add(c.crater, v));
         }
         let scorch = blast_radius * rules.scorch_radius_fraction;
         if height <= scorch {
-            self.stamp(at.xy(), scorch, rules.scorch_per_burst, |c, v| {
+            self.stamp(at.xy(), scorch, rules.scorch_per_burst * share, |c, v| {
                 c.scorch = add(c.scorch, v)
             });
         }

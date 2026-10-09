@@ -2207,6 +2207,98 @@
         "interval_s": 0.1
       }
     },
+    "bass-11-burst-a": {
+      "label": "Bass 11 \u00b7 3-round burst A",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [1021000, 1045960],
+      "processing": "heavy-report",
+      "url": "/audio/clips/bass-11-burst-a.wav",
+      "sha256": "01595b20b45e80649c5e040a35b511a929bc07d9704a1fde5695313f64128ef2",
+      "sample_rate": 48000,
+      "frames": 34560,
+      "loop": false,
+      "notes": "Shots 1, 2, 3 of take 11's deep bassy reports: six rounds about 0.21 s apart, each cut 120 ms after its attack, before the take's echo, re-laid 0.3 s apart at the autocannon's cadence. Family label is descriptive, not an identified weapon model.",
+      "burst": {
+        "shots": [
+          [1021000, 1026760],
+          [1030360, 1036120],
+          [1040200, 1045960]
+        ],
+        "interval_s": 0.3
+      }
+    },
+    "bass-11-burst-b": {
+      "label": "Bass 11 \u00b7 3-round burst B",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [1030360, 1055800],
+      "processing": "heavy-report",
+      "url": "/audio/clips/bass-11-burst-b.wav",
+      "sha256": "c19d762587b7256a0046a54cfc0a222cb568be31497e6fe031eaa6a7019125e1",
+      "sample_rate": 48000,
+      "frames": 34560,
+      "loop": false,
+      "notes": "Shots 2, 3, 4 of take 11's deep bassy reports: six rounds about 0.21 s apart, each cut 120 ms after its attack, before the take's echo, re-laid 0.3 s apart at the autocannon's cadence. Family label is descriptive, not an identified weapon model.",
+      "burst": {
+        "shots": [
+          [1030360, 1036120],
+          [1040200, 1045960],
+          [1050040, 1055800]
+        ],
+        "interval_s": 0.3
+      }
+    },
+    "bass-11-burst-c": {
+      "label": "Bass 11 \u00b7 3-round burst C",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [1040200, 1066360],
+      "processing": "heavy-report",
+      "url": "/audio/clips/bass-11-burst-c.wav",
+      "sha256": "2781c5f452d57075abdb310bccd438ea81e3173e4934d3084640d667a25630b2",
+      "sample_rate": 48000,
+      "frames": 34560,
+      "loop": false,
+      "notes": "Shots 3, 4, 5 of take 11's deep bassy reports: six rounds about 0.21 s apart, each cut 120 ms after its attack, before the take's echo, re-laid 0.3 s apart at the autocannon's cadence. Family label is descriptive, not an identified weapon model.",
+      "burst": {
+        "shots": [
+          [1040200, 1045960],
+          [1050040, 1055800],
+          [1060600, 1066360]
+        ],
+        "interval_s": 0.3
+      }
+    },
+    "bass-11-burst-d": {
+      "label": "Bass 11 \u00b7 3-round burst D",
+      "category": "heavy-gun",
+      "role": "shot",
+      "source": "qubodup-gunfire",
+      "source_rate": 48000,
+      "source_frames": [1050040, 1076680],
+      "processing": "heavy-report",
+      "url": "/audio/clips/bass-11-burst-d.wav",
+      "sha256": "b4b1002da4874587b759eff9b1f0ce20241bebe20fe4a031ae39d33ec3647bfd",
+      "sample_rate": 48000,
+      "frames": 34560,
+      "loop": false,
+      "notes": "Shots 4, 5, 6 of take 11's deep bassy reports: six rounds about 0.21 s apart, each cut 120 ms after its attack, before the take's echo, re-laid 0.3 s apart at the autocannon's cadence. Family label is descriptive, not an identified weapon model.",
+      "burst": {
+        "shots": [
+          [1050040, 1055800],
+          [1060600, 1066360],
+          [1070920, 1076680]
+        ],
+        "interval_s": 0.3
+      }
+    },
     "metal-hit-craigsmith-675951-1": {
       "label": "S31-15 Shooting gallery; hitting metal targets.wav \u00b7 1",
       "category": "hard-impact",
@@ -4898,6 +4990,22 @@
       "gain": 1.395,
       "loop": false
     },
+    "autocannon-combat": {
+      "label": "Autocannon \u00b7 deep recorded bursts",
+      "clips": ["bass-11-burst-a", "bass-11-burst-b", "bass-11-burst-c", "bass-11-burst-d"],
+      "synth": "hmg",
+      "synth_gain": 0.1,
+      "gain": 0.95,
+      "loop": false
+    },
+    "autocannon-combat-distant": {
+      "label": "Autocannon \u00b7 deep recorded bursts \u00b7 distant",
+      "clips": ["bass-11-burst-a", "bass-11-burst-b", "bass-11-burst-c", "bass-11-burst-d"],
+      "synth": "hmg",
+      "synth_gain": 0.1,
+      "gain": 1.4725,
+      "loop": false
+    },
     "recorded-cannon-distant": {
       "label": "Tank cannon \u00b7 recorded core \u00b7 distant",
       "clips": ["cannon-m1"],
@@ -5505,6 +5613,11 @@
     "hmg": {
       "near": "hmg-combat",
       "far": "hmg-combat-distant",
+      "gain": 1
+    },
+    "autocannon": {
+      "near": "autocannon-combat",
+      "far": "autocannon-combat-distant",
       "gain": 1
     },
     "tank_ap": {

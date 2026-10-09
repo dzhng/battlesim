@@ -36,13 +36,20 @@ export function inheritWeaponAudio(
   };
 }
 
-/** `catalog` with each weapon of `weapons` firing its nearest ancestor's
- *  chosen recording (`defaults`) where it has none of its own. */
+/** `catalog` with each weapon of `weapons` firing, striking and glancing as
+ *  its nearest ancestor's chosen recordings (`defaults`, and each contact's
+ *  row of `impacts`) where it has none of its own. */
 export function inheritWeaponChoices(
   catalog: SoundCatalog,
   weapons: Record<string, object>,
 ): SoundCatalog {
-  return { ...catalog, defaults: inheritRows(catalog.defaults, weapons) };
+  return {
+    ...catalog,
+    defaults: inheritRows(catalog.defaults, weapons),
+    impacts: Object.fromEntries(
+      Object.entries(catalog.impacts).map(([contact, row]) => [contact, inheritRows(row, weapons)]),
+    ),
+  };
 }
 
 /** The game's sound (`presentation.audio`), weapons inherited. */

@@ -31,6 +31,7 @@ export const gameEffects: EffectPresentation = validateEffects({
   tracers: inheritRows(effects.tracers, game.weapons),
   flashes: inheritRows(effects.flashes, game.weapons),
   impact_scale: inheritRows(effects.impact_scale, game.weapons),
+  blast_scale: inheritRows(effects.blast_scale, game.weapons),
 });
 
 /** The prop kinds that smoke once a side knows of them, each with its look (a

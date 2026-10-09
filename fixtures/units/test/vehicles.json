@@ -65,6 +65,13 @@
       ],
       "sound": { "profile": "vehicle", "loudness_m": 500 },
       "appearance": "test_jeep"
+    },
+    "test_gun_jeep": {
+      "extends": "test_jeep",
+      "name": "Gun Jeep",
+      "description": "The test jeep with an autocannon on its pedestal in place of the HMG, and sights that see out to its range: the autocannon's round in labs and scenes, on a hull the tests already know.",
+      "sensors": { "ground_m": 700 },
+      "mounts": [{ "id": "HMG", "name": "Autocannon", "weapons": ["autocannon"] }]
     }
   }
 }

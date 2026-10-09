@@ -22,8 +22,9 @@ grenades and launchers keep single reports.
 
 A round's contact sound follows the round as well as the surface: a hit by
 its material, a glance by its ricochet, so a shell strikes and deflects off
-armour with weight a rifle round lacks. Unassigned rounds fall back to the
-contact's default, then the shared slot. Heavier rounds sound louder by their
+armour with weight a rifle round lacks. A derived round without its own
+choice takes its nearest ancestor's, as for firing; otherwise it falls back to
+the contact's default, then the shared slot. Heavier rounds sound louder by their
 impact scale.
 
 A battle prepares only what it can play: the synthesized baselines and every

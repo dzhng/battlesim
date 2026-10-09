@@ -209,15 +209,15 @@ export async function run(ctx) {
     "every weapon retains unlimited ammunition",
     after.own.flatMap((u) => u.mounts).every((m) => m.ammo.every((a) => a === null)),
   );
-  ctx.check(
-    "every firing lane continues shooting",
-    lanes.every((l) => {
+  const silent = lanes
+    .filter((l) => {
       const u = after.own.find(
         (u) => Math.hypot(u.position[0] - l.from[0], u.position[1] - l.from[1]) < 2,
       );
-      return u?.weaponPoses.some((m) => m.shots >= 2);
-    }),
-  );
+      return !u?.weaponPoses.some((m) => m.shots >= 2);
+    })
+    .map((l) => l.weapon);
+  ctx.check("every firing lane continues shooting", silent.length === 0, JSON.stringify(silent));
   await lab(page, () => window.__lab.route.show(2));
   await lab(
     page,
