@@ -30,6 +30,8 @@ const STEPS = 16;
 /** Each shown unit's order-mark opacity in (0, 1]; a unit absent is hidden. */
 export type RevealedOrders = ReadonlyMap<number, number>;
 
+const NONE_AWAITING: ReadonlySet<number> = new Set();
+
 /** No unit's order marks shown. */
 export const NOTHING_REVEALED: RevealedOrders = new Map();
 
@@ -72,11 +74,14 @@ export class OrderReveal {
 
   /** The order marks shown at presentation time `now` among `own`: all in
    *  full with Space held (`showOrders`), otherwise each flashed unit's
-   *  flash. A unit seen here with its route newly blocked starts one. */
+   *  flash. A unit seen here with its route newly blocked starts one. A unit
+   *  `awaiting` a new order still publishes its old one, so it shows none
+   *  until the new order lands. */
   at(
     now: number,
     showOrders: boolean,
     own: readonly { id: number; state?: string }[],
+    awaiting: ReadonlySet<number> = NONE_AWAITING,
   ): RevealedOrders {
     const blocked = new Set<number>();
     for (const { id, state } of own) {
@@ -89,6 +94,7 @@ export class OrderReveal {
     const shown = new Map<number, number>();
     const { hold_s, fade_s } = this.flash;
     for (const { id } of own) {
+      if (awaiting.has(id)) continue;
       const issued = this.issued.get(id);
       const since = issued === undefined ? Infinity : now - issued;
       const flash =

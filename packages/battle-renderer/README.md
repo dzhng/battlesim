@@ -66,13 +66,16 @@ postprocessing, so grading and fog cannot change their information colors.
 room and glass geometry; alpha cannot silently acquire a second meaning in a pass.
 Numeric layouts and pipeline formats belong to their source owners, not this guide.
 
-Placement previews name the same installed appearance and pose as a real unit.
+Placement and order previews (a unit being placed, a held facing drag, every
+ordered destination with Space held) name the same installed appearances and pose
+as a real unit, one per soldier for a squad.
 Their explicit ghost presentation draws its mesh after fog treatment and before
 postprocessing, reading physical world depth without writing it or casting shadows.
 The mesh stays legible over unseen ground while its translucency preserves that
 ground's fog treatment. Authored material coverage
 still defines holes and glass; instance opacity never changes that asset contract.
-The app owns placement validity and colour, and the renderer receives only the cue.
+The app owns where they stand, their validity and colour, and the renderer receives
+only the cue.
 
 ## Resource lifetime and bounded work
 

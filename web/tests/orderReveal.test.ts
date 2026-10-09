@@ -93,3 +93,19 @@ test("a unit whose route turns out blocked flashes its order marks when that is 
   // It flashes once, not for as long as the route stays blocked.
   expect(reveal.at(27, false, own("route_blocked")).size).toBe(0);
 });
+
+test("a unit whose new order has not landed shows no marks, rather than its old order's", () => {
+  const reveal = new OrderReveal(FLASH);
+  reveal.noteOrder(move([1, 2]), 20);
+  // Unit 1 still publishes the order it had: its marks would draw the old destination.
+  expect([...reveal.at(20, false, OWN, new Set([1]))]).toEqual([[2, 1]]);
+  expect([...reveal.at(20, true, OWN, new Set([1]))]).toEqual([
+    [2, 1],
+    [3, 1],
+  ]);
+  // Once it lands the flash shows it, still within its hold.
+  expect([...reveal.at(20.5, false, OWN)]).toEqual([
+    [1, 1],
+    [2, 1],
+  ]);
+});

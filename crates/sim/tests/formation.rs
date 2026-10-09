@@ -353,3 +353,47 @@ fn partial_placement_keeps_moving_destinations_clear_of_units_that_hold() {
     );
     assert!(plan.checks <= members.len() + rules.candidate_checks as usize);
 }
+
+#[test]
+fn a_previewed_squad_spreads_each_living_soldier_round_its_goal_and_a_hull_has_none() {
+    use contract::ids::Side;
+    use sim::battle::Battle;
+    let setup = crate::common::scenario(
+        r#"{"size":[300,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[]}"#,
+        serde_json::json!([
+            {"side":"blue","kind":"test_rifle","position":[30,60]},
+            {"side":"blue","kind":"test_jeep","position":[30,140]}
+        ]),
+        serde_json::json!([]),
+    );
+    let mut battle = Battle::new(&setup, 1);
+    let living = battle.observe(Side::Blue).own[0].members.len();
+    let preview = battle
+        .preview_move(
+            Side::Blue,
+            &contract::command::MovePreviewRequest {
+                units: vec![UnitId(0), UnitId(1)],
+                goal: [200.0, 100.0],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    let squad = preview.iter().find(|d| d.unit == UnitId(0)).unwrap();
+    assert!(living > 1);
+    assert_eq!(squad.spots.len(), living, "one spot per living soldier");
+    for spot in &squad.spots {
+        let off = (spot[0] - squad.goal[0]).hypot(spot[1] - squad.goal[1]);
+        assert!(
+            off < 15.0,
+            "a soldier stands round the squad's goal, {off} m off"
+        );
+    }
+    let distinct: std::collections::BTreeSet<_> = squad
+        .spots
+        .iter()
+        .map(|s| ((s[0] * 10.0) as i64, (s[1] * 10.0) as i64))
+        .collect();
+    assert_eq!(distinct.len(), living, "soldiers spread out, not stacked");
+    let hull = preview.iter().find(|d| d.unit == UnitId(1)).unwrap();
+    assert!(hull.spots.is_empty(), "a vehicle stands as one body");
+}

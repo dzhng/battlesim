@@ -130,7 +130,8 @@ export class PointerPaint {
   private gesture = "";
   private generation = 0;
   private busy = false;
-  private destinations: MoveDestination[] = [];
+  /** The press's last answered destinations, kept while its facing turns. */
+  destinations: MoveDestination[] = [];
   building: BuildingPlacement | null = null;
   state: "idle" | "pending" | "ready" | "blocked" = "idle";
 
@@ -139,7 +140,9 @@ export class PointerPaint {
   }
 
   /** At most one placement query is in flight; intermediate pointer updates
-   *  are coalesced, and a reply cannot restore a cancelled gesture. */
+   *  are coalesced, and a reply cannot restore a cancelled gesture. Turning
+   *  the facing is the same gesture: its last answer stays drawn until the
+   *  new facing's answer replaces it, so a facing drag never blanks. */
   resolvePreview(
     intent: PointerPreview | null,
     selected: readonly OwnUnitView[],
@@ -147,7 +150,10 @@ export class PointerPaint {
     revision: number | string,
     identity = "",
   ) {
-    const gesture = intent && client ? JSON.stringify([intent, identity]) : "";
+    const gesture =
+      intent && client
+        ? JSON.stringify([intent.kind, { ...intent.request, facing: undefined }, identity])
+        : "";
     if (gesture !== this.gesture || client !== this.previewClient) {
       this.generation += 1;
       this.gesture = gesture;

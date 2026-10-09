@@ -101,9 +101,16 @@ export interface MoveDestination {
   goal: [number, number];
   facing: number;
   placed: boolean;
+  /** Where a squad's living soldiers stand round `goal`, in member order:
+   *  the squad's shape there (the order draws its own). Empty for a vehicle. */
+  spots: [number, number][];
 }
 
-export type PurchasePlacement = { Ok: number } | { Err: OrderError };
+/** An admitted placement's unit type, and where a squad's soldiers would
+ *  stand round its destination, in slot order (empty for a vehicle). */
+export type PurchasePlacement =
+  | { Ok: { kind: number; spots: [number, number][] } }
+  | { Err: OrderError };
 
 export interface OrderError {
   reason: string;

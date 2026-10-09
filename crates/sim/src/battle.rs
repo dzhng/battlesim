@@ -2364,7 +2364,9 @@ impl Battle {
             destination,
         } = &command.order
         {
-            let kind = self.preview_purchase(command.side, variant, *destination)?;
+            let kind = self
+                .preview_purchase(command.side, variant, *destination)?
+                .kind;
             let living = self
                 .units
                 .iter()
@@ -2421,6 +2423,7 @@ impl Battle {
                             goal: entry.center,
                             placed: true,
                             facing: entry.yaw,
+                            spots: vec![],
                         })
                         .collect(),
                 })
@@ -2769,7 +2772,7 @@ impl Battle {
         side: Side,
         variant: &str,
         destination: [f64; 2],
-    ) -> Result<contract::catalog::TypeIndex, OrderError> {
+    ) -> Result<contract::skirmish::PurchasePreview, OrderError> {
         let skirmish = self.skirmish.as_ref().ok_or(OrderError::NotSkirmish)?;
         let kind = self
             .rules
@@ -2804,7 +2807,49 @@ impl Battle {
         {
             return Err(OrderError::NoValidDestination);
         }
-        Ok(kind)
+        let t = self.rules.catalog.get(kind);
+        let soldiers = if t.hull().is_some() {
+            0
+        } else {
+            t.slots().map_or(0, |s| s.len())
+        };
+        let next = self.units.len() as u32;
+        Ok(contract::skirmish::PurchasePreview {
+            kind,
+            spots: self.arrival_spots(side, destination, soldiers, next),
+        })
+    }
+
+    /// Where `count` soldiers stand round `centre` as a squad arriving there
+    /// spreads out on the ground `side` knows, before cover moves them. A
+    /// fresh seeded draw: it changes no state.
+    fn arrival_spots(
+        &self,
+        side: Side,
+        centre: [f64; 2],
+        count: usize,
+        unit: u32,
+    ) -> Vec<[f64; 2]> {
+        if count == 0 {
+            return vec![];
+        }
+        let known = &self.sides[side.index()];
+        let solid = |p: &crate::world::Prop| {
+            p.blocks(MoverClass::Infantry) && known.knows(p, self.authored_props)
+        };
+        let mut draws = arrangement::rng(self.seed, unit, self.tick);
+        arrangement::squad_spots(
+            &self.world,
+            v2(centre[0], centre[1]),
+            count,
+            &self.rules.infantry_movement,
+            self.rules.physics.soldier_radius_m,
+            &solid,
+            &mut draws,
+        )
+        .into_iter()
+        .map(|p| [p.x, p.y])
+        .collect()
     }
 
     pub fn preview_move(
@@ -2928,11 +2973,17 @@ impl Battle {
                 let goal = slot_point.unwrap_or(u.position.xy());
                 let facing =
                     movement::final_yaw(u, request.facing, from(u), goal, request.direction);
+                let living = if u.hull.is_some() {
+                    0
+                } else {
+                    u.members.iter().filter(|s| s.alive()).count()
+                };
                 contract::command::MoveDestination {
                     unit: slot.id,
                     goal: [goal.x, goal.y],
                     placed: slot_point.is_some(),
                     facing: facing.unwrap_or(u.yaw),
+                    spots: self.arrival_spots(side, [goal.x, goal.y], living, slot.id.0),
                 }
             })
             .collect();
