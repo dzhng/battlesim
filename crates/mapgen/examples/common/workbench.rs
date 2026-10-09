@@ -248,7 +248,8 @@ fn generated(inputs: Inputs, choice: Choice, directory: PathBuf) -> Result<Value
         }
     };
     let generation_ms = started.elapsed().as_secs_f64() * 1000.0;
-    let metrics = json!({"layout":mapgen::layout::measure(&plan,&c.presets),"country":mapgen::open_country::measure(&plan,&c.presets),"compile":result.report});
+    let presets = c.presets.for_request(&request);
+    let metrics = json!({"layout":mapgen::layout::measure(&plan,&presets),"country":mapgen::open_country::measure(&plan,&presets),"compile":result.report});
     let counts = json!({"buildings":result.map.buildings.len(),"parts":result.report.authored_parts,"bay_positions":result.report.bay_positions,"ground_points":result.report.ground_points,"props":result.map.props.len(),"surfaces":result.map.surfaces.len(),"forests":result.map.forests.len()});
     let encounter_started = Instant::now();
     let world = sim::encounter::PreparedMap::new(&result.map, &c.rules);

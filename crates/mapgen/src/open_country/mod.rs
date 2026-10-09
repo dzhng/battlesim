@@ -40,7 +40,7 @@ use crate::layout::geometry::{
 use crate::layout::rng::Stream;
 use crate::layout::water::Water;
 use crate::layout::{corridor_start, GenerationRequest, LotRule, OutlineShape, PresetDefinitions};
-use crate::parcels::lots::{placement, Fit, Frontage, Lot};
+use crate::parcels::lots::{placement, Choices, Fit, Frontage, Lot};
 use crate::parcels::space::{Rect, Run};
 use crate::parcels::streets::Network;
 use crate::{BuildingPlacement, Diagnostic, DiagnosticCode, LotPlan, MapPlan};
@@ -278,10 +278,6 @@ struct Country<'a> {
     props: Vec<AuthoredPropDefinition>,
 }
 
-/// One group's templates: each of its categories the catalogue can build,
-/// with the category's weight.
-type Choices<'a> = Vec<(f64, Vec<&'a Fit<'a>>)>;
-
 /// What a place is asked for.
 #[derive(Clone, Copy)]
 struct Ask {
@@ -479,17 +475,9 @@ impl<'a> Country<'a> {
             return false;
         }
         let along = scale(sub(ahead, at), 1.0 / distance(at, ahead));
-        let total: f64 = h.groups.iter().map(|group| group.weight).sum();
-        let mut pick = rng.unit() * total;
-        let index = h
-            .groups
-            .iter()
-            .position(|group| {
-                pick -= group.weight;
-                pick < 0.0
-            })
-            .unwrap_or(h.groups.len() - 1);
-        let (group, choices) = (&h.groups[index], &fits[index]);
+        let (group, choices) = rng
+            .pick(h.groups.iter().zip(fits).map(|pair| (pair, pair.0.weight)))
+            .expect("the open country has homestead groups");
         if choices.is_empty() {
             return false;
         }
@@ -561,15 +549,7 @@ impl<'a> Country<'a> {
         let mut cursor = [0.0_f64; 2];
         for _ in 0..homes {
             // A category by its weight, then one of its templates.
-            let weights: f64 = choices.iter().map(|(weight, _)| weight).sum();
-            let mut pick = rng.unit() * weights;
-            let (_, eligible) = choices
-                .iter()
-                .find(|(weight, _)| {
-                    pick -= weight;
-                    pick < 0.0
-                })
-                .unwrap_or(&choices[choices.len() - 1]);
+            let eligible = choices.category(rng);
             let fit = eligible[rng.below(eligible.len() as u64) as usize];
             let across = if lane.is_some() || homes > 2 {
                 usize::from(rng.chance(0.5))
@@ -686,16 +666,9 @@ impl<'a> Country<'a> {
             }
         }
         if rng.chance(h.body_chance) {
-            let total: f64 = h.bodies.iter().map(|row| row.weight).sum();
-            let mut pick = rng.unit() * total;
-            let row = h
-                .bodies
-                .iter()
-                .find(|row| {
-                    pick -= row.weight;
-                    pick < 0.0
-                })
-                .unwrap_or(&h.bodies[h.bodies.len() - 1]);
+            let row = rng
+                .pick(h.bodies.iter().map(|row| (row, row.weight)))
+                .expect("a yard has bodies");
             // Beside the house, in the side setback, nose to the road.
             let side = if rng.chance(0.5) { 1.0 } else { -1.0 };
             let box_half = (fit.max[0] - fit.min[0]) / 2.0;
@@ -965,16 +938,9 @@ impl<'a> Country<'a> {
     fn cover(&mut self, p: Point, rng: &mut Stream) -> bool {
         let rules = self.rules;
         let f = &rules.field_cover;
-        let total: f64 = f.bodies.iter().map(|row| row.weight).sum();
-        let mut pick = rng.unit() * total;
-        let row = f
-            .bodies
-            .iter()
-            .find(|row| {
-                pick -= row.weight;
-                pick < 0.0
-            })
-            .unwrap_or(&f.bodies[f.bodies.len() - 1]);
+        let row = rng
+            .pick(f.bodies.iter().map(|row| (row, row.weight)))
+            .expect("field cover has bodies");
         let radius = libm::hypot(row.half_extents_m[0], row.half_extents_m[1]);
         let ask = Ask {
             radius: radius + f.gap_m,
@@ -1045,26 +1011,12 @@ pub(crate) fn furnish(
             .groups
             .iter()
             .map(|group| {
-                group
+                let mix = group
                     .mix
                     .iter()
-                    .map(|(name, weight)| {
-                        let category = category_of(name);
-                        let of_it: Vec<&Fit> = fits
-                            .iter()
-                            .filter(|fit| {
-                                Some(fit.template.category) == category
-                                    && fit.template.regional_family == family
-                                    && preset.categories.contains(&fit.template.category)
-                                    && preset
-                                        .max_floors
-                                        .is_none_or(|most| fit.floors() <= most as usize)
-                            })
-                            .collect();
-                        (*weight, of_it)
-                    })
-                    .filter(|(_, of_it)| !of_it.is_empty())
-                    .collect()
+                    .filter_map(|(name, weight)| Some((category_of(name)?, *weight)))
+                    .filter(|(category, _)| preset.categories.contains(category));
+                Choices::available(&fits, mix, family, preset.max_floors)
             })
             .collect();
         let open_km2 = country.estimated_open_km2();
@@ -1490,11 +1442,10 @@ pub(crate) fn cover(
             ),
         }]
     };
-    let map = crate::lower(
+    let (map, _) = crate::materialize(
         &crate::CompileRequest::generated(request, plan.clone()),
         catalogue,
-    )?
-    .map;
+    )?;
     let cell = presets.open_country.sight.cell_m;
     let mut coverage = coverage::Coverage::new(&map, physics, cell).map_err(fail)?;
     let (added, kept) = {

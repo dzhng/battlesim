@@ -25,7 +25,7 @@ fn compact_profile_is_admitted_without_changing_standard_extent() {
             "max_bay_positions": 100000000, "max_ground_points": 10000000 }
     });
     let compact: GenerationRequest = serde_json::from_value(request.clone()).unwrap();
-    let plan = mapgen::layout::generate_layout(&compact, &presets).unwrap();
+    let plan = mapgen::layout::generate_layout(&compact, &presets.for_request(&compact)).unwrap();
     assert_eq!(plan.size, [1800.0; 2]);
     let mut standard = request;
     standard["profile"] = serde_json::json!("standard");

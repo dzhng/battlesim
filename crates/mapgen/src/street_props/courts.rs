@@ -146,7 +146,10 @@ impl<'a> Pass<'a> {
         if let Some((rule, kinds)) = boundary {
             // One kind for the district: its yards' runs meet and continue
             // each other, so a block's boundary reads as one.
-            let kind = rng.pick(kinds).expect("a boundary names a kind").as_str();
+            let kind = rng
+                .pick(kinds.iter().map(|(kind, weight)| (kind, *weight)))
+                .expect("a boundary names a kind")
+                .as_str();
             let most = placed + (room - placed) / split.yards;
             for yard in &yards {
                 placed += self.bound(yard, rule, kind, most - placed);

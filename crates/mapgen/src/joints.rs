@@ -30,7 +30,7 @@
 //! The steps, in order: `trim` (roads that run out past their settlement),
 //! `undouble` (a street drawn beside another), `weld`, `tidy` (turns a few
 //! metres from an end), `meet` (corners whose ends fell short or ran past),
-//! `weld` again, `carry` (unlike roads that meet end to end), `weld` once
+//! `tidy` again, `weld` again, `carry` (unlike roads that meet end to end), `weld` once
 //! more, `gate` (the map's edge) and `snap` (ends that join a road).
 //!
 //! Not closed yet, and counted by `tests/road_ends.rs`: a few junctions

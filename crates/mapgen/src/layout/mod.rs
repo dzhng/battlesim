@@ -74,12 +74,12 @@ impl Context<'_> {
     }
 }
 
+/// The layout of `request` under `presets`, which are already resolved for
+/// it (`PresetDefinitions::for_request`), as every later pass reads them.
 pub fn generate_layout(
     request: &GenerationRequest,
     presets: &PresetDefinitions,
 ) -> Result<MapPlan, Vec<Diagnostic>> {
-    let resolved_presets = presets.for_request(request);
-    let presets = &resolved_presets;
     let pins = [
         (
             "generator_version",

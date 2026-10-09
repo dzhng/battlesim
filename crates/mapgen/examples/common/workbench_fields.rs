@@ -121,7 +121,6 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
                 "Rivers"
             },
         ),
-        "crossings" => (PRESETS, "Crossings"),
         "retries" => (PRESETS, "Retries"),
         "street_props" => (
             PRESETS,
@@ -225,9 +224,7 @@ fn help(document: &str, path: &[String], key: &str, group: &str) -> String {
                 group
             )
         });
-    described
-        .replace("[`carry`]", "the carry pass")
-        .replace('`', "")
+    described.replace('`', "")
 }
 
 pub fn describe(presets: &str, defaults: &str) -> Vec<Value> {
