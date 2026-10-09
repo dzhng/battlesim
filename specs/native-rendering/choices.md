@@ -45,6 +45,32 @@
 - The GDExtension smoke loads in Godot 4.7.2 headless and prints
   `rust-simulation-probe 0.1.0`; this validates the loader, entry symbol and
   Rust-owned node lifecycle. It does not yet prove simulation transfer.
+
+## Audit entries — implementation passes
+
+### Needs-user (low confidence)
+
+- **The first live Godot binding returns a copied `PackedFloat32Array`.** The
+  Godot API is convenient for a smoke method, so the pass chose to copy the
+  simulation publisher's slice into Godot's packed-array value. The alternative
+  would be a borrowed pointer or a shared native buffer. This is sound for the
+  small probe but not yet a production transfer decision. Provisional call:
+  keep the copy for the smoke and measure a bulk/shared-buffer alternative in
+  the real binding slice; reverse it if transfer cost is material. The gap was
+  that the spec required bulk transfer but did not select an ownership model.
+
+### Sound (high confidence)
+
+- **The offline native probe is a separate executable.** It advances the real
+  Rust battle, copies one side publication, and replays the result to the same
+  digest without opening a window. This keeps simulation authority evidence
+  independent from Godot's renderer and makes a failed Godot installation
+  diagnosable. The alternative would have mixed engine startup and sim timing.
+- **Godot API 4.7 is pinned to the runtime.** The extension uses godot-rust
+  0.5.5 with `api-4-7` because the verified runtime is Godot 4.7.2. The
+  alternative of `api-custom` was rejected because the official compatibility
+  guidance gives it no guarantee. This constrains the first Mac spike to the
+  pinned runtime and leaves broader runtime support for a later decision.
 - The existing `game-wasm::BattleHandle` already exposes the required seam
   concepts: ordered commands, fixed stepping, side publication, digest,
   replay and observation resync. Native work should reuse those simulation
