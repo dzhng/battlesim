@@ -1332,13 +1332,14 @@
   font-size: 11px;
   color: rgb(var(--hud-text) / 0.7);
 }
-/* A family's variants, in a menu above the picker over the family's card.
-   Its transparent foot is the bridge the pointer climbs to reach it. */
+/* A family's variants, in a hover menu standing on the family's card (its
+   top-left corner is the anchor), over the picker's header if need be. Its
+   transparent foot is the bridge the pointer climbs to reach it. */
 .hud-purchase-flyout {
   position: absolute;
-  bottom: 100%;
   z-index: 1;
-  padding-bottom: 8px;
+  transform: translateY(-100%);
+  padding-bottom: 4px;
 }
 .hud-panel.hud-purchase-flyout-panel {
   display: flex;

@@ -63,7 +63,7 @@ async function picker(ctx, page, shot) {
   );
   await tank.hover();
   const after = { picker: await picker.boundingBox(), tank: await tank.boundingBox() };
-  const menu = await page.getByRole("group", { name: "Tank variants" }).boundingBox();
+  const menu = await page.locator(".hud-purchase-flyout-panel").boundingBox();
   ctx.check(
     `${shot}: hovering a family leaves the picker and its card where they were`,
     ["x", "y", "width", "height"].every(
@@ -73,14 +73,19 @@ async function picker(ctx, page, shot) {
     ),
     JSON.stringify({ before, after }),
   );
+  // Like a web hover menu: it stands right on top of its card, over the
+  // picker's own header if it must, never off at the picker's edge.
+  const gap = after.tank.y - (menu?.y ?? 0) - (menu?.height ?? 0);
   ctx.check(
-    `${shot}: the variants open above the picker, over the hovered card`,
+    `${shot}: the variants open right above the hovered card`,
     menu !== null &&
-      menu.y + menu.height <= after.picker.y &&
+      gap >= 0 &&
+      gap <= 6 &&
       menu.x < after.tank.x + after.tank.width &&
       menu.x + menu.width > after.tank.x,
-    JSON.stringify({ menu, picker: after.picker, tank: after.tank }),
+    JSON.stringify({ gap, menu, tank: after.tank }),
   );
+
   ctx.check(
     `${shot}: hovering a family of variants lists them`,
     (await page.getByRole("group", { name: "Tank variants" }).count()) === 1,
@@ -163,6 +168,14 @@ async function picker(ctx, page, shot) {
   ctx.check(
     `${shot}: the pointer reaches a variant with its menu still open`,
     await variant.isVisible(),
+  );
+  // Resting on another family is a choice: its hover replaces the menu.
+  await page.getByRole("button", { name: "Tank", exact: true }).hover();
+  await page.getByRole("button", { name: "Jeep", exact: true }).hover();
+  await page.waitForTimeout(400);
+  ctx.check(
+    `${shot}: resting on another family moves the hover to it`,
+    (await page.locator(".hud-purchase-flyout").count()) === 0,
   );
   await pointerAway(page);
   ctx.check(
