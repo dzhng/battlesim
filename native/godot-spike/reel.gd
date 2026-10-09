@@ -172,6 +172,9 @@ func _build_world() -> void:
 	var cull_text := OS.get_environment("GODOT_AUTHORED_CULL_RADIUS")
 	if not cull_text.is_empty() and float(cull_text) > 0.0:
 		authored_cull_radius = float(cull_text)
+	var map_cull_text := OS.get_environment("GODOT_MAP_RENDER_RADIUS")
+	if not map_cull_text.is_empty() and float(map_cull_text) > 0.0:
+		map_render_radius = float(map_cull_text)
 	if not authored_paths.is_empty():
 		for path in authored_paths.split(","):
 			var clean_path := path.strip_edges()
