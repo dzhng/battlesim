@@ -22003,7 +22003,7 @@
       "armor_fraction": 0.0,
       "armor_piercing": false,
       "blast_radius_m": 2.0,
-      "damage": 60.0,
+      "damage": 100.0,
       "default": true,
       "description": "A slow-firing cannon whose small bursting shells tear up troops, cover and light armour.",
       "gravity_scale": 0.5,

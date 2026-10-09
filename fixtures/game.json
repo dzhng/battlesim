@@ -254,7 +254,7 @@
       "range_m": 650,
       "speed_mps": 600,
       "gravity_scale": 0.5,
-      "damage": 60,
+      "damage": 100,
       "penetration": 65,
       "near_miss_suppression": 0.1,
       "suppression_radius_m": 6,
