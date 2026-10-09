@@ -792,10 +792,7 @@ func _save_cut_after_frame(scene_to_save: int, shot_to_save: int) -> void:
 
 func _save_cut(scene_to_save: int, shot_to_save: int) -> void:
 	DirAccess.make_dir_recursive_absolute(cut_dir)
-	var texture := get_viewport().get_texture()
-	if texture == null:
-		return
-	var image := texture.get_image()
+	var image := _viewport_image()
 	if image == null:
 		return
 	var path := cut_dir.path_join("scene-%02d-shot-%02d.png" % [scene_to_save, shot_to_save])
@@ -803,6 +800,14 @@ func _save_cut(scene_to_save: int, shot_to_save: int) -> void:
 		if not saved_cut_paths.has(path):
 			saved_cut_paths[path] = true
 			cuts_saved += 1
+
+func _viewport_image() -> Image:
+	if DisplayServer.get_name() == "headless":
+		return null
+	var texture := get_viewport().get_texture()
+	if texture == null:
+		return null
+	return texture.get_image()
 
 func _write_report() -> void:
 	if intervals.is_empty():
