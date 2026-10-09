@@ -29,6 +29,8 @@ var cut_dir := ""
 var cuts_saved := 0
 var capture_word_count := 0
 var capture_layout_valid := false
+var semantic_results: Dictionary = {}
+var unit_nodes: Array[Node3D] = []
 
 func _ready() -> void:
 	var configured := OS.get_environment("GODOT_REEL_SOURCE")
@@ -46,6 +48,7 @@ func _ready() -> void:
 	scenes = parsed.scenes
 	_load_presentation_captures()
 	_consume_capture_words()
+	_decode_semantic_captures()
 	cut_dir = OS.get_environment("GODOT_REEL_CUTS")
 	_build_world()
 	started = true
@@ -81,6 +84,26 @@ func _consume_capture_words() -> void:
 			for word in sample.publication:
 				capture_word_count += 1
 
+func _decode_semantic_captures() -> void:
+	for scene_name in capture_results:
+		var capture_result: Dictionary = capture_results[scene_name]
+		var baselines: Array = []
+		var frames: Array = []
+		var semantic_limit := int(OS.get_environment("GODOT_SEMANTIC_SAMPLE_LIMIT"))
+		if semantic_limit <= 0:
+			semantic_limit = 256
+		var semantic_index := 0
+		for sample in capture_result.capture.samples:
+			if semantic_index >= semantic_limit:
+				break
+			semantic_index += 1
+			var decoded := CaptureDecoder.decode_publication(capture_result, sample.publication, baselines)
+			if not decoded.valid:
+				continue
+			baselines = decoded.baselines
+			frames.append({"tick": sample.tick, "units": decoded.units})
+		semantic_results[scene_name] = frames
+
 func _build_world() -> void:
 	var environment := WorldEnvironment.new()
 	var env := Environment.new()
@@ -97,6 +120,9 @@ func _build_world() -> void:
 	add_child(sun)
 	camera = Camera3D.new()
 	add_child(camera)
+	var unit_holder := Node3D.new()
+	unit_holder.name = "ObservedUnits"
+	add_child(unit_holder)
 	var authored_path := OS.get_environment("GODOT_AUTHORED_SCENE")
 	var authored_paths := OS.get_environment("GODOT_AUTHORED_SCENES")
 	if not authored_paths.is_empty():
@@ -190,6 +216,7 @@ func _process(delta: float) -> void:
 		scale = 1.0
 	var advance := delta * scale
 	_scene_pose()
+	_update_observed_units()
 	if not cut_dir.is_empty() and shot_elapsed <= advance:
 		call_deferred("_save_cut")
 	elapsed += advance
@@ -209,6 +236,39 @@ func _process(delta: float) -> void:
 				get_tree().quit()
 			else:
 				_show_authored_scene()
+
+func _update_observed_units() -> void:
+	var scene: Dictionary = scenes[scene_index]
+	var frames: Array = semantic_results.get(scene.map, [])
+	if frames.is_empty():
+		return
+	var chosen: Dictionary = frames[0]
+	var target_tick := int(capture_results.get(scene.map, {}).get("capture", {}).get("warmTick", 0)) + int(scene_elapsed * 30.0)
+	for frame in frames:
+		if int(frame.tick) > target_tick:
+			break
+		chosen = frame
+	var units: Array = chosen.units
+	while unit_nodes.size() < units.size():
+		var mesh := MeshInstance3D.new()
+		var capsule := CapsuleMesh.new()
+		capsule.radius = 0.35
+		capsule.height = 1.4
+		mesh.mesh = capsule
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color("4d9be6") if unit_nodes.size() % 2 == 0 else Color("d95c5c")
+		mesh.material_override = material
+		get_node("ObservedUnits").add_child(mesh)
+		unit_nodes.append(mesh)
+	for i in unit_nodes.size():
+		var node := unit_nodes[i]
+		node.visible = i < units.size()
+		if i >= units.size():
+			continue
+		var pose: Dictionary = units[i]
+		var position: Array = pose.position
+		node.position = Vector3(float(position[0]), max(0.7, float(position[2]) + 0.7), float(position[1]))
+		node.rotation.y = float(pose.yaw)
 
 func _show_authored_scene() -> void:
 	for map_name in authored_scene_nodes:
@@ -284,6 +344,12 @@ func _write_report() -> void:
 	var slow_sum := 0.0
 	for i in slow_count:
 		slow_sum += sorted[sorted.size() - 1 - i]
+	var semantic_publications := 0
+	var semantic_unit_samples := 0
+	for frames in semantic_results.values():
+		semantic_publications += frames.size()
+		for frame in frames:
+			semantic_unit_samples += frame.units.size()
 	var report := {
 		"schema": "godot-render-report/v1",
 		"candidate": "godot-menu-reel-camera-probe",
@@ -300,6 +366,8 @@ func _write_report() -> void:
 		"capture_consumed": capture_results.values().any(func(result): return result.sample_count > 0),
 		"capture_layout_valid": capture_layout_valid,
 		"capture_publication_words": capture_word_count,
+		"semantic_publications": semantic_publications,
+		"semantic_unit_samples": semantic_unit_samples,
 		"capture_blocker": "" if capture_results.size() == scenes.size() else "one or more scene captures are missing",
 		"source": source_path,
 		"authored_scene": OS.get_environment("GODOT_AUTHORED_SCENE"),
