@@ -20,6 +20,10 @@ var source_path := ""
 var capture_result: Dictionary = {"valid": false, "comparison_ready": false, "comparison_blocker": "no presentation capture supplied"}
 var capture_results: Dictionary = {}
 var authored_asset_loaded := false
+var authored_building_count := 0
+var authored_map_scene_count := 0
+var authored_building_limit := 256
+var authored_scene_nodes: Dictionary = {}
 var cut_dir := ""
 var cuts_saved := 0
 
@@ -83,11 +87,49 @@ func _build_world() -> void:
 	if not authored_path.is_empty():
 		var authored = load(authored_path)
 		if authored is PackedScene:
+			var limit_text := OS.get_environment("GODOT_AUTHORED_BUILDING_LIMIT")
+			if not limit_text.is_empty():
+				authored_building_limit = maxi(0, int(limit_text))
+			if _build_authored_maps(authored):
+				authored_asset_loaded = true
+				return
 			var instance = authored.instantiate()
 			add_child(instance)
 			authored_asset_loaded = true
 			return
 	_build_proxy_field()
+
+func _build_authored_maps(authored: PackedScene) -> bool:
+	var directory := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
+	if directory.is_empty():
+		return false
+	for scene in scenes:
+		var map_path := directory.path_join(String(scene.map)).path_join("map.json")
+		var map_file := FileAccess.open(map_path, FileAccess.READ)
+		if map_file == null:
+			continue
+		var map = JSON.parse_string(map_file.get_as_text())
+		if typeof(map) != TYPE_DICTIONARY or typeof(map.get("buildings")) != TYPE_ARRAY:
+			continue
+		var holder := Node3D.new()
+		holder.name = "AuthoredMap_%s" % scene.map
+		holder.visible = scene.map == scenes[0].map
+		add_child(holder)
+		authored_scene_nodes[scene.map] = holder
+		var count := 0
+		for building in map.buildings:
+			if authored_building_limit > 0 and count >= authored_building_limit:
+				break
+			var frame: Dictionary = building.get("frame", {})
+			var translation: Array = frame.get("translation", [0.0, 0.0, 0.0])
+			var instance = authored.instantiate()
+			instance.position = Vector3(float(translation[0]), float(translation[2]), float(translation[1]))
+			instance.rotation.y = float(frame.get("yaw", 0.0))
+			holder.add_child(instance)
+			count += 1
+		authored_building_count += count
+		authored_map_scene_count += 1
+	return authored_map_scene_count > 0
 
 func _build_proxy_field() -> void:
 	var box := BoxMesh.new()
@@ -133,6 +175,12 @@ func _process(delta: float) -> void:
 			if scene_index >= scenes.size():
 				_write_report()
 				get_tree().quit()
+			else:
+				_show_authored_scene()
+
+func _show_authored_scene() -> void:
+	for map_name in authored_scene_nodes:
+		authored_scene_nodes[map_name].visible = map_name == scenes[scene_index].map
 
 func _scene_pose() -> void:
 	var scene: Dictionary = scenes[scene_index]
@@ -212,8 +260,11 @@ func _write_report() -> void:
 		"schema": "godot-render-report/v1",
 		"candidate": "godot-menu-reel-camera-probe",
 		"comparison_ready": false,
-		"comparison_blocker": "authored map assets are not loaded" if not authored_asset_loaded else "synthetic scene has no authored map publication",
+		"comparison_blocker": "authored map assets are not loaded" if not authored_asset_loaded else "authored map composition is a capped kit placement; terrain, props and unit publications are not rendered",
 		"authored_asset_loaded": authored_asset_loaded,
+		"authored_building_count": authored_building_count,
+		"authored_map_scene_count": authored_map_scene_count,
+		"authored_building_limit": authored_building_limit,
 		"cuts_saved": cuts_saved,
 		"capture_valid": not capture_results.is_empty(),
 		"capture_scene_count": capture_results.size(),

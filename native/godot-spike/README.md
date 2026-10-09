@@ -50,6 +50,8 @@ GODOT_AUTHORED_SCENE=res://authoring/homes-kit.glb \
 The capture directory contains one browser-exported JSON file per scene, named
 after the menu map. The copied asset is local evidence and stays outside the
 committed spike. The report records `authored_asset_loaded`, the number of
-capture scenes consumed and the authored scene path; `comparison_ready` remains
-false until the asset is the actual menu-world composition rather than a single
-imported kit.
+capture scenes consumed, the number of map placements and the authored scene
+path; `comparison_ready` remains false until the terrain, props and observed
+units are composed with the actual menu-world asset catalog. Set
+`GODOT_AUTHORED_BUILDING_LIMIT=0` only for a deliberate full placement run;
+the default probe cap keeps repeated GLB instances bounded.
