@@ -17,6 +17,16 @@ export interface Pose {
   deployment: number | null;
 }
 
+/** One drawn frame's view of the battle (`TickInterpolator.frame`). */
+export interface FrameSample {
+  /** The presentation clock, simulation seconds. */
+  time: number;
+  /** The publication the poses blend toward: the tick this frame draws. */
+  observation: ObservationView;
+  own: Pose[];
+  identified: Pose[];
+}
+
 /** What both own units and identified enemies publish about their bodies. */
 interface Body {
   id: number;
@@ -87,11 +97,20 @@ export class TickInterpolator {
     return ((from + (latest.tick - from) * this.fraction(now)) * this.tickMs) / 1000;
   }
 
-  /** The publication the poses blend toward. What a frame reads beside them
-   *  (who has fallen, each soldier's published facts) comes from this one, so
-   *  a soldier gone from the poses is in its fallen list in the same frame. */
-  observation(): ObservationView | null {
-    return this.latest;
+  /** Everything one drawn frame reads of the battle, at `now`: the clock, the
+   *  poses, and the publication they blend toward. A frame reads the battle
+   *  only from this, so all it draws or decides comes from one tick: a soldier
+   *  gone from the poses is in that publication's fallen list. Null before
+   *  the first publication. */
+  frame(now: number): FrameSample | null {
+    const observation = this.latest;
+    if (!observation) return null;
+    return {
+      time: this.time(now)!,
+      observation,
+      own: this.sample(now),
+      identified: this.sampleIdentified(now),
+    };
   }
 
   /** Own units' poses at `now`: the previous tick blended toward the latest one. */

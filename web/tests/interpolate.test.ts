@@ -96,3 +96,18 @@ test("deployment progress blends between ticks and stays null for units without 
   expect(i.sample(5000)[0].deployment).toBeCloseTo(0.4);
   expect(i.sample(1050)[1].deployment).toBeNull();
 });
+
+test("a drawn frame reads the publication its poses blend toward, mid-blend included", () => {
+  const i = new TickInterpolator(100);
+  expect(i.frame(0)).toBeNull();
+  i.push(frame(1, [unit(0, 0), unit(1, 5)]), 0);
+  // Unit 1 is gone in tick 2. Halfway between the ticks the frame draws
+  // tick 2's units, and tick 2 is what it reads of the battle.
+  const latest = frame(2, [unit(0, 10)]);
+  i.push(latest, 1000);
+  const mid = i.frame(1050)!;
+  expect(mid.observation).toBe(latest);
+  expect(mid.own.map((p) => p.id)).toEqual([0]);
+  expect(mid.own[0].position[0]).toBe(5);
+  expect(mid.time).toBeCloseTo(0.15);
+});
