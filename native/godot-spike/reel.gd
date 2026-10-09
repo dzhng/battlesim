@@ -184,7 +184,7 @@ func _build_world() -> void:
 func _build_map_geometry() -> void:
 	var directory := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
 	if directory.is_empty():
-		return
+		directory = ProjectSettings.globalize_path("res://../../fixtures/maps")
 	var prop_limit := _map_limit("GODOT_MAP_PROP_LIMIT")
 	var building_limit := _map_limit("GODOT_MAP_BUILDING_LIMIT")
 	var road_limit := _map_limit("GODOT_MAP_ROAD_LIMIT")

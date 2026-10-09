@@ -56,8 +56,8 @@ units are composed with the actual menu-world asset catalog. Set
 `GODOT_AUTHORED_BUILDING_LIMIT` to a positive value for a deliberately bounded
 diagnostic run; an unset value or `0` loads every admitted building.
 
-The reel can also consume the authoritative saved-map exports directly with
-`GODOT_AUTHORED_MAP_DIR=fixtures/maps`. It loads the complete terrain, road,
+The reel consumes the authoritative saved-map exports directly by default
+(`fixtures/maps`); `GODOT_AUTHORED_MAP_DIR` can point at another export. It loads the complete terrain, road,
 building, and prop geometry from `map.json`, and decodes sampled unit poses
 from the presentation capture. `GODOT_MAP_BUILDING_LIMIT`,
 `GODOT_MAP_PROP_LIMIT`, and `GODOT_MAP_ROAD_LIMIT` are optional explicit
