@@ -64,3 +64,7 @@ from the presentation capture. `GODOT_MAP_BUILDING_LIMIT`,
 diagnostic caps; an unset value or `0` means the full export. The report records
 those limits and whether the synthetic proxy field was used. These primitives
 are composition evidence, not authored-material or visual-parity evidence.
+
+For menu composition, pass `GODOT_AUTHORED_SCENES` with the apartment, homes,
+farmsteads, industry, and towers kits. The loader selects a shell from the
+template id, so one kit is never instantiated wholesale at every building.

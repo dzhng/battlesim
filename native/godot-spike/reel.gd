@@ -167,7 +167,7 @@ func _build_world() -> void:
 			var scene_resource = load(clean_path)
 			if scene_resource is PackedScene:
 				var filename := clean_path.get_file().get_basename().to_lower()
-				var family_key := "paris" if filename.contains("paris") else ("china" if filename.contains("china") else filename.split("-")[0].split("_")[0])
+				var family_key := "paris_apartments" if filename.contains("paris-apartments") else ("china_apartments" if filename.contains("china-apartments") else filename.split("-")[0].split("_")[0])
 				authored_scene_by_family[family_key] = scene_resource
 		if _build_authored_maps(null):
 			authored_asset_loaded = true
@@ -394,8 +394,7 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 			var translation: Array = frame.get("translation", [0.0, 0.0, 0.0])
 			var building_scene: PackedScene = authored
 			if building_scene == null:
-				var family := String(map.get("regional_family", "")).to_lower()
-				building_scene = authored_scene_by_family.get(family)
+				building_scene = _authored_scene_for_template(String(building.get("template_id", "")), String(map.get("regional_family", "")).to_lower())
 			if building_scene == null:
 				continue
 			var instance = building_scene.instantiate()
@@ -409,6 +408,20 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 		authored_building_count += count
 		authored_map_scene_count += 1
 	return authored_map_scene_count > 0
+
+func _authored_scene_for_template(template_id: String, regional_family: String) -> PackedScene:
+	var lower := template_id.to_lower()
+	if lower.contains("apartment"):
+		return authored_scene_by_family.get(regional_family + "_apartments", authored_scene_by_family.get(regional_family, null))
+	if lower.contains("farmstead"):
+		return authored_scene_by_family.get("farmsteads", null)
+	if lower.contains("shed") or lower.contains("warehouse") or lower.contains("works") or lower.contains("depot"):
+		return authored_scene_by_family.get("industry", null)
+	if lower.contains("tower"):
+		return authored_scene_by_family.get("towers", null)
+	if lower.contains("home") or lower.contains("terrace") or lower.contains("townhouse") or lower.contains("shop"):
+		return authored_scene_by_family.get("homes", null)
+	return authored_scene_by_family.get(regional_family, null)
 
 func _select_authored_shell(instance: Node, template_id: String) -> bool:
 	var token := ""
@@ -430,6 +443,40 @@ func _select_authored_shell(instance: Node, template_id: String) -> bool:
 		token = "block_u_5f_shell"
 	elif template_id.contains("block-court"):
 		token = "block_court_6f_shell"
+	elif template_id.contains("corner-shop"):
+		token = "corner_shop_3f_shell"
+	elif template_id.contains("home-8x11"):
+		token = "home_8x11_1f_shell"
+	elif template_id.contains("home-9x9"):
+		token = "home_9x9_2f_shell"
+	elif template_id.contains("home-10x8"):
+		token = "home_10x8_1f_shell"
+	elif template_id.contains("home-12x9"):
+		token = "home_12x9_2f_shell"
+	elif template_id.contains("home-ell"):
+		token = "home_ell_2f_shell"
+	elif template_id.contains("townhouse"):
+		token = "townhouse_2f_shell"
+	elif template_id.contains("shops-4x3"):
+		token = "shops_4x3f_unit"
+	elif template_id.contains("terrace-3x2"):
+		token = "terrace_3x2f_unit"
+	elif template_id.contains("terrace-5x3"):
+		token = "terrace_5x3f_unit"
+	elif template_id.contains("farmstead-long"):
+		token = "farm_long_shell"
+	elif template_id.contains("farmstead-small"):
+		token = "farm_small_shell"
+	elif template_id.contains("farmstead-yard"):
+		token = "farm_yard_shell"
+	elif template_id.contains("depot"):
+		token = "depot_shell"
+	elif template_id.contains("shed"):
+		token = "shed_shell"
+	elif template_id.contains("warehouse"):
+		token = "span_shell"
+	elif template_id.contains("works"):
+		token = "works_shell"
 	if token.is_empty():
 		for child in instance.get_children():
 			if child is Node3D:

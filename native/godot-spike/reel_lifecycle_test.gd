@@ -41,6 +41,7 @@ func run() -> void:
 	check(reel.map_geometry_counts["first"].road_limit == 0, "map geometry must default to the complete road export")
 	check(reel.map_geometry_counts["first"].forests == 1, "map composition must consume forest regions from the saved export")
 	check(reel.authored_building_limit == 7, "authored building cap must apply before selecting a single or multi-kit scene")
+	check(reel._authored_scene_for_template("china-home-10x8-1f", "china") == null, "template catalog lookup must disclose absent authored kits")
 	check(reel.get_node("MapGeometry_first").visible, "first map must open visible")
 	check(not reel.get_node("MapGeometry_second").visible, "second map must start hidden")
 	reel._process(1.0)
