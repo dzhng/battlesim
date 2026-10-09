@@ -269,8 +269,7 @@ impl GroundLayer {
         }
         let height = at.z - ground.z;
         // A burst smaller than the reference throws up less ground.
-        let share = (blast_radius / rules.mark_reference_blast_m).min(1.0);
-        let marks = share * share;
+        let marks = (blast_radius / rules.mark_reference_blast_m).min(1.0);
         let crater = blast_radius * rules.crater_radius_fraction;
         if height <= crater {
             let depth = rules.crater_depth_per_m * crater * marks;
