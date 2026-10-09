@@ -1,20 +1,20 @@
 # Native rendering and Godot evaluation
 
-**Status:** handed off mid-implementation; browser route smoke and native parity pass, with a browser frozen-capture exporter carrying Rust layout and raw publication words, Godot per-scene capture playback and an authored map-placement probe. Full authored asset rendering and matched performance remain unbuilt.
+**Status:** evaluation checkpoint: browser capture/export, native semantic decoding, bounded saved-map composition, and report identity are implemented. Godot remains experimental because authored-material/fog parity and display-backed comparison remain unbuilt.
 **Updated:** 2026-10-09.
 
 ## Next Agent Prompt
 
-Next session: use Godot's now-validated layout and raw-word consumption to decode the captured publication stream into observation inputs, then replace the capped GLB kit placements with the full authored menu-world composition (terrain, props and observed units) and capture named cuts in a foreground Godot run. Keep the interactive GDExtension seam and the Rust simulation as authorities. Do not claim comparison-ready or performance evidence until the Godot report consumes real browser publications and named browser/Godot cuts are visually reviewed. Keep `/benchmark?preset=city-contact` unchanged.
+Next session: execute [follow-on-display-backed.md](follow-on-display-backed.md). Hydrate the authored catalog, render terrain/props/fog/units in a foreground Godot run, capture matched named cuts, and complete the visual/performance gates. Keep the interactive GDExtension seam and Rust simulation as authorities; keep `/benchmark?preset=city-contact` unchanged.
 
-Evidence: focused client/reel/report/capture tests, TypeScript, production build, route smoke, Godot decoder test and current foreground browser plus Godot runs using regenerated per-scene captures. The browser completed the full reel and emitted 3,541 `market-town` and 1,291 `paris-corner` publication samples plus displayed-frame timelines. Godot's family-scene probe consumed both current captures, validated their layouts, walked 1,676,322 raw publication words and selected separate China and Paris authored kits, placing 359 bounded instances across both map populations. `comparison_ready=false` remains because terrain, props, observed units and the full authored catalog are not rendered. The cuts are lifecycle and camera/world-placement evidence, not visual-equivalence evidence. Native replay/side-filter parity and IPC measurement pass. Godot's editor scan still reports the expected missing local extension dylib when the dylib is not built. Authored Godot rendering, visual comparison and performance verdict remain open.
+Evidence: focused client/reel/report/capture tests, TypeScript, production build, route smoke, Godot decoder test and current foreground browser plus Godot runs using regenerated per-scene captures. The browser completed the full reel and emitted 3,541 `market-town` and 1,291 `paris-corner` publication samples plus displayed-frame timelines. Godot consumed both current captures, validated their layouts, walked 1,676,322 raw publication words, decoded sampled unit poses, and consumed bounded terrain/road/building/prop geometry from both map exports. `comparison_ready=false` remains because authored materials, fog, the full catalog, and display-backed visual equivalence are not proven. The cuts are lifecycle and camera/world-placement evidence, not visual-equivalence evidence. Native replay/side-filter parity and IPC measurement pass. Godot's editor scan still reports the expected missing local extension dylib when the dylib is not built. Authored Godot rendering, visual comparison and performance verdict remain open.
 The capture now also carries the displayed-frame timeline; Godot follows those actual camera frames rather than deriving presentation time from simulation ticks.
 Godot's capture validator now parses the included layout object and consumes every raw publication word, reporting layout validity and total words; semantic observation decoding now reconstructs the Rust-packed group stream for native unit poses; bounded terrain, roads, building and prop geometry are also consumed from saved maps, while authored materials, fog and the full catalog remain open.
 The browser contract now has a real Rust publication regression: raw capture words from three consecutive publications decode through a fresh `ObservationDecoder`, proving the wire representation is replayable before native semantic decoding is attempted.
 The attempted headless Playwright capture did not produce a report within its timeout, so no browser capture files were promoted from that attempt.
 
 The first foreground cut probe produced 24 PNGs and loaded the authored GLB, but its shots visibly show one centered house against the clear background (and the opening fade is black). This is a renderer-path proof, not a matched menu-world result; retain the cuts as evidence only until the full map composition is loaded.
-The current Godot cut metrics confirm that limitation: several shots are transparent or single-colour (edge density 0), while the detailed authored shot is an isolated building against an empty field. An adversarial visual read is that the new unit decoder could still be invisible in the player view; the existing cuts do not prove unit readability or scene composition, so comparison remains blocked until a fresh semantic-unit cut set is captured.
+The current Godot cut metrics confirm that limitation: several shots are transparent or single-colour (edge density 0), while the detailed authored shot is an isolated building against an incomplete field. An adversarial visual read is that the new unit decoder could still be invisible in the player view; the existing cuts do not prove unit readability or scene composition, so comparison remains blocked until a fresh semantic-unit cut set is captured.
 
 ## Goal
 
@@ -75,7 +75,7 @@ External measurements are context only; the frozen Mac runs are the evidence.
 - [~] Verify offline native seam and Godot headless toolchain — slice 02 (offline probe and live extension smoke load; real scenario transfer/parity remains).
 - [x] Spike binding candidates and select a seam — slice 02 (GDExtension for interactive authority; presentation capture for renderer comparison; IPC retained as measured fallback).
 - [~] Render the full menu reel in Godot — slice 03 (semantic unit decoding plus bounded map geometry and comparable report envelope added; authored materials, fog, full catalog and visual comparison remain open).
-- [ ] Compare repeated distributions and reslice the chosen direction — slice 04.
+- [x] Compare repeated distributions and reslice the chosen direction — slice 04 (verdict: keep Godot experimental; display-backed authored comparison follow-on recorded).
 
 ## Human review surface
 
@@ -90,9 +90,4 @@ capture validator. Generated `.godot` caches, UID files, binaries and reports
 were removed before handoff. The stopping point is after decoder checkpoint
 `cb007edd`; no full-reel Godot renderer exists yet.
 
-The next agent should start with `git status`, run the focused web tests and
-`native/godot-spike/presentation_capture_test.gd`, then implement the capture
-exporter at the existing publication seam. Preserve the explicit
-`comparison_ready=false` guard until authored assets and capture playback are
-actually rendered. Do not use headless Godot or the synthetic cube field for
-performance conclusions.
+The first evaluation is now closed at the evidence boundary: native map geometry and sampled unit playback are present, but `comparison_ready=false` is preserved because authored materials, fog, and a display-backed comparison are absent. Continue in [follow-on-display-backed.md](follow-on-display-backed.md); do not use headless Godot or the synthetic proxy for performance conclusions.
