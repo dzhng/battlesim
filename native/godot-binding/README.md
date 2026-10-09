@@ -12,10 +12,18 @@ Build a macOS extension with Godot 4.7's API:
 cargo build -p godot-binding --release
 ```
 
-The checked-in `godot_binding.gdextension` descriptor targets the Godot 4.2+
+The checked-in descriptor and `native/godot-spike/binding_smoke.tscn` target the Godot 4.2+
 GDExtension ABI and the arm64 Mac library. Copy the built
 `target/release/libgodot_binding.dylib` into the project's
 `addons/battle_binding/` directory before attaching it to a Godot project. The
 generated library is intentionally not committed; the target checkout owns its
 build output.
+
+The live smoke command is:
+
+```text
+cargo build -p godot-binding --release
+cp target/release/libgodot_binding.dylib native/godot-spike/addons/battle_binding/
+Godot --headless --path native/godot-spike --scene res://binding_smoke.tscn --quit-after 60 --no-header
+```
 
