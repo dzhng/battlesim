@@ -46,7 +46,7 @@ export const gameCamera = {
     const heading = Math.atan2(edgeDirection[1], edgeDirection[0]);
     const radial = Math.hypot(dx, dy);
     // A slightly higher opening elevation keeps the entry chevrons legible on
-    // the ground while preserving the direct spawn-to-enemy heading.
+    // the ground.
     const pitch = Math.min(
       Math.PI / 2 - 0.08,
       rig.pitchAt(Math.max(presentation.default.distance, radial)) + 0.28,
@@ -63,8 +63,8 @@ export const gameCamera = {
       target: [target[0], target[1], 0],
       distance,
       pitch,
-      // Look directly down the entry lane toward the enemy so the map edges
-      // stay parallel to the battle's direction of travel.
+      // The eye stands out over the entry edge on that edge's axis, looking
+      // across the map, so the map's borders stay parallel to the view.
       yaw: heading,
       ...gameCamera.lens,
     };
