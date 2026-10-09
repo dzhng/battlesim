@@ -42,12 +42,14 @@ git lfs pull --include="assets/source/city/homes/kit.glb"
 mkdir -p native/godot-spike/authoring
 cp assets/source/city/homes/kit.glb native/godot-spike/authoring/homes-kit.glb
 GODOT_AUTHORED_SCENE=res://authoring/homes-kit.glb \
-  GODOT_PRESENTATION_CAPTURE=throwaway/browser-capture.json \
+  GODOT_PRESENTATION_CAPTURE_DIR=throwaway/browser-captures \
   GODOT_REEL_REPORT=throwaway/godot-reel.json \
   godot --headless --path native/godot-spike --scene res://reel.tscn --quit-after 600 --no-header
 ```
 
-The copied asset is local evidence and stays outside the committed spike. The
-report records `authored_asset_loaded`, `capture_consumed` and the authored
-scene path; `comparison_ready` remains false until the asset is the actual
-menu-world composition rather than a single imported kit.
+The capture directory contains one browser-exported JSON file per scene, named
+after the menu map. The copied asset is local evidence and stays outside the
+committed spike. The report records `authored_asset_loaded`, the number of
+capture scenes consumed and the authored scene path; `comparison_ready` remains
+false until the asset is the actual menu-world composition rather than a single
+imported kit.

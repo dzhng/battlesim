@@ -18,6 +18,7 @@ var camera: Camera3D
 var started := false
 var source_path := ""
 var capture_result: Dictionary = {"valid": false, "comparison_ready": false, "comparison_blocker": "no presentation capture supplied"}
+var capture_results: Dictionary = {}
 var authored_asset_loaded := false
 var cut_dir := ""
 var cuts_saved := 0
@@ -36,20 +37,31 @@ func _ready() -> void:
 		get_tree().quit(2)
 		return
 	scenes = parsed.scenes
-	_load_presentation_capture()
+	_load_presentation_captures()
 	cut_dir = OS.get_environment("GODOT_REEL_CUTS")
 	_build_world()
 	started = true
 
-func _load_presentation_capture() -> void:
+func _load_presentation_captures() -> void:
 	var configured := OS.get_environment("GODOT_PRESENTATION_CAPTURE")
-	if configured.is_empty():
+	var directory := OS.get_environment("GODOT_PRESENTATION_CAPTURE_DIR")
+	if not directory.is_empty():
+		for scene in scenes:
+			var path := directory.path_join(String(scene.map) + ".json")
+			var result := _read_capture(path)
+			if result.valid:
+				capture_results[scene.map] = result
 		return
-	var capture_file := FileAccess.open(configured, FileAccess.READ)
+	if not configured.is_empty():
+		capture_result = _read_capture(configured)
+		if capture_result.valid:
+			capture_results[capture_result.capture.workload.scene] = capture_result
+
+func _read_capture(path: String) -> Dictionary:
+	var capture_file := FileAccess.open(path, FileAccess.READ)
 	if capture_file == null:
-		capture_result = {"valid": false, "comparison_ready": false, "comparison_blocker": "unable to read presentation capture: " + configured}
-		return
-	capture_result = CaptureDecoder.decode_json(capture_file.get_as_text())
+		return {"valid": false, "comparison_ready": false, "comparison_blocker": "unable to read presentation capture: " + path}
+	return CaptureDecoder.decode_json(capture_file.get_as_text())
 
 func _build_world() -> void:
 	var environment := WorldEnvironment.new()
@@ -142,11 +154,12 @@ func _scene_pose() -> void:
 	camera.look_at(target, Vector3.UP)
 
 func _captured_pose() -> Dictionary:
-	if not capture_result.get("valid", false):
-		return {}
-	var capture: Dictionary = capture_result.get("capture", {})
-	var workload: Dictionary = capture.get("workload", {})
 	var scene: Dictionary = scenes[scene_index]
+	var scene_capture: Dictionary = capture_results.get(scene.get("map", ""), capture_result)
+	if not scene_capture.get("valid", false):
+		return {}
+	var capture: Dictionary = scene_capture.get("capture", {})
+	var workload: Dictionary = capture.get("workload", {})
 	if workload.get("scene", "") != scene.get("map", ""):
 		return {}
 	var samples: Array = capture.get("samples", [])
@@ -202,10 +215,11 @@ func _write_report() -> void:
 		"comparison_blocker": "authored map assets are not loaded" if not authored_asset_loaded else "synthetic scene has no authored map publication",
 		"authored_asset_loaded": authored_asset_loaded,
 		"cuts_saved": cuts_saved,
-		"capture_valid": capture_result.valid,
-		"capture_comparison_ready": capture_result.comparison_ready,
-		"capture_consumed": capture_result.valid and capture_result.sample_count > 0,
-		"capture_blocker": capture_result.comparison_blocker,
+		"capture_valid": not capture_results.is_empty(),
+		"capture_scene_count": capture_results.size(),
+		"capture_comparison_ready": capture_results.size() == scenes.size(),
+		"capture_consumed": capture_results.values().any(func(result): return result.sample_count > 0),
+		"capture_blocker": "" if capture_results.size() == scenes.size() else "one or more scene captures are missing",
 		"source": source_path,
 		"authored_scene": OS.get_environment("GODOT_AUTHORED_SCENE"),
 		"scene_count": scenes.size(),
