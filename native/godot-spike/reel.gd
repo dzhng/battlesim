@@ -144,6 +144,11 @@ func _build_world() -> void:
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("8aa4bc")
 	env.ambient_light_energy = 0.8
+	env.fog_enabled = true
+	env.fog_light_color = Color("6f7e85")
+	env.fog_light_energy = 0.35
+	env.fog_density = 0.004
+	env.fog_sky_affect = 0.25
 	environment.environment = env
 	add_child(environment)
 	var sun := DirectionalLight3D.new()

@@ -59,6 +59,7 @@
   the real binding slice; reverse it if transfer cost is material. The gap was
   that the spec required bulk transfer but did not select an ownership model.
 - **The native readability probe enlarges and slightly emissively lights observed unit markers, and raises terrain/fog contrast.** The current shots leave tactical contacts too small to read at the captured camera distance, so this reversible probe makes the unit question legible without changing positions or visibility. The exact scale and palette remain presentation choices for the matched visual gate; provisional call: keep these values while browser crops are gathered, then tune or revert from comparison evidence. Confidence: low.
+- **Atmospheric fog is applied by the Godot world environment while captured visibility cells remain the authority for hidden ground.** The hard sky/terrain horizon made depth unreadable, but using the fog bitfield as a renderer oracle would change gameplay ownership. The provisional environment fog only grades distance; it can be tuned or removed after matched browser crops without changing Rust visibility. Confidence: medium.
 
 ### Sound (high confidence)
 
