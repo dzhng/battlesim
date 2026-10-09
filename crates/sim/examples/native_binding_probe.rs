@@ -30,22 +30,32 @@ fn main() {
         .expect("usage: native_binding_probe <scenario.json> [seed] [ticks] [side]");
     if path == "--ipc" {
         use std::io::{BufRead, Write};
-        let scenario: ScenarioDefinition = serde_json::from_slice(&std::fs::read(args.next().expect("scenario path")).unwrap()).unwrap();
+        let scenario: ScenarioDefinition =
+            serde_json::from_slice(&std::fs::read(args.next().expect("scenario path")).unwrap())
+                .unwrap();
         let mut battle = Battle::new(&scenario, 11);
         let mut publisher = Publisher::new();
         for line in std::io::stdin().lock().lines() {
             let request: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
             if let Some(command) = request.get("command") {
-                assert!(battle.accept(serde_json::from_value(command.clone()).unwrap()).error.is_none());
+                assert!(battle
+                    .accept(serde_json::from_value(command.clone()).unwrap())
+                    .error
+                    .is_none());
             }
             let started = Instant::now();
             battle.step();
             let step_ms = started.elapsed().as_secs_f64() * 1000.0;
             let started = Instant::now();
-            let record = publisher.publish(&battle, parse_side(request["side"].as_str().unwrap())).unwrap();
+            let record = publisher
+                .publish(&battle, parse_side(request["side"].as_str().unwrap()))
+                .unwrap();
             let publish_ms = started.elapsed().as_secs_f64() * 1000.0;
             // Integer bit patterns preserve packed f32 words, including NaN payloads.
-            println!("{}", json!({"tick":battle.tick(), "digest":format!("{:016x}",battle.digest()), "words":record.iter().map(|v|v.to_bits()).collect::<Vec<_>>(), "step_ms":step_ms, "publish_ms":publish_ms}));
+            println!(
+                "{}",
+                json!({"tick":battle.tick(), "digest":format!("{:016x}",battle.digest()), "words":record.iter().map(|v|v.to_bits()).collect::<Vec<_>>(), "step_ms":step_ms, "publish_ms":publish_ms})
+            );
             std::io::stdout().flush().unwrap();
         }
         return;
@@ -80,7 +90,10 @@ fn main() {
     let mut frames = Vec::new();
     let command = json!({"side":"blue", "seq":1, "order":{"kind":"stop", "units":[0]}});
     if evidence.is_some() {
-        assert!(battle.accept(serde_json::from_value(command.clone()).unwrap()).error.is_none());
+        assert!(battle
+            .accept(serde_json::from_value(command.clone()).unwrap())
+            .error
+            .is_none());
     }
     let mut publish_bytes = 0usize;
     let mut publish_ms = 0.0;
@@ -104,7 +117,11 @@ fn main() {
         copy_total_ms += copy_ms;
         if let Some(dir) = &evidence {
             std::fs::create_dir_all(dir).unwrap();
-            let name = format!("{}-{}.bin", battle.tick(), format!("{side:?}").to_lowercase());
+            let name = format!(
+                "{}-{}.bin",
+                battle.tick(),
+                format!("{side:?}").to_lowercase()
+            );
             let bytes: Vec<u8> = copied.iter().flat_map(|v| v.to_le_bytes()).collect();
             std::fs::write(dir.join(&name), bytes).unwrap();
             frames.push(json!({"tick": battle.tick(), "digest":format!("{:016x}", battle.digest()), "file":name}));
