@@ -161,8 +161,16 @@ test("the same request prepares the same battle; another map seed another map", 
   const a = await prepared();
   const b = await prepared();
   expect(b.scenario).toBe(a.scenario);
-  const otherMap = await prepared(request({ ...OPEN, seed: "2" }));
-  expect(otherMap.report.identity).not.toEqual(a.report.identity);
+  // The next seed that prepares: a seed's map or its sites may be refused
+  // by name, so which one that is belongs to the generator, not this test.
+  let otherMap: Awaited<ReturnType<typeof prepared>> | undefined;
+  for (let seed = 2; seed <= 6 && !otherMap; seed++) {
+    otherMap = await prepared(request({ ...OPEN, seed: String(seed) })).catch((error) => {
+      if (!(error instanceof PreparationRefused)) throw error;
+      return undefined;
+    });
+  }
+  expect(otherMap!.report.identity).not.toEqual(a.report.identity);
 }, 60_000);
 
 test("a map seed a JavaScript number cannot hold reaches the generator as written", async () => {
