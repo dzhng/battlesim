@@ -207,18 +207,14 @@ func _captured_pose() -> Dictionary:
 	if not scene_capture.get("valid", false):
 		return {}
 	var capture: Dictionary = scene_capture.get("capture", {})
-	var workload: Dictionary = capture.get("workload", {})
-	if workload.get("scene", "") != scene.get("map", ""):
+	var frames: Array = capture.get("frames", [])
+	if frames.is_empty():
 		return {}
-	var samples: Array = capture.get("samples", [])
-	if samples.is_empty():
-		return {}
-	var target_tick := int(capture.get("warmTick", 0)) + int(scene_elapsed * int(capture.get("tickHz", 1)))
-	var chosen: Dictionary = samples[0]
-	for sample in samples:
-		if int(sample.get("tick", 0)) > target_tick:
+	var chosen: Dictionary = frames[0]
+	for frame in frames:
+		if float(frame.get("elapsedMs", 0.0)) > scene_elapsed * 1000.0:
 			break
-		chosen = sample
+		chosen = frame
 	var pose = chosen.get("camera", {})
 	return pose if typeof(pose) == TYPE_DICTIONARY else {}
 
