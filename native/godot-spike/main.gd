@@ -4,7 +4,7 @@ const BENCHMARK_SECONDS := 10.0
 const INSTANCE_COUNT := 4096
 
 var elapsed := 0.0
-var samples: Array[float] = []
+var intervals: Array[float] = []
 var mesh_instance: MultiMeshInstance3D
 var camera: Camera3D
 
@@ -53,35 +53,38 @@ func _process(delta: float) -> void:
 	camera.position = Vector3(sin(elapsed * 0.18) * 34.0, 18.0, cos(elapsed * 0.18) * 34.0)
 	camera.look_at(Vector3.ZERO)
 	if elapsed > 1.0:
-		samples.append(1.0 / max(delta, 0.000001))
+		intervals.append(max(delta, 0.000001))
 	if elapsed >= BENCHMARK_SECONDS + 1.0:
 		_write_report()
 		get_tree().quit()
 
 func _write_report() -> void:
-	if samples.is_empty():
+	if intervals.is_empty():
 		return
-	var sorted := samples.duplicate()
+	var sorted := intervals.duplicate()
 	sorted.sort()
-	var slow_count := maxi(1, int(ceil(samples.size() * 0.01)))
+	var slow_count := maxi(1, int(ceil(intervals.size() * 0.01)))
 	var slow_sum := 0.0
 	for i in slow_count:
-		slow_sum += sorted[i]
+		slow_sum += sorted[sorted.size() - 1 - i]
 	var total := 0.0
-	for value in samples:
+	for value in intervals:
 		total += value
 	var report := {
 		"candidate": "godot-reference-scene",
 		"renderer": ProjectSettings.get_setting("rendering/renderer/rendering_method", "unknown"),
 		"instances": INSTANCE_COUNT,
 		"duration_s": BENCHMARK_SECONDS,
-		"average_fps": total / samples.size(),
-		"minimum_fps": sorted[0],
-		"maximum_fps": sorted[-1],
-		"one_percent_low_fps": slow_sum / slow_count,
-		"frame_samples": samples,
+		"average_fps": (1000.0 * intervals.size()) / (total * 1000.0),
+		"minimum_fps": 1.0 / sorted[-1],
+		"maximum_fps": 1.0 / sorted[0],
+		"one_percent_low_fps": 1.0 / (slow_sum / slow_count),
+		"frame_intervals_s": intervals,
 	}
-	var file := FileAccess.open("user://godot-spike-report.json", FileAccess.WRITE)
+	var output_path := OS.get_environment("GODOT_SPIKE_REPORT")
+	if output_path.is_empty():
+		output_path = "user://godot-spike-report.json"
+	var file := FileAccess.open(output_path, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(report, "  "))
 	print(JSON.stringify(report))
