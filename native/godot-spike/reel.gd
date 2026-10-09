@@ -515,7 +515,7 @@ func _update_observed_units() -> void:
 		capsule.height = 1.4
 		mesh.mesh = capsule
 		var material := StandardMaterial3D.new()
-		material.albedo_color = Color("4d9be6") if unit_nodes.size() % 2 == 0 else Color("d95c5c")
+		material.albedo_color = Color("4d9be6")
 		mesh.material_override = material
 		mesh.position.y = 0.7
 		holder.add_child(mesh)
