@@ -63,7 +63,7 @@ External measurements are context only; the frozen Mac runs are the evidence.
 - [~] Add displayed-frame rate summary fields and tests — slice 01 (landed).
 - [~] Freeze menu-reel manifest, capture schema and browser control — slice 01 (manifest landed).
 - [ ] Add Settings graphics test and report chart — slice 01.
-- [~] Verify offline native seam and Godot headless toolchain — slice 02 (offline probe and GDExtension smoke load; simulation transfer remains).
+- [~] Verify offline native seam and Godot headless toolchain — slice 02 (offline probe and live extension smoke load; real scenario transfer/parity remains).
 - [ ] Spike binding candidates and select a seam — slice 02.
 - [ ] Render the full menu reel in Godot — slice 03.
 - [ ] Compare repeated distributions and reslice the chosen direction — slice 04.
