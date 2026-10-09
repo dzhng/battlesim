@@ -38,6 +38,7 @@ func run() -> void:
 	reel.set_process(false)
 	check(reel._viewport_image() == null, "headless lifecycle runs must not attempt a drawable viewport readback")
 	check(reel._authored_map_directory() == directory, "authored map override must be the shared map directory")
+	check(reel._comparison_blocker().contains("authored model catalog"), "missing authored assets must name the catalog blocker")
 	check(not reel.proxy_field_used, "map composition must not fall back to the synthetic cube field")
 	check(reel.map_geometry_counts["first"].building_limit == 0, "map geometry must default to the complete building export")
 	check(reel.map_geometry_counts["first"].prop_limit == 0, "map geometry must default to the complete prop export")

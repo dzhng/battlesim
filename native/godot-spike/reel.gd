@@ -835,8 +835,9 @@ func _write_report() -> void:
 		"identity": {"client": "godot", "renderer": ProjectSettings.get_setting("rendering/renderer/rendering_method", "unknown"), "viewport": [ProjectSettings.get_setting("display/window/size/viewport_width", 0), ProjectSettings.get_setting("display/window/size/viewport_height", 0)], "quality": "current-project-settings"},
 		"candidate": "godot-menu-reel-camera-probe",
 		"comparison_ready": false,
-		"comparison_blocker": "authored model catalog is not loaded; map geometry and sampled units are rendered" if not authored_asset_loaded else ("authored template modules are unresolved; map geometry and sampled unit publications are rendered" if not authored_unresolved_templates.is_empty() else "authored materials and full catalog are incomplete; map geometry and sampled unit publications are rendered"),
+		"comparison_blocker": _comparison_blocker(),
 		"authored_asset_loaded": authored_asset_loaded,
+		"authored_catalog_complete": authored_asset_loaded and authored_unresolved_templates.is_empty(),
 		"authored_building_count": authored_building_count,
 		"authored_map_scene_count": authored_map_scene_count,
 		"authored_building_limit": authored_building_limit,
@@ -881,3 +882,10 @@ func _write_report() -> void:
 	if file:
 		file.store_string(JSON.stringify(report, "  "))
 	print(JSON.stringify(report))
+
+func _comparison_blocker() -> String:
+	if not authored_asset_loaded:
+		return "authored model catalog is not loaded; map geometry and sampled units are rendered"
+	if not authored_unresolved_templates.is_empty():
+		return "authored template modules are unresolved; map geometry and sampled units are rendered"
+	return "authored materials and display-backed visual equivalence remain unproven"
