@@ -142,7 +142,7 @@ func _build_world() -> void:
 	var environment := WorldEnvironment.new()
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("101721")
+	env.background_color = Color("8daebb")
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("8aa4bc")
 	env.ambient_light_energy = 0.8
@@ -228,7 +228,7 @@ func _build_map_geometry() -> void:
 		var ground_mesh := PlaneMesh.new()
 		ground_mesh.size = Vector2(float(size[0]), float(size[1]))
 		var ground_material := StandardMaterial3D.new()
-		ground_material.albedo_color = Color("536e5c") if String(map.get("regional_family", "")) == "china" else Color("62666b")
+		ground_material.albedo_color = Color("756c56") if String(map.get("regional_family", "")) == "china" else Color("62666b")
 		ground_material.roughness = 0.92
 		ground_mesh.material = ground_material
 		ground.mesh = ground_mesh
