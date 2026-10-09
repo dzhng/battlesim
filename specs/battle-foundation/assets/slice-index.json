@@ -112,7 +112,7 @@
       2,
       3
     ],
-    "seam": "`sim::flight::{solve_launch, advance_projectiles} -> ordered Impact/NearMiss events`; one projectile store, spatial query owner world.",
+    "seam": "`sim::flight::{solve_launch_past, advance_projectiles} -> ordered Impact/NearMiss events`; one projectile store, spatial query owner world.",
     "question": "Can fast physical rounds hit the earliest actual obstruction without tunneling?",
     "deliver": "/lab/ballistics: gravity arcs, moving thin target, hill crest, low/high trajectory, crossing bodies and a fast bullet. Reproduce analytic flight/relative-motion examples before connecting live weapon control. A debug emitter belongs only to the fixture, produces the same launch input as weapons, and is not a second firing path.",
     "tests": "Known gravity endpoint within tolerance, unequal launch/target heights, lead on steady motion, dodge after launch, no solution for unreachable target, 900 m/s thin-target hit, moving-body collision between ticks, terrain-first impact, deterministic earliest tie, high arc opt-in, bounded lifetime/subsegments. Add 200-unit-equivalent emitter load report immediately; no silent projectile cap.",

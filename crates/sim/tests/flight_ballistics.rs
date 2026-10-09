@@ -6,7 +6,7 @@ use crate::common::*;
 use contract::ballistics::{FlightRules, Trajectory, WeaponBallistics};
 use contract::random::Rng;
 use sim::flight::{
-    predicted_path, prepare_launch, scatter_aim, solve_launch, Aim, ArcKind, Expiry, FlightConfig,
+    predicted_path, scatter_aim, solve_launch_past, Aim, ArcKind, Expiry, FlightConfig,
     FlightConfigError, FlightEvent, Launch, LaunchProfile, NoSolution, Projectiles, Struck,
 };
 use sim::math::{v3, V3};
@@ -120,7 +120,7 @@ fn a_gun_round_is_slowed_for_the_eye_but_flies_the_real_round_s_line() {
             target,
             target_velocity: V3::default(),
         };
-        let s = solve_launch(&world, &config(), &p, &aim).unwrap();
+        let s = solve_launch_past(&world, &config(), &p, &aim, None).unwrap();
         let (real, _) = analytic_elevations(real_mps, G, distance, 0.0);
         let rel = (elevation(s.velocity) - real).abs() / real;
         assert!(
@@ -168,7 +168,7 @@ fn a_missile_leaves_at_its_launch_speed_and_speeds_up_striking_at_its_full_range
         target_velocity: V3::default(),
     };
     let (launch, s) =
-        prepare_launch(&world, &config(), &atgm, &aim, 0.0, &mut Rng::new(1), None).unwrap();
+        launch_round(&world, &config(), &atgm, &aim, 0.0, &mut Rng::new(1), None).unwrap();
     assert!(
         s.time_of_flight_s < atgm.lifetime_s,
         "{} s",
@@ -261,7 +261,7 @@ fn the_short_range_grenade_keeps_the_old_full_range_lob_height() {
             target: origin + v3(distance, 0.0, 0.0),
             target_velocity: V3::default(),
         };
-        let shot = solve_launch(&world, &config(), p, &aim).unwrap();
+        let shot = solve_launch_past(&world, &config(), p, &aim, None).unwrap();
         shot.velocity.z.powi(2) / (2.0 * g(p))
     };
     let historical = lob_profile();
@@ -284,7 +284,7 @@ fn a_stationary_ground_target_gets_the_analytic_low_elevation() {
         target,
         target_velocity: V3::default(),
     };
-    let s = solve_launch(&world, &config(), &grenade, &aim).unwrap();
+    let s = solve_launch_past(&world, &config(), &grenade, &aim, None).unwrap();
     let (low, _) = analytic_elevations(grenade.speed_mps, g(&grenade), 400.0, -o.z);
     assert_eq!(s.arc, ArcKind::Low);
     assert!((elevation(s.velocity) - low).abs() < 1e-9);
@@ -312,7 +312,7 @@ fn unequal_launch_and_target_heights_follow_the_analytic_arc_and_hit() {
             target,
             target_velocity: V3::default(),
         };
-        let s = solve_launch(&world, &config(), &lob, &aim).unwrap();
+        let s = solve_launch_past(&world, &config(), &lob, &aim, None).unwrap();
         let (low, _) = analytic_elevations(lob.speed_mps, g(&lob), 250.0, target.z - origin.z);
         assert!((elevation(s.velocity) - low).abs() < 1e-9);
         let body = Mover::standing(7, 1, soldier_shape(), target - v3(0.0, 0.0, 0.85));
@@ -346,7 +346,7 @@ fn leading_steady_observed_motion_hits_and_aiming_at_the_present_misses() {
             target: centre,
             target_velocity: observed,
         };
-        let s = solve_launch(&world, &config(), &rifle, &aim).unwrap();
+        let s = solve_launch_past(&world, &config(), &rifle, &aim, None).unwrap();
         let mut store = Projectiles::new(config());
         store.launch(fired(&rifle, origin, s.velocity));
         let hits = impacts(&fly(&mut store, &world, 100, |k| vec![target.body(k, dt)]));
@@ -370,7 +370,7 @@ fn an_unguided_round_is_dodged_by_changing_motion_after_launch() {
         target: walker.base + v3(0.0, 0.0, 0.85),
         target_velocity: walker.velocity,
     };
-    let s = solve_launch(&world, &config(), &grenade, &aim).unwrap();
+    let s = solve_launch_past(&world, &config(), &grenade, &aim, None).unwrap();
     // Reverses ten ticks after launch; the round keeps its launch velocity.
     let reverse_at = 10;
     let dodger = |k: u64| {
@@ -438,7 +438,7 @@ fn an_unreachable_target_has_no_firing_solution() {
         target_velocity: V3::default(),
     };
     assert_eq!(
-        solve_launch(&world, &config(), &grenade, &beyond),
+        solve_launch_past(&world, &config(), &grenade, &beyond, None),
         Err(NoSolution::OutOfReach)
     );
     // Reachable in space but not within the round's lifetime.
@@ -452,9 +452,9 @@ fn an_unreachable_target_has_no_firing_solution() {
         target: v3(500.0, 200.0, 0.0),
         ..beyond
     };
-    assert!(solve_launch(&world, &config(), &grenade, &far).is_ok());
+    assert!(solve_launch_past(&world, &config(), &grenade, &far, None).is_ok());
     assert_eq!(
-        solve_launch(&world, &config(), &short_lived, &far),
+        solve_launch_past(&world, &config(), &short_lived, &far, None),
         Err(NoSolution::OutOfReach)
     );
     // A target outrunning the round.
@@ -464,7 +464,7 @@ fn an_unreachable_target_has_no_firing_solution() {
         ..beyond
     };
     assert_eq!(
-        solve_launch(&world, &config(), &grenade, &fleeing),
+        solve_launch_past(&world, &config(), &grenade, &fleeing, None),
         Err(NoSolution::OutOfReach)
     );
 }
@@ -495,9 +495,13 @@ fn the_high_arc_is_used_only_by_indirect_fire_and_never_by_ignoring_a_ridge() {
         target_velocity: V3::default(),
     };
     // Direct fire: the low arc meets the ridge, so there is no solution.
-    let Err(NoSolution::Blocked { arc, point, .. }) =
-        solve_launch(&world, &config(), &mortar(Trajectory::Direct), &behind)
-    else {
+    let Err(NoSolution::Blocked { arc, point, .. }) = solve_launch_past(
+        &world,
+        &config(),
+        &mortar(Trajectory::Direct),
+        &behind,
+        None,
+    ) else {
         panic!("direct fire over the ridge must be blocked")
     };
     assert_eq!(arc.arc, ArcKind::Low);
@@ -507,7 +511,14 @@ fn the_high_arc_is_used_only_by_indirect_fire_and_never_by_ignoring_a_ridge() {
     );
     assert!((world.height_at(point.x, point.y).unwrap() - point.z).abs() < 1e-6);
     // Indirect fire lobs over and lands on the aim point.
-    let s = solve_launch(&world, &config(), &mortar(Trajectory::Indirect), &behind).unwrap();
+    let s = solve_launch_past(
+        &world,
+        &config(),
+        &mortar(Trajectory::Indirect),
+        &behind,
+        None,
+    )
+    .unwrap();
     assert_eq!(s.arc, ArcKind::High);
     let (_, high) = analytic_elevations(80.0, G, 200.0, -1.4);
     assert!((elevation(s.velocity) - high).abs() < 1e-9);
@@ -520,8 +531,16 @@ fn the_high_arc_is_used_only_by_indirect_fire_and_never_by_ignoring_a_ridge() {
 
     // In the open both are clear: direct keeps the low arc, indirect the high.
     let open = flat([800.0, 400.0], "");
-    let low = solve_launch(&open, &config(), &mortar(Trajectory::Direct), &behind).unwrap();
-    let high = solve_launch(&open, &config(), &mortar(Trajectory::Indirect), &behind).unwrap();
+    let low =
+        solve_launch_past(&open, &config(), &mortar(Trajectory::Direct), &behind, None).unwrap();
+    let high = solve_launch_past(
+        &open,
+        &config(),
+        &mortar(Trajectory::Indirect),
+        &behind,
+        None,
+    )
+    .unwrap();
     assert_eq!((low.arc, high.arc), (ArcKind::Low, ArcKind::High));
     assert!(high.time_of_flight_s > low.time_of_flight_s);
 }
@@ -653,7 +672,7 @@ fn a_prepared_launch_is_the_scattered_solution_and_refuses_a_blocked_aim() {
     };
     let mut rng = Rng::new(3);
     let (launch, fired) =
-        prepare_launch(&world, &config(), &grenade, &aim, 15.0, &mut rng, None).unwrap();
+        launch_round(&world, &config(), &grenade, &aim, 15.0, &mut rng, None).unwrap();
     assert_eq!(launch.origin, aim.origin);
     assert!(fired.intercept.z <= aim.target.z);
     assert!((launch.velocity.length() - grenade.speed_mps).abs() < 1e-9);
@@ -673,7 +692,7 @@ fn a_prepared_launch_is_the_scattered_solution_and_refuses_a_blocked_aim() {
         ..blocked
     };
     assert!(matches!(
-        prepare_launch(&world, &config(), &grenade, &blocked, 15.0, &mut rng, None),
+        launch_round(&world, &config(), &grenade, &blocked, 15.0, &mut rng, None),
         Err(NoSolution::Blocked { .. })
     ));
 }
@@ -690,8 +709,7 @@ fn missed_direct_rounds_reach_ground_within_the_post_target_fall_limit() {
         for seed in 0..32 {
             let p = profile(name);
             let (launch, solution) =
-                prepare_launch(&world, &config(), &p, &aim, 20.0, &mut Rng::new(seed), None)
-                    .unwrap();
+                launch_round(&world, &config(), &p, &aim, 20.0, &mut Rng::new(seed), None).unwrap();
             assert!(
                 solution.intercept.z <= aim.target.z,
                 "scatter never aims above the target"
@@ -726,7 +744,7 @@ fn the_miss_tail_preserves_a_high_body_hit_before_the_aim_plane() {
     for name in ["hmg", "tank_ap"] {
         let p = profile(name);
         let (launch, _) =
-            prepare_launch(&world, &config(), &p, &aim, 0.0, &mut Rng::new(1), None).unwrap();
+            launch_round(&world, &config(), &p, &aim, 0.0, &mut Rng::new(1), None).unwrap();
         let mut store = Projectiles::new(config());
         store.launch(launch);
         let body = Mover::standing(1, 1, tank_shape(), v3(700.0, 500.0, 0.0));
@@ -751,7 +769,7 @@ fn a_ricochet_keeps_its_deflected_flight_instead_of_the_post_target_fall() {
         target: v3(400.0, 500.0, 1.4),
         target_velocity: V3::default(),
     };
-    let (launch, _) = prepare_launch(
+    let (launch, _) = launch_round(
         &world,
         &config(),
         &profile("hmg"),

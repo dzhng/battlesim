@@ -326,7 +326,7 @@ fn lane_refinement_yields_without_changing_the_route() {
             avoid: &[],
         };
         let grid = NavGrid::new(base.clone());
-        let mut incremental = Journey::new(&grid, &roads, None, leg, &setup.rules.navigation);
+        let mut incremental = Journey::new(None, leg, &setup.rules.navigation);
         for _ in 0..100_000 {
             let spent = incremental.advance(&grid, &roads, 1);
             assert!(
@@ -379,7 +379,7 @@ fn a_dense_roadside_body_query_yields_without_changing_the_route() {
         avoid: &avoid,
     };
     let grid = NavGrid::new(base.clone());
-    let mut job = Journey::new(&grid, &roads, None, leg, &setup.rules.navigation);
+    let mut job = Journey::new(None, leg, &setup.rules.navigation);
     for _ in 0..1_000_000 {
         let spent = job.advance(&grid, &roads, 1);
         assert!(

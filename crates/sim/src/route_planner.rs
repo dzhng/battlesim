@@ -65,8 +65,6 @@ impl Job {
                     let journey = held.get_or_insert_with(|| {
                         self.revision = revision;
                         Box::new(Journey::new(
-                            grid,
-                            roads,
                             spare.pop(),
                             Leg {
                                 from: r.from,
@@ -135,8 +133,6 @@ impl Job {
 pub(crate) struct Charge {
     pub unit: UnitId,
     pub work: u64,
-    pub new_goal: bool,
-    pub distance_m: f64,
 }
 
 /// Every unit's route request in progress.
@@ -153,7 +149,7 @@ pub struct RoutePlanner {
     spare: Vec<Scratch>,
     /// Work spent in the latest tick.
     spent: u64,
-    /// Latest tick's charges, including whether the search starts a new leg.
+    /// Latest tick's charges.
     charges: Vec<Charge>,
 }
 
@@ -251,8 +247,6 @@ impl RoutePlanner {
                 self.charges.push(Charge {
                     unit: id,
                     work: spent,
-                    new_goal: job.request.new_goal,
-                    distance_m: (job.request.goal - job.request.from).length(),
                 });
                 self.overdraft += spent.saturating_sub(left);
                 left = left.saturating_sub(spent);

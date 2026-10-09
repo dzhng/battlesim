@@ -716,13 +716,7 @@ pub struct Journey {
 impl Journey {
     /// Start working out `leg`. `scratch` is a finished journey's
     /// bookkeeping to reuse.
-    pub fn new(
-        _grid: &NavGrid,
-        _roads: &RoadNet,
-        scratch: Option<Scratch>,
-        leg: Leg,
-        rules: &NavigationRules,
-    ) -> Self {
+    pub fn new(scratch: Option<Scratch>, leg: Leg, rules: &NavigationRules) -> Self {
         Journey {
             from: leg.from,
             goal: leg.goal,

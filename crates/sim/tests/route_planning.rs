@@ -211,8 +211,6 @@ fn a_search_gives_up_at_its_limit_and_reports_the_route_blocked() {
         let mobility = sim::units::mobility(setup.rules.catalog.by_id("test_tank"), &setup.rules);
         let before = grid.work();
         let mut journey = Journey::new(
-            &grid,
-            &roads,
             None,
             Leg {
                 from: v2(100.0, 100.0),
@@ -446,8 +444,6 @@ fn an_enclosed_road_goal_finishes_its_counted_proof_and_the_tank_parks_outside_o
     let roads = RoadNet::build(&world);
     let mobility = sim::units::mobility(setup.rules.catalog.by_id("test_tank"), &setup.rules);
     let mut journey = Journey::new(
-        &grid,
-        &roads,
         None,
         Leg {
             from: v2(start[0], start[1]),

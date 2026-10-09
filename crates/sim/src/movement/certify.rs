@@ -82,11 +82,12 @@ fn carry(
     };
     let left = distances_to_end(&way);
     let others = || units.iter().filter(|o| o.id != unit.id && o.alive());
-    let radius = unit.footprint_radius(ctx.soldier_radius_m);
+    let radius = unit.footprint_radius(ctx.rules.physics.soldier_radius_m);
     let mut stop = reach;
     for other in others().filter(|o| o.is_vehicle() && o.orders.is_empty()) {
         let c = other.position.xy();
-        let near = radius + other.footprint_radius(ctx.soldier_radius_m) + TRAFFIC_MARGIN_M;
+        let near =
+            radius + other.footprint_radius(ctx.rules.physics.soldier_radius_m) + TRAFFIC_MARGIN_M;
         // Where the way first comes by it.
         let met = way.windows(2).enumerate().find_map(|(k, w)| {
             let ab = w[1] - w[0];
@@ -115,7 +116,8 @@ fn carry(
         let Some(theirs) = theirs else {
             continue;
         };
-        let near = radius + other.footprint_radius(ctx.soldier_radius_m) + TRAFFIC_MARGIN_M;
+        let near =
+            radius + other.footprint_radius(ctx.rules.physics.soldier_radius_m) + TRAFFIC_MARGIN_M;
         let met = way.windows(2).enumerate().find_map(|(k, w)| {
             let ours = w[1] - w[0];
             theirs.windows(2).find_map(|v| {
@@ -209,13 +211,14 @@ fn carry(
             clear.then_some((p, yaw, next))
         }));
     } else {
-        let apart = 2.0 * ctx.soldier_radius_m;
+        let apart = 2.0 * ctx.rules.physics.soldier_radius_m;
         let soldiers: Vec<V2> = others()
             .filter(|o| !o.is_vehicle())
             .flat_map(|o| o.member_positions())
             .map(|p| p.xy())
             .collect();
-        let mut tries = tries.step_by(ctx.infantry.spacing_m.ceil().max(1.0) as usize);
+        let mut tries =
+            tries.step_by(ctx.rules.infantry_movement.spacing_m.ceil().max(1.0) as usize);
         for _ in unit.members.iter().filter(|s| s.alive()) {
             places.extend(tries.find_map(|e| {
                 let (p, _, next) = at(e)?;
@@ -224,7 +227,7 @@ fn carry(
                     .all(|q| (*q - p.xy()).at_least_radius(apart))
                     && hulls
                         .iter()
-                        .all(|h| !h.contains(p.xy(), ctx.soldier_radius_m));
+                        .all(|h| !h.contains(p.xy(), ctx.rules.physics.soldier_radius_m));
                 free.then_some((p, unit.yaw, next))
             }));
         }
@@ -270,7 +273,6 @@ pub(crate) struct ProofRequest<'a> {
     pub slots: &'a [Slot],
     pub orders: Option<&'a [Vec<UnitOrder>]>,
     pub queued: bool,
-    pub reserve_repair: bool,
 }
 
 /// The same physical rehearsal for prepared per-unit orders or finite queue prefixes.
@@ -285,7 +287,6 @@ pub(crate) fn certify_orders(
         slots,
         orders,
         queued,
-        reserve_repair,
     } = request;
     let finite = |u: &Unit| {
         u.orders
@@ -325,11 +326,7 @@ pub(crate) fn certify_orders(
     while active.iter().any(|v| *v) && remaining > 0 {
         // New combined plans need work left to restore failures and reprove
         // survivors. Each pass removes at least one failure or finishes.
-        let floor = if reserve_repair {
-            remaining - remaining.div_ceil(active.iter().filter(|a| **a).count() as u64)
-        } else {
-            0
-        };
+        let floor = remaining - remaining.div_ceil(active.iter().filter(|a| **a).count() as u64);
         let mut world = initial_world.clone();
         let mut units = source.to_vec();
         let mut sides = [known.planning_snapshot(), known.planning_snapshot()];
@@ -431,25 +428,17 @@ pub(crate) fn certify_orders(
                 ..*ctx
             };
             let shoves = super::advance(&local, &mut units, &mut sides, &mut planner, &mut |_| {});
-            // Long initial routes use the live planner's bound. Repeated
-            // planning has a share per mover, so one blocked member cannot
+            // Every search spends the proof's allowance. Each mover also has
+            // its own share of route searches, so one blocked member cannot
             // spend the other members' arrival rehearsal.
             for index in 0..planner.charges().len() {
                 let charge = planner.charges()[index];
-                if charge.new_goal && !reserve_repair {
-                    if charge.distance_m <= full_rehearsal_m {
-                        remaining = remaining.saturating_sub(charge.work);
-                    }
-                    continue;
-                }
                 let id = charge.unit;
                 let index = id.0 as usize;
-                let charged = charge.work.min(replan_left[index]);
-                replan_left[index] -= charged;
-                remaining =
-                    remaining.saturating_sub(if reserve_repair { charge.work } else { charged });
+                replan_left[index] -= charge.work.min(replan_left[index]);
+                remaining = remaining.saturating_sub(charge.work);
                 if replan_left[index] == 0 {
-                    unproven |= reserve_repair;
+                    unproven = true;
                     planner.cancel(id);
                     stand(&mut units[index]);
                     if let Some(i) = slots.iter().position(|s| s.id == id) {
@@ -472,7 +461,12 @@ pub(crate) fn certify_orders(
                     }
                     world.move_prop(prop.id, shove.center, shove.yaw, tick);
                     if let Some(p) = world.prop(prop.id) {
-                        super::clear_of(&world, &mut units, &p.footprint(), ctx.soldier_radius_m);
+                        super::clear_of(
+                            &world,
+                            &mut units,
+                            &p.footprint(),
+                            ctx.rules.physics.soldier_radius_m,
+                        );
                     }
                 }
             }
@@ -572,7 +566,7 @@ pub(crate) fn certify_orders(
                 {
                     still[i] += 1;
                 }
-                if still[i] > (2.0 * STALL_REPLAN_S * ctx.tick_hz as f64) as u64 {
+                if still[i] > (2.0 * STALL_REPLAN_S * ctx.rules.tick_hz as f64) as u64 {
                     stopped[i] = true;
                     stand(&mut units[index]);
                 }

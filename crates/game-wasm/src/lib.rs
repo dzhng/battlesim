@@ -9,8 +9,9 @@ use contract::templates::{BuildingTemplateDescriptor, PlacementFrame, TemplateGe
 use sim::battle::{Battle, Replay};
 use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
-    advance_projectiles, predicted_path, prepare_launch, Aim, ArcKind, Body, BodyId, FlightConfig,
-    FlightEvent, ImpactContext, NoSolution, Pose, ProjectileId, Projectiles, Shape, Struck,
+    advance_projectiles, launch_along, predicted_path, solve_launch_past, Aim, ArcKind, Body,
+    BodyId, FlightConfig, FlightEvent, ImpactContext, NoSolution, Pose, ProjectileId, Projectiles,
+    Shape, Struck,
 };
 use sim::math::{v3, V3};
 use sim::publication::{self, Publisher};
@@ -440,15 +441,21 @@ impl FlightLab {
             target_velocity: v3_of(target_velocity)?,
         };
         let arc_name = |a: ArcKind| format!("{a:?}").to_lowercase();
-        let out = match prepare_launch(
-            &self.world,
-            &self.config,
-            &profile,
-            &aim,
-            scatter_mrad,
-            &mut self.rng,
-            None,
-        ) {
+        let launched = solve_launch_past(&self.world, &self.config, &profile, &aim, None).and_then(
+            |intended| {
+                launch_along(
+                    &self.world,
+                    &self.config,
+                    &profile,
+                    &aim,
+                    &intended,
+                    scatter_mrad,
+                    &mut self.rng,
+                    None,
+                )
+            },
+        );
+        let out = match launched {
             Ok((launch, s)) => {
                 let id = self.store.launch(launch);
                 self.rounds.insert(id, power);

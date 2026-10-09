@@ -111,15 +111,12 @@ pub(crate) fn floor_band_count(geometry: &contract::templates::MaterializedBuild
         .map_or(1, |floors| floors.len().min(3))
 }
 
-/// Seats at exposed physical bays on the bottom three floor bands. The
-/// gameplay cap reserves places round the four building-frame directions.
-pub fn building_seats(building: &contract::map::BuildingDefinition, rules: &Rules) -> SeatPlan {
-    seat_plan(&building.geometry, rules, None)
-}
-
-/// A remembered or live replacement keeps the source bays but loses floors
-/// above its remaining shell. Initial-part IDs retain the complete source plan.
-pub(crate) fn seats_for_state(world: &WorldGeometry, prop: &Prop, rules: &Rules) -> SeatPlan {
+/// Seats at exposed physical bays on the bottom three floor bands of the
+/// building `prop` belongs to. The gameplay cap reserves places round the
+/// four building-frame directions. A remembered or live replacement keeps the
+/// source bays but loses floors above its remaining shell. Initial-part IDs
+/// retain the complete source plan.
+pub fn seats_for_state(world: &WorldGeometry, prop: &Prop, rules: &Rules) -> SeatPlan {
     let definition = world.building(prop.id).expect("building geometry");
     // Into states give every part the same height. Gutted parts may differ,
     // but the catalog forbids garrisoning those terminal shells.
