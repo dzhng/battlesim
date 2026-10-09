@@ -42,7 +42,8 @@ export interface TemplatePart {
 }
 
 /** The contract's `BuildingTemplateDescriptor`, as far as art reads it: its
- *  identity and its parts. Every other field is the contract's to judge. */
+ *  identity, its parts and its floors. Every other field is the contract's to
+ *  judge. */
 export interface TemplateDescriptor {
   id: string;
   category: string;
@@ -83,7 +84,7 @@ export interface AdmittedTemplates {
 /** The physical template contract, as its own code judges it. */
 export interface PhysicalTemplates {
   /** The canonical catalogue of `descriptors`, each a building a map may
-   *  place (`contract::templates`): floors, entrances and bays resolved.
+   *  place (`contract::templates`): its floors, entrances and bays.
    *  Throws the contract's refusal. */
   catalogue(descriptors: readonly unknown[]): AdmittedTemplates;
 }

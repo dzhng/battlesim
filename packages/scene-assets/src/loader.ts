@@ -364,7 +364,7 @@ export class AppearanceLibrary {
   }
 
   /** The template art library the catalog names: the art it says it is, over
-   *  the catalogues it says, packed against the kits the catalog has. Anything
+   *  the catalogue it says, packed against the kits the catalog has. Anything
    *  else fails the whole load, with no kit fetched to find it out. */
   private async templateLibrary(
     source: Source,

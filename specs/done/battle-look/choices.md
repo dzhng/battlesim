@@ -4716,7 +4716,7 @@ Naming and cosmetic calls with no reach beyond their file, one line each.
 - Tank turret front is a broad flat face with angled cheeks; pivots unchanged.
 - `veil` stays a selectable fog preset; the default is the user's `dusk` (dimmed and cooled, with rim).
 - Fog-look gate frames: `default-wall` and `ground-wall` reproduce the single-wall wedge; street wedge frames are `default-wedge` and `ground-street`.
-- Fog-look's hue check: CIELAB a*b* distance of 12 between the darkest 1% of seen and unseen ground (`HUE_MARGIN`).
+- Fog-look's hue check: CIELAB a*b* distance of 12 between the darkest 1% of unseen ground under a style and the same pixels drawn seen, with fog off (`HUE_MARGIN`).
 - Frame view `ground-mask` (`setMaskView`) shows ground coverage for checks.
 - The biome's `forest_floor` block (palette, patch, mottle, roots, verge, dapple, roughness) is validated by name; its palette is no longer required by name.
 - `/lab/ground?village` is the paused village ground inspector, with a side switch and stream readout.

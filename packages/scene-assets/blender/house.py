@@ -1,19 +1,18 @@
-"""A farmstead sized to a building's box: intact, or its ruin.
+"""A farmstead sized to a box, intact or as its ruin: the ruin is what a loose
+`ruin` or rubble prop is drawn as. (Buildings are city sets: `city/`.)
 
-The simulation's building is one box (a template's part), which blocks movers
-and sight and holds a garrison. The art fills that box as a courtyard farm, the
-common farmhouse of the region: a two-storey dwelling along one long side,
-a barn along the other, a stable wing joining them, and a yard wall with a gate
-closing the square. Every outer wall stands on a face of the box, so what hides
-a unit in the simulation is what hides it on screen. Roofs ridge just under the
-box's top; chimneys and eaves overhang it slightly.
+The art fills the box as a courtyard farm, the common farmhouse of the region:
+a two-storey dwelling along one long side, a barn along the other, a stable
+wing joining them, and a yard wall with a gate closing the square. Every outer
+wall stands on a face of the box, so what hides a unit in the simulation is
+what hides it on screen. Roofs ridge just under the box's top; chimneys and
+eaves overhang it slightly.
 
 With a ruin height the same plan is a burnt shell: walls broken to a ragged top
 no higher than about that height, rubble mounds, charred beams. Origin at the
 box's centre on the ground, +X along `hx`.
 
-`farmstead` builds one under a root. Run as a script it writes one alone, the
-ruin a loose `ruin` or rubble prop is drawn as:
+Run as a script it writes one:
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/house.py -- <out.glb> <hx> <hy> <hz> <variant> [--ruin RUIN_HEIGHT]
 """
@@ -30,26 +29,25 @@ STOREYS_M = 8.0  # the farm's two storeys under their roofs: the lowest it is bu
 BAKE = dict(ao_distance=3.0, ao_strength=0.55, ao_rays=10, paint_scale=3.0)  # what `parts.finish` is given
 
 
-def farmstead(root, HX, HY, HZ, VARIANT=0, RUIN=None, tag=""):
+def farmstead(root, HX, HY, HZ, VARIANT=0, RUIN=None):
     """Build the farm for a box of half extents (HX, HY, HZ) under `root`, in one of
-    three looks (`VARIANT`); with `RUIN`, its ruin that tall. `tag` ends the names of
-    the materials a look colours, so several looks share one file. A box lower than
+    three looks (`VARIANT`); with `RUIN`, its ruin that tall. A box lower than
     the farm's storeys gets the farm pressed down to it."""
     rng = random.Random(1000 + VARIANT)
-    wall_m = plaster("plaster" + tag, PLASTERS[VARIANT % 3], seed=1.0 + VARIANT, burnt_=RUIN is not None)
-    barn_m = plaster("barn_plaster" + tag, tuple(c * 0.92 for c in PLASTERS[(VARIANT + 1) % 3]), seed=3.0 + VARIANT,
+    wall_m = plaster("plaster", PLASTERS[VARIANT % 3], seed=1.0 + VARIANT, burnt_=RUIN is not None)
+    barn_m = plaster("barn_plaster", tuple(c * 0.92 for c in PLASTERS[(VARIANT + 1) % 3]), seed=3.0 + VARIANT,
                      burnt_=RUIN is not None)
-    roof_m = tiles("roof_tiles" + tag, TILES[VARIANT % 3] if RUIN is None else tuple(c * 0.45 for c in TILES[VARIANT % 3]),
+    roof_m = tiles("roof_tiles", TILES[VARIANT % 3] if RUIN is None else tuple(c * 0.45 for c in TILES[VARIANT % 3]),
                    seed=7.0 + VARIANT)
-    brick_m = brick("brick" + tag, seed=3.0 + VARIANT, burnt_=RUIN is not None)
+    brick_m = brick("brick", seed=3.0 + VARIANT, burnt_=RUIN is not None)
     stone_m = stone("stone")
-    wood_m = timber("timber" + tag, seed=9.0 + VARIANT)
-    green_m = timber("shutters" + tag, (0.06, 0.1, 0.07), seed=12.0 + VARIANT)
+    wood_m = timber("timber", seed=9.0 + VARIANT)
+    green_m = timber("shutters", (0.06, 0.1, 0.07), seed=12.0 + VARIANT)
     frame_m = flat_paint("window_frame", (0.55, 0.53, 0.48), rough=0.7)
     glass_m = flat_paint("window_glass", (0.015, 0.02, 0.025), rough=0.1, grime=0.0)
     metal_m = flat_paint("gutter", (0.2, 0.2, 0.19), rough=0.5, metal=0.6)
     char_m = charred("charred")
-    rubble_m = rubble_paint("rubble" + tag, seed=13.0 + VARIANT)
+    rubble_m = rubble_paint("rubble", seed=13.0 + VARIANT)
 
     D = min(7.6, HY * 0.62)  # wing depth
     DS = min(6.0, HX * 0.4)  # stable wing depth

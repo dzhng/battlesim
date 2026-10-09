@@ -311,10 +311,8 @@ class Template:
 
 
 class Kit:
-    def __init__(self, set_id, script, fit_side_m, fit_top_m, fit_ruin_top_m=None, damage_budget=True):
-        """`fit_ruin_top_m` is how far a ruin's broken walls may stand above its remains; a set with no ruin has none.
-        `damage_budget` false lets a damage state draw more than its building: only for art older than the rule."""
-        self.damage_budget = damage_budget
+    def __init__(self, set_id, script, fit_side_m, fit_top_m, fit_ruin_top_m=None):
+        """`fit_ruin_top_m` is how far a ruin's broken walls may stand above its remains; a set with no ruin has none."""
         with open(os.path.join(REPO, "fixtures", "game.json")) as f:
             physics = json.load(f)["physics"]
         self.firing_heights = (physics["infantry_muzzle_m"], physics["infantry_eye_m"])
@@ -410,7 +408,7 @@ class Kit:
         intact, damaged = self.drawn(t, "intact"), self.drawn(t, ends)
         if not all(intact) or not all(damaged):
             _fail(f"{t.id}: every state draws at every tier: intact {intact}, {ends} {damaged}")
-        if self.damage_budget and any(d > i for d, i in zip(damaged, intact)):
+        if any(d > i for d, i in zip(damaged, intact)):
             _fail(f"{t.id}: its {ends} state draws {damaged} triangles, more than intact's {intact}")
 
     def write(self, out_dir=None):
