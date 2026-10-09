@@ -204,7 +204,7 @@
   {
     "id": "fog",
     "route": "/lab/fog",
-    "describe": "Sight-light fog over the street test map: blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU lookup against its oracle vectors, a turned turret and a garrison's eyes.",
+    "describe": "Sight-light fog over the street test map: blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU sight shape against Rust's vectors, a turned turret and a garrison's eyes.",
     "map": "street"
   },
   {
