@@ -41,7 +41,7 @@ export class WebAudioSink implements VoiceSink {
   constructor(
     readonly context: BaseAudioContext,
     presentation: AudioPresentation,
-    catalog?: SoundCatalog,
+    catalog: SoundCatalog,
     bank?: SoundBank,
   ) {
     this.ownsBank = !bank;

@@ -11,7 +11,6 @@ import {
 import { battleSounds } from "./catalog";
 import type { AppAudio } from "./appAudio";
 import type { SoundBank } from "./soundBank";
-import { gameSounds } from "./shippedSounds";
 import { WebAudioSink } from "./webAudioSink";
 
 /** Where the listener stands for a camera: `share` of the way from the
@@ -66,7 +65,7 @@ export class BattleAudio {
     ));
     this.frame = new SoundFrame(this.options, sink);
     void bank
-      .prepare(battleSounds(this.options.catalog ?? gameSounds))
+      .prepare(battleSounds(this.options.catalog))
       .then(() => {
         if (this.sink !== sink) return;
         this.ready = true;

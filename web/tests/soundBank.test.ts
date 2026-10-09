@@ -110,7 +110,7 @@ test("calibration preserves the authored level of a synthesis-only custom recipe
     quiet: { label: "Quiet", clips: [], synth: "rifle", synth_gain: 0.2, gain: 0.25, loop: false },
   };
   const bank = new SoundBank(context, catalog);
-  await bank.prepare();
+  await bank.prepare(["baseline", "quiet"]);
   const peak = (name: string) => {
     const audio = bank.get(name);
     return Math.max(...audio.getChannelData(0).map(Math.abs)) * bank.normalizationGain(audio);
@@ -325,7 +325,7 @@ test("every synthesized baseline retains its exact samples, including stereo amb
     ]),
   );
   const bank = new SoundBank(context, catalog);
-  await bank.prepare();
+  await bank.prepare(Object.keys(SOUNDS));
   for (const name of Object.keys(SOUNDS)) {
     const original = synthesize(name, sampleRate);
     const prepared = bank.get(name);

@@ -3,7 +3,6 @@ import { BattleAudio } from "./battleAudio";
 import type { SoundCatalog } from "./catalog";
 import type { SoundFrameOptions } from "./soundFrame";
 import { soundSettings } from "./settings";
-import { gameSounds } from "./shippedSounds";
 import { SoundBank } from "./soundBank";
 import { WebAudioSink } from "./webAudioSink";
 
@@ -67,7 +66,7 @@ export class AppAudio {
   private readonly onPageHide = () => this.dispose();
 
   constructor(
-    private readonly options: { presentation: AudioPresentation; catalog?: SoundCatalog },
+    private readonly options: { presentation: AudioPresentation; catalog: SoundCatalog },
   ) {
     this.unsubscribe = soundSettings.subscribe(() => this.applySettings());
     for (const type of ["pointerdown", "keydown"] as const)
@@ -91,7 +90,7 @@ export class AppAudio {
     if (!this.context) {
       try {
         this.context = new AudioContext({ latencyHint: "interactive" });
-        this.bank = new SoundBank(this.context, this.options.catalog ?? gameSounds);
+        this.bank = new SoundBank(this.context, this.options.catalog);
         this.menu = new WebAudioSink(
           this.context,
           this.options.presentation,
@@ -153,10 +152,7 @@ export class AppAudio {
 
   createBattle(options: Omit<SoundFrameOptions, "catalog">) {
     this.battle?.dispose();
-    const battle = new BattleAudio(
-      { ...options, catalog: this.options.catalog ?? gameSounds },
-      this,
-    );
+    const battle = new BattleAudio({ ...options, catalog: this.options.catalog }, this);
     this.battle = battle;
     this.combatStarted = false;
     this.start();
