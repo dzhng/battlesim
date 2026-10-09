@@ -17,7 +17,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { PresentedContact } from "./contactPresentation";
-import type { ContactView, IdentifiedView, OwnUnitView } from "../sim/observation";
+import type { IdentifiedView, OwnUnitView } from "../sim/observation";
 import type { useUnitControl } from "../input/useUnitControl";
 import type { CommandMode, PointerPick } from "../input/pointerIntent";
 import { CommandBindings } from "../input/commandBindings";
@@ -146,7 +146,7 @@ export function ReadoutLayer({
    *  commit's changed props. */
   own: readonly OwnUnitView[];
   identified?: readonly IdentifiedView[];
-  contacts?: readonly (ContactView | PresentedContact)[];
+  contacts?: readonly PresentedContact[];
   /** The published tick, which a contact's "ago" counts from. */
   tick?: number;
   rules: PanelRules;
@@ -189,8 +189,8 @@ export function ReadoutLayer({
     ...contacts.map(
       (c): Callout => ({
         key: `contact-${c.id}`,
-        opacity: "opacity" in c ? c.opacity : undefined,
-        retiring: "retiring" in c ? c.retiring : false,
+        opacity: c.opacity,
+        retiring: c.retiring,
         owner: "contact",
         id: c.id,
         at: [c.center[0], c.center[1], 0],

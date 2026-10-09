@@ -6,6 +6,7 @@ import { afterEach, expect, test } from "vitest";
 import game from "@fixtures/game.json";
 import { ReadoutLayer, type ReadoutLayerHandle } from "../src/battle/present/readouts";
 import type { ContactView } from "../src/battle/sim/observation";
+import { ContactPresentation } from "../src/battle/present/contactPresentation";
 import type { PanelRules } from "../src/battle/present/panelRows";
 
 /** Views render under the test set, as a lab page provides it. */
@@ -13,6 +14,8 @@ const render = (ui: Parameters<typeof renderView>[0]) =>
   renderView(ui, { wrapper: WithTestCatalog });
 
 afterEach(cleanup);
+/** Contacts as the battle presents them: live, at full opacity. */
+const present = (contacts: ContactView[]) => new ContactPresentation(30, 1).update(contacts, 0);
 const camera: import("@packages/renderer-core/src/camera3d").Camera3DParams = {
   target: [0, 0, 0],
   distance: 100,
@@ -36,9 +39,9 @@ test("contact leaders stay on the reported ground center as radius and camera ch
     heard: ["rifle"],
   };
   const props = { own: [], selected: [], handle, rules: game as unknown as PanelRules };
-  const view = render(<ReadoutLayer {...props} contacts={[contact]} />);
+  const view = render(<ReadoutLayer {...props} contacts={present([contact])} />);
   for (const radius of [0, 20, 80]) {
-    view.rerender(<ReadoutLayer {...props} contacts={[{ ...contact, radius }]} />);
+    view.rerender(<ReadoutLayer {...props} contacts={present([{ ...contact, radius }])} />);
     for (const scale of [0.5, 1]) {
       handle.current!.place((x, y, z) => [x * scale + 50, y * scale - z], camera, {
         ground: () => 12,
@@ -68,7 +71,7 @@ test("every live report gets a truthful label, including never-identified firing
       selected={[]}
       handle={handle}
       rules={game as unknown as PanelRules}
-      contacts={[base, { ...base, id: 2, source: "firing", kind: null }]}
+      contacts={present([base, { ...base, id: 2, source: "firing", kind: null }])}
     />,
   );
   expect(
@@ -241,25 +244,28 @@ test("detail priority follows the actual camera eye rather than its orbit target
 
 test("retiring contact panels fade together with their leader and cannot be picked", () => {
   const handle = createRef<ReadoutLayerHandle>();
-  const contact = {
+  const contact: ContactView = {
     id: 7,
-    source: "last_seen" as const,
-    center: [200, 300] as [number, number],
+    source: "last_seen",
+    center: [200, 300],
     radius: 20,
     evidenceTick: 0,
     expiresTick: 300,
     kind: "test_tank",
     heard: [],
-    opacity: 0.4,
-    retiring: true,
   };
+  // Dropped from the observation at tick 42, it fades over a second: 40% left at 60.
+  const presentation = new ContactPresentation(30, 1);
+  presentation.update([contact], 41);
+  presentation.update([], 42);
+  const retiring = presentation.update([], 60);
   const view = render(
     <ReadoutLayer
       own={[]}
       selected={[]}
       handle={handle}
       rules={game as unknown as PanelRules}
-      contacts={[contact]}
+      contacts={retiring}
       tick={60}
     />,
   );
