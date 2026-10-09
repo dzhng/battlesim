@@ -25,7 +25,7 @@ a smaller playable rectangle cannot stand in for the complete rendered workload.
 [Presets](../../fixtures/map-presets.json) own construction choices and finite-work
 policy; [preset validation](src/layout/presets.rs) protects the physical and numeric
 constraints. The size profile owns its central settlement class and surrounding settlement
-counts. Open-approach depth follows the playable extent, so compact maps retain
+counts. Open-approach depth follows the playable extent, so small maps retain
 room for the town and both opposing approaches. The shared
 [generation contract](../contract/src/generation.rs) owns tier names and extents.
 A request pins preset and generator revisions. A mismatch is refused
@@ -238,6 +238,10 @@ layout sweeps, sampled sight diagnostics, short battle probes and the native
 [map workbench](../../apps/map-workbench/README.md) report. Run one through
 `cargo run -p mapgen --release --example <name> -- <arguments>`; its source usage
 defines the workload. [Tests](tests/) own current generation contracts and thresholds.
+A claim about generated maps holds over the seeds generation admits, or as a rate
+over many of them; never over one seed that happens to pass, since every change
+that moves a generated point resamples them all. [The shared test helpers](tests/common/)
+find those seeds.
 
 [The generation rationale](../../specs/done/city-maps/README.md) links frozen reports
 and the parameter snapshot used for design feedback. Those historical values are

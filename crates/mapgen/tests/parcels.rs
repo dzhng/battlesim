@@ -16,6 +16,10 @@ use mapgen::{Diagnostic, DiagnosticCode, DistrictPlan, MapPlan};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
+#[path = "common/admitted.rs"]
+mod admitted;
+#[path = "common/first_where.rs"]
+mod first_where;
 #[path = "common/memo.rs"]
 mod memo;
 #[path = "common/parallel.rs"]
@@ -25,8 +29,8 @@ const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");
 const TYPES: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
 const SIZES: [MapSize; 3] = [MapSize::Medium, MapSize::Large, MapSize::Xl];
-/// Every cell runs these seeds: a claim about the pass is a claim about all
-/// of them, not one lucky town.
+/// Every cell runs these seeds, or the next in line for one refused: a claim
+/// about the pass is a claim about all of them, not one lucky town.
 const SEEDS: [u64; 2] = [1, u64::MAX];
 
 type Point = [f64; 2];
@@ -56,16 +60,20 @@ fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
 /// The first seed whose map of this type and size has an industrial
 /// district: not every map has one.
 fn seed_with_industry(map_type: MapType, size: MapSize) -> u64 {
-    (1..=40)
-        .find(|seed| {
-            generate_layout(&request(map_type, size, *seed), &presets()).is_ok_and(|plan| {
-                plan.settlements
-                    .iter()
-                    .flat_map(|settlement| &settlement.districts)
-                    .any(|district| district.kind == "industrial")
-            })
-        })
-        .expect("a map with industry among forty seeds")
+    let presets = presets();
+    let industrial = |plan: &MapPlan| {
+        plan.settlements
+            .iter()
+            .flat_map(|settlement| &settlement.districts)
+            .any(|district| district.kind == "industrial")
+    };
+    first_where::first_where(
+        1..=40,
+        |seed| generate_layout(&request(map_type, size, seed), &presets),
+        industrial,
+    )
+    .expect("a map with industry among forty seeds")
+    .0
 }
 
 fn fill(
@@ -99,39 +107,57 @@ impl Town {
     }
 }
 
-/// Each cell is generated once, whichever tests ask for it.
-fn town(map_type: MapType, size: MapSize, seed: u64) -> Arc<Town> {
-    static TOWNS: memo::Memo<(MapType, MapSize, u64), Town> = memo::Memo::new();
-    TOWNS.get((map_type, size, seed), || {
+/// One seed's town, or the generator's refusal of it.
+type Made = Result<Arc<Town>, Vec<Diagnostic>>;
+
+/// Each seed's town is made once, whichever tests ask for it.
+fn made(map_type: MapType, size: MapSize, seed: u64) -> Made {
+    static TOWNS: memo::Memo<(MapType, MapSize, u64), Made> = memo::Memo::new();
+    let made = TOWNS.get((map_type, size, seed), || {
         let request = request(map_type, size, seed);
-        let plan = fill(&request, &presets(), &catalogue())
-            .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
+        let plan = fill(&request, &presets(), &catalogue())?;
         let compiled = mapgen::lower(
             &mapgen::CompileRequest::generated(&request, plan.clone()),
             &catalogue(),
         )
         .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
-        Town {
+        Ok(Arc::new(Town {
             plan,
             map: compiled.map,
-        }
-    })
+        }))
+    });
+    (*made).clone()
 }
 
-/// Every type and size on each seed: made side by side, checked in order.
+/// The cell's first `SEEDS.len()` admitted towns, from `SEEDS` on.
+fn towns(map_type: MapType, size: MapSize) -> Vec<(u64, Arc<Town>)> {
+    let candidates = SEEDS.into_iter().chain(2..);
+    admitted::admitted(candidates, SEEDS.len(), |seed| made(map_type, size, seed))
+}
+
+/// Every type and size on its admitted towns: made side by side, checked in
+/// order.
 fn every_cell(mut check: impl FnMut(&str, MapType, &Town)) {
-    let cells: Vec<(MapType, MapSize, u64)> = TYPES
+    let cells: Vec<(MapType, MapSize)> = TYPES
         .into_iter()
         .flat_map(|map_type| SIZES.into_iter().map(move |size| (map_type, size)))
-        .flat_map(|(map_type, size)| SEEDS.into_iter().map(move |seed| (map_type, size, seed)))
         .collect();
-    let towns = parallel::each(&cells, |&(map_type, size, seed)| town(map_type, size, seed));
-    for ((map_type, size, seed), town) in cells.into_iter().zip(towns) {
-        check(
-            &format!("{map_type:?} {size:?} seed {seed}"),
-            map_type,
-            &town,
-        );
+    // The listed seeds side by side first; a cell refused one finds the next.
+    let listed: Vec<(MapType, MapSize, u64)> = cells
+        .iter()
+        .flat_map(|&(map_type, size)| SEEDS.map(|seed| (map_type, size, seed)))
+        .collect();
+    parallel::each(&listed, |&(map_type, size, seed)| {
+        made(map_type, size, seed).is_ok()
+    });
+    for (map_type, size) in cells {
+        for (seed, town) in towns(map_type, size) {
+            check(
+                &format!("{map_type:?} {size:?} seed {seed}"),
+                map_type,
+                &town,
+            );
+        }
     }
 }
 
@@ -501,8 +527,7 @@ fn every_entrance_faces_a_street_or_apron_within_a_short_walk() {
 #[test]
 fn every_street_is_paved_through_to_the_roads_that_leave_the_map() {
     for map_type in TYPES {
-        for seed in SEEDS {
-            let town = town(map_type, MapSize::Medium, seed);
+        for (seed, town) in towns(map_type, MapSize::Medium) {
             let map = &town.map;
             // Each carriageway's samples and half width; aprons are not ways.
             let ways: Vec<(SurfaceKind, &[Point], f64, [f64; 4])> = map
@@ -804,8 +829,7 @@ fn towns_keep_their_metre_dimensions_at_every_map_size() {
         let mut rows: BTreeMap<String, [f64; 2]> = BTreeMap::new();
         let mut widths = BTreeSet::new();
         for map_type in TYPES {
-            for seed in SEEDS {
-                let town = town(map_type, size, seed);
+            for (_, town) in towns(map_type, size) {
                 for district in town.plan.settlements.iter().flat_map(|s| &s.districts) {
                     rows.entry(district.kind.clone()).or_default()[1] += district.area_m2 / 1e4;
                 }
@@ -1300,7 +1324,7 @@ fn a_dense_districts_ground_between_its_parcels_is_lawn() {
     let verge = presets.parcels.verge_m;
     let mut lawn = 0;
     for map_type in TYPES {
-        let town = town(map_type, MapSize::Medium, SEEDS[0]);
+        let (_, town) = towns(map_type, MapSize::Medium).swap_remove(0);
         let world = sim::world::WorldGeometry::new(&town.map, &rules);
         let ways = carriageways(&town);
         let taken: Vec<&[Point]> = town

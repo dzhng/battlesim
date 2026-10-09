@@ -9,6 +9,8 @@ use mapgen::{CompileLimits, Diagnostic, MapPlan};
 
 #[path = "common/admitted.rs"]
 mod admitted;
+#[path = "common/first_where.rs"]
+mod first_where;
 
 const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TYPES: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
@@ -585,79 +587,104 @@ fn built(
 
 /// A town beside a river is built dry: no parcel, building or yard reaches
 /// the water or its bank, and every street stays on its own bank, joined to
-/// the roads there. (Metro Medium and Large seed 11 are towns whose nearest
-/// road lies across the water.)
+/// the roads there. Held on each type's first Medium river maps, and on the
+/// first Metro maps at Large and Xl whose city comes up to the water: not
+/// every river map has a town on its bank.
 #[test]
 fn a_town_beside_a_river_is_built_dry_and_its_streets_keep_to_their_bank() {
     let presets = presets(1.0);
-    let cells = TYPES
-        .into_iter()
-        .flat_map(|map_type| {
-            [
-                (map_type, MapSize::Medium, 1),
-                (map_type, MapSize::Medium, 2),
-            ]
+    let mut maps = Vec::new();
+    for map_type in TYPES {
+        let size = MapSize::Medium;
+        for (seed, built) in
+            admitted::admitted(1.., 2, |seed| built(&presets, map_type, size, seed))
+        {
+            maps.push((format!("{map_type:?} {size:?} seed {seed}"), built));
+        }
+    }
+    let on_the_bank = |(plan, map): &(MapPlan, contract::map::MapDefinition)| {
+        let near = near_water(&map.rivers[0]);
+        plan.lots.iter().any(|lot| {
+            along_ring(&lot.ring, 2.0)
+                .into_iter()
+                .any(|p| near.contains(&square(p)))
         })
-        .chain([
-            (MapType::Metro, MapSize::Large, 11),
-            (MapType::Metro, MapSize::Xl, 11),
-        ]);
+    };
+    for size in [MapSize::Large, MapSize::Xl] {
+        let (seed, built) = first_where::first_where(
+            1..=20,
+            |seed| built(&presets, MapType::Metro, size, seed),
+            on_the_bank,
+        )
+        .unwrap_or_else(|| panic!("Metro {size:?}: no town on a river's bank in twenty seeds"));
+        maps.push((format!("Metro {size:?} seed {seed}"), built));
+    }
     let mut beside = 0;
-    for (map_type, size, seed) in cells {
-        let name = format!("{map_type:?} {size:?} seed {seed}");
-        let (plan, map) = built(&presets, map_type, size, seed)
-            .unwrap_or_else(|errors| panic!("{name}: {errors:?}"));
-        let river = &map.rivers[0];
-        let (near, bank) = (near_water(river), bank_m(river));
-        let dry = |p: Point| !near.contains(&square(p)) || river.inside(p) < -bank;
-        for lot in &plan.lots {
-            for p in along_ring(&lot.ring, 2.0) {
-                assert!(dry(p), "{name}: parcel {} reaches the bank", lot.id);
-                beside += usize::from(near.contains(&square(p)));
-            }
-        }
-        for building in &map.buildings {
-            for part in &building.geometry.parts {
-                let (sin, cos) = part.yaw.sin_cos();
-                let corners: Vec<Point> = [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]]
-                    .iter()
-                    .map(|[u, v]| {
-                        let (x, y) = (u * part.half_extents[0], v * part.half_extents[1]);
-                        [
-                            part.center[0] + cos * x - sin * y,
-                            part.center[1] + sin * x + cos * y,
-                        ]
-                    })
-                    .collect();
-                for p in along_ring(&corners, 2.0) {
-                    assert!(dry(p), "{name}: a building stands on the bank at {p:?}");
-                }
-            }
-        }
-        // Streets and yards are surfaces of kind `road`; the layout's own
-        // roads cross by their decks, a street by none.
-        for area in &map.surfaces {
-            if area.kind != contract::map::SurfaceKind::Road {
-                continue;
-            }
-            let points = match &area.shape {
-                GroundShape::Polygon { ring } => along_ring(ring, 2.0),
-                GroundShape::Stroke { centerline, .. } => centerline
-                    .samples()
-                    .windows(2)
-                    .flat_map(|pair| along_ring(&[pair[0], pair[1]], 1.0))
-                    .collect(),
-            };
-            for p in points {
-                assert!(dry(p), "{name}: a street or yard reaches the bank at {p:?}");
-            }
-        }
-        let metrics = measure(&plan, &presets);
-        assert_eq!(metrics.roads.unbridged, 0, "{name}");
-        assert_eq!(metrics.roads.unconnected_street_km, 0.0, "{name}");
-        assert_eq!(metrics.roads.unconnected_settlements, 0, "{name}");
+    for (name, (plan, map)) in &maps {
+        beside += dry_beside_the_river(name, &presets, plan, map);
     }
     assert!(beside > 0, "no parcel stands within a square of a river");
+}
+
+/// How many points of the plan's parcels stand within a square of its river,
+/// after holding the town to its dry bank.
+fn dry_beside_the_river(
+    name: &str,
+    presets: &PresetDefinitions,
+    plan: &MapPlan,
+    map: &contract::map::MapDefinition,
+) -> usize {
+    let mut beside = 0;
+    let river = &map.rivers[0];
+    let (near, bank) = (near_water(river), bank_m(river));
+    let dry = |p: Point| !near.contains(&square(p)) || river.inside(p) < -bank;
+    for lot in &plan.lots {
+        for p in along_ring(&lot.ring, 2.0) {
+            assert!(dry(p), "{name}: parcel {} reaches the bank", lot.id);
+            beside += usize::from(near.contains(&square(p)));
+        }
+    }
+    for building in &map.buildings {
+        for part in &building.geometry.parts {
+            let (sin, cos) = part.yaw.sin_cos();
+            let corners: Vec<Point> = [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]]
+                .iter()
+                .map(|[u, v]| {
+                    let (x, y) = (u * part.half_extents[0], v * part.half_extents[1]);
+                    [
+                        part.center[0] + cos * x - sin * y,
+                        part.center[1] + sin * x + cos * y,
+                    ]
+                })
+                .collect();
+            for p in along_ring(&corners, 2.0) {
+                assert!(dry(p), "{name}: a building stands on the bank at {p:?}");
+            }
+        }
+    }
+    // Streets and yards are surfaces of kind `road`; the layout's own
+    // roads cross by their decks, a street by none.
+    for area in &map.surfaces {
+        if area.kind != contract::map::SurfaceKind::Road {
+            continue;
+        }
+        let points = match &area.shape {
+            GroundShape::Polygon { ring } => along_ring(ring, 2.0),
+            GroundShape::Stroke { centerline, .. } => centerline
+                .samples()
+                .windows(2)
+                .flat_map(|pair| along_ring(&[pair[0], pair[1]], 1.0))
+                .collect(),
+        };
+        for p in points {
+            assert!(dry(p), "{name}: a street or yard reaches the bank at {p:?}");
+        }
+    }
+    let metrics = measure(plan, presets);
+    assert_eq!(metrics.roads.unbridged, 0, "{name}");
+    assert_eq!(metrics.roads.unconnected_street_km, 0.0, "{name}");
+    assert_eq!(metrics.roads.unconnected_settlements, 0, "{name}");
+    beside
 }
 
 /// A river is drawn from its own stream. A seed without one is the map it
@@ -669,9 +696,11 @@ fn a_seed_without_a_river_is_the_map_it_was_and_a_river_map_is_the_same_every_ru
     let (mut dry, mut wet) = (0, 0);
     for map_type in TYPES {
         for size in SIZES {
-            for seed in [1, 2, 3, 4, 5, 6, 7, 8, u64::MAX] {
+            let plans = admitted::admitted([u64::MAX].into_iter().chain(1..), 9, |seed| {
+                generate(&half, map_type, size, seed)
+            });
+            for (seed, plan) in plans {
                 let name = format!("{map_type:?} {size:?} seed {seed}");
-                let plan = generate(&half, map_type, size, seed).unwrap();
                 if plan.rivers.is_empty() {
                     let without = generate(&off, map_type, size, seed).unwrap();
                     assert_eq!(json(&plan), json(&without), "{name}");
