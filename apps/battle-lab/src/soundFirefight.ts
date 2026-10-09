@@ -35,7 +35,7 @@ import { gameAudio } from "./soundFeed";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import { battleSounds, type SoundCatalog } from "@packages/battle-audio/src/catalog";
 
-export const FIREFIGHT_S = 8;
+const FIREFIGHT_S = 8;
 const HZ = game.tick_hz;
 const DT = 1 / HZ;
 /** Frames a second the offline render schedules at, like a display. */
@@ -277,7 +277,7 @@ function blueTankAt(s: number): number[] {
 }
 
 /** What is drawn moving at presentation time `s`. */
-export function firefightMotion(s: number): SoundMotion {
+function firefightMotion(s: number): SoundMotion {
   const at = blueTankAt(s);
   const rolled = at[0] - BLUE_TANK.at[0];
   // The turret traverses 1 rad over 2 s from 3.8 s.

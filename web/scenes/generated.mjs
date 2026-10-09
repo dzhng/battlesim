@@ -178,7 +178,7 @@ async function frame(ctx, page, view, file, clear = false) {
   return decode(shot);
 }
 
-export async function roadAlignment(ctx, page, start) {
+async function roadAlignment(ctx, page, start) {
   // A road: under blue's entry, which stands on the road it arrives by
   // (`start`, facing along it), against the field off to its side.
   const mid = start.at;

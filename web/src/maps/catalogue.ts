@@ -10,14 +10,14 @@ import { MAP_ID, type MapDefinition, type MapIdentity } from "./resolve.ts";
 /** What a saved map is for (`contract::maps::MapCategory`): a test's own
  *  ground (tests, labs, benchmarks) or a battlefield the menu backdrop films.
  *  Players never fight on a saved map: their battles are generated. */
-export const MAP_CATEGORIES = ["test", "menu"] as const;
-export const MAP_STATUSES = ["draft", "released", "retired"] as const;
-export const MAP_SOURCES = ["imported", "generated", "authored"] as const;
+const MAP_CATEGORIES = ["test", "menu"] as const;
+const MAP_STATUSES = ["draft", "released", "retired"] as const;
+const MAP_SOURCES = ["imported", "generated", "authored"] as const;
 /** What kind of ground a map is: a generated map's type (`open`, `mixed`,
  *  `metro`), or an authored test's `arena`. */
-export const MAP_CHARACTERS = ["open", "mixed", "metro", "arena"] as const;
+const MAP_CHARACTERS = ["open", "mixed", "metro", "arena"] as const;
 /** The physical features a map can have, each a tag when the map has any. */
-export const MAP_TAGS = [
+const MAP_TAGS = [
   "relief",
   "river",
   "road",
@@ -193,7 +193,7 @@ export function categoryMap(
 }
 
 /** The id a catalogue document's module path names: its folder. */
-export const mapIdOf = (path: string): string => path.split("/").at(-2)!;
+const mapIdOf = (path: string): string => path.split("/").at(-2)!;
 
 let entries: MapEntry[] | null = null;
 

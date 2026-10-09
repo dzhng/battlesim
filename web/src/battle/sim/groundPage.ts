@@ -36,7 +36,7 @@ export function readGroundPage(page: GroundPage, c: number, out: Uint8Array, off
 export function groundPageCleared(page: GroundPage, c: number): boolean {
   return page.data[valueAt(page, c) + 4] > 0;
 }
-export function groundPageSpans(
+function groundPageSpans(
   page: GroundPage,
   visit: (start: number, end: number, word: number, cleared: number) => void,
 ): void {

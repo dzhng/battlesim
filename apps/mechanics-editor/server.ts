@@ -43,7 +43,7 @@ function matchesIntent(actual: Json | undefined, expected: Json): boolean {
   return actual === expected;
 }
 
-export class MechanicsError extends Error {
+class MechanicsError extends Error {
   constructor(
     message: string,
     public status = 400,

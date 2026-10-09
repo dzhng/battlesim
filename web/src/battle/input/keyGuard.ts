@@ -13,7 +13,7 @@ export interface KeyPress {
 }
 
 /** Whether keys pressed at `target` are text going into a control. */
-export function isTypingTarget(target: EventTarget | null): boolean {
+function isTypingTarget(target: EventTarget | null): boolean {
   if (!target || typeof (target as Element).tagName !== "string") return false;
   const el = target as HTMLElement;
   const tag = el.tagName.toUpperCase();

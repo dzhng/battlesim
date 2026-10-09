@@ -90,7 +90,7 @@ async function checkNoGlyphIcons(ctx, page, where) {
  *  down over the first road's longest straight run, ground a metre inside
  *  its edge reads as road and ground a metre and a half outside reads as
  *  verge. */
-export async function checkRoadEdges(ctx, page) {
+async function checkRoadEdges(ctx, page) {
   const road = roadStrokes[0];
   const runs = road.points.slice(1).map((b, i) => [road.points[i], b]);
   const length = ([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1]);

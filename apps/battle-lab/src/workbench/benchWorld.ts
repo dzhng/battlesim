@@ -40,7 +40,7 @@ export const physics = game.physics;
 export const benchAuthority = (units: UnitCatalog): Authority => fixtureAuthority(game, units);
 
 /** Height of the scale figure: the rules' soldier. */
-export const FIGURE_HEIGHT_M = physics.soldier_height_m;
+const FIGURE_HEIGHT_M = physics.soldier_height_m;
 /** The height the mannequin's proportions below are written at. */
 const MANNEQUIN_DRAWN_M = 1.8;
 const GROUND_HALF_M = 40;
@@ -74,7 +74,7 @@ export function benchGround(marked = true): Mesh {
 }
 
 /** A plain soldier-height mannequin standing at (x, y), facing +X. */
-export function scaleFigure(x: number, y: number): Mesh {
+function scaleFigure(x: number, y: number): Mesh {
   const m = new MeshBuilder();
   const k = FIGURE_HEIGHT_M / MANNEQUIN_DRAWN_M;
   m.box(x, y + 0.1 * k, 0.43 * k, 0.07 * k, 0.07 * k, 0.43 * k, FIGURE); // legs
