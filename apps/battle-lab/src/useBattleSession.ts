@@ -693,7 +693,12 @@ export function useBattleSession({
         heard.current = { clock: time, motion: soundMotion(null, units, side) };
         return { picks: d.picks, clock: time, effects: effectBatch, ground, felled };
       }
-      const poses = posing.driver.update(posing.feed.frame(observation, own, identified, time));
+      // The feed reads the publication the poses were sampled from, not React's
+      // `observation`, which lags it by a render: a soldier who just fell has
+      // left the poses before React's copy lists him fallen, and the driver
+      // would drop him unseen and lay him without his death.
+      const published = interpolator.observation() ?? observation;
+      const poses = posing.driver.update(posing.feed.frame(published, own, identified, time));
       // Flashes sit on the muzzles as this frame draws them.
       posing.muzzles.update(poses);
       effects.build(time, effectBatch, posing.source);

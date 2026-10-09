@@ -87,6 +87,13 @@ export class TickInterpolator {
     return ((from + (latest.tick - from) * this.fraction(now)) * this.tickMs) / 1000;
   }
 
+  /** The publication the poses blend toward. What a frame reads beside them
+   *  (who has fallen, each soldier's published facts) comes from this one, so
+   *  a soldier gone from the poses is in its fallen list in the same frame. */
+  observation(): ObservationView | null {
+    return this.latest;
+  }
+
   /** Own units' poses at `now`: the previous tick blended toward the latest one. */
   sample(now: number): Pose[] {
     const latest = this.latest;
