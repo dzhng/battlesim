@@ -57,6 +57,7 @@ export function BattleView({
   diagnostics,
   cover,
   onLoadStage,
+  onFailure,
   spawn,
 }: {
   fixture: string;
@@ -83,6 +84,9 @@ export function BattleView({
   cover?: ReactNode;
   /** Each stage of loading, once, as it completes. */
   onLoadStage?: (stage: BattleLoadStage) => void;
+  /** The battle's authority refused or failed it: the route's cover shows the
+   *  refusal, and nothing is drawn under it. Without one, the HUD says why. */
+  onFailure?: (error: string) => void;
   /** The authoritative blue entry, used for the deployment cue. */
   spawn?: [number, number] | null;
 }) {
@@ -199,7 +203,13 @@ export function BattleView({
   useEffect(() => {
     if (loadStage) onLoadStageRef.current?.(loadStage);
   }, [loadStage]);
+  const onFailureRef = useRef(onFailure);
+  onFailureRef.current = onFailure;
+  useEffect(() => {
+    if (sim.error) onFailureRef.current?.(sim.error);
+  }, [sim.error]);
 
+  if (sim.error && onFailure) return cover ?? null;
   if (!meshes && !sim.error) return cover ?? null;
   return (
     <>
