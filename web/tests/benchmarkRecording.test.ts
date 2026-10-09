@@ -31,6 +31,14 @@ test("frame-rate summary reports average, one-percent low and extrema", () => {
   expect(summarizeFrameRate([])).toBeNull();
 });
 
+test("one-percent low uses the mean of the slowest intervals and excludes invalid intervals consistently", () => {
+  const intervals = [...Array(198).fill(10), 40, 100];
+  expect(summarizeFrameRate(intervals)?.low1).toBeCloseTo(1000 / 70);
+  expect(summarizeFrameRate([0, -2, NaN, Infinity, 10, 20])).toEqual({
+    average: 2000 / 30, low1: 50, minimum: 50, maximum: 100,
+  });
+});
+
 test("the first frame interval begins at the explicit recording start", () => {
   const rec = new BenchmarkRecording(60_000);
   rec.start(1000);
