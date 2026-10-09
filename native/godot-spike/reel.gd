@@ -231,7 +231,7 @@ func _build_map_geometry() -> void:
 		var building_transforms: Array[Transform3D] = []
 		var prop_transforms: Array[Transform3D] = []
 		var tree_transforms: Array[Transform3D] = []
-		var render_center := _map_render_center(map_name)
+		var render_centers := _map_render_centers(map_name)
 		var size: Array = map.get("size", [100.0, 100.0])
 		var ground := MeshInstance3D.new()
 		var ground_mesh := PlaneMesh.new()
@@ -263,7 +263,7 @@ func _build_map_geometry() -> void:
 				if length <= 0.01:
 					continue
 				var midpoint := Vector2((start.x + end.x) * 0.5, (start.y + end.y) * 0.5)
-				if midpoint.distance_to(render_center) <= map_render_radius:
+				if _near_render_center(midpoint, render_centers):
 					var basis := Basis(Vector3.UP, -atan2(end.y - start.y, end.x - start.x))
 					basis = basis.scaled(Vector3(length, 0.035, float(shape.get("width_m", 8.0))))
 					road_transforms.append(Transform3D(basis, Vector3(midpoint.x, 0.0, midpoint.y)))
@@ -310,7 +310,7 @@ func _build_map_geometry() -> void:
 			var frame: Dictionary = building.get("frame", {})
 			var translation: Array = frame.get("translation", [0.0, 0.0, 0.0])
 			var building_position := Vector2(float(translation[0]), float(translation[1]))
-			if building_position.distance_to(render_center) <= map_render_radius:
+			if _near_render_center(building_position, render_centers):
 				var building_basis := Basis(Vector3.UP, float(frame.get("yaw", 0.0))).scaled(Vector3(18.0, 8.0, 18.0))
 				building_transforms.append(Transform3D(building_basis, Vector3(building_position.x, 4.0 + float(translation[2]), building_position.y)))
 			counts.buildings += 1
@@ -321,7 +321,7 @@ func _build_map_geometry() -> void:
 			var center: Array = prop.get("center", [0.0, 0.0])
 			var half: Array = prop.get("half_extents", [1.0, 1.0, 0.5])
 			var prop_position := Vector2(float(center[0]), float(center[1]))
-			if prop_position.distance_to(render_center) <= map_render_radius:
+			if _near_render_center(prop_position, render_centers):
 				if String(prop.get("kind", "")) == "street_tree":
 					var tree_basis := Basis(Vector3.UP, float(prop.get("yaw", 0.0))).scaled(Vector3(1.4, 1.0, 1.4))
 					tree_transforms.append(Transform3D(tree_basis, Vector3(prop_position.x, 2.5, prop_position.y)))
@@ -348,13 +348,26 @@ func _authored_map_directory() -> String:
 	var configured := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
 	return configured if not configured.is_empty() else ProjectSettings.globalize_path("res://../../fixtures/maps")
 
-func _map_render_center(map_name: String) -> Vector2:
+func _map_render_centers(map_name: String) -> Array:
 	var result: Dictionary = capture_results.get(map_name, {})
 	var frames: Array = result.get("capture", {}).get("frames", [])
+	var centers: Array = []
 	if frames.is_empty():
-		return Vector2.ZERO
-	var target: Array = frames[0].get("camera", {}).get("target", [0.0, 0.0])
-	return Vector2(float(target[0]), float(target[1]))
+		centers.append(Vector2.ZERO)
+		return centers
+	var stride := maxi(1, int(ceil(float(frames.size()) / 64.0)))
+	for index in range(0, frames.size(), stride):
+		var target: Array = frames[index].get("camera", {}).get("target", [0.0, 0.0])
+		centers.append(Vector2(float(target[0]), float(target[1])))
+	var last_target: Array = frames.back().get("camera", {}).get("target", [0.0, 0.0])
+	centers.append(Vector2(float(last_target[0]), float(last_target[1])))
+	return centers
+
+func _near_render_center(position: Vector2, centers: Array) -> bool:
+	for center in centers:
+		if position.distance_to(center) <= map_render_radius:
+			return true
+	return false
 
 func _add_box_batch(holder: Node3D, transforms: Array[Transform3D], color: Color, roughness: float) -> void:
 	if transforms.is_empty():
