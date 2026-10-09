@@ -1,7 +1,7 @@
 // @vitest-environment node
-// Renderer fog's CPU seam: the mirrors of Rust's sight
-// shape, the map word, the static world fog reads, and what reaches the GPU
-// from a side's knowledge. The GPU half runs in the `fog` scene.
+// Renderer fog's CPU seam: the mirror of Rust's sight
+// shape, the static world fog reads, and what reaches the GPU from a side's
+// knowledge. The GPU half runs in the `fog` scene.
 import { TEST_RULES } from "./catalog";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
@@ -25,12 +25,6 @@ import {
   type FogOccluder,
   type FogSight,
 } from "@packages/battle-renderer/src/frame/fogInputs";
-import {
-  f16Bits,
-  f16Value,
-  packFogWord,
-  unpackFogWord,
-} from "@packages/battle-renderer/src/frame/fogOracle";
 import { groundHeight } from "@packages/battle-renderer/src/terrain/terrainGrid";
 import {
   readWorldExports,
@@ -69,21 +63,6 @@ test("the TypeScript sight shape matches sim::sight::multiplier's oracle vectors
     const [front, side, rear, off, m] = rows.subarray(i, i + 5);
     expect(sightMultiplier({ front, side, rear }, off)).toBeCloseTo(m, 12);
   }
-});
-
-test("a map word keeps its horizon to f16, its jump to 1/255 and foliage depth to 1/200", () => {
-  for (const h of [-1e4, -0.3125, 0, 0.0625, 1.5, 6e4]) {
-    expect(unpackFogWord(packFogWord(h, 0, 0))[0]).toBe(h);
-  }
-  // Round to nearest even at the f16 midpoint above 1.
-  expect(f16Value(f16Bits(1 + 2 ** -11))).toBe(1);
-  expect(f16Value(f16Bits(1 + 3 * 2 ** -11))).toBe(1 + 2 ** -9);
-  expect(Math.abs(f16Value(f16Bits(0.1234)) - 0.1234)).toBeLessThan(0.1234 * 2 ** -11);
-  const [, jump, foliage] = unpackFogWord(packFogWord(0.5, 0.5, 0.3731));
-  expect(jump).toBeCloseTo(128 / 255, 9);
-  expect(foliage).toBeCloseTo(0.375, 9);
-  // Foliage saturates at 8 bits.
-  expect(unpackFogWord(packFogWord(0, 1, 5))[2]).toBeCloseTo(1.275, 9);
 });
 
 test("fog reads the simulation's terrain grid and the foliage its trees give", () => {

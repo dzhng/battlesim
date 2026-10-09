@@ -2,21 +2,18 @@
 // (`streetScenario.ts`). The panel switches the frame between the
 // live look and the seen/unseen debug mask, and the side it is drawn for; the
 // probes let the scene measure the fog against the simulation's 8 m sweep, run
-// the GPU lookup against its oracle vectors, and turn one eye's bearing
+// the GPU sight shape against Rust's vectors, and turn one eye's bearing
 // without moving it.
 import { useEffect, useMemo, useState } from "react";
 import type { FogEye, FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
-import type { FogLookupParams, FogProbes } from "@packages/battle-renderer/src/frame/fogVisibility";
-import { oracleAnswers, oracleVectors } from "@packages/battle-renderer/src/frame/fogOracle";
+import type { FogProbes } from "@packages/battle-renderer/src/frame/fogVisibility";
 import type { FrameView } from "@packages/battle-renderer/src/scene";
-import game from "@fixtures/game.json";
 import { loadWasm } from "@web/battle/sim/module";
 import type { ObservationView } from "@web/battle/sim/observation";
 import type { SideName } from "@web/battle/sim/protocol";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
-import { gameFogGeometry } from "../gameFog";
 import { useFeed } from "../feed";
 import { TickStatus } from "../TickStatus";
 
@@ -103,39 +100,6 @@ async function agreement(
   };
 }
 
-/** The GPU lookup against its CPU mirror on seeded synthetic maps. */
-async function lookupOracle(probes: FogProbes, seed: number) {
-  const lookup: FogLookupParams = {
-    azimuthBins: 64,
-    radialBins: 16,
-    firstBinM: gameFogGeometry.first_bin_m,
-    targetHeightM: game.sensors.fog_target_height_m,
-    faceProbeM: gameFogGeometry.face_probe_m,
-    foliageFullBlock: game.sensors.foliage_full_block,
-  };
-  const vectors = oracleVectors(seed, lookup);
-  const cpu = oracleAnswers(lookup, vectors);
-  const gpu = await probes.probeWith(lookup, vectors.eyes, vectors.maps, vectors.points);
-  // Float noise decides nothing: skip vectors that sit on a comparison.
-  const SETTLED = 1e-3;
-  let compared = 0;
-  let seen = 0;
-  const mismatches: number[] = [];
-  cpu.forEach((c, i) => {
-    if (c.margin < SETTLED) return;
-    compared++;
-    seen += c.seen ? 1 : 0;
-    if (gpu[i] !== (c.seen ? 1 : 0)) mismatches.push(i);
-  });
-  return {
-    vectors: cpu.length,
-    compared,
-    seen,
-    mismatches: mismatches.length,
-    first: mismatches.slice(0, 5),
-  };
-}
-
 /** The WGSL sight shape against `sim::sight::multiplier`'s oracle vectors. */
 async function shapeOracle(probes: FogProbes) {
   const wasm = await loadWasm();
@@ -194,7 +158,6 @@ function FogLab({ scenario }: { scenario: string }) {
       setSide(next);
     },
     agreement: () => agreement(probes(), sim.latest.current!, heightAt),
-    lookupOracle: (seed: number) => lookupOracle(probes(), seed),
     shapeOracle: () => shapeOracle(probes()),
     probe: (points: Parameters<FogProbes["probe"]>[0]) => probes().probe(points),
     showMask: (on: boolean) => show(on ? "fog-mask" : "final"),

@@ -165,7 +165,7 @@
   {
     "id": "street-watch",
     "route": "/lab/street?watch",
-    "describe": "The street battle watched: blue's start ordered onto the street at once, the camera free. The scene takes the whole-battle frames at a fixed tick (BATTLE_TICK), and checks fog running on past the map edge and the red border that marks the playable area.",
+    "describe": "The street battle watched: blue's start ordered onto the street at once, the camera free. The scene takes the whole-battle frames at a fixed tick (BATTLE_TICK), and checks that ground past the playable area's edge is always unseen, and the dim white border that marks the area.",
     "map": "street"
   },
   {
@@ -204,7 +204,7 @@
   {
     "id": "fog",
     "route": "/lab/fog",
-    "describe": "Sight-light fog over the street test map: blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU lookup against its oracle vectors, a turned turret and a garrison's eyes.",
+    "describe": "Sight-light fog over the street test map: blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU sight shape against Rust's vectors, a turned turret and a garrison's eyes.",
     "map": "street"
   },
   {

@@ -1,6 +1,5 @@
-// Sight-light fog over the street test map. The GPU
-// lookup against its oracle vectors (the sight shape from Rust, the lookup
-// from its CPU mirror), agreement with the simulation's 8 m sweep, a sharp
+// Sight-light fog over the street test map. The GPU sight shape against
+// Rust's vectors, agreement with the simulation's 8 m sweep, a sharp
 // sight-shadow edge at ground framing, a line of sight threaded between two
 // houses' corners (closed under `sensors.min_sight_gap_m` of room, open
 // above it), a turned turret, a garrison's eyes,
@@ -369,21 +368,12 @@ export async function run(ctx) {
   await advance(page, 2);
   await page.evaluate(() => window.__lab.frame());
 
-  // The lookup's two oracles: Rust's sight shape and the CPU mirror.
+  // The sight shape against Rust's own vectors.
   const shape = await lab(page, () => window.__lab.route.shapeOracle());
   ctx.check(
     "the GPU sight shape matches sim::sight::multiplier's oracle vectors",
     shape.vectors > 100 && shape.maxError < 1e-5,
     JSON.stringify(shape),
-  );
-  const oracle = await lab(page, () => window.__lab.route.lookupOracle(14));
-  ctx.check(
-    "the GPU lookup matches its CPU mirror on synthetic maps",
-    oracle.compared > 0.9 * oracle.vectors &&
-      oracle.mismatches === 0 &&
-      oracle.seen > 0.1 * oracle.compared &&
-      oracle.seen < 0.9 * oracle.compared,
-    JSON.stringify(oracle),
   );
 
   await checkAgreement(ctx, page, "blue in the street", "agreement-street.png");

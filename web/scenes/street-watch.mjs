@@ -1,7 +1,7 @@
 // The street test map's battle watched (`/lab/street?watch`): blue's start
 // is ordered onto the street at once, and the battle plays itself.
-// The whole-battle frames the composed look is judged on (`battle`), and fog
-// running on past the map edge with the playable area's border (`edge`).
+// The whole-battle frames the composed look is judged on (`battle`), and the
+// ground past the playable area's edge, always unseen, with its border (`edge`).
 // `WATCH_TOURS=battle` runs only that tour; `BATTLE_TICK` moves the frames.
 // `WATCH_TOURS=cover` (opt-in, never run by default) captures how cover shows;
 // `WATCH_TOURS=rounds` (opt-in) frames each round kind in flight;

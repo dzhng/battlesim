@@ -19,7 +19,7 @@
 // Every buffer is owned by the frame's registry; the tile lists live in the
 // size-dependent scope beside the targets. `probe` evaluates the same lookup
 // at given points against every eye (the agreement metric and the lab's
-// tests), and `probeShape` / `probeWith` run the WGSL against oracle vectors.
+// tests), and `probeShape` runs the WGSL sight shape against Rust's vectors.
 // Probes read back: lab only, never in the frame.
 import { tgpu, d } from "typegpu";
 import { vec2, type Vec2 } from "math";
@@ -544,7 +544,7 @@ export interface FogProbeInput {
   normal?: readonly [number, number, number];
 }
 
-/** An eye record for `probeWith`: already built, in map slot `slot`. */
+/** An eye record as the lookup reads it: already built, in map slot `slot`. */
 export interface FogEyeRow {
   position: readonly [number, number, number];
   reach: number;
@@ -554,16 +554,6 @@ export interface FogEyeRow {
   rear: number;
   range: number;
   slot: number;
-}
-
-/** The map resolution and rule numbers a synthetic probe runs under. */
-export interface FogLookupParams {
-  azimuthBins: number;
-  radialBins: number;
-  firstBinM: number;
-  targetHeightM: number;
-  faceProbeM: number;
-  foliageFullBlock: number;
 }
 
 export interface FogVisibilityStats {
@@ -1509,97 +1499,11 @@ export async function createFogVisibility(
         out.destroy();
       }
     },
-    /** The lookup over given maps and eyes (oracle vectors): nothing built. */
-    async probeWith(
-      lookup: FogLookupParams,
-      eyes: readonly FogEyeRow[],
-      maps: Uint32Array,
-      points: readonly FogProbeInput[],
-    ): Promise<Uint8Array> {
-      const scratchParams = root.createBuffer(FogParams).$usage("uniform");
-      const eyeBytes = eyeRecords(eyes);
-      const eyeBuffer = storage("fog-oracle-eyes", eyeBytes.byteLength);
-      const mapBuffer = storage("fog-oracle-maps", maps.byteLength);
-      try {
-        device.queue.writeBuffer(eyeBuffer, 0, eyeBytes);
-        device.queue.writeBuffer(mapBuffer, 0, maps);
-        scratchParams.write({
-          ...FOG_PARAMS_ZERO,
-          azimuthBins: lookup.azimuthBins,
-          radialBins: lookup.radialBins,
-          eyeCount: eyes.length,
-          probeCount: points.length,
-          enabled: 1,
-          firstBinM: lookup.firstBinM,
-          targetHeightM: lookup.targetHeightM,
-          faceProbeM: lookup.faceProbeM,
-          foliageFullBlock: lookup.foliageFullBlock,
-        });
-        const group = root.createBindGroup(fogLayout, {
-          params: scratchParams,
-          layer: layers.faces,
-          eyes: eyeBuffer,
-          maps: mapBuffer,
-          lists: mapBuffer,
-          counts: mapBuffer,
-          paintStyle,
-          paint: noPaint.createView(),
-          wholes: buffers.wholes.current!.createView(),
-        });
-        return await runProbe(group, points);
-      } finally {
-        scratchParams.destroy();
-        eyeBuffer.destroy();
-        mapBuffer.destroy();
-      }
-    },
   };
 }
 export type FogVisibility = Awaited<ReturnType<typeof createFogVisibility>>;
 /** The lab's hold on the sight lights: debug readbacks, never in a frame. */
 export type FogProbes = Pick<
   FogVisibility,
-  "probe" | "probeShape" | "probeWith" | "tileCounts" | "rebuildAll" | "wholes"
+  "probe" | "probeShape" | "tileCounts" | "rebuildAll" | "wholes"
 >;
-
-const FOG_PARAMS_ZERO = {
-  invViewProj: d.mat4x4f(),
-  cameraEye: d.vec3f(),
-  translucentLiftM: 0,
-  azimuthBins: 0,
-  terrainAzimuthBins: 0,
-  radialBins: 0,
-  tilePx: 1,
-  tilesX: 0,
-  tileEyesMax: 0,
-  eyeCount: 0,
-  foliageNx: 0,
-  foliageNy: 0,
-  heightNx: 2,
-  heightNy: 2,
-  rebuildCount: 0,
-  enabled: 0,
-  probeCount: 0,
-  firstBinM: 1,
-  targetHeightM: 0,
-  foliageCellM: 1,
-  foliageFullBlock: 1,
-  minSightGapM: 0,
-  playable: d.vec4f(),
-  heightSpacing: 1,
-  faceProbeM: 0,
-  width: 0,
-  height: 0,
-  stepMinM: 1,
-  stepMaxM: 1,
-  stepFraction: 1,
-  roofReachM: 0,
-  wholeCount: 0,
-  wholeNx: 1,
-  wholeNy: 1,
-  wholeCellM: 1,
-  wholeOrigin: d.vec2f(),
-  wholeItemsBase: 0,
-  wholeBoxesBase: 0,
-  wholeFlagsBase: 0,
-};

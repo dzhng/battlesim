@@ -4555,17 +4555,17 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 **Verdict.** sound.
 
-### The GPU fog is checked against the simulation's own sight formula and a CPU copy of the lookup
+### The GPU fog is checked against the simulation itself: its sight formula and its sight sweep
 
 ***sound** · confidence **high** · Tooling and tests · from Slice 14*
 
-**The choice.** The fog shader has its own copy of the sight-shape formula (how far an eye sees to the front, side and rear). To be sure it matches the simulation, Rust exports test vectors from `sim::sight::multiplier` (`sight_multiplier_vectors()` over WASM); a vitest pins the TypeScript mirror against them and a browser scene pins the WGSL `fogShape` against them. A CPU mirror of the whole GPU lookup (`frame/fogOracle.ts`) runs on seeded synthetic sight maps beside the GPU, skipping the ~2% of cases that sit within float noise of a threshold. The GPU answers are reached through lab-only readback probes (`BattleFrame.fogProbes`, `window.__lab.fog()`); the production frame never reads back. Deliberately broken shaders turned both checks red.
+**The choice.** The fog shader has its own copy of the sight-shape formula (how far an eye sees to the front, side and rear). To be sure it matches the simulation, Rust exports test vectors from `sim::sight::multiplier` (`sight_multiplier_vectors()` over WASM); a vitest pins the TypeScript mirror against them and a browser scene pins the WGSL `fogShape` against them. The whole GPU lookup is pinned to the simulation directly: the `fog` scene probes it at every 8 m cell and requires agreement with the simulation's published sight sweep outside a one-cell band. The GPU answers are reached through lab-only readback probes (`BattleFrame.fogProbes`, `window.__lab.fog()`); the production frame never reads back. A hand-kept CPU copy of the lookup once ran beside the GPU on synthetic maps; it was deleted as a duplicate of the WGSL that needed maintaining in step with it and proved nothing the simulation's own answers do not.
 
 **The gap.** The plan said "pinned against Rust oracle vectors" without saying which layer is the oracle.
 
-**The reach.** The lookup has one owner (WGSL); the CPU mirror never draws. Any change to the sight formula in Rust shows up as a failing fog test.
+**The reach.** The lookup has one owner (WGSL), and the simulation is its oracle. Any change to the sight formula in Rust shows up as a failing fog test.
 
-**Verdict.** sound — a two-sided oracle catches drift in either direction.
+**Verdict.** sound — the GPU is judged by the authority it must agree with, not by a second copy of itself.
 
 ### The workbench shows art that fails validation, through the same loader the battle uses
 

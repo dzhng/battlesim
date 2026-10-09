@@ -9,8 +9,8 @@
 //   posed from the battle's own state: blue's
 //   front, any known wreck, the densest known craters. 1920×1080, DPR 1,
 //   fixed seed; each also HUD-free.
-// - `edge`: fog runs on past the map edge as inside, and a dim white border marks
-//   the playable area.
+// - `edge`: ground past the playable area's edge is always unseen, even within
+//   an eye's range, and a dim white border marks the area.
 // On `/lab/street` (scene `street`, the player's controls):
 // - `woods`: a squad sent into the west wood is drawn through the canopy as
 //   an x-ray, and a squad in the open is not.
@@ -511,7 +511,8 @@ export async function edgeTour(ctx) {
   const o = await obs(page);
   const westmost = Math.min(...o.own.map((u) => u.position[0]));
   // Ground inside the map, 40 m past the west edge (within every eye's
-  // range of the nearest unit), and 3 km past it (beyond any eye).
+  // range of the nearest unit, so only the edge can fog it), and 3 km past
+  // it (beyond any eye).
   const y = o.own.find((u) => u.position[0] === westmost).position[1];
   const points = { inside: [westmost + 30, y], past: [-40, y], far: [-3000, y] };
   const seen = {};
@@ -524,9 +525,10 @@ export async function edgeTour(ctx) {
   }
   await lab(page, () => window.__lab.setFrameView("final"));
   const white = (c) => c.every((v) => v > 200);
+  const dark = (c) => c[0] < 128;
   ctx.check(
-    "ground past the map's edge within an eye's range is seen, and far past it unseen",
-    white(seen.inside) && white(seen.past) && !white(seen.far) && seen.far[0] < 128,
+    "ground inside the map within an eye's range is seen, and past the playable edge unseen, near or far",
+    white(seen.inside) && dark(seen.past) && dark(seen.far),
     JSON.stringify({ westmost, points, seen }),
   );
   // The strategic view over the west edge, for the eye.
