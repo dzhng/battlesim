@@ -38,7 +38,7 @@ pub struct IdentifiedUnit {
     /// Every mount's pose, in the unit type's mount order.
     pub weapon_poses: Vec<WeaponPose>,
     /// Driving backwards this tick, seen as plainly as its position (the
-    /// reverse whine's cue for a seen enemy vehicle).
+    /// reverse beeper's cue for a seen enemy vehicle).
     pub reversing: bool,
     /// Each seen soldier's lean, in `members` order: out past his cover's
     /// edge, where rounds meet him, while he fires. His `members`
@@ -401,7 +401,7 @@ pub struct OwnUnit {
     /// Which way the current move drives (Q31); `None` without a move.
     pub direction: Option<crate::command::MoveDirection>,
     /// Driving backwards this tick: a reverse move, or a three-point turn's
-    /// reversing leg (the reverse whine's cue).
+    /// reversing leg (the reverse beeper's cue).
     pub reversing: bool,
     pub state: MoveState,
     /// The friendly unit this one is waiting for (an enemy it waits for,

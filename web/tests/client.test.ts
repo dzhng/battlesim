@@ -99,7 +99,9 @@ test("building preview returns the entrant and companion placements without issu
     const placement = {
       building: 9,
       entrant: { unit: 1, approach: [40, 50] as [number, number] },
-      destinations: [{ unit: 2, goal: [30, 50] as [number, number], placed: true, facing: 0 }],
+      destinations: [
+        { unit: 2, goal: [30, 50] as [number, number], placed: true, facing: 0, spots: [] },
+      ],
     };
     deliver({ type: "building_preview", id: 1, placement });
     expect(await preview).toEqual(placement);

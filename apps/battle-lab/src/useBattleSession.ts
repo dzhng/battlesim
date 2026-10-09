@@ -71,7 +71,6 @@ import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import {
   corpseInstances,
   poseFrameInstances,
-  restingModelPose,
   type CorpseInstance,
   type ModelInstance,
   type ResolveAppearance,
@@ -134,6 +133,13 @@ import type { Pose } from "@web/battle/present/interpolate";
 import { circleContains, unitCircle } from "@packages/battle-renderer/src/orderOverlay";
 import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import { orderView } from "./battleOverlay";
+import {
+  fieldedSoldiers,
+  orderedGhost,
+  ownSoldiers,
+  pushGhostModels,
+  type UnitGhost,
+} from "./unitGhosts";
 
 const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
 /** How near a pending purchase's published destination is to the placed one. */
@@ -309,6 +315,8 @@ export function useBattleSession({
     client: typeof sim.client;
   } | null>(null);
   const shownIntent = useRef<PointerIntent>({ kind: "none" });
+  /** Where a held right-drag's units will stand. */
+  const dragGhosts = useRef<UnitGhost[]>([]);
   const [revealed, setRevealed] = useState<RevealedOrders>(NOTHING_REVEALED);
   const revealedRef = useRef(revealed);
   const noteOrder = useCallback(
@@ -599,6 +607,7 @@ export function useBattleSession({
       drawing.resolve(kind, s, id, slot, operatorMount, activeMount);
     const muzzles = new DrawnMuzzles(appearances, resolve, units);
     return {
+      appearances,
       driver: createPoseDriver(rules, units, appearances),
       feed: new ObservationFeed(side, units),
       resolve,
@@ -608,50 +617,32 @@ export function useBattleSession({
       corpses: { version: -1, list: [] as CorpseInstance[], soldiers: [] as number[] },
     };
   }, [appearances, rules, side, units, factions]);
-  const ghostModel = useMemo<ModelInstance | null>(() => {
-    if (!purchasing || !posing || !appearances) return null;
-    const resolved = posing.resolve(purchasing, side, 0, 0);
-    const bundle = resolved && appearances.appearances.get(resolved.appearance)?.bundle;
-    if (!resolved || !bundle) return null;
-    return {
-      appearance: resolved.appearance,
-      x: 0,
-      y: 0,
-      z: 0,
-      yaw: 0,
-      pose: restingModelPose(bundle),
-      ghost: gameXray.selected,
-    };
-  }, [purchasing, posing, appearances, side]);
   // Each unit placed during preparation stands as a ghost where it will go,
   // turned as it was placed, until the battle starts.
   const match = observation?.skirmish;
   const pendingPurchases = match?.phase === "preparation" ? match.pending : null;
-  const placedModels = useMemo<ModelInstance[]>(() => {
-    if (!pendingPurchases || !posing || !appearances) return [];
-    return pendingPurchases.flatMap((pending) => {
-      const resolved = posing.resolve(pending.kind, side, 0, 0);
-      const bundle = resolved && appearances.appearances.get(resolved.appearance)?.bundle;
-      if (!resolved || !bundle) return [];
-      const [x, y] = pending.destination;
-      const placed = placedGhosts.current.find(
-        (g) =>
-          g.variant === pending.kind &&
-          Math.hypot(g.destination[0] - x, g.destination[1] - y) < PLACED_MATCH_M,
-      );
-      return [
-        {
-          appearance: resolved.appearance,
-          x,
-          y,
-          z: surfaceZ(x, y),
+  const placedGhostList = useMemo<UnitGhost[]>(
+    () =>
+      (pendingPurchases ?? []).map((pending) => {
+        const [x, y] = pending.destination;
+        const placed = placedGhosts.current.find(
+          (g) =>
+            g.variant === pending.kind &&
+            Math.hypot(g.destination[0] - x, g.destination[1] - y) < PLACED_MATCH_M,
+        );
+        const [dx, dy] = placed ? [x - placed.destination[0], y - placed.destination[1]] : [0, 0];
+        return {
+          kind: pending.kind,
+          at: pending.destination,
+          soldiers: fieldedSoldiers(
+            (placed?.spots ?? []).map(([sx, sy]) => [sx + dx, sy + dy] as const),
+          ),
           yaw: placed?.facing ?? DEFAULT_PLACEMENT_FACING,
-          pose: restingModelPose(bundle),
-          ghost: gameXray.own,
-        },
-      ];
-    });
-  }, [pendingPurchases, posing, appearances, side, surfaceZ]);
+          colour: gameXray.own,
+        };
+      }),
+    [pendingPurchases],
+  );
   const frameModels = useRef<ModelInstance[]>([]);
   // The trees the side knows have fallen, each from the start of the tick
   // it fell (the clock is ticks over tick_hz, as the effects' are). The
@@ -680,7 +671,14 @@ export function useBattleSession({
       drawnEnemyAt.current = new Map(identified.map((p) => [p.id, p.position]));
       drawnClock.current = time;
       drawnTick.current = observation.tick;
-      const reveal = orderReveal.at(time, control.showOrders, observation.own);
+      // The order just issued has not landed: its units still publish the old one.
+      const pending = pendingAction.current;
+      const ack = pending && control.acks.find(({ order }) => order === pending.order)?.ack;
+      const landed = ack && (ack.error || observation.tick >= ack.applied_tick);
+      const awaiting = new Set(
+        pending && !landed && "units" in pending.order ? pending.order.units : [],
+      );
+      const reveal = orderReveal.at(time, control.showOrders, observation.own, awaiting);
       if (!sameReveal(reveal, revealedRef.current)) {
         revealedRef.current = reveal;
         setRevealed(reveal);
@@ -739,15 +737,32 @@ export function useBattleSession({
           if (debris) composed.push(debris);
         }
       }
-      for (const model of placedModels) composed.push(model);
-      if (placement && ghostModel && inputEnabled) {
-        ghostModel.x = placement.destination[0];
-        ghostModel.y = placement.destination[1];
-        ghostModel.yaw = placement.facing;
-        ghostModel.z = surfaceZ(ghostModel.x, ghostModel.y);
-        ghostModel.ghost = placement.valid === false ? PURCHASE_BLOCKED : gameXray.selected;
-        composed.push(ghostModel);
-      }
+      // Ghosts: purchases placed, every ordered destination with Space held,
+      // a held right-drag's destinations, and the purchase being placed.
+      const ghosts = [...placedGhostList, ...dragGhosts.current];
+      if (control.showOrders)
+        for (const unit of observation.own) {
+          if (!reveal.has(unit.id)) continue;
+          const ghost = orderedGhost(unit, gameXray.own);
+          if (ghost) ghosts.push(ghost);
+        }
+      if (placement && inputEnabled)
+        ghosts.push({
+          kind: placement.variant,
+          at: placement.destination,
+          soldiers: fieldedSoldiers(placement.spots),
+          yaw: placement.facing,
+          colour: placement.valid === false ? PURCHASE_BLOCKED : gameXray.selected,
+        });
+      pushGhostModels(
+        composed,
+        ghosts,
+        side,
+        posing.resolve,
+        posing.appearances,
+        surfaceZ,
+        (kind) => Boolean(units.hull(kind)),
+      );
       return {
         picks: d.picks,
         models: composed,
@@ -772,10 +787,10 @@ export function useBattleSession({
       side,
       orderReveal,
       control.showOrders,
+      control.acks,
       transitions,
       lastHulls,
-      ghostModel,
-      placedModels,
+      placedGhostList,
       inputEnabled,
       surfaceZ,
     ],
@@ -986,6 +1001,24 @@ export function useBattleSession({
     );
     const showDestinations = queryIntent.kind === "move" || queryIntent.kind === "occupy_building";
     let preview = (held || waiting) && showDestinations ? marks : [];
+    // A right-drag that sets facing shows each unit as it will stand; a plain
+    // right-click does not.
+    dragGhosts.current =
+      active && held && pointer.rightDragging && showDestinations
+        ? pointerPaint.destinations.flatMap((d) => {
+            const unit = observation?.own.find((u) => u.id === d.unit);
+            if (!unit || !d.placed) return [];
+            return [
+              {
+                kind: unit.kind,
+                at: d.goal,
+                soldiers: ownSoldiers(unit, d.spots),
+                yaw: d.facing,
+                colour: gameXray.selected,
+              },
+            ];
+          })
+        : [];
     if (!held && accepted) {
       if ((observation?.tick ?? 0) >= accepted.applied_tick) pendingAction.current = null;
       else if (

@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { Faction, UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
-import { cardIcon } from "@packages/scene-assets/src/icons";
-import { Icon } from "./icons";
+import { UnitFace } from "./unitFace";
 import type { SkirmishView } from "../sim/observation";
 interface PickerProps {
   cards: readonly UnitCard[];
@@ -18,12 +17,44 @@ function Price({ cost, credits }: { cost: number; credits: number }) {
   );
 }
 
+/** How long the pointer rests on another family, while a menu is open,
+ *  before the hover moves to it. */
+const HOVER_INTENT_MS = 250;
+
 const CATEGORIES: readonly UnitCategory[] = ["rec", "inf", "veh", "sup", "hel", "air"];
 /** Catalog families organize browsing; only a concrete available variant starts placement. */
 export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<UnitCategory>("rec");
   const [family, setFamily] = useState<string | null>(null);
+  // The menu hangs from its family's card's top-left corner, measured
+  // after every render from the card itself (whatever chose the family),
+  // inside the picker's border, where absolute positions start.
+  const flyout = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const menu = flyout.current;
+    const picker = menu?.closest<HTMLElement>(".hud-purchase-picker");
+    const card = picker?.querySelector<HTMLElement>(`[data-family="${family}"]`);
+    if (!menu || !picker || !card) return;
+    const at = card.getBoundingClientRect();
+    const box = picker.getBoundingClientRect();
+    menu.style.left = `${at.left - box.left - picker.clientLeft}px`;
+    menu.style.top = `${at.top - box.top - picker.clientTop}px`;
+  });
+  // Hover intent, as a web menu has it: while a menu is open, crossing
+  // another card on the way into the menu does not close it. Moving onto
+  // another family switches only after a pause; reaching the menu cancels.
+  const pendingHover = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelHover = () => {
+    if (pendingHover.current) clearTimeout(pendingHover.current);
+    pendingHover.current = null;
+  };
+  const hover = (id: string | null, menuOpen: boolean) => {
+    cancelHover();
+    const show = () => setFamily(id);
+    if (menuOpen && id !== family) pendingHover.current = setTimeout(show, HOVER_INTENT_MS);
+    else show();
+  };
   const available = cards.filter((c) => c.roster.factions.includes(faction));
   const families = new Map<string, UnitCard[]>();
   for (const card of available.filter((c) => c.roster.category === category)) {
@@ -50,7 +81,11 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
         </span>
       </div>
       {open && (
-        <section className="hud-panel hud-purchase-picker" aria-label="Faction units">
+        <section
+          className="hud-panel hud-purchase-picker"
+          aria-label="Faction units"
+          onMouseLeave={() => hover(null, false)}
+        >
           <div className="hud-purchase-faction">
             {{ us: "U.S.", europe: "EUROPE", eastern: "EASTERN" }[faction]}
           </div>
@@ -64,6 +99,7 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
                 aria-selected={c === category}
                 onClick={() => {
                   setCategory(c);
+                  cancelHover();
                   setFamily(null);
                 }}
               >
@@ -92,12 +128,14 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
                 <button
                   key={id}
                   type="button"
-                  className={`hud-purchase-family${unavailable ? " unavailable" : firstAvailable ? "" : " short"}`}
+                  className={`hud-army-card hud-purchase-family${unavailable ? " unavailable" : firstAvailable ? "" : " short"}`}
                   aria-label={variants[0].roster.family_name}
                   aria-pressed={id === family}
-                  onMouseEnter={variants.length > 1 ? () => setFamily(id) : undefined}
-                  onFocus={variants.length > 1 ? () => setFamily(id) : undefined}
+                  data-family={id}
+                  onMouseEnter={() => hover(id, chosen.length > 1)}
+                  onFocus={() => hover(id, false)}
                   onClick={() => {
+                    cancelHover();
                     setFamily(id);
                     if (firstAvailable) {
                       onChoose(firstAvailable.id);
@@ -105,42 +143,54 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
                     }
                   }}
                 >
-                  <Icon path={cardIcon(shown.id)} />
-                  <span>{variants[0].roster.family_name}</span>
-                  <Price cost={Math.min(...variants.map((v) => v.cost))} credits={match.credits} />
-                  {unavailable && <small>Unavailable</small>}
+                  <UnitFace kind={shown.id}>
+                    <Price
+                      cost={Math.min(...variants.map((v) => v.cost))}
+                      credits={match.credits}
+                    />
+                  </UnitFace>
                 </button>
               );
             })}
           </div>
+          {/* A family of variants lists them in a hover menu standing on its
+              card, over the picker, so the picker never changes size. The
+              menu's transparent foot bridges the gap, so the pointer can
+              climb into it; leaving the picker closes it. One variant opens
+              nothing. */}
           {chosen.length > 1 && (
-            <div
-              className="hud-purchase-variants"
-              role="group"
-              aria-label={`${chosen[0].roster.family_name} variants`}
-            >
-              {chosen.map((card) => (
-                <button
-                  key={card.id}
-                  type="button"
-                  className="hud-menu-choice"
-                  disabled={
-                    finished ||
-                    card.disabled_reason !== null ||
-                    card.cost > match.credits ||
-                    match.occupiedSlots >= match.maxUnits
-                  }
-                  aria-label={`${card.roster.variant} — ${card.cost} credits${card.disabled_reason !== null ? " — Unavailable" : ""}`}
-                  onClick={() => {
-                    onChoose(card.id);
-                    setOpen(false);
-                  }}
+            <div className="hud-purchase-flyout" ref={flyout} onMouseEnter={cancelHover}>
+              <div className="hud-panel hud-purchase-flyout-panel">
+                <span className="hud-purchase-flyout-name">{chosen[0].roster.family_name}</span>
+                <div
+                  className="hud-purchase-variants"
+                  role="group"
+                  aria-label={`${chosen[0].roster.family_name} variants`}
                 >
-                  <span>{card.roster.variant}</span>
-                  <Price cost={card.cost} credits={match.credits} />
-                  {card.disabled_reason !== null && <small>Unavailable</small>}
-                </button>
-              ))}
+                  {chosen.map((card) => (
+                    <button
+                      key={card.id}
+                      type="button"
+                      className="hud-menu-choice"
+                      disabled={
+                        finished ||
+                        card.disabled_reason !== null ||
+                        card.cost > match.credits ||
+                        match.occupiedSlots >= match.maxUnits
+                      }
+                      aria-label={`${card.roster.variant} — ${card.cost} credits${card.disabled_reason !== null ? " — Unavailable" : ""}`}
+                      onClick={() => {
+                        onChoose(card.id);
+                        setOpen(false);
+                      }}
+                    >
+                      <span>{card.roster.variant}</span>
+                      <Price cost={card.cost} credits={match.credits} />
+                      {card.disabled_reason !== null && <small>Unavailable</small>}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </section>

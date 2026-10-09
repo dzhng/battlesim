@@ -47,7 +47,7 @@ test("pointer paint clears the preview when the gesture ends", async () => {
   expect(paint.feed.current.length).toBe(0);
 });
 
-test("placement queries coalesce cursor updates and a cancelled reply cannot restore markers", async () => {
+test("placement queries coalesce cursor updates, a facing drag keeps its last answer, and a cancelled reply cannot restore markers", async () => {
   const { PointerPaint } = await import("@apps/battle-lab/src/pointerPaint");
   const paint = new PointerPaint(UNITS);
   const selected = [
@@ -71,13 +71,14 @@ test("placement queries coalesce cursor updates and a cancelled reply cannot res
   paint.resolvePreview({ kind: "move", request: { ...move, facing: 1 } }, selected, client, 0);
   paint.resolvePreview({ kind: "move", request: { ...move, facing: 2 } }, selected, client, 0);
   expect(requested).toEqual([move]);
-  finish([{ unit: 1, goal: move.goal, placed: true, facing: 0 }]);
+  finish([{ unit: 1, goal: move.goal, placed: true, facing: 0, spots: [] }]);
   await new Promise((r) => setTimeout(r, 0));
+  // Turning is the same press: the last answer stays drawn while the new facing is asked.
   expect(
     paint.resolvePreview({ kind: "move", request: { ...move, facing: 2 } }, selected, client, 0),
-  ).toEqual([]);
+  ).toMatchObject([{ unit: 1, c: [100, 200], facing: 0 }]);
   expect(requested).toEqual([move, { ...move, facing: 2 }]);
-  finish([{ unit: 1, goal: move.goal, placed: true, facing: 2 }]);
+  finish([{ unit: 1, goal: move.goal, placed: true, facing: 2, spots: [] }]);
   await new Promise((r) => setTimeout(r, 0));
   const markers = paint.resolvePreview(
     { kind: "move", request: { ...move, facing: 2 } },
@@ -88,7 +89,7 @@ test("placement queries coalesce cursor updates and a cancelled reply cannot res
   expect(markers).toMatchObject([{ unit: 1, placed: true, opacity: 1, c: [100, 200], facing: 2 }]);
   paint.resolvePreview({ kind: "move", request: { ...move, facing: 3 } }, selected, client, 0);
   expect(paint.resolvePreview(null, selected, client, 0)).toEqual([]);
-  finish([{ unit: 1, goal: move.goal, placed: true, facing: 3 }]);
+  finish([{ unit: 1, goal: move.goal, placed: true, facing: 3, spots: [] }]);
   await new Promise((r) => setTimeout(r, 0));
   expect(paint.resolvePreview(null, selected, client, 0)).toEqual([]);
 });
@@ -122,7 +123,7 @@ test("a cancelled query cannot paint a new press at the same anchor", async () =
   paint.resolvePreview({ kind: "move", request: move }, own, client, 0);
   paint.resolvePreview(null, own, client, 0);
   paint.resolvePreview({ kind: "move", request: { ...move, facing: 0 } }, own, client, 0);
-  finish([{ unit: 1, goal: move.goal, placed: true, facing: 1 }]);
+  finish([{ unit: 1, goal: move.goal, placed: true, facing: 1, spots: [] }]);
   await new Promise((r) => setTimeout(r, 0));
   expect(
     paint.resolvePreview({ kind: "move", request: { ...move, facing: 0 } }, own, client, 0),
@@ -142,8 +143,8 @@ test("pointer paint reveals only accepted destinations from a partially blocked 
   })) as unknown as import("../src/battle/sim/observation").OwnUnitView[];
   const markers = paint.markers(
     [
-      { unit: 1, goal: [100, 200], facing: 0, placed: false },
-      { unit: 2, goal: [140, 200], facing: 0, placed: true },
+      { unit: 1, goal: [100, 200], facing: 0, placed: false, spots: [] },
+      { unit: 2, goal: [140, 200], facing: 0, placed: true, spots: [] },
     ],
     own,
   );
@@ -184,7 +185,7 @@ test("a changed building cannot inherit a late entry result, and fallback displa
   finish({
     building: 9,
     entrant: null,
-    destinations: [{ unit: 1, goal: [140, 200], placed: true, facing: 0 }],
+    destinations: [{ unit: 1, goal: [140, 200], placed: true, facing: 0, spots: [] }],
   });
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(
@@ -241,7 +242,7 @@ test("a building cursor keeps a current certificate during tick refresh, clears 
   replies[2]({
     building: 9,
     entrant: null,
-    destinations: [{ unit: 2, goal: [50, 60], placed: true, facing: 0 }],
+    destinations: [{ unit: 2, goal: [50, 60], placed: true, facing: 0, spots: [] }],
   });
   await new Promise((r) => setTimeout(r, 0));
   expect(update(1, changed)).toBe("default");
@@ -406,7 +407,13 @@ test("a drag acknowledgement corrects the same building hover when admission fal
       building: 7,
       entrant: null,
       destinations: [
-        { unit: 1, placed: true, goal: [40, 50] as [number, number], facing: Math.PI / 2 },
+        {
+          unit: 1,
+          placed: true,
+          goal: [40, 50] as [number, number],
+          facing: Math.PI / 2,
+          spots: [],
+        },
       ],
     },
   };

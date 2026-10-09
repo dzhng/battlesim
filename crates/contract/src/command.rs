@@ -52,6 +52,12 @@ pub struct MoveDestination {
     /// An explicit facing is the arrival target for pivot-capable units.
     /// Without one, and for wheels, routing may refine this approach estimate.
     pub facing: f64,
+    /// Where a squad's living soldiers stand round `goal`, in member order,
+    /// as a squad arriving there spreads out on the ground its side knows.
+    /// The order draws its own arrangement and cover moves it, so this shows
+    /// the squad's shape, not each soldier's final spot. Empty for a vehicle,
+    /// and for a gathering or a withdrawal, which spread out on arrival.
+    pub spots: Vec<[f64; 2]>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -22,8 +22,11 @@ export function spills(page, selector) {
         const c = child.getBoundingClientRect();
         if (c.width === 0 || c.height === 0) continue;
         if (getComputedStyle(child).visibility === "hidden") continue;
-        // A panel within the panel (a popover) is judged as a panel itself.
+        // A panel within the panel (a popover), or the positioned frame
+        // round one (its bridge for the pointer), is judged as a panel itself.
         if (child.matches(selector)) continue;
+        if (getComputedStyle(child).position === "absolute" && child.querySelector(selector))
+          continue;
         let skip = false;
         for (let a = child.parentElement; a && a !== panel; a = a.parentElement) {
           const s = getComputedStyle(a);

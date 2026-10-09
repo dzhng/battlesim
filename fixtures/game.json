@@ -558,7 +558,7 @@
           "turret": null,
           "turret_gain": 0,
           "full_traverse_rps": 0.5,
-          "reverse": "reverse_whine",
+          "reverse": "reverse_beep",
           "reverse_gain": 0.08
         },
         "tracked_heavy": {
@@ -573,7 +573,7 @@
           "turret": "turret",
           "turret_gain": 0.12,
           "full_traverse_rps": 0.5,
-          "reverse": "reverse_whine",
+          "reverse": "reverse_beep",
           "reverse_gain": 0.1
         },
         "tracked_medium": {
@@ -588,7 +588,7 @@
           "turret": "turret",
           "turret_gain": 0.12,
           "full_traverse_rps": 0.5,
-          "reverse": "reverse_whine",
+          "reverse": "reverse_beep",
           "reverse_gain": 0.1
         },
         "wheeled_light": {
@@ -603,7 +603,7 @@
           "turret": "turret",
           "turret_gain": 0.05,
           "full_traverse_rps": 1.5,
-          "reverse": "reverse_whine",
+          "reverse": "reverse_beep",
           "reverse_gain": 0.06
         },
         "wheeled_medium": {
@@ -618,7 +618,7 @@
           "turret": "turret",
           "turret_gain": 0.08,
           "full_traverse_rps": 0.5,
-          "reverse": "reverse_whine",
+          "reverse": "reverse_beep",
           "reverse_gain": 0.08
         },
         "wheeled_medium_logistics": {
@@ -633,7 +633,7 @@
           "turret": null,
           "turret_gain": 0,
           "full_traverse_rps": 0.5,
-          "reverse": "reverse_whine",
+          "reverse": "reverse_beep",
           "reverse_gain": 0.08
         }
       },

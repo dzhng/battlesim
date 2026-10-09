@@ -310,6 +310,12 @@ function PreparedBattleView({
       cameraConfig={view.cameraConfig}
       spawn={prepared.report.start.at}
       cover={cover}
+      onFailure={(error) =>
+        setFailure({
+          message: replay ? "This replay cannot be played." : "The battle could not be started.",
+          details: [error],
+        })
+      }
       onLoadStage={(loaded) => {
         marks.current[loaded] ??= performance.now();
         if (loaded === "world") setStage("renderer");

@@ -21,6 +21,7 @@ FILTERS = {
     "handling": "highpass=f=60",
     "launch": "highpass=f=40,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
     "motor-loop": "highpass=f=80,lowpass=f=6000",
+    "running-gear": "highpass=f=50,lowpass=f=5000",
     "blast": "highpass=f=30,acompressor=threshold=0.18:ratio=2.2:attack=5:release=90",
 }
 

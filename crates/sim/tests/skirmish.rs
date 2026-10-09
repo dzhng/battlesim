@@ -311,6 +311,44 @@ fn packed_match_header_exposes_only_the_observed_wallet_and_pending_count() {
 }
 
 #[test]
+fn a_purchase_preview_spreads_a_squad_round_its_destination_and_a_hull_stands_alone() {
+    let mut rules = deck();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_rifle",
+        json!({
+            "roster": { "factions": ["us"], "category": "inf", "family_name": "Test squad", "variant": "Test" }
+        }),
+    );
+    let mut battle = Battle::new(&match_on(rules), 1);
+    let squad = battle
+        .preview_purchase(Side::Blue, "test_rifle", [400.0, 300.0])
+        .unwrap();
+    let slots = battle
+        .rules()
+        .catalog
+        .get(squad.kind)
+        .slots()
+        .unwrap()
+        .len();
+    assert!(slots > 1);
+    assert_eq!(
+        squad.spots.len(),
+        slots,
+        "one spot per soldier the squad fields"
+    );
+    assert!(squad
+        .spots
+        .iter()
+        .all(|s| (s[0] - 400.0).hypot(s[1] - 300.0) < 15.0));
+    let tank = battle
+        .preview_purchase(Side::Blue, "test_tank", [400.0, 300.0])
+        .unwrap();
+    assert!(tank.spots.is_empty(), "a vehicle stands as one body");
+}
+
+#[test]
 fn purchase_admission_refuses_unavailable_wrong_faction_and_invalid_destination_atomically() {
     let mut battle = Battle::new(&setup(), 1);
     for (seq, side, variant, destination, error) in [

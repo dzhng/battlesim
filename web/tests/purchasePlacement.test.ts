@@ -18,11 +18,11 @@ test("a changed variant/destination cannot reuse an earlier valid preview", asyn
   expect(control.at([20, 30], client, "1")?.valid).toBeNull();
   control.choose("test_scout");
   expect(control.at([40, 50], client, "1")?.valid).toBeNull();
-  resolve[0]({ Ok: 0 });
+  resolve[0]({ Ok: { kind: 0, spots: [] } });
   await settle();
   expect(control.at([40, 50], client, "1")?.valid).toBeNull();
   expect(client.previewPurchase).toHaveBeenCalledTimes(2);
-  resolve[1]({ Ok: 1 });
+  resolve[1]({ Ok: { kind: 1, spots: [] } });
   await settle();
   expect(control.at([40, 50], client, "1")?.valid).toBe(true);
   const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null }));
@@ -47,7 +47,7 @@ test("a replaced authority cannot inherit a valid preview", async () => {
   control.choose("test_scout");
   control.at([10, 20], first, "1");
   control.at([10, 20], second, "1");
-  resolvers[0]({ Ok: 1 });
+  resolvers[0]({ Ok: { kind: 1, spots: [] } });
   await settle();
   expect(control.at([10, 20], second, "1")?.valid).toBeNull();
   resolvers[1]({ Err: { reason: "wrong_faction" } });
@@ -67,7 +67,7 @@ test("a completed preview can confirm without another pointer movement", async (
   const control = new PurchasePlacementControl();
   control.choose("test_scout");
   control.at([10, 20], client, "1");
-  reply({ Ok: 1 });
+  reply({ Ok: { kind: 1, spots: [] } });
   await settle();
   const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null }));
   expect(await control.confirm(send)).toBeTruthy();
@@ -79,7 +79,9 @@ test("a completed preview can confirm without another pointer movement", async (
 });
 
 test("deployment ghosts face the opposing edge by default and track a drag bearing", () => {
-  const client = { previewPurchase: vi.fn(async () => ({ Ok: 1 })) } as unknown as SimClient;
+  const client = {
+    previewPurchase: vi.fn(async () => ({ Ok: { kind: 1, spots: [] } })),
+  } as unknown as SimClient;
   const control = new PurchasePlacementControl();
   control.choose("test_scout");
   expect(control.at([10, 20], client, "1")?.facing).toBeCloseTo(-Math.PI / 2);
@@ -87,7 +89,9 @@ test("deployment ghosts face the opposing edge by default and track a drag beari
 });
 
 test("turning a placed ghost keeps its preview, and confirming reports the ghost as placed", async () => {
-  const client = { previewPurchase: vi.fn(async () => ({ Ok: 1 })) } as unknown as SimClient;
+  const client = {
+    previewPurchase: vi.fn(async () => ({ Ok: { kind: 1, spots: [] } })),
+  } as unknown as SimClient;
   const control = new PurchasePlacementControl();
   control.choose("test_scout");
   control.at([10, 20], client, "1");
@@ -101,5 +105,33 @@ test("turning a placed ghost keeps its preview, and confirming reports the ghost
     destination: [10, 20],
     facing: 0.5,
     valid: true,
+    spots: [],
   });
+});
+
+test("a squad's ghost stands its soldiers where the preview spread them, and keeps that shape while the cursor moves on", async () => {
+  const client = {
+    previewPurchase: vi.fn(async (_variant: string, [x, y]: [number, number]) => ({
+      Ok: {
+        kind: 1,
+        spots: [
+          [x - 1, y],
+          [x + 1, y + 2],
+        ] as [number, number][],
+      },
+    })),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_squad");
+  expect(control.at([10, 20], client, "1")?.spots).toEqual([]);
+  await settle();
+  expect(control.at([10, 20], client, "1")?.spots).toEqual([
+    [9, 20],
+    [11, 22],
+  ]);
+  // The next destination's preview has not answered: the squad keeps its shape.
+  expect(control.at([30, 40], client, "1")?.spots).toEqual([
+    [29, 40],
+    [31, 42],
+  ]);
 });

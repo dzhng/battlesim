@@ -27,8 +27,8 @@ test("a partially refused group move tells the player some moves are unavailable
             placement: {
               gesture: 1,
               destinations: [
-                { unit: 1, goal: [50, 50], facing: 0, placed: true },
-                { unit: 2, goal: [60, 50], facing: 0, placed: false },
+                { unit: 1, goal: [50, 50], facing: 0, placed: true, spots: [] },
+                { unit: 2, goal: [60, 50], facing: 0, placed: false, spots: [] },
               ],
             },
           },

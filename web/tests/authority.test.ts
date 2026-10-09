@@ -137,6 +137,7 @@ test("a paused formation preview returns only own destinations without issuing a
           placed: true,
           goal: [120, 150],
           facing: expect.closeTo(Math.PI / 2, 12),
+          spots: [],
         },
       ],
     },
@@ -153,7 +154,7 @@ test("a paused formation preview returns only own destinations without issuing a
         error: null,
         placement: {
           gesture: 1,
-          destinations: [{ unit: 0, placed: true, goal: [120, 150], facing: 0 }],
+          destinations: [{ unit: 0, placed: true, goal: [120, 150], facing: 0, spots: [] }],
         },
       },
     },
@@ -486,7 +487,11 @@ test("purchase preview resolves through the authority without spending or advanc
     destination: [400, 250],
   });
   expect(h.replies.filter((r) => r.type === "purchase_preview")).toEqual([
-    { type: "purchase_preview", id: 1, placement: { Ok: expect.any(Number) } },
+    {
+      type: "purchase_preview",
+      id: 1,
+      placement: { Ok: { kind: expect.any(Number), spots: [] } },
+    },
     { type: "purchase_preview", id: 2, placement: { Err: { reason: "wrong_faction" } } },
   ]);
   expect(h.publications()).toHaveLength(0);
