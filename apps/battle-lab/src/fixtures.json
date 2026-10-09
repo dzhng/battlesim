@@ -165,7 +165,7 @@
   {
     "id": "street-watch",
     "route": "/lab/street?watch",
-    "describe": "The street battle watched: blue's start ordered onto the street at once, the camera free. The scene takes the whole-battle frames at a fixed tick (BATTLE_TICK), and checks fog running on past the map edge and the red border that marks the playable area.",
+    "describe": "The street battle watched: blue's start ordered onto the street at once, the camera free. The scene takes the whole-battle frames at a fixed tick (BATTLE_TICK), and checks that ground past the playable area's edge is always unseen, and the dim white border that marks the area.",
     "map": "street"
   },
   {
