@@ -15,24 +15,56 @@ function result(map: string, started: number, intervals: number[]): ReelResult {
   }
   recording.tick({ tick: 61, stepMs: 2, bytes: 128 });
   return {
-    scene: { map, encounter: "fake", seed: 1, warm_s: 2, reel: { fade_s: 0, shots: [{ seconds: 1, from: pose, to: pose }] } },
-    recording, outcome: { status: "complete", reason: "done" }, startTick: 60, endTick: 61, tickHz: 30, layout: "{\"schema\":\"test\"}", adapter: "fake", capture: [], frames: [],
+    scene: {
+      map,
+      encounter: "fake",
+      seed: 1,
+      warm_s: 2,
+      reel: { fade_s: 0, shots: [{ seconds: 1, from: pose, to: pose }] },
+    },
+    recording,
+    outcome: { status: "complete", reason: "done" },
+    startTick: 60,
+    endTick: 61,
+    tickHz: 30,
+    layout: '{"schema":"test"}',
+    adapter: "fake",
+    capture: [],
+    frames: [],
   };
 }
 
 test("the reel combines measured work without counting preparation gaps or losing simulation samples", () => {
-  const report = createReelReport([result("first", 1000, [10, 20]), result("second", 100000, [30])]);
+  const report = createReelReport([
+    result("first", 1000, [10, 20]),
+    result("second", 100000, [30]),
+  ]);
   expect(report.samples.frames.map((f) => f.elapsedMs)).toEqual([10, 30, 60]);
   expect(report.frameRate?.average).toBe(50);
   expect(report.recordedMs).toBe(60);
-  expect(report.capture.presentation).toEqual({ clock: "wall_elapsed", subjectTrackingLagSeconds: 0.5, plateComposition: "standalone_center" });
-  expect(report.ticks).toMatchObject({ count: 2, stepMs: { mean: 2 }, publicationBytes: { mean: 128 } });
+  expect(report.capture.presentation).toEqual({
+    clock: "wall_elapsed",
+    subjectTrackingLagSeconds: 0.5,
+    plateComposition: "standalone_center",
+  });
+  expect(report.ticks).toMatchObject({
+    count: 2,
+    stepMs: { mean: 2 },
+    publicationBytes: { mean: 128 },
+  });
 });
 
 test("exports each completed scene as a native presentation capture", () => {
   const report = createReelReport([result("first", 1000, [10])]);
-  expect(report.presentationCaptures[0]).toMatchObject({ schema: "battle-presentation-capture/v1", workload: { id: "menu-reel", scene: "first" }, tickHz: 30, warmTick: 60 });
-  expect(JSON.parse(report.presentationCaptureJson[0]).schema).toBe("battle-presentation-capture/v1");
+  expect(report.presentationCaptures[0]).toMatchObject({
+    schema: "battle-presentation-capture/v1",
+    workload: { id: "menu-reel", scene: "first" },
+    tickHz: 30,
+    warmTick: 60,
+  });
+  expect(JSON.parse(report.presentationCaptureJson[0]).schema).toBe(
+    "battle-presentation-capture/v1",
+  );
 });
 
 test("a preparation failure stays failed in the exported report even before a scene can start", () => {
