@@ -29,7 +29,8 @@ import { useFeed } from "../feed";
 // squad walks the field. `?street` inspects the street test map's `rear`
 // encounter instead (`fixtures/maps/street/encounters/rear.json`): the street
 // fight, with blue's supply truck and jeep pulled back behind the ridge and
-// red's jeep into the east wood, so each side learns ground the other never
+// red's jeep driven in from beyond the east wood, where a shell lands beside
+// it at the start, so each side learns ground, and a crater, the other never
 // saw. The flat cell view
 // draws the observed side's learned cells, rebuilt from the ground patches
 // its publications carry; switching side reopens the stream with that side's
