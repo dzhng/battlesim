@@ -255,8 +255,6 @@ impl Target {
 #[derive(Clone, Debug)]
 pub struct Lock {
     pub target: Target,
-    /// The attack order's own target, taken whenever the mount can shoot it.
-    pub explicit: bool,
     /// This tick's assessment cleared the target and the mount is working the
     /// shot: aiming, loading, traversing, guiding or firing (not held off by
     /// range, sight, a facing slot, a move or a building's doorway).
@@ -318,7 +316,7 @@ impl Mount {
         d.u64(self.lock.is_some() as u64);
         if let Some(l) = &self.lock {
             l.target.digest(d);
-            d.u64(l.explicit as u64).u64(l.engaging as u64);
+            d.u64(l.engaging as u64);
         }
     }
 
@@ -1093,13 +1091,13 @@ fn choose_lock(
     explicit: Option<Target>,
     assessed: &mut Assessed,
 ) -> LockChoice {
-    // A lock that is not this order's target is an ordinary one; a ground
-    // point never outlives the order that named it.
-    if let Some(lock) = mount.lock.as_mut().filter(|l| Some(l.target) != explicit) {
-        lock.explicit = false;
-        if matches!(lock.target, Target::Ground(_)) {
-            mount.lock = None;
-        }
+    // A ground point never outlives the order that named it.
+    if mount
+        .lock
+        .as_ref()
+        .is_some_and(|l| Some(l.target) != explicit && matches!(l.target, Target::Ground(_)))
+    {
+        mount.lock = None;
     }
     let Some(t) = explicit else {
         return LockChoice {
@@ -1107,12 +1105,10 @@ fn choose_lock(
             ordered: None,
         };
     };
-    let take = |mount: &mut Mount| match mount.lock.as_mut() {
-        Some(lock) if lock.target == t => lock.explicit = true,
-        _ => {
+    let take = |mount: &mut Mount| {
+        if mount.lock.as_ref().is_none_or(|lock| lock.target != t) {
             mount.lock = Some(Lock {
                 target: t,
-                explicit: true,
                 engaging: false,
             })
         }
@@ -1196,7 +1192,6 @@ fn automatic_lock(
         Some(t) if current.is_none_or(|(c, _)| c != t) => {
             mount.lock = Some(Lock {
                 target: t,
-                explicit: false,
                 engaging: false,
             });
         }

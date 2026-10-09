@@ -35,8 +35,6 @@ struct Job {
     /// The side's knowledge revision the journey started against.
     revision: u64,
     stage: Stage,
-    /// Work spent on this request so far, restarts included.
-    spent: u64,
 }
 
 enum Stage {
@@ -121,9 +119,7 @@ impl Job {
                 }
             }
         };
-        let spent = grid.work() - before;
-        self.spent += spent;
-        (spent, plan)
+        (grid.work() - before, plan)
     }
 }
 
@@ -163,7 +159,6 @@ impl RoutePlanner {
                 request,
                 revision: 0,
                 stage: Stage::Planning(None),
-                spent: 0,
             },
         );
     }
@@ -299,7 +294,7 @@ impl RoutePlanner {
             for p in r.kept.iter().flatten() {
                 d.f64(p.x).f64(p.y);
             }
-            d.u64(job.revision).u64(job.spent);
+            d.u64(job.revision);
             match &job.stage {
                 Stage::Planning(None) => {
                     d.u64(0);

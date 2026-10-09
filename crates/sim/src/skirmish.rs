@@ -25,7 +25,6 @@ pub struct Skirmish {
     pub settlement: crate::settlement::Settlement,
     pub phase: Phase,
     pub ready: [bool; 2],
-    pub active_tick: Option<Tick>,
     pub wallets: [u64; 2],
     income_remainder: u64,
     pub reservations: [VecDeque<Reservation>; 2],
@@ -46,7 +45,6 @@ impl Skirmish {
             setup,
             phase: Phase::Preparation,
             ready: [false; 2],
-            active_tick: None,
             wallets: [budget; 2],
             income_remainder: 0,
             reservations: Default::default(),
@@ -62,7 +60,6 @@ impl Skirmish {
                 || tick >= u64::from(self.setup.rules.preparation_s) * u64::from(hz)
             {
                 self.phase = Phase::Active;
-                self.active_tick = Some(tick);
             }
         } else if self.phase == Phase::Active {
             let denominator = 60 * u64::from(hz);
@@ -140,7 +137,6 @@ impl Skirmish {
             .u64(self.phase as u64)
             .u64(self.ready[0] as u64)
             .u64(self.ready[1] as u64)
-            .u64(self.active_tick.unwrap_or(u64::MAX))
             .u64(self.wallets[0])
             .u64(self.wallets[1])
             .u64(self.income_remainder);
