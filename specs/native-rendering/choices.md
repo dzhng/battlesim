@@ -58,6 +58,7 @@
   keep the copy for the smoke and measure a bulk/shared-buffer alternative in
   the real binding slice; reverse it if transfer cost is material. The gap was
   that the spec required bulk transfer but did not select an ownership model.
+- **The native readability probe enlarges and slightly emissively lights observed unit markers, and raises terrain/fog contrast.** The current shots leave tactical contacts too small to read at the captured camera distance, so this reversible probe makes the unit question legible without changing positions or visibility. The exact scale and palette remain presentation choices for the matched visual gate; provisional call: keep these values while browser crops are gathered, then tune or revert from comparison evidence. Confidence: low.
 
 ### Sound (high confidence)
 
@@ -117,3 +118,4 @@
 - **Screenshots are sampled after `frame_post_draw`.** A deferred callback before rendering read the previous viewport image, which made a moving reel appear frozen and hid camera/asset defects. Each queued cut now waits for Godot's rendered-frame signal, then the final report waits for all pending saves; this preserves the captured camera contract while making visual evidence correspond to the frame the user would see.
 - **Forest regions become low native terrain patches.** The saved map owns polygon membership, so the Godot composition draws one dark ground patch per admitted forest region without inventing tree placement or visibility. This adds terrain context while keeping foliage identity and gameplay authority in the map/simulation owners; it is still a material approximation until the authored terrain pass lands.
 - **Authored kit families are derived from their resource paths, and missing families are reported.** Shipped GLBs commonly use the basename `kit.glb`, so the loader derives apartment and kit family keys from the filename or parent directory. A template with no matching family increments `authored_unresolved_templates` before placement is skipped; catalog completeness must never be inferred from the rows that happened to instantiate.
+- **The native catalog caches selected shell prototypes instead of instantiating each full GLB per row.** A kit resource contains hundreds of catalog nodes, while a map placement needs one named shell. The loader instantiates each family/shell once, duplicates that subtree for placements, and keeps the full authored row count and unresolved-template report; this preserves the catalog contract without making the complete export unrenderable.

@@ -27,6 +27,7 @@ var authored_map_scene_count := 0
 var authored_building_limit := 0
 var authored_scene_nodes: Dictionary = {}
 var authored_scene_by_family: Dictionary = {}
+var authored_shell_prototypes: Dictionary = {}
 var authored_unresolved_templates: Dictionary = {}
 var cut_dir := ""
 var cuts_saved := 0
@@ -210,7 +211,8 @@ func _build_map_geometry() -> void:
 		var ground_mesh := PlaneMesh.new()
 		ground_mesh.size = Vector2(float(size[0]), float(size[1]))
 		var ground_material := StandardMaterial3D.new()
-		ground_material.albedo_color = Color("43564a") if String(map.get("regional_family", "")) == "china" else Color("55585b")
+		ground_material.albedo_color = Color("536e5c") if String(map.get("regional_family", "")) == "china" else Color("62666b")
+		ground_material.roughness = 0.92
 		ground_mesh.material = ground_material
 		ground.mesh = ground_mesh
 		ground.position = Vector3(float(size[0]) * 0.5, -0.08, float(size[1]) * 0.5)
@@ -236,7 +238,8 @@ func _build_map_geometry() -> void:
 				var road_mesh := BoxMesh.new()
 				road_mesh.size = Vector3(length, 0.035, float(shape.get("width_m", 8.0)))
 				var road_material := StandardMaterial3D.new()
-				road_material.albedo_color = Color("252a2d")
+				road_material.albedo_color = Color("30383b")
+				road_material.roughness = 0.85
 				road_mesh.material = road_material
 				road.mesh = road_mesh
 				road.position = Vector3((start.x + end.x) * 0.5, 0.0, (start.y + end.y) * 0.5)
@@ -337,7 +340,7 @@ func _build_fog_layers() -> void:
 		var mesh := BoxMesh.new()
 		mesh.size = Vector3(cell_m, 0.03, cell_m)
 		var material := StandardMaterial3D.new()
-		material.albedo_color = Color(0.02, 0.04, 0.07, 0.42)
+		material.albedo_color = Color(0.015, 0.03, 0.06, 0.62)
 		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		mesh.material = material
 		var count := 0
@@ -398,10 +401,11 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 				var unresolved_id := String(building.get("template_id", ""))
 				authored_unresolved_templates[unresolved_id] = int(authored_unresolved_templates.get(unresolved_id, 0)) + 1
 				continue
-			var instance = building_scene.instantiate()
 			var template_id := String(building.get("template_id", ""))
-			if not _select_authored_shell(instance, template_id):
+			var instance := _authored_shell_instance(building_scene, template_id)
+			if instance == null:
 				authored_unresolved_templates[template_id] = int(authored_unresolved_templates.get(template_id, 0)) + 1
+				continue
 			instance.position = Vector3(float(translation[0]), float(translation[2]), float(translation[1]))
 			instance.rotation.y = float(frame.get("yaw", 0.0))
 			holder.add_child(instance)
@@ -439,7 +443,7 @@ func _authored_scene_for_template(template_id: String, regional_family: String) 
 		return authored_scene_by_family.get("homes", null)
 	return authored_scene_by_family.get(regional_family, null)
 
-func _select_authored_shell(instance: Node, template_id: String) -> bool:
+func _authored_shell_token(template_id: String) -> String:
 	var token := ""
 	if template_id.contains("slab-35x11"):
 		token = "slab_35x11_4f_shell"
@@ -493,18 +497,26 @@ func _select_authored_shell(instance: Node, template_id: String) -> bool:
 		token = "span_shell"
 	elif template_id.contains("works"):
 		token = "works_shell"
+	return token
+
+func _authored_shell_instance(scene: PackedScene, template_id: String) -> Node3D:
+	var token := _authored_shell_token(template_id)
 	if token.is_empty():
-		for child in instance.get_children():
-			if child is Node3D:
-				child.visible = false
-		return false
-	var found := false
-	for child in instance.get_children():
-		if child is Node3D:
-			var matches := String(child.name) == token
-			child.visible = matches
-			found = found or matches
-	return found
+		return null
+	var key := scene.resource_path + "|" + token
+	if authored_shell_prototypes.has(key):
+		return authored_shell_prototypes[key].duplicate() as Node3D
+	var catalog := scene.instantiate()
+	var shell := catalog.get_node_or_null(NodePath(token))
+	if shell == null or not shell is Node3D:
+		catalog.free()
+		return null
+	catalog.remove_child(shell)
+	var prototype := shell.duplicate() as Node3D
+	shell.free()
+	catalog.free()
+	authored_shell_prototypes[key] = prototype
+	return prototype.duplicate() as Node3D
 
 func _build_proxy_field() -> void:
 	proxy_field_used = true
@@ -576,24 +588,27 @@ func _update_observed_units() -> void:
 		var holder := Node3D.new()
 		var mesh := MeshInstance3D.new()
 		var capsule := CapsuleMesh.new()
-		capsule.radius = 0.35
-		capsule.height = 1.4
+		capsule.radius = 0.5
+		capsule.height = 2.0
 		mesh.mesh = capsule
 		var material := StandardMaterial3D.new()
 		material.albedo_color = unit_color
+		material.emission_enabled = true
+		material.emission = unit_color
+		material.emission_energy_multiplier = 0.25
 		mesh.material_override = material
 		mesh.position.y = 0.7
 		holder.add_child(mesh)
 		var contact := MeshInstance3D.new()
 		var contact_mesh := CylinderMesh.new()
-		contact_mesh.top_radius = 0.72
-		contact_mesh.bottom_radius = 0.72
+		contact_mesh.top_radius = 0.95
+		contact_mesh.bottom_radius = 0.95
 		contact_mesh.height = 0.05
 		contact.mesh = contact_mesh
 		var contact_material := StandardMaterial3D.new()
 		contact_material.albedo_color = material.albedo_color
 		contact_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		contact_material.albedo_color.a = 0.7
+		contact_material.albedo_color.a = 0.85
 		contact.material_override = contact_material
 		contact.position.y = 0.03
 		holder.add_child(contact)

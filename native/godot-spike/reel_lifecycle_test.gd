@@ -44,6 +44,7 @@ func run() -> void:
 	check(reel.authored_building_limit == 7, "authored building cap must apply before selecting a single or multi-kit scene")
 	check(reel._authored_scene_for_template("china-home-10x8-1f", "china") == null, "template catalog lookup must disclose absent authored kits")
 	check(reel._authored_family_key("res://authoring/homes-kit.glb") == "homes", "authored kit family must come from the resource path")
+	check(reel._authored_shell_token("home-10x8-1f") == "home_10x8_1f_shell", "home template must select its authored shell token")
 	reel.authored_scene_by_family.clear()
 	reel.authored_unresolved_templates.clear()
 	reel._build_authored_maps(null)
