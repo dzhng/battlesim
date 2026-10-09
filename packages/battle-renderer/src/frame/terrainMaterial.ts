@@ -1831,6 +1831,18 @@ const LIP_WANDER_M = 0.45;
 /** The thrown-soil ring: the cubic crater field's skirt from this depth out
  *  to the lip, its outer edge wandering by the same share. */
 const RING = [0.035, 0.03] as const;
+/** A crater whose deepest point nearby stays under the first depth (in
+ *  fulls) threw up no soil: a small shell's pock, its ring drawn as scorched
+ *  earth instead. Past the second it is a crater with its soil ring; between,
+ *  one blends into the other, so a pock dug deeper by more hits grows a ring
+ *  without a step. Every shell's crater reaches past the second within the
+ *  taps that read its ring. */
+const POCK = [0.05, 0.09] as const;
+/** How dark a pock's scorched earth is, as a share of full soot. */
+const POCK_SOOT = 0.85;
+/** A pock's edge: the depth (in fulls) it crosses, give or take half the
+ *  wander. Shallower than the soil ring's, as a pock is all scorched earth. */
+const POCK_EDGE = [0.013, 0.006] as const;
 /** Ash flecks: noise at this scale (per metre) crossing an edge that falls
  *  from the first value at the scorch's reach to the second at its heart. */
 const ASH_SCALE = 4.5;
@@ -2005,13 +2017,22 @@ export const groundScars = tgpu
   let grain = valueNoise(xy * ${1 / LIP_WANDER_M} + vec2f(5.7, 2.1)) - 0.5;
   let pixelDepth = length(bowlSlope) * footprint;
   let bowl = crossing(depth, ${LIP[0]} + ${LIP[1]} * grain, pixelDepth);
-  let ring = crossing(depth, ${RING[0]} + ${RING[1]} * grain, pixelDepth) * (1.0 - bowl);
+  let skirt = crossing(depth, ${RING[0]} + ${RING[1]} * grain, pixelDepth) * (1.0 - bowl);
+  // The deepest crater within the taps: a lone pock's skirt is scorched
+  // earth, a real crater's is its thrown soil.
+  let peak = max(max(max(s.x, xp.x), max(xm.x, yp.x)), max(ym.x, near.x)) * k.x;
+  let soil = smoothstep(${POCK[0]}, ${POCK[1]}, peak);
+  let ring = skirt * soil;
+  let scorched = crossing(depth, ${POCK_EDGE[0]} + ${POCK_EDGE[1]} * grain, pixelDepth) * (1.0 - bowl);
+  // Darkest at its heart, browner toward its edge, as a burn is.
+  let heart = 0.45 + 0.55 * smoothstep(${POCK_EDGE[0]}, ${RING[0]}, depth);
+  let pock = scorched * (1.0 - soil) * ${POCK_SOOT} * heart;
   // Soot: ash in flecks over the scorch, thickest near the burst, never a
   // solid sheet: a flecked dark is one thing no shadow here is.
   let burnt = saturate(s.y * k.y);
   let fleckAt = valueNoise(xy * ${ASH_SCALE} + vec2f(8.1, 3.3)) * 0.75 + valueNoise(xy * ${ASH_SCALE * 3.1}) * 0.25;
   let ash = crossing(fleckAt, mix(${ASH_EDGE[0]}, ${ASH_EDGE[1]}, burnt), footprint * ${ASH_SCALE}) * step(0.45, burnt);
-  let soot = ash * (1.0 - bowl) * (1.0 - ring);
+  let soot = max(ash * (1.0 - bowl) * (1.0 - ring), pock);
   let wear = 1.0 - (1.0 - saturate(s.zw * k.zw)) * (1.0 - saturate(s.zw * k.zw));
   // Ruts have edges: tracks cross their iso-line within a pixel, ragged.
   let trackSlope = vec2f(xp.z - xm.z, yp.z - ym.z) * k.z / (2.0 * h * cell);
