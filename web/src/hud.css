@@ -1332,30 +1332,28 @@
   font-size: 11px;
   color: rgb(var(--hud-text) / 0.7);
 }
-/* The hovered family's name, price and variants, in room kept for them. */
-.hud-purchase-detail {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  /* A variant's three lines at most: its name, price and why it's unavailable. */
-  min-height: 64px;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid rgb(var(--hud-accent) / 0.2);
+/* A family's variants, in a menu above the picker over the family's card.
+   Its transparent foot is the bridge the pointer climbs to reach it. */
+.hud-purchase-flyout {
+  position: absolute;
+  bottom: 100%;
+  z-index: 1;
+  padding-bottom: 8px;
 }
-.hud-purchase-detail-name {
-  padding-top: 5px;
+.hud-panel.hud-purchase-flyout-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: max-content;
+  padding: 8px 10px;
+  background: rgb(var(--hud-glass) / 0.96);
+}
+.hud-purchase-flyout-name {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgb(var(--hud-accent));
-}
-.hud-purchase-single {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-top: 5px;
 }
 .hud-purchase-variants {
   flex-wrap: wrap;

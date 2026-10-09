@@ -50,17 +50,36 @@ async function picker(ctx, page, shot) {
     sizes.length > 2 && sizes.every(([w, h]) => w === deckCard[0] && h === deckCard[1]),
     JSON.stringify({ deckCard, sizes }),
   );
-  // A family of several variants lists them while the pointer is on it.
+  // A family of several variants lists them in a menu above the picker
+  // while the pointer is on it; the picker itself never changes.
   await page.getByRole("tab", { name: "VEH", exact: true }).click();
-  // Opening a family's variants never moves the cards under the pointer.
+  const picker = page.locator(".hud-purchase-picker");
   const tank = page.getByRole("button", { name: "Tank", exact: true });
-  const before = await tank.boundingBox();
-  await tank.hover();
-  const after = await tank.boundingBox();
+  const before = { picker: await picker.boundingBox(), tank: await tank.boundingBox() };
+  await page.getByRole("button", { name: "Jeep", exact: true }).hover();
   ctx.check(
-    `${shot}: hovering a family leaves its card where the pointer found it`,
-    Math.abs(after.y - before.y) < 0.5 && Math.abs(after.x - before.x) < 0.5,
+    `${shot}: a family of one variant opens nothing`,
+    (await page.locator(".hud-purchase-flyout").count()) === 0,
+  );
+  await tank.hover();
+  const after = { picker: await picker.boundingBox(), tank: await tank.boundingBox() };
+  const menu = await page.getByRole("group", { name: "Tank variants" }).boundingBox();
+  ctx.check(
+    `${shot}: hovering a family leaves the picker and its card where they were`,
+    ["x", "y", "width", "height"].every(
+      (k) =>
+        Math.abs(after.picker[k] - before.picker[k]) < 0.5 &&
+        Math.abs(after.tank[k] - before.tank[k]) < 0.5,
+    ),
     JSON.stringify({ before, after }),
+  );
+  ctx.check(
+    `${shot}: the variants open above the picker, over the hovered card`,
+    menu !== null &&
+      menu.y + menu.height <= after.picker.y &&
+      menu.x < after.tank.x + after.tank.width &&
+      menu.x + menu.width > after.tank.x,
+    JSON.stringify({ menu, picker: after.picker, tank: after.tank }),
   );
   ctx.check(
     `${shot}: hovering a family of variants lists them`,
@@ -136,6 +155,20 @@ async function picker(ctx, page, shot) {
   );
   await contained(ctx, page, `${shot} variants`);
   await ctx.matchBaseline(page, `${shot}-veh-variants`);
+  // The pointer travels up from the card into the menu without closing it,
+  // and leaving the picker closes it.
+  const variant = page.getByRole("button", { name: /^Trophy — / });
+  const to = await variant.boundingBox();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 });
+  ctx.check(
+    `${shot}: the pointer reaches a variant with its menu still open`,
+    await variant.isVisible(),
+  );
+  await pointerAway(page);
+  ctx.check(
+    `${shot}: leaving the picker closes the variants`,
+    (await page.locator(".hud-purchase-flyout").count()) === 0,
+  );
 }
 
 export async function run(ctx) {
