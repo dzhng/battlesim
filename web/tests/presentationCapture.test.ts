@@ -28,6 +28,10 @@ test("rejects publication values that cannot be lossless u32 carriers", () => {
   expect(() => validatePresentationCapture({ ...capture, samples: [{ ...capture.samples[0], publication: [0x1_0000_0000] }] })).toThrow(/u32/);
 });
 
+test("rejects a malformed displayed camera frame", () => {
+  expect(() => validatePresentationCapture({ ...capture, frames: [{ ...capture.frames[0], camera: { ...pose, target: [0] as unknown as [number, number] } }] })).toThrow(/camera/);
+});
+
 test("round-trips through the native-tool JSON boundary", () => {
   expect(decodePresentationCapture(encodePresentationCapture(capture))).toEqual(capture);
   expect(() => decodePresentationCapture("{" )).toThrow(/JSON/);

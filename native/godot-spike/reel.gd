@@ -26,6 +26,8 @@ var authored_building_limit := 256
 var authored_scene_nodes: Dictionary = {}
 var cut_dir := ""
 var cuts_saved := 0
+var capture_word_count := 0
+var capture_layout_valid := false
 
 func _ready() -> void:
 	var configured := OS.get_environment("GODOT_REEL_SOURCE")
@@ -42,6 +44,7 @@ func _ready() -> void:
 		return
 	scenes = parsed.scenes
 	_load_presentation_captures()
+	_consume_capture_words()
 	cut_dir = OS.get_environment("GODOT_REEL_CUTS")
 	_build_world()
 	started = true
@@ -66,6 +69,16 @@ func _read_capture(path: String) -> Dictionary:
 	if capture_file == null:
 		return {"valid": false, "comparison_ready": false, "comparison_blocker": "unable to read presentation capture: " + path}
 	return CaptureDecoder.decode_json(capture_file.get_as_text())
+
+func _consume_capture_words() -> void:
+	for result in capture_results.values():
+		if not result.get("valid", false):
+			continue
+		capture_layout_valid = capture_layout_valid or typeof(result.get("layout")) == TYPE_DICTIONARY
+		var capture: Dictionary = result.capture
+		for sample in capture.samples:
+			for word in sample.publication:
+				capture_word_count += 1
 
 func _build_world() -> void:
 	var environment := WorldEnvironment.new()
@@ -266,6 +279,8 @@ func _write_report() -> void:
 		"capture_scene_count": capture_results.size(),
 		"capture_comparison_ready": capture_results.size() == scenes.size(),
 		"capture_consumed": capture_results.values().any(func(result): return result.sample_count > 0),
+		"capture_layout_valid": capture_layout_valid,
+		"capture_publication_words": capture_word_count,
 		"capture_blocker": "" if capture_results.size() == scenes.size() else "one or more scene captures are missing",
 		"source": source_path,
 		"authored_scene": OS.get_environment("GODOT_AUTHORED_SCENE"),

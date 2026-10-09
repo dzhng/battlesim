@@ -41,6 +41,8 @@ export function validatePresentationCapture(capture: PresentationCapture): Prese
     if (!Number.isFinite(frame.elapsedMs) || frame.elapsedMs < previousFrame)
       throw new Error("capture frame times must be increasing");
     if (!Number.isInteger(frame.tick) || frame.tick < 0) throw new Error("capture frame tick must be non-negative");
+    if (!Number.isFinite(frame.camera.distance) || !Number.isFinite(frame.camera.yaw) || !Number.isFinite(frame.camera.pitch) || !Array.isArray(frame.camera.target) || frame.camera.target.length !== 2 || !frame.camera.target.every(Number.isFinite))
+      throw new Error("capture frame camera is malformed");
     previousFrame = frame.elapsedMs;
   }
   let previous = -1;

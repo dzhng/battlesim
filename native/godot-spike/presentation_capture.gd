@@ -36,6 +36,9 @@ static func validate(value: Variant) -> Dictionary:
 		return _invalid("capture warmTick must be non-negative")
 	if typeof(capture.get("layout")) != TYPE_STRING or String(capture.layout).is_empty():
 		return _invalid("capture layout must be a non-empty JSON string")
+	var layout = JSON.parse_string(String(capture.layout))
+	if typeof(layout) != TYPE_DICTIONARY:
+		return _invalid("capture layout must decode to an object")
 	if capture.get("side") != "blue" and capture.get("side") != "red":
 		return _invalid("capture side must be blue or red")
 	if typeof(capture.get("samples")) != TYPE_ARRAY:
@@ -78,6 +81,7 @@ static func validate(value: Variant) -> Dictionary:
 		"capture": capture,
 		"sample_count": sample_index,
 		"publication_words": _publication_count(capture.samples),
+		"layout": layout,
 	}
 
 static func _invalid(reason: String) -> Dictionary:
