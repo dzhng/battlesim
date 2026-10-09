@@ -1,5 +1,6 @@
 import { BenchmarkRecording } from "@web/battle/benchmark/recording";
 import { MENU_REEL_WORKLOAD, menuReelFingerprint } from "@web/battle/benchmark/menuReel";
+import { APP_COMMIT } from "../buildIdentity";
 import type { BenchmarkOutcome } from "@web/battle/benchmark/report";
 import type { ReelResult } from "./reelRun";
 
@@ -24,6 +25,7 @@ export function createReelReport(results: readonly ReelResult[], interruption?: 
     kind: "graphics-test" as const,
     capture: {
       client: "browser" as const,
+      build: APP_COMMIT,
       resolution: typeof window === "undefined" ? null : { width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio },
       quality: "current-client-settings" as const,
     },
