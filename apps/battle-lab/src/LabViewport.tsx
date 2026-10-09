@@ -570,7 +570,7 @@ export function LabViewport({
       target === canvas
         ? canvas
         : target instanceof Element
-          ? target.closest<HTMLElement>(".ro-layer .ro-unit")
+          ? target.closest<HTMLElement>(".ro-layer .ro-unit, .hud")
           : null;
     // The pose input and scripts ask for, and the pose drawn for it: the
     // same one unless camera clearance holds it off an obstacle.
@@ -1028,6 +1028,9 @@ export function LabViewport({
         };
         const onDown = (e: PointerEvent) => {
           if (!inputEnabledRef.current) return;
+          // Let the HUD own its native click sequence. Capturing a HUD press
+          // on the canvas drops the button's pointerup and prevents clicks.
+          if (e.target instanceof Element && e.target.closest(".hud")) return;
           if (!interactionSurface(e.target)) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
           if (e.button === 0) {
@@ -1052,9 +1055,11 @@ export function LabViewport({
           const target = e.target;
           const over =
             target === canvas ||
-            (target instanceof Element && target.closest(".ro-layer .ro-unit"));
+            (target instanceof Element && target.closest(".ro-layer .ro-unit, .hud"));
           pointer = over || rightPress || press || orbit ? { x: e.clientX, y: e.clientY } : null;
           if (!pointer || orbit) showCursor(null, null, null);
+          else if (target instanceof Element && target.closest(".hud"))
+            cursor.current?.place(pointer, "default");
           else cursor.current?.move(pointer);
           if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > CLICK_SLOP_PX) {
             setBox({ x0: press.x, y0: press.y, x1: e.clientX, y1: e.clientY });

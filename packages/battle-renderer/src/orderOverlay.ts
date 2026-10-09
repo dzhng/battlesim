@@ -186,7 +186,7 @@ const markerHead = (r: number) => Math.min(r * MARKER_HEAD, MARKER_HEAD_MAX_M);
 const QUEUED_R = 2.8;
 const BLOCKED_R = 4.5;
 /** A travel chevron: length along the travel and spread across it. */
-const CHEVRON_M = [0.9, 1.7] as const;
+const CHEVRON_M: readonly [number, number] = [0.9, 1.7];
 
 type P2 = readonly [number, number];
 
@@ -415,8 +415,9 @@ function marchChevron(
   bearing: number,
   color: Rgba,
   normal: readonly [number, number, number],
+  size = CHEVRON_M,
 ) {
-  const [length, spread] = CHEVRON_M;
+  const [length, spread] = size;
   const width = pen.line;
   const at = (p: P2) => [p[0], p[1], pen.z(p[0], p[1])] as const;
   const fx = Math.cos(bearing),
@@ -583,18 +584,34 @@ export function buildDeploymentMarker(
   facing: number,
   z: SurfaceHeight,
   style: OrderStyle,
+  markerColor: readonly [number, number, number],
   { stroke }: OrderOverlayOptions,
 ): Mesh {
   const mesh = new MeshBuilder();
   const pen = orderPen(z, style, stroke);
-  const color = glowing(style.color, style.glow.selected);
+  const color = glowing([...markerColor, 1], style.glow.selected);
   const { cycles_per_s, amplitude } = style.march;
   for (let i = 0; i < 3; i++) {
-    marchChevron(mesh, pen, along(destination, facing + Math.PI, 1.2 + i * 1.1), facing, color, [
-      i * 0.25,
-      cycles_per_s,
-      amplitude,
-    ]);
+    // Three separate chevrons span the entry edge, matching the compact
+    // battlefield cue; the center one carries the pulse.
+    const tip = along(along(destination, facing, 4), facing + Math.PI / 2, (i - 1) * 42);
+    const chevronColor = color;
+    const tail = along(tip, facing + Math.PI, 24);
+    const left = along(tail, facing + Math.PI / 2, 18);
+    const right = along(tail, facing - Math.PI / 2, 18);
+    const width = 8;
+    groundStrip(mesh, left, tip, width, chevronColor, { z: pen.z, lift: 0.2 });
+    groundStrip(mesh, right, tip, width, chevronColor, { z: pen.z, lift: 0.2 });
+    if (i === 1)
+      marchChevron(
+        mesh,
+        pen,
+        tip,
+        facing,
+        color,
+        [0.5, cycles_per_s, Math.max(amplitude, 0.95)],
+        [24, 36],
+      );
   }
   return mesh.build();
 }

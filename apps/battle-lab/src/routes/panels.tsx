@@ -246,13 +246,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
             />
           }
           reinforcements={
-            <PurchasePicker
-              cards={[]}
-              faction="us"
-              match={skirmish}
-              onChoose={() => {}}
-              onReady={() => setAction("Ready for battle")}
-            />
+            <PurchasePicker cards={[]} faction="us" match={skirmish} onChoose={() => {}} />
           }
         />
       </div>

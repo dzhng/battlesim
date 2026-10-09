@@ -32,8 +32,8 @@ export interface PanelRules {
  *  - `lasting`: it describes the unit steadily (set up, in a building, its
  *    stock); a panel lists its lasting rows first, then the temporary ones
  *    (something happening now or passing).
- *  - `tone`: `warn` draws it in the warning colour; `pinned`, hotter still,
- *    in the pinned colour. */
+ *  - `tone`: warning states, including pinned, draw in the shared warning
+ *    colour. */
 export const STATE_ROWS = {
   deployed: { icon: "deployed", word: () => "DEPLOYED", lasting: true },
   in_building: { icon: "building", word: () => "IN BUILDING", lasting: true },
@@ -46,7 +46,7 @@ export const STATE_ROWS = {
   entering: { icon: "building", word: () => "ENTERING" },
   leaving: { icon: "building", word: () => "LEAVING" },
   suppressed: { icon: "suppressed", word: () => "SUPPRESSED", tone: "warn" },
-  pinned: { icon: "pinned", word: () => "PINNED", tone: "pinned" },
+  pinned: { icon: "pinned", word: () => "PINNED", tone: "warn" },
   waiting: { icon: "waiting", word: () => "WAITING" },
   route_blocked: { icon: "route_blocked", word: () => "ROUTE BLOCKED", tone: "warn" },
   supplying: { icon: "resupply", word: () => "SUPPLYING" },
@@ -63,8 +63,8 @@ interface StateRowKind {
 }
 
 type StateKind = keyof typeof STATE_ROWS;
-/** A warning row's colour role: the HUD's `warn`, or its hotter `pinned`. */
-type StateTone = "warn" | "pinned";
+/** A warning row's shared HUD colour role. */
+type StateTone = "warn";
 
 /** One state row: an icon and a short word, with its timer or amount. */
 export interface StateRow {

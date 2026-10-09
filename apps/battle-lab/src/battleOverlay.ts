@@ -12,6 +12,7 @@
 // it holds. Labs compose the layers their fixture exercises, the rest among
 // them as diagnostics.
 import { gameHud } from "@web/battle/present/hudTheme";
+import game from "@fixtures/game.json";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { buildContactGlyphs } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
@@ -233,6 +234,7 @@ export function buildBattleOverlay(
         scenario.deployment.facing,
         z,
         gameOrderStyle,
+        gameHud.accent,
         { stroke: gameStroke(metresPerPx) },
       )
     : null;
@@ -254,12 +256,15 @@ export function buildBattleOverlay(
       objective.center,
       objective.radiusM,
       line,
-      objective.owner === "red"
-        ? [...gameHud.enemy, 1]
-        : objective.owner === "blue"
-          ? gameOrderStyle.selected
-          : gameZone,
-      objective.owner !== null && !objective.contested,
+      objective.contested && Math.floor(o.tick / game.tick_hz) % 2 === 1
+        ? [...gameHud.warn, 1]
+        : objective.owner === "red"
+          ? [...gameHud.enemy, 1]
+          : objective.owner === "blue"
+            ? gameOrderStyle.selected
+            : gameZone,
+      // Contested capture areas stay a solid ring while their colour flashes.
+      objective.contested || objective.owner !== null,
       z,
     ),
   }));
@@ -270,6 +275,12 @@ export function buildBattleOverlay(
     contactMarks,
     supply,
     orders,
-    ...(deployment ? [{ paintedMarching: deployment }] : []),
+    ...(deployment
+      ? [
+          {
+            paintedMarching: deployment,
+          },
+        ]
+      : []),
   ]);
 }

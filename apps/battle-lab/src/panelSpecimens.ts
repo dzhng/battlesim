@@ -180,6 +180,46 @@ export function panelSpecimens(catalog: SessionCatalog, rules: PanelRules): Spec
       ]),
     ),
   );
+  const alertPanel = panelOf(
+    specimenUnit(catalog, "test_rifle", { concealed: true, suppression: "pinned" }, [
+      {},
+      { ammo: [0], loaded: null, reason: "out_of_ammo" },
+    ]),
+  );
+  add(key, "hidden + pinned + out of ammo", alertPanel);
+  add(key, "hidden + pinned + out of ammo, compact", alertPanel, "own", {
+    zoom: "compressed",
+  });
+  add(
+    key,
+    "compact: deployment and reload",
+    panelOf(
+      specimenUnit(catalog, "test_supply", { deployment: { progress: 0.35, target: "deployed" } }, [
+        { loaded: null, reload: 0.8, reloading: 0, reason: "reloading" },
+      ]),
+    ),
+    "own",
+    { zoom: "compressed" },
+  );
+  add(
+    key,
+    "compact: aiming and reload",
+    panelOf(
+      specimenUnit(catalog, "test_rifle", {}, [
+        {},
+        {
+          target: TARGET,
+          aim: 0.45,
+          loaded: null,
+          reload: 0.85,
+          reloading: 0,
+          reason: "reloading",
+        },
+      ]),
+    ),
+    "own",
+    { zoom: "compressed" },
+  );
 
   // Synthetic equipment configurations, through the production row builder.
   // Keep them here rather than retuning a playable unit just for a UI specimen.

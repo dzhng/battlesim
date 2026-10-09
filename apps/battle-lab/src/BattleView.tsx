@@ -86,6 +86,10 @@ export function BattleView({
   /** The authoritative blue entry, used for the deployment cue. */
   spawn?: [number, number] | null;
 }) {
+  useEffect(() => {
+    document.body.classList.add("battle-surface");
+    return () => document.body.classList.remove("battle-surface");
+  }, []);
   const parsed = useMemo(() => {
     const s = JSON.parse(scenario) as {
       map: { size: [number, number] };
@@ -284,6 +288,18 @@ export function BattleView({
             </div>
           )}
         </header>
+        {input && observation?.skirmish?.phase === "preparation" && session.purchase && (
+          <div className="hud-ready-layer" data-occludes-readouts>
+            <button
+              type="button"
+              className="hud-menu-choice hud-purchase-ready"
+              disabled={observation.skirmish.ready[0]}
+              onClick={session.purchase.ready}
+            >
+              {observation.skirmish.ready[0] ? "READY" : "START BATTLE"}
+            </button>
+          </div>
+        )}
         <MenuButton onOpen={() => pause.show(true)} />
         <ArmyDeck
           own={observation?.own ?? []}
@@ -301,7 +317,6 @@ export function BattleView({
                   faction={session.purchase.faction}
                   match={observation.skirmish}
                   onChoose={session.purchase.choose}
-                  onReady={session.purchase.ready}
                 />
               </>
             ) : undefined

@@ -55,6 +55,14 @@ test("the opening framing is drawn as authored", () => {
   expect(rig.resolve(createClearanceState(), opening, 0, obstacles)).toBe(opening);
 });
 
+test("the battle opening keeps the blue deployment edge in frame", () => {
+  const start: [number, number] = [0, 500];
+  const camera = gameCamera.fromStart(start, [1000, 1000]);
+  expect(camera.target[0]).toBeGreaterThan(start[0]);
+  expect(camera.target[0]).toBeLessThan(500);
+  expect(camera.distance).toBeGreaterThan(gameCamera.opening().distance);
+});
+
 test(
   "the city benchmark tour is drawn as flown over the generated buildings",
   () => {
