@@ -30,8 +30,13 @@ export function curvePitch(distance) {
   return curve.at(-1)[1];
 }
 
-const { view } = (await nodeCatalogSet("test")).units;
+const testCatalog = await nodeCatalogSet("test");
+const { view } = testCatalog.units;
 const byId = new Map(view.units.map((t) => [t.id, t]));
+
+/** The weapon rows as the catalog resolves them (`extends` followed), by
+ *  the names mounts give them: what panels read a row's label from. */
+export const weapons = testCatalog.weapons;
 
 /** The resolved type `id`. */
 export const unitType = (id) => {

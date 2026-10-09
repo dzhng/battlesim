@@ -4,7 +4,7 @@
 import { decode, pixel, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, snapshot, until, openBattle } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
-import { hull, game } from "./_units.mjs";
+import { hull, game, unitType, weapons } from "./_units.mjs";
 
 /** The rings on screen, read back from the DOM. */
 const rings = (page) =>
@@ -192,10 +192,16 @@ export async function run(ctx) {
   const drawn = await rings(page);
   const tank = drawn.find((d) => d.unit === 0);
   const rifle = drawn.find((d) => d.unit === 2);
+  // A mount of several kinds names each by its catalog label, then its count.
+  const cannonKinds = new RegExp(
+    `^${unitType(o.own.find((u) => u.id === 0).kind)
+      .mounts[0].weapons.map((w) => `${RegExp.escape(weapons[w].name.toUpperCase())} \\d+`)
+      .join(" · ")}$`,
+  );
   ctx.check(
     "the cannon's AP and HE are one weapon row, and unlimited reads ∞",
     tank.mounts.length === 2 &&
-      /^AP \d+ · HE \d+$/.test(tank.mounts[0].text) &&
+      cannonKinds.test(tank.mounts[0].text) &&
       rifle.mounts[0].text === "∞",
     JSON.stringify({
       tank: tank.mounts.map((m) => m.text),
