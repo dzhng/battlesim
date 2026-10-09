@@ -467,9 +467,9 @@ fn preparation_timeout_starts_combat_without_granting_preparation_income() {
     );
 }
 
-#[test]
-fn the_basic_opponent_buys_from_zero_through_recorded_commands_and_replays_every_tick() {
-    // Red's deck: squads, a launcher team and a truck.
+/// A match against the basic opponent on red, whose deck holds squads, a
+/// launcher team and a truck.
+fn against_the_basic_opponent() -> contract::scenario::ScenarioDefinition {
     let mut rules = deck();
     for (id, category) in [
         ("test_rifle", "inf"),
@@ -483,6 +483,30 @@ fn the_basic_opponent_buys_from_zero_through_recorded_commands_and_replays_every
     }
     let mut setup = match_on(rules);
     setup.skirmish.as_mut().unwrap().ai_side = Some(Side::Red);
+    setup
+}
+
+#[test]
+fn the_player_readying_starts_the_battle_against_the_basic_opponent_at_once() {
+    let mut battle = Battle::new(&against_the_basic_opponent(), 3);
+    battle.step();
+    assert!(battle
+        .accept(command(Side::Blue, 1, Order::Ready))
+        .error
+        .is_none());
+    battle.step();
+    battle.step();
+    let red = battle.observe(Side::Red).skirmish.clone().unwrap();
+    assert_eq!(red.phase, contract::skirmish::Phase::Active);
+    assert!(
+        red.pending.len() > 1,
+        "the opponent bought its whole opening before readying"
+    );
+}
+
+#[test]
+fn the_basic_opponent_buys_from_zero_through_recorded_commands_and_replays_every_tick() {
+    let setup = against_the_basic_opponent();
     let mut live = Battle::new(&setup, 3);
     let mut digests = Vec::new();
     for _ in 0..45 * live.rules().tick_hz {
