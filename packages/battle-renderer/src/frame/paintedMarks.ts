@@ -196,4 +196,3 @@ export function createPaintedMarks(root: Root, registry: GpuRegistry) {
     }),
   };
 }
-export type PaintedMarks = ReturnType<typeof createPaintedMarks>;

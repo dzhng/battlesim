@@ -1086,4 +1086,3 @@ export async function createWorldPass(
     },
   };
 }
-export type WorldPass = Awaited<ReturnType<typeof createWorldPass>>;

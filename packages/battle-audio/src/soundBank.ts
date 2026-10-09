@@ -1,5 +1,4 @@
 import { clipCadence, type SoundCatalog, type SoundRecipe } from "./catalog";
-import { gameSounds } from "./shippedSounds";
 import { seamless, synthesize } from "./synth";
 import { sourceNormalization } from "./loudness";
 
@@ -16,12 +15,12 @@ export class SoundBank {
 
   constructor(
     private readonly context: BaseAudioContext,
-    private readonly catalog: SoundCatalog = gameSounds,
+    private readonly catalog: SoundCatalog,
     private readonly fetcher: typeof fetch = fetch,
   ) {}
 
-  /** Prepare named recipes, or the complete library, with a task between recipes. */
-  async prepare(names: readonly string[] = Object.keys(this.catalog.sounds), signal?: AbortSignal) {
+  /** Prepare named recipes, with a task between recipes. */
+  async prepare(names: readonly string[], signal?: AbortSignal) {
     const admitted = this.signal(signal);
     for (const name of names) {
       admitted.throwIfAborted();

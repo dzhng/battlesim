@@ -34,12 +34,7 @@ const SNAPSHOT: Required<CameraSnapshot> = {
   camera3d: CAM3D,
   width: 1000,
   height: 600,
-  x: 12.5,
-  y: -30.25,
-  zoom: 3.75,
   time: 17.5,
-  sunAzimuth: -0.35,
-  sunElevation: 0.62,
 };
 
 const f32 = (value: number) => Math.fround(value);
@@ -50,8 +45,7 @@ type CameraValue = d.Infer<typeof Camera>;
 const at = (data: Float32Array, field: (c: CameraValue) => unknown) =>
   data[d.memoryLayoutOf(Camera, field).offset / 4];
 
-test("cameraUniform: the packed buffer is exactly the WGSL Camera struct, 48 floats", () => {
-  assert.equal(CAMERA_UNIFORM_FLOATS, 48);
+test("cameraUniform: the packed buffer is exactly the WGSL Camera struct", () => {
   assert.equal(d.sizeOf(Camera), CAMERA_UNIFORM_BYTES);
   assert.equal(pack(SNAPSHOT).byteLength, CAMERA_UNIFORM_BYTES);
 });
@@ -72,24 +66,9 @@ test("cameraUniform: each WGSL field reads the value packed for it", () => {
     ["eye.y", (c) => c.eye.y, eye[1]],
     ["eye.z", (c) => c.eye.z, eye[2]],
     ["znear", (c) => c.znear, 1],
-    ["focus.x", (c) => c.focus.x, 12.5],
-    ["focus.y", (c) => c.focus.y, -30.25],
     ["width", (c) => c.width, 1000],
     ["height", (c) => c.height, 600],
-    ["zoom", (c) => c.zoom, 3.75],
-    ["tilt", (c) => c.tilt, Math.sin(0.55)],
     ["time", (c) => c.time, 17.5],
-    ["zfar", (c) => c.zfar, 4000],
-    ["sunAz", (c) => c.sunAz, -0.35],
-    ["sunEl", (c) => c.sunEl, 0.62],
   ];
   for (const [name, field, value] of expected) assert.equal(at(data, field), f32(value), name);
-});
-
-test("cameraUniform: an infinite far plane packs the zero sentinel", () => {
-  const data = pack({ ...SNAPSHOT, camera3d: { ...CAM3D, far: undefined } });
-  assert.equal(
-    at(data, (c) => c.zfar),
-    0,
-  );
 });

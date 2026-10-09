@@ -44,7 +44,6 @@ import { pick } from "@packages/renderer-core/src/kindTable";
 import { validateAudio, type AudioPresentation, type Bus } from "./audioPresentation";
 import { firingCadence, resolveEffect, resolveShot, type SoundCatalog } from "./catalog";
 import { GLANCE } from "./contacts";
-import { gameSounds } from "./shippedSounds";
 
 type P3 = readonly [number, number, number] | readonly number[];
 
@@ -165,7 +164,7 @@ export interface SoundStats {
 export interface SoundFrameOptions {
   tickHz: number;
   presentation: AudioPresentation;
-  catalog?: SoundCatalog;
+  catalog: SoundCatalog;
   /** How long each smoke kind burns and smoulders (`presentation.effects.smoke`). */
   smokeTimes: Record<string, { burn_s: number; smoulder_s: number }>;
   /** When a cook-off's fireballs go and its turret lands (`presentation.effects.cook_off`). */
@@ -288,7 +287,7 @@ export class SoundFrame {
     private readonly sink: VoiceSink,
   ) {
     this.p = validateAudio(options.presentation);
-    this.catalog = options.catalog ?? gameSounds;
+    this.catalog = options.catalog;
     this.dt = 1 / options.tickHz;
     this.launches = new LaunchTracker();
     this.smokeTimes = options.smokeTimes;

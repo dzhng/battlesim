@@ -154,7 +154,6 @@ export class AppearanceLibrary {
         async (name) => [name, await this.appearance(source, name, skeletons)] as const,
       ),
     );
-    if (!catalog.sides) throw new Error("appearance catalog has no side tints; re-bake");
     const library = catalog.templates && (await this.templateLibrary(source, catalog.templates));
     return this.install(source, catalog.sides, skeletons, new Map(appearances), library);
   }
@@ -189,7 +188,7 @@ export class AppearanceLibrary {
     );
     // The catalog was loaded again meanwhile: these are the new one's to answer for.
     if (this.source !== source) return this.withUnits(wearing);
-    source.wearing = new Set([...(source.wearing ?? []), ...wearing]);
+    source.wearing = new Set([...source.wearing, ...wearing]);
     const { appearances, templates } = this.current;
     return this.install(
       source,

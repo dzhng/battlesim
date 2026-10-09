@@ -12,7 +12,6 @@
 // The header's `views` lists [type, byteOffset, length] per array. Encoding is
 // deterministic, so the same content always has the same hash.
 
-import { sha256Hex } from "./glb.ts";
 import { assertMaterial } from "./material.ts";
 import {
   TIER_COUNT,
@@ -99,12 +98,6 @@ export function encodeContainer(magic: number, version: number, value: object): 
   return out;
 }
 
-export function decodeBundle(bytes: Uint8Array): Bundle {
-  const bundle = decodeContainer(bytes, MAGIC, FORMAT_VERSION, "bundle") as Bundle;
-  assertShape(bundle);
-  return bundle;
-}
-
 /** A container's content, its typed arrays copied out of `bytes`. `what`
  *  names the file's kind in a refusal. */
 export function decodeContainer(
@@ -175,10 +168,6 @@ export function joinTextures(content: Uint8Array, textures: readonly Texture[]):
   if (bundle.kind !== "clips") bundle.textures = [...textures];
   assertShape(bundle);
   return bundle;
-}
-
-export async function bundleHash(bytes: Uint8Array): Promise<string> {
-  return sha256Hex(bytes);
 }
 
 function assertMesh(mesh: MeshData, skinned: boolean, where: string) {

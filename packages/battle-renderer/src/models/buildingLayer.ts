@@ -434,4 +434,3 @@ export function createBuildingLayer(
     },
   };
 }
-export type BuildingLayer = ReturnType<typeof createBuildingLayer>;

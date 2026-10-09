@@ -155,22 +155,6 @@ export class MeshBuilder {
     return this;
   }
 
-  /** Upward wedge on a +X face: a facing cue whose apex is at `tipX`. */
-  wedge(baseX: number, tipX: number, hy: number, z0: number, z1: number, color: Rgba) {
-    const a: P3 = [baseX, -hy, z0],
-      b: P3 = [baseX, hy, z0],
-      c: P3 = [baseX, hy, z1],
-      d: P3 = [baseX, -hy, z1],
-      t0: P3 = [tipX, 0, z0],
-      t1: P3 = [tipX, 0, z1];
-    return this.triangle(a, t0, t1, color)
-      .triangle(a, t1, d, color)
-      .triangle(t0, b, c, color)
-      .triangle(t0, c, t1, color)
-      .triangle(d, t1, c, color)
-      .triangle(a, b, t0, color);
-  }
-
   build(): Mesh {
     return Float32Array.from(this.out);
   }

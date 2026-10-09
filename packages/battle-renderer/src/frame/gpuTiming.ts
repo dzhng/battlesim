@@ -95,4 +95,3 @@ export function createFrameTimer(device: GPUDevice, registry: GpuRegistry) {
     },
   };
 }
-export type FrameTimer = NonNullable<ReturnType<typeof createFrameTimer>>;

@@ -12,8 +12,6 @@ import {
   CAMERA_UNIFORM_FLOATS,
   type CameraSnapshot,
 } from "@packages/renderer-core/src/cameraUniform";
-export type FrameCameraSnapshot = CameraSnapshot &
-  Required<Pick<CameraSnapshot, "sunAzimuth" | "sunElevation">>;
 
 /** One frame's camera publication. The arrays are module scratch, rewritten by
  *  the next `frameCamera` call: consume them before drawing the next frame. */
@@ -44,7 +42,7 @@ const _frameCamera_ray = createWorldRay();
 
 /** Shared camera publication and perspective sky rays; dimensions come from the physical target. */
 export function frameCamera(
-  snapshot: FrameCameraSnapshot,
+  snapshot: CameraSnapshot,
   width: number,
   height: number,
 ): FrameCameraState {

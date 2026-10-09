@@ -8,16 +8,16 @@ import { CSM_CASCADES } from "../light/shadowPolicy";
 /** One cascade's receiver record. Floats: matrix (16), then depth bias, normal
  *  bias, PCF radius, reserved, then interval start, end, reserved, reserved. */
 export const SUN_CASCADE_RECORD_FLOATS = 24;
-/** The full receiver block: one record per cascade plus the fit/mode control vector. */
+/** The full receiver block: one record per cascade plus the fit's control vector. */
 export const SUN_SHADOW_BLOCK_FLOATS = SUN_CASCADE_RECORD_FLOATS * CSM_CASCADES + 4;
-/** Float offset of the control vector: capped far, active count, reserved x2. */
+/** Float offset of the control vector: capped far, reserved, split near, reserved. */
 export const SUN_SHADOW_CONTROL_OFFSET = SUN_CASCADE_RECORD_FLOATS * CSM_CASCADES;
 
 /** Pinned Three r185 PCFShadowFilter: five Vogel disk taps with per-pixel IGN.
  * Shadow projection/fit and bias remain inputs, not a second lighting policy.
  * The radius is in TEXELS, so a given radius is equal texel softness — not
  * equal world blur across cascade extents or between a 1024 and a 2048 map.
- * The shared policy supplies the radius for the selected mode and preset. */
+ * The cascade fit supplies each cascade's radius. */
 export function shadowPcfWgsl(): string {
   return `(depth:texture_depth_2d_array, compare:sampler_comparison, layer:i32,uv:vec2f, z:f32, pixel:vec2f, radius:f32)->f32 {
   let phi=fract(52.9829189*fract(dot(pixel,vec2f(0.06711056,0.00583715))))*6.28318530718;
@@ -35,10 +35,9 @@ export function shadowPcfWgsl(): string {
 
 /** Source reverse-Z coordinate/bias contract; world normal is the material's
  * resolved shading normal. Pixel coordinates are physical fragment coordinates.
- * The `z>=0` half of the bound is a NATIVE correction the source keeps only on
- * its single tier: without it a receiver past a fitted map's far plane can fail the
- * greater-equal comparison against cleared depth and appear shadowed. Native
- * retains the lower bound in both modes. */
+ * The `z>=0` half of the bound keeps a receiver past a cascade's far plane from
+ * failing the greater-equal comparison against cleared depth and appearing
+ * shadowed. */
 export function shadowVisibilityWgsl(): string {
   return `(depth:texture_depth_2d_array, compare:sampler_comparison, layer:i32,matrix:mat4x4f, settings:vec4f, world:vec3f, normal:vec3f, pixel:vec2f)->f32 {
   let clip=matrix*vec4f(world+normal*settings.y,1);
@@ -51,26 +50,18 @@ export function shadowVisibilityWgsl(): string {
 }`;
 }
 
-/** `sampleSunShadow(world, normal, pixel)` for one receiver mode.
+/** `sampleSunShadow(world, normal, pixel)`: the source's cascade fade.
+ *  Receiver depth `(-viewZ - n) / (f - n)`, each interval widened by a quarter
+ *  of its nearest edge squared, the first cascade unfaded on its near half and
+ *  the last fading to unshadowed at the capped far. Across the internal overlap
+ *  the two weights sum to one.
  *
- *  `single` samples its sole map directly with that map's own fitted bias and
- *  depth bounds — no blend, no second record read. `csm` reproduces the source's
- *  cascade fade: receiver depth `(-viewZ - n) / (f - n)`, each interval widened
- *  by a quarter of its nearest edge squared, the first cascade unfaded on its
- *  near half and the last fading to unshadowed at the capped far. Across the
- *  internal overlap the two weights sum to one.
- *
- *  Requires the environment module's `environment.worldToView` and the world
- *  camera's `cam.znear` — the same admitted frame that produced these fits, not
- *  a second view row or near-plane writer. */
-export function sunShadowSampleWgsl(mode: "single" | "csm"): string {
+ *  Requires the environment module's `environment.worldToView`: the same
+ *  admitted frame that produced these fits, not a second view row. */
+export function sunShadowSampleWgsl(): string {
   const record = (i: number) => `sunShadow.cascades[${i}]`;
   const sample = (i: number) =>
     `shadowVisibility(sunDepth,sunCompare,${i},${record(i)}.matrix,${record(i)}.bias,world,normal,pixel)`;
-  if (mode === "single")
-    return `fn sampleSunShadow(world:vec3f,normal:vec3f,pixel:vec2f)->f32 {
-  return ${sample(0)};
-}`;
   const slice = (i: number, last: boolean) => `
   {
     let interval=${record(i)}.interval;
