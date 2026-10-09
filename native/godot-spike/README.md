@@ -20,3 +20,16 @@ The interactive run writes `user://godot-spike-report.json` and prints the JSON
 summary. The spike intentionally keeps its report separate from the browser
 benchmark until the workload and binding seams are matched.
 
+
+## Authored menu-reel camera probe
+
+`reel.tscn` reads the browser-owned `fixtures/menu-backdrop.json` directly (or
+ the path in `GODOT_REEL_SOURCE`) and plays every scene and shot with the same
+wall-clock camera interpolation. It is a seam check, not a renderer result:
+the world is still the synthetic cube field, and its report sets
+`comparison_ready` to `false` until Godot consumes a real
+`battle-presentation-capture/v1` publication and the authored map assets.
+
+For a short lifecycle check, run with `GODOT_REEL_TIME_SCALE=0.01` and write
+the report outside `user://` with
+`GODOT_REEL_REPORT=throwaway/godot-reel.json`.
