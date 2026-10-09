@@ -21,6 +21,7 @@
 import { battleCursor } from "./_cursorOrders.mjs";
 import { appJourney, armyJourney } from "./_appJourney.mjs";
 import {
+  hideHud,
   lab,
   obs,
   advance,
@@ -545,9 +546,7 @@ async function treeTour(ctx) {
   );
   // The world only: the HUD's full-width bars cover the frame's
   // top and bottom edges.
-  const hud = await page.addStyleTag({
-    content: "[data-testid=battle-panel], .ro-layer { display: none !important; }",
-  });
+  const hud = await hideHud(page);
   const top = decode(await snapshot(ctx, page, "trees-top-check-1920x1080.png"));
   await hud.evaluate((e) => e.remove());
   const [x0, y0] = streetMap.forests[0].shape.ring[0];

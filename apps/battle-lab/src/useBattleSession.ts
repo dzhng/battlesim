@@ -843,7 +843,7 @@ export function useBattleSession({
         const ground = groundUnderRay(world.view, pick.ray);
         if (ground) {
           // The units the last frame drew, at their drawn poses.
-          for (const u of (drawnObservation.current ?? observation)?.own ?? []) {
+          for (const u of drawnObservation.current?.own ?? []) {
             if (units.hull(u.kind)) continue;
             const pose = orderView(units, u, true);
             const drawnPose = drawnPoses.current.find((p) => p.id === u.id);
@@ -953,8 +953,9 @@ export function useBattleSession({
   }
   const onCursor = (pointer: ViewportPointer, camera: Camera3DParams): CursorAction | null => {
     // The battle as the last frame drew it: the picks and drawn positions
-    // below are that frame's, so its units and tick are too.
-    const shown = drawnObservation.current ?? observation;
+    // below are that frame's, so its units and tick are too. Nothing drawn
+    // yet, nothing to point at.
+    const shown = drawnObservation.current;
     const active =
       pointer.position &&
       pointer.ray &&

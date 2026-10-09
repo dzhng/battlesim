@@ -15,7 +15,7 @@
 // ROUNDS_FRAMES=<label> reuses that earlier set's close-view sides and sets
 // its shots beside this run's on the sheet: a before/after of a look change.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { lab, advance, openBattle, aim } from "./_lab.mjs";
+import { lab, advance, openBattle, aim, hideHud } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
 import { game, curvePitch } from "./_units.mjs";
 
@@ -178,9 +178,7 @@ async function frameRound(page, key, r, far = CAMERA.default.distance) {
 /** Open `url` paused at its start, the HUD hidden. */
 async function openPaused(ctx, url) {
   const page = await openBattle(ctx, { viewport: VIEWPORT, url, grass: true });
-  await page.addStyleTag({
-    content: ".ro-unit, [data-testid=battle-panel] { display: none !important; }",
-  });
+  await hideHud(page);
   return page;
 }
 

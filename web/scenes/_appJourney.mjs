@@ -275,6 +275,8 @@ export async function armyJourney(ctx) {
       (await page.locator('.hud-army-card[aria-pressed="true"]').count()) === 1,
   );
   const armyDigest = await page.evaluate(() => window.__lab.route.digest());
+  // The street battle's digest at tick 90. It moves only with the street map
+  // (here, its three corner shops), the rules or what the digest folds.
   ctx.check(
     "matched army capture preserves the original battle digest",
     armyDigest === "d1d3939064ebf9d0",

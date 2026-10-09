@@ -99,7 +99,7 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
     ["?faction=us&seed=1&battle=-1", /^battle /],
     ["?faction=us&seed=1&region=atlantis", /^region /],
     ["?faction=us&play=1&region=", /^region /],
-    // Parameters the battle no longer reads, or never did.
+    // Parameters the battle does not read.
     ["?faction=us&seed=1&recipe=assault", /^recipe /],
     ["?faction=us&seed=1&encounter=1", /^encounter /],
     ["?faction=us&map=street", /^map /],

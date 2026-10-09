@@ -105,40 +105,26 @@ export class TickInterpolator {
   frame(now: number): FrameSample | null {
     const observation = this.latest;
     if (!observation) return null;
+    const t = this.fraction(now);
+    const own = new Map((this.previous?.own ?? []).map((u) => [u.id, u]));
+    const identified = new Map((this.previous?.identified ?? []).map((u) => [u.id, u]));
     return {
       time: this.time(now)!,
       observation,
-      own: this.sample(now),
-      identified: this.sampleIdentified(now),
+      // Own units also blend their deployment progress.
+      own: observation.own.map((u) => {
+        const p = own.get(u.id);
+        const deployment = u.deployment?.progress ?? null;
+        return blendBody(
+          p,
+          u,
+          t,
+          deployment !== null && p?.deployment
+            ? lerp(p.deployment.progress, deployment, t)
+            : deployment,
+        );
+      }),
+      identified: observation.identified.map((u) => blendBody(identified.get(u.id), u, t, null)),
     };
-  }
-
-  /** Own units' poses at `now`: the previous tick blended toward the latest one. */
-  sample(now: number): Pose[] {
-    const latest = this.latest;
-    if (!latest) return [];
-    const t = this.fraction(now);
-    const before = new Map((this.previous?.own ?? []).map((u) => [u.id, u]));
-    return latest.own.map((u) => {
-      const p = before.get(u.id);
-      const deployment = u.deployment?.progress ?? null;
-      return blendBody(
-        p,
-        u,
-        t,
-        deployment !== null && p?.deployment
-          ? lerp(p.deployment.progress, deployment, t)
-          : deployment,
-      );
-    });
-  }
-
-  /** Identified enemies' poses at `now`, blended the same way. */
-  sampleIdentified(now: number): Pose[] {
-    const latest = this.latest;
-    if (!latest) return [];
-    const t = this.fraction(now);
-    const before = new Map((this.previous?.identified ?? []).map((u) => [u.id, u]));
-    return latest.identified.map((u) => blendBody(before.get(u.id), u, t, null));
   }
 }
