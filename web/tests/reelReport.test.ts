@@ -1,0 +1,35 @@
+// @vitest-environment node
+import { expect, test } from "vitest";
+import { BenchmarkRecording } from "@web/battle/benchmark/recording";
+import { createReelReport } from "@apps/battle-lab/src/benchmark/reelReport";
+import type { ReelResult } from "@apps/battle-lab/src/benchmark/reelRun";
+
+const pose = { target: [0, 0] as const, distance: 40, yaw: 0, pitch: 0.2 };
+function result(map: string, started: number, intervals: number[]): ReelResult {
+  const recording = new BenchmarkRecording(1000);
+  recording.start(started);
+  let now = started;
+  for (const interval of intervals) {
+    now += interval;
+    recording.frame({ now, cpuMs: 1, camera: pose, intended: pose, phase: map });
+  }
+  recording.tick({ tick: 61, stepMs: 2, bytes: 128 });
+  return {
+    scene: { map, encounter: "fake", seed: 1, warm_s: 2, reel: { fade_s: 0, shots: [{ seconds: 1, from: pose, to: pose }] } },
+    recording, outcome: { status: "complete", reason: "done" }, startTick: 60, endTick: 61, adapter: "fake",
+  };
+}
+
+test("the reel combines measured work without counting preparation gaps or losing simulation samples", () => {
+  const report = createReelReport([result("first", 1000, [10, 20]), result("second", 100000, [30])]);
+  expect(report.samples.frames.map((f) => f.elapsedMs)).toEqual([10, 30, 60]);
+  expect(report.frameRate?.average).toBe(50);
+  expect(report.recordedMs).toBe(60);
+  expect(report.ticks).toMatchObject({ count: 2, stepMs: { mean: 2 }, publicationBytes: { mean: 128 } });
+});
+
+test("a preparation failure stays failed in the exported report even before a scene can start", () => {
+  const report = createReelReport([], { status: "failed", reason: "Map download failed" });
+  expect(report.outcome).toEqual({ status: "failed", reason: "Map download failed" });
+  expect(report.frameRate).toBeNull();
+});

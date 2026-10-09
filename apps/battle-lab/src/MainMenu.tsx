@@ -302,7 +302,20 @@ export function MainMenu() {
       <PageView key={page} page={page} back={back}>
         {page === "skirmish" && <NewBattle asked={asked} />}
         {page === "replay" && <ReplayPage saved={savedReplay.file} />}
-        {page === "settings" && <SoundControls />}
+        {page === "settings" && (
+          <>
+            <SoundControls />
+            <nav aria-label="Graphics">
+              <ul>
+                <li>
+                  <Link className="menu-card" to="/graphics-test">
+                    <span className="menu-card-label">Graphics test</span>
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+          </>
+        )}
         {page === "developer" && <Entries label="Developer" entries={DEVELOPER} />}
       </PageView>
     );

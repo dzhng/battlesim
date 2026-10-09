@@ -1,11 +1,13 @@
 # Native rendering and Godot evaluation
 
-**Status:** slice 01 in progress; browser frame-rate contract landed, menu workload and native probes remain.
+**Status:** implementation in progress; browser route is unverified and native matched rendering is unbuilt.
 **Updated:** 2026-10-09.
 
 ## Next Agent Prompt
 
-The first pass added the shared displayed-frame rate fields and tests. Finish slice 01 by freezing the menu-reel manifest and wiring Settings to the full reel. Slice 02 can now use the verified Godot 4.7.2 headless binary in `throwaway/tools/godot-4.7.2` plus the offline native probe; keep the existing synthetic `/benchmark` workload unchanged. Update this handoff, the choices ledger and the owning slice before ending each pass.
+Finish slice 01's browser report and lifecycle, then freeze canonical presentation playback before comparing engines. The route exists but lacks a verified full run, complete workload identity, capture/export and visual gates. In parallel, finish slice 02's same-input parity and measured GDExtension/IPC comparison. Cubes and headless smoke are not rendering-performance evidence. Keep `/benchmark` unchanged.
+
+Evidence: focused recording/router/reel tests and TypeScript passed in the previous pass; these prove only their narrow contracts. Native replay smoke passed; cross-host authority and transfer comparison remain open. No browser–Godot performance verdict exists.
 
 ## Goal
 
@@ -61,8 +63,8 @@ External measurements are context only; the frozen Mac runs are the evidence.
 ## Global TODO
 
 - [~] Add displayed-frame rate summary fields and tests — slice 01 (landed).
-- [~] Freeze menu-reel manifest, capture schema and browser control — slice 01 (manifest landed).
-- [ ] Add Settings graphics test and report chart — slice 01.
+- [ ] Freeze complete menu-reel identity, canonical capture and browser control — slice 01.
+- [~] Add Settings graphics test and report chart — slice 01 (route exists; lifecycle, report identity and visual verification remain).
 - [~] Verify offline native seam and Godot headless toolchain — slice 02 (offline probe and live extension smoke load; real scenario transfer/parity remains).
 - [ ] Spike binding candidates and select a seam — slice 02.
 - [ ] Render the full menu reel in Godot — slice 03.
