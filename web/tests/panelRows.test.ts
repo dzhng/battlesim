@@ -104,7 +104,7 @@ test("a truck shows its stock, and supplying while set up with a unit in reach b
   );
 });
 
-test("suppression is the published tier's word alone: SUPPRESSED, and PINNED in its own hotter tone", () => {
+test("suppression is the published tier's word alone: SUPPRESSED and PINNED, both in the shared warning tone", () => {
   const rows = (s: SuppressionTier) =>
     ownStateRows(UNITS, unit({ suppression: s }), [], RULES).map((r) => [
       r.word,
@@ -113,7 +113,7 @@ test("suppression is the published tier's word alone: SUPPRESSED, and PINNED in 
       r.tone,
     ]);
   expect(rows("suppressed")).toEqual([["SUPPRESSED", null, null, "warn"]]);
-  expect(rows("pinned")).toEqual([["PINNED", null, null, "pinned"]]);
+  expect(rows("pinned")).toEqual([["PINNED", null, null, "warn"]]);
   expect(rows("none")).toEqual([]);
 });
 
