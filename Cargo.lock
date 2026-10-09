@@ -151,7 +151,9 @@ dependencies = [
 name = "godot-binding"
 version = "0.1.0"
 dependencies = [
+ "contract",
  "godot",
+ "serde_json",
  "sim",
 ]
 
