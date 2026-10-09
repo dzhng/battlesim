@@ -131,7 +131,8 @@ function LabPage({ path: requestedPath }: { path: string }) {
   // Player battles and replays run the game's catalog; the graphics test uses
   // the menu catalog because its reference reel is the menu's own content;
   // labs run the test set.
-  const catalog = fixture.id === "generated" ? "game" : fixture.id === "graphics-test" ? "menu" : "test";
+  const catalog =
+    fixture.id === "generated" ? "game" : fixture.id === "graphics-test" ? "menu" : "test";
   const page = (
     <SessionCatalogScope set={catalog}>
       <Route />

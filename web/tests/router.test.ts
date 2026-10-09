@@ -56,7 +56,9 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   fireEvent.click(menu.getByRole("button", { name: "Back" }));
   open("Settings");
   expect(menu.getByTestId("sound-controls")).toBeTruthy();
-  expect(menu.getByRole("link", { name: "Graphics test" }).getAttribute("href")).toBe("/graphics-test");
+  expect(menu.getByRole("link", { name: "Graphics test" }).getAttribute("href")).toBe(
+    "/graphics-test",
+  );
   // Escape is Back, as in a game's menus.
   fireEvent.keyDown(window, { key: "Escape" });
   expect(menu.getByRole("button", { name: "Settings" })).toBeTruthy();

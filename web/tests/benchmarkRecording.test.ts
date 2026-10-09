@@ -1,6 +1,10 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { BenchmarkRecording, summarize, summarizeFrameRate } from "../src/battle/benchmark/recording";
+import {
+  BenchmarkRecording,
+  summarize,
+  summarizeFrameRate,
+} from "../src/battle/benchmark/recording";
 
 const pose = { target: [0, 0] as const, distance: 100, yaw: 0, pitch: 0.8 };
 const frame = (now: number, phase = "strategic", cpuMs = 1) => ({
@@ -35,7 +39,10 @@ test("one-percent low uses the mean of the slowest intervals and excludes invali
   const intervals = [...Array(198).fill(10), 40, 100];
   expect(summarizeFrameRate(intervals)?.low1).toBeCloseTo(1000 / 70);
   expect(summarizeFrameRate([0, -2, NaN, Infinity, 10, 20])).toEqual({
-    average: 2000 / 30, low1: 50, minimum: 50, maximum: 100,
+    average: 2000 / 30,
+    low1: 50,
+    minimum: 50,
+    maximum: 100,
   });
 });
 

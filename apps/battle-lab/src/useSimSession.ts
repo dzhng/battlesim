@@ -122,7 +122,12 @@ export function useSimSession({
         const { tick, stepMs, bytes } = publication;
         plan?.onTick({ tick, stepMs, bytes });
       }
-      plan?.onPublication?.({ tick: publication.tick, digest: publication.digest, packed: publication.copyPacked(), warm });
+      plan?.onPublication?.({
+        tick: publication.tick,
+        digest: publication.digest,
+        packed: publication.copyPacked(),
+        warm,
+      });
       frame ??= requestAnimationFrame(render);
       onDecodedRef.current?.(publication.observation, publication.digest);
       if (held.current) held.current.push(publication);

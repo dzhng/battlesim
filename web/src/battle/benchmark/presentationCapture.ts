@@ -5,7 +5,14 @@ import type { CameraPose } from "@packages/renderer-core/src/cameraController";
  * publication; browser tooling may retain the decoded observation beside it. */
 export interface PresentationCapture {
   schema: "battle-presentation-capture/v1";
-  workload: { id: string; fingerprint: string; scene: string; map: string; encounter: string; seed: number };
+  workload: {
+    id: string;
+    fingerprint: string;
+    scene: string;
+    map: string;
+    encounter: string;
+    seed: number;
+  };
   tickHz: number;
   warmTick: number;
   side: "blue" | "red";
@@ -31,17 +38,29 @@ export interface PresentationFrame {
 
 /** Reject malformed or reordered captures before a renderer can benchmark it. */
 export function validatePresentationCapture(capture: PresentationCapture): PresentationCapture {
-  if (capture.schema !== "battle-presentation-capture/v1") throw new Error("unsupported presentation capture schema");
-  if (!Number.isInteger(capture.tickHz) || capture.tickHz <= 0) throw new Error("capture tickHz must be positive");
-  if (!Number.isInteger(capture.warmTick) || capture.warmTick < 0) throw new Error("capture warmTick must be non-negative");
-  if (typeof capture.layout !== "string" || capture.layout.length === 0) throw new Error("capture layout must be non-empty JSON");
+  if (capture.schema !== "battle-presentation-capture/v1")
+    throw new Error("unsupported presentation capture schema");
+  if (!Number.isInteger(capture.tickHz) || capture.tickHz <= 0)
+    throw new Error("capture tickHz must be positive");
+  if (!Number.isInteger(capture.warmTick) || capture.warmTick < 0)
+    throw new Error("capture warmTick must be non-negative");
+  if (typeof capture.layout !== "string" || capture.layout.length === 0)
+    throw new Error("capture layout must be non-empty JSON");
   if (!Array.isArray(capture.frames)) throw new Error("capture frames must be an array");
   let previousFrame = -1;
   for (const frame of capture.frames) {
     if (!Number.isFinite(frame.elapsedMs) || frame.elapsedMs < previousFrame)
       throw new Error("capture frame times must be increasing");
-    if (!Number.isInteger(frame.tick) || frame.tick < 0) throw new Error("capture frame tick must be non-negative");
-    if (!Number.isFinite(frame.camera.distance) || !Number.isFinite(frame.camera.yaw) || !Number.isFinite(frame.camera.pitch) || !Array.isArray(frame.camera.target) || frame.camera.target.length !== 2 || !frame.camera.target.every(Number.isFinite))
+    if (!Number.isInteger(frame.tick) || frame.tick < 0)
+      throw new Error("capture frame tick must be non-negative");
+    if (
+      !Number.isFinite(frame.camera.distance) ||
+      !Number.isFinite(frame.camera.yaw) ||
+      !Number.isFinite(frame.camera.pitch) ||
+      !Array.isArray(frame.camera.target) ||
+      frame.camera.target.length !== 2 ||
+      !frame.camera.target.every(Number.isFinite)
+    )
       throw new Error("capture frame camera is malformed");
     previousFrame = frame.elapsedMs;
   }
@@ -49,8 +68,11 @@ export function validatePresentationCapture(capture: PresentationCapture): Prese
   for (const sample of capture.samples) {
     if (!Number.isInteger(sample.tick) || sample.tick < 0 || sample.tick <= previous)
       throw new Error("capture samples must increase by non-negative tick");
-    if (!/^[0-9a-f]{16}$/i.test(sample.digest)) throw new Error("capture digest must be a 16-digit hex value");
-    if (!sample.publication.every((word) => Number.isInteger(word) && word >= 0 && word <= 0xffffffff))
+    if (!/^[0-9a-f]{16}$/i.test(sample.digest))
+      throw new Error("capture digest must be a 16-digit hex value");
+    if (
+      !sample.publication.every((word) => Number.isInteger(word) && word >= 0 && word <= 0xffffffff)
+    )
       throw new Error("capture publication contains an invalid u32 word");
     previous = sample.tick;
   }

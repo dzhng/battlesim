@@ -166,7 +166,9 @@ test("raw capture words replay through a fresh Rust publication decoder", () => 
     module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
   }).memory;
   const battle = new Battle(
-    labScenario(loadMap("geometry").definition, [{ side: "blue", kind: "test_tank", position: [40, 150] }]),
+    labScenario(loadMap("geometry").definition, [
+      { side: "blue", kind: "test_tank", position: [40, 150] },
+    ]),
     9,
   );
   const decoder = new ObservationDecoder(JSON.parse(battle.observation_layout()));

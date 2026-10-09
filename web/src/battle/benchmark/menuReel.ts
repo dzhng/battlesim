@@ -24,4 +24,3 @@ export function menuReelFingerprint(): string {
   }
   return hash.toString(16).padStart(8, "0");
 }
-

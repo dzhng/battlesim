@@ -5,10 +5,20 @@ import type { BackdropScene } from "@apps/battle-lab/src/menuReel";
 
 const pose = { target: [0, 0] as [number, number], distance: 40, yaw: 0, pitch: 0.2 };
 const scene: BackdropScene = {
-  map: "fake-menu", encounter: "e", seed: 3, warm_s: 2,
+  map: "fake-menu",
+  encounter: "e",
+  seed: 3,
+  warm_s: 2,
   reel: { fade_s: 0.5, shots: [{ seconds: 2, from: pose, to: { ...pose, distance: 20 } }] },
 };
-const camera = { ...pose, target: [0, 0, 0] as [number, number, number], fovY: 1, aspect: 1, near: 0.1, far: 1000 };
+const camera = {
+  ...pose,
+  target: [0, 0, 0] as [number, number, number],
+  fovY: 1,
+  aspect: 1,
+  near: 0.1,
+  far: 1000,
+};
 
 test("a reel records only drawn intervals after warm-up, finishes once, and uses wall time for the camera", () => {
   const results: unknown[] = [];
@@ -32,7 +42,12 @@ test("a reel capture copies packed publications before their credits are release
   const run = createReelRun(scene, 30, (r) => results.push(r));
   run.scripted.onWarm();
   run.pilot.frame!({ now: 1000, cpuMs: 1, camera });
-  run.scripted.onPublication!({ tick: 61, digest: "0123456789abcdef", packed: [1, 2, 3], warm: true });
+  run.scripted.onPublication!({
+    tick: 61,
+    digest: "0123456789abcdef",
+    packed: [1, 2, 3],
+    warm: true,
+  });
   expect(run.captureSamples()).toEqual([
     expect.objectContaining({ tick: 61, digest: "0123456789abcdef", publication: [1, 2, 3] }),
   ]);
