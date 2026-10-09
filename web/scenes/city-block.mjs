@@ -292,8 +292,27 @@ export async function run(ctx) {
   });
   const where = [];
   for (const building of placed) {
-    const box = building.parts[0];
-    await aim(page, box.center, { distance: 90, pitch: TOP_DOWN });
+    // From straight above its frame, near enough to read and far enough
+    // that every part and the ground beside it stand in the picture.
+    const reach = Math.max(
+      ...building.parts.flatMap((part) =>
+        [-1, 1].flatMap((u) =>
+          [-1, 1].map((v) => {
+            const [c, s] = [Math.cos(part.yaw), Math.sin(part.yaw)];
+            return Math.hypot(
+              part.center[0] + c * u * part.half[0] - s * v * part.half[1] - building.frame[0],
+              part.center[1] + s * u * part.half[0] + c * v * part.half[1] - building.frame[1],
+            );
+          }),
+        ),
+      ),
+      building.ground
+        ? Math.hypot(building.ground[0] - building.frame[0], building.ground[1] - building.frame[1])
+        : 0,
+    );
+    const { fovY } = await lab(page, () => window.__lab.camera());
+    const distance = Math.max(90, (reach + 4) / Math.tan(fovY / 2));
+    await aim(page, building.frame, { distance, pitch: TOP_DOWN });
     await buildingsSettled(page);
     const roofs = [];
     for (const part of building.parts)
