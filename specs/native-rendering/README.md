@@ -5,7 +5,7 @@
 
 ## Next Agent Prompt
 
-Finish slice 01's browser report and lifecycle, then freeze canonical presentation playback before comparing engines. The route exists but lacks a verified full run, complete workload identity, capture/export and visual gates. In parallel, finish slice 02's same-input parity and measured GDExtension/IPC comparison. Cubes and headless smoke are not rendering-performance evidence. Keep `/benchmark` unchanged.
+Finish slice 01's browser report and lifecycle, then freeze canonical presentation playback before comparing engines. The route exists but lacks a verified full run, complete workload identity, capture/export and visual gates. Slice 02's same-input GDExtension parity and IPC probe now pass; next, record the candidate evidence and build the benchmark-only presentation capture seam. Cubes and headless smoke are not rendering-performance evidence. Keep `/benchmark` unchanged.
 
 Evidence: focused recording/router/reel tests and TypeScript passed in the previous pass; these prove only their narrow contracts. Native replay smoke passed; cross-host authority and transfer comparison remain open. No browser–Godot performance verdict exists.
 
