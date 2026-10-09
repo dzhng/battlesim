@@ -23,16 +23,14 @@ pub struct Fit<'a> {
 }
 
 impl<'a> Fit<'a> {
-    /// `None` for a template the parcel pass cannot select: one whose floors,
-    /// entrances or bays are unresolved.
+    /// `None` for a template that cannot be placed at the origin.
     pub fn new(template: &'a BuildingTemplateDescriptor) -> Option<Self> {
-        template.require_complete().ok()?;
         let identity = PlacementFrame {
             translation: [0.0; 3],
             yaw: 0.0,
         };
         let placed = template.materialize(identity).ok()?;
-        let street = placed.entrances.as_ref()?.first()?.normal;
+        let street = placed.entrances.first()?.normal;
         let turn = -TAU / 4.0 - libm::atan2(street[1], street[0]);
         let (sin, cos) = libm::sincos(turn);
         let mut min = [f64::INFINITY; 2];
@@ -61,7 +59,7 @@ impl<'a> Fit<'a> {
     }
 
     pub fn floors(&self) -> usize {
-        self.template.floor_heights_m.as_ref().map_or(0, Vec::len)
+        self.template.floor_heights_m.len()
     }
 
     /// The parcel cut for it under `rule`: its width along the street and

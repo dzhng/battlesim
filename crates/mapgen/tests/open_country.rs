@@ -426,7 +426,7 @@ fn every_home_has_a_way_from_its_door_to_a_road() {
             .collect();
         for index in country.bare.buildings.len()..plan.buildings.len() {
             let id = &plan.buildings[index].id;
-            let door = &map.buildings[index].geometry.entrances.as_ref().unwrap()[0];
+            let door = &map.buildings[index].geometry.entrances[0];
             let at = |reach: f64| {
                 [
                     door.position[0] + door.normal[0] * reach,

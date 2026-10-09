@@ -35,11 +35,11 @@ fn footprint(template: &BuildingTemplateDescriptor) -> [f64; 2] {
 }
 
 #[test]
-fn every_template_is_complete_and_of_a_shipping_family() {
+fn every_template_is_of_a_shipping_family() {
+    // Loading the catalogue already refuses an incomplete building.
     let catalogue = catalogue();
     let families = families();
     for template in catalogue.templates() {
-        template.require_complete().unwrap();
         assert!(
             families.contains(&template.regional_family),
             "{}: {} is not among {families:?}",
@@ -89,7 +89,7 @@ fn category_scales(family: &str) {
             variants.len()
         );
         for template in variants {
-            let count = template.floor_heights_m.as_ref().unwrap().len();
+            let count = template.floor_heights_m.len();
             assert!(floors.contains(&count), "{}: {count} floors", template.id);
             let [width, depth] = footprint(template);
             assert!(
@@ -107,7 +107,7 @@ fn category_scales(family: &str) {
         catalogue.templates().iter().any(|template| {
             template.category == UrbanApartment
                 && template.regional_family == family
-                && (low..=high).contains(&template.floor_heights_m.as_ref().unwrap().len())
+                && (low..=high).contains(&template.floor_heights_m.len())
         })
     };
     assert!(apartment_floors(4, 6) && apartment_floors(7, 8), "{family}");
@@ -125,7 +125,7 @@ fn every_entrance_opens_on_the_street_side_with_a_clear_way_out() {
                 yaw: 0.0,
             })
             .unwrap();
-        let entrances = placed.entrances.unwrap();
+        let entrances = placed.entrances;
         let street = entrances[0].normal;
         for entrance in &entrances {
             assert_eq!(entrance.normal, street, "{}", template.id);

@@ -1966,7 +1966,6 @@ fn yards_are_bounded_with_gates_and_car_parks_keep_their_aisles() {
                         .geometry
                         .entrances
                         .iter()
-                        .flatten()
                         .map(|door| ([door.position[0], door.position[1]], door.normal))
                         .collect();
                     for (a, b) in [
@@ -2052,7 +2051,7 @@ fn yards_are_bounded_with_gates_and_car_parks_keep_their_aisles() {
                         }
                     }
                     // Out from each door through the yard's boundary.
-                    for door in building.geometry.entrances.iter().flatten() {
+                    for door in building.geometry.entrances.iter() {
                         let from = [door.position[0], door.position[1]];
                         let out = door.normal;
                         let edge = (1..80)
@@ -2731,7 +2730,7 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
         let stations: Vec<(V2, f64)> = maps[0]
             .buildings
             .iter()
-            .flat_map(|building| building.geometry.entrances.iter().flatten())
+            .flat_map(|building| building.geometry.entrances.iter())
             .map(|door| {
                 let out = recipe.garrison.door_standoff_m;
                 (
@@ -2866,7 +2865,6 @@ fn routes_survive_the_furniture_on_every_type_and_size_of_map() {
                     .geometry
                     .entrances
                     .iter()
-                    .flatten()
                     .map(|door| ([door.position[0], door.position[1]], door.normal))
                     .collect();
                 (placed.id.as_str(), doors)

@@ -32,12 +32,10 @@ pub struct BuildingTemplateDescriptor {
     pub category: BuildingCategory,
     pub regional_family: String,
     pub parts: Vec<TemplatePart>,
-    /// Nonnegative local floor datums, rising. `validate` refuses `None`, as
-    /// it refuses `entrances: None`: the `Option`s remain only because the
-    /// map generator's source still reads both as optional.
-    #[serde(default, deserialize_with = "numbers::optional_list")]
-    pub floor_heights_m: Option<Vec<f64>>,
-    pub entrances: Option<Vec<Entrance>>,
+    /// Nonnegative local floor datums, rising.
+    #[serde(deserialize_with = "numbers::list")]
+    pub floor_heights_m: Vec<f64>,
+    pub entrances: Vec<Entrance>,
     pub edges: Vec<FacadeEdge>,
     pub joins: Vec<SupportedJoin>,
 }
@@ -212,7 +210,7 @@ pub struct MaterializedBuilding {
     pub height_m: f64,
     #[serde(deserialize_with = "numbers::list")]
     pub floor_z: Vec<f64>,
-    pub entrances: Option<Vec<MaterializedEntrance>>,
+    pub entrances: Vec<MaterializedEntrance>,
     pub edges: Vec<MaterializedEdge>,
 }
 
@@ -329,9 +327,9 @@ impl MaterializedBuilding {
                 }
             }
         }
-        if let Some(entrances) = &self.entrances {
+        {
             let mut ids = BTreeSet::new();
-            for entrance in entrances {
+            for entrance in &self.entrances {
                 if entrance.id.is_empty()
                     || !ids.insert(&entrance.id)
                     || entrance
@@ -609,9 +607,7 @@ impl BuildingTemplateDescriptor {
         if !height.is_finite() {
             return bad("physical height is not finite");
         }
-        let (Some(floors), Some(entrances)) = (&self.floor_heights_m, &self.entrances) else {
-            return bad("a building needs its floors and its entrances");
-        };
+        let (floors, entrances) = (&self.floor_heights_m, &self.entrances);
         if floors.is_empty()
             || floors
                 .iter()
@@ -807,14 +803,10 @@ impl BuildingTemplateDescriptor {
             zero(&mut part.yaw);
             zero(&mut part.base_z);
         }
-        if let Some(floors) = &mut self.floor_heights_m {
-            floors.iter_mut().for_each(zero);
-        }
-        if let Some(entrances) = &mut self.entrances {
-            entrances.sort_by(|a, b| a.id.cmp(&b.id));
-            for entrance in entrances {
-                zero(&mut entrance.offset_m);
-            }
+        self.floor_heights_m.iter_mut().for_each(zero);
+        self.entrances.sort_by(|a, b| a.id.cmp(&b.id));
+        for entrance in &mut self.entrances {
+            zero(&mut entrance.offset_m);
         }
         self.edges.sort_by(|a, b| a.id.cmp(&b.id));
         for edge in &mut self.edges {
@@ -834,13 +826,6 @@ impl BuildingTemplateDescriptor {
             .iter()
             .map(|p| p.base_z + 2.0 * p.half_extents[2])
             .fold(0.0, f64::max)
-    }
-
-    /// The same as [`validate`](Self::validate), which now holds every
-    /// template to a complete building. It stays only for the map generator's
-    /// source, which still calls it; remove it when that calls `validate`.
-    pub fn require_complete(&self) -> Result<(), String> {
-        self.validate()
     }
 
     /// Count a validated catalogue descriptor's lattice before materializing it.
@@ -923,33 +908,26 @@ impl BuildingTemplateDescriptor {
             .collect::<Result<Vec<_>, String>>()?;
         let mut entrances = self
             .entrances
-            .as_ref()
-            .map(|entrances| {
-                entrances
+            .iter()
+            .map(|entrance| {
+                let edge = self
+                    .edges
                     .iter()
-                    .map(|entrance| {
-                        let edge = self
-                            .edges
-                            .iter()
-                            .find(|e| e.id == entrance.edge)
-                            .ok_or_else(|| {
-                                format!("{}: unknown entrance edge {}", self.id, entrance.edge)
-                            })?;
-                        let local = self.local_edge(edge)?;
-                        let [x, y] = position(local.point(entrance.offset_m));
-                        Ok(MaterializedEntrance {
-                            id: entrance.id.clone(),
-                            position: [x, y, frame.translation[2] + local.base_z],
-                            normal: rotate(local.normal, rotation),
-                        })
-                    })
-                    .collect::<Result<Vec<_>, String>>()
+                    .find(|e| e.id == entrance.edge)
+                    .ok_or_else(|| {
+                        format!("{}: unknown entrance edge {}", self.id, entrance.edge)
+                    })?;
+                let local = self.local_edge(edge)?;
+                let [x, y] = position(local.point(entrance.offset_m));
+                Ok(MaterializedEntrance {
+                    id: entrance.id.clone(),
+                    position: [x, y, frame.translation[2] + local.base_z],
+                    normal: rotate(local.normal, rotation),
+                })
             })
-            .transpose()?;
+            .collect::<Result<Vec<_>, String>>()?;
         edges.sort_by(|a, b| a.id.cmp(&b.id));
-        if let Some(entrances) = &mut entrances {
-            entrances.sort_by(|a, b| a.id.cmp(&b.id));
-        }
+        entrances.sort_by(|a, b| a.id.cmp(&b.id));
         let mut parts: Vec<_> = self
             .parts
             .iter()
@@ -970,7 +948,6 @@ impl BuildingTemplateDescriptor {
             floor_z: self
                 .floor_heights_m
                 .iter()
-                .flatten()
                 .map(|h| frame.translation[2] + h)
                 .collect(),
             entrances,
@@ -986,7 +963,7 @@ impl BuildingTemplateDescriptor {
                 ])
                 .all(f64::is_finite)
         }) && geometry.floor_z.iter().all(|z| z.is_finite())
-            && geometry.entrances.iter().flatten().all(|entrance| {
+            && geometry.entrances.iter().all(|entrance| {
                 entrance
                     .position
                     .into_iter()

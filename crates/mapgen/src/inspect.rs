@@ -449,7 +449,7 @@ fn render(
         }
         if detail {
             // An entrance is a tick out from its door.
-            for entrance in placed.entrances.iter().flatten() {
+            for entrance in &placed.entrances {
                 let door = [entrance.position[0], entrance.position[1]];
                 let _ = write!(
                     out,

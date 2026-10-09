@@ -227,7 +227,7 @@ mod tests {
                 .collect(),
             height_m: 8.0,
             floor_z: vec![0.0],
-            entrances: None,
+            entrances: vec![],
             edges: vec![],
         };
         // Square plus four triangles outside it: overlap contributes no extra bulk.

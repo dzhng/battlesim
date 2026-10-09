@@ -541,7 +541,7 @@ impl<'a> Pass<'a> {
                 self.field.walls.push(wall);
             }
             let mut doors = Vec::new();
-            for entrance in building.entrances.iter().flatten() {
+            for entrance in &building.entrances {
                 let from = [entrance.position[0], entrance.position[1]];
                 let out = entrance.normal;
                 // To the middle of the first carriageway the door faces.

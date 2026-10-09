@@ -442,7 +442,7 @@ fn every_entrance_faces_a_street_or_apron_within_a_short_walk() {
             .map(|area| (&area.shape, area.shape.limits()))
             .collect();
         for (index, building) in map.buildings.iter().enumerate() {
-            let entrances = building.geometry.entrances.as_ref().unwrap();
+            let entrances = &building.geometry.entrances;
             assert!(!entrances.is_empty());
             for entrance in entrances {
                 let door = [entrance.position[0], entrance.position[1]];

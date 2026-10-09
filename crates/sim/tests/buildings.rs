@@ -504,7 +504,7 @@ fn garrison_capability_requires_an_authored_aggregate_and_an_exposed_span() {
     );
     let mut setup = compound_setup(json!([]));
     setup.map.buildings[0].geometry.edges.clear();
-    setup.map.buildings[0].geometry.entrances = None;
+    setup.map.buildings[0].geometry.entrances.clear();
     assert!(
         std::panic::catch_unwind(|| Battle::new(&setup, 11)).is_err(),
         "unresolved exposure cannot claim a squad with no seats or eyes"
@@ -1183,7 +1183,7 @@ fn upper_floor_collapse_deaths_land_on_the_remaining_physical_surface() {
         edge.base_z += 2.0;
         edge.top_z += 2.0;
     }
-    for entrance in geometry.entrances.iter_mut().flatten() {
+    for entrance in geometry.entrances.iter_mut() {
         entrance.position[2] += 2.0;
     }
     setup.rules.garrison.survival_probability_on_collapse = 0.0;

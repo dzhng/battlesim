@@ -48,6 +48,8 @@ export interface TemplateDescriptor {
   category: string;
   regional_family: string;
   parts: TemplatePart[];
+  /** Local floor datums, rising; every building has at least one. */
+  floor_heights_m: number[];
   [field: string]: unknown;
 }
 
@@ -350,8 +352,7 @@ export function fitExcess(
 // ---------------------------------------------------------------- damage states
 
 /** How many floors a template has, as the simulation counts them. */
-const floorCount = (descriptor: TemplateDescriptor): number =>
-  Array.isArray(descriptor.floor_heights_m) ? descriptor.floor_heights_m.length : 1;
+const floorCount = (descriptor: TemplateDescriptor): number => descriptor.floor_heights_m.length;
 
 /** The state a destroyed template is known in: a building of the rule's
  *  `max_floors` or fewer collapses to a ruin; a taller one stands gutted. */

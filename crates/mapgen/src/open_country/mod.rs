@@ -679,8 +679,7 @@ impl<'a> Country<'a> {
             let doors = fit
                 .template
                 .materialize(*frame)
-                .ok()
-                .and_then(|placed| placed.entrances)
+                .map(|placed| placed.entrances)
                 .unwrap_or_default();
             let clear = doors.iter().all(|door| {
                 let from = [door.position[0], door.position[1]];

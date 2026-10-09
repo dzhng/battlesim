@@ -25,13 +25,10 @@ fn a_template_missing_any_building_fact_is_refused() {
     shed.validate().unwrap();
     let mut missing = Vec::new();
     let mut t = shed.clone();
-    t.floor_heights_m = None;
+    t.floor_heights_m = vec![];
     missing.push(("floors", t));
     let mut t = shed.clone();
-    t.entrances = None;
-    missing.push(("entrances", t));
-    let mut t = shed.clone();
-    t.entrances = Some(vec![]);
+    t.entrances = vec![];
     missing.push(("an entrance", t));
     let mut t = shed.clone();
     t.edges[0].bays = None;
@@ -112,7 +109,7 @@ fn bays_and_entrances_materialize_from_the_same_asymmetric_frame() {
             yaw: std::f64::consts::FRAC_PI_2,
         })
         .unwrap();
-    let entrances = placed.entrances.unwrap();
+    let entrances = placed.entrances;
     assert_eq!(entrances[0].position, [13.0, 21.0, 5.0]);
     assert!(entrances[0].normal[0] > 0.999999999);
     assert!(entrances[0].normal[1].abs() < 1e-14);
@@ -143,13 +140,13 @@ fn invalid_source_facts_never_reach_materialization_or_catalogue_identity() {
     shape.parts[1].id = shape.parts[0].id.clone();
     bad.push(shape);
     let mut shape = asymmetric();
-    shape.floor_heights_m = Some(vec![0.0, 8.0]);
+    shape.floor_heights_m = vec![0.0, 8.0];
     bad.push(shape);
     let mut shape = asymmetric();
     shape.edges[1].exposed = true;
     bad.push(shape);
     let mut shape = asymmetric();
-    shape.entrances.as_mut().unwrap()[0].edge = "main-east-join".into();
+    shape.entrances[0].edge = "main-east-join".into();
     bad.push(shape);
     let mut shape = asymmetric();
     shape.edges[2].bays.as_mut().unwrap().pitch_m = 0.0;

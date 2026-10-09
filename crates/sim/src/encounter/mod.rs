@@ -1058,7 +1058,6 @@ impl<'a> Planner<'a> {
             .geometry
             .entrances
             .iter()
-            .flatten()
             .map(|e| Station {
                 at: cm2(v2(e.position[0], e.position[1]) + at(e.normal) * out),
                 yaw: micro(bearing(e.normal)),
