@@ -1,7 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { SkirmishView, OwnUnitView } from "../sim/observation";
 import { useSessionCatalog } from "../catalog/context";
-import { ArmyCard } from "./armyCard";
+import { StrengthMeter, UnitFace } from "./unitFace";
 import { InfoPanel } from "./infoPanel";
 import { ownPanel, unitStrength, type PanelRules } from "./panelRows";
 import { CommandBar, unitName } from "./readouts";
@@ -155,7 +155,9 @@ export function ArmyDeck({
                     if (event.key === "Escape") setDismissed(active);
                   }}
                 >
-                  <ArmyCard kind={unit.kind} name={name} strength={strength} />
+                  <UnitFace kind={unit.kind}>
+                    <StrengthMeter name={name} strength={strength} />
+                  </UnitFace>
                 </button>
               );
             })}
@@ -171,7 +173,9 @@ export function ArmyDeck({
                   aria-label={`${name} — Will be deployed`}
                   title={`${name} — ${unit.blocked ? "Entry blocked" : "Will be deployed"}`}
                 >
-                  <ArmyCard kind={unit.kind} name={name} strength={1} />
+                  <UnitFace kind={unit.kind}>
+                    <StrengthMeter name={name} strength={1} />
+                  </UnitFace>
                 </button>
               );
             })}

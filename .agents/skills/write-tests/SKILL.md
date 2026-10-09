@@ -115,6 +115,11 @@ the other catches:
   is approved by a person who has looked at it. Never re-approve one to turn a
   red check green; re-approve only the scene whose look changed on purpose,
   and review the new pictures in the diff.
+- **A picture only stops change.** It cannot say the first picture was right,
+  so judge it against the design it should match (the approved reference, the
+  spec), never against itself, and pin the design's own rules as geometry too
+  (the unit card is portrait, and the same card wherever it appears). A wrong
+  first picture is otherwise approved, and from then on defended.
 
 Every state a player can reach is a shot: hovered, focused, open, empty,
 failed, at the screen's edge, at each supported width. A defect lives in the

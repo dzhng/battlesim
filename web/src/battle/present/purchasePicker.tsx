@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { Faction, UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
-import { cardIcon } from "@packages/scene-assets/src/icons";
-import { Icon } from "./icons";
+import { UnitFace } from "./unitFace";
 import type { SkirmishView } from "../sim/observation";
 interface PickerProps {
   cards: readonly UnitCard[];
@@ -92,11 +91,11 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
                 <button
                   key={id}
                   type="button"
-                  className={`hud-purchase-family${unavailable ? " unavailable" : firstAvailable ? "" : " short"}`}
+                  className={`hud-army-card hud-purchase-family${unavailable ? " unavailable" : firstAvailable ? "" : " short"}`}
                   aria-label={variants[0].roster.family_name}
                   aria-pressed={id === family}
-                  onMouseEnter={variants.length > 1 ? () => setFamily(id) : undefined}
-                  onFocus={variants.length > 1 ? () => setFamily(id) : undefined}
+                  onMouseEnter={() => setFamily(id)}
+                  onFocus={() => setFamily(id)}
                   onClick={() => {
                     setFamily(id);
                     if (firstAvailable) {
@@ -105,44 +104,60 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
                     }
                   }}
                 >
-                  <Icon path={cardIcon(shown.id)} />
-                  <span>{variants[0].roster.family_name}</span>
-                  <Price cost={Math.min(...variants.map((v) => v.cost))} credits={match.credits} />
-                  {unavailable && <small>Unavailable</small>}
+                  <UnitFace kind={shown.id}>
+                    <Price
+                      cost={Math.min(...variants.map((v) => v.cost))}
+                      credits={match.credits}
+                    />
+                  </UnitFace>
                 </button>
               );
             })}
           </div>
-          {chosen.length > 1 && (
-            <div
-              className="hud-purchase-variants"
-              role="group"
-              aria-label={`${chosen[0].roster.family_name} variants`}
-            >
-              {chosen.map((card) => (
-                <button
-                  key={card.id}
-                  type="button"
-                  className="hud-menu-choice"
-                  disabled={
-                    finished ||
-                    card.disabled_reason !== null ||
-                    card.cost > match.credits ||
-                    match.occupiedSlots >= match.maxUnits
-                  }
-                  aria-label={`${card.roster.variant} — ${card.cost} credits${card.disabled_reason !== null ? " — Unavailable" : ""}`}
-                  onClick={() => {
-                    onChoose(card.id);
-                    setOpen(false);
-                  }}
-                >
-                  <span>{card.roster.variant}</span>
-                  <Price cost={card.cost} credits={match.credits} />
-                  {card.disabled_reason !== null && <small>Unavailable</small>}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* The army's cards carry no names: the family under the pointer
+              names itself here, with its variants. The row keeps its room
+              empty, so showing it never moves the cards. */}
+          <div className="hud-purchase-detail">
+            {chosen.length > 0 && (
+              <span className="hud-purchase-detail-name">{chosen[0].roster.family_name}</span>
+            )}
+            {chosen.length === 1 && (
+              <span className="hud-purchase-single">
+                <Price cost={chosen[0].cost} credits={match.credits} />
+                {chosen[0].disabled_reason !== null && <small>Unavailable</small>}
+              </span>
+            )}
+            {chosen.length > 1 && (
+              <div
+                className="hud-purchase-variants"
+                role="group"
+                aria-label={`${chosen[0].roster.family_name} variants`}
+              >
+                {chosen.map((card) => (
+                  <button
+                    key={card.id}
+                    type="button"
+                    className="hud-menu-choice"
+                    disabled={
+                      finished ||
+                      card.disabled_reason !== null ||
+                      card.cost > match.credits ||
+                      match.occupiedSlots >= match.maxUnits
+                    }
+                    aria-label={`${card.roster.variant} — ${card.cost} credits${card.disabled_reason !== null ? " — Unavailable" : ""}`}
+                    onClick={() => {
+                      onChoose(card.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <span>{card.roster.variant}</span>
+                    <Price cost={card.cost} credits={match.credits} />
+                    {card.disabled_reason !== null && <small>Unavailable</small>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       )}
     </div>

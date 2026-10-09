@@ -25,15 +25,43 @@ async function contained(ctx, page, name) {
 /** The picker's states on one gallery shot, each pinned. */
 async function picker(ctx, page, shot) {
   await page.getByRole("button", { name: "Reinforcements" }).click();
+  const sizes = [];
   for (const tab of ["REC", "INF", "VEH", "HEL"]) {
     await page.getByRole("tab", { name: tab, exact: true }).click();
     await pointerAway(page);
     await contained(ctx, page, `${shot} ${tab}`);
+    sizes.push(
+      ...(await page
+        .locator(".hud-purchase-family")
+        .evaluateAll((cards) =>
+          cards.map((c) => [Math.round(c.offsetWidth), Math.round(c.offsetHeight)]),
+        )),
+    );
     await ctx.matchBaseline(page, `${shot}-${tab.toLowerCase()}`);
   }
+  // A unit for sale is the army's own vertical card: the deck's card size,
+  // whether its tab holds one family or many.
+  const deckCard = await page
+    .locator(".hud-army .hud-army-card")
+    .first()
+    .evaluate((c) => [Math.round(c.offsetWidth), Math.round(c.offsetHeight)]);
+  ctx.check(
+    `${shot}: every family is the army's card, at its size`,
+    sizes.length > 2 && sizes.every(([w, h]) => w === deckCard[0] && h === deckCard[1]),
+    JSON.stringify({ deckCard, sizes }),
+  );
   // A family of several variants lists them while the pointer is on it.
   await page.getByRole("tab", { name: "VEH", exact: true }).click();
-  await page.getByRole("button", { name: "Tank", exact: true }).hover();
+  // Opening a family's variants never moves the cards under the pointer.
+  const tank = page.getByRole("button", { name: "Tank", exact: true });
+  const before = await tank.boundingBox();
+  await tank.hover();
+  const after = await tank.boundingBox();
+  ctx.check(
+    `${shot}: hovering a family leaves its card where the pointer found it`,
+    Math.abs(after.y - before.y) < 0.5 && Math.abs(after.x - before.x) < 0.5,
+    JSON.stringify({ before, after }),
+  );
   ctx.check(
     `${shot}: hovering a family of variants lists them`,
     (await page.getByRole("group", { name: "Tank variants" }).count()) === 1,
