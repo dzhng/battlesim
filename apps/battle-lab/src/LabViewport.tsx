@@ -258,7 +258,6 @@ type ClearanceReading = Pick<ClearanceState, "hold" | "cut" | "blocked">;
 /** Diagnostic hooks the scene harness reads; lab-only, never on a player route. */
 interface LabHandle {
   ready: boolean;
-  fixture: string;
   error: string | null;
   adapter?: { vendor: string; architecture: string; description: string; format: string };
   stats?: () => ReturnType<BattleFrame["stats"]>;
@@ -545,7 +544,6 @@ export function LabViewport({
     const canvas = canvasRef.current!;
     const handle: LabHandle = {
       ready: false,
-      fixture,
       error: null,
       route: diagnosticsRef.current,
     };
