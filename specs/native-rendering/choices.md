@@ -101,3 +101,5 @@
 - **Graphics-test evidence is downloadable from the results page.** The browser report now exposes the frozen workload fingerprint, scene identity, host viewport and adapter labels, and the Settings result offers the complete JSON as a download. This makes a finished run portable for native comparison instead of leaving it only in in-memory `window.__graphicsTest` state.
 
 - **Fog payloads are consumed at the native boundary before rendering.** The decoder validates the published dimensions, full/delta payload length and carrier location for each sampled publication, then leaves visibility semantics in the Rust-owned bitfield. Rendering still needs a display-facing fog pass; native code does not infer visibility from map geometry.
+
+- **Native decoder hardening is staged behind a bounded preroll gate.** The first eight real publications now exercise packed groups, raw replacement/copy carriers, fog metadata and ground metadata without inventing a schema. A full-capture replay still has malformed-stream cases to isolate before the decoder can claim complete publication parity; the native reel therefore keeps its bounded sample limit and comparison blocker.
