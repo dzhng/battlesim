@@ -33,3 +33,18 @@ export function validatePresentationCapture(capture: PresentationCapture): Prese
   }
   return capture;
 }
+
+/** Stable JSON boundary used by ignored benchmark evidence and native tools. */
+export function encodePresentationCapture(capture: PresentationCapture): string {
+  return JSON.stringify(validatePresentationCapture(capture));
+}
+
+export function decodePresentationCapture(text: string): PresentationCapture {
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    throw new Error("presentation capture is not valid JSON");
+  }
+  return validatePresentationCapture(value as PresentationCapture);
+}
