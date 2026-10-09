@@ -27,6 +27,7 @@ var authored_map_scene_count := 0
 var authored_building_limit := 0
 var authored_scene_nodes: Dictionary = {}
 var authored_scene_by_family: Dictionary = {}
+var authored_unresolved_templates: Dictionary = {}
 var cut_dir := ""
 var cuts_saved := 0
 var saved_cut_paths: Dictionary = {}
@@ -398,7 +399,9 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 			if building_scene == null:
 				continue
 			var instance = building_scene.instantiate()
-			_select_authored_shell(instance, String(building.get("template_id", "")))
+			var template_id := String(building.get("template_id", ""))
+			if not _select_authored_shell(instance, template_id):
+				authored_unresolved_templates[template_id] = int(authored_unresolved_templates.get(template_id, 0)) + 1
 			instance.position = Vector3(float(translation[0]), float(translation[2]), float(translation[1]))
 			instance.rotation.y = float(frame.get("yaw", 0.0))
 			holder.add_child(instance)
@@ -407,7 +410,7 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 		authored_map_scene_count += 1
 	return authored_map_scene_count > 0
 
-func _select_authored_shell(instance: Node, template_id: String) -> void:
+func _select_authored_shell(instance: Node, template_id: String) -> bool:
 	var token := ""
 	if template_id.contains("slab-35x11"):
 		token = "slab_35x11_4f_shell"
@@ -428,10 +431,14 @@ func _select_authored_shell(instance: Node, template_id: String) -> void:
 	elif template_id.contains("block-court"):
 		token = "block_court_6f_shell"
 	if token.is_empty():
-		return
+		for child in instance.get_children():
+			if child is Node3D:
+				child.visible = false
+		return false
 	for child in instance.get_children():
 		if child is Node3D:
 			child.visible = String(child.name) == token
+	return true
 
 func _build_proxy_field() -> void:
 	proxy_field_used = true
@@ -624,11 +631,12 @@ func _write_report() -> void:
 		"identity": {"client": "godot", "renderer": ProjectSettings.get_setting("rendering/renderer/rendering_method", "unknown"), "viewport": [ProjectSettings.get_setting("display/window/size/viewport_width", 0), ProjectSettings.get_setting("display/window/size/viewport_height", 0)], "quality": "current-project-settings"},
 		"candidate": "godot-menu-reel-camera-probe",
 		"comparison_ready": false,
-		"comparison_blocker": "authored model catalog is not loaded; map geometry and sampled units are rendered" if not authored_asset_loaded else "authored materials and full catalog are incomplete; map geometry and sampled unit publications are rendered",
+		"comparison_blocker": "authored model catalog is not loaded; map geometry and sampled units are rendered" if not authored_asset_loaded else ("authored template modules are unresolved; map geometry and sampled unit publications are rendered" if not authored_unresolved_templates.is_empty() else "authored materials and full catalog are incomplete; map geometry and sampled unit publications are rendered"),
 		"authored_asset_loaded": authored_asset_loaded,
 		"authored_building_count": authored_building_count,
 		"authored_map_scene_count": authored_map_scene_count,
 		"authored_building_limit": authored_building_limit,
+		"authored_unresolved_templates": authored_unresolved_templates,
 		"map_geometry": map_geometry_counts,
 		"fog_rendered_cells": fog_rendered_cells,
 		"proxy_field_used": proxy_field_used,
