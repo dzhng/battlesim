@@ -25,15 +25,67 @@ async function contained(ctx, page, name) {
 /** The picker's states on one gallery shot, each pinned. */
 async function picker(ctx, page, shot) {
   await page.getByRole("button", { name: "Reinforcements" }).click();
+  const sizes = [];
   for (const tab of ["REC", "INF", "VEH", "HEL"]) {
     await page.getByRole("tab", { name: tab, exact: true }).click();
     await pointerAway(page);
     await contained(ctx, page, `${shot} ${tab}`);
+    sizes.push(
+      ...(await page
+        .locator(".hud-purchase-family")
+        .evaluateAll((cards) =>
+          cards.map((c) => [Math.round(c.offsetWidth), Math.round(c.offsetHeight)]),
+        )),
+    );
     await ctx.matchBaseline(page, `${shot}-${tab.toLowerCase()}`);
   }
-  // A family of several variants lists them while the pointer is on it.
+  // A unit for sale is the army's own vertical card: the deck's card size,
+  // whether its tab holds one family or many.
+  const deckCard = await page
+    .locator(".hud-army .hud-army-card")
+    .first()
+    .evaluate((c) => [Math.round(c.offsetWidth), Math.round(c.offsetHeight)]);
+  ctx.check(
+    `${shot}: every family is the army's card, at its size`,
+    sizes.length > 2 && sizes.every(([w, h]) => w === deckCard[0] && h === deckCard[1]),
+    JSON.stringify({ deckCard, sizes }),
+  );
+  // A family of several variants lists them in a menu above the picker
+  // while the pointer is on it; the picker itself never changes.
   await page.getByRole("tab", { name: "VEH", exact: true }).click();
-  await page.getByRole("button", { name: "Tank", exact: true }).hover();
+  const picker = page.locator(".hud-purchase-picker");
+  const tank = page.getByRole("button", { name: "Tank", exact: true });
+  const before = { picker: await picker.boundingBox(), tank: await tank.boundingBox() };
+  await page.getByRole("button", { name: "Jeep", exact: true }).hover();
+  ctx.check(
+    `${shot}: a family of one variant opens nothing`,
+    (await page.locator(".hud-purchase-flyout").count()) === 0,
+  );
+  await tank.hover();
+  const after = { picker: await picker.boundingBox(), tank: await tank.boundingBox() };
+  const menu = await page.locator(".hud-purchase-flyout-panel").boundingBox();
+  ctx.check(
+    `${shot}: hovering a family leaves the picker and its card where they were`,
+    ["x", "y", "width", "height"].every(
+      (k) =>
+        Math.abs(after.picker[k] - before.picker[k]) < 0.5 &&
+        Math.abs(after.tank[k] - before.tank[k]) < 0.5,
+    ),
+    JSON.stringify({ before, after }),
+  );
+  // Like a web hover menu: it stands right on top of its card, over the
+  // picker's own header if it must, never off at the picker's edge.
+  const gap = after.tank.y - (menu?.y ?? 0) - (menu?.height ?? 0);
+  ctx.check(
+    `${shot}: the variants open right above the hovered card`,
+    menu !== null &&
+      gap >= 0 &&
+      gap <= 6 &&
+      menu.x < after.tank.x + after.tank.width &&
+      menu.x + menu.width > after.tank.x,
+    JSON.stringify({ gap, menu, tank: after.tank }),
+  );
+
   ctx.check(
     `${shot}: hovering a family of variants lists them`,
     (await page.getByRole("group", { name: "Tank variants" }).count()) === 1,
@@ -108,6 +160,28 @@ async function picker(ctx, page, shot) {
   );
   await contained(ctx, page, `${shot} variants`);
   await ctx.matchBaseline(page, `${shot}-veh-variants`);
+  // The pointer travels up from the card into the menu without closing it,
+  // and leaving the picker closes it.
+  const variant = page.getByRole("button", { name: /^Trophy — / });
+  const to = await variant.boundingBox();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 });
+  ctx.check(
+    `${shot}: the pointer reaches a variant with its menu still open`,
+    await variant.isVisible(),
+  );
+  // Resting on another family is a choice: its hover replaces the menu.
+  await page.getByRole("button", { name: "Tank", exact: true }).hover();
+  await page.getByRole("button", { name: "Jeep", exact: true }).hover();
+  await page.waitForTimeout(400);
+  ctx.check(
+    `${shot}: resting on another family moves the hover to it`,
+    (await page.locator(".hud-purchase-flyout").count()) === 0,
+  );
+  await pointerAway(page);
+  ctx.check(
+    `${shot}: leaving the picker closes the variants`,
+    (await page.locator(".hud-purchase-flyout").count()) === 0,
+  );
 }
 
 export async function run(ctx) {
