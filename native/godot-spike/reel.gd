@@ -166,8 +166,7 @@ func _build_world() -> void:
 			var clean_path := path.strip_edges()
 			var scene_resource = load(clean_path)
 			if scene_resource is PackedScene:
-				var filename := clean_path.get_file().get_basename().to_lower()
-				var family_key := "paris_apartments" if filename.contains("paris-apartments") else ("china_apartments" if filename.contains("china-apartments") else filename.split("-")[0].split("_")[0])
+				var family_key := _authored_family_key(clean_path)
 				authored_scene_by_family[family_key] = scene_resource
 		if _build_authored_maps(null):
 			authored_asset_loaded = true
@@ -396,6 +395,8 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 			if building_scene == null:
 				building_scene = _authored_scene_for_template(String(building.get("template_id", "")), String(map.get("regional_family", "")).to_lower())
 			if building_scene == null:
+				var unresolved_id := String(building.get("template_id", ""))
+				authored_unresolved_templates[unresolved_id] = int(authored_unresolved_templates.get(unresolved_id, 0)) + 1
 				continue
 			var instance = building_scene.instantiate()
 			var template_id := String(building.get("template_id", ""))
@@ -408,6 +409,21 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 		authored_building_count += count
 		authored_map_scene_count += 1
 	return authored_map_scene_count > 0
+
+func _authored_family_key(path: String) -> String:
+	var filename := path.get_file().get_basename().to_lower()
+	var family := filename
+	if family == "kit" or family.is_empty():
+		family = path.get_base_dir().get_file().to_lower()
+	if family.ends_with("-kit"):
+		family = family.trim_suffix("-kit")
+	elif family.ends_with("_kit"):
+		family = family.trim_suffix("_kit")
+	if family.contains("paris-apartment"):
+		return "paris_apartments"
+	if family.contains("china-apartment"):
+		return "china_apartments"
+	return family.replace("-", "_")
 
 func _authored_scene_for_template(template_id: String, regional_family: String) -> PackedScene:
 	var lower := template_id.to_lower()

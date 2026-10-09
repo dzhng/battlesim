@@ -19,7 +19,8 @@ func run() -> void:
 	for id in ["first", "second"]:
 		DirAccess.make_dir_recursive_absolute(directory.path_join(id))
 		var file := FileAccess.open(directory.path_join(id).path_join("map.json"), FileAccess.WRITE)
-		file.store_string(JSON.stringify({"size": [20, 20], "surfaces": [], "forests": [{"shape": {"kind": "polygon", "ring": [[2, 2], [8, 2], [8, 7], [2, 7]]}}], "props": [], "buildings": []}))
+		var buildings: Array = [] if id == "second" else [{"template_id": "china-home-10x8-1f", "frame": {"translation": [4, 0, 4], "yaw": 0.0}}]
+		file.store_string(JSON.stringify({"size": [20, 20], "surfaces": [], "forests": [{"shape": {"kind": "polygon", "ring": [[2, 2], [8, 2], [8, 7], [2, 7]]}}], "props": [], "buildings": buildings, "regional_family": "china"}))
 		file.close()
 		scenes.append({"map": id, "reel": {"shots": [{"seconds": 1, "from": pose, "to": pose}]}})
 	var source := directory.path_join("reel.json")
@@ -42,6 +43,11 @@ func run() -> void:
 	check(reel.map_geometry_counts["first"].forests == 1, "map composition must consume forest regions from the saved export")
 	check(reel.authored_building_limit == 7, "authored building cap must apply before selecting a single or multi-kit scene")
 	check(reel._authored_scene_for_template("china-home-10x8-1f", "china") == null, "template catalog lookup must disclose absent authored kits")
+	check(reel._authored_family_key("res://authoring/homes-kit.glb") == "homes", "authored kit family must come from the resource path")
+	reel.authored_scene_by_family.clear()
+	reel.authored_unresolved_templates.clear()
+	reel._build_authored_maps(null)
+	check(int(reel.authored_unresolved_templates.get("china-home-10x8-1f", 0)) == 1, "missing authored kit must be reported as unresolved")
 	check(reel.get_node("MapGeometry_first").visible, "first map must open visible")
 	check(not reel.get_node("MapGeometry_second").visible, "second map must start hidden")
 	reel._process(1.0)
