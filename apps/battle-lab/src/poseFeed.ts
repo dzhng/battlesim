@@ -24,7 +24,7 @@ import {
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { sideKey } from "@packages/battle-renderer/src/sideKey";
-import type { Pose } from "@web/battle/present/interpolate";
+import type { FrameSample, Pose } from "@web/battle/present/interpolate";
 import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
 import type { SideName } from "@web/battle/sim/protocol";
 import { effectPublication } from "./effectFeed";
@@ -114,14 +114,10 @@ export class ObservationFeed {
     private readonly units: UnitCatalog,
   ) {}
 
-  /** The frame at presentation time `time` (simulation seconds), from
-   *  `observation` and the own and identified poses interpolated for it. */
-  frame(
-    observation: ObservationView,
-    own: readonly Pose[],
-    identified: readonly Pose[],
-    time: number,
-  ): FeedFrame {
+  /** The frame for one drawn sample: its poses and the publication they
+   *  blend toward, never an older one, so a soldier who has left the poses
+   *  is already among the fallen and plays his death. */
+  frame({ observation, own, identified, time }: FrameSample): FeedFrame {
     const enemy: SideName = this.side === "blue" ? "red" : "blue";
     if (observation !== this.observation) {
       this.observation = observation;

@@ -167,18 +167,14 @@ function battle(units = UNITS) {
     feel: gamePose,
     leanHold: game.cover.lean_hold_s,
   });
-  let latest: ObservationView | null = null;
   return {
     /** Publish a tick, arriving at wall time `at` ms. */
     publish(o: ObservationView, at: number) {
-      latest = o;
       interpolator.push(o, at);
     },
     /** The poses drawn at wall time `now` ms. */
     draw(now: number): PoseFrame {
-      const own = interpolator.sample(now);
-      const identified = interpolator.sampleIdentified(now);
-      return driver.update(feed.frame(latest!, own, identified, interpolator.time(now)!));
+      return driver.update(feed.frame(interpolator.frame(now)!));
     },
   };
 }
@@ -544,7 +540,7 @@ test("an own tank and an identified enemy with the same id keep their own mounts
     memberIds: [],
     deployment: null,
   });
-  const frame = feed.frame(o, [pose(3)], [pose(3)], 0);
+  const frame = feed.frame({ observation: o, own: [pose(3)], identified: [pose(3)], time: 0 });
   expect(frame.units.map((u) => [u.side, u.mounts[0].bearing, u.mounts[0].shots])).toEqual([
     ["blue", 0.4, 1],
     ["red", 2, 7],
@@ -625,6 +621,43 @@ test("a death seen plays out then lies static; a death unseen is only ever a cor
   expect(lying.corpsesVersion).toBe(version + 1);
 });
 
+test("a soldier who falls in a tick the page has not rendered yet still plays his death", () => {
+  // The session renders React's observation once an animation frame, while
+  // each publication reaches the interpolator as it arrives. Here tick 7,
+  // where he falls, arrives after React captured tick 6, and a frame is drawn
+  // before React catches up: the frame must read who has fallen from tick 7.
+  const b = battle();
+  const man = { id: 1, at: [0, 0, 0] as Point3 };
+  const mate = { id: 2, at: [4, 0, 0] as Point3 };
+  play(b, 0, 6, (tick) => observation(tick, [squad(7, [man, mate])]));
+  const fell: CorpseView = {
+    position: [0, 0, 0],
+    own: true,
+    soldier: 1,
+    kind: "test_rifle",
+    slot: 0,
+    yaw: 2,
+  };
+  b.publish(observation(7, [squad(7, [mate])], { corpses: [fell] }), 7 * TICK_MS);
+  const first = b.draw(7 * TICK_MS);
+  expect(clips(first)[1]).toBe("death");
+  expect(first.corpses).toEqual([]);
+  // The frames after carry his death on until it has played out.
+  const later = play(b, 8, 12, (tick) =>
+    observation(tick, [squad(7, [mate])], { corpses: [fell] }),
+  );
+  expect(clips(later)[1]).toBe("death");
+  expect(later.corpses).toEqual([]);
+});
+
+/** A drawn sample of `observation` with nothing posed. */
+const still = (observation: ObservationView, time: number) => ({
+  observation,
+  own: [],
+  identified: [],
+  time,
+});
+
 test("immutable corpse input keeps its converted list across active observation changes", () => {
   const feed = new ObservationFeed("blue", UNITS);
   const corpse: CorpseView = {
@@ -639,13 +672,13 @@ test("immutable corpse input keeps its converted list across active observation 
   Object.freeze(corpse);
   const corpses = Object.freeze([corpse]);
   const first = { ...observation(1, []), corpses };
-  const before = feed.frame(first, [], [], 1).fallen;
-  const after = feed.frame({ ...first, tick: 2 }, [], [], 2).fallen;
+  const before = feed.frame(still(first, 1)).fallen;
+  const after = feed.frame(still({ ...first, tick: 2 }, 2)).fallen;
   expect(after).toBe(before);
   expect(after[0]).toBe(before[0]);
   expect(after[0].position).toEqual([2, 3, 4]);
   const shifted: CorpseView = { ...corpse, position: [2, 3, 1] };
-  const changed = feed.frame({ ...first, tick: 3, corpses: [shifted] }, [], [], 3).fallen;
+  const changed = feed.frame(still({ ...first, tick: 3, corpses: [shifted] }, 3)).fallen;
   expect(changed).not.toBe(before);
   expect(changed[0].position).toEqual([2, 3, 1]);
   expect(before[0].position).toEqual([2, 3, 4]);

@@ -15,7 +15,10 @@ consumer releases a publication only after its readers finish; until credits
 return, the producer may stall rather than accumulate an unbounded queue.
 The lab's session decodes every publication but renders only the latest once
 an animation frame, so the page's cost per frame does not grow with the ticks
-that arrived during it.
+that arrived during it. React's copy therefore lags the interpolator by up to a
+render, and a drawn frame never reads it: everything a frame draws or decides
+comes from the [interpolator's sample](../present/interpolate.ts), the
+publication its poses blend toward, so one frame shows one tick.
 
 [Decoding](observation.ts) follows the layout supplied by [Rust publication](../../../../crates/sim/src/publication.rs).
 Do not copy field offsets, enum rosters or packed bit grammars into another owner.

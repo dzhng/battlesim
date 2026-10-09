@@ -153,6 +153,24 @@ const SURFACE_HEIGHTS_MAX = 1 << 20;
  *  pieces drawn until it has. */
 const LANDED_HOLD_S = 0.5;
 
+/** `derive` of the last input it was given, derived again only when the
+ *  input's reference changes (the decoder keeps an unchanged list's), so a
+ *  frame reads its publication without rebuilding what did not change. */
+function byReference<In, Out>(derive: (input: In) => Out, initial: Out) {
+  let from: In | undefined;
+  const memo = {
+    value: initial,
+    of(input: In): Out {
+      if (input !== from) {
+        from = input;
+        memo.value = derive(input);
+      }
+      return memo.value;
+    },
+  };
+  return memo;
+}
+
 export interface BattleSessionOptions {
   /** The scenario JSON the authority runs. */
   scenario: string;
@@ -302,9 +320,10 @@ export function useBattleSession({
   // The last drawn frame's presentation clock: the callouts' nudges ease on
   // it, and an order's flash starts at it.
   const drawnClock = useRef<number | null>(null);
-  // The tick of the observation the last drawn frame presented: React state,
-  // so it can lag the clock, which follows each publication as it arrives.
-  const drawnTick = useRef<number | null>(null);
+  // The publication the last drawn frame drew (`FrameSample.observation`).
+  // Whatever reads the drawn frame (its picks, its drawn positions) reads the
+  // battle from this, not from React's `observation`, which lags it by a render.
+  const drawnObservation = useRef<ObservationView | null>(null);
   // Which units' order marks show (Space, or an order's flash), refreshed
   // each frame and kept as state only when it changes.
   const orderReveal = useMemo(() => new OrderReveal(gameOrderFlash), []);
@@ -565,14 +584,13 @@ export function useBattleSession({
   const readouts = useRef<ReadoutLayerHandle>(null);
   // The last frame's clock and drawn motion, which sound hears at the camera.
   const heard = useRef<{ clock: number; motion: SoundMotion } | null>(null);
-  const indoorUnits = useMemo(
-    () =>
-      new Set(
-        (observation?.own ?? [])
-          .filter((u) => u.garrison && u.garrison.phase !== "entering")
-          .map((u) => u.id),
-      ),
-    [observation?.own],
+  // The drawn publication's own units indoors.
+  const [indoorUnits] = useState(() =>
+    byReference(
+      (own: ObservationView["own"]): ReadonlySet<number> =>
+        new Set(own.filter((u) => u.garrison && u.garrison.phase !== "entering").map((u) => u.id)),
+      new Set<number>(),
+    ),
   );
   // Occupants stay occluded indoors; their panel identifies the building.
   // The observing side's outdoor units are x-rayed where the world hides them: the
@@ -581,7 +599,7 @@ export function useBattleSession({
   // the selection's marker is on the ground.
   const xrayOf = useRef<XrayOf>(() => null);
   xrayOf.current = (unitSide, unit) =>
-    !xray || unitSide !== side || indoorUnits.has(unit)
+    !xray || unitSide !== side || indoorUnits.value.has(unit)
       ? null
       : control.selected.includes(unit)
         ? gameXray.selected
@@ -623,95 +641,97 @@ export function useBattleSession({
   }, [appearances, rules, side, units, factions]);
   // Each unit placed during preparation stands as a ghost where it will go,
   // turned as it was placed, until the battle starts.
-  const match = observation?.skirmish;
-  const pendingPurchases = match?.phase === "preparation" ? match.pending : null;
-  const placedGhostList = useMemo<UnitGhost[]>(
-    () =>
-      (pendingPurchases ?? []).map((pending) => {
-        const [x, y] = pending.destination;
-        const placed = placedGhosts.current.find(
-          (g) =>
-            g.variant === pending.kind &&
-            Math.hypot(g.destination[0] - x, g.destination[1] - y) < PLACED_MATCH_M,
-        );
-        const [dx, dy] = placed ? [x - placed.destination[0], y - placed.destination[1]] : [0, 0];
-        return {
-          kind: pending.kind,
-          at: pending.destination,
-          soldiers: fieldedSoldiers(
-            (placed?.spots ?? []).map(([sx, sy]) => [sx + dx, sy + dy] as const),
-          ),
-          yaw: placed?.facing ?? DEFAULT_PLACEMENT_FACING,
-          colour: gameXray.own,
-        };
-      }),
-    [pendingPurchases],
+  const [placedGhostList] = useState(() =>
+    byReference(
+      (match: ObservationView["skirmish"]): UnitGhost[] =>
+        (match?.phase === "preparation" ? match.pending : []).map((pending) => {
+          const [x, y] = pending.destination;
+          const placed = placedGhosts.current.find(
+            (g) =>
+              g.variant === pending.kind &&
+              Math.hypot(g.destination[0] - x, g.destination[1] - y) < PLACED_MATCH_M,
+          );
+          const [dx, dy] = placed ? [x - placed.destination[0], y - placed.destination[1]] : [0, 0];
+          return {
+            kind: pending.kind,
+            at: pending.destination,
+            soldiers: fieldedSoldiers(
+              (placed?.spots ?? []).map(([sx, sy]) => [sx + dx, sy + dy] as const),
+            ),
+            yaw: placed?.facing ?? DEFAULT_PLACEMENT_FACING,
+            colour: gameXray.own,
+          };
+        }),
+      [],
+    ),
   );
   const frameModels = useRef<ModelInstance[]>([]);
   // The trees the side knows have fallen, each from the start of the tick
   // it fell (the clock is ticks over tick_hz, as the effects' are). The
   // decoder keeps an unchanged list's reference, and so does this.
-  const fallenBodies = observation?.fallenBodies;
-  const felled = useMemo<readonly FelledTree[]>(
+  const tickHz = rules.tick_hz;
+  const felled = useMemo(
     () =>
-      (fallenBodies ?? []).map((f) => ({
-        prop: f.prop,
-        toward: f.toward,
-        fellAt: (f.tick - 1) / rules.tick_hz,
-      })),
-    [fallenBodies, rules.tick_hz],
+      byReference(
+        (fallen: ObservationView["fallenBodies"]): readonly FelledTree[] =>
+          fallen.map((f) => ({ prop: f.prop, toward: f.toward, fellAt: (f.tick - 1) / tickHz })),
+        [],
+      ),
+    [tickHz],
   );
   const frame = useCallback(
     (now: number): ViewportFrame | null => {
-      const interpolator = sim.interpolator.current;
-      const time = interpolator?.time(now) ?? null;
-      if (!interpolator || time === null || !observation) return null;
-      const own = interpolator.sample(now);
+      // React's `observation` only says the session has a battle (it is reset
+      // with the battle, before a new interpolator exists). Everything this
+      // frame draws or decides reads the sample's publication, the tick its
+      // poses blend toward, never React's copy, which lags it by a render.
+      const sample = observation && sim.interpolator.current?.frame(now);
+      if (!sample) {
+        drawnObservation.current = null;
+        return null;
+      }
+      const { time, own, identified, observation: published } = sample;
       drawnPoses.current = own;
-      const identified = interpolator.sampleIdentified(now);
-      const d = sideInstances(own, identified, observation, rules.physics, units);
+      const d = sideInstances(own, identified, published, rules.physics, units);
       drawn.current = d;
       drawnAt.current = new Map(own.map((p) => [p.id, p.position]));
       drawnEnemyAt.current = new Map(identified.map((p) => [p.id, p.position]));
       drawnClock.current = time;
-      drawnTick.current = observation.tick;
+      drawnObservation.current = published;
       // The order just issued has not landed: its units still publish the old one.
       const pending = pendingAction.current;
       const ack = pending && control.acks.find(({ order }) => order === pending.order)?.ack;
-      const landed = ack && (ack.error || observation.tick >= ack.applied_tick);
+      const landed = ack && (ack.error || published.tick >= ack.applied_tick);
       const awaiting = new Set(
         pending && !landed && "units" in pending.order ? pending.order.units : [],
       );
-      const reveal = orderReveal.at(time, control.showOrders, observation.own, awaiting);
+      const reveal = orderReveal.at(time, control.showOrders, published.own, awaiting);
       if (!sameReveal(reveal, revealedRef.current)) {
         revealedRef.current = reveal;
         setRevealed(reveal);
       }
       const ground = sim.ground.current;
+      const fallenTrees = felled.of(published.fallenBodies);
       if (!posing) {
         effects.build(time, effectBatch);
         heard.current = { clock: time, motion: soundMotion(null, units, side) };
-        return { picks: d.picks, clock: time, effects: effectBatch, ground, felled };
+        return { picks: d.picks, clock: time, effects: effectBatch, ground, felled: fallenTrees };
       }
-      // The feed reads the publication the poses were sampled from, not React's
-      // `observation`, which lags it by a render: a soldier who just fell has
-      // left the poses before React's copy lists him fallen, and the driver
-      // would drop him unseen and lay him without his death.
-      const published = interpolator.observation() ?? observation;
-      const poses = posing.driver.update(posing.feed.frame(published, own, identified, time));
+      const poses = posing.driver.update(posing.feed.frame(sample));
       // Flashes sit on the muzzles as this frame draws them.
       posing.muzzles.update(poses);
       effects.build(time, effectBatch, posing.source);
       if (audio) {
-        const reversing = new Set(observation.own.filter((u) => u.reversing).map((u) => u.id));
+        const reversing = new Set(published.own.filter((u) => u.reversing).map((u) => u.id));
         const enemyReversing = new Set(
-          observation.identified.filter((u) => u.reversing).map((u) => u.id),
+          published.identified.filter((u) => u.reversing).map((u) => u.id),
         );
         heard.current = {
           clock: time,
           motion: soundMotion(poses, units, side, reversing, enemyReversing),
         };
       }
+      indoorUnits.of(published.own);
       const posed = poseFrameInstances(posing.models, poses, posing.resolve, xrayOf.current);
       lastHulls.note(poses.vehicles, time);
       // Each cooking-off hull: whole until its ammunition goes, then its
@@ -748,9 +768,9 @@ export function useBattleSession({
       }
       // Ghosts: purchases placed, every ordered destination with Space held,
       // a held right-drag's destinations, and the purchase being placed.
-      const ghosts = [...placedGhostList, ...dragGhosts.current];
+      const ghosts = [...placedGhostList.of(published.skirmish), ...dragGhosts.current];
       if (control.showOrders)
-        for (const unit of observation.own) {
+        for (const unit of published.own) {
           if (!reveal.has(unit.id)) continue;
           const ghost = orderedGhost(unit, gameXray.own);
           if (ghost) ghosts.push(ghost);
@@ -776,7 +796,7 @@ export function useBattleSession({
         picks: d.picks,
         models: composed,
         corpses: posing.corpses.list,
-        felled,
+        felled: fallenTrees,
         clock: time,
         effects: effectBatch,
         ground,
@@ -799,6 +819,7 @@ export function useBattleSession({
       control.acks,
       transitions,
       lastHulls,
+      indoorUnits,
       placedGhostList,
       inputEnabled,
       surfaceZ,
@@ -821,7 +842,8 @@ export function useBattleSession({
       if (!panel && pick.button === "left" && pointer.unit === null && pointer.enemy === null) {
         const ground = groundUnderRay(world.view, pick.ray);
         if (ground) {
-          for (const u of observation?.own ?? []) {
+          // The units the last frame drew, at their drawn poses.
+          for (const u of (drawnObservation.current ?? observation)?.own ?? []) {
             if (units.hull(u.kind)) continue;
             const pose = orderView(units, u, true);
             const drawnPose = drawnPoses.current.find((p) => p.id === u.id);
@@ -930,6 +952,9 @@ export function useBattleSession({
     };
   }
   const onCursor = (pointer: ViewportPointer, camera: Camera3DParams): CursorAction | null => {
+    // The battle as the last frame drew it: the picks and drawn positions
+    // below are that frame's, so its units and tick are too.
+    const shown = drawnObservation.current ?? observation;
     const active =
       pointer.position &&
       pointer.ray &&
@@ -986,7 +1011,7 @@ export function useBattleSession({
     const intent =
       active && held
         ? facedIntent(
-            reconcilePointerIntent(held.intent, observation),
+            reconcilePointerIntent(held.intent, shown),
             held.pick,
             release ? [release[0], release[1]] : null,
           )
@@ -1000,12 +1025,12 @@ export function useBattleSession({
     // Until admission answers, the released request retains its resolved marks,
     // including facing. It uses the same coalesced resolver as held/hover intent.
     const waiting = !held && pending && !accepted && released;
-    const queryIntent = waiting ? reconcilePointerIntent(released, observation) : intent;
+    const queryIntent = waiting ? reconcilePointerIntent(released, shown) : intent;
     const marks = pointerPaint.resolvePreview(
       active ? previewForIntent(queryIntent) : null,
-      observation?.own ?? [],
+      shown?.own ?? [],
       active ? sim.client : null,
-      `${observation?.tick ?? 0}:${control.acks[0]?.seq ?? 0}`,
+      `${shown?.tick ?? 0}:${control.acks[0]?.seq ?? 0}`,
       `${semanticRevision.current.version}:${held?.generation ?? (waiting ? pending.generation : 0)}`,
     );
     const showDestinations = queryIntent.kind === "move" || queryIntent.kind === "occupy_building";
@@ -1015,7 +1040,7 @@ export function useBattleSession({
     dragGhosts.current =
       active && held && pointer.rightDragging && showDestinations
         ? pointerPaint.destinations.flatMap((d) => {
-            const unit = observation?.own.find((u) => u.id === d.unit);
+            const unit = shown?.own.find((u) => u.id === d.unit);
             if (!unit || !d.placed) return [];
             return [
               {
@@ -1029,7 +1054,7 @@ export function useBattleSession({
           })
         : [];
     if (!held && accepted) {
-      if ((observation?.tick ?? 0) >= accepted.applied_tick) pendingAction.current = null;
+      if ((shown?.tick ?? 0) >= accepted.applied_tick) pendingAction.current = null;
       else if (
         !accepted.error &&
         released &&
@@ -1041,7 +1066,7 @@ export function useBattleSession({
         // the order lands and the overlay's own flash takes over.
         preview = pointerPaint.markers(
           accepted.placement?.destinations ?? accepted.building?.destinations ?? [],
-          observation?.own ?? [],
+          shown?.own ?? [],
         );
     }
     const ruler =
@@ -1064,7 +1089,7 @@ export function useBattleSession({
     );
     if (!active) return null;
     if (!held && pick?.unit != null) return "default";
-    if (!held && accepted && released && (observation?.tick ?? 0) < accepted.applied_tick) {
+    if (!held && accepted && released && (shown?.tick ?? 0) < accepted.applied_tick) {
       const action = cursorForRelease(intent, released, accepted);
       if (action !== null) return action;
     }
@@ -1109,9 +1134,9 @@ export function useBattleSession({
     /** The last drawn frame: the tick of the observation it presented, and
      *  its presentation clock in ticks. Null before the first frame. */
     presented: () =>
-      drawnClock.current === null || drawnTick.current === null
+      drawnClock.current === null || drawnObservation.current === null
         ? null
-        : { tick: drawnTick.current, clock: drawnClock.current * rules.tick_hz },
+        : { tick: drawnObservation.current.tick, clock: drawnClock.current * rules.tick_hz },
     /** The static pieces the last drawn frame drew beside the posed units (a
      *  cook-off's moving wreck and its debris): each one's appearance, state
      *  and how far its motion lowers it, metres. */
