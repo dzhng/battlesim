@@ -92,6 +92,10 @@ function failureOf(request: PrepareBattleRequest, error: unknown, replay: boolea
   };
 }
 
+/** The authority's reason ("replay was recorded by …") as a sentence. */
+const sentence = (reason: string) =>
+  `${reason.charAt(0).toUpperCase()}${reason.slice(1)}${/[.!?]$/.test(reason) ? "" : "."}`;
+
 /** When each stage of this page's loading finished, in milliseconds since
  *  navigation started (which is when the player pressed play). */
 type StartupMarks = Partial<Record<"prepared" | BattleLoadStage, number>>;
@@ -311,10 +315,18 @@ function PreparedBattleView({
       spawn={prepared.report.start.at}
       cover={cover}
       onFailure={(error) =>
-        setFailure({
-          message: replay ? "This replay cannot be played." : "The battle could not be started.",
-          details: [error],
-        })
+        setFailure(
+          replay
+            ? // The authority refuses a replay for a reason the player can
+              // act on (another build recorded it, or another scenario), so
+              // the reason is said on the screen, not only in the details.
+              {
+                message: "This replay cannot be played.",
+                advice: sentence(error),
+                details: [error],
+              }
+            : { message: "The battle could not be started.", details: [error] },
+        )
       }
       onLoadStage={(loaded) => {
         marks.current[loaded] ??= performance.now();

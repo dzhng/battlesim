@@ -78,6 +78,10 @@ test("a rejected replay shows its refusal and draws no battlefield", async () =>
       throw error;
     }
     expect(await page.getByRole("heading", { name: "Aborted" }).isVisible()).toBe(true);
+    // Why it was refused is said on the screen, not only behind Details.
+    expect(await page.getByTestId("error").innerText()).toMatch(
+      /Replay does not match this scenario\./,
+    );
     await page.getByRole("button", { name: "Details", exact: true }).click();
     expect(await page.getByTestId("error-details").innerText()).toBe(
       "replay does not match this scenario",
