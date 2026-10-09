@@ -8,7 +8,8 @@ const VALID := {
 	"tickHz": 30,
 	"warmTick": 90,
 	"side": "blue",
-	"samples": [{"tick": 90, "digest": "0123456789abcdef", "publication": [1.0, -2.5], "camera": {"target": [0.0, 0.0], "distance": 20.0, "yaw": 0.0, "pitch": 0.2}}],
+	"layout": "{\"schema\":\"test\"}",
+	"samples": [{"tick": 90, "digest": "0123456789abcdef", "publication": [1, 4294967294], "camera": {"target": [0.0, 0.0], "distance": 20.0, "yaw": 0.0, "pitch": 0.2}}],
 }
 
 func _init() -> void:
@@ -16,7 +17,7 @@ func _init() -> void:
 	assert(valid.valid)
 	assert(valid.comparison_ready)
 	assert(valid.sample_count == 1)
-	assert(valid.publication_floats == 2)
+	assert(valid.publication_words == 2)
 
 	var reordered: Dictionary = VALID.duplicate(true)
 	reordered.samples = [VALID.samples[0], VALID.samples[0].duplicate(true)]

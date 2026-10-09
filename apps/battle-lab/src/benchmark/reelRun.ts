@@ -12,6 +12,7 @@ export interface ReelResult {
   startTick: number;
   endTick: number;
   tickHz: number;
+  layout: string;
   adapter: string | null;
   capture: readonly PresentationSample[];
 }
@@ -22,6 +23,7 @@ export function createReelRun(scene: BackdropScene, tickHz: number, onDone: (res
   const recording = new BenchmarkRecording(durationMs);
   const startTick = Math.round(scene.warm_s * tickHz);
   let endTick = startTick;
+  let layout = "";
   let warm = false;
   let finished = false;
   let adapter: string | null = null;
@@ -46,7 +48,7 @@ export function createReelRun(scene: BackdropScene, tickHz: number, onDone: (res
   const finish = (outcome: BenchmarkOutcome) => {
     if (finished) return;
     finished = true;
-    onDone({ scene, outcome, recording, startTick, endTick, tickHz, adapter, capture });
+    onDone({ scene, outcome, recording, startTick, endTick, tickHz, layout, adapter, capture });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
   const pilot: ViewportPilot = {
@@ -72,10 +74,11 @@ export function createReelRun(scene: BackdropScene, tickHz: number, onDone: (res
   };
   const scripted: ScriptedSim = {
     warmTo: startTick,
+    onReady(info) { layout = info.layout; },
     onWarm() { warm = true; },
     onTick(t) { endTick = t.tick; recording.tick(t); },
     onPublication(p) {
-      if (!recording.started) return;
+      if (finished) return;
       const pose = pilot.pose(performance.now());
       if (pose) capture.push({ tick: p.tick, digest: p.digest, publication: p.packed, camera: pose });
     },

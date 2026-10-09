@@ -30,7 +30,7 @@ export interface Publication {
   bytes: number;
   /** Wall time the authority spent stepping this tick, ms. */
   stepMs: number;
-  /** Copy the packed authority publication while the credit is held. */
+  /** Copy the packed authority words while the credit is held, preserving bits. */
   copyPacked(): number[];
   /** Return the buffer to the producer. Until then the authority may stall. */
   release(): void;
@@ -49,7 +49,7 @@ export interface SimClientOptions {
 }
 
 export interface SimClient {
-  readonly ready: Promise<{ tickHz: number; tick: number }>;
+  readonly ready: Promise<{ tickHz: number; tick: number; layout: string }>;
   /** Explicit pause intent, independent of loading, visibility or consumer stalls. */
   readonly paused: boolean;
   start(): void;
@@ -151,9 +151,9 @@ export function createSimClient(options: SimClientOptions): SimClient {
   const statusListeners: ((status: AuthorityStatus, slow: boolean) => void)[] = [];
   let consumer: ((publication: Publication) => void) | null = null;
   let replayWaiter: Pending<string> | null = null;
-  let resolveReady!: (info: { tickHz: number; tick: number }) => void;
+  let resolveReady!: (info: { tickHz: number; tick: number; layout: string }) => void;
   let rejectReady!: (error: Error) => void;
-  const ready = new Promise<{ tickHz: number; tick: number }>((resolve, reject) => {
+  const ready = new Promise<{ tickHz: number; tick: number; layout: string }>((resolve, reject) => {
     resolveReady = resolve;
     rejectReady = reject;
   });
@@ -211,7 +211,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
           decoder = new ObservationDecoder(layout);
           decoder.invalidate(observedSide);
           ground = new GroundView(layout.ground);
-          resolveReady({ tickHz: reply.tickHz, tick: reply.tick });
+          resolveReady({ tickHz: reply.tickHz, tick: reply.tick, layout: reply.layout });
           break;
         }
         case "status":
@@ -264,7 +264,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
             bytes: reply.length * Float32Array.BYTES_PER_ELEMENT,
             stepMs: reply.stepMs,
             copyPacked() {
-              return Array.from(new Float32Array(buffer, 0, reply.length));
+              return Array.from(new Uint32Array(buffer, 0, reply.length));
             },
             release() {
               if (released || disposed) return;

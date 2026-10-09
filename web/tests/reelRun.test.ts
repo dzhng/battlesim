@@ -32,7 +32,7 @@ test("a reel capture copies packed publications before their credits are release
   const run = createReelRun(scene, 30, (r) => results.push(r));
   run.scripted.onWarm();
   run.pilot.frame!({ now: 1000, cpuMs: 1, camera });
-  run.scripted.onPublication!({ tick: 61, digest: "0123456789abcdef", packed: [1, 2, 3] });
+  run.scripted.onPublication!({ tick: 61, digest: "0123456789abcdef", packed: [1, 2, 3], warm: true });
   expect(run.captureSamples()).toEqual([
     expect.objectContaining({ tick: 61, digest: "0123456789abcdef", publication: [1, 2, 3] }),
   ]);

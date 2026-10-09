@@ -9,12 +9,15 @@ export interface PresentationCapture {
   tickHz: number;
   warmTick: number;
   side: "blue" | "red";
+  /** Exact Rust publication layout JSON for a fresh decoder. */
+  layout: string;
   samples: readonly PresentationSample[];
 }
 
 export interface PresentationSample {
   tick: number;
   digest: string;
+  /** Raw u32 carriers from the authority publication, never decoded as f32. */
   publication: readonly number[];
   camera: CameraPose;
 }
@@ -24,11 +27,14 @@ export function validatePresentationCapture(capture: PresentationCapture): Prese
   if (capture.schema !== "battle-presentation-capture/v1") throw new Error("unsupported presentation capture schema");
   if (!Number.isInteger(capture.tickHz) || capture.tickHz <= 0) throw new Error("capture tickHz must be positive");
   if (!Number.isInteger(capture.warmTick) || capture.warmTick < 0) throw new Error("capture warmTick must be non-negative");
-  let previous = capture.warmTick - 1;
+  if (typeof capture.layout !== "string" || capture.layout.length === 0) throw new Error("capture layout must be non-empty JSON");
+  let previous = -1;
   for (const sample of capture.samples) {
-    if (!Number.isInteger(sample.tick) || sample.tick <= previous) throw new Error("capture samples must increase by tick");
+    if (!Number.isInteger(sample.tick) || sample.tick < 0 || sample.tick <= previous)
+      throw new Error("capture samples must increase by non-negative tick");
     if (!/^[0-9a-f]{16}$/i.test(sample.digest)) throw new Error("capture digest must be a 16-digit hex value");
-    if (!sample.publication.every(Number.isFinite)) throw new Error("capture publication contains a non-finite value");
+    if (!sample.publication.every((word) => Number.isInteger(word) && word >= 0 && word <= 0xffffffff))
+      throw new Error("capture publication contains an invalid u32 word");
     previous = sample.tick;
   }
   return capture;

@@ -24,6 +24,8 @@ export interface SimSessionOptions {
  *  starts. */
 export interface ScriptedSim {
   warmTo: number;
+  /** The producer's exact publication layout, before warm-up begins. */
+  onReady?: (info: { tickHz: number; tick: number; layout: string }) => void;
   /** Called when the battle first stands at `warmTo`; it holds there until
    *  the promise settles. Without it real time starts at once. */
   hold?: () => Promise<void>;
@@ -31,8 +33,8 @@ export interface ScriptedSim {
   onWarm: () => void;
   /** Every tick published once warm, with its cost. */
   onTick: (t: { tick: number; stepMs: number; bytes: number }) => void;
-  /** Called while a warm publication still owns its producer credit. */
-  onPublication?: (p: { tick: number; digest: string; packed: number[] }) => void;
+  /** Called while a publication still owns its producer credit, including preroll. */
+  onPublication?: (p: { tick: number; digest: string; packed: number[]; warm: boolean }) => void;
 }
 
 /** One worker authority for a lab scenario. Publications are consumed (their
@@ -119,12 +121,8 @@ export function useSimSession({
       if (warm) {
         const { tick, stepMs, bytes } = publication;
         plan?.onTick({ tick, stepMs, bytes });
-        plan?.onPublication?.({
-          tick,
-          digest: publication.digest,
-          packed: publication.copyPacked(),
-        });
       }
+      plan?.onPublication?.({ tick: publication.tick, digest: publication.digest, packed: publication.copyPacked(), warm });
       frame ??= requestAnimationFrame(render);
       onDecodedRef.current?.(publication.observation, publication.digest);
       if (held.current) held.current.push(publication);
@@ -133,7 +131,9 @@ export function useSimSession({
     setError(null);
     next.ready.catch((e: Error) => setError(e.message));
     void next.ready.then(
-      ({ tickHz }) => {
+      (info) => {
+        plan?.onReady?.(info);
+        const { tickHz } = info;
         interpolator.current = new TickInterpolator(1000 / tickHz);
         if (viewportReady.current) next.start();
       },

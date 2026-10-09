@@ -34,26 +34,28 @@ static func validate(value: Variant) -> Dictionary:
 		return _invalid("capture tickHz must be positive")
 	if not _is_non_negative_integer(capture.get("warmTick")):
 		return _invalid("capture warmTick must be non-negative")
+	if typeof(capture.get("layout")) != TYPE_STRING or String(capture.layout).is_empty():
+		return _invalid("capture layout must be a non-empty JSON string")
 	if capture.get("side") != "blue" and capture.get("side") != "red":
 		return _invalid("capture side must be blue or red")
 	if typeof(capture.get("samples")) != TYPE_ARRAY:
 		return _invalid("capture samples must be an array")
 
-	var previous_tick := int(capture.warmTick) - 1
+	var previous_tick := -1
 	var sample_index := 0
 	for raw_sample in capture.samples:
 		if typeof(raw_sample) != TYPE_DICTIONARY:
 			return _invalid("capture sample %d must be an object" % sample_index)
 		var sample: Dictionary = raw_sample
-		if not _is_integer(sample.get("tick")) or int(sample.tick) <= previous_tick:
-			return _invalid("capture samples must increase by tick")
+		if not _is_integer(sample.get("tick")) or int(sample.tick) < 0 or int(sample.tick) <= previous_tick:
+			return _invalid("capture samples must increase by non-negative tick")
 		if not _is_digest(sample.get("digest")):
 			return _invalid("capture sample %d digest must be a 16-digit hex value" % sample_index)
 		if typeof(sample.get("publication")) != TYPE_ARRAY:
 			return _invalid("capture sample %d publication must be an array" % sample_index)
 		for item in sample.publication:
-			if not _is_finite_number(item):
-				return _invalid("capture sample %d publication contains a non-finite value" % sample_index)
+			if not _is_u32(item):
+				return _invalid("capture sample %d publication contains an invalid u32 word" % sample_index)
 		var camera = sample.get("camera")
 		if not _valid_camera(camera):
 			return _invalid("capture sample %d camera pose is malformed" % sample_index)
@@ -66,7 +68,7 @@ static func validate(value: Variant) -> Dictionary:
 		"comparison_blocker": "",
 		"capture": capture,
 		"sample_count": sample_index,
-		"publication_floats": _publication_count(capture.samples),
+		"publication_words": _publication_count(capture.samples),
 	}
 
 static func _invalid(reason: String) -> Dictionary:
@@ -94,6 +96,9 @@ static func _is_non_negative_integer(value: Variant) -> bool:
 
 static func _is_finite_number(value: Variant) -> bool:
 	return (typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT) and is_finite(float(value))
+
+static func _is_u32(value: Variant) -> bool:
+	return _is_integer(value) and float(value) >= 0.0 and float(value) <= 4294967295.0
 
 static func _is_digest(value: Variant) -> bool:
 	if typeof(value) != TYPE_STRING:

@@ -135,9 +135,10 @@ test("an authority failure returns held records once and rejects requests after 
       const buffer = new Float32Array(memory.buffer, battle.publication_ptr(), length).slice()
         .buffer;
       deliver({ type: "publication", tick, digest: battle.digest(), length, buffer, stepMs: 0 });
+      expect(held.at(-1)!.copyPacked()).toEqual(Array.from(new Uint32Array(buffer)));
     }
     expect(held.map((publication) => publication.tick)).toEqual([1, 2]);
-    expect(held[0].copyPacked()).toHaveLength(held[0].bytes / Float32Array.BYTES_PER_ELEMENT);
+    expect(held[0].copyPacked()).toHaveLength(held[0].bytes / Uint32Array.BYTES_PER_ELEMENT);
     expect(requests.filter((request) => request.type === "credit")).toEqual([]);
     const command = client.command({ kind: "stop", units: [1] });
     const advance = client.advance(1);
