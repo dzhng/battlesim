@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { validatePresentationCapture, type PresentationCapture } from "@web/battle/benchmark/presentationCapture";
+import { decodePresentationCapture, encodePresentationCapture, validatePresentationCapture, type PresentationCapture } from "@web/battle/benchmark/presentationCapture";
 
 const pose = { target: [0, 0] as const, distance: 20, yaw: 0, pitch: 0.2 };
 const capture: PresentationCapture = {
@@ -17,4 +17,9 @@ test("accepts a versioned capture with ordered authority samples", () => {
 test("rejects reordered samples and malformed digests", () => {
   expect(() => validatePresentationCapture({ ...capture, samples: [{ ...capture.samples[0], digest: "x" }] })).toThrow(/digest/);
   expect(() => validatePresentationCapture({ ...capture, samples: [capture.samples[0], { ...capture.samples[0], tick: 90 }] })).toThrow(/increase/);
+});
+
+test("round-trips through the native-tool JSON boundary", () => {
+  expect(decodePresentationCapture(encodePresentationCapture(capture))).toEqual(capture);
+  expect(() => decodePresentationCapture("{" )).toThrow(/JSON/);
 });
