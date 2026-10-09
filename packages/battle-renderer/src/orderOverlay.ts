@@ -416,9 +416,10 @@ function marchChevron(
   color: Rgba,
   normal: readonly [number, number, number],
   size = CHEVRON_M,
+  line = pen.line,
 ) {
   const [length, spread] = size;
-  const width = pen.line;
+  const width = line;
   const at = (p: P2) => [p[0], p[1], pen.z(p[0], p[1])] as const;
   const fx = Math.cos(bearing),
     fy = Math.sin(bearing);
@@ -577,8 +578,9 @@ export function buildDestinationPreview(
   return mesh.build();
 }
 
-/** The reinforcement entry marker: three painted inward chevrons whose glow
- *  marches toward the destination. */
+/** The reinforcement entry marker: three inward chevrons stacked along the
+ *  battle direction. Their bright fill pulses in sequence, so the glow reads
+ *  as movement into the map rather than as a static button-shaped glyph. */
 export function buildDeploymentMarker(
   destination: readonly [number, number],
   facing: number,
@@ -591,28 +593,33 @@ export function buildDeploymentMarker(
   const pen = orderPen(z, style, stroke);
   const color = glowing([...markerColor, 1], style.glow.selected);
   const { cycles_per_s, amplitude } = style.march;
-  for (let i = 0; i < 3; i++) {
-    // Three separate chevrons span the entry edge, matching the compact
-    // battlefield cue; the center one carries the pulse.
-    const tip = along(along(destination, facing, 4), facing + Math.PI / 2, (i - 1) * 42);
-    const chevronColor = color;
-    const tail = along(tip, facing + Math.PI, 24);
-    const left = along(tail, facing + Math.PI / 2, 18);
-    const right = along(tail, facing - Math.PI / 2, 18);
-    const width = 8;
-    groundStrip(mesh, left, tip, width, chevronColor, { z: pen.z, lift: 0.2 });
-    groundStrip(mesh, right, tip, width, chevronColor, { z: pen.z, lift: 0.2 });
-    if (i === 1)
-      marchChevron(
-        mesh,
-        pen,
-        tip,
-        facing,
-        color,
-        [0.5, cycles_per_s, Math.max(amplitude, 0.95)],
-        [24, 36],
-      );
-  }
+  const offsets = [-14, 0, 14];
+  const outline: Rgba = [markerColor[0] * 0.45, markerColor[1] * 0.55, markerColor[2] * 0.6, 1];
+  offsets.forEach((offset, i) => {
+    const tip = along(destination, facing, offset);
+    // A dark, slightly oversized underlay leaves the crisp outlined edge seen
+    // in the reference around each painted chevron.
+    marchChevron(mesh, pen, tip, facing, outline, [0, 0, 0], [7.8, 12.5], pen.line * 2.6);
+    // The pulse advances from the outer chevron toward the spawn point and
+    // back again. At any instant one chevron is visibly bright.
+    marchChevron(
+      mesh,
+      pen,
+      tip,
+      facing,
+      color,
+      [i === 1 ? 0 : i === 0 ? 1 / 3 : 2 / 3, cycles_per_s, Math.max(amplitude, 0.95)],
+      [6.8, 10.8],
+      i === 1 ? pen.line * 3.2 : pen.line * 1.25,
+    );
+  });
+  // The small point inside the middle chevron anchors the exact entry spot.
+  groundAnnulus(mesh, along(destination, facing, -2.8), 0, Math.max(pen.line * 2.2, 0.18), {
+    z: pen.z,
+    segments: 16,
+    colorIn: color,
+    lift: 0.25,
+  });
   return mesh.build();
 }
 

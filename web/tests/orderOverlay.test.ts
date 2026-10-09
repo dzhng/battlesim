@@ -94,12 +94,21 @@ const squad = (over: Partial<OrderView> = {}): OrderView => ({
 const TANK_HALF = UNITS.hull("test_tank")!.half_extents_m[0];
 const vehicle = { members: [], memberOrders: [], area: null, hullHalfLength: TANK_HALF };
 
-test("deployment marker paints three inward marching chevrons", () => {
+test("deployment marker stacks three inward chevrons along the battle direction", () => {
   const marker = buildDeploymentMarker([20, 10], 0, flat, STYLE, [0.2, 0.8, 1], at(0.05));
   expect(marker.length).toBeGreaterThan(0);
   const phases = new Set<number>();
   for (let i = 0; i < marker.length; i += VERTEX_FLOATS) phases.add(marker[i + 3]);
   expect(phases.size).toBeGreaterThan(1);
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (let i = 0; i < marker.length; i += VERTEX_FLOATS) {
+    xs.push(marker[i]);
+    ys.push(marker[i + 1]);
+  }
+  // Facing east: the chevrons are stacked east-to-west, with only their
+  // short arms spanning north/south.
+  expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(Math.max(...ys) - Math.min(...ys));
 });
 
 test("cover icons appear only with the order marks, one per tier present, none for no cover", () => {
