@@ -401,7 +401,7 @@ func _process(delta: float) -> void:
 	_scene_pose()
 	_update_observed_units()
 	if not cut_dir.is_empty() and shot_elapsed <= advance:
-		call_deferred("_save_cut")
+		call_deferred("_save_cut", scene_index, shot_index)
 	elapsed += advance
 	scene_elapsed += advance
 	shot_elapsed += advance
@@ -415,8 +415,8 @@ func _process(delta: float) -> void:
 			scene_elapsed = 0.0
 			scene_index += 1
 			if scene_index >= scenes.size():
-				_write_report()
-				get_tree().quit()
+				started = false
+				call_deferred("_finish_reel")
 			else:
 				_show_scene()
 
@@ -508,7 +508,11 @@ func _apply_pose(pose: Dictionary) -> void:
 	camera.position = point + Vector3(distance * cp * cos(yaw), distance * sin(pitch), distance * cp * sin(yaw))
 	camera.look_at(point, Vector3.UP)
 
-func _save_cut() -> void:
+func _finish_reel() -> void:
+	_write_report()
+	get_tree().quit()
+
+func _save_cut(scene_to_save: int, shot_to_save: int) -> void:
 	DirAccess.make_dir_recursive_absolute(cut_dir)
 	var texture := get_viewport().get_texture()
 	if texture == null:
@@ -516,7 +520,7 @@ func _save_cut() -> void:
 	var image := texture.get_image()
 	if image == null:
 		return
-	var path := cut_dir.path_join("scene-%02d-shot-%02d.png" % [scene_index, shot_index])
+	var path := cut_dir.path_join("scene-%02d-shot-%02d.png" % [scene_to_save, shot_to_save])
 	if image.save_png(path) == OK:
 		if not saved_cut_paths.has(path):
 			saved_cut_paths[path] = true
