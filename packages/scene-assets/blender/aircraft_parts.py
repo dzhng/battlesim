@@ -105,6 +105,10 @@ def _cross(arm, foot):
             (a, f)]
 
 
+# A grinning mouth's outline: pointed ahead (+U), deepest a third of the way
+# back, rounded off behind.
+_MOUTH = [(1.0, 0.0), (0.5, 0.14), (0.0, 0.3), (-0.5, 0.38), (-0.85, 0.3), (-1.0, 0.1), (-1.0, -0.1),
+          (-0.85, -0.3), (-0.5, -0.34), (0.0, -0.24), (0.5, -0.1)]
 # An insignia is layers, back first: (outline, scale, centre offset (u, v) in
 # its size, colour). An outline is star-shaped about its own centre.
 DISC = _ngon(32)
@@ -123,6 +127,13 @@ INSIGNIA = {
                 (_star(), 0.58, (0, 0), "yellow"), (_star(), 0.52, (0, 0), "red")],
     # The PLA's star alone, as on a fin.
     "cn_fin": [(_star(), 1.0, (0, 0), "yellow"), (_star(), 0.88, (0, 0), "red")],
+    # The Flying Tigers' shark mouth, its point toward +U (the nose, given
+    # `ahead`): red lips, the dark maw, white teeth top and bottom.
+    "shark_mouth": [(_MOUTH, 1.0, (0, 0), "red"), (_MOUTH, 0.86, (0.03, 0), "black"),
+                    *[(_ngon(3, 0.075, -math.pi / 2), 1.0, (u, 0.2 - 0.12 * max(0.0, u)), "white")
+                      for u in (-0.62, -0.42, -0.22, -0.02, 0.18, 0.38)],
+                    *[(_ngon(3, 0.075, math.pi / 2), 1.0, (u + 0.1, -0.16 + 0.08 * max(0.0, u)), "white")
+                      for u in (-0.62, -0.42, -0.22, -0.02, 0.18)]],
     # The roundels, outer ring first.
     "uk_lowvis": [(DISC, 1.0, (0, 0), "pale_blue"), (DISC, 0.45, (0, 0), "pale_red")],
     # The fin flash, red aft of blue.
@@ -174,13 +185,20 @@ def _lay(points, centre, normal, up, size, tree, lift):
     return out
 
 
-def insignia(name, kind, centre, normal, up, size, mats, parent, onto, lods=NEAR):
+def insignia(name, kind, centre, normal, up, size, mats, parent, onto, lods=NEAR, ahead=None):
     """A national insignia `kind` (`INSIGNIA`), `size` metres from its centre
     to its outer edge, painted on the skin of the parts named by `onto` at
-    `centre`, facing `normal`, its top toward `up` (a star's point)."""
+    `centre`, facing `normal`, its top toward `up` (a star's point). A
+    shape that isn't symmetric across its top (nose art) turns its +U
+    toward `ahead`, so each side's copy faces the same way."""
     import bpy
     from parts import _obj
     tree = _targets(onto)
+    flip = 1
+    if ahead is not None:
+        n = Vector(normal).normalized()
+        ev = (Vector(up) - n * Vector(up).dot(n)).normalized()
+        flip = 1 if ev.cross(n).dot(Vector(ahead)) >= 0 else -1
     inv = parent.matrix_world.inverted_safe()
     for k, (outline, scale, (du, dv), colour) in enumerate(INSIGNIA[kind]):
         def make(lod, n, outline=outline, scale=scale, du=du, dv=dv, k=k):
@@ -191,8 +209,8 @@ def insignia(name, kind, centre, normal, up, size, mats, parent, onto, lods=NEAR
             for a, b in zip(outline, outline[1:] + outline[:1]):
                 steps = max(1, int(math.dist(a, b) * scale * size / 0.12))
                 dense += [(a[0] + (b[0] - a[0]) * j / steps, a[1] + (b[1] - a[1]) * j / steps) for j in range(steps)]
-            pts = [(du, dv)] + [(du + x * scale * t, dv + y * scale * t) for t in
-                                 [(r + 1) / rings for r in range(rings)] for x, y in dense]
+            pts = [(flip * du, dv)] + [(flip * (du + x * scale * t), dv + y * scale * t) for t in
+                                        [(r + 1) / rings for r in range(rings)] for x, y in dense]
             world = _lay(pts, centre, normal, up, size, tree, 0.006 + 0.004 * k)
             bm = bmesh.new()
             vs = [bm.verts.new(inv @ p) for p in world]

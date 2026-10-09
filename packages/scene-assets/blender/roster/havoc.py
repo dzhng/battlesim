@@ -26,8 +26,8 @@ from vehicle_parts import MID  # noqa: E402
 
 CARDS = {"eastern_mi_28_havoc_mi_28nm": (17.01, 4.88, 4.7)}
 SPEC = dict(
-    fuselage=[(8.2, 0.0, 1.35, 1.35), (7.9, 0.5, 1.0, 1.8, 1.35, 2.4), (6.6, 0.62, 0.85, 2.3, 1.45, 3.0),
-              (4.8, 0.68, 0.85, 2.75, 1.6, 3.0), (2.4, 0.82, 0.9, 2.66, 1.65, 3.4), (0.0, 0.78, 0.95, 2.6, 1.7, 3.4),
+    fuselage=[(8.2, 0.0, 1.35, 1.35), (7.9, 0.5, 1.0, 1.8, 1.35, 2.4), (6.6, 0.64, 0.85, 2.05, 1.45, 3.0),
+              (4.8, 0.7, 0.85, 2.45, 1.6, 3.0), (2.4, 0.82, 0.9, 2.66, 1.65, 3.4), (0.0, 0.78, 0.95, 2.6, 1.7, 3.4),
               (-1.6, 0.5, 1.25, 2.42, 1.8, 3.0), (-4.5, 0.26, 1.6, 2.2, 1.9, 2.4), (-7.6, 0.22, 1.75, 2.3, 2.0),
               (-8.5, 0.2, 1.8, 2.6, 2.1)],
     wing=[(1.6, 0.75, 2.0, 1.4, 0.18), (1.35, 2.32, 1.72, 1.1, 0.12)],
@@ -44,8 +44,9 @@ SPEC = dict(
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
-    A.canopy("canopy", 7.8, 6.3, 1.85, 2.32, 0.55, m, hull, bows=(7.0,), peak=0.6)
-    A.canopy("canopy_glass_rear", 6.25, 4.6, 2.25, 2.85, 0.6, m, hull, bows=(5.4,), peak=0.5)
+    # The photo's flat armoured glass stands tall out of the body.
+    A.canopy("canopy", 7.8, 6.25, 1.62, 2.45, 0.6, m, hull, bows=(7.3, 6.8), peak=0.6, tail=0.75)
+    A.canopy("canopy_glass_rear", 6.25, 4.55, 1.95, 2.98, 0.64, m, hull, bows=(5.7, 5.1), peak=0.5, tail=0.8)
     A.sensor_ball("sensor", (8.15, 0, 1.1), 0.32, m, hull)
     cyl("gun_mount", 0.2, 0.4, (6.6, 0, 0.72), "Z", m["dark"], hull, seg=12)
     cyl("gun_barrel", 0.06, 1.8, (7.4, 0, 0.62), "X", m["steel"], hull, seg=8, lods=MID)

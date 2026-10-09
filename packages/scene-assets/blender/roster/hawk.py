@@ -38,19 +38,21 @@ def spec(variant):
     nose = CARDS[variant["id"]][0] / 2
     tail = -CARDS[variant["id"]][0] / 2
     return dict(
-        fuselage=[(nose, 0.0, 1.28, 1.28), (nose - 0.4, 0.55, 0.78, 1.66, 1.18, 2.2),
-                  (nose - 1.4, 0.82, 0.56, 2.02, 1.12, 2.4), (nose - 2.8, 0.96, 0.48, 2.22, 1.12, 3.0),
-                  (2.0, 1.05, 0.45, 2.26, 1.2, 3.5), (-0.5, 1.0, 0.5, 2.22, 1.25, 3.5), (-1.6, 0.7, 0.9, 2.12, 1.5, 2.6),
+        # The photos: a short, tall cabin under the engines' hump, the
+        # mains forward under the cockpit's back, the tail wheel far aft.
+        fuselage=[(nose, 0.0, 1.28, 1.28), (nose - 0.4, 0.55, 0.78, 1.7, 1.18, 2.2),
+                  (nose - 1.4, 0.84, 0.56, 2.14, 1.15, 2.4), (nose - 2.8, 0.98, 0.48, 2.36, 1.2, 3.0),
+                  (2.0, 1.06, 0.45, 2.4, 1.28, 3.5), (-0.5, 1.0, 0.5, 2.34, 1.32, 3.5), (-1.6, 0.7, 0.9, 2.12, 1.5, 2.6),
                   (-4.0, 0.38, 1.35, 2.05, 1.7, 2.2), (-6.6, 0.28, 1.5, 2.0, 1.75), (tail, 0.24, 1.55, 2.2, 1.85)],
-        bodies=[("fuselage_roof", [(3.6, 0.0, 2.2, 2.2), (3.0, 0.75, 2.1, 2.62, 2.3, 3.0),
-                                   (-0.8, 0.7, 2.1, 2.66, 2.3, 3.0), (-2.0, 0.0, 2.2, 2.2)])],
-        canopy=dict(x_front=nose - 0.3, x_back=nose - 2.1, sill=1.3, top=2.14, half_width=0.94, peak=0.75,
-                    bows=(nose - 1.2,)),
+        bodies=[("fuselage_roof", [(3.7, 0.0, 2.35, 2.35), (3.1, 0.8, 2.25, 2.86, 2.45, 3.0),
+                                   (-0.8, 0.75, 2.25, 2.9, 2.45, 3.0), (-2.1, 0.0, 2.35, 2.35)])],
+        canopy=dict(x_front=nose - 0.3, x_back=nose - 2.1, sill=1.25, top=2.32, half_width=0.96, peak=0.8,
+                    bows=(nose - 1.2, nose - 0.7), tail=0.9),
         stab=[(tail + 1.0, 0.25, 1.72, 1.1, 0.12), (tail + 0.8, 2.19, 1.72, 0.9, 0.08)],
         fins=[dict(root_x=tail + 1.3, root_z=1.95, height=1.7 if not z20 else 1.8, root_chord=1.6, tip_chord=1.05,
                    sweep_m=0.8, thick=0.16)],
-        gear=[dict(name="main_L", x=-0.2, y=1.38, top=0.95, radius=0.38, width=0.22),
-              dict(name="main_R", x=-0.2, y=-1.38, top=0.95, radius=0.38, width=0.22),
+        gear=[dict(name="main_L", x=nose - 3.3, y=1.38, top=0.95, radius=0.38, width=0.22),
+              dict(name="main_R", x=nose - 3.3, y=-1.38, top=0.95, radius=0.38, width=0.22),
               dict(name="tail", x=tail + 1.5, y=0.0, top=1.5, radius=0.2, width=0.12)],
     )
 
@@ -65,10 +67,10 @@ def build(variant, v):
     height = CARDS[variant["id"]][2]
     # The engines either side of the transmission, their exhausts turned out.
     for side, k in ((1, "L"), (-1, "R")):
-        A.body(f"nacelle_{k}", [(2.8, 0.0, 2.48, 2.48), (2.5, 0.34, 2.18, 2.8, 2.48), (0.0, 0.34, 2.16, 2.78, 2.46),
-                                (-0.6, 0.24, 2.3, 2.66, 2.48)], m["paint"], hull, seg=14, loc=(0, side * 0.58, 0))
-        cyl(f"nacelle_{k}_intake", 0.26, 0.04, (2.82, side * 0.58, 2.48), "X", m["black"], hull, seg=14, lods=MID)
-        cyl(f"exhaust_{k}", 0.2, 0.5, (-0.7, side * 0.86, 2.48), "Y", m["nozzle"], hull, seg=12,
+        A.body(f"nacelle_{k}", [(2.8, 0.0, 2.6, 2.6), (2.5, 0.34, 2.3, 2.92, 2.6), (0.0, 0.34, 2.28, 2.9, 2.58),
+                                (-0.6, 0.24, 2.42, 2.78, 2.6)], m["paint"], hull, seg=14, loc=(0, side * 0.58, 0))
+        cyl(f"nacelle_{k}_intake", 0.26, 0.04, (2.82, side * 0.58, 2.6), "X", m["black"], hull, seg=14, lods=MID)
+        cyl(f"exhaust_{k}", 0.2, 0.5, (-0.7, side * 0.86, 2.6), "Y", m["nozzle"], hull, seg=12,
             rot=(0, 0, side * 0.4), lods=MID)
         # Cabin door rails and windows, cockpit door windows.
         box(f"cabin_door_{k}", (1.8, 0.03, 1.2), (1.2, side * 1.06, 1.25), m["dark"], hull, lods=MID)

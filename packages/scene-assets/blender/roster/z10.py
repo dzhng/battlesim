@@ -25,8 +25,8 @@ from vehicle_parts import MID  # noqa: E402
 
 CARDS = {"eastern_z_10_attack_helicopter": (14.15, 4.32, 3.85)}
 SPEC = dict(
-    fuselage=[(7.07, 0.0, 1.3, 1.3), (6.7, 0.42, 0.95, 1.64, 1.3, 1.8), (5.7, 0.52, 0.8, 2.05, 1.35, 2.4),
-              (4.1, 0.56, 0.8, 2.45, 1.45, 2.6), (2.4, 0.62, 0.85, 2.38, 1.5, 3.0), (0.4, 0.6, 0.9, 2.28, 1.55, 3.0),
+    fuselage=[(7.07, 0.0, 1.3, 1.3), (6.7, 0.42, 0.95, 1.64, 1.3, 1.8), (5.7, 0.54, 0.8, 1.8, 1.35, 2.4),
+              (4.1, 0.58, 0.8, 2.1, 1.45, 2.6), (2.4, 0.62, 0.85, 2.38, 1.5, 3.0), (0.4, 0.6, 0.9, 2.28, 1.55, 3.0),
               (-1.2, 0.42, 1.15, 2.1, 1.65, 2.6), (-4.2, 0.22, 1.4, 1.9, 1.65, 2.2), (-6.4, 0.18, 1.45, 1.95, 1.7),
               (-7.08, 0.16, 1.5, 2.1, 1.75)],
     wing=[(1.6, 0.55, 1.6, 1.2, 0.16), (1.4, 2.06, 1.52, 1.0, 0.12)],
@@ -43,8 +43,9 @@ SPEC = dict(
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
-    A.canopy("canopy", 6.45, 5.0, 1.8, 2.2, 0.48, m, hull, bows=(5.7,), peak=0.6)
-    A.canopy("canopy_glass_rear", 4.95, 3.4, 2.15, 2.68, 0.52, m, hull, bows=(4.2,), peak=0.5)
+    # The three-view's stepped glass, tall and standing out of the body.
+    A.canopy("canopy", 6.45, 4.95, 1.55, 2.35, 0.52, m, hull, bows=(6.0, 5.5), peak=0.6, tail=0.75)
+    A.canopy("canopy_glass_rear", 4.95, 3.35, 1.85, 2.82, 0.56, m, hull, bows=(4.45, 3.85), peak=0.5, tail=0.8)
     A.sensor_ball("sensor", (6.85, 0, 1.12), 0.24, m, hull)
     cyl("gun_turret", 0.2, 0.3, (5.6, 0, 0.66), "Z", m["dark"], hull, seg=12)
     cyl("gun_barrel", 0.05, 1.2, (6.2, 0, 0.58), "X", m["steel"], hull, seg=8, lods=MID)

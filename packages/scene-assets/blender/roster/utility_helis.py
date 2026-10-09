@@ -40,12 +40,15 @@ CARDS = {NH90: (16.13, 3.6, 4.33), MERLIN: (19.53, 4.52, 4.95), WILDCAT: (13.0, 
 
 SPECS = {
     NH90: dict(
-        fuselage=[(8.07, 0.0, 1.3, 1.3), (7.7, 0.65, 0.75, 1.86, 1.3, 2.2), (6.6, 0.95, 0.55, 2.4, 1.4, 3.0),
-                  (4.8, 1.05, 0.5, 2.6, 1.5, 3.5), (0.0, 1.05, 0.5, 2.6, 1.5, 3.5), (-1.8, 0.9, 0.85, 2.56, 1.7, 3.0),
+        # The side photo (an Italian Army TTH): a blunt nose under a big
+        # windscreen, a deep cabin and a bulbous engine deck over it.
+        fuselage=[(8.07, 0.0, 1.25, 1.25), (7.8, 0.72, 0.7, 1.95, 1.3, 2.2), (6.8, 1.0, 0.5, 2.55, 1.45, 3.0),
+                  (4.8, 1.08, 0.45, 2.75, 1.55, 3.5), (0.0, 1.08, 0.45, 2.75, 1.55, 3.5), (-1.8, 0.9, 0.85, 2.56, 1.7, 3.0),
                   (-3.2, 0.45, 1.55, 2.46, 2.0, 2.4), (-7.0, 0.25, 1.85, 2.4, 2.1), (-8.06, 0.22, 1.9, 2.9, 2.2)],
-        bodies=[("fuselage_roof", [(3.6, 0.0, 2.6, 2.6), (3.0, 0.8, 2.5, 3.25, 2.75, 3.0), (-1.6, 0.8, 2.5, 3.25, 2.75, 3.0),
-                                   (-2.4, 0.0, 2.65, 2.65)])],
-        canopy=dict(x_front=7.9, x_back=6.2, sill=1.3, top=2.4, half_width=1.0, peak=0.8, bows=(7.1,)),
+        bodies=[("fuselage_roof", [(4.0, 0.0, 2.75, 2.75), (3.3, 0.95, 2.65, 3.42, 2.85, 2.6),
+                                   (-1.6, 0.95, 2.65, 3.42, 2.85, 2.6), (-2.6, 0.0, 2.8, 2.8)])],
+        canopy=dict(x_front=7.95, x_back=6.0, sill=1.25, top=2.62, half_width=1.02, peak=0.85, bows=(7.2, 6.6),
+                    tail=0.9),
         stab=[(-7.0, 0.2, 2.2, 0.8, 0.08), (-7.1, 1.4, 2.2, 0.6, 0.06)],
         fins=[dict(root_x=-7.0, root_z=2.3, height=1.4, root_chord=1.3, tip_chord=0.9, sweep_m=0.6, thick=0.16)],
         gear=[dict(name="nose", x=5.6, y=0.0, top=0.7, radius=0.3, width=0.16, wheels=2, spread=0.32),
@@ -58,7 +61,8 @@ SPECS = {
                   (-5.5, 0.5, 1.9, 2.76, 2.25, 2.4), (-8.8, 0.3, 2.15, 2.7, 2.4), (-9.76, 0.25, 2.2, 3.3, 2.5)],
         bodies=[("fuselage_roof", [(4.6, 0.0, 2.8, 2.8), (4.0, 0.95, 2.7, 3.6, 3.0, 3.0), (-2.4, 0.95, 2.7, 3.6, 3.0, 3.0),
                                    (-3.2, 0.0, 2.85, 2.85)])],
-        canopy=dict(x_front=9.6, x_back=7.6, sill=1.35, top=2.62, half_width=1.1, peak=0.8, bows=(8.6,)),
+        canopy=dict(x_front=9.6, x_back=7.5, sill=1.3, top=2.75, half_width=1.12, peak=0.85, bows=(8.9, 8.2),
+                    tail=0.9),
         stab=[(-8.9, -0.3, 3.3, 0.9, 0.08), (-9.0, -1.6, 3.3, 0.7, 0.06)],
         fins=[dict(root_x=-8.6, root_z=2.7, height=1.8, root_chord=1.5, tip_chord=1.0, sweep_m=0.5, thick=0.16,
                    y=0.05, cant=0.1)],
@@ -72,7 +76,8 @@ SPECS = {
                   (-5.4, 0.25, 1.25, 1.86, 1.55), (-6.5, 0.22, 1.3, 2.7, 1.8)],
         bodies=[("fuselage_roof", [(2.6, 0.0, 2.1, 2.1), (2.1, 0.65, 2.05, 2.66, 2.25, 3.0), (-1.2, 0.65, 2.05, 2.66, 2.25, 3.0),
                                    (-1.8, 0.0, 2.15, 2.15)])],
-        canopy=dict(x_front=6.3, x_back=4.6, sill=1.1, top=1.96, half_width=0.85, peak=0.8, bows=(5.5,)),
+        canopy=dict(x_front=6.3, x_back=4.55, sill=1.05, top=2.06, half_width=0.86, peak=0.85, bows=(5.7, 5.1),
+                    tail=0.9),
         fins=[dict(root_x=-5.2, root_z=1.8, height=1.25, root_chord=1.0, tip_chord=0.7, sweep_m=0.6, thick=0.16)],
         gear=[dict(name="nose", x=4.4, y=0.0, top=0.6, radius=0.23, width=0.14, wheels=2, spread=0.26),
               dict(name="main_L", x=-0.4, y=1.38, top=0.8, radius=0.32, width=0.2),
@@ -123,12 +128,12 @@ def build(variant, v):
     A.rotor("tail", at, r, 4, 0.26, m, hull, hub=0.15, mast=0.0, droop=0.0, rot=(-math.pi / 2, 0, 0), thick=0.12)
     A.blade_antenna("antenna_belly", (-0.8, 0, 0.5), 0.25, m, hull, down=True)
 
-    # The Heer's cross and serial on the NH90; the Royal Navy's roundel and
+    # The Esercito's roundel and title on the NH90 (the photo is Italian); the Royal Navy's roundel and
     # title on the Merlin; the Army Air Corps' on the Wildcat.
     if vid == NH90:
         A.markings(v, [
-            ("insignia", dict(kind="de", centre=(-4.5, 1.2, 2.12), normal=(0, 1, 0), up=(0, 0, 1), size=0.25, onto=("fuselage",))),
-            ("text", dict(text="79+24", height=0.24, centre=(-2.4, 1.2, 1.9), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
+            ("insignia", dict(kind="it", centre=(-4.5, 1.2, 2.12), normal=(0, 1, 0), up=(0, 0, 1), size=0.25, onto=("fuselage",))),
+            ("text", dict(text="ESERCITO", height=0.24, centre=(-2.4, 1.2, 1.9), normal=(0, 1, 0), up=(0, 0, 1), onto=("fuselage",), colour="black")),
         ])
     elif vid == MERLIN:
         A.markings(v, [
