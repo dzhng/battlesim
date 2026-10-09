@@ -5,6 +5,7 @@ import { VERTEX_FLOATS, type Mesh, type Rgba } from "../../packages/battle-rende
 import {
   buildOrderOverlay as build,
   buildDeploymentMarker,
+  deploymentOverlayMarker,
   validateOrderStyle,
   type OrderStyle,
   type OrderView,
@@ -109,6 +110,15 @@ test("deployment marker stacks three inward chevrons along the battle direction"
   // Facing east: the chevrons are stacked east-to-west, with only their
   // short arms spanning north/south.
   expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(Math.max(...ys) - Math.min(...ys));
+});
+
+test("deployment overlay copy is unlit and keeps the marker visible outside ground fog", () => {
+  const marker = buildDeploymentMarker([20, 10], 0, flat, STYLE, [0.2, 0.8, 1], at(0.05));
+  const overlay = deploymentOverlayMarker(marker);
+  expect(overlay.length).toBe(marker.length);
+  for (let i = 0; i < overlay.length; i += VERTEX_FLOATS) {
+    expect(Array.from(overlay.slice(i + 3, i + 6))).toEqual([0, 0, 1]);
+  }
 });
 
 test("cover icons appear only with the order marks, one per tier present, none for no cover", () => {

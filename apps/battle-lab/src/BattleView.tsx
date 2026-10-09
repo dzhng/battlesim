@@ -163,11 +163,7 @@ export function BattleView({
             observation,
             control.selected,
             surfaceZ,
-            {
-              ...parsed.drawn,
-              deployment:
-                observation.skirmish?.phase === "preparation" ? parsed.drawn.deployment : null,
-            },
+            parsed.drawn,
             { showOrders: control.showOrders, reveal: session.revealed, contacts },
             border,
             metresPerPx,
