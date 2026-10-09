@@ -69,16 +69,16 @@ test("poses blend from the previous tick toward the latest and never overshoot",
   const i = new TickInterpolator(100);
   i.push(frame(1, [unit(0, 0)]), 0);
   i.push(frame(2, [unit(0, 10)]), 1000);
-  expect(i.sample(1000)[0].position[0]).toBe(0);
-  expect(i.sample(1050)[0].position[0]).toBe(5);
-  expect(i.sample(5000)[0].position[0]).toBe(10);
+  expect(i.frame(1000)!.own[0].position[0]).toBe(0);
+  expect(i.frame(1050)!.own[0].position[0]).toBe(5);
+  expect(i.frame(5000)!.own[0].position[0]).toBe(10);
 });
 
 test("yaw takes the short way round and new units appear without blending", () => {
   const i = new TickInterpolator(100);
   i.push(frame(1, [unit(0, 0, Math.PI - 0.1)]), 0);
   i.push(frame(2, [unit(0, 0, -Math.PI + 0.1), unit(1, 7)]), 0);
-  const [a, b] = i.sample(50);
+  const [a, b] = i.frame(50)!.own;
   expect(Math.abs(Math.abs(a.yaw) - Math.PI)).toBeLessThan(1e-9);
   expect(b.position[0]).toBe(7);
 });
@@ -92,9 +92,9 @@ test("deployment progress blends between ticks and stays null for units without 
   });
   i.push(frame(1, [supply(0.2), unit(0, 0)]), 0);
   i.push(frame(2, [supply(0.4), unit(0, 0)]), 1000);
-  expect(i.sample(1050)[0].deployment).toBeCloseTo(0.3);
-  expect(i.sample(5000)[0].deployment).toBeCloseTo(0.4);
-  expect(i.sample(1050)[1].deployment).toBeNull();
+  expect(i.frame(1050)!.own[0].deployment).toBeCloseTo(0.3);
+  expect(i.frame(5000)!.own[0].deployment).toBeCloseTo(0.4);
+  expect(i.frame(1050)!.own[1].deployment).toBeNull();
 });
 
 test("a drawn frame reads the publication its poses blend toward, mid-blend included", () => {
