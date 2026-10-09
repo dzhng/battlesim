@@ -1030,10 +1030,13 @@ export function useBattleSession({
         released &&
         (released.kind === "move" || released.kind === "occupy_building")
       )
+        // The accepted marks stand in for an order its units do not publish
+        // yet, so the order overlay leaves those units out (`orderReveal`);
+        // drawn at its opacity they would vanish. They show in full until
+        // the order lands and the overlay's own flash takes over.
         preview = pointerPaint.markers(
           accepted.placement?.destinations ?? accepted.building?.destinations ?? [],
           observation?.own ?? [],
-          revealedRef.current,
         );
     }
     const ruler =

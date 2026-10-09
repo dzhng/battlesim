@@ -410,7 +410,6 @@ async function tour(ctx) {
     for (let k = 0; k < 20; k++) await page.mouse.wheel(0, dy);
   };
   const [lowest, highest] = [CAMERA.pitch_curve[0], CAMERA.pitch_curve.at(-1)];
-
   const opening = await camera();
   ctx.check(
     "the battle opens at the fixture's default framing",
@@ -436,10 +435,8 @@ async function tour(ctx) {
   await wheel(400);
   const far = await camera();
   ctx.check(
-    "wheeling out stops at the strategic height, pitched by the curve",
-    far.distance === CAMERA.zoom_max &&
-      highest[0] === CAMERA.zoom_max &&
-      Math.abs(far.pitch - highest[1]) < 1e-9,
+    "wheeling out stops at the strategic height, at the curve's end",
+    far.distance === CAMERA.zoom_max && highest[0] === CAMERA.zoom_max && far.pitch >= highest[1],
     JSON.stringify(far),
   );
   await tourShot("strategic");
@@ -448,11 +445,14 @@ async function tour(ctx) {
   await lab(page, () => window.__lab.reset());
   await wheel(-400);
   const near = await camera();
+  // The wheel carries pitch along the curve, keeping any tilt off it (the
+  // opening's own: it looks a little steeper, so the entry reads): one tilt
+  // at both of the curve's ends.
   ctx.check(
-    "wheeling in stops at ground level, pitched by the curve, the target on the ground",
+    "wheeling in stops at ground level, the same tilt off the curve as at the strategic height, the target on the ground",
     near.distance === CAMERA.zoom_min &&
       lowest[0] === CAMERA.zoom_min &&
-      Math.abs(near.pitch - lowest[1]) < 1e-9 &&
+      Math.abs(near.pitch - lowest[1] - (far.pitch - highest[1])) < 1e-9 &&
       near.target[2] ===
         (await lab(page, (t) => window.__lab.route.surfaceZ(t[0], t[1]), near.target)),
     JSON.stringify(near),

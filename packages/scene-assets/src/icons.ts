@@ -228,7 +228,7 @@ export function iconFiles(
     const model = solids(card.id);
     if (!model?.length)
       throw new Error(
-        `disabled card ${card.id}: its source model is not installed, so its silhouette can't be rendered (git lfs pull its source_path in fixtures/units/model-manifest.json)`,
+        `disabled card ${card.id}: its source model, or for a soldier its skeleton's clips, is not installed, so its silhouette can't be rendered (git lfs pull its source_path in fixtures/units/model-manifest.json and its skeleton's source in assets/catalog.json)`,
       );
     files.set(cardIcon(card.id), silhouetteSvg(model));
   }
