@@ -327,39 +327,37 @@ impl MaterializedBuilding {
                 }
             }
         }
-        {
-            let mut ids = BTreeSet::new();
-            for entrance in &self.entrances {
-                if entrance.id.is_empty()
-                    || !ids.insert(&entrance.id)
-                    || entrance
-                        .position
-                        .iter()
-                        .chain(&entrance.normal)
-                        .any(|v| !v.is_finite())
-                {
-                    return bad("placed entrances require finite unique records");
-                }
-                if !self.edges.iter().filter(|e| e.exposed).any(|edge| {
-                    let delta = [
-                        edge.span[1][0] - edge.span[0][0],
-                        edge.span[1][1] - edge.span[0][1],
-                    ];
-                    let length = libm::hypot(delta[0], delta[1]);
-                    let relative = [
-                        entrance.position[0] - edge.span[0][0],
-                        entrance.position[1] - edge.span[0][1],
-                    ];
-                    let t = (relative[0] * delta[0] + relative[1] * delta[1]) / (length * length);
-                    let [x, y, z] = entrance.position;
-                    t > 0.0
-                        && t < 1.0
-                        && on_facade([x, y], edge.span[0], delta, t, length)
-                        && (0..2).all(|i| coordinate_equal(entrance.normal[i], edge.normal[i], 1.0))
-                        && coordinate_equal(z, edge.base_z, self.height_m)
-                }) {
-                    return bad("placed entrance must lie inside an exposed facade");
-                }
+        let mut ids = BTreeSet::new();
+        for entrance in &self.entrances {
+            if entrance.id.is_empty()
+                || !ids.insert(&entrance.id)
+                || entrance
+                    .position
+                    .iter()
+                    .chain(&entrance.normal)
+                    .any(|v| !v.is_finite())
+            {
+                return bad("placed entrances require finite unique records");
+            }
+            if !self.edges.iter().filter(|e| e.exposed).any(|edge| {
+                let delta = [
+                    edge.span[1][0] - edge.span[0][0],
+                    edge.span[1][1] - edge.span[0][1],
+                ];
+                let length = libm::hypot(delta[0], delta[1]);
+                let relative = [
+                    entrance.position[0] - edge.span[0][0],
+                    entrance.position[1] - edge.span[0][1],
+                ];
+                let t = (relative[0] * delta[0] + relative[1] * delta[1]) / (length * length);
+                let [x, y, z] = entrance.position;
+                t > 0.0
+                    && t < 1.0
+                    && on_facade([x, y], edge.span[0], delta, t, length)
+                    && (0..2).all(|i| coordinate_equal(entrance.normal[i], edge.normal[i], 1.0))
+                    && coordinate_equal(z, edge.base_z, self.height_m)
+            }) {
+                return bad("placed entrance must lie inside an exposed facade");
             }
         }
         Ok(())

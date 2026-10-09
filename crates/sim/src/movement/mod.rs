@@ -975,8 +975,8 @@ fn step_vehicle(
 
     // A detouring tank must not pivot through its neighbour, nor a tank
     // nosed up to a body through that body. Give the turn room instead of
-    // deadlocking nose-to-nose: against a body, only as far as backing off
-    // by what its corners swing out past its nose frees the turn.
+    // deadlocking nose-to-nose: against a body, only when backing off by
+    // what its corners swing out past its nose would free the turn.
     let back = drive::give_space(unit, speed, dt);
     if unit.mobility.drive.is_some_and(|d| d.tracked)
         && motion.yaw != unit.yaw

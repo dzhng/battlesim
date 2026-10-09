@@ -90,7 +90,9 @@ never game content), loaded by `fixtures::test_game`, and adds a fake unit when
 it needs a shape they lack; it never names or walks the faction roster, which
 grows every day. The rules fixture carries no ground: a test that needs a map
 asks for a saved `test` map by name (`fixtures::with_map`, which refuses the
-menu's), builds an analytic one, or generates one from a seed. A test that needs the roster says why (the roster's own
+menu's), builds an analytic one, or generates one from a seed. An analytic map's
+buildings come from the generator's one template catalogue, so a test garrisons,
+shells and walks round the buildings a battle places. A test that needs the roster says why (the roster's own
 resolution, a roster model's fit, the menu reel).
 What the roster must satisfy is refused where the rules load
 ([catalog resolution](../contract/src/catalog.rs) and the rules' cross-section
