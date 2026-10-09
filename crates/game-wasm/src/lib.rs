@@ -18,26 +18,6 @@ use sim::publication::{self, Publisher};
 use sim::world::{export, WorldGeometry};
 use wasm_bindgen::prelude::*;
 
-/// Compile a physical plan with the same complete result/diagnostics as the CLI.
-#[wasm_bindgen]
-pub fn compile_map(request_json: &str, descriptors_json: &str) -> Result<String, JsError> {
-    mapgen::compile_json(request_json, descriptors_json).map_err(js_error)
-}
-
-/// Generate a seeded plan (layout, streets, parcels, buildings and street
-/// furniture): the same record the CLI's `generate` prints. `rules_json` is
-/// the battle's resolved rules, including its unit and prop catalog.
-#[wasm_bindgen]
-pub fn generate_map_plan(
-    request_json: &str,
-    presets_json: &str,
-    descriptors_json: &str,
-    rules_json: &str,
-) -> Result<String, JsError> {
-    mapgen::generate_plan_json(request_json, presets_json, descriptors_json, rules_json)
-        .map_err(js_error)
-}
-
 /// Generate a plan and compile it into a map, as the CLI's `generate-map` does.
 #[wasm_bindgen]
 pub fn generate_map(

@@ -588,46 +588,6 @@ impl TemplateGeometryCatalog {
 }
 
 impl BuildingTemplateDescriptor {
-    /// Author a physical box using the same oriented-box primitive as props.
-    /// Source floor/entrance/bay facts remain explicitly unresolved.
-    pub fn solid_box(
-        id: String,
-        category: BuildingCategory,
-        regional_family: String,
-        half_extents: [f64; 3],
-    ) -> Self {
-        Self {
-            id,
-            category,
-            regional_family,
-            parts: vec![TemplatePart {
-                id: "body".into(),
-                center: [0.0, 0.0],
-                yaw: 0.0,
-                half_extents,
-                base_z: 0.0,
-            }],
-            floor_heights_m: None,
-            entrances: None,
-            joins: vec![],
-            edges: Facade::ALL
-                .into_iter()
-                .enumerate()
-                .map(|(i, facade)| {
-                    let half = facade.axes(half_extents).3;
-                    FacadeEdge {
-                        id: format!("face-{i}"),
-                        part: "body".into(),
-                        facade,
-                        span_m: [-half, half],
-                        exposed: true,
-                        bays: None,
-                    }
-                })
-                .collect(),
-        }
-    }
-
     pub fn validate(&self) -> Result<(), String> {
         let bad = |message: &str| Err(format!("{}: {message}", self.id));
         if self.id.is_empty() || self.regional_family.is_empty() || self.parts.is_empty() {
