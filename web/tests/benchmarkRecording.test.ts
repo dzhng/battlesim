@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { BenchmarkRecording, summarize } from "../src/battle/benchmark/recording";
+import { BenchmarkRecording, summarize, summarizeFrameRate } from "../src/battle/benchmark/recording";
 
 const pose = { target: [0, 0] as const, distance: 100, yaw: 0, pitch: 0.8 };
 const frame = (now: number, phase = "strategic", cpuMs = 1) => ({
@@ -19,6 +19,16 @@ test("percentiles are nearest-rank over the samples", () => {
   expect(s.count).toBe(100);
   expect(summarize([7])).toMatchObject({ p50: 7, p95: 7, p99: 7 });
   expect(summarize([])).toBeNull();
+});
+
+test("frame-rate summary reports average, one-percent low and extrema", () => {
+  expect(summarizeFrameRate([10, 20, 40])).toEqual({
+    average: (1000 * 3) / 70,
+    low1: 25,
+    minimum: 25,
+    maximum: 100,
+  });
+  expect(summarizeFrameRate([])).toBeNull();
 });
 
 test("the first frame interval begins at the explicit recording start", () => {
@@ -46,6 +56,10 @@ test("the report splits frame percentiles by phase and counts slow frames", () =
   expect(report.frameMs!.p95).toBe(40);
   expect(report.framesOver33ms).toBe(10);
   expect(report.averageFps).toBeCloseTo((1000 * 20) / 500, 9);
+  expect(report.frameRate?.average).toBeCloseTo((1000 * 20) / 500, 9);
+  expect(report.frameRate?.low1).toBe(25);
+  expect(report.frameRate?.minimum).toBe(25);
+  expect(report.frameRate?.maximum).toBe(100);
 });
 
 test("GPU time per phase comes from the frame's stats samples taken in that phase", () => {
