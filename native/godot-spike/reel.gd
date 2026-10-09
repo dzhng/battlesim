@@ -18,6 +18,7 @@ var camera: Camera3D
 var started := false
 var source_path := ""
 var capture_result: Dictionary = {"valid": false, "comparison_ready": false, "comparison_blocker": "no presentation capture supplied"}
+var authored_asset_loaded := false
 
 func _ready() -> void:
 	var configured := OS.get_environment("GODOT_REEL_SOURCE")
@@ -63,6 +64,17 @@ func _build_world() -> void:
 	add_child(sun)
 	camera = Camera3D.new()
 	add_child(camera)
+	var authored_path := OS.get_environment("GODOT_AUTHORED_SCENE")
+	if not authored_path.is_empty():
+		var authored = load(authored_path)
+		if authored is PackedScene:
+			var instance = authored.instantiate()
+			add_child(instance)
+			authored_asset_loaded = true
+			return
+	_build_proxy_field()
+
+func _build_proxy_field() -> void:
 	var box := BoxMesh.new()
 	box.size = Vector3(0.8, 0.8, 0.8)
 	var material := StandardMaterial3D.new()
@@ -170,7 +182,8 @@ func _write_report() -> void:
 		"schema": "godot-render-report/v1",
 		"candidate": "godot-menu-reel-camera-probe",
 		"comparison_ready": false,
-		"comparison_blocker": "synthetic proxy; authored map assets are not loaded",
+		"comparison_blocker": "authored map assets are not loaded" if not authored_asset_loaded else "synthetic scene has no authored map publication",
+		"authored_asset_loaded": authored_asset_loaded,
 		"capture_valid": capture_result.valid,
 		"capture_comparison_ready": capture_result.comparison_ready,
 		"capture_consumed": capture_result.valid and capture_result.sample_count > 0,

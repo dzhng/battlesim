@@ -1,11 +1,11 @@
 # Native rendering and Godot evaluation
 
-**Status:** handed off mid-implementation; browser route smoke and native parity pass, with a browser frozen-capture exporter, Godot authored-reel camera playback and capture decoder. Authored asset rendering and matched performance remain unbuilt.
+**Status:** handed off mid-implementation; browser route smoke and native parity pass, with a browser frozen-capture exporter, Godot authored-reel camera playback, capture decoder and an optional authored-scene loader. Authored asset rendering and matched performance remain unbuilt.
 **Updated:** 2026-10-09.
 
 ## Next Agent Prompt
 
-Next session: replace the synthetic cube field with the smallest authored battle asset path (the Godot probe now consumes the decoded scene camera stream). Keep the interactive GDExtension seam and the Rust simulation as authorities. Do not claim comparison-ready or performance evidence until the Godot report consumes capture publications and named browser/Godot cuts are visually reviewed. Keep `/benchmark?preset=city-contact` unchanged.
+Next session: supply a checked-out authored scene through `GODOT_AUTHORED_SCENE`, replace the synthetic proxy with that asset, and capture named cuts (the Godot probe now consumes the decoded scene camera stream). Keep the interactive GDExtension seam and the Rust simulation as authorities. Do not claim comparison-ready or performance evidence until the Godot report consumes capture publications and named browser/Godot cuts are visually reviewed. Keep `/benchmark?preset=city-contact` unchanged.
 
 Evidence: focused client/reel/report/capture tests, TypeScript, production build, and the route smoke pass. The graphics-test report now carries one validated `battle-presentation-capture/v1` JSON artifact per menu scene, copied from the publication buffer before credit return. The Godot reel applies the matching scene's decoded camera samples when a capture is supplied and reports whether samples were consumed, while keeping `comparison_ready=false` for the synthetic world. A real browser run completed both menu scenes (156 seconds) and emitted the full report; the shared preview was background-throttled to about 1 Hz, so that run is lifecycle evidence only, not FPS evidence. Native replay/side-filter parity and IPC measurement pass. Godot's capture decoder test passes; its editor scan still reports the expected missing local extension dylib when the dylib is not built. Authored Godot rendering, visual comparison and performance verdict remain open.
 
