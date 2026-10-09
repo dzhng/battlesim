@@ -1050,28 +1050,20 @@ impl<'a> Planner<'a> {
         Ok(posts)
     }
 
-    /// Where a squad may wait at a building: outside each entrance, or
-    /// outside the middle of each exposed face when it names no entrance,
-    /// facing away from the wall.
+    /// Where a squad may wait at a building: outside each entrance, facing
+    /// away from the wall.
     fn doors(&self, building: &contract::map::BuildingDefinition) -> Vec<Station> {
         let out = self.recipe.garrison.door_standoff_m;
-        let station = |p: V2, normal: [f64; 2]| Station {
-            at: cm2(p + at(normal) * out),
-            yaw: micro(bearing(normal)),
-        };
-        match &building.geometry.entrances {
-            Some(entrances) if !entrances.is_empty() => entrances
-                .iter()
-                .map(|e| station(v2(e.position[0], e.position[1]), e.normal))
-                .collect(),
-            _ => building
-                .geometry
-                .edges
-                .iter()
-                .filter(|e| e.exposed)
-                .map(|e| station((at(e.span[0]) + at(e.span[1])) * 0.5, e.normal))
-                .collect(),
-        }
+        building
+            .geometry
+            .entrances
+            .iter()
+            .flatten()
+            .map(|e| Station {
+                at: cm2(v2(e.position[0], e.position[1]) + at(e.normal) * out),
+                yaw: micro(bearing(e.normal)),
+            })
+            .collect()
     }
 
     /// Where the attack comes at the settlement from: the point of its edge

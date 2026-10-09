@@ -22,7 +22,7 @@ const URLS = import.meta.glob<string>(
   [
     "../../../fixtures/maps/*/{map,SOURCES}.json",
     "../../../fixtures/maps/*/encounters/*.json",
-    "../../../fixtures/*building-templates.json",
+    "../../../fixtures/prototype-building-templates.json",
   ],
   { query: "?url&no-inline", import: "default", eager: true },
 );

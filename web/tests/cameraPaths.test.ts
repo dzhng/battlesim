@@ -45,9 +45,10 @@ beforeAll(() => {
 });
 
 test("a test map's buildings are the camera's obstacles", () => {
-  expect(obstacles.ceiling).toBe(8);
+  // The street's three-storey shops, 12.65 m to the roof: the ceiling is the tallest.
+  expect(obstacles.ceiling).toBe(Math.fround(12.65));
   expect(obstacles.clear([975, 752, 6], 0.1)).toBe(false);
-  expect(obstacles.clear([975, 752, 12], 0.1)).toBe(true);
+  expect(obstacles.clear([975, 752, 14], 0.1)).toBe(true);
 });
 
 test("the opening framing is drawn as authored", () => {

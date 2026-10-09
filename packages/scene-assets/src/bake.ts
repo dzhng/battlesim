@@ -25,7 +25,6 @@ import { encodeTemplateLibrary, sealTemplateLibrary } from "./templateLibrary.ts
 import {
   packTemplateSets,
   type PhysicalTemplates,
-  type TemplateCatalogue,
   type TemplateLibraryStats,
   type TemplateSetInput,
 } from "./templateSource.ts";
@@ -68,13 +67,14 @@ export interface BakeResult {
 }
 
 /** What the bake judges art against: the simulation's bodies and, for a
- *  catalog with city sets, the physical template catalogues they dress. */
+ *  catalog with city sets, the physical template catalogue they dress. */
 export interface BakeContext extends Omit<ValidationContext, "tolerances"> {
   /** The presets' regional families (`parcels.regional_families`): what an
    *  appearance's `regional_family` may name. Absent: none. */
   regionalFamilies?: readonly string[];
   templates?: {
-    catalogues: readonly TemplateCatalogue[];
+    /** The map generator's physical catalogue: its rows. */
+    catalogue: readonly unknown[];
     physical: PhysicalTemplates;
   };
 }
@@ -229,7 +229,7 @@ export async function bakeCatalog(
   const sets = Object.entries(catalog.city_sets ?? {});
   if (sets.length && !only?.length) {
     if (!context.templates)
-      throw new Error("the catalog has city sets: the bake needs the physical template catalogues");
+      throw new Error("the catalog has city sets: the bake needs the physical template catalogue");
     const collapse = context.authority.collapse;
     if (!collapse)
       throw new Error(
@@ -245,7 +245,7 @@ export async function bakeCatalog(
       });
     const packed = packTemplateSets(
       inputs,
-      context.templates.catalogues,
+      context.templates.catalogue,
       context.templates.physical,
       catalog.tolerances.ground_m,
       collapse,

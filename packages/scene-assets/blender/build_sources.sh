@@ -31,8 +31,8 @@ blender supply_truck.py "$v/supply_truck_wreck_debris.glb" --wreck --piece=debri
 blender jeep.py "$v/jeep.glb"
 blender jeep.py "$v/jeep_wreck.glb" --wreck
 blender jeep.py "$v/jeep_wreck_debris.glb" --wreck --piece=debris
-# the ruin a loose ruin or rubble prop is drawn as (buildings are a city set: city/lab_boxes.py)
-blender house.py "$b/ruin.glb" 15 12 4 0 --ruin 2
+# the ruin a loose ruin or rubble prop is drawn as (buildings are city sets: city/)
+blender house.py "$b/ruin.glb" 6 6 6.325 0 --ruin 2
 blender props.py wall "$b/wall.glb"
 blender props.py crate "$b/crate.glb"
 blender props.py bridge_deck "$b/bridge_deck.glb"

@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { polygon2 } from "math/shapes";
 import * as generator from "@wasm/game_wasm.js";
+import { resolveAuthored } from "./authoredMap";
 import { initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
 import generated from "@fixtures/generated-battle.json";
 import { generationRequest } from "@web/maps/source";
@@ -721,9 +722,6 @@ test("a country road draws a street between actual houses and keeps its paving i
       "utf8",
     ),
   );
-  const template_catalog_hash = JSON.parse(
-    generator.template_catalogue_json(JSON.stringify([descriptor])),
-  ).hash;
   // Fixed authored inputs isolate this presentation contract from release tuning.
   const local: Biome = {
     ...biome,
@@ -748,25 +746,18 @@ test("a country road draws a street between actual houses and keeps its paving i
     const buildings = houses.map(([x, y], i) => ({
       owner: i * 2,
       kind: "building",
-      category: descriptor.category,
-      regional_family: descriptor.regional_family,
+      template_id: descriptor.id,
+      frame: { translation: [x, y, 0], yaw: 0 },
       parts: [
         { part: "main", prop: i * 2 },
         { part: "wing", prop: i * 2 + 1 },
       ],
-      geometry: JSON.parse(
-        generator.materialize_template(
-          JSON.stringify(descriptor),
-          JSON.stringify({ translation: [x, y, 0], yaw: 0 }),
-        ),
-      ),
     }));
-    const { exports } = world({
+    const saved = {
       size: [600, 200],
       fog_cell_m: 8,
       height_grid_m: 4,
       slope_cutoff_deg: 35,
-      template_catalog_hash,
       regional_family: descriptor.regional_family,
       buildings,
       surfaces: [
@@ -782,7 +773,8 @@ test("a country road draws a street between actual houses and keeps its paving i
           },
         },
       ],
-    });
+    };
+    const { exports } = world(resolveAuthored(saved, [descriptor]).definition);
     return buildTerrainSurface(exports, layout, local);
   };
   const pavingAt = (surface: TerrainSurface, x: number, y: number) => {

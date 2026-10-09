@@ -8,9 +8,8 @@ import {
   WorldView,
   world_layout,
   Battle,
-  materialize_template,
-  template_catalogue_json,
 } from "@wasm/game_wasm.js";
+import { resolveAuthored } from "./authoredMap";
 import {
   readWorldExports,
   type WorldExports,
@@ -24,42 +23,43 @@ beforeAll(() => {
   }).memory;
 });
 
-test("the public picker and delivered replacements share one physical building owner", () => {
+/** The labelled two-part compound, placed at (400, 300) with a tooth beside
+ *  it, resolved as the browser resolves a saved map. */
+function compoundMap() {
   const descriptor = JSON.parse(
     readFileSync(
       new URL("../../fixtures/parity/templates/asymmetric.json", import.meta.url),
       "utf8",
     ),
   );
-  const geometry = JSON.parse(
-    materialize_template(
-      JSON.stringify(descriptor),
-      JSON.stringify({ translation: [400, 300, 0], yaw: 0 }),
-    ),
+  const { definition } = resolveAuthored(
+    {
+      size: [800, 600],
+      fog_cell_m: 8,
+      height_grid_m: 4,
+      slope_cutoff_deg: 35,
+      regional_family: descriptor.regional_family,
+      buildings: [
+        {
+          owner: 0,
+          kind: "building",
+          template_id: descriptor.id,
+          frame: { translation: [400, 300, 0], yaw: 0 },
+          parts: [
+            { part: "main", prop: 0 },
+            { part: "wing", prop: 1 },
+          ],
+        },
+      ],
+      props: [{ id: 2, kind: "tooth", center: [700, 550], yaw: 0, half_extents: [0.6, 0.6, 0.6] }],
+    },
+    [descriptor],
   );
-  const hash = JSON.parse(template_catalogue_json(JSON.stringify([descriptor]))).hash;
-  const map = {
-    size: [800, 600],
-    fog_cell_m: 8,
-    height_grid_m: 4,
-    slope_cutoff_deg: 35,
-    template_catalog_hash: hash,
-    regional_family: "api_fixture",
-    buildings: [
-      {
-        owner: 0,
-        kind: "building",
-        category: descriptor.category,
-        regional_family: descriptor.regional_family,
-        parts: [
-          { part: "main", prop: 0 },
-          { part: "wing", prop: 1 },
-        ],
-        geometry,
-      },
-    ],
-    props: [{ id: 2, kind: "tooth", center: [700, 550], yaw: 0, half_extents: [0.6, 0.6, 0.6] }],
-  };
+  return { descriptor, map: definition, hash: definition.template_catalog_hash };
+}
+
+test("the public picker and delivered replacements share one physical building owner", () => {
+  const { descriptor, map, hash } = compoundMap();
   const rules = structuredClone(TEST_RULES);
   const body = (
     rules.catalog as {
@@ -212,45 +212,12 @@ test("the public picker and delivered replacements share one physical building o
 });
 
 test("building nomination resolves aggregate owners even without garrison capability", () => {
-  const descriptor = JSON.parse(
-    readFileSync(
-      new URL("../../fixtures/parity/templates/asymmetric.json", import.meta.url),
-      "utf8",
-    ),
-  );
-  const geometry = JSON.parse(
-    materialize_template(
-      JSON.stringify(descriptor),
-      JSON.stringify({ translation: [400, 300, 0], yaw: 0 }),
-    ),
-  );
+  const { map } = compoundMap();
   const rules = structuredClone(TEST_RULES);
   const props = (
     rules.catalog as { props?: Record<string, { body: Record<string, unknown> }> }[]
   ).find((d) => d.props?.building)!.props!;
   delete props.building.body.garrison;
-  const map = {
-    size: [800, 600],
-    fog_cell_m: 8,
-    height_grid_m: 4,
-    slope_cutoff_deg: 35,
-    template_catalog_hash: JSON.parse(template_catalogue_json(JSON.stringify([descriptor]))).hash,
-    regional_family: "api_fixture",
-    buildings: [
-      {
-        owner: 0,
-        kind: "building",
-        category: descriptor.category,
-        regional_family: descriptor.regional_family,
-        parts: [
-          { part: "main", prop: 0 },
-          { part: "wing", prop: 1 },
-        ],
-        geometry,
-      },
-    ],
-    props: [{ id: 2, kind: "tooth", center: [700, 550], yaw: 0, half_extents: [0.6, 0.6, 0.6] }],
-  };
   const view = new WorldView(JSON.stringify(map), JSON.stringify(rules));
   try {
     const world = {

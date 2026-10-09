@@ -32,6 +32,13 @@ pub fn array<'de, D: Deserializer<'de>, const N: usize>(de: D) -> Result<[f64; N
     array_from(Vec::<Number>::deserialize(de)?)
 }
 
+pub fn list<'de, D: Deserializer<'de>>(de: D) -> Result<Vec<f64>, D::Error> {
+    Ok(Vec::<Number>::deserialize(de)?
+        .into_iter()
+        .map(|n| n.0)
+        .collect())
+}
+
 pub fn optional_list<'de, D: Deserializer<'de>>(de: D) -> Result<Option<Vec<f64>>, D::Error> {
     Option::<Vec<Number>>::deserialize(de)
         .map(|list| list.map(|list| list.into_iter().map(|n| n.0).collect()))

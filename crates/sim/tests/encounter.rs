@@ -25,7 +25,8 @@ use crate::common;
 const WIDTH: f64 = 1200.0;
 const DEPTH: f64 = 1600.0;
 const ROAD_X: f64 = 600.0;
-const BUILDING_HALF: [f64; 3] = [8.0, 6.0, 4.0];
+/// Every building of the town: a two-storey house of the generator's library.
+const HOUSE: &str = "china-home-12x9-2f";
 
 /// Where the six buildings stand about the town's centre.
 const BUILDINGS: [[f64; 2]; 6] = [
@@ -38,29 +39,29 @@ const BUILDINGS: [[f64; 2]; 6] = [
 ];
 
 /// The town with its centre `centre_y` up the road, and `extra` map fields
-/// merged over it.
+/// merged over it; its `houses` (centres) stand beside the town's own.
 fn town_map(centre_y: f64, extra: Value) -> MapDefinition {
-    let props: Vec<Value> = BUILDINGS
+    let mut houses: Vec<[f64; 2]> = BUILDINGS
         .iter()
-        .map(|[dx, dy]| {
-            json!({ "kind": "building", "center": [ROAD_X + dx, centre_y + dy], "yaw": 0,
-                "half_extents": BUILDING_HALF })
-        })
+        .map(|[dx, dy]| [ROAD_X + dx, centre_y + dy])
         .collect();
     let mut map = json!({
         "size": [WIDTH, DEPTH], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
         "surfaces": [road(0.0, DEPTH)],
-        "props": props,
     });
     for (key, value) in extra.as_object().unwrap() {
-        if key == "props" {
-            let all = map["props"].as_array_mut().unwrap();
-            all.extend(value.as_array().unwrap().iter().cloned());
+        if key == "houses" {
+            houses.extend(serde_json::from_value::<Vec<[f64; 2]>>(value.clone()).unwrap());
         } else {
             map[key] = value.clone();
         }
     }
-    common::physical_map(serde_json::from_value(map).unwrap(), &common::rules())
+    map["buildings"] = houses
+        .iter()
+        .zip(0..)
+        .map(|(&centre, owner)| common::building(owner, HOUSE, centre, 0.0))
+        .collect();
+    common::physical_map(&map.to_string())
 }
 
 fn road(from_y: f64, to_y: f64) -> Value {
@@ -278,8 +279,9 @@ fn the_assault_recipe_puts_a_column_at_each_edge_and_the_garrison_round_the_obje
         assert!(g.seats >= g.soldiers && g.soldiers == 8);
         assert_eq!(g.district, "town/district-0");
         let squad = units[g.unit as usize].position;
-        let wall = (squad[0] - bx).abs() - BUILDING_HALF[0];
-        let side = (squad[1] - by).abs() - BUILDING_HALF[1];
+        let [hx, hy, _] = building.geometry.parts[0].half_extents;
+        let wall = (squad[0] - bx).abs() - hx;
+        let side = (squad[1] - by).abs() - hy;
         assert!(
             (wall.max(side) - recipe.garrison.door_standoff_m).abs() < 0.02,
             "the squad stands {} m from its building's wall",
@@ -393,8 +395,7 @@ fn a_column_with_no_dry_road_within_its_advance_is_refused() {
 #[test]
 fn a_column_stands_clear_of_a_building_on_its_road() {
     // A building across the road where the third unit from the tail would stand.
-    let on_road = json!({ "props": [{ "kind": "building", "center": [ROAD_X, 100.0], "yaw": 0,
-        "half_extents": [6, 6, 4] }] });
+    let on_road = json!({ "houses": [[ROAD_X, 100.0]] });
     let map = town_map(800.0, on_road);
     let encounter = plan(&map, &town_sites(800.0), &recipe()).unwrap();
     assert_stands_clear(&map, &encounter);
@@ -531,14 +532,11 @@ fn a_second_overwatch_post_covers_the_open_approach_on_the_attackers_side() {
 #[test]
 fn the_objective_goes_on_the_settlement_the_recipe_prefers() {
     // The main town in the bottom half, and a second one in the top half.
-    let north: Vec<Value> = BUILDINGS[..4]
+    let north: Vec<[f64; 2]> = BUILDINGS[..4]
         .iter()
-        .map(|[dx, dy]| {
-            json!({ "kind": "building", "center": [ROAD_X + dx, 1150.0 + dy], "yaw": 0,
-                "half_extents": BUILDING_HALF })
-        })
+        .map(|[dx, dy]| [ROAD_X + dx, 1150.0 + dy])
         .collect();
-    let map = town_map(700.0, json!({ "props": north }));
+    let map = town_map(700.0, json!({ "houses": north }));
     let sites = sites_of(&[("town", 700.0), ("north", 1150.0)]);
     let objective = |preference: contract::encounter::SettlementPreference| {
         let mut recipe = recipe();

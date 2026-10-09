@@ -5,8 +5,8 @@
     "template_catalog_hash": null
   },
   "catalogue": {
-    "library": "building-templates.json",
-    "template_ids": null
+    "library": "prototype-building-templates.json",
+    "template_ids": []
   },
   "inputs": [
     {

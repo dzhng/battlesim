@@ -237,10 +237,7 @@ impl WorldGeometry {
                 rules.forests.rule,
             ),
             props: PropStore::new(PropIndex::new(field.width(), field.depth(), PROP_BUCKET_M)),
-            buildings: Arc::new(buildings::Buildings::new(
-                &map.buildings,
-                rules.catalog.props(),
-            )),
+            buildings: Arc::new(buildings::Buildings::new(&map.buildings)),
             template_catalog_hash: map.template_catalog_hash.clone(),
             regional_family: map.regional_family.clone(),
             authored_props: 0,

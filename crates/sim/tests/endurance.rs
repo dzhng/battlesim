@@ -161,6 +161,7 @@ fn late_stress_remains_do_not_overwrite_building_parts() {
         include_str!("../../../fixtures/parity/templates/asymmetric.json"),
     )
     .unwrap();
+    map.regional_family = Some(template.regional_family.clone());
     let parts = template
         .parts
         .iter()

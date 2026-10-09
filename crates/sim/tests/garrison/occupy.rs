@@ -373,7 +373,7 @@ fn a_nearby_entry_is_not_starved_by_farther_candidates_earlier_in_unit_order() {
 fn a_building_preview_after_live_forest_clearance_rebases_its_scratch_navigation() {
     let setup = common::scenario(
         &json!({"size":[400,80],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
-            "props":[{"kind":"building","center":[330,40],"yaw":0,"half_extents":[12,9,4]}],
+            "buildings":[common::building(0, TEMPLATE, [330.0, 40.0], 0.0)],
             "forests":[{"shape":{"kind":"polygon","ring":[[70,0],[130,0],[130,80],[70,80]]}}]
         })
         .to_string(),

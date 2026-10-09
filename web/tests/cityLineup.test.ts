@@ -175,7 +175,7 @@ test("a line-up in a damage state is the templates that end in it, each destroye
 const [SHELL, WINDOW] = [0, 1];
 const LIBRARY: TemplateArtLibrary = {
   art_hash: "art",
-  covers: ["physical"],
+  covers: "physical",
   kits: [{ appearance: "city_kit_test", bundle: "a" }],
   modules: [
     { kit: 0, module: "shell" },

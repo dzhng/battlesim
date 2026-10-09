@@ -379,9 +379,9 @@ export class AppearanceLibrary {
         source.read,
       ),
     );
-    if (library.art_hash !== named.art_hash || library.covers.join() !== named.covers.join())
+    if (library.art_hash !== named.art_hash || library.covers !== named.covers)
       throw new Error(
-        `template library ${named.library} is art ${library.art_hash} over catalogues ${library.covers.join(", ")}, not what the catalog names; re-bake`,
+        `template library ${named.library} is art ${library.art_hash} over catalogue ${library.covers}, not what the catalog names; re-bake`,
       );
     for (const kit of library.kits) {
       const entry = source.catalog.appearances[kit.appearance];

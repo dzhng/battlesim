@@ -23,7 +23,7 @@ pub(super) struct Buildings {
     physical_digest: Option<u64>,
 }
 impl Buildings {
-    pub fn new(definitions: &[BuildingDefinition], types: &contract::catalog::PropCatalog) -> Self {
+    pub fn new(definitions: &[BuildingDefinition]) -> Self {
         let mut facts = BTreeMap::new();
         let mut members = BTreeMap::new();
         for definition in definitions {
@@ -49,53 +49,20 @@ impl Buildings {
                 },
             );
         }
-        // Original box faces are implicit in their collider geometry. Only
-        // additional physical facts add digest state; hash immutable facts once.
+        // Hash immutable physical facts once.
         let mut physical = crate::digest::Digest::default();
-        let mut added = false;
         for building in facts.values() {
-            let geometry = &building.definition.geometry;
-            let implicit = types.by_id(&building.definition.kind).body.garrison
-                && geometry.parts.len() == 1
-                && geometry.floor_z.is_none()
-                && geometry.entrances.is_none()
-                && geometry.edges.len() == 4
-                && geometry.parts[0].center
-                    == [geometry.frame.translation[0], geometry.frame.translation[1]]
-                && geometry.parts[0].base_z == geometry.frame.translation[2]
-                && geometry.parts.iter().all(|p| {
-                    p.yaw == geometry.frame.yaw
-                        && contract::templates::Facade::ALL.into_iter().all(|facade| {
-                            let half = facade.axes(p.half_extents).3;
-                            geometry
-                                .edges
-                                .iter()
-                                .filter(|e| e.part == p.id && e.facade == facade)
-                                .count()
-                                == 1
-                                && geometry.edges.iter().any(|e| {
-                                    e.part == p.id
-                                        && e.facade == facade
-                                        && e.exposed
-                                        && e.bays.is_none()
-                                        && e.span_m == [-half, half]
-                                })
-                        })
-                });
-            if !implicit {
-                added = true;
-                let def = &building.definition;
-                let bytes = serde_json::to_vec(geometry).unwrap();
-                physical
-                    .u64(def.owner as u64)
-                    .u64(bytes.len() as u64)
-                    .bytes(&bytes);
-            }
+            let def = &building.definition;
+            let bytes = serde_json::to_vec(&def.geometry).unwrap();
+            physical
+                .u64(def.owner as u64)
+                .u64(bytes.len() as u64)
+                .bytes(&bytes);
         }
         Self {
+            physical_digest: (!facts.is_empty()).then(|| physical.finish()),
             facts,
             members,
-            physical_digest: added.then(|| physical.finish()),
         }
     }
     pub fn digest(&self, d: &mut crate::digest::Digest) {
@@ -259,7 +226,7 @@ mod tests {
                 })
                 .collect(),
             height_m: 8.0,
-            floor_z: None,
+            floor_z: vec![0.0],
             entrances: None,
             edges: vec![],
         };

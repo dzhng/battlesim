@@ -86,9 +86,10 @@ struct Fight {
 
 /// Blue's rifle squad at rest at `blue`, red's in the open at `red`, both
 /// firing at will, soldiers too tough to fall, for `seconds`; the cover is
-/// the footprint `cover` (struck through `struck`).
+/// the footprint `cover` (struck through `struck`). `bodies` holds the props
+/// and any building ([`common::building`]).
 fn fight(
-    props: Value,
+    bodies: Value,
     mut units: Vec<Value>,
     blue: [f64; 2],
     red: [f64; 2],
@@ -111,16 +112,22 @@ fn fight(
         0,
         json!({ "side": "blue", "kind": "test_rifle", "position": blue }),
     );
-    let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
-                 "props": props, "forests": [] },
+    let (buildings, props): (Vec<Value>, Vec<Value>) = bodies
+        .as_array()
+        .unwrap()
+        .iter()
+        .cloned()
+        .partition(|body| body.get("template_id").is_some());
+    let map = json!({ "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+                 "props": props, "buildings": buildings, "forests": [] });
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map": common::physical_map(&map.to_string()),
         "rules": rules,
         "units": units,
         "events": [],
         "scripts": [],
     }))
     .unwrap();
-    setup.map = common::physical_map(setup.map, &setup.rules);
     let mut b = Battle::new(&setup, 1);
     let mut seen = std::collections::BTreeSet::new();
     let mut blue_rounds = std::collections::BTreeSet::new();
@@ -214,7 +221,12 @@ fn a_soldier_leans_out_round_a_trunk_to_fire() {
 fn a_soldier_leans_out_round_a_building_corner_to_fire() {
     // The house's north-east corner at (70, 50); red north-east of it.
     let f = fight(
-        json!([prop("building", [64.0, 44.0], [6.0, 6.0, 4.0])]),
+        json!([common::building(
+            0,
+            "china-corner-shop-3f",
+            [64.0, 44.0],
+            0.0
+        )]),
         vec![],
         [60.0, 53.0],
         [110.0, 62.0],

@@ -523,7 +523,7 @@ fn building_membership_and_added_physical_facts_are_authoritative_digest_state()
         "equal physical poses cannot hide a different integrity owner"
     );
     other = setup.clone();
-    other.map.buildings[0].geometry.floor_z = Some(vec![0.0, 4.0]);
+    other.map.buildings[0].geometry.floor_z = vec![0.0, 4.0];
     assert_ne!(
         Battle::new(&other, 11).digest(),
         baseline,
@@ -729,7 +729,7 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
 fn floor_band_seats_follow_exposed_bays_and_stop_at_the_third_floor() {
     let mut setup = compound_setup(json!([]));
     setup.rules.buildings.capacity_soldiers = 32;
-    setup.map.buildings[0].geometry.floor_z = Some(vec![0.0, 3.0, 6.0, 7.0]);
+    setup.map.buildings[0].geometry.floor_z = vec![0.0, 3.0, 6.0, 7.0];
     let b = Battle::new(&setup, 11);
     let definition = &setup.map.buildings[0].geometry;
     let seats = sim::garrison::seats_for_state(b.world(), b.world().prop(0).unwrap(), &setup.rules);
@@ -758,10 +758,9 @@ fn floor_band_seats_follow_exposed_bays_and_stop_at_the_third_floor() {
 }
 
 #[test]
-fn known_floor_geometry_does_not_invent_unresolved_facade_bays() {
+fn a_facade_without_bays_seats_nobody() {
     let mut setup = compound_setup(json!([]));
     let geometry = &mut setup.map.buildings[0].geometry;
-    geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
     let unresolved = geometry
         .edges
         .iter()
@@ -778,7 +777,7 @@ fn known_floor_geometry_does_not_invent_unresolved_facade_bays() {
     assert!(!seats.is_empty(), "resolved facades still supply seats");
     assert!(
         seats.iter().all(|s| s.edge != unresolved),
-        "unresolved bays cannot supply physical seats"
+        "seats stand only at physical bays: none are invented on a blank wall"
     );
 }
 
@@ -787,7 +786,7 @@ fn abundant_facade_bays_never_admit_more_than_32_seats() {
     let mut setup = compound_setup(json!([]));
     setup.rules.buildings.capacity_soldiers = 100;
     let geometry = &mut setup.map.buildings[0].geometry;
-    geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
+    geometry.floor_z = vec![0.0, 3.0, 6.0];
     for edge in geometry.edges.iter_mut().filter(|e| e.exposed) {
         let [a, b] = edge.span;
         edge.bays = Some(
@@ -810,7 +809,7 @@ fn abundant_facade_bays_never_admit_more_than_32_seats() {
 #[test]
 fn each_directional_eye_is_an_occupied_seat_on_its_highest_held_floor() {
     let mut setup = compound_setup(json!([]));
-    setup.map.buildings[0].geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
+    setup.map.buildings[0].geometry.floor_z = vec![0.0, 3.0, 6.0];
     setup.units = serde_json::from_value(json!([{"side":"blue","kind":"test_rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
     let mut b = Battle::new(&setup, 11);
     crate::common::order(
@@ -864,7 +863,7 @@ fn each_directional_eye_is_an_occupied_seat_on_its_highest_held_floor() {
 #[test]
 fn a_third_floor_garrison_sees_over_a_two_storey_obstacle() {
     let mut setup = compound_setup(json!([]));
-    setup.map.buildings[0].geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
+    setup.map.buildings[0].geometry.floor_z = vec![0.0, 3.0, 6.0];
     setup.map.props.push(
         serde_json::from_value(
             json!({"id":3,"kind":"wall","center":[440,301],"yaw":0,"half_extents":[3,20,2.5]}),
@@ -967,7 +966,7 @@ fn low_rise_collapse_height_scales_and_clamps_from_the_destroyed_row() {
             .collect::<Vec<_>>()));
         let geometry = &mut setup.map.buildings[0].geometry;
         geometry.height_m = height;
-        geometry.floor_z = Some(vec![0.0, height / 2.0]);
+        geometry.floor_z = vec![0.0, height / 2.0];
         for part in &mut geometry.parts {
             part.half_extents[2] = height / 2.0;
         }
@@ -1010,7 +1009,7 @@ fn tall_buildings_leave_a_terminal_ungarrisonable_shell() {
         .collect::<Vec<_>>()));
     let geometry = &mut setup.map.buildings[0].geometry;
     geometry.height_m = 24.0;
-    geometry.floor_z = Some((0..7).map(|n| n as f64 * 3.0).collect());
+    geometry.floor_z = (0..7).map(|n| n as f64 * 3.0).collect();
     for part in &mut geometry.parts {
         part.half_extents[2] = 12.0;
     }
@@ -1176,7 +1175,7 @@ fn upper_floor_collapse_deaths_land_on_the_remaining_physical_surface() {
     }];
     let geometry = &mut setup.map.buildings[0].geometry;
     geometry.frame.translation[2] = 2.0;
-    geometry.floor_z = Some(vec![2.0, 5.0, 8.0]);
+    geometry.floor_z = vec![2.0, 5.0, 8.0];
     for part in &mut geometry.parts {
         part.base_z += 2.0;
     }

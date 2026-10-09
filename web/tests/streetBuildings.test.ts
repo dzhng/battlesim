@@ -1,7 +1,7 @@
 // @vitest-environment node
 // The street test map's houses on the one building path, from what ships: the saved
 // map's buildings, as references into the baked template art library, drawn
-// as their farms until a side has seen one fall and as its ruin after.
+// standing until a side has seen one fall and as its ruin after.
 import { readFileSync } from "node:fs";
 import { afterAll, expect, test } from "vitest";
 import { TEST_RULES, UNITS } from "./catalog";
@@ -103,7 +103,7 @@ function drawn(scene: BuildingScene): string[] {
   return out.sort();
 }
 
-test("a street house stands as its farm until the side has seen it fall, then lies as its ruin", () => {
+test("a street house stands until the side has seen it fall, then lies as its ruin", () => {
   const scene = createBuildingScene(index.placed, art, gameBuildingStyle);
   const houses = index.parts.map((): TemplateState => "intact");
   const standing = modulesIn(houses);
@@ -140,13 +140,4 @@ test("a street house stands as its farm until the side has seen it fall, then li
   // And forgetting is not a thing a side does, but a new battle is: none known, all stand.
   setFallenBuildings(scene, knownFallen(UNITS, index, []));
   expect(drawn(scene)).toEqual(standing);
-});
-
-test("every building an authored map can place has art for standing and for fallen", () => {
-  const boxes = JSON.parse(
-    readFileSync(new URL("../../fixtures/building-templates.json", import.meta.url), "utf8"),
-  ) as { templates: { id: string }[] };
-  const drawnStates = new Map(library.templates.map((t) => [t.id, Object.keys(t.states)]));
-  for (const { id } of boxes.templates)
-    expect(drawnStates.get(id), id).toEqual(expect.arrayContaining(["intact", "ruin"]));
 });

@@ -12,7 +12,6 @@ import { AppearanceLibrary, memoryFetch, type Fetch } from "@packages/scene-asse
 import { gzipTransport } from "@packages/scene-assets/src/gzip.ts";
 import { bundlePath, templateLibraryPath } from "@packages/scene-assets/src/schema.ts";
 import {
-  CATALOGUE,
   HOUSE,
   KIT,
   MODULES,
@@ -33,11 +32,7 @@ const BASE = "/assets/";
 async function served() {
   const catalog = cityCatalog();
   catalog.appearances[YARD_KIT] = { unit: "kit", source: "yard/kit.glb", basis_yaw_deg: 0 };
-  catalog.city_sets!.yard = {
-    templates: "yard/templates.json",
-    kit: YARD_KIT,
-    catalogue: CATALOGUE,
-  };
+  catalog.city_sets!.yard = { templates: "yard/templates.json", kit: YARD_KIT };
   const sources: Record<string, Uint8Array> = {
     ...citySources(testSet((set) => set.templates.pop())),
     // The shell alone: another kit's bytes, so the two are two files.

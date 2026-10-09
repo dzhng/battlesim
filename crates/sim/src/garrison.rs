@@ -105,10 +105,7 @@ fn ticks(seconds: f64, rules: &Rules) -> u32 {
 
 /// The one band policy used by seating and building bulk integrity.
 pub(crate) fn floor_band_count(geometry: &contract::templates::MaterializedBuilding) -> usize {
-    geometry
-        .floor_z
-        .as_ref()
-        .map_or(1, |floors| floors.len().min(3))
+    geometry.floor_z.len().min(3)
 }
 
 /// Seats at exposed physical bays on the bottom three floor bands of the
@@ -131,42 +128,21 @@ fn seat_plan(
     remaining_height: Option<f64>,
 ) -> SeatPlan {
     let mut groups: [Vec<SeatSlot>; 4] = Default::default();
-    let ground = [geometry.frame.translation[2]];
-    let floors = geometry.floor_z.as_deref().unwrap_or(&ground);
-    for &z in floors.iter().take(floor_band_count(geometry)).rev() {
+    for &z in geometry
+        .floor_z
+        .iter()
+        .take(floor_band_count(geometry))
+        .rev()
+    {
         for (ordinal, edge) in geometry.edges.iter().enumerate().filter(|(_, e)| {
             let top = remaining_height.map_or(e.top_z, |h| e.top_z.min(e.base_z + h));
             e.exposed && z >= e.base_z && z < top
         }) {
-            if geometry.floor_z.is_some() && edge.bays.is_none() {
-                continue;
-            }
-            let part = geometry
-                .parts
-                .iter()
-                .find(|part| part.id == edge.part)
-                .unwrap();
             let direction = v2(edge.normal[0], edge.normal[1]).rotated(-geometry.frame.yaw);
             let group = ((libm::atan2(direction.y, direction.x) / std::f64::consts::FRAC_PI_2)
                 .round() as i32)
                 .rem_euclid(4) as usize;
-            // Legacy boxes without floor/bay facts retain ground positions;
-            // known-floor descriptors cannot invent unresolved source bays.
-            let bays = edge.bays.clone().unwrap_or_else(|| {
-                let count = ((edge.span_m[1] - edge.span_m[0]) / 3.0).floor() as usize;
-                let (normal, along, reach, _) = edge.facade.axes(part.half_extents);
-                (0..count)
-                    .map(|j| {
-                        let t = edge.span_m[0]
-                            + (edge.span_m[1] - edge.span_m[0]) * (j as f64 + 0.5) / count as f64;
-                        let p = v2(part.center[0], part.center[1])
-                            + (v2(normal[0], normal[1]) * reach + v2(along[0], along[1]) * t)
-                                .rotated(part.yaw);
-                        [p.x, p.y]
-                    })
-                    .collect()
-            });
-            for bay in bays {
+            for bay in edge.bays.iter().flatten() {
                 let normal = v2(edge.normal[0], edge.normal[1]);
                 let position = v2(bay[0], bay[1]) + normal * rules.garrison.slot_standoff_m;
                 groups[group].push(SeatSlot {

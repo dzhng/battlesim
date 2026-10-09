@@ -6,10 +6,10 @@ own component catalogs and terrain palettes; [catalog resolution](../crates/cont
 produces the browser's resolved [catalog](catalog.json).
 
 [Map presets](map-presets.json) and the generator's [physical template library](prototype-building-templates.json)
-feed [mapgen](../crates/mapgen/README.md). Their templates are derived from accepted
-[city sets](../packages/scene-assets/README.md#city-buildings). The [authored template library](building-templates.json)
-stays separate because existing authored maps pin its hash and it must not be
-silently regenerated from art.
+feed [mapgen](../crates/mapgen/README.md). Its templates are derived from accepted
+[city sets](../packages/scene-assets/README.md#city-buildings), and it is the one
+catalogue of buildings: a hand-authored map places the generator's templates too,
+selecting the ones it uses, so the library changing elsewhere leaves its identity alone.
 
 [Encounter recipes](encounters.json) describe rosters, objectives and placement
 policy without coordinates; [the simulation planner](../crates/sim/src/encounter/)
@@ -52,7 +52,7 @@ have the contracts below.
 A saved map is one folder, `maps/<id>/`, under [the saved-map catalog](maps/), and nothing reads a map any other way. The id is the folder's name: lowercase letters, digits, hyphens and underscores. It names where the map is stored and nothing else: a route's id and a map's content hash are separate things, and several routes may play one map.
 
 - **`map.json`** is the physical map in its saved form (`contract::map::SavedMap`): ground, relief, water, surfaces, forests, props and buildings. A building is stored as what is its own: `owner`, `kind`, `template_id`, `frame` (translation and yaw) and `parts` (each named part's prop id). Its geometry, category and regional family are the template's and are not stored. The map names its own region once, `regional_family`, which every building's template must share (absent only on a map without buildings): the renderer and the asset loader read the region there and nowhere else. Only the resolver reads this file.
-- **`SOURCES.json`** pins what the map is and where it came from (`contract::maps::MapSources`): its content identity (an authored map's hash, or a generated map's whole generation identity), its physical catalogue (`catalogue.library`, the file name of a template library in this folder, and `catalogue.template_ids`, the templates of it the map uses, `null` for the whole library), and a receipt for each input it was made from. A receipt is `repository` (path, revision, sha256) or `supplied` (label, sha256).
+- **`SOURCES.json`** pins what the map is and where it came from (`contract::maps::MapSources`): its content identity (an authored map's hash, or a generated map's whole generation identity), its physical catalogue (`catalogue.library`, the file name of the template library in this folder, and `catalogue.template_ids`, the templates of it the map uses: an authored map lists them, so only a change to one of its own templates moves it), and a receipt for each input it was made from. A receipt is `repository` (path, revision, sha256) or `supplied` (label, sha256).
 - **`meta.json`** is what a listing shows without loading the map: category, status, label, character, biome, size, feature tags, source, seed, and the names of its encounters and benchmarks. [`web/src/maps/catalogue.ts`](../web/src/maps/catalogue.ts) owns the schema, the validator and `listMaps`. Every field the map itself also states is checked against the map, so a listing cannot drift from what loads.
 - **The category says what a saved map is for** (`contract::maps::MapCategory`): `test` (a test's, a lab's or a benchmark's ground) or `menu` (a battlefield the menu backdrop films); anything else is refused by both readers. No saved map is the game's: player battles are generated and never name one. The menu backdrop takes only `menu` maps, and labs and native tests only `test` maps (`fixtureMap`, `sim::fixtures::with_map`), so a test needing content another owner has gets its own copy of the map rather than borrowing that owner's.
 
@@ -70,7 +70,7 @@ Routes and saved maps have different identities. The [fixture registry](../apps/
 - the browser: `loadMap(id)` and `loadEncounter(id, name)` in [`web/src/maps/browser.ts`](../web/src/maps/browser.ts). Each document is its own served file, so no map is part of a script;
 - Node tests, scenes and tools: the same two names in [`web/src/maps/node.ts`](../web/src/maps/node.ts), over the built WebAssembly.
 
-**Adding a map:** make the folder, write `map.json` and `meta.json`, and write `SOURCES.json` with the map's library and content hash. The resolver's refusal states the hash it computed, so an authored map's first load tells you the value. A map the compiler makes is saved in this form, with its `SOURCES.json`, by the `mapgen` CLI.
+**Adding a map:** make the folder, write `map.json` and `meta.json`, and write `SOURCES.json` with the map's library, the templates it selects and its content hash. The catalogue hash is the contract's hash of those templates, and the resolver's refusal states the content hash it computed, so an authored map's first load tells you the value. A map the compiler makes is saved in this form, with its `SOURCES.json`, by the `mapgen` CLI.
 
 A released saved generated map is a reviewed, fixed battlefield. Its template
 hash must continue to resolve; changing physical templates may require generating

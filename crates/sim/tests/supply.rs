@@ -191,9 +191,10 @@ fn a_garrisoned_squad_is_reinforced_inside_its_building() {
     // A rifle squad two men short holds the building beside a deployed truck.
     // Its replacements join it inside, each on a free facade slot of the
     // building, where the garrison's own soldiers stand.
-    let map = json!({ "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
-        "props": [{ "kind": "building", "center": [150, 200], "yaw": 0, "half_extents": [12, 9, 4] }] })
-    .to_string();
+    let map =
+        json!({ "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "buildings": [common::building(0, "china-home-12x9-2f", [150.0, 200.0], 0.0)] })
+        .to_string();
     let units = json!([
         truck(None),
         { "side": "blue", "kind": "test_rifle", "position": [150, 214], "engagement": "return_fire_only",

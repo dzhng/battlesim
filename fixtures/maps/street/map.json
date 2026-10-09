@@ -144,24 +144,24 @@
     {
       "owner": 0,
       "kind": "building",
-      "template_id": "api-box-15-12-4",
+      "template_id": "china-corner-shop-3f",
       "frame": {"translation": [975.0, 752.0, 0.0], "yaw": 0.0},
       "parts": [{"part": "body", "prop": 0}]
     },
     {
       "owner": 1,
       "kind": "building",
-      "template_id": "api-box-17-14-4",
+      "template_id": "china-corner-shop-3f",
       "frame": {"translation": [1047.0, 814.0, 0.0], "yaw": 0.0},
       "parts": [{"part": "body", "prop": 1}]
     },
     {
       "owner": 2,
       "kind": "building",
-      "template_id": "api-box-13-11-4",
+      "template_id": "china-corner-shop-3f",
       "frame": {"translation": [983.0, 871.0, 0.0], "yaw": 0.0},
       "parts": [{"part": "body", "prop": 2}]
     }
   ],
-  "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13","regional_family":"api_fixture"
+  "template_catalog_hash": "b785d1f2e6e416cbb2f68863ee492f158ac5108b8b5ce9a3e03b25be6849b8ad","regional_family": "china"
 }

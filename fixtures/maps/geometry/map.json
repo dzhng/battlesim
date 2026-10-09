@@ -54,10 +54,10 @@
     {
       "owner": 4,
       "kind": "building",
-      "template_id": "api-box-12-9-4",
-      "frame": {"translation": [340.0, 110.0, 0.0], "yaw": 0.25},
+      "template_id": "china-shed-15x24",
+      "frame": {"translation": [340.0, 110.0, 0.0], "yaw": 1.8207963267948966},
       "parts": [{"part": "body", "prop": 4}]
     }
   ],
-  "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13","regional_family":"api_fixture"
+  "template_catalog_hash": "332079fbdd08a9e8cd0f2a9d782c45ef79bde785dbb039974068a90edeeba062","regional_family": "china"
 }

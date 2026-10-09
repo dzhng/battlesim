@@ -12,9 +12,8 @@ With a ruin height the same plan is a burnt shell: walls broken to a ragged top
 no higher than about that height, rubble mounds, charred beams. Origin at the
 box's centre on the ground, +X along `hx`.
 
-`farmstead` builds one under a root, for a set that places it on a template
-(`city/lab_boxes.py`). Run as a script it writes one alone, the ruin a loose
-`ruin` or rubble prop is drawn as:
+`farmstead` builds one under a root. Run as a script it writes one alone, the
+ruin a loose `ruin` or rubble prop is drawn as:
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/house.py -- <out.glb> <hx> <hy> <hz> <variant> [--ruin RUIN_HEIGHT]
 """

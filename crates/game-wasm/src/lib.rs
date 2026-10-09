@@ -5,7 +5,7 @@ use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
 use contract::random::Rng;
 use contract::scenario::{Armor, RicochetRules, Rules, ScenarioDefinition};
-use contract::templates::{BuildingTemplateDescriptor, PlacementFrame, TemplateGeometryCatalog};
+use contract::templates::{BuildingTemplateDescriptor, TemplateGeometryCatalog};
 use sim::battle::{Battle, Replay};
 use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
@@ -68,7 +68,10 @@ pub fn resolve_saved_map(
     serde_json::to_string(&outcome).map_err(js_error)
 }
 
-/// Validate and canonically identify physical templates, independent of art.
+/// Admit physical templates as buildings a map may place, together one
+/// canonical catalogue (`{ hash, templates }`), independent of art. The asset
+/// check holds every source set's descriptors to this, so no other code
+/// decides what a legal template is. Fails with the contract's own refusal.
 #[wasm_bindgen]
 pub fn template_catalogue_json(descriptors_json: &str) -> Result<String, JsError> {
     let descriptors: Vec<BuildingTemplateDescriptor> =
@@ -77,30 +80,6 @@ pub fn template_catalogue_json(descriptors_json: &str) -> Result<String, JsError
         .map_err(js_error)?
         .canonical_json()
         .map_err(js_error)
-}
-
-/// Admit physical templates as buildings a map may place: each one complete
-/// (`require_complete`), together one canonical catalogue. The asset check
-/// holds every source set's descriptors to this, so no other code decides
-/// what a legal template is. Fails with the contract's own refusal.
-#[wasm_bindgen]
-pub fn complete_template_catalogue_json(descriptors_json: &str) -> Result<String, JsError> {
-    let descriptors: Vec<BuildingTemplateDescriptor> =
-        serde_json::from_str(descriptors_json).map_err(js_error)?;
-    let catalogue = TemplateGeometryCatalog::new(descriptors).map_err(js_error)?;
-    for template in catalogue.templates() {
-        template.require_complete().map_err(js_error)?;
-    }
-    catalogue.canonical_json().map_err(js_error)
-}
-
-/// Materialize one physical descriptor in a translation/rotation frame.
-#[wasm_bindgen]
-pub fn materialize_template(descriptor_json: &str, frame_json: &str) -> Result<String, JsError> {
-    let descriptor: BuildingTemplateDescriptor =
-        serde_json::from_str(descriptor_json).map_err(js_error)?;
-    let frame: PlacementFrame = serde_json::from_str(frame_json).map_err(js_error)?;
-    serde_json::to_string(&descriptor.materialize(frame).map_err(js_error)?).map_err(js_error)
 }
 
 /// Strides, field order and enum tags of the geometry exports, with the

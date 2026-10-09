@@ -14,10 +14,17 @@ use sim::world::Prop;
 
 use crate::common::{self, Commander};
 
-/// The building every test garrisons: prop 0, 24 × 18 m, 8 m tall.
+/// The building every test garrisons: prop 0, the generator's seven-storey
+/// point block, 20 m square, so its seats stand on its bottom three floors.
+/// A building that tall is gutted rather than felled.
+const TEMPLATE: &str = "china-apartment-point-20x20-7f";
 const CENTRE: [f64; 2] = [400.0, 300.0];
-const HALF: [f64; 3] = [12.0, 9.0, 4.0];
+const HALF: [f64; 2] = [10.0, 10.0];
 const BUILDING: u32 = 0;
+/// The building the collapse tests bring down, at the same place: a
+/// four-storey slab, 35 × 11 m, low enough to fall to a ruin.
+const FELLED: &str = "china-apartment-slab-35x11-4f";
+const FELLED_HALF: [f64; 2] = [17.5, 5.5];
 
 fn rules() -> Value {
     common::game()
@@ -31,12 +38,25 @@ fn ticks(seconds: f64) -> u64 {
     (seconds * rules()["tick_hz"].as_f64().unwrap()).round() as u64
 }
 
-fn map(extra_props: Value) -> String {
-    let mut props =
-        vec![json!({ "kind": "building", "center": CENTRE, "yaw": 0, "half_extents": HALF })];
-    props.extend(extra_props.as_array().unwrap().iter().cloned());
-    json!({ "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
-        .to_string()
+/// The test map: the building, then `extra` props and buildings
+/// ([`common::building`]).
+fn map(extra: Value) -> String {
+    map_of(TEMPLATE, extra)
+}
+
+/// [`map`] with its building of `template`.
+fn map_of(template: &str, extra: Value) -> String {
+    let (more, props): (Vec<Value>, Vec<Value>) = extra
+        .as_array()
+        .unwrap()
+        .iter()
+        .cloned()
+        .partition(|body| body.get("template_id").is_some());
+    let mut buildings = vec![common::building(BUILDING, template, CENTRE, 0.0)];
+    buildings.extend(more);
+    json!({ "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "props": props, "buildings": buildings })
+    .to_string()
 }
 
 fn battle_with(extra_props: Value, units: Value, events: Value, seed: u64) -> Battle {
@@ -323,7 +343,7 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
     let g = u.garrison.unwrap();
     assert_eq!(g.phase, GarrisonPhase::Inside);
     assert_eq!(g.progress, 1.0);
-    assert_eq!((g.center, g.half), (CENTRE, [HALF[0], HALF[1]]));
+    assert_eq!((g.center, g.half), (CENTRE, HALF));
     assert!(u.goal.is_none() && u.queue.is_empty());
 }
 
@@ -561,17 +581,6 @@ fn under_fire(extra_props: Value, events: Value, seed: u64) -> (Battle, Commande
         json!({"body":{"hp":400,"hp_scale":"fixed"}}),
     );
     setup.rules = serde_json::from_value(rows).unwrap();
-    for edge in &mut setup.map.buildings[0].geometry.edges {
-        let [a, b] = edge.span;
-        edge.bays = Some(
-            (0..4)
-                .map(|j| {
-                    let t = (j as f64 + 0.5) / 4.0;
-                    [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
-                })
-                .collect(),
-        );
-    }
     let mut b = Battle::new(&setup, seed);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
@@ -579,9 +588,9 @@ fn under_fire(extra_props: Value, events: Value, seed: u64) -> (Battle, Commande
     (b, c)
 }
 
-/// Blue's squad garrisoned and holding fire; a red spotter squad north sees
-/// the north facade, and red's tank shells what it spots from 300 m, where
-/// its spread puts most rounds into the walls.
+/// Blue's squad garrisoned in the felled building and holding fire; a red
+/// spotter squad north sees the north facade, and red's tank shells what it
+/// spots from 300 m, where its spread puts most rounds into the walls.
 fn shelled(extra_props: Value, events: Value, seed: u64) -> (Battle, Commander) {
     let mut units: Vec<Value> = west_squads(&["test_rifle"])
         .as_array()
@@ -595,7 +604,15 @@ fn shelled(extra_props: Value, events: Value, seed: u64) -> (Battle, Commander) 
         .collect();
     units.push(json!({ "side": "red", "kind": "test_tank", "position": [620.0, 520.0] }));
     units.push(json!({ "side": "red", "kind": "test_rifle", "position": [CENTRE[0], CENTRE[1] + 100.0], "engagement": "return_fire_only" }));
-    let mut b = battle_with(extra_props, Value::Array(units), events, seed);
+    let mut b = Battle::new(
+        &common::scenario_with(
+            &map_of(FELLED, extra_props),
+            Value::Array(units),
+            events,
+            json!([]),
+        ),
+        seed,
+    );
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "inside", |b| inside(b, 0));
@@ -682,7 +699,8 @@ fn every_round_meets_the_same_capsules_and_shell_whatever_it_was_aimed_at() {
     let world = common::flat(
         [800.0, 600.0],
         &format!(
-            r#","props":[{{"kind":"building","center":{CENTRE:?},"yaw":0,"half_extents":{HALF:?}}}]"#
+            r#","buildings":[{}]"#,
+            common::building(BUILDING, TEMPLATE, CENTRE, 0.0)
         ),
     );
     let prop = world.prop(BUILDING).unwrap().clone();
@@ -838,13 +856,22 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
         .expect("a ruin");
     assert_eq!(b.structures().replaced_by(ruin.id), Some(BUILDING));
     assert_eq!(ruin.center, v2(CENTRE[0], CENTRE[1]));
-    assert_eq!([ruin.half.x, ruin.half.y], [HALF[0], HALF[1]]);
-    let Some(contract::catalog::Destroyed::Into { height_m, .. }) =
-        &common::props().by_id("building").destroyed
+    assert_eq!([ruin.half.x, ruin.half.y], FELLED_HALF);
+    // A felled building's remains stand a share of its height, within the
+    // rule's bounds.
+    let Some(contract::catalog::Destroyed::Into {
+        height_m,
+        building: Some(rule),
+        ..
+    }) = &common::props().by_id("building").destroyed
     else {
         panic!("a building leaves remains");
     };
-    assert_eq!(2.0 * ruin.half.z, *height_m);
+    let height = common::template(FELLED).height_m();
+    assert_eq!(
+        2.0 * ruin.half.z,
+        (height * rule.height_fraction).clamp(*height_m, rule.max_height_m)
+    );
     // Every occupant alive a tick earlier is now a survivor or a corpse.
     let corpses_now = b
         .observe(Side::Blue)
@@ -910,7 +937,7 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
     // fires over them, fill the ground around the building beyond the local
     // search: nowhere to escape to.
     let band = num("garrison", "exit_search_radius_m") + 5.0;
-    let (cx, cy, hx, hy) = (CENTRE[0], CENTRE[1], HALF[0], HALF[1]);
+    let (cx, cy, hx, hy) = (CENTRE[0], CENTRE[1], FELLED_HALF[0], FELLED_HALF[1]);
     let wall = |x: f64, y: f64, w: f64, h: f64| json!({ "tick": 900, "add_prop": { "kind": "ruin", "center": [x, y], "yaw": 0, "half_extents": [w, h, 0.25] } });
     let events = json!([
         wall(cx + hx + band / 2.0, cy, band / 2.0, hy + band),
@@ -931,10 +958,18 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
     for (id, members, _) in &before {
         let u = b.unit(UnitId(*id)).unwrap();
         assert!(!u.alive(), "squad {id} had nowhere to go");
-        // Everyone alive before lies where they stood.
+        // Everyone alive before lies where they stood (at his window, or
+        // just behind it if a round took him that tick), brought down to the
+        // ground with the floor he stood on.
+        let standoff = num("garrison", "slot_standoff_m");
         for (k, (alive, at)) in members.iter().enumerate() {
             if *alive {
-                assert_eq!(u.members[k].corpse.map(|f| f.at), Some(*at));
+                let fallen = u.members[k].corpse.expect("he fell").at;
+                assert!(
+                    (fallen.xy() - at.xy()).length() <= 2.0 * standoff + 1e-9,
+                    "{fallen:?} is not where {at:?} stood"
+                );
+                assert_eq!(fallen.z, b.world().height_at(at.x, at.y).unwrap());
             }
         }
     }
@@ -947,7 +982,7 @@ fn a_survivor_squeezes_out_where_a_soldier_fits() {
     // survivor escapes into that gap and stands there.
     let gap = 0.8;
     let band = num("garrison", "exit_search_radius_m") + 5.0;
-    let (cx, cy, hx, hy) = (CENTRE[0], CENTRE[1], HALF[0], HALF[1]);
+    let (cx, cy, hx, hy) = (CENTRE[0], CENTRE[1], FELLED_HALF[0], FELLED_HALF[1]);
     let wall = |x: f64, y: f64, w: f64, h: f64| json!({ "tick": 900, "add_prop": { "kind": "ruin", "center": [x, y], "yaw": 0, "half_extents": [w, h, 0.25] } });
     let (ox, oy) = (hx + gap + band / 2.0, hy + gap + band / 2.0);
     let events = json!([
@@ -1033,7 +1068,7 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     // the ruin. Request the actual south wall, rather than goaling that
     // centroid into another point inside the blocked footprint.
     let radius = num("physics", "soldier_radius_m");
-    let goal = v2(from.x, centre.y - HALF[1] - radius - 1.0);
+    let goal = v2(from.x, centre.y - FELLED_HALF[1] - radius - 1.0);
     // Open ground 10 m past the far wall gets its marker too: admission
     // rehearses the walk to its end. (Live, the fire from the north cuts
     // this squad down on the longer way round, so only the nearer order is
@@ -1091,7 +1126,8 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     let left = (u.position.xy() - marker).length();
     assert!(left < 4.0, "the squad ended {left:.1} m from its marker");
     assert!(
-        u.member_positions().all(|p| p.y < CENTRE[1] - HALF[1]),
+        u.member_positions()
+            .all(|p| p.y < CENTRE[1] - FELLED_HALF[1]),
         "every survivor is past the ruin"
     );
 }
@@ -1169,7 +1205,12 @@ fn occupants_see_only_from_occupied_slots_and_are_seen_only_there() {
 fn another_building_still_blocks_a_garrison_normally() {
     // A second building east blocks the squad's line to ground beyond it.
     let mut b = battle_with(
-        json!([{ "kind": "building", "center": [CENTRE[0] + 60.0, CENTRE[1]], "yaw": 0, "half_extents": [10, 10, 4] }]),
+        json!([common::building(
+            1,
+            TEMPLATE,
+            [CENTRE[0] + 60.0, CENTRE[1]],
+            0.0
+        )]),
         west_squads(&["test_rifle"]),
         json!([]),
         10,
@@ -1325,14 +1366,13 @@ fn a_grounded_launcher_leaves_its_occupied_window_at_the_declared_bore() {
             "id":"ATGM launcher","pivot_m":[0.2,-0.1,0.75],"muzzle_m":[0.6,0,0]
         }]}),
     );
-    let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map":serde_json::from_str::<Value>(&map(json!([]))).unwrap(),"rules":game,
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map":common::physical_map(&map(json!([]))),"rules":game,
         "units":[{"side":"blue","kind":"test_at","position":[350,300],"engagement":"return_fire_only"},
             {"side":"red","kind":"test_tank","position":[400,550],"engagement":"return_fire_only"}],
         "events":[],"scripts":[]
     }))
     .unwrap();
-    setup.map = common::physical_map(setup.map, &setup.rules);
     let mut b = Battle::new(&setup, 1);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
@@ -1578,7 +1618,8 @@ fn an_unusable_launcher_does_not_keep_its_operator_at_a_useless_window() {
             );
         }
         c.ok(&mut b, Side::Blue, garrison(&[0]));
-        until(&mut b, 1200, "inside", |b| inside(b, 0));
+        // Under that fire the squad is pinned and crawls the 40 m to its door.
+        until(&mut b, 2400, "inside", |b| inside(b, 0));
         if !return_fire {
             c.ok(
                 &mut b,
@@ -1649,7 +1690,7 @@ fn alternating_threats_do_not_shuffle_the_squad_faster_than_its_hold() {
 #[test]
 fn an_unseen_collapse_cannot_change_a_garrison_order_until_discovered() {
     let make = |destroy| {
-        let mut map: Value = serde_json::from_str(&map(json!([]))).unwrap();
+        let mut map: Value = serde_json::from_str(&map_of(FELLED, json!([]))).unwrap();
         map["size"] = json!([1600, 600]);
         let events: Vec<_> = (1..=20)
             .filter(|_| destroy)

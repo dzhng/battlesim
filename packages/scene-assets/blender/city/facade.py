@@ -11,8 +11,8 @@ def missing_openings(descriptor, openings, heights):
     parts = {p["id"]: p for p in descriptor["parts"]}
     missing = []
     for edge in descriptor["edges"]:
-        pattern = edge.get("bays")
-        if not edge["exposed"] or pattern is None:
+        pattern = edge["bays"]
+        if not edge["exposed"]:
             continue
         a, b = edge["span_m"]
         pitch, phase = pattern["pitch_m"], pattern["phase_m"]
@@ -20,7 +20,7 @@ def missing_openings(descriptor, openings, heights):
         last = math.ceil((b - phase) / pitch) - 1
         part = parts[edge["part"]]
         base, top = part["base_z"], part["base_z"] + 2 * part["half_extents"][2]
-        for floor in (descriptor.get("floor_heights_m") or ())[:3]:
+        for floor in descriptor["floor_heights_m"][:3]:
             if not base <= floor < top:
                 continue
             for k in range(first, last + 1):

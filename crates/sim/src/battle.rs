@@ -1512,8 +1512,7 @@ impl Battle {
                 if let Some(rule) = building {
                     if let Some(definition) = self.world.building(id) {
                         let geometry = &definition.geometry;
-                        let floors = geometry.floor_z.as_ref().map_or(1, Vec::len);
-                        if floors > rule.collapse_max_floors {
+                        if geometry.floor_z.len() > rule.collapse_max_floors {
                             remains = rule.gutted_prop;
                             height_m = 2.0 * prop.half.z;
                         } else {
@@ -3717,7 +3716,7 @@ mod tests {
                     yaw: 0.0,
                 })
                 .unwrap();
-            geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
+            geometry.floor_z = vec![0.0, 3.0, 6.0];
             let mut rules = crate::fixtures::test_game();
             crate::fixtures::patch_catalog(
                 &mut rules,

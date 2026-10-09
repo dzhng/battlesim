@@ -1,7 +1,8 @@
 //! Physical building templates, independent of appearance and simulation state.
 //! XY is ground, +Z up; parts use the existing oriented-box primitive. Placement
-//! translates and rotates that frame without scaling. Unknown source facts stay
-//! absent; consumers needing them call `require_complete` before selection.
+//! translates and rotates that frame without scaling. Every admitted template
+//! is a complete building: its floors, an entrance, a bay lattice on each
+//! exposed facade, and facades that cover each part's faces.
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -31,8 +32,9 @@ pub struct BuildingTemplateDescriptor {
     pub category: BuildingCategory,
     pub regional_family: String,
     pub parts: Vec<TemplatePart>,
-    /// Nonnegative local floor datums. None means the source has no
-    /// authoritative floor data; it does not mean a one-floor building.
+    /// Nonnegative local floor datums, rising. `validate` refuses `None`, as
+    /// it refuses `entrances: None`: the `Option`s remain only because the
+    /// map generator's source still reads both as optional.
     #[serde(default, deserialize_with = "numbers::optional_list")]
     pub floor_heights_m: Option<Vec<f64>>,
     pub entrances: Option<Vec<Entrance>>,
@@ -94,6 +96,7 @@ pub struct FacadeEdge {
     #[serde(deserialize_with = "numbers::array")]
     pub span_m: [f64; 2],
     pub exposed: bool,
+    /// The fighting bays of an exposed edge; an internal edge has none.
     pub bays: Option<FacadeBays>,
 }
 
@@ -207,8 +210,8 @@ pub struct MaterializedBuilding {
     pub parts: Vec<MaterializedPart>,
     #[serde(deserialize_with = "numbers::scalar")]
     pub height_m: f64,
-    #[serde(default, deserialize_with = "numbers::optional_list")]
-    pub floor_z: Option<Vec<f64>>,
+    #[serde(deserialize_with = "numbers::list")]
+    pub floor_z: Vec<f64>,
     pub entrances: Option<Vec<MaterializedEntrance>>,
     pub edges: Vec<MaterializedEdge>,
 }
@@ -255,13 +258,13 @@ impl MaterializedBuilding {
         ) {
             return bad("placed height contradicts physical parts");
         }
-        if self.floor_z.as_ref().is_some_and(|floors| {
-            floors.is_empty()
-                || floors
-                    .iter()
-                    .any(|z| !z.is_finite() || *z < self.frame.translation[2] || *z >= top)
-                || floors.windows(2).any(|p| p[0] >= p[1])
-        }) {
+        let floors = &self.floor_z;
+        if floors.is_empty()
+            || floors
+                .iter()
+                .any(|z| !z.is_finite() || *z < self.frame.translation[2] || *z >= top)
+            || floors.windows(2).any(|p| p[0] >= p[1])
+        {
             return bad("placed floors must rise below the physical top");
         }
         let mut edges = BTreeSet::new();
@@ -570,21 +573,6 @@ impl TemplateGeometryCatalog {
     pub fn canonical_json(&self) -> Result<String, String> {
         serde_json::to_string(self).map_err(|e| e.to_string())
     }
-
-    pub fn from_json(input: &str) -> Result<Self, String> {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Input {
-            hash: String,
-            templates: Vec<BuildingTemplateDescriptor>,
-        }
-        let input: Input = serde_json::from_str(input).map_err(|e| e.to_string())?;
-        let catalogue = Self::new(input.templates)?;
-        if catalogue.hash != input.hash {
-            return Err("physical catalogue hash does not match its geometry".into());
-        }
-        Ok(catalogue)
-    }
 }
 
 impl BuildingTemplateDescriptor {
@@ -621,30 +609,34 @@ impl BuildingTemplateDescriptor {
         if !height.is_finite() {
             return bad("physical height is not finite");
         }
-        if let Some(floors) = &self.floor_heights_m {
-            if floors.is_empty()
-                || floors
-                    .iter()
-                    .any(|h| !h.is_finite() || *h < 0.0 || *h >= height)
-                || floors.windows(2).any(|p| p[0] >= p[1])
-            {
-                return bad("floor datums must be nonnegative and rise below the physical top");
+        let (Some(floors), Some(entrances)) = (&self.floor_heights_m, &self.entrances) else {
+            return bad("a building needs its floors and its entrances");
+        };
+        if floors.is_empty()
+            || floors
+                .iter()
+                .any(|h| !h.is_finite() || *h < 0.0 || *h >= height)
+            || floors.windows(2).any(|p| p[0] >= p[1])
+        {
+            return bad("floor datums must be nonnegative and rise below the physical top");
+        }
+        let legal = match self.category {
+            BuildingCategory::Farmstead | BuildingCategory::DetachedHome => {
+                (1..=2).contains(&floors.len())
             }
-            let legal = match self.category {
-                BuildingCategory::Farmstead | BuildingCategory::DetachedHome => {
-                    (1..=2).contains(&floors.len())
-                }
-                BuildingCategory::AttachedHome => (2..=3).contains(&floors.len()),
-                BuildingCategory::UrbanApartment => (4..=8).contains(&floors.len()),
-                BuildingCategory::Highrise => floors.len() >= 9,
-                BuildingCategory::Industry => !floors.is_empty(),
-            };
-            if !legal {
-                return bad("floor count does not match the accepted category");
-            }
+            BuildingCategory::AttachedHome => (2..=3).contains(&floors.len()),
+            BuildingCategory::UrbanApartment => (4..=8).contains(&floors.len()),
+            BuildingCategory::Highrise => floors.len() >= 9,
+            BuildingCategory::Industry => !floors.is_empty(),
+        };
+        if !legal {
+            return bad("floor count does not match the accepted category");
         }
         let mut total_bays = 0;
         for edge in &self.edges {
+            if edge.exposed && edge.bays.is_none() {
+                return bad("an exposed facade needs its bay lattice");
+            }
             let part = self
                 .parts
                 .iter()
@@ -754,24 +746,48 @@ impl BuildingTemplateDescriptor {
         {
             return bad("internal edges need an explicit supported join");
         }
-        if let Some(entrances) = &self.entrances {
-            if !unique(entrances.iter().map(|e| e.id.as_str()).collect()) {
-                return bad("entrance ids must be nonempty and unique");
+        if entrances.is_empty() {
+            return bad("a building needs an entrance");
+        }
+        if !unique(entrances.iter().map(|e| e.id.as_str()).collect()) {
+            return bad("entrance ids must be nonempty and unique");
+        }
+        for entrance in entrances {
+            let edge = self
+                .edges
+                .iter()
+                .find(|e| e.id == entrance.edge)
+                .ok_or_else(|| format!("{}: unknown entrance edge {}", self.id, entrance.edge))?;
+            if !edge.exposed
+                || !entrance.offset_m.is_finite()
+                || entrance.offset_m <= edge.span_m[0]
+                || entrance.offset_m >= edge.span_m[1]
+            {
+                return bad("entrances must be inside an exposed span");
             }
-            for entrance in entrances {
-                let edge = self
+        }
+        for part in &self.parts {
+            for facade in Facade::ALL {
+                let half = facade.axes(part.half_extents).3;
+                let mut spans: Vec<_> = self
                     .edges
                     .iter()
-                    .find(|e| e.id == entrance.edge)
-                    .ok_or_else(|| {
-                        format!("{}: unknown entrance edge {}", self.id, entrance.edge)
-                    })?;
-                if !edge.exposed
-                    || !entrance.offset_m.is_finite()
-                    || entrance.offset_m <= edge.span_m[0]
-                    || entrance.offset_m >= edge.span_m[1]
-                {
-                    return bad("entrances must be inside an exposed span");
+                    .filter(|e| e.part == part.id && e.facade == facade)
+                    .map(|e| e.span_m)
+                    .collect();
+                spans.sort_by(|a, b| a[0].total_cmp(&b[0]));
+                let tolerance = 64.0 * f64::EPSILON * half.max(1.0);
+                let mut end = -half;
+                for span in spans {
+                    if (span[0] - end).abs() > tolerance {
+                        return bad(
+                            "facade spans must cover each part face without gaps or overlap",
+                        );
+                    }
+                    end = span[1];
+                }
+                if (end - half).abs() > tolerance {
+                    return bad("facade spans must cover each part face without gaps or overlap");
                 }
             }
         }
@@ -820,57 +836,11 @@ impl BuildingTemplateDescriptor {
             .fold(0.0, f64::max)
     }
 
+    /// The same as [`validate`](Self::validate), which now holds every
+    /// template to a complete building. It stays only for the map generator's
+    /// source, which still calls it; remove it when that calls `validate`.
     pub fn require_complete(&self) -> Result<(), String> {
-        self.validate()?;
-        if self.floor_heights_m.is_none()
-            || self.entrances.is_none()
-            || self.edges.is_empty()
-            || self
-                .edges
-                .iter()
-                .any(|edge| edge.exposed && edge.bays.is_none())
-        {
-            return Err(format!(
-                "{}: floor, entrance or bay geometry is unresolved",
-                self.id
-            ));
-        }
-        if self.entrances.as_ref().is_some_and(Vec::is_empty) {
-            return Err(format!(
-                "{}: complete building geometry needs an entrance",
-                self.id
-            ));
-        }
-        for part in &self.parts {
-            for facade in Facade::ALL {
-                let half = match facade {
-                    Facade::PositiveX | Facade::NegativeX => part.half_extents[1],
-                    Facade::PositiveY | Facade::NegativeY => part.half_extents[0],
-                };
-                let mut spans: Vec<_> = self
-                    .edges
-                    .iter()
-                    .filter(|e| e.part == part.id && e.facade == facade)
-                    .map(|e| e.span_m)
-                    .collect();
-                spans.sort_by(|a, b| a[0].total_cmp(&b[0]));
-                let tolerance = 64.0 * f64::EPSILON * half.max(1.0);
-                let mut end = -half;
-                for span in spans {
-                    if (span[0] - end).abs() > tolerance {
-                        return Err(format!(
-                            "{}: facade spans must cover each part face without gaps or overlap",
-                            self.id
-                        ));
-                    }
-                    end = span[1];
-                }
-                if (end - half).abs() > tolerance {
-                    return Err(format!("{}: facade geometry is unresolved", self.id));
-                }
-            }
-        }
-        Ok(())
+        self.validate()
     }
 
     /// Count a validated catalogue descriptor's lattice before materializing it.
@@ -999,8 +969,10 @@ impl BuildingTemplateDescriptor {
             height_m: self.height_m(),
             floor_z: self
                 .floor_heights_m
-                .as_ref()
-                .map(|heights| heights.iter().map(|h| frame.translation[2] + h).collect()),
+                .iter()
+                .flatten()
+                .map(|h| frame.translation[2] + h)
+                .collect(),
             entrances,
             edges,
         };
@@ -1013,7 +985,7 @@ impl BuildingTemplateDescriptor {
                     part.base_z + 2.0 * part.half_extents[2],
                 ])
                 .all(f64::is_finite)
-        }) && geometry.floor_z.iter().flatten().all(|z| z.is_finite())
+        }) && geometry.floor_z.iter().all(|z| z.is_finite())
             && geometry.entrances.iter().flatten().all(|entrance| {
                 entrance
                     .position

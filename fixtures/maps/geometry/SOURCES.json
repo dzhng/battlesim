@@ -1,12 +1,14 @@
 {
   "identity": {
     "kind": "authored",
-    "map_hash": "56e8691efee52c888037f08642da5f8f07c561a529cbe775b9bb0139310b154c",
-    "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"
+    "map_hash": "d83c6fce2324e8c0b89788f1149ed6f0c67cdbede2f71047d211430d52e6c94b",
+    "template_catalog_hash": "332079fbdd08a9e8cd0f2a9d782c45ef79bde785dbb039974068a90edeeba062"
   },
   "catalogue": {
-    "library": "building-templates.json",
-    "template_ids": null
+    "library": "prototype-building-templates.json",
+    "template_ids": [
+      "china-shed-15x24"
+    ]
   },
   "inputs": [
     {
