@@ -20,11 +20,24 @@
 // the seen/unseen and ground masks.
 import { decode } from "./_png.mjs";
 import { advance, lab, snapshot } from "./_lab.mjs";
+import { game, streetMap } from "./_units.mjs";
+
+/** The street's buildings as its map places them, in the map's order (A, B
+ *  and C): each one's footprint and top. Walls are named by compass, so the
+ *  checks below need the buildings square to the axes. */
+const [A, B] = streetMap.buildings.map(({ geometry }) => {
+  const [part] = geometry.parts;
+  if (geometry.parts.length !== 1 || part.yaw !== 0)
+    throw new Error(`fog-look reads square one-part buildings: ${geometry.template_id}`);
+  const [hx, hy, hz] = part.half_extents;
+  const [x, y] = part.center;
+  return { x, y, hx, hy, top: part.base_z + 2 * hz, west: x - hx };
+});
 
 /** The camera framings the verdict reads (the street's default and ground
  *  zoom, pitched by its curve): beside the recon's sight shadows, and, with
- *  every blue eye on (`eyes: "all"`), the wedge one wall of the building at
- *  (1047, 814) casts, the frames on which the fog look first failed its gate. */
+ *  every blue eye on (`eyes: "all"`), the wedge one wall of building B
+ *  casts, the frames on which the fog look first failed its gate. */
 const FRAMINGS = {
   "default-shadow-edge": { target: [950, 750], distance: 65, pitch: 0.85, yaw: 3.752 },
   "default-wedge": { target: [950, 750], distance: 65, pitch: 0.85, yaw: -1.57 },
@@ -416,15 +429,16 @@ export async function run(ctx) {
   };
   // A structure takes fog whole (fogTerm.ts), so its unseen faces are
   // those of a building none of which is seen. Every building on the street
-  // shows the side something, so one eye stands at head height against
+  // shows the side something, so one eye stands at head height 5 m from
   // building A's west wall, which hides what lies east of it: the largest
   // building it sees nothing of (the flags don't depend on the view), framed
   // as the default framing is.
   await setCamera(page, FRAMINGS["default-shadow-edge"]);
+  const hideAt = [A.west - 5, A.y];
   const hideEye = [
     {
       key: "scene:0",
-      position: [955, 752, (await surfaceZ(955, 752)) + 1.7],
+      position: [...hideAt, (await surfaceZ(...hideAt)) + 1.7],
       forward: 0,
       shape: { front: 1, side: 1, rear: 1 },
       range: 400,
@@ -489,8 +503,17 @@ export async function run(ctx) {
     // edge; the residue is pixels partly seen. An upward face judges itself
     // by the air above it, not the body it belongs to, so on an unseen side
     // the sub-pixel ledges (a sandbag's courses, a lintel under the roof
-    // rule) count as seen and the pixel mixes by its coverage.
-    const unseen = settled(mask, false, 2);
+    // rule) count as seen and the pixel mixes by its coverage (the mask
+    // shows a pixel more than half unseen as unseen). Each frame judges its
+    // own path whole: the street's ground, the wood's canopy, an unseen
+    // building's faces. A prop on the street's seen ground can turn an
+    // unseen face with seen ledges to the camera, which is none of those.
+    let unseen;
+    if (name === "default-shadow-edge") {
+      await view(page, "ground");
+      const ground = decode(await snapshot(ctx, page, `black-style-${name}-ground-1920x1080.png`));
+      unseen = settledGround(mask, ground, false, 2);
+    } else unseen = settled(mask, false, 2);
     graded ??= commonest(dark, unseen);
     const lit = unseen.filter(([x, y]) => !near(rgb(dark, x, y), graded));
     paths[name] = { unseen: unseen.length, notBlack: lit.length };
@@ -533,8 +556,8 @@ export async function run(ctx) {
   ctx.check(
     "every material path takes the style (ground, structures, translucent canopy)",
     Math.max(...graded) < 60 &&
-      ["default-shadow-edge", "orchard"].every(
-        (n) => paths[n].unseen > 2000 && paths[n].notBlack <= paths[n].unseen * 0.002,
+      ["default-shadow-edge", "orchard", "unseen-building"].every(
+        (n) => paths[n]?.unseen > 2000 && paths[n].notBlack <= paths[n].unseen * 0.002,
       ) &&
       blackCount("ground") === 1 &&
       (paths.wall ?? []).length >= 1 &&
@@ -567,37 +590,54 @@ export async function run(ctx) {
   );
   await lab(page, (s) => window.__lab.route.setStyle(s), fixtureStyle);
 
-  // Roofs above every eye read as their building's near side.
+  // Roofs above every eye read as their building's near side: each
+  // building's roof, at its middle.
   const roofs = await lab(
     page,
     (b) =>
-      b.map(([x, y]) => ({
-        position: [x, y, window.__lab.route.surfaceZ(x, y) + 8],
+      b.map(({ x, y, top }) => ({
+        position: [x, y, window.__lab.route.surfaceZ(x, y) + top],
         normal: [0, 0, 1],
       })),
-    [
-      [975, 752],
-      [1047, 814],
-      [983, 871],
-    ],
+    streetMap.buildings.map(({ geometry }) => ({
+      x: geometry.parts[0].center[0],
+      y: geometry.parts[0].center[1],
+      top: geometry.height_m,
+    })),
   );
   const roofSeen = [...(await lab(page, (p) => window.__lab.route.probe(p), roofs))];
-  // A lower roof 6 m up in building B's sight shadow stays unseen.
+  // A lower roof 6 m up in building B's sight shadow stays unseen. A roof
+  // reads as the air on its near side, up to `roof_reach_m` toward the eye
+  // (fogTerm.ts), so the roof stands that far and 10 m more past B's far
+  // wall, on the line from the recon through B's middle: its near side's
+  // air is 10 m into B's sight shadow.
+  const recon = (await lab(page, () => window.__lab.route.observation())).own.find(
+    (u) => u.kind === "test_recon",
+  );
+  const away = [B.x - recon.position[0], B.y - recon.position[1]];
+  const along = Math.hypot(...away);
+  const u = away.map((c) => c / along);
+  const past =
+    Math.min(B.hx / Math.abs(u[0]), B.hy / Math.abs(u[1])) +
+    game.presentation.fog_geometry.roof_reach_m +
+    10;
+  const lower = [B.x + u[0] * past, B.y + u[1] * past];
+  if (B.top <= 6) throw new Error(`building B (${B.top} m) is no taller than the lower roof`);
   const hidden = [
     ...(await lab(page, (p) => window.__lab.route.probe(p), [
-      { position: [1090, 822, (await surfaceZ(1090, 822)) + 6], normal: [0, 0, 1] },
+      { position: [...lower, (await surfaceZ(...lower)) + 6], normal: [0, 0, 1] },
     ])),
   ];
   ctx.check(
     "roofs read as their building's near side: seen from the street, hidden behind a taller one",
     roofSeen.every((s) => s === 1) && hidden[0] === 0,
-    JSON.stringify({ roofSeen, hidden }),
+    JSON.stringify({ roofSeen, hidden, lower }),
   );
 
-  // Structures take fog whole. With every blue eye on, the building at
-  // (1047, 814) casts the wedge behind it: something of it is seen, so none
-  // of it (walls, roofs, courtyard ground) is fogged. With the recon alone,
-  // a building none of which he sees is fogged all over.
+  // Structures take fog whole. With every blue eye on, building B casts the
+  // wedge behind it: something of it is seen, so none of it (walls, roofs,
+  // courtyard ground) is fogged. With the recon alone, a building none of
+  // which he sees is fogged all over.
   const wholeFrame = async (framing, name, pick) => {
     await setCamera(page, framing);
     await page.evaluate(() => window.__lab.frame());
@@ -648,7 +688,7 @@ export async function run(ctx) {
     return Math.abs(u) <= b.hx && Math.abs(v) <= b.hy;
   };
   const caster = await wholeFrame(FRAMINGS["default-wall"], "caster", (bs) =>
-    bs.find((b) => within(b, [1047, 814])),
+    bs.find((b) => within(b, [B.x, B.y])),
   );
   const unseenWhole = unseenBuilding
     ? await withHideEye(() =>
