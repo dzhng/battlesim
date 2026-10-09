@@ -853,10 +853,6 @@
   padding-top: 8px;
   border-top: 1px solid rgb(var(--hud-accent) / 0.22);
 }
-.hud-menu-list {
-  display: grid;
-  gap: 2px;
-}
 .hud-panel :is(button, a).hud-menu-item {
   display: block;
   box-sizing: border-box;
@@ -1205,8 +1201,7 @@
 }
 .hud-purchase-controls,
 .hud-purchase-categories,
-.hud-purchase-variants,
-.hud-purchase-pending {
+.hud-purchase-variants {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1287,8 +1282,7 @@
 .hud-panel .hud-purchase-variants button:disabled {
   opacity: 0.65;
 }
-.hud-purchase-price,
-.hud-purchase-pending small {
+.hud-purchase-price {
   font-size: 11px;
   color: rgb(var(--hud-text) / 0.7);
 }
@@ -1300,16 +1294,10 @@
   padding-top: 10px;
   border-top: 1px solid rgb(var(--hud-accent) / 0.2);
 }
-.hud-purchase-variants button,
-.hud-purchase-pending button {
+.hud-purchase-variants button {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-.hud-purchase-pending {
-  max-width: min(700px, 80vw);
-  overflow-x: auto;
-  padding-block: 6px;
 }
 .hud-score {
   color: rgb(var(--hud-accent));

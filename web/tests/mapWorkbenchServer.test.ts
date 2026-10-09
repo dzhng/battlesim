@@ -10,10 +10,9 @@ import { afterEach, expect, test, vi } from "vitest";
 import {
   WorkbenchStore,
   workbenchCatalog,
-  nativeReporter,
   mapWorkbenchPlugin,
-  type NativeReporter,
 } from "../../apps/map-workbench/server";
+import { nativeReporter, type NativeReporter } from "../../apps/map-workbench/native";
 import type { NativeValidation } from "../../apps/map-workbench/src/protocol";
 import type { HmrContext } from "vite";
 import { MechanicsStore } from "../../apps/mechanics-editor/server";

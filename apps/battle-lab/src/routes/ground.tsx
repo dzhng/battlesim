@@ -217,7 +217,6 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
   const diagnostics = {
     ...session.probes,
     refreshGround,
-    cells: () => cells,
     show: (channels: GroundChannel[]) => setShown(new Set(channels)),
     observeAs,
     /** Start measuring the largest delta afresh. */

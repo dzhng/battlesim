@@ -178,7 +178,6 @@ function FogLookLab({ scenario }: { scenario: string }) {
     setFogOn,
     setReconOnly,
     setEyes,
-    setSpecimens,
     setGrass,
     specimens: () => specimenShapes,
     showMask: (on: boolean) => show(on ? "fog-mask" : "final"),

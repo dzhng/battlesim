@@ -3,7 +3,8 @@ import { mkdtemp, mkdir, copyFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vitest";
-import { WorkbenchStore, nativeReporter } from "../../apps/map-workbench/server";
+import { WorkbenchStore } from "../../apps/map-workbench/server";
+import { nativeReporter } from "../../apps/map-workbench/native";
 
 // This is the composed source/publication boundary: only its filesystem is temporary.
 test("real Rust admits settings independently of the selected seed and new runs capture the reviewed saved bytes", async () => {
