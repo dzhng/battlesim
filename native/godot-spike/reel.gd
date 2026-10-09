@@ -1,5 +1,7 @@
 extends Node3D
 
+const CaptureDecoder = preload("res://presentation_capture.gd")
+
 ## Camera/workload playback for the authored menu reel.
 ## This proves the browser-owned reel identity and camera contract while the
 ## presentation-capture decoder is still being built. Reports are explicit.
@@ -14,6 +16,7 @@ var intervals: Array[float] = []
 var camera: Camera3D
 var started := false
 var source_path := ""
+var capture_result: Dictionary = {"valid": false, "comparison_ready": false, "comparison_blocker": "no presentation capture supplied"}
 
 func _ready() -> void:
 	var configured := OS.get_environment("GODOT_REEL_SOURCE")
@@ -29,8 +32,19 @@ func _ready() -> void:
 		get_tree().quit(2)
 		return
 	scenes = parsed.scenes
+	_load_presentation_capture()
 	_build_world()
 	started = true
+
+func _load_presentation_capture() -> void:
+	var configured := OS.get_environment("GODOT_PRESENTATION_CAPTURE")
+	if configured.is_empty():
+		return
+	var capture_file := FileAccess.open(configured, FileAccess.READ)
+	if capture_file == null:
+		capture_result = {"valid": false, "comparison_ready": false, "comparison_blocker": "unable to read presentation capture: " + configured}
+		return
+	capture_result = CaptureDecoder.decode_json(capture_file.get_as_text())
 
 func _build_world() -> void:
 	var environment := WorldEnvironment.new()
@@ -119,7 +133,10 @@ func _write_report() -> void:
 		"schema": "godot-render-report/v1",
 		"candidate": "godot-menu-reel-camera-probe",
 		"comparison_ready": false,
-		"comparison_blocker": "synthetic proxy; battle-presentation-capture decoder and authored assets are not loaded",
+		"comparison_blocker": "synthetic proxy; authored map assets are not loaded",
+		"capture_valid": capture_result.valid,
+		"capture_comparison_ready": capture_result.comparison_ready,
+		"capture_blocker": capture_result.comparison_blocker,
 		"source": source_path,
 		"scene_count": scenes.size(),
 		"scene_ids": scenes.map(func(s): return {"map": s.map, "encounter": s.encounter, "seed": s.seed}),
