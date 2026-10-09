@@ -11,6 +11,7 @@ var scenes: Array = []
 var scene_index := 0
 var shot_index := 0
 var elapsed := 0.0
+var scene_elapsed := 0.0
 var shot_elapsed := 0.0
 var intervals: Array[float] = []
 var camera: Camera3D
@@ -89,6 +90,7 @@ func _process(delta: float) -> void:
 	var advance := delta * scale
 	_scene_pose()
 	elapsed += advance
+	scene_elapsed += advance
 	shot_elapsed += advance
 	var scene: Dictionary = scenes[scene_index]
 	var shots: Array = scene.reel.shots
@@ -97,6 +99,7 @@ func _process(delta: float) -> void:
 		shot_index += 1
 		if shot_index >= shots.size():
 			shot_index = 0
+			scene_elapsed = 0.0
 			scene_index += 1
 			if scene_index >= scenes.size():
 				_write_report()
@@ -104,6 +107,10 @@ func _process(delta: float) -> void:
 
 func _scene_pose() -> void:
 	var scene: Dictionary = scenes[scene_index]
+	var captured := _captured_pose()
+	if captured.size() > 0:
+		_apply_pose(captured)
+		return
 	var shots: Array = scene.reel.shots
 	var shot: Dictionary = shots[shot_index]
 	var from: Dictionary = shot.from
@@ -116,6 +123,36 @@ func _scene_pose() -> void:
 	var cp := cos(pitch)
 	camera.position = target + Vector3(distance * cp * cos(yaw), distance * sin(pitch), distance * cp * sin(yaw))
 	camera.look_at(target, Vector3.UP)
+
+func _captured_pose() -> Dictionary:
+	if not capture_result.get("valid", false):
+		return {}
+	var capture: Dictionary = capture_result.get("capture", {})
+	var workload: Dictionary = capture.get("workload", {})
+	var scene: Dictionary = scenes[scene_index]
+	if workload.get("scene", "") != scene.get("map", ""):
+		return {}
+	var samples: Array = capture.get("samples", [])
+	if samples.is_empty():
+		return {}
+	var target_tick := int(capture.get("warmTick", 0)) + int(scene_elapsed * int(capture.get("tickHz", 1)))
+	var chosen: Dictionary = samples[0]
+	for sample in samples:
+		if int(sample.get("tick", 0)) > target_tick:
+			break
+		chosen = sample
+	var pose = chosen.get("camera", {})
+	return pose if typeof(pose) == TYPE_DICTIONARY else {}
+
+func _apply_pose(pose: Dictionary) -> void:
+	var target: Array = pose.get("target", [0.0, 0.0])
+	var distance := float(pose.get("distance", 40.0))
+	var yaw := float(pose.get("yaw", 0.0))
+	var pitch := float(pose.get("pitch", 0.5))
+	var cp := cos(pitch)
+	var point := Vector3(float(target[0]), 0.0, float(target[1]))
+	camera.position = point + Vector3(distance * cp * cos(yaw), distance * sin(pitch), distance * cp * sin(yaw))
+	camera.look_at(point, Vector3.UP)
 
 func _write_report() -> void:
 	if intervals.is_empty():
@@ -136,6 +173,7 @@ func _write_report() -> void:
 		"comparison_blocker": "synthetic proxy; authored map assets are not loaded",
 		"capture_valid": capture_result.valid,
 		"capture_comparison_ready": capture_result.comparison_ready,
+		"capture_consumed": capture_result.valid and capture_result.sample_count > 0,
 		"capture_blocker": capture_result.comparison_blocker,
 		"source": source_path,
 		"scene_count": scenes.size(),
