@@ -63,6 +63,10 @@ func _write_report() -> void:
 		return
 	var sorted := samples.duplicate()
 	sorted.sort()
+	var slow_count := maxi(1, int(ceil(samples.size() * 0.01)))
+	var slow_sum := 0.0
+	for i in slow_count:
+		slow_sum += sorted[i]
 	var total := 0.0
 	for value in samples:
 		total += value
@@ -74,7 +78,7 @@ func _write_report() -> void:
 		"average_fps": total / samples.size(),
 		"minimum_fps": sorted[0],
 		"maximum_fps": sorted[-1],
-		"one_percent_low_fps": sorted[max(0, int(ceil(samples.size() * 0.01)) - 1)],
+		"one_percent_low_fps": slow_sum / slow_count,
 		"frame_samples": samples,
 	}
 	var file := FileAccess.open("user://godot-spike-report.json", FileAccess.WRITE)
