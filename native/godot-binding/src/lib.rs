@@ -118,7 +118,7 @@ impl SimulationProbe {
 
     #[func]
     fn publish_side(&mut self, side: GString) -> PackedFloat32Array {
-        let Ok(side) = from_str::<Side>(&format!("\"{}\"", side.to_string())) else {
+        let Ok(side) = from_str::<Side>(&format!("\"{side}\"")) else {
             return PackedFloat32Array::new();
         };
         let Some(battle) = self.battle.as_ref() else {
