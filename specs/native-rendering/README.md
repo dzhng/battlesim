@@ -14,6 +14,7 @@ The browser contract now has a real Rust publication regression: raw capture wor
 The attempted headless Playwright capture did not produce a report within its timeout, so no browser capture files were promoted from that attempt.
 
 The first foreground cut probe produced 24 PNGs and loaded the authored GLB, but its shots visibly show one centered house against the clear background (and the opening fade is black). This is a renderer-path proof, not a matched menu-world result; retain the cuts as evidence only until the full map composition is loaded.
+The current Godot cut metrics confirm that limitation: several shots are transparent or single-colour (edge density 0), while the detailed authored shot is an isolated building against an empty field. An adversarial visual read is that the new unit decoder could still be invisible in the player view; the existing cuts do not prove unit readability or scene composition, so comparison remains blocked until a fresh semantic-unit cut set is captured.
 
 ## Goal
 
