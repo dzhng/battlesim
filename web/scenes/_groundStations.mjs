@@ -33,7 +33,10 @@ const PLAY = 0.85;
 const LOW = 0.32;
 /** The tick every station is shot at. */
 const TICK = 12;
-const HIDE_HUD = "[data-testid=battle-panel], .ro-layer, .lab-panel { display: none !important; }";
+/** The HUD over the canvas: a station's pixels are the world's. The frame
+ *  rate's number changes from shot to shot. */
+const HIDE_HUD =
+  "[data-testid=battle-panel], .ro-layer, .lab-panel, .frame-rate { display: none !important; }";
 
 const at = (target, distance, pitch = PLAY, yaw = YAW) => ({ target, distance, pitch, yaw });
 
@@ -456,7 +459,9 @@ const generatedGround = (page) =>
       if (outcome.status !== "ok") throw new Error(JSON.stringify(outcome.diagnostics));
       const [made, played] = [outcome.result.identity, prepared.identity.generation];
       if (made.map_hash !== played.map_hash)
-        throw new Error(`the ground rig made map ${made.map_hash}; the page plays ${played.map_hash}`);
+        throw new Error(
+          `the ground rig made map ${made.map_hash}; the page plays ${played.map_hash}`,
+        );
       const view = new wasm.WorldView(JSON.stringify(outcome.result.map), rules);
       try {
         window.__generatedGround = {
