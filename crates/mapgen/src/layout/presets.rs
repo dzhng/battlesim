@@ -83,7 +83,8 @@ pub struct Approach {
 }
 
 impl Approach {
-    /// Use the shortest side to select the approach depth for retained plans.
+    /// The depth for a map whose shorter side is `extent_m`: the largest
+    /// size's that it reaches.
     pub fn depth_m(&self, extent_m: f64) -> f64 {
         let size = MapSize::ALL
             .into_iter()
@@ -1027,6 +1028,9 @@ pub struct SizePreset {
 }
 
 impl PresetDefinitions {
+    /// The presets as `request` reads them: a skirmish request's own
+    /// approach, transit, river margin, hub and settlement rows in place of
+    /// the standard ones; a standard request's as written.
     pub fn for_request(&self, request: &contract::generation::GenerationRequest) -> Self {
         let mut resolved = self.clone();
         if request.profile == contract::generation::GenerationProfile::Skirmish {
@@ -1088,7 +1092,7 @@ impl PresetDefinitions {
                 && MapSize::ALL.into_iter().all(|size| a.depth_m.get(&size).is_some_and(|v| positive(*v)))
                 && positive(a.front_m) && a.reserve_front_m.is_finite() && a.reserve_front_m >= a.front_m
                 && length(a.reserve_margin_m) && a.bearing_candidates > 0,
-            "skirmish".into(), "compact construction requires feasible road/river budgets, midpoint hub and valid reserves",
+            "skirmish".into(), "skirmish construction requires feasible road/river budgets, midpoint hub and valid reserves",
         );
 
         // Generation's geometric thresholds: each a distance, a multiple of a

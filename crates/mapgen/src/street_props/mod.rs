@@ -256,10 +256,10 @@ pub fn place_street_props(
 /// country's cover has certified the map's sight, among every body the plan
 /// already holds, and the forests' trunk clearance (of `physics`, whose
 /// catalog the bodies are) off every forest, so no court or garden fells a
-/// tree the certificate counted. Both
-/// stop at the request's authored-part limit, courts first: on the largest
-/// maps the gardens take what the courts leave. The answer is the bodies to
-/// add to the plan's `props`, as [`place_street_props`]'s are.
+/// tree the certificate counted. Both stop at the request's authored-part
+/// limit, courts first: on the largest maps the gardens take what the courts
+/// leave. The answer is the bodies to add to the plan's `props`, as
+/// [`place_street_props`]'s are.
 pub fn place_courts_and_gardens(
     plan: &MapPlan,
     request: &GenerationRequest,

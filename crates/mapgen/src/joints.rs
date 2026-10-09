@@ -332,8 +332,9 @@ fn lost(
 
 /// Every end of every way, grouped where they meet.
 fn nodes(policy: &crate::layout::JointPolicy, ways: &[Way]) -> Vec<Vec<End>> {
-    // Cells cover the edited meeting tolerance, so neighbouring cells contain every eligible end.
-    // The initial one-metre grid preserves default grouping and ordering.
+    // Cells span the meeting tolerance, so an end's partners lie in its own
+    // cell or a neighbouring one. A cell is never under a metre: its size
+    // orders the ends, and so the plan's bytes.
     let cell_m = policy.meet_m.max(1.0);
     let cell = |p: Point| {
         [

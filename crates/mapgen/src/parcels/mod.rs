@@ -146,7 +146,7 @@ fn fill(
     let pass = Pass {
         request,
         presets,
-        fits: catalogue.templates().iter().filter_map(Fit::new).collect(),
+        fits: catalogue.templates().iter().map(Fit::new).collect(),
         family: family(request, presets),
     };
 
