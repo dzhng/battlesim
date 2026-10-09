@@ -973,14 +973,19 @@ fn step_vehicle(
         })
     });
 
-    // A detouring tank must not pivot through its neighbour. Give the turn
-    // room instead of deadlocking nose-to-nose.
-    if blocker.is_some()
-        && unit.mobility.drive.is_some_and(|d| d.tracked)
+    // A detouring tank must not pivot through its neighbour, nor a tank
+    // nosed up to a body through that body. Give the turn room instead of
+    // deadlocking nose-to-nose: against a body, only as far as backing off
+    // by what its corners swing out past its nose frees the turn.
+    let back = drive::give_space(unit, speed, dt);
+    if unit.mobility.drive.is_some_and(|d| d.tracked)
         && motion.yaw != unit.yaw
+        && (blocker.is_some()
+            || (motion.step == 0.0
+                && met.solid.is_some()
+                && backing_frees_pivot(ctx.world, unit, back.heading, motion.yaw)))
         && stationary_yaw(ctx.world, units, i, motion.yaw) == unit.yaw
     {
-        let back = drive::give_space(unit, speed, dt);
         let at = here + back.heading * back.step;
         let behind = push::meet(ctx.world, &hull_at(at, back.yaw), &current, push);
         let traffic = units.iter().enumerate().any(|(j, other)| {
@@ -1101,6 +1106,22 @@ fn stationary_yaw(world: &WorldGeometry, units: &[Unit], i: usize, yaw: f64) -> 
     } else {
         yaw
     }
+}
+
+/// Whether a hull whose pivot to `yaw` a body blocks would turn clear of the
+/// bodies once backed off along `away` by as far as its corners swing out
+/// past its nose (half its diagonal less half its length). Squeezed side
+/// to side, backing frees nothing, and it does not back away.
+fn backing_frees_pivot(world: &WorldGeometry, unit: &Unit, away: V2, yaw: f64) -> bool {
+    let here = unit.hull_box().expect("a vehicle has a hull");
+    let backed = Obb2 {
+        center: here.center + away * (here.half.length() - here.half.x),
+        ..here
+    };
+    let turned = Obb2 { yaw, ..backed };
+    push::meet(world, &turned, &backed, unit.mobility.push)
+        .solid
+        .is_none()
 }
 
 /// Would this vehicle, moved to `next`, run into the vehicle `other`? Only a move that
