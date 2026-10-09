@@ -262,9 +262,11 @@ Art pipeline and rules:
   was known and unknown at the start. It is history. Its "village" wording
   describes the state the work began from.
 
-Where the result fell short of the references, it is recorded in choices. The most visible shortfalls are disabled
-cards' detail, the M10's proportions, and frames that force a squat or
-forward-placed body.
+Where the result fell short of the references, it is recorded in choices. The
+most visible shortfall left is frames that force a squat or forward-placed body;
+the disabled cards' detail and the M10's proportions were raised by
+[the follow-up](../unit-models-followup/README.md), which also added wreck
+debris and authored labels.
 
 ## Related
 

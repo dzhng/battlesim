@@ -23,11 +23,11 @@ does the rest, the same way for every family:
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/<family>.py -- [--variant=<id>] [--wreck]
 """
 import hashlib
-import zlib
 import json
 import math
 import os
 import sys
+import zlib
 from pathlib import Path
 
 import bpy

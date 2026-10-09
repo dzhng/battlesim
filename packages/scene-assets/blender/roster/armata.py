@@ -325,7 +325,7 @@ def t14_turret(v, turret, base):
     cyl("turret_ring_guard", 1.15, 0.08, (0, 0, base + 0.02), "Z", m["dark"], turret, seg=40, lods=MID)
     loft("turret_shell", [(z0, foot), (z0 + 0.45, [(x * 0.98, y) for x, y in foot]), (z1, crown)], mat=m["paint"],
          parent=turret, bevel=0.04)
-    VP.roof_fittings("roof", crown, z1, m, turret, rails=True)
+    VP.roof_fittings("roof", crown, z1, m, turret)
     turret_kit(v, turret, crown, (1.48, z0 + 0.45), (1.29, z1), -1.35, 0.55, z0 + 0.50, z1 - 0.05)
     # The soft-kill launcher's rotating box on the roof's rear.
     cyl("softkill_base", 0.30, 0.08, (-1.05, 0, z1 + 0.04), "Z", m["dark"], turret, seg=20, lods=MID)

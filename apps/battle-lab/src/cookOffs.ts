@@ -35,6 +35,9 @@ import { SCENERY_KINDS, WRECK_PIECES } from "@packages/scene-assets/src/scenery"
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observation";
 
+/** The wreck state its thrown debris is drawn from (`SceneryRule.debris`). */
+const DEBRIS_STATE = SCENERY_KINDS.wreck.debris!.state;
+
 /** A hull the side watched brew up: its wreck as the side knows it, and the
  *  publication tick that first showed it. */
 export interface CookOff {
@@ -186,7 +189,7 @@ export function transitionOf(
   const whole = states.find((s) => s.name === "default");
   if (!wreck || !whole) return null;
   const moving = turret && states.some((s) => s.name === WRECK_PIECES.hull) ? turret : null;
-  const debris = states.find((s) => s.name === SCENERY_KINDS.wreck.debris?.state);
+  const debris = states.find((s) => s.name === DEBRIS_STATE);
   const min = moving?.bounds.min;
   const max = moving?.bounds.max;
   return {
@@ -273,8 +276,7 @@ export function debrisModel(
   const sink = debrisSink(feel, clock - f.hitAt, f.debrisTop + DEBRIS_BURIED_M);
   if (sink === null) return null;
   const motion = mat4.fromTranslation(mat4.create(), [0, 0, -sink]);
-  const state = SCENERY_KINDS.wreck.debris!.state;
-  return { ...f.wreck, pose: { kind: "static", state, motion } };
+  return { ...f.wreck, pose: { kind: "static", state: DEBRIS_STATE, motion } };
 }
 
 /** Seconds a vehicle gone from the frame is still remembered as last drawn:

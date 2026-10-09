@@ -117,7 +117,7 @@ pub struct MountDefinition {
     /// What the player reads on the unit card: a concise label
     /// (`crate::labels`).
     pub name: String,
-    /// Ammunition kinds available to the mount, by weapon row name.
+    /// Ammunition kinds available to the mount, by weapon row id.
     pub weapons: Vec<String>,
     /// Infantry's default guns share one targeting/readout row; every
     /// living carrier still has an independent weapon cycle.

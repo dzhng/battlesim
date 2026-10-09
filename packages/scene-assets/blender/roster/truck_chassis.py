@@ -93,7 +93,7 @@ def cab_shape(v, cab, x0, length, height, track, rail_z, wheel_r, doors=1):
     if cab == "maz_split":
         for side, s in ((1, "L"), (-1, "R")):
             VP.tow_hook(f"front_tow_{s}", (front + 0.12, side * 0.60, floor - 0.10), m, h, size=0.12)
-        cab_fittings(v, cab, x0, front, height, half_w, floor, wheel_r)
+        cab_fittings(v, x0, front, height, half_w, floor, wheel_r)
     whip = empty("dressing_antenna_cab", parent=h)
     VP.antenna("antenna_cab", (x0 + 0.20, -(half_w - 0.15), height), m, whip, height=2.2)
 
@@ -187,7 +187,7 @@ def armoured_cab(v, x0, length, height, floor, wheel_r, doors=1, soft=False):
             lods=NEAR)
 
 
-def cab_fittings(v, cab, x0, front, height, half_w, floor, wheel_r):
+def cab_fittings(v, x0, front, height, half_w, floor, wheel_r):
     """What the MAZ's split cabs carry beside their shape: door seams,
     windows and handles, the steps under the doors, and each cab's dash and
     seat behind its glass."""

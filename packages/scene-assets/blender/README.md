@@ -97,7 +97,8 @@ helper throws debris clear of the hull from what the vehicle carries (track
 runs, wheels, hatches, doors, armour packs, stowage: `wreckage.scatter`), and
 writes it as the wreck's `debris` state (`_wreck_debris.glb`): it lies past the
 box the simulation keeps as cover, so the battle lets it sink away. A family
-names nothing `debris_*` itself.
+names nothing `debris_*` itself. Its tests build scenes, so they run inside
+Blender: [`wreckage_test.py`](wreckage_test.py) through the `asset` command.
 
 Subject exporters build vehicles, wrecks, props, trees and forest-floor material.
 Shared part, masonry, texture and damage helpers keep frame conventions and seeded

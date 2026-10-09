@@ -34,7 +34,7 @@ export interface Launch {
   dx: number;
   dy: number;
   dz: number;
-  /** The round kind: a weapon row name. */
+  /** The round kind: a weapon row id. */
   kind: string;
   /** Fired from a hull's mount (a vehicle gun), not a soldier's weapon. */
   hull: boolean;

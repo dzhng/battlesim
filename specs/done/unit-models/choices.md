@@ -1179,7 +1179,7 @@ fixed distance from the centre line while the faces they are bolted to lean.
 
 Wreck debris scatters and fades (2026-10-08). The user's decision: "yes,
 maybe debris that scattered can just disappear?" (see [the debris question](#may-a-wreck-scatter-debris-wider-than-its-hull)).
-Spec: [slice 02](../../unit-models-followup/slices/02-wreck-debris.md).
+Spec: [the follow-up](../unit-models-followup/README.md).
 
 ### Debris is its own state of the wreck, not nodes inside the whole
 
@@ -1268,7 +1268,7 @@ Spec: [slice 02](../../unit-models-followup/slices/02-wreck-debris.md).
 
 Disabled air and helicopter cards at the roster bar (2026-10-08), after the
 user overruled [the lower detail](#disabled-cards-were-accepted-at-a-lower-detail-than-roster-units).
-Spec: [slice 03](../../unit-models-followup/slices/03-disabled-air.md).
+Spec: [the follow-up](../unit-models-followup/README.md).
 
 ### The old airframes put their cockpits and gear too far forward
 
@@ -1381,7 +1381,7 @@ Spec: [slice 03](../../unit-models-followup/slices/03-disabled-air.md).
 ## Follow-up 01
 
 The Dragoon's sides, the M10's turret and the Abrams' front and skirts
-(2026-10-08). Spec: [slice 01](../../unit-models-followup/slices/01-dragoon-m10.md).
+(2026-10-08). Spec: [the follow-up](../unit-models-followup/README.md).
 No frame, mount or tolerance moved, and every export repeats byte for byte.
 
 ### The Stryker's chine is a low sharp knuckle under a tall leaning side
@@ -1831,6 +1831,45 @@ level at 1.38 m to the nose, so the glacis sank 0.3 m between two boxes.
   sheet beside its photos and against the roster T-90M's contact sheet.
 - **Confidence:** medium. The fields are placed from the photos'
   proportions, and several turrets have only generated views.
+
+## Follow-up review (2026-10-08)
+
+A refactor-clean, code-review and write-docs pass over everything since the
+previous push to main (generated output aside). No art byte moved: every
+edit is a comment, a doc, an unused name or a no-op argument.
+
+### What the review changed
+
+- **The choice:** The debris state's name is read once in the cook-off code
+  (`cookOffs.ts` `DEBRIS_STATE`), where one call guarded a value the wreck
+  rule always sets and the other asserted it. `wreckage_test.py` drops an
+  unused import, `truck_chassis.cab_fittings` an unused `cab` parameter, and
+  the Armata a `rails=True` that is the default. A mount's and a launch's
+  ammunition are documented as weapon row ids, not names, now that `name` is
+  a label. Three ledger links into the closed follow-up's deleted slices
+  point at its README; the unit-models README no longer lists the disabled
+  cards' detail and the M10 as shortfalls; the Blender README says where
+  the in-Blender wreckage tests run.
+- **Verdict:** sound.
+- **Confidence:** high.
+
+### What the review left
+
+- **The choice:** The M1E3's lifting eyes and the SP howitzers' grab rails
+  are still placed by hand beside `vehicle_parts.roof_fittings`: moving
+  them to it moves parts, which needs a re-export, so they are left for a
+  pass that re-exports those families. The test jeep, truck and tank each
+  parse `--piece` and hand `scatter` their own materials: they are test art
+  outside `vehicle_export`, and a shared parser would save two lines each.
+  The supply rule copies an active protection's three numbers into its need
+  (`Need::Protection`) now that the protection holds strings and is no
+  longer `Copy`; a borrowed row would add a lifetime for no reader.
+  `wreckage_test.py` repeats the validator's debris allowance as constants,
+  across the language boundary, with a comment naming its owner. The debris
+  validator judges reach and height only where the wreck has a
+  footprint; a wreck without one is already refused by `fit.footprint`.
+- **Verdict:** sound.
+- **Confidence:** medium.
 
 ## Not fixed here: failures that also happen on main
 

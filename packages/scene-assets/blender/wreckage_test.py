@@ -10,7 +10,6 @@ import sys
 import unittest
 
 import bpy
-from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from parts import box, empty, reset, tier_of  # noqa: E402
