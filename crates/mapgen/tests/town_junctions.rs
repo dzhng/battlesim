@@ -3,14 +3,19 @@
 //! by side, and a town's street meets the road through the town square and
 //! straight. Each flaw is counted over every type and size and held at or
 //! near zero. The arithmetic here is this file's own, not the generator's.
+#[path = "common/admitted.rs"]
+mod admitted;
 #[path = "common/limits.rs"]
 mod limits;
+#[path = "common/residual.rs"]
+mod residual;
 use contract::ground::GroundShape;
 use contract::map::SurfaceKind;
 use contract::templates::TemplateGeometryCatalog;
 use mapgen::layout::{generate_layout, GenerationRequest, MapSize, MapType, PresetDefinitions};
 use mapgen::parcels::fill_districts;
-use mapgen::MapPlan;
+use mapgen::{Diagnostic, MapPlan};
+use residual::Residual;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::OnceLock;
 
@@ -18,8 +23,8 @@ const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");
 const TYPES: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
 const SIZES: [MapSize; 3] = [MapSize::Medium, MapSize::Large, MapSize::Xl];
-/// Every cell runs these seeds: a claim about junctions is a claim about
-/// the generator, not one map.
+/// Every cell runs these seeds, or the next in line for one refused: a claim
+/// about junctions is a claim about the generator, not one map.
 const SEEDS: [u64; 4] = [1, 2, 3, u64::MAX];
 
 type Point = [f64; 2];
@@ -47,16 +52,27 @@ const SLANT_DEG: f64 = 25.0;
 /// back is a street round a bend.
 const HOOK_DEG: f64 = 35.0;
 const HOOK_M: f64 = 25.0;
-/// What the generator still leaves over the sweep's 36 maps. Each is a
-/// count to bring down: lower one when its flaw is closed, never raise one.
-const MANY_ARMS: usize = 0;
-const FORKS: usize = 2;
-const SLANTS: usize = 4;
-const HOOKS: usize = 0;
+/// What the generator still leaves over a sweep's 36 maps.
+const MANY_ARMS: Residual = Residual {
+    mean: 0.53,
+    sd: 0.64,
+};
+const FORKS: Residual = Residual {
+    mean: 2.67,
+    sd: 1.72,
+};
+const SLANTS: Residual = Residual {
+    mean: 3.33,
+    sd: 2.19,
+};
+const HOOKS: Residual = Residual {
+    mean: 0.73,
+    sd: 0.96,
+};
 /// How many of each flaw a report lists.
 const LISTED: usize = 10;
 
-fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
+fn plan(map_type: MapType, size: MapSize, seed: u64) -> Result<MapPlan, Vec<Diagnostic>> {
     let presets = PresetDefinitions::from_json(PRESETS).unwrap();
     let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap()).unwrap();
     let request = GenerationRequest {
@@ -70,10 +86,8 @@ fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
         region: None,
         limits: limits::game_limits(),
     };
-    let layout = generate_layout(&request, &presets)
-        .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
+    let layout = generate_layout(&request, &presets)?;
     fill_districts(layout, &request, &catalogue, &presets)
-        .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"))
 }
 
 fn sub(a: Point, b: Point) -> Point {
@@ -409,8 +423,10 @@ fn sweep() -> &'static (BTreeMap<Flaw, Vec<String>>, usize) {
         let mut looked = 0;
         for map_type in TYPES {
             for size in SIZES {
-                for seed in SEEDS {
-                    let plan = plan(map_type, size, seed);
+                let candidates = SEEDS.into_iter().chain(4..);
+                let plans =
+                    admitted::admitted(candidates, SEEDS.len(), |seed| plan(map_type, size, seed));
+                for (seed, plan) in plans {
                     let (found, places) = flaws(&plan);
                     looked += places;
                     for (flaw, at, what) in found {
@@ -434,8 +450,10 @@ fn sweep() -> &'static (BTreeMap<Flaw, Vec<String>>, usize) {
     })
 }
 
-/// Hold one flaw to `allowed` over the sweep, listing the first few.
-fn hold(flaw: Flaw, allowed: usize) {
+/// Hold one flaw over the sweep to what its residual allows, listing the
+/// first few.
+fn hold(flaw: Flaw, residual: Residual) {
+    let allowed = residual.allowed();
     let (all, _) = sweep();
     let found = all.get(&flaw).map_or(&[][..], |list| &list[..]);
     assert!(

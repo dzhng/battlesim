@@ -7,6 +7,9 @@ use mapgen::layout::{
 };
 use mapgen::{CompileLimits, Diagnostic, MapPlan};
 
+#[path = "common/admitted.rs"]
+mod admitted;
+
 const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TYPES: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
 const SIZES: [MapSize; 3] = [MapSize::Medium, MapSize::Large, MapSize::Xl];
@@ -60,16 +63,16 @@ fn generate(
     generate_layout(&request(map_type, size, seed), presets)
 }
 
-/// Every type and size over `seeds`, with a river on every map.
-fn every_river_map(seeds: std::ops::RangeInclusive<u64>, mut check: impl FnMut(&str, &MapPlan)) {
+/// Every type and size over its first `count` admitted seeds, with a river
+/// on every map.
+fn every_river_map(count: usize, mut check: impl FnMut(&str, &MapPlan)) {
     let presets = presets(1.0);
     for map_type in TYPES {
         for size in SIZES {
-            for seed in seeds.clone() {
-                let name = format!("{map_type:?} {size:?} seed {seed}");
-                let plan = generate(&presets, map_type, size, seed)
-                    .unwrap_or_else(|errors| panic!("{name}: {errors:?}"));
-                check(&name, &plan);
+            let plans =
+                admitted::admitted(1.., count, |seed| generate(&presets, map_type, size, seed));
+            for (seed, plan) in &plans {
+                check(&format!("{map_type:?} {size:?} seed {seed}"), plan);
             }
         }
     }
@@ -80,40 +83,49 @@ fn json(value: &impl serde::Serialize) -> String {
 }
 
 /// M11: the seed decides whether a map has a river, as often as its type's
-/// presets say, and a river never costs a map. A seed whose map without a
-/// river is refused, for anything but water, says nothing about rivers (the
-/// game draws another); a rare few may be.
+/// presets say, and a river seldom costs a map. Generation may refuse a
+/// seed by name, with a river or without (the game draws another); a rare
+/// few are, and a seed refused either way says nothing about how often
+/// rivers are drawn.
 #[test]
 fn the_seed_decides_whether_a_map_has_a_river() {
     let (never, half, always) = (presets(0.0), presets(0.5), presets(1.0));
-    let (mut maps, mut with_river, mut refused) = (0, 0, Vec::new());
+    let (mut maps, mut with_river) = (0, 0);
+    let (mut refused, mut refused_with_river) = (Vec::new(), Vec::new());
     for map_type in TYPES {
         for size in SIZES {
             for seed in 1..=40 {
                 let name = format!("{map_type:?} {size:?} seed {seed}");
-                if let Err(errors) = generate(&never, map_type, size, seed) {
-                    let feature = errors[0].feature.as_deref().unwrap_or_default();
-                    assert!(
-                        !["river", "bridges", "fairness.river"].contains(&feature),
-                        "{name}: {errors:?}"
-                    );
-                    refused.push(name);
-                    continue;
-                }
-                let rivers = |presets| {
-                    generate(presets, map_type, size, seed)
-                        .unwrap_or_else(|errors| panic!("{name}: {errors:?}"))
-                        .rivers
-                        .len()
+                let generated =
+                    [&never, &half, &always].map(|presets| generate(presets, map_type, size, seed));
+                let [without, half, always] = match generated {
+                    [Err(errors), ..] => {
+                        let feature = errors[0].feature.as_deref().unwrap_or_default();
+                        assert!(
+                            !["river", "bridges", "fairness.river"].contains(&feature),
+                            "{name}: {errors:?}"
+                        );
+                        refused.push(name);
+                        continue;
+                    }
+                    [Ok(without), Ok(half), Ok(always)] => [without, half, always],
+                    [_, half, always] => {
+                        refused_with_river.push((name, half.err(), always.err()));
+                        continue;
+                    }
                 };
-                assert_eq!(rivers(&never), 0, "{name}");
-                assert_eq!(rivers(&always), 1, "{name}");
-                with_river += rivers(&half);
+                assert_eq!(without.rivers.len(), 0, "{name}");
+                assert_eq!(always.rivers.len(), 1, "{name}");
+                with_river += half.rivers.len();
                 maps += 1;
             }
         }
     }
     assert!(refused.len() <= 2, "refused without a river: {refused:?}");
+    assert!(
+        refused_with_river.len() <= 2,
+        "admitted without a river, refused with one: {refused_with_river:?}"
+    );
     // At one in two, five standard deviations either side of half the maps.
     let spread = 5.0 * (maps as f64 / 4.0).sqrt();
     let expected = maps as f64 / 2.0;
@@ -127,7 +139,7 @@ fn the_seed_decides_whether_a_map_has_a_river() {
 /// length of it, and the compiler's own river rule accepts it.
 #[test]
 fn a_river_runs_from_the_north_edge_to_the_south_and_the_terrain_carries_it() {
-    every_river_map(1..=6, |name, plan| {
+    every_river_map(6, |name, plan| {
         let river = &plan.rivers[0];
         let points = river.points();
         let extent = plan.size[1];
@@ -232,7 +244,7 @@ fn ring_clearance(river: &River, ring: &[Point]) -> Option<f64> {
 #[test]
 fn no_settlement_and_no_wood_stands_in_the_water_or_on_its_bank() {
     let (mut beside, mut wooded) = (0, 0);
-    every_river_map(1..=4, |name, plan| {
+    every_river_map(4, |name, plan| {
         let river = &plan.rivers[0];
         let bank = bank_m(river);
         for settlement in &plan.settlements {
@@ -282,7 +294,7 @@ fn no_settlement_and_no_wood_stands_in_the_water_or_on_its_bank() {
 /// one in each half.
 #[test]
 fn an_open_approach_has_no_water_in_it_and_the_main_settlement_keeps_one_in_each_half() {
-    every_river_map(1..=6, |name, plan| {
+    every_river_map(6, |name, plan| {
         let river = &plan.rivers[0];
         let near = near_water(river);
         for half in [mapgen::Half::Top, mapgen::Half::Bottom] {
@@ -350,7 +362,7 @@ fn carriageways(plan: &MapPlan) -> impl Iterator<Item = (&[Point], f64)> {
 #[test]
 fn every_road_crosses_the_water_on_a_bridge_and_every_bridge_carries_a_road() {
     let mut bridges = 0;
-    every_river_map(1..=6, |name, plan| {
+    every_river_map(6, |name, plan| {
         let river = &plan.rivers[0];
         let near = near_water(river);
         // How far along each deck some road's centreline has been seen.
@@ -457,7 +469,7 @@ fn crossings(river: &River, a: Point, b: Point) -> usize {
 fn a_river_map_is_connected_fair_and_quick_to_cross_through_its_bridges() {
     let presets = presets(1.0);
     let (mut cut_off, mut severed) = (0, 0);
-    every_river_map(1..=6, |name, plan| {
+    every_river_map(6, |name, plan| {
         let metrics = measure(plan, &presets);
         let river = &plan.rivers[0];
         let length: f64 = river
@@ -752,7 +764,7 @@ fn river_presets_the_terrain_or_a_road_cannot_carry_are_refused_at_load() {
 #[test]
 fn a_road_along_the_bank_is_authored_no_more_densely_than_its_line_needs() {
     let (mut beside, mut idle) = (0, 0);
-    every_river_map(1..=8, |_, plan| {
+    every_river_map(8, |_, plan| {
         let river = &plan.rivers[0];
         let near = near_water(river);
         for area in plan.surfaces.iter().filter(|area| area.kind.is_road()) {

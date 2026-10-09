@@ -24,7 +24,7 @@ use crate::{Diagnostic, DiagnosticCode, MapPlan};
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-17";
+pub const GENERATOR_VERSION: &str = "layout-18";
 
 pub use contract::generation::{GenerationRequest, MapSize, MapType};
 
@@ -32,15 +32,7 @@ pub use contract::generation::{GenerationRequest, MapSize, MapType};
 /// part of the key, so one seed gives each type/size combination its own
 /// layout, and each consumer draws without moving another's.
 pub(crate) fn stream(request: &GenerationRequest, name: &str) -> rng::Stream {
-    // Random namespaces stay with the existing extents when menu tiers move.
-    // This preserves the reviewed 6/8/10 km layouts under their new labels.
-    let size = match request.size {
-        MapSize::Small => "compact",
-        MapSize::Medium => "small",
-        MapSize::Large => "medium",
-        MapSize::Xl => "large",
-    };
-    let map_type = request.map_type.name();
+    let (map_type, size) = (request.map_type.name(), request.size.name());
     rng::Stream::new(request.seed.value(), &format!("{map_type}/{size}/{name}"))
 }
 

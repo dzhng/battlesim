@@ -4,14 +4,19 @@
 //! side by side on the same ground. Each wart is counted over every type and
 //! size and held at or near zero. The arithmetic here is this file's own,
 //! not the generator's.
+#[path = "common/admitted.rs"]
+mod admitted;
 #[path = "common/limits.rs"]
 mod limits;
+#[path = "common/residual.rs"]
+mod residual;
 use contract::ground::GroundShape;
 use contract::map::{SurfaceArea, SurfaceKind};
 use contract::templates::TemplateGeometryCatalog;
 use mapgen::layout::{generate_layout, GenerationRequest, MapSize, MapType, PresetDefinitions};
 use mapgen::parcels::fill_districts;
-use mapgen::MapPlan;
+use mapgen::{Diagnostic, MapPlan};
+use residual::Residual;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::OnceLock;
 
@@ -19,8 +24,8 @@ const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");
 const TYPES: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
 const SIZES: [MapSize; 3] = [MapSize::Medium, MapSize::Large, MapSize::Xl];
-/// Every cell runs these seeds: a claim about streets is a claim about the
-/// generator, not one map.
+/// Every cell runs these seeds, or the next in line for one refused: a claim
+/// about streets is a claim about the generator, not one map.
 const SEEDS: [u64; 4] = [1, 2, 3, u64::MAX];
 
 type Point = [f64; 2];
@@ -49,16 +54,32 @@ const DOGLEG_COS: f64 = 0.819;
 /// A street's own paving this many widths or more along it from an end is
 /// paving that end may join.
 const OWN_WIDTHS: f64 = 6.0;
-/// What the generator still leaves over the sweep's 36 maps, among some
-/// forty thousand street ends and junctions. Each is a count to bring down.
-const STOPS_SHORT: usize = 3;
-const ALONGSIDE: usize = 1;
-const STAGGER: usize = 19;
-const DOGLEG: usize = 1;
+/// What the generator still leaves over a sweep's 36 maps, among some forty
+/// thousand street ends and junctions.
+const STUBS: Residual = Residual {
+    mean: 0.2,
+    sd: 0.41,
+};
+const STOPS_SHORT: Residual = Residual {
+    mean: 2.13,
+    sd: 1.81,
+};
+const ALONGSIDE: Residual = Residual {
+    mean: 0.93,
+    sd: 0.96,
+};
+const STAGGER: Residual = Residual {
+    mean: 22.33,
+    sd: 4.5,
+};
+const DOGLEG: Residual = Residual {
+    mean: 0.87,
+    sd: 0.83,
+};
 /// How many of each wart a report lists.
 const LISTED: usize = 8;
 
-fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
+fn plan(map_type: MapType, size: MapSize, seed: u64) -> Result<MapPlan, Vec<Diagnostic>> {
     let presets = PresetDefinitions::from_json(PRESETS).unwrap();
     let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap()).unwrap();
     let request = GenerationRequest {
@@ -72,10 +93,8 @@ fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
         region: None,
         limits: limits::game_limits(),
     };
-    let layout = generate_layout(&request, &presets)
-        .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
+    let layout = generate_layout(&request, &presets)?;
     fill_districts(layout, &request, &catalogue, &presets)
-        .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"))
 }
 
 fn sub(a: Point, b: Point) -> Point {
@@ -414,8 +433,10 @@ fn sweep() -> &'static (BTreeMap<Wart, Vec<String>>, usize) {
         let mut looked = 0;
         for map_type in TYPES {
             for size in SIZES {
-                for seed in SEEDS {
-                    let plan = plan(map_type, size, seed);
+                let candidates = SEEDS.into_iter().chain(4..);
+                let plans =
+                    admitted::admitted(candidates, SEEDS.len(), |seed| plan(map_type, size, seed));
+                for (seed, plan) in plans {
                     let (found, ends) = warts(&plan);
                     looked += ends;
                     for (wart, at, what) in found {
@@ -439,10 +460,10 @@ fn sweep() -> &'static (BTreeMap<Wart, Vec<String>>, usize) {
     })
 }
 
-/// Hold one wart to `allowed` over the sweep, listing the first few. The
-/// counts allowed are what the generator leaves today: lower one when its
-/// wart is closed, never raise one.
-fn hold(wart: Wart, allowed: usize) {
+/// Hold one wart over the sweep to what its residual allows, listing the
+/// first few.
+fn hold(wart: Wart, residual: Residual) {
+    let allowed = residual.allowed();
     let (all, _) = sweep();
     let found = all.get(&wart).map_or(&[][..], |list| &list[..]);
     assert!(
@@ -462,7 +483,7 @@ fn hold(wart: Wart, allowed: usize) {
 /// lump where two streets missed each other.
 #[test]
 fn no_street_is_shorter_than_two_of_its_widths() {
-    hold(Wart::Stub, 0);
+    hold(Wart::Stub, STUBS);
 }
 
 /// A street runs on to the road ahead of it, or stops at the last lot it

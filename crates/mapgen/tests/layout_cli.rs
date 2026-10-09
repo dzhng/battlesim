@@ -91,6 +91,20 @@ fn native_cli_replays_the_frozen_generation_records() {
         let stdout = String::from_utf8(process.stdout).unwrap();
         let outcome = stdout.strip_suffix('\n').unwrap();
         let hash = contract::identity::bytes_hash(outcome.as_bytes());
+        // A record named for its river has one, blessed or not: its seed is
+        // one searched for that has a river, and a generator change that
+        // takes the river away needs another.
+        if record.name.contains("with a river") {
+            let outcome: serde_json::Value = serde_json::from_str(outcome).unwrap();
+            let rivers = ["/plan/rivers", "/result/map/rivers"]
+                .into_iter()
+                .find_map(|pointer| outcome.pointer(pointer)?.as_array());
+            assert!(
+                rivers.is_some_and(|rivers| !rivers.is_empty()),
+                "{}: no river",
+                record.name
+            );
+        }
         if bless {
             record.exit_code = process.status.code().unwrap();
             record.native_sha256 = hash;

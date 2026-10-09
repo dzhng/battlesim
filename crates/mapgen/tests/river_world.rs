@@ -12,9 +12,43 @@ use std::collections::BTreeSet;
 const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 
 /// A layout with a river (the shipped presets, every type's river chance
-/// set to one) and the map it compiles into. No town is built on it: the
-/// crossing is the layout's, and the parcel pass has its own river test.
-fn river_map(map_type: MapType, size: MapSize, seed: u64) -> (MapPlan, MapDefinition) {
+/// set to one) and the map it compiles into, from the first seed whose
+/// layout puts a settlement across the water from the main one: the one
+/// the road graph can reach only by a deck. Not every river map has one,
+/// and generation may refuse a seed by name, so the seed is searched for.
+/// No town is built on it: the crossing is the layout's, and the parcel
+/// pass has its own river test.
+fn river_map(map_type: MapType, size: MapSize) -> (String, MapPlan, MapDefinition) {
+    (1..=10)
+        .find_map(|seed| {
+            let (plan, map) = river_seed(map_type, size, seed)?;
+            let centre = plan.settlements[0].center;
+            plan.settlements
+                .iter()
+                .any(|s| across(&plan.rivers[0], centre, s.center))
+                .then(|| (format!("{map_type:?} {size:?} seed {seed}"), plan, map))
+        })
+        .unwrap_or_else(|| panic!("{map_type:?} {size:?}: no settlement across the water"))
+}
+
+/// Whether the straight line from `a` to `b` crosses the river's middle an
+/// odd number of times: the two stand on opposite banks.
+fn across(river: &contract::river::River, a: [f64; 2], b: [f64; 2]) -> bool {
+    let side = |p: [f64; 2], q: [f64; 2], r: [f64; 2]| contract::ground::cross(p, q, r);
+    let crossings = river
+        .samples()
+        .windows(2)
+        .filter(|pair| {
+            let (c, d) = (pair[0].xy, pair[1].xy);
+            (side(a, b, c) > 0.0) != (side(a, b, d) > 0.0)
+                && (side(c, d, a) > 0.0) != (side(c, d, b) > 0.0)
+        })
+        .count();
+    crossings % 2 == 1
+}
+
+/// One seed's river layout and its map, or nothing when it is refused.
+fn river_seed(map_type: MapType, size: MapSize, seed: u64) -> Option<(MapPlan, MapDefinition)> {
     let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
     for map_type in ["open", "mixed", "metro"] {
         source["types"][map_type]["river_chance"] = 1.into();
@@ -36,14 +70,25 @@ fn river_map(map_type: MapType, size: MapSize, seed: u64) -> (MapPlan, MapDefini
             max_ground_points: 200_000,
         },
     };
-    let plan = generate_layout(&request, &presets).unwrap();
+    let plan = match generate_layout(&request, &presets) {
+        Ok(plan) => plan,
+        Err(errors) => {
+            assert!(
+                errors
+                    .iter()
+                    .all(|error| error.code == mapgen::DiagnosticCode::GenerationFailed),
+                "{map_type:?} {size:?} seed {seed}: {errors:?}"
+            );
+            return None;
+        }
+    };
     let map = mapgen::lower(
         &mapgen::CompileRequest::generated(&request, plan.clone()),
         &catalogue,
     )
     .unwrap()
     .map;
-    (plan, map)
+    Some((plan, map))
 }
 
 /// The point `along` metres down a deck's heading from its centre and
@@ -66,14 +111,13 @@ fn a_generated_bridge_is_stepped_onto_from_dry_land_and_carries_the_roads_over()
     let rules: contract::scenario::Rules =
         serde_json::from_value(sim::fixtures::test_game()).unwrap();
     let mut bridges = 0;
-    for (map_type, size, seed) in [
-        (MapType::Open, MapSize::Medium, 3),
-        (MapType::Mixed, MapSize::Medium, 4),
-        (MapType::Metro, MapSize::Medium, 5),
-        (MapType::Open, MapSize::Large, 1),
+    for (map_type, size) in [
+        (MapType::Open, MapSize::Medium),
+        (MapType::Mixed, MapSize::Medium),
+        (MapType::Metro, MapSize::Medium),
+        (MapType::Open, MapSize::Large),
     ] {
-        let name = format!("{map_type:?} {size:?} seed {seed}");
-        let (plan, map) = river_map(map_type, size, seed);
+        let (name, plan, map) = river_map(map_type, size);
         let world = WorldGeometry::new(&map, &rules);
         assert!(
             !map.bridges.is_empty(),
@@ -151,8 +195,6 @@ fn a_generated_bridge_is_stepped_onto_from_dry_land_and_carries_the_roads_over()
                 );
             }
         }
-        let river = &map.rivers[0];
-        let mut across = 0;
         for settlement in &plan.settlements {
             let [x, y] = settlement.center;
             let reach = settlement
@@ -170,21 +212,7 @@ fn a_generated_bridge_is_stepped_onto_from_dry_land_and_carries_the_roads_over()
                 on_ground && reached.contains(&roads.arc(access.arc).ends[0])
             });
             assert!(on_network, "{name}: {} is cut off", settlement.id);
-            // Across the water from the centre: an odd number of crossings
-            // of the river's middle on the straight line between them.
-            let side = |p: [f64; 2], q: [f64; 2], r: [f64; 2]| contract::ground::cross(p, q, r);
-            let crossings = river
-                .samples()
-                .windows(2)
-                .filter(|pair| {
-                    let (a, b, c, d) = ([centre.x, centre.y], [x, y], pair[0].xy, pair[1].xy);
-                    (side(a, b, c) > 0.0) != (side(a, b, d) > 0.0)
-                        && (side(c, d, a) > 0.0) != (side(c, d, b) > 0.0)
-                })
-                .count();
-            across += crossings % 2;
         }
-        assert!(across > 0, "{name}: no settlement across the water");
     }
     assert!(bridges >= 8, "{bridges} bridges on four river maps");
 }
