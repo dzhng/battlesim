@@ -71,7 +71,7 @@ export const FogParams = d
     /** Least room a ray needs between occluders it squeezes past, its two
      *  sides together (`sensors.min_sight_gap_m`); 0: none. */
     minSightGapM: d.f32,
-    /** x, y, width, height of the playable rectangle; rendered margin is clear. */
+    /** x, y, width, height of the playable rectangle; rendered margin is fogged. */
     playable: d.vec4f,
     heightSpacing: d.f32,
     faceProbeM: d.f32,
@@ -271,7 +271,9 @@ export const fogSeenBy = tgpu
   let P = fogLayout.$.params;
   if (p.x < P.playable.x || p.y < P.playable.y ||
       p.x > P.playable.x + P.playable.z || p.y > P.playable.y + P.playable.w) {
-    return true;
+    // The visual margin is outside the simulation. Keep it permanently unseen
+    // and avoid all range, horizon and foliage work for it.
+    return false;
   }
   let face = dot(n, n) > 0.0;
   if (face && dot(n, e.position - p) <= 0.0) { return false; }

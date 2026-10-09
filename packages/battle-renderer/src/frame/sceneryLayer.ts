@@ -15,7 +15,7 @@
 //   a forest fades with the foliage crossed) decides it, and fog never
 //   splits a crown along its sunlit and shaded halves.
 // - Scenery past the map is drawn like the backdrop it stands on: lit and
-//   hazed, never shadowed, casting nothing, and clear of fog outside the
+//   hazed, never shadowed, casting nothing, and permanently fogged outside the
 //   playable rectangle.
 // - The forest floor's dressing is drawn as a forest tree is (shadowed,
 //   fogged whole at its own heart) and casts nothing: it is small and stands

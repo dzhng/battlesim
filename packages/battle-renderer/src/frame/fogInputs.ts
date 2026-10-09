@@ -82,7 +82,7 @@ export const FOLIAGE_MAX = 255 * FOLIAGE_STEP;
 
 /** The public static map sight is cut by. */
 export interface FogWorld extends TerrainGrid {
-  /** The playable rectangle; the rendered margin outside it is always clear. */
+  /** The playable rectangle; the rendered margin outside it is permanently fogged. */
   playable?: readonly [number, number, number, number];
   /** Sparse simulation foliage: `nx, ny, cell_m`, then sorted
    * `[column, row, canopy_m, depth_per_m]` records. Missing cells are open. */
@@ -91,6 +91,19 @@ export interface FogWorld extends TerrainGrid {
   foliageFullBlock: number;
   /** Least room a line of sight needs between occluders on its two sides. */
   minSightGapM: number;
+}
+
+/** A point is in the simulation's playable rectangle (inclusive at its edge). */
+export function playableContains(
+  bounds: readonly [number, number, number, number],
+  point: readonly [number, number],
+): boolean {
+  return (
+    point[0] >= bounds[0] &&
+    point[1] >= bounds[1] &&
+    point[0] <= bounds[0] + bounds[2] &&
+    point[1] <= bounds[1] + bounds[3]
+  );
 }
 
 /** The static world fog reads, from the simulation's own exported geometry. */

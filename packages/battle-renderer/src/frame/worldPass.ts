@@ -293,8 +293,7 @@ export async function createWorldPass(
     const paint = groundPaint(v.world);
     const albedo = paintedAlbedo(surface.xyz, paint);
     const lit = environment.shade(albedo, d.vec3f(0), surface.w, 0, 0, 1, up, v.world, 1, eye);
-    // The rendered margin outside the playable rectangle stays clear; only
-    // ground inside the playable area participates in fog of war.
+    // The rendered margin outside the playable rectangle is permanently fogged.
     const seen = fogTerm(v.world, up, v.clip.xy, fogIsGround());
     return {
       color: d.vec4f(std.add(lit.xyz, paintGlow(paint)), 1),

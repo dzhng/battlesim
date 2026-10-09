@@ -197,7 +197,8 @@ const terrainMarch = tgpu
   let dir = vec2f(cos(theta), sin(theta));
   let lnr = log(e.reach / P.firstBinM);
   let base = (e.slot * AZT + ai) * R;
-  let size = vec2f(f32(P.heightNx - 1u), f32(P.heightNy - 1u)) * P.heightSpacing;
+  let playableLo = P.playable.xy;
+  let playableHi = playableLo + P.playable.zw;
   var hor = -1e4;
   var hk = -1e4;
   var fol = 0.0;
@@ -209,7 +210,8 @@ const terrainMarch = tgpu
     let st = clamp(t * P.stepFraction, P.stepMinM, P.stepMaxM);
     t = t + st;
     let q = e.position.xy + dir * t;
-    let outside = q.x < 0.0 || q.y < 0.0 || q.x > size.x || q.y > size.y;
+    let outside = q.x < playableLo.x || q.y < playableLo.y ||
+      q.x > playableHi.x || q.y > playableHi.y;
     if (outside) { t = 1e9; }
     loop {
       if (k >= R) { break; }

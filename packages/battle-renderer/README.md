@@ -57,6 +57,8 @@ nearest occluder either side of each ray, so it may close a squeeze a little lat
 along the ray than sight does. Seen ground and sun shadow must remain visually
 distinct from unseen ground; [fog and light rationale](../../specs/done/battle-look/README.md)
 records that design requirement.
+The rendered margin outside the playable rectangle is always unseen; fog ray
+marching stops at that boundary because the margin carries no gameplay sight.
 
 World paint belongs to the lit ground. Display overlays compose after the world's
 postprocessing, so grading and fog cannot change their information colors.

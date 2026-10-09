@@ -22,6 +22,7 @@ import {
   wholeWords,
   WHOLE_BOX_WORDS,
   WHOLE_TEXTURE_WIDTH,
+  playableContains,
   type FogOccluder,
   type FogSight,
 } from "@packages/battle-renderer/src/frame/fogInputs";
@@ -240,4 +241,12 @@ test("every point inside a structure's box finds that structure through the whol
   expect(flagRows * WHOLE_TEXTURE_WIDTH).toBeGreaterThanOrEqual(boxes.length);
   expect([...words.subarray(params.wholeFlagsBase)].every((w) => w === 0)).toBe(true);
   expect(params.wholeCount).toBe(boxes.length);
+});
+
+test("the rendered margin is outside the playable fog domain", () => {
+  const bounds = [10, 20, 60, 40] as const;
+  expect(playableContains(bounds, [9.99, 40])).toBe(false);
+  expect(playableContains(bounds, [10, 20])).toBe(true);
+  expect(playableContains(bounds, [70, 60])).toBe(true);
+  expect(playableContains(bounds, [70.01, 60])).toBe(false);
 });
