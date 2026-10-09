@@ -86,10 +86,6 @@ export function BattleView({
   /** The authoritative blue entry, used for the deployment cue. */
   spawn?: [number, number] | null;
 }) {
-  useEffect(() => {
-    document.body.classList.add("battle-surface");
-    return () => document.body.classList.remove("battle-surface");
-  }, []);
   const parsed = useMemo(() => {
     const s = JSON.parse(scenario) as {
       map: { size: [number, number] };

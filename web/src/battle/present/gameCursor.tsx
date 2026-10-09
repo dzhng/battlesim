@@ -1,4 +1,12 @@
-import { useImperativeHandle, useRef, type Ref } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  type ReactNode,
+  type Ref,
+} from "react";
 import { Icon } from "./icons";
 import { hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import "./gameCursor.css";
@@ -23,14 +31,8 @@ export const GAME_CURSOR_SIZE = {
 } as const;
 
 export interface GameCursorHandle {
-  /** Move an already active cursor without recomputing its action. */
-  move(position: { x: number; y: number }): void;
   /** Viewport client coordinates; null hides the complete cursor. */
   place(position: { x: number; y: number } | null, action: CursorAction): void;
-}
-
-function positionCursor(root: HTMLDivElement, x: number, y: number) {
-  root.style.transform = `translate(${x}px, ${y}px) scale(${CURSOR_SCALE})`;
 }
 
 /** Screen-space feedback only: the caller owns picking and accepted action. */
@@ -39,16 +41,12 @@ export function GameCursor({ handle }: { handle: Ref<GameCursorHandle> }) {
   const badge = useRef<HTMLSpanElement>(null);
   const shown = useRef<CursorAction>("default");
   useImperativeHandle(handle, () => ({
-    move(position) {
-      const root = layer.current;
-      if (root && !root.hidden) positionCursor(root, position.x, position.y);
-    },
     place(position, action) {
       const root = layer.current;
       if (!root) return;
       root.hidden = position === null;
       if (!position) return;
-      positionCursor(root, position.x, position.y);
+      root.style.transform = `translate(${position.x}px, ${position.y}px) scale(${CURSOR_SCALE})`;
       if (action !== shown.current) {
         shown.current = action;
         root.dataset.action = action;
@@ -77,5 +75,53 @@ export function GameCursor({ handle }: { handle: Ref<GameCursorHandle> }) {
         ))}
       </span>
     </div>
+  );
+}
+
+const SetCursorAction = createContext<(action: CursorAction) => void>(() => {});
+
+/** The page's action for the app cursor; "default" when it has none to show. */
+export function useCursorAction() {
+  return useContext(SetCursorAction);
+}
+
+/** The one visible pointer for the whole app. The native cursor is never
+ *  drawn (see gameCursor.css); this follows the pointer over every element and
+ *  hides only when the pointer leaves the window. Pages set its action. */
+export function AppCursor({ children }: { children: ReactNode }) {
+  const cursor = useRef<GameCursorHandle>(null);
+  const action = useRef<CursorAction>("default");
+  const at = useRef<{ x: number; y: number } | null>(null);
+  const setAction = useRef((next: CursorAction) => {
+    action.current = next;
+    cursor.current?.place(at.current, next);
+  }).current;
+  useEffect(() => {
+    const lifetime = new AbortController();
+    const { signal } = lifetime;
+    window.addEventListener(
+      "pointermove",
+      (e) => {
+        at.current = { x: e.clientX, y: e.clientY };
+        cursor.current?.place(at.current, action.current);
+      },
+      { capture: true, passive: true, signal },
+    );
+    window.addEventListener(
+      "pointerout",
+      (e) => {
+        if (e.relatedTarget !== null) return;
+        at.current = null;
+        cursor.current?.place(null, action.current);
+      },
+      { capture: true, signal },
+    );
+    return () => lifetime.abort();
+  }, []);
+  return (
+    <SetCursorAction.Provider value={setAction}>
+      {children}
+      <GameCursor handle={cursor} />
+    </SetCursorAction.Provider>
   );
 }

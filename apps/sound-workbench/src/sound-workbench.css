@@ -56,14 +56,12 @@
 }
 .sound-workbench button {
   padding: 7px 12px;
-  cursor: pointer;
 }
 .sound-workbench button:hover {
   border-color: var(--sw-active);
 }
 .sound-workbench button:disabled {
   opacity: 0.45;
-  cursor: default;
 }
 .sound-workbench button[aria-pressed="true"] {
   color: var(--sw-active);
@@ -242,7 +240,6 @@
   margin: 14px 0;
 }
 .sound-workbench summary {
-  cursor: pointer;
   color: var(--sw-active);
   padding: 8px 0;
 }

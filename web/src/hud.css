@@ -113,7 +113,6 @@
   border: 1px solid rgb(var(--hud-accent) / 0.32);
   border-radius: 0;
   padding: 4px 9px;
-  cursor: pointer;
   transition:
     border-color 80ms,
     box-shadow 80ms,
@@ -135,7 +134,6 @@
 }
 .hud-panel button:disabled {
   opacity: 0.32;
-  cursor: default;
 }
 .hud-panel button:focus-visible {
   outline: 1px solid rgb(var(--hud-accent));
@@ -867,7 +865,6 @@
   font: inherit;
   color: rgb(var(--hud-text));
   background: rgb(var(--hud-accent) / 0.05);
-  cursor: pointer;
 }
 .hud-menu-file input::file-selector-button:hover {
   border-color: rgb(var(--hud-accent));

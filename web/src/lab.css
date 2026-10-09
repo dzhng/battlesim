@@ -283,7 +283,6 @@
   background: linear-gradient(155deg, rgba(28, 38, 53, 0.96), rgba(13, 18, 26, 0.96));
   color: #e6ecf5;
   text-align: left;
-  cursor: pointer;
   touch-action: none;
 }
 .wb-catalog-card-disabled {
@@ -395,7 +394,6 @@
   inset: 0;
   overflow: auto;
   background: rgba(10, 12, 16, 0.94);
-  cursor: zoom-out;
 }
 .wb-sheet img {
   display: block;
