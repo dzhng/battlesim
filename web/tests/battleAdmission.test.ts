@@ -75,6 +75,43 @@ test("ordinary Play admits a fresh candidate after refusal and retains its worke
   expect(closed).toEqual(["11", "22"]);
 });
 
+test("a map whose generated skirmish sites the battle refuses gives way to a fresh map", async () => {
+  const winner = session(candidate("22"));
+  const seeds = ["11", "22"];
+  const requested: string[] = [];
+  const admission = admitBattle({ candidate, documents, policy }, () => {}, {
+    seed: () => seeds.shift()!,
+    prepare: (message) => {
+      if (message.type !== "prepare") throw new Error("unexpected replay");
+      const source = message.request.map_source;
+      const seed = source.kind === "generated" ? source.request.seed : "";
+      requested.push(seed);
+      return {
+        battle:
+          seed === "11"
+            ? Promise.reject(
+                new PreparationFailed(
+                  "refused",
+                  [
+                    {
+                      code: "invalid_skirmish_sites",
+                      feature: "skirmish_sites",
+                      location: "$.sites.skirmish",
+                      message: "no central objective within the travel-fairness bound",
+                    },
+                  ],
+                  "encounter",
+                ),
+              )
+            : Promise.resolve(winner),
+        cancel: () => {},
+      };
+    },
+  });
+  expect(await admission.battle).toBe(winner);
+  expect(requested).toEqual(["11", "22"]);
+});
+
 test("the total generation deadline refuses Play and ignores a late worker reply", async () => {
   let tick!: () => void;
   let late!: (value: PreparedSession) => void;

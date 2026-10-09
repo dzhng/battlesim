@@ -3,7 +3,12 @@
 import type defaults from "@fixtures/generated-battle.json";
 import { newSeed } from "../../maps/source";
 import { prepareBattle, PreparationFailed, type Preparation, type PreparedSession } from "./client";
-import type { PrepareBattleRequest, PrepareDocuments, PrepareStage } from "./protocol";
+import type {
+  PrepareBattleRequest,
+  PrepareDocuments,
+  PrepareStage,
+  RefusalStage,
+} from "./protocol";
 
 export type AdmissionPolicy = Pick<
   typeof defaults.admission,
@@ -37,14 +42,19 @@ const edges: AdmissionEdges = {
   },
 };
 
-/** Only generation exhaustion can improve by changing a map seed. Invalid
- * inputs, unusable sites and runtime faults cannot improve with another seed. */
+/** What another map seed can change: the generator running out of room, or
+ * the battle refusing the skirmish sites that map laid out. Invalid inputs
+ * and runtime faults are the same on every seed. */
+const SEED_DEPENDENT: Record<RefusalStage, readonly string[]> = {
+  request: [],
+  map: ["generation_failed", "complexity_limit"],
+  encounter: ["invalid_skirmish_sites"],
+};
+
 function canRetry(error: unknown): boolean {
-  if (!(error instanceof PreparationFailed) || !error.diagnostics.length) return false;
-  return (
-    error.stage === "map" &&
-    error.diagnostics.every((d) => ["generation_failed", "complexity_limit"].includes(d.code))
-  );
+  if (!(error instanceof PreparationFailed) || !error.stage) return false;
+  const codes = SEED_DEPENDENT[error.stage];
+  return error.diagnostics.length > 0 && error.diagnostics.every((d) => codes.includes(d.code));
 }
 
 function evidence(error: unknown): Pick<PreparationFailed, "message" | "stage" | "diagnostics"> {
