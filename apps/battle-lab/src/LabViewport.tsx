@@ -121,7 +121,7 @@ interface LabViewportProps {
   leftDragAction?: boolean;
   /** Capture the semantic target once; null cancels a press. */
   onRightPress?: (pick: LabPick | null) => void;
-  /** Per-frame pointer feedback; null leaves the native pointer active. */
+  /** Per-frame action for the app cursor; null shows the plain arrow. */
   onCursor?: (
     pointer: ViewportPointer,
     camera: Camera3DParams,
