@@ -28,11 +28,13 @@
 
 ## Spike findings — 2026-10-09
 
-- Godot 4 is not installed on the target Mac and the workspace has no native
+- Godot 4.7.2 stable is pinned in ignored tooling for the spike and passes
+  headless editor/GDExtension scanning. The workspace still has no native
   binding or Godot project. The first native pass therefore measures the
-  existing direct Rust concepts and offline replay seam before attempting a
-  live GDExtension window probe. This is a blocker for the live Godot artifact,
-  not a reason to invent an unmeasured bridge.
+  existing direct Rust concepts and offline replay seam before a live window
+  probe. This keeps the benchmark honest while the extension is built.
+- Godot 4.7.2 is paired with godot-rust 0.5.5 `api-4-7`; the official
+  compatibility guidance says the API version must be no newer than the runtime.
 - The existing `game-wasm::BattleHandle` already exposes the required seam
   concepts: ordered commands, fixed stepping, side publication, digest,
   replay and observation resync. Native work should reuse those simulation
