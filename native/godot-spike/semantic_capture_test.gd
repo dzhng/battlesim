@@ -19,10 +19,11 @@ func _init() -> void:
 	var unit_count := 0
 	var valid_publications := 0
 	var fog_publications := 0
-	for sample in decoded.capture.samples.slice(0, mini(8, decoded.capture.samples.size())):
+	for sample_index in mini(8, decoded.capture.samples.size()):
+		var sample = decoded.capture.samples[sample_index]
 		var result := CaptureDecoder.decode_publication(decoded, sample.publication, baselines)
 		if not result.valid:
-			push_error("semantic publication decode failed")
+			push_error("semantic publication decode failed at %d tick %s" % [sample_index, sample.tick])
 			quit(2)
 		baselines = result.baselines
 		if result.has("fog") and int(result.fog.words) > 0:

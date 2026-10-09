@@ -183,6 +183,9 @@ static func decode_publication(capture_result: Dictionary, words: Array, baselin
 		return {"valid": false, "units": [], "baselines": baselines}
 	cursor += fog_count
 	var fog := {"full": fog_full, "nx": fog_nx, "ny": fog_ny, "cellM": float(header_values.get("fogCellM", 0.0)), "words": fog_words, "payloadWords": fog_count}
+	var ground := _decode_ground(layout, header_values, words, cursor)
+	if not ground.valid:
+		return {"valid": false, "units": [], "baselines": baselines}
 	var own: Array = []
 	if payloads.size() > 0:
 		var group: Dictionary = layout.groups[0]
@@ -203,7 +206,37 @@ static func decode_publication(capture_result: Dictionary, words: Array, baselin
 			var id := _carrier_float(own_values[base + fields.find("id")])
 			var kind_index := int(_carrier_float(own_values[base + fields.find("kind")]))
 			own.append({"id": id, "kind": kind_index, "position": [x, y, z], "yaw": yaw})
-	return {"valid": true, "units": own, "baselines": next_baselines, "fog": fog}
+	return {"valid": true, "units": own, "baselines": next_baselines, "fog": fog, "ground": ground}
+
+static func _decode_ground(layout: Dictionary, header: Dictionary, words: Array, cursor: int) -> Dictionary:
+	var count := int(header.get(String(layout.ground.count), 0.0))
+	if count < 0 or cursor > words.size():
+		return {"valid": false}
+	var reader := _PackedReader.new(words.slice(cursor, words.size()))
+	var rows: Array = []
+	var tile := 0
+	for _i in count:
+		tile += reader.integer()
+		var start := reader.read(8)
+		var length := reader.read(8) + 1
+		var mask := reader.read(5)
+		if not reader.valid or tile < 0 or tile >= 2 ** 24 or start + length > 256:
+			return {"valid": false}
+		var crater := 0
+		var tracks := 0
+		for mark in 5:
+			if (mask & (1 << mark)) == 0:
+				continue
+			var value := reader.read(8)
+			if not reader.valid or value == 0:
+				return {"valid": false}
+			if mark < 2:
+				crater += value * (2 ** (mark * 8))
+			else:
+				tracks += value * (2 ** ((mark - 2) * 8))
+		rows.append({"tile": tile, "start": start, "length": length, "craterScorch": crater, "tracksTrampledCleared": tracks})
+	reader.finish()
+	return {"valid": true, "count": count, "rows": rows, "full": int(header.get("groundFull", 0.0)) == 1, "packedValid": reader.valid}
 
 static func mini(a: int, b: int) -> int:
 	return a if a < b else b
@@ -214,51 +247,58 @@ static func _decode_group(layout: Dictionary, group_index: int, encoding: int, p
 		return []
 	var mode := String(modes[encoding])
 	if mode == "snapshot":
-		return packed.duplicate()
+		return packed.duplicate() if packed.size() == size else []
 	if mode == "replacement":
 		if old == null:
 			return []
 		var values: Array = old.duplicate()
-		var reader := _PackedReader.new(packed)
-		var operations := reader.integer()
+		values.resize(size)
+		if packed.is_empty():
+			return values if size == old.size() else []
+		var cursor := 0
+		var operations := int(_carrier_float(packed[cursor])); cursor += 1
 		var last := 0
 		for _i in operations:
-			var start := reader.integer()
-			var count := reader.integer()
+			if cursor + 2 > packed.size():
+				return []
+			var start := int(_carrier_float(packed[cursor])); cursor += 1
+			var count := int(_carrier_float(packed[cursor])); cursor += 1
 			if count <= 0 or start < last or start + count > size:
 				return []
-			if values.size() < size:
-				values.resize(size)
+			if cursor + count > packed.size():
+				return []
 			for at in range(start, start + count):
-				values[at] = reader.literal(old, false)
+				values[at] = packed[cursor]
+				cursor += 1
 			last = start + count
-		reader.finish()
-		return values
+		return values if cursor == packed.size() else []
 	if mode == "copies":
 		if old == null:
 			return []
 		var values: Array = []
-		var reader := _PackedReader.new(packed)
+		var cursor := 0
 		var group: Dictionary = layout.groups[group_index]
 		var stride := int(layout.groupDelivery.copyAlignments[group_index])
 		if group.sections.size() > 0:
 			stride = 1
 		while values.size() < size:
-			var source_plus := reader.integer()
-			var count := reader.integer()
-			if count <= 0 or count % max(1, stride) != 0:
+			if cursor + 2 > packed.size():
 				return []
-			if source_plus == 0:
+			var source := int(_carrier_float(packed[cursor])); cursor += 1
+			var count := int(_carrier_float(packed[cursor])); cursor += 1
+			if count <= 0 or count % max(1, stride) != 0 or values.size() + count > size:
+				return []
+			if source == -1:
+				if cursor + count > packed.size():
+					return []
 				for _j in count:
-					values.append(reader.literal(old, false))
+					values.append(packed[cursor]); cursor += 1
 			else:
-				var source := source_plus - 1
 				if source < 0 or source + count > old.size():
 					return []
 				for j in count:
 					values.append(old[source + j])
-		reader.finish()
-		return values
+		return values if cursor == packed.size() else []
 	if mode != "packed":
 		return []
 	if old == null and size == 0:
@@ -319,15 +359,17 @@ static func _carrier_float(word: Variant) -> float:
 class _PackedReader:
 	var words: Array
 	var bit := 0
+	var valid := true
 	func _init(source: Array):
 		words = source
 	func read(count: int) -> int:
-		if count <= 0 or bit + count > words.size() * 32:
+		if count <= 0 or count > 32 or bit + count > words.size() * 32:
+			valid = false
 			return 0
 		var index := bit / 32
 		var shift := bit % 32
 		var value: int = (int(words[index]) >> shift) & 0xffffffff
-		if shift + count > 32 and index + 1 < words.size():
+		if shift + count > 32:
 			value |= (int(words[index + 1]) << (32 - shift))
 		bit += count
 		return value & ((1 << count) - 1 if count < 32 else 0xffffffff)
@@ -335,18 +377,32 @@ class _PackedReader:
 		var value := 0
 		for byte_index in 4:
 			var part := read(8)
+			if not valid:
+				return -1
 			value += (part & 127) << (byte_index * 7)
 			if part < 128:
+				if byte_index > 0 and part == 0:
+					valid = false
 				return value
+		valid = false
 		return -1
 	func literal(baseline: Variant, xor_value: bool, at := 0) -> int:
 		var tag := read(4)
+		if not valid or tag > 9 or (xor_value == false and tag >= 5):
+			valid = false
+			return 0
 		var count := tag if tag < 5 else tag - 5
 		var value := 0 if count == 0 else read(count * 8)
+		if not valid:
+			return 0
 		if tag >= 5 and baseline != null and at < baseline.size():
 			value = value ^ int(baseline[at])
 		return value
 	func finish() -> void:
+		if not valid or words.size() * 32 - bit > 31:
+			valid = false
+			return
 		while bit < words.size() * 32:
 			if read(1) != 0:
+				valid = false
 				return
