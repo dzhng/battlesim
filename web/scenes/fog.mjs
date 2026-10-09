@@ -10,6 +10,7 @@ import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
 import { decode } from "./_png.mjs";
 import { advance, lab, obs, snapshot, until } from "./_lab.mjs";
+import { streetMap } from "./_units.mjs";
 
 /** Spike 02's bar: at most 5% of 8 m cells outside the one-cell band disagree. */
 const AGREEMENT_BAR_PERCENT = 5;
@@ -20,12 +21,31 @@ const POSITION_BAR_PX = 2;
 /** Spike 02's measured typical fog cost at 100 a side. */
 const COST_BAR_MS = 1.6;
 
-/** Building B's south-east corner: its sight shadow from the street recon. */
-const CORNER = [1064, 800];
-/** Broken Arrow ground framing (spike 02): about 11 m up, 20° down, 40° lens. */
-const GROUND = { target: [1150, 824], distance: 36.06, pitch: 0.3393, yaw: Math.PI / 2 };
-const NEAR = { target: [1078, 806], distance: 33.8, pitch: 0.3, yaw: 1.1903 };
+/** Building B (the street map's second) and its south-east corner, the
+ *  corner the street recon's sight shadow leaves on its right. */
+const B = streetMap.buildings[1].geometry.parts[0];
+const CORNER = [
+  B.center[0] + Math.cos(B.yaw) * B.half_extents[0] + Math.sin(B.yaw) * B.half_extents[1],
+  B.center[1] + Math.sin(B.yaw) * B.half_extents[0] - Math.cos(B.yaw) * B.half_extents[1],
+];
+/** Broken Arrow ground framing (spike 02): about 11 m up, 20° down, 40° lens.
+ *  Each framing is placed against the edge it measures: its target `along`
+ *  metres past the corner on the line from the eye through it and `aside`
+ *  metres to the line's left, and its yaw `turn` from the line's bearing. */
+const GROUND = { along: 89, aside: 6.67, turn: 1.3734, distance: 36.06, pitch: 0.3393 };
+const NEAR = { along: 14.9, aside: 3.13, turn: 0.9929, distance: 33.8, pitch: 0.3 };
 const LENS = 0.698;
+
+/** `framing` placed against the sight-shadow edge from `eye` past CORNER. */
+function edgeFraming({ along, aside, turn, ...view }, eye) {
+  const bearing = Math.atan2(CORNER[1] - eye[1], CORNER[0] - eye[0]);
+  const [c, s] = [Math.cos(bearing), Math.sin(bearing)];
+  return {
+    ...view,
+    target: [CORNER[0] + c * along - s * aside, CORNER[1] + s * along + c * aside],
+    yaw: bearing + turn,
+  };
+}
 
 /** The agreement map, north up: red where the GPU sees and the simulation
  *  does not, blue the reverse, grey where both see. */
@@ -228,7 +248,7 @@ function edgeMetric(png, band, line) {
 
 /** The sight-shadow edge past building B's corner, one eye, one framing. */
 async function checkEdge(ctx, page, name, framing, band, recon) {
-  await setCamera(page, framing);
+  await setCamera(page, edgeFraming(framing, recon.position));
   await lab(page, () => window.__lab.route.showMask(true));
   const mask = decode(await snapshot(ctx, page, `edge-${name}-mask-1920x1080.png`));
   await lab(page, () => window.__lab.route.showMask(false));
