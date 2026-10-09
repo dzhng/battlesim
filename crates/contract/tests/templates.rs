@@ -353,10 +353,10 @@ fn unrepresentable_bay_lattice_is_rejected_before_materialization() {
         "../../../fixtures/parity/templates/rejected-numeric/lattice.json"
     ))
     .unwrap();
-    assert!(
-        descriptor.validate().is_err(),
-        "993 lattice indices emitted only 46 distinct points and included span boundaries"
-    );
+    // A sliver of wall 1e-14 m wide with bays 1e-17 m apart: floating-point
+    // lattice indices there stop being consecutive integers.
+    let refusal = descriptor.validate().unwrap_err();
+    assert!(refusal.contains("bay lattice indices"), "{refusal}");
     assert!(descriptor
         .materialize(PlacementFrame {
             translation: [0.0; 3],

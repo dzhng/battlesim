@@ -16,6 +16,9 @@ test("native and wasm share one exact physical catalogue", () => {
 });
 
 test("wasm rejects the frozen invalid joins and unrepresentable lattice", () => {
-  for (const name of ["vertical", "gap", "lattice"])
-    expect(() => template_catalogue_json(`[${read(`rejected-numeric/${name}`)}]`), name).toThrow();
+  const refusals = { vertical: /join faces/, gap: /join faces/, lattice: /bay lattice indices/ };
+  for (const [name, refusal] of Object.entries(refusals))
+    expect(() => template_catalogue_json(`[${read(`rejected-numeric/${name}`)}]`), name).toThrow(
+      refusal,
+    );
 });
