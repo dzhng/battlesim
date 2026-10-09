@@ -71,8 +71,11 @@ export function baselines(
   const bless = blessing(fixtureId, env);
   const captured = new Set();
   return {
-    /** Capture `target` (a page or a locator) and match it against `name`. */
-    async match(target, name, { maxDiffShare = MAX_DIFF_SHARE } = {}) {
+    /** Capture `target` (a page or a locator) and match it against `name`.
+     *  `style` is CSS applied for the capture only: to hide what can never
+     *  be pinned (a live 3D backdrop, a build's identity), never a defect.
+     *  Returns the captured PNG, for a scene that also measures it. */
+    async match(target, name, { maxDiffShare = MAX_DIFF_SHARE, style } = {}) {
       if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) throw new Error(`bad baseline name "${name}"`);
       if (captured.has(name)) throw new Error(`baseline "${name}" captured twice`);
       captured.add(name);
@@ -80,13 +83,14 @@ export function baselines(
       const png = await target.screenshot({
         animations: "disabled",
         caret: "hide",
+        style,
       });
       const file = new URL(`${name}.png`, dir);
       if (bless) {
         await mkdir(dir, { recursive: true });
         await writeFile(file, png);
         check(`looks as approved: ${name} (blessed as the new baseline)`, true);
-        return;
+        return png;
       }
       const stored = await readFile(file).catch(() => null);
       await writeFile(evidencePath(`${name}.actual.png`), png);
@@ -96,7 +100,7 @@ export function baselines(
           false,
           `no baseline at ${file.pathname}; review ${name}.actual.png, then bless with UPDATE_BASELINES=${fixtureId}`,
         );
-        return;
+        return png;
       }
       if (stored.subarray(0, LFS_POINTER.length).toString() === LFS_POINTER) {
         check(
@@ -104,7 +108,7 @@ export function baselines(
           false,
           `the baseline is an unfetched LFS pointer: git lfs pull --include="web/scenes/baselines/**"`,
         );
-        return;
+        return png;
       }
       const expected = PNG.sync.read(stored);
       const actual = PNG.sync.read(png);
@@ -118,6 +122,7 @@ export function baselines(
           ? `size ${actual.width}×${actual.height}, baseline ${expected.width}×${expected.height}`
           : `${differing} px differ (${(share * 100).toFixed(3)}%); see ${name}.diff.png`,
       );
+      return png;
     },
     /** After a completed scene: every baseline was captured this run. */
     async finish() {

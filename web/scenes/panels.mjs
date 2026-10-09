@@ -2,7 +2,10 @@
 // zoom (so it reads like the game at a close look). At 1×, 1.5× and 2× it
 // measures every row's icon against the centre of its slot, and checks every
 // panel is titled, that unlimited ammunition is the drawn ∞, and that no own
-// panel draws a warm (amber) colour outside a warning.
+// panel draws a warm (amber) colour outside a warning. Its approved pictures
+// (`_baseline.mjs`) pin every panel group, on the test units, and every
+// battle-deck case at two widths, plain, hovered and focused.
+import { spills } from "./_spills.mjs";
 
 /** Every mark's icon ink centre against its slot's centre, in CSS pixels. */
 const offCentre = (page) =>
@@ -429,29 +432,20 @@ export async function run(ctx) {
         JSON.stringify(layout),
       );
       const slug = name.toLowerCase().replaceAll(" ", "-");
+      const deckSpills = await spills(page, ".hud-panel");
+      ctx.check(
+        `${width}px ${name}: every deck panel holds its content`,
+        deckSpills.length === 0,
+        deckSpills.slice(0, 6).join(" | "),
+      );
       await ctx.matchBaseline(page, `army-${width}-${slug}`);
       const cards = page.locator(".hud-army-card");
       await cards.first().hover();
       const detail = await page.getByRole("tooltip").evaluate((e) => {
         const r = e.getBoundingClientRect();
         const words = [...e.querySelectorAll(".ro-name-word, .ro-row")];
-        // Every drawn thing inside the card lies inside its frame, and its
-        // name reads on one line: a card collapsed to its padding still
-        // has a box on screen, so the box alone proves nothing.
-        const spills = [...e.querySelectorAll("*")]
-          .map((child) => [child, child.getBoundingClientRect()])
-          .filter(([, c]) => c.width > 0 && c.height > 0)
-          .filter(
-            ([, c]) =>
-              c.left < r.left - 0.5 ||
-              c.right > r.right + 0.5 ||
-              c.top < r.top - 0.5 ||
-              c.bottom > r.bottom + 0.5,
-          )
-          .map(([child]) => child.className?.baseVal ?? child.className);
         const name = e.querySelector(".ro-name-word");
         return {
-          spills: spills.slice(0, 6),
           nameHeight: name.getBoundingClientRect().height,
           nameFont: parseFloat(getComputedStyle(name).fontSize),
           weaponRows: e.querySelectorAll(".ro-weapon").length,
@@ -479,12 +473,15 @@ export async function run(ctx) {
           detail.right <= width,
         JSON.stringify(detail),
       );
+      // A card collapsed to its padding still has a box on screen and every
+      // word drawn: only its content against its frame shows it.
+      const hoverSpills = await spills(page, ".hud-army-detail");
       ctx.check(
         `${width}px ${name}: hover card holds its contents, its name on one line, clear of captions`,
-        detail.spills.length === 0 &&
+        hoverSpills.length === 0 &&
           detail.bottom <= detail.captionTop &&
           detail.nameHeight < detail.nameFont * 2,
-        JSON.stringify(detail),
+        JSON.stringify({ ...detail, spills: hoverSpills.slice(0, 6) }),
       );
       if (name === "Tank ammunition" || name === "Replay")
         ctx.check(

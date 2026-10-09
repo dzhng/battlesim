@@ -49,9 +49,7 @@ export async function run(ctx) {
           s.icons.join() === s.action,
     ),
   );
-  const matrix = decode(
-    await page.screenshot({ path: ctx.evidencePath("matrix-native-1280x800.png") }),
-  );
+  const matrix = decode(await ctx.matchBaseline(page, "matrix-native-1280x800"));
   for (const s of desktop) {
     await writeCrop(
       matrix,
@@ -93,7 +91,7 @@ export async function run(ctx) {
     "changing action and moving updates the one mounted cursor",
     await moving.locator('[data-action="garrison"]').isVisible(),
   );
-  await page.screenshot({ path: ctx.evidencePath("pointer-garrison.png") });
+  await ctx.matchBaseline(page, "pointer-garrison");
   await page.mouse.move(30, 25);
   ctx.check("leaving the interaction surface hides the whole cursor", await moving.isHidden());
   await page.setViewportSize({ width: 430, height: 1000 });
@@ -104,6 +102,6 @@ export async function run(ctx) {
     narrow.every((s) => s.tipError < 0.01 && s.arrowSize.every((v) => Math.abs(v - 22.4) < 0.01)) &&
       (await page.evaluate(() => document.querySelector(".cursor-lab").scrollWidth <= innerWidth)),
   );
-  await page.screenshot({ path: ctx.evidencePath("matrix-native-430x1000.png") });
+  await ctx.matchBaseline(page, "matrix-native-430x1000");
   await ctx.writeEvidence("geometry.json", { desktop, narrow, viewport: [1280, 800], dpr: 1 });
 }
