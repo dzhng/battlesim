@@ -75,7 +75,7 @@ func _write_report() -> void:
 		"renderer": ProjectSettings.get_setting("rendering/renderer/rendering_method", "unknown"),
 		"instances": INSTANCE_COUNT,
 		"duration_s": BENCHMARK_SECONDS,
-		"average_fps": (1000.0 * intervals.size()) / (total * 1000.0),
+		"average_fps": intervals.size() / total,
 		"minimum_fps": 1.0 / sorted[-1],
 		"maximum_fps": 1.0 / sorted[0],
 		"one_percent_low_fps": 1.0 / (slow_sum / slow_count),
