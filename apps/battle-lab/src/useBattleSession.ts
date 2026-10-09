@@ -132,6 +132,10 @@ import type { FelledTree } from "@packages/battle-renderer/src/scenery/felled";
 import { orderView } from "./battleOverlay";
 
 const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
+/** A placed ghost faces the opposing edge unless it was turned as it was placed. */
+const DEFAULT_PLACEMENT_FACING = -Math.PI / 2;
+/** How near a pending purchase's published destination is to the placed one. */
+const PLACED_MATCH_M = 0.5;
 
 /** Ground heights the page remembers before starting afresh. */
 const SURFACE_HEIGHTS_MAX = 1 << 20;
@@ -321,6 +325,9 @@ export function useBattleSession({
   const [purchasePlacement] = useState(() => new PurchasePlacementControl());
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const purchaseGhost = useRef<PurchaseGhost | null>(null);
+  /** The ghosts the authority accepted, for their facing: a pending purchase
+   *  carries only its kind and destination. */
+  const placedGhosts = useRef<PurchaseGhost[]>([]);
   const cancelPurchase = useCallback(() => {
     purchasePlacement.cancel();
     purchaseGhost.current = null;
@@ -347,6 +354,7 @@ export function useBattleSession({
   // A new battle carries no flash over.
   useEffect(() => {
     cancelPurchase();
+    placedGhosts.current = [];
     orderReveal.clear();
     pendingAction.current = null;
     captured.current = null;
@@ -613,6 +621,35 @@ export function useBattleSession({
       ghost: gameXray.selected,
     };
   }, [purchasing, posing, appearances, side]);
+  // Each unit placed during preparation stands as a ghost where it will go,
+  // turned as it was placed, until the battle starts.
+  const match = observation?.skirmish;
+  const pendingPurchases = match?.phase === "preparation" ? match.pending : null;
+  const placedModels = useMemo<ModelInstance[]>(() => {
+    if (!pendingPurchases || !posing || !appearances) return [];
+    return pendingPurchases.flatMap((pending) => {
+      const resolved = posing.resolve(pending.kind, side, 0, 0);
+      const bundle = resolved && appearances.appearances.get(resolved.appearance)?.bundle;
+      if (!resolved || !bundle) return [];
+      const [x, y] = pending.destination;
+      const placed = placedGhosts.current.find(
+        (g) =>
+          g.variant === pending.kind &&
+          Math.hypot(g.destination[0] - x, g.destination[1] - y) < PLACED_MATCH_M,
+      );
+      return [
+        {
+          appearance: resolved.appearance,
+          x,
+          y,
+          z: surfaceZ(x, y),
+          yaw: placed?.facing ?? DEFAULT_PLACEMENT_FACING,
+          pose: restingModelPose(bundle),
+          ghost: gameXray.own,
+        },
+      ];
+    });
+  }, [pendingPurchases, posing, appearances, side, surfaceZ]);
   const frameModels = useRef<ModelInstance[]>([]);
   // The trees the side knows have fallen, each from the start of the tick
   // it fell (the clock is ticks over tick_hz, as the effects' are). The
@@ -700,6 +737,7 @@ export function useBattleSession({
           if (debris) composed.push(debris);
         }
       }
+      for (const model of placedModels) composed.push(model);
       if (placement && ghostModel && inputEnabled) {
         ghostModel.x = placement.destination[0];
         ghostModel.y = placement.destination[1];
@@ -735,6 +773,7 @@ export function useBattleSession({
       transitions,
       lastHulls,
       ghostModel,
+      placedModels,
       inputEnabled,
       surfaceZ,
     ],
@@ -804,19 +843,8 @@ export function useBattleSession({
       if (purchasePlacement.variant) {
         if (pick.button === "right") cancelPurchase();
         else if (inputEnabled) {
-          if (pick.release && world) {
-            const ground = groundUnderRay(world.view, pick.ray);
-            const release = groundUnderRay(world.view, pick.release);
-            if (ground && release) {
-              purchasePlacement.at(
-                [ground[0], ground[1]],
-                sim.client,
-                "placement",
-                Math.atan2(release[1] - ground[1], release[0] - ground[0]),
-              );
-            }
-          }
           void purchasePlacement.confirm(control.issue).then((accepted) => {
+            if (accepted) placedGhosts.current.push(accepted);
             if (accepted && !purchasePlacement.variant) {
               purchaseGhost.current = null;
               setPurchasing(null);
@@ -887,10 +915,13 @@ export function useBattleSession({
       sim.client &&
       world;
     if (purchasePlacement.variant) {
-      const at = active && inputEnabled && groundUnderRay(world.view, pointer.ray!);
+      // A held left drag pins the ghost where it was pressed and turns it
+      // toward the pointer.
+      const at =
+        active && inputEnabled && groundUnderRay(world.view, pointer.leftPress ?? pointer.ray!);
       const facingTo =
-        active && inputEnabled && pointer.rightDragging && pointer.ray
-          ? groundUnderRay(world.view, pointer.ray)
+        active && inputEnabled && pointer.leftPress
+          ? groundUnderRay(world.view, pointer.ray!)
           : null;
       const facing =
         at && facingTo ? Math.atan2(facingTo[1] - at[1], facingTo[0] - at[0]) : undefined;

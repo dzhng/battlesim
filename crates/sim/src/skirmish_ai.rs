@@ -92,15 +92,29 @@ impl SkirmishAi {
             .filter_map(|&(role, category, ordinal)| pick(role, category, ordinal))
             .collect();
         let mut orders = Vec::new();
-        if view.occupied_slots < view.max_units {
-            let purchase = if view.phase == Phase::Preparation {
-                let mut needed = BTreeMap::new();
-                desired.iter().copied().find(|&kind| {
+        // The whole opening is bought in one decision, so the opponent is
+        // ready at once and the player's own readiness starts the battle.
+        let purchases: Vec<TypeIndex> = if view.phase == Phase::Preparation {
+            let mut credits = view.credits;
+            let mut slots = view.occupied_slots;
+            let mut needed = BTreeMap::new();
+            desired
+                .iter()
+                .copied()
+                .filter(|&kind| {
                     let wanted = needed.entry(kind).or_insert(0);
                     *wanted += 1;
-                    count(kind) < *wanted && f64::from(rules.catalog.get(kind).cost) <= view.credits
+                    let cost = f64::from(rules.catalog.get(kind).cost);
+                    let buy = count(kind) < *wanted && cost <= credits && slots < view.max_units;
+                    if buy {
+                        credits -= cost;
+                        slots += 1;
+                    }
+                    buy
                 })
-            } else {
+                .collect()
+        } else if view.occupied_slots < view.max_units {
+            let purchase = {
                 let truck = pick("logistics", Category::Sup, 0);
                 if truck.is_some()
                     && !frame
@@ -132,37 +146,44 @@ impl SkirmishAi {
                     })
                 }
             };
-            if let Some(kind) = purchase {
-                let support = rules.catalog.get(kind).has_role("logistics");
-                let destination = if support {
-                    entry.center
-                } else {
-                    view.objectives
-                        .iter()
-                        .filter(|o| o.owner != Some(side))
-                        .min_by(|a, b| {
-                            let load = |o: &contract::skirmish::ObjectiveView| {
-                                view.pending
-                                    .iter()
-                                    .filter(|p| p.destination == o.center)
-                                    .count()
-                                    + self.assigned.values().filter(|id| *id == &o.id).count()
-                            };
-                            load(a)
-                                .cmp(&load(b))
-                                .then(
-                                    distance(entry.center, a.center)
-                                        .total_cmp(&distance(entry.center, b.center)),
-                                )
-                                .then(a.id.cmp(&b.id))
-                        })
-                        .map_or(entry.center, |o| o.center)
-                };
-                orders.push(Order::ConfirmPurchase {
-                    variant: rules.catalog.id(kind).into(),
-                    destination,
-                });
-            }
+            purchase.into_iter().collect()
+        } else {
+            vec![]
+        };
+        let mut bought: Vec<[f64; 2]> = Vec::new();
+        for kind in purchases {
+            let support = rules.catalog.get(kind).has_role("logistics");
+            let destination = if support {
+                entry.center
+            } else {
+                view.objectives
+                    .iter()
+                    .filter(|o| o.owner != Some(side))
+                    .min_by(|a, b| {
+                        let load = |o: &contract::skirmish::ObjectiveView| {
+                            view.pending
+                                .iter()
+                                .map(|p| p.destination)
+                                .chain(bought.iter().copied())
+                                .filter(|d| *d == o.center)
+                                .count()
+                                + self.assigned.values().filter(|id| *id == &o.id).count()
+                        };
+                        load(a)
+                            .cmp(&load(b))
+                            .then(
+                                distance(entry.center, a.center)
+                                    .total_cmp(&distance(entry.center, b.center)),
+                            )
+                            .then(a.id.cmp(&b.id))
+                    })
+                    .map_or(entry.center, |o| o.center)
+            };
+            bought.push(destination);
+            orders.push(Order::ConfirmPurchase {
+                variant: rules.catalog.id(kind).into(),
+                destination,
+            });
         }
         if view.phase == Phase::Active {
             let mut own: Vec<_> = frame.own.iter().collect();
@@ -284,7 +305,7 @@ impl SkirmishAi {
                 }
             }
         }
-        if view.phase == Phase::Preparation && orders.is_empty() && !view.ready[side.index()] {
+        if view.phase == Phase::Preparation && !view.ready[side.index()] {
             orders.push(Order::Ready);
         }
         orders
@@ -474,7 +495,7 @@ mod tests {
     }
 
     #[test]
-    fn opening_readies_within_prep_and_respects_budget_pending_and_cap() {
+    fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and_cap() {
         let (rules, mut frame, entry) = empty_match();
         let mut ai = SkirmishAi::default();
         let mut ready = false;
@@ -513,7 +534,7 @@ mod tests {
                 break;
             }
         }
-        assert!(ready && frame.tick <= 45 * u64::from(rules.tick_hz));
+        assert!(ready && frame.tick == 0, "the first decision readies");
         let view = frame.skirmish.as_ref().unwrap();
         assert!(view
             .pending

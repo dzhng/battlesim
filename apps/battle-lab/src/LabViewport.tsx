@@ -212,6 +212,8 @@ export interface ViewportPointer {
   position: { x: number; y: number } | null;
   ray: WorldRay | null;
   rightPress: WorldRay | null;
+  /** Where a held left drag began, while it is an action (`leftDragAction`). */
+  leftPress: WorldRay | null;
   ctrl: boolean;
   shift: boolean;
   cameraDragging: boolean;
@@ -784,6 +786,7 @@ export function LabViewport({
             ...modifiers,
             cameraDragging: !!orbit,
             rightPress: rightPress?.ray ?? null,
+            leftPress: press?.dragged && leftDragActionRef.current ? press.ray : null,
             rightDragging: !!(
               rightPress &&
               pointer &&
@@ -989,18 +992,21 @@ export function LabViewport({
           timePoseKernel: (reps: number, bodies?: number) => scene.timePoseKernel(reps, bodies),
         } satisfies Partial<LabHandle>);
 
-        // Input: left click selects, left drag box-selects, right click
+        // Input: left click selects, left drag box-selects (or, as an action,
+        // places at the press and faces toward the release), right click
         // orders (on release: a right-drag also sets the facing); the camera (CameraController) takes held WASD/arrows and the
         // screen edge to pan, Q/E to turn, middle drag to orbit, the wheel to zoom.
         let orbit: { x: number; y: number } | null = null;
-        let press: { x: number; y: number; shift: boolean } | null = null;
+        let press: {
+          x: number;
+          y: number;
+          shift: boolean;
+          ray: WorldRay;
+          dragged: boolean;
+        } | null = null;
         let rightPress: { event: PointerEvent; pick: LabPick; ray: WorldRay } | null = null;
-        const makePick = (
-          e: PointerEvent,
-          button: "left" | "right",
-          release?: PointerEvent,
-          ray = handle.rayAt!(e.clientX, e.clientY),
-        ) => {
+        const makePick = (e: PointerEvent, button: "left" | "right") => {
+          const ray = handle.rayAt!(e.clientX, e.clientY);
           return {
             instance: pickBox(ray, picks()),
             ray,
@@ -1010,7 +1016,6 @@ export function LabViewport({
             x: e.clientX,
             y: e.clientY,
             time: e.timeStamp,
-            release: release && handle.rayAt!(release.clientX, release.clientY),
           };
         };
         const onDown = (e: PointerEvent) => {
@@ -1021,7 +1026,13 @@ export function LabViewport({
           if (!interactionSurface(e.target)) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
           if (e.button === 0) {
-            press = { x: e.clientX, y: e.clientY, shift: e.shiftKey };
+            press = {
+              x: e.clientX,
+              y: e.clientY,
+              shift: e.shiftKey,
+              ray: handle.rayAt!(e.clientX, e.clientY),
+              dragged: false,
+            };
             canvas.setPointerCapture(e.pointerId);
           } else if (e.button === 2) {
             pointer = { x: e.clientX, y: e.clientY };
@@ -1044,7 +1055,10 @@ export function LabViewport({
             (target instanceof Element && target.closest(".ro-layer .ro-unit, .hud"));
           pointer = over || rightPress || press || orbit ? { x: e.clientX, y: e.clientY } : null;
           if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > CLICK_SLOP_PX) {
-            setBox({ x0: press.x, y0: press.y, x1: e.clientX, y1: e.clientY });
+            press.dragged = true;
+            // A drag that is an action (placing, then facing) draws no selection box.
+            if (!leftDragActionRef.current)
+              setBox({ x0: press.x, y0: press.y, x1: e.clientX, y1: e.clientY });
           }
           if (!orbit) return;
           const dx = e.clientX - orbit.x,
@@ -1074,13 +1088,12 @@ export function LabViewport({
           const start = press;
           press = null;
           setBox(null);
-          if (Math.hypot(e.clientX - start.x, e.clientY - start.y) <= CLICK_SLOP_PX) {
+          // A drag that is an action ends as a click: the route aimed it while held.
+          if (
+            leftDragActionRef.current ||
+            Math.hypot(e.clientX - start.x, e.clientY - start.y) <= CLICK_SLOP_PX
+          ) {
             onPickRef.current?.(makePick(e, "left"));
-          } else if (leftDragActionRef.current) {
-            onPickRef.current?.({
-              ...makePick(e, "left", e),
-              release: handle.rayAt!(e.clientX, e.clientY),
-            });
           } else {
             onBoxRef.current?.({
               x0: Math.min(start.x, e.clientX),

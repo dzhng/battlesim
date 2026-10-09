@@ -45,7 +45,8 @@ export class PurchasePlacementControl {
       this.generation++;
       this.resolved = null;
     }
-    const key = JSON.stringify([this.generation, this.variant, destination, facing, revision]);
+    // Admission depends on where the ghost stands, never on how it is turned.
+    const key = JSON.stringify([this.generation, this.variant, destination, revision]);
     const ghost = {
       variant: this.variant,
       destination,
@@ -80,7 +81,10 @@ export class PurchasePlacementControl {
         this.resolve();
       });
   }
-  async confirm(send: (order: Order) => Promise<CommandAck | null | undefined>): Promise<boolean> {
+  /** The ghost the authority accepted, or null when nothing was placed. */
+  async confirm(
+    send: (order: Order) => Promise<CommandAck | null | undefined>,
+  ): Promise<PurchaseGhost | null> {
     const ghost = this.ghost;
     if (
       !ghost ||
@@ -89,7 +93,7 @@ export class PurchasePlacementControl {
       !("Ok" in this.resolved.placement) ||
       this.confirming
     )
-      return false;
+      return null;
     const generation = this.generation;
     this.confirming = true;
     try {
@@ -98,9 +102,9 @@ export class PurchasePlacementControl {
         variant: ghost.variant,
         destination: ghost.destination,
       });
-      if (!ack || ack.error) return false;
+      if (!ack || ack.error) return null;
       if (generation === this.generation) this.cancel();
-      return true;
+      return { ...ghost, valid: true };
     } finally {
       this.confirming = false;
     }
