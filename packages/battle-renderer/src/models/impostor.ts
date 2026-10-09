@@ -15,7 +15,10 @@
 import { tgpu } from "typegpu";
 import { mat4, vec3, type Mat4, type Vec3 } from "math";
 import { orthographicReverseZ } from "@packages/renderer-core/src/camera3d";
-import { CAMERA_UNIFORM_FLOATS } from "@packages/renderer-core/src/cameraUniform";
+import {
+  CAMERA_UNIFORM_FLOATS,
+  packCameraUniform,
+} from "@packages/renderer-core/src/cameraUniform";
 import { GPU_DEPTH_CLEAR, GPU_DEPTH_FORMAT } from "@packages/renderer-core/src/depthContract";
 import type { Bounds } from "@packages/scene-assets/src/schema";
 import { Camera, typegpuCameraLayout } from "../world/camera";
@@ -220,10 +223,16 @@ export function createImpostorBaker(
           usage: 0x10,
         });
         const cameras = frame.views.map((view) => {
-          const data = new Float32Array(CAMERA_UNIFORM_FLOATS);
-          data.set(view.viewProj, 0);
-          data.set(mat4.invert(mat4.create(), view.viewProj) ?? mat4.create(), 16);
-          data.set(view.eye, 32);
+          const data = packCameraUniform(
+            new Float32Array(CAMERA_UNIFORM_FLOATS),
+            view.viewProj,
+            mat4.invert(mat4.create(), view.viewProj) ?? mat4.create(),
+            view.eye,
+            0,
+            0,
+            0,
+            0,
+          );
           const buffer = scope.own(root.createBuffer(Camera).$usage("uniform"));
           buffer.write(data.buffer);
           return root.createBindGroup(typegpuCameraLayout, { cam: buffer });

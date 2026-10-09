@@ -16,7 +16,7 @@ import { aerialWgsl } from "@packages/battle-renderer/src/shaders/aerial.ts";
 import { skyCloudsWgsl } from "@packages/battle-renderer/src/shaders/physicalSky.ts";
 import { aerialParams } from "@packages/battle-renderer/src/light/aerialParameters.ts";
 import { createTypegpuPost } from "@packages/battle-renderer/src/world/post.ts";
-import { cascadeFrameFit, NativeShadowFrame } from "@packages/battle-renderer/src/shadowData.ts";
+import { cascadeFrameFit, ShadowFrame } from "@packages/battle-renderer/src/shadowData.ts";
 import { Camera } from "@packages/battle-renderer/src/world/camera.ts";
 import { mapBox, receiverRange } from "@packages/battle-renderer/src/frame/receiverRange.ts";
 import { MeshBuilder } from "@packages/battle-renderer/src/mesh.ts";
@@ -192,7 +192,7 @@ test("each cascade draws its casters through the world camera, posed as its ligh
   const range = receiverRange(vec2.create(), cam, MAP);
   const fit = cascadeFrameFit(LIGHT.cascades, cam, sunDirection(LIGHT), range);
   let uploaded: Float32Array[] = [];
-  new NativeShadowFrame(LIGHT, (data) => {
+  new ShadowFrame(LIGHT, (data) => {
     uploaded = data.cascades.map((c) => c.camera);
   }).update(cam, range);
   expect(uploaded).toHaveLength(fit.cascades.length);

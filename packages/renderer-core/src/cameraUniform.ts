@@ -55,18 +55,44 @@ export function liveCamera(camera: ViewportCamera): Camera3DParams {
   return { ...camera.camera3d, aspect: camera.width / Math.max(1, camera.height) };
 }
 
-const _uniform_matrix = createGpuMat4();
+/** Packs a camera given by its matrices (the eye's, a cascade's light, an
+ *  impostor bake's view) into `data` (`CAMERA_UNIFORM_FLOATS` long) and
+ *  returns it: the one writer of the layout above. */
+export function packCameraUniform<T extends Float32Array>(
+  data: T,
+  viewProj: ArrayLike<number>,
+  inverse: ArrayLike<number>,
+  eye: ArrayLike<number>,
+  near: number,
+  width: number,
+  height: number,
+  time: number,
+): T {
+  data.set(viewProj, VIEW_PROJ_OFFSET);
+  data.set(inverse, INV_VIEW_PROJ_OFFSET);
+  data.set(eye, EYE_OFFSET);
+  data[ZNEAR_OFFSET] = near;
+  data[WIDTH_OFFSET] = width;
+  data[HEIGHT_OFFSET] = height;
+  data[TIME_OFFSET] = time;
+  return data;
+}
+
+const _uniform_viewProj = createGpuMat4();
+const _uniform_inverse = createGpuMat4();
 const _uniform_eye = vec3.create();
 
 /** Packs `camera` into `data` (`CAMERA_UNIFORM_FLOATS` long) and returns it. */
 export function cameraUniformData<T extends Float32Array>(data: T, camera: CameraSnapshot): T {
   const params = liveCamera(camera);
-  data.set(viewProjMatrix(_uniform_matrix, params), VIEW_PROJ_OFFSET);
-  data.set(invViewProj(_uniform_matrix, params), INV_VIEW_PROJ_OFFSET);
-  vec3.toBuffer(data, eyePosition(_uniform_eye, params), EYE_OFFSET);
-  data[ZNEAR_OFFSET] = params.near;
-  data[WIDTH_OFFSET] = camera.width;
-  data[HEIGHT_OFFSET] = camera.height;
-  data[TIME_OFFSET] = camera.time ?? 0;
-  return data;
+  return packCameraUniform(
+    data,
+    viewProjMatrix(_uniform_viewProj, params),
+    invViewProj(_uniform_inverse, params),
+    eyePosition(_uniform_eye, params),
+    params.near,
+    camera.width,
+    camera.height,
+    camera.time ?? 0,
+  );
 }

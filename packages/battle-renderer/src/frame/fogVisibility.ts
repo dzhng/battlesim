@@ -545,7 +545,7 @@ export interface FogProbeInput {
 }
 
 /** An eye record as the lookup reads it: already built, in map slot `slot`. */
-export interface FogEyeRow {
+interface FogEyeRow {
   position: readonly [number, number, number];
   reach: number;
   forward: number;

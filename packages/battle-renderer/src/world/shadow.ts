@@ -7,7 +7,7 @@ import { tgpu, d, type TgpuCommandEncoder, type TgpuRenderPass } from "typegpu";
 import { shadowPcfWgsl, shadowVisibilityWgsl, sunShadowSampleWgsl } from "../shaders/shadow";
 import { BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
 import { Camera, typegpuCameraLayout } from "./camera";
-import { NativeShadowFrame, type NativeShadowData } from "../shadowData";
+import { ShadowFrame, type ShadowFrameData } from "../shadowData";
 import { CSM_CASCADES } from "../light/shadowPolicy";
 import type { LightPresentation } from "../light/sceneLight";
 
@@ -127,7 +127,7 @@ export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentati
       addressModeU: "clamp-to-edge",
       addressModeV: "clamp-to-edge",
     });
-    const frameData = new NativeShadowFrame(light, (data) => {
+    const frameData = new ShadowFrame(light, (data) => {
       // Every distinct caster camera and the shared block are written once
       // their inputs change; a cold frame publishes a legal empty block, so the
       // receiver never samples uninitialized uniform memory.
@@ -141,9 +141,9 @@ export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentati
       comparison,
       update(camera: Camera3DParams, receiver: Vec2) {
         live();
-        return frameData.update(camera, receiver);
+        frameData.update(camera, receiver);
       },
-      get data(): NativeShadowData {
+      get data(): ShadowFrameData {
         return frameData.data;
       },
       /** Encodes one clear-to-0 depth pass per ACTIVE cascade, each pass

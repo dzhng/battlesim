@@ -106,25 +106,13 @@ export interface CascadeFit {
   index: number;
   /** Normalised receiver-depth interval `[previous break, this break]`. */
   interval: readonly [number, number];
-  /** The eight world-space corners this slice was fitted to. */
-  corners: readonly Vec3[];
-  /** Square light-plane extent, world units across. */
-  extent: number;
   worldUnitsPerTexel: number;
   position: Vec3;
-  target: Vec3;
-  up: Vec3;
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
   near: number;
-  far: number;
   /** Normalised depth bias, scaled by the cascade index as the source scales
    *  its cloned per-cascade shadow. */
   depthBias: number;
   view: Mat4;
-  projection: Mat4;
   viewProjection: Mat4;
 }
 
@@ -147,7 +135,7 @@ export interface CascadeFitInput {
   receiverFar?: number;
 }
 
-/** Every active cascade's slice, extent, pose and matrices for ONE frame. Pure:
+/** Every active cascade's slice, pose and matrices for ONE frame. Pure:
  *  the caller supplies the camera it is about to render with, so a fit and the
  *  culling it feeds always describe the same frame. */
 export function cascadeFits(input: CascadeFitInput): CascadeFrame {
@@ -229,21 +217,11 @@ export function cascadeFits(input: CascadeFitInput): CascadeFrame {
     cascades.push({
       index: i,
       interval: [i === 0 ? 0 : breaks[i - 1], breaks[i]],
-      corners,
-      extent,
       worldUnitsPerTexel,
       position,
-      target,
-      up: basis.up,
-      left: -half,
-      right: half,
-      top: half,
-      bottom: -half,
       near: SHADOW_CAM_NEAR,
-      far: lightFar,
       depthBias: settings.depth_bias * (i + 1),
       view: cascadeView,
-      projection: cascadeProjection,
       viewProjection: mat4.multiply(createGpuMat4(), cascadeProjection, cascadeView),
     });
   }

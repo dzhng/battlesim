@@ -3,7 +3,7 @@
 // no crowd culling views, N cascades, splits over the receiver range, and a
 // normal bias and PCF radius that scale with each cascade's texel, all from
 // `presentation.light.cascades`.
-import { mat4, vec3, type Mat4, type Vec2, type Vec3 } from "math";
+import { mat4, type Mat4, type Vec2, type Vec3 } from "math";
 import { CSM_CASCADES } from "./light/shadowPolicy";
 import { cascadeFits, type CascadeFrame } from "./light/cascadePolicy";
 import {
@@ -16,19 +16,20 @@ import {
   FINITE_CAMERA_FAR_FALLBACK,
   type Camera3DParams,
 } from "@packages/renderer-core/src/camera3d";
-import { CAMERA_UNIFORM_FLOATS } from "@packages/renderer-core/src/cameraUniform";
+import {
+  CAMERA_UNIFORM_FLOATS,
+  packCameraUniform,
+} from "@packages/renderer-core/src/cameraUniform";
 import { sunDirection, type CascadeSettings, type LightPresentation } from "./light/sceneLight";
 
-export interface NativeShadowCascade {
+export interface ShadowCascade {
   index: number;
   /** The world camera uniform, posed as this cascade's light. */
   camera: Float32Array<ArrayBuffer>;
-  extent: number;
-  worldUnitsPerTexel: number;
 }
 
-export interface NativeShadowData {
-  cascades: readonly NativeShadowCascade[];
+export interface ShadowFrameData {
+  cascades: readonly ShadowCascade[];
   /** The receiver block (`SunShadow`). */
   receiver: Float32Array<ArrayBuffer>;
 }
@@ -46,12 +47,7 @@ function casterCamera(
   const inverse = mat4.invert(_caster_inverse, viewProjection);
   if (!inverse) throw Error("Singular shadow projection");
   const camera = new Float32Array(CAMERA_UNIFORM_FLOATS);
-  camera.set(viewProjection);
-  camera.set(inverse, 16);
-  vec3.toBuffer(camera, position, 32);
-  camera[35] = near;
-  camera[36] = camera[37] = mapSize;
-  return camera;
+  return packCameraUniform(camera, viewProjection, inverse, position, near, mapSize, mapSize, 0);
 }
 
 function writeRecord(
@@ -119,7 +115,7 @@ export function cascadeFrameFit(
 }
 
 /** The fitted frame's caster cameras and receiver block. */
-function cascadeFrameData(settings: CascadeSettings, frame: CascadeFrame): NativeShadowData {
+function cascadeFrameData(settings: CascadeSettings, frame: CascadeFrame): ShadowFrameData {
   const block = new Float32Array(SUN_SHADOW_BLOCK_FLOATS);
   const cascades = frame.cascades.map((fit) => {
     const radius = cascadePcfRadius(settings, fit.worldUnitsPerTexel);
@@ -135,8 +131,6 @@ function cascadeFrameData(settings: CascadeSettings, frame: CascadeFrame): Nativ
     return {
       index: fit.index,
       camera: casterCamera(fit.viewProjection, fit.position, fit.near, frame.mapSize),
-      extent: fit.extent,
-      worldUnitsPerTexel: fit.worldUnitsPerTexel,
     };
   });
   for (let i = cascades.length; i < CSM_CASCADES; i++) writeInactiveRecord(block, i);
@@ -144,41 +138,40 @@ function cascadeFrameData(settings: CascadeSettings, frame: CascadeFrame): Nativ
   return { cascades, receiver: block };
 }
 
-function coldFrameData(settings: CascadeSettings): NativeShadowData {
+function coldFrameData(settings: CascadeSettings): ShadowFrameData {
   const receiver = new Float32Array(SUN_SHADOW_BLOCK_FLOATS);
   for (let i = 0; i < CSM_CASCADES; i++) writeInactiveRecord(receiver, i);
   receiver.set([settings.max_far_m, 0, 0, 0], SUN_SHADOW_CONTROL_OFFSET);
   return { cascades: [], receiver };
 }
 
-export class NativeShadowFrame {
+export class ShadowFrame {
   private readonly sun: Vec3;
-  private current: NativeShadowData;
+  private current: ShadowFrameData;
 
   constructor(
     private readonly light: LightPresentation,
-    private readonly upload: (data: NativeShadowData) => void,
+    private readonly upload: (data: ShadowFrameData) => void,
   ) {
     this.sun = sunDirection(light);
     this.current = coldFrameData(light.cascades);
     this.upload(this.current);
   }
 
-  get data(): NativeShadowData {
+  get data(): ShadowFrameData {
     return this.current;
   }
 
-  update(camera: Camera3DParams, receiver: Vec2): NativeShadowData {
+  update(camera: Camera3DParams, receiver: Vec2): void {
     const settings = this.light.cascades;
     const next = cascadeFrameData(settings, cascadeFrameFit(settings, camera, this.sun, receiver));
-    if (sameCascadeFrame(this.current, next)) return this.current;
+    if (sameCascadeFrame(this.current, next)) return;
     this.current = next;
     this.upload(next);
-    return next;
   }
 }
 
-function sameCascadeFrame(a: NativeShadowData, b: NativeShadowData): boolean {
+function sameCascadeFrame(a: ShadowFrameData, b: ShadowFrameData): boolean {
   if (a.cascades.length !== b.cascades.length) return false;
   for (let i = 0; i < SUN_SHADOW_BLOCK_FLOATS; i++)
     if (a.receiver[i] !== b.receiver[i]) return false;

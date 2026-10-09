@@ -6,9 +6,10 @@ Dependencies remain owned by [the web application](../../web/README.md#build-and
 
 [Camera projection](src/camera3d.ts) and [uniform packing](src/cameraUniform.ts)
 define one live camera. Resize changes its aspect through the live viewport;
-picking and drawing must use that same projection. Ground focus and detail scale
-are presentation inputs, not alternative projection parameters. CPU matrices stay
-in the GPU's precision so a clicked shape agrees with its drawn location.
+picking and drawing must use that same projection. Every camera a shader binds
+(the eye's, a shadow cascade's light, an impostor bake's view) is packed by that
+one writer. CPU matrices stay in the GPU's precision so a clicked shape agrees
+with its drawn location.
 
 [Camera control](src/cameraController.ts) describes view movement. [Clearance](src/cameraClearance.ts)
 uses caller-supplied authoritative geometry; model silhouettes and depth pixels
