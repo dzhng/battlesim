@@ -78,10 +78,7 @@ export async function createEnvironmentFrame(
       return {
         receiverRange: vec2.clone(range),
         castLights: castCount,
-        cascades: shadow.data.cascades.map((c) => ({
-          extent: c.extent,
-          texel: c.worldUnitsPerTexel,
-        })),
+        cascades: shadow.data.cascades.length,
       };
     },
   };

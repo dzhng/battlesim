@@ -501,8 +501,8 @@ const pixelAt = (png, p) => {
   return [png.data[i], png.data[i + 1], png.data[i + 2]];
 };
 
-/** Fog runs on past the playable area, computed as inside; a dim white
- *  border marks the area. Blue's start is near the map's west edge. */
+/** Past the playable area the ground stays fogged; a dim white border
+ *  marks the area. Blue's start is near the map's west edge. */
 export async function edgeTour(ctx) {
   const page = await openBattle(ctx, { viewport: VIEWPORT });
   await page.addStyleTag({

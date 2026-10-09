@@ -54,7 +54,7 @@ export function PassInspector({
       </div>
       <div>
         Shadow receivers {shadow.receiverRange.map((m) => m.toFixed(0)).join("–")} m ·{" "}
-        {shadow.cascades.length} cascades
+        {shadow.cascades} cascades
       </div>
     </aside>
   );
