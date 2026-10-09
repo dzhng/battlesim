@@ -712,12 +712,17 @@ func _show_scene() -> void:
 func _update_authored_culling() -> void:
 	var active_map := String(scenes[scene_index].map)
 	var center := camera.position
+	var target := Vector3.ZERO
+	var captured := _captured_pose()
+	if captured.has("target"):
+		target = Vector3(float(captured.target[0]), 0.0, float(captured.target[1]))
+	var radius := maxf(authored_cull_radius, camera.position.distance_to(target) * 20.0)
 	for map_name in authored_scene_nodes:
 		var holder: Node3D = authored_scene_nodes[map_name]
 		var active: bool = map_name == active_map
 		for child in holder.get_children():
 			if child is Node3D:
-				child.visible = active and child.position.distance_to(center) <= authored_cull_radius
+				child.visible = active and child.position.distance_to(center) <= radius
 
 func _scene_pose() -> void:
 	var scene: Dictionary = scenes[scene_index]
