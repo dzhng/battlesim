@@ -19,6 +19,8 @@ var started := false
 var source_path := ""
 var capture_result: Dictionary = {"valid": false, "comparison_ready": false, "comparison_blocker": "no presentation capture supplied"}
 var authored_asset_loaded := false
+var cut_dir := ""
+var cuts_saved := 0
 
 func _ready() -> void:
 	var configured := OS.get_environment("GODOT_REEL_SOURCE")
@@ -35,6 +37,7 @@ func _ready() -> void:
 		return
 	scenes = parsed.scenes
 	_load_presentation_capture()
+	cut_dir = OS.get_environment("GODOT_REEL_CUTS")
 	_build_world()
 	started = true
 
@@ -101,6 +104,8 @@ func _process(delta: float) -> void:
 		scale = 1.0
 	var advance := delta * scale
 	_scene_pose()
+	if not cut_dir.is_empty() and shot_elapsed <= advance:
+		call_deferred("_save_cut")
 	elapsed += advance
 	scene_elapsed += advance
 	shot_elapsed += advance
@@ -166,6 +171,18 @@ func _apply_pose(pose: Dictionary) -> void:
 	camera.position = point + Vector3(distance * cp * cos(yaw), distance * sin(pitch), distance * cp * sin(yaw))
 	camera.look_at(point, Vector3.UP)
 
+func _save_cut() -> void:
+	DirAccess.make_dir_recursive_absolute(cut_dir)
+	var texture := get_viewport().get_texture()
+	if texture == null:
+		return
+	var image := texture.get_image()
+	if image == null:
+		return
+	var path := cut_dir.path_join("scene-%02d-shot-%02d.png" % [scene_index, shot_index])
+	if image.save_png(path) == OK:
+		cuts_saved += 1
+
 func _write_report() -> void:
 	if intervals.is_empty():
 		return
@@ -184,6 +201,7 @@ func _write_report() -> void:
 		"comparison_ready": false,
 		"comparison_blocker": "authored map assets are not loaded" if not authored_asset_loaded else "synthetic scene has no authored map publication",
 		"authored_asset_loaded": authored_asset_loaded,
+		"cuts_saved": cuts_saved,
 		"capture_valid": capture_result.valid,
 		"capture_comparison_ready": capture_result.comparison_ready,
 		"capture_consumed": capture_result.valid and capture_result.sample_count > 0,
