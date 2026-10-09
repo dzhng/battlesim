@@ -99,3 +99,5 @@
 
 - **The native composition pass consumes saved-map exports before authored materials.** The Godot probe reads map size, surface strokes, building transforms and prop extents from the authoritative `map.json` exports, draws bounded primitive geometry, and records the limits. This keeps placement and coordinate ownership in map generation while making missing authored assets visible; it does not claim material or visual parity.
 - **Graphics-test evidence is downloadable from the results page.** The browser report now exposes the frozen workload fingerprint, scene identity, host viewport and adapter labels, and the Settings result offers the complete JSON as a download. This makes a finished run portable for native comparison instead of leaving it only in in-memory `window.__graphicsTest` state.
+
+- **Fog payloads are consumed at the native boundary before rendering.** The decoder validates the published dimensions, full/delta payload length and carrier location for each sampled publication, then leaves visibility semantics in the Rust-owned bitfield. Rendering still needs a display-facing fog pass; native code does not infer visibility from map geometry.

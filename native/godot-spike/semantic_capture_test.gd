@@ -18,15 +18,18 @@ func _init() -> void:
 	var baselines: Array = []
 	var unit_count := 0
 	var valid_publications := 0
+	var fog_publications := 0
 	for sample in decoded.capture.samples.slice(0, mini(8, decoded.capture.samples.size())):
 		var result := CaptureDecoder.decode_publication(decoded, sample.publication, baselines)
 		if not result.valid:
 			push_error("semantic publication decode failed")
 			quit(2)
 		baselines = result.baselines
+		if result.has("fog") and int(result.fog.words) > 0:
+			fog_publications += 1
 		unit_count += result.units.size()
 		valid_publications += 1
-	print(JSON.stringify({"candidate":"battle-presentation-semantic-decoder","valid":true,"publications":valid_publications,"units":unit_count}))
+	print(JSON.stringify({"candidate":"battle-presentation-semantic-decoder","valid":true,"publications":valid_publications,"units":unit_count,"fog_publications":fog_publications}))
 	quit(0)
 func mini(a: int, b: int) -> int:
 	return a if a < b else b

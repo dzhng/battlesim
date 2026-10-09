@@ -34,6 +34,7 @@ var proxy_field_used := false
 var startup_started_usec := 0
 var startup_ms := 0.0
 var semantic_decode_ms := 0.0
+var semantic_fog_publications := 0
 var semantic_results: Dictionary = {}
 var unit_nodes: Array[Node3D] = []
 
@@ -115,7 +116,9 @@ func _decode_semantic_captures() -> void:
 			if not decoded.valid:
 				continue
 			baselines = decoded.baselines
-			frames.append({"tick": sample.tick, "units": decoded.units})
+			if decoded.has("fog"):
+				semantic_fog_publications += 1
+			frames.append({"tick": sample.tick, "units": decoded.units, "fog": decoded.get("fog", {})})
 		semantic_results[scene_name] = frames
 	semantic_decode_ms = float(Time.get_ticks_usec() - started_usec) / 1000.0
 
@@ -489,6 +492,7 @@ func _write_report() -> void:
 		"capture_publication_words": capture_word_count,
 		"semantic_publications": semantic_publications,
 		"semantic_unit_samples": semantic_unit_samples,
+		"semantic_fog_publications": semantic_fog_publications,
 		"capture_blocker": "" if capture_results.size() == scenes.size() else "one or more scene captures are missing",
 		"source": source_path,
 		"authored_scene": OS.get_environment("GODOT_AUTHORED_SCENE"),

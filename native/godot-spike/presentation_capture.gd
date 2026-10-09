@@ -170,6 +170,19 @@ static func decode_publication(capture_result: Dictionary, words: Array, baselin
 			return {"valid": false, "units": [], "baselines": baselines}
 		payloads.append(values)
 		next_baselines[group_index] = values
+	var header_values: Dictionary = {}
+	for i in header.size():
+		header_values[String(header[i])] = _carrier_float(words[i])
+	var fog_count := int(header_values.get(String(layout.fog.count), 0.0))
+	var fog_full := int(header_values.get("fogFull", 0.0)) == 1
+	var fog_nx := int(header_values.get("fogNx", 0.0))
+	var fog_ny := int(header_values.get("fogNy", 0.0))
+	var fog_words := int(ceil(float(fog_nx * fog_ny) / 32.0))
+	var expected_fog_words := fog_words * 2 if fog_full else fog_count
+	if fog_count < 0 or cursor + fog_count > words.size() or (fog_full and fog_count != expected_fog_words):
+		return {"valid": false, "units": [], "baselines": baselines}
+	cursor += fog_count
+	var fog := {"full": fog_full, "nx": fog_nx, "ny": fog_ny, "cellM": float(header_values.get("fogCellM", 0.0)), "words": fog_words, "payloadWords": fog_count}
 	var own: Array = []
 	if payloads.size() > 0:
 		var group: Dictionary = layout.groups[0]
@@ -190,7 +203,7 @@ static func decode_publication(capture_result: Dictionary, words: Array, baselin
 			var id := _carrier_float(own_values[base + fields.find("id")])
 			var kind_index := int(_carrier_float(own_values[base + fields.find("kind")]))
 			own.append({"id": id, "kind": kind_index, "position": [x, y, z], "yaw": yaw})
-	return {"valid": true, "units": own, "baselines": next_baselines}
+	return {"valid": true, "units": own, "baselines": next_baselines, "fog": fog}
 
 static func mini(a: int, b: int) -> int:
 	return a if a < b else b
