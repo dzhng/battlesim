@@ -42,6 +42,7 @@ var semantic_results: Dictionary = {}
 var unit_nodes: Array[Node3D] = []
 var fog_rendered_cells: Dictionary = {}
 var fog_nodes: Dictionary = {}
+var fog_cell_nodes: Dictionary = {}
 
 func _ready() -> void:
 	startup_started_usec = Time.get_ticks_usec()
@@ -304,19 +305,32 @@ func _build_fog_layers() -> void:
 		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		mesh.material = material
 		var count := 0
+		var cells: Array[Node3D] = []
 		for y in ny:
 			for x in nx:
 				if count >= 4096:
 					break
 				var index := y * nx + x
-				if index / 32 >= bits.size() or (int(bits[index / 32]) & (1 << (index % 32))) != 0:
-					continue
 				var cell := MeshInstance3D.new()
 				cell.mesh = mesh
 				cell.position = Vector3((float(x) + 0.5) * cell_m, 0.02, (float(y) + 0.5) * cell_m)
+				cell.visible = _fog_cell_hidden(bits, index)
 				holder.add_child(cell)
+				cells.append(cell)
 				count += 1
 		fog_rendered_cells[scene_name] = count
+		fog_cell_nodes[scene_name] = cells
+
+func _fog_cell_hidden(bits: Array, index: int) -> bool:
+	var word_index := index / 32
+	return word_index >= bits.size() or (int(bits[word_index]) & (1 << (index % 32))) == 0
+
+func _update_fog_layer(scene_name: String, fog: Dictionary) -> void:
+	var cells: Array = fog_cell_nodes.get(scene_name, [])
+	var bits: Array = fog.get("bits", [])
+	for index in mini(cells.size(), bits.size() * 32):
+		var cell: Node3D = cells[index]
+		cell.visible = _fog_cell_hidden(bits, index)
 
 func _build_authored_maps(authored: PackedScene) -> bool:
 	var directory := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
@@ -417,6 +431,7 @@ func _update_observed_units() -> void:
 			break
 		chosen = frame
 	var units: Array = chosen.units
+	_update_fog_layer(scene.map, chosen.get("fog", {}))
 	while unit_nodes.size() < units.size():
 		var mesh := MeshInstance3D.new()
 		var capsule := CapsuleMesh.new()
