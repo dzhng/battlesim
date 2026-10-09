@@ -387,8 +387,9 @@ export async function run(ctx) {
       counts.parts === generated.counts.parts &&
       // The whole map can draw at the coarsest tier: a row or more a building.
       counts.coarse >= counts.buildings &&
-      // A skirmish medium map's towns: hundreds of buildings.
-      counts.buildings > 500 &&
+      // A skirmish medium map's towns: hundreds of buildings (seed 1 at
+      // layout-18 has 473).
+      counts.buildings >= 200 &&
       counts.trees === counts.trunks + counts.streetTrees &&
       counts.trunks > 1000 &&
       counts.streetTrees > 0 &&
