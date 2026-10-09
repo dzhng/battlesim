@@ -12,7 +12,7 @@ Derive FPS from displayed-frame intervals: mean from total elapsed time, 1% low 
 
 ## Runnable artifact
 
-On Mac, a production browser build exposes Settings → Graphics Test at `/graphics-test`. One action runs the complete menu reel and ends on a chart and summary. An ignored-evidence manifest and JSON report record build, asset, browser, GPU, resolution, quality, workload identity and samples. The existing synthetic benchmark still runs through its existing route and report.
+On Mac, the browser client exposes Settings → Graphics Test at `/graphics-test`. One action runs the complete menu reel and ends on a chart and summary. An ignored-evidence manifest and JSON report record build, asset, browser, GPU, resolution, quality, workload identity and samples. The route smoke is fast and separate from the foreground production performance run. The existing synthetic benchmark still runs through its existing route and report.
 
 ## Verification
 
