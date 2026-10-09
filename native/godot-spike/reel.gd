@@ -30,6 +30,8 @@ var authored_scene_by_family: Dictionary = {}
 var cut_dir := ""
 var cuts_saved := 0
 var saved_cut_paths: Dictionary = {}
+var pending_cut_saves := 0
+var reel_finished := false
 var capture_word_count := 0
 var capture_layout_valid := false
 var map_geometry_nodes: Dictionary = {}
@@ -434,7 +436,8 @@ func _process(delta: float) -> void:
 	_scene_pose()
 	_update_observed_units()
 	if not cut_dir.is_empty() and shot_elapsed <= advance:
-		call_deferred("_save_cut", scene_index, shot_index)
+		pending_cut_saves += 1
+		call_deferred("_save_cut_after_frame", scene_index, shot_index)
 	elapsed += advance
 	scene_elapsed += advance
 	shot_elapsed += advance
@@ -449,7 +452,8 @@ func _process(delta: float) -> void:
 			scene_index += 1
 			if scene_index >= scenes.size():
 				started = false
-				call_deferred("_finish_reel")
+				reel_finished = true
+				call_deferred("_maybe_finish_reel")
 			else:
 				_show_scene()
 
@@ -541,9 +545,17 @@ func _apply_pose(pose: Dictionary) -> void:
 	camera.position = point + Vector3(distance * cp * cos(yaw), distance * sin(pitch), distance * cp * sin(yaw))
 	camera.look_at(point, Vector3.UP)
 
-func _finish_reel() -> void:
+func _maybe_finish_reel() -> void:
+	if not reel_finished or pending_cut_saves > 0:
+		return
 	_write_report()
 	get_tree().quit()
+
+func _save_cut_after_frame(scene_to_save: int, shot_to_save: int) -> void:
+	await RenderingServer.frame_post_draw
+	_save_cut(scene_to_save, shot_to_save)
+	pending_cut_saves -= 1
+	call_deferred("_maybe_finish_reel")
 
 func _save_cut(scene_to_save: int, shot_to_save: int) -> void:
 	DirAccess.make_dir_recursive_absolute(cut_dir)
