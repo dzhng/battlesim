@@ -12,7 +12,7 @@ Match resolution, quality intent, warm-up, scene order, camera shots and present
 
 ## Runnable artifact
 
-A Mac Godot project runs the entire reel, saves a machine-readable report and captures named cuts. The report identifies missing passes/assets/UI/audio instead of silently comparing a simpler image with the complete browser renderer. Godot remains labelled experimental.
+The current `native/godot-spike` project is only the small instanced reference scene. Slice 03 must extend or replace it with the full reel using the selected binding; it must save a machine-readable report and captures named cuts. The report identifies missing passes/assets/UI/audio instead of silently comparing a simpler image with the complete browser renderer. Godot remains labelled experimental.
 
 ## Verification
 
