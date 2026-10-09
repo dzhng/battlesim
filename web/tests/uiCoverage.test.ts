@@ -4,7 +4,7 @@
 // it against its baselines (`web/scenes/_baseline.mjs`), or is named below
 // with why it cannot be. A new component fails here until it is in one.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { dirname, join } from "node:path";
 import { expect, test } from "vitest";
 
 const ROOT = join(import.meta.dirname, "../..");
@@ -88,8 +88,7 @@ test("every component the player sees is drawn by a page with approved pictures"
       // A component drawn in its own file (ArmyDeck draws its cards) counts
       // when that file is itself drawn through a pinned page.
       const drawnAtHome = sources.has(join(ROOT, path)) && new RegExp(`<${name}[\\s/>]`).test(text);
-      if (!drawn && !drawnAtHome && !(name in UNPINNED))
-        unpinned.push(`${name} (${relative(ROOT, join(ROOT, path))})`);
+      if (!drawn && !drawnAtHome && !(name in UNPINNED)) unpinned.push(`${name} (${path})`);
     }
   }
   expect(unpinned).toEqual([]);

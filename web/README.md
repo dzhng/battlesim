@@ -66,7 +66,9 @@ a screenshot proves appearance only after visual review. Evidence goes into igno
 
 Interface appearance is a regression gate. A scene can match a capture against
 an approved picture ([baselines](scenes/_baseline.mjs), stored in LFS beside the
-scenes); a mismatch fails and leaves the capture and a diff in its evidence. A
+scenes); a mismatch fails and leaves the capture and a diff in its evidence. The
+scenes that have pictures are the visual suite, run together by the runner's
+`--visual`; a worktree fetches the pictures from LFS before running it. A
 picture is approved by a person who has looked at it, by blessing that scene's
 captures and reviewing them in the diff, never to make a red check pass. Every
 component the player sees is drawn by a page whose scene pins it, or is named

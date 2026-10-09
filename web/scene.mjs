@@ -3,6 +3,7 @@
 //   bun run --cwd web scene -- <fixture-id>...   run those fixtures' scenes
 //   bun run --cwd web scene                      run every registered scene
 //   bun run --cwd web scene -- --list            list fixture ids
+//   bun run --cwd web scene -- --visual          run every scene with approved pictures
 //
 // The registry is apps/battle-lab/src/fixtures.json; every fixture id must have
 // exactly one scene at web/scenes/<id>.mjs and vice versa. Without VERIFY_URL
@@ -17,7 +18,7 @@
 //   UPDATE_BASELINES=panels bun run --cwd web scene -- panels
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { baselines } from "./scenes/_baseline.mjs";
+import { BASELINES, baselines } from "./scenes/_baseline.mjs";
 
 const HERE = new URL(".", import.meta.url);
 const REGISTRY = new URL("../apps/battle-lab/src/fixtures.json", HERE);
@@ -49,13 +50,16 @@ export function guardMeasures(max) {
 export function parseArgs(argv) {
   const ids = [];
   let list = false;
+  let visual = false;
   for (const arg of argv) {
     if (arg === "--") continue;
     if (arg === "--list") list = true;
+    else if (arg === "--visual") visual = true;
     else if (arg.startsWith("-")) throw new Error(`unknown flag ${arg}`);
     else ids.push(arg);
   }
-  return { ids, list };
+  if (visual && ids.length) throw new Error("--visual selects its own fixtures; name none");
+  return { ids, list, visual };
 }
 
 export async function loadRegistry() {
@@ -71,6 +75,13 @@ export async function loadRegistry() {
     );
   }
   return fixtures;
+}
+
+/** The fixtures whose scenes have approved pictures: the visual regression
+ *  suite, `--visual`. */
+export async function pinnedFixtures(fixtures) {
+  const pinned = new Set(await readdir(BASELINES).catch(() => []));
+  return fixtures.filter((f) => pinned.has(f.id));
 }
 
 export function selectFixtures(fixtures, ids) {
@@ -117,10 +128,7 @@ export async function startServer(production = false) {
       preview: { port: 0, host: "127.0.0.1" },
     });
     const address = server.httpServer.address();
-    return {
-      url: `http://127.0.0.1:${address.port}`,
-      close: () => server.close(),
-    };
+    return { url: `http://127.0.0.1:${address.port}`, close: () => server.close() };
   }
   const { createServer } = await import("vite");
   const server = await createServer({
@@ -131,10 +139,7 @@ export async function startServer(production = false) {
   });
   await server.listen();
   const address = server.httpServer.address();
-  return {
-    url: `http://127.0.0.1:${address.port}`,
-    close: () => server.close(),
-  };
+  return { url: `http://127.0.0.1:${address.port}`, close: () => server.close() };
 }
 
 export async function run(fixtures) {
@@ -178,10 +183,7 @@ export async function run(fixtures) {
           if (!ok) failures.push(`${fixture.id}: ${name}`);
         },
         async newPage({ viewport = { width: 1280, height: 800 }, allowErrors = false } = {}) {
-          const context = await browser.newContext({
-            viewport,
-            deviceScaleFactor: 1,
-          });
+          const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
           const page = await context.newPage();
           await page.addInitScript(guardMeasures, MEASURE_ENTRIES_MAX);
           page.on("crash", () => pageErrors.push(`${fixture.id}: the page crashed`));
@@ -207,15 +209,10 @@ export async function run(fixtures) {
           );
           let error = await page.evaluate(() => window.__lab?.error);
           if (!error && (await page.getByTestId("error").isVisible())) {
-            const details = page.getByRole("button", {
-              name: "Details",
-              exact: true,
-            });
+            const details = page.getByRole("button", { name: "Details", exact: true });
             if (await details.isVisible()) await details.click();
             error = await page.getByTestId("error").textContent();
-            await page.screenshot({
-              path: ctx.evidencePath("startup-refusal.png"),
-            });
+            await page.screenshot({ path: ctx.evidencePath("startup-refusal.png") });
           }
           if (error) throw new Error(`lab failed: ${error}`);
           await page.evaluate(() => window.__lab.frame());
@@ -271,7 +268,7 @@ export async function main(argv = process.argv.slice(2)) {
     for (const f of fixtures) console.log(`${f.id}\t${f.route}\t${f.describe}`);
     return 0;
   }
-  return run(selectFixtures(fixtures, args.ids));
+  return run(args.visual ? await pinnedFixtures(fixtures) : selectFixtures(fixtures, args.ids));
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {

@@ -230,10 +230,7 @@ export async function run(ctx) {
   ctx.check(
     "every panel is titled with its unit's name, first",
     shown.length > 60 && untitled.length === 0,
-    JSON.stringify({
-      panels: shown.length,
-      untitled: untitled.map((p) => p.id),
-    }),
+    JSON.stringify({ panels: shown.length, untitled: untitled.map((p) => p.id) }),
   );
   const order = shown.filter((p) => p.sections.join() !== [...p.sections].sort().reverse().join());
   ctx.check(

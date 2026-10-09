@@ -31,14 +31,14 @@ const MAX_DIFF_SHARE = 0.0005;
 const LFS_POINTER = "version https://git-lfs";
 
 /** Whether this run blesses `fixtureId`'s captures instead of comparing. */
-export function blessing(fixtureId, env = process.env.UPDATE_BASELINES) {
+function blessing(fixtureId, env = process.env.UPDATE_BASELINES) {
   if (!env) return false;
   if (env === "1" || env === "true") return true;
   return env.split(",").includes(fixtureId);
 }
 
 /** Compare two decoded PNGs: the differing pixels, and a diff picture. */
-export function comparePngs(expected, actual) {
+function comparePngs(expected, actual) {
   if (expected.width !== actual.width || expected.height !== actual.height)
     return {
       sizeMismatch: true,
@@ -131,7 +131,7 @@ export function baselines(
         .filter((f) => f.endsWith(".png"))
         .map((f) => f.slice(0, -4));
       const stale = stored.filter((name) => !captured.has(name));
-      if (stored.length || stale.length)
+      if (stored.length)
         check(
           "every approved baseline is still captured",
           stale.length === 0,

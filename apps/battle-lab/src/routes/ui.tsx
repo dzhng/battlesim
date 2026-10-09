@@ -214,9 +214,9 @@ function Refusal() {
       {
         seq: 1,
         label: "Garrison",
-        order: {},
+        order: { kind: "garrison", units: [1], building: 3 },
         ack: { seq: 1, applied_tick: 0, error: { reason: "building_occupied" } },
-      } as unknown as AckEntry,
+      },
     ]);
   }, []);
   return (

@@ -21,8 +21,7 @@ export function spills(page, selector) {
       for (const child of panel.querySelectorAll("*")) {
         const c = child.getBoundingClientRect();
         if (c.width === 0 || c.height === 0) continue;
-        const style = getComputedStyle(child);
-        if (style.visibility === "hidden" || style.position === "fixed") continue;
+        if (getComputedStyle(child).visibility === "hidden") continue;
         // A panel within the panel (a popover) is judged as a panel itself.
         if (child.matches(selector)) continue;
         let skip = false;
