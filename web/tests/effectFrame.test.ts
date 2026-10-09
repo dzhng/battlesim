@@ -826,12 +826,14 @@ test("a round's blast scale shrinks its burst's fireball, light and dirt from it
     f.note(pub(2, { blasts: [{ point: [0, 0, 0], radius: 6, kind }] }));
     return {
       fire: Math.max(...flames(drawn(f, 2 * DT + 0.05)).map((i) => i.a[3])),
-      light: lightsAt(f, 2 * DT + 0.01)[0].radius,
+      light: lightsAt(f, 2 * DT + 0.01)[0],
     };
   };
   const [small, plain] = [burst("small"), burst("grenade")];
   expect(small.fire).toBeLessThan(plain.fire);
-  expect(small.light).toBeLessThan(plain.light);
+  // A smaller pool, and dimmer.
+  expect(small.light.radius).toBeLessThan(plain.light.radius);
+  expect(Math.max(...small.light.rgb)).toBeLessThan(Math.max(...plain.light.rgb));
 });
 
 test("a missile leaves a smoke trail along its flight that lingers after it", () => {

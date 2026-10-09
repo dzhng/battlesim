@@ -862,9 +862,10 @@ function offerBurningOut(
   at: Vec3,
   reach: number,
   cause: string,
+  strength = 1,
 ) {
   const f = age / c.duration_s;
-  const k = c.intensity * (1 - f * f);
+  const k = c.intensity * strength * (1 - f * f);
   offerCastLight(batch.lights, at[0], at[1], at[2], c.radius_m * reach, c.color, k, cause);
 }
 
@@ -1812,7 +1813,9 @@ export class EffectFrame {
     const c = s.cast;
     if (age < c.duration_s) {
       const a = vec3.set(_build_b, e.p[0], e.p[1], e.p[2] + e.size * 0.5);
-      offerBurningOut(batch, c, age, a, Math.sqrt(e.size / s.reference_size_m), "blast");
+      // A burst below the style's lights a smaller pool, and more dimly.
+      const share = e.size / s.reference_size_m;
+      offerBurningOut(batch, c, age, a, Math.sqrt(share), "blast", Math.min(1, share));
     }
     // The glow in the air round the burst, fading as the fire cools.
     if (heat > 0) {
