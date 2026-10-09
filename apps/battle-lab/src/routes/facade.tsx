@@ -260,7 +260,6 @@ export default function Facade() {
     () => ({
       surfaceZ: () => 0,
       stations: () => Object.keys(STATIONS),
-      distances: () => DISTANCES,
       /** Cut the camera to a station at a named distance, as the rig places it. */
       stand,
       /** Where each module stands. */

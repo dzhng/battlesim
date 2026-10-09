@@ -90,6 +90,8 @@ and balance measurements.
 [The task runner](package.json) defines `check` (format, lint, types and Rust/web
 tests) and `verify` (browser scenes). Both run once at a spec's closeout; iteration
 uses the narrowest check the change can move, as [AGENTS.md](AGENTS.md) requires.
+For an interface change that check is `visual`: the scenes whose captures must
+match approved pictures.
 
 [Simulation checks](crates/sim/README.md#checks) explain deterministic outcomes and
 native tests. [Browser checks](web/README.md#checks-and-evidence) explain test and

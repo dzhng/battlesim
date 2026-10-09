@@ -1126,7 +1126,7 @@ export function LabViewport({
           const target = e.target;
           if (
             target !== canvas &&
-            !(target instanceof Element && target.closest(".ro-layer .ro-unit, .hud-card"))
+            !(target instanceof Element && target.closest(".ro-layer .ro-unit"))
           )
             return;
           e.preventDefault();
@@ -1224,23 +1224,6 @@ export function LabViewport({
           frame={inspecting}
           setView={(view) => void window.__lab?.setFrameView?.(view)}
         />
-      )}
-      {error && (
-        <div
-          role="alert"
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "grid",
-            placeItems: "center",
-            background: "#15171c",
-          }}
-        >
-          <div style={{ maxWidth: 520, padding: 24 }}>
-            <strong>WebGPU unavailable.</strong>
-            <p>{error}</p>
-          </div>
-        </div>
       )}
     </div>
   );

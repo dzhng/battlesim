@@ -3,6 +3,7 @@ import { cleanup, screen } from "@testing-library/react";
 import { renderInRouter as render } from "./support/router";
 import { afterEach, expect, test } from "vitest";
 import BenchmarkPage from "@apps/battle-lab/src/routes/benchmark";
+import { CITY_CONTACT } from "@web/battle/benchmark/presets";
 
 afterEach(() => {
   cleanup();
@@ -13,7 +14,8 @@ test("the advertised city-contact address and the plain benchmark both select th
   for (const address of ["/benchmark?preset=city-contact", "/benchmark"]) {
     window.history.replaceState(null, "", address);
     const page = render(<BenchmarkPage />);
-    expect(screen.getByText(/city-contact v5/).textContent, address).toContain("city-contact v5");
+    const name = `city-contact v${CITY_CONTACT.version}`;
+    expect(screen.getByText(new RegExp(name)).textContent, address).toContain(name);
     expect(screen.getByText(/local-contact stress/i).textContent).toContain(
       "complete generated world",
     );

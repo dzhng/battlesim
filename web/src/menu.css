@@ -649,9 +649,6 @@
   color: #a9b0bb;
   font-size: 12px;
 }
-.bench-nowrap {
-  white-space: nowrap;
-}
 .bench-grid {
   stroke: #262c35;
   stroke-width: 1;

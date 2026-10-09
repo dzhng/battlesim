@@ -24,9 +24,6 @@ import type {
   RunRequest,
 } from "./src/protocol";
 
-export { nativeReporter, type NativeReporter } from "./native";
-export { WorkbenchError } from "./error";
-
 const paths = {
   presets: "fixtures/map-presets.json",
   defaults: "fixtures/generated-battle.json",

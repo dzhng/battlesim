@@ -48,7 +48,6 @@ const PARAMETERS = new Set([
   "size",
   "seed",
   "region",
-  "profile",
   "faction",
   "enemy",
   "battle",
@@ -81,7 +80,6 @@ export function askedChoice(search: string): Partial<BattleChoice> {
     ...(one(params.get("faction"), FACTIONS) && { faction: params.get("faction") as Faction }),
     ...(one(type, MAP_TYPES) && { type }),
     ...(one(size, MAP_SIZES) && { size }),
-    ...(params.get("profile") === "skirmish" && { profile: "skirmish" as const }),
     seed: canonicalSeed(params.get("seed") ?? "") ?? undefined,
     ...(one(region, REGIONS) && { region }),
   };
@@ -93,7 +91,6 @@ const query = (choice: Partial<BattleChoice> & Pick<MapChoice, "type" | "size">)
     `type=${choice.type}&size=${choice.size}`,
     choice.seed !== undefined && `seed=${choice.seed}`,
     choice.region !== undefined && `region=${choice.region}`,
-    choice.profile !== undefined && `profile=${choice.profile}`,
     choice.faction !== undefined && `faction=${choice.faction}`,
   ]
     .filter(Boolean)
@@ -149,13 +146,7 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   const region = params.get("region");
   if (region !== null && !one(region, REGIONS))
     return { error: `region must be one of ${REGIONS.join(", ")}` };
-  const profile = params.get("profile");
-  // Both factions are fielded on skirmish geography: no other profile plays.
-  if (profile !== null && profile !== "skirmish") return { error: "profile must be skirmish" };
-  const chosen = {
-    ...(region === null ? {} : { region }),
-    ...(profile !== null && { profile: "skirmish" }),
-  } as Pick<MapChoice, "region" | "profile">;
+  const chosen = region === null ? {} : { region };
   if (params.has("play"))
     return { kind: "play", factions, map: { type, size, ...chosen }, battleSeed };
   if (mapSeed === null)

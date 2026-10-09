@@ -23,6 +23,7 @@ import { buildSupplyOverlay } from "@packages/battle-renderer/src/supplyOverlay"
 import {
   buildOrderOverlay,
   buildDeploymentMarker,
+  deploymentOverlayMarker,
   type OrderView,
   type SurfaceHeight,
 } from "@packages/battle-renderer/src/orderOverlay";
@@ -279,6 +280,10 @@ export function buildBattleOverlay(
       ? [
           {
             paintedMarching: deployment,
+            // The entry marker is a player-facing world landmark. Keep a
+            // display-space copy over the fog so its location remains known
+            // after preparation ends and when the edge is unseen.
+            translucent: deploymentOverlayMarker(deployment),
           },
         ]
       : []),

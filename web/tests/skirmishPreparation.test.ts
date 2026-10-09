@@ -3,19 +3,6 @@ import { expect, test } from "vitest";
 import { prepare, type PreparationModule } from "../src/battle/prepare/prepare";
 import type { PrepareBattleRequest } from "../src/battle/prepare/protocol";
 
-test("the exact battle address preserves the compact geometry profile", async () => {
-  const { askedBattle, battleHref } = await import("@apps/battle-lab/src/battleLinks");
-  const map = {
-    type: "open" as const,
-    size: "small" as const,
-    profile: "skirmish" as const,
-    seed: "17",
-  };
-  expect(
-    askedBattle(new URL(battleHref({ ...map, faction: "us" }), "http://game").search),
-  ).toMatchObject({ map, factions: ["us", "eastern"] });
-});
-
 test("faction preparation fields both factions on the admitted sites", async () => {
   const request: PrepareBattleRequest = {
     map_source: {

@@ -131,7 +131,6 @@ function NewBattle({ asked }: { asked: ReturnType<typeof askedChoice> }) {
     type,
     size,
     faction,
-    profile: "skirmish" as const,
     ...(region !== RANDOM && { region }),
   };
   return (

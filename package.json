@@ -20,6 +20,7 @@
     "test:rust": "cargo test --workspace",
     "test:web": "bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run --cwd web test",
     "verify": "bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run --cwd web verify",
+    "visual": "bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run --cwd web visual",
     "check": "bun run fmt:check && bun run lint && bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run typecheck && bun run test:rust && bun run --cwd web test"
   }
 }

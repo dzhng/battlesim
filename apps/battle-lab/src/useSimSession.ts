@@ -58,8 +58,6 @@ export function useSimSession({
   const interpolator = useRef<TickInterpolator | null>(null);
   // The newest decoded frame, updated synchronously (React state lags a render).
   const latest = useRef<ObservationView | null>(null);
-  // Bytes of the newest published frame, for frame-cost telemetry.
-  const lastBytes = useRef(0);
   // The side's learned ground, patched by every publication (one per client).
   const ground = useRef<GroundView | null>(null);
   // The latest publication's digest; diagnostics own any history they record.
@@ -116,7 +114,6 @@ export function useSimSession({
       interpolator.current?.push(publication.observation, performance.now());
       latest.current = publication.observation;
       ground.current = publication.ground;
-      lastBytes.current = publication.bytes;
       if (warm) {
         const { tick, stepMs, bytes } = publication;
         plan?.onTick({ tick, stepMs, bytes });
@@ -167,7 +164,6 @@ export function useSimSession({
     interpolator,
     latest,
     ground,
-    lastBytes,
     digest,
     holdCredit,
     onViewportReady,

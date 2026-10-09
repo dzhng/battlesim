@@ -229,7 +229,7 @@ function placedPoint(model: ModelInstance, p: Vec3): Vec3 {
 }
 
 /** The wreck at `clock`: jolting whole, or as its hull and thrown turret. */
-export function wreckModels(
+function wreckModels(
   f: CookOffTransition,
   feel: CookOffFeel,
   clock: number,
@@ -286,7 +286,7 @@ const REMEMBERED_S = 2;
 /** How far beyond its own half length a wreck may lie from where its hull
  *  was last seen: a vehicle killed at full road speed rolls a few metres on
  *  before it stops (`sim::movement::drive::death_roll`), with room to spare. */
-export const ROLL_REACH_M = 6;
+const ROLL_REACH_M = 6;
 
 /** A hull as the side last saw it, and how hard it brakes, m/s². */
 export interface LastHull {

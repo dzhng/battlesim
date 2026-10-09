@@ -63,12 +63,10 @@ test("Deploy changes the actual route without replacing the document", async () 
   // Deploy enters the game set's scope, which suspends (see `renderSettled`).
   await act(async () => fireEvent.click(screen.getByTestId("menu-deploy")));
   expect(
-    await screen.findByText(
-      "Battle requested: ?play=1&type=mixed&size=small&profile=skirmish&faction=us",
-    ),
+    await screen.findByText("Battle requested: ?play=1&type=mixed&size=small&faction=us"),
   ).toBeDefined();
   expect(window.location.pathname + window.location.search).toBe(
-    "/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us",
+    "/battle?play=1&type=mixed&size=small&faction=us",
   );
   expect(document.documentElement).toBe(documentElement);
   expect(view.queryByRole("heading", { name: "Battle" })).toBeNull();
@@ -78,7 +76,7 @@ test("publishing the admitted address preserves progress and unrelated history s
   window.history.replaceState(
     { usr: { unrelated: "retained" } },
     "",
-    "/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us",
+    "/battle?play=1&type=mixed&size=small&faction=us",
   );
   await renderSettled(
     <BrowserRouter unstable_useTransitions={false}>
@@ -88,7 +86,7 @@ test("publishing the admitted address preserves progress and unrelated history s
   fireEvent.click(await screen.findByRole("button", { name: "Advance" }));
   fireEvent.click(screen.getByRole("button", { name: "Publish admitted battle" }));
   expect(
-    screen.getByText("Battle requested: ?play=1&type=mixed&size=small&profile=skirmish&faction=us"),
+    screen.getByText("Battle requested: ?play=1&type=mixed&size=small&faction=us"),
   ).toBeDefined();
   expect(screen.getByText("Progress: 1")).toBeDefined();
   expect(window.location.search).toBe("?type=open&size=small&seed=42");
@@ -156,5 +154,5 @@ test("a rapid history round trip discards progress before the intermediate scree
   await act(async () => {
     delayed.resume!();
   });
-  expect(window.location.search).toBe("?play=1&type=mixed&size=small&profile=skirmish&faction=us");
+  expect(window.location.search).toBe("?play=1&type=mixed&size=small&faction=us");
 });

@@ -3,7 +3,6 @@
  *    name, a row per weapon, then its states (`panelRows.ts`); an own
  *    unit's in cyan, with rounds left and running timers; an enemy's or a
  *    contact's in the enemy red, only what the side knows of it;
- *  - developer selection cards: the same facts component at any zoom;
  *  - the command bar: the selection's commands and its fire policy. */
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { useSessionCatalog } from "../catalog/context";
@@ -18,12 +17,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { PresentedContact } from "./contactPresentation";
-import type { ContactView, IdentifiedView, OwnUnitView } from "../sim/observation";
+import type { IdentifiedView, OwnUnitView } from "../sim/observation";
 import type { useUnitControl } from "../input/useUnitControl";
 import type { CommandMode, PointerPick } from "../input/pointerIntent";
 import { CommandBindings } from "../input/commandBindings";
 import { reach, type ReachCommand } from "../input/commandReach";
-import { hudIcon, stateIcon, unitIcons } from "@packages/scene-assets/src/icons";
+import { hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { gameHud } from "./hudTheme";
 import { layoutReadoutDetails, type DetailCard } from "./readoutDetails";
@@ -147,7 +146,7 @@ export function ReadoutLayer({
    *  commit's changed props. */
   own: readonly OwnUnitView[];
   identified?: readonly IdentifiedView[];
-  contacts?: readonly (ContactView | PresentedContact)[];
+  contacts?: readonly PresentedContact[];
   /** The published tick, which a contact's "ago" counts from. */
   tick?: number;
   rules: PanelRules;
@@ -190,8 +189,8 @@ export function ReadoutLayer({
     ...contacts.map(
       (c): Callout => ({
         key: `contact-${c.id}`,
-        opacity: "opacity" in c ? c.opacity : undefined,
-        retiring: "retiring" in c ? c.retiring : false,
+        opacity: c.opacity,
+        retiring: c.retiring,
         owner: "contact",
         id: c.id,
         at: [c.center[0], c.center[1], 0],
@@ -556,44 +555,6 @@ export function ReadoutLayer({
           </svg>
         </div>
       ))}
-    </div>
-  );
-}
-
-/** The unit card: the selection's info panels, drawn by the callouts' own
- *  component. One unit: its portrait (role symbol and silhouette) beside its
- *  panel. A group: each unit's complete panel. No selection, no card.
- *  `own` is the side's own units (a truck's supplying reads them). */
-export function SelectionCard({
-  units: selected,
-  own,
-  rules,
-}: {
-  units: readonly OwnUnitView[];
-  own: readonly OwnUnitView[];
-  rules: PanelRules;
-}) {
-  const { units } = useSessionCatalog();
-  if (selected.length === 0) return null;
-  if (selected.length > 1)
-    return (
-      <div className="hud-card hud-group" data-testid="selection-card">
-        {selected.map((u) => (
-          <div key={u.id} data-unit={u.id}>
-            <InfoPanel panel={ownPanel(units, u, own, rules)} />
-          </div>
-        ))}
-      </div>
-    );
-  const [u] = selected;
-  const { silhouette, role } = unitIcons(units.type(u.kind));
-  return (
-    <div className="hud-card" data-testid="selection-card" data-unit={u.id}>
-      <span className="hud-portrait">
-        <Icon path={role} className="hud-role" />
-        <Icon path={silhouette} className="hud-silhouette" />
-      </span>
-      <InfoPanel panel={ownPanel(units, u, own, rules)} />
     </div>
   );
 }

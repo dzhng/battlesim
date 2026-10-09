@@ -254,7 +254,7 @@ async function probeAt(page, points) {
   return points.map((p, i) => ({ ...p, seen: seen[i], px: px[i] }));
 }
 
-export async function contactGlyphOverFog(ctx, page) {
+async function contactGlyphOverFog(ctx, page) {
   // A contact's glyph over fog: its own colours, red through its middle.
   await setCamera(page, { target: [1120, 930], distance: 260, pitch: 0.85, yaw: 3.752 });
   await page.evaluate(() => window.__lab.frame());

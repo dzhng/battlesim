@@ -3,6 +3,7 @@
 //   bun run --cwd web scene -- <fixture-id>...   run those fixtures' scenes
 //   bun run --cwd web scene                      run every registered scene
 //   bun run --cwd web scene -- --list            list fixture ids
+//   bun run --cwd web scene -- --visual          run every scene with approved pictures
 //
 // The registry is apps/battle-lab/src/fixtures.json; every fixture id must have
 // exactly one scene at web/scenes/<id>.mjs and vice versa. Without VERIFY_URL
@@ -10,9 +11,14 @@
 // `"build": "production"` (a timing verdict) runs against a production build
 // served by Vite's preview instead. A scene longer than its fixture's
 // `timeout_s` (900 by default; SCENE_TIMEOUT_S overrides every fixture's)
-// fails. Evidence goes to throwaway/evidence/.
+// fails. Evidence goes to throwaway/evidence/. A scene's approved pictures
+// live in scenes/baselines/<fixture-id>/ (see scenes/_baseline.mjs);
+// UPDATE_BASELINES=1, or =<fixture-id>,…, blesses this run's captures.
+//
+//   UPDATE_BASELINES=panels bun run --cwd web scene -- panels
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
+import { BASELINES, baselines } from "./scenes/_baseline.mjs";
 
 const HERE = new URL(".", import.meta.url);
 const REGISTRY = new URL("../apps/battle-lab/src/fixtures.json", HERE);
@@ -26,10 +32,10 @@ export const WEBGPU_FLAGS = ["--enable-unsafe-webgpu", "--enable-features=WebGPU
  *  arrays element by element. A per-publication GPU buffer passed as a prop
  *  once made each detail tens of megabytes and ran the page out of memory.
  *  Every scene page fails on a detail this long. */
-export const MEASURE_ENTRIES_MAX = 5000;
+const MEASURE_ENTRIES_MAX = 5000;
 
 /** In the page: report an oversized measure detail as a console error. */
-export function guardMeasures(max) {
+function guardMeasures(max) {
   const measure = performance.measure.bind(performance);
   performance.measure = (name, options) => {
     const entries = options?.detail?.devtools?.properties?.length ?? 0;
@@ -44,13 +50,16 @@ export function guardMeasures(max) {
 export function parseArgs(argv) {
   const ids = [];
   let list = false;
+  let visual = false;
   for (const arg of argv) {
     if (arg === "--") continue;
     if (arg === "--list") list = true;
+    else if (arg === "--visual") visual = true;
     else if (arg.startsWith("-")) throw new Error(`unknown flag ${arg}`);
     else ids.push(arg);
   }
-  return { ids, list };
+  if (visual && ids.length) throw new Error("--visual selects its own fixtures; name none");
+  return { ids, list, visual };
 }
 
 export async function loadRegistry() {
@@ -66,6 +75,13 @@ export async function loadRegistry() {
     );
   }
   return fixtures;
+}
+
+/** The fixtures whose scenes have approved pictures: the visual regression
+ *  suite, `--visual`. */
+export async function pinnedFixtures(fixtures) {
+  const pinned = new Set(await readdir(BASELINES).catch(() => []));
+  return fixtures.filter((f) => pinned.has(f.id));
 }
 
 export function selectFixtures(fixtures, ids) {
@@ -205,7 +221,11 @@ export async function run(fixtures) {
         async writeEvidence(name, data) {
           await writeFile(new URL(name, evidenceDir), JSON.stringify(data, null, 2));
         },
+        /** Capture a page or locator and match it against its approved picture
+         *  (`scenes/_baseline.mjs`). */
+        matchBaseline: (target, name, options) => approved.match(target, name, options),
       };
+      const approved = baselines(fixture.id, ctx);
       // No scene may hang the gate: a stalled page fails its fixture instead.
       let timer;
       const limit = Number(process.env.SCENE_TIMEOUT_S ?? fixture.timeout_s ?? 900);
@@ -214,6 +234,7 @@ export async function run(fixtures) {
       });
       try {
         await Promise.race([scene.run(ctx), timedOut]);
+        await approved.finish();
       } catch (error) {
         ctx.check("scene completed without throwing", false, error?.stack ?? String(error));
       } finally {
@@ -247,7 +268,7 @@ export async function main(argv = process.argv.slice(2)) {
     for (const f of fixtures) console.log(`${f.id}\t${f.route}\t${f.describe}`);
     return 0;
   }
-  return run(selectFixtures(fixtures, args.ids));
+  return run(args.visual ? await pinnedFixtures(fixtures) : selectFixtures(fixtures, args.ids));
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {

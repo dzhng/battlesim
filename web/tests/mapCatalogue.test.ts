@@ -12,7 +12,6 @@ import fixtures from "@apps/battle-lab/src/fixtures.json";
 import {
   categoryMap,
   checkMapFolder,
-  filterMaps,
   listMaps,
   validateMapMeta,
   type MapEntry,
@@ -163,21 +162,6 @@ test("metadata that disagrees with its map is reported field by field", () => {
     checkMapFolder("geometry", { ...meta, source: "generated", seed: "7" }, generated).join(),
   ).toMatch(/meta\.json\.seed: "7", but the generation's seed is "41"/);
   expect(checkMapFolder("geometry", meta, generated).join()).toMatch(/meta\.json\.source/);
-});
-
-test("a listing filters by category, status and feature, in id order", () => {
-  const entry = (id: string, change: Partial<MapMeta>): MapEntry => ({ id, ...META, ...change });
-  const entries = [
-    entry("b", { category: "menu" }),
-    entry("c", { status: "draft" }),
-    entry("a", { tags: ["river"] }),
-  ];
-  expect(filterMaps(entries).map((m) => m.id)).toEqual(["a", "b", "c"]);
-  expect(filterMaps(entries, { category: "test" }).map((m) => m.id)).toEqual(["a", "c"]);
-  expect(filterMaps(entries, { category: "test", status: "released" }).map((m) => m.id)).toEqual([
-    "a",
-  ]);
-  expect(filterMaps(entries, { tag: "building" }).map((m) => m.id)).toEqual(["b", "c"]);
 });
 
 test("a map is taken only for what its category says it is for", () => {

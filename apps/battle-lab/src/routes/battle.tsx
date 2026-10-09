@@ -342,7 +342,6 @@ function PreparedBattleView({
         /** What the preparation worker made: the request, the map's identity
          *  and counts, where blue starts and what each stage cost. */
         prepared: () => prepared.report,
-        admission: () => admission.current?.attempts ?? [],
         /** When each loading stage finished, ms since navigation started. */
         startup: () => ({ ...marks.current }),
         exportReplay: () => exportReplay(session),

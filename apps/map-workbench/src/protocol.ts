@@ -2,8 +2,6 @@ import type { MapChoice, MapDiagnostic } from "../../../web/src/maps/source";
 import type { MapIdentity } from "../../../web/src/maps/resolve";
 import type { Replacement } from "../../fixture-publication/publication";
 
-export type { Replacement } from "../../fixture-publication/publication";
-
 export type Json = null | boolean | number | string | Json[] | JsonObject;
 export interface JsonObject {
   [key: string]: Json;

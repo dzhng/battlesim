@@ -47,8 +47,6 @@ export function createBenchmarkReport(run: {
       fingerprint: benchmarkFingerprint(scenario),
       variant: scenario.variant,
       seed: scenario.seed,
-      blue: scenario.blue,
-      red: scenario.blue === "scenario-orders" ? "scenario-orders" : "defender",
       startTick: scenario.startTick,
       cameraScript: scenario.tour.version,
     },

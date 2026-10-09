@@ -1,5 +1,7 @@
 import type { CommandAck, Order, PurchasePlacement } from "../sim/protocol";
 import type { SimClient } from "../sim/client";
+/** A placed ghost faces the opposing edge unless it is turned as it is placed. */
+export const DEFAULT_PLACEMENT_FACING = -Math.PI / 2;
 export interface PurchaseGhost {
   variant: string;
   destination: [number, number];
@@ -33,7 +35,7 @@ export class PurchasePlacementControl {
     destination: [number, number] | null,
     client: SimClient | null,
     revision: string,
-    facing = -Math.PI / 2,
+    facing = DEFAULT_PLACEMENT_FACING,
   ): PurchaseGhost | null {
     if (!this.variant || !destination || !client) {
       this.ghost = null;

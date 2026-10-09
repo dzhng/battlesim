@@ -32,6 +32,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   supply: lazy(() => import("./routes/supply")),
   ground: lazy(() => import("./routes/ground")),
   panels: lazy(() => import("./routes/panels")),
+  ui: lazy(() => import("./routes/ui")),
   readouts: lazy(() => import("./routes/readouts")),
   camera: lazy(() => import("./routes/camera")),
   "city-block": lazy(() => import("./routes/cityBlock")),
@@ -76,12 +77,13 @@ function resolvePage(path: string) {
 }
 
 /** Policy for menu warm-up and the menu bed, derived from the rendered page.
- * Player battle/replay routes keep the bed while their loading cover is visible. */
+ * The player battle route (replays included) keeps the bed while its loading
+ * cover is visible. */
 export function screenForPath(path: string): "menu" | "loading" | "other" {
   const page = resolvePage(path);
   if (page.editor || page.path === "/labs") return "other";
   if (!page.Route) return "menu";
-  return /^\/(battle|replay)(\/|$)/.test(page.path) ? "loading" : "other";
+  return /^\/battle(\/|$)/.test(page.path) ? "loading" : "other";
 }
 
 function LabPage({ path: requestedPath }: { path: string }) {

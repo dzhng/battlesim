@@ -324,7 +324,7 @@ export async function garrisonCursor(ctx) {
 }
 
 /** Delay only admission delivery, at the real worker edge; no production hook. */
-export function delayedAdmission() {
+function delayedAdmission() {
   const NativeWorker = window.Worker;
   window.Worker = class extends NativeWorker {
     constructor(...args) {

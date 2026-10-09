@@ -100,7 +100,10 @@ checks oversized development performance details as well as ordinary page errors
 panels, captions, contacts and cursors. Hidden contact reports retain uncertainty;
 retiring visuals are remembered evidence, never live targets. Panels prioritize
 legibility and camera depth while preserving hover access to detail. Sensing rules
-own concealment; the UI cannot infer a hidden observer from private state.
+own concealment; the UI cannot infer a hidden observer from private state. A new
+piece of interface is drawn by the panel workbench, the [UI gallery](src/routes/ui.tsx)
+or the cursor lab, whose scenes pin it with approved pictures
+([browser checks](../../web/README.md#checks-and-evidence)).
 
 [The army HUD and app-lifetime rationale](../../specs/done/hud-chrome/README.md)
 records the player layout, menu audio and retained-resource contracts.

@@ -64,6 +64,24 @@ for that performance gate. Each scene owns the observations that prove its contr
 a screenshot proves appearance only after visual review. Evidence goes into ignored
 `throwaway/evidence/`, rather than becoming a second set of fixtures.
 
+Interface appearance is a regression gate. A scene can match a capture against
+an approved picture ([baselines](scenes/_baseline.mjs), stored in LFS beside the
+scenes); a mismatch fails and leaves the capture and a diff in its evidence. The
+scenes that have pictures are the visual suite, run together by the runner's
+`--visual`; a worktree fetches the pictures from LFS before running it. A
+picture is approved by a person who has looked at it, by blessing that scene's
+captures and reviewing them in the diff, never to make a red check pass. Every
+component the player sees is drawn by a page whose scene pins it, or is named
+with why it cannot be ([coverage](tests/uiCoverage.test.ts)); the
+[UI gallery](../apps/battle-lab/src/routes/ui.tsx) draws what the panel workbench
+and cursor lab do not. Pictures are pinned only from fixed test content, since
+the roster grows. They are approved on the macOS development machine's browser
+and fonts; another platform rasterizes text differently, and the answer there
+is not a looser threshold.
+Beside the pictures, the [containment check](scenes/_spills.mjs) asks of every
+panel the geometric question a picture answers only once approved: does it
+hold its content?
+
 Every rendering job shares the machine's GPU. Concurrent sessions serialize through
 one lock in the main checkout, for example
 `lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- <fixture-id>`.

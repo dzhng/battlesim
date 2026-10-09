@@ -110,7 +110,7 @@ const articulated = (a: Partial<Articulation>): ModelPose => ({
 });
 
 /** Spike 03's strips: eight phases of each clip, or of each vehicle motion. */
-export function sheetStrips(bundle: Appearance, skeleton: SkeletonClips | null): Strip[] {
+function sheetStrips(bundle: Appearance, skeleton: SkeletonClips | null): Strip[] {
   const phases = Array.from({ length: PHASES }, (_, k) => k / PHASES);
   if (bundle.kind === "skinned")
     return (skeleton?.clips ?? []).map((clip) => ({

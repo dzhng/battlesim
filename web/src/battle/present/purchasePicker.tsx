@@ -9,6 +9,15 @@ interface PickerProps {
   match: SkirmishView;
   onChoose: (variant: string) => void;
 }
+/** A price, in the warning colour when the credits can't pay it. */
+function Price({ cost, credits }: { cost: number; credits: number }) {
+  return (
+    <span className={cost > credits ? "hud-purchase-price too-dear" : "hud-purchase-price"}>
+      {cost} CR
+    </span>
+  );
+}
+
 const CATEGORIES: readonly UnitCategory[] = ["rec", "inf", "veh", "sup", "hel", "air"];
 /** Catalog families organize browsing; only a concrete available variant starts placement. */
 export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps) {
@@ -83,9 +92,7 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
                 <button
                   key={id}
                   type="button"
-                  className={
-                    unavailable ? "hud-purchase-family unavailable" : "hud-purchase-family"
-                  }
+                  className={`hud-purchase-family${unavailable ? " unavailable" : firstAvailable ? "" : " short"}`}
                   aria-label={variants[0].roster.family_name}
                   aria-pressed={id === family}
                   onMouseEnter={variants.length > 1 ? () => setFamily(id) : undefined}
@@ -100,9 +107,7 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
                 >
                   <Icon path={cardIcon(shown.id)} />
                   <span>{variants[0].roster.family_name}</span>
-                  <span className="hud-purchase-price">
-                    {Math.min(...variants.map((v) => v.cost))} CR
-                  </span>
+                  <Price cost={Math.min(...variants.map((v) => v.cost))} credits={match.credits} />
                   {unavailable && <small>Unavailable</small>}
                 </button>
               );
@@ -132,7 +137,7 @@ export function PurchasePicker({ cards, faction, match, onChoose }: PickerProps)
                   }}
                 >
                   <span>{card.roster.variant}</span>
-                  <span>{card.cost} CR</span>
+                  <Price cost={card.cost} credits={match.credits} />
                   {card.disabled_reason !== null && <small>Unavailable</small>}
                 </button>
               ))}

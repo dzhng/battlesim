@@ -10,14 +10,14 @@ import { MAP_ID, type MapDefinition, type MapIdentity } from "./resolve.ts";
 /** What a saved map is for (`contract::maps::MapCategory`): a test's own
  *  ground (tests, labs, benchmarks) or a battlefield the menu backdrop films.
  *  Players never fight on a saved map: their battles are generated. */
-export const MAP_CATEGORIES = ["test", "menu"] as const;
-export const MAP_STATUSES = ["draft", "released", "retired"] as const;
-export const MAP_SOURCES = ["imported", "generated", "authored"] as const;
+const MAP_CATEGORIES = ["test", "menu"] as const;
+const MAP_STATUSES = ["draft", "released", "retired"] as const;
+const MAP_SOURCES = ["imported", "generated", "authored"] as const;
 /** What kind of ground a map is: a generated map's type (`open`, `mixed`,
  *  `metro`), or an authored test's `arena`. */
-export const MAP_CHARACTERS = ["open", "mixed", "metro", "arena"] as const;
+const MAP_CHARACTERS = ["open", "mixed", "metro", "arena"] as const;
 /** The physical features a map can have, each a tag when the map has any. */
-export const MAP_TAGS = [
+const MAP_TAGS = [
   "relief",
   "river",
   "road",
@@ -174,24 +174,6 @@ export function checkMapFolder(id: string, meta: MapMeta, folder: MapFolder): st
   return problems;
 }
 
-export interface MapFilter {
-  category?: MapCategory;
-  status?: MapStatus;
-  tag?: MapTag;
-}
-
-/** The entries `filter` admits, by id. */
-export function filterMaps(entries: readonly MapEntry[], filter: MapFilter = {}): MapEntry[] {
-  return entries
-    .filter(
-      (m) =>
-        (filter.category === undefined || m.category === filter.category) &&
-        (filter.status === undefined || m.status === filter.status) &&
-        (filter.tag === undefined || m.tags.includes(filter.tag)),
-    )
-    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-}
-
 /** The entry of map `id` among `entries`, which must be a `category` map:
  *  the menu backdrop films only `menu` maps, and labs and tests stand only
  *  on `test` maps. A map the catalogue lacks, or one of another category, is
@@ -211,21 +193,23 @@ export function categoryMap(
 }
 
 /** The id a catalogue document's module path names: its folder. */
-export const mapIdOf = (path: string): string => path.split("/").at(-2)!;
+const mapIdOf = (path: string): string => path.split("/").at(-2)!;
 
 let entries: MapEntry[] | null = null;
 
-/** The catalogue's maps that `filter` admits, by id. A map whose metadata is
- *  invalid fails the listing, naming its file and field. */
-export function listMaps(filter: MapFilter = {}): MapEntry[] {
+/** The catalogue's maps, by id. A map whose metadata is invalid fails the
+ *  listing, naming its file and field. */
+export function listMaps(): MapEntry[] {
   entries ??= Object.entries(
     import.meta.glob<unknown>("../../../fixtures/maps/*/meta.json", {
       eager: true,
       import: "default",
     }),
-  ).map(([path, value]) => {
-    const id = mapIdOf(path);
-    return { id, ...validateMapMeta(id, value) };
-  });
-  return filterMaps(entries, filter);
+  )
+    .map(([path, value]) => {
+      const id = mapIdOf(path);
+      return { id, ...validateMapMeta(id, value) };
+    })
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  return entries;
 }

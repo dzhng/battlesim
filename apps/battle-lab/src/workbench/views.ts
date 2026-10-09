@@ -57,7 +57,7 @@ const STUDIO: Record<string, { yaw: number; pitch: number; near?: number }> = {
 
 /** Battle zooms: the rig's closest distance, its opening distance, and a
  *  company-scale view. */
-export const BATTLE_DISTANCES: Record<string, number> = {
+const BATTLE_DISTANCES: Record<string, number> = {
   "battle-near": gameCamera.config.zoom_min,
   "battle-mid": gameCamera.opening().distance,
   "battle-far": 150,

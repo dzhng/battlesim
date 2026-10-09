@@ -75,7 +75,7 @@ export interface StatsSample {
 
 /** GPU frame time from stats samples: the mean of their window means, and
  *  the worst window p95. Null when no sample carried a GPU reading. */
-export function summarizeGpu(samples: readonly StatsSample[]) {
+function summarizeGpu(samples: readonly StatsSample[]) {
   const windows = samples.flatMap((s) => (s.gpu && s.gpu.frames > 0 ? [s.gpu] : []));
   if (windows.length === 0) return null;
   return {
@@ -185,5 +185,3 @@ export class BenchmarkRecording {
     };
   }
 }
-
-export type RecordingReport = ReturnType<BenchmarkRecording["report"]>;
