@@ -30,9 +30,7 @@ test("active catalogue maps are inspectable in labs by name", () => {
     { ...entry("released-arena", "released"), category: "test" as const },
     { ...entry("other-encounter", "released"), encounters: ["duel"] },
   ];
-  vi.spyOn(catalogue, "listMaps").mockImplementation((filter) =>
-    catalogue.filterMaps(entries, filter),
-  );
+  vi.spyOn(catalogue, "listMaps").mockReturnValue(entries);
   window.history.replaceState(null, "", "/labs");
   const labs = render(createElement(LabRouter));
   expect(labs.getByRole("link", { name: "Battlefield draft-field" }).getAttribute("href")).toBe(
