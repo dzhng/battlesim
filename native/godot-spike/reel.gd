@@ -107,7 +107,7 @@ func _decode_semantic_captures() -> void:
 		var frames: Array = []
 		var semantic_limit := int(OS.get_environment("GODOT_SEMANTIC_SAMPLE_LIMIT"))
 		if semantic_limit <= 0:
-			semantic_limit = 256
+			semantic_limit = capture_result.capture.samples.size()
 		var semantic_index := 0
 		for sample in capture_result.capture.samples:
 			if semantic_index >= semantic_limit:
