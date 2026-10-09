@@ -16,7 +16,7 @@ use contract::observation::GarrisonPhase;
 use contract::scenario::Rules;
 use serde_json::{json, Value};
 use sim::battle::Battle;
-use sim::encounter::{plan_encounter, plan_encounter_json, PreparedMap};
+use sim::encounter::{plan_encounter, PreparedMap};
 use sim::math::v2;
 use sim::world::{SurfaceKind, WorldGeometry};
 
@@ -666,33 +666,4 @@ fn the_recipes_file_names_the_recipe_and_field_it_refuses() {
     assert!(EncounterRecipes::from_json(&file.to_string())
         .unwrap_err()
         .contains("unknown field `surprise`"));
-}
-
-#[test]
-fn the_json_boundary_answers_with_the_planned_encounter_or_named_diagnostics() {
-    let (map, sites, recipe) = (town_map(800.0, json!({})), town_sites(800.0), recipe());
-    let ask = |seed: &str, sites: &EncounterSites| -> Value {
-        serde_json::from_str(&plan_encounter_json(
-            &serde_json::to_string(&map).unwrap(),
-            &serde_json::to_string(sites).unwrap(),
-            &common::game().to_string(),
-            &serde_json::to_string(&recipe).unwrap(),
-            seed,
-        ))
-        .unwrap()
-    };
-    let ok = ask("1", &sites);
-    assert_eq!(ok["status"], "ok");
-    assert_eq!(ok["encounter"]["encounter_seed"], "1");
-    let direct = plan(&map, &sites, &recipe).unwrap();
-    assert_eq!(ok["encounter"], serde_json::to_value(&direct).unwrap());
-
-    // A seed is canonical decimal text.
-    let bad = ask("01", &sites);
-    assert_eq!(bad["status"], "error");
-    assert_eq!(bad["diagnostics"][0]["code"], "invalid_request");
-    assert_eq!(bad["diagnostics"][0]["location"], "$.encounter_seed");
-
-    let none = ask("1", &EncounterSites::default());
-    assert_eq!(none["diagnostics"][0]["code"], "no_objective");
 }

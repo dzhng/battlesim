@@ -10,7 +10,7 @@ User requirements owned or exercised: P01, P02, P03, P04, P09. Read their canoni
 
 ## API seam and ownership
 
-`sim::flight::{solve_launch, advance_projectiles} -> ordered Impact/NearMiss events`; one projectile store, spatial query owner world.
+`sim::flight::{solve_launch_past, advance_projectiles} -> ordered Impact/NearMiss events`; one projectile store, spatial query owner world.
 
 ## Runnable artifact
 
@@ -43,7 +43,7 @@ Visible arc or collision differs from geometry, or workload already exceeds fram
 
 ## Verdict — 2026-09-25
 
-Accepted. `sim::flight` owns the one projectile store (`Projectiles`), `solve_launch`, `prepare_launch` (solve → spread → launch, the path weapons will use) and `advance_projectiles`, which emits ordered `Impact`/`NearMiss`/`Expired` events. Fixture reads are `contract::ballistics::{FlightRules, WeaponBallistics}` (the `physics` section and a weapon row's flight fields). `Body` (id, unit, capsule or box, pose at tick start and end) is the collider seam later slices feed from units. Firing is not wired into `Battle`; slice 08 does that and adds the store to `Battle::digest` (`Projectiles::digest` exists).
+Accepted. `sim::flight` owns the one projectile store (`Projectiles`), `solve_launch_past` and `launch_along` (solve → spread → launch, the path weapons use) and `advance_projectiles`, which emits ordered `Impact`/`NearMiss`/`Expired` events. Fixture reads are `contract::ballistics::{FlightRules, WeaponBallistics}` (the `physics` section and a weapon row's flight fields). `Body` (id, unit, capsule or box, pose at tick start and end) is the collider seam later slices feed from units. Firing is not wired into `Battle`; slice 08 does that and adds the store to `Battle::digest` (`Projectiles::digest` exists).
 
 Reproduced oracle and chosen algorithm:
 
@@ -72,7 +72,7 @@ The seam has 20 native tests (`flight_ballistics` 11, `flight_collision` 8, `fli
 
 The TypeScript seam test `flightMesh.test.ts` checks that trace tubes hug the reported chords and that rejected arcs draw translucent.
 
-**Load report** (`cargo test -p sim --release --test flight_load -- --nocapture`, Apple M5 Pro, native). The emitters are 100 eight-soldier rifle squads and 100 turning tanks (900 bodies) on the village map, firing through `prepare_launch` at authored cycle rates, with no projectile cap:
+**Load report** (`cargo test -p sim --release --test flight_load -- --nocapture`, Apple M5 Pro, native). The emitters are 100 eight-soldier rifle squads and 100 turning tanks (900 bodies) on the village map, firing through the weapons' launch path at authored cycle rates, with no projectile cap:
 
 | Fire rate | Launched | In flight (peak) | Advance ms/tick p50 / p95 / p99 / max | Launch solving ms/tick p50 / p95 |
 |---|---|---|---|---|

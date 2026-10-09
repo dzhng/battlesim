@@ -13,8 +13,7 @@ use contract::ballistics::WeaponBallistics;
 use contract::map::MapDefinition;
 use contract::random::Rng;
 use sim::flight::{
-    advance_projectiles, prepare_launch, Aim, Body, FlightEvent, NoSolution, Projectiles, Shape,
-    Shooter,
+    advance_projectiles, Aim, Body, FlightEvent, NoSolution, Projectiles, Shape, Shooter,
 };
 use sim::math::v3;
 use sim::world::WorldGeometry;
@@ -135,7 +134,7 @@ fn run(rate_scale: f64, seconds: f64) {
                     body: bodies[i].id,
                     cover: None,
                 });
-                match prepare_launch(
+                match launch_round(
                     &world,
                     &config,
                     &profile,

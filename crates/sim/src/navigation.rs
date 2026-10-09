@@ -71,7 +71,7 @@ pub fn plan(
     leg: Leg,
     rules: &contract::scenario::NavigationRules,
 ) -> (Plan, SearchWork) {
-    let mut journey = Journey::new(grid, roads, None, leg, rules);
+    let mut journey = Journey::new(None, leg, rules);
     journey.advance(grid, roads, u64::MAX);
     let work = journey.work();
     let plan = journey.finish().0;
@@ -86,8 +86,6 @@ pub const NAV_CELL_M: f64 = 2.0;
 const SEAT_TRIES: usize = 3;
 /// The hair a seat keeps beyond the footprint's half width when it moves.
 const SEAT_SLACK_M: f64 = 1e-3;
-/// A step through a tight cell is checked at this spacing.
-const STEP_CHECK_M: f64 = 0.4;
 /// Clearance is a distance transform capped here; wider footprints do not exist.
 const MAX_CLEARANCE_M: f64 = 16.0;
 const TILE_SIDE: usize = 32;
@@ -191,9 +189,9 @@ pub enum BlockReason {
     NoRoute,
     /// The unit's own position is not in any cell it fits.
     StartEnclosed,
-    /// The search looked as far as the rules let it (`navigation`'s
-    /// `search_cells`) without reaching the goal: no route is known, though
-    /// one may exist.
+    /// The search looked as far as the rules let it
+    /// (`NavigationRules::search_limit`) without reaching the goal: no route
+    /// is known, though one may exist.
     SearchLimit,
 }
 
@@ -606,7 +604,7 @@ impl NavGrid {
 
     /// Where a vehicle's route through `cell` stands its centre, and whether
     /// that was judged against the bodies and ground themselves (a step to or
-    /// from it is then checked along its length, [`step_clear`](Self::step_clear)):
+    /// from it is then checked along its length, [`sweep_clear`](Self::sweep_clear)):
     /// the cell's centre where the cell's room clears the footprint; in a
     /// tight cell, a point in it where the footprint clears what stands there,
     /// found by moving off what stands nearest. A hull goes wherever it fits,
@@ -670,12 +668,6 @@ impl NavGrid {
     fn clears_at(&self, p: V2, m: &Mobility, paid: bool) -> bool {
         self.nearest_obstacle(p, m.push, m.half_width_m, paid)
             .is_none_or(|(at, _)| at > m.half_width_m)
-    }
-
-    /// Whether a vehicle's footprint clears the bodies and ground all along
-    /// the step from `a` to `b`.
-    fn step_clear(&self, a: V2, b: V2, m: &Mobility, paid: bool) -> bool {
-        self.sweep_clear((a, b), m.push, m.half_width_m, STEP_CHECK_M, paid)
     }
 
     /// Whether a footprint fits passing `off` metres from this cell's

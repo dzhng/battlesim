@@ -14,7 +14,6 @@ use std::sync::Arc;
 use contract::ids::Tick;
 use contract::map::MoverClass;
 use contract::observation::MoveState;
-use contract::scenario::InfantryMovementRules;
 
 use crate::arrangement;
 use crate::ground::GroundLayer;
@@ -411,13 +410,9 @@ pub struct MovementContext<'a> {
     /// The map's road graph: the same for both sides.
     pub roads: &'a RoadNet,
     pub ground: &'a GroundLayer,
-    pub ground_rules: &'a contract::scenario::GroundRules,
     /// Props with ids below this were authored with the map and are known to all.
     pub authored: PropId,
     pub tick: Tick,
-    pub tick_hz: u32,
-    pub infantry: &'a InfantryMovementRules,
-    pub soldier_radius_m: f64,
     /// The battle's seed: arrangements are drawn from it (D1).
     pub seed: u64,
     pub rules: &'a contract::scenario::Rules,
@@ -465,7 +460,7 @@ pub(crate) fn advance(
         .filter(|u| u.alive())
         .filter_map(|u| Threat::of(ctx, u))
         .collect();
-    let mut crowd = soldier::Crowd::gather(units, ctx.soldier_radius_m);
+    let mut crowd = soldier::Crowd::gather(units, ctx.rules.physics.soldier_radius_m);
     let mut shoves = Vec::new();
     for i in 0..units.len() {
         if !units[i].alive() {
@@ -483,7 +478,7 @@ pub(crate) fn advance(
                 take_cover::hold(ctx, unit, side, &field);
             }
             soldier::step_squad(ctx, unit, i, side, &hulls, &threats, &mut crowd, advancing);
-            crowd.refresh_radius(unit, ctx.soldier_radius_m);
+            crowd.refresh_radius(unit, ctx.rules.physics.soldier_radius_m);
         }
     }
     shoves
@@ -523,7 +518,7 @@ fn request_route(
         return;
     }
     let changed = unit.planned_revision != side.revision;
-    let stall_ticks = (STALL_REPLAN_S * ctx.tick_hz as f64) as u64;
+    let stall_ticks = (STALL_REPLAN_S * ctx.rules.tick_hz as f64) as u64;
     let stalled = unit.route.is_some() && ctx.tick.saturating_sub(unit.progress.1) > stall_ticks;
     if goal_moved {
         unit.stalls = (f64::INFINITY, ctx.tick);
@@ -532,7 +527,9 @@ fn request_route(
         let left = way_left(unit.position.xy(), route);
         if left < unit.stalls.0 - STALL_GAIN_M {
             unit.stalls = (left, ctx.tick);
-        } else if ctx.tick.saturating_sub(unit.stalls.1) > (GIVE_UP_S * ctx.tick_hz as f64) as u64 {
+        } else if ctx.tick.saturating_sub(unit.stalls.1)
+            > (GIVE_UP_S * ctx.rules.tick_hz as f64) as u64
+        {
             planner.cancel(unit.id);
             unit.route = None;
             unit.state = MoveState::RouteBlocked;
@@ -857,7 +854,7 @@ fn step_vehicle(
     shoves: &mut Vec<Shove>,
     traffic: &[Option<Obb2>],
 ) {
-    let dt = 1.0 / ctx.tick_hz as f64;
+    let dt = 1.0 / ctx.rules.tick_hz as f64;
     units[i].reversing = false;
     if !may_advance(ctx, &mut units[i]) {
         units[i].drive_speed_mps = 0.0;
@@ -888,7 +885,7 @@ fn step_vehicle(
         unit.mobility.speed(s.road_factor, s.forest, s.slope_deg)
     });
     // Craters under the hull slow it slightly; never to a stop (Q8).
-    let speed = speed * ctx.ground.vehicle_speed(here.x, here.y, ctx.ground_rules);
+    let speed = speed * ctx.ground.vehicle_speed(here.x, here.y, &ctx.rules.ground);
     let before_manoeuvre = unit.manoeuvre;
     let mut motion = drive::steer(ctx.world, &mut units[i], target, speed, dt, traffic);
     let unit = &units[i];
@@ -975,7 +972,7 @@ fn step_vehicle(
     unit.blocker = None;
 
     // True geometry decides; an obstacle met here becomes known to the side.
-    let radius = unit.footprint_radius(ctx.soldier_radius_m);
+    let radius = unit.footprint_radius(ctx.rules.physics.soldier_radius_m);
     let side = &mut sides[unit.side.index()];
     for prop in ctx.world.props_near(next, radius + ENCOUNTER_RANGE_M) {
         if prop.blocks(MoverClass::Vehicle)
@@ -1110,16 +1107,16 @@ fn spread_out(
         ctx.world,
         end,
         living,
-        ctx.infantry,
-        ctx.soldier_radius_m,
+        &ctx.rules.infantry_movement,
+        ctx.rules.physics.soldier_radius_m,
         &solid,
         &mut draws,
     );
     let mut spots = spots;
     let tiers = take_cover::at_order(ctx, unit, side, field, from, end, &mut spots);
     let mut spots = spots.into_iter().zip(tiers);
-    let rules = ctx.infantry;
-    let stagger = rules.stagger_s * ctx.tick_hz as f64;
+    let rules = &ctx.rules.infantry_movement;
+    let stagger = rules.stagger_s * ctx.rules.tick_hz as f64;
     // The first man sets off at once, so the squad answers on the order's
     // tick; the rest follow within the stagger.
     let delays: Vec<f64> = unit.members.iter().map(|_| draws.unit()).collect();
@@ -1153,9 +1150,11 @@ fn spread_out(
 /// who has none (a replacement), takes the nearest free one.
 fn keep_spots(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: V2) {
     let solid = |p: &Prop| p.blocks(MoverClass::Infantry) && side.knows(p, ctx.authored);
-    let r = ctx.soldier_radius_m;
+    let r = ctx.rules.physics.soldier_radius_m;
     let living = unit.members.iter().filter(|s| s.alive()).count();
-    let reach = arrangement::spread(ctx.infantry, living).max(ctx.infantry.spacing_m) * 2.0;
+    let reach = arrangement::spread(&ctx.rules.infantry_movement, living)
+        .max(ctx.rules.infantry_movement.spacing_m)
+        * 2.0;
     for s in &mut unit.members {
         s.post = None;
     }
@@ -1175,7 +1174,7 @@ fn keep_spots(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: 
             .filter(|(j, o)| *j != k && o.alive())
             .filter_map(|(_, o)| o.spot)
             .collect();
-        let spacing = ctx.infantry.spacing_m / 2.0;
+        let spacing = ctx.rules.infantry_movement.spacing_m / 2.0;
         let spot = arrangement::nearest_free(wanted, reach, |p| {
             taken.iter().all(|t| (*t - p).at_least_radius(spacing))
                 && arrangement::standing_room(ctx.world, p, r, &solid)

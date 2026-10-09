@@ -507,14 +507,8 @@ fn forest_concealment_is_binary_even_between_tree_crowns() {
     }))
     .unwrap();
     let world = sim::world::WorldGeometry::new(&map, &rules);
-    assert_eq!(
-        sim::sensing::concealment_multiplier(true, &world, sim::math::v3(81.0, 60.0, 0.0)),
-        0.25
-    );
-    assert_eq!(
-        sim::sensing::concealment_multiplier(true, &world, sim::math::v3(79.0, 60.0, 0.0)),
-        1.0
-    );
+    assert_eq!(world.forest_concealment(true, 81.0, 60.0), 0.25);
+    assert_eq!(world.forest_concealment(true, 79.0, 60.0), 1.0);
     let sight = sim::sight::Sight {
         forward: 0.0,
         range: 350.0,
@@ -531,7 +525,7 @@ fn forest_concealment_is_binary_even_between_tree_crowns() {
             sim::math::v3(81.0 - distance, 60.0, 1.0),
             target,
             &sight,
-            sim::sensing::concealment_multiplier(true, &world, target),
+            world.forest_concealment(true, target.x, target.y),
             &rules.sensors,
         )
     };

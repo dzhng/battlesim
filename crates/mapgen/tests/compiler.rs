@@ -435,7 +435,7 @@ fn native_cli_replays_the_frozen_acceptance_and_refusal_records() {
     struct Record {
         name: String,
         request_json: String,
-        /// The outcome's hash holds Wasm to every byte.
+        /// The CLI's complete outcome, to the byte.
         native_sha256: String,
         exit_code: i32,
     }
@@ -443,8 +443,7 @@ fn native_cli_replays_the_frozen_acceptance_and_refusal_records() {
         "../../../fixtures/parity/map-compiler/paired-records.json"
     ))
     .unwrap();
-    // `BLESS_PARITY=1` rewrites the native half for a named change; the web
-    // test then holds Wasm to it.
+    // `BLESS_PARITY=1` rewrites the records for a named change.
     let bless = std::env::var_os("BLESS_PARITY").is_some();
     let directory =
         std::env::temp_dir().join(format!("mapgen-replay-proof-{}", std::process::id()));

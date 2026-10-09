@@ -9,33 +9,14 @@ use contract::templates::{BuildingTemplateDescriptor, PlacementFrame, TemplateGe
 use sim::battle::{Battle, Replay};
 use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
-    advance_projectiles, predicted_path, prepare_launch, Aim, ArcKind, Body, BodyId, FlightConfig,
-    FlightEvent, ImpactContext, NoSolution, Pose, ProjectileId, Projectiles, Shape, Struck,
+    advance_projectiles, launch_along, predicted_path, solve_launch_past, Aim, ArcKind, Body,
+    BodyId, FlightConfig, FlightEvent, ImpactContext, NoSolution, Pose, ProjectileId, Projectiles,
+    Shape, Struck,
 };
 use sim::math::{v3, V3};
 use sim::publication::{self, Publisher};
 use sim::world::{export, WorldGeometry};
 use wasm_bindgen::prelude::*;
-
-/// Compile a physical plan with the same complete result/diagnostics as the CLI.
-#[wasm_bindgen]
-pub fn compile_map(request_json: &str, descriptors_json: &str) -> Result<String, JsError> {
-    mapgen::compile_json(request_json, descriptors_json).map_err(js_error)
-}
-
-/// Generate a seeded plan (layout, streets, parcels, buildings and street
-/// furniture): the same record the CLI's `generate` prints. `rules_json` is
-/// the battle's resolved rules, including its unit and prop catalog.
-#[wasm_bindgen]
-pub fn generate_map_plan(
-    request_json: &str,
-    presets_json: &str,
-    descriptors_json: &str,
-    rules_json: &str,
-) -> Result<String, JsError> {
-    mapgen::generate_plan_json(request_json, presets_json, descriptors_json, rules_json)
-        .map_err(js_error)
-}
 
 /// Generate a plan and compile it into a map, as the CLI's `generate-map` does.
 #[wasm_bindgen]
@@ -47,28 +28,6 @@ pub fn generate_map(
 ) -> Result<String, JsError> {
     mapgen::generate_map_json(request_json, presets_json, descriptors_json, rules_json)
         .map_err(js_error)
-}
-
-/// Plan one encounter recipe on a compiled map: the map and the sites
-/// `generate_map` hands out beside it, the rules a battle on it runs under,
-/// one recipe of `fixtures/encounters.json` and the encounter seed as
-/// canonical decimal text. Answers with the native planner's own outcome
-/// record: the legal encounter, or the diagnostics that refuse it.
-#[wasm_bindgen]
-pub fn plan_encounter(
-    map_json: &str,
-    sites_json: &str,
-    rules_json: &str,
-    recipe_json: &str,
-    encounter_seed: &str,
-) -> String {
-    sim::encounter::plan_encounter_json(
-        map_json,
-        sites_json,
-        rules_json,
-        recipe_json,
-        encounter_seed,
-    )
 }
 
 /// Check a battle preparation request (`contract::preparation::
@@ -440,15 +399,21 @@ impl FlightLab {
             target_velocity: v3_of(target_velocity)?,
         };
         let arc_name = |a: ArcKind| format!("{a:?}").to_lowercase();
-        let out = match prepare_launch(
-            &self.world,
-            &self.config,
-            &profile,
-            &aim,
-            scatter_mrad,
-            &mut self.rng,
-            None,
-        ) {
+        let launched = solve_launch_past(&self.world, &self.config, &profile, &aim, None).and_then(
+            |intended| {
+                launch_along(
+                    &self.world,
+                    &self.config,
+                    &profile,
+                    &aim,
+                    &intended,
+                    scatter_mrad,
+                    &mut self.rng,
+                    None,
+                )
+            },
+        );
+        let out = match launched {
             Ok((launch, s)) => {
                 let id = self.store.launch(launch);
                 self.rounds.insert(id, power);
@@ -904,46 +869,6 @@ impl PreparedWorld {
 
     pub fn extents(&self) -> String {
         serde_json::to_string(&self.map.extents()).expect("finite map extents")
-    }
-
-    pub fn plan_encounter(
-        &self,
-        sites_json: &str,
-        recipe_json: &str,
-        encounter_seed: &str,
-    ) -> String {
-        use contract::encounter::{
-            EncounterDiagnostic, EncounterDiagnosticCode as Code, EncounterOutcome,
-        };
-        let run = || {
-            let read = |error: serde_json::Error, code, location: &str| {
-                vec![EncounterDiagnostic {
-                    code,
-                    feature: None,
-                    location: location.into(),
-                    message: error.to_string(),
-                }]
-            };
-            let sites = serde_json::from_str(sites_json)
-                .map_err(|e| read(e, Code::InvalidSites, "$.sites"))?;
-            let recipe = serde_json::from_str(recipe_json)
-                .map_err(|e| read(e, Code::InvalidRecipe, "$.recipe"))?;
-            let seed = serde_json::from_value(serde_json::Value::String(encounter_seed.into()))
-                .map_err(|e| read(e, Code::InvalidRequest, "$.encounter_seed"))?;
-            sim::encounter::plan_encounter(
-                &self.prepared.queries(&self.map, &sites),
-                &self.rules,
-                &recipe,
-                seed,
-            )
-        };
-        let outcome = match run() {
-            Ok(encounter) => EncounterOutcome::Ok {
-                encounter: Box::new(encounter),
-            },
-            Err(diagnostics) => EncounterOutcome::Error { diagnostics },
-        };
-        serde_json::to_string(&outcome).expect("encounter outcome serializes")
     }
 
     pub fn into_battle(self, scenario_json: &str, seed: f64) -> Result<BattleHandle, JsError> {

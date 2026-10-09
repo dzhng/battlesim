@@ -353,14 +353,7 @@ fn catalogue(descriptors_json: &str) -> Result<TemplateGeometryCatalog, Vec<Diag
     TemplateGeometryCatalog::new(descriptors).map_err(invalid)
 }
 
-pub fn compile_json(
-    request_json: &str,
-    descriptors_json: &str,
-) -> Result<String, serde_json::Error> {
-    serde_json::to_string(&compile(request_json, descriptors_json))
-}
-
-/// The CLI and Wasm boundaries emit this same record.
+/// The CLI's `generate` record.
 #[derive(Debug, Serialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum GenerateOutcome {
@@ -537,20 +530,6 @@ pub fn generate_with_plan(
         }],
     })?;
     Ok((request.plan, compiled))
-}
-
-pub fn generate_plan_json(
-    request_json: &str,
-    presets_json: &str,
-    descriptors_json: &str,
-    rules_json: &str,
-) -> Result<String, serde_json::Error> {
-    serde_json::to_string(&generate_plan(
-        request_json,
-        presets_json,
-        descriptors_json,
-        rules_json,
-    ))
 }
 
 pub fn generate_map_json(

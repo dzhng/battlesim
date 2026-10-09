@@ -687,7 +687,7 @@ fn every_round_meets_the_same_capsules_and_shell_whatever_it_was_aimed_at() {
     );
     let prop = world.prop(BUILDING).unwrap().clone();
     let r: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
-    let slot = sim::garrison::building_seats(world.building(prop.id).unwrap(), &r)[1]; // east facade
+    let slot = sim::garrison::seats_for_state(&world, &prop, &r)[1]; // east facade
     let beyond = v3(CENTRE[0] - 60.0, slot.position.y, 0.0);
     let body =
         |id: u32, unit: u32, at| common::Mover::standing(id, unit, common::soldier_shape(), at);

@@ -132,11 +132,8 @@ fn a_cleared_lane_reads_as_open_ground() {
     assert!(!w.surface_at(on.x, on.y).unwrap().forest);
     assert!(w.surface_at(off.x, off.y).unwrap().forest);
     // Sensing: no concealment, and no foliage along the lane.
-    assert_eq!(
-        sim::sensing::concealment_multiplier(true, &w, on.with_z(0.0)),
-        1.0
-    );
-    assert!(sim::sensing::concealment_multiplier(true, &w, off.with_z(0.0)) < 1.0);
+    assert_eq!(w.forest_concealment(true, on.x, on.y), 1.0);
+    assert!(w.forest_concealment(true, off.x, off.y) < 1.0);
     let along = |y: f64| w.foliage_depth(v3(35.0, y, 1.5), v3(230.0, y, 1.5));
     assert_eq!(along(60.0), 0.0);
     assert!(along(80.0) > 0.5);

@@ -64,18 +64,8 @@ pub enum NoSolution {
 }
 
 /// Solve the weapon's preferred usable arc: low only for direct fire; the
-/// high arc first for indirect fire, falling back to the low arc.
-pub fn solve_launch(
-    world: &WorldGeometry,
-    config: &FlightConfig,
-    profile: &LaunchProfile,
-    aim: &Aim,
-) -> Result<FiringSolution, NoSolution> {
-    solve_launch_past(world, config, profile, aim, None)
-}
-
-/// [`solve_launch`] flying through `past`, the body a soldier fires from
-/// behind.
+/// high arc first for indirect fire, falling back to the low arc. The arc
+/// flies through `past`, the body a soldier fires from behind.
 pub fn solve_launch_past(
     world: &WorldGeometry,
     config: &FlightConfig,
@@ -517,39 +507,6 @@ pub fn scatter_aim(origin: V3, aim: V3, scatter_mrad: f64, rng: &mut Rng) -> V3 
     };
     let up = right.cross(forward);
     aim + right * (range * libm::tan(across)) + up * (range * libm::tan(vertical))
-}
-
-/// The one way a round is launched: solve the intended aim (a weapon that
-/// cannot reach or is blocked does not fire), then [`launch_along`] it.
-pub fn prepare_launch(
-    world: &WorldGeometry,
-    config: &FlightConfig,
-    profile: &LaunchProfile,
-    aim: &Aim,
-    scatter_mrad: f64,
-    rng: &mut Rng,
-    shooter: Option<Shooter>,
-) -> Result<(Launch, FiringSolution), NoSolution> {
-    let intended = solve_launch_past(
-        world,
-        config,
-        profile,
-        aim,
-        shooter.and_then(|s| match s.cover {
-            Some(super::Struck::Prop(id)) => Some(id),
-            _ => None,
-        }),
-    )?;
-    launch_along(
-        world,
-        config,
-        profile,
-        aim,
-        &intended,
-        scatter_mrad,
-        rng,
-        shooter,
-    )
 }
 
 /// Launch a round on an arc already solved for `aim` (clear, or blocked by a

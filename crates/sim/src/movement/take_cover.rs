@@ -212,7 +212,7 @@ impl<'a> Fight<'a> {
     /// The lean points round `body`, when it is taller than his muzzle,
     /// from which a soldier at `p` fights.
     fn leans(&self, p: V2, body: Option<&Body>, stands: &impl Fn(V2) -> bool) -> Vec<Lean> {
-        let r = self.ctx.soldier_radius_m;
+        let r = self.ctx.rules.physics.soldier_radius_m;
         let muzzle = ground(self.ctx, p) + self.ctx.rules.physics.infantry_muzzle_m;
         let tall = body.filter(|b| b.top > muzzle);
         match tall.and_then(|b| Some((b, b.round()?))) {
@@ -287,7 +287,7 @@ fn known<'a>(
         .filter(|b| b.vehicle.is_some())
         .map(|b| b.rect)
         .collect();
-    let r = ctx.soldier_radius_m;
+    let r = ctx.rules.physics.soldier_radius_m;
     let stands = move |p: V2| {
         let solid = |q: &Prop| q.blocks(MoverClass::Infantry) && knows(q);
         arrangement::standing_room(ctx.world, p, r, &solid)
@@ -337,15 +337,22 @@ fn offers(
     fight: Option<&Fight>,
     area: Area,
 ) -> Vec<Place> {
-    let (c, r) = (&ctx.rules.cover, ctx.soldier_radius_m);
-    cover::spots(known, threat.at, c, r, ctx.infantry.spacing_m, stands)
-        .into_iter()
-        .filter(|s| area.holds(s.at) && unwedged(ctx, side, known, s))
-        .map(|s| match fight {
-            Some(f) => f.place(s.at, Some(s.tier), s.body.map(|i| &known.bodies[i]), stands),
-            None => Place::quiet(s.at, Some(s.tier)),
-        })
-        .collect()
+    let (c, r) = (&ctx.rules.cover, ctx.rules.physics.soldier_radius_m);
+    cover::spots(
+        known,
+        threat.at,
+        c,
+        r,
+        ctx.rules.infantry_movement.spacing_m,
+        stands,
+    )
+    .into_iter()
+    .filter(|s| area.holds(s.at) && unwedged(ctx, side, known, s))
+    .map(|s| match fight {
+        Some(f) => f.place(s.at, Some(s.tier), s.body.map(|i| &known.bodies[i]), stands),
+        None => Place::quiet(s.at, Some(s.tier)),
+    })
+    .collect()
 }
 
 /// Whether a soldier at `spot` stands the cover's standoff clear of every
@@ -355,7 +362,7 @@ fn offers(
 /// mouth shuts out the next. A body flush with his cover's face (the next
 /// length of a wall) stands as far off as the cover, up to rounding.
 fn unwedged(ctx: &MovementContext, side: &SideGeometry, known: &Known, spot: &cover::Spot) -> bool {
-    let clear = ctx.soldier_radius_m + ctx.rules.cover.standoff_m - FLUSH_M;
+    let clear = ctx.rules.physics.soldier_radius_m + ctx.rules.cover.standoff_m - FLUSH_M;
     let behind = spot.body.map(|i| &known.bodies[i]);
     let props = ctx.world.props_near(spot.at, clear);
     let mut solids = props
@@ -380,7 +387,7 @@ fn place_at(
     fight: Option<&Fight>,
     p: V2,
 ) -> Place {
-    let (c, r) = (&ctx.rules.cover, ctx.soldier_radius_m);
+    let (c, r) = (&ctx.rules.cover, ctx.rules.physics.soldier_radius_m);
     let tier = known.tier(p, threat, c, r);
     match fight {
         Some(f) => f.place(p, tier, known.cover_body(p, threat, c, r), stands),
@@ -397,7 +404,12 @@ fn covering_vehicles(
 ) -> Vec<(UnitId, V2)> {
     let mut out: Vec<(UnitId, V2)> = Vec::new();
     for &p in places {
-        let id = known.vehicle(p, threat, &ctx.rules.cover, ctx.soldier_radius_m);
+        let id = known.vehicle(
+            p,
+            threat,
+            &ctx.rules.cover,
+            ctx.rules.physics.soldier_radius_m,
+        );
         if let Some(id) = id.filter(|id| out.iter().all(|(o, _)| o != id)) {
             if let Some(b) = known.bodies.iter().find(|b| b.vehicle == Some(id)) {
                 out.push((id, b.rect.center));
@@ -446,8 +458,8 @@ pub(super) fn at_order(
     spots: &mut [V2],
 ) -> Vec<(Option<Tier>, Option<Lean>)> {
     let c = &ctx.rules.cover;
-    let r = ctx.soldier_radius_m;
-    let spacing = ctx.infantry.spacing_m;
+    let r = ctx.rules.physics.soldier_radius_m;
+    let spacing = ctx.rules.infantry_movement.spacing_m;
     let threat = order_threat(ctx, unit, field, from, end);
     let area = Area::of(ctx, unit, end);
     let (known, stands) = known(
@@ -497,7 +509,7 @@ pub(super) fn at_order(
         }
         let apart = |p: V2, placed: &[V2]| placed.iter().all(|q| (*q - p).length() >= spacing);
         if !apart(spots[k], &placed) {
-            let reach = 2.0 * arrangement::spread(ctx.infantry, spots.len());
+            let reach = 2.0 * arrangement::spread(&ctx.rules.infantry_movement, spots.len());
             spots[k] = arrangement::nearest_free(spots[k], reach, |p| {
                 apart(p, &placed)
                     && stands(p)
@@ -546,7 +558,7 @@ pub(super) fn arrive(unit: &mut Unit, end: V2) {
 /// A holding squad keeps its cover current (D5, Q11): see the module.
 pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, field: &Field) {
     let c = &ctx.rules.cover;
-    let every = (c.reresolve_s * ctx.tick_hz as f64).round().max(1.0) as u64;
+    let every = (c.reresolve_s * ctx.rules.tick_hz as f64).round().max(1.0) as u64;
     let w = &unit.cover;
     if ctx.tick.saturating_sub(w.resolved_at) < every {
         return;
@@ -609,7 +621,7 @@ fn resolve(
     threat: &Threat,
     area: Area,
 ) {
-    let spacing = ctx.infantry.spacing_m;
+    let spacing = ctx.rules.infantry_movement.spacing_m;
     let living: Vec<usize> = (0..unit.members.len())
         .filter(|&k| unit.members[k].alive())
         .collect();
@@ -649,7 +661,12 @@ fn resolve(
             // Outside the area: back inside, to the nearest free standing room.
             None => {
                 let p = into_area(ctx, area, from[k], &places, &stands);
-                let tier = known.tier(p, threat.at, &ctx.rules.cover, ctx.soldier_radius_m);
+                let tier = known.tier(
+                    p,
+                    threat.at,
+                    &ctx.rules.cover,
+                    ctx.rules.physics.soldier_radius_m,
+                );
                 (p, tier, None, false)
             }
         });
@@ -698,7 +715,7 @@ fn into_area(
     } else {
         p
     };
-    let spacing = ctx.infantry.spacing_m / 2.0;
+    let spacing = ctx.rules.infantry_movement.spacing_m / 2.0;
     arrangement::nearest_free(edge, area.radius, |q| {
         area.holds(q) && stands(q) && placed.iter().all(|o| (o.0 - q).length() >= spacing)
     })
@@ -723,8 +740,8 @@ fn step_out(
     sat_out: &mut [Option<cover::SatOut>],
 ) {
     let solid = |q: &Prop| q.blocks(MoverClass::Infantry) && side.knows(q, ctx.authored);
-    let (c, r) = (&ctx.rules.cover, ctx.soldier_radius_m);
-    let apart = ctx.infantry.spacing_m;
+    let (c, r) = (&ctx.rules.cover, ctx.rules.physics.soldier_radius_m);
+    let apart = ctx.rules.infantry_movement.spacing_m;
     for k in 0..places.len() {
         let (place, _, _, engages) = places[k];
         if engages {

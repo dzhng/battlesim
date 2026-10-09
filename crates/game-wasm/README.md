@@ -5,7 +5,7 @@ JavaScript. [The binding source](src/lib.rs) owns exported calls; rule and
 admission implementations stay in [simulation](../sim/README.md),
 [contract](../contract/README.md) and [mapgen](../mapgen/README.md).
 
-Preparation admits maps and encounters through those same native owners. A plain
+Preparation admits maps and skirmish placement through those same native owners. A plain
 world supplies geometry exports and physical queries for page drawing and picking;
 it is not a second running battle. [Browser preparation](../../web/README.md#authority-and-preparation)
 keeps expensive construction in its owned worker and adopts that prepared world

@@ -86,12 +86,6 @@ pub fn eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
     }
 }
 
-/// Detection-range multiplier for a target standing at `at`: 1 in the open
-/// or on cleared ground, its forest class multiplier on forest ground (Q21).
-pub fn concealment_multiplier(infantry: bool, world: &WorldGeometry, at: V3) -> f64 {
-    world.forest_concealment(infantry, at.x, at.y)
-}
-
 /// How far sight of directional `range` reaches through foliage of `depth`
 /// (Q21): attenuated continuously, `None` once the foliage blocks outright.
 pub fn foliage_reach(range: f64, depth: f64, s: &SensorRules) -> Option<f64> {
@@ -154,7 +148,8 @@ fn samples(unit: &Unit) -> Vec<(Option<usize>, V3)> {
 fn target_concealment(world: &WorldGeometry, target: &Unit, at: V3, rules: &Rules) -> f64 {
     let s = &rules.sensors;
     let shelter = crate::garrison::shelter(target, rules);
-    concealment_multiplier(target.hull.is_none(), world, at)
+    world
+        .forest_concealment(target.hull.is_none(), at.x, at.y)
         .min(1.0 + (s.building_range_multiplier - 1.0) * shelter)
 }
 

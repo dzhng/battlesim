@@ -2,7 +2,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import { initSync, generate_map, generate_map_plan } from "@wasm/game_wasm.js";
+import { initSync, generate_map } from "@wasm/game_wasm.js";
 import { WHOLE_MAP_MS } from "./support/wholeMap";
 
 const fixture = (path: string) =>
@@ -21,45 +21,29 @@ beforeAll(() => {
 
 type Record = { name: string; command: string; request_json: string; native_sha256: string };
 const cases: Record[] = JSON.parse(fixture("parity/map-layout/paired-records.json")).cases;
+// The browser generates whole maps; the CLI's plan-only records are native.
+const maps = cases.filter((c) => c.command === "generate-map");
 const recordedRules = fixture("parity/map-layout/physical-rules.json");
 
-test.each(cases)(
+test.each(maps)(
   "$name: native CLI and WASM agree on bytes or refusal",
   (record) => {
-    const generate = record.command === "generate-map" ? generate_map : generate_map_plan;
-    const outcome = generate(record.request_json, presets, templates, recordedRules);
+    const outcome = generate_map(record.request_json, presets, templates, recordedRules);
     expect(createHash("sha256").update(outcome).digest("hex")).toBe(record.native_sha256);
   },
   WHOLE_MAP_MS,
 );
 
 test(
-  "a generated map carries the plan's ground and buildings and none of its plan-only layers",
+  "a generated map carries its streets and buildings and none of the plan-only layers",
   () => {
-    const record = cases.find(
-      (c) => c.command === "generate-map" && c.name.includes("metro medium"),
-    )!;
-    const plan = JSON.parse(generate_map_plan(record.request_json, presets, templates, rules)).plan;
+    const record = maps.find((c) => c.name.includes("metro medium"))!;
     const map = JSON.parse(generate_map(record.request_json, presets, templates, rules)).result.map;
     expect(map.size).toEqual([6000, 6000]);
-    expect(map.surfaces).toEqual(plan.surfaces);
-    expect(map.forests).toEqual(plan.forests);
-    // The plan's streets and its buildings reach the map: each building is the
-    // plan row's template in the plan row's frame.
-    expect(plan.surfaces.filter((s: { kind: string }) => s.kind === "road").length).toBeGreaterThan(
+    expect(map.surfaces.filter((s: { kind: string }) => s.kind === "road").length).toBeGreaterThan(
       100,
     );
-    expect(plan.buildings.length).toBeGreaterThan(1000);
-    expect(
-      map.buildings.map((b: { geometry: { template_id: string; frame: unknown } }) => [
-        b.geometry.template_id,
-        b.geometry.frame,
-      ]),
-    ).toEqual(
-      plan.buildings.map((b: { template_id: string; frame: unknown }) => [b.template_id, b.frame]),
-    );
-    expect(plan.settlements.length).toBeGreaterThan(0);
-    expect(plan.lots.length).toBeGreaterThanOrEqual(plan.buildings.length);
+    expect(map.buildings.length).toBeGreaterThan(1000);
     for (const layer of ["settlements", "approaches", "lots"]) {
       expect(Object.keys(map)).not.toContain(layer);
     }
@@ -68,15 +52,12 @@ test(
 );
 
 test(
-  "a generated river and the bridges over it reach the map as the plan wrote them",
+  "a generated river and the bridges over it reach the map",
   () => {
-    const record = cases.find((c) => c.command === "generate-map" && c.name.includes("river"))!;
-    const plan = JSON.parse(generate_map_plan(record.request_json, presets, templates, rules)).plan;
+    const record = maps.find((c) => c.name.includes("river"))!;
     const map = JSON.parse(generate_map(record.request_json, presets, templates, rules)).result.map;
-    expect(plan.rivers.length).toBe(1);
-    expect(plan.bridges.length).toBeGreaterThan(0);
-    expect(map.rivers).toEqual(plan.rivers);
-    expect(map.bridges).toEqual(plan.bridges);
+    expect(map.rivers.length).toBe(1);
+    expect(map.bridges.length).toBeGreaterThan(0);
   },
   WHOLE_MAP_MS,
 );

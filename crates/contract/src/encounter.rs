@@ -657,8 +657,6 @@ pub struct EncounterDefinition {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EncounterDiagnosticCode {
-    /// The request itself cannot be read (JSON, a seed, the map).
-    InvalidRequest,
     /// The recipe names a unit type the catalog lacks, posts a row where
     /// its type cannot stand, or holds a number out of range.
     InvalidRecipe,
@@ -694,18 +692,6 @@ pub struct EncounterDiagnostic {
     pub feature: Option<String>,
     pub location: String,
     pub message: String,
-}
-
-/// The native and Wasm boundaries emit this same record.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "status", rename_all = "snake_case")]
-pub enum EncounterOutcome {
-    Ok {
-        encounter: Box<EncounterDefinition>,
-    },
-    Error {
-        diagnostics: Vec<EncounterDiagnostic>,
-    },
 }
 
 /// The unit vector of a bearing, counter-clockwise from +X. One software
