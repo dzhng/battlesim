@@ -42,6 +42,9 @@
   godot-rust 0.5.5 `api-4-7`, with an extension-owned `Node` and no simulation
   methods yet. It compiles for the target Mac; simulation transfer remains a
   later measured step rather than being hidden behind a fake API.
+- The GDExtension smoke loads in Godot 4.7.2 headless and prints
+  `rust-simulation-probe 0.1.0`; this validates the loader, entry symbol and
+  Rust-owned node lifecycle. It does not yet prove simulation transfer.
 - The existing `game-wasm::BattleHandle` already exposes the required seam
   concepts: ordered commands, fixed stepping, side publication, digest,
   replay and observation resync. Native work should reuse those simulation
