@@ -7,7 +7,7 @@
 
 Finish slice 01's browser report and lifecycle, then freeze canonical presentation playback before comparing engines. The route exists but lacks a verified full run, complete workload identity, capture/export and visual gates. Slice 02's same-input GDExtension parity and IPC probe now pass; next, record the candidate evidence and build the benchmark-only presentation capture seam. Cubes and headless smoke are not rendering-performance evidence. Keep `/benchmark` unchanged.
 
-Evidence: focused recording/router/reel/capture tests, TypeScript, production build, and the route smoke pass. A real browser run also proved cancellation and report metadata. Native replay/side-filter parity and IPC measurement pass. Full browser/Godot capture, visual comparison and performance verdict remain open.
+Evidence: focused recording/router/reel/capture tests, TypeScript, production build, and the route smoke pass. A real browser run completed both menu scenes (156 seconds) and emitted the full report; the shared preview was background-throttled to about 1 Hz, so that run is lifecycle evidence only, not FPS evidence. Native replay/side-filter parity and IPC measurement pass. Frozen browser capture, visual comparison and performance verdict remain open.
 
 ## Goal
 
