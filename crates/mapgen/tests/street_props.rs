@@ -1,6 +1,8 @@
 //! Street furniture (C46), judged by where the bodies stand and by what the
 //! simulation's own navigation makes of them. Geometry here is checked with
 //! its own arithmetic, not the generator's.
+#[path = "common/admitted.rs"]
+mod admitted;
 #[path = "common/halves.rs"]
 mod halves;
 #[path = "common/limits.rs"]
@@ -1474,8 +1476,9 @@ fn courts_and_gardens_keep_off_the_woods_that_certify_sight() {
 
 /// The regions a map is generated in.
 const REGIONS: [&str; 3] = ["china", "new_york", "paris"];
-/// The structure sweep runs every type, size and region on these seeds.
-const FILL_SEEDS: [u64; 3] = [1, 2, 3];
+/// The structure sweep runs every type, size and region on this many
+/// admitted seeds.
+const FILL_SEEDS: usize = 3;
 /// Court paving is open farther than this from every body, building wall,
 /// carriageway and lawn: a stretch of bare floor wider than a street with
 /// its verges, which reads as an empty plaza.
@@ -1612,7 +1615,7 @@ fn courts_are_structured_and_lawns_dressed_rather_than_left_open() {
     // Each map tallies its own, side by side; the sums are taken in order.
     type Tally<'a> = BTreeMap<(&'a str, String, bool), [usize; 2]>;
     type Lawns<'a> = BTreeMap<(&'a str, bool), [usize; 2]>;
-    let cases: Vec<(&str, MapType, MapSize, u64)> = REGIONS
+    let groups: Vec<(&str, MapType, MapSize)> = REGIONS
         .into_iter()
         .flat_map(|region| {
             MapType::ALL
@@ -1622,146 +1625,144 @@ fn courts_are_structured_and_lawns_dressed_rather_than_left_open() {
         .flat_map(|(region, map_type)| {
             [MapSize::Medium, MapSize::Large, MapSize::Xl]
                 .into_iter()
-                .flat_map(move |size| {
-                    FILL_SEEDS
-                        .into_iter()
-                        .map(move |seed| (region, map_type, size, seed))
-                })
+                .map(move |size| (region, map_type, size))
         })
         .collect();
-    let answers = parallel::each(&cases, |&(region, map_type, size, seed)| {
-        let mut tally = Tally::new();
-        let mut lawns = Lawns::new();
-        let mut request = request(map_type, size, seed);
-        request.region = Some(region.into());
-        let (plan, result) = mapgen::generate_with_plan(
-            &serde_json::to_string(&request).unwrap(),
-            PRESETS,
-            TEMPLATES,
-            &game().to_string(),
-        )
-        .unwrap_or_else(|failure| panic!("{:?}", failure.diagnostics));
-        let mut near = Raster::new(plan.size);
-        let mut road = Raster::new(plan.size);
-        for prop in &plan.props {
-            let p = &prop.geometry;
-            let half = [p.half_extents[0], p.half_extents[1]];
-            near.mark_box(p.center, p.yaw, half, OPEN_M);
-        }
-        for part in result.map.buildings.iter().flat_map(|b| &b.geometry.parts) {
-            let half = [part.half_extents[0], part.half_extents[1]];
-            near.mark_box(part.center, part.yaw, half, OPEN_M);
-        }
-        for area in plan.surfaces.iter().filter(|area| area.kind.is_road()) {
-            if let GroundShape::Stroke {
-                centerline,
-                width_m,
-            } = &area.shape
-            {
-                for pair in centerline.samples().windows(2) {
-                    near.mark_segment(pair[0], pair[1], width_m / 2.0 + OPEN_M);
-                    road.mark_segment(pair[0], pair[1], width_m / 2.0);
-                }
+    let answers = parallel::each(&groups, |&(region, map_type, size)| {
+        admitted::admitted(1.., FILL_SEEDS, |seed| {
+            let mut tally = Tally::new();
+            let mut lawns = Lawns::new();
+            let mut request = request(map_type, size, seed);
+            request.region = Some(region.into());
+            let (plan, result) = mapgen::generate_with_plan(
+                &serde_json::to_string(&request).unwrap(),
+                PRESETS,
+                TEMPLATES,
+                &game().to_string(),
+            )
+            .map_err(|failure| failure.diagnostics)?;
+            let mut near = Raster::new(plan.size);
+            let mut road = Raster::new(plan.size);
+            for prop in &plan.props {
+                let p = &prop.geometry;
+                let half = [p.half_extents[0], p.half_extents[1]];
+                near.mark_box(p.center, p.yaw, half, OPEN_M);
             }
-        }
-        let bound = result.report.authored_parts >= request.limits.max_authored_parts;
-        let mut paved = Raster::new(plan.size);
-        let mut cells: Vec<(String, i64, i64)> = Vec::new();
-        let kinds = district_kinds(&plan);
-        for court in &plan.courts {
-            let kind = kinds[court.district.as_str()];
-            // A path is paving the lawn is judged by, not a court.
-            let path = matches!(
-                court.kind,
-                mapgen::CourtKind::Path | mapgen::CourtKind::Lane
-            );
-            paved.mark_ring(&court.ring, |column, row| {
-                if !path {
-                    cells.push((kind.to_string(), column, row))
-                }
-            });
-        }
-        let mut dense = Raster::new(plan.size);
-        for district in plan.settlements.iter().flat_map(|s| &s.districts) {
-            if COURT_DISTRICTS.contains(&district.kind.as_str()) {
-                dense.mark_ring(&district.ring, |_, _| ());
+            for part in result.map.buildings.iter().flat_map(|b| &b.geometry.parts) {
+                let half = [part.half_extents[0], part.half_extents[1]];
+                near.mark_box(part.center, part.yaw, half, OPEN_M);
             }
-        }
-        let lawn = |column: i64, row: i64| {
-            dense.at(column, row) && !paved.at(column, row) && !road.at(column, row)
-        };
-        // The lawn: empty where farther than `EMPTY_LAWN_M` from
-        // every body, building wall, carriageway and paved area
-        // (a court, a path, an apron).
-        let mut filled = Raster::new(plan.size);
-        for prop in &plan.props {
-            let p = &prop.geometry;
-            let half = [p.half_extents[0], p.half_extents[1]];
-            filled.mark_box(p.center, p.yaw, half, EMPTY_LAWN_M);
-        }
-        for part in result.map.buildings.iter().flat_map(|b| &b.geometry.parts) {
-            let half = [part.half_extents[0], part.half_extents[1]];
-            filled.mark_box(part.center, part.yaw, half, EMPTY_LAWN_M);
-        }
-        for area in &plan.surfaces {
-            match &area.shape {
-                GroundShape::Stroke {
+            for area in plan.surfaces.iter().filter(|area| area.kind.is_road()) {
+                if let GroundShape::Stroke {
                     centerline,
                     width_m,
-                } if area.kind.is_road() => {
+                } = &area.shape
+                {
                     for pair in centerline.samples().windows(2) {
-                        filled.mark_segment(pair[0], pair[1], width_m / 2.0 + EMPTY_LAWN_M);
-                    }
-                }
-                GroundShape::Polygon { ring } if area.kind == SurfaceKind::Paving => {
-                    for (a, b) in contract::ground::edges(ring) {
-                        filled.mark_segment(*a, *b, EMPTY_LAWN_M);
-                    }
-                }
-                _ => {}
-            }
-        }
-        for district in plan.settlements.iter().flat_map(|s| &s.districts) {
-            if !COURT_DISTRICTS.contains(&district.kind.as_str()) {
-                continue;
-            }
-            let entry = lawns.entry((region, bound)).or_insert([0, 0]);
-            let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
-            for row in (y0 / FILL_STEP_M).ceil() as i64..=(y1 / FILL_STEP_M) as i64 {
-                for column in (x0 / FILL_STEP_M).ceil() as i64..=(x1 / FILL_STEP_M) as i64 {
-                    let p = [column as f64 * FILL_STEP_M, row as f64 * FILL_STEP_M];
-                    if !polygon_contains(&district.ring, p) || !lawn(column, row) {
-                        continue;
-                    }
-                    entry[1] += 1;
-                    if !filled.at(column, row) {
-                        entry[0] += 1;
+                        near.mark_segment(pair[0], pair[1], width_m / 2.0 + OPEN_M);
+                        road.mark_segment(pair[0], pair[1], width_m / 2.0);
                     }
                 }
             }
-        }
-        let reach = (OPEN_M / FILL_STEP_M) as i64;
-        cells.sort();
-        cells.dedup();
-        for (kind, column, row) in cells {
-            let entry = tally.entry((region, kind, bound)).or_insert([0, 0]);
-            entry[1] += 1;
-            if near.at(column, row) {
-                continue;
+            let bound = result.report.authored_parts >= request.limits.max_authored_parts;
+            let mut paved = Raster::new(plan.size);
+            let mut cells: Vec<(String, i64, i64)> = Vec::new();
+            let kinds = district_kinds(&plan);
+            for court in &plan.courts {
+                let kind = kinds[court.district.as_str()];
+                // A path is paving the lawn is judged by, not a court.
+                let path = matches!(
+                    court.kind,
+                    mapgen::CourtKind::Path | mapgen::CourtKind::Lane
+                );
+                paved.mark_ring(&court.ring, |column, row| {
+                    if !path {
+                        cells.push((kind.to_string(), column, row))
+                    }
+                });
             }
-            let by_lawn = (-reach..=reach).any(|dy| {
-                (-reach..=reach).any(|dx| {
-                    (dx * dx + dy * dy) as f64 * FILL_STEP_M * FILL_STEP_M <= OPEN_M * OPEN_M
-                        && lawn(column + dx, row + dy)
-                })
-            });
-            if !by_lawn {
-                entry[0] += 1;
+            let mut dense = Raster::new(plan.size);
+            for district in plan.settlements.iter().flat_map(|s| &s.districts) {
+                if COURT_DISTRICTS.contains(&district.kind.as_str()) {
+                    dense.mark_ring(&district.ring, |_, _| ());
+                }
             }
-        }
-        (tally, lawns)
+            let lawn = |column: i64, row: i64| {
+                dense.at(column, row) && !paved.at(column, row) && !road.at(column, row)
+            };
+            // The lawn: empty where farther than `EMPTY_LAWN_M` from
+            // every body, building wall, carriageway and paved area
+            // (a court, a path, an apron).
+            let mut filled = Raster::new(plan.size);
+            for prop in &plan.props {
+                let p = &prop.geometry;
+                let half = [p.half_extents[0], p.half_extents[1]];
+                filled.mark_box(p.center, p.yaw, half, EMPTY_LAWN_M);
+            }
+            for part in result.map.buildings.iter().flat_map(|b| &b.geometry.parts) {
+                let half = [part.half_extents[0], part.half_extents[1]];
+                filled.mark_box(part.center, part.yaw, half, EMPTY_LAWN_M);
+            }
+            for area in &plan.surfaces {
+                match &area.shape {
+                    GroundShape::Stroke {
+                        centerline,
+                        width_m,
+                    } if area.kind.is_road() => {
+                        for pair in centerline.samples().windows(2) {
+                            filled.mark_segment(pair[0], pair[1], width_m / 2.0 + EMPTY_LAWN_M);
+                        }
+                    }
+                    GroundShape::Polygon { ring } if area.kind == SurfaceKind::Paving => {
+                        for (a, b) in contract::ground::edges(ring) {
+                            filled.mark_segment(*a, *b, EMPTY_LAWN_M);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            for district in plan.settlements.iter().flat_map(|s| &s.districts) {
+                if !COURT_DISTRICTS.contains(&district.kind.as_str()) {
+                    continue;
+                }
+                let entry = lawns.entry((region, bound)).or_insert([0, 0]);
+                let [x0, y0, x1, y1] = contract::ground::limits(&district.ring, 0.0);
+                for row in (y0 / FILL_STEP_M).ceil() as i64..=(y1 / FILL_STEP_M) as i64 {
+                    for column in (x0 / FILL_STEP_M).ceil() as i64..=(x1 / FILL_STEP_M) as i64 {
+                        let p = [column as f64 * FILL_STEP_M, row as f64 * FILL_STEP_M];
+                        if !polygon_contains(&district.ring, p) || !lawn(column, row) {
+                            continue;
+                        }
+                        entry[1] += 1;
+                        if !filled.at(column, row) {
+                            entry[0] += 1;
+                        }
+                    }
+                }
+            }
+            let reach = (OPEN_M / FILL_STEP_M) as i64;
+            cells.sort();
+            cells.dedup();
+            for (kind, column, row) in cells {
+                let entry = tally.entry((region, kind, bound)).or_insert([0, 0]);
+                entry[1] += 1;
+                if near.at(column, row) {
+                    continue;
+                }
+                let by_lawn = (-reach..=reach).any(|dy| {
+                    (-reach..=reach).any(|dx| {
+                        (dx * dx + dy * dy) as f64 * FILL_STEP_M * FILL_STEP_M <= OPEN_M * OPEN_M
+                            && lawn(column + dx, row + dy)
+                    })
+                });
+                if !by_lawn {
+                    entry[0] += 1;
+                }
+            }
+            Ok((tally, lawns))
+        })
     });
-    for (case_tally, case_lawns) in answers {
+    for (case_tally, case_lawns) in answers.into_iter().flatten().map(|(_, answer)| answer) {
         for (key, [open, all]) in case_tally {
             let entry = tally.entry(key).or_insert([0, 0]);
             entry[0] += open;
