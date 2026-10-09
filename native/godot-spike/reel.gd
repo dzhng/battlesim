@@ -506,6 +506,8 @@ func _update_observed_units() -> void:
 			break
 		chosen = frame
 	var units: Array = chosen.units
+	var capture_side := String(capture_results.get(scene.map, {}).get("capture", {}).get("side", "blue"))
+	var unit_color := Color("d95c5c") if capture_side == "red" else Color("4d9be6")
 	_update_fog_layer(scene.map, chosen.get("fog", {}))
 	while unit_nodes.size() < units.size():
 		var holder := Node3D.new()
@@ -515,7 +517,7 @@ func _update_observed_units() -> void:
 		capsule.height = 1.4
 		mesh.mesh = capsule
 		var material := StandardMaterial3D.new()
-		material.albedo_color = Color("4d9be6")
+		material.albedo_color = unit_color
 		mesh.material_override = material
 		mesh.position.y = 0.7
 		holder.add_child(mesh)
