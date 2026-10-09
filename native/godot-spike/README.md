@@ -33,3 +33,21 @@ the world is still the synthetic cube field, and its report sets
 For a short lifecycle check, run with `GODOT_REEL_TIME_SCALE=0.01` and write
 the report outside `user://` with
 `GODOT_REEL_REPORT=throwaway/godot-reel.json`.
+
+To exercise the authored-scene path, hydrate one scene asset with Git LFS and
+copy it into the Godot project (Godot imports `.glb` as a `PackedScene`):
+
+```text
+git lfs pull --include="assets/source/city/homes/kit.glb"
+mkdir -p native/godot-spike/authoring
+cp assets/source/city/homes/kit.glb native/godot-spike/authoring/homes-kit.glb
+GODOT_AUTHORED_SCENE=res://authoring/homes-kit.glb \
+  GODOT_PRESENTATION_CAPTURE=throwaway/browser-capture.json \
+  GODOT_REEL_REPORT=throwaway/godot-reel.json \
+  godot --headless --path native/godot-spike --scene res://reel.tscn --quit-after 600 --no-header
+```
+
+The copied asset is local evidence and stays outside the committed spike. The
+report records `authored_asset_loaded`, `capture_consumed` and the authored
+scene path; `comparison_ready` remains false until the asset is the actual
+menu-world composition rather than a single imported kit.
