@@ -202,7 +202,7 @@ func _build_map_geometry() -> void:
 		holder.name = "MapGeometry_%s" % map_name
 		holder.visible = map_name == String(scenes[0].map)
 		add_child(holder)
-		var counts := {"terrain": 0, "roads": 0, "props": 0, "buildings": 0}
+		var counts := {"terrain": 0, "forests": 0, "roads": 0, "props": 0, "buildings": 0}
 		var size: Array = map.get("size", [100.0, 100.0])
 		var ground := MeshInstance3D.new()
 		var ground_mesh := PlaneMesh.new()
@@ -241,6 +241,39 @@ func _build_map_geometry() -> void:
 				road.rotation.y = -atan2(end.y - start.y, end.x - start.x)
 				holder.add_child(road)
 				counts.roads += 1
+		for forest in map.get("forests", []):
+			if typeof(forest) != TYPE_DICTIONARY or typeof(forest.get("shape")) != TYPE_DICTIONARY:
+				continue
+			var forest_shape: Dictionary = forest.shape
+			if forest_shape.get("kind") != "polygon" or typeof(forest_shape.get("ring")) != TYPE_ARRAY:
+				continue
+			var ring: Array = forest_shape.ring
+			if ring.size() < 3:
+				continue
+			var min_x := INF
+			var max_x := -INF
+			var min_y := INF
+			var max_y := -INF
+			for point in ring:
+				if typeof(point) != TYPE_ARRAY or point.size() < 2:
+					continue
+				min_x = minf(min_x, float(point[0]))
+				max_x = maxf(max_x, float(point[0]))
+				min_y = minf(min_y, float(point[1]))
+				max_y = maxf(max_y, float(point[1]))
+			if not is_finite(min_x) or max_x <= min_x or max_y <= min_y:
+				continue
+			var forest_node := MeshInstance3D.new()
+			var forest_mesh := BoxMesh.new()
+			forest_mesh.size = Vector3(max_x - min_x, 0.04, max_y - min_y)
+			var forest_material := StandardMaterial3D.new()
+			forest_material.albedo_color = Color("304b3b")
+			forest_material.roughness = 1.0
+			forest_mesh.material = forest_material
+			forest_node.mesh = forest_mesh
+			forest_node.position = Vector3((min_x + max_x) * 0.5, -0.01, (min_y + max_y) * 0.5)
+			holder.add_child(forest_node)
+			counts.forests += 1
 		for building in map.get("buildings", []):
 			if building_limit > 0 and counts.buildings >= building_limit:
 				break
