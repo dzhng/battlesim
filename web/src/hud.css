@@ -1249,7 +1249,6 @@
 }
 .hud-purchase-controls,
 .hud-purchase-categories,
-.hud-purchase-variants,
 .hud-purchase-pending {
   display: flex;
   align-items: center;
@@ -1315,24 +1314,22 @@
 .hud-purchase-price.too-dear {
   color: rgb(var(--hud-warn));
 }
-/* A variant's diamond marks its name, the first of its lines (under the
-   button's 1 px border and 4 px padding). */
-.hud-panel .hud-purchase-variants button.hud-menu-choice::before {
-  top: calc(5px + 0.5lh);
-  margin-top: 0;
-}
 /* A family that can't be bought now (credits, slots, the battle over) is
-   dimmed as its variants are; a family never sold is dashed besides. */
+   dimmed as its variants' cards are; a family never sold is dashed besides.
+   An info card dims its words, never its plate: it stands over the picker. */
 .hud-panel button.hud-purchase-family.short,
-.hud-panel .hud-purchase-variants button:disabled {
+.hud-panel button.hud-purchase-info:disabled > * {
   opacity: 0.65;
+}
+.hud-panel button.hud-purchase-info:disabled {
+  opacity: 1;
 }
 .hud-purchase-price,
 .hud-purchase-pending small {
   font-size: 11px;
   color: rgb(var(--hud-text) / 0.7);
 }
-/* A family's variants, in a hover menu standing on the family's card (its
+/* A family's info cards, in a hover menu standing on the family's card (its
    top-left corner is the anchor), over the picker's header if need be. Its
    transparent foot is the bridge the pointer climbs to reach it. */
 .hud-purchase-flyout {
@@ -1341,27 +1338,40 @@
   transform: translateY(-100%);
   padding-bottom: 3px;
 }
-.hud-panel.hud-purchase-flyout-panel {
+/* One info card per variant, stacked, one width: the deck's info card (its
+   panel as the army card's hover draws it) with the price at its foot. */
+.hud-purchase-stack {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  /* The bridge's gap: one 3 px gap from card to card and down to the unit. */
+  gap: 3px;
   width: max-content;
-  padding: 8px 10px;
-  background: rgb(var(--hud-glass) / 0.96);
 }
-.hud-purchase-flyout-name {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgb(var(--hud-accent));
-}
-.hud-purchase-variants {
-  flex-wrap: wrap;
-  /* Variants are as tall as the tallest, their words top-aligned. */
+.hud-panel button.hud-purchase-info {
+  display: flex;
+  flex-direction: column;
   align-items: stretch;
+  gap: 6px;
+  padding: 10px 12px;
+  text-align: left;
+  background: rgb(var(--hud-glass) / 0.98);
 }
-.hud-purchase-variants button,
+.hud-panel button.hud-purchase-info:hover:not(:disabled),
+.hud-panel button.hud-purchase-info:focus-visible {
+  border-color: rgb(var(--hud-accent) / 0.8);
+}
+.hud-purchase-info-foot {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.hud-purchase-info-foot > .hud-purchase-price {
+  margin-left: auto;
+}
+.hud-purchase-info-foot small {
+  font-size: 10px;
+  color: rgb(var(--hud-text) / 0.7);
+}
 .hud-purchase-pending button {
   display: flex;
   flex-direction: column;
@@ -1413,9 +1423,6 @@
   font-size: 10px;
   letter-spacing: 0.14em;
   margin-bottom: 8px;
-}
-.hud-purchase-variants small {
-  font-size: 10px;
 }
 .hud-objective-flags > span {
   display: inline-flex;

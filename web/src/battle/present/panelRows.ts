@@ -12,7 +12,8 @@
  *  - A contact's panel (`contactPanel`): its remembered type's name and weapons,
  *    or UNKNOWN and what was heard, and how long ago. */
 import { stateIcon, weaponIcon, type StateIcon } from "@packages/scene-assets/src/icons";
-import type { MountRow, UnitCatalog } from "@packages/scene-assets/src/units";
+import type { MountRow, UnitCard, UnitCatalog } from "@packages/scene-assets/src/units";
+import type { SessionCatalog } from "../catalog/compose";
 import type { ContactView, MountView, OwnUnitView } from "../sim/observation";
 
 /** The rule blocks the panels read (the scenario's). */
@@ -403,6 +404,67 @@ export function ownPanel(
     mark: null,
     weapons: weaponRows(t.mounts, rules, u.mounts, t.capabilities.active_protection, u.protection),
     states: ownStateRows(units, u, own, rules),
+  };
+}
+
+/** A unit of `kind` as it arrives: idle, at full strength, every weapon
+ *  loaded full and its protection charged. What a purchase card shows of
+ *  its unit, and what the panel workbench's specimens start from. */
+export function arrivingUnit(catalog: SessionCatalog, kind: string): OwnUnitView {
+  const { units } = catalog;
+  const t = units.type(kind);
+  const protection = t.capabilities.active_protection;
+  return {
+    id: 1,
+    kind,
+    position: [0, 0, 0],
+    state: "idle",
+    suppression: "none",
+    concealed: false,
+    deployment: t.capabilities?.deploy ? { progress: 0, target: "packed" } : null,
+    garrison: null,
+    stock: t.capabilities?.supply ? t.capabilities.supply.stock : null,
+    service: "out_of_range",
+    hp: units.hull(kind)?.hp ?? 0,
+    memberHp: units.hull(kind) ? [] : units.slots(kind).map((s) => units.soldier(s).hp),
+    mounts: t.mounts.map((m, k) => ({
+      mount: k,
+      loaded: 0,
+      ammo: m.weapons.map((r) => {
+        const a = (catalog.weapons[r] as { ammo?: number | "unlimited" } | undefined)?.ammo;
+        return typeof a === "number" ? a : null;
+      }),
+      aim: 1,
+      reload: 0,
+      target: null,
+      reason: "no_compatible_target",
+      guiding: false,
+      reloading: null,
+    })),
+    protection: protection ? { charges: protection.capacity, cooldown: null } : null,
+  } as OwnUnitView;
+}
+
+/** A purchase card's panel: its unit's own, as it arrives; or, for a card
+ *  not yet a unit type (a planned one), its name and its planned weapons. */
+export function purchasePanel(catalog: SessionCatalog, card: UnitCard, rules: PanelRules): Panel {
+  if (catalog.units.has(card.id)) {
+    const unit = arrivingUnit(catalog, card.id);
+    return ownPanel(catalog.units, unit, [unit], rules);
+  }
+  return {
+    name: card.name.toUpperCase(),
+    strength: null,
+    mark: null,
+    weapons: card.planned_weapons.map((w, k) => ({
+      key: `planned-${k}`,
+      icon: weaponIcon(w.icon),
+      name: w.name.toUpperCase(),
+      kinds: [{ label: null, loaded: false }],
+      live: null,
+      fill: null,
+    })),
+    states: [],
   };
 }
 

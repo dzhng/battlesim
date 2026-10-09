@@ -36,12 +36,12 @@ export async function run(ctx) {
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   await page.getByRole("tab", { name: "VEH", exact: true }).click();
   await snapshot(ctx, page, "vehicle-families.png");
-  // Hovering a family of variants opens their menu standing on its card,
+  // Hovering a family opens its variants' info cards standing on its card,
   // 3 px above it, over the picker; clicking the card would buy at once.
   const abrams = page.getByRole("button", { name: "M1 Abrams", exact: true });
   await abrams.hover();
   const card = await abrams.boundingBox();
-  const menu = await page.locator(".hud-purchase-flyout-panel").boundingBox();
+  const menu = await page.locator(".hud-purchase-stack").boundingBox();
   assert(
     menu !== null &&
       Math.abs(card.y - (menu.y + menu.height) - 3) < 0.5 &&

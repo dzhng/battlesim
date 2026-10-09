@@ -10,6 +10,7 @@
 // derivation can produce.
 import type { SessionCatalog } from "@web/battle/catalog/compose";
 import {
+  arrivingUnit,
   contactPanel,
   enemyPanel,
   ownPanel,
@@ -34,25 +35,6 @@ export interface Specimen {
 
 type MountPatch = Partial<MountView>;
 
-/** A full, idle mount of `kind`'s mount `k`. */
-function fullMount(catalog: SessionCatalog, kind: string, k: number): MountView {
-  const rows = catalog.units.type(kind).mounts[k].weapons;
-  return {
-    mount: k,
-    loaded: 0,
-    ammo: rows.map((r) => {
-      const a = (catalog.weapons[r] as { ammo?: number | "unlimited" } | undefined)?.ammo;
-      return typeof a === "number" ? a : null;
-    }),
-    aim: 1,
-    reload: 0,
-    target: null,
-    reason: "no_compatible_target",
-    guiding: false,
-    reloading: null,
-  };
-}
-
 const TARGET = { kind: "identified" as const, id: 99 };
 
 /** An own unit of `kind`, idle, full and at full strength, with `patch`
@@ -63,25 +45,12 @@ export function specimenUnit(
   patch: Partial<OwnUnitView> = {},
   mounts: MountPatch[] = [],
 ): OwnUnitView {
-  const t = catalog.units.type(kind);
+  const unit = arrivingUnit(catalog, kind);
   return {
-    id: 1,
-    kind,
-    position: [0, 0, 0],
-    state: "idle",
-    suppression: "none",
-    concealed: false,
-    deployment: t.capabilities?.deploy ? { progress: 0, target: "packed" } : null,
-    garrison: null,
-    stock: t.capabilities?.supply ? t.capabilities.supply.stock : null,
-    service: "out_of_range",
-    hp: catalog.units.hull(kind)?.hp ?? 0,
-    memberHp: catalog.units.hull(kind)
-      ? []
-      : catalog.units.slots(kind).map((s) => catalog.units.soldier(s).hp),
-    mounts: t.mounts.map((_, k) => ({ ...fullMount(catalog, kind, k), ...mounts[k] })),
+    ...unit,
+    mounts: unit.mounts.map((m, k) => ({ ...m, ...mounts[k] })),
     ...patch,
-  } as OwnUnitView;
+  };
 }
 
 /** Every specimen, in sheet order. The per-type groups draw every unit type
@@ -232,7 +201,7 @@ export function panelSpecimens(
   const atMounts = catalog.units.type("test_at").mounts;
   const paired = [...atMounts, atMounts[1]];
   const pairedReadiness = specimenUnit(catalog, "test_at").mounts.concat({
-    ...fullMount(catalog, "test_at", 1),
+    ...arrivingUnit(catalog, "test_at").mounts[1],
     mount: 2,
   });
   pairedReadiness[1] = {
@@ -271,14 +240,14 @@ export function panelSpecimens(
     ...panelOf(specimenUnit(catalog, "test_tank")),
     weapons: weaponRows(twinHmg, rules, [
       {
-        ...fullMount(catalog, "test_tank", 1),
+        ...arrivingUnit(catalog, "test_tank").mounts[1],
         mount: 0,
         loaded: null,
         reloading: 0,
         reload: 0.4,
         reason: "reloading",
       },
-      { ...fullMount(catalog, "test_tank", 1), mount: 1 },
+      { ...arrivingUnit(catalog, "test_tank").mounts[1], mount: 1 },
     ]),
   });
   add("far out", "two launchers selected", twinLaunchers, "own", { selected: true, zoom: "far" });

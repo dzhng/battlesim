@@ -249,7 +249,13 @@ function DeckReview({ onBack }: { onBack: () => void }) {
             />
           }
           reinforcements={
-            <PurchasePicker cards={[]} faction="us" match={skirmish} onChoose={() => {}} />
+            <PurchasePicker
+              cards={[]}
+              faction="us"
+              match={skirmish}
+              onChoose={() => {}}
+              rules={RULES}
+            />
           }
         />
       </div>

@@ -183,7 +183,13 @@ function Purchase({ match }: { match: SkirmishView }) {
         rules={RULES}
         captions={null}
         reinforcements={
-          <PurchasePicker cards={CARDS} faction="us" match={match} onChoose={() => {}} />
+          <PurchasePicker
+            cards={CARDS}
+            faction="us"
+            match={match}
+            onChoose={() => {}}
+            rules={RULES}
+          />
         }
       />
     </div>
