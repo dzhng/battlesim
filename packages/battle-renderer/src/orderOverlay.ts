@@ -430,14 +430,13 @@ function marchChevron(
     ];
     const [dx, dy] = [tip[0] - end[0], tip[1] - end[1]];
     const n = Math.hypot(dx, dy) || 1;
-    const over: P2 = [tip[0] + (dx / n) * (width / 2), tip[1] + (dy / n) * (width / 2)];
     const [nx, ny] = [(-dy / n) * (width / 2), (dx / n) * (width / 2)];
-    const a = at([end[0] - nx, end[1] - ny]),
-      b = at([over[0] - nx, over[1] - ny]),
-      e = at([over[0] + nx, over[1] + ny]),
-      f = at([end[0] + nx, end[1] + ny]);
-    mesh.vertex(a, normal, color).vertex(b, normal, color).vertex(e, normal, color);
-    mesh.vertex(a, normal, color).vertex(e, normal, color).vertex(f, normal, color);
+    // Taper each arm to the exact shared tip. Extending both strips past the
+    // join creates the little square visible in a close crop.
+    const a = at([end[0] - nx, end[1] - ny]);
+    const b = at([end[0] + nx, end[1] + ny]);
+    const point = at(tip);
+    mesh.vertex(a, normal, color).vertex(b, normal, color).vertex(point, normal, color);
   }
 }
 
@@ -593,7 +592,7 @@ export function buildDeploymentMarker(
   const pen = orderPen(z, style, stroke);
   const color = glowing([...markerColor, 1], style.glow.selected);
   const { cycles_per_s, amplitude } = style.march;
-  const offsets = [-14, 0, 14];
+  const offsets = [-9, 0, 9];
   const outline: Rgba = [markerColor[0] * 0.45, markerColor[1] * 0.55, markerColor[2] * 0.6, 1];
   offsets.forEach((offset, i) => {
     const tip = along(destination, facing, offset);
@@ -607,18 +606,11 @@ export function buildDeploymentMarker(
       pen,
       tip,
       facing,
-      color,
-      [i === 1 ? 0 : i === 0 ? 1 / 3 : 2 / 3, cycles_per_s, Math.max(amplitude, 0.95)],
+      i === 1 ? color : fadeAlpha(color, 0.42),
+      [i === 1 ? 0 : i === 0 ? 1 / 3 : 2 / 3, cycles_per_s, Math.min(amplitude, 0.32)],
       [6.8, 10.8],
       i === 1 ? pen.line * 3.2 : pen.line * 1.25,
     );
-  });
-  // The small point inside the middle chevron anchors the exact entry spot.
-  groundAnnulus(mesh, along(destination, facing, -2.8), 0, Math.max(pen.line * 2.2, 0.18), {
-    z: pen.z,
-    segments: 16,
-    colorIn: color,
-    lift: 0.25,
   });
   return mesh.build();
 }
