@@ -12,7 +12,7 @@ Match resolution, quality intent, warm-up, scene order, camera shots and present
 
 ## Runnable artifact
 
-The current `native/godot-spike` project is only the small instanced reference scene. Slice 03 must extend or replace it with the full reel using the selected binding; it must save a machine-readable report and captures named cuts. The report identifies missing passes/assets/UI/audio instead of silently comparing a simpler image with the complete browser renderer. Godot remains labelled experimental.
+The current `native/godot-spike` project includes `reel.tscn`, a camera/workload probe that reads the browser-owned `fixtures/menu-backdrop.json` and plays every authored scene and shot. Its report identifies the scene identities and explicitly marks `comparison_ready=false` because the world is still a synthetic proxy. Slice 03 remains open: extend this probe to consume `battle-presentation-capture/v1`, decode side publications, load authored map assets, and save named cuts before making any performance claim. Godot remains labelled experimental.
 
 ## Verification
 

@@ -1,11 +1,11 @@
 # Native rendering and Godot evaluation
 
-**Status:** implementation in progress; browser route smoke and native parity pass, while frozen capture and matched rendering remain unbuilt.
+**Status:** implementation in progress; browser route smoke and native parity pass, with a Godot authored-reel camera probe added. Frozen capture and matched rendering remain unbuilt.
 **Updated:** 2026-10-09.
 
 ## Next Agent Prompt
 
-Finish slice 01's browser report and lifecycle, then freeze canonical presentation playback before comparing engines. The route exists but lacks a verified full run, complete workload identity, capture/export and visual gates. Slice 02's same-input GDExtension parity and IPC probe now pass; next, record the candidate evidence and build the benchmark-only presentation capture seam. Cubes and headless smoke are not rendering-performance evidence. Keep `/benchmark` unchanged.
+Finish canonical presentation playback before comparing engines. The browser route has a full lifecycle run but still lacks a frozen capture/export and visual gates. Slice 02's same-input GDExtension parity and IPC probe pass. Slice 03 now has a Godot probe that reads the browser-owned menu reel and reproduces its camera timing over the synthetic field; its report is explicitly `comparison_ready=false`. Build the real capture decoder and authored asset path next. Cubes and headless smoke are not rendering-performance evidence. Keep `/benchmark` unchanged.
 
 Evidence: focused recording/router/reel/capture tests, TypeScript, production build, and the route smoke pass. A real browser run completed both menu scenes (156 seconds) and emitted the full report; the shared preview was background-throttled to about 1 Hz, so that run is lifecycle evidence only, not FPS evidence. Native replay/side-filter parity and IPC measurement pass. Frozen browser capture, visual comparison and performance verdict remain open.
 
@@ -67,7 +67,7 @@ External measurements are context only; the frozen Mac runs are the evidence.
 - [~] Add Settings graphics test and report chart — slice 01 (route exists; lifecycle, report identity and visual verification remain).
 - [~] Verify offline native seam and Godot headless toolchain — slice 02 (offline probe and live extension smoke load; real scenario transfer/parity remains).
 - [x] Spike binding candidates and select a seam — slice 02 (GDExtension for interactive authority; presentation capture for renderer comparison; IPC retained as measured fallback).
-- [ ] Render the full menu reel in Godot — slice 03.
+- [~] Render the full menu reel in Godot — slice 03 (camera/workload probe reads the authored reel; real publication/assets still open).
 - [ ] Compare repeated distributions and reslice the chosen direction — slice 04.
 
 ## Human review surface
