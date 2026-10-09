@@ -5,7 +5,7 @@ use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
 use contract::random::Rng;
 use contract::scenario::{Armor, RicochetRules, Rules, ScenarioDefinition};
-use contract::templates::{BuildingTemplateDescriptor, PlacementFrame, TemplateGeometryCatalog};
+use contract::templates::{BuildingTemplateDescriptor, TemplateGeometryCatalog};
 use sim::battle::{Battle, Replay};
 use sim::damage::{decide, RoundPower, StruckHull};
 use sim::flight::{
@@ -80,15 +80,6 @@ pub fn template_catalogue_json(descriptors_json: &str) -> Result<String, JsError
         .map_err(js_error)?
         .canonical_json()
         .map_err(js_error)
-}
-
-/// Materialize one physical descriptor in a translation/rotation frame.
-#[wasm_bindgen]
-pub fn materialize_template(descriptor_json: &str, frame_json: &str) -> Result<String, JsError> {
-    let descriptor: BuildingTemplateDescriptor =
-        serde_json::from_str(descriptor_json).map_err(js_error)?;
-    let frame: PlacementFrame = serde_json::from_str(frame_json).map_err(js_error)?;
-    serde_json::to_string(&descriptor.materialize(frame).map_err(js_error)?).map_err(js_error)
 }
 
 /// Strides, field order and enum tags of the geometry exports, with the
