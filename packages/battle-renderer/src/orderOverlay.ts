@@ -592,28 +592,26 @@ export function buildDeploymentMarker(
   const color = glowing([...markerColor, 1], style.glow.selected);
   const { cycles_per_s, amplitude } = style.march;
   for (let i = 0; i < 3; i++) {
-    // Keep the cue compact: three chevrons stacked along the entry lane.
-    const tip = along(along(destination, facing, 4), facing + Math.PI / 2, (i - 1) * 18);
-    const chevronColor = fadeAlpha(color, i === 1 ? 1 : 0.62);
-    const tail = along(tip, facing + Math.PI, 18);
+    // Three separate chevrons span the entry edge, matching the compact
+    // battlefield cue; the center one carries the pulse.
+    const tip = along(along(destination, facing, 4), facing + Math.PI / 2, (i - 1) * 42);
+    const chevronColor = color;
+    const tail = along(tip, facing + Math.PI, 24);
     const left = along(tail, facing + Math.PI / 2, 18);
     const right = along(tail, facing - Math.PI / 2, 18);
-    groundStrip(mesh, left, tip, 4, chevronColor, { z: pen.z, lift: 0.8 });
-    groundStrip(mesh, right, tip, 4, chevronColor, { z: pen.z, lift: 0.8 });
-    marchChevron(
-      mesh,
-      pen,
-      tip,
-      facing,
-      chevronColor,
-      [i * 0.25, cycles_per_s, amplitude],
-      [7, 12],
-    );
-    // Keep the shape readable between animation peaks; the center chevron's
-    // second pass carries the marching pulse.
-    marchChevron(mesh, pen, tip, facing, chevronColor, [0, 0, 0], [7, 12]);
+    const width = 8;
+    groundStrip(mesh, left, tip, width, chevronColor, { z: pen.z, lift: 0.2 });
+    groundStrip(mesh, right, tip, width, chevronColor, { z: pen.z, lift: 0.2 });
     if (i === 1)
-      marchChevron(mesh, pen, tip, facing, color, [0, cycles_per_s, amplitude], [7, 12]);
+      marchChevron(
+        mesh,
+        pen,
+        tip,
+        facing,
+        color,
+        [0.5, cycles_per_s, Math.max(amplitude, 0.95)],
+        [24, 36],
+      );
   }
   return mesh.build();
 }

@@ -278,10 +278,7 @@ export function buildBattleOverlay(
     ...(deployment
       ? [
           {
-            opaque: deployment,
-            painted: deployment,
             paintedMarching: deployment,
-            translucent: deployment,
           },
         ]
       : []),
