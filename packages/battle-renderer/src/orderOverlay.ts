@@ -431,12 +431,18 @@ function marchChevron(
     const [dx, dy] = [tip[0] - end[0], tip[1] - end[1]];
     const n = Math.hypot(dx, dy) || 1;
     const [nx, ny] = [(-dy / n) * (width / 2), (dx / n) * (width / 2)];
-    // Taper each arm to the exact shared tip. Extending both strips past the
-    // join creates the little square visible in a close crop.
+    // Keep each arm at a constant width, then use a short mitered point for
+    // the join. Letting both full-width strips run all the way to `tip`
+    // creates the square artifact visible in a close crop.
+    const near: P2 = [tip[0] - (dx / n) * width * 0.55, tip[1] - (dy / n) * width * 0.55];
     const a = at([end[0] - nx, end[1] - ny]);
     const b = at([end[0] + nx, end[1] + ny]);
+    const c = at([near[0] - nx, near[1] - ny]);
+    const d = at([near[0] + nx, near[1] + ny]);
     const point = at(tip);
-    mesh.vertex(a, normal, color).vertex(b, normal, color).vertex(point, normal, color);
+    mesh.vertex(a, normal, color).vertex(b, normal, color).vertex(d, normal, color);
+    mesh.vertex(a, normal, color).vertex(d, normal, color).vertex(c, normal, color);
+    mesh.vertex(c, normal, color).vertex(d, normal, color).vertex(point, normal, color);
   }
 }
 
