@@ -33,6 +33,7 @@ var authored_shell_prototypes: Dictionary = {}
 var authored_unresolved_templates: Dictionary = {}
 var cut_dir := ""
 var cuts_saved := 0
+var cut_frame_timeouts := 0
 var saved_cut_paths: Dictionary = {}
 var pending_cut_saves := 0
 var reel_finished := false
@@ -141,8 +142,17 @@ func _decode_semantic_captures() -> void:
 func _build_world() -> void:
 	var environment := WorldEnvironment.new()
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("8daebb")
+	env.background_mode = Environment.BG_SKY
+	var sky := Sky.new()
+	var sky_material := ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = Color("456e91")
+	sky_material.sky_horizon_color = Color("b9d3d2")
+	sky_material.ground_bottom_color = Color("4d5148")
+	sky_material.ground_horizon_color = Color("8e927e")
+	sky_material.sun_angle_max = 18.0
+	sky_material.sun_curve = 0.08
+	sky.sky_material = sky_material
+	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("8aa4bc")
 	env.ambient_light_energy = 0.8
@@ -235,6 +245,8 @@ func _build_map_geometry() -> void:
 		ground.mesh = ground_mesh
 		ground.position = Vector3(float(size[0]) * 0.5, -0.08, float(size[1]) * 0.5)
 		holder.add_child(ground)
+		if String(map.get("regional_family", "")) == "china":
+			_add_field_strips(holder, Vector2(float(size[0]), float(size[1])))
 		counts.terrain = 1
 		for surface in map.get("surfaces", []):
 			if typeof(surface) != TYPE_DICTIONARY or typeof(surface.get("shape")) != TYPE_DICTIONARY:
@@ -377,6 +389,14 @@ func _add_tree_batch(holder: Node3D, transforms: Array[Transform3D]) -> void:
 	var batch := MultiMeshInstance3D.new()
 	batch.multimesh = multi
 	holder.add_child(batch)
+
+func _add_field_strips(holder: Node3D, size: Vector2) -> void:
+	var strips: Array[Transform3D] = []
+	for index in range(0, int(size.y / 12.0) + 1):
+		var position := Vector3(size.x * 0.5, -0.02, float(index) * 12.0)
+		var basis := Basis.IDENTITY.scaled(Vector3(size.x, 0.025, 6.0))
+		strips.append(Transform3D(basis, position))
+	_add_box_batch(holder, strips, Color("5d6b4f"), 1.0)
 
 func _build_fog_layers() -> void:
 	for scene_name in semantic_results:
@@ -752,7 +772,15 @@ func _maybe_finish_reel() -> void:
 	get_tree().quit()
 
 func _save_cut_after_frame(scene_to_save: int, shot_to_save: int) -> void:
-	await RenderingServer.frame_post_draw
+	var drawn := false
+	var mark_drawn := func() -> void:
+		drawn = true
+	RenderingServer.frame_post_draw.connect(mark_drawn, CONNECT_ONE_SHOT)
+	var deadline := Time.get_ticks_msec() + 2000
+	while not drawn and Time.get_ticks_msec() < deadline:
+		await get_tree().process_frame
+	if not drawn:
+		cut_frame_timeouts += 1
 	_save_cut(scene_to_save, shot_to_save)
 	pending_cut_saves -= 1
 	call_deferred("_maybe_finish_reel")
@@ -809,6 +837,7 @@ func _write_report() -> void:
 		"fog_rendered_cells": fog_rendered_cells,
 		"proxy_field_used": proxy_field_used,
 		"cuts_saved": cuts_saved,
+		"cut_frame_timeouts": cut_frame_timeouts,
 		"expected_cuts": expected_cuts,
 		"named_cuts_complete": cuts_saved == expected_cuts,
 		"capture_valid": not capture_results.is_empty(),
