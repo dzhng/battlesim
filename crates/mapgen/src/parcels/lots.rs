@@ -93,20 +93,13 @@ impl<'a> Ground<'a> {
     pub fn new(plan: &'a MapPlan, network: &'a Network<'a>) -> Self {
         Self {
             network,
-            objectives: plan
-                .skirmish
-                .as_ref()
-                .map(|sites| {
-                    sites
-                        .all_reserved_objectives()
-                        .map(|o| Rect {
-                            center: o.center,
-                            axis: [1.0, 0.0],
-                            half: [o.radius_m + 10.0; 2],
-                        })
-                        .collect()
+            objectives: crate::skirmish::objective_clearances(plan.skirmish.as_ref())
+                .map(|(center, clearance)| Rect {
+                    center,
+                    axis: [1.0, 0.0],
+                    half: [clearance; 2],
                 })
-                .unwrap_or_default(),
+                .collect(),
             forests: plan
                 .forests
                 .iter()

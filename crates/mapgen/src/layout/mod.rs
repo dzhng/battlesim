@@ -149,21 +149,10 @@ pub fn generate_layout(
             .map(|t| t.outline.as_slice())
             .collect::<Vec<_>>(),
     )?;
-    if let Some(sites) = &skirmish {
-        placed
-            .reserved
-            .extend(sites.all_reserved_objectives().map(|o| {
-                // Keep the primary junction playable without hollowing out
-                // the town around it; the capture radius remains authoritative.
-                let clearance =
-                    if matches!(o.kind, contract::encounter::ObjectiveSiteKind::Junction) {
-                        o.radius_m.min(28.0)
-                    } else {
-                        o.radius_m
-                    };
-                sites::Corridor::objective(o.center, clearance + 10.0)
-            }));
-    }
+    placed.reserved.extend(
+        crate::skirmish::objective_clearances(skirmish.as_ref())
+            .map(|(center, clearance)| sites::Corridor::objective(center, clearance)),
+    );
     let forests = forests::grow(&context, &towns, &placed.reserved, &water, woodland);
     let blocks: Vec<&[geometry::Point]> = towns
         .iter()
