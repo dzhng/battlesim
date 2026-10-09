@@ -311,7 +311,7 @@ export async function run(ctx) {
   const asked = new URL(menu.href, ctx.url);
   ctx.check(
     "ordinary Play is unpinned, and an explicit seeded menu address deploys its exact chosen map",
-    menu.drawn === "/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us" &&
+    menu.drawn === "/battle?play=1&type=mixed&size=small&faction=us" &&
       !menu.seedShown &&
       asked.pathname === "/battle" &&
       !asked.searchParams.has("play") &&
@@ -698,8 +698,7 @@ async function playRefusal(ctx, deadline = false) {
   const deploy = page.getByRole("link", { name: "Deploy" });
   ctx.check(
     "ordinary menu Play carries preferences without a promised seed",
-    (await deploy.getAttribute("href")) ===
-      "/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us",
+    (await deploy.getAttribute("href")) === "/battle?play=1&type=mixed&size=small&faction=us",
   );
   await deploy.click();
   await page.getByTestId("error").waitFor({ timeout: 30000 });

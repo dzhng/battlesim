@@ -80,7 +80,7 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
   expect(askedBattle(new URL(admitted, "http://game").search)).toEqual({
     kind: "generated",
     factions: ["eastern", "europe"],
-    map: { ...paris, profile: "skirmish" },
+    map: paris,
     battleSeed: 1,
   });
   expect(askedBattle("?replay=saved")).toEqual({ kind: "replay" });
@@ -98,12 +98,12 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
     ["?faction=us&seed=1&battle=9007199254740993", /^battle /],
     ["?faction=us&seed=1&battle=-1", /^battle /],
     ["?faction=us&seed=1&region=atlantis", /^region /],
-    ["?faction=us&seed=1&profile=standard", /^profile /],
     ["?faction=us&play=1&region=", /^region /],
     // Parameters the battle no longer reads, or never did.
     ["?faction=us&seed=1&recipe=assault", /^recipe /],
     ["?faction=us&seed=1&encounter=1", /^encounter /],
     ["?faction=us&map=street", /^map /],
+    ["?faction=us&seed=1&profile=skirmish", /^profile /],
     ["?faction=us&seed=1&sneed=2", /^sneed /],
   ] as const) {
     const refused = askedBattle(search);
@@ -115,7 +115,7 @@ test("ordinary menu Play asks for the chosen type and size without pinning a see
   const menu = await visit(createElement(MainMenu));
   fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   const deploy = () => menu.getByTestId("menu-deploy").getAttribute("href")!;
-  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us");
+  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&faction=us");
   expect(askedBattle(new URL(deploy(), "http://game").search)).toMatchObject({
     kind: "play",
     map: { type: "mixed", size: "small" },
@@ -125,7 +125,7 @@ test("ordinary menu Play asks for the chosen type and size without pinning a see
   // The preference changes before admission chooses a concrete battle.
   fireEvent.click(menu.getByRole("radio", { name: "metro" }));
   fireEvent.click(menu.getByRole("radio", { name: "xl" }));
-  expect(deploy()).toBe("/battle?play=1&type=metro&size=xl&profile=skirmish&faction=us");
+  expect(deploy()).toBe("/battle?play=1&type=metro&size=xl&faction=us");
   expect(menu.getByRole("radio", { name: "metro" }).getAttribute("aria-checked")).toBe("true");
   expect(menu.getByRole("radio", { name: "mixed" }).getAttribute("aria-checked")).toBe("false");
 });
@@ -139,33 +139,29 @@ test("the menu leaves the region to the seed unless the player picks one of the 
     expect(menu.getByRole("radio", { name: region })).toBeTruthy();
   // The player reads the china family as Taiwan; the address keeps its data name.
   fireEvent.click(menu.getByRole("radio", { name: "taiwan" }));
-  expect(deploy()).toBe(
-    "/battle?play=1&type=mixed&size=small&region=china&profile=skirmish&faction=us",
-  );
+  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&region=china&faction=us");
 
   fireEvent.click(menu.getByRole("radio", { name: "new york" }));
-  expect(deploy()).toBe(
-    "/battle?play=1&type=mixed&size=small&region=new_york&profile=skirmish&faction=us",
-  );
+  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&region=new_york&faction=us");
   expect(askedBattle(new URL(deploy(), "http://game").search)).toMatchObject({
     kind: "play",
     map: { type: "mixed", size: "small", region: "new_york" },
   });
   fireEvent.click(menu.getByRole("radio", { name: "random" }));
-  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us");
+  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&faction=us");
 });
 
 test("the menu opens on the battle a cancelled or refused request asked for", async () => {
   window.history.replaceState(null, "", `/?type=open&size=medium&seed=${ABOVE_NUMBER}`);
   const menu = await visit(createElement(MainMenu));
   expect(menu.getByTestId("menu-deploy").getAttribute("href")).toBe(
-    `/battle?type=open&size=medium&seed=${ABOVE_NUMBER}&profile=skirmish&faction=us`,
+    `/battle?type=open&size=medium&seed=${ABOVE_NUMBER}&faction=us`,
   );
   cleanup();
   window.history.replaceState(null, "", `/?type=open&size=medium&region=paris`);
   const again = await visit(createElement(MainMenu));
   expect(again.getByTestId("menu-deploy").getAttribute("href")).toBe(
-    `/battle?play=1&type=open&size=medium&region=paris&profile=skirmish&faction=us`,
+    `/battle?play=1&type=open&size=medium&region=paris&faction=us`,
   );
 });
 
@@ -174,7 +170,7 @@ test("the menu offers fresh skirmishes without prebuilt battlefields", async () 
   expect(menu.queryByRole("button", { name: "Battlefields" })).toBeNull();
   fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   expect(menu.getByRole("link", { name: "Deploy" }).getAttribute("href")).toBe(
-    "/battle?play=1&type=mixed&size=small&profile=skirmish&faction=us",
+    "/battle?play=1&type=mixed&size=small&faction=us",
   );
 });
 
@@ -311,7 +307,7 @@ test("ordinary admission closes refused workers, and exact winner identity keeps
   expect(askedBattle(new URL(address, "http://game").search)).toEqual({
     kind: "generated",
     factions: ["us", "eastern"],
-    map: { type: "metro", size: "large", seed: ABOVE_NUMBER, profile: "skirmish" },
+    map: { type: "metro", size: "large", seed: ABOVE_NUMBER },
     battleSeed: 7,
   });
   expect(first.terminated).toBe(true);
@@ -359,12 +355,11 @@ test("faction choice round-trips with an admitted exact skirmish address", () =>
   const href = battleHref({
     type: "open",
     size: "small",
-    profile: "skirmish",
     seed: "17",
     faction: "europe",
   });
   const asked = askedBattle(new URL(href, "http://game").search);
-  expect(asked).toMatchObject({ map: { profile: "skirmish" }, factions: ["europe", "eastern"] });
+  expect(asked).toMatchObject({ map: { seed: "17" }, factions: ["europe", "eastern"] });
   expect(askedBattle("?faction=unknown")).toEqual({
     error: "faction must be us, europe or eastern",
   });

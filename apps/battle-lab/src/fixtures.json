@@ -176,7 +176,7 @@
   },
   {
     "id": "unit-roster",
-    "route": "/battle?type=open&size=small&seed=1&profile=skirmish&faction=us",
+    "route": "/battle?type=open&size=small&seed=1&faction=us",
     "describe": "First-phase faction skirmish: empty preparation, grouped variant purchases, physical reinforcement entry, public objective scoring and basic opponent.",
     "map": null
   },
