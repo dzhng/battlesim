@@ -32,7 +32,7 @@ SPEC = dict(
               (-9.08, 0.2, 2.2, 3.6, 2.6)],
     bodies=[("fuselage_roof", [(6.0, 0.0, 2.85, 2.85), (5.2, 0.8, 2.7, 3.45, 2.95, 3.0), (-0.6, 0.8, 2.7, 3.55, 3.0, 3.0),
                                (-1.6, 0.0, 2.9, 2.9)])],
-    canopy=dict(x_front=8.95, x_back=7.0, sill=1.2, top=2.55, half_width=1.0, peak=0.9, bows=(8.2,)),
+    canopy=dict(x_front=8.95, x_back=7.0, sill=1.15, top=2.6, half_width=1.02, peak=0.9, bows=(8.5, 7.8), tail=0.9),
     stab=[(-7.6, 0.25, 2.1, 0.9, 0.1), (-7.7, 1.4, 2.1, 0.7, 0.06)],
     wing=[(1.4, 1.15, 1.8, 0.9, 0.1), (1.3, 2.6, 1.85, 0.8, 0.08)],
     gear=[dict(name="nose", x=6.4, y=0.0, top=0.8, radius=0.3, width=0.18, wheels=2, spread=0.34),
