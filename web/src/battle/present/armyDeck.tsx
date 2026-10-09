@@ -34,6 +34,15 @@ export function ArmyDeck({
   const [detailX, setDetailX] = useState(0);
   const [detailY, setDetailY] = useState(0);
   const tooltipId = useId();
+  const detailCard = useRef<HTMLDivElement>(null);
+  // Centred on its card, but never past the viewport's edge (8 px margin).
+  useLayoutEffect(() => {
+    const card = detailCard.current;
+    if (!card) return;
+    const half = card.offsetWidth / 2;
+    const x = Math.min(Math.max(detailX, 8 + half), window.innerWidth - 8 - half);
+    card.style.left = `${x}px`;
+  });
   const { units } = useSessionCatalog();
   const count = own.length + pending.length;
   const [availableWidth, setAvailableWidth] = useState(() =>
@@ -58,9 +67,11 @@ export function ArmyDeck({
   const active = hovered ?? focused;
   const detail = active === dismissed ? undefined : own.find((unit) => unit.id === active);
   const alignDetail = (button: HTMLButtonElement) => {
+    // Centred on its card, above the whole lower stack: the deck's own rows
+    // (reinforcements) and the captions over it stay readable.
     const box = button.getBoundingClientRect();
     setDetailX(box.left + box.width / 2);
-    setDetailY(box.top - 8);
+    setDetailY(lower.current!.getBoundingClientRect().top - 8);
     setDismissed(null);
   };
   return (
@@ -74,6 +85,7 @@ export function ArmyDeck({
             id={tooltipId}
             data-unit={detail.id}
             data-occludes-readouts
+            ref={detailCard}
             style={{ left: detailX, top: detailY }}
           >
             <InfoPanel

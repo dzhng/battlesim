@@ -147,7 +147,7 @@ const warmInOwn = (page) =>
     const props = ["color", "stroke", "fill", "background-color", "border-top-color"];
     for (const panel of document.querySelectorAll('.ro-unit[data-owner="own"]'))
       for (const el of panel.querySelectorAll("*")) {
-        if (el.closest("[data-tone], .ro-badge")) continue;
+        if (el.closest("[data-tone], .ro-badge, .ro-status-negative")) continue;
         const cs = getComputedStyle(el);
         if (cs.display === "none") continue;
         for (const p of props) {
@@ -165,15 +165,36 @@ const warmInOwn = (page) =>
     return warm.slice(0, 8);
   });
 
-/** The whole page in one frame: the viewport grown to the page's size. */
+/** A capture taller than this never finishes (the browser's own limit is
+ *  16384 px), so a long sheet is shot as pages of at most this height. */
+const SHEET_PAGE_PX = 8000;
+
+/** The whole page, the viewport grown to the page's size: `file`, or
+ *  `file`-1, -2… pages when it is taller than one capture can be. */
 async function sheet(ctx, page, file) {
   const [w, h] = await page.evaluate(() => {
     const pw = document.querySelector(".pw");
     const zoom = Number(getComputedStyle(pw).zoom) || 1;
     return [Math.ceil(pw.scrollWidth * zoom), Math.ceil(pw.scrollHeight * zoom)];
   });
-  await page.setViewportSize({ width: Math.max(1500, w), height: h });
-  await page.screenshot({ path: ctx.evidencePath(file) });
+  const pages = Math.ceil(h / SHEET_PAGE_PX);
+  await page.setViewportSize({
+    width: Math.max(1500, w),
+    height: Math.ceil(h / pages),
+  });
+  for (let i = 0; i < pages; i++) {
+    // `.pw` scrolls itself, in its own (zoomed) pixels.
+    await page.evaluate(
+      (y) => {
+        const pw = document.querySelector(".pw");
+        pw.scrollTop = y / (Number(getComputedStyle(pw).zoom) || 1);
+      },
+      i * Math.ceil(h / pages),
+    );
+    const name = pages === 1 ? file : file.replace(/\.png$/, `-${i + 1}.png`);
+    await page.screenshot({ path: ctx.evidencePath(name) });
+  }
+  await page.evaluate(() => (document.querySelector(".pw").scrollTop = 0));
   await page.setViewportSize({ width: 1500, height: 900 });
 }
 
@@ -206,7 +227,10 @@ export async function run(ctx) {
   ctx.check(
     "every panel is titled with its unit's name, first",
     shown.length > 60 && untitled.length === 0,
-    JSON.stringify({ panels: shown.length, untitled: untitled.map((p) => p.id) }),
+    JSON.stringify({
+      panels: shown.length,
+      untitled: untitled.map((p) => p.id),
+    }),
   );
   const order = shown.filter((p) => p.sections.join() !== [...p.sections].sort().reverse().join());
   ctx.check(
@@ -227,6 +251,7 @@ export async function run(ctx) {
         const timing =
           (r.dataset.aim ?? "") !== "" ||
           (r.dataset.reload ?? "") !== "" ||
+          (r.dataset.cooldown ?? "") !== "" ||
           (r.dataset.progress ?? "") !== "";
         return timing !== !!r.querySelector(".ro-ring");
       }).length,
@@ -240,17 +265,18 @@ export async function run(ctx) {
     [...document.querySelectorAll(".ro-ring")].map((ring) => ({
       circles: ring.querySelectorAll(".ro-track").length,
       arcs: ring.querySelectorAll(".ro-arc").length,
-      reloading: ring.classList.contains("ro-reload"),
+      // Waiting (a reload, a cooldown) is dashed; aiming and progress solid.
+      dashed: ring.classList.contains("ro-reload") || ring.classList.contains("ro-cooldown"),
       radius: ring.querySelector(".ro-track")?.getAttribute("r"),
       dash: getComputedStyle(ring.querySelector(".ro-arc")).strokeDasharray,
     })),
   );
   ctx.check(
-    "every progress display uses one radius; aiming is solid and reloading dashed",
+    "every progress display uses one radius; aiming is solid, reloading and cooling dashed",
     progressRings.length > 0 &&
       progressRings.every((r) => r.circles === 1 && r.arcs === 1) &&
       new Set(progressRings.map((r) => r.radius)).size === 1 &&
-      progressRings.every((r) => (r.reloading ? r.dash !== "none" : r.dash === "none")),
+      progressRings.every((r) => (r.dashed ? r.dash !== "none" : r.dash === "none")),
     JSON.stringify(progressRings),
   );
   const warm = await warmInOwn(page);
@@ -301,6 +327,27 @@ export async function run(ctx) {
     document.querySelectorAll(".pw > section:not(:first-of-type)").forEach((e) => e.remove()),
   );
   await sheet(ctx, page, "key-cases.png");
+  // Every panel specimen, as the game draws it at 1×: one approved picture
+  // per group of the workbench, its per-type groups on the fixed test units
+  // (the roster grows; its panels are the full sheet's to review). The
+  // viewport grows to the whole page, since `.pw` scrolls itself and a
+  // section below the fold would capture blank.
+  await ctx.openLab(page, `${ctx.url}?units=test`);
+  await page.evaluate(() => document.fonts.ready);
+  const tall = await page.evaluate(() => document.querySelector(".pw").scrollHeight);
+  ctx.check("the test-unit sheet fits one capture", tall <= SHEET_PAGE_PX, String(tall));
+  await page.setViewportSize({ width: 1500, height: Math.min(tall, SHEET_PAGE_PX) });
+  for (const section of await page.locator(".pw > section").all()) {
+    const title = await section.locator("h2").textContent();
+    await ctx.matchBaseline(
+      section,
+      `panels-${title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")}`,
+    );
+  }
+  await page.setViewportSize({ width: 1500, height: 900 });
   await ctx.openLab(page, ctx.url);
   await page.getByRole("button", { name: "Review battle deck" }).click();
   for (const width of [1600, 1024]) {
@@ -334,7 +381,14 @@ export async function run(ctx) {
           height: rect.height,
           cardBottom: Math.max(...cards.map((r) => r.bottom)),
           cardCenter: (cards[0].left + cards.at(-1).right) / 2,
-          singleRow: cards.every((r) => Math.abs(r.top - cards[0].top) < 1),
+          // Rows are wrapped, never scrolled: every card lies in the row's box.
+          scrolls:
+            deck.querySelector(".hud-army").scrollWidth >
+            deck.querySelector(".hud-army").clientWidth + 1,
+          cardsOnScreen: cards.every(
+            (r) => r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight,
+          ),
+          cardHeights: new Set(cards.map((r) => Math.round(r.height))).size,
           commandTop: commands?.top ?? null,
           commandHeight: commands?.height ?? null,
           commandsDisabled: [
@@ -346,9 +400,10 @@ export async function run(ctx) {
         };
       });
       ctx.check(
-        `${width}px ${name}: cards stay in one compact row above commands and clear captions`,
-        layout.singleRow &&
-          layout.height <= 155 &&
+        `${width}px ${name}: cards wrap on screen at one size above commands and clear captions`,
+        !layout.scrolls &&
+          layout.cardsOnScreen &&
+          layout.cardHeights === 1 &&
           layout.left >= 0 &&
           layout.right <= width &&
           layout.bottom <= 900 &&
@@ -374,13 +429,34 @@ export async function run(ctx) {
         JSON.stringify(layout),
       );
       const slug = name.toLowerCase().replaceAll(" ", "-");
-      await page.screenshot({ path: ctx.evidencePath(`army-${width}-${slug}.png`) });
+      await ctx.matchBaseline(page, `army-${width}-${slug}`);
       const cards = page.locator(".hud-army-card");
       await cards.first().hover();
       const detail = await page.getByRole("tooltip").evaluate((e) => {
         const r = e.getBoundingClientRect();
         const words = [...e.querySelectorAll(".ro-name-word, .ro-row")];
+        // Every drawn thing inside the card lies inside its frame, and its
+        // name reads on one line: a card collapsed to its padding still
+        // has a box on screen, so the box alone proves nothing.
+        const spills = [...e.querySelectorAll("*")]
+          .map((child) => [child, child.getBoundingClientRect()])
+          .filter(([, c]) => c.width > 0 && c.height > 0)
+          .filter(
+            ([, c]) =>
+              c.left < r.left - 0.5 ||
+              c.right > r.right + 0.5 ||
+              c.top < r.top - 0.5 ||
+              c.bottom > r.bottom + 0.5,
+          )
+          .map(([child]) => child.className?.baseVal ?? child.className);
+        const name = e.querySelector(".ro-name-word");
         return {
+          spills: spills.slice(0, 6),
+          nameHeight: name.getBoundingClientRect().height,
+          nameFont: parseFloat(getComputedStyle(name).fontSize),
+          weaponRows: e.querySelectorAll(".ro-weapon").length,
+          captionTop: document.querySelector('[data-testid="captions"]').getBoundingClientRect()
+            .top,
           left: r.left,
           right: r.right,
           top: r.top,
@@ -403,10 +479,17 @@ export async function run(ctx) {
           detail.right <= width,
         JSON.stringify(detail),
       );
+      ctx.check(
+        `${width}px ${name}: hover card holds its contents, its name on one line, clear of captions`,
+        detail.spills.length === 0 &&
+          detail.bottom <= detail.captionTop &&
+          detail.nameHeight < detail.nameFont * 2,
+        JSON.stringify(detail),
+      );
       if (name === "Tank ammunition" || name === "Replay")
         ctx.check(
           `${width}px ${name}: tank hover retains both weapons`,
-          /CANNON/.test(detail.text) && /HMG/.test(detail.text),
+          detail.weaponRows === 2,
           detail.text,
         );
       if (name === "Suppressed and resupplying")
@@ -415,13 +498,13 @@ export async function run(ctx) {
           /SUPPRESSED/.test(detail.text) && /SUPPLY/.test(detail.text),
           detail.text,
         );
-      await page.screenshot({ path: ctx.evidencePath(`army-${width}-${slug}-hover.png`) });
+      await ctx.matchBaseline(page, `army-${width}-${slug}-hover`);
       await page.mouse.move(0, 500);
       if (name === "Entire force") {
-        const overflow = await page
-          .locator(".hud-army")
-          .evaluate((e) => e.scrollWidth > e.clientWidth);
-        ctx.check(`${width}px: whole army overflows horizontally`, overflow);
+        ctx.check(
+          `${width}px: the whole army wraps into several rows`,
+          (await page.locator(".hud-army").getAttribute("data-army-rows")) > 1,
+        );
         await cards.first().focus();
         for (let i = 1; i < (await cards.count()); i++) await page.keyboard.press("Tab");
         const reach = await cards.last().evaluate((e) => {
@@ -437,9 +520,9 @@ export async function run(ctx) {
           };
         });
         ctx.check(
-          `${width}px: Tab reaches and reveals the final unit in the horizontal row`,
+          `${width}px: Tab reaches the final unit, whole inside its row`,
           reach.focused &&
-            reach.scroll > 0 &&
+            reach.scroll === 0 &&
             reach.left >= reach.parentLeft &&
             reach.right <= reach.parentRight,
           JSON.stringify(reach),
@@ -449,9 +532,7 @@ export async function run(ctx) {
           `${width}px: final focused card owns its facts`,
           (await page.getByRole("tooltip").getAttribute("data-unit")) === lastId,
         );
-        await page.screenshot({
-          path: ctx.evidencePath(`army-${width}-entire-force-focus-end.png`),
-        });
+        await ctx.matchBaseline(page, `army-${width}-entire-force-focus-end`);
         await page.keyboard.press("Escape");
         ctx.check(
           `${width}px: Escape dismisses card details`,
@@ -480,7 +561,7 @@ export async function run(ctx) {
           `${width}px: deployment focus retains its binding without counts`,
           (await page.getByRole("tooltip").textContent()) === "Deploy (T)",
         );
-        await page.screenshot({ path: ctx.evidencePath(`army-${width}-mixed-command-focus.png`) });
+        await ctx.matchBaseline(page, `army-${width}-mixed-command-focus`);
         await page.getByRole("button", { name: "Info panels", exact: true }).focus();
       }
     }
@@ -509,7 +590,7 @@ export async function run(ctx) {
 
       heard.y + heard.height < tip.y && tip.x >= 0 && tip.x + tip.width <= width,
     );
-    await page.screenshot({ path: ctx.evidencePath(`army-${width}-focus-tooltip.png`) });
+    await ctx.matchBaseline(page, `army-${width}-focus-tooltip`);
   }
   await page.close();
 }

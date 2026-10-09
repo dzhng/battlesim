@@ -147,6 +147,7 @@ function WeaponRowView({ w }: { w: WeaponRow }) {
       data-reason={live?.reason}
       data-aim={live ? (live.aim ?? "") : undefined}
       data-reload={live ? (live.reload ?? "") : undefined}
+      data-cooldown={live ? (live.cooldown ?? "") : undefined}
       data-ammo={live ? weaponCounts(w) : undefined}
     >
       <Mark icon={w.icon} timer={timer} className="ro-weapon-mark" />

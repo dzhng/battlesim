@@ -84,10 +84,16 @@ export function specimenUnit(
   } as OwnUnitView;
 }
 
-/** Every specimen, in sheet order. */
-export function panelSpecimens(catalog: SessionCatalog, rules: PanelRules): Specimen[] {
+/** Every specimen, in sheet order. The per-type groups draw every unit type
+ *  of the catalog, or only the fixed test units with `testUnitsOnly` (what a
+ *  visual baseline pins: the roster grows, the test units do not). */
+export function panelSpecimens(
+  catalog: SessionCatalog,
+  rules: PanelRules,
+  { testUnitsOnly = false }: { testUnitsOnly?: boolean } = {},
+): Specimen[] {
   const out: Specimen[] = [];
-  const kinds = catalog.units.ids;
+  const kinds = catalog.units.ids.filter((kind) => !testUnitsOnly || kind.startsWith("test_"));
   const add = (
     group: string,
     label: string,

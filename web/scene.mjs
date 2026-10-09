@@ -10,9 +10,14 @@
 // `"build": "production"` (a timing verdict) runs against a production build
 // served by Vite's preview instead. A scene longer than its fixture's
 // `timeout_s` (900 by default; SCENE_TIMEOUT_S overrides every fixture's)
-// fails. Evidence goes to throwaway/evidence/.
+// fails. Evidence goes to throwaway/evidence/. A scene's approved pictures
+// live in scenes/baselines/<fixture-id>/ (see scenes/_baseline.mjs);
+// UPDATE_BASELINES=1, or =<fixture-id>,…, blesses this run's captures.
+//
+//   UPDATE_BASELINES=panels bun run --cwd web scene -- panels
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
+import { baselines } from "./scenes/_baseline.mjs";
 
 const HERE = new URL(".", import.meta.url);
 const REGISTRY = new URL("../apps/battle-lab/src/fixtures.json", HERE);
@@ -112,7 +117,10 @@ export async function startServer(production = false) {
       preview: { port: 0, host: "127.0.0.1" },
     });
     const address = server.httpServer.address();
-    return { url: `http://127.0.0.1:${address.port}`, close: () => server.close() };
+    return {
+      url: `http://127.0.0.1:${address.port}`,
+      close: () => server.close(),
+    };
   }
   const { createServer } = await import("vite");
   const server = await createServer({
@@ -123,7 +131,10 @@ export async function startServer(production = false) {
   });
   await server.listen();
   const address = server.httpServer.address();
-  return { url: `http://127.0.0.1:${address.port}`, close: () => server.close() };
+  return {
+    url: `http://127.0.0.1:${address.port}`,
+    close: () => server.close(),
+  };
 }
 
 export async function run(fixtures) {
@@ -167,7 +178,10 @@ export async function run(fixtures) {
           if (!ok) failures.push(`${fixture.id}: ${name}`);
         },
         async newPage({ viewport = { width: 1280, height: 800 }, allowErrors = false } = {}) {
-          const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
+          const context = await browser.newContext({
+            viewport,
+            deviceScaleFactor: 1,
+          });
           const page = await context.newPage();
           await page.addInitScript(guardMeasures, MEASURE_ENTRIES_MAX);
           page.on("crash", () => pageErrors.push(`${fixture.id}: the page crashed`));
@@ -193,10 +207,15 @@ export async function run(fixtures) {
           );
           let error = await page.evaluate(() => window.__lab?.error);
           if (!error && (await page.getByTestId("error").isVisible())) {
-            const details = page.getByRole("button", { name: "Details", exact: true });
+            const details = page.getByRole("button", {
+              name: "Details",
+              exact: true,
+            });
             if (await details.isVisible()) await details.click();
             error = await page.getByTestId("error").textContent();
-            await page.screenshot({ path: ctx.evidencePath("startup-refusal.png") });
+            await page.screenshot({
+              path: ctx.evidencePath("startup-refusal.png"),
+            });
           }
           if (error) throw new Error(`lab failed: ${error}`);
           await page.evaluate(() => window.__lab.frame());
@@ -205,7 +224,11 @@ export async function run(fixtures) {
         async writeEvidence(name, data) {
           await writeFile(new URL(name, evidenceDir), JSON.stringify(data, null, 2));
         },
+        /** Capture a page or locator and match it against its approved picture
+         *  (`scenes/_baseline.mjs`). */
+        matchBaseline: (target, name, options) => approved.match(target, name, options),
       };
+      const approved = baselines(fixture.id, ctx);
       // No scene may hang the gate: a stalled page fails its fixture instead.
       let timer;
       const limit = Number(process.env.SCENE_TIMEOUT_S ?? fixture.timeout_s ?? 900);
@@ -214,6 +237,7 @@ export async function run(fixtures) {
       });
       try {
         await Promise.race([scene.run(ctx), timedOut]);
+        await approved.finish();
       } catch (error) {
         ctx.check("scene completed without throwing", false, error?.stack ?? String(error));
       } finally {

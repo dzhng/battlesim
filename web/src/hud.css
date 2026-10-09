@@ -1084,7 +1084,8 @@
   position: absolute;
   transform: translate(-50%, -100%);
   width: max-content;
-  max-width: min(360px, 100%);
+  /* The host is a 0×0 anchor, so a percentage would size the card to nothing. */
+  max-width: min(360px, calc(100dvw - 16px));
   padding: 10px 12px;
   background: rgb(var(--hud-glass) / 0.98);
   box-sizing: border-box;
