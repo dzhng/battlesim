@@ -38,6 +38,10 @@
 - The first shared menu workload owner is a thin identity module over
   `fixtures/menu-backdrop.json`; it does not duplicate scene content or alter
   the live menu's clock.
+- The first live binding seam is a Godot 4 GDExtension smoke crate using
+  godot-rust 0.5.5 `api-4-7`, with an extension-owned `Node` and no simulation
+  methods yet. It compiles for the target Mac; simulation transfer remains a
+  later measured step rather than being hidden behind a fake API.
 - The existing `game-wasm::BattleHandle` already exposes the required seam
   concepts: ordered commands, fixed stepping, side publication, digest,
   replay and observation resync. Native work should reuse those simulation
