@@ -26,7 +26,7 @@ var authored_map_scene_count := 0
 ## value is an explicit diagnostic cap, never an implicit production default.
 var authored_building_limit := 0
 var authored_cull_radius := 900.0
-var map_render_radius := 600.0
+var map_render_radius := 1000.0
 var authored_scene_nodes: Dictionary = {}
 var authored_scene_by_family: Dictionary = {}
 var authored_shell_prototypes: Dictionary = {}
