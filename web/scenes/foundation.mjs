@@ -222,23 +222,23 @@ export async function run(ctx) {
       window.__pageGpuProbe.allocations = window.__lab.allocations;
     });
     await visits.goBack();
-    await visits.getByRole("link", { name: "Main menu", exact: true }).click();
-    // Read in the same moment the visit's allocations have all returned:
-    // the menu's backdrop allocates its own scene soon after.
+    // Read on the lab index, which draws nothing: the menu's backdrop builds
+    // its scene within a frame of mounting, so the device is never empty there.
     const released = await visits.waitForFunction(() => {
       const n = window.__pageGpuProbe.allocations();
-      return (
-        n.buffers === 0 &&
-        n.textures === 0 && {
-          devices: window.__pageGpuProbe.devices.length,
-          destroyed: window.__pageGpuProbe.destroyed,
-          allocations: n,
-          sameDocument: performance.timeOrigin,
-        }
-      );
+      return n.buffers === 0 && n.textures === 0 && n;
     });
-    visitCounts.push(await released.jsonValue());
+    const allocations = await released.jsonValue();
+    await visits.getByRole("link", { name: "Main menu", exact: true }).click();
     await menuShown(visits);
+    visitCounts.push({
+      ...(await visits.evaluate(() => ({
+        devices: window.__pageGpuProbe.devices.length,
+        destroyed: window.__pageGpuProbe.destroyed,
+        sameDocument: performance.timeOrigin,
+      }))),
+      allocations,
+    });
   }
   ctx.check(
     "client visit disposal returns allocations to zero and retains one live page GPU",
