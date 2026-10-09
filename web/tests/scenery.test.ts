@@ -1012,16 +1012,29 @@ test(
       expect(lines.length).toBeGreaterThan(5);
       const hedge = shrubs(placed);
       for (const line of lines) {
+        // A grove may stand in a paved yard, but no hedge grows on paving:
+        // only the length whose whole width is open ground carries one.
         let length = 0;
-        for (let o = 0; o < line.strokes.length; o += FOREST_STROKE_FLOATS)
-          length += Math.hypot(
-            line.strokes[o + 2] - line.strokes[o],
-            line.strokes[o + 3] - line.strokes[o + 1],
-          );
+        const s = line.strokes;
+        for (let o = 0; o < s.length; o += FOREST_STROKE_FLOATS) {
+          const run = Math.hypot(s[o + 2] - s[o], s[o + 3] - s[o + 1]);
+          const [dx, dy] = [(s[o + 2] - s[o]) / run, (s[o + 3] - s[o + 1]) / run];
+          for (let t = 0.5; t < run; t += 1) {
+            const open = [-1, -0.5, 0, 0.5, 1].every(
+              (k) =>
+                site.wetOrPaved(
+                  s[o] + dx * t - dy * k * s[o + 4],
+                  s[o + 1] + dy * t + dx * k * s[o + 4],
+                ) <= 0,
+            );
+            if (open) length += 1;
+          }
+        }
         // Two rows of them, less the gaps and the ends: one a row every two
         // spacings at the least.
-        const along = hedge.filter((s) => forestInside(line, s.x, s.y) >= 0).length;
-        expect(along, `${length} m`).toBeGreaterThan(length / (2 * UNDERSTOREY.spacing_m));
+        const along = hedge.filter((h) => forestInside(line, h.x, h.y) >= 0).length;
+        if (length > 0)
+          expect(along, `${length} m open`).toBeGreaterThan(length / (2 * UNDERSTOREY.spacing_m));
       }
       // Every tree body is one drawn tree: the forests' trunks and the streets'.
       const street = map.props.filter((p) => p.kind === "street_tree").length;
