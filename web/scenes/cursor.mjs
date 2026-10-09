@@ -75,7 +75,8 @@ export async function run(ctx) {
   const at = { x: Math.round(box.x + 160), y: Math.round(box.y + 80) };
   const before = decode(await page.screenshot({ path: ctx.evidencePath("pointer-absent.png") }));
   await page.mouse.move(at.x, at.y);
-  const moving = playfield.locator(".game-cursor");
+  // The app cursor is mounted after the page, so it is the last one.
+  const moving = page.getByTestId("game-cursor").last();
   ctx.check(
     "pointer motion places the real default cursor",
     (await moving.isVisible()) && (await moving.locator(".game-cursor-badge").isHidden()),
@@ -93,7 +94,10 @@ export async function run(ctx) {
   );
   await ctx.matchBaseline(page, "pointer-garrison");
   await page.mouse.move(30, 25);
-  ctx.check("leaving the interaction surface hides the whole cursor", await moving.isHidden());
+  ctx.check(
+    "leaving the playfield keeps the arrow and drops its action",
+    (await moving.isVisible()) && (await moving.locator(".game-cursor-badge").isHidden()),
+  );
   await page.setViewportSize({ width: 430, height: 1000 });
   await page.evaluate(() => window.__lab.frame());
   const narrow = await geometry(page);

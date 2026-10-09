@@ -254,7 +254,6 @@
   background: rgb(var(--hud-accent) / 0.05);
   border: 1px solid rgb(var(--hud-accent) / 0.3);
   border-left: 2px solid rgb(var(--hud-accent) / 0.8);
-  cursor: pointer;
 }
 .hud-panel.menu-body .hud-menu-file:is(:hover, :focus-within) {
   background: rgb(var(--hud-accent) / 0.14);
@@ -264,7 +263,6 @@
   position: absolute;
   inset: 0;
   opacity: 0;
-  cursor: pointer;
 }
 .hud-panel.menu-body .hud-menu-file .hud-error {
   display: block;
@@ -396,7 +394,6 @@
   background: #20252d;
   border: 1px solid #343c48;
   border-radius: 6px;
-  cursor: pointer;
   text-align: left;
 }
 .menu-choices button:hover,
@@ -695,7 +692,6 @@
   background: #2a313b;
   border: 1px solid #45505e;
   border-radius: 5px;
-  cursor: pointer;
   text-decoration: none;
 }
 .bench-actions button:first-child {

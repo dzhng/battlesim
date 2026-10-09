@@ -4,6 +4,7 @@ import { useLabLoading } from "../LabLoading";
 import { useLayoutEffect, useRef } from "react";
 import {
   GameCursor,
+  useCursorAction,
   type CursorAction,
   type GameCursorHandle,
 } from "@web/battle/present/gameCursor";
@@ -26,7 +27,7 @@ export default function CursorLab() {
   useLabLoading("renderer", true);
   const sheet = useRef<HTMLElement>(null);
   const handles = useRef(new Map<string, GameCursorHandle>());
-  const moving = useRef<GameCursorHandle>(null);
+  const setCursorAction = useCursorAction();
   const action = useRef<CursorAction>("default");
   useLayoutEffect(() => {
     const place = () => {
@@ -99,13 +100,10 @@ export default function CursorLab() {
         <div
           className="cursor-playfield"
           data-testid="cursor-playfield"
-          onPointerMove={(e) =>
-            moving.current?.place({ x: e.clientX, y: e.clientY }, action.current)
-          }
-          onPointerLeave={() => moving.current?.place(null, "default")}
-          onPointerCancel={() => moving.current?.place(null, "default")}
+          onPointerMove={() => setCursorAction(action.current)}
+          onPointerLeave={() => setCursorAction("default")}
+          onPointerCancel={() => setCursorAction("default")}
         >
-          <GameCursor handle={moving} />
           <span>Grass / road / fog</span>
         </div>
       </section>

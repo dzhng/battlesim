@@ -26,7 +26,7 @@ test("a changed variant/destination cannot reuse an earlier valid preview", asyn
   await settle();
   expect(control.at([40, 50], client, "1")?.valid).toBe(true);
   const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null }));
-  expect(await control.confirm(send)).toBe(true);
+  expect(await control.confirm(send)).toBeTruthy();
   expect(send).toHaveBeenCalledExactlyOnceWith({
     kind: "confirm_purchase",
     variant: "test_scout",
@@ -53,7 +53,7 @@ test("a replaced authority cannot inherit a valid preview", async () => {
   resolvers[1]({ Err: { reason: "wrong_faction" } });
   await settle();
   expect(control.at([10, 20], second, "1")?.valid).toBe(false);
-  expect(await control.confirm(vi.fn())).toBe(false);
+  expect(await control.confirm(vi.fn())).toBeNull();
 });
 
 test("a completed preview can confirm without another pointer movement", async () => {
@@ -70,7 +70,7 @@ test("a completed preview can confirm without another pointer movement", async (
   reply({ Ok: 1 });
   await settle();
   const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null }));
-  expect(await control.confirm(send)).toBe(true);
+  expect(await control.confirm(send)).toBeTruthy();
   expect(send).toHaveBeenCalledExactlyOnceWith({
     kind: "confirm_purchase",
     variant: "test_scout",
@@ -84,4 +84,22 @@ test("deployment ghosts face the opposing edge by default and track a drag beari
   control.choose("test_scout");
   expect(control.at([10, 20], client, "1")?.facing).toBeCloseTo(-Math.PI / 2);
   expect(control.at([10, 20], client, "1", Math.PI / 2)?.facing).toBeCloseTo(Math.PI / 2);
+});
+
+test("turning a placed ghost keeps its preview, and confirming reports the ghost as placed", async () => {
+  const client = { previewPurchase: vi.fn(async () => ({ Ok: 1 })) } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_scout");
+  control.at([10, 20], client, "1");
+  await settle();
+  // The drag only turns the ghost: where it stands is unchanged, so is its admission.
+  expect(control.at([10, 20], client, "1", 0.5)?.valid).toBe(true);
+  expect(client.previewPurchase).toHaveBeenCalledTimes(1);
+  const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null }));
+  expect(await control.confirm(send)).toEqual({
+    variant: "test_scout",
+    destination: [10, 20],
+    facing: 0.5,
+    valid: true,
+  });
 });

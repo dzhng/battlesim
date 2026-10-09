@@ -21,11 +21,9 @@
   border-radius: 2px;
   color: inherit;
   background: #faf8f1;
-  cursor: pointer;
 }
 .map-workbench button:disabled {
   opacity: 0.5;
-  cursor: default;
 }
 .map-workbench button[aria-pressed="true"] {
   background: #d6dfd1;
@@ -234,9 +232,6 @@
   width: 100%;
   height: 100%;
 }
-.mw-plan [data-rule-group] {
-  cursor: pointer;
-}
 .mw-plan [data-selected="true"] {
   stroke: #182a20;
   stroke-width: 2px;
@@ -291,7 +286,6 @@
   border-left: 1px solid #c8cfc1;
 }
 .mw-measurements summary {
-  cursor: pointer;
   font-weight: 600;
 }
 .mw-measurements dl {
@@ -340,9 +334,6 @@
 }
 .mw-review details {
   margin: 12px 0;
-}
-.mw-review summary {
-  cursor: pointer;
 }
 .mw-file-diff {
   display: grid;
