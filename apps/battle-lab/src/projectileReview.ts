@@ -9,6 +9,9 @@ export const REVIEW_LANES = [
   { name: "Tank AP", weapon: "tank_ap", shooter: "test_tank", target: "test_tank" },
   { name: "Tank HE", weapon: "tank_he", shooter: "test_tank", target: "test_rifle" },
   { name: "ATGM", weapon: "atgm", shooter: "test_at", target: "test_tank" },
+  // The autocannon's long lane runs clear of the map's ridge; the grenade's
+  // short one, a row further on, stops well short of it.
+  { name: "Autocannon", weapon: "autocannon", shooter: "test_gun_jeep", target: "test_tank" },
   { name: "Grenade", weapon: "grenade", shooter: "test_rifle", target: "test_rifle" },
 ] as const;
 

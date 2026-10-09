@@ -773,20 +773,65 @@ test("a round whose look casts light lights the ground from its head as it flies
 test("a burst lights round it within its life, a bigger one farther", () => {
   const f = frame();
   f.note(pub(1));
+  // The burst the style's numbers describe, one smaller and one bigger.
+  const style = PRESENTATION.blast;
+  const reference = style.reference_size_m / style.size_per_radius;
   f.note(
     pub(2, {
       blasts: [
-        { point: [0, 0, 0], radius: 2, kind: "grenade" },
+        { point: [0, 0, 0], radius: reference / 2, kind: "tank_he" },
+        { point: [250, 0, 0], radius: reference, kind: "grenade" },
         { point: [500, 0, 0], radius: 20, kind: "tank_he" },
       ],
     }),
   );
   const row = PRESENTATION.blast.cast;
-  const [small, big] = lightsAt(f, 2 * DT + 0.01).sort((a, b) => a.at[0] - b.at[0]);
+  const [small, middle, big] = lightsAt(f, 2 * DT + 0.01).sort((a, b) => a.at[0] - b.at[0]);
   expect(small.cause).toBe("blast");
-  expect(small.radius).toBeGreaterThanOrEqual(row.radius_m);
-  expect(big.radius).toBeGreaterThan(small.radius);
+  expect(middle.radius).toBeCloseTo(row.radius_m);
+  expect(small.radius).toBeLessThan(middle.radius);
+  expect(big.radius).toBeGreaterThan(middle.radius);
   expect(lightsAt(f, 2 * DT + row.duration_s + 1e-4)).toEqual([]);
+});
+
+test("a burst smaller than the style's draws a smaller fireball, fewer sparks and less dirt and smoke", () => {
+  const style = PRESENTATION.blast;
+  const reference = style.reference_size_m / style.size_per_radius;
+  const burst = (radius: number) => {
+    const f = frame();
+    f.note(pub(1));
+    f.note(pub(2, { blasts: [{ point: [0, 0, 0], radius, kind: "tank_he" }] }));
+    const d = drawn(f, 2 * DT + 0.05);
+    // A flipbook's radius is its fourth float; sparks are the only streaks.
+    return {
+      fire: Math.max(...flames(d).map((i) => i.a[3])),
+      sparks: d.filter((i) => i.shape === SHAPE.streak).length,
+      puff: Math.max(...puffs(drawn(f, 2 * DT + 1)).map((i) => i.a[3])),
+    };
+  };
+  const [small, full, big] = [reference / 2, reference, reference * 2].map(burst);
+  expect(small.fire).toBeLessThan(full.fire);
+  expect(small.sparks).toBeLessThan(full.sparks);
+  expect(small.puff).toBeLessThan(full.puff);
+  // Bigger bursts throw no more sparks than the style's: theirs are its count.
+  expect(big.sparks).toBe(full.sparks);
+  expect(big.fire).toBeGreaterThan(full.fire);
+});
+
+test("a round's blast scale shrinks its burst's fireball, light and dirt from its radius's", () => {
+  const presentation = { ...PRESENTATION, blast_scale: { default: 1, small: 0.5 } };
+  const burst = (kind: string) => {
+    const f = new EffectFrame({ tickHz: HZ, presentation });
+    f.note(pub(1));
+    f.note(pub(2, { blasts: [{ point: [0, 0, 0], radius: 6, kind }] }));
+    return {
+      fire: Math.max(...flames(drawn(f, 2 * DT + 0.05)).map((i) => i.a[3])),
+      light: lightsAt(f, 2 * DT + 0.01)[0].radius,
+    };
+  };
+  const [small, plain] = [burst("small"), burst("grenade")];
+  expect(small.fire).toBeLessThan(plain.fire);
+  expect(small.light).toBeLessThan(plain.light);
 });
 
 test("a missile leaves a smoke trail along its flight that lingers after it", () => {

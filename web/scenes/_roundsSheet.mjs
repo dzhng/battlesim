@@ -1,9 +1,11 @@
 // Opt-in (`WATCH_TOURS=rounds`): rounds in flight, in the watched street battle
-// battle. The battle runs from ROUNDS_TICK (default 30); each round kind the
-// fixture's weapons fire (rifle, HMG, grenade, tank AP and HE, ATGM) is
-// framed the first time one of them has flown on for a short lead: at the
-// default battle camera and from close beside its line of flight. The first
-// busy moment (three or more kinds in flight at once) is framed too. A kind
+// battle. The battle runs from ROUNDS_TICK (default 30); each round look
+// (a row of `presentation.effects.tracers` but its `default`) is framed the
+// first time a round of it has flown on for a short lead: at the default
+// battle camera and from close beside its line of flight. A round counts
+// for the look its weapon row resolves to, its nearest ancestor's with a
+// tracer row, as the effects draw it. The first busy moment (three or more
+// looks in flight at once) is framed too. A look
 // whose tracer row leaves a smoke trail is also framed at launch and, wide
 // over its whole flight, a few seconds after it strikes. Daylight
 // on grass, the HUD hidden, the fixed seed and script, so the same frames come
@@ -20,8 +22,21 @@ import { decode } from "./_png.mjs";
 import { game, curvePitch } from "./_units.mjs";
 
 const CAMERA = game.presentation.camera;
-/** Every round kind, or ROUNDS_KINDS (comma-separated) while iterating. */
-const KINDS = process.env.ROUNDS_KINDS?.split(",") ?? Object.keys(game.weapons);
+const TRACERS = game.presentation.effects.tracers;
+/** Every round look, or ROUNDS_KINDS (comma-separated) while iterating. */
+const KINDS =
+  process.env.ROUNDS_KINDS?.split(",") ?? Object.keys(TRACERS).filter((k) => k !== "default");
+/** Weapon row `id` with what it inherits along `extends`. */
+const weapon = (id) => {
+  const row = game.weapons[id];
+  return row.extends ? { ...weapon(row.extends), ...row } : row;
+};
+/** The look a round of weapon row `id` flies with: its own tracer row, else
+ *  its nearest ancestor's, else the default (which no shot frames). */
+const lookOf = (id) => {
+  for (let at = id; at; at = game.weapons[at]?.extends) if (at in TRACERS) return at;
+  return "default";
+};
 const TICK_HZ = game.tick_hz;
 /** The scan starts here, whatever tick the page paused at, so its samples repeat. */
 const START = Number(process.env.ROUNDS_TICK ?? 30);
@@ -42,31 +57,36 @@ const FALLBACK_LABS = [
   ["/lab/ambush", "late"],
   // The weapons lab: a squad lobs grenades over a building.
   ["/lab/weapons", null],
+  // The projectile review: the gun jeep's autocannon lane.
+  ["/lab/projectiles", null],
 ];
 /** How close the close view stands, metres, and its pitch: steep enough to
  *  look over a house beside the round's line. */
 const CLOSE_M = 30;
 const CLOSE_PITCH = 0.55;
-/** The busy moment: this many round kinds in flight at once. */
+/** The busy moment: this many round looks in flight at once. */
 const BUSY_KINDS = 3;
-/** Whether a kind's rounds leave a smoke trail (its tracer row's `smoke`). */
-const TRAILS = (kind) => !!game.presentation.effects.tracers[kind]?.smoke;
+/** Whether a look's rounds leave a smoke trail (its tracer row's `smoke`). */
+const TRAILS = (kind) => !!TRACERS[kind]?.smoke;
 /** A trail is framed this long after its round strikes, seconds. */
 const AFTER_S = 4;
 /** Each shot's row: a kind, and a trail's launch and aftermath around it. */
 const ROWS = KINDS.flatMap((k) => (TRAILS(k) ? [`${k}-launch`, k, `${k}-after`] : [k]));
 
-/** Each round in flight this tick: kind, head, the stretch's start, hit, own. */
-const rounds = (page) =>
-  lab(page, () =>
-    window.__lab.route.observation().projectiles.map((p) => ({
-      kind: p.kind,
-      head: p.path.at(-1),
-      from: p.path[0],
-      hit: p.hit,
-      own: p.own,
-    })),
-  );
+/** Each round in flight this tick: its look (`kind`) and weapon row, head,
+ *  the stretch's start, hit, own. */
+const rounds = async (page) =>
+  (
+    await lab(page, () =>
+      window.__lab.route.observation().projectiles.map((p) => ({
+        weapon: p.kind,
+        head: p.path.at(-1),
+        from: p.path[0],
+        hit: p.hit,
+        own: p.own,
+      })),
+    )
+  ).map((r) => ({ ...r, kind: lookOf(r.weapon) }));
 const tick = (page) => lab(page, () => window.__lab.route.tick());
 
 async function shoot(page, name, marks) {
@@ -111,7 +131,7 @@ const dirOf = (r) => {
 async function next(page, r) {
   await advance(page, 1);
   return (await rounds(page)).find(
-    (q) => q.kind === r.kind && Math.hypot(...q.from.map((v, i) => v - r.head[i])) < 1e-3,
+    (q) => q.weapon === r.weapon && Math.hypot(...q.from.map((v, i) => v - r.head[i])) < 1e-3,
   );
 }
 
@@ -211,7 +231,7 @@ async function scan(page, wanted, last, shots, seen, wantBusy) {
       if (shots[kind] || !wanted.includes(kind)) continue;
       const r = now.find((q) => q.kind === kind && q.hit === "none");
       if (!r) continue;
-      const w = game.weapons[kind];
+      const w = weapon(r.weapon);
       // Far enough into its flight for its trail to show; ATGMs and shells longest.
       const lead = Math.round(Math.min(1, (0.3 * w.range_m) / w.speed_mps) * TICK_HZ);
       const trails = TRAILS(kind);
@@ -273,7 +293,7 @@ export async function roundsTour(ctx) {
     }
   const missing = KINDS.filter((k) => !shots[k]);
   ctx.check(
-    "every round kind is framed in flight, and a busy moment",
+    "every round look is framed in flight, and a busy moment",
     missing.length === 0 && (!!busy || !!process.env.ROUNDS_KINDS),
     JSON.stringify({ missing, seen, sources, busy: busy?.tick ?? null }),
   );

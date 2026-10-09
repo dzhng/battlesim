@@ -249,15 +249,22 @@
     "autocannon": {
       "extends": "hmg",
       "name": "Autocannon",
+      "description": "A slow-firing cannon whose small bursting shells tear up troops, cover and light armour.",
       "icon": "autocannon",
       "range_m": 650,
-      "damage": 20,
+      "speed_mps": 600,
+      "gravity_scale": 0.5,
+      "damage": 60,
       "penetration": 65,
+      "near_miss_suppression": 0.1,
+      "suppression_radius_m": 6,
+      "blast_radius_m": 2,
+      "structural_damage": 8,
       "ammo": 240,
       "reload_s": 6,
       "magazine": {
         "rounds": 30,
-        "shot_interval_s": 0.2,
+        "shot_interval_s": 0.3,
         "burst": {
           "rounds": 3,
           "aim_max_s": 1
@@ -522,6 +529,7 @@
         "default": { "near": "rifle", "far": "rifle_far", "gain": 0.35, "far_m": 300 },
         "rifle": { "near": "rifle", "far": "rifle_far", "gain": 0.35, "far_m": 300 },
         "hmg": { "near": "hmg", "far": "hmg_far", "gain": 0.5, "far_m": 350 },
+        "autocannon": { "near": "hmg", "far": "hmg_far", "gain": 0.65, "far_m": 450 },
         "tank_ap": { "near": "cannon", "far": "cannon_far", "gain": 1.0, "far_m": 500 },
         "tank_he": { "near": "cannon", "far": "cannon_far", "gain": 1.0, "far_m": 500 },
         "grenade": { "near": "thump", "far": "thump", "gain": 0.4, "far_m": 200 },
@@ -534,11 +542,12 @@
         "prop": { "sound": "impact_prop", "gain": 0.25 },
         "soldier": { "sound": "impact_soldier", "gain": 0.15 }
       },
-      "impact_scale": { "default": 1, "hmg": 1.3, "tank_ap": 2.5, "tank_he": 2.5, "atgm": 2 },
+      "impact_scale": { "default": 1, "hmg": 1.3, "autocannon": 1.8, "tank_ap": 2.5, "tank_he": 2.5, "atgm": 2 },
       "ricochet": { "sound": "ricochet", "gain": 0.25 },
       "blasts": {
         "default": { "near": "explosion", "far": "explosion_far", "gain": 1.0, "far_m": 600 },
-        "grenade": { "near": "explosion", "far": "explosion_far", "gain": 0.45, "far_m": 400 }
+        "grenade": { "near": "explosion", "far": "explosion_far", "gain": 0.45, "far_m": 400 },
+        "autocannon": { "near": "explosion", "far": "explosion_far", "gain": 0.15, "far_m": 250 }
       },
       "cook_off": {
         "blast": { "near": "explosion", "far": "explosion_far", "gain": 1.4, "far_m": 900 },
@@ -988,6 +997,13 @@
           "tail_s": 0.05, "tail_m": [1, 30],
           "glow": { "color": [1.0, 0.55, 0.2], "intensity": 4, "width_m": 0.36, "min_px": 1 }
         },
+        "autocannon": {
+          "zoom_boost": 1.5,
+          "tail_s": 0.008, "tail_m": [3, 6],
+          "glow": { "color": [1.0, 0.42, 0.1], "intensity": 4, "width_m": 0.4, "min_px": 3 },
+          "core": { "color": [1.0, 0.8, 0.5], "intensity": 12, "width_m": 0.1, "min_px": 1.5, "share": 0.5 },
+          "cast": { "color": [1.0, 0.42, 0.14], "intensity": 4, "radius_m": 7 }
+        },
         "tank_ap": {
           "zoom_boost": 2,
           "tail_s": 0.008, "tail_m": [3, 10],
@@ -1021,6 +1037,7 @@
         "default": { "color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3 } },
         "rifle": { "color": [1.0, 0.7, 0.35], "intensity": 30, "size_m": 0.25, "tongue_m": 0.6, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.07, "forward_m": 0.3 } },
         "hmg": { "color": [1.0, 0.66, 0.3], "intensity": 40, "size_m": 0.35, "tongue_m": 1.0, "duration_s": 0.05, "fireball_m": 0, "fireball_s": 0, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 12, "radius_m": 9, "duration_s": 0.07, "forward_m": 0.5 } },
+        "autocannon": { "color": [1.0, 0.68, 0.34], "intensity": 50, "size_m": 0.7, "tongue_m": 1.8, "duration_s": 0.06, "fireball_m": 0.8, "fireball_s": 0.12, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 16, "radius_m": 10, "duration_s": 0.1, "forward_m": 0.6 } },
         "tank_ap": { "color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5 } },
         "tank_he": { "color": [1.0, 0.72, 0.4], "intensity": 60, "size_m": 1.8, "tongue_m": 4, "duration_s": 0.09, "fireball_m": 3.5, "fireball_s": 0.35, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 24, "radius_m": 11, "duration_s": 0.16, "forward_m": 0.5 } },
         "grenade": { "color": [1.0, 0.7, 0.4], "intensity": 20, "size_m": 0.3, "tongue_m": 0.5, "duration_s": 0.06, "fireball_m": 0, "fireball_s": 0, "cast": { "color": [1.0, 0.62, 0.32], "intensity": 7, "radius_m": 5, "duration_s": 0.08, "forward_m": 0.3 } },
@@ -1041,12 +1058,13 @@
         "prop": { "color": [2.2, 2.1, 1.9], "opacity": 0.55, "size_m": 0.5, "duration_s": 0.8, "sparks": 2, "flash": 0 },
         "soldier": { "color": [1.6, 1.3, 1.1], "opacity": 0.7, "size_m": 0.5, "duration_s": 0.6, "sparks": 0, "flash": 0 }
       },
-      "impact_scale": { "default": 1, "rifle": 1, "hmg": 1.4, "grenade": 2.5, "tank_ap": 3, "tank_he": 3.5, "atgm": 3 },
+      "impact_scale": { "default": 1, "rifle": 1, "hmg": 1.4, "autocannon": 1.8, "grenade": 2.5, "tank_ap": 3, "tank_he": 3.5, "atgm": 3 },
+      "blast_scale": { "default": 1, "autocannon": 0.35 },
       "sparks": { "color": [1.0, 0.72, 0.4], "intensity": 30, "speed_mps": 8, "duration_s": 0.3, "length_m": 0.35, "width_m": 0.03 },
       "ricochet_sparks": 10,
       "blast": {
         "size_per_radius": 0.9,
-        "min_size_m": 3,
+        "reference_size_m": 3,
         "duration_s": 1.6,
         "tint": [1.1, 1.0, 0.85],
         "emissive": 4,

@@ -210,7 +210,7 @@
   {
     "id": "projectiles",
     "route": "/lab/projectiles",
-    "describe": "Projectile review with the fog-lit street close fight and range-limit rifle, HMG, AP, HE and ATGM lanes; gameplay flight, unlimited reserves and nonlethal rounds.",
+    "describe": "Projectile review with the fog-lit street close fight and range-limit rifle, HMG, AP, HE, ATGM, grenade and autocannon lanes; gameplay flight, unlimited reserves and nonlethal rounds.",
     "map": "street"
   },
   {
