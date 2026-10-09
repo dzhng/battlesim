@@ -122,7 +122,7 @@ export async function run(ctx, named = false) {
       return {
         text: document.querySelector("[data-testid=benchmark-progress] span")?.textContent ?? "",
         rounds: observation?.projectiles?.length ?? 0,
-        audio: window.__lab?.route?.audio?.() ?? null,
+        audio: window.__lab?.route?.sound?.() ?? null,
         shots: checkContact
           ? observation.own.map((u) => [
               u.id,

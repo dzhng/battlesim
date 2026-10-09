@@ -244,11 +244,7 @@ export function BattleView({
             session.placePanels(project, view, pointer);
             objectiveMarkers.current?.place(project, surfaceZ);
           }}
-          diagnostics={{
-            ...session.probes,
-            audio: () => session.audio?.stats() ?? null,
-            ...diagnostics?.(session),
-          }}
+          diagnostics={{ ...session.probes, ...diagnostics?.(session) }}
         />
       )}
       <ObjectiveMarkers
