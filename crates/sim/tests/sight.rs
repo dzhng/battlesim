@@ -220,8 +220,8 @@ fn sight_shape_consumers_agree() {
 
 #[test]
 fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
-    // garrison-lab's one building: 24 m square round (360, 250), yaw 0, on
-    // flat ground.
+    // garrison-lab's one building: a three-storey corner shop 12 m square
+    // round (360, 250), yaw 0, on flat ground.
     let map = common::saved_map("garrison");
     let mut b = battle(
         map,
@@ -266,7 +266,7 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
     let standoff = common::game()["garrison"]["slot_standoff_m"]
         .as_f64()
         .unwrap();
-    let out = 12.0 + standoff;
+    let out = 6.0 + standoff;
     // Facades in order +x, +y, -x, -y: each occupied facade gives one
     // exterior eye; the published soldier body stands just inside it.
     let facades = [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]];

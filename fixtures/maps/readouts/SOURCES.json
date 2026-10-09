@@ -1,12 +1,14 @@
 {
   "identity": {
     "kind": "authored",
-    "map_hash": "38f1b2d9c13164ea80bd62c1549a1d31a394525548e2da3c92b56a1225c480ad",
-    "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"
+    "map_hash": "c61bb6ce97c575f8a13dc541ba71f959e1f4ed51672af9d12a4f60757d9e691f",
+    "template_catalog_hash": "27117d4b19243f5a5f3e437c5b278c8570528ced874173a8af0370dd83881d5a"
   },
   "catalogue": {
-    "library": "building-templates.json",
-    "template_ids": null
+    "library": "prototype-building-templates.json",
+    "template_ids": [
+      "china-apartment-point-20x20-7f"
+    ]
   },
   "inputs": [
     {

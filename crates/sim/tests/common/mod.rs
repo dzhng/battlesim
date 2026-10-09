@@ -78,108 +78,80 @@ pub fn physics(key: &str) -> f64 {
     game()["physics"][key].as_f64().unwrap()
 }
 
-/// A flat map `size` metres, plus extra map JSON fields (leading comma).
+/// A flat map `size` metres, plus extra map JSON fields (leading comma), its
+/// buildings in their saved form ([`building`]).
 pub fn flat(size: [f64; 2], extra: &str) -> WorldGeometry {
-    let map: MapDefinition = serde_json::from_str(&format!(
+    let map = format!(
         r#"{{"size":[{},{}],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#,
         size[0], size[1]
-    ))
-    .unwrap();
-    WorldGeometry::new(&physical_map(map, &rules()), &rules())
+    );
+    WorldGeometry::new(&physical_map(&map), &rules())
 }
 
-/// A one-part building template: a physical box with every face exposed,
-/// using the same oriented-box primitive as props. Its floors, entrances and
-/// bays stay unresolved.
-fn solid_box(half_extents: [f64; 3]) -> contract::templates::BuildingTemplateDescriptor {
-    use contract::templates::{
-        BuildingCategory, BuildingTemplateDescriptor, Facade, FacadeEdge, TemplatePart,
-    };
-    let [x, y, z] = half_extents;
-    BuildingTemplateDescriptor {
-        id: format!("api-box-{x}-{y}-{z}"),
-        category: BuildingCategory::Farmstead,
-        regional_family: "api_fixture".into(),
-        parts: vec![TemplatePart {
-            id: "body".into(),
-            center: [0.0, 0.0],
-            yaw: 0.0,
-            half_extents,
-            base_z: 0.0,
-        }],
-        floor_heights_m: None,
-        entrances: None,
-        joins: vec![],
-        edges: Facade::ALL
-            .into_iter()
-            .enumerate()
-            .map(|(i, facade)| {
-                let half = facade.axes(half_extents).3;
-                FacadeEdge {
-                    id: format!("face-{i}"),
-                    part: "body".into(),
-                    facade,
-                    span_m: [-half, half],
-                    exposed: true,
-                    bays: None,
-                }
-            })
-            .collect(),
-    }
-}
-
-/// Analytic box inputs are authored into the same physical contract before
-/// entering the world. This is test preparation, never a runtime fallback.
-pub fn physical_map(mut map: MapDefinition, rules: &contract::scenario::Rules) -> MapDefinition {
-    use contract::map::{BuildingDefinition, BuildingPartReference};
-    use contract::templates::{PlacementFrame, TemplateGeometryCatalog};
-    if !map
-        .props
+/// The map generator's physical template `id`. Its library
+/// (`fixtures/prototype-building-templates.json`) is the one catalogue of
+/// buildings, so a test places the buildings a battle places.
+pub fn template(id: &str) -> contract::templates::BuildingTemplateDescriptor {
+    static LIBRARY: std::sync::OnceLock<Vec<contract::templates::BuildingTemplateDescriptor>> =
+        std::sync::OnceLock::new();
+    LIBRARY
+        .get_or_init(|| {
+            serde_json::from_str(include_str!(
+                "../../../../fixtures/prototype-building-templates.json"
+            ))
+            .unwrap()
+        })
         .iter()
-        .any(|p| rules.catalog.props().by_id(&p.kind).body.garrison)
-    {
-        return map;
+        .find(|t| t.id == id)
+        .unwrap_or_else(|| panic!("no template {id:?}"))
+        .clone()
+}
+
+/// A building of template `id` standing at `center`, turned `yaw`, as a saved
+/// map stores it: its parts are props `owner`, `owner + 1`, ... in the
+/// template's part order.
+pub fn building(owner: u32, id: &str, center: [f64; 2], yaw: f64) -> Value {
+    let parts: Vec<Value> = template(id)
+        .parts
+        .iter()
+        .zip(owner..)
+        .map(|(part, prop)| serde_json::json!({ "part": part.id, "prop": prop }))
+        .collect();
+    serde_json::json!({
+        "owner": owner, "kind": "building", "template_id": id,
+        "frame": { "translation": [center[0], center[1], 0.0], "yaw": yaw },
+        "parts": parts,
+    })
+}
+
+/// An analytic map's JSON, written as a saved map is (`contract::map::SavedMap`):
+/// each building is its template materialized at its frame, as the resolver
+/// materializes it, and the map's region and catalogue hash are those of the
+/// templates it places. A map already resolved passes through. Read from its
+/// text as the resolver and the WebAssembly read it, every physical float
+/// exactly as written (a `serde_json::Value` would round some by an ulp).
+pub fn physical_map(map: &str) -> MapDefinition {
+    let Ok(saved) = serde_json::from_str::<contract::map::SavedMap>(map) else {
+        return serde_json::from_str(map).unwrap();
+    };
+    if saved.buildings.is_empty() {
+        return serde_json::from_str(map).unwrap();
     }
-    let mut ground = map.clone();
-    ground.props.clear();
-    ground.buildings.clear();
-    ground.template_catalog_hash = None;
-    let ground = WorldGeometry::new(&ground, rules);
+    let (mut map, buildings) = saved.with_buildings(Vec::new());
     let mut templates = BTreeMap::new();
-    let mut ordinary = Vec::new();
-    for (i, mut p) in std::mem::take(&mut map.props).into_iter().enumerate() {
-        let id = p.id.unwrap_or(i as u32);
-        if rules.catalog.props().by_id(&p.kind).body.garrison {
-            let template = solid_box(p.half_extents);
-            let base = p
-                .base_z
-                .unwrap_or_else(|| ground.height_at(p.center[0], p.center[1]).unwrap_or(0.0));
-            map.buildings.push(
-                BuildingDefinition::materialize(
-                    &template,
-                    PlacementFrame {
-                        translation: [p.center[0], p.center[1], base],
-                        yaw: p.yaw,
-                    },
-                    p.kind.clone(),
-                    id,
-                    vec![BuildingPartReference {
-                        part: "body".into(),
-                        prop: id,
-                    }],
-                )
-                .unwrap(),
-            );
-            templates.insert(template.id.clone(), template);
-        } else {
-            p.id = Some(id);
-            ordinary.push(p);
-        }
+    for b in buildings {
+        let template = template(&b.template_id);
+        map.buildings.push(
+            contract::map::BuildingDefinition::materialize(
+                &template, b.frame, b.kind, b.owner, b.parts,
+            )
+            .unwrap(),
+        );
+        templates.insert(template.id.clone(), template);
     }
-    map.props = ordinary;
-    map.regional_family = Some("api_fixture".into());
+    map.regional_family = map.buildings.first().map(|b| b.regional_family.clone());
     map.template_catalog_hash = Some(
-        TemplateGeometryCatalog::new(templates.into_values().collect())
+        contract::templates::TemplateGeometryCatalog::new(templates.into_values().collect())
             .unwrap()
             .hash()
             .into(),
@@ -341,13 +313,12 @@ pub fn scenario_with(
     events: serde_json::Value,
     scripts: serde_json::Value,
 ) -> ScenarioDefinition {
-    let map: serde_json::Value = serde_json::from_str(map).unwrap();
-    let mut setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
-        "map": map, "rules": scenario_rules(), "units": units, "events": events, "scripts": scripts,
-    }))
-    .unwrap();
-    setup.map = physical_map(setup.map, &setup.rules);
-    setup
+    let map = serde_json::to_string(&physical_map(map)).unwrap();
+    serde_json::from_str(&format!(
+        r#"{{"map":{map},"rules":{},"units":{units},"events":{events},"scripts":{scripts}}}"#,
+        scenario_rules()
+    ))
+    .unwrap()
 }
 
 pub fn ricochet_rules() -> contract::scenario::RicochetRules {

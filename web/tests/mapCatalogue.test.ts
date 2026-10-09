@@ -225,12 +225,12 @@ test("a map that does not resolve is refused naming the document at fault, never
   // it is read, and a library the catalogue lacks is a missing document.
   const sources = shipped.document("geometry", "SOURCES.json");
   for (const [library, code] of [
-    ["../fixtures/building-templates.json", "invalid_sources"],
+    ["../fixtures/prototype-building-templates.json", "invalid_sources"],
     ["absent-templates.json", "missing_document"],
   ]) {
     writeFileSync(
       join(scratch, "geometry/SOURCES.json"),
-      sources.replace('"building-templates.json"', JSON.stringify(library)),
+      sources.replace('"prototype-building-templates.json"', JSON.stringify(library)),
     );
     expect(refusal("geometry")).toEqual({
       code,

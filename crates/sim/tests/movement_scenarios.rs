@@ -807,7 +807,7 @@ fn authored() -> Vec<Scenario> {
             caption: "a squad at rest beside a house, the enemy beyond its corner: the man at each corner leans out; the rest find a line",
             map: flat(
                 [140.0, 110.0],
-                json!({ "props": [prop("building", [60.0, 40.0], 0.0, [6.0, 6.0, 4.0])] }),
+                json!({ "buildings": [crate::common::building(0, "china-corner-shop-3f", [60.0, 40.0], 0.0)] }),
             ),
             units: json!([
                 { "side": "blue", "kind": "test_rifle", "position": [49, 42] },
@@ -859,7 +859,7 @@ fn authored() -> Vec<Scenario> {
             caption: "three men at a house's corner, the enemy beyond it: one leans out at the corner, the two stacked behind him step out to fire",
             map: flat(
                 [140.0, 110.0],
-                json!({ "props": [prop("building", [60.0, 40.0], 0.0, [6.0, 6.0, 4.0])] }),
+                json!({ "buildings": [crate::common::building(0, "china-corner-shop-3f", [60.0, 40.0], 0.0)] }),
             ),
             units: json!([
                 { "side": "blue", "kind": "test_rifle", "position": [51.5, 45.0] },
@@ -1645,7 +1645,8 @@ fn authored() -> Vec<Scenario> {
                 json!({ "props": [
                     prop("fence", [120.0, 40.0], 0.0, [0.1, 3.0, 0.6]),
                     prop("sandbags", [190.0, 40.0], 0.0, [0.4, 4.0, 0.5]),
-                    prop("building", [230.0, 40.0], 0.0, [10.0, 10.0, 4.0]),
+                ], "buildings": [
+                    crate::common::building(0, "china-corner-shop-3f", [230.0, 40.0], 0.0),
                 ] }),
             ),
             units: json!([vehicle("blue", "test_tank", [20.0, 40.0], 0.0)]),
@@ -2086,12 +2087,11 @@ pub fn definition(s: &Scenario) -> ScenarioDefinition {
         }
     }
     merge(&mut rules, &patch);
-    let mut setup: ScenarioDefinition = serde_json::from_value(json!({
-        "map": s.map, "rules": rules, "units": s.units, "events": s.events, "scripts": s.scripts,
+    serde_json::from_value(json!({
+        "map": crate::common::physical_map(&s.map.to_string()), "rules": rules,
+        "units": s.units, "events": s.events, "scripts": s.scripts,
     }))
-    .unwrap();
-    setup.map = crate::common::physical_map(setup.map, &setup.rules);
-    setup
+    .unwrap()
 }
 
 pub fn tick_hz(s: &Scenario) -> u32 {

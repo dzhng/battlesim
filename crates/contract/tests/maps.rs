@@ -5,11 +5,12 @@
 use contract::identity::json_hash;
 use contract::map::MapDefinition;
 use contract::maps::{resolve, MapAdmission};
-use contract::templates::TemplateGeometryCatalog;
+use contract::templates::{BuildingTemplateDescriptor, TemplateGeometryCatalog};
 use serde_json::json;
 
 const GEOMETRY: &str = include_str!("../../../fixtures/maps/geometry/map.json");
-const LIBRARY: &str = include_str!("../../../fixtures/building-templates.json");
+const GEOMETRY_SOURCES: &str = include_str!("../../../fixtures/maps/geometry/SOURCES.json");
+const LIBRARY: &str = include_str!("../../../fixtures/prototype-building-templates.json");
 const ADMISSION: MapAdmission = MapAdmission {
     max_authored_parts: 128,
     max_bay_positions: 65_536,
@@ -17,25 +18,31 @@ const ADMISSION: MapAdmission = MapAdmission {
 
 /// The shipped geometry map, resolved.
 fn geometry() -> MapDefinition {
-    resolve(
-        GEOMETRY,
-        include_str!("../../../fixtures/maps/geometry/SOURCES.json"),
-        LIBRARY,
-        ADMISSION,
-    )
-    .unwrap()
-    .definition
+    resolve(GEOMETRY, GEOMETRY_SOURCES, LIBRARY, ADMISSION)
+        .unwrap()
+        .definition
 }
 
-/// Sources that pin `definition` as an authored map of the shipped library.
+/// The library's template `id`.
+fn template(id: &str) -> BuildingTemplateDescriptor {
+    serde_json::from_str::<Vec<BuildingTemplateDescriptor>>(LIBRARY)
+        .unwrap()
+        .into_iter()
+        .find(|t| t.id == id)
+        .unwrap()
+}
+
+/// Sources that pin `definition` as an authored map of the shipped library,
+/// selecting the shipped geometry map's templates.
 fn sources(definition: &MapDefinition) -> serde_json::Value {
+    let shipped: serde_json::Value = serde_json::from_str(GEOMETRY_SOURCES).unwrap();
     json!({
         "identity": {
             "kind": "authored",
             "map_hash": json_hash(definition).unwrap(),
             "template_catalog_hash": definition.template_catalog_hash,
         },
-        "catalogue": { "library": "building-templates.json", "template_ids": null },
+        "catalogue": shipped["catalogue"],
         "inputs": [{
             "kind": "repository",
             "path": "fixtures/geometry-lab.json",
@@ -96,13 +103,12 @@ fn a_saved_building_resolves_to_its_template_materialized_at_its_frame() {
     );
     let definition = geometry();
     let building = &definition.buildings[0];
-    let library = TemplateGeometryCatalog::from_json(LIBRARY).unwrap();
-    let template = library
-        .templates()
-        .iter()
-        .find(|t| t.id == stored["template_id"].as_str().unwrap())
-        .unwrap();
-    let frame = serde_json::from_value(stored["frame"].clone()).unwrap();
+    let template = template(stored["template_id"].as_str().unwrap());
+    // Read as the resolver reads it: every physical float exactly as written.
+    let frame = serde_json::from_str::<contract::map::SavedMap>(GEOMETRY)
+        .unwrap()
+        .buildings[0]
+        .frame;
     assert_eq!(building.geometry, template.materialize(frame).unwrap());
     assert_eq!(building.category, template.category);
     assert_eq!(building.regional_family, template.regional_family);
@@ -130,7 +136,7 @@ fn a_saved_building_resolves_to_its_template_materialized_at_its_frame() {
 #[test]
 fn a_map_names_its_buildings_region_and_keeps_it_when_saved() {
     let definition = geometry();
-    assert_eq!(definition.regional_family.as_deref(), Some("api_fixture"));
+    assert_eq!(definition.regional_family.as_deref(), Some("china"));
     let again = admitted(&definition, &sources(&definition)).unwrap();
     assert_eq!(again.definition.regional_family, definition.regional_family);
 }
@@ -158,7 +164,7 @@ fn a_building_of_another_region_than_its_maps_is_refused() {
 fn a_building_naming_a_template_its_catalogue_lacks_is_refused_by_name() {
     let definition = geometry();
     let mut saved = definition.saved();
-    saved.buildings[0].template_id = "api-box-1-2-3".into();
+    saved.buildings[0].template_id = "no-such-template".into();
     let error = resolve(
         &serde_json::to_string(&saved).unwrap(),
         &sources(&definition).to_string(),
@@ -171,7 +177,7 @@ fn a_building_naming_a_template_its_catalogue_lacks_is_refused_by_name() {
         "template_mismatch"
     );
     assert_eq!(error.location, "map.json.buildings[0].template_id");
-    assert!(error.message.contains("api-box-1-2-3"), "{error}");
+    assert!(error.message.contains("no-such-template"), "{error}");
 }
 
 #[test]
@@ -194,7 +200,7 @@ fn a_map_carrying_its_own_building_geometry_is_refused() {
 fn the_library_a_map_names_is_one_file_name_never_a_path() {
     let definition = geometry();
     for bad in [
-        "../building-templates.json",
+        "../prototype-building-templates.json",
         "templates/a.json",
         "library",
         "",
@@ -227,7 +233,7 @@ fn altered_map_is_refused_against_saved_content_identity() {
 fn selection_does_not_silently_relabel_an_existing_catalogue_identity() {
     let definition = geometry();
     let mut sources = sources(&definition);
-    sources["catalogue"]["template_ids"] = json!(["api-box-12-9-4"]);
+    sources["catalogue"]["template_ids"] = json!(["china-home-12x9-2f", "china-shed-15x24"]);
     let error = admitted(&definition, &sources)
         .expect_err("selected library geometry needs its own declared catalogue identity");
     assert_eq!(
@@ -296,11 +302,11 @@ fn bay_admission_counts_all_placements_before_verification_materializes_them() {
         );
     }
     let mut sources = sources(&definition);
-    sources["catalogue"]["library"] = json!("asymmetric.json");
+    sources["catalogue"] = json!({ "library": "asymmetric.json", "template_ids": null });
     let error = resolve(
         &serde_json::to_string(&definition.saved()).unwrap(),
         &sources.to_string(),
-        &catalogue.canonical_json().unwrap(),
+        &serde_json::to_string(&[template]).unwrap(),
         MapAdmission {
             max_authored_parts: 4,
             max_bay_positions: 15,
@@ -445,28 +451,21 @@ fn catalogue_references_refuse_paths_before_source_io() {
     }
 }
 
+/// A map pins the templates it selects and nothing else of the library, so a
+/// library that grows or changes elsewhere leaves its identity alone.
 #[test]
-fn single_template_selection_preserves_the_frozen_endurance_catalogue_identity() {
-    let library = TemplateGeometryCatalog::from_json(LIBRARY).unwrap();
-    let template = library
-        .templates()
-        .iter()
-        .find(|t| t.id == "api-box-12-10-4")
-        .unwrap();
-    let mut definition = geometry();
-    let building = &mut definition.buildings[0];
-    building.geometry = template.materialize(building.geometry.frame).unwrap();
-    definition.template_catalog_hash =
-        Some("fd62882f6114c99b42ee939109f7ca17dda1a37a41c6f0a8a50ee95461c297e3".into());
+fn a_selection_is_identified_by_its_own_templates_alone() {
+    let definition = geometry();
+    let selected = TemplateGeometryCatalog::new(vec![template("china-shed-15x24")]).unwrap();
+    assert_eq!(
+        definition.template_catalog_hash.as_deref(),
+        Some(selected.hash())
+    );
+    let whole = TemplateGeometryCatalog::new(serde_json::from_str(LIBRARY).unwrap()).unwrap();
+    assert_ne!(selected.hash(), whole.hash());
     let mut sources = sources(&definition);
-    sources["catalogue"]["template_ids"] = json!(["api-box-12-10-4"]);
-    let resolved = admitted(&definition, &sources).unwrap();
-    assert_eq!(
-        serde_json::to_value(&resolved.definition).unwrap(),
-        serde_json::to_value(&definition).unwrap()
-    );
-    assert_eq!(
-        resolved.identity.template_catalog_hash(),
-        definition.template_catalog_hash.as_deref()
-    );
+    sources["catalogue"]["template_ids"] = json!(null);
+    let error =
+        admitted(&definition, &sources).expect_err("the whole library is another catalogue");
+    assert_eq!(error.location, "map.json.template_catalog_hash");
 }

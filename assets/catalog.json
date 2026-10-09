@@ -515,8 +515,8 @@
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
-        15,
-        12,
+        6,
+        6,
         1
       ],
       "tolerances": {

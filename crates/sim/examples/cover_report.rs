@@ -109,11 +109,12 @@ fn trial(
     let garrison = building && (mode != Mode::Interception || protected);
     let hz = baseline["tick_hz"].as_u64().unwrap() as u32;
     let warm_ticks = 10 * hz;
+    let mut buildings = json!([]);
     let props = if mode == Mode::Interception && !protected {
         json!([])
     } else if building {
-        json!([{ "kind": "building", "center": [30, 100], "yaw": 0,
-            "half_extents": [4, 4, 4] }])
+        buildings = json!([common::building(0, "china-home-9x9-2f", [30.0, 100.0], 0.0)]);
+        json!([])
     } else if mode == Mode::Interception {
         json!([{ "kind": match position { Position::Light => "crate", Position::Medium => "sandbags", _ => "wall" }, "center": [31.5, 100], "yaw": 0,
             "half_extents": [0.25, 20, 0.3] }])
@@ -124,7 +125,7 @@ fn trial(
             "half_extents": [12, 12, 0.025] }])
     };
     let map = json!({ "size": [distance + 110.0, 200], "fog_cell_m": 8,
-        "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
+        "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props, "buildings": buildings })
     .to_string();
     let units = json!([
         { "side": "blue", "kind": if weapon == "rifle" || mode == Mode::Splash { "test_rifle" } else { "test_jeep" },
@@ -193,11 +194,10 @@ fn trial(
         );
     }
     let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map": serde_json::from_str::<Value>(&map).unwrap(), "rules": rules,
+        "map": common::physical_map(&map), "rules": rules,
         "units": units, "events": [], "scripts": [],
     }))
     .unwrap();
-    setup.map = common::physical_map(setup.map, &setup.rules);
     if let Some([light, medium, heavy, building]) = factors {
         let t = &mut setup.rules.cover.tiers;
         (t.light, t.medium, t.heavy) = (light, medium, heavy);

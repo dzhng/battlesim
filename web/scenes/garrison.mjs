@@ -1,5 +1,6 @@
 // Slice 11: buildings as abstract fighting positions, through real orders.
-// The building is prop 0: centre (360, 250), 24 × 24 m, 8 m tall.
+// The building is prop 0: the generator's three-storey corner shop, centre
+// (360, 250), 12 × 12 m, 12.65 m tall; its seats stand on all three floors.
 import { garrisonCursor, queuedBuildingCursor } from "./_cursorOrders.mjs";
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop, mostChanged } from "./_png.mjs";
@@ -7,14 +8,15 @@ import { lab, obs, advance, until, openBattle } from "./_lab.mjs";
 import { propType, game } from "./_units.mjs";
 
 const CENTRE = [360, 250];
-const HALF = 12;
+const HALF = 6;
+const TOP = 12.65;
 const STANDOFF = game.garrison.slot_standoff_m;
 
 const demo = (page, name) => lab(page, (n) => window.__lab.route.demo(n), name);
 const squad = (o, id) => o.own.find((u) => u.id === id);
-/** Chebyshev distance from the building's centre: 12 on its walls. */
+/** Chebyshev distance from the building's centre: HALF on its walls. */
 const ring = ([x, y]) => Math.max(Math.abs(x - CENTRE[0]), Math.abs(y - CENTRE[1]));
-const onWall = (p) => Math.abs(ring(p) - HALF) < 0.3 && p[2] > 0.05 && p[2] < 8;
+const onWall = (p) => Math.abs(ring(p) - HALF) < 0.3 && p[2] > 0.05 && p[2] < TOP;
 
 /** Wait until the panel shows the latest tick, then draw one frame. */
 async function settle(page) {
@@ -52,7 +54,7 @@ async function buildingCorners(page, margin) {
   const corners = [];
   for (const sx of [-1, 1])
     for (const sy of [-1, 1])
-      for (const z of [0, 8])
+      for (const z of [0, TOP])
         corners.push(
           await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), [
             CENTRE[0] + sx * (HALF + margin),
@@ -521,13 +523,19 @@ export async function run(ctx) {
       });
   const ruin = o?.knownProps.find((p) => p.kind === "ruin");
   if (!ruin) await ctx.writeEvidence("collapse-timeout.json", lastShelling);
+  // The remains stand a share of the building's height, within the rule's bounds.
+  const into = propType("building").destroyed.into;
+  const ruinHeight = Math.min(
+    Math.max(TOP * into.building.height_fraction, into.height_m),
+    into.building.max_height_m,
+  );
   ctx.check(
     "the building collapses into a lower ruin on its footprint",
     !!ruin &&
       ruin.replaces === 0 &&
       ruin.center.join() === CENTRE.join() &&
       ruin.half[0] === HALF &&
-      Math.abs(ruin.half[2] * 2 - propType("building").destroyed.into.height_m) < 1e-6,
+      Math.abs(ruin.half[2] * 2 - ruinHeight) < 1e-4,
     JSON.stringify(ruin),
   );
   if (!ruin) return page.close();
@@ -586,7 +594,7 @@ export async function run(ctx) {
       ruined.known[0].template === standing.known[0].template &&
       ruined.known[0].parts[0].half[2] < standing.known[0].parts[0].half[2] &&
       ruined.drawn.fallen === 1 &&
-      ruined.drawn.ruins === 1,
+      ruined.drawn.ruins > 0,
     JSON.stringify({ standing, ruined }),
   );
   await cropBuilding(ctx, page, collapsed, "crop-ruin-2x.png");

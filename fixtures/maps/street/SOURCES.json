@@ -1,12 +1,14 @@
 {
   "identity": {
     "kind": "authored",
-    "map_hash": "44b71c1c5a3c17920c6cbce6c7f5d661678421d67951797ffdcd3ce06b03eff0",
-    "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"
+    "map_hash": "f08d9e3fe0ec2bf40dd84704059c441c1b8548f6c01b80f26ee670a38072b723",
+    "template_catalog_hash": "b785d1f2e6e416cbb2f68863ee492f158ac5108b8b5ce9a3e03b25be6849b8ad"
   },
   "catalogue": {
-    "library": "building-templates.json",
-    "template_ids": null
+    "library": "prototype-building-templates.json",
+    "template_ids": [
+      "china-corner-shop-3f"
+    ]
   },
   "inputs": [
     {

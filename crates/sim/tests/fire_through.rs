@@ -12,7 +12,8 @@ use sim::math::v2;
 
 use crate::common;
 
-/// The house every test shells, and where its tank or squad stands.
+/// The house every test shells (a 20 m square block), and where its tank or
+/// squad stands.
 const HOUSE: [f64; 2] = [400.0, 300.0];
 const SHOOTER: [f64; 2] = [100.0, 300.0];
 
@@ -20,14 +21,20 @@ fn prop(kind: &str, center: [f64; 2], half: [f64; 3]) -> Value {
     json!({ "kind": kind, "center": center, "yaw": 0, "half_extents": half })
 }
 
+/// The house, prop 0, as the map's one building.
 fn house() -> Value {
-    prop("building", HOUSE, [10.0, 10.0, 4.0])
+    json!([common::building(
+        0,
+        "china-apartment-point-20x20-7f",
+        HOUSE,
+        0.0
+    )])
 }
 
 /// Flat ground, or a ridge between the shooter and the house.
-fn map(props: Value, relief: Value) -> String {
+fn map(buildings: Value, props: Value, relief: Value) -> String {
     json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
-            "props": props, "forests": [], "relief": relief })
+            "buildings": buildings, "props": props, "forests": [], "relief": relief })
     .to_string()
 }
 
@@ -36,8 +43,8 @@ fn battle(map: String, blue: Value) -> Battle {
 }
 
 fn battle_with(rules: Value, map: String, blue: Value) -> Battle {
-    let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map": serde_json::from_str::<Value>(&map).unwrap(),
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map": common::physical_map(&map),
         "rules": rules,
         "units": [
             blue,
@@ -47,7 +54,6 @@ fn battle_with(rules: Value, map: String, blue: Value) -> Battle {
         "scripts": [],
     }))
     .unwrap();
-    setup.map = common::physical_map(setup.map, &setup.rules);
     Battle::new(&setup, 1)
 }
 
@@ -117,7 +123,8 @@ fn a_tank_shells_a_house_through_the_sandbags_in_front_of_it() {
     assert!(HOUSE[0] - 10.0 - (sandbags[0] + 0.4) > blast);
     let mut b = battle(
         map(
-            json!([house(), prop("sandbags", sandbags, [0.4, 4.0, 0.5])]),
+            house(),
+            json!([prop("sandbags", sandbags, [0.4, 4.0, 0.5])]),
             json!([]),
         ),
         tank(),
@@ -142,7 +149,7 @@ fn a_tank_shells_a_house_through_the_sandbags_in_front_of_it() {
 /// relief; after a minute, the reasons its mounts give and the weapons of
 /// every round it launched.
 fn shell_past(props: Value, relief: Value, blue: Value) -> (Vec<ActionReason>, Vec<String>) {
-    let mut b = battle(map(props, relief), blue);
+    let mut b = battle(map(house(), props, relief), blue);
     shell_the_house(&mut b);
     let mut fired: Vec<(u64, String)> = Vec::new();
     for _ in 0..30 * 60 {
@@ -166,17 +173,17 @@ fn a_tank_holds_fire_for_what_its_rounds_cannot_break() {
     let cases = [
         (
             "tooth",
-            json!([house(), prop("tooth", BLOCKER, [0.6, 0.6, 0.6])]),
+            json!([prop("tooth", BLOCKER, [0.6, 0.6, 0.6])]),
             json!([]),
         ),
         (
             "wall",
-            json!([house(), prop("wall", BLOCKER, [0.4, 4.0, 2.0])]),
+            json!([prop("wall", BLOCKER, [0.4, 4.0, 2.0])]),
             json!([]),
         ),
         (
             "ridge",
-            json!([house()]),
+            json!([]),
             json!([{ "kind": "ridge", "center": [250, 300], "peak_m": 8, "radius_m": 60 }]),
         ),
     ];
@@ -195,23 +202,15 @@ fn a_gun_without_structural_damage_holds_fire_behind_sandbags() {
     rules["weapons"]["rifle"]["structural_damage"] = json!(0);
     // Keep range outside this trajectory-blocking experiment.
     rules["weapons"]["rifle"]["range_m"] = json!(450);
-    let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map": serde_json::from_str::<Value>(&map(
-            json!([house(), prop("sandbags", BLOCKER, [0.4, 4.0, 0.5])]),
+    let mut b = battle_with(
+        rules,
+        map(
+            house(),
+            json!([prop("sandbags", BLOCKER, [0.4, 4.0, 0.5])]),
             json!([]),
-        ))
-        .unwrap(),
-        "rules": rules,
-        "units": [
-            { "side": "blue", "kind": "test_rifle", "position": SHOOTER },
-            { "side": "red", "kind": "test_rifle", "position": [1150, 550], "engagement": "return_fire_only" },
-        ],
-        "events": [],
-        "scripts": [],
-    }))
-    .unwrap();
-    setup.map = common::physical_map(setup.map, &setup.rules);
-    let mut b = Battle::new(&setup, 1);
+        ),
+        json!({ "side": "blue", "kind": "test_rifle", "position": SHOOTER }),
+    );
     shell_the_house(&mut b);
     let rifle = |b: &Battle| {
         b.rounds()
@@ -234,23 +233,15 @@ fn a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker() {
     let shells = |he: u32| {
         let mut rules = cannon_only();
         rules["weapons"]["tank_he"]["ammo"] = json!(he);
-        let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-            "map": serde_json::from_str::<Value>(&map(
-                json!([house(), prop("sandbags", BLOCKER, [0.4, 4.0, 0.5])]),
+        let mut b = battle_with(
+            rules,
+            map(
+                house(),
+                json!([prop("sandbags", BLOCKER, [0.4, 4.0, 0.5])]),
                 json!([]),
-            ))
-            .unwrap(),
-            "rules": rules,
-            "units": [
-                tank(),
-                { "side": "red", "kind": "test_rifle", "position": [1150, 550], "engagement": "return_fire_only" },
-            ],
-            "events": [],
-            "scripts": [],
-        }))
-        .unwrap();
-        setup.map = common::physical_map(setup.map, &setup.rules);
-        let mut b = Battle::new(&setup, 1);
+            ),
+            tank(),
+        );
         shell_the_house(&mut b);
         // The cannon only: the tank's HMG may fire into the sandbags too.
         let fired = until(&mut b, 60, |b| {
@@ -267,6 +258,7 @@ fn a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker() {
 fn a_rifle_squad_fires_through_a_fence_at_the_squad_beyond_it() {
     // A fence panel stops no rounds: the rifles fire through it and hit.
     let map = map(
+        json!([]),
         json!([prop("fence", [300.0, 300.0], [0.1, 8.0, 0.6])]),
         json!([]),
     );
@@ -291,7 +283,8 @@ fn an_he_round_through_a_fence_knocks_it_down_and_flies_on_to_the_house() {
     let mut b = battle_with(
         cannon_only(),
         map(
-            json!([house(), prop("fence", BLOCKER, [0.1, 4.0, 0.6])]),
+            house(),
+            json!([prop("fence", BLOCKER, [0.1, 4.0, 0.6])]),
             json!([]),
         ),
         tank(),
@@ -331,7 +324,7 @@ fn an_he_round_through_a_fence_knocks_it_down_and_flies_on_to_the_house() {
 #[test]
 fn a_tank_never_fires_through_a_house_at_ground_beyond_it() {
     // The house is not the target here, and it hides what is past it.
-    let mut b = battle(map(json!([house()]), json!([])), tank());
+    let mut b = battle(map(house(), json!([]), json!([])), tank());
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
         seq: 1,
@@ -360,6 +353,7 @@ fn a_tank_firing_at_will_shoots_through_sandbags_at_the_squad_behind_them() {
     // Automatic engagement follows the same rule: a chest-high run of
     // sandbags stands 3 m in front of a red squad, on the tank's line to it.
     let map = map(
+        json!([]),
         json!([prop("sandbags", [357.0, 300.0], [0.4, 8.0, 0.75])]),
         json!([]),
     );
@@ -380,7 +374,7 @@ fn a_tank_firing_at_will_shoots_through_sandbags_at_the_squad_behind_them() {
 /// it goes within `limit_s`.
 fn wears_down(kind: &str, props: Value, point: [f64; 2], limit_s: u64) -> Option<f64> {
     let shooter = json!({ "side": "blue", "kind": kind, "position": [270, 300] });
-    let mut b = battle(map(props, json!([])), shooter);
+    let mut b = battle(map(json!([]), props, json!([])), shooter);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
         seq: 1,

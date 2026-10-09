@@ -36,7 +36,8 @@ import { TickStatus } from "../TickStatus";
 // its squad sees. Held until then so its fire (the HMG wears walls)
 // never brings the house down mid-entry: the entry steps measure the
 // stationary timer, not a collapse. Blue holds fire until fired on. The
-// building (prop 0) is 24 × 24 m and takes one squad of up to 16 soldiers.
+// building (prop 0) is the generator's three-storey corner shop, 12 × 12 m,
+// and takes one squad of up to 16 soldiers, seated on all three floors.
 const BUILDING = 0;
 // Keep direct fire from eliminating the occupants before the house falls;
 // collapse itself still decides which soldiers escape.

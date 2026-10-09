@@ -187,14 +187,18 @@ fn a_map_that_does_not_resolve_is_refused_naming_the_document_at_fault() {
     let sources = std::fs::read_to_string(scratch.file("SOURCES.json")).unwrap();
     for (library, code) in [
         (
-            "../fixtures/building-templates.json",
+            "../fixtures/prototype-building-templates.json",
             ResolveCode::InvalidSources,
         ),
         ("absent-templates.json", ResolveCode::MissingDocument),
     ] {
         std::fs::write(
             scratch.file("SOURCES.json"),
-            sources.replacen("building-templates.json", library, 1),
+            sources.replacen(
+                "\"prototype-building-templates.json\"",
+                &format!("{library:?}"),
+                1,
+            ),
         )
         .unwrap();
         let error = catalogue.load("geometry").unwrap_err();

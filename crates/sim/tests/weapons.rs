@@ -41,9 +41,17 @@ fn scenario_with(
 }
 
 /// A flat 1200 × 600 map plus extra props.
-fn map(props: Value) -> String {
-    json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
-        .to_string()
+/// Flat ground holding `bodies`: props, and any building ([`crate::common::building`]).
+fn map(bodies: Value) -> String {
+    let (buildings, props): (Vec<Value>, Vec<Value>) = bodies
+        .as_array()
+        .unwrap()
+        .iter()
+        .cloned()
+        .partition(|body| body.get("template_id").is_some());
+    json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "props": props, "buildings": buildings })
+    .to_string()
 }
 
 fn battle(props: Value, units: Value, events: Value, scripts: Value) -> Battle {
@@ -862,9 +870,12 @@ fn an_area_then_a_tank() -> Battle {
         .map(|k| json!({ "tick": 5 + k * 30, "fire": { "unit": 1 } }))
         .collect();
     let mut setup = scenario_with(
-        &map(
-            json!([{ "kind": "building", "center": [330, 300], "yaw": 0, "half_extents": [8, 20, 2] }]),
-        ),
+        &map(json!([crate::common::building(
+            0,
+            "china-shed-15x24",
+            [330.0, 300.0],
+            0.0
+        )])),
         json!([
             { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
             { "side": "red", "kind": "test_rifle", "position": [350, 300], "engagement": "return_fire_only" },
@@ -875,9 +886,10 @@ fn an_area_then_a_tank() -> Battle {
         json!([{ "tick": 30, "side": "red", "order":
             { "kind": "move", "units": [2], "gesture": 1, "goal": [350, 150], "route": "shortest" } }]),
     );
-    // This selection experiment needs a lob over the building, independent of tuning.
+    // This selection experiment needs a lob steep enough to clear the shed's
+    // 6 m roof and drop behind it, independent of tuning.
     let grenade = &mut setup.rules.weapons.get_mut("grenade").unwrap().ballistics;
-    (grenade.speed_mps, grenade.gravity_scale) = (24.0, 0.09);
+    (grenade.speed_mps, grenade.gravity_scale) = (16.0, 0.09);
     Battle::new(&setup, 5)
 }
 
