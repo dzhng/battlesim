@@ -500,8 +500,8 @@ export async function run(ctx) {
           nameHeight: name.getBoundingClientRect().height,
           nameFont: parseFloat(getComputedStyle(name).fontSize),
           weaponRows: e.querySelectorAll(".ro-weapon").length,
-          captionTop: document.querySelector('[data-testid="captions"]').getBoundingClientRect()
-            .top,
+          captionBottom: document.querySelector('[data-testid="captions"]').getBoundingClientRect()
+            .bottom,
           left: r.left,
           right: r.right,
           top: r.top,
@@ -519,7 +519,7 @@ export async function run(ctx) {
         detail.unit === first &&
           detail.complete &&
           detail.top >= 0 &&
-          detail.bottom < layout.top &&
+          Math.abs(layout.top - detail.bottom - 4) < 0.5 &&
           detail.left >= 0 &&
           detail.right <= width,
         JSON.stringify(detail),
@@ -530,7 +530,7 @@ export async function run(ctx) {
       ctx.check(
         `${width}px ${name}: hover card holds its contents, its name on one line, clear of captions`,
         hoverSpills.length === 0 &&
-          detail.bottom <= detail.captionTop &&
+          detail.captionBottom <= detail.top &&
           detail.nameHeight < detail.nameFont * 2,
         JSON.stringify({ ...detail, spills: hoverSpills.slice(0, 6) }),
       );

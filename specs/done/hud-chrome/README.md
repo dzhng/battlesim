@@ -74,8 +74,9 @@ actually starts, rather than when a route merely changes.
 - Army details and floating readouts share `InfoPanel`. Own living personnel
   and health are different facts; enemy personnel remains unknown. UI and sound
   use admitted observations, never hidden battle state.
-- Captions clear the actual deck, hints clear captions, and the deck keeps the
-  existing readout-occlusion hooks. Wrapping preserves complete facts and
+- Army details and recruitment share the deck's popup clearance. Captions clear
+  the detail while it is shown; hints and the deck keep the existing
+  readout-occlusion hooks. Wrapping preserves complete facts and
   keyboard/pointer reachability without horizontal scrolling.
 - Existing screens and developer links remain available. Labs keep their
   developer interfaces. Desktop mouse/keyboard is the target; no touch controls,
