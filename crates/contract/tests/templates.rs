@@ -1,67 +1,67 @@
-//! Physical template proofs use existing boxes and labelled API geometry,
-//! never inferred art dimensions or released source claims.
+//! Physical template proofs use the generator's library and labelled API
+//! geometry, never inferred art dimensions or released source claims.
 use contract::templates::{
     BuildingTemplateDescriptor, MaterializedBuilding, PlacementFrame, TemplateGeometryCatalog,
 };
-use serde_json::{json, Value};
+use serde_json::json;
 
-/// The library's box template `id`, as a house shell probe: the box is the
-/// library's (`fixtures/building-templates.json`).
-fn library_house(id: &str) -> BuildingTemplateDescriptor {
-    let library: Value =
-        serde_json::from_str(include_str!("../../../fixtures/building-templates.json")).unwrap();
-    let template = library["templates"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|template| template["id"] == id)
-        .unwrap();
-    let half = &template["parts"][0]["half_extents"];
-    let (hx, hy, hz) = (
-        half[0].as_f64().unwrap(),
-        half[1].as_f64().unwrap(),
-        half[2].as_f64().unwrap(),
-    );
-    serde_json::from_value(json!({
-        "id":"house-shell-probe", "category":"farmstead", "regional_family":"api_fixture",
-        "parts":[{"id":"shell", "center":[0,0], "yaw":0, "half_extents":[hx,hy,hz], "base_z":0}],
-        "floor_heights_m":null, "entrances":null, "edges":[], "joins":[]
-    }))
+/// The generator's template `id` (`fixtures/prototype-building-templates.json`).
+fn template(id: &str) -> BuildingTemplateDescriptor {
+    serde_json::from_str::<Vec<BuildingTemplateDescriptor>>(include_str!(
+        "../../../fixtures/prototype-building-templates.json"
+    ))
+    .unwrap()
+    .into_iter()
+    .find(|t| t.id == id)
     .unwrap()
 }
 
+/// Every template is a whole building: a descriptor missing its floors, its
+/// entrances, an exposed facade's bays or part of a face is refused, never
+/// admitted with the gap filled in.
 #[test]
-fn the_existing_house_shell_materializes_without_inventing_missing_facts() {
-    for (id, center, half) in [
-        ("api-box-15-12-4", [975.0, 752.0], [15.0, 12.0, 4.0]),
-        ("api-box-17-14-4", [1047.0, 814.0], [17.0, 14.0, 4.0]),
-        ("api-box-13-11-4", [983.0, 871.0], [13.0, 11.0, 4.0]),
-    ] {
-        let descriptor = library_house(id);
-        let placed = descriptor
-            .materialize(PlacementFrame {
-                translation: [center[0], center[1], 0.0],
-                yaw: 0.0,
+fn a_template_missing_any_building_fact_is_refused() {
+    let shed = template("china-shed-15x24");
+    shed.validate().unwrap();
+    let mut missing = Vec::new();
+    let mut t = shed.clone();
+    t.floor_heights_m = None;
+    missing.push(("floors", t));
+    let mut t = shed.clone();
+    t.entrances = None;
+    missing.push(("entrances", t));
+    let mut t = shed.clone();
+    t.entrances = Some(vec![]);
+    missing.push(("an entrance", t));
+    let mut t = shed.clone();
+    t.edges[0].bays = None;
+    missing.push(("an exposed facade's bays", t));
+    let mut t = shed.clone();
+    t.edges.retain(|e| e.id != "body-north");
+    missing.push(("a face", t));
+    for (what, t) in missing {
+        assert!(t.validate().is_err(), "admitted without {what}");
+        assert!(
+            t.materialize(PlacementFrame {
+                translation: [0.0; 3],
+                yaw: 0.0
             })
-            .unwrap();
-        assert_eq!(placed.parts[0].center, center);
-        assert_eq!(placed.parts[0].half_extents, half);
-        assert_eq!(placed.height_m, 8.0);
-        assert!(placed.floor_z.is_none());
-        assert!(placed.entrances.is_none());
-        assert!(descriptor.require_complete().is_err());
+            .is_err(),
+            "materialized without {what}"
+        );
+        assert!(
+            TemplateGeometryCatalog::new(vec![t]).is_err(),
+            "catalogued without {what}"
+        );
     }
 }
 
 #[test]
 fn an_asymmetric_rotated_part_keeps_its_own_box_frame() {
-    let descriptor: BuildingTemplateDescriptor = serde_json::from_value(json!({
-        "id":"rotated-api-probe", "category":"industry", "regional_family":"api_fixture",
-        "parts":[{"id":"offset", "center":[2,1], "yaw":std::f64::consts::FRAC_PI_2,
-            "half_extents":[4,2,3], "base_z":1}],
-        "floor_heights_m":null, "entrances":null, "edges":[], "joins":[]
-    }))
-    .unwrap();
+    let mut descriptor = template("china-shed-15x24");
+    let part = &mut descriptor.parts[0];
+    (part.center, part.yaw, part.base_z) = ([2.0, 1.0], std::f64::consts::FRAC_PI_2, 1.0);
+    let half = part.half_extents;
     let placed = descriptor
         .materialize(PlacementFrame {
             translation: [10.0, 20.0, 5.0],
@@ -69,17 +69,17 @@ fn an_asymmetric_rotated_part_keeps_its_own_box_frame() {
         })
         .unwrap();
     assert_eq!(placed.parts[0].center, [9.0, 22.0]);
-    assert_eq!(placed.parts[0].half_extents, [4.0, 2.0, 3.0]);
+    assert_eq!(placed.parts[0].half_extents, half);
     assert_eq!(placed.parts[0].yaw, std::f64::consts::PI);
     assert_eq!(placed.parts[0].base_z, 6.0);
-    assert_eq!(placed.height_m, 7.0);
+    assert_eq!(placed.height_m, 1.0 + 2.0 * half[2]);
 }
 
 #[test]
 fn physical_identity_is_canonical_and_changes_with_geometry() {
-    let first = library_house("api-box-15-12-4");
+    let first = template("china-shed-15x24");
     let mut second = first.clone();
-    second.id = "another-shell-probe".into();
+    second.id = "another-shed-probe".into();
     second.parts[0].center[0] = -0.0;
     let catalogue = TemplateGeometryCatalog::new(vec![first.clone(), second.clone()]).unwrap();
     let reordered = TemplateGeometryCatalog::new(vec![second, first.clone()]).unwrap();
@@ -90,14 +90,9 @@ fn physical_identity_is_canonical_and_changes_with_geometry() {
     );
     let original = TemplateGeometryCatalog::new(vec![first.clone()]).unwrap();
     let mut geometry = first;
-    geometry.parts[0].half_extents[0] = 15.5;
+    geometry.parts[0].center[0] = 0.5;
     let changed = TemplateGeometryCatalog::new(vec![geometry]).unwrap();
     assert_ne!(original.hash(), changed.hash());
-    let loaded = TemplateGeometryCatalog::from_json(&catalogue.canonical_json().unwrap()).unwrap();
-    assert_eq!(loaded.hash(), catalogue.hash());
-    let mut invalid: Value = serde_json::from_str(&catalogue.canonical_json().unwrap()).unwrap();
-    invalid["hash"] = json!("unverified");
-    assert!(TemplateGeometryCatalog::from_json(&invalid.to_string()).is_err());
 }
 
 fn asymmetric() -> BuildingTemplateDescriptor {
@@ -110,7 +105,7 @@ fn asymmetric() -> BuildingTemplateDescriptor {
 #[test]
 fn bays_and_entrances_materialize_from_the_same_asymmetric_frame() {
     let descriptor = asymmetric();
-    descriptor.require_complete().unwrap();
+    descriptor.validate().unwrap();
     let placed = descriptor
         .materialize(PlacementFrame {
             translation: [10.0, 20.0, 5.0],
@@ -127,7 +122,7 @@ fn bays_and_entrances_materialize_from_the_same_asymmetric_frame() {
         north.bays.as_ref().unwrap(),
         &vec![[7.0, 21.5], [7.0, 18.5]]
     );
-    assert_eq!(placed.floor_z, Some(vec![5.0, 8.0]));
+    assert_eq!(placed.floor_z, vec![5.0, 8.0]);
     assert!(placed
         .edges
         .iter()
@@ -187,8 +182,8 @@ fn declared_joins_do_not_allow_false_exposed_walls_or_unproved_connections() {
     let mut incomplete = shape.clone();
     incomplete.edges.retain(|e| e.id != "main-west");
     assert!(
-        incomplete.require_complete().is_err(),
-        "missing facade facts are unresolved"
+        incomplete.validate().is_err(),
+        "a face without its facade is refused"
     );
     let mut concealed = shape.clone();
     concealed.edges[0].span_m = [-3.0, 1.0];
@@ -208,10 +203,11 @@ fn declared_joins_do_not_allow_false_exposed_walls_or_unproved_connections() {
 fn physical_json_preserves_authoritative_f64_bits_and_its_own_identity() {
     // The default JSON float reader rounds this finite metre value by one ULP.
     let value = f64::from_bits(0x4044000000005ccd);
-    let mut descriptor = library_house("api-box-15-12-4");
+    let mut descriptor = template("china-shed-15x24");
     descriptor.parts[0].center[0] = value;
     let catalogue = TemplateGeometryCatalog::new(vec![descriptor.clone()]).unwrap();
-    let loaded = TemplateGeometryCatalog::from_json(&catalogue.canonical_json().unwrap()).unwrap();
+    let written = serde_json::to_string(catalogue.templates()).unwrap();
+    let loaded = TemplateGeometryCatalog::new(serde_json::from_str(&written).unwrap()).unwrap();
     assert_eq!(
         loaded.templates()[0].parts[0].center[0].to_bits(),
         value.to_bits()
@@ -230,7 +226,7 @@ fn physical_json_preserves_authoritative_f64_bits_and_its_own_identity() {
 
 #[test]
 fn finite_inputs_cannot_publish_overflowed_world_geometry() {
-    let mut descriptor = library_house("api-box-15-12-4");
+    let mut descriptor = template("china-shed-15x24");
     descriptor.parts[0].center[0] = f64::MAX;
     assert!(descriptor
         .materialize(PlacementFrame {
@@ -244,8 +240,6 @@ fn finite_inputs_cannot_publish_overflowed_world_geometry() {
 fn vertically_disjoint_boxes_do_not_hide_each_others_facades() {
     let mut descriptor = asymmetric();
     descriptor.parts[1].base_z = 12.0;
-    descriptor.floor_heights_m = None;
-    descriptor.entrances = None;
     descriptor.joins.clear();
     for edge in &mut descriptor.edges {
         edge.exposed = true;
@@ -325,8 +319,6 @@ fn large_xy_translation_cannot_relax_vertical_join_geometry() {
     rebased.frame = ordinary.frame;
     assert_eq!(rebased, ordinary);
     descriptor.parts[1].base_z = 12.0;
-    descriptor.floor_heights_m = None;
-    descriptor.entrances = None;
     assert!(
         descriptor.validate().is_err(),
         "XY magnitude cannot accept Z-disjoint join faces"
@@ -407,12 +399,13 @@ fn common_vertical_datum_cannot_hide_real_facade_coverage() {
     for part in &mut descriptor.parts {
         part.base_z = 1e15;
     }
-    descriptor.floor_heights_m = None;
-    descriptor.entrances = None;
     descriptor.joins.clear();
     for edge in &mut descriptor.edges {
         edge.exposed = true;
-        edge.bays = None;
+        edge.bays = Some(contract::templates::FacadeBays {
+            pitch_m: 3.0,
+            phase_m: 0.0,
+        });
     }
     assert!(
         descriptor.validate().is_err(),

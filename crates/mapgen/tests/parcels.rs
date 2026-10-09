@@ -175,7 +175,7 @@ fn ring_segment_gap(ring: &[Point], a: Point, b: Point) -> f64 {
 }
 
 fn floors(building: &BuildingDefinition) -> usize {
-    building.geometry.floor_z.as_ref().unwrap().len()
+    building.geometry.floor_z.len()
 }
 
 /// The accepted building kits can reach 1.5 m beyond their physical parts.
@@ -964,7 +964,7 @@ fn what_cannot_be_built_ends_in_a_named_diagnostic() {
 /// materialized from the catalogue.
 #[test]
 fn every_generated_map_loads_as_the_contracts_map() {
-    let library = catalogue().canonical_json().unwrap();
+    let library = serde_json::to_string(catalogue().templates()).unwrap();
     every_cell(|name, _, town| {
         let saved = serde_json::to_string(&town.map.saved()).unwrap();
         let sources = serde_json::json!({
