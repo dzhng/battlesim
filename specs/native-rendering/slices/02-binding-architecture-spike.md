@@ -22,7 +22,7 @@ Write seam tests first: command ordering, fixed-tick count, side filtering, bulk
 
 If a candidate opens a window, use [compare-screenshots](../../../.agents/skills/compare-screenshots/SKILL.md), finish with [screenshot-critique](../../../.agents/skills/screenshot-critique/SKILL.md), and show evidence with [preview-shots](../../../.agents/skills/preview-shots/SKILL.md). Judge the image only for successful presentation and coordinate orientation; battle visual parity belongs to slice 03.
 
-Choose the smallest candidate that passes authority parity, bulk transfer, lifecycle and measurement fidelity with no hidden gameplay authority. If none passes, record the failure and keep Godot at offline capture while the next plan investigates the blocking seam.
+Choose the smallest candidate that passes authority parity, bulk transfer, lifecycle and measurement fidelity with no hidden gameplay authority. The spike selects GDExtension for the interactive client because it matches both side publications and replay/digest behavior in-process; the benchmark-only presentation capture remains the renderer measurement seam. IPC remains a fallback with clean process evidence, not a second interactive authority.
 
 ## Delegated choices
 

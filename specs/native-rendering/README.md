@@ -66,7 +66,7 @@ External measurements are context only; the frozen Mac runs are the evidence.
 - [ ] Freeze complete menu-reel identity, canonical capture and browser control — slice 01.
 - [~] Add Settings graphics test and report chart — slice 01 (route exists; lifecycle, report identity and visual verification remain).
 - [~] Verify offline native seam and Godot headless toolchain — slice 02 (offline probe and live extension smoke load; real scenario transfer/parity remains).
-- [ ] Spike binding candidates and select a seam — slice 02.
+- [x] Spike binding candidates and select a seam — slice 02 (GDExtension for interactive authority; presentation capture for renderer comparison; IPC retained as measured fallback).
 - [ ] Render the full menu reel in Godot — slice 03.
 - [ ] Compare repeated distributions and reslice the chosen direction — slice 04.
 
