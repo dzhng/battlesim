@@ -685,7 +685,8 @@ pub enum EncounterDiagnosticCode {
 }
 
 /// Why a placement was refused. `feature` is the recipe field or site the
-/// refusal is about; `location` is a JSON path into the request.
+/// refusal is about; `location` is a JSON path into the planner's inputs
+/// (`$.recipe.…`, `$.sites`).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EncounterDiagnostic {
     pub code: EncounterDiagnosticCode,
@@ -695,7 +696,7 @@ pub struct EncounterDiagnostic {
 }
 
 /// The unit vector of a bearing, counter-clockwise from +X. One software
-/// evaluator, so native and Wasm placements agree to the bit.
+/// evaluator, so placements agree to the bit on every target.
 pub fn heading(yaw: f64) -> [f64; 2] {
     let (s, c) = libm::sincos(yaw);
     [c, s]

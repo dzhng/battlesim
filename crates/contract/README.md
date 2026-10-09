@@ -13,7 +13,9 @@ knowledge cannot expand that vocabulary with hidden state.
 
 [Map admission](src/maps.rs), [physical templates](src/templates.rs) and
 [catalog resolution](src/catalog.rs) validate inputs before consumers build a
-world. Templates describe physics, not meshes; [scene-assets](../../packages/scene-assets/README.md)
+world. Templates describe physics, not meshes, and every admitted template is a
+whole building: its floors, an entrance and a bay lattice on each exposed facade,
+never a gap a consumer fills in. [scene-assets](../../packages/scene-assets/README.md)
 dresses them without changing the map's physical identity. [Fixtures](../../fixtures/README.md)
 owns authored documents and resolved catalog publication.
 

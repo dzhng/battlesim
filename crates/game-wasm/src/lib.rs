@@ -70,8 +70,8 @@ pub fn resolve_saved_map(
 
 /// Admit physical templates as buildings a map may place, together one
 /// canonical catalogue (`{ hash, templates }`), independent of art. The asset
-/// check holds every source set's descriptors to this, so no other code
-/// decides what a legal template is. Fails with the contract's own refusal.
+/// check holds the catalogue's descriptors to this, so no other code decides
+/// what a legal template is. Fails with the contract's own refusal.
 #[wasm_bindgen]
 pub fn template_catalogue_json(descriptors_json: &str) -> Result<String, JsError> {
     let descriptors: Vec<BuildingTemplateDescriptor> =
@@ -790,7 +790,7 @@ impl BattleHandle {
     }
 }
 
-/// A worker-owned world: encounter planning lends it, battle startup consumes it.
+/// A worker-owned world: skirmish admission lends it, battle startup consumes it.
 #[wasm_bindgen]
 pub struct PreparedWorld {
     map: MapDefinition,

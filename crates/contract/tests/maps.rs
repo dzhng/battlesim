@@ -5,12 +5,14 @@
 use contract::identity::json_hash;
 use contract::map::MapDefinition;
 use contract::maps::{resolve, MapAdmission};
-use contract::templates::{BuildingTemplateDescriptor, TemplateGeometryCatalog};
+use contract::templates::TemplateGeometryCatalog;
 use serde_json::json;
+
+mod common;
+use common::{template, LIBRARY};
 
 const GEOMETRY: &str = include_str!("../../../fixtures/maps/geometry/map.json");
 const GEOMETRY_SOURCES: &str = include_str!("../../../fixtures/maps/geometry/SOURCES.json");
-const LIBRARY: &str = include_str!("../../../fixtures/prototype-building-templates.json");
 const ADMISSION: MapAdmission = MapAdmission {
     max_authored_parts: 128,
     max_bay_positions: 65_536,
@@ -21,15 +23,6 @@ fn geometry() -> MapDefinition {
     resolve(GEOMETRY, GEOMETRY_SOURCES, LIBRARY, ADMISSION)
         .unwrap()
         .definition
-}
-
-/// The library's template `id`.
-fn template(id: &str) -> BuildingTemplateDescriptor {
-    serde_json::from_str::<Vec<BuildingTemplateDescriptor>>(LIBRARY)
-        .unwrap()
-        .into_iter()
-        .find(|t| t.id == id)
-        .unwrap()
 }
 
 /// Sources that pin `definition` as an authored map of the shipped library,

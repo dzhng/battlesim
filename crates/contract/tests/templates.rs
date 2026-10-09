@@ -5,16 +5,8 @@ use contract::templates::{
 };
 use serde_json::json;
 
-/// The generator's template `id` (`fixtures/prototype-building-templates.json`).
-fn template(id: &str) -> BuildingTemplateDescriptor {
-    serde_json::from_str::<Vec<BuildingTemplateDescriptor>>(include_str!(
-        "../../../fixtures/prototype-building-templates.json"
-    ))
-    .unwrap()
-    .into_iter()
-    .find(|t| t.id == id)
-    .unwrap()
-}
+mod common;
+use common::template;
 
 /// Every template is a whole building: a descriptor missing its floors, its
 /// entrances, an exposed facade's bays or part of a face is refused, never
