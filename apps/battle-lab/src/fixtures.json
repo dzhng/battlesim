@@ -122,7 +122,7 @@
   {
     "id": "readouts",
     "route": "/lab/readouts",
-    "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, \u221e unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the unit card (the selection's info panels) stays when zoomed out; the command bar exposes the selection's actions (X attack-move, G attack ground, Backspace stop, F fire policy).",
+    "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, \u221e unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the army deck's card keeps a unit's whole panel when zoomed out; the command bar exposes the selection's actions (X attack-move, G attack ground, Backspace stop, F fire policy).",
     "map": "readouts"
   },
   {

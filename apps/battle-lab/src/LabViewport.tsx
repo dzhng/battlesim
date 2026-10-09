@@ -1126,7 +1126,7 @@ export function LabViewport({
           const target = e.target;
           if (
             target !== canvas &&
-            !(target instanceof Element && target.closest(".ro-layer .ro-unit, .hud-card"))
+            !(target instanceof Element && target.closest(".ro-layer .ro-unit"))
           )
             return;
           e.preventDefault();

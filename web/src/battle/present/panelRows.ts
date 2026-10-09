@@ -294,7 +294,7 @@ function equipmentName(mounts: readonly MountRow[], index: number, rules: PanelR
   return `${short} ${peers.indexOf(index) + 1}`;
 }
 
-/** The equipment rows shared by floating panels and the selection card.
+/** The equipment rows shared by floating panels and the army deck's detail.
  *  Without own readiness, expose equipment alone, never ammo or timers. */
 export function weaponRows(
   mounts: readonly MountRow[],

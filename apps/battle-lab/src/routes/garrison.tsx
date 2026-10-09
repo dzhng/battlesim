@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView } from "@web/battle/sim/observation";
-import { ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
+import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import { AckLog } from "../AckLog";
 import {
@@ -179,7 +179,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
         diagnostics={diagnostics}
       />
       <ReadoutLayer
-        own={observation?.own ?? []}
+        own={own}
         rules={session.rules}
         selected={control.selected}
         handle={session.readouts}
@@ -216,7 +216,6 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
           <br />
           <span className="lab-swatch lab-swatch-unseen" /> ground blue cannot see
         </div>
-        <SelectionCard units={own} own={own} rules={session.rules} />
         {SQUADS.filter(({ id }) => !own.some((u) => u.id === id)).map(({ id, kind }) => (
           <div key={id} className="lab-hint">
             {kind} #{id} · eliminated

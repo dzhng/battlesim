@@ -292,15 +292,6 @@ export async function run(ctx) {
   );
   await lab(page, (camera) => window.__lab.setCamera(camera), originalCamera);
   await settle(page);
-  await page.locator(".hud-card .ro-name-word").first().hover();
-  await page.mouse.wheel(0, 120);
-  await page.waitForTimeout(150);
-  ctx.check(
-    "wheel zoom works over the selection info panel too",
-    (await lab(page, () => window.__lab.camera())).distance > originalCamera.distance,
-  );
-  await lab(page, (camera) => window.__lab.setCamera(camera), originalCamera);
-  await settle(page);
 
   await page.mouse.move(1100, 60);
   await page.waitForFunction(

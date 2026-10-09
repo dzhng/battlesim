@@ -2684,12 +2684,12 @@ async function selectionTour(ctx) {
     JSON.stringify({ icons, cardPanel }),
   );
   await page.locator("footer.hud-bottom").screenshot({
-    path: ctx.evidencePath("selection-card-tank.png"),
+    path: ctx.evidencePath("army-deck-tank.png"),
   });
   await lab(page, (id) => window.__lab.route.select([id]), rifles[0]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   await page.locator("footer.hud-bottom").screenshot({
-    path: ctx.evidencePath("selection-card-rifle.png"),
+    path: ctx.evidencePath("army-deck-rifle.png"),
   });
 
   // A tank and a supply truck: the one Deploy/Pack toggle reaches the truck

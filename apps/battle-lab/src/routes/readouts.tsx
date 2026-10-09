@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
-import { CommandBar, ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
+import { ArmyDeck } from "@web/battle/present/armyDeck";
+import { ReadoutLayer } from "@web/battle/present/readouts";
 import { AckLog } from "../AckLog";
 import { orderLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
@@ -84,19 +85,23 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
       <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="readouts-panel">
         <strong>Weapon readouts</strong>
         <TickStatus tick={observation?.tick} status={sim.status.status} />
-        <CommandBar control={control} />
         <div className="lab-legend">
           Rings: <span className="lab-swatch lab-swatch-aim" /> aim ·{" "}
           <span className="lab-swatch lab-swatch-reload" /> reload (dashed) · number: rounds left ·
           the mark after a weapon: why it cannot fire
         </div>
-        <SelectionCard
-          units={control.selectedUnits}
-          own={observation?.own ?? []}
-          rules={session.rules}
-        />
         <AckLog acks={control.acks} />
       </aside>
+      <div className="hud">
+        <ArmyDeck
+          own={observation?.own ?? []}
+          selected={control.selected}
+          onSelect={control.setSelected}
+          rules={session.rules}
+          control={control}
+          captions={null}
+        />
+      </div>
     </>
   );
 }
