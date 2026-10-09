@@ -10,7 +10,7 @@
 //   mount or soldier that fired as it is drawn at each frame (a
 //   `MuzzleSource`), else at the published launch point;
 // - an impact puff where a stretch ends in a hit, by hit class, off the
-//   surface along its published normal (sparks off a hull);
+//   surface along its published normal (sparks off a hull, from a tracer);
 // - sparks at every ricochet corner, thrown off the glancing face;
 // - a fireball for every published blast, and the dirt and smoke it throws
 //   up, rising and drifting downwind;
@@ -224,7 +224,7 @@ export interface ImpactStyle {
   duration_s: number;
   /** Per-round overrides of size scale and duration multiplier for this hit surface. */
   round_scale?: Record<string, { size: number; duration: number }>;
-  /** Sparks thrown off the surface, and a hot flash's intensity (0 for none). */
+  /** Sparks a tracer round throws off the surface, and a hot flash's intensity (0 for none). */
   sparks: number;
   flash: number;
   /** Its flash's light off the face, within the impact's life, reaching
@@ -915,7 +915,9 @@ export class EffectFrame {
 
     for (const s of pub.segments) {
       if (s.path.length < 2) continue;
-      const e = this.addTracer(t0, s, rng, this.launches.tracers.has(s));
+      const tracer = this.launches.tracers.has(s);
+      const e = this.addTracer(t0, s, rng, tracer);
+      // A ricochet always sparks; an impact sparks only off a tracer round.
       for (const r of s.ricochets) {
         const at = t0 + (this.dt * e.cum[r.point]) / Math.max(e.length, 1e-6);
         const next = s.path[Math.min(r.point + 1, s.path.length - 1)];
@@ -926,7 +928,7 @@ export class EffectFrame {
       }
       if (s.hit !== "none") {
         const end = s.path[s.path.length - 1];
-        this.addImpact(t1, end, s.normal, s.hit, s.kind, rng);
+        this.addImpact(t1, end, s.normal, s.hit, s.kind, tracer, rng);
       }
     }
     for (const b of pub.blasts) this.addBlast(t1, b, rng);
@@ -1270,6 +1272,7 @@ export class EffectFrame {
     normal: P3 | null,
     hit: string,
     kind: string,
+    tracer: boolean,
     rng: ReturnType<typeof mulberry32.create>,
   ) {
     const style = pick(this.p.impacts, hit);
@@ -1283,7 +1286,7 @@ export class EffectFrame {
     e.size = style.size_m * (scale?.size ?? pick(this.p.impact_scale, kind));
     e.rotation = mulberry32.sample(rng) * Math.PI * 2;
     e.path.push(mulberry32.sample(rng)); // the puff's first frame
-    if (style.sparks > 0) this.addSparks(at, point, e.n, e.n, style.sparks, rng);
+    if (tracer && style.sparks > 0) this.addSparks(at, point, e.n, e.n, style.sparks, rng);
   }
 
   /** Sparks from `point`, thrown along `dir` and off the face `normal`. */

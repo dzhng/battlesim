@@ -229,6 +229,44 @@ test("coincident rounds retain independent tracer choices when their paths separ
   expect(second.length).toBe(first);
 });
 
+test("a round sparks off a hull or prop only when it is a tracer, but always at a ricochet", () => {
+  const withChance = (chance: number) =>
+    new EffectFrame({
+      tickHz: HZ,
+      presentation: {
+        ...PRESENTATION,
+        tracers: { ...PRESENTATION.tracers, rifle: { ...PRESENTATION.tracers.rifle, chance } },
+      },
+    });
+  const hit = (hit: string) =>
+    segment(
+      [
+        [0, 0, 2],
+        [10, 0, 2],
+      ],
+      { hit, normal: [-1, 0, 0] },
+    );
+  const ricochet = segment(
+    [
+      [0, 0, 2],
+      [10, 0, 2],
+      [10, 10, 2],
+    ],
+    { ricochets: [{ point: 1, normal: [-1, 0, 0] }] },
+  );
+  // Past the tracer's own short tail, any streak left is a spark.
+  const sparks = (s: EffectSegment, chance: number) => {
+    const f = withChance(chance);
+    f.note(pub(1, { segments: [s] }));
+    return drawn(f, DT + 0.1).filter((i) => i.shape === SHAPE.streak).length;
+  };
+  for (const surface of ["hull", "prop"]) {
+    expect(sparks(hit(surface), 1)).toBeGreaterThan(0);
+    expect(sparks(hit(surface), 0)).toBe(0);
+  }
+  expect(sparks(ricochet, 0)).toBeGreaterThan(0);
+});
+
 const pub = (tick: number, p: Partial<EffectPublication> = {}): EffectPublication => ({
   tick,
   segments: [],
