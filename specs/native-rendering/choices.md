@@ -35,6 +35,9 @@
   probe. This keeps the benchmark honest while the extension is built.
 - Godot 4.7.2 is paired with godot-rust 0.5.5 `api-4-7`; the official
   compatibility guidance says the API version must be no newer than the runtime.
+- The first shared menu workload owner is a thin identity module over
+  `fixtures/menu-backdrop.json`; it does not duplicate scene content or alter
+  the live menu's clock.
 - The existing `game-wasm::BattleHandle` already exposes the required seam
   concepts: ordered commands, fixed stepping, side publication, digest,
   replay and observation resync. Native work should reuse those simulation

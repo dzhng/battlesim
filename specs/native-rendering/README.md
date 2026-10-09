@@ -61,7 +61,7 @@ External measurements are context only; the frozen Mac runs are the evidence.
 ## Global TODO
 
 - [~] Add displayed-frame rate summary fields and tests — slice 01 (landed).
-- [ ] Freeze menu-reel manifest, capture schema and browser control — slice 01.
+- [~] Freeze menu-reel manifest, capture schema and browser control — slice 01 (manifest landed).
 - [ ] Add Settings graphics test and report chart — slice 01.
 - [~] Verify offline native seam and Godot headless toolchain — slice 02 (probe compiles; live extension remains).
 - [ ] Spike binding candidates and select a seam — slice 02.
