@@ -81,6 +81,18 @@ export function composeCatalog(
   };
 }
 
+/** A scenario's rules as the page reads them: each weapon row as the
+ *  catalog resolves it (`extends` followed, so a row inherits its icon,
+ *  full load and range), beside any row the scenario adds. Panels, the
+ *  range ruler and poses read these; the authority is sent the scenario's
+ *  own text and resolves it itself. */
+export function presentationRules<R extends { weapons: object }>(
+  rules: R,
+  catalog: SessionCatalog,
+): R {
+  return { ...rules, weapons: { ...rules.weapons, ...catalog.weapons } };
+}
+
 /** The units a scenario fields, admitted against its session's catalog:
  *  a unit the catalog lacks is refused by name, never silently undrawn. */
 export function admitScenario(

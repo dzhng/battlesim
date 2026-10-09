@@ -7,7 +7,12 @@ import game from "@fixtures/game.json";
 import { loadWasm } from "../sim/module";
 import { composeCatalog, type CatalogSetName, type GameView, type SessionCatalog } from "./compose";
 
-export { admitScenario, type CatalogSetName, type SessionCatalog } from "./compose";
+export {
+  admitScenario,
+  presentationRules,
+  type CatalogSetName,
+  type SessionCatalog,
+} from "./compose";
 
 /** Each set's own documents' source text, beyond the game's: the folders
  *  `SET_FOLDERS` names (Vite globs must be literal). */

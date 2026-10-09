@@ -51,20 +51,25 @@ async function picker(ctx, page, shot) {
     sizes.length > 2 && sizes.every(([w, h]) => w === deckCard[0] && h === deckCard[1]),
     JSON.stringify({ deckCard, sizes }),
   );
-  // A family of several variants lists them in a menu above the picker
-  // while the pointer is on it; the picker itself never changes.
+  // Hovering a family shows its info cards, one per variant, in a menu
+  // standing on its card; the picker itself never changes.
   await page.getByRole("tab", { name: "VEH", exact: true }).click();
   const picker = page.locator(".hud-purchase-picker");
   const tank = page.getByRole("button", { name: "Tank", exact: true });
   const before = { picker: await picker.boundingBox(), tank: await tank.boundingBox() };
   await page.getByRole("button", { name: "Supply Truck", exact: true }).hover();
   ctx.check(
-    `${shot}: a family of one variant opens nothing`,
-    (await page.locator(".hud-purchase-flyout").count()) === 0,
+    `${shot}: a family of one variant shows its one info card`,
+    (await page
+      .getByRole("group", { name: "Supply Truck variants" })
+      .locator(".hud-purchase-info")
+      .count()) === 1,
   );
+  // A menu is open (the supply truck's), so the hover moves after a rest.
   await tank.hover();
+  await page.waitForTimeout(400);
   const after = { picker: await picker.boundingBox(), tank: await tank.boundingBox() };
-  const menu = await page.locator(".hud-purchase-flyout-panel").boundingBox();
+  const menu = await page.locator(".hud-purchase-stack").boundingBox();
   ctx.check(
     `${shot}: hovering a family leaves the picker and its card where they were`,
     ["x", "y", "width", "height"].every(
@@ -87,29 +92,56 @@ async function picker(ctx, page, shot) {
     JSON.stringify({ gap, menu, tank: after.tank }),
   );
 
-  ctx.check(
-    `${shot}: hovering a family of variants lists them`,
-    (await page.getByRole("group", { name: "Tank variants" }).count()) === 1,
-  );
-  // Variants side by side share their top edge and their first line,
-  // however many lines each has.
-  const variants = await page
+  // One info card per variant, stacked at one left edge and one width,
+  // each plate opaque (a dimmed one dims its words, not what's behind it).
+  const stacked = await page
     .getByRole("group", { name: "Tank variants" })
-    .locator("button")
-    .evaluateAll((buttons) =>
-      buttons.map((b) => [
-        b.getBoundingClientRect().top,
-        b.querySelector("span").getBoundingClientRect().top,
-      ]),
+    .locator(".hud-purchase-info")
+    .evaluateAll((cards) =>
+      cards.map((c) => {
+        const r = c.getBoundingClientRect();
+        return {
+          x: r.left,
+          w: r.width,
+          top: r.top,
+          bottom: r.bottom,
+          opacity: getComputedStyle(c).opacity,
+        };
+      }),
     );
+  // One gap throughout: between the stacked cards as between the stack and
+  // the unit card under it.
+  const tankBox = await tank.boundingBox();
+  const gaps = [
+    ...stacked.slice(1).map((c, k) => c.top - stacked[k].bottom),
+    tankBox.y - stacked.at(-1).bottom,
+  ];
   ctx.check(
-    `${shot}: variants share their top edge and first line`,
-    variants.length > 1 &&
-      variants.every(
-        ([box, line]) =>
-          Math.abs(box - variants[0][0]) < 0.5 && Math.abs(line - variants[0][1]) < 0.5,
+    `${shot}: the info cards keep one 3 px gap, between them and above the card`,
+    gaps.every((g) => Math.abs(g - 3) < 0.5),
+    JSON.stringify(gaps),
+  );
+  // The dearest at the top, the cheapest at the bottom, nearest the pointer.
+  const prices = await page
+    .getByRole("group", { name: "Tank variants" })
+    .locator(".hud-purchase-price")
+    .evaluateAll((ps) => ps.map((p) => parseInt(p.textContent)));
+  ctx.check(
+    `${shot}: variants run from the dearest at the top to the cheapest at the bottom`,
+    prices.length === 2 && prices.every((p, k) => k === 0 || p <= prices[k - 1]),
+    JSON.stringify(prices),
+  );
+  ctx.check(
+    `${shot}: the variants' info cards stack at one edge and width, opaque`,
+    stacked.length === 2 &&
+      stacked.every(
+        (c, k) =>
+          Math.abs(c.x - stacked[0].x) < 0.5 &&
+          Math.abs(c.w - stacked[0].w) < 0.5 &&
+          c.opacity === "1" &&
+          (k === 0 || c.top >= stacked[k - 1].bottom),
       ),
-    JSON.stringify(variants),
+    JSON.stringify(stacked),
   );
   // What can't be bought now is dimmed, as its variants are; the rest is not.
   const opacity = (family) =>
@@ -141,24 +173,6 @@ async function picker(ctx, page, shot) {
     tankWarned === short && baseWarned === short && !jeepWarned,
     JSON.stringify({ tankWarned, baseWarned, jeepWarned }),
   );
-  // Each variant's diamond marks its name, its first line.
-  const diamonds = await page
-    .getByRole("group", { name: "Tank variants" })
-    .locator("button")
-    .evaluateAll((buttons) =>
-      buttons.map((b) => {
-        const mark = getComputedStyle(b, "::before");
-        const centre =
-          b.getBoundingClientRect().top + parseFloat(mark.top) + parseFloat(mark.marginTop);
-        const line = b.querySelector("span").getBoundingClientRect();
-        return centre - (line.top + line.height / 2);
-      }),
-    );
-  ctx.check(
-    `${shot}: each variant's diamond sits on its name's line (within 1.5 px)`,
-    diamonds.length > 1 && diamonds.every((d) => Math.abs(d) <= 1.5),
-    JSON.stringify(diamonds),
-  );
   await contained(ctx, page, `${shot} variants`);
   await ctx.matchBaseline(page, `${shot}-veh-variants`);
   // The pointer travels up from the card into the menu without closing it,
@@ -174,8 +188,11 @@ async function picker(ctx, page, shot) {
   // clicking it at once, it stands on that family's own card.
   const standsOn = async (family) => {
     const card = await page.getByRole("button", { name: family, exact: true }).boundingBox();
-    const menu = await page.locator(".hud-purchase-flyout-panel").boundingBox();
-    const named = await page.locator(".hud-purchase-flyout-name").textContent();
+    const menu = await page.locator(".hud-purchase-stack").boundingBox();
+    const named = (await page.locator(".hud-purchase-stack").getAttribute("aria-label")).replace(
+      / variants$/,
+      "",
+    );
     const gap = card.y - (menu?.y ?? 0) - (menu?.height ?? 0);
     return {
       ok:

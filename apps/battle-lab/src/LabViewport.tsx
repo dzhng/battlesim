@@ -555,11 +555,14 @@ export function LabViewport({
     let canvasContext: GPUCanvasContext | null = null;
     let raf = 0;
     const setCursorAction = setCursorActionRef.current;
+    // The battlefield the pointer acts on: the canvas, or a callout over it.
+    // The HUD's controls are not: over them the ground neither hovers nor
+    // measures, and the app's cursor (AppCursor) shows there regardless.
     const interactionSurface = (target: EventTarget | null) =>
       target === canvas
         ? canvas
         : target instanceof Element
-          ? target.closest<HTMLElement>(".ro-layer .ro-unit, .hud")
+          ? target.closest<HTMLElement>(".ro-layer .ro-unit")
           : null;
     // The pose input and scripts ask for, and the pose drawn for it: the
     // same one unless camera clearance holds it off an obstacle.
@@ -1047,10 +1050,7 @@ export function LabViewport({
         const onMove = (e: PointerEvent) => {
           if (!inputEnabledRef.current) return;
           modifiers = { ctrl: e.ctrlKey, shift: e.shiftKey };
-          const target = e.target;
-          const over =
-            target === canvas ||
-            (target instanceof Element && target.closest(".ro-layer .ro-unit, .hud"));
+          const over = interactionSurface(e.target);
           pointer = over || rightPress || press || orbit ? { x: e.clientX, y: e.clientY } : null;
           if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > CLICK_SLOP_PX) {
             press.dragged = true;

@@ -119,7 +119,8 @@ export async function appJourney(ctx) {
   const [cx, cy] = [view.width / 2, view.height / 2];
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   await page.getByRole("tab", { name: "VEH", exact: true }).click();
-  await page.getByRole("button", { name: "M1 Abrams", exact: true }).click();
+  // A family's variants are its info cards, open while its card is hovered.
+  await page.getByRole("button", { name: "M1 Abrams", exact: true }).hover();
   await page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ }).click();
   await page.mouse.move(cx, cy);
   await page.waitForTimeout(100);

@@ -80,7 +80,14 @@ export function baselines(
       if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) throw new Error(`bad baseline name "${name}"`);
       if (captured.has(name)) throw new Error(`baseline "${name}" captured twice`);
       captured.add(name);
-      // Frozen: no running animation, transition or blinking caret.
+      // Settled: every font loaded and two frames laid out, however late
+      // the last render came (a label drawn in a layout effect, a font it
+      // first asks for). Frozen: no running animation, transition or caret.
+      const page = typeof target.page === "function" ? target.page() : target;
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      });
       const png = await target.screenshot({
         animations: "disabled",
         caret: "hide",

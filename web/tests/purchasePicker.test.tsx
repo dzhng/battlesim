@@ -4,6 +4,10 @@ import { afterEach, expect, test, vi } from "vitest";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import type { UnitCard } from "@packages/scene-assets/src/units";
 import type { SkirmishView } from "@web/battle/sim/observation";
+import type { PanelRules } from "@web/battle/present/panelRows";
+import game from "@fixtures/game.json";
+
+const RULES = game as unknown as PanelRules;
 
 /** Views render under the test set, as a lab page provides it. */
 const render = (ui: Parameters<typeof renderView>[0]) =>
@@ -39,6 +43,7 @@ test("an empty army can inspect one family and purchase its enabled concrete var
       faction="us"
       match={match}
       onChoose={choose}
+      rules={RULES}
     />,
   );
   fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
@@ -62,6 +67,7 @@ test("purchase availability follows observed credits and reserved slots", () => 
     cards: [card("base", "SEP v2")],
     faction: "us" as const,
     onChoose: choose,
+    rules: RULES,
   };
   // A one-variant family is bought by clicking it, once it is affordable
   // and a slot is free.
@@ -94,6 +100,7 @@ test("clicking a unit family immediately arms its first available variant", () =
       faction="us"
       match={match}
       onChoose={choose}
+      rules={RULES}
     />,
   );
   fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
@@ -110,7 +117,7 @@ test("an unavailable family shows its card's silhouette, marked unavailable and 
     roster: { factions: ["us"], family_name: "F-16", category: "air", variant: "F-16C Block 50" },
   };
   const view = render(
-    <PurchasePicker cards={[jet]} faction="us" match={match} onChoose={choose} />,
+    <PurchasePicker cards={[jet]} faction="us" match={match} onChoose={choose} rules={RULES} />,
   );
   fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
   fireEvent.click(view.getByRole("tab", { name: "AIR" }));
@@ -119,4 +126,22 @@ test("an unavailable family shows its card's silhouette, marked unavailable and 
   expect(family.classList.contains("unavailable")).toBe(true);
   fireEvent.click(family);
   expect(choose).not.toHaveBeenCalled();
+});
+
+test("a one-variant family's info card buys it, as its card does", () => {
+  const choose = vi.fn();
+  const view = render(
+    <PurchasePicker
+      cards={[card("base", "SEP v2")]}
+      faction="us"
+      match={match}
+      onChoose={choose}
+      rules={RULES}
+    />,
+  );
+  fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  fireEvent.click(view.getByRole("tab", { name: "VEH" }));
+  fireEvent.mouseEnter(view.getByRole("button", { name: "M1 Abrams" }));
+  fireEvent.click(view.getByRole("button", { name: "SEP v2 — 200 credits" }));
+  expect(choose).toHaveBeenCalledExactlyOnceWith("base");
 });

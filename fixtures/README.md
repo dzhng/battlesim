@@ -104,7 +104,8 @@ Resolution happens once through the contract owner. Invalid inheritance,
 references, physical mounts or numbers fail at load with an entry-specific error.
 [Catalog tests](../crates/sim/tests/catalog.rs) own the explicit regeneration gate
 for `catalog.json`; browser presentation reads that resolved view, including
-resolved weapons, rather than reinterpreting authored families.
+resolved weapons ([presentation rules](../web/src/battle/catalog/compose.ts) hand
+them to panels and the range ruler), rather than reinterpreting authored families.
 
 A battle runs one of three document sets (`sim::fixtures::CatalogSet`): the
 game's, the only one committed as `catalog.json` and holding only what roster

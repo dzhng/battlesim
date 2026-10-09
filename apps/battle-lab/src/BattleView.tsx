@@ -315,6 +315,7 @@ export function BattleView({
                   faction={session.purchase.faction}
                   match={observation.skirmish}
                   onChoose={session.purchase.choose}
+                  rules={session.rules}
                 />
               </>
             ) : undefined

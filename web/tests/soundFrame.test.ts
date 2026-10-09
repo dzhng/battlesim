@@ -707,7 +707,8 @@ test("the turret's landing clang is the catalog's tank shell striking armour", (
 
 test("a reversing vehicle beeps at a steady rate and level, whatever its speed", () => {
   const row = AUDIO.vehicles.tracked_heavy;
-  const beeper = (load: number) => vehicleLoops(row, load, 0, true).find((l) => l.slot === "reverse");
+  const beeper = (load: number) =>
+    vehicleLoops(row, load, 0, true).find((l) => l.slot === "reverse");
   // An electronic back-up alarm: creeping or backing fast, the same beep.
   expect(beeper(0.1)).toEqual(beeper(1));
   expect(beeper(1)!.rate).toBe(1);

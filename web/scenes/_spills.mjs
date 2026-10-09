@@ -32,6 +32,7 @@ export function spills(page, selector) {
           const s = getComputedStyle(a);
           if (s.overflowX !== "visible" || s.overflowY !== "visible") skip = true;
           if (a.matches(selector)) skip = true;
+          if (s.position === "absolute" && a.querySelector(selector)) skip = true;
         }
         if (skip) continue;
         if (

@@ -20,8 +20,8 @@ function card(w, h) {
   return PNG.sync.write(png);
 }
 
-/** What a page or locator offers the helper: a screenshot. */
-const target = (png) => ({ screenshot: async () => png });
+/** What a page offers the helper: a screenshot, and a page to settle. */
+const target = (png) => ({ screenshot: async () => png, evaluate: async () => {} });
 
 let dir;
 let checks;
