@@ -184,6 +184,11 @@ export async function run(fixtures) {
         },
         async newPage({ viewport = { width: 1280, height: 800 }, allowErrors = false } = {}) {
           const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
+          // The app declares an empty icon (index.html); a bare document a
+          // scene opens (a JSON file, for its origin) has none, so the
+          // browser asks for /favicon.ico itself, and its 404 would read as
+          // a page error.
+          await context.route("**/favicon.ico", (route) => route.fulfill({ status: 204 }));
           const page = await context.newPage();
           await page.addInitScript(guardMeasures, MEASURE_ENTRIES_MAX);
           page.on("crash", () => pageErrors.push(`${fixture.id}: the page crashed`));

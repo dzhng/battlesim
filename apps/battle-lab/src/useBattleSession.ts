@@ -6,7 +6,7 @@
 // pick and box-select adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
-import { admitScenario } from "@web/battle/catalog/sets";
+import { admitScenario, presentationRules } from "@web/battle/catalog/sets";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { ContactPresentation } from "@web/battle/present/contactPresentation";
 import { gameContactStyle } from "./gameFog";
@@ -213,7 +213,11 @@ export function useBattleSession({
       skirmish?: { factions: [Faction, Faction] };
       units?: { kind: string }[];
     };
-    return { ...parsed, units: admitScenario(parsed, catalog) };
+    return {
+      ...parsed,
+      rules: presentationRules(parsed.rules, catalog),
+      units: admitScenario(parsed, catalog),
+    };
   }, [scenario, catalog]);
   const world = useStaticWorld(map, rules);
   // Combat effects: every decoded publication noted (the frame dedupes),

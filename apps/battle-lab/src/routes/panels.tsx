@@ -10,6 +10,7 @@ import { InfoPanel, PanelCallout } from "@web/battle/present/infoPanel";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import { useEffect, useState } from "react";
 import { useSessionCatalog } from "@web/battle/catalog/context";
+import { presentationRules } from "@web/battle/catalog/sets";
 import { panelSpecimens, specimenUnit, type Specimen } from "../panelSpecimens";
 
 import { CommandBar } from "@web/battle/present/readouts";
@@ -17,7 +18,7 @@ import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { CaptionList } from "@web/battle/present/captions";
 
-const RULES = game as unknown as PanelRules;
+const GAME_RULES = game as unknown as PanelRules;
 
 /** The specimens shown again over grass: one of each kind of panel. */
 const OVER_GRASS = [
@@ -49,7 +50,7 @@ export default function Panels() {
   const params = new URLSearchParams(location.search);
   const scale = Number(params.get("scale") ?? 1) || 1;
   const catalog = useSessionCatalog();
-  const specimens = panelSpecimens(catalog, RULES, {
+  const specimens = panelSpecimens(catalog, presentationRules(GAME_RULES, catalog), {
     testUnitsOnly: params.get("units") === "test",
   });
   const groups = [...new Set(specimens.map((s) => s.group))];
@@ -94,6 +95,7 @@ export default function Panels() {
 /** The real selection and command components over controlled presentation data. */
 function DeckReview({ onBack }: { onBack: () => void }) {
   const catalog = useSessionCatalog();
+  const rules = presentationRules(GAME_RULES, catalog);
   const cases: {
     name: string;
     units: ReturnType<typeof specimenUnit>[];
@@ -230,7 +232,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
           own={selection.units}
           selected={selected}
           onSelect={setSelected}
-          rules={RULES}
+          rules={rules}
           control={selection.replay ? undefined : control}
           captions={
             <CaptionList
@@ -254,7 +256,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
               faction="us"
               match={skirmish}
               onChoose={() => {}}
-              rules={RULES}
+              rules={rules}
             />
           }
         />
