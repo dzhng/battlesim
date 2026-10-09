@@ -129,8 +129,8 @@ async function infoCardCursor(ctx, page) {
         .locator('.ro-unit[data-unit="2"] .ro-name-word')
         .evaluate((card) => getComputedStyle(card).cursor);
       ctx.check(
-        "info cards do not request a native hand during camera control",
-        fallback !== "pointer",
+        "info cards show no native pointer during camera control",
+        fallback === "none",
         fallback,
       );
     } finally {

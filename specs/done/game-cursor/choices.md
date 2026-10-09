@@ -14,7 +14,7 @@ A selected squad inside the house may have an attack order that fires from its p
 
 ### Draw the cursor as a screen-space overlay
 
-When the player points at a house, the arrow tip sits at the actual pointer and the badge sits below/right. The viewport positions one DOM element, the browser's ordinary screen-space drawing layer; seven badge nodes remain mounted and switch visibility. A native image cursor would also look suitable, but normal headless screenshots omit it and could not prove the production result. The prompt chose appearance rather than this mechanism. Future cursor actions use the existing generated icon family and viewport lifetime. **Sound, medium:** the small overlay is inspectable and uses current pointer updates, but live input feel remains a visual/input judgment.
+When the player points at a house, the arrow tip sits at the actual pointer and the badge sits below/right. The app shell's cursor positions one DOM element, the browser's ordinary screen-space drawing layer; seven badge nodes remain mounted and switch visibility. A native image cursor would also look suitable, but normal headless screenshots omit it and could not prove the production result. The prompt chose appearance rather than this mechanism. Future cursor actions use the existing generated icon family, and pages only choose the action. **Sound, medium:** the small overlay is inspectable and uses current pointer updates, but live input feel remains a visual/input judgment.
 
 ### Leave older movement uncertainty plain
 

@@ -801,7 +801,7 @@ export function LabViewport({
           onFrameRef.current?.(project, camera, pointerState);
           const action = onCursorRef.current?.(pointerState, camera, project) ?? null;
           // The app cursor always shows; the battle only chooses its action.
-          const active = pointerState.position && surface && !orbit && !pilot;
+          const active = surface && !orbit && !pilot;
           setCursorAction((active && action) || "default");
           pilot?.frame?.({ now, cpuMs: performance.now() - started, camera });
           raf = requestAnimationFrame(loop);
