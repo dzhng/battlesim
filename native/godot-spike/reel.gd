@@ -24,6 +24,7 @@ var authored_building_count := 0
 var authored_map_scene_count := 0
 var authored_building_limit := 256
 var authored_scene_nodes: Dictionary = {}
+var authored_scene_by_family: Dictionary = {}
 var cut_dir := ""
 var cuts_saved := 0
 var capture_word_count := 0
@@ -97,6 +98,18 @@ func _build_world() -> void:
 	camera = Camera3D.new()
 	add_child(camera)
 	var authored_path := OS.get_environment("GODOT_AUTHORED_SCENE")
+	var authored_paths := OS.get_environment("GODOT_AUTHORED_SCENES")
+	if not authored_paths.is_empty():
+		for path in authored_paths.split(","):
+			var clean_path := path.strip_edges()
+			var scene_resource = load(clean_path)
+			if scene_resource is PackedScene:
+				var filename := clean_path.get_file().get_basename().to_lower()
+				var family_key := "paris" if filename.contains("paris") else ("china" if filename.contains("china") else filename.split("-")[0].split("_")[0])
+				authored_scene_by_family[family_key] = scene_resource
+		if _build_authored_maps(null):
+			authored_asset_loaded = true
+			return
 	if not authored_path.is_empty():
 		var authored = load(authored_path)
 		if authored is PackedScene:
@@ -135,7 +148,13 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 				break
 			var frame: Dictionary = building.get("frame", {})
 			var translation: Array = frame.get("translation", [0.0, 0.0, 0.0])
-			var instance = authored.instantiate()
+			var building_scene: PackedScene = authored
+			if building_scene == null:
+				var family := String(map.get("regional_family", "")).to_lower()
+				building_scene = authored_scene_by_family.get(family)
+			if building_scene == null:
+				continue
+			var instance = building_scene.instantiate()
 			instance.position = Vector3(float(translation[0]), float(translation[2]), float(translation[1]))
 			instance.rotation.y = float(frame.get("yaw", 0.0))
 			holder.add_child(instance)
@@ -284,6 +303,7 @@ func _write_report() -> void:
 		"capture_blocker": "" if capture_results.size() == scenes.size() else "one or more scene captures are missing",
 		"source": source_path,
 		"authored_scene": OS.get_environment("GODOT_AUTHORED_SCENE"),
+		"authored_scenes": OS.get_environment("GODOT_AUTHORED_SCENES"),
 		"scene_count": scenes.size(),
 		"scene_ids": scenes.map(func(s): return {"map": s.map, "encounter": s.encounter, "seed": s.seed}),
 		"instance_count": 0 if authored_asset_loaded else INSTANCE_COUNT,
