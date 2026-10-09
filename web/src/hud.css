@@ -924,13 +924,19 @@
 }
 .hud-lower {
   position: fixed;
-  inset-inline: 0;
-  bottom: 0;
+  inset-inline: 16px;
+  bottom: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   pointer-events: none;
+}
+/* The deck stands on the screen's edge; without it (no units, nothing to
+   buy) the captions keep their margin. */
+.hud-lower:has(.hud-army-deck) {
+  inset-inline: 0;
+  bottom: 0;
 }
 .hud-panel.hud-bar {
   position: relative;
