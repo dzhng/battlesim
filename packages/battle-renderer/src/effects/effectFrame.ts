@@ -10,7 +10,8 @@
 //   mount or soldier that fired as it is drawn at each frame (a
 //   `MuzzleSource`), else at the published launch point;
 // - an impact puff where a stretch ends in a hit, by hit class, off the
-//   surface along its published normal (sparks off a hull, from a tracer);
+//   surface along its published normal, and from a tracer, sparks, a hot
+//   flash and its light;
 // - sparks at every ricochet corner, thrown off the glancing face;
 // - a fireball for every published blast, and the dirt and smoke it throws
 //   up, rising and drifting downwind;
@@ -224,7 +225,8 @@ export interface ImpactStyle {
   duration_s: number;
   /** Per-round overrides of size scale and duration multiplier for this hit surface. */
   round_scale?: Record<string, { size: number; duration: number }>;
-  /** Sparks a tracer round throws off the surface, and a hot flash's intensity (0 for none). */
+  /** Sparks a tracer round throws off the surface, and its hot flash's
+   *  intensity (0 for none). Every round raises the puff. */
   sparks: number;
   flash: number;
   /** Its flash's light off the face, within the impact's life, reaching
@@ -745,6 +747,7 @@ class Effect implements EffectLifetime {
   /** Spark velocities, flat. */
   sparks: number[] = [];
   tracer: TracerStyle | null = null;
+  /** A round's, or the round an impact ends: it was chosen as a tracer. */
   tracerVisible = true;
   flash: FlashStyle | null = null;
   /** A flash's launch: the shooter key, mount and soldier (`Launch`). */
@@ -1279,6 +1282,7 @@ export class EffectFrame {
     const scale = style.round_scale?.[kind];
     const e = this.push(IMPACT, at, at + style.duration_s * (scale?.duration ?? 1));
     e.impact = style;
+    e.tracerVisible = tracer;
     e.cause = `impact:${hit}`;
     vec3.set(e.p, point[0], point[1], point[2]);
     if (normal) vec3.set(e.n, normal[0], normal[1], normal[2]);
@@ -1613,6 +1617,8 @@ export class EffectFrame {
       0,
       size * 0.6,
     );
+    // The hot flash and its light come with the sparks: off a tracer only.
+    if (!e.tracerVisible) return;
     const c = s.cast;
     if (c && age < c.duration_s) {
       // Off the face, reaching farther for a bigger round.

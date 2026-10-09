@@ -229,7 +229,7 @@ test("coincident rounds retain independent tracer choices when their paths separ
   expect(second.length).toBe(first);
 });
 
-test("a round sparks off a hull or prop only when it is a tracer, but always at a ricochet", () => {
+test("a hull or prop hit sparks and flashes only from a tracer, a ricochet always sparks, every hit raises dust", () => {
   const withChance = (chance: number) =>
     new EffectFrame({
       tickHz: HZ,
@@ -265,6 +265,33 @@ test("a round sparks off a hull or prop only when it is a tracer, but always at 
     expect(sparks(hit(surface), 0)).toBe(0);
   }
   expect(sparks(ricochet, 0)).toBeGreaterThan(0);
+
+  // The hot flash on armour, and its light, come with the sparks.
+  const hot = (chance: number) => {
+    const f = withChance(chance);
+    f.note(pub(1, { segments: [hit("hull")] }));
+    const clock = DT + 0.01;
+    return {
+      flashes: drawn(f, clock).filter((i) => i.shape === SHAPE.glow).length,
+      lights: lightsAt(f, clock).filter((l) => l.cause === "impact:hull").length,
+    };
+  };
+  expect(hot(1)).toEqual({ flashes: 1, lights: 1 });
+  expect(hot(0)).toEqual({ flashes: 0, lights: 0 });
+
+  // Every hit kicks up dust; off a hull or prop, less than off the ground.
+  const dust = (surface: string) => {
+    const f = withChance(0);
+    f.note(pub(1, { segments: [hit(surface)] }));
+    const puffs = drawn(f, DT + 1e-3).filter((i) => i.shape === SHAPE.flipbook);
+    expect(puffs).toHaveLength(1);
+    return puffs[0].a[3];
+  };
+  const ground = dust("ground");
+  for (const surface of ["hull", "prop"]) {
+    expect(dust(surface)).toBeGreaterThan(0);
+    expect(dust(surface)).toBeLessThan(ground);
+  }
 });
 
 const pub = (tick: number, p: Partial<EffectPublication> = {}): EffectPublication => ({
