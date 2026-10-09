@@ -44,6 +44,7 @@ func run() -> void:
 	check(reel.map_geometry_counts["first"].prop_limit == 0, "map geometry must default to the complete prop export")
 	check(reel.map_geometry_counts["first"].road_limit == 0, "map geometry must default to the complete road export")
 	check(reel.map_geometry_counts["first"].forests == 1, "map composition must consume forest regions from the saved export")
+	check(reel.map_geometry_counts["first"].rendered_buildings == 1, "map report must expose submitted building geometry separately from admitted rows")
 	check(reel.authored_building_limit == 7, "authored building cap must apply before selecting a single or multi-kit scene")
 	check(reel._authored_scene_for_template("china-home-10x8-1f", "china") == null, "template catalog lookup must disclose absent authored kits")
 	check(reel._authored_family_key("res://authoring/homes-kit.glb") == "homes", "authored kit family must come from the resource path")

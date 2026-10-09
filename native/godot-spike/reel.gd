@@ -331,6 +331,10 @@ func _build_map_geometry() -> void:
 			counts.props += 1
 		_add_box_batch(holder, prop_transforms, Color("7d6a50"), 0.55)
 		_add_tree_batch(holder, tree_transforms)
+		counts["rendered_roads"] = road_transforms.size()
+		counts["rendered_buildings"] = building_transforms.size()
+		counts["rendered_props"] = prop_transforms.size()
+		counts["rendered_trees"] = tree_transforms.size()
 		counts["building_limit"] = building_limit
 		counts["prop_limit"] = prop_limit
 		counts["road_limit"] = road_limit
