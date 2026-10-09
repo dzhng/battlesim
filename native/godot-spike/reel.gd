@@ -29,6 +29,7 @@ var cut_dir := ""
 var cuts_saved := 0
 var capture_word_count := 0
 var capture_layout_valid := false
+var map_geometry_nodes: Dictionary = {}
 var map_geometry_counts: Dictionary = {}
 var proxy_field_used := false
 var startup_started_usec := 0
@@ -168,7 +169,8 @@ func _build_world() -> void:
 			add_child(instance)
 			authored_asset_loaded = true
 			return
-	_build_proxy_field()
+	if map_geometry_nodes.is_empty():
+		_build_proxy_field()
 
 func _build_map_geometry() -> void:
 	var directory := OS.get_environment("GODOT_AUTHORED_MAP_DIR")
@@ -192,6 +194,7 @@ func _build_map_geometry() -> void:
 		if typeof(map) != TYPE_DICTIONARY:
 			continue
 		var holder := Node3D.new()
+		map_geometry_nodes[map_name] = holder
 		holder.name = "MapGeometry_%s" % map_name
 		holder.visible = map_name == String(scenes[0].map)
 		add_child(holder)
@@ -311,6 +314,7 @@ func _build_authored_maps(authored: PackedScene) -> bool:
 	return authored_map_scene_count > 0
 
 func _build_proxy_field() -> void:
+	proxy_field_used = true
 	var box := BoxMesh.new()
 	box.size = Vector3(0.8, 0.8, 0.8)
 	var material := StandardMaterial3D.new()
@@ -356,7 +360,7 @@ func _process(delta: float) -> void:
 				_write_report()
 				get_tree().quit()
 			else:
-				_show_authored_scene()
+				_show_scene()
 
 func _update_observed_units() -> void:
 	var scene: Dictionary = scenes[scene_index]
@@ -391,7 +395,9 @@ func _update_observed_units() -> void:
 		node.position = Vector3(float(position[0]), max(0.7, float(position[2]) + 0.7), float(position[1]))
 		node.rotation.y = float(pose.yaw)
 
-func _show_authored_scene() -> void:
+func _show_scene() -> void:
+	for map_name in map_geometry_nodes:
+		map_geometry_nodes[map_name].visible = map_name == scenes[scene_index].map
 	for map_name in authored_scene_nodes:
 		authored_scene_nodes[map_name].visible = map_name == scenes[scene_index].map
 

@@ -71,12 +71,12 @@ External measurements are context only; the frozen Mac runs are the evidence.
 ## Global TODO
 
 - [~] Add displayed-frame rate summary fields and tests — slice 01 (landed).
-- [x] Freeze complete menu-reel identity, canonical capture and browser control — slice 01 (fingerprinted identity, downloadable report and hashed evidence manifest).
+- [~] Freeze complete menu-reel identity, canonical capture and browser control — slice 01 (fingerprinted identity, downloadable report and hashed evidence manifest; named browser cuts and visual control review remain open).
 - [~] Add Settings graphics test and report chart — slice 01 (route exists; lifecycle, report identity and visual verification remain).
 - [~] Verify offline native seam and Godot headless toolchain — slice 02 (offline probe and live extension smoke load; real scenario transfer/parity remains).
 - [x] Spike binding candidates and select a seam — slice 02 (GDExtension for interactive authority; presentation capture for renderer comparison; IPC retained as measured fallback).
 - [~] Render the full menu reel in Godot — slice 03 (semantic unit decoding plus bounded map geometry and comparable report envelope added; authored materials, fog, full catalog and visual comparison remain open).
-- [x] Compare repeated distributions and reslice the chosen direction — slice 04 (verdict: keep Godot experimental; display-backed authored comparison follow-on recorded).
+- [~] Compare repeated distributions and reslice the chosen direction — slice 04 (provisional verdict: keep Godot experimental; repeated equivalent display-backed distributions remain open).
 
 ## Human review surface
 
