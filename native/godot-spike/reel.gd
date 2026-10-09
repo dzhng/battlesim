@@ -154,6 +154,9 @@ func _build_world() -> void:
 	add_child(unit_holder)
 	var authored_path := OS.get_environment("GODOT_AUTHORED_SCENE")
 	var authored_paths := OS.get_environment("GODOT_AUTHORED_SCENES")
+	var limit_text := OS.get_environment("GODOT_AUTHORED_BUILDING_LIMIT")
+	if not limit_text.is_empty():
+		authored_building_limit = maxi(0, int(limit_text))
 	if not authored_paths.is_empty():
 		for path in authored_paths.split(","):
 			var clean_path := path.strip_edges()
@@ -168,9 +171,6 @@ func _build_world() -> void:
 	if not authored_path.is_empty():
 		var authored = load(authored_path)
 		if authored is PackedScene:
-			var limit_text := OS.get_environment("GODOT_AUTHORED_BUILDING_LIMIT")
-			if not limit_text.is_empty():
-				authored_building_limit = maxi(0, int(limit_text))
 			if _build_authored_maps(authored):
 				authored_asset_loaded = true
 				return
