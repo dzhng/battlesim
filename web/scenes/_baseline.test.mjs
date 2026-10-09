@@ -79,6 +79,14 @@ test("imperceptible colour noise passes, a moved edge does not", async () => {
   expect(checks.at(-1).ok).toBe(false);
 });
 
+test("one clearly changed pixel fails: an unchanged capture is identical", async () => {
+  await run("fx").match(target(card(160, 30)), "detail");
+  const touched = PNG.sync.read(card(160, 30));
+  touched.data.set([255, 0, 0, 255], (50 * 200 + 180) * 4);
+  await run().match(target(PNG.sync.write(touched)), "detail");
+  expect(checks.at(-1)).toMatchObject({ ok: false, detail: expect.stringMatching(/^1 px differ/) });
+});
+
 test("a resized capture fails whatever its pixels", async () => {
   await run("fx").match(target(card(160, 30)), "detail");
   const wide = new PNG({ width: 201, height: 100 });

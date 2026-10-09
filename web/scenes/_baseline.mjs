@@ -23,10 +23,11 @@ export const BASELINES = new URL("./baselines/", import.meta.url);
 /** pixelmatch's per-pixel threshold (0..1 in YIQ colour distance). */
 const PIXEL_THRESHOLD = 0.1;
 
-/** The share of pixels that may differ before a capture fails: a tripwire for
- *  sub-pixel noise, far below any real change (one wrapped word is hundreds
- *  of pixels; a collapsed card thousands). */
-const MAX_DIFF_SHARE = 0.0005;
+/** The share of pixels that may differ before a capture fails. None: an
+ *  unchanged capture here is identical to the pixel, run after run, and any
+ *  allowance hides a real change its size (a 17 px cursor in a 1280 px frame).
+ *  Imperceptible colour and anti-aliasing noise is pixelmatch's to ignore. */
+const MAX_DIFF_SHARE = 0;
 
 const LFS_POINTER = "version https://git-lfs";
 
@@ -139,4 +140,14 @@ export function baselines(
         );
     },
   };
+}
+
+/** Take the pointer out of the page, as a player not pointing at anything:
+ *  hover states clear and the game cursor hides, so a capture that is not
+ *  of the pointer does not draw it. It touches the corner first: just after a
+ *  click replaces the element under the pointer, Chromium has no element to
+ *  leave until it hit-tests again, and leaving at once reports nothing. */
+export async function pointerAway(page) {
+  await page.mouse.move(0, 0);
+  await page.mouse.move(-5, -5);
 }

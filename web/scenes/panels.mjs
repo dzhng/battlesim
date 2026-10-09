@@ -5,6 +5,7 @@
 // panel draws a warm (amber) colour outside a warning. Its approved pictures
 // (`_baseline.mjs`) pin every panel group, on the test units, and every
 // battle-deck case at two widths, plain, hovered and focused.
+import { pointerAway } from "./_baseline.mjs";
 import { spills } from "./_spills.mjs";
 
 /** Every mark's icon ink centre against its slot's centre, in CSS pixels. */
@@ -281,6 +282,45 @@ export async function run(ctx) {
   );
   const warm = await warmInOwn(page);
   ctx.check("no own panel draws amber outside a warning", warm.length === 0, warm.join(" | "));
+  // A panel's counts read down one column: each weapon row's colon starts
+  // where the others' do, whatever the length of its name or its counts.
+  const colons = await page.evaluate(() =>
+    [...document.querySelectorAll(".ro-body:not([data-zoom='far']) .ro-weapons")]
+      .map((section) =>
+        [...section.querySelectorAll(":scope > .ro-weapon .ro-count-separator")].map(
+          (c) => c.getBoundingClientRect().left,
+        ),
+      )
+      .filter((xs) => xs.length > 1)
+      .map((xs) => Math.max(...xs) - Math.min(...xs)),
+  );
+  ctx.check(
+    "every panel's counts start in one column (colons within 0.5 px)",
+    colons.length > 5 && Math.max(...colons) <= 0.5,
+    JSON.stringify({ panels: colons.length, worst: Math.max(...colons) }),
+  );
+  // Within a row, items keep apart: the counts' last digit from the amount
+  // pips, a warning badge or guidance mark from the weapon's name.
+  const crowded = await page.evaluate(() => {
+    const out = [];
+    const gap = (a, b) => b.getBoundingClientRect().left - a.getBoundingClientRect().right;
+    for (const row of document.querySelectorAll(".ro-body:not([data-zoom='far']) .ro-weapon")) {
+      if (row.getClientRects().length === 0) continue;
+      const kinds = row.querySelector(":scope > .ro-kinds");
+      const pips = row.querySelector(":scope > .ro-pips:not(.ro-pips-none)");
+      const word = row.querySelector(":scope > .ro-word");
+      const mark = row.querySelector(":scope > :is(.ro-badge, .ro-guide)");
+      const at = row.closest("[data-specimen]")?.dataset.specimen;
+      if (kinds && pips && gap(kinds, pips) < 4) out.push(`${at}: pips ${gap(kinds, pips)}`);
+      if (word && mark && gap(word, mark) < 3) out.push(`${at}: mark ${gap(word, mark)}`);
+    }
+    return out;
+  });
+  ctx.check(
+    "no row crowds its pips against its counts, or its mark against its name",
+    crowded.length === 0,
+    crowded.slice(0, 6).join(" | "),
+  );
   const farWeapons = await page
     .locator('[data-specimen="far out/two launchers selected"]')
     .evaluate((card) => {
@@ -366,7 +406,7 @@ export async function run(ctx) {
       "Replay",
     ]) {
       await page.getByRole("button", { name, exact: true }).click();
-      await page.mouse.move(0, 500);
+      await pointerAway(page);
       const layout = await page.locator(".hud-army-deck").evaluate((deck) => {
         const rect = deck.getBoundingClientRect();
         const cards = [...deck.querySelectorAll(".hud-army-card")].map((e) =>
@@ -409,7 +449,7 @@ export async function run(ctx) {
           layout.bottom <= 900 &&
           layout.captionBottom < layout.top &&
           (layout.commandTop === null ||
-            (layout.commandTop >= layout.cardBottom && layout.commandHeight <= 48)),
+            (layout.commandTop >= layout.cardBottom + 4 && layout.commandHeight <= 48)),
         JSON.stringify(layout),
       );
       if (name !== "Entire force")
@@ -429,6 +469,20 @@ export async function run(ctx) {
         JSON.stringify(layout),
       );
       const slug = name.toLowerCase().replaceAll(" ", "-");
+      // A game's interface is never selected like a page's text: no word of
+      // the HUD (a caption, a card, a command) takes a selection highlight.
+      const selectable = await page.evaluate(() =>
+        [...document.querySelectorAll(".hud *")]
+          .filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()))
+          .filter((e) => getComputedStyle(e).userSelect !== "none")
+          .map((e) => e.className || e.tagName)
+          .slice(0, 6),
+      );
+      ctx.check(
+        `${width}px ${name}: no HUD text can be selected`,
+        selectable.length === 0,
+        selectable.join(" | "),
+      );
       const deckSpills = await spills(page, ".hud-panel");
       ctx.check(
         `${width}px ${name}: every deck panel holds its content`,
@@ -493,7 +547,7 @@ export async function run(ctx) {
           detail.text,
         );
       await ctx.matchBaseline(page, `army-${width}-${slug}-hover`);
-      await page.mouse.move(0, 500);
+      await pointerAway(page);
       if (name === "Entire force") {
         ctx.check(
           `${width}px: the whole army wraps into several rows`,
@@ -541,7 +595,7 @@ export async function run(ctx) {
           `${width}px: real pointer click arms the command`,
           (await attack.getAttribute("aria-pressed")) === "true",
         );
-        await page.mouse.move(0, 500);
+        await pointerAway(page);
         const deploy = page.getByRole("button", { name: /^Deploy / });
         await cards.last().focus();
         for (let i = 0; i < 7; i++) await page.keyboard.press("Tab");

@@ -1,4 +1,5 @@
 // Native-size presentation contract, using the component's real moving-pointer surface.
+import { pointerAway } from "./_baseline.mjs";
 import { decode, writeCrop, mostChanged } from "./_png.mjs";
 
 const geometry = (page) =>
@@ -106,6 +107,7 @@ export async function run(ctx) {
     narrow.every((s) => s.tipError < 0.01 && s.arrowSize.every((v) => Math.abs(v - 22.4) < 0.01)) &&
       (await page.evaluate(() => document.querySelector(".cursor-lab").scrollWidth <= innerWidth)),
   );
+  await pointerAway(page);
   await ctx.matchBaseline(page, "matrix-native-430x1000");
   await ctx.writeEvidence("geometry.json", { desktop, narrow, viewport: [1280, 800], dpr: 1 });
 }

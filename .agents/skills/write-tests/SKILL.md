@@ -119,8 +119,13 @@ the other catches:
 Every state a player can reach is a shot: hovered, focused, open, empty,
 failed, at the screen's edge, at each supported width. A defect lives in the
 state no shot covers. Keep captures deterministic: fixed test content, frozen
-animation, and nothing hidden except what can never be pinned (a live 3D
-backdrop, a build's identity). Hiding a defect to make a picture stable is
+animation, the pointer out of the page unless the shot is of what it points
+at, and nothing hidden except what can never be pinned (a live 3D backdrop, a
+build's identity). Then demand an exact match: an unchanged capture is
+identical to the pixel, so any allowance only hides a real change of its size.
+When a capture flickers between runs, find the state that leaked into it (a
+stray text selection, a hover the pointer left behind); it is often a product
+defect as well. Hiding a defect to make a picture stable is
 the same failure as loosening a threshold. A new component is not done until a
 pinned page draws it. In this repo the visual suite is the task runner's
 `visual`, and [browser checks](../../../web/README.md#checks-and-evidence) own
