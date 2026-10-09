@@ -2,7 +2,7 @@
 
 ## Contract unlocked
 
-Godot renders the same frozen full menu-reel workload as the browser control. The displayed-frame report includes average FPS, 1% low, absolute minimum, maximum, raw intervals and chart, plus separate simulation, transfer, CPU submission, GPU, presentation, startup and shader-compilation timings.
+Godot renders the same frozen full menu-reel workload as the browser control by consuming `battle-presentation-capture/v1`. The displayed-frame report includes average FPS, 1% low, absolute minimum, maximum, raw intervals and chart, plus separate simulation, transfer, CPU submission, GPU, presentation, startup and shader-compilation timings.
 
 ## Seam and ownership
 
